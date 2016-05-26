@@ -1,0 +1,218 @@
+syntax = "proto2";
+
+package tensorflow.magenta;
+
+// A message containing the contents of a file along with relevant metadata and
+// information. The primary purpose for the proto is to store MIDI and ABC files
+// in a bigtable or sstable.
+message SequenceFile {
+  // Unique id. See data_utils.h GenerateSequenceId().
+  optional string id = 1;
+
+  // The path of the file relative to the root of the collection.
+  optional string filename = 2;
+
+  // The collection from which the file comes. This can be shorthand e.g.
+  // "bach". One purpose is to allow for easy selection of all or some files
+  // from a particular source.
+  optional string collection = 3;
+
+  // The contents of the file.
+  // Midi files are binary; see www.midi.org.
+  message MidiData {
+    optional bytes data = 1;
+  }
+  // ABC files are text; see en.wikipedia.org/wiki/ABC_notation.
+  message AbcData {
+    optional string data = 1;
+  }
+  oneof source_data {
+    MidiData midi = 4;
+    AbcData abc = 5;
+  }
+
+  // Primarily used to support FLAG_source_type in ingest_sequence_collection.
+  // It should mirror the datatypes available in source_data above.
+  enum SourceTypes {
+    UNDEFINED_FILE_TYPE = 0;
+    MIDI = 1;
+    ABC = 2;
+  }
+}
+
+// A message containing a symbolic music sequence. The design is largely
+// based on MIDI but it should be able to represent any music sequence.
+// For details see https://www.midi.org/specifications.
+message Sequence {
+  // NOTE: The first three fields are duplicated from SequenceFile to allow
+  // creation of portable SSTables of Sequence protos.
+  // Unique id. See data_utils.h GenerateSequenceId().
+  optional string id = 1;
+  // The path of the file relative to the root of the collection.
+  optional string filename = 2;
+  // The collection from which the file comes. This can be shorthand e.g.
+  // "bach". One purpose is to allow for easy selection of all or some files
+  // from a particular source.
+  optional string collection = 3;
+
+  // MIDI ticks per beat, also known as resolution or PPQ ("parts per quarter").
+  // There is no widely-used default. 220 is assumed per the choice made in
+  // third_party/py/pretty_midi.
+  optional int32 ticks_per_beat = 4;
+  // Lacking a time signature, 4/4 is assumed per MIDI standard.
+  repeated TimeSignature time_signatures = 5;
+  // Lacking a key signature, C Major is assumed per MIDI standard.
+  repeated KeySignature key_signatures = 6;
+  // Lacking a tempo change, 120 bpm is assumed per MIDI standard.
+  repeated TempoChange tempo_changes = 7;
+  // A Note combines a MIDI NoteOn and NoteOff into one event with duration.
+  repeated Note notes = 8;
+  // The total time of the Sequence in seconds.
+  optional double total_time = 9;
+
+  // MIDI-specific events that are generally relevant for performance and
+  // re-synthesis, but not for processing the music score.
+  repeated PitchBend pitch_bends = 10;
+  repeated ControlChange control_changes = 11;
+
+  message Note {
+    // MIDI pitch; see en.wikipedia.org/wiki/MIDI_Tuning_Standard for details.
+    optional int32 pitch = 1;
+    // Velocity ranging between 0 and 127.
+    optional int32 velocity = 2;
+    // Start and end time in seconds.
+    optional double start_time = 3;
+    optional double end_time = 4;
+    // Score-relative note length. E.g. a quarter note is 1/4.
+    optional int32 numerator = 5;
+    optional int32 denominator = 6;
+    // The pretty_midi instrument index, which in py_midi is the channel.
+    optional int32 instrument = 7;
+    // MIDI program is the sound playing (e.g. harpsichord).
+    optional int32 program = 8;
+  }
+
+  message TimeSignature {
+    // Time in seconds.
+    optional double time = 1;
+    optional int32 numerator = 2;
+    optional int32 denominator = 3;
+  }
+
+  message KeySignature {
+    // Time in seconds.
+    optional double time = 1;
+    optional Key key = 2;
+    optional Mode mode = 3;
+
+    enum Key {
+      option allow_alias = true;
+      C = 0;
+      C_SHARP = 1;
+      D_FLAT = 1;
+      D = 2;
+      D_SHARP = 3;
+      E_FLAT = 3;
+      E = 4;
+      F = 5;
+      F_SHARP = 6;
+      G_FLAT = 6;
+      G = 7;
+      G_SHARP = 8;
+      A_FLAT = 8;
+      A = 9;
+      A_SHARP = 10;
+      B_FLAT = 10;
+      B = 11;
+    }
+
+    enum Mode {
+      MAJOR = 0;
+      MINOR = 1;
+    }
+  }
+
+  message TempoChange {
+    // Time in seconds.
+    optional double time = 1;
+    // Tempo in beats per minute.
+    optional double bpm = 2;
+  }
+
+  // Stores MIDI PitchBend data. See the MIDI specfication for details.
+  message PitchBend {
+    // Time in seconds.
+    optional double time = 1;
+    // Pitch bend amount in the range (-8192, 8191).
+    optional int32 bend = 2;
+    optional int32 instrument = 3;
+    optional int32 program = 4;
+  }
+
+  // Stores MIDI Control Change data. See the MIDI specfication for details.
+  message ControlChange {
+    // Time in seconds.
+    optional double time = 1;
+    // Control (or "controller") number e.g. 0x4 = Foot Controller.
+    optional int32 control_number = 2;
+    // The value for that controller in the range (0, 127).
+    optional int32 control_value = 3;
+    optional int32 instrument = 4;
+    optional int32 program = 5;
+  }
+}
+
+// Stores metadata associated with a SequenceFile.
+message SequenceMetadata {
+  optional string title = 1;
+  optional string artist = 2;
+}
+
+// Stores a repeated list of associated string IDs. The type of the ID should be
+// obvious from the context (e.g. the BigTable column name).
+message AssociatedIds {
+  repeated string associated_id = 1;
+}
+
+// Stores the contents of or path to an audio file.
+// Next ID: 7
+message AudioFile {
+  enum AudioType {
+    UNKNOWN = 0;
+    MP3 = 1;
+    WAV = 2;
+  }
+  optional AudioType type = 1;
+  optional int32 sample_rate = 2;
+  // Valid only for MP3 type.
+  optional int32 bitrate = 3;
+
+  // Contents should be accessed with GetAudioFileContents in audio_utils.
+  oneof Contents {
+    // The contents of the audio file.
+    bytes data = 4;
+    // A path to the audio file.
+    string filepath = 5;
+  }
+
+  // The type of the ID should be obvious from the context (e.g. the BigTable
+  // column name).
+  optional string id = 6;
+}
+
+// Stores a repeated list of AudioFiles.
+message AudioFiles {
+  repeated AudioFile audio_file = 1;
+}
+
+// Stores an alignment of a Sequence to an AudioFile.
+message SequenceAlignment {
+  // The normalized DTW alignment score. Lower values represent better
+  // alignments.
+  optional double score = 1;
+  // The Sequence modified with times modified to align with the matched
+  // AudioFile. The ID matches the original Sequence.
+  optional Sequence aligned_sequence = 2;
+  // The AudioFile the Sequence has been aligned to.
+  optional AudioFile matched_audio_file = 3;
+}
