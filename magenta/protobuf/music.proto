@@ -1,0 +1,139 @@
+// Copyright 2016 Google Inc.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//      http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+//
+////////////////////////////////////////////////////////////////////////////////
+
+syntax = "proto3";
+
+package tensorflow.magenta;
+
+// A message containing a symbolic music sequence. The design is largely
+// based on MIDI but it should be able to represent any music sequence.
+// For details see https://www.midi.org/specifications.
+message NoteSequence {
+  // Unique id.
+  string id = 1;
+  // The path of the file relative to the root of the collection.
+  string filename = 2;
+  // The collection from which the file comes. This can be shorthand e.g.
+  // "bach". One purpose is to allow for easy selection of all or some files
+  // from a particular source.
+  string collection = 3;
+
+  // MIDI ticks per beat, also known as resolution or PPQ ("parts per quarter").
+  // There is no widely-used default. A default of 220 is assumed per the choice
+  // made in third_party/py/pretty_midi.
+  int32 ticks_per_beat = 4 [default = 220];
+  // Lacking a time signature, 4/4 is assumed per MIDI standard.
+  repeated TimeSignature time_signatures = 5;
+  // Lacking a key signature, C Major is assumed per MIDI standard.
+  repeated KeySignature key_signatures = 6;
+  // Lacking a tempo change, 120 bpm is assumed per MIDI standard.
+  repeated TempoChange tempo_changes = 7;
+  // A Note combines a MIDI NoteOn and NoteOff into one event with duration.
+  repeated Note notes = 8;
+  // The total time of the Sequence in seconds.
+  double total_time = 9;
+
+  // MIDI-specific events that are generally relevant for performance and
+  // re-synthesis, but not for processing the music score.
+  repeated PitchBend pitch_bends = 10;
+  repeated ControlChange control_changes = 11;
+
+  message Note {
+    // MIDI pitch; see en.wikipedia.org/wiki/MIDI_Tuning_Standard for details.
+    int32 pitch = 1;
+    // Velocity ranging between 0 and 127.
+    int32 velocity = 2;
+    // Start and end time in seconds.
+    double start_time = 3;
+    double end_time = 4;
+    // Score-relative note length. E.g. a quarter note is 1/4.
+    int32 numerator = 5;
+    int32 denominator = 6;
+    // The pretty_midi instrument index, which in py_midi is the channel.
+    int32 instrument = 7;
+    // MIDI program is the sound playing (e.g. harpsichord).
+    int32 program = 8;
+  }
+
+  message TimeSignature {
+    // Time in seconds.
+    double time = 1;
+    int32 numerator = 2;
+    int32 denominator = 3;
+  }
+
+  message KeySignature {
+    // Time in seconds.
+    double time = 1;
+    Key key = 2;
+    Mode mode = 3;
+
+    enum Key {
+      option allow_alias = true;
+      C = 0;
+      C_SHARP = 1;
+      D_FLAT = 1;
+      D = 2;
+      D_SHARP = 3;
+      E_FLAT = 3;
+      E = 4;
+      F = 5;
+      F_SHARP = 6;
+      G_FLAT = 6;
+      G = 7;
+      G_SHARP = 8;
+      A_FLAT = 8;
+      A = 9;
+      A_SHARP = 10;
+      B_FLAT = 10;
+      B = 11;
+    }
+
+    enum Mode {
+      MAJOR = 0;
+      MINOR = 1;
+    }
+  }
+
+  message Tempo {
+    // Time in seconds when tempo goes into effect.
+    double time = 1;
+    // Tempo in beats per minute.
+    double bpm = 2;
+  }
+
+  // Stores MIDI PitchBend data. See the MIDI specfication for details.
+  message PitchBend {
+    // Time in seconds.
+    double time = 1;
+    // Pitch bend amount in the range (-8192, 8191).
+    int32 bend = 2;
+    int32 instrument = 3;
+    int32 program = 4;
+  }
+
+  // Stores MIDI Control Change data. See the MIDI specfication for details.
+  message ControlChange {
+    // Time in seconds.
+    double time = 1;
+    // Control (or "controller") number e.g. 0x4 = Foot Controller.
+    int32 control_number = 2;
+    // The value for that controller in the range (0, 127).
+    int32 control_value = 3;
+    int32 instrument = 4;
+    int32 program = 5;
+  }
+}
