@@ -6,9 +6,7 @@ package tensorflow.magenta;
 // based on MIDI but it should be able to represent any music sequence.
 // For details see https://www.midi.org/specifications.
 message NoteSequence {
-  // NOTE: The first three fields are duplicated from SequenceFile to allow
-  // creation of portable SSTables of Sequence protos.
-  // Unique id. See data_utils.h GenerateSequenceId().
+  // Unique id.
   string id = 1;
   // The path of the file relative to the root of the collection.
   string filename = 2;
@@ -18,9 +16,9 @@ message NoteSequence {
   string collection = 3;
 
   // MIDI ticks per beat, also known as resolution or PPQ ("parts per quarter").
-  // There is no widely-used default. 220 is assumed per the choice made in
-  // third_party/py/pretty_midi.
-  int32 ticks_per_beat = 4;
+  // There is no widely-used default. A default of 220 is assumed per the choice
+  // made in third_party/py/pretty_midi.
+  int32 ticks_per_beat = 4 [default = 220];
   // Lacking a time signature, 4/4 is assumed per MIDI standard.
   repeated TimeSignature time_signatures = 5;
   // Lacking a key signature, C Major is assumed per MIDI standard.
@@ -94,8 +92,8 @@ message NoteSequence {
     }
   }
 
-  message TempoChange {
-    // Time in seconds.
+  message Tempo {
+    // Time in seconds when tempo goes into effect.
     double time = 1;
     // Tempo in beats per minute.
     double bpm = 2;
