@@ -37,3 +37,23 @@ tf_proto_library_py(
     name = "music_py_pb3",
     srcs = ["protobuf/music.proto"],
 )
+
+py_library(
+    name = "midi_io",
+    srcs = ["lib/midi_io.py"],
+    deps = [
+        ":music_py_pb3",
+        "@pretty_midi//:pretty_midi",
+        "@tf//tensorflow:tensorflow_py",
+    ],
+)
+
+py_test(
+    name = "midi_io_test",
+    srcs = ["lib/midi_io_test.py"],
+    srcs_version = "PY2AND3",
+    deps = [
+        ":midi_io",
+        "@tf//tensorflow:tensorflow_py",
+    ],
+)
