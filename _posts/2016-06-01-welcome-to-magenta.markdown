@@ -143,7 +143,7 @@ et al.), it's easy to generate outputs that are close in terms of
 likelihood, but far in terms of appeal (and vice versa). This
 motivates work in artificial adversaries such as [Generative
 Adversarial
-Nets](https://papers.nips.cc/paper/5423-generative-adversarial-nets.pdf)]
+Nets](https://papers.nips.cc/paper/5423-generative-adversarial-nets.pdf)
 by Goodfellow et al. from MILA in Montreal. In the end, to answer the
 evaluation question we need to get Magenta tools in the hands of
 artists and musicians, and Magenta media in front of viewers and
