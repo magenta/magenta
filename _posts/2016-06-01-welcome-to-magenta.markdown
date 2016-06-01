@@ -1,7 +1,7 @@
 ---
 layout: post
 title:  Welcome to Magenta!
-date:   2016-05-27 07:00:00 -0700
+date:   2016-06-01 08:00:00 -0700
 permalink: welcome-to-magenta
 author: douglaseck
 tags: magenta
@@ -138,7 +138,7 @@ ones are good?  One option is to compare model output to training data
 by measuring
 [likelihood](https://en.wikipedia.org/wiki/Likelihood_function).  For
 music and art, this doesn't work very well. As argued very nicely in
-[A note on generative models(http://arxiv.org/abs/1511.01844) (Theis
+[A note on generative models](http://arxiv.org/abs/1511.01844) (Theis
 et al.), it's easy to generate outputs that are close in terms of
 likelihood, but far in terms of appeal (and vice versa). This
 motivates work in artificial adversaries such as [Generative
