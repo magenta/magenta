@@ -35,7 +35,7 @@ open-source infrastructure around TensorFlow for making art and music.
 We’ll start with audio and video support, tools for working with
 formats like MIDI, and platforms that help artists connect to machine
 learning models.  For example, we want to make it super simple to play
-music along with a Magenta performance model.
+music along with a [Magenta](https://www.youtube.com/watch?v=01V9S8_7A0I&feature=youtu.be) performance model.
 
 We don't know what artists and musicians will do with these new tools,
 but we're excited to find out. Look at the history of creative
