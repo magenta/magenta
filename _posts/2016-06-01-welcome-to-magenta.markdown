@@ -164,8 +164,7 @@ about AMI.
 The [Google Cultural
 Institute](https://www.google.com/culturalinstitute/home) is fostering
 the discovery of exhibits and collections from museums and archives
-all around the world. Via their [Lab at the Cultural Institute]
-(https://www.google.com/culturalinstitute/thelab/), they’re also
+all around the world. Via their [Lab at the Cultural Institute](https://www.google.com/culturalinstitute/thelab/), they’re also
 connecting directly with artists. As we make TensorFlow/Magenta the
 best machine learning platform in the world for art and music
 generation, we’ll work closely with both AMI and the Google Cultural
