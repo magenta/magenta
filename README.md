@@ -1,6 +1,6 @@
 # Magenta
 
-[![logo](http://magenta.tensorflow.org/assets/magenta-logo.png)
+
 
 Magenta is a project from the [Google Brain
 team](https://research.google.com/teams/brain/) that asks: Can we use
