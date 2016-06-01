@@ -8,7 +8,7 @@ gems: [jekyll-paginate]
 paginate_path: "page:num"
 
 # Setup
-title:               TstMagenta
+title:               Magenta
 tagline:             "Music and art generation with machine intelligence"
 description:         Magenta is a project devoted to music and art generation
                      with machine intelligence. It is part of TensorFlow, an
