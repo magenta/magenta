@@ -1,12 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
   <channel>
-    <title>TstMagenta</title>
+    <title>Magenta</title>
     <description>Magenta is a project devoted to music and art generation with machine intelligence. It is part of TensorFlow, an open source machine learning library.</description>
     <link>https://magenta.tensorflow.org/</link>
     <atom:link href="https://magenta.tensorflow.org/feed.xml" rel="self" type="application/rss+xml"/>
-    <pubDate>Tue, 31 May 2016 23:35:07 -0700</pubDate>
-    <lastBuildDate>Tue, 31 May 2016 23:35:07 -0700</lastBuildDate>
+    <pubDate>Wed, 01 Jun 2016 09:46:46 -0700</pubDate>
+    <lastBuildDate>Wed, 01 Jun 2016 09:46:46 -0700</lastBuildDate>
     <generator>Jekyll v3.1.6</generator>
     
       <item>
@@ -39,7 +39,7 @@ open-source infrastructure around TensorFlow for making art and music.
 We’ll start with audio and video support, tools for working with
 formats like MIDI, and platforms that help artists connect to machine
 learning models.  For example, we want to make it super simple to play
-music along with a Magenta performance model.&lt;/p&gt;
+music along with a &lt;a href=&quot;https://www.youtube.com/watch?v=01V9S8_7A0I&amp;amp;feature=youtu.be&quot;&gt;Magenta&lt;/a&gt; performance model.&lt;/p&gt;
 
 &lt;p&gt;We don’t know what artists and musicians will do with these new tools,
 but we’re excited to find out. Look at the history of creative
@@ -141,12 +141,12 @@ ones are good?  One option is to compare model output to training data
 by measuring
 &lt;a href=&quot;https://en.wikipedia.org/wiki/Likelihood_function&quot;&gt;likelihood&lt;/a&gt;.  For
 music and art, this doesn’t work very well. As argued very nicely in
-[A note on generative models(http://arxiv.org/abs/1511.01844) (Theis
+&lt;a href=&quot;http://arxiv.org/abs/1511.01844&quot;&gt;A note on generative models&lt;/a&gt; (Theis
 et al.), it’s easy to generate outputs that are close in terms of
 likelihood, but far in terms of appeal (and vice versa). This
 motivates work in artificial adversaries such as &lt;a href=&quot;https://papers.nips.cc/paper/5423-generative-adversarial-nets.pdf&quot;&gt;Generative
 Adversarial
-Nets&lt;/a&gt;]
+Nets&lt;/a&gt;
 by Goodfellow et al. from MILA in Montreal. In the end, to answer the
 evaluation question we need to get Magenta tools in the hands of
 artists and musicians, and Magenta media in front of viewers and
@@ -177,7 +177,7 @@ various efforts, be sure to check out the &lt;a href=&quot;http://googleresearch
 Blog&lt;/a&gt;.&lt;/p&gt;
 
 </description>
-        <pubDate>Fri, 27 May 2016 07:00:00 -0700</pubDate>
+        <pubDate>Wed, 01 Jun 2016 08:00:00 -0700</pubDate>
         <link>https://magenta.tensorflow.org/welcome-to-magenta</link>
         <guid isPermaLink="true">https://magenta.tensorflow.org/welcome-to-magenta</guid>
         

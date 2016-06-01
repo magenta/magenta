@@ -10,7 +10,7 @@ layout: default
       {% assign author = site.authors[post.author] %}
       <li>
         <h2>
-          <a class="post-link" href="{{ post.url | prepend: site.baseurl }}">{{ post.title }}</a>
+          <span class="post-link">{{ post.title }} <a class="post-full-link" href="{{ post.url | prepend: site.baseurl }}">[read full post]</a></span>
         </h2>
         <span class="post-meta">{{ post.date | date: "%b %-d, %Y" }}</span>
        {% if author %} •
