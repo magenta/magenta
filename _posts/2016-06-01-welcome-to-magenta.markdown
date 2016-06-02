@@ -41,7 +41,7 @@ We don't know what artists and musicians will do with these new tools,
 but we're excited to find out. Look at the history of creative
 tools. Daguerre and later Eastman didn’t imagine what [Annie
 Liebovitz](https://en.wikipedia.org/wiki/Annie_Leibovitz) or [Richard
-Avalon](https://en.wikipedia.org/wiki/Richard_Avalon) would accomplish
+Avedon](https://en.wikipedia.org/wiki/Richard_Avedon) would accomplish
 in photography. Surely Rickenbacker and Gibson didn’t have [Jimi
 Hendrix](https://en.wikipedia.org/wiki/Jimi_Hendrix) or
 [St. Vincent](https://en.wikipedia.org/wiki/St._Vincent_(musician)) in
