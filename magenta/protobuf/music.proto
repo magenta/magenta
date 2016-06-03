@@ -29,7 +29,7 @@ message NoteSequence {
   // The collection from which the file comes. This can be shorthand e.g.
   // "bach". One purpose is to allow for easy selection of all or some files
   // from a particular source.
-  string collection = 3;
+  string collection_name = 3;
 
   // MIDI ticks per beat, also known as resolution or PPQ ("parts per quarter").
   // There is no widely-used default. A default of 220 is assumed per the choice

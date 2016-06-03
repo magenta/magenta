@@ -1,6 +1,0 @@
-[submodule "third_party/py/pretty_midi"]
-	path = third_party/py/pretty_midi
-	url = https://github.com/craffel/pretty-midi
-[submodule "tensorflow"]
-	path = tensorflow
-	url = https://github.com/tensorflow/tensorflow.git

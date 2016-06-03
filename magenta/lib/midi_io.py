@@ -1,3 +1,16 @@
+# Copyright 2016 Google Inc. All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#    http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 """MIDI ops.
 
 Input and output wrappers for converting between MIDI and other formats.
@@ -9,9 +22,8 @@ import sys
 
 import pretty_midi
 import tensorflow as tf
-from tensorflow.python.platform import tf_logging as logging
 
-from magenta.protobuf import music_py_pb3
+from magenta.protobuf import music_pb2
 
 
 # The offset used to change the mode of a key from major to minor when
@@ -59,15 +71,15 @@ def midi_to_sequence_proto(midi_data, continue_on_exception=False):
       midi = pretty_midi.PrettyMIDI(StringIO(midi_data))
     except:
       if continue_on_exception:
-        logging.error('Midi decoding error %s: %s', sys.exc_info()[0],
-                      sys.exc_info()[1])
+        tf.logging.error('Midi decoding error %s: %s', sys.exc_info()[0],
+                         sys.exc_info()[1])
         return None
       else:
         raise MIDIConversionError('Midi decoding error %s: %s',
                                   sys.exc_info()[0], sys.exc_info()[1])
   # pylint: enable=bare-except
 
-  sequence = music_py_pb3.NoteSequence()
+  sequence = music_pb2.NoteSequence()
 
   # Populate header.
   sequence.ticks_per_beat = midi.resolution
