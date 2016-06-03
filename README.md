@@ -3,13 +3,13 @@
 Magenta encompasses two goals. It’s first a research project to advance the state-of-the art in music, video, image, and text generation. Second, it's an attempt to build a community of artists, coders, and machine learning researchers. To facilitate those goals, we are developing open-source infrastructure in this repository.
 
 ## Installation
-The installation has three components. You are going to need Bazel to build packages, Tensorflow to run models, and an up to date version of this repository.
+The installation has three components. You are going to need Bazel to build packages, TensorFlow to run models, and an up to date version of this repository.
 
 First, clone this repository:
 
 ```git clone https://github.com/tensorflow/magenta-staging.git```
 
-Next, install Bazel and Tensorflow. You can find instructions for the former [here](http://www.bazel.io/docs/install.html) and the latter [here](https://github.com/tensorflow/tensorflow/blob/master/tensorflow/g3doc/get_started/os_setup). After that's done, run the tests with this command:
+Next, install Bazel and TensorFlow. You can find instructions for the former [here](http://www.bazel.io/docs/install.html) and the latter [here](https://github.com/tensorflow/tensorflow/blob/master/tensorflow/g3doc/get_started/os_setup.md). After that's done, run the tests with this command:
 
 ```bazel test magenta/...```
 
