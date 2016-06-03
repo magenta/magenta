@@ -9,9 +9,8 @@ import sys
 
 import pretty_midi
 import tensorflow as tf
-from tensorflow.python.platform import tf_logging as logging
 
-from magenta.protobuf import music_py_pb3
+from magenta.protobuf import music_pb2
 
 
 # The offset used to change the mode of a key from major to minor when
@@ -59,15 +58,15 @@ def midi_to_sequence_proto(midi_data, continue_on_exception=False):
       midi = pretty_midi.PrettyMIDI(StringIO(midi_data))
     except:
       if continue_on_exception:
-        logging.error('Midi decoding error %s: %s', sys.exc_info()[0],
-                      sys.exc_info()[1])
+        tf.logging.error('Midi decoding error %s: %s', sys.exc_info()[0],
+                         sys.exc_info()[1])
         return None
       else:
         raise MIDIConversionError('Midi decoding error %s: %s',
                                   sys.exc_info()[0], sys.exc_info()[1])
   # pylint: enable=bare-except
 
-  sequence = music_py_pb3.NoteSequence()
+  sequence = music_pb2.NoteSequence()
 
   # Populate header.
   sequence.ticks_per_beat = midi.resolution
