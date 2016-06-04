@@ -7,7 +7,7 @@ The installation has three components. You are going to need Bazel to build pack
 
 First, clone this repository:
 
-```git clone https://github.com/tensorflow/magenta-staging.git```
+```git clone https://github.com/tensorflow/magenta.git```
 
 Next, install Bazel and TensorFlow. You can find instructions for the former [here](http://www.bazel.io/docs/install.html) and the latter [here](https://github.com/tensorflow/tensorflow/blob/master/tensorflow/g3doc/get_started/os_setup.md). After that's done, run the tests with this command:
 
