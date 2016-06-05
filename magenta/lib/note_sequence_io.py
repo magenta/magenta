@@ -71,6 +71,6 @@ class NoteSequenceRecordWriter(tf.python_io.TFRecordWriter):
     """Serizes a NoteSequence proto and writes it to the file.
 
     Args:
-      sequence: A NoteSequence proto to write.
+      note_sequence: A NoteSequence proto to write.
     """
     tf.python_io.TFRecordWriter.write(self, note_sequence.SerializeToString())
