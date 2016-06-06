@@ -1,6 +1,13 @@
-## About this project
+<img src="http://magenta.tensorflow.org/assets/magenta-logo.png" height="75">
 
-Magenta encompasses two goals. It’s first a research project to advance the state-of-the art in music, video, image, and text generation. Second, it's an attempt to build a community of artists, coders, and machine learning researchers. To facilitate those goals, we are developing open-source infrastructure in this repository.
+**Magenta** is a project from the [Google Brain team](https://research.google.com/teams/brain/)
+that asks: Can we use machine learning to create compelling art and music? If
+so, how? If not, why not?  We’ll use [TensorFlow](https://www.tensorflow.org),
+and we’ll release our models and tools in open source on this GitHub. We’ll also
+post demos, tutorial blog postings and technical papers. Soon we’ll begin 
+accepting code contributions from the community at large. If you’d like to keep
+up on Magenta as it grows, you can read our [blog](http://magenta.tensorflow.org) and or join our
+[discussion group](http://groups.google.com/a/tensorflow.org/forum/#!forum/magenta-discuss).
 
 ## Installation
 The installation has three components. You are going to need Bazel to build packages, TensorFlow to run models, and an up to date version of this repository.
