@@ -109,13 +109,10 @@ class MidiIoTest(tf.test.TestCase):
       self.assertEqual(len(midi_instrument.notes), len(seq_instrument_notes))
       for midi_note, sequence_note in zip(midi_instrument.notes,
                                           seq_instrument_notes):
-        if midi_note.pitch != sequence_note.pitch:
-          print midi_note
-          print sequence_note
-        #self.assertEqual(midi_note.pitch, sequence_note.pitch)
-        #self.assertEqual(midi_note.velocity, sequence_note.velocity)
-        #self.assertAlmostEqual(midi_note.start, sequence_note.start_time)
-        #self.assertAlmostEqual(midi_note.end, sequence_note.end_time)
+        self.assertEqual(midi_note.pitch, sequence_note.pitch)
+        self.assertEqual(midi_note.velocity, sequence_note.velocity)
+        self.assertAlmostEqual(midi_note.start, sequence_note.start_time)
+        self.assertAlmostEqual(midi_note.end, sequence_note.end_time)
 
       seq_instrument_pitch_bends = seq_instruments[seq_instrument_key]['bends']
       self.assertEqual(len(midi_instrument.pitch_bends),
