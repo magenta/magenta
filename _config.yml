@@ -15,7 +15,7 @@ description:         Magenta is a project devoted to music and art generation
                      open source machine learning library.
 base-url:             "base-url"
 baseurl:             ""
-url:                 "https://magenta.tensorflow.org"
+url:                 "http://magenta.tensorflow.org"
 github:              "https://www.github.com/tensorflow/magenta"
 
 
