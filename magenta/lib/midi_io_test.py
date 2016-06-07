@@ -14,10 +14,9 @@
 """Test to ensure correct import of pretty_midi."""
 
 from collections import defaultdict
-import tempfile
 import os.path
+import tempfile
 
-import numpy as np
 import pretty_midi
 import tensorflow as tf
 

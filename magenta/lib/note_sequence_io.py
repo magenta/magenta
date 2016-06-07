@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""For reading/writing serialized NoteSequence protos to/from TFRecords files."""
+"""For reading/writing serialized NoteSequence protos to/from TFRecord files."""
 
 import hashlib
 import tensorflow as tf
@@ -40,10 +40,10 @@ def generate_id(filename, collection_name, source_type):
 
 
 def note_sequence_record_iterator(path):
-  """An iterator that reads and parses NoteSequence protos from a TFRecords file.
+  """An iterator that reads and parses NoteSequence protos from a TFRecord file.
 
   Args:
-    path: The path to the TFRecords file constaining serialized NoteSequences.
+    path: The path to the TFRecord file constaining serialized NoteSequences.
 
   Yields:
     NoteSequence protos.
@@ -57,7 +57,7 @@ def note_sequence_record_iterator(path):
 
 
 class NoteSequenceRecordWriter(tf.python_io.TFRecordWriter):
-  """A class to write serialized NoteSequence protos to a TFRecords file.
+  """A class to write serialized NoteSequence protos to a TFRecord file.
 
   This class implements `__enter__` and `__exit__`, and can be used in `with`
   blocks like a normal file.
