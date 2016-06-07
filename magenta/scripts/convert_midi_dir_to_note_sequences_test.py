@@ -73,7 +73,8 @@ class ConvertMidiDirToSequencesTest(tf.test.TestCase):
 
     with tempfile.NamedTemporaryFile(
         prefix='ConvertMidiDirToSequenesTest') as output_file:
-      with note_sequence_io.NoteSequenceRecordWriter(output_file.name) as writer:
+      with note_sequence_io.NoteSequenceRecordWriter(
+          output_file.name) as writer:
         convert_midi_dir_to_note_sequences.convert_directory(
             root_dir, '', writer, recursive)
       actual_filenames = set()
@@ -83,7 +84,7 @@ class ConvertMidiDirToSequencesTest(tf.test.TestCase):
             note_sequence_io.generate_id(sequence.filename,
                                          os.path.basename(relative_root),
                                          'midi'),
-          sequence.id)
+            sequence.id)
         self.assertEquals(os.path.basename(root_dir), sequence.collection_name)
         self.assertNotEquals(0, len(sequence.notes))
         actual_filenames.add(sequence.filename)

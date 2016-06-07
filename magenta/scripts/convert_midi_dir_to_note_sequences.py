@@ -92,9 +92,9 @@ def convert_directory(root_dir, sub_dir, sequence_writer, recursive=False):
 
 def main(unused_argv):
   if not FLAGS.midi_dir:
-    tf.logging.fatal("--midi_dir required")
+    tf.logging.fatal('--midi_dir required')
   if not FLAGS.output_file:
-    tf.logging.fatal("--output_file required")
+    tf.logging.fatal('--output_file required')
   with note_sequence_io.NoteSequenceRecordWriter(
       FLAGS.output_file) as sequence_writer:
     sequences_written = convert_directory(FLAGS.midi_dir, '', sequence_writer,
