@@ -45,7 +45,6 @@ class NoteSequenceIoTest(tf.test.TestCase):
       sequence.notes.add().pitch = i
       sequences.append(sequence)
 
-    temp_file = tempfile.NamedTemporaryFile(prefix='NoteSequenceIoTest')
     with tempfile.NamedTemporaryFile(prefix='NoteSequenceIoTest') as temp_file:
       with note_sequence_io.NoteSequenceRecordWriter(temp_file.name) as writer:
         for sequence in sequences:
