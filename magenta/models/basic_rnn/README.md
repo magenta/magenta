@@ -2,15 +2,15 @@
 
 This model provides baselines for the application of language modeling to melody
 generation. This code also serves as a working example for implementing a
-language model in TensorFlow. In this code an LSTM cell is used, but any type of cell can be swapped in.
+language model in TensorFlow. In this code, an LSTM cell is used, but any type of cell can be swapped in.
 
 This model takes monophonic melodies, meaning one note plays at a time. Use convert_sequences_to_melodies.py to extract monophonic melodies from NoteSequence protos made from your MIDI files. The script will look at each instrument track and extract a melody line if it is at least 7 measures long, and at least 5 unique pitches (with octave equivalence). If multiple notes play at the same time, one note is kept.
 
 ### How to Use
 
-First follow the instructions in our top level [README.md](https://github.com/tensorflow/magenta/blob/basic_rnn/README.md) for building models and creating a dataset.
+First, follow the instructions in our top level [README.md](https://github.com/tensorflow/magenta/blob/basic_rnn/README.md) for building models and creating a dataset.
 
-Run convert_sequences_to_melodies.py on the output from convert_midi_dir_to_note_sequences.py, which will extract melodies from the MIDI data. The output is written to disk as a tfrecord file that contains SequenceExample protos. TensorFlow readers in the basic_rnn model can read SequenceExample protos from disk directly into the model. In this example we create an evaluation dataset in a second tfrecord file, but that can be omitted by leaving out the eval_output and eval_ratio flags.
+Run convert_sequences_to_melodies.py on the output from convert_midi_dir_to_note_sequences.py, which will extract melodies from the MIDI data. The output is written to disk as a tfrecord file that contains SequenceExample protos. TensorFlow readers in the basic_rnn model can read SequenceExample protos from disk directly into the model. In this example, we create an evaluation dataset in a second tfrecord file, but that can be omitted by leaving out the eval_output and eval_ratio flags.
 
 ```
 # TFRecord file containing NoteSequence protocol buffers from convert_midi_dir_to_note_sequences.py.
@@ -19,10 +19,10 @@ SEQUENCES_TFRECORD=/tmp/notesequences.tfrecord
 # TFRecord file that TensorFlow's SequenceExample protos will be written to. This is the training dataset.
 TRAIN_DATA=/tmp/training_melodies.tfrecord
 
-# Optional evaluation dataset. Also a TFRecord file containing SequenceExample protos.
+# Optional evaluation dataset. Also, a TFRecord file containing SequenceExample protos.
 EVAL_DATA=/tmp/evaluation_melodies.tfrecord
 
-# Fraction of input data that will be written to eval dataset (if eval_output flag is set).
+# Fraction of input data that will be written to the eval dataset (if eval_output flag is set).
 EVAL_RATIO=0.10
 
 # Name of the encoder to use. See magenta/lib/encoders.py.
@@ -91,7 +91,7 @@ The generator will take many samples from the model's distribution. You can choo
 Lets generate 64 new timesteps.
 
 ```
-# Provide a MIDI file to use as a primer for generation.
+# Provide a MIDI file to use as a primer for the generation.
 # The MIDI should just contain a short monophonic melody.
 # primer.mid is provided as an example.
 PRIMER_PATH=<absolute location of your primer MIDI file>
