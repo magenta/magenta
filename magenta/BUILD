@@ -16,7 +16,7 @@
 # Tools and models for using TensorFlow with music and art.
 
 package(
-    default_visibility = ["//visibility:private"],
+    default_visibility = ["//magenta:__subpackages__"],
     features = ["-layering_check"],
 )
 
@@ -100,5 +100,63 @@ py_test(
    ],
    deps = [
        ":convert_midi_dir_to_note_sequences",
+   ],
+)
+
+py_library(
+    name = "encoders",
+    srcs = ["lib/encoders.py"],
+    deps = [
+        ":melodies_lib",
+    ],
+)
+
+py_library(
+    name = "melodies_lib",
+    srcs = ["lib/melodies_lib.py"],
+    deps = [
+        ":music_py_pb2",
+    ]
+)
+
+py_binary(
+    name = "convert_sequences_to_melodies",
+    srcs = ["scripts/convert_sequences_to_melodies.py"],
+    deps = [
+        ":encoders",
+        ":melodies_lib",
+        ":music_py_pb2",
+    ],
+)
+
+py_test(
+    name = "melodies_lib_test",
+    srcs = ["lib/melodies_lib_test.py"],
+    srcs_version = "PY2AND3",
+    deps = [
+        ":melodies_lib",
+        "@protobuf//:protobuf_python",
+    ],
+)
+
+py_test(
+    name = "encoders_test",
+    srcs = ["lib/encoders_test.py"],
+    srcs_version = "PY2AND3",
+    deps = [
+        ":encoders",
+        ":melodies_lib",
+    ],
+)
+
+py_test(
+   name = "convert_sequences_to_melodies_test",
+   srcs = ["scripts/convert_sequences_to_melodies_test.py"],
+   srcs_version = "PY2AND3",
+   data = [
+       "testdata/notesequences.tfrecord",
+   ],
+   deps = [
+       ":convert_sequences_to_melodies",
    ],
 )
