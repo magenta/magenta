@@ -14,9 +14,8 @@
 r""""Converts MIDIs to NoteSequence protos and writes TFRecord file.
 
 Sample usage:
-<<<<<<< 9ed2baae59295470d747eaccd758e8b956036a30
   $ bazel build magenta:convert_midi_dir_to_note_sequences
-  $ bazel-bin/magenta/convert_midi_dir_to_note_sequences \
+  $ ./bazel-bin/magenta/convert_midi_dir_to_note_sequences \
     --midi_dir=/path/to/midi/dir \
     --output_file=/path/to/tfrecord/file \
     --recursive
