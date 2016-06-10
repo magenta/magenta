@@ -12,7 +12,7 @@ team](https://research.google.com/teams/brain/) that asks: Can we use
 machine learning to create compelling art and music? If so, how? If
 not, why not?  We’ll use [TensorFlow](https://www.tensorflow.org), and
 we’ll release our models and tools in open source on our GitHub. We’ll
-also post demos, tutorial blog postings, and technical papers. Soon
+also post demos, tutorial blog postings and technical papers. Soon
 we’ll begin accepting code contributions from the community at
 large. If you’d like to keep up on Magenta as it grows, you can follow
 us on our [GitHub](https://github.com/tensorflow/magenta) and join our
@@ -29,7 +29,7 @@ Magenta, we want to explore the other side—developing algorithms that
 can learn how to generate art and music, potentially creating
 compelling and artistic content on their own.
 
-Second, Magenta is an attempt to build a community of artists, coders,
+Second, Magenta is an attempt to build a community of artists, coders
 and machine learning researchers. The core Magenta team will build
 open-source infrastructure around TensorFlow for making art and music.
 We’ll start with audio and video support, tools for working with
@@ -110,7 +110,7 @@ images.
 ## Storytelling
 
 This leads to perhaps our biggest challenge: combining generation,
-attention, and surprise to tell a compelling story.  So much
+attention and surprise to tell a compelling story.  So much
 machine-generated music and art is good in small chunks but lacks any
 sort of long-term narrative arc. (To be fair, my own 2002 [music
 generation

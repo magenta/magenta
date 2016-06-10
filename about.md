@@ -14,7 +14,7 @@ watch our [GitHub](https://github.com/tensorflow/magenta)
 and or join our [discussion group](https://groups.google.com/a/tensorflow.org/forum/#!forum/magenta-discuss).
 
 Magenta encompasses two goals. It’s first a research project to
-advance the state-of-the-art in music, video, image and text
+advance the state of the art in music, video, image and text
 generation. So much has been done with machine learning to understand
 content— for example, speech recognition and translation; in this
 project, we want to explore content generation and creativity.  Second,

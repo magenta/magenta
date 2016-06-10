@@ -15,7 +15,7 @@ releasing code that converts MIDI files to a format that TensorFlow can
 understand, making it easy to create training datasets from any collection of
 MIDI files.
 
-This tutorial will allow you to to generate music with a recurrent neural
+This tutorial will allow you to generate music with a recurrent neural
 network. It's purposefully a simple model, so don't expect stellar music
 results. We'll post more complex models soon.
 
@@ -55,7 +55,7 @@ the next note given a sequence of previous notes. They do this by learning a
 probability distribution over the next notes given all the previous notes. By
 sampling from that distribution and feeding the chosen note back into the model
 at the next step, the RNN can dream up an entire melody. Generative models are
-typically unsupervised, meaning that there are samples but no labels. However we
+typically unsupervised, meaning that there are samples but no labels. However, we
 turn the problem of melody generation into a supervised one by trying to predict
 the next note in a sequence, that way labels can be derived from any dataset of
 just music and nothing else. This allows us to use RNNs which are supervised
