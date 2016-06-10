@@ -34,6 +34,12 @@ markdown: kramdown
 
 # Authors
 authors:
+  danabo:
+   display_name: Dan Abolafia
+   name: Dan Abolafia
+   email: danabo@google.com
+   twitter: danielabolafia
+   github: danabo
   douglaseck:
    display_name: Douglas Eck
    name: Douglas Eck

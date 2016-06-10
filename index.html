@@ -10,7 +10,7 @@ layout: default
       {% assign author = site.authors[post.author] %}
       <li>
         <h2>
-          <span class="post-link">{{ post.title }} <a class="post-full-link" href="{{ post.url | prepend: site.baseurl }}">[read full post]</a></span>
+          <a class="post-link" href="{{ post.url | prepend: site.baseurl }}">{{ post.title }}</a>
         </h2>
         <span class="post-meta">{{ post.date | date: "%b %-d, %Y" }}</span>
        {% if author %} •
@@ -20,10 +20,11 @@ layout: default
            {{ author.name }}
          {% endif %}
          {% if author.github %}
-           ({% include icon-github.html username="douglaseck" %})
+           ({% include icon-github.html username=author.github %})
          {% endif %}
         {% endif %}
         {{ post.excerpt }}
+        Read <a class="post-full-link" href="{{ post.url | prepend: site.baseurl }}">full post</a>.
       </li>
     {% endfor %}
   </ul>
