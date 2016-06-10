@@ -12,7 +12,7 @@ team](https://research.google.com/teams/brain/) that asks: Can we use
 machine learning to create compelling art and music? If so, how? If
 not, why not?  We’ll use [TensorFlow](https://www.tensorflow.org), and
 we’ll release our models and tools in open source on our GitHub. We’ll
-also post demos, tutorial blog postings and technical papers. Soon
+also post demos, tutorial blog postings, and technical papers. Soon
 we’ll begin accepting code contributions from the community at
 large. If you’d like to keep up on Magenta as it grows, you can follow
 us on our [GitHub](https://github.com/tensorflow/magenta) and join our
@@ -29,7 +29,7 @@ Magenta, we want to explore the other side—developing algorithms that
 can learn how to generate art and music, potentially creating
 compelling and artistic content on their own.
 
-Second, Magenta is an attempt to build a community of artists, coders
+Second, Magenta is an attempt to build a community of artists, coders,
 and machine learning researchers. The core Magenta team will build
 open-source infrastructure around TensorFlow for making art and music.
 We’ll start with audio and video support, tools for working with
@@ -84,7 +84,7 @@ neural networks, such as
 [DeepDream](http://googleresearch.blogspot.com/2015/06/inceptionism-going-deeper-into-neural.html)
 from A. Mordvintsev et al. at Google and [Neural Style
 Transfer](http://arxiv.org/abs/1508.06576) from L. Gatys et al. at
-U. Tübingen. We believe this area is in its infancy, and expect to see
+U. Tübingen. We believe this area is in its infancy and expect to see
 fast progress here. For those following machine learning closely, it
 should be clear that this progress is already well underway.  But
 there remain a number of interesting questions: How can we make models
@@ -110,8 +110,8 @@ images.
 ## Storytelling
 
 This leads to perhaps our biggest challenge: combining generation,
-attention and surprise to tell a compelling story.  So much
-machine-generated music and art is good in small chunks, but lacks any
+attention, and surprise to tell a compelling story.  So much
+machine-generated music and art is good in small chunks but lacks any
 sort of long-term narrative arc. (To be fair, my own 2002 [music
 generation
 work](http://www.iro.umontreal.ca/~eckdoug/blues/index.html) falls
@@ -121,9 +121,9 @@ than learned BY the algorithm. This is the case, for example, in David
 Cope’s very interesting [Experiments in Musical Intelligence
 (EMI)](http://artsites.ucsc.edu/faculty/cope/experiments.htm), in
 which an AI model deconstructs compositions by human composers, finds
-common signatures in them, and recombines them into new works.  The
+common signatures in them and recombines them into new works.  The
 design of models that learn to construct long narrative arcs is
-important not only for music and art generation, but also areas like
+important not only for music and art generation but also areas like
 language modeling, where it remains a challenge to carry meaning even
 across a long paragraph, much less whole stories. Attention models
 like the Show, Attend and Tell point to one promising direction, but

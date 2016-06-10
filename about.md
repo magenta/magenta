@@ -9,16 +9,16 @@ the questions, “Can we use machine learning to create compelling art
 and music? If so, how? If not, why not?”  Our work will be done in
 [TensorFlow](https://www.tensorflow.org), and we’ll release our models and tools in open
 source. These will be accompanied by demos, tutorial
-blog postings and technical papers.  To follow our progress,
+blog postings, and technical papers.  To follow our progress,
 watch our [GitHub](https://github.com/tensorflow/magenta)
 and or join our [discussion group](https://groups.google.com/a/tensorflow.org/forum/#!forum/magenta-discuss).
 
 Magenta encompasses two goals. It’s first a research project to
-advance the state-of-the art in music, video, image and text
+advance the state-of-the-art in music, video, image and text
 generation. So much has been done with machine learning to understand
-content— for example speech recognition and translation; in this
-project we want to explore content generation and creativity.  Second,
-Magenta is an attempt to build a community of artists, coders and
+content— for example, speech recognition and translation; in this
+project, we want to explore content generation and creativity.  Second,
+Magenta is an attempt to build a community of artists, coders, and
 machine learning researchers. To facilitate that, the core Magenta
 team will build open-source infrastructure around TensorFlow for
 making art and music.  This will start with audio and video support in
