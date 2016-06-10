@@ -28,7 +28,12 @@ EVAL_RATIO=0.10
 # Name of the encoder to use. See magenta/lib/encoders.py.
 ENCODER=basic_one_hot_encoder
 
-bazel run //magenta:convert_sequences_to_melodies -- --input=$SEQUENCES_TFRECORD --train_output=$TRAIN_DATA --eval_output=$EVAL_DATA --eval_ratio=$EVAL_RATIO --encoder=$ENCODER
+bazel run //magenta:convert_sequences_to_melodies -- \
+--input=$SEQUENCES_TFRECORD \
+--train_output=$TRAIN_DATA \
+--eval_output=$EVAL_DATA \
+--eval_ratio=$EVAL_RATIO \
+--encoder=$ENCODER
 ```
 
 #### Running training in depth
