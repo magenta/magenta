@@ -139,17 +139,15 @@ class MidiIoTest(tf.test.TestCase):
     """Test writing to a MIDI file and comparing it to the original Sequence."""
     source_midi = pretty_midi.PrettyMIDI(filename)
     sequence_proto = midi_io.midi_to_sequence_proto(source_midi)
-    translated_midi = midi_io.sequence_proto_to_pretty_midi(sequence_proto)
 
-    # Write the translated midi to a file.
+    # Translate the NoteSequence to MIDI and write to a file.
     with tempfile.NamedTemporaryFile(prefix='MidiIoTest') as temp_file:
-      translated_midi.write(temp_file.name)
+      midi_io.sequence_proto_to_midi_file(sequence_proto, temp_file.name)
 
       # Read it back in and compare to source.
       created_midi = pretty_midi.PrettyMIDI(temp_file.name)
-      created_sequence = midi_io.midi_to_sequence_proto(created_midi)
 
-    self.CheckPrettyMidiAndSequence(translated_midi, created_sequence)
+    self.CheckPrettyMidiAndSequence(created_midi, sequence_proto)
 
   def testSimplePrettyMidiToSequence(self):
     self.CheckMidiToSequence(self.midi_simple_filename)
