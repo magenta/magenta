@@ -180,11 +180,15 @@
     margin-left: 0;
     list-style: none;
     > li {
-        margin-bottom: $spacing-unit;
+        margin-bottom: $spacing-unit / 2;
+        padding-bottom: $spacing-unit / 2;
 
         p {
           margin-top: 15px;
         }
+    }
+    > li:not(:last-child) {
+      border-bottom: 1px solid $grey-color-light;
     }
 }
 
