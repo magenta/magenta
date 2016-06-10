@@ -8,7 +8,7 @@ This model takes monophonic melodies, meaning one note plays at a time. Use conv
 
 ### How to Use
 
-First, follow the instructions in our top level [README.md](https://github.com/tensorflow/magenta/blob/basic_rnn/README.md) for building models and creating a dataset.
+First, follow the instructions in our top level [README.md](https://github.com/tensorflow/magenta/blob/master/README.md) for building models and creating a dataset.
 
 Run convert_sequences_to_melodies.py on the output from convert_midi_dir_to_note_sequences.py, which will extract melodies from the MIDI data. The output is written to disk as a tfrecord file that contains SequenceExample protos. TensorFlow readers in the basic_rnn model can read SequenceExample protos from disk directly into the model. In this example, we create an evaluation dataset in a second tfrecord file, but that can be omitted by leaving out the eval_output and eval_ratio flags.
 
