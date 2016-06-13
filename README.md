@@ -47,3 +47,9 @@ bazel build //magenta:convert_midi_dir_to_note_sequences
 --output_file=$SEQUENCES_TFRECORD \
 --recursive
 ```
+
+## Generating MIDI
+
+To create your own melodies with TensorFlow, you must train a model on the dataset you built above and then use it to generate new sequences. Select a model below for further instructions.
+
+**[Basic RNN](magenta/models/basic_rnn/README.md)**: A simple recurrent neural network for predicting melodies.
