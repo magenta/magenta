@@ -85,11 +85,16 @@ def run_conversion(encoder, sequences_file, train_output, eval_output='', eval_r
         train_writer.write(serialized)
         train_output_count += 1
     input_count += 1
+    tf.logging.log_every_n(logging.INFO, 
+                           'Extracted %d melodies from %d sequences.',
+                           500,
+                           eval_output_count + train_output_count,
+                           input_count)
 
   logging.info('Found %d sequences', input_count)
-  logging.info('Extracted %d melodies for training', train_output_count)
+  logging.info('Extracted %d melodies for training.', train_output_count)
   if eval_writer:
-    logging.info('Extracted %d melodies for evaluation', eval_output_count)
+    logging.info('Extracted %d melodies for evaluation.', eval_output_count)
 
 
 def main(unused_argv):
