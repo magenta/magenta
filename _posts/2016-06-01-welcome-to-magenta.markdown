@@ -110,7 +110,7 @@ images.
 ## Storytelling
 
 This leads to perhaps our biggest challenge: combining generation,
-attention and surprise to tell a compelling story.  So much
+attention, and surprise to tell a compelling story.  So much
 machine-generated music and art is good in small chunks but lacks any
 sort of long-term narrative arc. (To be fair, my own 2002 [music
 generation
@@ -121,7 +121,7 @@ than learned BY the algorithm. This is the case, for example, in David
 Cope’s very interesting [Experiments in Musical Intelligence
 (EMI)](http://artsites.ucsc.edu/faculty/cope/experiments.htm), in
 which an AI model deconstructs compositions by human composers, finds
-common signatures in them and recombines them into new works.  The
+common signatures in them, and recombines them into new works.  The
 design of models that learn to construct long narrative arcs is
 important not only for music and art generation but also areas like
 language modeling, where it remains a challenge to carry meaning even
