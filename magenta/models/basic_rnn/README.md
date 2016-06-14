@@ -42,7 +42,7 @@ Build basic_rnn_train first so that it can be run multiple times in parallel.
 
 ```bazel build //magenta/models:basic_rnn_train```
 
-Save train and eval datasets as /tmp/train_melodies.tfrecord and /tmp/eval_melodies.tfrecord.
+Save train and eval datasets as /tmp/training_melodies.tfrecord and /tmp/eval_melodies.tfrecord.
 
 Create an experiment directory, say /tmp/basic_rnn, and choose a subdirectory to save this run in, like ```/tmp/basic_rnn/run1```. Increase the number to run2, run3, etc... every time you rerun the same experiment, so that you don't clobber previous experiment output.
 
@@ -73,7 +73,7 @@ Where
 * $EXPERIMENT_DIR is the experiment directory, such as /tmp/basic_rnn
 * $HYPERPARAMETER_STRING is a Python dictionary literal containing hyperparameters, such as '{"rnn_layer_sizes":[50]}'
 * $NUM_TRAINING_STEPS is an integer giving number of training iterations to run, such as 20000
-* $TRAIN_DATA is the path to the training dataset (a tfrecord file), such as /tmp/train_melodies.tfrecord
+* $TRAIN_DATA is the path to the training dataset (a tfrecord file), such as /tmp/training_melodies.tfrecord
 * $EVAL_DATA, an optional argument, is the path to the eval dataset (a tfrecord file), such as /tmp/eval_melodies.tfrecord
 
 This script automatically assigns new folders for new runs in each experiment directory. The eval job will optionally run if the path to the eval dataset is given. This script also runs TensorBoard.
