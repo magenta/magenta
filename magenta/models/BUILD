@@ -35,8 +35,8 @@ py_binary(
 )
 
 py_binary(
-    name = "create_dataset",
-    srcs = ["basic_rnn/create_dataset.py"],
+    name = "basic_rnn_create_dataset",
+    srcs = ["basic_rnn/basic_rnn_create_dataset.py"],
     deps = [
         "//magenta:melodies_lib",
         "//magenta:midi_io",

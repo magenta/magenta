@@ -117,6 +117,7 @@ py_library(
     deps = [
         ":melodies_lib",
         ":music_py_pb2",
+        ":note_sequence_io",
     ],
 )
 

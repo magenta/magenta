@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Converts Sequence protos to SequenceExample protos.
+"""Converts NoteSequence protos to SequenceExample protos.
 
 Protos (or protocol buffers) are stored in TFRecord files.
 Run convert_midi_dir_to_note_sequences.py to generate a TFRecord
@@ -25,6 +25,7 @@ import random
 import tensorflow as tf
 
 from magenta.lib import melodies_lib
+from magenta.lib import note_sequence_io
 from magenta.protobuf import music_pb2
 
 
@@ -56,7 +57,7 @@ def basic_one_hot_encoder(melody, steps_per_beat=4, min_note=48, max_note=84,
 
   Returns:
     sequence_example: A SequenceExample proto containing inputs and labels sequences.
-    reconstruction_data: Information needed to decoded encoder output.
+    reconstruction_data: Information needed to decode encoder output.
   """
 
   transpose_amount = melody.squash(min_note, max_note, transpose_to_key)
@@ -117,7 +118,7 @@ def run_conversion(encoder, sequences_file, train_output, eval_output='', eval_r
         partition is chosen, so the actual train/eval ratio will vary.
   """
 
-  reader = tf.python_io.tf_record_iterator(sequences_file)
+  reader = note_sequence_io.note_sequence_record_iterator(sequences_file)
   train_writer = tf.python_io.TFRecordWriter(train_output)
   eval_writer = (tf.python_io.TFRecordWriter(eval_output)
                  if eval_output else None)
@@ -125,9 +126,7 @@ def run_conversion(encoder, sequences_file, train_output, eval_output='', eval_r
   input_count = 0
   train_output_count = 0
   eval_output_count = 0
-  for buf in reader:
-    sequence_data = music_pb2.NoteSequence()
-    sequence_data.ParseFromString(buf)
+  for sequence_data in reader:
     extracted_melodies = melodies_lib.extract_melodies(sequence_data)
     for melody in extracted_melodies:
       sequence_example, _ = encoder(melody)
