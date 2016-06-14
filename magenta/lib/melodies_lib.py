@@ -432,7 +432,7 @@ class Melody(object):
     melody_key = self.get_major_key()
     key_diff = transpose_to_key - melody_key
     midi_notes = [note for note in self.events
-                  if MIN_MIDI_PITCH <= note and note <= MAX_MIDI_PITCH]
+                  if MIN_MIDI_PITCH <= note <= MAX_MIDI_PITCH]
     if not midi_notes:
       return
     melody_min_note = min(midi_notes)

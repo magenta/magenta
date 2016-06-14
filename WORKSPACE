@@ -1,16 +1,16 @@
 new_http_archive(
   name = "pretty_midi",
   build_file = "pretty_midi.BUILD",
-  url = "https://github.com/craffel/pretty-midi/archive/9e3c353b7b77ce4012c70610db4c0d0961c05916.zip",
-  sha256 = "960edecb4b5b2ae25f68cd95ab579027d0537975fe32ef0f82c173266beeec77",
+  url = "https://github.com/craffel/pretty-midi/archive/9e3c353b7b77ce4012c70610db4c0d0961c05916.tar.gz",
+  sha256 = "2443ab74f475155d1f79ebdf4537cdfb6e603e77c2747ade7997187dfd588949",
   strip_prefix = "pretty-midi-9e3c353b7b77ce4012c70610db4c0d0961c05916/pretty_midi",
 )
 
 new_http_archive(
   name = "midi",
   build_file = "python_midi.BUILD",
-  url = "https://github.com/vishnubob/python-midi/archive/4b7a229f6b340e7424c1fccafa9ac543b9b3d605.zip",
-  sha256 = "37699e01cebf304a223f91a576f70c654c26545edc932671e05ec186d0970731",
+  url = "https://github.com/vishnubob/python-midi/archive/4b7a229f6b340e7424c1fccafa9ac543b9b3d605.tar.gz",
+  sha256 = "27dcc9e67db0f3fd56420f5f21c7b70f949716a1cfee4e041cd0b1155cef7c4e",
   strip_prefix = "python-midi-4b7a229f6b340e7424c1fccafa9ac543b9b3d605/src",
 )
 
