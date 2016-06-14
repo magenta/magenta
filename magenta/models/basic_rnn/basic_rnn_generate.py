@@ -29,9 +29,9 @@ import numpy as np
 import sys
 import tensorflow as tf
 
-from magenta.lib import encoders
 from magenta.lib import melodies_lib
 from magenta.lib import midi_io
+from magenta.lib import sequence_to_melodies
 
 
 FLAGS = tf.app.flags.FLAGS
@@ -109,6 +109,33 @@ def make_graph(hparams_string='{}'):
   return graph
 
 
+def classes_to_melody(model_output, reconstruction_data, min_note=48):
+  """Convert list of model outputs to Melody object.
+
+  This method decodes sequence_to_melodies.basic_one_hot_encoder.
+
+  Each model output is the index of the softmax class that is chosen.
+
+  Args:
+    model_output: List of integers. Each int is the chosen softmax class
+        from the model output.
+    reconstruction_data: basic_one_hot_encoder specific information
+        needed to reconstruct the input Melody.
+    min_note: Minimum pitch in model will be mapped to this MIDI pitch.
+
+  Returns:
+    A melodies_lib.Melody.
+  """
+  transpose_amount = reconstruction_data
+  output = melodies_lib.Melody()
+  output.from_event_list(
+      [e - melodies_lib.NUM_SPECIAL_EVENTS
+       if e < melodies_lib.NUM_SPECIAL_EVENTS
+       else e + min_note - transpose_amount
+       for e in model_output])
+  return output
+
+
 def make_onehot(int_list, one_hot_length):
   """Convert each int to a one-hot vector.
   A one-hot vector is 0 everywhere except at the index equal to the
@@ -119,7 +146,7 @@ def make_onehot(int_list, one_hot_length):
           for i in int_list]
 
 
-def sampler_loop(graph, checkpoint_dir, primer, num_gen_steps):
+def sampler_loop(graph, decoder, checkpoint_dir, primer, num_gen_steps):
   """Generate many melodies simulatneously given a primer.
 
   Generate melodies by sampling from model output and feeding it back into
@@ -127,6 +154,10 @@ def sampler_loop(graph, checkpoint_dir, primer, num_gen_steps):
 
   Args:
     graph: A tf.Graph instance containing the graph to sample from.
+    decoder: A function that converts model output and reconstruction data into
+        a Melody object. The method takes two inputs: A list of integers which
+        are the softmax classes chosen at each step, and reconstruction data
+        returned by the encoder. It returns a melodies_lib.Melody.
     checkpoint_dir: Directory to look for most recent model checkpoint in.
     primer: A Melody object.
     num_gen_steps: How many time steps to generate.
@@ -134,7 +165,6 @@ def sampler_loop(graph, checkpoint_dir, primer, num_gen_steps):
   Returns:
     List of generated melodies, each as a Melody object.
   """
-  logits = graph.get_collection('logits')[0]
   softmax = graph.get_collection('softmax')[0]
   initial_state = graph.get_collection('initial_state')[0]
   final_state = graph.get_collection('final_state')[0]
@@ -151,16 +181,18 @@ def sampler_loop(graph, checkpoint_dir, primer, num_gen_steps):
 
   saver.restore(session, checkpoint_file)
 
-  batch_size = logits.get_shape()[0].value
+  batch_size = softmax.get_shape()[0].value
 
   # Convert primer Melody to model inputs.
-  sequence_example, transpose_amount = encoders.basic_one_hot_encoder(primer)
-  primer_input = [list(i.float_list.value) for i in sequence_example.feature_lists.feature_list['inputs'].feature]
+  sequence_example, encoder_information = sequence_to_melodies.basic_one_hot_encoder(primer)
+  primer_input = [
+      list(i.float_list.value)
+      for i in sequence_example.feature_lists.feature_list['inputs'].feature]
 
   # Run model over primer sequence.
   primer_input_batch = np.tile([primer_input], (batch_size, 1, 1))
-  state, _ = session.run(
-      [final_state, logits],
+  state = session.run(
+      final_state,
       feed_dict={initial_state: np.zeros(initial_state.get_shape().as_list()),
                  melody_sequence: primer_input_batch,
                  lengths: np.full(batch_size, len(primer),
@@ -173,8 +205,8 @@ def sampler_loop(graph, checkpoint_dir, primer, num_gen_steps):
   for i in xrange(num_gen_steps):
     input_batch = np.transpose(
         [make_onehot(last_outputs, basic_rnn_ops.NUM_CLASSES)], (1, 0, 2))
-    state, batch_logits, batch_softmax = session.run(
-      [final_state, logits, softmax],
+    state, batch_softmax = session.run(
+      [final_state, softmax],
       feed_dict={initial_state: state,
                  melody_sequence: input_batch,
                  lengths: singleton_lengths})
@@ -184,17 +216,12 @@ def sampler_loop(graph, checkpoint_dir, primer, num_gen_steps):
     for generated_seq, next_output in zip(generated_sequences, last_outputs):
       generated_seq.append(next_output)
 
-  def decoder(event_list):
-    return [e - melodies_lib.NUM_SPECIAL_EVENTS
-            if e < melodies_lib.NUM_SPECIAL_EVENTS
-            else e + 48 - transpose_amount
-            for e in event_list]
-
   primer_event_list = list(primer)
   generated_melodies = []
   for seq in generated_sequences:
     melody = melodies_lib.Melody(steps_per_bar=primer.steps_per_bar)
-    melody.from_event_list(primer_event_list + decoder(seq))
+    melody.from_event_list(
+        primer_event_list + list(decoder(seq, encoder_information)))
     generated_melodies.append(melody)
 
   return generated_melodies
@@ -228,7 +255,8 @@ def main(_):
   
   generated = []
   while len(generated) < FLAGS.num_outputs:
-    generated.extend(sampler_loop(graph, checkpoint_dir,
+    generated.extend(sampler_loop(graph, classes_to_melody,
+                                  checkpoint_dir,
                                   extracted_melodies[0],
                                   FLAGS.num_steps))
 

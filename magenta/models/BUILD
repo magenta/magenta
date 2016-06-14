@@ -28,9 +28,19 @@ py_binary(
     srcs = ["basic_rnn/basic_rnn_generate.py"],
     deps = [
         ":basic_rnn_ops",
-        "//magenta:encoders",
         "//magenta:melodies_lib",
         "//magenta:midi_io",
+        "//magenta:sequence_to_melodies",
+    ],
+)
+
+py_binary(
+    name = "basic_rnn_create_dataset",
+    srcs = ["basic_rnn/basic_rnn_create_dataset.py"],
+    deps = [
+        "//magenta:melodies_lib",
+        "//magenta:midi_io",
+        "//magenta:sequence_to_melodies",
     ],
 )
 

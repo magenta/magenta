@@ -15,8 +15,8 @@
 
 import tensorflow as tf
 
-from magenta.lib import encoders
 from magenta.lib import melodies_lib
+from magenta.lib import sequence_to_melodies
 
 NO_EVENT = melodies_lib.NO_EVENT
 NOTE_OFF = melodies_lib.NOTE_OFF
@@ -39,7 +39,7 @@ def one_hot(value, length):
   return [1.0 if value == i else 0.0 for i in range(length)]
 
 
-class EncodersTest(tf.test.TestCase):
+class CreateDatasetTest(tf.test.TestCase):
 
   def testBasicOneHotEncoder(self):
     steps_per_beat = 4
@@ -61,9 +61,8 @@ class EncodersTest(tf.test.TestCase):
     expected_labels = [note + 2 for note in transformed_melody[1:]] + [0] * 13
     expected_sequence_example = make_sequence_example(expected_inputs,
                                                       expected_labels)
-    sequence_example, _ = encoders.basic_one_hot_encoder(melody, steps_per_beat,
-                                                         min_note, max_note,
-                                                         transpose_to_key)
+    sequence_example, _ = sequence_to_melodies.basic_one_hot_encoder(
+        melody, steps_per_beat, min_note, max_note, transpose_to_key)
     self.assertEqual(expected_sequence_example, sequence_example)
 
   def testBasicOneHotEncoderTruncateNoteOff(self):
@@ -85,9 +84,8 @@ class EncodersTest(tf.test.TestCase):
                        [NOTE_OFF + 2])
     expected_sequence_example = make_sequence_example(expected_inputs,
                                                       expected_labels)
-    sequence_example, _ = encoders.basic_one_hot_encoder(melody, steps_per_beat,
-                                                         min_note, max_note,
-                                                         transpose_to_key)
+    sequence_example, _ = sequence_to_melodies.basic_one_hot_encoder(
+        melody, steps_per_beat, min_note, max_note, transpose_to_key)
     self.assertEqual(expected_sequence_example, sequence_example)
 
   def testBasicOneHotEncoderOctaveSquash(self):
@@ -109,9 +107,8 @@ class EncodersTest(tf.test.TestCase):
                        [NOTE_OFF + 2])
     expected_sequence_example = make_sequence_example(expected_inputs,
                                                       expected_labels)
-    sequence_example, _ = encoders.basic_one_hot_encoder(melody, steps_per_beat,
-                                                         min_note, max_note,
-                                                         transpose_to_key)
+    sequence_example, _ = sequence_to_melodies.basic_one_hot_encoder(
+        melody, steps_per_beat, min_note, max_note, transpose_to_key)
     self.assertEqual(expected_sequence_example, sequence_example)
 
   def testBasicOneHotEncoderTransposeKey(self):
@@ -133,9 +130,8 @@ class EncodersTest(tf.test.TestCase):
                        [NOTE_OFF + 2])
     expected_sequence_example = make_sequence_example(expected_inputs,
                                                       expected_labels)
-    sequence_example, _ = encoders.basic_one_hot_encoder(melody, steps_per_beat,
-                                                         min_note, max_note,
-                                                         transpose_to_key)
+    sequence_example, _ = sequence_to_melodies.basic_one_hot_encoder(
+        melody, steps_per_beat, min_note, max_note, transpose_to_key)
     self.assertEqual(expected_sequence_example, sequence_example)
 
 
