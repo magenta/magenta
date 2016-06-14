@@ -11,16 +11,21 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Encoder functions for converting a melody list to SequenceExample.
+"""Converts Sequence protos to SequenceExample protos.
 
-Each encoder takes a melodies_lib.Melody object, and outputs a SequenceExample
-proto for use in TensorFlow models.
+Protos (or protocol buffers) are stored in TFRecord files.
+Run convert_midi_dir_to_note_sequences.py to generate a TFRecord
+of Sequence protos from MIDI files. Run this script to extract
+melodies from those sequences for training models.
 """
 
+import logging
 import numpy as np
+import random
 import tensorflow as tf
 
 from magenta.lib import melodies_lib
+from magenta.protobuf import music_pb2
 
 
 def basic_one_hot_encoder(melody, steps_per_beat=4, min_note=48, max_note=84,
@@ -51,7 +56,7 @@ def basic_one_hot_encoder(melody, steps_per_beat=4, min_note=48, max_note=84,
 
   Returns:
     sequence_example: A SequenceExample proto containing inputs and labels sequences.
-    encoder_information: Information needed to decoded encoder output.
+    reconstruction_data: Information needed to decoded encoder output.
   """
 
   transpose_amount = melody.squash(min_note, max_note, transpose_to_key)
@@ -91,3 +96,56 @@ def basic_one_hot_encoder(melody, steps_per_beat=4, min_note=48, max_note=84,
   }
   feature_lists = tf.train.FeatureLists(feature_list=feature_list)
   return tf.train.SequenceExample(feature_lists=feature_lists), transpose_amount
+
+
+def run_conversion(encoder, sequences_file, train_output, eval_output='', eval_ratio=0.0):
+  """Loop that converts NoteSequence protos to SequenceExample protos.
+
+  Args:
+    encoder: A function that converts Melody to SequenceExample which is fed
+        into a model. The function takes one input of type melodies_lib.Melody
+        and outputs a tuple (tf.train.SequenceExample, reconstruction_data)
+        where reconstruction_data is any extra data that is needed to
+        reconstruct a Melody from the given SequenceExample.
+    sequences_file: String path pointing to TFRecord file of NoteSequence
+        protos.
+    train_output: String path to TFRecord file that training samples will be
+        saved to.
+    eval_output: If set, string path to TFRecord file that evaluation samples
+        will be saved to. Omit this argument to not produce an eval set.
+    eval_ratio: Fraction of input that will be saved to eval set. A random
+        partition is chosen, so the actual train/eval ratio will vary.
+  """
+
+  reader = tf.python_io.tf_record_iterator(sequences_file)
+  train_writer = tf.python_io.TFRecordWriter(train_output)
+  eval_writer = (tf.python_io.TFRecordWriter(eval_output)
+                 if eval_output else None)
+
+  input_count = 0
+  train_output_count = 0
+  eval_output_count = 0
+  for buf in reader:
+    sequence_data = music_pb2.NoteSequence()
+    sequence_data.ParseFromString(buf)
+    extracted_melodies = melodies_lib.extract_melodies(sequence_data)
+    for melody in extracted_melodies:
+      sequence_example, _ = encoder(melody)
+      serialized = sequence_example.SerializeToString()
+      if eval_writer and random.random() < eval_ratio:
+        eval_writer.write(serialized)
+        eval_output_count += 1
+      else:
+        train_writer.write(serialized)
+        train_output_count += 1
+    input_count += 1
+    tf.logging.log_every_n(logging.INFO, 
+                           'Extracted %d melodies from %d sequences.',
+                           500,
+                           eval_output_count + train_output_count,
+                           input_count)
+
+  logging.info('Found %d sequences', input_count)
+  logging.info('Extracted %d melodies for training.', train_output_count)
+  if eval_writer:
+    logging.info('Extracted %d melodies for evaluation.', eval_output_count)

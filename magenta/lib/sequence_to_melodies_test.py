@@ -18,9 +18,9 @@ import os.path
 import tempfile
 import tensorflow as tf
 
-from magenta.scripts import convert_sequences_to_melodies
+from magenta.lib import sequence_to_melodies
 
-class ConvertSequencesToMelodiesTest(tf.test.TestCase):
+class SequenceToMelodiesTest(tf.test.TestCase):
 
   def setUp(self):
     self.sequences_file = os.path.join(
@@ -31,8 +31,8 @@ class ConvertSequencesToMelodiesTest(tf.test.TestCase):
     self.eval_output=os.path.join(self.tmp_dir, 'eval_samples.tfrecord')
 
   def testRunConversion(self):
-    convert_sequences_to_melodies.run_conversion(
-        encoder='basic_one_hot_encoder',
+    sequence_to_melodies.run_conversion(
+        encoder=sequence_to_melodies.basic_one_hot_encoder,
         sequences_file=self.sequences_file,
         train_output=self.train_output, eval_output=self.eval_output,
         eval_ratio=0.25)
@@ -50,8 +50,8 @@ class ConvertSequencesToMelodiesTest(tf.test.TestCase):
     self.assertTrue(num_train_samples > num_eval_samples)
 
   def testRunConversionNoEval(self):
-    convert_sequences_to_melodies.run_conversion(
-        encoder='basic_one_hot_encoder',
+    sequence_to_melodies.run_conversion(
+        encoder=sequence_to_melodies.basic_one_hot_encoder,
         sequences_file=self.sequences_file,
         train_output=self.train_output)
 

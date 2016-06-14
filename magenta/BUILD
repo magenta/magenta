@@ -104,14 +104,6 @@ py_test(
 )
 
 py_library(
-    name = "encoders",
-    srcs = ["lib/encoders.py"],
-    deps = [
-        ":melodies_lib",
-    ],
-)
-
-py_library(
     name = "melodies_lib",
     srcs = ["lib/melodies_lib.py"],
     deps = [
@@ -119,11 +111,10 @@ py_library(
     ]
 )
 
-py_binary(
-    name = "convert_sequences_to_melodies",
-    srcs = ["scripts/convert_sequences_to_melodies.py"],
+py_library(
+    name = "sequence_to_melodies",
+    srcs = ["lib/sequence_to_melodies.py"],
     deps = [
-        ":encoders",
         ":melodies_lib",
         ":music_py_pb2",
     ],
@@ -140,23 +131,23 @@ py_test(
 )
 
 py_test(
-    name = "encoders_test",
-    srcs = ["lib/encoders_test.py"],
+    name = "sequence_to_melodies_test",
+    srcs = ["lib/sequence_to_melodies_test.py"],
     srcs_version = "PY2AND3",
+    data = [
+        "testdata/notesequences.tfrecord",
+    ],
     deps = [
-        ":encoders",
-        ":melodies_lib",
+        ":sequence_to_melodies",
     ],
 )
 
 py_test(
-   name = "convert_sequences_to_melodies_test",
-   srcs = ["scripts/convert_sequences_to_melodies_test.py"],
-   srcs_version = "PY2AND3",
-   data = [
-       "testdata/notesequences.tfrecord",
-   ],
-   deps = [
-       ":convert_sequences_to_melodies",
-   ],
+    name = "basic_one_hot_encoder_test",
+    srcs = ["lib/basic_one_hot_encoder_test.py"],
+    srcs_version = "PY2AND3",
+    deps = [
+        ":melodies_lib",
+        ":sequence_to_melodies",
+    ],
 )
