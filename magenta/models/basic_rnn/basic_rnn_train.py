@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-r"""Trains a basic RNN language model for melody next-note prediction.
+"""Trains a basic RNN language model for melody next-note prediction.
 
 This model provides baselines for the application of language modeling to melody
 generation. This code also serves as a working example for implementing a
