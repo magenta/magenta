@@ -258,7 +258,7 @@ def midi_file_to_sequence_proto(midi_file, continue_on_exception=False):
     midi_as_string = f.read()
     try:
       return midi_to_sequence_proto(midi_as_string)
-    except MIDIConversionError, e:
+    except MIDIConversionError as e:
       if continue_on_exception:
         return None
       else:
