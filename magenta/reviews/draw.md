@@ -21,7 +21,7 @@ At each time step, the encoder RNN takes the previous encoder and decoder states
 
 This procedure is repeated a fixed number of times, after which the final state of the canvas is used to determine a probability distribution P(x|z). For the grayscale [MNIST][mnist] dataset of handwritten digits, the canvas maps to a matrix of independent Bernoulli probabilities through the logistic sigmoid function.
 
-![Generating MNIST][mnist generation] | ![Generating SVHN][svhn generation]
+![Generating MNIST][mnist generation] ![Generating SVHN][svhn generation]
 
 The training loss consists of two terms.The first is a sum of KL divergences from a chosen prior P(z) to the Q(z|x) distributions, and the second is the log likelihood of the input image under the distribution P(x|z).
 
@@ -36,7 +36,7 @@ Reading from the input image and writing to the output canvas occurs through a v
 
 Visual attention was first explored by [Schmidhuber & Huber][attention schmidhuber] in 1990 and has seen much recent interest. It has found use in [tracking][attention tracking], [viewpoint-invariant generative models][attention generative], [image classification][attention classification] and [multiple object recognition][attention recognition]. However unlike previous approaches, the foveation model introduced as part of DRAW is differentiable and so can be trained end to end with backpropagation. Instead of simply cropping a patch from the input image, DRAW extracts the pixels in the patch by Gaussian interpolation.
 
-![Attention Parameterization][attention parameterization] | ![Attention Interpolation][attention interpolation]
+![Attention Parameterization][attention parameterization] ![Attention Interpolation][attention interpolation]
 
 A uniform grid of Gaussian filters is imposed on the image, each filter corresponding to a pixel in the extracted patch. Each patch pixel’s value is computed by taking a linear combination of the image pixels with weights given by the corresponding filter. The grid of filters is controlled by neural networks that map the decoder hidden state to variables that determine the location and zoom level of the attended area.
 
