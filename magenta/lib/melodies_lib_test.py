@@ -13,6 +13,7 @@
 # limitations under the License.
 """Tests for melodies_lib."""
 
+# internal imports
 import tensorflow as tf
 
 from google.protobuf import text_format

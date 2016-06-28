@@ -18,6 +18,8 @@ Use extract_melodies to extract monophonic melodies from a NoteSequence proto.
 
 import logging
 import math
+
+# internal imports
 import numpy as np
 
 from magenta.protobuf import music_pb2

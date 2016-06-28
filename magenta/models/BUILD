@@ -15,11 +15,14 @@
 # Description:
 # Models for using TensorFlow with music and art.
 
+licenses(["notice"])  # Apache 2.0
+
 py_binary(
     name = "basic_rnn_train",
     srcs = ["basic_rnn/basic_rnn_train.py"],
     deps = [
         ":basic_rnn_ops",
+        # tensorflow dep
     ],
 )
 
@@ -31,6 +34,7 @@ py_binary(
         "//magenta:melodies_lib",
         "//magenta:midi_io",
         "//magenta:sequence_to_melodies",
+        # tensorflow dep
     ],
 )
 
@@ -41,6 +45,7 @@ py_binary(
         "//magenta:melodies_lib",
         "//magenta:midi_io",
         "//magenta:sequence_to_melodies",
+        # tensorflow dep
     ],
 )
 
@@ -48,6 +53,7 @@ py_library(
     name = "basic_rnn_ops",
     srcs = ["basic_rnn/basic_rnn_ops.py"],
     deps = [
+        # tensorflow dep
     ],
 )
 
@@ -60,5 +66,6 @@ py_test(
     ],
     deps = [
         ":basic_rnn_train",
+        # tensorflow dep
     ],
 )
