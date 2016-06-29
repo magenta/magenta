@@ -111,15 +111,17 @@ basic_rnn_ops.dynamic_rnn():
 ================================================================================
 """
 
-import basic_rnn_ops
 import collections
 import logging
 import os
 import re
 import sys
-import tensorflow as tf
 import time
 
+# internal imports
+import tensorflow as tf
+
+import basic_rnn_ops
 
 FLAGS = tf.app.flags.FLAGS
 tf.app.flags.DEFINE_boolean('eval', False,

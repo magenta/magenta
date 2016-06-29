@@ -17,6 +17,8 @@ Each graph component is produced by a seperate function.
 """
 
 import ast
+
+# internal imports
 import tensorflow as tf
 
 

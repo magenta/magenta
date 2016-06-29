@@ -22,31 +22,14 @@ package(
 
 licenses(["notice"])  # Apache 2.0
 
-load("@protobuf//:protobuf.bzl", "cc_proto_library")
-load("@protobuf//:protobuf.bzl", "py_proto_library")
-
-py_proto_library(
-    name = "music_py_pb2",
-    srcs = ["protobuf/music.proto"],
-    srcs_version = "PY2AND3",
-    protoc = "@protobuf//:protoc",
-    default_runtime = "@protobuf//:protobuf_python",
-)
-
-cc_proto_library(
-   name = "music_proto",
-   srcs = ["protobuf/music.proto"],
-   protoc = "@protobuf//:protoc",
-   default_runtime = "@protobuf//:protobuf",
-)
-
 py_library(
     name = "midi_io",
     srcs = ["lib/midi_io.py"],
     srcs_version = "PY2AND3",
     deps = [
-        ":music_py_pb2",
+        "//magenta/protobuf:music_py_pb2",
         "@pretty_midi//:pretty_midi",
+        # tensorflow dep
     ],
 )
 
@@ -60,6 +43,7 @@ py_test(
     ],
     deps = [
         ":midi_io",
+        # tensorflow dep
     ],
 )
 
@@ -68,7 +52,8 @@ py_library(
     srcs = ["lib/note_sequence_io.py"],
     srcs_version = "PY2AND3",
     deps = [
-        ":music_py_pb2",
+        "//magenta/protobuf:music_py_pb2",
+        # tensorflow dep
     ],
 )
 
@@ -78,6 +63,7 @@ py_test(
     srcs_version = "PY2AND3",
     deps = [
         ":note_sequence_io",
+        # tensorflow dep
     ],
 )
 
@@ -88,6 +74,7 @@ py_binary(
     deps = [
         ":midi_io",
         ":note_sequence_io",
+        # tensorflow dep
     ],
 )
 
@@ -100,6 +87,7 @@ py_test(
    ],
    deps = [
        ":convert_midi_dir_to_note_sequences",
+        # tensorflow dep
    ],
 )
 
@@ -107,7 +95,7 @@ py_library(
     name = "melodies_lib",
     srcs = ["lib/melodies_lib.py"],
     deps = [
-        ":music_py_pb2",
+        "//magenta/protobuf:music_py_pb2",
     ]
 )
 
@@ -116,8 +104,9 @@ py_library(
     srcs = ["lib/sequence_to_melodies.py"],
     deps = [
         ":melodies_lib",
-        ":music_py_pb2",
+        "//magenta/protobuf:music_py_pb2",
         ":note_sequence_io",
+        # tensorflow dep
     ],
 )
 
@@ -128,6 +117,7 @@ py_test(
     deps = [
         ":melodies_lib",
         "@protobuf//:protobuf_python",
+        # tensorflow dep
     ],
 )
 
@@ -140,6 +130,7 @@ py_test(
     ],
     deps = [
         ":sequence_to_melodies",
+        # tensorflow dep
     ],
 )
 
@@ -150,5 +141,6 @@ py_test(
     deps = [
         ":melodies_lib",
         ":sequence_to_melodies",
+        # tensorflow dep
     ],
 )

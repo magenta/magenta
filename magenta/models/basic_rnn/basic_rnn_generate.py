@@ -21,14 +21,16 @@ minibatch.
 """
 
 import ast
-import basic_rnn_ops
 import logging
 import os
 import os.path
 import numpy as np
 import sys
+
+# internal imports
 import tensorflow as tf
 
+import basic_rnn_ops
 from magenta.lib import melodies_lib
 from magenta.lib import midi_io
 from magenta.lib import sequence_to_melodies

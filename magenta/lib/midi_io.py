@@ -20,6 +20,7 @@ from collections import defaultdict
 from cStringIO import StringIO
 import sys
 
+# internal imports
 import pretty_midi
 import tensorflow as tf
 

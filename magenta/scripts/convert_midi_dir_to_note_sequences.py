@@ -23,6 +23,7 @@ Sample usage:
 
 import os
 
+# internal imports
 import tensorflow as tf
 
 from magenta.lib import midi_io
