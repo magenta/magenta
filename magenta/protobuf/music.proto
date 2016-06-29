@@ -34,7 +34,7 @@ message NoteSequence {
   // MIDI ticks per beat, also known as resolution or PPQ ("parts per quarter").
   // There is no widely-used default. A default of 220 is assumed per the choice
   // made in third_party/py/pretty_midi.
-  int32 ticks_per_beat = 4;
+  int32 ticks_per_beat = 4 [default = 220];
   // Lacking a time signature, 4/4 is assumed per MIDI standard.
   repeated TimeSignature time_signatures = 5;
   // Lacking a key signature, C Major is assumed per MIDI standard.
