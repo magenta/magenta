@@ -4,7 +4,7 @@ This model provides baselines for the application of language modeling to melody
 generation. This code also serves as a working example for implementing a
 language model in TensorFlow. In this code, an LSTM cell is used, but any type of cell can be swapped in.
 
-This model takes monophonic melodies, meaning one note plays at a time. Use convert_sequences_to_melodies.py to extract monophonic melodies from NoteSequence protos made from your MIDI files. The script will look at each instrument track and extract a melody line if it is at least 7 measures long, and at least 5 unique pitches (with octave equivalence). If multiple notes play at the same time, one note is kept.
+This model takes monophonic melodies, meaning one note plays at a time. Use basic_rnn_create_dataset.py to extract monophonic melodies from NoteSequence protos made from your MIDI files. The script will look at each instrument track and extract a melody line if it is at least 7 measures long, and at least 5 unique pitches (with octave equivalence). If multiple notes play at the same time, one note is kept.
 
 ### How to Use
 
