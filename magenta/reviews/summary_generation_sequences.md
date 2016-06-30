@@ -1,4 +1,7 @@
-#Summary of Generating Sequences With Recurrent Neural Networks
+Generating Sequences With Recurrent Neural Networks
+=====================================================
+(Review by [David Ha](https://github.com/hardmaru))
+
 
 ![rnn generated handwriting](http://blog.otoro.net/wp-content/uploads/sites/2/2015/12/cover2a.svg)
 

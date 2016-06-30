@@ -1,5 +1,6 @@
 A Neural Algorithm of Artistic Style
 =====================================================
+(Review by [Cinjon Resnick](https://github.com/cinjon))
 
    In late August 2015, Gatys et al. from The University of Tübingen published [A Neural Algorithm of Artistic Style](http://arxiv.org/pdf/1508.06576v2.pdf). It demonstrated a way to present one piece of artwork in the style of a separate piece and subsequently swept across Facebook walls around the world. In short, it captured the public’s attention and made them recognize that the tools we had been building for imaging applications could be used to create imaginative art.
 
