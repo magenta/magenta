@@ -1,5 +1,6 @@
 DRAW: A Recurrent Neural Network for Image Generation
 =====================================================
+(Review by [Tim Cooijmans](https://github.com/cooijmanstim))
 
 Introduction
 ------------
