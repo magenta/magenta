@@ -16,6 +16,8 @@
 import os
 import os.path
 import tempfile
+
+# internal imports
 import tensorflow as tf
 
 from magenta.lib import sequence_to_melodies

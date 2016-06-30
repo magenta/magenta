@@ -14,6 +14,8 @@
 """Tests for basic_rnn."""
 
 import os
+
+# internal imports
 import tensorflow as tf
 
 from magenta.models.basic_rnn import basic_rnn_train

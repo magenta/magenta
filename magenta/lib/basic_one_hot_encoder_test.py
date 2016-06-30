@@ -13,6 +13,7 @@
 # limitations under the License.
 """Tests for encoders."""
 
+# internal imports
 import tensorflow as tf
 
 from magenta.lib import melodies_lib
