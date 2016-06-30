@@ -1,6 +1,6 @@
 DRAW: A Recurrent Neural Network for Image Generation
 =====================================================
-(Review by [Tim Cooijmans](https://github.com/cooijmanstim))
+(Review by [Tim Cooijmans](https://github.com/cooijmanstim), with images taken from the paper)
 
 Introduction
 ------------
@@ -10,6 +10,8 @@ Introduction
 In [DRAW: A Recurrent Neural Network for Image Generation][draw], Gregor et al. propose a neural network that generates images by drawing onto a canvas. It has two advantages over previous generative models:
   1. The iterative nature of the process allows the model to start with a rough sketch and then gradually refine it.
   2. The interactions with the canvas are localized, enabling the model to focus on parts of a scene rather than having to generate a whole scene at once.
+
+The image on the right (courtesy of Ivo Danihelka) shows the process of generating novel [Street View House Number][svhn] images.
 
 Model Description
 -----------------
@@ -54,6 +56,7 @@ Related work
 [vae]: https://arxiv.org/abs/1312.6114
 [diagram]: assets/diagram.png
 [mnist]: https://www.tensorflow.org/tutorials/mnist/tf/index.html
+[svhn]: http://ufldl.stanford.edu/housenumbers/
 [mnist generation]: assets/mnist_generation.png
 [svhn generation]: assets/svhn_generation.png
 [attention schmidhuber]: http://people.idsia.ch/~juergen/attentive.html
