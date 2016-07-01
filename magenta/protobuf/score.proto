@@ -1,0 +1,99 @@
+// Copyright 2016 Google Inc.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//      http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+//
+////////////////////////////////////////////////////////////////////////////////
+
+syntax = "proto3";
+
+package tensorflow.magenta;
+
+
+// A message for describing a music sequence in terms that are similar to sheet
+// music.
+// It is expected that this message will be populated from a NoteSequence proto
+// that was derived from a score-based sequence (e.g., ABC or MusicXML).
+//
+// This representation is loosely inspired by the MuseScore internal
+// representation format.
+// Tick values are from https://musescore.org/plugin-development/tick-length-values
+// A whole note is 1920 ticks and a 1/64 note is 30 ticks (1920/30).
+message Score {
+  // Vertically-aligned staff elements.
+  repeated Segment segments = 1;
+  // Additional information about the tracks in the score.
+  repeated TrackInfo track_infos = 2;
+}
+
+// Contains additional information about a track.
+// As in MuseScore, a staff has 4 voices and there maybe multiple staves.
+// Therefore: voice = track % 4, staff = track / 4
+message TrackInfo {
+  // The track index.
+  int32 track = 1;
+  // A text description of the track. Examples: "Soprano" or "Trumpet".
+  string name = 2;
+}
+
+// A segment represents vertically-aligned staff elements.
+message Segment {
+  // The measure-relative tick position of the start time of a staff element.
+  // For example if a chord is at the very beginning of the measure, this would
+  // be 0. If it's on the second beat of a 4/4 measure, it would be 960.
+  int32 local_beat_tick = 1;
+  // The measure in which the segment resides.
+  int32 measure_number = 2;
+
+  // A segment message may contain one kind of staff element.
+  oneof staff_element {
+    // A time signature. In this case, measure_local_tick is ignored.
+    TimeSignature time_signature = 3;
+    // A key signature. In this case, measure_local_tick is ignored.
+    KeySignature key_signature = 4;
+    // A chord, represents one or more notes.
+    Chord chord = 5;
+  }
+}
+
+// A time signature.
+message TimeSignature {
+  int32 numerator = 1;
+  int32 denominator = 2;
+}
+
+// A chord representing 1 or more notes.
+message Chord {
+  // The track index.
+  int32 track = 1;
+  // The duration of the chord.
+  // Because this representation doesn't have a way to represent ties, note
+  // durations are allowed to extend beyond the length of a measure. For
+  // example, the way to represent a quarter note on the fourth beat of a 4/4
+  // measure that is tied to a dotted half note in the next measure would be a
+  // single whole note (duration 1920) on the fourth beat of the measure.
+  int32 duration_ticks = 2;
+  // The notes that make up the chord (may be only 1).
+  repeated Note notes = 3;
+}
+
+// A note.
+message Note {
+  // The midi pitch of the note.
+  int32 pitch = 1;
+}
+
+// A key signature.
+message KeySignature {
+  int32 key = 1; // -7 (flats) to 7 (sharps)
+}
+
