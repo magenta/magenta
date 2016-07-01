@@ -81,7 +81,7 @@ message Chord {
   // example, the way to represent a quarter note on the fourth beat of a 4/4
   // measure that is tied to a dotted half note in the next measure would be a
   // single whole note (duration 1920) on the fourth beat of the measure.
-  int32 durationTicks = 2;
+  int32 duration_ticks = 2;
   // The notes that make up the chord (may be only 1).
   repeated Note notes = 3;
 }
