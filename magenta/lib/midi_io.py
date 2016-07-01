@@ -156,6 +156,9 @@ def midi_to_sequence_proto(midi_data, continue_on_exception=False):
     control_change.control_number = midi_control_change.number
     control_change.control_value = midi_control_change.value
 
+  # TODO(@douglaseck): Estimate note type (e.g. quarter note) and populate
+  # note.numerator and note.denominator.
+
   return sequence
 
 

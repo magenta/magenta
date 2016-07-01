@@ -45,17 +45,12 @@ message TrackInfo {
   string name = 2;
 }
 
-// tick values from: 
-
-// in preprocessing, turn ties across measures into longer single notes because
-// we don't want to represent ties between notes in the model.
-
 // A segment represents vertically-aligned staff elements.
 message Segment {
-  // The measure-relative tick position of the staff element. For example if a
-  // chord is at the very beginning of the measure, this would be 0. If it's on
-  // the second beat of a 4/4 measure, it would be 960.
-  int32 measure_local_tick = 1;
+  // The measure-relative tick position of the start time of a staff element.
+  // For example if a chord is at the very beginning of the measure, this would
+  // be 0. If it's on the second beat of a 4/4 measure, it would be 960.
+  int32 local_beat_tick = 1;
   // The measure in which the segment resides.
   int32 measure_number = 2;
 
@@ -81,6 +76,11 @@ message Chord {
   // The track index.
   int32 track = 1;
   // The duration of the chord.
+  // Because this representation doesn't have a way to represent ties, note
+  // durations are allowed to extend beyond the length of a measure. For
+  // example, the way to represent a quarter note on the fourth beat of a 4/4
+  // measure that is tied to a dotted half note in the next measure would be a
+  // single whole note (duration 1920) on the fourth beat of the measure.
   int32 durationTicks = 2;
   // The notes that make up the chord (may be only 1).
   repeated Note notes = 3;

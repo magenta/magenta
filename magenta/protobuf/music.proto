@@ -58,8 +58,6 @@ message NoteSequence {
   SourceType source_type = 13;
 
   message Note {
-    reserved 5, 6;
-
     // MIDI pitch; see en.wikipedia.org/wiki/MIDI_Tuning_Standard for details.
     int32 pitch = 1;
     // Velocity ranging between 0 and 127.
@@ -67,6 +65,9 @@ message NoteSequence {
     // Start and end time in seconds.
     double start_time = 3;
     double end_time = 4;
+    // Score-relative note length. E.g. a quarter note is 1/4.
+    int32 numerator = 5;
+    int32 denominator = 6;
     // The pretty_midi instrument index, which in py_midi is the channel.
     int32 instrument = 7;
     // MIDI program is the sound playing (e.g. harpsichord).
