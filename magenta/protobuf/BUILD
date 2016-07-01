@@ -36,3 +36,18 @@ cc_proto_library(
    protoc = "@protobuf//:protoc",
    default_runtime = "@protobuf//:protobuf",
 )
+
+py_proto_library(
+    name = "score_py_pb2",
+    srcs = ["score.proto"],
+    srcs_version = "PY2AND3",
+    protoc = "@protobuf//:protoc",
+    default_runtime = "@protobuf//:protobuf_python",
+)
+
+cc_proto_library(
+   name = "score_proto",
+   srcs = ["score.proto"],
+   protoc = "@protobuf//:protoc",
+   default_runtime = "@protobuf//:protobuf",
+)
