@@ -17,8 +17,12 @@ Input and output wrappers for converting between MIDI and other formats.
 """
 
 from collections import defaultdict
-from cStringIO import StringIO
 import sys
+if sys.version_info.major <= 2:
+  from cStringIO import StringIO
+else:
+  from io import StringIO
+
 
 # internal imports
 import pretty_midi
