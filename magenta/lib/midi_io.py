@@ -18,6 +18,7 @@ Input and output wrappers for converting between MIDI and other formats.
 
 from collections import defaultdict
 import sys
+# pylint: disable=g-import-not-at-top
 if sys.version_info.major <= 2:
   from cStringIO import StringIO
 else:
