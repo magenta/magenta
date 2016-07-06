@@ -50,7 +50,7 @@ message Segment {
   // The measure-relative tick position of the start time of a staff element.
   // For example if a chord is at the very beginning of the measure, this would
   // be 0. If it's on the second beat of a 4/4 measure, it would be 960.
-  int32 local_beat_tick = 1;
+  int32 onset_local_tick = 1;
   // The measure in which the segment resides.
   int32 measure_number = 2;
 
