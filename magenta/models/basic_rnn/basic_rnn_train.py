@@ -59,8 +59,8 @@ is a rest.
 ...
 37 = note-on event for pitch 83
 
-A no-event continues the previous state, whether thats continuing to hold a note
-on or continuing a rest.
+A no-event continues the previous state, whether that's continuing to hold a
+note on or continuing a rest.
 
 The 'inputs' represent the current note, which is stored as a one-hot vector,
 and 'labels' represent the next note, which is stored as an int. For example,
@@ -87,7 +87,7 @@ And batch.sequences['labels'] would be the tensor:
 The first dimension of the tensors is the batch_size, and since
 batch_size = 1 in this example, the batch only contains one sequence.
 
-Heres a brief description of each method:
+Here's a brief description of each method:
 
 ================================================================================
 Dynamic looping method
@@ -132,13 +132,14 @@ tf.app.flags.DEFINE_string('experiment_run_dir', '/tmp/basic_rnn/run1',
                            'Path to directory where output from this run will '
                            'be saved. A run\'s output consists of training '
                            'data - model checkpoints and summaries - and if '
-                           'an eval job is run eval data which are summaries. '
+                           'an eval job is run, eval data which are summaries. '
                            'Multiple runs are typically stored in a parent '
                            'directory for the experiment, where an experiment '
                            'is a particular combination of hyperparameters. '
                            'Training and eval directories are recursively '
                            'created by their respective train and eval jobs. '
-                           'Point TensorBoard to the experiment to see all runs.')
+                           'Point TensorBoard to the experiment dir to see all '
+                           'runs together.')
 tf.app.flags.DEFINE_string('hparams', '{}',
                            'String representation of Python dictionary '
                            'containing hyperparameter to value mapping. This '
@@ -155,7 +156,8 @@ tf.app.flags.DEFINE_integer('steps_to_average', 20,
                             '`steps_to_average` steps is reported.')
 
 
-def make_graph(sequence_example_file='', hparams_string='{}', is_eval_mode=False):
+def make_graph(sequence_example_file='', hparams_string='{}',
+               is_eval_mode=False):
   """Construct the model and return the graph.
 
   Constructs the TensorFlow graph. Hyperparameters
@@ -164,11 +166,11 @@ def make_graph(sequence_example_file='', hparams_string='{}', is_eval_mode=False
   For example: '{"batch_size":64,"rnn_layer_sizes":[100,100]}'
 
   Args:
-    sequence_example_file: String path to tfrecord file containing training
+    sequence_example_file: String path to TFRecord file containing training
         samples.
     hparams_string: String literal of a Python dictionary, where keys are
         hyperparameter names and values replace default values.
-    is_eval_mode: If True, training related ops are not build.
+    is_eval_mode: If True, training related ops are not built.
 
   Returns:
     tf.Graph instance which contains the TF ops.

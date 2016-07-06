@@ -72,7 +72,7 @@ class ConvertMidiDirToSequencesTest(tf.test.TestCase):
           expected_filenames.add(os.path.join(sub_dir, filename))
 
     with tempfile.NamedTemporaryFile(
-        prefix='ConvertMidiDirToSequenesTest') as output_file:
+        prefix='ConvertMidiDirToSequencesTest') as output_file:
       with note_sequence_io.NoteSequenceRecordWriter(
           output_file.name) as writer:
         convert_midi_dir_to_note_sequences.convert_directory(

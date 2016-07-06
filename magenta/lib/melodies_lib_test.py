@@ -169,10 +169,11 @@ class MakeMelodiesLibTest(tf.test.TestCase):
 
   def testFromNotesPolyphonicWithIgnorePolyphonicNotes(self):
     sequence = music_pb2.NoteSequence()
-    add_track(sequence, 0, [(12, 100, 0, 2.0), (19, 100, 0, 3.0)])
+    add_track(sequence, 0, [(12, 100, 0.0, 2.0), (19, 100, 0.0, 3.0),
+                            (12, 100, 1.0, 3.0), (19, 100, 1.1, 4.0)])
     melody = melodies_lib.Melody(steps_per_bar=16)
     melody.from_notes(sequence.notes, bpm=60.0, ignore_polyphonic_notes=True)
-    expected = [12] + [-2] * 7 + [-1]
+    expected = [19] + [NO_EVENT] * 3 + [12] + [NO_EVENT] * 7 + [NOTE_OFF]
     self.assertEqual(expected, list(melody))
 
   def testFromNotesChord(self):

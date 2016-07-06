@@ -20,8 +20,8 @@ Many possible continuations of the primer are sampled from the model in a
 minibatch.
 """
 
-import ast
 import basic_rnn_ops
+import basic_rnn_create_dataset
 import logging
 import os
 import os.path
@@ -147,7 +147,7 @@ def make_onehot(int_list, one_hot_length):
 
 
 def sampler_loop(graph, decoder, checkpoint_dir, primer, num_gen_steps):
-  """Generate many melodies simulatneously given a primer.
+  """Generate many melodies simultaneously given a primer.
 
   Generate melodies by sampling from model output and feeding it back into
   the model as input at every step.
@@ -184,13 +184,11 @@ def sampler_loop(graph, decoder, checkpoint_dir, primer, num_gen_steps):
   batch_size = softmax.get_shape()[0].value
 
   # Convert primer Melody to model inputs.
-  sequence_example, encoder_information = sequence_to_melodies.basic_one_hot_encoder(primer)
-  primer_input = [
-      list(i.float_list.value)
-      for i in sequence_example.feature_lists.feature_list['inputs'].feature]
+  transpose_amount = primer.squash()
+  primer_inputs, _ = basic_rnn_create_dataset.basic_one_hot_encoder(primer)
 
   # Run model over primer sequence.
-  primer_input_batch = np.tile([primer_input], (batch_size, 1, 1))
+  primer_input_batch = np.tile([primer_inputs], (batch_size, 1, 1))
   state = session.run(
       final_state,
       feed_dict={initial_state: np.zeros(initial_state.get_shape().as_list()),
@@ -222,6 +220,7 @@ def sampler_loop(graph, decoder, checkpoint_dir, primer, num_gen_steps):
     melody = melodies_lib.Melody(steps_per_bar=primer.steps_per_bar)
     melody.from_event_list(
         primer_event_list + list(decoder(seq, encoder_information)))
+    melody.transpose(-transpose_amount)
     generated_melodies.append(melody)
 
   return generated_melodies

@@ -18,7 +18,9 @@ import os.path
 import tempfile
 import tensorflow as tf
 
+from magenta.lib import melodies_lib
 from magenta.lib import sequence_to_melodies
+
 
 class SequenceToMelodiesTest(tf.test.TestCase):
 
@@ -29,11 +31,12 @@ class SequenceToMelodiesTest(tf.test.TestCase):
     self.tmp_dir = tempfile.mkdtemp(dir=self.get_temp_dir())
     self.train_output=os.path.join(self.tmp_dir, 'train_samples.tfrecord')
     self.eval_output=os.path.join(self.tmp_dir, 'eval_samples.tfrecord')
+    self.encoder = melodies_lib.MelodyEncoderDecoder()
 
   def testRunConversion(self):
     sequence_to_melodies.run_conversion(
-        encoder=sequence_to_melodies.basic_one_hot_encoder,
-        sequences_file=self.sequences_file,
+        melody_encoder_decoder=self.encoder,
+        note_sequences_file=self.sequences_file,
         train_output=self.train_output, eval_output=self.eval_output,
         eval_ratio=0.25)
 
@@ -51,13 +54,13 @@ class SequenceToMelodiesTest(tf.test.TestCase):
 
   def testRunConversionNoEval(self):
     sequence_to_melodies.run_conversion(
-        encoder=sequence_to_melodies.basic_one_hot_encoder,
-        sequences_file=self.sequences_file,
+        melody_encoder_decoder=self.encoder,
+        note_sequences_file=self.sequences_file,
         train_output=self.train_output)
 
     self.assertTrue(os.path.isfile(self.train_output))
     reader = tf.python_io.tf_record_iterator(self.train_output)
-    self.assertEqual(62, len(list(reader)))
+    self.assertEqual(67, len(list(reader)))
 
     self.assertFalse(os.path.isfile(self.eval_output))
 

@@ -11,18 +11,18 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Create basic RNN dataset from NoteSequence protos.
+"""Create attention RNN dataset from NoteSequence protos.
 
 This script will extract melodies from NoteSequence protos and save them to
-TensorFlow's SequenceExample protos for input to the basic RNN model.
+TensorFlow's SequenceExample protos for input to the attention RNN model.
 """
 
 import logging
+import attention_rnn_encoder_decoder
 import os
 import sys
 import tensorflow as tf
 
-from magenta.lib import melodies_lib
 from magenta.lib import sequence_to_melodies
 
 
@@ -40,6 +40,7 @@ tf.app.flags.DEFINE_float('eval_ratio', 0.0,
                           'Fraction of input to set aside for eval set. '
                           'Partition is randomly selected.')
 
+
 def main(unused_argv):
   root = logging.getLogger()
   root.setLevel(logging.INFO)
@@ -55,12 +56,7 @@ def main(unused_argv):
   if FLAGS.eval_output and not os.path.exists(eval_output_dir):
     os.makedirs(eval_output_dir)
 
-  # For this basic model we just use the default MelodyEncoderDecoder object
-  # with the default min_note, max_note, and transpose_to_key values. For an
-  # example of a model that uses a custom MelodyEncoderDecoder, checkout
-  # models/lookback_rnn/lookback_rnn_encoder_decoder.py.
-  melody_encoder_decoder = melodies_lib.MelodyEncoderDecoder()
-
+  melody_encoder_decoder = attention_rnn_encoder_decoder.MelodyEncoderDecoder()
   sequence_to_melodies.run_conversion(melody_encoder_decoder,
                                       FLAGS.input,
                                       FLAGS.train_output,

@@ -20,7 +20,7 @@ SEQUENCES_TFRECORD=/tmp/notesequences.tfrecord
 TRAIN_DATA=/tmp/training_melodies.tfrecord
 
 # Optional evaluation dataset. Also, a TFRecord file containing SequenceExample protos.
-EVAL_DATA=/tmp/evaluation_melodies.tfrecord
+EVAL_DATA=/tmp/eval_melodies.tfrecord
 
 # Fraction of input data that will be written to the eval dataset (if eval_output flag is set).
 EVAL_RATIO=0.10

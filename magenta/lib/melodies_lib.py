@@ -11,15 +11,31 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Utility functions for creating melody training datasets.
+"""Utility functions for working with melodies.
 
-Use extract_melodies to extract monophonic melodies from a NoteSequence proto.
+Use Melody.extract_melodies to extract monophonic melodies from a NoteSequence
+proto.
+
+Use Melody.to_sequence to write a melody to a NoteSequence proto. Then use
+midi_io.sequence_proto_to_midi_file to write that NoteSequence to a midi file.
+
+Use MelodyEncoderDecoder.encode to convert a Melody object to a
+tf.train.SequenceExample of inputs and labels. These SequenceExamples are fed
+into the model during training and evaluation.
+
+During melody generation, use MelodyEncoderDecoder.get_inputs_batch to convert
+a list of melodies into an inputs batch which can be fed into the model to
+predict what the next note should be for each melody. Then use
+MelodyEncoderDecoder.extend_melodies to extend each of those melodies with an
+event sampled from the softmax output by the model.
 """
 
 import logging
 import math
 import numpy as np
+import tensorflow as tf
 
+from magenta.lib import sequence_example_lib
 from magenta.protobuf import music_pb2
 
 
@@ -121,8 +137,8 @@ class Melody(object):
   in ascending order by start time. Note end times will be truncated if the next
   note overlaps.
 
-  Melodies can start at any non-zero time, and are shifted left so that the bar
-  containing the first note-on event is the first bar.
+  Melodies can start at any non-negative time, and are shifted left so that
+  the bar containing the first note-on event is the first bar.
 
   Attributes:
     events: A python list of melody events which are integers. Melody events are
@@ -195,7 +211,7 @@ class Melody(object):
 
     Args:
       pitch: Midi pitch. An integer between 0 and 127 inclusive.
-      start_step: A non-zero integer step that the note begins on.
+      start_step: A non-negative integer step that the note begins on.
       end_step: An integer step that the note ends on. The note is considered to
           end at the onset of the end step. `end_step` must be greater than
           `start_step`.
@@ -308,9 +324,13 @@ class Melody(object):
           seconds. Beats are subdivided according to `steps_per_bar` given to
           the constructor.
       gap: If this many steps or more follow a note, the melody is ended.
-      ignore_polyphonic_notes: If true, any notes that come before or land on
-          an already added note's start step will be ignored. If false,
-          PolyphonicMelodyException will be raised.
+      ignore_polyphonic_notes: If false, and multiple notes occur within the
+          same melody step, a PolyphonicMelodyException will be raised. If true,
+          only one of the notes occurring in the same step will be used. The
+          note used will be the note with the earlier NoteSequence `start_time`.
+          If both notes have the same `start_time`, the note with the higher
+          pitch is used, since melodies usually follow the top voicing when
+          played alongside chords.
 
     Raises:
       PolyphonicMelodyException: If any of the notes start on the same step when
@@ -323,8 +343,9 @@ class Melody(object):
 
     quantize = lambda x: int(math.ceil(x - QUANTIZE_CUTOFF))
 
-    # Sort track by note start times.
-    notes.sort(key=lambda note: note.start_time)
+    # Sort track by note start times, and secondarily by pitch descending.
+    # notes.sort(key=lambda note: (note.start_time, -note.pitch))
+    notes.sort(key=lambda note: (note.start_time, -note.pitch))
     for note in notes:
       # Ignore 0 velocity notes.
       if not note.velocity:
@@ -333,11 +354,11 @@ class Melody(object):
       # Quantize the start and end times of the note.
       start_step = quantize(note.start_time * steps_per_second)
       end_step = quantize(note.end_time * steps_per_second)
-      if end_step == start_step:
-        end_step += 1
+      if end_step <= start_step:
+        end_step = start_step + 1
 
-      # Do not allow notes to start or end in negative time.
-      if start_step < 0 or end_step < 0:
+      # Do not allow notes to start in negative time.
+      if start_step < 0:
         raise BadNoteException(
             'Got negative note time: start_time = %s, end_time = %s'
             % (note.start_time, note.end_time))
@@ -412,6 +433,29 @@ class Melody(object):
 
     return sequence
 
+  def transpose(self, transpose_amount, min_note=0, max_note=128):
+    """Transpose notes in this Melody.
+
+    All notes are transposed the specified amount. Additionally, all notes
+    are octave shifted to lie within the [min_note, max_note) range.
+
+    Args:
+      transpose_amount: The number of half steps to transpose this Melody.
+          Positive values transpose up. Negative values transpose down.
+      min_note: Minimum pitch (inclusive) that the resulting notes will take on.
+      max_note: Maximum pitch (exclusive) that the resulting notes will take on.
+    """
+    for i in xrange(len(self.events)):
+      # Transpose MIDI pitches. Special events below MIN_MIDI_PITCH are not
+      # changed.
+      if self.events[i] >= MIN_MIDI_PITCH:
+        self.events[i] += transpose_amount
+        if self.events[i] < min_note:
+          self.events[i] = (
+              min_note + (self.events[i] - min_note) % NOTES_PER_OCTAVE)
+        elif self.events[i] >= max_note:
+          self.events[i] = (max_note - NOTES_PER_OCTAVE +
+                            (self.events[i] - max_note) % NOTES_PER_OCTAVE)
 
   def squash(self, min_note, max_note, transpose_to_key):
     """Transpose and octave shift the notes in this Melody.
@@ -434,7 +478,7 @@ class Melody(object):
     midi_notes = [note for note in self.events
                   if MIN_MIDI_PITCH <= note <= MAX_MIDI_PITCH]
     if not midi_notes:
-      return
+      return 0
     melody_min_note = min(midi_notes)
     melody_max_note = max(midi_notes)
     melody_center = (melody_min_note + melody_max_note) / 2
@@ -443,16 +487,7 @@ class Melody(object):
     transpose_amount = (
         key_diff +
         NOTES_PER_OCTAVE * int(round(center_diff / float(NOTES_PER_OCTAVE))))
-    for i in xrange(len(self.events)):
-      # Transpose MIDI pitches. Special events below MIN_MIDI_PITCH are not changed.
-      if self.events[i] >= MIN_MIDI_PITCH:
-        self.events[i] += transpose_amount
-        if self.events[i] < min_note:
-          self.events[i] = (
-              min_note + (self.events[i] - min_note) % NOTES_PER_OCTAVE)
-        elif self.events[i] >= max_note:
-          self.events[i] = (max_note - NOTES_PER_OCTAVE +
-                            (self.events[i] - max_note) % NOTES_PER_OCTAVE)
+    self.transpose(transpose_amount, min_note, max_note)
 
     return transpose_amount
 
@@ -462,7 +497,7 @@ def extract_melodies(sequence, steps_per_beat=4, min_bars=7,
   """Extracts a list of melodies from the given NoteSequence proto.
 
   A time signature of BEATS_PER_BAR is assumed for each sequence. If the
-  sequence has an incompatable time signature, like 3/4, 5/4, etc, then
+  sequence has an incompatible time signature, like 3/4, 5/4, etc, then
   the time signature is ignored and BEATS_PER_BAR/4 time is assumed.
 
   Once a note-on event in a track is encountered, a melody begins. Once a
@@ -478,8 +513,8 @@ def extract_melodies(sequence, steps_per_beat=4, min_bars=7,
   notes (preventing melodies that only repeat a few notes, such as those found
   in some accompaniment tracks, from being used).
 
-  After scanning each instrument track in the NoteSequence, a list of all the valid
-  melodies is returned.
+  After scanning each instrument track in the NoteSequence, a list of all the
+  valid melodies is returned.
 
   Args:
     sequence: A NoteSequence proto containing notes.
@@ -535,3 +570,219 @@ def extract_melodies(sequence, steps_per_beat=4, min_bars=7,
 
   return melodies
 
+
+class MelodyEncoderDecoder(object):
+  """A class for translating between melodies and model data.
+
+  When building your dataset, the `encode` method takes in a melody and
+  returns a SequenceExample of inputs and labels. These SequenceExamples are
+  fed into the model during training and evaluation.
+
+  During melody generation, the `get_inputs_batch` method takes in a list of
+  the current melodies and returns an inputs batch which is fed into the
+  model to predict what the next note should be for each melody.
+  The `extend_melodies` method takes in the list of melodies and the softmax
+  returned by the model and extends each melody by one step by sampling from
+  the softmax probabilities. This loop (`get_inputs_batch` -> inputs batch
+  is fed through the model to get a softmax -> `extend_melodies`) is repeated
+  until the generated melodies have reached the desired length.
+
+  The `melody_to_input`, `melody_to_label`, and `class_index_to_melody_event`
+  methods can be overwritten to be specific to your model. Check out
+  lookback_rnn/lookback_rnn_create_dataset.py and
+  lookback_rnn/lookback_rnn_generate.py for an example of this.
+  """
+
+  def __init__(self, min_note=48, max_note=84, transpose_to_key=0):
+    """Initializes a MelodyEncoderDecoder object.
+
+    You can change `min_note` and `max_note` to increase/decrease the melody
+    range. Since melodies are transposed into this range to be run through
+    the model and then transposed back into their original range after the
+    melodies have been extended, the location of the range is somewhat
+    arbitrary, but the size of the range determines the possible size of the
+    generated melodies range. `transpose_to_key` should be set to the key
+    that if melodies where transposed into that key, they would best sit
+    between `min_note` and `max_note` with having as few notes outside that
+    range.
+
+    Args:
+      min_note: The minimum midi pitch the encoded melodies can have.
+      max_note: The maximum midi pitch the encoded melodies can have.
+      transpose_to_key: The key that encoded melodies will be transposed into.
+
+    Raises:
+      ValueError: If `min_note` or `max_note` are outside the midi range, or
+      if the [`min_note`, `max_note`) range is less than an octave. A range
+      of at least an octave is required to be able to octave shift notes into
+      that range while preserving their scale value.
+    """
+    if min_note < MIN_MIDI_PITCH:
+      raise ValueError('min_note must be >= 0. min_note is %d.' % min_note)
+    if max_note > MAX_MIDI_PITCH + 1:
+      raise ValueError('max_note must be <= 128. max_note is %d.' % max_note)
+    if max_note - min_note < NOTES_PER_OCTAVE:
+      raise ValueError('max_note - min_note must be >= 12. min_note is %d. '
+                       'max_note is %d. max_note - min_note is %d.' %
+                       (min_note, max_note, max_note - min_note))
+
+    self.min_note = min_note
+    self.max_note = max_note
+    self.transpose_to_key = transpose_to_key
+    self.num_model_events = max_note - min_note + NUM_SPECIAL_EVENTS
+    self.input_size = self.num_model_events
+    self.num_classes = self.num_model_events
+
+  def melody_event_to_model_event(self, melody_event):
+    """Collapses a melody event value into a zero-based index range.
+
+    Args:
+      melody_event: A Melody event value. -2 = no event,
+          -1 = note-off event, [0, 127] = note-on event for that midi pitch.
+
+    Returns:
+      An int in the range [0, self._num_model_events). 0 = no event,
+      1 = note-off event, [2, self._num_model_events) = note-on event for
+      that pitch relative to the [self._min_note, self._max_note) range.
+    """
+    if melody_event < 0:
+      return melody_event + NUM_SPECIAL_EVENTS
+    return melody_event - self.min_note + NUM_SPECIAL_EVENTS
+
+  def model_event_to_melody_event(self, model_event):
+    """Expands a zero-based index value to its equivalent melody event value.
+
+    Args:
+      model_event: An int in the range [0, self._num_model_events).
+          0 = no event, 1 = note-off event,
+          [2, self._num_model_events) = note-on event for that pitch relative
+          to the [self._min_note, self._max_note) range.
+
+    Returns:
+      A Melody event value. -2 = no event, -1 = note-off event,
+      [0, 127] = note-on event for that midi pitch.
+    """
+    if model_event < NUM_SPECIAL_EVENTS:
+      return model_event - NUM_SPECIAL_EVENTS
+    return model_event - NUM_SPECIAL_EVENTS + self.min_note
+
+  def melody_to_input(self, melody):
+    """Returns the input vector for the last event in the melody.
+
+    This implementation simply returns a one-hot vector for the last event in
+    the melody mapped to the model's event range. 0 = no event,
+    1 = note-off event, [2, self._num_model_events) = note-on event for that
+    pitch relative to the [self._min_note, self._max_note) range. This method
+    can be overwritten to be specific to your model. Check out
+    models/lookback_rnn/lookback_rnn_encoder_decoder.py for an example of this.
+
+    Args:
+      melody: A Melody object.
+
+    Returns:
+      An input vector, a list of floats.
+    """
+    input_ = [0.0] * self.num_model_events
+    input_[self.melody_event_to_model_event(melody.events[-1])] = 1.0
+    return input_
+
+  def melody_to_label(self, melody):
+    """Returns the label for the last event in the melody.
+
+    This implementation simply returns the zero-based index value for the last
+    event in the melody mapped to the model's event range. 0 = no event,
+    1 = note-off event, [2, self._num_model_events) = note-on event for that
+    pitch relative to the [self._min_note, self._max_note) range. This method
+    can be overwritten to be specific to your model. Check out
+    models/lookback_rnn/lookback_rnn_encoder_decoder.py for an example of this.
+
+    Args:
+      melody: A Melody object.
+
+    Returns:
+      A label, an int.
+    """
+    return self.melody_event_to_model_event(melody.events[-1])
+
+  def encode(self, melody):
+    """Returns a SequenceExample for the given melody.
+
+    Args:
+      melody: A Melody object.
+
+    Returns:
+      A tf.train.SequenceExample containing inputs and labels.
+    """
+    melody.squash(self.min_note, self.max_note, self.transpose_to_key)
+    inputs = []
+    labels = []
+    melody_events = melody.events
+    melody.events = melody_events[:1]
+    for i in xrange(1, len(melody_events)):
+      inputs.append(self.melody_to_input(melody))
+      melody.events = melody_events[:i + 1]
+      labels.append(self.melody_to_label(melody))
+    return sequence_example_lib.make_sequence_example(inputs, labels)
+
+  def get_inputs_batch(self, melodies, full_length=False):
+    """Returns an inputs batch for the given melodies.
+
+    Args:
+      melodies: A list of Melody objects.
+      full_length: If True, the inputs batch will be for the full length of
+          each melody. If False, the inputs batch will only be for the last
+          event of each melody. A full-length inputs batch is used for the
+          first step of extending the melodies, since the rnn cell state needs
+          to be initialized with the priming melody. For subsequent generation
+          steps, only a last-event inputs batch is used.
+
+    Returns:
+      An inputs batch. If `full_length` is True, the shape will be
+      [len(melodies), len(melodies[0]), INPUT_SIZE]. If `full_length` is False,
+      the shape will be [len(melodies), 1, INPUT_SIZE].
+    """
+    inputs_batch = []
+    for melody in melodies:
+      inputs = []
+      if full_length and len(melody):
+        melody_events = melody.events
+        for i in xrange(len(melody_events)):
+          melody.events = melody_events[:i + 1]
+          inputs.append(self.melody_to_input(melody))
+      else:
+        inputs.append(self.melody_to_input(melody))
+      inputs_batch.append(inputs)
+    return inputs_batch
+
+  def class_index_to_melody_event(self, class_index, melody):
+    """Returns the melody event for the given class index.
+
+    This is the reverse process of the `melody_to_label` method. This method
+    can be overwritten to be specific to your model. Check out
+    models/lookback_rnn/lookback_rnn_encoder_decoder.py for an example of this.
+
+    Args:
+      class_index: An int in the range [0, self.num_classes).
+      melody: A Melody object. This object is not used in this implementation,
+          but check out
+          models/lookback_rnn/lookback_rnn_encoder_decoder.py for an example
+          of how this object can be used.
+
+    Returns:
+      A Melody event value.
+    """
+    return self.model_event_to_melody_event(class_index)
+
+  def extend_melodies(self, melodies, softmax):
+    """Extends the melodies by sampling from the softmax probabilities.
+
+    Args:
+      melodies: A list of Melody objects.
+      softmax: A list of softmax probability vectors. The list of softmaxes
+          should be the same length as the list of melodies.
+    """
+    num_classes = len(softmax[0][0])
+    for i in xrange(len(melodies)):
+      chosen_class = np.random.choice(num_classes, p=softmax[i][-1])
+      melody_event = self.class_index_to_melody_event(chosen_class, melodies[i])
+      melodies[i].events.append(melody_event)

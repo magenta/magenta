@@ -41,6 +41,25 @@ cc_proto_library(
 )
 
 py_library(
+    name = "melodies_lib",
+    srcs = ["lib/melodies_lib.py"],
+    deps = [
+        ":music_py_pb2",
+        ":sequence_example_lib",
+    ]
+)
+
+py_test(
+    name = "melodies_lib_test",
+    srcs = ["lib/melodies_lib_test.py"],
+    srcs_version = "PY2AND3",
+    deps = [
+        ":melodies_lib",
+        "@protobuf//:protobuf_python",
+    ],
+)
+
+py_library(
     name = "midi_io",
     srcs = ["lib/midi_io.py"],
     srcs_version = "PY2AND3",
@@ -104,11 +123,10 @@ py_test(
 )
 
 py_library(
-    name = "melodies_lib",
-    srcs = ["lib/melodies_lib.py"],
+    name = "sequence_example_lib",
+    srcs = ["lib/sequence_example_lib.py"],
     deps = [
-        ":music_py_pb2",
-    ]
+    ],
 )
 
 py_library(
@@ -122,16 +140,6 @@ py_library(
 )
 
 py_test(
-    name = "melodies_lib_test",
-    srcs = ["lib/melodies_lib_test.py"],
-    srcs_version = "PY2AND3",
-    deps = [
-        ":melodies_lib",
-        "@protobuf//:protobuf_python",
-    ],
-)
-
-py_test(
     name = "sequence_to_melodies_test",
     srcs = ["lib/sequence_to_melodies_test.py"],
     srcs_version = "PY2AND3",
@@ -139,16 +147,15 @@ py_test(
         "testdata/notesequences.tfrecord",
     ],
     deps = [
-        ":sequence_to_melodies",
-    ],
-)
-
-py_test(
-    name = "basic_one_hot_encoder_test",
-    srcs = ["lib/basic_one_hot_encoder_test.py"],
-    srcs_version = "PY2AND3",
-    deps = [
         ":melodies_lib",
         ":sequence_to_melodies",
     ],
 )
+
+py_library(
+    name = "tf_lib",
+    srcs = ["lib/tf_lib.py"],
+    deps = [
+    ],
+)
+

@@ -13,7 +13,7 @@
 # limitations under the License.
 """Graph building functions for state_saving_rnn and dynamic_rnn LSTMs.
 
-Each graph component is produced by a seperate function.
+Each graph component is produced by a separate function.
 """
 
 import ast
@@ -45,8 +45,6 @@ class HParams(object):
 
 def default_hparams():
   return HParams(batch_size=128,
-                 lr=0.0002,
-                 l2_reg=2.5e-5,
                  clip_norm=5,
                  initial_learning_rate=0.5,
                  decay_steps=1000,
@@ -105,9 +103,9 @@ def dynamic_rnn_batch(file_list, hparams):
     lengths: Tensor vector of shape [batch_size] with the length of the
         SequenceExamples before padding.
   """
-  _, _, sequences = input_sequence_example(file_list, hparams)
+  _, _, sequence = input_sequence_example(file_list, hparams)
 
-  length = tf.shape(sequences['inputs'])[0]
+  length = tf.shape(sequence['inputs'])[0]
 
   queue = tf.PaddingFIFOQueue(
       capacity=1000,
@@ -116,8 +114,8 @@ def dynamic_rnn_batch(file_list, hparams):
 
   # The number of threads for enqueuing.
   num_threads = 4
-  enqueue_ops = [queue.enqueue([sequences['inputs'],
-                                sequences['labels'],
+  enqueue_ops = [queue.enqueue([sequence['inputs'],
+                                sequence['labels'],
                                 length])] * num_threads
   tf.train.add_queue_runner(tf.train.QueueRunner(queue, enqueue_ops))
   return queue.dequeue_many(hparams.batch_size)
@@ -128,7 +126,7 @@ def dynamic_rnn_inference(inputs, lengths, cell, hparams,
                           swap_memory=True):
   """Creates possibly layered LSTM cells with a linear projection layer.
 
-  Uses dynamic_rnn which dynamically unrolls for each minibatch allowing truely
+  Uses dynamic_rnn which dynamically unrolls for each minibatch allowing truly
   variable length minibatches.
 
   Args:

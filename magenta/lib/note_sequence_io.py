@@ -43,7 +43,7 @@ def note_sequence_record_iterator(path):
   """An iterator that reads and parses NoteSequence protos from a TFRecord file.
 
   Args:
-    path: The path to the TFRecord file constaining serialized NoteSequences.
+    path: The path to the TFRecord file containing serialized NoteSequences.
 
   Yields:
     NoteSequence protos.
@@ -68,7 +68,7 @@ class NoteSequenceRecordWriter(tf.python_io.TFRecordWriter):
   """
 
   def write(self, note_sequence):
-    """Serizes a NoteSequence proto and writes it to the file.
+    """Serializes a NoteSequence proto and writes it to the file.
 
     Args:
       note_sequence: A NoteSequence proto to write.
