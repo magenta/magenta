@@ -18,6 +18,7 @@ Input and output wrappers for converting between MIDI and other formats.
 
 from collections import defaultdict
 import sys
+# pylint: disable=g-import-not-at-top
 if sys.version_info.major <= 2:
   from cStringIO import StringIO
 else:
@@ -29,6 +30,7 @@ import pretty_midi
 import tensorflow as tf
 
 from magenta.protobuf import music_pb2
+# pylint: enable=g-import-not-at-top
 
 
 # The offset used to change the mode of a key from major to minor when
