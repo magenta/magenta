@@ -61,6 +61,7 @@ py_test(
     name = "basic_rnn_train_test",
     srcs = ["basic_rnn/basic_rnn_train_test.py"],
     srcs_version = "PY2AND3",
+    tags = ["notap"],
     data = [
         "basic_rnn/testdata/melodies.sample.tfrecord",
     ],
