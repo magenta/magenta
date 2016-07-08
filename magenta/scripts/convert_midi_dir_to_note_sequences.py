@@ -98,6 +98,8 @@ def main(unused_argv):
     tf.logging.fatal("--midi_dir required")
   if not FLAGS.output_file:
     tf.logging.fatal("--output_file required")
+  if not os.path.exists(os.path.dirname(FLAGS.output_file)):
+    os.makedirs(os.path.dirname(FLAGS.output_file))
   with note_sequence_io.NoteSequenceRecordWriter(
       FLAGS.output_file) as sequence_writer:
     sequences_written = convert_directory(FLAGS.midi_dir, '', sequence_writer,

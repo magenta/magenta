@@ -122,6 +122,13 @@ py_test(
    ],
 )
 
+py_binary(
+    name = "download_midiworld_classical",
+    srcs = ["scripts/download_midiworld_classical.py"],
+    deps = [
+    ],
+)
+
 py_library(
     name = "sequence_example_lib",
     srcs = ["lib/sequence_example_lib.py"],

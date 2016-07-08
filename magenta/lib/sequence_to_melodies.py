@@ -51,7 +51,12 @@ def run_conversion(melody_encoder_decoder, note_sequences_file, train_output,
   input_count = 0
   train_output_count = 0
   eval_output_count = 0
+  logging.info('Extracting melodies...')
   for sequence_data in reader:
+    # Only extract melodies from 4/4 time music.
+    if not (sequence_data.time_signatures[0].numerator == 4 and
+            sequence_data.time_signatures[0].denominator == 4):
+      continue
     extracted_melodies = melodies_lib.extract_melodies(sequence_data)
     for melody in extracted_melodies:
       sequence_example = melody_encoder_decoder.encode(melody)
@@ -63,13 +68,14 @@ def run_conversion(melody_encoder_decoder, note_sequences_file, train_output,
         train_writer.write(serialized)
         train_output_count += 1
     input_count += 1
-    tf.logging.log_every_n(logging.INFO, 
-                           'Extracted %d melodies from %d sequences.',
-                           500,
-                           eval_output_count + train_output_count,
-                           input_count)
+    if input_count % 10 == 0:
+      logging.info('Extracted %d melodies from %d sequences.',
+                   eval_output_count + train_output_count,
+                   input_count)
 
-  logging.info('Found %d sequences', input_count)
+  logging.info('Done.\nExtracted %d melodies from %d sequences.',
+               eval_output_count + train_output_count,
+               input_count)
   logging.info('Extracted %d melodies for training.', train_output_count)
   if eval_writer:
     logging.info('Extracted %d melodies for evaluation.', eval_output_count)

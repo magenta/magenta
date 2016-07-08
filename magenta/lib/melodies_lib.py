@@ -30,10 +30,10 @@ MelodyEncoderDecoder.extend_melodies to extend each of those melodies with an
 event sampled from the softmax output by the model.
 """
 
+import abc
 import logging
 import math
 import numpy as np
-import tensorflow as tf
 
 from magenta.lib import sequence_example_lib
 from magenta.protobuf import music_pb2
@@ -287,21 +287,30 @@ class Melody(object):
         np_melody[np_melody >= MIN_MIDI_PITCH] % NOTES_PER_OCTAVE,
         minlength=NOTES_PER_OCTAVE)
 
-  def get_major_key(self):
-    """Finds the major key that this melody most likely belong to.
-
-    Each key is matched against the pitches in the melody. The key that
-    matches the most pitches is returned. If multiple keys match equally, the
-    key with the lowest index is returned (where the indexes of the keys are
-    C = 0 through B = 11).
+  def get_key_histogram(self):
+    """Gets a histogram of the how many notes fit into each key.
 
     Returns:
-      An int for the most likely key (C = 0 through B = 11)
+      A list of 12 ints, one for each Major key (C Major at index 0 through
+      B Major at index 11). Each int is the total number of notes that could
+      fit into that key.
     """
     note_histogram = self.get_note_histogram()
     key_histogram = np.zeros(NOTES_PER_OCTAVE)
     for note, count in enumerate(note_histogram):
       key_histogram[NOTE_KEYS[note]] += count
+    return key_histogram
+
+  def get_major_key(self):
+    """Finds the major key that this melody most likely belongs to.
+
+    If multiple keys match equally, the key with the lowest index is returned,
+    where the indexes of the keys are C Major = 0 through B Major = 11.
+
+    Returns:
+      An int for the most likely key (C Major = 0 through B Major = 11)
+    """
+    key_histogram = self.get_key_histogram()
     return key_histogram.argmax()
 
   def from_notes(self, notes, bpm=120.0, gap=16, ignore_polyphonic_notes=False):
@@ -383,7 +392,7 @@ class Melody(object):
     self._write_all_notes()
 
   def from_event_list(self, events):
-    self.events = events
+    self.events = list(events)
 
   def to_sequence(self, velocity=100, instrument=0, sequence_start_time=0.0,
                   bpm=120.0):
@@ -572,7 +581,7 @@ def extract_melodies(sequence, steps_per_beat=4, min_bars=7,
 
 
 class MelodyEncoderDecoder(object):
-  """A class for translating between melodies and model data.
+  """An abstract class for translating between melodies and model data.
 
   When building your dataset, the `encode` method takes in a melody and
   returns a SequenceExample of inputs and labels. These SequenceExamples are
@@ -588,10 +597,10 @@ class MelodyEncoderDecoder(object):
   until the generated melodies have reached the desired length.
 
   The `melody_to_input`, `melody_to_label`, and `class_index_to_melody_event`
-  methods can be overwritten to be specific to your model. Check out
-  lookback_rnn/lookback_rnn_create_dataset.py and
-  lookback_rnn/lookback_rnn_generate.py for an example of this.
+  methods must be overwritten to be specific to your model. Check out
+  basic_rnn/basic_rnn_encoder_decoder.py for an example of this.
   """
+  __metaclass__ = abc.ABCMeta
 
   def __init__(self, min_note=48, max_note=84, transpose_to_key=0):
     """Initializes a MelodyEncoderDecoder object.
@@ -602,9 +611,14 @@ class MelodyEncoderDecoder(object):
     melodies have been extended, the location of the range is somewhat
     arbitrary, but the size of the range determines the possible size of the
     generated melodies range. `transpose_to_key` should be set to the key
-    that if melodies where transposed into that key, they would best sit
+    that if melodies were transposed into that key, they would best sit
     between `min_note` and `max_note` with having as few notes outside that
     range.
+
+    self.input_size and self.num_classes must be set in the init function of
+    your model's child class that extends this base class. self.input_size is
+    the length of the list returned by self.melody_to_input. self.num_classes
+    is the range of ints that can be returned by self.melody_to_label.
 
     Args:
       min_note: The minimum midi pitch the encoded melodies can have.
@@ -629,80 +643,50 @@ class MelodyEncoderDecoder(object):
     self.min_note = min_note
     self.max_note = max_note
     self.transpose_to_key = transpose_to_key
-    self.num_model_events = max_note - min_note + NUM_SPECIAL_EVENTS
-    self.input_size = self.num_model_events
-    self.num_classes = self.num_model_events
 
-  def melody_event_to_model_event(self, melody_event):
-    """Collapses a melody event value into a zero-based index range.
-
-    Args:
-      melody_event: A Melody event value. -2 = no event,
-          -1 = note-off event, [0, 127] = note-on event for that midi pitch.
+  @abc.abstractproperty
+  def input_size(self):
+    """The size of the input vector used by this model.
 
     Returns:
-      An int in the range [0, self._num_model_events). 0 = no event,
-      1 = note-off event, [2, self._num_model_events) = note-on event for
-      that pitch relative to the [self._min_note, self._max_note) range.
+        An int, the length of the input vector returned by
+        self.melody_to_input.
     """
-    if melody_event < 0:
-      return melody_event + NUM_SPECIAL_EVENTS
-    return melody_event - self.min_note + NUM_SPECIAL_EVENTS
+    pass
 
-  def model_event_to_melody_event(self, model_event):
-    """Expands a zero-based index value to its equivalent melody event value.
-
-    Args:
-      model_event: An int in the range [0, self._num_model_events).
-          0 = no event, 1 = note-off event,
-          [2, self._num_model_events) = note-on event for that pitch relative
-          to the [self._min_note, self._max_note) range.
+  @abc.abstractproperty
+  def num_classes(self):
+    """The range of labels used by this model.
 
     Returns:
-      A Melody event value. -2 = no event, -1 = note-off event,
-      [0, 127] = note-on event for that midi pitch.
+        An int, the range of labels that can be returned by
+        self.melody_to_label.
     """
-    if model_event < NUM_SPECIAL_EVENTS:
-      return model_event - NUM_SPECIAL_EVENTS
-    return model_event - NUM_SPECIAL_EVENTS + self.min_note
+    pass
 
+  @abc.abstractmethod
   def melody_to_input(self, melody):
     """Returns the input vector for the last event in the melody.
 
-    This implementation simply returns a one-hot vector for the last event in
-    the melody mapped to the model's event range. 0 = no event,
-    1 = note-off event, [2, self._num_model_events) = note-on event for that
-    pitch relative to the [self._min_note, self._max_note) range. This method
-    can be overwritten to be specific to your model. Check out
-    models/lookback_rnn/lookback_rnn_encoder_decoder.py for an example of this.
-
     Args:
       melody: A Melody object.
 
     Returns:
-      An input vector, a list of floats.
+      An input vector, a self.input_size length list of floats.
     """
-    input_ = [0.0] * self.num_model_events
-    input_[self.melody_event_to_model_event(melody.events[-1])] = 1.0
-    return input_
+    pass
 
+  @abc.abstractmethod
   def melody_to_label(self, melody):
     """Returns the label for the last event in the melody.
 
-    This implementation simply returns the zero-based index value for the last
-    event in the melody mapped to the model's event range. 0 = no event,
-    1 = note-off event, [2, self._num_model_events) = note-on event for that
-    pitch relative to the [self._min_note, self._max_note) range. This method
-    can be overwritten to be specific to your model. Check out
-    models/lookback_rnn/lookback_rnn_encoder_decoder.py for an example of this.
-
     Args:
       melody: A Melody object.
 
     Returns:
-      A label, an int.
+      A label, an int in the range [0, self.num_classes).
     """
-    return self.melody_event_to_model_event(melody.events[-1])
+    pass
 
   def encode(self, melody):
     """Returns a SequenceExample for the given melody.
@@ -754,12 +738,11 @@ class MelodyEncoderDecoder(object):
       inputs_batch.append(inputs)
     return inputs_batch
 
+  @abc.abstractmethod
   def class_index_to_melody_event(self, class_index, melody):
     """Returns the melody event for the given class index.
 
-    This is the reverse process of the `melody_to_label` method. This method
-    can be overwritten to be specific to your model. Check out
-    models/lookback_rnn/lookback_rnn_encoder_decoder.py for an example of this.
+    This is the reverse process of the self.melody_to_label method.
 
     Args:
       class_index: An int in the range [0, self.num_classes).
@@ -769,9 +752,10 @@ class MelodyEncoderDecoder(object):
           of how this object can be used.
 
     Returns:
-      A Melody event value.
+      A Melody event value, an int in the range [-2, 127]. -2 = no event,
+      -1 = note-off event, [0, 127] = note-on event for that midi pitch.
     """
-    return self.model_event_to_melody_event(class_index)
+    pass
 
   def extend_melodies(self, melodies, softmax):
     """Extends the melodies by sampling from the softmax probabilities.

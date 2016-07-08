@@ -19,6 +19,30 @@ load("@protobuf//:protobuf.bzl", "cc_proto_library")
 load("@protobuf//:protobuf.bzl", "py_proto_library")
 
 py_binary(
+    name = "melody_rnn_create_dataset",
+    srcs = ["shared/melody_rnn_create_dataset.py"],
+    deps = [
+        "//magenta:sequence_to_melodies",
+    ],
+)
+
+py_binary(
+    name = "melody_rnn_generate",
+    srcs = ["shared/melody_rnn_generate.py"],
+    deps = [
+        "//magenta:melodies_lib",
+        "//magenta:midi_io",
+    ],
+)
+
+py_binary(
+    name = "melody_rnn_train",
+    srcs = ["shared/melody_rnn_train.py"],
+    deps = [
+    ],
+)
+
+py_binary(
     name = "attention_rnn_create_dataset",
     srcs = ["attention_rnn/attention_rnn_create_dataset.py"],
     deps = [
@@ -126,7 +150,7 @@ py_binary(
     srcs = ["lookback_rnn/lookback_rnn_create_dataset.py"],
     deps = [
         ":lookback_rnn_encoder_decoder",
-        "//magenta:sequence_to_melodies",
+        ":melody_rnn_create_dataset",
     ],
 )
 
@@ -144,8 +168,7 @@ py_binary(
     deps = [
         ":lookback_rnn_encoder_decoder",
         ":lookback_rnn_graph",
-        "//magenta:melodies_lib",
-        "//magenta:midi_io",
+        ":melody_rnn_generate",
     ],
 )
 
@@ -164,5 +187,6 @@ py_binary(
     deps = [
         ":lookback_rnn_encoder_decoder",
         ":lookback_rnn_graph",
+        ":melody_rnn_train",
     ],
 )

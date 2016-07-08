@@ -13,12 +13,18 @@
 # limitations under the License.
 """A MelodyEncoderDecoder specific to the attention RNN model."""
 
+import collections
+
 from magenta.lib import melodies_lib
+
+NOTE_OFF = melodies_lib.NOTE_OFF
+NO_EVENT = melodies_lib.NO_EVENT
+MIN_MIDI_PITCH = melodies_lib.MIN_MIDI_PITCH
+NOTES_PER_OCTAVE = melodies_lib.NOTES_PER_OCTAVE
 
 MIN_NOTE = 48  # Inclusive
 MAX_NOTE = 84  # Exclusive
 TRANSPOSE_TO_KEY = 0  # C Major
-NO_EVENT = melodies_lib.NO_EVENT
 
 
 class MelodyEncoderDecoder(melodies_lib.MelodyEncoderDecoder):
@@ -33,27 +39,37 @@ class MelodyEncoderDecoder(melodies_lib.MelodyEncoderDecoder):
     """
     super(MelodyEncoderDecoder, self).__init__(MIN_NOTE, MAX_NOTE,
                                                TRANSPOSE_TO_KEY)
-    self.input_size = 3 * self.num_model_events + 7
-    self.num_classes = self.num_model_events + 2
+    self.note_range = self.max_note - self.min_note
+    self._input_size = self.note_range + 14 + NOTES_PER_OCTAVE * 2
+    self._num_classes = self.note_range + 4
+
+  @property
+  def input_size(self):
+    return self._input_size
+
+  @property
+  def num_classes(self):
+    return self._num_classes
 
   def melody_to_input(self, melody):
     """Returns the input vector for the last event in the melody.
 
     Returns a self.input_size length list of floats. If MIN_NOTE = 48 and
-    MAX_NOTE = 84, self.input_size = 121. Each index represents a different
+    MAX_NOTE = 84, self.input_size = 74. Each index represents a different
     input signal to the model.
 
-    Indices [0, 121):
-    [0, 38): Event of current step.
-    [38, 76): Event of next step if repeating 1 bar ago.
-    [76, 114): Event of next step if repeating 2 bars ago.
-    114: 16th note binary counter.
-    115: 8th note binary counter.
-    116: 4th note binary counter.
-    117: Half note binary counter.
-    118: Whole note binary counter.
-    119: The current step is repeating 1 bar ago.
-    120: The current step is repeating 2 bars ago.
+    Indices [0, 74):
+    [0, 36): A note is playing at that pitch [48, 84).
+    36: Any note is playing.
+    37: Silence is playing.
+    38: The current event is the note-on event of the currently playing note.
+    39: Whether the melody is currently ascending or descending.
+    40: The last event is repeating 1 bar ago.
+    41: The last event is repeating 2 bars ago.
+    [42, 49): Time keeping toggles.
+    49: The next event is the start of a bar.
+    [50, 62): The keys the current melody is in.
+    [62, 74): The keys the last 3 notes are in.
 
     Args:
       melody: A melodies_lib.Melody object.
@@ -61,57 +77,96 @@ class MelodyEncoderDecoder(melodies_lib.MelodyEncoderDecoder):
     Returns:
       An input vector, an self.input_size length list of floats.
     """
-    input_ = [0.0] * self.input_size
+    current_note = None
+    is_attack = False
+    is_ascending = None
+    last_3_notes = collections.deque(maxlen=3)
+    for note in melody.events:
+      if note == NO_EVENT:
+        is_attack = False
+      elif note == NOTE_OFF:
+        current_note = None
+      else:
+        is_attack = True
+        current_note = note
+        if last_3_notes:
+          if note > last_3_notes[-1]:
+            is_ascending = True
+          if note < last_3_notes[-1]:
+            is_ascending = False
+        if note in last_3_notes:
+          last_3_notes.remove(note)
+        last_3_notes.append(note)
 
-    # Last event.
-    model_event = self.melody_event_to_model_event(
-        melody.events[-1] if len(melody) >= 1 else NO_EVENT)
-    input_[model_event] = 1.0
+    input_ = [0.0] * self._input_size
+    if current_note:
+      # The pitch of current note if a note is playing.
+      input_[current_note - self.min_note] = 1.0
+      # A note is playing.
+      input_[self.note_range] = 1.0
+    else:
+      # Silence is playing.
+      input_[self.note_range + 1] = 1.0
 
-    # Next event if repeating 1 bar ago.
-    model_event = self.melody_event_to_model_event(
-        melody.events[-16] if len(melody) >= 16 else NO_EVENT)
-    input_[self.num_model_events + model_event] = 1.0
+    # The current event is the note-on event of the currently playing note.
+    if is_attack:
+      input_[self.note_range + 2] = 1.0
 
-    # Next event if repeating 2 bars ago.
-    model_event = self.melody_event_to_model_event(
-        melody.events[-32] if len(melody) >= 32 else NO_EVENT)
-    input_[2 * self.num_model_events + model_event] = 1.0
+    # Whether the melody is currently ascending or descending.
+    if is_ascending is not None:
+      input_[self.note_range + 3] = 1.0 if is_ascending else -1.0
 
-    # Binary time counter.
-    i = len(melody) - 1
-    input_[3 * self.num_model_events + 0] = 1.0 if i % 2 else -1.0
-    input_[3 * self.num_model_events + 1] = 1.0 if i / 2 % 2 else -1.0
-    input_[3 * self.num_model_events + 2] = 1.0 if i / 4 % 2 else -1.0
-    input_[3 * self.num_model_events + 3] = 1.0 if i / 8 % 2 else -1.0
-    input_[3 * self.num_model_events + 4] = 1.0 if i / 16 % 2 else -1.0
+    # The last event is repeating 1 bar ago.
+    if len(melody) >= 17 and melody[-1] == melody[-17]:
+      input_[self.note_range + 4] = 1.0
 
-    # Last event is repeating 1 bar ago.
-    if len(melody) >= 17 and melody.events[-1] == melody.events[-17]:
-      input_[3 * self.num_model_events + 5] = 1.0
+    # The last event is repeating 2 bars ago.
+    if len(melody) >= 33 and melody[-1] == melody[-33]:
+      input_[self.note_range + 5] = 1.0
 
-    # Last event is repeating 2 bars ago.
-    if len(melody) >= 33 and melody.events[-1] == melody.events[-33]:
-      input_[3 * self.num_model_events + 6] = 1.0
+    # Time keeping toggles.
+    input_[self.note_range + 6] = 1.0 if len(melody) % 2 else -1.0
+    input_[self.note_range + 7] = 1.0 if len(melody) / 2 % 2 else -1.0
+    input_[self.note_range + 8] = 1.0 if len(melody) / 4 % 2 else -1.0
+    input_[self.note_range + 9] = 1.0 if len(melody) / 8 % 2 else -1.0
+    input_[self.note_range + 10] = 1.0 if len(melody) / 16 % 2 else -1.0
+    input_[self.note_range + 11] = 1.0 if len(melody) / 32 % 2 else -1.0
+    input_[self.note_range + 12] = 1.0 if len(melody) / 64 % 2 else -1.0
+
+    # The next event is the start of a bar.
+    if len(melody) % 16 == 0:
+      input_[self.note_range + 13] = 1.0
+
+    # The keys the current melody is in.
+    key_histogram = melody.get_key_histogram()
+    max_val = max(key_histogram)
+    for i, key_val in enumerate(key_histogram):
+      if key_val == max_val:
+        input_[self.note_range + 14 + i] = 1.0
+
+    # The keys the last 3 notes are in.
+    melody_events_backup = melody.events
+    melody.events = list(last_3_notes)
+    key_histogram = melody.get_key_histogram()
+    max_val = max(key_histogram)
+    for i, key_val in enumerate(key_histogram):
+      if key_val == max_val:
+        input_[self.note_range + 14 + NOTES_PER_OCTAVE + i] = 1.0
+    melody.events = melody_events_backup
 
     return input_
 
   def melody_to_label(self, melody):
     """Returns the label for the last event in the melody.
 
-    Returns an int the range [0, self.num_classes). Indices in the range
-    [0, self.num_model_events) map to standard midi events. Indices
-    self.num_model_events and self.num_model_events + 1 are signals to repeat
-    events from earlier in the melody.
-
-    If MIN_NOTE = 48 and MAX_NOTE = 84, self.num_classes will = 40,
-    self.num_model_events will = 38, and the values will be as follows.
+    Returns an int the range [0, self.num_classes). If MIN_NOTE = 48 and
+    MAX_NOTE = 84, self.num_classes = 40.
     Values [0, 40):
-      [0, 38): Event of the last step in the melody, if not repeating 1 or 2
-               bars ago.
-      38: If the last event in the melody is repeating 1 bar ago, if not
-          repeating 2 bars ago.
-      39: If the last event in the melody is repeating 2 bars ago.
+      [0, 36): Note-on event for midi pitch [48, 84).
+      36: No event.
+      37: Note-off event.
+      38: Repeat 1 bar ago (takes precedence over above values).
+      39: Repeat 2 bars ago (takes precedence over above values).
 
     Args:
       melody: A melodies_lib.Melody object.
@@ -119,22 +174,31 @@ class MelodyEncoderDecoder(melodies_lib.MelodyEncoderDecoder):
     Returns:
       A label, an int.
     """
-    # If last step repeated 2 bars ago.
+
+    # If the last event repeated 2 bars ago.
     if ((len(melody.events) <= 32 and melody.events[-1] == NO_EVENT) or
         (len(melody.events) > 32 and melody.events[-1] == melody.events[-33])):
-      return self.num_model_events + 1
+      return self.note_range + 3
 
-    # If last step repeated 1 bar ago.
+    # If the last event repeated 1 bar ago.
     if len(melody.events) > 16 and melody.events[-1] == melody.events[-17]:
-      return self.num_model_events
+      return self.note_range + 2
 
-    # If last step didn't repeat 1 or 2 bars ago, use the specific event.
-    return self.melody_event_to_model_event(melody.events[-1])
+    # If last event was a note-off event.
+    if melody.events[-1] == NOTE_OFF:
+      return self.note_range + 1
+
+    # If last event was a no event.
+    if melody.events[-1] == NO_EVENT:
+      return self.note_range
+
+    # If last event was a note-on event, the pitch of that note.
+    return melody.events[-1] - self.min_note
 
   def class_index_to_melody_event(self, class_index, melody):
     """Returns the melody event for the given class index.
 
-    This is the reverse process of the melody_to_label method.
+    This is the reverse process of the self.melody_to_label method.
 
     Args:
       class_index: An int in the range [0, self.num_classes).
@@ -144,12 +208,20 @@ class MelodyEncoderDecoder(melodies_lib.MelodyEncoderDecoder):
       A melodies_lib.Melody event value.
     """
     # Repeat 1 bar ago.
-    if class_index == self.num_model_events + 1:
+    if class_index == self.note_range + 3:
       return NO_EVENT if len(melody) < 32 else melody.events[-32]
 
     # Repeat 2 bars ago.
-    if class_index == self.num_model_events:
+    if class_index == self.note_range + 2:
       return NO_EVENT if len(melody) < 16 else melody.events[-16]
 
-    # Return the melody event for that class index.
-    return self.model_event_to_melody_event(class_index)
+    # Note-off event.
+    if class_index == self.note_range + 1:
+      return NOTE_OFF
+
+    # No event:
+    if class_index == self.note_range:
+      return NO_EVENT
+
+    # Note-on event for that midi pitch.
+    return self.min_note + class_index

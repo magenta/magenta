@@ -15,10 +15,12 @@
 
 from magenta.lib import melodies_lib
 
+NUM_SPECIAL_EVENTS = melodies_lib.NUM_SPECIAL_EVENTS
+NO_EVENT = melodies_lib.NO_EVENT
+
 MIN_NOTE = 48  # Inclusive
 MAX_NOTE = 84  # Exclusive
 TRANSPOSE_TO_KEY = 0  # C Major
-NO_EVENT = melodies_lib.NO_EVENT
 
 
 class MelodyEncoderDecoder(melodies_lib.MelodyEncoderDecoder):
@@ -33,8 +35,50 @@ class MelodyEncoderDecoder(melodies_lib.MelodyEncoderDecoder):
     """
     super(MelodyEncoderDecoder, self).__init__(MIN_NOTE, MAX_NOTE,
                                                TRANSPOSE_TO_KEY)
-    self.input_size = 3 * self.num_model_events + 7
-    self.num_classes = self.num_model_events + 2
+    self.num_model_events = self.max_note - self.min_note + NUM_SPECIAL_EVENTS
+    self._input_size = 3 * self.num_model_events + 7
+    self._num_classes = self.num_model_events + 2
+
+  @property
+  def input_size(self):
+    return self._input_size
+
+  @property
+  def num_classes(self):
+    return self._num_classes
+
+  def melody_event_to_model_event(self, melody_event):
+    """Collapses a melody event value into a zero-based index range.
+
+    Args:
+      melody_event: A Melody event value. -2 = no event,
+          -1 = note-off event, [0, 127] = note-on event for that midi pitch.
+
+    Returns:
+      An int in the range [0, self._num_model_events). 0 = no event,
+      1 = note-off event, [2, self._num_model_events) = note-on event for
+      that pitch relative to the [self._min_note, self._max_note) range.
+    """
+    if melody_event < 0:
+      return melody_event + NUM_SPECIAL_EVENTS
+    return melody_event - self.min_note + NUM_SPECIAL_EVENTS
+
+  def model_event_to_melody_event(self, model_event):
+    """Expands a zero-based index value to its equivalent melody event value.
+
+    Args:
+      model_event: An int in the range [0, self._num_model_events).
+          0 = no event, 1 = note-off event,
+          [2, self._num_model_events) = note-on event for that pitch relative
+          to the [self._min_note, self._max_note) range.
+
+    Returns:
+      A Melody event value. -2 = no event, -1 = note-off event,
+      [0, 127] = note-on event for that midi pitch.
+    """
+    if model_event < NUM_SPECIAL_EVENTS:
+      return model_event - NUM_SPECIAL_EVENTS
+    return model_event - NUM_SPECIAL_EVENTS + self.min_note
 
   def melody_to_input(self, melody):
     """Returns the input vector for the last event in the melody.
@@ -61,7 +105,7 @@ class MelodyEncoderDecoder(melodies_lib.MelodyEncoderDecoder):
     Returns:
       An input vector, an self.input_size length list of floats.
     """
-    input_ = [0.0] * self.input_size
+    input_ = [0.0] * self._input_size
 
     # Last event.
     model_event = self.melody_event_to_model_event(
@@ -134,7 +178,7 @@ class MelodyEncoderDecoder(melodies_lib.MelodyEncoderDecoder):
   def class_index_to_melody_event(self, class_index, melody):
     """Returns the melody event for the given class index.
 
-    This is the reverse process of the melody_to_label method.
+    This is the reverse process of the self.melody_to_label method.
 
     Args:
       class_index: An int in the range [0, self.num_classes).

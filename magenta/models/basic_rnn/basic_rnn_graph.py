@@ -25,10 +25,10 @@ def default_hparams():
       batch_size=128,
       rnn_layer_sizes=[128, 128],
       dropout_keep_prob=0.5,
-      clip_norm=3,
-      initial_learning_rate=0.001,
+      clip_norm=5,
+      initial_learning_rate=0.01,
       decay_steps=1000,
-      decay_rate=0.95)
+      decay_rate=0.85)
 
 
 def build_graph(mode, hparams_string, input_size, num_classes,
@@ -133,7 +133,7 @@ def build_graph(mode, hparams_string, input_size, num_classes,
         tf.scalar_summary('loss', loss)
         tf.scalar_summary('perplexity', perplexity)
         tf.scalar_summary('accuracy', accuracy)
-        tf.scalar_summary('learning_rate', learning_rate)
+        tf.scalar_summary('learning_rate', accuracy)
 
       if mode == 'eval':
         summary_op = tf.merge_summary([
