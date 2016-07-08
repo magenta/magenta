@@ -28,7 +28,7 @@ import urllib
 
 FLAGS = tf.app.flags.FLAGS
 tf.app.flags.DEFINE_string('output_dir', None,
-                           'Directory where MIDI files will be saved.')
+                           'Directory where MIDI files will be saved to.')
 
 
 def main(unused_argv):

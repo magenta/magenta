@@ -11,57 +11,17 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Create attention RNN dataset from NoteSequence protos.
+"""Create attention RNN dataset."""
 
-This script will extract melodies from NoteSequence protos and save them to
-TensorFlow's SequenceExample protos for input to the attention RNN model.
-"""
-
-import logging
 import attention_rnn_encoder_decoder
-import os
-import sys
 import tensorflow as tf
 
-from magenta.lib import sequence_to_melodies
-
-
-FLAGS = tf.app.flags.FLAGS
-tf.app.flags.DEFINE_string('input', None,
-                           'TFRecord to read NoteSequence protos from.')
-tf.app.flags.DEFINE_string('train_output', None,
-                           'TFRecord to write SequenceExample protos to. '
-                           'Contains training set.')
-tf.app.flags.DEFINE_string('eval_output', None,
-                           'TFRecord to write SequenceExample protos to. '
-                           'Contains eval set. No eval set is produced if '
-                           'this flag is not set.')
-tf.app.flags.DEFINE_float('eval_ratio', 0.0,
-                          'Fraction of input to set aside for eval set. '
-                          'Partition is randomly selected.')
+from magenta.models.shared import melody_rnn_create_dataset
 
 
 def main(unused_argv):
-  root = logging.getLogger()
-  root.setLevel(logging.INFO)
-  ch = logging.StreamHandler(sys.stdout)
-  ch.setLevel(logging.INFO)
-  root.addHandler(ch)
-
-  train_output_dir = os.path.dirname(FLAGS.train_output)
-  if not os.path.exists(train_output_dir):
-    os.makedirs(train_output_dir)
-
-  eval_output_dir = os.path.dirname(FLAGS.eval_output)
-  if FLAGS.eval_output and not os.path.exists(eval_output_dir):
-    os.makedirs(eval_output_dir)
-
   melody_encoder_decoder = attention_rnn_encoder_decoder.MelodyEncoderDecoder()
-  sequence_to_melodies.run_conversion(melody_encoder_decoder,
-                                      FLAGS.input,
-                                      FLAGS.train_output,
-                                      FLAGS.eval_output,
-                                      FLAGS.eval_ratio)
+  melody_rnn_create_dataset.run(melody_encoder_decoder)
 
 
 if __name__ == '__main__':

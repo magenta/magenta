@@ -47,7 +47,7 @@ py_binary(
     srcs = ["attention_rnn/attention_rnn_create_dataset.py"],
     deps = [
         ":attention_rnn_encoder_decoder",
-        "//magenta:sequence_to_melodies",
+        ":melody_rnn_create_dataset",
     ],
 )
 
@@ -65,8 +65,7 @@ py_binary(
     deps = [
         ":attention_rnn_encoder_decoder",
         ":attention_rnn_graph",
-        "//magenta:melodies_lib",
-        "//magenta:midi_io",
+        ":melody_rnn_generate",
     ],
 )
 
@@ -85,6 +84,7 @@ py_binary(
     deps = [
         ":attention_rnn_encoder_decoder",
         ":attention_rnn_graph",
+        ":melody_rnn_train",
     ],
 )
 
