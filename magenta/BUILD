@@ -110,6 +110,29 @@ py_library(
     ],
 )
 
+py_library(
+    name = "sequences_lib",
+    srcs = ["lib/sequences_lib.py"],
+)
+
+py_library(
+    name = "modules",
+    srcs = ["pipelines/modules.py"],
+    deps = [
+        ":melodies_lib",
+        ":sequences_lib",
+        "//magenta/protobuf:music_py_pb2",
+    ],
+)
+
+py_library(
+    name = "pipeline",
+    srcs = ["pipelines/pipeline.py"],
+    deps = [
+        "//magenta/protobuf:music_py_pb2",
+    ],
+)
+
 py_test(
     name = "melodies_lib_test",
     srcs = ["lib/melodies_lib_test.py"],

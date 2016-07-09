@@ -43,8 +43,9 @@ py_binary(
     srcs = ["basic_rnn/basic_rnn_create_dataset.py"],
     deps = [
         "//magenta:melodies_lib",
-        "//magenta:midi_io",
-        "//magenta:sequence_to_melodies",
+        "//magenta:modules",
+        "//magenta:pipeline",
+        "//magenta/protobuf:music_py_pb2",
         # tensorflow dep
     ],
 )
