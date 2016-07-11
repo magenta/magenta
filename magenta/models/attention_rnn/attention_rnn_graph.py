@@ -95,8 +95,13 @@ def build_graph(mode, hparams_string, input_size, num_classes,
     logits_flat = tf.contrib.layers.linear(outputs_flat, num_classes)
 
     if mode == 'train' or mode == 'eval':
-      labels_flat = tf.reshape(labels, [-1])
+      if hparams.skip_first_n_losses:
+        logits = tf.reshape(logits_flat, [hparams.batch_size, -1, num_classes])
+        logits = logits[:, hparams.skip_first_n_losses:, :]
+        logits_flat = tf.reshape(logits, [-1, num_classes])
+        labels = labels[:, hparams.skip_first_n_losses:]
 
+      labels_flat = tf.reshape(labels, [-1])
       loss = tf.reduce_mean(tf.nn.sparse_softmax_cross_entropy_with_logits(
           logits_flat, labels_flat))
       perplexity = tf.exp(loss)
