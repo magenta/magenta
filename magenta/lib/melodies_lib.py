@@ -17,8 +17,7 @@ Use extract_melodies to extract monophonic melodies from a NoteSequence proto.
 """
 
 import logging
-import math
-from six.moves import range
+from six.moves import range  # pylint: disable=redefined-builtin
 
 # internal imports
 import numpy as np
@@ -89,18 +88,18 @@ class PolyphonicMelodyException(Exception):
   pass
 
 
-class Melody(object):
+class MonophonicMelody(object):
   """Stores a quantized stream of monophonic melody events.
 
-  Melody is an intermediate representation that all melody models
+  MonophonicMelody is an intermediate representation that all melody models
   can use. NoteSequence proto to melody code will do work to align notes
   and extract monophonic melodies. Model specific code just needs to
-  convert Melody to SequenceExample protos for TensorFlow.
+  convert MonophonicMelody to SequenceExample protos for TensorFlow.
 
-  Melody implements an iterable object. Simply iterate to retrieve
+  MonophonicMelody implements an iterable object. Simply iterate to retrieve
   the melody events.
 
-  Melody events are integers in range [-2, 127] (inclusive),
+  MonophonicMelody events are integers in range [-2, 127] (inclusive),
   where negative values are the special event events: NOTE_OFF, and NO_EVENT.
   Non-negative values [0, 127] are note-on events for that midi pitch. A note
   starts at a non-negative value (that is the pitch), and is held through
@@ -117,7 +116,7 @@ class Melody(object):
   containing the first note-on event is the first bar.
 
   Attributes:
-    events: A python list of melody events which are integers. Melody events are
+    events: A python list of melody events which are integers. MonophonicMelody events are
         described above.
     offset: When quantizing notes, this is the offset between indices in
         `events` and time steps of incoming melody events. An offset is chosen
@@ -131,10 +130,10 @@ class Melody(object):
   """
 
   def __init__(self):
-    """Construct an empty Melody.
+    """Construct an empty MonophonicMelody.
 
     Args:
-      steps_per_bar: How many time steps per bar of music. Melody needs to know
+      steps_per_bar: How many time steps per bar of music. MonophonicMelody needs to know
           about bars to skip empty bars before the first note.
     """
     self._reset()
@@ -147,7 +146,7 @@ class Melody(object):
     self.end_step = 0
 
   def __iter__(self):
-    """Return an iterator over the events in this Melody.
+    """Return an iterator over the events in this MonophonicMelody.
 
     Returns:
       Python iterator over events.
@@ -155,7 +154,7 @@ class Melody(object):
     return iter(self.events)
 
   def __len__(self):
-    """How many events are in this Melody.
+    """How many events are in this MonophonicMelody.
 
     Returns:
       Number of events as an int.
@@ -327,7 +326,7 @@ class Melody(object):
 
   def to_sequence(self, velocity=100, instrument=0, sequence_start_time=0.0,
                   bpm=120.0):
-    """Converts the Melody to Sequence proto.
+    """Converts the MonophonicMelody to Sequence proto.
 
     Args:
       velocity: Midi velocity to give each note. Between 1 and 127 (inclusive).
@@ -375,7 +374,7 @@ class Melody(object):
 
 
   def squash(self, min_note, max_note, transpose_to_key):
-    """Transpose and octave shift the notes in this Melody.
+    """Transpose and octave shift the notes in this MonophonicMelody.
 
     The key center of this melody is computed with a heuristic, and the notes
     are transposed to be in the given key. The melody is also octave shifted
@@ -453,17 +452,17 @@ def extract_melodies(quantized_sequence, steps_per_beat=4, min_bars=7, gap_bars=
         Melodies with too few unique notes are discarded.
 
   Returns:
-    A python list of Melody instances.
+    A python list of MonophonicMelody instances.
   """
 
   melodies = []
   for track in quantized_sequence.tracks:
     start = 0
 
-    # Quantize the track into a Melody object.
+    # Quantize the track into a MonophonicMelody object.
     # If any notes start at the same time, only one is kept.
     while 1:
-      melody = Melody()
+      melody = MonophonicMelody()
       melody.from_quantized_sequence(quantized_sequence, track=track, start_step=start, gap_bars=gap_bars, ignore_polyphonic_notes=True)  # TODO: setting to control what level of polyphony is acceptable 
       start = melody.end_step
       if not len(melody):

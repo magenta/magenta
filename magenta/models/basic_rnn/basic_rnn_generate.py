@@ -112,7 +112,7 @@ def make_graph(hparams_string='{}'):
 
 
 def classes_to_melody(model_output, reconstruction_data, min_note=48):
-  """Convert list of model outputs to Melody object.
+  """Convert list of model outputs to MonophonicMelody object.
 
   This method decodes sequence_to_melodies.basic_one_hot_encoder.
 
@@ -122,14 +122,14 @@ def classes_to_melody(model_output, reconstruction_data, min_note=48):
     model_output: List of integers. Each int is the chosen softmax class
         from the model output.
     reconstruction_data: basic_one_hot_encoder specific information
-        needed to reconstruct the input Melody.
+        needed to reconstruct the input MonophonicMelody.
     min_note: Minimum pitch in model will be mapped to this MIDI pitch.
 
   Returns:
-    A melodies_lib.Melody.
+    A melodies_lib.MonophonicMelody.
   """
   transpose_amount = reconstruction_data
-  output = melodies_lib.Melody()
+  output = melodies_lib.MonophonicMelody()
   output.from_event_list(
       [e - melodies_lib.NUM_SPECIAL_EVENTS
        if e < melodies_lib.NUM_SPECIAL_EVENTS
@@ -157,15 +157,15 @@ def sampler_loop(graph, decoder, checkpoint_dir, primer, num_gen_steps):
   Args:
     graph: A tf.Graph instance containing the graph to sample from.
     decoder: A function that converts model output and reconstruction data into
-        a Melody object. The method takes two inputs: A list of integers which
+        a MonophonicMelody object. The method takes two inputs: A list of integers which
         are the softmax classes chosen at each step, and reconstruction data
-        returned by the encoder. It returns a melodies_lib.Melody.
+        returned by the encoder. It returns a melodies_lib.MonophonicMelody.
     checkpoint_dir: Directory to look for most recent model checkpoint in.
-    primer: A Melody object.
+    primer: A MonophonicMelody object.
     num_gen_steps: How many time steps to generate.
 
   Returns:
-    List of generated melodies, each as a Melody object.
+    List of generated melodies, each as a MonophonicMelody object.
   """
   softmax = graph.get_collection('softmax')[0]
   initial_state = graph.get_collection('initial_state')[0]
@@ -185,8 +185,9 @@ def sampler_loop(graph, decoder, checkpoint_dir, primer, num_gen_steps):
 
   batch_size = softmax.get_shape()[0].value
 
-  # Convert primer Melody to model inputs.
-  sequence_example, encoder_information = sequence_to_melodies.basic_one_hot_encoder(primer)
+  # Convert primer MonophonicMelody to model inputs.
+  encoder_information = melody.squash(self.min_note, self.max_note, self.transpose_to_key)
+  sequence_example = basic_rnn_ops.one_hot_encoder(melody)
   primer_input = [
       list(i.float_list.value)
       for i in sequence_example.feature_lists.feature_list['inputs'].feature]
@@ -221,7 +222,7 @@ def sampler_loop(graph, decoder, checkpoint_dir, primer, num_gen_steps):
   primer_event_list = list(primer)
   generated_melodies = []
   for seq in generated_sequences:
-    melody = melodies_lib.Melody(steps_per_bar=primer.steps_per_bar)
+    melody = melodies_lib.MonophonicMelody(steps_per_bar=primer.steps_per_bar)
     melody.from_event_list(
         primer_event_list + list(decoder(seq, encoder_information)))
     generated_melodies.append(melody)
