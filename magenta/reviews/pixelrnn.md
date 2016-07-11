@@ -11,8 +11,8 @@ The [Pixel Recurrent Neural Networks paper](https://arxiv.org/abs/1601.06759), b
 
 The specific images above are from a PixelRNN model trained on about 1 million *32 x 32* pixel color images derived from ImageNet. Generating images at the pixel level can be done in many different ways, but one common method (as seen in [NADE](http://www.dmi.usherb.ca/~larocheh/publications/aistats2011_nade.pdf) and [MADE](https://arxiv.org/abs/1502.03509)) is to choose a value for a pixel and use that to condition the next prediction. To accommodate this assumption, some ordering of the pixels is assumed, e.g. top left to bottom right and row-wise.
 
-In probability terms, this approach uses the [chain rule](https://en.wikipedia.org/wiki/Chain_rule_(probability)) to reinterpret the joint probability of an image  
-**p(image) = p(x_0, x_1, x_2 … x_n)**, where **x_*** are the individual pixels in the image in a specific order, 
+In probability terms, this approach uses the [chain rule](https://en.wikipedia.org/wiki/Chain_rule_(probability)) to reinterpret the joint probability of an image<br>
+**p(image) = p(x_0, x_1, x_2 … x_n)**, where **x_*** are the individual pixels in the image in a specific order,
 as a product of conditional distributions, **p(image) = p(x_0) * p(x_1 | x_0) * p(x_2 | x_1, x_0)...** .
 
 This process assigns an ordering among the pixels, allowing the image to be sampled and processed sequentially. Note that this ordering is one of many possible. Ensembling of several orderings was explored in great detail in both [NADE and MADE](http://videolectures.net/deeplearning2015_larochelle_deep_learning/), and related ideas about exploring structure using splitting and masking can also be seen in [NICE](https://arxiv.org/abs/1410.8516) and [Real NVP](https://arxiv.org/abs/1605.08803). Combined with efficient convolutional preprocessing, both PixelCNN and PixelRNN use this “product of conditionals” approach to great effect. This conditional dependency chain is straightforward to model with an RNN, but how do they get the same context with convolutional processing?
@@ -35,7 +35,8 @@ Mask A |  Mask B
 
 Both masks are carefully constructed to ensure that the prediction for a pixel is never a function of its own input value. The key difference between mask **A** and mask **B** is whether the pixel being predicted is turned “on” in the center of the mask. Mask **A** is responsible for ensuring that the current pixel in question does not contribute to the prediction. With mask **A** eliminating the problem connection from the network input, the rest of the subsequent layer masks can then be type **B**, where self-connection on the current channel is allowed. This difference is extremely subtle, but key to how this model works.
 
-Applying the masks to the filter weights before convolving will result in the correct dependency field. Some example code to generate these masks in numpy, by [Ishaan Gulrajani](https://github.com/igul222), can be found [here](https://github.com/igul222/pixel_rnn). This code also implements PixelCNN and one form of PixelRNN on MNIST with reasonably good scores. Though it is not an exact replication of the paper, it is a useful reference for understanding these architectures in code. It also highlights how simple their implementation can be.
+Applying the masks to the filter weights before convolving will result in the correct dependency field. Some example code to generate these masks in numpy, by [Ishaan Gulrajani](https://github.com/igul222), can be found [here](https://github.com/igul222/pixel_rnn). That mask generation was the basis for the [visualization code](https://github.com/tensorflow/magenta/blob/master/magenta/reviews/assets/pixelrnn_make_masks.py) used to generate the above image.
+Ishaan's code also implements PixelCNN and one form of PixelRNN on MNIST with reasonably good scores. Though it is not an exact replication of the paper, it is a useful reference for understanding these architectures in code. It also highlights how simple their implementation can be.
 
 Models
 ------
@@ -56,7 +57,7 @@ In the case of the Diagonal BiLSTM in particular, each RNN position sees the ent
 On the far left is the ideal context, and on the right is the context seen by a Diagonal BiLSTM with convolutional kernel size *2*.
 The middle is the context seen by a particular position in Row LSTM with convolutional kernel size *3*, with a small one pixel addition (in green) to the figure from the paper due to masked input convolution in the center context.
 This neighbor pixel is important so that the generations at sample time remain vertically and horizontally consistent (from personal conversation, [Laurent Dinh](https://github.com/laurent-dinh)).
-Without the green pixel there would be no context about what has previously been seen horizontally, which would make images with attributes like straight horizontal lines more difficult to model. 
+Without the green pixel there would be no context about what has previously been seen horizontally, which would make images with attributes like straight horizontal lines more difficult to model.
 The Diagonal BiLSTM context exactly matches the ideal context, which is one reason why even a *1* layer Diagonal BiLSTM has great results.
 
 <p align="center">
