@@ -65,7 +65,7 @@ The Diagonal BiLSTM context exactly matches the ideal context, which is one reas
 
 Image modified from: [Pixel Recurrent Neural Networks, Figure 2. Van den Oord et. al.](https://arxiv.org/abs/1601.06759)
 
-Another feature of this model is exact likelihoods (versus the lower bound given by [DRAW](https://github.com/kastnerkyle/magenta/blob/master/magenta/reviews/draw.md)) due to the direct use of a categorical cross-entropy cost per pixel. This is the second key piece of this work, as using a categorical cross-entropy cost and a softmax allows the model to directly place probability mass only on valid pixel values in the range *[0, 255]*. In addition, this type of cost is common in classification tasks and is well explored with existing optimization and regularization methods.
+Another feature of this model is exact likelihoods (versus the lower bound given by [DRAW](https://github.com/tensorflow/magenta/blob/master/magenta/reviews/draw.md)) due to the direct use of a categorical cross-entropy cost per pixel. This is the second key piece of this work, as using a categorical cross-entropy cost and a softmax allows the model to directly place probability mass only on valid pixel values in the range *[0, 255]*. In addition, this type of cost is common in classification tasks and is well explored with existing optimization and regularization methods.
 
 Image Generation
 ----------------
@@ -93,7 +93,19 @@ Related Work and References
 
 [Pixel Recurrent Neural Networks](https://arxiv.org/abs/1601.06759), the main paper for this post.
 
-[Conditional Pixel CNN](https://arxiv.org/abs/1606.05328), a recent followup.
+[Conditional Pixel CNN](https://arxiv.org/abs/1606.05328), a recent followup by Van den Oord et. al.
+
+[Generative Image Modeling Using Spatial LSTMs](http://arxiv.org/abs/1506.03478), a precursor to PixelRNN for texture generation, by Theis and Bethge.
+
+[Multi-Dimensional Recurrent Neural Networks](https://arxiv.org/abs/0705.2011), baseline approach to using RNNs for multidimensional data, by Graves, Fernandez, and Schmidhuber.
+
+[Grid LSTM](https://arxiv.org/abs/1507.01526), a recent followup for stronger multidimensional RNNs, by Kalchbrenner, Danihelka, and Graves.
+
+[ReNet](https://arxiv.org/abs/1505.00393), using "decomposed" multidimensional RNNs for image prediction, Visin et. al.
+
+[ReSeg](https://arxiv.org/abs/1505.00393), semantic segmentation using multidimensional RNNs, Visin et. al.
+
+[H-ReNet](http://arxiv.org/abs/1603.04871), a high-performance approach for segmentation using multidimensional RNN, Yan et. al.
 
 [Deep Learning Book](http://www.deeplearningbook.org/contents/rnn.html), indepth discussion of RNNs from Goodfellow, Courville, Bengio.
 
@@ -101,15 +113,15 @@ Related Work and References
 
 [Skew mapping](https://en.wikipedia.org/wiki/Shear_mapping), used for the full context in Diagonal BiLSTM.
 
-[Residual connections](https://arxiv.org/abs/1512.03385), a key part of modern convolutional networks.
+[Residual connections](https://arxiv.org/abs/1512.03385), a key part of modern convolutional networks, by He et. al.
 
-[Skip connections](http://arxiv.org/abs/1308.0850), a key part of deep RNNs.
+[Introduction to using skip connections](http://arxiv.org/abs/1308.0850), a key part of deep RNNs, by Graves.
 
-[Gating over depth](https://arxiv.org/abs/1505.00387), the precursor to residual connections for extreme depth.
+[Highway Networks](https://arxiv.org/abs/1505.00387), the precursor to residual connections for extreme depth, by Srivistava et. al..
 
-[Depth Map Prediction from a Single Image using a Multi-Scale Deep Network](http://arxiv.org/abs/1406.2283), an example of conditional predictions using convolutional networks.
+[Depth Map Prediction from a Single Image using a Multi-Scale Deep Network](http://arxiv.org/abs/1406.2283), an example of conditional predictions using convolutional networks, by Eigen, Puhrsch, and Fergus.
 
-[A Simple Way To Initialize Recurrent Networks of Rectified Linear Units](https://arxiv.org/abs/1504.00941), per pixel MNIST modeling with RNNs.
+[A Simple Way To Initialize Recurrent Networks of Rectified Linear Units](https://arxiv.org/abs/1504.00941), per pixel MNIST modeling with RNNs, by Le et. al..
 
 [A practical guide to sizing very deep convolutional networks](https://kaggle2.blob.core.windows.net/forum-message-attachments/69182/2287/A%20practical%20theory%20for%20designing%20very%20deep%20convolutional%20neural%20networks.pdf?sv=2012-02-12&se=2016-07-01T04%3A02%3A12Z&sr=b&sp=r&sig=aP8jLZEO6YmPwYps1NiVDwyLlxy5tCJjCsP%2B2FIwkU0%3D),
 a guide to receptive fields and depth in CNNs.
@@ -117,17 +129,17 @@ a guide to receptive fields and depth in CNNs.
 [Forum post on convolutional network sizing](https://www.kaggle.com/c/datasciencebowl/forums/t/13166/happy-lantern-festival-report-and-code/69196), forum post referencing the above PDF.
 
 [NADE](http://www.dmi.usherb.ca/~larocheh/publications/aistats2011_nade.pdf), 
-using autoregressive ordering for exact likelihoods in a generative setting.
+using autoregressive ordering for exact likelihoods in a generative setting, by Larochelle and Murray.
 
 [MADE](https://arxiv.org/abs/1502.03509),
-using masks to imply an ensemble of autoregressive orderings at once.
+using masks to imply an ensemble of autoregressive orderings at once, by Germain et. al.
 
 [NADE, MADE Slides](http://videolectures.net/deeplearning2015_larochelle_deep_learning/),
 presentation by Hugo Larochelle at the Deep Learning Summer School in 2015.
 
-[NICE](https://arxiv.org/abs/1410.8516), generative modeling with exact likelihoods.
+[NICE](https://arxiv.org/abs/1410.8516), generative modeling with exact likelihoods, by Dinh et. al.
 
-[Real NVP](https://arxiv.org/abs/1605.08803), the followup to NICE.
+[Real NVP](https://arxiv.org/abs/1605.08803), the followup to NICE, by Dinh et. al.
 
 [Strided convolution guide](https://arxiv.org/abs/1603.07285), guide to the math and
 concepts behind strided convolutions for generating larger targets with a CNN.
