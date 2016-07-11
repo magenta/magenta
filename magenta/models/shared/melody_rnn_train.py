@@ -16,8 +16,10 @@
 import logging
 import os
 import sys
-import tensorflow as tf
 import time
+
+# internal imports
+import tensorflow as tf
 
 FLAGS = tf.app.flags.FLAGS
 tf.app.flags.DEFINE_boolean('eval', False,

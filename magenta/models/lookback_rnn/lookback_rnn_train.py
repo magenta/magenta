@@ -13,10 +13,11 @@
 # limitations under the License.
 """Train and evaluate the lookback RNN model."""
 
-import lookback_rnn_encoder_decoder
-import lookback_rnn_graph
+# internal imports
 import tensorflow as tf
 
+import lookback_rnn_encoder_decoder
+import lookback_rnn_graph
 from magenta.models.shared import melody_rnn_train
 
 

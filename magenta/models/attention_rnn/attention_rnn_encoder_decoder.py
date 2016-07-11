@@ -15,6 +15,7 @@
 
 import collections
 
+# internal imports
 from magenta.lib import melodies_lib
 
 NOTE_OFF = melodies_lib.NOTE_OFF

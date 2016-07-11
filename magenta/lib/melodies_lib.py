@@ -33,6 +33,8 @@ event sampled from the softmax output by the model.
 import abc
 import logging
 import math
+
+# internal imports
 import numpy as np
 
 from magenta.lib import sequence_example_lib

@@ -11,19 +11,28 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Create lookback RNN dataset."""
 
-# internal imports
-import tensorflow as tf
+# Description:
+# Magenta protocol buffers.
 
-import lookback_rnn_encoder_decoder
-from magenta.models.shared import melody_rnn_create_dataset
+package(
+    default_visibility = ["//magenta:__subpackages__"],
+)
 
+load("@protobuf//:protobuf.bzl", "cc_proto_library")
+load("@protobuf//:protobuf.bzl", "py_proto_library")
 
-def main(unused_argv):
-  melody_encoder_decoder = lookback_rnn_encoder_decoder.MelodyEncoderDecoder()
-  melody_rnn_create_dataset.run(melody_encoder_decoder)
+py_proto_library(
+    name = "music_py_pb2",
+    srcs = ["music.proto"],
+    srcs_version = "PY2AND3",
+    protoc = "@protobuf//:protoc",
+    default_runtime = "@protobuf//:protobuf_python",
+)
 
-
-if __name__ == '__main__':
-  tf.app.run()
+cc_proto_library(
+   name = "music_proto",
+   srcs = ["music.proto"],
+   protoc = "@protobuf//:protoc",
+   default_runtime = "@protobuf//:protobuf",
+)

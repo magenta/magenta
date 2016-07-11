@@ -11,19 +11,20 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Generate melodies from a trained checkpoint of the lookback RNN model."""
+"""Generate melodies from a trained checkpoint of the basic RNN model."""
 
-import lookback_rnn_encoder_decoder
-import lookback_rnn_graph
+# internal imports
 import tensorflow as tf
 
+import basic_rnn_encoder_decoder
+import basic_rnn_graph
 from magenta.models.shared import melody_rnn_generate
 
 
 def main(unused_argv):
-  melody_encoder_decoder = lookback_rnn_encoder_decoder.MelodyEncoderDecoder()
+  melody_encoder_decoder = basic_rnn_encoder_decoder.MelodyEncoderDecoder()
   melody_rnn_generate.run(melody_encoder_decoder,
-                          lookback_rnn_graph.build_graph)
+                          basic_rnn_graph.build_graph)
 
 
 if __name__ == '__main__':

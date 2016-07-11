@@ -14,6 +14,8 @@
 """Builds the lookback RNN model graph."""
 
 import logging
+
+# internal imports
 import tensorflow as tf
 
 from magenta.lib import sequence_example_lib

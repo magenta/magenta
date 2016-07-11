@@ -17,6 +17,7 @@ from collections import defaultdict
 import os.path
 import tempfile
 
+# internal imports
 import pretty_midi
 import tensorflow as tf
 

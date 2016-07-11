@@ -21,6 +21,8 @@ melodies from those sequences for training models.
 
 import logging
 import random
+
+# internal imports
 import tensorflow as tf
 
 from magenta.lib import melodies_lib

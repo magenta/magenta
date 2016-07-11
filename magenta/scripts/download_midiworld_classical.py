@@ -23,8 +23,10 @@ import logging
 import os
 import re
 import sys
-import tensorflow as tf
 import urllib
+
+# internal imports
+import tensorflow as tf
 
 FLAGS = tf.app.flags.FLAGS
 tf.app.flags.DEFINE_string('output_dir', None,

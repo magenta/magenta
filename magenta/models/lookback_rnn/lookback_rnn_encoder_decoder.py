@@ -13,6 +13,7 @@
 # limitations under the License.
 """A MelodyEncoderDecoder specific to the lookback RNN model."""
 
+# internal imports
 from magenta.lib import melodies_lib
 
 NUM_SPECIAL_EVENTS = melodies_lib.NUM_SPECIAL_EVENTS

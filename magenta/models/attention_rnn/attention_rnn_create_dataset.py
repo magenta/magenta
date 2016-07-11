@@ -13,9 +13,10 @@
 # limitations under the License.
 """Create attention RNN dataset."""
 
-import attention_rnn_encoder_decoder
+# internal imports
 import tensorflow as tf
 
+import attention_rnn_encoder_decoder
 from magenta.models.shared import melody_rnn_create_dataset
 
 

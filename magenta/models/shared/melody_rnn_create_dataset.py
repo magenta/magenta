@@ -20,6 +20,8 @@ TensorFlow's SequenceExample protos for input to the melody RNN models.
 import logging
 import os
 import sys
+
+# internal imports
 import tensorflow as tf
 
 from magenta.lib import sequence_to_melodies

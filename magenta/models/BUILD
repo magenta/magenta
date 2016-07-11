@@ -15,32 +15,7 @@
 # Description:
 # Models for using TensorFlow with music and art.
 
-load("@protobuf//:protobuf.bzl", "cc_proto_library")
-load("@protobuf//:protobuf.bzl", "py_proto_library")
-
-py_binary(
-    name = "melody_rnn_create_dataset",
-    srcs = ["shared/melody_rnn_create_dataset.py"],
-    deps = [
-        "//magenta:sequence_to_melodies",
-    ],
-)
-
-py_binary(
-    name = "melody_rnn_generate",
-    srcs = ["shared/melody_rnn_generate.py"],
-    deps = [
-        "//magenta:melodies_lib",
-        "//magenta:midi_io",
-    ],
-)
-
-py_binary(
-    name = "melody_rnn_train",
-    srcs = ["shared/melody_rnn_train.py"],
-    deps = [
-    ],
-)
+licenses(["notice"])  # Apache 2.0
 
 py_binary(
     name = "attention_rnn_create_dataset",
@@ -48,6 +23,7 @@ py_binary(
     deps = [
         ":attention_rnn_encoder_decoder",
         ":melody_rnn_create_dataset",
+        # tensorflow dep
     ],
 )
 
@@ -66,6 +42,7 @@ py_binary(
         ":attention_rnn_encoder_decoder",
         ":attention_rnn_graph",
         ":melody_rnn_generate",
+        # tensorflow dep
     ],
 )
 
@@ -75,6 +52,7 @@ py_binary(
     deps = [
         "//magenta:sequence_example_lib",
         "//magenta:tf_lib",
+        # tensorflow dep
     ],
 )
 
@@ -85,25 +63,7 @@ py_binary(
         ":attention_rnn_encoder_decoder",
         ":attention_rnn_graph",
         ":melody_rnn_train",
-    ],
-)
-
-py_binary(
-    name = "basic_rnn_train",
-    srcs = ["basic_rnn/basic_rnn_train.py"],
-    deps = [
-        ":basic_rnn_ops",
-    ],
-)
-
-py_binary(
-    name = "basic_rnn_generate",
-    srcs = ["basic_rnn/basic_rnn_generate.py"],
-    deps = [
-        ":basic_rnn_ops",
-        "//magenta:melodies_lib",
-        "//magenta:midi_io",
-        "//magenta:sequence_to_melodies",
+        # tensorflow dep
     ],
 )
 
@@ -111,37 +71,49 @@ py_binary(
     name = "basic_rnn_create_dataset",
     srcs = ["basic_rnn/basic_rnn_create_dataset.py"],
     deps = [
-        "//magenta:melodies_lib",
-        "//magenta:midi_io",
-        "//magenta:sequence_to_melodies",
+        ":basic_rnn_encoder_decoder",
+        ":melody_rnn_create_dataset",
+        # tensorflow dep
     ],
 )
 
-py_library(
-    name = "basic_rnn_ops",
-    srcs = ["basic_rnn/basic_rnn_ops.py"],
+py_binary(
+    name = "basic_rnn_encoder_decoder",
+    srcs = ["basic_rnn/basic_rnn_encoder_decoder.py"],
     deps = [
-    ],
-)
-
-py_test(
-    name = "basic_rnn_create_dataset_test",
-    srcs = ["basic_rnn/basic_rnn_create_dataset_test.py"],
-    srcs_version = "PY2AND3",
-    deps = [
-        ":basic_rnn_create_dataset",
         "//magenta:melodies_lib",
     ],
 )
-py_test(
-    name = "basic_rnn_train_test",
-    srcs = ["basic_rnn/basic_rnn_train_test.py"],
-    srcs_version = "PY2AND3",
-    data = [
-        "basic_rnn/testdata/melodies.sample.tfrecord",
-    ],
+
+py_binary(
+    name = "basic_rnn_generate",
+    srcs = ["basic_rnn/basic_rnn_generate.py"],
     deps = [
-        ":basic_rnn_train",
+        ":basic_rnn_encoder_decoder",
+        ":basic_rnn_graph",
+        ":melody_rnn_generate",
+        # tensorflow dep
+    ],
+)
+
+py_binary(
+    name = "basic_rnn_graph",
+    srcs = ["basic_rnn/basic_rnn_graph.py"],
+    deps = [
+        "//magenta:sequence_example_lib",
+        "//magenta:tf_lib",
+        # tensorflow dep
+    ],
+)
+
+py_binary(
+    name = "basic_rnn_train",
+    srcs = ["basic_rnn/basic_rnn_train.py"],
+    deps = [
+        ":basic_rnn_encoder_decoder",
+        ":basic_rnn_graph",
+        ":melody_rnn_train",
+        # tensorflow dep
     ],
 )
 
@@ -151,6 +123,7 @@ py_binary(
     deps = [
         ":lookback_rnn_encoder_decoder",
         ":melody_rnn_create_dataset",
+        # tensorflow dep
     ],
 )
 
@@ -169,6 +142,7 @@ py_binary(
         ":lookback_rnn_encoder_decoder",
         ":lookback_rnn_graph",
         ":melody_rnn_generate",
+        # tensorflow dep
     ],
 )
 
@@ -178,6 +152,7 @@ py_binary(
     deps = [
         "//magenta:sequence_example_lib",
         "//magenta:tf_lib",
+        # tensorflow dep
     ],
 )
 
@@ -188,5 +163,34 @@ py_binary(
         ":lookback_rnn_encoder_decoder",
         ":lookback_rnn_graph",
         ":melody_rnn_train",
+        # tensorflow dep
     ],
 )
+
+py_binary(
+    name = "melody_rnn_create_dataset",
+    srcs = ["shared/melody_rnn_create_dataset.py"],
+    deps = [
+        "//magenta:sequence_to_melodies",
+        # tensorflow dep
+    ],
+)
+
+py_binary(
+    name = "melody_rnn_generate",
+    srcs = ["shared/melody_rnn_generate.py"],
+    deps = [
+        "//magenta:melodies_lib",
+        "//magenta:midi_io",
+        # tensorflow dep
+    ],
+)
+
+py_binary(
+    name = "melody_rnn_train",
+    srcs = ["shared/melody_rnn_train.py"],
+    deps = [
+        # tensorflow dep
+    ],
+)
+

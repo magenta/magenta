@@ -13,10 +13,11 @@
 # limitations under the License.
 """Generate melodies from a trained checkpoint of the attention RNN model."""
 
-import attention_rnn_encoder_decoder
-import attention_rnn_graph
+# internal imports
 import tensorflow as tf
 
+import attention_rnn_encoder_decoder
+import attention_rnn_graph
 from magenta.models.shared import melody_rnn_generate
 
 

@@ -13,9 +13,10 @@
 # limitations under the License.
 """Create basic RNN dataset."""
 
-import basic_rnn_encoder_decoder
+# internal imports
 import tensorflow as tf
 
+import basic_rnn_encoder_decoder
 from magenta.models.shared import melody_rnn_create_dataset
 
 

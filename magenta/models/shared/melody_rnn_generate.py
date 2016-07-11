@@ -18,8 +18,10 @@ import logging
 import os
 import random
 import sys
-import tensorflow as tf
 import time
+
+# internal imports
+import tensorflow as tf
 
 from magenta.lib import melodies_lib
 from magenta.lib import midi_io
