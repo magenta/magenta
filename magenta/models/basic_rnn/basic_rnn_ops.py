@@ -19,14 +19,28 @@ Each graph component is produced by a seperate function.
 import ast
 
 # internal imports
+import numpy as np
 import tensorflow as tf
 
+from magenta.lib import melodies_lib
 
 # Number of classification classes. This is a property of the dataset.
 NUM_CLASSES = 38
 
+ENCODER_MIN_NOTE = 48
+ENCODER_MAX_NOTE = 84
+ENCODER_TRANSPOSE_TO_KEY = 0
+
 
 class HParams(object):
+  """Holds hyperparameters.
+
+  Acts like a dictionary, but keys can be accessed as class attributes.
+  An instance is initialized with default hyperparameter values. Use the
+  `parse` method to set new values from a string representation of a 
+  Python dictionary. Use the `values` method to retrieve a Python dictionary
+  version of the hyperparameter settings.
+  """
 
   def __init__(self, **init_hparams):
     object.__setattr__(self, 'keyvals', init_hparams)
@@ -78,8 +92,7 @@ def input_sequence_example(file_list, hparams):
   sequence_features = {
       'inputs': tf.FixedLenSequenceFeature(shape=[hparams.one_hot_length],
                                            dtype=tf.float32),
-      'labels': tf.FixedLenSequenceFeature(shape=[],
-                                           dtype=tf.int64)
+      'labels': tf.FixedLenSequenceFeature(shape=[], dtype=tf.int64)
   }
 
   context, sequence = tf.parse_single_sequence_example(
@@ -118,15 +131,18 @@ def dynamic_rnn_batch(file_list, hparams):
 
   # The number of threads for enqueuing.
   num_threads = 4
-  enqueue_ops = [queue.enqueue([sequences['inputs'],
-                                sequences['labels'],
+  enqueue_ops = [queue.enqueue([sequences['inputs'], sequences['labels'],
                                 length])] * num_threads
   tf.train.add_queue_runner(tf.train.QueueRunner(queue, enqueue_ops))
   return queue.dequeue_many(hparams.batch_size)
 
 
-def dynamic_rnn_inference(inputs, lengths, cell, hparams,
-                          zero_initial_state=True, parallel_iterations=1,
+def dynamic_rnn_inference(inputs,
+                          lengths,
+                          cell,
+                          hparams,
+                          zero_initial_state=True,
+                          parallel_iterations=1,
                           swap_memory=True):
   """Creates possibly layered LSTM cells with a linear projection layer.
 
@@ -176,8 +192,8 @@ def dynamic_rnn_inference(inputs, lengths, cell, hparams,
 
   # create projection layer to logits.
   outputs_flat = tf.reshape(outputs, [-1, hparams.rnn_layer_sizes[-1]])
-  logits_flat = tf.contrib.layers.legacy_linear(
-      outputs_flat, hparams.one_hot_length)
+  logits_flat = tf.contrib.layers.legacy_linear(outputs_flat,
+                                                hparams.one_hot_length)
   logits = tf.reshape(logits_flat,
                       [hparams.batch_size, -1, hparams.one_hot_length])
 
@@ -268,8 +284,9 @@ def train_op(loss, global_step, hparams):
   params = tf.trainable_variables()
   gradients = tf.gradients(loss, params)
   clipped_gradients, _ = tf.clip_by_global_norm(gradients, hparams.clip_norm)
-  training_op = opt.apply_gradients(zip(clipped_gradients, params),
-                                    global_step=global_step)
+  training_op = opt.apply_gradients(
+      zip(clipped_gradients, params),
+      global_step=global_step)
 
   return training_op, learning_rate
 
@@ -292,7 +309,7 @@ def eval_accuracy(predictions, labels):
   return tf.reduce_mean(tf.to_float(correct_predictions))
 
 
-def one_hot_encoder(melody):
+def one_hot_encoder(melody, min_note, max_note):
   """Converts a melody into a list of input features and a list of labels.
 
   This encoder converts each melody note to a one-hot vector (a list of floats
@@ -306,27 +323,24 @@ def one_hot_encoder(melody):
   encoding) shifted left by 1 and padded with a NO_EVENT or NOTE_OFF.
 
   The intput and label sequence lengths are padded with NO_EVENT to a multiple
-  of 4 * `steps_per_beat` to make them end at the end of a bar. Final bars with
-  only a single event that is a NOTE_OFF are truncated rather than padded.
+  of `melody.steps_per_bar` to make them end at the end of a bar. Final bars
+  with only a single event that is a NOTE_OFF are truncated rather than padded.
 
   Args:
     melody: A MonophonicMelody object to encode.
-    steps_per_beat: Number of subdivisions of each beat. 4/4 time is assumed, so
-        steps per bar is 4 * `steps_per_beat`.
     min_note: Minimum pitch (inclusive) that the output notes will take on.
     max_note: Maximum pitch (exclusive) that the output notes will take on.
-    transpose_to_key: The melody is transposed to be in this key. 0 = C Major.
 
   Returns:
-    sequence_example: A SequenceExample proto containing inputs and labels sequences.
-    reconstruction_data: Information needed to decode encoder output.
+    sequence_example: A SequenceExample proto containing inputs and labels
+    sequences.
   """
-  note_range = self.max_note - self.min_note
+  note_range = max_note - min_note
   one_hot_length = note_range + melodies_lib.NUM_SPECIAL_EVENTS
   note_indices = [
-      note + melodies_lib.NUM_SPECIAL_EVENTS if note < 0
-      else note - self.min_note + melodies_lib.NUM_SPECIAL_EVENTS
-      for note in melody]
+      note + melodies_lib.NUM_SPECIAL_EVENTS if note < 0 else
+      note - min_note + melodies_lib.NUM_SPECIAL_EVENTS for note in melody
+  ]
   inputs = np.zeros((len(note_indices), one_hot_length), dtype=float)
   inputs[np.arange(len(note_indices)), note_indices] = 1.0
   labels = (note_indices[1:] +
@@ -346,10 +360,14 @@ def one_hot_encoder(melody):
     inputs = np.concatenate((inputs, padding), axis=0)
     labels += [0] * pad_len
 
-  input_features = [tf.train.Feature(float_list=tf.train.FloatList(value=input_))
-                    for input_ in inputs]
-  label_features = [tf.train.Feature(int64_list=tf.train.Int64List(value=[label]))
-                    for label in labels]
+  input_features = [
+      tf.train.Feature(float_list=tf.train.FloatList(value=input_))
+      for input_ in inputs
+  ]
+  label_features = [
+      tf.train.Feature(int64_list=tf.train.Int64List(value=[label]))
+      for label in labels
+  ]
   feature_list = {
       'inputs': tf.train.FeatureList(feature=input_features),
       'labels': tf.train.FeatureList(feature=label_features)

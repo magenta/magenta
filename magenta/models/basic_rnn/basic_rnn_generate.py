@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Samples melodies from the model trained by basic_rnn_train.py
+"""Samples melodies from the model trained by basic_rnn_train.py.
 
 Melodies are sampled from the model by sampling a note from the RNN's output
 distribution at a given timestep and feeding the result to the model as input
@@ -20,21 +20,18 @@ Many possible continuations of the primer are sampled from the model in a
 minibatch.
 """
 
-import ast
 import logging
 import os
 import os.path
-import numpy as np
 import sys
 
 # internal imports
+import numpy as np
 import tensorflow as tf
 
-import basic_rnn_ops
 from magenta.lib import melodies_lib
 from magenta.lib import midi_io
-from magenta.lib import sequence_to_melodies
-
+from magenta.models.basic_rnn import basic_rnn_ops
 
 FLAGS = tf.app.flags.FLAGS
 tf.app.flags.DEFINE_string('experiment_run_dir', '/tmp/basic_rnn/run1',
@@ -52,8 +49,7 @@ tf.app.flags.DEFINE_string('primer_midi', '',
                            'generating from.')
 tf.app.flags.DEFINE_string('output_dir', '/tmp/basic_rnn_generated',
                            'Where output MIDI files will be saved.')
-tf.app.flags.DEFINE_integer('num_steps', 32,
-                            'How many steps to generate.')
+tf.app.flags.DEFINE_integer('num_steps', 32, 'How many steps to generate.')
 tf.app.flags.DEFINE_integer('num_outputs', 16,
                             'How many samples to generate. One MIDI file will '
                             'be created for each.')
@@ -74,7 +70,7 @@ def make_graph(hparams_string='{}'):
     tf.Graph instance which contains the TF ops.
   """
   with tf.Graph().as_default() as graph:
-    with tf.device(lambda op: ""):
+    with tf.device(lambda op: ''):
       hparams = basic_rnn_ops.default_hparams()
       hparams = hparams.parse(hparams_string)
       logging.info('hparams = %s', hparams.values())
@@ -86,18 +82,20 @@ def make_graph(hparams_string='{}'):
         # Construct dynamic_rnn inference.
 
         # Make a batch.
-        melody_sequence = tf.placeholder(tf.float32,
-                                         [hparams.batch_size, None,
-                                          hparams.one_hot_length])
+        melody_sequence = tf.placeholder(tf.float32, [hparams.batch_size, None,
+                                                      hparams.one_hot_length])
         lengths = tf.placeholder(tf.int32, [hparams.batch_size])
 
         # Make inference graph. That is, inputs to logits.
-        (logits,
-         initial_state,
+        (logits, initial_state,
          final_state) = basic_rnn_ops.dynamic_rnn_inference(
-            melody_sequence, lengths, cell, hparams,
-            zero_initial_state=False, parallel_iterations=1,
-            swap_memory=True)
+             melody_sequence,
+             lengths,
+             cell,
+             hparams,
+             zero_initial_state=False,
+             parallel_iterations=1,
+             swap_memory=True)
 
         softmax = tf.nn.softmax(tf.reshape(logits, [hparams.batch_size, -1]))
 
@@ -114,7 +112,7 @@ def make_graph(hparams_string='{}'):
 def classes_to_melody(model_output, reconstruction_data, min_note=48):
   """Convert list of model outputs to MonophonicMelody object.
 
-  This method decodes sequence_to_melodies.basic_one_hot_encoder.
+  This method decodes basic_rnn_ops.one_hot_encoder.
 
   Each model output is the index of the softmax class that is chosen.
 
@@ -130,19 +128,27 @@ def classes_to_melody(model_output, reconstruction_data, min_note=48):
   """
   transpose_amount = reconstruction_data
   output = melodies_lib.MonophonicMelody()
-  output.from_event_list(
-      [e - melodies_lib.NUM_SPECIAL_EVENTS
-       if e < melodies_lib.NUM_SPECIAL_EVENTS
-       else e + min_note - transpose_amount
-       for e in model_output])
+  output.from_event_list([e - melodies_lib.NUM_SPECIAL_EVENTS if
+                          e < melodies_lib.NUM_SPECIAL_EVENTS
+                          else e + min_note - transpose_amount
+                          for e in model_output])
   return output
 
 
 def make_onehot(int_list, one_hot_length):
   """Convert each int to a one-hot vector.
+
   A one-hot vector is 0 everywhere except at the index equal to the
   encoded value.
   For example: 5 as a one-hot vector is [0, 0, 0, 0, 0, 1, 0, 0, 0, ...]
+
+  Args:
+    int_list: Integers to be converted to one-hot vectors.
+    one_hot_length: Length of each one-hot vector.
+
+  Returns:
+    A list of one-hot vectors. Each one-hot is itself a list where all the
+    entries are 0 except one position which is 1.
   """
   return [[1.0 if j == i else 0.0 for j in xrange(one_hot_length)]
           for i in int_list]
@@ -157,7 +163,8 @@ def sampler_loop(graph, decoder, checkpoint_dir, primer, num_gen_steps):
   Args:
     graph: A tf.Graph instance containing the graph to sample from.
     decoder: A function that converts model output and reconstruction data into
-        a MonophonicMelody object. The method takes two inputs: A list of integers which
+        a MonophonicMelody object. The method takes two inputs: A list of
+          integers which
         are the softmax classes chosen at each step, and reconstruction data
         returned by the encoder. It returns a melodies_lib.MonophonicMelody.
     checkpoint_dir: Directory to look for most recent model checkpoint in.
@@ -186,11 +193,15 @@ def sampler_loop(graph, decoder, checkpoint_dir, primer, num_gen_steps):
   batch_size = softmax.get_shape()[0].value
 
   # Convert primer MonophonicMelody to model inputs.
-  encoder_information = melody.squash(self.min_note, self.max_note, self.transpose_to_key)
-  sequence_example = basic_rnn_ops.one_hot_encoder(melody)
+  encoder_information = primer.squash(basic_rnn_ops.ENCODER_MIN_NOTE,
+                                      basic_rnn_ops.ENCODER_MAX_NOTE,
+                                      basic_rnn_ops.ENCODER_TRANSPOSE_TO_KEY)
+  sequence_example = basic_rnn_ops.one_hot_encoder(
+      primer, basic_rnn_ops.ENCODER_MIN_NOTE, basic_rnn_ops.ENCODER_MAX_NOTE)
   primer_input = [
       list(i.float_list.value)
-      for i in sequence_example.feature_lists.feature_list['inputs'].feature]
+      for i in sequence_example.feature_lists.feature_list['inputs'].feature
+  ]
 
   # Run model over primer sequence.
   primer_input_batch = np.tile([primer_input], (batch_size, 1, 1))
@@ -208,14 +219,14 @@ def sampler_loop(graph, decoder, checkpoint_dir, primer, num_gen_steps):
   for i in xrange(num_gen_steps):
     input_batch = np.transpose(
         [make_onehot(last_outputs, basic_rnn_ops.NUM_CLASSES)], (1, 0, 2))
-    state, batch_softmax = session.run(
-      [final_state, softmax],
-      feed_dict={initial_state: state,
-                 melody_sequence: input_batch,
-                 lengths: singleton_lengths})
+    state, batch_softmax = session.run([final_state, softmax],
+                                       feed_dict={initial_state: state,
+                                                  melody_sequence: input_batch,
+                                                  lengths: singleton_lengths})
     last_outputs = [
-        np.random.choice(basic_rnn_ops.NUM_CLASSES, p=p_dist.flatten())
-        for p_dist in batch_softmax]
+        np.random.choice(basic_rnn_ops.NUM_CLASSES,
+                         p=p_dist.flatten()) for p_dist in batch_softmax
+    ]
     for generated_seq, next_output in zip(generated_sequences, last_outputs):
       generated_seq.append(next_output)
 
@@ -223,8 +234,8 @@ def sampler_loop(graph, decoder, checkpoint_dir, primer, num_gen_steps):
   generated_melodies = []
   for seq in generated_sequences:
     melody = melodies_lib.MonophonicMelody(steps_per_bar=primer.steps_per_bar)
-    melody.from_event_list(
-        primer_event_list + list(decoder(seq, encoder_information)))
+    melody.from_event_list(primer_event_list + list(decoder(
+        seq, encoder_information)))
     generated_melodies.append(melody)
 
   return generated_melodies
@@ -248,26 +259,23 @@ def main(_):
                                                      min_unique_pitches=1)
 
   if not extracted_melodies:
-    logging.info('No melodies were extracted from MIDI file %s'
-                 % FLAGS.primer_midi)
+    logging.info('No melodies were extracted from MIDI file %s',
+                 FLAGS.primer_midi)
     return
 
   graph = make_graph(hparams_string=FLAGS.hparams)
 
   checkpoint_dir = os.path.join(FLAGS.experiment_run_dir, 'train')
-  
+
   generated = []
   while len(generated) < FLAGS.num_outputs:
-    generated.extend(sampler_loop(graph, classes_to_melody,
-                                  checkpoint_dir,
-                                  extracted_melodies[0],
-                                  FLAGS.num_steps))
+    generated.extend(sampler_loop(graph, classes_to_melody, checkpoint_dir,
+                                  extracted_melodies[0], FLAGS.num_steps))
 
   for i in xrange(FLAGS.num_outputs):
     sequence = generated[i].to_sequence(bpm=bpm)
     midi_io.sequence_proto_to_midi_file(
-        sequence,
-        os.path.join(FLAGS.output_dir, 'basic_rnn_sample_%d.mid' % i))
+        sequence, os.path.join(FLAGS.output_dir, 'basic_rnn_sample_%d.mid' % i))
 
   logging.info('Wrote %d MIDI files to %s', FLAGS.num_outputs, FLAGS.output_dir)
 

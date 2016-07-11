@@ -32,7 +32,7 @@ class Module(object):
   A Module should be a self contained operation that maps an
   input type to an output type. One or many inputs and outputs are supported.
   """
-  
+
   # `input_type` can be an object, a tuple of objects,
   # or a dict of name to object pairs.
   input_type = None
@@ -74,6 +74,7 @@ class Module(object):
 
 
 class Quantizer(Module):
+  """A Module that quantizes NoteSequence data."""
   input_type = music_pb2.NoteSequence
   output_type = sequences_lib.QuantizedSequence
 
@@ -100,5 +101,7 @@ class MonophonicMelodyExtractor(Module):
 
   def transform(self, quantized_sequence):
     return melodies_lib.extract_melodies(
-        quantized_sequence, min_bars=self.min_bars,
-        min_unique_pitches=self.min_unique_pitches, gap_bars=self.gap_bars)
+        quantized_sequence,
+        min_bars=self.min_bars,
+        min_unique_pitches=self.min_unique_pitches,
+        gap_bars=self.gap_bars)

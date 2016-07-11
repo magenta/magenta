@@ -30,7 +30,6 @@ from magenta.pipelines import pipeline
 from magenta.pipelines import modules
 from magenta.protobuf import music_pb2
 
-
 FLAGS = tf.app.flags.FLAGS
 tf.app.flags.DEFINE_string('input', None,
                            'TFRecord to read NoteSequence protos from.')
@@ -44,10 +43,20 @@ tf.app.flags.DEFINE_float('eval_ratio', 0.0,
 
 
 class OneHotEncoder(modules.Module):
+  """A Module that converts monophonic melodies into basic_rnn samples."""
   input_type = melodies_lib.MonophonicMelody
   output_type = tf.train.SequenceExample
 
-  def __init__(self, min_note=48, max_note=84, transpose_to_key=0):
+  def __init__(self, min_note=basic_rnn_ops.ENCODER_MIN_NOTE,
+               max_note=basic_rnn_ops.ENCODER_MAX_NOTE,
+               transpose_to_key=basic_rnn_ops.ENCODER_TRANSPOSE_TO_KEY):
+    """Constructor takes settings for the OneHotEncoder module.
+
+    Args:
+      min_note: Minimum pitch (inclusive) that the output notes will take on.
+      max_note: Maximum pitch (exclusive) that the output notes will take on.
+      transpose_to_key: The melody is transposed to be in this key. 0 = C Major.
+    """
     super(OneHotEncoder, self).__init__()
     self.min_note = min_note
     self.max_note = max_note
@@ -55,7 +64,8 @@ class OneHotEncoder(modules.Module):
 
   def transform(self, melody):
     _ = melody.squash(self.min_note, self.max_note, self.transpose_to_key)
-    encoded = basic_rnn_ops.one_hot_encoder(melody)
+    encoded = basic_rnn_ops.one_hot_encoder(melody, self.min_note,
+                                            self.max_note)
     return [encoded]
 
 
@@ -71,7 +81,13 @@ def update_dict_with_prefix(update_dict, merge_dict, prefix):
   prefix_dict = dict([(prefix + k, v) for k, v in merge_dict.items()])
   update_dict.update(prefix_dict)
 
+
 class BasicRNNPipeline(pipeline.Pipeline):
+  """A custom Pipeline implementation.
+
+  Converts music_pb2.NoteSequence into tf.train.SequenceExample protos for use
+  in the basic_rnn model.
+  """
   input_type = music_pb2.NoteSequence
   output_type = tf.train.SequenceExample
 
@@ -80,20 +96,29 @@ class BasicRNNPipeline(pipeline.Pipeline):
     self.output_names = ['basic_rnn_train', 'basic_rnn_eval']
     self.eval_ratio = eval_ratio
     self.quantizer = modules.Quantizer(steps_per_beat=4)
-    self.melody_extractor = modules.MonophonicMelodyExtractor(min_bars=7, min_unique_pitches=5, gap_bars=1.0)
+    self.melody_extractor = modules.MonophonicMelodyExtractor(
+        min_bars=7, min_unique_pitches=5,
+        gap_bars=1.0)
     self.one_hot_encoder = OneHotEncoder()
     self.stats_dict = {}
 
-  def transform(self, input):
-    outputs = self.quantizer.transform(input)
-    outputs = [output for input in outputs for output in self.melody_extractor.transform(input)]
-    outputs = [output for input in outputs for output in self.one_hot_encoder.transform(input)]
+  def transform(self, note_sequence):
+    outputs = self.quantizer.transform(note_sequence)
+    outputs = [output
+               for note_sequence in outputs
+               for output in self.melody_extractor.transform(note_sequence)]
+    outputs = [output
+               for note_sequence in outputs
+               for output in self.one_hot_encoder.transform(note_sequence)]
     train_set, eval_set = random_partition(outputs, self.eval_ratio)
 
     self.stats_dict = {}
-    update_dict_with_prefix(self.stats_dict, self.quantizer.get_stats(), type(self.quantizer).__name__ + "_")
-    update_dict_with_prefix(self.stats_dict, self.melody_extractor.get_stats(), type(self.melody_extractor).__name__ + "_")
-    update_dict_with_prefix(self.stats_dict, self.one_hot_encoder.get_stats(), type(self.one_hot_encoder).__name__ + "_")
+    update_dict_with_prefix(self.stats_dict, self.quantizer.get_stats(),
+                            type(self.quantizer).__name__ + '_')
+    update_dict_with_prefix(self.stats_dict, self.melody_extractor.get_stats(),
+                            type(self.melody_extractor).__name__ + '_')
+    update_dict_with_prefix(self.stats_dict, self.one_hot_encoder.get_stats(),
+                            type(self.one_hot_encoder).__name__ + '_')
 
     return {self.output_names[0]: train_set, self.output_names[1]: eval_set}
 

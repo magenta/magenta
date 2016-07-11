@@ -141,8 +141,8 @@ def run_pipeline_serial(pipeline, input_iterator, output_dir):
         writers[name].write(output.SerializeToString())
         total_outputs += 1
     if total_inputs % 10 == 0:
-      logging.info('%d inputs. %d outputs. stats = %s',
-                   total_inputs, total_outputs, pipeline.get_stats())
+      logging.info('%d inputs. %d outputs. stats = %s', total_inputs,
+                   total_outputs, pipeline.get_stats())
 
 
 def pipeline_iterator(pipeline, input_iterator):
