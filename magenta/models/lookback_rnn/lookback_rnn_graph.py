@@ -26,7 +26,7 @@ def default_hparams():
       rnn_layer_sizes=[128, 128],
       dropout_keep_prob=0.5,
       clip_norm=3,
-      initial_learning_rate=0.001,
+      initial_learning_rate=0.01,
       decay_steps=1000,
       decay_rate=0.95)
 

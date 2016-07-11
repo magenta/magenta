@@ -55,6 +55,7 @@ py_test(
     srcs_version = "PY2AND3",
     deps = [
         ":melodies_lib",
+        ":sequence_example_lib",
         "@protobuf//:protobuf_python",
     ],
 )

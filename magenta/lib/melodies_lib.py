@@ -639,6 +639,9 @@ class MelodyEncoderDecoder(object):
       raise ValueError('max_note - min_note must be >= 12. min_note is %d. '
                        'max_note is %d. max_note - min_note is %d.' %
                        (min_note, max_note, max_note - min_note))
+    if transpose_to_key < 0 or transpose_to_key > NOTES_PER_OCTAVE - 1:
+      raise ValueError('transpose_to_key must be >= 0 and <= 11. '
+                       'transpose_to_key is %d.' % transpose_to_key)
 
     self.min_note = min_note
     self.max_note = max_note
