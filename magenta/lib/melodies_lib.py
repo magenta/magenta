@@ -298,7 +298,7 @@ class MonophonicMelody(object):
           'There are %f timesteps per bar. Time signature: %d/%d' %
           (steps_per_bar_float, quantized_sequence.time_signature.numerator,
            quantized_sequence.time_signature.denominator))
-    steps_per_bar = int(steps_per_bar_float)
+    self.steps_per_bar = steps_per_bar = int(steps_per_bar_float)
 
     # Sort track by note start times.
     notes = sorted(quantized_sequence.tracks[track],

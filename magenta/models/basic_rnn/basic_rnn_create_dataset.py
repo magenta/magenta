@@ -25,9 +25,11 @@ import sys
 import tensorflow as tf
 
 from magenta.lib import melodies_lib
+from magenta.lib import sequence_example_lib
 from magenta.models.basic_rnn import basic_rnn_ops
-from magenta.pipelines import modules
 from magenta.pipelines import pipeline
+from magenta.pipelines import pipeline_unit
+from magenta.pipelines import pipeline_units_common
 from magenta.protobuf import music_pb2
 
 FLAGS = tf.app.flags.FLAGS
@@ -42,7 +44,7 @@ tf.app.flags.DEFINE_float('eval_ratio', 0.0,
                           'Partition is randomly selected.')
 
 
-class OneHotEncoder(modules.Module):
+class OneHotEncoder(pipeline_unit.PipelineUnit):
   """A Module that converts monophonic melodies into basic_rnn samples."""
   input_type = melodies_lib.MonophonicMelody
   output_type = tf.train.SequenceExample
@@ -64,8 +66,8 @@ class OneHotEncoder(modules.Module):
 
   def transform(self, melody):
     _ = melody.squash(self.min_note, self.max_note, self.transpose_to_key)
-    encoded = basic_rnn_ops.one_hot_encoder(melody, self.min_note,
-                                            self.max_note)
+    encoded = sequence_example_lib.one_hot_encoder(melody, self.min_note,
+                                                   self.max_note)
     return [encoded]
 
 
@@ -95,8 +97,8 @@ class BasicRNNPipeline(pipeline.Pipeline):
     super(BasicRNNPipeline, self).__init__()
     self.output_names = ['basic_rnn_train', 'basic_rnn_eval']
     self.eval_ratio = eval_ratio
-    self.quantizer = modules.Quantizer(steps_per_beat=4)
-    self.melody_extractor = modules.MonophonicMelodyExtractor(
+    self.quantizer = pipeline_units_common.Quantizer(steps_per_beat=4)
+    self.melody_extractor = pipeline_units_common.MonophonicMelodyExtractor(
         min_bars=7, min_unique_pitches=5,
         gap_bars=1.0)
     self.one_hot_encoder = OneHotEncoder()

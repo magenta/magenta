@@ -116,12 +116,10 @@ py_library(
 )
 
 py_library(
-    name = "modules",
-    srcs = ["pipelines/modules.py"],
+    name = "sequence_example_lib",
+    srcs = ["lib/sequence_example_lib.py"],
     deps = [
-        ":melodies_lib",
-        ":sequences_lib",
-        "//magenta/protobuf:music_py_pb2",
+        "//magenta:melodies_lib",
     ],
 )
 
@@ -133,12 +131,40 @@ py_library(
     ],
 )
 
+py_library(
+    name = "pipeline_unit",
+    srcs = ["pipelines/pipeline_unit.py"],
+)
+
+py_library(
+    name = "pipeline_units_common",
+    srcs = ["pipelines/pipeline_units_common.py"],
+    deps = [
+        ":melodies_lib",
+        ":pipeline_unit",
+        ":sequences_lib",
+        "//magenta/protobuf:music_py_pb2",
+    ],
+)
+
 py_test(
     name = "melodies_lib_test",
     srcs = ["lib/melodies_lib_test.py"],
     srcs_version = "PY2AND3",
     deps = [
         ":melodies_lib",
+        ":sequences_lib",
+        # tensorflow dep
+    ],
+)
+
+py_test(
+    name = "sequences_lib_test",
+    srcs = ["lib/sequences_lib_test.py"],
+    srcs_version = "PY2AND3",
+    deps = [
+        ":sequences_lib",
+        "//magenta/protobuf:music_py_pb2",
         "@protobuf//:protobuf_python",
         # tensorflow dep
     ],
@@ -158,12 +184,33 @@ py_test(
 )
 
 py_test(
-    name = "basic_one_hot_encoder_test",
-    srcs = ["lib/basic_one_hot_encoder_test.py"],
+    name = "sequence_example_lib_test",
+    srcs = ["lib/sequence_example_lib_test.py"],
     srcs_version = "PY2AND3",
     deps = [
         ":melodies_lib",
-        ":sequence_to_melodies",
+        ":sequence_example_lib",
+        # tensorflow dep
+    ],
+)
+
+py_test(
+    name = "pipeline_test",
+    srcs = ["pipelines/pipeline_test.py"],
+    srcs_version = "PY2AND3",
+    deps = [
+        ":pipeline",
+        # tensorflow dep
+    ],
+)
+
+py_test(
+    name = "pipeline_units_common_test",
+    srcs = ["pipelines/pipeline_units_common_test.py"],
+    srcs_version = "PY2AND3",
+    deps = [
+        ":pipeline_unit",
+        ":pipeline_units_common",
         # tensorflow dep
     ],
 )

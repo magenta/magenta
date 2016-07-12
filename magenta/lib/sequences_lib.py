@@ -41,6 +41,13 @@ def is_power_of_2(x):
   return x and not x & (x - 1)
 
 
+Note = collections.namedtuple(
+    'Note', ['pitch', 'velocity', 'start', 'end', 'instrument', 'program'])
+TimeSignature = collections.namedtuple('TimeSignature',
+                                       ['numerator', 'denominator'])
+KeySignature = collections.namedtuple('KeySignature', ['key', 'mode'])
+
+
 class QuantizedSequence(object):
   """Holds notes which have been quantized to time steps.
 
@@ -48,11 +55,6 @@ class QuantizedSequence(object):
   are stored in tracks (which can be different instruments or the same
   instrument). There is also a time signature and key signature.
   """
-  note = collections.namedtuple(
-      'Note', ['pitch', 'velocity', 'start', 'end', 'instrument', 'program'])
-  time_signature = collections.namedtuple('TimeSignature',
-                                          ['numerator', 'denominator'])
-  key_signature = collections.namedtuple('KeySignature', ['key', 'mode'])
 
   def __init__(self):
     self._reset()
@@ -60,8 +62,8 @@ class QuantizedSequence(object):
   def _reset(self):
     self.tracks = {}
     self.bpm = 120.0
-    self.time_signature = self.time_signature(4, 4)  # numerator, denominator
-    self.key_signature = self.key_signature(0, 0)  # key, mode
+    self.time_signature = TimeSignature(4, 4)  # numerator, denominator
+    self.key_signature = KeySignature(0, 0)  # key, mode
     self.steps_per_beat = 4
 
   def from_note_sequence(self, note_sequence, steps_per_beat):
@@ -93,7 +95,7 @@ class QuantizedSequence(object):
     self.steps_per_beat = steps_per_beat
 
     if note_sequence.time_signatures:
-      self.time_signature = self.time_signature(
+      self.time_signature = TimeSignature(
           note_sequence.time_signatures[0].numerator,
           note_sequence.time_signatures[0].denominator)
 
@@ -103,14 +105,14 @@ class QuantizedSequence(object):
           (self.time_signature.numerator, self.time_signature.denominator))
 
     if note_sequence.key_signatures:
-      self.key_signature = self.key_signature(
+      self.key_signature = KeySignature(
           note_sequence.key_signatures[0].key,
           note_sequence.key_signatures[0].mode)
 
-    bpm = note_sequence.tempos[0].bpm if note_sequence.tempos else 120.0
+    self.bpm = note_sequence.tempos[0].bpm if note_sequence.tempos else 120.0
 
     # Compute quantization steps per second.
-    steps_per_second = steps_per_beat * bpm / 60.0
+    steps_per_second = steps_per_beat * self.bpm / 60.0
 
     quantize = lambda x: int(math.ceil(x - QUANTIZE_CUTOFF))
 
@@ -129,9 +131,22 @@ class QuantizedSequence(object):
 
       if note.instrument not in self.tracks:
         self.tracks[note.instrument] = []
-      self.tracks[note.instrument].append(self.note(pitch=note.pitch,
-                                                    velocity=note.velocity,
-                                                    start=start_step,
-                                                    end=end_step,
-                                                    instrument=note.instrument,
-                                                    program=note.program))
+      self.tracks[note.instrument].append(Note(pitch=note.pitch,
+                                               velocity=note.velocity,
+                                               start=start_step,
+                                               end=end_step,
+                                               instrument=note.instrument,
+                                               program=note.program))
+
+  def __eq__(self, other):
+    if not isinstance(other, QuantizedSequence):
+      return False
+    for track in self.tracks:
+      if (track not in other.tracks or
+          set(self.tracks[track]) != set(other.tracks[track])):
+        return False
+    return (
+        self.bpm == other.bpm and
+        self.time_signature == other.time_signature and
+        self.key_signature == other.key_signature and
+        self.steps_per_beat == other.steps_per_beat)

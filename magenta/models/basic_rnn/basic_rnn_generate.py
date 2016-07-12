@@ -31,6 +31,7 @@ import tensorflow as tf
 
 from magenta.lib import melodies_lib
 from magenta.lib import midi_io
+from magenta.lib import sequence_example_lib
 from magenta.models.basic_rnn import basic_rnn_ops
 
 FLAGS = tf.app.flags.FLAGS
@@ -112,14 +113,14 @@ def make_graph(hparams_string='{}'):
 def classes_to_melody(model_output, reconstruction_data, min_note=48):
   """Convert list of model outputs to MonophonicMelody object.
 
-  This method decodes basic_rnn_ops.one_hot_encoder.
+  This method decodes sequence_example_lib.one_hot_encoder.
 
   Each model output is the index of the softmax class that is chosen.
 
   Args:
     model_output: List of integers. Each int is the chosen softmax class
         from the model output.
-    reconstruction_data: basic_one_hot_encoder specific information
+    reconstruction_data: Encoder specific information
         needed to reconstruct the input MonophonicMelody.
     min_note: Minimum pitch in model will be mapped to this MIDI pitch.
 
@@ -196,7 +197,7 @@ def sampler_loop(graph, decoder, checkpoint_dir, primer, num_gen_steps):
   encoder_information = primer.squash(basic_rnn_ops.ENCODER_MIN_NOTE,
                                       basic_rnn_ops.ENCODER_MAX_NOTE,
                                       basic_rnn_ops.ENCODER_TRANSPOSE_TO_KEY)
-  sequence_example = basic_rnn_ops.one_hot_encoder(
+  sequence_example = sequence_example_lib.one_hot_encoder(
       primer, basic_rnn_ops.ENCODER_MIN_NOTE, basic_rnn_ops.ENCODER_MAX_NOTE)
   primer_input = [
       list(i.float_list.value)

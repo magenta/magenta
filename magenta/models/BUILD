@@ -33,7 +33,7 @@ py_binary(
         ":basic_rnn_ops",
         "//magenta:melodies_lib",
         "//magenta:midi_io",
-        "//magenta:sequence_to_melodies",
+        "//magenta:sequence_example_lib",
         # tensorflow dep
     ],
 )
@@ -46,6 +46,7 @@ py_binary(
         "//magenta:modules",
         "//magenta:pipeline",
         "//magenta/protobuf:music_py_pb2",
+        "//magenta:sequence_example_lib",
         # tensorflow dep
     ],
 )
