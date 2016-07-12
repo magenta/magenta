@@ -72,7 +72,7 @@ In these examples we store all our data in ~/magenta_data. Feel free to choose a
 
 ### Download MIDI Files
 
-You can use any collection of MIDI files to train your model. For this example, we'll use a collection of classical music from [http://www.midiworld.com/classic.htm](http://www.midiworld.com/classic.htm). You can download this collection by running the script below. 
+You can use any collection of MIDI files to train your model. For this example, we'll use a collection of classical music from [http://www.midiworld.com/classic.htm](http://www.midiworld.com/classic.htm). You can download this collection by running the script below.
 
 ```
 bazel run //magenta:download_midiworld_classical -- \
@@ -81,7 +81,7 @@ bazel run //magenta:download_midiworld_classical -- \
 
 ### Create NoteSequences
 
-NoteSequences are a more convenient format to work with than MIDI files, so first we'll convert all our MIDI files into NoteSequences. Run the script below to convert your collection of MIDI files into a TFRecord file of NoteSequences. 
+NoteSequences are a more convenient format to work with than MIDI files, so first we'll convert all our MIDI files into NoteSequences. Run the script below to convert your collection of MIDI files into a TFRecord file of NoteSequences.
 
 ```
 bazel run //magenta:convert_midi_dir_to_note_sequences -- \
@@ -110,7 +110,7 @@ Build lookback_rnn_train first so that it can be run multiple times in parallel.
 bazel build //magenta/models:lookback_rnn_train
 ```
 
---run_dir is the directory where you want checkpoints and TensorBoard data for this run to be stored. --sequence_example_file is the TFRecord file of SequenceExamples that we want to use. --num_training_steps is how many update steps to take before exiting. --hparams can optionally be used to specify hyperparameters other than the defaults. 
+--run_dir is the directory where you want checkpoints and TensorBoard data for this run to be stored. --sequence_example_file is the TFRecord file of SequenceExamples that we want to use. --num_training_steps is how many update steps to take before exiting. --hparams can optionally be used to specify hyperparameters other than the defaults.
 
 Run the script below to start a training job.
 
