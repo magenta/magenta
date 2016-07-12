@@ -1,3 +1,11 @@
+# Author: Kyle Kastner
+# License: BSD 3-Clause
+#
+# Based on masking code from Ishaan Gulrajani
+# https://github.com/igul222/pixel_rnn/blob/master/pixel_rnn.py
+#
+# Generates images for the Magenta Pixel Recurrent Neural Networks review
+# https://github.com/tensorflow/magenta/blob/master/magenta/reviews/pixelrnn.md
 import numpy as np
 from matplotlib import pyplot as plt
 from matplotlib import patches as mpatches
