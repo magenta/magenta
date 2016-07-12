@@ -84,13 +84,15 @@ def build_graph(mode, hparams_string, input_size, num_classes,
       # values to be tensors and not tuples, so state_is_tuple is set to False.
       state_is_tuple = False
 
-    cell = tf.nn.rnn_cell.MultiRNNCell([
-        tf.nn.rnn_cell.DropoutWrapper(
-            tf.nn.rnn_cell.BasicLSTMCell(
-                num_units, state_is_tuple=state_is_tuple),
-            output_keep_prob=hparams.dropout_keep_prob)
-        for num_units in hparams.rnn_layer_sizes],
-        state_is_tuple=state_is_tuple)
+    cells = []
+    for num_units in hparams.rnn_layer_sizes:
+      cell = tf.nn.rnn_cell.BasicLSTMCell(
+          num_units, state_is_tuple=state_is_tuple)
+      cell = tf.nn.rnn_cell.DropoutWrapper(
+          cell, output_keep_prob=hparams.dropout_keep_prob)
+      cells.append(cell)
+
+    cell = tf.nn.rnn_cell.MultiRNNCell(cells, state_is_tuple=state_is_tuple)
 
     initial_state = cell.zero_state(hparams.batch_size, tf.float32)
 

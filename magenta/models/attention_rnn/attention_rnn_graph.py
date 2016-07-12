@@ -27,6 +27,7 @@ def default_hparams():
       batch_size=128,
       rnn_layer_sizes=[128, 128],
       dropout_keep_prob=0.5,
+      skip_first_n_losses=0,
       attn_length=40,
       clip_norm=3,
       initial_learning_rate=0.001,
@@ -78,14 +79,15 @@ def build_graph(mode, hparams_string, input_size, num_classes,
       # values to be tensors and not tuples, so state_is_tuple is set to False.
       state_is_tuple = False
 
-    cell = tf.nn.rnn_cell.MultiRNNCell([
-        tf.nn.rnn_cell.DropoutWrapper(
-            tf.nn.rnn_cell.BasicLSTMCell(
-                num_units, state_is_tuple=state_is_tuple),
-            output_keep_prob=hparams.dropout_keep_prob)
-        for num_units in hparams.rnn_layer_sizes],
-        state_is_tuple=state_is_tuple)
-    cell = AttentionCellWrapper(cell, hparams.attn_length)
+    cells = []
+    for num_units in hparams.rnn_layer_sizes:
+      cell = tf.nn.rnn_cell.BasicLSTMCell(
+          num_units, state_is_tuple=state_is_tuple)
+      cell = tf.nn.rnn_cell.DropoutWrapper(
+          cell, output_keep_prob=hparams.dropout_keep_prob)
+      cells.append(cell)
+
+    cell = tf.nn.rnn_cell.MultiRNNCell(cells, state_is_tuple=state_is_tuple)
 
     initial_state = cell.zero_state(hparams.batch_size, tf.float32)
 
@@ -192,18 +194,18 @@ class AttentionCellWrapper(tf.nn.rnn_cell.RNNCell):
           `state_is_tuple` is `False` or if attn_length is zero or less.
     """
     if not isinstance(cell, tf.nn.rnn_cell.RNNCell):
-      raise TypeError("The parameter cell is not RNNCell.")
+      raise TypeError('The parameter cell is not RNNCell.')
     if _is_sequence(cell.state_size) and not state_is_tuple:
-      raise ValueError("Cell returns tuple of states, but the flag "
-                       "state_is_tuple is not set. State size is: %s"
+      raise ValueError('Cell returns tuple of states, but the flag '
+                       'state_is_tuple is not set. State size is: %s'
                        % str(cell.state_size))
     if attn_length <= 0:
-      raise ValueError("attn_length should be greater than zero, got %s"
+      raise ValueError('attn_length should be greater than zero, got %s'
                        % str(attn_length))
     if not state_is_tuple:
       tf.logging.warn(
-          "%s: Using a concatenated state is slower and will soon be "
-          "deprecated. Use state_is_tuple=True." % self)
+          '%s: Using a concatenated state is slower and will soon be '
+          'deprecated. Use state_is_tuple=True.' % self)
     self._cell = cell
     self._attn_length = attn_length
     self._attn_size = cell.output_size
@@ -240,7 +242,7 @@ class AttentionCellWrapper(tf.nn.rnn_cell.RNNCell):
         self._input_size = inputs.get_shape().as_list()[1]
       inputs = tf.contrib.layers.linear(tf.concat(1, [inputs, attns]),
                                         self._input_size,
-                                        scope="InputsWithAttns")
+                                        scope='InputsWithAttns')
       output, new_state = self._cell(inputs, state)
       if self._state_is_tuple:
         new_state_cat = tf.concat(1, _unpacked_state(new_state))
@@ -249,7 +251,7 @@ class AttentionCellWrapper(tf.nn.rnn_cell.RNNCell):
       new_attns = self._attention(new_state_cat, attn_states)
       output = tf.contrib.layers.linear(tf.concat(1, [output, new_attns]),
                                         self._cell.output_size,
-                                        scope="OutputWithAttns")
+                                        scope='OutputWithAttns')
       new_attn_states = tf.concat(1, [
           tf.slice(attn_states, [0, 1, 0], [-1, -1, -1]),
           tf.expand_dims(output, 1)])
@@ -261,15 +263,15 @@ class AttentionCellWrapper(tf.nn.rnn_cell.RNNCell):
       return output, new_state
 
   def _attention(self, state, attn_states):
-    with tf.variable_scope("Attention"):
-      v = tf.get_variable("V", [self._attn_vec_size])
+    with tf.variable_scope('Attention'):
+      v = tf.get_variable('V', [self._attn_vec_size])
       attn_states_flat = tf.reshape(attn_states, [-1, self._attn_size])
       attn_states_vec = tf.contrib.layers.linear(
-          attn_states_flat, self._attn_vec_size, scope="AttnStatesVec")
+          attn_states_flat, self._attn_vec_size, scope='AttnStatesVec')
       attn_states_vec = tf.reshape(
           attn_states_vec, [-1, self._attn_length, self._attn_vec_size])
       state_vec = tf.contrib.layers.linear(
-          state, self._attn_vec_size, scope="StateVec")
+          state, self._attn_vec_size, scope='StateVec')
       state_vec = tf.expand_dims(state_vec, 1)
       attn = tf.reduce_sum(v * tf.tanh(attn_states_vec + state_vec), 2)
       attn_mask = tf.nn.softmax(attn)

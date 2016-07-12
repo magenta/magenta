@@ -80,30 +80,30 @@ def run_training(graph, train_dir, num_training_steps=10000,
                            global_step=global_step)
 
   with sv.managed_session() as sess:
-    _global_step = sess.run(global_step)
-    if _global_step >= num_training_steps:
+    global_step_ = sess.run(global_step)
+    if global_step_ >= num_training_steps:
       logging.info('This checkpoint\'s global_step value is already %d, '
                    'which is greater or equal to the specified '
                    'num_training_steps value of %d. Exiting training.',
-                   _global_step, num_training_steps)
+                   global_step_, num_training_steps)
       return
     logging.info('Starting training loop...')
-    while _global_step < num_training_steps:
+    while global_step_ < num_training_steps:
       if sv.should_stop():
         break
-      if (_global_step + 1) % summary_frequency == 0:
-        (_global_step, _learning_rate, _loss, _perplexity, _accuracy, _
-         ) = sess.run([global_step, learning_rate, loss, perplexity,
-                       accuracy, train_op])
+      if (global_step_ + 1) % summary_frequency == 0:
+        (global_step_, learning_rate_, loss_, perplexity_, accuracy_, _
+        ) = sess.run([global_step, learning_rate, loss, perplexity, accuracy,
+                      train_op])
         logging.info('Global Step: %d - '
                      'Learning Rate: %.5f - '
                      'Loss: %.3f - '
                      'Perplexity: %.3f - '
                      'Accuracy: %.3f',
-                     _global_step, _learning_rate, _loss, _perplexity,
-                     _accuracy)
+                     global_step_, learning_rate_, loss_, perplexity_,
+                     accuracy_)
       else:
-        _global_step, _ = sess.run([global_step, train_op])
+        global_step_, _ = sess.run([global_step, train_op])
     sv.saver.save(sess, sv.save_path, global_step=sv.global_step)
     logging.info('Training complete.')
 
@@ -137,11 +137,11 @@ def run_eval(graph, train_dir, eval_dir, num_training_steps=10000,
       summary_writer = tf.train.SummaryWriter(eval_dir, sess.graph)
       coord = tf.train.Coordinator()
       threads = tf.train.start_queue_runners(sess=sess, coord=coord)
-      _global_step = 0
+      global_step_ = 0
       last_global_step = None
       logging.info('Starting eval loop...')
       try:
-        while _global_step < num_training_steps:
+        while global_step_ < num_training_steps:
           checkpoint_path = tf.train.latest_checkpoint(train_dir)
           if not checkpoint_path:
             logging.info('Waiting for checkpoint file in directory %s.',
@@ -149,19 +149,19 @@ def run_eval(graph, train_dir, eval_dir, num_training_steps=10000,
           else:
             saver.restore(sess, checkpoint_path)
 
-            _global_step, _loss, _perplexity, _accuracy, _summary_op = sess.run(
+            global_step_, loss_, perplexity_, accuracy_, summary_op_ = sess.run(
                 [global_step, loss, perplexity, accuracy, summary_op])
 
             logging.info('Global Step: %d - '
                          'Loss: %.3f - '
                          'Perplexity: %.3f - '
                          'Accuracy: %.3f',
-                         _global_step, _loss, _perplexity, _accuracy)
+                         global_step_, loss_, perplexity_, accuracy_)
 
-            if _global_step != last_global_step:
-              summary_writer.add_summary(_summary_op, global_step=_global_step)
+            if global_step_ != last_global_step:
+              summary_writer.add_summary(summary_op_, global_step=global_step_)
               summary_writer.flush()
-              last_global_step = _global_step
+              last_global_step = global_step_
 
           time.sleep(summary_frequency)
 

@@ -43,6 +43,11 @@ tf.app.flags.DEFINE_float('eval_ratio', 0.0,
 
 
 def run(melody_encoder_decoder):
+  """Creates training and eval data with the given MelodyEncoderDecoder.
+
+  Args:
+    melody_encoder_decoder: A melodies_lib.MelodyEncoderDecoder.
+  """
   root = logging.getLogger()
   root.setLevel(logging.INFO)
   ch = logging.StreamHandler(sys.stdout)

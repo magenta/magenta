@@ -17,6 +17,18 @@ import ast
 
 
 class HParams(object):
+  """Creates an object for passing around hyperparameter values.
+
+  Use the parse method to overwrite the default hyperparameters with values
+  passed in as a string representation of a Python dictionary mapping
+  hyperparameters to values.
+
+  Ex.
+  hparams = tf_lib.HParams(batch_size=128, hidden_size=256)
+  hparams.parse('{"hidden_size":512}')
+  assert hparams.batch_size == 128
+  assert hparams.hidden_size == 512
+  """
 
   def __init__(self, **init_hparams):
     object.__setattr__(self, 'keyvals', init_hparams)

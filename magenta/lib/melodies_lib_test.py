@@ -383,6 +383,7 @@ class MelodyTest(tf.test.TestCase):
 
 
 class SimpleEncoderDecoder(melodies_lib.MelodyEncoderDecoder):
+
   def __init__(self, min_note, max_note, transpose_to_key):
     super(SimpleEncoderDecoder, self).__init__(min_note, max_note,
                                                transpose_to_key)
@@ -430,8 +431,11 @@ class MelodyEncoderDecoderTest(tf.test.TestCase):
     self.melody_encoder_decoder = SimpleEncoderDecoder(60, 72, 0)
 
   def testMinNoteMaxNoteAndTransposeToKeyValidValues(self):
-    valid_call = SimpleEncoderDecoder(0, 128, 0)
-    valid_call = SimpleEncoderDecoder(60, 72, 11)
+    # Valid parameters
+    SimpleEncoderDecoder(0, 128, 0)
+    SimpleEncoderDecoder(60, 72, 11)
+
+    # Invalid parameters
     self.assertRaises(ValueError, SimpleEncoderDecoder, -1, 72, 0)
     self.assertRaises(ValueError, SimpleEncoderDecoder, 60, 129, 0)
     self.assertRaises(ValueError, SimpleEncoderDecoder, 60, 71, 0)

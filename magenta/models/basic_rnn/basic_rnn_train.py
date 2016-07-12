@@ -14,10 +14,10 @@
 """Train and evaluate the basic RNN model."""
 
 # internal imports
-import tensorflow as tf
-
 import basic_rnn_encoder_decoder
 import basic_rnn_graph
+import tensorflow as tf
+
 from magenta.models.shared import melody_rnn_train
 
 

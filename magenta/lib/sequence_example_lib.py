@@ -63,7 +63,7 @@ def get_padded_batch(file_list, batch_size, input_size,
   """
   file_queue = tf.train.string_input_producer(file_list)
   reader = tf.TFRecordReader()
-  seq_key, serialized_example = reader.read(file_queue)
+  _, serialized_example = reader.read(file_queue)
 
   sequence_features = {
       'inputs': tf.FixedLenSequenceFeature(shape=[input_size],
@@ -71,7 +71,7 @@ def get_padded_batch(file_list, batch_size, input_size,
       'labels': tf.FixedLenSequenceFeature(shape=[],
                                            dtype=tf.int64)}
 
-  context, sequence = tf.parse_single_sequence_example(
+  _, sequence = tf.parse_single_sequence_example(
       serialized_example, sequence_features=sequence_features)
 
   length = tf.shape(sequence['inputs'])[0]

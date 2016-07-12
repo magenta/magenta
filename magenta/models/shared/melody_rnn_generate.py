@@ -88,7 +88,7 @@ def run_generate(graph, train_dir, output_dir, melody_encoder_decoder,
   melodies = []
   for _ in xrange(batch_size):
     melody = melodies_lib.Melody()
-    if len(primer_melody):
+    if primer_melody.events:
       melody.from_event_list(primer_melody.events)
     else:
       melody.events = [random.randint(melody_encoder_decoder.min_note,
@@ -103,21 +103,21 @@ def run_generate(graph, train_dir, output_dir, melody_encoder_decoder,
                    checkpoint_file)
       saver.restore(sess, checkpoint_file)
 
-      _final_state = None
+      final_state_ = None
       for i in xrange(num_steps - len(primer_melody)):
         if i == 0:
-          _inputs = melody_encoder_decoder.get_inputs_batch(melodies,
+          inputs_ = melody_encoder_decoder.get_inputs_batch(melodies,
                                                             full_length=True)
-          _initial_state = sess.run(initial_state)
+          initial_state_ = sess.run(initial_state)
         else:
-          _inputs = melody_encoder_decoder.get_inputs_batch(melodies)
-          _initial_state = _final_state
+          inputs_ = melody_encoder_decoder.get_inputs_batch(melodies)
+          initial_state_ = final_state_
 
-        feed_dict = {inputs: _inputs, initial_state: _initial_state}
-        _final_state, _softmax = sess.run([final_state, softmax], feed_dict)
-        melody_encoder_decoder.extend_melodies(melodies, _softmax)
+        feed_dict = {inputs: inputs_, initial_state: initial_state_}
+        final_state_, softmax_ = sess.run([final_state, softmax], feed_dict)
+        melody_encoder_decoder.extend_melodies(melodies, softmax_)
 
-  date_and_time = time.strftime("%Y-%m-%d_%H-%M-%S")
+  date_and_time = time.strftime('%Y-%m-%d_%H-%M-%S')
   digits = len(str(len(melodies)))
   for i, melody in enumerate(melodies):
     melody.transpose(-transpose_amount)
@@ -166,7 +166,7 @@ def run(melody_encoder_decoder, build_graph):
     primer_melody.from_event_list(ast.literal_eval(FLAGS.primer_melody))
   elif FLAGS.primer_midi:
     primer_sequence = midi_io.midi_file_to_sequence_proto(FLAGS.primer_midi)
-    if len(primer_sequence.tempos):
+    if primer_sequence.tempos:
       bpm = primer_sequence.tempos[0].bpm
     extracted_melodies = melodies_lib.extract_melodies(
         primer_sequence, min_bars=0, min_unique_pitches=1)
@@ -174,7 +174,7 @@ def run(melody_encoder_decoder, build_graph):
       primer_melody = extracted_melodies[0]
     else:
       logging.info('No melodies were extracted from the MIDI file %s. '
-                   'Melodies will be generated from scratch.' %
+                   'Melodies will be generated from scratch.',
                    FLAGS.primer_midi)
 
   run_generate(graph, train_dir, FLAGS.output_dir, melody_encoder_decoder,

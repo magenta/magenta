@@ -14,9 +14,9 @@
 """Create attention RNN dataset."""
 
 # internal imports
+import attention_rnn_encoder_decoder
 import tensorflow as tf
 
-import attention_rnn_encoder_decoder
 from magenta.models.shared import melody_rnn_create_dataset
 
 

@@ -14,10 +14,10 @@
 """Train and evaluate the attention RNN model."""
 
 # internal imports
-import tensorflow as tf
-
 import attention_rnn_encoder_decoder
 import attention_rnn_graph
+import tensorflow as tf
+
 from magenta.models.shared import melody_rnn_train
 
 

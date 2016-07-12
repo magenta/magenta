@@ -14,9 +14,9 @@
 """Create lookback RNN dataset."""
 
 # internal imports
+import lookback_rnn_encoder_decoder
 import tensorflow as tf
 
-import lookback_rnn_encoder_decoder
 from magenta.models.shared import melody_rnn_create_dataset
 
 

@@ -14,10 +14,10 @@
 """Train and evaluate the lookback RNN model."""
 
 # internal imports
-import tensorflow as tf
-
 import lookback_rnn_encoder_decoder
 import lookback_rnn_graph
+import tensorflow as tf
+
 from magenta.models.shared import melody_rnn_train
 
 
