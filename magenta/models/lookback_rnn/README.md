@@ -56,11 +56,11 @@ In these examples we store all our data in ~/magenta_data. Feel free to choose a
     │            ~/magenta_data/note_sequences/classical.tfrecord.)
     ├── midi
     │   └── classical
-    │       ├── 1_morng.mid
-    │       ├── 2_ase.mid
-    │       ├── 3_anitra.mid
+    │       ├── bach_1.mid
+    │       ├── bach_2.mid
+    │       ├── bach_3.mid
     │       └── ...
-    │       (You collection of MIDI files.)
+    │       (Your collection of MIDI files.)
     └── note_sequences
         └── classical.tfrecord
             (A TFRecord file of NoteSequences. Each NoteSequence
@@ -70,18 +70,9 @@ In these examples we store all our data in ~/magenta_data. Feel free to choose a
              ~/magenta_data/midi/classical.)
 ```
 
-### Download MIDI Files
-
-You can use any collection of MIDI files to train your model. For this example, we'll use a collection of classical music from [http://www.midiworld.com/classic.htm](http://www.midiworld.com/classic.htm). You can download this collection by running the script below.
-
-```
-bazel run //magenta:download_midiworld_classical -- \
---output_dir=~/magenta_data/midi/classical
-```
-
 ### Create NoteSequences
 
-NoteSequences are a more convenient format to work with than MIDI files, so first we'll convert all our MIDI files into NoteSequences. Run the script below to convert your collection of MIDI files into a TFRecord file of NoteSequences.
+To start, we'll need a collection of MIDI files. In this example we assume we have a collection of classical music MIDI files in ~/magenta_data/midi/classical/. Our first step will be to convert these MIDI files to NoteSequences. These NoteSequences will contain the same music data that the MIDI files do, but the data will be in a [protocol buffer](https://developers.google.com/protocol-buffers/) format, which is easier to work with. Run the script below to convert your collection of MIDI files into a TFRecord file of NoteSequences.
 
 ```
 bazel run //magenta:convert_midi_dir_to_note_sequences -- \
