@@ -1,7 +1,8 @@
 # Author: Kyle Kastner
-# License: BSD 3-Clause
+# License: MIT
 #
 # Based on masking code from Ishaan Gulrajani
+# License: MIT
 # https://github.com/igul222/pixel_rnn/blob/master/pixel_rnn.py
 #
 # Generates images for the Magenta Pixel Recurrent Neural Networks review
