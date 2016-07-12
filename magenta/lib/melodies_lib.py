@@ -18,10 +18,10 @@ sequences_lib.QuantizedSequence object.
 """
 
 import logging
-from six.moves import range  # pylint: disable=redefined-builtin
 
 # internal imports
 import numpy as np
+from six.moves import range  # pylint: disable=redefined-builtin
 
 from magenta.protobuf import music_pb2
 
@@ -270,6 +270,8 @@ class MonophonicMelody(object):
 
     Args:
       quantized_sequence: A sequences_lib.QuantizedSequence instance.
+      start_step: Start searching for a melody at this time step.
+      track: Search for a melody in this track number.
       gap_bars: If this many bars or more follow a NOTE_OFF event, the melody
           is ended.
       ignore_polyphonic_notes: If true, the highest pitch is used in the melody

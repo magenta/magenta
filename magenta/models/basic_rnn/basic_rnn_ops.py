@@ -37,7 +37,7 @@ class HParams(object):
 
   Acts like a dictionary, but keys can be accessed as class attributes.
   An instance is initialized with default hyperparameter values. Use the
-  `parse` method to set new values from a string representation of a 
+  `parse` method to set new values from a string representation of a
   Python dictionary. Use the `values` method to retrieve a Python dictionary
   version of the hyperparameter settings.
   """

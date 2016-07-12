@@ -26,8 +26,8 @@ import tensorflow as tf
 
 from magenta.lib import melodies_lib
 from magenta.models.basic_rnn import basic_rnn_ops
-from magenta.pipelines import pipeline
 from magenta.pipelines import modules
+from magenta.pipelines import pipeline
 from magenta.protobuf import music_pb2
 
 FLAGS = tf.app.flags.FLAGS
