@@ -35,7 +35,7 @@ Mask A |  Mask B
 
 Both masks are carefully constructed to ensure that the prediction for a pixel is never a function of its own input value. The key difference between mask **A** and mask **B** is whether the pixel being predicted is turned “on” in the center of the mask. Mask **A** is responsible for ensuring that the current pixel in question does not contribute to the prediction. With mask **A** eliminating the problem connection from the network input, the rest of the subsequent layer masks can then be type **B**, where self-connection on the current channel is allowed. This difference is extremely subtle, but key to how this model works.
 
-Applying the masks to the filter weights before convolving will result in the correct dependency field. Some example code to generate these masks in numpy, by [Ishaan Gulrajani](https://github.com/igul222), can be found [here](https://github.com/igul222/pixel_rnn). That mask generation was the basis for the [visualization code](https://github.com/tensorflow/magenta/blob/master/magenta/reviews/assets/pixelrnn_make_masks.py) used to generate the above image.
+Applying the masks to the filter weights before convolving will result in the correct dependency field. Some example code to generate these masks in numpy, by [Ishaan Gulrajani](https://github.com/igul222), can be found [here](https://github.com/igul222/pixel_rnn). That mask generation was the basis for the visualization code used to generate the above image.
 Ishaan's code also implements PixelCNN and one form of PixelRNN on MNIST with reasonably good scores. Though it is not an exact replication of the paper, it is a useful reference for understanding these architectures in code. It also highlights how simple their implementation can be.
 
 Models
