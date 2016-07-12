@@ -44,7 +44,7 @@ def one_hot(value, length):
 
 class CreateDatasetTest(tf.test.TestCase):
 
-  def testBasicOneHotEncoder(self):
+  def testOneHotEncoder(self):
     min_note = 48
     max_note = 84
     num_classes = max_note - min_note + 2
@@ -66,7 +66,7 @@ class CreateDatasetTest(tf.test.TestCase):
         melody, min_note, max_note)
     self.assertEqual(expected_sequence_example, sequence_example)
 
-  def testBasicOneHotEncoderTruncateNoteOff(self):
+  def testOneHotEncoderTruncateNoteOff(self):
     min_note = 48
     max_note = 84
     num_classes = max_note - min_note + 2

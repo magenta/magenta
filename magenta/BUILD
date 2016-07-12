@@ -100,17 +100,6 @@ py_library(
 )
 
 py_library(
-    name = "sequence_to_melodies",
-    srcs = ["lib/sequence_to_melodies.py"],
-    deps = [
-        ":melodies_lib",
-        "//magenta/protobuf:music_py_pb2",
-        ":note_sequence_io",
-        # tensorflow dep
-    ],
-)
-
-py_library(
     name = "sequences_lib",
     srcs = ["lib/sequences_lib.py"],
 )
@@ -166,19 +155,6 @@ py_test(
         ":sequences_lib",
         "//magenta/protobuf:music_py_pb2",
         "@protobuf//:protobuf_python",
-        # tensorflow dep
-    ],
-)
-
-py_test(
-    name = "sequence_to_melodies_test",
-    srcs = ["lib/sequence_to_melodies_test.py"],
-    srcs_version = "PY2AND3",
-    data = [
-        "testdata/notesequences.tfrecord",
-    ],
-    deps = [
-        ":sequence_to_melodies",
         # tensorflow dep
     ],
 )
