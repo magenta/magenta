@@ -129,7 +129,7 @@ a guide to receptive fields and depth in CNNs.
 
 [Forum post on convolutional network sizing](https://www.kaggle.com/c/datasciencebowl/forums/t/13166/happy-lantern-festival-report-and-code/69196), forum post referencing the above PDF.
 
-[NADE](http://www.dmi.usherb.ca/~larocheh/publications/aistats2011_nade.pdf), 
+[NADE](http://www.dmi.usherb.ca/~larocheh/publications/aistats2011_nade.pdf),
 using autoregressive ordering for exact likelihoods in a generative setting, by Larochelle and Murray.
 
 [MADE](https://arxiv.org/abs/1502.03509),
