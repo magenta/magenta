@@ -13,6 +13,9 @@
 # limitations under the License.
 """Tests for pipeline."""
 
+import os
+import tempfile
+
 # internal imports
 import tensorflow as tf
 
@@ -21,8 +24,33 @@ from magenta.pipelines import pipeline
 
 class PipelineTest(tf.test.TestCase):
 
-  def testRecursiveFileIterator(self):
+  def setUp(self):
     pass
+
+  def testRecursiveFileIterator(self):
+    target_files = [
+        ('0.ext', 'hello world'),
+        ('a/1.ext', '123456'),
+        ('a/2.ext', 'abcd'),
+        ('b/c/3.ext', '9999'),
+        ('b/z/3.ext', 'qwerty'),
+        ('d/4.ext', 'mary had a little lamb'),
+        ('d/e/5.ext', 'zzzzzzzz'),
+        ('d/e/f/g/6.ext', 'yyyyyyyyyyy')]
+    extra_files = [
+        ('stuff.txt', 'some stuff'),
+        ('a/q/r/file', 'more stuff')]
+
+    root_dir = tempfile.mkdtemp(dir=self.get_temp_dir())
+    for path, contents in target_files + extra_files:
+      abs_path = os.path.join(root_dir, path)
+      tf.gfile.MakeDirs(os.path.dirname(abs_path))
+      tf.gfile.FastGFile(abs_path, mode='w').write(contents)
+
+    file_iterator = pipeline.recursive_file_iterator(root_dir, 'ext')
+
+    self.assertEqual(set([contents for _, contents in target_files]),
+                     set(file_iterator))
 
   def testTFRecordIterator(self):
     pass
