@@ -19,10 +19,7 @@ Each graph component is produced by a seperate function.
 import ast
 
 # internal imports
-import numpy as np
 import tensorflow as tf
-
-from magenta.lib import melodies_lib
 
 # Number of classification classes. This is a property of the dataset.
 NUM_CLASSES = 38

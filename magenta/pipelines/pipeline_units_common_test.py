@@ -61,7 +61,8 @@ class PipelineUnitsCommonTest(tf.test.TestCase):
          (55, 120, 16, 17), (52, 99, 19, 20)])
 
     unit = pipeline_units_common.Quantizer(steps_per_beat)
-    self._unit_transform_test(unit, note_sequence, [expected_quantized_sequence])
+    self._unit_transform_test(unit, note_sequence,
+                              [expected_quantized_sequence])
 
   def testMonophonicMelodyExtractor(self):
     quantized_sequence = sequences_lib.QuantizedSequence()

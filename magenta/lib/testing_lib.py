@@ -14,8 +14,6 @@
 """Tests for sequences_lib."""
 
 # internal imports
-import tensorflow as tf
-
 from google.protobuf import text_format
 from magenta.lib import sequences_lib
 
