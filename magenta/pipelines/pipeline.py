@@ -140,13 +140,13 @@ def run_pipeline_serial(pipeline, input_iterator, output_dir):
       for output in outputs:
         writers[name].write(output.SerializeToString())
         total_outputs += 1
-    if total_inputs % 10 == 0:
+    if total_inputs % 500 == 0:
       logging.info('%d inputs. %d outputs. stats = %s', total_inputs,
                    total_outputs, pipeline.get_stats())
 
 
-def pipeline_iterator(pipeline, input_iterator):
-  """Generator that runs a pipeline.
+def load_pipeline(pipeline, input_iterator):
+  """Runs a pipeline saving the output into memory.
 
   Use this instead of `run_pipeline_serial` to build a dataset on the fly
   without saving it to disk.
@@ -156,10 +156,15 @@ def pipeline_iterator(pipeline, input_iterator):
     input_iterator: Iterates over the input data. Items returned by it are fed
         directly into the pipeline's `transform` method.
 
-  Yields:
-    The return values of pipeline.transform. Specifically a dictionary
-    mapping dataset names to lists of objects.
+  Returns:
+    The aggregated return values of pipeline.transform. Specifically a
+    dictionary mapping dataset names to lists of objects. Each name acts
+    as a bucket where outputs are aggregated.
   """
-  for input_ in input_iterator:
-    outputs = pipeline.transform(input_)
-    yield outputs
+  aggregated_outputs = dict(
+      [(name, []) for name in pipeline.get_output_names()])
+  for input_object in input_iterator:
+    outputs = pipeline.transform(input_object)
+    for name, output_list in outputs.items():
+      aggregated_outputs[name].extend(output_list)
+  return aggregated_outputs

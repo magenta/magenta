@@ -22,6 +22,38 @@ import tensorflow as tf
 from magenta.pipelines import pipeline
 
 
+class MockProto(object):
+
+  def __init__(self, string=''):
+    self.string = string
+
+  @staticmethod
+  def FromString(string):
+    return MockProto(string)
+
+  def SerializeToString(self):
+    return 'serialized:' + self.string
+
+  def __eq__(self, other):
+    return isinstance(other, MockProto) and self.string == other.string
+
+  def __hash__(self):
+    return hash(self.string)
+
+
+class MockPipeline(pipeline.Pipeline):
+
+  def transform(self, input_object):
+    return {
+        'dataset_1': [
+            MockProto(input_object + '_A'),
+            MockProto(input_object + '_B')],
+        'dataset_2': [MockProto(input_object + '_C')]}
+
+  def get_output_names(self):
+    return ['dataset_1', 'dataset_2']
+
+
 class PipelineTest(tf.test.TestCase):
 
   def setUp(self):
@@ -53,18 +85,6 @@ class PipelineTest(tf.test.TestCase):
                      set(file_iterator))
 
   def testTFRecordIterator(self):
-    class MockProto(object):
-
-      def __init__(self, string=''):
-        self.string = string
-
-      @staticmethod
-      def FromString(string):
-        return MockProto(string)
-
-      def __eq__(self, other):
-        return isinstance(other, MockProto) and self.string == other.string
-
     tfrecord_file = os.path.join(
         tf.resource_loader.get_data_files_path(),
         '../testdata/tfrecord_iterator_test.tfrecord')
@@ -73,10 +93,38 @@ class PipelineTest(tf.test.TestCase):
         list(pipeline.tf_record_iterator(tfrecord_file, MockProto)))
 
   def testRunPipelineSerial(self):
-    pass
+    strings = ['abcdefg', 'helloworld!', 'qwerty']
+    root_dir = tempfile.mkdtemp(dir=self.get_temp_dir())
+    pipeline.run_pipeline_serial(
+        MockPipeline(), iter(strings), root_dir)
+
+    dataset_1_dir = os.path.join(root_dir, 'dataset_1.tfrecord')
+    dataset_2_dir = os.path.join(root_dir, 'dataset_2.tfrecord')
+    self.assertTrue(tf.gfile.Exists(dataset_1_dir))
+    self.assertTrue(tf.gfile.Exists(dataset_2_dir))
+
+    dataset_1_reader = tf.python_io.tf_record_iterator(dataset_1_dir)
+    self.assertEqual(
+        set(['serialized:%s_A' % s for s in strings] +
+            ['serialized:%s_B' % s for s in strings]),
+        set(dataset_1_reader))
+
+    dataset_2_reader = tf.python_io.tf_record_iterator(dataset_2_dir)
+    self.assertEqual(
+        set(['serialized:%s_C' % s for s in strings]),
+        set(dataset_2_reader))
 
   def testPipelineIterator(self):
-    pass
+    strings = ['abcdefg', 'helloworld!', 'qwerty']
+    result = pipeline.load_pipeline(MockPipeline(), iter(strings))
+
+    self.assertEqual(
+        set([MockProto(s + '_A') for s in strings] +
+            [MockProto(s + '_B') for s in strings]),
+        set(result['dataset_1']))
+    self.assertEqual(
+        set([MockProto(s + '_C') for s in strings]),
+        set(result['dataset_2']))
 
 
 if __name__ == '__main__':
