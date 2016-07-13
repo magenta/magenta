@@ -16,11 +16,9 @@
 # internal imports
 import tensorflow as tf
 
-from google.protobuf import text_format
 from magenta.lib import melodies_lib
 from magenta.lib import sequences_lib
 from magenta.lib import testing_lib
-from magenta.pipelines import pipeline_unit
 from magenta.pipelines import pipeline_units_common
 from magenta.protobuf import music_pb2
 
