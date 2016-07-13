@@ -56,9 +56,6 @@ class MockPipeline(pipeline.Pipeline):
 
 class PipelineTest(tf.test.TestCase):
 
-  def setUp(self):
-    pass
-
   def testRecursiveFileIterator(self):
     target_files = [
         ('0.ext', 'hello world'),
