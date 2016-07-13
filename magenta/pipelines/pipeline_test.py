@@ -53,7 +53,24 @@ class PipelineTest(tf.test.TestCase):
                      set(file_iterator))
 
   def testTFRecordIterator(self):
-    pass
+    class MockProto(object):
+
+      def __init__(self, string=''):
+        self.string = string
+
+      @staticmethod
+      def FromString(string):
+        return MockProto(string)
+
+      def __eq__(self, other):
+        return isinstance(other, MockProto) and self.string == other.string
+
+    tfrecord_file = os.path.join(
+        tf.resource_loader.get_data_files_path(),
+        '../testdata/tfrecord_iterator_test.tfrecord')
+    self.assertEqual(
+        [MockProto(string) for string in ['hello world', '12345', 'success']],
+        list(pipeline.tf_record_iterator(tfrecord_file, MockProto)))
 
   def testRunPipelineSerial(self):
     pass

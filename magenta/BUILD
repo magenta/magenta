@@ -185,6 +185,9 @@ py_test(
     name = "pipeline_test",
     srcs = ["pipelines/pipeline_test.py"],
     srcs_version = "PY2AND3",
+    data = [
+        "testdata/tfrecord_iterator_test.tfrecord",
+    ],
     deps = [
         ":pipeline",
         # tensorflow dep
