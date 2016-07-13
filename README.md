@@ -31,7 +31,7 @@ MIDI_DIRECTORY=<folder containing MIDI files. can have child folders.>
 # TFRecord file that will contain NoteSequence protocol buffers.
 SEQUENCES_TFRECORD=/tmp/notesequences.tfrecord
 
-bazel run //magenta:convert_midi_dir_to_note_sequences -- \
+bazel run //magenta/scripts:convert_midi_dir_to_note_sequences -- \
 --midi_dir=$MIDI_DIRECTORY \
 --output_file=$SEQUENCES_TFRECORD \
 --recursive
@@ -40,9 +40,9 @@ bazel run //magenta:convert_midi_dir_to_note_sequences -- \
 Note: To build and run in seperate commands, run
 
 ```
-bazel build //magenta:convert_midi_dir_to_note_sequences
+bazel build //magenta/scripts:convert_midi_dir_to_note_sequences
 
-./bazel-bin/magenta/convert_midi_dir_to_note_sequences \
+./bazel-bin/magenta/scripts/convert_midi_dir_to_note_sequences \
 --midi_dir=$MIDI_DIRECTORY \
 --output_file=$SEQUENCES_TFRECORD \
 --recursive

@@ -28,7 +28,7 @@ EVAL_RATIO=0.10
 # Name of the encoder to use. See magenta/lib/encoders.py.
 ENCODER=basic_one_hot_encoder
 
-bazel run //magenta/models:basic_rnn_create_dataset -- \
+bazel run //magenta/models/basic_rnn:basic_rnn_create_dataset -- \
 --input=$SEQUENCES_TFRECORD \
 --train_output=$TRAIN_DATA \
 --eval_output=$EVAL_DATA \
@@ -40,7 +40,7 @@ bazel run //magenta/models:basic_rnn_create_dataset -- \
 
 Build ```basic_rnn_train``` first so that it can be run multiple times in parallel.
 
-```bazel build //magenta/models:basic_rnn_train```
+```bazel build //magenta/models/basic_rnn:basic_rnn_train```
 
 Save train and eval datasets as ```/tmp/training_melodies.tfrecord``` and ```/tmp/eval_melodies.tfrecord```.
 
@@ -50,11 +50,11 @@ Lets create an LSTM model with 1 cell of size 50. So the hyperparameter string i
 
 Run training job from the project root
 
-```./bazel-bin/magenta/models/basic_rnn_train --experiment_run_dir=/tmp/basic_rnn/run1 --sequence_example_file=$TRAIN_DATA --eval=false --hparams='{"rnn_layer_sizes":[50]}' --num_training_steps=20000```
+```./bazel-bin/magenta/models/basic_rnn/basic_rnn_train --experiment_run_dir=/tmp/basic_rnn/run1 --sequence_example_file=$TRAIN_DATA --eval=false --hparams='{"rnn_layer_sizes":[50]}' --num_training_steps=20000```
 
 Optionally run eval job in parallel with training job
 
-```./bazel-bin/magenta/models/basic_rnn_train --experiment_run_dir=/tmp/basic_rnn/run1 --sequence_example_file=$EVAL_DATA --eval=true --hparams='{"rnn_layer_sizes":[50]}' --num_training_steps=20000```
+```./bazel-bin/magenta/models/basic_rnn/basic_rnn_train --experiment_run_dir=/tmp/basic_rnn/run1 --sequence_example_file=$EVAL_DATA --eval=true --hparams='{"rnn_layer_sizes":[50]}' --num_training_steps=20000```
 
 Run TensorBoard to view training results
 
@@ -96,7 +96,7 @@ Lets generate 64 new timesteps.
 # primer.mid is provided as an example.
 PRIMER_PATH=<absolute location of your primer MIDI file>
 
-bazel run //magenta/models:basic_rnn_generate -- \
+bazel run //magenta/models/basic_rnn:basic_rnn_generate -- \
 --experiment_run_dir=/tmp/basic_rnn/run1 \
 --hparams='{"rnn_layer_sizes":[50]}' \
 --primer_midi=$PRIMER_PATH \

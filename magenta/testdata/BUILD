@@ -15,6 +15,8 @@
 # Description:
 # Data for unit tests.
 
+licenses(["notice"])  # Apache 2.0
+
 exports_files(['example.mid',
                'example_complex.mid',
                'notesequences.tfrecord',
