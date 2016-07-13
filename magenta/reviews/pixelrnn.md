@@ -81,7 +81,7 @@ Directly modeling all of the conditional probabilities for *32 x 32* pixel color
 This direct computation is how NADE worked. PixelCNN instead exploits topological structure to grow the dependency chain over depth. This leads to an effective sqrt(n) dependency from local context to global (from personal discussion, [Laurent Dinh](https://github.com/laurent-dinh)).
 
 This naturally encodes what we see and know about images. Real world images feature strong local correlations and correspondingly have close connection over depth in a PixelCNN (within one or two layers depending on convolutional kernel size), while looser global structure contexts are found [deeper in the network](https://kaggle2.blob.core.windows.net/forum-message-attachments/69182/2287/A%20practical%20theory%20for%20designing%20very%20deep%20convolutional%20neural%20networks.pdf?sv=2012-02-12&se=2016-07-01T04%3A02%3A12Z&sr=b&sp=r&sig=aP8jLZEO6YmPwYps1NiVDwyLlxy5tCJjCsP%2B2FIwkU0%3D).
-This growth from local to global dependencies may improve the model from an optimization and learning perspective, and the authors explore the modeling capacity of the PixelCNN in detail in a [more recent paper](https://arxiv.org/abs/1601.06759).
+This growth from local to global dependencies may improve the model from an optimization and learning perspective, and the authors explore the modeling capacity of the PixelCNN in detail in a [more recent paper](https://arxiv.org/abs/1606.05328).
 
 Acknowledgements
 ----------------
