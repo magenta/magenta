@@ -163,6 +163,14 @@ class MonophonicMelody(object):
     """
     return len(self.events)
 
+  def __eq__(self, other):
+    if not isinstance(other, MonophonicMelody):
+      return False
+    return (self.events == other.events and
+            self.steps_per_bar == other.steps_per_bar and
+            self.start_step == other.start_step and
+            self.end_step == other.end_step)
+
   def _add_note(self, pitch, start_step, end_step):
     """Adds the given note to the `events` list.
 

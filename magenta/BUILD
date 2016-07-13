@@ -136,6 +136,15 @@ py_library(
     ],
 )
 
+py_library(
+    name = "testing_lib",
+    srcs = ["lib/testing_lib.py"],
+    deps = [
+        ":sequences_lib",
+        "@protobuf//:protobuf_python",
+    ]
+)
+
 py_test(
     name = "melodies_lib_test",
     srcs = ["lib/melodies_lib_test.py"],
@@ -143,6 +152,7 @@ py_test(
     deps = [
         ":melodies_lib",
         ":sequences_lib",
+        ":testing_lib",
         # tensorflow dep
     ],
 )
@@ -153,8 +163,8 @@ py_test(
     srcs_version = "PY2AND3",
     deps = [
         ":sequences_lib",
+        ":testing_lib",
         "//magenta/protobuf:music_py_pb2",
-        "@protobuf//:protobuf_python",
         # tensorflow dep
     ],
 )
@@ -166,6 +176,7 @@ py_test(
     deps = [
         ":melodies_lib",
         ":sequence_example_lib",
+        ":testing_lib",
         # tensorflow dep
     ],
 )
@@ -185,8 +196,11 @@ py_test(
     srcs = ["pipelines/pipeline_units_common_test.py"],
     srcs_version = "PY2AND3",
     deps = [
+        ":melodies_lib",
         ":pipeline_unit",
         ":pipeline_units_common",
+        ":sequences_lib",
+        ":testing_lib",
         # tensorflow dep
     ],
 )
