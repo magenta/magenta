@@ -17,6 +17,7 @@
 
 package(
     default_visibility = ["//magenta:__subpackages__"],
+    features = ["-layering_check"],
 )
 
 load("@protobuf//:protobuf.bzl", "cc_proto_library")

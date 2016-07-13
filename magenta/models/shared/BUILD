@@ -13,16 +13,34 @@
 # limitations under the License.
 
 # Description:
-# Test suite for running all tests at once.
+# Code shared by models.
 
 licenses(["notice"])  # Apache 2.0
 
-test_suite(
-    name = "all_tests",
-    tests = [
-        "//magenta/lib:melodies_lib_test",
-        "//magenta/lib:midi_io_test",
-        "//magenta/lib:sequence_to_melodies_test",
-        "//magenta/scripts:convert_midi_dir_to_note_sequences_test",
+py_binary(
+    name = "melody_rnn_create_dataset",
+    srcs = ["melody_rnn_create_dataset.py"],
+    deps = [
+        "//magenta/lib:sequence_to_melodies",
+        # tensorflow dep
     ],
 )
+
+py_binary(
+    name = "melody_rnn_generate",
+    srcs = ["melody_rnn_generate.py"],
+    deps = [
+        "//magenta/lib:melodies_lib",
+        "//magenta/lib:midi_io",
+        # tensorflow dep
+    ],
+)
+
+py_binary(
+    name = "melody_rnn_train",
+    srcs = ["melody_rnn_train.py"],
+    deps = [
+        # tensorflow dep
+    ],
+)
+

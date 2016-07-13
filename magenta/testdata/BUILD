@@ -13,16 +13,9 @@
 # limitations under the License.
 
 # Description:
-# Test suite for running all tests at once.
+# Data for unit tests.
 
-licenses(["notice"])  # Apache 2.0
-
-test_suite(
-    name = "all_tests",
-    tests = [
-        "//magenta/lib:melodies_lib_test",
-        "//magenta/lib:midi_io_test",
-        "//magenta/lib:sequence_to_melodies_test",
-        "//magenta/scripts:convert_midi_dir_to_note_sequences_test",
-    ],
-)
+exports_files(['example.mid',
+               'example_complex.mid',
+               'notesequences.tfrecord',
+               ])

@@ -13,16 +13,34 @@
 # limitations under the License.
 
 # Description:
-# Test suite for running all tests at once.
+# Scripts for preparing data.
+
+package(
+    default_visibility = ["//magenta:__subpackages__"],
+)
 
 licenses(["notice"])  # Apache 2.0
 
-test_suite(
-    name = "all_tests",
-    tests = [
-        "//magenta/lib:melodies_lib_test",
-        "//magenta/lib:midi_io_test",
-        "//magenta/lib:sequence_to_melodies_test",
-        "//magenta/scripts:convert_midi_dir_to_note_sequences_test",
+py_binary(
+    name = "convert_midi_dir_to_note_sequences",
+    srcs = ["convert_midi_dir_to_note_sequences.py"],
+    srcs_version = "PY2AND3",
+    deps = [
+        "//magenta/lib:midi_io",
+        "//magenta/lib:note_sequence_io",
+        # tensorflow dep
     ],
+)
+
+py_test(
+   name = "convert_midi_dir_to_note_sequences_test",
+   srcs = ["convert_midi_dir_to_note_sequences_test.py"],
+   srcs_version = "PY2AND3",
+   data = [
+       "//magenta/testdata:example.mid",
+   ],
+   deps = [
+       ":convert_midi_dir_to_note_sequences",
+        # tensorflow dep
+   ],
 )
