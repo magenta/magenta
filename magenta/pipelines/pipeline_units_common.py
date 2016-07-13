@@ -42,15 +42,18 @@ class MonophonicMelodyExtractor(pipeline_unit.PipelineUnit):
   input_type = sequences_lib.QuantizedSequence
   output_type = melodies_lib.MonophonicMelody
 
-  def __init__(self, min_bars=7, min_unique_pitches=5, gap_bars=1.0):
+  def __init__(self, min_bars=7, min_unique_pitches=5, gap_bars=1.0,
+               ignore_polyphonic_notes=False):
     super(MonophonicMelodyExtractor, self).__init__()
     self.min_bars = min_bars
     self.min_unique_pitches = min_unique_pitches
     self.gap_bars = gap_bars
+    self.ignore_polyphonic_notes = False
 
   def transform(self, quantized_sequence):
     return melodies_lib.extract_melodies(
         quantized_sequence,
         min_bars=self.min_bars,
         min_unique_pitches=self.min_unique_pitches,
-        gap_bars=self.gap_bars)
+        gap_bars=self.gap_bars,
+        ignore_polyphonic_notes=self.ignore_polyphonic_notes)

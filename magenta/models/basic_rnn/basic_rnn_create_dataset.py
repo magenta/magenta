@@ -100,7 +100,7 @@ class BasicRNNPipeline(pipeline.Pipeline):
     self.quantizer = pipeline_units_common.Quantizer(steps_per_beat=4)
     self.melody_extractor = pipeline_units_common.MonophonicMelodyExtractor(
         min_bars=7, min_unique_pitches=5,
-        gap_bars=1.0)
+        gap_bars=1.0, ignore_polyphonic_notes=False)
     self.one_hot_encoder = OneHotEncoder()
     self.stats_dict = {}
 
