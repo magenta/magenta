@@ -51,7 +51,7 @@ tmp
 │           (TFRecord files of SequenceExamples. These are used
 │            to train and evalutate the model. Each SequenceExample
 │            has a sequence of inputs and a sequence of labels that
-│            represent a melody. These melodies are extracted from 
+│            represent a melody. These melodies are extracted from
 │            the NoteSequences in /tmp/notesequences.tfrecord.)
 └── notesequences.tfrecord
     (A TFRecord file of NoteSequences. Each NoteSequence represents a
@@ -65,7 +65,7 @@ Our first step will be to convert a collection of MIDI files into NoteSequences.
 
 ### Create SequenceExamples
 
-SequenceExamples are fed into the model during training and evaluation. Each SequenceExample will contain a sequence of inputs and a sequence of labels that represent a melody. Run the command below to extract melodies from our NoteSequences and save them as SequenceExamples. If we specify an `--eval_output` and an `--eval_ratio`, two collections of SequenceExamples will be generated, one for training, and one for evaluation. With an eval ratio of 0.10, 10% of the extracted melodies will be saved in the eval collection, and 90% will be saved in the training collection. 
+SequenceExamples are fed into the model during training and evaluation. Each SequenceExample will contain a sequence of inputs and a sequence of labels that represent a melody. Run the command below to extract melodies from our NoteSequences and save them as SequenceExamples. If we specify an `--eval_output` and an `--eval_ratio`, two collections of SequenceExamples will be generated, one for training, and one for evaluation. With an eval ratio of 0.10, 10% of the extracted melodies will be saved in the eval collection, and 90% will be saved in the training collection.
 
 ```
 bazel run //magenta/models/lookback_rnn:lookback_rnn_create_dataset -- \

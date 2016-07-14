@@ -51,7 +51,7 @@ tmp
 │           (TFRecord files of SequenceExamples. These are used
 │            to train and evalutate the model. Each SequenceExample
 │            has a sequence of inputs and a sequence of labels that
-│            represent a melody. These melodies are extracted from 
+│            represent a melody. These melodies are extracted from
 │            the NoteSequences in /tmp/notesequences.tfrecord.)
 └── notesequences.tfrecord
     (A TFRecord file of NoteSequences. Each NoteSequence represents a
@@ -65,7 +65,7 @@ Our first step will be to convert a collection of MIDI files into NoteSequences.
 
 ### Create SequenceExamples
 
-SequenceExamples are fed into the model during training and evaluation. Each SequenceExample will contain a sequence of inputs and a sequence of labels that represent a melody. Run the command below to extract melodies from our NoteSequences and save them as SequenceExamples. If we specify an `--eval_output` and an `--eval_ratio`, two collections of SequenceExamples will be generated, one for training, and one for evaluation. With an eval ratio of 0.10, 10% of the extracted melodies will be saved in the eval collection, and 90% will be saved in the training collection. 
+SequenceExamples are fed into the model during training and evaluation. Each SequenceExample will contain a sequence of inputs and a sequence of labels that represent a melody. Run the command below to extract melodies from our NoteSequences and save them as SequenceExamples. If we specify an `--eval_output` and an `--eval_ratio`, two collections of SequenceExamples will be generated, one for training, and one for evaluation. With an eval ratio of 0.10, 10% of the extracted melodies will be saved in the eval collection, and 90% will be saved in the training collection.
 
 ```
 bazel run //magenta/models/attention_rnn:attention_rnn_create_dataset -- \
@@ -83,7 +83,7 @@ Build attention_rnn_train first so that it can be run multiple times in parallel
 bazel build //magenta/models/attention_rnn:attention_rnn_train
 ```
 
-Run the command below to start a training job. `--run_dir` is the directory where checkpoints and TensorBoard data for this run will be stored. `--sequence_example_file` is the TFRecord file of SequenceExamples that will be fed to the model. `--num_training_steps` (optional) is how many update steps to take before exiting the training loop. If left unspecified, the training loop will run until terminated manually. `--hparams` (optional) can be used to specify hyperparameters other than the defaults. For this example we specify a custom batch size of 64 instead of the default batch size of 128. Using smaller batch sizes can help reduce memory usage, which can resolve potential out-of-memory issues when training larger models. We'll also use a 2 layer RNN with 64 units each, instead of the default of 2 layers of 128 units each. This will make our model train faster. However, if you have enough compute power, you can try using larger layer sizes for better results. You can also adjust how many previous steps the attention mechanism looks at by changing the `attn_length` hyperparameter. For this example we leave it at the default value of 40 steps (2.5 bars). 
+Run the command below to start a training job. `--run_dir` is the directory where checkpoints and TensorBoard data for this run will be stored. `--sequence_example_file` is the TFRecord file of SequenceExamples that will be fed to the model. `--num_training_steps` (optional) is how many update steps to take before exiting the training loop. If left unspecified, the training loop will run until terminated manually. `--hparams` (optional) can be used to specify hyperparameters other than the defaults. For this example we specify a custom batch size of 64 instead of the default batch size of 128. Using smaller batch sizes can help reduce memory usage, which can resolve potential out-of-memory issues when training larger models. We'll also use a 2 layer RNN with 64 units each, instead of the default of 2 layers of 128 units each. This will make our model train faster. However, if you have enough compute power, you can try using larger layer sizes for better results. You can also adjust how many previous steps the attention mechanism looks at by changing the `attn_length` hyperparameter. For this example we leave it at the default value of 40 steps (2.5 bars).
 
 ```
 ./bazel-bin/magenta/models/attention_rnn/attention_rnn_train \
