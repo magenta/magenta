@@ -55,8 +55,9 @@ def run_conversion(melody_encoder_decoder, note_sequences_file, train_output,
   tf.logging.info('Extracting melodies...')
   for sequence_data in reader:
     # Only extract melodies from 4/4 time music.
-    if not (sequence_data.time_signatures[0].numerator == 4 and
-            sequence_data.time_signatures[0].denominator == 4):
+    if (not sequence_data.time_signatures or
+        not (sequence_data.time_signatures[0].numerator == 4 and
+             sequence_data.time_signatures[0].denominator == 4)):
       continue
     extracted_melodies = melodies_lib.extract_melodies(sequence_data)
     for melody in extracted_melodies:
