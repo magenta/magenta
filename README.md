@@ -18,7 +18,7 @@ First, clone this repository:
 
 Next, install Bazel and TensorFlow. You'll need at least version 0.2.3 for Bazel and at least version 0.9 for TensorFlow. You can find instructions for the former [here](http://www.bazel.io/docs/install.html) and the latter [here](https://github.com/tensorflow/tensorflow/blob/v0.9.0rc0/tensorflow/g3doc/get_started/os_setup.md). After that's done, run the tests with this command:
 
-```bazel test //magenta:all```
+```bazel test //magenta/...```
 
 ## Building your Dataset
 Now that you have a working copy of Magenta, let's build your first MIDI dataset. We do this by creating a directory of MIDI files and converting them into NoteSequences. If you don't have any MIDIs handy, you can find some [here](http://www.midiworld.com/files/142/) from MidiWorld.
@@ -53,3 +53,7 @@ bazel build //magenta/scripts:convert_midi_dir_to_note_sequences
 To create your own melodies with TensorFlow, train a model on the dataset you built above and then use it to generate new sequences. Select a model below for further instructions.
 
 **[Basic RNN](magenta/models/basic_rnn)**: A simple recurrent neural network for predicting melodies.
+
+**[Lookback RNN](magenta/models/lookback_rnn)**: A recurrent neural network for predicting melodies that uses custom inputs and labels.
+
+**[Attention RNN](magenta/models/attention_rnn)**: A recurrent neural network for predicting melodies that uses attention.

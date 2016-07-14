@@ -25,16 +25,23 @@ from magenta.lib import melodies_lib
 from magenta.lib import midi_io
 
 FLAGS = tf.app.flags.FLAGS
-tf.app.flags.DEFINE_string('run_dir', '/tmp/melody_rnn/run1',
+tf.app.flags.DEFINE_string('run_dir', '/tmp/melody_rnn/logdir/run1',
                            'Path to the directory where the latest checkpoint '
                            'will be loaded from.')
 tf.app.flags.DEFINE_string('hparams', '{}',
-                           'String representation of Python dictionary '
+                           'String representation of a Python dictionary '
                            'containing hyperparameter to value mapping. This '
                            'mapping is merged with the default '
                            'hyperparameters.')
-tf.app.flags.DEFINE_string('output_dir', '/tmp/melody_rnn_generated',
+tf.app.flags.DEFINE_string('output_dir', '/tmp/melody_rnn/generated',
                            'The directory where MIDI files will be saved to.')
+tf.app.flags.DEFINE_integer('num_outputs', 10,
+                            'The number of melodies to generate. One MIDI '
+                            'file will be created for each.')
+tf.app.flags.DEFINE_integer('num_steps', 128,
+                            'The total number of steps the generated melodies '
+                            'should be, priming melody length + generated '
+                            'steps. Each step is a 16th of a bar.')
 tf.app.flags.DEFINE_string('primer_melody', '',
                            'A string representation of a Python list of '
                            'melodies_lib.Melody event values. For example: '
@@ -47,13 +54,6 @@ tf.app.flags.DEFINE_string('primer_midi', '',
                            'will be used as a priming melody. If a primer '
                            'melody is not specified, melodies will be '
                            'generated from scratch.')
-tf.app.flags.DEFINE_integer('num_steps', 32,
-                            'The total number of steps the generated melodies '
-                            'should be, priming melody length + generated '
-                            'steps. Each step is a 16th of a bar.')
-tf.app.flags.DEFINE_integer('num_outputs', 16,
-                            'The number of melodies to generate. One MIDI '
-                            'file will be created for each.')
 
 
 def run_generate(graph, train_dir, output_dir, melody_encoder_decoder,
@@ -97,8 +97,8 @@ def run_generate(graph, train_dir, output_dir, melody_encoder_decoder,
     saver = tf.train.Saver()
     with tf.Session() as sess:
       checkpoint_file = tf.train.latest_checkpoint(train_dir)
-      tf.logging.info('Checkpoint used: %s\nGenerating melodies...',
-                      checkpoint_file)
+      tf.logging.info('Checkpoint used: %s', checkpoint_file)
+      tf.logging.info('Generating melodies...')
       saver.restore(sess, checkpoint_file)
 
       final_state_ = None
@@ -115,7 +115,7 @@ def run_generate(graph, train_dir, output_dir, melody_encoder_decoder,
         final_state_, softmax_ = sess.run([final_state, softmax], feed_dict)
         melody_encoder_decoder.extend_melodies(melodies, softmax_)
 
-  date_and_time = time.strftime('%Y-%m-%d_%H-%M-%S')
+  date_and_time = time.strftime('%Y-%m-%d_%H%M%S')
   digits = len(str(len(melodies)))
   for i, melody in enumerate(melodies):
     melody.transpose(-transpose_amount)
@@ -154,6 +154,7 @@ def run(melody_encoder_decoder, build_graph):
 
   hparams = ast.literal_eval(FLAGS.hparams if FLAGS.hparams else '{}')
   hparams['batch_size'] = FLAGS.num_outputs
+  hparams['dropout_keep_prob'] = 1.0
   hparams_string = repr(hparams)
 
   graph = build_graph('generate',

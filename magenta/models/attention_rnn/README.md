@@ -1,6 +1,6 @@
-### About Lookback RNN
+### About Attention RNN
 
-In this model we introduce the use of custom inputs and labels. The custom inputs allow the model to more easily learn patterns related to repeating notes from 1 and 2 bars ago, and related to the position of the events within the measure. The custom labels allow the model to more easily repeat events from 1 and 2 bars ago without have to store that information in the RNN cell's state. This results in melodies that sound more musical than the basic RNN melodies which tend to wander too much. For more information about the custom inputs and labels, and to hear some sample generated melodies, check out the [blog post](https://magenta.tensorflow.org/). You can also read through the `melody_to_input` and `melody_to_label` methods in `lookback_rnn_encoder_decoder.py` to see how the custom inputs and labels are actually being encoded. The rest of this README leads you through the steps of training the model and generating melodies from it.
+In this model we introduce the use of attention. Attention allows the model to more easily access past information without having to store that information in the RNN cell's state. This allows the model to more easily learn longer term dependencies, and results in melodies that have longer arching cohesive themes. For an overview of how the attention mechanism works and to hear some sample generated melodies, check out the [blog post](https://magenta.tensorflow.org/). You can also read through the `AttentionCellWrapper` code in `attention_rnn_graph.py` to see what's really going on under the hood. The rest of this README leads you through the steps of training the model and generating melodies from it.
 
 ### File Structure
 
@@ -8,7 +8,7 @@ In these examples we store all our data in `/tmp`, but feel free to choose a dif
 
 ```
 tmp
-├── lookback_rnn
+├── attention_rnn
 │   ├── generated
 │   │   ├── 2016-07-15_124500_01.mid
 │   │   ├── 2016-07-15_124500_02.mid
@@ -68,27 +68,27 @@ Our first step will be to convert a collection of MIDI files into NoteSequences.
 SequenceExamples are fed into the model during training and evaluation. Each SequenceExample will contain a sequence of inputs and a sequence of labels that represent a melody. Run the command below to extract melodies from our NoteSequences and save them as SequenceExamples. If we specify an `--eval_output` and an `--eval_ratio`, two collections of SequenceExamples will be generated, one for training, and one for evaluation. With an eval ratio of 0.10, 10% of the extracted melodies will be saved in the eval collection, and 90% will be saved in the training collection. 
 
 ```
-bazel run //magenta/models/lookback_rnn:lookback_rnn_create_dataset -- \
+bazel run //magenta/models/attention_rnn:attention_rnn_create_dataset -- \
 --input=/tmp/notesequences.tfrecord \
---train_output=/tmp/lookback_rnn/sequence_examples/training_melodies.tfrecord \
---eval_output=/tmp/lookback_rnn/sequence_examples/eval_melodies.tfrecord \
+--train_output=/tmp/attention_rnn/sequence_examples/training_melodies.tfrecord \
+--eval_output=/tmp/attention_rnn/sequence_examples/eval_melodies.tfrecord \
 --eval_ratio=0.10
 ```
 
 ### Train and Evaluate the Model
 
-Build lookback_rnn_train first so that it can be run multiple times in parallel.
+Build attention_rnn_train first so that it can be run multiple times in parallel.
 
 ```
-bazel build //magenta/models/lookback_rnn:lookback_rnn_train
+bazel build //magenta/models/attention_rnn:attention_rnn_train
 ```
 
-Run the command below to start a training job. `--run_dir` is the directory where checkpoints and TensorBoard data for this run will be stored. `--sequence_example_file` is the TFRecord file of SequenceExamples that will be fed to the model. `--num_training_steps` (optional) is how many update steps to take before exiting the training loop. If left unspecified, the training loop will run until terminated manually. `--hparams` (optional) can be used to specify hyperparameters other than the defaults. For this example we specify a custom batch size of 64 instead of the default batch size of 128. Using smaller batch sizes can help reduce memory usage, which can resolve potential out-of-memory issues when training larger models. We'll also use a 2 layer RNN with 64 units each, instead of the default of 2 layers of 128 units each. This will make our model train faster. However, if you have enough compute power, you can try using larger layer sizes for better results.
+Run the command below to start a training job. `--run_dir` is the directory where checkpoints and TensorBoard data for this run will be stored. `--sequence_example_file` is the TFRecord file of SequenceExamples that will be fed to the model. `--num_training_steps` (optional) is how many update steps to take before exiting the training loop. If left unspecified, the training loop will run until terminated manually. `--hparams` (optional) can be used to specify hyperparameters other than the defaults. For this example we specify a custom batch size of 64 instead of the default batch size of 128. Using smaller batch sizes can help reduce memory usage, which can resolve potential out-of-memory issues when training larger models. We'll also use a 2 layer RNN with 64 units each, instead of the default of 2 layers of 128 units each. This will make our model train faster. However, if you have enough compute power, you can try using larger layer sizes for better results. You can also adjust how many previous steps the attention mechanism looks at by changing the `attn_length` hyperparameter. For this example we leave it at the default value of 40 steps (2.5 bars). 
 
 ```
-./bazel-bin/magenta/models/lookback_rnn/lookback_rnn_train \
---run_dir=/tmp/lookback_rnn/logdir/run1 \
---sequence_example_file=/tmp/lookback_rnn/sequence_examples/training_melodies.tfrecord \
+./bazel-bin/magenta/models/attention_rnn/attention_rnn_train \
+--run_dir=/tmp/attention_rnn/logdir/run1 \
+--sequence_example_file=/tmp/attention_rnn/sequence_examples/training_melodies.tfrecord \
 --hparams="{'batch_size':64,'rnn_layer_sizes':[64,64]}" \
 --num_training_steps=20000
 ```
@@ -96,9 +96,9 @@ Run the command below to start a training job. `--run_dir` is the directory wher
 Optionally run an eval job in parallel. `--run_dir`, `--hparams`, and `--num_training_steps` should all be the same values used for the training job. `--sequence_example_file` should point to the separate set of eval melodies. Include `--eval` to make this an eval job, resulting in the model only being evaluated without any of the weights being updated.
 
 ```
-./bazel-bin/magenta/models/lookback_rnn/lookback_rnn_train \
---run_dir=/tmp/lookback_rnn/logdir/run1 \
---sequence_example_file=/tmp/lookback_rnn/sequence_examples/eval_melodies.tfrecord \
+./bazel-bin/magenta/models/attention_rnn/attention_rnn_train \
+--run_dir=/tmp/attention_rnn/logdir/run1 \
+--sequence_example_file=/tmp/attention_rnn/sequence_examples/eval_melodies.tfrecord \
 --hparams="{'batch_size':64,'rnn_layer_sizes':[64,64]}" \
 --num_training_steps=20000 \
 --eval
@@ -107,7 +107,7 @@ Optionally run an eval job in parallel. `--run_dir`, `--hparams`, and `--num_tra
 Run TensorBoard to view the training and evaluation data.
 
 ```
-tensorboard --logdir=/tmp/lookback_rnn/logdir
+tensorboard --logdir=/tmp/attention_rnn/logdir
 ```
 
 Then go to [http://localhost:6006](http://localhost:6006) to view the TensorBoard dashboard.
@@ -116,7 +116,7 @@ Then go to [http://localhost:6006](http://localhost:6006) to view the TensorBoar
 
 Melodies can be generated during or after training. Run the command below to generate a set of melodies using the latest checkpoint file of your trained model.
 
-`--run_dir` should be the same directory used for the training job. The `train` subdirectory within `--run_dir` is where the latest checkpoint file will be loaded from. For example, if we use `--run_dir=/tmp/lookback_rnn/logdir/run1`. The most recent checkpoint file in `/tmp/lookback_rnn/logdir/run1/train` will be used.
+`--run_dir` should be the same directory used for the training job. The `train` subdirectory within `--run_dir` is where the latest checkpoint file will be loaded from. For example, if we use `--run_dir=/tmp/attention_rnn/logdir/run1`. The most recent checkpoint file in `/tmp/attention_rnn/logdir/run1/train` will be used.
 
 `--hparams` should be the same hyperparameters used for the training job, although some of them will be ignored, like the batch size.
 
@@ -126,10 +126,10 @@ At least one note needs to be fed to the model before it can start generating co
 
 
 ```
-bazel run //magenta/models/lookback_rnn:lookback_rnn_generate -- \
---run_dir=/tmp/lookback_rnn/logdir/run1 \
+bazel run //magenta/models/attention_rnn:attention_rnn_generate -- \
+--run_dir=/tmp/attention_rnn/logdir/run1 \
 --hparams="{'batch_size':64,'rnn_layer_sizes':[64,64]}" \
---output_dir=/tmp/lookback_rnn/generated \
+--output_dir=/tmp/attention_rnn/generated \
 --num_outputs=10 \
 --num_steps=128 \
 --primer_melody="[60]"

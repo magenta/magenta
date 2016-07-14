@@ -171,7 +171,7 @@ _unpacked_state = tf.nn.rnn_cell._unpacked_state
 
 
 # TODO(elliotwaite): Merge with tf.contrib.rnn.rnn_cell.AttentionCellWrapper
-# and use that one instead when it's available in the next TensorFlow release.
+# and use that instead when it's available in the next TensorFlow release.
 class AttentionCellWrapper(tf.nn.rnn_cell.RNNCell):
   """Basic attention cell wrapper.
 

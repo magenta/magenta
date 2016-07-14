@@ -124,12 +124,12 @@ class MelodyEncoderDecoder(melodies_lib.MelodyEncoderDecoder):
 
     # The last event is repeating 1 bar ago.
     if (len(melody) >= STEPS_PER_BAR + 1 and
-        melody[-1] == melody[-(STEPS_PER_BAR + 1)]):
+        melody.events[-1] == melody.events[-(STEPS_PER_BAR + 1)]):
       input_[self.note_range + 4] = 1.0
 
     # The last event is repeating 2 bars ago.
     if (len(melody) >= 2 * STEPS_PER_BAR + 1 and
-        melody[-1] == melody[-(2 * STEPS_PER_BAR + 1)]):
+        melody.events[-1] == melody.events[-(2 * STEPS_PER_BAR + 1)]):
       input_[self.note_range + 5] = 1.0
 
     # Time keeping toggles.

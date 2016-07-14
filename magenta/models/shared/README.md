@@ -6,9 +6,9 @@ The primer.mid MIDI file is an original three bar long monophonic melody. It can
 bazel build magenta/models/basic_rnn:basic_rnn_generate
 
 ./bazel-bin/magenta/models/basic_rnn/basic_rnn_generate \
---run_dir=/tmp/lookback_rnn/logdir/run1 \
---output_dir=/tmp/lookback_rnn/generated \
---num_steps=128 \
+--run_dir=/tmp/basic_rnn/logdir/run1 \
+--output_dir=/tmp/basic_rnn/generated \
 --num_outputs=10 \
---primer_midi=magenta/models/shared/primer.mid
+--num_steps=128 \
+--primer_midi=<absolute path to primer.mid>
 ```

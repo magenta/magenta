@@ -19,8 +19,8 @@ Example usage:
   $ ./bazel-bin/magenta/models/attention_rnn/attention_rnn_generate \
     --run_dir=/tmp/lookback_rnn/logdir/run1 \
     --output_dir=/tmp/lookback_rnn/generated \
-    --num_steps=128 \
     --num_outputs=10 \
+    --num_steps=128 \
     --primer_melody="[60]"
 
 See /magenta/models/shared/melody_rnn_generate.py for flag descriptions.

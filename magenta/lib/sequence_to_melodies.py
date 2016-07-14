@@ -74,7 +74,7 @@ def run_conversion(melody_encoder_decoder, note_sequences_file, train_output,
                       eval_output_count + train_output_count,
                       input_count)
 
-  tf.logging.info('Done.\nExtracted %d melodies from %d sequences.',
+  tf.logging.info('Done. Extracted %d melodies from %d sequences.',
                   eval_output_count + train_output_count,
                   input_count)
   tf.logging.info('Extracted %d melodies for training.', train_output_count)
