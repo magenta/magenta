@@ -15,9 +15,18 @@
 # Description:
 # Data for unit tests.
 
+package(
+    default_visibility = ["//magenta:__subpackages__"],
+)
+
 licenses(["notice"])  # Apache 2.0
 
-exports_files(['example.mid',
-               'example_complex.mid',
-               'notesequences.tfrecord',
-               ])
+filegroup(
+    name = "testdata",
+    srcs = [
+        'example.mid',
+        'example_complex.mid',
+        'notesequences.tfrecord',
+    ],
+)
+

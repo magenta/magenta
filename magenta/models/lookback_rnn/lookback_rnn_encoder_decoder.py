@@ -18,10 +18,16 @@ from magenta.lib import melodies_lib
 
 NUM_SPECIAL_EVENTS = melodies_lib.NUM_SPECIAL_EVENTS
 NO_EVENT = melodies_lib.NO_EVENT
+STEPS_PER_BAR = 16  # This code assumes the melodies have 16 steps per bar.
 
 MIN_NOTE = 48  # Inclusive
 MAX_NOTE = 84  # Exclusive
 TRANSPOSE_TO_KEY = 0  # C Major
+
+# The number of special input indices and label values other than the events
+# in the note range.
+NUM_SPECIAL_INPUTS = 7
+NUM_SPECIAL_LABELS = 2
 
 
 class MelodyEncoderDecoder(melodies_lib.MelodyEncoderDecoder):
@@ -37,16 +43,14 @@ class MelodyEncoderDecoder(melodies_lib.MelodyEncoderDecoder):
     super(MelodyEncoderDecoder, self).__init__(MIN_NOTE, MAX_NOTE,
                                                TRANSPOSE_TO_KEY)
     self.num_model_events = self.max_note - self.min_note + NUM_SPECIAL_EVENTS
-    self._input_size = 3 * self.num_model_events + 7
-    self._num_classes = self.num_model_events + 2
 
   @property
   def input_size(self):
-    return self._input_size
+    return 3 * self.num_model_events + NUM_SPECIAL_INPUTS
 
   @property
   def num_classes(self):
-    return self._num_classes
+    return self.num_model_events + NUM_SPECIAL_LABELS
 
   def melody_event_to_model_event(self, melody_event):
     """Collapses a melody event value into a zero-based index range.
@@ -84,9 +88,9 @@ class MelodyEncoderDecoder(melodies_lib.MelodyEncoderDecoder):
   def melody_to_input(self, melody):
     """Returns the input vector for the last event in the melody.
 
-    Returns a self.input_size length list of floats. If MIN_NOTE = 48 and
-    MAX_NOTE = 84, self.input_size = 121. Each index represents a different
-    input signal to the model.
+    Returns a self.input_size length list of floats. Assuming MIN_NOTE = 48
+    and MAX_NOTE = 84, self.input_size will = 121. Each index represents a
+    different input signal to the model.
 
     Indices [0, 121):
     [0, 38): Event of current step.
@@ -106,7 +110,7 @@ class MelodyEncoderDecoder(melodies_lib.MelodyEncoderDecoder):
     Returns:
       An input vector, an self.input_size length list of floats.
     """
-    input_ = [0.0] * self._input_size
+    input_ = [0.0] * self.input_size
 
     # Last event.
     model_event = self.melody_event_to_model_event(
@@ -114,13 +118,19 @@ class MelodyEncoderDecoder(melodies_lib.MelodyEncoderDecoder):
     input_[model_event] = 1.0
 
     # Next event if repeating 1 bar ago.
-    model_event = self.melody_event_to_model_event(
-        melody.events[-16] if len(melody) >= 16 else NO_EVENT)
+    if len(melody) < STEPS_PER_BAR:
+      melody_event = NO_EVENT
+    else:
+      melody_event = melody.events[-STEPS_PER_BAR]
+    model_event = self.melody_event_to_model_event(melody_event)
     input_[self.num_model_events + model_event] = 1.0
 
     # Next event if repeating 2 bars ago.
-    model_event = self.melody_event_to_model_event(
-        melody.events[-32] if len(melody) >= 32 else NO_EVENT)
+    if len(melody) < STEPS_PER_BAR * 2:
+      melody_event = NO_EVENT
+    else:
+      melody_event = melody.events[-STEPS_PER_BAR * 2]
+    model_event = self.melody_event_to_model_event(melody_event)
     input_[2 * self.num_model_events + model_event] = 1.0
 
     # Binary time counter.
@@ -132,11 +142,13 @@ class MelodyEncoderDecoder(melodies_lib.MelodyEncoderDecoder):
     input_[3 * self.num_model_events + 4] = 1.0 if i / 16 % 2 else -1.0
 
     # Last event is repeating 1 bar ago.
-    if len(melody) >= 17 and melody.events[-1] == melody.events[-17]:
+    if (len(melody) >= STEPS_PER_BAR + 1 and
+        melody.events[-1] == melody.events[-(STEPS_PER_BAR + 1)]):
       input_[3 * self.num_model_events + 5] = 1.0
 
     # Last event is repeating 2 bars ago.
-    if len(melody) >= 33 and melody.events[-1] == melody.events[-33]:
+    if (len(melody) >= 2 * STEPS_PER_BAR + 1 and
+        melody.events[-1] == melody.events[-(2 * STEPS_PER_BAR + 1)]):
       input_[3 * self.num_model_events + 6] = 1.0
 
     return input_
@@ -149,8 +161,8 @@ class MelodyEncoderDecoder(melodies_lib.MelodyEncoderDecoder):
     self.num_model_events and self.num_model_events + 1 are signals to repeat
     events from earlier in the melody.
 
-    If MIN_NOTE = 48 and MAX_NOTE = 84, self.num_classes will = 40,
-    self.num_model_events will = 38, and the values will be as follows.
+    Assuming MIN_NOTE = 48 and MAX_NOTE = 84, then self.num_classes = 40,
+    self.num_model_events = 38, and the values will be as follows.
     Values [0, 40):
       [0, 38): Event of the last step in the melody, if not repeating 1 or 2
                bars ago.
@@ -165,12 +177,15 @@ class MelodyEncoderDecoder(melodies_lib.MelodyEncoderDecoder):
       A label, an int.
     """
     # If last step repeated 2 bars ago.
-    if ((len(melody.events) <= 32 and melody.events[-1] == NO_EVENT) or
-        (len(melody.events) > 32 and melody.events[-1] == melody.events[-33])):
+    if ((len(melody.events) <= 2 * STEPS_PER_BAR and
+         melody.events[-1] == NO_EVENT) or
+        (len(melody.events) > 2 * STEPS_PER_BAR and
+         melody.events[-1] == melody.events[-(2 * STEPS_PER_BAR + 1)])):
       return self.num_model_events + 1
 
     # If last step repeated 1 bar ago.
-    if len(melody.events) > 16 and melody.events[-1] == melody.events[-17]:
+    if (len(melody.events) > STEPS_PER_BAR and
+        melody.events[-1] == melody.events[-(STEPS_PER_BAR + 1)]):
       return self.num_model_events
 
     # If last step didn't repeat 1 or 2 bars ago, use the specific event.
@@ -190,11 +205,15 @@ class MelodyEncoderDecoder(melodies_lib.MelodyEncoderDecoder):
     """
     # Repeat 1 bar ago.
     if class_index == self.num_model_events + 1:
-      return NO_EVENT if len(melody) < 32 else melody.events[-32]
+      if len(melody) < 2 * STEPS_PER_BAR:
+        return NO_EVENT
+      return melody.events[-(2 * STEPS_PER_BAR)]
 
     # Repeat 2 bars ago.
     if class_index == self.num_model_events:
-      return NO_EVENT if len(melody) < 16 else melody.events[-16]
+      if len(melody) < STEPS_PER_BAR:
+        return NO_EVENT
+      return melody.events[-STEPS_PER_BAR]
 
     # Return the melody event for that class index.
     return self.model_event_to_melody_event(class_index)

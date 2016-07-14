@@ -17,9 +17,7 @@ This script will extract melodies from NoteSequence protos and save them to
 TensorFlow's SequenceExample protos for input to the melody RNN models.
 """
 
-import logging
 import os
-import sys
 
 # internal imports
 import tensorflow as tf
@@ -48,19 +46,26 @@ def run(melody_encoder_decoder):
   Args:
     melody_encoder_decoder: A melodies_lib.MelodyEncoderDecoder.
   """
-  root = logging.getLogger()
-  root.setLevel(logging.INFO)
-  ch = logging.StreamHandler(sys.stdout)
-  ch.setLevel(logging.INFO)
-  root.addHandler(ch)
+  tf.logging.set_verbosity(tf.logging.INFO)
 
-  train_output_dir = os.path.dirname(FLAGS.train_output)
-  if not os.path.exists(train_output_dir):
-    os.makedirs(train_output_dir)
+  if not FLAGS.input:
+    tf.logging.fatal("--input required")
+    return
+  if not FLAGS.train_output:
+    tf.logging.fatal("--train_output required")
+    return
 
-  eval_output_dir = os.path.dirname(FLAGS.eval_output)
-  if FLAGS.eval_output and not os.path.exists(eval_output_dir):
-    os.makedirs(eval_output_dir)
+  FLAGS.input = os.path.expanduser(FLAGS.input)
+  FLAGS.train_output = os.path.expanduser(FLAGS.train_output)
+  if FLAGS.eval_output:
+    FLAGS.eval_output = os.path.expanduser(FLAGS.eval_output)
+
+  if not os.path.exists(os.path.dirname(FLAGS.train_output)):
+    os.makedirs(os.path.dirname(FLAGS.train_output))
+
+  if FLAGS.eval_output:
+    if not os.path.exists(os.path.dirname(FLAGS.eval_output)):
+      os.makedirs(os.path.dirname(FLAGS.eval_output))
 
   sequence_to_melodies.run_conversion(melody_encoder_decoder,
                                       FLAGS.input,

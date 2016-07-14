@@ -24,9 +24,11 @@ licenses(["notice"])  # Apache 2.0
 py_library(
     name = "melodies_lib",
     srcs = ["melodies_lib.py"],
+    srcs_version = "PY2AND3",
     deps = [
         ":sequence_example_lib",
         "//magenta/protobuf:music_py_pb2",
+        # tensorflow dep
     ]
 )
 
@@ -56,11 +58,8 @@ py_library(
 py_test(
     name = "midi_io_test",
     srcs = ["midi_io_test.py"],
+    data = ["//magenta/testdata:testdata"],
     srcs_version = "PY2AND3",
-    data = [
-        "//magenta/testdata:example.mid",
-        "//magenta/testdata:example_complex.mid",
-    ],
     deps = [
         ":midi_io",
         # tensorflow dep
@@ -90,13 +89,13 @@ py_test(
 py_library(
     name = "sequence_example_lib",
     srcs = ["sequence_example_lib.py"],
-    deps = [
-    ],
+    srcs_version = "PY2AND3",
 )
 
 py_library(
     name = "sequence_to_melodies",
     srcs = ["sequence_to_melodies.py"],
+    srcs_version = "PY2AND3",
     deps = [
         ":melodies_lib",
         "//magenta/protobuf:music_py_pb2",
@@ -108,10 +107,8 @@ py_library(
 py_test(
     name = "sequence_to_melodies_test",
     srcs = ["sequence_to_melodies_test.py"],
+    data = ["//magenta/testdata:testdata"],
     srcs_version = "PY2AND3",
-    data = [
-        "//magenta/testdata:notesequences.tfrecord",
-    ],
     deps = [
         ":melodies_lib",
         ":sequence_to_melodies",
@@ -122,6 +119,5 @@ py_test(
 py_library(
     name = "tf_lib",
     srcs = ["tf_lib.py"],
-    deps = [
-    ],
+    srcs_version = "PY2AND3",
 )

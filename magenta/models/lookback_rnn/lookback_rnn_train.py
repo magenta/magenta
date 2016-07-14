@@ -11,7 +11,26 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Train and evaluate the lookback RNN model."""
+r"""Train and evaluate the lookback RNN model.
+
+Example usage:
+  $ bazel build magenta/models/lookback_rnn:lookback_rnn_train
+
+  $ ./bazel-bin/magenta/models/lookback_rnn/lookback_rnn_train \
+    --run_dir=/tmp/lookback_rnn/logdir/run1 \
+    --sequence_example_file=/tmp/lookback_rnn/training_melodies.tfrecord \
+    --num_training_steps=20000
+
+  $ ./bazel-bin/magenta/models/lookback_rnn/lookback_rnn_train \
+    --run_dir=/tmp/lookback_rnn/logdir/run1 \
+    --sequence_example_file=/tmp/lookback_rnn/eval_melodies.tfrecord \
+    --num_training_steps=20000
+    --eval
+
+  $ tensorboard --logdir=/tmp/lookback_rnn/logdir
+
+See /magenta/models/shared/melody_rnn_train.py for flag descriptions.
+"""
 
 # internal imports
 import lookback_rnn_encoder_decoder

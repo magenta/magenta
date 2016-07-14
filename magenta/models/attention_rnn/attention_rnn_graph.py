@@ -11,9 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Builds the attention RNN model graph."""
-
-import logging
+"""Provides function to build the attention RNN model's graph."""
 
 # internal imports
 import tensorflow as tf
@@ -55,12 +53,18 @@ def build_graph(mode, hparams_string, input_size, num_classes,
     A tf.Graph instance which contains the TF ops.
 
   Raises:
-    ValueError: If sequence_example_file does not match any files.
+    ValueError: If mode is not 'train', 'eval', or 'generate', or if
+        sequence_example_file does not match a file when mode is 'train' or
+        'eval'.
   """
+  if mode not in ('train', 'eval', 'generate'):
+    raise ValueError('The mode parameter must be \'train\', \'eval\', '
+                     'or \'generate\'. The mode parameter was: %s' % mode)
+
   with tf.Graph().as_default() as graph:
     hparams = default_hparams()
     hparams = hparams.parse(hparams_string)
-    logging.info('hparams = %s', hparams.values())
+    tf.logging.info('hparams = %s', hparams.values())
 
     inputs, labels, lengths, = None, None, None
     state_is_tuple = True
@@ -138,7 +142,7 @@ def build_graph(mode, hparams_string, input_size, num_classes,
         tf.scalar_summary('loss', loss)
         tf.scalar_summary('perplexity', perplexity)
         tf.scalar_summary('accuracy', accuracy)
-        tf.scalar_summary('learning_rate', accuracy)
+        tf.scalar_summary('learning_rate', learning_rate)
 
       if mode == 'eval':
         summary_op = tf.merge_summary([
@@ -166,6 +170,8 @@ _unpacked_state = tf.nn.rnn_cell._unpacked_state
 # pylint: enable=protected-access
 
 
+# TODO(elliotwaite): Merge with tf.contrib.rnn.rnn_cell.AttentionCellWrapper
+# and use that one instead when it's available in the next TensorFlow release.
 class AttentionCellWrapper(tf.nn.rnn_cell.RNNCell):
   """Basic attention cell wrapper.
 

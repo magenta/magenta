@@ -19,7 +19,8 @@ licenses(["notice"])  # Apache 2.0
 
 py_binary(
     name = "lookback_rnn_create_dataset",
-    srcs = ["lookback_rnn/lookback_rnn_create_dataset.py"],
+    srcs = ["lookback_rnn_create_dataset.py"],
+    srcs_version = "PY2AND3",
     deps = [
         ":lookback_rnn_encoder_decoder",
         "//magenta/models/shared:melody_rnn_create_dataset",
@@ -29,7 +30,8 @@ py_binary(
 
 py_binary(
     name = "lookback_rnn_encoder_decoder",
-    srcs = ["lookback_rnn/lookback_rnn_encoder_decoder.py"],
+    srcs = ["lookback_rnn_encoder_decoder.py"],
+    srcs_version = "PY2AND3",
     deps = [
         "//magenta/lib:melodies_lib",
     ],
@@ -37,7 +39,8 @@ py_binary(
 
 py_binary(
     name = "lookback_rnn_generate",
-    srcs = ["lookback_rnn/lookback_rnn_generate.py"],
+    srcs = ["lookback_rnn_generate.py"],
+    srcs_version = "PY2AND3",
     deps = [
         ":lookback_rnn_encoder_decoder",
         ":lookback_rnn_graph",
@@ -48,7 +51,8 @@ py_binary(
 
 py_binary(
     name = "lookback_rnn_graph",
-    srcs = ["lookback_rnn/lookback_rnn_graph.py"],
+    srcs = ["lookback_rnn_graph.py"],
+    srcs_version = "PY2AND3",
     deps = [
         "//magenta/lib:sequence_example_lib",
         "//magenta/lib:tf_lib",
@@ -58,7 +62,8 @@ py_binary(
 
 py_binary(
     name = "lookback_rnn_train",
-    srcs = ["lookback_rnn/lookback_rnn_train.py"],
+    srcs = ["lookback_rnn_train.py"],
+    srcs_version = "PY2AND3",
     deps = [
         ":lookback_rnn_encoder_decoder",
         ":lookback_rnn_graph",

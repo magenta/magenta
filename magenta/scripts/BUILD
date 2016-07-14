@@ -35,10 +35,8 @@ py_binary(
 py_test(
    name = "convert_midi_dir_to_note_sequences_test",
    srcs = ["convert_midi_dir_to_note_sequences_test.py"],
+   data = ["//magenta/testdata:testdata"],
    srcs_version = "PY2AND3",
-   data = [
-       "//magenta/testdata:example.mid",
-   ],
    deps = [
        ":convert_midi_dir_to_note_sequences",
         # tensorflow dep

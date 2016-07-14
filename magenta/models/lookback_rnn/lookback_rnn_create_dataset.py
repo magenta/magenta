@@ -11,7 +11,19 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Create lookback RNN dataset."""
+r"""Create a dataset for training and evaluating the lookback RNN model.
+
+Example usage:
+  $ bazel build magenta/models/lookback_rnn:lookback_rnn_create_dataset
+
+  $ ./bazel-bin/magenta/models/lookback_rnn/lookback_rnn_create_dataset \
+    --input=/tmp/note_sequences.tfrecord \
+    --train_output=/tmp/lookback_rnn/training_melodies.tfrecord \
+    --eval_output=/tmp/lookback_rnn/eval_melodies.tfrecord \
+    --eval_ratio=0.10
+
+See /magenta/models/shared/melody_rnn_create_dataset.py for flag descriptions.
+"""
 
 # internal imports
 import lookback_rnn_encoder_decoder

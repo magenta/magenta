@@ -11,9 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Builds the lookback RNN model graph."""
-
-import logging
+"""Provides function to build the basic RNN model's graph."""
 
 # internal imports
 import tensorflow as tf
@@ -65,7 +63,7 @@ def build_graph(mode, hparams_string, input_size, num_classes,
   with tf.Graph().as_default() as graph:
     hparams = default_hparams()
     hparams = hparams.parse(hparams_string)
-    logging.info('hparams = %s', hparams.values())
+    tf.logging.info('hparams = %s', hparams.values())
 
     inputs, labels, lengths, = None, None, None
     state_is_tuple = True
@@ -143,7 +141,7 @@ def build_graph(mode, hparams_string, input_size, num_classes,
         tf.scalar_summary('loss', loss)
         tf.scalar_summary('perplexity', perplexity)
         tf.scalar_summary('accuracy', accuracy)
-        tf.scalar_summary('learning_rate', accuracy)
+        tf.scalar_summary('learning_rate', learning_rate)
 
       if mode == 'eval':
         summary_op = tf.merge_summary([

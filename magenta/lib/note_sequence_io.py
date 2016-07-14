@@ -28,7 +28,7 @@ def generate_id(filename, collection_name, source_type):
 
   Args:
     filename: The string path to the source file relative to the root of the
-      collection.
+        collection.
     collection_name: The collection from which the file comes.
     source_type: The source type as a string (e.g. "midi" or "abc").
 

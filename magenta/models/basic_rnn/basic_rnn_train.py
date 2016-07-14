@@ -11,7 +11,26 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Train and evaluate the basic RNN model."""
+r"""Train and evaluate the basic RNN model.
+
+Example usage:
+  $ bazel build magenta/models/basic_rnn:basic_rnn_train
+
+  $ ./bazel-bin/magenta/models/basic_rnn/basic_rnn_train \
+    --run_dir=/tmp/basic_rnn/logdir/run1 \
+    --sequence_example_file=/tmp/basic_rnn/training_melodies.tfrecord \
+    --num_training_steps=20000
+
+  $ ./bazel-bin/magenta/models/basic_rnn/basic_rnn_train \
+    --run_dir=/tmp/basic_rnn/logdir/run1 \
+    --sequence_example_file=/tmp/basic_rnn/eval_melodies.tfrecord \
+    --num_training_steps=20000
+    --eval
+
+  $ tensorboard --logdir=/tmp/basic_rnn/logdir
+
+See /magenta/models/shared/melody_rnn_train.py for flag descriptions.
+"""
 
 # internal imports
 import basic_rnn_encoder_decoder

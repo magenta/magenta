@@ -13,9 +13,7 @@
 # limitations under the License.
 """Train and evaluate a melody RNN model."""
 
-import logging
 import os
-import sys
 import time
 
 # internal imports
@@ -82,12 +80,12 @@ def run_training(graph, train_dir, num_training_steps=10000,
   with sv.managed_session() as sess:
     global_step_ = sess.run(global_step)
     if global_step_ >= num_training_steps:
-      logging.info('This checkpoint\'s global_step value is already %d, '
-                   'which is greater or equal to the specified '
-                   'num_training_steps value of %d. Exiting training.',
-                   global_step_, num_training_steps)
+      tf.logging.info('This checkpoint\'s global_step value is already %d, '
+                      'which is greater or equal to the specified '
+                      'num_training_steps value of %d. Exiting training.',
+                      global_step_, num_training_steps)
       return
-    logging.info('Starting training loop...')
+    tf.logging.info('Starting training loop...')
     while global_step_ < num_training_steps:
       if sv.should_stop():
         break
@@ -95,17 +93,17 @@ def run_training(graph, train_dir, num_training_steps=10000,
         (global_step_, learning_rate_, loss_, perplexity_, accuracy_, _
         ) = sess.run([global_step, learning_rate, loss, perplexity, accuracy,
                       train_op])
-        logging.info('Global Step: %d - '
-                     'Learning Rate: %.5f - '
-                     'Loss: %.3f - '
-                     'Perplexity: %.3f - '
-                     'Accuracy: %.3f',
-                     global_step_, learning_rate_, loss_, perplexity_,
-                     accuracy_)
+        tf.logging.info('Global Step: %d - '
+                        'Learning Rate: %.5f - '
+                        'Loss: %.3f - '
+                        'Perplexity: %.3f - '
+                        'Accuracy: %.3f',
+                        global_step_, learning_rate_, loss_, perplexity_,
+                        accuracy_)
       else:
         global_step_, _ = sess.run([global_step, train_op])
     sv.saver.save(sess, sv.save_path, global_step=sv.global_step)
-    logging.info('Training complete.')
+    tf.logging.info('Training complete.')
 
 
 def run_eval(graph, train_dir, eval_dir, num_training_steps=10000,
@@ -139,24 +137,24 @@ def run_eval(graph, train_dir, eval_dir, num_training_steps=10000,
       threads = tf.train.start_queue_runners(sess=sess, coord=coord)
       global_step_ = 0
       last_global_step = None
-      logging.info('Starting eval loop...')
+      tf.logging.info('Starting eval loop...')
       try:
         while global_step_ < num_training_steps:
           checkpoint_path = tf.train.latest_checkpoint(train_dir)
           if not checkpoint_path:
-            logging.info('Waiting for checkpoint file in directory %s.',
-                         train_dir)
+            tf.logging.info('Waiting for checkpoint file in directory %s.',
+                            train_dir)
           else:
             saver.restore(sess, checkpoint_path)
 
             global_step_, loss_, perplexity_, accuracy_, summary_op_ = sess.run(
                 [global_step, loss, perplexity, accuracy, summary_op])
 
-            logging.info('Global Step: %d - '
-                         'Loss: %.3f - '
-                         'Perplexity: %.3f - '
-                         'Accuracy: %.3f',
-                         global_step_, loss_, perplexity_, accuracy_)
+            tf.logging.info('Global Step: %d - '
+                            'Loss: %.3f - '
+                            'Perplexity: %.3f - '
+                            'Accuracy: %.3f',
+                            global_step_, loss_, perplexity_, accuracy_)
 
             if global_step_ != last_global_step:
               summary_writer.add_summary(summary_op_, global_step=global_step_)
@@ -166,7 +164,7 @@ def run_eval(graph, train_dir, eval_dir, num_training_steps=10000,
           time.sleep(summary_frequency)
 
       except tf.errors.OutOfRangeError as e:
-        logging.warn('Got error reported to coordinator: %s', e)
+        tf.logging.warn('Got error reported to coordinator: %s', e)
       finally:
         coord.request_stop()
         summary_writer.close()
@@ -183,13 +181,19 @@ def run(melody_encoder_decoder, build_graph):
     build_graph: A function that when called, returns the tf.Graph object for
         your model. The function will be passed the parameters:
         (mode, hparams_string, input_size, num_classes, sequence_example_file).
-        For an example usage, check out models/basic_rnn/basic_rnn_graph.py.
+        For an example usage, see models/basic_rnn/basic_rnn_graph.py.
   """
-  root = logging.getLogger()
-  root.setLevel(logging.INFO)
-  ch = logging.StreamHandler(sys.stdout)
-  ch.setLevel(logging.INFO)
-  root.addHandler(ch)
+  tf.logging.set_verbosity(tf.logging.INFO)
+
+  if not FLAGS.sequence_example_file:
+    tf.logging.fatal("--sequence_example_file required")
+    return
+  if not FLAGS.train_output:
+    tf.logging.fatal("--run_dir required")
+    return
+
+  FLAGS.sequence_example_file = os.path.expanduser(FLAGS.sequence_example_file)
+  FLAGS.run_dir = os.path.expanduser(FLAGS.run_dir)
 
   mode = 'eval' if FLAGS.eval else 'train'
   graph = build_graph(mode,
@@ -201,13 +205,13 @@ def run(melody_encoder_decoder, build_graph):
   train_dir = os.path.join(FLAGS.run_dir, 'train')
   if not os.path.exists(train_dir):
     os.makedirs(train_dir)
-  logging.info('Train dir: %s', train_dir)
+  tf.logging.info('Train dir: %s', train_dir)
 
   if FLAGS.eval:
     eval_dir = os.path.join(FLAGS.run_dir, 'eval')
     if not os.path.exists(eval_dir):
       os.makedirs(eval_dir)
-    logging.info('Eval dir: %s', eval_dir)
+    tf.logging.info('Eval dir: %s', eval_dir)
     run_eval(graph, train_dir, eval_dir, FLAGS.num_training_steps,
              FLAGS.summary_frequency)
 

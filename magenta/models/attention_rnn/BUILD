@@ -20,6 +20,7 @@ licenses(["notice"])  # Apache 2.0
 py_binary(
     name = "attention_rnn_create_dataset",
     srcs = ["attention_rnn_create_dataset.py"],
+    srcs_version = "PY2AND3",
     deps = [
         ":attention_rnn_encoder_decoder",
         "//magenta/models/shared:melody_rnn_create_dataset",
@@ -30,6 +31,7 @@ py_binary(
 py_binary(
     name = "attention_rnn_encoder_decoder",
     srcs = ["attention_rnn_encoder_decoder.py"],
+    srcs_version = "PY2AND3",
     deps = [
         "//magenta/lib:melodies_lib",
     ],
@@ -38,6 +40,7 @@ py_binary(
 py_binary(
     name = "attention_rnn_generate",
     srcs = ["attention_rnn_generate.py"],
+    srcs_version = "PY2AND3",
     deps = [
         ":attention_rnn_encoder_decoder",
         ":attention_rnn_graph",
@@ -49,6 +52,7 @@ py_binary(
 py_binary(
     name = "attention_rnn_graph",
     srcs = ["attention_rnn_graph.py"],
+    srcs_version = "PY2AND3",
     deps = [
         "//magenta/lib:sequence_example_lib",
         "//magenta/lib:tf_lib",
@@ -59,6 +63,7 @@ py_binary(
 py_binary(
     name = "attention_rnn_train",
     srcs = ["attention_rnn_train.py"],
+    srcs_version = "PY2AND3",
     deps = [
         ":attention_rnn_encoder_decoder",
         ":attention_rnn_graph",

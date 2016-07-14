@@ -14,10 +14,8 @@
 """Generate melodies from a trained checkpoint of a melody RNN model."""
 
 import ast
-import logging
 import os
 import random
-import sys
 import time
 
 # internal imports
@@ -35,6 +33,8 @@ tf.app.flags.DEFINE_string('hparams', '{}',
                            'containing hyperparameter to value mapping. This '
                            'mapping is merged with the default '
                            'hyperparameters.')
+tf.app.flags.DEFINE_string('output_dir', '/tmp/melody_rnn_generated',
+                           'The directory where MIDI files will be saved to.')
 tf.app.flags.DEFINE_string('primer_melody', '',
                            'A string representation of a Python list of '
                            'melodies_lib.Melody event values. For example: '
@@ -47,8 +47,6 @@ tf.app.flags.DEFINE_string('primer_midi', '',
                            'will be used as a priming melody. If a primer '
                            'melody is not specified, melodies will be '
                            'generated from scratch.')
-tf.app.flags.DEFINE_string('output_dir', '/tmp/melody_rnn_generated',
-                           'The directory where MIDI files will be saved to.')
 tf.app.flags.DEFINE_integer('num_steps', 32,
                             'The total number of steps the generated melodies '
                             'should be, priming melody length + generated '
@@ -99,8 +97,8 @@ def run_generate(graph, train_dir, output_dir, melody_encoder_decoder,
     saver = tf.train.Saver()
     with tf.Session() as sess:
       checkpoint_file = tf.train.latest_checkpoint(train_dir)
-      logging.info('Checkpoint used: %s\nGenerating melodies...',
-                   checkpoint_file)
+      tf.logging.info('Checkpoint used: %s\nGenerating melodies...',
+                      checkpoint_file)
       saver.restore(sess, checkpoint_file)
 
       final_state_ = None
@@ -126,7 +124,7 @@ def run_generate(graph, train_dir, output_dir, melody_encoder_decoder,
     midi_path = os.path.join(output_dir, midi_filename)
     midi_io.sequence_proto_to_midi_file(sequence, midi_path)
 
-  logging.info('Wrote %d MIDI files to %s', len(melodies), output_dir)
+  tf.logging.info('Wrote %d MIDI files to %s', len(melodies), output_dir)
 
 
 def run(melody_encoder_decoder, build_graph):
@@ -138,13 +136,21 @@ def run(melody_encoder_decoder, build_graph):
     build_graph: A function that when called, returns the tf.Graph object for
         your model. The function will be passed the parameters:
         (mode, hparams_string, input_size, num_classes, sequence_example_file).
-        For an example usage, check out models/basic_rnn/basic_rnn_graph.py.
+        For an example usage, see models/basic_rnn/basic_rnn_graph.py.
   """
-  root = logging.getLogger()
-  root.setLevel(logging.INFO)
-  ch = logging.StreamHandler(sys.stdout)
-  ch.setLevel(logging.INFO)
-  root.addHandler(ch)
+  tf.logging.set_verbosity(tf.logging.INFO)
+
+  if not FLAGS.run_dir:
+    tf.logging.fatal("--run_dir required")
+    return
+  if not FLAGS.output_dir:
+    tf.logging.fatal("--output_dir required")
+    return
+
+  FLAGS.run_dir = os.path.expanduser(FLAGS.run_dir)
+  FLAGS.output_dir = os.path.expanduser(FLAGS.output_dir)
+  if FLAGS.primer_midi:
+    FLAGS.primer_midi = os.path.expanduser(FLAGS.primer_midi)
 
   hparams = ast.literal_eval(FLAGS.hparams if FLAGS.hparams else '{}')
   hparams['batch_size'] = FLAGS.num_outputs
@@ -173,9 +179,9 @@ def run(melody_encoder_decoder, build_graph):
     if extracted_melodies:
       primer_melody = extracted_melodies[0]
     else:
-      logging.info('No melodies were extracted from the MIDI file %s. '
-                   'Melodies will be generated from scratch.',
-                   FLAGS.primer_midi)
+      tf.logging.info('No melodies were extracted from the MIDI file %s. '
+                      'Melodies will be generated from scratch.',
+                      FLAGS.primer_midi)
 
   run_generate(graph, train_dir, FLAGS.output_dir, melody_encoder_decoder,
                primer_melody, FLAGS.num_steps, bpm)

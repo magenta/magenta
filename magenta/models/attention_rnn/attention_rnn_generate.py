@@ -11,7 +11,20 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Generate melodies from a trained checkpoint of the attention RNN model."""
+r"""Generate melodies from a trained checkpoint of the attention RNN model.
+
+Example usage:
+  $ bazel build magenta/models/attention_rnn:attention_rnn_generate
+
+  $ ./bazel-bin/magenta/models/attention_rnn/attention_rnn_generate \
+    --run_dir=/tmp/lookback_rnn/logdir/run1 \
+    --output_dir=/tmp/lookback_rnn/generated \
+    --num_steps=128 \
+    --num_outputs=10 \
+    --primer_melody="[60]"
+
+See /magenta/models/shared/melody_rnn_generate.py for flag descriptions.
+"""
 
 # internal imports
 import attention_rnn_encoder_decoder

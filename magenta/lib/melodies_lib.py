@@ -31,11 +31,11 @@ event sampled from the softmax output by the model.
 """
 
 import abc
-import logging
 import math
 
 # internal imports
 import numpy as np
+import tensorflow as tf
 
 from magenta.lib import sequence_example_lib
 from magenta.protobuf import music_pb2
@@ -289,7 +289,7 @@ class Melody(object):
         np_melody[np_melody >= MIN_MIDI_PITCH] % NOTES_PER_OCTAVE,
         minlength=NOTES_PER_OCTAVE)
 
-  def get_key_histogram(self):
+  def get_major_key_histogram(self):
     """Gets a histogram of the how many notes fit into each key.
 
     Returns:
@@ -312,7 +312,7 @@ class Melody(object):
     Returns:
       An int for the most likely key (C Major = 0 through B Major = 11)
     """
-    key_histogram = self.get_key_histogram()
+    key_histogram = self.get_major_key_histogram()
     return key_histogram.argmax()
 
   def from_notes(self, notes, bpm=120.0, gap=16, ignore_polyphonic_notes=False):
@@ -335,7 +335,7 @@ class Melody(object):
           seconds. Beats are subdivided according to `steps_per_bar` given to
           the constructor.
       gap: If this many steps or more follow a note, the melody is ended.
-      ignore_polyphonic_notes: If false, and multiple notes occur within the
+      ignore_polyphonic_notes: If False, and multiple notes occur within the
           same melody step, a PolyphonicMelodyException will be raised. If true,
           only one of the notes occurring in the same step will be used. The
           note used will be the note with the earlier NoteSequence `start_time`.
@@ -355,7 +355,6 @@ class Melody(object):
     quantize = lambda x: int(math.ceil(x - QUANTIZE_CUTOFF))
 
     # Sort track by note start times, and secondarily by pitch descending.
-    # notes.sort(key=lambda note: (note.start_time, -note.pitch))
     notes.sort(key=lambda note: (note.start_time, -note.pitch))
     for note in notes:
       # Ignore 0 velocity notes.
@@ -394,6 +393,7 @@ class Melody(object):
     self._write_all_notes()
 
   def from_event_list(self, events):
+    """Populate self with a list of event values."""
     self.events = list(events)
 
   def to_sequence(self, velocity=100, instrument=0, sequence_start_time=0.0,
@@ -404,7 +404,7 @@ class Melody(object):
       velocity: Midi velocity to give each note. Between 1 and 127 (inclusive).
       instrument: Midi instrument to give each note.
       sequence_start_time: A time in seconds (float) that the first note in the
-        sequence will land on.
+          sequence will land on.
       bpm: Beats per minute (float).
 
     Returns:
@@ -567,14 +567,14 @@ def extract_melodies(sequence, steps_per_beat=4, min_bars=7,
 
     # Require a certain melody length.
     if len(melody) - 1 < steps_per_bar * min_bars:
-      logging.debug('melody too short')
+      tf.logging.debug('melody too short')
       continue
 
     # Require a certain number of unique pitches.
     note_histogram = melody.get_note_histogram()
     unique_pitches = np.count_nonzero(note_histogram)
     if unique_pitches < min_unique_pitches:
-      logging.debug('melody too simple')
+      tf.logging.debug('melody too simple')
       continue
 
     melodies.append(melody)
@@ -599,7 +599,7 @@ class MelodyEncoderDecoder(object):
   until the generated melodies have reached the desired length.
 
   The `melody_to_input`, `melody_to_label`, and `class_index_to_melody_event`
-  methods must be overwritten to be specific to your model. Check out
+  methods must be overwritten to be specific to your model. See
   basic_rnn/basic_rnn_encoder_decoder.py for an example of this.
   """
   __metaclass__ = abc.ABCMeta
@@ -615,17 +615,26 @@ class MelodyEncoderDecoder(object):
     generated melodies range. `transpose_to_key` should be set to the key
     that if melodies were transposed into that key, they would best sit
     between `min_note` and `max_note` with having as few notes outside that
-    range.
-
-    self.input_size and self.num_classes must be set in the init function of
-    your model's child class that extends this base class. self.input_size is
-    the length of the list returned by self.melody_to_input. self.num_classes
-    is the range of ints that can be returned by self.melody_to_label.
+    range. The same `min_note`, `max_note`, and `transpose_to_key` values
+    should be used when creating your dataset, training your model,
+    and generating melodies from it. If you change `min_note`, `max_note`,
+    or `transpose_to_key`, you will have to recreate your dataset and retrain
+    your model before you can accurately generate melodies from it.
 
     Args:
       min_note: The minimum midi pitch the encoded melodies can have.
       max_note: The maximum midi pitch the encoded melodies can have.
       transpose_to_key: The key that encoded melodies will be transposed into.
+
+    Attributes:
+      min_note: The minimum midi pitch the encoded melodies can have.
+      max_note: The maximum midi pitch the encoded melodies can have.
+      transpose_to_key: The key that encoded melodies will be transposed into.
+
+    Properties:
+      input_size: The length of the list returned by self.melody_to_input.
+      num_classes: The range of ints that can be returned by
+          self.melody_to_label.
 
     Raises:
       ValueError: If `min_note` or `max_note` are outside the midi range, or
@@ -654,8 +663,7 @@ class MelodyEncoderDecoder(object):
     """The size of the input vector used by this model.
 
     Returns:
-        An int, the length of the input vector returned by
-        self.melody_to_input.
+        An int, the length of the list returned by self.melody_to_input.
     """
     pass
 
@@ -664,8 +672,7 @@ class MelodyEncoderDecoder(object):
     """The range of labels used by this model.
 
     Returns:
-        An int, the range of labels that can be returned by
-        self.melody_to_label.
+        An int, the range of ints that can be returned by self.melody_to_label.
     """
     pass
 
@@ -752,9 +759,8 @@ class MelodyEncoderDecoder(object):
     Args:
       class_index: An int in the range [0, self.num_classes).
       melody: A Melody object. This object is not used in this implementation,
-          but check out
-          models/lookback_rnn/lookback_rnn_encoder_decoder.py for an example
-          of how this object can be used.
+          but see models/lookback_rnn/lookback_rnn_encoder_decoder.py for an
+          example of how this object can be used.
 
     Returns:
       A Melody event value, an int in the range [-2, 127]. -2 = no event,

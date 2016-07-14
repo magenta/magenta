@@ -19,7 +19,6 @@ of Sequence protos from MIDI files. Run this script to extract
 melodies from those sequences for training models.
 """
 
-import logging
 import random
 
 # internal imports
@@ -53,7 +52,7 @@ def run_conversion(melody_encoder_decoder, note_sequences_file, train_output,
   input_count = 0
   train_output_count = 0
   eval_output_count = 0
-  logging.info('Extracting melodies...')
+  tf.logging.info('Extracting melodies...')
   for sequence_data in reader:
     # Only extract melodies from 4/4 time music.
     if not (sequence_data.time_signatures[0].numerator == 4 and
@@ -71,13 +70,13 @@ def run_conversion(melody_encoder_decoder, note_sequences_file, train_output,
         train_output_count += 1
     input_count += 1
     if input_count % 10 == 0:
-      logging.info('Extracted %d melodies from %d sequences.',
-                   eval_output_count + train_output_count,
-                   input_count)
+      tf.logging.info('Extracted %d melodies from %d sequences.',
+                      eval_output_count + train_output_count,
+                      input_count)
 
-  logging.info('Done.\nExtracted %d melodies from %d sequences.',
-               eval_output_count + train_output_count,
-               input_count)
-  logging.info('Extracted %d melodies for training.', train_output_count)
+  tf.logging.info('Done.\nExtracted %d melodies from %d sequences.',
+                  eval_output_count + train_output_count,
+                  input_count)
+  tf.logging.info('Extracted %d melodies for training.', train_output_count)
   if eval_writer:
-    logging.info('Extracted %d melodies for evaluation.', eval_output_count)
+    tf.logging.info('Extracted %d melodies for evaluation.', eval_output_count)

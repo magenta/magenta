@@ -35,17 +35,15 @@ class MelodyEncoderDecoder(melodies_lib.MelodyEncoderDecoder):
     """
     super(MelodyEncoderDecoder, self).__init__(MIN_NOTE, MAX_NOTE,
                                                TRANSPOSE_TO_KEY)
-    self.num_model_events = self.max_note - self.min_note + NUM_SPECIAL_EVENTS
-    self._input_size = 3 * self.num_model_events + 7
-    self._num_classes = self.num_model_events + 2
+    self._num_model_events = self.max_note - self.min_note + NUM_SPECIAL_EVENTS
 
   @property
   def input_size(self):
-    return self._input_size
+    return self._num_model_events
 
   @property
   def num_classes(self):
-    return self._num_classes
+    return self._num_model_events
 
   def melody_event_to_model_event(self, melody_event):
     """Collapses a melody event value into a zero-based index range.
@@ -94,7 +92,7 @@ class MelodyEncoderDecoder(melodies_lib.MelodyEncoderDecoder):
     Returns:
       An input vector, a list of floats.
     """
-    input_ = [0.0] * self.num_model_events
+    input_ = [0.0] * self.input_size
     input_[self.melody_event_to_model_event(melody.events[-1])] = 1.0
     return input_
 

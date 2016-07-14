@@ -120,7 +120,7 @@ Optionally run an eval job in parallel with the training job. --sequence_example
 --run_dir=~/magenta_data/lookback_rnn/logdir/run1 \
 --sequence_example_file=~/magenta_data/lookback_rnn/sequence_examples/classical_melodies_eval.tfrecord \
 --num_training_steps=20000 \
---eval=True
+--eval
 ```
 
 Run TensorBoard to view the train and eval data.

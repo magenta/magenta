@@ -70,21 +70,21 @@ class MelodyTest(tf.test.TestCase):
     melody = melodies_lib.Melody()
     melody.from_event_list(events)
     expected = [1, 1, 0, 1, 0, 1, 0, 1, 1, 0, 1, 0]
-    self.assertListEqual(expected, list(melody.get_key_histogram()))
+    self.assertListEqual(expected, list(melody.get_major_key_histogram()))
 
     # One C and one C#.
     events = [NO_EVENT, 12 * 5, NOTE_OFF, 12 * 7 + 1, NOTE_OFF]
     melody = melodies_lib.Melody()
     melody.from_event_list(events)
     expected = [1, 2, 1, 1, 1, 1, 1, 1, 2, 1, 1, 1]
-    self.assertListEqual(expected, list(melody.get_key_histogram()))
+    self.assertListEqual(expected, list(melody.get_major_key_histogram()))
 
     # One C, one C#, and one D.
     events = [NO_EVENT, 12 * 5, NOTE_OFF, 12 * 7 + 1, NO_EVENT, 12 * 9 + 2]
     melody = melodies_lib.Melody()
     melody.from_event_list(events)
     expected = [2, 2, 2, 2, 1, 2, 1, 2, 2, 2, 2, 1]
-    self.assertListEqual(expected, list(melody.get_key_histogram()))
+    self.assertListEqual(expected, list(melody.get_major_key_histogram()))
 
   def testGetMajorKey(self):
     # D Major.
