@@ -141,10 +141,10 @@ def run(melody_encoder_decoder, build_graph):
   tf.logging.set_verbosity(tf.logging.INFO)
 
   if not FLAGS.run_dir:
-    tf.logging.fatal("--run_dir required")
+    tf.logging.fatal('--run_dir required')
     return
   if not FLAGS.output_dir:
-    tf.logging.fatal("--output_dir required")
+    tf.logging.fatal('--output_dir required')
     return
 
   FLAGS.run_dir = os.path.expanduser(FLAGS.run_dir)

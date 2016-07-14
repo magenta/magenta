@@ -49,10 +49,10 @@ def run(melody_encoder_decoder):
   tf.logging.set_verbosity(tf.logging.INFO)
 
   if not FLAGS.input:
-    tf.logging.fatal("--input required")
+    tf.logging.fatal('--input required')
     return
   if not FLAGS.train_output:
-    tf.logging.fatal("--train_output required")
+    tf.logging.fatal('--train_output required')
     return
 
   FLAGS.input = os.path.expanduser(FLAGS.input)

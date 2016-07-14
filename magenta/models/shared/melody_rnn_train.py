@@ -186,10 +186,10 @@ def run(melody_encoder_decoder, build_graph):
   tf.logging.set_verbosity(tf.logging.INFO)
 
   if not FLAGS.run_dir:
-    tf.logging.fatal("--run_dir required")
+    tf.logging.fatal('--run_dir required')
     return
   if not FLAGS.sequence_example_file:
-    tf.logging.fatal("--sequence_example_file required")
+    tf.logging.fatal('--sequence_example_file required')
     return
 
   FLAGS.sequence_example_file = os.path.expanduser(FLAGS.sequence_example_file)
