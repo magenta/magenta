@@ -36,15 +36,14 @@ NUM_SPECIAL_CLASSES = 2
 
 
 class MelodyEncoderDecoder(melodies_lib.MelodyEncoderDecoder):
-  """A MelodyEncoderDecoder specific to the attention RNN model."""
+  """A MelodyEncoderDecoder specific to the attention RNN model.
+
+  Attributes:
+    note_range: The number of different note pitches used by this model.
+  """
 
   def __init__(self):
-    """Initializes the MelodyEncoderDecoder.
-
-    Sets self.input_size the the size of the input vectors that this model uses.
-    Sets self.num_classes to the number of classes the labels can be.
-    These values are used when building the TensorFlow graph for this model.
-    """
+    """Initializes the MelodyEncoderDecoder."""
     super(MelodyEncoderDecoder, self).__init__(MIN_NOTE, MAX_NOTE,
                                                TRANSPOSE_TO_KEY)
     self.note_range = self.max_note - self.min_note

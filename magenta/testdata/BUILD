@@ -16,7 +16,10 @@
 # Data for unit tests.
 
 package(
-    default_visibility = ["//magenta:__subpackages__"],
+    default_visibility = [
+        "//magenta/lib:__subpackages__",
+        "//magenta/scripts:__subpackages__",
+    ],
 )
 
 licenses(["notice"])  # Apache 2.0
