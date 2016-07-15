@@ -13,9 +13,10 @@
 # limitations under the License.
 r""""Converts MIDIs to NoteSequence protos and writes TFRecord file.
 
-Sample usage:
-  $ bazel build magenta:convert_midi_dir_to_note_sequences
-  $ ./bazel-bin/magenta/convert_midi_dir_to_note_sequences \
+Example usage:
+  $ bazel build magenta/scripts:convert_midi_dir_to_note_sequences
+
+  $ ./bazel-bin/magenta/scripts/convert_midi_dir_to_note_sequences \
     --midi_dir=/path/to/midi/dir \
     --output_file=/path/to/tfrecord/file \
     --recursive
@@ -52,11 +53,11 @@ def convert_directory(root_dir, sub_dir, sequence_writer, recursive=False):
   Args:
     root_dir: A string specifying a root directory.
     sub_dir: A string specifying a path to a directory under `root_dir` in which
-      to convert MIDI contents.
+        to convert MIDI contents.
     sequence_writer: A NoteSequenceRecordWriter to write the resulting
-      NoteSequence protos to.
+        NoteSequence protos to.
     recursive: A boolean specifying whether or not recursively convert MIDIs
-      contained in subdirectories of the specified directory.
+        contained in subdirectories of the specified directory.
 
   Returns:
     The number of NoteSequence protos written as an integer.
@@ -97,8 +98,17 @@ def convert_directory(root_dir, sub_dir, sequence_writer, recursive=False):
 def main(unused_argv):
   if not FLAGS.midi_dir:
     tf.logging.fatal("--midi_dir required")
+    return
   if not FLAGS.output_file:
     tf.logging.fatal("--output_file required")
+    return
+
+  FLAGS.midi_dir = os.path.expanduser(FLAGS.midi_dir)
+  FLAGS.output_file = os.path.expanduser(FLAGS.output_file)
+
+  if not os.path.exists(os.path.dirname(FLAGS.output_file)):
+    os.makedirs(os.path.dirname(FLAGS.output_file))
+
   with note_sequence_io.NoteSequenceRecordWriter(
       FLAGS.output_file) as sequence_writer:
     sequences_written = convert_directory(FLAGS.midi_dir, '', sequence_writer,

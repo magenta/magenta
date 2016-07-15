@@ -17,7 +17,6 @@
 
 package(
     default_visibility = ["//magenta:__subpackages__"],
-    features = ["-layering_check"],
 )
 
 licenses(["notice"])  # Apache 2.0
