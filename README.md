@@ -23,7 +23,7 @@ Next, install Bazel and TensorFlow. You'll need at least version 0.2.3 for Bazel
 ## Building your Dataset
 Now that you have a working copy of Magenta, let's build your first MIDI dataset. We do this by creating a directory of MIDI files and converting them into NoteSequences. If you don't have any MIDIs handy, you can find some [here](http://www.midiworld.com/files/142/) from MidiWorld.
 
-Build and run the script. Warnings may be printed by the MIDI parser if it encounteres a malformed MIDI file but these can be safely ignored. MIDI files that cannot be parsed will be skipped.
+Build and run the script. Warnings may be printed by the MIDI parser if it encounters a malformed MIDI file but these can be safely ignored. MIDI files that cannot be parsed will be skipped.
 
 ```
 MIDI_DIRECTORY=<folder containing MIDI files. can have child folders.>
@@ -37,7 +37,7 @@ bazel run //magenta:convert_midi_dir_to_note_sequences -- \
 --recursive
 ```
 
-Note: To build and run in seperate commands, run
+Note: To build and run in separate commands, run
 
 ```
 bazel build //magenta:convert_midi_dir_to_note_sequences

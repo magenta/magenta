@@ -13,7 +13,7 @@
 # limitations under the License.
 """Graph building functions for state_saving_rnn and dynamic_rnn LSTMs.
 
-Each graph component is produced by a seperate function.
+Each graph component is produced by a separate function.
 """
 
 import ast
