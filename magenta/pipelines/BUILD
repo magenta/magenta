@@ -34,7 +34,7 @@ py_test(
     srcs = ["pipeline_test.py"],
     srcs_version = "PY2AND3",
     data = [
-        "testdata/tfrecord_iterator_test.tfrecord",
+        "//magenta/testdata:tfrecord_iterator_test.tfrecord",
     ],
     deps = [
         ":pipeline",
