@@ -52,11 +52,11 @@ def midi_to_sequence_proto(midi_data, continue_on_exception=False):
   decoding library pretty_midi, log an error, and return None.
 
   Args:
-    midi_data: A string contaning the contents of a MIDI file or populated
-      pretty_midi.PrettyMIDI object.
+    midi_data: A string containing the contents of a MIDI file or populated
+        pretty_midi.PrettyMIDI object.
     continue_on_exception: A boolean that when true causes all exceptions from
-      the decoder to be caught and ignored. Instead, an error is logged and None
-      is returned.
+        the decoder to be caught and ignored. Instead, an error is logged and
+        None is returned.
 
   Returns:
     A tensorflow.magenta.NoteSequence proto or None if midi_data could not be

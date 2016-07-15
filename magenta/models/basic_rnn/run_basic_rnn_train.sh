@@ -40,8 +40,8 @@ done
 RUN_DIR="$EXPERIMENT_DIR/$DATE-$N"
 
 # Build train job.
-bazel build //magenta/models:basic_rnn_train
-BINARY=../../../bazel-bin/magenta/models/basic_rnn_train
+bazel build //magenta/models/basic_rnn:basic_rnn_train
+BINARY=../../../bazel-bin/magenta/models/basic_rnn/basic_rnn_train
 
 # Run training job.
 $BINARY --experiment_run_dir=$RUN_DIR --eval=false --sequence_example_file=$TRAIN_SET --hparams=$HPARAMS --num_training_steps=$NUM_TRAINING_STEPS &
