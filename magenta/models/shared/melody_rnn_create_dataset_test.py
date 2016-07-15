@@ -11,13 +11,13 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Tests for basic_rnn_create_dataset."""
+"""Tests for melody_rnn_create_dataset."""
 
 # internal imports
 import tensorflow as tf
 
 from magenta.lib import testing_lib
-from magenta.models.basic_rnn import basic_rnn_create_dataset
+from magenta.models.shared import melody_rnn_create_dataset
 from magenta.pipelines import pipeline_units_common
 from magenta.protobuf import music_pb2
 
@@ -61,13 +61,12 @@ class PipelineTest(tf.test.TestCase):
     melody_extractor = pipeline_units_common.MonophonicMelodyExtractor(
         min_bars=7, min_unique_pitches=5,
         gap_bars=1.0)
-    one_hot_encoder = basic_rnn_create_dataset.OneHotEncoder()
+    one_hot_encoder = melody_rnn_create_dataset.OneHotEncoder()
     quantized = quantizer.transform(note_sequence)[0]
     melody = melody_extractor.transform(quantized)[0]
     one_hot = one_hot_encoder.transform(melody)[0]
     expected_result = {'basic_rnn_train': [one_hot], 'basic_rnn_eval': []}
 
-    pipeline_inst = basic_rnn_create_dataset.BasicRNNPipeline(eval_ratio=0)
+    pipeline_inst = melody_rnn_create_dataset.BasicRNNPipeline(eval_ratio=0)
     result = pipeline_inst.transform(note_sequence)
     self.assertEqual(expected_result, result)
-

@@ -123,8 +123,12 @@ def run_pipeline_serial(pipeline, input_iterator, output_dir):
     input_iterator: Iterates over the input data. Items returned by it are fed
         directly into the pipeline's `transform` method.
     output_dir: Path to directory where datasets will be written. Each dataset
-        is a file whose name contains the pipeline's dataset name.
+        is a file whose name contains the pipeline's dataset name. If the
+        directory does not exist, it will be created.
   """
+  if not tf.gfile.Exists(output_dir):
+    tf.gfile.MakeDirs(output_dir)
+
   output_names = pipeline.get_output_names()
 
   output_paths = [os.path.join(output_dir, name + '.tfrecord')

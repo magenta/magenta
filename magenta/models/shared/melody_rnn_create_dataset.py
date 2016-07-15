@@ -108,3 +108,12 @@ class BasicRNNPipeline(pipeline.Pipeline):
 
   def get_output_names(self):
     return self.output_names
+
+
+def run_from_flags(melody_encoder_decoder):
+  pipeline_instance = BasicRNNPipeline(
+      melody_encoder_decoder, FLAGS.eval_ratio)
+  pipeline.run_pipeline_serial(
+      pipeline_instance,
+      pipeline.tf_record_iterator(FLAGS.input, pipeline_instance.input_type),
+      FLAGS.output_dir)

@@ -24,7 +24,6 @@ py_binary(
     deps = [
         ":basic_rnn_encoder_decoder",
         "//magenta/models/shared:melody_rnn_create_dataset",
-        "//magenta/pipelines:pipeline",
         # tensorflow dep
     ],
 )
@@ -68,19 +67,6 @@ py_binary(
         ":basic_rnn_encoder_decoder",
         ":basic_rnn_graph",
         "//magenta/models/shared:melody_rnn_train",
-        # tensorflow dep
-    ],
-)
-
-py_test(
-    name = "basic_rnn_create_dataset_test",
-    srcs = ["basic_rnn/basic_rnn_create_dataset_test.py"],
-    deps = [
-        ":basic_rnn_create_dataset",
-        "//magenta/lib:melodies_lib",
-        "//magenta/lib:testing_lib",
-        "//magenta/protobuf:music_py_pb2",
-        "//magenta/pipelines:pipeline_units_common",
         # tensorflow dep
     ],
 )
