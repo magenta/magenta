@@ -70,8 +70,7 @@ SequenceExamples are fed into the model during training and evaluation. Each Seq
 ```
 bazel run //magenta/models/attention_rnn:attention_rnn_create_dataset -- \
 --input=/tmp/notesequences.tfrecord \
---train_output=/tmp/attention_rnn/sequence_examples/training_melodies.tfrecord \
---eval_output=/tmp/attention_rnn/sequence_examples/eval_melodies.tfrecord \
+--output_dir=/tmp/attention_rnn/sequence_examples \
 --eval_ratio=0.10
 ```
 
