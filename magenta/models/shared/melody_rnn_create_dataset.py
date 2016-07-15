@@ -85,7 +85,7 @@ class BasicRNNPipeline(pipeline.Pipeline):
 
   def __init__(self, melody_encoder_decoder, eval_ratio):
     super(BasicRNNPipeline, self).__init__()
-    self.output_names = ['basic_rnn_train', 'basic_rnn_eval']
+    self.output_names = ['training_melodies', 'eval_melodies']
     self.eval_ratio = eval_ratio
     self.quantizer = pipeline_units_common.Quantizer(steps_per_beat=4)
     self.melody_extractor = pipeline_units_common.MonophonicMelodyExtractor(
