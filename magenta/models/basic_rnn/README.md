@@ -80,9 +80,9 @@ To generate, we need to load a checkpoint of a trained model. Look at your exper
 
 The generator takes a melody as input to prime the model, meaning the model will be fed the primer melody first and then extend it. This primer should be a short monophonic melody stored in a MIDI file. You can make a MIDI file with any MIDI sequencer or digital audio workstation. If you do not have one, there are online sequencers such as [https://onlinesequencer.net/](https://onlinesequencer.net/). We provided an example primer called primer.mid.
 
-The generator will take many samples from the model's distribution. You can choose how many outputs will be saved. Here we save 16.
+You can choose how many outputs will be saved. Here we save 10.
 
-Lets generate 64 new timesteps.
+Let's generate melodies that are 128 steps long.
 
 ```
 # Provide a MIDI file to use as a primer for the generation.
