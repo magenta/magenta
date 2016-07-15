@@ -18,8 +18,7 @@ Example usage:
 
   $ ./bazel-bin/magenta/models/basic_rnn/basic_rnn_create_dataset \
     --input=/tmp/note_sequences.tfrecord \
-    --train_output=/tmp/basic_rnn/training_melodies.tfrecord \
-    --eval_output=/tmp/basic_rnn/eval_melodies.tfrecord \
+    --output_dir=/tmp/basic_rnn \
     --eval_ratio=0.10
 
 See /magenta/models/shared/melody_rnn_create_dataset.py for flag descriptions.
