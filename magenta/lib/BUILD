@@ -39,6 +39,8 @@ py_test(
     deps = [
         ":melodies_lib",
         ":sequence_example_lib",
+        ":sequences_lib",
+        ":testing_lib",
         "@protobuf//:protobuf_python",
         # tensorflow dep
     ],

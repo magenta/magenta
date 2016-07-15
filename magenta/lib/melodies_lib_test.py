@@ -56,21 +56,21 @@ class MelodiesLibTest(tf.test.TestCase):
   def testGetKeyHistogram(self):
     # One C.
     events = [NO_EVENT, 12 * 5, NOTE_OFF]
-    melody = melodies_lib.Melody()
+    melody = melodies_lib.MonophonicMelody()
     melody.from_event_list(events)
     expected = [1, 1, 0, 1, 0, 1, 0, 1, 1, 0, 1, 0]
     self.assertListEqual(expected, list(melody.get_major_key_histogram()))
 
     # One C and one C#.
     events = [NO_EVENT, 12 * 5, NOTE_OFF, 12 * 7 + 1, NOTE_OFF]
-    melody = melodies_lib.Melody()
+    melody = melodies_lib.MonophonicMelody()
     melody.from_event_list(events)
     expected = [1, 2, 1, 1, 1, 1, 1, 1, 2, 1, 1, 1]
     self.assertListEqual(expected, list(melody.get_major_key_histogram()))
 
     # One C, one C#, and one D.
     events = [NO_EVENT, 12 * 5, NOTE_OFF, 12 * 7 + 1, NO_EVENT, 12 * 9 + 2]
-    melody = melodies_lib.Melody()
+    melody = melodies_lib.MonophonicMelody()
     melody.from_event_list(events)
     expected = [2, 2, 2, 2, 1, 2, 1, 2, 2, 2, 2, 1]
     self.assertListEqual(expected, list(melody.get_major_key_histogram()))
@@ -98,32 +98,32 @@ class MelodiesLibTest(tf.test.TestCase):
     self.assertEqual(0, melody.get_major_key())
 
   def testTranspose(self):
-    # Melody transposed down 5 half steps. 2 octave range.
+    # MonophonicMelody transposed down 5 half steps. 2 octave range.
     events = [12 * 5 + 4, NO_EVENT, 12 * 5 + 5, NOTE_OFF, 12 * 6, NO_EVENT]
-    melody = melodies_lib.Melody()
+    melody = melodies_lib.MonophonicMelody()
     melody.from_event_list(events)
     melody.transpose(transpose_amount=-5, min_note=12 * 5, max_note=12 * 7)
     expected = [12 * 5 + 11, NO_EVENT, 12 * 5, NOTE_OFF, 12 * 5 + 7, NO_EVENT]
     self.assertEqual(expected, list(melody))
 
-    # Melody transposed up 19 half steps. 2 octave range.
+    # MonophonicMelody transposed up 19 half steps. 2 octave range.
     events = [12 * 5 + 4, NO_EVENT, 12 * 5 + 5, NOTE_OFF, 12 * 6, NO_EVENT]
-    melody = melodies_lib.Melody()
+    melody = melodies_lib.MonophonicMelody()
     melody.from_event_list(events)
     melody.transpose(transpose_amount=19, min_note=12 * 5, max_note=12 * 7)
     expected = [12 * 6 + 11, NO_EVENT, 12 * 6, NOTE_OFF, 12 * 6 + 7, NO_EVENT]
     self.assertEqual(expected, list(melody))
 
-    # Melody transposed zero half steps. 1 octave range.
+    # MonophonicMelody transposed zero half steps. 1 octave range.
     events = [12 * 4 + 11, 12 * 5, 12 * 5 + 11, NOTE_OFF, 12 * 6, NO_EVENT]
-    melody = melodies_lib.Melody()
+    melody = melodies_lib.MonophonicMelody()
     melody.from_event_list(events)
     melody.transpose(transpose_amount=0, min_note=12 * 5, max_note=12 * 6)
     expected = [12 * 5 + 11, 12 * 5, 12 * 5 + 11, NOTE_OFF, 12 * 5, NO_EVENT]
     self.assertEqual(expected, list(melody))
 
   def testSquash(self):
-    # Melody in C, transposed to C, and squashed to 1 octave.
+    # MonophonicMelody in C, transposed to C, and squashed to 1 octave.
     events = [12 * 5, NO_EVENT, 12 * 5 + 2, NOTE_OFF, 12 * 6 + 4, NO_EVENT]
     melody = melodies_lib.MonophonicMelody()
     melody.from_event_list(events)
@@ -131,7 +131,7 @@ class MelodiesLibTest(tf.test.TestCase):
     expected = [12 * 5, NO_EVENT, 12 * 5 + 2, NOTE_OFF, 12 * 5 + 4, NO_EVENT]
     self.assertEqual(expected, list(melody))
 
-    # Melody in D, transposed to C, and squashed to 1 octave.
+    # MonophonicMelody in D, transposed to C, and squashed to 1 octave.
     events = [12 * 5 + 2, 12 * 5 + 4, 12 * 6 + 7, 12 * 6 + 6, 12 * 5 + 1]
     melody = melodies_lib.MonophonicMelody()
     melody.from_event_list(events)
@@ -139,7 +139,7 @@ class MelodiesLibTest(tf.test.TestCase):
     expected = [12 * 5, 12 * 5 + 2, 12 * 5 + 5, 12 * 5 + 4, 12 * 5 + 11]
     self.assertEqual(expected, list(melody))
 
-    # Melody in D, transposed to E, and squashed to 1 octave.
+    # MonophonicMelody in D, transposed to E, and squashed to 1 octave.
     events = [12 * 5 + 2, 12 * 5 + 4, 12 * 6 + 7, 12 * 6 + 6, 12 * 4 + 11]
     melody = melodies_lib.MonophonicMelody()
     melody.from_event_list(events)
@@ -213,13 +213,13 @@ class MelodiesLibTest(tf.test.TestCase):
   def testFromNotesPolyphonicWithIgnorePolyphonicNotes(self):
     testing_lib.add_quantized_track(
         self.quantized_sequence, 0,
-        [(21, 100, 0, 8), (19, 100, 0, 12),
+        [(12, 100, 0, 8), (19, 100, 0, 12),
          (12, 100, 4, 12), (19, 100, 4, 16)])
     melody = melodies_lib.MonophonicMelody()
     melody.from_quantized_sequence(self.quantized_sequence,
                                    start_step=0, track=0,
                                    ignore_polyphonic_notes=True)
-    expected = [19] + [NO_EVENT] * 3 + [12] + [NO_EVENT] * 7 + [NOTE_OFF]
+    expected = [19] + [NO_EVENT] * 3 + [19] + [NO_EVENT] * 11 + [NOTE_OFF]
     self.assertEqual(expected, list(melody))
 
   def testFromNotesChord(self):
@@ -437,7 +437,7 @@ class MelodyEncoderDecoderTest(tf.test.TestCase):
 
   def testEncode(self):
     events = [100, 100, 107, 111, NO_EVENT, 99, 112, NOTE_OFF, NO_EVENT]
-    melody = melodies_lib.Melody()
+    melody = melodies_lib.MonophonicMelody()
     melody.from_event_list(events)
     sequence_example = self.melody_encoder_decoder.encode(melody)
     expected_inputs = [
@@ -456,10 +456,10 @@ class MelodyEncoderDecoderTest(tf.test.TestCase):
 
   def testGetInputsBatch(self):
     events1 = [100, 100, 107, 111, NO_EVENT, 99, 112, NOTE_OFF, NO_EVENT]
-    melody1 = melodies_lib.Melody()
+    melody1 = melodies_lib.MonophonicMelody()
     melody1.from_event_list(events1)
     events2 = [9, 10, 12, 14, 15, 17, 19, 21, 22]
-    melody2 = melodies_lib.Melody()
+    melody2 = melodies_lib.MonophonicMelody()
     melody2.from_event_list(events2)
     transpose_amount1 = melody1.squash(
         self.melody_encoder_decoder.min_note,
@@ -503,13 +503,13 @@ class MelodyEncoderDecoderTest(tf.test.TestCase):
         self.melody_encoder_decoder.get_inputs_batch(melodies))
 
   def testExtendMelodies(self):
-    melody1 = melodies_lib.Melody()
+    melody1 = melodies_lib.MonophonicMelody()
     melody1.from_event_list([60])
-    melody2 = melodies_lib.Melody()
+    melody2 = melodies_lib.MonophonicMelody()
     melody2.from_event_list([60])
-    melody3 = melodies_lib.Melody()
+    melody3 = melodies_lib.MonophonicMelody()
     melody3.from_event_list([60])
-    melody4 = melodies_lib.Melody()
+    melody4 = melodies_lib.MonophonicMelody()
     melody4.from_event_list([60])
     melodies = [melody1, melody2, melody3, melody4]
     softmax = [[
