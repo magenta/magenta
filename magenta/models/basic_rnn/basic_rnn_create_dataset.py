@@ -29,7 +29,6 @@ See /magenta/models/shared/melody_rnn_create_dataset.py for flag descriptions.
 # internal imports
 import tensorflow as tf
 
-from magenta.lib import melodies_lib
 from magenta.models.shared import melody_rnn_create_dataset
 from magenta.models.basic_rnn import basic_rnn_encoder_decoder
 from magenta.pipelines import pipeline

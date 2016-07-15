@@ -23,7 +23,7 @@ licenses(["notice"])  # Apache 2.0
 
 py_library(
     name = "pipeline",
-    srcs = ["pipelines/pipeline.py"],
+    srcs = ["pipeline.py"],
     deps = [
         "//magenta/protobuf:music_py_pb2",
     ],
@@ -31,7 +31,7 @@ py_library(
 
 py_test(
     name = "pipeline_test",
-    srcs = ["pipelines/pipeline_test.py"],
+    srcs = ["pipeline_test.py"],
     srcs_version = "PY2AND3",
     data = [
         "testdata/tfrecord_iterator_test.tfrecord",
@@ -44,30 +44,30 @@ py_test(
 
 py_library(
     name = "pipeline_unit",
-    srcs = ["pipelines/pipeline_unit.py"],
+    srcs = ["pipeline_unit.py"],
 )
 
 py_library(
     name = "pipeline_units_common",
-    srcs = ["pipelines/pipeline_units_common.py"],
+    srcs = ["pipeline_units_common.py"],
     deps = [
-        ":melodies_lib",
         ":pipeline_unit",
-        ":sequences_lib",
+        "//magenta/lib:melodies_lib",
+        "//magenta/lib:sequences_lib",
         "//magenta/protobuf:music_py_pb2",
     ],
 )
 
 py_test(
     name = "pipeline_units_common_test",
-    srcs = ["pipelines/pipeline_units_common_test.py"],
+    srcs = ["pipeline_units_common_test.py"],
     srcs_version = "PY2AND3",
     deps = [
-        ":melodies_lib",
         ":pipeline_unit",
         ":pipeline_units_common",
-        ":sequences_lib",
-        ":testing_lib",
+        "//magenta/lib:melodies_lib",
+        "//magenta/lib:sequences_lib",
+        "//magenta/lib:testing_lib",
         # tensorflow dep
     ],
 )
