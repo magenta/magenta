@@ -153,6 +153,9 @@ def build_graph(mode, hparams_string, input_size, num_classes,
         tf.add_to_collection('summary_op', summary_op)
 
     elif mode == 'generate':
+      if hparams.temperature != 1.0:
+        logits_flat /= hparams.temperature
+
       softmax_flat = tf.nn.softmax(logits_flat)
       softmax = tf.reshape(softmax_flat, [hparams.batch_size, -1, num_classes])
 

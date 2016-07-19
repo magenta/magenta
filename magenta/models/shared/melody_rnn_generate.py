@@ -54,6 +54,11 @@ tf.app.flags.DEFINE_string('primer_midi', '',
                            'will be used as a priming melody. If a primer '
                            'melody is not specified, melodies will be '
                            'generated from scratch.')
+tf.app.flags.DEFINE_float('temperature', 1.0,
+                          'The randomness of the generated melodies. 1.0 uses '
+                          'the unaltered softmax probabilities, greater than '
+                          '1.0 makes melodies more random, less than 1.0 makes '
+                          'melodies less random.')
 
 
 def run_generate(graph, train_dir, output_dir, melody_encoder_decoder,
@@ -155,6 +160,7 @@ def run(melody_encoder_decoder, build_graph):
   hparams = ast.literal_eval(FLAGS.hparams if FLAGS.hparams else '{}')
   hparams['batch_size'] = FLAGS.num_outputs
   hparams['dropout_keep_prob'] = 1.0
+  hparams['temperature'] = FLAGS.temperature
   hparams_string = repr(hparams)
 
   graph = build_graph('generate',
