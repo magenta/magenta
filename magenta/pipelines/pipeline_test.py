@@ -58,6 +58,7 @@ class MockPipeline(pipeline.Pipeline):
   def get_stats(self):
     return {}
 
+
 class PipelineTest(tf.test.TestCase):
 
   def testRecursiveFileIterator(self):
