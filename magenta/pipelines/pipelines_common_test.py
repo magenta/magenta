@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Tests for pipeline_units_common."""
+"""Tests for pipelines_common."""
 
 # internal imports
 import tensorflow as tf
@@ -19,7 +19,7 @@ import tensorflow as tf
 from magenta.lib import melodies_lib
 from magenta.lib import sequences_lib
 from magenta.lib import testing_lib
-from magenta.pipelines import pipeline_units_common
+from magenta.pipelines import pipelines_common
 from magenta.protobuf import music_pb2
 
 
@@ -60,7 +60,7 @@ class PipelineUnitsCommonTest(tf.test.TestCase):
         [(12, 100, 0, 40), (11, 55, 1, 2), (40, 45, 10, 14),
          (55, 120, 16, 17), (52, 99, 19, 20)])
 
-    unit = pipeline_units_common.Quantizer(steps_per_beat)
+    unit = pipelines_common.Quantizer(steps_per_beat)
     self._unit_transform_test(unit, note_sequence,
                               [expected_quantized_sequence])
 
@@ -86,7 +86,7 @@ class PipelineUnitsCommonTest(tf.test.TestCase):
     expected_melodies[0].end_step = 8
     expected_melodies[1].end_step = 12
 
-    unit = pipeline_units_common.MonophonicMelodyExtractor(
+    unit = pipelines_common.MonophonicMelodyExtractor(
         min_bars=1, min_unique_pitches=1, gap_bars=1)
     self._unit_transform_test(unit, quantized_sequence, expected_melodies)
 

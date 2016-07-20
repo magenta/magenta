@@ -42,7 +42,6 @@ class SequencesLibTest(tf.test.TestCase):
     left_hand.bpm = 123.0
     left_hand.steps_per_beat = 7
     left_hand.time_signature = sequences_lib.TimeSignature(7, 8)
-    left_hand.key_signature = sequences_lib.KeySignature(3, 2)
     testing_lib.add_quantized_track(
         left_hand, 0,
         [(12, 100, 0, 40), (11, 100, 1, 2)])
@@ -56,7 +55,6 @@ class SequencesLibTest(tf.test.TestCase):
     right_hand.bpm = 123.0
     right_hand.steps_per_beat = 7
     right_hand.time_signature = sequences_lib.TimeSignature(7, 8)
-    right_hand.key_signature = sequences_lib.KeySignature(3, 2)
     testing_lib.add_quantized_track(
         right_hand, 0,
         [(11, 100, 1, 2), (12, 100, 0, 40)])

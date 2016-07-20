@@ -15,7 +15,6 @@
 """
 
 import collections
-import math
 
 # Set the quantization cutoff.
 # Note events before this cutoff are rounded down to nearest step. Notes
@@ -37,6 +36,10 @@ class BadTimeSignatureException(Exception):
   pass
 
 
+class MultipleTimeSignatureException(Exception):
+  pass
+
+
 def is_power_of_2(x):
   return x and not x & (x - 1)
 
@@ -45,7 +48,6 @@ Note = collections.namedtuple(
     'Note', ['pitch', 'velocity', 'start', 'end', 'instrument', 'program'])
 TimeSignature = collections.namedtuple('TimeSignature',
                                        ['numerator', 'denominator'])
-KeySignature = collections.namedtuple('KeySignature', ['key', 'mode'])
 
 
 class QuantizedSequence(object):
@@ -63,15 +65,14 @@ class QuantizedSequence(object):
     self.tracks = {}
     self.bpm = 120.0
     self.time_signature = TimeSignature(4, 4)  # numerator, denominator
-    self.key_signature = KeySignature(0, 0)  # key, mode
     self.steps_per_beat = 4
 
   def from_note_sequence(self, note_sequence, steps_per_beat):
     """Populate self with a music_pb2.NoteSequence proto.
 
-    Notes, time signature, and key signature are saved to self with
-    notes' start and end times quantized. Only the first time signature
-    and key signature occurring in the NoteSequence are saved.
+    Notes and time signature are saved to self with notes' start and end times
+    quantized. If there is no time signature 4/4 is assumed. If there is more
+    than one time signature an exception is raised.
 
     The beats per minute stored in `note_sequence` is used to normalize tempo.
     So regardless of how fast or slow beats are played, a note that is played
@@ -85,6 +86,8 @@ class QuantizedSequence(object):
           quantized time steps.
 
     Raises:
+      MultipleTimeSignatureException: If there is more than one time signature
+          in `note_sequence`.
       BadTimeSignatureException: If the time signature found in `note_sequence`
           has a denominator which is not a power of 2.
       BadNoteException: If a note's quantized start time noes not preceed its
@@ -94,6 +97,10 @@ class QuantizedSequence(object):
 
     self.steps_per_beat = steps_per_beat
 
+    if len(note_sequence.time_signatures) > 1:
+      raise MultipleTimeSignatureException(
+          'NoteSequence contains %d time signatures. 0 or 1 expected.' %
+          len(note_sequence.time_signatures))
     if note_sequence.time_signatures:
       self.time_signature = TimeSignature(
           note_sequence.time_signatures[0].numerator,
@@ -104,17 +111,12 @@ class QuantizedSequence(object):
           'Denominator is not a power of 2. Time signature: %d/%d' %
           (self.time_signature.numerator, self.time_signature.denominator))
 
-    if note_sequence.key_signatures:
-      self.key_signature = KeySignature(
-          note_sequence.key_signatures[0].key,
-          note_sequence.key_signatures[0].mode)
-
     self.bpm = note_sequence.tempos[0].bpm if note_sequence.tempos else 120.0
 
     # Compute quantization steps per second.
     steps_per_second = steps_per_beat * self.bpm / 60.0
 
-    quantize = lambda x: int(math.ceil(x - QUANTIZE_CUTOFF))
+    quantize = lambda x: int(x + (1 - QUANTIZE_CUTOFF))
 
     for note in note_sequence.notes:
       # Quantize the start and end times of the note.
@@ -148,5 +150,4 @@ class QuantizedSequence(object):
     return (
         self.bpm == other.bpm and
         self.time_signature == other.time_signature and
-        self.key_signature == other.key_signature and
         self.steps_per_beat == other.steps_per_beat)

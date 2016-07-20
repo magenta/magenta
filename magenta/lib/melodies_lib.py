@@ -560,6 +560,7 @@ def extract_melodies(quantized_sequence,
             gap_bars=gap_bars,
             ignore_polyphonic_notes=ignore_polyphonic_notes)
       except PolyphonicMelodyException:
+        tf.logging.debug('track contains monophonic melody')
         break  # Look for monophonic melodies in other tracks.
       start = melody.end_step
       if not melody:

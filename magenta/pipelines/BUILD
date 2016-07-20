@@ -43,15 +43,10 @@ py_test(
 )
 
 py_library(
-    name = "pipeline_unit",
-    srcs = ["pipeline_unit.py"],
-)
-
-py_library(
-    name = "pipeline_units_common",
-    srcs = ["pipeline_units_common.py"],
+    name = "pipelines_common",
+    srcs = ["pipelines_common.py"],
     deps = [
-        ":pipeline_unit",
+        ":pipeline",
         "//magenta/lib:melodies_lib",
         "//magenta/lib:sequences_lib",
         "//magenta/protobuf:music_py_pb2",
@@ -59,12 +54,11 @@ py_library(
 )
 
 py_test(
-    name = "pipeline_units_common_test",
-    srcs = ["pipeline_units_common_test.py"],
+    name = "pipelines_common_test",
+    srcs = ["pipelines_common_test.py"],
     srcs_version = "PY2AND3",
     deps = [
-        ":pipeline_unit",
-        ":pipeline_units_common",
+        ":pipelines_common",
         "//magenta/lib:melodies_lib",
         "//magenta/lib:sequences_lib",
         "//magenta/lib:testing_lib",

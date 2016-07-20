@@ -29,8 +29,7 @@ py_binary(
         # tensorflow dep
         "//magenta/lib:melodies_lib",
         "//magenta/pipelines:pipeline",
-        "//magenta/pipelines:pipeline_unit",
-        "//magenta/pipelines:pipeline_units_common",
+        "//magenta/pipelines:pipelines_common",
         "//magenta/protobuf:music_py_pb2",
         # tensorflow dep
     ],
@@ -44,7 +43,7 @@ py_test(
         "//magenta/lib:melodies_lib",
         "//magenta/lib:testing_lib",
         "//magenta/protobuf:music_py_pb2",
-        "//magenta/pipelines:pipeline_units_common",
+        "//magenta/pipelines:pipelines_common",
         # tensorflow dep
     ],
 )

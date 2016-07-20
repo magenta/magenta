@@ -13,53 +13,97 @@
 # limitations under the License.
 """For running data processing pipelines."""
 
-import logging
+import abc
 import os.path
 
 # internal imports
 import tensorflow as tf
 
 
-class Pipeline(object):
-  """Base class for data processing pipelines that transform datasets."""
+def _guarantee_dict(given, default_name):
+  if not isinstance(given, dict):
+    return {default_name: dict}
+  return given
 
+
+class Pipeline(object):
+  """An abstract class for data processing pipelines that transform datasets.
+
+  A Pipeline can transform one or many inputs to one or many outputs. When there
+  are many inputs or outputs, each input/output is assigned a string name.
+
+  The `transform` method converts a given input or dictionary of inputs to
+  a list of transformed outputs, or a dictionary mapping names to lists of
+  transformed outputs for each name.
+
+  The `get_stats` method returns any statistics that were collected during the
+  last call to `transform`. These statistics can give feedback about why any
+  data was discarded and what the input data is like.
+  """
+
+  __metaclass__ = abc.ABCMeta
+
+  @property
+  def input_type(self):
+    """What type or types does this pipeline take as input.
+
+    Returns:
+      A class, or a dictionary mapping names to classes.
+    """
+    return self._input_type
+
+  @property
+  def output_type(self):
+    """What type or types does this pipeline output.
+
+    Returns:
+      A class, or a dictionary mapping names to classes.
+    """
+    return self._output_type
+
+  @property
+  def output_type_as_dict(self):
+    """Returns a dictionary mapping names to classes.
+
+    If `output_type` is a single class, then a default name will be created
+    for the output and a dictionary containing `output_type` will be returned.
+
+    Returns:
+      Dictionary mapping names to output types.
+    """
+    return _guarantee_dict(self._output_type, 'dataset')
+
+  def __init__(self, input_type, output_type):
+    self._input_type = input_type
+    self._output_type = output_type
+
+  @abc.abstractmethod
   def transform(self, input_object):
     """Runs the pipeline on the given input.
 
-    Subclasses must implement this method.
-
     Args:
-      input_object: Any object. The required type depends on implementation.
+      input_object: An object or dictionary mapping names to objects.
+          The object types must match `input_type`.
 
     Returns:
-      A dictionary mapping output names to lists of objects. The object types
-      depend on implementation. Each output name corresponds to an output
-      collection. See get_output_names method.
+      If `output_type` is a class, `transform` returns a list of objects
+      which are all that type. If `output_type` is a dictionary mapping
+      names to classes, `transform` returns a dictionary mapping those
+      same names to lists of objects that are the type mapped to each name.
     """
     pass
 
+  @abc.abstractmethod
   def get_stats(self):
     """Returns statistics about pipeline runs.
 
-    Call after running transform to get statistics about it.
+    Call `get_stats` after each call to `transform`.
+    `transform` computes statistics which will be returned here.
 
     Returns:
       Dictionary mapping statistic name to statistic value.
     """
     return {}
-
-  def get_output_names(self):
-    """Return output names.
-
-    An output name is the name of a dataset. The user of this Pipeline
-    instance decides where to save that dataset. Pipeline.transform
-    outputs lists for any of the output names returned here. Its up to the
-    user to aggregate everything into the correct datasets.
-
-    Returns:
-      List of strings, where each string is a dataset name.
-    """
-    return []
 
 
 def recursive_file_iterator(root_dir, extension=None):
@@ -113,7 +157,7 @@ def tf_record_iterator(tfrecord_file, proto):
 def run_pipeline_serial(pipeline, input_iterator, output_dir):
   """Runs the a pipeline on a data source and writes to a directory.
 
-  Will the the pipeline on each input from the iterator one at a time.
+  Run the the pipeline on each input from the iterator one at a time.
   A file will be written to `output_dir` for each dataset name specified
   by the pipeline. pipeline.transform is called on each input and the
   results are aggregated into their correct datasets.
@@ -129,7 +173,7 @@ def run_pipeline_serial(pipeline, input_iterator, output_dir):
   if not tf.gfile.Exists(output_dir):
     tf.gfile.MakeDirs(output_dir)
 
-  output_names = pipeline.get_output_names()
+  output_names = pipeline.output_type_as_dict.keys()
 
   output_paths = [os.path.join(output_dir, name + '.tfrecord')
                   for name in output_names]
@@ -140,13 +184,14 @@ def run_pipeline_serial(pipeline, input_iterator, output_dir):
   total_outputs = 0
   for input_ in input_iterator:
     total_inputs += 1
-    for name, outputs in pipeline.transform(input_).items():
+    for name, outputs in _guarantee_dict(pipeline.transform(input_),
+                                         output_names[0]).items():
       for output in outputs:
         writers[name].write(output.SerializeToString())
         total_outputs += 1
     if total_inputs % 500 == 0:
-      logging.info('%d inputs. %d outputs. stats = %s', total_inputs,
-                   total_outputs, pipeline.get_stats())
+      tf.logging.info('%d inputs. %d outputs. stats = %s', total_inputs,
+                      total_outputs, pipeline.get_stats())
 
 
 def load_pipeline(pipeline, input_iterator):
@@ -166,9 +211,10 @@ def load_pipeline(pipeline, input_iterator):
     as a bucket where outputs are aggregated.
   """
   aggregated_outputs = dict(
-      [(name, []) for name in pipeline.get_output_names()])
+      [(name, []) for name in pipeline.output_type_as_dict])
   for input_object in input_iterator:
-    outputs = pipeline.transform(input_object)
+    outputs = _guarantee_dict(pipeline.transform(input_object),
+                              aggregated_outputs.keys()[0])
     for name, output_list in outputs.items():
       aggregated_outputs[name].extend(output_list)
   return aggregated_outputs

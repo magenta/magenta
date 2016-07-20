@@ -43,6 +43,11 @@ class MockProto(object):
 
 class MockPipeline(pipeline.Pipeline):
 
+  def __init__(self):
+    super(MockPipeline, self).__init__(
+        input_type=str,
+        output_type={'dataset_1': MockProto, 'dataset_2': MockProto})
+
   def transform(self, input_object):
     return {
         'dataset_1': [
@@ -50,9 +55,8 @@ class MockPipeline(pipeline.Pipeline):
             MockProto(input_object + '_B')],
         'dataset_2': [MockProto(input_object + '_C')]}
 
-  def get_output_names(self):
-    return ['dataset_1', 'dataset_2']
-
+  def get_stats(self):
+    return {}
 
 class PipelineTest(tf.test.TestCase):
 
