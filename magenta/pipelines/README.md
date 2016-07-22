@@ -14,7 +14,7 @@ Pipeline has two methods:
 * [transform(input_object)](https://github.com/tensorflow/magenta/blob/master/magenta/pipelines/pipeline.py#L81) converts a single input to one or many outputs.
 * [get_stats()](https://github.com/tensorflow/magenta/blob/master/magenta/pipelines/pipeline.py#L96) returns statistics about each call to transform.
 
-For example, 
+For example,
 
 ```
 class MyPipeline(Pipeline):
@@ -35,7 +35,7 @@ print MyPipeline.get_stats()
 > {'how_many_ints': 3, 'sum_of_ints': 6}
 ```
 
-An example where inputs and outputs are dictionaries.
+An example where inputs and outputs are dictionaries,
 
 ```
 class MyPipeline(Pipeline):
@@ -60,6 +60,6 @@ If the output is a dictionary, the lengths of the output lists do not need to be
 
 Declaring `input_type` and `output_type` allows pipelines to be strung together inside meta-pipelines. So if there a pipeline that converts TypeA to TypeB, and you need TypeA to TypeC, then you only need to create a TypeB to TypeC pipeline. The TypeA to TypeC pipeline just feeds TypeA-to-TypeB into TypeB-to-TypeC.
 
-A pipeline can be run over a dataset using run_pipeline_serial, or load_pipeline. run_pipeline_serial saves the output to disk, while load_pipeline keeps the output in memory. If the pipeline output_type is a dictionary, the keys are used as dataset names.
+A pipeline can be run over a dataset using `run_pipeline_serial`, or `load_pipeline`. `run_pipeline_serial` saves the output to disk, while load_pipeline keeps the output in memory. If the pipeline's `output_type` is a dictionary, the keys are used as dataset names.
 
-Functions are also provided for iteration over input data. file_iterator iterates over files in a directory, returning the raw bytes. tf_record_iterator iterates over TFRecords, returning protocol buffers.
+Functions are also provided for iteration over input data. `file_iterator` iterates over files in a directory, returning the raw bytes. `tf_record_iterator` iterates over TFRecords, returning protocol buffers.
