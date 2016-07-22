@@ -199,6 +199,21 @@ class MelodiesLibTest(tf.test.TestCase):
     self.assertEqual(expected, list(melody))
     self.assertEqual(16, melody.steps_per_bar)
 
+  def testFromQuantizedSequenceNotCommonTimeSig(self):
+    self.quantized_sequence.time_signature = sequences_lib.TimeSignature(7, 8)
+    testing_lib.add_quantized_track(
+        self.quantized_sequence, 0,
+        [(12, 100, 0, 40), (11, 55, 1, 2), (40, 45, 10, 14),
+         (55, 120, 16, 17), (52, 99, 19, 20)])
+    melody = melodies_lib.MonophonicMelody()
+    melody.from_quantized_sequence(self.quantized_sequence,
+                                   start_step=0, track=0)
+    expected = [12, 11, NOTE_OFF, NO_EVENT, NO_EVENT, NO_EVENT, NO_EVENT,
+                NO_EVENT, NO_EVENT, NO_EVENT, 40, NO_EVENT, NO_EVENT, NO_EVENT,
+                NOTE_OFF, NO_EVENT, 55, NOTE_OFF, NO_EVENT, 52, NOTE_OFF]
+    self.assertEqual(expected, list(melody))
+    self.assertEqual(14, melody.steps_per_bar)
+
   def testFromNotesPolyphonic(self):
     testing_lib.add_quantized_track(
         self.quantized_sequence, 0,

@@ -43,6 +43,10 @@ class Pipeline(object):
 
   __metaclass__ = abc.ABCMeta
 
+  def __init__(self, input_type, output_type):
+    self._input_type = input_type
+    self._output_type = output_type
+
   @property
   def input_type(self):
     """What type or types does this pipeline take as input.
@@ -73,10 +77,6 @@ class Pipeline(object):
     """
     return _guarantee_dict(self._output_type, 'dataset')
 
-  def __init__(self, input_type, output_type):
-    self._input_type = input_type
-    self._output_type = output_type
-
   @abc.abstractmethod
   def transform(self, input_object):
     """Runs the pipeline on the given input.
@@ -93,7 +93,6 @@ class Pipeline(object):
     """
     pass
 
-  @abc.abstractmethod
   def get_stats(self):
     """Returns statistics about pipeline runs.
 
@@ -106,14 +105,16 @@ class Pipeline(object):
     return {}
 
 
-def recursive_file_iterator(root_dir, extension=None):
+def file_iterator(root_dir, extension=None, recurse=True):
   """Generator that iterates over all files in the given directory.
 
-  Will recurse into sub-directories.
+  Will recurse into sub-directories if `recurse` is True.
 
   Args:
     root_dir: Path to root directory to search for files in.
     extension: If given, only files with the given extension are opened.
+    recurse: If True, subdirectories will be traversed. Otherwise, only files
+        in `root_dir` are opened.
 
   Yields:
     Raw bytes (as a string) of each file opened.
@@ -127,12 +128,14 @@ def recursive_file_iterator(root_dir, extension=None):
     extension = extension.lower()
     if extension[0] != '.':
       extension = '.' + extension
-  dirs = [root_dir]
+  dirs = [os.path.join(root_dir, child)
+          for child in tf.gfile.ListDirectory(root_dir)]
   while dirs:
     sub = dirs.pop()
     if tf.gfile.IsDirectory(sub):
-      dirs.extend(
-          [os.path.join(sub, child) for child in tf.gfile.ListDirectory(sub)])
+      if recurse:
+        dirs.extend(
+            [os.path.join(sub, child) for child in tf.gfile.ListDirectory(sub)])
     else:
       if extension is None or sub.lower().endswith(extension):
         with open(sub, 'rb') as f:

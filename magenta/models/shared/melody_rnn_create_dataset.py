@@ -40,16 +40,19 @@ tf.app.flags.DEFINE_float('eval_ratio', 0.0,
                           'Partition is randomly selected.')
 
 
-class EncoderUnit(pipeline.Pipeline):
-  """A Module that converts monophonic melodies into basic_rnn samples."""
+class EncoderPipeline(pipeline.Pipeline):
+  """A Module that converts monophonic melodies to a model specific encoding."""
 
   def __init__(self, melody_encoder_decoder):
-    """Constructor takes settings for the OneHotEncoder module.
+    """Constructs a EncoderPipeline.
+
+    A melodies_lib.MelodyEncoderDecoder is needed to provide the
+    `encode` function.
 
     Args:
       melody_encoder_decoder: A melodies_lib.MelodyEncoderDecoder object.
     """
-    super(EncoderUnit, self).__init__(
+    super(EncoderPipeline, self).__init__(
         input_type=melodies_lib.MonophonicMelody,
         output_type=tf.train.SequenceExample)
     self.melody_encoder_decoder = melody_encoder_decoder
@@ -63,11 +66,9 @@ class EncoderUnit(pipeline.Pipeline):
 
 
 def random_partition(input_list, partition_ratio):
-  partitions = [], []
-  for item in input_list:
-    partition_index = int(random.random() < partition_ratio)
-    partitions[partition_index].append(item)
-  return partitions  # old, new
+  random.shuffle(input_list)
+  split_index = int(len(input_list) * partition_ratio)
+  return input_list[split_index:], input_list[:split_index]
 
 
 def map_and_flatten(input_list, func):
@@ -95,7 +96,7 @@ class MelodyRNNPipeline(pipeline.Pipeline):
     self.melody_extractor = pipelines_common.MonophonicMelodyExtractor(
         min_bars=7, min_unique_pitches=5,
         gap_bars=1.0, ignore_polyphonic_notes=False)
-    self.encoder_unit = EncoderUnit(melody_encoder_decoder)
+    self.encoder_unit = EncoderPipeline(melody_encoder_decoder)
     self.stats_dict = {}
 
   def transform(self, note_sequence):

@@ -22,28 +22,9 @@ from magenta.pipelines import pipelines_common
 from magenta.protobuf import music_pb2
 
 
-class MockProto(object):
+class MelodyRnnPipelineTest(tf.test.TestCase):
 
-  def __init__(self, string=''):
-    self.string = string
-
-  @staticmethod
-  def FromString(string):
-    return MockProto(string)
-
-  def SerializeToString(self):
-    return 'serialized:' + self.string
-
-  def __eq__(self, other):
-    return isinstance(other, MockProto) and self.string == other.string
-
-  def __hash__(self):
-    return hash(self.string)
-
-
-class PipelineTest(tf.test.TestCase):
-
-  def testBasicRNNPipeline(self):
+  def testMelodyRNNPipeline(self):
     note_sequence = testing_lib.parse_test_proto(
         music_pb2.NoteSequence,
         """
@@ -65,8 +46,8 @@ class PipelineTest(tf.test.TestCase):
     quantized = quantizer.transform(note_sequence)[0]
     melody = melody_extractor.transform(quantized)[0]
     one_hot = one_hot_encoder.transform(melody)[0]
-    expected_result = {'basic_rnn_train': [one_hot], 'basic_rnn_eval': []}
+    expected_result = {'melody_rnn_train': [one_hot], 'melody_rnn_eval': []}
 
-    pipeline_inst = melody_rnn_create_dataset.BasicRNNPipeline(eval_ratio=0)
+    pipeline_inst = melody_rnn_create_dataset.MelodyRNNPipeline(eval_ratio=0)
     result = pipeline_inst.transform(note_sequence)
     self.assertEqual(expected_result, result)

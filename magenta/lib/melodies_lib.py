@@ -50,8 +50,10 @@ NO_EVENT = -2
 MIN_MIDI_PITCH = 0  # Inclusive.
 MAX_MIDI_PITCH = 127  # Inclusive.
 NOTES_PER_OCTAVE = 12
+QUARTER_NOTES_PER_WHOLE_NOTE = 4.0
 DEFAULT_BEATS_PER_MINUTE = 120.0
-BEATS_PER_BAR = 4  # This code assumes 4 beats per measure of music.
+DEFAULT_STEPS_PER_BAR = 16  # 4/4 music sampled at 4 steps per beat.
+DEFAULT_STEPS_PER_BEAT = 4
 
 # Standard pulses per quarter.
 # https://en.wikipedia.org/wiki/Pulses_per_quarter_note
@@ -138,8 +140,7 @@ class MonophonicMelody(object):
 
   Attributes:
     events: A python list of melody events which are integers. MonophonicMelody
-    events are
-        described above.
+        events are described above.
     offset: When quantizing notes, this is the offset between indices in
         `events` and time steps of incoming melody events. An offset is chosen
         such that the first melody event is close to the beginning of `events`.
@@ -159,7 +160,8 @@ class MonophonicMelody(object):
   def _reset(self):
     """Clear `events` and reset object state."""
     self.events = []
-    self.steps_per_bar = 16
+    self.steps_per_bar = DEFAULT_STEPS_PER_BAR
+    self.steps_per_beat = DEFAULT_STEPS_PER_BEAT
     self.start_step = 0
     self.end_step = 0
 
@@ -191,8 +193,8 @@ class MonophonicMelody(object):
     """Adds the given note to the `events` list.
 
     `start_step` is set to the given pitch. `end_step` is set to NOTE_OFF.
-    All existing events in the `events` list start at `start_step` are deleted.
-    `events`'s length will be changed so that the last event has index
+    Everything after `start_step` in `events` is deleted before the note is
+    added. `events`'s length will be changed so that the last event has index
     `end_step`.
 
     Args:
@@ -307,8 +309,8 @@ class MonophonicMelody(object):
       track: Search for a melody in this track number.
       gap_bars: If this many bars or more follow a NOTE_OFF event, the melody
           is ended.
-      ignore_polyphonic_notes: If true, the highest pitch is used in the melody
-          when multiple notes start at the same time. If false,
+      ignore_polyphonic_notes: If True, the highest pitch is used in the melody
+          when multiple notes start at the same time. If False,
           PolyphonicMelodyException will be raised if multiple notes start at
           the same time.
 
@@ -325,13 +327,15 @@ class MonophonicMelody(object):
     steps_per_bar_float = (
         quantized_sequence.steps_per_beat *
         quantized_sequence.time_signature.numerator *
-        4.0 / quantized_sequence.time_signature.denominator)
+        QUARTER_NOTES_PER_WHOLE_NOTE /
+        quantized_sequence.time_signature.denominator)
     if steps_per_bar_float % 1 != 0:
       raise NonIntegerStepsPerBarException(
           'There are %f timesteps per bar. Time signature: %d/%d' %
           (steps_per_bar_float, quantized_sequence.time_signature.numerator,
            quantized_sequence.time_signature.denominator))
     self.steps_per_bar = steps_per_bar = int(steps_per_bar_float)
+    self.steps_per_beat = quantized_sequence.steps_per_beat
 
     # Sort track by note start times, and secondarily by pitch descending.
     notes = sorted(quantized_sequence.tracks[track],
@@ -352,11 +356,13 @@ class MonophonicMelody(object):
       end_index = note.end - offset
 
       if not self.events:
+        # If there are no events, we don't need to check for polyphony.
         self._add_note(note.pitch, start_index, end_index)
         continue
 
       # If start_step comes before or lands on an already added note's start
-      # step, we cannot add it. Discard the melody because it is not monophonic.
+      # step, we cannot add it. In that case either discard the melody or keep
+      # the highest pitch.
       last_on, last_off = self._get_last_on_off_events()
       on_distance = start_index - last_on
       off_distance = start_index - last_off
@@ -380,7 +386,8 @@ class MonophonicMelody(object):
       # Add the note-on and off events to the melody.
       self._add_note(note.pitch, start_index, end_index)
 
-    if offset is None:
+    if not self.events:
+      # If no notes were added, don't set `start_step` and `end_step`.
       return
 
     self.start_step = offset
@@ -410,7 +417,7 @@ class MonophonicMelody(object):
     Returns:
       A NoteSequence proto encoding the given melody.
     """
-    seconds_per_step = 60.0 / bpm * BEATS_PER_BAR / self.steps_per_bar
+    seconds_per_step = 60.0 / bpm / self.steps_per_beat
 
     sequence = music_pb2.NoteSequence()
     sequence.tempos.add().bpm = bpm
@@ -560,7 +567,8 @@ def extract_melodies(quantized_sequence,
             gap_bars=gap_bars,
             ignore_polyphonic_notes=ignore_polyphonic_notes)
       except PolyphonicMelodyException:
-        tf.logging.debug('track contains monophonic melody')
+        tf.logging.debug('Track was discarded because it contains polyphonic '
+                         'data.')
         break  # Look for monophonic melodies in other tracks.
       start = melody.end_step
       if not melody:
@@ -568,14 +576,14 @@ def extract_melodies(quantized_sequence,
 
       # Require a certain melody length.
       if len(melody) - 1 < melody.steps_per_bar * min_bars:
-        tf.logging.debug('melody too short')
+        tf.logging.debug('Melody was discarded because it is too short.')
         continue
 
       # Require a certain number of unique pitches.
       note_histogram = melody.get_note_histogram()
       unique_pitches = np.count_nonzero(note_histogram)
       if unique_pitches < min_unique_pitches:
-        tf.logging.debug('melody too simple')
+        tf.logging.debug('Melody was discarded because it is too simple.')
         continue
 
       # TODO(danabo)

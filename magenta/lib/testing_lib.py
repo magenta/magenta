@@ -13,9 +13,34 @@
 # limitations under the License.
 """Tests for sequences_lib."""
 
+import numpy as np
+
 # internal imports
 from google.protobuf import text_format
 from magenta.lib import sequences_lib
+
+
+class MockStringProto(object):
+  """Provides common methods for a protocol buffer object.
+
+  Wraps a single string value. This makes testing equality easy.
+  """
+
+  def __init__(self, string=''):
+    self.string = string
+
+  @staticmethod
+  def FromString(string):  # pylint: disable=invalid-name
+    return MockStringProto(string)
+
+  def SerializeToString(self):  # pylint: disable=invalid-name
+    return 'serialized:' + self.string
+
+  def __eq__(self, other):
+    return isinstance(other, MockStringProto) and self.string == other.string
+
+  def __hash__(self):
+    return hash(self.string)
 
 
 def assert_set_equality(test_case, expected, actual):
@@ -23,7 +48,7 @@ def assert_set_equality(test_case, expected, actual):
 
   Given two lists, treat them as sets and test equality. This function only
   requires an __eq__ method to be defined on the objects, and not __hash__
-  which set comparison requires. This function removes the burdon of defining
+  which set comparison requires. This function removes the burden of defining
   a __hash__ method just for testing.
 
   This function calls into tf.test.TestCase.assert* methods and behaves
@@ -37,20 +62,20 @@ def assert_set_equality(test_case, expected, actual):
     expected: A list of objects.
     actual: A list of objects.
   """
-  actual_copy = list(actual)
+  actual_found = np.zeros(len(actual), dtype=bool)
   for expected_obj in expected:
     found = False
-    for actual_obj in actual_copy:
+    for i, actual_obj in enumerate(actual):
       if expected_obj == actual_obj:
-        actual_copy.remove(actual_obj)
+        actual_found[i] = True
         found = True
         break
     if not found:
       test_case.fail('Expected %s not found in actual collection' %
                      expected_obj)
-  if actual_copy:
+  if not np.all(actual_found):
     test_case.fail('Actual objects %s not found in expected collection' %
-                   actual_copy)
+                   np.array(actual)[np.invert(actual_found)])
 
 
 def parse_test_proto(proto_type, proto_string):

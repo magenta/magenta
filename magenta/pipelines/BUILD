@@ -38,6 +38,7 @@ py_test(
     ],
     deps = [
         ":pipeline",
+        "//magenta/lib:testing_lib",
         # tensorflow dep
     ],
 )

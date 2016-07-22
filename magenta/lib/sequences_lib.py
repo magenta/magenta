@@ -56,6 +56,17 @@ class QuantizedSequence(object):
   Notes contain a pitch, velocity, start time, and end time. Notes
   are stored in tracks (which can be different instruments or the same
   instrument). There is also a time signature and key signature.
+
+  Attributes:
+    tracks: A dictionary mapping track number to list of Note tuples. Track
+        number is taken from the instrument number of each NoteSequence note.
+    bpm: Beats per minute. This is needed to recover tempo if converting back
+        to MIDI.
+    time_signature: This determines the length of a bar of music. This is just
+        needed to compute the number of quantization steps per bar, though it
+        can also communicate more high level aspects of the music
+        (see https://en.wikipedia.org/wiki/Time_signature).
+    steps_per_beat: How many quantization steps per beat of music.
   """
 
   def __init__(self):
@@ -75,7 +86,7 @@ class QuantizedSequence(object):
     than one time signature an exception is raised.
 
     The beats per minute stored in `note_sequence` is used to normalize tempo.
-    So regardless of how fast or slow beats are played, a note that is played
+    Regardless of how fast or slow beats are played, a note that is played
     for 1 beat will last `steps_per_beat` time steps in the quantized result.
 
     A note's start and end time are snapped to a nearby quantized step. See
@@ -90,7 +101,7 @@ class QuantizedSequence(object):
           in `note_sequence`.
       BadTimeSignatureException: If the time signature found in `note_sequence`
           has a denominator which is not a power of 2.
-      BadNoteException: If a note's quantized start time noes not preceed its
+      BadNoteException: If a note's quantized start time does not preceed its
           quantized end time.
     """
     self._reset()
