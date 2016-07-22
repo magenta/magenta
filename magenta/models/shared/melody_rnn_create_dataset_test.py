@@ -22,7 +22,7 @@ from magenta.pipelines import pipelines_common
 from magenta.protobuf import music_pb2
 
 
-class MelodyRnnPipelineTest(tf.test.TestCase):
+class MelodyRNNPipelineTest(tf.test.TestCase):
 
   def testMelodyRNNPipeline(self):
     note_sequence = testing_lib.parse_test_proto(
