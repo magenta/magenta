@@ -18,6 +18,7 @@
 package(
     default_visibility = [
         "//magenta/lib:__subpackages__",
+        "//magenta/pipelines:__subpackages__",
         "//magenta/scripts:__subpackages__",
     ],
 )
@@ -30,6 +31,7 @@ filegroup(
         'example.mid',
         'example_complex.mid',
         'notesequences.tfrecord',
+        'tfrecord_iterator_test.tfrecord',
     ],
 )
 

@@ -26,7 +26,24 @@ py_binary(
     srcs = ["melody_rnn_create_dataset.py"],
     srcs_version = "PY2AND3",
     deps = [
-        "//magenta/lib:sequence_to_melodies",
+        # tensorflow dep
+        "//magenta/lib:melodies_lib",
+        "//magenta/pipelines:pipeline",
+        "//magenta/pipelines:pipelines_common",
+        "//magenta/protobuf:music_py_pb2",
+        # tensorflow dep
+    ],
+)
+
+py_test(
+    name = "melody_rnn_create_dataset_test",
+    srcs = ["melody_rnn_create_dataset_test.py"],
+    deps = [
+        ":melody_rnn_create_dataset",
+        "//magenta/lib:melodies_lib",
+        "//magenta/lib:testing_lib",
+        "//magenta/protobuf:music_py_pb2",
+        "//magenta/pipelines:pipelines_common",
         # tensorflow dep
     ],
 )

@@ -45,7 +45,6 @@ py_binary(
         ":basic_rnn_encoder_decoder",
         ":basic_rnn_graph",
         "//magenta/models/shared:melody_rnn_generate",
-        # tensorflow dep
     ],
 )
 
