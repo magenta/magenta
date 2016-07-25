@@ -48,22 +48,23 @@ class MelodyRnnSequenceGenerator(sequence_generator.BaseSequenceGenerator):
     self._hparams['batch_size'] = 1
 
   def _initialize(self, checkpoint_file):
-    saver = tf.train.Saver()
     graph = self._build_graph('generate',
                               repr(self._hparams),
                               self._melody_encoder_decoder.input_size,
                               self._melody_encoder_decoder.num_classes)
-    self._session = tf.Session(graph=self._build_graph())
-    checkpoint_file = tf.train.latest_checkpoint(checkpoint_file)
-    tf.logging.info('Checkpoint used: %s', checkpoint_file)
-    saver.restore(session, checkpoint_file)
+    with graph.as_default():
+      saver = tf.train.Saver()
+      self._session = tf.Session()
+      checkpoint_file = tf.train.latest_checkpoint(checkpoint_file)
+      tf.logging.info('Checkpoint used: %s', checkpoint_file)
+      saver.restore(self._session, checkpoint_file)
 
   def _close(self):
     self._session.close()
     self._session = None
 
   def _generate(self, generate_sequence_request):
-    primer_melody = melodies_lib.Melody()
+    primer_melody = melodies_lib.MonophonicMelody()
     bpm = melodies_lib.DEFAULT_BEATS_PER_MINUTE
 
     primer_sequence = generate_sequence_request.input_sequence

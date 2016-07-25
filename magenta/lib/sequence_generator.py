@@ -93,8 +93,9 @@ class BaseSequenceGenerator(object):
   def __enter__(self):
     """When used as a context manager, initializes the TF session."""
     self.initialize()
+    return self
 
-  def __exit__(self):
+  def __exit__(self, *args):
     """When used as a context manager, closes the TF session."""
     self.close()
 

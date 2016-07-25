@@ -24,6 +24,7 @@ import tensorflow as tf
 from magenta.lib import melodies_lib
 from magenta.lib import midi_io
 from six.moves import range  # pylint: disable=redefined-builtin
+from magenta.protobuf import generator_pb2
 
 FLAGS = tf.app.flags.FLAGS
 tf.app.flags.DEFINE_string('run_dir', '/tmp/melody_rnn/logdir/run1',
@@ -66,10 +67,10 @@ def get_hparams():
   hparams['temperature'] = FLAGS.temperature
   return hparams
 
-def get_run_dir():
+def get_train_dir():
   if not FLAGS.run_dir:
     tf.logging.fatal('--run_dir required')
-  return os.path.expanduser(FLAGS.run_dir)
+  return os.path.join(os.path.expanduser(FLAGS.run_dir), 'train')
 
 def run_with_flags(melody_rnn_sequence_generator):
   """Generates melodies and saves them as MIDI files.
@@ -93,14 +94,14 @@ def run_with_flags(melody_rnn_sequence_generator):
 
   primer_sequence = None
   if FLAGS.primer_melody:
-    primer_melody = melodies_lib.Melody()
+    primer_melody = melodies_lib.MonophonicMelody()
     primer_melody.from_event_list(ast.literal_eval(FLAGS.primer_melody))
-    primer_sequence = melody.to_sequence()
+    primer_sequence = primer_melody.to_sequence()
   elif FLAGS.primer_midi:
     primer_sequence = midi_io.midi_file_to_sequence_proto(FLAGS.primer_midi)
 
   generate_request = generator_pb2.GenerateSequenceRequest()
-  generate_request.input_sequence = primer_sequence
+  generate_request.input_sequence.CopyFrom(primer_sequence)
   # derive start/stop from num_steps
 
   date_and_time = time.strftime('%Y-%m-%d_%H%M%S')

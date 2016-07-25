@@ -44,7 +44,7 @@ def main(unused_argv):
       description="Lookback RNN Generator")
   with melody_rnn_sequence_generator.MelodyRnnSequenceGenerator(
       details,
-      melody_rnn_generate.get_run_dir(),
+      melody_rnn_generate.get_train_dir(),
       melody_encoder_decoder,
       lookback_rnn_graph.build_graph,
       melody_rnn_generate.get_hparams()) as generator:
