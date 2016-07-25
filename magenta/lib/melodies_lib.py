@@ -16,10 +16,11 @@
 Use extract_melodies to extract monophonic melodies from a NoteSequence
 proto.
 
-Use Melody.to_sequence to write a melody to a NoteSequence proto. Then use
-midi_io.sequence_proto_to_midi_file to write that NoteSequence to a midi file.
+Use MonophonicMelody.to_sequence to write a melody to a NoteSequence proto. Then
+use midi_io.sequence_proto_to_midi_file to write that NoteSequence to a midi
+file.
 
-Use MelodyEncoderDecoder.encode to convert a Melody object to a
+Use MelodyEncoderDecoder.encode to convert a MonophonicMelody object to a
 tf.train.SequenceExample of inputs and labels. These SequenceExamples are fed
 into the model during training and evaluation.
 
@@ -452,14 +453,15 @@ class MonophonicMelody(object):
     return sequence
 
   def transpose(self, transpose_amount, min_note=0, max_note=128):
-    """Transpose notes in this Melody.
+    """Transpose notes in this MonophonicMelody.
 
     All notes are transposed the specified amount. Additionally, all notes
     are octave shifted to lie within the [min_note, max_note) range.
 
     Args:
-      transpose_amount: The number of half steps to transpose this Melody.
-          Positive values transpose up. Negative values transpose down.
+      transpose_amount: The number of half steps to transpose this
+          MonophonicMelody. Positive values transpose up. Negative values
+          transpose down.
       min_note: Minimum pitch (inclusive) that the resulting notes will take on.
       max_note: Maximum pitch (exclusive) that the resulting notes will take on.
     """
@@ -576,14 +578,16 @@ def extract_melodies(quantized_sequence,
 
       # Require a certain melody length.
       if len(melody) - 1 < melody.steps_per_bar * min_bars:
-        tf.logging.debug('Melody was discarded because it is too short.')
+        tf.logging.debug(
+            'MonophonicMelody was discarded because it is too short.')
         continue
 
       # Require a certain number of unique pitches.
       note_histogram = melody.get_note_histogram()
       unique_pitches = np.count_nonzero(note_histogram)
       if unique_pitches < min_unique_pitches:
-        tf.logging.debug('Melody was discarded because it is too simple.')
+        tf.logging.debug(
+            'MonophonicMelody was discarded because it is too simple.')
         continue
 
       # TODO(danabo)
@@ -693,7 +697,7 @@ class MelodyEncoderDecoder(object):
     """Returns the input vector for the last event in the melody.
 
     Args:
-      melody: A Melody object.
+      melody: A MonophonicMelody object.
 
     Returns:
       An input vector, a self.input_size length list of floats.
@@ -705,7 +709,7 @@ class MelodyEncoderDecoder(object):
     """Returns the label for the last event in the melody.
 
     Args:
-      melody: A Melody object.
+      melody: A MonophonicMelody object.
 
     Returns:
       A label, an int in the range [0, self.num_classes).
@@ -716,7 +720,7 @@ class MelodyEncoderDecoder(object):
     """Returns a SequenceExample for the given melody.
 
     Args:
-      melody: A Melody object.
+      melody: A MonophonicMelody object.
 
     Returns:
       A tf.train.SequenceExample containing inputs and labels.
@@ -736,7 +740,7 @@ class MelodyEncoderDecoder(object):
     """Returns an inputs batch for the given melodies.
 
     Args:
-      melodies: A list of Melody objects.
+      melodies: A list of MonophonicMelody objects.
       full_length: If True, the inputs batch will be for the full length of
           each melody. If False, the inputs batch will only be for the last
           event of each melody. A full-length inputs batch is used for the
@@ -770,13 +774,15 @@ class MelodyEncoderDecoder(object):
 
     Args:
       class_index: An int in the range [0, self.num_classes).
-      melody: A Melody object. This object is not used in this implementation,
-          but see models/lookback_rnn/lookback_rnn_encoder_decoder.py for an
-          example of how this object can be used.
+      melody: A MonophonicMelody object. This object is not used in this
+          implementation, but see
+          models/lookback_rnn/lookback_rnn_encoder_decoder.py for an example
+          of how this object can be used.
 
     Returns:
-      A Melody event value, an int in the range [-2, 127]. -2 = no event,
-      -1 = note-off event, [0, 127] = note-on event for that midi pitch.
+      A MonophonicMelody event value, an int in the range [-2, 127].
+      -2 = no event, -1 = note-off event, [0, 127] = note-on event for that
+      midi pitch.
     """
     pass
 
@@ -784,7 +790,7 @@ class MelodyEncoderDecoder(object):
     """Extends the melodies by sampling from the softmax probabilities.
 
     Args:
-      melodies: A list of Melody objects.
+      melodies: A list of MonophonicMelody objects.
       softmax: A list of softmax probability vectors. The list of softmaxes
           should be the same length as the list of melodies.
     """

@@ -56,7 +56,7 @@ class MelodyEncoderDecoder(melodies_lib.MelodyEncoderDecoder):
     """Collapses a melody event value into a zero-based index range.
 
     Args:
-      melody_event: A Melody event value. -2 = no event,
+      melody_event: A MonophonicMelody event value. -2 = no event,
           -1 = note-off event, [0, 127] = note-on event for that midi pitch.
 
     Returns:
@@ -78,7 +78,7 @@ class MelodyEncoderDecoder(melodies_lib.MelodyEncoderDecoder):
           to the [self._min_note, self._max_note) range.
 
     Returns:
-      A Melody event value. -2 = no event, -1 = note-off event,
+      A MonophonicMelody event value. -2 = no event, -1 = note-off event,
       [0, 127] = note-on event for that midi pitch.
     """
     if model_event < NUM_SPECIAL_EVENTS:
@@ -105,7 +105,7 @@ class MelodyEncoderDecoder(melodies_lib.MelodyEncoderDecoder):
     120: The current step is repeating 2 bars ago.
 
     Args:
-      melody: A melodies_lib.Melody object.
+      melody: A melodies_lib.MonophonicMelody object.
 
     Returns:
       An input vector, an self.input_size length list of floats.
@@ -171,7 +171,7 @@ class MelodyEncoderDecoder(melodies_lib.MelodyEncoderDecoder):
       39: If the last event in the melody is repeating 2 bars ago.
 
     Args:
-      melody: A melodies_lib.Melody object.
+      melody: A melodies_lib.MonophonicMelody object.
 
     Returns:
       A label, an int.
@@ -198,10 +198,11 @@ class MelodyEncoderDecoder(melodies_lib.MelodyEncoderDecoder):
 
     Args:
       class_index: An int in the range [0, self.num_classes).
-      melody: The melodies_lib.Melody events list of the current melody.
+      melody: The melodies_lib.MonophonicMelody events list of the current
+          melody.
 
     Returns:
-      A melodies_lib.Melody event value.
+      A melodies_lib.MonophonicMelody event value.
     """
     # Repeat 1 bar ago.
     if class_index == self.num_model_events + 1:
