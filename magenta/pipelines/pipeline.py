@@ -20,6 +20,17 @@ import os.path
 import tensorflow as tf
 
 
+class Key(object):
+
+  def __init__(self, unit, key, type_):
+    self.key = key
+    self.unit = unit
+    self.output_type = type_
+  
+  def __repr__(self):
+    return 'Key(%s, %s)' % (self.unit, self.key)
+
+  
 def _guarantee_dict(given, default_name):
   if not isinstance(given, dict):
     return {default_name: dict}
@@ -46,6 +57,9 @@ class Pipeline(object):
   def __init__(self, input_type, output_type):
     self._input_type = input_type
     self._output_type = output_type
+
+  def __getitem__(self, key):
+    return Key(self, key, self.output_type_as_dict[key])
 
   @property
   def input_type(self):
@@ -103,6 +117,14 @@ class Pipeline(object):
       Dictionary mapping statistic name to statistic value.
     """
     return {}
+
+
+def merge_statistics_dicts(merge_to, merge_from):
+  for name in merge_from:
+    if name in merge_to:
+      merge_to[name].merge_from(merge_from[name])
+    else:
+      merge_to[name] = merge_from[name]
 
 
 def file_iterator(root_dir, extension=None, recurse=True):
