@@ -77,7 +77,7 @@ class MelodyEncoderDecoder(melodies_lib.MelodyEncoderDecoder):
     [62, 74): The keys the last 3 notes are in.
 
     Args:
-      melody: A melodies_lib.Melody object.
+      melody: A melodies_lib.MonophonicMelody object.
 
     Returns:
       An input vector, an self.input_size length list of floats.
@@ -177,7 +177,7 @@ class MelodyEncoderDecoder(melodies_lib.MelodyEncoderDecoder):
     39: Repeat 2 bars ago (takes precedence over above values).
 
     Args:
-      melody: A melodies_lib.Melody object.
+      melody: A melodies_lib.MonophonicMelody object.
 
     Returns:
       A label, an int.
@@ -213,10 +213,11 @@ class MelodyEncoderDecoder(melodies_lib.MelodyEncoderDecoder):
 
     Args:
       class_index: An int in the range [0, self.num_classes).
-      melody: The melodies_lib.Melody events list of the current melody.
+      melody: The melodies_lib.MonophonicMelody events list of the current
+          melody.
 
     Returns:
-      A melodies_lib.Melody event value.
+      A melodies_lib.MonophonicMelody event value.
     """
     # Repeat 1 bar ago.
     if class_index == self.note_range + 3:
