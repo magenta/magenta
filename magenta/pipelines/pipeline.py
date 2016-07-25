@@ -165,14 +165,34 @@ def run_pipeline_serial(pipeline, input_iterator, output_dir):
   by the pipeline. pipeline.transform is called on each input and the
   results are aggregated into their correct datasets.
 
+  The output type or types given by `pipeline.output_type` must be protocol
+  buffers or objects that have a SerializeToString method.
+
   Args:
-    pipeline: A Pipeline instance.
+    pipeline: A Pipeline instance. `pipeline.output_type` must be a protocol
+        buffer or a dictionary mapping names to protocol buffers.
     input_iterator: Iterates over the input data. Items returned by it are fed
         directly into the pipeline's `transform` method.
     output_dir: Path to directory where datasets will be written. Each dataset
         is a file whose name contains the pipeline's dataset name. If the
         directory does not exist, it will be created.
+
+  Raises:
+    ValueError: If any of `pipeline`'s output types do not have a
+        SerializeToString method.
   """
+  if isinstance(pipeline.output_type, dict):
+    for name, type_ in pipeline.output_type.items():
+      if not hasattr(type_, 'SerializeToString'):
+        raise ValueError(
+            'Pipeline output "%s" does not have method SerializeToString. '
+            'Output type = %s' % (name, pipeline.output_type))
+  else:
+    if not hasattr(pipeline.output_type, 'SerializeToString'):
+      raise ValueError(
+          'Pipeline output type %s does not have method SerializeToString.'
+          % pipeline.output_type)
+
   if not tf.gfile.Exists(output_dir):
     tf.gfile.MakeDirs(output_dir)
 
