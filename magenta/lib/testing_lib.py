@@ -13,9 +13,9 @@
 # limitations under the License.
 """Tests for sequences_lib."""
 
+# internal imports
 import numpy as np
 
-# internal imports
 from google.protobuf import text_format
 from magenta.lib import sequences_lib
 
