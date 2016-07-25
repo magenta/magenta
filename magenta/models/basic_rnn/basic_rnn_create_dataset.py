@@ -18,23 +18,23 @@ Example usage:
 
   $ ./bazel-bin/magenta/models/basic_rnn/basic_rnn_create_dataset \
     --input=/tmp/note_sequences.tfrecord \
-    --train_output=/tmp/basic_rnn/training_melodies.tfrecord \
-    --eval_output=/tmp/basic_rnn/eval_melodies.tfrecord \
+    --output_dir=/tmp/basic_rnn \
     --eval_ratio=0.10
 
 See /magenta/models/shared/melody_rnn_create_dataset.py for flag descriptions.
 """
 
+
 # internal imports
-import basic_rnn_encoder_decoder
 import tensorflow as tf
 
+from magenta.models.basic_rnn import basic_rnn_encoder_decoder
 from magenta.models.shared import melody_rnn_create_dataset
 
 
 def main(unused_argv):
-  melody_encoder_decoder = basic_rnn_encoder_decoder.MelodyEncoderDecoder()
-  melody_rnn_create_dataset.run(melody_encoder_decoder)
+  melody_rnn_create_dataset.run_from_flags(
+      basic_rnn_encoder_decoder.MelodyEncoderDecoder())
 
 
 if __name__ == '__main__':

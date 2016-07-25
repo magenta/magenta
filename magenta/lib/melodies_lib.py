@@ -13,7 +13,7 @@
 # limitations under the License.
 """Utility functions for working with melodies.
 
-Use Melody.extract_melodies to extract monophonic melodies from a NoteSequence
+Use extract_melodies to extract monophonic melodies from a NoteSequence
 proto.
 
 Use Melody.to_sequence to write a melody to a NoteSequence proto. Then use
@@ -31,10 +31,10 @@ event sampled from the softmax output by the model.
 """
 
 import abc
-import math
 
 # internal imports
 import numpy as np
+from six.moves import range  # pylint: disable=redefined-builtin
 import tensorflow as tf
 
 from magenta.lib import sequence_example_lib
@@ -50,23 +50,14 @@ NO_EVENT = -2
 MIN_MIDI_PITCH = 0  # Inclusive.
 MAX_MIDI_PITCH = 127  # Inclusive.
 NOTES_PER_OCTAVE = 12
+QUARTER_NOTES_PER_WHOLE_NOTE = 4.0
 DEFAULT_BEATS_PER_MINUTE = 120.0
-BEATS_PER_BAR = 4  # This code assumes 4 beats per measure of music.
+DEFAULT_STEPS_PER_BAR = 16  # 4/4 music sampled at 4 steps per beat.
+DEFAULT_STEPS_PER_BEAT = 4
 
 # Standard pulses per quarter.
 # https://en.wikipedia.org/wiki/Pulses_per_quarter_note
 STANDARD_PPQ = 96
-
-# Set the quantization cutoff.
-# Note events before this cutoff are rounded down to nearest step. Notes
-# above this cutoff are rounded up to nearest step. The cutoff is given as a
-# fraction of a step.
-# For example, with quantize_cutoff = 0.75 using 0-based indexing,
-# if .75 < event <= 1.75, it will be quantized to step 1.
-# If 1.75 < event <= 2.75 it will be quantized to step 2.
-# A number close to 1.0 gives less wiggle room for notes that start early,
-# and they will be snapped to the previous step.
-QUANTIZE_CUTOFF = 0.75
 
 # NOTE_KEYS[note] = The major keys that note belongs to.
 # ex. NOTE_KEYS[0] lists all the major keys that contain the note C,
@@ -104,7 +95,12 @@ NOTE_KEYS = [
     [1, 3, 4, 6, 8, 9, 11],
     [0, 2, 4, 5, 7, 9, 10],
     [1, 3, 5, 6, 8, 10, 11],
-    [0, 2, 4, 6, 7, 9, 11]]
+    [0, 2, 4, 6, 7, 9, 11]
+]
+
+
+class NonIntegerStepsPerBarException(Exception):
+  pass
 
 
 class PolyphonicMelodyException(Exception):
@@ -115,18 +111,18 @@ class BadNoteException(Exception):
   pass
 
 
-class Melody(object):
+class MonophonicMelody(object):
   """Stores a quantized stream of monophonic melody events.
 
-  Melody is an intermediate representation that all melody models
+  MonophonicMelody is an intermediate representation that all melody models
   can use. NoteSequence proto to melody code will do work to align notes
   and extract monophonic melodies. Model specific code just needs to
-  convert Melody to SequenceExample protos for TensorFlow.
+  convert MonophonicMelody to SequenceExample protos for TensorFlow.
 
-  Melody implements an iterable object. Simply iterate to retrieve
+  MonophonicMelody implements an iterable object. Simply iterate to retrieve
   the melody events.
 
-  Melody events are integers in range [-2, 127] (inclusive),
+  MonophonicMelody events are integers in range [-2, 127] (inclusive),
   where negative values are the special event events: NOTE_OFF, and NO_EVENT.
   Non-negative values [0, 127] are note-on events for that midi pitch. A note
   starts at a non-negative value (that is the pitch), and is held through
@@ -143,8 +139,8 @@ class Melody(object):
   the bar containing the first note-on event is the first bar.
 
   Attributes:
-    events: A python list of melody events which are integers. Melody events are
-        described above.
+    events: A python list of melody events which are integers. MonophonicMelody
+        events are described above.
     offset: When quantizing notes, this is the offset between indices in
         `events` and time steps of incoming melody events. An offset is chosen
         such that the first melody event is close to the beginning of `events`.
@@ -156,23 +152,21 @@ class Melody(object):
         _write_all_notes was called.
   """
 
-  def __init__(self, steps_per_bar=16):
-    """Construct an empty Melody.
-
-    Args:
-      steps_per_bar: How many time steps per bar of music. Melody needs to know
-          about bars to skip empty bars before the first note.
+  def __init__(self):
+    """Construct an empty MonophonicMelody.
     """
+    self._reset()
+
+  def _reset(self):
+    """Clear `events` and reset object state."""
     self.events = []
-    self.offset = 0
-    self.steps_per_bar = steps_per_bar
-    self.last_on = None  # Index of the last note-on event in `events`.
-    # last_off is the index of the NOTE_OFF event belonging to the most
-    # recently added note.
-    self.last_off = None
+    self.steps_per_bar = DEFAULT_STEPS_PER_BAR
+    self.steps_per_beat = DEFAULT_STEPS_PER_BEAT
+    self.start_step = 0
+    self.end_step = 0
 
   def __iter__(self):
-    """Return an iterator over the events in this Melody.
+    """Return an iterator over the events in this MonophonicMelody.
 
     Returns:
       Python iterator over events.
@@ -180,36 +174,28 @@ class Melody(object):
     return iter(self.events)
 
   def __len__(self):
-    """How many events are in this Melody.
+    """How many events are in this MonophonicMelody.
 
     Returns:
       Number of events as an int.
     """
     return len(self.events)
 
-  def _can_add_note(self, start_step):
-    """Check if a note-on event can be added at the given time step.
-
-    Note-on events cannot be added at the same time as or before previous
-    note-on events.
-
-    Args:
-      start_step: Time step of the note-on that we wish to add. This is
-          a non-negative integer.
-
-    Returns:
-      True if `start_step` is after all previous note-on events.
-    """
-    return self.last_on is None or start_step - self.offset > self.last_on
+  def __eq__(self, other):
+    if not isinstance(other, MonophonicMelody):
+      return False
+    return (self.events == other.events and
+            self.steps_per_bar == other.steps_per_bar and
+            self.start_step == other.start_step and
+            self.end_step == other.end_step)
 
   def _add_note(self, pitch, start_step, end_step):
-    """Adds the given note to the stream.
+    """Adds the given note to the `events` list.
 
-    The previous note's end step will be changed to end before this note if
-    there is overlap.
-
-    The note is not added if `start_step` is before the start step of the
-    previously added note, or if `start_step` equals `end_step`.
+    `start_step` is set to the given pitch. `end_step` is set to NOTE_OFF.
+    Everything after `start_step` in `events` is deleted before the note is
+    added. `events`'s length will be changed so that the last event has index
+    `end_step`.
 
     Args:
       pitch: Midi pitch. An integer between 0 and 127 inclusive.
@@ -217,64 +203,42 @@ class Melody(object):
       end_step: An integer step that the note ends on. The note is considered to
           end at the onset of the end step. `end_step` must be greater than
           `start_step`.
-    """
-    if not self._can_add_note(start_step):
-      raise BadNoteException(
-          'Given start step %d is before last on event at %d'
-          % (start_step, self.last_on))
-
-    if start_step == end_step:
-      raise BadNoteException('Given start step and end step are the same: %d'
-                             % start_step)
-
-    if not self.events:
-      self.offset = start_step - start_step % self.steps_per_bar
-
-    start_step_offset = start_step - self.offset
-    end_step_offset = end_step - self.offset
-    self.events += [NO_EVENT] * (start_step_offset - len(self.events) + 1)
-    self.events[start_step_offset] = pitch
-    if self.last_off is not None and self.last_off < start_step_offset:
-      self.events[self.last_off] = NOTE_OFF
-    self.last_on = start_step_offset
-    self.last_off = end_step_offset
-
-  def _write_all_notes(self):
-    """Write remaining note off event to `events`.
-
-    This internal method makes sure that all notes being temporarily stored in
-    other instance variables, namely self.last_on and self.last_off, are
-    written to self.events. __iter__ and __len__ will only return what is in
-    self.events, so all notes must be written there after operating on the
-    events in this instance.
-    """
-    self.events += [NO_EVENT] * (self.last_off - len(self.events) + 1)
-    self.events[self.last_off] = NOTE_OFF
-    self.last_on = None
-    self.last_off = None
-
-  def _clear(self):
-    """Clear `events` and last note-on/off information."""
-    self.events = []
-    self.last_on = None
-    self.last_off = None
-
-  def _distance_to_last_event(self, step):
-    """Returns distance of the given step to the last off event.
-
-    Args:
-      step: Step to compute the distance to.
-
-    Returns:
-      Distance between step and last off event. 0 if events are the same.
-      Negative if step comes before the last off event.
 
     Raises:
-      ValueError: When the stream is empty.
+      BadNoteException: If `start_step` does not precede `end_step`.
     """
-    if self.last_off is None:
-      raise ValueError('No events in the stream')
-    return step - self.offset - self.last_off
+    if start_step >= end_step:
+      raise BadNoteException(
+          'Start step does not precede end step: start=%d, end=%d' %
+          (start_step, end_step))
+
+    if len(self.events) < end_step + 1:
+      self.events += [NO_EVENT] * (end_step + 1 - len(self.events))
+    elif len(self.events) > end_step + 1:
+      del self.events[end_step + 1:]
+
+    self.events[start_step] = pitch
+    self.events[end_step] = NOTE_OFF
+    for i in range(start_step + 1, end_step):
+      self.events[i] = NO_EVENT
+
+  def _get_last_on_off_events(self):
+    """Returns indexes of the most recent pitch and NOTE_OFF events.
+
+    Returns:
+      A tuple (start_step, end_step) of the last note's on and off event
+          indices.
+
+    Raises:
+      ValueError: If `events` contains no NOTE_OFF or pitch events.
+    """
+    last_off = len(self.events)
+    for i in range(len(self.events) - 1, -1, -1):
+      if self.events[i] == NOTE_OFF:
+        last_off = i
+      if self.events[i] >= MIN_MIDI_PITCH:
+        return (i, last_off)
+    raise ValueError('No events in the stream')
 
   def get_note_histogram(self):
     """Gets a histogram of the note occurrences in a melody.
@@ -285,9 +249,9 @@ class Melody(object):
       the melody.
     """
     np_melody = np.array(self.events, dtype=int)
-    return np.bincount(
-        np_melody[np_melody >= MIN_MIDI_PITCH] % NOTES_PER_OCTAVE,
-        minlength=NOTES_PER_OCTAVE)
+    return np.bincount(np_melody[np_melody >= MIN_MIDI_PITCH] %
+                       NOTES_PER_OCTAVE,
+                       minlength=NOTES_PER_OCTAVE)
 
   def get_major_key_histogram(self):
     """Gets a histogram of the how many notes fit into each key.
@@ -315,90 +279,133 @@ class Melody(object):
     key_histogram = self.get_major_key_histogram()
     return key_histogram.argmax()
 
-  def from_notes(self, notes, bpm=120.0, gap=16, ignore_polyphonic_notes=False):
-    """Populate self with an iterable of music_pb2.NoteSequence.Note.
+  def from_quantized_sequence(self,
+                              quantized_sequence,
+                              start_step=0,
+                              track=0,
+                              gap_bars=1,
+                              ignore_polyphonic_notes=False):
+    """Populate self with a melody from the given QuantizedSequence object.
 
-    BEATS_PER_BAR/4 time signature is assumed.
+    A monophonic melody is extracted from the given `track` starting at time
+    step `start_step`. `track` and `start_step` can be used to drive extraction
+    of multiple melodies from the same QuantizedSequence. The end step of the
+    extracted melody will be stored in `self.end_step`.
 
-    The given list of notes is quantized according to the given beats per minute
-    and populated into self. Any existing notes in the instance are cleared.
+    0 velocity notes are ignored. The melody extraction is ended when there are
+    no held notes for a time stretch of `gap_bars` in bars (measures) of music.
+    The number of time steps per bar is computed from the time signature in
+    `quantized_sequence`.
 
-    0 velocity notes are ignored. The melody is ended when there is a gap of
-    `gap` steps or more after a note.
-
-    If note-on events occur at the same step, this melody is cleared and an
-    exception is thrown.
+    `ignore_polyphonic_notes` determines what happens when polyphonic (multiple
+    notes start at the same time) data is encountered. If
+    `ignore_polyphonic_notes` is true, the highest pitch is used in the melody
+    when multiple notes start at the same time. If false, an exception is
+    raised.
 
     Args:
-      notes: Iterable of music_pb2.NoteSequence.Note
-      bpm: Beats per minute. This determines the quantization step size in
-          seconds. Beats are subdivided according to `steps_per_bar` given to
-          the constructor.
-      gap: If this many steps or more follow a note, the melody is ended.
-      ignore_polyphonic_notes: If False, and multiple notes occur within the
-          same melody step, a PolyphonicMelodyException will be raised. If true,
-          only one of the notes occurring in the same step will be used. The
-          note used will be the note with the earlier NoteSequence `start_time`.
-          If both notes have the same `start_time`, the note with the higher
-          pitch is used, since melodies usually follow the top voicing when
-          played alongside chords.
+      quantized_sequence: A sequences_lib.QuantizedSequence instance.
+      start_step: Start searching for a melody at this time step.
+      track: Search for a melody in this track number.
+      gap_bars: If this many bars or more follow a NOTE_OFF event, the melody
+          is ended.
+      ignore_polyphonic_notes: If True, the highest pitch is used in the melody
+          when multiple notes start at the same time. If False,
+          PolyphonicMelodyException will be raised if multiple notes start at
+          the same time.
 
     Raises:
-      PolyphonicMelodyException: If any of the notes start on the same step when
-      quantized and ignore_polyphonic_notes is False.
+      NonIntegerStepsPerBarException: If `quantized_sequence`'s bar length
+          (derived from its time signature) is not an integer number of time
+          steps.
+      PolyphonicMelodyException: If any of the notes start on the same step
+          and `ignore_polyphonic_notes` is False.
     """
-    self._clear()
+    self._reset()
 
-    # Compute quantization steps per second.
-    steps_per_second = bpm / 60.0 * self.steps_per_bar / BEATS_PER_BAR
-
-    quantize = lambda x: int(math.ceil(x - QUANTIZE_CUTOFF))
+    offset = None
+    steps_per_bar_float = (
+        quantized_sequence.steps_per_beat *
+        quantized_sequence.time_signature.numerator *
+        QUARTER_NOTES_PER_WHOLE_NOTE /
+        quantized_sequence.time_signature.denominator)
+    if steps_per_bar_float % 1 != 0:
+      raise NonIntegerStepsPerBarException(
+          'There are %f timesteps per bar. Time signature: %d/%d' %
+          (steps_per_bar_float, quantized_sequence.time_signature.numerator,
+           quantized_sequence.time_signature.denominator))
+    self.steps_per_bar = steps_per_bar = int(steps_per_bar_float)
+    self.steps_per_beat = quantized_sequence.steps_per_beat
 
     # Sort track by note start times, and secondarily by pitch descending.
-    notes.sort(key=lambda note: (note.start_time, -note.pitch))
+    notes = sorted(quantized_sequence.tracks[track],
+                   key=lambda note: (note.start, -note.pitch))
+
     for note in notes:
+      if note.start < start_step:
+        continue
+
       # Ignore 0 velocity notes.
       if not note.velocity:
         continue
 
-      # Quantize the start and end times of the note.
-      start_step = quantize(note.start_time * steps_per_second)
-      end_step = quantize(note.end_time * steps_per_second)
-      if end_step <= start_step:
-        end_step = start_step + 1
+      if offset is None:
+        offset = note.start - note.start % steps_per_bar
 
-      # Do not allow notes to start in negative time.
-      if start_step < 0:
-        raise BadNoteException(
-            'Got negative note time: start_time = %s, end_time = %s'
-            % (note.start_time, note.end_time))
+      start_index = note.start - offset
+      end_index = note.end - offset
+
+      if not self.events:
+        # If there are no events, we don't need to check for polyphony.
+        self._add_note(note.pitch, start_index, end_index)
+        continue
 
       # If start_step comes before or lands on an already added note's start
-      # step, we cannot add it. Discard the melody because it is not monophonic.
-      if not self._can_add_note(start_step):
+      # step, we cannot add it. In that case either discard the melody or keep
+      # the highest pitch.
+      last_on, last_off = self._get_last_on_off_events()
+      on_distance = start_index - last_on
+      off_distance = start_index - last_off
+      if on_distance == 0:
         if ignore_polyphonic_notes:
+          # Keep highest note.
+          # Notes are sorted by pitch descending, so if a note is already at
+          # this position its the highest pitch.
           continue
         else:
-          self._clear()
+          self._reset()
           raise PolyphonicMelodyException()
+      elif on_distance < 0:
+        raise PolyphonicMelodyException(
+            'Unexpected note. Not in ascending order.')
 
       # If a gap of `gap` or more steps is found, end the melody.
-      if (len(self) and
-          self._distance_to_last_event(start_step) >= gap):
+      if len(self) and off_distance >= gap_bars * steps_per_bar:
         break
 
       # Add the note-on and off events to the melody.
-      self._add_note(note.pitch, start_step, end_step)
+      self._add_note(note.pitch, start_index, end_index)
 
-    self._write_all_notes()
+    if not self.events:
+      # If no notes were added, don't set `start_step` and `end_step`.
+      return
+
+    self.start_step = offset
+
+    # Round up end_step to a multiple of steps_per_bar
+    self.end_step = len(self.events) + offset + (-len(self.events) %
+                                                 steps_per_bar)
 
   def from_event_list(self, events):
     """Populate self with a list of event values."""
     self.events = list(events)
 
-  def to_sequence(self, velocity=100, instrument=0, sequence_start_time=0.0,
+  def to_sequence(self,
+                  velocity=100,
+                  instrument=0,
+                  sequence_start_time=0.0,
                   bpm=120.0):
-    """Converts the Melody to Sequence proto.
+    """Converts the MonophonicMelody to Sequence proto.
 
     Args:
       velocity: Midi velocity to give each note. Between 1 and 127 (inclusive).
@@ -410,7 +417,7 @@ class Melody(object):
     Returns:
       A NoteSequence proto encoding the given melody.
     """
-    seconds_per_step = 60.0 / bpm * BEATS_PER_BAR / self.steps_per_bar
+    seconds_per_step = 60.0 / bpm / self.steps_per_beat
 
     sequence = music_pb2.NoteSequence()
     sequence.tempos.add().bpm = bpm
@@ -469,7 +476,7 @@ class Melody(object):
                             (self.events[i] - max_note) % NOTES_PER_OCTAVE)
 
   def squash(self, min_note, max_note, transpose_to_key):
-    """Transpose and octave shift the notes in this Melody.
+    """Transpose and octave shift the notes in this MonophonicMelody.
 
     The key center of this melody is computed with a heuristic, and the notes
     are transposed to be in the given key. The melody is also octave shifted
@@ -503,21 +510,21 @@ class Melody(object):
     return transpose_amount
 
 
-def extract_melodies(sequence, steps_per_beat=4, min_bars=7,
-                     min_unique_pitches=5):
-  """Extracts a list of melodies from the given NoteSequence proto.
+def extract_melodies(quantized_sequence,
+                     min_bars=7,
+                     gap_bars=1.0,
+                     min_unique_pitches=5,
+                     ignore_polyphonic_notes=True):
+  """Extracts a list of melodies from the given QuantizedSequence object.
 
-  A time signature of BEATS_PER_BAR is assumed for each sequence. If the
-  sequence has an incompatible time signature, like 3/4, 5/4, etc, then
-  the time signature is ignored and BEATS_PER_BAR/4 time is assumed.
+  This function will search through `quantized_sequence` for monophonic
+  melodies in every track at every time step.
 
-  Once a note-on event in a track is encountered, a melody begins. Once a
-  gap of silence since the last note-off event of a bar length or more is
-  encountered, or the end of the track is reached, that melody is ended. Only
-  the first melody of each track is used (this reduces the number of repeated
-  melodies that may come from repeated choruses or verses, but may also cause
-  unique non-first melodies, such as bridges and outros, to be missed, so maybe
-  this should be changed).
+  Once a note-on event in a track is encountered, a melody begins.
+  Gaps of silence in each track will be splitting points that divide the
+  track into seperate melodies. The minimum size of these gaps are given
+  in `gap_bars`. The size of a bar (measure) of music in time steps is
+  computed from the time signature stored in `quantized_sequence`.
 
   The melody is then checked for validity. The melody is only used if it is
   at least `min_bars` bars long, and has at least `min_unique_pitches` unique
@@ -528,56 +535,61 @@ def extract_melodies(sequence, steps_per_beat=4, min_bars=7,
   valid melodies is returned.
 
   Args:
-    sequence: A NoteSequence proto containing notes.
-    steps_per_beat: How many subdivisions of each beat. BEATS_PER_BAR/4 time is
-        assumed, so steps per bar is equal to
-        `BEATS_PER_BAR` * `steps_per_beat`.
+    quantized_sequence: A sequences_lib.QuantizedSequence object.
     min_bars: Minimum length of melodies in number of bars. Shorter melodies are
         discarded.
+    gap_bars: A melody comes to an end when this number of bars (measures) of
+        silence is encountered.
     min_unique_pitches: Minimum number of unique notes with octave equivalence.
         Melodies with too few unique notes are discarded.
+    ignore_polyphonic_notes: If True, melodies will be extracted from
+      `quantized_sequence` tracks that contain polyphony (notes start at
+      the same time). If False, tracks with polyphony will be ignored.
 
   Returns:
-    A python list of Melody instances.
+    A python list of MonophonicMelody instances.
   """
-
-  # Assume bars contain 4 beats, or quarter notes.
-  steps_per_bar = steps_per_beat * 4
-
-  # Beats per minute is stored in the tempo change event. If there is no tempo
-  # then assume 120 bpm per the MIDI standard.
-  bpm = (sequence.tempos[0].bpm if len(sequence.tempos)
-         else DEFAULT_BEATS_PER_MINUTE)
-
-  # Group note messages into tracks.
-  tracks = {}
-  for note in sequence.notes:
-    if note.instrument not in tracks:
-      tracks[note.instrument] = []
-    tracks[note.instrument].append(note)
-
+  # TODO(danabo): Convert `ignore_polyphonic_notes` into a float which controls
+  # the degree of polyphony that is acceptable.
   melodies = []
-  for track in tracks.values():
-    melody = Melody(steps_per_bar)
+  for track in quantized_sequence.tracks:
+    start = 0
 
-    # Quantize the track into a Melody object.
+    # Quantize the track into a MonophonicMelody object.
     # If any notes start at the same time, only one is kept.
-    melody.from_notes(track, bpm=bpm, gap=steps_per_bar,
-                      ignore_polyphonic_notes=True)
+    while 1:
+      melody = MonophonicMelody()
+      try:
+        melody.from_quantized_sequence(
+            quantized_sequence,
+            track=track,
+            start_step=start,
+            gap_bars=gap_bars,
+            ignore_polyphonic_notes=ignore_polyphonic_notes)
+      except PolyphonicMelodyException:
+        tf.logging.debug('Track was discarded because it contains polyphonic '
+                         'data.')
+        break  # Look for monophonic melodies in other tracks.
+      start = melody.end_step
+      if not melody:
+        break
 
-    # Require a certain melody length.
-    if len(melody) - 1 < steps_per_bar * min_bars:
-      tf.logging.debug('melody too short')
-      continue
+      # Require a certain melody length.
+      if len(melody) - 1 < melody.steps_per_bar * min_bars:
+        tf.logging.debug('Melody was discarded because it is too short.')
+        continue
 
-    # Require a certain number of unique pitches.
-    note_histogram = melody.get_note_histogram()
-    unique_pitches = np.count_nonzero(note_histogram)
-    if unique_pitches < min_unique_pitches:
-      tf.logging.debug('melody too simple')
-      continue
+      # Require a certain number of unique pitches.
+      note_histogram = melody.get_note_histogram()
+      unique_pitches = np.count_nonzero(note_histogram)
+      if unique_pitches < min_unique_pitches:
+        tf.logging.debug('Melody was discarded because it is too simple.')
+        continue
 
-    melodies.append(melody)
+      # TODO(danabo)
+      # Add filter for rhythmic diversity.
+
+      melodies.append(melody)
 
   return melodies
 

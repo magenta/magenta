@@ -13,58 +13,56 @@
 # limitations under the License.
 
 # Description:
-# Code shared by models.
+# Libraries for using TensorFlow with music and art.
 
 package(
-    default_visibility = ["//magenta/models:__subpackages__"],
+    default_visibility = ["//magenta:__subpackages__"],
 )
 
 licenses(["notice"])  # Apache 2.0
 
-py_binary(
-    name = "melody_rnn_create_dataset",
-    srcs = ["melody_rnn_create_dataset.py"],
-    srcs_version = "PY2AND3",
+py_library(
+    name = "pipeline",
+    srcs = ["pipeline.py"],
     deps = [
-        # tensorflow dep
-        "//magenta/lib:melodies_lib",
-        "//magenta/pipelines:pipeline",
-        "//magenta/pipelines:pipelines_common",
         "//magenta/protobuf:music_py_pb2",
-        # tensorflow dep
     ],
 )
 
 py_test(
-    name = "melody_rnn_create_dataset_test",
-    srcs = ["melody_rnn_create_dataset_test.py"],
+    name = "pipeline_test",
+    srcs = ["pipeline_test.py"],
+    srcs_version = "PY2AND3",
+    data = [
+        "//magenta/testdata:tfrecord_iterator_test.tfrecord",
+    ],
     deps = [
-        ":melody_rnn_create_dataset",
-        "//magenta/lib:melodies_lib",
+        ":pipeline",
         "//magenta/lib:testing_lib",
-        "//magenta/protobuf:music_py_pb2",
-        "//magenta/pipelines:pipelines_common",
         # tensorflow dep
     ],
 )
 
-py_binary(
-    name = "melody_rnn_generate",
-    srcs = ["melody_rnn_generate.py"],
-    srcs_version = "PY2AND3",
+py_library(
+    name = "pipelines_common",
+    srcs = ["pipelines_common.py"],
     deps = [
+        ":pipeline",
         "//magenta/lib:melodies_lib",
-        "//magenta/lib:midi_io",
-        # tensorflow dep
+        "//magenta/lib:sequences_lib",
+        "//magenta/protobuf:music_py_pb2",
     ],
 )
 
-py_binary(
-    name = "melody_rnn_train",
-    srcs = ["melody_rnn_train.py"],
+py_test(
+    name = "pipelines_common_test",
+    srcs = ["pipelines_common_test.py"],
     srcs_version = "PY2AND3",
     deps = [
+        ":pipelines_common",
+        "//magenta/lib:melodies_lib",
+        "//magenta/lib:sequences_lib",
+        "//magenta/lib:testing_lib",
         # tensorflow dep
     ],
 )
-

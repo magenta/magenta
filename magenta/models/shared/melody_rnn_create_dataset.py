@@ -17,58 +17,105 @@ This script will extract melodies from NoteSequence protos and save them to
 TensorFlow's SequenceExample protos for input to the melody RNN models.
 """
 
-import os
+import random
 
 # internal imports
 import tensorflow as tf
 
-from magenta.lib import sequence_to_melodies
+from magenta.lib import melodies_lib
+from magenta.pipelines import pipeline
+from magenta.pipelines import pipelines_common
+from magenta.protobuf import music_pb2
 
 
 FLAGS = tf.app.flags.FLAGS
 tf.app.flags.DEFINE_string('input', None,
                            'TFRecord to read NoteSequence protos from.')
-tf.app.flags.DEFINE_string('train_output', None,
-                           'TFRecord to write SequenceExample protos to. '
-                           'Contains training set.')
-tf.app.flags.DEFINE_string('eval_output', None,
-                           'TFRecord to write SequenceExample protos to. '
-                           'Contains eval set. No eval set is produced if '
-                           'this flag is not set.')
+tf.app.flags.DEFINE_string('output_dir', None,
+                           'Directory to write training and eval TFRecord '
+                           'files. The TFRecord files are populated with '
+                           'SequenceExample protos.')
 tf.app.flags.DEFINE_float('eval_ratio', 0.0,
                           'Fraction of input to set aside for eval set. '
                           'Partition is randomly selected.')
 
 
-def run(melody_encoder_decoder):
-  """Creates training and eval data with the given MelodyEncoderDecoder.
+class EncoderPipeline(pipeline.Pipeline):
+  """A Module that converts monophonic melodies to a model specific encoding."""
 
-  Args:
-    melody_encoder_decoder: A melodies_lib.MelodyEncoderDecoder.
+  def __init__(self, melody_encoder_decoder):
+    """Constructs a EncoderPipeline.
+
+    A melodies_lib.MelodyEncoderDecoder is needed to provide the
+    `encode` function.
+
+    Args:
+      melody_encoder_decoder: A melodies_lib.MelodyEncoderDecoder object.
+    """
+    super(EncoderPipeline, self).__init__(
+        input_type=melodies_lib.MonophonicMelody,
+        output_type=tf.train.SequenceExample)
+    self.melody_encoder_decoder = melody_encoder_decoder
+
+  def transform(self, melody):
+    encoded = self.melody_encoder_decoder.encode(melody)
+    return [encoded]
+
+  def get_stats(self):
+    return {}
+
+
+def random_partition(input_list, partition_ratio):
+  random.shuffle(input_list)
+  split_index = int(len(input_list) * partition_ratio)
+  return input_list[split_index:], input_list[:split_index]
+
+
+def map_and_flatten(input_list, func):
+  return [output
+          for single_input in input_list
+          for output in func(single_input)]
+
+
+class MelodyRNNPipeline(pipeline.Pipeline):
+  """A custom Pipeline implementation.
+
+  Converts music_pb2.NoteSequence into tf.train.SequenceExample protos for use
+  in the basic_rnn model.
   """
-  tf.logging.set_verbosity(tf.logging.INFO)
 
-  if not FLAGS.input:
-    tf.logging.fatal('--input required')
-    return
-  if not FLAGS.train_output:
-    tf.logging.fatal('--train_output required')
-    return
+  def __init__(self, melody_encoder_decoder, eval_ratio):
+    self.training_set_name = 'training_melodies'
+    self.eval_set_name = 'eval_melodies'
+    super(MelodyRNNPipeline, self).__init__(
+        input_type=music_pb2.NoteSequence,
+        output_type={self.training_set_name: tf.train.SequenceExample,
+                     self.eval_set_name: tf.train.SequenceExample})
+    self.eval_ratio = eval_ratio
+    self.quantizer = pipelines_common.Quantizer(steps_per_beat=4)
+    self.melody_extractor = pipelines_common.MonophonicMelodyExtractor(
+        min_bars=7, min_unique_pitches=5,
+        gap_bars=1.0, ignore_polyphonic_notes=False)
+    self.encoder_unit = EncoderPipeline(melody_encoder_decoder)
+    self.stats_dict = {}
 
-  FLAGS.input = os.path.expanduser(FLAGS.input)
-  FLAGS.train_output = os.path.expanduser(FLAGS.train_output)
-  if FLAGS.eval_output:
-    FLAGS.eval_output = os.path.expanduser(FLAGS.eval_output)
+  def transform(self, note_sequence):
+    intermediate_objects = self.quantizer.transform(note_sequence)
+    intermediate_objects = map_and_flatten(intermediate_objects,
+                                           self.melody_extractor.transform)
+    outputs = map_and_flatten(intermediate_objects, self.encoder_unit.transform)
+    train_set, eval_set = random_partition(outputs, self.eval_ratio)
 
-  if not os.path.exists(os.path.dirname(FLAGS.train_output)):
-    os.makedirs(os.path.dirname(FLAGS.train_output))
+    return {self.training_set_name: train_set, self.eval_set_name: eval_set}
 
-  if FLAGS.eval_output:
-    if not os.path.exists(os.path.dirname(FLAGS.eval_output)):
-      os.makedirs(os.path.dirname(FLAGS.eval_output))
+  def get_stats(self):
+    return {}
 
-  sequence_to_melodies.run_conversion(melody_encoder_decoder,
-                                      FLAGS.input,
-                                      FLAGS.train_output,
-                                      FLAGS.eval_output,
-                                      FLAGS.eval_ratio)
+
+def run_from_flags(melody_encoder_decoder):
+  pipeline_instance = MelodyRNNPipeline(
+      melody_encoder_decoder, FLAGS.eval_ratio)
+  pipeline.run_pipeline_serial(
+      pipeline_instance,
+      pipeline.tf_record_iterator(FLAGS.input, pipeline_instance.input_type),
+      FLAGS.output_dir)
