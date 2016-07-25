@@ -34,10 +34,6 @@ message GeneratorOptions {
     double start_time = 1;
     // End time for the model to fill, inclusive.
     double end_time = 2;
-    // Minimum 0-based MIDI pitch.
-    int32 min_output_pitch = 3;
-    // Maximum 0-based MIDI pitch.
-    int32 max_output_pitch = 4;
   }
 
   repeated GenerateSection generate_sections = 1;

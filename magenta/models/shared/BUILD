@@ -43,6 +43,17 @@ py_binary(
 )
 
 py_binary(
+    name = "melody_rnn_sequence_generator",
+    srcs = ["melody_rnn_sequence_generator.py"],
+    srcs_version = "PY2AND3",
+    deps = [
+        "//magenta/lib:melodies_lib",
+        "//magenta/lib:sequence_generator",
+        # tensorflow dep
+    ],
+)
+
+py_binary(
     name = "melody_rnn_train",
     srcs = ["melody_rnn_train.py"],
     srcs_version = "PY2AND3",

@@ -18,7 +18,7 @@ import abc
 # internal imports
 from magenta.protobuf import generator_pb2
 
-class BaseSequenceGenerator:
+class BaseSequenceGenerator(object):
   """Abstract class for generators.
 
   Args:
@@ -34,14 +34,20 @@ class BaseSequenceGenerator:
     self._initialized = False
 
   def get_details(self):
+    """Returns a GeneratorDetails description of this generator."""
     return self._details
 
   @abc.abstractmethod
-  def _initialize(self):
+  def _initialize(self, checkpoint_file):
     """Implementation for building the TF graph.
 
     Must be called before _generate().
     """
+    pass
+
+  @abc.abstractmethod
+  def _close(self):
+    """Implementation for closing the TF session."""
     pass
 
   @abc.abstractmethod
@@ -57,7 +63,7 @@ class BaseSequenceGenerator:
     pass
 
   def initialize(self):
-    """Builds the TF graph.
+    """Builds the TF graph and loads the checkpoint file.
 
     If the graph has already been initialized, this is a no-op.
 
@@ -65,11 +71,32 @@ class BaseSequenceGenerator:
       A boolean indicating whether the graph was initialized.
     """
     if not self._initialized:
-      self._initialize()
+      self._initialize(self._checkpoint_file)
       self._initialized = True
       return True
     else:
       return False
+
+  def close(self):
+    """Closes the TF session.
+
+    Returns:
+      A boolean indicating whether the session was closed.
+    """
+    if self._initialized:
+      self._close()
+      self._initialized = False
+      return True
+    else:
+      return False
+
+  def __enter__(self):
+    """When used as a context manager, initializes the TF session."""
+    self.initialize()
+
+  def __exit__(self):
+    """When used as a context manager, closes the TF session."""
+    self.close()
 
   def generate(self, generate_sequence_request):
     """Generates a sequence from the model based on the request.
