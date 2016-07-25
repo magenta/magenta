@@ -49,7 +49,7 @@ class MelodyEncoderDecoder(melodies_lib.MelodyEncoderDecoder):
     """Collapses a melody event value into a zero-based index range.
 
     Args:
-      melody_event: A Melody event value. -2 = no event,
+      melody_event: A MonophonicMelody event value. -2 = no event,
           -1 = note-off event, [0, 127] = note-on event for that midi pitch.
 
     Returns:
@@ -71,7 +71,7 @@ class MelodyEncoderDecoder(melodies_lib.MelodyEncoderDecoder):
           to the [self._min_note, self._max_note) range.
 
     Returns:
-      A Melody event value. -2 = no event, -1 = note-off event,
+      A MonophonicMelody event value. -2 = no event, -1 = note-off event,
       [0, 127] = note-on event for that midi pitch.
     """
     if model_event < NUM_SPECIAL_EVENTS:
@@ -87,7 +87,7 @@ class MelodyEncoderDecoder(melodies_lib.MelodyEncoderDecoder):
     [self._min_note, self._max_note) range.
 
     Args:
-      melody: A Melody object.
+      melody: A MonophonicMelody object.
 
     Returns:
       An input vector, a list of floats.
@@ -105,7 +105,7 @@ class MelodyEncoderDecoder(melodies_lib.MelodyEncoderDecoder):
     [self._min_note, self._max_note) range.
 
     Args:
-      melody: A Melody object.
+      melody: A MonophonicMelody object.
 
     Returns:
       A label, an int.
@@ -119,9 +119,10 @@ class MelodyEncoderDecoder(melodies_lib.MelodyEncoderDecoder):
 
     Args:
       class_index: An int in the range [0, self.num_classes).
-      melody: A Melody object. This object is not used in this implementation.
+      melody: A MonophonicMelody object. This object is not used in this
+          implementation.
 
     Returns:
-      A Melody event value.
+      A MonophonicMelody event value.
     """
     return self.model_event_to_melody_event(class_index)
