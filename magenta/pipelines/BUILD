@@ -22,6 +22,25 @@ package(
 licenses(["notice"])  # Apache 2.0
 
 py_library(
+    name = "dag_pipeline",
+    srcs = ["dag_pipeline.py"],
+    deps = [
+        ":pipeline",
+    ],
+)
+
+py_test(
+    name = "dag_pipeline_test",
+    srcs = ["dag_pipeline_test.py"],
+    deps = [
+        ":dag_pipeline",
+        ":pipeline",
+        ":statistics",
+        # tensorflow dep
+    ],
+)
+
+py_library(
     name = "pipeline",
     srcs = ["pipeline.py"],
     deps = [
@@ -63,6 +82,20 @@ py_test(
         "//magenta/lib:melodies_lib",
         "//magenta/lib:sequences_lib",
         "//magenta/lib:testing_lib",
+        # tensorflow dep
+    ],
+)
+
+py_library(
+    name = "statistics",
+    srcs = ["statistics.py"],
+)
+
+py_test(
+    name = "statistics_test",
+    srcs = ["statistics_test.py"],
+    deps = [
+        ":statistics",
         # tensorflow dep
     ],
 )
