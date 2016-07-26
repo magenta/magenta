@@ -22,10 +22,16 @@ from magenta.pipelines import pipeline
 
 class Output(object):
 
-  def __init__(self, name):
+  def __init__(self, name=None):
     self.name = name
     self.output_type = None
     self.input_type = None
+
+  def __eq__(self, other):
+    return isinstance(other, Output) and other.name == self.name
+
+  def __hash__(self):
+    return hash(self.name)
     
 
 class Input(object):
@@ -72,11 +78,19 @@ def cartesian_product(*input_lists):
 class DAGPipeline(pipeline.Pipeline):
   
   def __init__(self, dag):
-    self.dag = dag
-    self.outputs = [unit for unit in dag if isinstance(unit, Output)]
+    # Expand DAG shorthand. Currently the only shorthand is direct connections.
+    # A direct connection is a connection {a: b} where a.input_type is a dict
+    # and b.output_type is a dict, and a.input_type == b.output_type.
+    # {a: b} is expanded to
+    # {a: {"name_1": b["name_1"], "name_2": b["name_2"], ...}}.
+    # {Output(): {"name_1", obj1, "name_2": obj2, ...} is expanded to
+    # {Output("name_1"): obj1, Output("name_2"): obj2, ...}.
+    self.dag = dict(self._expand_dag_shorthands(dag))
+
+    self.outputs = [unit for unit in self.dag if isinstance(unit, Output)]
     self.output_names = dict([(output.name, output) for output in self.outputs])
     inputs = set()
-    for deps in dag.values():
+    for deps in self.dag.values():
       units = self._get_units(deps)
       for unit in units:
         if isinstance(unit, Input):
@@ -94,11 +108,13 @@ class DAGPipeline(pipeline.Pipeline):
     
     # TODO: Make sure DAG is valid.
     # Input types match output types. No cycles (cycles will be found below). Nothing depends on outputs. Things that require input get input.
-    # Use https://en.wikipedia.org/wiki/Tarjan%27s_strongly_connected_components_algorithm
+    for unit, dependency in self.dag.items():
+      if not self._is_valid_dependency(dependency):
+        raise ValueError('Invalid dependency %s: %s' % (unit, dependency))
     
     # Construct topological ordering.
     # https://en.wikipedia.org/wiki/Topological_sorting#Kahn.27s_algorithm
-    graph = dict([(unit, [self._get_units(dag[unit]), 0]) for unit in dag])
+    graph = dict([(unit, [self._get_units(self.dag[unit]), 0]) for unit in self.dag])
     graph[self.input] = [[], 0]
     for unit, (forward_connections, _) in graph.items():
       for to_unit in forward_connections:
@@ -120,13 +136,33 @@ class DAGPipeline(pipeline.Pipeline):
         raise Exception('Dependency loop found on %s' % unit)
     call_list.reverse()
     assert call_list[0] == self.input
+
+  def _expand_dag_shorthands(self, dag):
+    for key, val in dag.items():
+      # Direct connection.
+      if (isinstance(key, pipeline.Pipeline) and
+          isinstance(val, pipeline.Pipeline) and
+          isinstance(key.input_type, dict) and
+          key.input_type == val.output_type):
+        yield key, dict([(name, val[name]) for name in val.output_type])
+      elif key == Output():
+        if (isinstance(val, pipeline.Pipeline) and
+            isinstance(val.output_type, dict)):
+          dependencies = [(name, val[name]) for name in val.output_type]
+        elif isinstance(val, dict):
+          dependencies = val.items()
+        else:
+          raise ValueError('Output() with no name can only be connected to a dictionary or a Pipeline whose output_type is a dictionary. Found Output() connected to %s' % val)
+        for name, dep in dependencies:
+          yield Output(name), dep
+      else:
+        yield key, val
+
           
   def _get_units(self, dependencies):
     dep_list = []
     if isinstance(dependencies, dict):
       dep_list.extend(dependencies.values())
-    elif isinstance(dependencies, (tuple, list)):
-      dep_list.extend(dependencies)
     else:
       dep_list.append(dependencies)
     return [self._get_unit(punit) for punit in dep_list]
@@ -144,22 +180,12 @@ class DAGPipeline(pipeline.Pipeline):
   def _is_valid_dependency(self, dependency):
     if isinstance(dependency, dict):
       values = dependency.values()
-    elif isinstance(dependency, (tuple, list)):
-      values = dependency
     else:
       values = [dependency]
     for v in values:
       if not (isinstance(v, PipelineUnit) or (isinstance(v, pipeline.Key) and isinstance(v.unit, PipelineUnit)) or isinstance(v, Input)):
         return False
     return True
-  
-  def _type_signature(self, dependency):
-    if isinstance(dependency, dict):
-      return dict([(key, value.output_type) for (key, value) in dependency.items()])
-    elif isinstance(dependency, (tuple, list)):
-      return tuple([value.output_type for value in dependency])
-    else:
-      return dependency.output_type
   
   def transform(self, input_object):
     """Runs the pipeline on the given input.
@@ -202,7 +228,7 @@ class DAGPipeline(pipeline.Pipeline):
       assert isinstance(unit_or_key, (pipeline.Pipeline, Input))
       return outputs[unit_or_key]
     if isinstance(signature, dict):
-       return dict([(name, _get_outputs_for_key(unit_or_key, outputs)) for name, unit_or_key in signature.items()])
+      return dict([(name, _get_outputs_for_key(unit_or_key, outputs)) for name, unit_or_key in signature.items()])
     return _get_outputs_for_key(signature, outputs)
   
   def _get_inputs_for_unit(self, unit, results, list_operation=cartesian_product):
