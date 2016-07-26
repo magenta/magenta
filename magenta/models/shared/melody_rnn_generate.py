@@ -61,6 +61,8 @@ tf.app.flags.DEFINE_float('temperature', 1.0,
                           'the unaltered softmax probabilities, greater than '
                           '1.0 makes melodies more random, less than 1.0 makes '
                           'melodies less random.')
+tf.app.flags.DEFINE_int('steps_per_beat', 4,
+                        'What precision to use when quantizing the melody.')
 
 def get_hparams():
   hparams = ast.literal_eval(FLAGS.hparams if FLAGS.hparams else '{}')
@@ -71,6 +73,9 @@ def get_train_dir():
   if not FLAGS.run_dir:
     tf.logging.fatal('--run_dir required')
   return os.path.join(os.path.expanduser(FLAGS.run_dir), 'train')
+
+def get_steps_per_beat():
+  return FLAGS.steps_per_beat
 
 def run_with_flags(melody_rnn_sequence_generator):
   """Generates melodies and saves them as MIDI files.
@@ -100,9 +105,19 @@ def run_with_flags(melody_rnn_sequence_generator):
   elif FLAGS.primer_midi:
     primer_sequence = midi_io.midi_file_to_sequence_proto(FLAGS.primer_midi)
 
+  # Derive start/stop time in seconds from num_steps
+  bpm = (primer_sequence.tempos[0].bpm if priming_sequence.tempos
+         else melodies_lib.DEFAULT_BEATS_PER_MINUTE)
+  generate_seconds = FLAGS.num_steps * get_steps_per_beat() * (bpm / 60.0)
+  # Specify start/stop time for generation based on adding generate_seconds to
+  # the end of the priming sequence.
+  notes_by_end_time = sorted(primer_sequence.notes, key=lambda n: n.end_time)
+
   generate_request = generator_pb2.GenerateSequenceRequest()
   generate_request.input_sequence.CopyFrom(primer_sequence)
-  # derive start/stop from num_steps
+  generate_request.start_time = notes_by_end_time[-1].end_time + (
+      bpm / 60.0 / get_steps_per_beat())
+  generate_response.end_time = generate_request.start_time + generate_seconds
 
   date_and_time = time.strftime('%Y-%m-%d_%H%M%S')
   digits = len(str(FLAGS.num_outputs))

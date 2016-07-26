@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Generate melodies from a trained checkpoint of a melody RNN model."""
+"""Shared Melody RNN generation code in a SequenceGenerator interface."""
 
 import ast
 import os
@@ -28,8 +28,9 @@ from magenta.protobuf import generator_pb2
 
 class MelodyRnnSequenceGenerator(sequence_generator.BaseSequenceGenerator):
   def __init__(self, details, checkpoint_file, melody_encoder_decoder,
-               build_graph, hparams):
-    """
+               build_graph, steps_per_beat, hparams):
+    """Creates a MelodyRnnSequenceGenerator.
+
     Args:
       details: A generator_pb2.GeneratorDetails for this generator.
       checkpoint_file: Where to search for the most recent model checkpoint.
@@ -39,11 +40,14 @@ class MelodyRnnSequenceGenerator(sequence_generator.BaseSequenceGenerator):
           your model. The function will be passed the parameters:
           (mode, hparams_string, input_size, num_classes, sequence_example_file)
           For an example usage, see models/basic_rnn/basic_rnn_graph.py.
+      steps_per_beat: What precision to use when quantizing the melody.
+      hparams: a dict of hparams.
     """
     super(MelodyRnnSequenceGenerator, self).__init__(details, checkpoint_file)
     self._melody_encoder_decoder = melody_encoder_decoder
     self._build_graph = build_graph
     self._session = None
+    self._steps_per_beat = steps_per_beat
 
     self._hparams = hparams
     self._hparams['dropout_keep_prob'] = 1.0
@@ -73,7 +77,7 @@ class MelodyRnnSequenceGenerator(sequence_generator.BaseSequenceGenerator):
 
     quantized_sequence = sequences_lib.QuantizedSequence()
     quantized_sequence.from_note_sequence(
-        primer_sequence, melodies_lib.DEFAULT_STEPS_PER_BEAT)
+        primer_sequence, self._steps_per_beat)
     extracted_melodies = melodies_lib.extract_melodies(
         quantized_sequence, min_bars=0, min_unique_pitches=1,
         gap_bars=float('inf'), ignore_polyphonic_notes=True)
@@ -97,8 +101,14 @@ class MelodyRnnSequenceGenerator(sequence_generator.BaseSequenceGenerator):
     final_state = self._session.graph.get_collection('final_state')[0]
     softmax = self._session.graph.get_collection('softmax')[0]
 
-    # derive this from GenerateSequenceRequest
+
+    # verify only 1 generate section, throw exception otherwise
+    # verify that this ends up being the same as the num_steps flag
+    # verify that start_time is indeed the next quantized step slot
+    # document that we ignore the absolute start time
+    generate_seconds = generate_sequence_request.generator_options.
     num_steps = 128
+
     final_state_ = None
     for i in xrange(num_steps - len(melody)):
       if i == 0:

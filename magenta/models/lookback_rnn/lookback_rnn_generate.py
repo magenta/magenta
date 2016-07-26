@@ -47,6 +47,7 @@ def main(unused_argv):
       melody_rnn_generate.get_train_dir(),
       melody_encoder_decoder,
       lookback_rnn_graph.build_graph,
+      melody_rnn_generate.get_steps_per_beat(),
       melody_rnn_generate.get_hparams()) as generator:
     melody_rnn_generate.run_with_flags(generator)
 
