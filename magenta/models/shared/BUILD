@@ -55,7 +55,6 @@ py_binary(
     deps = [
         "//magenta/lib:melodies_lib",
         "//magenta/lib:midi_io",
-        "//magenta/lib:sequences_lib",
         # tensorflow dep
     ],
 )
@@ -67,6 +66,8 @@ py_binary(
     deps = [
         "//magenta/lib:melodies_lib",
         "//magenta/lib:sequence_generator",
+        "//magenta/lib:sequences_lib",
+        "//magenta/protobuf:generator_py_pb2",
         # tensorflow dep
     ],
 )

@@ -23,6 +23,8 @@ import tensorflow as tf
 
 from magenta.lib import melodies_lib
 from magenta.lib import sequence_generator
+from magenta.lib import sequences_lib
+from magenta.protobuf import generator_pb2
 
 class MelodyRnnSequenceGenerator(sequence_generator.BaseSequenceGenerator):
   def __init__(self, details, checkpoint_file, melody_encoder_decoder,
@@ -64,49 +66,56 @@ class MelodyRnnSequenceGenerator(sequence_generator.BaseSequenceGenerator):
     self._session = None
 
   def _generate(self, generate_sequence_request):
-    primer_melody = melodies_lib.MonophonicMelody()
+    melody = melodies_lib.MonophonicMelody()
     bpm = melodies_lib.DEFAULT_BEATS_PER_MINUTE
 
     primer_sequence = generate_sequence_request.input_sequence
 
+    quantized_sequence = sequences_lib.QuantizedSequence()
+    quantized_sequence.from_note_sequence(
+        primer_sequence, melodies_lib.DEFAULT_STEPS_PER_BEAT)
     extracted_melodies = melodies_lib.extract_melodies(
-        primer_sequence, min_bars=0, min_unique_pitches=1)
-    if extracted_melodies and extracted_melodies.events:
-      primer_melody = extracted_melodies[0]
-      if primer_sequence.tempos:
-        bpm = primer_sequence.tempos[0].bpm
+        quantized_sequence, min_bars=0, min_unique_pitches=1,
+        gap_bars=float('inf'), ignore_polyphonic_notes=True)
+    if extracted_melodies and extracted_melodies[0].events:
+      melody = extracted_melodies[0]
+      bpm = quantized_sequence.bpm
     else:
       tf.logging.warn('No melodies were extracted from the priming sequence. '
                       'Melodies will be generated from scratch.')
-      melody.events = [random.randint(self._melody_encoder_decoder.min_note,
-                                      self._melody_encoder_decoder.max_note)]
+      melody.events = [
+          random.randint(self._melody_encoder_decoder.min_note,
+                         self._melody_encoder_decoder.max_note)]
 
-    transpose_amount = primer_melody.squash(
-        melody_encoder_decoder.min_note, melody_encoder_decoder.max_note,
-        melody_encoder_decoder.transpose_to_key)
+    transpose_amount = melody.squash(
+        self._melody_encoder_decoder.min_note,
+        self._melody_encoder_decoder.max_note,
+        self._melody_encoder_decoder.transpose_to_key)
 
-    inputs = graph.get_collection('inputs')[0]
-    initial_state = graph.get_collection('initial_state')[0]
-    final_state = graph.get_collection('final_state')[0]
-    softmax = graph.get_collection('softmax')[0]
+    inputs = self._session.graph.get_collection('inputs')[0]
+    initial_state = self._session.graph.get_collection('initial_state')[0]
+    final_state = self._session.graph.get_collection('final_state')[0]
+    softmax = self._session.graph.get_collection('softmax')[0]
 
     # derive this from GenerateSequenceRequest
     num_steps = 128
     final_state_ = None
-    for i in xrange(num_steps - len(primer_melody)):
+    for i in xrange(num_steps - len(melody)):
       if i == 0:
-        inputs_ = melody_encoder_decoder.get_inputs_batch([melody],
-                                                          full_length=True)
+        inputs_ = self._melody_encoder_decoder.get_inputs_batch(
+            [melody], full_length=True)
         initial_state_ = self._session.run(initial_state)
       else:
-        inputs_ = melody_encoder_decoder.get_inputs_batch([melody])
+        inputs_ = self._melody_encoder_decoder.get_inputs_batch([melody])
         initial_state_ = final_state_
 
       feed_dict = {inputs: inputs_, initial_state: initial_state_}
-      final_state_, softmax_ = sess.run([final_state, softmax], feed_dict)
-      melody_encoder_decoder.extend_melodies([melody], softmax_)
+      final_state_, softmax_ = self._session.run(
+          [final_state, softmax], feed_dict)
+      self._melody_encoder_decoder.extend_melodies([melody], softmax_)
 
     melody.transpose(-transpose_amount)
 
-    generate_response = generate_pb2.GenerateSequenceResponse()
-    generate_response.generated_sequence = melody.to_sequence(bpm=bpm)
+    generate_response = generator_pb2.GenerateSequenceResponse()
+    generate_response.generated_sequence.CopyFrom(melody.to_sequence(bpm=bpm))
+    return generate_response
