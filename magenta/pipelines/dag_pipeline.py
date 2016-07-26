@@ -183,7 +183,10 @@ class DAGPipeline(pipeline.Pipeline):
     else:
       values = [dependency]
     for v in values:
-      if not (isinstance(v, PipelineUnit) or (isinstance(v, pipeline.Key) and isinstance(v.unit, PipelineUnit)) or isinstance(v, Input)):
+      if not (isinstance(v, pipeline.Pipeline) or
+              (isinstance(v, pipeline.Key) and
+               isinstance(v.unit, pipeline.Pipeline)) or
+              isinstance(v, Input)):
         return False
     return True
   
@@ -209,12 +212,19 @@ class DAGPipeline(pipeline.Pipeline):
         unit_outputs = self._get_outputs_as_signature(self.dag[unit], results)
       else:
         unit_inputs = self._get_inputs_for_unit(unit, results)
-        unit_outputs = join_lists_or_dicts([unit.transform(single_input) for single_input in unit_inputs])
+        merged_stats = {}
+        def stats_accumulator():
+          for single_input in unit_inputs:
+            results_ = unit.transform(single_input)
+            pipeline.merge_statistics_dicts(merged_stats, unit.get_stats())
+            yield results_
+
+        unit_outputs = join_lists_or_dicts(list(stats_accumulator()))
       results[unit] = unit_outputs
       
-      # get stats.
+      # Merge statistics.
       if isinstance(unit, pipeline.Pipeline):
-        for stat_name, stat_value in unit.get_stats().items():
+        for stat_name, stat_value in merged_stats.items():
           full_name = '%s_%s' % (type(unit).__name__, stat_name)
           assert full_name not in self.stats
           self.stats[full_name] = stat_value

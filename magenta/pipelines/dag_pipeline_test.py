@@ -199,24 +199,174 @@ class DAGPipelineTest(tf.test.TestCase):
 
   def testIntermediateUnequalOutputCounts(self):
     # Tests that intermediate output lists which are not the same length are handled correctly.
-    pass
 
-  def testDictionaryToDictionaryConnection(self):
+    class UnitQ(pipeline.Pipeline):
+
+      def __init__(self):
+        pipeline.Pipeline.__init__(self, Type0, {'xy': Type1, 'z': Type2})
+
+      def transform(self, input_object):
+        return {'xy': [Type1(x=input_object.x + i, y=input_object.y + i)
+                       for i in range(input_object.z)],
+                'z': [Type2(z=i) for i in [-input_object.z, input_object.z]]}
+
+    class Partitioner(pipeline.Pipeline):
+
+      def __init__(self, input_type, training_set_name, test_set_name):
+        self.training_set_name = training_set_name
+        self.test_set_name = test_set_name
+        pipeline.Pipeline.__init__(
+            self,
+            input_type,
+            {training_set_name: input_type, test_set_name: input_type})
+
+      def transform(self, input_dict):
+        input_object = Type0(input_dict['xy'].x,
+                             input_dict['xy'].y,
+                             input_dict['z'].z)
+        if input_object.x < 0:
+          return {self.training_set_name: [],
+                  self.test_set_name: [input_object]}
+        return {self.training_set_name: [input_object], self.test_set_name: []}
+
+    q = UnitQ()
+    partition = Partitioner(q.output_type, 'training_set', 'test_set')
+
+    dag = {q: dag_pipeline.Input(q.input_type),
+           partition: {'xy': q['xy'], 'z': q['z']},
+           dag_pipeline.Output('training_set'): partition['training_set'],
+           dag_pipeline.Output('test_set'): partition['test_set']}
+      
+    p = dag_pipeline.DAGPipeline(dag)
+    x, y, z = -3, 0, 8
+    output_dict = p.transform(Type0(x, y, z))
+
+    self.assertEqual(set(output_dict.keys()), set(['training_set', 'test_set']))
+    training_results = output_dict['training_set']
+    test_results = output_dict['test_set']
+
+    all_expected_results = [Type0(x + i, y + i, zed)
+                            for i in range(0, z) for zed in [-z, z]]
+    expected_training_results = [sample for sample in all_expected_results
+                                 if sample.x >= 0]
+    expected_test_results = [sample for sample in all_expected_results
+                             if sample.x < 0]
+    self.assertEqual(set(training_results), set(expected_training_results))
+    self.assertEqual(set(test_results), set(expected_test_results))
+
+  def testDirectConnection(self):
     # Tests a direct dict to dict connection in the DAG.
-    pass
+    
+    class UnitQ(pipeline.Pipeline):
 
-  def testInput(self):
-    # Tests Input object.
-    pass
+      def __init__(self):
+        pipeline.Pipeline.__init__(self, Type0, {'xy': Type1, 'z': Type2})
 
-  def testOutput(self):
-    # Tests Output object.
-    pass
+      def transform(self, input_object):
+        return {'xy': [Type1(x=input_object.x, y=input_object.y)],
+                'z': [Type2(z=input_object.z)]}
+
+    class UnitR(pipeline.Pipeline):
+
+      def __init__(self):
+        pipeline.Pipeline.__init__(self, {'xy': Type1, 'z': Type2}, Type4)
+
+      def transform(self, input_dict):
+        return [Type4(input_dict['xy'].x,
+                      input_dict['xy'].y,
+                      input_dict['z'].z)]
+
+    q, r = UnitQ(), UnitR()
+    dag = {q: dag_pipeline.Input(q.input_type),
+           r: q,
+           dag_pipeline.Output('output'): r}
+      
+    p = dag_pipeline.DAGPipeline(dag)
+    x, y, z = -3, 0, 8
+    output_dict = p.transform(Type0(x, y, z))
+
+    self.assertEqual(output_dict, {'output': [Type4(x, y, z)]})
+
+  def testOutputConnectedToDict(self):
+
+    class UnitQ(pipeline.Pipeline):
+
+      def __init__(self):
+        pipeline.Pipeline.__init__(self, Type0, {'xy': Type1, 'z': Type2})
+
+      def transform(self, input_object):
+        return {'xy': [Type1(x=input_object.x, y=input_object.y)],
+                'z': [Type2(z=input_object.z)]}
+
+    q = UnitQ()
+    dag = {q: dag_pipeline.Input(q.input_type),
+           dag_pipeline.Output(): q}
+    p = dag_pipeline.DAGPipeline(dag)
+    x, y, z = -3, 0, 8
+    output_dict = p.transform(Type0(x, y, z))
+    self.assertEqual(output_dict, {'xy': [Type1(x, y)], 'z': [Type2(z)]})
+
+    dag = {q: dag_pipeline.Input(q.input_type),
+           dag_pipeline.Output(): {'xy': q['xy'], 'z': q['z']}}
+    p = dag_pipeline.DAGPipeline(dag)
+    x, y, z = -3, 0, 8
+    output_dict = p.transform(Type0(x, y, z))
+    self.assertEqual(output_dict, {'xy': [Type1(x, y)], 'z': [Type2(z)]})
 
   def testStatistics(self):
-    pass
+    
+    class UnitQ(pipeline.Pipeline):
+
+      def __init__(self):
+        pipeline.Pipeline.__init__(self, Type0, Type1)
+        self.stats = {}
+
+      def transform(self, input_object):
+        self.stats = {'output_count': statistics.Counter(input_object.z)}
+        return [Type1(x=input_object.x + i, y=input_object.y + i)
+                for i in range(input_object.z)]
+
+      def get_stats(self):
+        return self.stats
+
+    class UnitR(pipeline.Pipeline):
+
+      def __init__(self):
+        pipeline.Pipeline.__init__(self, Type1, Type1)
+        self.stats = {}
+
+      def transform(self, input_object):
+        self.stats = {'input_count': statistics.Counter(1)}
+        return [input_object]
+
+      def get_stats(self):
+        return self.stats
+
+    q, r = UnitQ(), UnitR()
+    dag = {q: dag_pipeline.Input(q.input_type),
+           r: q,
+           dag_pipeline.Output('output'): r}
+    p = dag_pipeline.DAGPipeline(dag)
+    for x, y, z in [(-3, 0, 8), (1, 2, 3), (5, -5, 5)]:
+      p.transform(Type0(x, y, z))
+      stats_1 = p.get_stats()
+      stats_2 = p.get_stats()
+      self.assertEqual(stats_1, stats_2)
+      stats = stats_1
+      self.assertEqual(set(stats.keys()),
+                       set(['UnitQ_output_count', 'UnitR_input_count']))
+      self.assertTrue(isinstance(stats['UnitQ_output_count'],
+                                 statistics.Counter))
+      self.assertTrue(isinstance(stats['UnitR_input_count'],
+                                 statistics.Counter))
+      self.assertEqual(stats['UnitQ_output_count'].count, z)
+      self.assertEqual(stats['UnitR_input_count'].count, z)
 
   def testGraphCycleException(self):
+    pass
+
+  def testGraphDisconnectedException(self):
+    # This happens when outputs are not connected to inputs.
     pass
 
   def testInputTypeDoesntMatchOutputTypeException(self):

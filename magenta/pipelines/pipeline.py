@@ -23,6 +23,10 @@ import tensorflow as tf
 class Key(object):
 
   def __init__(self, unit, key, type_):
+    if not isinstance(unit.output_type, dict):
+      raise KeyError('Cannot take key %s of %s because output type %s is not a dictionary' % (key, unit, unit.output_type))
+    if key not in unit.output_type:
+      raise KeyError('Key %s is not valid for %s with output type %s' % (key, unit, unit.output_type))
     self.key = key
     self.unit = unit
     self.output_type = type_
@@ -117,6 +121,7 @@ class Pipeline(object):
       Dictionary mapping statistic name to statistic value.
     """
     return {}
+
 
 
 def merge_statistics_dicts(merge_to, merge_from):
