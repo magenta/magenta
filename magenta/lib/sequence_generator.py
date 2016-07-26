@@ -18,6 +18,10 @@ import abc
 # internal imports
 from magenta.protobuf import generator_pb2
 
+class SequenceGeneratorException(Exception):
+  """Generic exception for sequence generation errors."""
+  pass
+
 class BaseSequenceGenerator(object):
   """Abstract class for generators.
 

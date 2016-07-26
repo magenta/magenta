@@ -61,8 +61,8 @@ tf.app.flags.DEFINE_float('temperature', 1.0,
                           'the unaltered softmax probabilities, greater than '
                           '1.0 makes melodies more random, less than 1.0 makes '
                           'melodies less random.')
-tf.app.flags.DEFINE_int('steps_per_beat', 4,
-                        'What precision to use when quantizing the melody.')
+tf.app.flags.DEFINE_integer('steps_per_beat', 4,
+                            'What precision to use when quantizing the melody.')
 
 def get_hparams():
   hparams = ast.literal_eval(FLAGS.hparams if FLAGS.hparams else '{}')
@@ -106,18 +106,27 @@ def run_with_flags(melody_rnn_sequence_generator):
     primer_sequence = midi_io.midi_file_to_sequence_proto(FLAGS.primer_midi)
 
   # Derive start/stop time in seconds from num_steps
-  bpm = (primer_sequence.tempos[0].bpm if priming_sequence.tempos
+  bpm = (primer_sequence.tempos[0].bpm if primer_sequence.tempos
          else melodies_lib.DEFAULT_BEATS_PER_MINUTE)
-  generate_seconds = FLAGS.num_steps * get_steps_per_beat() * (bpm / 60.0)
+  total_seconds = FLAGS.num_steps * 60.0 / bpm / get_steps_per_beat()
   # Specify start/stop time for generation based on adding generate_seconds to
   # the end of the priming sequence.
   notes_by_end_time = sorted(primer_sequence.notes, key=lambda n: n.end_time)
 
   generate_request = generator_pb2.GenerateSequenceRequest()
   generate_request.input_sequence.CopyFrom(primer_sequence)
-  generate_request.start_time = notes_by_end_time[-1].end_time + (
-      bpm / 60.0 / get_steps_per_beat())
-  generate_response.end_time = generate_request.start_time + generate_seconds
+  generate_section = generate_request.generator_options.generate_sections.add()
+  # set the start time to begin on the next step after the last note ends
+  generate_section.start_time = notes_by_end_time[-1].end_time + (
+      60.0 / bpm / get_steps_per_beat())
+  generate_section.end_time = total_seconds
+
+  if (generate_section.start_time >= generate_section.end_time):
+    tf.logging.fatal(
+        'Priming sequence is longer than the total number of steps requested: '
+        'Priming sequence length: %s, Generation length requested: %s',
+        generate_section.start_time, total_seconds)
+    return
 
   date_and_time = time.strftime('%Y-%m-%d_%H%M%S')
   digits = len(str(FLAGS.num_outputs))

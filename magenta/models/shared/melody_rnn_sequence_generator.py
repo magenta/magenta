@@ -69,21 +69,45 @@ class MelodyRnnSequenceGenerator(sequence_generator.BaseSequenceGenerator):
     self._session.close()
     self._session = None
 
-  def _generate(self, generate_sequence_request):
-    melody = melodies_lib.MonophonicMelody()
-    bpm = melodies_lib.DEFAULT_BEATS_PER_MINUTE
+  def _seconds_to_steps(self, seconds, bpm):
+    """Converts seconds to steps.
 
+    Uses the generator's steps_per_beat setting and the specified bpm.
+    """
+
+    return int(seconds * (bpm / 60.0) * self._steps_per_beat)
+
+  def _generate(self, generate_sequence_request):
+    if len(generate_sequence_request.generator_options.generate_sections) != 1:
+      raise sequence_generator.SequenceGeneratorException(
+          'Expected 1 generate_sections message, but got %s' %
+          (len(generate_sequence_request.generator_options.generate_sections)))
+
+    generate_section = (
+        generate_sequence_request.generator_options.generate_sections[0])
     primer_sequence = generate_sequence_request.input_sequence
+    bpm = (primer_sequence.tempos[0].bpm if primer_sequence.tempos
+           else melodies_lib.DEFAULT_BEATS_PER_MINUTE)
+
+    notes_by_end_time = sorted(primer_sequence.notes, key=lambda n: n.end_time)
+    if notes_by_end_time[-1].end_time > generate_section.start_time:
+      raise sequence_generator.SequenceGeneratorException(
+          'Got GenerateSection request for section that is before the end of '
+          'the NoteSequence. This model can only extend sequences. '
+          'Requested start time: %s, Final note end time: %s' %
+          (generate_section.start_time, notes_by_end_time[-1].end_time))
+
+    melody = melodies_lib.MonophonicMelody()
 
     quantized_sequence = sequences_lib.QuantizedSequence()
     quantized_sequence.from_note_sequence(
         primer_sequence, self._steps_per_beat)
+    # setting gap_bars to infinite ensures that the entire input will be used
     extracted_melodies = melodies_lib.extract_melodies(
         quantized_sequence, min_bars=0, min_unique_pitches=1,
         gap_bars=float('inf'), ignore_polyphonic_notes=True)
     if extracted_melodies and extracted_melodies[0].events:
       melody = extracted_melodies[0]
-      bpm = quantized_sequence.bpm
     else:
       tf.logging.warn('No melodies were extracted from the priming sequence. '
                       'Melodies will be generated from scratch.')
@@ -96,21 +120,19 @@ class MelodyRnnSequenceGenerator(sequence_generator.BaseSequenceGenerator):
         self._melody_encoder_decoder.max_note,
         self._melody_encoder_decoder.transpose_to_key)
 
+    start_step = self._seconds_to_steps(generate_section.start_time, bpm)
+    end_step = self._seconds_to_steps(generate_section.end_time, bpm)
+
+    # Ensure that the melody extends up to the step we want to start generating.
+    melody.set_length(start_step)
+
     inputs = self._session.graph.get_collection('inputs')[0]
     initial_state = self._session.graph.get_collection('initial_state')[0]
     final_state = self._session.graph.get_collection('final_state')[0]
     softmax = self._session.graph.get_collection('softmax')[0]
 
-
-    # verify only 1 generate section, throw exception otherwise
-    # verify that this ends up being the same as the num_steps flag
-    # verify that start_time is indeed the next quantized step slot
-    # document that we ignore the absolute start time
-    generate_seconds = generate_sequence_request.generator_options.
-    num_steps = 128
-
     final_state_ = None
-    for i in xrange(num_steps - len(melody)):
+    for i in xrange(end_step - len(melody)):
       if i == 0:
         inputs_ = self._melody_encoder_decoder.get_inputs_batch(
             [melody], full_length=True)
