@@ -26,3 +26,7 @@ class StatisticsTest(tf.test.TestCase):
 
   def testHistogram(self):
     pass
+
+
+if __name__ == '__main__':
+  tf.test.main()
