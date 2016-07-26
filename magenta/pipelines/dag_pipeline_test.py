@@ -157,7 +157,8 @@ class DAGPipelineTest(tf.test.TestCase):
         pipeline.Pipeline.__init__(self, Type0, Type1)
 
       def transform(self, input_object):
-        return [Type1(x=input_object.x + i, y=input_object.y + i) for i in range(input_object.z)]
+        return [Type1(x=input_object.x + i, y=input_object.y + i)
+                for i in range(input_object.z)]
 
     class Partitioner(pipeline.Pipeline):
 
