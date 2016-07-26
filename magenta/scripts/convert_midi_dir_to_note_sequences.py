@@ -74,10 +74,13 @@ def convert_directory(root_dir, sub_dir, sequence_writer, recursive=False):
       if recursive:
         recurse_sub_dirs.append(os.path.join(sub_dir, file_in_dir))
       continue
-    sequence = midi_io.midi_to_sequence_proto(
-        tf.gfile.FastGFile(full_file_path).read(),
-        continue_on_exception=True)
-    if sequence is None:
+    try:
+      sequence = midi_io.midi_to_sequence_proto(
+          tf.gfile.FastGFile(full_file_path).read())
+    except midi_io.MIDIConversionError as e:
+      tf.logging.warning(
+          "Could not parse MIDI file %s. It will be skipped. Error was: %s",
+          full_file_path, e)
       sequences_skipped += 1
       continue
     sequence.collection_name = os.path.basename(root_dir)
@@ -96,6 +99,8 @@ def convert_directory(root_dir, sub_dir, sequence_writer, recursive=False):
 
 
 def main(unused_argv):
+  tf.logging.set_verbosity(tf.logging.INFO)
+
   if not FLAGS.midi_dir:
     tf.logging.fatal("--midi_dir required")
     return
