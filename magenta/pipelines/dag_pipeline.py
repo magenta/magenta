@@ -222,7 +222,7 @@ class DAGPipeline(pipeline.Pipeline):
         def stats_accumulator():
           for single_input in unit_inputs:
             results_ = unit.transform(single_input)
-            pipeline.merge_statistics_dicts(merged_stats, unit.get_stats())
+            statistics.merge_statistics_dicts(merged_stats, unit.get_stats())
             yield results_
 
         unjoined_outputs = list(stats_accumulator())

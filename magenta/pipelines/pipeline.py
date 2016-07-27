@@ -19,6 +19,8 @@ import os.path
 # internal imports
 import tensorflow as tf
 
+from magenta.pipelines import statistics
+
 
 class Key(object):
 
@@ -123,15 +125,6 @@ class Pipeline(object):
     return {}
 
 
-
-def merge_statistics_dicts(merge_to, merge_from):
-  for name in merge_from:
-    if name in merge_to:
-      merge_to[name].merge_from(merge_from[name])
-    else:
-      merge_to[name] = merge_from[name]
-
-
 def file_iterator(root_dir, extension=None, recurse=True):
   """Generator that iterates over all files in the given directory.
 
@@ -232,6 +225,7 @@ def run_pipeline_serial(pipeline, input_iterator, output_dir):
 
   total_inputs = 0
   total_outputs = 0
+  stats = {}
   for input_ in input_iterator:
     total_inputs += 1
     for name, outputs in _guarantee_dict(pipeline.transform(input_),
@@ -239,6 +233,7 @@ def run_pipeline_serial(pipeline, input_iterator, output_dir):
       for output in outputs:
         writers[name].write(output.SerializeToString())
         total_outputs += 1
+    statistics.merge_statistics_dicts(stats, pipeline.get_stats())
     if total_inputs % 500 == 0:
       tf.logging.info('%d inputs. %d outputs. stats = %s', total_inputs,
                       total_outputs, pipeline.get_stats())
