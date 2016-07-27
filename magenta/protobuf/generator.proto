@@ -21,7 +21,6 @@ package tensorflow.magenta;
 import "magenta/protobuf/music.proto";
 
 // Details about a Generator.
-// Will be used to populate ListGeneratorsResponse.
 message GeneratorDetails {
   // A unique ID for the generator on this server.
   string id = 1;
@@ -29,22 +28,13 @@ message GeneratorDetails {
   string description = 2;
 }
 
-// Request to list available generators.
-message ListGeneratorsRequest {
-}
-
-// Lists available generators.
-message ListGeneratorsResponse {
-  repeated GeneratorDetails generators = 1;
-}
-
 // Options for generating a sequence.
 message GeneratorOptions {
   message GenerateSection {
     // Start time for the model to fill, inclusive.
-    double start_time = 1;
+    double start_time_seconds = 1;
     // End time for the model to fill, inclusive.
-    double end_time = 2;
+    double end_time_seconds = 2;
   }
 
   repeated GenerateSection generate_sections = 1;

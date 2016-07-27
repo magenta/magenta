@@ -148,14 +148,14 @@ def run_with_flags(melody_rnn_sequence_generator):
   # Set the start time to begin on the next step after the last note ends.
   notes_by_end_time = sorted(primer_sequence.notes, key=lambda n: n.end_time)
   last_end_time = notes_by_end_time[-1].end_time if notes_by_end_time else 0
-  generate_section.start_time = last_end_time + _steps_to_seconds(1, bpm)
-  generate_section.end_time = total_seconds
+  generate_section.start_time_seconds = last_end_time + _steps_to_seconds(1, bpm)
+  generate_section.end_time_seconds = total_seconds
 
-  if generate_section.start_time >= generate_section.end_time:
+  if generate_section.start_time_seconds >= generate_section.end_time_seconds:
     tf.logging.fatal(
         'Priming sequence is longer than the total number of steps requested: '
         'Priming sequence length: %s, Generation length requested: %s',
-        generate_section.start_time, total_seconds)
+        generate_section.start_time_seconds, total_seconds)
     return
 
   # Make the generate request num_outputs times and save the output as midi

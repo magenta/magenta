@@ -98,12 +98,12 @@ class MelodyRnnSequenceGenerator(sequence_generator.BaseSequenceGenerator):
 
     notes_by_end_time = sorted(primer_sequence.notes, key=lambda n: n.end_time)
     last_end_time = notes_by_end_time[-1].end_time if notes_by_end_time else 0
-    if last_end_time > generate_section.start_time:
+    if last_end_time > generate_section.start_time_seconds:
       raise sequence_generator.SequenceGeneratorException(
           'Got GenerateSection request for section that is before the end of '
           'the NoteSequence. This model can only extend sequences. '
           'Requested start time: %s, Final note end time: %s' %
-          (generate_section.start_time, notes_by_end_time[-1].end_time))
+          (generate_section.start_time_seconds, notes_by_end_time[-1].end_time))
 
     # Quantize the priming sequence.
     quantized_sequence = sequences_lib.QuantizedSequence()
@@ -130,8 +130,8 @@ class MelodyRnnSequenceGenerator(sequence_generator.BaseSequenceGenerator):
         self._melody_encoder_decoder.max_note,
         self._melody_encoder_decoder.transpose_to_key)
 
-    start_step = self._seconds_to_steps(generate_section.start_time, bpm)
-    end_step = self._seconds_to_steps(generate_section.end_time, bpm)
+    start_step = self._seconds_to_steps(generate_section.start_time_seconds, bpm)
+    end_step = self._seconds_to_steps(generate_section.end_time_seconds, bpm)
 
     # Ensure that the melody extends up to the step we want to start generating.
     melody.set_length(start_step)
