@@ -53,23 +53,8 @@ class Input(object):
     return 'Input(%s)' % self.output_type
 
 
-def join_lists_or_dicts(inputs):
-  if not inputs:
-    return []
-  if isinstance(inputs[0], dict):
-    concated = dict([(key, list()) for key in inputs[0].keys()])
-    for d in inputs:
-      assert isinstance(d, dict)
-      assert d.keys() == concated.keys()
-      for k, val in d.items():
-        assert isinstance(val, list)
-        concated[k] += val
-  else:
-    concated = []
-    for l in inputs:
-      assert isinstance(l, list)
-      concated += l
-  return concated
+def all_are_type(elements, target_type):
+  return all(isinstance(elem, target_type) for elem in elements)
 
 
 def cartesian_product(*input_lists):
@@ -101,6 +86,10 @@ class InvalidStatisticsException(Exception):
 
 
 class InvalidDictionaryOutput(Exception):
+  pass
+
+
+class InvalidTransformOutputException(Exception):
   pass
 
 
@@ -209,7 +198,11 @@ class DAGPipeline(pipeline.Pipeline):
         if graph[m][1] == 0:
           nodes.add(m)
         elif graph[m][1] < 0:
-          raise Exception('Bug')
+          raise Exception(
+              'congradulations, you found a bug! Please report this issue at '
+              'https://github.com/tensorflow/magenta/issues and copy/paste the '
+              'following: dag=%s, graph=%s, call_list=%s' % (self.dag, graph,
+                                                             call_list))
     # Check for cycles by checking if any edges remain.
     if set(call_list) != set(list(all_units) + self.outputs):
       raise BadConnectionException('Not all pipelines feed into an output or '
@@ -242,6 +235,20 @@ class DAGPipeline(pipeline.Pipeline):
               'connected to %s' % val)
         for name, dep in dependencies:
           yield Output(name), dep
+      elif isinstance(key, Output):
+        if isinstance(val, dict):
+          raise InvalidDictionaryOutput(
+              'Output("%s") which has name "%s" can only be connectd to a '
+              'single input, not dictionary %s. Use Output() without name '
+              'instead.' % (key.name, key.name, val))
+        if (isinstance(val, pipeline.Pipeline) and
+            isinstance(val.output_type, dict)):
+          raise InvalidDictionaryOutput(
+              'Output("%s") which has name "%s" can only be connectd to a '
+              'single input, not pipeline %s which has dictionary '
+              'output_type %s. Use Output() without name instead.'
+              % (key.name, key.name, val, val.output_type))
+        yield key, val
       else:
         yield key, val
           
@@ -296,7 +303,6 @@ class DAGPipeline(pipeline.Pipeline):
     self.stats = {}
     results = {self.input: [input_object]}
     for unit in self.call_list[1:]:
-      # TODO: assert that output types are expected.
       # Compute transformation.
 
       if isinstance(unit, Output):
@@ -311,7 +317,7 @@ class DAGPipeline(pipeline.Pipeline):
         cumulative_stats = {}
         unjoined_outputs = list(
             stats_accumulator(unit, unit_inputs, cumulative_stats))
-        unit_outputs = join_lists_or_dicts(unjoined_outputs)
+        unit_outputs = self._join_lists_or_dicts(unjoined_outputs, unit)
       results[unit] = unit_outputs
       
       # Merge statistics.
@@ -348,6 +354,44 @@ class DAGPipeline(pipeline.Pipeline):
       return [dict(zip(names, values)) for values in stack]
     else:
       return previous_outputs
+
+  def _join_lists_or_dicts(self, inputs, unit):
+    if not inputs:
+      return []
+    if isinstance(unit.output_type, dict):
+      concated = dict([(key, list()) for key in unit.output_type.keys()])
+      for d in inputs:
+        if not isinstance(d, dict):
+          raise InvalidTransformOutputException(
+              'Expected dictionary output for %s with output type %s but '
+              'instead got type %s' % (unit, unit.output_type, type(d)))
+        if set(d.keys()) != set(unit.output_type.keys()):
+          raise InvalidTransformOutputException(
+              'Got dictionary output with incorrect keys for %s. Got %s. '
+              'Expected %s' % (unit, d.keys(), unit.output_type.keys()))
+        for k, val in d.items():
+          if not isinstance(val, list):
+            raise InvalidTransformOutputException(
+                'Output from %s for key %s is not a list.' % (unit, k))
+          if not all_are_type(val, unit.output_type[k]):
+            raise InvalidTransformOutputException(
+                'Some outputs from %s for key %s are not of expected type %s. '
+                'Got types %s' % (unit, k, unit.output_type[k],
+                                  [type(inst) for inst in val]))
+          concated[k] += val
+    else:
+      concated = []
+      for l in inputs:
+        if not isinstance(l, list):
+          raise InvalidTransformOutputException(
+              'Expected list output for %s with outpu type %s but instead got '
+              'type %s' % (unit, unit.output_type, type(l)))
+        if not all_are_type(l, unit.output_type):
+          raise InvalidTransformOutputException(
+              'Some outputs from %s are not of expected type %s. Got types %s'
+              % (unit, unit.output_type, [type(inst) for inst in l]))
+        concated += l
+    return concated
 
   def get_stats(self):
     """Returns statistics about pipeline runs.

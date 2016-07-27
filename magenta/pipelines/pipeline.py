@@ -14,6 +14,7 @@
 """For running data processing pipelines."""
 
 import abc
+import inspect
 import os.path
 
 # internal imports
@@ -22,13 +23,20 @@ import tensorflow as tf
 from magenta.pipelines import statistics
 
 
+class BadTypeSignatureException(Exception):
+  pass
+
+
 class Key(object):
 
   def __init__(self, unit, key, type_):
     if not isinstance(unit.output_type, dict):
-      raise KeyError('Cannot take key %s of %s because output type %s is not a dictionary' % (key, unit, unit.output_type))
+      raise KeyError(
+          'Cannot take key %s of %s because output type %s is not a dictionary'
+          % (key, unit, unit.output_type))
     if key not in unit.output_type:
-      raise KeyError('Key %s is not valid for %s with output type %s' % (key, unit, unit.output_type))
+      raise KeyError('Key %s is not valid for %s with output type %s'
+                     % (key, unit, unit.output_type))
     self.key = key
     self.unit = unit
     self.output_type = type_
@@ -41,6 +49,21 @@ def _guarantee_dict(given, default_name):
   if not isinstance(given, dict):
     return {default_name: dict}
   return given
+
+
+def _assert_valid_type_signature(type_sig, type_sig_name):
+  if isinstance(type_sig, dict):
+    for k, val in type_sig.items():
+      if not isinstance(k, basestring):
+        raise BadTypeSignatureException(
+            '%s key %s must be a string.' % (type_sig_name, k))
+      if not inspect.isclass(val):
+        raise BadTypeSignatureException(
+            '%s %s at key %s must be a Python class.' % (type_sig_name, val, k))
+  else:
+    if not inspect.isclass(type_sig):
+      raise BadTypeSignatureException(
+          '%s %s must be a Python class.' % (type_sig_name, type_sig))
 
 
 class Pipeline(object):
@@ -61,6 +84,9 @@ class Pipeline(object):
   __metaclass__ = abc.ABCMeta
 
   def __init__(self, input_type, output_type):
+    # Make sure `input_type` and `output_type` are valid.
+    _assert_valid_type_signature(input_type, 'input_type')
+    _assert_valid_type_signature(output_type, 'output_type')
     self._input_type = input_type
     self._output_type = output_type
 

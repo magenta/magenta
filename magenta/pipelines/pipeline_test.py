@@ -160,6 +160,9 @@ class PipelineTest(tf.test.TestCase):
     with self.assertRaises(KeyError):
       _ = pipeline_inst['abc']
 
+  def testBadTypeSignatureException(self):
+    pass
+
 
 if __name__ == '__main__':
   tf.test.main()

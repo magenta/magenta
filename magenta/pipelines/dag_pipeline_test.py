@@ -15,7 +15,6 @@
 
 
 import collections
-import random
 
 # internal imports
 import tensorflow as tf
@@ -88,8 +87,13 @@ class UnitD(pipeline.Pipeline):
 
 class DAGPipelineTest(tf.test.TestCase):
 
-  def testInputAndOutputTypes(self):
-    # Tests single object and dictionaries for input_type and output_type.
+  def testDAGPipelineInputAndOutputType(self):
+    # Tests that the DAGPipeline has the correct `input_type` and
+    # `output_type` values based on the DAG given to it.
+    pass
+
+  def testSingleOutputs(self):
+    # Tests single object and dictionaries in the DAG.
     a, b, c, d = UnitA(), UnitB(), UnitC(), UnitD()
     dag = {a: dag_pipeline.Input(Type0),
            b: a['t1'],
@@ -198,7 +202,8 @@ class DAGPipelineTest(tf.test.TestCase):
     self.assertEqual(set(test_results), set(expected_test_results))
 
   def testIntermediateUnequalOutputCounts(self):
-    # Tests that intermediate output lists which are not the same length are handled correctly.
+    # Tests that intermediate output lists which are not the same length are
+    # handled correctly.
 
     class UnitQ(pipeline.Pipeline):
 
@@ -218,7 +223,7 @@ class DAGPipelineTest(tf.test.TestCase):
         pipeline.Pipeline.__init__(
             self,
             input_type,
-            {training_set_name: input_type, test_set_name: input_type})
+            {training_set_name: Type0, test_set_name: Type0})
 
       def transform(self, input_dict):
         input_object = Type0(input_dict['xy'].x,
@@ -302,6 +307,7 @@ class DAGPipelineTest(tf.test.TestCase):
     dag = {q: dag_pipeline.Input(q.input_type),
            dag_pipeline.Output(): q}
     p = dag_pipeline.DAGPipeline(dag)
+    self.assertEqual(p.output_type, {'xy': Type1, 'z': Type2})
     x, y, z = -3, 0, 8
     output_dict = p.transform(Type0(x, y, z))
     self.assertEqual(output_dict, {'xy': [Type1(x, y)], 'z': [Type2(z)]})
@@ -309,13 +315,64 @@ class DAGPipelineTest(tf.test.TestCase):
     dag = {q: dag_pipeline.Input(q.input_type),
            dag_pipeline.Output(): {'xy': q['xy'], 'z': q['z']}}
     p = dag_pipeline.DAGPipeline(dag)
+    self.assertEqual(p.output_type, {'xy': Type1, 'z': Type2})
     x, y, z = -3, 0, 8
     output_dict = p.transform(Type0(x, y, z))
     self.assertEqual(output_dict, {'xy': [Type1(x, y)], 'z': [Type2(z)]})
 
   def testNoOutputs(self):
-    # Test that empty lists or dicts as intermediate outputs don't break anything.
-    pass
+    # Test that empty lists or dicts as intermediate or final outputs don't
+    # break anything.
+
+    class UnitQ(pipeline.Pipeline):
+
+      def __init__(self):
+        pipeline.Pipeline.__init__(self, Type0, {'xy': Type1, 'z': Type2})
+
+      def transform(self, input_object):
+        return {'xy': [], 'z': []}
+
+    class UnitR(pipeline.Pipeline):
+
+      def __init__(self):
+        pipeline.Pipeline.__init__(self, {'xy': Type1, 'z': Type2}, Type4)
+
+      def transform(self, input_dict):
+        return [Type4(input_dict['xy'].x,
+                      input_dict['xy'].y,
+                      input_dict['z'].z)]
+
+    class UnitS(pipeline.Pipeline):
+
+      def __init__(self):
+        pipeline.Pipeline.__init__(self, Type0, Type1)
+
+      def transform(self, input_dict):
+        return []
+
+    q, r, s = UnitQ(), UnitR(), UnitS()
+    dag = {q: dag_pipeline.Input(Type0),
+           r: q,
+           dag_pipeline.Output('output'): r}
+    p = dag_pipeline.DAGPipeline(dag)
+    self.assertEqual(p.transform(Type0(1, 2, 3)), {'output': []})
+
+    dag = {q: dag_pipeline.Input(Type0),
+           s: dag_pipeline.Input(Type0),
+           r: {'xy': s, 'z': q['z']},
+           dag_pipeline.Output('output'): r}
+    p = dag_pipeline.DAGPipeline(dag)
+    self.assertEqual(p.transform(Type0(1, 2, 3)), {'output': []})
+
+    dag = {s: dag_pipeline.Input(Type0),
+           dag_pipeline.Output('output'): s}
+    p = dag_pipeline.DAGPipeline(dag)
+    self.assertEqual(p.transform(Type0(1, 2, 3)), {'output': []})
+
+    dag = {q: dag_pipeline.Input(Type0),
+           dag_pipeline.Output(): q}
+    p = dag_pipeline.DAGPipeline(dag)
+    self.assertEqual(p.transform(Type0(1, 2, 3)), {'xy': [], 'z': []})
 
   def testStatistics(self):
     
@@ -490,7 +547,13 @@ class DAGPipelineTest(tf.test.TestCase):
 
     q, r = UnitQ(), UnitR()
     dag = {q: dag_pipeline.Input(q.input_type),
-           dag_pipeline.Output('output'): {'a': q, 'b': r}}
+           dag_pipeline.Output(): r}
+    with self.assertRaises(dag_pipeline.NotConnectedException):
+      dag_pipeline.DAGPipeline(dag)
+
+    q, r = UnitQ(), UnitR()
+    dag = {q: dag_pipeline.Input(q.input_type),
+           dag_pipeline.Output(): {'a': q, 'b': r['b']}}
     with self.assertRaises(dag_pipeline.NotConnectedException):
       dag_pipeline.DAGPipeline(dag)
 
@@ -535,13 +598,13 @@ class DAGPipelineTest(tf.test.TestCase):
     q2 = UnitQ()
     dag = {q: dag_pipeline.Input(Type0),
            q2: dag_pipeline.Input(Type0),
-           dag_pipeline.Output('output'): {'q': q, 'q2': q2}}
+           dag_pipeline.Output(): {'q': q, 'q2': q2}}
     _ = dag_pipeline.DAGPipeline(dag)
 
     # Multiple instances with different types is not allowed.
     dag = {q: dag_pipeline.Input(Type0),
            r: dag_pipeline.Input(Type1),
-           dag_pipeline.Output('output'): {'q': q, 'r': r}}
+           dag_pipeline.Output(): {'q': q, 'r': r}}
     with self.assertRaises(dag_pipeline.BadInputOrOutputException):
       dag_pipeline.DAGPipeline(dag)
 
@@ -551,10 +614,105 @@ class DAGPipelineTest(tf.test.TestCase):
       dag_pipeline.DAGPipeline(dag)
 
   def testInvalidDictionaryOutput(self):
-    pass
+    b = UnitB()
+    dag = {b: dag_pipeline.Input(b.input_type),
+           dag_pipeline.Output(): b}
+    with self.assertRaises(dag_pipeline.InvalidDictionaryOutput):
+      dag_pipeline.DAGPipeline(dag)
 
-  def testActualOutputTypeDoesntMatchGivenOutputTypeException(self):
-    pass
+    a = UnitA()
+    dag = {a: dag_pipeline.Input(b.input_type),
+           dag_pipeline.Output('output'): a}
+    with self.assertRaises(dag_pipeline.InvalidDictionaryOutput):
+      dag_pipeline.DAGPipeline(dag)
+
+    a2 = UnitA()
+    dag = {a: dag_pipeline.Input(a.input_type),
+           a2: dag_pipeline.Input(a2.input_type),
+           dag_pipeline.Output('output'): {'t1': a['t1'], 't2': a2['t2']}}
+    with self.assertRaises(dag_pipeline.InvalidDictionaryOutput):
+      dag_pipeline.DAGPipeline(dag)
+
+  def testInvalidTransformOutputException(self):
+    # This happens when the output of a pipeline's `transform` method does not
+    # match the type signature given by the pipeline's `output_type`.
+
+    class UnitQ1(pipeline.Pipeline):
+
+      def __init__(self):
+        pipeline.Pipeline.__init__(self, Type0, Type1)
+
+      def transform(self, input_object):
+        return [Type2(1)]
+
+    class UnitQ2(pipeline.Pipeline):
+
+      def __init__(self):
+        pipeline.Pipeline.__init__(self, Type0, Type1)
+
+      def transform(self, input_object):
+        return [Type1(1, 2), Type2(1)]
+
+    class UnitQ3(pipeline.Pipeline):
+
+      def __init__(self):
+        pipeline.Pipeline.__init__(self, Type0, Type1)
+
+      def transform(self, input_object):
+        return Type1(1, 2)
+
+    class UnitR1(pipeline.Pipeline):
+
+      def __init__(self):
+        pipeline.Pipeline.__init__(self, Type0, {'xy': Type1, 'z': Type2})
+
+      def transform(self, input_object):
+        return {'xy': [Type1(1, 2)], 'z': [Type1(1, 2)]}
+
+    class UnitR2(pipeline.Pipeline):
+
+      def __init__(self):
+        pipeline.Pipeline.__init__(self, Type0, {'xy': Type1, 'z': Type2})
+
+      def transform(self, input_object):
+        return {'xy': [Type1(1, 2)]}
+
+    class UnitR3(pipeline.Pipeline):
+
+      def __init__(self):
+        pipeline.Pipeline.__init__(self, Type0, {'xy': Type1, 'z': Type2})
+
+      def transform(self, input_object):
+        return [{'xy': [Type1(1, 2)], 'z': Type2(1)}]
+
+    class UnitR4(pipeline.Pipeline):
+
+      def __init__(self):
+        pipeline.Pipeline.__init__(self, Type0, {'xy': Type1, 'z': Type2})
+
+      def transform(self, input_object):
+        return [{'xy': [Type1(1, 2), Type2(1)], 'z': [Type2(1)]}]
+
+    class UnitR5(pipeline.Pipeline):
+
+      def __init__(self):
+        pipeline.Pipeline.__init__(self, Type0, {'xy': Type1, 'z': Type2})
+
+      def transform(self, input_object):
+        return [{'xy': [Type1(1, 2), Type1(1, 3)], 'z': [Type2(1)], 'q': []}]
+
+    for pipeline_class in [UnitQ1, UnitQ2, UnitQ3,
+                           UnitR1, UnitR2, UnitR3, UnitR4, UnitR5]:
+      pipe = pipeline_class()
+      output = (
+          dag_pipeline.Output()
+          if pipeline_class.__name__.startswith('UnitR')
+          else dag_pipeline.Output('output'))
+      dag = {pipe: dag_pipeline.Input(pipe.input_type),
+             output: pipe}
+      p = dag_pipeline.DAGPipeline(dag)
+      with self.assertRaises(dag_pipeline.InvalidTransformOutputException):
+        p.transform(Type0(1, 2, 3))
 
   def testInvalidStatisticsException(self):
     class UnitQ(pipeline.Pipeline):
