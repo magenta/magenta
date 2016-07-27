@@ -48,6 +48,16 @@ def merge_statistics_dicts(merge_to, merge_from):
       merge_to[name] = merge_from[name]
 
 
+def is_valid_statistics_dict(stats_dict):
+  if not isinstance(stats_dict, dict):
+    return False
+  if [key for key in stats_dict if not isinstance(key, basestring)]:
+    return False
+  if [val for val in stats_dict.values() if not isinstance(val, Statistic)]:
+    return False
+  return True
+
+
 # https://docs.python.org/2/library/bisect.html#searching-sorted-lists
 def _find_le(a, x):
   """Find rightmost value less than or equal to x."""

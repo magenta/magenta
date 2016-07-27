@@ -41,9 +41,6 @@ class MockPipeline(pipeline.Pipeline):
             MockStringProto(input_object + '_B')],
         'dataset_2': [MockStringProto(input_object + '_C')]}
 
-  def get_stats(self):
-    return {}
-
 
 class PipelineTest(tf.test.TestCase):
 
@@ -138,6 +135,30 @@ class PipelineTest(tf.test.TestCase):
     self.assertEqual(
         set([MockStringProto(s + '_C') for s in strings]),
         set(result['dataset_2']))
+
+  def testPipelineKey(self):
+    # This happens if Key() is used on a pipeline with out a dictionary output,
+    # or the key is not in the output_type dict.
+    pipeline_inst = MockPipeline()
+    pipeline_key = pipeline_inst['dataset_1']
+    self.assertTrue(isinstance(pipeline_key, pipeline.Key))
+    self.assertEqual(pipeline_key.key, 'dataset_1')
+    self.assertEqual(pipeline_key.unit, pipeline_inst)
+    self.assertEqual(pipeline_key.output_type, MockStringProto)
+    with self.assertRaises(KeyError):
+      _ = pipeline_inst['abc']
+
+    class TestPipeline(pipeline.Pipeline):
+
+      def __init__(self):
+        super(TestPipeline, self).__init__(str, str)
+
+      def transform(self, input_object):
+        pass
+
+    pipeline_inst = TestPipeline()
+    with self.assertRaises(KeyError):
+      _ = pipeline_inst['abc']
 
 
 if __name__ == '__main__':

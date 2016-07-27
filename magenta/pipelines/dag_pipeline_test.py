@@ -366,29 +366,214 @@ class DAGPipelineTest(tf.test.TestCase):
       self.assertEqual(stats['UnitQ_output_count'].count, z)
       self.assertEqual(stats['UnitR_input_count'].count, z)
 
-  def testGraphCycleException(self):
+  def testInvalidDependencyException(self):
     pass
 
-  def testGraphDisconnectedException(self):
-    # This happens when outputs are not connected to inputs.
-    pass
+  def testTypeMismatchException(self):
+    class UnitQ(pipeline.Pipeline):
 
-  def testInputTypeDoesntMatchOutputTypeException(self):
+      def __init__(self):
+        pipeline.Pipeline.__init__(self, Type0, Type1)
+
+      def transform(self, input_object):
+        pass
+
+    class UnitR(pipeline.Pipeline):
+
+      def __init__(self):
+        pipeline.Pipeline.__init__(self, Type1, {'a': Type2, 'b': Type3})
+
+      def transform(self, input_object):
+        pass
+
+    class UnitS(pipeline.Pipeline):
+
+      def __init__(self):
+        pipeline.Pipeline.__init__(self, {'x': Type2, 'y': Type3}, Type4)
+
+      def transform(self, input_object):
+        pass
+
+    class UnitT(pipeline.Pipeline):
+
+      def __init__(self):
+        pipeline.Pipeline.__init__(self, {'x': Type2, 'y': Type5}, Type4)
+
+      def transform(self, input_object):
+        pass
+
+    q, r, s, t = UnitQ(), UnitR(), UnitS(), UnitT()
+    dag = {q: dag_pipeline.Input(Type1),
+           r: q,
+           s: r,
+           dag_pipeline.Output('output'): s}
+    with self.assertRaises(dag_pipeline.TypeMismatchException):
+      dag_pipeline.DAGPipeline(dag)
+
+    q2 = UnitQ()
+    dag = {q: dag_pipeline.Input(Type0),
+           q2: q,
+           dag_pipeline.Output('output'): q2}
+    with self.assertRaises(dag_pipeline.TypeMismatchException):
+      dag_pipeline.DAGPipeline(dag)
+
+    dag = {q: dag_pipeline.Input(Type0),
+           r: q,
+           s: {'x': r['b'], 'y': r['a']},
+           dag_pipeline.Output('output'): s}
+    with self.assertRaises(dag_pipeline.TypeMismatchException):
+      dag_pipeline.DAGPipeline(dag)
+
+    dag = {q: dag_pipeline.Input(Type0),
+           r: q,
+           t: r,
+           dag_pipeline.Output('output'): t}
+    with self.assertRaises(dag_pipeline.TypeMismatchException):
+      dag_pipeline.DAGPipeline(dag)
+
+  def testDependencyLoopException(self):
+    class UnitQ(pipeline.Pipeline):
+
+      def __init__(self):
+        pipeline.Pipeline.__init__(self, Type0, Type1)
+
+      def transform(self, input_object):
+        pass
+
+    class UnitR(pipeline.Pipeline):
+
+      def __init__(self):
+        pipeline.Pipeline.__init__(self, Type1, Type0)
+
+      def transform(self, input_object):
+        pass
+
+    class UnitS(pipeline.Pipeline):
+
+      def __init__(self):
+        pipeline.Pipeline.__init__(self, {'a': Type1, 'b': Type0}, Type1)
+
+      def transform(self, input_object):
+        pass
+
+    q, r, s = UnitQ(), UnitR(), UnitS()
+    dag = {q: dag_pipeline.Input(q.input_type),
+           s: {'a': q, 'b': r},
+           r: s,
+           dag_pipeline.Output('output'): r,
+           dag_pipeline.Output('output_2'): s}
+    with self.assertRaises(dag_pipeline.BadConnectionException):
+      dag_pipeline.DAGPipeline(dag)
+
+    dag = {s: {'a': dag_pipeline.Input(Type1), 'b': r},
+           r: s,
+           dag_pipeline.Output('output'): r}
+    with self.assertRaises(dag_pipeline.BadConnectionException):
+      dag_pipeline.DAGPipeline(dag)
+
+  def testNotConnectedException(self):
+    class UnitQ(pipeline.Pipeline):
+
+      def __init__(self):
+        pipeline.Pipeline.__init__(self, Type0, Type1)
+
+      def transform(self, input_object):
+        pass
+
+    class UnitR(pipeline.Pipeline):
+
+      def __init__(self):
+        pipeline.Pipeline.__init__(self, Type1, {'a': Type2, 'b': Type3})
+
+      def transform(self, input_object):
+        pass
+
+    q, r = UnitQ(), UnitR()
+    dag = {q: dag_pipeline.Input(q.input_type),
+           dag_pipeline.Output('output'): {'a': q, 'b': r}}
+    with self.assertRaises(dag_pipeline.NotConnectedException):
+      dag_pipeline.DAGPipeline(dag)
+
+    # Pipelines that do not output to anywhere are not allowed.
+    dag = {dag_pipeline.Output('output'): dag_pipeline.Input(q.input_type),
+           q: dag_pipeline.Input(q.input_type),
+           r: q}
+    with self.assertRaises(dag_pipeline.BadConnectionException):
+      dag_pipeline.DAGPipeline(dag)
+
+    # Pipelines which need to be executed but don't have inputs are not allowed.
+    dag = {dag_pipeline.Output('output'): dag_pipeline.Input(q.input_type),
+           r: q,
+           dag_pipeline.Output(): r}
+    with self.assertRaises(dag_pipeline.NotConnectedException):
+      dag_pipeline.DAGPipeline(dag)
+
+  def testBadInputOrOutputException(self):
+    class UnitQ(pipeline.Pipeline):
+
+      def __init__(self):
+        pipeline.Pipeline.__init__(self, Type0, Type1)
+
+      def transform(self, input_object):
+        pass
+
+    class UnitR(pipeline.Pipeline):
+
+      def __init__(self):
+        pipeline.Pipeline.__init__(self, Type1, Type0)
+
+      def transform(self, input_object):
+        pass
+
+    q, r = UnitQ(), UnitR()
+    dag = {r: q,
+           dag_pipeline.Output('output'): r}
+    with self.assertRaises(dag_pipeline.BadInputOrOutputException):
+      dag_pipeline.DAGPipeline(dag)
+
+    # Multiple instances of Input with the same type is allowed.
+    q2 = UnitQ()
+    dag = {q: dag_pipeline.Input(Type0),
+           q2: dag_pipeline.Input(Type0),
+           dag_pipeline.Output('output'): {'q': q, 'q2': q2}}
+    _ = dag_pipeline.DAGPipeline(dag)
+
+    # Multiple instances with different types is not allowed.
+    dag = {q: dag_pipeline.Input(Type0),
+           r: dag_pipeline.Input(Type1),
+           dag_pipeline.Output('output'): {'q': q, 'r': r}}
+    with self.assertRaises(dag_pipeline.BadInputOrOutputException):
+      dag_pipeline.DAGPipeline(dag)
+
+    dag = {q: dag_pipeline.Input(Type0),
+           r: q}
+    with self.assertRaises(dag_pipeline.BadInputOrOutputException):
+      dag_pipeline.DAGPipeline(dag)
+
+  def testInvalidDictionaryOutput(self):
     pass
 
   def testActualOutputTypeDoesntMatchGivenOutputTypeException(self):
     pass
 
-  def testPipelineKeyError(self):
-    # This happens if Key() is used on a pipeline with out a dictionary output, or the key is not in the output_type dict.
-    pass
+  def testInvalidStatisticsException(self):
+    class UnitQ(pipeline.Pipeline):
 
-  def testInputDictDoesntMatchOutputDictException(self):
-    # This happens in a direct connection where input_type and output_type do not match.
-    pass
+      def __init__(self):
+        pipeline.Pipeline.__init__(self, str, str)
 
-  def testInvalidStatisticException(self):
-    pass
+      def transform(self, input_object):
+        return [input_object]
+
+      def get_stats(self):
+        return {'stat_1': statistics.Counter(5), 'stat_2': 1234}
+
+    q = UnitQ()
+    dag = {q: dag_pipeline.Input(q.input_type),
+           dag_pipeline.Output('output'): q}
+    p = dag_pipeline.DAGPipeline(dag)
+    with self.assertRaises(dag_pipeline.InvalidStatisticsException):
+      p.transform('hello world')
 
 
 if __name__ == '__main__':
