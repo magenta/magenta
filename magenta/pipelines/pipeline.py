@@ -53,11 +53,11 @@ class Key(object):
     self.key = key
     self.unit = unit
     self.output_type = type_
-  
+
   def __repr__(self):
     return 'Key(%s, %s)' % (self.unit, self.key)
 
-  
+
 def _guarantee_dict(given, default_name):
   if not isinstance(given, dict):
     return {default_name: dict}

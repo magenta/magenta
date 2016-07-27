@@ -42,7 +42,7 @@ class Output(object):
 
   def __repr__(self):
     return 'Output(%s)' % self.name
-    
+
 
 class Input(object):
   """Represents an input source for a DAGPipeline.
@@ -113,7 +113,7 @@ class DAGPipeline(pipeline.Pipeline):
 
   Use DAGPipeline to compose multiple smaller pipelines together.
   """
-  
+
   def __init__(self, dag):
     # Expand DAG shorthand.
     self.dag = dict(self._expand_dag_shorthands(dag))
@@ -141,7 +141,7 @@ class DAGPipeline(pipeline.Pipeline):
           'No Output objects found. Output is the end of the pipeline.')
     self.input = inputs.pop()
     self.stats = {}
-    
+
     output_signature = dict([(output.name, output.output_type)
                              for output in self.outputs])
     super(DAGPipeline, self).__init__(
@@ -176,7 +176,7 @@ class DAGPipeline(pipeline.Pipeline):
             'side is %s. Output type of right hand side is %s.'
             % (unit, dependency, unit.input_type,
                self._get_type_signature_for_dependency(dependency)))
-    
+
     # Make sure all Pipeline objects are connected to inputs.
     all_units = set([dep_unit for unit in self.dag
                      for dep_unit in self._get_units(self.dag[unit])])
@@ -223,7 +223,7 @@ class DAGPipeline(pipeline.Pipeline):
     for unit in graph:
       if graph[unit][1] != 0:
         raise BadConnectionException('Dependency loop found on %s' % unit)
-    
+
     call_list.reverse()
     assert call_list[0] == self.input
 
@@ -271,7 +271,7 @@ class DAGPipeline(pipeline.Pipeline):
         yield key, val
       else:
         yield key, val
-          
+
   def _get_units(self, dependencies):
     dep_list = []
     if isinstance(dependencies, dict):
@@ -279,7 +279,7 @@ class DAGPipeline(pipeline.Pipeline):
     else:
       dep_list.append(dependencies)
     return [self._get_unit(punit) for punit in dep_list]
-  
+
   def _get_unit(self, possible_unit):
     if isinstance(possible_unit, pipeline.Pipeline):
       return possible_unit
@@ -295,7 +295,7 @@ class DAGPipeline(pipeline.Pipeline):
       return dependency.output_type
     return dict([(name, sub_dep.output_type)
                  for name, sub_dep in dependency.items()])
-  
+
   def transform(self, input_object):
     """Runs the pipeline on the given input.
 
@@ -339,7 +339,7 @@ class DAGPipeline(pipeline.Pipeline):
             stats_accumulator(unit, unit_inputs, cumulative_stats))
         unit_outputs = self._join_lists_or_dicts(unjoined_outputs, unit)
       results[unit] = unit_outputs
-      
+
       # Merge statistics.
       if isinstance(unit, pipeline.Pipeline):
         for stat_name, stat_value in cumulative_stats.items():
@@ -347,7 +347,7 @@ class DAGPipeline(pipeline.Pipeline):
           assert full_name not in self.stats
           self.stats[full_name] = stat_value
     return dict([(output.name, results[output]) for output in self.outputs])
-  
+
   def _get_outputs_as_signature(self, signature, outputs):
     def _get_outputs_for_key(unit_or_key, outputs):
       if isinstance(unit_or_key, pipeline.Key):
@@ -362,11 +362,11 @@ class DAGPipeline(pipeline.Pipeline):
       return dict([(name, _get_outputs_for_key(unit_or_key, outputs))
                    for name, unit_or_key in signature.items()])
     return _get_outputs_for_key(signature, outputs)
-  
+
   def _get_inputs_for_unit(self, unit, results,
                            list_operation=cartesian_product):
     previous_outputs = self._get_outputs_as_signature(self.dag[unit], results)
-    
+
     if isinstance(previous_outputs, dict):
       names = list(previous_outputs.keys())
       lists = [previous_outputs[name] for name in names]

@@ -99,7 +99,7 @@ class Histogram(Statistic):
     [0, 1): 4
     [1, 2): 2
     [2, 3): 1
-  Each range is inclusive in the lower bound and exclusive in the upper bound 
+  Each range is inclusive in the lower bound and exclusive in the upper bound
   (hence the square open bracket but curved close bracket).
   """
 
@@ -119,7 +119,7 @@ class Histogram(Statistic):
     super(Histogram, self).__init__()
 
     # List of inclusive lowest values in each bucket.
-    self.buckets = [float('-inf')] + sorted(buckets) 
+    self.buckets = [float('-inf')] + sorted(buckets)
     self.counters = dict([(bucket_lower, 0)
                           for bucket_lower in self.buckets])
 

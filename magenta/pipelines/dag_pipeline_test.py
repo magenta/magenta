@@ -123,7 +123,7 @@ class DAGPipelineTest(tf.test.TestCase):
     for input_object in inputs:
       x, y, z = input_object.x, input_object.y, input_object.z
       output_dict = p.transform(input_object)
-      
+
       self.assertEqual(output_dict.keys(), ['abcdz'])
       results = output_dict['abcdz']
       self.assertEqual(len(results), 1)
@@ -203,7 +203,7 @@ class DAGPipelineTest(tf.test.TestCase):
            partition: q,
            dag_pipeline.Output('training_set'): partition['training_set'],
            dag_pipeline.Output('test_set'): partition['test_set']}
-      
+
     p = dag_pipeline.DAGPipeline(dag)
     x, y, z = -3, 0, 8
     output_dict = p.transform(Type0(x, y, z))
@@ -257,7 +257,7 @@ class DAGPipelineTest(tf.test.TestCase):
            partition: {'xy': q['xy'], 'z': q['z']},
            dag_pipeline.Output('training_set'): partition['training_set'],
            dag_pipeline.Output('test_set'): partition['test_set']}
-      
+
     p = dag_pipeline.DAGPipeline(dag)
     x, y, z = -3, 0, 8
     output_dict = p.transform(Type0(x, y, z))
@@ -277,7 +277,7 @@ class DAGPipelineTest(tf.test.TestCase):
 
   def testDirectConnection(self):
     # Tests a direct dict to dict connection in the DAG.
-    
+
     class UnitQ(pipeline.Pipeline):
 
       def __init__(self):
@@ -301,7 +301,7 @@ class DAGPipelineTest(tf.test.TestCase):
     dag = {q: dag_pipeline.Input(q.input_type),
            r: q,
            dag_pipeline.Output('output'): r}
-      
+
     p = dag_pipeline.DAGPipeline(dag)
     x, y, z = -3, 0, 8
     output_dict = p.transform(Type0(x, y, z))
@@ -391,7 +391,7 @@ class DAGPipelineTest(tf.test.TestCase):
     self.assertEqual(p.transform(Type0(1, 2, 3)), {'xy': [], 'z': []})
 
   def testStatistics(self):
-    
+
     class UnitQ(pipeline.Pipeline):
 
       def __init__(self):
