@@ -11,7 +11,10 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Abstract class for sequence generators."""
+"""Abstract class for sequence generators.
+
+Provides a uniform interface for interacting with generators for any model.
+"""
 
 import abc
 
@@ -23,18 +26,19 @@ class SequenceGeneratorException(Exception):
   pass
 
 class BaseSequenceGenerator(object):
-  """Abstract class for generators.
-
-  Args:
-    details: A generator_pb2.GeneratorDetails for this generator.
-    checkpoint_file: Where to search for the most recent model checkpoint.
-  """
+  """Abstract class for generators."""
 
   __metaclass_ = abc.ABCMeta
 
-  def __init__(self, details, checkpoint_file):
+  def __init__(self, details, checkpoint):
+    """Constructs a BaseSequenceGenerator.
+
+    Args:
+      details: A generator_pb2.GeneratorDetails for this generator.
+      checkpoint: Where to look for the most recent model checkpoint.
+    """
     self._details = details
-    self._checkpoint_file = checkpoint_file
+    self._checkpoint = checkpoint
     self._initialized = False
 
   def get_details(self):
@@ -42,10 +46,11 @@ class BaseSequenceGenerator(object):
     return self._details
 
   @abc.abstractmethod
-  def _initialize(self, checkpoint_file):
+  def _initialize(self, checkpoint):
     """Implementation for building the TF graph.
 
-    Must be called before _generate().
+    Args:
+      checkpoint: Where to look for the most recent model checkpoint.
     """
     pass
 
@@ -58,6 +63,9 @@ class BaseSequenceGenerator(object):
   def _generate(self, generate_sequence_request):
     """Implementation for sequence generation based on request.
 
+    The implementation can assume that _initialize has been called before this
+    method is called.
+
     Args:
       generate_sequence_request: The request for generating a sequence
 
@@ -67,7 +75,7 @@ class BaseSequenceGenerator(object):
     pass
 
   def initialize(self):
-    """Builds the TF graph and loads the checkpoint file.
+    """Builds the TF graph and loads the checkpoint.
 
     If the graph has already been initialized, this is a no-op.
 
@@ -75,7 +83,7 @@ class BaseSequenceGenerator(object):
       A boolean indicating whether the graph was initialized.
     """
     if not self._initialized:
-      self._initialize(self._checkpoint_file)
+      self._initialize(self._checkpoint)
       self._initialized = True
       return True
     else:
@@ -83,6 +91,8 @@ class BaseSequenceGenerator(object):
 
   def close(self):
     """Closes the TF session.
+
+    If the session was already closed, this is a no-op.
 
     Returns:
       A boolean indicating whether the session was closed.

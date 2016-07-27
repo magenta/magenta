@@ -11,7 +11,10 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Generate melodies from a trained checkpoint of a melody RNN model."""
+"""Generate melodies from a trained checkpoint of a melody RNN model.
+
+Uses flags to define operation.
+"""
 
 import ast
 import os
@@ -65,20 +68,33 @@ tf.app.flags.DEFINE_integer('steps_per_beat', 4,
                             'What precision to use when quantizing the melody.')
 
 def get_hparams():
+  """Get the hparams dictionary to be used by the model."""
   hparams = ast.literal_eval(FLAGS.hparams if FLAGS.hparams else '{}')
   hparams['temperature'] = FLAGS.temperature
   return hparams
 
 def get_train_dir():
+  """Get the training dir to be used by the model."""
   if not FLAGS.run_dir:
     tf.logging.fatal('--run_dir required')
   return os.path.join(os.path.expanduser(FLAGS.run_dir), 'train')
 
 def get_steps_per_beat():
+  """Get the number of steps per beat."""
   return FLAGS.steps_per_beat
+
+def _steps_to_seconds(steps, bpm):
+  """Converts steps to seconds.
+
+  Uses the current flag value for steps_per_beat.
+  """
+  return steps * 60.0 / bpm / get_steps_per_beat()
 
 def run_with_flags(melody_rnn_sequence_generator):
   """Generates melodies and saves them as MIDI files.
+
+  Uses the options specified by the flags defined in this module. Intended to be
+  called from the main function of one of the melody generator modules.
 
   Args:
     melody_rnn_sequence_generator: A MelodyRnnSequenceGenerator object specific
@@ -105,20 +121,22 @@ def run_with_flags(melody_rnn_sequence_generator):
   elif FLAGS.primer_midi:
     primer_sequence = midi_io.midi_file_to_sequence_proto(FLAGS.primer_midi)
 
-  # Derive start/stop time in seconds from num_steps
+  # Derive the total number of seconds to generate based on the BPM of the
+  # priming sequence and the num_steps flag.
   bpm = (primer_sequence.tempos[0].bpm if primer_sequence.tempos
          else melodies_lib.DEFAULT_BEATS_PER_MINUTE)
-  total_seconds = FLAGS.num_steps * 60.0 / bpm / get_steps_per_beat()
-  # Specify start/stop time for generation based on adding generate_seconds to
-  # the end of the priming sequence.
-  notes_by_end_time = sorted(primer_sequence.notes, key=lambda n: n.end_time)
+  total_seconds = _steps_to_seconds(FLAGS.num_steps, bpm)
 
+  # Specify start/stop time for generation based on starting generation at the
+  # end of the priming sequence and continuing until the sequence is num_steps
+  # long.
   generate_request = generator_pb2.GenerateSequenceRequest()
   generate_request.input_sequence.CopyFrom(primer_sequence)
   generate_section = generate_request.generator_options.generate_sections.add()
-  # set the start time to begin on the next step after the last note ends
-  generate_section.start_time = notes_by_end_time[-1].end_time + (
-      60.0 / bpm / get_steps_per_beat())
+  # Set the start time to begin on the next step after the last note ends.
+  notes_by_end_time = sorted(primer_sequence.notes, key=lambda n: n.end_time)
+  last_end_time = notes_by_end_time[-1].end_time if notes_by_end_time else 0
+  generate_section.start_time = last_end_time + _steps_to_seconds(1, bpm)
   generate_section.end_time = total_seconds
 
   if (generate_section.start_time >= generate_section.end_time):
@@ -128,6 +146,8 @@ def run_with_flags(melody_rnn_sequence_generator):
         generate_section.start_time, total_seconds)
     return
 
+  # Make the generate request num_outputs times and save the output as midi
+  # files.
   date_and_time = time.strftime('%Y-%m-%d_%H%M%S')
   digits = len(str(FLAGS.num_outputs))
   for i in range(FLAGS.num_outputs):
@@ -141,8 +161,3 @@ def run_with_flags(melody_rnn_sequence_generator):
 
   tf.logging.info('Wrote %d MIDI files to %s',
                   FLAGS.num_outputs, FLAGS.output_dir)
-
-
-
-if __name__ == '__main__':
-  tf.app.run()

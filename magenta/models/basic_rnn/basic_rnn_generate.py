@@ -36,8 +36,17 @@ from magenta.models.shared import melody_rnn_generate
 
 def main(unused_argv):
   melody_encoder_decoder = basic_rnn_encoder_decoder.MelodyEncoderDecoder()
-  melody_rnn_generate.run(melody_encoder_decoder,
-                          basic_rnn_graph.build_graph)
+  details = generator_pb2.GeneratorDetails(
+      id="basic_rnn",
+      description="Basic RNN Generator")
+  with melody_rnn_sequence_generator.MelodyRnnSequenceGenerator(
+      details,
+      melody_rnn_generate.get_train_dir(),
+      melody_encoder_decoder,
+      basic_rnn_graph.build_graph,
+      melody_rnn_generate.get_steps_per_beat(),
+      melody_rnn_generate.get_hparams()) as generator:
+    melody_rnn_generate.run_with_flags(generator)
 
 
 if __name__ == '__main__':

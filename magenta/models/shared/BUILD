@@ -21,7 +21,7 @@ package(
 
 licenses(["notice"])  # Apache 2.0
 
-py_binary(
+py_library(
     name = "melody_rnn_create_dataset",
     srcs = ["melody_rnn_create_dataset.py"],
     srcs_version = "PY2AND3",
@@ -48,7 +48,7 @@ py_test(
     ],
 )
 
-py_binary(
+py_library(
     name = "melody_rnn_generate",
     srcs = ["melody_rnn_generate.py"],
     srcs_version = "PY2AND3",
@@ -59,7 +59,7 @@ py_binary(
     ],
 )
 
-py_binary(
+py_library(
     name = "melody_rnn_sequence_generator",
     srcs = ["melody_rnn_sequence_generator.py"],
     srcs_version = "PY2AND3",
@@ -72,7 +72,7 @@ py_binary(
     ],
 )
 
-py_binary(
+py_library(
     name = "melody_rnn_train",
     srcs = ["melody_rnn_train.py"],
     srcs_version = "PY2AND3",

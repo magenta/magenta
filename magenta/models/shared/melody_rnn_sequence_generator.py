@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Shared Melody RNN generation code in a SequenceGenerator interface."""
+"""Shared Melody RNN generation code as a SequenceGenerator interface."""
 
 import ast
 import os
@@ -27,13 +27,13 @@ from magenta.lib import sequences_lib
 from magenta.protobuf import generator_pb2
 
 class MelodyRnnSequenceGenerator(sequence_generator.BaseSequenceGenerator):
-  def __init__(self, details, checkpoint_file, melody_encoder_decoder,
+  def __init__(self, details, checkpoint, melody_encoder_decoder,
                build_graph, steps_per_beat, hparams):
     """Creates a MelodyRnnSequenceGenerator.
 
     Args:
       details: A generator_pb2.GeneratorDetails for this generator.
-      checkpoint_file: Where to search for the most recent model checkpoint.
+      checkpoint: Where to search for the most recent model checkpoint.
       melody_encoder_decoder: A melodies_lib.MelodyEncoderDecoder object
           specific to your model.
       build_graph: A function that when called, returns the tf.Graph object for
@@ -43,7 +43,7 @@ class MelodyRnnSequenceGenerator(sequence_generator.BaseSequenceGenerator):
       steps_per_beat: What precision to use when quantizing the melody.
       hparams: a dict of hparams.
     """
-    super(MelodyRnnSequenceGenerator, self).__init__(details, checkpoint_file)
+    super(MelodyRnnSequenceGenerator, self).__init__(details, checkpoint)
     self._melody_encoder_decoder = melody_encoder_decoder
     self._build_graph = build_graph
     self._session = None
@@ -53,7 +53,7 @@ class MelodyRnnSequenceGenerator(sequence_generator.BaseSequenceGenerator):
     self._hparams['dropout_keep_prob'] = 1.0
     self._hparams['batch_size'] = 1
 
-  def _initialize(self, checkpoint_file):
+  def _initialize(self, checkpoint):
     graph = self._build_graph('generate',
                               repr(self._hparams),
                               self._melody_encoder_decoder.input_size,
@@ -61,9 +61,9 @@ class MelodyRnnSequenceGenerator(sequence_generator.BaseSequenceGenerator):
     with graph.as_default():
       saver = tf.train.Saver()
       self._session = tf.Session()
-      checkpoint_file = tf.train.latest_checkpoint(checkpoint_file)
-      tf.logging.info('Checkpoint used: %s', checkpoint_file)
-      saver.restore(self._session, checkpoint_file)
+      checkpoint = tf.train.latest_checkpoint(checkpoint)
+      tf.logging.info('Checkpoint used: %s', checkpoint)
+      saver.restore(self._session, checkpoint)
 
   def _close(self):
     self._session.close()
@@ -80,7 +80,7 @@ class MelodyRnnSequenceGenerator(sequence_generator.BaseSequenceGenerator):
   def _generate(self, generate_sequence_request):
     if len(generate_sequence_request.generator_options.generate_sections) != 1:
       raise sequence_generator.SequenceGeneratorException(
-          'Expected 1 generate_sections message, but got %s' %
+          'This model supports only 1 generate_sections message, but got %s' %
           (len(generate_sequence_request.generator_options.generate_sections)))
 
     generate_section = (
@@ -90,27 +90,30 @@ class MelodyRnnSequenceGenerator(sequence_generator.BaseSequenceGenerator):
            else melodies_lib.DEFAULT_BEATS_PER_MINUTE)
 
     notes_by_end_time = sorted(primer_sequence.notes, key=lambda n: n.end_time)
-    if notes_by_end_time[-1].end_time > generate_section.start_time:
+    last_end_time = notes_by_end_time[-1].end_time if notes_by_end_time else 0
+    if last_end_time > generate_section.start_time:
       raise sequence_generator.SequenceGeneratorException(
           'Got GenerateSection request for section that is before the end of '
           'the NoteSequence. This model can only extend sequences. '
           'Requested start time: %s, Final note end time: %s' %
           (generate_section.start_time, notes_by_end_time[-1].end_time))
 
-    melody = melodies_lib.MonophonicMelody()
-
+    # Quantize the priming sequence.
     quantized_sequence = sequences_lib.QuantizedSequence()
     quantized_sequence.from_note_sequence(
         primer_sequence, self._steps_per_beat)
-    # setting gap_bars to infinite ensures that the entire input will be used
+    # Setting gap_bars to infinite ensures that the entire input will be used.
     extracted_melodies = melodies_lib.extract_melodies(
         quantized_sequence, min_bars=0, min_unique_pitches=1,
         gap_bars=float('inf'), ignore_polyphonic_notes=True)
+    assert len(extracted_melodies) <= 1
+
     if extracted_melodies and extracted_melodies[0].events:
       melody = extracted_melodies[0]
     else:
       tf.logging.warn('No melodies were extracted from the priming sequence. '
                       'Melodies will be generated from scratch.')
+      melody = melodies_lib.MonophonicMelody()
       melody.events = [
           random.randint(self._melody_encoder_decoder.min_note,
                          self._melody_encoder_decoder.max_note)]

@@ -20,11 +20,22 @@ package tensorflow.magenta;
 
 import "magenta/protobuf/music.proto";
 
+// Details about a Generator.
+// Will be used to populate ListGeneratorsResponse.
 message GeneratorDetails {
   // A unique ID for the generator on this server.
   string id = 1;
   // A short, human-readable description of the generator.
   string description = 2;
+}
+
+// Request to list available generators.
+message ListGeneratorsRequest {
+}
+
+// Lists available generators.
+message ListGeneratorsResponse {
+  repeated GeneratorDetails generators = 1;
 }
 
 // Options for generating a sequence.
@@ -39,13 +50,7 @@ message GeneratorOptions {
   repeated GenerateSection generate_sections = 1;
 }
 
-message ListGeneratorsRequest {
-}
-
-message ListGeneratorsResponse {
-  repeated GeneratorDetails generators = 1;
-}
-
+// Request to generate a sequence.
 message GenerateSequenceRequest {
   // An input sequence to base the generation on.
   NoteSequence input_sequence = 1;
@@ -53,9 +58,14 @@ message GenerateSequenceRequest {
   GeneratorOptions generator_options = 2;
 }
 
+// Response after generating a sequence.
 message GenerateSequenceResponse {
   // The generated sequence.
-  // This will always include the entire NoteSequence, including any notes that
-  // occurred before and after the generated portion of the sequence.
+  //
+  // This should always include the entire NoteSequence, including any notes
+  // that occurred before and after the generated portion of the sequence.
+  //
+  // If an interface wants to use only the generated portion of the sequence, it
+  // should keep track of the GenerateSection parameters it sent in the request.
   NoteSequence generated_sequence = 1;
 }
