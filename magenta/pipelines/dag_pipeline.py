@@ -422,4 +422,3 @@ class DAGPipeline(pipeline.Pipeline):
       Dictionary mapping statistic name to statistic value.
     """
     return self.stats
-    

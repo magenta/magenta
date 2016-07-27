@@ -86,9 +86,9 @@ def convert_directory(root_dir, sub_dir, sequence_writer, recursive=False):
                                                sequence.collection_name, 'midi')
     sequence_writer.write(sequence)
     sequences_written += 1
-  tf.logging.info("Converted %d MIDI files in '%s'.", sequences_written,
+  tf.logging.info('Converted %d MIDI files in \'%s\'.', sequences_written,
                   dir_to_convert)
-  tf.logging.info("Coult not parse %d MIDI files.", sequences_skipped)
+  tf.logging.info('Coult not parse %d MIDI files.', sequences_skipped)
   for recurse_sub_dir in recurse_sub_dirs:
     sequences_written += convert_directory(
         root_dir, recurse_sub_dir, sequence_writer, recursive)
@@ -97,10 +97,10 @@ def convert_directory(root_dir, sub_dir, sequence_writer, recursive=False):
 
 def main(unused_argv):
   if not FLAGS.midi_dir:
-    tf.logging.fatal("--midi_dir required")
+    tf.logging.fatal('--midi_dir required')
     return
   if not FLAGS.output_file:
-    tf.logging.fatal("--output_file required")
+    tf.logging.fatal('--output_file required')
     return
 
   FLAGS.midi_dir = os.path.expanduser(FLAGS.midi_dir)
@@ -113,7 +113,7 @@ def main(unused_argv):
       FLAGS.output_file) as sequence_writer:
     sequences_written = convert_directory(FLAGS.midi_dir, '', sequence_writer,
                                           FLAGS.recursive)
-    tf.logging.info("Wrote %d NoteSequence protos to '%s'", sequences_written,
+    tf.logging.info('Wrote %d NoteSequence protos to \'%s\'', sequences_written,
                     FLAGS.output_file)
 
 

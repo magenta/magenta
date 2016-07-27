@@ -104,7 +104,7 @@ class PipelineUnitsCommonTest(tf.test.TestCase):
       self.assertTrue(isinstance(results, dict))
       self.assertEqual(set(results.keys()), set(['a', 'b', 'c']))
       self.assertEqual(len(results.values()), 3)
-      self.assertEqual(len([l for l in results.values() if l == []]), 2)
+      self.assertEqual(len([l for l in results.values() if l == []]), 2)  # pylint: disable=g-explicit-bool-comparison
       self.assertEqual(results[choices[i]], [s])
 
 
