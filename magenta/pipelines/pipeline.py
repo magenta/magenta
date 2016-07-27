@@ -28,6 +28,19 @@ class BadTypeSignatureException(Exception):
 
 
 class Key(object):
+  """Represents a get operation on a Pipeline type signature.
+
+  If a pipeline instance `my_pipeline` has `output_type`
+  {'key_1': Type1, 'key_2': Type2}, then Key(my_pipeline, 'key_1'),
+  represents the output type Type1. And likewise Key(my_pipeline, 'key_2')
+  represents Type2.
+
+  Calling __getitem__ on a pipeline will return a Key instance.
+  So my_pipeline['key_1'] returns Key(my_pipeline, 'key_1'), and so on.
+
+  Key objects are used for assembling a directed asyclic graph of Pipeline
+  instances. See dag_pipeline.py.
+  """
 
   def __init__(self, unit, key, type_):
     if not isinstance(unit.output_type, dict):

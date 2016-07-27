@@ -22,6 +22,12 @@ from magenta.pipelines import statistics
 
 
 class Output(object):
+  """Represents an output destination for a DAGPipeline.
+
+  Each Output(name) instance given to DAGPipeline will
+  be a final output bucket with the same name. If writing
+  output buckets to disk, the names become dataset names.
+  """
 
   def __init__(self, name=None):
     self.name = name
@@ -39,6 +45,12 @@ class Output(object):
     
 
 class Input(object):
+  """Represents an input source for a DAGPipeline.
+
+  When DAGPipeline.transform is called, the input object
+  will be fed to any Pipeline instances connected to an
+  Input given in the DAG.
+  """
 
   def __init__(self, type_):
     self.output_type = type_
@@ -94,15 +106,16 @@ class InvalidTransformOutputException(Exception):
 
 
 class DAGPipeline(pipeline.Pipeline):
+  """A directed asyclic graph pipeline.
+
+  This Pipeline can be given an arbitrary graph composed of Pipeline instances
+  and will run all of those pipelines feeding outputs to inputs.
+
+  Use DAGPipeline to compose multiple smaller pipelines together.
+  """
   
   def __init__(self, dag):
-    # Expand DAG shorthand. Currently the only shorthand is direct connections.
-    # A direct connection is a connection {a: b} where a.input_type is a dict
-    # and b.output_type is a dict, and a.input_type == b.output_type.
-    # {a: b} is expanded to
-    # {a: {"name_1": b["name_1"], "name_2": b["name_2"], ...}}.
-    # {Output(): {"name_1", obj1, "name_2": obj2, ...} is expanded to
-    # {Output("name_1"): obj1, Output("name_2"): obj2, ...}.
+    # Expand DAG shorthand.
     self.dag = dict(self._expand_dag_shorthands(dag))
 
     self.outputs = [unit for unit in self.dag if isinstance(unit, Output)]
@@ -215,6 +228,13 @@ class DAGPipeline(pipeline.Pipeline):
     assert call_list[0] == self.input
 
   def _expand_dag_shorthands(self, dag):
+    # Expand DAG shorthand. Currently the only shorthand is direct connections.
+    # A direct connection is a connection {a: b} where a.input_type is a dict
+    # and b.output_type is a dict, and a.input_type == b.output_type.
+    # {a: b} is expanded to
+    # {a: {"name_1": b["name_1"], "name_2": b["name_2"], ...}}.
+    # {Output(): {"name_1", obj1, "name_2": obj2, ...} is expanded to
+    # {Output("name_1"): obj1, Output("name_2"): obj2, ...}.
     for key, val in dag.items():
       # Direct connection.
       if (isinstance(key, pipeline.Pipeline) and

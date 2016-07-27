@@ -77,6 +77,14 @@ class MonophonicMelodyExtractor(pipeline.Pipeline):
 
 
 class RandomPartition(pipeline.Pipeline):
+  """Outputs multiple datasets.
+
+  This Pipeline will take a single input feed and randomly partition the inputs
+  into multiple output datasets. The probabilities of an input landing in each
+  dataset are given by `partition_probabilities`. Use this Pipeline to partition
+  previous Pipeline outputs into training and test sets, or training, eval, and
+  test sets.
+  """
 
   def __init__(self, type_, partition_names, partition_probabilities):
     super(RandomPartition, self).__init__(
