@@ -42,25 +42,20 @@ class MIDIConversionError(Exception):
   pass
 
 
-def midi_to_sequence_proto(midi_data, continue_on_exception=False):
+def midi_to_sequence_proto(midi_data):
   """Convert MIDI file contents to a tensorflow.magenta.NoteSequence proto.
 
   Converts a MIDI file encoded as a string into a
   tensorflow.magenta.NoteSequence proto. Decoding errors are very common when
-  working with large sets of MIDI files. To support batch processing the
-  argument continue_on_exception (when True) will catch all exceptions from the
-  decoding library pretty_midi, log an error, and return None.
+  working with large sets of MIDI files, so be sure to handle
+  MIDIConversionError exceptions.
 
   Args:
     midi_data: A string containing the contents of a MIDI file or populated
         pretty_midi.PrettyMIDI object.
-    continue_on_exception: A boolean that when true causes all exceptions from
-        the decoder to be caught and ignored. Instead, an error is logged and
-        None is returned.
 
   Returns:
-    A tensorflow.magenta.NoteSequence proto or None if midi_data could not be
-    decoded and if continue_on_exception is True.
+    A tensorflow.magenta.NoteSequence proto.
 
   Raises:
     MIDIConversionError: An improper MIDI mode was supplied.
@@ -77,13 +72,8 @@ def midi_to_sequence_proto(midi_data, continue_on_exception=False):
     try:
       midi = pretty_midi.PrettyMIDI(StringIO(midi_data))
     except:
-      if continue_on_exception:
-        tf.logging.error('Midi decoding error %s: %s', sys.exc_info()[0],
-                         sys.exc_info()[1])
-        return None
-      else:
-        raise MIDIConversionError('Midi decoding error %s: %s',
-                                  sys.exc_info()[0], sys.exc_info()[1])
+      raise MIDIConversionError('Midi decoding error %s: %s' %
+                                (sys.exc_info()[0], sys.exc_info()[1]))
   # pylint: enable=bare-except
 
   sequence = music_pb2.NoteSequence()
@@ -246,30 +236,21 @@ def sequence_proto_to_pretty_midi(sequence):
   return pm
 
 
-def midi_file_to_sequence_proto(midi_file, continue_on_exception=False):
+def midi_file_to_sequence_proto(midi_file):
   """Converts MIDI file to a tensorflow.magenta.NoteSequence proto.
 
   Args:
     midi_file: A string path to a MIDI file.
-    continue_on_exception: A boolean decreeing if we should continue on MIDI to
-        sequence conversion exception.
 
   Returns:
-    A tensorflow.magenta.Sequence proto or None if the MIDI could not be decoded
-    and continue_on_exception is True.
+    A tensorflow.magenta.Sequence proto.
 
   Raises:
-    MIDIConversionError: Invalid midi_file and continue_on_exception is False.
+    MIDIConversionError: Invalid midi_file.
   """
   with tf.gfile.Open(midi_file, 'r') as f:
     midi_as_string = f.read()
-    try:
-      return midi_to_sequence_proto(midi_as_string)
-    except MIDIConversionError as e:
-      if continue_on_exception:
-        return None
-      else:
-        raise MIDIConversionError(e)
+    return midi_to_sequence_proto(midi_as_string)
 
 
 def sequence_proto_to_midi_file(sequence, output_file):
