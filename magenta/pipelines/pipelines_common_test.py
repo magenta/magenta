@@ -90,6 +90,16 @@ class PipelineUnitsCommonTest(tf.test.TestCase):
         min_bars=1, min_unique_pitches=1, gap_bars=1)
     self._unit_transform_test(unit, quantized_sequence, expected_melodies)
 
+  def testRandomPartition(self):
+    random_partition = pipelines_common.RandomPartition(
+        str, ['a', 'b', 'c'], [0.1, 0.4])
+    for s in ['hello', 'qwerty', '1234567890', 'zxcvbnm']:
+      results = random_partition.transform(s)
+      self.assertEqual(set(results.keys()), set(['a', 'b', 'c']))
+      self.assertEqual(len(results.values()), 3)
+      self.assertEqual(len([l for l in results.values() if l == []]), 2)
+      self.assertEqual(len([l for l in results.values() if len(l) == 1]), 1)
+
 
 if __name__ == '__main__':
   tf.test.main()

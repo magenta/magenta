@@ -78,7 +78,9 @@ class MonophonicMelodyExtractor(pipeline.Pipeline):
 
 class RandomPartition(pipeline.Pipeline):
 
-  def __init__(self, partition_names, partition_probabilities):
+  def __init__(self, type_, partition_names, partition_probabilities):
+    super(RandomPartition, self).__init__(
+        type_, dict([(name, type_) for name in partition_names]))
     if len(partition_probabilities) != len(partition_names) - 1:
       raise ValueError('len(partition_probabilities) != '
                        'len(partition_names) - 1. '
