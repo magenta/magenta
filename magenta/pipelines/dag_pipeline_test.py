@@ -90,7 +90,23 @@ class DAGPipelineTest(tf.test.TestCase):
   def testDAGPipelineInputAndOutputType(self):
     # Tests that the DAGPipeline has the correct `input_type` and
     # `output_type` values based on the DAG given to it.
-    pass
+    a, b, c, d = UnitA(), UnitB(), UnitC(), UnitD()
+
+    dag = {a: dag_pipeline.Input(Type0),
+           b: a['t1'],
+           c: {'A_data': a['t2'], 'B_data': b},
+           d: {'0': c['regular_data'], '1': b, '2': c['special_data']},
+           dag_pipeline.Output('abcdz'): d}
+    p = dag_pipeline.DAGPipeline(dag)
+    self.assertEqual(p.input_type, Type0)
+    self.assertEqual(p.output_type, {'abcdz': Type5})
+
+    dag = {a: dag_pipeline.Input(Type0),
+           dag_pipeline.Output('t1'): a['t1'],
+           dag_pipeline.Output('t2'): a['t2']}
+    p = dag_pipeline.DAGPipeline(dag)
+    self.assertEqual(p.input_type, Type0)
+    self.assertEqual(p.output_type, {'t1': Type1, 't2': Type2})
 
   def testSingleOutputs(self):
     # Tests single object and dictionaries in the DAG.

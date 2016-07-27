@@ -161,7 +161,25 @@ class PipelineTest(tf.test.TestCase):
       _ = pipeline_inst['abc']
 
   def testBadTypeSignatureException(self):
-    pass
+
+    class PipelineShell(pipeline.Pipeline):
+
+      def __init__(self, input_type, output_type):
+        super(PipelineShell, self).__init__(input_type, output_type)
+
+      def transform(self, input_object):
+        pass
+
+    _ = PipelineShell(str, str)
+    _ = PipelineShell({'name': str}, {'name': str})
+
+    good_type = str
+    for bad_type in [123, {1: str}, {'name': 123},
+                     {'name': str, 'name2': 123}, [str, int]]:
+      with self.assertRaises(pipeline.BadTypeSignatureException):
+        PipelineShell(bad_type, good_type)
+      with self.assertRaises(pipeline.BadTypeSignatureException):
+        PipelineShell(good_type, bad_type)
 
 
 if __name__ == '__main__':
