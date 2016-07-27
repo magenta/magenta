@@ -130,7 +130,8 @@ class MelodyRnnSequenceGenerator(sequence_generator.BaseSequenceGenerator):
         self._melody_encoder_decoder.max_note,
         self._melody_encoder_decoder.transpose_to_key)
 
-    start_step = self._seconds_to_steps(generate_section.start_time_seconds, bpm)
+    start_step = self._seconds_to_steps(
+        generate_section.start_time_seconds, bpm)
     end_step = self._seconds_to_steps(generate_section.end_time_seconds, bpm)
 
     # Ensure that the melody extends up to the step we want to start generating.
