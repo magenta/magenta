@@ -32,6 +32,9 @@ class Output(object):
 
   def __hash__(self):
     return hash(self.name)
+
+  def __repr__(self):
+    return 'Output(%s)' % self.name
     
 
 class Input(object):
@@ -44,12 +47,9 @@ class Input(object):
 
   def __hash__(self):
     return hash(self.output_type)
-  
 
-def map_and_flatten(input_list, func):
-  return [output
-          for single_input in input_list
-          for output in func(single_input)]
+  def __repr__(self):
+    return 'Input(%s)' % self.output_type
 
 
 def join_lists_or_dicts(inputs):
@@ -208,10 +208,16 @@ class DAGPipeline(pipeline.Pipeline):
     for unit in self.call_list[1:]:
       # TODO: assert that output types are expected. assert that stat objects are valid.
       # compute transformation.
+
       if isinstance(unit, Output):
         unit_outputs = self._get_outputs_as_signature(self.dag[unit], results)
       else:
         unit_inputs = self._get_inputs_for_unit(unit, results)
+        if not unit_inputs:
+          # If this unit has no inputs don't run it.
+          results[unit] = []
+          continue
+
         merged_stats = {}
         def stats_accumulator():
           for single_input in unit_inputs:
@@ -219,7 +225,8 @@ class DAGPipeline(pipeline.Pipeline):
             pipeline.merge_statistics_dicts(merged_stats, unit.get_stats())
             yield results_
 
-        unit_outputs = join_lists_or_dicts(list(stats_accumulator()))
+        unjoined_outputs = list(stats_accumulator())
+        unit_outputs = join_lists_or_dicts(unjoined_outputs)
       results[unit] = unit_outputs
       
       # Merge statistics.
@@ -233,6 +240,9 @@ class DAGPipeline(pipeline.Pipeline):
   def _get_outputs_as_signature(self, signature, outputs):
     def _get_outputs_for_key(unit_or_key, outputs):
       if isinstance(unit_or_key, pipeline.Key):
+        if not outputs[unit_or_key.unit]:
+          # If there are no outputs, just return nothing.
+          return outputs[unit_or_key.unit]
         assert isinstance(outputs[unit_or_key.unit], dict)
         return outputs[unit_or_key.unit][unit_or_key.key]
       assert isinstance(unit_or_key, (pipeline.Pipeline, Input))

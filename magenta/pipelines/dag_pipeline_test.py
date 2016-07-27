@@ -313,6 +313,10 @@ class DAGPipelineTest(tf.test.TestCase):
     output_dict = p.transform(Type0(x, y, z))
     self.assertEqual(output_dict, {'xy': [Type1(x, y)], 'z': [Type2(z)]})
 
+  def testNoOutputs(self):
+    # Test that empty lists or dicts as intermediate outputs don't break anything.
+    pass
+
   def testStatistics(self):
     
     class UnitQ(pipeline.Pipeline):

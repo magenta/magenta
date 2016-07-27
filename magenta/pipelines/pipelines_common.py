@@ -86,12 +86,13 @@ class RandomPartition(pipeline.Pipeline):
                        'len(partition_names) - 1. '
                        'Last probability is implicity.')
     self.partition_names = partition_names
-    self.cumulative_density = np.cumsum(partition_probabilities)
+    self.cumulative_density = np.cumsum(partition_probabilities).tolist()
+    self.rand_func = random.random
 
   def transform(self, input_object):
-    r = random.random()
+    r = self.rand_func()
     if r >= self.cumulative_density[-1]:
-      bucket = len(self.cumulative_density) - 1
+      bucket = len(self.cumulative_density)
     else:
       for i, cpd in enumerate(self.cumulative_density):
         if r < cpd:
