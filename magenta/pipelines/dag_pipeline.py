@@ -18,6 +18,7 @@ import itertools
 
 # internal imports
 from magenta.pipelines import pipeline
+from magenta.pipelines import statistics
 
 
 class Output(object):

@@ -31,9 +31,13 @@ from magenta.models.lookback_rnn import lookback_rnn_encoder_decoder
 from magenta.models.shared import melody_rnn_create_dataset
 
 
-def main(unused_argv):
-  melody_rnn_create_dataset.run_from_flags(
+def get_pipeline():
+  return melody_rnn_create_dataset.get_pipeline(
       lookback_rnn_encoder_decoder.MelodyEncoderDecoder())
+
+
+def main(unused_argv):
+  melody_rnn_create_dataset.run_from_flags(get_pipeline())
 
 
 if __name__ == '__main__':

@@ -66,7 +66,7 @@ class EncoderPipeline(pipeline.Pipeline):
     return {}
 
 
-def run_from_flags(melody_encoder_decoder):
+def get_pipeline(melody_encoder_decoder):
   quantizer = pipelines_common.Quantizer(steps_per_beat=4)
   melody_extractor = pipelines_common.MonophonicMelodyExtractor(
       min_bars=7, min_unique_pitches=5,
@@ -82,9 +82,11 @@ def run_from_flags(melody_encoder_decoder):
          encoder_pipeline: melody_extractor,
          partitioner: encoder_pipeline,
          dag_pipeline.Output(): partitioner}
-  master_pipeline = dag_pipeline.DAGPipeline(dag)
-  
+  return dag_pipeline.DAGPipeline(dag)
+
+
+def run_from_flags(pipeline_instance):
   pipeline.run_pipeline_serial(
-      master_pipeline,
-      pipeline.tf_record_iterator(FLAGS.input, master_pipeline.input_type),
+      pipeline_instance,
+      pipeline.tf_record_iterator(FLAGS.input, pipeline_instance.input_type),
       FLAGS.output_dir)
