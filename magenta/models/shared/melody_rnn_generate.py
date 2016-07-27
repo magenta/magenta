@@ -151,7 +151,7 @@ def run_with_flags(melody_rnn_sequence_generator):
   generate_section.start_time = last_end_time + _steps_to_seconds(1, bpm)
   generate_section.end_time = total_seconds
 
-  if (generate_section.start_time >= generate_section.end_time):
+  if generate_section.start_time >= generate_section.end_time:
     tf.logging.fatal(
         'Priming sequence is longer than the total number of steps requested: '
         'Priming sequence length: %s, Generation length requested: %s',
