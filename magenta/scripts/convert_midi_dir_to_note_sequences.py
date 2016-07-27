@@ -91,7 +91,7 @@ def convert_directory(root_dir, sub_dir, sequence_writer, recursive=False):
     sequences_written += 1
   tf.logging.info("Converted %d MIDI files in '%s'.", sequences_written,
                   dir_to_convert)
-  tf.logging.info('Coult not parse %d MIDI files.', sequences_skipped)
+  tf.logging.info('Could not parse %d MIDI files.', sequences_skipped)
   for recurse_sub_dir in recurse_sub_dirs:
     sequences_written += convert_directory(
         root_dir, recurse_sub_dir, sequence_writer, recursive)
