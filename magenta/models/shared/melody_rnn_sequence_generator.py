@@ -13,10 +13,7 @@
 # limitations under the License.
 """Shared Melody RNN generation code as a SequenceGenerator interface."""
 
-import ast
-import os
 import random
-import time
 
 # internal imports
 import tensorflow as tf
@@ -26,7 +23,10 @@ from magenta.lib import sequence_generator
 from magenta.lib import sequences_lib
 from magenta.protobuf import generator_pb2
 
+
 class MelodyRnnSequenceGenerator(sequence_generator.BaseSequenceGenerator):
+  """Shared Melody RNN generation code as a SequenceGenerator interface."""
+
   def __init__(self, details, checkpoint, melody_encoder_decoder,
                build_graph, steps_per_beat, hparams):
     """Creates a MelodyRnnSequenceGenerator.
@@ -73,6 +73,13 @@ class MelodyRnnSequenceGenerator(sequence_generator.BaseSequenceGenerator):
     """Converts seconds to steps.
 
     Uses the generator's steps_per_beat setting and the specified bpm.
+
+    Args:
+      seconds: number of seconds.
+      bpm: current bpm.
+
+    Returns:
+      Number of steps the seconds represent.
     """
 
     return int(seconds * (bpm / 60.0) * self._steps_per_beat)

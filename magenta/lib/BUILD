@@ -129,7 +129,5 @@ py_library(
 py_library(
     name = "sequence_generator",
     srcs = ["sequence_generator.py"],
-    deps = [
-        "//magenta/protobuf:generator_py_pb2",
-    ],
+    deps = [],
 )

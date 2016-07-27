@@ -18,15 +18,15 @@ Uses flags to define operation.
 
 import ast
 import os
-import random
 import time
 
 # internal imports
+
+from six.moves import range  # pylint: disable=redefined-builtin
 import tensorflow as tf
 
 from magenta.lib import melodies_lib
 from magenta.lib import midi_io
-from six.moves import range  # pylint: disable=redefined-builtin
 from magenta.protobuf import generator_pb2
 
 FLAGS = tf.app.flags.FLAGS
@@ -67,11 +67,13 @@ tf.app.flags.DEFINE_float('temperature', 1.0,
 tf.app.flags.DEFINE_integer('steps_per_beat', 4,
                             'What precision to use when quantizing the melody.')
 
+
 def get_hparams():
   """Get the hparams dictionary to be used by the model."""
   hparams = ast.literal_eval(FLAGS.hparams if FLAGS.hparams else '{}')
   hparams['temperature'] = FLAGS.temperature
   return hparams
+
 
 def get_train_dir():
   """Get the training dir to be used by the model."""
@@ -79,16 +81,26 @@ def get_train_dir():
     tf.logging.fatal('--run_dir required')
   return os.path.join(os.path.expanduser(FLAGS.run_dir), 'train')
 
+
 def get_steps_per_beat():
   """Get the number of steps per beat."""
   return FLAGS.steps_per_beat
+
 
 def _steps_to_seconds(steps, bpm):
   """Converts steps to seconds.
 
   Uses the current flag value for steps_per_beat.
+
+  Args:
+    steps: number of steps.
+    bpm: current bpm.
+
+  Returns:
+    Number of seconds the steps represent.
   """
   return steps * 60.0 / bpm / get_steps_per_beat()
+
 
 def run_with_flags(melody_rnn_sequence_generator):
   """Generates melodies and saves them as MIDI files.

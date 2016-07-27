@@ -35,11 +35,12 @@ from magenta.models.shared import melody_rnn_generate
 from magenta.models.shared import melody_rnn_sequence_generator
 from magenta.protobuf import generator_pb2
 
+
 def main(unused_argv):
   melody_encoder_decoder = lookback_rnn_encoder_decoder.MelodyEncoderDecoder()
   details = generator_pb2.GeneratorDetails(
-      id="lookback_rnn",
-      description="Lookback RNN Generator")
+      id='lookback_rnn',
+      description='Lookback RNN Generator')
   with melody_rnn_sequence_generator.MelodyRnnSequenceGenerator(
       details,
       melody_rnn_generate.get_train_dir(),

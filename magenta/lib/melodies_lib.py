@@ -516,6 +516,9 @@ class MonophonicMelody(object):
 
     If the melody is not long enough, adds NO_EVENT steps. If it is too long,
     it will be truncated to the requested length.
+
+    Args:
+      steps: how many steps long the melody should be.
     """
     self.events.extend([NO_EVENT] * max(0, steps - len(self.events)))
     del self.events[steps:]
