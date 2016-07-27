@@ -15,7 +15,12 @@
 
 Modules are data processing building blocks for creating datasets.
 """
+
+
+import random
+
 # internal imports
+import numpy as np
 import tensorflow as tf
 
 from magenta.lib import melodies_lib
@@ -69,3 +74,27 @@ class MonophonicMelodyExtractor(pipeline.Pipeline):
 
   def get_stats(self):
     return {}
+
+
+class RandomPartition(pipeline.Pipeline):
+
+  def __init__(self, partition_names, partition_probabilities):
+    if len(partition_probabilities) != len(partition_names) - 1:
+      raise ValueError('len(partition_probabilities) != '
+                       'len(partition_names) - 1. '
+                       'Last probability is implicity.')
+    self.partition_names = partition_names
+    self.cumulative_density = np.cumsum(partition_probabilities)
+
+  def transform(self, input_object):
+    r = random.random()
+    if r >= self.cumulative_density[-1]:
+      bucket = len(self.cumulative_density) - 1
+    else:
+      for i, cpd in enumerate(self.cumulative_density):
+        if r < cpd:
+          bucket = i
+          break
+    return dict([(name, [] if i != bucket else [input_object])
+                 for i, name in enumerate(self.partition_names)])
+

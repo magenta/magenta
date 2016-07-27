@@ -23,6 +23,7 @@ import random
 import tensorflow as tf
 
 from magenta.lib import melodies_lib
+from magenta.pipelines import dag_pipeline
 from magenta.pipelines import pipeline
 from magenta.pipelines import pipelines_common
 from magenta.protobuf import music_pb2
@@ -113,9 +114,22 @@ class MelodyRNNPipeline(pipeline.Pipeline):
 
 
 def run_from_flags(melody_encoder_decoder):
-  pipeline_instance = MelodyRNNPipeline(
-      melody_encoder_decoder, FLAGS.eval_ratio)
+  quantizer = pipelines_common.Quantizer(steps_per_beat=4)
+  melody_extractor = pipelines_common.MonophonicMelodyExtractor(
+      min_bars=7, min_unique_pitches=5,
+      gap_bars=1.0, ignore_polyphonic_notes=False)
+  encoder_pipeline = EncoderPipeline(melody_encoder_decoder)
+  partitioner = pipelines_common.RandomPartition(
+      ['eval_melodies', 'training_melodies'], [FLAGS.eval_ratio])
+
+  dag = {quantizer: dag_pipeline.Input(music_pb2.NoteSequence),
+         melody_extractor: quantizer,
+         encoder_pipeline: melody_extractor,
+         partitioner: encoder_pipeline,
+         dag_pipeline.Output(): partitioner}
+  master_pipeline = dag_pipeline.DAGPipeline(dag)
+  
   pipeline.run_pipeline_serial(
-      pipeline_instance,
-      pipeline.tf_record_iterator(FLAGS.input, pipeline_instance.input_type),
+      master_pipeline,
+      pipeline.tf_record_iterator(FLAGS.input, master_pipeline.input_type),
       FLAGS.output_dir)
