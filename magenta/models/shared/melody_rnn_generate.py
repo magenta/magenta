@@ -60,6 +60,9 @@ tf.app.flags.DEFINE_float('temperature', 1.0,
                           'the unaltered softmax probabilities, greater than '
                           '1.0 makes melodies more random, less than 1.0 makes '
                           'melodies less random.')
+tf.app.flags.DEFINE_integer('bpm', 120,
+                            'Beats per minute for the entire output melody '
+                            'where the default is 120 bpm ')
 
 
 DEFAULT_STEPS_PER_BEAT = 4
@@ -80,6 +83,7 @@ def run_generate(graph, train_dir, output_dir, melody_encoder_decoder,
         generated from scratch.
     num_steps: The total number of steps the final melodies should be,
         priming melody + generated steps. Each step is a 16th of a bar.
+    temperature: Degree of randomness where default=1
     bpm: The tempo in beats per minute that the generated MIDI files will have.
   """
   inputs = graph.get_collection('inputs')[0]
@@ -198,7 +202,7 @@ def run(melody_encoder_decoder, build_graph):
                       FLAGS.primer_midi)
 
   run_generate(graph, train_dir, FLAGS.output_dir, melody_encoder_decoder,
-               primer_melody, FLAGS.num_steps, bpm)
+               primer_melody, FLAGS.num_steps, FLAGS.bpm)
 
 
 if __name__ == '__main__':
