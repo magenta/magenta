@@ -16,7 +16,7 @@ Pipeline has two methods:
 
 For example,
 
-```
+```python
 class MyPipeline(Pipeline):
   ...
 
@@ -37,7 +37,7 @@ print MyPipeline.get_stats()
 
 An example where inputs and outputs are dictionaries,
 
-```
+```python
 class MyPipeline(Pipeline):
   ...
 
@@ -63,3 +63,171 @@ Declaring `input_type` and `output_type` allows pipelines to be strung together 
 A pipeline can be run over a dataset using `run_pipeline_serial`, or `load_pipeline`. `run_pipeline_serial` saves the output to disk, while load_pipeline keeps the output in memory. Only pipelines that output protocol buffers can be used in `run_pipeline_serial` since the outputs are saved to TFRecord. If the pipeline's `output_type` is a dictionary, the keys are used as dataset names.
 
 Functions are also provided for iteration over input data. `file_iterator` iterates over files in a directory, returning the raw bytes. `tf_record_iterator` iterates over TFRecords, returning protocol buffers.
+
+## DAGPipeline
+_Connecting pipelines together._
+
+`Pipeline` transforms A to B - input data to output data. But almost always it is cleaner to decompose this mapping into smaller pipelines, each with their own output representations. The recommended way to do this is to make a third `Pipeline` that runs the first two inside it. Magenta provides [DAGPipeline](https://github.com/tensorflow/magenta/blob/master/magenta/pipelines/dag_pipeline.py) - a `Pipeline` which takes a directed asyclic graph, or DAG, of `Pipeline` objects and runs it.
+
+Lets take a look at a real example. Magenta has `Quantizer` and `MonophonicMelodyExtractor` (defined [here](https://github.com/tensorflow/magenta/blob/master/magenta/pipelines/pipelines_common.py)). `Quantizer` takes note data in seconds and snaps, or quantizes, everything to a discrete grid of timesteps. It maps `NoteSequence` protocol buffers to [QuantizedSequence](https://github.com/tensorflow/magenta/blob/master/magenta/lib/sequences_lib.py) objects. `MonophonicMelodyExtractor` maps those `QuantizedSequence` objects to [MonophonicMelody](https://github.com/tensorflow/magenta/blob/master/magenta/lib/melodies_lib.py) objects. Finally, we want to partition the output into a training and test set. `MonophonicMelody` objects are fed into `RandomPartition`, yet another `Pipeline` which outputs a dictionary of two lists: training output and test output.
+
+All of this is strung together in a `DAGPipeline` (code is [here](https://github.com/tensorflow/magenta/blob/master/magenta/models/shared/melody_rnn_create_dataset.py)). First each of the pipelines are intantiated with parameters:
+
+```python
+quantizer = pipelines_common.Quantizer(steps_per_beat=4)
+melody_extractor = pipelines_common.MonophonicMelodyExtractor(
+    min_bars=7, min_unique_pitches=5,
+    gap_bars=1.0, ignore_polyphonic_notes=False)
+encoder_pipeline = EncoderPipeline(melody_encoder_decoder)
+partitioner = pipelines_common.RandomPartition(
+    tf.train.SequenceExample,
+    ['eval_melodies', 'training_melodies'],
+    [FLAGS.eval_ratio])
+```
+Next, the DAG is defined. The DAG is encoded with a Python dictionary that maps each `Pipeline` instance to run to the pipelines it depends on. More on this below.
+
+```python
+dag = {quantizer: Input(music_pb2.NoteSequence),
+       melody_extractor: quantizer,
+       encoder_pipeline: melody_extractor,
+       partitioner: encoder_pipeline,
+       Output(): partitioner}
+```
+
+Finally, the composite pipeline is created with a single line of code:
+```python
+composite_pipeline = DAGPipeline(dag)
+```
+
+# DAG Specification
+
+`DAGPipeline` takes a single argument: the DAG encoded as a Python dictionary. The DAG specifies how data will flow via connections between pipelines.
+
+Each (key, value) pair is in this form, ```destination: dependencies```.
+
+Remember that the `Pipeline` object defines `input_type` and `output_type` which can be Python classes or dictionaries mapping string names to Python classes. Lets call these the _type signature_ of the pipeline's input and output data. Both the destination and dependencies have type signatures, and the rule for the DAG is that every (destination, dependencies) has the same type signature.
+
+Specifically, if the destination is a `Pipeline`, then `destination.input_type` must have the same type signature as dependencies.
+
+___Break down of dependencies___
+
+Like type signatures, a dependency can be a single object or a dictionary mapping string names to objects. In this case the objects are `Pipeline` instances (there is also one other allowed type, but more on that below), and not classes.
+
+___Input and outputs___
+
+Finally, we need to tell DAGPipeline where its inputs go, and which pipelines produce its outputs. This is done with `Input` and `Output` objects. `Input` is given the input type that DAGPipeline will take, like `Input(str)`. `Output` is given a string name, like `Output('some_output')`. `DAGPipeline` always outputs a dictionary, and each `Output` in the DAG produces another name, output pair in `DAGPipeline`'s output. Currently, only 1 input is supported.
+
+An example:
+
+```python
+print (ToPipeline.output_type, ToPipeline.input_type)
+> (OutputType, IntermediateType)
+
+print (FromPipeline.output_type, FromPipeline.input_type)
+> (IntermediateType, InputType)
+
+to_pipe = ToPipeline()
+from_pipe = FromPipeline()
+dag = {from_pipe: Input(InputType),
+       to_pipe: from_pipe,
+       Output('my_output'): to_pipe}
+
+dag_pipe = DAGPipeline(dag)
+print dag_pipe.transform(InputType())
+> {'my_output': [<__main__.OutputType object>]}
+```
+
+Using dictionaries:
+
+```python
+print (ToPipeline.output_type, ToPipeline.input_type)
+> (OutputType, {'intermediate_1': Type1, 'intermediate_2': Type2})
+
+print (FromPipeline.output_type, FromPipeline.input_type)
+> ({'intermediate_1': Type1, 'intermediate_2': Type2}, InputType)
+
+to_pipe = ToPipeline()
+from_pipe = FromPipeline()
+dag = {from_pipe: Input(InputType),
+       to_pipe: from_pipe,
+       Output('my_output'): to_pipe}
+
+dag_pipe = DAGPipeline(dag)
+print dag_pipe.transform(InputType())
+> {'my_output': [<__main__.OutputType object>]}
+```
+
+Multiple outputs can be created by connecting a `Pipeline` with dictionary output to `Output()` without a name.
+
+```python
+print (MyPipeline.output_type, MyPipeline.input_type)
+> ({'output_1': Type1, 'output_2': Type2}, InputType)
+
+my_pipeline = MyPipeline()
+dag = {my_pipeline: Input(InputType),
+       Output(): my_pipeline}
+
+dag_pipe = DAGPipeline(dag)
+print dag_pipe.transform(InputType())
+> {'output_1': [<__main__.Type1 object>], 'output_2': [<__main__.Type2 object>]}
+```
+
+What if you only want to use one output from a dictionary output, or connect multiple outputs to a dictionary input?
+Heres how:
+
+```python
+print (FirstPipeline.output_type, FirstPipeline.input_type)
+> ({'type_1': Type1, 'type_2': Type2}, InputType)
+
+print (SecondPipeline.output_type, SecondPipeline.input_type)
+> (TypeX, Type1)
+
+print (ThirdPipeline.output_type, ThirdPipeline.input_type)
+> (TypeY, Type2)
+
+print (LastPipeline.output_type, LastPipeline.input_type)
+> (OutputType, {'type_x': TypeX, 'type_y': TypeY})
+
+first_pipe = FirstPipeline()
+second_pipe = SecondPipeline()
+third_pipe = ThirdPipeline()
+last_pipe = LastPipeline()
+dag = {first_pipe: Input(InputType),
+       second_pipe: first_pipe['type_1'],
+       third_pipe: first_pipe['type_2'],
+       last_pipe: {'type_x': second_pipe, 'type_y': third_pipe},
+       Output('my_output'): last_pipe}
+
+dag_pipe = DAGPipeline(dag)
+print dag_pipe.transform(InputType())
+> {'my_output': [<__main__.OutputType object>]}
+```
+
+List index syntax and dictionary dependencies can also be combined.
+
+```python
+print (FirstPipeline.output_type, FirstPipeline.input_type)
+> ({'type_1': TypeA, 'type_2': TypeB}, InputType)
+
+print (LastPipeline.output_type, LastPipeline.input_type)
+> (OutputType, {'type_x': TypeB, 'type_y': TypeA})
+
+first_pipe = FirstPipeline()
+last_pipe = LastPipeline()
+dag = {first_pipe: Input(InputType),
+       last_pipe: {'type_x': first_pipe['type_2'], 'type_y': first_pipe['type_1']},
+       Output('my_output'): last_pipe}
+
+dag_pipe = DAGPipeline(dag)
+print dag_pipe.transform(InputType())
+> {'my_output': [<__main__.OutputType object>]}
+```
+
+Not every pipeline output needs to be connected to something, as long as at least one output is used.
+
+
+# DAGPipeline Exceptions
+
+
+
+## Statistics
