@@ -45,6 +45,9 @@ py_binary(
         ":basic_rnn_encoder_decoder",
         ":basic_rnn_graph",
         "//magenta/models/shared:melody_rnn_generate",
+        "//magenta/models/shared:melody_rnn_sequence_generator",
+        "//magenta/protobuf:generator_py_pb2",
+        # tensorflow dep
     ],
 )
 
