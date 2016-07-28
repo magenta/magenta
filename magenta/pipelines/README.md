@@ -99,7 +99,7 @@ Finally, the composite pipeline is created with a single line of code:
 composite_pipeline = DAGPipeline(dag)
 ```
 
-# DAG Specification
+## DAG Specification
 
 `DAGPipeline` takes a single argument: the DAG encoded as a Python dictionary. The DAG specifies how data will flow via connections between pipelines.
 
@@ -226,8 +226,39 @@ print dag_pipe.transform(InputType())
 Not every pipeline output needs to be connected to something, as long as at least one output is used.
 
 
-# DAGPipeline Exceptions
+## DAGPipeline Exceptions
 
 
 
 ## Statistics
+
+Statistics are great for collecting information about a dataset, and inspecting why a dataset created by a `Pipeline` turned out the way it did. Stats collected by `Pipeline`s need to be able to do two things: merge statistics together, and print out statistics.
+
+A [Statistic](https://github.com/tensorflow/magenta/blob/master/magenta/pipelines/statistics.py) abstract class is provided. Each `Statistic` needs to define a `merge_from` method which combines data from another statistic of the same type, and a `pretty_print` method.
+
+Two statistics are defined: `Counter` and `Histogram`.
+
+`Counter` keeps a count as the name suggests, and has an increment function.
+
+```python
+count = Counter()
+count.increment()
+count.increment(5)
+print count.pretty_print('my_counter')
+> my_counter: 6
+```
+
+`Histogram` keeps counts for ranges of values, and also has an increment function.
+
+```python
+histogram = Histogram([0, 1, 2, 3])
+histogram.increment(0.1)
+histogram.increment(1.2)
+histogram.increment(1.9)
+histogram.increment(2.5)
+print histogram.pretty_print('my_histogram')
+> my_histogram:
+>   [0,1): 1
+>   [1,2): 2
+>   [2,3): 1
+```

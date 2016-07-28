@@ -36,10 +36,34 @@ class Statistic(object):
 
   @abc.abstractmethod
   def merge_from(self, other):
+    """Merge another Statistic into this instance.
+
+    Takes another Statistic of the same type, and merges its information into
+    this instance.
+
+    Args:
+      other: Another Statistic instance.
+    """
     pass
 
   @abc.abstractmethod
   def pretty_print(self, name):
+    """Return a string representation of this instance using the given name.
+
+    Returns a human readable and nicely presented representation of this
+    instance. Since this instance does not know what its measuring, a string
+    name is given to use in the string representation.
+
+    For example, if this Statistic held a count, say 5, and the given name was 
+    'error_count', then the string representation might be 'error_count: 5'.
+
+    Args:
+      name: A string name for this instance.
+
+    Returns:
+      A human readable and preferably a nicely presented string representation
+      of this instance.
+    """
     pass
 
 
@@ -82,13 +106,24 @@ class Counter(Statistic):
   """
 
   def __init__(self, start_value=0):
+    """Constructs a Counter.
+
+    Args:
+      start_value: What value to start the count at.
+    """
     super(Counter, self).__init__()
     self.count = start_value
 
   def increment(self, inc=1):
+    """Increment the count.
+
+    Args:
+      inc: (defaults to 1) How much to increment the count by.
+    """
     self.count += inc
 
   def merge_from(self, other):
+    """Adds the count of another Counter into this instance."""
     if not isinstance(other, Counter):
       raise MergeStatisticsException(
           'Cannot merge %s into Counter' % other.__class__.__name__)
@@ -136,10 +171,30 @@ class Histogram(Statistic):
     self.verbose_pretty_print = verbose_pretty_print
 
   def increment(self, value, inc=1):
+    """Increment the bucket containing the given value.
+
+    The bucket count for which ever range `value` falls in will be incremented.
+
+    Args:
+      value: Any number.
+      inc: An integer. How much to increment the bucket count by.
+    """
     bucket_lower = _find_le(self.buckets, value)
     self.counters[bucket_lower] += inc
 
   def merge_from(self, other):
+    """Adds the counts of another Histogram into this instance.
+
+    `other` must have the same buckets as this instance. The counts
+    from `other` are added to the counts for this instance.
+
+    Args:
+      other: Another Histogram instance with the same buckets as this instance.
+
+    Raises:
+      MergeStatisticsException: If `other` is not a Histogram or the buckets
+          are not the same.
+    """
     if not isinstance(other, Histogram):
       raise MergeStatisticsException(
           'Cannot merge %s into Histogram' % other.__class__.__name__)
