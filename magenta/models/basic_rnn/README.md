@@ -86,6 +86,10 @@ You can choose how many outputs will be saved. Here we save 10.
 
 Let's generate melodies that are 128 steps long.
 
+temperature is a measure of the rondomness where the default = 1
+
+bpm is the output beats per minute where the default = 120 bpm
+
 ```
 # Provide a MIDI file to use as a primer for the generation.
 # The MIDI should just contain a short monophonic melody.
