@@ -60,7 +60,9 @@ tf.app.flags.DEFINE_float('temperature', 1.0,
                           'the unaltered softmax probabilities, greater than '
                           '1.0 makes melodies more random, less than 1.0 makes '
                           'melodies less random.')
-
+tf.app.flags.DEFINE_string('log', 'INFO',
+                           'The threshold for what messages will be logged '
+                           'DEBUG, INFO, WARN, ERROR, or FATAL.')
 
 DEFAULT_STEPS_PER_BEAT = 4
 
@@ -147,7 +149,7 @@ def run(melody_encoder_decoder, build_graph):
         (mode, hparams_string, input_size, num_classes, sequence_example_file).
         For an example usage, see models/basic_rnn/basic_rnn_graph.py.
   """
-  tf.logging.set_verbosity(tf.logging.INFO)
+  tf.logging.set_verbosity(FLAGS.log)
 
   if not FLAGS.run_dir:
     tf.logging.fatal('--run_dir required')
