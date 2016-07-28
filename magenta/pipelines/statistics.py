@@ -54,7 +54,7 @@ class Statistic(object):
     instance. Since this instance does not know what its measuring, a string
     name is given to use in the string representation.
 
-    For example, if this Statistic held a count, say 5, and the given name was 
+    For example, if this Statistic held a count, say 5, and the given name was
     'error_count', then the string representation might be 'error_count: 5'.
 
     Args:
