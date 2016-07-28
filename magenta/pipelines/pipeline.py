@@ -236,6 +236,7 @@ def run_pipeline_serial(pipeline, input_iterator, output_dir):
         is a file whose name contains the pipeline's dataset name. If the
         directory does not exist, it will be created.
 
+
   Raises:
     ValueError: If any of `pipeline`'s output types do not have a
         SerializeToString method.
@@ -274,8 +275,13 @@ def run_pipeline_serial(pipeline, input_iterator, output_dir):
         total_outputs += 1
     statistics.merge_statistics_dicts(stats, pipeline.get_stats())
     if total_inputs % 500 == 0:
-      tf.logging.info('%d inputs. %d outputs. stats = %s', total_inputs,
-                      total_outputs, pipeline.get_stats())
+      tf.logging.info('Processed %d inputs so far. Produced %d outputs. '
+                      'Statistics:', total_inputs, total_outputs)
+      statistics.log_statistics_dict(stats, tf.logging.info)
+  tf.logging.info('Completed.')
+  tf.logging.info('Processed %d inputs total. Produced %d outputs. '
+                  'Statistics:', total_inputs, total_outputs)
+  statistics.log_statistics_dict(stats, tf.logging.info)
 
 
 def load_pipeline(pipeline, input_iterator):

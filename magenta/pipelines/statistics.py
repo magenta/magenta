@@ -16,6 +16,9 @@
 import abc
 import bisect
 
+# internal imports
+import tensorflow as tf
+
 
 class MergeStatisticsException(Exception):
   pass
@@ -56,6 +59,11 @@ def is_valid_statistics_dict(stats_dict):
   if [val for val in stats_dict.values() if not isinstance(val, Statistic)]:
     return False
   return True
+
+
+def log_statistics_dict(stats_dict, logger_fn=tf.logging.info):
+  for name, stat in stats_dict.items():
+    logger_fn(stat.pretty_print(name))
 
 
 # https://docs.python.org/2/library/bisect.html#searching-sorted-lists
