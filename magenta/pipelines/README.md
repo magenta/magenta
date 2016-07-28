@@ -32,7 +32,7 @@ print outputs
 > [MyType2(1), MyType2(2), MyType2(3)]
 
 print MyPipeline.get_stats()
-> {'how_many_ints': 3, 'sum_of_ints': 6}
+> {'how_many_ints': Counter(3), 'sum_of_ints': Counter(6)}
 ```
 
 An example where inputs and outputs are dictionaries,
@@ -53,7 +53,7 @@ print outputs
 > {'output_1': [MyType2(1), MyType2(2), MyType2(3)], 'output_2': ['1007', '7001']}
 
 print MyPipeline.get_stats()
-> {'how_many_ints': 3, 'sum_of_ints': 6, 'property_2_digits': 4}
+> {'how_many_ints': Counter(3), 'sum_of_ints': Counter(6), 'property_2_digits': Counter(4)}
 ```
 
 If the output is a dictionary, the lengths of the output lists do not need to be the same. Also, this example should not imply that a Pipeline which takes a dictionary input must produce a dictionary output, or vice versa. Pipelines do need to produce the type signature given by `output_type`.

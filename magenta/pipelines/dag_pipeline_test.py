@@ -440,7 +440,59 @@ class DAGPipelineTest(tf.test.TestCase):
       self.assertEqual(stats['UnitR_input_count'].count, z)
 
   def testInvalidDependencyException(self):
-    pass
+    class UnitQ(pipeline.Pipeline):
+
+      def __init__(self):
+        pipeline.Pipeline.__init__(self, Type0, {'a': Type1, 'b': Type2})
+
+      def transform(self, input_object):
+        pass
+
+    class UnitR(pipeline.Pipeline):
+
+      def __init__(self):
+        pipeline.Pipeline.__init__(self, Type1, Type2)
+
+      def transform(self, input_object):
+        pass
+
+    q, r = UnitQ(), UnitR()
+
+    dag = {q: dag_pipeline.Input(Type0),
+           UnitR: q,
+           dag_pipeline.Output('output'): r}
+    with self.assertRaises(dag_pipeline.InvalidDependencyException):
+      dag_pipeline.DAGPipeline(dag)
+
+    dag = {q: dag_pipeline.Input(Type0),
+           'r': q,
+           dag_pipeline.Output('output'): r}
+    with self.assertRaises(dag_pipeline.InvalidDependencyException):
+      dag_pipeline.DAGPipeline(dag)
+
+    dag = {q: dag_pipeline.Input(Type0),
+           r: UnitQ,
+           dag_pipeline.Output('output'): r}
+    with self.assertRaises(dag_pipeline.InvalidDependencyException):
+      dag_pipeline.DAGPipeline(dag)
+
+    dag = {q: dag_pipeline.Input(Type0),
+           r: 123,
+           dag_pipeline.Output('output'): r}
+    with self.assertRaises(dag_pipeline.InvalidDependencyException):
+      dag_pipeline.DAGPipeline(dag)
+
+    dag = {q: dag_pipeline.Input(Type0),
+           r: {'abc': q['a'], 'def': 123},
+           dag_pipeline.Output('output'): r}
+    with self.assertRaises(dag_pipeline.InvalidDependencyException):
+      dag_pipeline.DAGPipeline(dag)
+
+    dag = {q: dag_pipeline.Input(Type0),
+           r: {123: q['a']},
+           dag_pipeline.Output('output'): r}
+    with self.assertRaises(dag_pipeline.InvalidDependencyException):
+      dag_pipeline.DAGPipeline(dag)
 
   def testTypeMismatchException(self):
     class UnitQ(pipeline.Pipeline):

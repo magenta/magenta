@@ -42,7 +42,9 @@ class Key(object):
   instances. See dag_pipeline.py.
   """
 
-  def __init__(self, unit, key, type_):
+  def __init__(self, unit, key):
+    if not isinstance(unit, Pipeline):
+      raise ValueError('Cannot take key of non Pipeline %s' % unit)
     if not isinstance(unit.output_type, dict):
       raise KeyError(
           'Cannot take key %s of %s because output type %s is not a dictionary'
@@ -52,7 +54,7 @@ class Key(object):
                      % (key, unit, unit.output_type))
     self.key = key
     self.unit = unit
-    self.output_type = type_
+    self.output_type = unit.output_type[key]
 
   def __repr__(self):
     return 'Key(%s, %s)' % (self.unit, self.key)
@@ -104,7 +106,7 @@ class Pipeline(object):
     self._output_type = output_type
 
   def __getitem__(self, key):
-    return Key(self, key, self.output_type_as_dict[key])
+    return Key(self, key)
 
   @property
   def input_type(self):

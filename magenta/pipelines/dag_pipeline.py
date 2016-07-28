@@ -118,6 +118,43 @@ class DAGPipeline(pipeline.Pipeline):
     # Expand DAG shorthand.
     self.dag = dict(self._expand_dag_shorthands(dag))
 
+    # Make sure DAG is valid.
+    # Input types match output types. Nothing depends on outputs.
+    # Things that require input get input. DAG is composed of correct types.
+    for unit, dependency in self.dag.items():
+      if not isinstance(unit, (pipeline.Pipeline, Output)):
+        raise InvalidDependencyException(
+            'Dependency {%s: %s} is invalid. Left hand side value %s must '
+            'either be a Pipeline or Output object' % (unit, dependency, unit))
+      if isinstance(dependency, dict):
+        if not all([isinstance(name, basestring) for name in dependency]):
+          raise InvalidDependencyException(
+              'Dependency {%s: %s} is invalid. Right hand side keys %s must be '
+              'strings' % (unit, dependency, dependency.keys()))
+        values = dependency.values()
+      else:
+        values = [dependency]
+      for v in values:
+        if not (isinstance(v, pipeline.Pipeline) or
+                (isinstance(v, pipeline.Key) and
+                 isinstance(v.unit, pipeline.Pipeline)) or
+                isinstance(v, Input)):
+          raise InvalidDependencyException(
+              'Dependency {%s: %s} is invalid. Right hand side value %s must '
+              'be either a Pipeline, Key, or Input object'
+              % (unit, dependency, v))
+
+      # Check that all input types match output types.
+      if isinstance(unit, Output):
+        # Output objects don't know their types.
+        continue
+      if unit.input_type != self._get_type_signature_for_dependency(dependency):
+        raise TypeMismatchException(
+            'Invalid dependency {%s: %s}. Required `input_type` of left hand '
+            'side is %s. Output type of right hand side is %s.'
+            % (unit, dependency, unit.input_type,
+               self._get_type_signature_for_dependency(dependency)))
+
     self.outputs = [unit for unit in self.dag if isinstance(unit, Output)]
     self.output_names = dict([(output.name, output) for output in self.outputs])
     for output in self.outputs:
@@ -146,36 +183,6 @@ class DAGPipeline(pipeline.Pipeline):
                              for output in self.outputs])
     super(DAGPipeline, self).__init__(
         input_type=self.input.output_type, output_type=output_signature)
-
-    # Make sure DAG is valid.
-    # Input types match output types. Nothing depends on outputs.
-    # Things that require input get input. DAG is composed of correct types.
-    for unit, dependency in self.dag.items():
-      if not isinstance(unit, (pipeline.Pipeline, Output)):
-        raise InvalidDependencyException(
-            'Dependency {%s: %s} is invalid. Left hand side value %s must '
-            'either be a Pipeline or Output object' % (unit, dependency, unit))
-      if isinstance(dependency, dict):
-        values = dependency.values()
-      else:
-        values = [dependency]
-      for v in values:
-        if not (isinstance(v, pipeline.Pipeline) or
-                (isinstance(v, pipeline.Key) and
-                 isinstance(v.unit, pipeline.Pipeline)) or
-                isinstance(v, Input)):
-          raise InvalidDependencyException(
-              'Dependency {%s: %s} is invalid. Right hand side value %s must '
-              'be either a Pipeline, Key, or Input object'
-              % (unit, dependency, v))
-
-      # Check that all input types match output types.
-      if unit.input_type != self._get_type_signature_for_dependency(dependency):
-        raise TypeMismatchException(
-            'Invalid dependency {%s: %s}. Required `input_type` of left hand '
-            'side is %s. Output type of right hand side is %s.'
-            % (unit, dependency, unit.input_type,
-               self._get_type_signature_for_dependency(dependency)))
 
     # Make sure all Pipeline objects are connected to inputs.
     all_units = set([dep_unit for unit in self.dag
@@ -212,7 +219,7 @@ class DAGPipeline(pipeline.Pipeline):
           nodes.add(m)
         elif graph[m][1] < 0:
           raise Exception(
-              'congradulations, you found a bug! Please report this issue at '
+              'Congradulations, you found a bug! Please report this issue at '
               'https://github.com/tensorflow/magenta/issues and copy/paste the '
               'following: dag=%s, graph=%s, call_list=%s' % (self.dag, graph,
                                                              call_list))
@@ -289,7 +296,9 @@ class DAGPipeline(pipeline.Pipeline):
       return possible_unit.unit
     if isinstance(possible_unit, Input):
       return possible_unit
-    raise Exception()
+    raise InvalidDependencyException(
+        'Looking for Pipeline, Key, or Input object, but got %s'
+        % type(possible_unit))
 
   def _get_type_signature_for_dependency(self, dependency):
     if isinstance(dependency, (pipeline.Pipeline, pipeline.Key, Input)):
