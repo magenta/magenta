@@ -39,6 +39,7 @@ from six.moves import range  # pylint: disable=redefined-builtin
 import tensorflow as tf
 
 from magenta.lib import sequence_example_lib
+from magenta.pipelines import statistics
 from magenta.protobuf import music_pb2
 
 
@@ -554,6 +555,10 @@ def extract_melodies(quantized_sequence,
   # TODO(danabo): Convert `ignore_polyphonic_notes` into a float which controls
   # the degree of polyphony that is acceptable.
   melodies = []
+  stats = dict([(stat_name, statistics.Counter()) for stat_name in
+                ['polyphonic_tracks_discarded',
+                 'melodies_discarded_too_short',
+                 'melodies_discarded_too_few_pitches']])
   for track in quantized_sequence.tracks:
     start = 0
 
@@ -569,8 +574,7 @@ def extract_melodies(quantized_sequence,
             gap_bars=gap_bars,
             ignore_polyphonic_notes=ignore_polyphonic_notes)
       except PolyphonicMelodyException:
-        tf.logging.debug('Track was discarded because it contains polyphonic '
-                         'data.')
+        stats['polyphonic_tracks_discarded'].increment()
         break  # Look for monophonic melodies in other tracks.
       start = melody.end_step
       if not melody:
@@ -578,16 +582,14 @@ def extract_melodies(quantized_sequence,
 
       # Require a certain melody length.
       if len(melody) - 1 < melody.steps_per_bar * min_bars:
-        tf.logging.debug(
-            'MonophonicMelody was discarded because it is too short.')
+        stats['melodies_discarded_too_short'].increment()
         continue
 
       # Require a certain number of unique pitches.
       note_histogram = melody.get_note_histogram()
       unique_pitches = np.count_nonzero(note_histogram)
       if unique_pitches < min_unique_pitches:
-        tf.logging.debug(
-            'MonophonicMelody was discarded because it is too simple.')
+        stats['melodies_discarded_too_few_pitches'].increment()
         continue
 
       # TODO(danabo)
@@ -595,7 +597,7 @@ def extract_melodies(quantized_sequence,
 
       melodies.append(melody)
 
-  return melodies
+  return melodies, stats
 
 
 class MelodyEncoderDecoder(object):

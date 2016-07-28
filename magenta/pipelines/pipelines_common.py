@@ -26,6 +26,7 @@ import tensorflow as tf
 from magenta.lib import melodies_lib
 from magenta.lib import sequences_lib
 from magenta.pipelines import pipeline
+from magenta.pipelines import statistics
 from magenta.protobuf import music_pb2
 
 
@@ -47,9 +48,6 @@ class Quantizer(pipeline.Pipeline):
       tf.logging.debug('Multiple time signatures found in NoteSequence')
       return []
 
-  def get_stats(self):
-    return {}
-
 
 class MonophonicMelodyExtractor(pipeline.Pipeline):
   """Extracts monophonic melodies from a QuantizedSequence."""
@@ -63,17 +61,20 @@ class MonophonicMelodyExtractor(pipeline.Pipeline):
     self.min_unique_pitches = min_unique_pitches
     self.gap_bars = gap_bars
     self.ignore_polyphonic_notes = False
+    self.stats = {}
 
   def transform(self, quantized_sequence):
-    return melodies_lib.extract_melodies(
+    melodies, stats = melodies_lib.extract_melodies(
         quantized_sequence,
         min_bars=self.min_bars,
         min_unique_pitches=self.min_unique_pitches,
         gap_bars=self.gap_bars,
         ignore_polyphonic_notes=self.ignore_polyphonic_notes)
+    self.stats = stats
+    return melodies
 
   def get_stats(self):
-    return {}
+    return self.stats
 
 
 class RandomPartition(pipeline.Pipeline):
@@ -96,6 +97,7 @@ class RandomPartition(pipeline.Pipeline):
     self.partition_names = partition_names
     self.cumulative_density = np.cumsum(partition_probabilities).tolist()
     self.rand_func = random.random
+    self.stats = self._make_stats_dict()
 
   def transform(self, input_object):
     r = self.rand_func()
@@ -106,6 +108,17 @@ class RandomPartition(pipeline.Pipeline):
         if r < cpd:
           bucket = i
           break
+    self.stats = self._make_stats_dict(self.partition_names[bucket])
     return dict([(name, [] if i != bucket else [input_object])
                  for i, name in enumerate(self.partition_names)])
+
+  def get_stats(self):
+    return self.stats
+  
+  def _make_stats_dict(self, increment_partition=None):
+    stats = dict([(name + '_count', statistics.Counter())
+                  for name in self.partition_names])
+    if increment_partition is not None:
+      stats[increment_partition + '_count'].increment()
+    return stats
 

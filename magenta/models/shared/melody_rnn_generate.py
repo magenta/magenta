@@ -187,7 +187,7 @@ def run(melody_encoder_decoder, build_graph):
     quantized_sequence.from_note_sequence(primer_sequence,
                                           DEFAULT_STEPS_PER_BEAT)
     bpm = quantized_sequence.bpm
-    extracted_melodies = melodies_lib.extract_melodies(
+    extracted_melodies, _ = melodies_lib.extract_melodies(
         quantized_sequence, min_bars=0, min_unique_pitches=1,
         gap_bars=float('inf'), ignore_polyphonic_notes=True)
     if extracted_melodies:

@@ -311,7 +311,7 @@ class MelodiesLibTest(tf.test.TestCase):
                  NOTE_OFF],
                 [NO_EVENT, NO_EVENT, 12, NO_EVENT, NOTE_OFF, NO_EVENT, 14,
                  NO_EVENT, NOTE_OFF]]
-    melodies = melodies_lib.extract_melodies(
+    melodies, _ = melodies_lib.extract_melodies(
         self.quantized_sequence, min_bars=1, gap_bars=1, min_unique_pitches=2,
         ignore_polyphonic_notes=True)
 
@@ -336,7 +336,7 @@ class MelodiesLibTest(tf.test.TestCase):
                 [NO_EVENT, NO_EVENT, 12, NO_EVENT, NOTE_OFF, NO_EVENT, 14,
                  NO_EVENT, NOTE_OFF],
                 [NO_EVENT, 50, 52, NO_EVENT, NOTE_OFF]]
-    melodies = melodies_lib.extract_melodies(
+    melodies, _ = melodies_lib.extract_melodies(
         self.quantized_sequence, min_bars=1, gap_bars=2, min_unique_pitches=2,
         ignore_polyphonic_notes=True)
     melodies = sorted([list(melody) for melody in melodies])
@@ -352,7 +352,7 @@ class MelodiesLibTest(tf.test.TestCase):
         [(12, 127, 2, 4), (14, 50, 6, 8)])
     expected = [[NO_EVENT, NO_EVENT, 12, NO_EVENT, NOTE_OFF, NO_EVENT, 14,
                  NO_EVENT, NOTE_OFF]]
-    melodies = melodies_lib.extract_melodies(
+    melodies, _ = melodies_lib.extract_melodies(
         self.quantized_sequence, min_bars=2, gap_bars=1, min_unique_pitches=2,
         ignore_polyphonic_notes=True)
     melodies = [list(melody) for melody in melodies]
@@ -371,7 +371,7 @@ class MelodiesLibTest(tf.test.TestCase):
         [(12, 100, 0, 1), (13, 100, 1, 2), (18, 100, 2, 3),
          (25, 100, 3, 4), (26, 100, 4, 5)])
     expected = [[12, 13, 18, 25, 26, NOTE_OFF]]
-    melodies = melodies_lib.extract_melodies(
+    melodies, _ = melodies_lib.extract_melodies(
         self.quantized_sequence, min_bars=1, gap_bars=1, min_unique_pitches=4,
         ignore_polyphonic_notes=True)
     melodies = [list(melody) for melody in melodies]
@@ -387,7 +387,7 @@ class MelodiesLibTest(tf.test.TestCase):
         [(12, 100, 100, 101), (13, 100, 102, 104)])
     expected = [[NO_EVENT, NO_EVENT, 12, NOTE_OFF, 13, NO_EVENT, NOTE_OFF],
                 [12, NOTE_OFF, 13, NO_EVENT, NOTE_OFF]]
-    melodies = melodies_lib.extract_melodies(
+    melodies, _ = melodies_lib.extract_melodies(
         self.quantized_sequence, min_bars=1, gap_bars=1, min_unique_pitches=2,
         ignore_polyphonic_notes=True)
     melodies = sorted([list(melody) for melody in melodies])

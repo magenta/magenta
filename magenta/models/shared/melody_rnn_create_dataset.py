@@ -17,6 +17,8 @@ This script will extract melodies from NoteSequence protos and save them to
 TensorFlow's SequenceExample protos for input to the melody RNN models.
 """
 
+import logging
+
 # internal imports
 import tensorflow as tf
 
