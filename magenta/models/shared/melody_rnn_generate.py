@@ -84,7 +84,7 @@ def run_generate(graph, train_dir, output_dir, melody_encoder_decoder,
     num_steps: The total number of steps the final melodies should be,
         priming melody + generated steps. Each step is a 16th of a bar.
     temperature: Degree of randomness where default=1
-    bpm: The tempo in beats per minute that the generated MIDI files will have.
+    bpm: The tempo in beats per minute that the entire generated MIDI files will have. Default = 120
   """
   inputs = graph.get_collection('inputs')[0]
   initial_state = graph.get_collection('initial_state')[0]
