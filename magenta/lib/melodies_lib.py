@@ -558,6 +558,9 @@ def extract_melodies(quantized_sequence,
                 ['polyphonic_tracks_discarded',
                  'melodies_discarded_too_short',
                  'melodies_discarded_too_few_pitches']])
+  stats['melody_lengths_in_bars'] = statistics.Histogram(
+      [0, 1, 2, 4, min_bars, min_bars + 1, min_bars - 1, 10, 20, 100, 200, 400,
+       800, 1000])
   for track in quantized_sequence.tracks:
     start = 0
 
@@ -580,6 +583,8 @@ def extract_melodies(quantized_sequence,
         break
 
       # Require a certain melody length.
+      stats['melody_lengths_in_bars'].increment(
+          len(melody) // melody.steps_per_bar)
       if len(melody) - 1 < melody.steps_per_bar * min_bars:
         stats['melodies_discarded_too_short'].increment()
         continue

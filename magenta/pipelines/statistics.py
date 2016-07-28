@@ -111,7 +111,7 @@ class Histogram(Statistic):
   (hence the square open bracket but curved close bracket).
   """
 
-  def __init__(self, buckets):
+  def __init__(self, buckets, verbose_pretty_print=False):
     """Initializes the histogram with the given ranges.
 
     Args:
@@ -123,13 +123,17 @@ class Histogram(Statistic):
           be included in the histogram counts. For example, if `buckets` is
           [4, 6, 10] the histogram will have ranges
           [-inf, 4), [4, 6), [6, 10), [10, inf).
+      verbose_pretty_print: If True, self.pretty_print will print the count for
+          every bucket. If False, only buckets with positive counts will be
+          printed.
     """
     super(Histogram, self).__init__()
 
     # List of inclusive lowest values in each bucket.
-    self.buckets = [float('-inf')] + sorted(buckets)
+    self.buckets = [float('-inf')] + sorted(set(buckets))
     self.counters = dict([(bucket_lower, 0)
                           for bucket_lower in self.buckets])
+    self.verbose_pretty_print = verbose_pretty_print
 
   def increment(self, value, inc=1):
     bucket_lower = _find_le(self.buckets, value)
@@ -150,4 +154,5 @@ class Histogram(Statistic):
     b = self.buckets + [float('inf')]
     return ('%s:\n' % name) + '\n'.join(
         ['  [%s,%s): %d' % (lower, b[i+1], self.counters[lower])
-         for i, lower in enumerate(self.buckets)])
+         for i, lower in enumerate(self.buckets)
+         if self.verbose_pretty_print or self.counters[lower]])

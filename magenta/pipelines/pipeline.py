@@ -275,12 +275,12 @@ def run_pipeline_serial(pipeline, input_iterator, output_dir):
         total_outputs += 1
     statistics.merge_statistics_dicts(stats, pipeline.get_stats())
     if total_inputs % 500 == 0:
-      tf.logging.info('Processed %d inputs so far. Produced %d outputs. '
-                      'Statistics:', total_inputs, total_outputs)
+      tf.logging.info('Processed %d inputs so far. Produced %d outputs.',
+                      total_inputs, total_outputs)
       statistics.log_statistics_dict(stats, tf.logging.info)
-  tf.logging.info('Completed.')
-  tf.logging.info('Processed %d inputs total. Produced %d outputs. '
-                  'Statistics:', total_inputs, total_outputs)
+  tf.logging.info('\n\nCompleted.\n')
+  tf.logging.info('Processed %d inputs total. Produced %d outputs.',
+                  total_inputs, total_outputs)
   statistics.log_statistics_dict(stats, tf.logging.info)
 
 
@@ -302,9 +302,23 @@ def load_pipeline(pipeline, input_iterator):
   """
   aggregated_outputs = dict(
       [(name, []) for name in pipeline.output_type_as_dict])
+  total_inputs = 0
+  total_outputs = 0
+  stats = {}
   for input_object in input_iterator:
+    total_inputs += 1
     outputs = _guarantee_dict(pipeline.transform(input_object),
                               aggregated_outputs.keys()[0])
     for name, output_list in outputs.items():
       aggregated_outputs[name].extend(output_list)
+      total_outputs += len(output_list)
+    statistics.merge_statistics_dicts(stats, pipeline.get_stats())
+    if total_inputs % 500 == 0:
+      tf.logging.info('Processed %d inputs so far. Produced %d outputs.',
+                      total_inputs, total_outputs)
+      statistics.log_statistics_dict(stats, tf.logging.info)
+  tf.logging.info('\n\nCompleted.\n')
+  tf.logging.info('Processed %d inputs total. Produced %d outputs.',
+                  total_inputs, total_outputs)
+  statistics.log_statistics_dict(stats, tf.logging.info)
   return aggregated_outputs

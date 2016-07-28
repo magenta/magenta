@@ -92,6 +92,7 @@ def get_pipeline(melody_encoder_decoder):
 
 
 def run_from_flags(pipeline_instance):
+  tf.logging.set_verbosity(tf.logging.INFO)
   pipeline.run_pipeline_serial(
       pipeline_instance,
       pipeline.tf_record_iterator(FLAGS.input, pipeline_instance.input_type),
