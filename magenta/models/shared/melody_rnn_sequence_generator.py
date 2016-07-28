@@ -16,6 +16,7 @@
 import random
 
 # internal imports
+from six.moves import range  # pylint: disable=redefined-builtin
 import tensorflow as tf
 
 from magenta.lib import melodies_lib
@@ -143,7 +144,7 @@ class MelodyRnnSequenceGenerator(sequence_generator.BaseSequenceGenerator):
     softmax = self._session.graph.get_collection('softmax')[0]
 
     final_state_ = None
-    for i in xrange(end_step - len(melody)):
+    for i in range(end_step - len(melody)):
       if i == 0:
         inputs_ = self._melody_encoder_decoder.get_inputs_batch(
             [melody], full_length=True)
