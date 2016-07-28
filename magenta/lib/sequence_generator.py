@@ -79,31 +79,19 @@ class BaseSequenceGenerator(object):
     """Builds the TF graph and loads the checkpoint.
 
     If the graph has already been initialized, this is a no-op.
-
-    Returns:
-      A boolean indicating whether the graph was initialized.
     """
     if not self._initialized:
       self._initialize(self._checkpoint)
       self._initialized = True
-      return True
-    else:
-      return False
 
   def close(self):
     """Closes the TF session.
 
     If the session was already closed, this is a no-op.
-
-    Returns:
-      A boolean indicating whether the session was closed.
     """
     if self._initialized:
       self._close()
       self._initialized = False
-      return True
-    else:
-      return False
 
   def __enter__(self):
     """When used as a context manager, initializes the TF session."""
