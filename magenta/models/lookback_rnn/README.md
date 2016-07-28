@@ -70,8 +70,7 @@ SequenceExamples are fed into the model during training and evaluation. Each Seq
 ```
 bazel run //magenta/models/lookback_rnn:lookback_rnn_create_dataset -- \
 --input=/tmp/notesequences.tfrecord \
---train_output=/tmp/lookback_rnn/sequence_examples/training_melodies.tfrecord \
---eval_output=/tmp/lookback_rnn/sequence_examples/eval_melodies.tfrecord \
+--output_dir=/tmp/lookback_rnn/sequence_examples \
 --eval_ratio=0.10
 ```
 

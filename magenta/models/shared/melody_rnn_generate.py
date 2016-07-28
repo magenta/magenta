@@ -23,6 +23,7 @@ import tensorflow as tf
 
 from magenta.lib import melodies_lib
 from magenta.lib import midi_io
+from magenta.lib import sequences_lib
 
 FLAGS = tf.app.flags.FLAGS
 tf.app.flags.DEFINE_string('run_dir', '/tmp/melody_rnn/logdir/run1',
@@ -44,11 +45,11 @@ tf.app.flags.DEFINE_integer('num_steps', 128,
                             'steps. Each step is a 16th of a bar.')
 tf.app.flags.DEFINE_string('primer_melody', '',
                            'A string representation of a Python list of '
-                           'melodies_lib.Melody event values. For example: '
-                           '"[60, -2, 60, -2, 67, -2, 67, -2]". If specified, '
-                           'this melody will be used as the priming melody. '
-                           'If a priming melody is not specified, melodies '
-                           'will be generated from scratch.')
+                           'melodies_lib.MonophonicMelody event values. For '
+                           'example: "[60, -2, 60, -2, 67, -2, 67, -2]". If '
+                           'specified, this melody will be used as the priming '
+                           'melody. If a priming melody is not specified, '
+                           'melodies will be generated from scratch.')
 tf.app.flags.DEFINE_string('primer_midi', '',
                            'The path to a MIDI file containing a melody that '
                            'will be used as a priming melody. If a primer '
@@ -61,6 +62,9 @@ tf.app.flags.DEFINE_float('temperature', 1.0,
                           'melodies less random.')
 
 
+DEFAULT_STEPS_PER_BEAT = 4
+
+
 def run_generate(graph, train_dir, output_dir, melody_encoder_decoder,
                  primer_melody, num_steps, bpm):
   """Generates melodies and saves them as MIDI files.
@@ -71,8 +75,8 @@ def run_generate(graph, train_dir, output_dir, melody_encoder_decoder,
         loaded from.
     output_dir: The path to the directory where MIDI files will be saved to.
     melody_encoder_decoder: A melodies_lib.MelodyEncoderDecoder object.
-    primer_melody: A melodies_lib.Melody object that will be used as the
-        priming melody. If the priming melody is empty, melodies will be
+    primer_melody: A melodies_lib.MonophonicMelody object that will be used as
+        the priming melody. If the priming melody is empty, melodies will be
         generated from scratch.
     num_steps: The total number of steps the final melodies should be,
         priming melody + generated steps. Each step is a 16th of a bar.
@@ -90,7 +94,7 @@ def run_generate(graph, train_dir, output_dir, melody_encoder_decoder,
 
   melodies = []
   for _ in xrange(batch_size):
-    melody = melodies_lib.Melody()
+    melody = melodies_lib.MonophonicMelody()
     if primer_melody.events:
       melody.from_event_list(primer_melody.events)
     else:
@@ -173,16 +177,19 @@ def run(melody_encoder_decoder, build_graph):
   if not os.path.exists(FLAGS.output_dir):
     os.makedirs(FLAGS.output_dir)
 
-  primer_melody = melodies_lib.Melody()
+  primer_melody = melodies_lib.MonophonicMelody()
   bpm = melodies_lib.DEFAULT_BEATS_PER_MINUTE
   if FLAGS.primer_melody:
     primer_melody.from_event_list(ast.literal_eval(FLAGS.primer_melody))
   elif FLAGS.primer_midi:
     primer_sequence = midi_io.midi_file_to_sequence_proto(FLAGS.primer_midi)
-    if primer_sequence.tempos:
-      bpm = primer_sequence.tempos[0].bpm
+    quantized_sequence = sequences_lib.QuantizedSequence()
+    quantized_sequence.from_note_sequence(primer_sequence,
+                                          DEFAULT_STEPS_PER_BEAT)
+    bpm = quantized_sequence.bpm
     extracted_melodies = melodies_lib.extract_melodies(
-        primer_sequence, min_bars=0, min_unique_pitches=1)
+        quantized_sequence, min_bars=0, min_unique_pitches=1,
+        gap_bars=float('inf'), ignore_polyphonic_notes=True)
     if extracted_melodies:
       primer_melody = extracted_melodies[0]
     else:

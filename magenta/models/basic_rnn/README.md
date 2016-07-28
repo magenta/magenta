@@ -16,19 +16,21 @@ Run ```basic_rnn_create_dataset.py``` on the sequences dataset that is generated
 # TFRecord file containing NoteSequence protocol buffers from convert_midi_dir_to_note_sequences.py.
 SEQUENCES_TFRECORD=/tmp/notesequences.tfrecord
 
+# Where training and evaluation datasets will be written.
+DATASET_DIR=/tmp/basic_rnn/sequence_examples
+
 # TFRecord file that TensorFlow's SequenceExample protos will be written to. This is the training dataset.
-TRAIN_DATA=/tmp/basic_rnn/sequence_examples/training_melodies.tfrecord
+TRAIN_DATA=$DATASET_DIR/training_melodies.tfrecord
 
 # Optional evaluation dataset. Also, a TFRecord file containing SequenceExample protos.
-EVAL_DATA=/tmp/basic_rnn/sequence_examples/eval_melodies.tfrecord
+EVAL_DATA=$DATASET_DIR/eval_melodies.tfrecord
 
 # Fraction of input data that will be written to the eval dataset (if eval_output flag is set).
 EVAL_RATIO=0.10
 
 bazel run //magenta/models/basic_rnn:basic_rnn_create_dataset -- \
 --input=$SEQUENCES_TFRECORD \
---train_output=$TRAIN_DATA \
---eval_output=$EVAL_DATA \
+--output_dir=$DATASET_DIR \
 --eval_ratio=$EVAL_RATIO
 ```
 
