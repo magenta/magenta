@@ -90,6 +90,7 @@ Let's generate melodies that are 128 steps long.
 # Provide a MIDI file to use as a primer for the generation.
 # The MIDI should just contain a short monophonic melody.
 # primer.mid is provided as an example.
+# leave blank for a random generated first note
 PRIMER_PATH=<absolute path of your primer MIDI file>
 
 bazel run //magenta/models/basic_rnn:basic_rnn_generate -- \
@@ -98,5 +99,7 @@ bazel run //magenta/models/basic_rnn:basic_rnn_generate -- \
 --output_dir=/tmp/basic_rnn/generated \
 --num_outputs=10 \
 --num_steps=128 \
+--temperature=1 \
+--bpm=120 \
 --primer_midi=$PRIMER_PATH
 ```
