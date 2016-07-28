@@ -114,7 +114,7 @@ class RandomPartition(pipeline.Pipeline):
 
   def get_stats(self):
     return self.stats
-  
+
   def _make_stats_dict(self, increment_partition=None):
     stats = dict([(name + '_count', statistics.Counter())
                   for name in self.partition_names])

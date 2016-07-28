@@ -36,7 +36,6 @@ import abc
 # internal imports
 import numpy as np
 from six.moves import range  # pylint: disable=redefined-builtin
-import tensorflow as tf
 
 from magenta.lib import sequence_example_lib
 from magenta.pipelines import statistics
