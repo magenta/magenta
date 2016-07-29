@@ -60,9 +60,11 @@ tf.app.flags.DEFINE_float('temperature', 1.0,
                           'the unaltered softmax probabilities, greater than '
                           '1.0 makes melodies more random, less than 1.0 makes '
                           'melodies less random.')
-tf.app.flags.DEFINE_integer('bpm', 120,
-                            'Beats per minute for the entire output melody '
-                            'where the default is 120 bpm ')
+tf.app.flags.DEFINE_integer('bpm', -1,
+                            'Beats per minute for the entire output melody including '
+                            'a primer melody if used. '
+                            'Use a less than or equal to zero amount to ignore this flag. '
+                            'The default is 120 bpm or the bpm of the primer.')
 
 
 DEFAULT_STEPS_PER_BEAT = 4
@@ -200,7 +202,8 @@ def run(melody_encoder_decoder, build_graph):
       tf.logging.info('No melodies were extracted from the MIDI file %s. '
                       'Melodies will be generated from scratch.',
                       FLAGS.primer_midi)
-
+  if Flags.bpm <= 0;
+     Flags.bpm = bpm
   run_generate(graph, train_dir, FLAGS.output_dir, melody_encoder_decoder,
                primer_melody, FLAGS.num_steps, FLAGS.bpm)
 
