@@ -228,7 +228,38 @@ Not every pipeline output needs to be connected to something, as long as at leas
 
 ## DAGPipeline Exceptions
 
+### InvalidDependencyException
 
+Thrown when the DAG dictionary is not well formatted. So if `destination: dependencies` pairs are not `Pipeline: Pipeline` or `Pipeline: {'name_1': Pipeline, ...}`. 
+Also thrown when Input is given as a destination, or Output is given as a dependency.
+
+### TypeMismatchException
+
+Thrown when destination type signature doesn't match dependencies type signature.
+
+### BadConnectionException
+
+Thrown when a Pipeline does not feed into anyhing, or there is a directed cycle.
+
+### NotConnectedException
+
+Thrown when a Pipeline used as a dependency is not given as a destination.
+
+### BadInputOrOutputException
+
+Thrown when there is no Inputs or more than one Input with different types, or there is no Output.
+
+### InvalidStatisticsException
+
+Thrown when a Pipeline in the DAG returns a value from its `get_stats` method which is not a Statistic instance.
+
+### InvalidDictionaryOutput
+
+Thrown when Output() is used without a dictionary dependency, or Output(name) is given with a name and with dictionary dependency.
+
+### InvalidTransformOutputException
+
+Thrown when a Pipeline in the DAG does not output the type(s) it gave in its `output_type`.
 
 ## Statistics
 
