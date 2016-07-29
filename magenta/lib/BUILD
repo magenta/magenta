@@ -126,3 +126,9 @@ py_library(
     srcs = ["tf_lib.py"],
     srcs_version = "PY2AND3",
 )
+
+py_library(
+    name = "sequence_generator",
+    srcs = ["sequence_generator.py"],
+    deps = [],
+)

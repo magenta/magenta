@@ -542,6 +542,18 @@ class MelodyEncoderDecoderTest(tf.test.TestCase):
     self.assertListEqual(melody3.events, [60, NO_EVENT])
     self.assertListEqual(melody4.events, [60, NOTE_OFF])
 
+  def testSetLength(self):
+    events = [60]
+    melody = melodies_lib.MonophonicMelody()
+    melody.from_event_list(events)
+    melody.set_length(5)
+    self.assertListEqual([60, -2, -2, -2, -2], melody.events)
+
+    events = [60, -1, -1, -2]
+    melody = melodies_lib.MonophonicMelody()
+    melody.from_event_list(events)
+    melody.set_length(3)
+    self.assertListEqual([60, -1, -1], melody.events)
 
 if __name__ == '__main__':
   tf.test.main()
