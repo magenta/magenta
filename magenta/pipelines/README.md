@@ -103,15 +103,15 @@ composite_pipeline = DAGPipeline(dag)
 
 `DAGPipeline` takes a single argument: the DAG encoded as a Python dictionary. The DAG specifies how data will flow via connections between pipelines.
 
-Each (key, value) pair is in this form, ```destination: dependencies```.
+Each (key, value) pair is in this form, ```destination: dependency```.
 
-Remember that the `Pipeline` object defines `input_type` and `output_type` which can be Python classes or dictionaries mapping string names to Python classes. Lets call these the _type signature_ of the pipeline's input and output data. Both the destination and dependencies have type signatures, and the rule for the DAG is that every (destination, dependencies) has the same type signature.
+Remember that the `Pipeline` object defines `input_type` and `output_type` which can be Python classes or dictionaries mapping string names to Python classes. Lets call these the _type signature_ of the pipeline's input and output data. Both the destination and dependency have type signatures, and the rule for the DAG is that every (destination, dependency) has the same type signature.
 
-Specifically, if the destination is a `Pipeline`, then `destination.input_type` must have the same type signature as dependencies.
+Specifically, if the destination is a `Pipeline`, then `destination.input_type` must have the same type signature as the dependency.
 
-___Break down of dependencies___
+___Break down of dependency___
 
-Like type signatures, a dependency can be a single object or a dictionary mapping string names to objects. In this case the objects are `Pipeline` instances (there is also one other allowed type, but more on that below), and not classes.
+The dependency tells DAGPipeline what Pipeline's need to be run before running the destination. Like type signatures, a dependency can be a single object or a dictionary mapping string names to objects. In this case the objects are `Pipeline` instances (there is also one other allowed type, but more on that below), and not classes.
 
 ___Input and outputs___
 
@@ -230,12 +230,43 @@ Not every pipeline output needs to be connected to something, as long as at leas
 
 ### InvalidDAGException
 
-Thrown when the DAG dictionary is not well formatted. So if `destination: dependencies` pairs are not `Pipeline: Pipeline` or `Pipeline: {'name_1': Pipeline, ...}`. 
-Also thrown when Input is given as a destination, or Output is given as a dependency.
+Thrown when the DAG dictionary is not well formatted. This can be because a `destination: dependency` pair is not `Pipeline: Pipeline` or `Pipeline: {'name_1': Pipeline, ...}`. It is also thrown when Input is given as a destination, or Output is given as a dependency.
 
 ### TypeMismatchException
 
-Thrown when destination type signature doesn't match dependencies type signature.
+Thrown when destination type signature doesn't match dependency type signature.
+
+TypeMismatchException is thrown in these examples:
+
+```python
+print DestPipeline.input_type
+> Type1
+
+print SrcPipeline.output_type
+> Type2
+
+dag = {DestPipeline(): SrcPipeline(), ...}
+```
+
+```python
+print DestPipeline.input_type
+> {'name_1': Type1}
+
+print SrcPipeline.output_type
+> {'name_1': Type2}
+
+dag = {DestPipeline(): SrcPipeline(), ...}
+```
+
+```python
+print DestPipeline.input_type
+> {'name_1': MyType}
+
+print SrcPipeline.output_type
+> {'name_2': MyType}
+
+dag = {DestPipeline(): SrcPipeline(), ...}
+```
 
 ### BadTopologyException
 
