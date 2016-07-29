@@ -68,6 +68,21 @@ class Statistic(object):
 
 
 def merge_statistics_dicts(merge_to, merge_from):
+  """Merge one dictionary of `Statistic` objects into another.
+
+  `merge_to` and `merge_from` are dictionaries mapping strings to
+  `Statistic` objects, i.e. {'name_1': statistic_instance_1,
+  'name_2': statistic_instance_2, ...}.
+
+  To merge, for each key, merge_to[key].merge_from(merge_from[key]) is run.
+  If `merge_from` contains keys not in `merge_to`, they will be added and the
+  `Statistic` will be copied over.
+
+  Args:
+    merge_to: Dictionary which will be updated.
+    merge_from: Dictionary which will get merged into `merge_to`. This
+        argument is not modified.
+  """
   for name in merge_from:
     if name in merge_to:
       merge_to[name].merge_from(merge_from[name])
@@ -76,6 +91,16 @@ def merge_statistics_dicts(merge_to, merge_from):
 
 
 def is_valid_statistics_dict(stats_dict):
+  """Checks that a dictionary of `Statistic` objects is valid.
+
+  A valid statistics dictionary maps strings to single `Statistic` objects.
+
+  Args:
+    stats_dict: An object.
+
+  Returns:
+    True if valid, False otherwise.
+  """
   if not isinstance(stats_dict, dict):
     return False
   if [key for key in stats_dict if not isinstance(key, basestring)]:
@@ -86,6 +111,13 @@ def is_valid_statistics_dict(stats_dict):
 
 
 def log_statistics_dict(stats_dict, logger_fn=tf.logging.info):
+  """Calls the given logger function on each `Statistic` in the dictionary.
+
+  Args:
+    stats_dict: A dictionary mapping strings to single `Statistic` objects.
+    logger_fn: The function which will be called on the string representation
+        of each `Statistic`.
+  """
   for name, stat in stats_dict.items():
     logger_fn(stat.pretty_print(name))
 
