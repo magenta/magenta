@@ -11,7 +11,22 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Pipeline that runs arbitrary pipelines composed in a graph."""
+"""Pipeline that runs arbitrary pipelines composed in a graph.
+
+Some terminology used in the code.
+
+dag: Directed asyclic graph.
+unit: A Pipeline which is run inside DAGPipeline.
+connection: A key value pair in the DAG dictionary.
+dependency: The right hand side (value in key value dictionary pair) of a DAG
+    connection. Can be a Pipeline, Input, Key, or dictionary mapping names to
+    one of those.
+subordinate: Any Input, Pipeline, or Key object that appears in a dependency.
+shorthand: Invalid things that can be put in the DAG which get converted to
+    valid things before parsing. These things are for convenience.
+type signature: Something that can be returned from Pipeline's `output_type`
+    or `input_type`. A python class, or dictionary mapping names to classes.
+"""
 
 
 import itertools
@@ -73,19 +88,19 @@ def cartesian_product(*input_lists):
   return itertools.product(*input_lists)
 
 
-class InvalidDependencyException(Exception):
+class InvalidDAGException(Exception):
   pass
 
 
-class BadConnectionException(Exception):
-  pass
-
-
-class TypeMismatchException(Exception):
+class BadTopologyException(Exception):
   pass
 
 
 class NotConnectedException(Exception):
+  pass
+
+
+class TypeMismatchException(Exception):
   pass
 
 
@@ -109,7 +124,8 @@ class DAGPipeline(pipeline.Pipeline):
   """A directed asyclic graph pipeline.
 
   This Pipeline can be given an arbitrary graph composed of Pipeline instances
-  and will run all of those pipelines feeding outputs to inputs.
+  and will run all of those pipelines feeding outputs to inputs. See README.md
+  for details.
 
   Use DAGPipeline to compose multiple smaller pipelines together.
   """
@@ -123,12 +139,12 @@ class DAGPipeline(pipeline.Pipeline):
     # Things that require input get input. DAG is composed of correct types.
     for unit, dependency in self.dag.items():
       if not isinstance(unit, (pipeline.Pipeline, Output)):
-        raise InvalidDependencyException(
+        raise InvalidDAGException(
             'Dependency {%s: %s} is invalid. Left hand side value %s must '
             'either be a Pipeline or Output object' % (unit, dependency, unit))
       if isinstance(dependency, dict):
         if not all([isinstance(name, basestring) for name in dependency]):
-          raise InvalidDependencyException(
+          raise InvalidDAGException(
               'Dependency {%s: %s} is invalid. Right hand side keys %s must be '
               'strings' % (unit, dependency, dependency.keys()))
         values = dependency.values()
@@ -139,7 +155,7 @@ class DAGPipeline(pipeline.Pipeline):
                 (isinstance(v, pipeline.Key) and
                  isinstance(v.unit, pipeline.Pipeline)) or
                 isinstance(v, Input)):
-          raise InvalidDependencyException(
+          raise InvalidDAGException(
               'Dependency {%s: %s} is invalid. Right hand side value %s must '
               'be either a Pipeline, Key, or Input object'
               % (unit, dependency, v))
@@ -226,23 +242,37 @@ class DAGPipeline(pipeline.Pipeline):
     # Check for cycles by checking if any edges remain.
     for unit in graph:
       if graph[unit][1] != 0:
-        raise BadConnectionException('Dependency loop found on %s' % unit)
+        raise BadTopologyException('Dependency loop found on %s' % unit)
 
     if set(call_list) != set(list(all_units) + self.outputs):
-      raise BadConnectionException('Not all pipelines feed into an output or '
-                                   'there is a dependency loop.')
+      raise BadTopologyException('Not all pipelines feed into an output or '
+                                 'there is a dependency loop.')
 
     call_list.reverse()
     assert call_list[0] == self.input
 
   def _expand_dag_shorthands(self, dag):
-    # Expand DAG shorthand. Currently the only shorthand is direct connections.
-    # A direct connection is a connection {a: b} where a.input_type is a dict
-    # and b.output_type is a dict, and a.input_type == b.output_type.
-    # {a: b} is expanded to
-    # {a: {"name_1": b["name_1"], "name_2": b["name_2"], ...}}.
-    # {Output(): {"name_1", obj1, "name_2": obj2, ...} is expanded to
-    # {Output("name_1"): obj1, Output("name_2"): obj2, ...}.
+    """Expand DAG shorthand.
+
+    Currently the only shorthand is "direct connection".
+    A direct connection is a connection {a: b} where a.input_type is a dict, 
+    b.output_type is a dict, and a.input_type == b.output_type. This is not
+    actually valid, but we can convert it to a valid connection.
+
+    {a: b} is expanded to
+    {a: {"name_1": b["name_1"], "name_2": b["name_2"], ...}}.
+    {Output(): {"name_1", obj1, "name_2": obj2, ...} is expanded to
+    {Output("name_1"): obj1, Output("name_2"): obj2, ...}.
+
+    Args:
+      dag: A dictionary encoding the DAG.
+
+    Yields:
+      Key, value pairs for a new dag dictionary.
+
+    Raises:
+      InvalidDictionaryOutput: If `Output` is not used correctly.
+    """
     for key, val in dag.items():
       # Direct connection.
       if (isinstance(key, pipeline.Pipeline) and
@@ -253,16 +283,16 @@ class DAGPipeline(pipeline.Pipeline):
       elif key == Output():
         if (isinstance(val, pipeline.Pipeline) and
             isinstance(val.output_type, dict)):
-          dependencies = [(name, val[name]) for name in val.output_type]
+          dependency = [(name, val[name]) for name in val.output_type]
         elif isinstance(val, dict):
-          dependencies = val.items()
+          dependency = val.items()
         else:
           raise InvalidDictionaryOutput(
               'Output() with no name can only be connected to a dictionary or '
               'a Pipeline whose output_type is a dictionary. Found Output() '
               'connected to %s' % val)
-        for name, dep in dependencies:
-          yield Output(name), dep
+        for name, subordinate in dependency:
+          yield Output(name), subordinate
       elif isinstance(key, Output):
         if isinstance(val, dict):
           raise InvalidDictionaryOutput(
@@ -280,36 +310,41 @@ class DAGPipeline(pipeline.Pipeline):
       else:
         yield key, val
 
-  def _get_units(self, dependencies):
+  def _get_units(self, dependency):
+    """Gets list of units from a dependency."""
     dep_list = []
-    if isinstance(dependencies, dict):
-      dep_list.extend(dependencies.values())
+    if isinstance(dependency, dict):
+      dep_list.extend(dependency.values())
     else:
-      dep_list.append(dependencies)
-    return [self._get_unit(punit) for punit in dep_list]
+      dep_list.append(dependency)
+    return [self._validate_subordinate(sub) for sub in dep_list]
 
-  def _get_unit(self, possible_unit):
-    if isinstance(possible_unit, pipeline.Pipeline):
-      return possible_unit
-    if isinstance(possible_unit, pipeline.Key):
-      assert isinstance(possible_unit.unit, pipeline.Pipeline)
-      return possible_unit.unit
-    if isinstance(possible_unit, Input):
-      return possible_unit
-    raise InvalidDependencyException(
+  def _validate_subordinate(self, subordinate):
+    """Verifies that subordinate is Input, Key, or Pipeline."""
+    if isinstance(subordinate, pipeline.Pipeline):
+      return subordinate
+    if isinstance(subordinate, pipeline.Key):
+      if not isinstance(subordinate.unit, pipeline.Pipeline):
+        raise InvalidDAGException(
+            'Key object %s does not have a valid Pipeline' % subordinate)
+      return subordinate.unit
+    if isinstance(subordinate, Input):
+      return subordinate
+    raise InvalidDAGException(
         'Looking for Pipeline, Key, or Input object, but got %s'
-        % type(possible_unit))
+        % type(subordinate))
 
   def _get_type_signature_for_dependency(self, dependency):
+    """Gets the type signature of the dependency output."""
     if isinstance(dependency, (pipeline.Pipeline, pipeline.Key, Input)):
       return dependency.output_type
     return dict([(name, sub_dep.output_type)
                  for name, sub_dep in dependency.items()])
 
   def transform(self, input_object):
-    """Runs the pipeline on the given input.
+    """Runs the DAG on the given input.
 
-    Subclasses must implement this method.
+    All pipelines in the DAG will run.
 
     Args:
       input_object: Any object. The required type depends on implementation.
@@ -358,7 +393,19 @@ class DAGPipeline(pipeline.Pipeline):
           self.stats[full_name] = stat_value
     return dict([(output.name, results[output]) for output in self.outputs])
 
-  def _get_outputs_as_signature(self, signature, outputs):
+  def _get_outputs_as_signature(self, dependency, outputs):
+    """Returns a list or dict which matches the type signature of dependency.
+
+    Args:
+      dependency: Input, Key, Pipeline instance, or dictionary mapping names to
+          those values.
+      outputs: A database of computed unit outputs. A dictionary mapping
+          Pipeline to list of objects.
+
+    Returns:
+      A list or dictionary of computed unit outputs which matches the type
+      signature of the given dependency.
+    """
     def _get_outputs_for_key(unit_or_key, outputs):
       if isinstance(unit_or_key, pipeline.Key):
         if not outputs[unit_or_key.unit]:
@@ -368,10 +415,10 @@ class DAGPipeline(pipeline.Pipeline):
         return outputs[unit_or_key.unit][unit_or_key.key]
       assert isinstance(unit_or_key, (pipeline.Pipeline, Input))
       return outputs[unit_or_key]
-    if isinstance(signature, dict):
+    if isinstance(dependency, dict):
       return dict([(name, _get_outputs_for_key(unit_or_key, outputs))
-                   for name, unit_or_key in signature.items()])
-    return _get_outputs_for_key(signature, outputs)
+                   for name, unit_or_key in dependency.items()])
+    return _get_outputs_for_key(dependency, outputs)
 
   def _get_inputs_for_unit(self, unit, results,
                            list_operation=cartesian_product):

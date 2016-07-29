@@ -228,7 +228,7 @@ Not every pipeline output needs to be connected to something, as long as at leas
 
 ## DAGPipeline Exceptions
 
-### InvalidDependencyException
+### InvalidDAGException
 
 Thrown when the DAG dictionary is not well formatted. So if `destination: dependencies` pairs are not `Pipeline: Pipeline` or `Pipeline: {'name_1': Pipeline, ...}`. 
 Also thrown when Input is given as a destination, or Output is given as a dependency.
@@ -237,7 +237,7 @@ Also thrown when Input is given as a destination, or Output is given as a depend
 
 Thrown when destination type signature doesn't match dependencies type signature.
 
-### BadConnectionException
+### BadTopologyException
 
 Thrown when a Pipeline does not feed into anyhing, or there is a directed cycle.
 
