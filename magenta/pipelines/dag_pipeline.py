@@ -255,7 +255,7 @@ class DAGPipeline(pipeline.Pipeline):
     """Expand DAG shorthand.
 
     Currently the only shorthand is "direct connection".
-    A direct connection is a connection {a: b} where a.input_type is a dict, 
+    A direct connection is a connection {a: b} where a.input_type is a dict,
     b.output_type is a dict, and a.input_type == b.output_type. This is not
     actually valid, but we can convert it to a valid connection.
 

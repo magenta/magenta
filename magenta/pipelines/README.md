@@ -246,6 +246,7 @@ print SrcPipeline.output_type
 > Type2
 
 dag = {DestPipeline(): SrcPipeline(), ...}
+DAGPipeline(dag)
 ```
 
 ```python
@@ -256,6 +257,7 @@ print SrcPipeline.output_type
 > {'name_1': Type2}
 
 dag = {DestPipeline(): SrcPipeline(), ...}
+DAGPipeline(dag)
 ```
 
 ```python
@@ -266,19 +268,86 @@ print SrcPipeline.output_type
 > {'name_2': MyType}
 
 dag = {DestPipeline(): SrcPipeline(), ...}
+DAGPipeline(dag)
 ```
 
 ### BadTopologyException
 
 Thrown when a Pipeline does not feed into anyhing, or there is a directed cycle.
 
+BadTopologyException is thrown in these examples:
+```python
+pipe1 = MyPipeline1()
+pipe2 = MyPipeline2()
+dag = {Output('output'): Input(MyType),
+       pipe2: pipe1,
+       pipe1: pipe2}
+DAGPipeline(dag)
+```
+
+```python
+pipe1 = MyPipeline1()
+pipe2 = MyPipeline2()
+pipe3 = MyPipeline3()
+dag = {pipe1: Input(pipe1.input_type),
+       pipe2: {'a': pipe1, 'b': pipe3},
+       pipe3: pipe2,
+       Output(): {'pipe2': pipe2, 'pipe3': pipe3}}
+DAGPipeline(dag)
+```
+
 ### NotConnectedException
 
-Thrown when a Pipeline used as a dependency is not given as a destination.
+Thrown when a Pipeline used in a dependency has nothing feeding into it.
+
+NotConnectedException is thrown in these examples:
+```python
+pipe1 = MyPipeline1()
+pipe2 = MyPipeline2()
+dag = {pipe1: Input(pipe1.input_type),
+       Output('output'): pipe2}
+DAGPipeline(dag)
+```
+
+```python
+pipe1 = MyPipeline1()
+pipe2 = MyPipeline2()
+dag = {pipe1: Input(pipe1.input_type),
+       Output(): {'pipe1': pipe1, 'pipe2': pipe2}}
+DAGPipeline(dag)
+```
 
 ### BadInputOrOutputException
 
 Thrown when there is no Inputs or more than one Input with different types, or there is no Output.
+
+BadInputOrOutputException is thrown in these examples:
+```python
+pipe1 = MyPipeline1()
+dag = {pipe1: Input(pipe1.input_type)}
+DAGPipeline(dag)
+
+dag = {Output('output'): pipe1}
+DAGPipeline(dag)
+
+pipe2 = MyPipeline2()
+dag = {pipe1: Input(Type1),
+       pipe2: Input(Type2),
+       Output(): {'pipe1': pipe1, 'pipe2': pipe2}}
+DAGPipeline(dag)
+```
+
+Having multiple `Input` instances with the same type is allowed.
+
+This example will not throw an exception:
+```python
+pipeA = MyPipelineA()
+pipeB = MyPipelineB()
+dag = {pipeA: Input(MyType),
+       pipeB: Input(MyType),
+       Output(): {'pipeA': pipeA, 'pipeB': pipeB}}
+DAGPipeline(dag)
+```
 
 ### InvalidStatisticsException
 
@@ -287,6 +356,23 @@ Thrown when a Pipeline in the DAG returns a value from its `get_stats` method wh
 ### InvalidDictionaryOutput
 
 Thrown when Output() is used without a dictionary dependency, or Output(name) is given with a name and with dictionary dependency.
+
+InvalidDictionaryOutput is thrown in these examples:
+```python
+pipe1 = MyPipeline1()
+pipe2 = MyPipeline2()
+dag = {Output('output'): {'pipe1': pipe1, 'pipe2': pipe2}, ...}
+DAGPipeline(dag)
+```
+
+```python
+print MyPipeline.output_type
+> MyType
+
+pipe = MyPipeline()
+dag = {Output(): pipe, ...}
+DAGPipeline(dag)
+```
 
 ### InvalidTransformOutputException
 

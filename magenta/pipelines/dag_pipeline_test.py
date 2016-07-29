@@ -390,6 +390,11 @@ class DAGPipelineTest(tf.test.TestCase):
     p = dag_pipeline.DAGPipeline(dag)
     self.assertEqual(p.transform(Type0(1, 2, 3)), {'xy': [], 'z': []})
 
+  def testNoPipelines(self):
+    dag = {dag_pipeline.Output('output'): dag_pipeline.Input(Type0)}
+    p = dag_pipeline.DAGPipeline(dag)
+    self.assertEqual(p.transform(Type0(1, 2, 3)), {'output': [Type0(1, 2, 3)]})
+
   def testStatistics(self):
 
     class UnitQ(pipeline.Pipeline):
@@ -591,7 +596,15 @@ class DAGPipelineTest(tf.test.TestCase):
       def transform(self, input_object):
         pass
 
-    q, r, s = UnitQ(), UnitR(), UnitS()
+    class UnitT(pipeline.Pipeline):
+
+      def __init__(self):
+        pipeline.Pipeline.__init__(self, Type0, Type0)
+
+      def transform(self, input_object):
+        pass
+
+    q, r, s, t = UnitQ(), UnitR(), UnitS(), UnitT()
     dag = {q: dag_pipeline.Input(q.input_type),
            s: {'a': q, 'b': r},
            r: s,
@@ -603,6 +616,18 @@ class DAGPipelineTest(tf.test.TestCase):
     dag = {s: {'a': dag_pipeline.Input(Type1), 'b': r},
            r: s,
            dag_pipeline.Output('output'): r}
+    with self.assertRaises(dag_pipeline.BadTopologyException):
+      dag_pipeline.DAGPipeline(dag)
+
+    dag = {dag_pipeline.Output('output'): dag_pipeline.Input(Type0),
+           t: t}
+    with self.assertRaises(dag_pipeline.BadTopologyException):
+      dag_pipeline.DAGPipeline(dag)
+
+    t2 = UnitT()
+    dag = {dag_pipeline.Output('output'): dag_pipeline.Input(Type0),
+           t2: t,
+           t: t2}
     with self.assertRaises(dag_pipeline.BadTopologyException):
       dag_pipeline.DAGPipeline(dag)
 
