@@ -60,10 +60,10 @@ tf.app.flags.DEFINE_float('temperature', 1.0,
                           'the unaltered softmax probabilities, greater than '
                           '1.0 makes melodies more random, less than 1.0 makes '
                           'melodies less random.')
-tf.app.flags.DEFINE_integer('bpm', -1,
+tf.app.flags.DEFINE_integer('bpm', 0,
                             'Beats per minute for the entire output melody including '
                             'a primer melody if used. '
-                            'Use a less than or equal to zero amount to ignore this flag. '
+                            'Use zero to ignore this flag. '
                             'The default is 120 bpm or the bpm of the primer.')
 
 
