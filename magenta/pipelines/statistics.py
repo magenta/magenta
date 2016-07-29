@@ -90,15 +90,6 @@ def log_statistics_dict(stats_dict, logger_fn=tf.logging.info):
     logger_fn(stat.pretty_print(name))
 
 
-# https://docs.python.org/2/library/bisect.html#searching-sorted-lists
-def _find_le(a, x):
-  """Find rightmost value less than or equal to x."""
-  i = bisect.bisect_right(a, x)
-  if i:
-    return a[i-1]
-  raise ValueError
-
-
 class Counter(Statistic):
   """Holds a count.
 
@@ -170,6 +161,14 @@ class Histogram(Statistic):
                           for bucket_lower in self.buckets])
     self.verbose_pretty_print = verbose_pretty_print
 
+  # https://docs.python.org/2/library/bisect.html#searching-sorted-lists
+  def _find_le(self, x):
+    """Find rightmost bucket less than or equal to x."""
+    i = bisect.bisect_right(self.buckets, x)
+    if i:
+      return self.buckets[i-1]
+    raise ValueError
+
   def increment(self, value, inc=1):
     """Increment the bucket containing the given value.
 
@@ -179,7 +178,7 @@ class Histogram(Statistic):
       value: Any number.
       inc: An integer. How much to increment the bucket count by.
     """
-    bucket_lower = _find_le(self.buckets, value)
+    bucket_lower = self._find_le(value)
     self.counters[bucket_lower] += inc
 
   def merge_from(self, other):

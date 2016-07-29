@@ -561,7 +561,8 @@ def extract_melodies(quantized_sequence,
       the same time). If False, tracks with polyphony will be ignored.
 
   Returns:
-    A python list of MonophonicMelody instances.
+    melodies: A python list of MonophonicMelody instances.
+    stats: A dictionary mapping string names to `statistics.Statistic` objects.
   """
   # TODO(danabo): Convert `ignore_polyphonic_notes` into a float which controls
   # the degree of polyphony that is acceptable.
@@ -570,9 +571,13 @@ def extract_melodies(quantized_sequence,
                 ['polyphonic_tracks_discarded',
                  'melodies_discarded_too_short',
                  'melodies_discarded_too_few_pitches']])
+  # Create a histogram measuring melody lengths (in bars not steps).
+  # Capture melodies that are very small, in the range of the filter lower
+  # bound `min_bars`, and large. The bucket intervals grow approximately
+  # exponentially.
   stats['melody_lengths_in_bars'] = statistics.Histogram(
-      [0, 1, 2, 4, min_bars, min_bars + 1, min_bars - 1, 10, 20, 100, 200, 400,
-       800, 1000])
+      [0, 1, 10, 20, 30, 40, 50, 100, 200, 500, min_bars // 2, min_bars,
+       min_bars + 1, min_bars - 1])
   for track in quantized_sequence.tracks:
     start = 0
 

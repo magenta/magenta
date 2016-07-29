@@ -29,7 +29,6 @@ py_library(
         ":sequence_example_lib",
         "//magenta/pipelines:statistics",
         "//magenta/protobuf:music_py_pb2",
-        # tensorflow dep
     ]
 )
 
