@@ -11,19 +11,23 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Generate melodies from a trained checkpoint of a melody RNN model."""
+"""Generate melodies from a trained checkpoint of a melody RNN model.
+
+Uses flags to define operation.
+"""
 
 import ast
 import os
-import random
 import time
 
 # internal imports
+
+from six.moves import range  # pylint: disable=redefined-builtin
 import tensorflow as tf
 
 from magenta.lib import melodies_lib
 from magenta.lib import midi_io
-from magenta.lib import sequences_lib
+from magenta.protobuf import generator_pb2
 
 FLAGS = tf.app.flags.FLAGS
 tf.app.flags.DEFINE_string('run_dir', '/tmp/melody_rnn/logdir/run1',
@@ -60,153 +64,113 @@ tf.app.flags.DEFINE_float('temperature', 1.0,
                           'the unaltered softmax probabilities, greater than '
                           '1.0 makes melodies more random, less than 1.0 makes '
                           'melodies less random.')
-tf.app.flags.DEFINE_integer('bpm', 0,
-                            'Beats per minute for the entire output melody including '
-                            'a primer melody if used. '
-                            'Use zero to ignore this flag. '
-                            'The default is 120 bpm or the bpm of the primer.')
+tf.app.flags.DEFINE_integer('steps_per_beat', 4,
+                            'What precision to use when quantizing the melody.')
 
 
-DEFAULT_STEPS_PER_BEAT = 4
+def get_hparams():
+  """Get the hparams dictionary to be used by the model."""
+  hparams = ast.literal_eval(FLAGS.hparams if FLAGS.hparams else '{}')
+  hparams['temperature'] = FLAGS.temperature
+  return hparams
 
 
-def run_generate(graph, train_dir, output_dir, melody_encoder_decoder,
-                 primer_melody, num_steps, bpm):
-  """Generates melodies and saves them as MIDI files.
+def get_train_dir():
+  """Get the training dir to be used by the model."""
+  if not FLAGS.run_dir:
+    tf.logging.fatal('--run_dir required')
+  return os.path.join(os.path.expanduser(FLAGS.run_dir), 'train')
+
+
+def get_steps_per_beat():
+  """Get the number of steps per beat."""
+  return FLAGS.steps_per_beat
+
+
+def _steps_to_seconds(steps, bpm):
+  """Converts steps to seconds.
+
+  Uses the current flag value for steps_per_beat.
 
   Args:
-    graph: A tf.Graph object containing the model.
-    train_dir: The path to the directory where the latest checkpoint will be
-        loaded from.
-    output_dir: The path to the directory where MIDI files will be saved to.
-    melody_encoder_decoder: A melodies_lib.MelodyEncoderDecoder object.
-    primer_melody: A melodies_lib.MonophonicMelody object that will be used as
-        the priming melody. If the priming melody is empty, melodies will be
-        generated from scratch.
-    num_steps: The total number of steps the final melodies should be,
-        priming melody + generated steps. Each step is a 16th of a bar.
-    temperature: Degree of randomness where default=1
-    bpm: The tempo in beats per minute that the entire generated MIDI files will have. Default = 120
+    steps: number of steps.
+    bpm: current bpm.
+
+  Returns:
+    Number of seconds the steps represent.
   """
-  inputs = graph.get_collection('inputs')[0]
-  initial_state = graph.get_collection('initial_state')[0]
-  final_state = graph.get_collection('final_state')[0]
-  softmax = graph.get_collection('softmax')[0]
-  batch_size = softmax.get_shape()[0].value
-
-  transpose_amount = primer_melody.squash(
-      melody_encoder_decoder.min_note, melody_encoder_decoder.max_note,
-      melody_encoder_decoder.transpose_to_key)
-
-  melodies = []
-  for _ in xrange(batch_size):
-    melody = melodies_lib.MonophonicMelody()
-    if primer_melody.events:
-      melody.from_event_list(primer_melody.events)
-    else:
-      melody.events = [random.randint(melody_encoder_decoder.min_note,
-                                      melody_encoder_decoder.max_note)]
-    melodies.append(melody)
-
-  with graph.as_default():
-    saver = tf.train.Saver()
-    with tf.Session() as sess:
-      checkpoint_file = tf.train.latest_checkpoint(train_dir)
-      tf.logging.info('Checkpoint used: %s', checkpoint_file)
-      tf.logging.info('Generating melodies...')
-      saver.restore(sess, checkpoint_file)
-
-      final_state_ = None
-      for i in xrange(num_steps - len(primer_melody)):
-        if i == 0:
-          inputs_ = melody_encoder_decoder.get_inputs_batch(melodies,
-                                                            full_length=True)
-          initial_state_ = sess.run(initial_state)
-        else:
-          inputs_ = melody_encoder_decoder.get_inputs_batch(melodies)
-          initial_state_ = final_state_
-
-        feed_dict = {inputs: inputs_, initial_state: initial_state_}
-        final_state_, softmax_ = sess.run([final_state, softmax], feed_dict)
-        melody_encoder_decoder.extend_melodies(melodies, softmax_)
-
-  date_and_time = time.strftime('%Y-%m-%d_%H%M%S')
-  digits = len(str(len(melodies)))
-  for i, melody in enumerate(melodies):
-    melody.transpose(-transpose_amount)
-    sequence = melody.to_sequence(bpm=bpm)
-    midi_filename = '%s_%s.mid' % (date_and_time, str(i + 1).zfill(digits))
-    midi_path = os.path.join(output_dir, midi_filename)
-    midi_io.sequence_proto_to_midi_file(sequence, midi_path)
-
-  tf.logging.info('Wrote %d MIDI files to %s', len(melodies), output_dir)
+  return steps * 60.0 / bpm / get_steps_per_beat()
 
 
-def run(melody_encoder_decoder, build_graph):
+def run_with_flags(melody_rnn_sequence_generator):
   """Generates melodies and saves them as MIDI files.
 
+  Uses the options specified by the flags defined in this module. Intended to be
+  called from the main function of one of the melody generator modules.
+
   Args:
-    melody_encoder_decoder: A melodies_lib.MelodyEncoderDecoder object specific
+    melody_rnn_sequence_generator: A MelodyRnnSequenceGenerator object specific
         to your model.
-    build_graph: A function that when called, returns the tf.Graph object for
-        your model. The function will be passed the parameters:
-        (mode, hparams_string, input_size, num_classes, sequence_example_file).
-        For an example usage, see models/basic_rnn/basic_rnn_graph.py.
   """
   tf.logging.set_verbosity(tf.logging.INFO)
 
-  if not FLAGS.run_dir:
-    tf.logging.fatal('--run_dir required')
-    return
   if not FLAGS.output_dir:
     tf.logging.fatal('--output_dir required')
     return
 
-  FLAGS.run_dir = os.path.expanduser(FLAGS.run_dir)
   FLAGS.output_dir = os.path.expanduser(FLAGS.output_dir)
   if FLAGS.primer_midi:
     FLAGS.primer_midi = os.path.expanduser(FLAGS.primer_midi)
 
-  hparams = ast.literal_eval(FLAGS.hparams if FLAGS.hparams else '{}')
-  hparams['batch_size'] = FLAGS.num_outputs
-  hparams['dropout_keep_prob'] = 1.0
-  hparams['temperature'] = FLAGS.temperature
-  hparams_string = repr(hparams)
-
-  graph = build_graph('generate',
-                      hparams_string,
-                      melody_encoder_decoder.input_size,
-                      melody_encoder_decoder.num_classes)
-
-  train_dir = os.path.join(FLAGS.run_dir, 'train')
-
   if not os.path.exists(FLAGS.output_dir):
     os.makedirs(FLAGS.output_dir)
 
-  primer_melody = melodies_lib.MonophonicMelody()
-  bpm = melodies_lib.DEFAULT_BEATS_PER_MINUTE
+  primer_sequence = None
   if FLAGS.primer_melody:
+    primer_melody = melodies_lib.MonophonicMelody()
     primer_melody.from_event_list(ast.literal_eval(FLAGS.primer_melody))
+    primer_sequence = primer_melody.to_sequence()
   elif FLAGS.primer_midi:
     primer_sequence = midi_io.midi_file_to_sequence_proto(FLAGS.primer_midi)
-    quantized_sequence = sequences_lib.QuantizedSequence()
-    quantized_sequence.from_note_sequence(primer_sequence,
-                                          DEFAULT_STEPS_PER_BEAT)
-    bpm = quantized_sequence.bpm
-    extracted_melodies = melodies_lib.extract_melodies(
-        quantized_sequence, min_bars=0, min_unique_pitches=1,
-        gap_bars=float('inf'), ignore_polyphonic_notes=True)
-    if extracted_melodies:
-      primer_melody = extracted_melodies[0]
-    else:
-      tf.logging.info('No melodies were extracted from the MIDI file %s. '
-                      'Melodies will be generated from scratch.',
-                      FLAGS.primer_midi)
-  if FLAGS.bpm <= 0:
-     FLAGS.bpm = bpm
-  run_generate(graph, train_dir, FLAGS.output_dir, melody_encoder_decoder,
-               primer_melody, FLAGS.num_steps, FLAGS.bpm)
 
+  # Derive the total number of seconds to generate based on the BPM of the
+  # priming sequence and the num_steps flag.
+  bpm = (primer_sequence.tempos[0].bpm if primer_sequence.tempos
+         else melodies_lib.DEFAULT_BEATS_PER_MINUTE)
+  total_seconds = _steps_to_seconds(FLAGS.num_steps, bpm)
 
-if __name__ == '__main__':
-  tf.app.run()
+  # Specify start/stop time for generation based on starting generation at the
+  # end of the priming sequence and continuing until the sequence is num_steps
+  # long.
+  generate_request = generator_pb2.GenerateSequenceRequest()
+  generate_request.input_sequence.CopyFrom(primer_sequence)
+  generate_section = generate_request.generator_options.generate_sections.add()
+  # Set the start time to begin on the next step after the last note ends.
+  notes_by_end_time = sorted(primer_sequence.notes, key=lambda n: n.end_time)
+  last_end_time = notes_by_end_time[-1].end_time if notes_by_end_time else 0
+  generate_section.start_time_seconds = last_end_time + _steps_to_seconds(
+      1, bpm)
+  generate_section.end_time_seconds = total_seconds
+
+  if generate_section.start_time_seconds >= generate_section.end_time_seconds:
+    tf.logging.fatal(
+        'Priming sequence is longer than the total number of steps requested: '
+        'Priming sequence length: %s, Generation length requested: %s',
+        generate_section.start_time_seconds, total_seconds)
+    return
+
+  # Make the generate request num_outputs times and save the output as midi
+  # files.
+  date_and_time = time.strftime('%Y-%m-%d_%H%M%S')
+  digits = len(str(FLAGS.num_outputs))
+  for i in range(FLAGS.num_outputs):
+    generate_response = melody_rnn_sequence_generator.generate(
+        generate_request)
+
+    midi_filename = '%s_%s.mid' % (date_and_time, str(i + 1).zfill(digits))
+    midi_path = os.path.join(FLAGS.output_dir, midi_filename)
+    midi_io.sequence_proto_to_midi_file(
+        generate_response.generated_sequence, midi_path)
+
+  tf.logging.info('Wrote %d MIDI files to %s',
+                  FLAGS.num_outputs, FLAGS.output_dir)
