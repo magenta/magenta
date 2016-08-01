@@ -114,6 +114,12 @@ You should see a list of available input and output ports, including both the
 controller (e.g., "VMPK Output") and synthesizer (e.g., "FluidSynth virtual
 port").
 
+You should have already trained a model with a
+[generator](/magenta/models/README.md#generators) defined for it
+(e.g., [Basic RNN](/magenta/models/basic_rnn/README.md),
+[Lookback RNN] (/magenta/models/lookback_rnn/README.md),
+[Attention RNN] (/magenta/models/attention_rnn/README.md), etc.).
+
 You can now start the interface with this command, supplying the same
 hparams you used when you trained the model:
 
@@ -126,17 +132,17 @@ $ bazel-bin/magenta/interfaces/midi/midi \
   --hparams=<traininng hparams>
 ```
 
-Asssuming you followed the
-[Basic RNN instructions](/magenta/models/basic_rnn/README.md) and are
+Asssuming you trained the
+[Attention RNN](/magenta/models/attention_rnn/README.md) and are
 using VPMK and FluidSynth, your command would look like this:
 
 ```bash
 $ bazel-bin/magenta/interfaces/midi/midi \
-  --input_port='VMPK Output' \
-  --output_port='Fluidsynth virtual port' \
-  --generator_name=basic_rnn \
-  --train_dir=/tmp/basic_rnn/logdir/run1/train \
-  --hparams='{"rnn_layer_sizes":[50]}' \
+  --input_port="VMPK Output" \
+  --output_port="Fluidsynth virtual port" \
+  --generator_name=attention_rnn \
+  --train_dir=/tmp/attention_rnn/logdir/run1/train \
+  --hparams="{'batch_size':64,'rnn_layer_sizes':[64,64]}" \
 ```
 
 To initialize a capture session, you need to send the appropriate control change
