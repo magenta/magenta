@@ -154,14 +154,14 @@ class Generator(object):
       raise GeneratorException('No generator training directory supplied.')
 
     generator = _GENERATOR_FACTORY_MAP[generator_name].create_generator(
-      train_dir, hparams=hparams)
+        train_dir, hparams=hparams)
     generator.initialize()
 
     self._generator = generator
 
   def generate_melody(self, input_sequence):
     """Calls the SequenceGenerator and returns the generated NoteSequence."""
-    # TODO(@cghawthorne): Align generation time on a measure boundary.
+    # TODO(fjord): Align generation time on a measure boundary.
     notes_by_end_time = sorted(input_sequence.notes, key=lambda n: n.end_time)
     last_end_time = notes_by_end_time[-1].end_time if notes_by_end_time else 0
 
