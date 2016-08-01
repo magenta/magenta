@@ -24,8 +24,8 @@ import threading
 import time
 
 # internal imports
-import tensorflow as tf
 import mido
+import tensorflow as tf
 
 from magenta.models.attention_rnn import attention_rnn_generator
 from magenta.models.basic_rnn import basic_rnn_generator
@@ -96,28 +96,33 @@ tf.app.flags.DEFINE_string(
 
 # A map from a string generator name to its factory class.
 _GENERATOR_FACTORY_MAP = {
-  'attention_rnn': attention_rnn_generator,
-  'basic_rnn': basic_rnn_generator,
-  'lookback_rnn': lookback_rnn_generator,
-} 
+    'attention_rnn': attention_rnn_generator,
+    'basic_rnn': basic_rnn_generator,
+    'lookback_rnn': lookback_rnn_generator,
+}
 
 _METRONOME_TICK_DURATION = 0.05
 _METRONOME_PITCH = 95
 
-def Serialized(func):
+
+def serialized(func):
+  """Decorator to provide mutual exlcusion for class method."""
   @functools.wraps(func)
   def serialized_method(self, *args, **kwargs):
-    lock = getattr(self, 'lock')
+    lock = getattr(self, '_lock')
     with lock:
       return func(self, *args, **kwargs)
   return serialized_method
+
 
 def stdout_write_and_flush(s):
   stdout.write(s)
   stdout.flush()
 
+
 class GeneratorException(Exception):
   pass
+
 
 class Generator(object):
   """A class wrapping a SequenceGenerator.
@@ -132,6 +137,7 @@ class Generator(object):
     train_dir: The training directory with checkpoint files for the model being
         used.
   """
+
   def __init__(
       self,
       generator_name,
@@ -146,16 +152,16 @@ class Generator(object):
 
     if not train_dir:
       raise GeneratorException('No generator training directory supplied.')
- 
+
     generator = _GENERATOR_FACTORY_MAP[generator_name].create_generator(
-          train_dir, hparams=hparams)
+      train_dir, hparams=hparams)
     generator.initialize()
- 
+
     self._generator = generator
 
   def generate_melody(self, input_sequence):
     """Calls the SequenceGenerator and returns the generated NoteSequence."""
-    # TODO: align generation time on a measure boundary.
+    # TODO(@cghawthorne): Align generation time on a measure boundary.
     notes_by_end_time = sorted(input_sequence.notes, key=lambda n: n.end_time)
     last_end_time = notes_by_end_time[-1].end_time if notes_by_end_time else 0
 
@@ -201,7 +207,7 @@ class Metronome(threading.Thread):
     while not self._stop_metronome:
       now = time.time()
       next_tick_time = now + period - ((now - self._clock_start_time)  % period)
-      delta =  next_tick_time - time.time()
+      delta = next_tick_time - time.time()
       if delta > 0:
         time.sleep(delta + sleep_offset)
 
@@ -216,7 +222,7 @@ class Metronome(threading.Thread):
         sleep_offset += .0005
 
       if tick_late < 0:
-        while(time.time() < next_tick_time):
+        while time.time() < next_tick_time:
           pass
 
       self._outport.send(mido.Message(type='note_on', note=_METRONOME_PITCH))
@@ -301,7 +307,7 @@ class MonoMidiHub(object):
   Attributes:
     _inport: The Mido port for receiving messages.
     _outport: The Mido port for sending messages.
-    lock: An RLock used for thread-safety.
+    _lock: An RLock used for thread-safety.
     _capture_sequence: The NoteSequence being built from MIDI messages currently
         being captured or having been captured in the previous session.
     _control_cvs: A dictionary mapping (<control change number>,) and
@@ -318,13 +324,13 @@ class MonoMidiHub(object):
     self._inport = mido.open_input(input_midi_port)
     self._outport = mido.open_output(output_midi_port)
     # This lock is used by the Serialized decorator.
-    self.lock = threading.RLock()
+    self.)lock = threading.RLock()
     self._control_cvs = dict()
     self._player = None
     self._capture_start_time = None
     self._sequence_start_time = None
 
-  @Serialized
+  @serialized
   def _capture_message(self, msg):
     """Handles a single incoming MIDI message during capture. Used as callback.
 
@@ -387,7 +393,7 @@ class MonoMidiHub(object):
       self._outport.send(msg)
       stdout_write_and_flush('.')
 
-  @Serialized
+  @serialized
   def start_capture(self, bpm):
     """Starts a capture session.
 
@@ -411,7 +417,7 @@ class MonoMidiHub(object):
     self._metronome = Metronome(self._outport, bpm, self._capture_start_time)
     self._metronome.start()
 
-  @Serialized
+  @serialized
   def stop_capture(self):
     """Stops the capture session and returns the captured sequence.
 
@@ -436,7 +442,7 @@ class MonoMidiHub(object):
     stdout_write_and_flush('Done\n')
     return self.captured_sequence
 
-  @Serialized
+  @serialized
   def wait_for_control_signal(self, control_number, control_value=None):
     """Blocks until a specific control signal arrives.
 
@@ -457,7 +463,7 @@ class MonoMidiHub(object):
       control_tuple = ((control_number,) if control_value is None else
                        (control_number, control_value))
       if control_tuple not in self._control_cvs:
-        self._control_cvs[control_tuple] = threading.Condition(self.lock)
+        self._control_cvs[control_tuple] = threading.Condition(self._lock)
       self._control_cvs[control_tuple].wait()
 
   def start_playback(self, sequence):
