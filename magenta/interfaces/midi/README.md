@@ -40,7 +40,7 @@ If you are using a hardware controller, attach it to the machine. If you do not
 have one, you can install a software controller such as
 [VMPK](http://vmpk.sourceforge.net/) by doing the following.
 
-**Ubuntu:** Use the command `sudo apt-get install vmpk`. \
+**Ubuntu:** Use the command `sudo apt-get install vmpk`.<br />
 **Mac:** Download and install from the
 [VMPK website](http://vmpk.sourceforge.net/#Download).
 
@@ -50,13 +50,13 @@ If you are using a hardware synthesizer, attach it to the machine. If you do not
 have one, you can install a software synthesizer such as [FluidSynth]
 (http://www.fluidsynth.org) using the following commands:
 
-**Ubuntu:** `sudo apt-get install fluidsynth` \
+**Ubuntu:** `sudo apt-get install fluidsynth`<br />
 **Mac:** `brew install fluidsynth`
 
 If using FluidSynth, you will also want to install a decent soundfont. You can
 install one by doing the following:
 
-**Ubuntu:** Use the command `sudo apt-get install fluid-soundfont-gm`. \
+**Ubuntu:** Use the command `sudo apt-get install fluid-soundfont-gm`.<br />
 **Mac:** Download the soundfont from
 http://www.musescore.org/download/fluid-soundfont.tar.gz and unpack the SF2
 file.
