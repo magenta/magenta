@@ -12,14 +12,17 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 r"""Generate melodies from a trained checkpoint of the lookback RNN model.
+
 Example usage:
   $ bazel build magenta/models/lookback_rnn:lookback_rnn_generate
+
   $ ./bazel-bin/magenta/models/lookback_rnn/lookback_rnn_generate \
     --run_dir=/tmp/lookback_rnn/logdir/run1 \
     --output_dir=/tmp/lookback_rnn/generated \
     --num_outputs=10 \
     --num_steps=128 \
     --primer_melody="[60]"
+
 See /magenta/models/shared/melody_rnn_generate.py for flag descriptions.
 """
 

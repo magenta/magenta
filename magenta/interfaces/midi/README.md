@@ -1,7 +1,8 @@
 # Magenta MIDI Interface
 
-This interface allows you to connect to a [SequenceGenerator](/magenta/lib/sequence_generator.py) via a MIDI
-controller and synthesizer. These can be either "hard" or "soft" components.
+This interface allows you to connect to a
+[SequenceGenerator](/magenta/lib/sequence_generator.py) via a MIDI controller
+and synthesizer. These can be either "hard" or "soft" components.
 
 Note that you can only interface with a trained models that have a
 [SequenceGenerator](/magenta/lib/sequence_generator.py)
@@ -23,7 +24,7 @@ interface your computer's MIDI hub. For it to work, you need to separately
 install a backend library it can use to connect to your system. The easiest to
 install is PortMidi, which can be done with the following commands.
 
-**Ubuntu:** `sudo apt-get install libportmidi-dev`  
+**Ubuntu:** `sudo apt-get install libportmidi-dev`\
 **Mac:** `brew install portmidi`
 
 ### Install QjackCtl (Ubuntu Only)
@@ -36,10 +37,12 @@ qjackctl`.
 ### Connect/Install MIDI Controller
 
 If you are using a hardware controller, attach it to the machine. If you do not
-have one, you can install a software controller such as [VMPK](http://vmpk.sourceforge.net/) by doing the following.
+have one, you can install a software controller such as
+[VMPK](http://vmpk.sourceforge.net/) by doing the following.
 
-**Ubuntu:** Use the command `sudo apt-get install vmpk`.  
-**Mac:** Download and install from the [VMPK website](http://vmpk.sourceforge.net/#Download).
+**Ubuntu:** Use the command `sudo apt-get install vmpk`.\
+**Mac:** Download and install from the
+[VMPK website](http://vmpk.sourceforge.net/#Download).
 
 ### Connect/Install MIDI Synthesizer
 
@@ -47,22 +50,23 @@ If you are using a hardware synthesizer, attach it to the machine. If you do not
 have one, you can install a software synthesizer such as [FluidSynth]
 (http://www.fluidsynth.org) using the following commands:
 
-**Ubuntu:** `sudo apt-get install fluidsynth`  
+**Ubuntu:** `sudo apt-get install fluidsynth`\
 **Mac:** `brew install fluidsynth`
 
 If using FluidSynth, you will also want to install a decent soundfont. You can
 install one by doing the following:
 
-**Ubuntu:** Use the command `sudo apt-get install fluid-soundfont-gm`.  
+**Ubuntu:** Use the command `sudo apt-get install fluid-soundfont-gm`.\
 **Mac:** Download the soundfont from
-http://www.musescore.org/download/fluid-soundfont.tar.gz and unpack the SF2 file. 
+http://www.musescore.org/download/fluid-soundfont.tar.gz and unpack the SF2
+file.
 
 ## Set Up
 
 ### Ubuntu
 
-Launch `qjackctl` (Ubuntu only). You'll probably want to do it in its own
-screen/tab since it will print status messages to the terminal. Once the GUI
+Launch `qjackctl`. You'll probably want to do it in its own screen/tab
+since it will print status messages to the terminal. Once the GUI
 appears, click the "Start" button.
 
 If using a software controller, you can launch it in the background or in its

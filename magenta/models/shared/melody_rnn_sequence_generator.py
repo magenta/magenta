@@ -120,6 +120,7 @@ class MelodyRnnSequenceGenerator(sequence_generator.BaseSequenceGenerator):
         quantized_sequence, min_bars=0, min_unique_pitches=1,
         gap_bars=float('inf'), ignore_polyphonic_notes=True)
     assert len(extracted_melodies) <= 1
+
     if extracted_melodies and extracted_melodies[0].events:
       melody = extracted_melodies[0]
     else:
