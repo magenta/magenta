@@ -129,7 +129,7 @@ $ bazel-bin/magenta/interfaces/midi/midi \
   --output_port=<synthesizer port> \
   --generator_name=<generator name> \
   --train_dir=<training directory> \
-  --hparams=<traininng hparams>
+  --hparams=<training hparams>
 ```
 
 Asssuming you trained the
