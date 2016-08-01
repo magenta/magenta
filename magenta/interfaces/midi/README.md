@@ -1,7 +1,7 @@
 # Magenta MIDI Interface
 
-This interface allows you to connect to a
-[SequenceGenerator](/magenta/lib/sequence_generator.py) via a MIDI controller
+This interface allows you to connect to a model
+[generator](/magenta/models/README.md#generators) via a MIDI controller
 and synthesizer. These can be either "hard" or "soft" components.
 
 Note that you can only interface with a trained models that have a
