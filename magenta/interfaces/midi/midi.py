@@ -106,7 +106,7 @@ _METRONOME_PITCH = 95
 
 
 def serialized(func):
-  """Decorator to provide mutual exlcusion for class method."""
+  """Decorator to provide mutual exclusion for method using _lock attribute."""
   @functools.wraps(func)
   def serialized_method(self, *args, **kwargs):
     lock = getattr(self, '_lock')
@@ -121,6 +121,7 @@ def stdout_write_and_flush(s):
 
 
 class GeneratorException(Exception):
+  """An exception raised by the Generator class."""
   pass
 
 
@@ -136,6 +137,9 @@ class Generator(object):
         be merged with the default hyperparameters.
     train_dir: The training directory with checkpoint files for the model being
         used.
+  Raises:
+    GeneratorException: If an invalid generator name is given or no training
+        directory is given.
   """
 
   def __init__(
@@ -165,7 +169,7 @@ class Generator(object):
     notes_by_end_time = sorted(input_sequence.notes, key=lambda n: n.end_time)
     last_end_time = notes_by_end_time[-1].end_time if notes_by_end_time else 0
 
-    # Assume 4/4 time signature and 1 BPM.
+    # Assume 4/4 time signature and a single tempo.
     bpm = input_sequence.tempos[0].bpm
     seconds_to_generate = (60.0 / bpm) * 4 * self._num_bars_to_generate
 
@@ -323,7 +327,7 @@ class MonoMidiHub(object):
   def __init__(self, input_midi_port, output_midi_port):
     self._inport = mido.open_input(input_midi_port)
     self._outport = mido.open_output(output_midi_port)
-    # This lock is used by the Serialized decorator.
+    # This lock is used by the serialized decorator.
     self._lock = threading.RLock()
     self._control_cvs = dict()
     self._player = None

@@ -19,7 +19,7 @@ have installed [Homebrew](http://brew.sh).
 
 ### Install PortMidi
 
-The demo code uses a python library called [mido](http://mido.readthedocs.io) to
+The interface uses a python library called [mido](http://mido.readthedocs.io) to
 interface your computer's MIDI hub. For it to work, you need to separately
 install a backend library it can use to connect to your system. The easiest to
 install is PortMidi, which can be done with the following commands.
@@ -114,19 +114,22 @@ You should see a list of available input and output ports, including both the
 controller (e.g., "VMPK Output") and synthesizer (e.g., "FluidSynth virtual
 port").
 
-You can now start the interface with this command:
+You can now start the interface with this command, supplying the same
+hparams you used when you trained the model:
 
 ```bash
 $ bazel-bin/magenta/interfaces/midi/midi \
   --input_port=<controller port> \
   --output_port=<synthesizer port> \
   --generator_name=<generator name> \
-  --train_dir=<training directory>
+  --train_dir=<training directory> \
+  --hparams=<traininng hparams>
 ```
 
 Asssuming you followed the
 [Basic RNN instructions](/magenta/models/basic_rnn/README.md) and are
 using VPMK and FluidSynth, your command would look like this:
+
 ```bash
 $ bazel-bin/magenta/interfaces/midi/midi \
   --input_port='VMPK Output' \
