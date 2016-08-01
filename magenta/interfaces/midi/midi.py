@@ -18,25 +18,35 @@ sequence generator.
 """
 
 import ast
+import functools
 from sys import stdout
 import threading
 import time
-import functools
 
 # internal imports
 import tensorflow as tf
 import mido
 
+from magenta.models.attention_rnn import attention_rnn_generator
+from magenta.models.basic_rnn import basic_rnn_generator
 from magenta.models.lookback_rnn import lookback_rnn_generator
 from magenta.protobuf import generator_pb2
 from magenta.protobuf import music_pb2
 
 FLAGS = tf.app.flags.FLAGS
 
-tf.app.flags.DEFINE_bool('list', False, 'Only list available MIDI ports.')
-tf.app.flags.DEFINE_string('input_port', None, 'The name of the input MIDI port.')
-tf.app.flags.DEFINE_string('output_port', None, 'The name of the output MIDI port.')
-# TODO(adarob): Make the bpm adjustable by a control change signal.
+tf.app.flags.DEFINE_bool(
+    'list',
+    False,
+    'Only list available MIDI ports.')
+tf.app.flags.DEFINE_string(
+    'input_port',
+    None,
+    'The name of the input MIDI port.')
+tf.app.flags.DEFINE_string(
+    'output_port',
+    None,
+    'The name of the output MIDI port.')
 tf.app.flags.DEFINE_integer(
     'start_capture_control_number',
     1,
@@ -60,25 +70,36 @@ tf.app.flags.DEFINE_integer(
     'The control change value to use as a signal to stop '
     'capturing and generate. If None, any control change with'
     'stop_capture_control_number will stop capture.')
-tf.app.flags.DEFINE_string('melody_generator_target',
-                    'blade:brain-arts-magenta-melody-generator-prod',
-                    'Target for MelodyGenerator service.')
-tf.app.flags.DEFINE_integer('bpm', 90,
-                     'The beats per minute to use for the metronome and '
-                     'generated sequence.')
-tf.app.flags.DEFINE_integer('num_bars_to_generate', 5,
-                     'The number of bars to generate each time.')
+# TODO(adarob): Make the bpm adjustable by a control change signal.
+tf.app.flags.DEFINE_integer(
+    'bpm',
+    90,
+    'The beats per minute to use for the metronome and generated sequence.')
+# TODO(adarob): Make the number of bars to generate adjustable.
+tf.app.flags.DEFINE_integer(
+    'num_bars_to_generate',
+    5,
+    'The number of bars to generate each time.')
 tf.app.flags.DEFINE_string(
-    'lookback_rnn_train_dir',
-    '',
-    'The training directory with checkpoint files for the Lookback RNN model')
+    'generator_name',
+    None,
+    'The name of the SequenceGenerator being used.')
+tf.app.flags.DEFINE_string(
+    'train_dir',
+    None,
+    'The training directory with checkpoint files for the model being used.')
 tf.app.flags.DEFINE_string(
     'hparams',
     '{}',
-    'String representation of a Python dictionary '
-    'containing hyperparameter to value mapping. This '
-    'mapping is merged with the default '
-    'hyperparameters.')
+    'String representation of a Python dictionary containing hyperparameter to '
+    'value mappings. This mapping is merged with the default hyperparameters.')
+
+# A map from a string generator name to its factory class.
+_GENERATOR_FACTORY_MAP = {
+  'attention_rnn': attention_rnn_generator,
+  'basic_rnn': basic_rnn_generator,
+  'lookback_rnn': lookback_rnn_generator,
+} 
 
 _METRONOME_TICK_DURATION = 0.05
 _METRONOME_PITCH = 95
@@ -99,25 +120,41 @@ class GeneratorException(Exception):
   pass
 
 class Generator(object):
+  """A class wrapping a SequenceGenerator.
+
+  Args:
+    generator_name: The name of the generator to wrap. Must be present in
+        _GENERATOR_FACTORY_MAP.
+    num_bars_to_generate: The number of bars to generate on each call.
+        Assumes 4/4 time.
+    hparams: A Python dictionary containing hyperparameter to value mappings to
+        be merged with the default hyperparameters.
+    train_dir: The training directory with checkpoint files for the model being
+        used.
+  """
   def __init__(
       self,
+      generator_name,
       num_bars_to_generate,
       hparams,
-      lookback_rnn_train_dir=None):
+      train_dir=None):
     self._num_bars_to_generate = num_bars_to_generate
 
-    generator = None
-    if lookback_rnn_train_dir:
-      generator = lookback_rnn_generator.create_generator(
-          lookback_rnn_train_dir, hparams=hparams)
-    if generator is None:
-      raise GeneratorException("No generator training directory supplied.")
+    if generator_name not in _GENERATOR_FACTORY_MAP:
+      raise GeneratorException('Invalid generator name given: %s',
+                               generator_name)
 
+    if not train_dir:
+      raise GeneratorException('No generator training directory supplied.')
+ 
+    generator = _GENERATOR_FACTORY_MAP[generator_name].create_generator(
+          train_dir, hparams=hparams)
     generator.initialize()
+ 
     self._generator = generator
 
   def generate_melody(self, input_sequence):
-    """Calls the MelodyGenerator service and returns the generated Sequence."""
+    """Calls the SequenceGenerator and returns the generated NoteSequence."""
     # TODO: align generation time on a measure boundary.
     notes_by_end_time = sorted(input_sequence.notes, key=lambda n: n.end_time)
     last_end_time = notes_by_end_time[-1].end_time if notes_by_end_time else 0
@@ -217,7 +254,7 @@ class MonoMidiPlayer(threading.Thread):
     Raises:
       ValueError: The NoteSequence is not monophonic and chronologically sorted.
     """
-    stdout_write_and_flush('Playing sequence')
+    stdout_write_and_flush('Playing sequence...')
     # Wall start time.
     play_start = time.time()
     # Time relative to start of NoteSequence.
@@ -250,7 +287,7 @@ class MonoMidiPlayer(threading.Thread):
       if delta > 0:
         time.sleep(delta)
       self._outport.send(mido.Message('note_off', note=note.pitch))
-    print 'Done'
+    stdout_write_and_flush('Done\n')
 
   def stop(self):
     """Signals for the playback to stop and joins thread."""
@@ -275,7 +312,6 @@ class MonoMidiHub(object):
   Args:
     input_midi_port: The string MIDI port name to use for input.
     output_midi_port: The string MIDI port name to use for output.
-
   """
 
   def __init__(self, input_midi_port, output_midi_port):
@@ -331,7 +367,7 @@ class MonoMidiHub(object):
           # This is just a repeat of the previous message.
           return
         # End the previous note.
-        last_note.end_time = now
+        last_note.end_time = now - self._sequence_start_time
         self._outport.send(mido.Message('note_off', note=last_note.pitch))
 
       self._outport.send(msg)
@@ -369,11 +405,11 @@ class MonoMidiHub(object):
 
     self.captured_sequence = music_pb2.NoteSequence()
     self.captured_sequence.tempos.add().bpm = bpm
+    self._sequence_start_time = None
     self._capture_start_time = time.time()
     self._inport.callback = self._capture_message
     self._metronome = Metronome(self._outport, bpm, self._capture_start_time)
     self._metronome.start()
-    stdout_write_and_flush('Capturing notes')
 
   @Serialized
   def stop_capture(self):
@@ -397,7 +433,7 @@ class MonoMidiHub(object):
                  self.captured_sequence.notes else None)
     if last_note is not None and last_note.end_time == 0:
       last_note.end_time = time.time() - self._sequence_start_time
-    print 'Done'
+    stdout_write_and_flush('Done\n')
     return self.captured_sequence
 
   @Serialized
@@ -440,7 +476,7 @@ class MonoMidiHub(object):
     """Stops any active sequence playback."""
     if self._player is not None and self._player.is_alive():
       self._player.stop()
-      print 'Stopped'
+      stdout_write_and_flush('Stopped\n')
 
 
 def main(unused_argv):
@@ -449,8 +485,9 @@ def main(unused_argv):
     print "Output ports: '" + "', '".join(mido.get_output_names()) + "'"
     return
 
-  # TODO: require input_port, output_port. Verify ranges for the control
-  # number/values. Used to be handled by flags, but tf flags don't support this.
+  if FLAGS.input_port is None or FLAGS.output_port is None:
+    print '--inport_port and --output_port must be specified.'
+    return
 
   if (FLAGS.start_capture_control_number == FLAGS.stop_capture_control_number
       and
@@ -463,13 +500,14 @@ def main(unused_argv):
     return
 
   generator = Generator(
+      FLAGS.generator_name,
       FLAGS.num_bars_to_generate,
       ast.literal_eval(FLAGS.hparams if FLAGS.hparams else '{}'),
-      FLAGS.lookback_rnn_train_dir)
+      FLAGS.train_dir)
   hub = MonoMidiHub(FLAGS.input_port, FLAGS.output_port)
 
+  stdout_write_and_flush('Waiting for start control signal...\n')
   while True:
-    stdout_write_and_flush('Waiting for start control signal...')
     hub.wait_for_control_signal(FLAGS.start_capture_control_number,
                                 FLAGS.start_capture_control_value)
     hub.stop_playback()
@@ -481,7 +519,7 @@ def main(unused_argv):
 
     stdout_write_and_flush('Generating response...')
     generated_sequence = generator.generate_melody(captured_sequence)
-    print 'Done'
+    stdout_write_and_flush('Done\n')
 
     hub.start_playback(generated_sequence)
 

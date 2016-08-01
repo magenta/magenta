@@ -1,52 +1,72 @@
 # Magenta MIDI Interface
 
-This interface allows you to connect to the MelodyGenerator server via a MIDI
+This interface allows you to connect to a [SequenceGenerator](/magenta/magenta/lib/sequence_generator.py) via a MIDI
 controller and synthesizer. These can be either "hard" or "soft" components.
 
-The instructions below are for Ubuntu.
+Note that you can only interface with a trained models that have a
+[SequenceGenerator](/magenta/magenta/lib/sequence_generator.py)
+ defined for them.
 
 ## Installing Dependencies
+
+Before using the interface, you will need to install some
+dependencies. We have provided instructions for both Macintosh OS X
+(El Capitan) and Ubuntu Linux.
+
+For users of Macintosh OS X, the instructions below assume that you
+have installed [Homebrew](http://brew.sh).
 
 ### Install PortMidi
 
 The demo code uses a python library called [mido](http://mido.readthedocs.io) to
 interface your computer's MIDI hub. For it to work, you need to separately
 install a backend library it can use to connect to your system. The easiest to
-install is PortMidi, which can be done with the command `sudo apt-get install
-libportmidi-dev`.
+install is PortMidi, which can be done with the following commands.
 
-### Install QjackCtl
+**Ubuntu:** `sudo apt-get install libportmidi-dev`
+**Mac:** `brew install portmidi`
+
+### Install QjackCtl (Ubuntu Only)
 
 [QjackCtl](http://qjackctl.sourceforge.net/) is a tool that provides a graphical
-interface for the JACK hub on your machine to allow you to easily route signals
+interface for the JACK hub on Ubuntu to allow you to easily route signals
 between MIDI components. You can install it using `sudo apt-get install
 qjackctl`.
 
 ### Connect/Install MIDI Controller
 
 If you are using a hardware controller, attach it to the machine. If you do not
-have one, you can install a software controller such as [vkeybd]
-(http://ccrma.stanford.edu/planetccrma/man/man1/vkeybd.1.html) using `sudo
-apt-get install vkeybd`.
+have one, you can install a software controller such as [VMPK](http://vmpk.sourceforge.net/) by doing the following.
+
+**Ubuntu:** Use the command `sudo apt-get install vmpk`.
+**Mac:** Download and install from the [VMPK website](http://vmpk.sourceforge.net/#Download).
 
 ### Connect/Install MIDI Synthesizer
 
 If you are using a hardware synthesizer, attach it to the machine. If you do not
 have one, you can install a software synthesizer such as [FluidSynth]
-(http://www.fluidsynth.org) using `sudo apt-get install fluidsynth`.
+(http://www.fluidsynth.org) using the following commands:
+
+**Ubuntu:** `sudo apt-get install fluidsynth`
+**Mac:** `brew install fluidsynth`
 
 If using FluidSynth, you will also want to install a decent soundfont. You can
-install one using `sudo apt-get install fluid-soundfont-gm`.
+install one by doing the following:
 
-## Running Interface
+**Ubuntu:** Use the command `sudo apt-get install fluid-soundfont-gm`.
+**Mac:** Download the soundfont from
+http://www.musescore.org/download/fluid-soundfont.tar.gz and unpack the SF2 file. 
 
-Once you have installed the above dependencies, you can start by launching
-`qjackctl`. You'll probably want to do it in its own screen/tab since it will
-print status messages to the terminal. Once the GUI appears, click the "Start"
-button.
+## Set Up
+
+### Ubuntu
+
+Launch `qjackctl` (Ubuntu only). You'll probably want to do it in its own
+screen/tab since it will print status messages to the terminal. Once the GUI
+appears, click the "Start" button.
 
 If using a software controller, you can launch it in the background or in its
-own screen/tab. Use `vkeybd` to launch vkeybd.
+own screen/tab. Use `vmpk` to launch VMPK.
 
 If using a software synth, you can launch it in the background or in its own
 screen/tab. Launch FluidSynth with the recommended soundfont installed above
@@ -60,20 +80,35 @@ In the QjackCtl GUI, click the "Connect" button. In the "Audio" tab, select your
 synthesizer from the list on the left (e.g., "fluidsynth") and select "system"
 from the list on the right. Then click the "Connect" button at the bottom.
 
-You can now build the demo with:
+### Mac
+
+If using a software controller (e.g., VMPK), launch it.
+
+If using a software synth, launch it. Launch FluidSynth with the
+recommended soundfont downloaded above using:
+
+```bash
+$ fluidsynth /path/to/sf2
+```
+
+## Launching  Interface
+
+After completing the installation and set up steps above, build the interface
+with:
 
 ```bash
 $ bazel build //magenta/interfaces/midi:midi
 ```
 
-Once built, run this command:
+Once built, have it list the the available MIDI ports:
 
 ```bash
 $ bazel-bin/magenta/interfaces/midi/midi --list
 ```
 
 You should see a list of available input and output ports, including both the
-controller (e.g., "vkeybd") and synthesizer (e.g., "fluidsynth").
+controller (e.g., "VMPK Output") and synthesizer (e.g., "FluidSynth virtual
+port").
 
 You can now start the interface with this command:
 
@@ -81,15 +116,25 @@ You can now start the interface with this command:
 $ bazel-bin/magenta/interfaces/midi/midi \
   --input_port=<controller port> \
   --output_port=<synthesizer port> \
-  --bpm=90
+  --generator_name=<generator name> \
+  --train_dir=<training directory>
+```
+
+Asssuming you followed the
+[Basic RNN instructions](/magenta/models/basic_rnn/README.md) and are
+using VPMK and FluidSynth, your command would look like this:
+```bash
+$ bazel-bin/magenta/interfaces/midi/midi \
+  --input_port='VMPK Output' \
+  --output_port='Fluidsynth virtual port' \
+  --generator_name=basic_rnn \
+  --train_dir=/tmp/basic_rnn/logdir/run1/train \
+  --hparams='{"rnn_layer_sizes":[50]}' \
 ```
 
 To initialize a capture session, you need to send the appropriate control change
 message from the controller. By default, this is done by setting the modulation
 wheel to its max value.
-
-If using vkeybd, you can adjust the modulation wheel value by selecting
-"Controls" from the "View" menu and using the slider.
 
 You should immediately hear a metronome and the keys will now produce sounds
 through your audio output.
