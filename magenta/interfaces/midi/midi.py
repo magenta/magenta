@@ -324,7 +324,7 @@ class MonoMidiHub(object):
     self._inport = mido.open_input(input_midi_port)
     self._outport = mido.open_output(output_midi_port)
     # This lock is used by the Serialized decorator.
-    self.)lock = threading.RLock()
+    self._lock = threading.RLock()
     self._control_cvs = dict()
     self._player = None
     self._capture_start_time = None
