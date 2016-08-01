@@ -24,7 +24,7 @@ interface your computer's MIDI hub. For it to work, you need to separately
 install a backend library it can use to connect to your system. The easiest to
 install is PortMidi, which can be done with the following commands.
 
-**Ubuntu:** `sudo apt-get install libportmidi-dev` \
+**Ubuntu:** `sudo apt-get install libportmidi-dev`<br />
 **Mac:** `brew install portmidi`
 
 ### Install QjackCtl (Ubuntu Only)
