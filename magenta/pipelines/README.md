@@ -230,7 +230,7 @@ Not every pipeline output needs to be connected to something, as long as at leas
 
 ### InvalidDAGException
 
-Thrown when the DAG dictionary is not well formatted. This can be because a `destination: dependency` pair is not `Pipeline: Pipeline` or `Pipeline: {'name_1': Pipeline, ...}`. It is also thrown when Input is given as a destination, or Output is given as a dependency.
+Thrown when the DAG dictionary is not well formatted. This can be because a `destination: dependency` pair is not in the form `Pipeline: Pipeline` or `Pipeline: {'name_1': Pipeline, ...}` (Note that Pipeline or Key objects both are allowed in the dependency). It is also thrown when `Input` is given as a destination, or `Output` is given as a dependency.
 
 ### TypeMismatchException
 
@@ -351,7 +351,25 @@ DAGPipeline(dag)
 
 ### InvalidStatisticsException
 
-Thrown when a Pipeline in the DAG returns a value from its `get_stats` method which is not a Statistic instance.
+Thrown when a Pipeline in the DAG returns a value from its `get_stats` method which is not a dictionary mapping names to Statistic instances.
+
+Valid statistics:
+```python
+print my_pipeline.get_stats()
+> {'stat_1': <Counter object>, 'stat_2': <Histogram object>}
+```
+
+Invalid statistics:
+```python
+print my_pipeline_1.get_stats()
+> {'stat_1': 'hello', 'stat_2': <Histogram object>}
+
+print my_pipeline_2.get_stats()
+> <Counter object>
+
+print my_pipeline_2.get_stats()
+> {<Counter object>: 'stat_1'}
+```
 
 ### InvalidDictionaryOutput
 
@@ -376,7 +394,16 @@ DAGPipeline(dag)
 
 ### InvalidTransformOutputException
 
-Thrown when a Pipeline in the DAG does not output the type(s) it gave in its `output_type`.
+Thrown when a Pipeline in the DAG does not output the type(s) it promised to output in `output_type`.
+
+This Pipeline would cause `InvalidTransformOutputException` to be thrown if it was passed into a DAGPipeline. It would also cause problems in general, and should be fixed no matter where it is used.
+```python
+print MyPipeline.output_type
+> TypeA
+
+print MyPipeline.transform(TypeA())
+> [<__main__.TypeB object>]
+```
 
 ## Statistics
 
