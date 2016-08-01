@@ -1,10 +1,10 @@
 # Magenta MIDI Interface
 
-This interface allows you to connect to a [SequenceGenerator](/magenta/magenta/lib/sequence_generator.py) via a MIDI
+This interface allows you to connect to a [SequenceGenerator](/magenta/lib/sequence_generator.py) via a MIDI
 controller and synthesizer. These can be either "hard" or "soft" components.
 
 Note that you can only interface with a trained models that have a
-[SequenceGenerator](/magenta/magenta/lib/sequence_generator.py)
+[SequenceGenerator](/magenta/lib/sequence_generator.py)
  defined for them.
 
 ## Installing Dependencies
@@ -24,6 +24,7 @@ install a backend library it can use to connect to your system. The easiest to
 install is PortMidi, which can be done with the following commands.
 
 **Ubuntu:** `sudo apt-get install libportmidi-dev`
+
 **Mac:** `brew install portmidi`
 
 ### Install QjackCtl (Ubuntu Only)
@@ -39,6 +40,7 @@ If you are using a hardware controller, attach it to the machine. If you do not
 have one, you can install a software controller such as [VMPK](http://vmpk.sourceforge.net/) by doing the following.
 
 **Ubuntu:** Use the command `sudo apt-get install vmpk`.
+
 **Mac:** Download and install from the [VMPK website](http://vmpk.sourceforge.net/#Download).
 
 ### Connect/Install MIDI Synthesizer
@@ -48,12 +50,14 @@ have one, you can install a software synthesizer such as [FluidSynth]
 (http://www.fluidsynth.org) using the following commands:
 
 **Ubuntu:** `sudo apt-get install fluidsynth`
+
 **Mac:** `brew install fluidsynth`
 
 If using FluidSynth, you will also want to install a decent soundfont. You can
 install one by doing the following:
 
 **Ubuntu:** Use the command `sudo apt-get install fluid-soundfont-gm`.
+
 **Mac:** Download the soundfont from
 http://www.musescore.org/download/fluid-soundfont.tar.gz and unpack the SF2 file. 
 
