@@ -84,6 +84,15 @@ Functions are also provided for iteration over input data. `file_iterator` itera
 
 Note that the pipeline name is prepended to the names of all the statistics in these examples. `Pipeline.get_stats` automatically prepends the pipeline name to the statistic name for each stat.
 
+___Implementing Pipeline___
+
+There are exactly two things a subclass of `Pipeline` is required to do:
+
+1. Call Pipeline.__init__ from its constructor passing in `input_type`, `output_type`, and `name`.
+2. Implement the abstract method `transform`.
+
+A `Pipeline` implementation DOES NOT override `get_stats`. To emit `Statistic` objects, call the private method `_set_stats` from the `transform` method. `_set_stats` will prepend the `Pipeline` name to all the `Statistic` names to avoid namespace conflicts.
+
 A full example:
 
 ```python
