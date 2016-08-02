@@ -22,7 +22,7 @@ And three important properties:
 
 * `input_type` is the type signature that the pipeline expects for its inputs.
 * `output_type` is the type signature of the pipeline's outputs.
-* `name` is a unique string name of the pipeline.
+* `name` is a unique string name of the pipeline. This is used as a namespace for `Statistic` objects the `Pipeline` produces.
 
 For example,
 
@@ -46,8 +46,8 @@ print outputs
 
 for stat in MyPipeline.get_stats():
   print str(stat)
-> how_many_ints: 3
-> sum_of_ints: 6
+> MyPipeline_how_many_ints: 3
+> MyPipeline_sum_of_ints: 6
 ```
 
 An example where inputs and outputs are dictionaries,
@@ -69,9 +69,9 @@ print outputs
 
 for stat in MyPipeline.get_stats():
   print str(stat)
-> how_many_ints: 3
-> sum_of_ints: 6
-> property_2_digits: 4
+> MyPipeline_how_many_ints: 3
+> MyPipeline_sum_of_ints: 6
+> MyPipeline_property_2_digits: 4
 ```
 
 If the output is a dictionary, the lengths of the output lists do not need to be the same. Also, this example should not imply that a Pipeline which takes a dictionary input must produce a dictionary output, or vice versa. Pipelines do need to produce the type signature given by `output_type`.
@@ -81,6 +81,53 @@ Declaring `input_type` and `output_type` allows pipelines to be strung together 
 A pipeline can be run over a dataset using `run_pipeline_serial`, or `load_pipeline`. `run_pipeline_serial` saves the output to disk, while load_pipeline keeps the output in memory. Only pipelines that output protocol buffers can be used in `run_pipeline_serial` since the outputs are saved to TFRecord. If the pipeline's `output_type` is a dictionary, the keys are used as dataset names.
 
 Functions are also provided for iteration over input data. `file_iterator` iterates over files in a directory, returning the raw bytes. `tf_record_iterator` iterates over TFRecords, returning protocol buffers.
+
+Note that the pipeline name is prepended to the names of all the statistics in these examples. `Pipeline.get_stats` automatically prepends the pipeline name to the statistic name for each stat.
+
+A full example:
+
+```python
+class FooExtractor(Pipeline):
+  
+  def __init__(self):
+    super(FooExtractor, self).__init__(
+        input_type=BarType,
+        output_type=FooType,
+        name='FooExtractor')
+
+  def transform(self, bar_object):
+    how_many_foo = Counter('how_many_foo')
+    how_many_features = Counter('how_many_features')
+    how_many_bar = Counter('how_many_bar', 1)
+
+    features = extract_features(bar_object)
+    foos = []
+    for feature in features:
+      if is_foo(feature):
+        foos.append(make_foo(feature))
+        how_many_foo.increment()
+      how_many_features.increment()
+
+    self._set_stats([how_many_foo, how_many_features, how_many_bar])
+    return foos
+
+foo_extractor = FooExtractor()
+print FooExtractor.input_type
+> BarType
+print FooExtractor.output_type
+> FooType
+print FooExtractor.name
+> "FooExtractor"
+
+print foo_extractor.transform(BarType(5))
+> [FooType(1), FooType(2)]
+
+for stat in foo_extractor.get_stats():
+  print str(stat)
+> FooExtractor_how_many_foo: 2
+> FooExtractor_how_many_features: 5
+> FooExtractor_how_many_bar: 1
+```
 
 ## DAGPipeline
 ___Connecting pipelines together___
@@ -171,28 +218,31 @@ print str(histogram)
 When running `Pipeline.transform` many times, you will likely want to merge the outputs of `Pipeline.get_stats` into previous statistics. Furthermore, its possible for a `Pipeline` to produce many unmerged statistics. The `merge_statistics` method is provided to easily merge any statistics with the same names in a list.
 
 ```python
+print my_pipeline.name
+> "FooBarExtractor"
+
 my_pipeline.transform(...)
 stats = my_pipeline.get_stats()
 for stat in stats:
   print str(stat)
-> how_many_foo: 1
-> how_many_foo: 1
-> how_many_bar: 1
-> how_many_foo: 0
+> FooBarExtractor_how_many_foo: 1
+> FooBarExtractor_how_many_foo: 1
+> FooBarExtractor_how_many_bar: 1
+> FooBarExtractor_how_many_foo: 0
 
 merged = merge_statistics(stats)
 for stat in merged:
   print str(stat)
-> how_many_foo: 2
-> how_many_bar: 1
+> FooBarExtractor_how_many_foo: 2
+> FooBarExtractor_how_many_bar: 1
 
 my_pipeline.transform(...)
 stats += my_pipeline.get_stats()
 stats = merge_statistics(stats)
 for stat in stats:
   print str(stat)
-> how_many_foo: 5
-> how_many_bar: 2
+> FooBarExtractor_how_many_foo: 5
+> FooBarExtractor_how_many_bar: 2
 ```
 
 ## DAG Specification
