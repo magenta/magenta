@@ -125,7 +125,7 @@ class MelodyRnnSequenceGenerator(sequence_generator.BaseSequenceGenerator):
       melody = extracted_melodies[0]
     else:
       tf.logging.warn('No melodies were extracted from the priming sequence. '
-                      'Melodies will be generated from scratch.')
+                      'A single random note will be generated for priming. ')
       melody = melodies_lib.MonophonicMelody()
       melody.events = [
           random.randint(self._melody_encoder_decoder.min_note,

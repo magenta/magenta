@@ -19,6 +19,7 @@ Uses flags to define operation.
 import ast
 import os
 import time
+import random
 
 # internal imports
 
@@ -125,6 +126,9 @@ def run_with_flags(melody_rnn_sequence_generator):
   if not os.path.exists(FLAGS.output_dir):
     os.makedirs(FLAGS.output_dir)
 
+
+# primer_sequence must be set to something, either primer_melody or primer_midi or midi #60 = 5C 
+# If set to midi #60 it will be converted to a random note in melody_rnn_sequence_generator.py
   primer_sequence = None
   if FLAGS.primer_melody:
     primer_melody = melodies_lib.MonophonicMelody()
@@ -132,6 +136,10 @@ def run_with_flags(melody_rnn_sequence_generator):
     primer_sequence = primer_melody.to_sequence()
   elif FLAGS.primer_midi:
     primer_sequence = midi_io.midi_file_to_sequence_proto(FLAGS.primer_midi)
+  else:  
+    primer_melody = melodies_lib.MonophonicMelody()
+    primer_melody.from_event_list('[60]')
+    primer_sequence = primer_melody.to_sequence()
 
   # Derive the total number of seconds to generate based on the BPM of the
   # priming sequence and the num_steps flag.
