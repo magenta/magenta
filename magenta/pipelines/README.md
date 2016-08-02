@@ -44,8 +44,10 @@ outputs = MyPipeline.transform(my_input)
 print outputs
 > [MyType2(1), MyType2(2), MyType2(3)]
 
-print MyPipeline.get_stats()
-> {'how_many_ints': Counter(3), 'sum_of_ints': Counter(6)}
+for stat in MyPipeline.get_stats():
+  print str(stat)
+> how_many_ints: 3
+> sum_of_ints: 6
 ```
 
 An example where inputs and outputs are dictionaries,
@@ -65,8 +67,11 @@ outputs = MyPipeline.transform(my_input)
 print outputs
 > {'output_1': [MyType2(1), MyType2(2), MyType2(3)], 'output_2': ['1007', '7001']}
 
-print MyPipeline.get_stats()
-> {'how_many_ints': Counter(3), 'sum_of_ints': Counter(6), 'property_2_digits': Counter(4)}
+for stat in MyPipeline.get_stats():
+  print str(stat)
+> how_many_ints: 3
+> sum_of_ints: 6
+> property_2_digits: 4
 ```
 
 If the output is a dictionary, the lengths of the output lists do not need to be the same. Also, this example should not imply that a Pipeline which takes a dictionary input must produce a dictionary output, or vice versa. Pipelines do need to produce the type signature given by `output_type`.
@@ -161,6 +166,33 @@ print str(histogram)
 >   [0,1): 2
 >   [1,2): 5
 >   [2,3): 1
+```
+
+When running `Pipeline.transform` many times, you will likely want to merge the outputs of `Pipeline.get_stats` into previous statistics. Furthermore, its possible for a `Pipeline` to produce many unmerged statistics. The `merge_statistics` method is provided to easily merge any statistics with the same names in a list.
+
+```python
+my_pipeline.transform(...)
+stats = my_pipeline.get_stats()
+for stat in stats:
+  print str(stat)
+> how_many_foo: 1
+> how_many_foo: 1
+> how_many_bar: 1
+> how_many_foo: 0
+
+merged = merge_statistics(stats)
+for stat in merged:
+  print str(stat)
+> how_many_foo: 2
+> how_many_bar: 1
+
+my_pipeline.transform(...)
+stats += my_pipeline.get_stats()
+stats = merge_statistics(stats)
+for stat in stats:
+  print str(stat)
+> how_many_foo: 5
+> how_many_bar: 2
 ```
 
 ## DAG Specification
@@ -457,24 +489,21 @@ DAGPipeline(dag)
 
 ### InvalidStatisticsException
 
-Thrown when a Pipeline in the DAG returns a value from its `get_stats` method which is not a dictionary mapping names to Statistic instances.
+Thrown when a Pipeline in the DAG returns a value from its `get_stats` method which is not a list of Statistic instances.
 
 Valid statistics:
 ```python
 print my_pipeline.get_stats()
-> {'stat_1': <Counter object>, 'stat_2': <Histogram object>}
+> [<Counter object>, <Histogram object>]
 ```
 
 Invalid statistics:
 ```python
 print my_pipeline_1.get_stats()
-> {'stat_1': 'hello', 'stat_2': <Histogram object>}
+> ['hello', <Histogram object>]
 
 print my_pipeline_2.get_stats()
 > <Counter object>
-
-print my_pipeline_2.get_stats()
-> {<Counter object>: 'stat_1'}
 ```
 
 ### InvalidDictionaryOutput
