@@ -303,7 +303,7 @@ DAGPipeline(dag)
 
 ### BadTopologyException
 
-Thrown when a `Pipeline` does not feed into anyhing, or there is a directed cycle.
+Thrown when there is a directed cycle.
 
 BadTopologyException is thrown in these examples:
 ```python
@@ -328,7 +328,7 @@ DAGPipeline(dag)
 
 ### NotConnectedException
 
-Thrown when a Pipeline used in a dependency has nothing feeding into it.
+Thrown when the DAG is disconnected somewhere. Either because a `Pipeline` used in a dependency has nothing feeding into it, or because a `Pipeline` given as a destination does not feed anywhere.
 
 NotConnectedException is thrown in these examples:
 ```python
@@ -344,6 +344,15 @@ pipe1 = MyPipeline1()
 pipe2 = MyPipeline2()
 dag = {pipe1: Input(pipe1.input_type),
        Output(): {'pipe1': pipe1, 'pipe2': pipe2}}
+DAGPipeline(dag)
+```
+
+```python
+pipe1 = MyPipeline1()
+pipe2 = MyPipeline2()
+dag = {pipe1: Input(pipe1.input_type),
+       pipe2: pipe1,
+       Output('pipe1'): pipe1}
 DAGPipeline(dag)
 ```
 

@@ -136,15 +136,16 @@ class DuplicateNameException(Exception):
 
 
 class BadTopologyException(Exception):
-  """Thrown when the DAG is not actually acyclic.
-
-  Also can be thrown when a `Pipeline` does not feed into anyhing.
-  """
+  """Thrown when there is a directed cycle."""
   pass
 
 
 class NotConnectedException(Exception):
-  """Thrown when a Pipeline used in a dependency has nothing feeding into it."""
+  """Thrown when the DAG is disconnected somewhere.
+
+  Either because a `Pipeline` used in a dependency has nothing feeding into it,
+  or because a `Pipeline` given as a destination does not feed anywhere.
+  """
   pass
 
 
@@ -213,10 +214,10 @@ class DAGPipeline(pipeline.Pipeline):
       InvalidDictionaryOutput: If `Output()` is not connected to a dictionary,
           or `Output(name)` is not connected to a Pipeline, Key, or Input
           instance.
-      NotConnectedException: If a Pipeline used in a dependency has nothing
-          feeding into it.
-      BadTopologyException: If a `Pipeline` does not feed into anyhing, or
-          there is a directed cycle.
+      NotConnectedException: If a `Pipeline` used in a dependency has nothing
+          feeding into it, or a `Pipeline` used as a destination does not feed
+          anywhere.
+      BadTopologyException: If there there is a directed cycle in `dag`.
       Exception: Misc. exceptions.
     """
     # Expand DAG shorthand.
@@ -303,15 +304,25 @@ class DAGPipeline(pipeline.Pipeline):
         output_type=output_signature,
         name=pipeline_name)
 
-    # Make sure all Pipeline objects are connected to inputs.
-    all_units = set([dep_unit for unit in self.dag
-                     for dep_unit in self._get_units(self.dag[unit])])
-    for unit in all_units:
-      if isinstance(unit, Input):
-        continue
-      if unit not in self.dag:
-        raise NotConnectedException('%s is given as a dependency but is not '
-                                    'connected to anything' % unit)
+    # Make sure all Pipeline objects have DAG vertices that feed into them,
+    # and feed their output into other DAG vertices.
+    all_subordinates = (
+        set([dep_unit for unit in self.dag
+             for dep_unit in self._get_units(self.dag[unit])])
+        .difference(set([self.input])))
+    all_destinations = set(self.dag.keys()).difference(set(self.outputs))
+    if all_subordinates != all_destinations:
+      units_with_no_input = all_subordinates.difference(all_destinations)
+      units_with_no_output = all_destinations.difference(all_subordinates)
+      if units_with_no_input:
+        raise NotConnectedException(
+            '%s is given as a dependency in the DAG but has nothing connected '
+            'to it. Nothing in the DAG feeds into it.'
+            % units_with_no_input.pop())
+      else:
+        raise NotConnectedException(
+            '%s is given as a destination in the DAG but does not output '
+            'anywhere. It is a deadend.' % units_with_no_output.pop())
 
     # Construct topological ordering to determine the execution order of the
     # pipelines.
@@ -347,7 +358,11 @@ class DAGPipeline(pipeline.Pipeline):
       if graph[unit][1] != 0:
         raise BadTopologyException('Dependency loop found on %s' % unit)
 
-    if set(call_list) != set(list(all_units) + self.outputs):
+    # Note: this exception should never be raised. Disconnected graphs will be
+    # caught where NotConnectedException is raised. If this exception goes off
+    # there is likely a bug.
+    if set(call_list) != set(
+        list(all_subordinates) + self.outputs + [self.input]):
       raise BadTopologyException('Not all pipelines feed into an output or '
                                  'there is a dependency loop.')
 

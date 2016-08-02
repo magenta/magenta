@@ -663,7 +663,7 @@ class DAGPipelineTest(tf.test.TestCase):
     dag = {dag_pipeline.Output('output'): dag_pipeline.Input(q.input_type),
            q: dag_pipeline.Input(q.input_type),
            r: q}
-    with self.assertRaises(dag_pipeline.BadTopologyException):
+    with self.assertRaises(dag_pipeline.NotConnectedException):
       dag_pipeline.DAGPipeline(dag)
 
     # Pipelines which need to be executed but don't have inputs are not allowed.

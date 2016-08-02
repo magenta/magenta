@@ -44,6 +44,7 @@ py_library(
     name = "pipeline",
     srcs = ["pipeline.py"],
     deps = [
+        ":statistics",
         "//magenta/protobuf:music_py_pb2",
     ],
 )
