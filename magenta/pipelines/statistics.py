@@ -30,12 +30,28 @@ class Statistic(object):
 
   Pipelines produce statistics on each call to `transform`.
   Statistic objects can be merged together to aggregate
-  statistics over the course of many calls to `transforms`.
+  statistics over the course of many calls to `transform`.
+
+  A `Statistic` also has a string name which is used during merging. Any two
+  `Statistic` instances with the same name may be merged together. The name
+  should also be informative about what the `Statistic` is measuring. Names
+  do not need to be unique globally (outside of the `Pipeline` objects that
+  produce them) because a `Pipeline` that returns statistics will prepend
+  its own name, effectively creating a namespace for each `Pipeline`.
   """
 
   __metaclass__ = abc.ABCMeta
 
   def __init__(self, name):
+    """Constructs a `Statistic`.
+
+    Subclass constructors are expected to call this constructor.
+
+    Args:
+      name: The string name for this `Statistic`. Any two `Statistic` objects
+          with the same name will be merged together. The name should also
+          describe what this statistic is measuring.
+    """
     self._name = name
 
   @abc.abstractmethod

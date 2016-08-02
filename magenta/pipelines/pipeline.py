@@ -116,14 +116,44 @@ class Pipeline(object):
   The `get_stats` method returns any statistics that were collected during the
   last call to `transform`. These statistics can give feedback about why any
   data was discarded and what the input data is like.
+
+  `Pipeline` implementers should call `_set_stats` from within `transform` to
+  set the statistics that will be returned by the next call to `get_stats`.
   """
 
   __metaclass__ = abc.ABCMeta
 
-  def __init__(self, input_type=None, output_type=None, name=None):
+  def __init__(self, input_type, output_type, name=None):
+    """Constructs a `Pipeline` object.
+
+    Subclass constructors are expected to call this constructor.
+
+    A type signature is a Python class or primative collection containing
+    classes. Valid type signatures for `Pipeline` inputs and outputs are either
+    a Python class, or a dictionary mapping string names to classes. An object
+    matches a type signature if its type equals the type signature
+    (i.e. type('hello') == str) or, if its a collection, the types in the
+    collection match (i.e. {'hello': 'world', 'number': 1234} matches type
+    signature {'hello': str, 'number': int})
+
+    `Pipeline` instances have (preferably unique) string names. These names act
+    as name spaces for the statistics produced by them. The `get_stats` method
+    will automatically prepend `name` to all of the statistics names before
+    returning them.
+
+    Args:
+      input_type: The type signature this pipeline expects for its inputs.
+      output_type: The type signature this pipeline promises its outputs will
+          have.
+      name: The string name for this instance. This name is accessible through
+          the `name` property. Names should be unique across `Pipeline`
+          instances. If None (default), the string name of the implementing
+          subclass is used.
+    """
     # Make sure `input_type` and `output_type` are valid.
     if name is None:
-      self._name = type(self).__name__
+      # This will get the name of the subclass, not "Pipeline".
+      self._name = type(self).__name__ 
     else:
       assert isinstance(name, basestring)
       self._name = name

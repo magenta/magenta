@@ -14,6 +14,12 @@ Pipeline has two methods:
 * [transform(input_object)](https://github.com/tensorflow/magenta/blob/master/magenta/pipelines/pipeline.py#L81) converts a single input to one or many outputs.
 * [get_stats()](https://github.com/tensorflow/magenta/blob/master/magenta/pipelines/pipeline.py#L96) returns statistics about each call to transform.
 
+And three important properties:
+
+* [input_type] is the type signature that the pipeline expects for its inputs.
+* [output_type] is the type signature of the pipeline's outputs.
+* [name] is a unique string name of the pipeline.
+
 For example,
 
 ```python
@@ -25,6 +31,9 @@ print MyPipeline.input_type
 
 print MyPipeline.output_type
 > MyType2
+
+print MyPipeline.name
+> "MyPipeline"
 
 my_input = MyType1(1, 2, 3)
 outputs = MyPipeline.transform(my_input)
