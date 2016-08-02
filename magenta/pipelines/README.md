@@ -1,24 +1,28 @@
 # Data processing in Magenta
 
-A pipeline is a data processing unit that transforms input data types to output data types.
+Magenta has a lot of different models which require different types of inputs. Some models train on melodies, some on raw audio or midi data. Being able to convert easily between these different data types is essential. We define a `Pipeline` which is a data processing module that transforms input data types to output data types. By connecting pipelines together, new data pipelines can be quickly built for new models.
 
 Files:
 
-* [pipeline.py](https://github.com/tensorflow/magenta/blob/master/magenta/pipelines/pipeline.py) defines the Pipeline abstract class and utility functions for running a Pipeline instance.
-* [pipelines_common.py](https://github.com/tensorflow/magenta/blob/master/magenta/pipelines/pipelines_common.py) contains some Pipeline implementations that convert to common data types, like QuantizedSequence and MonophonicMelody.
+* [pipeline.py](https://github.com/tensorflow/magenta/blob/master/magenta/pipelines/pipeline.py) defines the `Pipeline` abstract class and utility functions for running a `Pipeline` instance.
+* [pipelines_common.py](https://github.com/tensorflow/magenta/blob/master/magenta/pipelines/pipelines_common.py) contains some `Pipeline` implementations that convert to common data types, like `QuantizedSequence` and `MonophonicMelody`.
+* [dag_pipeline.py](https://github.com/tensorflow/magenta/blob/master/magenta/pipelines/dag_pipeline.py) defines a `Pipeline` which connects arbitrary pipelines together inside it. These `Pipelines` can be connected into any directed acyclic graph (DAG).
+* [statistics.py](https://github.com/tensorflow/magenta/blob/master/magenta/pipelines/statistics.py) defines the `Statistic` abstract class and implementations. Statistics are useful for reporting about data processing.
+
+## Pipeline
 
 All pipelines implement the abstract class Pipeline. Each Pipeline defines what its input and output look like. A pipeline can take as input a single object or dictionary mapping names to inputs. The output is given as a list of objects or a dictionary mapping names to lists of outputs. This allows the pipeline to output multiple items from a single input.
 
 Pipeline has two methods:
 
-* [transform(input_object)](https://github.com/tensorflow/magenta/blob/master/magenta/pipelines/pipeline.py#L81) converts a single input to one or many outputs.
-* [get_stats()](https://github.com/tensorflow/magenta/blob/master/magenta/pipelines/pipeline.py#L96) returns statistics about each call to transform.
+* `transform(input_object)` converts a single input to one or many outputs.
+* `get_stats()` returns statistics (see `Statistic` objects below) about each call to transform.
 
 And three important properties:
 
-* [input_type] is the type signature that the pipeline expects for its inputs.
-* [output_type] is the type signature of the pipeline's outputs.
-* [name] is a unique string name of the pipeline.
+* `input_type` is the type signature that the pipeline expects for its inputs.
+* `output_type` is the type signature of the pipeline's outputs.
+* `name` is a unique string name of the pipeline.
 
 For example,
 
@@ -74,7 +78,7 @@ A pipeline can be run over a dataset using `run_pipeline_serial`, or `load_pipel
 Functions are also provided for iteration over input data. `file_iterator` iterates over files in a directory, returning the raw bytes. `tf_record_iterator` iterates over TFRecords, returning protocol buffers.
 
 ## DAGPipeline
-_Connecting pipelines together._
+___Connecting pipelines together___
 
 `Pipeline` transforms A to B - input data to output data. But almost always it is cleaner to decompose this mapping into smaller pipelines, each with their own output representations. The recommended way to do this is to make a third `Pipeline` that runs the first two inside it. Magenta provides [DAGPipeline](https://github.com/tensorflow/magenta/blob/master/magenta/pipelines/dag_pipeline.py) - a `Pipeline` which takes a directed asyclic graph, or DAG, of `Pipeline` objects and runs it.
 
@@ -108,6 +112,57 @@ Finally, the composite pipeline is created with a single line of code:
 composite_pipeline = DAGPipeline(dag)
 ```
 
+## Statistics
+
+Statistics are great for collecting information about a dataset, and inspecting why a dataset created by a `Pipeline` turned out the way it did. Stats collected by `Pipeline`s need to be able to do three things: be copied, be merged together, and print out their information.
+
+A [Statistic](https://github.com/tensorflow/magenta/blob/master/magenta/pipelines/statistics.py) abstract class is provided. Each `Statistic` needs to implement the `_merge_from` method which combines data from another statistic of the same type, the `copy` method, and the `_pretty_print` method.
+
+Each `Statistic` also has a string name which identifies what is being measured. `Statistic`s with the same names get merged downstream.
+
+Two statistic types are defined here: `Counter` and `Histogram`.
+
+`Counter` keeps a count as the name suggests, and has an increment function.
+
+```python
+count = Counter('how_many_foo')
+count.increment()
+count.increment(5)
+print str(count)
+> how_many_foo: 6
+
+count_2 = Counter('how_many_foo')
+count_2.increment()
+count.merge_from(count_2)
+print str(count)
+> how_many_foo: 7
+```
+
+`Histogram` keeps counts for ranges of values, and also has an increment function.
+
+```python
+histogram = Histogram('bar_distribution', [0, 1, 2, 3])
+histogram.increment(0.0)
+histogram.increment(1.2)
+histogram.increment(1.9)
+histogram.increment(2.5)
+print str(histogram)
+> bar_distribution:
+>   [0,1): 1
+>   [1,2): 2
+>   [2,3): 1
+
+histogram_2 = Histogram('bar_distribution', [0, 1, 2, 3])
+histogram_2.increment(0.1)
+histogram_2.increment(1.0, 3)
+histogram.merge_from(histogram_2)
+print str(histogram)
+> bar_distribution:
+>   [0,1): 2
+>   [1,2): 5
+>   [2,3): 1
+```
+
 ## DAG Specification
 
 `DAGPipeline` takes a single argument: the DAG encoded as a Python dictionary. The DAG specifies how data will flow via connections between pipelines.
@@ -126,7 +181,9 @@ ___Input and outputs___
 
 Finally, we need to tell DAGPipeline where its inputs go, and which pipelines produce its outputs. This is done with `Input` and `Output` objects. `Input` is given the input type that DAGPipeline will take, like `Input(str)`. `Output` is given a string name, like `Output('some_output')`. `DAGPipeline` always outputs a dictionary, and each `Output` in the DAG produces another name, output pair in `DAGPipeline`'s output. Currently, only 1 input is supported.
 
-An example:
+___Usage examples___
+
+A basic DAG:
 
 ```python
 print (ToPipeline.output_type, ToPipeline.input_type)
@@ -182,6 +239,7 @@ print dag_pipe.transform(InputType())
 ```
 
 What if you only want to use one output from a dictionary output, or connect multiple outputs to a dictionary input?
+
 Heres how:
 
 ```python
@@ -212,7 +270,7 @@ print dag_pipe.transform(InputType())
 > {'my_output': [<__main__.OutputType object>]}
 ```
 
-List index syntax and dictionary dependencies can also be combined.
+List index syntax and dictionary dependencies can also be combined:
 
 ```python
 print (FirstPipeline.output_type, FirstPipeline.input_type)
@@ -232,8 +290,8 @@ print dag_pipe.transform(InputType())
 > {'my_output': [<__main__.OutputType object>]}
 ```
 
-Not every pipeline output needs to be connected to something, as long as at least one output is used.
-
+_Note:_
+For pipelines which output more than one thing, not every pipeline output needs to be connected to something as long as at least one output is used.
 
 ## DAGPipeline Exceptions
 
@@ -451,37 +509,4 @@ print MyPipeline.output_type
 
 print MyPipeline.transform(TypeA())
 > [<__main__.TypeB object>]
-```
-
-## Statistics
-
-Statistics are great for collecting information about a dataset, and inspecting why a dataset created by a `Pipeline` turned out the way it did. Stats collected by `Pipeline`s need to be able to do two things: merge statistics together, and print out statistics.
-
-A [Statistic](https://github.com/tensorflow/magenta/blob/master/magenta/pipelines/statistics.py) abstract class is provided. Each `Statistic` needs to define a `merge_from` method which combines data from another statistic of the same type, and a `pretty_print` method.
-
-Two statistics are defined: `Counter` and `Histogram`.
-
-`Counter` keeps a count as the name suggests, and has an increment function.
-
-```python
-count = Counter()
-count.increment()
-count.increment(5)
-print count.pretty_print('my_counter')
-> my_counter: 6
-```
-
-`Histogram` keeps counts for ranges of values, and also has an increment function.
-
-```python
-histogram = Histogram([0, 1, 2, 3])
-histogram.increment(0.1)
-histogram.increment(1.2)
-histogram.increment(1.9)
-histogram.increment(2.5)
-print histogram.pretty_print('my_histogram')
-> my_histogram:
->   [0,1): 1
->   [1,2): 2
->   [2,3): 1
 ```
