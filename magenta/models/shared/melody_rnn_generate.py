@@ -127,9 +127,8 @@ def run_with_flags(melody_rnn_sequence_generator):
     os.makedirs(FLAGS.output_dir)
 
 
-# primer_sequence must be set to either: primer_melody or primer_midi or midi #60 = 5C 
+# primer_sequence must be set to something, either primer_melody or primer_midi or midi #60 = 5C 
 # If set to midi #60 it will be converted to a random note in melody_rnn_sequence_generator.py
-
   primer_sequence = None
   if FLAGS.primer_melody:
     primer_melody = melodies_lib.MonophonicMelody()
