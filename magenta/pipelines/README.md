@@ -91,7 +91,7 @@ There are exactly two things a subclass of `Pipeline` is required to do:
 1. Call `Pipeline.__init__` from its constructor passing in `input_type`, `output_type`, and `name`.
 2. Implement the abstract method `transform`.
 
-A `Pipeline` implementation DOES NOT override `get_stats`. To emit `Statistic` objects, call the private method `_set_stats` from the `transform` method. `_set_stats` will prepend the `Pipeline` name to all the `Statistic` names to avoid namespace conflicts.
+DO NOT override `get_stats`. To emit `Statistic` objects, call the private method `_set_stats` from the `transform` method. `_set_stats` will prepend the `Pipeline` name to all the `Statistic` names to avoid namespace conflicts, and write them to the private attribute `_stats`.
 
 A full example:
 
