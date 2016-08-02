@@ -33,7 +33,6 @@ import itertools
 
 # internal imports
 from magenta.pipelines import pipeline
-from magenta.pipelines import statistics
 
 
 class Output(object):
@@ -194,13 +193,12 @@ class DAGPipeline(pipeline.Pipeline):
   def __init__(self, dag, pipeline_name='DAGPipeline'):
     """Constructs a DAGPipeline.
 
-    A DAG (direct acyclic graph) is given which fully specifies what the 
+    A DAG (direct acyclic graph) is given which fully specifies what the
     DAGPipeline runs.
 
     Args:
-      dag: A dictionary mapping Pipeline or Output instances to any of the
-          following: Pipeline, Key, Input. `dag` defines a directed acyclic
-          graph.
+      dag: A dictionary mapping `Pipeline` or `Output` instances to any of
+         `Pipeline`, `Key`, `Input`. `dag` defines a directed acyclic graph.
       pipeline_name: String name of this Pipeline object.
 
     Raises:
@@ -211,7 +209,7 @@ class DAGPipeline(pipeline.Pipeline):
       DuplicateNameException: If two `Pipeline` instances in `dag` have the
           same string name.
       BadInputOrOutputException: If there are no `Output` instaces in `dag` or
-          not exactly one `Input` plus type combination in `dag`. 
+          not exactly one `Input` plus type combination in `dag`.
       InvalidDictionaryOutput: If `Output()` is not connected to a dictionary,
           or `Output(name)` is not connected to a Pipeline, Key, or Input
           instance.
