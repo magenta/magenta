@@ -8,6 +8,10 @@ Note that you can only interface with a trained models that have a
 [SequenceGenerator](/magenta/lib/sequence_generator.py)
  defined for them.
 
+<p align="center">
+  <img src="midi.png" alt="Sequence Diagram for the MIDI interface"/>
+</p>
+
 ## Installing Dependencies
 
 Before using the interface, you will need to install some
