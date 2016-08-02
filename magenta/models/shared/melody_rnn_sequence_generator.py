@@ -50,7 +50,12 @@ class MelodyRnnSequenceGenerator(sequence_generator.BaseSequenceGenerator):
     self._session = None
     self._steps_per_beat = steps_per_beat
 
-    self._hparams = hparams
+    # Start with some defaults
+    self._hparams = {
+        'temperature': 1.0,
+    }
+    # Update with whatever was supplied.
+    self._hparams.update(hparams)
     self._hparams['dropout_keep_prob'] = 1.0
     self._hparams['batch_size'] = 1
 

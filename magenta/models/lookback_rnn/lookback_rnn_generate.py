@@ -27,25 +27,15 @@ See /magenta/models/shared/melody_rnn_generate.py for flag descriptions.
 """
 
 # internal imports
-import lookback_rnn_encoder_decoder
-import lookback_rnn_graph
+import lookback_rnn_generator
 import tensorflow as tf
 
 from magenta.models.shared import melody_rnn_generate
-from magenta.models.shared import melody_rnn_sequence_generator
-from magenta.protobuf import generator_pb2
 
 
 def main(unused_argv):
-  melody_encoder_decoder = lookback_rnn_encoder_decoder.MelodyEncoderDecoder()
-  details = generator_pb2.GeneratorDetails(
-      id='lookback_rnn',
-      description='Lookback RNN Generator')
-  with melody_rnn_sequence_generator.MelodyRnnSequenceGenerator(
-      details,
+  with lookback_rnn_generator.create_generator(
       melody_rnn_generate.get_train_dir(),
-      melody_encoder_decoder,
-      lookback_rnn_graph.build_graph,
       melody_rnn_generate.get_steps_per_beat(),
       melody_rnn_generate.get_hparams()) as generator:
     melody_rnn_generate.run_with_flags(generator)
