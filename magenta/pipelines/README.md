@@ -372,8 +372,31 @@ print dag_pipe.transform(InputType())
 > {'my_output': [<__main__.OutputType object>]}
 ```
 
-_Note:_
-For pipelines which output more than one thing, not every pipeline output needs to be connected to something as long as at least one output is used.
+_Note:_ For pipelines which output more than one thing, not every pipeline output needs to be connected to something as long as at least one output is used.
+
+DAGPipelines will collect the `Statistic` objects from its `Pipeline` instances:
+
+```python
+print pipeline_1.name
+> 'Pipe1'
+print pipeline_2.name
+> 'Pipe2'
+
+dag = {pipeline_1: Input(pipeline_1.input_type),
+       pipeline_2: pipeline_1,
+       Output('output'): pipeline_2}
+dag_pipe = DAGPipeline(dag)
+print dag_pipe.name
+> 'DAGPipeline'
+
+dag_pipe.transform(Type1(5))
+for stat in dag_pipe.get_stats():
+  print str(stat)
+> DAGPipeline_Pipe1_how_many_foo: 5
+> DAGPipeline_Pipe1_how_many_bar: 2
+> DAGPipeline_Pipe2_how_many_bar: 6
+> DAGPipeline_Pipe2_foobar: 7
+```
 
 ## DAGPipeline Exceptions
 
