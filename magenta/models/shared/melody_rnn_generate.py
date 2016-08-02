@@ -127,7 +127,8 @@ def run_with_flags(melody_rnn_sequence_generator):
     os.makedirs(FLAGS.output_dir)
 
 
-#primer_sequence from written melody or given midi file or random note between midi #48 = 4C to midi #84 = 7C
+# primer_sequence must be set to either: primer_melody or primer_midi or midi #60 = 5C 
+# If set to midi #60 it will be converted to a random note in melody_rnn_sequence_generator.py
 
   primer_sequence = None
   if FLAGS.primer_melody:
@@ -138,8 +139,7 @@ def run_with_flags(melody_rnn_sequence_generator):
     primer_sequence = midi_io.midi_file_to_sequence_proto(FLAGS.primer_midi)
   else:  
     primer_melody = melodies_lib.MonophonicMelody()
-    myRand = random.randint(48,84)
-    primer_melody.from_event_list('['+str(myRand)+']')
+    primer_melody.from_event_list('[60]')
     primer_sequence = primer_melody.to_sequence()
 
   # Derive the total number of seconds to generate based on the BPM of the
