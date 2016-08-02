@@ -567,7 +567,7 @@ def extract_melodies(quantized_sequence,
   # TODO(danabo): Convert `ignore_polyphonic_notes` into a float which controls
   # the degree of polyphony that is acceptable.
   melodies = []
-  stats = dict([(stat_name, statistics.Counter()) for stat_name in
+  stats = dict([(stat_name, statistics.Counter(stat_name)) for stat_name in
                 ['polyphonic_tracks_discarded',
                  'melodies_discarded_too_short',
                  'melodies_discarded_too_few_pitches']])
@@ -576,6 +576,7 @@ def extract_melodies(quantized_sequence,
   # bound `min_bars`, and large. The bucket intervals grow approximately
   # exponentially.
   stats['melody_lengths_in_bars'] = statistics.Histogram(
+      'melody_lengths_in_bars',
       [0, 1, 10, 20, 30, 40, 50, 100, 200, 500, min_bars // 2, min_bars,
        min_bars + 1, min_bars - 1])
   for track in quantized_sequence.tracks:
@@ -618,7 +619,7 @@ def extract_melodies(quantized_sequence,
 
       melodies.append(melody)
 
-  return melodies, stats
+  return melodies, stats.values()
 
 
 class MelodyEncoderDecoder(object):

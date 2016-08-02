@@ -15,6 +15,7 @@
 
 import abc
 import bisect
+import copy
 
 # internal imports
 import tensorflow as tf
@@ -34,8 +35,11 @@ class Statistic(object):
 
   __metaclass__ = abc.ABCMeta
 
+  def __init__(self, name):
+    self._name = name
+
   @abc.abstractmethod
-  def merge_from(self, other):
+  def _merge_from(self, other):
     """Merge another Statistic into this instance.
 
     Takes another Statistic of the same type, and merges its information into
@@ -47,7 +51,7 @@ class Statistic(object):
     pass
 
   @abc.abstractmethod
-  def pretty_print(self, name):
+  def _pretty_print(self, name):
     """Return a string representation of this instance using the given name.
 
     Returns a human readable and nicely presented representation of this
@@ -66,60 +70,71 @@ class Statistic(object):
     """
     pass
 
+  @abc.abstractmethod
+  def copy(self):
+    """Returns a new copy of `self`."""
+    pass
 
-def merge_statistics_dicts(merge_to, merge_from):
-  """Merge one dictionary of `Statistic` objects into another.
+  def merge_from(self, other):
+    if not isinstance(other, Statistic):
+      raise MergeStatisticsException(
+          'Cannot merge with non-Statistic of type %s' % type(other))
+    if self.name != other.name:
+      raise MergeStatisticsException(
+          'Name "%s" does not match this name "%s"' % (other.name, self.name))
+    self._merge_from(other)
 
-  `merge_to` and `merge_from` are dictionaries mapping strings to
-  `Statistic` objects, i.e. {'name_1': statistic_instance_1,
-  'name_2': statistic_instance_2, ...}.
+  @property
+  def name(self):
+    """String name of this statistic.
 
-  To merge, for each key, merge_to[key].merge_from(merge_from[key]) is run.
-  If `merge_from` contains keys not in `merge_to`, they will be added and the
-  `Statistic` will be copied over.
+    This name is used to uniquely identify a statistic.
+
+    Returns:
+      The string name of `self`.
+    """
+    return self._name
+
+  @name.setter
+  def name(self, value):
+    assert isinstance(value, basestring) and value
+    self._name = value
+
+  def __str__(self):
+    return self._pretty_print(self._name)
+
+
+def merge_statistics(stats_list):
+  """Merge together statistics of the same name in the given list.
+
+  Any two statistics in the list with the same name will be merged into a
+  single statistic using the `merge_from` method.
 
   Args:
-    merge_to: Dictionary which will be updated.
-    merge_from: Dictionary which will get merged into `merge_to`. This
-        argument is not modified.
-  """
-  for name in merge_from:
-    if name in merge_to:
-      merge_to[name].merge_from(merge_from[name])
-    else:
-      merge_to[name] = merge_from[name]
-
-
-def is_valid_statistics_dict(stats_dict):
-  """Checks that a dictionary of `Statistic` objects is valid.
-
-  A valid statistics dictionary maps strings to single `Statistic` objects.
-
-  Args:
-    stats_dict: An object.
+    stats_list: A list of `Statistic` objects.
 
   Returns:
-    True if valid, False otherwise.
+    A list of merged statistics. Each name will appear only once.
   """
-  if not isinstance(stats_dict, dict):
-    return False
-  if [key for key in stats_dict if not isinstance(key, basestring)]:
-    return False
-  if [val for val in stats_dict.values() if not isinstance(val, Statistic)]:
-    return False
-  return True
+  name_map = {}
+  for stat in stats_list:
+    if stat.name not in name_map:
+      name_map[stat.name] = stat
+    else:
+      name_map[stat.name].merge_from(stat)
+  return name_map.values()
 
 
-def log_statistics_dict(stats_dict, logger_fn=tf.logging.info):
-  """Calls the given logger function on each `Statistic` in the dictionary.
+def log_statistics_list(stats_list, logger_fn=tf.logging.info):
+  """Calls the given logger function on each `Statistic` in the list.
 
   Args:
-    stats_dict: A dictionary mapping strings to single `Statistic` objects.
+    stats_list: A list of `Statistic` objects.
     logger_fn: The function which will be called on the string representation
         of each `Statistic`.
   """
-  for name, stat in stats_dict.items():
-    logger_fn(stat.pretty_print(name))
+  for stat in stats_list:
+    logger_fn(str(stat))
 
 
 class Counter(Statistic):
@@ -128,13 +143,14 @@ class Counter(Statistic):
   Use `Counter` to count occurrences or sum values together.
   """
 
-  def __init__(self, start_value=0):
+  def __init__(self, name, start_value=0):
     """Constructs a Counter.
 
     Args:
+      name: String name of this counter.
       start_value: What value to start the count at.
     """
-    super(Counter, self).__init__()
+    super(Counter, self).__init__(name)
     self.count = start_value
 
   def increment(self, inc=1):
@@ -145,15 +161,18 @@ class Counter(Statistic):
     """
     self.count += inc
 
-  def merge_from(self, other):
+  def _merge_from(self, other):
     """Adds the count of another Counter into this instance."""
     if not isinstance(other, Counter):
       raise MergeStatisticsException(
           'Cannot merge %s into Counter' % other.__class__.__name__)
     self.count += other.count
 
-  def pretty_print(self, name):
+  def _pretty_print(self, name):
     return '%s: %d' % (name, self.count)
+
+  def copy(self):
+    return copy.copy(self)
 
 
 class Histogram(Statistic):
@@ -169,10 +188,11 @@ class Histogram(Statistic):
   (hence the square open bracket but curved close bracket).
   """
 
-  def __init__(self, buckets, verbose_pretty_print=False):
+  def __init__(self, name, buckets, verbose_pretty_print=False):
     """Initializes the histogram with the given ranges.
 
     Args:
+      name: String name of this histogram.
       buckets: The ranges the histogram counts over. This is a list of values,
           where each value is the inclusive lower bound of the range. An extra
           range will be implicitly defined which spans from negative infinity
@@ -185,7 +205,7 @@ class Histogram(Statistic):
           every bucket. If False, only buckets with positive counts will be
           printed.
     """
-    super(Histogram, self).__init__()
+    super(Histogram, self).__init__(name)
 
     # List of inclusive lowest values in each bucket.
     self.buckets = [float('-inf')] + sorted(set(buckets))
@@ -213,7 +233,7 @@ class Histogram(Statistic):
     bucket_lower = self._find_le(value)
     self.counters[bucket_lower] += inc
 
-  def merge_from(self, other):
+  def _merge_from(self, other):
     """Adds the counts of another Histogram into this instance.
 
     `other` must have the same buckets as this instance. The counts
@@ -236,9 +256,12 @@ class Histogram(Statistic):
     for bucket_lower, count in other.counters.items():
       self.counters[bucket_lower] += count
 
-  def pretty_print(self, name):
+  def _pretty_print(self, name):
     b = self.buckets + [float('inf')]
     return ('%s:\n' % name) + '\n'.join(
         ['  [%s,%s): %d' % (lower, b[i+1], self.counters[lower])
          for i, lower in enumerate(self.buckets)
          if self.verbose_pretty_print or self.counters[lower]])
+
+  def copy(self):
+    return copy.copy(self)

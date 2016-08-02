@@ -401,48 +401,47 @@ class DAGPipelineTest(tf.test.TestCase):
 
       def __init__(self):
         pipeline.Pipeline.__init__(self, Type0, Type1)
-        self.stats = {}
+        self.stats = []
 
       def transform(self, input_object):
-        self.stats = {'output_count': statistics.Counter(input_object.z)}
+        self._set_stats([statistics.Counter('output_count', input_object.z)])
         return [Type1(x=input_object.x + i, y=input_object.y + i)
                 for i in range(input_object.z)]
-
-      def get_stats(self):
-        return self.stats
 
     class UnitR(pipeline.Pipeline):
 
       def __init__(self):
         pipeline.Pipeline.__init__(self, Type1, Type1)
-        self.stats = {}
 
       def transform(self, input_object):
-        self.stats = {'input_count': statistics.Counter(1)}
+        self._set_stats([statistics.Counter('input_count', 1)])
         return [input_object]
-
-      def get_stats(self):
-        return self.stats
 
     q, r = UnitQ(), UnitR()
     dag = {q: dag_pipeline.Input(q.input_type),
            r: q,
            dag_pipeline.Output('output'): r}
-    p = dag_pipeline.DAGPipeline(dag)
+    p = dag_pipeline.DAGPipeline(dag, 'DAGPipelineName')
     for x, y, z in [(-3, 0, 8), (1, 2, 3), (5, -5, 5)]:
       p.transform(Type0(x, y, z))
       stats_1 = p.get_stats()
       stats_2 = p.get_stats()
       self.assertEqual(stats_1, stats_2)
-      stats = stats_1
-      self.assertEqual(set(stats.keys()),
-                       set(['UnitQ_output_count', 'UnitR_input_count']))
-      self.assertTrue(isinstance(stats['UnitQ_output_count'],
-                                 statistics.Counter))
-      self.assertTrue(isinstance(stats['UnitR_input_count'],
-                                 statistics.Counter))
-      self.assertEqual(stats['UnitQ_output_count'].count, z)
-      self.assertEqual(stats['UnitR_input_count'].count, z)
+
+      for stat in stats_1:
+        self.assertTrue(isinstance(stat, statistics.Counter))
+
+      names = sorted([stat.name for stat in stats_1])
+      self.assertEqual(
+          names,
+          (['DAGPipelineName_UnitQ_output_count'] +
+           ['DAGPipelineName_UnitR_input_count'] * z))
+
+      for stat in stats_1:
+        if stat.name == 'DAGPipelineName_UnitQ_output_count':
+          self.assertEqual(stat.count, z)
+        else:
+          self.assertEqual(stat.count, 1)
 
   def testInvalidDAGException(self):
     class UnitQ(pipeline.Pipeline):
@@ -598,8 +597,8 @@ class DAGPipelineTest(tf.test.TestCase):
 
     class UnitT(pipeline.Pipeline):
 
-      def __init__(self):
-        pipeline.Pipeline.__init__(self, Type0, Type0)
+      def __init__(self, name='UnitT'):
+        pipeline.Pipeline.__init__(self, Type0, Type0, name)
 
       def transform(self, input_object):
         pass
@@ -624,7 +623,7 @@ class DAGPipelineTest(tf.test.TestCase):
     with self.assertRaises(dag_pipeline.BadTopologyException):
       dag_pipeline.DAGPipeline(dag)
 
-    t2 = UnitT()
+    t2 = UnitT('UnitT2')
     dag = {dag_pipeline.Output('output'): dag_pipeline.Input(Type0),
            t2: t,
            t: t2}
@@ -677,8 +676,8 @@ class DAGPipelineTest(tf.test.TestCase):
   def testBadInputOrOutputException(self):
     class UnitQ(pipeline.Pipeline):
 
-      def __init__(self):
-        pipeline.Pipeline.__init__(self, Type0, Type1)
+      def __init__(self, name='UnitQ'):
+        pipeline.Pipeline.__init__(self, Type0, Type1, name)
 
       def transform(self, input_object):
         pass
@@ -705,7 +704,7 @@ class DAGPipelineTest(tf.test.TestCase):
       dag_pipeline.DAGPipeline(dag)
 
     # Multiple instances of Input with the same type IS allowed.
-    q2 = UnitQ()
+    q2 = UnitQ('UnitQ2')
     dag = {q: dag_pipeline.Input(Type0),
            q2: dag_pipeline.Input(Type0),
            dag_pipeline.Output(): {'q': q, 'q2': q2}}
@@ -716,6 +715,23 @@ class DAGPipelineTest(tf.test.TestCase):
            r: dag_pipeline.Input(Type1),
            dag_pipeline.Output(): {'q': q, 'r': r}}
     with self.assertRaises(dag_pipeline.BadInputOrOutputException):
+      dag_pipeline.DAGPipeline(dag)
+
+  def testDuplicateNameException(self):
+
+    class UnitQ(pipeline.Pipeline):
+
+      def __init__(self, name='UnitQ'):
+        pipeline.Pipeline.__init__(self, Type0, Type1, name)
+
+      def transform(self, input_object):
+        pass
+
+    q, q2 = UnitQ(), UnitQ()
+    dag = {q: dag_pipeline.Input(Type0),
+           q2: dag_pipeline.Input(Type0),
+           dag_pipeline.Output(): {'q': q, 'q2': q2}}
+    with self.assertRaises(dag_pipeline.DuplicateNameException):
       dag_pipeline.DAGPipeline(dag)
 
   def testInvalidDictionaryOutput(self):
@@ -826,16 +842,30 @@ class DAGPipelineTest(tf.test.TestCase):
         pipeline.Pipeline.__init__(self, str, str)
 
       def transform(self, input_object):
+        self._set_stats([statistics.Counter('stat_1', 5), 1234])
         return [input_object]
 
-      def get_stats(self):
-        return {'stat_1': statistics.Counter(5), 'stat_2': 1234}
+    class UnitR(pipeline.Pipeline):
+
+      def __init__(self):
+        pipeline.Pipeline.__init__(self, str, str)
+
+      def transform(self, input_object):
+        self._set_stats(statistics.Counter('stat_1', 5))
+        return [input_object]
 
     q = UnitQ()
     dag = {q: dag_pipeline.Input(q.input_type),
            dag_pipeline.Output('output'): q}
     p = dag_pipeline.DAGPipeline(dag)
-    with self.assertRaises(dag_pipeline.InvalidStatisticsException):
+    with self.assertRaises(pipeline.InvalidStatisticsException):
+      p.transform('hello world')
+
+    r = UnitR()
+    dag = {r: dag_pipeline.Input(q.input_type),
+           dag_pipeline.Output('output'): r}
+    p = dag_pipeline.DAGPipeline(dag)
+    with self.assertRaises(pipeline.InvalidStatisticsException):
       p.transform('hello world')
 
 

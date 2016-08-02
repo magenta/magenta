@@ -27,6 +27,10 @@ class BadTypeSignatureException(Exception):
   pass
 
 
+class InvalidStatisticsException(Exception):
+  pass
+
+
 class Key(object):
   """Represents a get operation on a Pipeline type signature.
 
@@ -38,7 +42,7 @@ class Key(object):
   Calling __getitem__ on a pipeline will return a Key instance.
   So my_pipeline['key_1'] returns Key(my_pipeline, 'key_1'), and so on.
 
-  Key objects are used for assembling a directed asyclic graph of Pipeline
+  Key objects are used for assembling a directed acyclic graph of Pipeline
   instances. See dag_pipeline.py.
   """
 
@@ -98,12 +102,18 @@ class Pipeline(object):
 
   __metaclass__ = abc.ABCMeta
 
-  def __init__(self, input_type, output_type):
+  def __init__(self, input_type=None, output_type=None, name=None):
     # Make sure `input_type` and `output_type` are valid.
+    if name is None:
+      self._name = type(self).__name__
+    else:
+      assert isinstance(name, basestring)
+      self._name = name
     _assert_valid_type_signature(input_type, 'input_type')
     _assert_valid_type_signature(output_type, 'output_type')
     self._input_type = input_type
     self._output_type = output_type
+    self._stats = []
 
   def __getitem__(self, key):
     return Key(self, key)
@@ -138,6 +148,11 @@ class Pipeline(object):
     """
     return _guarantee_dict(self._output_type, 'dataset')
 
+  @property
+  def name(self):
+    """The string name of this pipeline."""
+    return self._name
+
   @abc.abstractmethod
   def transform(self, input_object):
     """Runs the pipeline on the given input.
@@ -154,6 +169,32 @@ class Pipeline(object):
     """
     pass
 
+  def _set_stats(self, stats):
+    """Overwrites the current statistics returned by `get_stats`.
+
+    Implementers of Pipeline should call `_set_stats` from within `transform`.
+
+    Args:
+      stats: An iterable of Statistic objects.
+
+    Raises:
+      InvalidStatisticsException: If `stats` is not iterable, or if each
+          statistic is not a `Statistic` instance.
+    """
+    if not hasattr(stats, '__iter__'):
+      raise InvalidStatisticsException(
+          'Expecting iterable, got type %s' % type(stats))
+    self._stats = [self._prepend_name(stat) for stat in stats]
+
+  def _prepend_name(self, stat):
+    """Returns a copy of `stat` with `self.name` prepended to `stat.name`."""
+    if not isinstance(stat, statistics.Statistic):
+      raise InvalidStatisticsException(
+          'Expecting Statistic object, got %s' % stat)
+    stat_copy = stat.copy()
+    stat_copy.name = self._name + '_' + stat_copy.name
+    return stat_copy
+
   def get_stats(self):
     """Returns statistics about pipeline runs.
 
@@ -161,9 +202,9 @@ class Pipeline(object):
     `transform` computes statistics which will be returned here.
 
     Returns:
-      Dictionary mapping statistic name to statistic value.
+      A list of `Statistic` objects.
     """
-    return {}
+    return list(self._stats)
 
 
 def file_iterator(root_dir, extension=None, recurse=True):
@@ -267,7 +308,7 @@ def run_pipeline_serial(pipeline, input_iterator, output_dir):
 
   total_inputs = 0
   total_outputs = 0
-  stats = {}
+  stats = []
   for input_ in input_iterator:
     total_inputs += 1
     for name, outputs in _guarantee_dict(pipeline.transform(input_),
@@ -275,15 +316,15 @@ def run_pipeline_serial(pipeline, input_iterator, output_dir):
       for output in outputs:
         writers[name].write(output.SerializeToString())
         total_outputs += 1
-    statistics.merge_statistics_dicts(stats, pipeline.get_stats())
+    stats = statistics.merge_statistics(stats + pipeline.get_stats())
     if total_inputs % 500 == 0:
       tf.logging.info('Processed %d inputs so far. Produced %d outputs.',
                       total_inputs, total_outputs)
-      statistics.log_statistics_dict(stats, tf.logging.info)
+      statistics.log_statistics_list(stats, tf.logging.info)
   tf.logging.info('\n\nCompleted.\n')
   tf.logging.info('Processed %d inputs total. Produced %d outputs.',
                   total_inputs, total_outputs)
-  statistics.log_statistics_dict(stats, tf.logging.info)
+  statistics.log_statistics_list(stats, tf.logging.info)
 
 
 def load_pipeline(pipeline, input_iterator):
@@ -306,7 +347,7 @@ def load_pipeline(pipeline, input_iterator):
       [(name, []) for name in pipeline.output_type_as_dict])
   total_inputs = 0
   total_outputs = 0
-  stats = {}
+  stats = []
   for input_object in input_iterator:
     total_inputs += 1
     outputs = _guarantee_dict(pipeline.transform(input_object),
@@ -314,13 +355,13 @@ def load_pipeline(pipeline, input_iterator):
     for name, output_list in outputs.items():
       aggregated_outputs[name].extend(output_list)
       total_outputs += len(output_list)
-    statistics.merge_statistics_dicts(stats, pipeline.get_stats())
+    stats = statistics.merge_statistics(stats + pipeline.get_stats())
     if total_inputs % 500 == 0:
       tf.logging.info('Processed %d inputs so far. Produced %d outputs.',
                       total_inputs, total_outputs)
-      statistics.log_statistics_dict(stats, tf.logging.info)
+      statistics.log_statistics_list(stats, tf.logging.info)
   tf.logging.info('\n\nCompleted.\n')
   tf.logging.info('Processed %d inputs total. Produced %d outputs.',
                   total_inputs, total_outputs)
-  statistics.log_statistics_dict(stats, tf.logging.info)
+  statistics.log_statistics_list(stats, tf.logging.info)
   return aggregated_outputs

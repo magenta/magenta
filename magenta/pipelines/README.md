@@ -232,6 +232,8 @@ Not every pipeline output needs to be connected to something, as long as at leas
 
 Thrown when the DAG dictionary is not well formatted. This can be because a `destination: dependency` pair is not in the form `Pipeline: Pipeline` or `Pipeline: {'name_1': Pipeline, ...}` (Note that Pipeline or Key objects both are allowed in the dependency). It is also thrown when `Input` is given as a destination, or `Output` is given as a dependency.
 
+### DuplicateNameException
+
 ### TypeMismatchException
 
 Thrown when destination type signature doesn't match dependency type signature.

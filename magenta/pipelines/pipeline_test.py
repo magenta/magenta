@@ -21,6 +21,7 @@ import tensorflow as tf
 
 from magenta.lib import testing_lib
 from magenta.pipelines import pipeline
+from magenta.pipelines import statistics
 
 
 MockStringProto = testing_lib.MockStringProto  # pylint: disable=invalid-name
@@ -183,6 +184,79 @@ class PipelineTest(tf.test.TestCase):
         PipelineShell(bad_type, good_type)
       with self.assertRaises(pipeline.BadTypeSignatureException):
         PipelineShell(good_type, bad_type)
+
+  def testPipelineGivenName(self):
+
+    class TestPipeline123(pipeline.Pipeline):
+
+      def __init__(self):
+        super(TestPipeline123, self).__init__(str, str, 'TestName')
+        self.stats = []
+
+      def transform(self, input_object):
+        self._set_stats([statistics.Counter('counter_1', 5),
+                         statistics.Counter('counter_2', 10)])
+        return []
+
+    pipe = TestPipeline123()
+    self.assertEqual(pipe.name, 'TestName')
+    pipe.transform('hello')
+    stats = pipe.get_stats()
+    self.assertEqual(
+        set([(stat.name, stat.count) for stat in stats]),
+        set([('TestName_counter_1', 5), ('TestName_counter_2', 10)]))
+
+  def testPipelineDefaultName(self):
+
+    class TestPipeline123(pipeline.Pipeline):
+
+      def __init__(self):
+        super(TestPipeline123, self).__init__(str, str)
+        self.stats = []
+
+      def transform(self, input_object):
+        self._set_stats([statistics.Counter('counter_1', 5),
+                         statistics.Counter('counter_2', 10)])
+        return []
+
+    pipe = TestPipeline123()
+    self.assertEqual(pipe.name, 'TestPipeline123')
+    pipe.transform('hello')
+    stats = pipe.get_stats()
+    self.assertEqual(
+        set([(stat.name, stat.count) for stat in stats]),
+        set([('TestPipeline123_counter_1', 5),
+             ('TestPipeline123_counter_2', 10)]))
+
+  def testInvalidStatisticsException(self):
+
+    class TestPipeline1(pipeline.Pipeline):
+
+      def __init__(self):
+        super(TestPipeline1, self).__init__(object, object)
+        self.stats = []
+
+      def transform(self, input_object):
+        self._set_stats([statistics.Counter('counter_1', 5), 12345])
+        return []
+
+    class TestPipeline2(pipeline.Pipeline):
+
+      def __init__(self):
+        super(TestPipeline2, self).__init__(object, object)
+        self.stats = []
+
+      def transform(self, input_object):
+        self._set_stats(statistics.Counter('counter_1', 5))
+        return [input_object]
+
+    tp1 = TestPipeline1()
+    with self.assertRaises(pipeline.InvalidStatisticsException):
+      tp1.transform('hello')
+
+    tp2 = TestPipeline2()
+    with self.assertRaises(pipeline.InvalidStatisticsException):
+      tp2.transform('hello')
 
 
 if __name__ == '__main__':

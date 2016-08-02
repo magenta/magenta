@@ -15,7 +15,7 @@
 
 Some terminology used in the code.
 
-dag: Directed asyclic graph.
+dag: Directed acyclic graph.
 unit: A Pipeline which is run inside DAGPipeline.
 connection: A key value pair in the DAG dictionary.
 dependency: The right hand side (value in key value dictionary pair) of a DAG
@@ -92,6 +92,10 @@ class InvalidDAGException(Exception):
   pass
 
 
+class DuplicateNameException(Exception):
+  pass
+
+
 class BadTopologyException(Exception):
   pass
 
@@ -108,10 +112,6 @@ class BadInputOrOutputException(Exception):
   pass
 
 
-class InvalidStatisticsException(Exception):
-  pass
-
-
 class InvalidDictionaryOutput(Exception):
   pass
 
@@ -121,7 +121,7 @@ class InvalidTransformOutputException(Exception):
 
 
 class DAGPipeline(pipeline.Pipeline):
-  """A directed asyclic graph pipeline.
+  """A directed acyclic graph pipeline.
 
   This Pipeline can be given an arbitrary graph composed of Pipeline instances
   and will run all of those pipelines feeding outputs to inputs. See README.md
@@ -130,7 +130,7 @@ class DAGPipeline(pipeline.Pipeline):
   Use DAGPipeline to compose multiple smaller pipelines together.
   """
 
-  def __init__(self, dag):
+  def __init__(self, dag, pipeline_name='DAGPipeline'):
     # Expand DAG shorthand.
     self.dag = dict(self._expand_dag_shorthands(dag))
 
@@ -171,6 +171,19 @@ class DAGPipeline(pipeline.Pipeline):
             % (unit, dependency, unit.input_type,
                self._get_type_signature_for_dependency(dependency)))
 
+    # Make sure all Pipeline names are unique, so that Statistic objects don't
+    # clash.
+    sorted_unit_names = sorted(
+        [(unit, unit.name) for unit in self.dag],
+        key=lambda t: t[1])
+    for index, (unit, name) in enumerate(sorted_unit_names[:-1]):
+      if name == sorted_unit_names[index + 1][1]:
+        other_unit = sorted_unit_names[index + 1][0]
+        raise DuplicateNameException(
+            'Pipelines %s and %s both have name "%s". Each Pipeline must have '
+            'a unique name.' % (unit, other_unit, name))
+
+    # Find Input and Output objects and make sure they are being used correctly.
     self.outputs = [unit for unit in self.dag if isinstance(unit, Output)]
     self.output_names = dict([(output.name, output) for output in self.outputs])
     for output in self.outputs:
@@ -193,12 +206,14 @@ class DAGPipeline(pipeline.Pipeline):
       raise BadInputOrOutputException(
           'No Output objects found. Output is the end of the pipeline.')
     self.input = inputs.pop()
-    self.stats = {}
 
+    # Compute output_type for self and call super constructor.
     output_signature = dict([(output.name, output.output_type)
                              for output in self.outputs])
     super(DAGPipeline, self).__init__(
-        input_type=self.input.output_type, output_type=output_signature)
+        input_type=self.input.output_type,
+        output_type=output_signature,
+        name=pipeline_name)
 
     # Make sure all Pipeline objects are connected to inputs.
     all_units = set([dep_unit for unit in self.dag
@@ -358,14 +373,10 @@ class DAGPipeline(pipeline.Pipeline):
       for single_input in unit_inputs:
         results_ = unit.transform(single_input)
         stats = unit.get_stats()
-        if not statistics.is_valid_statistics_dict(stats):
-          raise InvalidStatisticsException(
-              'Pipeline statistics from %s are not valid: %s'
-              % (unit, stats))
-        statistics.merge_statistics_dicts(cumulative_stats, stats)
+        cumulative_stats.extend(stats)
         yield results_
 
-    self.stats = {}
+    stats = []
     results = {self.input: [input_object]}
     for unit in self.call_list[1:]:
       # Compute transformation.
@@ -379,18 +390,12 @@ class DAGPipeline(pipeline.Pipeline):
           results[unit] = []
           continue
 
-        cumulative_stats = {}
         unjoined_outputs = list(
-            stats_accumulator(unit, unit_inputs, cumulative_stats))
+            stats_accumulator(unit, unit_inputs, stats))
         unit_outputs = self._join_lists_or_dicts(unjoined_outputs, unit)
       results[unit] = unit_outputs
 
-      # Merge statistics.
-      if isinstance(unit, pipeline.Pipeline):
-        for stat_name, stat_value in cumulative_stats.items():
-          full_name = '%s_%s' % (type(unit).__name__, stat_name)
-          assert full_name not in self.stats
-          self.stats[full_name] = stat_value
+    self._set_stats(stats)
     return dict([(output.name, results[output]) for output in self.outputs])
 
   def _get_outputs_as_signature(self, dependency, outputs):
@@ -469,13 +474,3 @@ class DAGPipeline(pipeline.Pipeline):
               % (unit, unit.output_type, [type(inst) for inst in l]))
         concated += l
     return concated
-
-  def get_stats(self):
-    """Returns statistics about pipeline runs.
-
-    Call after running transform to get statistics about it.
-
-    Returns:
-      Dictionary mapping statistic name to statistic value.
-    """
-    return self.stats

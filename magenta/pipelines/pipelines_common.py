@@ -61,7 +61,6 @@ class MonophonicMelodyExtractor(pipeline.Pipeline):
     self.min_unique_pitches = min_unique_pitches
     self.gap_bars = gap_bars
     self.ignore_polyphonic_notes = False
-    self.stats = {}
 
   def transform(self, quantized_sequence):
     melodies, stats = melodies_lib.extract_melodies(
@@ -70,11 +69,8 @@ class MonophonicMelodyExtractor(pipeline.Pipeline):
         min_unique_pitches=self.min_unique_pitches,
         gap_bars=self.gap_bars,
         ignore_polyphonic_notes=self.ignore_polyphonic_notes)
-    self.stats = stats
+    self._set_stats(stats)
     return melodies
-
-  def get_stats(self):
-    return self.stats
 
 
 class RandomPartition(pipeline.Pipeline):
@@ -97,7 +93,6 @@ class RandomPartition(pipeline.Pipeline):
     self.partition_names = partition_names
     self.cumulative_density = np.cumsum(partition_probabilities).tolist()
     self.rand_func = random.random
-    self.stats = self._make_stats_dict()
 
   def transform(self, input_object):
     r = self.rand_func()
@@ -108,17 +103,9 @@ class RandomPartition(pipeline.Pipeline):
         if r < cpd:
           bucket = i
           break
-    self.stats = self._make_stats_dict(self.partition_names[bucket])
+    self._set_stats(self._make_stats(self.partition_names[bucket]))
     return dict([(name, [] if i != bucket else [input_object])
                  for i, name in enumerate(self.partition_names)])
 
-  def get_stats(self):
-    return self.stats
-
-  def _make_stats_dict(self, increment_partition=None):
-    stats = dict([(name + '_count', statistics.Counter())
-                  for name in self.partition_names])
-    if increment_partition is not None:
-      stats[increment_partition + '_count'].increment()
-    return stats
-
+  def _make_stats(self, increment_partition=None):
+    return [statistics.Counter(increment_partition + '_count', 1)]
