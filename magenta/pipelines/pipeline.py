@@ -23,11 +23,14 @@ import tensorflow as tf
 from magenta.pipelines import statistics
 
 
-class BadTypeSignatureException(Exception):
+class InvalidTypeSignatureException(Exception):
+  """Thrown when `Pipeline.input_type` or `Pipeline.output_type` is not valid.
+  """
   pass
 
 
 class InvalidStatisticsException(Exception):
+  """Thrown when stats produced by a `Pipeline` are not valid."""
   pass
 
 
@@ -71,17 +74,32 @@ def _guarantee_dict(given, default_name):
 
 
 def _assert_valid_type_signature(type_sig, type_sig_name):
+  """Checks that the given type signature is valid.
+
+  Valid type signatures are either a single Python class, or a dictionary
+  mapping string names to Python classes.
+
+  Throws a well formatted exception when invalid.
+
+  Args:
+    type_sig: Type signature to validate.
+    type_sig_name: Variable name of the type signature. This is used in
+        exception descriptions.
+
+  Raises:
+    InvalidTypeSignatureException: If `type_sig` is not valid.
+  """
   if isinstance(type_sig, dict):
     for k, val in type_sig.items():
       if not isinstance(k, basestring):
-        raise BadTypeSignatureException(
+        raise InvalidTypeSignatureException(
             '%s key %s must be a string.' % (type_sig_name, k))
       if not inspect.isclass(val):
-        raise BadTypeSignatureException(
+        raise InvalidTypeSignatureException(
             '%s %s at key %s must be a Python class.' % (type_sig_name, val, k))
   else:
     if not inspect.isclass(type_sig):
-      raise BadTypeSignatureException(
+      raise InvalidTypeSignatureException(
           '%s %s must be a Python class.' % (type_sig_name, type_sig))
 
 

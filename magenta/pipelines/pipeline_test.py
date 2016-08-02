@@ -164,7 +164,7 @@ class PipelineTest(tf.test.TestCase):
     with self.assertRaises(ValueError):
       _ = pipeline.Key(1234, 'abc')
 
-  def testBadTypeSignatureException(self):
+  def testInvalidTypeSignatureException(self):
 
     class PipelineShell(pipeline.Pipeline):
 
@@ -180,9 +180,9 @@ class PipelineTest(tf.test.TestCase):
     good_type = str
     for bad_type in [123, {1: str}, {'name': 123},
                      {'name': str, 'name2': 123}, [str, int]]:
-      with self.assertRaises(pipeline.BadTypeSignatureException):
+      with self.assertRaises(pipeline.InvalidTypeSignatureException):
         PipelineShell(bad_type, good_type)
-      with self.assertRaises(pipeline.BadTypeSignatureException):
+      with self.assertRaises(pipeline.InvalidTypeSignatureException):
         PipelineShell(good_type, bad_type)
 
   def testPipelineGivenName(self):

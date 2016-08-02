@@ -234,6 +234,34 @@ Thrown when the DAG dictionary is not well formatted. This can be because a `des
 
 ### DuplicateNameException
 
+Thrown when two `Pipeline` instances in the DAG have the same name. Pipeline names will be used as name spaces for the statistics they produce and we don't want any conflicts.
+
+No exception:
+```python
+print pipeline_1.name
+> 'my_name'
+
+print pipeline_2.name
+> 'hello'
+
+dag = {pipeline_1: ...,
+       pipeline_2: ...}
+DAGPipeline(dag)
+```
+
+DuplicateNameException thrown:
+```python
+print pipeline_1.name
+> 'my_name'
+
+print pipeline_2.name
+> 'my_name'
+
+dag = {pipeline_1: ...,
+       pipeline_2: ...}
+DAGPipeline(dag)
+```
+
 ### TypeMismatchException
 
 Thrown when destination type signature doesn't match dependency type signature.
@@ -275,7 +303,7 @@ DAGPipeline(dag)
 
 ### BadTopologyException
 
-Thrown when a Pipeline does not feed into anyhing, or there is a directed cycle.
+Thrown when a `Pipeline` does not feed into anyhing, or there is a directed cycle.
 
 BadTopologyException is thrown in these examples:
 ```python
@@ -321,7 +349,7 @@ DAGPipeline(dag)
 
 ### BadInputOrOutputException
 
-Thrown when there is no Inputs or more than one Input with different types, or there is no Output.
+Thrown when `Input` or `Output` are not used in the graph correctly. Specifically when there are no `Input` objects, more than one `Input` with different types, or there is no `Output` object.
 
 BadInputOrOutputException is thrown in these examples:
 ```python
@@ -375,7 +403,7 @@ print my_pipeline_2.get_stats()
 
 ### InvalidDictionaryOutput
 
-Thrown when Output() is used without a dictionary dependency, or Output(name) is given with a name and with dictionary dependency.
+Thrown when `Output` and dictionaries are not used correctly. Specifically when `Output()` is used without a dictionary dependency, or `Output(name)` is used with a `name` and with a dictionary dependency.
 
 InvalidDictionaryOutput is thrown in these examples:
 ```python

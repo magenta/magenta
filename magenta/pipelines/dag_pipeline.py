@@ -37,14 +37,24 @@ from magenta.pipelines import statistics
 
 
 class Output(object):
-  """Represents an output destination for a DAGPipeline.
+  """Represents an output destination for a `DAGPipeline`.
 
-  Each Output(name) instance given to DAGPipeline will
+  Each `Output(name)` instance given to DAGPipeline will
   be a final output bucket with the same name. If writing
   output buckets to disk, the names become dataset names.
+
+  The name can be omitted if connecting `Output()` to a
+  dictionary mapping names to pipelines.
   """
 
   def __init__(self, name=None):
+    """Create an `Output` with the given name.
+
+    Args:
+      name: If given, a string name which defines the name of this output.
+          If not given, the names in the dictionary this is connected to
+          will be used as output names.
+    """
     self.name = name
     self.output_type = None
     self.input_type = None
@@ -60,14 +70,25 @@ class Output(object):
 
 
 class Input(object):
-  """Represents an input source for a DAGPipeline.
+  """Represents an input source for a `DAGPipeline`.
 
-  When DAGPipeline.transform is called, the input object
+  Give an `Input` instance to `DAGPipeline` by connecting `Pipeline` objects
+  to it in the DAG.
+
+  When `DAGPipeline.transform` is called, the input object
   will be fed to any Pipeline instances connected to an
-  Input given in the DAG.
+  `Input` given in the DAG.
+
+  The type given to `Input` will be the `DAGPipeline`'s `input_type`.
   """
 
   def __init__(self, type_):
+    """Create an `Input` with the given type.
+
+    Args:
+      type_: The Python class which inputs to `DAGPipeline` should be
+          instances of. `DAGPipeline.input_type` will be this type.
+    """
     self.output_type = type_
 
   def __eq__(self, other):
@@ -80,43 +101,83 @@ class Input(object):
     return 'Input(%s)' % self.output_type
 
 
-def all_are_type(elements, target_type):
+def _all_are_type(elements, target_type):
+  """Checks that all the given elements are the target type.
+
+  Args:
+    elements: A list of objects.
+    target_type: The Python class which all elemenets need to be an instance of.
+
+  Returns:
+    True if every object in `elements` is an instance of `target_type`, and
+    False otherwise.
+  """
   return all(isinstance(elem, target_type) for elem in elements)
 
 
-def cartesian_product(*input_lists):
-  return itertools.product(*input_lists)
-
-
 class InvalidDAGException(Exception):
+  """Thrown when the DAG dictionary is not well formatted.
+
+  This can be because a `destination: dependency` pair is not in the form
+  `Pipeline: Pipeline` or `Pipeline: {'name_1': Pipeline, ...}` (Note that
+  Pipeline or Key objects both are allowed in the dependency). It is also
+  thrown when `Input` is given as a destination, or `Output` is given as a
+  dependency.
+  """
   pass
 
 
 class DuplicateNameException(Exception):
+  """Thrown when two `Pipeline` instances in the DAG have the same name.
+
+  Pipeline names will be used as name spaces for the statistics they produce
+  and we don't want any conflicts.
+  """
   pass
 
 
 class BadTopologyException(Exception):
+  """Thrown when the DAG is not actually acyclic.
+
+  Also can be thrown when a `Pipeline` does not feed into anyhing.
+  """
   pass
 
 
 class NotConnectedException(Exception):
+  """Thrown when a Pipeline used in a dependency has nothing feeding into it."""
   pass
 
 
 class TypeMismatchException(Exception):
+  """Thrown when type signatures in a connection don't match.
+
+  In the DAG's `destination: dependency` pairs, type signatures must match.
+  """
   pass
 
 
 class BadInputOrOutputException(Exception):
+  """Thrown when `Input` or `Output` are not used in the graph correctly.
+
+  Specifically when there are no `Input` objects, more than one `Input` with
+  different types, or there is no `Output` object.
+  """
   pass
 
 
 class InvalidDictionaryOutput(Exception):
+  """Thrown when `Output` and dictionaries are not used correctly.
+
+  Specifically when `Output()` is used without a dictionary dependency, or
+  `Output(name)` is used with a `name` and with a dictionary dependency.
+  """
   pass
 
 
 class InvalidTransformOutputException(Exception):
+  """Thrown when a Pipeline does not output types matching its `output_type`.
+  """
   pass
 
 
@@ -131,6 +192,35 @@ class DAGPipeline(pipeline.Pipeline):
   """
 
   def __init__(self, dag, pipeline_name='DAGPipeline'):
+    """Constructs a DAGPipeline.
+
+    A DAG (direct acyclic graph) is given which fully specifies what the 
+    DAGPipeline runs.
+
+    Args:
+      dag: A dictionary mapping Pipeline or Output instances to any of the
+          following: Pipeline, Key, Input. `dag` defines a directed acyclic
+          graph.
+      pipeline_name: String name of this Pipeline object.
+
+    Raises:
+      InvalidDAGException: If each key value pair in the `dag` dictionary is
+          not of the form (Pipeline or Output): (Pipeline, Key, or Input).
+      TypeMismatchException: The type signature of each key and value in `dag`
+          must match, otherwise this will be thrown.
+      DuplicateNameException: If two `Pipeline` instances in `dag` have the
+          same string name.
+      BadInputOrOutputException: If there are no `Output` instaces in `dag` or
+          not exactly one `Input` plus type combination in `dag`. 
+      InvalidDictionaryOutput: If `Output()` is not connected to a dictionary,
+          or `Output(name)` is not connected to a Pipeline, Key, or Input
+          instance.
+      NotConnectedException: If a Pipeline used in a dependency has nothing
+          feeding into it.
+      BadTopologyException: If a `Pipeline` does not feed into anyhing, or
+          there is a directed cycle.
+      Exception: Misc. exceptions.
+    """
     # Expand DAG shorthand.
     self.dag = dict(self._expand_dag_shorthands(dag))
 
@@ -426,7 +516,26 @@ class DAGPipeline(pipeline.Pipeline):
     return _get_outputs_for_key(dependency, outputs)
 
   def _get_inputs_for_unit(self, unit, results,
-                           list_operation=cartesian_product):
+                           list_operation=itertools.product):
+    """Creates valid inputs for the given unit from the outputs in `results`.
+
+    Args:
+      unit: The `Pipeline` to create inputs for.
+      results: A database of computed unit outputs. A dictionary mapping
+          Pipeline to list of objects.
+      list_operation: A function that maps lists of inputs to a single list of
+          tuples, where each tuple is an input. This is used when `unit` takes
+          a dictionary as input. Each tuple is used as the values for a
+          dictionary input. This can be thought of as taking a sort of
+          transpose of a ragged 2D array.
+          The default is `itertools.product` which takes the cartesian product
+          of the input lists.
+
+    Returns:
+      If `unit` takes a single input, a list of objects.
+      If `unit` takes a dictionary input, a list of dictionaries each mapping
+      string name to object.
+    """
     previous_outputs = self._get_outputs_as_signature(self.dag[unit], results)
 
     if isinstance(previous_outputs, dict):
@@ -437,12 +546,39 @@ class DAGPipeline(pipeline.Pipeline):
     else:
       return previous_outputs
 
-  def _join_lists_or_dicts(self, inputs, unit):
-    if not inputs:
+  def _join_lists_or_dicts(self, outputs, unit):
+    """Joins many lists or dicts of outputs into a single list or dict.
+
+    This function also validates that the outputs are correct for the given
+    Pipeline.
+
+    If `outputs` is a list of lists, the lists are concated and the type of
+    each object must match `unit.output_type`.
+
+    If `output` is a list of dicts (mapping string names to lists), each
+    key has its lists concated across all the dicts. The keys and types
+    are validated against `unit.output_type`.
+
+    Args:
+      outputs: A list of lists, or list of dicts which map string names to
+          lists.
+      unit: A Pipeline which every output in `outputs` will be validated
+          against. `unit` must produce the outputs it says it will produce.
+
+    Returns:
+      If `outputs` is a list of lists, a single list of outputs.
+      If `outputs` is a list of dicts, a single dictionary mapping string names
+      to lists of outputs.
+
+    Raises:
+      InvalidTransformOutputException: If anything in `outputs` does not match
+      the type signature given by `unit.output_type`.
+    """
+    if not outputs:
       return []
     if isinstance(unit.output_type, dict):
       concated = dict([(key, list()) for key in unit.output_type.keys()])
-      for d in inputs:
+      for d in outputs:
         if not isinstance(d, dict):
           raise InvalidTransformOutputException(
               'Expected dictionary output for %s with output type %s but '
@@ -455,7 +591,7 @@ class DAGPipeline(pipeline.Pipeline):
           if not isinstance(val, list):
             raise InvalidTransformOutputException(
                 'Output from %s for key %s is not a list.' % (unit, k))
-          if not all_are_type(val, unit.output_type[k]):
+          if not _all_are_type(val, unit.output_type[k]):
             raise InvalidTransformOutputException(
                 'Some outputs from %s for key %s are not of expected type %s. '
                 'Got types %s' % (unit, k, unit.output_type[k],
@@ -463,12 +599,12 @@ class DAGPipeline(pipeline.Pipeline):
           concated[k] += val
     else:
       concated = []
-      for l in inputs:
+      for l in outputs:
         if not isinstance(l, list):
           raise InvalidTransformOutputException(
               'Expected list output for %s with outpu type %s but instead got '
               'type %s' % (unit, unit.output_type, type(l)))
-        if not all_are_type(l, unit.output_type):
+        if not _all_are_type(l, unit.output_type):
           raise InvalidTransformOutputException(
               'Some outputs from %s are not of expected type %s. Got types %s'
               % (unit, unit.output_type, [type(inst) for inst in l]))
