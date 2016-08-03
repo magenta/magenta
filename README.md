@@ -57,3 +57,7 @@ To create your own melodies with TensorFlow, train a model on the dataset you bu
 **[Lookback RNN](magenta/models/lookback_rnn)**: A recurrent neural network for predicting melodies that uses custom inputs and labels.
 
 **[Attention RNN](magenta/models/attention_rnn)**: A recurrent neural network for predicting melodies that uses attention.
+
+## Using a MIDI Instrument
+
+After you've trained one of the models above, you can use our [MIDI interface](magenta/interfaces/midi) to play with it interactively.
