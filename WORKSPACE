@@ -37,3 +37,11 @@ bind(
     name = "python_headers",
     actual = "//util/python:python_headers",
 )
+
+new_http_archive(
+    name = "mido",
+    build_file = "mido.BUILD",
+    url = "https://github.com/olemb/mido/archive/1.1.14.tar.gz",
+    sha256 = "eacfae91d2efd59ada6bf27f4548bfc2f2b0e8623c80bf242477314ae8df31b5",
+    strip_prefix = "mido-1.1.14/mido",
+)
