@@ -67,7 +67,6 @@ class MelodyRnnSequenceGenerator(sequence_generator.BaseSequenceGenerator):
     with graph.as_default():
       saver = tf.train.Saver()
       self._session = tf.Session()
-      checkpoint = tf.train.latest_checkpoint(checkpoint)
       tf.logging.info('Checkpoint used: %s', checkpoint)
       saver.restore(self._session, checkpoint)
 

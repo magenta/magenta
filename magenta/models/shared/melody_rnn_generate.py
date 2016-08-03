@@ -27,12 +27,16 @@ import tensorflow as tf
 
 from magenta.lib import melodies_lib
 from magenta.lib import midi_io
+from magenta.lib import sequence_generator
 from magenta.protobuf import generator_pb2
 
 FLAGS = tf.app.flags.FLAGS
-tf.app.flags.DEFINE_string('run_dir', '/tmp/melody_rnn/logdir/run1',
+tf.app.flags.DEFINE_string('run_dir', '',
                            'Path to the directory where the latest checkpoint '
                            'will be loaded from.')
+tf.app.flags.DEFINE_string('checkpoint_file', '',
+                           'Path to the checkpoint file. run_dir will take '
+                           'priority over the flag.')
 tf.app.flags.DEFINE_string('hparams', '{}',
                            'String representation of a Python dictionary '
                            'containing hyperparameter to value mapping. This '
@@ -75,11 +79,23 @@ def get_hparams():
   return hparams
 
 
-def get_train_dir():
+def get_checkpoint_file():
   """Get the training dir to be used by the model."""
-  if not FLAGS.run_dir:
-    tf.logging.fatal('--run_dir required')
-  return os.path.join(os.path.expanduser(FLAGS.run_dir), 'train')
+  if FLAGS.run_dir:
+    train_dir = os.path.join(os.path.expanduser(FLAGS.run_dir), 'train')
+    checkpoint_file = tf.train.latest_checkpoint(train_dir)
+    if checkpoint_file is None:
+      raise sequence_generator.SequenceGeneratorException(
+          'Unable to find checkpoint file in run_dir %s' % (FLAGS.run_dir))
+    return checkpoint_file
+  elif FLAGS.checkpoint_file:
+    if not os.path.isfile(FLAGS.checkpoint_file):
+      raise sequence_generator.SequenceGeneratorException(
+          'Unable to find checkpoint file at %s' % (FLAGS.checkpoint_file))
+    return FLAGS.checkpoint_file
+  else:
+    raise sequence_generator.SequenceGeneratorException(
+        '--run_dir or --checkpoint_file required')
 
 
 def get_steps_per_beat():

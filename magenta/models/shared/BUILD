@@ -56,6 +56,7 @@ py_library(
     deps = [
         "//magenta/lib:melodies_lib",
         "//magenta/lib:midi_io",
+        "//magenta/lib:sequence_generator",
         # tensorflow dep
     ],
 )
