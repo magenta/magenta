@@ -153,7 +153,7 @@ class Pipeline(object):
     # Make sure `input_type` and `output_type` are valid.
     if name is None:
       # This will get the name of the subclass, not "Pipeline".
-      self._name = type(self).__name__ 
+      self._name = type(self).__name__
     else:
       assert isinstance(name, basestring)
       self._name = name
@@ -326,7 +326,6 @@ def run_pipeline_serial(pipeline, input_iterator, output_dir):
     output_dir: Path to directory where datasets will be written. Each dataset
         is a file whose name contains the pipeline's dataset name. If the
         directory does not exist, it will be created.
-
 
   Raises:
     ValueError: If any of `pipeline`'s output types do not have a

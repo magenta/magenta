@@ -393,6 +393,34 @@ class MelodiesLibTest(tf.test.TestCase):
     melodies = sorted([list(melody) for melody in melodies])
     self.assertEqual(expected, melodies)
 
+  def testExtractMelodiesStatistics(self):
+    self.quantized_sequence.steps_per_beat = 1
+    testing_lib.add_quantized_track(
+        self.quantized_sequence, 0,
+        [(12, 100, 2, 4), (11, 1, 6, 7), (10, 100, 8, 10), (9, 100, 11, 14),
+         (8, 100, 16, 40), (7, 100, 41, 42)])
+    testing_lib.add_quantized_track(
+        self.quantized_sequence, 1,
+        [(12, 127, 2, 4), (14, 50, 2, 8)])
+    testing_lib.add_quantized_track(
+        self.quantized_sequence, 2,
+        [(12, 127, 0, 1)])
+    testing_lib.add_quantized_track(
+        self.quantized_sequence, 3,
+        [(12, 127, 2, 4), (12, 50, 6, 8)])
+    _, stats = melodies_lib.extract_melodies(
+        self.quantized_sequence, min_bars=1, gap_bars=1, min_unique_pitches=2,
+        ignore_polyphonic_notes=False)
+
+    stats_dict = dict([(stat.name, stat) for stat in stats])
+    self.assertEqual(stats_dict['polyphonic_tracks_discarded'].count, 1)
+    self.assertEqual(stats_dict['melodies_discarded_too_short'].count, 1)
+    self.assertEqual(stats_dict['melodies_discarded_too_few_pitches'].count, 1)
+    self.assertEqual(
+        stats_dict['melody_lengths_in_bars'].counters,
+        {float('-inf'): 0, 0: 1, 1: 0, 2: 1, 10: 1, 20: 0, 30: 0, 40: 0, 50: 0,
+         100: 0, 200: 0, 500: 0})
+
 
 class OneHotEncoderDecoder(melodies_lib.MelodyEncoderDecoder):
 

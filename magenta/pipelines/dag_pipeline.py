@@ -55,6 +55,11 @@ class Output(object):
           will be used as output names.
     """
     self.name = name
+
+    # `output_type` and `input_type` are set by DAGPipeline. Since `Output` is
+    # not given its type, the type must be infered from what it is connected
+    # to in the DAG. Having `output_type` and `input_type` makes `Output` act
+    # like a `Pipeline` in some cases.
     self.output_type = None
     self.input_type = None
 
