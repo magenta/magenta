@@ -135,7 +135,7 @@ class MelodyRnnSequenceGenerator(sequence_generator.BaseSequenceGenerator):
       melody.from_event_list([
           random.randint(self._melody_encoder_decoder.min_note,
                          self._melody_encoder_decoder.max_note)])
-      start_step = 1
+      start_step += 1
 
     transpose_amount = melody.squash(
         self._melody_encoder_decoder.min_note,
