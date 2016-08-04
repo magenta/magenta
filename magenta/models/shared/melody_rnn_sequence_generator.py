@@ -116,7 +116,7 @@ class MelodyRnnSequenceGenerator(sequence_generator.BaseSequenceGenerator):
     quantized_sequence.from_note_sequence(
         primer_sequence, self._steps_per_beat)
     # Setting gap_bars to infinite ensures that the entire input will be used.
-    extracted_melodies = melodies_lib.extract_melodies(
+    extracted_melodies, _ = melodies_lib.extract_melodies(
         quantized_sequence, min_bars=0, min_unique_pitches=1,
         gap_bars=float('inf'), ignore_polyphonic_notes=True)
     assert len(extracted_melodies) <= 1
