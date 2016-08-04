@@ -17,8 +17,11 @@ Provides a uniform interface for interacting with generators for any model.
 """
 
 import abc
+import os
 
 # internal imports
+
+import tensorflow as tf
 
 
 class SequenceGeneratorException(Exception):
@@ -36,7 +39,9 @@ class BaseSequenceGenerator(object):
 
     Args:
       details: A generator_pb2.GeneratorDetails for this generator.
-      checkpoint: Where to look for the most recent model checkpoint.
+      checkpoint: Where to look for the most recent model checkpoint. Either a
+          directory to be used with tf.train.latest_checkpoint or the path to a
+          single checkpoint file.
     """
     self._details = details
     self._checkpoint = checkpoint
@@ -47,11 +52,11 @@ class BaseSequenceGenerator(object):
     return self._details
 
   @abc.abstractmethod
-  def _initialize(self, checkpoint):
+  def _initialize(self, checkpoint_file):
     """Implementation for building the TF graph.
 
     Args:
-      checkpoint: Where to look for the most recent model checkpoint.
+      checkpoint_file: The path to the checkpoint file that should be used.
     """
     pass
 
@@ -79,9 +84,22 @@ class BaseSequenceGenerator(object):
     """Builds the TF graph and loads the checkpoint.
 
     If the graph has already been initialized, this is a no-op.
+
+    Raises:
+      SequenceGeneratorException: If the checkpoint cannot be found.
     """
     if not self._initialized:
-      self._initialize(self._checkpoint)
+      if not os.path.exists(self._checkpoint):
+        raise SequenceGeneratorException(
+            'Checkpoint path does not exist: %s' % (self._checkpoint))
+      checkpoint_file = self._checkpoint
+      # If this is a directory, try to determine the latest checkpoint in it.
+      if os.path.isdir(checkpoint_file):
+        checkpoint_file = tf.train.latest_checkpoint(checkpoint_file)
+      if not os.path.isfile(checkpoint_file):
+        raise SequenceGeneratorException(
+            'Checkpoint path does is not a file: %s' % (checkpoint_file))
+      self._initialize(checkpoint_file)
       self._initialized = True
 
   def close(self):

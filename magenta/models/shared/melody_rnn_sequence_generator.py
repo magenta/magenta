@@ -59,7 +59,7 @@ class MelodyRnnSequenceGenerator(sequence_generator.BaseSequenceGenerator):
     self._hparams['dropout_keep_prob'] = 1.0
     self._hparams['batch_size'] = 1
 
-  def _initialize(self, checkpoint):
+  def _initialize(self, checkpoint_file):
     graph = self._build_graph('generate',
                               repr(self._hparams),
                               self._melody_encoder_decoder.input_size,
@@ -67,8 +67,8 @@ class MelodyRnnSequenceGenerator(sequence_generator.BaseSequenceGenerator):
     with graph.as_default():
       saver = tf.train.Saver()
       self._session = tf.Session()
-      tf.logging.info('Checkpoint used: %s', checkpoint)
-      saver.restore(self._session, checkpoint)
+      tf.logging.info('Checkpoint used: %s', checkpoint_file)
+      saver.restore(self._session, checkpoint_file)
 
   def _close(self):
     self._session.close()

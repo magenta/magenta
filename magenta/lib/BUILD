@@ -129,5 +129,7 @@ py_library(
 py_library(
     name = "sequence_generator",
     srcs = ["sequence_generator.py"],
-    deps = [],
+    deps = [
+        # tensorflow dep
+    ],
 )

@@ -27,7 +27,6 @@ import tensorflow as tf
 
 from magenta.lib import melodies_lib
 from magenta.lib import midi_io
-from magenta.lib import sequence_generator
 from magenta.protobuf import generator_pb2
 
 FLAGS = tf.app.flags.FLAGS
@@ -79,23 +78,13 @@ def get_hparams():
   return hparams
 
 
-def get_checkpoint_file():
+def get_checkpoint():
   """Get the training dir to be used by the model."""
   if FLAGS.run_dir:
     train_dir = os.path.join(os.path.expanduser(FLAGS.run_dir), 'train')
-    checkpoint_file = tf.train.latest_checkpoint(train_dir)
-    if checkpoint_file is None:
-      raise sequence_generator.SequenceGeneratorException(
-          'Unable to find checkpoint file in run_dir %s' % (FLAGS.run_dir))
-    return checkpoint_file
-  elif FLAGS.checkpoint_file:
-    if not os.path.isfile(FLAGS.checkpoint_file):
-      raise sequence_generator.SequenceGeneratorException(
-          'Unable to find checkpoint file at %s' % (FLAGS.checkpoint_file))
-    return FLAGS.checkpoint_file
+    return train_dir
   else:
-    raise sequence_generator.SequenceGeneratorException(
-        '--run_dir or --checkpoint_file required')
+    return FLAGS.checkpoint_file
 
 
 def get_steps_per_beat():
