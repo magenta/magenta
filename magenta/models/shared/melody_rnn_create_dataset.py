@@ -17,12 +17,11 @@ This script will extract melodies from NoteSequence protos and save them to
 TensorFlow's SequenceExample protos for input to the melody RNN models.
 """
 
-import random
-
 # internal imports
 import tensorflow as tf
 
 from magenta.lib import melodies_lib
+from magenta.pipelines import dag_pipeline
 from magenta.pipelines import pipeline
 from magenta.pipelines import pipelines_common
 from magenta.protobuf import music_pb2
@@ -65,56 +64,35 @@ class EncoderPipeline(pipeline.Pipeline):
     return {}
 
 
-def random_partition(input_list, partition_ratio):
-  random.shuffle(input_list)
-  split_index = int(len(input_list) * partition_ratio)
-  return input_list[split_index:], input_list[:split_index]
+def get_pipeline(melody_encoder_decoder):
+  """Returns the Pipeline instance which creates the RNN dataset.
 
+  Args:
+    melody_encoder_decoder: A melodies_lib.MelodyEncoderDecoder object.
 
-def map_and_flatten(input_list, func):
-  return [output
-          for single_input in input_list
-          for output in func(single_input)]
-
-
-class MelodyRNNPipeline(pipeline.Pipeline):
-  """A custom Pipeline implementation.
-
-  Converts music_pb2.NoteSequence into tf.train.SequenceExample protos for use
-  in the basic_rnn model.
+  Returns:
+    A pipeline.Pipeline instance.
   """
+  quantizer = pipelines_common.Quantizer(steps_per_beat=4)
+  melody_extractor = pipelines_common.MonophonicMelodyExtractor(
+      min_bars=7, min_unique_pitches=5,
+      gap_bars=1.0, ignore_polyphonic_notes=False)
+  encoder_pipeline = EncoderPipeline(melody_encoder_decoder)
+  partitioner = pipelines_common.RandomPartition(
+      tf.train.SequenceExample,
+      ['eval_melodies', 'training_melodies'],
+      [FLAGS.eval_ratio])
 
-  def __init__(self, melody_encoder_decoder, eval_ratio):
-    self.training_set_name = 'training_melodies'
-    self.eval_set_name = 'eval_melodies'
-    super(MelodyRNNPipeline, self).__init__(
-        input_type=music_pb2.NoteSequence,
-        output_type={self.training_set_name: tf.train.SequenceExample,
-                     self.eval_set_name: tf.train.SequenceExample})
-    self.eval_ratio = eval_ratio
-    self.quantizer = pipelines_common.Quantizer(steps_per_beat=4)
-    self.melody_extractor = pipelines_common.MonophonicMelodyExtractor(
-        min_bars=7, min_unique_pitches=5,
-        gap_bars=1.0, ignore_polyphonic_notes=False)
-    self.encoder_unit = EncoderPipeline(melody_encoder_decoder)
-    self.stats_dict = {}
-
-  def transform(self, note_sequence):
-    intermediate_objects = self.quantizer.transform(note_sequence)
-    intermediate_objects = map_and_flatten(intermediate_objects,
-                                           self.melody_extractor.transform)
-    outputs = map_and_flatten(intermediate_objects, self.encoder_unit.transform)
-    train_set, eval_set = random_partition(outputs, self.eval_ratio)
-
-    return {self.training_set_name: train_set, self.eval_set_name: eval_set}
-
-  def get_stats(self):
-    return {}
+  dag = {quantizer: dag_pipeline.Input(music_pb2.NoteSequence),
+         melody_extractor: quantizer,
+         encoder_pipeline: melody_extractor,
+         partitioner: encoder_pipeline,
+         dag_pipeline.Output(): partitioner}
+  return dag_pipeline.DAGPipeline(dag)
 
 
-def run_from_flags(melody_encoder_decoder):
-  pipeline_instance = MelodyRNNPipeline(
-      melody_encoder_decoder, FLAGS.eval_ratio)
+def run_from_flags(pipeline_instance):
+  tf.logging.set_verbosity(tf.logging.INFO)
   pipeline.run_pipeline_serial(
       pipeline_instance,
       pipeline.tf_record_iterator(FLAGS.input, pipeline_instance.input_type),

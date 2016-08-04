@@ -15,12 +15,18 @@
 
 Modules are data processing building blocks for creating datasets.
 """
+
+
+import random
+
 # internal imports
+import numpy as np
 import tensorflow as tf
 
 from magenta.lib import melodies_lib
 from magenta.lib import sequences_lib
 from magenta.pipelines import pipeline
+from magenta.pipelines import statistics
 from magenta.protobuf import music_pb2
 
 
@@ -42,9 +48,6 @@ class Quantizer(pipeline.Pipeline):
       tf.logging.debug('Multiple time signatures found in NoteSequence')
       return []
 
-  def get_stats(self):
-    return {}
-
 
 class MonophonicMelodyExtractor(pipeline.Pipeline):
   """Extracts monophonic melodies from a QuantizedSequence."""
@@ -60,12 +63,49 @@ class MonophonicMelodyExtractor(pipeline.Pipeline):
     self.ignore_polyphonic_notes = False
 
   def transform(self, quantized_sequence):
-    return melodies_lib.extract_melodies(
+    melodies, stats = melodies_lib.extract_melodies(
         quantized_sequence,
         min_bars=self.min_bars,
         min_unique_pitches=self.min_unique_pitches,
         gap_bars=self.gap_bars,
         ignore_polyphonic_notes=self.ignore_polyphonic_notes)
+    self._set_stats(stats)
+    return melodies
 
-  def get_stats(self):
-    return {}
+
+class RandomPartition(pipeline.Pipeline):
+  """Outputs multiple datasets.
+
+  This Pipeline will take a single input feed and randomly partition the inputs
+  into multiple output datasets. The probabilities of an input landing in each
+  dataset are given by `partition_probabilities`. Use this Pipeline to partition
+  previous Pipeline outputs into training and test sets, or training, eval, and
+  test sets.
+  """
+
+  def __init__(self, type_, partition_names, partition_probabilities):
+    super(RandomPartition, self).__init__(
+        type_, dict([(name, type_) for name in partition_names]))
+    if len(partition_probabilities) != len(partition_names) - 1:
+      raise ValueError('len(partition_probabilities) != '
+                       'len(partition_names) - 1. '
+                       'Last probability is implicity.')
+    self.partition_names = partition_names
+    self.cumulative_density = np.cumsum(partition_probabilities).tolist()
+    self.rand_func = random.random
+
+  def transform(self, input_object):
+    r = self.rand_func()
+    if r >= self.cumulative_density[-1]:
+      bucket = len(self.cumulative_density)
+    else:
+      for i, cpd in enumerate(self.cumulative_density):
+        if r < cpd:
+          bucket = i
+          break
+    self._set_stats(self._make_stats(self.partition_names[bucket]))
+    return dict([(name, [] if i != bucket else [input_object])
+                 for i, name in enumerate(self.partition_names)])
+
+  def _make_stats(self, increment_partition=None):
+    return [statistics.Counter(increment_partition + '_count', 1)]
