@@ -34,7 +34,7 @@ from magenta.models.shared import melody_rnn_generate
 
 
 def main(unused_argv):
-  with basic_rnn_generator.create_geneartor(
+  with basic_rnn_generator.create_generator(
       melody_rnn_generate.get_train_dir(),
       melody_rnn_generate.get_steps_per_beat(),
       melody_rnn_generate.get_hparams()) as generator:
