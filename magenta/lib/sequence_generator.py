@@ -98,7 +98,8 @@ class BaseSequenceGenerator(object):
         checkpoint_file = tf.train.latest_checkpoint(checkpoint_file)
       if not os.path.isfile(checkpoint_file):
         raise SequenceGeneratorException(
-            'Checkpoint path does is not a file: %s' % (checkpoint_file))
+            'Checkpoint path is not a file: %s (supplied path: %s)' % (
+                checkpoint_file, self._checkpoint))
       self._initialize(checkpoint_file)
       self._initialized = True
 

@@ -132,7 +132,7 @@ $ bazel-bin/magenta/interfaces/midi/midi \
   --input_port=<controller port> \
   --output_port=<synthesizer port> \
   --generator_name=<generator name> \
-  --train_dir=<training directory> \
+  --checkpoint=<training directory or checkpoint path> \
   --hparams=<training hparams>
 ```
 

@@ -35,7 +35,7 @@ tf.app.flags.DEFINE_string('run_dir', '',
                            'will be loaded from.')
 tf.app.flags.DEFINE_string('checkpoint_file', '',
                            'Path to the checkpoint file. run_dir will take '
-                           'priority over the flag.')
+                           'priority over this flag.')
 tf.app.flags.DEFINE_string('hparams', '{}',
                            'String representation of a Python dictionary '
                            'containing hyperparameter to value mapping. This '
@@ -79,7 +79,7 @@ def get_hparams():
 
 
 def get_checkpoint():
-  """Get the training dir to be used by the model."""
+  """Get the training dir or checkpoint path to be used by the model."""
   if FLAGS.run_dir:
     train_dir = os.path.join(os.path.expanduser(FLAGS.run_dir), 'train')
     return train_dir
