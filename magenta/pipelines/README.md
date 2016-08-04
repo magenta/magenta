@@ -97,7 +97,7 @@ A full example:
 
 ```python
 class FooExtractor(Pipeline):
-  
+
   def __init__(self):
     super(FooExtractor, self).__init__(
         input_type=BarType,
