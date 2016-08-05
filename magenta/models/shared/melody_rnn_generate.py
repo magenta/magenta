@@ -61,8 +61,9 @@ tf.app.flags.DEFINE_string('primer_midi', '',
                            'generated from scratch.')
 tf.app.flags.DEFINE_float('bpm', 0,
                           'The beats per minute to play generated output at. '
-                          'If 0, bpm will default to 120. If the primer has a '
-                          'bpm that will be used instead.')
+                          'If a primer MIDI is given, the bpm from that will '
+                          'override this flag. If bpm is 0, bpm will default '
+                          'to 120.')
 tf.app.flags.DEFINE_float('temperature', 1.0,
                           'The randomness of the generated melodies. 1.0 uses '
                           'the unaltered softmax probabilities, greater than '
