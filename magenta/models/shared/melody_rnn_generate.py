@@ -30,9 +30,12 @@ from magenta.lib import midi_io
 from magenta.protobuf import generator_pb2
 
 FLAGS = tf.app.flags.FLAGS
-tf.app.flags.DEFINE_string('run_dir', '/tmp/melody_rnn/logdir/run1',
+tf.app.flags.DEFINE_string('run_dir', '',
                            'Path to the directory where the latest checkpoint '
                            'will be loaded from.')
+tf.app.flags.DEFINE_string('checkpoint_file', '',
+                           'Path to the checkpoint file. run_dir will take '
+                           'priority over this flag.')
 tf.app.flags.DEFINE_string('hparams', '{}',
                            'String representation of a Python dictionary '
                            'containing hyperparameter to value mapping. This '
@@ -75,11 +78,13 @@ def get_hparams():
   return hparams
 
 
-def get_train_dir():
-  """Get the training dir to be used by the model."""
-  if not FLAGS.run_dir:
-    tf.logging.fatal('--run_dir required')
-  return os.path.join(os.path.expanduser(FLAGS.run_dir), 'train')
+def get_checkpoint():
+  """Get the training dir or checkpoint path to be used by the model."""
+  if FLAGS.run_dir:
+    train_dir = os.path.join(os.path.expanduser(FLAGS.run_dir), 'train')
+    return train_dir
+  else:
+    return FLAGS.checkpoint_file
 
 
 def get_steps_per_beat():
