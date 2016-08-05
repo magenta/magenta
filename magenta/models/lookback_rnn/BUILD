@@ -21,6 +21,9 @@ py_binary(
     name = "lookback_rnn_create_dataset",
     srcs = ["lookback_rnn_create_dataset.py"],
     srcs_version = "PY2AND3",
+    visibility = [
+        "//magenta:__subpackages__",
+    ],
     deps = [
         ":lookback_rnn_encoder_decoder",
         "//magenta/models/shared:melody_rnn_create_dataset",

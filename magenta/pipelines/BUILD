@@ -66,6 +66,9 @@ py_test(
 py_library(
     name = "pipelines_common",
     srcs = ["pipelines_common.py"],
+    visibility = [
+        "//magenta:__subpackages__",
+    ],
     deps = [
         ":pipeline",
         "//magenta/lib:melodies_lib",

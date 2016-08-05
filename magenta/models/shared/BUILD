@@ -36,6 +36,18 @@ py_library(
     ],
 )
 
+py_library(
+    name = "model_pipelines",
+    visibility = [
+        "//magenta:__subpackages__",
+    ],
+    deps = [
+        "//magenta/models/attention_rnn:attention_rnn_create_dataset",
+        "//magenta/models/basic_rnn:basic_rnn_create_dataset",
+        "//magenta/models/lookback_rnn:lookback_rnn_create_dataset",
+    ],
+)
+
 py_test(
     name = "melody_rnn_create_dataset_test",
     srcs = ["melody_rnn_create_dataset_test.py"],
