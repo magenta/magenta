@@ -15,6 +15,7 @@
 
 import tempfile
 
+# internal imports
 import tensorflow as tf
 
 from magenta.lib import note_sequence_io
