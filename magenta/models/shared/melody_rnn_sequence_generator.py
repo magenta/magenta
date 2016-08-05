@@ -42,7 +42,7 @@ class MelodyRnnSequenceGenerator(sequence_generator.BaseSequenceGenerator):
           (mode, hparams_string, input_size, num_classes, sequence_example_file)
           For an example usage, see models/basic_rnn/basic_rnn_graph.py.
       steps_per_beat: What precision to use when quantizing the melody.
-      hparams: a dict of hparams.
+      hparams: A dict of hparams.
     """
     super(MelodyRnnSequenceGenerator, self).__init__(details, checkpoint)
     self._melody_encoder_decoder = melody_encoder_decoder
@@ -98,8 +98,6 @@ class MelodyRnnSequenceGenerator(sequence_generator.BaseSequenceGenerator):
     generate_section = (
         generate_sequence_request.generator_options.generate_sections[0])
     primer_sequence = generate_sequence_request.input_sequence
-    bpm = (primer_sequence.tempos[0].bpm if primer_sequence.tempos
-           else melodies_lib.DEFAULT_BEATS_PER_MINUTE)
 
     notes_by_end_time = sorted(primer_sequence.notes, key=lambda n: n.end_time)
     last_end_time = notes_by_end_time[-1].end_time if notes_by_end_time else 0
@@ -120,24 +118,28 @@ class MelodyRnnSequenceGenerator(sequence_generator.BaseSequenceGenerator):
         gap_bars=float('inf'), ignore_polyphonic_notes=True)
     assert len(extracted_melodies) <= 1
 
+    bpm = (primer_sequence.tempos[0].bpm if primer_sequence
+           and primer_sequence.tempos
+           else melodies_lib.DEFAULT_BEATS_PER_MINUTE)
+    start_step = self._seconds_to_steps(
+        generate_section.start_time_seconds, bpm)
+    end_step = self._seconds_to_steps(generate_section.end_time_seconds, bpm)
+
     if extracted_melodies and extracted_melodies[0].events:
       melody = extracted_melodies[0]
     else:
       tf.logging.warn('No melodies were extracted from the priming sequence. '
                       'Melodies will be generated from scratch.')
       melody = melodies_lib.MonophonicMelody()
-      melody.events = [
+      melody.from_event_list([
           random.randint(self._melody_encoder_decoder.min_note,
-                         self._melody_encoder_decoder.max_note)]
+                         self._melody_encoder_decoder.max_note)])
+      start_step += 1
 
     transpose_amount = melody.squash(
         self._melody_encoder_decoder.min_note,
         self._melody_encoder_decoder.max_note,
         self._melody_encoder_decoder.transpose_to_key)
-
-    start_step = self._seconds_to_steps(
-        generate_section.start_time_seconds, bpm)
-    end_step = self._seconds_to_steps(generate_section.end_time_seconds, bpm)
 
     # Ensure that the melody extends up to the step we want to start generating.
     melody.set_length(start_step)
