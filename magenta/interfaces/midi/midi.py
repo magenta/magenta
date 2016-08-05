@@ -364,7 +364,17 @@ class MonoMidiHub(object):
     last_note = (self.captured_sequence.notes[-1] if
                  self.captured_sequence.notes else None)
     now = time.time()
-    if msg.type == 'note_on':
+    if msg.type == 'note_off' or (msg.type == 'note_on' and msg.velocity == 0):
+      if (last_note is None or last_note.pitch != msg.note or
+          last_note.end_time > 0):
+        # This is not the note we're looking for. Drop it.
+        return
+
+      last_note.end_time = now - self._sequence_start_time
+      self._outport.send(msg)
+      stdout_write_and_flush('.')
+
+    elif msg.type == 'note_on':
       if self._sequence_start_time is None:
         # This is the first note.
         # Find the sequence start time based on the start of the most recent
@@ -386,16 +396,6 @@ class MonoMidiHub(object):
       new_note.start_time = now - self._sequence_start_time
       new_note.pitch = msg.note
       new_note.velocity = msg.velocity
-      stdout_write_and_flush('.')
-
-    elif msg.type == 'note_off':
-      if (last_note is None or last_note.pitch != msg.note or
-          last_note.end_time > 0):
-        # This is not the note we're looking for. Drop it.
-        return
-
-      last_note.end_time = now - self._sequence_start_time
-      self._outport.send(msg)
       stdout_write_and_flush('.')
 
   @serialized
