@@ -25,7 +25,7 @@ import collections
 # If 1.75 < event <= 2.75 it will be quantized to step 2.
 # A number close to 1.0 gives less wiggle room for notes that start early,
 # and they will be snapped to the previous step.
-QUANTIZE_CUTOFF = 0.75
+QUANTIZE_CUTOFF = 0.5
 
 
 class BadNoteException(Exception):
