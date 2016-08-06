@@ -87,7 +87,7 @@ class SequencesLibTest(tf.test.TestCase):
     testing_lib.add_quantized_track(
         self.expected_quantized_sequence, 1,
         [(12, 100, 0, 1), (11, 100, 1, 2), (40, 100, 2, 3),
-         (41, 100, 3, 4), (44, 100, 5, 7), (55, 100, 16, 17)])
+         (41, 100, 3, 5), (44, 100, 5, 7), (55, 100, 16, 17)])
     quantized = sequences_lib.QuantizedSequence()
     quantized.from_note_sequence(self.note_sequence, self.steps_per_beat)
     self.assertEqual(self.expected_quantized_sequence, quantized)
