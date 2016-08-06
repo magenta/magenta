@@ -28,7 +28,7 @@ py_binary(
     ],
 )
 
-py_binary(
+py_library(
     name = "basic_rnn_encoder_decoder",
     srcs = ["basic_rnn_encoder_decoder.py"],
     srcs_version = "PY2AND3",
@@ -37,14 +37,27 @@ py_binary(
     ],
 )
 
+py_library(
+    name = "basic_rnn_generator",
+    srcs = ["basic_rnn_generator.py"],
+    srcs_version = "PY2AND3",
+    visibility = ["//magenta/interfaces:generator_interfaces"],
+    deps = [
+        ":basic_rnn_encoder_decoder",
+        ":basic_rnn_graph",
+        "//magenta/models/shared:melody_rnn_sequence_generator",
+        "//magenta/protobuf:generator_py_pb2",
+    ],
+)
+
 py_binary(
     name = "basic_rnn_generate",
     srcs = ["basic_rnn_generate.py"],
     srcs_version = "PY2AND3",
     deps = [
-        ":basic_rnn_encoder_decoder",
-        ":basic_rnn_graph",
+        ":basic_rnn_generator",
         "//magenta/models/shared:melody_rnn_generate",
+        # tensorflow dep
     ],
 )
 

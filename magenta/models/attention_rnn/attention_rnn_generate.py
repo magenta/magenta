@@ -27,17 +27,18 @@ See /magenta/models/shared/melody_rnn_generate.py for flag descriptions.
 """
 
 # internal imports
-import attention_rnn_encoder_decoder
-import attention_rnn_graph
+import attention_rnn_generator
 import tensorflow as tf
 
 from magenta.models.shared import melody_rnn_generate
 
 
 def main(unused_argv):
-  melody_encoder_decoder = attention_rnn_encoder_decoder.MelodyEncoderDecoder()
-  melody_rnn_generate.run(melody_encoder_decoder,
-                          attention_rnn_graph.build_graph)
+  with attention_rnn_generator.create_generator(
+      melody_rnn_generate.get_train_dir(),
+      melody_rnn_generate.get_steps_per_beat(),
+      melody_rnn_generate.get_hparams()) as generator:
+    melody_rnn_generate.run_with_flags(generator)
 
 
 if __name__ == '__main__':

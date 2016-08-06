@@ -28,7 +28,7 @@ py_binary(
     ],
 )
 
-py_binary(
+py_library(
     name = "lookback_rnn_encoder_decoder",
     srcs = ["lookback_rnn_encoder_decoder.py"],
     srcs_version = "PY2AND3",
@@ -37,13 +37,25 @@ py_binary(
     ],
 )
 
+py_library(
+    name = "lookback_rnn_generator",
+    srcs = ["lookback_rnn_generator.py"],
+    srcs_version = "PY2AND3",
+    visibility = ["//magenta/interfaces:generator_interfaces"],
+    deps = [
+        ":lookback_rnn_encoder_decoder",
+        ":lookback_rnn_graph",
+        "//magenta/models/shared:melody_rnn_sequence_generator",
+        "//magenta/protobuf:generator_py_pb2",
+    ],
+)
+
 py_binary(
     name = "lookback_rnn_generate",
     srcs = ["lookback_rnn_generate.py"],
     srcs_version = "PY2AND3",
     deps = [
-        ":lookback_rnn_encoder_decoder",
-        ":lookback_rnn_graph",
+        ":lookback_rnn_generator",
         "//magenta/models/shared:melody_rnn_generate",
         # tensorflow dep
     ],

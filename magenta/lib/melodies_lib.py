@@ -511,6 +511,18 @@ class MonophonicMelody(object):
 
     return transpose_amount
 
+  def set_length(self, steps):
+    """Sets the length of the melody to the specified number of steps.
+
+    If the melody is not long enough, adds NO_EVENT steps. If it is too long,
+    it will be truncated to the requested length.
+
+    Args:
+      steps: how many steps long the melody should be.
+    """
+    self.events.extend([NO_EVENT] * max(0, steps - len(self.events)))
+    del self.events[steps:]
+
 
 def extract_melodies(quantized_sequence,
                      min_bars=7,
@@ -524,7 +536,7 @@ def extract_melodies(quantized_sequence,
 
   Once a note-on event in a track is encountered, a melody begins.
   Gaps of silence in each track will be splitting points that divide the
-  track into seperate melodies. The minimum size of these gaps are given
+  track into separate melodies. The minimum size of these gaps are given
   in `gap_bars`. The size of a bar (measure) of music in time steps is
   computed from the time signature stored in `quantized_sequence`.
 
