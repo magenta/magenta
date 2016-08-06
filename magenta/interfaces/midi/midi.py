@@ -85,9 +85,10 @@ tf.app.flags.DEFINE_string(
     None,
     'The name of the SequenceGenerator being used.')
 tf.app.flags.DEFINE_string(
-    'train_dir',
+    'checkpoint',
     None,
-    'The training directory with checkpoint files for the model being used.')
+    'The training directory with checkpoint files or the path to a single '
+    'checkpoint file for the model being used.')
 tf.app.flags.DEFINE_string(
     'hparams',
     '{}',
@@ -135,8 +136,8 @@ class Generator(object):
         Assumes 4/4 time.
     hparams: A Python dictionary containing hyperparameter to value mappings to
         be merged with the default hyperparameters.
-    train_dir: The training directory with checkpoint files for the model being
-        used.
+    checkpoint: The training directory with checkpoint files or the path to a
+        single checkpoint file for the model being used.
   Raises:
     GeneratorException: If an invalid generator name is given or no training
         directory is given.
@@ -147,18 +148,18 @@ class Generator(object):
       generator_name,
       num_bars_to_generate,
       hparams,
-      train_dir=None):
+      checkpoint=None):
     self._num_bars_to_generate = num_bars_to_generate
 
     if generator_name not in _GENERATOR_FACTORY_MAP:
       raise GeneratorException('Invalid generator name given: %s',
                                generator_name)
 
-    if not train_dir:
-      raise GeneratorException('No generator training directory supplied.')
+    if not checkpoint:
+      raise GeneratorException('No generator checkpoint location supplied.')
 
     generator = _GENERATOR_FACTORY_MAP[generator_name].create_generator(
-        train_dir, hparams=hparams)
+        checkpoint, hparams=hparams)
     generator.initialize()
 
     self._generator = generator
@@ -334,6 +335,11 @@ class MonoMidiHub(object):
     self._capture_start_time = None
     self._sequence_start_time = None
 
+  def _timestamp_and_capture_message(self, msg):
+    """Stamps message with current time and passes it to the capture handler."""
+    msg.time = time.time()
+    self._capture_message(msg)
+   
   @serialized
   def _capture_message(self, msg):
     """Handles a single incoming MIDI message during capture. Used as callback.
@@ -362,39 +368,38 @@ class MonoMidiHub(object):
 
     last_note = (self.captured_sequence.notes[-1] if
                  self.captured_sequence.notes else None)
-    now = time.time()
-    if msg.type == 'note_on':
+    if msg.type == 'note_off' or (msg.type == 'note_on' and msg.velocity == 0):
+      if (last_note is None or last_note.pitch != msg.note or
+          last_note.end_time > 0):
+        # This is not the note we're looking for. Drop it.
+        return
+
+      last_note.end_time = msg.time - self._sequence_start_time
+      self._outport.send(msg)
+      stdout_write_and_flush('.')
+
+    elif msg.type == 'note_on':
       if self._sequence_start_time is None:
         # This is the first note.
         # Find the sequence start time based on the start of the most recent
         # beat. This ensures that the sequence start time lines up with a
         # metronome tick.
         period = 60. / self.captured_sequence.tempos[0].bpm
-        self._sequence_start_time = now - (
-            (now - self._capture_start_time) % period)
+        self._sequence_start_time = msg.time - (
+            (msg.time - self._capture_start_time) % period)
       elif last_note.end_time == 0:
         if last_note.pitch == msg.note:
           # This is just a repeat of the previous message.
           return
         # End the previous note.
-        last_note.end_time = now - self._sequence_start_time
+        last_note.end_time = msg.time - self._sequence_start_time
         self._outport.send(mido.Message('note_off', note=last_note.pitch))
 
       self._outport.send(msg)
       new_note = self.captured_sequence.notes.add()
-      new_note.start_time = now - self._sequence_start_time
+      new_note.start_time = msg.time - self._sequence_start_time
       new_note.pitch = msg.note
       new_note.velocity = msg.velocity
-      stdout_write_and_flush('.')
-
-    elif msg.type == 'note_off':
-      if (last_note is None or last_note.pitch != msg.note or
-          last_note.end_time > 0):
-        # This is not the note we're looking for. Drop it.
-        return
-
-      last_note.end_time = now - self._sequence_start_time
-      self._outport.send(msg)
       stdout_write_and_flush('.')
 
   @serialized
@@ -417,7 +422,7 @@ class MonoMidiHub(object):
     self.captured_sequence.tempos.add().bpm = bpm
     self._sequence_start_time = None
     self._capture_start_time = time.time()
-    self._inport.callback = self._capture_message
+    self._inport.callback = self._timestamp_and_capture_message
     self._metronome = Metronome(self._outport, bpm, self._capture_start_time)
     self._metronome.start()
 
@@ -513,7 +518,7 @@ def main(unused_argv):
       FLAGS.generator_name,
       FLAGS.num_bars_to_generate,
       ast.literal_eval(FLAGS.hparams if FLAGS.hparams else '{}'),
-      FLAGS.train_dir)
+      FLAGS.checkpoint)
   hub = MonoMidiHub(FLAGS.input_port, FLAGS.output_port)
 
   stdout_write_and_flush('Waiting for start control signal...\n')
