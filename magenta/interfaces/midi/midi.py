@@ -85,9 +85,10 @@ tf.app.flags.DEFINE_string(
     None,
     'The name of the SequenceGenerator being used.')
 tf.app.flags.DEFINE_string(
-    'train_dir',
+    'checkpoint',
     None,
-    'The training directory with checkpoint files for the model being used.')
+    'The training directory with checkpoint files or the path to a single '
+    'checkpoint file for the model being used.')
 tf.app.flags.DEFINE_string(
     'hparams',
     '{}',
@@ -135,8 +136,8 @@ class Generator(object):
         Assumes 4/4 time.
     hparams: A Python dictionary containing hyperparameter to value mappings to
         be merged with the default hyperparameters.
-    train_dir: The training directory with checkpoint files for the model being
-        used.
+    checkpoint: The training directory with checkpoint files or the path to a
+        single checkpoint file for the model being used.
   Raises:
     GeneratorException: If an invalid generator name is given or no training
         directory is given.
@@ -147,18 +148,18 @@ class Generator(object):
       generator_name,
       num_bars_to_generate,
       hparams,
-      train_dir=None):
+      checkpoint=None):
     self._num_bars_to_generate = num_bars_to_generate
 
     if generator_name not in _GENERATOR_FACTORY_MAP:
       raise GeneratorException('Invalid generator name given: %s',
                                generator_name)
 
-    if not train_dir:
-      raise GeneratorException('No generator training directory supplied.')
+    if not checkpoint:
+      raise GeneratorException('No generator checkpoint location supplied.')
 
     generator = _GENERATOR_FACTORY_MAP[generator_name].create_generator(
-        train_dir, hparams=hparams)
+        checkpoint, hparams=hparams)
     generator.initialize()
 
     self._generator = generator
@@ -363,7 +364,17 @@ class MonoMidiHub(object):
     last_note = (self.captured_sequence.notes[-1] if
                  self.captured_sequence.notes else None)
     now = time.time()
-    if msg.type == 'note_on':
+    if msg.type == 'note_off' or (msg.type == 'note_on' and msg.velocity == 0):
+      if (last_note is None or last_note.pitch != msg.note or
+          last_note.end_time > 0):
+        # This is not the note we're looking for. Drop it.
+        return
+
+      last_note.end_time = now - self._sequence_start_time
+      self._outport.send(msg)
+      stdout_write_and_flush('.')
+
+    elif msg.type == 'note_on':
       if self._sequence_start_time is None:
         # This is the first note.
         # Find the sequence start time based on the start of the most recent
@@ -385,16 +396,6 @@ class MonoMidiHub(object):
       new_note.start_time = now - self._sequence_start_time
       new_note.pitch = msg.note
       new_note.velocity = msg.velocity
-      stdout_write_and_flush('.')
-
-    elif msg.type == 'note_off':
-      if (last_note is None or last_note.pitch != msg.note or
-          last_note.end_time > 0):
-        # This is not the note we're looking for. Drop it.
-        return
-
-      last_note.end_time = now - self._sequence_start_time
-      self._outport.send(msg)
       stdout_write_and_flush('.')
 
   @serialized
@@ -513,7 +514,7 @@ def main(unused_argv):
       FLAGS.generator_name,
       FLAGS.num_bars_to_generate,
       ast.literal_eval(FLAGS.hparams if FLAGS.hparams else '{}'),
-      FLAGS.train_dir)
+      FLAGS.checkpoint)
   hub = MonoMidiHub(FLAGS.input_port, FLAGS.output_port)
 
   stdout_write_and_flush('Waiting for start control signal...\n')

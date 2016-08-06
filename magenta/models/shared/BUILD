@@ -28,6 +28,7 @@ py_library(
     deps = [
         # tensorflow dep
         "//magenta/lib:melodies_lib",
+        "//magenta/pipelines:dag_pipeline",
         "//magenta/pipelines:pipeline",
         "//magenta/pipelines:pipelines_common",
         "//magenta/protobuf:music_py_pb2",

@@ -30,9 +30,12 @@ from magenta.lib import midi_io
 from magenta.protobuf import generator_pb2
 
 FLAGS = tf.app.flags.FLAGS
-tf.app.flags.DEFINE_string('run_dir', '/tmp/melody_rnn/logdir/run1',
+tf.app.flags.DEFINE_string('run_dir', '',
                            'Path to the directory where the latest checkpoint '
                            'will be loaded from.')
+tf.app.flags.DEFINE_string('checkpoint_file', '',
+                           'Path to the checkpoint file. run_dir will take '
+                           'priority over this flag.')
 tf.app.flags.DEFINE_string('hparams', '{}',
                            'String representation of a Python dictionary '
                            'containing hyperparameter to value mapping. This '
@@ -59,6 +62,11 @@ tf.app.flags.DEFINE_string('primer_midi', '',
                            'will be used as a priming melody. If a primer '
                            'melody is not specified, melodies will be '
                            'generated from scratch.')
+tf.app.flags.DEFINE_float('bpm', None,
+                          'The beats per minute to play generated output at. '
+                          'If a primer MIDI is given, the bpm from that will '
+                          'override this flag. If bpm is None, bpm will '
+                          'default to 120.')
 tf.app.flags.DEFINE_float('temperature', 1.0,
                           'The randomness of the generated melodies. 1.0 uses '
                           'the unaltered softmax probabilities, greater than '
@@ -75,11 +83,13 @@ def get_hparams():
   return hparams
 
 
-def get_train_dir():
-  """Get the training dir to be used by the model."""
-  if not FLAGS.run_dir:
-    tf.logging.fatal('--run_dir required')
-  return os.path.join(os.path.expanduser(FLAGS.run_dir), 'train')
+def get_checkpoint():
+  """Get the training dir or checkpoint path to be used by the model."""
+  if FLAGS.run_dir:
+    train_dir = os.path.join(os.path.expanduser(FLAGS.run_dir), 'train')
+    return train_dir
+  else:
+    return FLAGS.checkpoint_file
 
 
 def get_steps_per_beat():
@@ -126,38 +136,49 @@ def run_with_flags(melody_rnn_sequence_generator):
     os.makedirs(FLAGS.output_dir)
 
   primer_sequence = None
+  bpm = FLAGS.bpm if FLAGS.bpm else melodies_lib.DEFAULT_BEATS_PER_MINUTE
   if FLAGS.primer_melody:
     primer_melody = melodies_lib.MonophonicMelody()
     primer_melody.from_event_list(ast.literal_eval(FLAGS.primer_melody))
-    primer_sequence = primer_melody.to_sequence()
+    primer_sequence = primer_melody.to_sequence(bpm=bpm)
   elif FLAGS.primer_midi:
     primer_sequence = midi_io.midi_file_to_sequence_proto(FLAGS.primer_midi)
+    if primer_sequence.tempos and primer_sequence.tempos[0].bpm:
+      bpm = primer_sequence.tempos[0].bpm
 
   # Derive the total number of seconds to generate based on the BPM of the
   # priming sequence and the num_steps flag.
-  bpm = (primer_sequence.tempos[0].bpm if primer_sequence.tempos
-         else melodies_lib.DEFAULT_BEATS_PER_MINUTE)
   total_seconds = _steps_to_seconds(FLAGS.num_steps, bpm)
 
   # Specify start/stop time for generation based on starting generation at the
   # end of the priming sequence and continuing until the sequence is num_steps
   # long.
   generate_request = generator_pb2.GenerateSequenceRequest()
-  generate_request.input_sequence.CopyFrom(primer_sequence)
-  generate_section = generate_request.generator_options.generate_sections.add()
-  # Set the start time to begin on the next step after the last note ends.
-  notes_by_end_time = sorted(primer_sequence.notes, key=lambda n: n.end_time)
-  last_end_time = notes_by_end_time[-1].end_time if notes_by_end_time else 0
-  generate_section.start_time_seconds = last_end_time + _steps_to_seconds(
-      1, bpm)
-  generate_section.end_time_seconds = total_seconds
+  if primer_sequence:
+    generate_request.input_sequence.CopyFrom(primer_sequence)
+    generate_section = (
+        generate_request.generator_options.generate_sections.add())
+    # Set the start time to begin on the next step after the last note ends.
+    notes_by_end_time = sorted(primer_sequence.notes, key=lambda n: n.end_time)
+    last_end_time = notes_by_end_time[-1].end_time if notes_by_end_time else 0
+    generate_section.start_time_seconds = last_end_time + _steps_to_seconds(
+        1, bpm)
+    generate_section.end_time_seconds = total_seconds
 
-  if generate_section.start_time_seconds >= generate_section.end_time_seconds:
-    tf.logging.fatal(
-        'Priming sequence is longer than the total number of steps requested: '
-        'Priming sequence length: %s, Generation length requested: %s',
-        generate_section.start_time_seconds, total_seconds)
-    return
+    if generate_section.start_time_seconds >= generate_section.end_time_seconds:
+      tf.logging.fatal(
+          'Priming sequence is longer than the total number of steps '
+          'requested: Priming sequence length: %s, Generation length '
+          'requested: %s',
+          generate_section.start_time_seconds, total_seconds)
+      return
+  else:
+    generate_section = (
+        generate_request.generator_options.generate_sections.add())
+    generate_section.start_time_seconds = 0
+    generate_section.end_time_seconds = total_seconds
+    generate_request.input_sequence.tempos.add().bpm = bpm
+  tf.logging.info('generate_request: %s', generate_request)
 
   # Make the generate request num_outputs times and save the output as midi
   # files.

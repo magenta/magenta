@@ -311,7 +311,7 @@ class MelodiesLibTest(tf.test.TestCase):
                  NOTE_OFF],
                 [NO_EVENT, NO_EVENT, 12, NO_EVENT, NOTE_OFF, NO_EVENT, 14,
                  NO_EVENT, NOTE_OFF]]
-    melodies = melodies_lib.extract_melodies(
+    melodies, _ = melodies_lib.extract_melodies(
         self.quantized_sequence, min_bars=1, gap_bars=1, min_unique_pitches=2,
         ignore_polyphonic_notes=True)
 
@@ -336,7 +336,7 @@ class MelodiesLibTest(tf.test.TestCase):
                 [NO_EVENT, NO_EVENT, 12, NO_EVENT, NOTE_OFF, NO_EVENT, 14,
                  NO_EVENT, NOTE_OFF],
                 [NO_EVENT, 50, 52, NO_EVENT, NOTE_OFF]]
-    melodies = melodies_lib.extract_melodies(
+    melodies, _ = melodies_lib.extract_melodies(
         self.quantized_sequence, min_bars=1, gap_bars=2, min_unique_pitches=2,
         ignore_polyphonic_notes=True)
     melodies = sorted([list(melody) for melody in melodies])
@@ -352,7 +352,7 @@ class MelodiesLibTest(tf.test.TestCase):
         [(12, 127, 2, 4), (14, 50, 6, 8)])
     expected = [[NO_EVENT, NO_EVENT, 12, NO_EVENT, NOTE_OFF, NO_EVENT, 14,
                  NO_EVENT, NOTE_OFF]]
-    melodies = melodies_lib.extract_melodies(
+    melodies, _ = melodies_lib.extract_melodies(
         self.quantized_sequence, min_bars=2, gap_bars=1, min_unique_pitches=2,
         ignore_polyphonic_notes=True)
     melodies = [list(melody) for melody in melodies]
@@ -371,7 +371,7 @@ class MelodiesLibTest(tf.test.TestCase):
         [(12, 100, 0, 1), (13, 100, 1, 2), (18, 100, 2, 3),
          (25, 100, 3, 4), (26, 100, 4, 5)])
     expected = [[12, 13, 18, 25, 26, NOTE_OFF]]
-    melodies = melodies_lib.extract_melodies(
+    melodies, _ = melodies_lib.extract_melodies(
         self.quantized_sequence, min_bars=1, gap_bars=1, min_unique_pitches=4,
         ignore_polyphonic_notes=True)
     melodies = [list(melody) for melody in melodies]
@@ -387,11 +387,39 @@ class MelodiesLibTest(tf.test.TestCase):
         [(12, 100, 100, 101), (13, 100, 102, 104)])
     expected = [[NO_EVENT, NO_EVENT, 12, NOTE_OFF, 13, NO_EVENT, NOTE_OFF],
                 [12, NOTE_OFF, 13, NO_EVENT, NOTE_OFF]]
-    melodies = melodies_lib.extract_melodies(
+    melodies, _ = melodies_lib.extract_melodies(
         self.quantized_sequence, min_bars=1, gap_bars=1, min_unique_pitches=2,
         ignore_polyphonic_notes=True)
     melodies = sorted([list(melody) for melody in melodies])
     self.assertEqual(expected, melodies)
+
+  def testExtractMelodiesStatistics(self):
+    self.quantized_sequence.steps_per_beat = 1
+    testing_lib.add_quantized_track(
+        self.quantized_sequence, 0,
+        [(12, 100, 2, 4), (11, 1, 6, 7), (10, 100, 8, 10), (9, 100, 11, 14),
+         (8, 100, 16, 40), (7, 100, 41, 42)])
+    testing_lib.add_quantized_track(
+        self.quantized_sequence, 1,
+        [(12, 127, 2, 4), (14, 50, 2, 8)])
+    testing_lib.add_quantized_track(
+        self.quantized_sequence, 2,
+        [(12, 127, 0, 1)])
+    testing_lib.add_quantized_track(
+        self.quantized_sequence, 3,
+        [(12, 127, 2, 4), (12, 50, 6, 8)])
+    _, stats = melodies_lib.extract_melodies(
+        self.quantized_sequence, min_bars=1, gap_bars=1, min_unique_pitches=2,
+        ignore_polyphonic_notes=False)
+
+    stats_dict = dict([(stat.name, stat) for stat in stats])
+    self.assertEqual(stats_dict['polyphonic_tracks_discarded'].count, 1)
+    self.assertEqual(stats_dict['melodies_discarded_too_short'].count, 1)
+    self.assertEqual(stats_dict['melodies_discarded_too_few_pitches'].count, 1)
+    self.assertEqual(
+        stats_dict['melody_lengths_in_bars'].counters,
+        {float('-inf'): 0, 0: 1, 1: 0, 2: 1, 10: 1, 20: 0, 30: 0, 40: 0, 50: 0,
+         100: 0, 200: 0, 500: 0})
 
 
 class OneHotEncoderDecoder(melodies_lib.MelodyEncoderDecoder):

@@ -132,7 +132,7 @@ $ bazel-bin/magenta/interfaces/midi/midi \
   --input_port=<controller port> \
   --output_port=<synthesizer port> \
   --generator_name=<generator name> \
-  --train_dir=<training directory> \
+  --checkpoint=<training directory or checkpoint path> \
   --hparams=<training hparams>
 ```
 
@@ -145,8 +145,8 @@ $ bazel-bin/magenta/interfaces/midi/midi \
   --input_port="VMPK Output" \
   --output_port="Fluidsynth virtual port" \
   --generator_name=attention_rnn \
-  --train_dir=/tmp/attention_rnn/logdir/run1/train \
-  --hparams="{'batch_size':64,'rnn_layer_sizes':[64,64]}" \
+  --checkpoint=/tmp/attention_rnn/logdir/run1/train \
+  --hparams="{'batch_size':64,'rnn_layer_sizes':[64,64]}"
 ```
 
 To initialize a capture session, you need to send the appropriate control change

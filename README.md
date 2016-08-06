@@ -48,6 +48,10 @@ bazel build //magenta/scripts:convert_midi_dir_to_note_sequences
 --recursive
 ```
 
+___Data processing APIs___
+
+If you are interested in adding your own model, please take a look at how we create our datasets under the hood: [Data processing in Magenta](https://github.com/tensorflow/magenta/blob/master/magenta/pipelines)
+
 ## Generating MIDI
 
 To create your own melodies with TensorFlow, train a model on the dataset you built above and then use it to generate new sequences. Select a model below for further instructions.
@@ -57,3 +61,7 @@ To create your own melodies with TensorFlow, train a model on the dataset you bu
 **[Lookback RNN](magenta/models/lookback_rnn)**: A recurrent neural network for predicting melodies that uses custom inputs and labels.
 
 **[Attention RNN](magenta/models/attention_rnn)**: A recurrent neural network for predicting melodies that uses attention.
+
+## Using a MIDI Instrument
+
+After you've trained one of the models above, you can use our [MIDI interface](magenta/interfaces/midi) to play with it interactively.

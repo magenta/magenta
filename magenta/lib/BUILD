@@ -27,8 +27,8 @@ py_library(
     srcs_version = "PY2AND3",
     deps = [
         ":sequence_example_lib",
+        "//magenta/pipelines:statistics",
         "//magenta/protobuf:music_py_pb2",
-        # tensorflow dep
     ]
 )
 
@@ -129,5 +129,7 @@ py_library(
 py_library(
     name = "sequence_generator",
     srcs = ["sequence_generator.py"],
-    deps = [],
+    deps = [
+        # tensorflow dep
+    ],
 )
