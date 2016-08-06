@@ -80,6 +80,15 @@ tf.app.flags.DEFINE_integer(
     'num_bars_to_generate',
     5,
     'The number of bars to generate each time.')
+tf.app.flags.DEFINE_integer(
+    'metronome_channel',
+    0,
+    'The MIDI channel on which to send the metronome click')
+tf.app.flags.DEFINE_integer(
+    'metronome_playback_mix',
+    0,
+    'An integer between 0 and 100 expressing the percentage of '
+    'metronome click to be heard during generated playback')
 tf.app.flags.DEFINE_string(
     'generator_name',
     None,
@@ -104,6 +113,8 @@ _GENERATOR_FACTORY_MAP = {
 
 _METRONOME_TICK_DURATION = 0.05
 _METRONOME_PITCH = 95
+# TODO(hanzorama): Make velocity adjustable by a control change signal.
+_METRONOME_VELOCITY = 64
 
 
 def serialized(func):
@@ -198,11 +209,12 @@ class Metronome(threading.Thread):
   """
   daemon = True
 
-  def __init__(self, outport, bpm, clock_start_time):
+  def __init__(self, outport, bpm, clock_start_time, velocity):
     self._outport = outport
     self._bpm = bpm
     self._stop_metronome = False
     self._clock_start_time = clock_start_time
+    self._metronome_velocity = int(round(velocity))
     super(Metronome, self).__init__()
 
   def run(self):
@@ -230,9 +242,14 @@ class Metronome(threading.Thread):
         while time.time() < next_tick_time:
           pass
 
-      self._outport.send(mido.Message(type='note_on', note=_METRONOME_PITCH))
+      self._outport.send(
+          mido.Message(
+              type='note_on', note=_METRONOME_PITCH, channel=FLAGS.metronome_channel,
+              velocity=self._metronome_velocity))
       time.sleep(_METRONOME_TICK_DURATION)
-      self._outport.send(mido.Message(type='note_off', note=_METRONOME_PITCH))
+      self._outport.send(
+          mido.Message(
+              type='note_off', note=_METRONOME_PITCH, channel=FLAGS.metronome_channel))
 
   def stop(self):
     """Signals for the metronome to stop and joins thread."""
@@ -247,25 +264,34 @@ class MonoMidiPlayer(threading.Thread):
     _outport: The Mido port for sending messages.
     _sequence: The monohponic, chronologically sorted NoteSequence to play.
     _stop_playback: A boolean specifying whether the playback should stop.
+    _bpm: The tempo
   Args:
     outport: The Mido port for sending messages.
     sequence: The monohponic, chronologically sorted NoteSequence to play.
   """
   daemon = True
 
+  if not 0 <= FLAGS.metronome_playback_mix <= 100:
+      raise ValueError(
+          'The metronome_playback_mix must be between 0 and 100')
+
   def __init__(self, outport, sequence):
     self._outport = outport
     self._sequence = sequence
     self._stop_playback = False
+    self._bpm = sequence.tempos[0].bpm
+    self._metronome = Metronome(self._outport,self._bpm, time.time(),
+                                _METRONOME_VELOCITY*FLAGS.metronome_playback_mix/100)
     super(MonoMidiPlayer, self).__init__()
 
   def run(self):
-    """Plays back the NoteSequence until it ends or stop signal is received.
+    """Plays back the NoteSequence with metronome until it ends or stop signal is received.
 
     Raises:
       ValueError: The NoteSequence is not monophonic and chronologically sorted.
     """
     stdout_write_and_flush('Playing sequence...')
+    self._metronome.start()
     # Wall start time.
     play_start = time.time()
     # Time relative to start of NoteSequence.
@@ -298,11 +324,13 @@ class MonoMidiPlayer(threading.Thread):
       if delta > 0:
         time.sleep(delta)
       self._outport.send(mido.Message('note_off', note=note.pitch))
+    self._metronome.stop()
     stdout_write_and_flush('Done\n')
 
   def stop(self):
-    """Signals for the playback to stop and joins thread."""
+    """Signals for the playback and metronome to stop and joins thread."""
     self._stop_playback = True
+    self._metronome.stop()
     self.join()
 
 
@@ -419,7 +447,7 @@ class MonoMidiHub(object):
     self._sequence_start_time = None
     self._capture_start_time = time.time()
     self._inport.callback = self._capture_message
-    self._metronome = Metronome(self._outport, bpm, self._capture_start_time)
+    self._metronome = Metronome(self._outport, bpm, self._capture_start_time,_METRONOME_VELOCITY)
     self._metronome.start()
 
   @serialized
