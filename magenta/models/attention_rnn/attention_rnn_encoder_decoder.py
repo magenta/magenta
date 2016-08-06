@@ -24,6 +24,7 @@ NO_EVENT = melodies_lib.NO_EVENT
 MIN_MIDI_PITCH = melodies_lib.MIN_MIDI_PITCH
 NOTES_PER_OCTAVE = melodies_lib.NOTES_PER_OCTAVE
 STEPS_PER_BAR = 16  # This code assumes the melodies have 16 steps per bar.
+
 MIN_NOTE = 48  # Inclusive
 MAX_NOTE = 84  # Exclusive
 TRANSPOSE_TO_KEY = 0  # C Major
