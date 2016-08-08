@@ -53,6 +53,9 @@ tf.app.flags.DEFINE_integer('summary_frequency', 10,
 tf.app.flags.DEFINE_boolean('eval', False,
                             'If True, this process only evaluates the model '
                             'and does not update weights.')
+tf.app.flags.DEFINE_string('log', 'INFO',
+                           'The threshold for what messages will be logged '
+                           'DEBUG, INFO, WARN, ERROR, or FATAL.')
 
 
 def run_training(graph, train_dir, num_training_steps=None,
@@ -183,7 +186,7 @@ def run(melody_encoder_decoder, build_graph):
         (mode, hparams_string, input_size, num_classes, sequence_example_file).
         For an example usage, see models/basic_rnn/basic_rnn_graph.py.
   """
-  tf.logging.set_verbosity(tf.logging.INFO)
+  tf.logging.set_verbosity(FLAGS.log)
 
   if not FLAGS.run_dir:
     tf.logging.fatal('--run_dir required')
