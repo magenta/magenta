@@ -339,7 +339,7 @@ class MonoMidiHub(object):
     """Stamps message with current time and passes it to the capture handler."""
     msg.time = time.time()
     self._capture_message(msg)
-   
+
   @serialized
   def _capture_message(self, msg):
     """Handles a single incoming MIDI message during capture. Used as callback.
