@@ -133,8 +133,8 @@ class MelodyEncoderDecoder(melodies_lib.MelodyEncoderDecoder):
     model_event = self.melody_event_to_model_event(melody_event)
     input_[2 * self.num_model_events + model_event] = 1.0
 
-    # Binary time counters.
-    n = len(melody) - 1
+    # Binary time counter giving the metric location of the *next* note.
+    n = len(melody)
     for i in range(NUM_BINARY_TIME_COUNTERS):
       input_[3 * self.num_model_events + i] = 1.0 if (n / 2 ** i) % 2 else -1.0
 
