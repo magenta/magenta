@@ -16,7 +16,7 @@ First, clone this repository:
 
 ```git clone https://github.com/tensorflow/magenta.git```
 
-Next, install Bazel and TensorFlow. You'll need at least version 0.2.3 for Bazel and at least version 0.9 for TensorFlow. You can find instructions for the former [here](http://www.bazel.io/docs/install.html) and the latter [here](https://github.com/tensorflow/tensorflow/blob/v0.9.0rc0/tensorflow/g3doc/get_started/os_setup.md). After that's done, run the tests with this command:
+Next, install Bazel and TensorFlow. You'll need at least version 0.2.3 for Bazel and at least version 0.10 for TensorFlow. You can find instructions for the former [here](http://www.bazel.io/docs/install.html) and the latter [here](https://github.com/tensorflow/tensorflow/blob/r0.10/tensorflow/g3doc/get_started/os_setup.md). After that's done, run the tests with this command:
 
 ```bazel test //magenta/...```
 
