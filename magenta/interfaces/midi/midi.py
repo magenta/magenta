@@ -279,9 +279,8 @@ class MonoMidiPlayer(threading.Thread):
     self._stop_playback = False
     if not len(sequence.tempos) == 1:
       raise ValueError('The NoteSequence contains multiple tempos.')
-    bpm = sequence.tempos[0].bpm
-    self._metronome = Metronome(self._outport, bpm, time.time(),
-                                metronome_velocity)
+    self._metronome = Metronome(self._outport, sequence.tempos[0].bpm,
+                                time.time(), metronome_velocity)
     super(MonoMidiPlayer, self).__init__()
 
   def run(self):
