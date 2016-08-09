@@ -39,6 +39,9 @@ tf.app.flags.DEFINE_string('output_file', None,
                            'if it already exists.')
 tf.app.flags.DEFINE_bool('recursive', False,
                          'Whether or not to recurse into subdirectories.')
+tf.app.flags.DEFINE_string('log', 'INFO',
+                           'The threshold for what messages will be logged '
+                           'DEBUG, INFO, WARN, ERROR, or FATAL.')
 
 
 def convert_directory(root_dir, sub_dir, sequence_writer, recursive=False):
@@ -99,7 +102,7 @@ def convert_directory(root_dir, sub_dir, sequence_writer, recursive=False):
 
 
 def main(unused_argv):
-  tf.logging.set_verbosity(tf.logging.INFO)
+  tf.logging.set_verbosity(FLAGS.log)
 
   if not FLAGS.midi_dir:
     tf.logging.fatal('--midi_dir required')

@@ -33,6 +33,7 @@ TRANSPOSE_TO_KEY = 0  # C Major
 # in the note range.
 NUM_SPECIAL_INPUTS = 14 + NOTES_PER_OCTAVE * 2
 NUM_SPECIAL_CLASSES = 2
+NUM_BINARY_TIME_COUNTERS = 7
 
 
 class MelodyEncoderDecoder(melodies_lib.MelodyEncoderDecoder):
@@ -131,14 +132,10 @@ class MelodyEncoderDecoder(melodies_lib.MelodyEncoderDecoder):
         melody.events[-1] == melody.events[-(2 * STEPS_PER_BAR + 1)]):
       input_[self.note_range + 5] = 1.0
 
-    # Time keeping toggles.
-    input_[self.note_range + 6] = 1.0 if len(melody) % 2 else -1.0
-    input_[self.note_range + 7] = 1.0 if len(melody) / 2 % 2 else -1.0
-    input_[self.note_range + 8] = 1.0 if len(melody) / 4 % 2 else -1.0
-    input_[self.note_range + 9] = 1.0 if len(melody) / 8 % 2 else -1.0
-    input_[self.note_range + 10] = 1.0 if len(melody) / 16 % 2 else -1.0
-    input_[self.note_range + 11] = 1.0 if len(melody) / 32 % 2 else -1.0
-    input_[self.note_range + 12] = 1.0 if len(melody) / 64 % 2 else -1.0
+    # Binary time counter giving the metric location of the *next* note.
+    n = len(melody)
+    for i in range(NUM_BINARY_TIME_COUNTERS):
+      input_[self.note_range + 6 + i] = 1.0 if (n / 2 ** i) % 2 else -1.0
 
     # The next event is the start of a bar.
     if len(melody) % STEPS_PER_BAR == 0:
