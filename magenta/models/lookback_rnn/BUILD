@@ -22,7 +22,7 @@ py_binary(
     srcs = ["lookback_rnn_create_dataset.py"],
     srcs_version = "PY2AND3",
     visibility = [
-        "//magenta:__subpackages__",
+        # internal pipeline runner
     ],
     deps = [
         ":lookback_rnn_encoder_decoder",
