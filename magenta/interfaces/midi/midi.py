@@ -449,7 +449,7 @@ class MonoMidiHub(object):
     self._capture_start_time = time.time()
     self._inport.callback = self._capture_message
     self._metronome = Metronome(self._outport, bpm, self._capture_start_time,
-                                _METRONOME_VELOCITY)
+                                _METRONOME_CAPTURE_VELOCITY)
 
     self._metronome.start()
 
