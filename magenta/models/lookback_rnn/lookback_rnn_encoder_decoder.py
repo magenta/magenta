@@ -28,7 +28,7 @@ TRANSPOSE_TO_KEY = 0  # C Major
 # in the note range.
 NUM_SPECIAL_INPUTS = 7
 NUM_SPECIAL_LABELS = 2
-
+NUM_BINARY_TIME_COUNTERS = 5
 
 class MelodyEncoderDecoder(melodies_lib.MelodyEncoderDecoder):
   """A MelodyEncoderDecoder specific to the lookback RNN model.
@@ -133,13 +133,11 @@ class MelodyEncoderDecoder(melodies_lib.MelodyEncoderDecoder):
     model_event = self.melody_event_to_model_event(melody_event)
     input_[2 * self.num_model_events + model_event] = 1.0
 
-    # Binary time counter.
-    i = len(melody) - 1
-    input_[3 * self.num_model_events + 0] = 1.0 if i % 2 else -1.0
-    input_[3 * self.num_model_events + 1] = 1.0 if i / 2 % 2 else -1.0
-    input_[3 * self.num_model_events + 2] = 1.0 if i / 4 % 2 else -1.0
-    input_[3 * self.num_model_events + 3] = 1.0 if i / 8 % 2 else -1.0
-    input_[3 * self.num_model_events + 4] = 1.0 if i / 16 % 2 else -1.0
+    # Binary time counter giving the metric location of the *next* note.
+    n = len(melody)
+    for i in range(NUM_BINARY_TIME_COUNTERS):
+      input_[3 * self.num_model_events + i] = 1.0 if (n / 2 ** i) % 2 else -1.0
+
 
     # Last event is repeating 1 bar ago.
     if (len(melody) >= STEPS_PER_BAR + 1 and
