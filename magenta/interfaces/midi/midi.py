@@ -114,7 +114,7 @@ _GENERATOR_FACTORY_MAP = {
 _METRONOME_TICK_DURATION = 0.05
 _METRONOME_PITCH = 95
 # TODO(hanzorama): Make velocity adjustable by a control change signal.
-_METRONOME_VELOCITY = 64
+_METRONOME_CAPTURE_VELOCITY = 64
 
 
 def serialized(func):
@@ -203,9 +203,11 @@ class Metronome(threading.Thread):
     _outport: The Mido port for sending messages.
     _bpm: The integer beats per minute to signal on.
     _stop_metronome: A boolean specifying whether the metronome should stop.
+    _velocity: The velocity of the metronome's MIDI note_on message.
   Args:
     outport: The Mido port for sending messages.
     bpm: The integer beats per minute to signal on.
+    velocity: The velocity of the metronome's MIDI note_on message.
   """
   daemon = True
 
@@ -214,7 +216,7 @@ class Metronome(threading.Thread):
     self._bpm = bpm
     self._stop_metronome = False
     self._clock_start_time = clock_start_time
-    self._velocity = int(round(velocity))
+    self._velocity = velocity
     super(Metronome, self).__init__()
 
   def run(self):
@@ -266,6 +268,8 @@ class MonoMidiPlayer(threading.Thread):
   Args:
     outport: The Mido port for sending messages.
     sequence: The monohponic, chronologically sorted NoteSequence to play.
+  Raises:
+    ValueError: The NoteSequence contains multiple tempos.
   """
   daemon = True
 
@@ -275,6 +279,8 @@ class MonoMidiPlayer(threading.Thread):
     self._stop_playback = False
     if len(sequence.tempos) == 1:
       bpm = sequence.tempos[0].bpm
+    else:
+      raise ValueError('The NoteSequence contains multiple tempos.')
     self._metronome = Metronome(self._outport, bpm, time.time(),
                                 metronome_velocity)
     super(MonoMidiPlayer, self).__init__()
@@ -342,7 +348,7 @@ class MonoMidiHub(object):
         (<control change number>, <control change value>) to a condition
         variable that will be notified when a matching control change messsage
         is received.
-   _player: A thread for playing back NoteSequences via the MIDI output port.
+    _player: A thread for playing back NoteSequences via the MIDI output port.
   Args:
     input_midi_port: The string MIDI port name to use for input.
     output_midi_port: The string MIDI port name to use for output.
