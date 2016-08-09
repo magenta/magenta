@@ -264,7 +264,6 @@ class MonoMidiPlayer(threading.Thread):
     _outport: The Mido port for sending messages.
     _sequence: The monohponic, chronologically sorted NoteSequence to play.
     _stop_playback: A boolean specifying whether the playback should stop.
-    _bpm: The tempo in beats per minute. Copied from input sequence.
   Args:
     outport: The Mido port for sending messages.
     sequence: The monohponic, chronologically sorted NoteSequence to play.
@@ -540,7 +539,8 @@ def main(unused_argv):
     return
 
   if not 0 <= FLAGS.metronome_playback_velocity <= 127:
-    raise ValueError('The velocity must be an integer between 0 and 127')
+    print 'The velocity must be an integer between 0 and 127'
+    return
 
   generator = Generator(
       FLAGS.generator_name,
