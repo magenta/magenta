@@ -142,16 +142,15 @@ class MonophonicMelody(object):
   Attributes:
     events: A python list of melody events which are integers. MonophonicMelody
         events are described above.
-    offset: When quantizing notes, this is the offset between indices in
-        `events` and time steps of incoming melody events. An offset is chosen
-        such that the first melody event is close to the beginning of `events`.
+    start_step: The offset of the first step of the melody relative to the
+        beginning of the source sequence. Will always be the first step of a
+        bar.
+    end_step: The offset to the beginning of the bar following the last step
+       of the melody relative the beginning of the source sequence. Will always
+       be the first step of a bar.
+    steps_per_beat: Number of steps in in a beat of music.
     steps_per_bar: Number of steps in a bar (measure) of music.
-    last_on: Index of last note-on event added. This index will be within
-        the range of `events`.
-    last_off: Index of the NOTE_OFF event that belongs to the note-on event
-        at `last_on`. This index is likely not in the range of `events` unless
-        _write_all_notes was called.
-  """
+   """
 
   def __init__(self):
     """Construct an empty MonophonicMelody.
