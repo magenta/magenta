@@ -17,6 +17,8 @@ This script will extract melodies from NoteSequence protos and save them to
 TensorFlow's SequenceExample protos for input to the melody RNN models.
 """
 
+import os
+
 # internal imports
 import tensorflow as tf
 
@@ -93,6 +95,41 @@ def get_pipeline(melody_encoder_decoder):
 
 def run_from_flags(pipeline_instance):
   tf.logging.set_verbosity(tf.logging.INFO)
+
+  def __init__(self, melody_encoder_decoder, eval_ratio):
+    self.training_set_name = 'training_melodies'
+    self.eval_set_name = 'eval_melodies'
+    super(MelodyRNNPipeline, self).__init__(
+        input_type=music_pb2.NoteSequence,
+        output_type={self.training_set_name: tf.train.SequenceExample,
+                     self.eval_set_name: tf.train.SequenceExample})
+    self.eval_ratio = eval_ratio
+    self.quantizer = pipelines_common.Quantizer(steps_per_beat=4)
+    self.melody_extractor = pipelines_common.MonophonicMelodyExtractor(
+        min_bars=7, min_unique_pitches=5,
+        gap_bars=1.0, ignore_polyphonic_notes=False)
+    self.encoder_unit = EncoderPipeline(melody_encoder_decoder)
+    self.stats_dict = {}
+
+  def transform(self, note_sequence):
+    intermediate_objects = self.quantizer.transform(note_sequence)
+    intermediate_objects = map_and_flatten(intermediate_objects,
+                                           self.melody_extractor.transform)
+    outputs = map_and_flatten(intermediate_objects, self.encoder_unit.transform)
+    train_set, eval_set = random_partition(outputs, self.eval_ratio)
+
+    return {self.training_set_name: train_set, self.eval_set_name: eval_set}
+
+  def get_stats(self):
+    return {}
+
+
+def run_from_flags(melody_encoder_decoder):
+  tf.logging.set_verbosity(tf.logging.INFO)
+  FLAGS.input = os.path.expanduser(FLAGS.input)
+  FLAGS.output_dir = os.path.expanduser(FLAGS.output_dir)
+  pipeline_instance = MelodyRNNPipeline(
+      melody_encoder_decoder, FLAGS.eval_ratio)
   pipeline.run_pipeline_serial(
       pipeline_instance,
       pipeline.tf_record_iterator(FLAGS.input, pipeline_instance.input_type),
