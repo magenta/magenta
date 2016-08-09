@@ -150,7 +150,7 @@ class MonophonicMelody(object):
        be the first step of a bar.
     steps_per_beat: Number of steps in in a beat of music.
     steps_per_bar: Number of steps in a bar (measure) of music.
-   """
+  """
 
   def __init__(self):
     """Construct an empty MonophonicMelody.
