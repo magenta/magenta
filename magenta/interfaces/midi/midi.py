@@ -539,7 +539,7 @@ def main(unused_argv):
     return
 
   if not 0 <= FLAGS.metronome_playback_velocity <= 127:
-    print 'The velocity must be an integer between 0 and 127'
+    print 'The metronome_playback_velocity must be an integer between 0 and 127'
     return
 
   generator = Generator(
