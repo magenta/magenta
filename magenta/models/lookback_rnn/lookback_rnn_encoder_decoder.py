@@ -30,6 +30,7 @@ NUM_SPECIAL_INPUTS = 7
 NUM_SPECIAL_LABELS = 2
 NUM_BINARY_TIME_COUNTERS = 5
 
+
 class MelodyEncoderDecoder(melodies_lib.MelodyEncoderDecoder):
   """A MelodyEncoderDecoder specific to the lookback RNN model.
 
@@ -137,7 +138,6 @@ class MelodyEncoderDecoder(melodies_lib.MelodyEncoderDecoder):
     n = len(melody)
     for i in range(NUM_BINARY_TIME_COUNTERS):
       input_[3 * self.num_model_events + i] = 1.0 if (n / 2 ** i) % 2 else -1.0
-
 
     # Last event is repeating 1 bar ago.
     if (len(melody) >= STEPS_PER_BAR + 1 and

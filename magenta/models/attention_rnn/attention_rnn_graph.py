@@ -15,10 +15,10 @@
 
 # internal imports
 import tensorflow as tf
+from tensorflow.python.util import nest
 
 from magenta.lib import sequence_example_lib
 from magenta.lib import tf_lib
-from tensorflow.python.util import nest
 
 
 def default_hparams():
