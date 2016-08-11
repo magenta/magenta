@@ -562,6 +562,11 @@ def extract_melodies(quantized_sequence,
   Returns:
     melodies: A python list of MonophonicMelody instances.
     stats: A dictionary mapping string names to `statistics.Statistic` objects.
+
+  Raises:
+    NonIntegerStepsPerBarException: If `quantized_sequence`'s bar length
+        (derived from its time signature) is not an integer number of time
+        steps.
   """
   # TODO(danabo): Convert `ignore_polyphonic_notes` into a float which controls
   # the degree of polyphony that is acceptable.
@@ -595,6 +600,8 @@ def extract_melodies(quantized_sequence,
       except PolyphonicMelodyException:
         stats['polyphonic_tracks_discarded'].increment()
         break  # Look for monophonic melodies in other tracks.
+      except NonIntegerStepsPerBarException:
+        raise
       start = melody.end_step
       if not melody:
         break
@@ -677,9 +684,9 @@ class MelodyEncoderDecoder(object):
 
     Raises:
       ValueError: If `min_note` or `max_note` are outside the midi range, or
-      if the [`min_note`, `max_note`) range is less than an octave. A range
-      of at least an octave is required to be able to octave shift notes into
-      that range while preserving their scale value.
+          if the [`min_note`, `max_note`) range is less than an octave. A range
+          of at least an octave is required to be able to octave shift notes
+          into that range while preserving their scale value.
     """
     if min_note < MIN_MIDI_PITCH:
       raise ValueError('min_note must be >= 0. min_note is %d.' % min_note)
