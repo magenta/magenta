@@ -267,6 +267,7 @@ class MonoMidiPlayer(threading.Thread):
   Args:
     outport: The Mido port for sending messages.
     sequence: The monohponic, chronologically sorted NoteSequence to play.
+    metronome_velocity: The velocity of the metronome's MIDI note_on message.
   Raises:
     ValueError: The NoteSequence contains multiple tempos.
   """
@@ -510,6 +511,7 @@ class MonoMidiHub(object):
 
     Args:
       sequence: The monohponic, chronologically sorted NoteSequence to play.
+      metronome_velocity: The velocity of the metronome's MIDI note_on message.
     """
     self.stop_playback()
     self._player = MonoMidiPlayer(self._outport, sequence, metronome_velocity)
