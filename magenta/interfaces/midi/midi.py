@@ -80,6 +80,15 @@ tf.app.flags.DEFINE_integer(
     'num_bars_to_generate',
     5,
     'The number of bars to generate each time.')
+tf.app.flags.DEFINE_integer(
+    'metronome_channel',
+    0,
+    'The MIDI channel on which to send the metronome click.')
+tf.app.flags.DEFINE_integer(
+    'metronome_playback_velocity',
+    0,
+    'The velocity of the generated playback metronome '
+    'expressed as an integer between 0 and 127.')
 tf.app.flags.DEFINE_string(
     'generator_name',
     None,
@@ -104,6 +113,8 @@ _GENERATOR_FACTORY_MAP = {
 
 _METRONOME_TICK_DURATION = 0.05
 _METRONOME_PITCH = 95
+# TODO(hanzorama): Make velocity adjustable by a control change signal.
+_METRONOME_CAPTURE_VELOCITY = 64
 
 
 def serialized(func):
@@ -192,17 +203,20 @@ class Metronome(threading.Thread):
     _outport: The Mido port for sending messages.
     _bpm: The integer beats per minute to signal on.
     _stop_metronome: A boolean specifying whether the metronome should stop.
+    _velocity: The velocity of the metronome's MIDI note_on message.
   Args:
     outport: The Mido port for sending messages.
     bpm: The integer beats per minute to signal on.
+    velocity: The velocity of the metronome's MIDI note_on message.
   """
   daemon = True
 
-  def __init__(self, outport, bpm, clock_start_time):
+  def __init__(self, outport, bpm, clock_start_time, velocity):
     self._outport = outport
     self._bpm = bpm
     self._stop_metronome = False
     self._clock_start_time = clock_start_time
+    self._velocity = velocity
     super(Metronome, self).__init__()
 
   def run(self):
@@ -230,9 +244,12 @@ class Metronome(threading.Thread):
         while time.time() < next_tick_time:
           pass
 
-      self._outport.send(mido.Message(type='note_on', note=_METRONOME_PITCH))
+      self._outport.send(mido.Message(type='note_on', note=_METRONOME_PITCH,
+                                      channel=FLAGS.metronome_channel,
+                                      velocity=self._velocity))
       time.sleep(_METRONOME_TICK_DURATION)
-      self._outport.send(mido.Message(type='note_off', note=_METRONOME_PITCH))
+      self._outport.send(mido.Message(type='note_off', note=_METRONOME_PITCH,
+                                      channel=FLAGS.metronome_channel))
 
   def stop(self):
     """Signals for the metronome to stop and joins thread."""
@@ -250,13 +267,19 @@ class MonoMidiPlayer(threading.Thread):
   Args:
     outport: The Mido port for sending messages.
     sequence: The monohponic, chronologically sorted NoteSequence to play.
+  Raises:
+    ValueError: The NoteSequence contains multiple tempos.
   """
   daemon = True
 
-  def __init__(self, outport, sequence):
+  def __init__(self, outport, sequence, metronome_velocity):
     self._outport = outport
     self._sequence = sequence
     self._stop_playback = False
+    if not len(sequence.tempos) == 1:
+      raise ValueError('The NoteSequence contains multiple tempos.')
+    self._metronome = Metronome(self._outport, sequence.tempos[0].bpm,
+                                time.time(), metronome_velocity)
     super(MonoMidiPlayer, self).__init__()
 
   def run(self):
@@ -266,6 +289,7 @@ class MonoMidiPlayer(threading.Thread):
       ValueError: The NoteSequence is not monophonic and chronologically sorted.
     """
     stdout_write_and_flush('Playing sequence...')
+    self._metronome.start()
     # Wall start time.
     play_start = time.time()
     # Time relative to start of NoteSequence.
@@ -298,11 +322,13 @@ class MonoMidiPlayer(threading.Thread):
       if delta > 0:
         time.sleep(delta)
       self._outport.send(mido.Message('note_off', note=note.pitch))
+    self._metronome.stop()
     stdout_write_and_flush('Done\n')
 
   def stop(self):
-    """Signals for the playback to stop and joins thread."""
+    """Signals for the playback and metronome to stop and joins thread."""
     self._stop_playback = True
+    self._metronome.stop()
     self.join()
 
 
@@ -319,7 +345,7 @@ class MonoMidiHub(object):
         (<control change number>, <control change value>) to a condition
         variable that will be notified when a matching control change messsage
         is received.
-   _player: A thread for playing back NoteSequences via the MIDI output port.
+    _player: A thread for playing back NoteSequences via the MIDI output port.
   Args:
     input_midi_port: The string MIDI port name to use for input.
     output_midi_port: The string MIDI port name to use for output.
@@ -423,7 +449,9 @@ class MonoMidiHub(object):
     self._sequence_start_time = None
     self._capture_start_time = time.time()
     self._inport.callback = self._timestamp_and_capture_message
-    self._metronome = Metronome(self._outport, bpm, self._capture_start_time)
+    self._metronome = Metronome(self._outport, bpm, self._capture_start_time,
+                                _METRONOME_CAPTURE_VELOCITY)
+
     self._metronome.start()
 
   @serialized
@@ -475,7 +503,7 @@ class MonoMidiHub(object):
         self._control_cvs[control_tuple] = threading.Condition(self._lock)
       self._control_cvs[control_tuple].wait()
 
-  def start_playback(self, sequence):
+  def start_playback(self, sequence, metronome_velocity):
     """Plays the monophonic, sorted NoteSequence through the MIDI output port.
 
     Stops any previously playing sequences.
@@ -484,7 +512,7 @@ class MonoMidiHub(object):
       sequence: The monohponic, chronologically sorted NoteSequence to play.
     """
     self.stop_playback()
-    self._player = MonoMidiPlayer(self._outport, sequence)
+    self._player = MonoMidiPlayer(self._outport, sequence, metronome_velocity)
     self._player.start()
 
   def stop_playback(self):
@@ -514,6 +542,10 @@ def main(unused_argv):
           '--stop_capture_control_value must both be defined and unique.')
     return
 
+  if not 0 <= FLAGS.metronome_playback_velocity <= 127:
+    print 'The metronome_playback_velocity must be an integer between 0 and 127'
+    return
+
   generator = Generator(
       FLAGS.generator_name,
       FLAGS.num_bars_to_generate,
@@ -536,7 +568,7 @@ def main(unused_argv):
     generated_sequence = generator.generate_melody(captured_sequence)
     stdout_write_and_flush('Done\n')
 
-    hub.start_playback(generated_sequence)
+    hub.start_playback(generated_sequence, FLAGS.metronome_playback_velocity)
 
 
 if __name__ == '__main__':
