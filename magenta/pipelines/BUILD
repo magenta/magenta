@@ -67,8 +67,8 @@ py_library(
     name = "pipelines_common",
     srcs = ["pipelines_common.py"],
     visibility = [
-        "//third_party/magenta/models:__subpackages__",
         # internal pipeline runner
+        "//third_party/magenta/models:__subpackages__",
     ],
     deps = [
         ":pipeline",
