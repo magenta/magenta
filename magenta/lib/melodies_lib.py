@@ -13,8 +13,8 @@
 # limitations under the License.
 """Utility functions for working with melodies.
 
-Use extract_melodies to extract monophonic melodies from a NoteSequence
-proto.
+Use extract_melodies to extract monophonic melodies from a QuantizedSequence
+object.
 
 Use MonophonicMelody.to_sequence to write a melody to a NoteSequence proto. Then
 use midi_io.sequence_proto_to_midi_file to write that NoteSequence to a midi
@@ -116,8 +116,8 @@ class MonophonicMelody(object):
   """Stores a quantized stream of monophonic melody events.
 
   MonophonicMelody is an intermediate representation that all melody models
-  can use. NoteSequence proto to melody code will do work to align notes
-  and extract monophonic melodies. Model specific code just needs to
+  can use. QuantizedSequence to MonophonicMelody code will do work to align
+  notes and extract monophonic melodies. Model-specific code then needs to
   convert MonophonicMelody to SequenceExample protos for TensorFlow.
 
   MonophonicMelody implements an iterable object. Simply iterate to retrieve
@@ -544,8 +544,8 @@ def extract_melodies(quantized_sequence,
   notes (preventing melodies that only repeat a few notes, such as those found
   in some accompaniment tracks, from being used).
 
-  After scanning each instrument track in the NoteSequence, a list of all the
-  valid melodies is returned.
+  After scanning each instrument track in the QuantizedSequence, a list of all
+  extracted MonophonicMelody objects is returned.
 
   Args:
     quantized_sequence: A sequences_lib.QuantizedSequence object.
