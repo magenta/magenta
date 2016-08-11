@@ -13,8 +13,8 @@
 # limitations under the License.
 """Utility functions for working with melodies.
 
-Use extract_melodies to extract monophonic melodies from a NoteSequence
-proto.
+Use extract_melodies to extract monophonic melodies from a QuantizedSequence
+object.
 
 Use MonophonicMelody.to_sequence to write a melody to a NoteSequence proto. Then
 use midi_io.sequence_proto_to_midi_file to write that NoteSequence to a midi
@@ -116,8 +116,8 @@ class MonophonicMelody(object):
   """Stores a quantized stream of monophonic melody events.
 
   MonophonicMelody is an intermediate representation that all melody models
-  can use. NoteSequence proto to melody code will do work to align notes
-  and extract monophonic melodies. Model specific code just needs to
+  can use. QuantizedSequence to MonophonicMelody code will do work to align
+  notes and extract monophonic melodies. Model-specific code then needs to
   convert MonophonicMelody to SequenceExample protos for TensorFlow.
 
   MonophonicMelody implements an iterable object. Simply iterate to retrieve
@@ -142,15 +142,14 @@ class MonophonicMelody(object):
   Attributes:
     events: A python list of melody events which are integers. MonophonicMelody
         events are described above.
-    offset: When quantizing notes, this is the offset between indices in
-        `events` and time steps of incoming melody events. An offset is chosen
-        such that the first melody event is close to the beginning of `events`.
+    start_step: The offset of the first step of the melody relative to the
+        beginning of the source sequence. Will always be the first step of a
+        bar.
+    end_step: The offset to the beginning of the bar following the last step
+       of the melody relative the beginning of the source sequence. Will always
+       be the first step of a bar.
+    steps_per_beat: Number of steps in in a beat of music.
     steps_per_bar: Number of steps in a bar (measure) of music.
-    last_on: Index of last note-on event added. This index will be within
-        the range of `events`.
-    last_off: Index of the NOTE_OFF event that belongs to the note-on event
-        at `last_on`. This index is likely not in the range of `events` unless
-        _write_all_notes was called.
   """
 
   def __init__(self):
@@ -545,8 +544,8 @@ def extract_melodies(quantized_sequence,
   notes (preventing melodies that only repeat a few notes, such as those found
   in some accompaniment tracks, from being used).
 
-  After scanning each instrument track in the NoteSequence, a list of all the
-  valid melodies is returned.
+  After scanning each instrument track in the QuantizedSequence, a list of all
+  extracted MonophonicMelody objects is returned.
 
   Args:
     quantized_sequence: A sequences_lib.QuantizedSequence object.
@@ -563,6 +562,11 @@ def extract_melodies(quantized_sequence,
   Returns:
     melodies: A python list of MonophonicMelody instances.
     stats: A dictionary mapping string names to `statistics.Statistic` objects.
+
+  Raises:
+    NonIntegerStepsPerBarException: If `quantized_sequence`'s bar length
+        (derived from its time signature) is not an integer number of time
+        steps.
   """
   # TODO(danabo): Convert `ignore_polyphonic_notes` into a float which controls
   # the degree of polyphony that is acceptable.
@@ -596,6 +600,8 @@ def extract_melodies(quantized_sequence,
       except PolyphonicMelodyException:
         stats['polyphonic_tracks_discarded'].increment()
         break  # Look for monophonic melodies in other tracks.
+      except NonIntegerStepsPerBarException:
+        raise
       start = melody.end_step
       if not melody:
         break
@@ -678,9 +684,9 @@ class MelodyEncoderDecoder(object):
 
     Raises:
       ValueError: If `min_note` or `max_note` are outside the midi range, or
-      if the [`min_note`, `max_note`) range is less than an octave. A range
-      of at least an octave is required to be able to octave shift notes into
-      that range while preserving their scale value.
+          if the [`min_note`, `max_note`) range is less than an octave. A range
+          of at least an octave is required to be able to octave shift notes
+          into that range while preserving their scale value.
     """
     if min_note < MIN_MIDI_PITCH:
       raise ValueError('min_note must be >= 0. min_note is %d.' % min_note)
