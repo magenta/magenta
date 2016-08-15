@@ -74,6 +74,9 @@ tf.app.flags.DEFINE_float('temperature', 1.0,
                           'melodies less random.')
 tf.app.flags.DEFINE_integer('steps_per_beat', 4,
                             'What precision to use when quantizing the melody.')
+tf.app.flags.DEFINE_string('log', 'INFO',
+                           'The threshold for what messages will be logged '
+                           'DEBUG, INFO, WARN, ERROR, or FATAL.')
 
 
 def get_hparams():
@@ -122,7 +125,7 @@ def run_with_flags(melody_rnn_sequence_generator):
     melody_rnn_sequence_generator: A MelodyRnnSequenceGenerator object specific
         to your model.
   """
-  tf.logging.set_verbosity(tf.logging.INFO)
+  tf.logging.set_verbosity(FLAGS.log)
 
   if not FLAGS.output_dir:
     tf.logging.fatal('--output_dir required')
