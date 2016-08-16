@@ -44,7 +44,8 @@ First, clone this repository:
 
 ```git clone https://github.com/tensorflow/magenta.git```
 
-Next, [install Bazel](http://www.bazel.io/docs/install.html). We recommend the latest version, currently 0.3.1.
+Next, [install Bazel](http://www.bazel.io/docs/install.html). We recommend the
+latest version, currently 0.3.1.
 
 Finally, [install TensorFlow](http://www.bazel.io/docs/install.html). We require
 version 0.10 or later.
