@@ -32,6 +32,8 @@ machine. Similarly, because our
 MIDI port, it will not work within the Docker container. You'll need to use the
 full Development Environment.
 
+Note: Our docker image is also available at ```gcr.io/tensorflow/magenta```.
+
 ### Development Environment
 If you want to develop on Magenta, use our
 [MIDI instrument interface](magenta/interfaces/midi) or preview MIDI files
