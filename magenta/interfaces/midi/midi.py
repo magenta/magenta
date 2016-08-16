@@ -597,7 +597,7 @@ class CCRemapper(object):
       if msg.hex().startswith('B'):
         time.sleep(1)
       else:
-        print('Sorry, I only accept MIDI CC messages..')
+        print('Sorry, I only accept MIDI CC messages for this parameter..')
         time.sleep(.5)
         continue
       _CUSTOM_CC_MAP[cc_choice] = msg
