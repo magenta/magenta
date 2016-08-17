@@ -16,10 +16,11 @@ The easiest way to get started with Magenta is to use our Docker container.
 First, [install Docker](https://docs.docker.com/engine/installation/). Next, run
 this command:
 
-```docker run -it -v /tmp/magenta:/magenta-data tensorflow/magenta```
+```docker run -it -p 6006:6006 -v /tmp/magenta:/magenta-data tensorflow/magenta```
 
 This will start a shell in a directory with all Magenta components compiled and
-ready to run.
+ready to run. It will also map port 6006 of the host machine to the container so
+you can view TensorBoard servers that run within the container.
 
 This also maps the directory ```/tmp/magenta``` on the host machine to
 ```/magenta-data``` within the Docker session. **WARNING**: only data saved in
