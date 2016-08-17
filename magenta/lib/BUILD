@@ -92,6 +92,9 @@ py_library(
     name = "sequence_example_lib",
     srcs = ["sequence_example_lib.py"],
     srcs_version = "PY2AND3",
+    deps = [
+        # tensorflow dep
+    ],
 )
 
 py_library(
