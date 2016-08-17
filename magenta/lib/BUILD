@@ -29,6 +29,7 @@ py_library(
         ":sequence_example_lib",
         "//magenta/pipelines:statistics",
         "//magenta/protobuf:music_py_pb2",
+        # numpy dep
     ]
 )
 
@@ -41,7 +42,6 @@ py_test(
         ":sequence_example_lib",
         ":sequences_lib",
         ":testing_lib",
-        "@protobuf//:protobuf_python",
         # tensorflow dep
     ],
 )
