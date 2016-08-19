@@ -196,7 +196,7 @@ class MelodiesLibTest(tf.test.TestCase):
     expected = ([12, 11, NOTE_OFF, NO_EVENT, NO_EVENT, NO_EVENT, NO_EVENT,
                  NO_EVENT, NO_EVENT, NO_EVENT, 40, NO_EVENT, NO_EVENT, NO_EVENT,
                  NOTE_OFF, NO_EVENT, 55, NOTE_OFF, NO_EVENT, 52, NOTE_OFF] +
-                 [NO_EVENT] * 11)
+                [NO_EVENT] * 11)
     self.assertEqual(expected, list(melody))
     self.assertEqual(16, melody.steps_per_bar)
 
@@ -212,7 +212,7 @@ class MelodiesLibTest(tf.test.TestCase):
     expected = ([12, 11, NOTE_OFF, NO_EVENT, NO_EVENT, NO_EVENT, NO_EVENT,
                  NO_EVENT, NO_EVENT, NO_EVENT, 40, NO_EVENT, NO_EVENT, NO_EVENT,
                  NOTE_OFF, NO_EVENT, 55, NOTE_OFF, NO_EVENT, 52, NOTE_OFF] +
-                 [NO_EVENT] * 7)
+                [NO_EVENT] * 7)
     self.assertEqual(expected, list(melody))
     self.assertEqual(14, melody.steps_per_bar)
 
@@ -238,7 +238,7 @@ class MelodiesLibTest(tf.test.TestCase):
                                    ignore_polyphonic_notes=True)
     expected = ([19] + [NO_EVENT] * 3 + [19] + [NO_EVENT] * 11 + [NOTE_OFF] +
                 [NO_EVENT] * 15)
-        
+
     self.assertEqual(expected, list(melody))
     self.assertEqual(16, melody.steps_per_bar)
 
@@ -368,6 +368,19 @@ class MelodiesLibTest(tf.test.TestCase):
     melodies = [list(melody) for melody in melodies]
     self.assertEqual(expected, melodies)
 
+  def testExtractMelodiesMelodyTooLong(self):
+    self.quantized_sequence.steps_per_beat = 1
+    testing_lib.add_quantized_track(
+        self.quantized_sequence, 0,
+        [(12, 127, 2, 4), (14, 50, 6, 18)])
+    expected = [[NO_EVENT, NO_EVENT, 12, NO_EVENT, NOTE_OFF, NO_EVENT, 14,
+                 NO_EVENT, NO_EVENT, NO_EVENT, NO_EVENT, NOTE_OFF]]
+    melodies, _ = melodies_lib.extract_melodies(
+        self.quantized_sequence, min_bars=1, max_steps=14, gap_bars=1,
+        min_unique_pitches=2, ignore_polyphonic_notes=True)
+    melodies = [list(melody) for melody in melodies]
+    self.assertEqual(expected, melodies)
+    
   def testExtractMelodiesTooFewPitches(self):
     # Test that extract_melodies discards melodies with too few pitches where
     # pitches are equivalent by octave.
@@ -600,7 +613,7 @@ class MelodyEncoderDecoderTest(tf.test.TestCase):
     melody.start_step = 9
     melody.end_step = 10
     melody.set_length(5, from_left=True)
-    self.assertListEqual([-2, -2, -2, -2, 60], melody.events)   
+    self.assertListEqual([-2, -2, -2, -2, 60], melody.events)
     self.assertEquals(5, melody.start_step)
     self.assertEquals(10, melody.end_step)
 
