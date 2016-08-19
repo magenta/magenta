@@ -155,7 +155,7 @@ class MelodyEncoderDecoder(melodies_lib.MelodyEncoderDecoder):
     last_3_note_melody = melodies_lib.MonophonicMelody()
     last_3_note_melody.from_event_list(list(last_3_notes))
     key_histogram = last_3_note_melody.get_major_key_histogram()
-     max_val = max(key_histogram)
+    max_val = max(key_histogram)
     for i, key_val in enumerate(key_histogram):
       if key_val == max_val:
         input_[self.note_range + 14 + NOTES_PER_OCTAVE + i] = 1.0

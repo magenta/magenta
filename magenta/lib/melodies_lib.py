@@ -630,8 +630,8 @@ def extract_melodies(quantized_sequence,
 
       # Shorten melodies that are too long.
       if max_steps is not None and len(melody) > max_steps:
-          melody.set_length(max_steps - (max_steps % melody.steps_per_bar))
-          stats['melodies_shortened'].increment()
+        melody.set_length(max_steps - (max_steps % melody.steps_per_bar))
+        stats['melodies_shortened'].increment()
 
       # Require a certain number of unique pitches.
       note_histogram = melody.get_note_histogram()
@@ -744,11 +744,11 @@ class MelodyEncoderDecoder(object):
 
   @abc.abstractmethod
   def melody_to_input(self, melody, position):
-    """Returns the input vector for the event at the given position in the melody.
+    """Returns the input vector for the event at the given position.
 
     Args:
       melody: A MonophonicMelody object.
-      position: An integer event position.
+      position: An integer event position in the melody.
 
     Returns:
       An input vector, a self.input_size length list of floats.
@@ -761,7 +761,7 @@ class MelodyEncoderDecoder(object):
 
     Args:
       melody: A MonophonicMelody object.
-      position: An integer event position.
+      position: An integer event position in the melody.
 
     Returns:
       A label, an int in the range [0, self.num_classes).

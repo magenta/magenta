@@ -88,7 +88,7 @@ class MelodyEncoderDecoder(melodies_lib.MelodyEncoderDecoder):
 
     Args:
       melody: A MonophonicMelody object.
-      position: An integer position in the melody.
+      position: An integer event position in the melody.
 
     Returns:
       An input vector, a list of floats.
@@ -107,7 +107,7 @@ class MelodyEncoderDecoder(melodies_lib.MelodyEncoderDecoder):
 
     Args:
       melody: A MonophonicMelody object.
-      position: An integer position in the melody.
+      position: An integer event position in the melody.
 
     Returns:
       A label, an int.
