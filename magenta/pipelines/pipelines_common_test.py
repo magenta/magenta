@@ -76,7 +76,7 @@ class PipelineUnitsCommonTest(tf.test.TestCase):
     expected_events = [
         [NO_EVENT, NO_EVENT, 12, NO_EVENT, NOTE_OFF, NO_EVENT, 11, NOTE_OFF],
         [NO_EVENT, NO_EVENT, 12, NO_EVENT, NOTE_OFF, NO_EVENT, 14, NO_EVENT,
-         NOTE_OFF]]
+         NOTE_OFF, NO_EVENT, NO_EVENT, NO_EVENT]]
     expected_melodies = []
     for events_list in expected_events:
       melody = melodies_lib.MonophonicMelody()
