@@ -212,10 +212,7 @@ class MonophonicMelody(object):
           'Start step does not precede end step: start=%d, end=%d' %
           (start_step, end_step))
 
-    if len(self.events) < end_step + 1:
-      self.events += [NO_EVENT] * (end_step + 1 - len(self.events))
-    elif len(self.events) > end_step + 1:
-      del self.events[end_step + 1:]
+    self.set_length(end_step + 1)
 
     self.events[start_step] = pitch
     self.events[end_step] = NOTE_OFF
@@ -393,8 +390,7 @@ class MonophonicMelody(object):
     self.start_step = offset
 
     # Round up end_step to a multiple of steps_per_bar
-    self.end_step = len(self.events) + offset + (-len(self.events) %
-                                                 steps_per_bar)
+    self.set_length(len(self.events) + (-len(self.events) % steps_per_bar))
 
   def from_event_list(self, events):
     """Populate self with a list of event values."""
@@ -510,21 +506,36 @@ class MonophonicMelody(object):
 
     return transpose_amount
 
-  def set_length(self, steps):
+  def set_length(self, steps, from_left=False):
     """Sets the length of the melody to the specified number of steps.
 
     If the melody is not long enough, adds NO_EVENT steps. If it is too long,
     it will be truncated to the requested length.
 
     Args:
-      steps: how many steps long the melody should be.
+      steps: How many steps long the melody should be.
+      from_left: Whether to add/remove from the left instead of right.
     """
-    self.events.extend([NO_EVENT] * max(0, steps - len(self.events)))
-    del self.events[steps:]
+    if steps > len(self):
+      if from_left:
+        self.events[:0] = [NO_EVENT] * (steps - len(self))
+      else:
+        self.events.extend([NO_EVENT] * (steps - len(self)))
+    else:
+      if from_left:
+        del self.events[0:-steps]
+      else:
+        del self.events[steps:]
+
+    if from_left:
+      self.start_step = self.end_step - steps
+    else:
+      self.end_step = self.start_step + steps
 
 
 def extract_melodies(quantized_sequence,
                      min_bars=7,
+                     max_steps=512,
                      gap_bars=1.0,
                      min_unique_pitches=5,
                      ignore_polyphonic_notes=True):
@@ -551,6 +562,9 @@ def extract_melodies(quantized_sequence,
     quantized_sequence: A sequences_lib.QuantizedSequence object.
     min_bars: Minimum length of melodies in number of bars. Shorter melodies are
         discarded.
+    max_steps: Maximum number of steps in extracted melodies. Longer melodies
+        are shortened to be the maximum number of bars that will fit under this
+        threshold.
     gap_bars: A melody comes to an end when this number of bars (measures) of
         silence is encountered.
     min_unique_pitches: Minimum number of unique notes with octave equivalence.
@@ -574,7 +588,8 @@ def extract_melodies(quantized_sequence,
   stats = dict([(stat_name, statistics.Counter(stat_name)) for stat_name in
                 ['polyphonic_tracks_discarded',
                  'melodies_discarded_too_short',
-                 'melodies_discarded_too_few_pitches']])
+                 'melodies_discarded_too_few_pitches',
+                 'melodies_shortened']])
   # Create a histogram measuring melody lengths (in bars not steps).
   # Capture melodies that are very small, in the range of the filter lower
   # bound `min_bars`, and large. The bucket intervals grow approximately
@@ -612,6 +627,11 @@ def extract_melodies(quantized_sequence,
       if len(melody) - 1 < melody.steps_per_bar * min_bars:
         stats['melodies_discarded_too_short'].increment()
         continue
+
+      # Shorten melodies that are too long.
+      if max_steps is not None and len(melody) > max_steps:
+          melody.set_length(max_steps - (max_steps % melody.steps_per_bar))
+          stats['melodies_shortened'].increment()
 
       # Require a certain number of unique pitches.
       note_histogram = melody.get_note_histogram()
@@ -723,11 +743,12 @@ class MelodyEncoderDecoder(object):
     pass
 
   @abc.abstractmethod
-  def melody_to_input(self, melody):
-    """Returns the input vector for the last event in the melody.
+  def melody_to_input(self, melody, position):
+    """Returns the input vector for the event at the given position in the melody.
 
     Args:
       melody: A MonophonicMelody object.
+      position: An integer event position.
 
     Returns:
       An input vector, a self.input_size length list of floats.
@@ -735,11 +756,12 @@ class MelodyEncoderDecoder(object):
     pass
 
   @abc.abstractmethod
-  def melody_to_label(self, melody):
-    """Returns the label for the last event in the melody.
+  def melody_to_label(self, melody, position):
+    """Returns the label for the event at the given position in the melody.
 
     Args:
       melody: A MonophonicMelody object.
+      position: An integer event position.
 
     Returns:
       A label, an int in the range [0, self.num_classes).
@@ -758,19 +780,16 @@ class MelodyEncoderDecoder(object):
     melody.squash(self.min_note, self.max_note, self.transpose_to_key)
     inputs = []
     labels = []
-    melody_events = melody.events
-    melody.events = melody_events[:1]
-    for i in xrange(1, len(melody_events)):
-      inputs.append(self.melody_to_input(melody))
-      melody.events = melody_events[:i + 1]
-      labels.append(self.melody_to_label(melody))
+    for i in range(len(melody)):
+      inputs.append(self.melody_to_input(melody, i))
+      labels.append(self.melody_to_label(melody, i + 1))
     return sequence_example_lib.make_sequence_example(inputs, labels)
 
   def get_inputs_batch(self, melodies, full_length=False):
     """Returns an inputs batch for the given melodies.
 
     Args:
-      melodies: A list of MonophonicMelody objects.
+      melodies: A list of squashed MonophonicMelody objects.
       full_length: If True, the inputs batch will be for the full length of
           each melody. If False, the inputs batch will only be for the last
           event of each melody. A full-length inputs batch is used for the
@@ -787,12 +806,10 @@ class MelodyEncoderDecoder(object):
     for melody in melodies:
       inputs = []
       if full_length and len(melody):
-        melody_events = melody.events
-        for i in xrange(len(melody_events)):
-          melody.events = melody_events[:i + 1]
-          inputs.append(self.melody_to_input(melody))
+        for i in range(len(melody)):
+          inputs.append(self.melody_to_input(melody, i))
       else:
-        inputs.append(self.melody_to_input(melody))
+        inputs.append(self.melody_to_input(melody, len(melody) - 1))
       inputs_batch.append(inputs)
     return inputs_batch
 
