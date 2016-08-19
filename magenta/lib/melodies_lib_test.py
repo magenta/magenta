@@ -380,7 +380,7 @@ class MelodiesLibTest(tf.test.TestCase):
         min_unique_pitches=2, ignore_polyphonic_notes=True)
     melodies = [list(melody) for melody in melodies]
     self.assertEqual(expected, melodies)
-    
+
   def testExtractMelodiesTooFewPitches(self):
     # Test that extract_melodies discards melodies with too few pitches where
     # pitches are equivalent by octave.
