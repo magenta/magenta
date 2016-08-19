@@ -50,8 +50,9 @@ First, clone this repository:
 Next, [install Bazel](http://www.bazel.io/docs/install.html). We recommend the
 latest version, currently 0.3.1.
 
-Finally, [install TensorFlow](http://www.bazel.io/docs/install.html). We require
-version 0.10 or later.
+Finally,
+[install TensorFlow](https://www.tensorflow.org/versions/master/get_started/os_setup.html).
+We require version 0.10 or later.
 
 After that's done, run the tests with this command:
 
