@@ -631,6 +631,13 @@ def extract_melodies(quantized_sequence,
       # Shorten melodies that are too long.
       if max_steps is not None and len(melody) > max_steps:
         melody.set_length(max_steps - (max_steps % melody.steps_per_bar))
+        for event in reversed(melody.events):
+          if event == NOTE_OFF:
+            break
+          elif event != NO_EVENT:
+            melody.events[-1] = NOTE_OFF
+            break
+
         stats['melodies_shortened'].increment()
 
       # Require a certain number of unique pitches.
@@ -780,7 +787,7 @@ class MelodyEncoderDecoder(object):
     melody.squash(self.min_note, self.max_note, self.transpose_to_key)
     inputs = []
     labels = []
-    for i in range(len(melody)):
+    for i in range(len(melody) - 1):
       inputs.append(self.melody_to_input(melody, i))
       labels.append(self.melody_to_label(melody, i + 1))
     return sequence_example_lib.make_sequence_example(inputs, labels)

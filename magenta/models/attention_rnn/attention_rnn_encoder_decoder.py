@@ -82,7 +82,7 @@ class MelodyEncoderDecoder(melodies_lib.MelodyEncoderDecoder):
 
     Args:
       melody: A melodies_lib.MonophonicMelody object.
-      position: An integer position in the melody.
+      position: An integer event position in the melody.
 
     Returns:
       An input vector, an self.input_size length list of floats.
@@ -177,7 +177,7 @@ class MelodyEncoderDecoder(melodies_lib.MelodyEncoderDecoder):
 
     Args:
       melody: A melodies_lib.MonophonicMelody object.
-      position: An integer position in the melody.
+      position: An integer event position in the melody.
 
     Returns:
       A label, an int.
@@ -188,10 +188,10 @@ class MelodyEncoderDecoder(melodies_lib.MelodyEncoderDecoder):
 
    # If the last event repeated N bars ago.
    for i, lookback_distance in reversed(list(enumerate(LOOKBACK_DISTANCES))):
-      lookback_position = position - lookback_distance
-      if (lookback_position >= 0 and
-          melody.events[position] == melody.events[lookback_position]):
-        return self.note_range + 1 + i
+     lookback_position = position - lookback_distance
+     if (lookback_position >= 0 and
+         melody.events[position] == melody.events[lookback_position]):
+       return self.note_range + 1 + i
 
     # If last event was a note-off event.
     if melody.events[position] == NOTE_OFF:
