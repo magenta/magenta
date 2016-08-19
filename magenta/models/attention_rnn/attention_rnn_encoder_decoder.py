@@ -186,7 +186,7 @@ class MelodyEncoderDecoder(melodies_lib.MelodyEncoderDecoder):
         melody.events[position] == NO_EVENT):
       return self.num_model_events + 1
 
-   # If the last event repeated N bars ago. 
+   # If the last event repeated N bars ago.
    for i, lookback_distance in reversed(list(enumerate(LOOKBACK_DISTANCES))):
       lookback_position = position - lookback_distance
       if (lookback_position >= 0 and
@@ -223,7 +223,7 @@ class MelodyEncoderDecoder(melodies_lib.MelodyEncoderDecoder):
         if len(melody) < lookback_distance:
           return NO_EVENT
         return melody.events[-lookback_distance]
-      
+
     # Note-off event.
     if class_index == self.note_range + 1:
       return NOTE_OFF
