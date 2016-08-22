@@ -372,12 +372,16 @@ class MelodiesLibTest(tf.test.TestCase):
     self.quantized_sequence.steps_per_beat = 1
     testing_lib.add_quantized_track(
         self.quantized_sequence, 0,
+        [(12, 127, 2, 4), (14, 50, 6, 15)])
+    testing_lib.add_quantized_track(
+        self.quantized_sequence, 1,
         [(12, 127, 2, 4), (14, 50, 6, 18)])
     expected = [[NO_EVENT, NO_EVENT, 12, NO_EVENT, NOTE_OFF, NO_EVENT, 14,
                  NO_EVENT, NO_EVENT, NO_EVENT, NO_EVENT, NOTE_OFF]]
     melodies, _ = melodies_lib.extract_melodies(
-        self.quantized_sequence, min_bars=1, max_steps=14, gap_bars=1,
-        min_unique_pitches=2, ignore_polyphonic_notes=True)
+        self.quantized_sequence, min_bars=1, max_steps_truncate=14,
+        max_steps_discard=18, gap_bars=1, min_unique_pitches=2,
+        ignore_polyphonic_notes=True)
     melodies = [list(melody) for melody in melodies]
     self.assertEqual(expected, melodies)
 
