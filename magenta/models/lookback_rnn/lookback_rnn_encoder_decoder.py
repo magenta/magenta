@@ -24,14 +24,14 @@ MIN_NOTE = 48  # Inclusive
 MAX_NOTE = 84  # Exclusive
 TRANSPOSE_TO_KEY = 0  # C Major
 
+# Must be sorted in ascending order.
+LOOKBACK_DISTANCES = [STEPS_PER_BAR, STEPS_PER_BAR * 2]
+
 # The number of special input indices and label values other than the events
 # in the note range.
 NUM_SPECIAL_INPUTS = 7
-NUM_SPECIAL_LABELS = 2
+NUM_SPECIAL_LABELS = len(LOOKBACK_DISTANCES)
 NUM_BINARY_TIME_COUNTERS = 5
-
-# Must be sorted in ascending order.
-LOOKBACK_DISTANCES = [STEPS_PER_BAR, STEPS_PER_BAR * 2]
 
 
 class MelodyEncoderDecoder(melodies_lib.MelodyEncoderDecoder):
@@ -179,7 +179,7 @@ class MelodyEncoderDecoder(melodies_lib.MelodyEncoderDecoder):
       lookback_position = position - lookback_distance
       if (lookback_position >= 0 and
           melody.events[position] == melody.events[lookback_position]):
-        return self.num_model_events + 1 + i
+        return self.num_model_events + i
 
     # If last step didn't repeat at one of the lookback positions, use the
     # specific event.

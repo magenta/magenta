@@ -191,7 +191,7 @@ class MelodyEncoderDecoder(melodies_lib.MelodyEncoderDecoder):
       lookback_position = position - lookback_distance
       if (lookback_position >= 0 and
           melody.events[position] == melody.events[lookback_position]):
-        return self.note_range + 1 + i
+        return self.note_range + 2 + i
 
     # If last event was a note-off event.
     if melody.events[position] == NOTE_OFF:
