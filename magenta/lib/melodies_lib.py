@@ -634,13 +634,13 @@ def extract_melodies(quantized_sequence,
 
       # Discard melodies that are too long.
       if max_steps_discard is not None and len(melody) > max_steps_discard:
-          stats['melodies_discarded_too_long'].increment()
-          continue
+        stats['melodies_discarded_too_long'].increment()
+        continue
 
       # Truncate melodies that are too long.
       if max_steps_truncate is not None and len(melody) > max_steps_truncate:
         melody.set_length(max_steps_truncate - (max_steps_truncate %
-                                                 melody.steps_per_bar))
+                                                melody.steps_per_bar))
         for event in reversed(melody.events):
           if event == NOTE_OFF:
             break
