@@ -36,6 +36,16 @@ tf.app.flags.DEFINE_string('run_dir', '',
 tf.app.flags.DEFINE_string('checkpoint_file', '',
                            'Path to the checkpoint file. run_dir will take '
                            'priority over this flag.')
+tf.app.flags.DEFINE_string(
+    'bundle_file', None,
+    'Path to the bundle file. If specified, this will take priority over '
+    'run_dir and checkpoint_file, unless save_generator_bundle is True, in '
+    'which case both this flag and either run_dir or checkpoint_file are '
+    'required')
+tf.app.flags.DEFINE_boolean('save_generator_bundle', False,
+                            'If true, instead of generating a sequence, will '
+                            'save this generator as a bundle file in the '
+                            'location specified by the bundle_file flag')
 tf.app.flags.DEFINE_string('hparams', '{}',
                            'String representation of a Python dictionary '
                            'containing hyperparameter to value mapping. This '
@@ -88,11 +98,33 @@ def get_hparams():
 
 def get_checkpoint():
   """Get the training dir or checkpoint path to be used by the model."""
+  if FLAGS.bundle_file and not should_save_generator_bundle():
+    return None
   if FLAGS.run_dir:
     train_dir = os.path.join(os.path.expanduser(FLAGS.run_dir), 'train')
     return train_dir
   else:
-    return FLAGS.checkpoint_file
+    return os.path.expanduser(FLAGS.checkpoint_file)
+
+
+def get_bundle_file():
+  """Get the path to the bundle file with both a checkpoint and metagraph."""
+  if FLAGS.bundle_file is None:
+    return None
+  else:
+    return os.path.expanduser(FLAGS.bundle_file)
+
+
+def should_save_generator_bundle():
+  """Returns whether the generator should save a bundle.
+
+  If true, the generator should save its checkpoint and metagraph into a bundle
+  file, specified by get_bundle_file, instead of generating a sequence.
+
+  Returns:
+    Whether the generator should save a bundle.
+  """
+  return FLAGS.save_generator_bundle
 
 
 def get_steps_per_beat():
@@ -115,6 +147,11 @@ def _steps_to_seconds(steps, bpm):
   return steps * 60.0 / bpm / get_steps_per_beat()
 
 
+def setup_logs():
+  """Sets log level to the one specified in the flags."""
+  tf.logging.set_verbosity(FLAGS.log)
+
+
 def run_with_flags(melody_rnn_sequence_generator):
   """Generates melodies and saves them as MIDI files.
 
@@ -125,8 +162,6 @@ def run_with_flags(melody_rnn_sequence_generator):
     melody_rnn_sequence_generator: A MelodyRnnSequenceGenerator object specific
         to your model.
   """
-  tf.logging.set_verbosity(FLAGS.log)
-
   if not FLAGS.output_dir:
     tf.logging.fatal('--output_dir required')
     return
@@ -181,7 +216,7 @@ def run_with_flags(melody_rnn_sequence_generator):
     generate_section.start_time_seconds = 0
     generate_section.end_time_seconds = total_seconds
     generate_request.input_sequence.tempos.add().bpm = bpm
-  tf.logging.info('generate_request: %s', generate_request)
+  tf.logging.debug('generate_request: %s', generate_request)
 
   # Make the generate request num_outputs times and save the output as midi
   # files.

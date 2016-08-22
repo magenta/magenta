@@ -28,13 +28,15 @@ from magenta.protobuf import generator_pb2
 class MelodyRnnSequenceGenerator(sequence_generator.BaseSequenceGenerator):
   """Shared Melody RNN generation code as a SequenceGenerator interface."""
 
-  def __init__(self, details, checkpoint, melody_encoder_decoder,
+  def __init__(self, details, checkpoint, bundle, melody_encoder_decoder,
                build_graph, steps_per_beat, hparams):
     """Creates a MelodyRnnSequenceGenerator.
 
     Args:
       details: A generator_pb2.GeneratorDetails for this generator.
       checkpoint: Where to search for the most recent model checkpoint.
+      bundle: A bundle file to load that includes both the model checkpoint and
+          metagraph.
       melody_encoder_decoder: A melodies_lib.MelodyEncoderDecoder object
           specific to your model.
       build_graph: A function that when called, returns the tf.Graph object for
@@ -44,7 +46,8 @@ class MelodyRnnSequenceGenerator(sequence_generator.BaseSequenceGenerator):
       steps_per_beat: What precision to use when quantizing the melody.
       hparams: A dict of hparams.
     """
-    super(MelodyRnnSequenceGenerator, self).__init__(details, checkpoint)
+    super(MelodyRnnSequenceGenerator, self).__init__(
+        details, checkpoint, bundle)
     self._melody_encoder_decoder = melody_encoder_decoder
     self._build_graph = build_graph
     self._session = None
@@ -59,7 +62,7 @@ class MelodyRnnSequenceGenerator(sequence_generator.BaseSequenceGenerator):
     self._hparams['dropout_keep_prob'] = 1.0
     self._hparams['batch_size'] = 1
 
-  def _initialize(self, checkpoint_file):
+  def _initialize_with_checkpoint(self, checkpoint_file):
     graph = self._build_graph('generate',
                               repr(self._hparams),
                               self._melody_encoder_decoder.input_size,
@@ -69,6 +72,18 @@ class MelodyRnnSequenceGenerator(sequence_generator.BaseSequenceGenerator):
       self._session = tf.Session()
       tf.logging.info('Checkpoint used: %s', checkpoint_file)
       saver.restore(self._session, checkpoint_file)
+
+  def _initialize_with_checkpoint_and_metagraph(self, checkpoint_filename,
+                                                metagraph_filename):
+    self._session = tf.Session()
+    new_saver = tf.train.import_meta_graph(metagraph_filename)
+    new_saver.restore(self._session, checkpoint_filename)
+
+  def _write_checkpoint_with_metagraph(self, checkpoint_filename):
+    with self._session.graph.as_default():
+      saver = tf.train.Saver(sharded=False)
+      saver.save(self._session, checkpoint_filename, meta_graph_suffix='meta',
+                 write_meta_graph=True)
 
   def _close(self):
     self._session.close()
