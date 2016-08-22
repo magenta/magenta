@@ -184,7 +184,7 @@ class MelodyEncoderDecoder(melodies_lib.MelodyEncoderDecoder):
     """
     if (position < LOOKBACK_DISTANCES[-1] and
         melody.events[position] == NO_EVENT):
-      return self.note_range + len(LOOKBACK_DISTANCE) + 1
+      return self.note_range + len(LOOKBACK_DISTANCES) + 1
 
     # If the last event repeated N bars ago.
     for i, lookback_distance in reversed(list(enumerate(LOOKBACK_DISTANCES))):
