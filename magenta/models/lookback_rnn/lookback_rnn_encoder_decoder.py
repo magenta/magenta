@@ -117,9 +117,13 @@ class MelodyEncoderDecoder(melodies_lib.MelodyEncoderDecoder):
     """
     input_ = [0.0] * self.input_size
 
-     # Event N positions ago.
-    for i, lookback_distance in enumerate([0] + LOOKBACK_DISTANCES):
-      lookback_position = position - lookback_distance
+    # Last event.
+    model_event = sef.melody_event_to_model_event(melody_events[position])
+    input_[modle_event] = 1.0
+
+    # Next event if repeating N positions ago.
+    for i, lookback_distance in enumerate(LOOKBACK_DISTANCES):
+      lookback_position = position - lookback_distance + 1
       if lookback_position < 0:
         melody_event = NO_EVENT
       else:
@@ -168,7 +172,7 @@ class MelodyEncoderDecoder(melodies_lib.MelodyEncoderDecoder):
     """
     if (position < LOOKBACK_DISTANCES[-1] and
         melody.events[position] == NO_EVENT):
-      return self.num_model_events + 1
+      return self.num_model_events + len(LOOKBACK_DISTANCES)  - 1
 
     # If last step repeated N bars ago.
     for i, lookback_distance in reversed(list(enumerate(LOOKBACK_DISTANCES))):
