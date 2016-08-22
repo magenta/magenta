@@ -535,7 +535,8 @@ class MonophonicMelody(object):
 
 def extract_melodies(quantized_sequence,
                      min_bars=7,
-                     max_steps=512,
+                     max_steps_truncate=None,
+                     max_steps_discard=None,
                      gap_bars=1.0,
                      min_unique_pitches=5,
                      ignore_polyphonic_notes=True):
@@ -562,9 +563,11 @@ def extract_melodies(quantized_sequence,
     quantized_sequence: A sequences_lib.QuantizedSequence object.
     min_bars: Minimum length of melodies in number of bars. Shorter melodies are
         discarded.
-    max_steps: Maximum number of steps in extracted melodies. Longer melodies
-        are shortened to be the maximum number of bars that will fit under this
-        threshold.
+    max_steps_truncate: Maximum number of steps in extracted melodies. If
+        defined, longer melodies are truncated to the end of the last bar below
+        this threshold.
+    max_steps_discard: Maximum number of steps in extracted melodies. If
+        defined, longer melodies are discarded.
     gap_bars: A melody comes to an end when this number of bars (measures) of
         silence is encountered.
     min_unique_pitches: Minimum number of unique notes with octave equivalence.
@@ -589,7 +592,8 @@ def extract_melodies(quantized_sequence,
                 ['polyphonic_tracks_discarded',
                  'melodies_discarded_too_short',
                  'melodies_discarded_too_few_pitches',
-                 'melodies_shortened']])
+                 'melodies_discarded_too_long',
+                 'melodies_truncated']])
   # Create a histogram measuring melody lengths (in bars not steps).
   # Capture melodies that are very small, in the range of the filter lower
   # bound `min_bars`, and large. The bucket intervals grow approximately
@@ -628,9 +632,15 @@ def extract_melodies(quantized_sequence,
         stats['melodies_discarded_too_short'].increment()
         continue
 
-      # Shorten melodies that are too long.
-      if max_steps is not None and len(melody) > max_steps:
-        melody.set_length(max_steps - (max_steps % melody.steps_per_bar))
+      # Discard melodies that are too long.
+      if max_steps_discard is not None and len(melody) > max_steps_discard:
+          stats['melodies_discarded_too_long'].increment()
+          continue
+
+      # Truncate melodies that are too long.
+      if max_steps_truncate is not None and len(melody) > max_steps_truncate:
+        melody.set_length(max_steps_truncate - (max_steps_truncate %
+                                                 melody.steps_per_bar))
         for event in reversed(melody.events):
           if event == NOTE_OFF:
             break
@@ -638,7 +648,7 @@ def extract_melodies(quantized_sequence,
             melody.events[-1] = NOTE_OFF
             break
 
-        stats['melodies_shortened'].increment()
+        stats['melodies_truncated'].increment()
 
       # Require a certain number of unique pitches.
       note_histogram = melody.get_note_histogram()
