@@ -283,7 +283,8 @@ class MonophonicMelody(object):
                               start_step=0,
                               track=0,
                               gap_bars=1,
-                              ignore_polyphonic_notes=False):
+                              ignore_polyphonic_notes=False,
+                              pad_end=False):
     """Populate self with a melody from the given QuantizedSequence object.
 
     A monophonic melody is extracted from the given `track` starting at time
@@ -312,6 +313,8 @@ class MonophonicMelody(object):
           when multiple notes start at the same time. If False,
           PolyphonicMelodyException will be raised if multiple notes start at
           the same time.
+      pad_end: If True, the end of the melody will be padded with NO_EVENTs so
+          that it will end at a bar boundary.
 
     Raises:
       NonIntegerStepsPerBarException: If `quantized_sequence`'s bar length
@@ -395,8 +398,11 @@ class MonophonicMelody(object):
     if self.events[-1] == NOTE_OFF:
       del self.events[-1]
 
-    # Round up end_step to a multiple of steps_per_bar
-    self.set_length(len(self.events) + (-len(self.events) % steps_per_bar))
+    length = len(self.events)
+    # Optionally round up `end_step` to a multiple of `steps_per_bar`.
+    if pad_end:
+      length += -len(self.events) % steps_per_bar
+    self.set_length(length)
 
   def from_event_list(self, events):
     """Populate self with a list of event values."""
@@ -553,7 +559,8 @@ def extract_melodies(quantized_sequence,
                      max_steps_discard=None,
                      gap_bars=1.0,
                      min_unique_pitches=5,
-                     ignore_polyphonic_notes=True):
+                     ignore_polyphonic_notes=True,
+                     pad_end=False):
   """Extracts a list of melodies from the given QuantizedSequence object.
 
   This function will search through `quantized_sequence` for monophonic
@@ -578,7 +585,8 @@ def extract_melodies(quantized_sequence,
     min_bars: Minimum length of melodies in number of bars. Shorter melodies are
         discarded.
     max_steps_truncate: Maximum number of steps in extracted melodies. If
-        defined, longer melodies are truncated to the end of the last bar below
+        defined, longer melodies are truncated to this threshold. If pad_end is
+        also True, melodies will be truncated to the end of the last bar below
         this threshold.
     max_steps_discard: Maximum number of steps in extracted melodies. If
         defined, longer melodies are discarded.
@@ -587,8 +595,10 @@ def extract_melodies(quantized_sequence,
     min_unique_pitches: Minimum number of unique notes with octave equivalence.
         Melodies with too few unique notes are discarded.
     ignore_polyphonic_notes: If True, melodies will be extracted from
-      `quantized_sequence` tracks that contain polyphony (notes start at
-      the same time). If False, tracks with polyphony will be ignored.
+        `quantized_sequence` tracks that contain polyphony (notes start at
+        the same time). If False, tracks with polyphony will be ignored.
+    pad_end: If True, the end of the melody will be padded with NO_EVENTs so
+        that it will end at a bar boundary.
 
   Returns:
     melodies: A python list of MonophonicMelody instances.
@@ -629,7 +639,8 @@ def extract_melodies(quantized_sequence,
             track=track,
             start_step=start,
             gap_bars=gap_bars,
-            ignore_polyphonic_notes=ignore_polyphonic_notes)
+            ignore_polyphonic_notes=ignore_polyphonic_notes,
+            pad_end=pad_end)
       except PolyphonicMelodyException:
         stats['polyphonic_tracks_discarded'].increment()
         break  # Look for monophonic melodies in other tracks.
@@ -653,15 +664,10 @@ def extract_melodies(quantized_sequence,
 
       # Truncate melodies that are too long.
       if max_steps_truncate is not None and len(melody) > max_steps_truncate:
-        melody.set_length(max_steps_truncate - (max_steps_truncate %
-                                                melody.steps_per_bar))
-        for event in reversed(melody.events):
-          if event == NOTE_OFF:
-            break
-          elif event != NO_EVENT:
-            melody.events[-1] = NOTE_OFF
-            break
-
+        truncated_length = max_steps_truncate
+        if pad_end:
+          truncated_length -= max_steps_truncate % melody.steps_per_bar
+        melody.set_length(truncated_length)
         stats['melodies_truncated'].increment()
 
       # Require a certain number of unique pitches.
