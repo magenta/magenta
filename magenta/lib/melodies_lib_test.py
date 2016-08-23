@@ -375,7 +375,7 @@ class MelodiesLibTest(tf.test.TestCase):
     expected = [[NO_EVENT, NO_EVENT, 12, NO_EVENT, NOTE_OFF, NO_EVENT, 14,
                  NOTE_OFF],
                 [NO_EVENT, NO_EVENT, 12, NO_EVENT, NOTE_OFF, NO_EVENT, 14,
-                 NO_EVENT],                 
+                 NO_EVENT],
                 [NO_EVENT, NO_EVENT, 12, NO_EVENT, NOTE_OFF, NO_EVENT, 14,
                  NO_EVENT, NO_EVENT, NOTE_OFF, NO_EVENT, NO_EVENT]]
     melodies, _ = melodies_lib.extract_melodies(
