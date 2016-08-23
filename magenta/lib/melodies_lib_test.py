@@ -608,7 +608,7 @@ class MelodyEncoderDecoderTest(tf.test.TestCase):
     melody.end_step = 10
     melody.set_length(5)
     self.assertListEqual([60, NOTE_OFF, NO_EVENT, NO_EVENT, NO_EVENT],
-                          melody.events)
+                         melody.events)
     self.assertEquals(9, melody.start_step)
     self.assertEquals(14, melody.end_step)
 
@@ -618,7 +618,7 @@ class MelodyEncoderDecoderTest(tf.test.TestCase):
     melody.end_step = 10
     melody.set_length(5, from_left=True)
     self.assertListEqual([NO_EVENT, NO_EVENT, NO_EVENT, NO_EVENT, 60],
-                          melody.events)
+                         melody.events)
     self.assertEquals(5, melody.start_step)
     self.assertEquals(10, melody.end_step)
 

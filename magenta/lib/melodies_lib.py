@@ -393,8 +393,8 @@ class MonophonicMelody(object):
 
     # Strip final NOTE_OFF event.
     if self.events[-1] == NOTE_OFF:
-        del self.events[-1]
-    
+      del self.events[-1]
+
     # Round up end_step to a multiple of steps_per_bar
     self.set_length(len(self.events) + (-len(self.events) % steps_per_bar))
 
@@ -545,6 +545,7 @@ class MonophonicMelody(object):
       self.start_step = self.end_step - steps
     else:
       self.end_step = self.start_step + steps
+
 
 def extract_melodies(quantized_sequence,
                      min_bars=7,
