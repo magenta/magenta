@@ -136,6 +136,8 @@ class MonophonicMelody(object):
   in ascending order by start time. Note end times will be truncated if the next
   note overlaps.
 
+  Any sustained notes are implicitly turned off at the end of a melody.
+
   Melodies can start at any non-negative time, and are shifted left so that
   the bar containing the first note-on event is the first bar.
 
@@ -389,6 +391,10 @@ class MonophonicMelody(object):
 
     self.start_step = offset
 
+    # Strip final NOTE_OFF event.
+    if self.events[-1] == NOTE_OFF:
+        del self.events[-1]
+    
     # Round up end_step to a multiple of steps_per_bar
     self.set_length(len(self.events) + (-len(self.events) % steps_per_bar))
 
@@ -509,8 +515,9 @@ class MonophonicMelody(object):
   def set_length(self, steps, from_left=False):
     """Sets the length of the melody to the specified number of steps.
 
-    If the melody is not long enough, adds NO_EVENT steps. If it is too long,
-    it will be truncated to the requested length.
+    If the melody is not long enough, ends any sustained notes and adds NO_EVENT
+    steps for padding. If it is too long, it will be truncated to the requested
+    length.
 
     Args:
       steps: How many steps long the melody should be.
@@ -520,6 +527,13 @@ class MonophonicMelody(object):
       if from_left:
         self.events[:0] = [NO_EVENT] * (steps - len(self))
       else:
+        # When extending the melody, we first end any sustained notes.
+        for event in reversed(self.events):
+          if event == NOTE_OFF:
+            break
+          elif event != NO_EVENT:
+            self.events.append(NOTE_OFF)
+            break
         self.events.extend([NO_EVENT] * (steps - len(self)))
     else:
       if from_left:
@@ -531,7 +545,6 @@ class MonophonicMelody(object):
       self.start_step = self.end_step - steps
     else:
       self.end_step = self.start_step + steps
-
 
 def extract_melodies(quantized_sequence,
                      min_bars=7,
