@@ -420,11 +420,15 @@ class MonophonicMelody(object):
       length += -len(self.events) % steps_per_bar
     self.set_length(length)
 
-  def from_event_list(self, events, start_step=0):
+  def from_event_list(self, events, start_step=0,
+                      steps_per_bar=DEFAULT_STEPS_PER_BAR,
+                      steps_per_beat=DEFAULT_STEPS_PER_BEAT):
     """Populate self with a list of event values."""
     self.events = list(events)
     self._start_step = start_step
     self._end_step = start_step + len(self)
+    self._steps_per_bar = steps_per_bar
+    self._steps_per_beat = steps_per_beat
 
   def to_sequence(self,
                   velocity=100,
