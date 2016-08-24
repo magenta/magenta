@@ -35,6 +35,9 @@ NUM_SPECIAL_INPUTS = 14 + NOTES_PER_OCTAVE * 2
 NUM_SPECIAL_CLASSES = 2
 NUM_BINARY_TIME_COUNTERS = 7
 
+# Must be sorted in ascending order.
+LOOKBACK_DISTANCES = [STEPS_PER_BAR, STEPS_PER_BAR * 2]
+
 
 class MelodyEncoderDecoder(melodies_lib.MelodyEncoderDecoder):
   """A MelodyEncoderDecoder specific to the attention RNN model.
@@ -57,8 +60,8 @@ class MelodyEncoderDecoder(melodies_lib.MelodyEncoderDecoder):
   def num_classes(self):
     return self.note_range + NUM_SPECIAL_EVENTS + NUM_SPECIAL_CLASSES
 
-  def melody_to_input(self, melody):
-    """Returns the input vector for the last event in the melody.
+  def melody_to_input(self, melody, position):
+    """Returns the input vector for the given position in the melody.
 
     Returns a self.input_size length list of floats. Assuming MIN_NOTE = 48
     and MAX_NOTE = 84, then self.input_size = 74. Each index represents a
@@ -79,6 +82,7 @@ class MelodyEncoderDecoder(melodies_lib.MelodyEncoderDecoder):
 
     Args:
       melody: A melodies_lib.MonophonicMelody object.
+      position: An integer event position in the melody.
 
     Returns:
       An input vector, an self.input_size length list of floats.
@@ -87,7 +91,9 @@ class MelodyEncoderDecoder(melodies_lib.MelodyEncoderDecoder):
     is_attack = False
     is_ascending = None
     last_3_notes = collections.deque(maxlen=3)
-    for note in melody.events:
+    sub_melody = melodies_lib.MonophonicMelody()
+    sub_melody.from_event_list(melody.events[:position + 1])
+    for note in sub_melody:
       if note == NO_EVENT:
         is_attack = False
       elif note == NOTE_OFF:
@@ -122,46 +128,42 @@ class MelodyEncoderDecoder(melodies_lib.MelodyEncoderDecoder):
     if is_ascending is not None:
       input_[self.note_range + 3] = 1.0 if is_ascending else -1.0
 
-    # The last event is repeating 1 bar ago.
-    if (len(melody) >= STEPS_PER_BAR + 1 and
-        melody.events[-1] == melody.events[-(STEPS_PER_BAR + 1)]):
-      input_[self.note_range + 4] = 1.0
-
-    # The last event is repeating 2 bars ago.
-    if (len(melody) >= 2 * STEPS_PER_BAR + 1 and
-        melody.events[-1] == melody.events[-(2 * STEPS_PER_BAR + 1)]):
-      input_[self.note_range + 5] = 1.0
+    # Last event is repeating N bars ago.
+    for i, lookback_distance in enumerate(LOOKBACK_DISTANCES):
+      lookback_position = position - lookback_distance
+      if (lookback_position >= 0 and
+          melody.events[position] == melody.events[lookback_position]):
+        input_[self.note_range + 4 + i] = 1.0
 
     # Binary time counter giving the metric location of the *next* note.
-    n = len(melody)
+    n = len(sub_melody)
     for i in range(NUM_BINARY_TIME_COUNTERS):
       input_[self.note_range + 6 + i] = 1.0 if (n / 2 ** i) % 2 else -1.0
 
     # The next event is the start of a bar.
-    if len(melody) % STEPS_PER_BAR == 0:
+    if len(sub_melody) % STEPS_PER_BAR == 0:
       input_[self.note_range + 13] = 1.0
 
     # The keys the current melody is in.
-    key_histogram = melody.get_major_key_histogram()
+    key_histogram = sub_melody.get_major_key_histogram()
     max_val = max(key_histogram)
     for i, key_val in enumerate(key_histogram):
       if key_val == max_val:
         input_[self.note_range + 14 + i] = 1.0
 
     # The keys the last 3 notes are in.
-    melody_events_backup = melody.events
-    melody.events = list(last_3_notes)
-    key_histogram = melody.get_major_key_histogram()
+    last_3_note_melody = melodies_lib.MonophonicMelody()
+    last_3_note_melody.from_event_list(list(last_3_notes))
+    key_histogram = last_3_note_melody.get_major_key_histogram()
     max_val = max(key_histogram)
     for i, key_val in enumerate(key_histogram):
       if key_val == max_val:
         input_[self.note_range + 14 + NOTES_PER_OCTAVE + i] = 1.0
-    melody.events = melody_events_backup
 
     return input_
 
-  def melody_to_label(self, melody):
-    """Returns the label for the last event in the melody.
+  def melody_to_label(self, melody, position):
+    """Returns the label for the given position in the melody.
 
     Returns an int the range [0, self.num_classes). Assuming MIN_NOTE = 48
     and MAX_NOTE = 84, then self.num_classes = 40.
@@ -175,33 +177,32 @@ class MelodyEncoderDecoder(melodies_lib.MelodyEncoderDecoder):
 
     Args:
       melody: A melodies_lib.MonophonicMelody object.
+      position: An integer event position in the melody.
 
     Returns:
       A label, an int.
     """
+    if (position < LOOKBACK_DISTANCES[-1] and
+        melody.events[position] == NO_EVENT):
+      return self.note_range + len(LOOKBACK_DISTANCES) + 1
 
-    # If the last event repeated 2 bars ago.
-    if ((len(melody.events) <= 2 * STEPS_PER_BAR and
-         melody.events[-1] == NO_EVENT) or
-        (len(melody.events) > 2 * STEPS_PER_BAR and
-         melody.events[-1] == melody.events[-(2 * STEPS_PER_BAR + 1)])):
-      return self.note_range + 3
-
-    # If the last event repeated 1 bar ago.
-    if (len(melody.events) > STEPS_PER_BAR and
-        melody.events[-1] == melody.events[-(STEPS_PER_BAR + 1)]):
-      return self.note_range + 2
+    # If the last event repeated N bars ago.
+    for i, lookback_distance in reversed(list(enumerate(LOOKBACK_DISTANCES))):
+      lookback_position = position - lookback_distance
+      if (lookback_position >= 0 and
+          melody.events[position] == melody.events[lookback_position]):
+        return self.note_range + 2 + i
 
     # If last event was a note-off event.
-    if melody.events[-1] == NOTE_OFF:
+    if melody.events[position] == NOTE_OFF:
       return self.note_range + 1
 
     # If last event was a no event.
-    if melody.events[-1] == NO_EVENT:
+    if melody.events[position] == NO_EVENT:
       return self.note_range
 
     # If last event was a note-on event, the pitch of that note.
-    return melody.events[-1] - self.min_note
+    return melody.events[position] - self.min_note
 
   def class_index_to_melody_event(self, class_index, melody):
     """Returns the melody event for the given class index.
@@ -216,17 +217,12 @@ class MelodyEncoderDecoder(melodies_lib.MelodyEncoderDecoder):
     Returns:
       A melodies_lib.MonophonicMelody event value.
     """
-    # Repeat 1 bar ago.
-    if class_index == self.note_range + 3:
-      if len(melody) < 2 * STEPS_PER_BAR:
-        return NO_EVENT
-      return melody.events[-(2 * STEPS_PER_BAR)]
-
-    # Repeat 2 bars ago.
-    if class_index == self.note_range + 2:
-      if len(melody) < STEPS_PER_BAR:
-        return NO_EVENT
-      return melody.events[-STEPS_PER_BAR]
+    # Repeat N bars ago.
+    for i, lookback_distance in reversed(list(enumerate(LOOKBACK_DISTANCES))):
+      if class_index == self.num_model_events + i:
+        if len(melody) < lookback_distance:
+          return NO_EVENT
+        return melody.events[-lookback_distance]
 
     # Note-off event.
     if class_index == self.note_range + 1:

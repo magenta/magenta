@@ -193,9 +193,9 @@ class MelodiesLibTest(tf.test.TestCase):
     melody = melodies_lib.MonophonicMelody()
     melody.from_quantized_sequence(self.quantized_sequence,
                                    start_step=0, track=0)
-    expected = [12, 11, NOTE_OFF, NO_EVENT, NO_EVENT, NO_EVENT, NO_EVENT,
-                NO_EVENT, NO_EVENT, NO_EVENT, 40, NO_EVENT, NO_EVENT, NO_EVENT,
-                NOTE_OFF, NO_EVENT, 55, NOTE_OFF, NO_EVENT, 52, NOTE_OFF]
+    expected = ([12, 11, NOTE_OFF, NO_EVENT, NO_EVENT, NO_EVENT, NO_EVENT,
+                 NO_EVENT, NO_EVENT, NO_EVENT, 40, NO_EVENT, NO_EVENT, NO_EVENT,
+                 NOTE_OFF, NO_EVENT, 55, NOTE_OFF, NO_EVENT, 52])
     self.assertEqual(expected, list(melody))
     self.assertEqual(16, melody.steps_per_bar)
 
@@ -208,9 +208,9 @@ class MelodiesLibTest(tf.test.TestCase):
     melody = melodies_lib.MonophonicMelody()
     melody.from_quantized_sequence(self.quantized_sequence,
                                    start_step=0, track=0)
-    expected = [12, 11, NOTE_OFF, NO_EVENT, NO_EVENT, NO_EVENT, NO_EVENT,
-                NO_EVENT, NO_EVENT, NO_EVENT, 40, NO_EVENT, NO_EVENT, NO_EVENT,
-                NOTE_OFF, NO_EVENT, 55, NOTE_OFF, NO_EVENT, 52, NOTE_OFF]
+    expected = ([12, 11, NOTE_OFF, NO_EVENT, NO_EVENT, NO_EVENT, NO_EVENT,
+                 NO_EVENT, NO_EVENT, NO_EVENT, 40, NO_EVENT, NO_EVENT, NO_EVENT,
+                 NOTE_OFF, NO_EVENT, 55, NOTE_OFF, NO_EVENT, 52])
     self.assertEqual(expected, list(melody))
     self.assertEqual(14, melody.steps_per_bar)
 
@@ -234,8 +234,10 @@ class MelodiesLibTest(tf.test.TestCase):
     melody.from_quantized_sequence(self.quantized_sequence,
                                    start_step=0, track=0,
                                    ignore_polyphonic_notes=True)
-    expected = [19] + [NO_EVENT] * 3 + [19] + [NO_EVENT] * 11 + [NOTE_OFF]
+    expected = ([19] + [NO_EVENT] * 3 + [19] + [NO_EVENT] * 11)
+
     self.assertEqual(expected, list(melody))
+    self.assertEqual(16, melody.steps_per_bar)
 
   def testFromNotesChord(self):
     testing_lib.add_quantized_track(
@@ -258,8 +260,9 @@ class MelodiesLibTest(tf.test.TestCase):
                                    start_step=0, track=0,
                                    ignore_polyphonic_notes=False)
     expected = [NO_EVENT, NO_EVENT, NO_EVENT, NO_EVENT, NO_EVENT, NO_EVENT, 12,
-                NOTE_OFF, 11, NOTE_OFF]
+                NOTE_OFF, 11]
     self.assertEqual(expected, list(melody))
+    self.assertEqual(16, melody.steps_per_bar)
 
   def testFromNotesTimeOverlap(self):
     testing_lib.add_quantized_track(
@@ -272,7 +275,7 @@ class MelodiesLibTest(tf.test.TestCase):
                                    ignore_polyphonic_notes=False)
     expected = [NO_EVENT, NO_EVENT, NO_EVENT, NO_EVENT, 12, NO_EVENT, NO_EVENT,
                 NO_EVENT, 13, NO_EVENT, NO_EVENT, NO_EVENT, NO_EVENT, 11,
-                NO_EVENT, NOTE_OFF]
+                NO_EVENT]
     self.assertEqual(expected, list(melody))
 
   def testFromNotesStepsPerBar(self):
@@ -295,9 +298,10 @@ class MelodiesLibTest(tf.test.TestCase):
                                    start_step=18, track=0,
                                    ignore_polyphonic_notes=False)
     expected = [NO_EVENT, NO_EVENT, NO_EVENT, 14, NOTE_OFF, 15, NO_EVENT,
-                NO_EVENT, NO_EVENT, NO_EVENT, NO_EVENT, NOTE_OFF]
+                NO_EVENT, NO_EVENT, NO_EVENT, NO_EVENT]
     self.assertEqual(expected, list(melody))
-    self.assertEqual(32, melody.end_step)
+    self.assertEqual(16, melody.start_step)
+    self.assertEqual(27, melody.end_step)
 
   def testExtractMelodiesSimple(self):
     self.quantized_sequence.steps_per_beat = 1
@@ -306,11 +310,10 @@ class MelodiesLibTest(tf.test.TestCase):
         [(12, 100, 2, 4), (11, 1, 6, 7)])
     testing_lib.add_quantized_track(
         self.quantized_sequence, 1,
-        [(12, 127, 2, 4), (14, 50, 6, 8)])
-    expected = [[NO_EVENT, NO_EVENT, 12, NO_EVENT, NOTE_OFF, NO_EVENT, 11,
-                 NOTE_OFF],
+        [(12, 127, 2, 4), (14, 50, 6, 9)])
+    expected = [[NO_EVENT, NO_EVENT, 12, NO_EVENT, NOTE_OFF, NO_EVENT, 11],
                 [NO_EVENT, NO_EVENT, 12, NO_EVENT, NOTE_OFF, NO_EVENT, 14,
-                 NO_EVENT, NOTE_OFF]]
+                 NO_EVENT, NO_EVENT]]
     melodies, _ = melodies_lib.extract_melodies(
         self.quantized_sequence, min_bars=1, gap_bars=1, min_unique_pitches=2,
         ignore_polyphonic_notes=True)
@@ -326,16 +329,16 @@ class MelodiesLibTest(tf.test.TestCase):
     self.quantized_sequence.steps_per_beat = 1
     testing_lib.add_quantized_track(
         self.quantized_sequence, 0,
-        [(12, 100, 2, 4), (11, 1, 6, 7)])
+        [(12, 100, 2, 4), (11, 1, 6, 11)])
     testing_lib.add_quantized_track(
         self.quantized_sequence, 1,
         [(12, 127, 2, 4), (14, 50, 6, 8),
-         (50, 100, 33, 37), (52, 100, 34, 36)])
+         (50, 100, 33, 37), (52, 100, 34, 37)])
     expected = [[NO_EVENT, NO_EVENT, 12, NO_EVENT, NOTE_OFF, NO_EVENT, 11,
-                 NOTE_OFF],
+                 NO_EVENT, NO_EVENT, NO_EVENT, NO_EVENT],
                 [NO_EVENT, NO_EVENT, 12, NO_EVENT, NOTE_OFF, NO_EVENT, 14,
-                 NO_EVENT, NOTE_OFF],
-                [NO_EVENT, 50, 52, NO_EVENT, NOTE_OFF]]
+                 NO_EVENT],
+                [NO_EVENT, 50, 52, NO_EVENT, NO_EVENT]]
     melodies, _ = melodies_lib.extract_melodies(
         self.quantized_sequence, min_bars=1, gap_bars=2, min_unique_pitches=2,
         ignore_polyphonic_notes=True)
@@ -349,12 +352,71 @@ class MelodiesLibTest(tf.test.TestCase):
         [(12, 127, 2, 4), (14, 50, 6, 7)])
     testing_lib.add_quantized_track(
         self.quantized_sequence, 1,
-        [(12, 127, 2, 4), (14, 50, 6, 8)])
+        [(12, 127, 2, 4), (14, 50, 6, 9)])
     expected = [[NO_EVENT, NO_EVENT, 12, NO_EVENT, NOTE_OFF, NO_EVENT, 14,
-                 NO_EVENT, NOTE_OFF]]
+                 NO_EVENT, NO_EVENT]]
     melodies, _ = melodies_lib.extract_melodies(
         self.quantized_sequence, min_bars=2, gap_bars=1, min_unique_pitches=2,
         ignore_polyphonic_notes=True)
+    melodies = [list(melody) for melody in melodies]
+    self.assertEqual(expected, melodies)
+
+  def testExtractMelodiesPadEnd(self):
+    self.quantized_sequence.steps_per_beat = 1
+    testing_lib.add_quantized_track(
+        self.quantized_sequence, 0,
+        [(12, 127, 2, 4), (14, 50, 6, 7)])
+    testing_lib.add_quantized_track(
+        self.quantized_sequence, 1,
+        [(12, 127, 2, 4), (14, 50, 6, 8)])
+    testing_lib.add_quantized_track(
+        self.quantized_sequence, 2,
+        [(12, 127, 2, 4), (14, 50, 6, 9)])
+    expected = [[NO_EVENT, NO_EVENT, 12, NO_EVENT, NOTE_OFF, NO_EVENT, 14,
+                 NOTE_OFF],
+                [NO_EVENT, NO_EVENT, 12, NO_EVENT, NOTE_OFF, NO_EVENT, 14,
+                 NO_EVENT],
+                [NO_EVENT, NO_EVENT, 12, NO_EVENT, NOTE_OFF, NO_EVENT, 14,
+                 NO_EVENT, NO_EVENT, NOTE_OFF, NO_EVENT, NO_EVENT]]
+    melodies, _ = melodies_lib.extract_melodies(
+        self.quantized_sequence, min_bars=1, gap_bars=1, min_unique_pitches=2,
+        ignore_polyphonic_notes=True, pad_end=True)
+    melodies = [list(melody) for melody in melodies]
+    self.assertEqual(expected, melodies)
+
+  def testExtractMelodiesMelodyTooLong(self):
+    self.quantized_sequence.steps_per_beat = 1
+    testing_lib.add_quantized_track(
+        self.quantized_sequence, 0,
+        [(12, 127, 2, 4), (14, 50, 6, 15)])
+    testing_lib.add_quantized_track(
+        self.quantized_sequence, 1,
+        [(12, 127, 2, 4), (14, 50, 6, 18)])
+    expected = [[NO_EVENT, NO_EVENT, 12, NO_EVENT, NOTE_OFF, NO_EVENT, 14] +
+                [NO_EVENT] * 7,
+                [NO_EVENT, NO_EVENT, 12, NO_EVENT, NOTE_OFF, NO_EVENT, 14] +
+                [NO_EVENT] * 7]
+    melodies, _ = melodies_lib.extract_melodies(
+        self.quantized_sequence, min_bars=1, max_steps_truncate=14,
+        max_steps_discard=18, gap_bars=1, min_unique_pitches=2,
+        ignore_polyphonic_notes=True)
+    melodies = [list(melody) for melody in melodies]
+    self.assertEqual(expected, melodies)
+
+  def testExtractMelodiesMelodyTooLongWithPad(self):
+    self.quantized_sequence.steps_per_beat = 1
+    testing_lib.add_quantized_track(
+        self.quantized_sequence, 0,
+        [(12, 127, 2, 4), (14, 50, 6, 15)])
+    testing_lib.add_quantized_track(
+        self.quantized_sequence, 1,
+        [(12, 127, 2, 4), (14, 50, 6, 18)])
+    expected = [[NO_EVENT, NO_EVENT, 12, NO_EVENT, NOTE_OFF, NO_EVENT, 14,
+                 NO_EVENT, NO_EVENT, NO_EVENT, NO_EVENT, NO_EVENT]]
+    melodies, _ = melodies_lib.extract_melodies(
+        self.quantized_sequence, min_bars=1, max_steps_truncate=14,
+        max_steps_discard=18, gap_bars=1, min_unique_pitches=2,
+        ignore_polyphonic_notes=True, pad_end=True)
     melodies = [list(melody) for melody in melodies]
     self.assertEqual(expected, melodies)
 
@@ -370,7 +432,7 @@ class MelodiesLibTest(tf.test.TestCase):
         self.quantized_sequence, 1,
         [(12, 100, 0, 1), (13, 100, 1, 2), (18, 100, 2, 3),
          (25, 100, 3, 4), (26, 100, 4, 5)])
-    expected = [[12, 13, 18, 25, 26, NOTE_OFF]]
+    expected = [[12, 13, 18, 25, 26]]
     melodies, _ = melodies_lib.extract_melodies(
         self.quantized_sequence, min_bars=1, gap_bars=1, min_unique_pitches=4,
         ignore_polyphonic_notes=True)
@@ -384,9 +446,9 @@ class MelodiesLibTest(tf.test.TestCase):
         [(12, 100, 102, 103), (13, 100, 104, 106)])
     testing_lib.add_quantized_track(
         self.quantized_sequence, 1,
-        [(12, 100, 100, 101), (13, 100, 102, 104)])
-    expected = [[NO_EVENT, NO_EVENT, 12, NOTE_OFF, 13, NO_EVENT, NOTE_OFF],
-                [12, NOTE_OFF, 13, NO_EVENT, NOTE_OFF]]
+        [(12, 100, 100, 101), (13, 100, 102, 105)])
+    expected = [[NO_EVENT, NO_EVENT, 12, NOTE_OFF, 13, NO_EVENT],
+                [12, NOTE_OFF, 13, NO_EVENT, NO_EVENT]]
     melodies, _ = melodies_lib.extract_melodies(
         self.quantized_sequence, min_bars=1, gap_bars=1, min_unique_pitches=2,
         ignore_polyphonic_notes=True)
@@ -438,16 +500,18 @@ class OneHotEncoderDecoder(melodies_lib.MelodyEncoderDecoder):
   def num_classes(self):
     return self._num_classes
 
-  def melody_to_input(self, melody):
+  def melody_to_input(self, melody, position):
     input_ = [0.0] * self._input_size
-    index = (melody.events[-1] + NUM_SPECIAL_EVENTS if melody.events[-1] < 0
-             else melody.events[-1] - self.min_note + NUM_SPECIAL_EVENTS)
+    index = (melody.events[position] + NUM_SPECIAL_EVENTS
+             if melody.events[position] < 0
+             else melody.events[position] - self.min_note + NUM_SPECIAL_EVENTS)
     input_[index] = 1.0
     return input_
 
-  def melody_to_label(self, melody):
-    return (melody.events[-1] + NUM_SPECIAL_EVENTS if melody.events[-1] < 0
-            else melody.events[-1] - self.min_note + NUM_SPECIAL_EVENTS)
+  def melody_to_label(self, melody, position):
+    return (melody.events[position] + NUM_SPECIAL_EVENTS
+            if melody.events[position] < 0
+            else melody.events[position] - self.min_note + NUM_SPECIAL_EVENTS)
 
   def class_index_to_melody_event(self, class_index, melody):
     return (class_index - NUM_SPECIAL_EVENTS if class_index < NUM_SPECIAL_EVENTS
@@ -574,14 +638,42 @@ class MelodyEncoderDecoderTest(tf.test.TestCase):
     events = [60]
     melody = melodies_lib.MonophonicMelody()
     melody.from_event_list(events)
+    melody.start_step = 9
+    melody.end_step = 10
     melody.set_length(5)
-    self.assertListEqual([60, -2, -2, -2, -2], melody.events)
+    self.assertListEqual([60, NOTE_OFF, NO_EVENT, NO_EVENT, NO_EVENT],
+                         melody.events)
+    self.assertEquals(9, melody.start_step)
+    self.assertEquals(14, melody.end_step)
 
-    events = [60, -1, -1, -2]
     melody = melodies_lib.MonophonicMelody()
     melody.from_event_list(events)
+    melody.start_step = 9
+    melody.end_step = 10
+    melody.set_length(5, from_left=True)
+    self.assertListEqual([NO_EVENT, NO_EVENT, NO_EVENT, NO_EVENT, 60],
+                         melody.events)
+    self.assertEquals(5, melody.start_step)
+    self.assertEquals(10, melody.end_step)
+
+    events = [60, NO_EVENT, NO_EVENT, NOTE_OFF]
+    melody = melodies_lib.MonophonicMelody()
+    melody.from_event_list(events)
+    melody.start_step = 0
+    melody.end_step = 4
     melody.set_length(3)
-    self.assertListEqual([60, -1, -1], melody.events)
+    self.assertListEqual([60, NO_EVENT, NO_EVENT], melody.events)
+    self.assertEquals(0, melody.start_step)
+    self.assertEquals(3, melody.end_step)
+
+    melody = melodies_lib.MonophonicMelody()
+    melody.from_event_list(events)
+    melody.start_step = 0
+    melody.end_step = 4
+    melody.set_length(3, from_left=True)
+    self.assertListEqual([NO_EVENT, NO_EVENT, NOTE_OFF], melody.events)
+    self.assertEquals(1, melody.start_step)
+    self.assertEquals(4, melody.end_step)
 
 if __name__ == '__main__':
   tf.test.main()
