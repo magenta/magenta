@@ -79,12 +79,8 @@ class PipelineUnitsCommonTest(tf.test.TestCase):
     expected_melodies = []
     for events_list in expected_events:
       melody = melodies_lib.MonophonicMelody()
-      melody.from_event_list(events_list)
-      melody.steps_per_bar = 4
+      melody.from_event_list(events_list, steps_per_beat=1, steps_per_bar=4)
       expected_melodies.append(melody)
-    expected_melodies[0].end_step = 7
-    expected_melodies[1].end_step = 8
-
     unit = pipelines_common.MonophonicMelodyExtractor(
         min_bars=1, min_unique_pitches=1, gap_bars=1)
     self._unit_transform_test(unit, quantized_sequence, expected_melodies)
