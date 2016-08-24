@@ -1,7 +1,7 @@
 ----
 ## Modeling Temporal Dependencies in High-Dimensional Sequences: Application to Polyphonic Music Generation and Transcription
 
-[Boulanger-Lewandowski 2012](http://www-etud.iro.umontreal.ca/~boulanni/ICML2012.pdf) was an influential paper that served as a bridge between research on energy based models in the 2000s and early 2010s and more modern research on recurrent neural networks. The algorithms introduced in the paper are some of the most successful polyphonic music generation algorithms to date. In addition, the paper lay the groundwork for future research in sequential generative models, such as [Graves 2013](http://arxiv.org/pdf/1308.0850v5.pdf). 
+[Boulanger-Lewandowski 2012](http://www-etud.iro.umontreal.ca/~boulanni/ICML2012.pdf) is an influential paper that served as a bridge between research on energy based models in the 2000s and early 2010s and more modern research on recurrent neural networks. The algorithms introduced in the paper are some of the most successful polyphonic music generation algorithms to date. In addition, the paper lay the groundwork for future research in sequential generative models, such as [Graves 2013](http://arxiv.org/pdf/1308.0850v5.pdf). 
 
 The authors of [Boulanger-Lewandowski 2012](http://www-etud.iro.umontreal.ca/~boulanni/ICML2012.pdf) describe a series of powerful sequential generative models, including the Recurrent Neural Network - Restricted Boltzmann Machine (RNN-RBM). We can think of this powerful model as a sequence of Restricted Boltzmann Machines (RBM) whose parameters are determined by a Recurrent Neural Network (RNN). Each RBM in the sequence is capable of modeling a complex and high dimensional probability distribution, and the RNN conditions each distribution on those of the previous time steps. 
 
@@ -22,10 +22,13 @@ All of the RBMs share the same weight matrix, and only the hidden and visible bi
 To generate a sequence with the RNN-RBM, we prime the RNN and repeat the following procedure:
 
 - Use the RNN-to-RBM weight and bias matrices and the state of RNN hidden unit h(t-1) to determine the bias vectors for RBM(t).
+
     ![The outputs of the RNN are the bias vectors of the RBM](assets/get_bias.png)
 - Perform [Gibbs Sampling](http://stats.stackexchange.com/questions/10213/can-someone-explain-gibbs-sampling-in-very-simple-words) to sample from RBM(t) and generate v(t).
+
     ![Repeat this process k times, and then v(t) is the visible state at the end of the chain](assets/gibbs.png)
 - Use v(t), the state of RNN hidden unit h(t-1) and the weight and bias matrices of the RNN to determine the state of RNN hidden unit h(t).
+
     ![Compute the hidden state at time t](assets/get_hidden.png)
 
 ### Cost Function
@@ -35,7 +38,9 @@ The cost function for the RNN-RBM is the [contrastive divergence](http://www.rob
 -  Performing Gibbs sampling to sample output(t), written as v(t)*, from RBM(t).
 -  Taking the difference between the free energies of v(t) and v(t)*.
 
-Then the gradient of the loss is ![We pass this loss back with BPTT](assets/grad_loss.png)
+Then the gradient of the loss is:
+
+![We pass this loss back with BPTT](assets/grad_loss.png)
 
 ### Music
 
@@ -43,14 +48,14 @@ The authors use the RNN-RBM to generate [polyphonic](https://en.wikipedia.org/wi
 
 Below are piano rolls of a song from the Nottingham database and a portion of the song "Fix You" by Coldplay.
 </br>
-
+</br>
 ![An example of a piano roll from the Nottingham database](assets/Nottingham_Piano_Roll.png)
 
 </br>
 
 ![An example of a piano roll of the song Fix You](assets/Pop_Music_Piano_Roll.png)
 </br>
-
+</br>
 Here are some examples of midi piano rolls created by an RNN-RBM. You can also find mp3 files of some of the music that the authors generated [here.](http://www-etud.iro.umontreal.ca/~boulanni/icml2012)
 
 </br>
