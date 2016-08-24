@@ -637,9 +637,7 @@ class MelodyEncoderDecoderTest(tf.test.TestCase):
   def testSetLength(self):
     events = [60]
     melody = melodies_lib.MonophonicMelody()
-    melody.from_event_list(events)
-    melody.start_step = 9
-    melody.end_step = 10
+    melody.from_event_list(events, start_step=9)
     melody.set_length(5)
     self.assertListEqual([60, NOTE_OFF, NO_EVENT, NO_EVENT, NO_EVENT],
                          melody.events)
@@ -647,9 +645,7 @@ class MelodyEncoderDecoderTest(tf.test.TestCase):
     self.assertEquals(14, melody.end_step)
 
     melody = melodies_lib.MonophonicMelody()
-    melody.from_event_list(events)
-    melody.start_step = 9
-    melody.end_step = 10
+    melody.from_event_list(events, start_step=9)
     melody.set_length(5, from_left=True)
     self.assertListEqual([NO_EVENT, NO_EVENT, NO_EVENT, NO_EVENT, 60],
                          melody.events)
@@ -659,8 +655,6 @@ class MelodyEncoderDecoderTest(tf.test.TestCase):
     events = [60, NO_EVENT, NO_EVENT, NOTE_OFF]
     melody = melodies_lib.MonophonicMelody()
     melody.from_event_list(events)
-    melody.start_step = 0
-    melody.end_step = 4
     melody.set_length(3)
     self.assertListEqual([60, NO_EVENT, NO_EVENT], melody.events)
     self.assertEquals(0, melody.start_step)
@@ -668,12 +662,70 @@ class MelodyEncoderDecoderTest(tf.test.TestCase):
 
     melody = melodies_lib.MonophonicMelody()
     melody.from_event_list(events)
-    melody.start_step = 0
-    melody.end_step = 4
     melody.set_length(3, from_left=True)
     self.assertListEqual([NO_EVENT, NO_EVENT, NOTE_OFF], melody.events)
     self.assertEquals(1, melody.start_step)
     self.assertEquals(4, melody.end_step)
+
+  def testToSequenceSimple(self):
+    melody = melodies_lib.MonophonicMelody()
+    melody.from_event_list([NO_EVENT, 1, NO_EVENT, NOTE_OFF, NO_EVENT, 2, 3,
+                            NOTE_OFF, NO_EVENT])
+    sequence = melody.to_sequence(
+        velocity=10,
+        instrument=1,
+        sequence_start_time=2,
+        bpm=60.0)
+
+    self.assertProtoEquals(
+        'ticks_per_beat: 96 '
+        'tempos < bpm: 60.0 > '
+        'total_time: 3.75 '
+        'notes < '
+        '  pitch: 1 velocity: 10 instrument: 1 start_time: 2.25 end_time: 2.75 '
+        '> '
+        'notes < '
+        '  pitch: 2 velocity: 10 instrument: 1 start_time: 3.25 end_time: 3.5 '
+        '> '
+        'notes < '
+        '  pitch: 3 velocity: 10 instrument: 1 start_time: 3.5 end_time: 3.75 '
+        '> ',
+        sequence)
+
+  def testToSequenceEndsWithSustainedNote(self):
+    melody = melodies_lib.MonophonicMelody()
+    melody.from_event_list([NO_EVENT, 1, NO_EVENT, NOTE_OFF, NO_EVENT, 2, 3,
+                            NO_EVENT, NO_EVENT])
+    sequence = melody.to_sequence(
+        velocity=100,
+        instrument=0,
+        sequence_start_time=0,
+        bpm=60.0)
+
+    self.assertProtoEquals(
+        'ticks_per_beat: 96 '
+        'tempos < bpm: 60.0 > '
+        'total_time: 2.25 '
+        'notes < pitch: 1 velocity: 100 start_time: 0.25 end_time: 0.75 > '
+        'notes < pitch: 2 velocity: 100 start_time: 1.25 end_time: 1.5 > '
+        'notes < pitch: 3 velocity: 100 start_time: 1.5 end_time: 2.25 > ',
+        sequence)
+
+  def testToSequenceEndsWithNonzeroStart(self):
+    melody = melodies_lib.MonophonicMelody()
+    melody.from_event_list([NO_EVENT, 1, NO_EVENT], start_step=4)
+    sequence = melody.to_sequence(
+        velocity=100,
+        instrument=0,
+        sequence_start_time=0.5,
+        bpm=60.0)
+
+    self.assertProtoEquals(
+        'ticks_per_beat: 96 '
+        'tempos < bpm: 60.0 > '
+        'total_time: 2.25 '
+        'notes < pitch: 1 velocity: 100 start_time: 1.75 end_time: 2.25 > ',
+        sequence)
 
 if __name__ == '__main__':
   tf.test.main()

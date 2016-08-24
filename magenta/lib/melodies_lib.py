@@ -162,10 +162,10 @@ class MonophonicMelody(object):
   def _reset(self):
     """Clear `events` and reset object state."""
     self.events = []
-    self.steps_per_bar = DEFAULT_STEPS_PER_BAR
-    self.steps_per_beat = DEFAULT_STEPS_PER_BEAT
-    self.start_step = 0
-    self.end_step = 0
+    self._steps_per_bar = DEFAULT_STEPS_PER_BAR
+    self._steps_per_beat = DEFAULT_STEPS_PER_BEAT
+    self._start_step = 0
+    self._end_step = 0
 
   def __iter__(self):
     """Return an iterator over the events in this MonophonicMelody.
@@ -239,6 +239,22 @@ class MonophonicMelody(object):
         return (i, last_off)
     raise ValueError('No events in the stream')
 
+  @property
+  def start_step(self):
+    return self._start_step
+
+  @property
+  def end_step(self):
+    return self._end_step
+
+  @property
+  def steps_per_bar(self):
+    return self._steps_per_bar
+
+  @property
+  def steps_per_beat(self):
+    return self._steps_per_beat
+
   def get_note_histogram(self):
     """Gets a histogram of the note occurrences in a melody.
 
@@ -290,7 +306,7 @@ class MonophonicMelody(object):
     A monophonic melody is extracted from the given `track` starting at time
     step `start_step`. `track` and `start_step` can be used to drive extraction
     of multiple melodies from the same QuantizedSequence. The end step of the
-    extracted melody will be stored in `self.end_step`.
+    extracted melody will be stored in `self._end_step`.
 
     0 velocity notes are ignored. The melody extraction is ended when there are
     no held notes for a time stretch of `gap_bars` in bars (measures) of music.
@@ -336,8 +352,8 @@ class MonophonicMelody(object):
           'There are %f timesteps per bar. Time signature: %d/%d' %
           (steps_per_bar_float, quantized_sequence.time_signature.numerator,
            quantized_sequence.time_signature.denominator))
-    self.steps_per_bar = steps_per_bar = int(steps_per_bar_float)
-    self.steps_per_beat = quantized_sequence.steps_per_beat
+    self._steps_per_bar = steps_per_bar = int(steps_per_bar_float)
+    self._steps_per_beat = quantized_sequence.steps_per_beat
 
     # Sort track by note start times, and secondarily by pitch descending.
     notes = sorted(quantized_sequence.tracks[track],
@@ -392,7 +408,7 @@ class MonophonicMelody(object):
       # If no notes were added, don't set `start_step` and `end_step`.
       return
 
-    self.start_step = offset
+    self._start_step = offset
 
     # Strip final NOTE_OFF event.
     if self.events[-1] == NOTE_OFF:
@@ -404,16 +420,21 @@ class MonophonicMelody(object):
       length += -len(self.events) % steps_per_bar
     self.set_length(length)
 
-  def from_event_list(self, events):
+  def from_event_list(self, events, start_step=0):
     """Populate self with a list of event values."""
     self.events = list(events)
+    self._start_step = start_step
+    self._end_step = start_step + len(self)
 
   def to_sequence(self,
                   velocity=100,
                   instrument=0,
                   sequence_start_time=0.0,
                   bpm=120.0):
-    """Converts the MonophonicMelody to Sequence proto.
+    """Converts the MonophonicMelody to NoteSequence proto.
+
+    The end of the melody is treated as a NOTE_OFF event for any sustained
+    notes.
 
     Args:
       velocity: Midi velocity to give each note. Between 1 and 127 (inclusive).
@@ -431,6 +452,7 @@ class MonophonicMelody(object):
     sequence.tempos.add().bpm = bpm
     sequence.ticks_per_beat = STANDARD_PPQ
 
+    sequence_start_time += self.start_step * seconds_per_step
     current_sequence_note = None
     for step, note in enumerate(self):
       if MIN_MIDI_PITCH <= note <= MAX_MIDI_PITCH:
@@ -443,9 +465,6 @@ class MonophonicMelody(object):
         current_sequence_note = sequence.notes.add()
         current_sequence_note.start_time = (
             step * seconds_per_step + sequence_start_time)
-        # Give the note an end time now just to be sure it gets closed.
-        current_sequence_note.end_time = (
-            (step + 1) * seconds_per_step + sequence_start_time)
         current_sequence_note.pitch = note
         current_sequence_note.velocity = velocity
         current_sequence_note.instrument = instrument
@@ -456,6 +475,13 @@ class MonophonicMelody(object):
           current_sequence_note.end_time = (
               step * seconds_per_step + sequence_start_time)
           current_sequence_note = None
+
+    # End any sustained notes.
+    if current_sequence_note is not None:
+      current_sequence_note.end_time = (
+          len(self) * seconds_per_step + sequence_start_time)
+
+    sequence.total_time = sequence.notes[-1].end_time
 
     return sequence
 
@@ -548,9 +574,9 @@ class MonophonicMelody(object):
         del self.events[steps:]
 
     if from_left:
-      self.start_step = self.end_step - steps
+      self._start_step = self._end_step - steps
     else:
-      self.end_step = self.start_step + steps
+      self._end_step = self._start_step + steps
 
 
 def extract_melodies(quantized_sequence,
