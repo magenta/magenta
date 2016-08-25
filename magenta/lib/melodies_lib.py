@@ -178,10 +178,12 @@ class MonophonicMelody(object):
     return iter(self._events)
 
   def __getitem__(self, i):
-      return self._events[i]
+    """Returns the event at the given index."""  
+    return self._events[i]
 
   def __getslice__(self, i, j):
-      return self._events[i:j]
+    """Returns the events in the given slice range."""  
+    return self._events[i:j]
 
   def __len__(self):
     """How many events are in this MonophonicMelody.
@@ -452,7 +454,7 @@ class MonophonicMelody(object):
     Args:
       events: List of MonophonicMelody events to set melody to.
       start_step: The integer starting step offset.
-      steps_per_bar: The number of steps in a bar. 
+      steps_per_bar: The number of steps in a bar.
       steps_per_beat: The number of steps in a beat.
 
     Raises:
