@@ -1,6 +1,6 @@
 ----
 ## Modeling Temporal Dependencies in High-Dimensional Sequences: Application to Polyphonic Music Generation and Transcription
-(Review by [Dan Shiebler](https://github.com/dshieble). You can find a TensorFlow implementation [here](https://github.com/dshieble/Music_RNN_RBM))
+(Review by [Dan Shiebler](https://github.com/dshieble). You can find a TensorFlow implementation [here.](https://github.com/dshieble/Music_RNN_RBM))
 
 [This paper](http://www-etud.iro.umontreal.ca/~boulanni/ICML2012.pdf), by Boulanger-Lewandowski et al, was an influential work that served as a bridge between research on energy based models in the 2000s and early 2010s and more modern research on recurrent neural networks. The algorithms introduced here are some of the most successful polyphonic music generation algorithms to date. In addition, the paper laid the groundwork for future research in sequential generative models, such as [Graves 2013](http://arxiv.org/pdf/1308.0850v5.pdf). 
 
