@@ -727,5 +727,18 @@ class MelodyEncoderDecoderTest(tf.test.TestCase):
         'notes < pitch: 1 velocity: 100 start_time: 1.75 end_time: 2.25 > ',
         sequence)
 
+  def testToSequenceEmpty(self):
+    melody = melodies_lib.MonophonicMelody()
+    sequence = melody.to_sequence(
+        velocity=10,
+        instrument=1,
+        sequence_start_time=2,
+        bpm=60.0)
+
+    self.assertProtoEquals(
+        'ticks_per_beat: 96 '
+        'tempos < bpm: 60.0 > ',
+        sequence)
+
 if __name__ == '__main__':
   tf.test.main()
