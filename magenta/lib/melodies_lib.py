@@ -178,11 +178,11 @@ class MonophonicMelody(object):
     return iter(self._events)
 
   def __getitem__(self, i):
-    """Returns the event at the given index."""  
+    """Returns the event at the given index."""
     return self._events[i]
 
   def __getslice__(self, i, j):
-    """Returns the events in the given slice range."""  
+    """Returns the events in the given slice range."""
     return self._events[i:j]
 
   def __len__(self):
