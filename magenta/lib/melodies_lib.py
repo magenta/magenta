@@ -485,7 +485,8 @@ class MonophonicMelody(object):
       current_sequence_note.end_time = (
           len(self) * seconds_per_step + sequence_start_time)
 
-    sequence.total_time = sequence.notes[-1].end_time
+    if sequence.notes:
+      sequence.total_time = sequence.notes[-1].end_time
 
     return sequence
 
