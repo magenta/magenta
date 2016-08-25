@@ -94,7 +94,7 @@ class MelodyEncoderDecoder(melodies_lib.MelodyEncoderDecoder):
       An input vector, a list of floats.
     """
     input_ = [0.0] * self.input_size
-    input_[self.melody_event_to_model_event(melody.events[position])] = 1.0
+    input_[self.melody_event_to_model_event(melody[position])] = 1.0
     return input_
 
   def melody_to_label(self, melody, position):
@@ -112,7 +112,7 @@ class MelodyEncoderDecoder(melodies_lib.MelodyEncoderDecoder):
     Returns:
       A label, an int.
     """
-    return self.melody_event_to_model_event(melody.events[position])
+    return self.melody_event_to_model_event(melody[position])
 
   def class_index_to_melody_event(self, class_index, melody):
     """Returns the melody event for the given class index.

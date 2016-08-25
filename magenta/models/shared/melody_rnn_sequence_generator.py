@@ -125,7 +125,7 @@ class MelodyRnnSequenceGenerator(sequence_generator.BaseSequenceGenerator):
         generate_section.start_time_seconds, bpm)
     end_step = self._seconds_to_steps(generate_section.end_time_seconds, bpm)
 
-    if extracted_melodies and extracted_melodies[0].events:
+    if extracted_melodies and extracted_melodies[0]:
       melody = extracted_melodies[0]
     else:
       tf.logging.warn('No melodies were extracted from the priming sequence. '

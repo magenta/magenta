@@ -303,6 +303,19 @@ class MelodiesLibTest(tf.test.TestCase):
     self.assertEqual(16, melody.start_step)
     self.assertEqual(27, melody.end_step)
 
+  def testAppendEvent(self):
+    melody = melodies_lib.MonophonicMelody()
+
+    melody.append_event(14)
+    self.assertListEqual([14], list(melody))
+    self.assertEqual(0, melody.start_step)
+    self.assertEqual(1, melody.end_step)
+
+    melody.append_event(NOTE_OFF)
+    self.assertListEqual([14, NOTE_OFF], list(melody))
+    self.assertEqual(0, melody.start_step)
+    self.assertEqual(2, melody.end_step)
+
   def testExtractMelodiesSimple(self):
     self.quantized_sequence.steps_per_beat = 1
     testing_lib.add_quantized_track(
@@ -502,16 +515,16 @@ class OneHotEncoderDecoder(melodies_lib.MelodyEncoderDecoder):
 
   def melody_to_input(self, melody, position):
     input_ = [0.0] * self._input_size
-    index = (melody.events[position] + NUM_SPECIAL_EVENTS
-             if melody.events[position] < 0
-             else melody.events[position] - self.min_note + NUM_SPECIAL_EVENTS)
+    index = (melody[position] + NUM_SPECIAL_EVENTS
+             if melody[position] < 0
+             else melody[position] - self.min_note + NUM_SPECIAL_EVENTS)
     input_[index] = 1.0
     return input_
 
   def melody_to_label(self, melody, position):
-    return (melody.events[position] + NUM_SPECIAL_EVENTS
-            if melody.events[position] < 0
-            else melody.events[position] - self.min_note + NUM_SPECIAL_EVENTS)
+    return (melody[position] + NUM_SPECIAL_EVENTS
+            if melody[position] < 0
+            else melody[position] - self.min_note + NUM_SPECIAL_EVENTS)
 
   def class_index_to_melody_event(self, class_index, melody):
     return (class_index - NUM_SPECIAL_EVENTS if class_index < NUM_SPECIAL_EVENTS
@@ -629,10 +642,10 @@ class MelodyEncoderDecoderTest(tf.test.TestCase):
         [0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
     ]]
     self.melody_encoder_decoder.extend_melodies(melodies, softmax)
-    self.assertListEqual(melody1.events, [60, 60])
-    self.assertListEqual(melody2.events, [60, 71])
-    self.assertListEqual(melody3.events, [60, NO_EVENT])
-    self.assertListEqual(melody4.events, [60, NOTE_OFF])
+    self.assertListEqual(list(melody1), [60, 60])
+    self.assertListEqual(list(melody2), [60, 71])
+    self.assertListEqual(list(melody3), [60, NO_EVENT])
+    self.assertListEqual(list(melody4), [60, NOTE_OFF])
 
   def testSetLength(self):
     events = [60]
@@ -640,7 +653,7 @@ class MelodyEncoderDecoderTest(tf.test.TestCase):
     melody.from_event_list(events, start_step=9)
     melody.set_length(5)
     self.assertListEqual([60, NOTE_OFF, NO_EVENT, NO_EVENT, NO_EVENT],
-                         melody.events)
+                         list(melody))
     self.assertEquals(9, melody.start_step)
     self.assertEquals(14, melody.end_step)
 
@@ -648,7 +661,7 @@ class MelodyEncoderDecoderTest(tf.test.TestCase):
     melody.from_event_list(events, start_step=9)
     melody.set_length(5, from_left=True)
     self.assertListEqual([NO_EVENT, NO_EVENT, NO_EVENT, NO_EVENT, 60],
-                         melody.events)
+                         list(melody))
     self.assertEquals(5, melody.start_step)
     self.assertEquals(10, melody.end_step)
 
@@ -656,14 +669,14 @@ class MelodyEncoderDecoderTest(tf.test.TestCase):
     melody = melodies_lib.MonophonicMelody()
     melody.from_event_list(events)
     melody.set_length(3)
-    self.assertListEqual([60, NO_EVENT, NO_EVENT], melody.events)
+    self.assertListEqual([60, NO_EVENT, NO_EVENT], list(melody))
     self.assertEquals(0, melody.start_step)
     self.assertEquals(3, melody.end_step)
 
     melody = melodies_lib.MonophonicMelody()
     melody.from_event_list(events)
     melody.set_length(3, from_left=True)
-    self.assertListEqual([NO_EVENT, NO_EVENT, NOTE_OFF], melody.events)
+    self.assertListEqual([NO_EVENT, NO_EVENT, NOTE_OFF], list(melody))
     self.assertEquals(1, melody.start_step)
     self.assertEquals(4, melody.end_step)
 
