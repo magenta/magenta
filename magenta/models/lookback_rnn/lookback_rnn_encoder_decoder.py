@@ -118,7 +118,7 @@ class MelodyEncoderDecoder(melodies_lib.MelodyEncoderDecoder):
     input_ = [0.0] * self.input_size
 
     # Last event.
-    model_event = self.melody_event_to_model_event(melody.events[position])
+    model_event = self.melody_event_to_model_event(melody[position])
     input_[model_event] = 1.0
 
     # Next event if repeating N positions ago.
@@ -127,7 +127,7 @@ class MelodyEncoderDecoder(melodies_lib.MelodyEncoderDecoder):
       if lookback_position < 0:
         melody_event = NO_EVENT
       else:
-        melody_event = melody.events[lookback_position]
+        melody_event = melody[lookback_position]
       model_event = self.melody_event_to_model_event(melody_event)
       input_[i * self.num_model_events + model_event] = 1.0
 
@@ -140,7 +140,7 @@ class MelodyEncoderDecoder(melodies_lib.MelodyEncoderDecoder):
     for i, lookback_distance in enumerate(LOOKBACK_DISTANCES):
       lookback_position = position - lookback_distance
       if (lookback_position >= 0 and
-          melody.events[position] == melody.events[lookback_position]):
+          melody[position] == melody[lookback_position]):
         input_[3 * self.num_model_events + 5 + i] = 1.0
 
     return input_
@@ -171,19 +171,19 @@ class MelodyEncoderDecoder(melodies_lib.MelodyEncoderDecoder):
       A label, an int.
     """
     if (position < LOOKBACK_DISTANCES[-1] and
-        melody.events[position] == NO_EVENT):
+        melody[position] == NO_EVENT):
       return self.num_model_events + len(LOOKBACK_DISTANCES) - 1
 
     # If last step repeated N bars ago.
     for i, lookback_distance in reversed(list(enumerate(LOOKBACK_DISTANCES))):
       lookback_position = position - lookback_distance
       if (lookback_position >= 0 and
-          melody.events[position] == melody.events[lookback_position]):
+          melody[position] == melody[lookback_position]):
         return self.num_model_events + i
 
     # If last step didn't repeat at one of the lookback positions, use the
     # specific event.
-    return self.melody_event_to_model_event(melody.events[position])
+    return self.melody_event_to_model_event(melody[position])
 
   def class_index_to_melody_event(self, class_index, melody):
     """Returns the melody event for the given class index.
@@ -203,7 +203,7 @@ class MelodyEncoderDecoder(melodies_lib.MelodyEncoderDecoder):
       if class_index == self.num_model_events + i:
         if len(melody) < lookback_distance:
           return NO_EVENT
-        return melody.events[-lookback_distance]
+        return melody[-lookback_distance]
 
     # Return the melody event for that class index.
     return self.model_event_to_melody_event(class_index)
