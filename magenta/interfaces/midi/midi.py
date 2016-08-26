@@ -32,6 +32,7 @@ from magenta.models.basic_rnn import basic_rnn_generator
 from magenta.models.lookback_rnn import lookback_rnn_generator
 from magenta.protobuf import generator_pb2
 from magenta.protobuf import music_pb2
+from magenta.lib import sequence_generator_bundle
 
 FLAGS = tf.app.flags.FLAGS
 
@@ -93,7 +94,7 @@ tf.app.flags.DEFINE_string(
     'bundle_file',
     None,
     'The location of the bundle file to use. If specified, generator_name, '
-    'checkpoint, and hparams are not needed.')
+    'checkpoint, and hparams cannot be specified.')
 tf.app.flags.DEFINE_string(
     'generator_name',
     None,
@@ -171,22 +172,22 @@ class Generator(object):
     if not checkpoint and not bundle_file:
       raise GeneratorException(
           'No generator checkpoint or bundle location supplied.')
-    if checkpoint and bundle_file:
+    if (checkpoint or generator_name or hparams) and bundle_file:
       raise GeneratorException(
-          'Cannot specify both checkpoint and bundle files')
+          'Cannot specify both bundle file and checkpoint, generator_name, '
+          'or hparams')
 
+    bundle = None
     if bundle_file:
-      bundle = generator_pb2.Bundle()
-      with open(bundle_file, 'rb') as f:
-        bundle.ParseFromString(f.read())
-      generator_name = bundle.generator_id
+      bundle = sequence_generator_bundle.read_bundle_file(bundle_file)
+      generator_name = bundle.generator_details.id
 
     if generator_name not in _GENERATOR_FACTORY_MAP:
       raise GeneratorException('Invalid generator name given: %s',
                                generator_name)
 
     generator = _GENERATOR_FACTORY_MAP[generator_name].create_generator(
-        checkpoint=checkpoint, bundle_file=bundle_file, hparams=hparams)
+        checkpoint=checkpoint, bundle=bundle, hparams=hparams)
     generator.initialize()
 
     self._generator = generator

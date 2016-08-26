@@ -27,13 +27,15 @@ import tensorflow as tf
 
 from magenta.lib import melodies_lib
 from magenta.lib import midi_io
+from magenta.lib import sequence_generator
+from magenta.lib import sequence_generator_bundle
 from magenta.protobuf import generator_pb2
 
 FLAGS = tf.app.flags.FLAGS
-tf.app.flags.DEFINE_string('run_dir', '',
+tf.app.flags.DEFINE_string('run_dir', None,
                            'Path to the directory where the latest checkpoint '
                            'will be loaded from.')
-tf.app.flags.DEFINE_string('checkpoint_file', '',
+tf.app.flags.DEFINE_string('checkpoint_file', None,
                            'Path to the checkpoint file. run_dir will take '
                            'priority over this flag.')
 tf.app.flags.DEFINE_string(
@@ -98,14 +100,17 @@ def get_hparams():
 
 def get_checkpoint():
   """Get the training dir or checkpoint path to be used by the model."""
-  if FLAGS.bundle_file and not should_save_generator_bundle():
-    return None
+  if ((FLAGS.run_dir or FLAGS.checkpoint_file) and
+      FLAGS.bundle_file and not should_save_generator_bundle()):
+    raise sequence_generator.SequenceGeneratorException(
+        'Cannot specify both bundle_file and run_dir or checkpoint_file')
   if FLAGS.run_dir:
     train_dir = os.path.join(os.path.expanduser(FLAGS.run_dir), 'train')
     return train_dir
-  else:
+  elif FLAGS.checkpoint_file:
     return os.path.expanduser(FLAGS.checkpoint_file)
-
+  else:
+    return None
 
 def get_bundle_file():
   """Get the path to the bundle file with both a checkpoint and metagraph."""
@@ -114,6 +119,19 @@ def get_bundle_file():
   else:
     return os.path.expanduser(FLAGS.bundle_file)
 
+def get_bundle():
+  """Returns a generator_pb2.GeneratorBundle object based read from bundle_file.
+
+  Returns:
+    Either a generator_pb2.GeneratorBundle or None if the bundle_file flag is
+    not set or the save_generator_bundle flag is set.
+  """
+  if should_save_generator_bundle():
+    return None
+  bundle_file = get_bundle_file()
+  if bundle_file is None:
+    return None
+  return sequence_generator_bundle.read_bundle_file(bundle_file)
 
 def should_save_generator_bundle():
   """Returns whether the generator should save a bundle.

@@ -45,9 +45,8 @@ class BaseSequenceGenerator(object):
       checkpoint: Where to look for the most recent model checkpoint. Either a
           directory to be used with tf.train.latest_checkpoint or the path to a
           single checkpoint file. Or None if a bundle should be used.
-      bundle: Location of a serialized generator_pb2.Bundle file that contains
-          both a checkpoint and a metagraph. Or None if a checkpoint should be
-          used.
+      bundle: A generator_pb2.GeneratorBundle object that contains both a
+          checkpoint and a metagraph. Or None if a checkpoint should be used.
 
     Raises:
       SequenceGeneratorException: if neither checkpoint nor bundle is set.
@@ -59,6 +58,15 @@ class BaseSequenceGenerator(object):
     if self._checkpoint is None and self._bundle is None:
       raise SequenceGeneratorException(
           'Either checkpoint or bundle must be set')
+    if self._checkpoint is not None and self._bundle is not None:
+      raise SequenceGeneratorException(
+          'Checkpoint and bundle cannot both be set')
+
+    if self._bundle:
+      if self._bundle.generator_details.id != self._details.id:
+        raise SequenceGeneratorException(
+            'Generator id in bundle (%s) does not match this generator\'s id '
+            '(%s)' % (self._bundle.generator_details.id, self._details.id))
 
     self._initialized = False
 
@@ -133,8 +141,8 @@ class BaseSequenceGenerator(object):
     if self._initialized:
       return
 
-    # self._checkpoint takes priority over self._bundle because both flags are
-    # needed in order to save a generator to a bundle.
+    # Either self._checkpoint or self._bundle should be set.
+    # This is enforced by the constructor.
     if self._checkpoint is not None:
       if not tf.gfile.Exists(self._checkpoint):
         raise SequenceGeneratorException(
@@ -153,14 +161,6 @@ class BaseSequenceGenerator(object):
                 checkpoint_file, self._checkpoint))
       self._initialize_with_checkpoint(checkpoint_file)
     else:
-      # Read in bundle file.
-      if not os.path.exists(self._bundle):
-        raise SequenceGeneratorException(
-            'Bundle path does not exist: %s' % (self._bundle))
-      bundle = generator_pb2.Bundle()
-      with open(self._bundle, 'rb') as f:
-        bundle.ParseFromString(f.read())
-
       # Write checkpoint and metagraph files to a temp dir.
       tempdir = None
       try:
@@ -169,10 +169,10 @@ class BaseSequenceGenerator(object):
         with open(checkpoint_filename, 'wb') as f:
           # For now, we support only 1 checkpoint file.
           # If needed, we can later change this to support sharded checkpoints.
-          f.write(bundle.checkpoint_file[0])
+          f.write(self._bundle.checkpoint_file[0])
         metagraph_filename = os.path.join(tempdir, 'model.ckpt.meta')
         with open(metagraph_filename, 'wb') as f:
-          f.write(bundle.metagraph_file)
+          f.write(self._bundle.metagraph_file)
 
         self._initialize_with_checkpoint_and_metagraph(
             checkpoint_filename, metagraph_filename)
@@ -215,7 +215,7 @@ class BaseSequenceGenerator(object):
     return self._generate(generate_sequence_request)
 
   def create_bundle_file(self, bundle_file):
-    """Writes a generator_pb2.Bundle file in the specified location.
+    """Writes a generator_pb2.GeneratorBundle file in the specified location.
 
     Saves the checkpoint, metagraph, and generator id in one file.
 
@@ -245,8 +245,8 @@ class BaseSequenceGenerator(object):
         raise SequenceGeneratorException(
             'Could not read metagraph file: %s' % (metagraph_filename))
 
-      bundle = generator_pb2.Bundle()
-      bundle.generator_id = self.get_details().id
+      bundle = generator_pb2.GeneratorBundle()
+      bundle.generator_details.CopyFrom(self.get_details())
       with open(checkpoint_filename, 'rb') as f:
         bundle.checkpoint_file.append(f.read())
       with open(metagraph_filename, 'rb') as f:

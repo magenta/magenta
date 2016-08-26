@@ -35,8 +35,8 @@ class MelodyRnnSequenceGenerator(sequence_generator.BaseSequenceGenerator):
     Args:
       details: A generator_pb2.GeneratorDetails for this generator.
       checkpoint: Where to search for the most recent model checkpoint.
-      bundle: A bundle file to load that includes both the model checkpoint and
-          metagraph.
+      bundle: A generator_pb2.GeneratorBundle object that includes both the
+          model checkpoint and metagraph.
       melody_encoder_decoder: A melodies_lib.MelodyEncoderDecoder object
           specific to your model.
       build_graph: A function that when called, returns the tf.Graph object for
