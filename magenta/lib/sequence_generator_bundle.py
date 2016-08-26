@@ -18,9 +18,11 @@
 from google.protobuf import message
 from magenta.protobuf import generator_pb2
 
+
 class GeneratorBundleParseException(Exception):
   """Exception thrown when a bundle file cannot be parsed."""
   pass
+
 
 def read_bundle_file(bundle_file):
   # Read in bundle file.

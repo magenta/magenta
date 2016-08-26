@@ -27,12 +27,12 @@ import time
 import mido
 import tensorflow as tf
 
+from magenta.lib import sequence_generator_bundle
 from magenta.models.attention_rnn import attention_rnn_generator
 from magenta.models.basic_rnn import basic_rnn_generator
 from magenta.models.lookback_rnn import lookback_rnn_generator
 from magenta.protobuf import generator_pb2
 from magenta.protobuf import music_pb2
-from magenta.lib import sequence_generator_bundle
 
 FLAGS = tf.app.flags.FLAGS
 

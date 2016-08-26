@@ -22,6 +22,7 @@ from magenta.protobuf import generator_pb2
 
 
 class TestSequenceGenerator(sequence_generator.BaseSequenceGenerator):
+
   def __init__(self, checkpoint=None, bundle=None):
     details = generator_pb2.GeneratorDetails(
         id='test_generator',
@@ -47,6 +48,7 @@ class TestSequenceGenerator(sequence_generator.BaseSequenceGenerator):
 
 
 class SequenceGeneratorTest(tf.test.TestCase):
+
   def testSpecifyEitherCheckPointOrBundle(self):
     bundle = generator_pb2.GeneratorBundle(
         generator_details=generator_pb2.GeneratorDetails(

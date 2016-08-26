@@ -112,12 +112,14 @@ def get_checkpoint():
   else:
     return None
 
+
 def get_bundle_file():
   """Get the path to the bundle file with both a checkpoint and metagraph."""
   if FLAGS.bundle_file is None:
     return None
   else:
     return os.path.expanduser(FLAGS.bundle_file)
+
 
 def get_bundle():
   """Returns a generator_pb2.GeneratorBundle object based read from bundle_file.
@@ -132,6 +134,7 @@ def get_bundle():
   if bundle_file is None:
     return None
   return sequence_generator_bundle.read_bundle_file(bundle_file)
+
 
 def should_save_generator_bundle():
   """Returns whether the generator should save a bundle.
