@@ -1,0 +1,3 @@
+from magenta.models.lookback_rnn import lookback_rnn_encoder_decoder
+from magenta.models.lookback_rnn import lookback_rnn_generator
+from magenta.models.lookback_rnn import lookback_rnn_graph

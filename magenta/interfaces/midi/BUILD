@@ -22,9 +22,9 @@ py_binary(
     srcs = ["midi.py"],
     deps = [
         "//magenta/lib:sequence_generator_bundle",
-        "//magenta/models/attention_rnn:attention_rnn_generator",
-        "//magenta/models/basic_rnn:basic_rnn_generator",
-        "//magenta/models/lookback_rnn:lookback_rnn_generator",
+        "//magenta/models/attention_rnn",
+        "//magenta/models/basic_rnn",
+        "//magenta/models/lookback_rnn",
         "//magenta/protobuf:generator_py_pb2",
         "//magenta/protobuf:music_py_pb2",
         "@mido//:mido",

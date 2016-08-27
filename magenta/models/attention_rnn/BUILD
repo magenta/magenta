@@ -17,6 +17,18 @@
 
 licenses(["notice"])  # Apache 2.0
 
+py_library(
+    name = "attention_rnn",
+    srcs = ["__init__.py"],
+    srcs_version = "PY2AND3",
+    visibility = ["//magenta/interfaces:generator_interfaces"],
+    deps = [
+        ":attention_rnn_encoder_decoder",
+	":attention_rnn_generator",
+	":attention_rnn_graph",
+    ],
+)
+
 py_binary(
     name = "attention_rnn_create_dataset",
     srcs = ["attention_rnn_create_dataset.py"],
@@ -44,7 +56,6 @@ py_library(
     name = "attention_rnn_generator",
     srcs = ["attention_rnn_generator.py"],
     srcs_version = "PY2AND3",
-    visibility = ["//magenta/interfaces:generator_interfaces"],
     deps = [
         ":attention_rnn_encoder_decoder",
         ":attention_rnn_graph",
