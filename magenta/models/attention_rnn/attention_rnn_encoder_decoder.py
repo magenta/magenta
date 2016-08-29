@@ -219,7 +219,7 @@ class MelodyEncoderDecoder(melodies_lib.MelodyEncoderDecoder):
     """
     # Repeat N bars ago.
     for i, lookback_distance in reversed(list(enumerate(LOOKBACK_DISTANCES))):
-      if class_index == self.num_model_events + i:
+      if class_index == self.note_range + 2 + i:
         if len(melody) < lookback_distance:
           return NO_EVENT
         return melody[-lookback_distance]
