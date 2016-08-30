@@ -27,6 +27,7 @@ import time
 import mido
 import tensorflow as tf
 
+from magenta.lib import sequence_generator_bundle
 from magenta.models.attention_rnn import attention_rnn_generator
 from magenta.models.basic_rnn import basic_rnn_generator
 from magenta.models.lookback_rnn import lookback_rnn_generator
@@ -89,6 +90,11 @@ tf.app.flags.DEFINE_integer(
     0,
     'The velocity of the generated playback metronome '
     'expressed as an integer between 0 and 127.')
+tf.app.flags.DEFINE_string(
+    'bundle_file',
+    None,
+    'The location of the bundle file to use. If specified, generator_name, '
+    'checkpoint, and hparams cannot be specified.')
 tf.app.flags.DEFINE_string(
     'generator_name',
     None,
@@ -159,18 +165,29 @@ class Generator(object):
       generator_name,
       num_bars_to_generate,
       hparams,
-      checkpoint=None):
+      checkpoint=None,
+      bundle_file=None):
     self._num_bars_to_generate = num_bars_to_generate
+
+    if not checkpoint and not bundle_file:
+      raise GeneratorException(
+          'No generator checkpoint or bundle location supplied.')
+    if (checkpoint or generator_name or hparams) and bundle_file:
+      raise GeneratorException(
+          'Cannot specify both bundle file and checkpoint, generator_name, '
+          'or hparams.')
+
+    bundle = None
+    if bundle_file:
+      bundle = sequence_generator_bundle.read_bundle_file(bundle_file)
+      generator_name = bundle.generator_details.id
 
     if generator_name not in _GENERATOR_FACTORY_MAP:
       raise GeneratorException('Invalid generator name given: %s',
                                generator_name)
 
-    if not checkpoint:
-      raise GeneratorException('No generator checkpoint location supplied.')
-
     generator = _GENERATOR_FACTORY_MAP[generator_name].create_generator(
-        checkpoint, hparams=hparams)
+        checkpoint=checkpoint, bundle=bundle, hparams=hparams)
     generator.initialize()
 
     self._generator = generator
@@ -552,7 +569,8 @@ def main(unused_argv):
       FLAGS.generator_name,
       FLAGS.num_bars_to_generate,
       ast.literal_eval(FLAGS.hparams if FLAGS.hparams else '{}'),
-      FLAGS.checkpoint)
+      FLAGS.checkpoint,
+      FLAGS.bundle_file)
   hub = MonoMidiHub(FLAGS.input_port, FLAGS.output_port)
 
   stdout_write_and_flush('Waiting for start control signal...\n')

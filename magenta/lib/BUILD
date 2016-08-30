@@ -130,9 +130,30 @@ py_library(
 )
 
 py_library(
+    name = "sequence_generator_bundle",
+    srcs = ["sequence_generator_bundle.py"],
+    deps = [
+        "@protobuf//:protobuf_python",
+        "//magenta/protobuf:generator_py_pb2",
+        # tensorflow dep
+    ],
+)
+
+py_library(
     name = "sequence_generator",
     srcs = ["sequence_generator.py"],
     deps = [
+        "//magenta/protobuf:generator_py_pb2",
+        # tensorflow dep
+    ],
+)
+
+py_test(
+    name = "sequence_generator_test",
+    srcs = ["sequence_generator_test.py"],
+    deps = [
+        ":sequence_generator",
+        "//magenta/protobuf:generator_py_pb2",
         # tensorflow dep
     ],
 )
