@@ -17,7 +17,6 @@ Provides a uniform interface for interacting with generators for any model.
 """
 
 import abc
-import os
 
 # internal imports
 
@@ -89,14 +88,18 @@ class BaseSequenceGenerator(object):
       SequenceGeneratorException: If the checkpoint cannot be found.
     """
     if not self._initialized:
-      if not os.path.exists(self._checkpoint):
+      if not tf.gfile.Exists(self._checkpoint):
         raise SequenceGeneratorException(
             'Checkpoint path does not exist: %s' % (self._checkpoint))
       checkpoint_file = self._checkpoint
       # If this is a directory, try to determine the latest checkpoint in it.
-      if os.path.isdir(checkpoint_file):
+      if tf.gfile.IsDirectory(checkpoint_file):
         checkpoint_file = tf.train.latest_checkpoint(checkpoint_file)
-      if not os.path.isfile(checkpoint_file):
+      if checkpoint_file is None:
+        raise SequenceGeneratorException(
+            'No checkpoint file found in directory: %s' % self._checkpoint)
+      if (not tf.gfile.Exists(checkpoint_file) or
+          tf.gfile.IsDirectory(checkpoint_file)):
         raise SequenceGeneratorException(
             'Checkpoint path is not a file: %s (supplied path: %s)' % (
                 checkpoint_file, self._checkpoint))
