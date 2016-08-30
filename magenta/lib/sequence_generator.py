@@ -17,6 +17,7 @@ Provides a uniform interface for interacting with generators for any model.
 """
 
 import abc
+import os
 import shutil
 import tempfile
 
