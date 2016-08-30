@@ -58,7 +58,9 @@ message NoteSequence {
   // Source-related information.
   SourceInfo source_info = 13;
 
-  // Next tag: 12
+  // Arbitrary textual annotations.
+  repeated TextAnnotation text_annotations = 14;
+
   message Note {
     // MIDI pitch; see en.wikipedia.org/wiki/MIDI_Tuning_Standard for details.
     int32 pitch = 1;
@@ -242,6 +244,23 @@ message NoteSequence {
       UNKNOWN_PARSER = 0;
       MUSIC21 = 1;
       PRETTY_MIDI = 2;
+    }
+  }
+
+  // Stores an arbitrary text annotation associated with a point in time.
+  message TextAnnotation {
+    // Time in seconds.
+    double time = 1;
+    // Text of the annotation.
+    string text = 2;
+    // Type of the annotation, to assist with automated interpretation.
+    TextAnnotationType annotation_type = 3;
+
+    enum TextAnnotationType {
+      // Unknown annotation type.
+      UNKNOWN = 0;
+      // Chord symbol as used in lead sheets.
+      CHORD_SYMBOL = 1;
     }
   }
 }
