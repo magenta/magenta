@@ -54,6 +54,9 @@ Finally,
 [install TensorFlow](https://www.tensorflow.org/versions/master/get_started/os_setup.html).
 We require version 0.10 or later.
 
+Also, verify that your environment uses Python 2.7. We do aim to support
+Python 3 eventually, but it is currently experimental.
+
 After that's done, run the tests with this command:
 
 ```bazel test //magenta/...```
