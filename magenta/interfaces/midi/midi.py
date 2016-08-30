@@ -175,7 +175,7 @@ class Generator(object):
     if (checkpoint or generator_name or hparams) and bundle_file:
       raise GeneratorException(
           'Cannot specify both bundle file and checkpoint, generator_name, '
-          'or hparams')
+          'or hparams.')
 
     bundle = None
     if bundle_file:

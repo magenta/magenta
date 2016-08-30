@@ -135,6 +135,7 @@ py_library(
     deps = [
         "@protobuf//:protobuf_python",
         "//magenta/protobuf:generator_py_pb2",
+        # tensorflow dep
     ],
 )
 

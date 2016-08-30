@@ -15,6 +15,8 @@
 
 # internal imports
 
+import tensorflow as tf
+
 from google.protobuf import message
 from magenta.protobuf import generator_pb2
 
@@ -27,7 +29,7 @@ class GeneratorBundleParseException(Exception):
 def read_bundle_file(bundle_file):
   # Read in bundle file.
   bundle = generator_pb2.GeneratorBundle()
-  with open(bundle_file, 'rb') as f:
+  with tf.gfile.Open(bundle_file, 'rb') as f:
     try:
       bundle.ParseFromString(f.read())
     except message.DecodeError as e:

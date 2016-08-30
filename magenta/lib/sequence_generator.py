@@ -18,7 +18,6 @@ Provides a uniform interface for interacting with generators for any model.
 
 import abc
 import os
-import shutil
 import tempfile
 
 # internal imports
@@ -167,12 +166,12 @@ class BaseSequenceGenerator(object):
       try:
         tempdir = tempfile.mkdtemp()
         checkpoint_filename = os.path.join(tempdir, 'model.ckpt')
-        with open(checkpoint_filename, 'wb') as f:
+        with tf.gfile.Open(checkpoint_filename, 'wb') as f:
           # For now, we support only 1 checkpoint file.
           # If needed, we can later change this to support sharded checkpoints.
           f.write(self._bundle.checkpoint_file[0])
         metagraph_filename = os.path.join(tempdir, 'model.ckpt.meta')
-        with open(metagraph_filename, 'wb') as f:
+        with tf.gfile.Open(metagraph_filename, 'wb') as f:
           f.write(self._bundle.metagraph_file)
 
         self._initialize_with_checkpoint_and_metagraph(
@@ -180,7 +179,7 @@ class BaseSequenceGenerator(object):
       finally:
         # Clean up the temp dir.
         if tempdir is not None:
-          shutil.rmtree(tempdir)
+          tf.gfile.DeleteRecursively(tempdir)
     self._initialized = True
 
   def close(self):
@@ -248,13 +247,13 @@ class BaseSequenceGenerator(object):
 
       bundle = generator_pb2.GeneratorBundle()
       bundle.generator_details.CopyFrom(self.get_details())
-      with open(checkpoint_filename, 'rb') as f:
+      with tf.gfile.Open(checkpoint_filename, 'rb') as f:
         bundle.checkpoint_file.append(f.read())
-      with open(metagraph_filename, 'rb') as f:
+      with tf.gfile.Open(metagraph_filename, 'rb') as f:
         bundle.metagraph_file = f.read()
 
-      with open(bundle_file, 'wb') as f:
+      with tf.gfile.Open(bundle_file, 'wb') as f:
         f.write(bundle.SerializeToString())
     finally:
       if tempdir is not None:
-        shutil.rmtree(tempdir)
+        tf.gfile.DeleteRecursively(tempdir)
