@@ -52,9 +52,18 @@ message NoteSequence {
   repeated PitchBend pitch_bends = 10;
   repeated ControlChange control_changes = 11;
 
+  // Score-related information about parts.
+  repeated PartInfo parts_info = 12;
+
+  // Source-related information.
+  SourceInfo source_info = 13;
+
+  // Next tag: 11
   message Note {
     // MIDI pitch; see en.wikipedia.org/wiki/MIDI_Tuning_Standard for details.
     int32 pitch = 1;
+    // The notated pitch spelling in the score.
+    PitchName pitch_name = 10;
     // Velocity ranging between 0 and 127.
     int32 velocity = 2;
     // Start and end time in seconds.
@@ -71,6 +80,52 @@ message NoteSequence {
     int32 program = 8;
     // When true, the event is on an instrument that is a drum (MIDI channel 9).
     bool is_drum = 9;
+    // The part or voice index if this came from a score. Otherwise, just 0.
+    // For example, a score may have separate voices for Soprano, Alto, Tenor,
+    // Bass. This field allows that information to be retained.
+    int32 part = 9;
+  }
+
+  // Adopted from Musescore with start enum shifted to 0; see
+  // https://musescore.org/en/plugin-development/tonal-pitch-class-enum
+  // for details.
+  enum PitchName {
+    UNKNOWN_PITCH_NAME = 0;
+    F_FLAT_FLAT = 1;
+    C_FLAT_FLAT = 2;
+    G_FLAT_FLAT = 3;
+    D_FLAT_FLAT = 4;
+    A_FLAT_FLAT = 5;
+    E_FLAT_FLAT = 6;
+    B_FLAT_FLAT = 7;
+    F_FLAT = 8;
+    C_FLAT = 9;
+    G_FLAT = 10;
+    D_FLAT = 11;
+    A_FLAT = 12;
+    E_FLAT = 13;
+    B_FLAT = 14;
+    F = 15;
+    C = 16;
+    G = 17;
+    D = 18;
+    A = 19;
+    E = 20;
+    B = 21;
+    F_SHARP = 22;
+    C_SHARP = 23;
+    G_SHARP = 24;
+    D_SHARP = 25;
+    A_SHARP = 26;
+    E_SHARP = 27;
+    B_SHARP = 28;
+    F_SHARP_SHARP = 29;
+    C_SHARP_SHARP = 30;
+    G_SHARP_SHARP = 31;
+    D_SHARP_SHARP = 32;
+    A_SHARP_SHARP = 33;
+    E_SHARP_SHARP = 34;
+    B_SHARP_SHARP = 35;
   }
 
   message TimeSignature {
@@ -110,6 +165,7 @@ message NoteSequence {
     enum Mode {
       MAJOR = 0;
       MINOR = 1;
+      NOT_SPECIFIED = 2;
     }
   }
 
@@ -120,7 +176,7 @@ message NoteSequence {
     double qpm = 2;
   }
 
-  // Stores MIDI PitchBend data. See the MIDI specfication for details.
+  // Stores MIDI PitchBend data. See the MIDI specification for details.
   message PitchBend {
     // Time in seconds.
     double time = 1;
@@ -131,7 +187,7 @@ message NoteSequence {
     bool is_drum = 5;
   }
 
-  // Stores MIDI Control Change data. See the MIDI specfication for details.
+  // Stores MIDI Control Change data. See the MIDI specification for details.
   message ControlChange {
     // Time in seconds.
     double time = 1;
@@ -142,5 +198,50 @@ message NoteSequence {
     int32 instrument = 4;
     int32 program = 5;
     bool is_drum = 6;
+  }
+
+  // Stores score-related information about a particular part (sometimes also
+  // called track or voice).
+  message PartInfo {
+    // The part index.
+    int32 part = 1;
+    // The name of the part. Examples: "Soprano" or "Trumpet".
+    string name = 2;
+  }
+
+  // Stores source-related information.
+  message SourceInfo {
+    // The type of source, if it was score-based or performance-based.
+    SourceType source_type = 1;
+    // The encoding type used in the source file.
+    EncodingType encoding_type = 2;
+
+    // That parser that was used to parse the source file.
+    Parser parser = 3;
+
+    // The type of source that was encoded in the original file.
+    enum SourceType {
+      UNKNOWN_SOURCE_TYPE = 0;
+      // If the source was some kind of score (e.g., MusicXML, ABC, etc.).
+      // We can expect perfect timing alignment with measures and complete
+      // TimeSignature and KeySignature information.
+      SCORE_BASED = 1;
+      PERFORMANCE_BASED = 2;
+    }
+
+    // Enum for all encoding types, both score_based and performance_based.
+    enum EncodingType {
+      UNKNOWN_ENCODING_TYPE = 0;
+      MUSIC_XML = 1;
+      ABC = 2;
+      MIDI = 3;
+    }
+
+    // Name of parser used to parse the source file.
+    enum Parser {
+      UNKNOWN_PARSER = 0;
+      MUSIC21 = 1;
+      PRETTY_MIDI = 2;
+    }
   }
 }
