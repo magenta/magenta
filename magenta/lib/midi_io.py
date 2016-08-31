@@ -24,8 +24,6 @@ if sys.version_info.major <= 2:
 else:
   from io import StringIO
 
-
-# internal imports
 import pretty_midi
 import tensorflow as tf
 
@@ -80,6 +78,9 @@ def midi_to_sequence_proto(midi_data):
 
   # Populate header.
   sequence.ticks_per_beat = midi.resolution
+  sequence.source_info.parser = music_pb2.NoteSequence.SourceInfo.PRETTY_MIDI
+  sequence.source_info.encoding_type = (
+      music_pb2.NoteSequence.SourceInfo.MIDI)
 
   # Populate time signatures.
   for midi_time in midi.time_signature_changes:
