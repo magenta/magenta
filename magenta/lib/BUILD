@@ -29,6 +29,7 @@ py_library(
         ":sequence_example_lib",
         "//magenta/pipelines:statistics",
         "//magenta/protobuf:music_py_pb2",
+        # numpy dep
     ]
 )
 
@@ -41,7 +42,6 @@ py_test(
         ":sequence_example_lib",
         ":sequences_lib",
         ":testing_lib",
-        "@protobuf//:protobuf_python",
         # tensorflow dep
     ],
 )
@@ -92,6 +92,9 @@ py_library(
     name = "sequence_example_lib",
     srcs = ["sequence_example_lib.py"],
     srcs_version = "PY2AND3",
+    deps = [
+        # tensorflow dep
+    ],
 )
 
 py_library(
@@ -127,9 +130,30 @@ py_library(
 )
 
 py_library(
+    name = "sequence_generator_bundle",
+    srcs = ["sequence_generator_bundle.py"],
+    deps = [
+        "@protobuf//:protobuf_python",
+        "//magenta/protobuf:generator_py_pb2",
+        # tensorflow dep
+    ],
+)
+
+py_library(
     name = "sequence_generator",
     srcs = ["sequence_generator.py"],
     deps = [
+        "//magenta/protobuf:generator_py_pb2",
+        # tensorflow dep
+    ],
+)
+
+py_test(
+    name = "sequence_generator_test",
+    srcs = ["sequence_generator_test.py"],
+    deps = [
+        ":sequence_generator",
+        "//magenta/protobuf:generator_py_pb2",
         # tensorflow dep
     ],
 )

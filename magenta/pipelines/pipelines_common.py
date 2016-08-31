@@ -46,6 +46,8 @@ class Quantizer(pipeline.Pipeline):
       return [quantized_sequence]
     except sequences_lib.MultipleTimeSignatureException:
       tf.logging.debug('Multiple time signatures found in NoteSequence')
+      self._set_stats([statistics.Counter(
+          'sequences_discarded_because_multiple_time_signatures', 1)])
       return []
 
 
@@ -63,12 +65,17 @@ class MonophonicMelodyExtractor(pipeline.Pipeline):
     self.ignore_polyphonic_notes = False
 
   def transform(self, quantized_sequence):
-    melodies, stats = melodies_lib.extract_melodies(
-        quantized_sequence,
-        min_bars=self.min_bars,
-        min_unique_pitches=self.min_unique_pitches,
-        gap_bars=self.gap_bars,
-        ignore_polyphonic_notes=self.ignore_polyphonic_notes)
+    try:
+      melodies, stats = melodies_lib.extract_melodies(
+          quantized_sequence,
+          min_bars=self.min_bars,
+          min_unique_pitches=self.min_unique_pitches,
+          gap_bars=self.gap_bars,
+          ignore_polyphonic_notes=self.ignore_polyphonic_notes)
+    except melodies_lib.NonIntegerStepsPerBarException as detail:
+      tf.logging.warning('Skipped sequence: %s', detail)
+      melodies = []
+      stats = [statistics.Counter('non_integer_steps_per_bar', 1)]
     self._set_stats(stats)
     return melodies
 

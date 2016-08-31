@@ -21,6 +21,9 @@ py_binary(
     name = "basic_rnn_create_dataset",
     srcs = ["basic_rnn_create_dataset.py"],
     srcs_version = "PY2AND3",
+    visibility = [
+        # internal pipeline runner
+    ],
     deps = [
         ":basic_rnn_encoder_decoder",
         "//magenta/models/shared:melody_rnn_create_dataset",

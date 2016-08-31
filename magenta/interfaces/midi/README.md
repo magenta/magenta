@@ -16,7 +16,7 @@ Note that you can only interface with a trained models that have a
 
 Before using the interface, you will need to install some
 dependencies. We have provided instructions for both Macintosh OS X
-(El Capitan) and Ubuntu Linux.
+and Ubuntu Linux.
 
 For users of Macintosh OS X, the instructions below assume that you
 have installed [Homebrew](http://brew.sh).
@@ -143,7 +143,7 @@ using VPMK and FluidSynth, your command would look like this:
 ```bash
 $ bazel-bin/magenta/interfaces/midi/midi \
   --input_port="VMPK Output" \
-  --output_port="Fluidsynth virtual port" \
+  --output_port="FluidSynth virtual port" \
   --generator_name=attention_rnn \
   --checkpoint=/tmp/attention_rnn/logdir/run1/train \
   --hparams="{'batch_size':64,'rnn_layer_sizes':[64,64]}"

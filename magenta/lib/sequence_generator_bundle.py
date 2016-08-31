@@ -11,22 +11,27 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+"""Utility functions for handling bundle files."""
 
-# Description:
-# MIDI interface for Magenta generators.
+# internal imports
 
-licenses(["notice"])  # Apache 2.0
+import tensorflow as tf
 
-py_binary(
-    name = "midi",
-    srcs = ["midi.py"],
-    deps = [
-        "//magenta/lib:sequence_generator_bundle",
-        "//magenta/models/attention_rnn:attention_rnn_generator",
-        "//magenta/models/basic_rnn:basic_rnn_generator",
-        "//magenta/models/lookback_rnn:lookback_rnn_generator",
-        "//magenta/protobuf:generator_py_pb2",
-        "//magenta/protobuf:music_py_pb2",
-        "@mido//:mido",
-    ],
-)
+from google.protobuf import message
+from magenta.protobuf import generator_pb2
+
+
+class GeneratorBundleParseException(Exception):
+  """Exception thrown when a bundle file cannot be parsed."""
+  pass
+
+
+def read_bundle_file(bundle_file):
+  # Read in bundle file.
+  bundle = generator_pb2.GeneratorBundle()
+  with tf.gfile.Open(bundle_file, 'rb') as f:
+    try:
+      bundle.ParseFromString(f.read())
+    except message.DecodeError as e:
+      raise GeneratorBundleParseException(e)
+  return bundle

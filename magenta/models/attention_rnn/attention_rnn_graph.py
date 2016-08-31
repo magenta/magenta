@@ -15,6 +15,7 @@
 
 # internal imports
 import tensorflow as tf
+from tensorflow.python.util import nest
 
 from magenta.lib import sequence_example_lib
 from magenta.lib import tf_lib
@@ -167,10 +168,8 @@ def build_graph(mode, hparams_string, input_size, num_classes,
   return graph
 
 
-# pylint: disable=protected-access
-_is_sequence = tf.nn.rnn_cell._is_sequence
-_unpacked_state = tf.nn.rnn_cell._unpacked_state
-# pylint: enable=protected-access
+_is_sequence = nest.is_sequence
+_unpacked_state = nest.flatten
 
 
 # TODO(elliotwaite): Merge with tf.contrib.rnn.rnn_cell.AttentionCellWrapper

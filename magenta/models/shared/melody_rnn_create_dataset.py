@@ -17,6 +17,8 @@ This script will extract melodies from NoteSequence protos and save them to
 TensorFlow's SequenceExample protos for input to the melody RNN models.
 """
 
+import os
+
 # internal imports
 import tensorflow as tf
 
@@ -37,6 +39,9 @@ tf.app.flags.DEFINE_string('output_dir', None,
 tf.app.flags.DEFINE_float('eval_ratio', 0.0,
                           'Fraction of input to set aside for eval set. '
                           'Partition is randomly selected.')
+tf.app.flags.DEFINE_string('log', 'INFO',
+                           'The threshold for what messages will be logged '
+                           'DEBUG, INFO, WARN, ERROR, or FATAL.')
 
 
 class EncoderPipeline(pipeline.Pipeline):
@@ -92,7 +97,9 @@ def get_pipeline(melody_encoder_decoder):
 
 
 def run_from_flags(pipeline_instance):
-  tf.logging.set_verbosity(tf.logging.INFO)
+  tf.logging.set_verbosity(FLAGS.log)
+  FLAGS.input = os.path.expanduser(FLAGS.input)
+  FLAGS.output_dir = os.path.expanduser(FLAGS.output_dir)
   pipeline.run_pipeline_serial(
       pipeline_instance,
       pipeline.tf_record_iterator(FLAGS.input, pipeline_instance.input_type),

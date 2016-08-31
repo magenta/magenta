@@ -24,10 +24,14 @@ MIN_NOTE = 48  # Inclusive
 MAX_NOTE = 84  # Exclusive
 TRANSPOSE_TO_KEY = 0  # C Major
 
+# Must be sorted in ascending order.
+LOOKBACK_DISTANCES = [STEPS_PER_BAR, STEPS_PER_BAR * 2]
+
 # The number of special input indices and label values other than the events
 # in the note range.
 NUM_SPECIAL_INPUTS = 7
-NUM_SPECIAL_LABELS = 2
+NUM_SPECIAL_LABELS = len(LOOKBACK_DISTANCES)
+NUM_BINARY_TIME_COUNTERS = 5
 
 
 class MelodyEncoderDecoder(melodies_lib.MelodyEncoderDecoder):
@@ -85,8 +89,8 @@ class MelodyEncoderDecoder(melodies_lib.MelodyEncoderDecoder):
       return model_event - NUM_SPECIAL_EVENTS
     return model_event - NUM_SPECIAL_EVENTS + self.min_note
 
-  def melody_to_input(self, melody):
-    """Returns the input vector for the last event in the melody.
+  def melody_to_input(self, melody, position):
+    """Returns the input vector for the given position in the melody.
 
     Returns a self.input_size length list of floats. Assuming MIN_NOTE = 48
     and MAX_NOTE = 84, self.input_size will = 121. Each index represents a
@@ -106,6 +110,7 @@ class MelodyEncoderDecoder(melodies_lib.MelodyEncoderDecoder):
 
     Args:
       melody: A melodies_lib.MonophonicMelody object.
+      position: An integer position in the melody.
 
     Returns:
       An input vector, an self.input_size length list of floats.
@@ -113,53 +118,41 @@ class MelodyEncoderDecoder(melodies_lib.MelodyEncoderDecoder):
     input_ = [0.0] * self.input_size
 
     # Last event.
-    model_event = self.melody_event_to_model_event(
-        melody.events[-1] if len(melody) >= 1 else NO_EVENT)
+    model_event = self.melody_event_to_model_event(melody[position])
     input_[model_event] = 1.0
 
-    # Next event if repeating 1 bar ago.
-    if len(melody) < STEPS_PER_BAR:
-      melody_event = NO_EVENT
-    else:
-      melody_event = melody.events[-STEPS_PER_BAR]
-    model_event = self.melody_event_to_model_event(melody_event)
-    input_[self.num_model_events + model_event] = 1.0
+    # Next event if repeating N positions ago.
+    for i, lookback_distance in enumerate(LOOKBACK_DISTANCES):
+      lookback_position = position - lookback_distance + 1
+      if lookback_position < 0:
+        melody_event = NO_EVENT
+      else:
+        melody_event = melody[lookback_position]
+      model_event = self.melody_event_to_model_event(melody_event)
+      input_[i * self.num_model_events + model_event] = 1.0
 
-    # Next event if repeating 2 bars ago.
-    if len(melody) < STEPS_PER_BAR * 2:
-      melody_event = NO_EVENT
-    else:
-      melody_event = melody.events[-STEPS_PER_BAR * 2]
-    model_event = self.melody_event_to_model_event(melody_event)
-    input_[2 * self.num_model_events + model_event] = 1.0
+    # Binary time counter giving the metric location of the *next* note.
+    n = position + 1
+    for i in range(NUM_BINARY_TIME_COUNTERS):
+      input_[3 * self.num_model_events + i] = 1.0 if (n / 2 ** i) % 2 else -1.0
 
-    # Binary time counter.
-    i = len(melody) - 1
-    input_[3 * self.num_model_events + 0] = 1.0 if i % 2 else -1.0
-    input_[3 * self.num_model_events + 1] = 1.0 if i / 2 % 2 else -1.0
-    input_[3 * self.num_model_events + 2] = 1.0 if i / 4 % 2 else -1.0
-    input_[3 * self.num_model_events + 3] = 1.0 if i / 8 % 2 else -1.0
-    input_[3 * self.num_model_events + 4] = 1.0 if i / 16 % 2 else -1.0
-
-    # Last event is repeating 1 bar ago.
-    if (len(melody) >= STEPS_PER_BAR + 1 and
-        melody.events[-1] == melody.events[-(STEPS_PER_BAR + 1)]):
-      input_[3 * self.num_model_events + 5] = 1.0
-
-    # Last event is repeating 2 bars ago.
-    if (len(melody) >= 2 * STEPS_PER_BAR + 1 and
-        melody.events[-1] == melody.events[-(2 * STEPS_PER_BAR + 1)]):
-      input_[3 * self.num_model_events + 6] = 1.0
+    # Last event is repeating N bars ago.
+    for i, lookback_distance in enumerate(LOOKBACK_DISTANCES):
+      lookback_position = position - lookback_distance
+      if (lookback_position >= 0 and
+          melody[position] == melody[lookback_position]):
+        input_[3 * self.num_model_events + 5 + i] = 1.0
 
     return input_
 
-  def melody_to_label(self, melody):
-    """Returns the label for the last event in the melody.
+  def melody_to_label(self, melody, position):
+    """Returns the label for the given position in the melody.
 
     Returns an int the range [0, self.num_classes). Indices in the range
     [0, self.num_model_events) map to standard midi events. Indices
     self.num_model_events and self.num_model_events + 1 are signals to repeat
-    events from earlier in the melody.
+    events from earlier in the melody. More distant repeats are selected first
+    and standard midi events are selected last.
 
     Assuming MIN_NOTE = 48 and MAX_NOTE = 84, then self.num_classes = 40,
     self.num_model_events = 38, and the values will be as follows.
@@ -172,24 +165,25 @@ class MelodyEncoderDecoder(melodies_lib.MelodyEncoderDecoder):
 
     Args:
       melody: A melodies_lib.MonophonicMelody object.
+      position: An integer position in the melody.
 
     Returns:
       A label, an int.
     """
-    # If last step repeated 2 bars ago.
-    if ((len(melody.events) <= 2 * STEPS_PER_BAR and
-         melody.events[-1] == NO_EVENT) or
-        (len(melody.events) > 2 * STEPS_PER_BAR and
-         melody.events[-1] == melody.events[-(2 * STEPS_PER_BAR + 1)])):
-      return self.num_model_events + 1
+    if (position < LOOKBACK_DISTANCES[-1] and
+        melody[position] == NO_EVENT):
+      return self.num_model_events + len(LOOKBACK_DISTANCES) - 1
 
-    # If last step repeated 1 bar ago.
-    if (len(melody.events) > STEPS_PER_BAR and
-        melody.events[-1] == melody.events[-(STEPS_PER_BAR + 1)]):
-      return self.num_model_events
+    # If last step repeated N bars ago.
+    for i, lookback_distance in reversed(list(enumerate(LOOKBACK_DISTANCES))):
+      lookback_position = position - lookback_distance
+      if (lookback_position >= 0 and
+          melody[position] == melody[lookback_position]):
+        return self.num_model_events + i
 
-    # If last step didn't repeat 1 or 2 bars ago, use the specific event.
-    return self.melody_event_to_model_event(melody.events[-1])
+    # If last step didn't repeat at one of the lookback positions, use the
+    # specific event.
+    return self.melody_event_to_model_event(melody[position])
 
   def class_index_to_melody_event(self, class_index, melody):
     """Returns the melody event for the given class index.
@@ -204,17 +198,12 @@ class MelodyEncoderDecoder(melodies_lib.MelodyEncoderDecoder):
     Returns:
       A melodies_lib.MonophonicMelody event value.
     """
-    # Repeat 1 bar ago.
-    if class_index == self.num_model_events + 1:
-      if len(melody) < 2 * STEPS_PER_BAR:
-        return NO_EVENT
-      return melody.events[-(2 * STEPS_PER_BAR)]
-
-    # Repeat 2 bars ago.
-    if class_index == self.num_model_events:
-      if len(melody) < STEPS_PER_BAR:
-        return NO_EVENT
-      return melody.events[-STEPS_PER_BAR]
+    # Repeat N bar ago.
+    for i, lookback_distance in reversed(list(enumerate(LOOKBACK_DISTANCES))):
+      if class_index == self.num_model_events + i:
+        if len(melody) < lookback_distance:
+          return NO_EVENT
+        return melody[-lookback_distance]
 
     # Return the melody event for that class index.
     return self.model_event_to_melody_event(class_index)
