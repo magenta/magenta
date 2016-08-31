@@ -18,7 +18,7 @@
 package(
     default_visibility = [
         "//magenta/models:__subpackages__",
-        #internal dev models
+        # internal dev models
     ],
 )
 
