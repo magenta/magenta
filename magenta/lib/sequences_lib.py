@@ -94,8 +94,8 @@ class QuantizedSequence(object):
     the comments above `QUANTIZE_CUTOFF` for details.
     Args:
       note_sequence: A music_pb2.NoteSequence protocol buffer.
-      steps_per_quarter: Each quarter note of music will be divided into this many
-          quantized time steps.
+      steps_per_quarter: Each quarter note of music will be divided into this
+          many quantized time steps.
 
     Raises:
       MultipleTimeSignatureException: If there is more than one time signature
