@@ -35,6 +35,9 @@ py_library(
     name = "lookback_rnn_encoder_decoder",
     srcs = ["lookback_rnn_encoder_decoder.py"],
     srcs_version = "PY2AND3",
+    visibility = [
+        # internal dev models
+    ],
     deps = [
         "//magenta/lib:melodies_lib",
     ],
@@ -68,6 +71,9 @@ py_binary(
     name = "lookback_rnn_graph",
     srcs = ["lookback_rnn_graph.py"],
     srcs_version = "PY2AND3",
+    visibility = [
+        # internal dev models
+    ],
     deps = [
         "//magenta/lib:sequence_example_lib",
         "//magenta/lib:tf_lib",
