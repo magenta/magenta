@@ -31,8 +31,8 @@ class MelodiesLibTest(tf.test.TestCase):
 
   def setUp(self):
     self.quantized_sequence = sequences_lib.QuantizedSequence()
-    self.quantized_sequence.bpm = 60.0
-    self.quantized_sequence.steps_per_beat = 4
+    self.quantized_sequence.qpm = 60.0
+    self.quantized_sequence.steps_per_quarter = 4
 
   def testGetNoteHistogram(self):
     events = [NO_EVENT, NOTE_OFF, 12 * 2 + 1, 12 * 3, 12 * 5 + 11, 12 * 6 + 3,
@@ -280,7 +280,7 @@ class MelodiesLibTest(tf.test.TestCase):
 
   def testFromNotesStepsPerBar(self):
     self.quantized_sequence.time_signature = sequences_lib.TimeSignature(7, 8)
-    self.quantized_sequence.steps_per_beat = 12
+    self.quantized_sequence.steps_per_quarter = 12
     self.quantized_sequence.tracks[0] = []
     melody = melodies_lib.MonophonicMelody()
     melody.from_quantized_sequence(self.quantized_sequence,
@@ -317,7 +317,7 @@ class MelodiesLibTest(tf.test.TestCase):
     self.assertEqual(2, melody.end_step)
 
   def testExtractMelodiesSimple(self):
-    self.quantized_sequence.steps_per_beat = 1
+    self.quantized_sequence.steps_per_quarter = 1
     testing_lib.add_quantized_track(
         self.quantized_sequence, 0,
         [(12, 100, 2, 4), (11, 1, 6, 7)])
@@ -339,7 +339,7 @@ class MelodiesLibTest(tf.test.TestCase):
     self.assertEqual(expected, melodies)
 
   def testExtractMultipleMelodiesFromSameTrack(self):
-    self.quantized_sequence.steps_per_beat = 1
+    self.quantized_sequence.steps_per_quarter = 1
     testing_lib.add_quantized_track(
         self.quantized_sequence, 0,
         [(12, 100, 2, 4), (11, 1, 6, 11)])
@@ -359,7 +359,7 @@ class MelodiesLibTest(tf.test.TestCase):
     self.assertEqual(expected, melodies)
 
   def testExtractMelodiesMelodyTooShort(self):
-    self.quantized_sequence.steps_per_beat = 1
+    self.quantized_sequence.steps_per_quarter = 1
     testing_lib.add_quantized_track(
         self.quantized_sequence, 0,
         [(12, 127, 2, 4), (14, 50, 6, 7)])
@@ -375,7 +375,7 @@ class MelodiesLibTest(tf.test.TestCase):
     self.assertEqual(expected, melodies)
 
   def testExtractMelodiesPadEnd(self):
-    self.quantized_sequence.steps_per_beat = 1
+    self.quantized_sequence.steps_per_quarter = 1
     testing_lib.add_quantized_track(
         self.quantized_sequence, 0,
         [(12, 127, 2, 4), (14, 50, 6, 7)])
@@ -398,7 +398,7 @@ class MelodiesLibTest(tf.test.TestCase):
     self.assertEqual(expected, melodies)
 
   def testExtractMelodiesMelodyTooLong(self):
-    self.quantized_sequence.steps_per_beat = 1
+    self.quantized_sequence.steps_per_quarter = 1
     testing_lib.add_quantized_track(
         self.quantized_sequence, 0,
         [(12, 127, 2, 4), (14, 50, 6, 15)])
@@ -417,7 +417,7 @@ class MelodiesLibTest(tf.test.TestCase):
     self.assertEqual(expected, melodies)
 
   def testExtractMelodiesMelodyTooLongWithPad(self):
-    self.quantized_sequence.steps_per_beat = 1
+    self.quantized_sequence.steps_per_quarter = 1
     testing_lib.add_quantized_track(
         self.quantized_sequence, 0,
         [(12, 127, 2, 4), (14, 50, 6, 15)])
@@ -436,7 +436,7 @@ class MelodiesLibTest(tf.test.TestCase):
   def testExtractMelodiesTooFewPitches(self):
     # Test that extract_melodies discards melodies with too few pitches where
     # pitches are equivalent by octave.
-    self.quantized_sequence.steps_per_beat = 1
+    self.quantized_sequence.steps_per_quarter = 1
     testing_lib.add_quantized_track(
         self.quantized_sequence, 0,
         [(12, 100, 0, 1), (13, 100, 1, 2), (18, 100, 2, 3),
@@ -453,7 +453,7 @@ class MelodiesLibTest(tf.test.TestCase):
     self.assertEqual(expected, melodies)
 
   def testExtractMelodiesLateStart(self):
-    self.quantized_sequence.steps_per_beat = 1
+    self.quantized_sequence.steps_per_quarter = 1
     testing_lib.add_quantized_track(
         self.quantized_sequence, 0,
         [(12, 100, 102, 103), (13, 100, 104, 106)])
@@ -469,7 +469,7 @@ class MelodiesLibTest(tf.test.TestCase):
     self.assertEqual(expected, melodies)
 
   def testExtractMelodiesStatistics(self):
-    self.quantized_sequence.steps_per_beat = 1
+    self.quantized_sequence.steps_per_quarter = 1
     testing_lib.add_quantized_track(
         self.quantized_sequence, 0,
         [(12, 100, 2, 4), (11, 1, 6, 7), (10, 100, 8, 10), (9, 100, 11, 14),
@@ -688,11 +688,11 @@ class MelodyEncoderDecoderTest(tf.test.TestCase):
         velocity=10,
         instrument=1,
         sequence_start_time=2,
-        bpm=60.0)
+        qpm=60.0)
 
     self.assertProtoEquals(
-        'ticks_per_beat: 96 '
-        'tempos < bpm: 60.0 > '
+        'ticks_per_quarter: 96 '
+        'tempos < qpm: 60.0 > '
         'total_time: 3.75 '
         'notes < '
         '  pitch: 1 velocity: 10 instrument: 1 start_time: 2.25 end_time: 2.75 '
@@ -713,11 +713,11 @@ class MelodyEncoderDecoderTest(tf.test.TestCase):
         velocity=100,
         instrument=0,
         sequence_start_time=0,
-        bpm=60.0)
+        qpm=60.0)
 
     self.assertProtoEquals(
-        'ticks_per_beat: 96 '
-        'tempos < bpm: 60.0 > '
+        'ticks_per_quarter: 96 '
+        'tempos < qpm: 60.0 > '
         'total_time: 2.25 '
         'notes < pitch: 1 velocity: 100 start_time: 0.25 end_time: 0.75 > '
         'notes < pitch: 2 velocity: 100 start_time: 1.25 end_time: 1.5 > '
@@ -731,11 +731,11 @@ class MelodyEncoderDecoderTest(tf.test.TestCase):
         velocity=100,
         instrument=0,
         sequence_start_time=0.5,
-        bpm=60.0)
+        qpm=60.0)
 
     self.assertProtoEquals(
-        'ticks_per_beat: 96 '
-        'tempos < bpm: 60.0 > '
+        'ticks_per_quarter: 96 '
+        'tempos < qpm: 60.0 > '
         'total_time: 2.25 '
         'notes < pitch: 1 velocity: 100 start_time: 1.75 end_time: 2.25 > ',
         sequence)
@@ -746,11 +746,11 @@ class MelodyEncoderDecoderTest(tf.test.TestCase):
         velocity=10,
         instrument=1,
         sequence_start_time=2,
-        bpm=60.0)
+        qpm=60.0)
 
     self.assertProtoEquals(
-        'ticks_per_beat: 96 '
-        'tempos < bpm: 60.0 > ',
+        'ticks_per_quarter: 96 '
+        'tempos < qpm: 60.0 > ',
         sequence)
 
 if __name__ == '__main__':

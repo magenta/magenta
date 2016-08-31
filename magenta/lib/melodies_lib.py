@@ -54,9 +54,9 @@ MIN_MIDI_PITCH = 0  # Inclusive.
 MAX_MIDI_PITCH = 127  # Inclusive.
 NOTES_PER_OCTAVE = 12
 QUARTER_NOTES_PER_WHOLE_NOTE = 4.0
-DEFAULT_BEATS_PER_MINUTE = 120.0
-DEFAULT_STEPS_PER_BAR = 16  # 4/4 music sampled at 4 steps per beat.
-DEFAULT_STEPS_PER_BEAT = 4
+DEFAULT_QUARTERS_PER_MINUTE = 120.0
+DEFAULT_STEPS_PER_BAR = 16  # 4/4 music sampled at 4 steps per quarter note.
+DEFAULT_STEPS_PER_QUARTER = 4
 
 # Standard pulses per quarter.
 # https://en.wikipedia.org/wiki/Pulses_per_quarter_note
@@ -152,7 +152,7 @@ class MonophonicMelody(object):
     end_step: The offset to the beginning of the bar following the last step
        of the melody relative the beginning of the source sequence. Will always
        be the first step of a bar.
-    steps_per_beat: Number of steps in in a beat of music.
+    steps_per_quarter: Number of steps in in a quarter note.
     steps_per_bar: Number of steps in a bar (measure) of music.
   """
 
@@ -165,7 +165,7 @@ class MonophonicMelody(object):
     """Clear `events` and reset object state."""
     self._events = []
     self._steps_per_bar = DEFAULT_STEPS_PER_BAR
-    self._steps_per_beat = DEFAULT_STEPS_PER_BEAT
+    self._steps_per_quarter = DEFAULT_STEPS_PER_QUARTER
     self._start_step = 0
     self._end_step = 0
 
@@ -262,8 +262,8 @@ class MonophonicMelody(object):
     return self._steps_per_bar
 
   @property
-  def steps_per_beat(self):
-    return self._steps_per_beat
+  def steps_per_quarter(self):
+    return self._steps_per_quarter
 
   def get_note_histogram(self):
     """Gets a histogram of the note occurrences in a melody.
@@ -369,7 +369,7 @@ class MonophonicMelody(object):
 
     offset = None
     steps_per_bar_float = (
-        quantized_sequence.steps_per_beat *
+        quantized_sequence.steps_per_quarter *
         quantized_sequence.time_signature.numerator *
         QUARTER_NOTES_PER_WHOLE_NOTE /
         quantized_sequence.time_signature.denominator)
@@ -379,7 +379,7 @@ class MonophonicMelody(object):
           (steps_per_bar_float, quantized_sequence.time_signature.numerator,
            quantized_sequence.time_signature.denominator))
     self._steps_per_bar = steps_per_bar = int(steps_per_bar_float)
-    self._steps_per_beat = quantized_sequence.steps_per_beat
+    self._steps_per_quarter = quantized_sequence.steps_per_quarter
 
     # Sort track by note start times, and secondarily by pitch descending.
     notes = sorted(quantized_sequence.tracks[track],
@@ -448,14 +448,14 @@ class MonophonicMelody(object):
 
   def from_event_list(self, events, start_step=0,
                       steps_per_bar=DEFAULT_STEPS_PER_BAR,
-                      steps_per_beat=DEFAULT_STEPS_PER_BEAT):
+                      steps_per_quarter=DEFAULT_STEPS_PER_QUARTER):
     """Initialies with a list of event values and sets attributes appropriately.
 
     Args:
       events: List of MonophonicMelody events to set melody to.
       start_step: The integer starting step offset.
       steps_per_bar: The number of steps in a bar.
-      steps_per_beat: The number of steps in a beat.
+      steps_per_quarter: The number of steps in a quarter note.
 
     Raises:
       ValueError: If `events` contains an event that is not in the proper range.
@@ -467,13 +467,13 @@ class MonophonicMelody(object):
     self._start_step = start_step
     self._end_step = start_step + len(self)
     self._steps_per_bar = steps_per_bar
-    self._steps_per_beat = steps_per_beat
+    self._steps_per_quarter = steps_per_quarter
 
   def to_sequence(self,
                   velocity=100,
                   instrument=0,
                   sequence_start_time=0.0,
-                  bpm=120.0):
+                  qpm=120.0):
     """Converts the MonophonicMelody to NoteSequence proto.
 
     The end of the melody is treated as a NOTE_OFF event for any sustained
@@ -484,16 +484,16 @@ class MonophonicMelody(object):
       instrument: Midi instrument to give each note.
       sequence_start_time: A time in seconds (float) that the first note in the
           sequence will land on.
-      bpm: Beats per minute (float).
+      qpm: Quarter notes per minute (float).
 
     Returns:
       A NoteSequence proto encoding the given melody.
     """
-    seconds_per_step = 60.0 / bpm / self.steps_per_beat
+    seconds_per_step = 60.0 / qpm / self.steps_per_quarter
 
     sequence = music_pb2.NoteSequence()
-    sequence.tempos.add().bpm = bpm
-    sequence.ticks_per_beat = STANDARD_PPQ
+    sequence.tempos.add().qpm = qpm
+    sequence.ticks_per_quarter = STANDARD_PPQ
 
     sequence_start_time += self.start_step * seconds_per_step
     current_sequence_note = None

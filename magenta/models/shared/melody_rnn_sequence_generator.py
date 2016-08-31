@@ -29,7 +29,7 @@ class MelodyRnnSequenceGenerator(sequence_generator.BaseSequenceGenerator):
   """Shared Melody RNN generation code as a SequenceGenerator interface."""
 
   def __init__(self, details, checkpoint, bundle, melody_encoder_decoder,
-               build_graph, steps_per_beat, hparams):
+               build_graph, steps_per_quarter, hparams):
     """Creates a MelodyRnnSequenceGenerator.
 
     Args:
@@ -43,7 +43,8 @@ class MelodyRnnSequenceGenerator(sequence_generator.BaseSequenceGenerator):
           your model. The function will be passed the parameters:
           (mode, hparams_string, input_size, num_classes, sequence_example_file)
           For an example usage, see models/basic_rnn/basic_rnn_graph.py.
-      steps_per_beat: What precision to use when quantizing the melody.
+      steps_per_quarter: What precision to use when quantizing the melody. How
+          many steps per quarter note.
       hparams: A dict of hparams.
     """
     super(MelodyRnnSequenceGenerator, self).__init__(
@@ -51,7 +52,7 @@ class MelodyRnnSequenceGenerator(sequence_generator.BaseSequenceGenerator):
     self._melody_encoder_decoder = melody_encoder_decoder
     self._build_graph = build_graph
     self._session = None
-    self._steps_per_beat = steps_per_beat
+    self._steps_per_quarter = steps_per_quarter
 
     # Start with some defaults
     self._hparams = {
@@ -89,20 +90,20 @@ class MelodyRnnSequenceGenerator(sequence_generator.BaseSequenceGenerator):
     self._session.close()
     self._session = None
 
-  def _seconds_to_steps(self, seconds, bpm):
+  def _seconds_to_steps(self, seconds, qpm):
     """Converts seconds to steps.
 
-    Uses the generator's steps_per_beat setting and the specified bpm.
+    Uses the generator's steps_per_quarter setting and the specified qpm.
 
     Args:
       seconds: number of seconds.
-      bpm: current bpm.
+      qpm: current qpm.
 
     Returns:
       Number of steps the seconds represent.
     """
 
-    return int(seconds * (bpm / 60.0) * self._steps_per_beat)
+    return int(seconds * (qpm / 60.0) * self._steps_per_quarter)
 
   def _generate(self, generate_sequence_request):
     if len(generate_sequence_request.generator_options.generate_sections) != 1:
@@ -126,19 +127,19 @@ class MelodyRnnSequenceGenerator(sequence_generator.BaseSequenceGenerator):
     # Quantize the priming sequence.
     quantized_sequence = sequences_lib.QuantizedSequence()
     quantized_sequence.from_note_sequence(
-        primer_sequence, self._steps_per_beat)
+        primer_sequence, self._steps_per_quarter)
     # Setting gap_bars to infinite ensures that the entire input will be used.
     extracted_melodies, _ = melodies_lib.extract_melodies(
         quantized_sequence, min_bars=0, min_unique_pitches=1,
         gap_bars=float('inf'), ignore_polyphonic_notes=True)
     assert len(extracted_melodies) <= 1
 
-    bpm = (primer_sequence.tempos[0].bpm if primer_sequence
+    qpm = (primer_sequence.tempos[0].qpm if primer_sequence
            and primer_sequence.tempos
-           else melodies_lib.DEFAULT_BEATS_PER_MINUTE)
+           else melodies_lib.DEFAULT_QUARTERS_PER_MINUTE)
     start_step = self._seconds_to_steps(
-        generate_section.start_time_seconds, bpm)
-    end_step = self._seconds_to_steps(generate_section.end_time_seconds, bpm)
+        generate_section.start_time_seconds, qpm)
+    end_step = self._seconds_to_steps(generate_section.end_time_seconds, qpm)
 
     if extracted_melodies and extracted_melodies[0]:
       melody = extracted_melodies[0]
@@ -182,5 +183,5 @@ class MelodyRnnSequenceGenerator(sequence_generator.BaseSequenceGenerator):
     melody.transpose(-transpose_amount)
 
     generate_response = generator_pb2.GenerateSequenceResponse()
-    generate_response.generated_sequence.CopyFrom(melody.to_sequence(bpm=bpm))
+    generate_response.generated_sequence.CopyFrom(melody.to_sequence(qpm=qpm))
     return generate_response
