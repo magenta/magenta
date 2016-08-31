@@ -17,6 +17,18 @@
 
 licenses(["notice"])  # Apache 2.0
 
+py_library(
+    name = "basic_rnn",
+    srcs = ["__init__.py"],
+    srcs_version = "PY2AND3",
+    visibility = ["//magenta/interfaces:generator_interfaces"],
+    deps = [
+        ":basic_rnn_encoder_decoder",
+	":basic_rnn_generator",
+	":basic_rnn_graph",
+    ],
+)
+
 py_binary(
     name = "basic_rnn_create_dataset",
     srcs = ["basic_rnn_create_dataset.py"],

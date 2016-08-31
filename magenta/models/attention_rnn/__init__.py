@@ -1,0 +1,3 @@
+from magenta.models.attention_rnn import attention_rnn_encoder_decoder
+from magenta.models.attention_rnn import attention_rnn_generator
+from magenta.models.attention_rnn import attention_rnn_graph

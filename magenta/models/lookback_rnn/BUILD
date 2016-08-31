@@ -17,6 +17,18 @@
 
 licenses(["notice"])  # Apache 2.0
 
+py_library(
+    name = "lookback_rnn",
+    srcs = ["__init__.py"],
+    srcs_version = "PY2AND3",
+    visibility = ["//magenta/interfaces:generator_interfaces"],
+    deps = [
+        ":lookback_rnn_encoder_decoder",
+	":lookback_rnn_generator",
+	":lookback_rnn_graph",
+    ],
+)
+
 py_binary(
     name = "lookback_rnn_create_dataset",
     srcs = ["lookback_rnn_create_dataset.py"],
