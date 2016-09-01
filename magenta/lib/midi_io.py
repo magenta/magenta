@@ -24,6 +24,8 @@ if sys.version_info.major <= 2:
 else:
   from io import StringIO
 
+
+# internal imports
 import pretty_midi
 import tensorflow as tf
 
