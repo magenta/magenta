@@ -14,14 +14,13 @@
 """Tests to ensure correct extraction of music21 score objects."""
 
 
+import magenta.lib.pretty_music21 as pretty_music21
 from music21 import key
 from music21 import meter
 from music21 import note as music21_note
 from music21 import pitch
 from music21 import stream
 import tensorflow as tf
-
-import magenta.lib.pretty_music21 as pretty_music21
 
 
 class PrettyMusic21Test(tf.test.TestCase):

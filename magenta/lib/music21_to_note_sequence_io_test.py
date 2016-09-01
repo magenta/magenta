@@ -18,11 +18,11 @@ import os
 import music21
 import tensorflow as tf
 
+import magenta.lib.pretty_music21 as pretty_music21
 from magenta.lib.music21_to_note_sequence_io import _MUSIC21_TO_NOTE_SEQUENCE_MODE
 from magenta.lib.music21_to_note_sequence_io import _PRETTY_MUSIC21_TO_NOTE_SEQUENCE_KEY_NAME
 from magenta.lib.music21_to_note_sequence_io import music21_to_sequence_proto
 from magenta.lib.music21_to_note_sequence_io import pretty_music21_to_sequence_proto
-import magenta.lib.pretty_music21 as pretty_music21
 from magenta.protobuf import music_pb2
 
 
