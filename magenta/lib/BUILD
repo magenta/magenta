@@ -163,7 +163,7 @@ py_library(
     name = "pretty_music21",
     srcs = ["pretty_music21.py"],
     deps = [
-        # music21 dep
+        "@music21//:music21",
     ],
 )
 
@@ -190,7 +190,7 @@ py_test(
     srcs = ["pretty_music21_test.py"],
     deps = [
         ":pretty_music21",
-        # music21 dep
+        "@music21//:music21",
         # tensorflow dep
     ],
 )
