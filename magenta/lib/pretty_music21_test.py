@@ -13,7 +13,7 @@
 # limitations under the License.
 """Tests to ensure correct extraction of music21 score objects."""
 
-
+# internal imports
 import magenta.lib.pretty_music21 as pretty_music21
 from music21 import key
 from music21 import meter

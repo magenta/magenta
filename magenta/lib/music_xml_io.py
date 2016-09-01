@@ -6,6 +6,7 @@ Typical usage example:
 
 import os
 
+# internal imports
 import music21
 
 from magenta.lib.music21_to_note_sequence_io import music21_to_sequence_proto

@@ -20,6 +20,7 @@ support magenta.protobuf.NoteSequence.
 from collections import namedtuple
 import hashlib
 
+# internal imports
 import music21
 
 # Default bpm if tempo mark not available.
