@@ -16,7 +16,10 @@
 # Code shared by models.
 
 package(
-    default_visibility = ["//magenta/models:__subpackages__"],
+    default_visibility = [
+        "//magenta/models:__subpackages__",
+        # internal dev models
+    ],
 )
 
 licenses(["notice"])  # Apache 2.0
