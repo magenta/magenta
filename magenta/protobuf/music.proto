@@ -52,17 +52,17 @@ message NoteSequence {
   repeated ControlChange control_changes = 11;
 
   // Score-related information about parts.
-  repeated PartInfo parts_info = 12;
+  repeated PartInfo part_infos = 12;
 
   // Source-related information.
   SourceInfo source_info = 13;
 
-  // Next tag: 11
+  // Next tag: 12
   message Note {
     // MIDI pitch; see en.wikipedia.org/wiki/MIDI_Tuning_Standard for details.
     int32 pitch = 1;
     // The notated pitch spelling in the score.
-    PitchName pitch_name = 10;
+    PitchName pitch_name = 11;
     // Velocity ranging between 0 and 127.
     int32 velocity = 2;
     // Start and end time in seconds.
@@ -82,7 +82,7 @@ message NoteSequence {
     // The part or voice index if this came from a score. Otherwise, just 0.
     // For example, a score may have separate voices for Soprano, Alto, Tenor,
     // Bass. This field allows that information to be retained.
-    int32 part = 9;
+    int32 part = 10;
   }
 
   // Adopted from Musescore with start enum shifted to 0; see
@@ -197,51 +197,6 @@ message NoteSequence {
     int32 instrument = 4;
     int32 program = 5;
     bool is_drum = 6;
-  }
-
-  // Stores score-related information about a particular part (sometimes also
-  // called track or voice).
-  message PartInfo {
-    // The part index.
-    int32 part = 1;
-    // The name of the part. Examples: "Soprano" or "Trumpet".
-    string name = 2;
-  }
-
-  // Stores source-related information.
-  message SourceInfo {
-    // The type of source, if it was score-based or performance-based.
-    SourceType source_type = 1;
-    // The encoding type used in the source file.
-    EncodingType encoding_type = 2;
-
-    // That parser that was used to parse the source file.
-    Parser parser = 3;
-
-    // The type of source that was encoded in the original file.
-    enum SourceType {
-      UNKNOWN_SOURCE_TYPE = 0;
-      // If the source was some kind of score (e.g., MusicXML, ABC, etc.).
-      // We can expect perfect timing alignment with measures and complete
-      // TimeSignature and KeySignature information.
-      SCORE_BASED = 1;
-      PERFORMANCE_BASED = 2;
-    }
-
-    // Enum for all encoding types, both score_based and performance_based.
-    enum EncodingType {
-      UNKNOWN_ENCODING_TYPE = 0;
-      MUSIC_XML = 1;
-      ABC = 2;
-      MIDI = 3;
-    }
-
-    // Name of parser used to parse the source file.
-    enum Parser {
-      UNKNOWN_PARSER = 0;
-      MUSIC21 = 1;
-      PRETTY_MIDI = 2;
-    }
   }
 
   // Stores score-related information about a particular part (sometimes also
