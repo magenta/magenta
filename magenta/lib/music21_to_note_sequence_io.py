@@ -19,6 +19,7 @@
 from collections import OrderedDict
 import os
 
+# internal imports
 import magenta.lib.pretty_music21 as pretty_music21
 from magenta.protobuf import music_pb2
 
