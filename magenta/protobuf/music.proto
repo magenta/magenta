@@ -46,8 +46,8 @@ message NoteSequence {
   // The total time of the Sequence in seconds.
   double total_time = 9;
 
-  // MIDI-specific events that are generally relevant for performance and
-  // re-synthesis, but not for processing the music score.
+  // MIDI-specific events that are generally relevant for performance, metadata
+  // storage or re-synthesis but not for processing the music score.
   repeated PitchBend pitch_bends = 10;
   repeated ControlChange control_changes = 11;
 
@@ -62,10 +62,14 @@ message NoteSequence {
     // Score-relative note length. E.g. a quarter note is 1/4.
     int32 numerator = 5;
     int32 denominator = 6;
-    // The pretty_midi instrument index, which in py_midi is the channel.
+    // For MIDI source data, an instrument stores all events in a track having
+    // the same program and channel, as done by pretty-midi.
     int32 instrument = 7;
-    // MIDI program is the sound playing (e.g. harpsichord).
+    // A program selects an instrument's sound. E.g. program 12 is vibraphone in
+    // General MIDI. See www.midi.org/specifications/item/gm-level-1-sound-set.
     int32 program = 8;
+    // When true, the event is on an instrument that is a drum (MIDI channel 9).
+    bool is_drum = 9;
   }
 
   message TimeSignature {
@@ -123,6 +127,7 @@ message NoteSequence {
     int32 bend = 2;
     int32 instrument = 3;
     int32 program = 4;
+    bool is_drum = 5;
   }
 
   // Stores MIDI Control Change data. See the MIDI specfication for details.
@@ -135,5 +140,6 @@ message NoteSequence {
     int32 control_value = 3;
     int32 instrument = 4;
     int32 program = 5;
+    bool is_drum = 6;
   }
 }

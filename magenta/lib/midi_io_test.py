@@ -18,6 +18,7 @@ import os.path
 import tempfile
 
 # internal imports
+import midi as py_midi
 import pretty_midi
 import tensorflow as tf
 
@@ -46,6 +47,9 @@ class MidiIoTest(tf.test.TestCase):
     self.midi_complex_filename = os.path.join(
         tf.resource_loader.get_data_files_path(),
         '../testdata/example_complex.mid')
+    self.midi_is_drum_filename = os.path.join(
+        tf.resource_loader.get_data_files_path(),
+        '../testdata/example_is_drum.mid')
 
   def CheckPrettyMidiAndSequence(self, midi, sequence_proto):
     """Compares PrettyMIDI object against a sequence proto.
@@ -87,18 +91,20 @@ class MidiIoTest(tf.test.TestCase):
     seq_instruments = defaultdict(lambda: defaultdict(list))
     for seq_note in sequence_proto.notes:
       seq_instruments[
-          (seq_note.instrument, seq_note.program)]['notes'].append(seq_note)
+          (seq_note.instrument, seq_note.program, seq_note.is_drum)][
+              'notes'].append(seq_note)
     for seq_bend in sequence_proto.pitch_bends:
       seq_instruments[
-          (seq_bend.instrument, seq_bend.program)]['bends'].append(seq_bend)
+          (seq_bend.instrument, seq_bend.program, seq_bend.is_drum)][
+              'bends'].append(seq_bend)
     for seq_control in sequence_proto.control_changes:
       seq_instruments[
-          (seq_control.instrument, seq_control.program)][
+          (seq_control.instrument, seq_control.program, seq_control.is_drum)][
               'controls'].append(seq_control)
 
     sorted_seq_instrument_keys = sorted(
         seq_instruments.keys(),
-        key=lambda (instrument_id, program_id): (instrument_id, program_id))
+        key=lambda (instr, program, is_drum): (instr, program, is_drum))
 
     self.assertEqual(len(midi.instruments), len(seq_instruments))
     for midi_instrument, seq_instrument_key in zip(
@@ -164,6 +170,31 @@ class MidiIoTest(tf.test.TestCase):
 
   def testComplexSequenceToPrettyMidi(self):
     self.CheckSequenceToPrettyMidi(self.midi_complex_filename)
+
+  def testIsDrumDetection(self):
+    """Verify that is_drum instruments are properly tracked.
+
+    self.midi_is_drum_filename is a MIDI file containing two tracks
+    set to channel 9 (is_drum == True). Each contains one NoteOn. This
+    test is designed to catch a bug where the second track would lose
+    is_drum, remapping the drum track to an instrument track.
+    """
+    sequence_proto = midi_io.midi_file_to_sequence_proto(
+        self.midi_is_drum_filename)
+    with tempfile.NamedTemporaryFile(prefix='MidiDrumTest') as temp_file:
+      midi_io.sequence_proto_to_midi_file(sequence_proto, temp_file.name)
+      midi_data1 = py_midi.read_midifile(self.midi_is_drum_filename)
+      midi_data2 = py_midi.read_midifile(temp_file.name)
+
+    # Count number of channel 9 Note Ons.
+    channel_counts = [0, 0]
+    for index, midi_data in enumerate([midi_data1, midi_data2]):
+      for track in midi_data:
+        for event in track:
+          if (event.name == 'Note On' and
+              event.velocity > 0 and event.channel == 9):
+            channel_counts[index] += 1
+    self.assertEqual(channel_counts, [2, 2])
 
   # TODO(adarob): Uncomment once
   # https://github.com/craffel/pretty-midi/pull/67 is merged.
