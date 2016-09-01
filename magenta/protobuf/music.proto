@@ -243,4 +243,49 @@ message NoteSequence {
       PRETTY_MIDI = 2;
     }
   }
+
+  // Stores score-related information about a particular part (sometimes also
+  // called track or voice).
+  message PartInfo {
+    // The part index.
+    int32 part = 1;
+    // The name of the part. Examples: "Soprano" or "Trumpet".
+    string name = 2;
+  }
+
+  // Stores source-related information.
+  message SourceInfo {
+    // The type of source, if it was score-based or performance-based.
+    SourceType source_type = 1;
+    // The encoding type used in the source file.
+    EncodingType encoding_type = 2;
+
+    // That parser that was used to parse the source file.
+    Parser parser = 3;
+
+    // The type of source that was encoded in the original file.
+    enum SourceType {
+      UNKNOWN_SOURCE_TYPE = 0;
+      // If the source was some kind of score (e.g., MusicXML, ABC, etc.).
+      // We can expect perfect timing alignment with measures and complete
+      // TimeSignature and KeySignature information.
+      SCORE_BASED = 1;
+      PERFORMANCE_BASED = 2;
+    }
+
+    // Enum for all encoding types, both score_based and performance_based.
+    enum EncodingType {
+      UNKNOWN_ENCODING_TYPE = 0;
+      MUSIC_XML = 1;
+      ABC = 2;
+      MIDI = 3;
+    }
+
+    // Name of parser used to parse the source file.
+    enum Parser {
+      UNKNOWN_PARSER = 0;
+      MUSIC21 = 1;
+      PRETTY_MIDI = 2;
+    }
+  }
 }
