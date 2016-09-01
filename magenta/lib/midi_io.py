@@ -219,17 +219,19 @@ def sequence_proto_to_pretty_midi(sequence):
   for seq_note in sequence.notes:
     instrument_events[(seq_note.instrument, seq_note.program,
                        seq_note.is_drum)]['notes'].append(
-        pretty_midi.Note(seq_note.velocity, seq_note.pitch,
-                         seq_note.start_time, seq_note.end_time))
+                           pretty_midi.Note(
+                               seq_note.velocity, seq_note.pitch,
+                               seq_note.start_time, seq_note.end_time))
   for seq_bend in sequence.pitch_bends:
     instrument_events[(seq_bend.instrument, seq_bend.program,
                        seq_bend.is_drum)]['bends'].append(
-        pretty_midi.PitchBend(seq_bend.bend, seq_bend.time))
+                           pretty_midi.PitchBend(seq_bend.bend, seq_bend.time))
   for seq_cc in sequence.control_changes:
     instrument_events[(seq_cc.instrument, seq_cc.program,
                        seq_cc.is_drum)]['controls'].append(
-        pretty_midi.ControlChange(seq_cc.control_number,
-                                  seq_cc.control_value, seq_cc.time))
+                           pretty_midi.ControlChange(
+                               seq_cc.control_number,
+                               seq_cc.control_value, seq_cc.time))
 
   for (instr_id, prog_id, is_drum) in sorted(instrument_events.keys()):
     # For instr_id 0 append to the instrument created above.
