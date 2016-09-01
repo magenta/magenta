@@ -16,7 +16,7 @@
 import os
 
 # internal imports
-import magenta.lib.pretty_music21 as pretty_music21
+from magenta.lib import pretty_music21
 import music21
 import tensorflow as tf
 
