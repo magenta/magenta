@@ -115,6 +115,15 @@ class SequencesLibTest(tf.test.TestCase):
     quantized.from_note_sequence(self.note_sequence, self.steps_per_quarter)
     self.assertEqual(self.expected_quantized_sequence, quantized)
 
+  def testStepsPerBar(self):
+    quantized = sequences_lib.QuantizedSequence()
+    quantized.from_note_sequence(self.note_sequence, self.steps_per_quarter)
+    self.assertEqual(16, quantized.steps_per_bar())
+
+    self.note_sequence.time_signatures[0].numerator = 6
+    self.note_sequence.time_signatures[0].denominator = 8
+    quantized.from_note_sequence(self.note_sequence, self.steps_per_quarter)
+    self.assertEqual(12.0, quantized.steps_per_bar())
 
 if __name__ == '__main__':
   tf.test.main()

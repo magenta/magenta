@@ -368,11 +368,7 @@ class MonophonicMelody(object):
     self._reset()
 
     offset = None
-    steps_per_bar_float = (
-        quantized_sequence.steps_per_quarter *
-        quantized_sequence.time_signature.numerator *
-        QUARTER_NOTES_PER_WHOLE_NOTE /
-        quantized_sequence.time_signature.denominator)
+    steps_per_bar_float = quantized_sequence.steps_per_bar()
     if steps_per_bar_float % 1 != 0:
       raise NonIntegerStepsPerBarException(
           'There are %f timesteps per bar. Time signature: %d/%d' %

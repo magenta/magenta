@@ -78,6 +78,17 @@ class QuantizedSequence(object):
     self.time_signature = TimeSignature(4, 4)  # numerator, denominator
     self.steps_per_quarter = 4
 
+  def steps_per_bar(self):
+    """Calculates steps per bar.
+
+    Returns:
+      Steps per bar as a floating point number.
+    """
+    quarters_per_beat = 4.0 / self.time_signature.denominator
+    quarters_per_bar = (quarters_per_beat * self.time_signature.numerator)
+    steps_per_bar_float = (self.steps_per_quarter * quarters_per_bar)
+    return steps_per_bar_float
+
   def from_note_sequence(self, note_sequence, steps_per_quarter):
     """Populate self with a music_pb2.NoteSequence proto.
 
