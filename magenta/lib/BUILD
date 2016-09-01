@@ -30,7 +30,7 @@ py_library(
         "//magenta/pipelines:statistics",
         "//magenta/protobuf:music_py_pb2",
         # numpy dep
-    ]
+    ],
 )
 
 py_test(
@@ -52,6 +52,7 @@ py_library(
     srcs_version = "PY2AND3",
     deps = [
         "//magenta/protobuf:music_py_pb2",
+        "@midi//:midi",
         "@pretty_midi//:pretty_midi",
         # tensorflow dep
     ],
@@ -60,7 +61,7 @@ py_library(
 py_test(
     name = "midi_io_test",
     srcs = ["midi_io_test.py"],
-    data = ["//magenta/testdata:testdata"],
+    data = ["//magenta/testdata"],
     srcs_version = "PY2AND3",
     deps = [
         ":midi_io",
@@ -120,7 +121,7 @@ py_library(
     deps = [
         ":sequences_lib",
         "@protobuf//:protobuf_python",
-    ]
+    ],
 )
 
 py_library(
