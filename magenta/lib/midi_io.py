@@ -79,7 +79,7 @@ def midi_to_sequence_proto(midi_data):
   sequence = music_pb2.NoteSequence()
 
   # Populate header.
-  sequence.ticks_per_beat = midi.resolution
+  sequence.ticks_per_quarter = midi.resolution
 
   # Populate time signatures.
   for midi_time in midi.time_signature_changes:
@@ -102,11 +102,11 @@ def midi_to_sequence_proto(midi_data):
       raise MIDIConversionError('Invalid midi_mode %i' % midi_mode)
 
   # Populate tempo changes.
-  tempo_times, tempo_bpms = midi.get_tempo_changes()
-  for time_in_seconds, tempo_in_bpm in zip(tempo_times, tempo_bpms):
+  tempo_times, tempo_qpms = midi.get_tempo_changes()
+  for time_in_seconds, tempo_in_qpm in zip(tempo_times, tempo_qpms):
     tempo = sequence.tempos.add()
     tempo.time = time_in_seconds
-    tempo.bpm = tempo_in_bpm
+    tempo.qpm = tempo_in_qpm
 
   # Populate notes by first gathering them all from the midi's instruments, then
   # sorting them primarily by start and secondarily by end, and finally looping
@@ -180,8 +180,8 @@ def sequence_proto_to_pretty_midi(sequence):
 
   kwargs = {}
   if sequence.tempos and sequence.tempos[0].time == 0:
-    kwargs['initial_tempo'] = sequence.tempos[0].bpm
-  pm = pretty_midi.PrettyMIDI(resolution=sequence.ticks_per_beat, **kwargs)
+    kwargs['initial_tempo'] = sequence.tempos[0].qpm
+  pm = pretty_midi.PrettyMIDI(resolution=sequence.ticks_per_quarter, **kwargs)
 
   # Create an empty instrument to contain time and key signatures.
   instrument = pretty_midi.Instrument(0)
@@ -207,7 +207,7 @@ def sequence_proto_to_pretty_midi(sequence):
   # write tempo.
   if len(sequence.tempos) > 1:
     for seq_tempo in sequence.tempos[1:]:
-      tick_scale = 60.0 / (pm.resolution * seq_tempo.bpm)
+      tick_scale = 60.0 / (pm.resolution * seq_tempo.qpm)
       tick = pm.time_to_tick(seq_tempo.time)
       # pylint: disable=protected-access
       pm._PrettyMIDI__tick_scales.append((tick, tick_scale))

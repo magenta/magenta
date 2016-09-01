@@ -78,7 +78,7 @@ def get_pipeline(melody_encoder_decoder):
   Returns:
     A pipeline.Pipeline instance.
   """
-  quantizer = pipelines_common.Quantizer(steps_per_beat=4)
+  quantizer = pipelines_common.Quantizer(steps_per_quarter=4)
   melody_extractor = pipelines_common.MonophonicMelodyExtractor(
       min_bars=7, min_unique_pitches=5,
       gap_bars=1.0, ignore_polyphonic_notes=False)

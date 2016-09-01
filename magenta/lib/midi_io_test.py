@@ -77,14 +77,14 @@ class MidiIoTest(tf.test.TestCase):
       self.assertAlmostEqual(midi_key.time, sequence_key.time)
 
     # Test tempos.
-    midi_times, midi_bpms = midi.get_tempo_changes()
+    midi_times, midi_qpms = midi.get_tempo_changes()
     self.assertEqual(len(midi_times),
                      len(sequence_proto.tempos))
-    self.assertEqual(len(midi_bpms),
+    self.assertEqual(len(midi_qpms),
                      len(sequence_proto.tempos))
-    for midi_time, midi_bpm, sequence_tempo in zip(
-        midi_times, midi_bpms, sequence_proto.tempos):
-      self.assertAlmostEqual(midi_bpm, sequence_tempo.bpm)
+    for midi_time, midi_qpm, sequence_tempo in zip(
+        midi_times, midi_qpms, sequence_proto.tempos):
+      self.assertAlmostEqual(midi_qpm, sequence_tempo.qpm)
       self.assertAlmostEqual(midi_time, sequence_tempo.time)
 
     # Test instruments.

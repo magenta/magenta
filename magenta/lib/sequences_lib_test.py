@@ -24,7 +24,7 @@ from magenta.protobuf import music_pb2
 class SequencesLibTest(tf.test.TestCase):
 
   def setUp(self):
-    self.steps_per_beat = 4
+    self.steps_per_quarter = 4
     self.note_sequence = testing_lib.parse_test_proto(
         music_pb2.NoteSequence,
         """
@@ -32,15 +32,15 @@ class SequencesLibTest(tf.test.TestCase):
           numerator: 4
           denominator: 4}
         tempos: {
-          bpm: 60}""")
+          qpm: 60}""")
     self.expected_quantized_sequence = sequences_lib.QuantizedSequence()
-    self.expected_quantized_sequence.bpm = 60.0
-    self.expected_quantized_sequence.steps_per_beat = self.steps_per_beat
+    self.expected_quantized_sequence.qpm = 60.0
+    self.expected_quantized_sequence.steps_per_quarter = self.steps_per_quarter
 
   def testEq(self):
     left_hand = sequences_lib.QuantizedSequence()
-    left_hand.bpm = 123.0
-    left_hand.steps_per_beat = 7
+    left_hand.qpm = 123.0
+    left_hand.steps_per_quarter = 7
     left_hand.time_signature = sequences_lib.TimeSignature(7, 8)
     testing_lib.add_quantized_track(
         left_hand, 0,
@@ -52,8 +52,8 @@ class SequencesLibTest(tf.test.TestCase):
         left_hand, 3,
         [(1, 10, 0, 6), (2, 50, 20, 21), (0, 101, 17, 21)])
     right_hand = sequences_lib.QuantizedSequence()
-    right_hand.bpm = 123.0
-    right_hand.steps_per_beat = 7
+    right_hand.qpm = 123.0
+    right_hand.steps_per_quarter = 7
     right_hand.time_signature = sequences_lib.TimeSignature(7, 8)
     testing_lib.add_quantized_track(
         right_hand, 0,
@@ -76,7 +76,7 @@ class SequencesLibTest(tf.test.TestCase):
         [(12, 100, 0, 40), (11, 55, 1, 2), (40, 45, 10, 14),
          (55, 120, 16, 17), (52, 99, 19, 20)])
     quantized = sequences_lib.QuantizedSequence()
-    quantized.from_note_sequence(self.note_sequence, self.steps_per_beat)
+    quantized.from_note_sequence(self.note_sequence, self.steps_per_quarter)
     self.assertEqual(self.expected_quantized_sequence, quantized)
 
   def testRounding(self):
@@ -89,7 +89,7 @@ class SequencesLibTest(tf.test.TestCase):
         [(12, 100, 0, 1), (11, 100, 1, 2), (40, 100, 2, 3),
          (41, 100, 3, 5), (44, 100, 5, 7), (55, 100, 16, 17)])
     quantized = sequences_lib.QuantizedSequence()
-    quantized.from_note_sequence(self.note_sequence, self.steps_per_beat)
+    quantized.from_note_sequence(self.note_sequence, self.steps_per_quarter)
     self.assertEqual(self.expected_quantized_sequence, quantized)
 
   def testMultiTrack(self):
@@ -112,9 +112,18 @@ class SequencesLibTest(tf.test.TestCase):
         self.expected_quantized_sequence, 7,
         [(12, 100, 4, 20), (19, 100, 8, 16), (24, 100, 12, 14)])
     quantized = sequences_lib.QuantizedSequence()
-    quantized.from_note_sequence(self.note_sequence, self.steps_per_beat)
+    quantized.from_note_sequence(self.note_sequence, self.steps_per_quarter)
     self.assertEqual(self.expected_quantized_sequence, quantized)
 
+  def testStepsPerBar(self):
+    quantized = sequences_lib.QuantizedSequence()
+    quantized.from_note_sequence(self.note_sequence, self.steps_per_quarter)
+    self.assertEqual(16, quantized.steps_per_bar())
+
+    self.note_sequence.time_signatures[0].numerator = 6
+    self.note_sequence.time_signatures[0].denominator = 8
+    quantized.from_note_sequence(self.note_sequence, self.steps_per_quarter)
+    self.assertEqual(12.0, quantized.steps_per_bar())
 
 if __name__ == '__main__':
   tf.test.main()

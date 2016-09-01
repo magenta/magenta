@@ -148,7 +148,7 @@ Lets take a look at a real example. Magenta has `Quantizer` and `MonophonicMelod
 All of this is strung together in a `DAGPipeline` (code is [here](https://github.com/tensorflow/magenta/blob/master/magenta/models/shared/melody_rnn_create_dataset.py)). First each of the pipelines are intantiated with parameters:
 
 ```python
-quantizer = pipelines_common.Quantizer(steps_per_beat=4)
+quantizer = pipelines_common.Quantizer(steps_per_quarter=4)
 melody_extractor = pipelines_common.MonophonicMelodyExtractor(
     min_bars=7, min_unique_pitches=5,
     gap_bars=1.0, ignore_polyphonic_notes=False)
