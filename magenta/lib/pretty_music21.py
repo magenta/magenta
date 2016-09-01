@@ -218,7 +218,7 @@ class PrettyMusic21(object):
     return sorted(key_sig_changes, key=lambda x: x.time)
 
   @property
-  def parts_infos(self):
+  def part_infos(self):
     """Collects part information as global index in score and part name.
 
     Returns:

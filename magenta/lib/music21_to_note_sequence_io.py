@@ -217,8 +217,8 @@ def pretty_music21_to_sequence_proto(score, filename=None,
 
   # Populate part information.
   part_indices = []
-  for info in score.parts_infos:
-    parts_info = sequence.parts_info.add()
+  for info in score.part_infos:
+    parts_info = sequence.part_infos.add()
     parts_info.part = info.index
     parts_info.name = info.name
     part_indices.append(info.index)

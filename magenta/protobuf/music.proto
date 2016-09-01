@@ -53,17 +53,17 @@ message NoteSequence {
   repeated ControlChange control_changes = 11;
 
   // Score-related information about parts.
-  repeated PartInfo parts_info = 12;
+  repeated PartInfo part_infos = 12;
 
   // Source-related information.
   SourceInfo source_info = 13;
 
-  // Next tag: 11
+  // Next tag: 12
   message Note {
     // MIDI pitch; see en.wikipedia.org/wiki/MIDI_Tuning_Standard for details.
     int32 pitch = 1;
     // The notated pitch spelling in the score.
-    PitchName pitch_name = 10;
+    PitchName pitch_name = 11;
     // Velocity ranging between 0 and 127.
     int32 velocity = 2;
     // Start and end time in seconds.
@@ -83,7 +83,7 @@ message NoteSequence {
     // The part or voice index if this came from a score. Otherwise, just 0.
     // For example, a score may have separate voices for Soprano, Alto, Tenor,
     // Bass. This field allows that information to be retained.
-    int32 part = 9;
+    int32 part = 10;
   }
 
   // Adopted from Musescore with start enum shifted to 0; see
