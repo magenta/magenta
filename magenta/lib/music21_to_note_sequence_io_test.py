@@ -16,10 +16,10 @@
 import os
 
 # internal imports
-from magenta.lib import pretty_music21
 import music21
 import tensorflow as tf
 
+from magenta.lib import pretty_music21
 from magenta.lib.music21_to_note_sequence_io import _MUSIC21_TO_NOTE_SEQUENCE_MODE
 from magenta.lib.music21_to_note_sequence_io import _PRETTY_MUSIC21_TO_NOTE_SEQUENCE_KEY_NAME
 from magenta.lib.music21_to_note_sequence_io import music21_to_sequence_proto
