@@ -113,10 +113,10 @@ class Music21ScoretoNoteSequenceTest(tf.test.TestCase):
 
     # Test part info.
     self.assertEqual(len(score.part_infos), len(sequence_proto.part_infos))
-    for score_part_infos, sequence_parts_info in zip(
+    for score_part_infos, sequence_part_infos in zip(
         score.part_infos, sequence_proto.part_infos):
-      self.assertEqual(score_part_infos.index, sequence_parts_info.part)
-      self.assertEqual(score_part_infos.name, sequence_parts_info.name)
+      self.assertEqual(score_part_infos.index, sequence_part_infos.part)
+      self.assertEqual(score_part_infos.name, sequence_part_infos.name)
 
     # Test parts and notes.
     for score_note, sequence_note in zip(score.sorted_notes,

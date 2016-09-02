@@ -24,7 +24,7 @@ import hashlib
 import music21
 
 # Default qpm if tempo mark not available.
-_DEFAULT_BPM = 120
+_DEFAULT_QPM = 120
 
 TimeSignature = namedtuple('TimeSignature',
                            ['time', 'numerator', 'denominator'])
@@ -186,7 +186,7 @@ class PrettyMusic21(object):
 
   @property
   def tempo_changes(self):
-    """Collects unique tempo changes. If no tempo, defaults to _DEFAULT_BPM.
+    """Collects unique tempo changes. If no tempo, defaults to _DEFAULT_QPM.
 
     Returns:
       A list of unique Tempo namedtuples, sorted by the time attribute.
@@ -198,7 +198,7 @@ class PrettyMusic21(object):
         tempo_change = Tempo(global_time, metronome_mark.number)
         tempo_changes.add(tempo_change)
     if not tempo_changes:
-      tempo_changes.add(Tempo(0, _DEFAULT_BPM))
+      tempo_changes.add(Tempo(0, _DEFAULT_QPM))
     return sorted(tempo_changes, key=lambda x: x.time)
 
   @property
@@ -269,7 +269,7 @@ class PrettyMusic21(object):
     return sorted(flatted_notes, key=lambda x: x.start_time)
 
   def _convert_time(self, quarter_length):
-    """Transforms quarter-note counts into seconds according to _DEFAULT_BPM.
+    """Transforms quarter-note counts into seconds according to _DEFAULT_QPM.
 
     Args:
       quarter_length: A float that specifies duration in quarter-note units.
@@ -279,4 +279,4 @@ class PrettyMusic21(object):
     """
     # TODO(annahuang): Take tempo change into account.
     # Time is in quarter-note counts from the beginning of the score.
-    return quarter_length * 60.0 / _DEFAULT_BPM
+    return quarter_length * 60.0 / _DEFAULT_QPM
