@@ -191,6 +191,14 @@ class MonophonicMelody(object):
     """
     return len(self._events)
 
+  def __deepcopy__(self, unused_memo=None):
+    new_copy = type(self)()
+    new_copy.from_event_list(list(self._events),
+                             self.start_step,
+                             self.steps_per_bar,
+                             self.steps_per_quarter)
+    return new_copy
+
   def __eq__(self, other):
     if not isinstance(other, MonophonicMelody):
       return False
@@ -250,12 +258,7 @@ class MonophonicMelody(object):
 
   def deepcopy(self):
     """Returns a deep copy of this MonphonicMelody object."""
-    new_copy = type(self)()
-    new_copy.from_event_list(list(self._events),
-                             self.start_step,
-                             self.steps_per_bar,
-                             self.steps_per_quarter)
-    return new_copy
+    return self.__deepcopy__()
 
   @property
   def start_step(self):
