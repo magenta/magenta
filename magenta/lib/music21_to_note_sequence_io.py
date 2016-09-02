@@ -20,8 +20,8 @@ from collections import OrderedDict
 import os
 
 # internal imports
-from magenta.lib.pretty_music21 import pretty_music21
 from magenta.protobuf import music_pb2
+from magenta.lib import pretty_music21
 
 
 _DEFAULT_VELOCITY = 120
