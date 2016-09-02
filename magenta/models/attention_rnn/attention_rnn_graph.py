@@ -93,6 +93,8 @@ def build_graph(mode, hparams_string, input_size, num_classes,
       cells.append(cell)
 
     cell = tf.nn.rnn_cell.MultiRNNCell(cells, state_is_tuple=state_is_tuple)
+    cell = AttentionCellWrapper(cell, hparams.attn_length,
+                                state_is_tuple=state_is_tuple)
 
     initial_state = cell.zero_state(hparams.batch_size, tf.float32)
 
