@@ -108,7 +108,7 @@ class Music21ScoretoNoteSequenceTest(tf.test.TestCase):
     self.assertEqual(len(score.tempo_changes), len(sequence_proto.tempos))
     for score_tempo, sequence_tempo in zip(score.tempo_changes,
                                            sequence_proto.tempos):
-      self.assertAlmostEqual(score_tempo.bpm, sequence_tempo.bpm)
+      self.assertAlmostEqual(score_tempo.qpm, sequence_tempo.qpm)
       self.assertAlmostEqual(score_tempo.time, sequence_tempo.time)
 
     # Test part info.

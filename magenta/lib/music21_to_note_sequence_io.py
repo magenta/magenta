@@ -181,8 +181,8 @@ def pretty_music21_to_sequence_proto(score, filename=None,
 
   sequence.source_info.parser = music_pb2.NoteSequence.SourceInfo.MUSIC21
 
-  # Set ticks per beat as ticks per quarter note.
-  sequence.ticks_per_beat = _TICKS_PER_QUARTER_NOTE
+  # Set ticks per quarter as ticks per quarter note.
+  sequence.ticks_per_quarter = _TICKS_PER_QUARTER_NOTE
 
   # TODO(annahuang): All time in quarter note length, include performance time.
   sequence.total_time = score.total_time
@@ -213,7 +213,7 @@ def pretty_music21_to_sequence_proto(score, filename=None,
   for tempo_change in score.tempo_changes:
     tempo = sequence.tempos.add()
     tempo.time = tempo_change.time
-    tempo.bpm = tempo_change.bpm
+    tempo.qpm = tempo_change.qpm
 
   # Populate part information.
   part_indices = []

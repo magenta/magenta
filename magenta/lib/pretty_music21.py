@@ -23,12 +23,12 @@ import hashlib
 # internal imports
 import music21
 
-# Default bpm if tempo mark not available.
+# Default qpm if tempo mark not available.
 _DEFAULT_BPM = 120
 
 TimeSignature = namedtuple('TimeSignature',
                            ['time', 'numerator', 'denominator'])
-Tempo = namedtuple('Tempo', ['time', 'bpm'])
+Tempo = namedtuple('Tempo', ['time', 'qpm'])
 KeySignature = namedtuple('KeySignature', ['time', 'key', 'num_sharps', 'mode',
                                            'tonic_pitchclass'])
 PartInfo = namedtuple('PartInfo', ['index', 'name'])
