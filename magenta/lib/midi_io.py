@@ -80,6 +80,9 @@ def midi_to_sequence_proto(midi_data):
 
   # Populate header.
   sequence.ticks_per_quarter = midi.resolution
+  sequence.source_info.parser = music_pb2.NoteSequence.SourceInfo.PRETTY_MIDI
+  sequence.source_info.encoding_type = (
+      music_pb2.NoteSequence.SourceInfo.MIDI)
 
   # Populate time signatures.
   for midi_time in midi.time_signature_changes:
