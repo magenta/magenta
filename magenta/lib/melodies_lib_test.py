@@ -147,6 +147,16 @@ class MelodiesLibTest(tf.test.TestCase):
     expected = [12 * 5 + 4, 12 * 5 + 6, 12 * 5 + 9, 12 * 5 + 8, 12 * 5 + 1]
     self.assertEqual(expected, list(melody))
 
+  def testCopy(self):
+    melody = melodies_lib.MonophonicMelody()
+    melody.from_event_list([0, 1, 2], start_step=0, steps_per_quarter=4,
+                           steps_per_bar=8)
+    melody_copy = melody.copy()
+    self.assertEqual(melody, melody_copy)
+
+    melody.set_length(2)
+    self.assertNotEqual(melody, melody_copy)
+
   def testSquashCenterOctaves(self):
     # Move up an octave.
     events = [12 * 4, NO_EVENT, 12 * 4 + 2, NOTE_OFF, 12 * 4 + 4, NO_EVENT,
