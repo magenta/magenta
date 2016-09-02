@@ -89,7 +89,12 @@ def midi_to_sequence_proto(midi_data):
     time_signature = sequence.time_signatures.add()
     time_signature.time = midi_time.time
     time_signature.numerator = midi_time.numerator
-    time_signature.denominator = midi_time.denominator
+    try:
+      # Denominator can be too large for int32.
+      time_signature.denominator = midi_time.denominator
+    except ValueError:
+      raise MIDIConversionError('Invalid time signature denominator %d' %
+                                midi_time.denominator)
 
   # Populate key signatures.
   for midi_key in midi.key_signature_changes:
