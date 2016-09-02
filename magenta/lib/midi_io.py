@@ -79,7 +79,7 @@ def midi_to_sequence_proto(midi_data):
   sequence = music_pb2.NoteSequence()
 
   # Populate header.
-  sequence.ticks_per_beat = midi.resolution
+  sequence.ticks_per_quarter = midi.resolution
   sequence.source_info.parser = music_pb2.NoteSequence.SourceInfo.PRETTY_MIDI
   sequence.source_info.encoding_type = (
       music_pb2.NoteSequence.SourceInfo.MIDI)
