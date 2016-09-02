@@ -191,12 +191,6 @@ class MonophonicMelody(object):
     """
     return len(self._events)
 
-  def __copy__(self):
-    new_copy = type(self)()
-    new_copy.from_event_list(self._events, self.start_step, self.steps_per_bar,
-                             self.steps_per_quarter)
-    return new_copy
-
   def __eq__(self, other):
     if not isinstance(other, MonophonicMelody):
       return False
@@ -254,9 +248,14 @@ class MonophonicMelody(object):
         return (i, last_off)
     raise ValueError('No events in the stream')
 
-  def copy(self):
+  def deepcopy(self):
     """Returns a deep copy of this MonphonicMelody object."""
-    return self.__copy__()
+    new_copy = type(self)()
+    new_copy.from_event_list(list(self._events),
+                             self.start_step,
+                             self.steps_per_bar,
+                             self.steps_per_quarter)
+    return new_copy
 
   @property
   def start_step(self):
