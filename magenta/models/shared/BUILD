@@ -87,3 +87,15 @@ py_library(
     ],
 )
 
+py_library(
+    name = "melody_rnn_graph",
+    srcs = ["melody_rnn_graph.py"],
+    srcs_version = "PY2AND3",
+    visibility = [
+        # internal dev models
+    ],
+    deps = [
+        "//magenta/lib:sequence_example_lib",
+        # tensorflow dep
+    ],
+)

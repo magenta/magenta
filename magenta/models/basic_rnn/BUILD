@@ -67,7 +67,7 @@ py_binary(
     ],
 )
 
-py_binary(
+py_library(
     name = "basic_rnn_graph",
     srcs = ["basic_rnn_graph.py"],
     srcs_version = "PY2AND3",
@@ -75,8 +75,8 @@ py_binary(
         # internal dev models
     ],
     deps = [
-        "//magenta/lib:sequence_example_lib",
         "//magenta/lib:tf_lib",
+        "//magenta/models/shared:melody_rnn_graph",
         # tensorflow dep
     ],
 )
