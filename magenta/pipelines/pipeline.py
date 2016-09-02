@@ -307,7 +307,10 @@ def tf_record_iterator(tfrecord_file, proto):
     yield proto.FromString(raw_bytes)
 
 
-def run_pipeline_serial(pipeline, input_iterator, output_dir):
+def run_pipeline_serial(pipeline,
+                        input_iterator,
+                        output_dir,
+                        output_file_base=None):
   """Runs the a pipeline on a data source and writes to a directory.
 
   Run the the pipeline on each input from the iterator one at a time.
@@ -326,6 +329,8 @@ def run_pipeline_serial(pipeline, input_iterator, output_dir):
     output_dir: Path to directory where datasets will be written. Each dataset
         is a file whose name contains the pipeline's dataset name. If the
         directory does not exist, it will be created.
+    output_file_base: An optional string prefix for all datasets output by this
+        run. The prefix will also be followed by an underscore.
 
   Raises:
     ValueError: If any of `pipeline`'s output types do not have a
@@ -348,8 +353,14 @@ def run_pipeline_serial(pipeline, input_iterator, output_dir):
 
   output_names = pipeline.output_type_as_dict.keys()
 
-  output_paths = [os.path.join(output_dir, name + '.tfrecord')
-                  for name in output_names]
+  if output_file_base is None:
+    output_paths = [os.path.join(output_dir, name + '.tfrecord')
+                    for name in output_names]
+  else:
+    output_paths = [os.path.join(output_dir,
+                                 '%s_%s.tfrecord' % (output_file_base, name))
+                    for name in output_names]
+
   writers = dict([(name, tf.python_io.TFRecordWriter(path))
                   for name, path in zip(output_names, output_paths)])
 
