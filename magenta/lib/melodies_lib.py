@@ -193,8 +193,8 @@ class MonophonicMelody(object):
 
   def __copy__(self):
     new_copy = type(self)()
-    new_copy.from_event_list(self._events, self.start_step,  self.steps_per_bar,
-                            self.steps_per_quarter)
+    new_copy.from_event_list(self._events, self.start_step, self.steps_per_bar,
+                             self.steps_per_quarter)
     return new_copy
 
   def __eq__(self, other):
