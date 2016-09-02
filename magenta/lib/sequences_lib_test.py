@@ -125,5 +125,22 @@ class SequencesLibTest(tf.test.TestCase):
     quantized.from_note_sequence(self.note_sequence, self.steps_per_quarter)
     self.assertEqual(12.0, quantized.steps_per_bar())
 
+  def testDeepcopy(self):
+    quantized = sequences_lib.QuantizedSequence()
+    testing_lib.add_track(
+        self.note_sequence, 0,
+        [(12, 100, 0.01, 10.0), (11, 55, 0.22, 0.50), (40, 45, 2.50, 3.50),
+         (55, 120, 4.0, 4.01), (52, 99, 4.75, 5.0)])
+    quantized.from_note_sequence(self.note_sequence, self.steps_per_quarter)
+
+    quantized_copy = quantized.deepcopy()
+    self.assertEqual(quantized, quantized_copy)
+
+    testing_lib.add_quantized_track(
+        self.quantized, 1,
+        [(12, 100, 4, 20), (19, 100, 8, 16), (24, 100, 12, 14)])
+
+    self.assertNotEqual(quantized, quantized_copy)
+
 if __name__ == '__main__':
   tf.test.main()

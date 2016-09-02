@@ -174,3 +174,14 @@ class QuantizedSequence(object):
         self.qpm == other.qpm and
         self.time_signature == other.time_signature and
         self.steps_per_quarter == other.steps_per_quarter)
+
+  def __deepcopy__(self, unused_memo=None):
+    new_copy = type(self)()
+    new_copy.tracks = copy.deepcopy(self.tracks)
+    new_copy.qpm = self.qpm
+    new_copy.time_signature = other.time_signature
+    new_copy.steps_per_quarter = other.steps_per_quarter
+    return new_copy
+
+  def deepcopy(self):
+    return self.__deepcopy__()
