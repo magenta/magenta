@@ -156,8 +156,7 @@ class MonophonicMelody(object):
   """
 
   def __init__(self):
-    """Construct an empty MonophonicMelody.
-    """
+    """Construct an empty MonophonicMelody."""
     self._reset()
 
   def _reset(self):
@@ -192,11 +191,20 @@ class MonophonicMelody(object):
     """
     return len(self._events)
 
+  def __deepcopy__(self, unused_memo=None):
+    new_copy = type(self)()
+    new_copy.from_event_list(list(self._events),
+                             self.start_step,
+                             self.steps_per_bar,
+                             self.steps_per_quarter)
+    return new_copy
+
   def __eq__(self, other):
     if not isinstance(other, MonophonicMelody):
       return False
     return (list(self) == list(other) and
             self.steps_per_bar == other.steps_per_bar and
+            self.steps_per_quarter == other.steps_per_quarter and
             self.start_step == other.start_step and
             self.end_step == other.end_step)
 
@@ -247,6 +255,10 @@ class MonophonicMelody(object):
       if self._events[i] >= MIN_MIDI_PITCH:
         return (i, last_off)
     raise ValueError('No events in the stream')
+
+  def deepcopy(self):
+    """Returns a deep copy of this MonphonicMelody object."""
+    return self.__deepcopy__()
 
   @property
   def start_step(self):
