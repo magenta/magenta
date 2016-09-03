@@ -51,12 +51,12 @@ class MelodyRNNGraphTest(tf.test.TestCase):
         sequence_example_file='test')
     self.assertTrue(isinstance(g, tf.Graph))
 
-   def testBuildGraphWithAttention(self):
-     self.hparams.attn_length = 10
-     g = melody_rnn_graph.build_graph(
-         'train', self.hparams, input_size=10, num_classes=10,
-         sequence_example_file='test')
-     self.assertTrue(isinstance(g, tf.Graph))
+  def testBuildGraphWithAttention(self):
+    self.hparams.attn_length = 10
+    g = melody_rnn_graph.build_graph(
+        'train', self.hparams, input_size=10, num_classes=10,
+        sequence_example_file='test')
+    self.assertTrue(isinstance(g, tf.Graph))
 
 
 if __name__ == '__main__':

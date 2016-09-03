@@ -58,5 +58,5 @@ def build_graph(mode, hparams_string, input_size, num_classes,
   """
   hparams = default_hparams()
   hparams = hparams.parse(hparams_string)
-  return melody_rnn_graph.build_graph(mode, hparams input_size, num_classes,
+  return melody_rnn_graph.build_graph(mode, hparams, input_size, num_classes,
                                       sequence_example_file)
