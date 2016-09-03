@@ -46,6 +46,7 @@ class MelodyRNNGraphTest(tf.test.TestCase):
     self.assertTrue(isinstance(g, tf.Graph))
 
   def testBuildGenerateGraph(self):
+    self.hparams.temperature = 1.0
     g = melody_rnn_graph.build_graph(
         'generate', self.hparams, input_size=10, num_classes=10,
         sequence_example_file='test')
