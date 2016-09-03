@@ -14,7 +14,6 @@
 """Provides function to build the basic RNN model's graph."""
 
 # internal imports
-import tensorflow as tf
 
 from magenta.lib import tf_lib
 from magenta.models.shared import melody_rnn_graph
@@ -59,4 +58,4 @@ def build_graph(mode, hparams_string, input_size, num_classes,
   hparams = default_hparams()
   hparams = hparams.parse(hparams_string)
   return melody_rnn_graph.build_graph(mode, hparams input_size, num_classes,
-      sequence_example_file)
+                                      sequence_example_file)

@@ -77,7 +77,6 @@ py_library(
     deps = [
         "//magenta/lib:tf_lib",
         "//magenta/models/shared:melody_rnn_graph",
-        # tensorflow dep
     ],
 )
 
