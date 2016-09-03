@@ -960,37 +960,3 @@ class MelodyEncoderDecoder(object):
       chosen_class = np.random.choice(num_classes, p=softmax[i][-1])
       melody_event = self.class_index_to_melody_event(chosen_class, melodies[i])
       melodies[i].append_event(melody_event)
-
-class OneHotEncoderDecoder(MelodyEncoderDecoder):
-  """A MelodyEncoderDecoder that produces a one-hot encoding for the input."""
-
-  def __init__(self, min_note, max_note, transpose_to_key):
-    super(OneHotEncoderDecoder, self).__init__(min_note, max_note,
-                                               transpose_to_key)
-    self._input_size = self.max_note - self.min_note + NUM_SPECIAL_EVENTS
-    self._num_classes = self.max_note - self.min_note + NUM_SPECIAL_EVENTS
-
-  @property
-  def input_size(self):
-    return self._input_size
-
-  @property
-  def num_classes(self):
-    return self._num_classes
-
-  def melody_to_input(self, melody, position):
-    input_ = [0.0] * self._input_size
-    index = (melody[position] + NUM_SPECIAL_EVENTS
-             if melody[position] < 0
-             else melody[position] - self.min_note + NUM_SPECIAL_EVENTS)
-    input_[index] = 1.0
-    return input_
-
-  def melody_to_label(self, melody, position):
-    return (melody[position] + NUM_SPECIAL_EVENTS
-            if melody[position] < 0
-            else melody[position] - self.min_note + NUM_SPECIAL_EVENTS)
-
-  def class_index_to_melody_event(self, class_index, melody):
-    return (class_index - NUM_SPECIAL_EVENTS if class_index < NUM_SPECIAL_EVENTS
-            else class_index + self.min_note - NUM_SPECIAL_EVENTS)
