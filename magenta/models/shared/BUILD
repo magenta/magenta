@@ -99,3 +99,14 @@ py_library(
         # tensorflow dep
     ],
 )
+
+py_test(
+    name = "melody_rnn_graph_test",
+    srcs = ["melody_rnn_graph_test.py"],
+    srcs_version = "PY2AND3",
+    deps = [
+        ":melody_rnn_graph",
+        "//magenta/lib:tf_lib",
+        # tensorflow dep
+    ],
+)

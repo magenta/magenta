@@ -16,15 +16,20 @@
 # internal imports
 import tensorflow as tf
 
+from magenta.lib import melodies_lib
 from magenta.lib import testing_lib
 from magenta.models.shared import melody_rnn_create_dataset
 from magenta.pipelines import pipelines_common
 from magenta.protobuf import music_pb2
 
 
+FLAGS = tf.app.flags.FLAGS
+
+
 class MelodyRNNPipelineTest(tf.test.TestCase):
 
   def testMelodyRNNPipeline(self):
+    FLAGS.eval_ratio = 0.0
     note_sequence = testing_lib.parse_test_proto(
         music_pb2.NoteSequence,
         """
@@ -35,19 +40,26 @@ class MelodyRNNPipelineTest(tf.test.TestCase):
           qpm: 120}""")
     testing_lib.add_track(
         note_sequence, 0,
-        [(12, 100, 0.01, 10.0), (11, 55, 0.22, 0.50), (40, 45, 2.50, 3.50),
-         (55, 120, 4.0, 4.01), (52, 99, 4.75, 5.0)])
+        [(12, 100, 0.00, 2.0), (11, 55, 2.1, 5.0), (40, 45, 5.1, 8.0),
+         (55, 120, 8.1, 11.0), (53, 99, 11.1, 14.1)])
 
     quantizer = pipelines_common.Quantizer(steps_per_quarter=4)
     melody_extractor = pipelines_common.MonophonicMelodyExtractor(
-        min_bars=7, min_unique_pitches=5,
-        gap_bars=1.0)
-    one_hot_encoder = melody_rnn_create_dataset.OneHotEncoder()
+      min_bars=7, min_unique_pitches=5,
+      gap_bars=1.0, ignore_polyphonic_notes=False)
+    one_hot_encoder = melodies_lib.OneHotEncoderDecoder(0, 127, 0)
     quantized = quantizer.transform(note_sequence)[0]
+    print quantized.tracks
     melody = melody_extractor.transform(quantized)[0]
-    one_hot = one_hot_encoder.transform(melody)[0]
-    expected_result = {'melody_rnn_train': [one_hot], 'melody_rnn_eval': []}
+    one_hot = one_hot_encoder.encode(melody)
+    print one_hot
+    expected_result = {'training_melodies': [one_hot], 'eval_melodies': []}
 
-    pipeline_inst = melody_rnn_create_dataset.MelodyRNNPipeline(eval_ratio=0)
+    pipeline_inst = melody_rnn_create_dataset.get_pipeline(one_hot_encoder)
     result = pipeline_inst.transform(note_sequence)
+    self.maxDiff = 100000
     self.assertEqual(expected_result, result)
+
+
+if __name__ == '__main__':
+  tf.test.main()

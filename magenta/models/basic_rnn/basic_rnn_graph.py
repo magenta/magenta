@@ -16,8 +16,8 @@
 # internal imports
 import tensorflow as tf
 
-from magenta.lib import sequence_example_lib
 from magenta.lib import tf_lib
+from magenta.models.shared import melody_rnn_graph
 
 
 def default_hparams():
