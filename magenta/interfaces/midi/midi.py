@@ -117,14 +117,14 @@ _GENERATOR_FACTORY_MAP = {
 
 _METRONOME_TICK_DURATION = 0.05
 _METRONOME_PITCH = 95
-# TODO(hanzorama): Make velocity adjustable by a control change signal.
-_METRONOME_CAPTURE_VELOCITY = 64
+_METRONOME_VELOCITY = 64
+
 
 _CUSTOM_CC_MAP = {
-    'Start Capture': None,
-    'Stop Capture': None,
-    'BPM': None,
-    'Metronome velocity': None,
+  'Start Capture': mido.Message('control_change', channel=0, control=1,
+                                value=127),
+  'Stop Capture': mido.Message('control_change', channel=0, control=1, value=0),
+  'Metronome velocity': mido.Message('control_change', channel=0, control=60),
 }
 
 def serialized(func):
@@ -213,29 +213,26 @@ class Metronome(threading.Thread):
     _outport: The Mido port for sending messages.
     _bpm: The integer beats per minute to signal on.
     _stop_metronome: A boolean specifying whether the metronome should stop.
-    _velocity: The velocity of the metronome's MIDI note_on message.
   Args:
     outport: The Mido port for sending messages.
     bpm: The integer beats per minute to signal on.
-    velocity: The velocity of the metronome's MIDI note_on message.
   """
   daemon = True
 
-  def __init__(self, outport, bpm, clock_start_time, velocity):
+  def __init__(self, outport, bpm, clock_start_time):
     self._outport = outport
     self._bpm = bpm
     self._stop_metronome = False
     self._clock_start_time = clock_start_time
-    self._velocity = velocity
     super(Metronome, self).__init__()
 
   def run(self):
     """Outputs metronome tone on the bpm interval until stop signal received."""
-    period = 60. / self._bpm
     sleep_offset = 0
     while not self._stop_metronome:
+      period = 60. / self._bpm
       now = time.time()
-      next_tick_time = now + period - ((now - self._clock_start_time)  % period)
+      next_tick_time = now + period - ((now - self._clock_start_time) % period)
       delta = next_tick_time - time.time()
       if delta > 0:
         time.sleep(delta + sleep_offset)
@@ -256,7 +253,7 @@ class Metronome(threading.Thread):
 
       self._outport.send(mido.Message(type='note_on', note=_METRONOME_PITCH,
                                       channel=FLAGS.metronome_channel,
-                                      velocity=self._velocity))
+                                      velocity=_METRONOME_VELOCITY))
       time.sleep(_METRONOME_TICK_DURATION)
       self._outport.send(mido.Message(type='note_off', note=_METRONOME_PITCH,
                                       channel=FLAGS.metronome_channel))
@@ -277,20 +274,19 @@ class MonoMidiPlayer(threading.Thread):
   Args:
     outport: The Mido port for sending messages.
     sequence: The monohponic, chronologically sorted NoteSequence to play.
-    metronome_velocity: The velocity of the metronome's MIDI note_on message.
   Raises:
     ValueError: The NoteSequence contains multiple tempos.
   """
   daemon = True
 
-  def __init__(self, outport, sequence, metronome_velocity):
+  def __init__(self, outport, sequence):
     self._outport = outport
     self._sequence = sequence
     self._stop_playback = False
     if len(sequence.tempos) != 1:
       raise ValueError('The NoteSequence contains multiple tempos.')
     self._metronome = Metronome(self._outport, sequence.tempos[0].bpm,
-                                time.time(), metronome_velocity)
+                                time.time())
     super(MonoMidiPlayer, self).__init__()
 
   def run(self):
@@ -318,9 +314,8 @@ class MonoMidiPlayer(threading.Thread):
       delta = playhead - (time.time() - play_start)
       if delta > 0:
         time.sleep(delta)
-      self._outport.send(
-          mido.Message(
-              'note_on', note=note.pitch, velocity=note.velocity))
+      self._outport.send(mido.Message('note_on', note=note.pitch,
+                                      velocity=note.velocity))
 
       if self._stop_playback:
         self._outport.panic()
@@ -395,13 +390,19 @@ class MonoMidiHub(object):
     Args:
       msg: The mido.Message MIDI message to handle.
     """
-    if msg.type == 'control_change':
-      control_tuples = [(msg.control,), (msg.control, msg.value)]
 
-      for control_tuple in control_tuples:
-        if control_tuple in self._control_cvs:
-          self._control_cvs[control_tuple].notify_all()
+    if msg == _CUSTOM_CC_MAP['Start Capture'] or msg == _CUSTOM_CC_MAP[
+      'Stop Capture']:
+      if msg.hex() in self._control_cvs:
+        self._control_cvs[msg.hex()].notify_all()
       return
+
+    for value in _CUSTOM_CC_MAP.values():
+      if value is None:
+        pass
+      elif msg.bytes()[:2] == value.bytes()[:2]:
+        self.execute_cc_message(msg)
+        return
 
     last_note = (self.captured_sequence.notes[-1] if
                  self.captured_sequence.notes else None)
@@ -460,9 +461,7 @@ class MonoMidiHub(object):
     self._sequence_start_time = None
     self._capture_start_time = time.time()
     self._inport.callback = self._timestamp_and_capture_message
-    self._metronome = Metronome(self._outport, bpm, self._capture_start_time,
-                                _METRONOME_CAPTURE_VELOCITY)
-
+    self._metronome = Metronome(self._outport, bpm, self._capture_start_time)
     self._metronome.start()
 
   @serialized
@@ -491,30 +490,24 @@ class MonoMidiHub(object):
     return self.captured_sequence
 
   @serialized
-  def wait_for_control_signal(self, control_number, control_value=None):
+  def wait_for_control_signal(self, control_message):
     """Blocks until a specific control signal arrives.
-
     Args:
-      control_number: The integer control change number.
-      control_value: The integer control change value or None if any is
-         acceptable.
-
+      control_message: The control change message.
     """
     if self._inport.callback is None:
       # Not in a capture session.
       for msg in self._inport:
-        if (msg.type == 'control_change' and msg.control == control_number and
-            (control_value is None or msg.value == control_value)):
+        if msg.hex() == control_message.hex():
           return
     else:
       # In a capture session.
-      control_tuple = ((control_number,) if control_value is None else
-                       (control_number, control_value))
-      if control_tuple not in self._control_cvs:
-        self._control_cvs[control_tuple] = threading.Condition(self._lock)
-      self._control_cvs[control_tuple].wait()
+      if control_message.hex() not in self._control_cvs:
+        self._control_cvs[control_message.hex()] = threading.Condition(
+          self._lock)
+      self._control_cvs[control_message.hex()].wait()
 
-  def start_playback(self, sequence, metronome_velocity):
+  def start_playback(self, sequence):
     """Plays the monophonic, sorted NoteSequence through the MIDI output port.
 
     Stops any previously playing sequences.
@@ -524,7 +517,7 @@ class MonoMidiHub(object):
       metronome_velocity: The velocity of the metronome's MIDI note_on message.
     """
     self.stop_playback()
-    self._player = MonoMidiPlayer(self._outport, sequence, metronome_velocity)
+    self._player = MonoMidiPlayer(self._outport, sequence)
     self._player.start()
 
   def stop_playback(self):
@@ -532,6 +525,14 @@ class MonoMidiHub(object):
     if self._player is not None and self._player.is_alive():
       self._player.stop()
       stdout_write_and_flush('Stopped\n')
+
+  def execute_cc_message(self, message):
+    """Defines how to treat non Start/Stop user defined CC messages."""
+
+    # Metronome Velocity
+    if message.bytes()[:2] == _CUSTOM_CC_MAP['Metronome velocity'].bytes()[:2]:
+      global _METRONOME_VELOCITY
+      _METRONOME_VELOCITY = message.bytes()[2]
 
 class CCRemapper(object):
   """CC Message Remapping interface.
@@ -563,6 +564,7 @@ class CCRemapper(object):
 
       else:
         if cc_choice_index == 0:
+          self._inport.close()
           break
         elif cc_choice_index < 0 or cc_choice_index > len(_CUSTOM_CC_MAP):
           print("There is no CC Parameter assigned to that "
@@ -576,48 +578,49 @@ class CCRemapper(object):
         self.remap_capture_message(self._inport, cc_choice,
                                    _CUSTOM_CC_MAP['Start Capture'],
                                    _CUSTOM_CC_MAP['Stop Capture'])
-
       else:
-        _CUSTOM_CC_MAP[cc_choice] = self.remap_cc_message(self._inport,
-                                                          cc_choice)
+        self.remap_cc_message(self._inport, cc_choice)
 
   def remap_cc_message(self, input_port, cc_choice):
     """Defines how to remap control change messages for defined parameters.
 
     Args:
+      input_port: The input port to receive the control change message.
+      cc_choice: The _CUSTOM_CC_MAP dictionary key to assign a message to.
     """
-
-    print "What control or key would you like to assign to {}? " \
-          "Please press one now...".format(cc_choice)
 
     while True:
       while input_port.receive(block=False) is not None:
         pass
+      print "What control or key would you like to assign to {}? " \
+            "Please press one now...".format(cc_choice)
       msg = input_port.receive()
       if msg.hex().startswith('B'):
+        _CUSTOM_CC_MAP[cc_choice] = msg
         time.sleep(1)
+        return
       else:
         print('Sorry, I only accept MIDI CC messages for this parameter..')
         time.sleep(.5)
         continue
-      _CUSTOM_CC_MAP[cc_choice] = msg
 
   def remap_capture_message(self, input_port, cc_choice, msg_start_capture,
                             msg_stop_capture):
-    """Defines how to remap incoming messages for start and stop capture.
+    """Remap incoming messages for start and stop capture.
 
     Args:
+      input_port: The input port to receive the control change message.
+      cc_choice: The _CUSTOM_CC_MAP dictionary key to assign a message to.
+      msg_start_capture: The currently assigned start capture message.
+      msg_stop_capture: The currently assigned stop capture message.
     """
 
     while True:
       while input_port.receive(block=False) is not None:
         pass
-
       print "What control or key would you like to assign to {}? " \
             "Please press one now...".format(cc_choice)
-
-      msg = self._inport.receive()
-
+      msg = input_port.receive()
       if msg.type == 'note_on':
         print('You assigned this parameter to a musical note so '
               'it will not be available for musical content')
@@ -645,11 +648,14 @@ class CCRemapper(object):
         if msg.type == 'note_on':
           msg_start_capture = msg
         elif msg.type == 'control_change':
-          print ('You sent a CC message with the same controller but a different value...\n' \
-                'A message with max value (127) will start capture.\n' \
-                'A message with min value (0) will stop capture.')
+          print ('You sent a CC message with the same '
+                 'controller but a different value...')
+          print ('A message with max value (127) will start capture.')
+          print ('A message with min value (0) will stop capture.')
           msg_start_capture = mido.parse(msg.bytes()[:2] + [127])
           msg_stop_capture = mido.parse(msg.bytes()[:2] + [0])
+      else:
+        msg_start_capture = msg
 
     elif cc_choice == 'Stop Capture':
       if msg_start_capture is None:
@@ -665,12 +671,14 @@ class CCRemapper(object):
         if msg.type == 'note_on':
           msg_stop_capture = msg
         elif msg.type == 'control_change':
-          print ('You sent a CC message with the same controller '
-                 'but a different value...\n' \
-                'A message with max value (127) will start capture.\n' \
-                'A message with min value (0) will stop capture.')
+          print ('You sent a CC message with the same '
+                 'controller but a different value...')
+          print ('A message with max value (127) will start capture.')
+          print ('A message with min value (0) will stop capture.')
           msg_start_capture = mido.parse(msg.bytes()[:2] + [127])
           msg_stop_capture = mido.parse(msg.bytes()[:2] + [0])
+      else:
+        msg_stop_capture = msg
 
     _CUSTOM_CC_MAP['Start Capture'] = msg_start_capture
     _CUSTOM_CC_MAP['Stop Capture'] = msg_stop_capture
@@ -690,6 +698,7 @@ def main(unused_argv):
     cc_remapper = CCRemapper(FLAGS.input_port)
     cc_remapper.remapper_interface()
 
+  # TODO(hanzorama): Old CC capture system can be removed
   if (FLAGS.start_capture_control_number == FLAGS.stop_capture_control_number
       and
       (FLAGS.start_capture_control_value == FLAGS.stop_capture_control_value or
@@ -713,20 +722,18 @@ def main(unused_argv):
 
   stdout_write_and_flush('Waiting for start control signal...\n')
   while True:
-    hub.wait_for_control_signal(FLAGS.start_capture_control_number,
-                                FLAGS.start_capture_control_value)
+    hub.wait_for_control_signal(_CUSTOM_CC_MAP['Start Capture'])
     hub.stop_playback()
     hub.start_capture(FLAGS.bpm)
     stdout_write_and_flush('Capturing notes until stop control signal...')
-    hub.wait_for_control_signal(FLAGS.stop_capture_control_number,
-                                FLAGS.stop_capture_control_value)
+    hub.wait_for_control_signal(_CUSTOM_CC_MAP['Stop Capture'])
     captured_sequence = hub.stop_capture()
 
     stdout_write_and_flush('Generating response...')
     generated_sequence = generator.generate_melody(captured_sequence)
     stdout_write_and_flush('Done\n')
 
-    hub.start_playback(generated_sequence, FLAGS.metronome_playback_velocity)
+    hub.start_playback(generated_sequence)
 
 
 if __name__ == '__main__':
