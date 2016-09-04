@@ -422,41 +422,46 @@ class MonoMidiHub(object):
         self.execute_cc_message(msg)
         return
 
-    last_note = (self.captured_sequence.notes[-1] if
-                 self.captured_sequence.notes else None)
-    if msg.type == 'note_off' or (msg.type == 'note_on' and msg.velocity == 0):
-      if (last_note is None or last_note.pitch != msg.note or
-          last_note.end_time > 0):
-        # This is not the note we're looking for. Drop it.
-        return
+    # Capture behavior during record only. In the interactive model, this will
+    # be unnecessary as record and playback will be concurrent
+    if (self._player is None) or (self._player.is_alive() is False):
 
-      last_note.end_time = msg.time - self._sequence_start_time
-      self._outport.send(msg)
-      stdout_write_and_flush('.')
-
-    elif msg.type == 'note_on':
-      if self._sequence_start_time is None:
-        # This is the first note.
-        # Find the sequence start time based on the start of the most recent
-        # quarter note. This ensures that the sequence start time lines up with
-        # a metronome tick.
-        period = 60. / self.captured_sequence.tempos[0].qpm
-        self._sequence_start_time = msg.time - (
-            (msg.time - self._capture_start_time) % period)
-      elif last_note.end_time == 0:
-        if last_note.pitch == msg.note:
-          # This is just a repeat of the previous message.
+      last_note = (self.captured_sequence.notes[-1] if
+                   self.captured_sequence.notes else None)
+      if msg.type == 'note_off' or (msg.type == 'note_on'
+                                    and msg.velocity == 0):
+        if (last_note is None or last_note.pitch != msg.note or
+            last_note.end_time > 0):
+          # This is not the note we're looking for. Drop it.
           return
-        # End the previous note.
-        last_note.end_time = msg.time - self._sequence_start_time
-        self._outport.send(mido.Message('note_off', note=last_note.pitch))
 
-      self._outport.send(msg)
-      new_note = self.captured_sequence.notes.add()
-      new_note.start_time = msg.time - self._sequence_start_time
-      new_note.pitch = msg.note
-      new_note.velocity = msg.velocity
-      stdout_write_and_flush('.')
+        last_note.end_time = msg.time - self._sequence_start_time
+        self._outport.send(msg)
+        stdout_write_and_flush('.')
+
+      elif msg.type == 'note_on':
+        if self._sequence_start_time is None:
+          # This is the first note.
+          # Find the sequence start time based on the start of the most recent
+          # quarter note. This ensures that the sequence start time lines up
+          # with a metronome tick.
+          period = 60. / self.captured_sequence.tempos[0].qpm
+          self._sequence_start_time = msg.time - (
+              (msg.time - self._capture_start_time) % period)
+        elif last_note.end_time == 0:
+          if last_note.pitch == msg.note:
+            # This is just a repeat of the previous message.
+            return
+          # End the previous note.
+          last_note.end_time = msg.time - self._sequence_start_time
+          self._outport.send(mido.Message('note_off', note=last_note.pitch))
+
+        self._outport.send(msg)
+        new_note = self.captured_sequence.notes.add()
+        new_note.start_time = msg.time - self._sequence_start_time
+        new_note.pitch = msg.note
+        new_note.velocity = msg.velocity
+        stdout_write_and_flush('.')
 
   @serialized
   def start_capture(self, qpm):
@@ -471,8 +476,6 @@ class MonoMidiHub(object):
     Raises:
       RuntimeError: Already in a capture session.
     """
-    if self._inport.callback is not None:
-      raise RuntimeError('Already in a capture session.')
 
     self.captured_sequence = music_pb2.NoteSequence()
     self.captured_sequence.tempos.add().qpm = qpm
@@ -514,12 +517,11 @@ class MonoMidiHub(object):
       control_message: The control change message.
     """
     if self._inport.callback is None:
-      # Not in a capture session.
+      # No callback set for inport
       for msg in self._inport:
         if msg.hex() == control_message.hex():
           return
     else:
-      # In a capture session.
       if control_message.hex() not in self._control_cvs:
         self._control_cvs[control_message.hex()] = threading.Condition(
           self._lock)
@@ -537,6 +539,7 @@ class MonoMidiHub(object):
     self.stop_playback()
     self._player = MonoMidiPlayer(self._outport, sequence)
     self._player.start()
+    self._inport.callback = self._capture_message
 
   def stop_playback(self):
     """Stops any active sequence playback."""
