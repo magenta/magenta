@@ -48,13 +48,14 @@ NOTE_OFF = -1
 NO_EVENT = -2
 
 # Other constants.
+MIN_MELODY_EVENT = -2
+MAX_MELODY_EVENT = 127
 MIN_MIDI_PITCH = 0  # Inclusive.
 MAX_MIDI_PITCH = 127  # Inclusive.
 NOTES_PER_OCTAVE = 12
-QUARTER_NOTES_PER_WHOLE_NOTE = 4.0
-DEFAULT_BEATS_PER_MINUTE = 120.0
-DEFAULT_STEPS_PER_BAR = 16  # 4/4 music sampled at 4 steps per beat.
-DEFAULT_STEPS_PER_BEAT = 4
+DEFAULT_QUARTERS_PER_MINUTE = 120.0
+DEFAULT_STEPS_PER_BAR = 16  # 4/4 music sampled at 4 steps per quarter note.
+DEFAULT_STEPS_PER_QUARTER = 4
 
 # Standard pulses per quarter.
 # https://en.wikipedia.org/wiki/Pulses_per_quarter_note
@@ -82,8 +83,8 @@ STANDARD_PPQ = 96
 # NOTE_KEYS can be generated using the code below, but is explicitly declared
 # for readability:
 # scale = [1, 0, 1, 0, 1, 1, 0, 1, 0, 1, 0, 1]
-# NOTE_KEYS = [[j for j in xrange(12) if scale[(i - j) % 12]]
-#              for i in xrange(12)]
+# NOTE_KEYS = [[j for j in range(12) if scale[(i - j) % 12]]
+#              for i in range(12)]
 NOTE_KEYS = [
     [0, 1, 3, 5, 7, 8, 10],
     [1, 2, 4, 6, 8, 9, 11],
@@ -136,6 +137,8 @@ class MonophonicMelody(object):
   in ascending order by start time. Note end times will be truncated if the next
   note overlaps.
 
+  Any sustained notes are implicitly turned off at the end of a melody.
+
   Melodies can start at any non-negative time, and are shifted left so that
   the bar containing the first note-on event is the first bar.
 
@@ -148,22 +151,21 @@ class MonophonicMelody(object):
     end_step: The offset to the beginning of the bar following the last step
        of the melody relative the beginning of the source sequence. Will always
        be the first step of a bar.
-    steps_per_beat: Number of steps in in a beat of music.
+    steps_per_quarter: Number of steps in in a quarter note.
     steps_per_bar: Number of steps in a bar (measure) of music.
   """
 
   def __init__(self):
-    """Construct an empty MonophonicMelody.
-    """
+    """Construct an empty MonophonicMelody."""
     self._reset()
 
   def _reset(self):
     """Clear `events` and reset object state."""
-    self.events = []
-    self.steps_per_bar = DEFAULT_STEPS_PER_BAR
-    self.steps_per_beat = DEFAULT_STEPS_PER_BEAT
-    self.start_step = 0
-    self.end_step = 0
+    self._events = []
+    self._steps_per_bar = DEFAULT_STEPS_PER_BAR
+    self._steps_per_quarter = DEFAULT_STEPS_PER_QUARTER
+    self._start_step = 0
+    self._end_step = 0
 
   def __iter__(self):
     """Return an iterator over the events in this MonophonicMelody.
@@ -171,7 +173,15 @@ class MonophonicMelody(object):
     Returns:
       Python iterator over events.
     """
-    return iter(self.events)
+    return iter(self._events)
+
+  def __getitem__(self, i):
+    """Returns the event at the given index."""
+    return self._events[i]
+
+  def __getslice__(self, i, j):
+    """Returns the events in the given slice range."""
+    return self._events[i:j]
 
   def __len__(self):
     """How many events are in this MonophonicMelody.
@@ -179,13 +189,22 @@ class MonophonicMelody(object):
     Returns:
       Number of events as an int.
     """
-    return len(self.events)
+    return len(self._events)
+
+  def __deepcopy__(self, unused_memo=None):
+    new_copy = type(self)()
+    new_copy.from_event_list(list(self._events),
+                             self.start_step,
+                             self.steps_per_bar,
+                             self.steps_per_quarter)
+    return new_copy
 
   def __eq__(self, other):
     if not isinstance(other, MonophonicMelody):
       return False
-    return (self.events == other.events and
+    return (list(self) == list(other) and
             self.steps_per_bar == other.steps_per_bar and
+            self.steps_per_quarter == other.steps_per_quarter and
             self.start_step == other.start_step and
             self.end_step == other.end_step)
 
@@ -212,15 +231,12 @@ class MonophonicMelody(object):
           'Start step does not precede end step: start=%d, end=%d' %
           (start_step, end_step))
 
-    if len(self.events) < end_step + 1:
-      self.events += [NO_EVENT] * (end_step + 1 - len(self.events))
-    elif len(self.events) > end_step + 1:
-      del self.events[end_step + 1:]
+    self.set_length(end_step + 1)
 
-    self.events[start_step] = pitch
-    self.events[end_step] = NOTE_OFF
+    self._events[start_step] = pitch
+    self._events[end_step] = NOTE_OFF
     for i in range(start_step + 1, end_step):
-      self.events[i] = NO_EVENT
+      self._events[i] = NO_EVENT
 
   def _get_last_on_off_events(self):
     """Returns indexes of the most recent pitch and NOTE_OFF events.
@@ -232,13 +248,33 @@ class MonophonicMelody(object):
     Raises:
       ValueError: If `events` contains no NOTE_OFF or pitch events.
     """
-    last_off = len(self.events)
-    for i in range(len(self.events) - 1, -1, -1):
-      if self.events[i] == NOTE_OFF:
+    last_off = len(self)
+    for i in range(len(self) - 1, -1, -1):
+      if self._events[i] == NOTE_OFF:
         last_off = i
-      if self.events[i] >= MIN_MIDI_PITCH:
+      if self._events[i] >= MIN_MIDI_PITCH:
         return (i, last_off)
     raise ValueError('No events in the stream')
+
+  def deepcopy(self):
+    """Returns a deep copy of this MonphonicMelody object."""
+    return self.__deepcopy__()
+
+  @property
+  def start_step(self):
+    return self._start_step
+
+  @property
+  def end_step(self):
+    return self._end_step
+
+  @property
+  def steps_per_bar(self):
+    return self._steps_per_bar
+
+  @property
+  def steps_per_quarter(self):
+    return self._steps_per_quarter
 
   def get_note_histogram(self):
     """Gets a histogram of the note occurrences in a melody.
@@ -248,7 +284,7 @@ class MonophonicMelody(object):
       index 11). Each int is the total number of times that note occurred in
       the melody.
     """
-    np_melody = np.array(self.events, dtype=int)
+    np_melody = np.array(self._events, dtype=int)
     return np.bincount(np_melody[np_melody >= MIN_MIDI_PITCH] %
                        NOTES_PER_OCTAVE,
                        minlength=NOTES_PER_OCTAVE)
@@ -279,18 +315,35 @@ class MonophonicMelody(object):
     key_histogram = self.get_major_key_histogram()
     return key_histogram.argmax()
 
+  def append_event(self, event):
+    """Appends the event to the end of the melody and increments the end step.
+
+    An implicit NOTE_OFF at the end of the melody will not be respected by this
+    modification.
+
+    Args:
+      event: The integer MonophonicMelody event to append to the end.
+    Raises:
+      ValueError: If `event` is not in the proper range.
+    """
+    if not MIN_MELODY_EVENT <= event <= MAX_MELODY_EVENT:
+      raise ValueError('Event out of range: %d' % event)
+    self._events.append(event)
+    self._end_step += 1
+
   def from_quantized_sequence(self,
                               quantized_sequence,
                               start_step=0,
                               track=0,
                               gap_bars=1,
-                              ignore_polyphonic_notes=False):
+                              ignore_polyphonic_notes=False,
+                              pad_end=False):
     """Populate self with a melody from the given QuantizedSequence object.
 
     A monophonic melody is extracted from the given `track` starting at time
     step `start_step`. `track` and `start_step` can be used to drive extraction
     of multiple melodies from the same QuantizedSequence. The end step of the
-    extracted melody will be stored in `self.end_step`.
+    extracted melody will be stored in `self._end_step`.
 
     0 velocity notes are ignored. The melody extraction is ended when there are
     no held notes for a time stretch of `gap_bars` in bars (measures) of music.
@@ -313,6 +366,8 @@ class MonophonicMelody(object):
           when multiple notes start at the same time. If False,
           PolyphonicMelodyException will be raised if multiple notes start at
           the same time.
+      pad_end: If True, the end of the melody will be padded with NO_EVENTs so
+          that it will end at a bar boundary.
 
     Raises:
       NonIntegerStepsPerBarException: If `quantized_sequence`'s bar length
@@ -324,18 +379,14 @@ class MonophonicMelody(object):
     self._reset()
 
     offset = None
-    steps_per_bar_float = (
-        quantized_sequence.steps_per_beat *
-        quantized_sequence.time_signature.numerator *
-        QUARTER_NOTES_PER_WHOLE_NOTE /
-        quantized_sequence.time_signature.denominator)
+    steps_per_bar_float = quantized_sequence.steps_per_bar()
     if steps_per_bar_float % 1 != 0:
       raise NonIntegerStepsPerBarException(
           'There are %f timesteps per bar. Time signature: %d/%d' %
           (steps_per_bar_float, quantized_sequence.time_signature.numerator,
            quantized_sequence.time_signature.denominator))
-    self.steps_per_bar = steps_per_bar = int(steps_per_bar_float)
-    self.steps_per_beat = quantized_sequence.steps_per_beat
+    self._steps_per_bar = steps_per_bar = int(steps_per_bar_float)
+    self._steps_per_quarter = quantized_sequence.steps_per_quarter
 
     # Sort track by note start times, and secondarily by pitch descending.
     notes = sorted(quantized_sequence.tracks[track],
@@ -355,7 +406,7 @@ class MonophonicMelody(object):
       start_index = note.start - offset
       end_index = note.end - offset
 
-      if not self.events:
+      if not self._events:
         # If there are no events, we don't need to check for polyphony.
         self._add_note(note.pitch, start_index, end_index)
         continue
@@ -386,43 +437,72 @@ class MonophonicMelody(object):
       # Add the note-on and off events to the melody.
       self._add_note(note.pitch, start_index, end_index)
 
-    if not self.events:
+    if not self._events:
       # If no notes were added, don't set `start_step` and `end_step`.
       return
 
-    self.start_step = offset
+    self._start_step = offset
 
-    # Round up end_step to a multiple of steps_per_bar
-    self.end_step = len(self.events) + offset + (-len(self.events) %
-                                                 steps_per_bar)
+    # Strip final NOTE_OFF event.
+    if self._events[-1] == NOTE_OFF:
+      del self._events[-1]
 
-  def from_event_list(self, events):
-    """Populate self with a list of event values."""
-    self.events = list(events)
+    length = len(self)
+    # Optionally round up `end_step` to a multiple of `steps_per_bar`.
+    if pad_end:
+      length += -len(self) % steps_per_bar
+    self.set_length(length)
+
+  def from_event_list(self, events, start_step=0,
+                      steps_per_bar=DEFAULT_STEPS_PER_BAR,
+                      steps_per_quarter=DEFAULT_STEPS_PER_QUARTER):
+    """Initialies with a list of event values and sets attributes appropriately.
+
+    Args:
+      events: List of MonophonicMelody events to set melody to.
+      start_step: The integer starting step offset.
+      steps_per_bar: The number of steps in a bar.
+      steps_per_quarter: The number of steps in a quarter note.
+
+    Raises:
+      ValueError: If `events` contains an event that is not in the proper range.
+    """
+    for event in events:
+      if not MIN_MELODY_EVENT <= event <= MAX_MELODY_EVENT:
+        raise ValueError('Melody event out of range: %d' % event)
+    self._events = list(events)
+    self._start_step = start_step
+    self._end_step = start_step + len(self)
+    self._steps_per_bar = steps_per_bar
+    self._steps_per_quarter = steps_per_quarter
 
   def to_sequence(self,
                   velocity=100,
                   instrument=0,
                   sequence_start_time=0.0,
-                  bpm=120.0):
-    """Converts the MonophonicMelody to Sequence proto.
+                  qpm=120.0):
+    """Converts the MonophonicMelody to NoteSequence proto.
+
+    The end of the melody is treated as a NOTE_OFF event for any sustained
+    notes.
 
     Args:
       velocity: Midi velocity to give each note. Between 1 and 127 (inclusive).
       instrument: Midi instrument to give each note.
       sequence_start_time: A time in seconds (float) that the first note in the
           sequence will land on.
-      bpm: Beats per minute (float).
+      qpm: Quarter notes per minute (float).
 
     Returns:
       A NoteSequence proto encoding the given melody.
     """
-    seconds_per_step = 60.0 / bpm / self.steps_per_beat
+    seconds_per_step = 60.0 / qpm / self.steps_per_quarter
 
     sequence = music_pb2.NoteSequence()
-    sequence.tempos.add().bpm = bpm
-    sequence.ticks_per_beat = STANDARD_PPQ
+    sequence.tempos.add().qpm = qpm
+    sequence.ticks_per_quarter = STANDARD_PPQ
 
+    sequence_start_time += self.start_step * seconds_per_step
     current_sequence_note = None
     for step, note in enumerate(self):
       if MIN_MIDI_PITCH <= note <= MAX_MIDI_PITCH:
@@ -435,9 +515,6 @@ class MonophonicMelody(object):
         current_sequence_note = sequence.notes.add()
         current_sequence_note.start_time = (
             step * seconds_per_step + sequence_start_time)
-        # Give the note an end time now just to be sure it gets closed.
-        current_sequence_note.end_time = (
-            (step + 1) * seconds_per_step + sequence_start_time)
         current_sequence_note.pitch = note
         current_sequence_note.velocity = velocity
         current_sequence_note.instrument = instrument
@@ -448,6 +525,14 @@ class MonophonicMelody(object):
           current_sequence_note.end_time = (
               step * seconds_per_step + sequence_start_time)
           current_sequence_note = None
+
+    # End any sustained notes.
+    if current_sequence_note is not None:
+      current_sequence_note.end_time = (
+          len(self) * seconds_per_step + sequence_start_time)
+
+    if sequence.notes:
+      sequence.total_time = sequence.notes[-1].end_time
 
     return sequence
 
@@ -464,17 +549,17 @@ class MonophonicMelody(object):
       min_note: Minimum pitch (inclusive) that the resulting notes will take on.
       max_note: Maximum pitch (exclusive) that the resulting notes will take on.
     """
-    for i in xrange(len(self.events)):
+    for i in range(len(self)):
       # Transpose MIDI pitches. Special events below MIN_MIDI_PITCH are not
       # changed.
-      if self.events[i] >= MIN_MIDI_PITCH:
-        self.events[i] += transpose_amount
-        if self.events[i] < min_note:
-          self.events[i] = (
-              min_note + (self.events[i] - min_note) % NOTES_PER_OCTAVE)
-        elif self.events[i] >= max_note:
-          self.events[i] = (max_note - NOTES_PER_OCTAVE +
-                            (self.events[i] - max_note) % NOTES_PER_OCTAVE)
+      if self._events[i] >= MIN_MIDI_PITCH:
+        self._events[i] += transpose_amount
+        if self._events[i] < min_note:
+          self._events[i] = (
+              min_note + (self._events[i] - min_note) % NOTES_PER_OCTAVE)
+        elif self._events[i] >= max_note:
+          self._events[i] = (max_note - NOTES_PER_OCTAVE +
+                             (self._events[i] - max_note) % NOTES_PER_OCTAVE)
 
   def squash(self, min_note, max_note, transpose_to_key):
     """Transpose and octave shift the notes in this MonophonicMelody.
@@ -494,7 +579,7 @@ class MonophonicMelody(object):
     """
     melody_key = self.get_major_key()
     key_diff = transpose_to_key - melody_key
-    midi_notes = [note for note in self.events
+    midi_notes = [note for note in self._events
                   if MIN_MIDI_PITCH <= note <= MAX_MIDI_PITCH]
     if not midi_notes:
       return 0
@@ -510,24 +595,49 @@ class MonophonicMelody(object):
 
     return transpose_amount
 
-  def set_length(self, steps):
+  def set_length(self, steps, from_left=False):
     """Sets the length of the melody to the specified number of steps.
 
-    If the melody is not long enough, adds NO_EVENT steps. If it is too long,
-    it will be truncated to the requested length.
+    If the melody is not long enough, ends any sustained notes and adds NO_EVENT
+    steps for padding. If it is too long, it will be truncated to the requested
+    length.
 
     Args:
-      steps: how many steps long the melody should be.
+      steps: How many steps long the melody should be.
+      from_left: Whether to add/remove from the left instead of right.
     """
-    self.events.extend([NO_EVENT] * max(0, steps - len(self.events)))
-    del self.events[steps:]
+    if steps > len(self):
+      if from_left:
+        self._events[:0] = [NO_EVENT] * (steps - len(self))
+      else:
+        # When extending the melody, we first end any sustained notes.
+        for event in reversed(self._events):
+          if event == NOTE_OFF:
+            break
+          elif event != NO_EVENT:
+            self._events.append(NOTE_OFF)
+            break
+        self._events.extend([NO_EVENT] * (steps - len(self)))
+    else:
+      if from_left:
+        del self._events[0:-steps]
+      else:
+        del self._events[steps:]
+
+    if from_left:
+      self._start_step = self._end_step - steps
+    else:
+      self._end_step = self._start_step + steps
 
 
 def extract_melodies(quantized_sequence,
                      min_bars=7,
+                     max_steps_truncate=None,
+                     max_steps_discard=None,
                      gap_bars=1.0,
                      min_unique_pitches=5,
-                     ignore_polyphonic_notes=True):
+                     ignore_polyphonic_notes=True,
+                     pad_end=False):
   """Extracts a list of melodies from the given QuantizedSequence object.
 
   This function will search through `quantized_sequence` for monophonic
@@ -551,13 +661,21 @@ def extract_melodies(quantized_sequence,
     quantized_sequence: A sequences_lib.QuantizedSequence object.
     min_bars: Minimum length of melodies in number of bars. Shorter melodies are
         discarded.
+    max_steps_truncate: Maximum number of steps in extracted melodies. If
+        defined, longer melodies are truncated to this threshold. If pad_end is
+        also True, melodies will be truncated to the end of the last bar below
+        this threshold.
+    max_steps_discard: Maximum number of steps in extracted melodies. If
+        defined, longer melodies are discarded.
     gap_bars: A melody comes to an end when this number of bars (measures) of
         silence is encountered.
     min_unique_pitches: Minimum number of unique notes with octave equivalence.
         Melodies with too few unique notes are discarded.
     ignore_polyphonic_notes: If True, melodies will be extracted from
-      `quantized_sequence` tracks that contain polyphony (notes start at
-      the same time). If False, tracks with polyphony will be ignored.
+        `quantized_sequence` tracks that contain polyphony (notes start at
+        the same time). If False, tracks with polyphony will be ignored.
+    pad_end: If True, the end of the melody will be padded with NO_EVENTs so
+        that it will end at a bar boundary.
 
   Returns:
     melodies: A python list of MonophonicMelody instances.
@@ -574,7 +692,9 @@ def extract_melodies(quantized_sequence,
   stats = dict([(stat_name, statistics.Counter(stat_name)) for stat_name in
                 ['polyphonic_tracks_discarded',
                  'melodies_discarded_too_short',
-                 'melodies_discarded_too_few_pitches']])
+                 'melodies_discarded_too_few_pitches',
+                 'melodies_discarded_too_long',
+                 'melodies_truncated']])
   # Create a histogram measuring melody lengths (in bars not steps).
   # Capture melodies that are very small, in the range of the filter lower
   # bound `min_bars`, and large. The bucket intervals grow approximately
@@ -596,7 +716,8 @@ def extract_melodies(quantized_sequence,
             track=track,
             start_step=start,
             gap_bars=gap_bars,
-            ignore_polyphonic_notes=ignore_polyphonic_notes)
+            ignore_polyphonic_notes=ignore_polyphonic_notes,
+            pad_end=pad_end)
       except PolyphonicMelodyException:
         stats['polyphonic_tracks_discarded'].increment()
         break  # Look for monophonic melodies in other tracks.
@@ -612,6 +733,19 @@ def extract_melodies(quantized_sequence,
       if len(melody) - 1 < melody.steps_per_bar * min_bars:
         stats['melodies_discarded_too_short'].increment()
         continue
+
+      # Discard melodies that are too long.
+      if max_steps_discard is not None and len(melody) > max_steps_discard:
+        stats['melodies_discarded_too_long'].increment()
+        continue
+
+      # Truncate melodies that are too long.
+      if max_steps_truncate is not None and len(melody) > max_steps_truncate:
+        truncated_length = max_steps_truncate
+        if pad_end:
+          truncated_length -= max_steps_truncate % melody.steps_per_bar
+        melody.set_length(truncated_length)
+        stats['melodies_truncated'].increment()
 
       # Require a certain number of unique pitches.
       note_histogram = melody.get_note_histogram()
@@ -723,11 +857,12 @@ class MelodyEncoderDecoder(object):
     pass
 
   @abc.abstractmethod
-  def melody_to_input(self, melody):
-    """Returns the input vector for the last event in the melody.
+  def melody_to_input(self, melody, position):
+    """Returns the input vector for the event at the given position.
 
     Args:
       melody: A MonophonicMelody object.
+      position: An integer event position in the melody.
 
     Returns:
       An input vector, a self.input_size length list of floats.
@@ -735,11 +870,12 @@ class MelodyEncoderDecoder(object):
     pass
 
   @abc.abstractmethod
-  def melody_to_label(self, melody):
-    """Returns the label for the last event in the melody.
+  def melody_to_label(self, melody, position):
+    """Returns the label for the event at the given position in the melody.
 
     Args:
       melody: A MonophonicMelody object.
+      position: An integer event position in the melody.
 
     Returns:
       A label, an int in the range [0, self.num_classes).
@@ -758,19 +894,16 @@ class MelodyEncoderDecoder(object):
     melody.squash(self.min_note, self.max_note, self.transpose_to_key)
     inputs = []
     labels = []
-    melody_events = melody.events
-    melody.events = melody_events[:1]
-    for i in xrange(1, len(melody_events)):
-      inputs.append(self.melody_to_input(melody))
-      melody.events = melody_events[:i + 1]
-      labels.append(self.melody_to_label(melody))
+    for i in range(len(melody) - 1):
+      inputs.append(self.melody_to_input(melody, i))
+      labels.append(self.melody_to_label(melody, i + 1))
     return sequence_example_lib.make_sequence_example(inputs, labels)
 
   def get_inputs_batch(self, melodies, full_length=False):
     """Returns an inputs batch for the given melodies.
 
     Args:
-      melodies: A list of MonophonicMelody objects.
+      melodies: A list of squashed MonophonicMelody objects.
       full_length: If True, the inputs batch will be for the full length of
           each melody. If False, the inputs batch will only be for the last
           event of each melody. A full-length inputs batch is used for the
@@ -787,12 +920,10 @@ class MelodyEncoderDecoder(object):
     for melody in melodies:
       inputs = []
       if full_length and len(melody):
-        melody_events = melody.events
-        for i in xrange(len(melody_events)):
-          melody.events = melody_events[:i + 1]
-          inputs.append(self.melody_to_input(melody))
+        for i in range(len(melody)):
+          inputs.append(self.melody_to_input(melody, i))
       else:
-        inputs.append(self.melody_to_input(melody))
+        inputs.append(self.melody_to_input(melody, len(melody) - 1))
       inputs_batch.append(inputs)
     return inputs_batch
 
@@ -825,7 +956,7 @@ class MelodyEncoderDecoder(object):
           should be the same length as the list of melodies.
     """
     num_classes = len(softmax[0][0])
-    for i in xrange(len(melodies)):
+    for i in range(len(melodies)):
       chosen_class = np.random.choice(num_classes, p=softmax[i][-1])
       melody_event = self.class_index_to_melody_event(chosen_class, melodies[i])
-      melodies[i].events.append(melody_event)
+      melodies[i].append_event(melody_event)

@@ -21,6 +21,7 @@ py_binary(
     name = "midi",
     srcs = ["midi.py"],
     deps = [
+        "//magenta/lib:sequence_generator_bundle",
         "//magenta/models/attention_rnn:attention_rnn_generator",
         "//magenta/models/basic_rnn:basic_rnn_generator",
         "//magenta/models/lookback_rnn:lookback_rnn_generator",

@@ -15,7 +15,6 @@
 
 # internal imports
 import tensorflow as tf
-from tensorflow.python.util import nest
 
 from magenta.lib import sequence_example_lib
 from magenta.lib import tf_lib
@@ -93,6 +92,8 @@ def build_graph(mode, hparams_string, input_size, num_classes,
       cells.append(cell)
 
     cell = tf.nn.rnn_cell.MultiRNNCell(cells, state_is_tuple=state_is_tuple)
+    cell = tf.contrib.rnn.AttentionCellWrapper(cell, hparams.attn_length,
+                                               state_is_tuple=state_is_tuple)
 
     initial_state = cell.zero_state(hparams.batch_size, tf.float32)
 
@@ -166,122 +167,3 @@ def build_graph(mode, hparams_string, input_size, num_classes,
       tf.add_to_collection('softmax', softmax)
 
   return graph
-
-
-_is_sequence = nest.is_sequence
-_unpacked_state = nest.flatten
-
-
-# TODO(elliotwaite): Merge with tf.contrib.rnn.rnn_cell.AttentionCellWrapper
-# and use that instead when it's available in the next TensorFlow release.
-class AttentionCellWrapper(tf.nn.rnn_cell.RNNCell):
-  """Basic attention cell wrapper.
-
-  Implementation based on http://arxiv.org/pdf/1412.7449v3.pdf, except
-  instead of applying attention to the decoder outputs, attention is applied
-  to the last attn_length cell outputs.
-  """
-
-  def __init__(self, cell, attn_length, attn_vec_size=None,
-               state_is_tuple=False):
-    """Create a cell with attention.
-
-    Args:
-      cell: an RNNCell, attention is added to it.
-      attn_length: integer, the number of previous cell outputs to apply
-          attention to.
-      attn_vec_size: integer, the size of the attention vector. Defaults to
-          cell.output_size.
-      state_is_tuple: If True, accepted and returned states are 3-tuples of
-        cell state, attns, and attn_states. By default (False), they are
-        concatenated along the column axis. This default behavior will soon
-        be deprecated.
-    Raises:
-      TypeError: if cell is not an RNNCell.
-      ValueError: if cell returns a state tuple but the flag
-          `state_is_tuple` is `False` or if attn_length is zero or less.
-    """
-    if not isinstance(cell, tf.nn.rnn_cell.RNNCell):
-      raise TypeError('The parameter cell is not RNNCell.')
-    if _is_sequence(cell.state_size) and not state_is_tuple:
-      raise ValueError('Cell returns tuple of states, but the flag '
-                       'state_is_tuple is not set. State size is: %s'
-                       % str(cell.state_size))
-    if attn_length <= 0:
-      raise ValueError('attn_length should be greater than zero, got %s'
-                       % str(attn_length))
-    if not state_is_tuple:
-      tf.logging.warn(
-          '%s: Using a concatenated state is slower and will soon be '
-          'deprecated. Use state_is_tuple=True.' % self)
-    self._cell = cell
-    self._attn_length = attn_length
-    self._attn_size = cell.output_size
-    self._attn_vec_size = attn_vec_size if attn_vec_size else cell.output_size
-    self._state_is_tuple = state_is_tuple
-    self._input_size = None
-
-  @property
-  def state_size(self):
-    size = (self._cell.state_size, self._attn_size,
-            self._attn_size * self._attn_length)
-    if self._state_is_tuple:
-      return size
-    return sum(size)
-
-  @property
-  def output_size(self):
-    return self._cell.output_size
-
-  def __call__(self, inputs, state, scope=None):
-    """Long short-term memory cell with attention (LSTM+A)."""
-    with tf.variable_scope(scope or type(self).__name__):
-      if self._state_is_tuple:
-        state, attns, attn_states = state
-      else:
-        state, attns, attn_states = (
-            tf.slice(state, [0, 0], [-1, self._cell.state_size]),
-            tf.slice(state, [0, self._cell.state_size], [-1, self._attn_size]),
-            tf.slice(state, [0, self._cell.state_size + self._attn_size],
-                     [-1, -1]))
-      attn_states = tf.reshape(attn_states,
-                               [-1, self._attn_length, self._attn_size])
-      if self._input_size is None:
-        self._input_size = inputs.get_shape().as_list()[1]
-      inputs = tf.contrib.layers.linear(tf.concat(1, [inputs, attns]),
-                                        self._input_size,
-                                        scope='InputsWithAttns')
-      output, new_state = self._cell(inputs, state)
-      if self._state_is_tuple:
-        new_state_cat = tf.concat(1, _unpacked_state(new_state))
-      else:
-        new_state_cat = new_state
-      new_attns = self._attention(new_state_cat, attn_states)
-      output = tf.contrib.layers.linear(tf.concat(1, [output, new_attns]),
-                                        self._cell.output_size,
-                                        scope='OutputWithAttns')
-      new_attn_states = tf.concat(1, [
-          tf.slice(attn_states, [0, 1, 0], [-1, -1, -1]),
-          tf.expand_dims(output, 1)])
-      new_attn_states = tf.reshape(new_attn_states,
-                                   [-1, self._attn_length * self._attn_size])
-      new_state = (new_state, new_attns, new_attn_states)
-      if not self._state_is_tuple:
-        new_state = tf.concat(1, list(new_state))
-      return output, new_state
-
-  def _attention(self, state, attn_states):
-    with tf.variable_scope('Attention'):
-      v = tf.get_variable('V', [self._attn_vec_size])
-      attn_states_flat = tf.reshape(attn_states, [-1, self._attn_size])
-      attn_states_vec = tf.contrib.layers.linear(
-          attn_states_flat, self._attn_vec_size, scope='AttnStatesVec')
-      attn_states_vec = tf.reshape(
-          attn_states_vec, [-1, self._attn_length, self._attn_vec_size])
-      state_vec = tf.contrib.layers.linear(
-          state, self._attn_vec_size, scope='StateVec')
-      state_vec = tf.expand_dims(state_vec, 1)
-      attn = tf.reduce_sum(v * tf.tanh(attn_states_vec + state_vec), 2)
-      attn_mask = tf.nn.softmax(attn)
-      attn_mask = tf.expand_dims(attn_mask, 2)
-      return tf.reduce_sum(attn_states * attn_mask, 1)

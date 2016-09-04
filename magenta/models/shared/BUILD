@@ -16,7 +16,10 @@
 # Code shared by models.
 
 package(
-    default_visibility = ["//magenta/models:__subpackages__"],
+    default_visibility = [
+        "//magenta/models:__subpackages__",
+        # internal dev models
+    ],
 )
 
 licenses(["notice"])  # Apache 2.0
@@ -56,6 +59,8 @@ py_library(
     deps = [
         "//magenta/lib:melodies_lib",
         "//magenta/lib:midi_io",
+        "//magenta/lib:sequence_generator",
+        "//magenta/lib:sequence_generator_bundle",
         # tensorflow dep
     ],
 )

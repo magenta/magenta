@@ -32,13 +32,13 @@ class MelodyRNNPipelineTest(tf.test.TestCase):
           numerator: 4
           denominator: 4}
         tempos: {
-          bpm: 120}""")
+          qpm: 120}""")
     testing_lib.add_track(
         note_sequence, 0,
         [(12, 100, 0.01, 10.0), (11, 55, 0.22, 0.50), (40, 45, 2.50, 3.50),
          (55, 120, 4.0, 4.01), (52, 99, 4.75, 5.0)])
 
-    quantizer = pipelines_common.Quantizer(steps_per_beat=4)
+    quantizer = pipelines_common.Quantizer(steps_per_quarter=4)
     melody_extractor = pipelines_common.MonophonicMelodyExtractor(
         min_bars=7, min_unique_pitches=5,
         gap_bars=1.0)

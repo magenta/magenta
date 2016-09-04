@@ -27,6 +27,7 @@ import time
 import mido
 import tensorflow as tf
 
+from magenta.lib import sequence_generator_bundle
 from magenta.models.attention_rnn import attention_rnn_generator
 from magenta.models.basic_rnn import basic_rnn_generator
 from magenta.models.lookback_rnn import lookback_rnn_generator
@@ -70,11 +71,11 @@ tf.app.flags.DEFINE_integer(
     'The control change value to use as a signal to stop '
     'capturing and generate. If None, any control change with'
     'stop_capture_control_number will stop capture.')
-# TODO(adarob): Make the bpm adjustable by a control change signal.
+# TODO(adarob): Make the qpm adjustable by a control change signal.
 tf.app.flags.DEFINE_integer(
-    'bpm',
+    'qpm',
     90,
-    'The beats per minute to use for the metronome and generated sequence.')
+    'The quarters per minute to use for the metronome and generated sequence.')
 # TODO(adarob): Make the number of bars to generate adjustable.
 tf.app.flags.DEFINE_integer(
     'num_bars_to_generate',
@@ -89,6 +90,11 @@ tf.app.flags.DEFINE_integer(
     0,
     'The velocity of the generated playback metronome '
     'expressed as an integer between 0 and 127.')
+tf.app.flags.DEFINE_string(
+    'bundle_file',
+    None,
+    'The location of the bundle file to use. If specified, generator_name, '
+    'checkpoint, and hparams cannot be specified.')
 tf.app.flags.DEFINE_string(
     'generator_name',
     None,
@@ -169,18 +175,29 @@ class Generator(object):
       generator_name,
       num_bars_to_generate,
       hparams,
-      checkpoint=None):
+      checkpoint=None,
+      bundle_file=None):
     self._num_bars_to_generate = num_bars_to_generate
+
+    if not checkpoint and not bundle_file:
+      raise GeneratorException(
+          'No generator checkpoint or bundle location supplied.')
+    if (checkpoint or generator_name or hparams) and bundle_file:
+      raise GeneratorException(
+          'Cannot specify both bundle file and checkpoint, generator_name, '
+          'or hparams.')
+
+    bundle = None
+    if bundle_file:
+      bundle = sequence_generator_bundle.read_bundle_file(bundle_file)
+      generator_name = bundle.generator_details.id
 
     if generator_name not in _GENERATOR_FACTORY_MAP:
       raise GeneratorException('Invalid generator name given: %s',
                                generator_name)
 
-    if not checkpoint:
-      raise GeneratorException('No generator checkpoint location supplied.')
-
     generator = _GENERATOR_FACTORY_MAP[generator_name].create_generator(
-        checkpoint, hparams=hparams)
+        checkpoint=checkpoint, bundle=bundle, hparams=hparams)
     generator.initialize()
 
     self._generator = generator
@@ -192,14 +209,14 @@ class Generator(object):
     last_end_time = notes_by_end_time[-1].end_time if notes_by_end_time else 0
 
     # Assume 4/4 time signature and a single tempo.
-    bpm = input_sequence.tempos[0].bpm
-    seconds_to_generate = (60.0 / bpm) * 4 * self._num_bars_to_generate
+    qpm = input_sequence.tempos[0].qpm
+    seconds_to_generate = (60.0 / qpm) * 4 * self._num_bars_to_generate
 
     request = generator_pb2.GenerateSequenceRequest()
     request.input_sequence.CopyFrom(input_sequence)
     section = request.generator_options.generate_sections.add()
-    # Start generating 1 beat after the sequence ends.
-    section.start_time_seconds = last_end_time + (60.0 / bpm)
+    # Start generating 1 quarter note after the sequence ends.
+    section.start_time_seconds = last_end_time + (60.0 / qpm)
     section.end_time_seconds = section.start_time_seconds + seconds_to_generate
 
     response = self._generator.generate(request)
@@ -211,26 +228,27 @@ class Metronome(threading.Thread):
 
   Attributes:
     _outport: The Mido port for sending messages.
-    _bpm: The integer beats per minute to signal on.
+    _qpm: The integer quarters per minute to signal on.
     _stop_metronome: A boolean specifying whether the metronome should stop.
   Args:
     outport: The Mido port for sending messages.
     bpm: The integer beats per minute to signal on.
+    qpm: The integer quarters per minute to signal on.
   """
   daemon = True
 
-  def __init__(self, outport, bpm, clock_start_time):
+  def __init__(self, outport, qpm, clock_start_time):
     self._outport = outport
-    self._bpm = bpm
+    self._qpm = qpm
     self._stop_metronome = False
     self._clock_start_time = clock_start_time
     super(Metronome, self).__init__()
 
   def run(self):
-    """Outputs metronome tone on the bpm interval until stop signal received."""
+    """Outputs metronome tone on the qpm interval until stop signal received."""
     sleep_offset = 0
     while not self._stop_metronome:
-      period = 60. / self._bpm
+      period = 60. / self._qpm
       now = time.time()
       next_tick_time = now + period - ((now - self._clock_start_time) % period)
       delta = next_tick_time - time.time()
@@ -285,7 +303,7 @@ class MonoMidiPlayer(threading.Thread):
     self._stop_playback = False
     if len(sequence.tempos) != 1:
       raise ValueError('The NoteSequence contains multiple tempos.')
-    self._metronome = Metronome(self._outport, sequence.tempos[0].bpm,
+    self._metronome = Metronome(self._outport, sequence.tempos[0].qpm,
                                 time.time())
     super(MonoMidiPlayer, self).__init__()
 
@@ -420,9 +438,9 @@ class MonoMidiHub(object):
       if self._sequence_start_time is None:
         # This is the first note.
         # Find the sequence start time based on the start of the most recent
-        # beat. This ensures that the sequence start time lines up with a
-        # metronome tick.
-        period = 60. / self.captured_sequence.tempos[0].bpm
+        # quarter note. This ensures that the sequence start time lines up with
+        # a metronome tick.
+        period = 60. / self.captured_sequence.tempos[0].qpm
         self._sequence_start_time = msg.time - (
             (msg.time - self._capture_start_time) % period)
       elif last_note.end_time == 0:
@@ -441,14 +459,14 @@ class MonoMidiHub(object):
       stdout_write_and_flush('.')
 
   @serialized
-  def start_capture(self, bpm):
+  def start_capture(self, qpm):
     """Starts a capture session.
 
     Initializes a new capture sequence, sets the capture callback on the input
     port, and starts the metronome.
 
     Args:
-      bpm: The integer beats per minute to use for the metronome and captured
+      qpm: The integer quarters per minute to use for the metronome and captured
           sequence.
     Raises:
       RuntimeError: Already in a capture session.
@@ -457,11 +475,11 @@ class MonoMidiHub(object):
       raise RuntimeError('Already in a capture session.')
 
     self.captured_sequence = music_pb2.NoteSequence()
-    self.captured_sequence.tempos.add().bpm = bpm
+    self.captured_sequence.tempos.add().qpm = qpm
     self._sequence_start_time = None
     self._capture_start_time = time.time()
     self._inport.callback = self._timestamp_and_capture_message
-    self._metronome = Metronome(self._outport, bpm, self._capture_start_time)
+    self._metronome = Metronome(self._outport, qpm, self._capture_start_time)
     self._metronome.start()
 
   @serialized
@@ -717,14 +735,15 @@ def main(unused_argv):
       FLAGS.generator_name,
       FLAGS.num_bars_to_generate,
       ast.literal_eval(FLAGS.hparams if FLAGS.hparams else '{}'),
-      FLAGS.checkpoint)
+      FLAGS.checkpoint,
+      FLAGS.bundle_file)
   hub = MonoMidiHub(FLAGS.input_port, FLAGS.output_port)
 
   stdout_write_and_flush('Waiting for start control signal...\n')
   while True:
     hub.wait_for_control_signal(_CUSTOM_CC_MAP['Start Capture'])
     hub.stop_playback()
-    hub.start_capture(FLAGS.bpm)
+    hub.start_capture(FLAGS.qpm)
     stdout_write_and_flush('Capturing notes until stop control signal...')
     hub.wait_for_control_signal(_CUSTOM_CC_MAP['Stop Capture'])
     captured_sequence = hub.stop_capture()

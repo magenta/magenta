@@ -21,7 +21,7 @@ from magenta.models.shared import melody_rnn_sequence_generator
 from magenta.protobuf import generator_pb2
 
 
-def create_generator(checkpoint, steps_per_beat=4, hparams=None):
+def create_generator(checkpoint, bundle, steps_per_quarter=4, hparams=None):
   melody_encoder_decoder = attention_rnn_encoder_decoder.MelodyEncoderDecoder()
   details = generator_pb2.GeneratorDetails(
       id='attention_rnn',
@@ -29,7 +29,8 @@ def create_generator(checkpoint, steps_per_beat=4, hparams=None):
   return melody_rnn_sequence_generator.MelodyRnnSequenceGenerator(
       details,
       checkpoint,
+      bundle,
       melody_encoder_decoder,
       attention_rnn_graph.build_graph,
-      steps_per_beat,
+      steps_per_quarter,
       {} if hparams is None else hparams)

@@ -1,9 +1,9 @@
 new_http_archive(
   name = "pretty_midi",
   build_file = "pretty_midi.BUILD",
-  url = "https://github.com/craffel/pretty-midi/archive/9e3c353b7b77ce4012c70610db4c0d0961c05916.tar.gz",
-  sha256 = "2443ab74f475155d1f79ebdf4537cdfb6e603e77c2747ade7997187dfd588949",
-  strip_prefix = "pretty-midi-9e3c353b7b77ce4012c70610db4c0d0961c05916/pretty_midi",
+  url = "https://github.com/craffel/pretty-midi/archive/c9700f2f72e1873ff64a4911f46ec04b58dfb2de.tar.gz",
+  sha256 = "2a17878b5e07fc2982969cf8a41a16d8bb21c86ecbca5f399d3f2553212c4fff",
+  strip_prefix = "pretty-midi-c9700f2f72e1873ff64a4911f46ec04b58dfb2de/pretty_midi",
 )
 
 new_http_archive(
@@ -44,4 +44,12 @@ new_http_archive(
     url = "https://github.com/olemb/mido/archive/1.1.14.tar.gz",
     sha256 = "eacfae91d2efd59ada6bf27f4548bfc2f2b0e8623c80bf242477314ae8df31b5",
     strip_prefix = "mido-1.1.14/mido",
+)
+
+new_http_archive(
+    name = "music21",
+    build_file = "music21.BUILD",
+    url = "https://github.com/cuthbertLab/music21/releases/download/v3.0.3-alpha/music21-3.0.3.tar.gz",
+    sha256 = "4c0cc1e1fa3638c53ecf45ec13301174114dcf59f93faffc6586c5b94ae065e3",
+    strip_prefix = "music21-3.0.3/music21",
 )

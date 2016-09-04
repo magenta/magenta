@@ -34,11 +34,19 @@ from magenta.models.shared import melody_rnn_generate
 
 
 def main(unused_argv):
+  melody_rnn_generate.setup_logs()
+
   with attention_rnn_generator.create_generator(
       melody_rnn_generate.get_checkpoint(),
-      melody_rnn_generate.get_steps_per_beat(),
+      melody_rnn_generate.get_bundle(),
+      melody_rnn_generate.get_steps_per_quarter(),
       melody_rnn_generate.get_hparams()) as generator:
-    melody_rnn_generate.run_with_flags(generator)
+    if melody_rnn_generate.should_save_generator_bundle():
+      tf.logging.info('Saving generator bundle to %s' % (
+          melody_rnn_generate.get_bundle_file()))
+      generator.create_bundle_file(melody_rnn_generate.get_bundle_file())
+    else:
+      melody_rnn_generate.run_with_flags(generator)
 
 
 if __name__ == '__main__':
