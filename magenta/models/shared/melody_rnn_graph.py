@@ -103,12 +103,12 @@ def build_graph(mode, hparams, encoder_decoder, sequence_example_file=None):
           tf.nn.in_top_k(logits_flat, labels_flat, 1))
       accuracy = tf.reduce_mean(correct_predictions) * 100
 
-      event_positions = tf.to_float(tf.not_equal(labels_flat, no_event_class))
+      event_positions = tf.to_float(tf.not_equal(labels_flat, no_event_label))
       event_accuracy = tf.truediv(
           tf.reduce_sum(tf.mul(correct_predictions, event_positions)),
           tf.reduce_sum(event_positions)) * 100
 
-      no_event_positions = tf.to_float(tf.equal(labels_flat, no_event_class))
+      no_event_positions = tf.to_float(tf.equal(labels_flat, no_event_label))
       no_event_accuracy = tf.truediv(
           tf.reduce_sum(tf.mul(correct_predictions, no_event_positions)),
           tf.reduce_sum(no_event_positions)) * 100
