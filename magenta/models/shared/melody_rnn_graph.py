@@ -19,17 +19,14 @@ import tensorflow as tf
 from magenta.lib import sequence_example_lib
 
 
-def build_graph(mode, hparams, input_size, num_classes,
-                sequence_example_file=None):
+def build_graph(mode, hparams, encoder_decoder, sequence_example_file=None):
   """Builds the TensorFlow graph.
 
   Args:
     mode: 'train', 'eval', or 'generate'. Only mode related ops are added to
         the graph.
     hparams: A tf_lib.HParams object containing the hyperparameters to use.
-    input_size: The size of the input vectors in the inputs batch. Each
-        inputs batch should have a shape [batch_size, num_steps, input_size].
-    num_classes: The number of classes the labels can be.
+    encoder_decoder: The MelodyEncoderDecoder being used by the model.
     sequence_example_file: A string path to a TFRecord file containing
         tf.train.SequenceExamples. Only needed for training and evaluation.
 
@@ -46,6 +43,10 @@ def build_graph(mode, hparams, input_size, num_classes,
                      'or \'generate\'. The mode parameter was: %s' % mode)
 
   tf.logging.info('hparams = %s', hparams.values())
+
+  input_size = encoder_decoder.input_size
+  num_classes = encoder_decoder.num_classes
+  no_event_class = encoder_decoder.no_event_class
 
   with tf.Graph().as_default() as graph:
     inputs, labels, lengths, = None, None, None
@@ -102,12 +103,12 @@ def build_graph(mode, hparams, input_size, num_classes,
           tf.nn.in_top_k(logits_flat, labels_flat, 1))
       accuracy = tf.reduce_mean(correct_predictions) * 100
 
-      event_positions = tf.to_float(tf.not_equal(labels_flat, 0))
+      event_positions = tf.to_float(tf.not_equal(labels_flat, no_event_class))
       event_accuracy = tf.truediv(
           tf.reduce_sum(tf.mul(correct_predictions, event_positions)),
           tf.reduce_sum(event_positions)) * 100
 
-      no_event_positions = tf.to_float(tf.equal(labels_flat, 0))
+      no_event_positions = tf.to_float(tf.equal(labels_flat, no_event_class))
       no_event_accuracy = tf.truediv(
           tf.reduce_sum(tf.mul(correct_predictions, no_event_positions)),
           tf.reduce_sum(no_event_positions)) * 100

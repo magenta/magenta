@@ -530,6 +530,7 @@ class MelodyEncoderDecoderTest(tf.test.TestCase):
     self.assertEqual(self.melody_encoder_decoder.transpose_to_key, 0)
     self.assertEqual(self.melody_encoder_decoder.input_size, 14)
     self.assertEqual(self.melody_encoder_decoder.num_classes, 14)
+    self.assertEqual(self.melody_encoder_decoder.no_event_label, 0)
 
   def testEncode(self):
     events = [100, 100, 107, 111, NO_EVENT, 99, 112, NOTE_OFF, NO_EVENT]

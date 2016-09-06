@@ -103,6 +103,7 @@ py_test(
     srcs_version = "PY2AND3",
     deps = [
         ":melody_rnn_graph",
+        "//magenta/lib:melodies_lib",
         "//magenta/lib:tf_lib",
         # tensorflow dep
     ],

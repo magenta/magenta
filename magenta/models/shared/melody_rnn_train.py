@@ -201,8 +201,7 @@ def run(melody_encoder_decoder, build_graph):
   mode = 'eval' if FLAGS.eval else 'train'
   graph = build_graph(mode,
                       FLAGS.hparams,
-                      melody_encoder_decoder.input_size,
-                      melody_encoder_decoder.num_classes,
+                      melody_encoder_decoder,
                       FLAGS.sequence_example_file)
 
   train_dir = os.path.join(FLAGS.run_dir, 'train')
