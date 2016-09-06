@@ -137,7 +137,7 @@ class SequencesLibTest(tf.test.TestCase):
     self.assertEqual(quantized, quantized_copy)
 
     testing_lib.add_quantized_track(
-        self.quantized, 1,
+        quantized, 1,
         [(12, 100, 4, 20), (19, 100, 8, 16), (24, 100, 12, 14)])
 
     self.assertNotEqual(quantized, quantized_copy)
