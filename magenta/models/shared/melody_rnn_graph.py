@@ -102,6 +102,16 @@ def build_graph(mode, hparams, input_size, num_classes,
           tf.nn.in_top_k(logits_flat, labels_flat, 1))
       accuracy = tf.reduce_mean(correct_predictions) * 100
 
+      event_positions = tf.to_float(tf.not_equal(labels_flat, 0))
+      event_accuracy = tf.truediv(
+          tf.reduce_sum(tf.mul(correct_predictions, event_positions)),
+          tf.reduce_sum(event_positions)) * 100
+
+      no_event_positions = tf.to_float(tf.equal(labels_flat, 0))
+      no_event_accuracy = tf.truediv(
+         tf.reduce_sum(tf.mul(correct_predictions, no_event_positions)),
+         tf.reduce_sum(no_event_positions)) * 100
+
       global_step = tf.Variable(0, trainable=False, name='global_step')
 
       tf.add_to_collection('loss', loss)
@@ -113,6 +123,8 @@ def build_graph(mode, hparams, input_size, num_classes,
           tf.scalar_summary('loss', loss),
           tf.scalar_summary('perplexity', perplexity),
           tf.scalar_summary('accuracy', accuracy),
+          tf.scalar_summary('event_accuracy', event_accuracy),
+          tf.scalar_summary('no_event_accuracy', no_event_accuracy),
       ]
 
       if mode == 'train':
