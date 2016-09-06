@@ -109,8 +109,8 @@ def build_graph(mode, hparams, input_size, num_classes,
 
       no_event_positions = tf.to_float(tf.equal(labels_flat, 0))
       no_event_accuracy = tf.truediv(
-         tf.reduce_sum(tf.mul(correct_predictions, no_event_positions)),
-         tf.reduce_sum(no_event_positions)) * 100
+          tf.reduce_sum(tf.mul(correct_predictions, no_event_positions)),
+          tf.reduce_sum(no_event_positions)) * 100
 
       global_step = tf.Variable(0, trainable=False, name='global_step')
 
