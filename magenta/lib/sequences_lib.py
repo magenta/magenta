@@ -15,6 +15,7 @@
 """
 
 import collections
+import copy
 
 # Set the quantization cutoff.
 # Note events before this cutoff are rounded down to nearest step. Notes
@@ -179,8 +180,8 @@ class QuantizedSequence(object):
     new_copy = type(self)()
     new_copy.tracks = copy.deepcopy(self.tracks)
     new_copy.qpm = self.qpm
-    new_copy.time_signature = other.time_signature
-    new_copy.steps_per_quarter = other.steps_per_quarter
+    new_copy.time_signature = self.time_signature
+    new_copy.steps_per_quarter = self.steps_per_quarter
     return new_copy
 
   def deepcopy(self):
