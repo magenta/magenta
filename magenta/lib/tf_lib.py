@@ -34,9 +34,10 @@ class HParams(object):
     object.__setattr__(self, 'keyvals', init_hparams)
 
   def __getattr__(self, key):
-    return self.keyvals[key]
+    return self.keyvals.get(key)
 
   def __setattr__(self, key, value):
+    """Returns None if key does not exist."""
     self.keyvals[key] = value
 
   def parse(self, string):
