@@ -46,7 +46,7 @@ def build_graph(mode, hparams, encoder_decoder, sequence_example_file=None):
 
   input_size = encoder_decoder.input_size
   num_classes = encoder_decoder.num_classes
-  no_event_class = encoder_decoder.no_event_class
+  no_event_label = encoder_decoder.no_event_label
 
   with tf.Graph().as_default() as graph:
     inputs, labels, lengths, = None, None, None
