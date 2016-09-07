@@ -856,6 +856,17 @@ class MelodyEncoderDecoder(object):
     """
     pass
 
+  @property
+  def no_event_label(self):
+    """The class label that represents a NO_EVENT MonophonicMelody event.
+
+    Returns:
+        An int, the class label that represents a NO_EVENT.
+    """
+    melody = MonophonicMelody()
+    melody.from_event_list([NO_EVENT])
+    return self.melody_to_label(melody, 0)
+
   @abc.abstractmethod
   def melody_to_input(self, melody, position):
     """Returns the input vector for the event at the given position.
