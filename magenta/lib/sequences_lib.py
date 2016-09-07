@@ -202,6 +202,3 @@ class QuantizedSequence(object):
     new_copy.time_signature = self.time_signature
     new_copy.steps_per_quarter = self.steps_per_quarter
     return new_copy
-
-  def deepcopy(self):
-    return self.__deepcopy__()
