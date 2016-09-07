@@ -30,6 +30,7 @@ filegroup(
     srcs = [
         "example.mid",
         "example_complex.mid",
+        "example_event_order.mid",
         "example_is_drum.mid",
         "notesequences.tfrecord",
         "tfrecord_iterator_test.tfrecord",

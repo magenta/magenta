@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Test to ensure correct import of pretty_midi."""
+"""Test to ensure correct midi input and output."""
 
 from collections import defaultdict
 import os.path
@@ -38,6 +38,18 @@ _SIMPLE_MIDI_FILE_SUSTAIN = .95
 # self.midi_complex_filename contains many instruments including percussion as
 # well as control change and pitch bend events.
 
+# self.midi_is_drum_filename contains 41 tracks, two of which are on channel 9.
+
+# self.midi_event_order_filename contains notes ordered
+# non-monotonically by pitch.  Here are relevent events as printed by
+# mididump.py:
+#   midi.NoteOnEvent(tick=0, channel=0, data=[1, 100]),
+#   midi.NoteOnEvent(tick=0, channel=0, data=[3, 100]),
+#   midi.NoteOnEvent(tick=0, channel=0, data=[2, 100]),
+#   midi.NoteOnEvent(tick=4400, channel=0, data=[3, 0]),
+#   midi.NoteOnEvent(tick=0, channel=0, data=[1, 0]),
+#   midi.NoteOnEvent(tick=0, channel=0, data=[2, 0]),
+
 
 class MidiIoTest(tf.test.TestCase):
 
@@ -50,6 +62,9 @@ class MidiIoTest(tf.test.TestCase):
     self.midi_is_drum_filename = os.path.join(
         tf.resource_loader.get_data_files_path(),
         '../testdata/example_is_drum.mid')
+    self.midi_event_order_filename = os.path.join(
+        tf.resource_loader.get_data_files_path(),
+        '../testdata/example_event_order.mid')
 
   def CheckPrettyMidiAndSequence(self, midi, sequence_proto):
     """Compares PrettyMIDI object against a sequence proto.
@@ -144,8 +159,19 @@ class MidiIoTest(tf.test.TestCase):
 
   def CheckReadWriteMidi(self, filename):
     """Test writing to a MIDI file and comparing it to the original Sequence."""
-    source_midi = pretty_midi.PrettyMIDI(filename)
-    sequence_proto = midi_io.midi_to_sequence_proto(source_midi)
+
+    # TODO(deck): The input MIDI file is opened in pretty-midi and
+    # re-written to a temp file, sanitizing the MIDI data (reordering
+    # note ons, etc). Issue 85 in the pretty-midi GitHub
+    # (http://github.com/craffel/pretty-midi/issues/85) requests that
+    # this sanitization be available outside of the context of a file
+    # write. If that is implemented, this rewrite code should be
+    # modified or deleted.
+    with tempfile.NamedTemporaryFile(prefix='MidiIoTest') as rewrite_file:
+      original_midi = pretty_midi.PrettyMIDI(filename)
+      original_midi.write(rewrite_file.name)
+      source_midi = pretty_midi.PrettyMIDI(rewrite_file.name)
+      sequence_proto = midi_io.midi_to_sequence_proto(source_midi)
 
     # Translate the NoteSequence to MIDI and write to a file.
     with tempfile.NamedTemporaryFile(prefix='MidiIoTest') as temp_file:
@@ -196,10 +222,11 @@ class MidiIoTest(tf.test.TestCase):
             channel_counts[index] += 1
     self.assertEqual(channel_counts, [2, 2])
 
-  # TODO(adarob): Uncomment once
-  # https://github.com/craffel/pretty-midi/pull/67 is merged.
-  # def testComplexReadWriteMidi(self):
-  #   self.CheckReadWriteMidi(self.midi_complex_filename)
+  def testComplexReadWriteMidi(self):
+    self.CheckReadWriteMidi(self.midi_complex_filename)
+
+  def testEventOrdering(self):
+    self.CheckReadWriteMidi(self.midi_event_order_filename)
 
 
 if __name__ == '__main__':
