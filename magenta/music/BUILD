@@ -273,6 +273,15 @@ py_library(
     ],
 )
 
+py_library(
+    name = "musicxml_reader",
+    srcs = ["musicxml_reader.py", "musicxml_parser.py"],
+    srcs_version = "PY2AND3",
+    deps = [
+        "//magenta/protobuf:music_py_pb2"
+    ],
+)
+
 py_test(
     name = "midi_io_test",
     srcs = ["midi_io_test.py"],
