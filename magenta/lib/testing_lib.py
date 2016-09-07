@@ -18,6 +18,10 @@ import numpy as np
 
 from google.protobuf import text_format
 from magenta.lib import sequences_lib
+from magenta.protobuf import music_pb2
+
+# Shortcut to CHORD_SYMBOL annotation type.
+CHORD_SYMBOL = music_pb2.NoteSequence.TextAnnotation.CHORD_SYMBOL
 
 
 class MockStringProto(object):
@@ -94,6 +98,14 @@ def add_track(note_sequence, instrument, notes):
     note.instrument = instrument
 
 
+def add_chords(note_sequence, chords):
+  for figure, time in chords:
+    annotation = note_sequence.text_annotations.add()
+    annotation.time = time
+    annotation.text = figure
+    annotation.annotation_type = CHORD_SYMBOL
+
+
 def add_quantized_track(quantized_sequence, instrument, notes):
   if instrument not in quantized_sequence.tracks:
     quantized_sequence.tracks[instrument] = []
@@ -106,3 +118,9 @@ def add_quantized_track(quantized_sequence, instrument, notes):
                               instrument=instrument,
                               program=0)
     track.append(note)
+
+
+def add_quantized_chords(quantized_sequence, chords):
+  for figure, step in chords:
+    chord = sequences_lib.ChordSymbol(step=step, figure=figure)
+    quantized_sequence.chords.append(chord)
