@@ -1,9 +1,9 @@
 new_http_archive(
   name = "pretty_midi",
   build_file = "pretty_midi.BUILD",
-  url = "https://github.com/craffel/pretty-midi/archive/c9700f2f72e1873ff64a4911f46ec04b58dfb2de.tar.gz",
-  sha256 = "2a17878b5e07fc2982969cf8a41a16d8bb21c86ecbca5f399d3f2553212c4fff",
-  strip_prefix = "pretty-midi-c9700f2f72e1873ff64a4911f46ec04b58dfb2de/pretty_midi",
+  url = "https://github.com/craffel/pretty-midi/archive/a0cc35d48caf41e8fae16131b98eb530becbbd60.tar.gz",
+  sha256 = "2e23aeba2d4f6c9c01615cd9fce431b0c7b3e12d8a755f1fe53258735bd03daa",
+  strip_prefix = "pretty-midi-a0cc35d48caf41e8fae16131b98eb530becbbd60/pretty_midi",
 )
 
 new_http_archive(
