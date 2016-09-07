@@ -24,7 +24,7 @@ from magenta.models.shared import melody_rnn_graph
 class MelodyRNNGraphTest(tf.test.TestCase):
 
   def setUp(self):
-    self.encoder_decoder = melodies_lib.OneHotEncoderDecoder(0, 10, 0)
+    self.encoder_decoder = melodies_lib.OneHotEncoderDecoder(0, 12, 0)
     self.hparams = tf_lib.HParams(
         batch_size=128,
         rnn_layer_sizes=[128, 128],
