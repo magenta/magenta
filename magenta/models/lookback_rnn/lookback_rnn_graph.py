@@ -31,7 +31,7 @@ def default_hparams():
       decay_rate=0.95)
 
 
-def build_graph(mode, hparams_string, input_size, num_classes,
+def build_graph(mode, hparams_string, encoder_decoder,
                 sequence_example_file=None):
   """Builds the TensorFlow graph.
 
@@ -41,9 +41,7 @@ def build_graph(mode, hparams_string, input_size, num_classes,
     hparams_string: A string literal of a Python dictionary, where keys are
         hyperparameter names and values replace default values. For example:
         '{"batch_size":64,"rnn_layer_sizes":[128,128]}'
-    input_size: The size of the input vectors in the inputs batch. Each
-        inputs batch should have a shape [batch_size, num_steps, input_size].
-    num_classes: The number of classes the labels can be.
+    encoder_decoder: The MelodyEncoderDecoder being used by the model.
     sequence_example_file: A string path to a TFRecord file containing
         tf.train.SequenceExamples. Only needed for training and evaluation.
 
@@ -57,5 +55,5 @@ def build_graph(mode, hparams_string, input_size, num_classes,
   """
   hparams = default_hparams()
   hparams = hparams.parse(hparams_string)
-  return melody_rnn_graph.build_graph(mode, hparams, input_size, num_classes,
+  return melody_rnn_graph.build_graph(mode, hparams, encoder_decoder,
                                       sequence_example_file)
