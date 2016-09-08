@@ -1,10 +1,10 @@
-FROM tensorflow/tensorflow:0.10.0
+FROM tensorflow/tensorflow:0.10.0-devel
 
 MAINTAINER Curtis Hawthorne <fjord@google.com>
 
 # Download and build Magenta.
 
-ENV MAGENTA_MASTER_REF a6757dc00742b57edc807ca195f75f3d7124caac
+ENV MAGENTA_MASTER_REF 1e4ca2f57cb7e998bff448c11d88600dfccfa46c
 
 WORKDIR /
 RUN git clone https://github.com/tensorflow/magenta.git && \
@@ -14,7 +14,7 @@ WORKDIR /magenta
 RUN bazel build //magenta/... && bazel test //magenta/...
 
 # Add pre-trained models
-ADD http://download.magenta.tensorflow.org/models/lookback_rnn.magenta /magenta-models/
+ADD http://download.magenta.tensorflow.org/models/lookback_rnn.mag /magenta-models/
 
 # Start an interactive shell
 
