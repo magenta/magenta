@@ -71,9 +71,9 @@ def musicxml_to_sequence_proto(musicxml_document):
     # Convert from MIDI / MusicXML key to music.proto key
     music_proto_keys = [11, 6, 1, 8, 3, 10, 5, 0, 7, 2, 9, 4, 11, 6, 1]
     key_signature.key = music_proto_keys[musicxml_key.key + 7]
-    if musicxml_key == "major":
+    if musicxml_key.mode == "major":
       key_signature.mode = key_signature.MAJOR
-    elif musicxml_key == "minor":
+    elif musicxml_key.mode == "minor":
       key_signature.mode = key_signature.MINOR
 
   # Populate tempo changes.
