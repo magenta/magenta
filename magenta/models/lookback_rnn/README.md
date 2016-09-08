@@ -1,6 +1,31 @@
-### About Lookback RNN
+## Lookback RNN
 
 Lookback RNN introduces custom inputs and labels. The custom inputs allow the model to more easily recognize patterns that occur across 1 and 2 bars. They also help the model recognize patterns related to an events position within the measure. The custom labels reduce the amount of information that the RNN’s cell state has to remember by allowing the model to more easily repeat events from 1 and 2 bars ago. This results in melodies that wander less and have a more musical structure. For more information about the custom inputs and labels, and to hear some generated sample melodies, check out the [blog post](https://magenta.tensorflow.org/2016/07/15/lookback-rnn-attention-rnn/). You can also read through the `melody_to_input` and `melody_to_label` methods in `lookback_rnn_encoder_decoder.py` to see how the custom inputs and labels are actually being encoded. The rest of this README leads you through the steps of training the model and generating melodies from it.
+
+## How to Use
+
+First, set up your [Magenta environment](https://github.com/tensorflow/magenta/blob/master/README.md). Next, you can either use a pre-trained model or train your own.
+
+## Pre-trained
+
+Download the [lookback_rnn bundle](http://download.magenta.tensorflow.org/models/lookback_rnn.mag).
+
+### Generate a melody
+
+```
+BUNDLE_PATH=<absolute path of lookback_rnn.mag>
+
+bazel run //magenta/models/lookback_rnn:lookback_rnn_generate -- \
+--bundle_file=${BUNDLE_PATH} \
+--output_dir=/tmp/lookback_rnn/generated \
+--num_outputs=10 \
+--num_steps=128
+```
+
+This will generate a melody starting with a random priming sequence. If you'd
+like, you can also supply a priming melody using a string representation of a Python list. The values in the list should be ints that follow the melodies_lib.Melody format (-2 = no event, -1 = note-off event, values 0 through 127 = note-on event for that MIDI pitch). For example `--primer_melody="[60, -2, 60, -2, 67, -2, 67, -2]"` would prime the model with the first four notes of Twinkle Twinkle Little Star. Instead of using `--primer_melody`, we can use `--primer_midi` to prime our model with a melody stored in a MIDI file. For example, `--primer_midi=<absolute path to magenta/models/shared/primer.mid>` will prime the model with the melody in that MIDI file.
+
+## Train your own
 
 ### File Structure
 
@@ -61,7 +86,7 @@ tmp
 
 ### Create NoteSequences
 
-Our first step will be to convert a collection of MIDI files into NoteSequences. NoteSequences are [protocol buffers](https://developers.google.com/protocol-buffers/), which is a fast and efficient data format, and easier to work with than MIDI files. See [Building your Dataset](https://github.com/tensorflow/magenta#building-your-dataset) for instructions on generating a TFRecord file of NoteSequences. In this example, we assume the NoteSequences were output to ```/tmp/notesequences.tfrecord```.
+Our first step will be to convert a collection of MIDI files into NoteSequences. NoteSequences are [protocol buffers](https://developers.google.com/protocol-buffers/), which is a fast and efficient data format, and easier to work with than MIDI files. See [Building your Dataset](https://github.com/tensorflow/magenta/blob/master/magenta/scripts/README.md) for instructions on generating a TFRecord file of NoteSequences. In this example, we assume the NoteSequences were output to ```/tmp/notesequences.tfrecord```.
 
 ### Create SequenceExamples
 

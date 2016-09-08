@@ -1,6 +1,31 @@
-### About Attention RNN
+## Attention RNN
 
 In this model we introduce the use of attention. Attention allows the model to more easily access past information without having to store that information in the RNN cell's state. This allows the model to more easily learn longer term dependencies, and results in melodies that have longer arching themes. For an overview of how the attention mechanism works and to hear some generated sample melodies, check out the [blog post](https://magenta.tensorflow.org/2016/07/15/lookback-rnn-attention-rnn/). You can also read through the `AttentionCellWrapper` code in `attention_rnn_graph.py` to see what's really going on under the hood. The rest of this README leads you through the steps of training the model and generating melodies from it.
+
+## How to Use
+
+First, set up your [Magenta environment](https://github.com/tensorflow/magenta/blob/master/README.md). Next, you can either use a pre-trained model or train your own.
+
+## Pre-trained
+
+Download the [attention_rnn bundle](http://download.magenta.tensorflow.org/models/attention_rnn.mag).
+
+### Generate a melody
+
+```
+BUNDLE_PATH=<absolute path of attention_rnn.mag>
+
+bazel run //magenta/models/attention_rnn:attention_rnn_generate -- \
+--bundle_file=${BUNDLE_PATH} \
+--output_dir=/tmp/attention_rnn/generated \
+--num_outputs=10 \
+--num_steps=128
+```
+
+This will generate a melody starting with a random priming sequence. If you'd
+like, you can also supply a priming melody using a string representation of a Python list. The values in the list should be ints that follow the melodies_lib.Melody format (-2 = no event, -1 = note-off event, values 0 through 127 = note-on event for that MIDI pitch). For example `--primer_melody="[60, -2, 60, -2, 67, -2, 67, -2]"` would prime the model with the first four notes of Twinkle Twinkle Little Star. Instead of using `--primer_melody`, we can use `--primer_midi` to prime our model with a melody stored in a MIDI file. For example, `--primer_midi=<absolute path to magenta/models/shared/primer.mid>` will prime the model with the melody in that MIDI file.
+
+## Train your own
 
 ### File Structure
 
@@ -61,7 +86,7 @@ tmp
 
 ### Create NoteSequences
 
-Our first step will be to convert a collection of MIDI files into NoteSequences. NoteSequences are [protocol buffers](https://developers.google.com/protocol-buffers/), which is a fast and efficient data format, and easier to work with than MIDI files. See [Building your Dataset](https://github.com/tensorflow/magenta#building-your-dataset) for instructions on generating a TFRecord file of NoteSequences. In this example, we assume the NoteSequences were output to ```/tmp/notesequences.tfrecord```.
+Our first step will be to convert a collection of MIDI files into NoteSequences. NoteSequences are [protocol buffers](https://developers.google.com/protocol-buffers/), which is a fast and efficient data format, and easier to work with than MIDI files. See [Building your Dataset](https://github.com/tensorflow/magenta/blob/master/magenta/scripts/README.md) for instructions on generating a TFRecord file of NoteSequences. In this example, we assume the NoteSequences were output to ```/tmp/notesequences.tfrecord```.
 
 ### Create SequenceExamples
 

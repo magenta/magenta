@@ -1,6 +1,6 @@
 ## Building your Dataset
 
-Now that you have a working copy of Magenta, let's build your first MIDI dataset. We do this by creating a directory of MIDI files and converting them into NoteSequences. If you don't have any MIDIs handy, you can use the [Lakh MIDI Dataset](http://colinraffel.com/projects/lmd/) or find some [at MidiWorld](http://www.midiworld.com/files/142/).
+After setting up your [Magenta environment](https://github.com/tensorflow/magenta/blob/master/README.md), you can build your first MIDI dataset. We do this by creating a directory of MIDI files and converting them into NoteSequences. If you don't have any MIDIs handy, you can use the [Lakh MIDI Dataset](http://colinraffel.com/projects/lmd/) or find some [at MidiWorld](http://www.midiworld.com/files/142/).
 
 Build and run the script. Warnings may be printed by the MIDI parser if it encounters a malformed MIDI file but these can be safely ignored. MIDI files that cannot be parsed will be skipped.
 
