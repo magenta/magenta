@@ -97,9 +97,10 @@ class MusicXMLDocument:
   def parse(self):
     # Parse part list
     xml_part_list = self.score.find("part-list")
-    for xml_score_part in xml_part_list:
-      score_part = ScorePart(xml_score_part)
-      self.score_parts.append(score_part)
+    for element in xml_part_list:
+      if element.tag == "score-part":
+        score_part = ScorePart(element)
+        self.score_parts.append(score_part)
 
     # Parse parts
     xml_parts = self.score.findall("part")
@@ -107,6 +108,7 @@ class MusicXMLDocument:
     for child in xml_parts:
       part = Part(child, self.score_parts[score_part_index])
       self.parts.append(part)
+      score_part_index = score_part_index + 1
       if current_time_position > self.total_time:
         self.total_time = current_time_position
 
@@ -115,7 +117,9 @@ class MusicXMLDocument:
     for part in self.parts:
       for measure in part.measures:
         if measure.time_signature is not None:
-          time_signatures.append(measure.time_signature)
+          if not measure.time_signature in time_signatures:
+            # Prevent duplicate time signatures
+            time_signatures.append(measure.time_signature)
 
     return time_signatures
 
@@ -124,7 +128,9 @@ class MusicXMLDocument:
     for part in self.parts:
       for measure in part.measures:
         if measure.key_signature is not None:
-          key_signatures.append(measure.key_signature)
+          if not measure.key_signature in key_signatures:
+            # Prevent duplicate key signatures
+            key_signatures.append(measure.key_signature)
 
     return key_signatures
 
@@ -164,8 +170,8 @@ class ScorePart:
 
   def __str__(self):
     score_str = "ScorePart: " + self.part_name
-    score_str += ", Channel: " + self.midi_channel
-    score_str += ", Program: " + self.midi_program
+    score_str += ", Channel: " + str(self.midi_channel)
+    score_str += ", Program: " + str(self.midi_program)
     return score_str
 
 
@@ -406,6 +412,12 @@ class TimeSignature:
     time_sig_str += " (@time: " + str(self.time_position) + ")"
     return time_sig_str
 
+  def __eq__(self, other):
+    isEqual = self.numerator == other.numerator
+    isEqual = isEqual and (self.denominator == other.denominator)
+    isEqual = isEqual and (self.time_position == other.time_position)
+    return isEqual
+
 
 class KeySignature:
   def __init__(self, xml_key):
@@ -433,6 +445,12 @@ class KeySignature:
     key_string = keys[self.key + 7] + " " + self.mode
     key_string += " (@time: " + str(self.time_position) + ")"
     return key_string
+
+  def __eq__(self, other):
+    isEqual = self.key == other.key
+    isEqual = isEqual and (self.mode == other.mode)
+    isEqual = isEqual and (self.time_position == other.time_position)
+    return isEqual
 
 
 class Tempo:
