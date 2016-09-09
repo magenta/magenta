@@ -24,9 +24,9 @@ you can view TensorBoard servers that run within the container.
 
 This also maps the directory ```/tmp/magenta``` on the host machine to
 ```/magenta-data``` within the Docker session. **WARNING**: only data saved in
-```/magenta-data``` will persist across docker sessions.
+```/magenta-data``` will persist across Docker sessions.
 
-The docker image also includes several pre-trained models in
+The Docker image also includes several pre-trained models in
 ```/magenta/models```. For example, to generate some MIDI files using the
 [Lookback RNN](magenta/models/lookback_rnn), run this command:
 
@@ -46,7 +46,7 @@ machine. Similarly, because our
 MIDI port, it will not work within the Docker container. You'll need to use the
 full Development Environment.
 
-Note: Our docker image is also available at ```gcr.io/tensorflow/magenta```.
+Note: Our Docker image is also available at ```gcr.io/tensorflow/magenta```.
 
 ### Development Environment
 If you want to develop on Magenta, use our
