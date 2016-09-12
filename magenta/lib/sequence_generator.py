@@ -70,9 +70,17 @@ class BaseSequenceGenerator(object):
 
     self._initialized = False
 
-  def get_details(self):
+  @property
+  def details(self):
     """Returns a GeneratorDetails description of this generator."""
     return self._details
+
+  @property
+  def bundle_details(self):
+    """Returns a string description of the bundle or None if checkpoint was used."""
+    if self._bundle is None:
+        return None
+    return self._bundle.details
 
   @abc.abstractmethod
   def _initialize_with_checkpoint(self, checkpoint_file):
