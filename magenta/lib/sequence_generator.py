@@ -80,7 +80,7 @@ class BaseSequenceGenerator(object):
     """Returns the BundleDetails or None if checkpoint was used."""
     if self._bundle is None:
       return None
-    return self._bundle.details
+    return self._bundle.bundle_details
 
   @abc.abstractmethod
   def _initialize_with_checkpoint(self, checkpoint_file):

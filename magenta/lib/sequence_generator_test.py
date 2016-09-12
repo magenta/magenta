@@ -78,5 +78,23 @@ class SequenceGeneratorTest(tf.test.TestCase):
     with self.assertRaises(sequence_generator.SequenceGeneratorException):
       TestSequenceGenerator(bundle=bundle)
 
+  def testGetBundleDetails(self):
+    # Test with non-bundle generator.
+    seq_gen = TestSequenceGenerator(checkpoint='foo.ckpt')
+    self.assertEquals(None, seq_gen.bundle_details)
+
+    # Test with bundle-based generator.
+    bundle_details = generator_pb2.GeneratorBundle.BundleDetails(
+        description='bundle of joy')
+    bundle = generator_pb2.GeneratorBundle(
+        generator_details=generator_pb2.GeneratorDetails(
+            id='test_generator'),
+        bundle_details=bundle_details,
+        checkpoint_file=['foo.ckpt'],
+        metagraph_file='foo.ckpt.meta')
+    seq_gen = TestSequenceGenerator(bundle=bundle)
+    self.assertEquals(bundle_details, seq_gen.bundle_details)
+
+
 if __name__ == '__main__':
   tf.test.main()
