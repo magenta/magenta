@@ -247,9 +247,9 @@ class Metronome(threading.Thread):
 
   def run(self):
     """Outputs metronome tone on the qpm interval until stop signal received."""
+    period = 60. / self._qpm
     sleep_offset = 0
     while not self._stop_metronome:
-      period = 60. / self._qpm
       now = time.time()
       next_tick_time = now + period - ((now - self._clock_start_time) % period)
       delta = next_tick_time - time.time()
