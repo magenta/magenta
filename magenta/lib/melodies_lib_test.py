@@ -507,56 +507,22 @@ class MelodiesLibTest(tf.test.TestCase):
          100: 0, 200: 0, 500: 0})
 
 
-class OneHotEncoderDecoder(melodies_lib.MelodyEncoderDecoder):
-
-  def __init__(self, min_note, max_note, transpose_to_key):
-    super(OneHotEncoderDecoder, self).__init__(min_note, max_note,
-                                               transpose_to_key)
-    self._input_size = self.max_note - self.min_note + NUM_SPECIAL_EVENTS
-    self._num_classes = self.max_note - self.min_note + NUM_SPECIAL_EVENTS
-
-  @property
-  def input_size(self):
-    return self._input_size
-
-  @property
-  def num_classes(self):
-    return self._num_classes
-
-  def melody_to_input(self, melody, position):
-    input_ = [0.0] * self._input_size
-    index = (melody[position] + NUM_SPECIAL_EVENTS
-             if melody[position] < 0
-             else melody[position] - self.min_note + NUM_SPECIAL_EVENTS)
-    input_[index] = 1.0
-    return input_
-
-  def melody_to_label(self, melody, position):
-    return (melody[position] + NUM_SPECIAL_EVENTS
-            if melody[position] < 0
-            else melody[position] - self.min_note + NUM_SPECIAL_EVENTS)
-
-  def class_index_to_melody_event(self, class_index, melody):
-    return (class_index - NUM_SPECIAL_EVENTS if class_index < NUM_SPECIAL_EVENTS
-            else class_index + self.min_note - NUM_SPECIAL_EVENTS)
-
-
 class MelodyEncoderDecoderTest(tf.test.TestCase):
 
   def setUp(self):
-    self.melody_encoder_decoder = OneHotEncoderDecoder(60, 72, 0)
+    self.melody_encoder_decoder = melodies_lib.OneHotEncoderDecoder(60, 72, 0)
 
   def testMinNoteMaxNoteAndTransposeToKeyValidValues(self):
     # Valid parameters
-    OneHotEncoderDecoder(0, 128, 0)
-    OneHotEncoderDecoder(60, 72, 11)
+    melodies_lib.OneHotEncoderDecoder(0, 128, 0)
+    melodies_lib.OneHotEncoderDecoder(60, 72, 11)
 
     # Invalid parameters
-    self.assertRaises(ValueError, OneHotEncoderDecoder, -1, 72, 0)
-    self.assertRaises(ValueError, OneHotEncoderDecoder, 60, 129, 0)
-    self.assertRaises(ValueError, OneHotEncoderDecoder, 60, 71, 0)
-    self.assertRaises(ValueError, OneHotEncoderDecoder, 60, 72, -1)
-    self.assertRaises(ValueError, OneHotEncoderDecoder, 60, 72, 12)
+    self.assertRaises(ValueError, melodies_lib.OneHotEncoderDecoder, -1, 72, 0)
+    self.assertRaises(ValueError, melodies_lib.OneHotEncoderDecoder, 60, 129, 0)
+    self.assertRaises(ValueError, melodies_lib.OneHotEncoderDecoder, 60, 71, 0)
+    self.assertRaises(ValueError, melodies_lib.OneHotEncoderDecoder, 60, 72, -1)
+    self.assertRaises(ValueError, melodies_lib.OneHotEncoderDecoder, 60, 72, 12)
 
   def testInitValues(self):
     self.assertEqual(self.melody_encoder_decoder.min_note, 60)
@@ -564,6 +530,7 @@ class MelodyEncoderDecoderTest(tf.test.TestCase):
     self.assertEqual(self.melody_encoder_decoder.transpose_to_key, 0)
     self.assertEqual(self.melody_encoder_decoder.input_size, 14)
     self.assertEqual(self.melody_encoder_decoder.num_classes, 14)
+    self.assertEqual(self.melody_encoder_decoder.no_event_label, 0)
 
   def testEncode(self):
     events = [100, 100, 107, 111, NO_EVENT, 99, 112, NOTE_OFF, NO_EVENT]

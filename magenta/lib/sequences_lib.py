@@ -15,6 +15,8 @@
 """
 
 import collections
+import copy
+from magenta.protobuf import music_pb2
 
 # Set the quantization cutoff.
 # Note events before this cutoff are rounded down to nearest step. Notes
@@ -27,9 +29,8 @@ import collections
 # and they will be snapped to the previous step.
 QUANTIZE_CUTOFF = 0.5
 
-
-class BadNoteException(Exception):
-  pass
+# Shortcut to chord symbol text annotation type.
+CHORD_SYMBOL = music_pb2.NoteSequence.TextAnnotation.CHORD_SYMBOL
 
 
 class BadTimeSignatureException(Exception):
@@ -37,6 +38,10 @@ class BadTimeSignatureException(Exception):
 
 
 class MultipleTimeSignatureException(Exception):
+  pass
+
+
+class NegativeTimeException(Exception):
   pass
 
 
@@ -48,10 +53,11 @@ Note = collections.namedtuple(
     'Note', ['pitch', 'velocity', 'start', 'end', 'instrument', 'program'])
 TimeSignature = collections.namedtuple('TimeSignature',
                                        ['numerator', 'denominator'])
+ChordSymbol = collections.namedtuple('ChordSymbol', ['step', 'figure'])
 
 
 class QuantizedSequence(object):
-  """Holds notes which have been quantized to time steps.
+  """Holds notes and chords which have been quantized to time steps.
 
   Notes contain a pitch, velocity, start time, and end time. Notes
   are stored in tracks (which can be different instruments or the same
@@ -60,6 +66,7 @@ class QuantizedSequence(object):
   Attributes:
     tracks: A dictionary mapping track number to list of Note tuples. Track
         number is taken from the instrument number of each NoteSequence note.
+    chords: A list of ChordSymbol tuples.
     qpm: Quarters per minute. This is needed to recover tempo if converting back
         to MIDI.
     time_signature: This determines the length of a bar of music. This is just
@@ -74,6 +81,7 @@ class QuantizedSequence(object):
 
   def _reset(self):
     self.tracks = {}
+    self.chords = []
     self.qpm = 120.0
     self.time_signature = TimeSignature(4, 4)  # numerator, denominator
     self.steps_per_quarter = 4
@@ -113,8 +121,7 @@ class QuantizedSequence(object):
           in `note_sequence`.
       BadTimeSignatureException: If the time signature found in `note_sequence`
           has a denominator which is not a power of 2.
-      BadNoteException: If a note's quantized start time does not preceed its
-          quantized end time.
+      NegativeTimeException: If a note or chord occurs at a negative time.
     """
     self._reset()
 
@@ -150,8 +157,8 @@ class QuantizedSequence(object):
 
       # Do not allow notes to start or end in negative time.
       if start_step < 0 or end_step < 0:
-        raise BadNoteException(
-            'Got negative note time: start_step = %s, start_step = %s' %
+        raise NegativeTimeException(
+            'Got negative note time: start_step = %s, end_step = %s' %
             (start_step, end_step))
 
       if note.instrument not in self.tracks:
@@ -163,6 +170,16 @@ class QuantizedSequence(object):
                                                instrument=note.instrument,
                                                program=note.program))
 
+    # Also add chord symbol annotations to the quantized sequence.
+    for annotation in note_sequence.text_annotations:
+      if annotation.annotation_type == CHORD_SYMBOL:
+        # Quantize the chord time, disallowing negative time.
+        step = quantize(annotation.time * steps_per_second)
+        if step < 0:
+          raise NegativeTimeException(
+              'Got negative chord time: step = %s' % step)
+        self.chords.append(ChordSymbol(step=step, figure=annotation.text))
+
   def __eq__(self, other):
     if not isinstance(other, QuantizedSequence):
       return False
@@ -173,14 +190,16 @@ class QuantizedSequence(object):
     return (
         self.qpm == other.qpm and
         self.time_signature == other.time_signature and
-        self.steps_per_quarter == other.steps_per_quarter)
+        self.steps_per_quarter == other.steps_per_quarter and
+        set(self.chords) == set(other.chords))
 
   def __deepcopy__(self, unused_memo=None):
     new_copy = type(self)()
     new_copy.tracks = copy.deepcopy(self.tracks)
+    new_copy.chords = copy.deepcopy(self.chords)
     new_copy.qpm = self.qpm
-    new_copy.time_signature = other.time_signature
-    new_copy.steps_per_quarter = other.steps_per_quarter
+    new_copy.time_signature = self.time_signature
+    new_copy.steps_per_quarter = self.steps_per_quarter
     return new_copy
 
   def deepcopy(self):

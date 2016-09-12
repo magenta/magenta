@@ -1,9 +1,9 @@
 new_http_archive(
   name = "pretty_midi",
   build_file = "pretty_midi.BUILD",
-  url = "https://github.com/craffel/pretty-midi/archive/c9700f2f72e1873ff64a4911f46ec04b58dfb2de.tar.gz",
-  sha256 = "2a17878b5e07fc2982969cf8a41a16d8bb21c86ecbca5f399d3f2553212c4fff",
-  strip_prefix = "pretty-midi-c9700f2f72e1873ff64a4911f46ec04b58dfb2de/pretty_midi",
+  url = "https://github.com/craffel/pretty-midi/archive/a0cc35d48caf41e8fae16131b98eb530becbbd60.tar.gz",
+  sha256 = "2e23aeba2d4f6c9c01615cd9fce431b0c7b3e12d8a755f1fe53258735bd03daa",
+  strip_prefix = "pretty-midi-a0cc35d48caf41e8fae16131b98eb530becbbd60/pretty_midi",
 )
 
 new_http_archive(
@@ -12,6 +12,14 @@ new_http_archive(
   url = "https://github.com/vishnubob/python-midi/archive/4b7a229f6b340e7424c1fccafa9ac543b9b3d605.tar.gz",
   sha256 = "27dcc9e67db0f3fd56420f5f21c7b70f949716a1cfee4e041cd0b1155cef7c4e",
   strip_prefix = "python-midi-4b7a229f6b340e7424c1fccafa9ac543b9b3d605/src",
+)
+
+new_http_archive(
+  name = "music21",
+	build_file = "music21.BUILD",
+	url = "https://github.com/cuthbertLab/music21/releases/download/v3.0.3-alpha/music21-3.0.3.tar.gz",
+	sha256 = "4c0cc1e1fa3638c53ecf45ec13301174114dcf59f93faffc6586c5b94ae065e3",
+	strip_prefix = "music21-3.0.3/music21",
 )
 
 git_repository(

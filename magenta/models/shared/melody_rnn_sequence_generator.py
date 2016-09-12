@@ -66,8 +66,7 @@ class MelodyRnnSequenceGenerator(sequence_generator.BaseSequenceGenerator):
   def _initialize_with_checkpoint(self, checkpoint_file):
     graph = self._build_graph('generate',
                               repr(self._hparams),
-                              self._melody_encoder_decoder.input_size,
-                              self._melody_encoder_decoder.num_classes)
+                              self._melody_encoder_decoder)
     with graph.as_default():
       saver = tf.train.Saver()
       self._session = tf.Session()

@@ -51,6 +51,8 @@ class SequencesLibTest(tf.test.TestCase):
     testing_lib.add_quantized_track(
         left_hand, 3,
         [(1, 10, 0, 6), (2, 50, 20, 21), (0, 101, 17, 21)])
+    testing_lib.add_quantized_chords(
+        left_hand, [('Cmaj7', 1), ('G9', 2)])
     right_hand = sequences_lib.QuantizedSequence()
     right_hand.qpm = 123.0
     right_hand.steps_per_quarter = 7
@@ -64,17 +66,58 @@ class SequencesLibTest(tf.test.TestCase):
     testing_lib.add_quantized_track(
         right_hand, 3,
         [(0, 101, 17, 21), (2, 50, 20, 21), (1, 10, 0, 6)])
+    testing_lib.add_quantized_chords(
+        right_hand, [('G9', 2), ('Cmaj7', 1)])
     self.assertEqual(left_hand, right_hand)
+
+  def testNotEq(self):
+    left_hand = sequences_lib.QuantizedSequence()
+    left_hand.bpm = 123.0
+    left_hand.steps_per_beat = 7
+    left_hand.time_signature = sequences_lib.TimeSignature(7, 8)
+    testing_lib.add_quantized_track(
+        left_hand, 0,
+        [(12, 100, 0, 40), (11, 100, 1, 2)])
+    testing_lib.add_quantized_track(
+        left_hand, 2,
+        [(55, 100, 4, 6), (15, 120, 4, 10)])
+    testing_lib.add_quantized_track(
+        left_hand, 3,
+        [(1, 10, 0, 6), (2, 50, 20, 21), (0, 101, 17, 21)])
+    testing_lib.add_quantized_chords(
+        left_hand, [('Cmaj7', 1), ('G9', 2)])
+    right_hand = sequences_lib.QuantizedSequence()
+    right_hand.bpm = 123.0
+    right_hand.steps_per_beat = 7
+    right_hand.time_signature = sequences_lib.TimeSignature(7, 8)
+    testing_lib.add_quantized_track(
+        right_hand, 0,
+        [(11, 100, 1, 2), (12, 100, 0, 40)])
+    testing_lib.add_quantized_track(
+        right_hand, 2,
+        [(14, 120, 4, 10), (55, 100, 4, 6)])
+    testing_lib.add_quantized_track(
+        right_hand, 3,
+        [(0, 101, 17, 21), (2, 50, 20, 21), (1, 10, 0, 6)])
+    testing_lib.add_quantized_chords(
+        right_hand, [('G9', 2), ('C7', 1)])
+    self.assertNotEqual(left_hand, right_hand)
 
   def testFromNoteSequence(self):
     testing_lib.add_track(
         self.note_sequence, 0,
         [(12, 100, 0.01, 10.0), (11, 55, 0.22, 0.50), (40, 45, 2.50, 3.50),
          (55, 120, 4.0, 4.01), (52, 99, 4.75, 5.0)])
+    testing_lib.add_chords(
+        self.note_sequence,
+        [('B7', 0.22), ('Em9', 4.0)])
     testing_lib.add_quantized_track(
         self.expected_quantized_sequence, 0,
         [(12, 100, 0, 40), (11, 55, 1, 2), (40, 45, 10, 14),
          (55, 120, 16, 17), (52, 99, 19, 20)])
+    testing_lib.add_quantized_chords(
+        self.expected_quantized_sequence,
+        [('B7', 1), ('Em9', 16)])
     quantized = sequences_lib.QuantizedSequence()
     quantized.from_note_sequence(self.note_sequence, self.steps_per_quarter)
     self.assertEqual(self.expected_quantized_sequence, quantized)
@@ -137,7 +180,7 @@ class SequencesLibTest(tf.test.TestCase):
     self.assertEqual(quantized, quantized_copy)
 
     testing_lib.add_quantized_track(
-        self.quantized, 1,
+        quantized, 1,
         [(12, 100, 4, 20), (19, 100, 8, 16), (24, 100, 12, 14)])
 
     self.assertNotEqual(quantized, quantized_copy)
