@@ -126,7 +126,7 @@ _METRONOME_PITCH = 95
 _METRONOME_VELOCITY = 64
 
 
-_CUSTOM_CC_MAP = {
+_CC_MAP = {
   'Start Capture': mido.Message('control_change', channel=0, control=1,
                                 value=127),
   'Stop Capture': mido.Message('control_change', channel=0, control=1, value=0),
@@ -563,7 +563,7 @@ class MonoMidiHub(object):
     """
 
     # Metronome Velocity
-    if message.bytes()[:2] == _CUSTOM_CC_MAP['Metronome velocity'].bytes()[:2]:
+    if message.bytes()[:2] == _CC_MAP['Metronome velocity'].bytes()[:2]:
       global _METRONOME_VELOCITY
       _METRONOME_VELOCITY = message.bytes()[2]
 
@@ -580,7 +580,7 @@ class CCRemapper(object):
 
   def __init__(self, input_midi_port):
     self._inport = mido.open_input(input_midi_port)
-    self._cc_map = _CUSTOM_CC_MAP
+    self._cc_map = _CC_MAP
 
   def remapper_interface(self):
     """Interface asking for user input of which parameters to remap"""
@@ -624,7 +624,7 @@ class CCRemapper(object):
 
     Args:
       input_port: The input port to receive the control change message.
-      cc_choice: The _CUSTOM_CC_MAP dictionary key to assign a message to.
+      cc_choice: The CC map dictionary key to assign a message to.
     """
 
     while True:
@@ -649,7 +649,7 @@ class CCRemapper(object):
 
     Args:
       input_port: The input port to receive the control change message.
-      cc_choice: The _CUSTOM_CC_MAP dictionary key to assign a message to.
+      cc_choice: The CC map dictionary key to assign a message to.
       msg_start_capture: The currently assigned start capture message.
       msg_stop_capture: The currently assigned stop capture message.
     """
@@ -748,11 +748,11 @@ def main(unused_argv):
           '--stop_capture_control_value must both be defined and unique.')
     return
   else:
-    global _CUSTOM_CC_MAP
-    _CUSTOM_CC_MAP['Start Capture'] = mido.Message(
+    global _CC_MAP
+    _CC_MAP['Start Capture'] = mido.Message(
         'control_change', channel=0, control=FLAGS.start_capture_control_number,
         value=FLAGS.start_capture_control_value)
-    _CUSTOM_CC_MAP['Stop Capture'] = mido.Message(
+    _CC_MAP['Stop Capture'] = mido.Message(
         'control_change', channel=0, control=FLAGS.stop_capture_control_number,
         value=FLAGS.stop_capture_control_value)
 
@@ -768,7 +768,7 @@ def main(unused_argv):
     cc_remapper = CCRemapper(FLAGS.input_port)
     cc_map = cc_remapper.remapper_interface()
   else:
-    cc_map = _CUSTOM_CC_MAP
+    cc_map = _CC_MAP
 
   generator = Generator(
       FLAGS.generator_name,
