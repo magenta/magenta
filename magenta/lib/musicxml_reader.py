@@ -83,20 +83,20 @@ def musicxml_to_sequence_proto(musicxml_document):
     tempo.time = musicxml_tempo.time_position
     tempo.bpm = musicxml_tempo.bpm
 
-  # Populate notes from each MusicXML part, but only read voice one
+  # Populate notes from each MusicXML part across all voices
   # Unlike MIDI import, notes are not sorted
   sequence.total_time = musicxml_document.total_time
   for musicxml_part in musicxml_document.parts:
-    musicxml_voice_one_notes = musicxml_part.getNotesInVoice(1)
-    for musicxml_note in musicxml_voice_one_notes:
-      if not musicxml_note.is_rest:
-        note = sequence.notes.add()
-        note.instrument = musicxml_note.midi_channel
-        note.program = musicxml_note.midi_program
-        note.start_time = musicxml_note.time_position
-        note.end_time = musicxml_note.time_position + musicxml_note.seconds
-        note.pitch = musicxml_note.pitch[1] # Index 1 = MIDI pitch number
-        note.velocity = musicxml_note.velocity
+    for musicxml_measure in musicxml_part.measures:
+      for musicxml_note in musicxml_measure.notes:
+        if not musicxml_note.is_rest:
+          note = sequence.notes.add()
+          note.instrument = musicxml_note.midi_channel
+          note.program = musicxml_note.midi_program
+          note.start_time = musicxml_note.time_position
+          note.end_time = musicxml_note.time_position + musicxml_note.seconds
+          note.pitch = musicxml_note.pitch[1] # Index 1 = MIDI pitch number
+          note.velocity = musicxml_note.velocity
 
   # TODO(@douglaseck): Estimate note type (e.g. quarter note) and populate
   # note.numerator and note.denominator.
