@@ -232,18 +232,21 @@ class Metronome(threading.Thread):
     _qpm: The integer quarters per minute to signal on.
     _stop_metronome: A boolean specifying whether the metronome should stop.
     _clock_start_time: The time at which the metronome begins.
+    _hub: The Midi Hub that instantiates the Metronome.
   Args:
     outport: The Mido port for sending messages.
     qpm: The integer quarters per minute to signal on.
     clock_start_time: The time at which the metronome begins.
+    hub: The Midi Hub that instantiates the Metronome.
   """
   daemon = True
 
-  def __init__(self, outport, qpm, clock_start_time):
+  def __init__(self, outport, qpm, clock_start_time, hub):
     self._outport = outport
     self._qpm = qpm
     self._stop_metronome = False
     self._clock_start_time = clock_start_time
+    self._hub = hub
     super(Metronome, self).__init__()
 
   def run(self):
@@ -273,7 +276,7 @@ class Metronome(threading.Thread):
 
       self._outport.send(mido.Message(type='note_on', note=_METRONOME_PITCH,
                                       channel=FLAGS.metronome_channel,
-                                      velocity=_METRONOME_VELOCITY))
+                                      velocity=self._hub._metronome_velocity))
       time.sleep(_METRONOME_TICK_DURATION)
       self._outport.send(mido.Message(type='note_off', note=_METRONOME_PITCH,
                                       channel=FLAGS.metronome_channel))
@@ -294,19 +297,20 @@ class MonoMidiPlayer(threading.Thread):
   Args:
     outport: The Mido port for sending messages.
     sequence: The monohponic, chronologically sorted NoteSequence to play.
+    hub: The Midi Hub that instantiates the Player
   Raises:
     ValueError: The NoteSequence contains multiple tempos.
   """
   daemon = True
 
-  def __init__(self, outport, sequence):
+  def __init__(self, outport, sequence, hub):
     self._outport = outport
     self._sequence = sequence
     self._stop_playback = False
     if len(sequence.tempos) != 1:
       raise ValueError('The NoteSequence contains multiple tempos.')
     self._metronome = Metronome(self._outport, sequence.tempos[0].qpm,
-                                time.time())
+                                time.time(), hub)
     super(MonoMidiPlayer, self).__init__()
 
   def run(self):
@@ -390,6 +394,7 @@ class MonoMidiHub(object):
     self._player = None
     self._capture_start_time = None
     self._sequence_start_time = None
+    self._metronome_velocity = _METRONOME_VELOCITY
 
   def _timestamp_and_capture_message(self, msg):
     """Stamps message with current time and passes it to the capture handler."""
@@ -479,8 +484,7 @@ class MonoMidiHub(object):
 
     # Metronome Velocity
     if message.bytes()[:2] == cc_map['Metronome Velocity'].bytes()[:2]:
-      global _METRONOME_VELOCITY
-      _METRONOME_VELOCITY = message.bytes()[2]
+      self._metronome_velocity = message.bytes()[2]
 
   @serialized
   def start_capture(self, qpm):
@@ -501,7 +505,7 @@ class MonoMidiHub(object):
     self._sequence_start_time = None
     self._capture_start_time = time.time()
     self._inport.callback = self._timestamp_and_capture_message
-    self._metronome = Metronome(self._outport, qpm, self._capture_start_time)
+    self._metronome = Metronome(self._outport, qpm, self._capture_start_time, self)
     self._metronome.start()
 
   @serialized
@@ -559,7 +563,7 @@ class MonoMidiHub(object):
       sequence: The monohponic, chronologically sorted NoteSequence to play.
     """
     self.stop_playback()
-    self._player = MonoMidiPlayer(self._outport, sequence)
+    self._player = MonoMidiPlayer(self._outport, sequence, self)
     self._player.start()
     self._inport.callback = self._capture_message
 
@@ -619,10 +623,9 @@ def main(unused_argv):
       FLAGS.checkpoint,
       FLAGS.bundle_file)
   hub = MonoMidiHub(FLAGS.input_port, FLAGS.output_port, cc_map)
-  start_time = time.time()
 
   stdout_write_and_flush('Waiting for start control signal...\n')
-  while time.time() - start_time <30:
+  while True:
     hub.wait_for_control_signal(cc_map['Start Capture'])
     hub.stop_playback()
     hub.start_capture(FLAGS.qpm)
