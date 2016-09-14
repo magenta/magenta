@@ -24,7 +24,20 @@ you can view TensorBoard servers that run within the container.
 
 This also maps the directory ```/tmp/magenta``` on the host machine to
 ```/magenta-data``` within the Docker session. **WARNING**: only data saved in
-```/magenta-data``` will persist across sessions.
+```/magenta-data``` will persist across Docker sessions.
+
+The Docker image also includes several pre-trained models in
+```/magenta/models```. For example, to generate some MIDI files using the
+[Lookback RNN](magenta/models/lookback_rnn), run this command:
+
+```
+bazel run //magenta/models/lookback_rnn:lookback_rnn_generate -- \
+--bundle_file=/magenta-models/lookback_rnn.mag \
+--output_dir=/magenta-data/lookback_rnn/generated \
+--num_outputs=10 \
+--num_steps=128 \
+--primer_melody="[60]"
+```
 
 One downside to the Docker container is that it is isolated from the host. If
 you want to listen to a generated MIDI file, you'll need to copy it to the host
@@ -33,7 +46,7 @@ machine. Similarly, because our
 MIDI port, it will not work within the Docker container. You'll need to use the
 full Development Environment.
 
-Note: Our docker image is also available at ```gcr.io/tensorflow/magenta```.
+Note: Our Docker image is also available at ```gcr.io/tensorflow/magenta```.
 
 ### Development Environment
 If you want to develop on Magenta, use our
@@ -61,41 +74,9 @@ After that's done, run the tests with this command:
 
 ```bazel test //magenta/...```
 
-## Building your Dataset
-Now that you have a working copy of Magenta, let's build your first MIDI dataset. We do this by creating a directory of MIDI files and converting them into NoteSequences. If you don't have any MIDIs handy, you can find some [here](http://www.midiworld.com/files/142/) from MidiWorld.
-
-Build and run the script. Warnings may be printed by the MIDI parser if it encounters a malformed MIDI file but these can be safely ignored. MIDI files that cannot be parsed will be skipped.
-
-```
-MIDI_DIRECTORY=<folder containing MIDI files. can have child folders.>
-
-# TFRecord file that will contain NoteSequence protocol buffers.
-SEQUENCES_TFRECORD=/tmp/notesequences.tfrecord
-
-bazel run //magenta/scripts:convert_midi_dir_to_note_sequences -- \
---midi_dir=$MIDI_DIRECTORY \
---output_file=$SEQUENCES_TFRECORD \
---recursive
-```
-
-Note: To build and run in separate commands, run
-
-```
-bazel build //magenta/scripts:convert_midi_dir_to_note_sequences
-
-./bazel-bin/magenta/scripts/convert_midi_dir_to_note_sequences \
---midi_dir=$MIDI_DIRECTORY \
---output_file=$SEQUENCES_TFRECORD \
---recursive
-```
-
-___Data processing APIs___
-
-If you are interested in adding your own model, please take a look at how we create our datasets under the hood: [Data processing in Magenta](https://github.com/tensorflow/magenta/blob/master/magenta/pipelines)
-
 ## Generating MIDI
 
-To create your own melodies with TensorFlow, train a model on the dataset you built above and then use it to generate new sequences. Select a model below for further instructions.
+You can now create your own melodies with TensorFlow using one of our models:
 
 **[Basic RNN](magenta/models/basic_rnn)**: A simple recurrent neural network for predicting melodies.
 
