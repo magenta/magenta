@@ -8,7 +8,7 @@ First, set up your [Magenta environment](https://github.com/tensorflow/magenta/b
 
 ## Pre-trained
 
-Download the [attention_rnn bundle](http://download.magenta.tensorflow.org/models/attention_rnn.mag).
+If you want to get started right away, you can use a model that we've pre-trained on thousands of MIDI files. Download the [attention_rnn bundle](http://download.magenta.tensorflow.org/models/attention_rnn.mag).
 
 ### Generate a melody
 

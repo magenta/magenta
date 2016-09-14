@@ -15,6 +15,8 @@ RUN bazel build //magenta/... && bazel test //magenta/...
 
 # Add pre-trained models
 ADD http://download.magenta.tensorflow.org/models/lookback_rnn.mag /magenta-models/
+ADD http://download.magenta.tensorflow.org/models/attention_rnn.mag /magenta-models/
+ADD http://download.magenta.tensorflow.org/models/basic_rnn.mag /magenta-models/
 
 # Start an interactive shell
 

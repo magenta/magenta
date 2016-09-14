@@ -8,7 +8,7 @@ First, set up your [Magenta environment](https://github.com/tensorflow/magenta/b
 
 ## Pre-trained
 
-Download the [lookback_rnn bundle](http://download.magenta.tensorflow.org/models/lookback_rnn.mag).
+If you want to get started right away, you can use a model that we've pre-trained on thousands of MIDI files. Download the [lookback_rnn bundle](http://download.magenta.tensorflow.org/models/lookback_rnn.mag).
 
 ### Generate a melody
 
