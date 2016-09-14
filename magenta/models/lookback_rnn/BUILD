@@ -40,6 +40,17 @@ py_library(
     ],
 )
 
+py_test(
+    name = "lookback_rnn_encoder_decoder_test",
+    srcs = ["lookback_rnn_encoder_decoder_test.py"],
+    srcs_version = "PY2AND3",
+    deps = [
+        ":lookback_rnn_encoder_decoder",
+        "//magenta/lib:melodies_lib",
+        # tensorflow dep
+    ],
+)
+
 py_library(
     name = "lookback_rnn_generator",
     srcs = ["lookback_rnn_generator.py"],

@@ -40,6 +40,17 @@ py_library(
     ],
 )
 
+py_test(
+    name = "basic_rnn_encoder_decoder_test",
+    srcs = ["basic_rnn_encoder_decoder_test.py"],
+    srcs_version = "PY2AND3",
+    deps = [
+        ":basic_rnn_encoder_decoder",
+        "//magenta/lib:melodies_lib",
+        # tensorflow dep
+    ],
+)
+
 py_library(
     name = "basic_rnn_generator",
     srcs = ["basic_rnn_generator.py"],
