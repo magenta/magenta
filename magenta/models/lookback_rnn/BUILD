@@ -91,6 +91,17 @@ py_library(
     ],
 )
 
+py_test(
+    name = "lookback_rnn_graph_test",
+    srcs = ["lookback_rnn_graph_test.py"],
+    srcs_version = "PY2AND3",
+    deps = [
+        ":lookback_rnn_graph",
+        "//magenta/lib:melodies_lib",
+        # tensorflow dep
+    ],
+)
+
 py_binary(
     name = "lookback_rnn_train",
     srcs = ["lookback_rnn_train.py"],

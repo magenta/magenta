@@ -91,6 +91,17 @@ py_library(
     ],
 )
 
+py_test(
+    name = "attention_rnn_graph_test",
+    srcs = ["attention_rnn_graph_test.py"],
+    srcs_version = "PY2AND3",
+    deps = [
+        ":attention_rnn_graph",
+        "//magenta/lib:melodies_lib",
+        # tensorflow dep
+    ],
+)
+
 py_binary(
     name = "attention_rnn_train",
     srcs = ["attention_rnn_train.py"],
