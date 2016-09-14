@@ -4,7 +4,7 @@ MAINTAINER Curtis Hawthorne <fjord@google.com>
 
 # Download and build Magenta.
 
-ENV MAGENTA_MASTER_REF 1e4ca2f57cb7e998bff448c11d88600dfccfa46c
+ENV MAGENTA_MASTER_REF ec86d0a57d274ac3b20d3d467098e91651107ac3
 
 WORKDIR /
 RUN git clone https://github.com/tensorflow/magenta.git && \
