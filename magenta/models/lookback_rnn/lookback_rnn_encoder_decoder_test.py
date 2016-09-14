@@ -14,9 +14,8 @@
 """Tests for lookback_rnn_encoder_decoder."""
 
 # internal imports
-import tensorflow as tf
-
 import lookback_rnn_encoder_decoder
+import tensorflow as tf
 from magenta.lib import melodies_lib
 
 NOTE_OFF = melodies_lib.NOTE_OFF

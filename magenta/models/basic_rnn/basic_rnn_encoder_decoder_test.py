@@ -14,9 +14,8 @@
 """Tests for basic_rnn_encoder_decoder."""
 
 # internal imports
-import tensorflow as tf
-
 import basic_rnn_encoder_decoder
+import tensorflow as tf
 from magenta.lib import melodies_lib
 
 NOTE_OFF = melodies_lib.NOTE_OFF
@@ -55,15 +54,15 @@ class BasicRnnEncoderDecoderTest(tf.test.TestCase):
     self.assertEqual(melody_encoder_decoder.melody_to_label(melody, 4), 1)
 
     self.assertEqual(
-      melody_encoder_decoder.class_index_to_melody_event(2, None), 48)
+        melody_encoder_decoder.class_index_to_melody_event(2, None), 48)
     self.assertEqual(
-      melody_encoder_decoder.class_index_to_melody_event(0, None), NO_EVENT)
+        melody_encoder_decoder.class_index_to_melody_event(0, None), NO_EVENT)
     self.assertEqual(
-      melody_encoder_decoder.class_index_to_melody_event(3, None), 49)
+        melody_encoder_decoder.class_index_to_melody_event(3, None), 49)
     self.assertEqual(
-      melody_encoder_decoder.class_index_to_melody_event(37, None), 83)
+        melody_encoder_decoder.class_index_to_melody_event(37, None), 83)
     self.assertEqual(
-      melody_encoder_decoder.class_index_to_melody_event(1, None), NOTE_OFF)
+        melody_encoder_decoder.class_index_to_melody_event(1, None), NOTE_OFF)
 
   def testCustomRange(self):
     basic_rnn_encoder_decoder.MIN_NOTE = 24
@@ -94,15 +93,15 @@ class BasicRnnEncoderDecoderTest(tf.test.TestCase):
     self.assertEqual(melody_encoder_decoder.melody_to_label(melody, 4), 1)
 
     self.assertEqual(
-      melody_encoder_decoder.class_index_to_melody_event(2, None), 24)
+        melody_encoder_decoder.class_index_to_melody_event(2, None), 24)
     self.assertEqual(
-      melody_encoder_decoder.class_index_to_melody_event(0, None), NO_EVENT)
+        melody_encoder_decoder.class_index_to_melody_event(0, None), NO_EVENT)
     self.assertEqual(
-      melody_encoder_decoder.class_index_to_melody_event(3, None), 25)
+        melody_encoder_decoder.class_index_to_melody_event(3, None), 25)
     self.assertEqual(
-      melody_encoder_decoder.class_index_to_melody_event(13, None), 35)
+        melody_encoder_decoder.class_index_to_melody_event(13, None), 35)
     self.assertEqual(
-      melody_encoder_decoder.class_index_to_melody_event(1, None), NOTE_OFF)
+        melody_encoder_decoder.class_index_to_melody_event(1, None), NOTE_OFF)
 
 
 if __name__ == '__main__':

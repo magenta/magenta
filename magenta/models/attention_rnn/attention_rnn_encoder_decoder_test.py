@@ -14,9 +14,8 @@
 """Tests for attention_rnn_encoder_decoder."""
 
 # internal imports
-import tensorflow as tf
-
 import attention_rnn_encoder_decoder
+import tensorflow as tf
 from magenta.lib import melodies_lib
 
 NOTE_OFF = melodies_lib.NOTE_OFF
@@ -31,7 +30,7 @@ class AttentionRnnEncoderDecoderTest(tf.test.TestCase):
     self.assertEqual(attention_rnn_encoder_decoder.TRANSPOSE_TO_KEY, 0)
 
     melody_encoder_decoder = (
-      attention_rnn_encoder_decoder.MelodyEncoderDecoder())
+        attention_rnn_encoder_decoder.MelodyEncoderDecoder())
     self.assertEqual(melody_encoder_decoder.input_size, 74)
     self.assertEqual(melody_encoder_decoder.num_classes, 40)
 
@@ -157,7 +156,7 @@ class AttentionRnnEncoderDecoderTest(tf.test.TestCase):
     self.assertEqual(attention_rnn_encoder_decoder.TRANSPOSE_TO_KEY, 0)
 
     melody_encoder_decoder = (
-      attention_rnn_encoder_decoder.MelodyEncoderDecoder())
+        attention_rnn_encoder_decoder.MelodyEncoderDecoder())
     self.assertEqual(melody_encoder_decoder.input_size, 50)
     self.assertEqual(melody_encoder_decoder.num_classes, 16)
 
