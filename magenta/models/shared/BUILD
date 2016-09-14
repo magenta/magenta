@@ -16,7 +16,10 @@
 # Code shared by models.
 
 package(
-    default_visibility = ["//magenta/models:__subpackages__"],
+    default_visibility = [
+        "//magenta/models:__subpackages__",
+        # internal dev models
+    ],
 )
 
 licenses(["notice"])  # Apache 2.0
@@ -84,3 +87,24 @@ py_library(
     ],
 )
 
+py_library(
+    name = "melody_rnn_graph",
+    srcs = ["melody_rnn_graph.py"],
+    srcs_version = "PY2AND3",
+    deps = [
+        "//magenta/lib:sequence_example_lib",
+        # tensorflow dep
+    ],
+)
+
+py_test(
+    name = "melody_rnn_graph_test",
+    srcs = ["melody_rnn_graph_test.py"],
+    srcs_version = "PY2AND3",
+    deps = [
+        ":melody_rnn_graph",
+        "//magenta/lib:melodies_lib",
+        "//magenta/lib:tf_lib",
+        # tensorflow dep
+    ],
+)

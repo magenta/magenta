@@ -39,7 +39,7 @@ def main(unused_argv):
   with attention_rnn_generator.create_generator(
       melody_rnn_generate.get_checkpoint(),
       melody_rnn_generate.get_bundle(),
-      melody_rnn_generate.get_steps_per_beat(),
+      melody_rnn_generate.get_steps_per_quarter(),
       melody_rnn_generate.get_hparams()) as generator:
     if melody_rnn_generate.should_save_generator_bundle():
       tf.logging.info('Saving generator bundle to %s' % (

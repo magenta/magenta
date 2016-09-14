@@ -33,16 +33,17 @@ from magenta.protobuf import music_pb2
 class Quantizer(pipeline.Pipeline):
   """A Module that quantizes NoteSequence data."""
 
-  def __init__(self, steps_per_beat=4):
+  def __init__(self, steps_per_quarter=4):
     super(Quantizer, self).__init__(
         input_type=music_pb2.NoteSequence,
         output_type=sequences_lib.QuantizedSequence)
-    self.steps_per_beat = steps_per_beat
+    self.steps_per_quarter = steps_per_quarter
 
   def transform(self, note_sequence):
     quantized_sequence = sequences_lib.QuantizedSequence()
     try:
-      quantized_sequence.from_note_sequence(note_sequence, self.steps_per_beat)
+      quantized_sequence.from_note_sequence(note_sequence,
+                                            self.steps_per_quarter)
       return [quantized_sequence]
     except sequences_lib.MultipleTimeSignatureException:
       tf.logging.debug('Multiple time signatures found in NoteSequence')

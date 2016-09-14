@@ -76,9 +76,9 @@ tf.app.flags.DEFINE_string(
     'priming melody. If a primer melody is not specified, melodies will be '
     'generated from scratch.')
 tf.app.flags.DEFINE_float(
-    'bpm', None,
-    'The beats per minute to play generated output at. If a primer MIDI is '
-    'given, the bpm from that will override this flag. If bpm is None, bpm '
+    'qpm', None,
+    'The quarters per minute to play generated output at. If a primer MIDI is '
+    'given, the qpm from that will override this flag. If qpm is None, qpm '
     'will default to 120.')
 tf.app.flags.DEFINE_float(
     'temperature', 1.0,
@@ -86,7 +86,7 @@ tf.app.flags.DEFINE_float(
     'probabilities, greater than 1.0 makes melodies more random, less than '
     '1.0 makes melodies less random.')
 tf.app.flags.DEFINE_integer(
-    'steps_per_beat', 4, 'What precision to use when quantizing the melody.')
+    'steps_per_quarter', 4, 'What precision to use when quantizing the melody.')
 tf.app.flags.DEFINE_string(
     'log', 'INFO',
     'The threshold for what messages will be logged DEBUG, INFO, WARN, ERROR, '
@@ -150,24 +150,24 @@ def should_save_generator_bundle():
   return FLAGS.save_generator_bundle
 
 
-def get_steps_per_beat():
-  """Get the number of steps per beat."""
-  return FLAGS.steps_per_beat
+def get_steps_per_quarter():
+  """Get the number of steps per quarter note."""
+  return FLAGS.steps_per_quarter
 
 
-def _steps_to_seconds(steps, bpm):
+def _steps_to_seconds(steps, qpm):
   """Converts steps to seconds.
 
-  Uses the current flag value for steps_per_beat.
+  Uses the current flag value for steps_per_quarter.
 
   Args:
     steps: number of steps.
-    bpm: current bpm.
+    qpm: current qpm.
 
   Returns:
     Number of seconds the steps represent.
   """
-  return steps * 60.0 / bpm / get_steps_per_beat()
+  return steps * 60.0 / qpm / get_steps_per_quarter()
 
 
 def setup_logs():
@@ -197,19 +197,19 @@ def run_with_flags(melody_rnn_sequence_generator):
     os.makedirs(FLAGS.output_dir)
 
   primer_sequence = None
-  bpm = FLAGS.bpm if FLAGS.bpm else melodies_lib.DEFAULT_BEATS_PER_MINUTE
+  qpm = FLAGS.qpm if FLAGS.qpm else melodies_lib.DEFAULT_QUARTERS_PER_MINUTE
   if FLAGS.primer_melody:
     primer_melody = melodies_lib.MonophonicMelody()
     primer_melody.from_event_list(ast.literal_eval(FLAGS.primer_melody))
-    primer_sequence = primer_melody.to_sequence(bpm=bpm)
+    primer_sequence = primer_melody.to_sequence(qpm=qpm)
   elif FLAGS.primer_midi:
     primer_sequence = midi_io.midi_file_to_sequence_proto(FLAGS.primer_midi)
-    if primer_sequence.tempos and primer_sequence.tempos[0].bpm:
-      bpm = primer_sequence.tempos[0].bpm
+    if primer_sequence.tempos and primer_sequence.tempos[0].qpm:
+      qpm = primer_sequence.tempos[0].qpm
 
-  # Derive the total number of seconds to generate based on the BPM of the
+  # Derive the total number of seconds to generate based on the QPM of the
   # priming sequence and the num_steps flag.
-  total_seconds = _steps_to_seconds(FLAGS.num_steps, bpm)
+  total_seconds = _steps_to_seconds(FLAGS.num_steps, qpm)
 
   # Specify start/stop time for generation based on starting generation at the
   # end of the priming sequence and continuing until the sequence is num_steps
@@ -223,7 +223,7 @@ def run_with_flags(melody_rnn_sequence_generator):
     notes_by_end_time = sorted(primer_sequence.notes, key=lambda n: n.end_time)
     last_end_time = notes_by_end_time[-1].end_time if notes_by_end_time else 0
     generate_section.start_time_seconds = last_end_time + _steps_to_seconds(
-        1, bpm)
+        1, qpm)
     generate_section.end_time_seconds = total_seconds
 
     if generate_section.start_time_seconds >= generate_section.end_time_seconds:
@@ -238,7 +238,7 @@ def run_with_flags(melody_rnn_sequence_generator):
         generate_request.generator_options.generate_sections.add())
     generate_section.start_time_seconds = 0
     generate_section.end_time_seconds = total_seconds
-    generate_request.input_sequence.tempos.add().bpm = bpm
+    generate_request.input_sequence.tempos.add().qpm = qpm
   tf.logging.debug('generate_request: %s', generate_request)
 
   # Make the generate request num_outputs times and save the output as midi

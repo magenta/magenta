@@ -70,9 +70,17 @@ class BaseSequenceGenerator(object):
 
     self._initialized = False
 
-  def get_details(self):
+  @property
+  def details(self):
     """Returns a GeneratorDetails description of this generator."""
     return self._details
+
+  @property
+  def bundle_details(self):
+    """Returns the BundleDetails or None if checkpoint was used."""
+    if self._bundle is None:
+      return None
+    return self._bundle.bundle_details
 
   @abc.abstractmethod
   def _initialize_with_checkpoint(self, checkpoint_file):
@@ -214,13 +222,15 @@ class BaseSequenceGenerator(object):
     self.initialize()
     return self._generate(generate_sequence_request)
 
-  def create_bundle_file(self, bundle_file):
+  def create_bundle_file(self, bundle_file, description=None):
     """Writes a generator_pb2.GeneratorBundle file in the specified location.
 
     Saves the checkpoint, metagraph, and generator id in one file.
 
     Args:
       bundle_file: Location to write the bundle file.
+      description: A short, human-readable text description of the bundle (e.g.,
+          training data, hyper parameters, etc.).
 
     Raises:
       SequenceGeneratorException: if there is an error creating the bundle file.
@@ -246,7 +256,9 @@ class BaseSequenceGenerator(object):
             'Could not read metagraph file: %s' % (metagraph_filename))
 
       bundle = generator_pb2.GeneratorBundle()
-      bundle.generator_details.CopyFrom(self.get_details())
+      bundle.generator_details.CopyFrom(self.details)
+      if description is not None:
+        bundle.bundle_details.description = description
       with tf.gfile.Open(checkpoint_filename, 'rb') as f:
         bundle.checkpoint_file.append(f.read())
       with tf.gfile.Open(metagraph_filename, 'rb') as f:

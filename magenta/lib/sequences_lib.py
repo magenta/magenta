@@ -15,6 +15,8 @@
 """
 
 import collections
+import copy
+from magenta.protobuf import music_pb2
 
 # Set the quantization cutoff.
 # Note events before this cutoff are rounded down to nearest step. Notes
@@ -27,9 +29,8 @@ import collections
 # and they will be snapped to the previous step.
 QUANTIZE_CUTOFF = 0.5
 
-
-class BadNoteException(Exception):
-  pass
+# Shortcut to chord symbol text annotation type.
+CHORD_SYMBOL = music_pb2.NoteSequence.TextAnnotation.CHORD_SYMBOL
 
 
 class BadTimeSignatureException(Exception):
@@ -37,6 +38,10 @@ class BadTimeSignatureException(Exception):
 
 
 class MultipleTimeSignatureException(Exception):
+  pass
+
+
+class NegativeTimeException(Exception):
   pass
 
 
@@ -48,10 +53,11 @@ Note = collections.namedtuple(
     'Note', ['pitch', 'velocity', 'start', 'end', 'instrument', 'program'])
 TimeSignature = collections.namedtuple('TimeSignature',
                                        ['numerator', 'denominator'])
+ChordSymbol = collections.namedtuple('ChordSymbol', ['step', 'figure'])
 
 
 class QuantizedSequence(object):
-  """Holds notes which have been quantized to time steps.
+  """Holds notes and chords which have been quantized to time steps.
 
   Notes contain a pitch, velocity, start time, and end time. Notes
   are stored in tracks (which can be different instruments or the same
@@ -60,13 +66,14 @@ class QuantizedSequence(object):
   Attributes:
     tracks: A dictionary mapping track number to list of Note tuples. Track
         number is taken from the instrument number of each NoteSequence note.
-    bpm: Beats per minute. This is needed to recover tempo if converting back
+    chords: A list of ChordSymbol tuples.
+    qpm: Quarters per minute. This is needed to recover tempo if converting back
         to MIDI.
     time_signature: This determines the length of a bar of music. This is just
         needed to compute the number of quantization steps per bar, though it
         can also communicate more high level aspects of the music
         (see https://en.wikipedia.org/wiki/Time_signature).
-    steps_per_beat: How many quantization steps per beat of music.
+    steps_per_quarter: How many quantization steps per quarter note of music.
   """
 
   def __init__(self):
@@ -74,39 +81,51 @@ class QuantizedSequence(object):
 
   def _reset(self):
     self.tracks = {}
-    self.bpm = 120.0
+    self.chords = []
+    self.qpm = 120.0
     self.time_signature = TimeSignature(4, 4)  # numerator, denominator
-    self.steps_per_beat = 4
+    self.steps_per_quarter = 4
 
-  def from_note_sequence(self, note_sequence, steps_per_beat):
+  def steps_per_bar(self):
+    """Calculates steps per bar.
+
+    Returns:
+      Steps per bar as a floating point number.
+    """
+    quarters_per_beat = 4.0 / self.time_signature.denominator
+    quarters_per_bar = (quarters_per_beat * self.time_signature.numerator)
+    steps_per_bar_float = (self.steps_per_quarter * quarters_per_bar)
+    return steps_per_bar_float
+
+  def from_note_sequence(self, note_sequence, steps_per_quarter):
     """Populate self with a music_pb2.NoteSequence proto.
 
     Notes and time signature are saved to self with notes' start and end times
     quantized. If there is no time signature 4/4 is assumed. If there is more
     than one time signature an exception is raised.
 
-    The beats per minute stored in `note_sequence` is used to normalize tempo.
-    Regardless of how fast or slow beats are played, a note that is played
-    for 1 beat will last `steps_per_beat` time steps in the quantized result.
+    The quarter notes per minute stored in `note_sequence` is used to normalize
+    tempo. Regardless of how fast or slow quarter notes are played, a note that
+    is played for 1 quarter note will last `steps_per_quarter` time steps in the
+    quantized result.
 
     A note's start and end time are snapped to a nearby quantized step. See
     the comments above `QUANTIZE_CUTOFF` for details.
     Args:
       note_sequence: A music_pb2.NoteSequence protocol buffer.
-      steps_per_beat: Each beat of music will be divided into this many
-          quantized time steps.
+      steps_per_quarter: Each quarter note of music will be divided into this
+          many quantized time steps.
 
     Raises:
       MultipleTimeSignatureException: If there is more than one time signature
           in `note_sequence`.
       BadTimeSignatureException: If the time signature found in `note_sequence`
           has a denominator which is not a power of 2.
-      BadNoteException: If a note's quantized start time does not preceed its
-          quantized end time.
+      NegativeTimeException: If a note or chord occurs at a negative time.
     """
     self._reset()
 
-    self.steps_per_beat = steps_per_beat
+    self.steps_per_quarter = steps_per_quarter
 
     if len(note_sequence.time_signatures) > 1:
       raise MultipleTimeSignatureException(
@@ -122,10 +141,10 @@ class QuantizedSequence(object):
           'Denominator is not a power of 2. Time signature: %d/%d' %
           (self.time_signature.numerator, self.time_signature.denominator))
 
-    self.bpm = note_sequence.tempos[0].bpm if note_sequence.tempos else 120.0
+    self.qpm = note_sequence.tempos[0].qpm if note_sequence.tempos else 120.0
 
     # Compute quantization steps per second.
-    steps_per_second = steps_per_beat * self.bpm / 60.0
+    steps_per_second = steps_per_quarter * self.qpm / 60.0
 
     quantize = lambda x: int(x + (1 - QUANTIZE_CUTOFF))
 
@@ -138,8 +157,8 @@ class QuantizedSequence(object):
 
       # Do not allow notes to start or end in negative time.
       if start_step < 0 or end_step < 0:
-        raise BadNoteException(
-            'Got negative note time: start_step = %s, start_step = %s' %
+        raise NegativeTimeException(
+            'Got negative note time: start_step = %s, end_step = %s' %
             (start_step, end_step))
 
       if note.instrument not in self.tracks:
@@ -151,6 +170,16 @@ class QuantizedSequence(object):
                                                instrument=note.instrument,
                                                program=note.program))
 
+    # Also add chord symbol annotations to the quantized sequence.
+    for annotation in note_sequence.text_annotations:
+      if annotation.annotation_type == CHORD_SYMBOL:
+        # Quantize the chord time, disallowing negative time.
+        step = quantize(annotation.time * steps_per_second)
+        if step < 0:
+          raise NegativeTimeException(
+              'Got negative chord time: step = %s' % step)
+        self.chords.append(ChordSymbol(step=step, figure=annotation.text))
+
   def __eq__(self, other):
     if not isinstance(other, QuantizedSequence):
       return False
@@ -159,6 +188,19 @@ class QuantizedSequence(object):
           set(self.tracks[track]) != set(other.tracks[track])):
         return False
     return (
-        self.bpm == other.bpm and
+        self.qpm == other.qpm and
         self.time_signature == other.time_signature and
-        self.steps_per_beat == other.steps_per_beat)
+        self.steps_per_quarter == other.steps_per_quarter and
+        set(self.chords) == set(other.chords))
+
+  def __deepcopy__(self, unused_memo=None):
+    new_copy = type(self)()
+    new_copy.tracks = copy.deepcopy(self.tracks)
+    new_copy.chords = copy.deepcopy(self.chords)
+    new_copy.qpm = self.qpm
+    new_copy.time_signature = self.time_signature
+    new_copy.steps_per_quarter = self.steps_per_quarter
+    return new_copy
+
+  def deepcopy(self):
+    return self.__deepcopy__()

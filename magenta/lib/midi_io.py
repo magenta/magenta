@@ -79,14 +79,22 @@ def midi_to_sequence_proto(midi_data):
   sequence = music_pb2.NoteSequence()
 
   # Populate header.
-  sequence.ticks_per_beat = midi.resolution
+  sequence.ticks_per_quarter = midi.resolution
+  sequence.source_info.parser = music_pb2.NoteSequence.SourceInfo.PRETTY_MIDI
+  sequence.source_info.encoding_type = (
+      music_pb2.NoteSequence.SourceInfo.MIDI)
 
   # Populate time signatures.
   for midi_time in midi.time_signature_changes:
     time_signature = sequence.time_signatures.add()
     time_signature.time = midi_time.time
     time_signature.numerator = midi_time.numerator
-    time_signature.denominator = midi_time.denominator
+    try:
+      # Denominator can be too large for int32.
+      time_signature.denominator = midi_time.denominator
+    except ValueError:
+      raise MIDIConversionError('Invalid time signature denominator %d' %
+                                midi_time.denominator)
 
   # Populate key signatures.
   for midi_key in midi.key_signature_changes:
@@ -102,11 +110,11 @@ def midi_to_sequence_proto(midi_data):
       raise MIDIConversionError('Invalid midi_mode %i' % midi_mode)
 
   # Populate tempo changes.
-  tempo_times, tempo_bpms = midi.get_tempo_changes()
-  for time_in_seconds, tempo_in_bpm in zip(tempo_times, tempo_bpms):
+  tempo_times, tempo_qpms = midi.get_tempo_changes()
+  for time_in_seconds, tempo_in_qpm in zip(tempo_times, tempo_qpms):
     tempo = sequence.tempos.add()
     tempo.time = time_in_seconds
-    tempo.bpm = tempo_in_bpm
+    tempo.qpm = tempo_in_qpm
 
   # Populate notes by first gathering them all from the midi's instruments, then
   # sorting them primarily by start and secondarily by end, and finally looping
@@ -120,15 +128,18 @@ def midi_to_sequence_proto(midi_data):
     for midi_note in midi_instrument.notes:
       if not sequence.total_time or midi_note.end > sequence.total_time:
         sequence.total_time = midi_note.end
-      midi_notes.append((midi_instrument.program, num_instrument, midi_note))
+      midi_notes.append((midi_instrument.program, num_instrument,
+                         midi_instrument.is_drum, midi_note))
     for midi_pitch_bend in midi_instrument.pitch_bends:
       midi_pitch_bends.append(
-          (midi_instrument.program, num_instrument, midi_pitch_bend))
+          (midi_instrument.program, num_instrument,
+           midi_instrument.is_drum, midi_pitch_bend))
     for midi_control_change in midi_instrument.control_changes:
       midi_control_changes.append(
-          (midi_instrument.program, num_instrument, midi_control_change))
+          (midi_instrument.program, num_instrument,
+           midi_instrument.is_drum, midi_control_change))
 
-  for program, instrument, midi_note in midi_notes:
+  for program, instrument, is_drum, midi_note in midi_notes:
     note = sequence.notes.add()
     note.instrument = instrument
     note.program = program
@@ -136,21 +147,24 @@ def midi_to_sequence_proto(midi_data):
     note.end_time = midi_note.end
     note.pitch = midi_note.pitch
     note.velocity = midi_note.velocity
+    note.is_drum = is_drum
 
-  for program, instrument, midi_pitch_bend in midi_pitch_bends:
+  for program, instrument, is_drum, midi_pitch_bend in midi_pitch_bends:
     pitch_bend = sequence.pitch_bends.add()
     pitch_bend.instrument = instrument
     pitch_bend.program = program
     pitch_bend.time = midi_pitch_bend.time
     pitch_bend.bend = midi_pitch_bend.pitch
+    pitch_bend.is_drum = is_drum
 
-  for program, instrument, midi_control_change in midi_control_changes:
+  for program, instrument, is_drum, midi_control_change in midi_control_changes:
     control_change = sequence.control_changes.add()
     control_change.instrument = instrument
     control_change.program = program
     control_change.time = midi_control_change.time
     control_change.control_number = midi_control_change.number
     control_change.control_value = midi_control_change.value
+    control_change.is_drum = is_drum
 
   # TODO(@douglaseck): Estimate note type (e.g. quarter note) and populate
   # note.numerator and note.denominator.
@@ -174,8 +188,8 @@ def sequence_proto_to_pretty_midi(sequence):
 
   kwargs = {}
   if sequence.tempos and sequence.tempos[0].time == 0:
-    kwargs['initial_tempo'] = sequence.tempos[0].bpm
-  pm = pretty_midi.PrettyMIDI(resolution=sequence.ticks_per_beat, **kwargs)
+    kwargs['initial_tempo'] = sequence.tempos[0].qpm
+  pm = pretty_midi.PrettyMIDI(resolution=sequence.ticks_per_quarter, **kwargs)
 
   # Create an empty instrument to contain time and key signatures.
   instrument = pretty_midi.Instrument(0)
@@ -201,7 +215,7 @@ def sequence_proto_to_pretty_midi(sequence):
   # write tempo.
   if len(sequence.tempos) > 1:
     for seq_tempo in sequence.tempos[1:]:
-      tick_scale = 60.0 / (pm.resolution * seq_tempo.bpm)
+      tick_scale = 60.0 / (pm.resolution * seq_tempo.qpm)
       tick = pm.time_to_tick(seq_tempo.time)
       # pylint: disable=protected-access
       pm._PrettyMIDI__tick_scales.append((tick, tick_scale))
@@ -211,27 +225,34 @@ def sequence_proto_to_pretty_midi(sequence):
   # in lists then write them sorted to the PrettyMidi object.
   instrument_events = defaultdict(lambda: defaultdict(list))
   for seq_note in sequence.notes:
-    instrument_events[(seq_note.instrument, seq_note.program)]['notes'].append(
-        pretty_midi.Note(seq_note.velocity, seq_note.pitch,
-                         seq_note.start_time, seq_note.end_time))
+    instrument_events[(seq_note.instrument, seq_note.program,
+                       seq_note.is_drum)]['notes'].append(
+                           pretty_midi.Note(
+                               seq_note.velocity, seq_note.pitch,
+                               seq_note.start_time, seq_note.end_time))
   for seq_bend in sequence.pitch_bends:
-    instrument_events[(seq_bend.instrument, seq_bend.program)]['bends'].append(
-        pretty_midi.PitchBend(seq_bend.bend, seq_bend.time))
+    instrument_events[(seq_bend.instrument, seq_bend.program,
+                       seq_bend.is_drum)]['bends'].append(
+                           pretty_midi.PitchBend(seq_bend.bend, seq_bend.time))
   for seq_cc in sequence.control_changes:
-    instrument_events[(seq_cc.instrument, seq_cc.program)]['controls'].append(
-        pretty_midi.ControlChange(seq_cc.control_number,
-                                  seq_cc.control_value, seq_cc.time))
+    instrument_events[(seq_cc.instrument, seq_cc.program,
+                       seq_cc.is_drum)]['controls'].append(
+                           pretty_midi.ControlChange(
+                               seq_cc.control_number,
+                               seq_cc.control_value, seq_cc.time))
 
-  for (instr_id, prog_id) in sorted(instrument_events.keys()):
+  for (instr_id, prog_id, is_drum) in sorted(instrument_events.keys()):
     # For instr_id 0 append to the instrument created above.
     if instr_id > 0:
-      instrument = pretty_midi.Instrument(prog_id, is_drum=(instr_id == 9))
+      instrument = pretty_midi.Instrument(prog_id, is_drum)
       pm.instruments.append(instrument)
     instrument.program = prog_id
-    instrument.notes = instrument_events[(instr_id, prog_id)]['notes']
-    instrument.pitch_bends = instrument_events[(instr_id, prog_id)]['bends']
+    instrument.notes = instrument_events[
+        (instr_id, prog_id, is_drum)]['notes']
+    instrument.pitch_bends = instrument_events[
+        (instr_id, prog_id, is_drum)]['bends']
     instrument.control_changes = instrument_events[
-        (instr_id, prog_id)]['controls']
+        (instr_id, prog_id, is_drum)]['controls']
 
   return pm
 

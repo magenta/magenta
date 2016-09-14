@@ -31,8 +31,8 @@ class MelodiesLibTest(tf.test.TestCase):
 
   def setUp(self):
     self.quantized_sequence = sequences_lib.QuantizedSequence()
-    self.quantized_sequence.bpm = 60.0
-    self.quantized_sequence.steps_per_beat = 4
+    self.quantized_sequence.qpm = 60.0
+    self.quantized_sequence.steps_per_quarter = 4
 
   def testGetNoteHistogram(self):
     events = [NO_EVENT, NOTE_OFF, 12 * 2 + 1, 12 * 3, 12 * 5 + 11, 12 * 6 + 3,
@@ -146,6 +146,16 @@ class MelodiesLibTest(tf.test.TestCase):
     melody.squash(min_note=12 * 5, max_note=12 * 6, transpose_to_key=4)
     expected = [12 * 5 + 4, 12 * 5 + 6, 12 * 5 + 9, 12 * 5 + 8, 12 * 5 + 1]
     self.assertEqual(expected, list(melody))
+
+  def testDeepcopy(self):
+    melody = melodies_lib.MonophonicMelody()
+    melody.from_event_list([0, 1, 2], start_step=0, steps_per_quarter=4,
+                           steps_per_bar=8)
+    melody_copy = melody.deepcopy()
+    self.assertEqual(melody, melody_copy)
+
+    melody.set_length(2)
+    self.assertNotEqual(melody, melody_copy)
 
   def testSquashCenterOctaves(self):
     # Move up an octave.
@@ -280,7 +290,7 @@ class MelodiesLibTest(tf.test.TestCase):
 
   def testFromNotesStepsPerBar(self):
     self.quantized_sequence.time_signature = sequences_lib.TimeSignature(7, 8)
-    self.quantized_sequence.steps_per_beat = 12
+    self.quantized_sequence.steps_per_quarter = 12
     self.quantized_sequence.tracks[0] = []
     melody = melodies_lib.MonophonicMelody()
     melody.from_quantized_sequence(self.quantized_sequence,
@@ -317,7 +327,7 @@ class MelodiesLibTest(tf.test.TestCase):
     self.assertEqual(2, melody.end_step)
 
   def testExtractMelodiesSimple(self):
-    self.quantized_sequence.steps_per_beat = 1
+    self.quantized_sequence.steps_per_quarter = 1
     testing_lib.add_quantized_track(
         self.quantized_sequence, 0,
         [(12, 100, 2, 4), (11, 1, 6, 7)])
@@ -339,7 +349,7 @@ class MelodiesLibTest(tf.test.TestCase):
     self.assertEqual(expected, melodies)
 
   def testExtractMultipleMelodiesFromSameTrack(self):
-    self.quantized_sequence.steps_per_beat = 1
+    self.quantized_sequence.steps_per_quarter = 1
     testing_lib.add_quantized_track(
         self.quantized_sequence, 0,
         [(12, 100, 2, 4), (11, 1, 6, 11)])
@@ -359,7 +369,7 @@ class MelodiesLibTest(tf.test.TestCase):
     self.assertEqual(expected, melodies)
 
   def testExtractMelodiesMelodyTooShort(self):
-    self.quantized_sequence.steps_per_beat = 1
+    self.quantized_sequence.steps_per_quarter = 1
     testing_lib.add_quantized_track(
         self.quantized_sequence, 0,
         [(12, 127, 2, 4), (14, 50, 6, 7)])
@@ -375,7 +385,7 @@ class MelodiesLibTest(tf.test.TestCase):
     self.assertEqual(expected, melodies)
 
   def testExtractMelodiesPadEnd(self):
-    self.quantized_sequence.steps_per_beat = 1
+    self.quantized_sequence.steps_per_quarter = 1
     testing_lib.add_quantized_track(
         self.quantized_sequence, 0,
         [(12, 127, 2, 4), (14, 50, 6, 7)])
@@ -398,7 +408,7 @@ class MelodiesLibTest(tf.test.TestCase):
     self.assertEqual(expected, melodies)
 
   def testExtractMelodiesMelodyTooLong(self):
-    self.quantized_sequence.steps_per_beat = 1
+    self.quantized_sequence.steps_per_quarter = 1
     testing_lib.add_quantized_track(
         self.quantized_sequence, 0,
         [(12, 127, 2, 4), (14, 50, 6, 15)])
@@ -417,7 +427,7 @@ class MelodiesLibTest(tf.test.TestCase):
     self.assertEqual(expected, melodies)
 
   def testExtractMelodiesMelodyTooLongWithPad(self):
-    self.quantized_sequence.steps_per_beat = 1
+    self.quantized_sequence.steps_per_quarter = 1
     testing_lib.add_quantized_track(
         self.quantized_sequence, 0,
         [(12, 127, 2, 4), (14, 50, 6, 15)])
@@ -436,7 +446,7 @@ class MelodiesLibTest(tf.test.TestCase):
   def testExtractMelodiesTooFewPitches(self):
     # Test that extract_melodies discards melodies with too few pitches where
     # pitches are equivalent by octave.
-    self.quantized_sequence.steps_per_beat = 1
+    self.quantized_sequence.steps_per_quarter = 1
     testing_lib.add_quantized_track(
         self.quantized_sequence, 0,
         [(12, 100, 0, 1), (13, 100, 1, 2), (18, 100, 2, 3),
@@ -453,7 +463,7 @@ class MelodiesLibTest(tf.test.TestCase):
     self.assertEqual(expected, melodies)
 
   def testExtractMelodiesLateStart(self):
-    self.quantized_sequence.steps_per_beat = 1
+    self.quantized_sequence.steps_per_quarter = 1
     testing_lib.add_quantized_track(
         self.quantized_sequence, 0,
         [(12, 100, 102, 103), (13, 100, 104, 106)])
@@ -469,7 +479,7 @@ class MelodiesLibTest(tf.test.TestCase):
     self.assertEqual(expected, melodies)
 
   def testExtractMelodiesStatistics(self):
-    self.quantized_sequence.steps_per_beat = 1
+    self.quantized_sequence.steps_per_quarter = 1
     testing_lib.add_quantized_track(
         self.quantized_sequence, 0,
         [(12, 100, 2, 4), (11, 1, 6, 7), (10, 100, 8, 10), (9, 100, 11, 14),
@@ -497,56 +507,22 @@ class MelodiesLibTest(tf.test.TestCase):
          100: 0, 200: 0, 500: 0})
 
 
-class OneHotEncoderDecoder(melodies_lib.MelodyEncoderDecoder):
-
-  def __init__(self, min_note, max_note, transpose_to_key):
-    super(OneHotEncoderDecoder, self).__init__(min_note, max_note,
-                                               transpose_to_key)
-    self._input_size = self.max_note - self.min_note + NUM_SPECIAL_EVENTS
-    self._num_classes = self.max_note - self.min_note + NUM_SPECIAL_EVENTS
-
-  @property
-  def input_size(self):
-    return self._input_size
-
-  @property
-  def num_classes(self):
-    return self._num_classes
-
-  def melody_to_input(self, melody, position):
-    input_ = [0.0] * self._input_size
-    index = (melody[position] + NUM_SPECIAL_EVENTS
-             if melody[position] < 0
-             else melody[position] - self.min_note + NUM_SPECIAL_EVENTS)
-    input_[index] = 1.0
-    return input_
-
-  def melody_to_label(self, melody, position):
-    return (melody[position] + NUM_SPECIAL_EVENTS
-            if melody[position] < 0
-            else melody[position] - self.min_note + NUM_SPECIAL_EVENTS)
-
-  def class_index_to_melody_event(self, class_index, melody):
-    return (class_index - NUM_SPECIAL_EVENTS if class_index < NUM_SPECIAL_EVENTS
-            else class_index + self.min_note - NUM_SPECIAL_EVENTS)
-
-
 class MelodyEncoderDecoderTest(tf.test.TestCase):
 
   def setUp(self):
-    self.melody_encoder_decoder = OneHotEncoderDecoder(60, 72, 0)
+    self.melody_encoder_decoder = melodies_lib.OneHotEncoderDecoder(60, 72, 0)
 
   def testMinNoteMaxNoteAndTransposeToKeyValidValues(self):
     # Valid parameters
-    OneHotEncoderDecoder(0, 128, 0)
-    OneHotEncoderDecoder(60, 72, 11)
+    melodies_lib.OneHotEncoderDecoder(0, 128, 0)
+    melodies_lib.OneHotEncoderDecoder(60, 72, 11)
 
     # Invalid parameters
-    self.assertRaises(ValueError, OneHotEncoderDecoder, -1, 72, 0)
-    self.assertRaises(ValueError, OneHotEncoderDecoder, 60, 129, 0)
-    self.assertRaises(ValueError, OneHotEncoderDecoder, 60, 71, 0)
-    self.assertRaises(ValueError, OneHotEncoderDecoder, 60, 72, -1)
-    self.assertRaises(ValueError, OneHotEncoderDecoder, 60, 72, 12)
+    self.assertRaises(ValueError, melodies_lib.OneHotEncoderDecoder, -1, 72, 0)
+    self.assertRaises(ValueError, melodies_lib.OneHotEncoderDecoder, 60, 129, 0)
+    self.assertRaises(ValueError, melodies_lib.OneHotEncoderDecoder, 60, 71, 0)
+    self.assertRaises(ValueError, melodies_lib.OneHotEncoderDecoder, 60, 72, -1)
+    self.assertRaises(ValueError, melodies_lib.OneHotEncoderDecoder, 60, 72, 12)
 
   def testInitValues(self):
     self.assertEqual(self.melody_encoder_decoder.min_note, 60)
@@ -554,6 +530,7 @@ class MelodyEncoderDecoderTest(tf.test.TestCase):
     self.assertEqual(self.melody_encoder_decoder.transpose_to_key, 0)
     self.assertEqual(self.melody_encoder_decoder.input_size, 14)
     self.assertEqual(self.melody_encoder_decoder.num_classes, 14)
+    self.assertEqual(self.melody_encoder_decoder.no_event_label, 0)
 
   def testEncode(self):
     events = [100, 100, 107, 111, NO_EVENT, 99, 112, NOTE_OFF, NO_EVENT]
@@ -688,11 +665,11 @@ class MelodyEncoderDecoderTest(tf.test.TestCase):
         velocity=10,
         instrument=1,
         sequence_start_time=2,
-        bpm=60.0)
+        qpm=60.0)
 
     self.assertProtoEquals(
-        'ticks_per_beat: 96 '
-        'tempos < bpm: 60.0 > '
+        'ticks_per_quarter: 96 '
+        'tempos < qpm: 60.0 > '
         'total_time: 3.75 '
         'notes < '
         '  pitch: 1 velocity: 10 instrument: 1 start_time: 2.25 end_time: 2.75 '
@@ -713,11 +690,11 @@ class MelodyEncoderDecoderTest(tf.test.TestCase):
         velocity=100,
         instrument=0,
         sequence_start_time=0,
-        bpm=60.0)
+        qpm=60.0)
 
     self.assertProtoEquals(
-        'ticks_per_beat: 96 '
-        'tempos < bpm: 60.0 > '
+        'ticks_per_quarter: 96 '
+        'tempos < qpm: 60.0 > '
         'total_time: 2.25 '
         'notes < pitch: 1 velocity: 100 start_time: 0.25 end_time: 0.75 > '
         'notes < pitch: 2 velocity: 100 start_time: 1.25 end_time: 1.5 > '
@@ -731,11 +708,11 @@ class MelodyEncoderDecoderTest(tf.test.TestCase):
         velocity=100,
         instrument=0,
         sequence_start_time=0.5,
-        bpm=60.0)
+        qpm=60.0)
 
     self.assertProtoEquals(
-        'ticks_per_beat: 96 '
-        'tempos < bpm: 60.0 > '
+        'ticks_per_quarter: 96 '
+        'tempos < qpm: 60.0 > '
         'total_time: 2.25 '
         'notes < pitch: 1 velocity: 100 start_time: 1.75 end_time: 2.25 > ',
         sequence)
@@ -746,11 +723,11 @@ class MelodyEncoderDecoderTest(tf.test.TestCase):
         velocity=10,
         instrument=1,
         sequence_start_time=2,
-        bpm=60.0)
+        qpm=60.0)
 
     self.assertProtoEquals(
-        'ticks_per_beat: 96 '
-        'tempos < bpm: 60.0 > ',
+        'ticks_per_quarter: 96 '
+        'tempos < qpm: 60.0 > ',
         sequence)
 
 if __name__ == '__main__':

@@ -35,6 +35,9 @@ py_library(
     name = "attention_rnn_encoder_decoder",
     srcs = ["attention_rnn_encoder_decoder.py"],
     srcs_version = "PY2AND3",
+    visibility = [
+        # internal dev models
+    ],
     deps = [
         "//magenta/lib:melodies_lib",
     ],
@@ -75,14 +78,16 @@ py_binary(
     ],
 )
 
-py_binary(
+py_library(
     name = "attention_rnn_graph",
     srcs = ["attention_rnn_graph.py"],
     srcs_version = "PY2AND3",
+    visibility = [
+        # internal dev models
+    ],
     deps = [
-        "//magenta/lib:sequence_example_lib",
         "//magenta/lib:tf_lib",
-        # tensorflow dep
+        "//magenta/models/shared:melody_rnn_graph",
     ],
 )
 

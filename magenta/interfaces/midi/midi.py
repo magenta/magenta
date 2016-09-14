@@ -71,11 +71,11 @@ tf.app.flags.DEFINE_integer(
     'The control change value to use as a signal to stop '
     'capturing and generate. If None, any control change with'
     'stop_capture_control_number will stop capture.')
-# TODO(adarob): Make the bpm adjustable by a control change signal.
+# TODO(adarob): Make the qpm adjustable by a control change signal.
 tf.app.flags.DEFINE_integer(
-    'bpm',
+    'qpm',
     90,
-    'The beats per minute to use for the metronome and generated sequence.')
+    'The quarters per minute to use for the metronome and generated sequence.')
 # TODO(adarob): Make the number of bars to generate adjustable.
 tf.app.flags.DEFINE_integer(
     'num_bars_to_generate',
@@ -199,14 +199,14 @@ class Generator(object):
     last_end_time = notes_by_end_time[-1].end_time if notes_by_end_time else 0
 
     # Assume 4/4 time signature and a single tempo.
-    bpm = input_sequence.tempos[0].bpm
-    seconds_to_generate = (60.0 / bpm) * 4 * self._num_bars_to_generate
+    qpm = input_sequence.tempos[0].qpm
+    seconds_to_generate = (60.0 / qpm) * 4 * self._num_bars_to_generate
 
     request = generator_pb2.GenerateSequenceRequest()
     request.input_sequence.CopyFrom(input_sequence)
     section = request.generator_options.generate_sections.add()
-    # Start generating 1 beat after the sequence ends.
-    section.start_time_seconds = last_end_time + (60.0 / bpm)
+    # Start generating 1 quarter note after the sequence ends.
+    section.start_time_seconds = last_end_time + (60.0 / qpm)
     section.end_time_seconds = section.start_time_seconds + seconds_to_generate
 
     response = self._generator.generate(request)
@@ -218,27 +218,27 @@ class Metronome(threading.Thread):
 
   Attributes:
     _outport: The Mido port for sending messages.
-    _bpm: The integer beats per minute to signal on.
+    _qpm: The integer quarters per minute to signal on.
     _stop_metronome: A boolean specifying whether the metronome should stop.
     _velocity: The velocity of the metronome's MIDI note_on message.
   Args:
     outport: The Mido port for sending messages.
-    bpm: The integer beats per minute to signal on.
+    qpm: The integer quarters per minute to signal on.
     velocity: The velocity of the metronome's MIDI note_on message.
   """
   daemon = True
 
-  def __init__(self, outport, bpm, clock_start_time, velocity):
+  def __init__(self, outport, qpm, clock_start_time, velocity):
     self._outport = outport
-    self._bpm = bpm
+    self._qpm = qpm
     self._stop_metronome = False
     self._clock_start_time = clock_start_time
     self._velocity = velocity
     super(Metronome, self).__init__()
 
   def run(self):
-    """Outputs metronome tone on the bpm interval until stop signal received."""
-    period = 60. / self._bpm
+    """Outputs metronome tone on the qpm interval until stop signal received."""
+    period = 60. / self._qpm
     sleep_offset = 0
     while not self._stop_metronome:
       now = time.time()
@@ -296,7 +296,7 @@ class MonoMidiPlayer(threading.Thread):
     self._stop_playback = False
     if len(sequence.tempos) != 1:
       raise ValueError('The NoteSequence contains multiple tempos.')
-    self._metronome = Metronome(self._outport, sequence.tempos[0].bpm,
+    self._metronome = Metronome(self._outport, sequence.tempos[0].qpm,
                                 time.time(), metronome_velocity)
     super(MonoMidiPlayer, self).__init__()
 
@@ -426,9 +426,9 @@ class MonoMidiHub(object):
       if self._sequence_start_time is None:
         # This is the first note.
         # Find the sequence start time based on the start of the most recent
-        # beat. This ensures that the sequence start time lines up with a
-        # metronome tick.
-        period = 60. / self.captured_sequence.tempos[0].bpm
+        # quarter note. This ensures that the sequence start time lines up with
+        # a metronome tick.
+        period = 60. / self.captured_sequence.tempos[0].qpm
         self._sequence_start_time = msg.time - (
             (msg.time - self._capture_start_time) % period)
       elif last_note.end_time == 0:
@@ -447,14 +447,14 @@ class MonoMidiHub(object):
       stdout_write_and_flush('.')
 
   @serialized
-  def start_capture(self, bpm):
+  def start_capture(self, qpm):
     """Starts a capture session.
 
     Initializes a new capture sequence, sets the capture callback on the input
     port, and starts the metronome.
 
     Args:
-      bpm: The integer beats per minute to use for the metronome and captured
+      qpm: The integer quarters per minute to use for the metronome and captured
           sequence.
     Raises:
       RuntimeError: Already in a capture session.
@@ -463,11 +463,11 @@ class MonoMidiHub(object):
       raise RuntimeError('Already in a capture session.')
 
     self.captured_sequence = music_pb2.NoteSequence()
-    self.captured_sequence.tempos.add().bpm = bpm
+    self.captured_sequence.tempos.add().qpm = qpm
     self._sequence_start_time = None
     self._capture_start_time = time.time()
     self._inport.callback = self._timestamp_and_capture_message
-    self._metronome = Metronome(self._outport, bpm, self._capture_start_time,
+    self._metronome = Metronome(self._outport, qpm, self._capture_start_time,
                                 _METRONOME_CAPTURE_VELOCITY)
 
     self._metronome.start()
@@ -578,7 +578,7 @@ def main(unused_argv):
     hub.wait_for_control_signal(FLAGS.start_capture_control_number,
                                 FLAGS.start_capture_control_value)
     hub.stop_playback()
-    hub.start_capture(FLAGS.bpm)
+    hub.start_capture(FLAGS.qpm)
     stdout_write_and_flush('Capturing notes until stop control signal...')
     hub.wait_for_control_signal(FLAGS.stop_capture_control_number,
                                 FLAGS.stop_capture_control_value)

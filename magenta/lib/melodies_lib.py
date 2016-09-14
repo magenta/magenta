@@ -53,10 +53,9 @@ MAX_MELODY_EVENT = 127
 MIN_MIDI_PITCH = 0  # Inclusive.
 MAX_MIDI_PITCH = 127  # Inclusive.
 NOTES_PER_OCTAVE = 12
-QUARTER_NOTES_PER_WHOLE_NOTE = 4.0
-DEFAULT_BEATS_PER_MINUTE = 120.0
-DEFAULT_STEPS_PER_BAR = 16  # 4/4 music sampled at 4 steps per beat.
-DEFAULT_STEPS_PER_BEAT = 4
+DEFAULT_QUARTERS_PER_MINUTE = 120.0
+DEFAULT_STEPS_PER_BAR = 16  # 4/4 music sampled at 4 steps per quarter note.
+DEFAULT_STEPS_PER_QUARTER = 4
 
 # Standard pulses per quarter.
 # https://en.wikipedia.org/wiki/Pulses_per_quarter_note
@@ -152,20 +151,19 @@ class MonophonicMelody(object):
     end_step: The offset to the beginning of the bar following the last step
        of the melody relative the beginning of the source sequence. Will always
        be the first step of a bar.
-    steps_per_beat: Number of steps in in a beat of music.
+    steps_per_quarter: Number of steps in in a quarter note.
     steps_per_bar: Number of steps in a bar (measure) of music.
   """
 
   def __init__(self):
-    """Construct an empty MonophonicMelody.
-    """
+    """Construct an empty MonophonicMelody."""
     self._reset()
 
   def _reset(self):
     """Clear `events` and reset object state."""
     self._events = []
     self._steps_per_bar = DEFAULT_STEPS_PER_BAR
-    self._steps_per_beat = DEFAULT_STEPS_PER_BEAT
+    self._steps_per_quarter = DEFAULT_STEPS_PER_QUARTER
     self._start_step = 0
     self._end_step = 0
 
@@ -193,11 +191,20 @@ class MonophonicMelody(object):
     """
     return len(self._events)
 
+  def __deepcopy__(self, unused_memo=None):
+    new_copy = type(self)()
+    new_copy.from_event_list(list(self._events),
+                             self.start_step,
+                             self.steps_per_bar,
+                             self.steps_per_quarter)
+    return new_copy
+
   def __eq__(self, other):
     if not isinstance(other, MonophonicMelody):
       return False
     return (list(self) == list(other) and
             self.steps_per_bar == other.steps_per_bar and
+            self.steps_per_quarter == other.steps_per_quarter and
             self.start_step == other.start_step and
             self.end_step == other.end_step)
 
@@ -249,6 +256,10 @@ class MonophonicMelody(object):
         return (i, last_off)
     raise ValueError('No events in the stream')
 
+  def deepcopy(self):
+    """Returns a deep copy of this MonphonicMelody object."""
+    return self.__deepcopy__()
+
   @property
   def start_step(self):
     return self._start_step
@@ -262,8 +273,8 @@ class MonophonicMelody(object):
     return self._steps_per_bar
 
   @property
-  def steps_per_beat(self):
-    return self._steps_per_beat
+  def steps_per_quarter(self):
+    return self._steps_per_quarter
 
   def get_note_histogram(self):
     """Gets a histogram of the note occurrences in a melody.
@@ -368,18 +379,14 @@ class MonophonicMelody(object):
     self._reset()
 
     offset = None
-    steps_per_bar_float = (
-        quantized_sequence.steps_per_beat *
-        quantized_sequence.time_signature.numerator *
-        QUARTER_NOTES_PER_WHOLE_NOTE /
-        quantized_sequence.time_signature.denominator)
+    steps_per_bar_float = quantized_sequence.steps_per_bar()
     if steps_per_bar_float % 1 != 0:
       raise NonIntegerStepsPerBarException(
           'There are %f timesteps per bar. Time signature: %d/%d' %
           (steps_per_bar_float, quantized_sequence.time_signature.numerator,
            quantized_sequence.time_signature.denominator))
     self._steps_per_bar = steps_per_bar = int(steps_per_bar_float)
-    self._steps_per_beat = quantized_sequence.steps_per_beat
+    self._steps_per_quarter = quantized_sequence.steps_per_quarter
 
     # Sort track by note start times, and secondarily by pitch descending.
     notes = sorted(quantized_sequence.tracks[track],
@@ -448,14 +455,14 @@ class MonophonicMelody(object):
 
   def from_event_list(self, events, start_step=0,
                       steps_per_bar=DEFAULT_STEPS_PER_BAR,
-                      steps_per_beat=DEFAULT_STEPS_PER_BEAT):
+                      steps_per_quarter=DEFAULT_STEPS_PER_QUARTER):
     """Initialies with a list of event values and sets attributes appropriately.
 
     Args:
       events: List of MonophonicMelody events to set melody to.
       start_step: The integer starting step offset.
       steps_per_bar: The number of steps in a bar.
-      steps_per_beat: The number of steps in a beat.
+      steps_per_quarter: The number of steps in a quarter note.
 
     Raises:
       ValueError: If `events` contains an event that is not in the proper range.
@@ -467,13 +474,13 @@ class MonophonicMelody(object):
     self._start_step = start_step
     self._end_step = start_step + len(self)
     self._steps_per_bar = steps_per_bar
-    self._steps_per_beat = steps_per_beat
+    self._steps_per_quarter = steps_per_quarter
 
   def to_sequence(self,
                   velocity=100,
                   instrument=0,
                   sequence_start_time=0.0,
-                  bpm=120.0):
+                  qpm=120.0):
     """Converts the MonophonicMelody to NoteSequence proto.
 
     The end of the melody is treated as a NOTE_OFF event for any sustained
@@ -484,16 +491,16 @@ class MonophonicMelody(object):
       instrument: Midi instrument to give each note.
       sequence_start_time: A time in seconds (float) that the first note in the
           sequence will land on.
-      bpm: Beats per minute (float).
+      qpm: Quarter notes per minute (float).
 
     Returns:
       A NoteSequence proto encoding the given melody.
     """
-    seconds_per_step = 60.0 / bpm / self.steps_per_beat
+    seconds_per_step = 60.0 / qpm / self.steps_per_quarter
 
     sequence = music_pb2.NoteSequence()
-    sequence.tempos.add().bpm = bpm
-    sequence.ticks_per_beat = STANDARD_PPQ
+    sequence.tempos.add().qpm = qpm
+    sequence.ticks_per_quarter = STANDARD_PPQ
 
     sequence_start_time += self.start_step * seconds_per_step
     current_sequence_note = None
@@ -849,6 +856,17 @@ class MelodyEncoderDecoder(object):
     """
     pass
 
+  @property
+  def no_event_label(self):
+    """The class label that represents a NO_EVENT MonophonicMelody event.
+
+    Returns:
+        An int, the class label that represents a NO_EVENT.
+    """
+    melody = MonophonicMelody()
+    melody.from_event_list([NO_EVENT])
+    return self.melody_to_label(melody, 0)
+
   @abc.abstractmethod
   def melody_to_input(self, melody, position):
     """Returns the input vector for the event at the given position.
@@ -953,3 +971,38 @@ class MelodyEncoderDecoder(object):
       chosen_class = np.random.choice(num_classes, p=softmax[i][-1])
       melody_event = self.class_index_to_melody_event(chosen_class, melodies[i])
       melodies[i].append_event(melody_event)
+
+
+class OneHotEncoderDecoder(MelodyEncoderDecoder):
+  """A MelodyEncoderDecoder that produces a one-hot encoding for the input."""
+
+  def __init__(self, min_note, max_note, transpose_to_key):
+    super(OneHotEncoderDecoder, self).__init__(min_note, max_note,
+                                               transpose_to_key)
+    self._input_size = self.max_note - self.min_note + NUM_SPECIAL_EVENTS
+    self._num_classes = self.max_note - self.min_note + NUM_SPECIAL_EVENTS
+
+  @property
+  def input_size(self):
+    return self._input_size
+
+  @property
+  def num_classes(self):
+    return self._num_classes
+
+  def melody_to_input(self, melody, position):
+    input_ = [0.0] * self._input_size
+    index = (melody[position] + NUM_SPECIAL_EVENTS
+             if melody[position] < 0
+             else melody[position] - self.min_note + NUM_SPECIAL_EVENTS)
+    input_[index] = 1.0
+    return input_
+
+  def melody_to_label(self, melody, position):
+    return (melody[position] + NUM_SPECIAL_EVENTS
+            if melody[position] < 0
+            else melody[position] - self.min_note + NUM_SPECIAL_EVENTS)
+
+  def class_index_to_melody_event(self, class_index, melody):
+    return (class_index - NUM_SPECIAL_EVENTS if class_index < NUM_SPECIAL_EVENTS
+            else class_index + self.min_note - NUM_SPECIAL_EVENTS)

@@ -28,10 +28,11 @@ licenses(["notice"])  # Apache 2.0
 filegroup(
     name = "testdata",
     srcs = [
-        'example.mid',
-        'example_complex.mid',
-        'notesequences.tfrecord',
-        'tfrecord_iterator_test.tfrecord',
+        "example.mid",
+        "example_complex.mid",
+        "example_event_order.mid",
+        "example_is_drum.mid",
+        "notesequences.tfrecord",
+        "tfrecord_iterator_test.tfrecord",
     ],
 )
-
