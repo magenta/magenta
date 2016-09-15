@@ -232,21 +232,22 @@ class Metronome(threading.Thread):
     _qpm: The integer quarters per minute to signal on.
     _stop_metronome: A boolean specifying whether the metronome should stop.
     _clock_start_time: The time at which the metronome begins.
-    _hub: The Midi Hub that instantiates the Metronome.
+    _velocity: The velocity of the metronome click.
+    _lock: An RLock used for thread-safety.
   Args:
     outport: The Mido port for sending messages.
     qpm: The integer quarters per minute to signal on.
     clock_start_time: The time at which the metronome begins.
-    hub: The Midi Hub that instantiates the Metronome.
   """
   daemon = True
 
-  def __init__(self, outport, qpm, clock_start_time, hub):
+  def __init__(self, outport, qpm, clock_start_time):
     self._outport = outport
     self._qpm = qpm
     self._stop_metronome = False
     self._clock_start_time = clock_start_time
-    self._hub = hub
+    self._velocity = _METRONOME_VELOCITY
+    self._lock = threading.RLock()
     super(Metronome, self).__init__()
 
   def run(self):
@@ -276,7 +277,7 @@ class Metronome(threading.Thread):
 
       self._outport.send(mido.Message(type='note_on', note=_METRONOME_PITCH,
                                       channel=FLAGS.metronome_channel,
-                                      velocity=self._hub._metronome_velocity))
+                                      velocity=self._velocity))
       time.sleep(_METRONOME_TICK_DURATION)
       self._outport.send(mido.Message(type='note_off', note=_METRONOME_PITCH,
                                       channel=FLAGS.metronome_channel))
@@ -285,6 +286,16 @@ class Metronome(threading.Thread):
     """Signals for the metronome to stop and joins thread."""
     self._stop_metronome = True
     self.join()
+
+  @property
+  @serialized
+  def velocity(self):
+    return self._velocity
+
+  @velocity.setter
+  @serialized
+  def velocity(self, velocity):
+    self._velocity = velocity
 
 
 class MonoMidiPlayer(threading.Thread):
@@ -297,20 +308,19 @@ class MonoMidiPlayer(threading.Thread):
   Args:
     outport: The Mido port for sending messages.
     sequence: The monohponic, chronologically sorted NoteSequence to play.
-    hub: The Midi Hub that instantiates the Player
   Raises:
     ValueError: The NoteSequence contains multiple tempos.
   """
   daemon = True
 
-  def __init__(self, outport, sequence, hub):
+  def __init__(self, outport, sequence):
     self._outport = outport
     self._sequence = sequence
     self._stop_playback = False
     if len(sequence.tempos) != 1:
       raise ValueError('The NoteSequence contains multiple tempos.')
     self._metronome = Metronome(self._outport, sequence.tempos[0].qpm,
-                                time.time(), hub)
+                                time.time())
     super(MonoMidiPlayer, self).__init__()
 
   def run(self):
@@ -394,7 +404,6 @@ class MonoMidiHub(object):
     self._player = None
     self._capture_start_time = None
     self._sequence_start_time = None
-    self._metronome_velocity = _METRONOME_VELOCITY
 
   def _timestamp_and_capture_message(self, msg):
     """Stamps message with current time and passes it to the capture handler."""
@@ -432,7 +441,7 @@ class MonoMidiHub(object):
       if value is None:
         pass
       elif msg.bytes()[:2] == value.bytes()[:2]:
-        self.execute_cc_message(msg, self._cc_map)
+        self.execute_cc_message(msg)
         return
 
     # Capture behavior during record only.
@@ -475,7 +484,7 @@ class MonoMidiHub(object):
         new_note.velocity = msg.velocity
         stdout_write_and_flush('.')
 
-  def execute_cc_message(self, message, cc_map):
+  def execute_cc_message(self, message):
     """Defines how to treat non Start/Stop user defined CC messages.
 
     Args:
@@ -483,8 +492,8 @@ class MonoMidiHub(object):
     """
 
     # Metronome Velocity
-    if message.bytes()[:2] == cc_map['Metronome Velocity'].bytes()[:2]:
-      self._metronome_velocity = message.bytes()[2]
+    if message.bytes()[:2] == self._cc_map['Metronome Velocity'].bytes()[:2]:
+      self._metronome.velocity = message.bytes()[2]
 
   @serialized
   def start_capture(self, qpm):
@@ -505,7 +514,7 @@ class MonoMidiHub(object):
     self._sequence_start_time = None
     self._capture_start_time = time.time()
     self._inport.callback = self._timestamp_and_capture_message
-    self._metronome = Metronome(self._outport, qpm, self._capture_start_time, self)
+    self._metronome = Metronome(self._outport, qpm, self._capture_start_time)
     self._metronome.start()
 
   @serialized
@@ -563,7 +572,7 @@ class MonoMidiHub(object):
       sequence: The monohponic, chronologically sorted NoteSequence to play.
     """
     self.stop_playback()
-    self._player = MonoMidiPlayer(self._outport, sequence, self)
+    self._player = MonoMidiPlayer(self._outport, sequence)
     self._player.start()
     self._inport.callback = self._capture_message
 
