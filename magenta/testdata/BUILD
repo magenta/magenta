@@ -34,5 +34,9 @@ filegroup(
         "example_is_drum.mid",
         "notesequences.tfrecord",
         "tfrecord_iterator_test.tfrecord",
+        'clarinet_scale.xml',
+        'el_capitan.xml',
+        'flute_scale.xml',
+        'flute_scale.mxl',
     ],
 )

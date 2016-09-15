@@ -273,6 +273,17 @@ py_library(
     ],
 )
 
+py_test(
+    name = "midi_io_test",
+    srcs = ["midi_io_test.py"],
+    data = ["//magenta/testdata:testdata"],
+    srcs_version = "PY2AND3",
+    deps = [
+        ":midi_io",
+        # tensorflow dep
+    ],
+)
+
 py_library(
     name = "musicxml_reader",
     srcs = ["musicxml_reader.py", "musicxml_parser.py"],
@@ -283,12 +294,12 @@ py_library(
 )
 
 py_test(
-    name = "midi_io_test",
-    srcs = ["midi_io_test.py"],
+    name = "musicxml_parser_test",
+    srcs = ["musicxml_parser_test.py"],
     data = ["//magenta/testdata"],
     srcs_version = "PY2AND3",
     deps = [
-        ":midi_io",
+        ":musicxml_reader",
         "@mido//:mido",
         "@pretty_midi//:pretty_midi",
         # tensorflow dep
