@@ -56,6 +56,9 @@ current_midi_channel = 1
 # Keep track of previous note to get chord timing correct
 previous_note = None
 
+# Keep track of current transposition level
+current_transpose = 0
+
 
 class MusicXMLDocument:
   def __init__(self, filename):
@@ -83,10 +86,10 @@ class MusicXMLDocument:
 
       # Ignore files in the META-INF directory.
       # Only retrieve the first file
-      namelist = input_zip.namelist()
+      namelist = filename.namelist()
       files = [name for name in namelist if not name.startswith('META-INF/')]
       compressed_file_name = files[0]
-      score = ET.fromstring(input_zip.read(compressed_file_name))
+      score = ET.fromstring(filename.read(compressed_file_name))
     else:
       # Uncompressed XML file.
       tree = ET.parse(filename)
@@ -132,6 +135,12 @@ class MusicXMLDocument:
             # Prevent duplicate key signatures
             key_signatures.append(measure.key_signature)
 
+    if len(key_signatures) == 0:
+      # If there are no key signatures, add C major at the beginning
+      key_signature = KeySignature()
+      key_signature.time_position = 0
+      key_signatures.append(key_signature)
+
     return key_signatures
 
   def getTempos(self):
@@ -160,6 +169,8 @@ class ScorePart:
     self.parse()
 
   def parse(self):
+    global current_midi_channel
+
     if self.xml_score_part.find("part-name") != None:
       self.part_name = self.xml_score_part.find("part-name").text
 
@@ -167,6 +178,11 @@ class ScorePart:
     if xml_midi_instrument != None:
       self.midi_channel = int(xml_midi_instrument.find("midi-channel").text)
       self.midi_program = int(xml_midi_instrument.find("midi-program").text)
+    else:
+      # If no MIDI info, increment MIDI channel and use default program
+      self.midi_channel = current_midi_channel + 1
+      current_midi_channel = self.midi_channel
+      self.midi_program = 1
 
   def __str__(self):
     score_str = "ScorePart: " + self.part_name
@@ -180,21 +196,24 @@ class Part:
     self.xml_part = xml_part
     self.score_part = score_part
     self.measures = []
+    self.transposes = False
     self.parse()
 
   def parse(self):
     global current_time_position
     global current_midi_program
     global current_midi_channel
+    global current_transpose
 
     # Reset the time position when parsing each part
     current_time_position = 0
     current_midi_channel = self.score_part.midi_channel
     current_midi_program = self.score_part.midi_program
+    current_transpose = 0
 
     xml_measures = self.xml_part.findall("measure")
     for child in xml_measures:
-      measure = Measure(child)
+      measure = Measure(child, self)
       self.measures.append(measure)
 
   def getNotesInVoice(self, voice):
@@ -206,15 +225,21 @@ class Part:
 
     return notes
 
+  def __str__(self):
+    part_str = "Part: " + self.score_part.part_name
+    return part_str
+
 
 class Measure:
-  def __init__(self, xml_measure):
+  def __init__(self, xml_measure, part):
     self.xml_measure = xml_measure
     self.notes = []
     self.tempos = []
     self.time_signature = None
     self.key_signature = None
     self.current_ticks = 0      # Cumulative tick counter for this measure
+    self.transpose = 0          # Number of semitones to transpose notes
+    self.part = part
     self.parse()
 
   def parse(self):
@@ -238,6 +263,7 @@ class Measure:
 
   def parseAttributes(self, xml_attributes):
     global current_divisions
+    global current_transpose
 
     for child in xml_attributes:
       if child.tag == "divisions":
@@ -246,6 +272,11 @@ class Measure:
         self.key_signature = KeySignature(child)
       elif child.tag == "time":
         self.time_signature = TimeSignature(child)
+      elif child.tag == "transpose":
+        self.transpose = int(child.find("chromatic").text)
+        current_transpose = self.transpose
+        self.key_signature.key += self.transpose
+        self.part.transposes = True
 
   def parseBackup(self, xml_backup):
     global current_time_position
@@ -351,10 +382,13 @@ class Note:
     elif alter == "2":
       alter_string = "x"
 
+    # N.B. - pitch_string does not account for transposition
     pitch_string = step + alter_string + octave
 
     # Compute MIDI pitch number (C4 = 60, C1 = 24, C0 = 12)
     midi_pitch = self.pitchToMIDIPitch(step, alter, octave)
+    # Transpose MIDI pitch
+    midi_pitch = midi_pitch + current_transpose
     self.pitch = (pitch_string, midi_pitch)
 
   def pitchToMIDIPitch(self, step, alter, octave):
@@ -420,7 +454,7 @@ class TimeSignature:
 
 
 class KeySignature:
-  def __init__(self, xml_key):
+  def __init__(self, xml_key = None):
     self.xml_key = xml_key
     # MIDI and MusicXML identify key by using "fifths":
     # -1 = F, 0 = C, 1 = G etc.
@@ -428,7 +462,8 @@ class KeySignature:
     # mode is "major" or "minor" only: MIDI only supports major and minor
     self.mode = "major"
     self.time_position = -1
-    self.parse()
+    if xml_key != None:
+      self.parse()
 
   def parse(self):
     self.key = int(self.xml_key.find("fifths").text)
