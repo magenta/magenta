@@ -38,21 +38,21 @@ class BasicRnnEncoderDecoderTest(tf.test.TestCase):
     melody.from_event_list(melody_events)
 
     expected_inputs = [
-      [0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
-       0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
-       0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
-      [1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
-       0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
-       0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
-      [0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
-       0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
-       0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
-      [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
-       0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
-       0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0],
-      [0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
-       0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
-       0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+        [0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+         0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+         0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+        [1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+         0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+         0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+        [0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+         0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+         0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+        [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+         0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+         0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0],
+        [0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+         0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+         0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
     ]
     expected_labels = [2, 0, 3, 37, 1]
     for i in xrange(len(melody_events)):
@@ -64,23 +64,23 @@ class BasicRnnEncoderDecoderTest(tf.test.TestCase):
           melody_encoder_decoder.class_index_to_melody_event(expected_labels[i],
                                                              None),
           melody_events[i])
-    partial_melody = melodies_lib.MonophonicMelody()
-    partial_melody.from_event_list(melody_events[:i])
-    softmax = [[[0.0] * melody_encoder_decoder.num_classes]]
-    softmax[0][0][expected_labels[i]] = 1.0
-    melody_encoder_decoder.extend_melodies([partial_melody], softmax)
-    self.assertEqual(list(partial_melody)[-1], melody_events[i])
+      partial_melody = melodies_lib.MonophonicMelody()
+      partial_melody.from_event_list(melody_events[:i])
+      softmax = [[[0.0] * melody_encoder_decoder.num_classes]]
+      softmax[0][0][expected_labels[i]] = 1.0
+      melody_encoder_decoder.extend_melodies([partial_melody], softmax)
+      self.assertEqual(list(partial_melody)[-1], melody_events[i])
 
     melodies = [melody, melody]
     expected_full_length_inputs_batch = [expected_inputs, expected_inputs]
     expected_last_event_inputs_batch = [expected_inputs[-1:],
                                         expected_inputs[-1:]]
     self.assertListEqual(
-      expected_full_length_inputs_batch,
-      melody_encoder_decoder.get_inputs_batch(melodies, True))
+        expected_full_length_inputs_batch,
+        melody_encoder_decoder.get_inputs_batch(melodies, True))
     self.assertListEqual(
-      expected_last_event_inputs_batch,
-      melody_encoder_decoder.get_inputs_batch(melodies))
+        expected_last_event_inputs_batch,
+        melody_encoder_decoder.get_inputs_batch(melodies))
 
   def testCustomRange(self):
     basic_rnn_encoder_decoder.MIN_NOTE = 24
