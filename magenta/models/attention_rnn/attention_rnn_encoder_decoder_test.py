@@ -14,7 +14,7 @@
 """Tests for attention_rnn_encoder_decoder."""
 
 # internal imports
-import attention_rnn_encoder_decoder
+from magenta.models.attention_rnn import attention_rnn_encoder_decoder
 import tensorflow as tf
 from magenta.lib import melodies_lib
 

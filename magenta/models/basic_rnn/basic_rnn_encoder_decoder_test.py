@@ -14,7 +14,7 @@
 """Tests for basic_rnn_encoder_decoder."""
 
 # internal imports
-import basic_rnn_encoder_decoder
+from magenta.models.basic_rnn import basic_rnn_encoder_decoder
 import tensorflow as tf
 from magenta.lib import melodies_lib
 
