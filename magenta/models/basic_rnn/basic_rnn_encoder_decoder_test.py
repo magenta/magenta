@@ -34,35 +34,53 @@ class BasicRnnEncoderDecoderTest(tf.test.TestCase):
     self.assertEqual(melody_encoder_decoder.num_classes, 38)
 
     melody = melodies_lib.MonophonicMelody()
-    melody.from_event_list([48, NO_EVENT, 49, 83, NOTE_OFF])
+    melody_events = [48, NO_EVENT, 49, 83, NOTE_OFF]
+    melody.from_event_list(melody_events)
 
-    self.assertEqual(melody_encoder_decoder.melody_to_input(melody, 0),
-                     [1.0 if i == 2 else 0.0 for i in xrange(38)])
-    self.assertEqual(melody_encoder_decoder.melody_to_input(melody, 1),
-                     [1.0 if i == 0 else 0.0 for i in xrange(38)])
-    self.assertEqual(melody_encoder_decoder.melody_to_input(melody, 2),
-                     [1.0 if i == 3 else 0.0 for i in xrange(38)])
-    self.assertEqual(melody_encoder_decoder.melody_to_input(melody, 3),
-                     [1.0 if i == 37 else 0.0 for i in xrange(38)])
-    self.assertEqual(melody_encoder_decoder.melody_to_input(melody, 4),
-                     [1.0 if i == 1 else 0.0 for i in xrange(38)])
+    expected_inputs = [
+      [0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+       0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+       0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+      [1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+       0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+       0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+      [0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+       0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+       0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+      [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+       0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+       0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0],
+      [0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+       0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+       0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+    ]
+    expected_labels = [2, 0, 3, 37, 1]
+    for i in xrange(len(melody_events)):
+      self.assertListEqual(melody_encoder_decoder.melody_to_input(melody, i),
+                           expected_inputs[i])
+      self.assertEqual(melody_encoder_decoder.melody_to_label(melody, i),
+                       expected_labels[i])
+      self.assertEqual(
+          melody_encoder_decoder.class_index_to_melody_event(expected_labels[i],
+                                                             None),
+          melody_events[i])
+    partial_melody = melodies_lib.MonophonicMelody()
+    partial_melody.from_event_list(melody_events[:i])
+    softmax = [[[0.0] * melody_encoder_decoder.num_classes]]
+    softmax[0][0][expected_labels[i]] = 1.0
+    melody_encoder_decoder.extend_melodies([partial_melody], softmax)
+    self.assertEqual(list(partial_melody)[-1], melody_events[i])
 
-    self.assertEqual(melody_encoder_decoder.melody_to_label(melody, 0), 2)
-    self.assertEqual(melody_encoder_decoder.melody_to_label(melody, 1), 0)
-    self.assertEqual(melody_encoder_decoder.melody_to_label(melody, 2), 3)
-    self.assertEqual(melody_encoder_decoder.melody_to_label(melody, 3), 37)
-    self.assertEqual(melody_encoder_decoder.melody_to_label(melody, 4), 1)
-
-    self.assertEqual(
-        melody_encoder_decoder.class_index_to_melody_event(2, None), 48)
-    self.assertEqual(
-        melody_encoder_decoder.class_index_to_melody_event(0, None), NO_EVENT)
-    self.assertEqual(
-        melody_encoder_decoder.class_index_to_melody_event(3, None), 49)
-    self.assertEqual(
-        melody_encoder_decoder.class_index_to_melody_event(37, None), 83)
-    self.assertEqual(
-        melody_encoder_decoder.class_index_to_melody_event(1, None), NOTE_OFF)
+    melodies = [melody, melody]
+    expected_full_length_inputs_batch = [expected_inputs, expected_inputs]
+    expected_last_event_inputs_batch = [expected_inputs[-1:],
+                                        expected_inputs[-1:]]
+    self.assertListEqual(
+      expected_full_length_inputs_batch,
+      melody_encoder_decoder.get_inputs_batch(melodies, True))
+    self.assertListEqual(
+      expected_last_event_inputs_batch,
+      melody_encoder_decoder.get_inputs_batch(melodies))
 
   def testCustomRange(self):
     basic_rnn_encoder_decoder.MIN_NOTE = 24
@@ -73,35 +91,44 @@ class BasicRnnEncoderDecoderTest(tf.test.TestCase):
     self.assertEqual(melody_encoder_decoder.num_classes, 14)
 
     melody = melodies_lib.MonophonicMelody()
-    melody.from_event_list([24, NO_EVENT, 25, 35, NOTE_OFF])
+    melody_events = [24, NO_EVENT, 25, 35, NOTE_OFF]
+    melody.from_event_list(melody_events)
 
-    self.assertEqual(melody_encoder_decoder.melody_to_input(melody, 0),
-                     [1.0 if i == 2 else 0.0 for i in xrange(14)])
-    self.assertEqual(melody_encoder_decoder.melody_to_input(melody, 1),
-                     [1.0 if i == 0 else 0.0 for i in xrange(14)])
-    self.assertEqual(melody_encoder_decoder.melody_to_input(melody, 2),
-                     [1.0 if i == 3 else 0.0 for i in xrange(14)])
-    self.assertEqual(melody_encoder_decoder.melody_to_input(melody, 3),
-                     [1.0 if i == 13 else 0.0 for i in xrange(14)])
-    self.assertEqual(melody_encoder_decoder.melody_to_input(melody, 4),
-                     [1.0 if i == 1 else 0.0 for i in xrange(14)])
+    expected_inputs = [
+        [0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+        [1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+        [0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+        [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0],
+        [0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+    ]
+    expected_labels = [2, 0, 3, 13, 1]
 
-    self.assertEqual(melody_encoder_decoder.melody_to_label(melody, 0), 2)
-    self.assertEqual(melody_encoder_decoder.melody_to_label(melody, 1), 0)
-    self.assertEqual(melody_encoder_decoder.melody_to_label(melody, 2), 3)
-    self.assertEqual(melody_encoder_decoder.melody_to_label(melody, 3), 13)
-    self.assertEqual(melody_encoder_decoder.melody_to_label(melody, 4), 1)
+    for i in xrange(len(melody_events)):
+      self.assertListEqual(melody_encoder_decoder.melody_to_input(melody, i),
+                           expected_inputs[i])
+      self.assertEqual(melody_encoder_decoder.melody_to_label(melody, i),
+                       expected_labels[i])
+      self.assertEqual(
+          melody_encoder_decoder.class_index_to_melody_event(expected_labels[i],
+                                                             None),
+          melody_events[i])
+      partial_melody = melodies_lib.MonophonicMelody()
+      partial_melody.from_event_list(melody_events[:i])
+      softmax = [[[0.0] * melody_encoder_decoder.num_classes]]
+      softmax[0][0][expected_labels[i]] = 1.0
+      melody_encoder_decoder.extend_melodies([partial_melody], softmax)
+      self.assertEqual(list(partial_melody)[-1], melody_events[i])
 
-    self.assertEqual(
-        melody_encoder_decoder.class_index_to_melody_event(2, None), 24)
-    self.assertEqual(
-        melody_encoder_decoder.class_index_to_melody_event(0, None), NO_EVENT)
-    self.assertEqual(
-        melody_encoder_decoder.class_index_to_melody_event(3, None), 25)
-    self.assertEqual(
-        melody_encoder_decoder.class_index_to_melody_event(13, None), 35)
-    self.assertEqual(
-        melody_encoder_decoder.class_index_to_melody_event(1, None), NOTE_OFF)
+    melodies = [melody, melody]
+    expected_full_length_inputs_batch = [expected_inputs, expected_inputs]
+    expected_last_event_inputs_batch = [expected_inputs[-1:],
+                                        expected_inputs[-1:]]
+    self.assertListEqual(
+        expected_full_length_inputs_batch,
+        melody_encoder_decoder.get_inputs_batch(melodies, True))
+    self.assertListEqual(
+        expected_last_event_inputs_batch,
+        melody_encoder_decoder.get_inputs_batch(melodies))
 
 
 if __name__ == '__main__':
