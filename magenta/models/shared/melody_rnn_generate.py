@@ -21,7 +21,6 @@ import os
 import time
 
 # internal imports
-
 from six.moves import range  # pylint: disable=redefined-builtin
 import tensorflow as tf
 

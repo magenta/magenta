@@ -14,7 +14,6 @@
 """Provides function to build the basic RNN model's graph."""
 
 # internal imports
-
 from magenta.lib import tf_lib
 from magenta.models.shared import melody_rnn_graph
 

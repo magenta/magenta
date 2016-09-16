@@ -16,7 +16,6 @@
 # internal imports
 from magenta.models.attention_rnn import attention_rnn_encoder_decoder
 from magenta.models.attention_rnn import attention_rnn_graph
-
 from magenta.models.shared import melody_rnn_sequence_generator
 from magenta.protobuf import generator_pb2
 
