@@ -432,6 +432,7 @@ class MidiHub(object):
   @passthrough.setter
   @serialized
   def passthrough(self, value):
+    """Sets passthrough value, closing all open notes if being disabled."""
     if self._passthrough == value:
       return
     # Close all open notes.
@@ -564,6 +565,7 @@ class MidiHub(object):
       self._signals[signal_message_str] = threading.Condition(self._lock)
     self._signals[signal_message_str].wait()
 
+  @serialized
   def start_metronome(self, start_time, qpm):
     """Starts or re-starts the metronome with the given arguments.
 
@@ -576,6 +578,7 @@ class MidiHub(object):
       self.stop_metronome()
     self._metronome = Metronome(self._outport, start_time, qpm)
 
+  @serialized
   def stop_metronome(self):
     """Stops the metronome if it is currently running."""
     if self._metronome is None:
@@ -584,15 +587,15 @@ class MidiHub(object):
     self._metronome = None
 
   def start_playback(self, sequence, stay_alive=False):
-    """Plays the NoteSequence through the MIDI output port.
+    """Plays the notes in aNoteSequence via the MIDI output port.
 
     Args:
-      sequence: The monohponic, chronologically sorted NoteSequence to play.
+      sequence: The NoteSequence to play, with times based on the wall clock.
       stay_alive: A boolean specifying whether or not the player should stay
           alive waiting for updates after it plays the last note of the input
           sequence.
     Returns:
-      The MidiPlayer thread.
+      The MidiPlayer thread handling playback to enable updating.
     """
     player = MidiPlayer(self._outport, sequence, stay_alive)
     player.start()
