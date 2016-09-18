@@ -134,12 +134,12 @@ class MidiPlayer(threading.Thread):
     super(MidiPlayer, self).__init__()
 
   def update_sequence(self):
-    # TODO(hanzorama): Implement this.
+    # TODO(@hanzorama): Implement this.
     raise NotImplementedError
 
   def run(self):
     """Plays back the NoteSequence until it ends or stop signal is received."""
-    # TODO(hanzorama): Implement this.
+    # TODO(@hanzorama): Implement this.
     raise NotImplementedError
 
   def stop(self):
@@ -148,7 +148,7 @@ class MidiPlayer(threading.Thread):
     Blocks until copmleted.
     """
     self._stop_playback = True
-    # TODO(hanzorama): End open notes.
+    # TODO(@hanzorama): End open notes.
     self.join()
 
 
