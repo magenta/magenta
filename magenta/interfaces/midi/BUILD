@@ -17,6 +17,25 @@
 
 licenses(["notice"])  # Apache 2.0
 
+py_library(
+    name = "midi_hub",
+    srcs = ["midi_hub.py"],
+    deps = [
+        "//magenta/protobuf:music_py_pb2",
+        "@mido//:mido",
+    ],
+)
+
+py_library(
+    name = "midi_interaction",
+    srcs = ["midi_interaction.py"],
+    deps = [
+        ":midi_hub",
+        "//magenta/protobuf:generator_py_pb2",
+        "//magenta/protobuf:music_py_pb2",
+    ],
+)
+
 py_binary(
     name = "midi",
     srcs = ["midi.py"],
