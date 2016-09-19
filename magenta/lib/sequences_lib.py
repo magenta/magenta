@@ -137,7 +137,6 @@ class QuantizedSequence(object):
         raise MultipleTimeSignatureException(
             'NoteSequence has at least one time signature change.')
 
-
     if not is_power_of_2(self.time_signature.denominator):
       raise BadTimeSignatureException(
           'Denominator is not a power of 2. Time signature: %d/%d' %

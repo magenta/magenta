@@ -136,9 +136,7 @@ class SequencesLibTest(tf.test.TestCase):
 
     self.note_sequence.time_signatures.add(numerator=2, denominator=4)
     with self.assertRaises(sequences_lib.MultipleTimeSignatureException):
-        quantized.from_note_sequence(self.note_sequence,
-                                     self.steps_per_quarter)
-
+      quantized.from_note_sequence(self.note_sequence, self.steps_per_quarter)
 
   def testRounding(self):
     testing_lib.add_track(
