@@ -1,6 +1,7 @@
 """A module for interfacing with the MIDI environment."""
 
 import abc
+from collections import deque
 import functools
 import Queue
 import threading
@@ -14,6 +15,7 @@ from magenta.protobuf import music_pb2
 _DEFAULT_METRONOME_TICK_DURATION = 0.05
 _DEFAULT_METRONOME_PITCH = 95
 _DEFAULT_METRONOME_VELOCITY = 64
+_METRONOME_CHANNEL = 0
 
 
 def serialized(func):
@@ -93,14 +95,14 @@ class Metronome(threading.Thread):
           mido.Message(
               type='note_on',
               note=self._pitch,
-              channel=FLAGS.metronome_channel,
+              channel=_METRONOME_CHANNEL,
               velocity=self._velocity))
       time.sleep(self._duration)
       self._outport.send(
           mido.Message(
               type='note_off',
               note=self._pitch,
-              channel=FLAGS.metronome_channel))
+              channel=_METRONOME_CHANNEL))
 
   def stop(self):
     """Signals for the metronome to stop and joins thread."""
@@ -116,7 +118,7 @@ class MidiPlayer(threading.Thread):
 
   Attributes:
     _outport: The Mido port for sending messages.
-    _sequence: The monohponic, chronologically sorted NoteSequence to play.
+    _sequence: The NoteSequence to play.
     _stop_playback: A boolean specifying whether the playback should stop.
     _lock: An RLock used for thread-safety.
     _open_notes: A list of unsent note_off messages
@@ -124,7 +126,6 @@ class MidiPlayer(threading.Thread):
     _stay_alive: If False, the thread will terminate after the sequence playback
         completes. Otherwise, the the thread will stay alive until `stop` is
         called, allowing for additional updates.
-    _sleep_division: Breaks open ended while loops into small sleep segments.
   Args:
     outport: The Mido port for sending messages.
     sequence: The NoteSequence to play.
@@ -136,134 +137,114 @@ class MidiPlayer(threading.Thread):
   """
   daemon = True
 
-  def __init__(self, outport, sequence, stay_alive=False):
-    self._outport = outport
-    self._sequence = sequence
-    self._stop_playback = False
-    self._lock = threading.RLock()
-    self._open_notes = []
-    self._stay_alive = stay_alive
-    self._update_bool = False
-    self._sleep_division = .01
+  def __init__(self, outport, sequence, allow_updates=False):
     if len(sequence.tempos) != 1:
       raise MidiHubException('Cannot play NoteSequence with multiple tempos.')
+
+    self._outport = outport
+    # Set of notes (pitches) that are currently on.
+    self._open_notes = set()
+    # Lock for serialization.
+    self._lock = threading.RLock()
+    # A control variable to signal when the sequence has been updated.
+    self._update_cv = threading.Condition(self._lock)
+    # The queue of mido.Message objects to send, sorted by ascending time.
+    self._message_queue = deque()
+
+    # Initialize message queue.
+    self._allow_updates = True
+    self.update_sequence(sequence)
+    self._allow_updates = allow_updates
     super(MidiPlayer, self).__init__()
 
   @serialized
   def update_sequence(self, sequence):
-    """Updates sequence played by the MidiPlayer.
+    """Updates sequence being played by the MidiPlayer.
+
+    Adds events to close any notes that are no longer being closed by the
+    new sequence using the timing for when they would have been closed by the
+    previous sequence.
+
     Args:
-      sequence: The NoteSequence to send as update.
+      sequence: The NoteSequence to play back.
+    Raises:
+      MidiHubException: If called when _allow_updates is False.
     """
-    self._sequence = sequence
-    self._update_bool = True
+    if not self._allow_updates:
+      raise MidiHubException(
+          'Attempted to update a MidiPlayer sequence with updates disabled.')
 
-  def run(self):
-    """Plays back the NoteSequence until it ends or stop signal is received."""
-    # Wall start time.
-    playback_start = time.time()
-    # Places playhead at current wall time.
-    # Assumes model where NoteSequence is time-stampped with wall time.
-    # TODO(@hanzorama): Argument to allow initial start not at sequence start?
-    playhead_start = time.time()
-    # Instantiates playhead.
-    playhead = playhead_start
+    playhead = time.time()
 
-    while True:
-      for note in self._sequence.notes:
+    new_message_list = []
+    # The set of pitches that are already playing but are not closed without
+    # being reopened in the future in the new sequence.
+    notes_to_close = set()
+    for note in sequence.notes:
+      if note.start_time >= playhead:
+        new_message_list.append(
+          mido.Message(type='note_on', note=note.pitch, velocity=note.velocity,
+                       time=note.start_time))
+      if note.end_time >= playhead:
+        new_message_list.append(
+          mido.Message(type='note_off', note=note.pitch, time=note.end_time))
+        if (note.start_time < self._playhead and
+            note.pitch not in self._open_notes):
+          notes_to_close.add(note.pitch)
 
-        if self._stop_playback:
-          self._outport.panic()
-          return
+    for msg in self._message_queue:
+      if not notes_to_close:
+        break
+      if msg.note in notes_to_close:
+        assert msg.type == 'note_off'
+        new_message_list.append(msg)
+        notes_to_close.remove(msg.note)
 
-        # if there is an open note set to resolve before new note, do it now.
-        if len(self._open_notes) != 0:
-          while len(self._open_notes) > 0 and (self._open_notes[0].time <=
-                                               note.start_time):
-            playhead = self._open_notes[0].time
-            delta = (playhead - playhead_start) - (time.time() - playback_start)
-            wait_start = time.time()
-            # The delta correction ends notes a little early due to the fact
-            # that the generated NoteSequences place ends and starts at the
-            # exactly same wall time.
-            while time.time() - wait_start < delta - .002:
-              if self._update_bool:
-                break
-              time.sleep(self._sleep_division)
-            if self._update_bool:
-              break
-            self._outport.send(self._open_notes[0])
-            del self._open_notes[0]
-        if self._update_bool:
-          break
-
-        if note.start_time < playhead:
-          pass
-
-        elif note.start_time >= playhead:
-          self._playhead = note.start_time
-          delta = (playhead - playhead_start) - (time.time() - playback_start)
-          wait_start = time.time()
-          while time.time() - wait_start < delta:
-            if self._update_bool:
-              break
-            time.sleep(self._sleep_division)
-          if self._update_bool:
-            break
-          msg_note_on = mido.Message('note_on', note=note.pitch,
-                                     velocity=note.velocity,
-                                     time=note.start_time)
-          msg_note_off = mido.Message('note_off', note=note.pitch,
-                                      velocity=note.velocity,
-                                      time=note.end_time)
-          self._outport.send(msg_note_on)
-          self._open_notes.append(msg_note_off)
-          self._open_notes.sort(key=lambda x: x.time)
-
-      # Return to the top of the loop with new NoteSequence at same playhead.
-      if self._update_bool:
-        self._update_bool = False
-        continue
-
-      # Let any open notes end naturally.
-      while len(self._open_notes) != 0:
-        note = self._open_notes[0]
-        playhead = note.time
-        delta = (playhead - playhead_start) - (time.time() - playback_start)
-        wait_start = time.time()
-        while time.time() - wait_start < delta:
-          if self._update_bool:
-            break
-          time.sleep(self._sleep_division)
-        if self._update_bool:
-          break
-        self._outport.send(note)
-        del self._open_notes[0]
-      if self._update_bool:
-        self._update_bool = False
-        continue
-
-      # Either keep player alive and wait for sequence update, or return.
-      # TODO(hanzorama): Unsure how update behaves with new NoteSequence timing.
-      if self._stay_alive:
-        while self._update_bool is False:
-          time.sleep(self._sleep_division)
-        self._update_bool = False
-        continue
-
-      else:
-        return
+    self._message_queue = deque(sorted(new_message_list, key=lambda x: x.time))
+    self._update_cv.notify()
 
   @serialized
+  def run(self):
+    """Plays messages in the queue until empty and _allow_updates is False."""
+    # Assumes model where NoteSequence is time-stampped with wall time.
+    # TODO(@hanzorama): Argument to allow initial start not at sequence start?
+
+    while self._message_queue[0].time < time.time():
+      self._message_queue.popleft()
+
+    while True:
+      while self._message_queue:
+        next_msg = self._message_queue[0]
+        if time.time() < next_msg.time:
+          self._update_cv.wait(timeout=next_msg.time - time.time())
+        else:
+          msg = self._message_queue.popleft()
+          if msg.type == 'note_on':
+            self._open_notes.add(msg.note)
+          elif msg.type == 'note_off':
+            self._open_notes.remove(msg.note)
+          self._outport.send(msg)
+
+      # Either keep player alive and wait for sequence update, or return.
+      if self._allow_updates:
+        self._update_cv.wait()
+
   def stop(self):
     """Signals for the playback to stop and ends all open notes.
 
     Blocks until completed.
     """
-    self._stop_playback = True
-    for note in self._open_notes:
-      self._outport.send(note)
+    with self._lock:
+      self._allow_updates = False
+
+      # Replace message queue with immediate end of open notes.
+      self._message_queue.clear()
+      for note in self._open_notes:
+        self._message_queue.append(
+          mido.Message(type='note_off', note=note, time=time.time()))
+      self._update_cv.notify()
     self.join()
+
 
 class MidiCaptor(threading.Thread):
   """Base class for thread that captures MIDI into a NoteSequence proto.
