@@ -122,6 +122,24 @@ class SequencesLibTest(tf.test.TestCase):
     quantized.from_note_sequence(self.note_sequence, self.steps_per_quarter)
     self.assertEqual(self.expected_quantized_sequence, quantized)
 
+  def testFromNoteSequence_TimeSignatureChange(self):
+    testing_lib.add_track(
+        self.note_sequence, 0,
+        [(12, 100, 0.01, 10.0), (11, 55, 0.22, 0.50), (40, 45, 2.50, 3.50),
+         (55, 120, 4.0, 4.01), (52, 99, 4.75, 5.0)])
+    self.note_sequence.time_signatures.add(numerator=4, denominator=4)
+    quantized = sequences_lib.QuantizedSequence()
+    quantized.from_note_sequence(self.note_sequence, self.steps_per_quarter)
+
+    self.note_sequence.time_signatures.add(numerator=4, denominator=4)
+    quantized.from_note_sequence(self.note_sequence, self.steps_per_quarter)
+
+    self.note_sequence.time_signatures.add(numerator=2, denominator=4)
+    with self.assertRaises(sequences_lib.MultipleTimeSignatureException):
+        quantized.from_note_sequence(self.note_sequence,
+                                     self.steps_per_quarter)
+
+
   def testRounding(self):
     testing_lib.add_track(
         self.note_sequence, 1,
@@ -184,6 +202,7 @@ class SequencesLibTest(tf.test.TestCase):
         [(12, 100, 4, 20), (19, 100, 8, 16), (24, 100, 12, 14)])
 
     self.assertNotEqual(quantized, quantized_copy)
+
 
 if __name__ == '__main__':
   tf.test.main()
