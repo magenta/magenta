@@ -121,6 +121,10 @@ class MidiPlayer(threading.Thread):
     _lock: An RLock used for thread-safety.
     _open_notes: A list of unsent note_off messages
     _update_bool: A boolean specifying whether a sequence update is requested.
+    _stay_alive: If False, the thread will terminate after the sequence playback
+        completes. Otherwise, the the thread will stay alive until `stop` is
+        called, allowing for additional updates.
+    _sleep_division: Breaks open ended while loops into small sleep segments.
   Args:
     outport: The Mido port for sending messages.
     sequence: The NoteSequence to play.
@@ -147,7 +151,10 @@ class MidiPlayer(threading.Thread):
 
   @serialized
   def update_sequence(self, sequence):
-    """Updates sequence played by the MidiPlayer."""
+    """Updates sequence played by the MidiPlayer.
+    Args:
+      sequence: The NoteSequence to send as update.
+    """
     self._sequence = sequence
     self._update_bool = True
 
