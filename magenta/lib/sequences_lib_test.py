@@ -127,13 +127,19 @@ class SequencesLibTest(tf.test.TestCase):
         self.note_sequence, 0,
         [(12, 100, 0.01, 10.0), (11, 55, 0.22, 0.50), (40, 45, 2.50, 3.50),
          (55, 120, 4.0, 4.01), (52, 99, 4.75, 5.0)])
-    self.note_sequence.time_signatures.add(numerator=4, denominator=4)
+    del self.note_sequence.time_signatures[:]
     quantized = sequences_lib.QuantizedSequence()
     quantized.from_note_sequence(self.note_sequence, self.steps_per_quarter)
 
+    # Single time signature.
     self.note_sequence.time_signatures.add(numerator=4, denominator=4)
     quantized.from_note_sequence(self.note_sequence, self.steps_per_quarter)
 
+    # Multiple time signatures with no change.
+    self.note_sequence.time_signatures.add(numerator=4, denominator=4)
+    quantized.from_note_sequence(self.note_sequence, self.steps_per_quarter)
+
+    # Time signature change.
     self.note_sequence.time_signatures.add(numerator=2, denominator=4)
     with self.assertRaises(sequences_lib.MultipleTimeSignatureException):
       quantized.from_note_sequence(self.note_sequence, self.steps_per_quarter)
