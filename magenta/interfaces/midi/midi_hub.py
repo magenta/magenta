@@ -114,6 +114,13 @@ class MidiPlayer(threading.Thread):
   The NoteSequence times must be based on the wall time. The playhead matches
   the wall time clock. The playback sequence may be updated at anytime.
 
+  Attributes:
+    _outport: The Mido port for sending messages.
+    _sequence: The monohponic, chronologically sorted NoteSequence to play.
+    _stop_playback: A boolean specifying whether the playback should stop.
+    _lock: An RLock used for thread-safety.
+    _open_notes: A list of unsent note_off messages
+    _update_bool: A boolean specifying whether a sequence update is requested.
   Args:
     outport: The Mido port for sending messages.
     sequence: The NoteSequence to play.
@@ -129,28 +136,127 @@ class MidiPlayer(threading.Thread):
     self._outport = outport
     self._sequence = sequence
     self._stop_playback = False
+    self._lock = threading.RLock()
+    self._open_notes = []
+    self._stay_alive = stay_alive
+    self._update_bool = False
+    self._sleep_division = .01
     if len(sequence.tempos) != 1:
       raise MidiHubException('Cannot play NoteSequence with multiple tempos.')
     super(MidiPlayer, self).__init__()
 
-  def update_sequence(self):
-    # TODO(@hanzorama): Implement this.
-    raise NotImplementedError
+  @serialized
+  def update_sequence(self, sequence):
+    """Updates sequence played by the MidiPlayer."""
+    self._sequence = sequence
+    self._update_bool = True
 
   def run(self):
     """Plays back the NoteSequence until it ends or stop signal is received."""
-    # TODO(@hanzorama): Implement this.
-    raise NotImplementedError
+    # Wall start time.
+    playback_start = time.time()
+    # Places playhead at current wall time.
+    # Assumes model where NoteSequence is time-stampped with wall time.
+    # TODO(@hanzorama): Argument to allow initial start not at sequence start?
+    playhead_start = time.time()
+    # Instantiates playhead.
+    playhead = playhead_start
 
+    while True:
+      for note in self._sequence.notes:
+
+        if self._stop_playback:
+          self._outport.panic()
+          return
+
+        # if there is an open note set to resolve before new note, do it now.
+        if len(self._open_notes) != 0:
+          while len(self._open_notes) > 0 and (self._open_notes[0].time <=
+                                               note.start_time):
+            playhead = self._open_notes[0].time
+            delta = (playhead - playhead_start) - (time.time() - playback_start)
+            wait_start = time.time()
+            # The delta correction ends notes a little early due to the fact
+            # that the generated NoteSequences place ends and starts at the
+            # exactly same wall time.
+            while time.time() - wait_start < delta - .002:
+              if self._update_bool:
+                break
+              time.sleep(self._sleep_division)
+            if self._update_bool:
+              break
+            self._outport.send(self._open_notes[0])
+            del self._open_notes[0]
+        if self._update_bool:
+          break
+
+        if note.start_time < playhead:
+          pass
+
+        elif note.start_time >= playhead:
+          self._playhead = note.start_time
+          delta = (playhead - playhead_start) - (time.time() - playback_start)
+          wait_start = time.time()
+          while time.time() - wait_start < delta:
+            if self._update_bool:
+              break
+            time.sleep(self._sleep_division)
+          if self._update_bool:
+            break
+          msg_note_on = mido.Message('note_on', note=note.pitch,
+                                     velocity=note.velocity,
+                                     time=note.start_time)
+          msg_note_off = mido.Message('note_off', note=note.pitch,
+                                      velocity=note.velocity,
+                                      time=note.end_time)
+          self._outport.send(msg_note_on)
+          self._open_notes.append(msg_note_off)
+          self._open_notes.sort(key=lambda x: x.time)
+
+      # Return to the top of the loop with new NoteSequence at same playhead.
+      if self._update_bool:
+        self._update_bool = False
+        continue
+
+      # Let any open notes end naturally.
+      while len(self._open_notes) != 0:
+        note = self._open_notes[0]
+        playhead = note.time
+        delta = (playhead - playhead_start) - (time.time() - playback_start)
+        wait_start = time.time()
+        while time.time() - wait_start < delta:
+          if self._update_bool:
+            break
+          time.sleep(self._sleep_division)
+        if self._update_bool:
+          break
+        self._outport.send(note)
+        del self._open_notes[0]
+      if self._update_bool:
+        self._update_bool = False
+        continue
+
+      # Either keep player alive and wait for sequence update, or return.
+      # TODO(hanzorama): Unsure how update behaves with new NoteSequence timing.
+      if self._stay_alive:
+        while self._update_bool is False:
+          time.sleep(self._sleep_division)
+        self._update_bool = False
+        continue
+
+      else:
+        return
+
+  @serialized
   def stop(self):
     """Signals for the playback to stop and ends all open notes.
 
-    Blocks until copmleted.
+    Blocks until completed.
     """
     self._stop_playback = True
-    # TODO(@hanzorama): End open notes.
+    for note in self._open_notes:
+      self._outport.send(note)
     self.join()
-
 
 class MidiCaptor(threading.Thread):
   """Base class for thread that captures MIDI into a NoteSequence proto.
