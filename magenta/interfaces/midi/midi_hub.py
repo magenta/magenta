@@ -581,9 +581,10 @@ class MidiHub(object):
     self._capture_threads[:] = [
         t for t in self._capture_threads if t.is_alive()
     ]
-    # Add the message to the receive queue of all live capture threads.
+    # Add a different copy of the message to the receive queue of each live
+    # capture thread.
     for t in self._capture_threads:
-      t.receive(msg)
+      t.receive(msg.copy())
 
     # Pass the message through to the output port, if appropriate.
     if not self._passthrough:
