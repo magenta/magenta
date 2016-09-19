@@ -114,24 +114,16 @@ class MidiPlayer(threading.Thread):
   """A thread for playing back a NoteSequence proto via MIDI.
 
   The NoteSequence times must be based on the wall time. The playhead matches
-  the wall time clock. The playback sequence may be updated at anytime.
+  the wall clock. The playback sequence may be updated at any time if
+  `allow_updates` is set to True.
 
-  Attributes:
-    _outport: The Mido port for sending messages.
-    _sequence: The NoteSequence to play.
-    _stop_playback: A boolean specifying whether the playback should stop.
-    _lock: An RLock used for thread-safety.
-    _open_notes: A list of unsent note_off messages
-    _update_bool: A boolean specifying whether a sequence update is requested.
-    _stay_alive: If False, the thread will terminate after the sequence playback
-        completes. Otherwise, the the thread will stay alive until `stop` is
-        called, allowing for additional updates.
   Args:
     outport: The Mido port for sending messages.
     sequence: The NoteSequence to play.
-    stay_alive: If False, the thread will terminate after the sequence playback
-        completes. Otherwise, the the thread will stay alive until `stop` is
-        called, allowing for additional updates.
+    allow_updates: If False, the thread will terminate after playback of
+        `sequence` completes and calling `update_sequence` will result in an
+        exception. Otherwise, the the thread will stay alive until `stop` is
+        called, allowing for additional updates via `update_sequence`.
   Raises:
     MidiHubException: The NoteSequence contains multiple tempos.
   """
@@ -162,7 +154,7 @@ class MidiPlayer(threading.Thread):
     """Updates sequence being played by the MidiPlayer.
 
     Adds events to close any notes that are no longer being closed by the
-    new sequence using the timing for when they would have been closed by the
+    new sequence using the times when they would have been closed by the
     previous sequence.
 
     Args:
@@ -214,9 +206,9 @@ class MidiPlayer(threading.Thread):
 
     while True:
       while self._message_queue:
-        next_msg = self._message_queue[0]
-        if time.time() < next_msg.time:
-          self._update_cv.wait(timeout=next_msg.time - time.time())
+        delta = self._message_queue[0].time - time.time()
+        if delta > 0:
+          self._update_cv.wait(timeout=delta)
         else:
           msg = self._message_queue.popleft()
           if msg.type == 'note_on':
