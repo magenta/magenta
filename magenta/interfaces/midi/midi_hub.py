@@ -332,7 +332,7 @@ class MidiCaptor(threading.Thread):
     self._captured_sequence = music_pb2.NoteSequence(qpm=qpm)
     self._start_time = start_time
     self._stop_time = stop_time
-    self._stop_signal = stop_signal
+    self._stop_regex = re.compile(str(stop_signal))
     # A set of active MidiSignals being used by iterators.
     self._generator_signals = []
     # A lock for accessing `_captured_sequence`.
@@ -386,7 +386,7 @@ class MidiCaptor(threading.Thread):
       if msg.time <= self._start_time:
         continue
 
-      if msg == self._stop_message:
+      if self._stop_regex.match(str(msg)):
         break
 
       with self._lock:
