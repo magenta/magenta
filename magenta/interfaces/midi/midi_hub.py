@@ -659,7 +659,7 @@ class MidiHub(object):
     """
     # Notify any threads waiting for this message.
     msg_str = str(msg)
-    for regex in self._signals.keys():
+    for regex in self._signals:
       if regex.match(msg_str):
         self._signals[regex].notify_all()
         del self._signals[regex]
