@@ -4,6 +4,7 @@ import abc
 from collections import deque
 import functools
 import Queue
+import re
 import threading
 import time
 
@@ -33,6 +34,72 @@ def serialized(func):
 class MidiHubException(Exception):
   """Base class for exceptions in this module."""
   pass
+
+
+class MidiSignal(object):
+  """An abstract base class for a MIDI-based event signal.
+
+  Provides a `__str__` method to create a regular expression patternfor matching
+  against the string representation of a mido.Message with wildcards for
+  unspecified values.
+  """
+  _metaclass__ = abc.ABCMeta
+
+  def __setattr__(self, name, value):
+    raise AttributeError('MessageSignal attribute cannot be set.')
+
+  def __delattr__(self, name):
+    raise AttributeError('MessageSignal attribute cannot be deleted.')
+
+  @property
+  def __str__(self):
+    """Returns a regex pattern for matching against a mido.Message string."""
+    parts = [self.type]
+    for name in mido.get_spec(self.type).arguments + ('time',):
+      value = self.__dict__.get(name)
+      if value is None:
+        parts.append('%s=\d+' % name)
+      else:
+        parts.append('%s=%d' % (name, value))
+    return re.compile(' '.join(parts))
+
+
+class MidiNoteSignal(MidiSignal):
+  """A MidiSignal for matching against note mido.Messages.
+
+  Args:
+    type: The string mido.Message type (either 'note_on' or 'note_off') or None
+        for wildcard matching.
+    note: The integer mido.Message note or None for wildcard matching.
+    program_number: The integer mido.Message program number or None for wildcard
+        matching.
+    velocity: The integer mido.Message veloicty or None for wildcard matching.
+
+  Raises:
+    ValueError: If type is not 'note_on', 'note_off', or None.
+  """
+  def __init__(self, type=None, note=None, program_number=None, velocity=None):
+    if type not in [None, 'note_on', 'note_off']:
+      raise ValueError(
+        "The type of a MidiNoteSignal must be either 'note_off', 'note_on' or "
+        "None for wildcard matching. Got '%s'." % type)
+    self.__dict__['note'] = note
+    self.__dict__['program_number'] = program_number
+    self.__dict__['velocity'] = velocity
+
+
+class MidiControlSignal(MidiSignal):
+  """A MidiSignal for matching against control change mido.Messages.
+
+  Args:
+    control: The integer mido.Message control or None for wildcard matching.
+    program_number: The integer mido.Message value or None for wildcard
+        matching.
+  """
+  def __init__(self, control=None, value=None):
+    self.__dict__['type'] = 'control_change'
+    self.__dict__['control'] = str(control)
+    self.__dict__['value'] = str(value)
 
 
 class Metronome(threading.Thread):
@@ -250,8 +317,8 @@ class MidiCaptor(threading.Thread):
     start_time: The float wall time in seconds when the capture begins.
     stop_time: The float wall time in seconds when the capture is to be stopped
         or None.
-    stop_signal: The mido.Message to use (ignoring time) as a signal for when
-        the capture should stop or None.
+    stop_signal: A MidiSignal to use as a signal to stop capture.
+
   """
   _metaclass__ = abc.ABCMeta
   daemon = True
@@ -265,6 +332,8 @@ class MidiCaptor(threading.Thread):
     self._start_time = start_time
     self._stop_time = stop_time
     self._stop_signal = stop_signal
+    # A set of active MidiSignals being used by iterators.
+    self._iter_signals = set()
     # A lock for accessing `_captured_sequence`.
     self._lock = threading.RLock()
     super(MidiCaptor, self).__init__()
@@ -318,11 +387,21 @@ class MidiCaptor(threading.Thread):
 
       if msg == self._stop_message:
         break
+
+      with self._lock:
+        msg_str = str(msg)
+        for regex, cond_var in self._iter_signals:
+          if regex.match(msg_str):
+            cond_var.notify()
+
       self._capture_message(msg)
 
     end_time = self._stop_time if self._stop_time is not None else msg.time
     with self._lock:
       self._captured_sequence = self.captured_sequence(end_time)
+      for regex, cond_var in self._iter_signals:
+        cond_var.notify()
+
 
   def stop(self, stop_time=None):
     """Ends capture and truncates the captured sequence at `stop_time`.
@@ -388,6 +467,36 @@ class MidiCaptor(threading.Thread):
           '`end_time` must not be provided when capture is complete.')
 
     return current_captured_sequence
+
+  @serialized
+  def generate(self, signal=None, timeout=None):
+    """Blocks until a matching mido.Message arrives or the timeout occurs.
+
+    At least one of `signal` or `timeout` must be specified. If both are
+    specified, returns when the first occurs.
+    Continues until the thread terminates, at which point the final captured
+    sequence is yielded before returning.
+
+    Args:
+      signal: A MidiSignal to use as a signal to stop waiting.
+      timeout: A float timeout in seconds.
+    Yields:
+      The captured NoteSequence at event time.
+    """
+    if signal is not None:
+      regex = re.compile(str(signal))
+      cond_var = threading.Condition(self._lock)
+      self._iter_signals.append((regex, cond_var))
+    while self.is_alive:
+      if signal is None:
+        time.sleep(timeout)
+      else:
+        cond_var.wait(timeout=timeout)
+      if not self.is_alive:
+        break
+      yield self.captured_sequence(time.time())
+    yield self.captured_sequence()
+
 
 
 class MonophonicMidiCaptor(MidiCaptor):
@@ -546,9 +655,11 @@ class MidiHub(object):
       msg: The mido.Message MIDI message to handle.
     """
     # Notify any threads waiting for this message.
-    signal = self._signals.get(mido.format_as_string(msg, include_time=False))
-    if signal is not None:
-      signal.notify_all()
+    msg_str = str(msg)
+    for regex in self._signals.keys():
+      if regex.match(msg_str):
+        self._signals[regex].notify_all()
+        del self._signals[regex]
 
     # Remove any capture threads that are no longer alive.
     self._capture_threads[:] = [
@@ -639,18 +750,30 @@ class MidiHub(object):
     return captor.captured_sequence()
 
   @serialized
-  def wait_for_signal(self, signal_message):
-    """Blocks until a matching mido.Message arrives, ignoring the time field.
+  def wait_for_event(self, signal=None, timeout=None):
+    """Blocks until a matching mido.Message arrives or the timeout occurs.
+
+    At least one of `signal` or `timeout` must be specified. If both are
+    specified, returns when the first occurs.
 
     Args:
-      signal_message: The mido.Message to use as a signal to stop waiting,
-          ignoring the time field.
+      signal: A MidiSignal to use as a signal to stop waiting.
+      timeout: A float timeout in seconds.
     """
-    signal_message_str = mido.format_as_string(
-        signal_message, include_time=False)
-    if signal_message_str not in self._signals:
-      self._signals[signal_message_str] = threading.Condition(self._lock)
-    self._signals[signal_message_str].wait()
+    if signal is None:
+      time.sleep(timeout)
+      return
+
+    signal_pattern = str(signal)
+    cond_var = None
+    for regex, cond_var in self._signals:
+      if regex.pattern == signal_pattern:
+        break
+    if cond_var is None:
+      cond_var = threading.Condition(self._lock)
+      self._signals[re.compile(signal_pattern)] = cond_var
+
+    cond_var.wait(timeout=timeout)
 
   @serialized
   def start_metronome(self, start_time, qpm):

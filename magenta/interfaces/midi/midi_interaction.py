@@ -155,7 +155,7 @@ class AccompanimentMidiInteraction(MidiInteraction):
       request = generator_pb2.GenerateSequenceRequest()
       request.input_sequence.CopyFrom(
           merge_sequence_notes(captured_sequence, accompaniment_sequence))
-      section = request.generator_options.generate_sections.add(
+      request.generator_options.generate_sections.add(
           start_time_seconds=accompaniment_quarters * quarter_duration,
           end_time_seconds=generation_end_quarters * quarter_duration)
 
@@ -200,9 +200,9 @@ class CallAndResponseMidiInteraction(MidiInteraction):
     quarters_per_bar: The number of quarter notes in each bar/measure.
     phase_bars: The optional number of bars in each phase. `end_call_signal`
         must be provided if None.
-    end_call_signal: The optional mido.Message to use as a signal to stop the
-        call phase at the end of the current bar. `phase_bars` must be provided
-        if None.
+    end_call_signal: The optional midi_hub.MidiSignal to use as a signal to stop
+        the call phase at the end of the current bar. `phase_bars` must be
+        provided if None.
   """
 
   def __init__(self,
@@ -231,7 +231,6 @@ class CallAndResponseMidiInteraction(MidiInteraction):
     quarter_duration = 60.0 / self._qpm
     start_quarters = (time.time() + 1.0) // quarter_duration
 
-    bar_duration = quarter_duration * self._quarters_per_bar
     # The number of notes before call phase ends to start generation for
     # response phase. Will be automatically adjusted to be as small as possible
     # while avoiding late response starts.
@@ -257,7 +256,7 @@ class CallAndResponseMidiInteraction(MidiInteraction):
       else:
         captor = self._midi_hub.start_capture(call_start_quarters *
                                               quarter_duration, self._qpm)
-        self._midi_hub.wait_for_signal(self._end_call_signal)
+        self._midi_hub.wait_for_event(self._end_call_signal)
         remaining_call_quarters = (
             (time.time() // quarter_duration - start_quarters) %
             self._quarters_per_bar)
@@ -273,7 +272,7 @@ class CallAndResponseMidiInteraction(MidiInteraction):
                                (capture_end_quarters - call_start_quarters))
       request = generator_pb2.GenerateSequenceRequest()
       request.input_sequence.CopyFrom(captured_sequence)
-      section = request.generator_options.generate_sections.add(
+      request.generator_options.generate_sections.add(
           start_time_seconds=response_start_quarters * quarter_duration,
           end_time_seconds=response_end_quarters * quarter_duration)
 
