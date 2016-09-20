@@ -45,18 +45,12 @@ class MidiSignal(object):
   """
   _metaclass__ = abc.ABCMeta
 
-  def __setattr__(self, name, value):
-    raise AttributeError('MessageSignal attribute cannot be set.')
-
-  def __delattr__(self, name):
-    raise AttributeError('MessageSignal attribute cannot be deleted.')
-
   @property
   def __str__(self):
     """Returns a regex pattern for matching against a mido.Message string."""
     parts = [self.type]
-    for name in mido.get_spec(self.type).arguments + ('time',):
-      value = self.__dict__.get(name)
+    for name in mido.get_spec(self._message_type).arguments + ('time',):
+      value = self._message_fields.get(name)
       if value is None:
         parts.append(r'%s=\d+' % name)
       else:
@@ -84,10 +78,13 @@ class MidiNoteSignal(MidiSignal):
       raise ValueError(
           "The type of a MidiNoteSignal must be either 'note_off', 'note_on' "
           "or None for wildcard matching. Got '%s'." % type_)
-    self.__dict__['type'] = type_
-    self.__dict__['note'] = note
-    self.__dict__['program_number'] = program_number
-    self.__dict__['velocity'] = velocity
+    # Used to specify which arguments should be used. 'note_on' and 'note_off'
+    # have the same mido.Message arguments.
+    self._message_type = 'note_on'
+    self._message_fields['type'] = type_
+    self._message_fields['note'] = note
+    self._message_fields['program_number'] = program_number
+    self._message_fields['velocity'] = velocity
 
 
 class MidiControlSignal(MidiSignal):
@@ -100,9 +97,10 @@ class MidiControlSignal(MidiSignal):
   """
 
   def __init__(self, control=None, value=None):
-    self.__dict__['type'] = 'control_change'
-    self.__dict__['control'] = str(control)
-    self.__dict__['value'] = str(value)
+    self._message_type = 'control_change'
+    self._message_fields['type'] = 'control_change'
+    self._message_fields['control'] = str(control)
+    self._message_fields['value'] = str(value)
 
 
 class Metronome(threading.Thread):
