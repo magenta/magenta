@@ -471,7 +471,7 @@ class MidiCaptor(threading.Thread):
     return current_captured_sequence
 
   @serialized
-  def generate(self, signal=None, timeout=None):
+  def iterate(self, signal=None, timeout=None):
     """Blocks until a matching mido.Message arrives or the timeout occurs.
 
     At least one of `signal` or `timeout` must be specified. If both are
