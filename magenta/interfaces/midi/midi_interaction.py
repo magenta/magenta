@@ -4,7 +4,7 @@ import abc
 import threading
 import time
 
-#internal imports
+# internal imports
 import tensorflow as tf
 
 from magenta.protobuf import generator_pb2
