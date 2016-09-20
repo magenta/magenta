@@ -40,6 +40,8 @@ py_binary(
     name = "midi",
     srcs = ["midi.py"],
     deps = [
+        ":midi_hub",
+        ":midi_interaction",
         "//magenta/lib:sequence_generator_bundle",
         "//magenta/models/attention_rnn:attention_rnn_generator",
         "//magenta/models/basic_rnn:basic_rnn_generator",

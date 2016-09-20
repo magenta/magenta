@@ -329,7 +329,8 @@ class MidiCaptor(threading.Thread):
 
   def __init__(self, qpm, start_time, stop_time=None, stop_signal=None):
     self._receive_queue = Queue.Queue()
-    self._captured_sequence = music_pb2.NoteSequence(qpm=qpm)
+    self._captured_sequence = music_pb2.NoteSequence()
+    self._captured_sequence.tempos.add(qpm=qpm)
     self._start_time = start_time
     self._stop_time = stop_time
     self._stop_regex = re.compile(str(stop_signal))
