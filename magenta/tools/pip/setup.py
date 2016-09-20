@@ -20,12 +20,27 @@ https://github.com/pypa/sampleproject
 from setuptools import setup, find_packages
 
 
-_VERSION = '0.1.0'
+_VERSION = '0.1.1'
 
 REQUIRED_PACKAGES = [
-    'wheel',
+    'mido >= 1.1.14',
     'pretty_midi >= 0.2.5',
     'tensorflow >= 0.10.0',
+    'wheel',
+]
+
+CONSOLE_SCRIPTS = [
+    'magenta.interfaces.midi.midi',
+    'magenta.models.attention_rnn.attention_rnn_create_dataset',
+    'magenta.models.attention_rnn.attention_rnn_generate',
+    'magenta.models.attention_rnn.attention_rnn_train',
+    'magenta.models.basic_rnn.basic_rnn_create_dataset',
+    'magenta.models.basic_rnn.basic_rnn_generate',
+    'magenta.models.basic_rnn.basic_rnn_train',
+    'magenta.models.lookback_rnn.lookback_rnn_create_dataset',
+    'magenta.models.lookback_rnn.lookback_rnn_generate',
+    'magenta.models.lookback_rnn.lookback_rnn_train',
+    'magenta.scripts.convert_midi_dir_to_note_sequences',
 ]
 
 setup(
@@ -53,5 +68,9 @@ setup(
 
     packages=find_packages(),
     install_requires=REQUIRED_PACKAGES,
+    entry_points={
+        'console_scripts': ['%s = %s:console_entry_point' % (n, p) for n, p in
+                            ((s.split('.')[-1], s) for s in CONSOLE_SCRIPTS)],
+    },
 )
 

@@ -23,6 +23,7 @@ py_binary(
     srcs_version = "PY2AND3",
     visibility = [
         # internal pipeline runner
+        "//magenta/tools/pip:__subpackages__",
     ],
     deps = [
         ":attention_rnn_encoder_decoder",
@@ -39,7 +40,7 @@ py_library(
         # internal dev models
     ],
     deps = [
-        "//magenta/lib:melodies_lib",
+        "//magenta",
     ],
 )
 
@@ -51,8 +52,8 @@ py_library(
     deps = [
         ":attention_rnn_encoder_decoder",
         ":attention_rnn_graph",
+        "//magenta",
         "//magenta/models/shared:melody_rnn_sequence_generator",
-        "//magenta/protobuf:generator_py_pb2",
     ],
 )
 
@@ -60,6 +61,7 @@ py_binary(
     name = "attention_rnn_generate",
     srcs = ["attention_rnn_generate.py"],
     srcs_version = "PY2AND3",
+    visibility = ["//magenta/tools/pip:__subpackages__"],
     deps = [
         ":attention_rnn_generator",
         "//magenta/models/shared:melody_rnn_generate",
@@ -75,7 +77,7 @@ py_library(
         # internal dev models
     ],
     deps = [
-        "//magenta/lib:tf_lib",
+        "//magenta",
         "//magenta/models/shared:melody_rnn_graph",
     ],
 )
@@ -84,6 +86,9 @@ py_binary(
     name = "attention_rnn_train",
     srcs = ["attention_rnn_train.py"],
     srcs_version = "PY2AND3",
+    visibility = [
+        "//magenta/tools/pip:__subpackages__",
+    ],
     deps = [
         ":attention_rnn_encoder_decoder",
         ":attention_rnn_graph",

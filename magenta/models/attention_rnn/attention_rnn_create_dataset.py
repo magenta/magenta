@@ -39,6 +39,8 @@ def get_pipeline():
 def main(unused_argv):
   melody_rnn_create_dataset.run_from_flags(get_pipeline())
 
+def console_entry_point():
+  tf.app.run(main)
 
 if __name__ == '__main__':
-  tf.app.run()
+  console_entry_point()

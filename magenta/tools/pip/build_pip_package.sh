@@ -34,25 +34,18 @@ function main() {
   fi
 
   RUNFILES="bazel-bin/magenta/tools/pip/build_pip_package.runfiles"
-  #mkdir "${TMPDIR}/external"
-  #for f in $(find "${RUNFILES}/__main__" -maxdepth 1 -mindepth 1); do
-    #cp -RL "$f" "${TMPDIR}"
-  #done
-  #mv "${TMPDIR}/external/__main__/magenta" "${TMPDIR}/magenta"
   cp -RL "${RUNFILES}/__main__/magenta" "${TMPDIR}/"
 
-  cp magenta/tools/pip/MANIFEST.in "${TMPDIR}"
-  cp magenta/tools/pip/README "${TMPDIR}"
   cp magenta/tools/pip/setup.py "${TMPDIR}"
 
   pushd "${TMPDIR}"
-  #rm -f MANIFEST
+  rm -f MANIFEST
   echo $(date) : "=== Building wheel"
   python setup.py bdist_wheel # >/dev/null
   mkdir -p "${DEST}"
   cp dist/* "${DEST}"
   popd
-  #rm -rf "${TMPDIR}"
+  rm -rf "${TMPDIR}"
   echo $(date) : "=== Output wheel file is in: ${DEST}"
 }
 
