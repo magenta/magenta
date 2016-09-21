@@ -15,13 +15,16 @@
 # Description:
 # Scripts for preparing data.
 
+package(
+    default_visibility = ["//magenta:__subpackages__"],
+)
+
 licenses(["notice"])  # Apache 2.0
 
 py_binary(
     name = "convert_midi_dir_to_note_sequences",
     srcs = ["convert_midi_dir_to_note_sequences.py"],
     srcs_version = "PY2AND3",
-    visibility = ["//magenta/tools/pip:__subpackages__"],
     deps = [
         "//magenta",
         # tensorflow dep
