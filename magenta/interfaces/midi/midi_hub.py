@@ -398,7 +398,6 @@ class MidiCaptor(threading.Thread):
       with self._lock:
         msg_str = str(msg)
         for regex, cond_var in self._iter_signals:
-          print regex.pattern, msg_str
           if regex.match(msg_str) is not None:
             cond_var.notify()
 
