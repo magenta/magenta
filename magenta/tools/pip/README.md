@@ -1,6 +1,6 @@
-# Building a new pip package
+## Building a new pip package
 
-## setup.py updates
+### setup.py updates
 First, update the `_VERSION` field in `setup.py` to a new version number.
 
 Next, update the `REQUIRED_PACKAGES` list in the same file to ensure that all
@@ -8,7 +8,7 @@ of our dependencies are listed and that they match the versions of the packages
 referenced in the bazel `WORKSPACE` file. Also check that the correct version of
 tensorflow is listed.
 
-## Building the package
+### Building the package
 ```
 bazel build //magenta/tools/pip:build_pip_package
 bazel-bin/magenta/tools/pip/build_pip_package /tmp/magenta_pkg
@@ -31,7 +31,7 @@ $ python
 
 You should see the NoteSequence representation of the midi file.
 
-## Upload the new version to pypi
+### Upload the new version to pypi
 ```
 twine upload /tmp/magenta_pkg/magenta-N.N.N-py2-none-any.whl
 ```
@@ -39,9 +39,9 @@ twine upload /tmp/magenta_pkg/magenta-N.N.N-py2-none-any.whl
 After this step, anyone should be able to `pip install magenta` and get the
 latest version.
 
-# Adding to the pip package
+## Adding to the pip package
 
-## Libraries
+### Libraries
 
 As a convention, libraries that we want to expose externally through the pip
 package should be listed as dependencies in otherwise empty `py_library`
@@ -93,7 +93,7 @@ python file and every `import` statement should have a corresponding dependency.
 This ensures we avoid circular dependencies and also makes builds faster for
 tests.
 
-## Scripts
+### Scripts
 
 Our pip package also includes several executable scripts (e.g.,
 convert_midi_dir_to_note_sequences). These are just python files that instruct
