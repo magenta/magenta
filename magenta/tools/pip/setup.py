@@ -13,8 +13,8 @@
 # limitations under the License.
 """A setuptools based setup module for magenta."""
 
-from setuptools import setup
 from setuptools import find_packages
+from setuptools import setup
 
 
 _VERSION = '0.1.1'
