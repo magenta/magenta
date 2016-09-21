@@ -17,7 +17,11 @@ sh_binary(
     srcs = ["build_pip_package.sh"],
     data = [
         "setup.py",
+
+        # Libraries
         "//magenta",
+
+        # Scripts
         "//magenta/interfaces/midi",
         "//magenta/models/attention_rnn:attention_rnn_create_dataset",
         "//magenta/models/attention_rnn:attention_rnn_generate",
