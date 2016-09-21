@@ -5,7 +5,7 @@ First, update the `_VERSION` field in `setup.py` to a new version number.
 
 Next, update the `REQUIRED_PACKAGES` list in the same file to ensure that all
 of our dependencies are listed and that they match the versions of the packages
-referenced in the bazel `WORKSPACE` file. Also check that the correct version of
+referenced in the Bazel `WORKSPACE` file. Also check that the correct version of
 tensorflow is listed.
 
 ### Building the package
@@ -74,8 +74,6 @@ py_library(
     visibility = ["//magenta:__subpackages__"],
     deps = [
         "//magenta/lib",
-        "//magenta/pipelines",
-        "//magenta/protobuf",
     ],
 )
 ```
@@ -88,17 +86,17 @@ developed within the magenta repo use the same code that is available to
 external developers. Rather than depend directly on library targets, models
 should depend only on the `//magenta` target.
 
-Libraries should continue to use dependencies like normal: 1 target for every
-python file and every `import` statement should have a corresponding dependency.
-This ensures we avoid circular dependencies and also makes builds faster for
-tests.
+Libraries should continue to use dependencies like normal: one target for every
+python file, and every `import` statement should have a corresponding
+dependency. This ensures we avoid circular dependencies and also makes builds
+faster for tests.
 
 ### Scripts
 
 Our pip package also includes several executable scripts (e.g.,
-convert_midi_dir_to_note_sequences). These are just python files that instruct
-pip to create executable wrappers around. To add a new script to the
-distribution, follow these steps:
+`convert_midi_dir_to_note_sequences`). These are just python files that pip
+create executable wrappers around. To add a new script to the distribution,
+follow these steps:
 
 First, add the script as a data dependency to the
 `//magenta/tools/pip:build_pip_package` target. You will likely also need to
