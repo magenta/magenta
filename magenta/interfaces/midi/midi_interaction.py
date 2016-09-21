@@ -32,7 +32,8 @@ def merge_sequence_notes(sequence_1, sequence_2):
   Returns:
     A new NoteSequence combining the notes from the input sequences.
   """
-  merged_sequence = music_pb2.NoteSequence(sequence_1)
+  merged_sequence = music_pb2.NoteSequence()
+  merged_sequence.CopyFrom(sequence_1)
   merged_sequence.notes.extend(sequence_2.notes)
   merged_sequence.total_time = max(sequence_1.end_time, sequence_2.end_time)
 
@@ -54,7 +55,8 @@ def filter_instrument(sequence, instrument, from_time=0):
     A new NoteSequence with notes from the given instrument removed or truncated
     after `from_time`.
   """
-  filtered_sequence = music_pb2.NoteSequence(sequence)
+  filtered_sequence = music_pb2.NoteSequence()
+  filtered_sequence.CopyFrom(sequence)
   del filtered_sequence.notes[:]
   for note in sequence.notes:
     if note.instrument == instrument:

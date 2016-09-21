@@ -45,17 +45,20 @@ class MidiSignal(object):
   """
   _metaclass__ = abc.ABCMeta
 
-  @property
+  def __init__(self):
+    self._message_fields = {}
+
   def __str__(self):
     """Returns a regex pattern for matching against a mido.Message string."""
-    parts = [self.type]
-    for name in mido.get_spec(self._message_type).arguments + ('time',):
+    parts = ['.*' if self._message_fields['type'] is None
+             else self._message_fields['type']]
+    for name in (mido.messages.get_spec(self._message_type).arguments):
       value = self._message_fields.get(name)
       if value is None:
         parts.append(r'%s=\d+' % name)
       else:
         parts.append('%s=%d' % (name, value))
-    return re.compile(' '.join(parts))
+    return '^' + ' '.join(parts) + ' time=\d+.\d+$'
 
 
 class MidiNoteSignal(MidiSignal):
@@ -74,10 +77,11 @@ class MidiNoteSignal(MidiSignal):
   """
 
   def __init__(self, type_=None, note=None, program_number=None, velocity=None):
-    if type not in [None, 'note_on', 'note_off']:
+    if type_ not in [None, 'note_on', 'note_off']:
       raise ValueError(
           "The type of a MidiNoteSignal must be either 'note_off', 'note_on' "
           "or None for wildcard matching. Got '%s'." % type_)
+    super(MidiNoteSignal, self).__init__()
     # Used to specify which arguments should be used. 'note_on' and 'note_off'
     # have the same mido.Message arguments.
     self._message_type = 'note_on'
@@ -97,6 +101,7 @@ class MidiControlSignal(MidiSignal):
   """
 
   def __init__(self, control=None, value=None):
+    super(MidiControlSignal, self).__init__()
     self._message_type = 'control_change'
     self._message_fields['type'] = 'control_change'
     self._message_fields['control'] = str(control)
@@ -335,7 +340,7 @@ class MidiCaptor(threading.Thread):
     self._stop_time = stop_time
     self._stop_regex = re.compile(str(stop_signal))
     # A set of active MidiSignals being used by iterators.
-    self._generator_signals = []
+    self._iter_signals = []
     # A lock for accessing `_captured_sequence`.
     self._lock = threading.RLock()
     super(MidiCaptor, self).__init__()
@@ -387,13 +392,14 @@ class MidiCaptor(threading.Thread):
       if msg.time <= self._start_time:
         continue
 
-      if self._stop_regex.match(str(msg)):
+      if self._stop_regex.match(str(msg)) is not None:
         break
 
       with self._lock:
         msg_str = str(msg)
         for regex, cond_var in self._iter_signals:
-          if regex.match(msg_str):
+          print regex.pattern, msg_str
+          if regex.match(msg_str) is not None:
             cond_var.notify()
 
       self._capture_message(msg)
@@ -451,8 +457,8 @@ class MidiCaptor(threading.Thread):
     """
     # Make a copy of the sequence currently being captured.
     with self._lock:
-      current_captured_sequence = music_pb2.NoteSequence(
-          self._captured_sequence)
+      current_captured_sequence = music_pb2.NoteSequence()
+      current_captured_sequence.CopyFrom(self._captured_sequence)
 
     if self.is_alive():
       if end_time is None:
@@ -471,7 +477,6 @@ class MidiCaptor(threading.Thread):
 
     return current_captured_sequence
 
-  @serialized
   def iterate(self, signal=None, timeout=None):
     """Blocks until a matching mido.Message arrives or the timeout occurs.
 
@@ -486,19 +491,21 @@ class MidiCaptor(threading.Thread):
     Yields:
       The captured NoteSequence at event time.
     """
-    if signal is not None:
-      regex = re.compile(str(signal))
-      cond_var = threading.Condition(self._lock)
-      self._generator_signals.append((regex, cond_var))
-    while self.is_alive:
-      if signal is None:
-        time.sleep(timeout)
-      else:
-        cond_var.wait(timeout=timeout)
-      if not self.is_alive:
-        break
-      yield self.captured_sequence(time.time())
-    yield self.captured_sequence()
+    # The serialized decorator is not compatible with generators.
+    with self._lock:
+      if signal is not None:
+        regex = re.compile(str(signal))
+        cond_var = threading.Condition(self._lock)
+        self._iter_signals.append((regex, cond_var))
+      while self.is_alive:
+        if signal is None:
+          time.sleep(timeout)
+        else:
+          cond_var.wait(timeout=timeout)
+        if not self.is_alive:
+          break
+        yield self.captured_sequence(time.time())
+      yield self.captured_sequence()
 
 
 class MonophonicMidiCaptor(MidiCaptor):
@@ -659,7 +666,7 @@ class MidiHub(object):
     # Notify any threads waiting for this message.
     msg_str = str(msg)
     for regex in self._signals:
-      if regex.match(msg_str):
+      if regex.match(msg_str) is not None:
         self._signals[regex].notify_all()
         del self._signals[regex]
 
@@ -687,7 +694,7 @@ class MidiHub(object):
         self._outport.send(msg)
       elif msg.type == 'note_off' and msg.note in self._open_notes:
         self._outport.send(msg)
-        self._open_notes.remove(msg)
+        self._open_notes.remove(msg.note)
       elif msg.type == 'note_on':
         if self._open_notes:
           self._outport.send(
