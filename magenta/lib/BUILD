@@ -32,6 +32,7 @@ py_library(
         ":sequence_generator",
         ":sequence_generator_bundle",
         ":sequences_lib",
+        ":testing_lib",
         ":tf_lib",
     ],
 )
