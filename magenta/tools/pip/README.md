@@ -56,6 +56,7 @@ to each package.
 
 For example, to expose `magenta.lib.midi_io`, the `magenta/lib/BUILD` file will
 have a section that looks like this:
+
 ```
 # The Magenta public API.
 py_library(
@@ -67,15 +68,25 @@ py_library(
 ```
 
 And the `magenta/BUILD` file will have a section that looks like this:
+
 ```
 # The Magenta public API.
 py_library(
     name = "magenta",
+    srcs = ["__init__.py"],
     visibility = ["//magenta:__subpackages__"],
     deps = [
         "//magenta/lib",
     ],
 )
+```
+
+Because we want `import magenta` to make all modules immediately available,
+we also need to add a line to `magenta/__init__.py` that imports all the modules
+referenced in the build dependencies:
+
+```
+import magenta.lib
 ```
 
 And the `//magenta/tools/pip:build_pip_package` target just needs to depend on
@@ -95,13 +106,15 @@ faster for tests.
 
 Our pip package also includes several executable scripts (e.g.,
 `convert_midi_dir_to_note_sequences`). These are just python files that pip
-create executable wrappers around. To add a new script to the distribution,
-follow these steps:
+create executable wrappers around and installs to the python binary path. After
+installation, users will have the script installed in their path. To add a new
+script to the distribution, follow these steps:
 
 First, add the script as a data dependency to the
 `//magenta/tools/pip:build_pip_package` target. You will likely also need to
 modify the visibility of the script's target so the pip builder can see it by
 adding this line to the script's target:
+
 ```
 visibility = ["//magenta/tools/pip:__subpackages__"],
 ```
@@ -111,11 +124,12 @@ Next, modify `setup.py` so the script's python module is listed under
 
 Finally, you will need to modify the script itself so that it can be invoked
 either directly or by the pip-generated wrapper script. The pip wrapper will
-look for a method called `console_entry_point`, but running the script directly
-(e.g., after a bazel build'ing it) will just invoke the
-`if __name__ == '__main__':` condition. Both of those need to trigger
-`tf.app.run` to run the actual `main` function. The easiest way to do this is
-by adding the following snippet to the end of your script:
+look for a method called `console_entry_point` as defined in `setup.py`, but
+running the script directly (e.g., after a bazel build'ing it) will just invoke
+the `if __name__ == '__main__':` condition. Both of those need to trigger
+`tf.app.run` to run the actual `main` function because `tf.app.run` takes care
+of things like initializing flags. The easiest way to do this is by adding the
+following snippet to the end of your script:
 
 ```python
 def console_entry_point():
