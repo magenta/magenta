@@ -52,7 +52,7 @@ def musicxml_to_sequence_proto(musicxml_document):
   sequence = music_pb2.NoteSequence()
 
   # Populate header.
-  sequence.ticks_per_beat = musicxml_document.midi_resolution
+  sequence.ticks_per_quarter = musicxml_document.midi_resolution
 
   # Populate time signatures.
   musicxml_time_signatures = musicxml_document.getTimeSignatures()
@@ -81,7 +81,7 @@ def musicxml_to_sequence_proto(musicxml_document):
   for musicxml_tempo in musicxml_tempos:
     tempo = sequence.tempos.add()
     tempo.time = musicxml_tempo.time_position
-    tempo.bpm = musicxml_tempo.bpm
+    tempo.qpm = musicxml_tempo.bpm
 
   # Populate notes from each MusicXML part across all voices
   # Unlike MIDI import, notes are not sorted

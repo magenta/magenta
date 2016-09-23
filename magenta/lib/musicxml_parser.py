@@ -80,6 +80,8 @@ class MusicXMLDocument:
     Args:
         filename: The path of a MusicXML file
     """
+    print filename
+    print "================"
     if filename.endswith('.mxl'):
       # Compressed MXL file. Uncompress in memory.
       filename = ZipFile(filename)
@@ -109,6 +111,11 @@ class MusicXMLDocument:
     xml_parts = self.score.findall("part")
     score_part_index = 0
     for child in xml_parts:
+      # If a score part is missing, add a default score part
+      if score_part_index >= len(self.score_parts):
+        score_part = ScorePart()
+        self.score_parts.append(score_part)
+
       part = Part(child, self.score_parts[score_part_index])
       self.parts.append(part)
       score_part_index = score_part_index + 1
@@ -161,12 +168,13 @@ class MusicXMLDocument:
 
 
 class ScorePart:
-  def __init__(self, xml_score_part):
+  def __init__(self, xml_score_part = None):
     self.xml_score_part = xml_score_part
     self.part_name = ""
     self.midi_channel = 1
     self.midi_program = 1
-    self.parse()
+    if xml_score_part != None:
+      self.parse()
 
   def parse(self):
     global current_midi_channel
@@ -175,7 +183,9 @@ class ScorePart:
       self.part_name = self.xml_score_part.find("part-name").text
 
     xml_midi_instrument = self.xml_score_part.find("midi-instrument")
-    if xml_midi_instrument != None:
+    if xml_midi_instrument != None and \
+      xml_midi_instrument.find("midi-channel") != None and \
+      xml_midi_instrument.find("midi-program") != None:
       self.midi_channel = int(xml_midi_instrument.find("midi-channel").text)
       self.midi_program = int(xml_midi_instrument.find("midi-program").text)
     else:
@@ -236,7 +246,7 @@ class Measure:
     self.notes = []
     self.tempos = []
     self.time_signature = None
-    self.key_signature = None
+    self.key_signature = KeySignature() # Default to C major
     self.current_ticks = 0      # Cumulative tick counter for this measure
     self.transpose = 0          # Number of semitones to transpose notes
     self.part = part
@@ -497,7 +507,9 @@ class Tempo:
       self.parse()
 
   def parse(self):
-    self.bpm = int(self.xml_sound.get("tempo"))
+    self.bpm = float(self.xml_sound.get("tempo"))
+    if self.bpm == 0:
+        self.bpm = 120   # If tempo is 0, set it to default
     self.time_position = current_time_position
 
   def __str__(self):
