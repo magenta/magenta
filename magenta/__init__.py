@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Pulls in all magenta libraries that are in the public API.
+r"""Pulls in all magenta libraries that are in the public API.
 
 To regenerate this list based on the py_library dependencies of //magenta:
 
