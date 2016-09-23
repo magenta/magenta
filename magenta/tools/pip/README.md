@@ -73,7 +73,6 @@ And the `magenta/BUILD` file will have a section that looks like this:
 # The Magenta public API.
 py_library(
     name = "magenta",
-    srcs = ["__init__.py"],
     visibility = ["//magenta:__subpackages__"],
     deps = [
         "//magenta/lib",
@@ -82,17 +81,18 @@ py_library(
 ```
 
 Because we want `import magenta` to make all modules immediately available,
-we also need to add a line to `magenta/__init__.py` that imports all the modules
-referenced in the build dependencies:
+we also need to create a custom `__init__.py` in the magenta directory and
+reference it in the `srcs` field for the `//magenta:magenta` target.
 
-```
-import magenta.lib
-```
+When you add a new module to be exported, you'll also need to add it to this
+`__init__.py` file. The order of the import statements is critical because they
+must be listed in dependency order. There are instructions in that file for how
+to automatically generate the list in the correct order.
 
-And the `//magenta/tools/pip:build_pip_package` target just needs to depend on
+Now the `//magenta/tools/pip:build_pip_package` target just needs to depend on
 `//magenta`.
 
-This `//magenta` dependency also provides an easy way to verify that the models
+The `//magenta` dependency also provides an easy way to verify that the models
 developed within the magenta repo use the same code that is available to
 external developers. Rather than depend directly on library targets, models
 should depend only on the `//magenta` target.
