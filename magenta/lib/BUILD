@@ -21,6 +21,22 @@ package(
 
 licenses(["notice"])  # Apache 2.0
 
+# The Magenta public API.
+py_library(
+    name = "lib",
+    deps = [
+        ":melodies_lib",
+        ":midi_io",
+        ":note_sequence_io",
+        ":sequence_example_lib",
+        ":sequence_generator",
+        ":sequence_generator_bundle",
+        ":sequences_lib",
+        ":testing_lib",
+        ":tf_lib",
+    ],
+)
+
 py_library(
     name = "chord_symbols_lib",
     srcs = ["chord_symbols_lib.py"],
@@ -196,9 +212,9 @@ py_library(
     srcs = ["testing_lib.py"],
     deps = [
         ":sequences_lib",
-        "@protobuf//:protobuf_python",
         "//magenta/protobuf:music_py_pb2",
-    ]
+        "@protobuf//:protobuf_python",
+    ],
 )
 
 py_library(
@@ -297,4 +313,3 @@ py_test(
         # tensorflow dep
     ],
 )
-
