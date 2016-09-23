@@ -80,8 +80,6 @@ class MusicXMLDocument:
     Args:
         filename: The path of a MusicXML file
     """
-    print filename
-    print "================"
     if filename.endswith('.mxl'):
       # Compressed MXL file. Uncompress in memory.
       filename = ZipFile(filename)
