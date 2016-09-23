@@ -85,9 +85,8 @@ we also need to create a custom `__init__.py` in the magenta directory and
 reference it in the `srcs` field for the `//magenta:magenta` target.
 
 When you add a new module to be exported, you'll also need to add it to this
-`__init__.py` file. The order of the import statements is critical because they
-must be listed in dependency order. There are instructions in that file for how
-to automatically generate the list in the correct order.
+`__init__.py` file. There are instructions in that file for how to
+automatically generate the list based on the python library dependencies.
 
 Now the `//magenta/tools/pip:build_pip_package` target just needs to depend on
 `//magenta`.

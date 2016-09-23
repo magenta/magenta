@@ -12,26 +12,29 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Note that the order of these imports is critical because they must be listed
-# in dependency order.
-# To regenerate this list based on the py_library dependencies of //magenta:
-# bazel query 'kind(py_library, deps(//magenta))' | \
-#   grep '//magenta' | \
-#   egrep  -v "/([^:/]+):\1$" | \
-#   sed -e 's/\/\//import /' -e 's/\//./' -e 's/:/./' -e  's/py_pb2/pb2/'
+"""Pulls in all magenta libraries that are in the public API.
 
-import magenta.pipelines.pipelines_common
+To regenerate this list based on the py_library dependencies of //magenta:
+
+bazel query 'kind(py_library, deps(//magenta))' | \
+  grep '//magenta' | \
+  egrep  -v "/([^:/]+):\1$" | \
+  sed -e 's/\/\//import /' -e 's/\//./' -e 's/:/./' -e  's/py_pb2/pb2/' | \
+  sort
+"""
+
+import magenta.lib.melodies_lib
+import magenta.lib.midi_io
+import magenta.lib.note_sequence_io
+import magenta.lib.sequence_example_lib
+import magenta.lib.sequence_generator
+import magenta.lib.sequence_generator_bundle
+import magenta.lib.sequences_lib
+import magenta.lib.testing_lib
+import magenta.lib.tf_lib
 import magenta.pipelines.dag_pipeline
 import magenta.pipelines.pipeline
-import magenta.lib.tf_lib
-import magenta.lib.testing_lib
-import magenta.lib.sequences_lib
-import magenta.lib.sequence_generator_bundle
-import magenta.lib.sequence_generator
-import magenta.protobuf.generator_pb2
-import magenta.lib.note_sequence_io
-import magenta.lib.midi_io
-import magenta.lib.melodies_lib
-import magenta.protobuf.music_pb2
+import magenta.pipelines.pipelines_common
 import magenta.pipelines.statistics
-import magenta.lib.sequence_example_lib
+import magenta.protobuf.generator_pb2
+import magenta.protobuf.music_pb2
