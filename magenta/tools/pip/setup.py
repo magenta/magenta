@@ -27,7 +27,7 @@ REQUIRED_PACKAGES = [
 ]
 
 CONSOLE_SCRIPTS = [
-    'magenta.interfaces.midi.midi',
+    'magenta.interfaces.midi.magenta_midi',
     'magenta.models.attention_rnn.attention_rnn_create_dataset',
     'magenta.models.attention_rnn.attention_rnn_generate',
     'magenta.models.attention_rnn.attention_rnn_train',

@@ -24,7 +24,7 @@ sh_binary(
         "//magenta",
 
         # Scripts
-        "//magenta/interfaces/midi",
+        "//magenta/interfaces/midi:magenta_midi",
         "//magenta/models/attention_rnn:attention_rnn_create_dataset",
         "//magenta/models/attention_rnn:attention_rnn_generate",
         "//magenta/models/attention_rnn:attention_rnn_train",
