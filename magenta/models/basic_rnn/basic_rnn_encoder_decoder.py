@@ -78,7 +78,7 @@ class MelodyEncoderDecoder(melodies_lib.MelodyEncoderDecoder):
       return model_event - NUM_SPECIAL_EVENTS
     return model_event - NUM_SPECIAL_EVENTS + self.min_note
 
-  def melody_to_input(self, melody, position):
+  def events_to_input(self, events, position):
     """Returns the input vector for the given position in the melody.
 
     Returns a one-hot vector for the given position in the melody mapped to the
@@ -87,17 +87,17 @@ class MelodyEncoderDecoder(melodies_lib.MelodyEncoderDecoder):
     [self._min_note, self._max_note) range.
 
     Args:
-      melody: A MonophonicMelody object.
+      events: A MonophonicMelody object.
       position: An integer event position in the melody.
 
     Returns:
       An input vector, a list of floats.
     """
     input_ = [0.0] * self.input_size
-    input_[self.melody_event_to_model_event(melody[position])] = 1.0
+    input_[self.melody_event_to_model_event(events[position])] = 1.0
     return input_
 
-  def melody_to_label(self, melody, position):
+  def events_to_label(self, events, position):
     """Returns the label for the given position in the melody.
 
     Returns the zero-based index value for the given position in the melody
@@ -106,22 +106,22 @@ class MelodyEncoderDecoder(melodies_lib.MelodyEncoderDecoder):
     [self._min_note, self._max_note) range.
 
     Args:
-      melody: A MonophonicMelody object.
+      events: A MonophonicMelody object.
       position: An integer event position in the melody.
 
     Returns:
-      A label, an int.
+      A label, an integer.
     """
-    return self.melody_event_to_model_event(melody[position])
+    return self.melody_event_to_model_event(events[position])
 
-  def class_index_to_melody_event(self, class_index, melody):
+  def class_index_to_event(self, class_index, events):
     """Returns the melody event for the given class index.
 
     This is the reverse process of the self.melody_to_label method.
 
     Args:
-      class_index: An int in the range [0, self.num_classes).
-      melody: A MonophonicMelody object. This object is not used in this
+      class_index: An integer in the range [0, self.num_classes).
+      events: A MonophonicMelody object. This object is not used in this
           implementation.
 
     Returns:

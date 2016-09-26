@@ -21,38 +21,31 @@ NoteSequence proto, encoding the chords as text annotations.
 """
 
 import abc
-import numpy as np
 
 from six.moves import range  # pylint: disable=redefined-builtin
 
 from magenta.lib import chord_symbols_lib
+from magenta.lib import events_lib
 from magenta.lib import melodies_lib
-from magenta.lib import sequence_example_lib
 from magenta.pipelines import statistics
 from magenta.protobuf import music_pb2
 
 
 # Constants.
-QUARTER_NOTES_PER_WHOLE_NOTE = 4.0
-DEFAULT_QUARTERS_PER_MINUTE = 120.0
-DEFAULT_STEPS_PER_BAR = 16  # 4/4 music sampled at 4 steps per quarter note.
-DEFAULT_STEPS_PER_QUARTER = 4
+QUARTER_NOTES_PER_WHOLE_NOTE = events_lib.QUARTER_NOTES_PER_WHOLE_NOTE
+DEFAULT_QUARTERS_PER_MINUTE = events_lib.DEFAULT_QUARTERS_PER_MINUTE
+DEFAULT_STEPS_PER_BAR = events_lib.DEFAULT_STEPS_PER_BAR
+DEFAULT_STEPS_PER_QUARTER = events_lib.DEFAULT_STEPS_PER_QUARTER
+STANDARD_PPQ = events_lib.STANDARD_PPQ
 
 NOTES_PER_OCTAVE = melodies_lib.NOTES_PER_OCTAVE
 
-# Standard pulses per quarter.
-# https://en.wikipedia.org/wiki/Pulses_per_quarter_note
-STANDARD_PPQ = 96
 
 # Chord symbol for "no chord".
 NO_CHORD = 'N.C.'
 
 # Shortcut to CHORD_SYMBOL annotation type.
 CHORD_SYMBOL = music_pb2.NoteSequence.TextAnnotation.CHORD_SYMBOL
-
-
-class NonIntegerStepsPerBarException(Exception):
-  pass
 
 
 class CoincidentChordsException(Exception):
@@ -67,7 +60,7 @@ class ChordEncodingException(Exception):
   pass
 
 
-class ChordProgression(object):
+class ChordProgression(events_lib.SimpleEventSequence):
   """Stores a quantized stream of chord events.
 
   ChordProgression is an intermediate representation that all chord or lead
@@ -88,61 +81,31 @@ class ChordProgression(object):
   Chords must be inserted in ascending order by start time.
 
   Attributes:
-    events: A python list of chord events which are strings.  ChordProgression
-        events are described above.
     start_step: The offset of the first step of the progression relative to the
-        beginning of the source sequence. Will always be the first step of a
-        bar.
+        beginning of the source sequence.
     end_step: The offset to the beginning of the bar following the last step
-       of the progression relative tothe beginning of the source sequence. Will
-       always be the first step of a bar.
+       of the progression relative to the beginning of the source sequence.
     steps_per_quarter: Number of steps in in a quarter note.
     steps_per_bar: Number of steps in a bar (measure) of music.
   """
 
   def __init__(self):
     """Construct an empty ChordProgression."""
-    self._reset()
+    super(ChordProgression, self).__init__(pad_event=NO_CHORD)
 
-  def _reset(self):
-    """Clear `events` and reset object state."""
-    self._events = []
-    self._steps_per_bar = DEFAULT_STEPS_PER_BAR
-    self._steps_per_quarter = DEFAULT_STEPS_PER_QUARTER
-    self._start_step = 0
-    self._end_step = 0
-
-  def __iter__(self):
-    """Return an iterator over the events in this ChordProgression.
-
-    Returns:
-      Python iterator over events.
-    """
-    return iter(self._events)
-
-  def __getitem__(self, i):
-    """Returns the event at the given index."""
-    return self._events[i]
-
-  def __getslice__(self, i, j):
-    """Returns the events in the given slice range."""
-    return self._events[i:j]
-
-  def __len__(self):
-    """How many events are in this ChordProgression.
-
-    Returns:
-      Number of events as an int.
-    """
-    return len(self._events)
+  def __deepcopy__(self, unused_memo=None):
+    new_copy = type(self)()
+    new_copy.from_event_list(list(self._events),
+                             self.start_step,
+                             self.steps_per_bar,
+                             self.steps_per_quarter)
+    return new_copy
 
   def __eq__(self, other):
     if not isinstance(other, ChordProgression):
       return False
-    return (list(self) == list(other) and
-            self.steps_per_bar == other.steps_per_bar and
-            self.start_step == other.start_step and
-            self.end_step == other.end_step)
+    else:
+      return super(ChordProgression, self).__eq__(other)
 
   def _add_chord(self, figure, start_step, end_step):
     """Adds the given chord to the `events` list.
@@ -171,31 +134,6 @@ class ChordProgression(object):
     for i in range(start_step, end_step):
       self._events[i] = figure
 
-  @property
-  def start_step(self):
-    return self._start_step
-
-  @property
-  def end_step(self):
-    return self._end_step
-
-  @property
-  def steps_per_bar(self):
-    return self._steps_per_bar
-
-  @property
-  def steps_per_quarter(self):
-    return self._steps_per_quarter
-
-  def append_event(self, event):
-    """Appends event to the end of the progression and increments the end step.
-
-    Args:
-      event: The integer ChordProgression event to append to the end.
-    """
-    self._events.append(event)
-    self._end_step += 1
-
   def from_quantized_sequence(self, quantized_sequence, start_step, end_step):
     """Populate self with the chords from the given QuantizedSequence object.
 
@@ -220,7 +158,7 @@ class ChordProgression(object):
 
     steps_per_bar_float = quantized_sequence.steps_per_bar()
     if steps_per_bar_float % 1 != 0:
-      raise NonIntegerStepsPerBarException(
+      raise events_lib.NonIntegerStepsPerBarException(
           'There are %f timesteps per bar. Time signature: %d/%d' %
           (steps_per_bar_float, quantized_sequence.time_signature.numerator,
            quantized_sequence.time_signature.denominator))
@@ -271,23 +209,6 @@ class ChordProgression(object):
 
     self._start_step = start_step
     self._end_step = end_step
-
-  def from_event_list(self, events, start_step=0,
-                      steps_per_bar=DEFAULT_STEPS_PER_BAR,
-                      steps_per_quarter=DEFAULT_STEPS_PER_QUARTER):
-    """Initialies with a list of event values and sets attributes appropriately.
-
-    Args:
-      events: List of ChordProgression events.
-      start_step: The integer starting step offset.
-      steps_per_bar: The number of steps in a bar.
-      steps_per_quarter: The number of steps in a quarter note.
-    """
-    self._events = list(events)
-    self._start_step = start_step
-    self._end_step = start_step + len(self)
-    self._steps_per_bar = steps_per_bar
-    self._steps_per_quarter = steps_per_quarter
 
   def to_sequence(self,
                   sequence_start_time=0.0,
@@ -341,33 +262,6 @@ class ChordProgression(object):
       if self._events[i] != NO_CHORD:
         self._events[i] = chord_symbol_functions.transpose_chord_symbol(
             self._events[i], transpose_amount % NOTES_PER_OCTAVE)
-
-  def set_length(self, steps, from_left=False):
-    """Sets the length of the progression to the specified number of steps.
-
-    If the chord progression is not long enough, ends any sustained notes and
-    adds NO_CHORD steps for padding. If it is too long, it will be truncated to
-    the requested length.
-
-    Args:
-      steps: How many steps long the chord progression should be.
-      from_left: Whether to add/remove from the left instead of right.
-    """
-    if steps > len(self):
-      if from_left:
-        self._events[:0] = [NO_CHORD] * (steps - len(self))
-      else:
-        self._events.extend([NO_CHORD] * (steps - len(self)))
-    else:
-      if from_left:
-        del self._events[0:-steps]
-      else:
-        del self._events[steps:]
-
-    if from_left:
-      self._start_step = self._end_step - steps
-    else:
-      self._end_step = self._start_step + steps
 
 
 def extract_chords_for_melodies(quantized_sequence, melodies):
@@ -499,20 +393,19 @@ class SingleChordEncoderDecoder(object):
     """The number of distinct chord encodings.
 
     Returns:
-        An int, the range of ints that can be returned by self.encode_chord.
+      An int, the range of ints that can be returned by self.encode_chord.
     """
     pass
 
   @abc.abstractmethod
   def encode_chord(self, figure):
-    """Convert from a chord symbol string to a chord encoding int.
+    """Convert from a chord symbol string to a chord encoding integer.
 
     Args:
       figure: A chord symbol string representing the chord.
 
     Returns:
-        An integer representing the encoded chord, in range
-            [0, self.num_classes).
+      An integer representing the encoded chord, in range [0, self.num_classes).
     """
     pass
 
@@ -524,7 +417,7 @@ class SingleChordEncoderDecoder(object):
       index: The encoded chord, an integer in the range [0, self.num_classes).
 
     Returns:
-        A chord symbol string representing the decoded chord.
+      A chord symbol string representing the decoded chord.
     """
     pass
 
@@ -583,7 +476,7 @@ class MajorMinorEncoderDecoder(SingleChordEncoderDecoder):
       return self._PITCH_CLASS_MAPPING[index - NOTES_PER_OCTAVE - 1] + 'm'
 
 
-class ChordsEncoderDecoder(object):
+class ChordsEncoderDecoder(events_lib.EventsEncoderDecoder):
   """An abstract class for translating between chords and model data.
 
   When building your dataset, the `encode` method takes in a chord progression
@@ -593,56 +486,21 @@ class ChordsEncoderDecoder(object):
   During generation, the `get_inputs_batch` method takes in a list of the
   current chord progressions and returns an inputs batch which is fed into the
   model to predict what the next chord should be for each progression. The
-  `extend_chord_progressions` method takes in the list of chord progressions
+  `extend_event_sequences` method takes in the list of chord progressions
   and the softmax returned by the model and extends each progression by one
   step by sampling from the softmax probabilities. This loop
   (`get_inputs_batch` -> inputs batch is fed through the model to get a
-  softmax -> `extend_chord_progressions`) is repeated until the generated
+  softmax -> `extend_event_sequences`) is repeated until the generated
   chord progressions have reached the desired length.
-
-  The `chord_to_input`, `chord_to_label`, and `class_index_to_chord_event`
-  methods must be overwritten to be specific to your model.
   """
   __metaclass__ = abc.ABCMeta
 
-  def __init__(self):
-    """Initializes a ChordsEncoderDecoder object.
-
-    Unlike the MelodyEncoderDecoder, this object does not detect and control
-    key for the chord progressions.  Instead, when encoding each chord
-    progression a transpose amount must be passed.
-
-    Properties:
-      input_size: The length of the list returned by self.chords_to_input.
-      num_classes: The range of ints that can be returned by
-          self.chords_to_label.
-    """
-    pass
-
-  @abc.abstractproperty
-  def input_size(self):
-    """The size of the input vector used by this model.
-
-    Returns:
-        An int, the length of the list returned by self.chords_to_input.
-    """
-    pass
-
-  @abc.abstractproperty
-  def num_classes(self):
-    """The range of labels used by this model.
-
-    Returns:
-        An int, the range of ints that can be returned by self.chords_to_label.
-    """
-    pass
-
   @abc.abstractmethod
-  def chords_to_input(self, chords, position):
+  def events_to_input(self, events, position):
     """Returns the input vector for the chord event at the given position.
 
     Args:
-      chords: A ChordProgression object.
+      events: A ChordProgression object.
       position: An integer event position in the chord progression.
 
     Returns:
@@ -651,11 +509,11 @@ class ChordsEncoderDecoder(object):
     pass
 
   @abc.abstractmethod
-  def chords_to_label(self, chords, position):
-    """Returns the label for the chord progression event at the given position.
+  def events_to_label(self, events, position):
+    """Returns the label for the chord event at the given position.
 
     Args:
-      chords: A ChordProgression object.
+      events: A ChordProgression object.
       position: An integer event position in the chord progression.
 
     Returns:
@@ -663,7 +521,22 @@ class ChordsEncoderDecoder(object):
     """
     pass
 
-  def encode(self, chords, transpose_amount):
+  @abc.abstractmethod
+  def class_index_to_event(self, class_index, events):
+    """Returns the chord event for the given class index.
+
+    This is the reverse process of the self.events_to_label method.
+
+    Args:
+      class_index: An integer in the range [0, self.num_classes).
+      events: A ChordProgression object.
+
+    Returns:
+      An chord progression event value, the chord symbol figure string.
+    """
+    pass
+
+  def transpose_and_encode(self, chords, transpose_amount):
     """Returns a SequenceExample for the given chord progression.
 
     Args:
@@ -674,70 +547,4 @@ class ChordsEncoderDecoder(object):
       A tf.train.SequenceExample containing inputs and labels.
     """
     chords.transpose(transpose_amount)
-    inputs = []
-    labels = []
-    for i in range(len(chords) - 1):
-      inputs.append(self.chords_to_input(chords, i))
-      labels.append(self.chords_to_label(chords, i + 1))
-    return sequence_example_lib.make_sequence_example(inputs, labels)
-
-  def get_inputs_batch(self, chord_progressions, full_length=False):
-    """Returns an inputs batch for the given chord progressions.
-
-    Args:
-      chord_progressions: A list of ChordProgression objects.
-      full_length: If True, the inputs batch will be for the full length of
-          each chord progression. If False, the inputs batch will only be for
-          the last event of each chord progression. A full-length inputs batch
-          is used for the first step of extending the chord progressions, since
-          the rnn cell state needs to be initialized with the priming sequence.
-          For subsequent generation steps, only a last-event inputs batch is
-          used.
-
-    Returns:
-      An inputs batch. If `full_length` is True, the shape will be
-      [len(chord_progressions), len(chord_progressions[0]), INPUT_SIZE]. If
-      `full_length` is False, the shape will be
-      [len(chord_progressions), 1, INPUT_SIZE].
-    """
-    inputs_batch = []
-    for chords in chord_progressions:
-      inputs = []
-      if full_length and len(chord_progressions):
-        for i in range(len(chords)):
-          inputs.append(self.chords_to_input(chords, i))
-      else:
-        inputs.append(self.chords_to_input(chords, len(chords) - 1))
-      inputs_batch.append(inputs)
-    return inputs_batch
-
-  @abc.abstractmethod
-  def class_index_to_chord_event(self, class_index, chords):
-    """Returns the chords event for the given class index.
-
-    This is the reverse process of the self.chords_to_label method.
-
-    Args:
-      class_index: An integer in the range [0, self.num_classes).
-      chords: A ChordProgression object. This object is not used in this
-          implementation.
-
-    Returns:
-      A ChordProgression event value, a chord figure string or NO_CHORD.
-    """
-    pass
-
-  def extend_chord_progressions(self, chord_progressions, softmax):
-    """Extends the chord progressions by sampling the softmax probabilities.
-
-    Args:
-      chord_progressions: A list of ChordProgression objects.
-      softmax: A list of softmax probability vectors. The list of softmaxes
-          should be the same length as the list of chord progressions.
-    """
-    num_classes = len(softmax[0][0])
-    for i in xrange(len(chord_progressions)):
-      chosen_class = np.random.choice(num_classes, p=softmax[i][-1])
-      chord_event = self.class_index_to_chord_event(chosen_class,
-                                                    chord_progressions[i])
-      chord_progressions[i].append_event(chord_event)
+    return self._encode(chords)

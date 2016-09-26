@@ -177,7 +177,7 @@ class MelodyRnnSequenceGenerator(sequence_generator.BaseSequenceGenerator):
       feed_dict = {inputs: inputs_, initial_state: initial_state_}
       final_state_, softmax_ = self._session.run(
           [final_state, softmax], feed_dict)
-      self._melody_encoder_decoder.extend_melodies([melody], softmax_)
+      self._melody_encoder_decoder.extend_event_sequences([melody], softmax_)
 
     melody.transpose(-transpose_amount)
 

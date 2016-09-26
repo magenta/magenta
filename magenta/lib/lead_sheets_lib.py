@@ -14,17 +14,18 @@
 """Utility functions for working with lead sheets."""
 
 import abc
+import copy
 import itertools
-import numpy as np
-
-from six.moves import range  # pylint: disable=redefined-builtin
 
 from magenta.lib import chords_lib
+from magenta.lib import events_lib
 from magenta.lib import melodies_lib
-from magenta.lib import sequence_example_lib
 from magenta.pipelines import statistics
 from magenta.protobuf import music_pb2
 
+# Constants.
+DEFAULT_STEPS_PER_BAR = events_lib.DEFAULT_STEPS_PER_BAR
+DEFAULT_STEPS_PER_QUARTER = events_lib.DEFAULT_STEPS_PER_QUARTER
 
 # Shortcut to CHORD_SYMBOL annotation type.
 CHORD_SYMBOL = music_pb2.NoteSequence.TextAnnotation.CHORD_SYMBOL
@@ -34,22 +35,124 @@ class MelodyChordsMismatchException(Exception):
   pass
 
 
-class LeadSheet(object):
+class LeadSheet(events_lib.EventSequence):
   """A wrapper around MonophonicMelody and ChordProgression.
 
   Attributes:
-    start_step: The offset of the first step of the lead sheet relative to the
-        beginning of the source sequence. Will always be the first step of a
-        bar.
-    end_step: The offset to the beginning of the bar following the last step
-        of the lead sheet relative the beginning of the source sequence. Will
-        always be the first step of a bar.
-    steps_per_quarter: Number of steps in in a quarter note.
-    steps_per_bar: Number of steps in a bar (measure) of music.
+    melody: A MonophonicMelody object, the lead sheet melody.
+    chords: A ChordProgression object, the underlying chords.
   """
 
-  def __init__(self, melody, chords):
-    """Construct a LeadSheet from a given melody and chords.
+  def __init__(self):
+    """Construct an empty LeadSheet."""
+    self._reset()
+
+  def _reset(self):
+    """Clear events and reset object state."""
+    self._melody = melodies_lib.MonophonicMelody()
+    self._chords = chords_lib.ChordProgression()
+
+  def __iter__(self):
+    """Return an iterator over (melody, chord) tuples in this LeadSheet.
+
+    Returns:
+      Python iterator over (melody, chord) event tuples.
+    """
+    return itertools.izip(self._melody, self._chords)
+
+  def __getitem__(self, i):
+    """Returns the melody-chord tuple at the given index."""
+    return self._melody[i], self._chords[i]
+
+  def __getslice__(self, i, j):
+    """Returns the melody-chord tuples in the given slice range."""
+    return zip(self._melody[i:j], self._chords[i:j])
+
+  def __len__(self):
+    """How many events (melody-chord tuples) are in this LeadSheet.
+
+    Returns:
+      Number of events as an integer.
+    """
+    return len(self._melody)
+
+  def __deepcopy__(self, unused_memo=None):
+    new_copy = type(self)()
+    new_copy.from_melody_and_chords(copy.deepcopy(self._melody),
+                                    copy.deepcopy(self._chords))
+    return new_copy
+
+  def __eq__(self, other):
+    if not isinstance(other, LeadSheet):
+      return False
+    return (self._melody == other.melody and
+            self._chords == other.chords)
+
+  @property
+  def start_step(self):
+    return self._melody.start_step
+
+  @property
+  def end_step(self):
+    return self._melody.end_step
+
+  @property
+  def steps_per_bar(self):
+    return self._melody.steps_per_bar
+
+  @property
+  def steps_per_quarter(self):
+    return self._melody.steps_per_quarter
+
+  @property
+  def melody(self):
+    """Return the melody of the lead sheet.
+
+    Returns:
+        The lead sheet melody, a MonophonicMelody object.
+    """
+    return self._melody
+
+  @property
+  def chords(self):
+    """Return the chord progression of the lead sheet.
+
+    Returns:
+        The lead sheet chords, a ChordProgression object.
+    """
+    return self._chords
+
+  def append_event(self, event):
+    """Appends event to the end of the sequence and increments the end step.
+
+    Args:
+      event: The event (a melody-chord tuple) to append to the end.
+    """
+    melody_event, chord_event = event
+    self._melody.append_event(melody_event)
+    self._chords.append_event(chord_event)
+
+  def from_event_list(self, events, start_step=0,
+                      steps_per_bar=DEFAULT_STEPS_PER_BAR,
+                      steps_per_quarter=DEFAULT_STEPS_PER_QUARTER):
+    """Initializes with a list of event values (melody-chord tuples).
+
+    Args:
+      events: List of melody-chord tuples.
+      start_step: The integer starting step offset.
+      steps_per_bar: The number of steps in a bar.
+      steps_per_quarter: The number of steps in a quarter note.
+    """
+    melody_events, chord_events = zip(*events)
+    self._melody.from_event_list(melody_events, start_step=start_step,
+                                 steps_per_bar=steps_per_bar,
+                                 steps_per_quarter=steps_per_quarter)
+    self._chords.from_event_list(chord_events, start_step=start_step,
+                                 steps_per_bar=steps_per_bar,
+                                 steps_per_quarter=steps_per_quarter)
+
+  def from_melody_and_chords(self, melody, chords):
+    """Initializes a LeadSheet with a given melody and chords.
 
     Args:
       melody: A MonophonicMelody object.
@@ -65,37 +168,8 @@ class LeadSheet(object):
         melody.start_step != chords.start_step or
         melody.end_step != chords.end_step):
       raise MelodyChordsMismatchException()
-    self.melody = melody
-    self.chords = chords
-    self.steps_per_bar = melody.steps_per_bar
-    self.steps_per_quarter = melody.steps_per_quarter
-    self.start_step = melody.start_step
-    self.end_step = melody.end_step
-
-  def __iter__(self):
-    """Return an iterator over (melody, chord) tuples in this LeadSheet.
-
-    Returns:
-      Python iterator over (melody, chord) event tuples.
-    """
-    return itertools.izip(self.melody, self.chords)
-
-  def __len__(self):
-    """How many events are in this LeadSheet.
-
-    Returns:
-      Number of events as an int.
-    """
-    return len(self.melody)
-
-  def __eq__(self, other):
-    if not isinstance(other, LeadSheet):
-      return False
-    return (self.melody == other.melody and
-            self.chords == other.chords and
-            self.steps_per_bar == other.steps_per_bar and
-            self.start_step == other.start_step and
-            self.end_step == other.end_step)
+    self._melody = melody
+    self._chords = chords
 
   def to_sequence(self,
                   velocity=100,
@@ -115,11 +189,10 @@ class LeadSheet(object):
     Returns:
       A NoteSequence proto encoding the melody and chords from the lead sheet.
     """
-    sequence = self.melody.to_sequence(velocity=velocity,
-                                       instrument=instrument,
-                                       sequence_start_time=sequence_start_time,
-                                       qpm=qpm)
-    chord_sequence = self.chords.to_sequence(
+    sequence = self._melody.to_sequence(
+        velocity=velocity, instrument=instrument,
+        sequence_start_time=sequence_start_time, qpm=qpm)
+    chord_sequence = self._chords.to_sequence(
         sequence_start_time=sequence_start_time, qpm=qpm)
     # A little ugly, but just add the chord annotations to the melody sequence.
     for text_annotation in chord_sequence.text_annotations:
@@ -141,8 +214,8 @@ class LeadSheet(object):
       min_note: Minimum pitch (inclusive) that the resulting notes will take on.
       max_note: Maximum pitch (exclusive) that the resulting notes will take on.
     """
-    self.melody.transpose(transpose_amount, min_note, max_note)
-    self.chords.transpose(transpose_amount)
+    self._melody.transpose(transpose_amount, min_note, max_note)
+    self._chords.transpose(transpose_amount)
 
   def squash(self, min_note, max_note, transpose_to_key):
     """Transpose and octave shift the notes and chords in this LeadSheet.
@@ -155,28 +228,19 @@ class LeadSheet(object):
     Returns:
       The transpose amount, in half steps.
     """
-    transpose_amount = self.melody.squash(min_note, max_note, transpose_to_key)
-    self.chords.transpose(transpose_amount)
+    transpose_amount = self._melody.squash(min_note, max_note,
+                                           transpose_to_key)
+    self._chords.transpose(transpose_amount)
     return transpose_amount
 
   def set_length(self, steps):
     """Sets the length of the lead sheet to the specified number of steps.
 
     Args:
-      steps: how many steps long the lead sheet should be.
+      steps: How many steps long the lead sheet should be.
     """
-    self.melody.set_length(steps)
-    self.chords.set_length(steps)
-
-    assert self.melody.steps_per_bar == self.chords.steps_per_bar
-    assert self.melody.steps_per_quarter == self.chords.steps_per_quarter
-    assert self.melody.start_step == self.chords.start_step
-    assert self.melody.end_step == self.chords.end_step
-
-    self.steps_per_bar = self.melody.steps_per_bar
-    self.steps_per_quarter = self.melody.steps_per_quarter
-    self.start_step = self.melody.start_step
-    self.end_step = self.melody.end_step
+    self._melody.set_length(steps)
+    self._chords.set_length(steps)
 
 
 def extract_lead_sheet_fragments(quantized_sequence,
@@ -229,11 +293,13 @@ def extract_lead_sheet_fragments(quantized_sequence,
                                 for chord in chords):
         stats['empty_chord_progressions'].increment()
       else:
-        lead_sheets.append(LeadSheet(melody, chords))
+        lead_sheet = LeadSheet()
+        lead_sheet.from_melody_and_chords(melody, chords)
+        lead_sheets.append(lead_sheet)
   return lead_sheets, stats.values() + melody_stats + chord_stats
 
 
-class LeadSheetEncoderDecoder(object):
+class LeadSheetEncoderDecoder(events_lib.EventsEncoderDecoder):
   """An abstract class for translating between lead sheets and model data.
 
   When building your dataset, the `encode` method takes in a lead sheet and
@@ -262,7 +328,7 @@ class LeadSheetEncoderDecoder(object):
     """The min pitch value to allow for melodies.
 
     Returns:
-        An int, the min pitch value to allow for melodies.
+        An integer, the min pitch value to allow for melodies.
     """
     pass
 
@@ -271,65 +337,20 @@ class LeadSheetEncoderDecoder(object):
     """The max pitch value to allow for melodies.
 
     Returns:
-        An int, the max pitch value to allow for melodies.
+        An integer, the max pitch value to allow for melodies.
     """
     pass
 
   @abc.abstractproperty
   def transpose_to_key(self):
-    """The key, an int from 0 to 11 inclusive, into which to transpose.
+    """The key, an integer from 0 to 11 inclusive, into which to transpose.
 
     Returns:
-        An int, the key into which to transpose.
+        An integer, the key into which to transpose.
     """
     pass
 
-  @abc.abstractproperty
-  def input_size(self):
-    """The size of the input vector used by this model.
-
-    Returns:
-        An int, the length of the list returned by self.lead_sheet_to_input.
-    """
-    pass
-
-  @abc.abstractproperty
-  def num_classes(self):
-    """The range of labels used by this model.
-
-    Returns:
-        An int, the range of ints that can be returned by
-        self.lead_sheet_to_label.
-    """
-    pass
-
-  @abc.abstractmethod
-  def lead_sheet_to_input(self, lead_sheet, position):
-    """Returns the input vector for the lead sheet event at the given position.
-
-    Args:
-      lead_sheet: A LeadSheet object.
-      position: An integer event position in the lead sheet.
-
-    Returns:
-      An input vector, a self.input_size length list of floats.
-    """
-    pass
-
-  @abc.abstractmethod
-  def lead_sheet_to_label(self, lead_sheet, position):
-    """Returns the label for the lead sheet event at the given position.
-
-    Args:
-      lead_sheet: A LeadSheet object.
-      position: An integer event position in the lead sheet.
-
-    Returns:
-      A label, an int in the range [0, self.num_classes).
-    """
-    pass
-
-  def encode(self, lead_sheet):
+  def squash_and_encode(self, lead_sheet):
     """Returns a SequenceExample for the given lead sheet.
 
     Args:
@@ -339,72 +360,7 @@ class LeadSheetEncoderDecoder(object):
       A tf.train.SequenceExample containing inputs and labels.
     """
     lead_sheet.squash(self.min_note, self.max_note, self.transpose_to_key)
-    inputs = []
-    labels = []
-    for i in range(len(lead_sheet) - 1):
-      inputs.append(self.lead_sheet_to_input(lead_sheet, i))
-      labels.append(self.lead_sheet_to_label(lead_sheet, i + 1))
-    return sequence_example_lib.make_sequence_example(inputs, labels)
-
-  def get_inputs_batch(self, lead_sheets, full_length=False):
-    """Returns an inputs batch for the given lead sheets.
-
-    Args:
-      lead_sheets: A list of LeadSheets objects.
-      full_length: If True, the inputs batch will be for the full length of
-          each lead sheet. If False, the inputs batch will only be for the last
-          event of each lead sheet. A full-length inputs batch is used for the
-          first step of extending the lead sheets, since the rnn cell state
-          needs to be initialized with the priming sequence. For subsequent
-          generation steps, only a last-event inputs batch is used.
-
-    Returns:
-      An inputs batch. If `full_length` is True, the shape will be
-      [len(lead_sheets), len(lead_sheets[0]), INPUT_SIZE]. If `full_length` is
-      False, the shape will be [len(lead_sheets), 1, INPUT_SIZE].
-    """
-    inputs_batch = []
-    for lead_sheet in lead_sheets:
-      inputs = []
-      if full_length and len(lead_sheet):
-        for i in range(len(lead_sheet)):
-          inputs.append(self.lead_sheet_to_input(lead_sheet, i))
-      else:
-        inputs.append(self.lead_sheet_to_input(lead_sheet, len(lead_sheet) - 1))
-      inputs_batch.append(inputs)
-    return inputs_batch
-
-  @abc.abstractmethod
-  def class_index_to_melody_and_chord_event(self, class_index, lead_sheet):
-    """Returns the melody event and chord event for the given class index.
-
-    This is the reverse process of the self.lead_sheet_to_label method.
-
-    Args:
-      class_index: An int in the range [0, self.num_classes).
-      lead_sheet: A LeadSheet object. This object is not used in this
-          implementation.
-
-    Returns:
-      A (melody event, chord event) tuple.
-    """
-    pass
-
-  def extend_lead_sheets(self, lead_sheets, softmax):
-    """Extends the lead sheets by sampling from the softmax probabilities.
-
-    Args:
-      lead_sheets: A list of LeadSheet objects.
-      softmax: A list of softmax probability vectors. The list of softmaxes
-          should be the same length as the list of lead sheets.
-    """
-    num_classes = len(softmax[0][0])
-    for i in xrange(len(lead_sheets)):
-      chosen_class = np.random.choice(num_classes, p=softmax[i][-1])
-      melody_event, chord_event = self.class_index_to_melody_and_chord_event(
-          chosen_class, lead_sheets[i])
-      lead_sheets[i].melody.append_event(melody_event)
-      lead_sheets[i].chords.append_event(chord_event)
+    return self._encode(lead_sheet)
 
 
 class LeadSheetProductEncoderDecoder(LeadSheetEncoderDecoder):
@@ -414,57 +370,92 @@ class LeadSheetProductEncoderDecoder(LeadSheetEncoderDecoder):
   and trivially combines them. The input is a concatenation of the melody and
   chords inputs, and the output label is a product of the melody and chords
   labels.
-
-  Attributes:
-    melody_encoder_decoder: A MelodyEncoderDecoder object.
-    chords_encoder_decoder: A ChordsEncoderDecoder object.
   """
 
   def __init__(self, melody_encoder_decoder, chords_encoder_decoder):
-    self.melody_encoder_decoder = melody_encoder_decoder
-    self.chords_encoder_decoder = chords_encoder_decoder
+    self._melody_encoder_decoder = melody_encoder_decoder
+    self._chords_encoder_decoder = chords_encoder_decoder
 
   @property
   def min_note(self):
-    return self.melody_encoder_decoder.min_note
+    return self._melody_encoder_decoder.min_note
 
   @property
   def max_note(self):
-    return self.melody_encoder_decoder.max_note
+    return self._melody_encoder_decoder.max_note
 
   @property
   def transpose_to_key(self):
-    return self.melody_encoder_decoder.transpose_to_key
+    return self._melody_encoder_decoder.transpose_to_key
 
   @property
   def input_size(self):
-    return (self.melody_encoder_decoder.input_size +
-            self.chords_encoder_decoder.input_size)
+    return (self._melody_encoder_decoder.input_size +
+            self._chords_encoder_decoder.input_size)
 
   @property
   def num_classes(self):
-    return (self.melody_encoder_decoder.num_classes *
-            self.chords_encoder_decoder.num_classes)
+    return (self._melody_encoder_decoder.num_classes *
+            self._chords_encoder_decoder.num_classes)
 
-  def lead_sheet_to_input(self, lead_sheet, position):
-    melody_input = self.melody_encoder_decoder.melody_to_input(
-        lead_sheet.melody, position)
+  def events_to_input(self, events, position):
+    """Returns the input vector for the lead sheet event at the given position.
+
+    The input vector is the concatenation of the input vectors for the melody
+    and chords, using their respective encoder-decoders.
+
+    Args:
+      events: A LeadSheet object.
+      position: An integer event position in the lead sheet.
+
+    Returns:
+      An input vector, a self.input_size length list of floats.
+    """
+    melody_input = self._melody_encoder_decoder.melody_to_input(
+        events.melody, position)
     chords_input = self.chords_encoder_decoder.chords_to_input(
-        lead_sheet.chords, position)
+        events.chords, position)
     return melody_input + chords_input
 
-  def lead_sheet_to_label(self, lead_sheet, position):
-    melody_label = self.melody_encoder_decoder.melody_to_label(
-        lead_sheet.melody, position)
-    chords_label = self.chords_encoder_decoder.chords_to_label(
-        lead_sheet.chords, position)
-    return melody_label + self.melody_encoder_decoder.num_classes * chords_label
+  def events_to_label(self, events, position):
+    """Returns the label for the lead sheet event at the given position.
 
-  def class_index_to_melody_and_chord_event(self, class_index, lead_sheet):
-    melody_index = class_index % self.melody_encoder_decoder.num_classes
-    chord_index = class_index / self.melody_encoder_decoder.num_classes
+    The label is a cartesian product of the melody label and chord label at the
+    given position, mapped to a single integer.
+
+    Args:
+      events: A LeadSheet object.
+      position: An integer event position in the lead sheet.
+
+    Returns:
+      A label, an integer in the range [0, self.num_classes).
+    """
+    melody_label = self._melody_encoder_decoder.events_to_label(
+        events.melody, position)
+    chords_label = self._chords_encoder_decoder.events_to_label(
+        events.chords, position)
+    return melody_label + (self._melody_encoder_decoder.num_classes *
+                           chords_label)
+
+  def class_index_to_event(self, class_index, events):
+    """Returns the lead sheet event for the given class index.
+
+    This is the reverse process of the self.events_to_label method. The lead
+    sheet event will be a tuple, the first element of which is the melody event
+    and the second element of which is the chord event.
+
+    Args:
+      class_index: An integer in the range [0, self.num_classes).
+      events: A LeadSheet object.
+
+    Returns:
+      A lead sheet event value, a tuple containing the melody event and chord
+          event.
+    """
+    melody_index = class_index % self._melody_encoder_decoder.num_classes
+    chord_index = class_index / self._melody_encoder_decoder.num_classes
     return (
-        self.melody_encoder_decoder.class_index_to_melody_event(
-            melody_index, lead_sheet.melody),
-        self.chords_encoder_decoder.class_index_to_chord_event(
-            chord_index, lead_sheet.chords))
+        self._melody_encoder_decoder.class_index_to_event(melody_index,
+                                                          events.melody),
+        self._chords_encoder_decoder.class_index_to_chord_event(chord_index,
+                                                                events.chords))

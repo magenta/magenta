@@ -109,7 +109,7 @@ class ChordSymbolFunctions(object):
 
     Returns:
       One of CHORD_QUALITY_MAJOR, CHORD_QUALITY_MINOR, CHORD_QUALITY_AUGMENTED,
-          CHORD_QUALITY_DIMINISHED, or CHORD_QUALITY_UNKNOWN.
+      CHORD_QUALITY_DIMINISHED, or CHORD_QUALITY_UNKNOWN.
 
     Raises:
       ChordSymbolException: If the given chord symbol cannot be interpreted.

@@ -13,6 +13,8 @@
 # limitations under the License.
 """Tests for sequences_lib."""
 
+import copy
+
 # internal imports
 import tensorflow as tf
 
@@ -198,7 +200,7 @@ class SequencesLibTest(tf.test.TestCase):
          (55, 120, 4.0, 4.01), (52, 99, 4.75, 5.0)])
     quantized.from_note_sequence(self.note_sequence, self.steps_per_quarter)
 
-    quantized_copy = quantized.deepcopy()
+    quantized_copy = copy.deepcopy(quantized)
     self.assertEqual(quantized, quantized_copy)
 
     testing_lib.add_quantized_track(
