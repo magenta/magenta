@@ -26,6 +26,7 @@ import time
 # internal imports
 import mido
 import tensorflow as tf
+from cc_remapper import CCRemapper
 
 from magenta.lib import sequence_generator_bundle
 from magenta.models.attention_rnn import attention_rnn_generator
@@ -87,7 +88,7 @@ tf.app.flags.DEFINE_integer(
     'The MIDI channel on which to send the metronome click.')
 tf.app.flags.DEFINE_integer(
     'metronome_playback_velocity',
-    0,
+    64,
     'The velocity of the generated playback metronome '
     'expressed as an integer between 0 and 127.')
 tf.app.flags.DEFINE_string(
@@ -109,6 +110,10 @@ tf.app.flags.DEFINE_string(
     '{}',
     'String representation of a Python dictionary containing hyperparameter to '
     'value mappings. This mapping is merged with the default hyperparameters.')
+tf.app.flags.DEFINE_bool(
+    'custom_cc',
+    False,
+    'Opens interactive control change assignment tool.')
 
 # A map from a string generator name to its factory class.
 _GENERATOR_FACTORY_MAP = {
@@ -119,9 +124,15 @@ _GENERATOR_FACTORY_MAP = {
 
 _METRONOME_TICK_DURATION = 0.05
 _METRONOME_PITCH = 95
-# TODO(hanzorama): Make velocity adjustable by a control change signal.
-_METRONOME_CAPTURE_VELOCITY = 64
+_METRONOME_VELOCITY = 64
 
+
+_CC_MAP = {
+  'Start Capture': mido.Message('control_change', channel=0, control=1,
+                                value=127),
+  'Stop Capture': mido.Message('control_change', channel=0, control=1, value=0),
+  'Metronome Velocity': mido.Message('control_change', channel=0, control=3),
+}
 
 def serialized(func):
   """Decorator to provide mutual exclusion for method using _lock attribute."""
@@ -220,20 +231,23 @@ class Metronome(threading.Thread):
     _outport: The Mido port for sending messages.
     _qpm: The integer quarters per minute to signal on.
     _stop_metronome: A boolean specifying whether the metronome should stop.
-    _velocity: The velocity of the metronome's MIDI note_on message.
+    _clock_start_time: The time at which the metronome begins.
+    _velocity: The velocity of the metronome click.
+    _lock: An RLock used for thread-safety.
   Args:
     outport: The Mido port for sending messages.
     qpm: The integer quarters per minute to signal on.
-    velocity: The velocity of the metronome's MIDI note_on message.
+    clock_start_time: The time at which the metronome begins.
   """
   daemon = True
 
-  def __init__(self, outport, qpm, clock_start_time, velocity):
+  def __init__(self, outport, qpm, clock_start_time):
     self._outport = outport
     self._qpm = qpm
     self._stop_metronome = False
     self._clock_start_time = clock_start_time
-    self._velocity = velocity
+    self._velocity = _METRONOME_VELOCITY
+    self._lock = threading.RLock()
     super(Metronome, self).__init__()
 
   def run(self):
@@ -242,7 +256,7 @@ class Metronome(threading.Thread):
     sleep_offset = 0
     while not self._stop_metronome:
       now = time.time()
-      next_tick_time = now + period - ((now - self._clock_start_time)  % period)
+      next_tick_time = now + period - ((now - self._clock_start_time) % period)
       delta = next_tick_time - time.time()
       if delta > 0:
         time.sleep(delta + sleep_offset)
@@ -273,6 +287,16 @@ class Metronome(threading.Thread):
     self._stop_metronome = True
     self.join()
 
+  @property
+  @serialized
+  def velocity(self):
+    return self._velocity
+
+  @velocity.setter
+  @serialized
+  def velocity(self, velocity):
+    self._velocity = velocity
+
 
 class MonoMidiPlayer(threading.Thread):
   """A thread for playing back a monophonic, sorted NoteSequence via MIDI.
@@ -284,20 +308,19 @@ class MonoMidiPlayer(threading.Thread):
   Args:
     outport: The Mido port for sending messages.
     sequence: The monohponic, chronologically sorted NoteSequence to play.
-    metronome_velocity: The velocity of the metronome's MIDI note_on message.
   Raises:
     ValueError: The NoteSequence contains multiple tempos.
   """
   daemon = True
 
-  def __init__(self, outport, sequence, metronome_velocity):
+  def __init__(self, outport, sequence):
     self._outport = outport
     self._sequence = sequence
     self._stop_playback = False
     if len(sequence.tempos) != 1:
       raise ValueError('The NoteSequence contains multiple tempos.')
     self._metronome = Metronome(self._outport, sequence.tempos[0].qpm,
-                                time.time(), metronome_velocity)
+                                time.time())
     super(MonoMidiPlayer, self).__init__()
 
   def run(self):
@@ -325,9 +348,8 @@ class MonoMidiPlayer(threading.Thread):
       delta = playhead - (time.time() - play_start)
       if delta > 0:
         time.sleep(delta)
-      self._outport.send(
-          mido.Message(
-              'note_on', note=note.pitch, velocity=note.velocity))
+      self._outport.send(mido.Message('note_on', note=note.pitch,
+                                      velocity=note.velocity))
 
       if self._stop_playback:
         self._outport.panic()
@@ -356,6 +378,7 @@ class MonoMidiHub(object):
   Attributes:
     _inport: The Mido port for receiving messages.
     _outport: The Mido port for sending messages.
+    _cc_map: The dictionary of user defined Control Change messages.
     _lock: An RLock used for thread-safety.
     _capture_sequence: The NoteSequence being built from MIDI messages currently
         being captured or having been captured in the previous session.
@@ -367,11 +390,14 @@ class MonoMidiHub(object):
   Args:
     input_midi_port: The string MIDI port name to use for input.
     output_midi_port: The string MIDI port name to use for output.
+    cc_map: The dictionary of user defined Control Change messages.
   """
 
-  def __init__(self, input_midi_port, output_midi_port):
+  def __init__(self, input_midi_port, output_midi_port, cc_map):
     self._inport = mido.open_input(input_midi_port)
     self._outport = mido.open_output(output_midi_port)
+    self._cc_map = cc_map
+    self._cc_remapper = CCRemapper
     # This lock is used by the serialized decorator.
     self._lock = threading.RLock()
     self._control_cvs = dict()
@@ -402,49 +428,72 @@ class MonoMidiHub(object):
     Args:
       msg: The mido.Message MIDI message to handle.
     """
-    if msg.type == 'control_change':
-      control_tuples = [(msg.control,), (msg.control, msg.value)]
-
-      for control_tuple in control_tuples:
-        if control_tuple in self._control_cvs:
-          self._control_cvs[control_tuple].notify_all()
+    if (msg.hex()[:5] == self._cc_map['Start Capture'].hex()[:5] or
+        msg.hex()[:5] == self._cc_map['Stop Capture'].hex()[:5]):
+      if msg.type == 'note_on':
+        if msg.velocity !=0:
+          msg = msg.copy(velocity=1)
+      if msg.hex() in self._control_cvs:
+        self._control_cvs[msg.hex()].notify_all()
       return
 
-    last_note = (self.captured_sequence.notes[-1] if
-                 self.captured_sequence.notes else None)
-    if msg.type == 'note_off' or (msg.type == 'note_on' and msg.velocity == 0):
-      if (last_note is None or last_note.pitch != msg.note or
-          last_note.end_time > 0):
-        # This is not the note we're looking for. Drop it.
+    for value in self._cc_map.values():
+      if value is None:
+        pass
+      elif msg.bytes()[:2] == value.bytes()[:2]:
+        self.execute_cc_message(msg)
         return
 
-      last_note.end_time = msg.time - self._sequence_start_time
-      self._outport.send(msg)
-      stdout_write_and_flush('.')
+    # Capture behavior during record only.
+    if (self._player is None) or (self._player.is_alive() is False):
 
-    elif msg.type == 'note_on':
-      if self._sequence_start_time is None:
-        # This is the first note.
-        # Find the sequence start time based on the start of the most recent
-        # quarter note. This ensures that the sequence start time lines up with
-        # a metronome tick.
-        period = 60. / self.captured_sequence.tempos[0].qpm
-        self._sequence_start_time = msg.time - (
-            (msg.time - self._capture_start_time) % period)
-      elif last_note.end_time == 0:
-        if last_note.pitch == msg.note:
-          # This is just a repeat of the previous message.
+      last_note = (self.captured_sequence.notes[-1] if
+                   self.captured_sequence.notes else None)
+      if msg.type == 'note_off' or (msg.type == 'note_on'
+                                    and msg.velocity == 0):
+        if (last_note is None or last_note.pitch != msg.note or
+            last_note.end_time > 0):
+          # This is not the note we're looking for. Drop it.
           return
-        # End the previous note.
-        last_note.end_time = msg.time - self._sequence_start_time
-        self._outport.send(mido.Message('note_off', note=last_note.pitch))
 
-      self._outport.send(msg)
-      new_note = self.captured_sequence.notes.add()
-      new_note.start_time = msg.time - self._sequence_start_time
-      new_note.pitch = msg.note
-      new_note.velocity = msg.velocity
-      stdout_write_and_flush('.')
+        last_note.end_time = msg.time - self._sequence_start_time
+        self._outport.send(msg)
+        stdout_write_and_flush('.')
+
+      elif msg.type == 'note_on':
+        if self._sequence_start_time is None:
+          # This is the first note.
+          # Find the sequence start time based on the start of the most recent
+          # quarter note. This ensures that the sequence start time lines up
+          # with a metronome tick.
+          period = 60. / self.captured_sequence.tempos[0].qpm
+          self._sequence_start_time = msg.time - (
+              (msg.time - self._capture_start_time) % period)
+        elif last_note.end_time == 0:
+          if last_note.pitch == msg.note:
+            # This is just a repeat of the previous message.
+            return
+          # End the previous note.
+          last_note.end_time = msg.time - self._sequence_start_time
+          self._outport.send(mido.Message('note_off', note=last_note.pitch))
+
+        self._outport.send(msg)
+        new_note = self.captured_sequence.notes.add()
+        new_note.start_time = msg.time - self._sequence_start_time
+        new_note.pitch = msg.note
+        new_note.velocity = msg.velocity
+        stdout_write_and_flush('.')
+
+  def execute_cc_message(self, message):
+    """Defines how to treat non Start/Stop user defined CC messages.
+
+    Args:
+      message: The incoming Control Change message.
+    """
+
+    # Metronome Velocity
+    if message.bytes()[:2] == self._cc_map['Metronome Velocity'].bytes()[:2]:
+      self._metronome.velocity = message.bytes()[2]
 
   @serialized
   def start_capture(self, qpm):
@@ -459,17 +508,13 @@ class MonoMidiHub(object):
     Raises:
       RuntimeError: Already in a capture session.
     """
-    if self._inport.callback is not None:
-      raise RuntimeError('Already in a capture session.')
 
     self.captured_sequence = music_pb2.NoteSequence()
     self.captured_sequence.tempos.add().qpm = qpm
     self._sequence_start_time = None
     self._capture_start_time = time.time()
     self._inport.callback = self._timestamp_and_capture_message
-    self._metronome = Metronome(self._outport, qpm, self._capture_start_time,
-                                _METRONOME_CAPTURE_VELOCITY)
-
+    self._metronome = Metronome(self._outport, qpm, self._capture_start_time)
     self._metronome.start()
 
   @serialized
@@ -498,48 +543,44 @@ class MonoMidiHub(object):
     return self.captured_sequence
 
   @serialized
-  def wait_for_control_signal(self, control_number, control_value=None):
+  def wait_for_control_signal(self, control_message):
     """Blocks until a specific control signal arrives.
-
     Args:
-      control_number: The integer control change number.
-      control_value: The integer control change value or None if any is
-         acceptable.
-
+      control_message: The control change message.
     """
     if self._inport.callback is None:
-      # Not in a capture session.
+      # No callback set for inport
       for msg in self._inport:
-        if (msg.type == 'control_change' and msg.control == control_number and
-            (control_value is None or msg.value == control_value)):
+        if msg.hex()[:5] == control_message.hex()[:5] and msg.type == 'note_on':
+          if msg.velocity != 0:
+            msg = msg.copy(velocity=1)
+        if msg.hex() == control_message.hex():
           return
     else:
-      # In a capture session.
-      control_tuple = ((control_number,) if control_value is None else
-                       (control_number, control_value))
-      if control_tuple not in self._control_cvs:
-        self._control_cvs[control_tuple] = threading.Condition(self._lock)
-      self._control_cvs[control_tuple].wait()
+      # In a capture session
+      if control_message.hex() not in self._control_cvs:
+        self._control_cvs[control_message.hex()] = threading.Condition(
+          self._lock)
+      self._control_cvs[control_message.hex()].wait()
 
-  def start_playback(self, sequence, metronome_velocity):
+  def start_playback(self, sequence):
     """Plays the monophonic, sorted NoteSequence through the MIDI output port.
 
     Stops any previously playing sequences.
 
     Args:
       sequence: The monohponic, chronologically sorted NoteSequence to play.
-      metronome_velocity: The velocity of the metronome's MIDI note_on message.
     """
     self.stop_playback()
-    self._player = MonoMidiPlayer(self._outport, sequence, metronome_velocity)
+    self._player = MonoMidiPlayer(self._outport, sequence)
     self._player.start()
+    self._inport.callback = self._capture_message
 
   def stop_playback(self):
     """Stops any active sequence playback."""
     if self._player is not None and self._player.is_alive():
       self._player.stop()
       stdout_write_and_flush('Stopped\n')
-
 
 def main(unused_argv):
   if FLAGS.list:
@@ -551,6 +592,7 @@ def main(unused_argv):
     print '--inport_port and --output_port must be specified.'
     return
 
+  # TODO(hanzorama): Old CC capture system can be removed
   if (FLAGS.start_capture_control_number == FLAGS.stop_capture_control_number
       and
       (FLAGS.start_capture_control_value == FLAGS.stop_capture_control_value or
@@ -560,10 +602,28 @@ def main(unused_argv):
           '--stop_capture_control_number, --start_capture_control_value and '
           '--stop_capture_control_value must both be defined and unique.')
     return
+  else:
+    global _CC_MAP
+    _CC_MAP['Start Capture'] = mido.Message(
+        'control_change', channel=0, control=FLAGS.start_capture_control_number,
+        value=FLAGS.start_capture_control_value)
+    _CC_MAP['Stop Capture'] = mido.Message(
+        'control_change', channel=0, control=FLAGS.stop_capture_control_number,
+        value=FLAGS.stop_capture_control_value)
 
+  # TODO(hanzorama): Old Metronome velocity FLAG can be removed
   if not 0 <= FLAGS.metronome_playback_velocity <= 127:
     print 'The metronome_playback_velocity must be an integer between 0 and 127'
     return
+  else:
+    global _METRONOME_VELOCITY
+    _METRONOME_VELOCITY = FLAGS.metronome_playback_velocity
+
+  if FLAGS.custom_cc:
+    cc_remapper = CCRemapper(FLAGS.input_port, _CC_MAP)
+    cc_map = cc_remapper.remapper_interface()
+  else:
+    cc_map = _CC_MAP
 
   generator = Generator(
       FLAGS.generator_name,
@@ -571,24 +631,22 @@ def main(unused_argv):
       ast.literal_eval(FLAGS.hparams if FLAGS.hparams else '{}'),
       FLAGS.checkpoint,
       FLAGS.bundle_file)
-  hub = MonoMidiHub(FLAGS.input_port, FLAGS.output_port)
+  hub = MonoMidiHub(FLAGS.input_port, FLAGS.output_port, cc_map)
 
   stdout_write_and_flush('Waiting for start control signal...\n')
   while True:
-    hub.wait_for_control_signal(FLAGS.start_capture_control_number,
-                                FLAGS.start_capture_control_value)
+    hub.wait_for_control_signal(cc_map['Start Capture'])
     hub.stop_playback()
     hub.start_capture(FLAGS.qpm)
     stdout_write_and_flush('Capturing notes until stop control signal...')
-    hub.wait_for_control_signal(FLAGS.stop_capture_control_number,
-                                FLAGS.stop_capture_control_value)
+    hub.wait_for_control_signal(cc_map['Stop Capture'])
     captured_sequence = hub.stop_capture()
 
     stdout_write_and_flush('Generating response...')
     generated_sequence = generator.generate_melody(captured_sequence)
     stdout_write_and_flush('Done\n')
 
-    hub.start_playback(generated_sequence, FLAGS.metronome_playback_velocity)
+    hub.start_playback(generated_sequence)
 
 
 def console_entry_point():
