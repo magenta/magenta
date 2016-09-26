@@ -16,6 +16,7 @@
 # internal imports
 import tensorflow as tf
 
+from magenta.music import constants
 from magenta.music import melodies_lib
 from magenta.music import sequences_lib
 from magenta.music import testing_lib
@@ -23,8 +24,8 @@ from magenta.pipelines import pipelines_common
 from magenta.protobuf import music_pb2
 
 
-NOTE_OFF = melodies_lib.NOTE_OFF
-NO_EVENT = melodies_lib.NO_EVENT
+NOTE_OFF = constants.MELODY_NOTE_OFF
+NO_EVENT = constants.MELODY_NO_EVENT
 
 
 class PipelineUnitsCommonTest(tf.test.TestCase):

@@ -25,6 +25,7 @@ licenses(["notice"])  # Apache 2.0
 py_library(
     name = "music",
     deps = [
+        ":constants",
         ":melodies_lib",
         ":midi_io",
         ":note_sequence_io",
@@ -63,8 +64,8 @@ py_library(
     srcs_version = "PY2AND3",
     deps = [
         ":chord_symbols_lib",
+        ":constants",
         ":events_lib",
-        ":melodies_lib",
         "//magenta/pipelines:statistics",
         "//magenta/protobuf:music_py_pb2",
     ],
@@ -85,10 +86,17 @@ py_test(
 )
 
 py_library(
+    name = "constants",
+    srcs = ["constants.py"],
+    srcs_version = "PY2AND3",
+)
+
+py_library(
     name = "events_lib",
     srcs = ["events_lib.py"],
     srcs_version = "PY2AND3",
     deps = [
+        ":constants",
         ":sequence_example_lib",
         # numpy dep
     ],
@@ -110,6 +118,7 @@ py_library(
     srcs_version = "PY2AND3",
     deps = [
         ":chords_lib",
+        ":constants",
         ":events_lib",
         ":melodies_lib",
         "//magenta/pipelines:statistics",
@@ -123,6 +132,7 @@ py_test(
     srcs_version = "PY2AND3",
     deps = [
         ":chords_lib",
+        ":constants",
         ":lead_sheets_lib",
         ":melodies_lib",
         ":sequences_lib",
@@ -136,6 +146,7 @@ py_library(
     srcs = ["melodies_lib.py"],
     srcs_version = "PY2AND3",
     deps = [
+        ":constants",
         ":events_lib",
         "//magenta/pipelines:statistics",
         "//magenta/protobuf:music_py_pb2",
@@ -148,6 +159,7 @@ py_test(
     srcs = ["melodies_lib_test.py"],
     srcs_version = "PY2AND3",
     deps = [
+        ":constants",
         ":melodies_lib",
         ":sequence_example_lib",
         ":sequences_lib",

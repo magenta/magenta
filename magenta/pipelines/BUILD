@@ -91,6 +91,7 @@ py_test(
     srcs_version = "PY2AND3",
     deps = [
         ":pipelines_common",
+        "//magenta/music:constants",
         "//magenta/music:melodies_lib",
         "//magenta/music:sequences_lib",
         "//magenta/music:testing_lib",

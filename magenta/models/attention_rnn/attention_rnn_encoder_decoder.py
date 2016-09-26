@@ -16,13 +16,14 @@
 import collections
 
 # internal imports
+from magenta.music import constants
 from magenta.music import melodies_lib
 
-NUM_SPECIAL_EVENTS = melodies_lib.NUM_SPECIAL_EVENTS
-NOTE_OFF = melodies_lib.NOTE_OFF
-NO_EVENT = melodies_lib.NO_EVENT
-MIN_MIDI_PITCH = melodies_lib.MIN_MIDI_PITCH
-NOTES_PER_OCTAVE = melodies_lib.NOTES_PER_OCTAVE
+NUM_SPECIAL_MELODY_EVENTS = constants.NUM_SPECIAL_MELODY_EVENTS
+MELODY_NOTE_OFF = constants.MELODY_NOTE_OFF
+MELODY_NO_EVENT = constants.MELODY_NO_EVENT
+MIN_MIDI_PITCH = constants.MIN_MIDI_PITCH
+NOTES_PER_OCTAVE = constants.NOTES_PER_OCTAVE
 STEPS_PER_BAR = 16  # This code assumes the melodies have 16 steps per bar.
 
 MIN_NOTE = 48  # Inclusive
@@ -58,7 +59,7 @@ class MelodyEncoderDecoder(melodies_lib.MelodyEncoderDecoder):
 
   @property
   def num_classes(self):
-    return self.note_range + NUM_SPECIAL_EVENTS + NUM_SPECIAL_CLASSES
+    return self.note_range + NUM_SPECIAL_MELODY_EVENTS + NUM_SPECIAL_CLASSES
 
   def events_to_input(self, events, position):
     """Returns the input vector for the given position in the melody.
@@ -94,9 +95,9 @@ class MelodyEncoderDecoder(melodies_lib.MelodyEncoderDecoder):
     sub_melody = melodies_lib.MonophonicMelody()
     sub_melody.from_event_list(events[:position + 1])
     for note in sub_melody:
-      if note == NO_EVENT:
+      if note == MELODY_NO_EVENT:
         is_attack = False
-      elif note == NOTE_OFF:
+      elif note == MELODY_NOTE_OFF:
         current_note = None
       else:
         is_attack = True
@@ -183,7 +184,7 @@ class MelodyEncoderDecoder(melodies_lib.MelodyEncoderDecoder):
       A label, an integer.
     """
     if (position < LOOKBACK_DISTANCES[-1] and
-        events[position] == NO_EVENT):
+        events[position] == MELODY_NO_EVENT):
       return self.note_range + len(LOOKBACK_DISTANCES) + 1
 
     # If the last event repeated N bars ago.
@@ -194,11 +195,11 @@ class MelodyEncoderDecoder(melodies_lib.MelodyEncoderDecoder):
         return self.note_range + 2 + i
 
     # If last event was a note-off event.
-    if events[position] == NOTE_OFF:
+    if events[position] == MELODY_NOTE_OFF:
       return self.note_range + 1
 
     # If last event was a no event.
-    if events[position] == NO_EVENT:
+    if events[position] == MELODY_NO_EVENT:
       return self.note_range
 
     # If last event was a note-on event, the pitch of that note.
@@ -221,16 +222,16 @@ class MelodyEncoderDecoder(melodies_lib.MelodyEncoderDecoder):
     for i, lookback_distance in reversed(list(enumerate(LOOKBACK_DISTANCES))):
       if class_index == self.note_range + 2 + i:
         if len(events) < lookback_distance:
-          return NO_EVENT
+          return MELODY_NO_EVENT
         return events[-lookback_distance]
 
     # Note-off event.
     if class_index == self.note_range + 1:
-      return NOTE_OFF
+      return MELODY_NOTE_OFF
 
     # No event:
     if class_index == self.note_range:
-      return NO_EVENT
+      return MELODY_NO_EVENT
 
     # Note-on event for that midi pitch.
     return self.min_note + class_index

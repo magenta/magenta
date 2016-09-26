@@ -26,18 +26,13 @@ import numpy as np
 
 from six.moves import range  # pylint: disable=redefined-builtin
 
+from magenta.music import constants
 from magenta.music import sequence_example_lib
 
 
-# Constants.
-QUARTER_NOTES_PER_WHOLE_NOTE = 4.0
-DEFAULT_QUARTERS_PER_MINUTE = 120.0
-DEFAULT_STEPS_PER_BAR = 16  # 4/4 music sampled at 4 steps per quarter note.
-DEFAULT_STEPS_PER_QUARTER = 4
-
-# Standard pulses per quarter.
-# https://en.wikipedia.org/wiki/Pulses_per_quarter_note
-STANDARD_PPQ = 96
+DEFAULT_STEPS_PER_BAR = constants.DEFAULT_STEPS_PER_BAR
+DEFAULT_STEPS_PER_QUARTER = constants.DEFAULT_STEPS_PER_QUARTER
+STANDARD_PPQ = constants.STANDARD_PPQ
 
 
 class NonIntegerStepsPerBarException(Exception):
