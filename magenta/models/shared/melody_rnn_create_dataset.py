@@ -22,7 +22,7 @@ import os
 # internal imports
 import tensorflow as tf
 
-from magenta.lib import melodies_lib
+from magenta.music import melodies_lib
 from magenta.pipelines import dag_pipeline
 from magenta.pipelines import pipeline
 from magenta.pipelines import pipelines_common

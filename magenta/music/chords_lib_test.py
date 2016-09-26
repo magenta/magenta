@@ -16,11 +16,11 @@
 # internal imports
 import tensorflow as tf
 
-from magenta.lib import chord_symbols_lib
-from magenta.lib import chords_lib
-from magenta.lib import melodies_lib
-from magenta.lib import sequences_lib
-from magenta.lib import testing_lib
+from magenta.music import chord_symbols_lib
+from magenta.music import chords_lib
+from magenta.music import melodies_lib
+from magenta.music import sequences_lib
+from magenta.music import testing_lib
 
 NO_CHORD = chords_lib.NO_CHORD
 

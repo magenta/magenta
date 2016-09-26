@@ -14,9 +14,8 @@
 """Provides function to build the lookback RNN model's graph."""
 
 # internal imports
-
-from magenta.lib import tf_lib
 from magenta.models.shared import melody_rnn_graph
+from magenta.music import tf_lib
 
 
 def default_hparams():
