@@ -37,75 +37,77 @@ class MidiHubException(Exception):
 
 
 class MidiSignal(object):
-  """An abstract base class for a MIDI-based event signal.
+  """A class for representing a MIDI-based event signal.
 
-  Provides a `__str__` method to create a regular expression patternfor matching
-  against the string representation of a mido.Message with wildcards for
-  unspecified values.
+  Provides a `__str__` method to return a regular expression pattern for
+  matching against the string representation of a mido.Message with wildcards
+  for unspecified values.
+
+  Supports matching for message types 'note_on', 'note_off', and
+  'control_change'. If a mido.Message is given as the `msg` argument, matches
+  against the exact message, ignoring the time attribute. If a `msg` is
+  not given, keyword arguments must be provided matching some subset of those
+  listed in `_VALID_ARGS`.
+
+  Args:
+    msg: A mido.Message that should be matched exactly (excluding the time
+        attribute) or None if wildcards are to be used.
+    **kwargs: Valid mido.Message arguments. Those that are not provided will be
+        treated as wildcards.
   """
-  _metaclass__ = abc.ABCMeta
+  _NOTE_ARGS = set(['type', 'note', 'program_number', 'velocity'])
+  _CONTROL_ARGS = set(['type', 'control', 'value'])
+  _VALID_ARGS = {
+      'note_on': _NOTE_ARGS,
+      'note_off': _NOTE_ARGS,
+      'control_change': _CONTROL_ARGS,
+      None: _NOTE_ARGS | _CONTROL_ARGS
+  }
 
-  def __init__(self):
-    self._message_fields = {}
+  def __init__(self, msg=None, **kwargs):
+    type_ = msg.type if msg is not None else kwargs.get('type')
+    if type_ not in self._VALID_ARGS:
+      raise ValueError(
+          "The type of a MidiSignal must be either 'note_on', 'note_off', "
+          "'control_change' or None for wildcard matching. Got '%s'." % type_)
+
+    # The inferred mido.Message type. Note that this does not need to be exact
+    # as long as the correct type shares the same set of arguments (e.g.,
+    # 'note_on' and 'note_off').
+    inferred_type = type_
+    # If msg is not provided, check that the given arguments are valid for some
+    # message type.
+    if msg is None:
+      for arg_name in kwargs:
+        if arg_name not in self._VALID_ARGS[type_]:
+          raise ValueError(
+              "Invalid argument for type '%s': %s" % (type_, arg_name))
+      if inferred_type is None:
+        for name, args in self._VALID_ARGS.iteritem():
+          if set(kwargs) <= args:
+            inferred_type = name
+            break
+        if inferred_type is None:
+          raise ValueError(
+            'Could not infer a message type for set of given arguments: %s'
+            % ', '.join(args))
+
+      if msg is not None:
+        self._regex_pattern = mido.message.format_as_string(
+            msg, include_time=False) + ' time=\d+.\d+$'
+      else:
+        # Generate regex pattern.
+        parts = ['.*' if type_ is None else type_]
+        for name in (mido.messages.get_spec(inferred_type).arguments):
+          if name in kwargs:
+            parts.append('%s=%d' % (name, kwargs[name]))
+          else:
+            parts.append(r'%s=\d+' % name)
+        self._regex_pattern = '^' + ' '.join(parts) + ' time=\d+.\d+$'
 
   def __str__(self):
     """Returns a regex pattern for matching against a mido.Message string."""
-    parts = ['.*' if self._message_fields['type'] is None
-             else self._message_fields['type']]
-    for name in (mido.messages.get_spec(self._message_type).arguments):
-      value = self._message_fields.get(name)
-      if value is None:
-        parts.append(r'%s=\d+' % name)
-      else:
-        parts.append('%s=%d' % (name, value))
-    return '^' + ' '.join(parts) + ' time=\d+.\d+$'
-
-
-class MidiNoteSignal(MidiSignal):
-  """A MidiSignal for matching against note mido.Messages.
-
-  Args:
-    type: The string mido.Message type (either 'note_on' or 'note_off') or None
-        for wildcard matching.
-    note: The integer mido.Message note or None for wildcard matching.
-    program_number: The integer mido.Message program number or None for wildcard
-        matching.
-    velocity: The integer mido.Message veloicty or None for wildcard matching.
-
-  Raises:
-    ValueError: If type is not 'note_on', 'note_off', or None.
-  """
-
-  def __init__(self, type_=None, note=None, program_number=None, velocity=None):
-    if type_ not in [None, 'note_on', 'note_off']:
-      raise ValueError(
-          "The type of a MidiNoteSignal must be either 'note_off', 'note_on' "
-          "or None for wildcard matching. Got '%s'." % type_)
-    super(MidiNoteSignal, self).__init__()
-    # Used to specify which arguments should be used. 'note_on' and 'note_off'
-    # have the same mido.Message arguments.
-    self._message_type = 'note_on'
-    self._message_fields['type'] = type_
-    self._message_fields['note'] = note
-    self._message_fields['program_number'] = program_number
-    self._message_fields['velocity'] = velocity
-
-
-class MidiControlSignal(MidiSignal):
-  """A MidiSignal for matching against control change mido.Messages.
-
-  Args:
-    control: The integer mido.Message control or None for wildcard matching.
-    program_number: The integer mido.Message value or None for wildcard
-        matching.
-  """
-
-  def __init__(self, control=None, value=None):
-    super(MidiControlSignal, self).__init__()
-    self._message_type = 'control_change'
-    self._message_fields['type'] = 'control_change'
-    self._message_fields['control'] = str(control)
-    self._message_fields['value'] = str(value)
+    return self._regex_pattern
 
 
 class Metronome(threading.Thread):
