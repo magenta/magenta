@@ -99,26 +99,60 @@ recommended soundfont downloaded above using:
 $ fluidsynth /path/to/sf2
 ```
 
-## Launching  Interface
+## Launching the Interface
 
 After completing the installation and set up steps above, build the interface
 with:
 
 ```bash
-$ bazel build //magenta/interfaces/midi:midi
+$ bazel build //magenta/interfaces/midi:magenta_midi
 ```
 
 Once built, have it list the the available MIDI ports:
 
 ```bash
-$ bazel-bin/magenta/interfaces/midi/midi --list
+$ bazel-bin/magenta/interfaces/midi/magenta_midi --list
 ```
 
 You should see a list of available input and output ports, including both the
 controller (e.g., "VMPK Output") and synthesizer (e.g., "FluidSynth virtual
 port").
 
-You should have already trained a model with a
+To use the midi interface, you can use either a pre-trained model bundle or a
+checkpoint.
+
+### Pre-trained bundle
+
+To use a pre-trained bundle, first download the bundle .mag file. There are
+links to bundle files on each of our model pages (e.g.,
+[Basic RNN](/magenta/models/basic_rnn/README.md),
+[Lookback RNN] (/magenta/models/lookback_rnn/README.md),
+[Attention RNN] (/magenta/models/attention_rnn/README.md), etc.).
+
+You can now start the interface with this command, supplying the location of the
+.mag bundle file:
+
+```bash
+$ bazel-bin/magenta/interfaces/midi/magenta_midi \
+  --input_port=<controller port> \
+  --output_port=<synthesizer port> \
+  --bundle_file=<bundle_file>
+```
+
+Assuming you're using the
+[Attention RNN](/magenta/models/attention_rnn/README.md) bundle file and are
+using VPMK and FluidSynth, your command would look like this:
+
+```bash
+$ bazel-bin/magenta/interfaces/midi/magenta_midi \
+  --input_port="VMPK Output" \
+  --output_port="FluidSynth virtual port" \
+  --bundle_file=/tmp/attention_rnn.mag
+```
+
+### Training checkpoint
+
+This method assumes you have already trained a model with a
 [generator](/magenta/models/README.md#generators) defined for it
 (e.g., [Basic RNN](/magenta/models/basic_rnn/README.md),
 [Lookback RNN] (/magenta/models/lookback_rnn/README.md),
@@ -128,7 +162,7 @@ You can now start the interface with this command, supplying the same
 hparams you used when you trained the model:
 
 ```bash
-$ bazel-bin/magenta/interfaces/midi/midi \
+$ bazel-bin/magenta/interfaces/midi/magenta_midi \
   --input_port=<controller port> \
   --output_port=<synthesizer port> \
   --generator_name=<generator name> \
@@ -136,18 +170,20 @@ $ bazel-bin/magenta/interfaces/midi/midi \
   --hparams=<training hparams>
 ```
 
-Asssuming you trained the
+Assuming you trained the
 [Attention RNN](/magenta/models/attention_rnn/README.md) and are
 using VPMK and FluidSynth, your command would look like this:
 
 ```bash
-$ bazel-bin/magenta/interfaces/midi/midi \
+$ bazel-bin/magenta/interfaces/midi/magenta_midi \
   --input_port="VMPK Output" \
   --output_port="FluidSynth virtual port" \
   --generator_name=attention_rnn \
   --checkpoint=/tmp/attention_rnn/logdir/run1/train \
   --hparams="{'batch_size':64,'rnn_layer_sizes':[64,64]}"
 ```
+
+## Using the Interface
 
 To initialize a capture session, you need to send the appropriate control change
 message from the controller. By default, this is done by setting the modulation
