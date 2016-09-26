@@ -24,7 +24,7 @@ class HParams(object):
   hyperparameters to values.
 
   Ex.
-  hparams = tf_lib.HParams(batch_size=128, hidden_size=256)
+  hparams = magenta.common.HParams(batch_size=128, hidden_size=256)
   hparams.parse('{"hidden_size":512}')
   assert hparams.batch_size == 128
   assert hparams.hidden_size == 512

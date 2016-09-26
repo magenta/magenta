@@ -16,9 +16,9 @@
 # internal imports
 import tensorflow as tf
 
+from magenta.common import sequence_example_lib
 from magenta.music import constants
 from magenta.music import melodies_lib
-from magenta.music import sequence_example_lib
 from magenta.music import sequences_lib
 from magenta.music import testing_lib
 

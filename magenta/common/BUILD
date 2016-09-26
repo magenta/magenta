@@ -13,19 +13,44 @@
 # limitations under the License.
 
 # Description:
-# Tools and models for using TensorFlow with music and art.
+# Libraries for using TensorFlow with music and art.
+
+package(
+    default_visibility = ["//magenta:__subpackages__"],
+)
 
 licenses(["notice"])  # Apache 2.0
 
 # The Magenta public API.
 py_library(
-    name = "magenta",
-    srcs = ["__init__.py"],
-    visibility = ["//magenta:__subpackages__"],
+    name = "common",
     deps = [
-        "//magenta/common",
-        "//magenta/music",
-        "//magenta/pipelines",
-        "//magenta/protobuf",
+        ":sequence_example_lib",
+        ":testing_lib",
+        ":tf_lib",
     ],
+)
+
+py_library(
+    name = "sequence_example_lib",
+    srcs = ["sequence_example_lib.py"],
+    srcs_version = "PY2AND3",
+    deps = [
+        # tensorflow dep
+    ],
+)
+
+py_library(
+    name = "testing_lib",
+    srcs = ["testing_lib.py"],
+    deps = [
+        "@protobuf//:protobuf_python",
+        # numpy dep
+    ],
+)
+
+py_library(
+    name = "tf_lib",
+    srcs = ["tf_lib.py"],
+    srcs_version = "PY2AND3",
 )

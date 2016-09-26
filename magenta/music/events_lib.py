@@ -26,8 +26,8 @@ import numpy as np
 
 from six.moves import range  # pylint: disable=redefined-builtin
 
+from magenta.common import sequence_example_lib
 from magenta.music import constants
-from magenta.music import sequence_example_lib
 
 
 DEFAULT_STEPS_PER_BAR = constants.DEFAULT_STEPS_PER_BAR
