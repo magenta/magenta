@@ -15,10 +15,8 @@ import tensorflow as tf
 from magenta.lib import melodies_lib as mlib
 from magenta.lib import midi_io
 
-from .... import melody_rnn
-from .... import rl_rnn_ops
-
-FLAGS = flags.FLAGS
+import melody_rnn
+import rl_rnn_ops
 
 # Music theory constants used in defining reward functions.
 # Note that action 2 = midi note 48.

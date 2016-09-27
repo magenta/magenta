@@ -20,15 +20,16 @@ These functions are necessary for use with the MelodyQ class.
 import os
 
 import numpy as np
-import tensorflow.google as tf
+import tensorflow as tf
 
 from magenta.lib import melodies_lib
 from magenta.lib import midi_io
 from magenta.lib import sequences_lib
+from magenta.lib import sequence_example_lib
 
-from ....rl_rnn import melody_rnn_encoder_decoder
-from ....melody.rl_rnn import rl_rnn_ops
-from ... import tensorflow_ops
+import melody_rnn_encoder_decoder
+import rl_rnn_ops
+import tensorflow_ops
 
 
 DEFAULT_BPM = 120.0
@@ -184,7 +185,7 @@ class MelodyRNN(object):
             # Set up a tf queue to read melodies from the training data tfrecord
             (self.train_sequence,
              self.train_labels,
-             self.train_lengths) = tensorflow_ops.dynamic_rnn_batch(
+             self.train_lengths) = sequence_example_lib.get_padded_batch.dynamic_rnn_batch(
                  self.training_file_list, self.hparams)
 
           # Closure function is used so that this part of the graph can be
