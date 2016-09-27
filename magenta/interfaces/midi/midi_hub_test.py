@@ -177,7 +177,8 @@ class MidiHubTest(tf.test.TestCase):
     player.update_sequence(new_seq)
 
     # Start and end the unclosed note from the first sequence.
-    note_events = [(start_time, 'note_on', 0), (start_time + 0.1, 'note_off', 0)]
+    note_events = [(start_time, 'note_on', 0),
+                   (start_time + 0.1, 'note_off', 0)]
     for note in notes:
       note_events.append((note.start, 'note_on', note.pitch))
       note_events.append((note.end, 'note_off', note.pitch))
@@ -192,14 +193,14 @@ class MidiHubTest(tf.test.TestCase):
   def testPolyphonicMidiCaptor_StopSignal(self):
     start_time = 1.0
     captor = midi_hub.PolyphonicMidiCaptor(
-        120, start_time, 
+        120, start_time,
         stop_signal=midi_hub.MidiSignal(type='control_change', control=1))
     captor.start()
-    
+
     for msg in self.capture_messages:
       captor.receive(msg)
     captor.join()
-    
+
     captured_seq = captor.captured_sequence()
     expected_seq = music_pb2.NoteSequence()
     expected_seq.tempos.add(qpm=120)
@@ -218,7 +219,7 @@ class MidiHubTest(tf.test.TestCase):
     for msg in self.capture_messages:
       captor.receive(msg)
     captor.join()
-    
+
     captured_seq = captor.captured_sequence()
     expected_seq = music_pb2.NoteSequence()
     expected_seq.tempos.add(qpm=120)
@@ -236,7 +237,7 @@ class MidiHubTest(tf.test.TestCase):
     for msg in self.capture_messages:
       captor.receive(msg)
     time.sleep(0.1)
-    
+
     stop_time = 5.5
     captor.stop(stop_time=stop_time)
 
@@ -245,7 +246,7 @@ class MidiHubTest(tf.test.TestCase):
     expected_seq.tempos.add(qpm=120)
     expected_seq.total_time = stop_time
     testing_lib.add_track(
-        expected_seq, 0, 
+        expected_seq, 0,
         [Note(1, 64, 2, 5), Note(2, 64, 3, 4), Note(3, 64, 4, stop_time)])
     self.assertProtoEquals(captured_seq, expected_seq)
 
@@ -274,7 +275,8 @@ class MidiHubTest(tf.test.TestCase):
     expected_seq.tempos.add(qpm=120)
     expected_seq.total_time = end_time
     testing_lib.add_track(
-        expected_seq, 0, [Note(1, 64, 2, 4.5), Note(2, 64, 3, 4.5), Note(3, 64, 4, 4.5)])
+        expected_seq, 0, [Note(1, 64, 2, 4.5), Note(2, 64, 3, 4.5),
+        Note(3, 64, 4, 4.5)])
     self.assertProtoEquals(captured_seq, expected_seq)
 
     end_time = 6.0
@@ -283,7 +285,8 @@ class MidiHubTest(tf.test.TestCase):
     expected_seq.tempos.add(qpm=120)
     expected_seq.total_time = end_time
     testing_lib.add_track(
-        expected_seq, 0, [Note(1, 64, 2, 6), Note(2, 64, 3, 6), Note(3, 64, 4, 6)])
+        expected_seq, 0,
+        [Note(1, 64, 2, 6), Note(2, 64, 3, 6), Note(3, 64, 4, 6)])
     self.assertProtoEquals(captured_seq, expected_seq)
 
     # Recieve the rest of the messages.
@@ -297,7 +300,8 @@ class MidiHubTest(tf.test.TestCase):
     expected_seq.tempos.add(qpm=120)
     expected_seq.total_time = end_time
     testing_lib.add_track(
-        expected_seq, 0, [Note(1, 64, 2, 5), Note(2, 64, 3, 4), Note(3, 64, 4, 6)])
+        expected_seq, 0,
+        [Note(1, 64, 2, 5), Note(2, 64, 3, 4), Note(3, 64, 4, 6)])
     self.assertProtoEquals(captured_seq, expected_seq)
 
     captor.stop()
