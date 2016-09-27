@@ -3,9 +3,10 @@
 import os
 import random
 
+from magenta.lib import tf_lib
+
 import numpy as np
 import tensorflow as tf
-
 
 LSTM_STATE_NAME = 'lstm'
 
@@ -20,44 +21,44 @@ NO_EVENT = -2
 
 def default_hparams():
   """Generates the default hparams used to train a large basic rnn."""
-  return tf.HParams(use_dynamic_rnn=True,
-                    batch_size=BATCH_SIZE,
-                    lr=0.0002,
-                    l2_reg=2.5e-5,
-                    clip_norm=5,
-                    initial_learning_rate=0.5,
-                    decay_steps=1000,
-                    decay_rate=0.85,
-                    rnn_layer_sizes=[2500],
-                    skip_first_n_losses=8,
-                    one_hot_length=NUM_CLASSES,
-                    exponentially_decay_learning_rate=True)
+  return tf_lib.HParams(use_dynamic_rnn=True,
+                        batch_size=BATCH_SIZE,
+                        lr=0.0002,
+                        l2_reg=2.5e-5,
+                        clip_norm=5,
+                        initial_learning_rate=0.5,
+                        decay_steps=1000,
+                        decay_rate=0.85,
+                        rnn_layer_sizes=[2500],
+                        skip_first_n_losses=8,
+                        one_hot_length=NUM_CLASSES,
+                        exponentially_decay_learning_rate=True)
 
 
 def small_model_hparams():
   """Generates the hparams used to train a small basic rnn."""
-  return tf.HParams(use_dynamic_rnn=True,
-                    batch_size=BATCH_SIZE,
-                    lr=0.0002,
-                    l2_reg=2.5e-5,
-                    clip_norm=5,
-                    initial_learning_rate=0.5,
-                    decay_steps=1000,
-                    decay_rate=0.85,
-                    rnn_layer_sizes=[100],
-                    skip_first_n_losses=32,
-                    one_hot_length=NUM_CLASSES,
-                    exponentially_decay_learning_rate=True)
+  return tf_lib.HParams(use_dynamic_rnn=True,
+                        batch_size=BATCH_SIZE,
+                        lr=0.0002,
+                        l2_reg=2.5e-5,
+                        clip_norm=5,
+                        initial_learning_rate=0.5,
+                        decay_steps=1000,
+                        decay_rate=0.85,
+                        rnn_layer_sizes=[100],
+                        skip_first_n_losses=32,
+                        one_hot_length=NUM_CLASSES,
+                        exponentially_decay_learning_rate=True)
 
 
 def default_dqn_hparams():
-  return tf.HParams(random_action_probability=0.1,
-                    store_every_nth=1,
-                    train_every_nth=5,
-                    minibatch_size=32,
-                    discount_rate=0.95,
-                    max_experience=100000,
-                    target_network_update_rate=0.01)
+  return tf_lib.HParams(random_action_probability=0.1,
+                        store_every_nth=1,
+                        train_every_nth=5,
+                        minibatch_size=32,
+                        discount_rate=0.95,
+                        max_experience=100000,
+                        target_network_update_rate=0.01)
 
 
 def autocorrelate(signal, lag=1):

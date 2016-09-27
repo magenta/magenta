@@ -60,7 +60,7 @@ class MelodyRNN(object):
         model.
       training_data_path: Path to a tfrecord file containing melody training
         data.
-      hparams: A tf.HParams object. Must match the hparams used to create the
+      hparams: A tf_lib.HParams object. Must match the hparams used to create the
         checkpoint file.
       backup_checkpoint_file: Path to a backup checkpoint file to be used if
         none can be found in the experiment_dir
