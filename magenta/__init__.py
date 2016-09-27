@@ -23,15 +23,15 @@ bazel query 'kind(py_library, deps(//magenta))' | \
   sort
 """
 
-import magenta.lib.melodies_lib
-import magenta.lib.midi_io
-import magenta.lib.note_sequence_io
-import magenta.lib.sequence_example_lib
-import magenta.lib.sequence_generator
-import magenta.lib.sequence_generator_bundle
-import magenta.lib.sequences_lib
-import magenta.lib.testing_lib
-import magenta.lib.tf_lib
+import magenta.music.melodies_lib
+import magenta.music.midi_io
+import magenta.music.note_sequence_io
+import magenta.music.sequence_example_lib
+import magenta.music.sequence_generator
+import magenta.music.sequence_generator_bundle
+import magenta.music.sequences_lib
+import magenta.music.testing_lib
+import magenta.music.tf_lib
 import magenta.pipelines.dag_pipeline
 import magenta.pipelines.pipeline
 import magenta.pipelines.pipelines_common

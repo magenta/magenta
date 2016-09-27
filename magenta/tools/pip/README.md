@@ -25,7 +25,7 @@ Next, test that it worked:
 
 ```
 $ python
->>> from magenta.lib import midi_io
+>>> from magenta.music import midi_io
 >>> midi_io.midi_file_to_sequence_proto('test.mid')
 ```
 
@@ -54,7 +54,7 @@ This allows us to list `//magenta` as the main `py_library` dependency for
 building the pip package and distributes maintenance of public API dependencies
 to each package.
 
-For example, to expose `magenta.lib.midi_io`, the `magenta/lib/BUILD` file will
+For example, to expose `magenta.music.midi_io`, the `magenta/music/BUILD` file will
 have a section that looks like this:
 
 ```
@@ -75,7 +75,7 @@ py_library(
     name = "magenta",
     visibility = ["//magenta:__subpackages__"],
     deps = [
-        "//magenta/lib",
+        "//magenta/music",
     ],
 )
 ```

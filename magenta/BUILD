@@ -23,7 +23,7 @@ py_library(
     srcs = ["__init__.py"],
     visibility = ["//magenta:__subpackages__"],
     deps = [
-        "//magenta/lib",
+        "//magenta/music",
         "//magenta/pipelines",
         "//magenta/protobuf",
     ],

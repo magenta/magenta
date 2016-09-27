@@ -19,7 +19,7 @@ import tempfile
 # internal imports
 import tensorflow as tf
 
-from magenta.lib import testing_lib
+from magenta.music import testing_lib
 from magenta.pipelines import pipeline
 from magenta.pipelines import statistics
 

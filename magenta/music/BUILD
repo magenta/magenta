@@ -23,7 +23,7 @@ licenses(["notice"])  # Apache 2.0
 
 # The Magenta public API.
 py_library(
-    name = "lib",
+    name = "music",
     deps = [
         ":melodies_lib",
         ":midi_io",

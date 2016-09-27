@@ -26,7 +26,7 @@ import numpy as np
 
 from six.moves import range  # pylint: disable=redefined-builtin
 
-from magenta.lib import sequence_example_lib
+from magenta.music import sequence_example_lib
 
 
 # Constants.

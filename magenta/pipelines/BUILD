@@ -69,7 +69,7 @@ py_test(
     srcs_version = "PY2AND3",
     deps = [
         ":pipeline",
-        "//magenta/lib:testing_lib",
+        "//magenta/music:testing_lib",
         # tensorflow dep
     ],
 )
@@ -79,8 +79,8 @@ py_library(
     srcs = ["pipelines_common.py"],
     deps = [
         ":pipeline",
-        "//magenta/lib:melodies_lib",
-        "//magenta/lib:sequences_lib",
+        "//magenta/music:melodies_lib",
+        "//magenta/music:sequences_lib",
         "//magenta/protobuf:music_py_pb2",
     ],
 )
@@ -91,9 +91,9 @@ py_test(
     srcs_version = "PY2AND3",
     deps = [
         ":pipelines_common",
-        "//magenta/lib:melodies_lib",
-        "//magenta/lib:sequences_lib",
-        "//magenta/lib:testing_lib",
+        "//magenta/music:melodies_lib",
+        "//magenta/music:sequences_lib",
+        "//magenta/music:testing_lib",
         # tensorflow dep
     ],
 )
