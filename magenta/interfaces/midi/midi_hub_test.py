@@ -14,11 +14,11 @@
 """Tests for midi_hub."""
 
 import collections
-import mido
 import Queue
 import time
 
 # internal imports
+import mido
 import tensorflow as tf
 
 from magenta.interfaces.midi import midi_hub
@@ -30,6 +30,7 @@ Note = collections.namedtuple('Note', ['pitch', 'velocity', 'start', 'end'])
 
 
 class MockMidiPort(mido.ports.BaseIOPort):
+
   def __init__(self):
     self.message_queue = Queue.Queue()
     super(MockMidiPort, self).__init__()
@@ -43,6 +44,7 @@ class MockMidiPort(mido.ports.BaseIOPort):
 
 
 class MidiHubTest(tf.test.TestCase):
+
   def setUp(self):
     self.capture_messages = [
         mido.Message(type='note_on', note=0, time=0.01),
@@ -275,8 +277,8 @@ class MidiHubTest(tf.test.TestCase):
     expected_seq.tempos.add(qpm=120)
     expected_seq.total_time = end_time
     testing_lib.add_track(
-        expected_seq, 0, [Note(1, 64, 2, 4.5), Note(2, 64, 3, 4.5),
-        Note(3, 64, 4, 4.5)])
+        expected_seq, 0,
+        [Note(1, 64, 2, 4.5), Note(2, 64, 3, 4.5), Note(3, 64, 4, 4.5)])
     self.assertProtoEquals(captured_seq, expected_seq)
 
     end_time = 6.0
