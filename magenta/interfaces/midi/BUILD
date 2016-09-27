@@ -21,7 +21,7 @@ py_library(
     name = "midi_hub",
     srcs = ["midi_hub.py"],
     deps = [
-        "//magenta/protobuf:music_py_pb2",
+        "//magenta",
         "@mido//:mido",
     ],
 )
@@ -31,8 +31,8 @@ py_test(
     srcs = ["midi_hub_test.py"],
     srcs_version = "PY2AND3",
     deps = [
-        "//magenta/lib:testing_lib",
         ":midi_hub",
+        "//magenta",
         "@mido//:mido",
         # tensorflow dep
     ],
@@ -44,8 +44,7 @@ py_library(
     srcs = ["midi_interaction.py"],
     deps = [
         ":midi_hub",
-        "//magenta/protobuf:generator_py_pb2",
-        "//magenta/protobuf:music_py_pb2",
+        "//magenta",
     ],
 )
 
@@ -55,12 +54,10 @@ py_binary(
     deps = [
         ":midi_hub",
         ":midi_interaction",
-        "//magenta/lib:sequence_generator_bundle",
+        "//magenta",
         "//magenta/models/attention_rnn:attention_rnn_generator",
         "//magenta/models/basic_rnn:basic_rnn_generator",
         "//magenta/models/lookback_rnn:lookback_rnn_generator",
-        "//magenta/protobuf:generator_py_pb2",
-        "//magenta/protobuf:music_py_pb2",
         "@mido//:mido",
     ],
 )
