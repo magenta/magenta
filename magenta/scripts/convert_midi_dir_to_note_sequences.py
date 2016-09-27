@@ -125,5 +125,8 @@ def main(unused_argv):
                     FLAGS.output_file)
 
 
+def console_entry_point():
+  tf.app.run(main)
+
 if __name__ == '__main__':
-  tf.app.run()
+  console_entry_point()

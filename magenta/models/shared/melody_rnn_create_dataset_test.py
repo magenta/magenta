@@ -51,7 +51,7 @@ class MelodyRNNPipelineTest(tf.test.TestCase):
     quantized = quantizer.transform(note_sequence)[0]
     print quantized.tracks
     melody = melody_extractor.transform(quantized)[0]
-    one_hot = one_hot_encoder.encode(melody)
+    one_hot = one_hot_encoder.squash_and_encode(melody)
     print one_hot
     expected_result = {'training_melodies': [one_hot], 'eval_melodies': []}
 

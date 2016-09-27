@@ -26,19 +26,18 @@ py_binary(
     srcs = ["convert_midi_dir_to_note_sequences.py"],
     srcs_version = "PY2AND3",
     deps = [
-        "//magenta/lib:midi_io",
-        "//magenta/lib:note_sequence_io",
+        "//magenta",
         # tensorflow dep
     ],
 )
 
 py_test(
-   name = "convert_midi_dir_to_note_sequences_test",
-   srcs = ["convert_midi_dir_to_note_sequences_test.py"],
-   data = ["//magenta/testdata:testdata"],
-   srcs_version = "PY2AND3",
-   deps = [
-       ":convert_midi_dir_to_note_sequences",
+    name = "convert_midi_dir_to_note_sequences_test",
+    srcs = ["convert_midi_dir_to_note_sequences_test.py"],
+    data = ["//magenta/testdata"],
+    srcs_version = "PY2AND3",
+    deps = [
+        ":convert_midi_dir_to_note_sequences",
         # tensorflow dep
-   ],
+    ],
 )

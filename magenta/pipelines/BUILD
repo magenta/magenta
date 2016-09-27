@@ -21,6 +21,17 @@ package(
 
 licenses(["notice"])  # Apache 2.0
 
+# The Magenta public API.
+py_library(
+    name = "pipelines",
+    deps = [
+        ":dag_pipeline",
+        ":pipeline",
+        ":pipelines_common",
+        ":statistics",
+    ],
+)
+
 py_library(
     name = "dag_pipeline",
     srcs = ["dag_pipeline.py"],
@@ -52,10 +63,10 @@ py_library(
 py_test(
     name = "pipeline_test",
     srcs = ["pipeline_test.py"],
-    srcs_version = "PY2AND3",
     data = [
         "//magenta/testdata:tfrecord_iterator_test.tfrecord",
     ],
+    srcs_version = "PY2AND3",
     deps = [
         ":pipeline",
         "//magenta/lib:testing_lib",

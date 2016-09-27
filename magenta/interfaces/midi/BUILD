@@ -49,8 +49,9 @@ py_library(
 )
 
 py_binary(
-    name = "midi",
-    srcs = ["midi.py"],
+    name = "magenta_midi",
+    srcs = ["magenta_midi.py"],
+    visibility = ["//magenta/tools/pip:__subpackages__"],
     deps = [
         ":midi_hub",
         ":midi_interaction",
