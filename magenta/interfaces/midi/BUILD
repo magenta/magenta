@@ -26,6 +26,19 @@ py_library(
     ],
 )
 
+py_test(
+    name = "midi_hub_test",
+    srcs = ["midi_hub_test.py"],
+    srcs_version = "PY2AND3",
+    deps = [
+        "//magenta/lib:testing_lib",
+        ":midi_hub",
+        "@mido//:mido",
+        # tensorflow dep
+    ],
+)
+
+
 py_library(
     name = "midi_interaction",
     srcs = ["midi_interaction.py"],

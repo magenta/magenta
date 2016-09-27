@@ -54,6 +54,10 @@ class MidiSignal(object):
         attribute) or None if wildcards are to be used.
     **kwargs: Valid mido.Message arguments. Those that are not provided will be
         treated as wildcards.
+
+  Raises:
+    MidiHubException: If the message type is unsupported or the arguments are
+        not in the valid set for the given or inferred type.
   """
   _NOTE_ARGS = set(['type', 'note', 'program_number', 'velocity'])
   _CONTROL_ARGS = set(['type', 'control', 'value'])
@@ -61,49 +65,53 @@ class MidiSignal(object):
       'note_on': _NOTE_ARGS,
       'note_off': _NOTE_ARGS,
       'control_change': _CONTROL_ARGS,
-      None: _NOTE_ARGS | _CONTROL_ARGS
   }
 
   def __init__(self, msg=None, **kwargs):
+    if msg is not None and kwargs:
+      raise MidiHubException(
+          'Either a mido.Message should be provided or arguments. Not both.')
+
     type_ = msg.type if msg is not None else kwargs.get('type')
-    if type_ not in self._VALID_ARGS:
-      raise ValueError(
+    if type_ is not None and type_ not in self._VALID_ARGS:
+      raise MidiHubException(
           "The type of a MidiSignal must be either 'note_on', 'note_off', "
           "'control_change' or None for wildcard matching. Got '%s'." % type_)
 
-    # The inferred mido.Message type. Note that this does not need to be exact
-    # as long as the correct type shares the same set of arguments (e.g.,
-    # 'note_on' and 'note_off').
-    inferred_type = type_
+    # The compatible mido.Message types.
+    inferred_types = [type_] if type_ is not None else []
     # If msg is not provided, check that the given arguments are valid for some
     # message type.
     if msg is None:
-      for arg_name in kwargs:
-        if arg_name not in self._VALID_ARGS[type_]:
-          raise ValueError(
-              "Invalid argument for type '%s': %s" % (type_, arg_name))
-      if inferred_type is None:
-        for name, args in self._VALID_ARGS.iteritem():
+      if type_ is not None:
+        for arg_name in kwargs:
+          if arg_name not in self._VALID_ARGS[type_]:
+            raise MidiHubException(
+                "Invalid argument for type '%s': %s" % (type_, arg_name))
+      else:
+        for name, args in self._VALID_ARGS.iteritems():
           if set(kwargs) <= args:
-            inferred_type = name
-            break
-        if inferred_type is None:
-          raise ValueError(
+            inferred_types.append(name)
+        if not inferred_types:
+          raise MidiHubException(
             'Could not infer a message type for set of given arguments: %s'
             % ', '.join(args))
+        # If there is only a single valid inferred type, use it.
+        if len(inferred_types) == 1:
+          type_ = inferred_types[0]
 
-      if msg is not None:
-        self._regex_pattern = mido.message.format_as_string(
-            msg, include_time=False) + ' time=\d+.\d+$'
-      else:
-        # Generate regex pattern.
-        parts = ['.*' if type_ is None else type_]
-        for name in (mido.messages.get_spec(inferred_type).arguments):
-          if name in kwargs:
-            parts.append('%s=%d' % (name, kwargs[name]))
-          else:
-            parts.append(r'%s=\d+' % name)
-        self._regex_pattern = '^' + ' '.join(parts) + ' time=\d+.\d+$'
+    if msg is not None:
+      self._regex_pattern = '^' + mido.messages.format_as_string(
+          msg, include_time=False) + ' time=\d+.\d+$'
+    else:
+      # Generate regex pattern.
+      parts = ['.*' if type_ is None else type_]
+      for name in (mido.messages.get_spec(inferred_types[0]).arguments):
+        if name in kwargs:
+          parts.append('%s=%d' % (name, kwargs[name]))
+        else:
+          parts.append(r'%s=\d+' % name)
+      self._regex_pattern = '^' + ' '.join(parts) + ' time=\d+.\d+$'
 
   def __str__(self):
     """Returns a regex pattern for matching against a mido.Message string."""
@@ -199,15 +207,10 @@ class MidiPlayer(threading.Thread):
         `sequence` completes and calling `update_sequence` will result in an
         exception. Otherwise, the the thread will stay alive until `stop` is
         called, allowing for additional updates via `update_sequence`.
-  Raises:
-    MidiHubException: The NoteSequence contains multiple tempos.
   """
   daemon = True
 
   def __init__(self, outport, sequence, allow_updates=False):
-    if len(sequence.tempos) != 1:
-      raise MidiHubException('Cannot play NoteSequence with multiple tempos.')
-
     self._outport = outport
     # Set of notes (pitches) that are currently on.
     self._open_notes = set()
@@ -241,22 +244,21 @@ class MidiPlayer(threading.Thread):
       raise MidiHubException(
           'Attempted to update a MidiPlayer sequence with updates disabled.')
 
-    playhead = time.time()
+    start_time = time.time()
 
     new_message_list = []
     # The set of pitches that are already playing but are not closed without
     # being reopened in the future in the new sequence.
     notes_to_close = set()
     for note in sequence.notes:
-      if note.start_time >= playhead:
+      if note.start_time >= start_time:
         new_message_list.append(
             mido.Message(type='note_on', note=note.pitch,
                          velocity=note.velocity, time=note.start_time))
-      if note.end_time >= playhead:
+      if note.end_time >= start_time:
         new_message_list.append(
             mido.Message(type='note_off', note=note.pitch, time=note.end_time))
-        if (note.start_time < self._playhead and
-            note.pitch not in self._open_notes):
+        if note.start_time < start_time and note.pitch not in self._open_notes:
           notes_to_close.add(note.pitch)
 
     for msg in self._message_queue:
@@ -289,12 +291,14 @@ class MidiPlayer(threading.Thread):
           if msg.type == 'note_on':
             self._open_notes.add(msg.note)
           elif msg.type == 'note_off':
-            self._open_notes.remove(msg.note)
+            self._open_notes.discard(msg.note)
           self._outport.send(msg)
 
       # Either keep player alive and wait for sequence update, or return.
       if self._allow_updates:
         self._update_cv.wait()
+      else:
+        break
 
   def stop(self):
     """Signals for the playback to stop and ends all open notes.
@@ -359,7 +363,7 @@ class MidiCaptor(threading.Thread):
     """
     if not msg.time:
       raise MidiHubException(
-          'MidiCaptor received message without empty time attribute.')
+          'MidiCaptor received message with empty time attribute: %s' % msg)
     self._receive_queue.put_nowait(msg)
 
   @abc.abstractmethod
@@ -410,7 +414,7 @@ class MidiCaptor(threading.Thread):
       # Set final captured sequence.
       self._captured_sequence = self.captured_sequence(end_time)
       # Wake up all generators.
-      for regex, cond_var in self._generator_signals:
+      for regex, cond_var in self._iter_signals:
         cond_var.notify()
 
   def stop(self, stop_time=None):
@@ -466,7 +470,7 @@ class MidiCaptor(threading.Thread):
         raise MidiHubException(
             '`end_time` must be provided when capture thread is still running.')
       for i, note in enumerate(current_captured_sequence.notes):
-        if note.start_time > note.end_time:
+        if note.start_time > end_time:
           del current_captured_sequence.notes[i:]
           break
         if not note.end_time or note.end_time > end_time:
