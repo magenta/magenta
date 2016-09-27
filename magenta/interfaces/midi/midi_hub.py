@@ -94,24 +94,24 @@ class MidiSignal(object):
             inferred_types.append(name)
         if not inferred_types:
           raise MidiHubException(
-            'Could not infer a message type for set of given arguments: %s'
-            % ', '.join(args))
+              'Could not infer a message type for set of given arguments: %s'
+              % ', '.join(kwargs))
         # If there is only a single valid inferred type, use it.
         if len(inferred_types) == 1:
           type_ = inferred_types[0]
 
     if msg is not None:
       self._regex_pattern = '^' + mido.messages.format_as_string(
-          msg, include_time=False) + ' time=\d+.\d+$'
+          msg, include_time=False) + r' time=\d+.\d+$'
     else:
       # Generate regex pattern.
       parts = ['.*' if type_ is None else type_]
-      for name in (mido.messages.get_spec(inferred_types[0]).arguments):
+      for name in mido.messages.get_spec(inferred_types[0]).arguments:
         if name in kwargs:
           parts.append('%s=%d' % (name, kwargs[name]))
         else:
           parts.append(r'%s=\d+' % name)
-      self._regex_pattern = '^' + ' '.join(parts) + ' time=\d+.\d+$'
+      self._regex_pattern = '^' + ' '.join(parts) + r' time=\d+.\d+$'
 
   def __str__(self):
     """Returns a regex pattern for matching against a mido.Message string."""
