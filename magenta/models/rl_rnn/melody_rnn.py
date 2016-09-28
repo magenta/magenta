@@ -47,9 +47,9 @@ class MelodyRNN(object):
   """
 
   def __init__(self, graph, scope, experiment_dir, midi_primer,
-               training_data_path=None, hparams=None,
+               training_file_list=None, hparams=None,
                backup_checkpoint_file=None, softmax_within_graph=True,
-               checkpoint_scope='rnn_model'):
+               checkpoint_scope='rnn_model', bpm=DEFAULT_BPM):
     """Initialize by building the graph and loading a previous checkpoint.
 
     Args:
@@ -58,8 +58,8 @@ class MelodyRNN(object):
       experiment_dir: Path to the directory where the checkpoint file is saved.
       midi_primer: Path to a single midi file that can be used to prime the
         model.
-      training_data_path: Path to a tfrecord file containing melody training
-        data.
+      training_file_list: List of paths to tfrecord files containing melody 
+        training data.
       hparams: A tf_lib.HParams object. Must match the hparams used to create the
         checkpoint file.
       backup_checkpoint_file: Path to a backup checkpoint file to be used if
@@ -70,6 +70,7 @@ class MelodyRNN(object):
         softmax probabilities or logits.
       checkpoint_scope: The scope in lstm which the model was originally defined
         when it was first trained.
+      bpm: Beats per minute to use for the compositions.
     """
     self.graph = graph
     self.session = None
@@ -78,19 +79,18 @@ class MelodyRNN(object):
     self.midi_primer = midi_primer
     self.softmax_within_graph = softmax_within_graph
     self.checkpoint_scope = checkpoint_scope
+    self.training_file_list = training_file_list
+    self.bpm = bpm
 
     if hparams is not None:
-      logging.info('Using custom hparams')
+      tf.logging.info('Using custom hparams')
       self.hparams = hparams
     else:
-      logging.info('Empty hparams string. Using defaults')
+      tf.logging.info('Empty hparams string. Using defaults')
       self.hparams = rl_rnn_ops.default_hparams()
 
     self.checkpoint_dir = os.path.join(experiment_dir, 'train')
     self.backup_checkpoint_file = backup_checkpoint_file
-
-    self.training_file_list = gfile.Glob(
-        training_data_path) if training_data_path is not None else None
 
     self.build_graph()
     self.state_value = self.get_zero_state()
@@ -161,7 +161,7 @@ class MelodyRNN(object):
   def build_graph(self):
     """Constructs the portion of the graph that belongs to this model."""
 
-    logging.info('Initializing melody RNN graph for scope %s', self.scope)
+    tf.logging.info('Initializing melody RNN graph for scope %s', self.scope)
 
     with self.graph.as_default():
       with tf.device(lambda op: ''):
@@ -185,8 +185,8 @@ class MelodyRNN(object):
             # Set up a tf queue to read melodies from the training data tfrecord
             (self.train_sequence,
              self.train_labels,
-             self.train_lengths) = sequence_example_lib.get_padded_batch.dynamic_rnn_batch(
-                 self.training_file_list, self.hparams)
+             self.train_lengths) = sequence_example_lib.get_padded_batch(
+                 self.training_file_list, self.hparams.batch_size, self.hparams.one_hot_length)
 
           # Closure function is used so that this part of the graph can be
           # re-run in multiple places, such as __call__.
@@ -256,17 +256,20 @@ class MelodyRNN(object):
       checkpoint_dir: Directory which contains a saved checkpoint of the
         model.
     """
-    logging.info('Restoring variables from checkpoint')
+    tf.logging.info('Restoring variables from checkpoint')
 
     var_dict = self.get_variable_name_dict()
     with self.graph.as_default():
       saver = tf.train.Saver(var_list=var_dict)
 
-    logging.info('Checkpoint dir: %s', checkpoint_dir)
+    tf.logging.info('Checkpoint dir: %s', checkpoint_dir)
+    print "checkpoint dir", checkpoint_dir
     checkpoint_file = tf.train.latest_checkpoint(checkpoint_dir)
     if checkpoint_file is None:
+      print "can't find checkpoint file, using backup, which is", self.backup_checkpoint_file
       checkpoint_file = self.backup_checkpoint_file
-    logging.info('Checkpoint file: %s', checkpoint_file)
+    tf.logging.info('Checkpoint file: %s', checkpoint_file)
+    print "checkpoint file", checkpoint_file
 
     saver.restore(self.session, checkpoint_file)
 
@@ -278,17 +281,13 @@ class MelodyRNN(object):
     """
 
     if not os.path.exists(self.midi_primer):
-      logging.warn('ERROR! No such primer file exists! %s', self.midi_primer)
+      tf.logging.warn('ERROR! No such primer file exists! %s', self.midi_primer)
       return
 
     self.primer_sequence = midi_io.midi_file_to_sequence_proto(self.midi_primer)
-    if self.primer_sequence.tempos:
-      self.bpm = self.primer_sequence.tempos[0].bpm
-    else:
-      self.bpm = DEFAULT_BPM
     quantized_seq = sequences_lib.QuantizedSequence()
     quantized_seq.from_note_sequence(self.primer_sequence,
-                                     steps_per_beat=4)
+                                     steps_per_quarter=4)
     extracted_melodies, _ = melodies_lib.extract_melodies(quantized_seq,
                                                           min_bars=0,
                                                           min_unique_pitches=1)
@@ -299,7 +298,7 @@ class MelodyRNN(object):
     """Primes the model with its default midi primer."""
     with self.graph.as_default():
       if not suppress_output:
-        logging.info('Priming the model with MIDI file %s', self.midi_primer)
+        tf.logging.info('Priming the model with MIDI file %s', self.midi_primer)
 
       # Convert primer Melody to model inputs.
       encoder = melody_rnn_encoder_decoder.MelodyEncoderDecoder()
@@ -367,7 +366,7 @@ class MelodyRNN(object):
       A batch of softmax probabilities and model state vectors.
     """
     if self.training_file_list is None:
-      logging.warn('No training file path was provided, cannot run training'
+      tf.logging.warn('No training file path was provided, cannot run training'
                    'batch')
       return
 

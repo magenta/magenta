@@ -88,7 +88,7 @@ class MelodyQNetwork(object):
                # Logistics.
                output_every_nth=1000,
                backup_checkpoint_file=None,
-               training_data_path=None,
+               training_file_list=None,
                summary_writer=None,
                custom_hparams=None,
                initialize_immediately=True):
@@ -129,8 +129,8 @@ class MelodyQNetwork(object):
         an output saying the cumulative reward, and save a checkpoint.
       backup_checkpoint_file: A checkpoint file to use in case one cannot be
         found in the melody_checkpoint_dir.
-      training_data_path: A path to a tfrecord file containing melody training
-        data. This is necessary to use the 'random_midi' priming mode.
+      training_file_list: A list of paths to tfrecord files containing melody 
+        training data. This is necessary to use the 'random_midi' priming mode.
       summary_writer: A tf.train.SummaryWriter used to log metrics.
       custom_hparams: A tf.HParams object which defines the hyper parameters
         used to train the MelodyRNN model that will be loaded from a checkpoint.
@@ -154,7 +154,7 @@ class MelodyQNetwork(object):
       self.priming_mode = priming_mode
       self.midi_primer = midi_primer
       self.melody_checkpoint_dir = melody_checkpoint_dir
-      self.training_data_path = training_data_path
+      self.training_file_list = training_file_list
       self.backup_checkpoint_file = backup_checkpoint_file
       self.custom_hparams = custom_hparams
 
@@ -166,7 +166,7 @@ class MelodyQNetwork(object):
       self.target_network_update_rate = tf.constant(
           self.dqn_hparams.target_network_update_rate)
 
-      self.optimizer = tf.AdamOptimizer()
+      self.optimizer = tf.train.AdamOptimizer()
 
       # DQN state.
       self.actions_executed_so_far = 0
@@ -212,45 +212,45 @@ class MelodyQNetwork(object):
     """
     with self.graph.as_default():
       # Add internal networks to the graph.
-      logging.info('Initializing q network')
+      tf.logging.info('Initializing q network')
       self.q_network = melody_rnn.MelodyRNN(self.graph, 'q_network',
                                             self.melody_checkpoint_dir,
                                             self.midi_primer,
-                                            training_data_path=
-                                            self.training_data_path,
+                                            training_file_list=
+                                            self.training_file_list,
                                             softmax_within_graph=False,
                                             backup_checkpoint_file=
                                             self.backup_checkpoint_file,
                                             hparams=self.custom_hparams)
 
-      logging.info('Initializing target q network')
+      tf.logging.info('Initializing target q network')
       self.target_q_network = melody_rnn.MelodyRNN(self.graph,
                                                    'target_q_network',
                                                    self.melody_checkpoint_dir,
                                                    self.midi_primer,
-                                                   training_data_path=
-                                                   self.training_data_path,
+                                                   training_file_list=
+                                                   self.training_file_list,
                                                    softmax_within_graph=False,
                                                    backup_checkpoint_file=
                                                    self.backup_checkpoint_file,
                                                    hparams=self.custom_hparams)
 
-      logging.info('Initializing reward network')
+      tf.logging.info('Initializing reward network')
       self.reward_rnn = melody_rnn.MelodyRNN(self.graph,
                                              'reward_rnn',
                                              self.melody_checkpoint_dir,
                                              self.midi_primer,
-                                             training_data_path=
-                                             self.training_data_path,
+                                             training_file_list=
+                                             self.training_file_list,
                                              softmax_within_graph=False,
                                              backup_checkpoint_file=
                                              self.backup_checkpoint_file,
                                              hparams=self.custom_hparams)
 
-      logging.info('Q network cell: %s', self.q_network.cell)
+      tf.logging.info('Q network cell: %s', self.q_network.cell)
 
       # Add rest of variables to graph.
-      logging.info('Adding RL graph variables')
+      tf.logging.info('Adding RL graph variables')
       self.build_graph()
 
       # Prepare saver and session.
@@ -269,7 +269,7 @@ class MelodyQNetwork(object):
         self.reward_rnn.initialize_new(self.session)
 
     if self.priming_mode == 'random_midi':
-      logging.info('Getting priming melodies')
+      tf.logging.info('Getting priming melodies')
       self.get_priming_melodies()
 
   def prime_internal_models(self):
@@ -303,7 +303,7 @@ class MelodyQNetwork(object):
       end_softmax = next_note_softmax[end_i, :]
       self.priming_notes[i] = np.argmax(end_softmax)
 
-    logging.info('Stored priming notes: %s', self.priming_notes)
+    tf.logging.info('Stored priming notes: %s', self.priming_notes)
 
   def restore_from_checkpoint(self, checkpoint_dir):
     """Restores this model from a saved checkpoint.
@@ -312,21 +312,21 @@ class MelodyQNetwork(object):
       checkpoint_dir: The directory containing the saved checkpoint.
     """
 
-    logging.info('Attempting to restore from checkpoint directory: %s',
+    tf.logging.info('Attempting to restore from checkpoint directory: %s',
                  checkpoint_dir)
     checkpoint_file = tf.train.latest_checkpoint(checkpoint_dir)
-    logging.info('Checkpoint file: %s', checkpoint_file)
+    tf.logging.info('Checkpoint file: %s', checkpoint_file)
 
     self.saver.restore(self.session, checkpoint_file)
 
   def build_graph(self):
     """Builds the reinforcement learning graph."""
 
-    logging.info('Adding reward computation portion of the graph')
+    tf.logging.info('Adding reward computation portion of the graph')
     with tf.name_scope('reward_computation'):
       self.reward_scores = tf.identity(self.reward_rnn(), name='reward_scores')
 
-    logging.info('Adding taking action portion of graph')
+    tf.logging.info('Adding taking action portion of graph')
     with tf.name_scope('taking_action'):
       # Output of the q network gives the value of taking each action (playing
       # each note).
@@ -341,7 +341,7 @@ class MelodyQNetwork(object):
                                                     name='predicted_actions'),
                                           self.num_actions)
 
-    logging.info('Add estimating future rewards portion of graph')
+    tf.logging.info('Add estimating future rewards portion of graph')
     with tf.name_scope('estimating_future_rewards'):
       # The target q network is used to estimate the value of the best action at
       # the state resulting from the current action.
@@ -357,7 +357,7 @@ class MelodyQNetwork(object):
       # rewards.
       self.future_rewards = self.rewards + self.discount_rate * self.target_vals
 
-    logging.info('Adding q value prediction portion of graph')
+    tf.logging.info('Adding q value prediction portion of graph')
     with tf.name_scope('q_value_prediction'):
       # Action mask will be a one-hot encoding of the action the network
       # actually took.
@@ -391,7 +391,7 @@ class MelodyQNetwork(object):
       # Backprop.
       self.train_op = self.optimizer.apply_gradients(self.gradients)
 
-    logging.info('Adding target network update portion of graph')
+    tf.logging.info('Adding target network update portion of graph')
     with tf.name_scope('target_network_update'):
       # Updates the target_q_network to be similar to the q_network based on
       # the target_network_update_rate.
@@ -537,7 +537,7 @@ class MelodyQNetwork(object):
       next_obs = np.array(
           rl_rnn_ops.make_onehot([priming_note], self.num_actions)).flatten()
       if not suppress_output:
-        logging.info(
+        tf.logging.info(
             'Feeding priming state for midi file %s and corresponding note %s',
             priming_idx, priming_note)
     elif self.priming_mode == 'single_midi':
@@ -546,7 +546,7 @@ class MelodyQNetwork(object):
     elif self.priming_mode == 'random_note':
       next_obs = self.get_random_note()
     else:
-      logging.warn('Error! Not a valid priming mode. Priming with random note')
+      tf.logging.warn('Error! Not a valid priming mode. Priming with random note')
       next_obs = self.get_random_note()
 
     return next_obs
@@ -622,7 +622,7 @@ class MelodyQNetwork(object):
       next_obs = np.array(rl_rnn_ops.make_onehot([sample],
                                                  self.num_actions)).flatten()
 
-    logging.info('Generated sequence: %s', generated_seq)
+    tf.logging.info('Generated sequence: %s', generated_seq)
 
     melody = mlib.MonophonicMelody()
     melody.steps_per_bar = self.q_network.steps_per_bar
@@ -633,10 +633,10 @@ class MelodyQNetwork(object):
     filename = rl_rnn_ops.get_next_file_name(self.output_dir, title, 'mid')
     midi_io.sequence_proto_to_midi_file(sequence, filename)
 
-    logging.info('Wrote a melody to %s', self.output_dir)
+    tf.logging.info('Wrote a melody to %s', self.output_dir)
 
     if visualize_probs:
-      logging.info('Visualizing note selection probabilities:')
+      tf.logging.info('Visualizing note selection probabilities:')
       plt.figure()
       plt.imshow(prob_image)
       plt.ylabel('Note probability')
@@ -779,7 +779,7 @@ class MelodyQNetwork(object):
     self.actions_executed_so_far = 0
 
     if self.stochastic_observations:
-      logging.info('Using stochastic environment')
+      tf.logging.info('Using stochastic environment')
 
     self.reset_composition()
     last_observation = self.prime_q_model(suppress_output=False)
@@ -826,9 +826,9 @@ class MelodyQNetwork(object):
             self.dqn_hparams.random_action_probability)
 
         r = self.reward_last_n
-        logging.info('Training iteration %s', i)
-        logging.info('\tReward for last %s steps: %s', self.output_every_nth, r)
-        logging.info('\tExploration probability is %s', exploration_p)
+        tf.logging.info('Training iteration %s', i)
+        tf.logging.info('\tReward for last %s steps: %s', self.output_every_nth, r)
+        tf.logging.info('\tExploration probability is %s', exploration_p)
 
         self.reward_last_n = 0
 
@@ -915,43 +915,43 @@ class MelodyQNetwork(object):
       prev_reward = reward
       note_rnn_reward = reward
       if verbose:
-        logging.info('Key and tonic: %s', reward)
+        tf.logging.info('Key and tonic: %s', reward)
 
       reward = self.reward_penalize_repeating(action)
       if verbose and reward != prev_reward:
-        logging.info('Penalize repeating: %s', reward)
+        tf.logging.info('Penalize repeating: %s', reward)
       prev_reward = reward
 
       reward += self.reward_penalize_autocorrelation(action)
       if verbose and reward != prev_reward:
-        logging.info('Penalize autocorr: %s', reward)
+        tf.logging.info('Penalize autocorr: %s', reward)
       prev_reward = reward
 
       reward += self.reward_motif(action)
       if verbose and reward != prev_reward:
-        logging.info('Reward motif: %s', reward)
+        tf.logging.info('Reward motif: %s', reward)
       prev_reward = reward
 
       reward += self.reward_repeated_motif(action)
       if verbose and reward != prev_reward:
-        logging.info('Reward repeated motif: %s', reward)
+        tf.logging.info('Reward repeated motif: %s', reward)
       prev_reward = reward
 
       # New rewards based on Gauldin's book, "A Practical Approach to Eighteenth
       # Century Counterpoint"
       reward += self.reward_preferred_intervals(action)
       if verbose and reward != prev_reward:
-        logging.info('Reward preferred_intervals: %s', reward)
+        tf.logging.info('Reward preferred_intervals: %s', reward)
       prev_reward = reward
 
       reward += self.reward_leap_up_back(action)
       if verbose and reward != prev_reward:
-        logging.info('Reward leap up back: %s', reward)
+        tf.logging.info('Reward leap up back: %s', reward)
       prev_reward = reward
 
       reward += self.reward_high_low_unique(action)
       if verbose and reward != prev_reward:
-        logging.info('Reward high low unique: %s', reward)
+        tf.logging.info('Reward high low unique: %s', reward)
 
       return reward * self.reward_scaler + note_rnn_reward
     elif self.reward_mode == 'music_theory_gauldin_no_data':
@@ -961,45 +961,45 @@ class MelodyQNetwork(object):
           obs, action, state=state, maintain_prev=False)
       prev_reward = reward
       if verbose:
-        logging.info('Key and tonic: %s', reward)
+        tf.logging.info('Key and tonic: %s', reward)
 
       reward += self.reward_penalize_repeating(action)
       if verbose and reward != prev_reward:
-        logging.info('Penalize repeating: %s', reward)
+        tf.logging.info('Penalize repeating: %s', reward)
       prev_reward = reward
 
       reward += self.reward_penalize_autocorrelation(action)
       if verbose and reward != prev_reward:
-        logging.info('Penalize autocorr: %s', reward)
+        tf.logging.info('Penalize autocorr: %s', reward)
       prev_reward = reward
 
       reward += self.reward_motif(action)
       if verbose and reward != prev_reward:
-        logging.info('Reward motif: %s', reward)
+        tf.logging.info('Reward motif: %s', reward)
       prev_reward = reward
 
       reward += self.reward_repeated_motif(action)
       if verbose and reward != prev_reward:
-        logging.info('Reward repeated motif: %s', reward)
+        tf.logging.info('Reward repeated motif: %s', reward)
       prev_reward = reward
 
       # New rewards based on Gauldin's book, "A Practical Approach to Eighteenth
       # Century Counterpoint"
       reward += self.reward_preferred_intervals(action)
       if verbose and reward != prev_reward:
-        logging.info('Reward preferred_intervals: %s', reward)
+        tf.logging.info('Reward preferred_intervals: %s', reward)
       prev_reward = reward
 
       reward += self.reward_leap_up_back(action)
       if verbose and reward != prev_reward:
-        logging.info('Reward leap up back: %s', reward)
+        tf.logging.info('Reward leap up back: %s', reward)
       prev_reward = reward
 
       reward += self.reward_high_low_unique(action)
       if verbose and reward != prev_reward:
-        logging.info('Reward high low unique: %s', reward)
+        tf.logging.info('Reward high low unique: %s', reward)
     else:
-      logging.fatal('ERROR! Not a valid reward mode. Cannot compute reward')
+      tf.logging.fatal('ERROR! Not a valid reward mode. Cannot compute reward')
 
     return reward * self.reward_scaler
 
@@ -1611,7 +1611,7 @@ class MelodyQNetwork(object):
     if action_note == NOTE_OFF or action_note == NO_EVENT:
       self.steps_since_last_leap += 1
       if verbose:
-        logging.info('Rest, adding to steps since last leap. It is'
+        tf.logging.info('Rest, adding to steps since last leap. It is'
                      'now: %s', self.steps_since_last_leap)
       return 0
 
@@ -1620,35 +1620,35 @@ class MelodyQNetwork(object):
       if action_note > prev_note:
         leap_direction = ASCENDING
         if verbose:
-          logging.info('Detected an ascending leap')
+          tf.logging.info('Detected an ascending leap')
       else:
         leap_direction = DESCENDING
         if verbose:
-          logging.info('Detected a descending leap')
+          tf.logging.info('Detected a descending leap')
 
       # there was already an unresolved leap
       if self.composition_direction != 0:
         if self.composition_direction != leap_direction:
           if verbose:
-            logging.info('Detected a resolved leap')
-            logging.info('Num steps since last leap: %s',
+            tf.logging.info('Detected a resolved leap')
+            tf.logging.info('Num steps since last leap: %s',
                          self.steps_since_last_leap)
           if self.steps_since_last_leap > steps_between_leaps:
             outcome = LEAP_RESOLVED
             if verbose:
-              logging.info('Sufficient steps before leap resolved, '
+              tf.logging.info('Sufficient steps before leap resolved, '
                            'awarding bonus')
           self.composition_direction = 0
           self.leapt_from = None
         else:
           if verbose:
-            logging.info('Detected a double leap')
+            tf.logging.info('Detected a double leap')
           outcome = LEAP_DOUBLED
 
       # the composition had no previous leaps
       else:
         if verbose:
-          logging.info('There was no previous leap direction')
+          tf.logging.info('There was no previous leap direction')
         self.composition_direction = leap_direction
         self.leapt_from = prev_note
 
@@ -1658,7 +1658,7 @@ class MelodyQNetwork(object):
     else:
       self.steps_since_last_leap += 1
       if verbose:
-        logging.info('No leap, adding to steps since last leap. '
+        tf.logging.info('No leap, adding to steps since last leap. '
                      'It is now: %s', self.steps_since_last_leap)
 
       # if there was a leap before, check if composition has gradually returned
@@ -1667,7 +1667,7 @@ class MelodyQNetwork(object):
               self.composition_direction == DESCENDING and
               action_note >= self.leapt_from):
         if verbose:
-          logging.info('detected a gradually resolved leap')
+          tf.logging.info('detected a gradually resolved leap')
         outcome = LEAP_RESOLVED
         self.composition_direction = 0
         self.leapt_from = None
