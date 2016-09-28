@@ -263,6 +263,18 @@ class MelodyQNetwork(object):
         self.q_network.initialize_and_restore(self.session)
         self.target_q_network.initialize_and_restore(self.session)
         self.reward_rnn.initialize_and_restore(self.session)
+
+        # Double check that the model was initialized from checkpoint properly.
+        reward_vars = self.reward_rnn.variables()
+        q_vars = self.q_network.variables()
+
+        reward1 = self.session.run(reward_vars[0])
+        q1 = self.session.run(q_vars[0])
+
+        if np.sum((q1 - reward1)**2) == 0.0:
+            print "\nSuccessfully initialized internal networks from checkpointed model!"
+        else:
+            print "Error! The model was not initialized from checkpoint properly"
       else:
         self.q_network.initialize_new(self.session)
         self.target_q_network.initialize_new(self.session)
@@ -593,7 +605,7 @@ class MelodyQNetwork(object):
 
     self.reset_composition()
     next_obs = self.prime_q_model(suppress_output=False)
-    logging.info('Priming with note %s', np.argmax(next_obs))
+    tf.logging.info('Priming with note %s', np.argmax(next_obs))
 
     lengths = np.full(self.q_network.batch_size, 1, dtype=int)
 
@@ -625,11 +637,10 @@ class MelodyQNetwork(object):
     tf.logging.info('Generated sequence: %s', generated_seq)
 
     melody = mlib.MonophonicMelody()
-    melody.steps_per_bar = self.q_network.steps_per_bar
     melody.from_event_list(rl_rnn_ops.decoder(generated_seq,
                                               self.q_network.transpose_amount))
 
-    sequence = melody.to_sequence(bpm=self.q_network.bpm)
+    sequence = melody.to_sequence(qpm=self.q_network.bpm)
     filename = rl_rnn_ops.get_next_file_name(self.output_dir, title, 'mid')
     midi_io.sequence_proto_to_midi_file(sequence, filename)
 
@@ -762,6 +773,12 @@ class MelodyQNetwork(object):
     return np.array(rl_rnn_ops.make_onehot([note_idx],
                                            self.num_actions)).flatten()
 
+  def save_model(self, directory, name):
+    save_loc = os.path.join(directory, name)
+    self.saver.save(self.session, save_loc, 
+                    global_step=len(self.rewards_batched)*self.output_every_nth)
+
+
   def train(self, num_steps=10000, exploration_period=5000, enable_random=True):
     """Main training function that allows model to act, collects reward, trains.
 
@@ -830,6 +847,9 @@ class MelodyQNetwork(object):
         tf.logging.info('\tReward for last %s steps: %s', self.output_every_nth, r)
         tf.logging.info('\tExploration probability is %s', exploration_p)
 
+        print 'Training iteration', i
+        print '\tReward for last', self.output_every_nth, 'steps:', r
+        print '\tExploration probability is', exploration_p
         self.reward_last_n = 0
 
       # Backprop.
@@ -1535,7 +1555,7 @@ class MelodyQNetwork(object):
       True if the lowest note was unique, False otherwise.
     """
     max_note = max(composition)
-    if composition.count(max_note) == 1:
+    if list(composition).count(max_note) == 1:
       return True
     else:
       return False
@@ -1552,7 +1572,7 @@ class MelodyQNetwork(object):
                          if x != NO_EVENT and x != NOTE_OFF]
     if no_special_events:
       min_note = min(no_special_events)
-      if composition.count(min_note) == 1:
+      if list(composition).count(min_note) == 1:
         return True
     return False
 
@@ -1835,7 +1855,7 @@ class MelodyQNetwork(object):
     stat_dict['num_compositions'] = num_compositions
     stat_dict['total_notes'] = num_compositions * composition_length
 
-    logging.info(self.get_stat_dict_string(stat_dict))
+    tf.logging.info(self.get_stat_dict_string(stat_dict))
 
     return stat_dict
 

@@ -3,7 +3,7 @@ import tensorflow as tf
 def make_cell(hparams, state_is_tuple=False):
   cells = []
   for num_units in hparams.rnn_layer_sizes:
-    cell = tf.nn.rnn_cell.BasicLSTMCell(
+    cell = tf.nn.rnn_cell.LSTMCell(
         num_units, state_is_tuple=state_is_tuple)
     #cell = tf.nn.rnn_cell.DropoutWrapper(
     #    cell, output_keep_prob=hparams.dropout_keep_prob)
