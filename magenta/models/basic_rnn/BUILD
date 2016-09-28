@@ -88,7 +88,6 @@ py_library(
         # internal dev models
     ],
     deps = [
-        "//magenta",
         "//magenta/models/shared:melody_rnn_graph",
     ],
 )

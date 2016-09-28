@@ -26,11 +26,11 @@ import time
 # internal imports
 import mido
 import tensorflow as tf
+import magenta
 
 from magenta.models.attention_rnn import attention_rnn_generator
 from magenta.models.basic_rnn import basic_rnn_generator
 from magenta.models.lookback_rnn import lookback_rnn_generator
-from magenta.music import sequence_generator_bundle
 from magenta.protobuf import generator_pb2
 from magenta.protobuf import music_pb2
 
@@ -179,7 +179,7 @@ class Generator(object):
 
     bundle = None
     if bundle_file:
-      bundle = sequence_generator_bundle.read_bundle_file(bundle_file)
+      bundle = magenta.music.read_bundle_file(bundle_file)
       generator_name = bundle.generator_details.id
 
     if generator_name not in _GENERATOR_FACTORY_MAP:

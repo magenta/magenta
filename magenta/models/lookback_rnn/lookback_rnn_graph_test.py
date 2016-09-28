@@ -23,7 +23,7 @@ from magenta.music import melodies_lib
 class LookbackRNNGraphTest(tf.test.TestCase):
 
   def setUp(self):
-    self.encoder_decoder = melodies_lib.OneHotEncoderDecoder(0, 12, 0)
+    self.encoder_decoder = melodies_lib.OneHotMelodyEncoderDecoder(0, 12, 0)
 
   def testBuildTrainGraph(self):
     g = lookback_rnn_graph.build_graph(

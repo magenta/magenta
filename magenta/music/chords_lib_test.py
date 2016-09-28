@@ -66,7 +66,7 @@ class ChordsLibTest(tf.test.TestCase):
       chords.transpose(transpose_amount=-4)
 
   def testFromQuantizedSequence(self):
-    testing_lib.add_quantized_chords(
+    testing_lib.add_quantized_chords_to_sequence(
         self.quantized_sequence,
         [('Am', 4), ('D7', 8), ('G13', 12), ('Csus', 14)])
     chords = chords_lib.ChordProgression()
@@ -78,7 +78,7 @@ class ChordsLibTest(tf.test.TestCase):
     self.assertEqual(expected, list(chords))
 
   def testFromQuantizedSequenceWithinSingleChord(self):
-    testing_lib.add_quantized_chords(
+    testing_lib.add_quantized_chords_to_sequence(
         self.quantized_sequence, [('F', 0), ('Gm', 8)])
     chords = chords_lib.ChordProgression()
     chords.from_quantized_sequence(
@@ -94,7 +94,7 @@ class ChordsLibTest(tf.test.TestCase):
     self.assertEqual(expected, list(chords))
 
   def testFromQuantizedSequenceWithCoincidentChords(self):
-    testing_lib.add_quantized_chords(
+    testing_lib.add_quantized_chords_to_sequence(
         self.quantized_sequence,
         [('Am', 4), ('D7', 8), ('G13', 12), ('Csus', 12)])
     chords = chords_lib.ChordProgression()
@@ -104,14 +104,14 @@ class ChordsLibTest(tf.test.TestCase):
 
   def testExtractChordsForMelodies(self):
     self.quantized_sequence.steps_per_quarter = 1
-    testing_lib.add_quantized_track(
+    testing_lib.add_quantized_track_to_sequence(
         self.quantized_sequence, 0,
         [(12, 100, 2, 4), (11, 1, 6, 11)])
-    testing_lib.add_quantized_track(
+    testing_lib.add_quantized_track_to_sequence(
         self.quantized_sequence, 1,
         [(12, 127, 2, 4), (14, 50, 6, 8),
          (50, 100, 33, 37), (52, 100, 34, 37)])
-    testing_lib.add_quantized_chords(
+    testing_lib.add_quantized_chords_to_sequence(
         self.quantized_sequence,
         [('C', 2), ('G7', 6), ('Cmaj7', 33)])
     melodies, _ = melodies_lib.extract_melodies(
@@ -127,14 +127,14 @@ class ChordsLibTest(tf.test.TestCase):
 
   def testExtractChordsForMelodiesCoincidentChords(self):
     self.quantized_sequence.steps_per_quarter = 1
-    testing_lib.add_quantized_track(
+    testing_lib.add_quantized_track_to_sequence(
         self.quantized_sequence, 0,
         [(12, 100, 2, 4), (11, 1, 6, 11)])
-    testing_lib.add_quantized_track(
+    testing_lib.add_quantized_track_to_sequence(
         self.quantized_sequence, 1,
         [(12, 127, 2, 4), (14, 50, 6, 8),
          (50, 100, 33, 37), (52, 100, 34, 37)])
-    testing_lib.add_quantized_chords(
+    testing_lib.add_quantized_chords_to_sequence(
         self.quantized_sequence,
         [('C', 2), ('G7', 6), ('E13', 8), ('Cmaj7', 8)])
     melodies, _ = melodies_lib.extract_melodies(

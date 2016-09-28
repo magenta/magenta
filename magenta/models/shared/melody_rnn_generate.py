@@ -22,15 +22,13 @@ import time
 
 # internal imports
 from six.moves import range  # pylint: disable=redefined-builtin
-import tensorflow as tf
 
-from magenta.music import constants
-from magenta.music import melodies_lib
-from magenta.music import midi_io
-from magenta.music import sequence_generator
-from magenta.music import sequence_generator_bundle
+import tensorflow as tf
+import magenta
+
 from magenta.protobuf import generator_pb2
 from magenta.protobuf import music_pb2
+
 
 FLAGS = tf.app.flags.FLAGS
 tf.app.flags.DEFINE_string(
@@ -67,10 +65,11 @@ tf.app.flags.DEFINE_integer(
     'melody length + generated steps. Each step is a 16th of a bar.')
 tf.app.flags.DEFINE_string(
     'primer_melody', '',
-    'A string representation of a Python list of melodies_lib.MonophonicMelody '
-    'event values. For example: "[60, -2, 60, -2, 67, -2, 67, -2]". If '
-    'specified, this melody will be used as the priming melody. If a priming '
-    'melody is not specified, melodies will be generated from scratch.')
+    'A string representation of a Python list of '
+    'magenta.music.MonophonicMelody event values. For example: '
+    '"[60, -2, 60, -2, 67, -2, 67, -2]". If specified, this melody will be '
+    'used as the priming melody. If a priming melody is not specified, '
+    'melodies will be generated from scratch.')
 tf.app.flags.DEFINE_string(
     'primer_midi', '',
     'The path to a MIDI file containing a melody that will be used as a '
@@ -105,7 +104,7 @@ def get_checkpoint():
   """Get the training dir or checkpoint path to be used by the model."""
   if ((FLAGS.run_dir or FLAGS.checkpoint_file) and
       FLAGS.bundle_file and not should_save_generator_bundle()):
-    raise sequence_generator.SequenceGeneratorException(
+    raise magenta.music.SequenceGeneratorException(
         'Cannot specify both bundle_file and run_dir or checkpoint_file')
   if FLAGS.run_dir:
     train_dir = os.path.join(os.path.expanduser(FLAGS.run_dir), 'train')
@@ -136,7 +135,7 @@ def get_bundle():
   bundle_file = get_bundle_file()
   if bundle_file is None:
     return None
-  return sequence_generator_bundle.read_bundle_file(bundle_file)
+  return magenta.music.read_bundle_file(bundle_file)
 
 
 def should_save_generator_bundle():
@@ -198,13 +197,14 @@ def run_with_flags(melody_rnn_sequence_generator):
     os.makedirs(FLAGS.output_dir)
 
   primer_sequence = None
-  qpm = FLAGS.qpm if FLAGS.qpm else constants.DEFAULT_QUARTERS_PER_MINUTE
+  qpm = FLAGS.qpm if FLAGS.qpm else magenta.music.DEFAULT_QUARTERS_PER_MINUTE
   if FLAGS.primer_melody:
-    primer_melody = melodies_lib.MonophonicMelody()
+    primer_melody = magenta.music.MonophonicMelody()
     primer_melody.from_event_list(ast.literal_eval(FLAGS.primer_melody))
     primer_sequence = primer_melody.to_sequence(qpm=qpm)
   elif FLAGS.primer_midi:
-    primer_sequence = midi_io.midi_file_to_sequence_proto(FLAGS.primer_midi)
+    primer_sequence = magenta.music.midi_file_to_sequence_proto(
+        FLAGS.primer_midi)
     if primer_sequence.tempos and primer_sequence.tempos[0].qpm:
       qpm = primer_sequence.tempos[0].qpm
 
@@ -252,7 +252,7 @@ def run_with_flags(melody_rnn_sequence_generator):
 
     midi_filename = '%s_%s.mid' % (date_and_time, str(i + 1).zfill(digits))
     midi_path = os.path.join(FLAGS.output_dir, midi_filename)
-    midi_io.sequence_proto_to_midi_file(generated_sequence, midi_path)
+    magenta.music.sequence_proto_to_midi_file(generated_sequence, midi_path)
 
   tf.logging.info('Wrote %d MIDI files to %s',
                   FLAGS.num_outputs, FLAGS.output_dir)

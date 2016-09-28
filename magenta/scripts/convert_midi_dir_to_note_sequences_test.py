@@ -83,9 +83,8 @@ class ConvertMidiDirToSequencesTest(tf.test.TestCase):
       for sequence in note_sequence_io.note_sequence_record_iterator(
           output_file.name):
         self.assertEquals(
-            note_sequence_io.generate_id(sequence.filename,
-                                         os.path.basename(relative_root),
-                                         'midi'),
+            note_sequence_io.generate_note_sequence_id(
+                sequence.filename, os.path.basename(relative_root), 'midi'),
             sequence.id)
         self.assertEquals(os.path.basename(root_dir), sequence.collection_name)
         self.assertNotEquals(0, len(sequence.notes))

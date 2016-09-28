@@ -16,14 +16,13 @@
 import collections
 
 # internal imports
-from magenta.music import constants
-from magenta.music import melodies_lib
+import magenta
 
-NUM_SPECIAL_MELODY_EVENTS = constants.NUM_SPECIAL_MELODY_EVENTS
-MELODY_NOTE_OFF = constants.MELODY_NOTE_OFF
-MELODY_NO_EVENT = constants.MELODY_NO_EVENT
-MIN_MIDI_PITCH = constants.MIN_MIDI_PITCH
-NOTES_PER_OCTAVE = constants.NOTES_PER_OCTAVE
+NUM_SPECIAL_MELODY_EVENTS = magenta.music.NUM_SPECIAL_MELODY_EVENTS
+MELODY_NOTE_OFF = magenta.music.MELODY_NOTE_OFF
+MELODY_NO_EVENT = magenta.music.MELODY_NO_EVENT
+MIN_MIDI_PITCH = magenta.music.MIN_MIDI_PITCH
+NOTES_PER_OCTAVE = magenta.music.NOTES_PER_OCTAVE
 STEPS_PER_BAR = 16  # This code assumes the melodies have 16 steps per bar.
 
 MIN_NOTE = 48  # Inclusive
@@ -40,7 +39,7 @@ NUM_BINARY_TIME_COUNTERS = 7
 LOOKBACK_DISTANCES = [STEPS_PER_BAR, STEPS_PER_BAR * 2]
 
 
-class MelodyEncoderDecoder(melodies_lib.MelodyEncoderDecoder):
+class MelodyEncoderDecoder(magenta.music.MelodyEncoderDecoder):
   """A MelodyEncoderDecoder specific to the attention RNN model.
 
   Attributes:
@@ -82,7 +81,7 @@ class MelodyEncoderDecoder(melodies_lib.MelodyEncoderDecoder):
     [62, 74): The keys the last 3 notes are in.
 
     Args:
-      events: A melodies_lib.MonophonicMelody object.
+      events: A magenta.music.MonophonicMelody object.
       position: An integer event position in the melody.
 
     Returns:
@@ -92,7 +91,7 @@ class MelodyEncoderDecoder(melodies_lib.MelodyEncoderDecoder):
     is_attack = False
     is_ascending = None
     last_3_notes = collections.deque(maxlen=3)
-    sub_melody = melodies_lib.MonophonicMelody()
+    sub_melody = magenta.music.MonophonicMelody()
     sub_melody.from_event_list(events[:position + 1])
     for note in sub_melody:
       if note == MELODY_NO_EVENT:
@@ -153,7 +152,7 @@ class MelodyEncoderDecoder(melodies_lib.MelodyEncoderDecoder):
         input_[self.note_range + 14 + i] = 1.0
 
     # The keys the last 3 notes are in.
-    last_3_note_melody = melodies_lib.MonophonicMelody()
+    last_3_note_melody = magenta.music.MonophonicMelody()
     last_3_note_melody.from_event_list(list(last_3_notes))
     key_histogram = last_3_note_melody.get_major_key_histogram()
     max_val = max(key_histogram)
@@ -177,7 +176,7 @@ class MelodyEncoderDecoder(melodies_lib.MelodyEncoderDecoder):
     39: Repeat 2 bars ago (takes precedence over above values).
 
     Args:
-      events: A melodies_lib.MonophonicMelody object.
+      events: A magenta.music.MonophonicMelody object.
       position: An integer event position in the melody.
 
     Returns:
@@ -212,11 +211,11 @@ class MelodyEncoderDecoder(melodies_lib.MelodyEncoderDecoder):
 
     Args:
       class_index: An int in the range [0, self.num_classes).
-      events: The melodies_lib.MonophonicMelody events list of the current
+      events: The magenta.music.MonophonicMelody events list of the current
           melody.
 
     Returns:
-      A melodies_lib.MonophonicMelody event value.
+      A magenta.music.MonophonicMelody event value.
     """
     # Repeat N bars ago.
     for i, lookback_distance in reversed(list(enumerate(LOOKBACK_DISTANCES))):

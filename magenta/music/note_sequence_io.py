@@ -21,7 +21,7 @@ import tensorflow as tf
 from magenta.protobuf import music_pb2
 
 
-def generate_id(filename, collection_name, source_type):
+def generate_note_sequence_id(filename, collection_name, source_type):
   """Generates a unique ID for a sequence.
 
   The format is:'/id/<type>/<collection name>/<hash>'.

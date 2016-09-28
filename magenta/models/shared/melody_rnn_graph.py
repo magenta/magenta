@@ -15,8 +15,7 @@
 
 # internal imports
 import tensorflow as tf
-
-from magenta.common import sequence_example_lib
+import magenta
 
 
 def build_graph(mode, hparams, encoder_decoder, sequence_example_file=None):
@@ -25,7 +24,8 @@ def build_graph(mode, hparams, encoder_decoder, sequence_example_file=None):
   Args:
     mode: 'train', 'eval', or 'generate'. Only mode related ops are added to
         the graph.
-    hparams: A tf_lib.HParams object containing the hyperparameters to use.
+    hparams: A magenta.common.HParams object containing the hyperparameters to
+        use.
     encoder_decoder: The MelodyEncoderDecoder being used by the model.
     sequence_example_file: A string path to a TFRecord file containing
         tf.train.SequenceExamples. Only needed for training and evaluation.
@@ -53,7 +53,7 @@ def build_graph(mode, hparams, encoder_decoder, sequence_example_file=None):
     state_is_tuple = True
 
     if mode == 'train' or mode == 'eval':
-      inputs, labels, lengths = sequence_example_lib.get_padded_batch(
+      inputs, labels, lengths = magenta.common.get_padded_batch(
           [sequence_example_file], hparams.batch_size, input_size)
 
     elif mode == 'generate':
