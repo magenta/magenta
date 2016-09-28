@@ -98,7 +98,7 @@ class MusicXMLParserTest(tf.test.TestCase):
                      len(sequence_proto.tempos))
     for musicxml_tempo, sequence_tempo in zip(
         musicxml_tempos, sequence_proto.tempos):
-      self.assertAlmostEqual(musicxml_tempo.bpm, sequence_tempo.bpm)
+      self.assertAlmostEqual(musicxml_tempo.qpm, sequence_tempo.qpm)
       self.assertAlmostEqual(musicxml_tempo.time_position,
                              sequence_tempo.time)
 

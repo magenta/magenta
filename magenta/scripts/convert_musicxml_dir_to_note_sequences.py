@@ -25,8 +25,8 @@ import os
 # internal imports
 import tensorflow as tf
 
-from magenta.lib import musicxml_reader
-from magenta.lib import note_sequence_io
+from magenta.music import musicxml_reader
+from magenta.music import note_sequence_io
 
 FLAGS = tf.app.flags.FLAGS
 

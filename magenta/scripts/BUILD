@@ -36,8 +36,8 @@ py_binary(
     srcs = ["convert_musicxml_dir_to_note_sequences.py"],
     srcs_version = "PY2AND3",
     deps = [
-        "//magenta/lib:musicxml_reader",
-        "//magenta/lib:note_sequence_io",
+        "//magenta/music:musicxml_reader",
+        "//magenta/music:note_sequence_io",
         # tensorflow dep
     ],
 )

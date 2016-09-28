@@ -158,7 +158,7 @@ class MusicXMLDocument:
     # If no tempos, add a default of 120 at beginning
     if len(tempos) == 0:
         tempo = Tempo()
-        tempo.bpm = current_tempo
+        tempo.qpm = current_tempo
         tempo.time_position = 0
         tempos.append(tempo)
 
@@ -305,7 +305,7 @@ class Measure:
         if child.get("tempo") != None:
           tempo = Tempo(child)
           self.tempos.append(tempo)
-          current_tempo = tempo.bpm
+          current_tempo = tempo.qpm
           current_seconds_per_beat = 60 / current_tempo
           if child.get("dynamics") != None:
             current_velocity = int(child.get("dynamics"))
@@ -499,18 +499,18 @@ class KeySignature:
 class Tempo:
   def __init__(self, xml_sound = None):
     self.xml_sound = xml_sound
-    self.bpm = -1
+    self.qpm = -1
     self.time_position = -1
     if xml_sound != None:
       self.parse()
 
   def parse(self):
-    self.bpm = float(self.xml_sound.get("tempo"))
-    if self.bpm == 0:
-        self.bpm = 120   # If tempo is 0, set it to default
+    self.qpm = float(self.xml_sound.get("tempo"))
+    if self.qpm == 0:
+        self.qpm = 120   # If tempo is 0, set it to default
     self.time_position = current_time_position
 
   def __str__(self):
-    tempo_str = "Tempo: " + str(self.bpm)
+    tempo_str = "Tempo: " + str(self.qpm)
     tempo_str += " (@time: " + str(self.time_position) + ")"
     return tempo_str

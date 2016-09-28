@@ -81,7 +81,7 @@ def musicxml_to_sequence_proto(musicxml_document):
   for musicxml_tempo in musicxml_tempos:
     tempo = sequence.tempos.add()
     tempo.time = musicxml_tempo.time_position
-    tempo.qpm = musicxml_tempo.bpm
+    tempo.qpm = musicxml_tempo.qpm
 
   # Populate notes from each MusicXML part across all voices
   # Unlike MIDI import, notes are not sorted
