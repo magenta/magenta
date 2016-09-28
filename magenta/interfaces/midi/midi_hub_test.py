@@ -352,7 +352,7 @@ class MidiHubTest(tf.test.TestCase):
         stop_signal=midi_hub.MidiSignal(type='control_change', control=1))
 
     for msg in self.capture_messages[:-1]:
-      threading.Timer(0.1 * msg.time, self.port.callback, args=[msg]).start()
+      threading.Timer(0.2 * msg.time, self.port.callback, args=[msg]).start()
 
     captured_seqs = []
     for captured_seq in captor.iterate(
@@ -461,21 +461,24 @@ class MidiHubTest(tf.test.TestCase):
     self.assertListEqual(passed_messages, expected_messages)
 
   def testWaitForEvent_Signal(self):
-    wait_start = time.time()
-
     for msg in self.capture_messages[3:-1]:
       threading.Timer(0.2 * msg.time, self.port.callback, args=[msg]).start()
+
+    wait_start = time.time()
+
     self.midi_hub.wait_for_event(
         signal=midi_hub.MidiSignal(type='control_change', value=1))
     self.assertAlmostEqual(time.time() - wait_start, 1.2, delta=0.01)
 
   def testWaitForEvent_Time(self):
+    for msg in self.capture_messages[3:-1]:
+      threading.Timer(0.1 * msg.time, self.port.callback, args=[msg]).start()
+
     wait_start = time.time()
 
-    for msg in self.capture_messages[:-1]:
-      threading.Timer(0.1 * msg.time, self.port.callback, args=[msg]).start()
     self.midi_hub.wait_for_event(timeout=0.3)
     self.assertAlmostEqual(time.time() - wait_start, 0.3, delta=0.01)
+
 
 if __name__ == '__main__':
   tf.test.main()

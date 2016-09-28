@@ -341,8 +341,7 @@ class MidiCaptor(threading.Thread):
   """Base class for thread that captures MIDI into a NoteSequence proto.
 
   If neither `stop_time` nor `stop_signal` are provided as arguments, the
-  capture will continue until the `stop` method is called. If both are provided,
-  the first to occur while trigger termination of the thread.
+  capture will continue until the `stop` method is called.
 
   Args:
     qpm: The quarters per minute to use for the captured sequence.
@@ -351,7 +350,6 @@ class MidiCaptor(threading.Thread):
     stop_time: The float wall time in seconds when the capture is to be stopped
         or None.
     stop_signal: A MidiSignal to use as a signal to stop capture.
-
   """
   _metaclass__ = abc.ABCMeta
 
@@ -443,6 +441,8 @@ class MidiCaptor(threading.Thread):
 
     stop_time = self._stop_time
     end_time = stop_time if stop_time is not None else msg.time
+
+    # Acquire lock to avoid race condition with `iterate`.
     with self._lock:
       # Set final captured sequence.
       self._captured_sequence = self.captured_sequence(end_time)
@@ -466,7 +466,7 @@ class MidiCaptor(threading.Thread):
         self._stop_signal.set()
         self._stop_time = time.time() if stop_time is None else stop_time
         # Force the thread to wake since we've updated the stop time.
-        self._receive_queue.put_nowait(MidiCaptor._WAKE_MESSAGE)
+        self._receive_queue.put(MidiCaptor._WAKE_MESSAGE)
     if block:
       self.join()
 
@@ -516,17 +516,26 @@ class MidiCaptor(threading.Thread):
   def iterate(self, signal=None, timeout=None):
     """Blocks until a matching mido.Message arrives or the timeout occurs.
 
-    At least one of `signal` or `timeout` must be specified. If both are
-    specified, returns when the first occurs.
+    Exactly one of `signal` or `timeout` must be specified. Using a timeout
+    with a Queue.Queue object causes additional delays when blocking.
     Continues until the thread terminates, at which point the final captured
     sequence is yielded before returning.
 
     Args:
       signal: A MidiSignal to use as a signal to stop waiting.
       timeout: A float timeout in seconds.
+
     Yields:
       The captured NoteSequence at event time.
+
+    Raises:
+      MidiHubException: If neither `signal` nor `timeout` or both are specified.
     """
+    if (signal, timeout).count(None) != 1:
+      raise MidiHubException(
+          'Exactly one of `signal` or `timeout` must be provided to `iterate` '
+          'call.')
+
     if signal is not None:
       regex = re.compile(str(signal))
       queue = Queue.Queue()
@@ -536,14 +545,21 @@ class MidiCaptor(threading.Thread):
       if signal is None:
         time.sleep(timeout)
         end_time = time.time()
-        if not self.is_alive():
-          break
       else:
-        signal_msg = queue.get(timeout=timeout)
+        signal_msg = queue.get()
         if signal_msg is MidiCaptor._WAKE_MESSAGE:
+          # This is only recieved when the thread is in the process of
+          # terminating. Wait until it is done before yielding the final
+          # sequence.
+          self.join()
           break
         end_time = signal_msg.time
-      yield self.captured_sequence(end_time)
+      # Acquire lock so that `captured_sequence` will be called before thread
+      # terminates, if it has not already done so.
+      with self._lock:
+        if not self.is_alive():
+          break
+        yield self.captured_sequence(end_time)
     yield self.captured_sequence()
 
 
@@ -684,10 +700,8 @@ class MidiHub(object):
       player.stop(block=False)
     self.stop_metronome()
     for captor in self._captors:
-      print captor
       captor.join()
     for player in self._players:
-      print player
       player.join()
 
   @property
@@ -812,7 +826,7 @@ class MidiHub(object):
     """
     if stop_time is None and stop_signal is None:
       raise MidiHubException(
-          'Either `stop_time` or `stop_signal` must be provided to '
+          'At least one of `stop_time` and `stop_signal` must be provided to '
           '`capture_sequence` call.')
     captor = self.start_capture(qpm, start_time, stop_time, stop_signal)
     captor.join()
@@ -822,13 +836,21 @@ class MidiHub(object):
   def wait_for_event(self, signal=None, timeout=None):
     """Blocks until a matching mido.Message arrives or the timeout occurs.
 
-    At least one of `signal` or `timeout` must be specified. If both are
-    specified, returns when the first occurs.
+    Exactly one of `signal` or `timeout` must be specified. Using a timeout
+    with a threading.Condition object causes additional delays when notified.
 
     Args:
-      signal: A MidiSignal to use as a signal to stop waiting.
-      timeout: A float timeout in seconds.
+      signal: A MidiSignal to use as a signal to stop waiting, or None.
+      timeout: A float timeout in seconds, or None.
+
+    Raises:
+      MidiHubException: If neither `signal` nor `timeout` or both are specified.
     """
+    if (signal, timeout).count(None) != 1:
+      raise MidiHubException(
+          'Exactly one of `signal` or `timeout` must be provided to '
+          '`wait_for_event` call.')
+
     if signal is None:
       time.sleep(timeout)
       return
@@ -842,7 +864,7 @@ class MidiHub(object):
       cond_var = threading.Condition(self._lock)
       self._signals[re.compile(signal_pattern)] = cond_var
 
-    cond_var.wait(timeout=timeout)
+    cond_var.wait()
 
   @_serialized
   def start_metronome(self, qpm, start_time):
