@@ -69,7 +69,7 @@ py_test(
     srcs_version = "PY2AND3",
     deps = [
         ":pipeline",
-        "//magenta/music:testing_lib",
+        "//magenta/common:testing_lib",
         # tensorflow dep
     ],
 )
@@ -91,6 +91,7 @@ py_test(
     srcs_version = "PY2AND3",
     deps = [
         ":pipelines_common",
+        "//magenta/common:testing_lib",
         "//magenta/music:constants",
         "//magenta/music:melodies_lib",
         "//magenta/music:sequences_lib",
