@@ -1,5 +1,3 @@
-# Copyright 2016 Google Inc. All Rights Reserved.
-#
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
@@ -16,13 +14,23 @@
 Input wrappers for converting MusicXML into tensorflow.magenta.NoteSequence.
 """
 
+from collections import defaultdict
+import sys
+# pylint: disable=g-import-not-at-top
+if sys.version_info.major <= 2:
+  from cStringIO import StringIO
+else:
+  from io import StringIO
+
+
 # internal imports
-from magenta.music.musicxml_parser import MusicXMLDocument
+import tensorflow as tf
+from musicxml_parser import *
 from magenta.protobuf import music_pb2
+# pylint: enable=g-import-not-at-top
 
 class MusicXMLConversionError(Exception):
-  """MusicXML conversion error handler"""
-  pass
+    pass
 
 def musicxml_to_sequence_proto(musicxml_document):
   """Convert MusicXML file contents to a tensorflow.magenta.NoteSequence proto.
@@ -47,7 +55,7 @@ def musicxml_to_sequence_proto(musicxml_document):
   sequence.ticks_per_quarter = musicxml_document.midi_resolution
 
   # Populate time signatures.
-  musicxml_time_signatures = musicxml_document.get_time_signatures()
+  musicxml_time_signatures = musicxml_document.getTimeSignatures()
   for musicxml_time_signature in musicxml_time_signatures:
     time_signature = sequence.time_signatures.add()
     time_signature.time = musicxml_time_signature.time_position
@@ -55,7 +63,7 @@ def musicxml_to_sequence_proto(musicxml_document):
     time_signature.denominator = musicxml_time_signature.denominator
 
   # Populate key signatures.
-  musicxml_key_signatures = musicxml_document.get_key_signatures()
+  musicxml_key_signatures = musicxml_document.getKeySignatures()
   for musicxml_key in musicxml_key_signatures:
     key_signature = sequence.key_signatures.add()
     key_signature.time = musicxml_key.time_position
@@ -69,7 +77,7 @@ def musicxml_to_sequence_proto(musicxml_document):
       key_signature.mode = key_signature.MINOR
 
   # Populate tempo changes.
-  musicxml_tempos = musicxml_document.get_tempos()
+  musicxml_tempos = musicxml_document.getTempos()
   for musicxml_tempo in musicxml_tempos:
     tempo = sequence.tempos.add()
     tempo.time = musicxml_tempo.time_position
@@ -77,7 +85,7 @@ def musicxml_to_sequence_proto(musicxml_document):
 
   # Populate notes from each MusicXML part across all voices
   # Unlike MIDI import, notes are not sorted
-  sequence.total_time = musicxml_document.total_time_secs
+  sequence.total_time = musicxml_document.total_time
   for musicxml_part in musicxml_document.parts:
     for musicxml_measure in musicxml_part.measures:
       for musicxml_note in musicxml_measure.notes:
@@ -85,19 +93,13 @@ def musicxml_to_sequence_proto(musicxml_document):
           note = sequence.notes.add()
           note.instrument = musicxml_note.midi_channel
           note.program = musicxml_note.midi_program
-          note.start_time = musicxml_note.note_duration.time_position
-
-          # Fix negative time errors from incorrect MusicXML
-          if note.start_time < 0:
-            note.start_time = 0
-
-          note.end_time = note.start_time + musicxml_note.note_duration.seconds
+          note.start_time = musicxml_note.time_position
+          note.end_time = musicxml_note.time_position + musicxml_note.seconds
           note.pitch = musicxml_note.pitch[1] # Index 1 = MIDI pitch number
           note.velocity = musicxml_note.velocity
 
-          durationratio = musicxml_note.note_duration.duration_ratio()
-          note.numerator = durationratio.numerator
-          note.denominator = durationratio.denominator
+  # TODO(@douglaseck): Estimate note type (e.g. quarter note) and populate
+  # note.numerator and note.denominator.
 
   return sequence
 
