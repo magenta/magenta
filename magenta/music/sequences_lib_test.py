@@ -18,8 +18,8 @@ import copy
 # internal imports
 import tensorflow as tf
 
-from magenta.lib import sequences_lib
-from magenta.lib import testing_lib
+from magenta.music import sequences_lib
+from magenta.music import testing_lib
 from magenta.protobuf import music_pb2
 
 

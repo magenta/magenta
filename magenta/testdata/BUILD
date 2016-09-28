@@ -17,7 +17,7 @@
 
 package(
     default_visibility = [
-        "//magenta/lib:__subpackages__",
+        "//magenta/music:__subpackages__",
         "//magenta/pipelines:__subpackages__",
         "//magenta/scripts:__subpackages__",
     ],

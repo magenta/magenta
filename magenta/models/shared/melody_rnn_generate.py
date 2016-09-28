@@ -25,10 +25,10 @@ import time
 from six.moves import range  # pylint: disable=redefined-builtin
 import tensorflow as tf
 
-from magenta.lib import melodies_lib
-from magenta.lib import midi_io
-from magenta.lib import sequence_generator
-from magenta.lib import sequence_generator_bundle
+from magenta.music import melodies_lib
+from magenta.music import midi_io
+from magenta.music import sequence_generator
+from magenta.music import sequence_generator_bundle
 from magenta.protobuf import generator_pb2
 
 FLAGS = tf.app.flags.FLAGS

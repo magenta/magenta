@@ -5,7 +5,7 @@ import os
 # internal imports
 import tensorflow as tf
 
-from magenta.lib.music_xml_io import music_xml_to_sequence_proto
+from magenta.music.music_xml_io import music_xml_to_sequence_proto
 
 
 class MusicXmlIOTest(tf.test.TestCase):

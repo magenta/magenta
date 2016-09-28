@@ -20,7 +20,7 @@ from music21 import note as music21_note
 from music21 import pitch
 from music21 import stream
 import tensorflow as tf
-from magenta.lib import pretty_music21
+from magenta.music import pretty_music21
 
 
 class PrettyMusic21Test(tf.test.TestCase):

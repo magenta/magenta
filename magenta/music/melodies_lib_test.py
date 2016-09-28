@@ -16,10 +16,10 @@
 # internal imports
 import tensorflow as tf
 
-from magenta.lib import melodies_lib
-from magenta.lib import sequence_example_lib
-from magenta.lib import sequences_lib
-from magenta.lib import testing_lib
+from magenta.music import melodies_lib
+from magenta.music import sequence_example_lib
+from magenta.music import sequences_lib
+from magenta.music import testing_lib
 
 
 NUM_SPECIAL_EVENTS = melodies_lib.NUM_SPECIAL_EVENTS

@@ -16,9 +16,9 @@
 # internal imports
 import tensorflow as tf
 
-from magenta.lib import melodies_lib
-from magenta.lib import testing_lib
 from magenta.models.shared import melody_rnn_create_dataset
+from magenta.music import melodies_lib
+from magenta.music import testing_lib
 from magenta.pipelines import pipelines_common
 from magenta.protobuf import music_pb2
 

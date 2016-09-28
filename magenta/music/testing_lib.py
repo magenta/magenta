@@ -17,7 +17,7 @@
 import numpy as np
 
 from google.protobuf import text_format
-from magenta.lib import sequences_lib
+from magenta.music import sequences_lib
 from magenta.protobuf import music_pb2
 
 # Shortcut to CHORD_SYMBOL annotation type.

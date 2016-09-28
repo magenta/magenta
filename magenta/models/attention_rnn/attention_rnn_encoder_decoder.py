@@ -16,7 +16,7 @@
 import collections
 
 # internal imports
-from magenta.lib import melodies_lib
+from magenta.music import melodies_lib
 
 NUM_SPECIAL_EVENTS = melodies_lib.NUM_SPECIAL_EVENTS
 NOTE_OFF = melodies_lib.NOTE_OFF
