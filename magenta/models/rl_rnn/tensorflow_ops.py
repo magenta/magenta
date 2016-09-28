@@ -16,4 +16,8 @@ def make_cell(hparams, state_is_tuple=False):
 
   return cell
 
-  stm_layers = [ tf.nn.rnn_cell.LSTMCell(num_units=layer_size, state_is_tuple=False) for layer_size in hparams.rnn_layer_sizes ] multi_cell = tf.nn.rnn_cell.MultiRNNCell(lstm_layers, state_is_tuple=False) return multi_cell
+def old_make_cell_according_to_fjord(hparams):
+  lstm_layers = [ tf.nn.rnn_cell.LSTMCell(
+    num_units=layer_size, state_is_tuple=False) for layer_size in hparams.rnn_layer_sizes ] 
+  multi_cell = tf.nn.rnn_cell.MultiRNNCell(lstm_layers, state_is_tuple=False) 
+  return multi_cell
