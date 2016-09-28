@@ -8,7 +8,7 @@ First, set up your [Magenta environment](https://github.com/tensorflow/magenta/b
 
 ## Pre-trained
 
-If you want to get started right away, you can use a model that we've pre-trained on thousands of MIDI files. Download the [lookback_rnn bundle](http://download.magenta.tensorflow.org/models/lookback_rnn.mag).
+If you want to get started right away, you can use a model that we've pre-trained on thousands of MIDI files. Download the [lookback_rnn bundle](http://download.magenta.tensorflow.org/models/lookback_rnn.mag). If you're using the Magenta Docker Container, the ```lookback_rnn.mag``` file will be located at ```/magenta-models/lookback_rnn.mag``` and you can assign that path as your ```BUNDLE_PATH``` in the next step.
 
 ### Generate a melody
 
