@@ -139,7 +139,7 @@ class MidiHubTest(tf.test.TestCase):
       if self.port.message_queue.qsize() % 2:
         self.assertEqual(msg.type, 'note_on')
         self.assertAlmostEqual(msg.time, next_tick_time, delta=0.01)
-        next_tick_time += 60./qpm
+        next_tick_time += 60. / qpm
       else:
         self.assertEqual(msg.type, 'note_off')
 
@@ -289,6 +289,36 @@ class MidiHubTest(tf.test.TestCase):
         expected_seq, 0,
         [Note(1, 64, 2, 5), Note(2, 64, 3, 4), Note(3, 64, 4, stop_time)])
     self.assertProtoEquals(captured_seq, expected_seq)
+
+  def testStartCapture_Multiple(self):
+    captor_1 = self.midi_hub.start_capture(
+        120, 0.0, stop_signal=midi_hub.MidiSignal(note=3))
+    captor_2 = self.midi_hub.start_capture(
+        120, 1.0,
+        stop_signal=midi_hub.MidiSignal(type='control_change', control=1))
+
+    self.send_capture_messages()
+
+    captor_1.join()
+    captor_2.join()
+
+    captured_seq_1 = captor_1.captured_sequence()
+    expected_seq = music_pb2.NoteSequence()
+    expected_seq.tempos.add(qpm=120)
+    expected_seq.total_time = 4.0
+    testing_lib.add_track(
+        expected_seq, 0,
+        [Note(0, 64, 0.01, 3), Note(1, 64, 2, 4), Note(2, 64, 3, 4)])
+    self.assertProtoEquals(captured_seq_1, expected_seq)
+
+    captured_seq_2 = captor_2.captured_sequence()
+    expected_seq = music_pb2.NoteSequence()
+    expected_seq.tempos.add(qpm=120)
+    expected_seq.total_time = 6.0
+    testing_lib.add_track(
+        expected_seq, 0,
+        [Note(1, 64, 2, 5), Note(2, 64, 3, 4), Note(3, 64, 4, 6)])
+    self.assertProtoEquals(captured_seq_2, expected_seq)
 
   def testStartCapture_MidCapture(self):
     start_time = 1.0

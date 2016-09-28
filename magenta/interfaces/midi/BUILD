@@ -46,16 +46,6 @@ py_test(
     ],
 )
 
-
-py_library(
-    name = "midi_interaction",
-    srcs = ["midi_interaction.py"],
-    deps = [
-        ":midi_hub",
-        "//magenta",
-    ],
-)
-
 py_binary(
     name = "magenta_midi",
     srcs = ["magenta_midi.py"],
