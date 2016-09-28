@@ -52,7 +52,6 @@ py_binary(
     visibility = ["//magenta/tools/pip:__subpackages__"],
     deps = [
         ":midi_hub",
-        ":midi_interaction",
         "//magenta",
         "//magenta/models/attention_rnn:attention_rnn_generator",
         "//magenta/models/basic_rnn:basic_rnn_generator",
