@@ -19,7 +19,8 @@ _DEFAULT_METRONOME_VELOCITY = 64
 _METRONOME_CHANNEL = 0
 
 
-def serialized(func):
+# TODO(adarob): Move to common library.
+def _serialized(func):
   """Decorator to provide mutual exclusion for method using _lock attribute."""
 
   @functools.wraps(func)
@@ -46,8 +47,20 @@ class MidiSignal(object):
   Supports matching for message types 'note_on', 'note_off', and
   'control_change'. If a mido.Message is given as the `msg` argument, matches
   against the exact message, ignoring the time attribute. If a `msg` is
-  not given, keyword arguments must be provided matching some subset of those
-  listed in `_VALID_ARGS`.
+  not given, keyword arguments must be provided matching some non-empty subset
+  of those listed as a value for at least one key in `_VALID_ARGS`.
+
+  Examples:
+    # A signal that matches any 'note_on' message.
+    note_on_signal = MidiSignal(type='note_on')
+
+    # A signal that matches any 'note_on' or 'note_off' message with a pitch
+    # value of 4 and a velocity of 127.
+    note_signal = MidiSignal(note=4, velocity=127)
+
+    # A signal that matches a specific mido.Message exactly (ignoring time).
+    msg = mido.Message(type='control_signal', control=1, value=127)
+    control_1_127_signal = MidiSignal(msg=msg)
 
   Args:
     msg: A mido.Message that should be matched exactly (excluding the time
@@ -89,9 +102,10 @@ class MidiSignal(object):
             raise MidiHubException(
                 "Invalid argument for type '%s': %s" % (type_, arg_name))
       else:
-        for name, args in self._VALID_ARGS.iteritems():
-          if set(kwargs) <= args:
-            inferred_types.append(name)
+        if kwargs:
+          for name, args in self._VALID_ARGS.iteritems():
+            if set(kwargs) <= args:
+              inferred_types.append(name)
         if not inferred_types:
           raise MidiHubException(
               'Could not infer a message type for set of given arguments: %s'
@@ -123,37 +137,35 @@ class Metronome(threading.Thread):
 
   Args:
     outport: The Mido port for sending messages.
+    qpm: The integer quarters per minute to signal on.
     start_time: The float wall time in seconds to treat as the first beat
         for alignment.
-    qpm: The integer quarters per minute to signal on.
     velocity: The velocity of the metronome's tick `note_on` message.
     pitch: The pitch of the metronome's tick `note_on` message.
     duration: The duration of the metronome's tick.
   """
-  daemon = True
-
   def __init__(self,
                outport,
-               start_time,
                qpm,
+               start_time,
                velocity=_DEFAULT_METRONOME_VELOCITY,
                pitch=_DEFAULT_METRONOME_PITCH,
                duration=_DEFAULT_METRONOME_TICK_DURATION):
     self._outport = outport
-    self._start_time = start_time
     self._qpm = qpm
+    self._start_time = start_time
     self._velocity = velocity
     self._pitch = pitch
     self._duration = duration
     # A signal for when to stop the metronome.
-    self._stop_metronome = False
+    self._stop_metronome = threading.Event()
     super(Metronome, self).__init__()
 
   def run(self):
     """Outputs metronome tone on the qpm interval until stop signal received."""
     period = 60. / self._qpm
-    sleep_offset = 0
-    while not self._stop_metronome:
+    sleep_offset = -0.001
+    while not self._stop_metronome.is_set():
       now = time.time()
       next_tick_time = now + period - ((now - self._start_time) % period)
       delta = next_tick_time - time.time()
@@ -166,9 +178,9 @@ class Metronome(threading.Thread):
       # If it returned early, spin until the correct time occurs.
       tick_late = time.time() - next_tick_time
       if tick_late > 0:
-        sleep_offset -= .0005
-      elif tick_late < -.001:
-        sleep_offset += .0005
+        sleep_offset -= 0.0005
+      elif tick_late < -0.001:
+        sleep_offset += 0.0005
 
       if tick_late < 0:
         while time.time() < next_tick_time:
@@ -189,7 +201,7 @@ class Metronome(threading.Thread):
 
   def stop(self):
     """Signals for the metronome to stop and joins thread."""
-    self._stop_metronome = True
+    self._stop_metronome.set()
     self.join()
 
 
@@ -208,8 +220,6 @@ class MidiPlayer(threading.Thread):
         exception. Otherwise, the the thread will stay alive until `stop` is
         called, allowing for additional updates via `update_sequence`.
   """
-  daemon = True
-
   def __init__(self, outport, sequence, allow_updates=False):
     self._outport = outport
     # Set of notes (pitches) that are currently on.
@@ -220,14 +230,18 @@ class MidiPlayer(threading.Thread):
     self._update_cv = threading.Condition(self._lock)
     # The queue of mido.Message objects to send, sorted by ascending time.
     self._message_queue = deque()
+    # An event that is set when `stop` has been called.
+    self._stop_signal = threading.Event()
 
     # Initialize message queue.
+    # We first have to allow "updates" to set the initial sequence.
     self._allow_updates = True
     self.update_sequence(sequence)
+    # We now make whether we allow updates dependent on the argument.
     self._allow_updates = allow_updates
     super(MidiPlayer, self).__init__()
 
-  @serialized
+  @_serialized
   def update_sequence(self, sequence):
     """Updates sequence being played by the MidiPlayer.
 
@@ -272,7 +286,7 @@ class MidiPlayer(threading.Thread):
     self._message_queue = deque(sorted(new_message_list, key=lambda x: x.time))
     self._update_cv.notify()
 
-  @serialized
+  @_serialized
   def run(self):
     """Plays messages in the queue until empty and _allow_updates is False."""
     # Assumes model where NoteSequence is time-stampped with wall time.
@@ -300,21 +314,25 @@ class MidiPlayer(threading.Thread):
       else:
         break
 
-  def stop(self):
+  def stop(self, block=True):
     """Signals for the playback to stop and ends all open notes.
 
-    Blocks until completed.
+    Args:
+      block: If true, blocks until thread terminates.
     """
     with self._lock:
-      self._allow_updates = False
+      if not self._stop_signal.is_set():
+        self._stop_signal.set()
+        self._allow_updates = False
 
-      # Replace message queue with immediate end of open notes.
-      self._message_queue.clear()
-      for note in self._open_notes:
-        self._message_queue.append(
-            mido.Message(type='note_off', note=note, time=time.time()))
-      self._update_cv.notify()
-    self.join()
+        # Replace message queue with immediate end of open notes.
+        self._message_queue.clear()
+        for note in self._open_notes:
+          self._message_queue.append(
+              mido.Message(type='note_off', note=note, time=time.time()))
+        self._update_cv.notify()
+    if block:
+      self.join()
 
 
 class MidiCaptor(threading.Thread):
@@ -326,19 +344,21 @@ class MidiCaptor(threading.Thread):
 
   Args:
     qpm: The quarters per minute to use for the captured sequence.
-    start_time: The float wall time in seconds when the capture begins.
+    start_time: The float wall time in seconds when the capture begins. Events
+        occuring before this time are ignored.
     stop_time: The float wall time in seconds when the capture is to be stopped
         or None.
     stop_signal: A MidiSignal to use as a signal to stop capture.
 
   """
   _metaclass__ = abc.ABCMeta
-  daemon = True
 
   # A message that is used to wake the consumer thread.
   _WAKE_MESSAGE = None
 
-  def __init__(self, qpm, start_time, stop_time=None, stop_signal=None):
+  def __init__(self, qpm, start_time=0, stop_time=None, stop_signal=None):
+    # A lock for synchronization.
+    self._lock = threading.RLock()
     self._receive_queue = Queue.Queue()
     self._captured_sequence = music_pb2.NoteSequence()
     self._captured_sequence.tempos.add(qpm=qpm)
@@ -347,9 +367,19 @@ class MidiCaptor(threading.Thread):
     self._stop_regex = re.compile(str(stop_signal))
     # A set of active MidiSignals being used by iterators.
     self._iter_signals = []
-    # A lock for accessing `_captured_sequence`.
-    self._lock = threading.RLock()
+    # An event that is set when `stop` has been called.
+    self._stop_signal = threading.Event()
     super(MidiCaptor, self).__init__()
+
+  @property
+  @_serialized
+  def _stop_time(self):
+    return self._stop_time_unsafe
+
+  @_stop_time.setter
+  @_serialized
+  def _stop_time(self, value):
+    self._stop_time_unsafe = value
 
   def receive(self, msg):
     """Adds received mido.Message to the queue for capture.
@@ -364,10 +394,10 @@ class MidiCaptor(threading.Thread):
     if not msg.time:
       raise MidiHubException(
           'MidiCaptor received message with empty time attribute: %s' % msg)
-    self._receive_queue.put_nowait(msg)
+    self._receive_queue.put(msg)
 
   @abc.abstractmethod
-  @serialized
+  @_serialized
   def _capture_message(self, msg):
     """Handles a single incoming MIDI message during capture.
 
@@ -382,11 +412,11 @@ class MidiCaptor(threading.Thread):
     """Captures incoming messages until stop time or signal received."""
     while True:
       timeout = None
-      with self._lock:
-        if self._stop_time is not None:
-          timeout = self._stop_time - time.time()
-          if timeout <= 0:
-            break
+      stop_time = self._stop_time
+      if stop_time is not None:
+        timeout = stop_time - time.time()
+        if timeout <= 0:
+          break
       try:
         msg = self._receive_queue.get(block=True, timeout=timeout)
       except Queue.Empty:
@@ -403,21 +433,22 @@ class MidiCaptor(threading.Thread):
 
       with self._lock:
         msg_str = str(msg)
-        for regex, cond_var in self._iter_signals:
+        for regex, queue in self._iter_signals:
           if regex.match(msg_str) is not None:
-            cond_var.notify()
+            queue.put(msg)
 
       self._capture_message(msg)
 
-    end_time = self._stop_time if self._stop_time is not None else msg.time
+    stop_time = self._stop_time
+    end_time = stop_time if stop_time is not None else msg.time
     with self._lock:
       # Set final captured sequence.
       self._captured_sequence = self.captured_sequence(end_time)
       # Wake up all generators.
-      for regex, cond_var in self._iter_signals:
-        cond_var.notify()
+      for regex, queue in self._iter_signals:
+        queue.put(MidiCaptor._WAKE_MESSAGE)
 
-  def stop(self, stop_time=None):
+  def stop(self, stop_time=None, block=True):
     """Ends capture and truncates the captured sequence at `stop_time`.
 
     Blocks until complete.
@@ -426,18 +457,16 @@ class MidiCaptor(threading.Thread):
       stop_time: The float time in seconds to stop the capture, or None if it
          should be stopped now. May be in the past, in which case the captured
          sequence will be truncated appropriately.
-
-    Raises:
-      MidiHubException: When thread is not running.
+      block: If True, blocks until the thread terminates.
     """
-    if not self.is_alive:
-      raise MidiHubException(
-          'Attempted to stop MidiCaptor that is not running.')
     with self._lock:
-      self._stop_time = time.time() if stop_time is None else stop_time
-    # Force the thread to wake since we've updated the stop time.
-    self._receive_queue.put_nowait(MidiCaptor._WAKE_MESSAGE)
-    self.join()
+      if not self._stop_signal.is_set():
+        self._stop_signal.set()
+        self._stop_time = time.time() if stop_time is None else stop_time
+        # Force the thread to wake since we've updated the stop time.
+        self._receive_queue.put_nowait(MidiCaptor._WAKE_MESSAGE)
+    if block:
+      self.join()
 
   def captured_sequence(self, end_time=None):
     """Returns a copy of the current captured sequence.
@@ -470,7 +499,7 @@ class MidiCaptor(threading.Thread):
         raise MidiHubException(
             '`end_time` must be provided when capture thread is still running.')
       for i, note in enumerate(current_captured_sequence.notes):
-        if note.start_time > end_time:
+        if note.start_time >= end_time:
           del current_captured_sequence.notes[i:]
           break
         if not note.end_time or note.end_time > end_time:
@@ -496,21 +525,24 @@ class MidiCaptor(threading.Thread):
     Yields:
       The captured NoteSequence at event time.
     """
-    # The serialized decorator is not compatible with generators.
-    with self._lock:
-      if signal is not None:
-        regex = re.compile(str(signal))
-        cond_var = threading.Condition(self._lock)
-        self._iter_signals.append((regex, cond_var))
-      while self.is_alive:
-        if signal is None:
-          time.sleep(timeout)
-        else:
-          cond_var.wait(timeout=timeout)
-        if not self.is_alive:
+    if signal is not None:
+      regex = re.compile(str(signal))
+      queue = Queue.Queue()
+      with self._lock:
+        self._iter_signals.append((regex, queue))
+    while self.is_alive():
+      if signal is None:
+        time.sleep(timeout)
+        end_time = time.time()
+        if not self.is_alive():
           break
-        yield self.captured_sequence(time.time())
-      yield self.captured_sequence()
+      else:
+        signal_msg = queue.get(timeout=timeout)
+        if signal_msg is MidiCaptor._WAKE_MESSAGE:
+          break
+        end_time = signal_msg.time
+      yield self.captured_sequence(end_time)
+    yield self.captured_sequence()
 
 
 class MonophonicMidiCaptor(MidiCaptor):
@@ -520,7 +552,7 @@ class MonophonicMidiCaptor(MidiCaptor):
     self._open_note = None
     super(MonophonicMidiCaptor, self).__init__(*args, **kwargs)
 
-  @serialized
+  @_serialized
   def _capture_message(self, msg):
     """Handles a single incoming MIDI message during capture.
 
@@ -565,7 +597,7 @@ class PolyphonicMidiCaptor(MidiCaptor):
     self._open_notes = dict()
     super(PolyphonicMidiCaptor, self).__init__(*args, **kwargs)
 
-  @serialized
+  @_serialized
   def _capture_message(self, msg):
     """Handles a single incoming MIDI message during capture.
 
@@ -605,8 +637,10 @@ class MidiHub(object):
   same channel.
 
   Args:
-    input_midi_port: The string MIDI port name to use for input.
-    output_midi_port: The string MIDI port name to use for output.
+    input_midi_port: The string MIDI port name or mido.ports.BaseInput object to
+        use for input.
+    output_midi_port: The string MIDI port name mido.ports.BaseOutput object to
+        use for output.
     texture_type: A TextureType Enum specifying the musical texture to assume
         during capture, passthrough, and playback.
     passthrough: A boolean specifying whether or not to pass incoming messages
@@ -614,9 +648,13 @@ class MidiHub(object):
   """
 
   def __init__(self, input_midi_port, output_midi_port, texture_type,
-               passthrough):
-    self._inport = mido.open_input(input_midi_port)
-    self._outport = mido.open_output(output_midi_port)
+               passthrough=True):
+    self._inport = (input_midi_port
+                    if isinstance(input_midi_port, mido.ports.BaseInput)
+                    else mido.open_input(input_midi_port))
+    self._outport = (output_midi_port
+                     if isinstance(output_midi_port, mido.ports.BaseOutput)
+                     else mido.open_output(output_midi_port))
     self._texture_type = texture_type
     self._passthrough = passthrough
     # When `passthrough` is True, this is the set of open MIDI note pitches.
@@ -626,20 +664,38 @@ class MidiHub(object):
     # A dictionary mapping a string-formatted mido.Messages to a condition
     # variable that will be notified when a matching messsage is received,
     # ignoring the time field.
-    self._signals = dict()
+    self._signals = {}
     # Threads actively being used to capture incoming messages.
-    self._capture_threads = []
+    self._captors = []
+    # Potentially active player threads.
+    self._players = []
+    self._metronome = None
 
     # Start processing incoming messages.
     self._inport.callback = self._timestamp_and_handle_message
 
+  def __del__(self):
+    """Stops all running threads and waits for them to terminate."""
+    return
+    for captor in self._captors:
+      captor.stop(block=False)
+    for player in self._players:
+      player.stop(block=False)
+    self.stop_metronome()
+    for captor in self._captors:
+      print captor
+      captor.join()
+    for player in self._players:
+      print player
+      player.join()
+
   @property
-  @serialized
+  @_serialized
   def passthrough(self):
     return self._passthrough
 
   @passthrough.setter
-  @serialized
+  @_serialized
   def passthrough(self, value):
     """Sets passthrough value, closing all open notes if being disabled."""
     if self._passthrough == value:
@@ -653,10 +709,11 @@ class MidiHub(object):
     """Stamps message with current time and passes it to the handler."""
     if msg.type == 'program_change':
       return
-    msg.time = time.time()
+    if not msg.time:
+      msg.time = time.time()
     self._handle_message(msg)
 
-  @serialized
+  @_serialized
   def _handle_message(self, msg):
     """Handles a single incoming MIDI message.
 
@@ -670,18 +727,16 @@ class MidiHub(object):
     """
     # Notify any threads waiting for this message.
     msg_str = str(msg)
-    for regex in self._signals:
+    for regex in self._signals.keys():
       if regex.match(msg_str) is not None:
         self._signals[regex].notify_all()
         del self._signals[regex]
 
-    # Remove any capture threads that are no longer alive.
-    self._capture_threads[:] = [
-        t for t in self._capture_threads if t.is_alive()
-    ]
+    # Remove any captors that are no longer alive.
+    self._captors[:] = [ t for t in self._captors if t.is_alive()]
     # Add a different copy of the message to the receive queue of each live
     # capture thread.
-    for t in self._capture_threads:
+    for t in self._captors:
       t.receive(msg.copy())
 
     # Pass the message through to the output port, if appropriate.
@@ -703,8 +758,7 @@ class MidiHub(object):
       elif msg.type == 'note_on':
         if self._open_notes:
           self._outport.send(
-              mido.Message(
-                  'note_off', note=self._open_notes.pop()))
+              mido.Message('note_off', note=self._open_notes.pop()))
         self._outport.send(msg)
         self._open_notes.add(msg.note)
 
@@ -731,7 +785,7 @@ class MidiHub(object):
                     PolyphonicMidiCaptor)
     captor = captor_class(qpm, start_time, stop_time, stop_signal)
     with self._lock:
-      self._capture_threads.append(captor)
+      self._captors.append(captor)
     captor.start()
     return captor
 
@@ -759,11 +813,11 @@ class MidiHub(object):
       raise MidiHubException(
           'Either `stop_time` or `stop_signal` must be provided to '
           '`capture_sequence` call.')
-    captor = self.start_capture(start_time, qpm, stop_time, stop_signal)
+    captor = self.start_capture(qpm, start_time, stop_time, stop_signal)
     captor.join()
     return captor.captured_sequence()
 
-  @serialized
+  @_serialized
   def wait_for_event(self, signal=None, timeout=None):
     """Blocks until a matching mido.Message arrives or the timeout occurs.
 
@@ -789,20 +843,21 @@ class MidiHub(object):
 
     cond_var.wait(timeout=timeout)
 
-  @serialized
-  def start_metronome(self, start_time, qpm):
+  @_serialized
+  def start_metronome(self, qpm, start_time):
     """Starts or re-starts the metronome with the given arguments.
 
     Args:
-      start_time: The wall time in seconds that the metronome is started on for
-          synchronization and beat alignment. May be in the past.
       qpm: The quarter notes per minute to use.
+      start_time: The wall time in seconds that the metronome is started on for
+        synchronization and beat alignment. May be in the past.
     """
     if self._metronome is not None:
       self.stop_metronome()
-    self._metronome = Metronome(self._outport, start_time, qpm)
+    self._metronome = Metronome(self._outport, qpm, start_time)
+    self._metronome.start()
 
-  @serialized
+  @_serialized
   def stop_metronome(self):
     """Stops the metronome if it is currently running."""
     if self._metronome is None:
@@ -810,17 +865,19 @@ class MidiHub(object):
     self._metronome.stop()
     self._metronome = None
 
-  def start_playback(self, sequence, stay_alive=False):
+  def start_playback(self, sequence, allow_updates=False):
     """Plays the notes in aNoteSequence via the MIDI output port.
 
     Args:
       sequence: The NoteSequence to play, with times based on the wall clock.
-      stay_alive: A boolean specifying whether or not the player should stay
-          alive waiting for updates after it plays the last note of the input
-          sequence.
+      allow_updates: A boolean specifying whether or not the player should stay
+          allow the sequence to be updated and stay alive until `stop` is
+          called.
     Returns:
       The MidiPlayer thread handling playback to enable updating.
     """
-    player = MidiPlayer(self._outport, sequence, stay_alive)
+    player = MidiPlayer(self._outport, sequence, allow_updates)
+    with self._lock:
+      self._players.append(player)
     player.start()
     return player

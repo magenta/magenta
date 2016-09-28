@@ -15,6 +15,7 @@
 
 import collections
 import Queue
+import threading
 import time
 
 # internal imports
@@ -32,20 +33,18 @@ Note = collections.namedtuple('Note', ['pitch', 'velocity', 'start', 'end'])
 class MockMidiPort(mido.ports.BaseIOPort):
 
   def __init__(self):
-    self.message_queue = Queue.Queue()
     super(MockMidiPort, self).__init__()
+    self.message_queue = Queue.Queue()
 
-  def _send(self, msg):
+  def send(self, msg):
     msg.time = time.time()
     self.message_queue.put(msg)
-
-  def _receive(self, msg, block):
-    return self.message_queue.get(block=block)
 
 
 class MidiHubTest(tf.test.TestCase):
 
   def setUp(self):
+    self.maxDiff = None
     self.capture_messages = [
         mido.Message(type='note_on', note=0, time=0.01),
         mido.Message(type='control_change', control=1, value=1, time=0.02),
@@ -56,7 +55,15 @@ class MidiHubTest(tf.test.TestCase):
         mido.Message(type='note_off', note=2, time=4.0),
         mido.Message(type='note_off', note=1, time=5.0),
         mido.Message(type='control_change', control=1, value=1, time=6.0),
-        mido.Message(type='note_off', note=3, time=time.time() + 100)]
+        mido.Message(type='note_off', note=3, time=100)]
+
+    self.port = MockMidiPort()
+    self.midi_hub = midi_hub.MidiHub(self.port, self.port,
+                                     midi_hub.TextureType.POLYPHONIC)
+
+  def send_capture_messages(self):
+    for msg in self.capture_messages:
+      self.port.callback(msg)
 
   def testMidiSignal_ValidityChecks(self):
     # Unsupported type.
@@ -66,6 +73,8 @@ class MidiHubTest(tf.test.TestCase):
       midi_hub.MidiSignal(msg=mido.Message(type='sysex'))
 
     # Invalid arguments.
+    with self.assertRaises(midi_hub.MidiHubException):
+      midi_hub.MidiSignal()
     with self.assertRaises(midi_hub.MidiHubException):
       midi_hub.MidiSignal(type='note_on', value=1)
     with self.assertRaises(midi_hub.MidiHubException):
@@ -115,7 +124,26 @@ class MidiHubTest(tf.test.TestCase):
         r'^control_change channel=\d+ control=\d+ value=2 time=\d+.\d+$',
         str(sig))
 
-  def testMidiPlayer_NoUpdates(self):
+  def testMetronome(self):
+    start_time = time.time() + 0.1
+    qpm = 180
+    self.midi_hub.start_metronome(start_time=start_time, qpm=qpm)
+    time.sleep(0.8)
+
+    self.midi_hub.stop_metronome()
+    self.assertEqual(6, self.port.message_queue.qsize())
+
+    next_tick_time = start_time
+    while not self.port.message_queue.empty():
+      msg = self.port.message_queue.get()
+      if self.port.message_queue.qsize() % 2:
+        self.assertEqual(msg.type, 'note_on')
+        self.assertAlmostEqual(msg.time, next_tick_time, delta=0.01)
+        next_tick_time += 60./qpm
+      else:
+        self.assertEqual(msg.type, 'note_off')
+
+  def testStartPlayback_NoUpdates(self):
     # Use a time in the past to test handling of past notes.
     start_time = time.time() - 0.05
     outport = MockMidiPort()
@@ -125,8 +153,7 @@ class MidiHubTest(tf.test.TestCase):
     notes = [Note(note.pitch, note.velocity, note.start + start_time,
                   note.end + start_time) for note in notes]
     testing_lib.add_track(seq, 0, notes)
-    player = midi_hub.MidiPlayer(outport, seq, allow_updates=False)
-    player.start()
+    player = self.midi_hub.start_playback(seq, allow_updates=False)
     player.join()
     note_events = []
     for note in notes:
@@ -142,30 +169,28 @@ class MidiHubTest(tf.test.TestCase):
       self.assertEquals(msg.note, note_event[2])
       self.assertAlmostEqual(msg.time, note_event[0], delta=0.01)
 
-  def testMidiPlayer_NoUpdates_UpdateException(self):
+  def testStartPlayback_NoUpdates_UpdateException(self):
     # Use a time in the past to test handling of past notes.
     start_time = time.time()
     outport = MockMidiPort()
     seq = music_pb2.NoteSequence()
     notes = [Note(0, 100, start_time + 100, start_time + 101)]
     testing_lib.add_track(seq, 0, notes)
-    player = midi_hub.MidiPlayer(outport, seq, allow_updates=False)
-    player.start()
+    player = self.midi_hub.start_playback(seq, allow_updates=False)
 
     with self.assertRaises(midi_hub.MidiHubException):
       player.update_sequence(seq)
 
     player.stop()
 
-  def testMidiPlayer_Updates(self):
+  def testStartPlayback_Updates(self):
     start_time = time.time() + 0.1
     outport = MockMidiPort()
     seq = music_pb2.NoteSequence()
     notes = [Note(0, 100, start_time, start_time + 101),
              Note(1, 100, start_time, start_time + 101)]
     testing_lib.add_track(seq, 0, notes)
-    player = midi_hub.MidiPlayer(outport, seq, allow_updates=True)
-    player.start()
+    player = self.midi_hub.start_playback(seq, allow_updates=True)
 
     # Sleep past first note start.
     time.sleep(0.2)
@@ -192,18 +217,17 @@ class MidiHubTest(tf.test.TestCase):
       self.assertEquals(msg.note, note_event[2])
       self.assertAlmostEqual(msg.time, note_event[0], delta=0.01)
 
-  def testPolyphonicMidiCaptor_StopSignal(self):
+    player.stop()
+
+  def testCaptureSequence_StopSignal(self):
     start_time = 1.0
-    captor = midi_hub.PolyphonicMidiCaptor(
+
+    threading.Timer(0.1, self.send_capture_messages).start()
+
+    captured_seq = self.midi_hub.capture_sequence(
         120, start_time,
         stop_signal=midi_hub.MidiSignal(type='control_change', control=1))
-    captor.start()
 
-    for msg in self.capture_messages:
-      captor.receive(msg)
-    captor.join()
-
-    captured_seq = captor.captured_sequence()
     expected_seq = music_pb2.NoteSequence()
     expected_seq.tempos.add(qpm=120)
     expected_seq.total_time = 6.0
@@ -212,17 +236,16 @@ class MidiHubTest(tf.test.TestCase):
         [Note(1, 64, 2, 5), Note(2, 64, 3, 4), Note(3, 64, 4, 6)])
     self.assertProtoEquals(captured_seq, expected_seq)
 
-  def testPolyphonicMidiCaptor_StopTime(self):
+  def testCaptureSequence_StopTime(self):
     start_time = 1.0
     stop_time = time.time() + 1.0
-    captor = midi_hub.PolyphonicMidiCaptor(120, start_time, stop_time=stop_time)
-    captor.start()
 
-    for msg in self.capture_messages:
-      captor.receive(msg)
-    captor.join()
+    self.capture_messages[-1].time += time.time()
+    threading.Timer(0.1, self.send_capture_messages).start()
 
-    captured_seq = captor.captured_sequence()
+    captured_seq = self.midi_hub.capture_sequence(
+        120, start_time, stop_time=stop_time)
+
     expected_seq = music_pb2.NoteSequence()
     expected_seq.tempos.add(qpm=120)
     expected_seq.total_time = stop_time
@@ -231,13 +254,29 @@ class MidiHubTest(tf.test.TestCase):
         [Note(1, 64, 2, 5), Note(2, 64, 3, 4), Note(3, 64, 4, stop_time)])
     self.assertProtoEquals(captured_seq, expected_seq)
 
-  def testPolyphonicMidiCaptor_StopMethod(self):
+  def testCaptureSequence_Mono(self):
     start_time = 1.0
-    captor = midi_hub.PolyphonicMidiCaptor(120, start_time)
-    captor.start()
 
-    for msg in self.capture_messages:
-      captor.receive(msg)
+    threading.Timer(0.1, self.send_capture_messages).start()
+    self.midi_hub = midi_hub.MidiHub(self.port, self.port,
+                                     midi_hub.TextureType.MONOPHONIC)
+    captured_seq = self.midi_hub.capture_sequence(
+        120, start_time,
+        stop_signal=midi_hub.MidiSignal(type='control_change', control=1))
+
+    expected_seq = music_pb2.NoteSequence()
+    expected_seq.tempos.add(qpm=120)
+    expected_seq.total_time = 6
+    testing_lib.add_track(
+        expected_seq, 0,
+        [Note(1, 64, 2, 3), Note(2, 64, 3, 4), Note(3, 64, 4, 6)])
+    self.assertProtoEquals(captured_seq, expected_seq)
+
+  def testStartCapture_StopMethod(self):
+    start_time = 1.0
+    captor = self.midi_hub.start_capture(120, start_time)
+
+    self.send_capture_messages()
     time.sleep(0.1)
 
     stop_time = 5.5
@@ -252,14 +291,13 @@ class MidiHubTest(tf.test.TestCase):
         [Note(1, 64, 2, 5), Note(2, 64, 3, 4), Note(3, 64, 4, stop_time)])
     self.assertProtoEquals(captured_seq, expected_seq)
 
-  def testPolyphonicMidiCaptor_MidCapture(self):
+  def testStartCapture_MidCapture(self):
     start_time = 1.0
-    captor = midi_hub.PolyphonicMidiCaptor(120, start_time)
-    captor.start()
+    captor = self.midi_hub.start_capture(120, start_time)
 
-    # Recieve first 6 messages.
+    # Receive the first 6 messages.
     for msg in self.capture_messages[0:6]:
-      captor.receive(msg)
+      self.port.callback(msg)
     time.sleep(0.1)
 
     end_time = 3.5
@@ -291,9 +329,9 @@ class MidiHubTest(tf.test.TestCase):
         [Note(1, 64, 2, 6), Note(2, 64, 3, 6), Note(3, 64, 4, 6)])
     self.assertProtoEquals(captured_seq, expected_seq)
 
-    # Recieve the rest of the messages.
+    # Receive the rest of the messages.
     for msg in self.capture_messages[6:]:
-      captor.receive(msg)
+      self.port.callback(msg)
     time.sleep(0.1)
 
     end_time = 6.0
@@ -308,6 +346,137 @@ class MidiHubTest(tf.test.TestCase):
 
     captor.stop()
 
+  def testStartCapture_Iterate_Signal(self):
+    start_time = 1.0
+    captor = self.midi_hub.start_capture(
+        120, start_time,
+        stop_signal=midi_hub.MidiSignal(type='control_change', control=1))
+
+    for msg in self.capture_messages[:-1]:
+      threading.Timer(0.1 * msg.time, self.port.callback, args=[msg]).start()
+
+    captured_seqs = []
+    for captured_seq in captor.iterate(
+        signal=midi_hub.MidiSignal(type='note_off')):
+      captured_seqs.append(captured_seq)
+
+    self.assertEquals(4, len(captured_seqs))
+
+    expected_seq = music_pb2.NoteSequence()
+    expected_seq.tempos.add(qpm=120)
+    expected_seq.total_time = 3
+    testing_lib.add_track(expected_seq, 0, [Note(1, 64, 2, 3)])
+    self.assertProtoEquals(captured_seqs[0], expected_seq)
+
+    expected_seq = music_pb2.NoteSequence()
+    expected_seq.tempos.add(qpm=120)
+    expected_seq.total_time = 4
+    testing_lib.add_track(
+        expected_seq, 0, [Note(1, 64, 2, 4), Note(2, 64, 3, 4)])
+    self.assertProtoEquals(captured_seqs[1], expected_seq)
+
+    expected_seq = music_pb2.NoteSequence()
+    expected_seq.tempos.add(qpm=120)
+    expected_seq.total_time = 5
+    testing_lib.add_track(
+        expected_seq, 0,
+        [Note(1, 64, 2, 5), Note(2, 64, 3, 4), Note(3, 64, 4, 5)])
+    self.assertProtoEquals(captured_seqs[2], expected_seq)
+
+    expected_seq = music_pb2.NoteSequence()
+    expected_seq.tempos.add(qpm=120)
+    expected_seq.total_time = 6
+    testing_lib.add_track(
+        expected_seq, 0,
+        [Note(1, 64, 2, 5), Note(2, 64, 3, 4), Note(3, 64, 4, 6)])
+    self.assertProtoEquals(captured_seqs[3], expected_seq)
+
+  def testStartCapture_Iterate_Time(self):
+    start_time = 1.0
+    captor = self.midi_hub.start_capture(
+        120, start_time,
+        stop_signal=midi_hub.MidiSignal(type='control_change', control=1))
+
+    for msg in self.capture_messages[:-1]:
+      threading.Timer(0.1 * msg.time, self.port.callback, args=[msg]).start()
+
+    captured_seqs = []
+    for captured_seq in captor.iterate(timeout=0.35):
+      captured_seqs.append(captured_seq)
+
+    self.assertEquals(2, len(captured_seqs))
+
+    expected_seq = music_pb2.NoteSequence()
+    expected_seq.tempos.add(qpm=120)
+    end_time = captured_seqs[0].total_time
+    expected_seq.total_time = end_time
+    testing_lib.add_track(
+        expected_seq, 0, [Note(1, 64, 2, end_time), Note(2, 64, 3, end_time)])
+    self.assertProtoEquals(captured_seqs[0], expected_seq)
+
+    expected_seq = music_pb2.NoteSequence()
+    expected_seq.tempos.add(qpm=120)
+    expected_seq.total_time = 6
+    testing_lib.add_track(
+        expected_seq, 0,
+        [Note(1, 64, 2, 5), Note(2, 64, 3, 4), Note(3, 64, 4, 6)])
+    self.assertProtoEquals(captured_seqs[1], expected_seq)
+
+  def testPassThrough_Poly(self):
+    self.midi_hub.passthrough = False
+    self.send_capture_messages()
+    self.assertTrue(self.port.message_queue.empty())
+    self.midi_hub.passthrough = True
+    self.send_capture_messages()
+
+    passed_messages = []
+    while not self.port.message_queue.empty():
+      passed_messages.append(self.port.message_queue.get())
+    self.assertListEqual(passed_messages, self.capture_messages)
+
+  def testPassThrough_Mono(self):
+    self.midi_hub = midi_hub.MidiHub(self.port, self.port,
+                                     midi_hub.TextureType.MONOPHONIC)
+    self.midi_hub.passthrough = False
+    self.send_capture_messages()
+    self.assertTrue(self.port.message_queue.empty())
+    self.midi_hub.passthrough = True
+    self.send_capture_messages()
+
+    passed_messages = []
+    while not self.port.message_queue.empty():
+      passed_messages.append(self.port.message_queue.get())
+      passed_messages[-1].time = 0
+    expected_messages = [
+        mido.Message(type='note_on', note=0),
+        mido.Message(type='control_change', control=1, value=1),
+        mido.Message(type='note_off', note=0),
+        mido.Message(type='note_on', note=1),
+        mido.Message(type='note_off', note=1),
+        mido.Message(type='note_on', note=2),
+        mido.Message(type='note_off', note=2),
+        mido.Message(type='note_on', note=3),
+        mido.Message(type='control_change', control=1, value=1),
+        mido.Message(type='note_off', note=3)]
+
+    self.assertListEqual(passed_messages, expected_messages)
+
+  def testWaitForEvent_Signal(self):
+    wait_start = time.time()
+
+    for msg in self.capture_messages[3:-1]:
+      threading.Timer(0.2 * msg.time, self.port.callback, args=[msg]).start()
+    self.midi_hub.wait_for_event(
+      signal=midi_hub.MidiSignal(type='control_change', value=1))
+    self.assertAlmostEqual(time.time() - wait_start, 1.2, delta=0.01)
+
+  def testWaitForEvent_Time(self):
+    wait_start = time.time()
+
+    for msg in self.capture_messages[:-1]:
+      threading.Timer(0.1 * msg.time, self.port.callback, args=[msg]).start()
+    self.midi_hub.wait_for_event(timeout=0.3)
+    self.assertAlmostEqual(time.time() - wait_start, 0.3, delta=0.01)
 
 if __name__ == '__main__':
   tf.test.main()

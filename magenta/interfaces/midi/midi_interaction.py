@@ -84,7 +84,7 @@ class MidiInteraction(threading.Thread):
     self._midi_hub = midi_hub
     self._qpm = qpm
     # A signal to tell the main loop when to stop.
-    self._should_stop = False
+    self._stop_signal = threading.Event()
     super(MidiInteraction, self).__init__()
 
   def stop(self):
@@ -96,7 +96,7 @@ class MidiInteraction(threading.Thread):
     if not self.is_alive:
       raise MidiInteractionException(
           'Attempted to stop MidiInteraction that is not running.')
-    self._should_stop = True
+    self._stop_signal.set()
     self.join()
 
 
@@ -128,8 +128,7 @@ class AccompanimentMidiInteraction(MidiInteraction):
 
     Continuously captures input from the MidiHub while repeatedly generating
     additional steps of the accompaniment sequence and playing it back via
-    the MidiHub. Stops when `_should_stop` is set to true (by the `stop`
-    method).
+    the MidiHub. Stops when `_stop_signal` is set by the `stop` method).
     """
     # How should we handle the start time? Wait until the first note is played?
     quarter_duration = 60.0 / self._qpm
@@ -147,7 +146,7 @@ class AccompanimentMidiInteraction(MidiInteraction):
     # Start player.
     player = self._midi_hub.start_playback(
         accompaniment_sequence, stay_alive=True)
-    while not self._should_stop:
+    while not self._stop_signal.is_set():
       # Offset of end of captured sequence in quarter notes from the epoch.
       capture_end_quarters = time.time() // quarter_duration
       captured_sequence = captor.captured_sequence(
@@ -243,7 +242,7 @@ class CallAndResponseMidiInteraction(MidiInteraction):
 
     # Start metronome.
     self._midi_hub.start_metronome(start_quarters * quarter_duration, self._qpm)
-    while not self._should_stop:
+    while not self._stop_signal.is_set():
       # Call phase.
       # Capture sequence.
       if self._phase_bars is not None:
