@@ -144,6 +144,7 @@ class Metronome(threading.Thread):
     pitch: The pitch of the metronome's tick `note_on` message.
     duration: The duration of the metronome's tick.
   """
+
   def __init__(self,
                outport,
                qpm,
@@ -220,6 +221,7 @@ class MidiPlayer(threading.Thread):
         exception. Otherwise, the the thread will stay alive until `stop` is
         called, allowing for additional updates via `update_sequence`.
   """
+
   def __init__(self, outport, sequence, allow_updates=False):
     self._outport = outport
     # Set of notes (pitches) that are currently on.
@@ -676,7 +678,6 @@ class MidiHub(object):
 
   def __del__(self):
     """Stops all running threads and waits for them to terminate."""
-    return
     for captor in self._captors:
       captor.stop(block=False)
     for player in self._players:
@@ -727,13 +728,13 @@ class MidiHub(object):
     """
     # Notify any threads waiting for this message.
     msg_str = str(msg)
-    for regex in self._signals.keys():
+    for regex in list(self._signals):
       if regex.match(msg_str) is not None:
         self._signals[regex].notify_all()
         del self._signals[regex]
 
     # Remove any captors that are no longer alive.
-    self._captors[:] = [ t for t in self._captors if t.is_alive()]
+    self._captors[:] = [t for t in self._captors if t.is_alive()]
     # Add a different copy of the message to the receive queue of each live
     # capture thread.
     for t in self._captors:

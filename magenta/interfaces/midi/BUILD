@@ -18,6 +18,14 @@
 licenses(["notice"])  # Apache 2.0
 
 py_library(
+    name = "midi",
+    deps = [
+        ":midi_hub",
+        ":midi_interaction",
+    ],
+)
+
+py_library(
     name = "midi_hub",
     srcs = ["midi_hub.py"],
     deps = [

@@ -23,7 +23,7 @@ import mido
 import tensorflow as tf
 
 from magenta.interfaces.midi import midi_hub
-from magenta.lib import testing_lib
+from magenta.music import testing_lib
 from magenta.protobuf import music_pb2
 
 
@@ -172,7 +172,6 @@ class MidiHubTest(tf.test.TestCase):
   def testStartPlayback_NoUpdates_UpdateException(self):
     # Use a time in the past to test handling of past notes.
     start_time = time.time()
-    outport = MockMidiPort()
     seq = music_pb2.NoteSequence()
     notes = [Note(0, 100, start_time + 100, start_time + 101)]
     testing_lib.add_track(seq, 0, notes)
@@ -467,7 +466,7 @@ class MidiHubTest(tf.test.TestCase):
     for msg in self.capture_messages[3:-1]:
       threading.Timer(0.2 * msg.time, self.port.callback, args=[msg]).start()
     self.midi_hub.wait_for_event(
-      signal=midi_hub.MidiSignal(type='control_change', value=1))
+        signal=midi_hub.MidiSignal(type='control_change', value=1))
     self.assertAlmostEqual(time.time() - wait_start, 1.2, delta=0.01)
 
   def testWaitForEvent_Time(self):
