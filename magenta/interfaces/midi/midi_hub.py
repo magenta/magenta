@@ -562,62 +562,6 @@ class MidiCaptor(threading.Thread):
         yield self.captured_sequence(end_time)
     yield self.captured_sequence()
 
-  def register_callback(self, fn, signal=None, timeout=None):
-    """Calls `fn` when a matching mido.Message arrives or the timeout occurs.
-
-    The callback function must take exactly a single argument, which will be the
-    current captured NoteSequence.
-
-    Exactly one of `signal` or `timeout` must be specified. Using a timeout
-    with a Queue.Queue object causes additional delays when blocking.
-    Continues until the thread terminates, at which point the final captured
-    sequence is yielded before returning.
-
-    Args:
-      fn: The callback function to call, passing in the captured sequence.
-      signal: A MidiSignal to use as a signal to stop waiting.
-      timeout: A float timeout in seconds.
-
-    Returns:
-      The unqiue name of the callback thread to enable deletion.
-
-    Raises:
-      MidiHubException: If neither `signal` nor `timeout` or both are specified.
-    """
-    class IteratorCallback(threading.Thread):
-      """A thread for executing a callback on each iteration."""
-
-      def __init__(self, iterator, fn):
-        self._iterator = iterator
-        self._fn = fn
-        self._stop_signal = threading.Event()
-
-      def run(self):
-        """Calls the callback function for each iterator value."""
-        for captured_sequence in self._iterator:
-          if self._stop_signal.is_set():
-            break
-          self._fn(captured_sequence)
-
-      def stop(self):
-        """Stops the thread on next iteration, without blocking."""
-        self._stop_signal.set()
-
-    t = IteratorCallback(self.iterate(signal, timeout), fn)
-    t.start()
-
-    with self._lock:
-      assert t.name not in self._callbacks
-      self._callbacks[t.name] = t
-
-    return t.name
-
-  @_serialized
-  def cancel_callback(self, name):
-    """Stops the callback with the given name."""
-    self._callbacks[name].stop()
-    del self._callbacks[name]
-
 
 class MonophonicMidiCaptor(MidiCaptor):
   """A MidiCaptor for monophonic melodies."""
