@@ -16,15 +16,16 @@
 # internal imports
 import tensorflow as tf
 
+from magenta.music import constants
 from magenta.music import melodies_lib
 from magenta.music import sequence_example_lib
 from magenta.music import sequences_lib
 from magenta.music import testing_lib
 
 
-NUM_SPECIAL_EVENTS = melodies_lib.NUM_SPECIAL_EVENTS
-NOTE_OFF = melodies_lib.NOTE_OFF
-NO_EVENT = melodies_lib.NO_EVENT
+NUM_SPECIAL_EVENTS = constants.NUM_SPECIAL_MELODY_EVENTS
+NOTE_OFF = constants.MELODY_NOTE_OFF
+NO_EVENT = constants.MELODY_NO_EVENT
 
 
 class MelodiesLibTest(tf.test.TestCase):

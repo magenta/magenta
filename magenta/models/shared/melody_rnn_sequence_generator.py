@@ -19,6 +19,7 @@ import random
 from six.moves import range  # pylint: disable=redefined-builtin
 import tensorflow as tf
 
+from magenta.music import constants
 from magenta.music import melodies_lib
 from magenta.music import sequence_generator
 from magenta.music import sequences_lib
@@ -135,7 +136,7 @@ class MelodyRnnSequenceGenerator(sequence_generator.BaseSequenceGenerator):
 
     qpm = (primer_sequence.tempos[0].qpm if primer_sequence
            and primer_sequence.tempos
-           else melodies_lib.DEFAULT_QUARTERS_PER_MINUTE)
+           else constants.DEFAULT_QUARTERS_PER_MINUTE)
     start_step = self._seconds_to_steps(
         generate_section.start_time_seconds, qpm)
     end_step = self._seconds_to_steps(generate_section.end_time_seconds, qpm)
