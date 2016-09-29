@@ -27,9 +27,9 @@ See /magenta/models/shared/melody_rnn_generate.py for flag descriptions.
 """
 
 # internal imports
-import attention_rnn_generator
 import tensorflow as tf
 
+from magenta.models.attention_rnn import attention_rnn_generator
 from magenta.models.shared import melody_rnn_generate
 
 

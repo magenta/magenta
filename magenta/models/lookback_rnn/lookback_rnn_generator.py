@@ -14,9 +14,8 @@
 """Build the generator for the lookback RNN model."""
 
 # internal imports
-import lookback_rnn_encoder_decoder
-import lookback_rnn_graph
-
+from magenta.models.lookback_rnn import lookback_rnn_encoder_decoder
+from magenta.models.lookback_rnn import lookback_rnn_graph
 from magenta.models.shared import melody_rnn_sequence_generator
 from magenta.protobuf import generator_pb2
 

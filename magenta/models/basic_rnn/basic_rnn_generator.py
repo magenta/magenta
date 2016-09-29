@@ -14,9 +14,8 @@
 """Build the generator for the basic RNN model."""
 
 # internal imports
-import basic_rnn_encoder_decoder
-import basic_rnn_graph
-
+from magenta.models.basic_rnn import basic_rnn_encoder_decoder
+from magenta.models.basic_rnn import basic_rnn_graph
 from magenta.models.shared import melody_rnn_sequence_generator
 from magenta.protobuf import generator_pb2
 

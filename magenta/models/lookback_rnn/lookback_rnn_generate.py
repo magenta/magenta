@@ -27,9 +27,9 @@ See /magenta/models/shared/melody_rnn_generate.py for flag descriptions.
 """
 
 # internal imports
-import lookback_rnn_generator
 import tensorflow as tf
 
+from magenta.models.lookback_rnn import lookback_rnn_generator
 from magenta.models.shared import melody_rnn_generate
 
 

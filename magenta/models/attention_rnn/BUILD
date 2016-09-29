@@ -44,6 +44,17 @@ py_library(
     ],
 )
 
+py_test(
+    name = "attention_rnn_encoder_decoder_test",
+    srcs = ["attention_rnn_encoder_decoder_test.py"],
+    srcs_version = "PY2AND3",
+    deps = [
+        ":attention_rnn_encoder_decoder",
+        "//magenta/music:melodies_lib",
+        # tensorflow dep
+    ],
+)
+
 py_library(
     name = "attention_rnn_generator",
     srcs = ["attention_rnn_generator.py"],
@@ -79,6 +90,17 @@ py_library(
     deps = [
         "//magenta",
         "//magenta/models/shared:melody_rnn_graph",
+    ],
+)
+
+py_test(
+    name = "attention_rnn_graph_test",
+    srcs = ["attention_rnn_graph_test.py"],
+    srcs_version = "PY2AND3",
+    deps = [
+        ":attention_rnn_graph",
+        "//magenta/music:melodies_lib",
+        # tensorflow dep
     ],
 )
 
