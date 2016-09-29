@@ -120,7 +120,7 @@ def midi_to_sequence_proto(midi_data):
   # sorting them primarily by start and secondarily by end, and finally looping
   # through this sorted list and appending each as a new sequence.note. We also
   # here set the sequence.total_time as the max end time in the notes.
-  # TODO(@douglaseck): Eliminate some of this boilerplate code.
+  # TODO(douglaseck): Eliminate some of this boilerplate code.
   midi_notes = []
   midi_pitch_bends = []
   midi_control_changes = []
@@ -166,7 +166,7 @@ def midi_to_sequence_proto(midi_data):
     control_change.control_value = midi_control_change.value
     control_change.is_drum = is_drum
 
-  # TODO(@douglaseck): Estimate note type (e.g. quarter note) and populate
+  # TODO(douglaseck): Estimate note type (e.g. quarter note) and populate
   # note.numerator and note.denominator.
 
   return sequence
@@ -211,7 +211,7 @@ def sequence_proto_to_pretty_midi(sequence):
     pm.key_signature_changes.append(key_signature)
 
   # Populate tempo. The first tempo change was done in PrettyMIDI constructor.
-  # TODO(@douglaseck): Update this code if pretty_midi adds the ability to
+  # TODO(douglaseck): Update this code if pretty_midi adds the ability to
   # write tempo.
   if len(sequence.tempos) > 1:
     for seq_tempo in sequence.tempos[1:]:

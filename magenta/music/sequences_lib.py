@@ -106,8 +106,8 @@ class QuantizedSequence(object):
 
     The quarter notes per minute stored in `note_sequence` is used to normalize
     tempo. Regardless of how fast or slow quarter notes are played, a note that
-    is played for 1 quarter note will last `steps_per_quarter` time steps in the
-    quantized result.
+    is played for 1 quarter note will last `steps_per_quarter` time steps in
+    the quantized result.
 
     A note's start and end time are snapped to a nearby quantized step. See
     the comments above `QUANTIZE_CUTOFF` for details.
@@ -117,7 +117,7 @@ class QuantizedSequence(object):
           many quantized time steps.
 
     Raises:
-      MultipleTimeSignatureException: If there is more than one time signature
+      MultipleTimeSignatureException: If there is a change in time signature
           in `note_sequence`.
       BadTimeSignatureException: If the time signature found in `note_sequence`
           has a denominator which is not a power of 2.
@@ -127,14 +127,15 @@ class QuantizedSequence(object):
 
     self.steps_per_quarter = steps_per_quarter
 
-    if len(note_sequence.time_signatures) > 1:
-      raise MultipleTimeSignatureException(
-          'NoteSequence contains %d time signatures. 0 or 1 expected.' %
-          len(note_sequence.time_signatures))
     if note_sequence.time_signatures:
       self.time_signature = TimeSignature(
           note_sequence.time_signatures[0].numerator,
           note_sequence.time_signatures[0].denominator)
+    for time_signature in note_sequence.time_signatures[1:]:
+      if (time_signature.numerator != self.time_signature.numerator or
+          time_signature.denominator != self.time_signature.denominator):
+        raise MultipleTimeSignatureException(
+            'NoteSequence has at least one time signature change.')
 
     if not is_power_of_2(self.time_signature.denominator):
       raise BadTimeSignatureException(
@@ -201,6 +202,3 @@ class QuantizedSequence(object):
     new_copy.time_signature = self.time_signature
     new_copy.steps_per_quarter = self.steps_per_quarter
     return new_copy
-
-  def deepcopy(self):
-    return self.__deepcopy__()

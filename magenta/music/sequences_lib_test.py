@@ -13,11 +13,14 @@
 # limitations under the License.
 """Tests for sequences_lib."""
 
+import copy
+
 # internal imports
 import tensorflow as tf
 
-from magenta.lib import sequences_lib
-from magenta.lib import testing_lib
+from magenta.common import testing_lib as common_testing_lib
+from magenta.music import sequences_lib
+from magenta.music import testing_lib
 from magenta.protobuf import music_pb2
 
 
@@ -25,7 +28,7 @@ class SequencesLibTest(tf.test.TestCase):
 
   def setUp(self):
     self.steps_per_quarter = 4
-    self.note_sequence = testing_lib.parse_test_proto(
+    self.note_sequence = common_testing_lib.parse_test_proto(
         music_pb2.NoteSequence,
         """
         time_signatures: {
@@ -122,6 +125,28 @@ class SequencesLibTest(tf.test.TestCase):
     quantized.from_note_sequence(self.note_sequence, self.steps_per_quarter)
     self.assertEqual(self.expected_quantized_sequence, quantized)
 
+  def testFromNoteSequence_TimeSignatureChange(self):
+    testing_lib.add_track(
+        self.note_sequence, 0,
+        [(12, 100, 0.01, 10.0), (11, 55, 0.22, 0.50), (40, 45, 2.50, 3.50),
+         (55, 120, 4.0, 4.01), (52, 99, 4.75, 5.0)])
+    del self.note_sequence.time_signatures[:]
+    quantized = sequences_lib.QuantizedSequence()
+    quantized.from_note_sequence(self.note_sequence, self.steps_per_quarter)
+
+    # Single time signature.
+    self.note_sequence.time_signatures.add(numerator=4, denominator=4)
+    quantized.from_note_sequence(self.note_sequence, self.steps_per_quarter)
+
+    # Multiple time signatures with no change.
+    self.note_sequence.time_signatures.add(numerator=4, denominator=4)
+    quantized.from_note_sequence(self.note_sequence, self.steps_per_quarter)
+
+    # Time signature change.
+    self.note_sequence.time_signatures.add(numerator=2, denominator=4)
+    with self.assertRaises(sequences_lib.MultipleTimeSignatureException):
+      quantized.from_note_sequence(self.note_sequence, self.steps_per_quarter)
+
   def testRounding(self):
     testing_lib.add_track(
         self.note_sequence, 1,
@@ -176,7 +201,7 @@ class SequencesLibTest(tf.test.TestCase):
          (55, 120, 4.0, 4.01), (52, 99, 4.75, 5.0)])
     quantized.from_note_sequence(self.note_sequence, self.steps_per_quarter)
 
-    quantized_copy = quantized.deepcopy()
+    quantized_copy = copy.deepcopy(quantized)
     self.assertEqual(quantized, quantized_copy)
 
     testing_lib.add_quantized_track(
@@ -184,6 +209,7 @@ class SequencesLibTest(tf.test.TestCase):
         [(12, 100, 4, 20), (19, 100, 8, 16), (24, 100, 12, 14)])
 
     self.assertNotEqual(quantized, quantized_copy)
+
 
 if __name__ == '__main__':
   tf.test.main()

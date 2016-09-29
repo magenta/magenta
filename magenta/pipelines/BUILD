@@ -21,6 +21,17 @@ package(
 
 licenses(["notice"])  # Apache 2.0
 
+# The Magenta public API.
+py_library(
+    name = "pipelines",
+    deps = [
+        ":dag_pipeline",
+        ":pipeline",
+        ":pipelines_common",
+        ":statistics",
+    ],
+)
+
 py_library(
     name = "dag_pipeline",
     srcs = ["dag_pipeline.py"],
@@ -52,13 +63,13 @@ py_library(
 py_test(
     name = "pipeline_test",
     srcs = ["pipeline_test.py"],
-    srcs_version = "PY2AND3",
     data = [
         "//magenta/testdata:tfrecord_iterator_test.tfrecord",
     ],
+    srcs_version = "PY2AND3",
     deps = [
         ":pipeline",
-        "//magenta/lib:testing_lib",
+        "//magenta/common:testing_lib",
         # tensorflow dep
     ],
 )
@@ -68,8 +79,8 @@ py_library(
     srcs = ["pipelines_common.py"],
     deps = [
         ":pipeline",
-        "//magenta/lib:melodies_lib",
-        "//magenta/lib:sequences_lib",
+        "//magenta/music:melodies_lib",
+        "//magenta/music:sequences_lib",
         "//magenta/protobuf:music_py_pb2",
     ],
 )
@@ -80,9 +91,11 @@ py_test(
     srcs_version = "PY2AND3",
     deps = [
         ":pipelines_common",
-        "//magenta/lib:melodies_lib",
-        "//magenta/lib:sequences_lib",
-        "//magenta/lib:testing_lib",
+        "//magenta/common:testing_lib",
+        "//magenta/music:constants",
+        "//magenta/music:melodies_lib",
+        "//magenta/music:sequences_lib",
+        "//magenta/music:testing_lib",
         # tensorflow dep
     ],
 )

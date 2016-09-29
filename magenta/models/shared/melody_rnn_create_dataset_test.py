@@ -16,9 +16,10 @@
 # internal imports
 import tensorflow as tf
 
-from magenta.lib import melodies_lib
-from magenta.lib import testing_lib
+from magenta.common import testing_lib as common_testing_lib
 from magenta.models.shared import melody_rnn_create_dataset
+from magenta.music import melodies_lib
+from magenta.music import testing_lib
 from magenta.pipelines import pipelines_common
 from magenta.protobuf import music_pb2
 
@@ -30,7 +31,7 @@ class MelodyRNNPipelineTest(tf.test.TestCase):
 
   def testMelodyRNNPipeline(self):
     FLAGS.eval_ratio = 0.0
-    note_sequence = testing_lib.parse_test_proto(
+    note_sequence = common_testing_lib.parse_test_proto(
         music_pb2.NoteSequence,
         """
         time_signatures: {
@@ -51,7 +52,7 @@ class MelodyRNNPipelineTest(tf.test.TestCase):
     quantized = quantizer.transform(note_sequence)[0]
     print quantized.tracks
     melody = melody_extractor.transform(quantized)[0]
-    one_hot = one_hot_encoder.encode(melody)
+    one_hot = one_hot_encoder.squash_and_encode(melody)
     print one_hot
     expected_result = {'training_melodies': [one_hot], 'eval_melodies': []}
 

@@ -19,9 +19,10 @@ import random
 from six.moves import range  # pylint: disable=redefined-builtin
 import tensorflow as tf
 
-from magenta.lib import melodies_lib
-from magenta.lib import sequence_generator
-from magenta.lib import sequences_lib
+from magenta.music import constants
+from magenta.music import melodies_lib
+from magenta.music import sequence_generator
+from magenta.music import sequences_lib
 from magenta.protobuf import generator_pb2
 
 
@@ -135,7 +136,7 @@ class MelodyRnnSequenceGenerator(sequence_generator.BaseSequenceGenerator):
 
     qpm = (primer_sequence.tempos[0].qpm if primer_sequence
            and primer_sequence.tempos
-           else melodies_lib.DEFAULT_QUARTERS_PER_MINUTE)
+           else constants.DEFAULT_QUARTERS_PER_MINUTE)
     start_step = self._seconds_to_steps(
         generate_section.start_time_seconds, qpm)
     end_step = self._seconds_to_steps(generate_section.end_time_seconds, qpm)
@@ -177,7 +178,7 @@ class MelodyRnnSequenceGenerator(sequence_generator.BaseSequenceGenerator):
       feed_dict = {inputs: inputs_, initial_state: initial_state_}
       final_state_, softmax_ = self._session.run(
           [final_state, softmax], feed_dict)
-      self._melody_encoder_decoder.extend_melodies([melody], softmax_)
+      self._melody_encoder_decoder.extend_event_sequences([melody], softmax_)
 
     melody.transpose(-transpose_amount)
 

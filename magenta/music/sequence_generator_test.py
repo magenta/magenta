@@ -17,7 +17,7 @@
 
 import tensorflow as tf
 
-from magenta.lib import sequence_generator
+from magenta.music import sequence_generator
 from magenta.protobuf import generator_pb2
 
 

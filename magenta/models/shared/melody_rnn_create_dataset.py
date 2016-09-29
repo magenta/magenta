@@ -22,7 +22,7 @@ import os
 # internal imports
 import tensorflow as tf
 
-from magenta.lib import melodies_lib
+from magenta.music import melodies_lib
 from magenta.pipelines import dag_pipeline
 from magenta.pipelines import pipeline
 from magenta.pipelines import pipelines_common
@@ -62,7 +62,7 @@ class EncoderPipeline(pipeline.Pipeline):
     self.melody_encoder_decoder = melody_encoder_decoder
 
   def transform(self, melody):
-    encoded = self.melody_encoder_decoder.encode(melody)
+    encoded = self.melody_encoder_decoder.squash_and_encode(melody)
     return [encoded]
 
   def get_stats(self):

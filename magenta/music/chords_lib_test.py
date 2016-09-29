@@ -16,11 +16,11 @@
 # internal imports
 import tensorflow as tf
 
-from magenta.lib import chord_symbols_lib
-from magenta.lib import chords_lib
-from magenta.lib import melodies_lib
-from magenta.lib import sequences_lib
-from magenta.lib import testing_lib
+from magenta.music import chord_symbols_lib
+from magenta.music import chords_lib
+from magenta.music import melodies_lib
+from magenta.music import sequences_lib
+from magenta.music import testing_lib
 
 NO_CHORD = chords_lib.NO_CHORD
 
@@ -101,19 +101,6 @@ class ChordsLibTest(tf.test.TestCase):
     with self.assertRaises(chords_lib.CoincidentChordsException):
       chords.from_quantized_sequence(
           self.quantized_sequence, start_step=0, end_step=16)
-
-  def testAppendEvent(self):
-    chords = chords_lib.ChordProgression()
-
-    chords.append_event(NO_CHORD)
-    self.assertListEqual([NO_CHORD], list(chords))
-    self.assertEqual(0, chords.start_step)
-    self.assertEqual(1, chords.end_step)
-
-    chords.append_event('A-')
-    self.assertListEqual([NO_CHORD, 'A-'], list(chords))
-    self.assertEqual(0, chords.start_step)
-    self.assertEqual(2, chords.end_step)
 
   def testExtractChordsForMelodies(self):
     self.quantized_sequence.steps_per_quarter = 1

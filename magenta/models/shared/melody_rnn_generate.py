@@ -24,10 +24,11 @@ import time
 from six.moves import range  # pylint: disable=redefined-builtin
 import tensorflow as tf
 
-from magenta.lib import melodies_lib
-from magenta.lib import midi_io
-from magenta.lib import sequence_generator
-from magenta.lib import sequence_generator_bundle
+from magenta.music import constants
+from magenta.music import melodies_lib
+from magenta.music import midi_io
+from magenta.music import sequence_generator
+from magenta.music import sequence_generator_bundle
 from magenta.protobuf import generator_pb2
 
 FLAGS = tf.app.flags.FLAGS
@@ -196,7 +197,7 @@ def run_with_flags(melody_rnn_sequence_generator):
     os.makedirs(FLAGS.output_dir)
 
   primer_sequence = None
-  qpm = FLAGS.qpm if FLAGS.qpm else melodies_lib.DEFAULT_QUARTERS_PER_MINUTE
+  qpm = FLAGS.qpm if FLAGS.qpm else constants.DEFAULT_QUARTERS_PER_MINUTE
   if FLAGS.primer_melody:
     primer_melody = melodies_lib.MonophonicMelody()
     primer_melody.from_event_list(ast.literal_eval(FLAGS.primer_melody))

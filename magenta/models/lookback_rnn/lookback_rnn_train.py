@@ -45,5 +45,8 @@ def main(unused_argv):
   melody_rnn_train.run(melody_encoder_decoder, lookback_rnn_graph.build_graph)
 
 
+def console_entry_point():
+  tf.app.run(main)
+
 if __name__ == '__main__':
-  tf.app.run()
+  console_entry_point()

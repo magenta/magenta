@@ -14,10 +14,11 @@
 """A MelodyEncoderDecoder specific to the lookback RNN model."""
 
 # internal imports
-from magenta.lib import melodies_lib
+from magenta.music import constants
+from magenta.music import melodies_lib
 
-NUM_SPECIAL_EVENTS = melodies_lib.NUM_SPECIAL_EVENTS
-NO_EVENT = melodies_lib.NO_EVENT
+NUM_SPECIAL_MELODY_EVENTS = constants.NUM_SPECIAL_MELODY_EVENTS
+MELODY_NO_EVENT = constants.MELODY_NO_EVENT
 STEPS_PER_BAR = 16  # This code assumes the melodies have 16 steps per bar.
 
 MIN_NOTE = 48  # Inclusive
@@ -46,7 +47,8 @@ class MelodyEncoderDecoder(melodies_lib.MelodyEncoderDecoder):
     """Initializes the MelodyEncoderDecoder."""
     super(MelodyEncoderDecoder, self).__init__(MIN_NOTE, MAX_NOTE,
                                                TRANSPOSE_TO_KEY)
-    self.num_model_events = self.max_note - self.min_note + NUM_SPECIAL_EVENTS
+    self.num_model_events = (self.max_note - self.min_note +
+                             NUM_SPECIAL_MELODY_EVENTS)
 
   @property
   def input_size(self):
@@ -69,8 +71,8 @@ class MelodyEncoderDecoder(melodies_lib.MelodyEncoderDecoder):
       that pitch relative to the [self._min_note, self._max_note) range.
     """
     if melody_event < 0:
-      return melody_event + NUM_SPECIAL_EVENTS
-    return melody_event - self.min_note + NUM_SPECIAL_EVENTS
+      return melody_event + NUM_SPECIAL_MELODY_EVENTS
+    return melody_event - self.min_note + NUM_SPECIAL_MELODY_EVENTS
 
   def model_event_to_melody_event(self, model_event):
     """Expands a zero-based index value to its equivalent melody event value.
@@ -85,11 +87,11 @@ class MelodyEncoderDecoder(melodies_lib.MelodyEncoderDecoder):
       A MonophonicMelody event value. -2 = no event, -1 = note-off event,
       [0, 127] = note-on event for that midi pitch.
     """
-    if model_event < NUM_SPECIAL_EVENTS:
-      return model_event - NUM_SPECIAL_EVENTS
-    return model_event - NUM_SPECIAL_EVENTS + self.min_note
+    if model_event < NUM_SPECIAL_MELODY_EVENTS:
+      return model_event - NUM_SPECIAL_MELODY_EVENTS
+    return model_event - NUM_SPECIAL_MELODY_EVENTS + self.min_note
 
-  def melody_to_input(self, melody, position):
+  def events_to_input(self, events, position):
     """Returns the input vector for the given position in the melody.
 
     Returns a self.input_size length list of floats. Assuming MIN_NOTE = 48
@@ -109,7 +111,7 @@ class MelodyEncoderDecoder(melodies_lib.MelodyEncoderDecoder):
     120: The current step is repeating 2 bars ago.
 
     Args:
-      melody: A melodies_lib.MonophonicMelody object.
+      events: A melodies_lib.MonophonicMelody object.
       position: An integer position in the melody.
 
     Returns:
@@ -118,16 +120,16 @@ class MelodyEncoderDecoder(melodies_lib.MelodyEncoderDecoder):
     input_ = [0.0] * self.input_size
 
     # Last event.
-    model_event = self.melody_event_to_model_event(melody[position])
+    model_event = self.melody_event_to_model_event(events[position])
     input_[model_event] = 1.0
 
     # Next event if repeating N positions ago.
     for i, lookback_distance in enumerate(LOOKBACK_DISTANCES):
       lookback_position = position - lookback_distance + 1
       if lookback_position < 0:
-        melody_event = NO_EVENT
+        melody_event = MELODY_NO_EVENT
       else:
-        melody_event = melody[lookback_position]
+        melody_event = events[lookback_position]
       model_event = self.melody_event_to_model_event(melody_event)
       input_[i * self.num_model_events + model_event] = 1.0
 
@@ -140,15 +142,15 @@ class MelodyEncoderDecoder(melodies_lib.MelodyEncoderDecoder):
     for i, lookback_distance in enumerate(LOOKBACK_DISTANCES):
       lookback_position = position - lookback_distance
       if (lookback_position >= 0 and
-          melody[position] == melody[lookback_position]):
+          events[position] == events[lookback_position]):
         input_[3 * self.num_model_events + 5 + i] = 1.0
 
     return input_
 
-  def melody_to_label(self, melody, position):
+  def events_to_label(self, events, position):
     """Returns the label for the given position in the melody.
 
-    Returns an int the range [0, self.num_classes). Indices in the range
+    Returns an integer in the range [0, self.num_classes). Indices in the range
     [0, self.num_model_events) map to standard midi events. Indices
     self.num_model_events and self.num_model_events + 1 are signals to repeat
     events from earlier in the melody. More distant repeats are selected first
@@ -164,35 +166,35 @@ class MelodyEncoderDecoder(melodies_lib.MelodyEncoderDecoder):
       39: If the last event in the melody is repeating 2 bars ago.
 
     Args:
-      melody: A melodies_lib.MonophonicMelody object.
+      events: A melodies_lib.MonophonicMelody object.
       position: An integer position in the melody.
 
     Returns:
-      A label, an int.
+      A label, an integer.
     """
     if (position < LOOKBACK_DISTANCES[-1] and
-        melody[position] == NO_EVENT):
+        events[position] == MELODY_NO_EVENT):
       return self.num_model_events + len(LOOKBACK_DISTANCES) - 1
 
     # If last step repeated N bars ago.
     for i, lookback_distance in reversed(list(enumerate(LOOKBACK_DISTANCES))):
       lookback_position = position - lookback_distance
       if (lookback_position >= 0 and
-          melody[position] == melody[lookback_position]):
+          events[position] == events[lookback_position]):
         return self.num_model_events + i
 
     # If last step didn't repeat at one of the lookback positions, use the
     # specific event.
-    return self.melody_event_to_model_event(melody[position])
+    return self.melody_event_to_model_event(events[position])
 
-  def class_index_to_melody_event(self, class_index, melody):
+  def class_index_to_event(self, class_index, events):
     """Returns the melody event for the given class index.
 
     This is the reverse process of the self.melody_to_label method.
 
     Args:
       class_index: An int in the range [0, self.num_classes).
-      melody: The melodies_lib.MonophonicMelody events list of the current
+      events: The melodies_lib.MonophonicMelody events list of the current
           melody.
 
     Returns:
@@ -201,9 +203,9 @@ class MelodyEncoderDecoder(melodies_lib.MelodyEncoderDecoder):
     # Repeat N bar ago.
     for i, lookback_distance in reversed(list(enumerate(LOOKBACK_DISTANCES))):
       if class_index == self.num_model_events + i:
-        if len(melody) < lookback_distance:
-          return NO_EVENT
-        return melody[-lookback_distance]
+        if len(events) < lookback_distance:
+          return MELODY_NO_EVENT
+        return events[-lookback_distance]
 
     # Return the melody event for that class index.
     return self.model_event_to_melody_event(class_index)

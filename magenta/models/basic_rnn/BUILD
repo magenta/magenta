@@ -23,6 +23,7 @@ py_binary(
     srcs_version = "PY2AND3",
     visibility = [
         # internal pipeline runner
+        "//magenta/tools/pip:__subpackages__",
     ],
     deps = [
         ":basic_rnn_encoder_decoder",
@@ -39,7 +40,7 @@ py_library(
         # internal dev models
     ],
     deps = [
-        "//magenta/lib:melodies_lib",
+        "//magenta",
     ],
 )
 
@@ -71,6 +72,7 @@ py_binary(
     name = "basic_rnn_generate",
     srcs = ["basic_rnn_generate.py"],
     srcs_version = "PY2AND3",
+    visibility = ["//magenta/tools/pip:__subpackages__"],
     deps = [
         ":basic_rnn_generator",
         "//magenta/models/shared:melody_rnn_generate",
@@ -86,7 +88,7 @@ py_library(
         # internal dev models
     ],
     deps = [
-        "//magenta/lib:tf_lib",
+        "//magenta",
         "//magenta/models/shared:melody_rnn_graph",
     ],
 )
@@ -106,6 +108,7 @@ py_binary(
     name = "basic_rnn_train",
     srcs = ["basic_rnn_train.py"],
     srcs_version = "PY2AND3",
+    visibility = ["//magenta/tools/pip:__subpackages__"],
     deps = [
         ":basic_rnn_encoder_decoder",
         ":basic_rnn_graph",

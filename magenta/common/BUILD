@@ -13,19 +13,44 @@
 # limitations under the License.
 
 # Description:
-# MIDI interface for Magenta generators.
+# Libraries for using TensorFlow with music and art.
+
+package(
+    default_visibility = ["//magenta:__subpackages__"],
+)
 
 licenses(["notice"])  # Apache 2.0
 
-py_binary(
-    name = "magenta_midi",
-    srcs = ["magenta_midi.py"],
-    visibility = ["//magenta/tools/pip:__subpackages__"],
+# The Magenta public API.
+py_library(
+    name = "common",
     deps = [
-        "//magenta",
-        "//magenta/models/attention_rnn:attention_rnn_generator",
-        "//magenta/models/basic_rnn:basic_rnn_generator",
-        "//magenta/models/lookback_rnn:lookback_rnn_generator",
-        "@mido//:mido",
+        ":sequence_example_lib",
+        ":testing_lib",
+        ":tf_lib",
     ],
+)
+
+py_library(
+    name = "sequence_example_lib",
+    srcs = ["sequence_example_lib.py"],
+    srcs_version = "PY2AND3",
+    deps = [
+        # tensorflow dep
+    ],
+)
+
+py_library(
+    name = "testing_lib",
+    srcs = ["testing_lib.py"],
+    deps = [
+        "@protobuf//:protobuf_python",
+        # numpy dep
+    ],
+)
+
+py_library(
+    name = "tf_lib",
+    srcs = ["tf_lib.py"],
+    srcs_version = "PY2AND3",
 )

@@ -11,40 +11,12 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Tests for sequences_lib."""
+"""Testing support code."""
 
 # internal imports
 import numpy as np
 
 from google.protobuf import text_format
-from magenta.lib import sequences_lib
-from magenta.protobuf import music_pb2
-
-# Shortcut to CHORD_SYMBOL annotation type.
-CHORD_SYMBOL = music_pb2.NoteSequence.TextAnnotation.CHORD_SYMBOL
-
-
-class MockStringProto(object):
-  """Provides common methods for a protocol buffer object.
-
-  Wraps a single string value. This makes testing equality easy.
-  """
-
-  def __init__(self, string=''):
-    self.string = string
-
-  @staticmethod
-  def FromString(string):  # pylint: disable=invalid-name
-    return MockStringProto(string)
-
-  def SerializeToString(self):  # pylint: disable=invalid-name
-    return 'serialized:' + self.string
-
-  def __eq__(self, other):
-    return isinstance(other, MockStringProto) and self.string == other.string
-
-  def __hash__(self):
-    return hash(self.string)
 
 
 def assert_set_equality(test_case, expected, actual):
@@ -88,39 +60,24 @@ def parse_test_proto(proto_type, proto_string):
   return instance
 
 
-def add_track(note_sequence, instrument, notes):
-  for pitch, velocity, start_time, end_time in notes:
-    note = note_sequence.notes.add()
-    note.pitch = pitch
-    note.velocity = velocity
-    note.start_time = start_time
-    note.end_time = end_time
-    note.instrument = instrument
+class MockStringProto(object):
+  """Provides common methods for a protocol buffer object.
 
+  Wraps a single string value. This makes testing equality easy.
+  """
 
-def add_chords(note_sequence, chords):
-  for figure, time in chords:
-    annotation = note_sequence.text_annotations.add()
-    annotation.time = time
-    annotation.text = figure
-    annotation.annotation_type = CHORD_SYMBOL
+  def __init__(self, string=''):
+    self.string = string
 
+  @staticmethod
+  def FromString(string):  # pylint: disable=invalid-name
+    return MockStringProto(string)
 
-def add_quantized_track(quantized_sequence, instrument, notes):
-  if instrument not in quantized_sequence.tracks:
-    quantized_sequence.tracks[instrument] = []
-  track = quantized_sequence.tracks[instrument]
-  for pitch, velocity, start_step, end_step in notes:
-    note = sequences_lib.Note(pitch=pitch,
-                              velocity=velocity,
-                              start=start_step,
-                              end=end_step,
-                              instrument=instrument,
-                              program=0)
-    track.append(note)
+  def SerializeToString(self):  # pylint: disable=invalid-name
+    return 'serialized:' + self.string
 
+  def __eq__(self, other):
+    return isinstance(other, MockStringProto) and self.string == other.string
 
-def add_quantized_chords(quantized_sequence, chords):
-  for figure, step in chords:
-    chord = sequences_lib.ChordSymbol(step=step, figure=figure)
-    quantized_sequence.chords.append(chord)
+  def __hash__(self):
+    return hash(self.string)

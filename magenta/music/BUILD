@@ -21,6 +21,21 @@ package(
 
 licenses(["notice"])  # Apache 2.0
 
+# The Magenta public API.
+py_library(
+    name = "music",
+    deps = [
+        ":constants",
+        ":melodies_lib",
+        ":midi_io",
+        ":note_sequence_io",
+        ":sequence_generator",
+        ":sequence_generator_bundle",
+        ":sequences_lib",
+        ":testing_lib",
+    ],
+)
+
 py_library(
     name = "chord_symbols_lib",
     srcs = ["chord_symbols_lib.py"],
@@ -47,11 +62,10 @@ py_library(
     srcs_version = "PY2AND3",
     deps = [
         ":chord_symbols_lib",
-        ":melodies_lib",
-        ":sequence_example_lib",
+        ":constants",
+        ":events_lib",
         "//magenta/pipelines:statistics",
         "//magenta/protobuf:music_py_pb2",
-        # numpy dep
     ],
 )
 
@@ -70,16 +84,43 @@ py_test(
 )
 
 py_library(
+    name = "constants",
+    srcs = ["constants.py"],
+    srcs_version = "PY2AND3",
+)
+
+py_library(
+    name = "events_lib",
+    srcs = ["events_lib.py"],
+    srcs_version = "PY2AND3",
+    deps = [
+        ":constants",
+        "//magenta/common:sequence_example_lib",
+        # numpy dep
+    ],
+)
+
+py_test(
+    name = "events_lib_test",
+    srcs = ["events_lib_test.py"],
+    srcs_version = "PY2AND3",
+    deps = [
+        ":events_lib",
+        # tensorflow dep
+    ],
+)
+
+py_library(
     name = "lead_sheets_lib",
     srcs = ["lead_sheets_lib.py"],
     srcs_version = "PY2AND3",
     deps = [
         ":chords_lib",
+        ":constants",
+        ":events_lib",
         ":melodies_lib",
-        ":sequence_example_lib",
         "//magenta/pipelines:statistics",
         "//magenta/protobuf:music_py_pb2",
-        # numpy dep
     ],
 )
 
@@ -89,6 +130,7 @@ py_test(
     srcs_version = "PY2AND3",
     deps = [
         ":chords_lib",
+        ":constants",
         ":lead_sheets_lib",
         ":melodies_lib",
         ":sequences_lib",
@@ -102,7 +144,8 @@ py_library(
     srcs = ["melodies_lib.py"],
     srcs_version = "PY2AND3",
     deps = [
-        ":sequence_example_lib",
+        ":constants",
+        ":events_lib",
         "//magenta/pipelines:statistics",
         "//magenta/protobuf:music_py_pb2",
         # numpy dep
@@ -114,10 +157,11 @@ py_test(
     srcs = ["melodies_lib_test.py"],
     srcs_version = "PY2AND3",
     deps = [
+        ":constants",
         ":melodies_lib",
-        ":sequence_example_lib",
         ":sequences_lib",
         ":testing_lib",
+        "//magenta/common:sequence_example_lib",
         # tensorflow dep
     ],
 )
@@ -166,15 +210,6 @@ py_test(
 )
 
 py_library(
-    name = "sequence_example_lib",
-    srcs = ["sequence_example_lib.py"],
-    srcs_version = "PY2AND3",
-    deps = [
-        # tensorflow dep
-    ],
-)
-
-py_library(
     name = "sequences_lib",
     srcs = ["sequences_lib.py"],
 )
@@ -186,6 +221,7 @@ py_test(
     deps = [
         ":sequences_lib",
         ":testing_lib",
+        "//magenta/common:testing_lib",
         "//magenta/protobuf:music_py_pb2",
         # tensorflow dep
     ],
@@ -196,15 +232,8 @@ py_library(
     srcs = ["testing_lib.py"],
     deps = [
         ":sequences_lib",
-        "@protobuf//:protobuf_python",
         "//magenta/protobuf:music_py_pb2",
-    ]
-)
-
-py_library(
-    name = "tf_lib",
-    srcs = ["tf_lib.py"],
-    srcs_version = "PY2AND3",
+    ],
 )
 
 py_library(
@@ -297,4 +326,3 @@ py_test(
         # tensorflow dep
     ],
 )
-

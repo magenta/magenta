@@ -22,7 +22,7 @@ import midi as py_midi
 import pretty_midi
 import tensorflow as tf
 
-from magenta.lib import midi_io
+from magenta.music import midi_io
 
 # self.midi_simple_filename contains a c-major scale of 8 quarter notes each
 # with a sustain of .95 of the entire note. Here are the first two notes dumped

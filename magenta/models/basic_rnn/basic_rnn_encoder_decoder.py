@@ -14,9 +14,10 @@
 """A MelodyEncoderDecoder specific to the basic RNN model."""
 
 # internal imports
-from magenta.lib import melodies_lib
+from magenta.music import constants
+from magenta.music import melodies_lib
 
-NUM_SPECIAL_EVENTS = melodies_lib.NUM_SPECIAL_EVENTS
+NUM_SPECIAL_MELODY_EVENTS = constants.NUM_SPECIAL_MELODY_EVENTS
 
 MIN_NOTE = 48  # Inclusive
 MAX_NOTE = 84  # Exclusive
@@ -35,7 +36,8 @@ class MelodyEncoderDecoder(melodies_lib.MelodyEncoderDecoder):
     """Initializes the MelodyEncoderDecoder."""
     super(MelodyEncoderDecoder, self).__init__(MIN_NOTE, MAX_NOTE,
                                                TRANSPOSE_TO_KEY)
-    self._num_model_events = self.max_note - self.min_note + NUM_SPECIAL_EVENTS
+    self._num_model_events = (self.max_note - self.min_note +
+                              NUM_SPECIAL_MELODY_EVENTS)
 
   @property
   def input_size(self):
@@ -58,8 +60,8 @@ class MelodyEncoderDecoder(melodies_lib.MelodyEncoderDecoder):
       that pitch relative to the [self._min_note, self._max_note) range.
     """
     if melody_event < 0:
-      return melody_event + NUM_SPECIAL_EVENTS
-    return melody_event - self.min_note + NUM_SPECIAL_EVENTS
+      return melody_event + NUM_SPECIAL_MELODY_EVENTS
+    return melody_event - self.min_note + NUM_SPECIAL_MELODY_EVENTS
 
   def model_event_to_melody_event(self, model_event):
     """Expands a zero-based index value to its equivalent melody event value.
@@ -74,11 +76,11 @@ class MelodyEncoderDecoder(melodies_lib.MelodyEncoderDecoder):
       A MonophonicMelody event value. -2 = no event, -1 = note-off event,
       [0, 127] = note-on event for that midi pitch.
     """
-    if model_event < NUM_SPECIAL_EVENTS:
-      return model_event - NUM_SPECIAL_EVENTS
-    return model_event - NUM_SPECIAL_EVENTS + self.min_note
+    if model_event < NUM_SPECIAL_MELODY_EVENTS:
+      return model_event - NUM_SPECIAL_MELODY_EVENTS
+    return model_event - NUM_SPECIAL_MELODY_EVENTS + self.min_note
 
-  def melody_to_input(self, melody, position):
+  def events_to_input(self, events, position):
     """Returns the input vector for the given position in the melody.
 
     Returns a one-hot vector for the given position in the melody mapped to the
@@ -87,17 +89,17 @@ class MelodyEncoderDecoder(melodies_lib.MelodyEncoderDecoder):
     [self._min_note, self._max_note) range.
 
     Args:
-      melody: A MonophonicMelody object.
+      events: A MonophonicMelody object.
       position: An integer event position in the melody.
 
     Returns:
       An input vector, a list of floats.
     """
     input_ = [0.0] * self.input_size
-    input_[self.melody_event_to_model_event(melody[position])] = 1.0
+    input_[self.melody_event_to_model_event(events[position])] = 1.0
     return input_
 
-  def melody_to_label(self, melody, position):
+  def events_to_label(self, events, position):
     """Returns the label for the given position in the melody.
 
     Returns the zero-based index value for the given position in the melody
@@ -106,22 +108,22 @@ class MelodyEncoderDecoder(melodies_lib.MelodyEncoderDecoder):
     [self._min_note, self._max_note) range.
 
     Args:
-      melody: A MonophonicMelody object.
+      events: A MonophonicMelody object.
       position: An integer event position in the melody.
 
     Returns:
-      A label, an int.
+      A label, an integer.
     """
-    return self.melody_event_to_model_event(melody[position])
+    return self.melody_event_to_model_event(events[position])
 
-  def class_index_to_melody_event(self, class_index, melody):
+  def class_index_to_event(self, class_index, events):
     """Returns the melody event for the given class index.
 
     This is the reverse process of the self.melody_to_label method.
 
     Args:
-      class_index: An int in the range [0, self.num_classes).
-      melody: A MonophonicMelody object. This object is not used in this
+      class_index: An integer in the range [0, self.num_classes).
+      events: A MonophonicMelody object. This object is not used in this
           implementation.
 
     Returns:

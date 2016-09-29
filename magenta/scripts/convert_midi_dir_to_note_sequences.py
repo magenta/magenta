@@ -27,8 +27,8 @@ import os
 # internal imports
 import tensorflow as tf
 
-from magenta.lib import midi_io
-from magenta.lib import note_sequence_io
+from magenta.music import midi_io
+from magenta.music import note_sequence_io
 
 FLAGS = tf.app.flags.FLAGS
 
@@ -125,5 +125,8 @@ def main(unused_argv):
                     FLAGS.output_file)
 
 
+def console_entry_point():
+  tf.app.run(main)
+
 if __name__ == '__main__':
-  tf.app.run()
+  console_entry_point()

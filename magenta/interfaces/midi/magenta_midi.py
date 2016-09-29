@@ -27,10 +27,10 @@ import time
 import mido
 import tensorflow as tf
 
-from magenta.lib import sequence_generator_bundle
 from magenta.models.attention_rnn import attention_rnn_generator
 from magenta.models.basic_rnn import basic_rnn_generator
 from magenta.models.lookback_rnn import lookback_rnn_generator
+from magenta.music import sequence_generator_bundle
 from magenta.protobuf import generator_pb2
 from magenta.protobuf import music_pb2
 
@@ -591,5 +591,8 @@ def main(unused_argv):
     hub.start_playback(generated_sequence, FLAGS.metronome_playback_velocity)
 
 
+def console_entry_point():
+  tf.app.run(main)
+
 if __name__ == '__main__':
-  tf.app.run()
+  console_entry_point()

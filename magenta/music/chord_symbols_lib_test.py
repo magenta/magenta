@@ -16,7 +16,7 @@
 # internal imports
 import tensorflow as tf
 
-from magenta.lib import chord_symbols_lib
+from magenta.music import chord_symbols_lib
 
 CHORD_QUALITY_MAJOR = chord_symbols_lib.CHORD_QUALITY_MAJOR
 CHORD_QUALITY_MINOR = chord_symbols_lib.CHORD_QUALITY_MINOR

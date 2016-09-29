@@ -16,15 +16,16 @@
 # internal imports
 import tensorflow as tf
 
-from magenta.lib import chords_lib
-from magenta.lib import lead_sheets_lib
-from magenta.lib import melodies_lib
-from magenta.lib import sequences_lib
-from magenta.lib import testing_lib
+from magenta.music import chords_lib
+from magenta.music import constants
+from magenta.music import lead_sheets_lib
+from magenta.music import melodies_lib
+from magenta.music import sequences_lib
+from magenta.music import testing_lib
 
-NOTE_OFF = melodies_lib.NOTE_OFF
-NO_EVENT = melodies_lib.NO_EVENT
-NO_CHORD = chords_lib.NO_CHORD
+NOTE_OFF = constants.MELODY_NOTE_OFF
+NO_EVENT = constants.MELODY_NO_EVENT
+NO_CHORD = constants.NO_CHORD
 
 
 class LeadSheetsLibTest(tf.test.TestCase):
@@ -38,12 +39,9 @@ class LeadSheetsLibTest(tf.test.TestCase):
     # LeadSheet transposition should agree with melody & chords transpositions.
     melody_events = [12 * 5 + 4, NO_EVENT, 12 * 5 + 5,
                      NOTE_OFF, 12 * 6, NO_EVENT]
-    melody = melodies_lib.MonophonicMelody()
-    melody.from_event_list(melody_events)
     chord_events = [NO_CHORD, 'C', 'F', 'Dm', 'D', 'G']
-    chords = chords_lib.ChordProgression()
-    chords.from_event_list(chord_events)
-    lead_sheet = lead_sheets_lib.LeadSheet(melody, chords)
+    lead_sheet = lead_sheets_lib.LeadSheet()
+    lead_sheet.from_event_list(zip(melody_events, chord_events))
     lead_sheet.transpose(transpose_amount=-5, min_note=12 * 5, max_note=12 * 7)
     expected_melody = melodies_lib.MonophonicMelody()
     expected_melody.from_event_list(melody_events[:])
@@ -59,12 +57,9 @@ class LeadSheetsLibTest(tf.test.TestCase):
     # LeadSheet squash should agree with melody squash & chords transpose.
     melody_events = [12 * 5, NO_EVENT, 12 * 5 + 2,
                      NOTE_OFF, 12 * 6 + 4, NO_EVENT]
-    melody = melodies_lib.MonophonicMelody()
-    melody.from_event_list(melody_events)
     chord_events = ['C', 'Am', 'Dm', 'G', 'C', NO_CHORD]
-    chords = chords_lib.ChordProgression()
-    chords.from_event_list(chord_events)
-    lead_sheet = lead_sheets_lib.LeadSheet(melody, chords)
+    lead_sheet = lead_sheets_lib.LeadSheet()
+    lead_sheet.from_event_list(zip(melody_events, chord_events))
     lead_sheet.squash(min_note=12 * 5, max_note=12 * 6, transpose_to_key=0)
     expected_melody = melodies_lib.MonophonicMelody()
     expected_melody.from_event_list(melody_events[:])
@@ -159,12 +154,9 @@ class LeadSheetsLibTest(tf.test.TestCase):
     # Setting LeadSheet length should agree with setting length on melody and
     # chords separately.
     melody_events = [60]
-    melody = melodies_lib.MonophonicMelody()
-    melody.from_event_list(melody_events, start_step=9)
     chord_events = ['C7']
-    chords = chords_lib.ChordProgression()
-    chords.from_event_list(chord_events, start_step=9)
-    lead_sheet = lead_sheets_lib.LeadSheet(melody, chords)
+    lead_sheet = lead_sheets_lib.LeadSheet()
+    lead_sheet.from_event_list(zip(melody_events, chord_events), start_step=9)
     lead_sheet.set_length(5)
     expected_melody = melodies_lib.MonophonicMelody()
     expected_melody.from_event_list(melody_events[:], start_step=9)
@@ -186,7 +178,8 @@ class LeadSheetsLibTest(tf.test.TestCase):
     chords = chords_lib.ChordProgression()
     chords.from_event_list([NO_CHORD, 'A', 'A', 'C#m', 'C#m', 'D', 'B', 'B',
                             'B'])
-    lead_sheet = lead_sheets_lib.LeadSheet(melody, chords)
+    lead_sheet = lead_sheets_lib.LeadSheet()
+    lead_sheet.from_melody_and_chords(melody, chords)
     sequence = lead_sheet.to_sequence(
         velocity=10,
         instrument=1,
