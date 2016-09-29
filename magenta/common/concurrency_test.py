@@ -26,7 +26,7 @@ class ConcurrencyTest(tf.test.TestCase):
 
   def testSleeper_SleepUntil(self):
     # Burn in.
-    for i in range(10):
+    for _ in range(10):
       concurrency.Sleeper().sleep(.01)
 
     future_time = time.time() + 0.5
