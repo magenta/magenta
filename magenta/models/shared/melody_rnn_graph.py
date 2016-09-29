@@ -150,7 +150,7 @@ def build_graph(mode, hparams, encoder_decoder, sequence_example_file=None):
         tf.add_to_collection('summary_op', summary_op)
 
     elif mode == 'generate':
-      if hparams.temperature != 1.0:
+      if hparams.temperature and hparams.temperature != 1.0:
         logits_flat /= hparams.temperature
 
       softmax_flat = tf.nn.softmax(logits_flat)

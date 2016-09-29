@@ -310,17 +310,12 @@ class LeadSheetEncoderDecoder(events_lib.EventsEncoderDecoder):
   During lead sheet generation, the `get_inputs_batch` method takes in a list
   of the current lead sheets and returns an inputs batch which is fed into the
   model to predict what the next note and chord should be for each lead sheet.
-  The `extend_lead_sheets` method takes in the list of lead sheets and the
+  The `extend_event_sequences` method takes in the list of lead sheets and the
   softmax returned by the model and extends each lead sheet by one step by
   sampling from the softmax probabilities. This loop (`get_inputs_batch` ->
   inputs batch is fed through the model to get a softmax ->
-  `extend_lead_sheets`) is repeated until the generated lead sheets have
+  `extend_event_sequences`) is repeated until the generated lead sheets have
   reached the desired length.
-
-  The `lead_sheet_to_input`, `lead_sheet_to_label`, and
-  `class_index_to_melody_event` methods must be overwritten to be specific to
-  your model. See chords_and_melody/basic_rnn/basic_rnn_encoder_decoder.py
-  for an example of this.
   """
   __metaclass__ = abc.ABCMeta
 
@@ -412,9 +407,9 @@ class LeadSheetProductEncoderDecoder(LeadSheetEncoderDecoder):
     Returns:
       An input vector, a self.input_size length list of floats.
     """
-    melody_input = self._melody_encoder_decoder.melody_to_input(
+    melody_input = self._melody_encoder_decoder.events_to_input(
         events.melody, position)
-    chords_input = self.chords_encoder_decoder.chords_to_input(
+    chords_input = self.chords_encoder_decoder.events_to_input(
         events.chords, position)
     return melody_input + chords_input
 
@@ -458,5 +453,5 @@ class LeadSheetProductEncoderDecoder(LeadSheetEncoderDecoder):
     return (
         self._melody_encoder_decoder.class_index_to_event(melody_index,
                                                           events.melody),
-        self._chords_encoder_decoder.class_index_to_chord_event(chord_index,
-                                                                events.chords))
+        self._chords_encoder_decoder.class_index_to_event(chord_index,
+                                                          events.chords))

@@ -1,6 +1,6 @@
 ## Lookback RNN
 
-Lookback RNN introduces custom inputs and labels. The custom inputs allow the model to more easily recognize patterns that occur across 1 and 2 bars. They also help the model recognize patterns related to an events position within the measure. The custom labels reduce the amount of information that the RNN’s cell state has to remember by allowing the model to more easily repeat events from 1 and 2 bars ago. This results in melodies that wander less and have a more musical structure. For more information about the custom inputs and labels, and to hear some generated sample melodies, check out the [blog post](https://magenta.tensorflow.org/2016/07/15/lookback-rnn-attention-rnn/). You can also read through the `melody_to_input` and `melody_to_label` methods in `lookback_rnn_encoder_decoder.py` to see how the custom inputs and labels are actually being encoded. The rest of this README leads you through the steps of training the model and generating melodies from it.
+Lookback RNN introduces custom inputs and labels. The custom inputs allow the model to more easily recognize patterns that occur across 1 and 2 bars. They also help the model recognize patterns related to an events position within the measure. The custom labels reduce the amount of information that the RNN’s cell state has to remember by allowing the model to more easily repeat events from 1 and 2 bars ago. This results in melodies that wander less and have a more musical structure. For more information about the custom inputs and labels, and to hear some generated sample melodies, check out the [blog post](https://magenta.tensorflow.org/2016/07/15/lookback-rnn-attention-rnn/). You can also read through the `events_to_input` and `events_to_label` methods in `lookback_rnn_encoder_decoder.py` to see how the custom inputs and labels are actually being encoded. The rest of this README leads you through the steps of training the model and generating melodies from it.
 
 ## How to Use
 
@@ -8,7 +8,7 @@ First, set up your [Magenta environment](https://github.com/tensorflow/magenta/b
 
 ## Pre-trained
 
-If you want to get started right away, you can use a model that we've pre-trained on thousands of MIDI files. Download the [lookback_rnn bundle](http://download.magenta.tensorflow.org/models/lookback_rnn.mag).
+If you want to get started right away, you can use a model that we've pre-trained on thousands of MIDI files. Download the [lookback_rnn bundle](http://download.magenta.tensorflow.org/models/lookback_rnn.mag). If you're using the Magenta Docker Container, the ```lookback_rnn.mag``` file will be located at ```/magenta-models/lookback_rnn.mag``` and you can assign that path as your ```BUNDLE_PATH``` in the next step.
 
 ### Generate a melody
 

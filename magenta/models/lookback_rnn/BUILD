@@ -44,6 +44,17 @@ py_library(
     ],
 )
 
+py_test(
+    name = "lookback_rnn_encoder_decoder_test",
+    srcs = ["lookback_rnn_encoder_decoder_test.py"],
+    srcs_version = "PY2AND3",
+    deps = [
+        ":lookback_rnn_encoder_decoder",
+        "//magenta/music:melodies_lib",
+        # tensorflow dep
+    ],
+)
+
 py_library(
     name = "lookback_rnn_generator",
     srcs = ["lookback_rnn_generator.py"],
@@ -79,6 +90,17 @@ py_library(
     deps = [
         "//magenta",
         "//magenta/models/shared:melody_rnn_graph",
+    ],
+)
+
+py_test(
+    name = "lookback_rnn_graph_test",
+    srcs = ["lookback_rnn_graph_test.py"],
+    srcs_version = "PY2AND3",
+    deps = [
+        ":lookback_rnn_graph",
+        "//magenta/music:melodies_lib",
+        # tensorflow dep
     ],
 )
 
