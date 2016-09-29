@@ -371,9 +371,10 @@ class MidiCaptor(threading.Thread):
     self._receive_queue.put(msg)
 
   @abc.abstractmethod
-  @concurrency.serialized
   def _capture_message(self, msg):
     """Handles a single incoming MIDI message during capture.
+
+    Must be serialized in children.
 
     Args:
       msg: The incoming mido.Message object to capture. The time field is
