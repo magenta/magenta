@@ -37,6 +37,9 @@ from magenta.protobuf import music_pb2
 # generating a PrettyMIDI KeySignature.
 _PRETTY_MIDI_MAJOR_TO_MINOR_OFFSET = 12
 
+_DEFAULT_TICKS_PER_QUARTER = 220
+_DEFAULT_QPM = 120
+
 
 class MIDIConversionError(Exception):
   pass
@@ -186,10 +189,13 @@ def sequence_proto_to_pretty_midi(sequence):
     A pretty_midi.PrettyMIDI object or None if sequence could not be decoded.
   """
 
+  ticks_per_quarter = (sequence.ticks_per_quarter if sequence.ticks_per_quarter
+                       else _DEFAULT_TICKS_PER_QUARTER)
+  initial_qpm = sequence.tempos[0].qpm if sequence.tempos else _DEFAULT_QPM
   kwargs = {}
   if sequence.tempos and sequence.tempos[0].time == 0:
-    kwargs['initial_tempo'] = sequence.tempos[0].qpm
-  pm = pretty_midi.PrettyMIDI(resolution=sequence.ticks_per_quarter, **kwargs)
+    kwargs['initial_tempo'] = initial_qpm
+  pm = pretty_midi.PrettyMIDI(resolution=ticks_per_quarter, **kwargs)
 
   # Create an empty instrument to contain time and key signatures.
   instrument = pretty_midi.Instrument(0)
