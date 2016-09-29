@@ -75,7 +75,7 @@ class MelodyQNetwork(object):
 
                # Hyperparameters
                dqn_hparams=None,
-               reward_mode='music_theory_gauldin',
+               reward_mode='music_theory_all',
                reward_scaler=1.0,
                priming_mode='random_note',
                stochastic_observations=False,
@@ -887,7 +887,7 @@ class MelodyQNetwork(object):
       reward = self.reward_scale(obs, action)
     elif self.reward_mode == 'key':
       # Makes the model play within a key.
-      reward = self.reward_key(action)
+      reward = self.reward_key_distribute_prob(action)
     elif self.reward_mode == 'key_and_tonic':
       # Makes the model play within a key, while starting and ending on the
       # tonic note.
@@ -910,7 +910,7 @@ class MelodyQNetwork(object):
       reward = self.reward_key_and_tonic(obs, action, state=state,
                                          maintain_prev=True)
       reward += self.reward_penalize_repeating(action)
-    elif self.reward_mode == 'music_theory_variety':
+    elif self.reward_mode == 'music_theory_basic_plus_variety':
       # Uses the same reward function as above, but adds a penalty for
       # compositions with a high autocorrelation (aka those that don't have
       # sufficient variety).
@@ -918,18 +918,9 @@ class MelodyQNetwork(object):
                                          maintain_prev=True)
       reward += self.reward_penalize_repeating(action)
       reward += self.reward_penalize_autocorrelation(action)
-    elif self.reward_mode == 'music_theory_all':
-      # Includes previous music theory rewards, plus additional rewards for
-      # playing motifs, and playing repeated motifs.
-      reward = self.reward_key_and_tonic(obs, action, state=state,
-                                         maintain_prev=True)
-      reward += self.reward_penalize_repeating(action)
-      reward += self.reward_penalize_autocorrelation(action)
-      reward += self.reward_motif(action)
-      reward += self.reward_repeated_motif(action)
     elif self.reward_mode == 'preferred_intervals':
       reward = self.reward_preferred_intervals(action)
-    elif self.reward_mode == 'music_theory_gauldin':
+    elif self.reward_mode == 'music_theory_all':
       reward = self.reward_key_and_tonic(
           obs, action, state=state, maintain_prev=True)
       prev_reward = reward
@@ -974,7 +965,7 @@ class MelodyQNetwork(object):
         tf.logging.info('Reward high low unique: %s', reward)
 
       return reward * self.reward_scaler + note_rnn_reward
-    elif self.reward_mode == 'music_theory_gauldin_no_data':
+    elif self.reward_mode == 'music_theory_only':
       # Reward functions that include all of the Gauldin rewards, without using
       # the 'reward_rnn' trained on data. Used to train a model with pure RL.
       reward = self.reward_key_and_tonic(
@@ -1082,7 +1073,7 @@ class MelodyQNetwork(object):
 
     return reward
 
-  def reward_key(self, action, key=None):
+  def reward_key_distribute_prob(self, action, key=None):
     """Reward function that rewards the model for playing within a given key.
 
     Any note within the key is given equal reward, which can cause the model to
@@ -1109,32 +1100,15 @@ class MelodyQNetwork(object):
 
     return reward
 
-  def reward_key_maintain_prev_probs(self,
-                                     obs,
-                                     action,
-                                     state,
-                                     scaler=1.0,
-                                     key=None,
-                                     redistribute_prob=False):
-    """Rewards for playing in key, using previously learned note probabilities.
-
-    The rewards for notes in the key are based on the target_q_network's
-    learned softmax probabilities for those notes, allowing the model to
-    maintain some of the probabilities it learned from data.
+  def reward_key(self, action, penalty_amount=-1.0, key=None):
+    """Applies a penalty for playing notes not in a specific key.
 
     Args:
-      obs: One-hot encoding of the observed note.
       action: One-hot encoding of the chosen action.
-      state: Vector representing the internal state of the q_network.
-      scaler: A float that will scale the magnitude of the reward based on the
-        previous probabilities
+      penalty_amount: The amount the model will be penalized if it plays
+        a note outside the key.
       key: The numeric values of notes belonging to this key. Defaults to
         C-major if not provided.
-      redistribute_prob: If True, the action scores produced by the reward
-        network for all notes not in the key will be summed and redistributed
-        to notes within the key as extra reward. Useful if the action scores
-        are softmax probabilities and these probabilities need to be
-        redistributed.
     Returns:
       Float reward value.
     """
@@ -1142,41 +1116,42 @@ class MelodyQNetwork(object):
       key = C_MAJOR_KEY
 
     reward = 0
-    num_notes_in_key = len(key)
 
     action_note = np.argmax(action)
-    if action_note in key:
-      action_scores = self.get_reward_rnn_scores(obs, state)
+    if action_note not in key:
+      reward = penalty_amount
 
-      # rewards for notes in key can't be negative
-      reward = max(action_scores[action_note], 0)
+    return reward
 
-      if redistribute_prob:
-        not_in_key_mask = [1 if x not in key else 0
-                           for x in range(self.input_size)]
-        total_extra_prob = np.sum(action_scores[not_in_key_mask])
-        extra_prob = total_extra_prob / num_notes_in_key
+  def reward_from_trained_reward_rnn(obs, action, state):
+    """Rewards based on probabilities learned from data by trained RNN
 
-        reward += extra_prob
-
-    return reward * scaler
-
-  def reward_key_and_tonic(self, obs, action, state=None,
-                           tonic_note=C_MAJOR_TONIC, maintain_prev=False):
-    """Rewards for playing the tonic note at the right times, and being in key.
-
-    Rewards for playing the tonic as the first note of the first bar, and the
-    first note of the final bar. After determining these rewards, the function
-    calls out to the reward_key functions to reward for playing within the key.
+    Rewards are based on the reward_network's learned softmax 
+    probabilities, allowing the model to maintain information it learned 
+    from data.
 
     Args:
       obs: One-hot encoding of the observed note.
       action: One-hot encoding of the chosen action.
       state: Vector representing the internal state of the q_network.
+    Returns:
+      Float reward value.
+    """
+    action_note = np.argmax(action)
+    action_scores = self.get_reward_rnn_scores(obs, state)
+    return action_scores[action_note]
+
+  def reward_tonic(self, action, tonic_note=C_MAJOR_TONIC, reward_amount=3.0):
+    """Rewards for playing the tonic note at the right times.
+
+    Rewards for playing the tonic as the first note of the first bar, and the
+    first note of the final bar. 
+
+    Args:
+      action: One-hot encoding of the chosen action.
       tonic_note: The tonic/1st note of the desired key.
-      maintain_prev: If True, will call the reward_key_maintain_prev_probs
-        function to maintain the note selection probabilities learned from
-        data in the original LSTM model.
+      reward_amount: The amount the model will be awarded if it plays the 
+        tonic note at the right time. 
     Returns:
       Float reward value.
     """
@@ -1185,24 +1160,11 @@ class MelodyQNetwork(object):
 
     if self.beat == 0 or self.beat == first_note_of_final_bar:
       if action_note == tonic_note:
-        return 1.0
-      else:
-        return 0.0
-    elif self.beat == first_note_of_final_bar + 1:
-      if action_note == 1:
-        return 1.0
-      else:
-        return 0.0
-    elif self.beat > first_note_of_final_bar + 1:
-      if action_note == 1 or action_note == 0:
-        return 0.5
-      else:
-        return 0.0
-    else:
-      if maintain_prev:
-        return self.reward_key_maintain_prev_probs(obs, action, state)
-      else:
-        return self.reward_key(action)
+        return reward_amount
+    elif self.beat > first_note_of_final_bar:
+      if action_note == NO_EVENT:
+        return reward_amount
+    return 0.0
 
   def reward_non_repeating(self, action):
     """Rewards the model for not playing the same note over and over.
@@ -1219,28 +1181,6 @@ class MelodyQNetwork(object):
     penalty = self.reward_penalize_repeating(action)
     if penalty >= 0:
       return .1
-
-  def reward_non_repeating_maintaining_probs(self, obs, action, state):
-    """Uses learned note probabilities to reward for not playing repeated notes.
-
-    Rewards the model for not playing the same note over and over, allowing it
-    to occasionally hold the note or rest in between. The rewards are based on
-    the target_q_network's learned softmax probabilities for those notes,
-    allowing the model to maintain some of the probabilities it learned from
-    data.
-
-    Args:
-      obs: One-hot encoding of the observed note.
-      action: One-hot encoding of the chosen action.
-      state: Vector representing the internal state of the q_network.
-    Returns:
-      Float reward value.key_
-    """
-    action_note = np.argmax(action)
-    action_scores = self.get_reward_rnn_scores(obs, state)
-    reward = action_scores[action_note]
-
-    return reward + self.reward_penalize_repeating(action)
 
   def detect_repeating_notes(self, action_note):
     """Detects whether the note played is repeating previous notes excessively.
