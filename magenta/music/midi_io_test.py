@@ -199,7 +199,7 @@ class MidiIoTest(tf.test.TestCase):
     expected_sequence_proto = music_pb2.NoteSequence()
     expected_sequence_proto.CopyFrom(stripped_sequence_proto)
     expected_sequence_proto.tempos.add(
-      qpm=constants.DEFAULT_QUARTERS_PER_MINUTE)
+        qpm=constants.DEFAULT_QUARTERS_PER_MINUTE)
     expected_sequence_proto.ticks_per_quarter = constants.STANDARD_PPQ
 
     translated_midi = midi_io.sequence_proto_to_pretty_midi(
