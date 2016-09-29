@@ -11,8 +11,8 @@ import time
 import mido
 
 # TODO(adarob): Use flattened imports.
-from magenta.protobuf import music_pb2
 from magenta.common import concurrency
+from magenta.protobuf import music_pb2
 
 _DEFAULT_METRONOME_TICK_DURATION = 0.05
 _DEFAULT_METRONOME_PITCH = 95

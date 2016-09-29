@@ -69,8 +69,8 @@ class Sleeper(object):
   def __init__(self, initial_offset=0.001):
     if initial_offset < Sleeper._MIN_OFFSET:
       raise ValueError(
-        '`initial_offset` must be at least %f. Got %f.' %
-        (Sleeper._MIN_OFFSET, initial_offset))
+          '`initial_offset` must be at least %f. Got %f.' %
+          (Sleeper._MIN_OFFSET, initial_offset))
     self._lock = threading.RLock()
     self.offset = initial_offset
 
@@ -99,17 +99,17 @@ class Sleeper(object):
       return
 
     # Copy the current offset, since it might change.
-    _offset = self.offset
+    offset_ = self.offset
 
-    if delta > _offset:
-      time.sleep(delta - _offset)
+    if delta > offset_:
+      time.sleep(delta - offset_)
 
     remaining_time = time.time() - wake_time
     # Enter critical section for updating the offset.
     with self._lock:
       # Only update if the current offset value is what was used in this call.
-      if self.offset == _offset:
-        offset_delta = (_offset - Sleeper._MIN_OFFSET) / 2
+      if self.offset == offset_:
+        offset_delta = (offset_ - Sleeper._MIN_OFFSET) / 2
         if remaining_time > 0:
           self.offset -= offset_delta
         elif remaining_time < -Sleeper._MIN_OFFSET:
