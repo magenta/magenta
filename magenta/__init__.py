@@ -30,7 +30,9 @@ import magenta.music.constants
 import magenta.music.events_lib
 import magenta.music.melodies_lib
 import magenta.music.midi_io
+import magenta.music.midi_synth
 import magenta.music.note_sequence_io
+import magenta.music.notebook_utils
 import magenta.music.sequence_generator
 import magenta.music.sequence_generator_bundle
 import magenta.music.sequences_lib
