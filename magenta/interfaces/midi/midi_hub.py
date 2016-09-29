@@ -2,7 +2,6 @@
 
 import abc
 from collections import deque
-import functools
 import Queue
 import re
 import threading
@@ -11,25 +10,14 @@ import time
 # internal imports
 import mido
 
+# TODO(adarob): Use flattened imports.
 from magenta.protobuf import music_pb2
+from magenta.common import concurrency
 
 _DEFAULT_METRONOME_TICK_DURATION = 0.05
 _DEFAULT_METRONOME_PITCH = 95
 _DEFAULT_METRONOME_VELOCITY = 64
 _METRONOME_CHANNEL = 0
-
-
-# TODO(adarob): Move to common library.
-def _serialized(func):
-  """Decorator to provide mutual exclusion for method using _lock attribute."""
-
-  @functools.wraps(func)
-  def serialized_method(self, *args, **kwargs):
-    lock = getattr(self, '_lock')
-    with lock:
-      return func(self, *args, **kwargs)
-
-  return serialized_method
 
 
 class MidiHubException(Exception):
@@ -165,27 +153,11 @@ class Metronome(threading.Thread):
   def run(self):
     """Outputs metronome tone on the qpm interval until stop signal received."""
     period = 60. / self._qpm
-    sleep_offset = -0.001
+    sleeper = concurrency.Sleeper()
     while not self._stop_metronome.is_set():
       now = time.time()
       next_tick_time = now + period - ((now - self._start_time) % period)
-      delta = next_tick_time - time.time()
-      if delta > 0:
-        time.sleep(delta + sleep_offset)
-
-      # The sleep function tends to return a little early or a little late.
-      # Gradually modify an offset based on whether it returned early or late,
-      # but prefer returning a little bit early.
-      # If it returned early, spin until the correct time occurs.
-      tick_late = time.time() - next_tick_time
-      if tick_late > 0:
-        sleep_offset -= 0.0005
-      elif tick_late < -0.001:
-        sleep_offset += 0.0005
-
-      if tick_late < 0:
-        while time.time() < next_tick_time:
-          pass
+      sleeper.sleep_until(next_tick_time)
 
       self._outport.send(
           mido.Message(
@@ -193,7 +165,9 @@ class Metronome(threading.Thread):
               note=self._pitch,
               channel=_METRONOME_CHANNEL,
               velocity=self._velocity))
-      time.sleep(self._duration)
+
+      sleeper.sleep(self._duration)
+
       self._outport.send(
           mido.Message(
               type='note_off',
@@ -243,7 +217,7 @@ class MidiPlayer(threading.Thread):
     self._allow_updates = allow_updates
     super(MidiPlayer, self).__init__()
 
-  @_serialized
+  @concurrency.serialized
   def update_sequence(self, sequence):
     """Updates sequence being played by the MidiPlayer.
 
@@ -288,7 +262,7 @@ class MidiPlayer(threading.Thread):
     self._message_queue = deque(sorted(new_message_list, key=lambda x: x.time))
     self._update_cv.notify()
 
-  @_serialized
+  @concurrency.serialized
   def run(self):
     """Plays messages in the queue until empty and _allow_updates is False."""
     # Assumes model where NoteSequence is time-stampped with wall time.
@@ -372,12 +346,12 @@ class MidiCaptor(threading.Thread):
     super(MidiCaptor, self).__init__()
 
   @property
-  @_serialized
+  @concurrency.serialized
   def _stop_time(self):
     return self._stop_time_unsafe
 
   @_stop_time.setter
-  @_serialized
+  @concurrency.serialized
   def _stop_time(self, value):
     self._stop_time_unsafe = value
 
@@ -397,7 +371,7 @@ class MidiCaptor(threading.Thread):
     self._receive_queue.put(msg)
 
   @abc.abstractmethod
-  @_serialized
+  @concurrency.serialized
   def _capture_message(self, msg):
     """Handles a single incoming MIDI message during capture.
 
@@ -541,9 +515,11 @@ class MidiCaptor(threading.Thread):
       queue = Queue.Queue()
       with self._lock:
         self._iter_signals.append((regex, queue))
+
+    sleeper = concurrency.Sleeper()
     while self.is_alive():
       if signal is None:
-        time.sleep(timeout)
+        sleeper.sleep(timeout)
         end_time = time.time()
       else:
         signal_msg = queue.get()
@@ -570,7 +546,7 @@ class MonophonicMidiCaptor(MidiCaptor):
     self._open_note = None
     super(MonophonicMidiCaptor, self).__init__(*args, **kwargs)
 
-  @_serialized
+  @concurrency.serialized
   def _capture_message(self, msg):
     """Handles a single incoming MIDI message during capture.
 
@@ -615,7 +591,7 @@ class PolyphonicMidiCaptor(MidiCaptor):
     self._open_notes = dict()
     super(PolyphonicMidiCaptor, self).__init__(*args, **kwargs)
 
-  @_serialized
+  @concurrency.serialized
   def _capture_message(self, msg):
     """Handles a single incoming MIDI message during capture.
 
@@ -705,12 +681,12 @@ class MidiHub(object):
       player.join()
 
   @property
-  @_serialized
+  @concurrency.serialized
   def passthrough(self):
     return self._passthrough
 
   @passthrough.setter
-  @_serialized
+  @concurrency.serialized
   def passthrough(self, value):
     """Sets passthrough value, closing all open notes if being disabled."""
     if self._passthrough == value:
@@ -728,7 +704,7 @@ class MidiHub(object):
       msg.time = time.time()
     self._handle_message(msg)
 
-  @_serialized
+  @concurrency.serialized
   def _handle_message(self, msg):
     """Handles a single incoming MIDI message.
 
@@ -832,7 +808,7 @@ class MidiHub(object):
     captor.join()
     return captor.captured_sequence()
 
-  @_serialized
+  @concurrency.serialized
   def wait_for_event(self, signal=None, timeout=None):
     """Blocks until a matching mido.Message arrives or the timeout occurs.
 
@@ -852,7 +828,7 @@ class MidiHub(object):
           '`wait_for_event` call.')
 
     if signal is None:
-      time.sleep(timeout)
+      concurrency.Sleeper().sleep(timeout)
       return
 
     signal_pattern = str(signal)
@@ -866,7 +842,7 @@ class MidiHub(object):
 
     cond_var.wait()
 
-  @_serialized
+  @concurrency.serialized
   def start_metronome(self, qpm, start_time):
     """Starts or re-starts the metronome with the given arguments.
 
@@ -880,7 +856,7 @@ class MidiHub(object):
     self._metronome = Metronome(self._outport, qpm, start_time)
     self._metronome.start()
 
-  @_serialized
+  @concurrency.serialized
   def stop_metronome(self):
     """Stops the metronome if it is currently running."""
     if self._metronome is None:

@@ -22,6 +22,7 @@ import time
 import mido
 import tensorflow as tf
 
+from magenta.common import concurrency
 from magenta.interfaces.midi import midi_hub
 from magenta.music import testing_lib
 from magenta.protobuf import music_pb2
@@ -60,6 +61,10 @@ class MidiHubTest(tf.test.TestCase):
     self.port = MockMidiPort()
     self.midi_hub = midi_hub.MidiHub(self.port, self.port,
                                      midi_hub.TextureType.POLYPHONIC)
+
+    # Burn in Sleeper for calibration.
+    for i in xrange(10):
+      concurrency.Sleeper().sleep(0.05)
 
   def send_capture_messages(self):
     for msg in self.capture_messages:
