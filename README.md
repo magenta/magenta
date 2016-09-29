@@ -23,9 +23,9 @@ ready to run. It will also map port 6006 of the host machine to the container so
 you can view TensorBoard servers that run within the container.
 
 This also maps the directory ```/tmp/magenta``` on the host machine to
-```/magenta-data``` within the Docker session. Windows users can change 
-```/tmp/magenta``` to a path such as ```C:/magenta```, and Mac and Linux users 
-can use a path relative to their home folder such as ```~/magenta```. **WARNING**: 
+```/magenta-data``` within the Docker session. Windows users can change
+```/tmp/magenta``` to a path such as ```C:/magenta```, and Mac and Linux users
+can use a path relative to their home folder such as ```~/magenta```. **WARNING**:
 only data saved in ```/magenta-data``` will persist across Docker sessions.
 
 The Docker image also includes several pre-trained models in
@@ -41,9 +41,9 @@ bazel run //magenta/models/lookback_rnn:lookback_rnn_generate -- \
 --primer_melody="[60]"
 ```
 
-**NOTE**: Verify that the ```--output_dir``` path matches the path you 
+**NOTE**: Verify that the ```--output_dir``` path matches the path you
 mapped as your shared folder when running the ```docker run``` command. This
-example command presupposes that you are using ```/magenta-data``` as your 
+example command presupposes that you are using ```/magenta-data``` as your
 shared folder from the example ```docker run``` command above.
 
 One downside to the Docker container is that it is isolated from the host. If
