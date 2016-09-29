@@ -190,7 +190,7 @@ class MelodyEncoderDecoder(melodies_lib.MelodyEncoderDecoder):
   def class_index_to_event(self, class_index, events):
     """Returns the melody event for the given class index.
 
-    This is the reverse process of the self.melody_to_label method.
+    This is the reverse process of the self.events_to_label method.
 
     Args:
       class_index: An int in the range [0, self.num_classes).
