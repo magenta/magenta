@@ -109,9 +109,7 @@ class MelodyQNetwork(object):
         function composed of other functions. 'music_theory_gauldin' is based on
         Gauldin's book, "A Practical Approach to Eighteenth Century
         Counterpoint".
-      reward_scaler: All the rewards are multiplied by this value. Used to
-        change the magnitude of the rewards given, which strongly affects
-        whether the algorithm can learn.
+      reward_scaler: Controls the emphasis placed on the music theory rewards. 
       priming_mode: Each time the model begins a new composition, it is primed
         with either a random note ('random_note'), a random MIDI file from the
         training data ('random_midi'), or a particular MIDI file
@@ -891,7 +889,8 @@ class MelodyQNetwork(object):
     elif self.reward_mode == 'key_and_tonic':
       # Makes the model play within a key, while starting and ending on the
       # tonic note.
-      reward = self.reward_key_and_tonic(obs, action)
+      reward = self.reward_key(action)
+      reward += self.reward_tonic(action)
     elif self.reward_mode == 'non_repeating':
       # The model can play any composition it wants, but receives a large
       # negative reward for playing the same note repeatedly.
@@ -900,35 +899,49 @@ class MelodyQNetwork(object):
       # The model receives reward for playing in key, playing tonic notes,
       # and not playing repeated notes. However the rewards it receives are
       # uniformly distributed over all notes that do not violate these rules.
-      reward = self.reward_key_and_tonic(obs, action)
+      reward = self.reward_key(action)
+      reward += self.reward_tonic(action)
       reward += self.reward_penalize_repeating(action)
     elif self.reward_mode == 'music_theory_basic':
       # As above, the model receives reward for playing in key, tonic notes
       # at the appropriate times, and not playing repeated notes. However, the
       # rewards it receives are based on the note probabilities learned from
       # data in the original model.
-      reward = self.reward_key_and_tonic(obs, action, state=state,
-                                         maintain_prev=True)
+      note_rnn_reward = self.reward_from_trained_reward_rnn(obs, action, state)
+      reward = self.reward_key(action)
+      reward += self.reward_tonic(action)
       reward += self.reward_penalize_repeating(action)
+
+      return reward * self.reward_scaler + note_rnn_reward
     elif self.reward_mode == 'music_theory_basic_plus_variety':
       # Uses the same reward function as above, but adds a penalty for
       # compositions with a high autocorrelation (aka those that don't have
       # sufficient variety).
-      reward = self.reward_key_and_tonic(obs, action, state=state,
-                                         maintain_prev=True)
+      note_rnn_reward = self.reward_from_trained_reward_rnn(obs, action, state)
+      reward = self.reward_key(action)
+      reward += self.reward_tonic(action)
       reward += self.reward_penalize_repeating(action)
       reward += self.reward_penalize_autocorrelation(action)
+
+      return reward * self.reward_scaler + note_rnn_reward
     elif self.reward_mode == 'preferred_intervals':
       reward = self.reward_preferred_intervals(action)
     elif self.reward_mode == 'music_theory_all':
-      reward = self.reward_key_and_tonic(
-          obs, action, state=state, maintain_prev=True)
-      prev_reward = reward
-      note_rnn_reward = reward
+      note_rnn_reward = self.reward_from_trained_reward_rnn(obs, action, state)
       if verbose:
-        tf.logging.info('Key and tonic: %s', reward)
+        tf.logging.info('Note RNN reward: %s', reward)
 
-      reward = self.reward_penalize_repeating(action)
+      reward = self.reward_key(action)
+      if verbose:
+        tf.logging.info('Key: %s', reward)
+      prev_reward = reward
+
+      reward += self.reward_tonic(action)
+      if verbose and reward != prev_reward:
+        tf.logging.info('Tonic: %s', reward)
+      prev_reward = reward
+
+      reward += self.reward_penalize_repeating(action)
       if verbose and reward != prev_reward:
         tf.logging.info('Penalize repeating: %s', reward)
       prev_reward = reward
@@ -968,11 +981,15 @@ class MelodyQNetwork(object):
     elif self.reward_mode == 'music_theory_only':
       # Reward functions that include all of the Gauldin rewards, without using
       # the 'reward_rnn' trained on data. Used to train a model with pure RL.
-      reward = self.reward_key_and_tonic(
-          obs, action, state=state, maintain_prev=False)
-      prev_reward = reward
+      reward = self.reward_key(action)
       if verbose:
-        tf.logging.info('Key and tonic: %s', reward)
+        tf.logging.info('Key: %s', reward)
+      prev_reward = reward
+
+      reward += self.reward_tonic(action)
+      if verbose and reward != prev_reward:
+        tf.logging.info('Tonic: %s', reward)
+      prev_reward = reward
 
       reward += self.reward_penalize_repeating(action)
       if verbose and reward != prev_reward:
