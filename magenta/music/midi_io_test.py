@@ -22,6 +22,7 @@ import midi as py_midi
 import pretty_midi
 import tensorflow as tf
 
+from magenta.music import constants
 from magenta.music import midi_io
 from magenta.protobuf import music_pb2
 
@@ -197,9 +198,9 @@ class MidiIoTest(tf.test.TestCase):
 
     expected_sequence_proto = music_pb2.NoteSequence()
     expected_sequence_proto.CopyFrom(stripped_sequence_proto)
-    expected_sequence_proto.tempos.add(qpm=midi_io._DEFAULT_QPM)
-    expected_sequence_proto.ticks_per_quarter = (
-        midi_io._DEFAULT_TICKS_PER_QUARTER)
+    expected_sequence_proto.tempos.add(
+      qpm=constants.DEFAULT_QUARTERS_PER_MINUTE)
+    expected_sequence_proto.ticks_per_quarter = constants.STANDARD_PPQ
 
     translated_midi = midi_io.sequence_proto_to_pretty_midi(
         stripped_sequence_proto)

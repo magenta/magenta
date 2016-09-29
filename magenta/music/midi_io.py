@@ -29,6 +29,7 @@ else:
 import pretty_midi
 import tensorflow as tf
 
+from magenta.music import constants
 from magenta.protobuf import music_pb2
 # pylint: enable=g-import-not-at-top
 
@@ -36,9 +37,6 @@ from magenta.protobuf import music_pb2
 # The offset used to change the mode of a key from major to minor when
 # generating a PrettyMIDI KeySignature.
 _PRETTY_MIDI_MAJOR_TO_MINOR_OFFSET = 12
-
-_DEFAULT_TICKS_PER_QUARTER = 220
-_DEFAULT_QPM = 120
 
 
 class MIDIConversionError(Exception):
@@ -190,8 +188,9 @@ def sequence_proto_to_pretty_midi(sequence):
   """
 
   ticks_per_quarter = (sequence.ticks_per_quarter if sequence.ticks_per_quarter
-                       else _DEFAULT_TICKS_PER_QUARTER)
-  initial_qpm = sequence.tempos[0].qpm if sequence.tempos else _DEFAULT_QPM
+                       else constants.STANDARD_PPQ)
+  initial_qpm = (sequence.tempos[0].qpm if sequence.tempos
+                 else constants.DEFAULT_QUARTERS_PER_MINUTE)
   kwargs = {}
   if sequence.tempos and sequence.tempos[0].time == 0:
     kwargs['initial_tempo'] = initial_qpm
