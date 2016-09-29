@@ -665,9 +665,9 @@ class MelodyEncoderDecoder(events_lib.EventsEncoderDecoder):
     transpose_to_key: The key that encoded melodies will be transposed into.
 
   Properties:
-    input_size: The length of the list returned by self.melody_to_input.
+    input_size: The length of the list returned by self.events_to_input.
     num_classes: The range of ints that can be returned by
-        self.melody_to_label.
+        self.events_to_label.
   """
   __metaclass__ = abc.ABCMeta
 
