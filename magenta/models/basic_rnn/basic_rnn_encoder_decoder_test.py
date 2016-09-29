@@ -16,11 +16,11 @@
 # internal imports
 import tensorflow as tf
 
-from magenta.lib import melodies_lib
+from magenta.music import melodies_lib
 from magenta.models.basic_rnn import basic_rnn_encoder_decoder
 
-NOTE_OFF = melodies_lib.NOTE_OFF
-NO_EVENT = melodies_lib.NO_EVENT
+NOTE_OFF = melodies_lib.MELODY_NOTE_OFF
+NO_EVENT = melodies_lib.MELODY_NO_EVENT
 
 
 class BasicRnnEncoderDecoderTest(tf.test.TestCase):
@@ -57,19 +57,18 @@ class BasicRnnEncoderDecoderTest(tf.test.TestCase):
     ]
     expected_labels = [2, 0, 3, 37, 1]
     for i in xrange(len(melody_events)):
-      self.assertListEqual(melody_encoder_decoder.melody_to_input(melody, i),
+      self.assertListEqual(melody_encoder_decoder.events_to_input(melody, i),
                            expected_inputs[i])
-      self.assertEqual(melody_encoder_decoder.melody_to_label(melody, i),
+      self.assertEqual(melody_encoder_decoder.events_to_label(melody, i),
                        expected_labels[i])
       self.assertEqual(
-          melody_encoder_decoder.class_index_to_melody_event(expected_labels[i],
-                                                             None),
+          melody_encoder_decoder.class_index_to_event(expected_labels[i], None),
           melody_events[i])
       partial_melody = melodies_lib.MonophonicMelody()
       partial_melody.from_event_list(melody_events[:i])
       softmax = [[[0.0] * melody_encoder_decoder.num_classes]]
       softmax[0][0][expected_labels[i]] = 1.0
-      melody_encoder_decoder.extend_melodies([partial_melody], softmax)
+      melody_encoder_decoder.extend_event_sequences([partial_melody], softmax)
       self.assertEqual(list(partial_melody)[-1], melody_events[i])
 
     melodies = [melody, melody]
@@ -105,19 +104,18 @@ class BasicRnnEncoderDecoderTest(tf.test.TestCase):
     expected_labels = [2, 0, 3, 13, 1]
 
     for i in xrange(len(melody_events)):
-      self.assertListEqual(melody_encoder_decoder.melody_to_input(melody, i),
+      self.assertListEqual(melody_encoder_decoder.events_to_input(melody, i),
                            expected_inputs[i])
-      self.assertEqual(melody_encoder_decoder.melody_to_label(melody, i),
+      self.assertEqual(melody_encoder_decoder.events_to_label(melody, i),
                        expected_labels[i])
       self.assertEqual(
-          melody_encoder_decoder.class_index_to_melody_event(expected_labels[i],
-                                                             None),
+          melody_encoder_decoder.class_index_to_event(expected_labels[i], None),
           melody_events[i])
       partial_melody = melodies_lib.MonophonicMelody()
       partial_melody.from_event_list(melody_events[:i])
       softmax = [[[0.0] * melody_encoder_decoder.num_classes]]
       softmax[0][0][expected_labels[i]] = 1.0
-      melody_encoder_decoder.extend_melodies([partial_melody], softmax)
+      melody_encoder_decoder.extend_event_sequences([partial_melody], softmax)
       self.assertEqual(list(partial_melody)[-1], melody_events[i])
 
     melodies = [melody, melody]

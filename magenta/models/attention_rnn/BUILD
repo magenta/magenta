@@ -50,7 +50,7 @@ py_test(
     srcs_version = "PY2AND3",
     deps = [
         ":attention_rnn_encoder_decoder",
-        "//magenta/lib:melodies_lib",
+        "//magenta/music:melodies_lib",
         # tensorflow dep
     ],
 )
@@ -99,7 +99,7 @@ py_test(
     srcs_version = "PY2AND3",
     deps = [
         ":attention_rnn_graph",
-        "//magenta/lib:melodies_lib",
+        "//magenta/music:melodies_lib",
         # tensorflow dep
     ],
 )

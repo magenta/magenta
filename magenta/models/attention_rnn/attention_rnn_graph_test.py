@@ -16,7 +16,7 @@
 # internal imports
 import tensorflow as tf
 
-from magenta.lib import melodies_lib
+from magenta.music import melodies_lib
 from magenta.models.attention_rnn import attention_rnn_graph
 
 
