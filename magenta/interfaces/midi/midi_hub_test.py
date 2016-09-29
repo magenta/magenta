@@ -63,7 +63,7 @@ class MidiHubTest(tf.test.TestCase):
                                      midi_hub.TextureType.POLYPHONIC)
 
     # Burn in Sleeper for calibration.
-    for i in xrange(10):
+    for i in range(10):
       concurrency.Sleeper().sleep(0.05)
 
   def send_capture_messages(self):
