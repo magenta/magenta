@@ -29,6 +29,7 @@ else:
 import pretty_midi
 import tensorflow as tf
 
+from magenta.music import constants
 from magenta.protobuf import music_pb2
 # pylint: enable=g-import-not-at-top
 
@@ -186,10 +187,14 @@ def sequence_proto_to_pretty_midi(sequence):
     A pretty_midi.PrettyMIDI object or None if sequence could not be decoded.
   """
 
+  ticks_per_quarter = (sequence.ticks_per_quarter if sequence.ticks_per_quarter
+                       else constants.STANDARD_PPQ)
+  initial_qpm = (sequence.tempos[0].qpm if sequence.tempos
+                 else constants.DEFAULT_QUARTERS_PER_MINUTE)
   kwargs = {}
   if sequence.tempos and sequence.tempos[0].time == 0:
-    kwargs['initial_tempo'] = sequence.tempos[0].qpm
-  pm = pretty_midi.PrettyMIDI(resolution=sequence.ticks_per_quarter, **kwargs)
+    kwargs['initial_tempo'] = initial_qpm
+  pm = pretty_midi.PrettyMIDI(resolution=ticks_per_quarter, **kwargs)
 
   # Create an empty instrument to contain time and key signatures.
   instrument = pretty_midi.Instrument(0)

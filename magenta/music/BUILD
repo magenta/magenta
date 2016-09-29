@@ -171,6 +171,7 @@ py_library(
     srcs = ["midi_io.py"],
     srcs_version = "PY2AND3",
     deps = [
+        "//magenta/music:constants",
         "//magenta/protobuf:music_py_pb2",
         "@midi//:midi",
         "@pretty_midi//:pretty_midi",

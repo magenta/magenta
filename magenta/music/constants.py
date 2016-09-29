@@ -20,7 +20,7 @@ DEFAULT_STEPS_PER_QUARTER = 4
 
 # Standard pulses per quarter.
 # https://en.wikipedia.org/wiki/Pulses_per_quarter_note
-STANDARD_PPQ = 96
+STANDARD_PPQ = 220
 
 # Special melody events.
 NUM_SPECIAL_MELODY_EVENTS = 2
