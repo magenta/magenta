@@ -157,7 +157,7 @@ class ChordsLibTest(tf.test.TestCase):
     sequence = chords.to_sequence(sequence_start_time=2, qpm=60.0)
 
     self.assertProtoEquals(
-        'ticks_per_quarter: 96 '
+        'ticks_per_quarter: 220 '
         'tempos < qpm: 60.0 > '
         'text_annotations < '
         '  text: "C7" time: 2.25 annotation_type: CHORD_SYMBOL '
