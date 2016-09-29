@@ -1140,7 +1140,7 @@ class MelodyQNetwork(object):
 
     return reward
 
-  def reward_from_trained_reward_rnn(obs, action, state):
+  def reward_from_trained_reward_rnn(self, obs, action, state):
     """Rewards based on probabilities learned from data by trained RNN
 
     Rewards are based on the reward_network's learned softmax 
