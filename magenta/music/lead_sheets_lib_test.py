@@ -17,14 +17,15 @@
 import tensorflow as tf
 
 from magenta.music import chords_lib
+from magenta.music import constants
 from magenta.music import lead_sheets_lib
 from magenta.music import melodies_lib
 from magenta.music import sequences_lib
 from magenta.music import testing_lib
 
-NOTE_OFF = melodies_lib.NOTE_OFF
-NO_EVENT = melodies_lib.NO_EVENT
-NO_CHORD = chords_lib.NO_CHORD
+NOTE_OFF = constants.MELODY_NOTE_OFF
+NO_EVENT = constants.MELODY_NO_EVENT
+NO_CHORD = constants.NO_CHORD
 
 
 class LeadSheetsLibTest(tf.test.TestCase):

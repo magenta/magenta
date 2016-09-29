@@ -16,6 +16,7 @@
 # internal imports
 import tensorflow as tf
 
+from magenta.common import testing_lib as common_testing_lib
 from magenta.models.shared import melody_rnn_create_dataset
 from magenta.music import melodies_lib
 from magenta.music import testing_lib
@@ -30,7 +31,7 @@ class MelodyRNNPipelineTest(tf.test.TestCase):
 
   def testMelodyRNNPipeline(self):
     FLAGS.eval_ratio = 0.0
-    note_sequence = testing_lib.parse_test_proto(
+    note_sequence = common_testing_lib.parse_test_proto(
         music_pb2.NoteSequence,
         """
         time_signatures: {

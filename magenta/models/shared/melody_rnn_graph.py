@@ -16,7 +16,7 @@
 # internal imports
 import tensorflow as tf
 
-from magenta.music import sequence_example_lib
+from magenta.common import sequence_example_lib
 
 
 def build_graph(mode, hparams, encoder_decoder, sequence_example_file=None):

@@ -25,24 +25,15 @@ import abc
 from six.moves import range  # pylint: disable=redefined-builtin
 
 from magenta.music import chord_symbols_lib
+from magenta.music import constants
 from magenta.music import events_lib
-from magenta.music import melodies_lib
 from magenta.pipelines import statistics
 from magenta.protobuf import music_pb2
 
 
-# Constants.
-QUARTER_NOTES_PER_WHOLE_NOTE = events_lib.QUARTER_NOTES_PER_WHOLE_NOTE
-DEFAULT_QUARTERS_PER_MINUTE = events_lib.DEFAULT_QUARTERS_PER_MINUTE
-DEFAULT_STEPS_PER_BAR = events_lib.DEFAULT_STEPS_PER_BAR
-DEFAULT_STEPS_PER_QUARTER = events_lib.DEFAULT_STEPS_PER_QUARTER
-STANDARD_PPQ = events_lib.STANDARD_PPQ
-
-NOTES_PER_OCTAVE = melodies_lib.NOTES_PER_OCTAVE
-
-
-# Chord symbol for "no chord".
-NO_CHORD = 'N.C.'
+STANDARD_PPQ = constants.STANDARD_PPQ
+NOTES_PER_OCTAVE = constants.NOTES_PER_OCTAVE
+NO_CHORD = constants.NO_CHORD
 
 # Shortcut to CHORD_SYMBOL annotation type.
 CHORD_SYMBOL = music_pb2.NoteSequence.TextAnnotation.CHORD_SYMBOL
@@ -74,9 +65,10 @@ class ChordProgression(events_lib.SimpleEventSequence):
   ChordProgression events are chord symbol strings like "Cm7", with special
   event NO_CHORD to indicate no chordal harmony. When a chord lasts for longer
   than a single step, the chord symbol event is repeated multiple times. Note
-  that this is different from MonophonicMelody, where the special NO_EVENT is
-  used for subsequent steps of sustained notes; in the case of harmony, there's
-  no distinction between a repeated chord and a sustained chord.
+  that this is different from MonophonicMelody, where the special
+  MELODY_NO_EVENT is used for subsequent steps of sustained notes; in the case
+  of harmony, there's no distinction between a repeated chord and a sustained
+  chord.
 
   Chords must be inserted in ascending order by start time.
 

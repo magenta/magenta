@@ -16,6 +16,8 @@
 # internal imports
 import tensorflow as tf
 
+from magenta.common import testing_lib as common_testing_lib
+from magenta.music import constants
 from magenta.music import melodies_lib
 from magenta.music import sequences_lib
 from magenta.music import testing_lib
@@ -23,8 +25,8 @@ from magenta.pipelines import pipelines_common
 from magenta.protobuf import music_pb2
 
 
-NOTE_OFF = melodies_lib.NOTE_OFF
-NO_EVENT = melodies_lib.NO_EVENT
+NOTE_OFF = constants.MELODY_NOTE_OFF
+NO_EVENT = constants.MELODY_NO_EVENT
 
 
 class PipelineUnitsCommonTest(tf.test.TestCase):
@@ -33,14 +35,14 @@ class PipelineUnitsCommonTest(tf.test.TestCase):
                            expected_outputs):
     outputs = unit.transform(input_instance)
     self.assertTrue(isinstance(outputs, list))
-    testing_lib.assert_set_equality(self, expected_outputs, outputs)
+    common_testing_lib.assert_set_equality(self, expected_outputs, outputs)
     self.assertEqual(unit.input_type, type(input_instance))
     if outputs:
       self.assertEqual(unit.output_type, type(outputs[0]))
 
   def testQuantizer(self):
     steps_per_quarter = 4
-    note_sequence = testing_lib.parse_test_proto(
+    note_sequence = common_testing_lib.parse_test_proto(
         music_pb2.NoteSequence,
         """
         time_signatures: {

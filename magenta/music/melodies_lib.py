@@ -37,66 +37,24 @@ import abc
 import numpy as np
 from six.moves import range  # pylint: disable=redefined-builtin
 
+from magenta.music import constants
 from magenta.music import events_lib
 from magenta.pipelines import statistics
 from magenta.protobuf import music_pb2
 
 
-# Special events.
-NUM_SPECIAL_EVENTS = 2
-NOTE_OFF = -1
-NO_EVENT = -2
-
-# Other constants.
-MIN_MELODY_EVENT = -2
-MAX_MELODY_EVENT = 127
-MIN_MIDI_PITCH = 0  # Inclusive.
-MAX_MIDI_PITCH = 127  # Inclusive.
-NOTES_PER_OCTAVE = 12
-
-DEFAULT_QUARTERS_PER_MINUTE = events_lib.DEFAULT_QUARTERS_PER_MINUTE
-DEFAULT_STEPS_PER_BAR = events_lib.DEFAULT_STEPS_PER_BAR
-DEFAULT_STEPS_PER_QUARTER = events_lib.DEFAULT_STEPS_PER_QUARTER
-STANDARD_PPQ = events_lib.STANDARD_PPQ
-
-# NOTE_KEYS[note] = The major keys that note belongs to.
-# ex. NOTE_KEYS[0] lists all the major keys that contain the note C,
-# which are:
-# [0, 1, 3, 5, 7, 8, 10]
-# [C, C#, D#, F, G, G#, A#]
-#
-# 0 = C
-# 1 = C#
-# 2 = D
-# 3 = D#
-# 4 = E
-# 5 = F
-# 6 = F#
-# 7 = G
-# 8 = G#
-# 9 = A
-# 10 = A#
-# 11 = B
-#
-# NOTE_KEYS can be generated using the code below, but is explicitly declared
-# for readability:
-# scale = [1, 0, 1, 0, 1, 1, 0, 1, 0, 1, 0, 1]
-# NOTE_KEYS = [[j for j in range(12) if scale[(i - j) % 12]]
-#              for i in range(12)]
-NOTE_KEYS = [
-    [0, 1, 3, 5, 7, 8, 10],
-    [1, 2, 4, 6, 8, 9, 11],
-    [0, 2, 3, 5, 7, 9, 10],
-    [1, 3, 4, 6, 8, 10, 11],
-    [0, 2, 4, 5, 7, 9, 11],
-    [0, 1, 3, 5, 6, 8, 10],
-    [1, 2, 4, 6, 7, 9, 11],
-    [0, 2, 3, 5, 7, 8, 10],
-    [1, 3, 4, 6, 8, 9, 11],
-    [0, 2, 4, 5, 7, 9, 10],
-    [1, 3, 5, 6, 8, 10, 11],
-    [0, 2, 4, 6, 7, 9, 11]
-]
+NUM_SPECIAL_MELODY_EVENTS = constants.NUM_SPECIAL_MELODY_EVENTS
+MELODY_NOTE_OFF = constants.MELODY_NOTE_OFF
+MELODY_NO_EVENT = constants.MELODY_NO_EVENT
+MIN_MELODY_EVENT = constants.MIN_MELODY_EVENT
+MAX_MELODY_EVENT = constants.MAX_MELODY_EVENT
+MIN_MIDI_PITCH = constants.MIN_MIDI_PITCH
+MAX_MIDI_PITCH = constants.MAX_MIDI_PITCH
+NOTES_PER_OCTAVE = constants.NOTES_PER_OCTAVE
+DEFAULT_STEPS_PER_BAR = constants.DEFAULT_STEPS_PER_BAR
+DEFAULT_STEPS_PER_QUARTER = constants.DEFAULT_STEPS_PER_QUARTER
+STANDARD_PPQ = constants.STANDARD_PPQ
+NOTE_KEYS = constants.NOTE_KEYS
 
 
 class PolyphonicMelodyException(Exception):
@@ -119,15 +77,16 @@ class MonophonicMelody(events_lib.SimpleEventSequence):
   the melody events.
 
   MonophonicMelody events are integers in range [-2, 127] (inclusive),
-  where negative values are the special event events: NOTE_OFF, and NO_EVENT.
-  Non-negative values [0, 127] are note-on events for that midi pitch. A note
-  starts at a non-negative value (that is the pitch), and is held through
-  subsequent NO_EVENT events until either another non-negative value is reached
-  (even if the pitch is the same as the previous note), or a NOTE_OFF event is
-  reached. A NOTE_OFF starts at least one step of silence, which continues
-  through NO_EVENT events until the next non-negative value.
+  where negative values are the special event events: MELODY_NOTE_OFF, and
+  MELODY_NO_EVENT. Non-negative values [0, 127] are note-on events for that
+  midi pitch. A note starts at a non-negative value (that is the pitch), and is
+  held through subsequent NO_MELODY_EVENT events until either another non-
+  negative value is reached (even if the pitch is the same as the previous
+  note), or a MELODY_NOTE_OFF event is reached. A MELODY_NOTE_OFF starts at
+  least one step of silence, which continues through MELODY_NO_EVENT events
+  until the next non-negative value.
 
-  NO_EVENT values are treated as default filler. Notes must be inserted
+  MELODY_NO_EVENT values are treated as default filler. Notes must be inserted
   in ascending order by start time. Note end times will be truncated if the next
   note overlaps.
 
@@ -149,7 +108,7 @@ class MonophonicMelody(events_lib.SimpleEventSequence):
 
   def __init__(self):
     """Construct an empty MonophonicMelody."""
-    super(MonophonicMelody, self).__init__(pad_event=NO_EVENT)
+    super(MonophonicMelody, self).__init__(pad_event=MELODY_NO_EVENT)
 
   def __deepcopy__(self, unused_memo=None):
     new_copy = type(self)()
@@ -191,9 +150,9 @@ class MonophonicMelody(events_lib.SimpleEventSequence):
     self.set_length(end_step + 1)
 
     self._events[start_step] = pitch
-    self._events[end_step] = NOTE_OFF
+    self._events[end_step] = MELODY_NOTE_OFF
     for i in range(start_step + 1, end_step):
-      self._events[i] = NO_EVENT
+      self._events[i] = MELODY_NO_EVENT
 
   def _get_last_on_off_events(self):
     """Returns indexes of the most recent pitch and NOTE_OFF events.
@@ -207,7 +166,7 @@ class MonophonicMelody(events_lib.SimpleEventSequence):
     """
     last_off = len(self)
     for i in range(len(self) - 1, -1, -1):
-      if self._events[i] == NOTE_OFF:
+      if self._events[i] == MELODY_NOTE_OFF:
         last_off = i
       if self._events[i] >= MIN_MIDI_PITCH:
         return (i, last_off)
@@ -379,8 +338,8 @@ class MonophonicMelody(events_lib.SimpleEventSequence):
 
     self._start_step = offset
 
-    # Strip final NOTE_OFF event.
-    if self._events[-1] == NOTE_OFF:
+    # Strip final MELODY_NOTE_OFF event.
+    if self._events[-1] == MELODY_NOTE_OFF:
       del self._events[-1]
 
     length = len(self)
@@ -453,7 +412,7 @@ class MonophonicMelody(events_lib.SimpleEventSequence):
         current_sequence_note.velocity = velocity
         current_sequence_note.instrument = instrument
 
-      elif note == NOTE_OFF:
+      elif note == MELODY_NOTE_OFF:
         # End any sustained notes.
         if current_sequence_note is not None:
           current_sequence_note.end_time = (
@@ -545,10 +504,10 @@ class MonophonicMelody(events_lib.SimpleEventSequence):
     if steps > old_len and not from_left:
       # When extending the melody on the right, we end any sustained notes.
       for i in reversed(range(old_len)):
-        if self._events[i] == NOTE_OFF:
+        if self._events[i] == MELODY_NOTE_OFF:
           break
-        elif self._events[i] != NO_EVENT:
-          self._events[old_len] = NOTE_OFF
+        elif self._events[i] != MELODY_NO_EVENT:
+          self._events[old_len] = MELODY_NOTE_OFF
           break
 
 
@@ -794,7 +753,7 @@ class MelodyEncoderDecoder(events_lib.EventsEncoderDecoder):
       An int, the class label that represents a NO_EVENT.
     """
     melody = MonophonicMelody()
-    melody.from_event_list([NO_EVENT])
+    melody.from_event_list([MELODY_NO_EVENT])
     return self.events_to_label(melody, 0)
 
   @abc.abstractmethod
@@ -857,8 +816,10 @@ class OneHotEncoderDecoder(MelodyEncoderDecoder):
   def __init__(self, min_note, max_note, transpose_to_key):
     super(OneHotEncoderDecoder, self).__init__(min_note, max_note,
                                                transpose_to_key)
-    self._input_size = self.max_note - self.min_note + NUM_SPECIAL_EVENTS
-    self._num_classes = self.max_note - self.min_note + NUM_SPECIAL_EVENTS
+    self._input_size = (self.max_note - self.min_note +
+                        NUM_SPECIAL_MELODY_EVENTS)
+    self._num_classes = (self.max_note - self.min_note +
+                         NUM_SPECIAL_MELODY_EVENTS)
 
   @property
   def input_size(self):
@@ -870,17 +831,18 @@ class OneHotEncoderDecoder(MelodyEncoderDecoder):
 
   def events_to_input(self, events, position):
     input_ = [0.0] * self._input_size
-    index = (events[position] + NUM_SPECIAL_EVENTS
+    index = (events[position] + NUM_SPECIAL_MELODY_EVENTS
              if events[position] < 0
-             else events[position] - self.min_note + NUM_SPECIAL_EVENTS)
+             else events[position] - self.min_note + NUM_SPECIAL_MELODY_EVENTS)
     input_[index] = 1.0
     return input_
 
   def events_to_label(self, events, position):
-    return (events[position] + NUM_SPECIAL_EVENTS
+    return (events[position] + NUM_SPECIAL_MELODY_EVENTS
             if events[position] < 0
-            else events[position] - self.min_note + NUM_SPECIAL_EVENTS)
+            else events[position] - self.min_note + NUM_SPECIAL_MELODY_EVENTS)
 
   def class_index_to_event(self, class_index, events):
-    return (class_index - NUM_SPECIAL_EVENTS if class_index < NUM_SPECIAL_EVENTS
-            else class_index + self.min_note - NUM_SPECIAL_EVENTS)
+    return (class_index - NUM_SPECIAL_MELODY_EVENTS
+            if class_index < NUM_SPECIAL_MELODY_EVENTS
+            else class_index + self.min_note - NUM_SPECIAL_MELODY_EVENTS)

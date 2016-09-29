@@ -16,9 +16,9 @@
 # internal imports
 import tensorflow as tf
 
+from magenta.common import tf_lib
 from magenta.models.shared import melody_rnn_graph
 from magenta.music import melodies_lib
-from magenta.music import tf_lib
 
 
 class MelodyRNNGraphTest(tf.test.TestCase):
