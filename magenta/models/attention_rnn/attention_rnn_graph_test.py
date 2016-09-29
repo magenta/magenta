@@ -16,8 +16,8 @@
 # internal imports
 import tensorflow as tf
 
-from magenta.music import melodies_lib
 from magenta.models.attention_rnn import attention_rnn_graph
+from magenta.music import melodies_lib
 
 
 class AttentionRNNGraphTest(tf.test.TestCase):

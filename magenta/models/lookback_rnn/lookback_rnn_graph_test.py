@@ -16,8 +16,8 @@
 # internal imports
 import tensorflow as tf
 
-from magenta.music import melodies_lib
 from magenta.models.lookback_rnn import lookback_rnn_graph
+from magenta.music import melodies_lib
 
 
 class LookbackRNNGraphTest(tf.test.TestCase):

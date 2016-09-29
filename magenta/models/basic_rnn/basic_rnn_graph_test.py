@@ -16,8 +16,8 @@
 # internal imports
 import tensorflow as tf
 
-from magenta.music import melodies_lib
 from magenta.models.basic_rnn import basic_rnn_graph
+from magenta.music import melodies_lib
 
 
 class BasicRNNGraphTest(tf.test.TestCase):

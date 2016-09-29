@@ -16,8 +16,8 @@
 # internal imports
 import tensorflow as tf
 
-from magenta.music import melodies_lib
 from magenta.models.lookback_rnn import lookback_rnn_encoder_decoder
+from magenta.music import melodies_lib
 
 NOTE_OFF = melodies_lib.MELODY_NOTE_OFF
 NO_EVENT = melodies_lib.MELODY_NO_EVENT
