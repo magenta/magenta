@@ -24,8 +24,8 @@ you can view TensorBoard servers that run within the container.
 
 This also maps the directory ```/tmp/magenta``` on the host machine to
 ```/magenta-data``` within the Docker session. Windows users can change 
-```/tmp/magenta``` to a path such as ```C:/magenta```, and Mac users can 
-use a path to their user home folder such as ```~/magenta```. **WARNING**: 
+```/tmp/magenta``` to a path such as ```C:/magenta```, and Mac and Linux users 
+can use a path relative to their home folder such as ```~/magenta```. **WARNING**: 
 only data saved in ```/magenta-data``` will persist across Docker sessions.
 
 The Docker image also includes several pre-trained models in
