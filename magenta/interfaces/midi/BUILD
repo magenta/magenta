@@ -17,11 +17,41 @@
 
 licenses(["notice"])  # Apache 2.0
 
+py_library(
+    name = "midi",
+    deps = [
+        ":midi_hub",
+        ":midi_interaction",
+    ],
+)
+
+py_library(
+    name = "midi_hub",
+    srcs = ["midi_hub.py"],
+    deps = [
+        "//magenta",
+        "@mido//:mido",
+    ],
+)
+
+py_test(
+    name = "midi_hub_test",
+    srcs = ["midi_hub_test.py"],
+    srcs_version = "PY2AND3",
+    deps = [
+        ":midi_hub",
+        "//magenta",
+        "@mido//:mido",
+        # tensorflow dep
+    ],
+)
+
 py_binary(
     name = "magenta_midi",
     srcs = ["magenta_midi.py"],
     visibility = ["//magenta/tools/pip:__subpackages__"],
     deps = [
+        ":midi_hub",
         "//magenta",
         "//magenta/models/attention_rnn:attention_rnn_generator",
         "//magenta/models/basic_rnn:basic_rnn_generator",

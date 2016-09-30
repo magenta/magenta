@@ -22,7 +22,9 @@ import midi as py_midi
 import pretty_midi
 import tensorflow as tf
 
+from magenta.music import constants
 from magenta.music import midi_io
+from magenta.protobuf import music_pb2
 
 # self.midi_simple_filename contains a c-major scale of 8 quarter notes each
 # with a sustain of .95 of the entire note. Here are the first two notes dumped
@@ -187,6 +189,23 @@ class MidiIoTest(tf.test.TestCase):
 
   def testSimpleSequenceToPrettyMidi(self):
     self.CheckSequenceToPrettyMidi(self.midi_simple_filename)
+
+  def testSimpleSequenceToPrettyMidi_DefaultTicksAndTempo(self):
+    source_midi = pretty_midi.PrettyMIDI(self.midi_simple_filename)
+    stripped_sequence_proto = midi_io.midi_to_sequence_proto(source_midi)
+    del stripped_sequence_proto.tempos[:]
+    stripped_sequence_proto.ClearField('ticks_per_quarter')
+
+    expected_sequence_proto = music_pb2.NoteSequence()
+    expected_sequence_proto.CopyFrom(stripped_sequence_proto)
+    expected_sequence_proto.tempos.add(
+        qpm=constants.DEFAULT_QUARTERS_PER_MINUTE)
+    expected_sequence_proto.ticks_per_quarter = constants.STANDARD_PPQ
+
+    translated_midi = midi_io.sequence_proto_to_pretty_midi(
+        stripped_sequence_proto)
+
+    self.CheckPrettyMidiAndSequence(translated_midi, expected_sequence_proto)
 
   def testSimpleReadWriteMidi(self):
     self.CheckReadWriteMidi(self.midi_simple_filename)

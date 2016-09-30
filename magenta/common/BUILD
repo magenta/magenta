@@ -25,9 +25,26 @@ licenses(["notice"])  # Apache 2.0
 py_library(
     name = "common",
     deps = [
+        ":concurrency",
         ":sequence_example_lib",
         ":testing_lib",
         ":tf_lib",
+    ],
+)
+
+py_library(
+    name = "concurrency",
+    srcs = ["concurrency.py"],
+    srcs_version = "PY2AND3",
+)
+
+py_test(
+    name = "concurrency_test",
+    srcs = ["concurrency_test.py"],
+    srcs_version = "PY2AND3",
+    deps = [
+        ":concurrency",
+        # tensorflow dep
     ],
 )
 
