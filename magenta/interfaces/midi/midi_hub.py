@@ -566,6 +566,7 @@ class MidiCaptor(threading.Thread):
     Raises:
       MidiHubException: If neither `signal` nor `timeout` or both are specified.
     """
+
     class IteratorCallback(threading.Thread):
       """A thread for executing a callback on each iteration."""
 
