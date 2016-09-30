@@ -19,17 +19,12 @@ from magenta.models.basic_rnn import basic_rnn_graph
 from magenta.models.shared import melody_rnn_sequence_generator
 from magenta.protobuf import generator_pb2
 
-DEFAULT_ID = 'basic_rnn'
 
-
-def create_generator(checkpoint,
-                     bundle,
-                     steps_per_quarter=4,
-                     hparams=None,
-                     generator_id=DEFAULT_ID):
+def create_generator(checkpoint, bundle, steps_per_quarter=4, hparams=None):
   melody_encoder_decoder = basic_rnn_encoder_decoder.MelodyEncoderDecoder()
   details = generator_pb2.GeneratorDetails(
-      id=generator_id, description='Basic RNN Generator')
+      id='basic_rnn',
+      description='Basic RNN Generator')
   return melody_rnn_sequence_generator.MelodyRnnSequenceGenerator(
       details,
       checkpoint,

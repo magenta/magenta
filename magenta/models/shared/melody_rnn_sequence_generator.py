@@ -105,14 +105,15 @@ class MelodyRnnSequenceGenerator(sequence_generator.BaseSequenceGenerator):
 
     return int(seconds * (qpm / 60.0) * self._steps_per_quarter)
 
-  def _generate(self, input_sequence, generator_options):
-    if len(generator_options.generate_sections) != 1:
+  def _generate(self, generate_sequence_request):
+    if len(generate_sequence_request.generator_options.generate_sections) != 1:
       raise sequence_generator.SequenceGeneratorException(
           'This model supports only 1 generate_sections message, but got %s' %
-          len(generator_options.generate_sections))
+          (len(generate_sequence_request.generator_options.generate_sections)))
 
-    generate_section = generator_options.generate_sections[0]
-    primer_sequence = input_sequence
+    generate_section = (
+        generate_sequence_request.generator_options.generate_sections[0])
+    primer_sequence = generate_sequence_request.input_sequence
 
     notes_by_end_time = sorted(primer_sequence.notes, key=lambda n: n.end_time)
     last_end_time = notes_by_end_time[-1].end_time if notes_by_end_time else 0
@@ -133,8 +134,8 @@ class MelodyRnnSequenceGenerator(sequence_generator.BaseSequenceGenerator):
         gap_bars=float('inf'), ignore_polyphonic_notes=True)
     assert len(extracted_melodies) <= 1
 
-    qpm = (primer_sequence.tempos[0].qpm
-           if primer_sequence and primer_sequence.tempos
+    qpm = (primer_sequence.tempos[0].qpm if primer_sequence
+           and primer_sequence.tempos
            else constants.DEFAULT_QUARTERS_PER_MINUTE)
     start_step = self._seconds_to_steps(
         generate_section.start_time_seconds, qpm)
@@ -181,4 +182,6 @@ class MelodyRnnSequenceGenerator(sequence_generator.BaseSequenceGenerator):
 
     melody.transpose(-transpose_amount)
 
-    return melody.to_sequence(qpm=qpm)
+    generate_response = generator_pb2.GenerateSequenceResponse()
+    generate_response.generated_sequence.CopyFrom(melody.to_sequence(qpm=qpm))
+    return generate_response
