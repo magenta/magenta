@@ -17,15 +17,12 @@ import random
 
 # internal imports
 from six.moves import range  # pylint: disable=redefined-builtin
+
 import tensorflow as tf
-
-from magenta.music import constants
-from magenta.music import melodies_lib
-from magenta.music import sequence_generator
-from magenta.music import sequences_lib
+import magenta
 
 
-class MelodyRnnSequenceGenerator(sequence_generator.BaseSequenceGenerator):
+class MelodyRnnSequenceGenerator(magenta.music.BaseSequenceGenerator):
   """Shared Melody RNN generation code as a SequenceGenerator interface."""
 
   def __init__(self, details, checkpoint, bundle, melody_encoder_decoder,
@@ -37,7 +34,7 @@ class MelodyRnnSequenceGenerator(sequence_generator.BaseSequenceGenerator):
       checkpoint: Where to search for the most recent model checkpoint.
       bundle: A generator_pb2.GeneratorBundle object that includes both the
           model checkpoint and metagraph.
-      melody_encoder_decoder: A melodies_lib.MelodyEncoderDecoder object
+      melody_encoder_decoder: A magenta.music.MelodyEncoderDecoder object
           specific to your model.
       build_graph: A function that when called, returns the tf.Graph object for
           your model. The function will be passed the parameters:
@@ -106,7 +103,7 @@ class MelodyRnnSequenceGenerator(sequence_generator.BaseSequenceGenerator):
 
   def _generate(self, input_sequence, generator_options):
     if len(generator_options.generate_sections) != 1:
-      raise sequence_generator.SequenceGeneratorException(
+      raise magenta.music.SequenceGeneratorException(
           'This model supports only 1 generate_sections message, but got %s' %
           len(generator_options.generate_sections))
 
@@ -116,25 +113,25 @@ class MelodyRnnSequenceGenerator(sequence_generator.BaseSequenceGenerator):
     notes_by_end_time = sorted(primer_sequence.notes, key=lambda n: n.end_time)
     last_end_time = notes_by_end_time[-1].end_time if notes_by_end_time else 0
     if last_end_time > generate_section.start_time_seconds:
-      raise sequence_generator.SequenceGeneratorException(
+      raise magenta.music.SequenceGeneratorException(
           'Got GenerateSection request for section that is before the end of '
           'the NoteSequence. This model can only extend sequences. '
           'Requested start time: %s, Final note end time: %s' %
           (generate_section.start_time_seconds, notes_by_end_time[-1].end_time))
 
     # Quantize the priming sequence.
-    quantized_sequence = sequences_lib.QuantizedSequence()
+    quantized_sequence = magenta.music.QuantizedSequence()
     quantized_sequence.from_note_sequence(
         primer_sequence, self._steps_per_quarter)
     # Setting gap_bars to infinite ensures that the entire input will be used.
-    extracted_melodies, _ = melodies_lib.extract_melodies(
+    extracted_melodies, _ = magenta.music.extract_melodies(
         quantized_sequence, min_bars=0, min_unique_pitches=1,
         gap_bars=float('inf'), ignore_polyphonic_notes=True)
     assert len(extracted_melodies) <= 1
 
     qpm = (primer_sequence.tempos[0].qpm
            if primer_sequence and primer_sequence.tempos
-           else constants.DEFAULT_QUARTERS_PER_MINUTE)
+           else magenta.music.DEFAULT_QUARTERS_PER_MINUTE)
     start_step = self._seconds_to_steps(
         generate_section.start_time_seconds, qpm)
     end_step = self._seconds_to_steps(generate_section.end_time_seconds, qpm)
@@ -144,7 +141,7 @@ class MelodyRnnSequenceGenerator(sequence_generator.BaseSequenceGenerator):
     else:
       tf.logging.warn('No melodies were extracted from the priming sequence. '
                       'Melodies will be generated from scratch.')
-      melody = melodies_lib.MonophonicMelody()
+      melody = magenta.music.MonophonicMelody()
       melody.from_event_list([
           random.randint(self._melody_encoder_decoder.min_note,
                          self._melody_encoder_decoder.max_note)])

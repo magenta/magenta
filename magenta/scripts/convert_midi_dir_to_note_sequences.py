@@ -88,8 +88,8 @@ def convert_directory(root_dir, sub_dir, sequence_writer, recursive=False):
       continue
     sequence.collection_name = os.path.basename(root_dir)
     sequence.filename = os.path.join(sub_dir, file_in_dir)
-    sequence.id = note_sequence_io.generate_id(sequence.filename,
-                                               sequence.collection_name, 'midi')
+    sequence.id = note_sequence_io.generate_note_sequence_id(
+        sequence.filename, sequence.collection_name, 'midi')
     sequence_writer.write(sequence)
     sequences_written += 1
   tf.logging.info("Converted %d MIDI files in '%s'.", sequences_written,

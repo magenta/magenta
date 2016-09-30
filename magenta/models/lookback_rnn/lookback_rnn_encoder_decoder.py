@@ -14,11 +14,10 @@
 """A MelodyEncoderDecoder specific to the lookback RNN model."""
 
 # internal imports
-from magenta.music import constants
-from magenta.music import melodies_lib
+import magenta
 
-NUM_SPECIAL_MELODY_EVENTS = constants.NUM_SPECIAL_MELODY_EVENTS
-MELODY_NO_EVENT = constants.MELODY_NO_EVENT
+NUM_SPECIAL_MELODY_EVENTS = magenta.music.NUM_SPECIAL_MELODY_EVENTS
+MELODY_NO_EVENT = magenta.music.MELODY_NO_EVENT
 STEPS_PER_BAR = 16  # This code assumes the melodies have 16 steps per bar.
 
 MIN_NOTE = 48  # Inclusive
@@ -35,7 +34,7 @@ NUM_SPECIAL_LABELS = len(LOOKBACK_DISTANCES)
 NUM_BINARY_TIME_COUNTERS = 5
 
 
-class MelodyEncoderDecoder(melodies_lib.MelodyEncoderDecoder):
+class MelodyEncoderDecoder(magenta.music.MelodyEncoderDecoder):
   """A MelodyEncoderDecoder specific to the lookback RNN model.
 
   Attributes:
@@ -111,7 +110,7 @@ class MelodyEncoderDecoder(melodies_lib.MelodyEncoderDecoder):
     120: The current step is repeating 2 bars ago.
 
     Args:
-      events: A melodies_lib.MonophonicMelody object.
+      events: A magenta.music.MonophonicMelody object.
       position: An integer position in the melody.
 
     Returns:
@@ -166,7 +165,7 @@ class MelodyEncoderDecoder(melodies_lib.MelodyEncoderDecoder):
       39: If the last event in the melody is repeating 2 bars ago.
 
     Args:
-      events: A melodies_lib.MonophonicMelody object.
+      events: A magenta.music.MonophonicMelody object.
       position: An integer position in the melody.
 
     Returns:
@@ -194,11 +193,11 @@ class MelodyEncoderDecoder(melodies_lib.MelodyEncoderDecoder):
 
     Args:
       class_index: An int in the range [0, self.num_classes).
-      events: The melodies_lib.MonophonicMelody events list of the current
+      events: The magenta.music.MonophonicMelody events list of the current
           melody.
 
     Returns:
-      A melodies_lib.MonophonicMelody event value.
+      A magenta.music.MonophonicMelody event value.
     """
     # Repeat N bar ago.
     for i, lookback_distance in reversed(list(enumerate(LOOKBACK_DISTANCES))):

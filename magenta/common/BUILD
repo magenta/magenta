@@ -24,6 +24,7 @@ licenses(["notice"])  # Apache 2.0
 # The Magenta public API.
 py_library(
     name = "common",
+    srcs = ["__init__.py"],
     deps = [
         ":concurrency",
         ":sequence_example_lib",

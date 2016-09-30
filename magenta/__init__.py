@@ -26,6 +26,8 @@ bazel query 'kind(py_library, deps(//magenta))' | \
 import magenta.common.sequence_example_lib
 import magenta.common.testing_lib
 import magenta.common.tf_lib
+import magenta.music.constants
+import magenta.music.events_lib
 import magenta.music.melodies_lib
 import magenta.music.midi_io
 import magenta.music.note_sequence_io

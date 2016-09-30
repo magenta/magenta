@@ -24,6 +24,7 @@ licenses(["notice"])  # Apache 2.0
 # The Magenta public API.
 py_library(
     name = "music",
+    srcs = ["__init__.py"],
     deps = [
         ":constants",
         ":melodies_lib",
@@ -229,15 +230,6 @@ py_test(
 )
 
 py_library(
-    name = "testing_lib",
-    srcs = ["testing_lib.py"],
-    deps = [
-        ":sequences_lib",
-        "//magenta/protobuf:music_py_pb2",
-    ],
-)
-
-py_library(
     name = "sequence_generator_bundle",
     srcs = ["sequence_generator_bundle.py"],
     deps = [
@@ -263,6 +255,15 @@ py_test(
         ":sequence_generator",
         "//magenta/protobuf:generator_py_pb2",
         # tensorflow dep
+    ],
+)
+
+py_library(
+    name = "testing_lib",
+    srcs = ["testing_lib.py"],
+    deps = [
+        ":sequences_lib",
+        "//magenta/protobuf:music_py_pb2",
     ],
 )
 

@@ -14,12 +14,13 @@
 """Provides function to build the lookback RNN model's graph."""
 
 # internal imports
-from magenta.common import tf_lib
+import magenta
+
 from magenta.models.shared import melody_rnn_graph
 
 
 def default_hparams():
-  return tf_lib.HParams(
+  return magenta.common.HParams(
       batch_size=128,
       rnn_layer_sizes=[128, 128],
       dropout_keep_prob=0.5,

@@ -80,7 +80,7 @@ class MonophonicMelody(events_lib.SimpleEventSequence):
   where negative values are the special event events: MELODY_NOTE_OFF, and
   MELODY_NO_EVENT. Non-negative values [0, 127] are note-on events for that
   midi pitch. A note starts at a non-negative value (that is the pitch), and is
-  held through subsequent NO_MELODY_EVENT events until either another non-
+  held through subsequent MELODY_NO_EVENT events until either another non-
   negative value is reached (even if the pitch is the same as the previous
   note), or a MELODY_NOTE_OFF event is reached. A MELODY_NOTE_OFF starts at
   least one step of silence, which continues through MELODY_NO_EVENT events
@@ -810,12 +810,12 @@ class MelodyEncoderDecoder(events_lib.EventsEncoderDecoder):
     return self._encode(melody)
 
 
-class OneHotEncoderDecoder(MelodyEncoderDecoder):
+class OneHotMelodyEncoderDecoder(MelodyEncoderDecoder):
   """A MelodyEncoderDecoder that produces a one-hot encoding for the input."""
 
   def __init__(self, min_note, max_note, transpose_to_key):
-    super(OneHotEncoderDecoder, self).__init__(min_note, max_note,
-                                               transpose_to_key)
+    super(OneHotMelodyEncoderDecoder, self).__init__(min_note, max_note,
+                                                     transpose_to_key)
     self._input_size = (self.max_note - self.min_note +
                         NUM_SPECIAL_MELODY_EVENTS)
     self._num_classes = (self.max_note - self.min_note +
