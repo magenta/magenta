@@ -488,17 +488,16 @@ class MidiCaptor(threading.Thread):
 
     return current_captured_sequence
 
-  def iterate(self, signal=None, timeout=None):
+  def iterate(self, signal=None, period=None):
     """Blocks until a matching mido.Message arrives or the timeout occurs.
 
-    Exactly one of `signal` or `timeout` must be specified. Using a timeout
-    with a Queue.Queue object causes additional delays when blocking.
-    Continues until the thread terminates, at which point the final captured
-    sequence is yielded before returning.
+    Exactly one of `signal` or `period` must be specified. Continues until the
+    captor terminates, at which point the final captured sequence is yielded
+    before returning.
 
     Args:
-      signal: A MidiSignal to use as a signal to stop waiting.
-      timeout: A float timeout in seconds.
+      signal: A MidiSignal to use as a signal to stop waiting, or None.
+      period: A float period in seconds, or None.
 
     Yields:
       The captured NoteSequence at event time.
@@ -506,7 +505,7 @@ class MidiCaptor(threading.Thread):
     Raises:
       MidiHubException: If neither `signal` nor `timeout` or both are specified.
     """
-    if (signal, timeout).count(None) != 1:
+    if (signal, period).count(None) != 1:
       raise MidiHubException(
           'Exactly one of `signal` or `timeout` must be provided to `iterate` '
           'call.')
@@ -520,7 +519,7 @@ class MidiCaptor(threading.Thread):
     sleeper = concurrency.Sleeper()
     while self.is_alive():
       if signal is None:
-        sleeper.sleep(timeout)
+        sleeper.sleep(period)
         end_time = time.time()
       else:
         signal_msg = queue.get()
@@ -539,6 +538,69 @@ class MidiCaptor(threading.Thread):
         yield self.captured_sequence(end_time)
     yield self.captured_sequence()
 
+  def register_callback(self, fn, signal=None, period=None):
+    """Calls `fn` when a matching mido.Message arrives or the timeout occurs.
+
+    The callback function must take exactly a single argument, which will be the
+    current captured NoteSequence.
+
+    Exactly one of `signal` or `period` must be specified. Continues until the
+    captor thread terminates, at which point the callback is called with the
+    final sequence, or `cancel_callback` is called.
+
+    Args:
+      fn: The callback function to call, passing in the captured sequence.
+      signal: A MidiSignal to use as a signal to call `fn` on the current
+          captured sequence, or None.
+      period: A float period in seconds to specify how often to call `fn`, or
+          None.
+
+    Returns:
+      The unqiue name of the callback thread to enable cancellation.
+
+    Raises:
+      MidiHubException: If neither `signal` nor `timeout` or both are specified.
+    """
+    class IteratorCallback(threading.Thread):
+      """A thread for executing a callback on each iteration."""
+
+      def __init__(self, iterator, fn):
+        self._iterator = iterator
+        self._fn = fn
+        self._stop_signal = threading.Event()
+
+      def run(self):
+        """Calls the callback function for each iterator value."""
+        for captured_sequence in self._iterator:
+          if self._stop_signal.is_set():
+            break
+          self._fn(captured_sequence)
+
+      def stop(self):
+        """Stops the thread on next iteration, without blocking."""
+        self._stop_signal.set()
+
+    t = IteratorCallback(self.iterate(signal, period), fn)
+    t.start()
+
+    with self._lock:
+      assert t.name not in self._callbacks
+      self._callbacks[t.name] = t
+
+    return t.name
+
+  @concurrency.serialized
+  def cancel_callback(self, name):
+    """Cancels the callback with the given name.
+
+    While the thread may continue to run until the next iteration, the callback
+    function will not be executed.
+
+    Args:
+      name: The unique name of the callback thread to cancel.
+    """
+    self._callbacks[name].stop()
+    del self._callbacks[name]
 
 class MonophonicMidiCaptor(MidiCaptor):
   """A MidiCaptor for monophonic melodies."""
