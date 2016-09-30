@@ -28,9 +28,9 @@ from magenta.music import constants
 from magenta.music import melodies_lib
 from magenta.music import midi_io
 from magenta.music import sequence_generator
+from magenta.protobuf import generator_pb2
 from magenta.music import sequence_generator_bundle
 from magenta.protobuf import music_pb2
-from magenta.protobuf import generator_pb2
 
 FLAGS = tf.app.flags.FLAGS
 tf.app.flags.DEFINE_string(
