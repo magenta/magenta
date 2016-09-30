@@ -4,12 +4,14 @@ For more information, please consult the README.md file in this directory.
 """
 
 from collections import deque
+import os
 from os import makedirs
 from os.path import exists
 import random
 
 import matplotlib.pyplot as plt
 import numpy as np
+from scipy.misc import logsumexp
 import tensorflow as tf
 
 from magenta.lib import melodies_lib as mlib
@@ -929,54 +931,57 @@ class MelodyQNetwork(object):
     elif self.reward_mode == 'music_theory_all':
       note_rnn_reward = self.reward_from_trained_reward_rnn(obs, action, state)
       if verbose:
-        tf.logging.info('Note RNN reward: %s', reward)
+        print 'Note RNN reward:', note_rnn_reward
 
       reward = self.reward_key(action)
       if verbose:
-        tf.logging.info('Key: %s', reward)
+        print 'Key:', reward
       prev_reward = reward
 
       reward += self.reward_tonic(action)
       if verbose and reward != prev_reward:
-        tf.logging.info('Tonic: %s', reward)
+        print 'Tonic:', reward
       prev_reward = reward
 
       reward += self.reward_penalize_repeating(action)
       if verbose and reward != prev_reward:
-        tf.logging.info('Penalize repeating: %s', reward)
+        print 'Penalize repeating:', reward
       prev_reward = reward
 
       reward += self.reward_penalize_autocorrelation(action)
       if verbose and reward != prev_reward:
-        tf.logging.info('Penalize autocorr: %s', reward)
+        print 'Penalize autocorr:', reward
       prev_reward = reward
 
       reward += self.reward_motif(action)
       if verbose and reward != prev_reward:
-        tf.logging.info('Reward motif: %s', reward)
+        print 'Reward motif:', reward
       prev_reward = reward
 
       reward += self.reward_repeated_motif(action)
       if verbose and reward != prev_reward:
-        tf.logging.info('Reward repeated motif: %s', reward)
+        print 'Reward repeated motif:', reward
       prev_reward = reward
 
       # New rewards based on Gauldin's book, "A Practical Approach to Eighteenth
       # Century Counterpoint"
       reward += self.reward_preferred_intervals(action)
       if verbose and reward != prev_reward:
-        tf.logging.info('Reward preferred_intervals: %s', reward)
+        print 'Reward preferred_intervals:', reward
       prev_reward = reward
 
       reward += self.reward_leap_up_back(action)
       if verbose and reward != prev_reward:
-        tf.logging.info('Reward leap up back: %s', reward)
+        print 'Reward leap up back:', reward
       prev_reward = reward
 
       reward += self.reward_high_low_unique(action)
       if verbose and reward != prev_reward:
-        tf.logging.info('Reward high low unique: %s', reward)
+        print 'Reward high low unique:', reward
 
+      if verbose:
+        print 'Total music theory reward:', self.reward_scaler * reward
+        print 'Total note rnn reward:', note_rnn_reward
       return reward * self.reward_scaler + note_rnn_reward
     elif self.reward_mode == 'music_theory_only':
       # Reward functions that include all of the Gauldin rewards, without using
@@ -1030,6 +1035,25 @@ class MelodyQNetwork(object):
       tf.logging.fatal('ERROR! Not a valid reward mode. Cannot compute reward')
 
     return reward * self.reward_scaler
+
+  def reward_from_trained_reward_rnn(self, obs, action, state):
+    """Rewards based on probabilities learned from data by trained RNN
+
+    Rewards are based on the reward_network's learned softmax 
+    probabilities, allowing the model to maintain information it learned 
+    from data.
+
+    Args:
+      obs: One-hot encoding of the observed note.
+      action: One-hot encoding of the chosen action.
+      state: Vector representing the internal state of the q_network.
+    Returns:
+      Float reward value.
+    """
+    action_note = np.argmax(action)
+    action_scores = self.get_reward_rnn_scores(obs, state)
+    normalization_constant = logsumexp(action_scores)
+    return action_scores[action_note] - normalization_constant
 
   def random_reward_shift_to_mean(self, reward):
     """Modifies reward by a small random values s to pull it towards the mean.
@@ -1139,24 +1163,6 @@ class MelodyQNetwork(object):
       reward = penalty_amount
 
     return reward
-
-  def reward_from_trained_reward_rnn(self, obs, action, state):
-    """Rewards based on probabilities learned from data by trained RNN
-
-    Rewards are based on the reward_network's learned softmax 
-    probabilities, allowing the model to maintain information it learned 
-    from data.
-
-    Args:
-      obs: One-hot encoding of the observed note.
-      action: One-hot encoding of the chosen action.
-      state: Vector representing the internal state of the q_network.
-    Returns:
-      Float reward value.
-    """
-    action_note = np.argmax(action)
-    action_scores = self.get_reward_rnn_scores(obs, state)
-    return action_scores[action_note]
 
   def reward_tonic(self, action, tonic_note=C_MAJOR_TONIC, reward_amount=3.0):
     """Rewards for playing the tonic note at the right times.
