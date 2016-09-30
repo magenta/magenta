@@ -21,7 +21,6 @@ py_library(
     name = "midi",
     deps = [
         ":midi_hub",
-        ":midi_interaction",
     ],
 )
 
