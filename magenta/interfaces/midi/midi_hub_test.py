@@ -66,6 +66,9 @@ class MidiHubTest(tf.test.TestCase):
     for _ in range(5):
       concurrency.Sleeper().sleep(0.05)
 
+  def tearDown(self):
+    self.midi_hub.__del__()
+
   def send_capture_messages(self):
     for msg in self.capture_messages:
       self.port.callback(msg)
@@ -425,7 +428,7 @@ class MidiHubTest(tf.test.TestCase):
         [Note(1, 64, 2, 5), Note(2, 64, 3, 4), Note(3, 64, 4, 6)])
     self.assertProtoEquals(captured_seqs[3], expected_seq)
 
-  def testStartCapture_Iterate_Time(self):
+  def testStartCapture_Iterate_Period(self):
     start_time = 1.0
     captor = self.midi_hub.start_capture(
         120, start_time,
@@ -434,8 +437,13 @@ class MidiHubTest(tf.test.TestCase):
     for msg in self.capture_messages[:-1]:
       threading.Timer(0.1 * msg.time, self.port.callback, args=[msg]).start()
 
+    period = 0.35
     captured_seqs = []
-    for captured_seq in captor.iterate(timeout=0.35):
+    wall_start_time = time.time()
+    for captured_seq in captor.iterate(period=0.35):
+      self.assertAlmostEqual(0, (time.time() - wall_start_time) % period,
+                             delta=0.01)
+      time.sleep(0.1)
       captured_seqs.append(captured_seq)
 
     self.assertEquals(2, len(captured_seqs))
@@ -443,6 +451,8 @@ class MidiHubTest(tf.test.TestCase):
     expected_seq = music_pb2.NoteSequence()
     expected_seq.tempos.add(qpm=120)
     end_time = captured_seqs[0].total_time
+    self.assertAlmostEqual(0, (end_time - wall_start_time) % period,
+                           delta=0.005)
     expected_seq.total_time = end_time
     testing_lib.add_track(
         expected_seq, 0, [Note(1, 64, 2, end_time), Note(2, 64, 3, end_time)])
@@ -454,6 +464,50 @@ class MidiHubTest(tf.test.TestCase):
     testing_lib.add_track(
         expected_seq, 0,
         [Note(1, 64, 2, 5), Note(2, 64, 3, 4), Note(3, 64, 4, 6)])
+    self.assertProtoEquals(captured_seqs[1], expected_seq)
+
+  def testStartCapture_Callback_Period(self):
+    start_time = 1.0
+    captor = self.midi_hub.start_capture(
+        120, start_time)
+
+    for msg in self.capture_messages[:-1]:
+      threading.Timer(0.1 * msg.time, self.port.callback, args=[msg]).start()
+
+    period = 0.35
+    wall_start_time = time.time()
+    captured_seqs = []
+
+    def fn(captured_seq):
+      self.assertAlmostEqual(0, (time.time() - wall_start_time) % period,
+                             delta=0.005)
+      captured_seqs.append(captured_seq)
+
+    name = captor.register_callback(fn, period=period)
+    time.sleep(0.8)
+    captor.cancel_callback(name)
+
+    self.assertEquals(2, len(captured_seqs))
+
+    expected_seq = music_pb2.NoteSequence()
+    expected_seq.tempos.add(qpm=120)
+    end_time = captured_seqs[0].total_time
+    self.assertAlmostEqual(0, (end_time - wall_start_time) % period,
+                           delta=0.005)
+    expected_seq.total_time = end_time
+    testing_lib.add_track(
+        expected_seq, 0, [Note(1, 64, 2, end_time), Note(2, 64, 3, end_time)])
+    self.assertProtoEquals(captured_seqs[0], expected_seq)
+
+    expected_seq = music_pb2.NoteSequence()
+    expected_seq.tempos.add(qpm=120)
+    end_time = captured_seqs[1].total_time
+    self.assertAlmostEqual(period, end_time - captured_seqs[0].total_time,
+                           delta=0.005)
+    expected_seq.total_time = end_time
+    testing_lib.add_track(
+        expected_seq, 0,
+        [Note(1, 64, 2, 5), Note(2, 64, 3, 4), Note(3, 64, 4, end_time)])
     self.assertProtoEquals(captured_seqs[1], expected_seq)
 
   def testPassThrough_Poly(self):

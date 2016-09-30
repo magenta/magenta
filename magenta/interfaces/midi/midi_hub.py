@@ -343,6 +343,8 @@ class MidiCaptor(threading.Thread):
     self._iter_signals = []
     # An event that is set when `stop` has been called.
     self._stop_signal = threading.Event()
+    # Active callback threads keyed by unique thread name.
+    self._callbacks = {}
     super(MidiCaptor, self).__init__()
 
   @property
@@ -510,17 +512,20 @@ class MidiCaptor(threading.Thread):
           'Exactly one of `signal` or `timeout` must be provided to `iterate` '
           'call.')
 
-    if signal is not None:
+    if signal is None:
+      sleeper = concurrency.Sleeper()
+      next_yield_time = time.time() + period
+    else:
       regex = re.compile(str(signal))
       queue = Queue.Queue()
       with self._lock:
         self._iter_signals.append((regex, queue))
 
-    sleeper = concurrency.Sleeper()
     while self.is_alive():
       if signal is None:
-        sleeper.sleep(period)
-        end_time = time.time()
+        sleeper.sleep_until(next_yield_time)
+        end_time = next_yield_time
+        next_yield_time += period
       else:
         signal_msg = queue.get()
         if signal_msg is MidiCaptor._WAKE_MESSAGE:
@@ -568,6 +573,7 @@ class MidiCaptor(threading.Thread):
         self._iterator = iterator
         self._fn = fn
         self._stop_signal = threading.Event()
+        super(IteratorCallback, self).__init__()
 
       def run(self):
         """Calls the callback function for each iterator value."""
@@ -601,6 +607,7 @@ class MidiCaptor(threading.Thread):
     """
     self._callbacks[name].stop()
     del self._callbacks[name]
+
 
 class MonophonicMidiCaptor(MidiCaptor):
   """A MidiCaptor for monophonic melodies."""
