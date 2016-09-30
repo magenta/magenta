@@ -495,7 +495,7 @@ class MidiHubTest(tf.test.TestCase):
     self.assertAlmostEqual(0, (end_time - wall_start_time) % period,
                            delta=0.005)
     expected_seq.total_time = end_time
-    testing_lib.add_track(
+    testing_lib.add_track_to_sequence(
         expected_seq, 0, [Note(1, 64, 2, end_time), Note(2, 64, 3, end_time)])
     self.assertProtoEquals(captured_seqs[0], expected_seq)
 
@@ -505,7 +505,7 @@ class MidiHubTest(tf.test.TestCase):
     self.assertAlmostEqual(period, end_time - captured_seqs[0].total_time,
                            delta=0.005)
     expected_seq.total_time = end_time
-    testing_lib.add_track(
+    testing_lib.add_track_to_sequence(
         expected_seq, 0,
         [Note(1, 64, 2, 5), Note(2, 64, 3, 4), Note(3, 64, 4, end_time)])
     self.assertProtoEquals(captured_seqs[1], expected_seq)
