@@ -73,14 +73,14 @@ class LeadSheetsLibTest(tf.test.TestCase):
 
   def testExtractLeadSheetFragments(self):
     self.quantized_sequence.steps_per_quarter = 1
-    testing_lib.add_quantized_track(
+    testing_lib.add_quantized_track_to_sequence(
         self.quantized_sequence, 0,
         [(12, 100, 2, 4), (11, 1, 6, 11)])
-    testing_lib.add_quantized_track(
+    testing_lib.add_quantized_track_to_sequence(
         self.quantized_sequence, 1,
         [(12, 127, 2, 4), (14, 50, 6, 8),
          (50, 100, 33, 37), (52, 100, 34, 37)])
-    testing_lib.add_quantized_chords(
+    testing_lib.add_quantized_chords_to_sequence(
         self.quantized_sequence,
         [('C', 2), ('G7', 6), ('Cmaj7', 33)])
     lead_sheets, _ = lead_sheets_lib.extract_lead_sheet_fragments(
@@ -98,14 +98,14 @@ class LeadSheetsLibTest(tf.test.TestCase):
 
   def testExtractLeadSheetFragmentsCoincidentChords(self):
     self.quantized_sequence.steps_per_quarter = 1
-    testing_lib.add_quantized_track(
+    testing_lib.add_quantized_track_to_sequence(
         self.quantized_sequence, 0,
         [(12, 100, 2, 4), (11, 1, 6, 11)])
-    testing_lib.add_quantized_track(
+    testing_lib.add_quantized_track_to_sequence(
         self.quantized_sequence, 1,
         [(12, 127, 2, 4), (14, 50, 6, 8),
          (50, 100, 33, 37), (52, 100, 34, 37)])
-    testing_lib.add_quantized_chords(
+    testing_lib.add_quantized_chords_to_sequence(
         self.quantized_sequence,
         [('C', 2), ('G7', 6), ('Cmaj7', 33), ('F', 33)])
     lead_sheets, _ = lead_sheets_lib.extract_lead_sheet_fragments(
@@ -124,14 +124,14 @@ class LeadSheetsLibTest(tf.test.TestCase):
 
   def testExtractLeadSheetFragmentsNoChords(self):
     self.quantized_sequence.steps_per_quarter = 1
-    testing_lib.add_quantized_track(
+    testing_lib.add_quantized_track_to_sequence(
         self.quantized_sequence, 0,
         [(12, 100, 2, 4), (11, 1, 6, 11)])
-    testing_lib.add_quantized_track(
+    testing_lib.add_quantized_track_to_sequence(
         self.quantized_sequence, 1,
         [(12, 127, 2, 4), (14, 50, 6, 8),
          (50, 100, 33, 37), (52, 100, 34, 37)])
-    testing_lib.add_quantized_chords(
+    testing_lib.add_quantized_chords_to_sequence(
         self.quantized_sequence,
         [('C', 2), ('G7', 6), (NO_CHORD, 10)])
     lead_sheets, stats = lead_sheets_lib.extract_lead_sheet_fragments(

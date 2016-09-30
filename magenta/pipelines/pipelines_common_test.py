@@ -50,14 +50,14 @@ class PipelineUnitsCommonTest(tf.test.TestCase):
           denominator: 4}
         tempos: {
           qpm: 60}""")
-    testing_lib.add_track(
+    testing_lib.add_track_to_sequence(
         note_sequence, 0,
         [(12, 100, 0.01, 10.0), (11, 55, 0.22, 0.50), (40, 45, 2.50, 3.50),
          (55, 120, 4.0, 4.01), (52, 99, 4.75, 5.0)])
     expected_quantized_sequence = sequences_lib.QuantizedSequence()
     expected_quantized_sequence.qpm = 60.0
     expected_quantized_sequence.steps_per_quarter = steps_per_quarter
-    testing_lib.add_quantized_track(
+    testing_lib.add_quantized_track_to_sequence(
         expected_quantized_sequence, 0,
         [(12, 100, 0, 40), (11, 55, 1, 2), (40, 45, 10, 14),
          (55, 120, 16, 17), (52, 99, 19, 20)])
@@ -69,10 +69,10 @@ class PipelineUnitsCommonTest(tf.test.TestCase):
   def testMonophonicMelodyExtractor(self):
     quantized_sequence = sequences_lib.QuantizedSequence()
     quantized_sequence.steps_per_quarter = 1
-    testing_lib.add_quantized_track(
+    testing_lib.add_quantized_track_to_sequence(
         quantized_sequence, 0,
         [(12, 100, 2, 4), (11, 1, 6, 7)])
-    testing_lib.add_quantized_track(
+    testing_lib.add_quantized_track_to_sequence(
         quantized_sequence, 1,
         [(12, 127, 2, 4), (14, 50, 6, 8)])
     expected_events = [

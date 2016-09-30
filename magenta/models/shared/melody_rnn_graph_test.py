@@ -15,17 +15,16 @@
 
 # internal imports
 import tensorflow as tf
+import magenta
 
-from magenta.common import tf_lib
 from magenta.models.shared import melody_rnn_graph
-from magenta.music import melodies_lib
 
 
 class MelodyRNNGraphTest(tf.test.TestCase):
 
   def setUp(self):
-    self.encoder_decoder = melodies_lib.OneHotEncoderDecoder(0, 12, 0)
-    self.hparams = tf_lib.HParams(
+    self.encoder_decoder = magenta.music.OneHotMelodyEncoderDecoder(0, 12, 0)
+    self.hparams = magenta.common.HParams(
         batch_size=128,
         rnn_layer_sizes=[128, 128],
         dropout_keep_prob=0.5,

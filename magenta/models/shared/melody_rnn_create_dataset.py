@@ -21,8 +21,8 @@ import os
 
 # internal imports
 import tensorflow as tf
+import magenta
 
-from magenta.music import melodies_lib
 from magenta.pipelines import dag_pipeline
 from magenta.pipelines import pipeline
 from magenta.pipelines import pipelines_common
@@ -50,14 +50,14 @@ class EncoderPipeline(pipeline.Pipeline):
   def __init__(self, melody_encoder_decoder):
     """Constructs a EncoderPipeline.
 
-    A melodies_lib.MelodyEncoderDecoder is needed to provide the
+    A magenta.music.MelodyEncoderDecoder is needed to provide the
     `encode` function.
 
     Args:
-      melody_encoder_decoder: A melodies_lib.MelodyEncoderDecoder object.
+      melody_encoder_decoder: A magenta.music.MelodyEncoderDecoder object.
     """
     super(EncoderPipeline, self).__init__(
-        input_type=melodies_lib.MonophonicMelody,
+        input_type=magenta.music.MonophonicMelody,
         output_type=tf.train.SequenceExample)
     self.melody_encoder_decoder = melody_encoder_decoder
 
@@ -73,7 +73,7 @@ def get_pipeline(melody_encoder_decoder):
   """Returns the Pipeline instance which creates the RNN dataset.
 
   Args:
-    melody_encoder_decoder: A melodies_lib.MelodyEncoderDecoder object.
+    melody_encoder_decoder: A magenta.music.MelodyEncoderDecoder object.
 
   Returns:
     A pipeline.Pipeline instance.

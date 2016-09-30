@@ -14,17 +14,16 @@
 """A MelodyEncoderDecoder specific to the basic RNN model."""
 
 # internal imports
-from magenta.music import constants
-from magenta.music import melodies_lib
+import magenta
 
-NUM_SPECIAL_MELODY_EVENTS = constants.NUM_SPECIAL_MELODY_EVENTS
+NUM_SPECIAL_MELODY_EVENTS = magenta.music.NUM_SPECIAL_MELODY_EVENTS
 
 MIN_NOTE = 48  # Inclusive
 MAX_NOTE = 84  # Exclusive
 TRANSPOSE_TO_KEY = 0  # C Major
 
 
-class MelodyEncoderDecoder(melodies_lib.MelodyEncoderDecoder):
+class MelodyEncoderDecoder(magenta.music.MelodyEncoderDecoder):
   """A MelodyEncoderDecoder specific to the lookback RNN model.
 
   Attributes:

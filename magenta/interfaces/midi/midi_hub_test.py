@@ -157,7 +157,7 @@ class MidiHubTest(tf.test.TestCase):
              Note(40, 45, 0.2, 0.6)]
     notes = [Note(note.pitch, note.velocity, note.start + start_time,
                   note.end + start_time) for note in notes]
-    testing_lib.add_track(seq, 0, notes)
+    testing_lib.add_track_to_sequence(seq, 0, notes)
     player = self.midi_hub.start_playback(seq, allow_updates=False)
     player.join()
     note_events = []
@@ -179,7 +179,7 @@ class MidiHubTest(tf.test.TestCase):
     start_time = time.time()
     seq = music_pb2.NoteSequence()
     notes = [Note(0, 100, start_time + 100, start_time + 101)]
-    testing_lib.add_track(seq, 0, notes)
+    testing_lib.add_track_to_sequence(seq, 0, notes)
     player = self.midi_hub.start_playback(seq, allow_updates=False)
 
     with self.assertRaises(midi_hub.MidiHubException):
@@ -193,7 +193,7 @@ class MidiHubTest(tf.test.TestCase):
     seq = music_pb2.NoteSequence()
     notes = [Note(0, 100, start_time, start_time + 101),
              Note(1, 100, start_time, start_time + 101)]
-    testing_lib.add_track(seq, 0, notes)
+    testing_lib.add_track_to_sequence(seq, 0, notes)
     player = self.midi_hub.start_playback(seq, allow_updates=True)
 
     # Sleep past first note start.
@@ -204,7 +204,7 @@ class MidiHubTest(tf.test.TestCase):
              Note(40, 45, 0.3, 0.6)]
     notes = [Note(note.pitch, note.velocity, note.start + start_time,
                   note.end + start_time) for note in notes]
-    testing_lib.add_track(new_seq, 0, notes)
+    testing_lib.add_track_to_sequence(new_seq, 0, notes)
     player.update_sequence(new_seq)
 
     # Start and end the unclosed note from the first sequence.
@@ -235,7 +235,7 @@ class MidiHubTest(tf.test.TestCase):
     expected_seq = music_pb2.NoteSequence()
     expected_seq.tempos.add(qpm=120)
     expected_seq.total_time = 6.0
-    testing_lib.add_track(
+    testing_lib.add_track_to_sequence(
         expected_seq, 0,
         [Note(1, 64, 2, 5), Note(2, 64, 3, 4), Note(3, 64, 4, 6)])
     self.assertProtoEquals(captured_seq, expected_seq)
@@ -253,7 +253,7 @@ class MidiHubTest(tf.test.TestCase):
     expected_seq = music_pb2.NoteSequence()
     expected_seq.tempos.add(qpm=120)
     expected_seq.total_time = stop_time
-    testing_lib.add_track(
+    testing_lib.add_track_to_sequence(
         expected_seq, 0,
         [Note(1, 64, 2, 5), Note(2, 64, 3, 4), Note(3, 64, 4, stop_time)])
     self.assertProtoEquals(captured_seq, expected_seq)
@@ -271,7 +271,7 @@ class MidiHubTest(tf.test.TestCase):
     expected_seq = music_pb2.NoteSequence()
     expected_seq.tempos.add(qpm=120)
     expected_seq.total_time = 6
-    testing_lib.add_track(
+    testing_lib.add_track_to_sequence(
         expected_seq, 0,
         [Note(1, 64, 2, 3), Note(2, 64, 3, 4), Note(3, 64, 4, 6)])
     self.assertProtoEquals(captured_seq, expected_seq)
@@ -290,7 +290,7 @@ class MidiHubTest(tf.test.TestCase):
     expected_seq = music_pb2.NoteSequence()
     expected_seq.tempos.add(qpm=120)
     expected_seq.total_time = stop_time
-    testing_lib.add_track(
+    testing_lib.add_track_to_sequence(
         expected_seq, 0,
         [Note(1, 64, 2, 5), Note(2, 64, 3, 4), Note(3, 64, 4, stop_time)])
     self.assertProtoEquals(captured_seq, expected_seq)
@@ -311,7 +311,7 @@ class MidiHubTest(tf.test.TestCase):
     expected_seq = music_pb2.NoteSequence()
     expected_seq.tempos.add(qpm=120)
     expected_seq.total_time = 4.0
-    testing_lib.add_track(
+    testing_lib.add_track_to_sequence(
         expected_seq, 0,
         [Note(0, 64, 0.01, 3), Note(1, 64, 2, 4), Note(2, 64, 3, 4)])
     self.assertProtoEquals(captured_seq_1, expected_seq)
@@ -320,7 +320,7 @@ class MidiHubTest(tf.test.TestCase):
     expected_seq = music_pb2.NoteSequence()
     expected_seq.tempos.add(qpm=120)
     expected_seq.total_time = 6.0
-    testing_lib.add_track(
+    testing_lib.add_track_to_sequence(
         expected_seq, 0,
         [Note(1, 64, 2, 5), Note(2, 64, 3, 4), Note(3, 64, 4, 6)])
     self.assertProtoEquals(captured_seq_2, expected_seq)
@@ -339,7 +339,7 @@ class MidiHubTest(tf.test.TestCase):
     expected_seq = music_pb2.NoteSequence()
     expected_seq.tempos.add(qpm=120)
     expected_seq.total_time = end_time
-    testing_lib.add_track(
+    testing_lib.add_track_to_sequence(
         expected_seq, 0, [Note(1, 64, 2, 3.5), Note(2, 64, 3, 3.5)])
     self.assertProtoEquals(captured_seq, expected_seq)
 
@@ -348,7 +348,7 @@ class MidiHubTest(tf.test.TestCase):
     expected_seq = music_pb2.NoteSequence()
     expected_seq.tempos.add(qpm=120)
     expected_seq.total_time = end_time
-    testing_lib.add_track(
+    testing_lib.add_track_to_sequence(
         expected_seq, 0,
         [Note(1, 64, 2, 4.5), Note(2, 64, 3, 4.5), Note(3, 64, 4, 4.5)])
     self.assertProtoEquals(captured_seq, expected_seq)
@@ -358,7 +358,7 @@ class MidiHubTest(tf.test.TestCase):
     expected_seq = music_pb2.NoteSequence()
     expected_seq.tempos.add(qpm=120)
     expected_seq.total_time = end_time
-    testing_lib.add_track(
+    testing_lib.add_track_to_sequence(
         expected_seq, 0,
         [Note(1, 64, 2, 6), Note(2, 64, 3, 6), Note(3, 64, 4, 6)])
     self.assertProtoEquals(captured_seq, expected_seq)
@@ -373,7 +373,7 @@ class MidiHubTest(tf.test.TestCase):
     expected_seq = music_pb2.NoteSequence()
     expected_seq.tempos.add(qpm=120)
     expected_seq.total_time = end_time
-    testing_lib.add_track(
+    testing_lib.add_track_to_sequence(
         expected_seq, 0,
         [Note(1, 64, 2, 5), Note(2, 64, 3, 4), Note(3, 64, 4, 6)])
     self.assertProtoEquals(captured_seq, expected_seq)
@@ -399,20 +399,20 @@ class MidiHubTest(tf.test.TestCase):
     expected_seq = music_pb2.NoteSequence()
     expected_seq.tempos.add(qpm=120)
     expected_seq.total_time = 3
-    testing_lib.add_track(expected_seq, 0, [Note(1, 64, 2, 3)])
+    testing_lib.add_track_to_sequence(expected_seq, 0, [Note(1, 64, 2, 3)])
     self.assertProtoEquals(captured_seqs[0], expected_seq)
 
     expected_seq = music_pb2.NoteSequence()
     expected_seq.tempos.add(qpm=120)
     expected_seq.total_time = 4
-    testing_lib.add_track(
+    testing_lib.add_track_to_sequence(
         expected_seq, 0, [Note(1, 64, 2, 4), Note(2, 64, 3, 4)])
     self.assertProtoEquals(captured_seqs[1], expected_seq)
 
     expected_seq = music_pb2.NoteSequence()
     expected_seq.tempos.add(qpm=120)
     expected_seq.total_time = 5
-    testing_lib.add_track(
+    testing_lib.add_track_to_sequence(
         expected_seq, 0,
         [Note(1, 64, 2, 5), Note(2, 64, 3, 4), Note(3, 64, 4, 5)])
     self.assertProtoEquals(captured_seqs[2], expected_seq)
@@ -420,7 +420,7 @@ class MidiHubTest(tf.test.TestCase):
     expected_seq = music_pb2.NoteSequence()
     expected_seq.tempos.add(qpm=120)
     expected_seq.total_time = 6
-    testing_lib.add_track(
+    testing_lib.add_track_to_sequence(
         expected_seq, 0,
         [Note(1, 64, 2, 5), Note(2, 64, 3, 4), Note(3, 64, 4, 6)])
     self.assertProtoEquals(captured_seqs[3], expected_seq)
@@ -444,14 +444,14 @@ class MidiHubTest(tf.test.TestCase):
     expected_seq.tempos.add(qpm=120)
     end_time = captured_seqs[0].total_time
     expected_seq.total_time = end_time
-    testing_lib.add_track(
+    testing_lib.add_track_to_sequence(
         expected_seq, 0, [Note(1, 64, 2, end_time), Note(2, 64, 3, end_time)])
     self.assertProtoEquals(captured_seqs[0], expected_seq)
 
     expected_seq = music_pb2.NoteSequence()
     expected_seq.tempos.add(qpm=120)
     expected_seq.total_time = 6
-    testing_lib.add_track(
+    testing_lib.add_track_to_sequence(
         expected_seq, 0,
         [Note(1, 64, 2, 5), Note(2, 64, 3, 4), Note(3, 64, 4, 6)])
     self.assertProtoEquals(captured_seqs[1], expected_seq)
