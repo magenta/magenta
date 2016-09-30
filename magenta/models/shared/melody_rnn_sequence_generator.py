@@ -23,7 +23,6 @@ from magenta.music import constants
 from magenta.music import melodies_lib
 from magenta.music import sequence_generator
 from magenta.music import sequences_lib
-from magenta.protobuf import generator_pb2
 
 
 class MelodyRnnSequenceGenerator(sequence_generator.BaseSequenceGenerator):
