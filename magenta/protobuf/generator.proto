@@ -40,29 +40,6 @@ message GeneratorOptions {
   repeated GenerateSection generate_sections = 1;
 }
 
-// Request to generate a sequence.
-message GenerateSequenceRequest {
-  // An input sequence to base the generation on.
-  NoteSequence input_sequence = 1;
-
-  GeneratorOptions generator_options = 2;
-}
-
-// Response after generating a sequence.
-message GenerateSequenceResponse {
-  // The generated sequence.
-  //
-  // This should always include the entire NoteSequence, including any notes
-  // that occurred before and after the generated portion of the sequence. It
-  // should reflect the model's understanding of the NoteSequence. For example,
-  // if the model quantizes the input, the model should return a NoteSequence
-  // with the input quantized.
-  //
-  // If an interface wants to use only the generated portion of the sequence, it
-  // should keep track of the GenerateSection parameters it sent in the request.
-  NoteSequence generated_sequence = 1;
-}
-
 // Bundle for wrapping a generator id, checkpoint file, and metagraph.
 // Intended to make sharing pre-trained models easier.
 // Next ID: 5

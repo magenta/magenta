@@ -111,17 +111,18 @@ class BaseSequenceGenerator(object):
     pass
 
   @abc.abstractmethod
-  def _generate(self, generate_sequence_request):
-    """Implementation for sequence generation based on request.
+  def _generate(self, input_sequence, generator_options):
+    """Implementation for sequence generation based on sequence and options.
 
     The implementation can assume that _initialize has been called before this
     method is called.
 
     Args:
-      generate_sequence_request: The request for generating a sequence
-
+      input_sequence: An input NoteSequence to base the generation on.
+      generator_options: A GeneratorOptions proto with options to use for
+          generation.
     Returns:
-      A GenerateSequenceResponse proto.
+      The generated NoteSequence proto.
     """
     pass
 
@@ -208,19 +209,21 @@ class BaseSequenceGenerator(object):
     """When used as a context manager, closes the TF session."""
     self.close()
 
-  def generate(self, generate_sequence_request):
-    """Generates a sequence from the model based on the request.
+  def generate(self, input_sequence, generator_options):
+    """Generates a sequence from the model based on sequence and options.
 
     Also initializes the TF graph if not yet initialized.
 
     Args:
-      generate_sequence_request: The request for generating a sequence
+      input_sequence: An input NoteSequence to base the generation on.
+      generator_options: A GeneratorOptions proto with options to use for
+          generation.
 
     Returns:
-      A GenerateSequenceResponse proto.
+      The generated NoteSequence proto.
     """
     self.initialize()
-    return self._generate(generate_sequence_request)
+    return self._generate(input_sequence, generator_options)
 
   def create_bundle_file(self, bundle_file, description=None):
     """Writes a generator_pb2.GeneratorBundle file in the specified location.

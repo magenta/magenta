@@ -202,15 +202,13 @@ class Generator(object):
     qpm = input_sequence.tempos[0].qpm
     seconds_to_generate = (60.0 / qpm) * 4 * self._num_bars_to_generate
 
-    request = generator_pb2.GenerateSequenceRequest()
-    request.input_sequence.CopyFrom(input_sequence)
-    section = request.generator_options.generate_sections.add()
+    generator_options = generator_pb2.GeneratorOptions()
+    section = generator_options.generate_sections.add()
     # Start generating 1 quarter note after the sequence ends.
     section.start_time_seconds = last_end_time + (60.0 / qpm)
     section.end_time_seconds = section.start_time_seconds + seconds_to_generate
 
-    response = self._generator.generate(request)
-    return response.generated_sequence
+    return self._generator.generate(input_sequence, generator_options)
 
 
 class Metronome(threading.Thread):
@@ -242,7 +240,7 @@ class Metronome(threading.Thread):
     sleep_offset = 0
     while not self._stop_metronome:
       now = time.time()
-      next_tick_time = now + period - ((now - self._clock_start_time)  % period)
+      next_tick_time = now + period - ((now - self._clock_start_time) % period)
       delta = next_tick_time - time.time()
       if delta > 0:
         time.sleep(delta + sleep_offset)
@@ -593,6 +591,7 @@ def main(unused_argv):
 
 def console_entry_point():
   tf.app.run(main)
+
 
 if __name__ == '__main__':
   console_entry_point()

@@ -30,6 +30,7 @@ from magenta.music import midi_io
 from magenta.music import sequence_generator
 from magenta.music import sequence_generator_bundle
 from magenta.protobuf import generator_pb2
+from magenta.protobuf import music_pb2
 
 FLAGS = tf.app.flags.FLAGS
 tf.app.flags.DEFINE_string(
@@ -214,11 +215,10 @@ def run_with_flags(melody_rnn_sequence_generator):
   # Specify start/stop time for generation based on starting generation at the
   # end of the priming sequence and continuing until the sequence is num_steps
   # long.
-  generate_request = generator_pb2.GenerateSequenceRequest()
+  generator_options = generator_pb2.GeneratorOptions()
   if primer_sequence:
-    generate_request.input_sequence.CopyFrom(primer_sequence)
-    generate_section = (
-        generate_request.generator_options.generate_sections.add())
+    input_sequence = primer_sequence
+    generate_section = generator_options.generate_sections.add()
     # Set the start time to begin on the next step after the last note ends.
     notes_by_end_time = sorted(primer_sequence.notes, key=lambda n: n.end_time)
     last_end_time = notes_by_end_time[-1].end_time if notes_by_end_time else 0
@@ -234,25 +234,25 @@ def run_with_flags(melody_rnn_sequence_generator):
           generate_section.start_time_seconds, total_seconds)
       return
   else:
-    generate_section = (
-        generate_request.generator_options.generate_sections.add())
+    input_sequence = music_pb2.NoteSequence()
+    input_sequence.tempos.add().qpm = qpm
+    generate_section = generator_options.generate_sections.add()
     generate_section.start_time_seconds = 0
     generate_section.end_time_seconds = total_seconds
-    generate_request.input_sequence.tempos.add().qpm = qpm
-  tf.logging.debug('generate_request: %s', generate_request)
+  tf.logging.debug('input_sequence: %s', input_sequence)
+  tf.logging.debug('generator_options: %s', generator_options)
 
   # Make the generate request num_outputs times and save the output as midi
   # files.
   date_and_time = time.strftime('%Y-%m-%d_%H%M%S')
   digits = len(str(FLAGS.num_outputs))
   for i in range(FLAGS.num_outputs):
-    generate_response = melody_rnn_sequence_generator.generate(
-        generate_request)
+    generated_sequence = melody_rnn_sequence_generator.generate(
+        input_sequence, generator_options)
 
     midi_filename = '%s_%s.mid' % (date_and_time, str(i + 1).zfill(digits))
     midi_path = os.path.join(FLAGS.output_dir, midi_filename)
-    midi_io.sequence_proto_to_midi_file(
-        generate_response.generated_sequence, midi_path)
+    midi_io.sequence_proto_to_midi_file(generated_sequence, midi_path)
 
   tf.logging.info('Wrote %d MIDI files to %s',
                   FLAGS.num_outputs, FLAGS.output_dir)
