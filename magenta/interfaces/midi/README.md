@@ -108,7 +108,7 @@ with:
 $ bazel build //magenta/interfaces/midi:magenta_midi
 ```
 
-Once built, have it list the the available MIDI ports:
+Once built, have it list the available MIDI ports:
 
 ```bash
 $ bazel-bin/magenta/interfaces/midi/magenta_midi --list
