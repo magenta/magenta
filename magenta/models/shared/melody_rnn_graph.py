@@ -95,9 +95,10 @@ def build_graph(mode, hparams, encoder_decoder, sequence_example_file=None):
         labels = labels[:, hparams.skip_first_n_losses:]
 
       labels_flat = tf.reshape(labels, [-1])
-      loss = tf.reduce_mean(tf.nn.sparse_softmax_cross_entropy_with_logits(
-          logits_flat, labels_flat))
-      perplexity = tf.exp(loss)
+      softmax_cross_entropy = tf.nn.sparse_softmax_cross_entropy_with_logits(
+          logits_flat, labels_flat)
+      loss = tf.reduce_mean(softmax_cross_entropy)
+      perplexity = tf.reduce_mean(tf.exp(softmax_cross_entropy))
 
       correct_predictions = tf.to_float(
           tf.nn.in_top_k(logits_flat, labels_flat, 1))
