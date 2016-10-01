@@ -480,7 +480,7 @@ class MidiHubTest(tf.test.TestCase):
 
     def fn(captured_seq):
       self.assertAlmostEqual(0, (time.time() - wall_start_time) % period,
-                             delta=0.005)
+                             delta=0.01)
       captured_seqs.append(captured_seq)
 
     name = captor.register_callback(fn, period=period)

@@ -491,25 +491,25 @@ class MidiCaptor(threading.Thread):
     return current_captured_sequence
 
   def iterate(self, signal=None, period=None):
-    """Blocks until a matching mido.Message arrives or the timeout occurs.
+    """Yields the captured sequence at every signal message or time period.
 
     Exactly one of `signal` or `period` must be specified. Continues until the
     captor terminates, at which point the final captured sequence is yielded
     before returning.
 
     Args:
-      signal: A MidiSignal to use as a signal to stop waiting, or None.
+      signal: A MidiSignal to use as a signal to yield, or None.
       period: A float period in seconds, or None.
 
     Yields:
       The captured NoteSequence at event time.
 
     Raises:
-      MidiHubException: If neither `signal` nor `timeout` or both are specified.
+      MidiHubException: If neither `signal` nor `period` or both are specified.
     """
     if (signal, period).count(None) != 1:
       raise MidiHubException(
-          'Exactly one of `signal` or `timeout` must be provided to `iterate` '
+          'Exactly one of `signal` or `period` must be provided to `iterate` '
           'call.')
 
     if signal is None:
@@ -544,7 +544,7 @@ class MidiCaptor(threading.Thread):
     yield self.captured_sequence()
 
   def register_callback(self, fn, signal=None, period=None):
-    """Calls `fn` when a matching mido.Message arrives or the timeout occurs.
+    """Calls `fn` at every signal message or time period.
 
     The callback function must take exactly a single argument, which will be the
     current captured NoteSequence.
@@ -564,7 +564,7 @@ class MidiCaptor(threading.Thread):
       The unqiue name of the callback thread to enable cancellation.
 
     Raises:
-      MidiHubException: If neither `signal` nor `timeout` or both are specified.
+      MidiHubException: If neither `signal` nor `period` or both are specified.
     """
 
     class IteratorCallback(threading.Thread):
