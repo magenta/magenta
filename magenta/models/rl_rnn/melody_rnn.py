@@ -32,7 +32,7 @@ import rl_rnn_ops
 import tensorflow_ops
 
 
-DEFAULT_BPM = 120.0
+DEFAULT_BPM = 80.0
 
 
 class MelodyRNN(object):
