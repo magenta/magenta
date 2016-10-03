@@ -635,6 +635,7 @@ class MelodyQNetwork(object):
                                                  self.num_actions)).flatten()
 
     tf.logging.info('Generated sequence: %s', generated_seq)
+    print 'Generated sequence:', generated_seq
 
     melody = mlib.MonophonicMelody()
     melody.from_event_list(rl_rnn_ops.decoder(generated_seq,
@@ -1401,7 +1402,7 @@ class MelodyQNetwork(object):
     else:
       return 0.0
 
-  def detect_sequential_interval(self, action, key=None):
+  def detect_sequential_interval(self, action, key=None, verbose=False):
     """Finds the melodic interval between the action and the last note played.
 
     Uses constants to represent special intervals like rests.
@@ -1437,7 +1438,10 @@ class MelodyQNetwork(object):
       prev_note = self.composition[prev_note_index]
       prev_note_index -= 1
     if prev_note == NOTE_OFF or prev_note == NO_EVENT:
+      if verbose: print "action_note:", action_note, "prev_note:", prev_note
       return 0, action_note, prev_note
+
+    if verbose: print "action_note:", action_note, "prev_note:", prev_note
 
     # get rid of non-notes in action_note
     if action_note == NO_EVENT or action_note == NOTE_OFF:
@@ -1457,7 +1461,8 @@ class MelodyQNetwork(object):
 
     return interval, action_note, prev_note
 
-  def reward_preferred_intervals(self, action, scaler=5.0, key=None):
+  def reward_preferred_intervals(self, action, scaler=5.0, key=None, 
+    verbose=False):
     """Dispenses reward based on the melodic interval just played.
 
     Args:
@@ -1468,9 +1473,11 @@ class MelodyQNetwork(object):
     Returns:
       Float reward value.
     """
-    interval, _, _ = self.detect_sequential_interval(action, key)
+    interval, _, _ = self.detect_sequential_interval(action, key, verbose=verbose)
+    if verbose: print "interval:", interval
 
     if interval == 0:  # either no interval or involving uninteresting rests
+      if verbose: print "no interval or uninteresting"
       return 0.0
 
     reward = 0.0
@@ -1478,35 +1485,47 @@ class MelodyQNetwork(object):
     # rests can be good
     if interval == REST_INTERVAL:
       reward = 0.05
+      if verbose: print "rest interval"
     if interval == REST_INTERVAL_AFTER_THIRD_OR_FIFTH:
       reward = 0.3
+      if verbose: print "rest interval after 3rd or 5th"
 
     # large leaps and awkward intervals bad
     if interval == SEVENTH:
       reward = -0.3
+      if verbose: print "7th"
     if interval > OCTAVE:
       reward = -1.0
+      if verbose: print "More than octave"
 
     # common major intervals are good
     if interval == IN_KEY_FIFTH:
       reward = 0.1
+      if verbose: print "in key 5th"
     if interval == IN_KEY_THIRD:
       reward = 0.15
+      if verbose: print "in key 3rd"
 
     # smaller steps are generally preferred
     if interval == THIRD:
       reward = 0.09
+      if verbose: print "3rd"
     if interval == SECOND:
       reward = 0.08
+      if verbose: print "2nd"
     if interval == FOURTH:
       reward = 0.07
+      if verbose: print "4th"
 
     # larger leaps not as good, especially if not in key
     if interval == SIXTH:
       reward = 0.05
+      if verbose: print "6th"
     if interval == FIFTH:
       reward = 0.02
+      if verbose: print "5th"
 
+    if verbose: print "interval reward", reward * scaler
     return reward * scaler
 
   def detect_high_unique(self, composition):
@@ -1660,7 +1679,8 @@ class MelodyQNetwork(object):
   def reward_leap_up_back(self,
                           action,
                           resolving_leap_bonus=4.0,
-                          leaping_twice_punishment=-4.0):
+                          leaping_twice_punishment=-4.0, 
+                          verbose=False):
     """Applies punishment and reward based on the principle leap up leap back.
 
     Large interval jumps (more than a fifth) should be followed by moving back
@@ -1678,8 +1698,10 @@ class MelodyQNetwork(object):
 
     leap_outcome = self.detect_leap_up_back(action)
     if leap_outcome == LEAP_RESOLVED:
+      if verbose: print "leap resolved, awarding", resolving_leap_bonus
       return resolving_leap_bonus
     elif leap_outcome == LEAP_DOUBLED:
+      if verbose: print "leap doubled, awarding", leaping_twice_punishment
       return leaping_twice_punishment
     else:
       return 0.0
@@ -2070,5 +2092,82 @@ class MelodyQNetwork(object):
       stat_dict['num_high_unique'] += 1
     if self.detect_low_unique(self.composition):
       stat_dict['num_low_unique'] += 1
+
+    return stat_dict
+
+  def debug_music_theory_reward(self,
+                                composition_length=32,
+                                key=None,
+                                tonic_note=C_MAJOR_TONIC,
+                                sample_next_obs=True):
+    """Composes a piece and prints how it is evaluated with music theory functions
+    """
+    last_observation = self.prime_q_model(suppress_output=True)
+    self.reset_composition()
+
+    for _ in range(composition_length):
+      state = self.q_network.state_value
+      if sample_next_obs:
+        action, new_observation = self.action(
+            last_observation,
+            0,
+            enable_random=False,
+            sample_next_obs=sample_next_obs)
+      else:
+        action = self.action(
+            last_observation,
+            0,
+            enable_random=False,
+            sample_next_obs=sample_next_obs)
+        new_observation = action
+
+      action_note = np.argmax(action)
+      composition = self.composition + [np.argmax(action)]
+      
+      print "composition was", self.composition
+      print "action was", action_note
+      print "new composition", composition
+      print ""
+
+      note_rnn_reward = self.reward_from_trained_reward_rnn(last_observation, 
+                                                            action, state)
+      print "Note RNN reward:", note_rnn_reward, "\n"
+
+      tonic_reward = self.reward_tonic()
+      if  != 0.0:
+        print ""
+      print "Interval reward:"
+      self.reward_preferred_intervals(action, verbose=True)
+      print ""
+
+      print "Leap & motif rewards:"
+      self.reward_leap_up_back(action, verbose=True):
+      if detect_last_motif(composition) is not None:
+        print "Motif detected"
+      if detect_repeated_motif(action):
+        print "Repeated motif detected"  
+      print ""
+
+      for lag in [1, 2, 3]:
+        print "autocorr at lag", lag, rl_rnn_ops.autocorrelate(self.composition, lag))
+      print ""
+
+      # Compute note by note stats as it composes.
+      stat_dict = self.add_interval_stat(action, stat_dict, key=key)
+      stat_dict = self.add_in_key_stat(action_note, stat_dict, key=key)
+      stat_dict = self.add_tonic_start_stat(
+          action_note, stat_dict, tonic_note=tonic_note)
+      stat_dict = self.add_repeating_note_stat(action_note, stat_dict)
+      stat_dict = self.add_motif_stat(action, stat_dict)
+      stat_dict = self.add_repeated_motif_stat(action, stat_dict)
+      stat_dict = self.add_leap_stats(action, stat_dict)
+
+      self.composition.append(np.argmax(new_observation))
+      self.beat += 1
+      last_observation = new_observation
+
+      
+
+    detect_high_unique(self, composition)
 
     return stat_dict
