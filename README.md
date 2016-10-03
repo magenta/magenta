@@ -25,7 +25,7 @@ Next, create and activate a magenta conda environment using Python 2.7 with
 Jupyter notebook support:
 
 ```
-conda create -n magenta python=2.7 ipykernel
+conda create -n magenta python=2.7 jupyter
 source activate magenta
 ```
 
@@ -47,7 +47,7 @@ The magenta libraries are now available for use within Python programs and
 Jupyter notebooks, and the magenta scripts are installed in your path!
 
 ### Docker
-An easy way to try out Magenta is to use our Docker container.
+Another way to try out Magenta is to use our Docker container.
 First, [install Docker](https://docs.docker.com/engine/installation/). Next, run
 this command:
 
