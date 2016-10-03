@@ -29,7 +29,6 @@ from magenta.lib import sequence_example_lib
 
 import melody_rnn_encoder_decoder
 import rl_rnn_ops
-import tensorflow_ops
 
 
 DEFAULT_BPM = 80.0
@@ -168,7 +167,7 @@ class MelodyRNN(object):
         with tf.variable_scope(self.scope):
           # Make an LSTM cell with the number and size of layers specified in
           # hparams.
-          self.cell = tensorflow_ops.make_cell(self.hparams)
+          self.cell = rl_rnn_ops.make_cell(self.hparams)
 
           # Shape of melody_sequence is batch size, melody length, number of
           # output note actions.

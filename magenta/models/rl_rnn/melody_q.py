@@ -498,12 +498,17 @@ class MelodyQNetwork(object):
         {self.q_network.melody_sequence: input_batch,
          self.q_network.initial_state: self.q_network.state_value,
          self.q_network.lengths: lengths})
-    action_scores = np.reshape(action_scores, (self.num_actions))
+    
+
+    if self.algorithm == 'g':
+      reward_scores = self.get_reward_rnn_scores(observation, self.q_network.state_value)
+      action_scores = reward_scores + action_scores * self.reward_scaler
 
     # this is apparently not needed
     #if self.algorithm == 'psi':
     #  action_scores = np.exp(action_scores)
 
+    action_scores = np.reshape(action_scores, (self.num_actions))
     action_softmax = np.reshape(action_softmax, (self.num_actions))
     action = np.reshape(action, (self.num_actions))
 

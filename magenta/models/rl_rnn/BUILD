@@ -4,6 +4,7 @@ py_binary(
     deps = [
         ":melody_q",
         ":rl_rnn_ops",
+        "//magenta/lib:tf_lib",
     ],
 )
 
@@ -25,7 +26,6 @@ py_binary(
     deps = [
         ":melody_rnn_encoder_decoder",
         ":rl_rnn_ops",
-        tensor flow ops
         "//magenta/lib:melodies_lib",
         "//magenta/lib:midi_io",
         "//magenta/lib:sequences_lib",
@@ -45,6 +45,7 @@ py_binary(
     name = "rl_rnn_ops",
     srcs = ["rl_rnn_ops.py"],
     deps = [
+        "//magenta/lib:tf_lib",
         # tensorflow dep
     ],
 )
