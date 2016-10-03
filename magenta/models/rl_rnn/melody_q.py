@@ -2133,9 +2133,17 @@ class MelodyQNetwork(object):
                                                             action, state)
       print "Note RNN reward:", note_rnn_reward, "\n"
 
-      tonic_reward = self.reward_tonic()
-      if  != 0.0:
-        print ""
+      print "Key, tonic, and non-repeating rewards:"
+      key_reward = self.reward_key(action)
+      if key_reward != 0.0:
+        print "key reward:", key_reward
+      tonic_reward = self.reward_tonic(action)
+      if tonic_reward != 0.0:
+        print "tonic note reward:", tonic_reward
+      if detect_repeating_notes(action_note):
+        print "repeating notes detected!"
+      print ""
+
       print "Interval reward:"
       self.reward_preferred_intervals(action, verbose=True)
       print ""
@@ -2152,22 +2160,19 @@ class MelodyQNetwork(object):
         print "autocorr at lag", lag, rl_rnn_ops.autocorrelate(self.composition, lag))
       print ""
 
-      # Compute note by note stats as it composes.
-      stat_dict = self.add_interval_stat(action, stat_dict, key=key)
-      stat_dict = self.add_in_key_stat(action_note, stat_dict, key=key)
-      stat_dict = self.add_tonic_start_stat(
-          action_note, stat_dict, tonic_note=tonic_note)
-      stat_dict = self.add_repeating_note_stat(action_note, stat_dict)
-      stat_dict = self.add_motif_stat(action, stat_dict)
-      stat_dict = self.add_repeated_motif_stat(action, stat_dict)
-      stat_dict = self.add_leap_stats(action, stat_dict)
-
       self.composition.append(np.argmax(new_observation))
       self.beat += 1
       last_observation = new_observation
 
-      
+      print "-----------------------------"
 
-    detect_high_unique(self, composition)
+    if detect_high_unique(self.composition):
+      print "Highest note is unique!"
+    else:
+      print "No unique highest note :("
+    if detect_low_unique(self.composition):
+      print "Lowest note is unique!"
+    else:
+      print "No unique lowest note :("
 
     return stat_dict
