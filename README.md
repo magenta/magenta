@@ -4,41 +4,77 @@
 that asks: Can we use machine learning to create compelling art and music? If
 so, how? If not, why not?  We’ll use [TensorFlow](https://www.tensorflow.org),
 and we’ll release our models and tools in open source on this GitHub. We’ll also
-post demos, tutorial blog postings, and technical papers. Soon we’ll begin
-accepting code contributions from the community at large. If you’d like to keep
+post demos, tutorial blog postings, and technical papers. If you’d like to keep
 up on Magenta as it grows, you can read our [blog](http://magenta.tensorflow.org) and or join our
 [discussion group](http://groups.google.com/a/tensorflow.org/forum/#!forum/magenta-discuss).
 
 ## Installation
 
+### Python Pip
+
+Magenta maintains a [pip package](https://pypi.python.org/pypi/magenta) for easy
+installation. We recommend using Anaconda to install it, but it can work in any
+standard Python 2.7 environment. These instructions will assume you are using
+Anaconda.
+
+First, download the
+[Python 2.7 Anaconda installer](https://www.continuum.io/downloads) (you can
+skip this step if you already have Anaconda installed).
+
+Next, create and activate a magenta conda environment using Python 2.7 with
+Jupyter notebook support:
+
+```
+conda create -n magenta python=2.7 ipykernel
+source activate magenta
+```
+
+Install the
+[latest Tensorflow Pip package](https://www.tensorflow.org/get_started/os_setup.html#using-pip)
+for Python 2.7.  Note that you should skip the step for activating the
+`tensorflow` environment because you've already activated your `magenta`
+environment above. The important steps are selecting the correct binary
+(`export TF_BINARY_URL=...`) and installing that binary
+(`pip install --ignore-installed --upgrade $TF_BINARY_URL`).
+
+Install the Magenta pip package:
+
+```
+pip install magenta
+```
+
+The magenta libraries are now available for use within Python programs and
+Jupyter notebooks, and the magenta scripts are installed in your path!
+
 ### Docker
-The easiest way to get started with Magenta is to use our Docker container.
+An easy way to try out Magenta is to use our Docker container.
 First, [install Docker](https://docs.docker.com/engine/installation/). Next, run
 this command:
 
 ```docker run -it -p 6006:6006 -v /tmp/magenta:/magenta-data tensorflow/magenta```
 
-This will start a shell in a directory with all Magenta components compiled and
-ready to run. It will also map port 6006 of the host machine to the container so
-you can view TensorBoard servers that run within the container.
+This will start a shell in a directory with all Magenta components compiled,
+installed, and ready to run. It will also map port 6006 of the host machine to
+the container so you can view TensorBoard servers that run within the container.
 
 This also maps the directory ```/tmp/magenta``` on the host machine to
 ```/magenta-data``` within the Docker session. Windows users can change
 ```/tmp/magenta``` to a path such as ```C:/magenta```, and Mac and Linux users
-can use a path relative to their home folder such as ```~/magenta```. **WARNING**:
-only data saved in ```/magenta-data``` will persist across Docker sessions.
+can use a path relative to their home folder such as ```~/magenta```.
+**WARNING**: only data saved in ```/magenta-data``` will persist across Docker
+sessions.
 
 The Docker image also includes several pre-trained models in
 ```/magenta/models```. For example, to generate some MIDI files using the
 [Lookback RNN](magenta/models/lookback_rnn), run this command:
 
 ```
-bazel run //magenta/models/lookback_rnn:lookback_rnn_generate -- \
---bundle_file=/magenta-models/lookback_rnn.mag \
---output_dir=/magenta-data/lookback_rnn/generated \
---num_outputs=10 \
---num_steps=128 \
---primer_melody="[60]"
+lookback_rnn_generate \
+  --bundle_file=/magenta-models/lookback_rnn.mag \
+  --output_dir=/magenta-data/lookback_rnn/generated \
+  --num_outputs=10 \
+  --num_steps=128 \
+  --primer_melody="[60]"
 ```
 
 **NOTE**: Verify that the ```--output_dir``` path matches the path you
@@ -56,10 +92,8 @@ full Development Environment.
 Note: Our Docker image is also available at ```gcr.io/tensorflow/magenta```.
 
 ### Development Environment
-If you want to develop on Magenta, use our
-[MIDI instrument interface](magenta/interfaces/midi) or preview MIDI files
-without copying them out out of the Docker environment, you'll need to set up
-the full Development Environment.
+If you want to develop on Magenta, you'll need to set up the full Development
+Environment.
 
 The installation has three components. You are going to need Bazel to build packages, TensorFlow to run models, and an up-to-date version of this repository.
 
@@ -71,7 +105,7 @@ Next, [install Bazel](http://www.bazel.io/docs/install.html). We recommend the
 latest version, currently 0.3.1.
 
 Finally,
-[install TensorFlow](https://www.tensorflow.org/versions/master/get_started/os_setup.html).
+[install TensorFlow](https://www.tensorflow.org/get_started/os_setup.html).
 We require version 0.10 or later.
 
 Also, verify that your environment uses Python 2.7. We do aim to support
@@ -80,6 +114,9 @@ Python 3 eventually, but it is currently experimental.
 After that's done, run the tests with this command:
 
 ```bazel test //magenta/...```
+
+To build and install the pip package from source, follow the
+[pip build instructions](magenta/tools/pip#building-the-package).
 
 ## Generating MIDI
 
