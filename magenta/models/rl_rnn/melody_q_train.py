@@ -10,10 +10,10 @@ import matplotlib.pyplot as plt
 import tensorflow as tf
 
 
-from ....rl_rnn import melody_q
-from ....rl_rnn import rl_rnn_ops
+import melody_q
+import rl_rnn_ops
 
-FLAGS = flags.FLAGS
+FLAGS = tf.app.flags.FLAGS
 tf.app.flags.DEFINE_string('output_dir', '/tmp/melodyq',
                            'Directory where the model will save its'
                            'compositions (midi files)')
@@ -34,9 +34,9 @@ tf.app.flags.DEFINE_string('after_image', 'after_rl.png',
                            'Name for the file that will store an image of the'
                            'models note probabilities as it composes after RL'
                            'is applied')
-tf.app.flags.DEFINE_integer('training_steps', 100000,
+tf.app.flags.DEFINE_integer('training_steps', 4000000,
                             'The number of steps used to train the model')
-tf.app.flags.DEFINE_integer('exploration_steps', 50000,
+tf.app.flags.DEFINE_integer('exploration_steps', 2000000,
                             'The number of steps over which the models'
                             'probability of taking a random action (exploring)'
                             'will be annealed from 1.0 to its normal'

@@ -81,6 +81,7 @@ class MelodyQNetwork(object):
                reward_scaler=1.0,
                priming_mode='random_note',
                stochastic_observations=False,
+               algorithm='default',
 
                # Other music related settings.
                num_notes_in_melody=32,
@@ -120,6 +121,7 @@ class MelodyQNetwork(object):
         play next (the argmax of its softmax probabilities) deterministically
         becomes the next note it will observe. If True, the next observation
         will be sampled from the model's softmax output.
+      algorithm: can be 'default', 'psi', or 'g' for different learning algorithms
       num_notes_in_melody: The length of a composition of the model
       input_size: the size of the one-hot vector encoding a note that is input
         to the model.
@@ -151,12 +153,16 @@ class MelodyQNetwork(object):
       self.reward_mode = reward_mode
       self.num_notes_in_melody = num_notes_in_melody
       self.stochastic_observations = stochastic_observations
+      self.algorithm = algorithm
       self.priming_mode = priming_mode
       self.midi_primer = midi_primer
       self.melody_checkpoint_dir = melody_checkpoint_dir
       self.training_file_list = training_file_list
       self.backup_checkpoint_file = backup_checkpoint_file
       self.custom_hparams = custom_hparams
+
+      if self.algorithm == 'g':
+        self.reward_mode = 'music_theory_only'
 
       if dqn_hparams is None:
         self.dqn_hparams = rl_rnn_ops.default_dqn_hparams()
@@ -194,8 +200,7 @@ class MelodyQNetwork(object):
     if initialize_immediately:
       self.initialize_internal_models_graph_session()
 
-  def initialize_internal_models_graph_session(self,
-                                               restore_from_checkpoint=True):
+  def initialize_internal_models_graph_session(self, restore_from_checkpoint=True):
     """Initializes internal RNN models, builds the graph, starts the session.
 
     Adds the graphs of the internal RNN models to this graph, adds the DQN ops
@@ -359,14 +364,24 @@ class MelodyQNetwork(object):
       # the state resulting from the current action.
       self.next_action_scores = tf.stop_gradient(self.target_q_network())
       tf.histogram_summary('target_action_scores', self.next_action_scores)
-      self.target_vals = tf.reduce_max(self.next_action_scores,
-                                       reduction_indices=[1,])
 
       # Rewards are observed from the environment and are fed in later.
       self.rewards = tf.placeholder(tf.float32, (None,), name='rewards')
 
       # Total rewards are the observed rewards plus discounted estimated future
       # rewards.
+      if self.algorithm == 'psi':
+        self.target_vals = tf.reduce_logsumexp(self.next_action_scores,
+                                       reduction_indices=[1,])
+      elif self.algorithm == 'g':
+        self.g_action_scores = self.next_action_scores * self.reward_scaler + self.reward_scores
+        self.target_vals = 1.0 / self.reward_scaler * tf.reduce_logsumexp(self.g_action_scores,
+                                       reduction_indices=[1,])
+      else:
+        # use default based on q learning
+        self.target_vals = tf.reduce_max(self.next_action_scores,
+                                       reduction_indices=[1,])
+        
       self.future_rewards = self.rewards + self.discount_rate * self.target_vals
 
     tf.logging.info('Adding q value prediction portion of graph')
@@ -484,6 +499,11 @@ class MelodyQNetwork(object):
          self.q_network.initial_state: self.q_network.state_value,
          self.q_network.lengths: lengths})
     action_scores = np.reshape(action_scores, (self.num_actions))
+
+    # this is apparently not needed
+    #if self.algorithm == 'psi':
+    #  action_scores = np.exp(action_scores)
+
     action_softmax = np.reshape(action_softmax, (self.num_actions))
     action = np.reshape(action, (self.num_actions))
 
@@ -577,12 +597,8 @@ class MelodyQNetwork(object):
     self.leapt_from = None
     self.steps_since_last_leap = 0
 
-  def generate_music_sequence(self,
-                              title='melodyq_sample',
-                              visualize_probs=False,
-                              prob_image_name=None,
-                              length=None,
-                              most_probable=False):
+  def generate_music_sequence(self, title='melodyq_sample', visualize_probs=False,
+    prob_image_name=None, length=None, most_probable=False):
     """Generates a music sequence with the current model, and saves it to MIDI.
 
     The resulting MIDI file is saved to the model's output_dir directory. The
@@ -742,20 +758,39 @@ class MelodyQNetwork(object):
       calc_summaries = self.iteration % 100 == 0
       calc_summaries = calc_summaries and self.summary_writer is not None
 
-      _, _, summary_str = self.session.run([
-          self.prediction_error,
-          self.train_op,
-          self.summarize if calc_summaries else self.no_op1,
-      ], {
-          self.q_network.melody_sequence: observations,
-          self.q_network.initial_state: states,
-          self.q_network.lengths: lengths,
-          self.target_q_network.melody_sequence: new_observations,
-          self.target_q_network.initial_state: new_states,
-          self.target_q_network.lengths: lengths,
-          self.action_mask: action_mask,
-          self.rewards: rewards,
-      })
+      if self.algorithm == 'g':
+        _, _, summary_str = self.session.run([
+            self.prediction_error,
+            self.train_op,
+            self.summarize if calc_summaries else self.no_op1,
+        ], {
+            self.reward_rnn.melody_sequence: observations,
+            self.reward_rnn.initial_state: states,
+            self.reward_rnn.lengths: lengths,
+            self.q_network.melody_sequence: observations,
+            self.q_network.initial_state: states,
+            self.q_network.lengths: lengths,
+            self.target_q_network.melody_sequence: new_observations,
+            self.target_q_network.initial_state: new_states,
+            self.target_q_network.lengths: lengths,
+            self.action_mask: action_mask,
+            self.rewards: rewards,
+        })
+      else:
+        _, _, summary_str = self.session.run([
+            self.prediction_error,
+            self.train_op,
+            self.summarize if calc_summaries else self.no_op1,
+        ], {
+            self.q_network.melody_sequence: observations,
+            self.q_network.initial_state: states,
+            self.q_network.lengths: lengths,
+            self.target_q_network.melody_sequence: new_observations,
+            self.target_q_network.initial_state: new_states,
+            self.target_q_network.lengths: lengths,
+            self.action_mask: action_mask,
+            self.rewards: rewards,
+        })
 
       self.session.run(self.target_network_update)
 
@@ -1034,6 +1069,9 @@ class MelodyQNetwork(object):
       reward += self.reward_high_low_unique(action)
       if verbose and reward != prev_reward:
         tf.logging.info('Reward high low unique: %s', reward)
+
+      if self.algorithm == 'g':
+        return reward
     else:
       tf.logging.fatal('ERROR! Not a valid reward mode. Cannot compute reward')
 
