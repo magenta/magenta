@@ -476,8 +476,9 @@ class MelodyQNetwork(object):
                              (self.q_network.batch_size, 1, self.input_size))
     lengths = np.full(self.q_network.batch_size, 1, dtype=int)
 
-    action_scores, action, self.q_network.state_value = self.session.run(
-        [self.action_scores, self.predicted_actions,
+    action_scores, action, action_softmax, 
+    self.q_network.state_value = self.session.run(
+        [self.action_scores, self.predicted_actions, self.action_softmax,
          self.q_network.state_tensor],
         {self.q_network.melody_sequence: input_batch,
          self.q_network.initial_state: self.q_network.state_value,
@@ -495,7 +496,7 @@ class MelodyQNetwork(object):
       if not sample_next_obs:
         return action
       else:
-        obs_note = rl_rnn_ops.sample_softmax(action_scores)
+        obs_note = rl_rnn_ops.sample_softmax(action_softmax)
         next_obs = np.array(rl_rnn_ops.make_onehot([obs_note],
                                                    self.num_actions)).flatten()
         return action, next_obs
@@ -2105,7 +2106,10 @@ class MelodyQNetwork(object):
     last_observation = self.prime_q_model(suppress_output=True)
     self.reset_composition()
 
+    prob_image = np.zeros((self.input_size, length))
+
     for _ in range(composition_length):
+      print "last observation", np.argmax(last_observation)
       state = self.q_network.state_value
       if sample_next_obs:
         action, new_observation = self.action(
@@ -2124,6 +2128,7 @@ class MelodyQNetwork(object):
       action_note = np.argmax(action)
       composition = self.composition + [np.argmax(action)]
       
+      print "new_observation", np.argmax(new_observation)
       print "composition was", self.composition
       print "action was", action_note
       print "new composition", composition
@@ -2140,7 +2145,7 @@ class MelodyQNetwork(object):
       tonic_reward = self.reward_tonic(action)
       if tonic_reward != 0.0:
         print "tonic note reward:", tonic_reward
-      if detect_repeating_notes(action_note):
+      if self.detect_repeating_notes(action_note):
         print "repeating notes detected!"
       print ""
 
@@ -2149,15 +2154,19 @@ class MelodyQNetwork(object):
       print ""
 
       print "Leap & motif rewards:"
-      self.reward_leap_up_back(action, verbose=True):
-      if detect_last_motif(composition) is not None:
-        print "Motif detected"
-      if detect_repeated_motif(action):
-        print "Repeated motif detected"  
+      leap_reward = self.reward_leap_up_back(action, verbose=True)
+      if leap_reward != 0.0:
+        print "leap reward is:", leap_reward
+      last_motif, num_unique_notes = self.detect_last_motif(composition)
+      if last_motif is not None:
+        print "Motif detected with", num_unique_notes, "notes"
+      repeated_motif_exists, repeated_motif = self.detect_repeated_motif(action)
+      if repeated_motif_exists:
+        print "Repeated motif detected! it is:", repeated_motif  
       print ""
 
       for lag in [1, 2, 3]:
-        print "autocorr at lag", lag, rl_rnn_ops.autocorrelate(self.composition, lag))
+        print "autocorr at lag", lag, rl_rnn_ops.autocorrelate(composition, lag)
       print ""
 
       self.composition.append(np.argmax(new_observation))
@@ -2166,11 +2175,11 @@ class MelodyQNetwork(object):
 
       print "-----------------------------"
 
-    if detect_high_unique(self.composition):
+    if self.detect_high_unique(self.composition):
       print "Highest note is unique!"
     else:
       print "No unique highest note :("
-    if detect_low_unique(self.composition):
+    if self.detect_low_unique(self.composition):
       print "Lowest note is unique!"
     else:
       print "No unique lowest note :("
