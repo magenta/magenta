@@ -476,14 +476,15 @@ class MelodyQNetwork(object):
                              (self.q_network.batch_size, 1, self.input_size))
     lengths = np.full(self.q_network.batch_size, 1, dtype=int)
 
-    action_scores, action, action_softmax, 
-    self.q_network.state_value = self.session.run(
+    (action_scores, action, action_softmax, 
+      self.q_network.state_value) = self.session.run(
         [self.action_scores, self.predicted_actions, self.action_softmax,
          self.q_network.state_tensor],
         {self.q_network.melody_sequence: input_batch,
          self.q_network.initial_state: self.q_network.state_value,
          self.q_network.lengths: lengths})
     action_scores = np.reshape(action_scores, (self.num_actions))
+    action_softmax = np.reshape(action_softmax, (self.num_actions))
     action = np.reshape(action, (self.num_actions))
 
     if enable_random and random.random() < exploration_p:
@@ -1364,7 +1365,7 @@ class MelodyQNetwork(object):
     if motif is None:
       return False, None
 
-    prev_composition = self.composition[:-bar_length]
+    prev_composition = self.composition[:-(bar_length-1)]
 
     # Check if the motif is in the previous composition.
     for i in range(len(prev_composition) - len(motif) + 1):
@@ -1488,8 +1489,8 @@ class MelodyQNetwork(object):
       reward = 0.05
       if verbose: print "rest interval"
     if interval == REST_INTERVAL_AFTER_THIRD_OR_FIFTH:
-      reward = 0.3
-      if verbose: print "rest interval after 3rd or 5th"
+      reward = 0.1
+      if verbose: print "rest interval after 1st or 5th"
 
     # large leaps and awkward intervals bad
     if interval == SEVENTH:
@@ -1585,7 +1586,7 @@ class MelodyQNetwork(object):
 
     return reward
 
-  def detect_leap_up_back(self, action, steps_between_leaps=8, verbose=False):
+  def detect_leap_up_back(self, action, steps_between_leaps=6, verbose=False):
     """Detects when the composition takes a musical leap, and if it is resolved.
 
     When the composition jumps up or down by an interval of a fifth or more,
@@ -1624,10 +1625,12 @@ class MelodyQNetwork(object):
         leap_direction = ASCENDING
         if verbose:
           tf.logging.info('Detected an ascending leap')
+          print 'Detected an ascending leap'
       else:
         leap_direction = DESCENDING
         if verbose:
           tf.logging.info('Detected a descending leap')
+          print 'Detected a descending leap'
 
       # there was already an unresolved leap
       if self.composition_direction != 0:
@@ -1636,22 +1639,26 @@ class MelodyQNetwork(object):
             tf.logging.info('Detected a resolved leap')
             tf.logging.info('Num steps since last leap: %s',
                          self.steps_since_last_leap)
+            print 'Detected leap resolved by a leap. Num steps since last leap:', self.steps_since_last_leap
           if self.steps_since_last_leap > steps_between_leaps:
             outcome = LEAP_RESOLVED
             if verbose:
               tf.logging.info('Sufficient steps before leap resolved, '
                            'awarding bonus')
+              print 'Sufficient steps were taken. Awarding bonus'
           self.composition_direction = 0
           self.leapt_from = None
         else:
           if verbose:
             tf.logging.info('Detected a double leap')
+            print 'Detected a double leap!'
           outcome = LEAP_DOUBLED
 
       # the composition had no previous leaps
       else:
         if verbose:
           tf.logging.info('There was no previous leap direction')
+          print 'No previous leap direction'
         self.composition_direction = leap_direction
         self.leapt_from = prev_note
 
@@ -1665,12 +1672,15 @@ class MelodyQNetwork(object):
                      'It is now: %s', self.steps_since_last_leap)
 
       # if there was a leap before, check if composition has gradually returned
+      # This could be changed by requiring you to only go a 5th back in the opposite
+      # direction of the leap
       if (self.composition_direction == ASCENDING and
           action_note <= self.leapt_from) or (
               self.composition_direction == DESCENDING and
               action_note >= self.leapt_from):
         if verbose:
           tf.logging.info('detected a gradually resolved leap')
+          print 'Detected a gradually resolved leap'
         outcome = LEAP_RESOLVED
         self.composition_direction = 0
         self.leapt_from = None
@@ -1679,8 +1689,8 @@ class MelodyQNetwork(object):
 
   def reward_leap_up_back(self,
                           action,
-                          resolving_leap_bonus=4.0,
-                          leaping_twice_punishment=-4.0, 
+                          resolving_leap_bonus=5.0,
+                          leaping_twice_punishment=-5.0, 
                           verbose=False):
     """Applies punishment and reward based on the principle leap up leap back.
 
@@ -1697,7 +1707,7 @@ class MelodyQNetwork(object):
       Float reward value.
     """
 
-    leap_outcome = self.detect_leap_up_back(action)
+    leap_outcome = self.detect_leap_up_back(action, verbose=verbose)
     if leap_outcome == LEAP_RESOLVED:
       if verbose: print "leap resolved, awarding", resolving_leap_bonus
       return resolving_leap_bonus
@@ -1885,16 +1895,17 @@ class MelodyQNetwork(object):
         new_observation = action
 
       action_note = np.argmax(action)
+      obs_note = np.argmax(new_observation)
 
       # Compute note by note stats as it composes.
-      stat_dict = self.add_interval_stat(action, stat_dict, key=key)
-      stat_dict = self.add_in_key_stat(action_note, stat_dict, key=key)
+      stat_dict = self.add_interval_stat(new_observation, stat_dict, key=key)
+      stat_dict = self.add_in_key_stat(obs_note, stat_dict, key=key)
       stat_dict = self.add_tonic_start_stat(
-          action_note, stat_dict, tonic_note=tonic_note)
-      stat_dict = self.add_repeating_note_stat(action_note, stat_dict)
-      stat_dict = self.add_motif_stat(action, stat_dict)
-      stat_dict = self.add_repeated_motif_stat(action, stat_dict)
-      stat_dict = self.add_leap_stats(action, stat_dict)
+          obs_note, stat_dict, tonic_note=tonic_note)
+      stat_dict = self.add_repeating_note_stat(obs_note, stat_dict)
+      stat_dict = self.add_motif_stat(new_observation, stat_dict)
+      stat_dict = self.add_repeated_motif_stat(new_observation, stat_dict)
+      stat_dict = self.add_leap_stats(new_observation, stat_dict)
 
       self.composition.append(np.argmax(new_observation))
       self.beat += 1
@@ -1955,7 +1966,7 @@ class MelodyQNetwork(object):
       A dictionary of composition statistics with fields updated to include new
       intervals.
     """
-    interval = self.detect_sequential_interval(action, key)
+    interval, action_note, prev_note = self.detect_sequential_interval(action, key)
 
     if interval == 0:
       return stat_dict
@@ -2100,17 +2111,17 @@ class MelodyQNetwork(object):
                                 composition_length=32,
                                 key=None,
                                 tonic_note=C_MAJOR_TONIC,
-                                sample_next_obs=True):
+                                sample_next_obs=True,
+                                test_composition=None):
     """Composes a piece and prints how it is evaluated with music theory functions
     """
     last_observation = self.prime_q_model(suppress_output=True)
     self.reset_composition()
 
-    prob_image = np.zeros((self.input_size, length))
-
-    for _ in range(composition_length):
+    for i in range(composition_length):
       print "last observation", np.argmax(last_observation)
       state = self.q_network.state_value
+      
       if sample_next_obs:
         action, new_observation = self.action(
             last_observation,
@@ -2124,9 +2135,15 @@ class MelodyQNetwork(object):
             enable_random=False,
             sample_next_obs=sample_next_obs)
         new_observation = action
-
       action_note = np.argmax(action)
-      composition = self.composition + [np.argmax(action)]
+      obs_note = np.argmax(new_observation)
+      
+      if test_composition is not None:
+        obs_note = test_composition[i]
+        new_observation = np.array(rl_rnn_ops.make_onehot(
+          [obs_note],self.num_actions)).flatten()
+      
+      composition = self.composition + [obs_note]
       
       print "new_observation", np.argmax(new_observation)
       print "composition was", self.composition
@@ -2134,33 +2151,35 @@ class MelodyQNetwork(object):
       print "new composition", composition
       print ""
 
+      # note to self: using new_observation rather than action because we want
+      # stats about compositions, not what the model chooses to do
       note_rnn_reward = self.reward_from_trained_reward_rnn(last_observation, 
-                                                            action, state)
+                                                            new_observation, state)
       print "Note RNN reward:", note_rnn_reward, "\n"
 
       print "Key, tonic, and non-repeating rewards:"
-      key_reward = self.reward_key(action)
+      key_reward = self.reward_key(new_observation)
       if key_reward != 0.0:
         print "key reward:", key_reward
-      tonic_reward = self.reward_tonic(action)
+      tonic_reward = self.reward_tonic(new_observation)
       if tonic_reward != 0.0:
         print "tonic note reward:", tonic_reward
-      if self.detect_repeating_notes(action_note):
+      if self.detect_repeating_notes(obs_note):
         print "repeating notes detected!"
       print ""
 
       print "Interval reward:"
-      self.reward_preferred_intervals(action, verbose=True)
+      self.reward_preferred_intervals(new_observation, verbose=True)
       print ""
 
       print "Leap & motif rewards:"
-      leap_reward = self.reward_leap_up_back(action, verbose=True)
+      leap_reward = self.reward_leap_up_back(new_observation, verbose=True)
       if leap_reward != 0.0:
         print "leap reward is:", leap_reward
       last_motif, num_unique_notes = self.detect_last_motif(composition)
       if last_motif is not None:
         print "Motif detected with", num_unique_notes, "notes"
-      repeated_motif_exists, repeated_motif = self.detect_repeated_motif(action)
+      repeated_motif_exists, repeated_motif = self.detect_repeated_motif(new_observation)
       if repeated_motif_exists:
         print "Repeated motif detected! it is:", repeated_motif  
       print ""
@@ -2183,5 +2202,3 @@ class MelodyQNetwork(object):
       print "Lowest note is unique!"
     else:
       print "No unique lowest note :("
-
-    return stat_dict
