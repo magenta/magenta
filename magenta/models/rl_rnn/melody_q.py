@@ -499,22 +499,26 @@ class MelodyQNetwork(object):
     lengths = np.full(self.q_network.batch_size, 1, dtype=int)
 
     (action_scores, action, action_softmax, 
-      self.q_network.state_value) = self.session.run(
+      self.q_network.state_value, reward_scores, 
+      self.reward_rnn.state_value) = self.session.run(
         [self.action_scores, self.predicted_actions, self.action_softmax,
-         self.q_network.state_tensor],
+         self.q_network.state_tensor, self.reward_scores, self.reward_rnn.state_tensor],
         {self.q_network.melody_sequence: input_batch,
          self.q_network.initial_state: self.q_network.state_value,
-         self.q_network.lengths: lengths})
+         self.q_network.lengths: lengths,
+         self.reward_rnn.melody_sequence: input_batch,
+         self.reward_rnn.initial_state: self.reward_rnn.state_value,
+         self.reward_rnn.lengths: lengths})
     
 
     if self.algorithm == 'g':
-      reward_scores = self.get_reward_rnn_scores(observation, self.q_network.state_value)
       action_scores = reward_scores + action_scores * self.reward_scaler
 
     # this is apparently not needed
     #if self.algorithm == 'psi':
     #  action_scores = np.exp(action_scores)
 
+    reward_scores = np.reshape(reward_scores, (self.num_actions))
     action_scores = np.reshape(action_scores, (self.num_actions))
     action_softmax = np.reshape(action_softmax, (self.num_actions))
     action = np.reshape(action, (self.num_actions))
@@ -522,17 +526,17 @@ class MelodyQNetwork(object):
     if enable_random and random.random() < exploration_p:
       note = self.get_random_note()
       if sample_next_obs:
-        return note, note
+        return note, note, reward_scores
       else:
-        return note
+        return note, reward_scores
     else:
       if not sample_next_obs:
-        return action
+        return action, reward_scores
       else:
         obs_note = rl_rnn_ops.sample_softmax(action_softmax)
         next_obs = np.array(rl_rnn_ops.make_onehot([obs_note],
                                                    self.num_actions)).flatten()
-        return action, next_obs
+        return action, next_obs, reward_scores
 
   def get_reward_rnn_scores(self, observation, state):
     """Get note scores from the reward_rnn to use as a reward based on data.
@@ -707,7 +711,8 @@ class MelodyQNetwork(object):
     plt.legend(['Total', 'Music theory', 'Note RNN'], loc='best')
     plt.show()
 
-  def store(self, observation, state, action, reward, newobservation, newstate):
+  def store(self, observation, state, action, reward, newobservation, newstate, 
+            reward_rnn_state):
     """Stores an experience in the model's experience replay buffer.
 
     One experience consists of an initial observation and internal LSTM state,
@@ -724,10 +729,11 @@ class MelodyQNetwork(object):
         observation will be the same.
       newstate: The internal state of the q_network MelodyRNN that is
         observed after taking the action.
+      reward_rnn_state: The internal state of the reward_rnn network
     """
     if self.num_times_store_called % self.dqn_hparams.store_every_nth == 0:
       self.experience.append((observation, state, action, reward,
-                              newobservation, newstate))
+                              newobservation, newstate, reward_rnn_state))
       if len(self.experience) > self.dqn_hparams.max_experience:
         self.experience.popleft()
     self.num_times_store_called += 1
@@ -752,19 +758,22 @@ class MelodyQNetwork(object):
       states = np.empty((len(samples), self.q_network.cell.state_size))
       new_states = np.empty((len(samples),
                              self.target_q_network.cell.state_size))
+      reward_rnn_states = np.empty((len(samples)), 
+                                      self.reward_rnn.cell.state_size)
       observations = np.empty((len(samples), self.input_size))
       new_observations = np.empty((len(samples), self.input_size))
       action_mask = np.zeros((len(samples), self.num_actions))
       rewards = np.empty((len(samples),))
       lengths = np.full(len(samples), 1, dtype=int)
 
-      for i, (o, s, a, r, new_o, new_s) in enumerate(samples):
+      for i, (o, s, a, r, new_o, new_s, reward_s) in enumerate(samples):
         observations[i, :] = o
         new_observations[i, :] = new_o
         states[i, :] = s
         new_states[i, :] = new_s
         action_mask[i, :] = a
         rewards[i] = r
+        reward_rnn_states[i, :] = reward_s
 
       observations = np.reshape(observations,
                                 (len(samples), 1, self.input_size))
@@ -781,7 +790,7 @@ class MelodyQNetwork(object):
             self.summarize if calc_summaries else self.no_op1,
         ], {
             self.reward_rnn.melody_sequence: observations,
-            self.reward_rnn.initial_state: states,
+            self.reward_rnn.initial_state: reward_rnn_states,
             self.reward_rnn.lengths: lengths,
             self.q_network.melody_sequence: observations,
             self.q_network.initial_state: states,
@@ -859,24 +868,25 @@ class MelodyQNetwork(object):
       # Experiencing observation, state, action, reward, new observation,
       # new state tuples, and storing them.
       state = np.array(self.q_network.state_value).flatten()
+      reward_rnn_state = np.array(self.reward_rnn.state_value).flatten()
 
       if self.stochastic_observations:
-        action, new_observation = self.action(last_observation,
-                                              exploration_period,
-                                              enable_random=enable_random,
-                                              sample_next_obs=True)
+        action, new_observation, reward_scores = self.action(last_observation,
+                                                             exploration_period,
+                                                             enable_random=enable_random,
+                                                             sample_next_obs=True)
       else:
-        action = self.action(last_observation,
-                             exploration_period,
-                             enable_random=enable_random,
-                             sample_next_obs=False)
+        action, reward_scores = self.action(last_observation,
+                                            exploration_period,
+                                            enable_random=enable_random,
+                                            sample_next_obs=False)
         new_observation = action
       new_state = np.array(self.q_network.state_value).flatten()
 
-      reward = self.collect_reward(last_observation, new_observation, state)
+      reward = self.collect_reward(last_observation, new_observation, state, reward_scores)
 
       self.store(last_observation, state, action, reward, new_observation,
-                 new_state)
+                 new_state, reward_rnn_state)
 
       # Used to keep track of how the reward is changing over time.
       self.reward_last_n += reward
@@ -927,7 +937,7 @@ class MelodyQNetwork(object):
         self.reset_composition()
         last_observation = self.prime_q_model()
 
-  def collect_reward(self, obs, action, state, verbose=False):
+  def collect_reward(self, obs, action, state, reward_scores, verbose=False):
     """Calls whatever reward function is indicated in the reward_mode field.
 
     New reward functions can be written and called from here. Note that the
@@ -945,6 +955,8 @@ class MelodyQNetwork(object):
     Returns:
       Float reward value.
     """
+    note_rnn_reward = self.reward_from_reward_rnn_scores(action, reward_scores)
+    self.note_rnn_reward_last_n += note_rnn_reward
 
     if self.reward_mode == 'scale':
       # Makes the model play a scale (defaults to c major).
@@ -973,7 +985,6 @@ class MelodyQNetwork(object):
       # at the appropriate times, and not playing repeated notes. However, the
       # rewards it receives are based on the note probabilities learned from
       # data in the original model.
-      note_rnn_reward = self.reward_from_trained_reward_rnn(obs, action, state)
       reward = self.reward_key(action)
       reward += self.reward_tonic(action)
       reward += self.reward_penalize_repeating(action)
@@ -983,7 +994,6 @@ class MelodyQNetwork(object):
       # Uses the same reward function as above, but adds a penalty for
       # compositions with a high autocorrelation (aka those that don't have
       # sufficient variety).
-      note_rnn_reward = self.reward_from_trained_reward_rnn(obs, action, state)
       reward = self.reward_key(action)
       reward += self.reward_tonic(action)
       reward += self.reward_penalize_repeating(action)
@@ -993,7 +1003,6 @@ class MelodyQNetwork(object):
     elif self.reward_mode == 'preferred_intervals':
       reward = self.reward_preferred_intervals(action)
     elif self.reward_mode == 'music_theory_all':
-      note_rnn_reward = self.reward_from_trained_reward_rnn(obs, action, state)
       if verbose:
         print 'Note RNN reward:', note_rnn_reward
 
@@ -1047,9 +1056,7 @@ class MelodyQNetwork(object):
         print 'Total music theory reward:', self.reward_scaler * reward
         print 'Total note rnn reward:', note_rnn_reward
       
-      self.note_rnn_reward_last_n += note_rnn_reward
       self.music_theory_reward_last_n += reward * self.reward_scaler
-
       return reward * self.reward_scaler + note_rnn_reward
     elif self.reward_mode == 'music_theory_only':
       # Reward functions that include all of the Gauldin rewards, without using
@@ -1101,15 +1108,15 @@ class MelodyQNetwork(object):
         tf.logging.info('Reward high low unique: %s', reward)
 
       if self.algorithm == 'g':
-        self.note_rnn_reward_last_n += self.reward_from_trained_reward_rnn(obs, action, state)
         self.music_theory_reward_last_n += reward * self.reward_scaler
         return reward
     else:
       tf.logging.fatal('ERROR! Not a valid reward mode. Cannot compute reward')
 
+    self.music_theory_reward_last_n += reward * self.reward_scaler
     return reward * self.reward_scaler
 
-  def reward_from_trained_reward_rnn(self, obs, action, state):
+  def reward_from_reward_rnn_scores(self, action, reward_scores):
     """Rewards based on probabilities learned from data by trained RNN
 
     Rewards are based on the reward_network's learned softmax 
@@ -1124,9 +1131,8 @@ class MelodyQNetwork(object):
       Float reward value.
     """
     action_note = np.argmax(action)
-    action_scores = self.get_reward_rnn_scores(obs, state)
-    normalization_constant = logsumexp(action_scores)
-    return action_scores[action_note] - normalization_constant
+    normalization_constant = logsumexp(reward_scores)
+    return reward_scores[action_note] - normalization_constant
 
   def random_reward_shift_to_mean(self, reward):
     """Modifies reward by a small random values s to pull it towards the mean.
@@ -2193,13 +2199,13 @@ class MelodyQNetwork(object):
       state = self.q_network.state_value
       
       if sample_next_obs:
-        action, new_observation = self.action(
+        action, new_observation, reward_scores = self.action(
             last_observation,
             0,
             enable_random=False,
             sample_next_obs=sample_next_obs)
       else:
-        action = self.action(
+        action, reward_scores = self.action(
             last_observation,
             0,
             enable_random=False,
@@ -2223,8 +2229,7 @@ class MelodyQNetwork(object):
 
       # note to self: using new_observation rather than action because we want
       # stats about compositions, not what the model chooses to do
-      note_rnn_reward = self.reward_from_trained_reward_rnn(last_observation, 
-                                                            new_observation, state)
+      note_rnn_reward = self.reward_from_reward_rnn_scores(new_observation, reward_scores)
       print "Note RNN reward:", note_rnn_reward, "\n"
 
       print "Key, tonic, and non-repeating rewards:"
