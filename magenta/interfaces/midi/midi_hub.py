@@ -440,9 +440,8 @@ class MidiCaptor(threading.Thread):
       MidiHubException: When called multiple times.
     """
     if self._stop_signal.is_set():
-      raise MidiHubExcelption(
-        '`stop` must not be called multiple times on MidiCaptor.')
-
+      raise MidiHubException(
+          '`stop` must not be called multiple times on MidiCaptor.')
     with self._lock:
       self._stop_signal.set()
       self._stop_time = time.time() if stop_time is None else stop_time
