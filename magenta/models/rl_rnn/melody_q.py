@@ -704,7 +704,7 @@ class MelodyQNetwork(object):
     plt.plot(x, self.note_rnn_rewards_batched)
     plt.xlabel('Training epoch')
     plt.ylabel('Cumulative reward for last ' + str(reward_batch) + ' steps')
-    plt.legend(['Total', 'Music theory', 'Note RNN'])
+    plt.legend(['Total', 'Music theory', 'Note RNN'], loc='best')
     plt.show()
 
   def store(self, observation, state, action, reward, newobservation, newstate):
