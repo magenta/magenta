@@ -16,13 +16,12 @@
 Use extract_melodies to extract monophonic melodies from a QuantizedSequence
 object.
 
-Use MonophonicMelody.to_sequence to write a melody to a NoteSequence proto. Then
-use midi_io.sequence_proto_to_midi_file to write that NoteSequence to a midi
-file.
+Use Melody.to_sequence to write a melody to a NoteSequence proto. Then use
+midi_io.sequence_proto_to_midi_file to write that NoteSequence to a midi file.
 
-Use MelodyEncoderDecoder.squash_and_encode to convert a MonophonicMelody object
-to a tf.train.SequenceExample of inputs and labels. These SequenceExamples are
-fed into the model during training and evaluation.
+Use MelodyEncoderDecoder.squash_and_encode to convert a Melody object to a
+tf.train.SequenceExample of inputs and labels. These SequenceExamples are fed
+into the model during training and evaluation.
 
 During melody generation, use MelodyEncoderDecoder.get_inputs_batch to convert
 a list of melodies into an inputs batch which can be fed into the model to
@@ -66,26 +65,26 @@ class BadNoteException(Exception):
   pass
 
 
-class MonophonicMelody(events_lib.SimpleEventSequence):
+class Melody(events_lib.SimpleEventSequence):
   """Stores a quantized stream of monophonic melody events.
 
-  MonophonicMelody is an intermediate representation that all melody models
-  can use. QuantizedSequence to MonophonicMelody code will do work to align
-  notes and extract monophonic melodies. Model-specific code then needs to
-  convert MonophonicMelody to SequenceExample protos for TensorFlow.
+  Melody is an intermediate representation that all melody models can use.
+  QuantizedSequence to Melody code will do work to align notes and extract
+  extract monophonic melodies. Model-specific code then needs to convert Melody
+  to SequenceExample protos for TensorFlow.
 
-  MonophonicMelody implements an iterable object. Simply iterate to retrieve
-  the melody events.
+  Melody implements an iterable object. Simply iterate to retrieve the melody
+  events.
 
-  MonophonicMelody events are integers in range [-2, 127] (inclusive),
-  where negative values are the special event events: MELODY_NOTE_OFF, and
-  MELODY_NO_EVENT. Non-negative values [0, 127] are note-on events for that
-  midi pitch. A note starts at a non-negative value (that is the pitch), and is
-  held through subsequent MELODY_NO_EVENT events until either another non-
-  negative value is reached (even if the pitch is the same as the previous
-  note), or a MELODY_NOTE_OFF event is reached. A MELODY_NOTE_OFF starts at
-  least one step of silence, which continues through MELODY_NO_EVENT events
-  until the next non-negative value.
+  Melody events are integers in range [-2, 127] (inclusive), where negative
+  values are the special event events: MELODY_NOTE_OFF, and MELODY_NO_EVENT.
+  Non-negative values [0, 127] are note-on events for that midi pitch. A note
+  starts at a non-negative value (that is the pitch), and is held through
+  subsequent MELODY_NO_EVENT events until either another non-negative value is
+  reached (even if the pitch is the same as the previous note), or a
+  MELODY_NOTE_OFF event is reached. A MELODY_NOTE_OFF starts at least one step
+  of silence, which continues through MELODY_NO_EVENT events until the next
+  non-negative value.
 
   MELODY_NO_EVENT values are treated as default filler. Notes must be inserted
   in ascending order by start time. Note end times will be truncated if the next
@@ -108,9 +107,9 @@ class MonophonicMelody(events_lib.SimpleEventSequence):
   """
 
   def __init__(self, events=None, **kwargs):
-    """Construct a MonophonicMelody."""
-    super(MonophonicMelody, self).__init__(pad_event=MELODY_NO_EVENT,
-                                           events=events, **kwargs)
+    """Construct a Melody."""
+    super(Melody, self).__init__(pad_event=MELODY_NO_EVENT,
+                                 events=events, **kwargs)
 
   def _from_event_list(self, events, start_step=0,
                        steps_per_bar=DEFAULT_STEPS_PER_BAR,
@@ -118,7 +117,7 @@ class MonophonicMelody(events_lib.SimpleEventSequence):
     """Initializes with a list of event values and sets attributes.
 
     Args:
-      events: List of MonophonicMelody events to set melody to.
+      events: List of Melody events to set melody to.
       start_step: The integer starting step offset.
       steps_per_bar: The number of steps in a bar.
       steps_per_quarter: The number of steps in a quarter note.
@@ -129,7 +128,7 @@ class MonophonicMelody(events_lib.SimpleEventSequence):
     for event in events:
       if not MIN_MELODY_EVENT <= event <= MAX_MELODY_EVENT:
         raise ValueError('Melody event out of range: %d' % event)
-    super(MonophonicMelody, self)._from_event_list(
+    super(Melody, self)._from_event_list(
         events, start_step=start_step, steps_per_bar=steps_per_bar,
         steps_per_quarter=steps_per_quarter)
 
@@ -140,10 +139,10 @@ class MonophonicMelody(events_lib.SimpleEventSequence):
                       steps_per_quarter=self.steps_per_quarter)
 
   def __eq__(self, other):
-    if not isinstance(other, MonophonicMelody):
+    if not isinstance(other, Melody):
       return False
     else:
-      return super(MonophonicMelody, self).__eq__(other)
+      return super(Melody, self).__eq__(other)
 
   def _add_note(self, pitch, start_step, end_step):
     """Adds the given note to the `events` list.
@@ -239,13 +238,13 @@ class MonophonicMelody(events_lib.SimpleEventSequence):
     modification.
 
     Args:
-      event: The integer MonophonicMelody event to append to the end.
+      event: The integer Melody event to append to the end.
     Raises:
       ValueError: If `event` is not in the proper range.
     """
     if not MIN_MELODY_EVENT <= event <= MAX_MELODY_EVENT:
       raise ValueError('Event out of range: %d' % event)
-    super(MonophonicMelody, self).append_event(event)
+    super(Melody, self).append_event(event)
 
   def from_quantized_sequence(self,
                               quantized_sequence,
@@ -375,7 +374,7 @@ class MonophonicMelody(events_lib.SimpleEventSequence):
                   program=0,
                   sequence_start_time=0.0,
                   qpm=120.0):
-    """Converts the MonophonicMelody to NoteSequence proto.
+    """Converts the Melody to NoteSequence proto.
 
     The end of the melody is treated as a NOTE_OFF event for any sustained
     notes.
@@ -433,15 +432,14 @@ class MonophonicMelody(events_lib.SimpleEventSequence):
     return sequence
 
   def transpose(self, transpose_amount, min_note=0, max_note=128):
-    """Transpose notes in this MonophonicMelody.
+    """Transpose notes in this Melody.
 
     All notes are transposed the specified amount. Additionally, all notes
     are octave shifted to lie within the [min_note, max_note) range.
 
     Args:
-      transpose_amount: The number of half steps to transpose this
-          MonophonicMelody. Positive values transpose up. Negative values
-          transpose down.
+      transpose_amount: The number of half steps to transpose this Melody.
+          Positive values transpose up. Negative values transpose down.
       min_note: Minimum pitch (inclusive) that the resulting notes will take on.
       max_note: Maximum pitch (exclusive) that the resulting notes will take on.
     """
@@ -458,7 +456,7 @@ class MonophonicMelody(events_lib.SimpleEventSequence):
                              (self._events[i] - max_note) % NOTES_PER_OCTAVE)
 
   def squash(self, min_note, max_note, transpose_to_key):
-    """Transpose and octave shift the notes in this MonophonicMelody.
+    """Transpose and octave shift the notes in this Melody.
 
     The key center of this melody is computed with a heuristic, and the notes
     are transposed to be in the given key. The melody is also octave shifted
@@ -503,7 +501,7 @@ class MonophonicMelody(events_lib.SimpleEventSequence):
       from_left: Whether to add/remove from the left instead of right.
     """
     old_len = len(self)
-    super(MonophonicMelody, self).set_length(steps, from_left=from_left)
+    super(Melody, self).set_length(steps, from_left=from_left)
     if steps > old_len and not from_left:
       # When extending the melody on the right, we end any sustained notes.
       for i in reversed(range(old_len)):
@@ -514,17 +512,16 @@ class MonophonicMelody(events_lib.SimpleEventSequence):
           break
 
   def increase_resolution(self, k):
-    """Increase the resolution of a MonophonicMelody.
+    """Increase the resolution of a Melody.
 
-    Increases the resolution of a MonophonicMelody object by a factor of `k`.
-    This uses MELODY_NO_EVENT to extend each event in the melody to be `k`
-    steps long.
+    Increases the resolution of a Melody object by a factor of `k`. This uses
+    MELODY_NO_EVENT to extend each event in the melody to be `k` steps long.
 
     Args:
       k: An integer, the factor by which to increase the resolution of the
           melody.
     """
-    super(MonophonicMelody, self).increase_resolution(
+    super(Melody, self).increase_resolution(
         k, fill_event=MELODY_NO_EVENT)
 
 
@@ -553,7 +550,7 @@ def extract_melodies(quantized_sequence,
   in some accompaniment tracks, from being used).
 
   After scanning each instrument track in the QuantizedSequence, a list of all
-  extracted MonophonicMelody objects is returned.
+  extracted Melody objects is returned.
 
   Args:
     quantized_sequence: A sequences_lib.QuantizedSequence object.
@@ -576,7 +573,7 @@ def extract_melodies(quantized_sequence,
         that it will end at a bar boundary.
 
   Returns:
-    melodies: A python list of MonophonicMelody instances.
+    melodies: A python list of Melody instances.
     stats: A dictionary mapping string names to `statistics.Statistic` objects.
 
   Raises:
@@ -604,10 +601,10 @@ def extract_melodies(quantized_sequence,
   for track in quantized_sequence.tracks:
     start = 0
 
-    # Quantize the track into a MonophonicMelody object.
+    # Quantize the track into a Melody object.
     # If any notes start at the same time, only one is kept.
     while 1:
-      melody = MonophonicMelody()
+      melody = Melody()
       try:
         melody.from_quantized_sequence(
             quantized_sequence,
@@ -764,12 +761,12 @@ class MelodyEncoderDecoder(events_lib.EventsEncoderDecoder):
 
   @property
   def no_event_label(self):
-    """The class label that represents a NO_EVENT MonophonicMelody event.
+    """The class label that represents a NO_EVENT Melody event.
 
     Returns:
       An int, the class label that represents a NO_EVENT.
     """
-    melody = MonophonicMelody([MELODY_NO_EVENT])
+    melody = Melody([MELODY_NO_EVENT])
     return self.events_to_label(melody, 0)
 
   @abc.abstractmethod
@@ -777,7 +774,7 @@ class MelodyEncoderDecoder(events_lib.EventsEncoderDecoder):
     """Returns the input vector for the melody event at the given position.
 
     Args:
-      events: A MonophonicMelody object.
+      events: A Melody object.
       position: An integer event position in the melody.
 
     Returns:
@@ -790,7 +787,7 @@ class MelodyEncoderDecoder(events_lib.EventsEncoderDecoder):
     """Returns the label for the melody event at the given position.
 
     Args:
-      events: A MonophonicMelody object.
+      events: A Melody object.
       position: An integer event position in the melody.
 
     Returns:
@@ -806,7 +803,7 @@ class MelodyEncoderDecoder(events_lib.EventsEncoderDecoder):
 
     Args:
       class_index: An integer in the range [0, self.num_classes).
-      events: A MonophonicMelody object.
+      events: A Melody object.
 
     Returns:
       An integer melody event value.
@@ -817,7 +814,7 @@ class MelodyEncoderDecoder(events_lib.EventsEncoderDecoder):
     """Returns a SequenceExample for the given melody after squashing.
 
     Args:
-      melody: A MonophonicMelody object.
+      melody: A Melody object.
 
     Returns:
       A tf.train.SequenceExample containing inputs and labels.

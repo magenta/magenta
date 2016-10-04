@@ -66,7 +66,7 @@ class PipelineUnitsCommonTest(tf.test.TestCase):
     self._unit_transform_test(unit, note_sequence,
                               [expected_quantized_sequence])
 
-  def testMonophonicMelodyExtractor(self):
+  def testMelodyExtractor(self):
     quantized_sequence = sequences_lib.QuantizedSequence()
     quantized_sequence.steps_per_quarter = 1
     testing_lib.add_quantized_track_to_sequence(
@@ -80,10 +80,10 @@ class PipelineUnitsCommonTest(tf.test.TestCase):
         [NO_EVENT, NO_EVENT, 12, NO_EVENT, NOTE_OFF, NO_EVENT, 14, NO_EVENT]]
     expected_melodies = []
     for events_list in expected_events:
-      melody = melodies_lib.MonophonicMelody(
+      melody = melodies_lib.Melody(
           events_list, steps_per_quarter=1, steps_per_bar=4)
       expected_melodies.append(melody)
-    unit = pipelines_common.MonophonicMelodyExtractor(
+    unit = pipelines_common.MelodyExtractor(
         min_bars=1, min_unique_pitches=1, gap_bars=1)
     self._unit_transform_test(unit, quantized_sequence, expected_melodies)
 

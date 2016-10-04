@@ -52,14 +52,14 @@ class Quantizer(pipeline.Pipeline):
       return []
 
 
-class MonophonicMelodyExtractor(pipeline.Pipeline):
+class MelodyExtractor(pipeline.Pipeline):
   """Extracts monophonic melodies from a QuantizedSequence."""
 
   def __init__(self, min_bars=7, min_unique_pitches=5, gap_bars=1.0,
                ignore_polyphonic_notes=False):
-    super(MonophonicMelodyExtractor, self).__init__(
+    super(MelodyExtractor, self).__init__(
         input_type=sequences_lib.QuantizedSequence,
-        output_type=melodies_lib.MonophonicMelody)
+        output_type=melodies_lib.Melody)
     self.min_bars = min_bars
     self.min_unique_pitches = min_unique_pitches
     self.gap_bars = gap_bars

@@ -50,7 +50,7 @@ class MelodyEncoderDecoder(magenta.music.MelodyEncoderDecoder):
     """Collapses a melody event value into a zero-based index range.
 
     Args:
-      melody_event: A MonophonicMelody event value. -2 = no event,
+      melody_event: A Melody event value. -2 = no event,
           -1 = note-off event, [0, 127] = note-on event for that midi pitch.
 
     Returns:
@@ -72,7 +72,7 @@ class MelodyEncoderDecoder(magenta.music.MelodyEncoderDecoder):
           to the [self._min_note, self._max_note) range.
 
     Returns:
-      A MonophonicMelody event value. -2 = no event, -1 = note-off event,
+      A Melody event value. -2 = no event, -1 = note-off event,
       [0, 127] = note-on event for that midi pitch.
     """
     if model_event < NUM_SPECIAL_MELODY_EVENTS:
@@ -88,7 +88,7 @@ class MelodyEncoderDecoder(magenta.music.MelodyEncoderDecoder):
     [self._min_note, self._max_note) range.
 
     Args:
-      events: A MonophonicMelody object.
+      events: A Melody object.
       position: An integer event position in the melody.
 
     Returns:
@@ -107,7 +107,7 @@ class MelodyEncoderDecoder(magenta.music.MelodyEncoderDecoder):
     [self._min_note, self._max_note) range.
 
     Args:
-      events: A MonophonicMelody object.
+      events: A Melody object.
       position: An integer event position in the melody.
 
     Returns:
@@ -122,10 +122,9 @@ class MelodyEncoderDecoder(magenta.music.MelodyEncoderDecoder):
 
     Args:
       class_index: An integer in the range [0, self.num_classes).
-      events: A MonophonicMelody object. This object is not used in this
-          implementation.
+      events: A Melody object. This object is not used in this implementation.
 
     Returns:
-      A MonophonicMelody event value.
+      A Melody event value.
     """
     return self.model_event_to_melody_event(class_index)

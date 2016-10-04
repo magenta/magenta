@@ -35,7 +35,7 @@ class BasicRnnEncoderDecoderTest(tf.test.TestCase):
     self.assertEqual(melody_encoder_decoder.num_classes, 38)
 
     melody_events = [48, NO_EVENT, 49, 83, NOTE_OFF]
-    melody = melodies_lib.MonophonicMelody(melody_events)
+    melody = melodies_lib.Melody(melody_events)
 
     expected_inputs = [
         [0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
@@ -63,7 +63,7 @@ class BasicRnnEncoderDecoderTest(tf.test.TestCase):
       self.assertEqual(
           melody_encoder_decoder.class_index_to_event(expected_labels[i], None),
           melody_events[i])
-      partial_melody = melodies_lib.MonophonicMelody(melody_events[:i])
+      partial_melody = melodies_lib.Melody(melody_events[:i])
       softmax = [[[0.0] * melody_encoder_decoder.num_classes]]
       softmax[0][0][expected_labels[i]] = 1.0
       melody_encoder_decoder.extend_event_sequences([partial_melody], softmax)
@@ -89,7 +89,7 @@ class BasicRnnEncoderDecoderTest(tf.test.TestCase):
     self.assertEqual(melody_encoder_decoder.num_classes, 14)
 
     melody_events = [24, NO_EVENT, 25, 35, NOTE_OFF]
-    melody = melodies_lib.MonophonicMelody(melody_events)
+    melody = melodies_lib.Melody(melody_events)
 
     expected_inputs = [
         [0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
@@ -108,7 +108,7 @@ class BasicRnnEncoderDecoderTest(tf.test.TestCase):
       self.assertEqual(
           melody_encoder_decoder.class_index_to_event(expected_labels[i], None),
           melody_events[i])
-      partial_melody = melodies_lib.MonophonicMelody(melody_events[:i])
+      partial_melody = melodies_lib.Melody(melody_events[:i])
       softmax = [[[0.0] * melody_encoder_decoder.num_classes]]
       softmax[0][0][expected_labels[i]] = 1.0
       melody_encoder_decoder.extend_event_sequences([partial_melody], softmax)

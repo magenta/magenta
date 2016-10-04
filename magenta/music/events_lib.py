@@ -45,10 +45,10 @@ class EventSequence(object):
 
   EventSequence is an abstract class to use as an interface for interacting
   with musical event sequences. Concrete implementations SimpleEventSequence
-  (and its descendants MonophonicMelody and ChordProgression) and LeadSheet
-  represent sequences of musical events of particular types. In all cases,
-  model-specific code is responsible for converting this representation to
-  SequenceExample protos for TensorFlow.
+  (and its descendants Melody and ChordProgression) and LeadSheet represent
+  sequences of musical events of particular types. In all cases, model-specific
+  code is responsible for converting this representation to SequenceExample
+  protos for TensorFlow.
 
   EventSequence represents an iterable object. Simply iterate to retrieve the
   events.
@@ -120,8 +120,8 @@ class SimpleEventSequence(EventSequence):
   """Stores a quantized stream of events.
 
   This class can be instantiated, but its main purpose is to serve as a base
-  class for MonophonicMelody, ChordProgression, and any other simple stream of
-  musical events.
+  class for Melody, ChordProgression, and any other simple stream of musical
+  events.
   """
 
   def __init__(self, pad_event, events=None, start_step=0,
