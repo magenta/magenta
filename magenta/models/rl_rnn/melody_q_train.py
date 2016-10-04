@@ -79,16 +79,16 @@ def main(_):
                                    stochastic_observations=False,
                                    algorithm=FLAGS.algorithm)
 
-  logging.info('Generating an initial music sequence')
-  logging.info('Saving images and melodies to: %s', mq_net.output_dir)
+  tf.logging.info('Generating an initial music sequence')
+  tf.logging.info('Saving images and melodies to: %s', mq_net.output_dir)
   mq_net.generate_music_sequence(visualize_probs=True,
                                  prob_image_name=FLAGS.before_image)
 
-  logging.info('\nTraining...')
+  tf.logging.info('\nTraining...')
   mq_net.train(num_steps=FLAGS.training_steps,
                exploration_period=FLAGS.exploration_steps)
 
-  logging.info('\nFinished training. Saving output figures and composition.')
+  tf.logging.info('\nFinished training. Saving output figures and composition.')
   plt.figure()
   plt.plot(mq_net.rewards_batched)
   plt.savefig(mq_net.output_dir + FLAGS.algorithm +'-rewards_over_time.png')
