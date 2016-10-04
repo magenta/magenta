@@ -431,20 +431,23 @@ class MidiCaptor(threading.Thread):
   def stop(self, stop_time=None, block=True):
     """Ends capture and truncates the captured sequence at `stop_time`.
 
-    Blocks until complete.
-
     Args:
       stop_time: The float time in seconds to stop the capture, or None if it
          should be stopped now. May be in the past, in which case the captured
          sequence will be truncated appropriately.
       block: If True, blocks until the thread terminates.
+    Raises:
+      MidiHubException: When called multiple times.
     """
+    if self._stop_signal.is_set():
+      raise MidiHubExcelption(
+        '`stop` must not be called multiple times on MidiCaptor.')
+
     with self._lock:
-      if not self._stop_signal.is_set():
-        self._stop_signal.set()
-        self._stop_time = time.time() if stop_time is None else stop_time
-        # Force the thread to wake since we've updated the stop time.
-        self._receive_queue.put(MidiCaptor._WAKE_MESSAGE)
+      self._stop_signal.set()
+      self._stop_time = time.time() if stop_time is None else stop_time
+      # Force the thread to wake since we've updated the stop time.
+      self._receive_queue.put(MidiCaptor._WAKE_MESSAGE)
     if block:
       self.join()
 

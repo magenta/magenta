@@ -21,6 +21,7 @@ py_library(
     name = "midi",
     deps = [
         ":midi_hub",
+        ":midi_interaction",
     ],
 )
 
@@ -45,12 +46,23 @@ py_test(
     ],
 )
 
+py_library(
+    name = "midi_interaction",
+    srcs = ["midi_interaction.py"],
+    deps = [
+        ":midi_hub",
+        "//magenta",
+        # tensorflow dep
+    ],
+)
+
 py_binary(
     name = "magenta_midi",
     srcs = ["magenta_midi.py"],
     visibility = ["//magenta/tools/pip:__subpackages__"],
     deps = [
         ":midi_hub",
+        ":midi_interaction",
         "//magenta",
         "//magenta/models/attention_rnn:attention_rnn_generator",
         "//magenta/models/basic_rnn:basic_rnn_generator",
