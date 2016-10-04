@@ -44,7 +44,7 @@ class SequencesLibTest(tf.test.TestCase):
     left_hand = sequences_lib.QuantizedSequence()
     left_hand.qpm = 123.0
     left_hand.steps_per_quarter = 7
-    left_hand.time_signature = music_pb2.NoteSequence.TimeSignature(
+    left_hand.time_signature = sequences_lib.QuantizedSequence.TimeSignature(
         numerator=7, denominator=8)
     testing_lib.add_quantized_track_to_sequence(
         left_hand, 0,
@@ -60,7 +60,7 @@ class SequencesLibTest(tf.test.TestCase):
     right_hand = sequences_lib.QuantizedSequence()
     right_hand.qpm = 123.0
     right_hand.steps_per_quarter = 7
-    right_hand.time_signature = music_pb2.NoteSequence.TimeSignature(
+    right_hand.time_signature = sequences_lib.QuantizedSequence.TimeSignature(
         numerator=7, denominator=8)
     testing_lib.add_quantized_track_to_sequence(
         right_hand, 0,
@@ -79,7 +79,7 @@ class SequencesLibTest(tf.test.TestCase):
     left_hand = sequences_lib.QuantizedSequence()
     left_hand.bpm = 123.0
     left_hand.steps_per_beat = 7
-    left_hand.time_signature = music_pb2.NoteSequence.TimeSignature(
+    left_hand.time_signature = sequences_lib.QuantizedSequence.TimeSignature(
         numerator=7, denominator=8)
     testing_lib.add_quantized_track_to_sequence(
         left_hand, 0,
@@ -95,7 +95,7 @@ class SequencesLibTest(tf.test.TestCase):
     right_hand = sequences_lib.QuantizedSequence()
     right_hand.bpm = 123.0
     right_hand.steps_per_beat = 7
-    right_hand.time_signature = music_pb2.NoteSequence.TimeSignature(
+    right_hand.time_signature = sequences_lib.QuantizedSequence.TimeSignature(
         numerator=7, denominator=8)
     testing_lib.add_quantized_track_to_sequence(
         right_hand, 0,
