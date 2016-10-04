@@ -77,39 +77,41 @@ class MelodyEncoderDecoder(melodies_lib.MelodyEncoderDecoder):
       return model_event - NUM_SPECIAL_EVENTS
     return model_event - NUM_SPECIAL_EVENTS + self.min_note
 
-  def melody_to_input(self, melody):
-    """Returns the input vector for the last event in the melody.
+  def melody_to_input(self, melody, position):
+    """Returns the input vector for the given position in the melody.
 
-    Returns a one-hot vector for the last event in the melody mapped to the
+    Returns a one-hot vector for the given position in the melody mapped to the
     model's event range. 0 = no event, 1 = note-off event,
     [2, self._num_model_events) = note-on event for that pitch relative to the
     [self._min_note, self._max_note) range.
 
     Args:
       melody: A MonophonicMelody object.
+      position: An integer event position in the melody.
 
     Returns:
       An input vector, a list of floats.
     """
     input_ = [0.0] * self.input_size
-    input_[self.melody_event_to_model_event(melody.events[-1])] = 1.0
+    input_[self.melody_event_to_model_event(melody[position])] = 1.0
     return input_
 
-  def melody_to_label(self, melody):
-    """Returns the label for the last event in the melody.
+  def melody_to_label(self, melody, position):
+    """Returns the label for the given position in the melody.
 
-    Returns the zero-based index value for the last event in the melody
+    Returns the zero-based index value for the given position in the melody
     mapped to the model's event range. 0 = no event, 1 = note-off event,
     [2, self._num_model_events) = note-on event for that pitch relative to the
     [self._min_note, self._max_note) range.
 
     Args:
       melody: A MonophonicMelody object.
+      position: An integer event position in the melody.
 
     Returns:
       A label, an int.
     """
-    return self.melody_event_to_model_event(melody.events[-1])
+    return self.melody_event_to_model_event(melody[position])
 
   def class_index_to_melody_event(self, class_index, melody):
     """Returns the melody event for the given class index.
