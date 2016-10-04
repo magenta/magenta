@@ -22,8 +22,7 @@ py_binary(
     srcs = ["attention_rnn_create_dataset.py"],
     srcs_version = "PY2AND3",
     visibility = [
-        # internal pipeline runner
-        "//magenta/tools/pip:__subpackages__",
+        # internal notebook binary
     ],
     deps = [
         ":attention_rnn_encoder_decoder",
