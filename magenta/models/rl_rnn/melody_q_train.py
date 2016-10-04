@@ -6,7 +6,8 @@ $ bazel run magenta/models/rl_rnn:melody_q_train -- \
 --training_data_path 'path.tfrecord'
 """
 
-import matplotlib.pyplot as plt
+import matplotlib
+matplotlib.use('Agg')
 import tensorflow as tf
 
 from magenta.lib import tf_lib
@@ -89,9 +90,9 @@ def main(_):
                exploration_period=FLAGS.exploration_steps)
 
   tf.logging.info('\nFinished training. Saving output figures and composition.')
-  plt.figure()
-  plt.plot(mq_net.rewards_batched)
-  plt.savefig(mq_net.output_dir + FLAGS.algorithm +'-rewards_over_time.png')
+  matplotlib.pyplot.figure()
+  matplotlib.pyplot.plot(mq_net.rewards_batched)
+  matplotlib.pyplot.savefig(mq_net.output_dir + FLAGS.algorithm +'-rewards_over_time.png')
 
   mq_net.generate_music_sequence(visualize_probs=True,
                                  prob_image_name=FLAGS.after_image)
