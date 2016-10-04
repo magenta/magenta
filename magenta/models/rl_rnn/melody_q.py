@@ -9,8 +9,10 @@ from os import makedirs
 from os.path import exists
 import random
 
-import matplotlib.pyplot as plt
+import matplotlib
 matplotlib.use('Agg')
+
+import matplotlib.pyplot as plt
 import numpy as np
 from scipy.misc import logsumexp
 import tensorflow as tf
