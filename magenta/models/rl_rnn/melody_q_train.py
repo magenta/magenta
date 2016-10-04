@@ -72,7 +72,7 @@ def main(_):
                                max_experience=100000,
                                target_network_update_rate=0.01)
 
-  mq_net = melody_q.MelodyQNetwork(FLAGS.output_dir, FLAGS.checkpoint_name,
+  mq_net = melody_q.MelodyQNetwork(FLAGS.output_dir, FLAGS.output_dir + '/' + FLAGS.algorithm +'_model.ckpt',
                                    FLAGS.melody_checkpoint_dir, FLAGS.midi_primer, 
                                    dqn_hparams=dqn_hparams, 
                                    reward_scaler=FLAGS.reward_scaler,
