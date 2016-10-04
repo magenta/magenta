@@ -10,6 +10,7 @@ from os.path import exists
 import random
 
 import matplotlib.pyplot as plt
+matplotlib.use('Agg')
 import numpy as np
 from scipy.misc import logsumexp
 import tensorflow as tf
