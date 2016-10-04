@@ -47,14 +47,53 @@ class LeadSheet(events_lib.EventSequence):
     chords: A ChordProgression object, the underlying chords.
   """
 
-  def __init__(self):
-    """Construct an empty LeadSheet."""
-    self._reset()
+  def __init__(self, melody=None, chords=None):
+    """Construct a LeadSheet.
+
+    If `melody` and `chords` are specified, instantiate with the provided
+    melody and chords.  Otherwise, create an empty LeadSheet.
+
+    Args:
+      melody: A MonophonicMelody object.
+      chords: A ChordProgression object.
+
+    Raises:
+      MelodyChordsMismatchException: If the melody and chord progression differ
+          in temporal resolution or position in the source sequence, or if only
+          one of melody or chords is specified.
+    """
+    if (melody is None) != (chords is None):
+      raise MelodyChordsMismatchException(
+          'melody and chords must be both specified or both unspecified')
+    if melody is not None:
+      self._from_melody_and_chords(melody, chords)
+    else:
+      self._reset()
 
   def _reset(self):
     """Clear events and reset object state."""
     self._melody = melodies_lib.MonophonicMelody()
     self._chords = chords_lib.ChordProgression()
+
+  def _from_melody_and_chords(self, melody, chords):
+    """Initializes a LeadSheet with a given melody and chords.
+
+    Args:
+      melody: A MonophonicMelody object.
+      chords: A ChordProgression object.
+
+    Raises:
+      MelodyChordsMismatchException: If the melody and chord progression differ
+          in temporal resolution or position in the source sequence.
+    """
+    if (len(melody) != len(chords) or
+        melody.steps_per_bar != chords.steps_per_bar or
+        melody.steps_per_quarter != chords.steps_per_quarter or
+        melody.start_step != chords.start_step or
+        melody.end_step != chords.end_step):
+      raise MelodyChordsMismatchException()
+    self._melody = melody
+    self._chords = chords
 
   def __iter__(self):
     """Return an iterator over (melody, chord) tuples in this LeadSheet.
@@ -81,10 +120,8 @@ class LeadSheet(events_lib.EventSequence):
     return len(self._melody)
 
   def __deepcopy__(self, unused_memo=None):
-    new_copy = type(self)()
-    new_copy.from_melody_and_chords(copy.deepcopy(self._melody),
-                                    copy.deepcopy(self._chords))
-    return new_copy
+    return type(self)(copy.deepcopy(self._melody),
+                      copy.deepcopy(self._chords))
 
   def __eq__(self, other):
     if not isinstance(other, LeadSheet):
@@ -135,45 +172,6 @@ class LeadSheet(events_lib.EventSequence):
     melody_event, chord_event = event
     self._melody.append_event(melody_event)
     self._chords.append_event(chord_event)
-
-  def from_event_list(self, events, start_step=0,
-                      steps_per_bar=DEFAULT_STEPS_PER_BAR,
-                      steps_per_quarter=DEFAULT_STEPS_PER_QUARTER):
-    """Initializes with a list of event values (melody-chord tuples).
-
-    Args:
-      events: List of melody-chord tuples.
-      start_step: The integer starting step offset.
-      steps_per_bar: The number of steps in a bar.
-      steps_per_quarter: The number of steps in a quarter note.
-    """
-    melody_events, chord_events = zip(*events)
-    self._melody.from_event_list(melody_events, start_step=start_step,
-                                 steps_per_bar=steps_per_bar,
-                                 steps_per_quarter=steps_per_quarter)
-    self._chords.from_event_list(chord_events, start_step=start_step,
-                                 steps_per_bar=steps_per_bar,
-                                 steps_per_quarter=steps_per_quarter)
-
-  def from_melody_and_chords(self, melody, chords):
-    """Initializes a LeadSheet with a given melody and chords.
-
-    Args:
-      melody: A MonophonicMelody object.
-      chords: A ChordProgression object.
-
-    Raises:
-      MelodyChordsMismatchException: If the melody and chord progression differ
-          in temporal resolution or position in the source sequence.
-    """
-    if (len(melody) != len(chords) or
-        melody.steps_per_bar != chords.steps_per_bar or
-        melody.steps_per_quarter != chords.steps_per_quarter or
-        melody.start_step != chords.start_step or
-        melody.end_step != chords.end_step):
-      raise MelodyChordsMismatchException()
-    self._melody = melody
-    self._chords = chords
 
   def to_sequence(self,
                   velocity=100,
@@ -246,6 +244,21 @@ class LeadSheet(events_lib.EventSequence):
     self._melody.set_length(steps)
     self._chords.set_length(steps)
 
+  def increase_resolution(self, k):
+    """Increase the resolution of a LeadSheet.
+
+    Increases the resolution of a LeadSheet object by a factor of `k`. This
+    increases the resolution of the melody and chords separately, which uses
+    MELODY_NO_EVENT to extend each event in the melody, and simply repeats each
+    chord event `k` times.
+
+    Args:
+      k: An integer, the factor by which to increase the resolution of the lead
+          sheet.
+    """
+    self._melody.increase_resolution(k)
+    self._chords.increase_resolution(k)
+
 
 def extract_lead_sheet_fragments(quantized_sequence,
                                  min_bars=7,
@@ -297,8 +310,7 @@ def extract_lead_sheet_fragments(quantized_sequence,
                                 for chord in chords):
         stats['empty_chord_progressions'].increment()
       else:
-        lead_sheet = LeadSheet()
-        lead_sheet.from_melody_and_chords(melody, chords)
+        lead_sheet = LeadSheet(melody, chords)
         lead_sheets.append(lead_sheet)
   return lead_sheets, stats.values() + melody_stats + chord_stats
 

@@ -13,6 +13,8 @@
 # limitations under the License.
 """Tests for lead_sheets."""
 
+import copy
+
 # internal imports
 import tensorflow as tf
 
@@ -40,15 +42,14 @@ class LeadSheetsLibTest(tf.test.TestCase):
     melody_events = [12 * 5 + 4, NO_EVENT, 12 * 5 + 5,
                      NOTE_OFF, 12 * 6, NO_EVENT]
     chord_events = [NO_CHORD, 'C', 'F', 'Dm', 'D', 'G']
-    lead_sheet = lead_sheets_lib.LeadSheet()
-    lead_sheet.from_event_list(zip(melody_events, chord_events))
+    melody = melodies_lib.MonophonicMelody(melody_events)
+    chords = chords_lib.ChordProgression(chord_events)
+    expected_melody = copy.deepcopy(melody)
+    expected_chords = copy.deepcopy(chords)
+    lead_sheet = lead_sheets_lib.LeadSheet(melody, chords)
     lead_sheet.transpose(transpose_amount=-5, min_note=12 * 5, max_note=12 * 7)
-    expected_melody = melodies_lib.MonophonicMelody()
-    expected_melody.from_event_list(melody_events[:])
     expected_melody.transpose(
         transpose_amount=-5, min_note=12 * 5, max_note=12 * 7)
-    expected_chords = chords_lib.ChordProgression()
-    expected_chords.from_event_list(chord_events[:])
     expected_chords.transpose(transpose_amount=-5)
     self.assertEqual(expected_melody, lead_sheet.melody)
     self.assertEqual(expected_chords, lead_sheet.chords)
@@ -58,15 +59,14 @@ class LeadSheetsLibTest(tf.test.TestCase):
     melody_events = [12 * 5, NO_EVENT, 12 * 5 + 2,
                      NOTE_OFF, 12 * 6 + 4, NO_EVENT]
     chord_events = ['C', 'Am', 'Dm', 'G', 'C', NO_CHORD]
-    lead_sheet = lead_sheets_lib.LeadSheet()
-    lead_sheet.from_event_list(zip(melody_events, chord_events))
+    melody = melodies_lib.MonophonicMelody(melody_events)
+    chords = chords_lib.ChordProgression(chord_events)
+    expected_melody = copy.deepcopy(melody)
+    expected_chords = copy.deepcopy(chords)
+    lead_sheet = lead_sheets_lib.LeadSheet(melody, chords)
     lead_sheet.squash(min_note=12 * 5, max_note=12 * 6, transpose_to_key=0)
-    expected_melody = melodies_lib.MonophonicMelody()
-    expected_melody.from_event_list(melody_events[:])
     transpose_amount = expected_melody.squash(
         min_note=12 * 5, max_note=12 * 6, transpose_to_key=0)
-    expected_chords = chords_lib.ChordProgression()
-    expected_chords.from_event_list(chord_events[:])
     expected_chords.transpose(transpose_amount=transpose_amount)
     self.assertEqual(expected_melody, lead_sheet.melody)
     self.assertEqual(expected_chords, lead_sheet.chords)
@@ -155,14 +155,13 @@ class LeadSheetsLibTest(tf.test.TestCase):
     # chords separately.
     melody_events = [60]
     chord_events = ['C7']
-    lead_sheet = lead_sheets_lib.LeadSheet()
-    lead_sheet.from_event_list(zip(melody_events, chord_events), start_step=9)
+    melody = melodies_lib.MonophonicMelody(melody_events, start_step=9)
+    chords = chords_lib.ChordProgression(chord_events, start_step=9)
+    expected_melody = copy.deepcopy(melody)
+    expected_chords = copy.deepcopy(chords)
+    lead_sheet = lead_sheets_lib.LeadSheet(melody, chords)
     lead_sheet.set_length(5)
-    expected_melody = melodies_lib.MonophonicMelody()
-    expected_melody.from_event_list(melody_events[:], start_step=9)
     expected_melody.set_length(5)
-    expected_chords = chords_lib.ChordProgression()
-    expected_chords.from_event_list(chord_events[:], start_step=9)
     expected_chords.set_length(5)
     self.assertEquals(expected_melody, lead_sheet.melody)
     self.assertEquals(expected_chords, lead_sheet.chords)
@@ -172,14 +171,11 @@ class LeadSheetsLibTest(tf.test.TestCase):
   def testToSequence(self):
     # Sequence produced from lead sheet should contain notes from melody
     # sequence and chords from chord sequence as text annotations.
-    melody = melodies_lib.MonophonicMelody()
-    melody.from_event_list([NO_EVENT, 1, NO_EVENT, NOTE_OFF, NO_EVENT, 2, 3,
-                            NOTE_OFF, NO_EVENT])
-    chords = chords_lib.ChordProgression()
-    chords.from_event_list([NO_CHORD, 'A', 'A', 'C#m', 'C#m', 'D', 'B', 'B',
-                            'B'])
-    lead_sheet = lead_sheets_lib.LeadSheet()
-    lead_sheet.from_melody_and_chords(melody, chords)
+    melody = melodies_lib.MonophonicMelody(
+        [NO_EVENT, 1, NO_EVENT, NOTE_OFF, NO_EVENT, 2, 3, NOTE_OFF, NO_EVENT])
+    chords = chords_lib.ChordProgression(
+        [NO_CHORD, 'A', 'A', 'C#m', 'C#m', 'D', 'B', 'B', 'B'])
+    lead_sheet = lead_sheets_lib.LeadSheet(melody, chords)
     sequence = lead_sheet.to_sequence(
         velocity=10,
         instrument=1,

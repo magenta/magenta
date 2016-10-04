@@ -21,6 +21,7 @@ NoteSequence proto, encoding the chords as text annotations.
 """
 
 import abc
+import copy
 
 from six.moves import range  # pylint: disable=redefined-builtin
 
@@ -81,17 +82,16 @@ class ChordProgression(events_lib.SimpleEventSequence):
     steps_per_bar: Number of steps in a bar (measure) of music.
   """
 
-  def __init__(self):
-    """Construct an empty ChordProgression."""
-    super(ChordProgression, self).__init__(pad_event=NO_CHORD)
+  def __init__(self, events=None, **kwargs):
+    """Construct a ChordProgression."""
+    super(ChordProgression, self).__init__(pad_event=NO_CHORD,
+                                           events=events, **kwargs)
 
   def __deepcopy__(self, unused_memo=None):
-    new_copy = type(self)()
-    new_copy.from_event_list(list(self._events),
-                             self.start_step,
-                             self.steps_per_bar,
-                             self.steps_per_quarter)
-    return new_copy
+    return type(self)(events=copy.deepcopy(self._events),
+                      start_step=self.start_step,
+                      steps_per_bar=self.steps_per_bar,
+                      steps_per_quarter=self.steps_per_quarter)
 
   def __eq__(self, other):
     if not isinstance(other, ChordProgression):
