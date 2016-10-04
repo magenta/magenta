@@ -29,7 +29,9 @@ py_library(
         ":constants",
         ":melodies_lib",
         ":midi_io",
+        ":midi_synth",
         ":note_sequence_io",
+        ":notebook_utils",
         ":sequence_generator",
         ":sequence_generator_bundle",
         ":sequences_lib",
@@ -180,6 +182,16 @@ py_library(
     ],
 )
 
+py_library(
+    name = "midi_synth",
+    srcs = ["midi_synth.py"],
+    srcs_version = "PY2AND3",
+    deps = [
+        ":midi_io",
+        # numpy dep
+    ],
+)
+
 py_test(
     name = "midi_io_test",
     srcs = ["midi_io_test.py"],
@@ -208,6 +220,16 @@ py_test(
     deps = [
         ":note_sequence_io",
         # tensorflow dep
+    ],
+)
+
+py_library(
+    name = "notebook_utils",
+    srcs = ["notebook_utils.py"],
+    srcs_version = "PY2AND3",
+    deps = [
+        ":midi_synth",
+        # IPython dep
     ],
 )
 
