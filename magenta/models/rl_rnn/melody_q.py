@@ -650,8 +650,7 @@ class MelodyQNetwork(object):
       softmax = np.reshape(softmax, (self.num_actions))
 
       if visualize_probs:
-        print "softmax shape", np.shape(softmax)
-        prob_image[:, i] = np.fliplr(softmax)
+        prob_image[:, i] = softmax #np.log(1.0 + softmax)
 
       if most_probable:
         sample = np.argmax(softmax)
@@ -677,9 +676,10 @@ class MelodyQNetwork(object):
     if visualize_probs:
       tf.logging.info('Visualizing note selection probabilities:')
       plt.figure()
-      plt.imshow(prob_image)
+      plt.imshow(prob_image, interpolation='none', cmap='Reds')
       plt.ylabel('Note probability')
-      plt.xlabel('Time')
+      plt.xlabel('Time (beat)')
+      plt.gca().invert_yaxis()
       if prob_image_name is not None:
         plt.savefig(self.output_dir + '/' + prob_image_name)
       else:
