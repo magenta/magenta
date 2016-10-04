@@ -165,6 +165,7 @@ py_test(
         ":sequences_lib",
         ":testing_lib",
         "//magenta/common:sequence_example_lib",
+        "//magenta/protobuf:music_py_pb2",
         # tensorflow dep
     ],
 )

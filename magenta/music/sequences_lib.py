@@ -51,8 +51,6 @@ def is_power_of_2(x):
 
 Note = collections.namedtuple(
     'Note', ['pitch', 'velocity', 'start', 'end', 'instrument', 'program'])
-TimeSignature = collections.namedtuple('TimeSignature',
-                                       ['numerator', 'denominator'])
 ChordSymbol = collections.namedtuple('ChordSymbol', ['step', 'figure'])
 
 
@@ -83,7 +81,8 @@ class QuantizedSequence(object):
     self.tracks = {}
     self.chords = []
     self.qpm = 120.0
-    self.time_signature = TimeSignature(4, 4)  # numerator, denominator
+    self.time_signature = music_pb2.NoteSequence.TimeSignature(numerator=4,
+                                                               denominator=4)
     self.steps_per_quarter = 4
 
   def steps_per_bar(self):
@@ -128,9 +127,8 @@ class QuantizedSequence(object):
     self.steps_per_quarter = steps_per_quarter
 
     if note_sequence.time_signatures:
-      self.time_signature = TimeSignature(
-          note_sequence.time_signatures[0].numerator,
-          note_sequence.time_signatures[0].denominator)
+      self.time_signature.CopyFrom(note_sequence.time_signatures[0])
+      self.time_signature.ClearField('time')
     for time_signature in note_sequence.time_signatures[1:]:
       if (time_signature.numerator != self.time_signature.numerator or
           time_signature.denominator != self.time_signature.denominator):
