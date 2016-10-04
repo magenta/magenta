@@ -2,6 +2,7 @@
 
 import abc
 from collections import deque
+import logging
 import Queue
 import re
 import threading
@@ -343,6 +344,8 @@ class MidiCaptor(threading.Thread):
     self._iter_signals = []
     # An event that is set when `stop` has been called.
     self._stop_signal = threading.Event()
+    # Active callback threads keyed by unique thread name.
+    self._callbacks = {}
     super(MidiCaptor, self).__init__()
 
   @property
@@ -410,7 +413,7 @@ class MidiCaptor(threading.Thread):
         msg_str = str(msg)
         for regex, queue in self._iter_signals:
           if regex.match(msg_str) is not None:
-            queue.put(msg)
+            queue.put(msg.copy())
 
       self._capture_message(msg)
 
@@ -467,8 +470,8 @@ class MidiCaptor(threading.Thread):
          thread is terminated and `end_time` is not None.
     """
     # Make a copy of the sequence currently being captured.
+    current_captured_sequence = music_pb2.NoteSequence()
     with self._lock:
-      current_captured_sequence = music_pb2.NoteSequence()
       current_captured_sequence.CopyFrom(self._captured_sequence)
 
     if self.is_alive():
@@ -488,40 +491,52 @@ class MidiCaptor(threading.Thread):
 
     return current_captured_sequence
 
-  def iterate(self, signal=None, timeout=None):
-    """Blocks until a matching mido.Message arrives or the timeout occurs.
+  def iterate(self, signal=None, period=None):
+    """Yields the captured sequence at every signal message or time period.
 
-    Exactly one of `signal` or `timeout` must be specified. Using a timeout
-    with a Queue.Queue object causes additional delays when blocking.
-    Continues until the thread terminates, at which point the final captured
-    sequence is yielded before returning.
+    Exactly one of `signal` or `period` must be specified. Continues until the
+    captor terminates, at which point the final captured sequence is yielded
+    before returning.
+
+    If consecutive calls to iterate are longer than the period, immediately
+    yields and logs a warning.
 
     Args:
-      signal: A MidiSignal to use as a signal to stop waiting.
-      timeout: A float timeout in seconds.
+      signal: A MidiSignal to use as a signal to yield, or None.
+      period: A float period in seconds, or None.
 
     Yields:
       The captured NoteSequence at event time.
 
     Raises:
-      MidiHubException: If neither `signal` nor `timeout` or both are specified.
+      MidiHubException: If neither `signal` nor `period` or both are specified.
     """
-    if (signal, timeout).count(None) != 1:
+    if (signal, period).count(None) != 1:
       raise MidiHubException(
-          'Exactly one of `signal` or `timeout` must be provided to `iterate` '
+          'Exactly one of `signal` or `period` must be provided to `iterate` '
           'call.')
 
-    if signal is not None:
+    if signal is None:
+      sleeper = concurrency.Sleeper()
+      next_yield_time = time.time() + period
+    else:
       regex = re.compile(str(signal))
       queue = Queue.Queue()
       with self._lock:
         self._iter_signals.append((regex, queue))
 
-    sleeper = concurrency.Sleeper()
     while self.is_alive():
       if signal is None:
-        sleeper.sleep(timeout)
-        end_time = time.time()
+        skipped_periods = (time.time() - next_yield_time) // period
+        if skipped_periods > 0:
+          logging.warning(
+              'Skipping %d %.3fs period(s) to catch up on iteration.',
+              skipped_periods, period)
+          next_yield_time += skipped_periods * period
+        else:
+          sleeper.sleep_until(next_yield_time)
+        end_time = next_yield_time
+        next_yield_time += period
       else:
         signal_msg = queue.get()
         if signal_msg is MidiCaptor._WAKE_MESSAGE:
@@ -536,8 +551,78 @@ class MidiCaptor(threading.Thread):
       with self._lock:
         if not self.is_alive():
           break
-        yield self.captured_sequence(end_time)
+        captured_sequence = self.captured_sequence(end_time)
+      yield captured_sequence
     yield self.captured_sequence()
+
+  def register_callback(self, fn, signal=None, period=None):
+    """Calls `fn` at every signal message or time period.
+
+    The callback function must take exactly a single argument, which will be the
+    current captured NoteSequence.
+
+    Exactly one of `signal` or `period` must be specified. Continues until the
+    captor thread terminates, at which point the callback is called with the
+    final sequence, or `cancel_callback` is called.
+
+    If callback execution is longer than a period, immediately calls upon
+    completion and logs a warning.
+
+    Args:
+      fn: The callback function to call, passing in the captured sequence.
+      signal: A MidiSignal to use as a signal to call `fn` on the current
+          captured sequence, or None.
+      period: A float period in seconds to specify how often to call `fn`, or
+          None.
+
+    Returns:
+      The unqiue name of the callback thread to enable cancellation.
+
+    Raises:
+      MidiHubException: If neither `signal` nor `period` or both are specified.
+    """
+
+    class IteratorCallback(threading.Thread):
+      """A thread for executing a callback on each iteration."""
+
+      def __init__(self, iterator, fn):
+        self._iterator = iterator
+        self._fn = fn
+        self._stop_signal = threading.Event()
+        super(IteratorCallback, self).__init__()
+
+      def run(self):
+        """Calls the callback function for each iterator value."""
+        for captured_sequence in self._iterator:
+          if self._stop_signal.is_set():
+            break
+          self._fn(captured_sequence)
+
+      def stop(self):
+        """Stops the thread on next iteration, without blocking."""
+        self._stop_signal.set()
+
+    t = IteratorCallback(self.iterate(signal, period), fn)
+    t.start()
+
+    with self._lock:
+      assert t.name not in self._callbacks
+      self._callbacks[t.name] = t
+
+    return t.name
+
+  @concurrency.serialized
+  def cancel_callback(self, name):
+    """Cancels the callback with the given name.
+
+    While the thread may continue to run until the next iteration, the callback
+    function will not be executed.
+
+    Args:
+      name: The unique name of the callback thread to cancel.
+    """
+    self._callbacks[name].stop()
+    del self._callbacks[name]
 
 
 class MonophonicMidiCaptor(MidiCaptor):
