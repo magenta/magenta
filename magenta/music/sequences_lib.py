@@ -69,7 +69,7 @@ class QuantizedSequence(object):
     steps_per_quarter: How many quantization steps per quarter note of music.
   """
 
-  # pylint: disable=inavlid-name
+  # pylint: disable=invalid-name
   Note = collections.namedtuple(
       'Note', ['pitch', 'velocity', 'start', 'end', 'instrument', 'program'])
   TimeSignature = collections.namedtuple('TimeSignature',
