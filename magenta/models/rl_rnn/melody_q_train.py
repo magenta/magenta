@@ -91,7 +91,7 @@ def main(_):
   logging.info('\nFinished training. Saving output figures and composition.')
   plt.figure()
   plt.plot(mq_net.rewards_batched)
-  plt.savefig(mq_net.output_dir + 'rewards_over_time.png')
+  plt.savefig(mq_net.output_dir + FLAGS.algorithm +'-rewards_over_time.png')
 
   mq_net.generate_music_sequence(visualize_probs=True,
                                  prob_image_name=FLAGS.after_image)
