@@ -55,7 +55,7 @@ def musicxml_to_sequence_proto(musicxml_document):
   sequence.ticks_per_quarter = musicxml_document.midi_resolution
 
   # Populate time signatures.
-  musicxml_time_signatures = musicxml_document.getTimeSignatures()
+  musicxml_time_signatures = musicxml_document.gettimesignatures()
   for musicxml_time_signature in musicxml_time_signatures:
     time_signature = sequence.time_signatures.add()
     time_signature.time = musicxml_time_signature.time_position
@@ -63,7 +63,7 @@ def musicxml_to_sequence_proto(musicxml_document):
     time_signature.denominator = musicxml_time_signature.denominator
 
   # Populate key signatures.
-  musicxml_key_signatures = musicxml_document.getKeySignatures()
+  musicxml_key_signatures = musicxml_document.getkeysignatures()
   for musicxml_key in musicxml_key_signatures:
     key_signature = sequence.key_signatures.add()
     key_signature.time = musicxml_key.time_position
@@ -77,7 +77,7 @@ def musicxml_to_sequence_proto(musicxml_document):
       key_signature.mode = key_signature.MINOR
 
   # Populate tempo changes.
-  musicxml_tempos = musicxml_document.getTempos()
+  musicxml_tempos = musicxml_document.gettempos()
   for musicxml_tempo in musicxml_tempos:
     tempo = sequence.tempos.add()
     tempo.time = musicxml_tempo.time_position
