@@ -9,8 +9,8 @@ from os import makedirs
 from os.path import exists
 import random
 
-import matplotlib
-matplotlib.use('Agg')
+#import matplotlib
+#matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 
 import numpy as np
