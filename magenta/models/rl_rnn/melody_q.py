@@ -12,7 +12,6 @@ import random
 import matplotlib
 matplotlib.use('Agg')
 
-import matplotlib.pyplot as plt
 import numpy as np
 from scipy.misc import logsumexp
 import tensorflow as tf
@@ -675,14 +674,14 @@ class MelodyQNetwork(object):
 
     if visualize_probs:
       tf.logging.info('Visualizing note selection probabilities:')
-      plt.figure()
-      plt.imshow(prob_image)
-      plt.ylabel('Note probability')
-      plt.xlabel('Time')
+      matplotlib.pyplot.figure()
+      matplotlib.pyplot.imshow(prob_image)
+      matplotlib.pyplot.ylabel('Note probability')
+      matplotlib.pyplot.xlabel('Time')
       if prob_image_name is not None:
-        plt.savefig(self.output_dir + '/' + prob_image_name)
+        matplotlib.pyplot.savefig(self.output_dir + '/' + prob_image_name)
       else:
-        plt.show()
+        matplotlib.pyplot.show()
 
   def plot_rewards(self):
     """Plots the cumulative rewards received as the model was trained.
@@ -693,11 +692,11 @@ class MelodyQNetwork(object):
     """
     reward_batch = self.output_every_nth
     x = [reward_batch * i for i in np.arange(len(self.rewards_batched))]
-    plt.figure()
-    plt.plot(x, self.rewards_batched)
-    plt.xlabel('Training epoch')
-    plt.ylabel('Cumulative reward for last ' + str(reward_batch) + ' steps')
-    plt.show()
+    matplotlib.pyplot.figure()
+    matplotlib.pyplot.plot(x, self.rewards_batched)
+    matplotlib.pyplot.xlabel('Training epoch')
+    matplotlib.pyplot.ylabel('Cumulative reward for last ' + str(reward_batch) + ' steps')
+    matplotlib.pyplot.show()
 
   def store(self, observation, state, action, reward, newobservation, newstate):
     """Stores an experience in the model's experience replay buffer.
