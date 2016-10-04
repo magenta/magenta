@@ -65,18 +65,18 @@ class MusicXMLParserTest(tf.test.TestCase):
       sequence_proto: A tensorflow.magenta.Sequence proto.
     """
     # Test time signature changes.
-    self.assertEqual(len(musicxml.getTimeSignatures()),
+    self.assertEqual(len(musicxml.gettimesignatures()),
                      len(sequence_proto.time_signatures))
-    for musicxml_time, sequence_time in zip(musicxml.getTimeSignatures(),
+    for musicxml_time, sequence_time in zip(musicxml.gettimesignatures(),
                                         sequence_proto.time_signatures):
       self.assertEqual(musicxml_time.numerator, sequence_time.numerator)
       self.assertEqual(musicxml_time.denominator, sequence_time.denominator)
       self.assertAlmostEqual(musicxml_time.time_position, sequence_time.time)
 
     # Test key signature changes.
-    self.assertEqual(len(musicxml.getKeySignatures()),
+    self.assertEqual(len(musicxml.getkeysignatures()),
                      len(sequence_proto.key_signatures))
-    for musicxml_key, sequence_key in zip(musicxml.getKeySignatures(),
+    for musicxml_key, sequence_key in zip(musicxml.getkeysignatures(),
                                       sequence_proto.key_signatures):
 
       if musicxml_key.mode == "major":
@@ -93,7 +93,7 @@ class MusicXMLParserTest(tf.test.TestCase):
       self.assertAlmostEqual(musicxml_key.time_position, sequence_key.time)
 
     # Test tempos.
-    musicxml_tempos = musicxml.getTempos()
+    musicxml_tempos = musicxml.gettempos()
     self.assertEqual(len(musicxml_tempos),
                      len(sequence_proto.tempos))
     for musicxml_tempo, sequence_tempo in zip(
