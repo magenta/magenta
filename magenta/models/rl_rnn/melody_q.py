@@ -650,7 +650,8 @@ class MelodyQNetwork(object):
       softmax = np.reshape(softmax, (self.num_actions))
 
       if visualize_probs:
-        prob_image[:, i] = softmax
+        print "softmax shape", np.shape(softmax)
+        prob_image[:, i] = np.fliplr(softmax)
 
       if most_probable:
         sample = np.argmax(softmax)
