@@ -189,6 +189,10 @@ class MelodyQNetwork(object):
 
     self.reward_last_n = 0
     self.rewards_batched = []
+    self.music_theory_reward_last_n = 0
+    self.music_theory_rewards_batched = []
+    self.note_rnn_reward_last_n = 0
+    self.note_rnn_rewards_batched = []
 
     # variables to keep track of characteristics of the current composition
     self.beat = 0
@@ -696,8 +700,11 @@ class MelodyQNetwork(object):
     x = [reward_batch * i for i in np.arange(len(self.rewards_batched))]
     plt.figure()
     plt.plot(x, self.rewards_batched)
+    plt.plot(x, self.music_theory_rewards_batched)
+    plt.plot(x, self.note_rnn_rewards_batched)
     plt.xlabel('Training epoch')
     plt.ylabel('Cumulative reward for last ' + str(reward_batch) + ' steps')
+    plt.legend(['Total', 'Music theory', 'Note RNN'])
     plt.show()
 
   def store(self, observation, state, action, reward, newobservation, newstate):
@@ -885,6 +892,9 @@ class MelodyQNetwork(object):
         self.saver.save(self.session, self.log_dir, global_step=save_step)
 
         self.rewards_batched.append(self.reward_last_n)
+        self.music_theory_rewards_batched.append(self.music_theory_reward_last_n)
+        self.note_rnn_rewards_batched.append(self.note_rnn_reward_last_n)
+
         exploration_p = MelodyQNetwork.linear_annealing(
             self.actions_executed_so_far, exploration_period, 1.0,
             self.dqn_hparams.random_action_probability)
@@ -892,12 +902,19 @@ class MelodyQNetwork(object):
         r = self.reward_last_n
         tf.logging.info('Training iteration %s', i)
         tf.logging.info('\tReward for last %s steps: %s', self.output_every_nth, r)
+        tf.logging.info('\t\tMusic theory reward: %s', self.music_theory_reward_last_n)
+        tf.logging.info('\t\tNote RNN reward: %s', self.note_rnn_reward_last_n)
         tf.logging.info('\tExploration probability is %s', exploration_p)
 
         print 'Training iteration', i
         print '\tReward for last', self.output_every_nth, 'steps:', r
+        print '\t\tMusic theory reward:', self.music_theory_reward_last_n
+        print '\t\tNote RNN reward:', self.note_rnn_reward_last_n
         print '\tExploration probability is', exploration_p
+        
         self.reward_last_n = 0
+        self.music_theory_reward_last_n = 0
+        self.note_rnn_reward_last_n = 0
 
       # Backprop.
       self.training_step()
@@ -1029,6 +1046,10 @@ class MelodyQNetwork(object):
       if verbose:
         print 'Total music theory reward:', self.reward_scaler * reward
         print 'Total note rnn reward:', note_rnn_reward
+      
+      self.note_rnn_reward_last_n += note_rnn_reward
+      self.music_theory_reward_last_n += reward * self.reward_scaler
+
       return reward * self.reward_scaler + note_rnn_reward
     elif self.reward_mode == 'music_theory_only':
       # Reward functions that include all of the Gauldin rewards, without using
@@ -1080,6 +1101,8 @@ class MelodyQNetwork(object):
         tf.logging.info('Reward high low unique: %s', reward)
 
       if self.algorithm == 'g':
+        self.note_rnn_reward_last_n += self.reward_from_trained_reward_rnn(obs, action, state)
+        self.music_theory_reward_last_n += reward * self.reward_scaler
         return reward
     else:
       tf.logging.fatal('ERROR! Not a valid reward mode. Cannot compute reward')
