@@ -530,8 +530,8 @@ class MidiCaptor(threading.Thread):
         skipped_periods = (time.time() - next_yield_time) // period
         if skipped_periods > 0:
           logging.warning(
-            'Skipping %d %.3fs period(s) to catch up on iteration.',
-            skipped_periods, period)
+              'Skipping %d %.3fs period(s) to catch up on iteration.',
+              skipped_periods, period)
           next_yield_time += skipped_periods * period
         else:
           sleeper.sleep_until(next_yield_time)
