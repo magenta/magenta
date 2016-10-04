@@ -44,16 +44,17 @@ def add_quantized_track_to_sequence(quantized_sequence, instrument, notes):
     quantized_sequence.tracks[instrument] = []
   track = quantized_sequence.tracks[instrument]
   for pitch, velocity, start_step, end_step in notes:
-    note = sequences_lib.Note(pitch=pitch,
-                              velocity=velocity,
-                              start=start_step,
-                              end=end_step,
-                              instrument=instrument,
-                              program=0)
+    note = sequences_lib.QuantizedSequence.Note(pitch=pitch,
+                                                velocity=velocity,
+                                                start=start_step,
+                                                end=end_step,
+                                                instrument=instrument,
+                                                program=0)
     track.append(note)
 
 
 def add_quantized_chords_to_sequence(quantized_sequence, chords):
   for figure, step in chords:
-    chord = sequences_lib.ChordSymbol(step=step, figure=figure)
+    chord = sequences_lib.QuantizedSequence.ChordSymbol(step=step,
+                                                        figure=figure)
     quantized_sequence.chords.append(chord)

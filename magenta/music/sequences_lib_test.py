@@ -44,7 +44,8 @@ class SequencesLibTest(tf.test.TestCase):
     left_hand = sequences_lib.QuantizedSequence()
     left_hand.qpm = 123.0
     left_hand.steps_per_quarter = 7
-    left_hand.time_signature = sequences_lib.TimeSignature(7, 8)
+    left_hand.time_signature = sequences_lib.QuantizedSequence.TimeSignature(
+        numerator=7, denominator=8)
     testing_lib.add_quantized_track_to_sequence(
         left_hand, 0,
         [(12, 100, 0, 40), (11, 100, 1, 2)])
@@ -59,7 +60,8 @@ class SequencesLibTest(tf.test.TestCase):
     right_hand = sequences_lib.QuantizedSequence()
     right_hand.qpm = 123.0
     right_hand.steps_per_quarter = 7
-    right_hand.time_signature = sequences_lib.TimeSignature(7, 8)
+    right_hand.time_signature = sequences_lib.QuantizedSequence.TimeSignature(
+        numerator=7, denominator=8)
     testing_lib.add_quantized_track_to_sequence(
         right_hand, 0,
         [(11, 100, 1, 2), (12, 100, 0, 40)])
@@ -77,7 +79,8 @@ class SequencesLibTest(tf.test.TestCase):
     left_hand = sequences_lib.QuantizedSequence()
     left_hand.bpm = 123.0
     left_hand.steps_per_beat = 7
-    left_hand.time_signature = sequences_lib.TimeSignature(7, 8)
+    left_hand.time_signature = sequences_lib.QuantizedSequence.TimeSignature(
+        numerator=7, denominator=8)
     testing_lib.add_quantized_track_to_sequence(
         left_hand, 0,
         [(12, 100, 0, 40), (11, 100, 1, 2)])
@@ -92,7 +95,8 @@ class SequencesLibTest(tf.test.TestCase):
     right_hand = sequences_lib.QuantizedSequence()
     right_hand.bpm = 123.0
     right_hand.steps_per_beat = 7
-    right_hand.time_signature = sequences_lib.TimeSignature(7, 8)
+    right_hand.time_signature = sequences_lib.QuantizedSequence.TimeSignature(
+        numerator=7, denominator=8)
     testing_lib.add_quantized_track_to_sequence(
         right_hand, 0,
         [(11, 100, 1, 2), (12, 100, 0, 40)])
@@ -135,15 +139,15 @@ class SequencesLibTest(tf.test.TestCase):
     quantized.from_note_sequence(self.note_sequence, self.steps_per_quarter)
 
     # Single time signature.
-    self.note_sequence.time_signatures.add(numerator=4, denominator=4)
+    self.note_sequence.time_signatures.add(numerator=4, denominator=4, time=0)
     quantized.from_note_sequence(self.note_sequence, self.steps_per_quarter)
 
     # Multiple time signatures with no change.
-    self.note_sequence.time_signatures.add(numerator=4, denominator=4)
+    self.note_sequence.time_signatures.add(numerator=4, denominator=4, time=1)
     quantized.from_note_sequence(self.note_sequence, self.steps_per_quarter)
 
     # Time signature change.
-    self.note_sequence.time_signatures.add(numerator=2, denominator=4)
+    self.note_sequence.time_signatures.add(numerator=2, denominator=4, time=2)
     with self.assertRaises(sequences_lib.MultipleTimeSignatureException):
       quantized.from_note_sequence(self.note_sequence, self.steps_per_quarter)
 

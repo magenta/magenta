@@ -22,7 +22,6 @@ from magenta.music import melodies_lib
 from magenta.music import sequences_lib
 from magenta.music import testing_lib
 
-
 NOTE_OFF = constants.MELODY_NOTE_OFF
 NO_EVENT = constants.MELODY_NO_EVENT
 
@@ -200,7 +199,9 @@ class MelodiesLibTest(tf.test.TestCase):
     self.assertEqual(16, melody.steps_per_bar)
 
   def testFromQuantizedSequenceNotCommonTimeSig(self):
-    self.quantized_sequence.time_signature = sequences_lib.TimeSignature(7, 8)
+    self.quantized_sequence.time_signature = (
+        sequences_lib.QuantizedSequence.TimeSignature(numerator=7,
+                                                      denominator=8))
     testing_lib.add_quantized_track_to_sequence(
         self.quantized_sequence, 0,
         [(12, 100, 0, 40), (11, 55, 1, 2), (40, 45, 10, 14),
@@ -279,7 +280,9 @@ class MelodiesLibTest(tf.test.TestCase):
     self.assertEqual(expected, list(melody))
 
   def testFromNotesStepsPerBar(self):
-    self.quantized_sequence.time_signature = sequences_lib.TimeSignature(7, 8)
+    self.quantized_sequence.time_signature = (
+        sequences_lib.QuantizedSequence.TimeSignature(numerator=7,
+                                                      denominator=8))
     self.quantized_sequence.steps_per_quarter = 12
     self.quantized_sequence.tracks[0] = []
     melody = melodies_lib.MonophonicMelody()

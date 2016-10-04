@@ -49,13 +49,6 @@ def is_power_of_2(x):
   return x and not x & (x - 1)
 
 
-Note = collections.namedtuple(
-    'Note', ['pitch', 'velocity', 'start', 'end', 'instrument', 'program'])
-TimeSignature = collections.namedtuple('TimeSignature',
-                                       ['numerator', 'denominator'])
-ChordSymbol = collections.namedtuple('ChordSymbol', ['step', 'figure'])
-
-
 class QuantizedSequence(object):
   """Holds notes and chords which have been quantized to time steps.
 
@@ -76,6 +69,16 @@ class QuantizedSequence(object):
     steps_per_quarter: How many quantization steps per quarter note of music.
   """
 
+  # Disabling pylint since it is recognizing these as attributes instead of
+  # classes.
+  # pylint: disable=invalid-name
+  Note = collections.namedtuple(
+      'Note', ['pitch', 'velocity', 'start', 'end', 'instrument', 'program'])
+  TimeSignature = collections.namedtuple('TimeSignature',
+                                         ['numerator', 'denominator'])
+  ChordSymbol = collections.namedtuple('ChordSymbol', ['step', 'figure'])
+  # pylint: enable=invalid-name
+
   def __init__(self):
     self._reset()
 
@@ -83,7 +86,8 @@ class QuantizedSequence(object):
     self.tracks = {}
     self.chords = []
     self.qpm = 120.0
-    self.time_signature = TimeSignature(4, 4)  # numerator, denominator
+    self.time_signature = QuantizedSequence.TimeSignature(numerator=4,
+                                                          denominator=4)
     self.steps_per_quarter = 4
 
   def steps_per_bar(self):
@@ -128,7 +132,7 @@ class QuantizedSequence(object):
     self.steps_per_quarter = steps_per_quarter
 
     if note_sequence.time_signatures:
-      self.time_signature = TimeSignature(
+      self.time_signature = QuantizedSequence.TimeSignature(
           note_sequence.time_signatures[0].numerator,
           note_sequence.time_signatures[0].denominator)
     for time_signature in note_sequence.time_signatures[1:]:
@@ -164,12 +168,13 @@ class QuantizedSequence(object):
 
       if note.instrument not in self.tracks:
         self.tracks[note.instrument] = []
-      self.tracks[note.instrument].append(Note(pitch=note.pitch,
-                                               velocity=note.velocity,
-                                               start=start_step,
-                                               end=end_step,
-                                               instrument=note.instrument,
-                                               program=note.program))
+      self.tracks[note.instrument].append(
+          QuantizedSequence.Note(pitch=note.pitch,
+                                 velocity=note.velocity,
+                                 start=start_step,
+                                 end=end_step,
+                                 instrument=note.instrument,
+                                 program=note.program))
 
     # Also add chord symbol annotations to the quantized sequence.
     for annotation in note_sequence.text_annotations:
@@ -179,7 +184,8 @@ class QuantizedSequence(object):
         if step < 0:
           raise NegativeTimeException(
               'Got negative chord time: step = %s' % step)
-        self.chords.append(ChordSymbol(step=step, figure=annotation.text))
+        self.chords.append(
+            QuantizedSequence.ChordSymbol(step=step, figure=annotation.text))
 
   def __eq__(self, other):
     if not isinstance(other, QuantizedSequence):
