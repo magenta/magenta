@@ -3,6 +3,7 @@
 import abc
 from collections import deque
 import Queue
+import logging
 import re
 import threading
 import time
@@ -412,7 +413,7 @@ class MidiCaptor(threading.Thread):
         msg_str = str(msg)
         for regex, queue in self._iter_signals:
           if regex.match(msg_str) is not None:
-            queue.put(msg)
+            queue.put(msg.copy())
 
       self._capture_message(msg)
 
@@ -469,8 +470,8 @@ class MidiCaptor(threading.Thread):
          thread is terminated and `end_time` is not None.
     """
     # Make a copy of the sequence currently being captured.
+    current_captured_sequence = music_pb2.NoteSequence()
     with self._lock:
-      current_captured_sequence = music_pb2.NoteSequence()
       current_captured_sequence.CopyFrom(self._captured_sequence)
 
     if self.is_alive():
@@ -496,6 +497,9 @@ class MidiCaptor(threading.Thread):
     Exactly one of `signal` or `period` must be specified. Continues until the
     captor terminates, at which point the final captured sequence is yielded
     before returning.
+
+    If consecutive calls to iterate are longer than the period, immediately
+    yields and logs a warning.
 
     Args:
       signal: A MidiSignal to use as a signal to yield, or None.
@@ -523,7 +527,14 @@ class MidiCaptor(threading.Thread):
 
     while self.is_alive():
       if signal is None:
-        sleeper.sleep_until(next_yield_time)
+        skipped_periods = (time.time() - next_yield_time) // period
+        if skipped_periods > 0:
+          logging.warning(
+            'Skipping %d %.3fs period(s) to catch up on iteration.',
+            skipped_periods, period)
+          next_yield_time += skipped_periods * period
+        else:
+          sleeper.sleep_until(next_yield_time)
         end_time = next_yield_time
         next_yield_time += period
       else:
@@ -540,7 +551,8 @@ class MidiCaptor(threading.Thread):
       with self._lock:
         if not self.is_alive():
           break
-        yield self.captured_sequence(end_time)
+        captured_sequence = self.captured_sequence(end_time)
+      yield captured_sequence
     yield self.captured_sequence()
 
   def register_callback(self, fn, signal=None, period=None):
@@ -552,6 +564,9 @@ class MidiCaptor(threading.Thread):
     Exactly one of `signal` or `period` must be specified. Continues until the
     captor thread terminates, at which point the callback is called with the
     final sequence, or `cancel_callback` is called.
+
+    If callback execution is longer than a period, immediately calls upon
+    completion and logs a warning.
 
     Args:
       fn: The callback function to call, passing in the captured sequence.
