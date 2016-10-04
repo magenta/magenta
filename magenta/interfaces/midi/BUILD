@@ -22,6 +22,9 @@ py_library(
     deps = [
         ":midi_hub",
     ],
+    visibility = [
+        # internal notebook binary
+    ],
 )
 
 py_library(
