@@ -2,8 +2,8 @@
 
 import abc
 from collections import deque
-import Queue
 import logging
+import Queue
 import re
 import threading
 import time
