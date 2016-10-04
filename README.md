@@ -21,7 +21,7 @@ First, download the
 [Python 2.7 Anaconda installer](https://www.continuum.io/downloads) (you can
 skip this step if you already have Anaconda installed).
 
-Next, create and activate a magenta conda environment using Python 2.7 with
+Next, create and activate a Magenta conda environment using Python 2.7 with
 Jupyter notebook support:
 
 ```
@@ -43,8 +43,8 @@ Install the Magenta pip package:
 pip install magenta
 ```
 
-The magenta libraries are now available for use within Python programs and
-Jupyter notebooks, and the magenta scripts are installed in your path!
+The Magenta libraries are now available for use within Python programs and
+Jupyter notebooks, and the Magenta scripts are installed in your path!
 
 ### Docker
 Another way to try out Magenta is to use our Docker container.
