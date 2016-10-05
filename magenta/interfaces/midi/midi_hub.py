@@ -138,7 +138,10 @@ class Metronome(threading.Thread):
     outport: The Mido port for sending messages.
     qpm: The integer quarters per minute to signal on.
     start_time: The float wall time in seconds to treat as the first beat
-        for alignment.
+        for alignment. If in the future, the first tick will not start until
+        after this time.
+    stop_time: The float wall time in seconds after which the metronome should
+        stop, or None if it should continue until `stop` is called.
     velocity: The velocity of the metronome's tick `note_on` message.
     pitch: The pitch of the metronome's tick `note_on` message.
     duration: The duration of the metronome's tick.
@@ -148,6 +151,7 @@ class Metronome(threading.Thread):
                outport,
                qpm,
                start_time,
+               stop_time=None,
                velocity=_DEFAULT_METRONOME_VELOCITY,
                pitch=_DEFAULT_METRONOME_PITCH,
                duration=_DEFAULT_METRONOME_TICK_DURATION):
@@ -158,14 +162,16 @@ class Metronome(threading.Thread):
     self._pitch = pitch
     self._duration = duration
     # A signal for when to stop the metronome.
-    self._stop_metronome = threading.Event()
+    self._stop_time = stop_time
     super(Metronome, self).__init__()
 
   def run(self):
     """Outputs metronome tone on the qpm interval until stop signal received."""
     period = 60. / self._qpm
     sleeper = concurrency.Sleeper()
-    while not self._stop_metronome.is_set():
+    if time.time() < self._start_time:
+      sleeper.sleep_until(self._start_time - period / 2)
+    while self._stop_time is None or self._stop_time > time.time():
       now = time.time()
       next_tick_time = now + period - ((now - self._start_time) % period)
       sleeper.sleep_until(next_tick_time)
@@ -185,10 +191,17 @@ class Metronome(threading.Thread):
               note=self._pitch,
               channel=_METRONOME_CHANNEL))
 
-  def stop(self):
-    """Signals for the metronome to stop and joins thread."""
-    self._stop_metronome.set()
-    self.join()
+  def stop(self, stop_time=0, block=True):
+    """Signals for the metronome to stop.
+
+    Args:
+      stop_time: The float wall time in seconds after which the metronome should
+          stop. By default, stops at next tick.
+      block: If true, blocks until thread terminates.
+    """
+    self._stop_time = stop_time
+    if block:
+      self.join()
 
 
 class MidiPlayer(threading.Thread):
@@ -843,9 +856,10 @@ class MidiHub(object):
       assert len(self._open_notes) <= 1
       if msg.type not in ['note_on', 'note_off']:
         self._outport.send(msg)
-      elif msg.type == 'note_off' and msg.note in self._open_notes:
+      elif (msg.type == 'note_off' or
+            msg.type == 'note_on' and msg.velocity == 0):
         self._outport.send(msg)
-        self._open_notes.remove(msg.note)
+        self._open_notes.discard(msg.note)
       elif msg.type == 'note_on':
         if self._open_notes:
           self._outport.send(
@@ -957,11 +971,17 @@ class MidiHub(object):
     self._metronome.start()
 
   @concurrency.serialized
-  def stop_metronome(self):
-    """Stops the metronome if it is currently running."""
+  def stop_metronome(self, stop_time=0, block=True):
+    """Stops the metronome at the given time if it is currently running.
+
+    Args:
+      stop_time: The float wall time in seconds after which the metronome should
+          stop. By default, stops at next tick.
+      block: If true, blocks until metronome is stopped.
+    """
     if self._metronome is None:
       return
-    self._metronome.stop()
+    self._metronome.stop(stop_time, block)
     self._metronome = None
 
   def start_playback(self, sequence, allow_updates=False):

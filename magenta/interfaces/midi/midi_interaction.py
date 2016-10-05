@@ -68,6 +68,14 @@ def filter_instrument(sequence, instrument, from_time=0):
     filtered_sequence.notes.add().CopyFrom(note)
   return filtered_sequence
 
+# TODO(adarob): Move to sequence_utils.
+def adjust_times(sequence, delta_seconds):
+  """Adjusts times in NoteSequence by given amount"""
+  for note in sequence.notes:
+    note.start_time += delta_seconds
+    note.end_time += delta_seconds
+  sequence.total_time += delta_seconds
+
 
 class MidiInteraction(threading.Thread):
   """Base class for handling interaction between MIDI and SequenceGenerator.
@@ -238,8 +246,9 @@ class CallAndResponseMidiInteraction(MidiInteraction):
     input is captured and used to generate the response, which is then played
     back during the response phase.
     """
-    # How should we handle the start time? Wait until the first note is played?
+    # We measure time in units of quarter notes.
     quarter_duration = 60.0 / self._qpm
+    # Start time in quarter notes from the epoch.
     start_quarters = (time.time() + 1.0) // quarter_duration
 
     # The number of notes before call phase ends to start generation for
@@ -247,40 +256,60 @@ class CallAndResponseMidiInteraction(MidiInteraction):
     # while avoiding late response starts.
     predictahead_quarters = 1
 
-    # Offset of end of accompaniment in quarter notes from the epoch.
-    call_start_quarters = start_quarters
+    # Offset to beginning of call phase from start_quarters.
+    call_offset_quarters = 0
 
     # Start metronome.
-    self._midi_hub.start_metronome(self._qpm, start_quarters * quarter_duration)
     while not self._stop_signal.is_set():
       # Call phase.
       # Capture sequence.
-      if self._phase_bars is not None:
-        capture_quarters = (
-            self._phase_bars * self._quarters_per_bar - predictahead_quarters)
+      print "CALL", call_offset_quarters
 
-        captured_sequence = self._midi_hub.capture_sequence(
-            self._qpm,
-            call_start_quarters * quarter_duration,
-            stop_time=(
-                (call_start_quarters + capture_quarters) * quarter_duration))
+      # Call phase start in quarter notes from the epoch.
+      call_start_quarters = start_quarters + call_offset_quarters
+      # Start the metronome at the beginning of the call phase.
+      self._midi_hub.start_metronome(
+          self._qpm, call_start_quarters * quarter_duration)
+
+      # Start a captor at the beginning of the call phase.
+      captor = self._midi_hub.start_capture(
+          self._qpm, call_start_quarters * quarter_duration)
+
+      if self._phase_bars is not None:
+        # The duration of the call phase in quarter notes.
+        call_quarters = self._phase_bars * self._quarters_per_bar
+        # The duration of the capture in quarter notes.
+        capture_quarters = call_quarters - predictahead_quarters
       else:
-        captor = self._midi_hub.start_capture(call_start_quarters *
-                                              quarter_duration, self._qpm)
+        # Wait for end signal.
         self._midi_hub.wait_for_event(self._end_call_signal)
-        remaining_call_quarters = (
-            (time.time() // quarter_duration - start_quarters) %
-            self._quarters_per_bar)
+        # The duration of the call phase in quarter notes.
+        # We end the call phase at the end of the next bar that is at least
+        # `predicathead_quarters` in the future.
+        call_quarters = time.time() // quarter_duration - call_start_quarters
+        remaining_call_quarters = -call_quarters % self._quarters_per_bar
         if remaining_call_quarters < predictahead_quarters:
           remaining_call_quarters += self._quarters_per_bar
-        captor.stop(stop_time=(
-            (call_start_quarters + remaining_call_quarters) * quarter_duration))
-        captured_sequence = captor.captured_sequence()
+        call_quarters += remaining_call_quarters
+        # The duration of the capture in quarter notes.
+        capture_quarters = call_quarters - predictahead_quarters
+
+      # Set the metronome to stop at the appropriate time.
+      self._midi_hub.stop_metronome(
+          (call_quarters + call_start_quarters) * quarter_duration,
+          block=False)
+
+      # Stop the and captor at the appropriate time.
+      captor.stop(stop_time=(
+          (call_start_quarters + capture_quarters) * quarter_duration))
+      captured_sequence = captor.captured_sequence()
+
+      adjust_times(captured_sequence, -(call_start_quarters * quarter_duration))
+
       # Generate sequence.
-      capture_end_quarters = captured_sequence.total_time // quarter_duration
-      response_start_quarters = capture_end_quarters + predictahead_quarters
-      response_end_quarters = (response_start_quarters +
-                               (capture_end_quarters - call_start_quarters))
+      response_start_quarters = call_quarters
+      response_end_quarters = 2 * call_quarters
+
       generator_options = generator_pb2.GeneratorOptions()
       generator_options.generate_sections.add(
           start_time_seconds=response_start_quarters * quarter_duration,
@@ -290,25 +319,26 @@ class CallAndResponseMidiInteraction(MidiInteraction):
       response_sequence = self._sequence_generator.generate(
           captured_sequence, generator_options)
 
+      adjust_times(response_sequence, call_start_quarters * quarter_duration)
+
       # Response phase.
       # Start response playback.
       self._midi_hub.start_playback(response_sequence)
 
       # Compute and log delta time between end of accompaniment before update
       # when the extension generation completed..
-      delta_time = time.time() - (response_start_quarters * quarter_duration)
-      if delta_time > 0:
-        predictahead_quarters += 1
-        tf.logging.info('Generator is lagging by %.3f seconds. '
-                        'Increasing predictahead_quarters to %d.', -delta_time,
-                        predictahead_quarters)
-      elif predictahead_quarters > 1:
+      remaining_time = (
+          (response_start_quarters + call_start_quarters) * quarter_duration -
+          time.time())
+      if remaining_time > (predictahead_quarters * quarter_duration):
         predictahead_quarters -= 1
         tf.logging.info('Generator is ahead by %.3f seconds. '
-                        'Decreasing predictahead_quarters to %d.', delta_time,
-                        predictahead_quarters)
+                        'Decreasing predictahead_quarters to %d.',
+                        remaining_time, predictahead_quarters)
+      elif remaining_time < 0:
+        predictahead_quarters += 1
+        tf.logging.info('Generator is lagging by %.3f seconds. '
+                        'Increasing predictahead_quarters to %d.',
+                        -remaining_time, predictahead_quarters)
 
-      call_start_quarters = response_end_quarters
-
-    # Stop metronome.
-    self._midi_hub.stop_metronome()
+      call_offset_quarters += response_end_quarters
