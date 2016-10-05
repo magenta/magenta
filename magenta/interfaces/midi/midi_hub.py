@@ -960,6 +960,19 @@ class MidiHub(object):
     cond_var.wait()
 
   @concurrency.serialized
+  def wake_signal_waiters(self, signal=None):
+    """Wakes all threads waiting on a signal event.
+
+    Args:
+      signal: The MidiSignal to wake threads waiting on, or None to wake all.
+    """
+    for regex in list(self._signals):
+      if signal is None or regex.pattern == str(signal):
+        print str(signal)
+        self._signals[regex].notify_all()
+        del self._signals[regex]
+
+  @concurrency.serialized
   def start_metronome(self, qpm, start_time):
     """Starts or re-starts the metronome with the given arguments.
 
