@@ -28,6 +28,11 @@ from midi_io import midi_to_sequence_proto
 from midi_io import MIDIConversionError
 from midi_io import sequence_proto_to_midi_file
 
+from midi_synth import fluidsynth
+from midi_synth import synthesize
+
+from notebook_utils import play_sequence
+
 from sequence_generator import BaseSequenceGenerator
 from sequence_generator import SequenceGeneratorException
 
