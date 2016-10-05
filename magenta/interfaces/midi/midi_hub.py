@@ -26,6 +26,16 @@ class MidiHubException(Exception):
   pass
 
 
+def get_available_input_ports(self):
+  """Returns a list of available input MIDI ports."""
+  return mido.get_input_names()
+
+
+def get_available_output_ports(self):
+  """Returns a list of available output MIDI ports."""
+  return mido.get_output_names()
+
+
 class MidiSignal(object):
   """A class for representing a MIDI-based event signal.
 
@@ -731,12 +741,6 @@ class MidiHub(object):
 
   def __init__(self, input_midi_port, output_midi_port, texture_type,
                passthrough=True):
-    self._inport = (input_midi_port
-                    if isinstance(input_midi_port, mido.ports.BaseInput)
-                    else mido.open_input(input_midi_port))
-    self._outport = (output_midi_port
-                     if isinstance(output_midi_port, mido.ports.BaseOutput)
-                     else mido.open_output(output_midi_port))
     self._texture_type = texture_type
     self._passthrough = passthrough
     # When `passthrough` is True, this is the set of open MIDI note pitches.
@@ -752,6 +756,14 @@ class MidiHub(object):
     # Potentially active player threads.
     self._players = []
     self._metronome = None
+
+    # Open MIDI ports.
+    self._inport = (input_midi_port
+                    if isinstance(input_midi_port, mido.ports.BaseInput)
+                    else mido.open_input(input_midi_port))
+    self._outport = (output_midi_port
+                     if isinstance(output_midi_port, mido.ports.BaseOutput)
+                     else mido.open_output(output_midi_port))
 
     # Start processing incoming messages.
     self._inport.callback = self._timestamp_and_handle_message

@@ -153,7 +153,7 @@ class AccompanimentMidiInteraction(MidiInteraction):
                                           start_quarters * quarter_duration)
     # Start player.
     player = self._midi_hub.start_playback(
-        accompaniment_sequence, stay_alive=True)
+        accompaniment_sequence, allow_updates=True)
     while not self._stop_signal.is_set():
       # Offset of end of captured sequence in quarter notes from the epoch.
       capture_end_quarters = time.time() // quarter_duration
@@ -248,7 +248,7 @@ class CallAndResponseMidiInteraction(MidiInteraction):
     call_start_quarters = start_quarters
 
     # Start metronome.
-    self._midi_hub.start_metronome(start_quarters * quarter_duration, self._qpm)
+    self._midi_hub.start_metronome(self._qpm, start_quarters * quarter_duration)
     while not self._stop_signal.is_set():
       # Call phase.
       # Capture sequence.
