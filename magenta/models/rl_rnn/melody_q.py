@@ -758,8 +758,7 @@ class MelodyQNetwork(object):
       states = np.empty((len(samples), self.q_network.cell.state_size))
       new_states = np.empty((len(samples),
                              self.target_q_network.cell.state_size))
-      reward_rnn_states = np.empty((len(samples)), 
-                                      self.reward_rnn.cell.state_size)
+      reward_rnn_states = np.empty((len(samples), self.reward_rnn.cell.state_size))
       observations = np.empty((len(samples), self.input_size))
       new_observations = np.empty((len(samples), self.input_size))
       action_mask = np.zeros((len(samples), self.num_actions))
