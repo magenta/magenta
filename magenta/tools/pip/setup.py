@@ -16,8 +16,8 @@
 from setuptools import find_packages
 from setuptools import setup
 
+import magenta
 
-_VERSION = '0.1.1'
 
 REQUIRED_PACKAGES = [
     'mido >= 1.1.14',
@@ -42,7 +42,7 @@ CONSOLE_SCRIPTS = [
 
 setup(
     name='magenta',
-    version=_VERSION,
+    version=magenta.__version__,
     description='Use machine learning to create art and music',
     long_description='',
     url='https://magenta.tensorflow.org/',
