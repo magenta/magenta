@@ -124,7 +124,8 @@ class MelodyQNetwork(object):
         play next (the argmax of its softmax probabilities) deterministically
         becomes the next note it will observe. If True, the next observation
         will be sampled from the model's softmax output.
-      algorithm: can be 'default', 'psi', or 'g' for different learning algorithms
+      algorithm: can be 'default', 'psi', 'g' or 'pure_rl', for different 
+        learning algorithms
       num_notes_in_melody: The length of a composition of the model
       input_size: the size of the one-hot vector encoding a note that is input
         to the model.
@@ -164,7 +165,7 @@ class MelodyQNetwork(object):
       self.backup_checkpoint_file = backup_checkpoint_file
       self.custom_hparams = custom_hparams
 
-      if self.algorithm == 'g':
+      if self.algorithm == 'g' or self.algorithm == 'pure_rl':
         self.reward_mode = 'music_theory_only'
 
       if dqn_hparams is None:
@@ -204,7 +205,9 @@ class MelodyQNetwork(object):
     if not exists(self.output_dir):
       makedirs(self.output_dir)
 
-    if initialize_immediately:
+    if self.algorithm == 'pure_rl'
+      self.initialize_internal_models_graph_session(restore_from_checkpoint=False)
+    elif initialize_immediately and self.algorithm:
       self.initialize_internal_models_graph_session()
 
   def initialize_internal_models_graph_session(self, restore_from_checkpoint=True):
@@ -1415,7 +1418,7 @@ class MelodyQNetwork(object):
     composition = self.composition + [np.argmax(action)]
     motif, num_notes_in_motif = self.detect_last_motif(composition=composition)
     if motif is not None:
-      motif_complexity_bonus = max(num_notes_in_motif - 3, 0)
+      motif_complexity_bonus = max((num_notes_in_motif - 3)*.5, 0)
       return reward_amount + motif_complexity_bonus
     else:
       return 0.0
