@@ -169,11 +169,11 @@ class Metronome(threading.Thread):
     """Outputs metronome tone on the qpm interval until stop signal received."""
     period = 60. / self._qpm
     sleeper = concurrency.Sleeper()
-    if time.time() < self._start_time:
-      sleeper.sleep_until(self._start_time - period / 2)
-    while self._stop_time is None or self._stop_time > time.time():
-      now = time.time()
-      next_tick_time = now + period - ((now - self._start_time) % period)
+    now = time.time()
+    next_tick_time = max(
+        self._start_time,
+        now + period - ((now - self._start_time) % period))
+    while self._stop_time is None or self._stop_time > next_tick_time:
       sleeper.sleep_until(next_tick_time)
 
       self._outport.send(
@@ -190,6 +190,9 @@ class Metronome(threading.Thread):
               type='note_off',
               note=self._pitch,
               channel=_METRONOME_CHANNEL))
+
+      now = time.time()
+      next_tick_time = now + period - ((now - self._start_time) % period)
 
   def stop(self, stop_time=0, block=True):
     """Signals for the metronome to stop.

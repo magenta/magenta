@@ -68,9 +68,10 @@ def filter_instrument(sequence, instrument, from_time=0):
     filtered_sequence.notes.add().CopyFrom(note)
   return filtered_sequence
 
+
 # TODO(adarob): Move to sequence_utils.
 def adjust_times(sequence, delta_seconds):
-  """Adjusts times in NoteSequence by given amount"""
+  """Adjusts times in NoteSequence by given amount."""
   for note in sequence.notes:
     note.start_time += delta_seconds
     note.end_time += delta_seconds
@@ -116,92 +117,6 @@ class MidiInteraction(threading.Thread):
           'Attempted to stop MidiInteraction that is not running.')
     self._stop_signal.set()
     self.join()
-
-
-class AccompanimentMidiInteraction(MidiInteraction):
-  """Implementation of a MidiInteraction for generating real-time accompaniment.
-
-  Input from the MidiHub is continuously captured and passed to a
-  SequenceGenerator to predict what an accompanying voice should play in the
-  near future. This generated accompaniment is then played by the MidiHub.
-
-  Args:
-    midi_hub: The MidiHub to use for MIDI I/O.
-    qpm: The quarters per minute to use for this interaction.
-    sequence_generator: The SequenceGenerator to use to generate the
-        accompanying voice in this interaction.
-    predictahead_quarters: The number of quarter notes to start prediction past
-        the end of the captured sequence. Should be determined by how the model
-        underlying the generator was trained.
-  """
-
-  def __init__(self, midi_hub, qpm, sequence_generator, predictahead_quarters):
-    super(AccompanimentMidiInteraction, self).__init__(midi_hub, qpm)
-    self._sequence_generator = sequence_generator
-    self._predicathead_quarters = predictahead_quarters
-
-  def run(self):
-    """The main loop for a real-time accompaniment interaction.
-
-    Continuously captures input from the MidiHub while repeatedly generating
-    additional steps of the accompaniment sequence and playing it back via
-    the MidiHub. Stops when `_stop_signal` is set by the `stop` method).
-    """
-    # How should we handle the start time? Wait until the first note is played?
-    quarter_duration = 60.0 / self._qpm
-    start_quarters = (time.time() + 1.0) // quarter_duration
-
-    # Offset of end of accompaniment in quarter notes from the epoch.
-    accompaniment_end_quarters = start_quarters
-    accompaniment_sequence = music_pb2.NoteSequence()
-
-    # Start metronome.
-    self._midi_hub.start_metronome(self._qpm, start_quarters * quarter_duration)
-    # Start captor.
-    captor = self._midi_hub.start_capture(self._qpm,
-                                          start_quarters * quarter_duration)
-    # Start player.
-    player = self._midi_hub.start_playback(
-        accompaniment_sequence, allow_updates=True)
-    while not self._stop_signal.is_set():
-      # Offset of end of captured sequence in quarter notes from the epoch.
-      capture_end_quarters = time.time() // quarter_duration
-      captured_sequence = captor.captured_sequence(
-          end_time=capture_end_quarters * quarter_duration)
-      generation_end_quarters = (
-          capture_end_quarters + self._predicathead_quarters)
-      if captured_sequence.notes:
-        tf.logging.info('Generating')
-        generator_options = generator_pb2.GeneratorOptions()
-        generator_options.generate_sections.add(
-            start_time_seconds=accompaniment_end_quarters * quarter_duration,
-            end_time_seconds=generation_end_quarters * quarter_duration)
-
-        # Generate additional accompaniment notes.
-        generated_sequence = self._sequence_generator.generate(
-            merge_sequence_notes(captured_sequence, accompaniment_sequence),
-            generator_options)
-        accompaniment_sequence = filter_instrument(generated_sequence, 0)
-
-        # Update player with extended accompaniment.
-        player.upate_sequence(accompaniment_sequence)
-
-      # Compute and log delta time between end of accompaniment before update
-      # when the extension generation completed.
-      delta_time = time.time() - (accompaniment_end_quarters * quarter_duration)
-      if delta_time > 0.001:
-        tf.logging.warn('Generator is lagging by %.3f seconds.', delta_time)
-      elif delta_time < 0:
-        tf.logging.debug('Generator is ahead by %.3f seconds.', -delta_time)
-
-      accompaniment_end_quarters = generation_end_quarters
-
-    # Stop metronome.
-    self._midi_hub.stop_metronome()
-    # Stop captor.
-    captor.stop()
-    # Stop player.
-    player.stop()
 
 
 class CallAndResponseMidiInteraction(MidiInteraction):
@@ -259,11 +174,8 @@ class CallAndResponseMidiInteraction(MidiInteraction):
     # Offset to beginning of call phase from start_quarters.
     call_offset_quarters = 0
 
-    # Start metronome.
     while not self._stop_signal.is_set():
       # Call phase.
-      # Capture sequence.
-      print "CALL", call_offset_quarters
 
       # Call phase start in quarter notes from the epoch.
       call_start_quarters = start_quarters + call_offset_quarters
