@@ -177,7 +177,6 @@ py_library(
     deps = [
         "//magenta/music:constants",
         "//magenta/protobuf:music_py_pb2",
-        "@midi//:midi",
         "@pretty_midi//:pretty_midi",
         # tensorflow dep
     ],
@@ -200,6 +199,8 @@ py_test(
     srcs_version = "PY2AND3",
     deps = [
         ":midi_io",
+        "@mido//:mido",
+        "@pretty_midi//:pretty_midi",
         # tensorflow dep
     ],
 )
