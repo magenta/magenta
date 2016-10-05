@@ -33,14 +33,6 @@ tf.app.flags.DEFINE_string('model_save_dir', '/home/natasha/Dropbox (MIT)/Google
                            'model will be saved.')
 tf.app.flags.DEFINE_string('midi_primer', '/home/natasha/Developer/magenta_my_fork/magenta/magenta/models/rl_rnn/testdata/primer.mid',
                            'A midi file that can be used to prime the model')
-tf.app.flags.DEFINE_string('before_image', 'before_rl.png',
-                           'Name for the file that will store an image of the'
-                           'models note probabilities as it composes before RL'
-                           'is applied')
-tf.app.flags.DEFINE_string('after_image', 'psi.png',
-                           'Name for the file that will store an image of the'
-                           'models note probabilities as it composes after RL'
-                           'is applied')
 tf.app.flags.DEFINE_integer('training_steps', 4000000,
                             'The number of steps used to train the model')
 tf.app.flags.DEFINE_integer('exploration_steps', 2000000,
@@ -84,8 +76,8 @@ def main(_):
 
   tf.logging.info('Generating an initial music sequence')
   tf.logging.info('Saving images and melodies to: %s', mq_net.output_dir)
-  mq_net.generate_music_sequence(visualize_probs=True,
-                                 prob_image_name=FLAGS.before_image)
+  #mq_net.generate_music_sequence(visualize_probs=True,
+  #                               prob_image_name=FLAGS.before_image)
 
   tf.logging.info('\nTraining...')
   mq_net.train(num_steps=FLAGS.training_steps,
@@ -97,7 +89,7 @@ def main(_):
   plt.savefig(mq_net.output_dir + FLAGS.algorithm +'-rewards_over_time.png')
 
   mq_net.generate_music_sequence(visualize_probs=True,
-                                 prob_image_name=FLAGS.after_image)
+                                 prob_image_name=FLAGS.algorithm + '.png')
 
   mq_net.save_model(FLAGS.model_save_dir, FLAGS.algorithm)
 
