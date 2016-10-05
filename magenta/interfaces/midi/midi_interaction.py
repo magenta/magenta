@@ -98,8 +98,6 @@ class MidiInteraction(threading.Thread):
     self._qpm = qpm
     # A signal to tell the main loop when to stop.
     self._stop_signal = threading.Event()
-    # A signal to specify when the main loop has stopped.
-    self._stopped = threading.Event()
     super(MidiInteraction, self).__init__()
 
   @abc.abstractmethod
@@ -208,7 +206,7 @@ class CallAndResponseMidiInteraction(MidiInteraction):
           (call_quarters + call_start_quarters) * quarter_duration,
           block=False)
 
-      # Stop the and captor at the appropriate time.
+      # Stop the captor at the appropriate time.
       captor.stop(stop_time=(
           (call_start_quarters + capture_quarters) * quarter_duration))
       captured_sequence = captor.captured_sequence()

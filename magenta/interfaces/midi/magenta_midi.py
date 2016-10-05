@@ -52,12 +52,12 @@ tf.app.flags.DEFINE_integer(
     'phase_bars',
     None,
     'The number of bars of duration to use for the call and response phases. '
-    'if none, `phase_control_number` must be specified.')
+    'If none, `phase_control_number` must be specified.')
 tf.app.flags.DEFINE_integer(
     'phase_control_number',
     None,
-    'The control change number to use as a signal to switch between call and '
-    'response phases. If None, `phase_bars` must be specified.')
+    'The control change number to use as a signal to end the call phase. If '
+    'None, `phase_bars` must be specified.')
 # TODO(adarob): Make the qpm adjustable by a control change signal.
 tf.app.flags.DEFINE_integer(
     'qpm',
