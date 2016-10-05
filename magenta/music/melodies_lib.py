@@ -372,6 +372,7 @@ class MonophonicMelody(events_lib.SimpleEventSequence):
   def to_sequence(self,
                   velocity=100,
                   instrument=0,
+                  program=0,
                   sequence_start_time=0.0,
                   qpm=120.0):
     """Converts the MonophonicMelody to NoteSequence proto.
@@ -382,6 +383,7 @@ class MonophonicMelody(events_lib.SimpleEventSequence):
     Args:
       velocity: Midi velocity to give each note. Between 1 and 127 (inclusive).
       instrument: Midi instrument to give each note.
+      program: Midi program to give each note.
       sequence_start_time: A time in seconds (float) that the first note in the
           sequence will land on.
       qpm: Quarter notes per minute (float).
@@ -411,6 +413,7 @@ class MonophonicMelody(events_lib.SimpleEventSequence):
         current_sequence_note.pitch = note
         current_sequence_note.velocity = velocity
         current_sequence_note.instrument = instrument
+        current_sequence_note.program = program
 
       elif note == MELODY_NOTE_OFF:
         # End any sustained notes.
