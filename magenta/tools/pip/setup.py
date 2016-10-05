@@ -60,7 +60,7 @@ setup(
         'Topic :: Scientific/Engineering :: Mathematics',
         'Topic :: Software Development :: Libraries :: Python Modules',
         'Topic :: Software Development :: Libraries',
-        ],
+    ],
     keywords='tensorflow machine learning magenta music art',
 
     packages=find_packages(),

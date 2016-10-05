@@ -26,12 +26,12 @@ class MidiHubException(Exception):
   pass
 
 
-def get_available_input_ports(self):
+def get_available_input_ports():
   """Returns a list of available input MIDI ports."""
   return mido.get_input_names()
 
 
-def get_available_output_ports(self):
+def get_available_output_ports():
   """Returns a list of available output MIDI ports."""
   return mido.get_output_names()
 
@@ -279,7 +279,7 @@ class MidiPlayer(threading.Thread):
     # Assumes model where NoteSequence is time-stampped with wall time.
     # TODO(hanzorama): Argument to allow initial start not at sequence start?
 
-    while self._message_queue[0].time < time.time():
+    while self._message_queue and self._message_queue[0].time < time.time():
       self._message_queue.popleft()
 
     while True:

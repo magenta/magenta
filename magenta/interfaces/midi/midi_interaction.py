@@ -35,7 +35,8 @@ def merge_sequence_notes(sequence_1, sequence_2):
   merged_sequence = music_pb2.NoteSequence()
   merged_sequence.CopyFrom(sequence_1)
   merged_sequence.notes.extend(sequence_2.notes)
-  merged_sequence.total_time = max(sequence_1.end_time, sequence_2.end_time)
+  merged_sequence.total_time = max(sequence_1.total_time, sequence_2.total_time)
+  return merged_sequence
 
 
 # TODO(adarob): Move to sequence_utils.
@@ -143,11 +144,11 @@ class AccompanimentMidiInteraction(MidiInteraction):
     start_quarters = (time.time() + 1.0) // quarter_duration
 
     # Offset of end of accompaniment in quarter notes from the epoch.
-    accompaniment_quarters = start_quarters
+    accompaniment_end_quarters = start_quarters
     accompaniment_sequence = music_pb2.NoteSequence()
 
     # Start metronome.
-    self._midi_hub.start_metronome(start_quarters * quarter_duration, self._qpm)
+    self._midi_hub.start_metronome(self._qpm, start_quarters * quarter_duration)
     # Start captor.
     captor = self._midi_hub.start_capture(self._qpm,
                                           start_quarters * quarter_duration)
@@ -160,30 +161,32 @@ class AccompanimentMidiInteraction(MidiInteraction):
       captured_sequence = captor.captured_sequence(
           end_time=capture_end_quarters * quarter_duration)
       generation_end_quarters = (
-          capture_end_quarters + self._prediction_quarters)
-      request = generator_pb2.GenerateSequenceRequest()
-      request.input_sequence.CopyFrom(
-          merge_sequence_notes(captured_sequence, accompaniment_sequence))
-      request.generator_options.generate_sections.add(
-          start_time_seconds=accompaniment_quarters * quarter_duration,
-          end_time_seconds=generation_end_quarters * quarter_duration)
+          capture_end_quarters + self._predicathead_quarters)
+      if captured_sequence.notes:
+        tf.logging.info('Generating')
+        generator_options = generator_pb2.GeneratorOptions()
+        generator_options.generate_sections.add(
+            start_time_seconds=accompaniment_end_quarters * quarter_duration,
+            end_time_seconds=generation_end_quarters * quarter_duration)
 
-      # Generate additional accompaniment notes.
-      response = self._sequence_generator.generate(request)
-      accompaniment_sequence = filter_instrument(response.generated_sequence, 0)
+        # Generate additional accompaniment notes.
+        generated_sequence = self._sequence_generator.generate(
+            merge_sequence_notes(captured_sequence, accompaniment_sequence),
+            generator_options)
+        accompaniment_sequence = filter_instrument(generated_sequence, 0)
 
-      # Update player with extended accompaniment.
-      player.upate_sequence(accompaniment_sequence)
+        # Update player with extended accompaniment.
+        player.upate_sequence(accompaniment_sequence)
 
       # Compute and log delta time between end of accompaniment before update
-      # when the extension generation completed..
-      delta_time = time.time() - (accompaniment_quarters * quarter_duration)
-      if delta_time < 0:
-        tf.logging.warn('Generator is lagging by %02f seconds.', -delta_time)
-      else:
-        tf.logging.debug('Generator is ahead by %02f seconds.', delta_time)
+      # when the extension generation completed.
+      delta_time = time.time() - (accompaniment_end_quarters * quarter_duration)
+      if delta_time > 0.001:
+        tf.logging.warn('Generator is lagging by %.3f seconds.', delta_time)
+      elif delta_time < 0:
+        tf.logging.debug('Generator is ahead by %.3f seconds.', -delta_time)
 
-      accompaniment_quarters = generation_end_quarters
+      accompaniment_end_quarters = generation_end_quarters
 
     # Stop metronome.
     self._midi_hub.stop_metronome()
@@ -221,7 +224,7 @@ class CallAndResponseMidiInteraction(MidiInteraction):
                quarters_per_bar=4,
                phase_bars=None,
                end_call_signal=None):
-    super(AccompanimentMidiInteraction, self).__init__(midi_hub, qpm)
+    super(CallAndResponseMidiInteraction, self).__init__(midi_hub, qpm)
     self._sequence_generator = sequence_generator
     self._quarters_per_bar = quarters_per_bar
     self._phase_bars = phase_bars
@@ -278,15 +281,14 @@ class CallAndResponseMidiInteraction(MidiInteraction):
       response_start_quarters = capture_end_quarters + predictahead_quarters
       response_end_quarters = (response_start_quarters +
                                (capture_end_quarters - call_start_quarters))
-      request = generator_pb2.GenerateSequenceRequest()
-      request.input_sequence.CopyFrom(captured_sequence)
-      request.generator_options.generate_sections.add(
+      generator_options = generator_pb2.GeneratorOptions()
+      generator_options.generate_sections.add(
           start_time_seconds=response_start_quarters * quarter_duration,
           end_time_seconds=response_end_quarters * quarter_duration)
 
       # Generate response.
-      response = self._sequence_generator.generate(request)
-      response_sequence = response.generated_sequence
+      response_sequence = self._sequence_generator.generate(
+          captured_sequence, generator_options)
 
       # Response phase.
       # Start response playback.
@@ -295,14 +297,14 @@ class CallAndResponseMidiInteraction(MidiInteraction):
       # Compute and log delta time between end of accompaniment before update
       # when the extension generation completed..
       delta_time = time.time() - (response_start_quarters * quarter_duration)
-      if delta_time < 0:
+      if delta_time > 0:
         predictahead_quarters += 1
-        tf.logging.info('Generator is lagging by %02f seconds. '
+        tf.logging.info('Generator is lagging by %.3f seconds. '
                         'Increasing predictahead_quarters to %d.', -delta_time,
                         predictahead_quarters)
       elif predictahead_quarters > 1:
         predictahead_quarters -= 1
-        tf.logging.info('Generator is ahead by %02f seconds. '
+        tf.logging.info('Generator is ahead by %.3f seconds. '
                         'Decreasing predictahead_quarters to %d.', delta_time,
                         predictahead_quarters)
 
