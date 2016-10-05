@@ -33,9 +33,9 @@ tf.app.flags.DEFINE_string('model_save_dir', '/home/natasha/Dropbox (MIT)/Google
                            'model will be saved.')
 tf.app.flags.DEFINE_string('midi_primer', '/home/natasha/Developer/magenta_my_fork/magenta/magenta/models/rl_rnn/testdata/primer.mid',
                            'A midi file that can be used to prime the model')
-tf.app.flags.DEFINE_integer('training_steps', 4000000,
+tf.app.flags.DEFINE_integer('training_steps', 3000000,
                             'The number of steps used to train the model')
-tf.app.flags.DEFINE_integer('exploration_steps', 2000000,
+tf.app.flags.DEFINE_integer('exploration_steps', 1500000,
                             'The number of steps over which the models'
                             'probability of taking a random action (exploring)'
                             'will be annealed from 1.0 to its normal'
@@ -43,7 +43,7 @@ tf.app.flags.DEFINE_integer('exploration_steps', 2000000,
                             'training_steps')
 tf.app.flags.DEFINE_integer('num_notes_in_melody', 32,
                             'The number of notes in each composition')
-tf.app.flags.DEFINE_float('reward_scaler', 2.5,
+tf.app.flags.DEFINE_float('reward_scaler', 2.0,
                           'The weight placed on music theory rewards')
 tf.app.flags.DEFINE_string('training_data_path', '',
                            'Directory where the model will get melody training'
@@ -84,11 +84,9 @@ def main(_):
                exploration_period=FLAGS.exploration_steps)
 
   tf.logging.info('\nFinished training. Saving output figures and composition.')
-  plt.figure()
-  plt.plot(mq_net.rewards_batched)
-  plt.savefig(mq_net.output_dir + FLAGS.algorithm +'-rewards_over_time.png')
+  mq_net.plot_rewards(image_name='Rewards-' + FLAGS.algorithm + '.eps')
 
-  mq_net.generate_music_sequence(visualize_probs=True,
+  mq_net.generate_music_sequence(visualize_probs=True, title=FLAGS.algorithm,
                                  prob_image_name=FLAGS.algorithm + '.png')
 
   mq_net.save_model(FLAGS.model_save_dir, FLAGS.algorithm)

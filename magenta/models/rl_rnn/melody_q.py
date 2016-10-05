@@ -696,7 +696,7 @@ class MelodyQNetwork(object):
       else:
         plt.show()
 
-  def plot_rewards(self):
+  def plot_rewards(self, image_name=None):
     """Plots the cumulative rewards received as the model was trained.
 
     Can be used in colab. If called outside of colab, execution of the program
@@ -712,7 +712,10 @@ class MelodyQNetwork(object):
     plt.xlabel('Training epoch')
     plt.ylabel('Cumulative reward for last ' + str(reward_batch) + ' steps')
     plt.legend(['Total', 'Music theory', 'Note RNN'], loc='best')
-    plt.show()
+    if image_name is not None:
+      plt.savefig(self.output_dir + '/' + image_name)
+    else:
+      plt.show()
 
   def store(self, observation, state, action, reward, newobservation, newstate, 
             reward_rnn_state):
@@ -898,7 +901,7 @@ class MelodyQNetwork(object):
       self.composition.append(np.argmax(new_observation))
       self.beat += 1
 
-      if i % self.output_every_nth == 0:
+      if i > 0 and i % self.output_every_nth == 0:
         # Save a checkpoint.
         save_step = len(self.rewards_batched)*self.output_every_nth
         self.saver.save(self.session, self.log_dir, global_step=save_step)
@@ -1418,7 +1421,7 @@ class MelodyQNetwork(object):
     composition = self.composition + [np.argmax(action)]
     motif, num_notes_in_motif = self.detect_last_motif(composition=composition)
     if motif is not None:
-      motif_complexity_bonus = max((num_notes_in_motif - 3)*.5, 0)
+      motif_complexity_bonus = max((num_notes_in_motif - 3)*.1, 0)
       return reward_amount + motif_complexity_bonus
     else:
       return 0.0
@@ -1567,7 +1570,7 @@ class MelodyQNetwork(object):
       reward = 0.05
       if verbose: print "rest interval"
     if interval == REST_INTERVAL_AFTER_THIRD_OR_FIFTH:
-      reward = 0.1
+      reward = 0.3
       if verbose: print "rest interval after 1st or 5th"
 
     # large leaps and awkward intervals bad
