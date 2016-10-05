@@ -19,6 +19,9 @@ licenses(["notice"])  # Apache 2.0
 
 py_library(
     name = "midi",
+    visibility = [
+        # internal notebook binary
+    ],
     deps = [
         ":midi_hub",
     ],
