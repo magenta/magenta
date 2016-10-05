@@ -14,23 +14,14 @@
 Input wrappers for converting MusicXML into tensorflow.magenta.NoteSequence.
 """
 
-from collections import defaultdict
-import sys
-# pylint: disable=g-import-not-at-top
-if sys.version_info.major <= 2:
-  from cStringIO import StringIO
-else:
-  from io import StringIO
-
-
 # internal imports
-import tensorflow as tf
-from musicxml_parser import *
+from magenta.music.musicxml_parser import MusicXMLDocument
 from magenta.protobuf import music_pb2
 # pylint: enable=g-import-not-at-top
 
 class MusicXMLConversionError(Exception):
-    pass
+  """MusicXML conversion error handler"""
+  pass
 
 def musicxml_to_sequence_proto(musicxml_document):
   """Convert MusicXML file contents to a tensorflow.magenta.NoteSequence proto.

@@ -13,12 +13,11 @@
 
 from collections import defaultdict
 import os.path
-import tempfile
 
 # internal imports
-from musicxml_parser import *
-from musicxml_reader import *
 import tensorflow as tf
+from magenta.music.musicxml_parser import MusicXMLDocument
+from magenta.music.musicxml_reader import musicxml_to_sequence_proto
 
 # self.flute_scale_filename contains an F-major scale of 8 quarter notes each
 
@@ -39,7 +38,7 @@ import tensorflow as tf
 
 
 class MusicXMLParserTest(tf.test.TestCase):
-
+  """Class to test the MusicXML parser use cases"""
   def setUp(self):
     self.flute_scale_filename = os.path.join(
         tf.resource_loader.get_data_files_path(),
@@ -57,7 +56,7 @@ class MusicXMLParserTest(tf.test.TestCase):
         tf.resource_loader.get_data_files_path(),
         '../testdata/flute_scale.mxl')
 
-  def CheckMusicXMLAndSequence(self, musicxml, sequence_proto):
+  def checkmusicxmlandsequence(self, musicxml, sequence_proto):
     """Compares MusicXMLDocument object against a sequence proto.
 
     Args:
@@ -68,7 +67,7 @@ class MusicXMLParserTest(tf.test.TestCase):
     self.assertEqual(len(musicxml.gettimesignatures()),
                      len(sequence_proto.time_signatures))
     for musicxml_time, sequence_time in zip(musicxml.gettimesignatures(),
-                                        sequence_proto.time_signatures):
+                                            sequence_proto.time_signatures):
       self.assertEqual(musicxml_time.numerator, sequence_time.numerator)
       self.assertEqual(musicxml_time.denominator, sequence_time.denominator)
       self.assertAlmostEqual(musicxml_time.time_position, sequence_time.time)
@@ -77,7 +76,7 @@ class MusicXMLParserTest(tf.test.TestCase):
     self.assertEqual(len(musicxml.getkeysignatures()),
                      len(sequence_proto.key_signatures))
     for musicxml_key, sequence_key in zip(musicxml.getkeysignatures(),
-                                      sequence_proto.key_signatures):
+                                          sequence_proto.key_signatures):
 
       if musicxml_key.mode == "major":
         mode = 0
@@ -125,7 +124,7 @@ class MusicXMLParserTest(tf.test.TestCase):
 
       self.assertEqual(len(musicxml_notes), len(seq_instrument_notes))
       for musicxml_note, sequence_note in zip(musicxml_notes,
-                                          seq_instrument_notes):
+                                              seq_instrument_notes):
         self.assertEqual(musicxml_note.pitch[1], sequence_note.pitch)
         self.assertEqual(musicxml_note.velocity, sequence_note.velocity)
         self.assertAlmostEqual(musicxml_note.time_position,
@@ -134,19 +133,21 @@ class MusicXMLParserTest(tf.test.TestCase):
                                + musicxml_note.seconds,
                                sequence_note.end_time)
 
-  def CheckMusicXMLToSequence(self, filename):
+  def checkmusicxmltosequence(self, filename):
     """Test the translation from MusicXML to Sequence proto."""
     source_musicxml = MusicXMLDocument(filename)
     sequence_proto = musicxml_to_sequence_proto(source_musicxml)
-    self.CheckMusicXMLAndSequence(source_musicxml, sequence_proto)
+    self.checkmusicxmlandsequence(source_musicxml, sequence_proto)
 
-  def testSimpleMusicXMLToSequence(self):
-    self.CheckMusicXMLToSequence(self.flute_scale_filename)
+  def testsimplemusicxmltosequence(self):
+    """Test the simple flute scale MusicXML file"""
+    self.checkmusicxmltosequence(self.flute_scale_filename)
 
-  def testComplexMusicXMLToSequence(self):
-    self.CheckMusicXMLToSequence(self.band_score_filename)
+  def testcomplexmusicxmltosequence(self):
+    """Test the complex band score MusicXML file"""
+    self.checkmusicxmltosequence(self.band_score_filename)
 
-  def testTransposedMusicXMLToSequence(self):
+  def testtransposedxmltosequence(self):
     """Test the translation from MusicXML to Sequence proto when the music
     is transposed. Compare a transpoed MusicXML file (clarinet) to an
     identical untransposed sequence (flute)
@@ -154,9 +155,9 @@ class MusicXMLParserTest(tf.test.TestCase):
     untransposed_musicxml = MusicXMLDocument(self.flute_scale_filename)
     transposed_musicxml = MusicXMLDocument(self.clarinet_scale_filename)
     untransposed_proto = musicxml_to_sequence_proto(untransposed_musicxml)
-    self.CheckMusicXMLAndSequence(transposed_musicxml, untransposed_proto)
+    self.checkmusicxmlandsequence(transposed_musicxml, untransposed_proto)
 
-  def testCompressedMusicXMLToSequence(self):
+  def testcompressedxmltosequence(self):
     """Test the translation from MusicXML to Sequence proto when the music
     is compressed in MXL format. Compare a compressed MusicXML file to an
     identical uncompressed sequence
@@ -164,7 +165,7 @@ class MusicXMLParserTest(tf.test.TestCase):
     uncompressed_musicxml = MusicXMLDocument(self.flute_scale_filename)
     compressed_musicxml = MusicXMLDocument(self.compressed_filename)
     uncompressed_proto = musicxml_to_sequence_proto(uncompressed_musicxml)
-    self.CheckMusicXMLAndSequence(compressed_musicxml, uncompressed_proto)
+    self.checkmusicxmlandsequence(compressed_musicxml, uncompressed_proto)
 
 if __name__ == '__main__':
   tf.test.main()
