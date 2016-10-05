@@ -276,7 +276,7 @@ py_library(
 py_test(
     name = "midi_io_test",
     srcs = ["midi_io_test.py"],
-    data = ["//magenta/testdata:testdata"],
+    data = ["//magenta/testdata"],
     srcs_version = "PY2AND3",
     deps = [
         ":midi_io",
@@ -285,8 +285,18 @@ py_test(
 )
 
 py_library(
+    name = "musicxml_parser",
+    srcs = ["musicxml_parser.py"],
+    srcs_version = "PY2AND3",
+    deps = [
+        "//magenta/music:constants",
+        "//magenta/protobuf:music_py_pb2"
+    ],
+)
+
+py_library(
     name = "musicxml_reader",
-    srcs = ["musicxml_reader.py", "musicxml_parser.py"],
+    srcs = ["musicxml_reader.py"],
     srcs_version = "PY2AND3",
     deps = [
         "//magenta/protobuf:music_py_pb2"
@@ -296,9 +306,15 @@ py_library(
 py_test(
     name = "musicxml_parser_test",
     srcs = ["musicxml_parser_test.py"],
-    data = ["//magenta/testdata"],
+    data = [
+        "testdata/clarinet_scale.xml",
+        "testdata/el_capitan.xml",
+        "testdata/flute_scale.xml",
+        "testdata/flute_scale.mxl",
+    ],
     srcs_version = "PY2AND3",
     deps = [
+        ":musicxml_parser",
         ":musicxml_reader",
         "@mido//:mido",
         "@pretty_midi//:pretty_midi",

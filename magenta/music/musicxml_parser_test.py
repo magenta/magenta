@@ -19,42 +19,41 @@ import tensorflow as tf
 from magenta.music.musicxml_parser import MusicXMLDocument
 from magenta.music.musicxml_reader import musicxml_to_sequence_proto
 
-# self.flute_scale_filename contains an F-major scale of 8 quarter notes each
-
-# self.clarinet_scale_filename contains a F-major scale of 8 quarter notes
-# each appearing as written pitch. This means the key is written as
-# G-major but sounds as F-major. The MIDI pitch numbers must be transposed
-# to be input into Magenta
-
-# self.band_score_filename contains a number of instruments in written
-# pitch. The score has two time signatures (6/8 and 2/4) and two sounding
-# keys (Bb-major and Eb major). The file also contains chords and
-# multiple voices (see Oboe part in measure 57), as well as dynamics,
-# articulations, slurs, ties, hairpins, grace notes, tempo changes,
-# and multiple barline types (double, repeat)
-
-# self.compressed_filename contains the same content as
-# self.flute_scale_filename, but compressed in MXL format
-
-
 class MusicXMLParserTest(tf.test.TestCase):
-  """Class to test the MusicXML parser use cases"""
+  """Class to test the MusicXML parser use cases
+  self.flute_scale_filename contains an F-major scale of 8 quarter notes each
+
+  self.clarinet_scale_filename contains a F-major scale of 8 quarter notes
+  each appearing as written pitch. This means the key is written as
+  G-major but sounds as F-major. The MIDI pitch numbers must be transposed
+  to be input into Magenta
+
+  self.band_score_filename contains a number of instruments in written
+  pitch. The score has two time signatures (6/8 and 2/4) and two sounding
+  keys (Bb-major and Eb major). The file also contains chords and
+  multiple voices (see Oboe part in measure 57), as well as dynamics,
+  articulations, slurs, ties, hairpins, grace notes, tempo changes,
+  and multiple barline types (double, repeat)
+
+  self.compressed_filename contains the same content as
+  self.flute_scale_filename, but compressed in MXL format
+  """
   def setUp(self):
     self.flute_scale_filename = os.path.join(
         tf.resource_loader.get_data_files_path(),
-        '../testdata/flute_scale.xml')
+        'testdata/flute_scale.xml')
 
     self.clarinet_scale_filename = os.path.join(
         tf.resource_loader.get_data_files_path(),
-        '../testdata/clarinet_scale.xml')
+        'testdata/clarinet_scale.xml')
 
     self.band_score_filename = os.path.join(
         tf.resource_loader.get_data_files_path(),
-        '../testdata/el_capitan.xml')
+        'testdata/el_capitan.xml')
 
     self.compressed_filename = os.path.join(
         tf.resource_loader.get_data_files_path(),
-        '../testdata/flute_scale.mxl')
+        'testdata/flute_scale.mxl')
 
   def checkmusicxmlandsequence(self, musicxml, sequence_proto):
     """Compares MusicXMLDocument object against a sequence proto.

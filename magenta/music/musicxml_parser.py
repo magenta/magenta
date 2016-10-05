@@ -20,13 +20,12 @@ into tensorflow.magenta.NoteSequence.
 # behavior of producing a float when dividing integers
 from __future__ import division
 
-from zipfile import ZipFile
 import xml.etree.ElementTree as ET
+from zipfile import ZipFile
+from magenta.music import constants
+
 
 # Constants
-
-# Number of MIDI ticks per beat. Required by NoteSequence structure
-TICKS_PER_BEAT = 960
 
 # Global variables
 # Default to one division per measure
@@ -75,7 +74,7 @@ class MusicXMLDocument(object):
     self.score = self.getscore(filename)
     self.parts = []
     self.score_parts = []
-    self.midi_resolution = TICKS_PER_BEAT
+    self.midi_resolution = constants.STANDARD_PPQ
     # Total time in seconds
     self.total_time = 0
     self.parse()
@@ -353,8 +352,8 @@ class Measure(object):
 
     xml_duration = xml_backup.find("duration")
     backup_duration = int(xml_duration.text)
-    midi_ticks = backup_duration * (TICKS_PER_BEAT / CURRENT_DIVISIONS)
-    seconds = (midi_ticks / TICKS_PER_BEAT) * CURRENT_SECONDS_PER_BEAT
+    midi_ticks = backup_duration * (constants.STANDARD_PPQ / CURRENT_DIVISIONS)
+    seconds = (midi_ticks / constants.STANDARD_PPQ) * CURRENT_SECONDS_PER_BEAT
     CURRENT_TIME_POSITION -= seconds
 
   def parsedirection(self, xml_direction):
@@ -381,8 +380,8 @@ class Measure(object):
 
     xml_duration = xml_forward.find('duration')
     forward_duration = int(xml_duration.text)
-    midi_ticks = forward_duration * (TICKS_PER_BEAT / CURRENT_DIVISIONS)
-    seconds = (midi_ticks / TICKS_PER_BEAT) * CURRENT_SECONDS_PER_BEAT
+    midi_ticks = forward_duration * (constants.STANDARD_PPQ / CURRENT_DIVISIONS)
+    seconds = (midi_ticks / constants.STANDARD_PPQ) * CURRENT_SECONDS_PER_BEAT
     CURRENT_TIME_POSITION += seconds
 
 
@@ -416,9 +415,9 @@ class Note(object):
         self.duration = int(child.text)
 
         self.midi_ticks = self.duration
-        self.midi_ticks *= (TICKS_PER_BEAT / CURRENT_DIVISIONS)
+        self.midi_ticks *= (constants.STANDARD_PPQ / CURRENT_DIVISIONS)
 
-        self.seconds = (self.midi_ticks / TICKS_PER_BEAT)
+        self.seconds = (self.midi_ticks / constants.STANDARD_PPQ)
         self.seconds *= CURRENT_SECONDS_PER_BEAT
 
         self.time_position = CURRENT_TIME_POSITION
@@ -589,11 +588,12 @@ class Tempo(object):
 
   def parse(self):
     """Parse the MusicXML <sound> element and retrieve the tempo.
-    If no tempo is specified, default to 120.0 qpm
+    If no tempo is specified, default to DEFAULT_QUARTERS_PER_MINUTE
     """
     self.qpm = float(self.xml_sound.get("tempo"))
     if self.qpm == 0:
-      self.qpm = 120.0   # If tempo is 0, set it to default
+      # If tempo is 0, set it to default
+      self.qpm = constants.DEFAULT_QUARTERS_PER_MINUTE
     self.time_position = CURRENT_TIME_POSITION
 
   def __str__(self):
