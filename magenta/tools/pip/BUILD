@@ -23,6 +23,9 @@ sh_binary(
         # Libraries
         "//magenta",
 
+        # Interfaces
+        "//magenta/interfaces/midi",
+
         # Models
         "//magenta/models/attention_rnn:attention_rnn_model",
         "//magenta/models/basic_rnn:basic_rnn_model",
