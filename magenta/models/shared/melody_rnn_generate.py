@@ -199,8 +199,8 @@ def run_with_flags(melody_rnn_sequence_generator):
   primer_sequence = None
   qpm = FLAGS.qpm if FLAGS.qpm else magenta.music.DEFAULT_QUARTERS_PER_MINUTE
   if FLAGS.primer_melody:
-    primer_melody = magenta.music.MonophonicMelody()
-    primer_melody.from_event_list(ast.literal_eval(FLAGS.primer_melody))
+    primer_melody = magenta.music.MonophonicMelody(
+        ast.literal_eval(FLAGS.primer_melody))
     primer_sequence = primer_melody.to_sequence(qpm=qpm)
   elif FLAGS.primer_midi:
     primer_sequence = magenta.music.midi_file_to_sequence_proto(

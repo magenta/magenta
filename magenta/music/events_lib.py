@@ -22,6 +22,7 @@ sequences and model data.
 """
 
 import abc
+import copy
 import numpy as np
 
 from six.moves import range  # pylint: disable=redefined-builtin
@@ -90,20 +91,6 @@ class EventSequence(object):
     pass
 
   @abc.abstractmethod
-  def from_event_list(self, events, start_step=0,
-                      steps_per_bar=DEFAULT_STEPS_PER_BAR,
-                      steps_per_quarter=DEFAULT_STEPS_PER_QUARTER):
-    """Initializes with a list of event values and sets attributes.
-
-    Args:
-      events: List of events.
-      start_step: The integer starting step offset.
-      steps_per_bar: The number of steps in a bar.
-      steps_per_quarter: The number of steps in a quarter note.
-    """
-    pass
-
-  @abc.abstractmethod
   def set_length(self, steps, from_left=False):
     """Sets the length of the sequence to the specified number of steps.
 
@@ -117,6 +104,17 @@ class EventSequence(object):
     """
     pass
 
+  @abc.abstractmethod
+  def increase_resolution(self, k):
+    """Increase the resolution of an event sequence.
+
+    Increases the resolution of an EventSequence object by a factor of `k`.
+
+    Args:
+      k: An integer, the factor by which to increase the resolution of the
+          event sequence.
+    """
+
 
 class SimpleEventSequence(EventSequence):
   """Stores a quantized stream of events.
@@ -126,14 +124,32 @@ class SimpleEventSequence(EventSequence):
   musical events.
   """
 
-  def __init__(self, pad_event):
-    """Construct an empty SimpleEventSequence.
+  def __init__(self, pad_event, events=None, start_step=0,
+               steps_per_bar=DEFAULT_STEPS_PER_BAR,
+               steps_per_quarter=DEFAULT_STEPS_PER_QUARTER):
+    """Construct a SimpleEventSequence.
+
+    If `events` is specified, instantiate with the provided event list.
+    Otherwise, create an empty SimpleEventSequence.
 
     Args:
       pad_event: Event value to use when padding sequences.
+      events: List of events to instantiate with.
+      start_step: The integer starting step offset.
+      steps_per_bar: The number of steps in a bar.
+      steps_per_quarter: The number of steps in a quarter note.
     """
     self._pad_event = pad_event
-    self._reset()
+    if events is not None:
+      self._from_event_list(events, start_step=start_step,
+                            steps_per_bar=steps_per_bar,
+                            steps_per_quarter=steps_per_quarter)
+    else:
+      self._events = []
+      self._steps_per_bar = steps_per_bar
+      self._steps_per_quarter = steps_per_quarter
+      self._start_step = start_step
+      self._end_step = start_step
 
   def _reset(self):
     """Clear events and reset object state."""
@@ -142,6 +158,16 @@ class SimpleEventSequence(EventSequence):
     self._steps_per_quarter = DEFAULT_STEPS_PER_QUARTER
     self._start_step = 0
     self._end_step = 0
+
+  def _from_event_list(self, events, start_step=0,
+                       steps_per_bar=DEFAULT_STEPS_PER_BAR,
+                       steps_per_quarter=DEFAULT_STEPS_PER_QUARTER):
+    """Initializes with a list of event values and sets attributes."""
+    self._events = list(events)
+    self._start_step = start_step
+    self._end_step = start_step + len(self)
+    self._steps_per_bar = steps_per_bar
+    self._steps_per_quarter = steps_per_quarter
 
   def __iter__(self):
     """Return an iterator over the events in this SimpleEventSequence.
@@ -168,12 +194,11 @@ class SimpleEventSequence(EventSequence):
     return len(self._events)
 
   def __deepcopy__(self, unused_memo=None):
-    new_copy = type(self)(pad_event=self._pad_event)
-    new_copy.from_event_list(list(self._events),
-                             self.start_step,
-                             self.steps_per_bar,
-                             self.steps_per_quarter)
-    return new_copy
+    return type(self)(pad_event=self._pad_event,
+                      events=copy.deepcopy(self._events),
+                      start_step=self.start_step,
+                      steps_per_bar=self.steps_per_bar,
+                      steps_per_quarter=self.steps_per_quarter)
 
   def __eq__(self, other):
     if not isinstance(other, SimpleEventSequence):
@@ -209,15 +234,6 @@ class SimpleEventSequence(EventSequence):
     self._events.append(event)
     self._end_step += 1
 
-  def from_event_list(self, events, start_step=0,
-                      steps_per_bar=DEFAULT_STEPS_PER_BAR,
-                      steps_per_quarter=DEFAULT_STEPS_PER_QUARTER):
-    self._events = list(events)
-    self._start_step = start_step
-    self._end_step = start_step + len(self)
-    self._steps_per_bar = steps_per_bar
-    self._steps_per_quarter = steps_per_quarter
-
   def set_length(self, steps, from_left=False):
     """Sets the length of the sequence to the specified number of steps.
 
@@ -244,6 +260,33 @@ class SimpleEventSequence(EventSequence):
       self._start_step = self._end_step - steps
     else:
       self._end_step = self._start_step + steps
+
+  def increase_resolution(self, k, fill_event=None):
+    """Increase the resolution of an event sequence.
+
+    Increases the resolution of a SimpleEventSequence object by a factor of
+    `k`.
+
+    Args:
+      k: An integer, the factor by which to increase the resolution of the
+          event sequence.
+      fill_event: Event value to use to extend each low-resolution event. If
+          None, each low-resolution event value will be repeated `k` times.
+    """
+    if fill_event is None:
+      fill = lambda event: [event] * k
+    else:
+      fill = lambda event: [event] + [fill_event] * (k - 1)
+
+    new_events = []
+    for event in self._events:
+      new_events += fill(event)
+
+    self._events = new_events
+    self._start_step *= k
+    self._end_step *= k
+    self._steps_per_bar *= k
+    self._steps_per_quarter *= k
 
 
 class EventsEncoderDecoder(object):
