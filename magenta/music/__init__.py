@@ -20,6 +20,7 @@ from melodies_lib import BadNoteException
 from melodies_lib import extract_melodies
 from melodies_lib import Melody
 from melodies_lib import MelodyEncoderDecoder
+from melodies_lib import midi_file_to_melody
 from melodies_lib import OneHotMelodyEncoderDecoder
 from melodies_lib import PolyphonicMelodyException
 

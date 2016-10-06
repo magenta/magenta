@@ -149,6 +149,8 @@ py_library(
     deps = [
         ":constants",
         ":events_lib",
+        ":midi_io",
+        ":sequences_lib",
         "//magenta/pipelines:statistics",
         "//magenta/protobuf:music_py_pb2",
         # numpy dep
@@ -158,6 +160,9 @@ py_library(
 py_test(
     name = "melodies_lib_test",
     srcs = ["melodies_lib_test.py"],
+    data = [
+        "testdata/melody.mid",
+    ],
     srcs_version = "PY2AND3",
     deps = [
         ":constants",
