@@ -146,7 +146,7 @@ class MelodyRnnSequenceGenerator(magenta.music.BaseSequenceGenerator):
     else:
       tf.logging.warn('No melodies were extracted from the priming sequence. '
                       'Melodies will be generated from scratch.')
-      melody = magenta.music.MonophonicMelody([
+      melody = magenta.music.Melody([
           random.randint(self._melody_encoder_decoder.min_note,
                          self._melody_encoder_decoder.max_note)])
       start_step += 1
@@ -164,11 +164,11 @@ class MelodyRnnSequenceGenerator(magenta.music.BaseSequenceGenerator):
     Args:
       num_steps: An integer number of steps to generate. This is the total
           number of steps to generate, including the primer melody.
-      primer_melody: The primer melody, a MonophonicMelody object.
+      primer_melody: The primer melody, a Melody object.
 
     Returns:
-      The generated MonophonicMelody object (which begins with the provided
-          primer melody).
+      The generated Melody object (which begins with the provided primer
+          melody).
 
     Raises:
       MelodyRnnSequenceGeneratorException: If the primer melody has zero

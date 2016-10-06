@@ -40,10 +40,10 @@ class MelodyChordsMismatchException(Exception):
 
 
 class LeadSheet(events_lib.EventSequence):
-  """A wrapper around MonophonicMelody and ChordProgression.
+  """A wrapper around Melody and ChordProgression.
 
   Attributes:
-    melody: A MonophonicMelody object, the lead sheet melody.
+    melody: A Melody object, the lead sheet melody.
     chords: A ChordProgression object, the underlying chords.
   """
 
@@ -54,7 +54,7 @@ class LeadSheet(events_lib.EventSequence):
     melody and chords.  Otherwise, create an empty LeadSheet.
 
     Args:
-      melody: A MonophonicMelody object.
+      melody: A Melody object.
       chords: A ChordProgression object.
 
     Raises:
@@ -72,14 +72,14 @@ class LeadSheet(events_lib.EventSequence):
 
   def _reset(self):
     """Clear events and reset object state."""
-    self._melody = melodies_lib.MonophonicMelody()
+    self._melody = melodies_lib.Melody()
     self._chords = chords_lib.ChordProgression()
 
   def _from_melody_and_chords(self, melody, chords):
     """Initializes a LeadSheet with a given melody and chords.
 
     Args:
-      melody: A MonophonicMelody object.
+      melody: A Melody object.
       chords: A ChordProgression object.
 
     Raises:
@@ -150,7 +150,7 @@ class LeadSheet(events_lib.EventSequence):
     """Return the melody of the lead sheet.
 
     Returns:
-        The lead sheet melody, a MonophonicMelody object.
+        The lead sheet melody, a Melody object.
     """
     return self._melody
 

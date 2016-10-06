@@ -67,11 +67,11 @@ class MelodyRnnModel(object):
     Args:
       num_steps: An integer number of steps to generate. This is the total
           number of steps to generate, including the primer melody.
-      primer_melody: The primer melody, a MonophonicMelody object.
+      primer_melody: The primer melody, a Melody object.
 
     Returns:
-      The generated MonophonicMelody object (which begins with the provided
-          primer melody).
+      The generated Melody object (which begins with the provided primer
+          melody).
     """
     with self._generator:
       return self._generator.generate_melody(num_steps, primer_melody)

@@ -38,7 +38,7 @@ class AttentionRnnEncoderDecoderTest(tf.test.TestCase):
     melody_events = ([48, NO_EVENT, 49, 83, NOTE_OFF] + [NO_EVENT] * 11 +
                      [48, NOTE_OFF] + [NO_EVENT] * 14 +
                      [48, NOTE_OFF, 49, 82])
-    melody = melodies_lib.MonophonicMelody(melody_events)
+    melody = melodies_lib.Melody(melody_events)
 
     melody_indices = [0, 1, 2, 3, 4, 15, 16, 17, 32, 33, 34, 35]
     expected_inputs = [
@@ -127,8 +127,7 @@ class AttentionRnnEncoderDecoderTest(tf.test.TestCase):
       self.assertEqual(
           melody_encoder_decoder.events_to_label(melody, melody_index),
           expected_labels[i])
-      partial_melody = melodies_lib.MonophonicMelody(
-          melody_events[:melody_index])
+      partial_melody = melodies_lib.Melody(melody_events[:melody_index])
       self.assertEqual(
           melody_encoder_decoder.class_index_to_event(expected_labels[i],
                                                       partial_melody),
@@ -137,8 +136,7 @@ class AttentionRnnEncoderDecoderTest(tf.test.TestCase):
                            expected_inputs[i])
       self.assertListEqual(full_length_inputs_batch[1][melody_index],
                            expected_inputs[i])
-      partial_melody = melodies_lib.MonophonicMelody(
-          melody_events[:melody_index])
+      partial_melody = melodies_lib.Melody(melody_events[:melody_index])
       softmax = [[[0.0] * melody_encoder_decoder.num_classes]]
       softmax[0][0][expected_labels[i]] = 1.0
       melody_encoder_decoder.extend_event_sequences([partial_melody], softmax)
@@ -161,7 +159,7 @@ class AttentionRnnEncoderDecoderTest(tf.test.TestCase):
     melody_events = ([24, NO_EVENT, 25, 35, NOTE_OFF] + [NO_EVENT] * 11 +
                      [24, NOTE_OFF] + [NO_EVENT] * 14 +
                      [24, NOTE_OFF, 25, 34])
-    melody = melodies_lib.MonophonicMelody(melody_events)
+    melody = melodies_lib.Melody(melody_events)
 
     melody_indices = [0, 1, 2, 3, 4, 15, 16, 17, 32, 33, 34, 35]
     expected_inputs = [
@@ -226,8 +224,7 @@ class AttentionRnnEncoderDecoderTest(tf.test.TestCase):
       self.assertEqual(
           melody_encoder_decoder.events_to_label(melody, melody_index),
           expected_labels[i])
-      partial_melody = melodies_lib.MonophonicMelody(
-          melody_events[:melody_index])
+      partial_melody = melodies_lib.Melody(melody_events[:melody_index])
       self.assertEqual(
           melody_encoder_decoder.class_index_to_event(expected_labels[i],
                                                       partial_melody),
@@ -236,8 +233,7 @@ class AttentionRnnEncoderDecoderTest(tf.test.TestCase):
                            expected_inputs[i])
       self.assertListEqual(full_length_inputs_batch[1][melody_index],
                            expected_inputs[i])
-      partial_melody = melodies_lib.MonophonicMelody(
-          melody_events[:melody_index])
+      partial_melody = melodies_lib.Melody(melody_events[:melody_index])
       softmax = [[[0.0] * melody_encoder_decoder.num_classes]]
       softmax[0][0][expected_labels[i]] = 1.0
       melody_encoder_decoder.extend_event_sequences([partial_melody], softmax)
