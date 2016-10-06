@@ -23,6 +23,11 @@ sh_binary(
         # Libraries
         "//magenta",
 
+        # Models
+        "//magenta/models/attention_rnn:attention_rnn_model",
+        "//magenta/models/basic_rnn:basic_rnn_model",
+        "//magenta/models/lookback_rnn:lookback_rnn_model",
+
         # Scripts
         "//magenta/interfaces/midi:magenta_midi",
         "//magenta/models/attention_rnn:attention_rnn_create_dataset",

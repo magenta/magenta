@@ -13,6 +13,7 @@
 # limitations under the License.
 """Shared Melody RNN generation code as a SequenceGenerator interface."""
 
+import copy
 import random
 
 # internal imports
@@ -20,6 +21,10 @@ from six.moves import range  # pylint: disable=redefined-builtin
 
 import tensorflow as tf
 import magenta
+
+
+class MelodyRnnSequenceGeneratorException(Exception):
+  pass
 
 
 class MelodyRnnSequenceGenerator(magenta.music.BaseSequenceGenerator):
@@ -147,13 +152,42 @@ class MelodyRnnSequenceGenerator(magenta.music.BaseSequenceGenerator):
                          self._melody_encoder_decoder.max_note)])
       start_step += 1
 
+    # Ensure that the melody extends up to the step we want to start generating.
+    melody.set_length(start_step)
+
+    generated_melody = self.generate_melody(end_step, melody)
+
+    return generated_melody.to_sequence(qpm=qpm)
+
+  def generate_melody(self, num_steps, primer_melody):
+    """Generate a melody from a primer melody.
+
+    Args:
+      num_steps: An integer number of steps to generate. This is the total
+          number of steps to generate, including the primer melody.
+      primer_melody: The primer melody, a MonophonicMelody object.
+
+    Returns:
+      The generated MonophonicMelody object (which begins with the provided
+          primer melody).
+
+    Raises:
+      MelodyRnnSequenceGeneratorException: If the primer melody has zero
+          length or is not shorter than num_steps.
+    """
+    if not primer_melody:
+      raise MelodyRnnSequenceGeneratorException(
+          'primer melody must have non-zero length')
+    if len(primer_melody) >= num_steps:
+      raise MelodyRnnSequenceGeneratorException(
+          'primer melody must be shorter than num_steps')
+
+    melody = copy.deepcopy(primer_melody)
+
     transpose_amount = melody.squash(
         self._melody_encoder_decoder.min_note,
         self._melody_encoder_decoder.max_note,
         self._melody_encoder_decoder.transpose_to_key)
-
-    # Ensure that the melody extends up to the step we want to start generating.
-    melody.set_length(start_step)
 
     inputs = self._session.graph.get_collection('inputs')[0]
     initial_state = self._session.graph.get_collection('initial_state')[0]
@@ -161,7 +195,7 @@ class MelodyRnnSequenceGenerator(magenta.music.BaseSequenceGenerator):
     softmax = self._session.graph.get_collection('softmax')[0]
 
     final_state_ = None
-    for i in range(end_step - len(melody)):
+    for i in range(num_steps - len(melody)):
       if i == 0:
         inputs_ = self._melody_encoder_decoder.get_inputs_batch(
             [melody], full_length=True)
@@ -177,4 +211,4 @@ class MelodyRnnSequenceGenerator(magenta.music.BaseSequenceGenerator):
 
     melody.transpose(-transpose_amount)
 
-    return melody.to_sequence(qpm=qpm)
+    return melody

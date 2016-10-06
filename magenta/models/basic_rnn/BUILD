@@ -103,6 +103,17 @@ py_test(
     ],
 )
 
+py_library(
+    name = "basic_rnn_model",
+    srcs = ["basic_rnn_model.py"],
+    srcs_version = "PY2AND3",
+    visibility = ["//magenta/tools/pip:__subpackages__"],
+    deps = [
+        ":basic_rnn_generator",
+        "//magenta/models/shared:melody_rnn_model",
+    ],
+)
+
 py_binary(
     name = "basic_rnn_train",
     srcs = ["basic_rnn_train.py"],
