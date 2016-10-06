@@ -17,6 +17,15 @@
 
 licenses(["notice"])  # Apache 2.0
 
+py_library(
+    name = "basic_rnn",
+    srcs = ["__init__.py"],
+    visibility = ["//magenta/tools/pip:__subpackages__"],
+    deps = [
+        ":basic_rnn_model",
+    ],
+)
+
 py_binary(
     name = "basic_rnn_create_dataset",
     srcs = ["basic_rnn_create_dataset.py"],
@@ -107,7 +116,6 @@ py_library(
     name = "basic_rnn_model",
     srcs = ["basic_rnn_model.py"],
     srcs_version = "PY2AND3",
-    visibility = ["//magenta/tools/pip:__subpackages__"],
     deps = [
         ":basic_rnn_generator",
         "//magenta/models/shared:melody_rnn_model",
