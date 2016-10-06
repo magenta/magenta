@@ -20,7 +20,6 @@ licenses(["notice"])  # Apache 2.0
 py_library(
     name = "midi",
     visibility = [
-        "//magenta:__subpackages__",
         # internal notebook binary
     ],
     deps = [
