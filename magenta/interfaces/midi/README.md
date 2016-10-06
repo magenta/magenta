@@ -118,16 +118,14 @@ You should see a list of available input and output ports, including both the
 controller (e.g., "VMPK Output") and synthesizer (e.g., "FluidSynth virtual
 port").
 
-To use the midi interface, you can use either a pre-trained model bundle or a
-checkpoint.
-
-### Pre-trained bundle
+To use the midi interface, you must supply a pre-trained model bundle. You can
+either download one of ours or create your own from a training checkpoint.
 
 To use a pre-trained bundle, first download the bundle .mag file. There are
 links to bundle files on each of our model pages (e.g.,
 [Basic RNN](/magenta/models/basic_rnn/README.md),
-[Lookback RNN] (/magenta/models/lookback_rnn/README.md),
-[Attention RNN] (/magenta/models/attention_rnn/README.md), etc.).
+[Lookback RNN](/magenta/models/lookback_rnn/README.md),
+[Attention RNN](/magenta/models/attention_rnn/README.md), etc.).
 
 You can now start the interface with this command, supplying the location of the
 .mag bundle file:
@@ -136,7 +134,9 @@ You can now start the interface with this command, supplying the location of the
 $ bazel-bin/magenta/interfaces/midi/magenta_midi \
   --input_port=<controller port> \
   --output_port=<synthesizer port> \
-  --bundle_file=<bundle_file>
+  --bundle_file=<bundle_file> \
+  --phase_bars=<number of bars per phase or None>
+  --phase_control_number=<control change number of None>
 ```
 
 Assuming you're using the
@@ -147,61 +147,22 @@ using VPMK and FluidSynth, your command would look like this:
 $ bazel-bin/magenta/interfaces/midi/magenta_midi \
   --input_port="VMPK Output" \
   --output_port="FluidSynth virtual port" \
-  --bundle_file=/tmp/attention_rnn.mag
+  --bundle_file=/tmp/attention_rnn.mag \
+  --phase_bars=4
 ```
 
-### Training checkpoint
+## Using the "Call and Response" Interaction
 
-This method assumes you have already trained a model with a
-[generator](/magenta/models/README.md#generators) defined for it
-(e.g., [Basic RNN](/magenta/models/basic_rnn/README.md),
-[Lookback RNN] (/magenta/models/lookback_rnn/README.md),
-[Attention RNN] (/magenta/models/attention_rnn/README.md), etc.).
+When you start the interace, the "call" phase will begin immediately. You will
+hear a metronome ticking and the keys will now produce sounds through your audio
+output.
 
-You can now start the interface with this command, supplying the same
-hparams you used when you trained the model:
+If you used the `--phase_bars` flag, after the specified number of bars, the
+metronome will stop and a generated "response" will be played. After the same
+number of bars, a new "call" phase will begin, and the process repeats.
 
-```bash
-$ bazel-bin/magenta/interfaces/midi/magenta_midi \
-  --input_port=<controller port> \
-  --output_port=<synthesizer port> \
-  --generator_name=<generator name> \
-  --checkpoint=<training directory or checkpoint path> \
-  --hparams=<training hparams>
-```
-
-Assuming you trained the
-[Attention RNN](/magenta/models/attention_rnn/README.md) and are
-using VPMK and FluidSynth, your command would look like this:
-
-```bash
-$ bazel-bin/magenta/interfaces/midi/magenta_midi \
-  --input_port="VMPK Output" \
-  --output_port="FluidSynth virtual port" \
-  --generator_name=attention_rnn \
-  --checkpoint=/tmp/attention_rnn/logdir/run1/train \
-  --hparams="{'batch_size':64,'rnn_layer_sizes':[64,64]}"
-```
-
-## Using the Interface
-
-To initialize a capture session, you need to send the appropriate control change
-message from the controller. By default, this is done by setting the modulation
-wheel to its max value.
-
-You should immediately hear a metronome and the keys will now produce sounds
-through your audio output.
-
-When you have played your priming sequence, end the capture session by sending
-the appropriate control change message from the controller. By default, this is
-done by setting the modulation wheel back to 0.
-
-After a very short delay, you will hear the input sequence followed by the
-generated sequence. You can continue to switch between capture and generating
-states using the appropriate control (e.g., the modulation wheel).
-
-## Changing the Capture/Generate Toggle
-
-You can remap the control signals to use something other than the modulation
-wheel (e.g., physical pads on your controller). This is done by setting the
-`--start_capture_control_*` and `--stop_capture_control_*` flags appropriately.
+If you used the `--phase_control_number` flag, you will signal with that control
+number and a value of 0 to end the "call" phase. At the end of the current bar,
+the metronome will stop and a generated "response" will be played that is the
+same length as your call. After the response completes, a new "call" phase will
+begin, and the process repeats.
