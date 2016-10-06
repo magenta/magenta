@@ -61,8 +61,8 @@ class MelodyEncoderDecoder(magenta.music.MelodyEncoderDecoder):
     """Collapses a melody event value into a zero-based index range.
 
     Args:
-      melody_event: A MonophonicMelody event value. -2 = no event,
-          -1 = note-off event, [0, 127] = note-on event for that midi pitch.
+      melody_event: A Melody event value. -2 = no event, -1 = note-off event,
+          [0, 127] = note-on event for that midi pitch.
 
     Returns:
       An int in the range [0, self._num_model_events). 0 = no event,
@@ -83,7 +83,7 @@ class MelodyEncoderDecoder(magenta.music.MelodyEncoderDecoder):
           to the [self._min_note, self._max_note) range.
 
     Returns:
-      A MonophonicMelody event value. -2 = no event, -1 = note-off event,
+      A Melody event value. -2 = no event, -1 = note-off event,
       [0, 127] = note-on event for that midi pitch.
     """
     if model_event < NUM_SPECIAL_MELODY_EVENTS:
@@ -110,7 +110,7 @@ class MelodyEncoderDecoder(magenta.music.MelodyEncoderDecoder):
     120: The current step is repeating 2 bars ago.
 
     Args:
-      events: A magenta.music.MonophonicMelody object.
+      events: A magenta.music.Melody object.
       position: An integer position in the melody.
 
     Returns:
@@ -165,7 +165,7 @@ class MelodyEncoderDecoder(magenta.music.MelodyEncoderDecoder):
       39: If the last event in the melody is repeating 2 bars ago.
 
     Args:
-      events: A magenta.music.MonophonicMelody object.
+      events: A magenta.music.Melody object.
       position: An integer position in the melody.
 
     Returns:
@@ -193,11 +193,10 @@ class MelodyEncoderDecoder(magenta.music.MelodyEncoderDecoder):
 
     Args:
       class_index: An int in the range [0, self.num_classes).
-      events: The magenta.music.MonophonicMelody events list of the current
-          melody.
+      events: The magenta.music.Melody events list of the current melody.
 
     Returns:
-      A magenta.music.MonophonicMelody event value.
+      A magenta.music.Melody event value.
     """
     # Repeat N bar ago.
     for i, lookback_distance in reversed(list(enumerate(LOOKBACK_DISTANCES))):

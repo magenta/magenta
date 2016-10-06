@@ -66,7 +66,7 @@ tf.app.flags.DEFINE_integer(
 tf.app.flags.DEFINE_string(
     'primer_melody', '',
     'A string representation of a Python list of '
-    'magenta.music.MonophonicMelody event values. For example: '
+    'magenta.music.Melody event values. For example: '
     '"[60, -2, 60, -2, 67, -2, 67, -2]". If specified, this melody will be '
     'used as the priming melody. If a priming melody is not specified, '
     'melodies will be generated from scratch.')
@@ -199,8 +199,7 @@ def run_with_flags(melody_rnn_sequence_generator):
   primer_sequence = None
   qpm = FLAGS.qpm if FLAGS.qpm else magenta.music.DEFAULT_QUARTERS_PER_MINUTE
   if FLAGS.primer_melody:
-    primer_melody = magenta.music.MonophonicMelody(
-        ast.literal_eval(FLAGS.primer_melody))
+    primer_melody = magenta.music.Melody(ast.literal_eval(FLAGS.primer_melody))
     primer_sequence = primer_melody.to_sequence(qpm=qpm)
   elif FLAGS.primer_midi:
     primer_sequence = magenta.music.midi_file_to_sequence_proto(
