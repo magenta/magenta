@@ -18,7 +18,7 @@ import os.path
 import tempfile
 
 # internal imports
-import midi as py_midi
+import mido
 import pretty_midi
 import tensorflow as tf
 
@@ -228,17 +228,16 @@ class MidiIoTest(tf.test.TestCase):
         self.midi_is_drum_filename)
     with tempfile.NamedTemporaryFile(prefix='MidiDrumTest') as temp_file:
       midi_io.sequence_proto_to_midi_file(sequence_proto, temp_file.name)
-      midi_data1 = py_midi.read_midifile(self.midi_is_drum_filename)
-      midi_data2 = py_midi.read_midifile(temp_file.name)
+      midi_data1 = mido.MidiFile(filename=self.midi_is_drum_filename)
+      midi_data2 = mido.MidiFile(filename=temp_file.name)
 
     # Count number of channel 9 Note Ons.
     channel_counts = [0, 0]
     for index, midi_data in enumerate([midi_data1, midi_data2]):
-      for track in midi_data:
-        for event in track:
-          if (event.name == 'Note On' and
-              event.velocity > 0 and event.channel == 9):
-            channel_counts[index] += 1
+      for event in midi_data:
+        if (event.type == 'note_on' and
+            event.velocity > 0 and event.channel == 9):
+          channel_counts[index] += 1
     self.assertEqual(channel_counts, [2, 2])
 
   def testComplexReadWriteMidi(self):
