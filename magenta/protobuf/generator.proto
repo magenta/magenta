@@ -18,8 +18,6 @@ syntax = "proto3";
 
 package tensorflow.magenta;
 
-import "magenta/protobuf/music.proto";
-
 // Details about a Generator.
 message GeneratorDetails {
   // A unique ID for the generator on this server.
