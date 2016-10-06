@@ -28,6 +28,7 @@ __version__ = '0.1.1'
 import magenta.common.sequence_example_lib
 import magenta.common.testing_lib
 import magenta.common.tf_lib
+import magenta.interfaces.midi
 import magenta.music.constants
 import magenta.music.events_lib
 import magenta.music.melodies_lib
