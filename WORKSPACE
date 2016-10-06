@@ -45,11 +45,3 @@ new_http_archive(
     sha256 = "7844ff77ab12469504c46e9aa035722a2829e7c72b8b6241c78d356895e88114",
     strip_prefix = "mido-1.1.17/mido",
 )
-
-new_http_archive(
-    name = "music21",
-    build_file = "music21.BUILD",
-    url = "https://github.com/cuthbertLab/music21/releases/download/v3.0.3-alpha/music21-3.0.3.tar.gz",
-    sha256 = "4c0cc1e1fa3638c53ecf45ec13301174114dcf59f93faffc6586c5b94ae065e3",
-    strip_prefix = "music21-3.0.3/music21",
-)
