@@ -149,6 +149,8 @@ py_library(
     deps = [
         ":constants",
         ":events_lib",
+        ":midi_io",
+        ":sequences_lib",
         "//magenta/pipelines:statistics",
         "//magenta/protobuf:music_py_pb2",
         # numpy dep
