@@ -100,7 +100,8 @@ def sample_softmax(softmax):
       if upto + softmax[i] >= r:
         return i
       upto += softmax[i]
-    logging.warn("Error! sample softmax function shouldn't get here")
+    tf.logging.warn("Error! sample softmax function shouldn't get here")
+    print "Error! sample softmax function shouldn't get here"
     return len(softmax) - 1
 
 
