@@ -516,6 +516,8 @@ class MelodyQNetwork(object):
 
     if self.algorithm == 'g':
       action_scores = reward_scores + action_scores * self.reward_scaler
+      action = rl_rnn_ops.make_onehot([np.argmax(action_scores)], self.num_actions)
+      action_softmax = rl_rnn_ops.softmax(action_scores)
 
     # this is apparently not needed
     #if self.algorithm == 'psi':

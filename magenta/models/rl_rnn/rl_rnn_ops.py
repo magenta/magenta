@@ -78,6 +78,10 @@ def autocorrelate(signal, lag=1):
 
   return (x[lag:] * x[:n - lag]).sum() / float(n) / c0
 
+def softmax(x):
+    """Compute softmax values for each sets of scores in x."""
+    e_x = np.exp(x - np.max(x))
+    return e_x / e_x.sum(axis=0)
 
 def sample_softmax(softmax):
   """Samples a note from an array of softmax probabilities.
