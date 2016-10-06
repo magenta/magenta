@@ -83,22 +83,6 @@ Run TensorBoard to view training results
 
 Go to [http://localhost:6006](http://localhost:6006) to view TensorBoard dashboard.
 
-### Run training with script
-
-Alternatively, there is a shell script included for your convenience. Run it from ```magenta/models/basic_rnn```.
-
-```./run_basic_rnn_train.sh $EXPERIMENT_DIR $HYPERPARAMETER_STRING $NUM_TRAINING_STEPS $TRAIN_DATA [$EVAL_DATA]```
-
-Where
-
-* ```$EXPERIMENT_DIR``` is the experiment directory, such as ```/tmp/basic_rnn/logdir```
-* ```$HYPERPARAMETER_STRING``` is a Python dictionary literal containing hyperparameters, such as ```'{"rnn_layer_sizes":[50]}'```
-* ```$NUM_TRAINING_STEPS``` is an integer giving number of training iterations to run, such as ```20000```
-* ```$TRAIN_DATA``` is the path to the training dataset (a tfrecord file), such as ```/tmp/basic_rnn/sequence_examples/training_melodies.tfrecord```
-* ```$EVAL_DATA```, an optional argument, is the path to the eval dataset (a tfrecord file), such as ```/tmp/basic_rnn/sequence_examples/eval_melodies.tfrecord```
-
-This script automatically assigns new folders for new runs in each experiment directory. The eval job will optionally run if the path to the eval dataset is given. This script also runs TensorBoard.
-
 ### Generating melodies
 
 To generate, we need to load a checkpoint of a trained model. Look at your experiment directory, in this example ```/tmp/basic_rnn/logdir```. Choose the best run under that experiment, in this example ```/tmp/basic_rnn/logdir/run1```. ```basic_rnn_generate``` will look for the most recent checkpoint in that run.
