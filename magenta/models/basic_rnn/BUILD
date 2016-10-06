@@ -134,9 +134,3 @@ py_binary(
         # tensorflow dep
     ],
 )
-
-sh_binary(
-    name = "run_basic_rnn_train",
-    srcs = ["run_basic_rnn_train.sh"],
-    visibility = ["//magenta/tools/pip:__subpackages__"],
-)

@@ -69,6 +69,5 @@ setup(
         'console_scripts': ['%s = %s:console_entry_point' % (n, p) for n, p in
                             ((s.split('.')[-1], s) for s in CONSOLE_SCRIPTS)],
     },
-    scripts=['magenta/models/basic_rnn/run_basic_rnn_train.sh'],
 )
 

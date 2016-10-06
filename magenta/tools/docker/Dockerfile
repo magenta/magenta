@@ -6,12 +6,6 @@ MAINTAINER Curtis Hawthorne <fjord@google.com>
 
 ENV MAGENTA_MASTER_REF b0b500c55c4f0fa6810376541b8644850ded0895
 
-# TODO(fjord): remove this once pretty-midi can be pip installed.
-WORKDIR /
-RUN git clone https://github.com/craffel/pretty-midi && \
-  cd pretty-midi && \
-  python setup.py install
-
 WORKDIR /
 RUN git clone https://github.com/tensorflow/magenta.git && \
     cd magenta && \

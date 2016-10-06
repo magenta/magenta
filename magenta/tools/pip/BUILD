@@ -39,7 +39,6 @@ sh_binary(
         "//magenta/models/basic_rnn:basic_rnn_create_dataset",
         "//magenta/models/basic_rnn:basic_rnn_generate",
         "//magenta/models/basic_rnn:basic_rnn_train",
-        "//magenta/models/basic_rnn:run_basic_rnn_train",
         "//magenta/models/lookback_rnn:lookback_rnn_create_dataset",
         "//magenta/models/lookback_rnn:lookback_rnn_generate",
         "//magenta/models/lookback_rnn:lookback_rnn_train",
