@@ -463,16 +463,19 @@ class MidiCaptor(threading.Thread):
          sequence will be truncated appropriately.
       block: If True, blocks until the thread terminates.
     Raises:
-      MidiHubException: When called multiple times.
+      MidiHubException: When called multiple times with a `stop_time`.
     """
-    if self._stop_signal.is_set():
-      raise MidiHubException(
-          '`stop` must not be called multiple times on MidiCaptor.')
     with self._lock:
-      self._stop_signal.set()
-      self._stop_time = time.time() if stop_time is None else stop_time
-      # Force the thread to wake since we've updated the stop time.
-      self._receive_queue.put(MidiCaptor._WAKE_MESSAGE)
+      if self._stop_signal.is_set():
+        if stop_time is not None:
+          raise MidiHubException(
+              '`stop` must not be called multiple times with a `stop_time` on '
+              'MidiCaptor.')
+      else:
+        self._stop_signal.set()
+        self._stop_time = time.time() if stop_time is None else stop_time
+        # Force the thread to wake since we've updated the stop time.
+        self._receive_queue.put(MidiCaptor._WAKE_MESSAGE)
     if block:
       self.join()
 
@@ -850,20 +853,22 @@ class MidiHub(object):
     if not self._passthrough:
       pass
     elif self._texture_type == TextureType.POLYPHONIC:
-      if msg.type == 'note_on':
+      if msg.type == 'note_on' and msg.velocity > 0:
         self._open_notes.add(msg.note)
-      elif msg.type == 'note_off':
+      elif (msg.type == 'note_off' or
+            (msg.type == 'note_on' and msg.velocity == 0)):
         self._open_notes.discard(msg.note)
       self._outport.send(msg)
     elif self._texture_type == TextureType.MONOPHONIC:
       assert len(self._open_notes) <= 1
       if msg.type not in ['note_on', 'note_off']:
         self._outport.send(msg)
-      elif (msg.type == 'note_off' or
-            msg.type == 'note_on' and msg.velocity == 0):
+      elif ((msg.type == 'note_off' or
+             msg.type == 'note_on' and msg.velocity == 0) and
+            msg.note in self._open_notes):
         self._outport.send(msg)
-        self._open_notes.discard(msg.note)
-      elif msg.type == 'note_on':
+        self._open_notes.remove(msg.note)
+      elif msg.type == 'note_on' and msg.velocity > 0:
         if self._open_notes:
           self._outport.send(
               mido.Message('note_off', note=self._open_notes.pop()))
