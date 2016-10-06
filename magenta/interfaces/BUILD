@@ -25,3 +25,10 @@ package_group(
         # internal generator interfaces
     ]
 )
+
+py_library(
+    name = "interfaces",
+    deps = [
+        "//magenta/interfaces/midi",
+    ],
+)
