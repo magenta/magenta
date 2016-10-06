@@ -18,11 +18,19 @@
 licenses(["notice"])  # Apache 2.0
 
 py_library(
-    name = "midi_hub",
-    srcs = ["midi_hub.py"],
+    name = "midi",
     visibility = [
         # internal notebook binary
     ],
+    deps = [
+        ":midi_hub",
+        ":midi_interaction",
+    ],
+)
+
+py_library(
+    name = "midi_hub",
+    srcs = ["midi_hub.py"],
     deps = [
         "//magenta",
         "@mido//:mido",
@@ -44,9 +52,6 @@ py_test(
 py_library(
     name = "midi_interaction",
     srcs = ["midi_interaction.py"],
-    visibility = [
-        # internal notebook binary
-    ],
     deps = [
         ":midi_hub",
         "//magenta",

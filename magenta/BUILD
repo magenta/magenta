@@ -24,6 +24,7 @@ py_library(
     visibility = ["//magenta:__subpackages__"],
     deps = [
         "//magenta/common",
+        "//magenta/interfaces/midi",
         "//magenta/music",
         "//magenta/pipelines",
         "//magenta/protobuf",
