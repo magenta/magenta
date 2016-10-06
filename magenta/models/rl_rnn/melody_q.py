@@ -385,7 +385,7 @@ class MelodyQNetwork(object):
                                        reduction_indices=[1,])
       elif self.algorithm == 'g':
         self.g_action_scores = self.next_action_scores * self.reward_scaler + self.reward_scores
-        self.target_vals = 1.0 / self.reward_scaler * tf.reduce_logsumexp(self.g_action_scores,
+        self.target_vals = (1.0 / self.reward_scaler) * tf.reduce_logsumexp(self.g_action_scores,
                                        reduction_indices=[1,])
       else:
         # use default based on q learning
