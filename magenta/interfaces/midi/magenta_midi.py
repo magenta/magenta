@@ -17,10 +17,6 @@ Captures monophonic input MIDI sequences and plays back responses from the
 sequence generator.
 """
 
-import ast
-import functools
-from sys import stdout
-import threading
 import time
 
 # internal imports
