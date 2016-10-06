@@ -720,7 +720,7 @@ class MelodyQNetwork(object):
       plt.show()
 
   def store(self, observation, state, action, reward, newobservation, newstate, 
-            reward_rnn_state):
+            new_reward_state):
     """Stores an experience in the model's experience replay buffer.
 
     One experience consists of an initial observation and internal LSTM state,
@@ -737,11 +737,12 @@ class MelodyQNetwork(object):
         observation will be the same.
       newstate: The internal state of the q_network MelodyRNN that is
         observed after taking the action.
-      reward_rnn_state: The internal state of the reward_rnn network
+      new_reward_state: The internal state of the reward_rnn network that is 
+        observed after taking the action
     """
     if self.num_times_store_called % self.dqn_hparams.store_every_nth == 0:
       self.experience.append((observation, state, action, reward,
-                              newobservation, newstate, reward_rnn_state))
+                              newobservation, newstate, new_reward_state))
       if len(self.experience) > self.dqn_hparams.max_experience:
         self.experience.popleft()
     self.num_times_store_called += 1
@@ -766,7 +767,7 @@ class MelodyQNetwork(object):
       states = np.empty((len(samples), self.q_network.cell.state_size))
       new_states = np.empty((len(samples),
                              self.target_q_network.cell.state_size))
-      reward_rnn_states = np.empty((len(samples), self.reward_rnn.cell.state_size))
+      reward_new_states = np.empty((len(samples), self.reward_rnn.cell.state_size))
       observations = np.empty((len(samples), self.input_size))
       new_observations = np.empty((len(samples), self.input_size))
       action_mask = np.zeros((len(samples), self.num_actions))
@@ -780,7 +781,7 @@ class MelodyQNetwork(object):
         new_states[i, :] = new_s
         action_mask[i, :] = a
         rewards[i] = r
-        reward_rnn_states[i, :] = reward_s
+        reward_new_states[i, :] = reward_s
 
       observations = np.reshape(observations,
                                 (len(samples), 1, self.input_size))
@@ -796,8 +797,8 @@ class MelodyQNetwork(object):
             self.train_op,
             self.summarize if calc_summaries else self.no_op1,
         ], {
-            self.reward_rnn.melody_sequence: observations,
-            self.reward_rnn.initial_state: reward_rnn_states,
+            self.reward_rnn.melody_sequence: new_observations,
+            self.reward_rnn.initial_state: reward_new_states,
             self.reward_rnn.lengths: lengths,
             self.q_network.melody_sequence: observations,
             self.q_network.initial_state: states,
@@ -889,11 +890,12 @@ class MelodyQNetwork(object):
                                             sample_next_obs=False)
         new_observation = action
       new_state = np.array(self.q_network.state_value).flatten()
+      new_reward_state = np.array(self.reward_rnn.state_value).flatten()
 
       reward = self.collect_reward(last_observation, new_observation, state, reward_scores)
 
       self.store(last_observation, state, action, reward, new_observation,
-                 new_state, reward_rnn_state)
+                 new_state, new_reward_state)
 
       # Used to keep track of how the reward is changing over time.
       self.reward_last_n += reward
