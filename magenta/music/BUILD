@@ -160,6 +160,9 @@ py_library(
 py_test(
     name = "melodies_lib_test",
     srcs = ["melodies_lib_test.py"],
+    data = [
+        "testdata/melody.mid",
+    ],
     srcs_version = "PY2AND3",
     deps = [
         ":constants",
