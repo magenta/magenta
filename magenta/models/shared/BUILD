@@ -55,6 +55,15 @@ py_library(
 )
 
 py_library(
+    name = "melody_rnn_model",
+    srcs = ["melody_rnn_model.py"],
+    srcs_version = "PY2AND3",
+    deps = [
+        "//magenta",
+    ],
+)
+
+py_library(
     name = "melody_rnn_sequence_generator",
     srcs = ["melody_rnn_sequence_generator.py"],
     srcs_version = "PY2AND3",
