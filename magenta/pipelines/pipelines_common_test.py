@@ -80,8 +80,8 @@ class PipelineUnitsCommonTest(tf.test.TestCase):
         [NO_EVENT, NO_EVENT, 12, NO_EVENT, NOTE_OFF, NO_EVENT, 14, NO_EVENT]]
     expected_melodies = []
     for events_list in expected_events:
-      melody = melodies_lib.MonophonicMelody()
-      melody.from_event_list(events_list, steps_per_quarter=1, steps_per_bar=4)
+      melody = melodies_lib.MonophonicMelody(
+          events_list, steps_per_quarter=1, steps_per_bar=4)
       expected_melodies.append(melody)
     unit = pipelines_common.MonophonicMelodyExtractor(
         min_bars=1, min_unique_pitches=1, gap_bars=1)

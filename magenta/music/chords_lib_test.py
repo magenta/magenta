@@ -35,24 +35,21 @@ class ChordsLibTest(tf.test.TestCase):
   def testTranspose(self):
     # Transpose ChordProgression with basic triads.
     events = ['Cm', 'F', 'B-', 'E-']
-    chords = chords_lib.ChordProgression()
-    chords.from_event_list(events)
+    chords = chords_lib.ChordProgression(events)
     chords.transpose(transpose_amount=7)
     expected = ['Gm', 'C', 'F', 'B-']
     self.assertEqual(expected, list(chords))
 
     # Transpose ChordProgression with more complex chords.
     events = ['Esus2', 'B13', 'A7/B', 'F#dim']
-    chords = chords_lib.ChordProgression()
-    chords.from_event_list(events)
+    chords = chords_lib.ChordProgression(events)
     chords.transpose(transpose_amount=-2)
     expected = ['Dsus2', 'A13', 'G7/A', 'Edim']
     self.assertEqual(expected, list(chords))
 
     # Transpose ChordProgression containing NO_CHORD.
     events = ['C', 'B-', NO_CHORD, 'F', 'C']
-    chords = chords_lib.ChordProgression()
-    chords.from_event_list(events)
+    chords = chords_lib.ChordProgression(events)
     chords.transpose(transpose_amount=4)
     expected = ['E', 'D', NO_CHORD, 'A', 'E']
     self.assertEqual(expected, list(chords))
@@ -60,8 +57,7 @@ class ChordsLibTest(tf.test.TestCase):
   def testTransposeUnknownChordSymbol(self):
     # Attempt to transpose ChordProgression with unknown chord symbol.
     events = ['Cm', 'G7', 'P#13', 'F']
-    chords = chords_lib.ChordProgression()
-    chords.from_event_list(events)
+    chords = chords_lib.ChordProgression(events)
     with self.assertRaises(chord_symbols_lib.ChordSymbolException):
       chords.transpose(transpose_amount=-4)
 
@@ -151,9 +147,8 @@ class ChordsLibTest(tf.test.TestCase):
     self.assertEqual(stats_dict['coincident_chords'].count, 1)
 
   def testToSequence(self):
-    chords = chords_lib.ChordProgression()
-    chords.from_event_list([NO_CHORD, 'C7', 'C7', 'C7', 'C7', 'Am7b5', 'F6',
-                            'F6', NO_CHORD])
+    chords = chords_lib.ChordProgression(
+        [NO_CHORD, 'C7', 'C7', 'C7', 'C7', 'Am7b5', 'F6', 'F6', NO_CHORD])
     sequence = chords.to_sequence(sequence_start_time=2, qpm=60.0)
 
     self.assertProtoEquals(

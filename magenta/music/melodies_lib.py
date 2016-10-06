@@ -32,6 +32,7 @@ with an event sampled from the softmax output by the model.
 """
 
 import abc
+import copy
 
 # internal imports
 import numpy as np
@@ -106,17 +107,37 @@ class MonophonicMelody(events_lib.SimpleEventSequence):
     steps_per_bar: Number of steps in a bar (measure) of music.
   """
 
-  def __init__(self):
-    """Construct an empty MonophonicMelody."""
-    super(MonophonicMelody, self).__init__(pad_event=MELODY_NO_EVENT)
+  def __init__(self, events=None, **kwargs):
+    """Construct a MonophonicMelody."""
+    super(MonophonicMelody, self).__init__(pad_event=MELODY_NO_EVENT,
+                                           events=events, **kwargs)
+
+  def _from_event_list(self, events, start_step=0,
+                       steps_per_bar=DEFAULT_STEPS_PER_BAR,
+                       steps_per_quarter=DEFAULT_STEPS_PER_QUARTER):
+    """Initializes with a list of event values and sets attributes.
+
+    Args:
+      events: List of MonophonicMelody events to set melody to.
+      start_step: The integer starting step offset.
+      steps_per_bar: The number of steps in a bar.
+      steps_per_quarter: The number of steps in a quarter note.
+
+    Raises:
+      ValueError: If `events` contains an event that is not in the proper range.
+    """
+    for event in events:
+      if not MIN_MELODY_EVENT <= event <= MAX_MELODY_EVENT:
+        raise ValueError('Melody event out of range: %d' % event)
+    super(MonophonicMelody, self)._from_event_list(
+        events, start_step=start_step, steps_per_bar=steps_per_bar,
+        steps_per_quarter=steps_per_quarter)
 
   def __deepcopy__(self, unused_memo=None):
-    new_copy = type(self)()
-    new_copy.from_event_list(list(self._events),
-                             self.start_step,
-                             self.steps_per_bar,
-                             self.steps_per_quarter)
-    return new_copy
+    return type(self)(events=copy.deepcopy(self._events),
+                      start_step=self.start_step,
+                      steps_per_bar=self.steps_per_bar,
+                      steps_per_quarter=self.steps_per_quarter)
 
   def __eq__(self, other):
     if not isinstance(other, MonophonicMelody):
@@ -348,27 +369,6 @@ class MonophonicMelody(events_lib.SimpleEventSequence):
       length += -len(self) % steps_per_bar
     self.set_length(length)
 
-  def from_event_list(self, events, start_step=0,
-                      steps_per_bar=DEFAULT_STEPS_PER_BAR,
-                      steps_per_quarter=DEFAULT_STEPS_PER_QUARTER):
-    """Initialies with a list of event values and sets attributes appropriately.
-
-    Args:
-      events: List of MonophonicMelody events to set melody to.
-      start_step: The integer starting step offset.
-      steps_per_bar: The number of steps in a bar.
-      steps_per_quarter: The number of steps in a quarter note.
-
-    Raises:
-      ValueError: If `events` contains an event that is not in the proper range.
-    """
-    for event in events:
-      if not MIN_MELODY_EVENT <= event <= MAX_MELODY_EVENT:
-        raise ValueError('Melody event out of range: %d' % event)
-    super(MonophonicMelody, self).from_event_list(
-        events, start_step=start_step, steps_per_bar=steps_per_bar,
-        steps_per_quarter=steps_per_quarter)
-
   def to_sequence(self,
                   velocity=100,
                   instrument=0,
@@ -512,6 +512,20 @@ class MonophonicMelody(events_lib.SimpleEventSequence):
         elif self._events[i] != MELODY_NO_EVENT:
           self._events[old_len] = MELODY_NOTE_OFF
           break
+
+  def increase_resolution(self, k):
+    """Increase the resolution of a MonophonicMelody.
+
+    Increases the resolution of a MonophonicMelody object by a factor of `k`.
+    This uses MELODY_NO_EVENT to extend each event in the melody to be `k`
+    steps long.
+
+    Args:
+      k: An integer, the factor by which to increase the resolution of the
+          melody.
+    """
+    super(MonophonicMelody, self).increase_resolution(
+        k, fill_event=MELODY_NO_EVENT)
 
 
 def extract_melodies(quantized_sequence,
@@ -755,8 +769,7 @@ class MelodyEncoderDecoder(events_lib.EventsEncoderDecoder):
     Returns:
       An int, the class label that represents a NO_EVENT.
     """
-    melody = MonophonicMelody()
-    melody.from_event_list([MELODY_NO_EVENT])
+    melody = MonophonicMelody([MELODY_NO_EVENT])
     return self.events_to_label(melody, 0)
 
   @abc.abstractmethod

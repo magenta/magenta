@@ -27,9 +27,9 @@ sh_binary(
         "//magenta/interfaces/midi",
 
         # Models
-        "//magenta/models/attention_rnn:attention_rnn_model",
-        "//magenta/models/basic_rnn:basic_rnn_model",
-        "//magenta/models/lookback_rnn:lookback_rnn_model",
+        "//magenta/models/attention_rnn",
+        "//magenta/models/basic_rnn",
+        "//magenta/models/lookback_rnn",
 
         # Scripts
         "//magenta/interfaces/midi:magenta_midi",

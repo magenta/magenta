@@ -91,8 +91,7 @@ class MelodyEncoderDecoder(magenta.music.MelodyEncoderDecoder):
     is_attack = False
     is_ascending = None
     last_3_notes = collections.deque(maxlen=3)
-    sub_melody = magenta.music.MonophonicMelody()
-    sub_melody.from_event_list(events[:position + 1])
+    sub_melody = magenta.music.MonophonicMelody(events[:position + 1])
     for note in sub_melody:
       if note == MELODY_NO_EVENT:
         is_attack = False
@@ -152,8 +151,7 @@ class MelodyEncoderDecoder(magenta.music.MelodyEncoderDecoder):
         input_[self.note_range + 14 + i] = 1.0
 
     # The keys the last 3 notes are in.
-    last_3_note_melody = magenta.music.MonophonicMelody()
-    last_3_note_melody.from_event_list(list(last_3_notes))
+    last_3_note_melody = magenta.music.MonophonicMelody(list(last_3_notes))
     key_histogram = last_3_note_melody.get_major_key_histogram()
     max_val = max(key_histogram)
     for i, key_val in enumerate(key_histogram):
