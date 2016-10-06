@@ -42,7 +42,7 @@ class LeadSheetsLibTest(tf.test.TestCase):
     melody_events = [12 * 5 + 4, NO_EVENT, 12 * 5 + 5,
                      NOTE_OFF, 12 * 6, NO_EVENT]
     chord_events = [NO_CHORD, 'C', 'F', 'Dm', 'D', 'G']
-    melody = melodies_lib.MonophonicMelody(melody_events)
+    melody = melodies_lib.Melody(melody_events)
     chords = chords_lib.ChordProgression(chord_events)
     expected_melody = copy.deepcopy(melody)
     expected_chords = copy.deepcopy(chords)
@@ -59,7 +59,7 @@ class LeadSheetsLibTest(tf.test.TestCase):
     melody_events = [12 * 5, NO_EVENT, 12 * 5 + 2,
                      NOTE_OFF, 12 * 6 + 4, NO_EVENT]
     chord_events = ['C', 'Am', 'Dm', 'G', 'C', NO_CHORD]
-    melody = melodies_lib.MonophonicMelody(melody_events)
+    melody = melodies_lib.Melody(melody_events)
     chords = chords_lib.ChordProgression(chord_events)
     expected_melody = copy.deepcopy(melody)
     expected_chords = copy.deepcopy(chords)
@@ -155,7 +155,7 @@ class LeadSheetsLibTest(tf.test.TestCase):
     # chords separately.
     melody_events = [60]
     chord_events = ['C7']
-    melody = melodies_lib.MonophonicMelody(melody_events, start_step=9)
+    melody = melodies_lib.Melody(melody_events, start_step=9)
     chords = chords_lib.ChordProgression(chord_events, start_step=9)
     expected_melody = copy.deepcopy(melody)
     expected_chords = copy.deepcopy(chords)
@@ -171,17 +171,17 @@ class LeadSheetsLibTest(tf.test.TestCase):
   def testToSequence(self):
     # Sequence produced from lead sheet should contain notes from melody
     # sequence and chords from chord sequence as text annotations.
-    melody = melodies_lib.MonophonicMelody(
+    melody = melodies_lib.Melody(
         [NO_EVENT, 1, NO_EVENT, NOTE_OFF, NO_EVENT, 2, 3, NOTE_OFF, NO_EVENT])
     chords = chords_lib.ChordProgression(
         [NO_CHORD, 'A', 'A', 'C#m', 'C#m', 'D', 'B', 'B', 'B'])
     lead_sheet = lead_sheets_lib.LeadSheet(melody, chords)
+
     sequence = lead_sheet.to_sequence(
         velocity=10,
         instrument=1,
         sequence_start_time=2,
         qpm=60.0)
-
     melody_sequence = melody.to_sequence(
         velocity=10,
         instrument=1,
@@ -190,6 +190,7 @@ class LeadSheetsLibTest(tf.test.TestCase):
     chords_sequence = chords.to_sequence(
         sequence_start_time=2,
         qpm=60.0)
+
     self.assertEquals(melody_sequence.ticks_per_quarter,
                       sequence.ticks_per_quarter)
     self.assertProtoEquals(melody_sequence.tempos, sequence.tempos)

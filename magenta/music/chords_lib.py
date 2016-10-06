@@ -66,10 +66,9 @@ class ChordProgression(events_lib.SimpleEventSequence):
   ChordProgression events are chord symbol strings like "Cm7", with special
   event NO_CHORD to indicate no chordal harmony. When a chord lasts for longer
   than a single step, the chord symbol event is repeated multiple times. Note
-  that this is different from MonophonicMelody, where the special
-  MELODY_NO_EVENT is used for subsequent steps of sustained notes; in the case
-  of harmony, there's no distinction between a repeated chord and a sustained
-  chord.
+  that this is different from Melody, where the special MELODY_NO_EVENT is used
+  for subsequent steps of sustained notes; in the case of harmony, there's no
+  distinction between a repeated chord and a sustained chord.
 
   Chords must be inserted in ascending order by start time.
 
@@ -266,7 +265,7 @@ def extract_chords_for_melodies(quantized_sequence, melodies):
 
   Args:
     quantized_sequence: A sequences_lib.QuantizedSequence object.
-    melodies: A python list of MonophonicMelody instances.
+    melodies: A python list of Melody instances.
 
   Returns:
     A python list of ChordProgression instances, the same length as `melodies`.
