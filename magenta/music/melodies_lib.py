@@ -39,6 +39,8 @@ from six.moves import range  # pylint: disable=redefined-builtin
 
 from magenta.music import constants
 from magenta.music import events_lib
+from magenta.music import midi_io
+from magenta.music import sequences_lib
 from magenta.pipelines import statistics
 from magenta.protobuf import music_pb2
 
@@ -655,6 +657,37 @@ def extract_melodies(quantized_sequence,
       melodies.append(melody)
 
   return melodies, stats.values()
+
+
+def midi_file_to_melody(midi_file, steps_per_quarter=4, qpm=None,
+                        ignore_polyphonic_notes=True):
+  """Loads a melody from a MIDI file.
+
+  Args:
+    midi_file: Absolute path to MIDI file.
+    steps_per_quarter: Quantization of Melody. For example, 4 = 16th notes.
+    qpm: Tempo in quarters per a minute. If not set, tries to use the first
+        tempo of the midi track and defaults to
+        magenta.music.DEFAULT_QUARTERS_PER_MINUTE if fails.
+    ignore_polyphonic_notes: Only use the highest simultaneous note if True.
+
+  Returns:
+    A Melody object extracted from the MIDI file.
+  """
+  sequence = midi_io.midi_file_to_sequence_proto(midi_file)
+  if qpm is None:
+    if sequence.tempos:
+      qpm = sequence.tempos[0].qpm
+    else:
+      qpm = constants.DEFAULT_QUARTERS_PER_MINUTE
+  quantized_sequence = sequences_lib.QuantizedSequence()
+  quantized_sequence.qpm = qpm
+  quantized_sequence.from_note_sequence(
+      sequence, steps_per_quarter=steps_per_quarter)
+  melody = Melody()
+  melody.from_quantized_sequence(
+      quantized_sequence, ignore_polyphonic_notes=ignore_polyphonic_notes)
+  return melody
 
 
 class MelodyEncoderDecoder(events_lib.EventsEncoderDecoder):

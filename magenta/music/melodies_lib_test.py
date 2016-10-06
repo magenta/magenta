@@ -13,6 +13,8 @@
 # limitations under the License.
 """Tests for melodies_lib."""
 
+import os
+
 # internal imports
 import tensorflow as tf
 
@@ -566,6 +568,14 @@ class MelodiesLibTest(tf.test.TestCase):
         stats_dict['melody_lengths_in_bars'].counters,
         {float('-inf'): 0, 0: 1, 1: 0, 2: 1, 10: 1, 20: 0, 30: 0, 40: 0, 50: 0,
          100: 0, 200: 0, 500: 0})
+
+  def testMidiFileToMelody(self):
+    filename = os.path.join(tf.resource_loader.get_data_files_path(),
+                            'testdata', 'melody.mid')
+    melody = melodies_lib.midi_file_to_melody(filename)
+    expected = melodies_lib.Melody([60, 62, 64, 66, 68, 70,
+                                    72, 70, 68, 66, 64, 62])
+    self.assertEqual(expected, melody)
 
 
 class MelodyEncoderDecoderTest(tf.test.TestCase):
