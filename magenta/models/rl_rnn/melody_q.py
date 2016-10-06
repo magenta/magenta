@@ -1270,8 +1270,11 @@ class MelodyQNetwork(object):
     if self.beat == 0 or self.beat == first_note_of_final_bar:
       if action_note == tonic_note:
         return reward_amount
-    elif self.beat > first_note_of_final_bar:
+    elif self.beat == first_note_of_final_bar + 1:
       if action_note == NO_EVENT:
+          return reward_amount
+    elif self.beat > first_note_of_final_bar + 1:
+      if action_note == NO_EVENT or action_note == NOTE_OFF:
         return reward_amount
     return 0.0
 
@@ -1964,13 +1967,13 @@ class MelodyQNetwork(object):
 
     for _ in range(composition_length):
       if sample_next_obs:
-        action, new_observation = self.action(
+        action, new_observation, reward_scores = self.action(
             last_observation,
             0,
             enable_random=False,
             sample_next_obs=sample_next_obs)
       else:
-        action = self.action(
+        action, reward_scores = self.action(
             last_observation,
             0,
             enable_random=False,
