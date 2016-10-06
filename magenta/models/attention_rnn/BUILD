@@ -103,6 +103,17 @@ py_test(
     ],
 )
 
+py_library(
+    name = "attention_rnn_model",
+    srcs = ["attention_rnn_model.py"],
+    srcs_version = "PY2AND3",
+    visibility = ["//magenta/tools/pip:__subpackages__"],
+    deps = [
+        ":attention_rnn_generator",
+        "//magenta/models/shared:melody_rnn_model",
+    ],
+)
+
 py_binary(
     name = "attention_rnn_train",
     srcs = ["attention_rnn_train.py"],

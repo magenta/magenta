@@ -103,6 +103,17 @@ py_test(
     ],
 )
 
+py_library(
+    name = "lookback_rnn_model",
+    srcs = ["lookback_rnn_model.py"],
+    srcs_version = "PY2AND3",
+    visibility = ["//magenta/tools/pip:__subpackages__"],
+    deps = [
+        ":lookback_rnn_generator",
+        "//magenta/models/shared:melody_rnn_model",
+    ],
+)
+
 py_binary(
     name = "lookback_rnn_train",
     srcs = ["lookback_rnn_train.py"],
