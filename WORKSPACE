@@ -49,9 +49,9 @@ bind(
 new_http_archive(
     name = "mido",
     build_file = "mido.BUILD",
-    url = "https://github.com/olemb/mido/archive/1.1.15.tar.gz",
-    sha256 = "6d7abde6f25d4fa90a890a65b90e51524322123ab710b7084ac2e67b340cda92",
-    strip_prefix = "mido-1.1.15/mido",
+    url = "https://github.com/olemb/mido/archive/1.1.17.tar.gz",
+    sha256 = "7844ff77ab12469504c46e9aa035722a2829e7c72b8b6241c78d356895e88114",
+    strip_prefix = "mido-1.1.17/mido",
 )
 
 new_http_archive(
