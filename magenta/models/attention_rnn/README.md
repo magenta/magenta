@@ -162,11 +162,11 @@ bazel run //magenta/models/attention_rnn:attention_rnn_generate -- \
 ### Creating a Bundle File
 
 The [bundle format](/magenta/protobuf/generator.proto)
-is just a convenient way of combining the model checkpoint, metagraph, and
+is a convenient way of combining the model checkpoint, metagraph, and
 some metadata about the model into a single file.
 
 To generate a bundle, use the
-[create_bundle_file](magenta/lib/sequence_generator.py)
+[create_bundle_file](/magenta/lib/sequence_generator.py)
 method within SequenceGenerator. All of our melody model generator scripts
 support a ```--save_generator_bundle``` flag that calls this method. Example:
 
