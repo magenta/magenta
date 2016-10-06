@@ -129,9 +129,9 @@ links to bundle files on each of our model pages (e.g.,
 
 To create a bundle file from one of your training checkpoints, follow the
 instructions in the README for your model (e.g.,
-[Basic RNN](/magenta/models/basic_rnn/README.md#Creating a Bundle File),
-[Lookback RNN](/magenta/models/lookback_rnn/README.md#Creating a Bundle File),
-[Attention RNN](/magenta/models/attention_rnn/README.md#Creating a Bundle File),
+[Basic RNN](/magenta/models/basic_rnn/README.md#creating-a-bundle-file),
+[Lookback RNN](/magenta/models/lookback_rnn/README.md#creating-a-bundle-file),
+[Attention RNN](/magenta/models/attention_rnn/README.md#creating-a-bundle-file),
 etc.).
 
 You can now start the interface with this command, supplying the location of the
