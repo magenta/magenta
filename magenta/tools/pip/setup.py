@@ -20,7 +20,7 @@ import magenta
 
 
 REQUIRED_PACKAGES = [
-    'mido >= 1.1.14',
+    'mido >= 1.1.17',
     'pretty_midi >= 0.2.5',
     'tensorflow >= 0.10.0',
     'wheel',
