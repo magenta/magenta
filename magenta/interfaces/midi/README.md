@@ -118,21 +118,13 @@ You should see a list of available input and output ports, including both the
 controller (e.g., "VMPK Output") and synthesizer (e.g., "FluidSynth virtual
 port").
 
-To use the midi interface, you must supply a trained model bundle. You can
-either download one of ours or create your own from a training checkpoint.
-
-To use a pre-trained bundle, first download the bundle .mag file. There are
-links to bundle files on each of our model pages (e.g.,
+To use the midi interface, you must supply a trained model bundle (.mag file).
+You can either download one from the links on our model pages (e.g.,
 [Basic RNN](/magenta/models/basic_rnn/README.md),
 [Lookback RNN](/magenta/models/lookback_rnn/README.md),
-[Attention RNN](/magenta/models/attention_rnn/README.md), etc.).
-
-To create a bundle file from one of your training checkpoints, follow the
-instructions in the README for your model (e.g.,
-[Basic RNN](/magenta/models/basic_rnn/README.md#creating-a-bundle-file),
-[Lookback RNN](/magenta/models/lookback_rnn/README.md#creating-a-bundle-file),
-[Attention RNN](/magenta/models/attention_rnn/README.md#creating-a-bundle-file),
-etc.).
+[Attention RNN](/magenta/models/attention_rnn/README.md), etc.) or create a
+bundle file from one of your training checkpoints using the instructions on
+the model page.
 
 You can now start the interface with this command, supplying the location of the
 .mag bundle file:
