@@ -57,7 +57,7 @@ class EncoderPipeline(pipeline.Pipeline):
       melody_encoder_decoder: A magenta.music.MelodyEncoderDecoder object.
     """
     super(EncoderPipeline, self).__init__(
-        input_type=magenta.music.MonophonicMelody,
+        input_type=magenta.music.Melody,
         output_type=tf.train.SequenceExample)
     self.melody_encoder_decoder = melody_encoder_decoder
 
@@ -79,7 +79,7 @@ def get_pipeline(melody_encoder_decoder):
     A pipeline.Pipeline instance.
   """
   quantizer = pipelines_common.Quantizer(steps_per_quarter=4)
-  melody_extractor = pipelines_common.MonophonicMelodyExtractor(
+  melody_extractor = pipelines_common.MelodyExtractor(
       min_bars=7, min_unique_pitches=5,
       gap_bars=1.0, ignore_polyphonic_notes=False)
   encoder_pipeline = EncoderPipeline(melody_encoder_decoder)
