@@ -865,7 +865,7 @@ class MidiHub(object):
         self._outport.send(msg)
       elif ((msg.type == 'note_off' or
              msg.type == 'note_on' and msg.velocity == 0) and
-             msg.note in self._open_notes):
+            msg.note in self._open_notes):
         self._outport.send(msg)
         self._open_notes.remove(msg.note)
       elif msg.type == 'note_on' and msg.velocity > 0:
