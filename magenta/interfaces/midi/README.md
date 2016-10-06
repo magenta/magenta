@@ -160,7 +160,7 @@ $ bazel-bin/magenta/interfaces/midi/magenta_midi \
 
 ## Using the "Call and Response" Interaction
 
-When you start the interace, the "call" phase will begin immediately. You will
+When you start the interface, the "call" phase will begin immediately. You will
 hear a metronome ticking and the keys will now produce sounds through your audio
 output.
 
