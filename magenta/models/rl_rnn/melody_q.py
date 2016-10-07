@@ -299,11 +299,13 @@ class MelodyQNetwork(object):
       tf.logging.info('Getting priming melodies')
       self.get_priming_melodies()
 
-  def prime_internal_models(self):
+  def prime_internal_models(self, suppress_output=True):
     """Primes both internal models with their default midi file primer."""
-    self.q_network.prime_model()
-    self.target_q_network.prime_model()
-
+    self.prime_internal_mode(self.target_q_network, suppress_output=suppress_output)
+    self.prime_internal_model(self.reward_rnn, suppress_output=suppress_output)
+    next_obs = self.prime_internal_model(self.q_network, suppress_output=suppress_output)
+    return next_obs
+    
   def get_priming_melodies(self):
     """Runs a batch of training data through MelodyRNN model.
 
@@ -572,7 +574,7 @@ class MelodyQNetwork(object):
          self.reward_rnn.lengths: lengths})
     return rewards
 
-  def prime_q_model(self, suppress_output=True):
+  def prime_internal_model(self, model, suppress_output=True):
     """Prime the internal MelodyRNN q_network based on the model's priming mode.
 
     Args:
@@ -582,13 +584,13 @@ class MelodyQNetwork(object):
     Returns:
       The first observation to feed into the model.
     """
-    self.q_network.state_value = self.q_network.get_zero_state()
+    model.state_value = model.get_zero_state()
 
     if self.priming_mode == 'random_midi':
       priming_idx = np.random.randint(0, len(self.priming_states))
-      self.q_network.state_value = np.reshape(
+      model.state_value = np.reshape(
           self.priming_states[priming_idx, :],
-          (1, self.q_network.cell.state_size))
+          (1, model.cell.state_size))
       priming_note = self.priming_notes[priming_idx]
       next_obs = np.array(
           rl_rnn_ops.make_onehot([priming_note], self.num_actions)).flatten()
@@ -597,8 +599,8 @@ class MelodyQNetwork(object):
             'Feeding priming state for midi file %s and corresponding note %s',
             priming_idx, priming_note)
     elif self.priming_mode == 'single_midi':
-      self.q_network.prime_model(suppress_output=suppress_output)
-      next_obs = self.q_network.priming_note
+      model.prime_model(suppress_output=suppress_output)
+      next_obs = model.priming_note
     elif self.priming_mode == 'random_note':
       next_obs = self.get_random_note()
     else:
@@ -644,7 +646,7 @@ class MelodyQNetwork(object):
       length = self.num_notes_in_melody
 
     self.reset_composition()
-    next_obs = self.prime_q_model(suppress_output=False)
+    next_obs = self.prime_internal_models(suppress_output=False)
     tf.logging.info('Priming with note %s', np.argmax(next_obs))
 
     lengths = np.full(self.q_network.batch_size, 1, dtype=int)
@@ -851,7 +853,7 @@ class MelodyQNetwork(object):
                     global_step=len(self.rewards_batched)*self.output_every_nth)
 
 
-  def train(self, num_steps=10000, exploration_period=5000, enable_random=True):
+  def train(self, num_steps=10000, exploration_period=5000, enable_random=True, verbose=False):
     """Main training function that allows model to act, collects reward, trains.
 
     Iterates a number of times, getting the model to act each time, saving the
@@ -871,7 +873,7 @@ class MelodyQNetwork(object):
       tf.logging.info('Using stochastic environment')
 
     self.reset_composition()
-    last_observation = self.prime_q_model(suppress_output=False)
+    last_observation = self.prime_internal_models(suppress_output=False)
 
     for i in range(num_steps):
       # Experiencing observation, state, action, reward, new observation,
@@ -893,7 +895,16 @@ class MelodyQNetwork(object):
       new_state = np.array(self.q_network.state_value).flatten()
       new_reward_state = np.array(self.reward_rnn.state_value).flatten()
 
-      reward = self.collect_reward(last_observation, new_observation, state, reward_scores)
+      if verbose:
+        print "action (in train func):", np.argmax(action)
+        print "new obs (in train func):", np.argmax(new_observation)
+        print "reward_rnn output for action (in train func):", self.reward_from_reward_rnn_scores(action, reward_scores)
+        print "reward_rnn output for new obs (in train func):", self.reward_from_reward_rnn_scores(new_observation, reward_scores)
+        print "diff between successive reward_rnn states:", np.sum((reward_rnn_state - new_reward_state)**2)
+        print "diff between reward_rnn state and q_network state:", np.sum((new_state - new_reward_state)**2)
+
+      reward = self.collect_reward(last_observation, new_observation, state, 
+                                   reward_scores, verbose=verbose)
 
       self.store(last_observation, state, action, reward, new_observation,
                  new_state, new_reward_state)
@@ -945,7 +956,7 @@ class MelodyQNetwork(object):
       # Reset the state after each composition is complete.
       if self.beat % self.num_notes_in_melody == 0:
         self.reset_composition()
-        last_observation = self.prime_q_model()
+        last_observation = self.prime_internal_models()
 
   def collect_reward(self, obs, action, state, reward_scores, verbose=False):
     """Calls whatever reward function is indicated in the reward_mode field.
@@ -1965,7 +1976,7 @@ class MelodyQNetwork(object):
       A dictionary updated to include statistics about the composition just
       created.
     """
-    last_observation = self.prime_q_model(suppress_output=True)
+    last_observation = self.prime_internal_models(suppress_output=True)
     self.reset_composition()
 
     for _ in range(composition_length):
@@ -2204,7 +2215,7 @@ class MelodyQNetwork(object):
                                 test_composition=None):
     """Composes a piece and prints how it is evaluated with music theory functions
     """
-    last_observation = self.prime_q_model(suppress_output=True)
+    last_observation = self.prime_internal_models(suppress_output=True)
     self.reset_composition()
 
     for i in range(composition_length):
