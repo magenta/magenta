@@ -930,7 +930,10 @@ class MelodyQNetwork(object):
         save_step = len(self.rewards_batched)*self.output_every_nth
         self.saver.save(self.session, self.log_dir, global_step=save_step)
 
-        self.rewards_batched.append(self.reward_last_n)
+        if self.algorithm == 'g':
+          self.rewards_batched.append(self.music_theory_reward_last_n + self.note_rnn_reward_last_n)
+        else:
+          self.rewards_batched.append(self.reward_last_n)
         self.music_theory_rewards_batched.append(self.music_theory_reward_last_n)
         self.note_rnn_rewards_batched.append(self.note_rnn_reward_last_n)
 
