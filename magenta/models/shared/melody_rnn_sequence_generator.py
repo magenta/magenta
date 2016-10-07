@@ -156,8 +156,9 @@ class MelodyRnnSequenceGenerator(magenta.music.BaseSequenceGenerator):
     melody.set_length(start_step)
 
     generated_melody = self.generate_melody(end_step, melody)
-
-    return generated_melody.to_sequence(qpm=qpm)
+    generated_sequence = generated_melody.to_sequence(qpm=qpm)
+    assert generated_sequence.total_time <= generate_section.end_time_seconds
+    return generated_sequence
 
   def generate_melody(self, num_steps, primer_melody):
     """Generate a melody from a primer melody.
@@ -195,7 +196,7 @@ class MelodyRnnSequenceGenerator(magenta.music.BaseSequenceGenerator):
     softmax = self._session.graph.get_collection('softmax')[0]
 
     final_state_ = None
-    for i in range(num_steps - len(melody)):
+    for i in range(num_steps - (len(melody) + melody.start_step)):
       if i == 0:
         inputs_ = self._melody_encoder_decoder.get_inputs_batch(
             [melody], full_length=True)
