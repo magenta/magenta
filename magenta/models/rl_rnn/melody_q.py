@@ -212,6 +212,8 @@ class MelodyQNetwork(object):
     elif initialize_immediately and self.algorithm:
       self.initialize_internal_models_graph_session()
 
+    self.target_val_list = []
+
   def initialize_internal_models_graph_session(self, restore_from_checkpoint=True):
     """Initializes internal RNN models, builds the graph, starts the session.
 
@@ -797,9 +799,10 @@ class MelodyQNetwork(object):
       calc_summaries = calc_summaries and self.summary_writer is not None
 
       if self.algorithm == 'g':
-        _, _, summary_str = self.session.run([
+        _, _, target_vals, summary_str = self.session.run([
             self.prediction_error,
             self.train_op,
+            self.target_vals,
             self.summarize if calc_summaries else self.no_op1,
         ], {
             self.reward_rnn.melody_sequence: new_observations,
@@ -815,9 +818,10 @@ class MelodyQNetwork(object):
             self.rewards: rewards,
         })
       else:
-        _, _, summary_str = self.session.run([
+        _, _, target_vals, summary_str = self.session.run([
             self.prediction_error,
             self.train_op,
+            self.target_vals,
             self.summarize if calc_summaries else self.no_op1,
         ], {
             self.q_network.melody_sequence: observations,
@@ -829,6 +833,8 @@ class MelodyQNetwork(object):
             self.action_mask: action_mask,
             self.rewards: rewards,
         })
+
+      self.target_val_list.append(target_vals)
 
       self.session.run(self.target_network_update)
 
