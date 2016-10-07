@@ -77,9 +77,10 @@ class MelodyRnnSequenceGenerator(magenta.music.BaseSequenceGenerator):
 
   def _initialize_with_checkpoint_and_metagraph(self, checkpoint_filename,
                                                 metagraph_filename):
-    self._session = tf.Session()
-    new_saver = tf.train.import_meta_graph(metagraph_filename)
-    new_saver.restore(self._session, checkpoint_filename)
+    with tf.Graph().as_default():
+      self._session = tf.Session()
+      new_saver = tf.train.import_meta_graph(metagraph_filename)
+      new_saver.restore(self._session, checkpoint_filename)
 
   def _write_checkpoint_with_metagraph(self, checkpoint_filename):
     with self._session.graph.as_default():
