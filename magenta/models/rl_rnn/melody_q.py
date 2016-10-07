@@ -45,7 +45,9 @@ HALFSTEP = 1
 
 # Special intervals that have unique rewards
 REST_INTERVAL = -1
+HOLD_INTERVAL = -1.5
 REST_INTERVAL_AFTER_THIRD_OR_FIFTH = -2
+HOLD_INTERVAL_AFTER_THIRD_OR_FIFTH = -2.5
 IN_KEY_THIRD = -3
 IN_KEY_FIFTH = -5
 
@@ -301,11 +303,11 @@ class MelodyQNetwork(object):
 
   def prime_internal_models(self, suppress_output=True):
     """Primes both internal models with their default midi file primer."""
-    self.prime_internal_mode(self.target_q_network, suppress_output=suppress_output)
+    self.prime_internal_model(self.target_q_network, suppress_output=suppress_output)
     self.prime_internal_model(self.reward_rnn, suppress_output=suppress_output)
     next_obs = self.prime_internal_model(self.q_network, suppress_output=suppress_output)
     return next_obs
-    
+
   def get_priming_melodies(self):
     """Runs a batch of training data through MelodyRNN model.
 
@@ -1075,6 +1077,7 @@ class MelodyQNetwork(object):
       if verbose:
         print 'Total music theory reward:', self.reward_scaler * reward
         print 'Total note rnn reward:', note_rnn_reward
+        print ""
       
       self.music_theory_reward_last_n += reward * self.reward_scaler
       return reward * self.reward_scaler + note_rnn_reward
@@ -1439,7 +1442,7 @@ class MelodyQNetwork(object):
     composition = self.composition + [np.argmax(action)]
     motif, num_notes_in_motif = self.detect_last_motif(composition=composition)
     if motif is not None:
-      motif_complexity_bonus = max((num_notes_in_motif - 3)*.1, 0)
+      motif_complexity_bonus = max((num_notes_in_motif - 3)*.3, 0)
       return reward_amount + motif_complexity_bonus
     else:
       return 0.0
@@ -1545,7 +1548,12 @@ class MelodyQNetwork(object):
     if verbose: print "action_note:", action_note, "prev_note:", prev_note
 
     # get rid of non-notes in action_note
-    if action_note == NO_EVENT or action_note == NOTE_OFF:
+    if action_note == NO_EVENT:
+      if prev_note in tonic_notes or prev_note in fifth_notes:
+        return HOLD_INTERVAL_AFTER_THIRD_OR_FIFTH, action_note, prev_note
+      else:
+        return HOLD_INTERVAL, action_note, prev_note
+    elif action_note == NOTE_OFF:
       if prev_note in tonic_notes or prev_note in fifth_notes:
         return REST_INTERVAL_AFTER_THIRD_OR_FIFTH, action_note, prev_note
       else:
@@ -1587,9 +1595,13 @@ class MelodyQNetwork(object):
     if interval == REST_INTERVAL:
       reward = 0.05
       if verbose: print "rest interval"
+    if interval == HOLD_INTERVAL:
+      reward = 0.075
     if interval == REST_INTERVAL_AFTER_THIRD_OR_FIFTH:
-      reward = 0.3
+      reward = 0.15
       if verbose: print "rest interval after 1st or 5th"
+    if interval == HOLD_INTERVAL_AFTER_THIRD_OR_FIFTH:
+      reward = 0.3
 
     # large leaps and awkward intervals bad
     if interval == SEVENTH:
@@ -1659,7 +1671,7 @@ class MelodyQNetwork(object):
         return True
     return False
 
-  def reward_high_low_unique(self, action, reward_amount=1.0):
+  def reward_high_low_unique(self, action, reward_amount=3.0):
     """Evaluates if highest and lowest notes in composition occurred once.
 
     Args:
