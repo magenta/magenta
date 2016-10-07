@@ -834,7 +834,7 @@ class MelodyQNetwork(object):
             self.rewards: rewards,
         })
 
-      self.target_val_list.append(target_vals)
+      self.target_val_list.append(np.mean(target_vals))
 
       self.session.run(self.target_network_update)
 
