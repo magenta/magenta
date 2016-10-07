@@ -209,3 +209,8 @@ def make_cell(hparams, state_is_tuple=False):
         cell, hparams.attn_length, state_is_tuple=state_is_tuple)
 
   return cell
+
+def log_sum_exp(xs):
+  maxes = tf.reduce_max(xs, keep_dims=True)
+  xs -= maxes
+  return tf.squeeze(maxes, [-1]) + tf.log(tf.reduce_sum(tf.exp(xs), -1))
