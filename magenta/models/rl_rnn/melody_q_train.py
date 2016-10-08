@@ -41,6 +41,9 @@ tf.app.flags.DEFINE_integer('exploration_steps', 1500000,
                             'will be annealed from 1.0 to its normal'
                             'exploration probability. Typically about half the'
                             'training_steps')
+tf.app.flags.DEFINE_integer('output_every_nth', 100000,
+                            'The number of steps before the model will evaluate'
+                            'itself and store a checkpoint')
 tf.app.flags.DEFINE_integer('num_notes_in_melody', 32,
                             'The number of notes in each composition')
 tf.app.flags.DEFINE_float('reward_scaler', 2.0,
@@ -71,7 +74,7 @@ def main(_):
                                    FLAGS.melody_checkpoint_dir, FLAGS.midi_primer, 
                                    dqn_hparams=dqn_hparams, 
                                    reward_scaler=FLAGS.reward_scaler,
-                                   output_every_nth=100000, 
+                                   output_every_nth=FLAGS.output_every_nth, 
                                    backup_checkpoint_file=FLAGS.melody_checkpoint_dir + '/model.ckpt-1994',
                                    custom_hparams=hparams, num_notes_in_melody=FLAGS.num_notes_in_melody,
                                    stochastic_observations=False,
