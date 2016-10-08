@@ -18,7 +18,7 @@ import melody_q
 import rl_rnn_ops
 
 FLAGS = tf.app.flags.FLAGS
-tf.app.flags.DEFINE_string('output_dir', '/home/natasha/Dropbox (MIT)/Google/Project/rl_rnn_output',
+tf.app.flags.DEFINE_string('output_dir', '/home/natasha/Dropbox (MIT)/Google/Project/rl_rnn_output/RewardScaler1',
                            'Directory where the model will save its'
                            'compositions (midi files)')
 tf.app.flags.DEFINE_string('checkpoint_name', '/home/natasha/Dropbox (MIT)/Google/Project/rl_rnn_output/rl_rnn_model.ckpt',
