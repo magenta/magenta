@@ -1043,7 +1043,7 @@ class MelodyQNetwork(object):
         self.reset_composition()
         last_observation = self.prime_internal_models()
 
-  def evaluate_model(self, num_trials=100, sample_next_obs=True, verbose=True):
+  def evaluate_model(self, num_trials=100, sample_next_obs=True):
     note_rnn_rewards = [0] * num_trials
     music_theory_rewards = [0] * num_trials
     total_rewards = [0] * num_trials
@@ -1053,7 +1053,7 @@ class MelodyQNetwork(object):
       last_observation = self.prime_internal_models(suppress_output=True)
       self.reset_composition()
 
-      for _ in range(self.num_notes_in_melody):
+      for n in range(self.num_notes_in_melody):
         if sample_next_obs:
           action, new_observation, reward_scores = self.action(
               last_observation,
@@ -1072,17 +1072,22 @@ class MelodyQNetwork(object):
 
         note_rnn_reward = self.reward_from_reward_rnn_scores(new_observation, reward_scores)
         music_theory_reward = self.reward_music_theory(new_observation)
-        total_reward = self.collect_reward(last_observation, new_observation, reward_scores, verbose=verbose)
+        total_reward = self.collect_reward(last_observation, new_observation, reward_scores)
 
         if self.algorithm != 'g' and self.algorithm != 'pure_rl':
           if (note_rnn_reward + self.reward_scaler * music_theory_reward) != total_reward:
-            print "ERROR! TOTAL REWARD NOT EQUAL TO SUBCOMPONENTS"
+            print "ERROR! TOTAL REWARD NOT EQUAL TO SUBCOMPONENTS at note", n, "in composition", t
             print "note_rnn_reward:", note_rnn_reward
             print "music_theory_reward:", music_theory_reward
             print "reward_scaler:", self.reward_scaler
             print "note_rnn_reward + self.reward_scaler * music_theory_reward:", note_rnn_reward + self.reward_scaler * music_theory_reward
             print "total reward:", total_reward
             print "" 
+            print "re-evaluating total reward..."
+            total_reward = self.collect_reward(last_observation, new_observation, reward_scores, verbose=True)
+            print "New total reward is:", total_reward
+            print ""
+
 
         note_rnn_rewards[t] = note_rnn_reward
         music_theory_rewards[t] = music_theory_reward * self.reward_scaler
