@@ -572,19 +572,16 @@ class MelodyQNetwork(object):
                              (self.q_network.batch_size, 1, self.input_size))
     lengths = np.full(self.q_network.batch_size, 1, dtype=int)
 
-    if self.algorithm == 'g':
-
-    else:
-      (action, action_softmax, self.q_network.state_value, 
-      reward_scores, self.reward_rnn.state_value) = self.session.run(
-        [self.predicted_actions, self.action_softmax,
-         self.q_network.state_tensor, self.reward_scores, self.reward_rnn.state_tensor],
-        {self.q_network.melody_sequence: input_batch,
-         self.q_network.initial_state: self.q_network.state_value,
-         self.q_network.lengths: lengths,
-         self.reward_rnn.melody_sequence: input_batch,
-         self.reward_rnn.initial_state: self.reward_rnn.state_value,
-         self.reward_rnn.lengths: lengths})
+    (action, action_softmax, self.q_network.state_value, 
+    reward_scores, self.reward_rnn.state_value) = self.session.run(
+      [self.predicted_actions, self.action_softmax,
+       self.q_network.state_tensor, self.reward_scores, self.reward_rnn.state_tensor],
+      {self.q_network.melody_sequence: input_batch,
+       self.q_network.initial_state: self.q_network.state_value,
+       self.q_network.lengths: lengths,
+       self.reward_rnn.melody_sequence: input_batch,
+       self.reward_rnn.initial_state: self.reward_rnn.state_value,
+       self.reward_rnn.lengths: lengths})
 
     # this is apparently not needed
     #if self.algorithm == 'psi':
