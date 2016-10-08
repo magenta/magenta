@@ -197,6 +197,10 @@ class MelodyQNetwork(object):
     self.note_rnn_reward_last_n = 0
     self.note_rnn_rewards_batched = []
 
+    self.eval_avg_reward = []
+    self.eval_avg_music_theory_reward = []
+    self.eval_avg_note_rnn_reward = []
+
     # variables to keep track of characteristics of the current composition
     self.beat = 0
     self.composition = []
@@ -729,6 +733,27 @@ class MelodyQNetwork(object):
     else:
       plt.show()
 
+  def plot_evaluation(self, image_name=None):
+    """Plots the cumulative rewards received as the model was trained.
+
+    Can be used in colab. If called outside of colab, execution of the program
+    will halt and a pop-up with the graph will appear. Execution will not
+    continue until the pop-up is closed.
+    """
+    reward_batch = self.output_every_nth
+    x = [reward_batch * i for i in np.arange(len(self.rewards_batched))]
+    plt.figure()
+    plt.plot(x, self.eval_avg_reward)
+    plt.plot(x, self.eval_avg_music_theory_reward)
+    plt.plot(x, self.eval_avg_note_rnn_reward)
+    plt.xlabel('Training epoch')
+    plt.ylabel('Average reward')
+    plt.legend(['Total', 'Music theory', 'Note RNN'], loc='best')
+    if image_name is not None:
+      plt.savefig(self.output_dir + '/' + image_name)
+    else:
+      plt.show()
+
   def store(self, observation, state, action, reward, newobservation, newstate, 
             new_reward_state):
     """Stores an experience in the model's experience replay buffer.
@@ -914,8 +939,7 @@ class MelodyQNetwork(object):
         print "diff between successive reward_rnn states:", np.sum((reward_rnn_state - new_reward_state)**2)
         print "diff between reward_rnn state and q_network state:", np.sum((new_state - new_reward_state)**2)
 
-      reward = self.collect_reward(last_observation, new_observation, state, 
-                                   reward_scores, verbose=verbose)
+      reward = self.collect_reward(last_observation, new_observation, reward_scores, verbose=verbose)
 
       self.store(last_observation, state, action, reward, new_observation,
                  new_state, new_reward_state)
@@ -972,7 +996,61 @@ class MelodyQNetwork(object):
         self.reset_composition()
         last_observation = self.prime_internal_models()
 
-  def collect_reward(self, obs, action, state, reward_scores, verbose=False):
+  def evaluate_model(self, num_trials=100, sample_next_obs=True):
+    note_rnn_rewards = [0] * num_trials
+    music_theory_rewards = [0] * num_trials
+    total_rewards = [0] * num_trials
+
+    for t in range(num_trials):
+
+      last_observation = self.prime_internal_models(suppress_output=True)
+      self.reset_composition()
+
+      for _ in range(composition_length):
+        if sample_next_obs:
+          action, new_observation, reward_scores = self.action(
+              last_observation,
+              0,
+              enable_random=False,
+              sample_next_obs=sample_next_obs)
+        else:
+          action, reward_scores = self.action(
+              last_observation,
+              0,
+              enable_random=False,
+              sample_next_obs=sample_next_obs)
+          new_observation = action
+
+
+        obs_note = np.argmax(new_observation)
+
+        note_rnn_reward = self.reward_from_reward_rnn_scores(new_observation, reward_scores)
+        music_theory_reward = self.reward_music_theory(new_observation)
+        total_reward = self.collect_reward(last_observation, new_observation, reward_scores)
+
+        if self.algorithm != 'g' and self.algorithm != 'pure_rl':
+          if (note_rnn_reward + self.reward_scaler * music_theory_reward) != total_reward:
+            print "ERROR! TOTAL REWARD NOT EQUAL TO SUBCOMPONENTS"
+            print "note_rnn_reward:", note_rnn_reward
+            print "music_theory_reward:", music_theory_reward
+            print "reward_scaler:", self.reward_scaler
+            print "note_rnn_reward + self.reward_scaler * music_theory_reward:", note_rnn_reward + self.reward_scaler * music_theory_reward
+            print "" 
+
+        note_rnn_rewards[t] = note_rnn_reward
+        music_theory_rewards[t] = music_theory_reward * self.reward_scaler
+        total_rewards[t] = note_rnn_reward + music_theory_reward * self.reward_scaler
+
+        self.composition.append(np.argmax(new_observation))
+        self.beat += 1
+        last_observation = new_observation
+
+    self.eval_avg_reward.append(np.mean(total_rewards))
+    self.eval_avg_note_rnn_reward.append(np.mean(note_rnn_rewards))
+    self.eval_avg_music_theory_reward.append(np.mean(music_theory_rewards))
+
+
+  def collect_reward(self, obs, action, reward_scores, verbose=False):
     """Calls whatever reward function is indicated in the reward_mode field.
 
     New reward functions can be written and called from here. Note that the
@@ -984,7 +1062,6 @@ class MelodyQNetwork(object):
     Args:
       obs: A one-hot encoding of the observed note.
       action: A one-hot encoding of the chosen action.
-      state: The internal state of the LSTM q_network.
       verbose: If True, additional logging statements about the reward after
         each function will be printed.
     Returns:
@@ -1041,51 +1118,7 @@ class MelodyQNetwork(object):
       if verbose:
         print 'Note RNN reward:', note_rnn_reward
 
-      reward = self.reward_key(action)
-      if verbose:
-        print 'Key:', reward
-      prev_reward = reward
-
-      reward += self.reward_tonic(action)
-      if verbose and reward != prev_reward:
-        print 'Tonic:', reward
-      prev_reward = reward
-
-      reward += self.reward_penalize_repeating(action)
-      if verbose and reward != prev_reward:
-        print 'Penalize repeating:', reward
-      prev_reward = reward
-
-      reward += self.reward_penalize_autocorrelation(action)
-      if verbose and reward != prev_reward:
-        print 'Penalize autocorr:', reward
-      prev_reward = reward
-
-      reward += self.reward_motif(action)
-      if verbose and reward != prev_reward:
-        print 'Reward motif:', reward
-      prev_reward = reward
-
-      reward += self.reward_repeated_motif(action)
-      if verbose and reward != prev_reward:
-        print 'Reward repeated motif:', reward
-      prev_reward = reward
-
-      # New rewards based on Gauldin's book, "A Practical Approach to Eighteenth
-      # Century Counterpoint"
-      reward += self.reward_preferred_intervals(action)
-      if verbose and reward != prev_reward:
-        print 'Reward preferred_intervals:', reward
-      prev_reward = reward
-
-      reward += self.reward_leap_up_back(action)
-      if verbose and reward != prev_reward:
-        print 'Reward leap up back:', reward
-      prev_reward = reward
-
-      reward += self.reward_high_low_unique(action)
-      if verbose and reward != prev_reward:
-        print 'Reward high low unique:', reward
+      reward = self.reward_music_theory(action, verbose=verbose)
 
       if verbose:
         print 'Total music theory reward:', self.reward_scaler * reward
@@ -1095,59 +1128,61 @@ class MelodyQNetwork(object):
       self.music_theory_reward_last_n += reward * self.reward_scaler
       return reward * self.reward_scaler + note_rnn_reward
     elif self.reward_mode == 'music_theory_only':
-      # Reward functions that include all of the Gauldin rewards, without using
-      # the 'reward_rnn' trained on data. Used to train a model with pure RL.
-      reward = self.reward_key(action)
-      if verbose:
-        tf.logging.info('Key: %s', reward)
-      prev_reward = reward
-
-      reward += self.reward_tonic(action)
-      if verbose and reward != prev_reward:
-        tf.logging.info('Tonic: %s', reward)
-      prev_reward = reward
-
-      reward += self.reward_penalize_repeating(action)
-      if verbose and reward != prev_reward:
-        tf.logging.info('Penalize repeating: %s', reward)
-      prev_reward = reward
-
-      reward += self.reward_penalize_autocorrelation(action)
-      if verbose and reward != prev_reward:
-        tf.logging.info('Penalize autocorr: %s', reward)
-      prev_reward = reward
-
-      reward += self.reward_motif(action)
-      if verbose and reward != prev_reward:
-        tf.logging.info('Reward motif: %s', reward)
-      prev_reward = reward
-
-      reward += self.reward_repeated_motif(action)
-      if verbose and reward != prev_reward:
-        tf.logging.info('Reward repeated motif: %s', reward)
-      prev_reward = reward
-
-      # New rewards based on Gauldin's book, "A Practical Approach to Eighteenth
-      # Century Counterpoint"
-      reward += self.reward_preferred_intervals(action)
-      if verbose and reward != prev_reward:
-        tf.logging.info('Reward preferred_intervals: %s', reward)
-      prev_reward = reward
-
-      reward += self.reward_leap_up_back(action)
-      if verbose and reward != prev_reward:
-        tf.logging.info('Reward leap up back: %s', reward)
-      prev_reward = reward
-
-      reward += self.reward_high_low_unique(action)
-      if verbose and reward != prev_reward:
-        tf.logging.info('Reward high low unique: %s', reward)
-
+      reward = self.reward_music_theory(action, verbose=verbose)
     else:
       tf.logging.fatal('ERROR! Not a valid reward mode. Cannot compute reward')
 
     self.music_theory_reward_last_n += reward * self.reward_scaler
     return reward * self.reward_scaler
+
+  def reward_music_theory(self, action, verbose=False):
+    reward = self.reward_key(action)
+    if verbose:
+      print 'Key:', reward
+    prev_reward = reward
+
+    reward += self.reward_tonic(action)
+    if verbose and reward != prev_reward:
+      print 'Tonic:', reward
+    prev_reward = reward
+
+    reward += self.reward_penalize_repeating(action)
+    if verbose and reward != prev_reward:
+      print 'Penalize repeating:', reward
+    prev_reward = reward
+
+    reward += self.reward_penalize_autocorrelation(action)
+    if verbose and reward != prev_reward:
+      print 'Penalize autocorr:', reward
+    prev_reward = reward
+
+    reward += self.reward_motif(action)
+    if verbose and reward != prev_reward:
+      print 'Reward motif:', reward
+    prev_reward = reward
+
+    reward += self.reward_repeated_motif(action)
+    if verbose and reward != prev_reward:
+      print 'Reward repeated motif:', reward
+    prev_reward = reward
+
+    # New rewards based on Gauldin's book, "A Practical Approach to Eighteenth
+    # Century Counterpoint"
+    reward += self.reward_preferred_intervals(action)
+    if verbose and reward != prev_reward:
+      print 'Reward preferred_intervals:', reward
+    prev_reward = reward
+
+    reward += self.reward_leap_up_back(action)
+    if verbose and reward != prev_reward:
+      print 'Reward leap up back:', reward
+    prev_reward = reward
+
+    reward += self.reward_high_low_unique(action)
+    if verbose and reward != prev_reward:
+      print 'Reward high low unique:', reward
+
+    return reward
 
   def reward_from_reward_rnn_scores(self, action, reward_scores):
     """Rewards based on probabilities learned from data by trained RNN
