@@ -1072,26 +1072,11 @@ class MelodyQNetwork(object):
 
         note_rnn_reward = self.reward_from_reward_rnn_scores(new_observation, reward_scores)
         music_theory_reward = self.reward_music_theory(new_observation)
-        total_reward = self.collect_reward(last_observation, new_observation, reward_scores)
-
-        if self.algorithm != 'g' and self.algorithm != 'pure_rl':
-          if (note_rnn_reward + self.reward_scaler * music_theory_reward) != total_reward:
-            print "ERROR! TOTAL REWARD NOT EQUAL TO SUBCOMPONENTS at note", n, "in composition", t
-            print "note_rnn_reward:", note_rnn_reward
-            print "music_theory_reward:", music_theory_reward
-            print "reward_scaler:", self.reward_scaler
-            print "note_rnn_reward + self.reward_scaler * music_theory_reward:", note_rnn_reward + self.reward_scaler * music_theory_reward
-            print "total reward:", total_reward
-            print "" 
-            print "re-evaluating total reward..."
-            total_reward = self.collect_reward(last_observation, new_observation, reward_scores, verbose=True)
-            print "New total reward is:", total_reward
-            print ""
-
+        total_reward = note_rnn_reward + self.reward_scaler * music_theory_reward
 
         note_rnn_rewards[t] = note_rnn_reward
         music_theory_rewards[t] = music_theory_reward * self.reward_scaler
-        total_rewards[t] = note_rnn_reward + music_theory_reward * self.reward_scaler
+        total_rewards[t] = total_reward
 
         self.composition.append(np.argmax(new_observation))
         self.beat += 1
