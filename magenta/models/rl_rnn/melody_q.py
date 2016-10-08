@@ -364,6 +364,75 @@ class MelodyQNetwork(object):
              eval_note_rnn_rewards=self.eval_avg_note_rnn_reward,
              target_val_list=self.target_val_list)
 
+  def save_model_and_figs(self, name, directory=None):
+    self.save_model(name, directory=directory)
+    self.plot_rewards(image_name='TrainRewards-' + name + '.eps', directory=directory)
+    self.plot_evaluation(image_name='EvaluationRewards-' + name + '.eps', directory=directory))
+    self.plot_evaluation(image_name='TargetVals-' + name + '.eps', directory=directory))
+
+  def plot_rewards(self, image_name=None, directory=None):
+    """Plots the cumulative rewards received as the model was trained.
+
+    Can be used in colab. If called outside of colab, execution of the program
+    will halt and a pop-up with the graph will appear. Execution will not
+    continue until the pop-up is closed.
+    """
+    if directory is None:
+      directory = self.output_dir
+
+    reward_batch = self.output_every_nth
+    x = [reward_batch * i for i in np.arange(len(self.rewards_batched))]
+    plt.figure()
+    plt.plot(x, self.rewards_batched)
+    plt.plot(x, self.music_theory_rewards_batched)
+    plt.plot(x, self.note_rnn_rewards_batched)
+    plt.xlabel('Training epoch')
+    plt.ylabel('Cumulative reward for last ' + str(reward_batch) + ' steps')
+    plt.legend(['Total', 'Music theory', 'Note RNN'], loc='best')
+    if image_name is not None:
+      plt.savefig(directory + '/' + image_name)
+    else:
+      plt.show()
+
+  def plot_evaluation(self, image_name=None, directory=None):
+    """Plots the cumulative rewards received as the model was trained.
+
+    Can be used in colab. If called outside of colab, execution of the program
+    will halt and a pop-up with the graph will appear. Execution will not
+    continue until the pop-up is closed.
+    """
+    if directory is None:
+      directory = self.output_dir
+
+    reward_batch = self.output_every_nth
+    x = [reward_batch * i for i in np.arange(len(self.eval_avg_reward))]
+    plt.figure()
+    plt.plot(x, self.eval_avg_reward)
+    plt.plot(x, self.eval_avg_music_theory_reward)
+    plt.plot(x, self.eval_avg_note_rnn_reward)
+    plt.xlabel('Training epoch')
+    plt.ylabel('Average reward')
+    plt.legend(['Total', 'Music theory', 'Note RNN'], loc='best')
+    if image_name is not None:
+      plt.savefig(directory + '/' + image_name)
+    else:
+      plt.show()
+
+  def plot_target_vals(self, image_name=None, directory=None):
+    if directory is None:
+      directory = self.output_dir
+
+    reward_batch = self.output_every_nth
+    x = [reward_batch * i for i in np.arange(len(self.target_val_list))]
+
+    plt.figure()
+    plt.plot(x,self.target_val_list)
+    plt.xlabel('Training epoch')
+    plt.ylabel('Target value')
+    if image_name is not None:
+      plt.savefig(directory + '/' + image_name)
+    else:
+      plt.show()
 
   def prime_internal_models(self, suppress_output=True):
     """Primes both internal models with their default midi file primer."""
@@ -752,61 +821,6 @@ class MelodyQNetwork(object):
         plt.savefig(self.output_dir + '/' + prob_image_name)
       else:
         plt.show()
-
-  def plot_rewards(self, image_name=None):
-    """Plots the cumulative rewards received as the model was trained.
-
-    Can be used in colab. If called outside of colab, execution of the program
-    will halt and a pop-up with the graph will appear. Execution will not
-    continue until the pop-up is closed.
-    """
-    reward_batch = self.output_every_nth
-    x = [reward_batch * i for i in np.arange(len(self.rewards_batched))]
-    plt.figure()
-    plt.plot(x, self.rewards_batched)
-    plt.plot(x, self.music_theory_rewards_batched)
-    plt.plot(x, self.note_rnn_rewards_batched)
-    plt.xlabel('Training epoch')
-    plt.ylabel('Cumulative reward for last ' + str(reward_batch) + ' steps')
-    plt.legend(['Total', 'Music theory', 'Note RNN'], loc='best')
-    if image_name is not None:
-      plt.savefig(self.output_dir + '/' + image_name)
-    else:
-      plt.show()
-
-  def plot_evaluation(self, image_name=None):
-    """Plots the cumulative rewards received as the model was trained.
-
-    Can be used in colab. If called outside of colab, execution of the program
-    will halt and a pop-up with the graph will appear. Execution will not
-    continue until the pop-up is closed.
-    """
-    reward_batch = self.output_every_nth
-    x = [reward_batch * i for i in np.arange(len(self.eval_avg_reward))]
-    plt.figure()
-    plt.plot(x, self.eval_avg_reward)
-    plt.plot(x, self.eval_avg_music_theory_reward)
-    plt.plot(x, self.eval_avg_note_rnn_reward)
-    plt.xlabel('Training epoch')
-    plt.ylabel('Average reward')
-    plt.legend(['Total', 'Music theory', 'Note RNN'], loc='best')
-    if image_name is not None:
-      plt.savefig(self.output_dir + '/' + image_name)
-    else:
-      plt.show()
-
-  def plot_target_vals(self, image_name=None):
-    reward_batch = self.output_every_nth
-    x = [reward_batch * i for i in np.arange(len(self.target_val_list))]
-
-    plt.figure()
-    plt.plot(x,rl_net.target_val_list)
-    plt.xlabel('Training epoch')
-    plt.ylabel('Target value')
-    if image_name is not None:
-      plt.savefig(rl_net.output_dir + '/' + image_name)
-    else:
-      plt.show()
 
   def store(self, observation, state, action, reward, newobservation, newstate, 
             new_reward_state):
