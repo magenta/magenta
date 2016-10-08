@@ -67,8 +67,8 @@ def main(_):
                                max_experience=100000,
                                target_network_update_rate=0.01)
 
-  output_dir = FLAGS.output_dir + '/' + algorithm
-  output_ckpt = output_dir + '/' + algorithm + '.ckpt'
+  output_dir = FLAGS.output_dir + '/' + FLAGS.algorithm
+  output_ckpt = output_dir + '/' + FLAGS.algorithm + '.ckpt'
 
   mq_net = melody_q.MelodyQNetwork(output_dir, output_ckpt,
                                    FLAGS.melody_checkpoint_dir, FLAGS.midi_primer, 
@@ -96,7 +96,7 @@ def main(_):
   mq_net.generate_music_sequence(visualize_probs=True, title=FLAGS.algorithm,
                                  prob_image_name=FLAGS.algorithm + '.png')
 
-  rl_net.save_model_and_figs(algorithm)
+  rl_net.save_model_and_figs(FLAGS.algorithm)
 
 
 if __name__ == '__main__':
