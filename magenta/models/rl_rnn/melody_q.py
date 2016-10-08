@@ -394,7 +394,7 @@ class MelodyQNetwork(object):
     else:
       plt.show()
 
-  def plot_evaluation(self, image_name=None, directory=None):
+  def plot_evaluation(self, image_name=None, directory=None, start_at_epoch=0):
     """Plots the cumulative rewards received as the model was trained.
 
     Can be used in colab. If called outside of colab, execution of the program
@@ -406,10 +406,11 @@ class MelodyQNetwork(object):
 
     reward_batch = self.output_every_nth
     x = [reward_batch * i for i in np.arange(len(self.eval_avg_reward))]
+    start_index = start_at_epoch / self.output_every_nth
     plt.figure()
-    plt.plot(x, self.eval_avg_reward)
-    plt.plot(x, self.eval_avg_music_theory_reward)
-    plt.plot(x, self.eval_avg_note_rnn_reward)
+    plt.plot(x[start_index:], self.eval_avg_reward[start_index:])
+    plt.plot(x[start_index:], self.eval_avg_music_theory_reward[start_index:])
+    plt.plot(x[start_index:], self.eval_avg_note_rnn_reward[start_index:])
     plt.xlabel('Training epoch')
     plt.ylabel('Average reward')
     plt.legend(['Total', 'Music theory', 'Note RNN'], loc='best')
