@@ -43,7 +43,7 @@ tf.app.flags.DEFINE_integer('exploration_steps', 1500000,
                             'training_steps')
 tf.app.flags.DEFINE_integer('output_every_nth', 100000,
                             'The number of steps before the model will evaluate'
-                            'itself and stoit's re a checkpoint')
+                            'itself and store a checkpoint')
 tf.app.flags.DEFINE_integer('num_notes_in_melody', 32,
                             'The number of notes in each composition')
 tf.app.flags.DEFINE_float('reward_scaler', 2.0,
