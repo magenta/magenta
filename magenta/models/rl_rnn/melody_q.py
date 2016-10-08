@@ -319,7 +319,7 @@ class MelodyQNetwork(object):
     if checkpoint_file is None:
       print "Error! Cannot locate checkpoint in the directory"
       return
-    print "Attempting to restore from checkpoint" checkpoint_file
+    print "Attempting to restore from checkpoint", checkpoint_file
 
     rl_net.saver.restore(rl_net.session, checkpoint_file)
 
