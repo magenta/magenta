@@ -1053,7 +1053,7 @@ class MelodyQNetwork(object):
       last_observation = self.prime_internal_models(suppress_output=True)
       self.reset_composition()
 
-      for _ in range(composition_length):
+      for _ in range(self.num_notes_in_melody):
         if sample_next_obs:
           action, new_observation, reward_scores = self.action(
               last_observation,
