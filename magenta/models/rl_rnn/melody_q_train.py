@@ -64,7 +64,10 @@ def main(_):
                                max_experience=100000,
                                target_network_update_rate=0.01)
 
-  mq_net = melody_q.MelodyQNetwork(FLAGS.output_dir, FLAGS.output_dir + '/' + FLAGS.algorithm +'_model.ckpt',
+  output_dir = FLAGS.output_dir + '/' + algorithm
+  output_ckpt = output_dir + '/' + algorithm + '.ckpt'
+
+  mq_net = melody_q.MelodyQNetwork(output_dir, output_ckpt,
                                    FLAGS.melody_checkpoint_dir, FLAGS.midi_primer, 
                                    dqn_hparams=dqn_hparams, 
                                    reward_scaler=FLAGS.reward_scaler,
@@ -74,8 +77,9 @@ def main(_):
                                    stochastic_observations=False,
                                    algorithm=FLAGS.algorithm)
 
-  tf.logging.info('Generating an initial music sequence')
   tf.logging.info('Saving images and melodies to: %s', mq_net.output_dir)
+
+  #tf.logging.info('Generating an initial music sequence')
   #mq_net.generate_music_sequence(visualize_probs=True,
   #                               prob_image_name=FLAGS.before_image)
 
@@ -89,7 +93,7 @@ def main(_):
   mq_net.generate_music_sequence(visualize_probs=True, title=FLAGS.algorithm,
                                  prob_image_name=FLAGS.algorithm + '.png')
 
-  mq_net.save_model(FLAGS.model_save_dir, FLAGS.algorithm)
+  rl_net.save_model_and_figs(algorithm)
 
 
 if __name__ == '__main__':
