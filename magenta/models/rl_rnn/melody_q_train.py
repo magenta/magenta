@@ -93,8 +93,8 @@ def main(_):
   tf.logging.info('\nFinished training. Saving output figures and composition.')
   mq_net.plot_rewards(image_name='Rewards-' + FLAGS.algorithm + '.eps')
 
-  mq_net.generate_music_sequence(visualize_probs=True, title=FLAGS.algorithm,
-                                 prob_image_name=FLAGS.algorithm + '.png')
+  #mq_net.generate_music_sequence(visualize_probs=True, title=FLAGS.algorithm,
+  #                               prob_image_name=FLAGS.algorithm + '.png')
 
   rl_net.save_model_and_figs(FLAGS.algorithm)
 
