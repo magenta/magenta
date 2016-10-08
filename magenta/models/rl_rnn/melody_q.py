@@ -321,7 +321,7 @@ class MelodyQNetwork(object):
       return
     print "Attempting to restore from checkpoint", checkpoint_file
 
-    rl_net.saver.restore(rl_net.session, checkpoint_file)
+    self.saver.restore(rl_net.session, checkpoint_file)
 
     if reward_file_name is not None:
       npz_file_name = os.path.join(directory, reward_file_name)
@@ -330,7 +330,7 @@ class MelodyQNetwork(object):
 
       self.rewards_batched = npz_file['train_rewards']
       self.music_theory_rewards_batched = npz_file['train_music_theory_rewards']
-      elf.note_rnn_rewards_batched = npz_file['train_note_rnn_rewards']
+      self.note_rnn_rewards_batched = npz_file['train_note_rnn_rewards']
       self.eval_avg_reward = npz_file['eval_rewards']
       self.eval_avg_music_theory_reward = npz_file['eval_music_theory_rewards']
       self.eval_avg_note_rnn_reward = npz_file['eval_note_rnn_rewards']
@@ -348,7 +348,8 @@ class MelodyQNetwork(object):
     self.save_stored_rewards(name)
 
   def save_stored_rewards(self, file_name):
-    filename = os.path.join(self.output_dir, file_name)
+    training_epochs = len(self.rewards_batched) * self.output_every_nth
+    filename = os.path.join(self.output_dir, file_name + '-' + str(training_epochs))
     np.savez(filename,
              train_rewards=self.rewards_batched,
              train_music_theory_rewards=self.music_theory_rewards_batched,
@@ -803,6 +804,19 @@ class MelodyQNetwork(object):
     else:
       plt.show()
 
+  def plot_target_vals(self, image_name=None):
+    reward_batch = self.output_every_nth
+    x = [reward_batch * i for i in np.arange(len(self.target_val_list))]
+
+    plt.figure()
+    plt.plot(x,rl_net.target_val_list)
+    plt.xlabel('Training epoch')
+    plt.ylabel('Target value')
+    if image_name is not None:
+      plt.savefig(rl_net.output_dir + '/' + image_name)
+    else:
+      plt.show()
+
   def store(self, observation, state, action, reward, newobservation, newstate, 
             new_reward_state):
     """Stores an experience in the model's experience replay buffer.
@@ -911,7 +925,7 @@ class MelodyQNetwork(object):
             self.rewards: rewards,
         })
 
-      if (self.iteration / self.dqn_hparams.train_every_nth) % self.output_every_nth == 0:
+      if (self.iteration * self.dqn_hparams.train_every_nth) % self.output_every_nth == 0:
         self.target_val_list.append(np.mean(target_vals))
 
       self.session.run(self.target_network_update)
