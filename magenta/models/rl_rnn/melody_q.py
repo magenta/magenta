@@ -486,7 +486,7 @@ class MelodyQNetwork(object):
       tf.histogram_summary('action_scores', self.action_scores)
 
       if self.algorithm == 'g':
-        self.g_action_scores = tf.mul(tf.exp(self.action_scores), self.reward_scores)
+        self.g_action_scores = self.action_scores + self.reward_scores
 
         # Compute predicted action, which is the argmax of the action scores.
         self.action_softmax = tf.nn.softmax(self.g_action_scores,
