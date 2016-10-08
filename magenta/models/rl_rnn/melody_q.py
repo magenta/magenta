@@ -1043,7 +1043,7 @@ class MelodyQNetwork(object):
         self.reset_composition()
         last_observation = self.prime_internal_models()
 
-  def evaluate_model(self, num_trials=100, sample_next_obs=True):
+  def evaluate_model(self, num_trials=100, sample_next_obs=True, verbose=True):
     note_rnn_rewards = [0] * num_trials
     music_theory_rewards = [0] * num_trials
     total_rewards = [0] * num_trials
@@ -1068,12 +1068,11 @@ class MelodyQNetwork(object):
               sample_next_obs=sample_next_obs)
           new_observation = action
 
-
         obs_note = np.argmax(new_observation)
 
         note_rnn_reward = self.reward_from_reward_rnn_scores(new_observation, reward_scores)
         music_theory_reward = self.reward_music_theory(new_observation)
-        total_reward = self.collect_reward(last_observation, new_observation, reward_scores)
+        total_reward = self.collect_reward(last_observation, new_observation, reward_scores, verbose=verbose)
 
         if self.algorithm != 'g' and self.algorithm != 'pure_rl':
           if (note_rnn_reward + self.reward_scaler * music_theory_reward) != total_reward:
