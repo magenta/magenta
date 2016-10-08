@@ -96,7 +96,7 @@ def main(_):
   #mq_net.generate_music_sequence(visualize_probs=True, title=FLAGS.algorithm,
   #                               prob_image_name=FLAGS.algorithm + '.png')
 
-  rl_net.save_model_and_figs(FLAGS.algorithm)
+  mq_net.save_model_and_figs(FLAGS.algorithm)
 
 
 if __name__ == '__main__':
