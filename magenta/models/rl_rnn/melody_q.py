@@ -790,7 +790,7 @@ class MelodyQNetwork(object):
     continue until the pop-up is closed.
     """
     reward_batch = self.output_every_nth
-    x = [reward_batch * i for i in np.arange(len(self.rewards_batched))]
+    x = [reward_batch * i for i in np.arange(len(self.eval_avg_reward))]
     plt.figure()
     plt.plot(x, self.eval_avg_reward)
     plt.plot(x, self.eval_avg_music_theory_reward)
