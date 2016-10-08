@@ -368,7 +368,7 @@ class MelodyQNetwork(object):
     self.save_model(name, directory=directory)
     self.plot_rewards(image_name='TrainRewards-' + name + '.eps', directory=directory)
     self.plot_evaluation(image_name='EvaluationRewards-' + name + '.eps', directory=directory)
-    self.plot_evaluation(image_name='TargetVals-' + name + '.eps', directory=directory)
+    self.plot_target_vals(image_name='TargetVals-' + name + '.eps', directory=directory)
 
   def plot_rewards(self, image_name=None, directory=None):
     """Plots the cumulative rewards received as the model was trained.
