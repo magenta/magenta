@@ -213,9 +213,7 @@ class MelodyQNetwork(object):
     if not exists(self.output_dir):
       makedirs(self.output_dir)
 
-    if self.algorithm == 'pure_rl':
-      self.initialize_internal_models_graph_session(restore_from_checkpoint=False)
-    elif initialize_immediately and self.algorithm:
+    if initialize_immediately:
       self.initialize_internal_models_graph_session()
 
   def initialize_internal_models_graph_session(self, restore_from_checkpoint=True):
