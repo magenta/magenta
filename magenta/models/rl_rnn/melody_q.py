@@ -911,7 +911,7 @@ class MelodyQNetwork(object):
             self.rewards: rewards,
         })
 
-      if (self.iteration / self.train_every_nth) % self.output_every_nth == 0:
+      if (self.iteration / self.dqn_hparams.train_every_nth) % self.output_every_nth == 0:
         self.target_val_list.append(np.mean(target_vals))
 
       self.session.run(self.target_network_update)
