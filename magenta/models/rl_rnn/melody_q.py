@@ -201,6 +201,8 @@ class MelodyQNetwork(object):
     self.eval_avg_music_theory_reward = []
     self.eval_avg_note_rnn_reward = []
 
+    self.target_val_list = []
+
     # variables to keep track of characteristics of the current composition
     self.beat = 0
     self.composition = []
@@ -215,8 +217,6 @@ class MelodyQNetwork(object):
       self.initialize_internal_models_graph_session(restore_from_checkpoint=False)
     elif initialize_immediately and self.algorithm:
       self.initialize_internal_models_graph_session()
-
-    self.target_val_list = []
 
   def initialize_internal_models_graph_session(self, restore_from_checkpoint=True):
     """Initializes internal RNN models, builds the graph, starts the session.
@@ -306,6 +306,58 @@ class MelodyQNetwork(object):
     if self.priming_mode == 'random_midi':
       tf.logging.info('Getting priming melodies')
       self.get_priming_melodies()
+
+  def restore_from_directory(self, directory=None, checkpoint_name=None, reward_file_name=None):
+    if directory is None:
+      directory = self.output_dir
+
+    if checkpoint_name is not None:
+      checkpoint_file = os.path.join(directory, checkpoint_name)
+    else:
+      checkpoint_file = tf.train.latest_checkpoint(directory)
+
+    if checkpoint_file is None:
+      print "Error! Cannot locate checkpoint in the directory"
+      return
+    print "Attempting to restore from checkpoint" checkpoint_file
+
+    rl_net.saver.restore(rl_net.session, checkpoint_file)
+
+    if reward_file_name is not None:
+      npz_file_name = os.path.join(directory, reward_file_name)
+      print "Attempting to load saved reward values from file", npz_file_name
+      npz_file = np.load(npz_file_name)
+
+      self.rewards_batched = npz_file['train_rewards']
+      self.music_theory_rewards_batched = npz_file['train_music_theory_rewards']
+      elf.note_rnn_rewards_batched = npz_file['train_note_rnn_rewards']
+      self.eval_avg_reward = npz_file['eval_rewards']
+      self.eval_avg_music_theory_reward = npz_file['eval_music_theory_rewards']
+      self.eval_avg_note_rnn_reward = npz_file['eval_note_rnn_rewards']
+      self.target_val_list = npz_file['target_val_list']
+
+
+  def save_model(self, name, directory=None):
+    if directory is None:
+      directory = self.output_dir
+
+    save_loc = os.path.join(directory, name)
+    self.saver.save(self.session, save_loc, 
+                    global_step=len(self.rewards_batched)*self.output_every_nth)
+
+    self.save_stored_rewards(name)
+
+  def save_stored_rewards(self, file_name):
+    filename = os.path.join(self.output_dir, file_name)
+    np.savez(filename,
+             train_rewards=self.rewards_batched,
+             train_music_theory_rewards=self.music_theory_rewards_batched,
+             train_note_rnn_rewards=self.note_rnn_rewards_batched,
+             eval_rewards=self.eval_avg_reward,
+             eval_music_theory_rewards=self.eval_avg_music_theory_reward,
+             eval_note_rnn_rewards=self.eval_avg_note_rnn_reward,
+             target_val_list=self.target_val_list)
+
 
   def prime_internal_models(self, suppress_output=True):
     """Primes both internal models with their default midi file primer."""
@@ -862,7 +914,8 @@ class MelodyQNetwork(object):
             self.rewards: rewards,
         })
 
-      self.target_val_list.append(np.mean(target_vals))
+      if (self.iteration / self.train_every_nth) % self.output_every_nth == 0:
+        self.target_val_list.append(np.mean(target_vals))
 
       self.session.run(self.target_network_update)
 
@@ -882,12 +935,6 @@ class MelodyQNetwork(object):
     note_idx = np.random.randint(0, self.num_actions - 1)
     return np.array(rl_rnn_ops.make_onehot([note_idx],
                                            self.num_actions)).flatten()
-
-  def save_model(self, directory, name):
-    save_loc = os.path.join(directory, name)
-    self.saver.save(self.session, save_loc, 
-                    global_step=len(self.rewards_batched)*self.output_every_nth)
-
 
   def train(self, num_steps=10000, exploration_period=5000, enable_random=True, verbose=False):
     """Main training function that allows model to act, collects reward, trains.
