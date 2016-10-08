@@ -319,6 +319,7 @@ class MelodyQNetwork(object):
     if checkpoint_name is not None:
       checkpoint_file = os.path.join(directory, checkpoint_name)
     else:
+      print "directory", directory
       checkpoint_file = tf.train.latest_checkpoint(directory)
 
     if checkpoint_file is None:
