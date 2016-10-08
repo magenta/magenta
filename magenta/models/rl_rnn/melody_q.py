@@ -1082,6 +1082,7 @@ class MelodyQNetwork(object):
             print "music_theory_reward:", music_theory_reward
             print "reward_scaler:", self.reward_scaler
             print "note_rnn_reward + self.reward_scaler * music_theory_reward:", note_rnn_reward + self.reward_scaler * music_theory_reward
+            print "total reward:", total_reward
             print "" 
 
         note_rnn_rewards[t] = note_rnn_reward
