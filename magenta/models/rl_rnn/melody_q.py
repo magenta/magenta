@@ -997,6 +997,9 @@ class MelodyQNetwork(object):
       self.beat += 1
 
       if i > 0 and i % self.output_every_nth == 0:
+        print "Evaluating model..."
+        self.evaluate_model()
+
         # Save a checkpoint.
         save_step = len(self.rewards_batched)*self.output_every_nth
         self.saver.save(self.session, self.log_dir, global_step=save_step)
