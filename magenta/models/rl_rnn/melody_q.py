@@ -366,13 +366,23 @@ class MelodyQNetwork(object):
       self.action_scores = tf.identity(self.q_network(), name='action_scores')
       tf.histogram_summary('action_scores', self.action_scores)
 
-      # Compute predicted action, which is the argmax of the action scores.
-      self.action_softmax = tf.nn.softmax(self.action_scores,
-                                          name='action_softmax')
-      self.predicted_actions = tf.one_hot(tf.argmax(self.action_scores,
-                                                    dimension=1,
-                                                    name='predicted_actions'),
-                                          self.num_actions)
+      if self.algorithm == 'g':
+        self.g_action_scores = tf.mul(tf.exp(self.action_scores), self.reward_scores)
+
+        # Compute predicted action, which is the argmax of the action scores.
+        self.action_softmax = tf.nn.softmax(self.g_action_scores,
+                                            name='action_softmax')
+        self.predicted_actions = tf.one_hot(tf.argmax(self.g_action_scores,
+                                                      dimension=1,
+                                                      name='predicted_actions'),
+                                                      self.num_actions)
+      else:
+        self.action_softmax = tf.nn.softmax(self.action_scores,
+                                            name='action_softmax')
+        self.predicted_actions = tf.one_hot(tf.argmax(self.action_scores,
+                                                      dimension=1,
+                                                      name='predicted_actions'),
+                                                      self.num_actions)
 
     tf.logging.info('Add estimating future rewards portion of graph')
     with tf.name_scope('estimating_future_rewards'):
@@ -391,13 +401,11 @@ class MelodyQNetwork(object):
                                        reduction_indices=[1,])
       elif self.algorithm == 'g':
         self.g_normalizer = tf.reduce_logsumexp(self.reward_scores)
-        self.g_action_scores = self.next_action_scores * self.reward_scaler + self.reward_scores - self.g_normalizer
-        self.target_vals = (1.0 / self.reward_scaler) * tf.reduce_logsumexp(self.g_action_scores,
-                                       reduction_indices=[1,])
+        self.g_action_scores = self.next_action_scores + self.reward_scores - self.g_normalizer
+        self.target_vals = tf.reduce_logsumexp(self.g_action_scores, reduction_indices=[1,])
       else:
         # use default based on q learning
-        self.target_vals = tf.reduce_max(self.next_action_scores,
-                                       reduction_indices=[1,])
+        self.target_vals = tf.reduce_max(self.next_action_scores, reduction_indices=[1,])
         
       self.future_rewards = self.rewards + self.discount_rate * self.target_vals
 
@@ -508,10 +516,12 @@ class MelodyQNetwork(object):
                              (self.q_network.batch_size, 1, self.input_size))
     lengths = np.full(self.q_network.batch_size, 1, dtype=int)
 
-    (action_scores, action, action_softmax, 
-      self.q_network.state_value, reward_scores, 
-      self.reward_rnn.state_value) = self.session.run(
-        [self.action_scores, self.predicted_actions, self.action_softmax,
+    if self.algorithm == 'g':
+
+    else:
+      (action, action_softmax, self.q_network.state_value, 
+      reward_scores, self.reward_rnn.state_value) = self.session.run(
+        [self.predicted_actions, self.action_softmax,
          self.q_network.state_tensor, self.reward_scores, self.reward_rnn.state_tensor],
         {self.q_network.melody_sequence: input_batch,
          self.q_network.initial_state: self.q_network.state_value,
@@ -519,19 +529,12 @@ class MelodyQNetwork(object):
          self.reward_rnn.melody_sequence: input_batch,
          self.reward_rnn.initial_state: self.reward_rnn.state_value,
          self.reward_rnn.lengths: lengths})
-    
-
-    if self.algorithm == 'g':
-      action_scores = reward_scores + action_scores * self.reward_scaler
-      action = rl_rnn_ops.make_onehot([np.argmax(action_scores)], self.num_actions)
-      action_softmax = rl_rnn_ops.softmax(action_scores)
 
     # this is apparently not needed
     #if self.algorithm == 'psi':
     #  action_scores = np.exp(action_scores)
 
     reward_scores = np.reshape(reward_scores, (self.num_actions))
-    action_scores = np.reshape(action_scores, (self.num_actions))
     action_softmax = np.reshape(action_softmax, (self.num_actions))
     action = np.reshape(action, (self.num_actions))
 
@@ -1140,9 +1143,6 @@ class MelodyQNetwork(object):
       if verbose and reward != prev_reward:
         tf.logging.info('Reward high low unique: %s', reward)
 
-      if self.algorithm == 'g':
-        self.music_theory_reward_last_n += reward * self.reward_scaler
-        return reward
     else:
       tf.logging.fatal('ERROR! Not a valid reward mode. Cannot compute reward')
 
