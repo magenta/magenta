@@ -308,6 +308,11 @@ class MelodyQNetwork(object):
       self.get_priming_melodies()
 
   def restore_from_directory(self, directory=None, checkpoint_name=None, reward_file_name=None):
+    """Restores this model from a saved checkpoint.
+
+    Args:
+      checkpoint_dir: The directory containing the saved checkpoint.
+    """
     if directory is None:
       directory = self.output_dir
 
@@ -321,7 +326,7 @@ class MelodyQNetwork(object):
       return
     print "Attempting to restore from checkpoint", checkpoint_file
 
-    self.saver.restore(rl_net.session, checkpoint_file)
+    self.saver.restore(self.session, checkpoint_file)
 
     if reward_file_name is not None:
       npz_file_name = os.path.join(directory, reward_file_name)
@@ -394,20 +399,6 @@ class MelodyQNetwork(object):
       self.priming_notes[i] = np.argmax(end_softmax)
 
     tf.logging.info('Stored priming notes: %s', self.priming_notes)
-
-  def restore_from_checkpoint(self, checkpoint_dir):
-    """Restores this model from a saved checkpoint.
-
-    Args:
-      checkpoint_dir: The directory containing the saved checkpoint.
-    """
-
-    tf.logging.info('Attempting to restore from checkpoint directory: %s',
-                 checkpoint_dir)
-    checkpoint_file = tf.train.latest_checkpoint(checkpoint_dir)
-    tf.logging.info('Checkpoint file: %s', checkpoint_file)
-
-    self.saver.restore(self.session, checkpoint_file)
 
   def build_graph(self):
     """Builds the reinforcement learning graph."""
