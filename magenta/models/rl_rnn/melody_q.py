@@ -782,7 +782,7 @@ class MelodyQNetwork(object):
       input_batch = np.reshape(next_obs, (self.q_network.batch_size, 1,
                                           self.num_actions))
       if self.algorithm == 'g':
-        (softmax, self.q_network.state_value self.reward_rnn.state_value) = self.session.run(
+        (softmax, self.q_network.state_value, self.reward_rnn.state_value) = self.session.run(
           [self.action_softmax, self.q_network.state_tensor, self.reward_rnn.state_tensor],
           {self.q_network.melody_sequence: input_batch,
            self.q_network.initial_state: self.q_network.state_value,
