@@ -518,7 +518,7 @@ class MelodyQNetwork(object):
                                        reduction_indices=[1,])
       elif self.algorithm == 'g':
         self.g_normalizer = tf.reduce_logsumexp(self.reward_scores, reduction_indices=[1,])
-        self.g_normalizer = tf.tile(self.g_normalizer, [,self.num_actions])
+        self.g_normalizer = tf.tile(self.g_normalizer, [1,self.num_actions])
         self.g_action_scores = tf.sub((self.next_action_scores + self.reward_scores), self.g_normalizer)
         self.target_vals = tf.reduce_logsumexp(self.g_action_scores, reduction_indices=[1,])
       else:
