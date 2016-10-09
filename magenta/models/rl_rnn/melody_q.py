@@ -968,6 +968,9 @@ class MelodyQNetwork(object):
       enable_random: If False, the model will not be able to act randomly /
         explore.
     """
+    print "Evaluating initial model..."
+    self.evaluate_model()
+
     self.actions_executed_so_far = 0
 
     if self.stochastic_observations:
