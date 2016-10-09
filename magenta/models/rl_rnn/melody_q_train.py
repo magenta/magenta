@@ -18,7 +18,7 @@ import melody_q
 import rl_rnn_ops
 
 FLAGS = tf.app.flags.FLAGS
-tf.app.flags.DEFINE_string('output_dir', '/home/natasha/Dropbox (MIT)/Google/Project/rl_rnn_output/',
+tf.app.flags.DEFINE_string('output_dir', '/home/natasha/Dropbox (MIT)/Google/Project/rl_rnn_output/RewardScaler.1',
                            'Directory where the model will save its'
                            'compositions (midi files)')
 tf.app.flags.DEFINE_string('checkpoint_name', '/home/natasha/Dropbox (MIT)/Google/Project/rl_rnn_output/rl_rnn_model.ckpt',
@@ -33,9 +33,9 @@ tf.app.flags.DEFINE_string('model_save_dir', '/home/natasha/Dropbox (MIT)/Google
                            'model will be saved.')
 tf.app.flags.DEFINE_string('midi_primer', '/home/natasha/Developer/magenta_my_fork/magenta/magenta/models/rl_rnn/testdata/primer.mid',
                            'A midi file that can be used to prime the model')
-tf.app.flags.DEFINE_integer('training_steps', 3000000,
+tf.app.flags.DEFINE_integer('training_steps', 1000000,
                             'The number of steps used to train the model')
-tf.app.flags.DEFINE_integer('exploration_steps', 1500000,
+tf.app.flags.DEFINE_integer('exploration_steps', 500000,
                             'The number of steps over which the models'
                             'probability of taking a random action (exploring)'
                             'will be annealed from 1.0 to its normal'
@@ -46,7 +46,7 @@ tf.app.flags.DEFINE_integer('output_every_nth', 100000,
                             'itself and store a checkpoint')
 tf.app.flags.DEFINE_integer('num_notes_in_melody', 32,
                             'The number of notes in each composition')
-tf.app.flags.DEFINE_float('reward_scaler', 2.0,
+tf.app.flags.DEFINE_float('reward_scaler', 0.1,
                           'The weight placed on music theory rewards')
 tf.app.flags.DEFINE_string('training_data_path', '',
                            'Directory where the model will get melody training'
