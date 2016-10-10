@@ -30,9 +30,7 @@ instructions for installing RtMidi.
 **Ubuntu:**
 
 ```bash
-$ sudo apt-get install build-essential
-$ sudo apt-get install libasound2-dev
-$ sudo apt-get install libjack-dev
+$ sudo apt-get install build-essential libasound2-dev libjack-dev
 $ pip install --pre python-rtmidi
 ```
 
