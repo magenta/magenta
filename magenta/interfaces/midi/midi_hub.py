@@ -782,18 +782,16 @@ class MidiHub(object):
     self._metronome = None
 
     # Open MIDI ports.
-    self._inport = (input_midi_port
-                    if isinstance(input_midi_port, mido.ports.BaseInput)
-                    else mido.open_input(
-		        input_midi_port, 
-                        virtual=input_midi_port not in 
-                                get_available_input_ports()))
-    self._outport = (output_midi_port
-                     if isinstance(output_midi_port, mido.ports.BaseOutput)
-                     else mido.open_output(
-		         output_midi_port, 
-                         virtual=output_midi_port not in 
-                                 get_available_output_ports()))
+    self._inport = (
+        input_midi_port if isinstance(input_midi_port, mido.ports.BaseInput)
+        else mido.open_input(
+            input_midi_port,
+            virtual=input_midi_port not in get_available_input_ports()))
+    self._outport = (
+        output_midi_port if isinstance(output_midi_port, mido.ports.BaseOutput)
+        else mido.open_output(
+          output_midi_port,
+          virtual=output_midi_port not in get_available_output_ports()))
 
     # Start processing incoming messages.
     self._inport.callback = self._timestamp_and_handle_message
