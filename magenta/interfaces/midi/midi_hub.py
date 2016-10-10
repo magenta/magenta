@@ -20,6 +20,9 @@ _DEFAULT_METRONOME_PITCH = 95
 _DEFAULT_METRONOME_VELOCITY = 64
 _METRONOME_CHANNEL = 0
 
+# The RtMidi backend is easier to install and has support for virtual ports.
+mido.set_backend('mido.backends.rtmidi')
+
 
 class MidiHubException(Exception):
   """Base class for exceptions in this module."""
