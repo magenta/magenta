@@ -20,7 +20,6 @@ sequence generator.
 import time
 
 # internal imports
-import mido
 import tensorflow as tf
 import magenta
 
