@@ -107,6 +107,10 @@ def main(unused_argv):
   print "Loaded '%s' generator bundle from file '%s'." % (
       bundle.generator_details.id, FLAGS.bundle_file)
 
+  if FLAGS.input_port not in midi_hub.get_available_input_ports():
+    print "Opening '%s' as a virtual MIDI port for input." % FLAGS.input_port
+  if FLAGS.output_port not in midi_hub.get_available_output_ports():
+    print "Opening '%s' as a virtual MIDI port for output." % FLAGS.output_port
   hub = midi_hub.MidiHub(FLAGS.input_port, FLAGS.output_port,
                          midi_hub.TextureType.MONOPHONIC)
 

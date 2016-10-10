@@ -752,9 +752,11 @@ class MidiHub(object):
 
   Args:
     input_midi_port: The string MIDI port name or mido.ports.BaseInput object to
-        use for input.
+        use for input. If a name is given that is not an available port, a
+        virtual port will be opened with that name.
     output_midi_port: The string MIDI port name mido.ports.BaseOutput object to
-        use for output.
+        use for output. If a name is given that is not an available port, a
+        virtual port will be opened with that name.
     texture_type: A TextureType Enum specifying the musical texture to assume
         during capture, passthrough, and playback.
     passthrough: A boolean specifying whether or not to pass incoming messages
@@ -782,10 +784,16 @@ class MidiHub(object):
     # Open MIDI ports.
     self._inport = (input_midi_port
                     if isinstance(input_midi_port, mido.ports.BaseInput)
-                    else mido.open_input(input_midi_port))
+                    else mido.open_input(
+		        input_midi_port, 
+                        virtual=input_midi_port not in 
+                                get_available_input_ports()))
     self._outport = (output_midi_port
                      if isinstance(output_midi_port, mido.ports.BaseOutput)
-                     else mido.open_output(output_midi_port))
+                     else mido.open_output(
+		         output_midi_port, 
+                         virtual=output_midi_port not in 
+                                 get_available_output_ports()))
 
     # Start processing incoming messages.
     self._inport.callback = self._timestamp_and_handle_message
