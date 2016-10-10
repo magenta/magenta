@@ -33,16 +33,16 @@ from magenta.models.lookback_rnn import lookback_rnn_generator
 FLAGS = tf.app.flags.FLAGS
 
 tf.app.flags.DEFINE_bool(
-    'list',
+    'list_ports',
     False,
     'Only list available MIDI ports.')
 tf.app.flags.DEFINE_string(
     'input_port',
-    None,
+    'magenta_in',
     'The name of the input MIDI port.')
 tf.app.flags.DEFINE_string(
     'output_port',
-    None,
+    'magenta_out',
     'The name of the output MIDI port.')
 tf.app.flags.DEFINE_integer(
     'phase_bars',
@@ -73,13 +73,11 @@ _GENERATOR_FACTORY_MAP = {
 
 
 def main(unused_argv):
-  if FLAGS.list:
-    print "Input ports: '" + "', '".join(mido.get_input_names()) + "'"
-    print "Output ports: '" + "', '".join(mido.get_output_names()) + "'"
-    return
-
-  if FLAGS.input_port is None or FLAGS.output_port is None:
-    print '--inport_port and --output_port must be specified.'
+  if FLAGS.list_ports:
+    print "Input ports: '%s'" % (
+        "', '".join(midi_hub.get_available_input_ports()))
+    print "Ouput ports: '%s'" % (
+        "', '".join(midi_hub.get_available_output_ports()))
     return
 
   if FLAGS.bundle_file is None:
@@ -106,7 +104,7 @@ def main(unused_argv):
   generator = _GENERATOR_FACTORY_MAP[generator_id].create_generator(
       checkpoint=None, bundle=bundle)
   generator.initialize()
-  print "Loaded '%s' generator bundle from file '%s'." %(
+  print "Loaded '%s' generator bundle from file '%s'." % (
       bundle.generator_details.id, FLAGS.bundle_file)
 
   hub = midi_hub.MidiHub(FLAGS.input_port, FLAGS.output_port,
