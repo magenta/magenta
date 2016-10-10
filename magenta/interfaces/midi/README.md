@@ -25,9 +25,8 @@ have installed [Homebrew](http://brew.sh).
 
 The interface uses a python library called [mido](http://mido.readthedocs.io) to
 interface your computer's MIDI hub. For it to work, you need to separately
-install a backend library it can use to connect to your system. The easiest to
-install is RtMidi, which can be done with the following commands.
-
+install a backend library it can use to connect to your system. Below are
+instructions for installing RtMidi.
 **Ubuntu:**
 
 ```bash

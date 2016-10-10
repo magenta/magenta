@@ -128,13 +128,15 @@ def main(unused_argv):
   print 'Instructions:'
   print 'Play when you hear the metronome ticking.'
   if FLAGS.phase_bars is not None:
-    print 'After %d bars, Magenta will play its response.' % FLAGS.phase_bars
+    print ('After %d bars (4 beats), Magenta will play its response.' %
+           FLAGS.phase_bars)
     print ('Once the response completes, the metronome will tick and you can '
            'play again.')
   else:
     print ('When you want to end the call phase, signal control number %d '
            'with value 0' % FLAGS.phase_control_number)
-    print 'At the end of the bar, Magenta will play its response.'
+    print ('At the end of the current bar (4 beats), Magenta will play its '
+           'response.')
     print ('Once the response completes, the metronome will tick and you can '
            'play again.')
   print ''
