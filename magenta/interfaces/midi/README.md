@@ -21,15 +21,23 @@ and Ubuntu Linux.
 For users of Macintosh OS X, the instructions below assume that you
 have installed [Homebrew](http://brew.sh).
 
-### Install PortMidi
+### Install RtMidi
 
 The interface uses a python library called [mido](http://mido.readthedocs.io) to
 interface your computer's MIDI hub. For it to work, you need to separately
 install a backend library it can use to connect to your system. The easiest to
-install is PortMidi, which can be done with the following commands.
+install is RtMidi, which can be done with the following commands.
 
-**Ubuntu:** `sudo apt-get install libportmidi-dev`<br />
-**Mac:** `brew install portmidi`
+**Ubuntu:**
+
+```bash
+$ sudo apt-get install build-essential
+$ sudo apt-get install libasound2-dev
+$ sudo apt-get install libjack-dev
+$ pip install --pre python-rtmidi
+```
+
+**Mac:** `pip install --pre python-rtmidi`
 
 ### Install QjackCtl (Ubuntu Only)
 
