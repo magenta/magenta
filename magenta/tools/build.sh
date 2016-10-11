@@ -31,5 +31,5 @@ bazel build //magenta/tools/pip:build_pip_package
 rm -r /tmp/magenta_pkg
 
 # Make a pip package. Script should be in //magenta/tools
-${DIR}/../../bazel-bin/magenta/tools/pip/build_pip_package /tmp/magenta_pkg
+"${DIR}/../../bazel-bin/magenta/tools/pip/build_pip_package" /tmp/magenta_pkg
 pip install -U /tmp/magenta_pkg/*
