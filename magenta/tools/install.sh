@@ -1,8 +1,5 @@
 #!/bin/bash
 #
-# An install script for magenta (https://github.com/tensorflow/magenta).
-# Run with: bash install_magenta.sh
-
 # Copyright 2016 Google Inc. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -16,6 +13,9 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+#
+# An install script for magenta (https://github.com/tensorflow/magenta).
+# Run with: bash install_magenta.sh
 
 # Exit on error
 set -e
@@ -43,8 +43,6 @@ else
     err 'Detected neither OSX or Linux Operating System'
 fi
 
-echo ${MINICONDA_SCRIPT}
-
 # Check if anaconda already installed
 if [[ ! $(which conda) ]]; then
     echo ""
@@ -63,9 +61,9 @@ if [[ ! $(which conda) ]]; then
     fi
 else
     echo ""
-    echo "==================================="
-    echo "anaconda detected, skipping install"
-    echo "==================================="
+    echo "========================================="
+    echo "anaconda detected, skipping conda install"
+    echo "========================================="
     echo ""
 fi
 

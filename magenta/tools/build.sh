@@ -1,8 +1,5 @@
 #!/bin/bash
 #
-# Builds the pip package, and then installs it.
-# Usage: bash build.sh
-
 # Copyright 2016 Google Inc. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -16,20 +13,27 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+#
+# Builds the pip package, and then installs it.
+# Usage: bash build.sh
 
 # Exit on error
 set -e
 
-
 # Get script directory
 readonly DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+
+#In case user is outside of magenta dir
+cd "${DIR}/../.."
 
 # build the binary to make pip package
 bazel build //magenta/tools/pip:build_pip_package
 
 # Make sure there is no tmp directory
-rm -r /tmp/magenta_pkg
+if [[ -e /tmp/magenta_pkg ]]; then
+    rm -r /tmp/magenta_pkg
+fi
 
 # Make a pip package. Script should be in //magenta/tools
-"${DIR}/../../bazel-bin/magenta/tools/pip/build_pip_package" /tmp/magenta_pkg
+bazel-bin/magenta/tools/pip/build_pip_package /tmp/magenta_pkg
 pip install -U /tmp/magenta_pkg/*
