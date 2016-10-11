@@ -101,7 +101,7 @@ screen/tab. Launch FluidSynth with the recommended soundfont installed above
 using:
 
 ```bash
-$ fluidsynth /usr/share/sounds/sf2/FluidR3_GM.sf2
+fluidsynth /usr/share/sounds/sf2/FluidR3_GM.sf2
 ```
 
 In the QjackCtl GUI, click the "Connect" button. In the "Audio" tab, select your
@@ -116,7 +116,7 @@ If using a software synth, launch it. Launch FluidSynth with the
 recommended soundfont downloaded above using:
 
 ```bash
-$ fluidsynth /path/to/sf2
+fluidsynth /path/to/sf2
 ```
 
 ## Launching the Interface
@@ -125,7 +125,7 @@ After completing the installation and set up steps above have the interface list
 the available MIDI ports:
 
 ```bash
-$ magenta_midi --list_ports
+magenta_midi --list_ports
 ```
 
 You should see a list of available input and output ports, including both the

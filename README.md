@@ -26,6 +26,12 @@ installation script. Just paste the following command into your terminal.
 curl https://raw.githubusercontent.com/tensorflow/magenta/master/magenta/tools/install.sh | bash
 ```
 
+The Magenta libraries are now available for use within Python programs and
+Jupyter notebooks, and the Magenta scripts are installed in your path!
+
+Note that you will need to run `source activate magenta` to use Magneta every
+time you open a new terminal window.
+
 #### Manual Install
 
 If the automated script fails for any reason, or you'd prefer to install by
