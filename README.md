@@ -17,14 +17,28 @@ installation. We recommend using Anaconda to install it, but it can work in any
 standard Python 2.7 environment. These instructions will assume you are using
 Anaconda.
 
+#### Automated Install
+
+If you are running Mac OS X or Ubuntu, you can try using our automated
+installation script. Just paste the following command into your terminal.
+
+```
+curl https://raw.githubusercontent.com/tensorflow/magenta/master/magenta/tools/install.sh | bash
+```
+
+#### Manual Install
+
+If the automated script fails for any reason, or you'd prefer to install by
+hand, do the following steps.
+
 First, download the
-[Python 2.7 Anaconda installer](https://www.continuum.io/downloads) (you can
-skip this step if you already have Anaconda installed).
+[Python 2.7 Miniconda installer](http://conda.pydata.org/miniconda.html) (you
+can skip this step if you already have any variant of conda installed).
 
 Next, create and activate a Magenta conda environment using Python 2.7 with
 Jupyter notebook support:
 
-```
+```bash
 conda create -n magenta python=2.7 jupyter
 source activate magenta
 ```
@@ -39,19 +53,24 @@ environment above. The important steps are selecting the correct binary
 
 Install the Magenta pip package:
 
-```
+```bash
 pip install magenta
 ```
 
 The Magenta libraries are now available for use within Python programs and
 Jupyter notebooks, and the Magenta scripts are installed in your path!
 
+Note that you will need to run `source activate magenta` to use Magneta every
+time you open a new terminal window.
+
 ### Docker
 Another way to try out Magenta is to use our Docker container.
 First, [install Docker](https://docs.docker.com/engine/installation/). Next, run
 this command:
 
-```docker run -it -p 6006:6006 -v /tmp/magenta:/magenta-data tensorflow/magenta```
+```bash
+docker run -it -p 6006:6006 -v /tmp/magenta:/magenta-data tensorflow/magenta
+```
 
 This will start a shell in a directory with all Magenta components compiled,
 installed, and ready to run. It will also map port 6006 of the host machine to
@@ -68,7 +87,7 @@ The Docker image also includes several pre-trained models in
 ```/magenta/models```. For example, to generate some MIDI files using the
 [Lookback RNN](magenta/models/lookback_rnn), run this command:
 
-```
+```bash
 lookback_rnn_generate \
   --bundle_file=/magenta-models/lookback_rnn.mag \
   --output_dir=/magenta-data/lookback_rnn/generated \
@@ -91,7 +110,21 @@ full Development Environment.
 
 Note: Our Docker image is also available at ```gcr.io/tensorflow/magenta```.
 
-### Development Environment
+## Generating MIDI
+
+You can now create your own melodies with TensorFlow using one of our models:
+
+**[Basic RNN](magenta/models/basic_rnn)**: A simple recurrent neural network for predicting melodies.
+
+**[Lookback RNN](magenta/models/lookback_rnn)**: A recurrent neural network for predicting melodies that uses custom inputs and labels.
+
+**[Attention RNN](magenta/models/attention_rnn)**: A recurrent neural network for predicting melodies that uses attention.
+
+## Using a MIDI Instrument
+
+After you've trained one of the models above, you can use our [MIDI interface](magenta/interfaces/midi) to play with it interactively.
+
+## Development Environment
 If you want to develop on Magenta, you'll need to set up the full Development
 Environment.
 
@@ -116,18 +149,5 @@ After that's done, run the tests with this command:
 ```bazel test //magenta/...```
 
 To build and install the pip package from source, follow the
-[pip build instructions](magenta/tools/pip#building-the-package).
-
-## Generating MIDI
-
-You can now create your own melodies with TensorFlow using one of our models:
-
-**[Basic RNN](magenta/models/basic_rnn)**: A simple recurrent neural network for predicting melodies.
-
-**[Lookback RNN](magenta/models/lookback_rnn)**: A recurrent neural network for predicting melodies that uses custom inputs and labels.
-
-**[Attention RNN](magenta/models/attention_rnn)**: A recurrent neural network for predicting melodies that uses attention.
-
-## Using a MIDI Instrument
-
-After you've trained one of the models above, you can use our [MIDI interface](magenta/interfaces/midi) to play with it interactively.
+[pip build instructions](magenta/tools/pip#building-the-package). You can also
+use our [build script](magenta/tools/build.sh).
