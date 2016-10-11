@@ -982,7 +982,6 @@ class MidiHub(object):
     """
     for regex in list(self._signals):
       if signal is None or regex.pattern == str(signal):
-        print str(signal)
         self._signals[regex].notify_all()
         del self._signals[regex]
 

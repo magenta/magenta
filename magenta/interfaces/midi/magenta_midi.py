@@ -44,15 +44,15 @@ tf.app.flags.DEFINE_string(
     'magenta_out',
     'The name of the output MIDI port.')
 tf.app.flags.DEFINE_integer(
-    'phase_bars',
+    'phrase_bars',
     None,
-    'The number of bars of duration to use for the call and response phases. '
-    'If none, `phase_control_number` must be specified.')
+    'The number of bars of duration to use for the call and response phrases. '
+    'If none, `end_call_control_number` must be specified.')
 tf.app.flags.DEFINE_integer(
-    'phase_control_number',
+    'end_call_control_number',
     None,
-    'The control change number to use as a signal to end the call phase. If '
-    'None, `phase_bars` must be specified.')
+    'The control change number to use as a signal to end the call phrase. If '
+    'None, `phrase_bars` must be specified.')
 # TODO(adarob): Make the qpm adjustable by a control change signal.
 tf.app.flags.DEFINE_integer(
     'qpm',
@@ -83,8 +83,8 @@ def main(unused_argv):
     print '--bundle_file must be specified.'
     return
 
-  if (FLAGS.phase_control_number, FLAGS.phase_bars).count(None) != 1:
-    print('Exactly one of --phase_control_number or --phase_bars should be '
+  if (FLAGS.end_call_control_number, FLAGS.phrase_bars).count(None) != 1:
+    print('Exactly one of --end_call_control_number or --phrase_bars should be '
           'specified.')
     return
 
@@ -113,27 +113,27 @@ def main(unused_argv):
   hub = midi_hub.MidiHub(FLAGS.input_port, FLAGS.output_port,
                          midi_hub.TextureType.MONOPHONIC)
 
-  end_call_signal = (None if FLAGS.phase_control_number is None else
-                     midi_hub.MidiSignal(control=FLAGS.phase_control_number,
+  end_call_signal = (None if FLAGS.end_call_control_number is None else
+                     midi_hub.MidiSignal(control=FLAGS.end_call_control_number,
                                          value=0))
   interaction = midi_interaction.CallAndResponseMidiInteraction(
       hub,
       FLAGS.qpm,
       generator,
-      phase_bars=FLAGS.phase_bars,
+      phrase_bars=FLAGS.phrase_bars,
       end_call_signal=end_call_signal)
 
   print ''
   print 'Instructions:'
   print 'Play when you hear the metronome ticking.'
-  if FLAGS.phase_bars is not None:
+  if FLAGS.phrase_bars is not None:
     print ('After %d bars (4 beats), Magenta will play its response.' %
-           FLAGS.phase_bars)
+           FLAGS.phrase_bars)
     print ('Once the response completes, the metronome will tick and you can '
            'play again.')
   else:
-    print ('When you want to end the call phase, signal control number %d '
-           'with value 0' % FLAGS.phase_control_number)
+    print ('When you want to end the call phrase, signal control number %d '
+           'with value 0' % FLAGS.end_call_control_number)
     print ('At the end of the current bar (4 beats), Magenta will play its '
            'response.')
     print ('Once the response completes, the metronome will tick and you can '

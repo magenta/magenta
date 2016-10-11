@@ -131,42 +131,49 @@ You can either download one from the links on our model pages (e.g.,
 bundle file from one of your training checkpoints using the instructions on
 the model page.
 
-You can now start the interface with this command, supplying the location of the
-.mag bundle file:
+You will now start the interface with this command, supplying the location of
+the .mag bundle file and any additional flags required by the interaction (see
+below):
 
 ```bash
 $ bazel-bin/magenta/interfaces/midi/magenta_midi \
   --input_port=<controller port> \
   --output_port=<synthesizer port> \
   --bundle_file=<bundle_file> \
-  --phase_bars=<number of bars per phase or None>
-  --phase_control_number=<control change number of None>
+  <additional interaction-specific args>
 ```
+
+## Using the "Call and Response" Interaction
+
+"Call and response" is a type of interaction where one participant (you) produce
+a "call" phrase and the other participant (Magenta) produces a "response" phrase
+based upon that "call".
+
+When you start the interface, "call" phrase capture will begin immediately. You
+will hear a metronome ticking and the keys will now produce sounds through your
+audio output.
+
+A requirement of this interaction is that you supply either the `--phrase_bars`
+or `--end_call_control_number`.
+
+If you used the `--phrase_bars` flag, after the specified number of bars, the
+metronome will stop and a generated response will be played. After the same
+number of bars, a call phrase capture will begin again, and the process repeats.
+
+If you used the `--end_call_control_number` flag, you will signal with that
+control number and a value of 0 to end the call phrase. At the end of the
+current bar, the metronome will stop and a generated response will be played
+that is the same length as your call phrase. After the response completes, call
+phrase capture will begin again, and the process repeats.
 
 Assuming you're using the
 [Attention RNN](/magenta/models/attention_rnn/README.md) bundle file and are
-using VPMK and FluidSynth, your command would look like this:
+using VPMK and FluidSynth, your command might look like this:
 
 ```bash
 $ bazel-bin/magenta/interfaces/midi/magenta_midi \
   --input_port="VMPK Output" \
   --output_port="FluidSynth virtual port" \
   --bundle_file=/tmp/attention_rnn.mag \
-  --phase_bars=4
+  --phrase_bars=4
 ```
-
-## Using the "Call and Response" Interaction
-
-When you start the interface, the "call" phase will begin immediately. You will
-hear a metronome ticking and the keys will now produce sounds through your audio
-output.
-
-If you used the `--phase_bars` flag, after the specified number of bars, the
-metronome will stop and a generated "response" will be played. After the same
-number of bars, a new "call" phase will begin, and the process repeats.
-
-If you used the `--phase_control_number` flag, you will signal with that control
-number and a value of 0 to end the "call" phase. At the end of the current bar,
-the metronome will stop and a generated "response" will be played that is the
-same length as your call. After the response completes, a new "call" phase will
-begin, and the process repeats.
