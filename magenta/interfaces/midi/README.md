@@ -35,7 +35,8 @@ The interface uses a python library called [mido](http://mido.readthedocs.io) to
 interface your computer's MIDI hub. For it to work, you need to separately
 install a backend library it can use to connect to your system. Below are
 instructions for installing RtMidi. Note that if you used our
-[installer script](/README.md), RtMidi will already be installed.
+[installer script](/README.md#automated-install), RtMidi will already be
+installed.
 
 **Ubuntu:**
 
