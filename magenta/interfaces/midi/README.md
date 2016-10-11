@@ -153,8 +153,8 @@ When you start the interface, "call" phrase capture will begin immediately. You
 will hear a metronome ticking and the keys will now produce sounds through your
 audio output.
 
-A requirement of this interaction is that you supply either the `--phrase_bars`
-or `--end_call_control_number`.
+A requirement of this interaction is that you supply either `--phrase_bars` or
+`--end_call_control_number`.
 
 If you used the `--phrase_bars` flag, after the specified number of bars, the
 metronome will stop and a generated response will be played. After the same
