@@ -92,7 +92,7 @@ def main(unused_argv):
     bundle = magenta.music.sequence_generator_bundle.read_bundle_file(
         FLAGS.bundle_file)
   except magenta.music.sequence_generator_bundle.GeneratorBundleParseException:
-    print 'Failed to prase bundle file: %s' % FLAGS.bundle_file
+    print 'Failed to parse bundle file: %s' % FLAGS.bundle_file
     return
 
   generator_id = bundle.generator_details.id
