@@ -179,9 +179,9 @@ class Metronome(threading.Thread):
     # limit metronome accent velocity to 127 max value.
     self._accent_velocity = min(velocity + self._accent_velocity_delta, 127)
     # only raise metronome accent pitch if there is headroom.
-    if self._pitch + self._accent_pitch_interval > 127:
-      self._accent_pitch_interval = 0
-    self._accent_pitch = min(self._pitch + self._accent_pitch_interval, 127)
+    self._accent_pitch = (
+        self._pitch if self._pitch + self._accent_pitch_interval > 127
+        else self._pitch + self._accent_pitch_interval)
 
   def run(self):
     """Outputs metronome tone on the qpm interval until stop signal received."""
