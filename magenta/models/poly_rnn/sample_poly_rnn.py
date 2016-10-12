@@ -3,7 +3,10 @@ import tensorflow as tf
 import os
 from tfkdllib import numpy_softmax, numpy_sample_softmax
 from tfkdllib import duration_and_pitch_to_midi
+from tfkdllib import tfrecord_duration_and_pitch_iterator
 
+FLAGS = tf.app.flags.FLAGS
+tf.app.flags.DEFINE_string('input', None, 'Polyphonic tfrecord file')
 
 def validate_sample_args(model_ckpt,
                          runtime,
@@ -15,6 +18,9 @@ def validate_sample_args(model_ckpt,
                          **kwargs):
     return (model_ckpt, runtime, sample_path, prime, sample, sample_len, temperature)
 
+# TODO(fjord): copied from poly_rnn
+batch_size = 32
+sequence_length = 30
 
 def sample(kwargs):
     (model_ckpt,
@@ -25,7 +31,11 @@ def sample(kwargs):
      sample_len,
      temperature) = validate_sample_args(**kwargs)
     # Wow this is nastyyyyy
-    from duration_rnn import *
+    #from duration_rnn import *
+    valid_itr = tfrecord_duration_and_pitch_iterator(FLAGS.input,
+                                                     batch_size,
+                                                     start_index=.9,
+                                                     sequence_length=sequence_length)
     valid_itr.reset()
     duration_mb, note_mb = valid_itr.next()
     duration_and_pitch_to_midi(sample_path + "/gt_%i.mid" % runtime, duration_mb[:, 0], note_mb[:, 0])
@@ -105,7 +115,7 @@ def sample(kwargs):
                                        prime)
 
 
-if __name__ == '__main__':
+def main(unused_argv):
     # prime is the text to prime with
     # sample is 0 for argmax, 1 for sample per character, 2 to sample per space
     import sys
@@ -128,3 +138,9 @@ if __name__ == '__main__':
               "sample_len": 50,
               "temperature": .35}
     sample(kwargs)
+
+def console_entry_point():
+  tf.app.run(main)
+
+if __name__ == '__main__':
+  console_entry_point()

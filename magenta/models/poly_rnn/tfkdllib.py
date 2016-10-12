@@ -11,6 +11,7 @@ import os
 import re
 import copy
 import sys
+import magenta.music as mm
 try:
     from StringIO import StringIO
 except ImportError:
@@ -293,8 +294,7 @@ class tfrecord_duration_and_pitch_iterator(object):
         # into protobuf dir.
         # Add __init__ files all over the place
         # symlinked the BachChorale data in for now too...
-        from magenta.lib.note_sequence_io import note_sequence_record_iterator
-        reader = note_sequence_record_iterator(files_path)
+        reader = mm.note_sequence_io.note_sequence_record_iterator(files_path)
         all_ds = []
         all_ps = []
         self.note_classes = list(np.arange(88 + 1))  # + 1 for silence
@@ -1252,6 +1252,7 @@ start training utilities
 
 
 def save_checkpoint(checkpoint_save_path, saver, sess):
+    # TODO(fjord): add control to save these elsewhere
     script_name = get_script_name()[:-3]
     save_dir = get_resource_dir(script_name)
     checkpoint_save_path = os.path.join(save_dir, checkpoint_save_path)
@@ -1297,27 +1298,6 @@ def get_resource_dir(name, resource_dir=None, folder=None, create_dir=True):
     return resource_dir
 
 
-def _archive(tag=None):
-    script_name = get_script_name()[:-3]
-    save_path = get_resource_dir(script_name)
-    if tag is None:
-        save_script_path = os.path.join(save_path, get_script_name())
-    else:
-        save_script_path = os.path.join(save_path, tag + "_" + get_script_name())
-
-    logger.info("Saving code archive for %s" % (save_path))
-    script_location = os.path.abspath(sys.argv[0])
-    shutil.copy2(script_location, save_script_path)
-
-    lib_location = os.path.realpath(__file__)
-    lib_name = lib_location.split(os.sep)[-1]
-    if tag is None:
-        save_lib_path = os.path.join(save_path, lib_name)
-    else:
-        save_lib_path = os.path.join(save_path, tag + "_" + lib_name)
-    shutil.copy2(lib_location, save_lib_path)
-
-
 def run_loop(loop_function, train_itr, valid_itr, n_epochs,
              checkpoint_delay=10, checkpoint_every_n_epochs=1,
              checkpoint_every_n_updates=np.inf,
@@ -1346,9 +1326,6 @@ def run_loop(loop_function, train_itr, valid_itr, n_epochs,
     overall_train_checkpoint = []
     overall_valid_checkpoint = []
     start_epoch = 0
-
-    # save current state of this lib and calling script
-    _archive(ident)
 
     # If there are more than 1M minibatches per epoch this will break!
     # Not reallocating buffer greatly helps fast training models though

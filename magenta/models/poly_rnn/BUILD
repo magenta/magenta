@@ -26,10 +26,20 @@ py_binary(
     ],
 )
 
+py_binary(
+    name = "sample_poly_rnn",
+    srcs = ["sample_poly_rnn.py"],
+    deps = [
+        ":tfkdllib"
+        # tensorflow dep
+    ],
+)
+
 py_library(
     name = "tfkdllib",
     srcs = ["tfkdllib.py"],
     deps = [
+        "//magenta",
         # TODO(fjord): scipy?
         # tensorflow dep
     ],
