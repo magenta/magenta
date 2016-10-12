@@ -148,6 +148,7 @@ class Metronome(threading.Thread):
     velocity: The velocity of the metronome's tick `note_on` message.
     pitch: The pitch of the metronome's tick `note_on` message.
     duration: The duration of the metronome's tick.
+    qpb: The number of quarter notes per bar.
   """
 
   def __init__(self,
@@ -157,7 +158,8 @@ class Metronome(threading.Thread):
                stop_time=None,
                velocity=_DEFAULT_METRONOME_VELOCITY,
                pitch=_DEFAULT_METRONOME_PITCH,
-               duration=_DEFAULT_METRONOME_TICK_DURATION):
+               duration=_DEFAULT_METRONOME_TICK_DURATION,
+               qpb=4):
     self._outport = outport
     self._qpm = qpm
     self._start_time = start_time
@@ -166,6 +168,14 @@ class Metronome(threading.Thread):
     self._duration = duration
     # A signal for when to stop the metronome.
     self._stop_time = stop_time
+    self._qpb = qpb
+    self._count = 1
+    self._velocity_accent = min(velocity + 10, 127)
+    self._pitch_accent_interval = 7
+    if self._pitch + self._pitch_accent_interval > 127:
+      self._pitch_accent_interval = 0
+    self._pitch_accent = min(self._pitch + self._pitch_accent_interval, 127)
+
     super(Metronome, self).__init__()
 
   def run(self):
@@ -179,21 +189,39 @@ class Metronome(threading.Thread):
     while self._stop_time is None or self._stop_time > next_tick_time:
       sleeper.sleep_until(next_tick_time)
 
-      self._outport.send(
+      if self._count % self._qpb == 1:
+        self._outport.send(
           mido.Message(
-              type='note_on',
-              note=self._pitch,
-              channel=_METRONOME_CHANNEL,
-              velocity=self._velocity))
+            type='note_on',
+            note=self._pitch_accent,
+            channel=_METRONOME_CHANNEL,
+            velocity=self._velocity_accent))
 
-      sleeper.sleep(self._duration)
+        sleeper.sleep(self._duration)
 
-      self._outport.send(
+        self._outport.send(
           mido.Message(
-              type='note_off',
-              note=self._pitch,
-              channel=_METRONOME_CHANNEL))
+            type='note_off',
+            note=self._pitch_accent,
+            channel=_METRONOME_CHANNEL))
 
+      else:
+        self._outport.send(
+            mido.Message(
+                type='note_on',
+                note=self._pitch,
+                channel=_METRONOME_CHANNEL,
+                velocity=self._velocity))
+
+        sleeper.sleep(self._duration)
+
+        self._outport.send(
+            mido.Message(
+                type='note_off',
+                note=self._pitch,
+                channel=_METRONOME_CHANNEL))
+
+      self._count += 1
       now = time.time()
       next_tick_time = now + period - ((now - self._start_time) % period)
 
