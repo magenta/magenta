@@ -457,7 +457,7 @@ class Melody(events_lib.SimpleEventSequence):
           self._events[i] = (max_note - NOTES_PER_OCTAVE +
                              (self._events[i] - max_note) % NOTES_PER_OCTAVE)
 
-  def squash(self, min_note, max_note, transpose_to_key):
+  def squash(self, min_note, max_note, transpose_to_key=None):
     """Transpose and octave shift the notes in this Melody.
 
     The key center of this melody is computed with a heuristic, and the notes
@@ -468,25 +468,29 @@ class Melody(events_lib.SimpleEventSequence):
     Args:
       min_note: Minimum pitch (inclusive) that the resulting notes will take on.
       max_note: Maximum pitch (exclusive) that the resulting notes will take on.
-      transpose_to_key: The melody is transposed to be in this key. 0 = C Major.
+      transpose_to_key: The melody is transposed to be in this key or None if
+         should not be transposed. 0 = C Major.
 
     Returns:
       How much notes are transposed by.
     """
-    melody_key = self.get_major_key()
-    key_diff = transpose_to_key - melody_key
-    midi_notes = [note for note in self._events
-                  if MIN_MIDI_PITCH <= note <= MAX_MIDI_PITCH]
-    if not midi_notes:
-      return 0
-    melody_min_note = min(midi_notes)
-    melody_max_note = max(midi_notes)
-    melody_center = (melody_min_note + melody_max_note) / 2
-    target_center = (min_note + max_note - 1) / 2
-    center_diff = target_center - (melody_center + key_diff)
-    transpose_amount = (
-        key_diff +
-        NOTES_PER_OCTAVE * int(round(center_diff / float(NOTES_PER_OCTAVE))))
+    if transpose_to_key is None:
+      transpose_amount = 0
+    else:
+      melody_key = self.get_major_key()
+      key_diff = transpose_to_key - melody_key
+      midi_notes = [note for note in self._events
+                    if MIN_MIDI_PITCH <= note <= MAX_MIDI_PITCH]
+      if not midi_notes:
+        return 0
+      melody_min_note = min(midi_notes)
+      melody_max_note = max(midi_notes)
+      melody_center = (melody_min_note + melody_max_note) / 2
+      target_center = (min_note + max_note - 1) / 2
+      center_diff = target_center - (melody_center + key_diff)
+      transpose_amount = (
+          key_diff +
+          NOTES_PER_OCTAVE * int(round(center_diff / float(NOTES_PER_OCTAVE))))
     self.transpose(transpose_amount, min_note, max_note)
 
     return transpose_amount
@@ -739,7 +743,8 @@ class MelodyEncoderDecoder(events_lib.EventsEncoderDecoder):
       min_note: The minimum midi pitch the encoded melodies can have.
       max_note: The maximum midi pitch (exclusive) the encoded melodies can
           have.
-      transpose_to_key: The key that encoded melodies will be transposed into.
+      transpose_to_key: The key that encoded melodies will be transposed into,
+          or None if it should not be transposed.
 
     Raises:
       ValueError: If `min_note` or `max_note` are outside the midi range, or
@@ -755,7 +760,8 @@ class MelodyEncoderDecoder(events_lib.EventsEncoderDecoder):
       raise ValueError('max_note - min_note must be >= 12. min_note is %d. '
                        'max_note is %d. max_note - min_note is %d.' %
                        (min_note, max_note, max_note - min_note))
-    if transpose_to_key < 0 or transpose_to_key > NOTES_PER_OCTAVE - 1:
+    if (transpose_to_key is not None and
+        (transpose_to_key < 0 or transpose_to_key > NOTES_PER_OCTAVE - 1)):
       raise ValueError('transpose_to_key must be >= 0 and <= 11. '
                        'transpose_to_key is %d.' % transpose_to_key)
 
@@ -764,22 +770,18 @@ class MelodyEncoderDecoder(events_lib.EventsEncoderDecoder):
     self._transpose_to_key = transpose_to_key
 
   @property
-  def min_note(self):
-    """The minimum midi pitch the encoded melodies can have.
+  def num_melody_events(self):
+    """The number of melody events in the encoding."""
+    return self._max_note - self._min_note + NUM_SPECIAL_MELODY_EVENTS
 
-    Returns:
-      An integer, the minimum midi pitch the encoded melodies can have.
-    """
+  @property
+  def min_note(self):
+    """The minimum midi pitch the encoded melodies can have."""
     return self._min_note
 
   @property
   def max_note(self):
-    """The maximum midi pitch (exclusive) the encoded melodies can have.
-
-    Returns:
-      An integer, the maximum midi pitch (exclusive) the encoded melodies can
-      have.
-    """
+    """The maximum midi pitch (exclusive) the encoded melodies can have."""
     return self._max_note
 
   @property
@@ -788,7 +790,7 @@ class MelodyEncoderDecoder(events_lib.EventsEncoderDecoder):
 
     Returns:
       An integer in the range [0, 12), the key that encoded melodies will be
-      transposed into.
+      transposed into, or None if it should not be transposed.
     """
     return self._transpose_to_key
 
@@ -801,6 +803,39 @@ class MelodyEncoderDecoder(events_lib.EventsEncoderDecoder):
     """
     melody = Melody([MELODY_NO_EVENT])
     return self.events_to_label(melody, 0)
+
+  def melody_event_to_index(self, melody_event):
+    """Collapses a melody event value into a zero-based index range.
+
+    Args:
+      melody_event: A Melody event value. -2 = no event, -1 = note-off event,
+          [0, 127] = note-on event for that midi pitch.
+
+    Returns:
+      An int in the range [0, self.num_melody_events). 0 = no event,
+      1 = note-off event, [2, self.num_melody_events) = note-on event for
+      that pitch relative to the [self.min_note, self.max_note) range.
+    """
+    if melody_event < 0:
+      return melody_event + NUM_SPECIAL_MELODY_EVENTS
+    return melody_event - self.min_note + NUM_SPECIAL_MELODY_EVENTS
+
+  def index_to_melody_event(self, index):
+    """Expands a zero-based index value to its equivalent melody event value.
+
+    Args:
+      index: An int in the range [0, self.num_melody_events).
+          0 = no event, 1 = note-off event,
+          [2, self.num_melody_events) = note-on event for that pitch relative
+          to the [self.min_note, self.max_note) range.
+
+    Returns:
+      A Melody event value. -2 = no event, -1 = note-off event,
+      [0, 127] = note-on event for that midi pitch.
+    """
+    if index < NUM_SPECIAL_MELODY_EVENTS:
+      return index - NUM_SPECIAL_MELODY_EVENTS
+    return index - NUM_SPECIAL_MELODY_EVENTS + self.min_note
 
   @abc.abstractmethod
   def events_to_input(self, events, position):
@@ -857,38 +892,216 @@ class MelodyEncoderDecoder(events_lib.EventsEncoderDecoder):
 
 
 class OneHotMelodyEncoderDecoder(MelodyEncoderDecoder):
-  """A MelodyEncoderDecoder that produces a one-hot encoding for the input."""
-
-  def __init__(self, min_note, max_note, transpose_to_key):
-    super(OneHotMelodyEncoderDecoder, self).__init__(min_note, max_note,
-                                                     transpose_to_key)
-    self._input_size = (self.max_note - self.min_note +
-                        NUM_SPECIAL_MELODY_EVENTS)
-    self._num_classes = (self.max_note - self.min_note +
-                         NUM_SPECIAL_MELODY_EVENTS)
+  """A MelodyEncoderDecoder that produces a one-hot encoding for the input"""
 
   @property
   def input_size(self):
-    return self._input_size
+    return self.num_melody_events
 
   @property
   def num_classes(self):
-    return self._num_classes
+    return self.num_melody_events
 
   def events_to_input(self, events, position):
-    input_ = [0.0] * self._input_size
-    index = (events[position] + NUM_SPECIAL_MELODY_EVENTS
-             if events[position] < 0
-             else events[position] - self.min_note + NUM_SPECIAL_MELODY_EVENTS)
-    input_[index] = 1.0
+    """Returns the input vector for the given position in the melody.
+
+    Returns a one-hot vector for the given position in the melody mapped to the
+    model's event range. 0 = no event, 1 = note-off event,
+    [2, self.num_classes) = note-on event for that pitch relative to the
+    [self._min_note, self._max_note) range.
+
+    Args:
+      events: A Melody object.
+      position: An integer event position in the melody.
+
+    Returns:
+      An input vector, a list of floats.
+    """
+    input_ = [0.0] * self.input_size
+    input_[self.melody_event_to_index(events[position])] = 1.0
     return input_
 
   def events_to_label(self, events, position):
-    return (events[position] + NUM_SPECIAL_MELODY_EVENTS
-            if events[position] < 0
-            else events[position] - self.min_note + NUM_SPECIAL_MELODY_EVENTS)
+    """Returns the label for the given position in the melody.
+
+    Returns the zero-based index value for the given position in the melody
+    mapped to the model's event range. 0 = no event, 1 = note-off event,
+    [2, self.num_classes) = note-on event for that pitch relative to the
+    [self._min_note, self._max_note) range.
+
+    Args:
+      events: A Melody object.
+      position: An integer event position in the melody.
+
+    Returns:
+      A label, an integer.
+    """
+    return self.melody_event_to_index(events[position])
 
   def class_index_to_event(self, class_index, events):
-    return (class_index - NUM_SPECIAL_MELODY_EVENTS
-            if class_index < NUM_SPECIAL_MELODY_EVENTS
-            else class_index + self.min_note - NUM_SPECIAL_MELODY_EVENTS)
+    """Returns the melody event for the given class index.
+
+    This is the reverse process of the self.events_to_label method.
+
+    Args:
+      class_index: An integer in the range [0, self.num_classes).
+      events: A Melody object. This object is not used in this implementation.
+
+    Returns:
+      A Melody event value.
+    """
+    return self.index_to_melody_event(class_index)
+
+
+class LookbackMelodyEncoderDecoder(MelodyEncoderDecoder):
+  """A MelodyEncoderDecoder that encodes repeated events and keeps time.
+
+  Args:
+    lookback_distances: A list of step intervals to look back in history to
+       encode both the following event and whether the current step is a repeat.
+    binary_counter_bits: The number of input bits to use as a counter for the
+       metric position of the next note.
+
+  """
+
+  def __init__(
+    self,
+    lookback_distances=[DEFAULT_STEPS_PER_BAR, DEFAULT_STEPS_PER_BAR * 2],
+    binary_counter_bits=5,
+    min_note=48, max_note=84, transpose_to_key=0):
+    """Initializes the MelodyEncoderDecoder."""
+    super(LookbackMelodyEncoderDecoder, self).__init__(
+        min_note, max_note, transpose_to_key)
+    self._lookback_distances = lookback_distances
+    self._binary_counter_bits = binary_counter_bits
+
+  @property
+  def input_size(self):
+    num_lookbacks = len(self._lookback_distances)
+    return ((num_lookbacks + 1) * self.num_melody_events +
+            self._binary_counter_bits + num_lookbacks)
+
+  @property
+  def num_classes(self):
+    return self.num_melody_events + len(self._lookback_distances)
+
+  def events_to_input(self, events, position):
+    """Returns the input vector for the given position in the melody.
+
+    Returns a self.input_size length list of floats. Assuming self.min_note = 48
+    and self.max_note = 84, self.input_size will = 121. Each index represents a
+    different input signal to the model.
+
+    Indices [0, 121):
+    [0, 38): Event of current step.
+    [38, 76): Event of next step if repeating 1 bar ago.
+    [76, 114): Event of next step if repeating 2 bars ago.
+    114: 16th note binary counter.
+    115: 8th note binary counter.
+    116: 4th note binary counter.
+    117: Half note binary counter.
+    118: Whole note binary counter.
+    119: The current step is repeating 1 bar ago.
+    120: The current step is repeating 2 bars ago.
+
+    Args:
+      events: A magenta.music.Melody object.
+      position: An integer position in the melody.
+
+    Returns:
+      An input vector, an self.input_size length list of floats.
+    """
+    input_ = [0.0] * self.input_size
+
+    # Last event.
+    index = self.melody_event_to_index(events[position])
+    input_[index] = 1.0
+
+    # Next event if repeating N positions ago.
+    for i, lookback_distance in enumerate(self._lookback_distances):
+      lookback_position = position - lookback_distance + 1
+      if lookback_position < 0:
+        melody_event = MELODY_NO_EVENT
+      else:
+        melody_event = events[lookback_position]
+      index = self.melody_event_to_index(melody_event)
+      input_[i * self.num_melody_events + index] = 1.0
+
+    # Binary time counter giving the metric location of the *next* note.
+    n = position + 1
+    for i in range(self._binary_counter_bits):
+      input_[3 * self.num_melody_events + i] = 1.0 if (n / 2 ** i) % 2 else -1.0
+
+    # Last event is repeating N bars ago.
+    for i, lookback_distance in enumerate(self._lookback_distances):
+      lookback_position = position - lookback_distance
+      if (lookback_position >= 0 and
+          events[position] == events[lookback_position]):
+        input_[3 * self.num_melody_events + 5 + i] = 1.0
+
+    return input_
+
+  def events_to_label(self, events, position):
+    """Returns the label for the given position in the melody.
+
+    Returns an integer in the range [0, self.num_classes). Indices in the range
+    [0, self.num_melody_events) map to standard midi events. Indices
+    self.num_melody_events and self.num_melody_events + 1 are signals to repeat
+    events from earlier in the melody. More distant repeats are selected first
+    and standard midi events are selected last.
+
+    Assuming self.min_note = 48 and self.max_note = 84, then
+    self.num_classes = 40, self.num_melody_events = 38, and the values will be
+    as follows.
+    Values [0, 40):
+      [0, 38): Event of the last step in the melody, if not repeating 1 or 2
+               bars ago.
+      38: If the last event in the melody is repeating 1 bar ago, if not
+          repeating 2 bars ago.
+      39: If the last event in the melody is repeating 2 bars ago.
+
+    Args:
+      events: A magenta.music.Melody object.
+      position: An integer position in the melody.
+
+    Returns:
+      A label, an integer.
+    """
+    if (position < self._lookback_distances[-1] and
+        events[position] == MELODY_NO_EVENT):
+      return self.num_melody_events + len(self._lookback_distances) - 1
+
+    # If last step repeated N bars ago.
+    for i, lookback_distance in reversed(
+        list(enumerate(self._lookback_distances))):
+      lookback_position = position - lookback_distance
+      if (lookback_position >= 0 and
+          events[position] == events[lookback_position]):
+        return self.num_melody_events + i
+
+    # If last step didn't repeat at one of the lookback positions, use the
+    # specific event.
+    return self.melody_event_to_index(events[position])
+
+  def class_index_to_event(self, class_index, events):
+    """Returns the melody event for the given class index.
+
+    This is the reverse process of the self.events_to_label method.
+
+    Args:
+      class_index: An int in the range [0, self.num_classes).
+      events: The magenta.music.Melody events list of the current melody.
+
+    Returns:
+      A magenta.music.Melody event value.
+    """
+    # Repeat N bar ago.
+    for i, lookback_distance in reversed(
+        list(enumerate(self._lookback_distances))):
+      if class_index == self.num_melody_events + i:
+        if len(events) < lookback_distance:
+          return MELODY_NO_EVENT
+        return events[-lookback_distance]
+
+    # Return the melody event for that class index.
+    return self.index_to_melody_event(class_index)
