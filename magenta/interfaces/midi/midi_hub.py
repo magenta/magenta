@@ -169,14 +169,19 @@ class Metronome(threading.Thread):
     # A signal for when to stop the metronome.
     self._stop_time = stop_time
     self._qpb = qpb
-    self._count = 1
-    self._velocity_accent = min(velocity + 10, 127)
-    self._pitch_accent_interval = 7
-    if self._pitch + self._pitch_accent_interval > 127:
-      self._pitch_accent_interval = 0
-    self._pitch_accent = min(self._pitch + self._pitch_accent_interval, 127)
-
+    self._count = 0
+    # The amount to add to metronome velocity on downbeats only.
+    self._accent_velocity_delta = 10
+    # The pitch interval in semitones to raise metronome downbeats only.
+    self._accent_pitch_interval = 7
     super(Metronome, self).__init__()
+
+    # limit metronome accent velocity to 127 max value.
+    self._accent_velocity = min(velocity + self._accent_velocity_delta, 127)
+    # only raise metronome accent pitch if there is headroom.
+    if self._pitch + self._accent_pitch_interval > 127:
+      self._accent_pitch_interval = 0
+    self._accent_pitch = min(self._pitch + self._accent_pitch_interval, 127)
 
   def run(self):
     """Outputs metronome tone on the qpm interval until stop signal received."""
@@ -187,22 +192,23 @@ class Metronome(threading.Thread):
         self._start_time,
         now + period - ((now - self._start_time) % period))
     while self._stop_time is None or self._stop_time > next_tick_time:
+      self._count += 1
       sleeper.sleep_until(next_tick_time)
 
       if self._count % self._qpb == 1:
         self._outport.send(
           mido.Message(
             type='note_on',
-            note=self._pitch_accent,
+            note=self._accent_pitch,
             channel=_METRONOME_CHANNEL,
-            velocity=self._velocity_accent))
+            velocity=self._accent_velocity))
 
         sleeper.sleep(self._duration)
 
         self._outport.send(
           mido.Message(
             type='note_off',
-            note=self._pitch_accent,
+            note=self._accent_pitch,
             channel=_METRONOME_CHANNEL))
 
       else:
@@ -221,7 +227,6 @@ class Metronome(threading.Thread):
                 note=self._pitch,
                 channel=_METRONOME_CHANNEL))
 
-      self._count += 1
       now = time.time()
       next_tick_time = now + period - ((now - self._start_time) % period)
 
