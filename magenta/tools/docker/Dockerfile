@@ -4,7 +4,7 @@ MAINTAINER Curtis Hawthorne <fjord@google.com>
 
 # Download and build Magenta.
 
-ENV MAGENTA_MASTER_REF v0.1.2
+ENV MAGENTA_MASTER_REF v0.1.3
 
 WORKDIR /
 RUN git clone https://github.com/tensorflow/magenta.git && \
@@ -12,6 +12,9 @@ RUN git clone https://github.com/tensorflow/magenta.git && \
     git reset --hard $MAGENTA_MASTER_REF
 WORKDIR /magenta
 RUN bazel build //magenta/... && bazel test //magenta/...
+
+# Required to build the pip package
+RUN pip install pretty_midi
 
 RUN bazel build magenta/tools/pip:build_pip_package && \
     bazel-bin/magenta/tools/pip/build_pip_package /tmp/magenta_pkg && \
