@@ -21,20 +21,35 @@ and Ubuntu Linux.
 For users of Macintosh OS X, the instructions below assume that you
 have installed [Homebrew](http://brew.sh).
 
+First, [install Magenta](/README.md). The rest of this document assumes you have
+installed the Magenta pip package. Before continuing, make sure your `magenta`
+conda environment is active:
+
+```bash
+source activate magenta
+```
+
 ### Install RtMidi
 
 The interface uses a python library called [mido](http://mido.readthedocs.io) to
 interface your computer's MIDI hub. For it to work, you need to separately
 install a backend library it can use to connect to your system. Below are
-instructions for installing RtMidi.
+instructions for installing RtMidi. Note that if you used our
+[installer script](/README.md#automated-install), RtMidi will already be
+installed.
+
 **Ubuntu:**
 
 ```bash
-$ sudo apt-get install build-essential libasound2-dev libjack-dev
-$ pip install --pre python-rtmidi
+sudo apt-get install build-essential libasound2-dev libjack-dev
+pip install --pre python-rtmidi
 ```
 
-**Mac:** `pip install --pre python-rtmidi`
+**Mac:**
+
+```bash
+pip install --pre python-rtmidi
+```
 
 ### Install QjackCtl (Ubuntu Only)
 
@@ -86,7 +101,7 @@ screen/tab. Launch FluidSynth with the recommended soundfont installed above
 using:
 
 ```bash
-$ fluidsynth /usr/share/sounds/sf2/FluidR3_GM.sf2
+fluidsynth /usr/share/sounds/sf2/FluidR3_GM.sf2
 ```
 
 In the QjackCtl GUI, click the "Connect" button. In the "Audio" tab, select your
@@ -101,22 +116,16 @@ If using a software synth, launch it. Launch FluidSynth with the
 recommended soundfont downloaded above using:
 
 ```bash
-$ fluidsynth /path/to/sf2
+fluidsynth /path/to/sf2
 ```
 
 ## Launching the Interface
 
-After completing the installation and set up steps above, build the interface
-with:
+After completing the installation and set up steps above have the interface list
+the available MIDI ports:
 
 ```bash
-$ bazel build //magenta/interfaces/midi:magenta_midi
-```
-
-Once built, have it list the available MIDI ports:
-
-```bash
-$ bazel-bin/magenta/interfaces/midi/magenta_midi --list_ports
+magenta_midi --list_ports
 ```
 
 You should see a list of available input and output ports, including both the
@@ -136,7 +145,7 @@ the .mag bundle file and any additional flags required by the interaction (see
 below):
 
 ```bash
-$ bazel-bin/magenta/interfaces/midi/magenta_midi \
+magenta_midi \
   --input_port=<controller port> \
   --output_port=<synthesizer port> \
   --bundle_file=<bundle_file> \
@@ -171,7 +180,7 @@ Assuming you're using the
 using VPMK and FluidSynth, your command might look like this:
 
 ```bash
-$ bazel-bin/magenta/interfaces/midi/magenta_midi \
+magenta_midi \
   --input_port="VMPK Output" \
   --output_port="FluidSynth virtual port" \
   --bundle_file=/tmp/attention_rnn.mag \
