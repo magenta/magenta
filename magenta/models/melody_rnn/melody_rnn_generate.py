@@ -221,9 +221,9 @@ def main(unused_argv):
   """Saves bundle or runs generator based on flags."""
   generator = melody_rnn_sequence_generator.MelodyRnnSequenceGenerator(
       melody_rnn_config.config_from_flags(),
+      FLAGS.steps_per_quarter,
       get_checkpoint(),
-      get_bundle(),
-      FLAGS.steps_per_quarter)
+      get_bundle())
 
   if FLAGS.save_generator_bundle:
     bundle_filename = os.path.expanduser(FLAGS.bundle_file)

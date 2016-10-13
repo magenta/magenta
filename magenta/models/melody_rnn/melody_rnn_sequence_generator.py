@@ -11,9 +11,10 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Shared Melody RNN generation code as a SequenceGenerator interface."""
+"""Melody RNN generation code as a SequenceGenerator interface."""
 
 import copy
+from functools import partial
 import random
 
 # internal imports
@@ -22,6 +23,7 @@ from six.moves import range  # pylint: disable=redefined-builtin
 import tensorflow as tf
 import magenta
 
+from magenta.models.melody_rnn import melody_rnn_config
 from magenta.models.melody_rnn import melody_rnn_graph
 
 
@@ -32,18 +34,18 @@ class MelodyRnnSequenceGeneratorException(Exception):
 class MelodyRnnSequenceGenerator(magenta.music.BaseSequenceGenerator):
   """Shared Melody RNN generation code as a SequenceGenerator interface."""
 
-  def __init__(self, config, checkpoint, bundle, steps_per_quarter):
+  def __init__(self, config, steps_per_quarter=4, checkpoint=None, bundle=None):
     """Creates a MelodyRnnSequenceGenerator.
 
     Args:
       config: A MelodyRnnConfig containing the GeneratorDetails,
           MelodyEncoderDecoder, and HParams to use.
+      steps_per_quarter: What precision to use when quantizing the melody. How
+          many steps per quarter note.
       checkpoint: Where to search for the most recent model checkpoint. Mutually
           exclusive with `bundle`.
       bundle: A GeneratorBundle object that includes both the model checkpoint
           and metagraph. Mutually exclusive with `checkpoint`.
-      steps_per_quarter: What precision to use when quantizing the melody. How
-          many steps per quarter note.
     """
     super(MelodyRnnSequenceGenerator, self).__init__(
         config.details, checkpoint, bundle)
@@ -52,8 +54,8 @@ class MelodyRnnSequenceGenerator(magenta.music.BaseSequenceGenerator):
 
     self._config = config
     # Override hparams for generation.
-    self._config.hparams['dropout_keep_prob'] = 1.0
-    self._config.hparams['batch_size'] = 1
+    self._config.hparams.dropout_keep_prob = 1.0
+    self._config.hparams.batch_size = 1
 
   def _initialize_with_checkpoint(self, checkpoint_file):
     graph = melody_rnn_graph('generate', self._config)
@@ -101,6 +103,7 @@ class MelodyRnnSequenceGenerator(magenta.music.BaseSequenceGenerator):
           'This model supports only 1 generate_sections message, but got %s' %
           len(generator_options.generate_sections))
 
+
     generate_section = generator_options.generate_sections[0]
     primer_sequence = input_sequence
 
@@ -136,8 +139,8 @@ class MelodyRnnSequenceGenerator(magenta.music.BaseSequenceGenerator):
       tf.logging.warn('No melodies were extracted from the priming sequence. '
                       'Melodies will be generated from scratch.')
       melody = magenta.music.Melody([
-          random.randint(self._melody_encoder_decoder.min_note,
-                         self._melody_encoder_decoder.max_note)])
+          random.randint(self._config.encoder_decoder.min_note,
+                         self._config.encoder_decoder.max_note)])
       start_step += 1
 
     # Ensure that the melody extends up to the step we want to start generating.
@@ -173,10 +176,11 @@ class MelodyRnnSequenceGenerator(magenta.music.BaseSequenceGenerator):
 
     melody = copy.deepcopy(primer_melody)
 
+    encoder_decoder = self._config.encoder_decoder
     transpose_amount = melody.squash(
-        self._melody_encoder_decoder.min_note,
-        self._melody_encoder_decoder.max_note,
-        self._melody_encoder_decoder.transpose_to_key)
+        encoder_decoder.min_note,
+        encoder_decoder.max_note,
+        encoder_decoder.transpose_to_key)
 
     inputs = self._session.graph.get_collection('inputs')[0]
     initial_state = self._session.graph.get_collection('initial_state')[0]
@@ -186,18 +190,22 @@ class MelodyRnnSequenceGenerator(magenta.music.BaseSequenceGenerator):
     final_state_ = None
     for i in range(num_steps - (len(melody) + melody.start_step)):
       if i == 0:
-        inputs_ = self._melody_encoder_decoder.get_inputs_batch(
-            [melody], full_length=True)
+        inputs_ = encoder_decoder.get_inputs_batch([melody], full_length=True)
         initial_state_ = self._session.run(initial_state)
       else:
-        inputs_ = self._melody_encoder_decoder.get_inputs_batch([melody])
+        inputs_ = encoder_decoder.get_inputs_batch([melody])
         initial_state_ = final_state_
 
       feed_dict = {inputs: inputs_, initial_state: initial_state_}
       final_state_, softmax_ = self._session.run(
           [final_state, softmax], feed_dict)
-      self._melody_encoder_decoder.extend_event_sequences([melody], softmax_)
+      encoder_decoder.extend_event_sequences([melody], softmax_)
 
     melody.transpose(-transpose_amount)
 
     return melody
+
+
+def get_generator_map():
+  return {key: partial(MelodyRnnSequenceGenerator, config)
+          for (key, config) in melody_rnn_config.default_configs.items()}

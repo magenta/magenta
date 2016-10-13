@@ -72,6 +72,7 @@ py_library(
     srcs_version = "PY2AND3",
     visibility = ["//magenta/interfaces:generator_interfaces"],
     deps = [
+        ":melody_rnn_config",
         ":melody_rnn_graph",
         "//magenta",
         # tensorflow dep

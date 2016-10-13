@@ -53,7 +53,7 @@ class MelodyRnnConfig(object):
 
   Attributes:
     details: The GeneratorDetails message describing the config.
-    encoder_decoder: The MelodyRnnEncoderDecoder to use.
+    encoder_decoder: The MelodyRnnEncoderDecoder object to use.
     hparams: The HParams containing hyperparameters to use.
   """
   def __init__(self, details, encoder_decoder, hparams):
@@ -68,7 +68,7 @@ default_configs = {
       magenta.protobuf.generator_pb2.GeneratorDetails(
           id='basic_rnn',
           description='Melody RNN with one-hot encoding.'),
-      magenta.music.OneHotMelodyEncoderDecoder,
+      magenta.music.OneHotMelodyEncoderDecoder(),
       magenta.common.HParams(
           batch_size=128,
           rnn_layer_sizes=[128, 128],
@@ -82,7 +82,7 @@ default_configs = {
       magenta.protobuf.generator_pb2.GeneratorDetails(
           id='lookback_rnn',
           description='Melody RNN with lookback encoding.'),
-      magenta.music.LookbackMelodyEncoderDecoder,
+      magenta.music.LookbackMelodyEncoderDecoder(),
       magenta.common.HParams(
           batch_size=128,
           rnn_layer_sizes=[128, 128],
@@ -96,7 +96,7 @@ default_configs = {
       magenta.protobuf.generator_pb2.GeneratorDetails(
           id='attention_rnn',
           description='Melody RNN with lookback encoding and attention.'),
-      magenta.music.LookbackMelodyEncoderDecoder,
+      magenta.music.LookbackMelodyEncoderDecoder(),
       magenta.common.HParams(
           batch_size=128,
           rnn_layer_sizes=[128, 128],

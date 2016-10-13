@@ -36,14 +36,6 @@ tf.app.flags.DEFINE_string('sequence_example_file', '',
                            'Path to TFRecord file containing '
                            'tf.SequenceExample records for training or '
                            'evaluation.')
-tf.app.flags.DEFINE_string('melody_encoder_decoder', 'lookback',
-                           "Which melody encoder/decoder to use. Must be one "
-                           "of 'onehot' or 'lookback'.")
-tf.app.flags.DEFINE_string('hparams', '{}',
-                           'String representation of a Python dictionary '
-                           'containing hyperparameter to value mapping. This '
-                           'mapping is merged with the default '
-                           'hyperparameters.')
 tf.app.flags.DEFINE_integer('num_training_steps', 0,
                             'The the number of global training steps your '
                             'model should take before exiting training. '
@@ -181,35 +173,6 @@ def run_eval(graph, train_dir, eval_dir, num_training_steps=None,
       coord.join(threads)
 
 
-def run(config):
-  """Runs the training or evaluation loop.
-
-  Args:
-    config: A MelodyRnnConfig for building the graph.
-  """
-
-  mode = 'eval' if FLAGS.eval else 'train'
-  graph = melody_rnn_graph.build_graph(
-      mode, config, FLAGS.sequence_example_file)
-
-  train_dir = os.path.join(FLAGS.run_dir, 'train')
-  if not os.path.exists(train_dir):
-    tf.gfile.MakeDirs(train_dir)
-  tf.logging.info('Train dir: %s', train_dir)
-
-  if FLAGS.eval:
-    eval_dir = os.path.join(FLAGS.run_dir, 'eval')
-    if not os.path.exists(eval_dir):
-      tf.gfile.MakeDirs(eval_dir)
-    tf.logging.info('Eval dir: %s', eval_dir)
-    run_eval(graph, train_dir, eval_dir, FLAGS.num_training_steps,
-             FLAGS.summary_frequency)
-
-  else:
-    run_training(graph, train_dir, FLAGS.num_training_steps,
-                 FLAGS.summary_frequency)
-
-
 def main(unused_argv):
   tf.logging.set_verbosity(FLAGS.log)
 
@@ -245,7 +208,6 @@ def main(unused_argv):
   else:
     run_training(graph, train_dir, FLAGS.num_training_steps,
                  FLAGS.summary_frequency)
-
 
 
 def console_entry_point():
