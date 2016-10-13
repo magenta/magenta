@@ -4,7 +4,7 @@ Lookback RNN introduces custom inputs and labels. The custom inputs allow the mo
 
 ## How to Use
 
-First, set up your [Magenta environment](https://github.com/tensorflow/magenta/blob/master/README.md). Next, you can either use a pre-trained model or train your own.
+First, [install Magenta](/README.md). Next, you can either use a pre-trained model or train your own.
 
 ## Pre-trained
 
@@ -15,12 +15,12 @@ If you want to get started right away, you can use a model that we've pre-traine
 ```
 BUNDLE_PATH=<absolute path of lookback_rnn.mag>
 
-bazel run //magenta/models/lookback_rnn:lookback_rnn_generate -- \
---bundle_file=${BUNDLE_PATH} \
---output_dir=/tmp/lookback_rnn/generated \
---num_outputs=10 \
---num_steps=128 \
---primer_melody="[60]"
+lookback_rnn_generate \
+  --bundle_file=${BUNDLE_PATH} \
+  --output_dir=/tmp/lookback_rnn/generated \
+  --num_outputs=10 \
+  --num_steps=128 \
+  --primer_melody="[60]"
 ```
 
 This will generate a melody starting with a middle C. If you'd like, you can also supply a priming melody using a string representation of a Python list. The values in the list should be ints that follow the melodies_lib.Melody format (-2 = no event, -1 = note-off event, values 0 through 127 = note-on event for that MIDI pitch). For example `--primer_melody="[60, -2, 60, -2, 67, -2, 67, -2]"` would prime the model with the first four notes of *Twinkle Twinkle Little Star*. Instead of using `--primer_melody`, we can use `--primer_midi` to prime our model with a melody stored in a MIDI file. For example, `--primer_midi=<absolute path to magenta/models/shared/primer.mid>` will prime the model with the melody in that MIDI file.
@@ -93,39 +93,33 @@ Our first step will be to convert a collection of MIDI files into NoteSequences.
 SequenceExamples are fed into the model during training and evaluation. Each SequenceExample will contain a sequence of inputs and a sequence of labels that represent a melody. Run the command below to extract melodies from our NoteSequences and save them as SequenceExamples. If we specify an `--eval_output` and an `--eval_ratio`, two collections of SequenceExamples will be generated, one for training, and one for evaluation. With an eval ratio of 0.10, 10% of the extracted melodies will be saved in the eval collection, and 90% will be saved in the training collection.
 
 ```
-bazel run //magenta/models/lookback_rnn:lookback_rnn_create_dataset -- \
---input=/tmp/notesequences.tfrecord \
---output_dir=/tmp/lookback_rnn/sequence_examples \
---eval_ratio=0.10
+lookback_rnn_create_dataset \
+  --input=/tmp/notesequences.tfrecord \
+  --output_dir=/tmp/lookback_rnn/sequence_examples \
+  --eval_ratio=0.10
 ```
 
 ### Train and Evaluate the Model
 
-Build lookback_rnn_train first so that it can be run multiple times in parallel.
-
-```
-bazel build //magenta/models/lookback_rnn:lookback_rnn_train
-```
-
 Run the command below to start a training job. `--run_dir` is the directory where checkpoints and TensorBoard data for this run will be stored. `--sequence_example_file` is the TFRecord file of SequenceExamples that will be fed to the model. `--num_training_steps` (optional) is how many update steps to take before exiting the training loop. If left unspecified, the training loop will run until terminated manually. `--hparams` (optional) can be used to specify hyperparameters other than the defaults. For this example, we specify a custom batch size of 64 instead of the default batch size of 128. Using smaller batch sizes can help reduce memory usage, which can resolve potential out-of-memory issues when training larger models. We'll also use a 2 layer RNN with 64 units each, instead of the default of 2 layers of 128 units each. This will make our model train faster. However, if you have enough compute power, you can try using larger layer sizes for better results.
 
 ```
-./bazel-bin/magenta/models/lookback_rnn/lookback_rnn_train \
---run_dir=/tmp/lookback_rnn/logdir/run1 \
---sequence_example_file=/tmp/lookback_rnn/sequence_examples/training_melodies.tfrecord \
---hparams="{'batch_size':64,'rnn_layer_sizes':[64,64]}" \
---num_training_steps=20000
+lookback_rnn_train \
+  --run_dir=/tmp/lookback_rnn/logdir/run1 \
+  --sequence_example_file=/tmp/lookback_rnn/sequence_examples/training_melodies.tfrecord \
+  --hparams="{'batch_size':64,'rnn_layer_sizes':[64,64]}" \
+  --num_training_steps=20000
 ```
 
 Optionally run an eval job in parallel. `--run_dir`, `--hparams`, and `--num_training_steps` should all be the same values used for the training job. `--sequence_example_file` should point to the separate set of eval melodies. Include `--eval` to make this an eval job, resulting in the model only being evaluated without any of the weights being updated.
 
 ```
-./bazel-bin/magenta/models/lookback_rnn/lookback_rnn_train \
---run_dir=/tmp/lookback_rnn/logdir/run1 \
---sequence_example_file=/tmp/lookback_rnn/sequence_examples/eval_melodies.tfrecord \
---hparams="{'batch_size':64,'rnn_layer_sizes':[64,64]}" \
---num_training_steps=20000 \
---eval
+lookback_rnn_train \
+  --run_dir=/tmp/lookback_rnn/logdir/run1 \
+  --sequence_example_file=/tmp/lookback_rnn/sequence_examples/eval_melodies.tfrecord \
+  --hparams="{'batch_size':64,'rnn_layer_sizes':[64,64]}" \
+  --num_training_steps=20000 \
+  --eval
 ```
 
 Run TensorBoard to view the training and evaluation data.
@@ -150,13 +144,13 @@ At least one note needs to be fed to the model before it can start generating co
 
 
 ```
-bazel run //magenta/models/lookback_rnn:lookback_rnn_generate -- \
---run_dir=/tmp/lookback_rnn/logdir/run1 \
---hparams="{'batch_size':64,'rnn_layer_sizes':[64,64]}" \
---output_dir=/tmp/lookback_rnn/generated \
---num_outputs=10 \
---num_steps=128 \
---primer_melody="[60]"
+lookback_rnn_generate \
+  --run_dir=/tmp/lookback_rnn/logdir/run1 \
+  --hparams="{'batch_size':64,'rnn_layer_sizes':[64,64]}" \
+  --output_dir=/tmp/lookback_rnn/generated \
+  --num_outputs=10 \
+  --num_steps=128 \
+  --primer_melody="[60]"
 ```
 
 ### Creating a Bundle File
