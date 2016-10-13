@@ -18,6 +18,7 @@ from constants import *  # pylint: disable=wildcard-import
 
 from melodies_lib import BadNoteException
 from melodies_lib import extract_melodies
+from melodies_lib import LookbackMelodyEncoderDecoder
 from melodies_lib import Melody
 from melodies_lib import MelodyEncoderDecoder
 from melodies_lib import midi_file_to_melody
