@@ -28,6 +28,7 @@ py_library(
     deps = [
         ":constants",
         ":melodies_lib",
+        ":melody_encoder_decoder",
         ":midi_io",
         ":midi_synth",
         ":note_sequence_io",
@@ -169,8 +170,35 @@ py_test(
         ":melodies_lib",
         ":sequences_lib",
         ":testing_lib",
-        "//magenta/common:sequence_example_lib",
         "//magenta/protobuf:music_py_pb2",
+        # tensorflow dep
+    ],
+)
+
+py_library(
+    name = "melody_encoder_decoder",
+    srcs = ["melody_encoder_decoder.py"],
+    srcs_version = "PY2AND3",
+    deps = [
+        ":constants",
+        ":events_lib",
+        ":melodies_lib",
+        "//magenta/pipelines:statistics",
+        "//magenta/protobuf:music_py_pb2",
+        # numpy dep
+    ],
+)
+
+py_test(
+    name = "melody_encoder_decoder_test",
+    srcs = ["melody_encoder_decoder_test.py"],
+    srcs_version = "PY2AND3",
+    deps = [
+        ":constants",
+        ":melodies_lib",
+        ":melody_encoder_decoder",
+        ":sequences_lib",
+        "//magenta/common:sequence_example_lib",
         # tensorflow dep
     ],
 )
