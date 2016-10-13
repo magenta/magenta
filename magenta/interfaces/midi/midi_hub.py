@@ -166,6 +166,8 @@ class Metronome(threading.Thread):
     self._duration = duration
     # A signal for when to stop the metronome.
     self._stop_time = stop_time
+    # A Boolean specifying mute state of the metronome.
+    self._mute = False
     super(Metronome, self).__init__()
 
   def run(self):
@@ -179,20 +181,23 @@ class Metronome(threading.Thread):
     while self._stop_time is None or self._stop_time > next_tick_time:
       sleeper.sleep_until(next_tick_time)
 
-      self._outport.send(
-          mido.Message(
-              type='note_on',
-              note=self._pitch,
-              channel=_METRONOME_CHANNEL,
-              velocity=self._velocity))
+      if self._mute is True:
+        sleeper.sleep(self._duration)
+      else:
+        self._outport.send(
+            mido.Message(
+                type='note_on',
+                note=self._pitch,
+                channel=_METRONOME_CHANNEL,
+                velocity=self._velocity))
 
-      sleeper.sleep(self._duration)
+        sleeper.sleep(self._duration)
 
-      self._outport.send(
-          mido.Message(
-              type='note_off',
-              note=self._pitch,
-              channel=_METRONOME_CHANNEL))
+        self._outport.send(
+            mido.Message(
+                type='note_off',
+                note=self._pitch,
+                channel=_METRONOME_CHANNEL))
 
       now = time.time()
       next_tick_time = now + period - ((now - self._start_time) % period)
@@ -219,15 +224,12 @@ class Metronome(threading.Thread):
           should be unmuted, or None if it should stay muted until 'unmute' is
           called.
     """
-    sleeper = concurrency.Sleeper()
-    self._velocity_unmute = self._velocity
-
-    sleeper.sleep_until(mute_time)
-    self._velocity = 0
+    concurrency.Sleeper().sleep_until(mute_time)
+    self._mute = True
 
     if resume_time:
-      sleeper.sleep_until(resume_time)
-      self._velocity = self._velocity_unmute
+      concurrency.Sleeper().sleep_until(resume_time)
+      self._mute = False
 
   def unmute(self, unmute_time):
     """Resumes metronome output if muted.
@@ -237,10 +239,8 @@ class Metronome(threading.Thread):
           unmuted. If in the future, unmuting will not occur until after this
           time.
     """
-    sleeper = concurrency.Sleeper()
-    sleeper.sleep_until(unmute_time)
-    if self._velocity_unmute:
-      self._velocity = self._velocity_unmute
+    concurrency.Sleeper().sleep_until(unmute_time)
+    self._mute = False
 
 class MidiPlayer(threading.Thread):
   """A thread for playing back a NoteSequence proto via MIDI.
