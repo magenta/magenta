@@ -103,7 +103,6 @@ class MelodyRnnSequenceGenerator(magenta.music.BaseSequenceGenerator):
           'This model supports only 1 generate_sections message, but got %s' %
           len(generator_options.generate_sections))
 
-
     generate_section = generator_options.generate_sections[0]
     primer_sequence = input_sequence
 
