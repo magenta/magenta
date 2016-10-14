@@ -22,6 +22,7 @@ from melodies_lib import Melody
 from melodies_lib import midi_file_to_melody
 from melodies_lib import PolyphonicMelodyException
 
+from melody_encoder_decoder import KeyMelodyEncoderDecoder
 from melody_encoder_decoder import LookbackMelodyEncoderDecoder
 from melody_encoder_decoder import OneHotMelodyEncoderDecoder
 

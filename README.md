@@ -118,9 +118,8 @@ Note: Our Docker image is also available at ```gcr.io/tensorflow/magenta```.
 
 ## Generating MIDI
 
-You can now create your own melodies with TensorFlow using one of our models:
-
-**[Melody RNN](magenta/models/melody_rnn)**: A simple recurrent neural network for predicting melodies.
+You can now create your own melodies with TensorFlow using one of the various configurations of our
+[Melody RNN](magenta/models/melody_rnn) model; a recurrent neural network for predicting melodies.
 
 ## Using a MIDI Instrument
 

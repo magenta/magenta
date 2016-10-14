@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+"""Provides a class, defaults, and utils for Melody RNN model configuration."""
 
 # internal imports
 import magenta
@@ -96,7 +97,7 @@ default_configs = {
       magenta.protobuf.generator_pb2.GeneratorDetails(
           id='attention_rnn',
           description='Melody RNN with lookback encoding and attention.'),
-      magenta.music.LookbackMelodyEncoderDecoder(),
+      magenta.music.KeyMelodyEncoderDecoder(),
       magenta.common.HParams(
           batch_size=128,
           rnn_layer_sizes=[128, 128],

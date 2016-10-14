@@ -1,6 +1,6 @@
 # Models
 
-This directory contains the various Magenta models.
+This directory contains Magenta models.
 
 ## Generators
 All generators for NoteSequence-based models should expose their generator
