@@ -140,6 +140,7 @@ class Metronome(threading.Thread):
   Args:
     outport: The Mido port for sending messages.
     qpm: The integer quarters per minute to signal on.
+    qpb: The number of quarter notes per bar.
     start_time: The float wall time in seconds to treat as the first beat
         for alignment. If in the future, the first tick will not start until
         after this time.
@@ -148,85 +149,84 @@ class Metronome(threading.Thread):
     velocity: The velocity of the metronome's tick `note_on` message.
     pitch: The pitch of the metronome's tick `note_on` message.
     duration: The duration of the metronome's tick.
-    qpb: The number of quarter notes per bar.
   """
+  # The pitch interval in semitones to raise metronome downbeats only.
+  _ACCENT_PITCH_INTERVAL = 7
+  # The amount to add to metronome velocity on downbeats only.
+  _ACCENT_VELOCITY_DELTA = 1
 
   def __init__(self,
                outport,
                qpm,
+               qpb,
                start_time,
                stop_time=None,
                velocity=_DEFAULT_METRONOME_VELOCITY,
                pitch=_DEFAULT_METRONOME_PITCH,
-               duration=_DEFAULT_METRONOME_TICK_DURATION,
-               qpb=4):
+               duration=_DEFAULT_METRONOME_TICK_DURATION):
     self._outport = outport
     self._qpm = qpm
+    self._qpb = qpb
     self._start_time = start_time
     self._velocity = velocity
     self._pitch = pitch
     self._duration = duration
     # A signal for when to stop the metronome.
     self._stop_time = stop_time
-    self._qpb = qpb
-    self._count = 0
-    # The amount to add to metronome velocity on downbeats only.
-    self._accent_velocity_delta = 10
-    # The pitch interval in semitones to raise metronome downbeats only.
-    self._accent_pitch_interval = 7
     super(Metronome, self).__init__()
 
-    # limit metronome accent velocity to 127 max value.
-    self._accent_velocity = min(velocity + self._accent_velocity_delta, 127)
-    # only raise metronome accent pitch if there is headroom.
-    self._accent_pitch = (
-        self._pitch if self._pitch + self._accent_pitch_interval > 127
-        else self._pitch + self._accent_pitch_interval)
 
   def run(self):
     """Outputs metronome tone on the qpm interval until stop signal received."""
+
+    # limit metronome accent velocity to 127 max value.
+    accent_velocity = min(self._velocity + self._ACCENT_VELOCITY_DELTA, 127)
+    # only raise metronome accent pitch if there is headroom.
+    accent_pitch = (
+      self._pitch if self._pitch + self._ACCENT_PITCH_INTERVAL > 127
+      else self._pitch + self._ACCENT_PITCH_INTERVAL)
+
     period = 60. / self._qpm
+    metric_position = 1
     sleeper = concurrency.Sleeper()
     now = time.time()
     next_tick_time = max(
         self._start_time,
         now + period - ((now - self._start_time) % period))
     while self._stop_time is None or self._stop_time > next_tick_time:
-      self._count += 1
       sleeper.sleep_until(next_tick_time)
 
-      if self._count % self._qpb == 1:
+      if metric_position % self._qpb == 1:
         self._outport.send(
           mido.Message(
             type='note_on',
-            note=self._accent_pitch,
+            note=accent_pitch,
             channel=_METRONOME_CHANNEL,
-            velocity=self._accent_velocity))
+            velocity=accent_velocity))
+      else:
+        self._outport.send(
+          mido.Message(
+            type='note_on',
+            note=self._pitch,
+            channel=_METRONOME_CHANNEL,
+            velocity=self._velocity))
 
-        sleeper.sleep(self._duration)
+      sleeper.sleep(self._duration)
 
+      if metric_position % self._qpb == 1:
         self._outport.send(
           mido.Message(
             type='note_off',
-            note=self._accent_pitch,
+            note=accent_pitch,
             channel=_METRONOME_CHANNEL))
-
       else:
         self._outport.send(
             mido.Message(
-                type='note_on',
-                note=self._pitch,
-                channel=_METRONOME_CHANNEL,
-                velocity=self._velocity))
+              type='note_off',
+              note=self._pitch,
+              channel=_METRONOME_CHANNEL))
 
-        sleeper.sleep(self._duration)
-
-        self._outport.send(
-            mido.Message(
-                type='note_off',
-                note=self._pitch,
-                channel=_METRONOME_CHANNEL))
-
+      metric_position += 1
       now = time.time()
       next_tick_time = now + period - ((now - self._start_time) % period)
 
@@ -1019,17 +1019,18 @@ class MidiHub(object):
         del self._signals[regex]
 
   @concurrency.serialized
-  def start_metronome(self, qpm, start_time):
+  def start_metronome(self, qpm, start_time, qpb=4):
     """Starts or re-starts the metronome with the given arguments.
 
     Args:
       qpm: The quarter notes per minute to use.
       start_time: The wall time in seconds that the metronome is started on for
         synchronization and beat alignment. May be in the past.
+      qpb: The number of quarter notes per bar, defaults to 4/4 time.
     """
     if self._metronome is not None:
       self.stop_metronome()
-    self._metronome = Metronome(self._outport, qpm, start_time)
+    self._metronome = Metronome(self._outport, qpm, qpb, start_time)
     self._metronome.start()
 
   @concurrency.serialized
