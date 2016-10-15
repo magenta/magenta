@@ -140,10 +140,10 @@ class Metronome(threading.Thread):
   Args:
     outport: The Mido port for sending messages.
     qpm: The integer quarters per minute to signal on.
-    qpb: The number of quarter notes per bar.
     start_time: The float wall time in seconds to treat as the first beat
         for alignment. If in the future, the first tick will not start until
         after this time.
+    qpb: The number of quarter notes per bar.
     stop_time: The float wall time in seconds after which the metronome should
         stop, or None if it should continue until `stop` is called.
     velocity: The velocity of the metronome's tick `note_on` message.
@@ -158,16 +158,16 @@ class Metronome(threading.Thread):
   def __init__(self,
                outport,
                qpm,
-               qpb,
                start_time,
+               qpb,
                stop_time=None,
                velocity=_DEFAULT_METRONOME_VELOCITY,
                pitch=_DEFAULT_METRONOME_PITCH,
                duration=_DEFAULT_METRONOME_TICK_DURATION):
     self._outport = outport
     self._qpm = qpm
-    self._qpb = qpb
     self._start_time = start_time
+    self._qpb = qpb
     self._velocity = velocity
     self._pitch = pitch
     self._duration = duration
@@ -178,7 +178,6 @@ class Metronome(threading.Thread):
 
   def run(self):
     """Outputs metronome tone on the qpm interval until stop signal received."""
-
     # limit metronome accent velocity to 127 max value.
     accent_velocity = min(self._velocity + self._ACCENT_VELOCITY_DELTA, 127)
     # only raise metronome accent pitch if there is headroom.
@@ -187,7 +186,7 @@ class Metronome(threading.Thread):
       else self._pitch + self._ACCENT_PITCH_INTERVAL)
 
     period = 60. / self._qpm
-    metric_position = 1
+    metric_position = 0
     sleeper = concurrency.Sleeper()
     now = time.time()
     next_tick_time = max(
@@ -196,37 +195,29 @@ class Metronome(threading.Thread):
     while self._stop_time is None or self._stop_time > next_tick_time:
       sleeper.sleep_until(next_tick_time)
 
-      if metric_position % self._qpb == 1:
-        self._outport.send(
-          mido.Message(
-            type='note_on',
-            note=accent_pitch,
-            channel=_METRONOME_CHANNEL,
-            velocity=accent_velocity))
+      if metric_position == 0:
+        metronome_pitch = accent_pitch
+        metronome_velocity = accent_velocity
       else:
-        self._outport.send(
-          mido.Message(
-            type='note_on',
-            note=self._pitch,
-            channel=_METRONOME_CHANNEL,
-            velocity=self._velocity))
+        metronome_pitch = self._pitch
+        metronome_velocity = self._velocity
+
+      self._outport.send(
+        mido.Message(
+          type='note_on',
+          note=metronome_pitch,
+          channel=_METRONOME_CHANNEL,
+          velocity=metronome_velocity))
 
       sleeper.sleep(self._duration)
 
-      if metric_position % self._qpb == 1:
-        self._outport.send(
-          mido.Message(
-            type='note_off',
-            note=accent_pitch,
-            channel=_METRONOME_CHANNEL))
-      else:
-        self._outport.send(
-            mido.Message(
-              type='note_off',
-              note=self._pitch,
-              channel=_METRONOME_CHANNEL))
+      self._outport.send(
+        mido.Message(
+          type='note_off',
+          note=metronome_pitch,
+          channel=_METRONOME_CHANNEL))
 
-      metric_position += 1
+      metric_position = (metric_position + 1) % self._qpb
       now = time.time()
       next_tick_time = now + period - ((now - self._start_time) % period)
 
@@ -1030,7 +1021,7 @@ class MidiHub(object):
     """
     if self._metronome is not None:
       self.stop_metronome()
-    self._metronome = Metronome(self._outport, qpm, qpb, start_time)
+    self._metronome = Metronome(self._outport, qpm, start_time, qpb)
     self._metronome.start()
 
   @concurrency.serialized
