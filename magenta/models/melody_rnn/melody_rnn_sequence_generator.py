@@ -58,7 +58,7 @@ class MelodyRnnSequenceGenerator(magenta.music.BaseSequenceGenerator):
     self._config.hparams.batch_size = 1
 
   def _initialize_with_checkpoint(self, checkpoint_file):
-    graph = melody_rnn_graph('generate', self._config)
+    graph = melody_rnn_graph.build_graph('generate', self._config)
     with graph.as_default():
       saver = tf.train.Saver()
       self._session = tf.Session()

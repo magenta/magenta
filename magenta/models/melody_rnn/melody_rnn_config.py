@@ -136,8 +136,8 @@ def config_from_flags():
      The appropriate MelodyRnnConfig based on the supplied flags.
   Raises:
      MelodyRnnConfigException: When not exactly one of `--config` or
-         `melody_encoder_decoder` is supplied or the supplied values do not
-         are invalid.
+         `melody_encoder_decoder` is supplied or the supplied values are
+         invalid.
   """
   if (FLAGS.melody_encoder_decoder, FLAGS.config).count(None) != 1:
     raise MelodyRnnConfigException(

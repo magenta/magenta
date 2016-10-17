@@ -19,7 +19,7 @@ import time
 # internal imports
 import tensorflow as tf
 
-from magenta.models.melody_rnn import melody_rnn_configs
+from magenta.models.melody_rnn import melody_rnn_config
 from magenta.models.melody_rnn import melody_rnn_graph
 
 FLAGS = tf.app.flags.FLAGS
