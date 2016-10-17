@@ -26,11 +26,10 @@ from six.moves import range  # pylint: disable=redefined-builtin
 import tensorflow as tf
 import magenta
 
-from magenta.protobuf import generator_pb2
-from magenta.protobuf import music_pb2
-
 from magenta.models.melody_rnn import melody_rnn_config
 from magenta.models.melody_rnn import melody_rnn_sequence_generator
+from magenta.protobuf import generator_pb2
+from magenta.protobuf import music_pb2
 
 FLAGS = tf.app.flags.FLAGS
 tf.app.flags.DEFINE_string(
@@ -206,8 +205,7 @@ def run_with_flags(generator):
   date_and_time = time.strftime('%Y-%m-%d_%H%M%S')
   digits = len(str(FLAGS.num_outputs))
   for i in range(FLAGS.num_outputs):
-    generated_sequence = melody_rnn_sequence_generator.generate(
-        input_sequence, generator_options)
+    generated_sequence = generator.generate(input_sequence, generator_options)
 
     midi_filename = '%s_%s.mid' % (date_and_time, str(i + 1).zfill(digits))
     midi_path = os.path.join(FLAGS.output_dir, midi_filename)

@@ -28,6 +28,7 @@ MIN_MIDI_PITCH = constants.MIN_MIDI_PITCH
 MAX_MIDI_PITCH = constants.MAX_MIDI_PITCH
 NOTES_PER_OCTAVE = constants.NOTES_PER_OCTAVE
 DEFAULT_STEPS_PER_BAR = constants.DEFAULT_STEPS_PER_BAR
+DEFAULT_LOOKBACK_DISTANCES = [DEFAULT_STEPS_PER_BAR, DEFAULT_STEPS_PER_BAR * 2]
 
 
 class MelodyEncoderDecoder(events_lib.EventsEncoderDecoder):
@@ -228,7 +229,7 @@ class MelodyEncoderDecoder(events_lib.EventsEncoderDecoder):
 
 
 class OneHotMelodyEncoderDecoder(MelodyEncoderDecoder):
-  """A MelodyEncoderDecoder that produces a one-hot encoding for the input"""
+  """A MelodyEncoderDecoder that produces a one-hot encoding for the input."""
 
   @property
   def input_size(self):
@@ -295,19 +296,19 @@ class LookbackMelodyEncoderDecoder(MelodyEncoderDecoder):
   Args:
     lookback_distances: A list of step intervals to look back in history to
        encode both the following event and whether the current step is a repeat.
+       Uses default values if None.
     binary_counter_bits: The number of input bits to use as a counter for the
        metric position of the next note.
   """
 
-  def __init__(
-    self,
-    lookback_distances=[DEFAULT_STEPS_PER_BAR, DEFAULT_STEPS_PER_BAR * 2],
-    binary_counter_bits=5,
-    min_note=48, max_note=84, transpose_to_key=0):
+  def __init__(self, lookback_distances=None, binary_counter_bits=5,
+               min_note=48, max_note=84, transpose_to_key=0):
     """Initializes the MelodyEncoderDecoder."""
     super(LookbackMelodyEncoderDecoder, self).__init__(
         min_note, max_note, transpose_to_key)
-    self._lookback_distances = lookback_distances
+    self._lookback_distances = (DEFAULT_LOOKBACK_DISTANCES
+                                if lookback_distances is None
+                                else lookback_distances)
     self._binary_counter_bits = binary_counter_bits
 
   @property
@@ -448,18 +449,18 @@ class KeyMelodyEncoderDecoder(MelodyEncoderDecoder):
   Args:
     lookback_distances: A list of step intervals to look back in history to
        encode both the following event and whether the current step is a repeat.
+       Uses default values if None.
     binary_counter_bits: The number of input bits to use as a counter for the
        metric position of the next note.
   """
-  def __init__(
-    self,
-    lookback_distances=[DEFAULT_STEPS_PER_BAR, DEFAULT_STEPS_PER_BAR * 2],
-    binary_counter_bits=7,
-    min_note=48, max_note=84, transpose_to_key=0):
+  def __init__(self, lookback_distances=None, binary_counter_bits=7,
+               min_note=48, max_note=84, transpose_to_key=0):
     """Initializes the MelodyEncoderDecoder."""
     super(KeyMelodyEncoderDecoder, self).__init__(
         min_note, max_note, transpose_to_key)
-    self._lookback_distances = lookback_distances
+    self._lookback_distances = (DEFAULT_LOOKBACK_DISTANCES
+                                if lookback_distances is None
+                                else lookback_distances)
     self._binary_counter_bits = binary_counter_bits
     self._note_range = max_note - min_note
 

@@ -91,9 +91,9 @@ def run_training(graph, train_dir, num_training_steps=None,
       if sv.should_stop():
         break
       if (global_step_ + 1) % summary_frequency == 0:
-        (global_step_, learning_rate_, loss_, perplexity_, accuracy_, _
-         ) = sess.run([global_step, learning_rate, loss, perplexity, accuracy,
-                      train_op])
+        (global_step_, learning_rate_, loss_, perplexity_, accuracy_,
+         _) = sess.run([global_step, learning_rate, loss, perplexity, accuracy,
+                        train_op])
         tf.logging.info('Global Step: %d - '
                         'Learning Rate: %.5f - '
                         'Loss: %.3f - '

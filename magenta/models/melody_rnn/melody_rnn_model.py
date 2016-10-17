@@ -28,15 +28,17 @@ class MelodyRnnModel(object):
   """
 
   def __init__(self, config, checkpoint=None, bundle_filename=None,
-               steps_per_quarter=4, hparams=None):
+               steps_per_quarter=4):
     """Initialize the MelodyRnnModel.
+
     Args:
+      config: A MelodyRnnConfig containing the MelodyEncoderDecoder and HParams
+        use.
       checkpoint: Where to search for the most recent model checkpoint.
       bundle_filename: The filename of a generator_pb2.GeneratorBundle object
           that includes both the model checkpoint and metagraph.
       steps_per_quarter: What precision to use when quantizing the melody. How
           many steps per quarter note.
-      hparams: A dict of hparams.
     """
     if bundle_filename is not None:
       bundle = magenta.music.read_bundle_file(bundle_filename)
@@ -47,10 +49,12 @@ class MelodyRnnModel(object):
 
   def generate_melody(self, num_steps, primer_melody):
     """Uses the model to generate a melody from a primer melody.
+
     Args:
       num_steps: An integer number of steps to generate. This is the total
           number of steps to generate, including the primer melody.
       primer_melody: The primer melody, a Melody object.
+
     Returns:
       The generated Melody object (which begins with the provided primer
           melody).
@@ -60,10 +64,12 @@ class MelodyRnnModel(object):
 
   def generate_sequence(self, input_sequence, generator_options):
     """Generates a sequence from the model based on sequence and options.
+
     Args:
       input_sequence: An input NoteSequence to base the generation on.
       generator_options: A GeneratorOptions proto with options to use for
           generation.
+
     Returns:
       The generated NoteSequence proto.
     """

@@ -23,12 +23,11 @@ import os
 import tensorflow as tf
 import magenta
 
+from magenta.models.melody_rnn import melody_rnn_config
 from magenta.pipelines import dag_pipeline
 from magenta.pipelines import pipeline
 from magenta.pipelines import pipelines_common
 from magenta.protobuf import music_pb2
-
-from magenta.models.melody_rnn import melody_rnn_config
 
 FLAGS = tf.app.flags.FLAGS
 

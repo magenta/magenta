@@ -26,8 +26,9 @@ def build_graph(mode, config, sequence_example_file=None):
         the graph.
     config: A MelodyRnnConfig containing the MelodyEncoderDecoder and HParams
         use.
-    encoder_decoder: The MelodyEncoderDecoder being used by the model.
-        tf.train.SequenceExamples. Only needed for training and evaluation.
+    sequence_example_file: A string path to a TFRecord file containing
+        tf.train.SequenceExample protos. Only needed for training and
+        evaluation.
 
   Returns:
     A tf.Graph instance which contains the TF ops.
