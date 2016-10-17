@@ -109,6 +109,9 @@ py_binary(
     name = "melody_rnn_train",
     srcs = ["melody_rnn_train.py"],
     srcs_version = "PY2AND3",
+    visibility = [
+        "//magenta/tools/pip:__subpackages__",
+    ],
     deps = [
         ":melody_rnn_config",
         ":melody_rnn_graph",
@@ -120,7 +123,9 @@ py_binary(
     name = "melody_rnn_generate",
     srcs = ["melody_rnn_generate.py"],
     srcs_version = "PY2AND3",
-    visibility = ["//magenta/tools/pip:__subpackages__"],
+    visibility = [
+        "//magenta/tools/pip:__subpackages__"
+    ],
     deps = [
         ":melody_rnn_config",
         ":melody_rnn_sequence_generator",
