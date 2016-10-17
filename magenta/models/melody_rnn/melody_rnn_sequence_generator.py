@@ -206,5 +206,10 @@ class MelodyRnnSequenceGenerator(magenta.music.BaseSequenceGenerator):
 
 
 def get_generator_map():
+  """Returns a map from the generator ID to its SequenceGenerator class.
+
+  Binds the `config` argument so that the constructor matches the
+  BaseSequenceGenerator class.
+  """
   return {key: partial(MelodyRnnSequenceGenerator, config)
           for (key, config) in melody_rnn_config.default_configs.items()}

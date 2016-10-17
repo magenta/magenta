@@ -61,7 +61,7 @@ tf.app.flags.DEFINE_string(
     None,
     'The location of the bundle file to use.')
 
-# A map from a string generator name to its factory class.
+# A map from a string generator name to its class.
 _GENERATOR_MAP = melody_rnn_sequence_generator.get_generator_map()
 
 

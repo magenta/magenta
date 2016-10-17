@@ -29,6 +29,9 @@ py_library(
     name = "melody_rnn_config",
     srcs = ["melody_rnn_config.py"],
     srcs_version = "PY2AND3",
+    visibility = [
+        # internal pipeline runner
+    ],
     deps = [
         "//magenta",
         # tensorflow dep
