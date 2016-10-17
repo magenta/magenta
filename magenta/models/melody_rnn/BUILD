@@ -78,6 +78,7 @@ py_library(
         ":melody_rnn_config",
         ":melody_rnn_graph",
         "//magenta",
+        # numpy dep
         # tensorflow dep
     ],
 )

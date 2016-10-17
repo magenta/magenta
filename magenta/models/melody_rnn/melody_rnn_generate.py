@@ -82,6 +82,15 @@ tf.app.flags.DEFINE_float(
     'probabilities, greater than 1.0 makes melodies more random, less than '
     '1.0 makes melodies less random.')
 tf.app.flags.DEFINE_integer(
+    'beam_size', 1,
+    'The beam size to use for beam search when generating melodies.')
+tf.app.flags.DEFINE_integer(
+    'branch_factor', 1,
+    'The branch factor to use for beam search when generating melodies.')
+tf.app.flags.DEFINE_integer(
+    'steps_per_iteration', 1,
+    'The number of melody steps to take per beam search iteration.')
+tf.app.flags.DEFINE_integer(
     'steps_per_quarter', 4, 'What precision to use when quantizing the melody.')
 tf.app.flags.DEFINE_string(
     'log', 'INFO',
@@ -117,6 +126,15 @@ def get_bundle():
     return None
   bundle_file = os.path.expanduser(FLAGS.bundle_file)
   return magenta.music.read_bundle_file(bundle_file)
+
+
+def get_beam_search_params():
+  """Get the beam search parameters to use."""
+  return {
+    'beam_size': FLAGS.beam_size,
+    'branch_factor': FLAGS.branch_factor,
+    'steps_per_iteration': FLAGS.steps_per_iteration
+  }
 
 
 def _steps_to_seconds(steps, qpm):
@@ -218,10 +236,11 @@ def run_with_flags(generator):
 def main(unused_argv):
   """Saves bundle or runs generator based on flags."""
   generator = melody_rnn_sequence_generator.MelodyRnnSequenceGenerator(
-      melody_rnn_config.config_from_flags(),
-      FLAGS.steps_per_quarter,
-      get_checkpoint(),
-      get_bundle())
+      config=melody_rnn_config.config_from_flags(),
+      steps_per_quarter=FLAGS.steps_per_quarter,
+      checkpoint=get_checkpoint(),
+      bundle=get_bundle(),
+      **get_beam_search_params())
 
   if FLAGS.save_generator_bundle:
     bundle_filename = os.path.expanduser(FLAGS.bundle_file)
