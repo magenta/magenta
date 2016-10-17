@@ -453,6 +453,7 @@ class KeyMelodyEncoderDecoder(MelodyEncoderDecoder):
     binary_counter_bits: The number of input bits to use as a counter for the
        metric position of the next note.
   """
+
   def __init__(self, lookback_distances=None, binary_counter_bits=7,
                min_note=48, max_note=84, transpose_to_key=0):
     """Initializes the MelodyEncoderDecoder."""

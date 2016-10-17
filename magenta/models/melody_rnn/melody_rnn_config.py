@@ -148,7 +148,7 @@ def config_from_flags():
     if FLAGS.melody_encoder_decoder not in encoder_decoders:
       raise MelodyRnnConfigException(
           '`--melody_encoder_decoder` must be one of %s. Got %s.' % (
-            encoder_decoders.keys(), FLAGS.melody_encoder_decoder))
+              encoder_decoders.keys(), FLAGS.melody_encoder_decoder))
     if None in (FLAGS.generator_id, FLAGS.generator_description):
       raise MelodyRnnConfigException(
           '`--generator_id` and `--generator_details` must both be supplied '
