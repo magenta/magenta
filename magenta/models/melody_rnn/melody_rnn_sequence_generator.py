@@ -210,6 +210,10 @@ def get_generator_map():
 
   Binds the `config` argument so that the constructor matches the
   BaseSequenceGenerator class.
+
+  Returns:
+    Map from the generator ID to its SequenceGenerator class with a bound
+    `config` argument.
   """
   return {key: partial(MelodyRnnSequenceGenerator, config)
           for (key, config) in melody_rnn_config.default_configs.items()}
