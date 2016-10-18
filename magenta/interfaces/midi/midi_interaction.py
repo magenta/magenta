@@ -69,15 +69,6 @@ def filter_instrument(sequence, instrument, from_time=0):
   return filtered_sequence
 
 
-# TODO(adarob): Move to sequence_utils.
-def adjust_times(sequence, delta_seconds):
-  """Adjusts times in NoteSequence by given amount."""
-  for note in sequence.notes:
-    note.start_time += delta_seconds
-    note.end_time += delta_seconds
-  sequence.total_time += delta_seconds
-
-
 class MidiInteraction(threading.Thread):
   """Base class for handling interaction between MIDI and SequenceGenerator.
 
@@ -134,6 +125,7 @@ class CallAndResponseMidiInteraction(MidiInteraction):
         the call phrase at the end of the current bar. `phrase_bars` must be
         provided if None.
   """
+  _MIN_PREDICTAHEAD_QUARTERS = 1
 
   def __init__(self,
                midi_hub,
@@ -159,16 +151,14 @@ class CallAndResponseMidiInteraction(MidiInteraction):
     # The number of notes before call stage ends to start generation of
     # response. Will be automatically adjusted to be as small as possible while
     # avoiding late response starts.
-    predictahead_quarters = 1
+    predictahead_quarters = self._MIN_PREDICTAHEAD_QUARTERS
 
-    # Offset to beginning of call phrase from start_quarters.
-    call_offset_quarters = 0
+    # Call stage start in quarter notes from the epoch.
+    call_start_quarters = start_quarters
 
     while not self._stop_signal.is_set():
       # Call stage.
 
-      # Call stage start in quarter notes from the epoch.
-      call_start_quarters = start_quarters + call_offset_quarters
       # Start the metronome at the beginning of the call stage.
       self._midi_hub.start_metronome(
           self._qpm, call_start_quarters * quarter_duration)
@@ -180,8 +170,6 @@ class CallAndResponseMidiInteraction(MidiInteraction):
       if self._phrase_bars is not None:
         # The duration of the call stage in quarter notes.
         call_quarters = self._phrase_bars * self._quarters_per_bar
-        # The duration of the call capture in quarter notes.
-        capture_quarters = call_quarters - predictahead_quarters
       else:
         # Wait for end signal.
         self._midi_hub.wait_for_event(self._end_call_signal)
@@ -193,8 +181,6 @@ class CallAndResponseMidiInteraction(MidiInteraction):
         if remaining_call_quarters < predictahead_quarters:
           remaining_call_quarters += self._quarters_per_bar
         call_quarters += remaining_call_quarters
-        # The duration of the call capture in quarter notes.
-        capture_quarters = call_quarters - predictahead_quarters
 
       # Set the metronome to stop at the appropriate time.
       self._midi_hub.stop_metronome(
@@ -202,32 +188,27 @@ class CallAndResponseMidiInteraction(MidiInteraction):
           block=False)
 
       # Stop the captor at the appropriate time.
+      capture_quarters = call_quarters - predictahead_quarters
       captor.stop(stop_time=(
-          (call_start_quarters + capture_quarters) * quarter_duration))
+          (capture_quarters + call_start_quarters) * quarter_duration))
       captured_sequence = captor.captured_sequence()
 
       # Check to see if a stop has been requested during capture.
       if self._stop_signal.is_set():
         break
 
-      # Set times in `captured_sequence` so that the call start is at 0.
-      adjust_times(captured_sequence, -(call_start_quarters * quarter_duration))
-
       # Generate sequence.
-      response_start_quarters = call_quarters
-      response_end_quarters = 2 * call_quarters
+      response_start_quarters = call_quarters + call_start_quarters
+      response_end_quarters = 2 * call_quarters + call_start_quarters
 
       generator_options = generator_pb2.GeneratorOptions()
       generator_options.generate_sections.add(
-          start_time_seconds=response_start_quarters * quarter_duration,
-          end_time_seconds=response_end_quarters * quarter_duration)
+          start_time=response_start_quarters * quarter_duration,
+          end_time=response_end_quarters * quarter_duration)
 
       # Generate response.
       response_sequence = self._sequence_generator.generate(
           captured_sequence, generator_options)
-
-      # Set times in `captured_sequence` back to the wall times.
-      adjust_times(response_sequence, call_start_quarters * quarter_duration)
 
       # Check to see if a stop has been requested during generation.
       if self._stop_signal.is_set():
@@ -239,11 +220,10 @@ class CallAndResponseMidiInteraction(MidiInteraction):
 
       # Compute remaining time after generation before the response stage
       # starts, updating `predictahead_quarters` appropriately.
-      remaining_time = (
-          (response_start_quarters + call_start_quarters) * quarter_duration -
-          time.time())
+      remaining_time = response_start_quarters * quarter_duration - time.time()
       if remaining_time > (predictahead_quarters * quarter_duration):
-        predictahead_quarters -= 1
+        predictahead_quarters = max(self._MIN_PREDICTAHEAD_QUARTERS,
+                                    predictahead_quarters - 1)
         tf.logging.info('Generator is ahead by %.3f seconds. '
                         'Decreasing predictahead_quarters to %d.',
                         remaining_time, predictahead_quarters)
@@ -253,7 +233,7 @@ class CallAndResponseMidiInteraction(MidiInteraction):
                         'Increasing predictahead_quarters to %d.',
                         -remaining_time, predictahead_quarters)
 
-      call_offset_quarters += response_end_quarters
+      call_start_quarters = response_end_quarters
 
   def stop(self):
     if self._end_call_signal is not None:

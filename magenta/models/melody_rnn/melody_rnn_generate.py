@@ -176,27 +176,26 @@ def run_with_flags(generator):
   generator_options = generator_pb2.GeneratorOptions()
   if primer_sequence:
     input_sequence = primer_sequence
-    generate_section = generator_options.generate_sections.add()
     # Set the start time to begin on the next step after the last note ends.
-    notes_by_end_time = sorted(primer_sequence.notes, key=lambda n: n.end_time)
-    last_end_time = notes_by_end_time[-1].end_time if notes_by_end_time else 0
-    generate_section.start_time_seconds = last_end_time + _steps_to_seconds(
-        1, qpm)
-    generate_section.end_time_seconds = total_seconds
+    last_end_time = (max(n.end_time for n in primer_sequence.notes)
+                     if primer_sequence.notes else 0)
+    generate_section = generator_options.generate_sections.add(
+        start_time=last_end_time + _steps_to_seconds(1, qpm),
+        end_time=total_seconds)
 
-    if generate_section.start_time_seconds >= generate_section.end_time_seconds:
+    if generate_section.start_time_ >= generate_section.end_time:
       tf.logging.fatal(
           'Priming sequence is longer than the total number of steps '
           'requested: Priming sequence length: %s, Generation length '
           'requested: %s',
-          generate_section.start_time_seconds, total_seconds)
+          generate_section.start_time, total_seconds)
       return
   else:
     input_sequence = music_pb2.NoteSequence()
     input_sequence.tempos.add().qpm = qpm
-    generate_section = generator_options.generate_sections.add()
-    generate_section.start_time_seconds = 0
-    generate_section.end_time_seconds = total_seconds
+    generate_section = generator_options.generate_sections.add(
+        start_time=0,
+        end_time=total_seconds)
   tf.logging.debug('input_sequence: %s', input_sequence)
   tf.logging.debug('generator_options: %s', generator_options)
 
