@@ -116,6 +116,7 @@ def get_bundle():
   bundle_file = os.path.expanduser(FLAGS.bundle_file)
   if bundle_file is None:
     return None
+  bundle_file = os.path.expanduser(FLAGS.bundle_file)
   return magenta.music.read_bundle_file(bundle_file)
 
 
