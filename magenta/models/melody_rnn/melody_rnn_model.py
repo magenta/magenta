@@ -47,12 +47,12 @@ class MelodyRnnModel(object):
     self._generator = melody_rnn_sequence_generator(
         config, checkpoint, bundle, steps_per_quarter)
 
-  def generate_melody(self, end_step, primer_melody):
+  def generate_melody(self, num_steps, primer_melody):
     """Uses the model to generate a melody from a primer melody.
 
     Args:
       num_steps: The integer length in steps of the final melody, after
-          generation.
+          generation. Includes the primer.
       primer_melody: The primer melody, a Melody object.
 
     Returns:

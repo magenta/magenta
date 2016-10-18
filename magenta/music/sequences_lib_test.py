@@ -48,12 +48,11 @@ class SequencesLibTest(tf.test.TestCase):
          (55, 120, 4.0, 4.01), (52, 99, 4.75, 5.0)])
     expected_subsequence = copy.copy(self.note_sequence)
     testing_lib.add_track_to_sequence(
-        sequence, 0,
-        [(40, 45, 2.50, 3.50),  (55, 120, 4.0, 4.01)])
+        expected_subsequence, 0,
+        [(40, 45, 2.50, 3.50), (55, 120, 4.0, 4.01)])
 
     subsequence = sequences_lib.extract_subsequence(sequence, 2.5, 4.75)
-
-
+    self.assertProtoEquals(expected_subsequence, subsequence)
 
   def testEq(self):
     left_hand = sequences_lib.QuantizedSequence()
