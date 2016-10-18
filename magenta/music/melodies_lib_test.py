@@ -18,7 +18,6 @@ import os
 # internal imports
 import tensorflow as tf
 
-from magenta.common import sequence_example_lib
 from magenta.music import constants
 from magenta.music import melodies_lib
 from magenta.music import sequences_lib
@@ -576,123 +575,6 @@ class MelodiesLibTest(tf.test.TestCase):
     expected = melodies_lib.Melody([60, 62, 64, 66, 68, 70,
                                     72, 70, 68, 66, 64, 62])
     self.assertEqual(expected, melody)
-
-
-class MelodyEncoderDecoderTest(tf.test.TestCase):
-
-  def setUp(self):
-    self.melody_encoder_decoder = melodies_lib.OneHotMelodyEncoderDecoder(
-        60, 72, 0)
-
-  def testMinNoteMaxNoteAndTransposeToKeyValidValues(self):
-    # Valid parameters
-    melodies_lib.OneHotMelodyEncoderDecoder(0, 128, 0)
-    melodies_lib.OneHotMelodyEncoderDecoder(60, 72, 11)
-
-    # Invalid parameters
-    self.assertRaises(
-        ValueError, melodies_lib.OneHotMelodyEncoderDecoder, -1, 72, 0)
-    self.assertRaises(
-        ValueError, melodies_lib.OneHotMelodyEncoderDecoder, 60, 129, 0)
-    self.assertRaises(
-        ValueError, melodies_lib.OneHotMelodyEncoderDecoder, 60, 71, 0)
-    self.assertRaises(
-        ValueError, melodies_lib.OneHotMelodyEncoderDecoder, 60, 72, -1)
-    self.assertRaises(
-        ValueError, melodies_lib.OneHotMelodyEncoderDecoder, 60, 72, 12)
-
-  def testInitValues(self):
-    self.assertEqual(self.melody_encoder_decoder.min_note, 60)
-    self.assertEqual(self.melody_encoder_decoder.max_note, 72)
-    self.assertEqual(self.melody_encoder_decoder.transpose_to_key, 0)
-    self.assertEqual(self.melody_encoder_decoder.input_size, 14)
-    self.assertEqual(self.melody_encoder_decoder.num_classes, 14)
-    self.assertEqual(self.melody_encoder_decoder.no_event_label, 0)
-
-  def testSquashAndEncode(self):
-    events = [100, 100, 107, 111, NO_EVENT, 99, 112, NOTE_OFF, NO_EVENT]
-    melody = melodies_lib.Melody(events)
-    sequence_example = self.melody_encoder_decoder.squash_and_encode(melody)
-    expected_inputs = [
-        [0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
-        [0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
-        [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0],
-        [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0],
-        [1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
-        [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0],
-        [0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
-        [0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]]
-    expected_labels = [2, 9, 13, 0, 13, 2, 1, 0]
-    expected_sequence_example = sequence_example_lib.make_sequence_example(
-        expected_inputs, expected_labels)
-    self.assertEqual(sequence_example, expected_sequence_example)
-
-  def testGetInputsBatch(self):
-    events1 = [100, 100, 107, 111, NO_EVENT, 99, 112, NOTE_OFF, NO_EVENT]
-    melody1 = melodies_lib.Melody(events1)
-    events2 = [9, 10, 12, 14, 15, 17, 19, 21, 22]
-    melody2 = melodies_lib.Melody(events2)
-    transpose_amount1 = melody1.squash(
-        self.melody_encoder_decoder.min_note,
-        self.melody_encoder_decoder.max_note,
-        self.melody_encoder_decoder.transpose_to_key)
-    transpose_amount2 = melody2.squash(
-        self.melody_encoder_decoder.min_note,
-        self.melody_encoder_decoder.max_note,
-        self.melody_encoder_decoder.transpose_to_key)
-    self.assertEqual(transpose_amount1, -40)
-    self.assertEqual(transpose_amount2, 50)
-    melodies = [melody1, melody2]
-    expected_inputs1 = [
-        [0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
-        [0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
-        [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0],
-        [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0],
-        [1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
-        [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0],
-        [0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
-        [0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
-        [1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]]
-    expected_inputs2 = [
-        [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0],
-        [0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
-        [0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
-        [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
-        [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
-        [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0],
-        [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0],
-        [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0],
-        [0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]]
-    expected_full_length_inputs_batch = [expected_inputs1, expected_inputs2]
-    expected_last_event_inputs_batch = [expected_inputs1[-1:],
-                                        expected_inputs2[-1:]]
-    self.assertListEqual(
-        expected_full_length_inputs_batch,
-        self.melody_encoder_decoder.get_inputs_batch(melodies, True))
-    self.assertListEqual(
-        expected_last_event_inputs_batch,
-        self.melody_encoder_decoder.get_inputs_batch(melodies))
-
-  def testExtendMelodies(self):
-    melody1 = melodies_lib.Melody([60])
-    melody2 = melodies_lib.Melody([60])
-    melody3 = melodies_lib.Melody([60])
-    melody4 = melodies_lib.Melody([60])
-    melodies = [melody1, melody2, melody3, melody4]
-    softmax = [[
-        [0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
-    ], [
-        [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0]
-    ], [
-        [1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
-    ], [
-        [0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
-    ]]
-    self.melody_encoder_decoder.extend_event_sequences(melodies, softmax)
-    self.assertListEqual(list(melody1), [60, 60])
-    self.assertListEqual(list(melody2), [60, 71])
-    self.assertListEqual(list(melody3), [60, NO_EVENT])
-    self.assertListEqual(list(melody4), [60, NOTE_OFF])
 
 
 if __name__ == '__main__':

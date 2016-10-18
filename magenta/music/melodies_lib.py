@@ -30,7 +30,6 @@ MelodyEncoderDecoder.extend_event_sequences to extend each of those melodies
 with an event sampled from the softmax output by the model.
 """
 
-import abc
 import copy
 
 # internal imports
@@ -45,7 +44,6 @@ from magenta.pipelines import statistics
 from magenta.protobuf import music_pb2
 
 
-NUM_SPECIAL_MELODY_EVENTS = constants.NUM_SPECIAL_MELODY_EVENTS
 MELODY_NOTE_OFF = constants.MELODY_NOTE_OFF
 MELODY_NO_EVENT = constants.MELODY_NO_EVENT
 MIN_MELODY_EVENT = constants.MIN_MELODY_EVENT
@@ -457,7 +455,7 @@ class Melody(events_lib.SimpleEventSequence):
           self._events[i] = (max_note - NOTES_PER_OCTAVE +
                              (self._events[i] - max_note) % NOTES_PER_OCTAVE)
 
-  def squash(self, min_note, max_note, transpose_to_key):
+  def squash(self, min_note, max_note, transpose_to_key=None):
     """Transpose and octave shift the notes in this Melody.
 
     The key center of this melody is computed with a heuristic, and the notes
@@ -468,25 +466,29 @@ class Melody(events_lib.SimpleEventSequence):
     Args:
       min_note: Minimum pitch (inclusive) that the resulting notes will take on.
       max_note: Maximum pitch (exclusive) that the resulting notes will take on.
-      transpose_to_key: The melody is transposed to be in this key. 0 = C Major.
+      transpose_to_key: The melody is transposed to be in this key or None if
+         should not be transposed. 0 = C Major.
 
     Returns:
       How much notes are transposed by.
     """
-    melody_key = self.get_major_key()
-    key_diff = transpose_to_key - melody_key
-    midi_notes = [note for note in self._events
-                  if MIN_MIDI_PITCH <= note <= MAX_MIDI_PITCH]
-    if not midi_notes:
-      return 0
-    melody_min_note = min(midi_notes)
-    melody_max_note = max(midi_notes)
-    melody_center = (melody_min_note + melody_max_note) / 2
-    target_center = (min_note + max_note - 1) / 2
-    center_diff = target_center - (melody_center + key_diff)
-    transpose_amount = (
-        key_diff +
-        NOTES_PER_OCTAVE * int(round(center_diff / float(NOTES_PER_OCTAVE))))
+    if transpose_to_key is None:
+      transpose_amount = 0
+    else:
+      melody_key = self.get_major_key()
+      key_diff = transpose_to_key - melody_key
+      midi_notes = [note for note in self._events
+                    if MIN_MIDI_PITCH <= note <= MAX_MIDI_PITCH]
+      if not midi_notes:
+        return 0
+      melody_min_note = min(midi_notes)
+      melody_max_note = max(midi_notes)
+      melody_center = (melody_min_note + melody_max_note) / 2
+      target_center = (min_note + max_note - 1) / 2
+      center_diff = target_center - (melody_center + key_diff)
+      transpose_amount = (
+          key_diff +
+          NOTES_PER_OCTAVE * int(round(center_diff / float(NOTES_PER_OCTAVE))))
     self.transpose(transpose_amount, min_note, max_note)
 
     return transpose_amount
@@ -689,206 +691,3 @@ def midi_file_to_melody(midi_file, steps_per_quarter=4, qpm=None,
       quantized_sequence, ignore_polyphonic_notes=ignore_polyphonic_notes)
   return melody
 
-
-class MelodyEncoderDecoder(events_lib.EventsEncoderDecoder):
-  """An abstract class for translating between melodies and model data.
-
-  When building your dataset, the `encode` method takes in a melody and
-  returns a SequenceExample of inputs and labels. These SequenceExamples are
-  fed into the model during training and evaluation.
-
-  During melody generation, the `get_inputs_batch` method takes in a list of
-  the current melodies and returns an inputs batch which is fed into the
-  model to predict what the next note should be for each melody.
-  The `extend_event_sequences` method takes in the list of melodies and the
-  softmax returned by the model and extends each melody by one step by sampling
-  from the softmax probabilities. This loop (`get_inputs_batch` -> inputs batch
-  is fed through the model to get a softmax -> `extend_event_sequences`) is
-  repeated until the generated melodies have reached the desired length.
-
-  Attributes:
-    min_note: The minimum midi pitch the encoded melodies can have.
-    max_note: The maximum midi pitch (exclusive) the encoded melodies can have.
-    transpose_to_key: The key that encoded melodies will be transposed into.
-
-  Properties:
-    input_size: The length of the list returned by self.events_to_input.
-    num_classes: The range of ints that can be returned by
-        self.events_to_label.
-  """
-  __metaclass__ = abc.ABCMeta
-
-  def __init__(self, min_note=48, max_note=84, transpose_to_key=0):
-    """Initializes a MelodyEncoderDecoder object.
-
-    You can change `min_note` and `max_note` to increase/decrease the melody
-    range. Since melodies are transposed into this range to be run through
-    the model and then transposed back into their original range after the
-    melodies have been extended, the location of the range is somewhat
-    arbitrary, but the size of the range determines the possible size of the
-    generated melodies range. `transpose_to_key` should be set to the key
-    that if melodies were transposed into that key, they would best sit
-    between `min_note` and `max_note` with having as few notes outside that
-    range. The same `min_note`, `max_note`, and `transpose_to_key` values
-    should be used when creating your dataset, training your model,
-    and generating melodies from it. If you change `min_note`, `max_note`,
-    or `transpose_to_key`, you will have to recreate your dataset and retrain
-    your model before you can accurately generate melodies from it.
-
-    Args:
-      min_note: The minimum midi pitch the encoded melodies can have.
-      max_note: The maximum midi pitch (exclusive) the encoded melodies can
-          have.
-      transpose_to_key: The key that encoded melodies will be transposed into.
-
-    Raises:
-      ValueError: If `min_note` or `max_note` are outside the midi range, or
-          if the [`min_note`, `max_note`) range is less than an octave. A range
-          of at least an octave is required to be able to octave shift notes
-          into that range while preserving their scale value.
-    """
-    if min_note < MIN_MIDI_PITCH:
-      raise ValueError('min_note must be >= 0. min_note is %d.' % min_note)
-    if max_note > MAX_MIDI_PITCH + 1:
-      raise ValueError('max_note must be <= 128. max_note is %d.' % max_note)
-    if max_note - min_note < NOTES_PER_OCTAVE:
-      raise ValueError('max_note - min_note must be >= 12. min_note is %d. '
-                       'max_note is %d. max_note - min_note is %d.' %
-                       (min_note, max_note, max_note - min_note))
-    if transpose_to_key < 0 or transpose_to_key > NOTES_PER_OCTAVE - 1:
-      raise ValueError('transpose_to_key must be >= 0 and <= 11. '
-                       'transpose_to_key is %d.' % transpose_to_key)
-
-    self._min_note = min_note
-    self._max_note = max_note
-    self._transpose_to_key = transpose_to_key
-
-  @property
-  def min_note(self):
-    """The minimum midi pitch the encoded melodies can have.
-
-    Returns:
-      An integer, the minimum midi pitch the encoded melodies can have.
-    """
-    return self._min_note
-
-  @property
-  def max_note(self):
-    """The maximum midi pitch (exclusive) the encoded melodies can have.
-
-    Returns:
-      An integer, the maximum midi pitch (exclusive) the encoded melodies can
-      have.
-    """
-    return self._max_note
-
-  @property
-  def transpose_to_key(self):
-    """The key that encoded melodies will be transposed into.
-
-    Returns:
-      An integer in the range [0, 12), the key that encoded melodies will be
-      transposed into.
-    """
-    return self._transpose_to_key
-
-  @property
-  def no_event_label(self):
-    """The class label that represents a NO_EVENT Melody event.
-
-    Returns:
-      An int, the class label that represents a NO_EVENT.
-    """
-    melody = Melody([MELODY_NO_EVENT])
-    return self.events_to_label(melody, 0)
-
-  @abc.abstractmethod
-  def events_to_input(self, events, position):
-    """Returns the input vector for the melody event at the given position.
-
-    Args:
-      events: A Melody object.
-      position: An integer event position in the melody.
-
-    Returns:
-      An input vector, a self.input_size length list of floats.
-    """
-    pass
-
-  @abc.abstractmethod
-  def events_to_label(self, events, position):
-    """Returns the label for the melody event at the given position.
-
-    Args:
-      events: A Melody object.
-      position: An integer event position in the melody.
-
-    Returns:
-      A label, an integer in the range [0, self.num_classes).
-    """
-    pass
-
-  @abc.abstractmethod
-  def class_index_to_event(self, class_index, events):
-    """Returns the melody event for the given class index.
-
-    This is the reverse process of the self.events_to_label method.
-
-    Args:
-      class_index: An integer in the range [0, self.num_classes).
-      events: A Melody object.
-
-    Returns:
-      An integer melody event value.
-    """
-    pass
-
-  def squash_and_encode(self, melody):
-    """Returns a SequenceExample for the given melody after squashing.
-
-    Args:
-      melody: A Melody object.
-
-    Returns:
-      A tf.train.SequenceExample containing inputs and labels.
-    """
-    melody.squash(self._min_note, self._max_note, self._transpose_to_key)
-    return self._encode(melody)
-
-
-class OneHotMelodyEncoderDecoder(MelodyEncoderDecoder):
-  """A MelodyEncoderDecoder that produces a one-hot encoding for the input."""
-
-  def __init__(self, min_note, max_note, transpose_to_key):
-    super(OneHotMelodyEncoderDecoder, self).__init__(min_note, max_note,
-                                                     transpose_to_key)
-    self._input_size = (self.max_note - self.min_note +
-                        NUM_SPECIAL_MELODY_EVENTS)
-    self._num_classes = (self.max_note - self.min_note +
-                         NUM_SPECIAL_MELODY_EVENTS)
-
-  @property
-  def input_size(self):
-    return self._input_size
-
-  @property
-  def num_classes(self):
-    return self._num_classes
-
-  def events_to_input(self, events, position):
-    input_ = [0.0] * self._input_size
-    index = (events[position] + NUM_SPECIAL_MELODY_EVENTS
-             if events[position] < 0
-             else events[position] - self.min_note + NUM_SPECIAL_MELODY_EVENTS)
-    input_[index] = 1.0
-    return input_
-
-  def events_to_label(self, events, position):
-    return (events[position] + NUM_SPECIAL_MELODY_EVENTS
-            if events[position] < 0
-            else events[position] - self.min_note + NUM_SPECIAL_MELODY_EVENTS)
-
-  def class_index_to_event(self, class_index, events):
-    return (class_index - NUM_SPECIAL_MELODY_EVENTS
-            if class_index < NUM_SPECIAL_MELODY_EVENTS
-            else class_index + self.min_note - NUM_SPECIAL_MELODY_EVENTS)

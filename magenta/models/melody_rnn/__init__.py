@@ -12,6 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Imports lookback RNN model."""
+"""Imports Melody RNN model."""
 
-from lookback_rnn_model import LookbackRnnModel
+from melody_rnn_model import MelodyRnnModel

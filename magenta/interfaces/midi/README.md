@@ -134,11 +134,8 @@ port").
 
 To use the midi interface, you must supply a trained model bundle (.mag file).
 You can either download one from the links on our model pages (e.g.,
-[Basic RNN](/magenta/models/basic_rnn/README.md),
-[Lookback RNN](/magenta/models/lookback_rnn/README.md),
-[Attention RNN](/magenta/models/attention_rnn/README.md), etc.) or create a
-bundle file from one of your training checkpoints using the instructions on
-the model page.
+[Melody RNN](/magenta/models/melody_rnn/README.md) or create a bundle file from
+one of your training checkpoints using the instructions on the model page.
 
 You will now start the interface with this command, supplying the location of
 the .mag bundle file and any additional flags required by the interaction (see
@@ -176,7 +173,7 @@ that is the same length as your call phrase. After the response completes, call
 phrase capture will begin again, and the process repeats.
 
 Assuming you're using the
-[Attention RNN](/magenta/models/attention_rnn/README.md) bundle file and are
+[Attention RNN](/magenta/models/melody_rnn/README.md#configurations) bundle file and are
 using VPMK and FluidSynth, your command might look like this:
 
 ```bash

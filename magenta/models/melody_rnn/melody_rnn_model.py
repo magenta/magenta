@@ -11,55 +11,41 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Shared melody RNN model code."""
-
-import abc
+"""Melody RNN model."""
 
 # internal imports
 import magenta
 
+from magenta.models.melody_rnn import melody_rnn_sequence_generator
+
 
 class MelodyRnnModel(object):
-  """Abstract class for RNN melody generation models.
-
-  This class is not intended to be instantiated directly, but only via
-  subclasses with their specific encoder-decoders and `build_graph` functions.
+  """Class for RNN melody generation models.
 
   Currently this class only supports generation, of both melodies and note
   sequences (containing melodies). Support for model training will be added
   at a later time.
   """
 
-  __metaclass__ = abc.ABCMeta
-
-  def __init__(self, checkpoint=None, bundle_filename=None,
-               steps_per_quarter=4, hparams=None):
+  def __init__(self, config, checkpoint=None, bundle_filename=None,
+               steps_per_quarter=4):
     """Initialize the MelodyRnnModel.
 
     Args:
+      config: A MelodyRnnConfig containing the MelodyEncoderDecoder and HParams
+        use.
       checkpoint: Where to search for the most recent model checkpoint.
       bundle_filename: The filename of a generator_pb2.GeneratorBundle object
           that includes both the model checkpoint and metagraph.
       steps_per_quarter: What precision to use when quantizing the melody. How
           many steps per quarter note.
-      hparams: A dict of hparams.
     """
     if bundle_filename is not None:
       bundle = magenta.music.read_bundle_file(bundle_filename)
     else:
       bundle = None
-    self._generator = self._create_generator_fn()(
-        checkpoint, bundle, steps_per_quarter, hparams)
-
-  @abc.abstractmethod
-  def _create_generator_fn(self):
-    """Function to create the MelodyRnnSequenceGenerator object.
-
-    This function, when called, returns the MelodyRnnSequenceGenerator
-    object for the model. The function will be passed the parameters:
-    (checkpoint, bundle, steps_per_quarter, hparams).
-    """
-    pass
+    self._generator = melody_rnn_sequence_generator(
+        config, checkpoint, bundle, steps_per_quarter)
 
   def generate_melody(self, num_steps, primer_melody):
     """Uses the model to generate a melody from a primer melody.

@@ -17,47 +17,49 @@
 import tensorflow as tf
 import magenta
 
-from magenta.models.shared import melody_rnn_graph
+from magenta.models.melody_rnn import melody_rnn_config
+from magenta.models.melody_rnn import melody_rnn_graph
 
 
 class MelodyRNNGraphTest(tf.test.TestCase):
 
   def setUp(self):
-    self.encoder_decoder = magenta.music.OneHotMelodyEncoderDecoder(0, 12, 0)
-    self.hparams = magenta.common.HParams(
-        batch_size=128,
-        rnn_layer_sizes=[128, 128],
-        dropout_keep_prob=0.5,
-        skip_first_n_losses=0,
-        clip_norm=5,
-        initial_learning_rate=0.01,
-        decay_steps=1000,
-        decay_rate=0.85)
+    self.config = melody_rnn_config.MelodyRnnConfig(
+        None,
+        magenta.music.OneHotMelodyEncoderDecoder(0, 12, 0),
+        magenta.common.HParams(
+            batch_size=128,
+            rnn_layer_sizes=[128, 128],
+            dropout_keep_prob=0.5,
+            skip_first_n_losses=0,
+            clip_norm=5,
+            initial_learning_rate=0.01,
+            decay_steps=1000,
+            decay_rate=0.85))
 
   def testBuildTrainGraph(self):
     g = melody_rnn_graph.build_graph(
-        'train', self.hparams, self.encoder_decoder,
-        sequence_example_file='test')
+        'train', self.config, sequence_example_file='test')
     self.assertTrue(isinstance(g, tf.Graph))
 
   def testBuildEvalGraph(self):
     g = melody_rnn_graph.build_graph(
-        'eval', self.hparams, self.encoder_decoder,
-        sequence_example_file='test')
+        'eval', self.config, sequence_example_file='test')
     self.assertTrue(isinstance(g, tf.Graph))
 
   def testBuildGenerateGraph(self):
-    self.hparams.temperature = 1.0
-    g = melody_rnn_graph.build_graph(
-        'generate', self.hparams, self.encoder_decoder,
-        sequence_example_file='test')
+    g = melody_rnn_graph.build_graph('generate', self.config)
+    self.assertTrue(isinstance(g, tf.Graph))
+
+  def testBuildGenerateGraphWithTemp(self):
+    self.config.hparams.temperature = 1.1
+    g = melody_rnn_graph.build_graph('generate', self.config)
     self.assertTrue(isinstance(g, tf.Graph))
 
   def testBuildGraphWithAttention(self):
-    self.hparams.attn_length = 10
+    self.config.hparams.attn_length = 10
     g = melody_rnn_graph.build_graph(
-        'train', self.hparams, self.encoder_decoder,
-        sequence_example_file='test')
+        'train', self.config, sequence_example_file='test')
     self.assertTrue(isinstance(g, tf.Graph))
 
 

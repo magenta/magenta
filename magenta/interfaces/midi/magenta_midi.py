@@ -25,9 +25,7 @@ import magenta
 
 from magenta.interfaces.midi import midi_hub
 from magenta.interfaces.midi import midi_interaction
-from magenta.models.attention_rnn import attention_rnn_generator
-from magenta.models.basic_rnn import basic_rnn_generator
-from magenta.models.lookback_rnn import lookback_rnn_generator
+from magenta.models.melody_rnn import melody_rnn_sequence_generator
 
 FLAGS = tf.app.flags.FLAGS
 
@@ -63,12 +61,8 @@ tf.app.flags.DEFINE_string(
     None,
     'The location of the bundle file to use.')
 
-# A map from a string generator name to its factory class.
-_GENERATOR_FACTORY_MAP = {
-    'attention_rnn': attention_rnn_generator,
-    'basic_rnn': basic_rnn_generator,
-    'lookback_rnn': lookback_rnn_generator,
-}
+# A map from a string generator name to its class.
+_GENERATOR_MAP = melody_rnn_sequence_generator.get_generator_map()
 
 
 def main(unused_argv):
@@ -96,12 +90,11 @@ def main(unused_argv):
     return
 
   generator_id = bundle.generator_details.id
-  if generator_id not in _GENERATOR_FACTORY_MAP:
+  if generator_id not in _GENERATOR_MAP:
     print "Unrecognized SequenceGenerator ID '%s' in bundle file: %s" % (
         generator_id, FLAGS.bundle_file)
     return
-  generator = _GENERATOR_FACTORY_MAP[generator_id].create_generator(
-      checkpoint=None, bundle=bundle)
+  generator = _GENERATOR_MAP[generator_id](checkpoint=None, bundle=bundle)
   generator.initialize()
   print "Loaded '%s' generator bundle from file '%s'." % (
       bundle.generator_details.id, FLAGS.bundle_file)

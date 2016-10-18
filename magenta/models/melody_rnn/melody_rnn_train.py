@@ -19,6 +19,9 @@ import time
 # internal imports
 import tensorflow as tf
 
+from magenta.models.melody_rnn import melody_rnn_config
+from magenta.models.melody_rnn import melody_rnn_graph
+
 FLAGS = tf.app.flags.FLAGS
 tf.app.flags.DEFINE_string('run_dir', '/tmp/melody_rnn/logdir/run1',
                            'Path to the directory where checkpoints and '
@@ -33,11 +36,6 @@ tf.app.flags.DEFINE_string('sequence_example_file', '',
                            'Path to TFRecord file containing '
                            'tf.SequenceExample records for training or '
                            'evaluation.')
-tf.app.flags.DEFINE_string('hparams', '{}',
-                           'String representation of a Python dictionary '
-                           'containing hyperparameter to value mapping. This '
-                           'mapping is merged with the default '
-                           'hyperparameters.')
 tf.app.flags.DEFINE_integer('num_training_steps', 0,
                             'The the number of global training steps your '
                             'model should take before exiting training. '
@@ -93,9 +91,9 @@ def run_training(graph, train_dir, num_training_steps=None,
       if sv.should_stop():
         break
       if (global_step_ + 1) % summary_frequency == 0:
-        (global_step_, learning_rate_, loss_, perplexity_, accuracy_, _
-        ) = sess.run([global_step, learning_rate, loss, perplexity, accuracy,
-                      train_op])
+        (global_step_, learning_rate_, loss_, perplexity_, accuracy_,
+         _) = sess.run([global_step, learning_rate, loss, perplexity, accuracy,
+                        train_op])
         tf.logging.info('Global Step: %d - '
                         'Learning Rate: %.5f - '
                         'Loss: %.3f - '
@@ -175,17 +173,7 @@ def run_eval(graph, train_dir, eval_dir, num_training_steps=None,
       coord.join(threads)
 
 
-def run(melody_encoder_decoder, build_graph):
-  """Runs the training or evaluation loop.
-
-  Args:
-    melody_encoder_decoder: A melodies_lib.MelodyEncoderDecoder object specific
-        to your model.
-    build_graph: A function that when called, returns the tf.Graph object for
-        your model. The function will be passed the parameters:
-        (mode, hparams_string, input_size, num_classes, sequence_example_file).
-        For an example usage, see models/basic_rnn/basic_rnn_graph.py.
-  """
+def main(unused_argv):
   tf.logging.set_verbosity(FLAGS.log)
 
   if not FLAGS.run_dir:
@@ -195,22 +183,22 @@ def run(melody_encoder_decoder, build_graph):
     tf.logging.fatal('--sequence_example_file required')
     return
 
-  FLAGS.sequence_example_file = os.path.expanduser(FLAGS.sequence_example_file)
-  FLAGS.run_dir = os.path.expanduser(FLAGS.run_dir)
+  sequence_example_file = os.path.expanduser(FLAGS.sequence_example_file)
+  run_dir = os.path.expanduser(FLAGS.run_dir)
+
+  config = melody_rnn_config.config_from_flags()
 
   mode = 'eval' if FLAGS.eval else 'train'
-  graph = build_graph(mode,
-                      FLAGS.hparams,
-                      melody_encoder_decoder,
-                      FLAGS.sequence_example_file)
+  graph = melody_rnn_graph.build_graph(
+      mode, config, sequence_example_file)
 
-  train_dir = os.path.join(FLAGS.run_dir, 'train')
+  train_dir = os.path.join(run_dir, 'train')
   if not os.path.exists(train_dir):
     tf.gfile.MakeDirs(train_dir)
   tf.logging.info('Train dir: %s', train_dir)
 
   if FLAGS.eval:
-    eval_dir = os.path.join(FLAGS.run_dir, 'eval')
+    eval_dir = os.path.join(run_dir, 'eval')
     if not os.path.exists(eval_dir):
       tf.gfile.MakeDirs(eval_dir)
     tf.logging.info('Eval dir: %s', eval_dir)
@@ -220,3 +208,11 @@ def run(melody_encoder_decoder, build_graph):
   else:
     run_training(graph, train_dir, FLAGS.num_training_steps,
                  FLAGS.summary_frequency)
+
+
+def console_entry_point():
+  tf.app.run(main)
+
+
+if __name__ == '__main__':
+  console_entry_point()

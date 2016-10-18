@@ -91,10 +91,10 @@ sessions.
 
 The Docker image also includes several pre-trained models in
 ```/magenta/models```. For example, to generate some MIDI files using the
-[Lookback RNN](magenta/models/lookback_rnn), run this command:
+[Lookback Melody RNN](magenta/models/melody_rnn#lookback), run this command:
 
 ```bash
-lookback_rnn_generate \
+melody_rnn_generate \
   --bundle_file=/magenta-models/lookback_rnn.mag \
   --output_dir=/magenta-data/lookback_rnn/generated \
   --num_outputs=10 \
@@ -118,13 +118,8 @@ Note: Our Docker image is also available at ```gcr.io/tensorflow/magenta```.
 
 ## Generating MIDI
 
-You can now create your own melodies with TensorFlow using one of our models:
-
-**[Basic RNN](magenta/models/basic_rnn)**: A simple recurrent neural network for predicting melodies.
-
-**[Lookback RNN](magenta/models/lookback_rnn)**: A recurrent neural network for predicting melodies that uses custom inputs and labels.
-
-**[Attention RNN](magenta/models/attention_rnn)**: A recurrent neural network for predicting melodies that uses attention.
+You can now create your own melodies with TensorFlow using one of the various configurations of our
+[Melody RNN](magenta/models/melody_rnn) model; a recurrent neural network for predicting melodies.
 
 ## Using a MIDI Instrument
 

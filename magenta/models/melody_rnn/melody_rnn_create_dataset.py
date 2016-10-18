@@ -23,13 +23,14 @@ import os
 import tensorflow as tf
 import magenta
 
+from magenta.models.melody_rnn import melody_rnn_config
 from magenta.pipelines import dag_pipeline
 from magenta.pipelines import pipeline
 from magenta.pipelines import pipelines_common
 from magenta.protobuf import music_pb2
 
-
 FLAGS = tf.app.flags.FLAGS
+
 tf.app.flags.DEFINE_string('input', None,
                            'TFRecord to read NoteSequence protos from.')
 tf.app.flags.DEFINE_string('output_dir', None,
@@ -96,11 +97,26 @@ def get_pipeline(melody_encoder_decoder):
   return dag_pipeline.DAGPipeline(dag)
 
 
-def run_from_flags(pipeline_instance):
+def run_from_flags():
   tf.logging.set_verbosity(FLAGS.log)
+
+  config = melody_rnn_config.config_from_flags()
+  pipeline_instance = get_pipeline(config.encoder_decoder)
   FLAGS.input = os.path.expanduser(FLAGS.input)
   FLAGS.output_dir = os.path.expanduser(FLAGS.output_dir)
   pipeline.run_pipeline_serial(
       pipeline_instance,
       pipeline.tf_record_iterator(FLAGS.input, pipeline_instance.input_type),
       FLAGS.output_dir)
+
+
+def main(unused_argv):
+  run_from_flags()
+
+
+def console_entry_point():
+  tf.app.run(main)
+
+
+if __name__ == '__main__':
+  console_entry_point()

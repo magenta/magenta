@@ -18,17 +18,17 @@ import tensorflow as tf
 import magenta
 
 
-def build_graph(mode, hparams, encoder_decoder, sequence_example_file=None):
+def build_graph(mode, config, sequence_example_file=None):
   """Builds the TensorFlow graph.
 
   Args:
     mode: 'train', 'eval', or 'generate'. Only mode related ops are added to
         the graph.
-    hparams: A magenta.common.HParams object containing the hyperparameters to
+    config: A MelodyRnnConfig containing the MelodyEncoderDecoder and HParams
         use.
-    encoder_decoder: The MelodyEncoderDecoder being used by the model.
     sequence_example_file: A string path to a TFRecord file containing
-        tf.train.SequenceExamples. Only needed for training and evaluation.
+        tf.train.SequenceExample protos. Only needed for training and
+        evaluation.
 
   Returns:
     A tf.Graph instance which contains the TF ops.
@@ -39,8 +39,11 @@ def build_graph(mode, hparams, encoder_decoder, sequence_example_file=None):
         'eval'.
   """
   if mode not in ('train', 'eval', 'generate'):
-    raise ValueError('The mode parameter must be \'train\', \'eval\', '
-                     'or \'generate\'. The mode parameter was: %s' % mode)
+    raise ValueError("The mode parameter must be 'train', 'eval', "
+                     "or 'generate'. The mode parameter was: %s" % mode)
+
+  hparams = config.hparams
+  encoder_decoder = config.encoder_decoder
 
   tf.logging.info('hparams = %s', hparams.values())
 
