@@ -26,9 +26,10 @@ from six.moves import range  # pylint: disable=redefined-builtin
 import tensorflow as tf
 import magenta
 
+from magenta.models.melody_rnn import melody_rnn_config
+from magenta.models.melody_rnn import melody_rnn_sequence_generator
 from magenta.protobuf import generator_pb2
 from magenta.protobuf import music_pb2
-
 
 FLAGS = tf.app.flags.FLAGS
 tf.app.flags.DEFINE_string(
@@ -47,11 +48,6 @@ tf.app.flags.DEFINE_boolean(
     'save_generator_bundle', False,
     'If true, instead of generating a sequence, will save this generator as a '
     'bundle file in the location specified by the bundle_file flag')
-tf.app.flags.DEFINE_string(
-    'hparams', '{}',
-    'String representation of a Python dictionary containing hyperparameter '
-    'to value mapping. This mapping is merged with the default '
-    'hyperparameters.')
 tf.app.flags.DEFINE_string(
     'output_dir', '/tmp/melody_rnn/generated',
     'The directory where MIDI files will be saved to.')
@@ -93,17 +89,10 @@ tf.app.flags.DEFINE_string(
     'or FATAL.')
 
 
-def get_hparams():
-  """Get the hparams dictionary to be used by the model."""
-  hparams = ast.literal_eval(FLAGS.hparams if FLAGS.hparams else '{}')
-  hparams['temperature'] = FLAGS.temperature
-  return hparams
-
-
 def get_checkpoint():
   """Get the training dir or checkpoint path to be used by the model."""
   if ((FLAGS.run_dir or FLAGS.checkpoint_file) and
-      FLAGS.bundle_file and not should_save_generator_bundle()):
+      FLAGS.bundle_file and not FLAGS.save_generator_bundle):
     raise magenta.music.SequenceGeneratorException(
         'Cannot specify both bundle_file and run_dir or checkpoint_file')
   if FLAGS.run_dir:
@@ -115,14 +104,6 @@ def get_checkpoint():
     return None
 
 
-def get_bundle_file():
-  """Get the path to the bundle file with both a checkpoint and metagraph."""
-  if FLAGS.bundle_file is None:
-    return None
-  else:
-    return os.path.expanduser(FLAGS.bundle_file)
-
-
 def get_bundle():
   """Returns a generator_pb2.GeneratorBundle object based read from bundle_file.
 
@@ -130,29 +111,12 @@ def get_bundle():
     Either a generator_pb2.GeneratorBundle or None if the bundle_file flag is
     not set or the save_generator_bundle flag is set.
   """
-  if should_save_generator_bundle():
+  if FLAGS.save_generator_bundle:
     return None
-  bundle_file = get_bundle_file()
-  if bundle_file is None:
+  if FLAGS.bundle_file is None:
     return None
+  bundle_file = os.path.expanduser(FLAGS.bundle_file)
   return magenta.music.read_bundle_file(bundle_file)
-
-
-def should_save_generator_bundle():
-  """Returns whether the generator should save a bundle.
-
-  If true, the generator should save its checkpoint and metagraph into a bundle
-  file, specified by get_bundle_file, instead of generating a sequence.
-
-  Returns:
-    Whether the generator should save a bundle.
-  """
-  return FLAGS.save_generator_bundle
-
-
-def get_steps_per_quarter():
-  """Get the number of steps per quarter note."""
-  return FLAGS.steps_per_quarter
 
 
 def _steps_to_seconds(steps, qpm):
@@ -167,24 +131,19 @@ def _steps_to_seconds(steps, qpm):
   Returns:
     Number of seconds the steps represent.
   """
-  return steps * 60.0 / qpm / get_steps_per_quarter()
+  return steps * 60.0 / qpm / FLAGS.steps_per_quarter
 
 
-def setup_logs():
-  """Sets log level to the one specified in the flags."""
-  tf.logging.set_verbosity(FLAGS.log)
-
-
-def run_with_flags(melody_rnn_sequence_generator):
+def run_with_flags(generator):
   """Generates melodies and saves them as MIDI files.
 
-  Uses the options specified by the flags defined in this module. Intended to be
-  called from the main function of one of the melody generator modules.
+  Uses the options specified by the flags defined in this module.
 
   Args:
-    melody_rnn_sequence_generator: A MelodyRnnSequenceGenerator object specific
-        to your model.
+    generator: The MelodyRnnSequenceGenerator to use for generation.
   """
+  tf.logging.set_verbosity(FLAGS.log)
+
   if not FLAGS.output_dir:
     tf.logging.fatal('--output_dir required')
     return
@@ -246,8 +205,7 @@ def run_with_flags(melody_rnn_sequence_generator):
   date_and_time = time.strftime('%Y-%m-%d_%H%M%S')
   digits = len(str(FLAGS.num_outputs))
   for i in range(FLAGS.num_outputs):
-    generated_sequence = melody_rnn_sequence_generator.generate(
-        input_sequence, generator_options)
+    generated_sequence = generator.generate(input_sequence, generator_options)
 
     midi_filename = '%s_%s.mid' % (date_and_time, str(i + 1).zfill(digits))
     midi_path = os.path.join(FLAGS.output_dir, midi_filename)
@@ -255,3 +213,27 @@ def run_with_flags(melody_rnn_sequence_generator):
 
   tf.logging.info('Wrote %d MIDI files to %s',
                   FLAGS.num_outputs, FLAGS.output_dir)
+
+
+def main(unused_argv):
+  """Saves bundle or runs generator based on flags."""
+  generator = melody_rnn_sequence_generator.MelodyRnnSequenceGenerator(
+      melody_rnn_config.config_from_flags(),
+      FLAGS.steps_per_quarter,
+      get_checkpoint(),
+      get_bundle())
+
+  if FLAGS.save_generator_bundle:
+    bundle_filename = os.path.expanduser(FLAGS.bundle_file)
+    tf.logging.info('Saving generator bundle to %s', bundle_filename)
+    generator.create_bundle_file(bundle_filename)
+  else:
+    run_with_flags(generator)
+
+
+def console_entry_point():
+  tf.app.run(main)
+
+
+if __name__ == '__main__':
+  console_entry_point()

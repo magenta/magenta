@@ -17,7 +17,7 @@
 import tensorflow as tf
 import magenta
 
-from magenta.models.shared import melody_rnn_create_dataset
+from magenta.models.melody_rnn import melody_rnn_create_dataset
 from magenta.pipelines import pipelines_common
 from magenta.protobuf import music_pb2
 
