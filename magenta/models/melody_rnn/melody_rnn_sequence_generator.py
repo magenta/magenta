@@ -161,11 +161,12 @@ class MelodyRnnSequenceGenerator(magenta.music.BaseSequenceGenerator):
     assert generated_sequence.total_time <= generate_section.end_time
     return generated_sequence
 
-  def generate_melody(self, end_step, primer_melody):
+  def generate_melody(self, num_steps, primer_melody):
     """Generate a melody from a primer melody.
 
     Args:
-      end_step: An integer end step of the final melody, after generation.
+      num_steps: The integer length in steps of the final melody, after
+          generation. Includes the primer.
       primer_melody: The primer melody, a Melody object.
 
     Returns:
@@ -179,9 +180,9 @@ class MelodyRnnSequenceGenerator(magenta.music.BaseSequenceGenerator):
     if not primer_melody:
       raise MelodyRnnSequenceGeneratorException(
           'primer melody must have non-zero length')
-    if primer_melody.end_step >= end_step:
+    if len(primer_melody) >= num_steps:
       raise MelodyRnnSequenceGeneratorException(
-          'primer melody must end before `end_step`')
+          'primer melody must be shorter than `num_steps`')
 
     melody = copy.deepcopy(primer_melody)
 
@@ -197,7 +198,7 @@ class MelodyRnnSequenceGenerator(magenta.music.BaseSequenceGenerator):
     softmax = self._session.graph.get_collection('softmax')[0]
 
     final_state_ = None
-    for i in range(end_step - melody.end_step):
+    for i in range(num_steps - len(melody)):
       if i == 0:
         inputs_ = encoder_decoder.get_inputs_batch([melody], full_length=True)
         initial_state_ = self._session.run(initial_state)
