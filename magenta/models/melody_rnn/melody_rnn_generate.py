@@ -77,10 +77,12 @@ tf.app.flags.DEFINE_float(
     'given, the qpm from that will override this flag. If qpm is None, qpm '
     'will default to 120.')
 tf.app.flags.DEFINE_float(
-    'temperature', 1.0,
+    'temperature', None,
     'The randomness of the generated melodies. 1.0 uses the unaltered softmax '
     'probabilities, greater than 1.0 makes melodies more random, less than '
-    '1.0 makes melodies less random.')
+    '1.0 makes melodies less random. If temperature is None, the default '
+    'value from the config will be used; note that a missing temperature in '
+    'the config results in a temperature of 1.0 being used.')
 tf.app.flags.DEFINE_integer(
     'steps_per_quarter', 4, 'What precision to use when quantizing the melody.')
 tf.app.flags.DEFINE_string(
@@ -217,6 +219,9 @@ def run_with_flags(generator):
 
 def main(unused_argv):
   """Saves bundle or runs generator based on flags."""
+  config = melody_rnn_config.config_from_flags()
+  if FLAGS.temperature is not None:
+    config.hparams.temperature = FLAGS.temperature
   generator = melody_rnn_sequence_generator.MelodyRnnSequenceGenerator(
       melody_rnn_config.config_from_flags(),
       FLAGS.steps_per_quarter,
