@@ -11,8 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Defines sequence of notes objects for creating datasets.
-"""
+"""Defines sequence of notes objects for creating datasets."""
 
 import collections
 import copy
@@ -43,6 +42,34 @@ class MultipleTimeSignatureException(Exception):
 
 class NegativeTimeException(Exception):
   pass
+
+
+def extract_subsequence(sequence, start_time, end_time):
+  """Extracts a subsequence from a NoteSequence.
+
+  Notes starting before `start_time` are not included. Notes ending after
+  `end_time` are truncated.
+
+  Args:
+    sequence: The NoteSequence to extract a subsequence from.
+    start_time: The float time in seconds to start the subsequence.
+    end_time: The float time in seconds to end the subsequence.
+
+  Returns:
+    A new NoteSequence that is a subsequence of `sequence` in the specified time
+    range.
+  """
+  subsequence = music_pb2.NoteSequence()
+  subsequence.CopyFrom(sequence)
+  del subsequence.notes[:]
+  for note in sequence.notes:
+    if note.start_time < start_time or note.start_time >= end_time:
+      continue
+    new_note = subsequence.notes.add()
+    new_note.CopyFrom(note)
+    new_note.end_time = min(note.end_time, end_time)
+  subsequence.total_time = min(sequence.total_time, end_time)
+  return subsequence
 
 
 def is_power_of_2(x):

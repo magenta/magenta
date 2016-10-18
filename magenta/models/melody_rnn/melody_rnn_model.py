@@ -51,8 +51,8 @@ class MelodyRnnModel(object):
     """Uses the model to generate a melody from a primer melody.
 
     Args:
-      num_steps: An integer number of steps to generate. This is the total
-          number of steps to generate, including the primer melody.
+      num_steps: The integer length in steps of the final melody, after
+          generation. Includes the primer.
       primer_melody: The primer melody, a Melody object.
 
     Returns:

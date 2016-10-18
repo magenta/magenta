@@ -40,6 +40,20 @@ class SequencesLibTest(tf.test.TestCase):
     self.expected_quantized_sequence.qpm = 60.0
     self.expected_quantized_sequence.steps_per_quarter = self.steps_per_quarter
 
+  def testExtractSubsequence(self):
+    sequence = copy.copy(self.note_sequence)
+    testing_lib.add_track_to_sequence(
+        sequence, 0,
+        [(12, 100, 0.01, 10.0), (11, 55, 0.22, 0.50), (40, 45, 2.50, 3.50),
+         (55, 120, 4.0, 4.01), (52, 99, 4.75, 5.0)])
+    expected_subsequence = copy.copy(self.note_sequence)
+    testing_lib.add_track_to_sequence(
+        expected_subsequence, 0,
+        [(40, 45, 2.50, 3.50), (55, 120, 4.0, 4.01)])
+
+    subsequence = sequences_lib.extract_subsequence(sequence, 2.5, 4.75)
+    self.assertProtoEquals(expected_subsequence, subsequence)
+
   def testEq(self):
     left_hand = sequences_lib.QuantizedSequence()
     left_hand.qpm = 123.0

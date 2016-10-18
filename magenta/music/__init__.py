@@ -45,6 +45,7 @@ from sequence_generator_bundle import GeneratorBundleParseException
 from sequence_generator_bundle import read_bundle_file
 
 from sequences_lib import BadTimeSignatureException
+from sequences_lib import extract_subsequence
 from sequences_lib import MultipleTimeSignatureException
 from sequences_lib import NegativeTimeException
 from sequences_lib import QuantizedSequence
