@@ -146,9 +146,9 @@ class MelodyRnnSequenceGenerator(magenta.music.BaseSequenceGenerator):
     else:
       tf.logging.warn('No melodies were extracted from the priming sequence. '
                       'Melodies will be generated from scratch.')
-      melody = magenta.music.Melody([
-          random.randint(self._config.encoder_decoder.min_note,
-                         self._config.encoder_decoder.max_note)],
+      melody = magenta.music.Melody(
+          [random.randint(self._config.encoder_decoder.min_note,
+                          self._config.encoder_decoder.max_note)],
           start_step=start_step)
       start_step += 1
 
