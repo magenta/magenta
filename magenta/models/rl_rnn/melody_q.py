@@ -630,7 +630,7 @@ class MelodyQNetwork(object):
 
     self.actions_executed_so_far += 1
 
-    if self.exploration_mode == 'egreedy'
+    if self.exploration_mode == 'egreedy':
       # Compute the exploration probability.
       exploration_p = MelodyQNetwork.linear_annealing(
           self.actions_executed_so_far, exploration_period, 1.0,
