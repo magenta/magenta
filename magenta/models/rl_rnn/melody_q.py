@@ -1005,7 +1005,7 @@ class MelodyQNetwork(object):
       state = np.array(self.q_network.state_value).flatten()
       reward_rnn_state = np.array(self.reward_rnn.state_value).flatten()
 
-      if self.stochastic_observations:
+      if self.exploration_mode == 'boltzmann' or self.stochastic_observations:
         action, new_observation, reward_scores = self.action(last_observation,
                                                              exploration_period,
                                                              enable_random=enable_random,
