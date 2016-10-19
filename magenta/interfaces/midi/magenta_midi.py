@@ -112,8 +112,8 @@ def main(unused_argv):
                          midi_hub.TextureType.MONOPHONIC)
 
   start_call_signal = (
-        None if FLAGS.end_call_control_number is None else
-        midi_hub.MidiSignal(control=FLAGS.start_call_control_number, value=0))
+      None if FLAGS.end_call_control_number is None else
+      midi_hub.MidiSignal(control=FLAGS.start_call_control_number, value=0))
   end_call_signal = (
       None if FLAGS.end_call_control_number is None else
       midi_hub.MidiSignal(control=FLAGS.end_call_control_number, value=0))
