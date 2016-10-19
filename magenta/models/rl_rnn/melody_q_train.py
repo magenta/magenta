@@ -45,7 +45,7 @@ tf.app.flags.DEFINE_string('exploration_mode', 'boltzmann',
                            'Can be either egreedy for epsilon-greedy or '
                            'boltzmann, which will sample from the models'
                            'output distribution to select the next action')
-tf.app.flags.DEFINE_integer('output_every_nth', 10000,
+tf.app.flags.DEFINE_integer('output_every_nth', 50000,
                             'The number of steps before the model will evaluate'
                             'itself and store a checkpoint')
 tf.app.flags.DEFINE_integer('num_notes_in_melody', 32,
