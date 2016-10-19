@@ -47,6 +47,11 @@ tf.app.flags.DEFINE_integer(
     'The number of bars of duration to use for the call and response phrases. '
     'If none, `end_call_control_number` must be specified.')
 tf.app.flags.DEFINE_integer(
+    'start_call_control_number',
+    None,
+    'The control change number to use as a signal to start the call phrase. If '
+    'None, call will start immediately after response.')
+tf.app.flags.DEFINE_integer(
     'end_call_control_number',
     None,
     'The control change number to use as a signal to end the call phrase. If '
@@ -106,14 +111,18 @@ def main(unused_argv):
   hub = midi_hub.MidiHub(FLAGS.input_port, FLAGS.output_port,
                          midi_hub.TextureType.MONOPHONIC)
 
-  end_call_signal = (None if FLAGS.end_call_control_number is None else
-                     midi_hub.MidiSignal(control=FLAGS.end_call_control_number,
-                                         value=0))
+  start_call_signal = (
+      None if FLAGS.end_call_control_number is None else
+      midi_hub.MidiSignal(control=FLAGS.start_call_control_number, value=0))
+  end_call_signal = (
+    None if FLAGS.end_call_control_number is None else
+    midi_hub.MidiSignal(control=FLAGS.end_call_control_number, value=0))
   interaction = midi_interaction.CallAndResponseMidiInteraction(
       hub,
       FLAGS.qpm,
       generator,
       phrase_bars=FLAGS.phrase_bars,
+      start_call_signal=start_call_signal,
       end_call_signal=end_call_signal)
 
   print ''
