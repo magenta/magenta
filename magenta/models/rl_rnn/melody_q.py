@@ -626,7 +626,6 @@ class MelodyQNetwork(object):
       The action chosen, and if sample_next_obs is True, also returns the next
       observation.
     """
-    print "action called"
     assert len(observation.shape) == 1, 'Single observation only'
 
     self.actions_executed_so_far += 1
@@ -674,7 +673,6 @@ class MelodyQNetwork(object):
       if not sample_next_obs:
         return action, reward_scores
       else:
-        print "sampling softmax" 
         obs_note = rl_rnn_ops.sample_softmax(action_softmax)
         next_obs = np.array(rl_rnn_ops.make_onehot([obs_note],
                                                    self.num_actions)).flatten()
