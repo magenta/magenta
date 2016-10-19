@@ -45,7 +45,7 @@ tf.app.flags.DEFINE_string('exploration_mode', 'boltzmann',
                            'Can be either egreedy for epsilon-greedy or '
                            'boltzmann, which will sample from the models'
                            'output distribution to select the next action')
-tf.app.flags.DEFINE_integer('output_every_nth', 100000,
+tf.app.flags.DEFINE_integer('output_every_nth', 10000,
                             'The number of steps before the model will evaluate'
                             'itself and store a checkpoint')
 tf.app.flags.DEFINE_integer('num_notes_in_melody', 32,
@@ -71,7 +71,7 @@ def main(_):
                                max_experience=100000,
                                target_network_update_rate=0.01)
 
-  output_dir = FLAGS.output_dir + '/' + FLAGS.algorithm
+  output_dir = FLAGS.output_dir + '/RewardScaler' + str(FLAGS.reward_scaler) + '/' + FLAGS.algorithm
   output_ckpt = output_dir + '/' + FLAGS.algorithm + '.ckpt'
 
   mq_net = melody_q.MelodyQNetwork(output_dir, output_ckpt,
