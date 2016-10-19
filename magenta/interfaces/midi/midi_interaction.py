@@ -161,7 +161,7 @@ class CallAndResponseMidiInteraction(MidiInteraction):
     call_start_quarters = start_quarters
 
     while not self._stop_signal.is_set():
-      if self._start_call_signal:
+      if self._start_call_signal is not None:
         # Wait for start signal.
         self._midi_hub.wait_for_event(self._start_call_signal)
         # Check to see if a stop has been requested.

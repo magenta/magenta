@@ -112,7 +112,7 @@ def main(unused_argv):
                          midi_hub.TextureType.MONOPHONIC)
 
   start_call_signal = (
-      None if FLAGS.end_call_control_number is None else
+      None if FLAGS.start_call_control_number is None else
       midi_hub.MidiSignal(control=FLAGS.start_call_control_number, value=0))
   end_call_signal = (
       None if FLAGS.end_call_control_number is None else
@@ -127,19 +127,26 @@ def main(unused_argv):
 
   print ''
   print 'Instructions:'
+  if FLAGS.start_call_control_number is not None:
+    print ('When you want to begin the call phrase, signal control number %d '
+           'with value 0.' % FLAGS.start_call_control_number)
   print 'Play when you hear the metronome ticking.'
   if FLAGS.phrase_bars is not None:
     print ('After %d bars (4 beats), Magenta will play its response.' %
            FLAGS.phrase_bars)
-    print ('Once the response completes, the metronome will tick and you can '
-           'play again.')
   else:
     print ('When you want to end the call phrase, signal control number %d '
            'with value 0' % FLAGS.end_call_control_number)
     print ('At the end of the current bar (4 beats), Magenta will play its '
            'response.')
+  if FLAGS.start_call_control_number is not None:
+    print ('Once the response completes, the interface will wait for you to '
+           'signal a new call phrase using control number %d.' %
+           FLAGS.start_call_control_number)
+  else:
     print ('Once the response completes, the metronome will tick and you can '
            'play again.')
+
   print ''
   print 'To end the interaction, press CTRL-C.'
 
