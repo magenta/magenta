@@ -626,6 +626,7 @@ class MelodyQNetwork(object):
       The action chosen, and if sample_next_obs is True, also returns the next
       observation.
     """
+    print "action called"
     assert len(observation.shape) == 1, 'Single observation only'
 
     self.actions_executed_so_far += 1
@@ -1086,6 +1087,7 @@ class MelodyQNetwork(object):
 
       # Reset the state after each composition is complete.
       if self.beat % self.num_notes_in_melody == 0:
+        if verbose: print "\nResetting composition!\n"
         self.reset_composition()
         last_observation = self.prime_internal_models()
 
