@@ -46,10 +46,10 @@ class ChordsLibTest(tf.test.TestCase):
 
   def testTranspose(self):
     # Transpose ChordProgression with basic triads.
-    events = ['Cm', 'F', 'B-', 'E-']
+    events = ['Cm', 'F', 'Bb', 'Eb']
     chords = chords_lib.ChordProgression(events)
     chords.transpose(transpose_amount=7)
-    expected = ['Gm', 'C', 'F', 'B-']
+    expected = ['Gm', 'C', 'F', 'Bb']
     self.assertEqual(expected, list(chords))
 
     # Transpose ChordProgression with more complex chords.
@@ -60,7 +60,7 @@ class ChordsLibTest(tf.test.TestCase):
     self.assertEqual(expected, list(chords))
 
     # Transpose ChordProgression containing NO_CHORD.
-    events = ['C', 'B-', NO_CHORD, 'F', 'C']
+    events = ['C', 'Bb', NO_CHORD, 'F', 'C']
     chords = chords_lib.ChordProgression(events)
     chords.transpose(transpose_amount=4)
     expected = ['E', 'D', NO_CHORD, 'A', 'E']

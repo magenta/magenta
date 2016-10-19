@@ -358,6 +358,8 @@ class BasicChordRenderer(ChordRenderer):
                velocity=100,
                instrument=1,
                program=88,
+               octave=4,
+               bass_octave=3,
                chord_symbol_functions=
                chord_symbols_lib.ChordSymbolFunctions.get()):
     """Initialize a BasicChordRenderer object.
@@ -372,10 +374,17 @@ class BasicChordRenderer(ChordRenderer):
     self._velocity = velocity
     self._instrument = instrument
     self._program = program
+    self._octave = octave
+    self._bass_octave = bass_octave
     self._chord_symbol_functions = chord_symbol_functions
 
-  def _render_notes(self, sequence, pitches, start_time, end_time):
+  def _render_notes(self, sequence, pitches, bass_pitch, start_time, end_time):
+    all_pitches = []
     for pitch in pitches:
+      all_pitches.append(12 * self._octave + pitch % 12)
+    all_pitches.append(12 * self._bass_octave + bass_pitch % 12)
+
+    for pitch in all_pitches:
       # Add a note.
       note = sequence.notes.add()
       note.start_time = start_time
@@ -399,10 +408,13 @@ class BasicChordRenderer(ChordRenderer):
       if annotation.annotation_type == CHORD_SYMBOL:
         if prev_figure != NO_CHORD:
           # Render the previous chord.
-          pitches = self._chord_symbol_functions.chord_symbol_midi_pitches(
+          pitches = self._chord_symbol_functions.chord_symbol_pitches(
+              prev_figure)
+          bass_pitch = self._chord_symbol_functions.chord_symbol_bass(
               prev_figure)
           self._render_notes(sequence=sequence,
                              pitches=pitches,
+                             bass_pitch=bass_pitch,
                              start_time=prev_time,
                              end_time=annotation.time)
 
@@ -412,9 +424,10 @@ class BasicChordRenderer(ChordRenderer):
     if (prev_time < sequence.total_time and
         prev_figure != NO_CHORD):
       # Render the last chord.
-      pitches = self._chord_symbol_functions.chord_symbol_midi_pitches(
-          prev_figure)
+      pitches = self._chord_symbol_functions.chord_symbol_pitches(prev_figure)
+      bass_pitch = self._chord_symbol_functions.chord_symbol_bass(prev_figure)
       self._render_notes(sequence=sequence,
                          pitches=pitches,
+                         bass_pitch=bass_pitch,
                          start_time=prev_time,
                          end_time=sequence.total_time)
