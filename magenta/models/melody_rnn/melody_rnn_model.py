@@ -44,8 +44,8 @@ class MelodyRnnModel(object):
       bundle = magenta.music.read_bundle_file(bundle_filename)
     else:
       bundle = None
-    self._generator = melody_rnn_sequence_generator(
-        config, checkpoint, bundle, steps_per_quarter)
+    self._generator = melody_rnn_sequence_generator.MelodyRnnSequenceGenerator(
+        config, steps_per_quarter, checkpoint, bundle)
 
   def generate_melody(self, num_steps, primer_melody):
     """Uses the model to generate a melody from a primer melody.
