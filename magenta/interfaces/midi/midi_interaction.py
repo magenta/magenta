@@ -139,6 +139,8 @@ class CallAndResponseMidiInteraction(MidiInteraction):
     self._quarters_per_bar = quarters_per_bar
     self._phrase_bars = phrase_bars
     self._end_call_signal = end_call_signal
+    self._player = None
+    self._metronome = None
 
   def run(self):
     """The main loop for a real-time call and response interaction."""
@@ -160,8 +162,11 @@ class CallAndResponseMidiInteraction(MidiInteraction):
       # Call stage.
 
       # Start the metronome at the beginning of the call stage.
-      self._midi_hub.start_metronome(
-          self._qpm, call_start_quarters * quarter_duration)
+      if self._metronome is None:
+        self._metronome = self._midi_hub.start_metronome(
+            self._qpm, call_start_quarters * quarter_duration)
+      else:
+        self._midi_hub.unmute_metronome(call_start_quarters * quarter_duration)
 
       # Start a captor at the beginning of the call stage.
       captor = self._midi_hub.start_capture(
@@ -183,9 +188,8 @@ class CallAndResponseMidiInteraction(MidiInteraction):
         call_quarters += remaining_call_quarters
 
       # Set the metronome to stop at the appropriate time.
-      self._midi_hub.stop_metronome(
-          (call_quarters + call_start_quarters) * quarter_duration,
-          block=False)
+      self._midi_hub.mute_metronome(
+          (call_quarters + call_start_quarters) * quarter_duration)
 
       # Stop the captor at the appropriate time.
       capture_quarters = call_quarters - predictahead_quarters
@@ -216,7 +220,7 @@ class CallAndResponseMidiInteraction(MidiInteraction):
 
       # Response stage.
       # Start response playback.
-      self._midi_hub.start_playback(response_sequence)
+      self._player = self._midi_hub.start_playback(response_sequence)
 
       # Compute remaining time after generation before the response stage
       # starts, updating `predictahead_quarters` appropriately.
@@ -236,6 +240,9 @@ class CallAndResponseMidiInteraction(MidiInteraction):
       call_start_quarters = response_end_quarters
 
   def stop(self):
+    self._midi_hub.stop_metronome()
+    if self._player is not None:
+      self._player.stop()
     if self._end_call_signal is not None:
       self._midi_hub.wake_signal_waiters(self._end_call_signal)
     super(CallAndResponseMidiInteraction, self).stop()

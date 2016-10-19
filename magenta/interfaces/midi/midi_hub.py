@@ -166,6 +166,8 @@ class Metronome(threading.Thread):
     self._duration = duration
     # A signal for when to stop the metronome.
     self._stop_time = stop_time
+    # A Boolean specifying mute state of the metronome.
+    self._mute = False
     super(Metronome, self).__init__()
 
   def run(self):
@@ -179,20 +181,23 @@ class Metronome(threading.Thread):
     while self._stop_time is None or self._stop_time > next_tick_time:
       sleeper.sleep_until(next_tick_time)
 
-      self._outport.send(
-          mido.Message(
-              type='note_on',
-              note=self._pitch,
-              channel=_METRONOME_CHANNEL,
-              velocity=self._velocity))
+      if self._mute is True:
+        sleeper.sleep(self._duration)
+      else:
+        self._outport.send(
+            mido.Message(
+                type='note_on',
+                note=self._pitch,
+                channel=_METRONOME_CHANNEL,
+                velocity=self._velocity))
 
-      sleeper.sleep(self._duration)
+        sleeper.sleep(self._duration)
 
-      self._outport.send(
-          mido.Message(
-              type='note_off',
-              note=self._pitch,
-              channel=_METRONOME_CHANNEL))
+        self._outport.send(
+            mido.Message(
+                type='note_off',
+                note=self._pitch,
+                channel=_METRONOME_CHANNEL))
 
       now = time.time()
       next_tick_time = now + period - ((now - self._start_time) % period)
@@ -209,6 +214,33 @@ class Metronome(threading.Thread):
     if block:
       self.join()
 
+  def mute(self, mute_time, resume_time=None):
+    """Mutes metronome output but maintains thread.
+
+    Args:
+      mute_time: The float wall time in seconds at which the metronome will be
+          muted. If in the future, muting will not occur until after this time.
+      resume_time: The float wall time in seconds after which the metronome
+          should be unmuted, or None if it should stay muted until 'unmute' is
+          called.
+    """
+    concurrency.Sleeper().sleep_until(mute_time)
+    self._mute = True
+
+    if resume_time:
+      concurrency.Sleeper().sleep_until(resume_time)
+      self._mute = False
+
+  def unmute(self, unmute_time):
+    """Resumes metronome output if muted.
+
+    Args:
+      unmute_time: The float wall time in seconds at which the metronome will be
+          unmuted. If in the future, unmuting will not occur until after this
+          time.
+    """
+    concurrency.Sleeper().sleep_until(unmute_time)
+    self._mute = False
 
 class MidiPlayer(threading.Thread):
   """A thread for playing back a NoteSequence proto via MIDI.
@@ -998,6 +1030,7 @@ class MidiHub(object):
       self.stop_metronome()
     self._metronome = Metronome(self._outport, qpm, start_time)
     self._metronome.start()
+    return self._metronome
 
   @concurrency.serialized
   def stop_metronome(self, stop_time=0, block=True):
@@ -1012,6 +1045,34 @@ class MidiHub(object):
       return
     self._metronome.stop(stop_time, block)
     self._metronome = None
+
+  @concurrency.serialized
+  def mute_metronome(self, mute_time, resume_time=None):
+    """Mutes the metronome output at the given time if it is currently running.
+
+    Args:
+      mute_time: The float wall time in seconds at which the metronome will be
+          muted. If in the future, muting will not occur until after this time.
+      resume_time: The float wall time in seconds after which the metronome
+          should be unmuted, or None if it should stay muted until 'unmute' is
+          called.
+    """
+    if self._metronome is None:
+      return
+    self._metronome.mute(mute_time, resume_time)
+
+  @concurrency.serialized
+  def unmute_metronome(self, unmute_time):
+    """Unmutes a muted metronome at the given time if it is currently running.
+
+    Args:
+      unmute_time: The float wall time in seconds at which the metronome will be
+          unmuted. If in the future, unmuting will not occur until after this
+          time.
+    """
+    if self._metronome is None:
+      return
+    self._metronome.unmute(unmute_time)
 
   def start_playback(self, sequence, allow_updates=False):
     """Plays the notes in aNoteSequence via the MIDI output port.
