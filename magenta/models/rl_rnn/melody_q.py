@@ -84,6 +84,7 @@ class MelodyQNetwork(object):
                dqn_hparams=None,
                reward_mode='music_theory_all',
                reward_scaler=1.0,
+               exploration_mode='egreedy',
                priming_mode='random_note',
                stochastic_observations=False,
                algorithm='default',
@@ -118,6 +119,9 @@ class MelodyQNetwork(object):
         Gauldin's book, "A Practical Approach to Eighteenth Century
         Counterpoint".
       reward_scaler: Controls the emphasis placed on the music theory rewards. 
+      exploration_mode: can be 'egreedy' which is an epsilon greedy policy, or
+        it can be 'boltzmann', in which the model will sample from its output
+        distribution to choose the next action.
       priming_mode: Each time the model begins a new composition, it is primed
         with either a random note ('random_note'), a random MIDI file from the
         training data ('random_midi'), or a particular MIDI file
@@ -157,6 +161,7 @@ class MelodyQNetwork(object):
       self.log_dir = log_dir
       self.reward_scaler = reward_scaler
       self.reward_mode = reward_mode
+      self.exploration_mode = exploration_mode
       self.num_notes_in_melody = num_notes_in_melody
       self.stochastic_observations = stochastic_observations
       self.algorithm = algorithm
@@ -602,7 +607,7 @@ class MelodyQNetwork(object):
     else:
       return p_initial - (n * (p_initial - p_final)) / (total)
 
-  def action(self, observation, exploration_period, enable_random=True,
+  def action(self, observation, exploration_period=0, enable_random=True,
              sample_next_obs=False):
     """Given an observation, runs the q_network to choose the current action.
 
@@ -625,10 +630,14 @@ class MelodyQNetwork(object):
 
     self.actions_executed_so_far += 1
 
-    # Compute the exploration probability.
-    exploration_p = MelodyQNetwork.linear_annealing(
-        self.actions_executed_so_far, exploration_period, 1.0,
-        self.dqn_hparams.random_action_probability)
+    if self.exploration_mode == 'egreedy'
+      # Compute the exploration probability.
+      exploration_p = MelodyQNetwork.linear_annealing(
+          self.actions_executed_so_far, exploration_period, 1.0,
+          self.dqn_hparams.random_action_probability)
+    elif self.exploration_mode == 'boltzmann':
+      enable_random = False
+      sample_next_obs = True
 
     # Run the observation through the q_network.
     input_batch = np.reshape(observation,
@@ -664,6 +673,7 @@ class MelodyQNetwork(object):
       if not sample_next_obs:
         return action, reward_scores
       else:
+        print "sampling softmax" 
         obs_note = rl_rnn_ops.sample_softmax(action_softmax)
         next_obs = np.array(rl_rnn_ops.make_onehot([obs_note],
                                                    self.num_actions)).flatten()
@@ -1046,22 +1056,23 @@ class MelodyQNetwork(object):
         self.music_theory_rewards_batched.append(self.music_theory_reward_last_n)
         self.note_rnn_rewards_batched.append(self.note_rnn_reward_last_n)
 
-        exploration_p = MelodyQNetwork.linear_annealing(
-            self.actions_executed_so_far, exploration_period, 1.0,
-            self.dqn_hparams.random_action_probability)
-
         r = self.reward_last_n
         tf.logging.info('Training iteration %s', i)
         tf.logging.info('\tReward for last %s steps: %s', self.output_every_nth, r)
         tf.logging.info('\t\tMusic theory reward: %s', self.music_theory_reward_last_n)
         tf.logging.info('\t\tNote RNN reward: %s', self.note_rnn_reward_last_n)
-        tf.logging.info('\tExploration probability is %s', exploration_p)
-
+        
         print 'Training iteration', i
         print '\tReward for last', self.output_every_nth, 'steps:', r
         print '\t\tMusic theory reward:', self.music_theory_reward_last_n
         print '\t\tNote RNN reward:', self.note_rnn_reward_last_n
-        print '\tExploration probability is', exploration_p
+
+        if self.exploration_mode == 'egreedy':
+          exploration_p = MelodyQNetwork.linear_annealing(
+              self.actions_executed_so_far, exploration_period, 1.0,
+              self.dqn_hparams.random_action_probability)
+          tf.logging.info('\tExploration probability is %s', exploration_p)
+          print '\tExploration probability is', exploration_p
         
         self.reward_last_n = 0
         self.music_theory_reward_last_n = 0
