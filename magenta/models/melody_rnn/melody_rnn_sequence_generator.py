@@ -155,19 +155,23 @@ class MelodyRnnSequenceGenerator(magenta.music.BaseSequenceGenerator):
     # Ensure that the melody extends up to the step we want to start generating.
     melody.set_length(start_step - melody.start_step)
 
+    temperature = (generator_options.args['temperature'].int_value
+                   if 'temperature' in generator_options.args else 1.0)
     generated_melody = self.generate_melody(
-        end_step - melody.start_step, melody)
+        end_step - melody.start_step, melody, temperature)
     generated_sequence = generated_melody.to_sequence(qpm=qpm)
-    assert generated_sequence.total_time <= generate_section.end_time
+    assert (generated_sequence.total_time - generate_section.end_time) <= 1e-5
     return generated_sequence
 
-  def generate_melody(self, num_steps, primer_melody):
+  def generate_melody(self, num_steps, primer_melody, temperature=1.0):
     """Generate a melody from a primer melody.
 
     Args:
       num_steps: The integer length in steps of the final melody, after
           generation. Includes the primer.
       primer_melody: The primer melody, a Melody object.
+      temperature: A float specifying how much to divide the logits by
+         before computing the softmax.
 
     Returns:
       The generated Melody object (which begins with the provided primer
@@ -192,24 +196,30 @@ class MelodyRnnSequenceGenerator(magenta.music.BaseSequenceGenerator):
         encoder_decoder.max_note,
         encoder_decoder.transpose_to_key)
 
-    inputs = self._session.graph.get_collection('inputs')[0]
-    initial_state = self._session.graph.get_collection('initial_state')[0]
-    final_state = self._session.graph.get_collection('final_state')[0]
-    softmax = self._session.graph.get_collection('softmax')[0]
+    graph_inputs = self._session.graph.get_collection('inputs')[0]
+    graph_initial_state = self._session.graph.get_collection('initial_state')[0]
+    graph_final_state = self._session.graph.get_collection('final_state')[0]
+    graph_softmax = self._session.graph.get_collection('softmax')[0]
+    graph_temperature = self._session.graph.get_collection('temperature')
 
-    final_state_ = None
+    final_state = None
     for i in range(num_steps - len(melody)):
       if i == 0:
-        inputs_ = encoder_decoder.get_inputs_batch([melody], full_length=True)
-        initial_state_ = self._session.run(initial_state)
+        inputs = encoder_decoder.get_inputs_batch([melody], full_length=True)
+        initial_state = self._session.run(graph_initial_state)
       else:
-        inputs_ = encoder_decoder.get_inputs_batch([melody])
-        initial_state_ = final_state_
+        inputs = encoder_decoder.get_inputs_batch([melody])
+        initial_state = final_state
 
-      feed_dict = {inputs: inputs_, initial_state: initial_state_}
-      final_state_, softmax_ = self._session.run(
-          [final_state, softmax], feed_dict)
-      encoder_decoder.extend_event_sequences([melody], softmax_)
+      feed_dict = {graph_inputs: inputs,
+                   graph_initial_state: initial_state}
+      # For backwards compatibility, we only try to pass temperature if the
+      # placeholder exists in the graph.
+      if graph_temperature:
+        feed_dict[graph_temperature[0]] = temperature
+      final_state, softmax = self._session.run(
+          [graph_final_state, graph_softmax], feed_dict)
+      encoder_decoder.extend_event_sequences([melody], softmax)
 
     melody.transpose(-transpose_amount)
 
