@@ -121,6 +121,8 @@ class CallAndResponseMidiInteraction(MidiInteraction):
     quarters_per_bar: The number of quarter notes in each bar/measure.
     phrase_bars: The optional number of bars in each phrase. `end_call_signal`
         must be provided if None.
+    start_call_signal: The control change number to use as a signal to start the
+       call phrase. If None, call will start immediately after response.
     end_call_signal: The optional midi_hub.MidiSignal to use as a signal to stop
         the call phrase at the end of the current bar. `phrase_bars` must be
         provided if None.
@@ -133,11 +135,13 @@ class CallAndResponseMidiInteraction(MidiInteraction):
                sequence_generator,
                quarters_per_bar=4,
                phrase_bars=None,
+               start_call_signal=None,
                end_call_signal=None):
     super(CallAndResponseMidiInteraction, self).__init__(midi_hub, qpm)
     self._sequence_generator = sequence_generator
     self._quarters_per_bar = quarters_per_bar
     self._phrase_bars = phrase_bars
+    self._start_call_signal = start_call_signal
     self._end_call_signal = end_call_signal
 
   def run(self):
@@ -157,6 +161,13 @@ class CallAndResponseMidiInteraction(MidiInteraction):
     call_start_quarters = start_quarters
 
     while not self._stop_signal.is_set():
+      if self._start_call_signal is not None:
+        # Wait for start signal.
+        self._midi_hub.wait_for_event(self._start_call_signal)
+        # Check to see if a stop has been requested.
+        if self._stop_signal.is_set():
+          break
+
       # Call stage.
 
       # Start the metronome at the beginning of the call stage.
@@ -236,6 +247,8 @@ class CallAndResponseMidiInteraction(MidiInteraction):
       call_start_quarters = response_end_quarters
 
   def stop(self):
+    if self._start_call_signal is not None:
+      self._midi_hub.wake_signal_waiters(self._start_call_signal)
     if self._end_call_signal is not None:
       self._midi_hub.wake_signal_waiters(self._end_call_signal)
     super(CallAndResponseMidiInteraction, self).stop()
