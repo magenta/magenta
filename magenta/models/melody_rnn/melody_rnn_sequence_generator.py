@@ -14,13 +14,14 @@
 """Melody RNN generation code as a SequenceGenerator interface."""
 
 import copy
+from functools import partial
 import heapq
-import numpy as np
 import random
 
-from functools import partial
 
 # internal imports
+import numpy as np
+
 from six.moves import range  # pylint: disable=redefined-builtin
 
 import tensorflow as tf
@@ -37,19 +38,12 @@ class MelodyRnnSequenceGeneratorException(Exception):
 class MelodyRnnSequenceGenerator(magenta.music.BaseSequenceGenerator):
   """Shared Melody RNN generation code as a SequenceGenerator interface."""
 
-  def __init__(self, config, beam_size=1, branch_factor=1,
-               steps_per_iteration=1, steps_per_quarter=4, checkpoint=None,
-               bundle=None):
+  def __init__(self, config, steps_per_quarter=4, checkpoint=None, bundle=None):
     """Creates a MelodyRnnSequenceGenerator.
 
     Args:
       config: A MelodyRnnConfig containing the GeneratorDetails,
           MelodyEncoderDecoder, and HParams to use.
-      beam_size: An integer, beam size to use when generating melodies via beam
-          search.
-      branch_factor: An integer, beam search branch factor to use.
-      steps_per_iteration: An integer, number of melody steps to take per beam
-          search iteration.
       steps_per_quarter: What precision to use when quantizing the melody. How
           many steps per quarter note.
       checkpoint: Where to search for the most recent model checkpoint. Mutually
@@ -61,14 +55,11 @@ class MelodyRnnSequenceGenerator(magenta.music.BaseSequenceGenerator):
         config.details, checkpoint, bundle)
     self._session = None
     self._steps_per_quarter = steps_per_quarter
-    self._beam_size = beam_size
-    self._branch_factor = branch_factor
-    self._steps_per_iteration = steps_per_iteration
 
     self._config = config
     # Override hparams for generation.
     self._config.hparams.dropout_keep_prob = 1.0
-    self._config.hparams.batch_size = beam_size
+    self._config.hparams.batch_size = 1
 
   def _initialize_with_checkpoint(self, checkpoint_file):
     graph = melody_rnn_graph.build_graph('generate', self._config)
@@ -168,10 +159,19 @@ class MelodyRnnSequenceGenerator(magenta.music.BaseSequenceGenerator):
     # Ensure that the melody extends up to the step we want to start generating.
     melody.set_length(start_step - melody.start_step)
 
-    temperature = (generator_options.args['temperature'].float_value
-                   if 'temperature' in generator_options.args else 1.0)
+    # Extract generation arguments from generator options.
+    arg_types = {
+        'temperature': lambda arg: arg.float_value,
+        'beam_size': lambda arg: arg.int_value,
+        'branch_factor': lambda arg: arg.int_value,
+        'steps_per_iteration': lambda arg: arg.int_value
+    }
+    args = dict((name, value_fn(generator_options.args[name]))
+                for name, value_fn in arg_types.items()
+                if name in generator_options.args)
+
     generated_melody = self.generate_melody(
-        end_step - melody.start_step, melody, temperature)
+        end_step - melody.start_step, melody, **args)
     generated_sequence = generated_melody.to_sequence(qpm=qpm)
     assert (generated_sequence.total_time - generate_section.end_time) <= 1e-5
     return generated_sequence
@@ -196,17 +196,17 @@ class MelodyRnnSequenceGenerator(magenta.music.BaseSequenceGenerator):
 
     return melodies, final_state, softmax[range(len(melodies)), -1, indices]
 
-  def _generate_branches(self, melodies, loglik, num_steps, inputs,
-                         initial_state, temperature):
+  def _generate_branches(self, melodies, loglik, branch_factor, num_steps,
+                         inputs, initial_state, temperature):
     """Performs a single iteration of branch generation for beam search."""
     all_melodies = []
     all_final_state = np.empty((0, initial_state.shape[1]))
     all_loglik = np.empty(0)
 
-    for _ in range(self._branch_factor):
+    for _ in range(branch_factor):
       melodies_copy = copy.deepcopy(melodies)
       loglik_copy = copy.deepcopy(loglik)
-      for step in range(num_steps):
+      for _ in range(num_steps):
         melodies_copy, final_state, softmax = self._generate_step(
             melodies_copy, inputs, initial_state, temperature)
         loglik_copy += np.log(softmax)
@@ -226,34 +226,34 @@ class MelodyRnnSequenceGenerator(magenta.music.BaseSequenceGenerator):
 
     return melodies, final_state, loglik
 
-  def _beam_search(self, melody, num_steps, temperature):
+  def _beam_search(self, melody, num_steps, temperature, beam_size,
+                   branch_factor, steps_per_iteration):
     """Generates a melody using beam search."""
-    melodies = [copy.deepcopy(melody)
-                for _ in range(self._beam_size)]
+    melodies = [copy.deepcopy(melody) for _ in range(beam_size)]
     graph_initial_state = self._session.graph.get_collection('initial_state')[0]
-    loglik = np.zeros(self._beam_size)
+    loglik = np.zeros(beam_size)
 
     # Choose the number of steps for the first iteration such that subsequent
     # iterations can all take the same number of steps.
-    first_iteration_num_steps = (num_steps - 1) % self._steps_per_iteration + 1
+    first_iteration_num_steps = (num_steps - 1) % steps_per_iteration + 1
 
     inputs = self._config.encoder_decoder.get_inputs_batch(
         melodies, full_length=True)
     initial_state = self._session.run(graph_initial_state)
     melodies, final_state, loglik = self._generate_branches(
-        melodies, loglik, first_iteration_num_steps, inputs, initial_state,
-        temperature)
+        melodies, loglik, branch_factor, first_iteration_num_steps, inputs,
+        initial_state, temperature)
 
     num_iterations = (num_steps -
-                      first_iteration_num_steps) / self._steps_per_iteration
+                      first_iteration_num_steps) / steps_per_iteration
 
     for _ in range(num_iterations):
       melodies, final_state, loglik = self._prune_branches(
-          melodies, final_state, loglik, k=self._beam_size)
+          melodies, final_state, loglik, k=beam_size)
       inputs = self._config.encoder_decoder.get_inputs_batch(melodies)
       melodies, final_state, loglik = self._generate_branches(
-          melodies, loglik, self._steps_per_iteration, inputs, final_state,
-          temperature)
+          melodies, loglik, branch_factor, steps_per_iteration, inputs,
+          final_state, temperature)
 
     # Prune to a single melody.
     melodies, final_state, loglik = self._prune_branches(
@@ -264,7 +264,8 @@ class MelodyRnnSequenceGenerator(magenta.music.BaseSequenceGenerator):
 
     return melodies[0]
 
-  def generate_melody(self, num_steps, primer_melody, temperature=1.0):
+  def generate_melody(self, num_steps, primer_melody, temperature=1.0,
+                      beam_size=1, branch_factor=1, steps_per_iteration=1):
     """Generate a melody from a primer melody.
 
     Args:
@@ -274,6 +275,11 @@ class MelodyRnnSequenceGenerator(magenta.music.BaseSequenceGenerator):
       temperature: A float specifying how much to divide the logits by
          before computing the softmax. Greater than 1.0 makes melodies more
          random, less than 1.0 makes melodies less random.
+      beam_size: An integer, beam size to use when generating melodies via beam
+          search.
+      branch_factor: An integer, beam search branch factor to use.
+      steps_per_iteration: An integer, number of melody steps to take per beam
+          search iteration.
 
     Returns:
       The generated Melody object (which begins with the provided primer
@@ -290,6 +296,10 @@ class MelodyRnnSequenceGenerator(magenta.music.BaseSequenceGenerator):
       raise MelodyRnnSequenceGeneratorException(
           'primer melody must be shorter than `num_steps`')
 
+    if beam_size != self._config.hparams.batch_size:
+      raise MelodyRnnSequenceGeneratorException(
+          'currently beam search only supports using batch size as beam size')
+
     melody = copy.deepcopy(primer_melody)
 
     transpose_amount = melody.squash(
@@ -298,7 +308,8 @@ class MelodyRnnSequenceGenerator(magenta.music.BaseSequenceGenerator):
         self._config.encoder_decoder.transpose_to_key)
 
     if num_steps > len(melody):
-      melody = self._beam_search(melody, num_steps - len(melody), temperature)
+      melody = self._beam_search(melody, num_steps - len(melody), temperature,
+                                 beam_size, branch_factor, steps_per_iteration)
 
     melody.transpose(-transpose_amount)
 

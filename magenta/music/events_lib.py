@@ -423,6 +423,9 @@ class EventsEncoderDecoder(object):
       event_sequences: A list of EventSequence objects.
       softmax: A list of softmax probability vectors. The list of softmaxes
           should be the same length as the list of event_sequences.
+
+    Returns:
+      A python list of chosen class indices, one for each event sequence.
     """
     num_classes = len(softmax[0][0])
     chosen_classes = []

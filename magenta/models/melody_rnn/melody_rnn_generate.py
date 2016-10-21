@@ -128,15 +128,6 @@ def get_bundle():
   return magenta.music.read_bundle_file(bundle_file)
 
 
-def get_beam_search_params():
-  """Get the beam search parameters to use."""
-  return {
-    'beam_size': FLAGS.beam_size,
-    'branch_factor': FLAGS.branch_factor,
-    'steps_per_iteration': FLAGS.steps_per_iteration
-  }
-
-
 def _steps_to_seconds(steps, qpm):
   """Converts steps to seconds.
 
@@ -215,6 +206,10 @@ def run_with_flags(generator):
         start_time=0,
         end_time=total_seconds)
   generator_options.args['temperature'].float_value = FLAGS.temperature
+  generator_options.args['beam_size'].int_value = FLAGS.beam_size
+  generator_options.args['branch_factor'].int_value = FLAGS.branch_factor
+  generator_options.args[
+      'steps_per_iteration'].int_value = FLAGS.steps_per_iteration
   tf.logging.debug('input_sequence: %s', input_sequence)
   tf.logging.debug('generator_options: %s', generator_options)
 
@@ -239,8 +234,7 @@ def main(unused_argv):
       config=melody_rnn_config.config_from_flags(),
       steps_per_quarter=FLAGS.steps_per_quarter,
       checkpoint=get_checkpoint(),
-      bundle=get_bundle(),
-      **get_beam_search_params())
+      bundle=get_bundle())
 
   if FLAGS.save_generator_bundle:
     bundle_filename = os.path.expanduser(FLAGS.bundle_file)
