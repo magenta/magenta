@@ -1,9 +1,11 @@
 from __future__ import print_function
 import tensorflow as tf
+import numpy as np
 import os
 from tfkdllib import numpy_softmax, numpy_sample_softmax
 from tfkdllib import duration_and_pitch_to_midi
 from tfkdllib import tfrecord_duration_and_pitch_iterator
+import graph
 
 FLAGS = tf.app.flags.FLAGS
 tf.app.flags.DEFINE_string('input', None, 'Polyphonic tfrecord file')
@@ -18,10 +20,6 @@ def validate_sample_args(model_ckpt,
                          **kwargs):
     return (model_ckpt, runtime, sample_path, prime, sample, sample_len, temperature)
 
-# TODO(fjord): copied from poly_rnn
-batch_size = 32
-sequence_length = 30
-
 def sample(kwargs):
     (model_ckpt,
      runtime,
@@ -30,16 +28,10 @@ def sample(kwargs):
      sample,
      sample_len,
      temperature) = validate_sample_args(**kwargs)
-    # Wow this is nastyyyyy
-    #from duration_rnn import *
-    valid_itr = tfrecord_duration_and_pitch_iterator(FLAGS.input,
-                                                     batch_size,
-                                                     start_index=.9,
-                                                     sequence_length=sequence_length)
-    valid_itr.reset()
-    duration_mb, note_mb = valid_itr.next()
+    g = graph.Graph(FLAGS.input)
+    g.valid_itr.reset()
+    duration_mb, note_mb = g.valid_itr.next()
     duration_and_pitch_to_midi(sample_path + "/gt_%i.mid" % runtime, duration_mb[:, 0], note_mb[:, 0])
-    train_itr.reset()
 
     with tf.Session() as sess:
         tf.initialize_all_variables().run()
@@ -51,7 +43,7 @@ def sample(kwargs):
             saver.restore(sess, ckpt.model_checkpoint_path)
         else:
             raise ValueError("Unable to restore from checkpoint")
-        i_h1 = np.zeros((batch_size, rnn_dim)).astype("float32")
+        i_h1 = np.zeros((g.batch_size, g.rnn_dim)).astype("float32")
 
         prime = 8
         note_mb = note_mb[:prime]
@@ -78,16 +70,16 @@ def sample(kwargs):
         random_state = np.random.RandomState(1999)
         for j in range(sample_len - 1):
             # even predictions are note, odd are duration
-            for ni in range(2 * n_notes):
-                feed = {note_inpt: full_notes[j][None, :, :],
-                        note_target: full_notes[j + 1][None, :, :],
-                        duration_inpt: full_durations[j][None, :, :],
-                        duration_target: full_durations[j + 1][None, :, :],
-                        init_h1: i_h1}
+            for ni in range(2 * g.n_notes):
+                feed = {g.note_inpt: full_notes[j][None, :, :],
+                        g.note_target: full_notes[j + 1][None, :, :],
+                        g.duration_inpt: full_durations[j][None, :, :],
+                        g.duration_target: full_durations[j + 1][None, :, :],
+                        g.init_h1: i_h1}
                 outs = []
-                outs += note_preds
-                outs += duration_preds
-                outs += [final_h1]
+                outs += g.note_preds
+                outs += g.duration_preds
+                outs += [g.final_h1]
                 r = sess.run(outs, feed)
                 h_l = r[-1:]
                 h1_l = h_l[-1]
@@ -99,14 +91,14 @@ def sample(kwargs):
                 if j < (len(note_inputs) - 1):
                     # bypass sampling for now - still in prime seq
                     continue
-                note_probs = this_probs[:n_notes]
-                duration_probs = this_probs[n_notes:]
+                note_probs = this_probs[:g.n_notes]
+                duration_probs = this_probs[g.n_notes:]
                 si = ni // 2
                 if (ni % 2) == 0:
                     # only put the single note in...
                     full_notes[j + 1, :, si] = this_samples[si].ravel()
                 if (ni % 2) == 1:
-                    full_durations[j + 1, :, si] = this_samples[si + n_notes].ravel()
+                    full_durations[j + 1, :, si] = this_samples[si + g.n_notes].ravel()
             i_h1 = h1_l
 
         for n in range(full_durations.shape[1]):
@@ -115,22 +107,22 @@ def sample(kwargs):
                                        prime)
 
 
-def main(unused_argv):
+def main(argv):
     # prime is the text to prime with
     # sample is 0 for argmax, 1 for sample per character, 2 to sample per space
     import sys
-    if len(sys.argv) < 3:
+    if len(argv) < 3:
         import time
         runtime = int(time.time())
     else:
-        runtime = int(sys.argv[2])
-    if len(sys.argv) < 4:
+        runtime = int(argv[2])
+    if len(argv) < 4:
         sample_path = "samples"
     else:
-        sample_path = str(sys.argv[3])
+        sample_path = str(argv[3])
     if not os.path.exists(sample_path):
         os.makedirs(sample_path)
-    kwargs = {"model_ckpt": sys.argv[1],
+    kwargs = {"model_ckpt": argv[1],
               "runtime": runtime,
               "sample_path": sample_path,
               "prime": " ",

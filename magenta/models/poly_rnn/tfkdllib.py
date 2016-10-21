@@ -199,7 +199,7 @@ def duration_and_pitch_to_midi(filename, durations, pitches, prime_until=0):
 
     # Hardcode for now, eventually randomize?
     # or predict...
-    sequence.ticks_per_beat = 480
+    sequence.ticks_per_quarter = mm.STANDARD_PPQ
     ts = sequence.time_signatures.add()
     ts.time = 1.0
     ts.numerator = 4
@@ -210,7 +210,7 @@ def duration_and_pitch_to_midi(filename, durations, pitches, prime_until=0):
     ks.mode = ks.MAJOR
 
     tempos = sequence.tempos.add()
-    tempos.bpm = 120
+    tempos.qpm = 120
     # ti.simultaneous_notes
     sn = 4
     # ti.time_classes
@@ -262,8 +262,7 @@ def duration_and_pitch_to_midi(filename, durations, pitches, prime_until=0):
         sequence_note.start_time = float(s)
         sequence_note.end_time = float(e)
 
-    from magenta.lib.midi_io import sequence_proto_to_pretty_midi
-    pretty_midi_object = sequence_proto_to_pretty_midi(sequence)
+    pretty_midi_object = mm.sequence_proto_to_pretty_midi(sequence)
     pretty_midi_object.write(filename)
 
 

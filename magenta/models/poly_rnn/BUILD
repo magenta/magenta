@@ -30,8 +30,17 @@ py_binary(
     name = "sample_poly_rnn",
     srcs = ["sample_poly_rnn.py"],
     deps = [
-        ":tfkdllib"
+        ":tfkdllib",
+        ":graph",
         # tensorflow dep
+    ],
+)
+
+py_library(
+    name = "graph",
+    srcs = ["graph.py"],
+    deps = [
+        ":tfkdllib",
     ],
 )
 
