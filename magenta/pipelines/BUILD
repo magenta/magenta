@@ -79,6 +79,9 @@ py_library(
     srcs = ["pipelines_common.py"],
     deps = [
         ":pipeline",
+        "//magenta/music:chord_symbols_lib",
+        "//magenta/music:chords_lib",
+        "//magenta/music:events_lib",
         "//magenta/music:melodies_lib",
         "//magenta/music:sequences_lib",
         "//magenta/protobuf:music_py_pb2",
@@ -92,6 +95,7 @@ py_test(
     deps = [
         ":pipelines_common",
         "//magenta/common:testing_lib",
+        "//magenta/music:chords_lib",
         "//magenta/music:constants",
         "//magenta/music:melodies_lib",
         "//magenta/music:sequences_lib",

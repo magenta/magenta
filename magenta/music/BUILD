@@ -80,6 +80,7 @@ py_test(
     deps = [
         ":chord_symbols_lib",
         ":chords_lib",
+        ":constants",
         ":melodies_lib",
         ":sequences_lib",
         ":testing_lib",

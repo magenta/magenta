@@ -94,6 +94,7 @@ class QuantizedSequence(object):
         can also communicate more high level aspects of the music
         (see https://en.wikipedia.org/wiki/Time_signature).
     steps_per_quarter: How many quantization steps per quarter note of music.
+    total_steps: The total number of steps in the quantized sequence.
   """
 
   # Disabling pylint since it is recognizing these as attributes instead of
@@ -116,6 +117,7 @@ class QuantizedSequence(object):
     self.time_signature = QuantizedSequence.TimeSignature(numerator=4,
                                                           denominator=4)
     self.steps_per_quarter = 4
+    self.total_steps = 0
 
   def steps_per_bar(self):
     """Calculates steps per bar.
@@ -180,6 +182,8 @@ class QuantizedSequence(object):
 
     quantize = lambda x: int(x + (1 - QUANTIZE_CUTOFF))
 
+    self.total_steps = quantize(note_sequence.total_time * steps_per_second)
+
     for note in note_sequence.notes:
       # Quantize the start and end times of the note.
       start_step = quantize(note.start_time * steps_per_second)
@@ -225,6 +229,7 @@ class QuantizedSequence(object):
         self.qpm == other.qpm and
         self.time_signature == other.time_signature and
         self.steps_per_quarter == other.steps_per_quarter and
+        self.total_steps == other.total_steps and
         set(self.chords) == set(other.chords))
 
   def __deepcopy__(self, unused_memo=None):
@@ -234,4 +239,5 @@ class QuantizedSequence(object):
     new_copy.qpm = self.qpm
     new_copy.time_signature = self.time_signature
     new_copy.steps_per_quarter = self.steps_per_quarter
+    new_copy.total_steps = self.total_steps
     return new_copy

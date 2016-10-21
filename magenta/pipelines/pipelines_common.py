@@ -23,6 +23,9 @@ import random
 import numpy as np
 import tensorflow as tf
 
+from magenta.music import chord_symbols_lib
+from magenta.music import chords_lib
+from magenta.music import events_lib
 from magenta.music import melodies_lib
 from magenta.music import sequences_lib
 from magenta.pipelines import pipeline
@@ -79,6 +82,37 @@ class MelodyExtractor(pipeline.Pipeline):
       stats = [statistics.Counter('non_integer_steps_per_bar', 1)]
     self._set_stats(stats)
     return melodies
+
+
+class ChordsExtractor(pipeline.Pipeline):
+  """Extracts a chord progression from a QuantizedSequence."""
+
+  def __init__(self, max_steps=512, all_transpositions=False):
+    super(ChordsExtractor, self).__init__(
+        input_type=sequences_lib.QuantizedSequence,
+        output_type=chords_lib.ChordProgression)
+    self._max_steps = max_steps
+    self._all_transpositions = all_transpositions
+
+  def transform(self, quantized_sequence):
+    try:
+      chord_progressions, stats = chords_lib.extract_chords(
+          quantized_sequence, max_steps=self._max_steps,
+          all_transpositions=self._all_transpositions)
+    except events_lib.NonIntegerStepsPerBarException as detail:
+      tf.logging.warning('Skipped sequence: %s', detail)
+      chord_progressions = []
+      stats = [statistics.Counter('non_integer_steps_per_bar', 1)]
+    except chords_lib.CoincidentChordsException as detail:
+      tf.logging.warning('Skipped sequence: %s', detail)
+      chord_progressions = []
+      stats = [statistics.Counter('coincident_chords', 1)]
+    except chord_symbols_lib.ChordSymbolException as detail:
+      tf.logging.warning('Skipped sequence: %s', detail)
+      chord_progressions = []
+      stats = [statistics.Counter('chord_symbol_exception', 1)]
+    self._set_stats(stats)
+    return chord_progressions
 
 
 class RandomPartition(pipeline.Pipeline):
