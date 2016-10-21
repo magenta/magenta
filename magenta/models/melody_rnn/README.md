@@ -36,8 +36,10 @@ directory.
 
 ```
 BUNDLE_PATH=<absolute path of .mag file>
+CONFIG=<one of 'basic_rnn', 'lookback_rnn', or 'attention_rnn'>
 
 melody_rnn_generate -- \
+--config=${CONFIG} \
 --bundle_file=${BUNDLE_PATH} \
 --output_dir=/tmp/melody_rnn/generated \
 --num_outputs=10 \
