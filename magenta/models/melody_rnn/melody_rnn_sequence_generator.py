@@ -155,7 +155,7 @@ class MelodyRnnSequenceGenerator(magenta.music.BaseSequenceGenerator):
     # Ensure that the melody extends up to the step we want to start generating.
     melody.set_length(start_step - melody.start_step)
 
-    temperature = (generator_options.args['temperature'].int_value
+    temperature = (generator_options.args['temperature'].float_value
                    if 'temperature' in generator_options.args else 1.0)
     generated_melody = self.generate_melody(
         end_step - melody.start_step, melody, temperature)
@@ -171,7 +171,8 @@ class MelodyRnnSequenceGenerator(magenta.music.BaseSequenceGenerator):
           generation. Includes the primer.
       primer_melody: The primer melody, a Melody object.
       temperature: A float specifying how much to divide the logits by
-         before computing the softmax.
+         before computing the softmax. Greater than 1.0 makes melodies more
+         random, less than 1.0 makes melodies less random.
 
     Returns:
       The generated Melody object (which begins with the provided primer
