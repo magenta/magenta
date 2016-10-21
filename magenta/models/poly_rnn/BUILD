@@ -18,10 +18,11 @@
 licenses(["notice"])  # Apache 2.0
 
 py_binary(
-    name = "poly_rnn",
-    srcs = ["poly_rnn.py"],
+    name = "poly_rnn_train",
+    srcs = ["poly_rnn_train.py"],
     deps = [
-        ":tfkdllib"
+        ":tfkdllib",
+        ":poly_rnn_graph",
         # tensorflow dep
     ],
 )
@@ -31,14 +32,14 @@ py_binary(
     srcs = ["sample_poly_rnn.py"],
     deps = [
         ":tfkdllib",
-        ":graph",
+        ":poly_rnn_graph",
         # tensorflow dep
     ],
 )
 
 py_library(
-    name = "graph",
-    srcs = ["graph.py"],
+    name = "poly_rnn_graph",
+    srcs = ["poly_rnn_graph.py"],
     deps = [
         ":tfkdllib",
     ],
