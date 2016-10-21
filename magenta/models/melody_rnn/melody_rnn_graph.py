@@ -154,15 +154,15 @@ def build_graph(mode, config, sequence_example_file=None):
         tf.add_to_collection('summary_op', summary_op)
 
     elif mode == 'generate':
-      if hparams.temperature and hparams.temperature != 1.0:
-        logits_flat /= hparams.temperature
-
-      softmax_flat = tf.nn.softmax(logits_flat)
+      temperature = tf.placeholder(tf.float32, [])
+      softmax_flat = tf.nn.softmax(
+          tf.div(logits_flat, tf.fill([num_classes], temperature)))
       softmax = tf.reshape(softmax_flat, [hparams.batch_size, -1, num_classes])
 
       tf.add_to_collection('inputs', inputs)
       tf.add_to_collection('initial_state', initial_state)
       tf.add_to_collection('final_state', final_state)
+      tf.add_to_collection('temperature', temperature)
       tf.add_to_collection('softmax', softmax)
 
   return graph

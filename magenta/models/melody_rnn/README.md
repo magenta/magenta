@@ -36,8 +36,10 @@ directory.
 
 ```
 BUNDLE_PATH=<absolute path of .mag file>
+CONFIG=<one of 'basic_rnn', 'lookback_rnn', or 'attention_rnn'>
 
 melody_rnn_generate -- \
+--config=${CONFIG} \
 --bundle_file=${BUNDLE_PATH} \
 --output_dir=/tmp/melody_rnn/generated \
 --num_outputs=10 \
@@ -172,7 +174,6 @@ At least one note needs to be fed to the model before it can start generating co
 melody_rnn_generate -- \
 --config=attention_rnn \
 --run_dir=/tmp/attention_rnn/logdir/run1 \
---hparams="{'batch_size':64,'rnn_layer_sizes':[64,64]}" \
 --output_dir=/tmp/attention_rnn/generated \
 --num_outputs=10 \
 --num_steps=128 \

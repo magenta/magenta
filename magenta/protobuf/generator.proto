@@ -34,11 +34,22 @@ message GeneratorOptions {
     // End time for the section in seconds, exclusive.
     double end_time = 2;
   }
-
   // Sections of input sequence to condition on.
   repeated SequenceSection input_sections = 1;
   // Sections of sequence to generate.
   repeated SequenceSection generate_sections = 2;
+
+  // Map of argument name to argument value for additional arguments.
+  // Generators should ignore unsupported arguments.
+  message ArgValue {
+    // Each argument value can be exactly one kind.
+    oneof kind {
+      bytes byte_value = 1;
+      int32 int_value = 2;
+      double float_value = 3;
+    }
+  }
+  map<string, ArgValue> args = 3;
 }
 
 // Bundle for wrapping a generator id, checkpoint file, and metagraph.
