@@ -1,10 +1,6 @@
 import numpy as np
 import tensorflow as tf
-from tfkdllib import Multiembedding, GRUFork, GRU, Linear, Automask
-from tfkdllib import ni, scan
-from tfkdllib import softmax, categorical_crossentropy
-from tfkdllib import tfrecord_duration_and_pitch_iterator
-from tfkdllib import LSTM, LSTMFork
+import poly_rnn_lib
 
 class Graph(object):
   def __init__(self, examples):
@@ -14,18 +10,16 @@ class Graph(object):
     # 30 steps ~= 30 seconds
     sequence_length = 30
 
-    self.train_itr = tfrecord_duration_and_pitch_iterator(examples,
-                                                     self.batch_size,
-                                                     stop_index=.9,
-                                                     sequence_length=sequence_length)
+    self.train_itr = poly_rnn_lib.tfrecord_duration_and_pitch_iterator(
+        examples, self.batch_size, stop_index=.9,
+        sequence_length=sequence_length)
 
     duration_mb, note_mb = next(self.train_itr)
     self.train_itr.reset()
 
-    self.valid_itr = tfrecord_duration_and_pitch_iterator(examples,
-                                                     self.batch_size,
-                                                     start_index=.9,
-                                                     sequence_length=sequence_length)
+    self.valid_itr = poly_rnn_lib.tfrecord_duration_and_pitch_iterator(
+        examples, self.batch_size, start_index=.9,
+        sequence_length=sequence_length)
 
     num_note_features = note_mb.shape[-1]
     num_duration_features = duration_mb.shape[-1]
@@ -48,12 +42,12 @@ class Graph(object):
     share_output_parameters = False
 
     if rnn_type == "lstm":
-        RNNFork = LSTMFork
-        RNN = LSTM
+        RNNFork = poly_rnn_lib.LSTMFork
+        RNN = poly_rnn_lib.LSTM
         self.rnn_dim = 2 * h_dim
     elif rnn_type == "gru":
-        RNNFork = GRUFork
-        RNN = GRU
+        RNNFork = poly_rnn_lib.GRUFork
+        RNN = poly_rnn_lib.GRU
         self.rnn_dim = h_dim
     else:
         raise ValueError("Unknown rnn_type %s" % rnn_type)
@@ -78,12 +72,12 @@ class Graph(object):
     else:
         name_dur_emb = None
         name_note_emb = None
-    duration_embed = Multiembedding(self.duration_inpt, n_duration_symbols,
+    duration_embed = poly_rnn_lib.Multiembedding(self.duration_inpt, n_duration_symbols,
                                     duration_embed_dim, random_state,
                                     name=name_dur_emb,
                                     share_all=share_all_embeddings)
 
-    note_embed = Multiembedding(self.note_inpt, n_note_symbols,
+    note_embed = poly_rnn_lib.Multiembedding(self.note_inpt, n_note_symbols,
                                 note_embed_dim, random_state,
                                 name=name_note_emb,
                                 share_all=share_all_embeddings)
@@ -102,20 +96,20 @@ class Graph(object):
                    h1_tm1, h_dim, h_dim, random_state)
         return h1_t
 
-    h1_f = scan(step, [scan_inp], [self.init_h1])
+    h1_f = poly_rnn_lib.scan(step, [scan_inp], [self.init_h1])
     h1 = h1_f
-    self.final_h1 = ni(h1, -1)
+    self.final_h1 = poly_rnn_lib.ni(h1, -1)
 
-    target_note_embed = Multiembedding(self.note_target, n_note_symbols, note_embed_dim,
+    target_note_embed = poly_rnn_lib.Multiembedding(self.note_target, n_note_symbols, note_embed_dim,
                                        random_state,
                                        name=name_note_emb,
                                        share_all=share_all_embeddings)
-    target_note_masked = Automask(target_note_embed, self.n_notes)
-    target_duration_embed = Multiembedding(self.duration_target, n_duration_symbols,
+    target_note_masked = poly_rnn_lib.Automask(target_note_embed, self.n_notes)
+    target_duration_embed = poly_rnn_lib.Multiembedding(self.duration_target, n_duration_symbols,
                                            duration_embed_dim, random_state,
                                            name=name_dur_emb,
                                            share_all=share_all_embeddings)
-    target_duration_masked = Automask(target_duration_embed, self.n_notes)
+    target_duration_masked = poly_rnn_lib.Automask(target_duration_embed, self.n_notes)
 
     costs = []
     self.note_preds = []
@@ -127,7 +121,7 @@ class Graph(object):
         name_note = None
         name_dur = None
     for i in range(self.n_notes):
-        note_pred = Linear([h1[:, :, :h_dim],
+        note_pred = poly_rnn_lib.Linear([h1[:, :, :h_dim],
                             scan_inp,
                             target_note_masked[i], target_duration_masked[i]],
                            [h_dim,
@@ -136,7 +130,7 @@ class Graph(object):
                            note_out_dims[i], random_state,
                            weight_norm=weight_norm_outputs,
                            name=name_note)
-        duration_pred = Linear([h1[:, :, :h_dim],
+        duration_pred = poly_rnn_lib.Linear([h1[:, :, :h_dim],
                                 scan_inp,
                                 target_note_masked[i],
                                 target_duration_masked[i]],
@@ -147,8 +141,8 @@ class Graph(object):
                                duration_out_dims[i],
                                random_state, weight_norm=weight_norm_outputs,
                                name=name_dur)
-        n = categorical_crossentropy(softmax(note_pred), self.note_target[:, :, i])
-        d = categorical_crossentropy(softmax(duration_pred),
+        n = poly_rnn_lib.categorical_crossentropy(poly_rnn_lib.softmax(note_pred), self.note_target[:, :, i])
+        d = poly_rnn_lib.categorical_crossentropy(poly_rnn_lib.softmax(duration_pred),
                                      self.duration_target[:, :, i])
         cost = n_duration_symbols * tf.reduce_mean(n) + n_note_symbols * tf.reduce_mean(d)
         cost /= (n_duration_symbols + n_note_symbols)
