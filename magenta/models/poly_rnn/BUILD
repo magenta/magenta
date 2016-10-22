@@ -21,17 +21,17 @@ py_binary(
     name = "poly_rnn_train",
     srcs = ["poly_rnn_train.py"],
     deps = [
-        ":tfkdllib",
+        ":poly_rnn_lib",
         ":poly_rnn_graph",
         # tensorflow dep
     ],
 )
 
 py_binary(
-    name = "sample_poly_rnn",
-    srcs = ["sample_poly_rnn.py"],
+    name = "poly_rnn_generate",
+    srcs = ["poly_rnn_generate.py"],
     deps = [
-        ":tfkdllib",
+        ":poly_rnn_lib",
         ":poly_rnn_graph",
         # tensorflow dep
     ],
@@ -41,16 +41,17 @@ py_library(
     name = "poly_rnn_graph",
     srcs = ["poly_rnn_graph.py"],
     deps = [
-        ":tfkdllib",
+        ":poly_rnn_lib",
     ],
 )
 
 py_library(
-    name = "tfkdllib",
-    srcs = ["tfkdllib.py"],
+    name = "poly_rnn_lib",
+    srcs = ["poly_rnn_lib.py"],
     deps = [
         "//magenta",
-        # TODO(fjord): scipy?
+        # numpy dep
+        # scipy dep
         # tensorflow dep
     ],
 )

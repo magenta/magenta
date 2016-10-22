@@ -5,8 +5,6 @@ import numpy as np
 import uuid
 from scipy import linalg
 import tensorflow as tf
-import shutil
-import socket
 import os
 import re
 import copy
@@ -284,15 +282,6 @@ class tfrecord_duration_and_pitch_iterator(object):
             without new_line_new_sequence the file is effectively one continuous
             stream, and minibatches will be sequence_length, batch_size, 1
         """
-        # TODO: FIX THIS
-        # Need to figure out magenta path stuff later
-        # for now...
-        # PYTHONPATH=$PYTHONPATH:$HOME/src/magenta/
-        # bazel build //magenta:protobuf:music_py_pb2
-        # symlink bazel-out/local-opt/genfiles/magenta/protobuf/music_pb2.py
-        # into protobuf dir.
-        # Add __init__ files all over the place
-        # symlinked the BachChorale data in for now too...
         reader = mm.note_sequence_io.note_sequence_record_iterator(files_path)
         all_ds = []
         all_ps = []
@@ -1250,54 +1239,13 @@ start training utilities
 """
 
 
-def save_checkpoint(checkpoint_save_path, saver, sess):
-    # TODO(fjord): add control to save these elsewhere
-    script_name = get_script_name()[:-3]
-    save_dir = get_resource_dir(script_name)
-    checkpoint_save_path = os.path.join(save_dir, checkpoint_save_path)
+def save_checkpoint(checkpoint_dir, checkpoint_name, saver, sess):
+    checkpoint_save_path = os.path.join(checkpoint_dir, checkpoint_name)
     saver.save(sess, checkpoint_save_path)
     logger.info("Model saved to %s" % checkpoint_save_path)
 
 
-def save_results(save_path, results_dict, use_resource_dir=True):
-    # Need to dump the log ...
-    tmp = copy.copy(string_f)
-    tmp.seek(0)
-    log_output = tmp.readlines()
-    del tmp
-    ext = save_path.split(".")[-1]
-    if ext != ".log":
-        s = save_path.split(".")[:-1]
-        save_path = ".".join(s + ["log"])
-    with open(save_path, "w") as f:
-        f.writelines(log_output)
-
-
-def get_script_name():
-    script_path = os.path.abspath(sys.argv[0])
-    # Assume it ends with .py ...
-    script_name = script_path.split(os.sep)[-1]
-    return script_name
-
-
-def get_resource_dir(name, resource_dir=None, folder=None, create_dir=True):
-    """ Get dataset directory path """
-    if not resource_dir:
-        script_path = os.path.abspath(sys.argv[0])
-        script_sep = script_path.split(os.sep)
-        script_path = str(os.sep).join(script_sep[:-1])
-        resource_dir = os.path.join(script_path, "training_output")
-    if folder is None:
-        resource_dir = os.path.join(resource_dir, name)
-    else:
-        resource_dir = os.path.join(resource_dir, folder)
-    if create_dir:
-        if not os.path.exists(resource_dir):
-            os.makedirs(resource_dir)
-    return resource_dir
-
-
-def run_loop(loop_function, train_itr, valid_itr, n_epochs,
+def run_loop(loop_function, train_dir, train_itr, valid_itr, n_epochs,
              checkpoint_delay=10, checkpoint_every_n_epochs=1,
              checkpoint_every_n_updates=np.inf,
              checkpoint_every_n_seconds=1800,
@@ -1317,7 +1265,6 @@ def run_loop(loop_function, train_itr, valid_itr, n_epochs,
     """
     logger.info("Running loops...")
     _loop = loop_function
-    ident = str(uuid.uuid4())[:8]
 
     checkpoint_dict = {}
     overall_train_costs = []
@@ -1373,8 +1320,8 @@ def run_loop(loop_function, train_itr, valid_itr, n_epochs,
                             raise ValueError("NaN detected in train")
 
                         if (train_mb_count % checkpoint_every_n_updates) == 0:
-                            checkpoint_save_path = "%s_model_update_checkpoint_%i.ckpt" % (ident, train_mb_count)
-                            save_checkpoint(checkpoint_save_path, train_saver, sess)
+                            checkpoint_save_path = "model_update_checkpoint_%i.ckpt" % train_mb_count
+                            save_checkpoint(train_dir, checkpoint_save_path, train_saver, sess)
 
                             logger.info(" ")
                             logger.info("Update checkpoint after train mb %i" % train_mb_count)
@@ -1456,9 +1403,6 @@ def run_loop(loop_function, train_itr, valid_itr, n_epochs,
                     checkpoint_dict["train_checkpoint_auto"] = overall_train_checkpoint
                     checkpoint_dict["valid_checkpoint_auto"] = overall_valid_checkpoint
 
-                    script = get_script_name()
-                    hostname = socket.gethostname()
-                    logger.info("Host %s, script %s" % (hostname, script))
                     logger.info("Epoch %i complete" % e)
                     logger.info("Epoch mean train cost %f" % mean_epoch_train_cost)
                     logger.info("Epoch mean valid cost %f" % mean_epoch_valid_cost)
@@ -1471,13 +1415,13 @@ def run_loop(loop_function, train_itr, valid_itr, n_epochs,
                         pass
                     elif mean_epoch_valid_cost < old_min_valid_cost:
                         logger.info("Checkpointing valid...")
-                        checkpoint_save_path = "%s_model_checkpoint_valid_%i.ckpt" % (ident, e)
-                        save_checkpoint(checkpoint_save_path, valid_saver, sess)
+                        checkpoint_save_path = "model_checkpoint_valid_%i.ckpt" % e
+                        save_checkpoint(train_dir, checkpoint_save_path, valid_saver, sess)
                         logger.info("Valid checkpointing complete.")
                     elif mean_epoch_train_cost < old_min_train_cost:
                         logger.info("Checkpointing train...")
-                        checkpoint_save_path = "%s_model_checkpoint_train_%i.ckpt" % (ident, e)
-                        save_checkpoint(checkpoint_save_path, train_saver, sess)
+                        checkpoint_save_path = "model_checkpoint_train_%i.ckpt" % e
+                        save_checkpoint(train_dir, checkpoint_save_path, train_saver, sess)
                         logger.info("Train checkpointing complete.")
 
                     if e < checkpoint_delay:
@@ -1486,8 +1430,8 @@ def run_loop(loop_function, train_itr, valid_itr, n_epochs,
                         # Printing already happens above
                     elif((e % checkpoint_every_n_epochs) == 0) or (e == (n_epochs - 1)):
                         logger.info("Checkpointing force...")
-                        checkpoint_save_path = "%s_model_checkpoint_%i.ckpt" % (ident, e)
-                        save_checkpoint(checkpoint_save_path, force_saver, sess)
+                        checkpoint_save_path = "model_checkpoint_%i.ckpt" % e
+                        save_checkpoint(train_dir, checkpoint_save_path, force_saver, sess)
                         logger.info("Force checkpointing complete.")
         except KeyboardInterrupt:
             logger.info("Training loop interrupted by user!")

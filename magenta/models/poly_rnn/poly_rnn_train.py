@@ -1,13 +1,23 @@
 from __future__ import print_function
+import os
 import tensorflow as tf
 import numpy as np
-from tfkdllib import run_loop
-from tfkdllib import tfrecord_duration_and_pitch_iterator
+import poly_rnn_lib
 import poly_rnn_graph
 import functools
 
 FLAGS = tf.app.flags.FLAGS
-tf.app.flags.DEFINE_string('input', None, 'Polyphonic tfrecord file')
+tf.app.flags.DEFINE_string('note_sequence_input', None,
+                           'Polyphonic tfrecord NoteSequence file.')
+tf.app.flags.DEFINE_string('run_dir', '/tmp/poly_rnn/logdir/run1',
+                           'Path to the directory where checkpoints and '
+                           'summary events will be saved during training and '
+                           'evaluation. Separate subdirectories for training '
+                           'events and eval events will be created within '
+                           '`run_dir`. Multiple runs can be stored within the '
+                           'parent directory of `run_dir`. Point TensorBoard '
+                           'to the parent directory of `run_dir` to see all '
+                           'your runs.')
 
 
 def _loop(graph, itr, sess, inits=None, do_updates=True):
@@ -32,11 +42,22 @@ def _loop(graph, itr, sess, inits=None, do_updates=True):
 
 
 def main(unused_argv):
-  graph = poly_rnn_graph.Graph(FLAGS.input)
-  run_loop(functools.partial(_loop, graph), graph.train_itr, graph.valid_itr,
-           n_epochs=graph.num_epochs,
-           checkpoint_delay=40,
-           checkpoint_every_n_epochs=5)
+  run_dir = os.path.expanduser(FLAGS.run_dir)
+  train_dir = os.path.join(run_dir, 'train')
+  if not os.path.exists(train_dir):
+    tf.gfile.MakeDirs(train_dir)
+  tf.logging.info('Train dir: %s', train_dir)
+
+  graph = poly_rnn_graph.Graph(FLAGS.note_sequence_input)
+  poly_rnn_lib.run_loop(
+      functools.partial(_loop, graph),
+      train_dir,
+      graph.train_itr,
+      graph.valid_itr,
+      n_epochs=graph.num_epochs,
+      checkpoint_delay=40,
+      checkpoint_every_n_epochs=5,
+      skip_minimums=True)
 
 def console_entry_point():
   tf.app.run(main)
