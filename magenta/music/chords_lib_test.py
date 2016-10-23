@@ -190,54 +190,5 @@ class ChordsLibTest(tf.test.TestCase):
         sequence)
 
 
-class MajorMinorEncoderDecoderTest(tf.test.TestCase):
-
-  def setUp(self):
-    self.encoder_decoder = chords_lib.MajorMinorEncoderDecoder()
-
-  def testEncodeNoChord(self):
-    index = self.encoder_decoder.encode_chord(NO_CHORD)
-    self.assertEquals(0, index)
-
-  def testEncodeChord(self):
-    # major triad
-    index = self.encoder_decoder.encode_chord('C')
-    self.assertEquals(1, index)
-
-    # minor triad
-    index = self.encoder_decoder.encode_chord('Cm')
-    self.assertEquals(13, index)
-
-    # dominant 7th
-    index = self.encoder_decoder.encode_chord('F7')
-    self.assertEquals(6, index)
-
-    # minor 9th
-    index = self.encoder_decoder.encode_chord('A-m9')
-    self.assertEquals(21, index)
-
-  def testEncodeThirdlessChord(self):
-    # suspended chord
-    with self.assertRaises(chords_lib.ChordEncodingException):
-      self.encoder_decoder.encode_chord('Gsus4')
-
-    # power chord
-    with self.assertRaises(chords_lib.ChordEncodingException):
-      self.encoder_decoder.encode_chord('B-5')
-
-  def testDecodeNoChord(self):
-    figure = self.encoder_decoder.decode_chord(0)
-    self.assertEquals(NO_CHORD, figure)
-
-  def testDecodeChord(self):
-    # major chord
-    figure = self.encoder_decoder.decode_chord(3)
-    self.assertEquals('D', figure)
-
-    # minor chord
-    figure = self.encoder_decoder.decode_chord(17)
-    self.assertEquals('Em', figure)
-
-
 if __name__ == '__main__':
   tf.test.main()

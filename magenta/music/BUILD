@@ -28,7 +28,7 @@ py_library(
     deps = [
         ":constants",
         ":melodies_lib",
-        ":melody_encoder_decoder",
+        ":melody_encoding",
         ":midi_io",
         ":midi_synth",
         ":model",
@@ -57,6 +57,28 @@ py_test(
     srcs_version = "PY2AND3",
     deps = [
         ":chord_symbols_lib",
+        # tensorflow dep
+    ],
+)
+
+py_library(
+    name = "chords_encoding",
+    srcs = ["chords_encoding.py"],
+    srcs_version = "PY2AND3",
+    deps = [
+        ":chord_symbols_lib",
+        ":constants",
+        ":encoding",
+    ],
+)
+
+py_test(
+    name = "chords_encoding_test",
+    srcs = ["chords_encoding_test.py"],
+    srcs_version = "PY2AND3",
+    deps = [
+        ":chords_encoding",
+        ":constants",
         # tensorflow dep
     ],
 )
@@ -93,6 +115,29 @@ py_library(
     name = "constants",
     srcs = ["constants.py"],
     srcs_version = "PY2AND3",
+)
+
+py_library(
+    name = "encoding",
+    srcs = ["encoding.py"],
+    srcs_version = "PY2AND3",
+    deps = [
+        ":constants",
+        ":events_lib",
+        "//magenta/common:sequence_example_lib",
+        # numpy dep
+    ],
+)
+
+py_test(
+    name = "encoding_test",
+    srcs = ["encoding_test.py"],
+    srcs_version = "PY2AND3",
+    deps = [
+        ":encoding",
+        "//magenta/common:sequence_example_lib",
+        # tensorflow dep
+    ],
 )
 
 py_library(
@@ -178,11 +223,12 @@ py_test(
 )
 
 py_library(
-    name = "melody_encoder_decoder",
-    srcs = ["melody_encoder_decoder.py"],
+    name = "melody_encoding",
+    srcs = ["melody_encoding.py"],
     srcs_version = "PY2AND3",
     deps = [
         ":constants",
+        ":encoding",
         ":events_lib",
         ":melodies_lib",
         "//magenta/pipelines:statistics",
@@ -192,13 +238,13 @@ py_library(
 )
 
 py_test(
-    name = "melody_encoder_decoder_test",
-    srcs = ["melody_encoder_decoder_test.py"],
+    name = "melody_encoding_test",
+    srcs = ["melody_encoding_test.py"],
     srcs_version = "PY2AND3",
     deps = [
         ":constants",
         ":melodies_lib",
-        ":melody_encoder_decoder",
+        ":melody_encoding",
         ":sequences_lib",
         "//magenta/common:sequence_example_lib",
         # tensorflow dep
