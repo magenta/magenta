@@ -361,7 +361,7 @@ class LookbackMelodyEncoderDecoder(MelodyEncoderDecoder):
       else:
         melody_event = events[lookback_position]
       index = self.melody_event_to_index(melody_event)
-      input_[i * self.num_melody_events + index] = 1.0
+      input_[(i + 1) * self.num_melody_events + index] = 1.0
 
     # Binary time counter giving the metric location of the *next* note.
     n = position + 1
