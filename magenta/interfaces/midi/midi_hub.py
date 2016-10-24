@@ -27,6 +27,7 @@ try:
 except ImportError:
   logging.warn('Could not import RtMidi. Virtual ports are disabled.')
 
+
 class MidiHubException(Exception):
   """Base class for exceptions in this module."""
   pass
