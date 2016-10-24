@@ -69,6 +69,27 @@ def filter_instrument(sequence, instrument, from_time=0):
   return filtered_sequence
 
 
+def temperature_from_control_value(
+    val, min_temp=0.8, mid_temp= 1.0, max_temp=1.2):
+  """Computes the temperature from an 8-bit MIDI control value.
+
+  Linearly interpolates between the middle temperature and an endpoint.
+
+  Args:
+    val: The MIDI control value in the range [0, 127].
+    min_temp: The minimum temperature, which will be returned when `val` is 0.
+    mid_temp: The middle temperature, which will be returned when `val` is 63
+       or 64.
+    max_temp: The maximum temperature, which will be returned when `val` is 127.
+  """
+  if val > 64:
+    return mid_temp + val * (max_temp - mid_temp) / 63
+  elif val < 63:
+    return mid_temp - val * (mid_temp - min_temp) / 63
+  else:
+    return mid_temp
+
+
 class MidiInteraction(threading.Thread):
   """Base class for handling interaction between MIDI and SequenceGenerator.
 
@@ -136,13 +157,15 @@ class CallAndResponseMidiInteraction(MidiInteraction):
                quarters_per_bar=4,
                phrase_bars=None,
                start_call_signal=None,
-               end_call_signal=None):
+               end_call_signal=None,
+               temperature_control=None):
     super(CallAndResponseMidiInteraction, self).__init__(midi_hub, qpm)
     self._sequence_generator = sequence_generator
     self._quarters_per_bar = quarters_per_bar
     self._phrase_bars = phrase_bars
     self._start_call_signal = start_call_signal
     self._end_call_signal = end_call_signal
+    self._temperature_control = temperature_control
 
   def run(self):
     """The main loop for a real-time call and response interaction."""
@@ -216,6 +239,15 @@ class CallAndResponseMidiInteraction(MidiInteraction):
       generator_options.generate_sections.add(
           start_time=response_start_quarters * quarter_duration,
           end_time=response_end_quarters * quarter_duration)
+
+      # Check for updated temperature.
+      new_temperature = temperature_from_control_value(
+          self._midi_hub.control_value(self._temperature_control))
+      if new_temperature is not None:
+        if temperature != new_temperature:
+          tf.logging.info('New temperature value: %d', new_temperature)
+          temperature = new_temperature
+        generator_options.args['temperature'].float_value = temperature
 
       # Generate response.
       response_sequence = self._sequence_generator.generate(

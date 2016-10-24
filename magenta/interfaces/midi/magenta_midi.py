@@ -45,14 +45,14 @@ tf.app.flags.DEFINE_integer(
     'phrase_bars',
     None,
     'The number of bars of duration to use for the call and response phrases. '
-    'If none, `end_call_control_number` must be specified.')
+    'If none, `end_call_control` must be specified.')
 tf.app.flags.DEFINE_integer(
-    'start_call_control_number',
+    'start_call_control',
     None,
     'The control change number to use as a signal to start the call phrase. If '
     'None, call will start immediately after response.')
 tf.app.flags.DEFINE_integer(
-    'end_call_control_number',
+    'end_call_control',
     None,
     'The control change number to use as a signal to end the call phrase. If '
     'None, `phrase_bars` must be specified.')
@@ -63,6 +63,10 @@ tf.app.flags.DEFINE_integer(
     'The quarters per minute to use for the metronome and generated sequence.')
 tf.app.flags.DEFINE_string(
     'bundle_file',
+    None,
+    'The location of the bundle file to use.')
+tf.app.flags.DEFINE_string(
+    'temperature_control',
     None,
     'The location of the bundle file to use.')
 
@@ -82,8 +86,8 @@ def main(unused_argv):
     print '--bundle_file must be specified.'
     return
 
-  if (FLAGS.end_call_control_number, FLAGS.phrase_bars).count(None) != 1:
-    print('Exactly one of --end_call_control_number or --phrase_bars should be '
+  if (FLAGS.end_call_control, FLAGS.phrase_bars).count(None) != 1:
+    print('Exactly one of --end_call_control or --phrase_bars should be '
           'specified.')
     return
 
@@ -112,11 +116,11 @@ def main(unused_argv):
                          midi_hub.TextureType.MONOPHONIC)
 
   start_call_signal = (
-      None if FLAGS.start_call_control_number is None else
-      midi_hub.MidiSignal(control=FLAGS.start_call_control_number, value=0))
+      None if FLAGS.start_call_control is None else
+      midi_hub.MidiSignal(control=FLAGS.start_call_control, value=0))
   end_call_signal = (
-      None if FLAGS.end_call_control_number is None else
-      midi_hub.MidiSignal(control=FLAGS.end_call_control_number, value=0))
+      None if FLAGS.end_call_control is None else
+      midi_hub.MidiSignal(control=FLAGS.end_call_control, value=0))
   interaction = midi_interaction.CallAndResponseMidiInteraction(
       hub,
       FLAGS.qpm,
@@ -127,22 +131,22 @@ def main(unused_argv):
 
   print ''
   print 'Instructions:'
-  if FLAGS.start_call_control_number is not None:
+  if FLAGS.start_call_control is not None:
     print ('When you want to begin the call phrase, signal control number %d '
-           'with value 0.' % FLAGS.start_call_control_number)
+           'with value 0.' % FLAGS.start_call_control)
   print 'Play when you hear the metronome ticking.'
   if FLAGS.phrase_bars is not None:
     print ('After %d bars (4 beats), Magenta will play its response.' %
            FLAGS.phrase_bars)
   else:
     print ('When you want to end the call phrase, signal control number %d '
-           'with value 0' % FLAGS.end_call_control_number)
+           'with value 0' % FLAGS.end_call_control)
     print ('At the end of the current bar (4 beats), Magenta will play its '
            'response.')
-  if FLAGS.start_call_control_number is not None:
+  if FLAGS.start_call_control is not None:
     print ('Once the response completes, the interface will wait for you to '
            'signal a new call phrase using control number %d.' %
-           FLAGS.start_call_control_number)
+           FLAGS.start_call_control)
   else:
     print ('Once the response completes, the metronome will tick and you can '
            'play again.')
