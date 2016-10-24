@@ -314,8 +314,11 @@ class LookbackMelodyEncoderDecoder(MelodyEncoderDecoder):
   @property
   def input_size(self):
     num_lookbacks = len(self._lookback_distances)
-    return ((num_lookbacks + 1) * self.num_melody_events +
-            self._binary_counter_bits + num_lookbacks)
+    return (
+        self.num_melody_events +                  # current melody event
+        num_lookbacks * self.num_melody_events +  # next event for each lookback
+        self._binary_counter_bits +               # binary counters
+        num_lookbacks)                            # if event matches lookbacks
 
   @property
   def num_classes(self):
@@ -324,8 +327,9 @@ class LookbackMelodyEncoderDecoder(MelodyEncoderDecoder):
   def events_to_input(self, events, position):
     """Returns the input vector for the given position in the melody.
 
-    Returns a self.input_size length list of floats. Assuming self.min_note = 48
-    and self.max_note = 84, self.input_size will = 121. Each index represents a
+    Returns a self.input_size length list of floats. Assuming self.min_note =
+    48, self.max_note = 84, two lookback distances at 1 bar and 2 bars, and 5
+    binary counters, self.input_size will = 121. Each index represents a
     different input signal to the model.
 
     Indices [0, 120]:
@@ -363,17 +367,21 @@ class LookbackMelodyEncoderDecoder(MelodyEncoderDecoder):
       index = self.melody_event_to_index(melody_event)
       input_[(i + 1) * self.num_melody_events + index] = 1.0
 
+    num_lookbacks = len(self._lookback_distances)
+
     # Binary time counter giving the metric location of the *next* note.
     n = position + 1
     for i in range(self._binary_counter_bits):
-      input_[3 * self.num_melody_events + i] = 1.0 if (n / 2 ** i) % 2 else -1.0
+      input_[(num_lookbacks + 1) * self.num_melody_events +
+             i] = 1.0 if (n / 2 ** i) % 2 else -1.0
 
     # Last event is repeating N bars ago.
     for i, lookback_distance in enumerate(self._lookback_distances):
       lookback_position = position - lookback_distance
       if (lookback_position >= 0 and
           events[position] == events[lookback_position]):
-        input_[3 * self.num_melody_events + 5 + i] = 1.0
+        input_[(num_lookbacks + 1) * self.num_melody_events +
+               self._binary_counter_bits + i] = 1.0
 
     return input_
 
@@ -386,9 +394,10 @@ class LookbackMelodyEncoderDecoder(MelodyEncoderDecoder):
     events from earlier in the melody. More distant repeats are selected first
     and standard midi events are selected last.
 
-    Assuming self.min_note = 48 and self.max_note = 84, then
-    self.num_classes = 40, self.num_melody_events = 38, and the values will be
-    as follows.
+    Assuming self.min_note = 48, self.max_note = 84, and two lookback distances
+    at 1 bar and 2 bars, then self.num_classes = 40, self.num_melody_events =
+    38, and the values will be as follows.
+
     Values [0, 39]:
       [0, 37]: Event of the last step in the melody, if not repeating 1 or 2
                bars ago.
@@ -467,8 +476,15 @@ class KeyMelodyEncoderDecoder(MelodyEncoderDecoder):
 
   @property
   def input_size(self):
-    return (self._note_range + self._binary_counter_bits +
-            len(self._lookback_distances) + NOTES_PER_OCTAVE * 2 + 5)
+    return (self._note_range +                # current note
+            2 +                               # note vs. silence
+            1 +                               # attack or not
+            1 +                               # ascending or not
+            len(self._lookback_distances) +   # whether note matches lookbacks
+            self._binary_counter_bits +       # binary counters
+            1 +                               # start of bar or not
+            NOTES_PER_OCTAVE +                # total key estimate
+            NOTES_PER_OCTAVE)                 # recent key estimate
 
   @property
   def num_classes(self):
@@ -477,9 +493,11 @@ class KeyMelodyEncoderDecoder(MelodyEncoderDecoder):
   def events_to_input(self, events, position):
     """Returns the input vector for the given position in the melody.
 
-    Returns a self.input_size length list of floats. Assuming self.min_note = 48
-    and self.max_note = 84, then self.input_size = 74. Each index represents a
-    different input signal to the model.
+    Returns a self.input_size length list of floats. Assuming
+    self._min_note = 48, self._note_range = 36, two lookback distances at 1 bar
+    and 2 bars, and 7 binary counters, then self.input_size = 74. Each index
+    represents a different input signal to the model.
+
     Indices [0, 73]:
     [0, 35]: A note is playing at that pitch [48, 84).
     36: Any note is playing.
@@ -492,9 +510,11 @@ class KeyMelodyEncoderDecoder(MelodyEncoderDecoder):
     49: The next event is the start of a bar.
     [50, 61]: The keys the current melody is in.
     [62, 73]: The keys the last 3 notes are in.
+
     Args:
       events: A magenta.music.Melody object.
       position: An integer event position in the melody.
+
     Returns:
       An input vector, an self.input_size length list of floats.
     """
@@ -521,45 +541,54 @@ class KeyMelodyEncoderDecoder(MelodyEncoderDecoder):
         last_3_notes.append(note)
 
     input_ = [0.0] * self.input_size
+    offset = 0
+
     if current_note:
       # The pitch of current note if a note is playing.
-      input_[current_note - self.min_note] = 1.0
+      input_[offset + current_note - self.min_note] = 1.0
       # A note is playing.
-      input_[self._note_range] = 1.0
+      input_[offset + self._note_range] = 1.0
     else:
       # Silence is playing.
-      input_[self._note_range + 1] = 1.0
+      input_[offset + self._note_range + 1] = 1.0
+    offset += self._note_range + 2
 
     # The current event is the note-on event of the currently playing note.
     if is_attack:
-      input_[self._note_range + 2] = 1.0
+      input_[offset] = 1.0
+    offset += 1
 
     # Whether the melody is currently ascending or descending.
     if is_ascending is not None:
-      input_[self._note_range + 3] = 1.0 if is_ascending else -1.0
+      input_[offset] = 1.0 if is_ascending else -1.0
+    offset += 1
 
     # Last event is repeating N bars ago.
     for i, lookback_distance in enumerate(self._lookback_distances):
       lookback_position = position - lookback_distance
       if (lookback_position >= 0 and
           events[position] == events[lookback_position]):
-        input_[self._note_range + 4 + i] = 1.0
+        input_[offset] = 1.0
+      offset += 1
 
     # Binary time counter giving the metric location of the *next* note.
     n = len(sub_melody)
     for i in range(self._binary_counter_bits):
-      input_[self._note_range + 6 + i] = 1.0 if (n / 2 ** i) % 2 else -1.0
+      input_[offset] = 1.0 if (n / 2 ** i) % 2 else -1.0
+      offset += 1
 
     # The next event is the start of a bar.
     if len(sub_melody) % DEFAULT_STEPS_PER_BAR == 0:
-      input_[self._note_range + 13] = 1.0
+      input_[offset] = 1.0
+    offset += 1
 
     # The keys the current melody is in.
     key_histogram = sub_melody.get_major_key_histogram()
     max_val = max(key_histogram)
     for i, key_val in enumerate(key_histogram):
       if key_val == max_val:
-        input_[self._note_range + 14 + i] = 1.0
+        input_[offset] = 1.0
+      offset += 1
 
     # The keys the last 3 notes are in.
     last_3_note_melody = melodies_lib.Melody(list(last_3_notes))
@@ -567,15 +596,20 @@ class KeyMelodyEncoderDecoder(MelodyEncoderDecoder):
     max_val = max(key_histogram)
     for i, key_val in enumerate(key_histogram):
       if key_val == max_val:
-        input_[self._note_range + 14 + NOTES_PER_OCTAVE + i] = 1.0
+        input_[offset] = 1.0
+      offset += 1
+
+    assert offset == self.input_size
 
     return input_
 
   def events_to_label(self, events, position):
     """Returns the label for the given position in the melody.
 
-    Returns an int the range [0, self.num_classes). Assuming self.min_note = 48
-    and self.max_note = 84, then self.num_classes = 40.
+    Returns an int in the range [0, self.num_classes). Assuming
+    self._min_note = 48, self._note_range = 36, and two lookback distances at
+    1 and 2 bars, then self.num_classes = 40.
+
     Values [0, 39]:
     [0, 35]: Note-on event for midi pitch [48, 84).
     36: No event.
@@ -586,6 +620,7 @@ class KeyMelodyEncoderDecoder(MelodyEncoderDecoder):
     Args:
       events: A magenta.music.Melody object.
       position: An integer event position in the melody.
+
     Returns:
       A label, an integer.
     """
@@ -620,6 +655,7 @@ class KeyMelodyEncoderDecoder(MelodyEncoderDecoder):
     Args:
       class_index: An int in the range [0, self.num_classes).
       events: The magenta.music.Melody events list of the current melody.
+
     Returns:
       A magenta.music.Melody event value.
     """
