@@ -162,7 +162,7 @@ class MidiHubTest(tf.test.TestCase):
     player = self.midi_hub.start_playback(seq, allow_updates=False)
     player.join()
 
-    # The first note will not be played since it started before `start_playack`
+    # The first note will not be played since it started before `start_playback`
     # is called.
     del notes[0]
     note_events = []
