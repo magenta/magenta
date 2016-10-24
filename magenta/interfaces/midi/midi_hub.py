@@ -25,6 +25,7 @@ try:
   import rtmidi  # pylint: disable=unused-import,g-import-not-at-top
   mido.set_backend('mido.backends.rtmidi')
 except ImportError:
+  # Tries to use PortMidi backend by default.
   logging.warn('Could not import RtMidi. Virtual ports are disabled.')
 
 
@@ -286,7 +287,8 @@ class MidiPlayer(threading.Thread):
             mido.Message(type='note_off', note=note.pitch, time=note.end_time))
         closed_notes.add(note.pitch)
 
-    # Close remaining open notes at the next event time.
+    # Close remaining open notes at the next event time to avoid abruptly ending
+    # notes.
     notes_to_close = self._open_notes - closed_notes
     if notes_to_close:
       next_event_time = min(msg.time for msg in new_message_list)
