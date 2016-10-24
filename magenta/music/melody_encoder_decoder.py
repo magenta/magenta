@@ -372,8 +372,8 @@ class LookbackMelodyEncoderDecoder(MelodyEncoderDecoder):
     # Binary time counter giving the metric location of the *next* note.
     n = position + 1
     for i in range(self._binary_counter_bits):
-      input_[(num_lookbacks + 1) * self.num_melody_events +
-             i] = 1.0 if (n / 2 ** i) % 2 else -1.0
+      input_[(num_lookbacks + 1) * self.num_melody_events + i] = (
+          1.0 if (n / 2 ** i) % 2 else -1.0)
 
     # Last event is repeating N bars ago.
     for i, lookback_distance in enumerate(self._lookback_distances):
