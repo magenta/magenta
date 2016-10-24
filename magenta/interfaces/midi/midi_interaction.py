@@ -152,7 +152,7 @@ class CallAndResponseMidiInteraction(MidiInteraction):
     """The main loop for a real-time call and response interaction."""
 
     # We measure time in units of steps.
-    step_duration = 60.0 / (self._qpm * steps_per_quarter)
+    step_duration = 60.0 / (self._qpm * self._steps_per_quarter)
     # Start time in steps from the epoch.
     start_steps = (time.time() + 1.0) // step_duration
 
@@ -213,7 +213,7 @@ class CallAndResponseMidiInteraction(MidiInteraction):
         break
 
       # Generate sequence.
-      response_start_steps = capture_steps + call_start_steps
+      response_start_steps = call_steps + call_start_steps
       response_end_steps = 2 * call_steps + call_start_steps
 
       generator_options = generator_pb2.GeneratorOptions()
@@ -244,7 +244,7 @@ class CallAndResponseMidiInteraction(MidiInteraction):
                         remaining_time, predictahead_steps)
       elif remaining_time < 0:
         predictahead_steps += 1
-        tf.logging.info('Generator is lagging by %.3f seconds. '
+        tf.logging.warn('Generator is lagging by %.3f seconds. '
                         'Increasing `predictahead_steps` to %d.',
                         -remaining_time, predictahead_steps)
 
