@@ -152,9 +152,9 @@ class CallAndResponseMidiInteraction(MidiInteraction):
     """The main loop for a real-time call and response interaction."""
 
     # We measure time in units of steps.
-    step_duration = 60.0 / (self._qpm * self._steps_per_quarter)
+    seconds_per_step = 60.0 / (self._qpm * self._steps_per_quarter)
     # Start time in steps from the epoch.
-    start_steps = (time.time() + 1.0) // step_duration
+    start_steps = (time.time() + 1.0) // seconds_per_step
 
     # The number of steps before call stage ends to start generation of response
     # Will be automatically adjusted to be as small as possible while avoiding
@@ -176,11 +176,11 @@ class CallAndResponseMidiInteraction(MidiInteraction):
 
       # Start the metronome at the beginning of the call stage.
       self._midi_hub.start_metronome(
-          self._qpm, call_start_steps * step_duration)
+          self._qpm, call_start_steps * seconds_per_step)
 
       # Start a captor at the beginning of the call stage.
       captor = self._midi_hub.start_capture(
-          self._qpm, call_start_steps * step_duration)
+          self._qpm, call_start_steps * seconds_per_step)
 
       if self._phrase_bars is not None:
         # The duration of the call stage in steps.
@@ -191,7 +191,7 @@ class CallAndResponseMidiInteraction(MidiInteraction):
         # The duration of the call stage in steps.
         # We end the call stage at the end of the next bar that is at least
         # `predicathead_steps` in the future.
-        call_steps = time.time() // step_duration - call_start_steps
+        call_steps = time.time() // seconds_per_step - call_start_steps
         remaining_call_steps = -call_steps % self._steps_per_bar
         if remaining_call_steps < predictahead_steps:
           remaining_call_steps += self._steps_per_bar
@@ -199,13 +199,13 @@ class CallAndResponseMidiInteraction(MidiInteraction):
 
       # Set the metronome to stop at the appropriate time.
       self._midi_hub.stop_metronome(
-          (call_steps + call_start_steps) * step_duration,
+          (call_steps + call_start_steps) * seconds_per_step,
           block=False)
 
       # Stop the captor at the appropriate time.
       capture_steps = call_steps - predictahead_steps
       captor.stop(stop_time=(
-          (capture_steps + call_start_steps) * step_duration))
+          (capture_steps + call_start_steps) * seconds_per_step))
       captured_sequence = captor.captured_sequence()
 
       # Check to see if a stop has been requested during capture.
@@ -218,8 +218,8 @@ class CallAndResponseMidiInteraction(MidiInteraction):
 
       generator_options = generator_pb2.GeneratorOptions()
       generator_options.generate_sections.add(
-          start_time=response_start_steps * step_duration,
-          end_time=response_end_steps * step_duration)
+          start_time=response_start_steps * seconds_per_step,
+          end_time=response_end_steps * seconds_per_step)
 
       # Generate response.
       response_sequence = self._sequence_generator.generate(
@@ -235,8 +235,8 @@ class CallAndResponseMidiInteraction(MidiInteraction):
 
       # Compute remaining time after generation before the response stage
       # starts, updating `predictahead_steps` appropriately.
-      remaining_time = response_start_steps * step_duration - time.time()
-      if remaining_time > (predictahead_steps * step_duration):
+      remaining_time = response_start_steps * seconds_per_step - time.time()
+      if remaining_time > (predictahead_steps * seconds_per_step):
         predictahead_steps = max(self._MIN_PREDICTAHEAD_SEPS,
                                  response_start_steps - 1)
         tf.logging.info('Generator is ahead by %.3f seconds. '
