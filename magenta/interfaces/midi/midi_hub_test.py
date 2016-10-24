@@ -27,7 +27,6 @@ from magenta.interfaces.midi import midi_hub
 from magenta.music import testing_lib
 from magenta.protobuf import music_pb2
 
-
 Note = collections.namedtuple('Note', ['pitch', 'velocity', 'start', 'end'])
 
 
@@ -154,7 +153,6 @@ class MidiHubTest(tf.test.TestCase):
   def testStartPlayback_NoUpdates(self):
     # Use a time in the past to test handling of past notes.
     start_time = time.time() - 0.05
-    outport = MockMidiPort()
     seq = music_pb2.NoteSequence()
     notes = [Note(12, 100, 0.0, 1.0), Note(11, 55, 0.1, 0.5),
              Note(40, 45, 0.2, 0.6)]
@@ -163,19 +161,23 @@ class MidiHubTest(tf.test.TestCase):
     testing_lib.add_track_to_sequence(seq, 0, notes)
     player = self.midi_hub.start_playback(seq, allow_updates=False)
     player.join()
+
+    # The first note will not be played since it started before `start_playback`
+    # is called.
+    del notes[0]
     note_events = []
     for note in notes:
       note_events.append((note.start, 'note_on', note.pitch))
       note_events.append((note.end, 'note_off', note.pitch))
     note_events = collections.deque(sorted(note_events))
-    # The first event occured in the past.
-    note_events.popleft()
-    while not outport.message_queue.empty():
-      msg = outport.message_queue.get()
+    while not self.port.message_queue.empty():
+      msg = self.port.message_queue.get()
       note_event = note_events.popleft()
       self.assertEquals(msg.type, note_event[1])
       self.assertEquals(msg.note, note_event[2])
       self.assertAlmostEqual(msg.time, note_event[0], delta=0.01)
+
+    self.assertTrue(not note_events)
 
   def testStartPlayback_NoUpdates_UpdateException(self):
     # Use a time in the past to test handling of past notes.
@@ -192,7 +194,6 @@ class MidiHubTest(tf.test.TestCase):
 
   def testStartPlayback_Updates(self):
     start_time = time.time() + 0.1
-    outport = MockMidiPort()
     seq = music_pb2.NoteSequence()
     notes = [Note(0, 100, start_time, start_time + 101),
              Note(1, 100, start_time, start_time + 101)]
@@ -200,30 +201,37 @@ class MidiHubTest(tf.test.TestCase):
     player = self.midi_hub.start_playback(seq, allow_updates=True)
 
     # Sleep past first note start.
-    time.sleep(0.2)
+    concurrency.Sleeper().sleep(0.2)
 
     new_seq = music_pb2.NoteSequence()
-    notes = [Note(1, 100, 0.0, 1.0), Note(11, 55, 0.2, 0.5),
-             Note(40, 45, 0.3, 0.6)]
+    notes = [Note(1, 100, 0.0, 0.8), Note(2, 100, 0.0, 1.0),
+             Note(11, 55, 0.3, 0.5), Note(40, 45, 0.4, 0.6)]
     notes = [Note(note.pitch, note.velocity, note.start + start_time,
                   note.end + start_time) for note in notes]
     testing_lib.add_track_to_sequence(new_seq, 0, notes)
     player.update_sequence(new_seq)
 
+    # Finish playing sequence.
+    concurrency.Sleeper().sleep(0.8)
+
     # Start and end the unclosed note from the first sequence.
     note_events = [(start_time, 'note_on', 0),
-                   (start_time + 0.1, 'note_off', 0)]
+                   (start_time + 0.3, 'note_off', 0)]
+    # The second note will not be played since it started before the update
+    # and was not in the original sequence.
+    del notes[1]
     for note in notes:
       note_events.append((note.start, 'note_on', note.pitch))
       note_events.append((note.end, 'note_off', note.pitch))
     note_events = collections.deque(sorted(note_events))
-    while not outport.message_queue.empty():
-      msg = outport.message_queue.get()
+    while not self.port.message_queue.empty():
+      msg = self.port.message_queue.get()
       note_event = note_events.popleft()
       self.assertEquals(msg.type, note_event[1])
       self.assertEquals(msg.note, note_event[2])
       self.assertAlmostEqual(msg.time, note_event[0], delta=0.01)
 
+    self.assertTrue(not note_events)
     player.stop()
 
   def testCaptureSequence_StopSignal(self):
