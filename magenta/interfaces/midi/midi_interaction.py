@@ -128,6 +128,7 @@ class CallAndResponseMidiInteraction(MidiInteraction):
         the call phrase at the end of the current bar. `phrase_bars` must be
         provided if None.
   """
+  _INITIAL_PREDICTAHEAD_STEPS = 4
   _MIN_PREDICTAHEAD_STEPS = 1
 
   def __init__(self,
@@ -158,7 +159,7 @@ class CallAndResponseMidiInteraction(MidiInteraction):
     # The number of steps before call stage ends to start generation of response
     # Will be automatically adjusted to be as small as possible while avoiding
     # late response starts.
-    predictahead_steps = self._MIN_PREDICTAHEAD_STEPS
+    predictahead_steps = self._INITIAL_PREDICTAHEAD_STEPS
 
     # Call stage start in steps from the epoch.
     call_start_steps = start_steps
@@ -212,7 +213,7 @@ class CallAndResponseMidiInteraction(MidiInteraction):
         break
 
       # Generate sequence.
-      response_start_steps = call_steps + call_start_steps
+      response_start_steps = capture_steps + call_start_steps
       response_end_steps = 2 * call_steps + call_start_steps
 
       generator_options = generator_pb2.GeneratorOptions()
