@@ -278,23 +278,23 @@ class MidiPlayer(threading.Thread):
         new_message_list.append(
             mido.Message(type='note_on', note=note.pitch,
                          velocity=note.velocity, time=note.start_time))
-      if note.end_time >= start_time:
         new_message_list.append(
             mido.Message(type='note_off', note=note.pitch, time=note.end_time))
-        if note.start_time < start_time and note.pitch not in self._open_notes:
-          closed_notes.add(note.pitch)
+      elif note.end_time >= start_time and note.pitch in self._open_notes:
+        new_message_list.append(
+            mido.Message(type='note_off', note=note.pitch, time=note.end_time))
+        closed_notes.add(note.pitch)
 
+    # Close remaining open notes at the next event time.
     notes_to_close = self._open_notes - closed_notes
-    for msg in self._message_queue:
-      if not notes_to_close:
-        break
-      if msg.note in notes_to_close and msg.type == 'note_off':
-        new_message_list.append(msg)
-        notes_to_close.remove(msg.note)
+    if notes_to_close:
+      next_event_time = min(msg.time for msg in new_message_list)
+      for note in notes_to_close:
+        new_message_list.append(
+            mido.Message(type='note_off', note=note, time=next_event_time))
 
-    assert not notes_to_close
-
-    self._message_queue = deque(sorted(new_message_list, key=lambda x: x.time))
+    self._message_queue = deque(
+        sorted(new_message_list, key=lambda msg: (msg.time, msg.note)))
     self._update_cv.notify()
 
   @concurrency.serialized
