@@ -228,7 +228,45 @@ class MelodyRnnSequenceGenerator(magenta.music.BaseSequenceGenerator):
 
   def _beam_search(self, melody, num_steps, temperature, beam_size,
                    branch_factor, steps_per_iteration):
-    """Generates a melody using beam search."""
+    """Generates a melody using beam search.
+
+    Initially, the beam is filled with `beam_size` copies of the initial
+    melody.
+
+    Each iteration, the beam is pruned to contain only the `beam_size` melodies
+    with highest likelihood. Then `branch_factor` new melodies are generated
+    for each melody in the beam. These new melodies are formed by extending
+    each melody in the beam by `steps_per_iteration` steps. So between a
+    branching and a pruning phase, there will be `beam_size` * `branch_factor`
+    active melodies.
+
+    Prior to the first "real" iteration, an initial branch generation will take
+    place. This is for two reasons:
+
+    1) The RNN model needs to be "primed" with the initial melody.
+    2) The desired total number of steps `num_steps` might not be a multiple of
+       `steps_per_iteration`, so the initial branching generates melody steps
+       such that all subsequent iterations can generate `steps_per_iteration`
+       steps.
+
+    After the final iteration, the single melody in the beam with highest
+    likelihood will be returned.
+
+    Args:
+      melody: The initial melody.
+      num_steps: The integer length in steps of the final melody, after
+          generation.
+      temperature: A float specifying how much to divide the logits by
+         before computing the softmax. Greater than 1.0 makes melodies more
+         random, less than 1.0 makes melodies less random.
+      beam_size: The integer beam size to use.
+      branch_factor: The integer branch factor to use.
+      steps_per_iteration: The integer number of melody steps to take per
+          iteration.
+
+    Returns:
+      The highest-likelihood melody as computed by the beam search.
+    """
     melodies = [copy.deepcopy(melody) for _ in range(beam_size)]
     graph_initial_state = self._session.graph.get_collection('initial_state')[0]
     loglik = np.zeros(beam_size)
