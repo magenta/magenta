@@ -27,7 +27,6 @@ from magenta.interfaces.midi import midi_hub
 from magenta.music import testing_lib
 from magenta.protobuf import music_pb2
 
-
 Note = collections.namedtuple('Note', ['pitch', 'velocity', 'start', 'end'])
 
 
