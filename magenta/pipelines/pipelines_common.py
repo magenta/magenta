@@ -11,11 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Defines Module base class and implementations.
-
-Modules are data processing building blocks for creating datasets.
-"""
-
+"""Common data processing pipelines."""
 
 import random
 
@@ -23,10 +19,6 @@ import random
 import numpy as np
 import tensorflow as tf
 
-from magenta.music import chord_symbols_lib
-from magenta.music import chords_lib
-from magenta.music import events_lib
-from magenta.music import melodies_lib
 from magenta.music import sequences_lib
 from magenta.pipelines import pipeline
 from magenta.pipelines import statistics
@@ -55,66 +47,6 @@ class Quantizer(pipeline.Pipeline):
       self._set_stats([statistics.Counter(
           'sequences_discarded_because_multiple_time_signatures', 1)])
       return []
-
-
-class MelodyExtractor(pipeline.Pipeline):
-  """Extracts monophonic melodies from a QuantizedSequence."""
-
-  def __init__(self, min_bars=7, min_unique_pitches=5, gap_bars=1.0,
-               ignore_polyphonic_notes=False):
-    super(MelodyExtractor, self).__init__(
-        input_type=sequences_lib.QuantizedSequence,
-        output_type=melodies_lib.Melody)
-    self.min_bars = min_bars
-    self.min_unique_pitches = min_unique_pitches
-    self.gap_bars = gap_bars
-    self.ignore_polyphonic_notes = False
-
-  def transform(self, quantized_sequence):
-    try:
-      melodies, stats = melodies_lib.extract_melodies(
-          quantized_sequence,
-          min_bars=self.min_bars,
-          min_unique_pitches=self.min_unique_pitches,
-          gap_bars=self.gap_bars,
-          ignore_polyphonic_notes=self.ignore_polyphonic_notes)
-    except events_lib.NonIntegerStepsPerBarException as detail:
-      tf.logging.warning('Skipped sequence: %s', detail)
-      melodies = []
-      stats = [statistics.Counter('non_integer_steps_per_bar', 1)]
-    self._set_stats(stats)
-    return melodies
-
-
-class ChordsExtractor(pipeline.Pipeline):
-  """Extracts a chord progression from a QuantizedSequence."""
-
-  def __init__(self, max_steps=512, all_transpositions=False):
-    super(ChordsExtractor, self).__init__(
-        input_type=sequences_lib.QuantizedSequence,
-        output_type=chords_lib.ChordProgression)
-    self._max_steps = max_steps
-    self._all_transpositions = all_transpositions
-
-  def transform(self, quantized_sequence):
-    try:
-      chord_progressions, stats = chords_lib.extract_chords(
-          quantized_sequence, max_steps=self._max_steps,
-          all_transpositions=self._all_transpositions)
-    except events_lib.NonIntegerStepsPerBarException as detail:
-      tf.logging.warning('Skipped sequence: %s', detail)
-      chord_progressions = []
-      stats = [statistics.Counter('non_integer_steps_per_bar', 1)]
-    except chords_lib.CoincidentChordsException as detail:
-      tf.logging.warning('Skipped sequence: %s', detail)
-      chord_progressions = []
-      stats = [statistics.Counter('coincident_chords', 1)]
-    except chord_symbols_lib.ChordSymbolException as detail:
-      tf.logging.warning('Skipped sequence: %s', detail)
-      chord_progressions = []
-      stats = [statistics.Counter('chord_symbol_exception', 1)]
-    self._set_stats(stats)
-    return chord_progressions
 
 
 class RandomPartition(pipeline.Pipeline):

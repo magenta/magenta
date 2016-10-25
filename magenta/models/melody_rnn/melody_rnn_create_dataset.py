@@ -25,6 +25,7 @@ import magenta
 
 from magenta.models.melody_rnn import melody_rnn_config
 from magenta.pipelines import dag_pipeline
+from magenta.pipelines import melody_pipelines
 from magenta.pipelines import pipeline
 from magenta.pipelines import pipelines_common
 from magenta.protobuf import music_pb2
@@ -80,7 +81,7 @@ def get_pipeline(melody_encoder_decoder):
     A pipeline.Pipeline instance.
   """
   quantizer = pipelines_common.Quantizer(steps_per_quarter=4)
-  melody_extractor = pipelines_common.MelodyExtractor(
+  melody_extractor = melody_pipelines.MelodyExtractor(
       min_bars=7, min_unique_pitches=5,
       gap_bars=1.0, ignore_polyphonic_notes=False)
   encoder_pipeline = EncoderPipeline(melody_encoder_decoder)

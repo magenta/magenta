@@ -18,6 +18,7 @@ import tensorflow as tf
 import magenta
 
 from magenta.models.melody_rnn import melody_rnn_create_dataset
+from magenta.pipelines import melody_pipelines
 from magenta.pipelines import pipelines_common
 from magenta.protobuf import music_pb2
 
@@ -43,7 +44,7 @@ class MelodyRNNPipelineTest(tf.test.TestCase):
          (55, 120, 8.1, 11.0), (53, 99, 11.1, 14.1)])
 
     quantizer = pipelines_common.Quantizer(steps_per_quarter=4)
-    melody_extractor = pipelines_common.MelodyExtractor(
+    melody_extractor = melody_pipelines.MelodyExtractor(
         min_bars=7, min_unique_pitches=5, gap_bars=1.0,
         ignore_polyphonic_notes=False)
     one_hot_encoder = magenta.music.OneHotMelodyEncoderDecoder(0, 127, 0)
