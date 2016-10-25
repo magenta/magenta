@@ -42,20 +42,6 @@ class MelodyRnnSequenceGenerator(mm.BaseSequenceGenerator):
     self._melody_rnn_model = model
     self._steps_per_quarter = steps_per_quarter
 
-  def _initialize_with_checkpoint(self, checkpoint_file):
-    self._melody_rnn_model.initialize_with_checkpoint(checkpoint_file)
-
-  def _initialize_with_checkpoint_and_metagraph(self, checkpoint_filename,
-                                                metagraph_filename):
-    self._melody_rnn_model.initialize_with_checkpoint_and_metagraph(
-        checkpoint_filename, metagraph_filename)
-
-  def _write_checkpoint_with_metagraph(self, checkpoint_filename):
-    self._melody_rnn_model.write_checkpoint_with_metagraph(checkpoint_filename)
-
-  def _close(self):
-    self._melody_rnn_model.close()
-
   def _seconds_to_steps(self, seconds, qpm):
     """Converts seconds to steps.
 
