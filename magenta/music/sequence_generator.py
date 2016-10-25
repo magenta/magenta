@@ -37,11 +37,11 @@ class BaseSequenceGenerator(object):
 
   __metaclass__ = abc.ABCMeta
 
-  def __init__(self, details, checkpoint, bundle):
+  def __init__(self, model, checkpoint, bundle):
     """Constructs a BaseSequenceGenerator.
 
     Args:
-      details: A generator_pb2.GeneratorDetails for this generator.
+      model: An instance of BaseModel.
       checkpoint: Where to look for the most recent model checkpoint. Either a
           directory to be used with tf.train.latest_checkpoint or the path to a
           single checkpoint file. Or None if a bundle should be used.
@@ -51,7 +51,8 @@ class BaseSequenceGenerator(object):
     Raises:
       SequenceGeneratorException: if neither checkpoint nor bundle is set.
     """
-    self._details = details
+    self._model = model
+    self._details = model.details
     self._checkpoint = checkpoint
     self._bundle = bundle
 
@@ -83,34 +84,6 @@ class BaseSequenceGenerator(object):
     return self._bundle.bundle_details
 
   @abc.abstractmethod
-  def _initialize_with_checkpoint(self, checkpoint_file):
-    """Implementation for building the TF graph given a checkpoint file.
-
-    Args:
-      checkpoint_file: The path to the checkpoint file that should be used.
-    """
-    pass
-
-  @abc.abstractmethod
-  def _initialize_with_checkpoint_and_metagraph(self, checkpoint_file,
-                                                metagraph_file):
-    """Implementation for building the TF graph with a checkpoint and metagraph.
-
-    The implementation should not expect the checkpoint_file and metagraph_file
-    to be available after the method returns.
-
-    Args:
-      checkpoint_file: The path to the checkpoint file that should be used.
-      metagraph_file: The path to the metagraph file that should be used.
-    """
-    pass
-
-  @abc.abstractmethod
-  def _close(self):
-    """Implementation for closing the TF session."""
-    pass
-
-  @abc.abstractmethod
   def _generate(self, input_sequence, generator_options):
     """Implementation for sequence generation based on sequence and options.
 
@@ -123,19 +96,6 @@ class BaseSequenceGenerator(object):
           generation.
     Returns:
       The generated NoteSequence proto.
-    """
-    pass
-
-  @abc.abstractmethod
-  def _write_checkpoint_with_metagraph(self, checkpoint_filename):
-    """Implementation for writing the checkpoint and metagraph.
-
-    Saver should be initialized with sharded=False, and save should be called
-    with: meta_graph_suffix='meta', write_meta_graph=True.
-
-    Args:
-      checkpoint_filename: Path to the checkpoint file. Should be passed as the
-          save_path argument to Saver.save.
     """
     pass
 
@@ -168,7 +128,7 @@ class BaseSequenceGenerator(object):
         raise SequenceGeneratorException(
             'Checkpoint path is not a file: %s (supplied path: %s)' % (
                 checkpoint_file, self._checkpoint))
-      self._initialize_with_checkpoint(checkpoint_file)
+      self._model.initialize_with_checkpoint(checkpoint_file)
     else:
       # Write checkpoint and metagraph files to a temp dir.
       tempdir = None
@@ -183,7 +143,7 @@ class BaseSequenceGenerator(object):
         with tf.gfile.Open(metagraph_filename, 'wb') as f:
           f.write(self._bundle.metagraph_file)
 
-        self._initialize_with_checkpoint_and_metagraph(
+        self._model.initialize_with_checkpoint_and_metagraph(
             checkpoint_filename, metagraph_filename)
       finally:
         # Clean up the temp dir.
@@ -197,7 +157,7 @@ class BaseSequenceGenerator(object):
     If the session was already closed, this is a no-op.
     """
     if self._initialized:
-      self._close()
+      self._model.close()
       self._initialized = False
 
   def __enter__(self):
@@ -248,7 +208,7 @@ class BaseSequenceGenerator(object):
       tempdir = tempfile.mkdtemp()
       checkpoint_filename = os.path.join(tempdir, 'model.ckpt')
 
-      self._write_checkpoint_with_metagraph(checkpoint_filename)
+      self._model.write_checkpoint_with_metagraph(checkpoint_filename)
 
       if not os.path.isfile(checkpoint_filename):
         raise SequenceGeneratorException(

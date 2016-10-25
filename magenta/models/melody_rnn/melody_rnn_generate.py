@@ -27,6 +27,7 @@ import tensorflow as tf
 import magenta
 
 from magenta.models.melody_rnn import melody_rnn_config
+from magenta.models.melody_rnn import melody_rnn_model
 from magenta.models.melody_rnn import melody_rnn_sequence_generator
 from magenta.protobuf import generator_pb2
 from magenta.protobuf import music_pb2
@@ -174,6 +175,10 @@ def run_with_flags(generator):
         FLAGS.primer_midi)
     if primer_sequence.tempos and primer_sequence.tempos[0].qpm:
       qpm = primer_sequence.tempos[0].qpm
+  else:
+    # No priming sequence specified. Default to a single note of middle C.
+    primer_melody = magenta.music.Melody([60])
+    primer_sequence = primer_melody.to_sequence(qpm=qpm)
 
   # Derive the total number of seconds to generate based on the QPM of the
   # priming sequence and the num_steps flag.
@@ -231,7 +236,8 @@ def run_with_flags(generator):
 def main(unused_argv):
   """Saves bundle or runs generator based on flags."""
   generator = melody_rnn_sequence_generator.MelodyRnnSequenceGenerator(
-      config=melody_rnn_config.config_from_flags(),
+      melody_rnn_model=melody_rnn_model.MelodyRnnModel(
+          melody_rnn_config.config_from_flags()),
       steps_per_quarter=FLAGS.steps_per_quarter,
       checkpoint=get_checkpoint(),
       bundle=get_bundle())
