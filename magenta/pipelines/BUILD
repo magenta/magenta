@@ -85,6 +85,7 @@ py_library(
     srcs = ["melody_pipelines.py"],
     deps = [
         ":pipeline",
+        "//magenta/music:events_lib",
         "//magenta/music:melodies_lib",
         "//magenta/music:sequences_lib",
         # tensorflow dep

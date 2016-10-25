@@ -16,6 +16,7 @@
 # internal imports
 import tensorflow as tf
 
+from magenta.music import events_lib
 from magenta.music import melodies_lib
 from magenta.music import sequences_lib
 from magenta.pipelines import pipeline
@@ -43,7 +44,7 @@ class MelodyExtractor(pipeline.Pipeline):
           min_unique_pitches=self.min_unique_pitches,
           gap_bars=self.gap_bars,
           ignore_polyphonic_notes=self.ignore_polyphonic_notes)
-    except melodies_lib.NonIntegerStepsPerBarException as detail:
+    except events_lib.NonIntegerStepsPerBarException as detail:
       tf.logging.warning('Skipped sequence: %s', detail)
       melodies = []
       stats = [statistics.Counter('non_integer_steps_per_bar', 1)]
