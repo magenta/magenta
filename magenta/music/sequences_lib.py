@@ -197,6 +197,10 @@ class QuantizedSequence(object):
             'Got negative note time: start_step = %s, end_step = %s' %
             (start_step, end_step))
 
+      # Extend quantized sequence if necessary.
+      if end_step > self.total_steps:
+        self.total_steps = end_step
+
       if note.instrument not in self.tracks:
         self.tracks[note.instrument] = []
       self.tracks[note.instrument].append(
