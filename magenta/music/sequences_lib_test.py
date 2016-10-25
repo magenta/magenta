@@ -211,6 +211,27 @@ class SequencesLibTest(tf.test.TestCase):
     quantized.from_note_sequence(self.note_sequence, self.steps_per_quarter)
     self.assertEqual(12.0, quantized.steps_per_bar())
 
+  def testFilterDrums(self):
+    testing_lib.add_track_to_sequence(
+        self.note_sequence, 0,
+        [(12, 100, 1.0, 4.0), (19, 100, 0.95, 3.0)])
+    testing_lib.add_track_to_sequence(
+        self.note_sequence, 3,
+        [(12, 100, 1.0, 4.0), (19, 100, 2.0, 5.0)])
+
+    # Make instrument 0 a drum.
+    for note in self.note_sequence.notes:
+      if note.instrument == 0:
+        note.is_drum = True
+
+    testing_lib.add_quantized_track_to_sequence(
+        self.expected_quantized_sequence, 3,
+        [(12, 100, 4, 16), (19, 100, 8, 20)])
+
+    quantized = sequences_lib.QuantizedSequence()
+    quantized.from_note_sequence(self.note_sequence, self.steps_per_quarter)
+    self.assertEqual(self.expected_quantized_sequence, quantized)
+
   def testDeepcopy(self):
     quantized = sequences_lib.QuantizedSequence()
     testing_lib.add_track_to_sequence(
