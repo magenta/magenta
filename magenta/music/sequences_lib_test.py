@@ -50,6 +50,7 @@ class SequencesLibTest(tf.test.TestCase):
     testing_lib.add_track_to_sequence(
         expected_subsequence, 0,
         [(40, 45, 2.50, 3.50), (55, 120, 4.0, 4.01)])
+    expected_subsequence.total_time = 4.75
 
     subsequence = sequences_lib.extract_subsequence(sequence, 2.5, 4.75)
     self.assertProtoEquals(expected_subsequence, subsequence)

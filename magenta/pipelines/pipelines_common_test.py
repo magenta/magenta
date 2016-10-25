@@ -17,6 +17,7 @@
 import tensorflow as tf
 
 from magenta.common import testing_lib as common_testing_lib
+from magenta.music import chords_lib
 from magenta.music import constants
 from magenta.music import melodies_lib
 from magenta.music import sequences_lib
@@ -27,6 +28,7 @@ from magenta.protobuf import music_pb2
 
 NOTE_OFF = constants.MELODY_NOTE_OFF
 NO_EVENT = constants.MELODY_NO_EVENT
+NO_CHORD = constants.NO_CHORD
 
 
 class PipelineUnitsCommonTest(tf.test.TestCase):
@@ -65,6 +67,22 @@ class PipelineUnitsCommonTest(tf.test.TestCase):
     unit = pipelines_common.Quantizer(steps_per_quarter)
     self._unit_transform_test(unit, note_sequence,
                               [expected_quantized_sequence])
+
+  def testChordsExtractor(self):
+    quantized_sequence = sequences_lib.QuantizedSequence()
+    quantized_sequence.steps_per_quarter = 1
+    testing_lib.add_quantized_chords_to_sequence(
+        quantized_sequence, [('C', 2), ('Am', 4), ('F', 5)])
+    quantized_sequence.total_steps = 8
+    expected_events = [[NO_CHORD, NO_CHORD, 'C', 'C', 'Am', 'F', 'F', 'F']]
+    expected_chord_progressions = []
+    for events_list in expected_events:
+      chords = chords_lib.ChordProgression(
+          events_list, steps_per_quarter=1, steps_per_bar=4)
+      expected_chord_progressions.append(chords)
+    unit = pipelines_common.ChordsExtractor(all_transpositions=False)
+    self._unit_transform_test(unit, quantized_sequence,
+                              expected_chord_progressions)
 
   def testMelodyExtractor(self):
     quantized_sequence = sequences_lib.QuantizedSequence()
