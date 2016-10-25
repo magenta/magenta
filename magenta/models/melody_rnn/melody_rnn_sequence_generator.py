@@ -17,22 +17,20 @@ from functools import partial
 
 # internal imports
 
-import tensorflow as tf
-import magenta.music as mm
-
 from magenta.models.melody_rnn import melody_rnn_config
 from magenta.models.melody_rnn import melody_rnn_model
+import magenta.music as mm
 
 
 class MelodyRnnSequenceGenerator(mm.BaseSequenceGenerator):
   """Shared Melody RNN generation code as a SequenceGenerator interface."""
 
-  def __init__(self, melody_rnn_model, steps_per_quarter=4, checkpoint=None,
+  def __init__(self, model, steps_per_quarter=4, checkpoint=None,
                bundle=None):
     """Creates a MelodyRnnSequenceGenerator.
 
     Args:
-      melody_rnn_model: Instance of MelodyRnnModel.
+      model: Instance of MelodyRnnModel.
       steps_per_quarter: What precision to use when quantizing the melody. How
           many steps per quarter note.
       checkpoint: Where to search for the most recent model checkpoint. Mutually
@@ -40,9 +38,8 @@ class MelodyRnnSequenceGenerator(mm.BaseSequenceGenerator):
       bundle: A GeneratorBundle object that includes both the model checkpoint
           and metagraph. Mutually exclusive with `checkpoint`.
     """
-    super(MelodyRnnSequenceGenerator, self).__init__(
-        melody_rnn_model, checkpoint, bundle)
-    self._melody_rnn_model = melody_rnn_model
+    super(MelodyRnnSequenceGenerator, self).__init__(model, checkpoint, bundle)
+    self._melody_rnn_model = model
     self._steps_per_quarter = steps_per_quarter
 
   def _initialize_with_checkpoint(self, checkpoint_file):
@@ -145,6 +142,7 @@ class MelodyRnnSequenceGenerator(mm.BaseSequenceGenerator):
     generated_sequence = generated_melody.to_sequence(qpm=qpm)
     assert (generated_sequence.total_time - generate_section.end_time) <= 1e-5
     return generated_sequence
+
 
 def get_generator_map():
   """Returns a map from the generator ID to its SequenceGenerator class.

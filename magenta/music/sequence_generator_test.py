@@ -17,12 +17,13 @@
 
 import tensorflow as tf
 
-from magenta.music import sequence_generator
 from magenta.music import model
+from magenta.music import sequence_generator
 from magenta.protobuf import generator_pb2
 
 
 class TestModel(model.BaseModel):
+
   def __init__(self):
     details = generator_pb2.GeneratorDetails(
         id='test_generator',

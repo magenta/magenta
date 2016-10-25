@@ -65,7 +65,7 @@ class BaseModel(object):
       saver.restore(self._session, checkpoint_file)
 
   def initialize_with_checkpoint_and_metagraph(self, checkpoint_filename,
-                                                metagraph_filename):
+                                               metagraph_filename):
     with tf.Graph().as_default():
       self._session = tf.Session()
       new_saver = tf.train.import_meta_graph(metagraph_filename)

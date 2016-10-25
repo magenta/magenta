@@ -20,11 +20,10 @@ import heapq
 
 import numpy as np
 from six.moves import range  # pylint: disable=redefined-builtin
-
 import tensorflow as tf
-import magenta.music as mm
 
 from magenta.models.melody_rnn import melody_rnn_graph
+import magenta.music as mm
 
 
 class MelodyRnnModelException(Exception):
@@ -111,23 +110,29 @@ class MelodyRnnModel(mm.BaseModel):
   def _beam_search(self, melody, num_steps, temperature, beam_size,
                    branch_factor, steps_per_iteration):
     """Generates a melody using beam search.
+
     Initially, the beam is filled with `beam_size` copies of the initial
     melody.
+
     Each iteration, the beam is pruned to contain only the `beam_size` melodies
     with highest likelihood. Then `branch_factor` new melodies are generated
     for each melody in the beam. These new melodies are formed by extending
     each melody in the beam by `steps_per_iteration` steps. So between a
     branching and a pruning phase, there will be `beam_size` * `branch_factor`
     active melodies.
+
     Prior to the first "real" iteration, an initial branch generation will take
     place. This is for two reasons:
+
     1) The RNN model needs to be "primed" with the initial melody.
     2) The desired total number of steps `num_steps` might not be a multiple of
        `steps_per_iteration`, so the initial branching generates melody steps
        such that all subsequent iterations can generate `steps_per_iteration`
        steps.
+
     After the final iteration, the single melody in the beam with highest
     likelihood will be returned.
+
     Args:
       melody: The initial melody.
       num_steps: The integer length in steps of the final melody, after
@@ -139,6 +144,7 @@ class MelodyRnnModel(mm.BaseModel):
       branch_factor: The integer branch factor to use.
       steps_per_iteration: The integer number of melody steps to take per
           iteration.
+
     Returns:
       The highest-likelihood melody as computed by the beam search.
     """
@@ -180,6 +186,7 @@ class MelodyRnnModel(mm.BaseModel):
   def generate_melody(self, num_steps, primer_melody, temperature=1.0,
                       beam_size=1, branch_factor=1, steps_per_iteration=1):
     """Generate a melody from a primer melody.
+
     Args:
       num_steps: The integer length in steps of the final melody, after
           generation. Includes the primer.
@@ -192,22 +199,24 @@ class MelodyRnnModel(mm.BaseModel):
       branch_factor: An integer, beam search branch factor to use.
       steps_per_iteration: An integer, number of melody steps to take per beam
           search iteration.
+
     Returns:
       The generated Melody object (which begins with the provided primer
           melody).
+
     Raises:
-      MelodyRnnSequenceGeneratorException: If the primer melody has zero
+      MelodyRnnModelException: If the primer melody has zero
           length or is not shorter than num_steps.
     """
     if not primer_melody:
-      raise MelodyRnnSequenceGeneratorException(
+      raise MelodyRnnModelException(
           'primer melody must have non-zero length')
     if len(primer_melody) >= num_steps:
-      raise MelodyRnnSequenceGeneratorException(
+      raise MelodyRnnModelException(
           'primer melody must be shorter than `num_steps`')
 
     if beam_size != self._config.hparams.batch_size:
-      raise MelodyRnnSequenceGeneratorException(
+      raise MelodyRnnModelException(
           'currently beam search only supports using batch size as beam size')
 
     melody = copy.deepcopy(primer_melody)

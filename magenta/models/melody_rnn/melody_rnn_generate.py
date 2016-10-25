@@ -236,7 +236,7 @@ def run_with_flags(generator):
 def main(unused_argv):
   """Saves bundle or runs generator based on flags."""
   generator = melody_rnn_sequence_generator.MelodyRnnSequenceGenerator(
-      melody_rnn_model=melody_rnn_model.MelodyRnnModel(
+      model=melody_rnn_model.MelodyRnnModel(
           melody_rnn_config.config_from_flags()),
       steps_per_quarter=FLAGS.steps_per_quarter,
       checkpoint=get_checkpoint(),
