@@ -255,15 +255,18 @@ class ChordProgression(events_lib.SimpleEventSequence):
             self._events[i], transpose_amount % NOTES_PER_OCTAVE)
 
 
-def extract_chords(quantized_sequence, max_steps=512, all_transpositions=False):
-  """Extracts from the QuantizedSequence a single chord progression.
+def extract_chords(quantized_sequence, max_steps=None,
+                   all_transpositions=False):
+  """Extracts a single chord progression from the QuantizedSequence.
 
   This function will extract the underlying chord progression (encoded as text
   annotations) from `quantized_sequence`.
 
   Args:
     quantized_sequence: A sequences_lib.QuantizedSequence object.
-    max_steps: An integer, maximum length of a chord progression.
+    max_steps: An integer, maximum length of a chord progression. Chord
+        progressions will be trimmed to this length. If None, chord
+        progressions will not be trimmed.
     all_transpositions: If True, also transpose the chord progression into all
         12 keys.
 
@@ -278,9 +281,10 @@ def extract_chords(quantized_sequence, max_steps=512, all_transpositions=False):
   chords = ChordProgression()
   chords.from_quantized_sequence(
       quantized_sequence, 0, quantized_sequence.total_steps)
-  if len(chords) > max_steps:
-    chords.set_length(max_steps)
-    stats['chords_truncated'].increment()
+  if max_steps is not None:
+    if len(chords) > max_steps:
+      chords.set_length(max_steps)
+      stats['chords_truncated'].increment()
   if all_transpositions:
     chord_progressions = []
     for amount in range(-6, 6):

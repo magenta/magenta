@@ -108,6 +108,17 @@ class ChordsLibTest(tf.test.TestCase):
     expected = [[NO_CHORD, NO_CHORD, 'C', 'C', 'C', 'C', 'G7', 'G7', 'F', 'F']]
     self.assertEqual(expected, [list(chords) for chords in chord_progressions])
 
+  def testExtractChordsAllTranspositions(self):
+    self.quantized_sequence.steps_per_quarter = 1
+    testing_lib.add_quantized_chords_to_sequence(
+        self.quantized_sequence, [('C', 1)])
+    self.quantized_sequence.total_steps = 2
+    chord_progressions, _ = chords_lib.extract_chords(self.quantized_sequence,
+                                                      all_transpositions=True)
+    expected = zip([NO_CHORD] * 12, ['G-', 'G', 'A-', 'A', 'B-', 'B',
+                                     'C', 'D-', 'D', 'E-', 'E', 'F'])
+    self.assertEqual(expected, [tuple(chords) for chords in chord_progressions])
+
   def testExtractChordsForMelodies(self):
     self.quantized_sequence.steps_per_quarter = 1
     testing_lib.add_quantized_track_to_sequence(
