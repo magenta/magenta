@@ -299,6 +299,7 @@ py_library(
     srcs = ["musicxml_reader.py"],
     srcs_version = "PY2AND3",
     deps = [
+        "//magenta/music:musicxml_parser",
         "//magenta/protobuf:music_py_pb2"
     ],
 )

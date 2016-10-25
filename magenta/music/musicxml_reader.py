@@ -85,7 +85,12 @@ def musicxml_to_sequence_proto(musicxml_document):
           note.instrument = musicxml_note.midi_channel
           note.program = musicxml_note.midi_program
           note.start_time = musicxml_note.time_position
-          note.end_time = musicxml_note.time_position + musicxml_note.seconds
+
+          # Fix negative time errors from incorrect MusicXML
+          if note.start_time < 0:
+            note.start_time = 0
+
+          note.end_time = note.start_time + musicxml_note.seconds
           note.pitch = musicxml_note.pitch[1] # Index 1 = MIDI pitch number
           note.velocity = musicxml_note.velocity
 

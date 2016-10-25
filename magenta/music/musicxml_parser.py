@@ -41,7 +41,7 @@ CURRENT_SECONDS_PER_BEAT = 0.5
 
 # Running total of time for the current event.
 # Resets to 0 on every part. Affected by <forward> and <backup> elements
-CURRENT_TIME_POSITION = 0
+#CURRENT_TIME_POSITION = 0
 
 # Default to a MIDI velocity of 64 (mf)
 CURRENT_VELOCITY = 64
@@ -216,10 +216,11 @@ class MusicXMLDocument(object):
     If no tempos are found, create a default tempo of 120 qpm.
     """
     tempos = []
-    for part in self.parts:
-      for measure in part.measures:
-        for tempo in measure.tempos:
-          tempos.append(tempo)
+    #for part in self.parts:
+    part = self.parts[0] # Use only first part
+    for measure in part.measures:
+      for tempo in measure.tempos:
+        tempos.append(tempo)
 
     # If no tempos, add a default of 120 at beginning
     if len(tempos) == 0:
@@ -285,13 +286,14 @@ class Part(object):
 
   def parse(self):
     """Parse the <part> element"""
-    global CURRENT_TIME_POSITION
+    #global CURRENT_TIME_POSITION
     global CURRENT_MIDI_PROGRAM
     global CURRENT_MIDI_CHANNEL
     global CURRENT_TRANSPOSE
 
     # Reset the time position when parsing each part
-    CURRENT_TIME_POSITION = 0
+    #CURRENT_TIME_POSITION = 0
+    self.state.time_position = 0
     CURRENT_MIDI_CHANNEL = self.score_part.midi_channel
     CURRENT_MIDI_PROGRAM = self.score_part.midi_program
     CURRENT_TRANSPOSE = 0
@@ -405,7 +407,8 @@ class Measure(object):
 
     xml_duration = xml_forward.find('duration')
     forward_duration = int(xml_duration.text)
-    midi_ticks = forward_duration * (constants.STANDARD_PPQ / CURRENT_DIVISIONS)
+    midi_ticks = forward_duration * (constants.STANDARD_PPQ
+                                     / self.state.divisions)
     seconds = (midi_ticks / constants.STANDARD_PPQ) * CURRENT_SECONDS_PER_BEAT
     CURRENT_TIME_POSITION += seconds
 
