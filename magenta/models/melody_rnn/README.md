@@ -38,7 +38,7 @@ directory.
 BUNDLE_PATH=<absolute path of .mag file>
 CONFIG=<one of 'basic_rnn', 'lookback_rnn', or 'attention_rnn'>
 
-melody_rnn_generate -- \
+melody_rnn_generate \
 --config=${CONFIG} \
 --bundle_file=${BUNDLE_PATH} \
 --output_dir=/tmp/melody_rnn/generated \
@@ -117,7 +117,7 @@ Our first step will be to convert a collection of MIDI files into NoteSequences.
 SequenceExamples are fed into the model during training and evaluation. Each SequenceExample will contain a sequence of inputs and a sequence of labels that represent a melody. Run the command below to extract melodies from our NoteSequences and save them as SequenceExamples. If we specify an `--eval_output` and an `--eval_ratio`, two collections of SequenceExamples will be generated, one for training, and one for evaluation. With an eval ratio of 0.10, 10% of the extracted melodies will be saved in the eval collection, and 90% will be saved in the training collection.
 
 ```
-melody_rnn_create_dataset -- \
+melody_rnn_create_dataset \
 --config=<one of 'basic_rnn', 'lookback_rnn', or 'attention_rnn'>
 --input=/tmp/notesequences.tfrecord \
 --output_dir=/tmp/attention_rnn/sequence_examples \
@@ -171,7 +171,7 @@ At least one note needs to be fed to the model before it can start generating co
 
 
 ```
-melody_rnn_generate -- \
+melody_rnn_generate \
 --config=attention_rnn \
 --run_dir=/tmp/attention_rnn/logdir/run1 \
 --output_dir=/tmp/attention_rnn/generated \
@@ -192,7 +192,7 @@ method within SequenceGenerator. All of our melody model generator scripts
 support a ```--save_generator_bundle``` flag that calls this method. Example:
 
 ```sh
-melody_rnn_generate -- \
+melody_rnn_generate \
   --config=attention_rnn \
   --run_dir=/tmp/attention_rnn/logdir/run1 \
   --hparams="{'batch_size':64,'rnn_layer_sizes':[64,64]}" \
