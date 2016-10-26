@@ -52,7 +52,6 @@ class BaseSequenceGenerator(object):
       SequenceGeneratorException: if neither checkpoint nor bundle is set.
     """
     self._model = model
-    self._details = model.details
     self._checkpoint = checkpoint
     self._bundle = bundle
 
@@ -64,17 +63,18 @@ class BaseSequenceGenerator(object):
           'Checkpoint and bundle cannot both be set')
 
     if self._bundle:
-      if self._bundle.generator_details.id != self._details.id:
+      if self._bundle.generator_details.id != self._model.details.id:
         raise SequenceGeneratorException(
             'Generator id in bundle (%s) does not match this generator\'s id '
-            '(%s)' % (self._bundle.generator_details.id, self._details.id))
+            '(%s)' % (self._bundle.generator_details.id,
+                      self._model.details.id))
 
     self._initialized = False
 
   @property
   def details(self):
     """Returns a GeneratorDetails description of this generator."""
-    return self._details
+    return self._model.details
 
   @property
   def bundle_details(self):

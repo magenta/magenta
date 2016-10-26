@@ -39,7 +39,6 @@ class MelodyRnnSequenceGenerator(mm.BaseSequenceGenerator):
           and metagraph. Mutually exclusive with `checkpoint`.
     """
     super(MelodyRnnSequenceGenerator, self).__init__(model, checkpoint, bundle)
-    self._melody_rnn_model = model
     self._steps_per_quarter = steps_per_quarter
 
   def _seconds_to_steps(self, seconds, qpm):
@@ -123,7 +122,7 @@ class MelodyRnnSequenceGenerator(mm.BaseSequenceGenerator):
                 for name, value_fn in arg_types.items()
                 if name in generator_options.args)
 
-    generated_melody = self._melody_rnn_model.generate_melody(
+    generated_melody = self._model.generate_melody(
         end_step - melody.start_step, melody, **args)
     generated_sequence = generated_melody.to_sequence(qpm=qpm)
     assert (generated_sequence.total_time - generate_section.end_time) <= 1e-5
