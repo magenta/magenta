@@ -73,6 +73,49 @@ class OneHotEventSequenceEncodingTest(tf.test.TestCase):
     self.assertEqual(1, self.enc.class_index_to_event(1, events))
     self.assertEqual(2, self.enc.class_index_to_event(2, events))
 
+  def testEncode(self):
+    events = [0, 1, 0, 2, 0]
+    sequence_example = self.enc.encode(events)
+    expected_inputs = [[1.0, 0.0, 0.0],
+                       [0.0, 1.0, 0.0],
+                       [1.0, 0.0, 0.0],
+                       [0.0, 0.0, 1.0]]
+    expected_labels = [1, 0, 2, 0]
+    expected_sequence_example = sequence_example_lib.make_sequence_example(
+        expected_inputs, expected_labels)
+    self.assertEqual(sequence_example, expected_sequence_example)
+
+  def testGetInputsBatch(self):
+    event_sequences = [[0, 1, 0, 2, 0], [0, 1, 2]]
+    expected_inputs_1 = [[1.0, 0.0, 0.0],
+                         [0.0, 1.0, 0.0],
+                         [1.0, 0.0, 0.0],
+                         [0.0, 0.0, 1.0],
+                         [1.0, 0.0, 0.0]]
+    expected_inputs_2 = [[1.0, 0.0, 0.0],
+                         [0.0, 1.0, 0.0],
+                         [0.0, 0.0, 1.0]]
+    expected_full_length_inputs_batch = [expected_inputs_1, expected_inputs_2]
+    expected_last_event_inputs_batch = [expected_inputs_1[-1:],
+                                        expected_inputs_2[-1:]]
+    self.assertListEqual(
+        expected_full_length_inputs_batch,
+        self.enc.get_inputs_batch(event_sequences, True))
+    self.assertListEqual(
+        expected_last_event_inputs_batch,
+        self.enc.get_inputs_batch(event_sequences))
+
+  def testExtendEventSequences(self):
+    events1 = [0]
+    events2 = [0]
+    events3 = [0]
+    event_sequences = [events1, events2, events3]
+    softmax = [[[0.0, 0.0, 1.0]], [[1.0, 0.0, 0.0]], [[0.0, 1.0, 0.0]]]
+    self.enc.extend_event_sequences(event_sequences, softmax)
+    self.assertListEqual(list(events1), [0, 2])
+    self.assertListEqual(list(events2), [0, 0])
+    self.assertListEqual(list(events3), [0, 1])
+
 
 class LookbackEventSequenceEncodingTest(tf.test.TestCase):
 
@@ -139,62 +182,6 @@ class LookbackEventSequenceEncodingTest(tf.test.TestCase):
     self.assertEqual(2, self.enc.class_index_to_event(2, events[:5]))
     self.assertEqual(0, self.enc.class_index_to_event(3, events[:5]))
     self.assertEqual(2, self.enc.class_index_to_event(4, events[:5]))
-
-
-class EventSequenceEncoderDecoderTest(tf.test.TestCase):
-
-  def setUp(self):
-    self.ed = encoding.EventSequenceEncoderDecoder(
-        encoding.OneHotEventSequenceEncoding(TrivialOneHotEncoding(3)))
-
-  def testInputSize(self):
-    self.assertEquals(3, self.ed.input_size)
-
-  def testNumClasses(self):
-    self.assertEquals(3, self.ed.num_classes)
-
-  def testEncode(self):
-    events = [0, 1, 0, 2, 0]
-    sequence_example = self.ed.encode(events)
-    expected_inputs = [[1.0, 0.0, 0.0],
-                       [0.0, 1.0, 0.0],
-                       [1.0, 0.0, 0.0],
-                       [0.0, 0.0, 1.0]]
-    expected_labels = [1, 0, 2, 0]
-    expected_sequence_example = sequence_example_lib.make_sequence_example(
-        expected_inputs, expected_labels)
-    self.assertEqual(sequence_example, expected_sequence_example)
-
-  def testGetInputsBatch(self):
-    event_sequences = [[0, 1, 0, 2, 0], [0, 1, 2]]
-    expected_inputs_1 = [[1.0, 0.0, 0.0],
-                         [0.0, 1.0, 0.0],
-                         [1.0, 0.0, 0.0],
-                         [0.0, 0.0, 1.0],
-                         [1.0, 0.0, 0.0]]
-    expected_inputs_2 = [[1.0, 0.0, 0.0],
-                         [0.0, 1.0, 0.0],
-                         [0.0, 0.0, 1.0]]
-    expected_full_length_inputs_batch = [expected_inputs_1, expected_inputs_2]
-    expected_last_event_inputs_batch = [expected_inputs_1[-1:],
-                                        expected_inputs_2[-1:]]
-    self.assertListEqual(
-        expected_full_length_inputs_batch,
-        self.ed.get_inputs_batch(event_sequences, True))
-    self.assertListEqual(
-        expected_last_event_inputs_batch,
-        self.ed.get_inputs_batch(event_sequences))
-
-  def testExtendEventSequences(self):
-    events1 = [0]
-    events2 = [0]
-    events3 = [0]
-    event_sequences = [events1, events2, events3]
-    softmax = [[[0.0, 0.0, 1.0]], [[1.0, 0.0, 0.0]], [[0.0, 1.0, 0.0]]]
-    self.ed.extend_event_sequences(event_sequences, softmax)
-    self.assertListEqual(list(events1), [0, 2])
-    self.assertListEqual(list(events2), [0, 0])
-    self.assertListEqual(list(events3), [0, 1])
 
 
 if __name__ == '__main__':

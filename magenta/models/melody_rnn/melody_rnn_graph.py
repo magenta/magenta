@@ -24,8 +24,7 @@ def build_graph(mode, config, sequence_example_file=None):
   Args:
     mode: 'train', 'eval', or 'generate'. Only mode related ops are added to
         the graph.
-    config: A MelodyRnnConfig containing the MelodyEncoderDecoder and HParams
-        use.
+    config: A MelodyRnnConfig containing the MelodyEncoding and HParams to use.
     sequence_example_file: A string path to a TFRecord file containing
         tf.train.SequenceExample protos. Only needed for training and
         evaluation.
@@ -43,13 +42,13 @@ def build_graph(mode, config, sequence_example_file=None):
                      "or 'generate'. The mode parameter was: %s" % mode)
 
   hparams = config.hparams
-  encoder_decoder = config.encoder_decoder
+  encoding = config.encoding
 
   tf.logging.info('hparams = %s', hparams.values())
 
-  input_size = encoder_decoder.input_size
-  num_classes = encoder_decoder.num_classes
-  no_event_label = encoder_decoder.no_event_label
+  input_size = encoding.input_size
+  num_classes = encoding.num_classes
+  no_event_label = encoding.default_event_label
 
   with tf.Graph().as_default() as graph:
     inputs, labels, lengths, = None, None, None

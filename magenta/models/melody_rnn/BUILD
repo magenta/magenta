@@ -102,6 +102,7 @@ py_test(
     name = "melody_rnn_create_dataset_test",
     srcs = ["melody_rnn_create_dataset_test.py"],
     deps = [
+        ":melody_rnn_config",
         ":melody_rnn_create_dataset",
         "//magenta",
         # tensorflow dep

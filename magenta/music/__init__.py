@@ -17,7 +17,9 @@
 from constants import *  # pylint: disable=wildcard-import
 
 from encoding import EventSequenceEncoding
+from encoding import LookbackEventSequenceEncoding
 from encoding import OneHotEncoding
+from encoding import OneHotEventSequenceEncoding
 
 from events_lib import NonIntegerStepsPerBarException
 
@@ -27,13 +29,8 @@ from melodies_lib import Melody
 from melodies_lib import midi_file_to_melody
 from melodies_lib import PolyphonicMelodyException
 
-from melody_encoding import KeyMelodyEncoderDecoder
 from melody_encoding import KeyMelodyEncoding
-from melody_encoding import lookback_melody_encoding
-from melody_encoding import LookbackMelodyEncoderDecoder
-from melody_encoding import MelodyEncoderDecoder
-from melody_encoding import one_hot_melody_encoding
-from melody_encoding import OneHotMelodyEncoderDecoder
+from melody_encoding import MelodyOneHotEncoding
 
 from midi_io import midi_file_to_sequence_proto
 from midi_io import midi_to_sequence_proto

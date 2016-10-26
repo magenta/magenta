@@ -17,10 +17,20 @@ OneHotEncoding is an abstract class for specifying a one-hot encoding, i.e.
 how to convert back and forth between an arbitrary event space and integer
 indices between 0 and the number of classes.
 
-EventSequenceEncoding is an abstract class for specifying an encoding of event
-_sequences_, i.e. how to convert event sequences to input vectors and output
+EventSequenceEncoding is an abstract class for translating event _sequences_,
+i.e. how to convert event sequences to input vectors and output labels
 labels to be fed into a model, and how to convert from output labels back to
 events.
+
+Use EventSequenceEncoding.encode to convert an event sequence to a
+tf.train.SequenceExample of inputs and labels. These SequenceExamples are fed
+into the model during training and evaluation.
+
+During generation, use EventSequenceEncoding.get_inputs_batch to convert a list
+of event sequences into an inputs batch which can be fed into the model to
+predict what the next event should be for each sequence. Then use
+EventSequenceEncoding.extend_event_sequences to extend each of those event
+sequences with an event sampled from the softmax output by the model.
 
 OneHotEventSequenceEncoding is an EventSequenceEncoding that uses a
 OneHotEncoding of individual events. The input vectors are one-hot encodings of
@@ -31,19 +41,6 @@ LookbackEventSequenceEncoding is an EventSequenceEncoding that also uses a
 OneHotEncoding of individual events. However, its input and output encodings
 also consider whether the event sequence is repeating, and the input encoding
 includes binary counters for timekeeping.
-
-EventSequenceEncoderDecoder uses an EventSequenceEncoding to actually perform
-the translation between event sequences and model data.
-
-Use EventSequenceEncoderDecoder.encode to convert an event sequence to a
-tf.train.SequenceExample of inputs and labels. These SequenceExamples are fed
-into the model during training and evaluation.
-
-During generation, use EventSequenceEncoderDecoder.get_inputs_batch to convert
-a list of event sequences into an inputs batch which can be fed into the model
-to predict what the next event should be for each sequence. Then use
-EventSequenceEncoderDecoder.extend_event_sequences to extend each of those
-event sequences with an event sampled from the softmax output by the model.
 """
 
 import abc
@@ -109,17 +106,32 @@ class OneHotEncoding(object):
 
 
 class EventSequenceEncoding(object):
-  """An interface for specifying a translation between events and model data.
+  """An abstract class for translating between events and model data.
 
-  The `input_size`, `num_classes`, `events_to_input`, `events_to_label`, and
-  `class_index_to_event` method must be overwritten to be specific to your
-  model.
+  When building your dataset, the `encode` method takes in an event sequence
+  and returns a SequenceExample of inputs and labels. These SequenceExamples
+  are fed into the model during training and evaluation.
+
+  During generation, the `get_inputs_batch` method takes in a list of the
+  current event sequences and returns an inputs batch which is fed into the
+  model to predict what the next event should be for each sequence. The
+  `extend_event_sequences` method takes in the list of event sequences and the
+  softmax returned by the model and extends each sequence by one step by
+  sampling from the softmax probabilities. This loop (`get_inputs_batch` ->
+  inputs batch is fed through the model to get a softmax ->
+  `extend_event_sequences`) is repeated until the generated event sequences
+  have reached the desired length.
 
   Properties:
     input_size: The length of the list returned by self.events_to_input.
     num_classes: The range of ints that can be returned by
         self.events_to_label.
+
+  The `input_size`, `num_classes`, `events_to_input`, `events_to_label`, and
+  `class_index_to_event` method must be overwritten to be specific to your
+  model.
   """
+
   __metaclass__ = abc.ABCMeta
 
   @abc.abstractproperty
@@ -138,6 +150,15 @@ class EventSequenceEncoding(object):
     Returns:
         An integer, the range of integers that can be returned by
             self.events_to_label.
+    """
+    pass
+
+  @abc.abstractproperty
+  def default_event_label(self):
+    """The class label that represents a default event.
+
+    Returns:
+      An int, the class label that represents a default event.
     """
     pass
 
@@ -182,6 +203,71 @@ class EventSequenceEncoding(object):
     """
     pass
 
+  def encode(self, events):
+    """Returns a SequenceExample for the given event sequence.
+
+    Args:
+      events: A list-like sequence of events.
+
+    Returns:
+      A tf.train.SequenceExample containing inputs and labels.
+    """
+    inputs = []
+    labels = []
+    for i in range(len(events) - 1):
+      inputs.append(self.events_to_input(events, i))
+      labels.append(self.events_to_label(events, i + 1))
+    return sequence_example_lib.make_sequence_example(inputs, labels)
+
+  def get_inputs_batch(self, event_sequences, full_length=False):
+    """Returns an inputs batch for the given event sequences.
+
+    Args:
+      event_sequences: A list of list-like event sequences.
+      full_length: If True, the inputs batch will be for the full length of
+          each event sequence. If False, the inputs batch will only be for the
+          last event of each event sequence. A full-length inputs batch is used
+          for the first step of extending the event sequences, since the RNN
+          cell state needs to be initialized with the priming sequence. For
+          subsequent generation steps, only a last-event inputs batch is used.
+
+    Returns:
+      An inputs batch. If `full_length` is True, the shape will be
+      [len(event_sequences), len(event_sequences[0]), INPUT_SIZE]. If
+      `full_length` is False, the shape will be
+      [len(event_sequences), 1, INPUT_SIZE].
+    """
+    inputs_batch = []
+    for events in event_sequences:
+      inputs = []
+      if full_length and len(event_sequences):
+        for i in range(len(events)):
+          inputs.append(self.events_to_input(events, i))
+      else:
+        inputs.append(self.events_to_input(events, len(events) - 1))
+      inputs_batch.append(inputs)
+    return inputs_batch
+
+  def extend_event_sequences(self, event_sequences, softmax):
+    """Extends the event_sequences by sampling the softmax probabilities.
+
+    Args:
+      event_sequences: A list of EventSequence objects.
+      softmax: A list of softmax probability vectors. The list of softmaxes
+          should be the same length as the list of event_sequences.
+
+    Returns:
+      A python list of chosen class indices, one for each event sequence.
+    """
+    num_classes = len(softmax[0][0])
+    chosen_classes = []
+    for i in xrange(len(event_sequences)):
+      chosen_class = np.random.choice(num_classes, p=softmax[i][-1])
+      event = self.class_index_to_event(chosen_class, event_sequences[i])
+      event_sequences[i].append(event)
+      chosen_classes.append(chosen_class)
+    return chosen_classes
+
 
 class OneHotEventSequenceEncoding(EventSequenceEncoding):
   """An EventSequenceEncoding that produces a one-hot encoding for the input."""
@@ -202,6 +288,11 @@ class OneHotEventSequenceEncoding(EventSequenceEncoding):
   @property
   def num_classes(self):
     return self._one_hot_encoding.num_classes
+
+  @property
+  def default_event_label(self):
+    return self._one_hot_encoding.encode_event(
+        self._one_hot_encoding.default_event)
 
   def events_to_input(self, events, position):
     """Returns the input vector for the given position in the event sequence.
@@ -254,8 +345,9 @@ class OneHotEventSequenceEncoding(EventSequenceEncoding):
 class LookbackEventSequenceEncoding(EventSequenceEncoding):
   """An EventSequenceEncoding that encodes repeated events and keeps time."""
 
-  def __init__(self, one_hot_encoding, lookback_distances, binary_counter_bits):
-    """Initializes the LookbackEncoderDecoder.
+  def __init__(self, one_hot_encoding, lookback_distances=None,
+               binary_counter_bits=5):
+    """Initializes the LookbackEventSequenceEncoding.
 
     Args:
       one_hot_encoding: A OneHotEncoding object that transforms events to and
@@ -284,6 +376,11 @@ class LookbackEventSequenceEncoding(EventSequenceEncoding):
   @property
   def num_classes(self):
     return self._one_hot_encoding.num_classes + len(self._lookback_distances)
+
+  @property
+  def default_event_label(self):
+    return self._one_hot_encoding.encode_event(
+        self._one_hot_encoding.default_event)
 
   def events_to_input(self, events, position):
     """Returns the input vector for the given position in the event sequence.
@@ -414,121 +511,3 @@ class LookbackEventSequenceEncoding(EventSequenceEncoding):
 
     # Return the event for that class index.
     return self._one_hot_encoding.decode_event(class_index)
-
-
-class EventSequenceEncoderDecoder(object):
-  """A class for translating between events and model data.
-
-  When building your dataset, the `encode` method takes in an event sequence
-  and returns a SequenceExample of inputs and labels. These SequenceExamples
-  are fed into the model during training and evaluation.
-
-  During generation, the `get_inputs_batch` method takes in a list of the
-  current event sequences and returns an inputs batch which is fed into the
-  model to predict what the next event should be for each sequence. The
-  `extend_event_sequences` method takes in the list of event sequences and the
-  softmax returned by the model and extends each sequence by one step by
-  sampling from the softmax probabilities. This loop (`get_inputs_batch` ->
-  inputs batch is fed through the model to get a softmax ->
-  `extend_event_sequences`) is repeated until the generated event sequences
-  have reached the desired length.
-
-  Properties:
-    input_size: The size of input vectors in the encoding.
-    num_classes: The number of labels that can be returned by the encoding.
-  """
-
-  def __init__(self, encoding):
-    """Initialize an EventSequenceEncoderDecoder object.
-
-    Args:
-      encoding: An EventSequenceEncoding object that specifies a mapping from
-          event sequences to input vectors and output labels, and from output
-          labels back to events.
-    """
-    self._encoding = encoding
-
-  @property
-  def input_size(self):
-    """The size of the input vector used by this model.
-
-    Returns:
-        An integer, the length of the list returned by self.events_to_input.
-    """
-    return self._encoding.input_size
-
-  @property
-  def num_classes(self):
-    """The range of labels used by this model.
-
-    Returns:
-        An integer, the range of integers that can be returned by
-            self.events_to_label.
-    """
-    return self._encoding.num_classes
-
-  def encode(self, events):
-    """Returns a SequenceExample for the given event sequence.
-
-    Args:
-      events: A list-like sequence of events.
-
-    Returns:
-      A tf.train.SequenceExample containing inputs and labels.
-    """
-    inputs = []
-    labels = []
-    for i in range(len(events) - 1):
-      inputs.append(self._encoding.events_to_input(events, i))
-      labels.append(self._encoding.events_to_label(events, i + 1))
-    return sequence_example_lib.make_sequence_example(inputs, labels)
-
-  def get_inputs_batch(self, event_sequences, full_length=False):
-    """Returns an inputs batch for the given event sequences.
-
-    Args:
-      event_sequences: A list of list-like event sequences.
-      full_length: If True, the inputs batch will be for the full length of
-          each event sequence. If False, the inputs batch will only be for the
-          last event of each event sequence. A full-length inputs batch is used
-          for the first step of extending the event sequences, since the RNN
-          cell state needs to be initialized with the priming sequence. For
-          subsequent generation steps, only a last-event inputs batch is used.
-
-    Returns:
-      An inputs batch. If `full_length` is True, the shape will be
-      [len(event_sequences), len(event_sequences[0]), INPUT_SIZE]. If
-      `full_length` is False, the shape will be
-      [len(event_sequences), 1, INPUT_SIZE].
-    """
-    inputs_batch = []
-    for events in event_sequences:
-      inputs = []
-      if full_length and len(event_sequences):
-        for i in range(len(events)):
-          inputs.append(self._encoding.events_to_input(events, i))
-      else:
-        inputs.append(self._encoding.events_to_input(events, len(events) - 1))
-      inputs_batch.append(inputs)
-    return inputs_batch
-
-  def extend_event_sequences(self, event_sequences, softmax):
-    """Extends the event_sequences by sampling the softmax probabilities.
-
-    Args:
-      event_sequences: A list of EventSequence objects.
-      softmax: A list of softmax probability vectors. The list of softmaxes
-          should be the same length as the list of event_sequences.
-
-    Returns:
-      A python list of chosen class indices, one for each event sequence.
-    """
-    num_classes = len(softmax[0][0])
-    chosen_classes = []
-    for i in xrange(len(event_sequences)):
-      chosen_class = np.random.choice(num_classes, p=softmax[i][-1])
-      event = self._encoding.class_index_to_event(
-          chosen_class, event_sequences[i])
-      event_sequences[i].append_event(event)
-      chosen_classes.append(chosen_class)
-    return chosen_classes

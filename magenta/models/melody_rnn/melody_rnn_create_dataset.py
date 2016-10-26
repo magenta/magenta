@@ -49,33 +49,38 @@ tf.app.flags.DEFINE_string('log', 'INFO',
 class EncoderPipeline(pipeline.Pipeline):
   """A Module that converts monophonic melodies to a model specific encoding."""
 
-  def __init__(self, melody_encoder_decoder):
-    """Constructs a EncoderPipeline.
-
-    A magenta.music.MelodyEncoderDecoder is needed to provide the
-    `encode` function.
+  def __init__(self, config):
+    """Constructs an EncoderPipeline.
 
     Args:
-      melody_encoder_decoder: A magenta.music.MelodyEncoderDecoder object.
+      config: A MelodyRnnConfig that specifies the encoding, pitch range, and
+          what key to transpose into.
     """
     super(EncoderPipeline, self).__init__(
         input_type=magenta.music.Melody,
         output_type=tf.train.SequenceExample)
-    self.melody_encoder_decoder = melody_encoder_decoder
+    self._melody_encoding = config.encoding
+    self._min_note = config.min_note
+    self._max_note = config.max_note
+    self._transpose_to_key = config.transpose_to_key
 
   def transform(self, melody):
-    encoded = self.melody_encoder_decoder.squash_and_encode(melody)
+    melody.squash(
+        self._min_note,
+        self._max_note,
+        self._transpose_to_key)
+    encoded = self._melody_encoding.encode(melody)
     return [encoded]
 
   def get_stats(self):
     return {}
 
 
-def get_pipeline(melody_encoder_decoder):
+def get_pipeline(config):
   """Returns the Pipeline instance which creates the RNN dataset.
 
   Args:
-    melody_encoder_decoder: A magenta.music.MelodyEncoderDecoder object.
+    config: A MelodyRnnConfig object.
 
   Returns:
     A pipeline.Pipeline instance.
@@ -84,7 +89,7 @@ def get_pipeline(melody_encoder_decoder):
   melody_extractor = melody_pipelines.MelodyExtractor(
       min_bars=7, max_steps=512, min_unique_pitches=5,
       gap_bars=1.0, ignore_polyphonic_notes=False)
-  encoder_pipeline = EncoderPipeline(melody_encoder_decoder)
+  encoder_pipeline = EncoderPipeline(config)
   partitioner = pipelines_common.RandomPartition(
       tf.train.SequenceExample,
       ['eval_melodies', 'training_melodies'],
@@ -102,7 +107,7 @@ def run_from_flags():
   tf.logging.set_verbosity(FLAGS.log)
 
   config = melody_rnn_config.config_from_flags()
-  pipeline_instance = get_pipeline(config.encoder_decoder)
+  pipeline_instance = get_pipeline(config)
   FLAGS.input = os.path.expanduser(FLAGS.input)
   FLAGS.output_dir = os.path.expanduser(FLAGS.output_dir)
   pipeline.run_pipeline_serial(
