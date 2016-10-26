@@ -31,9 +31,18 @@ sh_binary(
 
         # Scripts
         "//magenta/interfaces/midi:magenta_midi",
+        "//magenta/scripts:convert_midi_dir_to_note_sequences",
+
+        # Melody RNN Scripts
         "//magenta/models/melody_rnn:melody_rnn_create_dataset",
         "//magenta/models/melody_rnn:melody_rnn_generate",
         "//magenta/models/melody_rnn:melody_rnn_train",
-        "//magenta/scripts:convert_midi_dir_to_note_sequences",
+
+        # Image Stylization Scripts
+        "//magenta/models/image_stylization:image_stylization_create_dataset",
+        "//magenta/models/image_stylization:image_stylization_evaluate",
+        "//magenta/models/image_stylization:image_stylization_finetune",
+        "//magenta/models/image_stylization:image_stylization_train",
+        "//magenta/models/image_stylization:image_stylization_transform",
     ],
 )
