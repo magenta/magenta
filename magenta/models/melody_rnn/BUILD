@@ -30,7 +30,7 @@ py_library(
     srcs = ["melody_rnn_config.py"],
     srcs_version = "PY2AND3",
     visibility = [
-        # internal pipeline runner
+        # internal model:melody_rnn
     ],
     deps = [
         "//magenta",
@@ -78,6 +78,7 @@ py_library(
         ":melody_rnn_config",
         ":melody_rnn_graph",
         "//magenta",
+        # numpy dep
         # tensorflow dep
     ],
 )
@@ -87,7 +88,7 @@ py_binary(
     srcs = ["melody_rnn_create_dataset.py"],
     srcs_version = "PY2AND3",
     visibility = [
-        # internal pipeline runner
+        # internal model:melody_rnn
         "//magenta/tools/pip:__subpackages__",
     ],
     deps = [

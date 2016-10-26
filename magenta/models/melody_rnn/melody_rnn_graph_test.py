@@ -51,11 +51,6 @@ class MelodyRNNGraphTest(tf.test.TestCase):
     g = melody_rnn_graph.build_graph('generate', self.config)
     self.assertTrue(isinstance(g, tf.Graph))
 
-  def testBuildGenerateGraphWithTemp(self):
-    self.config.hparams.temperature = 1.1
-    g = melody_rnn_graph.build_graph('generate', self.config)
-    self.assertTrue(isinstance(g, tf.Graph))
-
   def testBuildGraphWithAttention(self):
     self.config.hparams.attn_length = 10
     g = melody_rnn_graph.build_graph(

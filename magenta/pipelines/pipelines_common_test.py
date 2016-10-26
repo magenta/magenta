@@ -17,16 +17,10 @@
 import tensorflow as tf
 
 from magenta.common import testing_lib as common_testing_lib
-from magenta.music import constants
-from magenta.music import melodies_lib
 from magenta.music import sequences_lib
 from magenta.music import testing_lib
 from magenta.pipelines import pipelines_common
 from magenta.protobuf import music_pb2
-
-
-NOTE_OFF = constants.MELODY_NOTE_OFF
-NO_EVENT = constants.MELODY_NO_EVENT
 
 
 class PipelineUnitsCommonTest(tf.test.TestCase):
@@ -65,27 +59,6 @@ class PipelineUnitsCommonTest(tf.test.TestCase):
     unit = pipelines_common.Quantizer(steps_per_quarter)
     self._unit_transform_test(unit, note_sequence,
                               [expected_quantized_sequence])
-
-  def testMelodyExtractor(self):
-    quantized_sequence = sequences_lib.QuantizedSequence()
-    quantized_sequence.steps_per_quarter = 1
-    testing_lib.add_quantized_track_to_sequence(
-        quantized_sequence, 0,
-        [(12, 100, 2, 4), (11, 1, 6, 7)])
-    testing_lib.add_quantized_track_to_sequence(
-        quantized_sequence, 1,
-        [(12, 127, 2, 4), (14, 50, 6, 8)])
-    expected_events = [
-        [NO_EVENT, NO_EVENT, 12, NO_EVENT, NOTE_OFF, NO_EVENT, 11],
-        [NO_EVENT, NO_EVENT, 12, NO_EVENT, NOTE_OFF, NO_EVENT, 14, NO_EVENT]]
-    expected_melodies = []
-    for events_list in expected_events:
-      melody = melodies_lib.Melody(
-          events_list, steps_per_quarter=1, steps_per_bar=4)
-      expected_melodies.append(melody)
-    unit = pipelines_common.MelodyExtractor(
-        min_bars=1, min_unique_pitches=1, gap_bars=1)
-    self._unit_transform_test(unit, quantized_sequence, expected_melodies)
 
   def testRandomPartition(self):
     random_partition = pipelines_common.RandomPartition(

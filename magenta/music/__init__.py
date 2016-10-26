@@ -16,6 +16,8 @@
 
 from constants import *  # pylint: disable=wildcard-import
 
+from events_lib import NonIntegerStepsPerBarException
+
 from melodies_lib import BadNoteException
 from melodies_lib import extract_melodies
 from melodies_lib import Melody

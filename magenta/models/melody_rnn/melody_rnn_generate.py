@@ -82,6 +82,15 @@ tf.app.flags.DEFINE_float(
     'probabilities, greater than 1.0 makes melodies more random, less than '
     '1.0 makes melodies less random.')
 tf.app.flags.DEFINE_integer(
+    'beam_size', 1,
+    'The beam size to use for beam search when generating melodies.')
+tf.app.flags.DEFINE_integer(
+    'branch_factor', 1,
+    'The branch factor to use for beam search when generating melodies.')
+tf.app.flags.DEFINE_integer(
+    'steps_per_iteration', 1,
+    'The number of melody steps to take per beam search iteration.')
+tf.app.flags.DEFINE_integer(
     'steps_per_quarter', 4, 'What precision to use when quantizing the melody.')
 tf.app.flags.DEFINE_string(
     'log', 'INFO',
@@ -197,6 +206,10 @@ def run_with_flags(generator):
         start_time=0,
         end_time=total_seconds)
   generator_options.args['temperature'].float_value = FLAGS.temperature
+  generator_options.args['beam_size'].int_value = FLAGS.beam_size
+  generator_options.args['branch_factor'].int_value = FLAGS.branch_factor
+  generator_options.args[
+      'steps_per_iteration'].int_value = FLAGS.steps_per_iteration
   tf.logging.debug('input_sequence: %s', input_sequence)
   tf.logging.debug('generator_options: %s', generator_options)
 
@@ -218,10 +231,10 @@ def run_with_flags(generator):
 def main(unused_argv):
   """Saves bundle or runs generator based on flags."""
   generator = melody_rnn_sequence_generator.MelodyRnnSequenceGenerator(
-      melody_rnn_config.config_from_flags(),
-      FLAGS.steps_per_quarter,
-      get_checkpoint(),
-      get_bundle())
+      config=melody_rnn_config.config_from_flags(),
+      steps_per_quarter=FLAGS.steps_per_quarter,
+      checkpoint=get_checkpoint(),
+      bundle=get_bundle())
 
   if FLAGS.save_generator_bundle:
     bundle_filename = os.path.expanduser(FLAGS.bundle_file)

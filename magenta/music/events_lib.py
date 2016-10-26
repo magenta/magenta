@@ -423,9 +423,15 @@ class EventsEncoderDecoder(object):
       event_sequences: A list of EventSequence objects.
       softmax: A list of softmax probability vectors. The list of softmaxes
           should be the same length as the list of event_sequences.
+
+    Returns:
+      A python list of chosen class indices, one for each event sequence.
     """
     num_classes = len(softmax[0][0])
+    chosen_classes = []
     for i in xrange(len(event_sequences)):
       chosen_class = np.random.choice(num_classes, p=softmax[i][-1])
       event = self.class_index_to_event(chosen_class, event_sequences[i])
       event_sequences[i].append_event(event)
+      chosen_classes.append(chosen_class)
+    return chosen_classes

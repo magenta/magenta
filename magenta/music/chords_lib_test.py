@@ -18,11 +18,12 @@ import tensorflow as tf
 
 from magenta.music import chord_symbols_lib
 from magenta.music import chords_lib
+from magenta.music import constants
 from magenta.music import melodies_lib
 from magenta.music import sequences_lib
 from magenta.music import testing_lib
 
-NO_CHORD = chords_lib.NO_CHORD
+NO_CHORD = constants.NO_CHORD
 
 
 class ChordsLibTest(tf.test.TestCase):
@@ -97,6 +98,26 @@ class ChordsLibTest(tf.test.TestCase):
     with self.assertRaises(chords_lib.CoincidentChordsException):
       chords.from_quantized_sequence(
           self.quantized_sequence, start_step=0, end_step=16)
+
+  def testExtractChords(self):
+    self.quantized_sequence.steps_per_quarter = 1
+    testing_lib.add_quantized_chords_to_sequence(
+        self.quantized_sequence, [('C', 2), ('G7', 6), ('F', 8)])
+    self.quantized_sequence.total_steps = 10
+    chord_progressions, _ = chords_lib.extract_chords(self.quantized_sequence)
+    expected = [[NO_CHORD, NO_CHORD, 'C', 'C', 'C', 'C', 'G7', 'G7', 'F', 'F']]
+    self.assertEqual(expected, [list(chords) for chords in chord_progressions])
+
+  def testExtractChordsAllTranspositions(self):
+    self.quantized_sequence.steps_per_quarter = 1
+    testing_lib.add_quantized_chords_to_sequence(
+        self.quantized_sequence, [('C', 1)])
+    self.quantized_sequence.total_steps = 2
+    chord_progressions, _ = chords_lib.extract_chords(self.quantized_sequence,
+                                                      all_transpositions=True)
+    expected = zip([NO_CHORD] * 12, ['G-', 'G', 'A-', 'A', 'B-', 'B',
+                                     'C', 'D-', 'D', 'E-', 'E', 'F'])
+    self.assertEqual(expected, [tuple(chords) for chords in chord_progressions])
 
   def testExtractChordsForMelodies(self):
     self.quantized_sequence.steps_per_quarter = 1
