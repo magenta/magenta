@@ -31,19 +31,9 @@ class BaseModel(object):
 
   __metaclass__ = abc.ABCMeta
 
-  def __init__(self, details):
-    """Constructs a BaseModel.
-
-    Args:
-      details: A generator_pb2.GeneratorDetails for this generator.
-    """
-    self._details = details
+  def __init__(self):
+    """Constructs a BaseModel."""
     self._session = None
-
-  @property
-  def details(self):
-    """Returns a GeneratorDetails object describing the model."""
-    return self._details
 
   @abc.abstractmethod
   def _build_graph_for_generation(self):

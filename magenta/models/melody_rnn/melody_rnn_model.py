@@ -45,7 +45,7 @@ class MelodyRnnModel(mm.BaseModel):
       config: A MelodyRnnConfig containing the MelodyEncoderDecoder and HParams
         use.
     """
-    super(MelodyRnnModel, self).__init__(config.details)
+    super(MelodyRnnModel, self).__init__()
     self._config = config
 
     # Override hparams for generation.

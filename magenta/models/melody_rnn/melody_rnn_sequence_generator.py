@@ -25,12 +25,13 @@ import magenta.music as mm
 class MelodyRnnSequenceGenerator(mm.BaseSequenceGenerator):
   """Shared Melody RNN generation code as a SequenceGenerator interface."""
 
-  def __init__(self, model, steps_per_quarter=4, checkpoint=None,
+  def __init__(self, model, details, steps_per_quarter=4, checkpoint=None,
                bundle=None):
     """Creates a MelodyRnnSequenceGenerator.
 
     Args:
       model: Instance of MelodyRnnModel.
+      details: A generator_pb2.GeneratorDetails for this generator.
       steps_per_quarter: What precision to use when quantizing the melody. How
           many steps per quarter note.
       checkpoint: Where to search for the most recent model checkpoint. Mutually
@@ -38,7 +39,8 @@ class MelodyRnnSequenceGenerator(mm.BaseSequenceGenerator):
       bundle: A GeneratorBundle object that includes both the model checkpoint
           and metagraph. Mutually exclusive with `checkpoint`.
     """
-    super(MelodyRnnSequenceGenerator, self).__init__(model, checkpoint, bundle)
+    super(MelodyRnnSequenceGenerator, self).__init__(
+        model, details, checkpoint, bundle)
     self._steps_per_quarter = steps_per_quarter
 
   def _seconds_to_steps(self, seconds, qpm):
@@ -140,5 +142,5 @@ def get_generator_map():
     `config` argument.
   """
   return {key: partial(MelodyRnnSequenceGenerator,
-                       melody_rnn_model.MelodyRnnModel(config))
+                       melody_rnn_model.MelodyRnnModel(config), config.details)
           for (key, config) in melody_rnn_config.default_configs.items()}

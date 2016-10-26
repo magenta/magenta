@@ -37,11 +37,12 @@ class BaseSequenceGenerator(object):
 
   __metaclass__ = abc.ABCMeta
 
-  def __init__(self, model, checkpoint, bundle):
+  def __init__(self, model, details, checkpoint, bundle):
     """Constructs a BaseSequenceGenerator.
 
     Args:
       model: An instance of BaseModel.
+      details: A generator_pb2.GeneratorDetails for this generator.
       checkpoint: Where to look for the most recent model checkpoint. Either a
           directory to be used with tf.train.latest_checkpoint or the path to a
           single checkpoint file. Or None if a bundle should be used.
@@ -52,6 +53,7 @@ class BaseSequenceGenerator(object):
       SequenceGeneratorException: if neither checkpoint nor bundle is set.
     """
     self._model = model
+    self._details = details
     self._checkpoint = checkpoint
     self._bundle = bundle
 
@@ -63,18 +65,18 @@ class BaseSequenceGenerator(object):
           'Checkpoint and bundle cannot both be set')
 
     if self._bundle:
-      if self._bundle.generator_details.id != self._model.details.id:
+      if self._bundle.generator_details.id != self._details.id:
         raise SequenceGeneratorException(
             'Generator id in bundle (%s) does not match this generator\'s id '
             '(%s)' % (self._bundle.generator_details.id,
-                      self._model.details.id))
+                      self._details.id))
 
     self._initialized = False
 
   @property
   def details(self):
     """Returns a GeneratorDetails description of this generator."""
-    return self._model.details
+    return self._details
 
   @property
   def bundle_details(self):
