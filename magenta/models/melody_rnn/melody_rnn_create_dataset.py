@@ -82,7 +82,7 @@ def get_pipeline(melody_encoder_decoder):
   """
   quantizer = pipelines_common.Quantizer(steps_per_quarter=4)
   melody_extractor = melody_pipelines.MelodyExtractor(
-      min_bars=7, min_unique_pitches=5,
+      min_bars=7, max_steps=512, min_unique_pitches=5,
       gap_bars=1.0, ignore_polyphonic_notes=False)
   encoder_pipeline = EncoderPipeline(melody_encoder_decoder)
   partitioner = pipelines_common.RandomPartition(

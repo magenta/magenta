@@ -26,24 +26,26 @@ from magenta.pipelines import statistics
 class MelodyExtractor(pipeline.Pipeline):
   """Extracts monophonic melodies from a QuantizedSequence."""
 
-  def __init__(self, min_bars=7, min_unique_pitches=5, gap_bars=1.0,
-               ignore_polyphonic_notes=False):
+  def __init__(self, min_bars=7, max_steps=512, min_unique_pitches=5,
+               gap_bars=1.0, ignore_polyphonic_notes=False):
     super(MelodyExtractor, self).__init__(
         input_type=sequences_lib.QuantizedSequence,
         output_type=melodies_lib.Melody)
-    self.min_bars = min_bars
-    self.min_unique_pitches = min_unique_pitches
-    self.gap_bars = gap_bars
-    self.ignore_polyphonic_notes = False
+    self._min_bars = min_bars
+    self._max_steps = max_steps
+    self._min_unique_pitches = min_unique_pitches
+    self._gap_bars = gap_bars
+    self._ignore_polyphonic_notes = False
 
   def transform(self, quantized_sequence):
     try:
       melodies, stats = melodies_lib.extract_melodies(
           quantized_sequence,
-          min_bars=self.min_bars,
-          min_unique_pitches=self.min_unique_pitches,
-          gap_bars=self.gap_bars,
-          ignore_polyphonic_notes=self.ignore_polyphonic_notes)
+          min_bars=self._min_bars,
+          max_steps_truncate=self._max_steps,
+          min_unique_pitches=self._min_unique_pitches,
+          gap_bars=self._gap_bars,
+          ignore_polyphonic_notes=self._ignore_polyphonic_notes)
     except events_lib.NonIntegerStepsPerBarException as detail:
       tf.logging.warning('Skipped sequence: %s', detail)
       melodies = []
