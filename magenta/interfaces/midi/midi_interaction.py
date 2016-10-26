@@ -70,7 +70,7 @@ def filter_instrument(sequence, instrument, from_time=0):
 
 
 def temperature_from_control_value(
-    val, min_temp=0.8, mid_temp= 1.0, max_temp=1.2):
+    val, min_temp=0.0, mid_temp=1.0, max_temp=2.0):
   """Computes the temperature from an 8-bit MIDI control value.
 
   Linearly interpolates between the middle temperature and an endpoint.
@@ -81,6 +81,9 @@ def temperature_from_control_value(
     mid_temp: The middle temperature, which will be returned when `val` is 63
        or 64.
     max_temp: The maximum temperature, which will be returned when `val` is 127.
+
+  Returns:
+    A float temperature value based on the 8-bit MIDI control value.
   """
   if val > 64:
     return mid_temp + val * (max_temp - mid_temp) / 63
@@ -186,6 +189,10 @@ class CallAndResponseMidiInteraction(MidiInteraction):
 
     # Call stage start in steps from the epoch.
     call_start_steps = start_steps
+
+    # The softmax temperature to use during generation.
+    temperature = temperature_from_control_value(
+        self._midi_hub.control_value(self._temperature_control))
 
     while not self._stop_signal.is_set():
       if self._start_call_signal is not None:
