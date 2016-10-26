@@ -1,49 +1,52 @@
-from __future__ import print_function
+# Copyright 2016 Google Inc. All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#    http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 import tensorflow as tf
 import numpy as np
 import os
-from tfkdllib import numpy_softmax, numpy_sample_softmax
-from tfkdllib import duration_and_pitch_to_midi
-from tfkdllib import tfrecord_duration_and_pitch_iterator
-import graph
+import time
+from poly_rnn_lib import numpy_softmax, numpy_sample_softmax
+from poly_rnn_lib import duration_and_pitch_to_midi
+from poly_rnn_lib import tfrecord_duration_and_pitch_iterator
+import poly_rnn_graph
 
 FLAGS = tf.app.flags.FLAGS
-tf.app.flags.DEFINE_string('input', None, 'Polyphonic tfrecord file')
+tf.app.flags.DEFINE_string(
+    'note_sequence_input', None, 'Polyphonic tfrecord NoteSequence file.')
+tf.app.flags.DEFINE_string(
+    'checkpoint_dir', '/tmp/poly_rnn/checkpoints',
+    'Path to the directory where the latest checkpoint will be loaded from.')
+tf.app.flags.DEFINE_string(
+    'output_dir', '/tmp/poly_rnn/generated',
+    'The directory where MIDI files will be saved to.')
+tf.app.flags.DEFINE_string(
+    'log', 'INFO',
+    'The threshold for what messages will be logged DEBUG, INFO, WARN, ERROR, '
+    'or FATAL.')
 
-def validate_sample_args(model_ckpt,
-                         runtime,
-                         sample_path,
-                         prime,
-                         sample,
-                         sample_len,
-                         temperature,
-                         **kwargs):
-    return (model_ckpt, runtime, sample_path, prime, sample, sample_len, temperature)
 
-def sample(kwargs):
-    (model_ckpt,
-     runtime,
-     sample_path,
-     prime,
-     sample,
-     sample_len,
-     temperature) = validate_sample_args(**kwargs)
-    g = graph.Graph(FLAGS.input)
-    g.valid_itr.reset()
-    duration_mb, note_mb = g.valid_itr.next()
+def sample(model_ckpt, runtime, note_sequence_input, sample_path, sample_len, temperature):
+    graph = poly_rnn_graph.Graph(note_sequence_input)
+    graph.valid_itr.reset()
+    duration_mb, note_mb = graph.valid_itr.next()
     duration_and_pitch_to_midi(sample_path + "/gt_%i.mid" % runtime, duration_mb[:, 0], note_mb[:, 0])
 
     with tf.Session() as sess:
         tf.initialize_all_variables().run()
         saver = tf.train.Saver(tf.all_variables())
-        model_dir = str(os.sep).join(model_ckpt.split(os.sep)[:-1])
-        model_name = model_ckpt.split(os.sep)[-1]
-        ckpt = tf.train.get_checkpoint_state(model_dir)
-        if ckpt and ckpt.model_checkpoint_path:
-            saver.restore(sess, ckpt.model_checkpoint_path)
-        else:
-            raise ValueError("Unable to restore from checkpoint")
-        i_h1 = np.zeros((g.batch_size, g.rnn_dim)).astype("float32")
+        saver.restore(sess, model_ckpt)
+        i_h1 = np.zeros((graph.batch_size, graph.rnn_dim)).astype("float32")
 
         prime = 8
         note_mb = note_mb[:prime]
@@ -70,16 +73,16 @@ def sample(kwargs):
         random_state = np.random.RandomState(1999)
         for j in range(sample_len - 1):
             # even predictions are note, odd are duration
-            for ni in range(2 * g.n_notes):
-                feed = {g.note_inpt: full_notes[j][None, :, :],
-                        g.note_target: full_notes[j + 1][None, :, :],
-                        g.duration_inpt: full_durations[j][None, :, :],
-                        g.duration_target: full_durations[j + 1][None, :, :],
-                        g.init_h1: i_h1}
+            for ni in range(2 * graph.n_notes):
+                feed = {graph.note_inpt: full_notes[j][None, :, :],
+                        graph.note_target: full_notes[j + 1][None, :, :],
+                        graph.duration_inpt: full_durations[j][None, :, :],
+                        graph.duration_target: full_durations[j + 1][None, :, :],
+                        graph.init_h1: i_h1}
                 outs = []
-                outs += g.note_preds
-                outs += g.duration_preds
-                outs += [g.final_h1]
+                outs += graph.note_preds
+                outs += graph.duration_preds
+                outs += [graph.final_h1]
                 r = sess.run(outs, feed)
                 h_l = r[-1:]
                 h1_l = h_l[-1]
@@ -91,14 +94,14 @@ def sample(kwargs):
                 if j < (len(note_inputs) - 1):
                     # bypass sampling for now - still in prime seq
                     continue
-                note_probs = this_probs[:g.n_notes]
-                duration_probs = this_probs[g.n_notes:]
+                note_probs = this_probs[:graph.n_notes]
+                duration_probs = this_probs[graph.n_notes:]
                 si = ni // 2
                 if (ni % 2) == 0:
                     # only put the single note in...
                     full_notes[j + 1, :, si] = this_samples[si].ravel()
                 if (ni % 2) == 1:
-                    full_durations[j + 1, :, si] = this_samples[si + g.n_notes].ravel()
+                    full_durations[j + 1, :, si] = this_samples[si + graph.n_notes].ravel()
             i_h1 = h1_l
 
         for n in range(full_durations.shape[1]):
@@ -107,29 +110,25 @@ def sample(kwargs):
                                        prime)
 
 
-def main(argv):
-    # prime is the text to prime with
-    # sample is 0 for argmax, 1 for sample per character, 2 to sample per space
-    import sys
-    if len(argv) < 3:
-        import time
-        runtime = int(time.time())
-    else:
-        runtime = int(argv[2])
-    if len(argv) < 4:
-        sample_path = "samples"
-    else:
-        sample_path = str(argv[3])
-    if not os.path.exists(sample_path):
-        os.makedirs(sample_path)
-    kwargs = {"model_ckpt": argv[1],
-              "runtime": runtime,
-              "sample_path": sample_path,
-              "prime": " ",
-              "sample": 1,
-              "sample_len": 50,
-              "temperature": .35}
-    sample(kwargs)
+def main(unused_argv):
+  tf.logging.set_verbosity(FLAGS.log)
+
+  checkpoint_dir = os.path.expanduser(FLAGS.checkpoint_dir)
+  checkpoint_file = tf.train.latest_checkpoint(checkpoint_dir)
+
+  note_sequence_input = os.path.expanduser(FLAGS.note_sequence_input)
+
+  sample_path = os.path.expanduser(FLAGS.output_dir)
+  if not os.path.exists(sample_path):
+      os.makedirs(sample_path)
+  tf.logging.info('Writing MIDI files to %s', sample_path)
+  sample(
+      model_ckpt=checkpoint_file,
+      runtime=time.time(),
+      note_sequence_input=note_sequence_input,
+      sample_path=sample_path,
+      sample_len=50,
+      temperature=.35)
 
 def console_entry_point():
   tf.app.run(main)

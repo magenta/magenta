@@ -1,4 +1,17 @@
-from __future__ import print_function
+# Copyright 2016 Google Inc. All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#    http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 import os
 import tensorflow as tf
 import numpy as np
@@ -7,17 +20,16 @@ import poly_rnn_graph
 import functools
 
 FLAGS = tf.app.flags.FLAGS
-tf.app.flags.DEFINE_string('note_sequence_input', None,
-                           'Polyphonic tfrecord NoteSequence file.')
-tf.app.flags.DEFINE_string('run_dir', '/tmp/poly_rnn/logdir/run1',
-                           'Path to the directory where checkpoints and '
-                           'summary events will be saved during training and '
-                           'evaluation. Separate subdirectories for training '
-                           'events and eval events will be created within '
-                           '`run_dir`. Multiple runs can be stored within the '
-                           'parent directory of `run_dir`. Point TensorBoard '
-                           'to the parent directory of `run_dir` to see all '
-                           'your runs.')
+tf.app.flags.DEFINE_string(
+    'note_sequence_input', None, 'Polyphonic tfrecord NoteSequence file.')
+tf.app.flags.DEFINE_string(
+    'checkpoint_dir', '/tmp/poly_rnn/checkpoints',
+    'Path to the directory where checkpoints and summary events will be saved '
+    'during training')
+tf.app.flags.DEFINE_string(
+    'log', 'INFO',
+    'The threshold for what messages will be logged DEBUG, INFO, WARN, ERROR, '
+    'or FATAL.')
 
 
 def _loop(graph, itr, sess, inits=None, do_updates=True):
@@ -42,16 +54,17 @@ def _loop(graph, itr, sess, inits=None, do_updates=True):
 
 
 def main(unused_argv):
-  run_dir = os.path.expanduser(FLAGS.run_dir)
-  train_dir = os.path.join(run_dir, 'train')
-  if not os.path.exists(train_dir):
-    tf.gfile.MakeDirs(train_dir)
-  tf.logging.info('Train dir: %s', train_dir)
+  tf.logging.set_verbosity(FLAGS.log)
+
+  checkpoint_dir = os.path.expanduser(FLAGS.checkpoint_dir)
+  if not os.path.exists(checkpoint_dir):
+    tf.gfile.MakeDirs(checkpoint_dir)
+  tf.logging.info('Checkpoint dir: %s', checkpoint_dir)
 
   graph = poly_rnn_graph.Graph(FLAGS.note_sequence_input)
   poly_rnn_lib.run_loop(
       functools.partial(_loop, graph),
-      train_dir,
+      checkpoint_dir,
       graph.train_itr,
       graph.valid_itr,
       n_epochs=graph.num_epochs,

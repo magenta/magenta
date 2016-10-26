@@ -1,6 +1,17 @@
-# License: Apache 2.0
-# Authors: Tensorflow Authors
-from __future__ import print_function
+# Copyright 2016 Google Inc. All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#    http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 import numpy as np
 import uuid
 from scipy import linalg
@@ -15,27 +26,7 @@ try:
 except ImportError:
     from io import StringIO
 
-import logging
 from collections import OrderedDict
-
-sys.setrecursionlimit(40000)
-
-"""
-init logging
-"""
-logging.basicConfig(level=logging.INFO,
-                    format='%(message)s')
-logger = logging.getLogger(__name__)
-
-string_f = StringIO()
-ch = logging.StreamHandler(string_f)
-# Automatically put the HTML break characters on there for html logger
-formatter = logging.Formatter('%(message)s<br>')
-ch.setFormatter(formatter)
-logger.addHandler(ch)
-"""
-end logging
-"""
 
 """
 begin metautils
@@ -63,7 +54,7 @@ def ndim(x):
 # TODO: How can I correct this for shared / tied weights?
 def print_network(params):
     n_params = sum([np.prod(shape(p)) for p in params])
-    logger.info("Total number of parameters: %fM" % (n_params / float(1E6)))
+    tf.logging.info("Total number of parameters: %fM" % (n_params / float(1E6)))
 
 
 def dot(a, b):
@@ -668,7 +659,7 @@ def _get_name():
 
 def _get_shared(name):
     if name in _lib_shared_params.keys():
-        logger.info("Found name %s in shared parameters" % name)
+        tf.logging.info("Found name %s in shared parameters" % name)
         return _lib_shared_params[name]
     else:
         raise NameError("Name not found in shared params!")
@@ -1139,11 +1130,11 @@ def categorical_crossentropy(predicted_values, true_values, class_weights=None,
     tshp = shape(true_values)
     pshp = shape(predicted_values)
     if tshp[-1] == 1 or len(tshp) < len(pshp):
-        logger.info("True values dimension should match predicted!")
-        logger.info("Expected %s, got %s" % (pshp, tshp))
+        tf.logging.info("True values dimension should match predicted!")
+        tf.logging.info("Expected %s, got %s" % (pshp, tshp))
         if tshp[-1] == 1:
             # squeeze out the last dimension
-            logger.info("Removing last dimension of 1 from %s" % str(tshp))
+            tf.logging.info("Removing last dimension of 1 from %s" % str(tshp))
             if len(tshp) == 3:
                 true_values = true_values[:, :, 0]
             elif len(tshp) == 2:
@@ -1152,7 +1143,7 @@ def categorical_crossentropy(predicted_values, true_values, class_weights=None,
                 raise ValueError("Unhandled dimensions in squeeze")
         tshp = shape(true_values)
         if len(tshp) == (len(pshp) - 1):
-            logger.info("Changing %s to %s with one hot encoding" % (tshp, pshp))
+            tf.logging.info("Changing %s to %s with one hot encoding" % (tshp, pshp))
             tf.cast(true_values, "int32")
             ot = tf.one_hot(tf.cast(true_values, "int32"), pshp[-1],
                             dtype="float32", axis=-1)
@@ -1242,7 +1233,7 @@ start training utilities
 def save_checkpoint(checkpoint_dir, checkpoint_name, saver, sess):
     checkpoint_save_path = os.path.join(checkpoint_dir, checkpoint_name)
     saver.save(sess, checkpoint_save_path)
-    logger.info("Model saved to %s" % checkpoint_save_path)
+    tf.logging.info("Model saved to %s" % checkpoint_save_path)
 
 
 def run_loop(loop_function, train_dir, train_itr, valid_itr, n_epochs,
@@ -1263,7 +1254,7 @@ def run_loop(loop_function, train_dir, train_itr, valid_itr, n_epochs,
     loop function should return a list of [cost] + all_init_hiddens or other
     states
     """
-    logger.info("Running loops...")
+    tf.logging.info("Running loops...")
     _loop = loop_function
 
     checkpoint_dict = {}
@@ -1289,9 +1280,7 @@ def run_loop(loop_function, train_dir, train_itr, valid_itr, n_epochs,
         force_saver = tf.train.Saver(av)
         try:
             for e in range(start_epoch, start_epoch + n_epochs):
-                logger.info(" ")
-                logger.info("Starting training, epoch %i" % e)
-                logger.info(" ")
+                tf.logging.info("Starting training, epoch %i" % e)
                 train_mb_count = 0
                 valid_mb_count = 0
                 results_dict = {k: v for k, v in checkpoint_dict.items()}
@@ -1316,17 +1305,15 @@ def run_loop(loop_function, train_dir, train_itr, valid_itr, n_epochs,
                         tc = train_costs[train_mb_count]
                         train_mb_count += 1
                         if np.isnan(tc):
-                            logger.info("NaN detected in train cost, update %i" % train_mb_count)
+                            tf.logging.info("NaN detected in train cost, update %i" % train_mb_count)
                             raise ValueError("NaN detected in train")
 
                         if (train_mb_count % checkpoint_every_n_updates) == 0:
                             checkpoint_save_path = "model_update_checkpoint_%i.ckpt" % train_mb_count
                             save_checkpoint(train_dir, checkpoint_save_path, train_saver, sess)
 
-                            logger.info(" ")
-                            logger.info("Update checkpoint after train mb %i" % train_mb_count)
-                            logger.info("Current mean cost %f" % np.mean(partial_train_costs))
-                            logger.info(" ")
+                            tf.logging.info("Update checkpoint after train mb %i" % train_mb_count)
+                            tf.logging.info("Current mean cost %f" % np.mean(partial_train_costs))
 
                             this_results_dict["this_epoch_train_auto"] = train_costs[:train_mb_count]
                             tmb = train_costs[:train_mb_count]
@@ -1343,9 +1330,7 @@ def run_loop(loop_function, train_dir, train_itr, valid_itr, n_epochs,
                     train_costs_slice = train_costs[:train_mb_count + 1]
 
                     # Start validation
-                    logger.info(" ")
-                    logger.info("Starting validation, epoch %i" % e)
-                    logger.info(" ")
+                    tf.logging.info("Starting validation, epoch %i" % e)
                     inits = None
                     valid_itr.reset()
                     try:
@@ -1360,12 +1345,11 @@ def run_loop(loop_function, train_dir, train_itr, valid_itr, n_epochs,
                             vc = valid_costs[valid_mb_count]
                             valid_mb_count += 1
                             if np.isnan(vc):
-                                logger.info("NaN detected in valid cost, minibatch %i" % valid_mb_count)
+                                tf.logging.info("NaN detected in valid cost, minibatch %i" % valid_mb_count)
                                 raise ValueError("NaN detected in valid")
                     except StopIteration:
                         # Hit end of iterator
                         pass
-                    logger.info(" ")
                     # edge case - add one since stop iteration was raised
                     # before increment
                     valid_costs_slice = valid_costs[:valid_mb_count + 1]
@@ -1374,16 +1358,16 @@ def run_loop(loop_function, train_dir, train_itr, valid_itr, n_epochs,
                     # np.inf trick to avoid taking the min of length 0 list
                     old_min_train_cost = min(overall_train_costs + [np.inf])
                     if np.isnan(mean_epoch_train_cost):
-                        logger.info("Previous train costs %s" % overall_train_costs[-5:])
-                        logger.info("NaN detected in train cost, epoch %i" % e)
+                        tf.logging.info("Previous train costs %s" % overall_train_costs[-5:])
+                        tf.logging.info("NaN detected in train cost, epoch %i" % e)
                         raise ValueError("NaN detected in train")
                     overall_train_costs.append(mean_epoch_train_cost)
 
                     mean_epoch_valid_cost = np.mean(valid_costs_slice)
                     old_min_valid_cost = min(overall_valid_costs + [np.inf])
                     if np.isnan(mean_epoch_valid_cost):
-                        logger.info("Previous valid costs %s" % overall_valid_costs[-5:])
-                        logger.info("NaN detected in valid cost, epoch %i" % e)
+                        tf.logging.info("Previous valid costs %s" % overall_valid_costs[-5:])
+                        tf.logging.info("NaN detected in valid cost, epoch %i" % e)
                         raise ValueError("NaN detected in valid")
                     overall_valid_costs.append(mean_epoch_valid_cost)
 
@@ -1403,39 +1387,39 @@ def run_loop(loop_function, train_dir, train_itr, valid_itr, n_epochs,
                     checkpoint_dict["train_checkpoint_auto"] = overall_train_checkpoint
                     checkpoint_dict["valid_checkpoint_auto"] = overall_valid_checkpoint
 
-                    logger.info("Epoch %i complete" % e)
-                    logger.info("Epoch mean train cost %f" % mean_epoch_train_cost)
-                    logger.info("Epoch mean valid cost %f" % mean_epoch_valid_cost)
-                    logger.info("Previous train costs %s" % overall_train_costs[-5:])
-                    logger.info("Previous valid costs %s" % overall_valid_costs[-5:])
+                    tf.logging.info("Epoch %i complete" % e)
+                    tf.logging.info("Epoch mean train cost %f" % mean_epoch_train_cost)
+                    tf.logging.info("Epoch mean valid cost %f" % mean_epoch_valid_cost)
+                    tf.logging.info("Previous train costs %s" % overall_train_costs[-5:])
+                    tf.logging.info("Previous valid costs %s" % overall_valid_costs[-5:])
 
                     results_dict = {k: v for k, v in checkpoint_dict.items()}
 
                     if e < checkpoint_delay or skip_minimums:
                         pass
                     elif mean_epoch_valid_cost < old_min_valid_cost:
-                        logger.info("Checkpointing valid...")
+                        tf.logging.info("Checkpointing valid...")
                         checkpoint_save_path = "model_checkpoint_valid_%i.ckpt" % e
                         save_checkpoint(train_dir, checkpoint_save_path, valid_saver, sess)
-                        logger.info("Valid checkpointing complete.")
+                        tf.logging.info("Valid checkpointing complete.")
                     elif mean_epoch_train_cost < old_min_train_cost:
-                        logger.info("Checkpointing train...")
+                        tf.logging.info("Checkpointing train...")
                         checkpoint_save_path = "model_checkpoint_train_%i.ckpt" % e
                         save_checkpoint(train_dir, checkpoint_save_path, train_saver, sess)
-                        logger.info("Train checkpointing complete.")
+                        tf.logging.info("Train checkpointing complete.")
 
                     if e < checkpoint_delay:
                         pass
                         # Don't skip force checkpoints after default delay
                         # Printing already happens above
                     elif((e % checkpoint_every_n_epochs) == 0) or (e == (n_epochs - 1)):
-                        logger.info("Checkpointing force...")
+                        tf.logging.info("Checkpointing force...")
                         checkpoint_save_path = "model_checkpoint_%i.ckpt" % e
                         save_checkpoint(train_dir, checkpoint_save_path, force_saver, sess)
-                        logger.info("Force checkpointing complete.")
+                        tf.logging.info("Force checkpointing complete.")
         except KeyboardInterrupt:
-            logger.info("Training loop interrupted by user!")
-    logger.info("Loop finished, closing write threads (this may take a while!)")
+            tf.logging.info("Training loop interrupted by user!")
+    tf.logging.info("Loop finished, closing write threads (this may take a while!)")
 """
 end training utilities
 """
