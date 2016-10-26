@@ -25,11 +25,7 @@ from magenta.protobuf import generator_pb2
 class TestModel(model.BaseModel):
 
   def __init__(self):
-    details = generator_pb2.GeneratorDetails(
-        id='test_generator',
-        description='Test Generator')
-
-    super(TestModel, self).__init__(details)
+    super(TestModel, self).__init__()
 
   def _build_graph_for_generation(self):
     pass
@@ -38,7 +34,12 @@ class TestModel(model.BaseModel):
 class TestSequenceGenerator(sequence_generator.BaseSequenceGenerator):
 
   def __init__(self, checkpoint=None, bundle=None):
-    super(TestSequenceGenerator, self).__init__(TestModel(), checkpoint, bundle)
+    details = generator_pb2.GeneratorDetails(
+        id='test_generator',
+        description='Test Generator')
+
+    super(TestSequenceGenerator, self).__init__(
+        TestModel(), details, checkpoint, bundle)
 
   def _generate(self):
     pass
