@@ -11,12 +11,18 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+"""Manages the model's graph."""
+
+# internal imports
 
 import numpy as np
 import tensorflow as tf
+
 import poly_rnn_lib
 
+
 class Graph(object):
+
   def __init__(self, examples):
     self.num_epochs = 500
     self.batch_size = 32
@@ -47,7 +53,7 @@ class Graph(object):
     note_out_dims = self.n_notes * [n_note_symbols]
     duration_out_dims = self.n_notes * [n_duration_symbols]
 
-    rnn_type = "lstm"
+    rnn_type = 'lstm'
     weight_norm_middle = False
     weight_norm_outputs = False
 
@@ -55,114 +61,112 @@ class Graph(object):
     share_all_embeddings = False
     share_output_parameters = False
 
-    if rnn_type == "lstm":
-        RNNFork = poly_rnn_lib.LSTMFork
-        RNN = poly_rnn_lib.LSTM
-        self.rnn_dim = 2 * h_dim
-    elif rnn_type == "gru":
-        RNNFork = poly_rnn_lib.GRUFork
-        RNN = poly_rnn_lib.GRU
-        self.rnn_dim = h_dim
+    if rnn_type == 'lstm':
+      RNNFork = poly_rnn_lib.LSTMFork
+      RNN = poly_rnn_lib.LSTM
+      self.rnn_dim = 2 * h_dim
+    elif rnn_type == 'gru':
+      RNNFork = poly_rnn_lib.GRUFork
+      RNN = poly_rnn_lib.GRU
+      self.rnn_dim = h_dim
     else:
-        raise ValueError("Unknown rnn_type %s" % rnn_type)
+      raise ValueError('Unknown rnn_type %s' % rnn_type)
 
     learning_rate = .0001
     grad_clip = 5.0
     random_state = np.random.RandomState(1999)
 
-    self.duration_inpt = tf.placeholder(tf.float32,
-                                   [None, self.batch_size, num_duration_features])
-    self.note_inpt = tf.placeholder(tf.float32, [None, self.batch_size, num_note_features])
+    self.duration_inpt = tf.placeholder(
+        tf.float32, [None, self.batch_size, num_duration_features])
+    self.note_inpt = tf.placeholder(
+        tf.float32, [None, self.batch_size, num_note_features])
 
-    self.note_target = tf.placeholder(tf.float32,
-                                 [None, self.batch_size, num_note_features])
-    self.duration_target = tf.placeholder(tf.float32,
-                                     [None, self.batch_size, num_duration_features])
+    self.note_target = tf.placeholder(
+        tf.float32, [None, self.batch_size, num_note_features])
+    self.duration_target = tf.placeholder(
+        tf.float32, [None, self.batch_size, num_duration_features])
     self.init_h1 = tf.placeholder(tf.float32, [self.batch_size, self.rnn_dim])
 
     if share_note_and_target_embeddings:
-        name_dur_emb = "dur"
-        name_note_emb = "note"
+      name_dur_emb = 'dur'
+      name_note_emb = 'note'
     else:
-        name_dur_emb = None
-        name_note_emb = None
-    duration_embed = poly_rnn_lib.Multiembedding(self.duration_inpt, n_duration_symbols,
-                                    duration_embed_dim, random_state,
-                                    name=name_dur_emb,
-                                    share_all=share_all_embeddings)
+      name_dur_emb = None
+      name_note_emb = None
+    duration_embed = poly_rnn_lib.Multiembedding(
+        self.duration_inpt, n_duration_symbols, duration_embed_dim,
+        random_state, name=name_dur_emb, share_all=share_all_embeddings)
 
-    note_embed = poly_rnn_lib.Multiembedding(self.note_inpt, n_note_symbols,
-                                note_embed_dim, random_state,
-                                name=name_note_emb,
-                                share_all=share_all_embeddings)
+    note_embed = poly_rnn_lib.Multiembedding(
+        self.note_inpt, n_note_symbols, note_embed_dim, random_state,
+        name=name_note_emb, share_all=share_all_embeddings)
 
     scan_inp = tf.concat(2, [duration_embed, note_embed])
-    scan_inp_dim = self.n_notes * duration_embed_dim + self.n_notes * note_embed_dim
+    scan_inp_dim = (self.n_notes * duration_embed_dim + self.n_notes *
+                    note_embed_dim)
 
 
     def step(inp_t, h1_tm1):
-        h1_t_proj, h1gate_t_proj = RNNFork([inp_t],
-                                           [scan_inp_dim],
-                                           h_dim,
-                                           random_state,
-                                           weight_norm=weight_norm_middle)
-        h1_t = RNN(h1_t_proj, h1gate_t_proj,
-                   h1_tm1, h_dim, h_dim, random_state)
-        return h1_t
+      h1_t_proj, h1gate_t_proj = RNNFork(
+          [inp_t], [scan_inp_dim], h_dim, random_state,
+          weight_norm=weight_norm_middle)
+      h1_t = RNN(h1_t_proj, h1gate_t_proj, h1_tm1, h_dim, h_dim, random_state)
+      return h1_t
 
     h1_f = poly_rnn_lib.scan(step, [scan_inp], [self.init_h1])
     h1 = h1_f
     self.final_h1 = poly_rnn_lib.ni(h1, -1)
 
-    target_note_embed = poly_rnn_lib.Multiembedding(self.note_target, n_note_symbols, note_embed_dim,
-                                       random_state,
-                                       name=name_note_emb,
-                                       share_all=share_all_embeddings)
+    target_note_embed = poly_rnn_lib.Multiembedding(
+        self.note_target, n_note_symbols, note_embed_dim, random_state,
+        name=name_note_emb, share_all=share_all_embeddings)
     target_note_masked = poly_rnn_lib.Automask(target_note_embed, self.n_notes)
-    target_duration_embed = poly_rnn_lib.Multiembedding(self.duration_target, n_duration_symbols,
-                                           duration_embed_dim, random_state,
-                                           name=name_dur_emb,
-                                           share_all=share_all_embeddings)
-    target_duration_masked = poly_rnn_lib.Automask(target_duration_embed, self.n_notes)
+    target_duration_embed = poly_rnn_lib.Multiembedding(
+        self.duration_target, n_duration_symbols, duration_embed_dim,
+        random_state, name=name_dur_emb, share_all=share_all_embeddings)
+    target_duration_masked = poly_rnn_lib.Automask(
+        target_duration_embed, self.n_notes)
 
     costs = []
     self.note_preds = []
     self.duration_preds = []
     if share_output_parameters:
-        name_note = "note_pred"
-        name_dur = "dur_pred"
+      name_note = 'note_pred'
+      name_dur = 'dur_pred'
     else:
-        name_note = None
-        name_dur = None
+      name_note = None
+      name_dur = None
     for i in range(self.n_notes):
-        note_pred = poly_rnn_lib.Linear([h1[:, :, :h_dim],
-                            scan_inp,
-                            target_note_masked[i], target_duration_masked[i]],
-                           [h_dim,
-                            scan_inp_dim,
-                            self.n_notes * note_embed_dim, self.n_notes * duration_embed_dim],
-                           note_out_dims[i], random_state,
-                           weight_norm=weight_norm_outputs,
-                           name=name_note)
-        duration_pred = poly_rnn_lib.Linear([h1[:, :, :h_dim],
-                                scan_inp,
-                                target_note_masked[i],
-                                target_duration_masked[i]],
-                               [h_dim,
-                                scan_inp_dim,
-                                self.n_notes * note_embed_dim,
-                                self.n_notes * duration_embed_dim],
-                               duration_out_dims[i],
-                               random_state, weight_norm=weight_norm_outputs,
-                               name=name_dur)
-        n = poly_rnn_lib.categorical_crossentropy(poly_rnn_lib.softmax(note_pred), self.note_target[:, :, i])
-        d = poly_rnn_lib.categorical_crossentropy(poly_rnn_lib.softmax(duration_pred),
-                                     self.duration_target[:, :, i])
-        cost = n_duration_symbols * tf.reduce_mean(n) + n_note_symbols * tf.reduce_mean(d)
-        cost /= (n_duration_symbols + n_note_symbols)
-        self.note_preds.append(note_pred)
-        self.duration_preds.append(duration_pred)
-        costs.append(cost)
+      note_pred = poly_rnn_lib.Linear(
+          [
+              h1[:, :, :h_dim], scan_inp, target_note_masked[i],
+              target_duration_masked[i]
+          ], [
+              h_dim, scan_inp_dim,
+              self.n_notes * note_embed_dim, self.n_notes * duration_embed_dim
+          ],
+          note_out_dims[i], random_state, weight_norm=weight_norm_outputs,
+          name=name_note)
+      duration_pred = poly_rnn_lib.Linear(
+          [
+              h1[:, :, :h_dim], scan_inp, target_note_masked[i],
+              target_duration_masked[i]
+          ], [
+              h_dim, scan_inp_dim, self.n_notes * note_embed_dim,
+              self.n_notes * duration_embed_dim
+          ],
+          duration_out_dims[i], random_state, weight_norm=weight_norm_outputs,
+          name=name_dur)
+      n = poly_rnn_lib.categorical_crossentropy(
+          poly_rnn_lib.softmax(note_pred), self.note_target[:, :, i])
+      d = poly_rnn_lib.categorical_crossentropy(
+          poly_rnn_lib.softmax(duration_pred), self.duration_target[:, :, i])
+      cost = (n_duration_symbols * tf.reduce_mean(n) + n_note_symbols *
+              tf.reduce_mean(d))
+      cost /= (n_duration_symbols + n_note_symbols)
+      self.note_preds.append(note_pred)
+      self.duration_preds.append(duration_pred)
+      costs.append(cost)
 
     # 4 notes pitch and 4 notes duration
     self.cost = sum(costs) / float(self.n_notes + self.n_notes)
