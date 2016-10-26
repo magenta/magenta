@@ -79,7 +79,8 @@ class MelodyOneHotEventSequenceEncoderDecoderTest(tf.test.TestCase):
     self.max_note = 72
     self.transpose_to_key = 0
     self.med = encoder_decoder.OneHotEventSequenceEncoderDecoder(
-        melody_encoder_decoder.MelodyOneHotEncoding(self.min_note, self.max_note))
+        melody_encoder_decoder.MelodyOneHotEncoding(self.min_note,
+                                                    self.max_note))
 
   def testInitValues(self):
     self.assertEqual(self.med.input_size, 14)
@@ -561,7 +562,8 @@ class KeyMelodyEncoderDecoderTest(tf.test.TestCase):
         med.get_inputs_batch(melodies))
 
   def testCustomRange(self):
-    med = melody_encoder_decoder.KeyMelodyEncoderDecoder(min_note=24, max_note=36)
+    med = melody_encoder_decoder.KeyMelodyEncoderDecoder(min_note=24,
+                                                         max_note=36)
 
     self.assertEqual(med.input_size, 50)
     self.assertEqual(med.num_classes, 16)

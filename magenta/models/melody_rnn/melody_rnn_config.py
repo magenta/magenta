@@ -35,8 +35,8 @@ tf.app.flags.DEFINE_string(
 tf.app.flags.DEFINE_string(
     'melody_encoder_decoder',
     None,
-    "Which encoding to use. Must be one of 'onehot', 'lookback', or 'key'."
-    "Mutually exclusive with `--config`.")
+    "Which encoder/decoder to use. Must be one of 'onehot', 'lookback', or "
+    "'key'. Mutually exclusive with `--config`.")
 tf.app.flags.DEFINE_string(
     'generator_id',
     None,
@@ -210,7 +210,7 @@ def config_from_flags():
   `--hparams`.
 
   Returns:
-     The appropriate MelodyRnnConfig based on the supplied flags.
+    The appropriate MelodyRnnConfig based on the supplied flags.
 
   Raises:
      MelodyRnnConfigException: When not exactly one of `--config` or

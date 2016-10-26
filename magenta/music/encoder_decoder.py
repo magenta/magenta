@@ -17,8 +17,8 @@ OneHotEncoding is an abstract class for specifying a one-hot encoding, i.e.
 how to convert back and forth between an arbitrary event space and integer
 indices between 0 and the number of classes.
 
-EventSequenceEncoderDecoder is an abstract class for translating event _sequences_,
-i.e. how to convert event sequences to input vectors and output labels
+EventSequenceEncoderDecoder is an abstract class for translating event
+_sequences_, i.e. how to convert event sequences to input vectors and output
 labels to be fed into a model, and how to convert from output labels back to
 events.
 
@@ -26,8 +26,8 @@ Use EventSequenceEncoderDecoder.encode to convert an event sequence to a
 tf.train.SequenceExample of inputs and labels. These SequenceExamples are fed
 into the model during training and evaluation.
 
-During generation, use EventSequenceEncoderDecoder.get_inputs_batch to convert a list
-of event sequences into an inputs batch which can be fed into the model to
+During generation, use EventSequenceEncoderDecoder.get_inputs_batch to convert a
+list of event sequences into an inputs batch which can be fed into the model to
 predict what the next event should be for each sequence. Then use
 EventSequenceEncoderDecoder.extend_event_sequences to extend each of those event
 sequences with an event sampled from the softmax output by the model.
@@ -37,10 +37,10 @@ OneHotEncoding of individual events. The input vectors are one-hot encodings of
 the most recent event. The output labels are one-hot encodings of the next
 event.
 
-LookbackEventSequenceEncoderDecoder is an EventSequenceEncoderDecoder that also uses a
-OneHotEncoding of individual events. However, its input and output encodings
-also consider whether the event sequence is repeating, and the input encoding
-includes binary counters for timekeeping.
+LookbackEventSequenceEncoderDecoder is an EventSequenceEncoderDecoder that also
+uses a OneHotEncoding of individual events. However, its input and output
+encodings also consider whether the event sequence is repeating, and the input
+encoding includes binary counters for timekeeping.
 """
 
 import abc
@@ -270,7 +270,7 @@ class EventSequenceEncoderDecoder(object):
 
 
 class OneHotEventSequenceEncoderDecoder(EventSequenceEncoderDecoder):
-  """An EventSequenceEncoderDecoder that produces a one-hot encoding for the input."""
+  """An EventSequenceEncoderDecoder that produces a one-hot encoding."""
 
   def __init__(self, one_hot_encoding):
     """Initialize a OneHotEventSequenceEncoderDecoder object.
@@ -343,7 +343,7 @@ class OneHotEventSequenceEncoderDecoder(EventSequenceEncoderDecoder):
 
 
 class LookbackEventSequenceEncoderDecoder(EventSequenceEncoderDecoder):
-  """An EventSequenceEncoderDecoder that encodes repeated events and keeps time."""
+  """An EventSequenceEncoderDecoder that encodes repeated events and meter."""
 
   def __init__(self, one_hot_encoding, lookback_distances=None,
                binary_counter_bits=5):

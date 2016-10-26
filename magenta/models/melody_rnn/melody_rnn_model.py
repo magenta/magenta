@@ -42,8 +42,8 @@ class MelodyRnnModel(mm.BaseModel):
     """Initialize the MelodyRnnModel.
 
     Args:
-      config: A MelodyRnnConfig containing the MelodyEncoderDecoder and HParams to
-        use.
+      config: A MelodyRnnConfig containing the MelodyEncoderDecoder and HParams
+        to use.
     """
     super(MelodyRnnModel, self).__init__()
     self._config = config
