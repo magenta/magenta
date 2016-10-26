@@ -18,9 +18,10 @@ import time
 # internal imports
 
 import numpy as np
+import tensorflow as tf
+
 from magenta.model.polyrnn import poly_rnn_graph
 from magenta.model.polyrnn import poly_rnn_lib
-import tensorflow as tf
 
 FLAGS = tf.app.flags.FLAGS
 tf.app.flags.DEFINE_string(
@@ -43,30 +44,30 @@ def sample(model_ckpt, runtime, note_sequence_input, sample_path, sample_len,
   graph.valid_itr.reset()
   duration_mb, note_mb = graph.valid_itr.next()
   poly_rnn_lib.duration_and_pitch_to_midi(
-      sample_path + "/gt_%i.mid" % runtime, duration_mb[:, 0], note_mb[:, 0])
+      sample_path + '/gt_%i.mid' % runtime, duration_mb[:, 0], note_mb[:, 0])
 
   with tf.Session() as sess:
     tf.initialize_all_variables().run()
     saver = tf.train.Saver(tf.all_variables())
     saver.restore(sess, model_ckpt)
-    i_h1 = np.zeros((graph.batch_size, graph.rnn_dim)).astype("float32")
+    i_h1 = np.zeros((graph.batch_size, graph.rnn_dim)).astype('float32')
 
     prime = 8
     note_mb = note_mb[:prime]
     duration_mb = duration_mb[:prime]
     for n in range(duration_mb.shape[1]):
-        poly_rnn_lib.duration_and_pitch_to_midi(
-            sample_path + "/pre%i_%i.mid" % (n, runtime),
-            duration_mb[:, n], note_mb[:, n], prime)
+      poly_rnn_lib.duration_and_pitch_to_midi(
+          sample_path + '/pre%i_%i.mid' % (n, runtime),
+          duration_mb[:, n], note_mb[:, n], prime)
 
     note_inputs = note_mb
     duration_inputs = duration_mb
 
     shp = note_inputs.shape
-    full_notes = np.zeros((sample_len, shp[1], shp[2]), dtype="float32")
+    full_notes = np.zeros((sample_len, shp[1], shp[2]), dtype='float32')
     full_notes[:len(note_inputs)] = note_inputs[:]
     shp = duration_inputs.shape
-    full_durations = np.zeros((sample_len, shp[1], shp[2]), dtype="float32")
+    full_durations = np.zeros((sample_len, shp[1], shp[2]), dtype='float32')
     full_durations[:len(duration_inputs)] = duration_inputs[:]
 
     random_state = np.random.RandomState(1999)
@@ -93,8 +94,9 @@ def sample(model_ckpt, runtime, note_sequence_input, sample_path, sample_len,
         if j < (len(note_inputs) - 1):
           # bypass sampling for now - still in prime seq
           continue
-        note_probs = this_probs[:graph.n_notes]
-        duration_probs = this_probs[graph.n_notes:]
+        # For debugging:
+        # note_probs = this_probs[:graph.n_notes]
+        # duration_probs = this_probs[graph.n_notes:]
         si = ni // 2
         if (ni % 2) == 0:
           # only put the single note in...
@@ -106,7 +108,7 @@ def sample(model_ckpt, runtime, note_sequence_input, sample_path, sample_len,
 
     for n in range(full_durations.shape[1]):
       poly_rnn_lib.duration_and_pitch_to_midi(
-          sample_path + "/sampled%i_%i.mid" % (n, runtime),
+          sample_path + '/sampled%i_%i.mid' % (n, runtime),
           full_durations[:, n], full_notes[:, n], prime)
 
 
@@ -120,7 +122,7 @@ def main(unused_argv):
 
   sample_path = os.path.expanduser(FLAGS.output_dir)
   if not os.path.exists(sample_path):
-      os.makedirs(sample_path)
+    os.makedirs(sample_path)
   tf.logging.info('Writing MIDI files to %s', sample_path)
   sample(
       model_ckpt=checkpoint_file,
@@ -130,8 +132,10 @@ def main(unused_argv):
       sample_len=50,
       temperature=.35)
 
+
 def console_entry_point():
   tf.app.run(main)
+
 
 if __name__ == '__main__':
   console_entry_point()
