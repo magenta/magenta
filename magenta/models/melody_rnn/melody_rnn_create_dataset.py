@@ -53,13 +53,13 @@ class EncoderPipeline(pipeline.Pipeline):
     """Constructs an EncoderPipeline.
 
     Args:
-      config: A MelodyRnnConfig that specifies the encoding, pitch range, and
-          what key to transpose into.
+      config: A MelodyRnnConfig that specifies the encoder/decoder, pitch range,
+          and what key to transpose into.
     """
     super(EncoderPipeline, self).__init__(
         input_type=magenta.music.Melody,
         output_type=tf.train.SequenceExample)
-    self._melody_encoding = config.encoding
+    self._melody_encoder_decoder = config.encoder_decoder
     self._min_note = config.min_note
     self._max_note = config.max_note
     self._transpose_to_key = config.transpose_to_key
@@ -69,7 +69,7 @@ class EncoderPipeline(pipeline.Pipeline):
         self._min_note,
         self._max_note,
         self._transpose_to_key)
-    encoded = self._melody_encoding.encode(melody)
+    encoded = self._melody_encoder_decoder.encode(melody)
     return [encoded]
 
   def get_stats(self):

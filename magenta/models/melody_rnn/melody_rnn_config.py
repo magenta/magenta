@@ -31,9 +31,9 @@ tf.app.flags.DEFINE_string(
     'config',
     None,
     "Which config to use. Must be one of 'basic', 'lookback', or 'attention'. "
-    "Mutually exclusive with `--melody_encoding`.")
+    "Mutually exclusive with `--melody_encoder_decoder`.")
 tf.app.flags.DEFINE_string(
-    'melody_encoding',
+    'melody_encoder_decoder',
     None,
     "Which encoding to use. Must be one of 'onehot', 'lookback', or 'key'."
     "Mutually exclusive with `--config`.")
@@ -73,7 +73,7 @@ class MelodyRnnConfig(object):
 
   Attributes:
     details: The GeneratorDetails message describing the config.
-    encoding: The MelodyRnnEncoding object to use.
+    encoder_decoder: The EventSequenceEncoderDecoder object to use.
     hparams: The HParams containing hyperparameters to use.
     min_note: The minimum midi pitch the encoded melodies can have.
     max_note: The maximum midi pitch (exclusive) the encoded melodies can have.
@@ -81,8 +81,8 @@ class MelodyRnnConfig(object):
         None if it should not be transposed.
   """
 
-  def __init__(self, details, encoding, hparams, min_note=DEFAULT_MIN_NOTE,
-               max_note=DEFAULT_MAX_NOTE,
+  def __init__(self, details, encoder_decoder, hparams,
+               min_note=DEFAULT_MIN_NOTE, max_note=DEFAULT_MAX_NOTE,
                transpose_to_key=DEFAULT_TRANSPOSE_TO_KEY):
     if min_note < MIN_MIDI_PITCH:
       raise ValueError('min_note must be >= 0. min_note is %d.' % min_note)
@@ -98,7 +98,7 @@ class MelodyRnnConfig(object):
                        'transpose_to_key is %d.' % transpose_to_key)
 
     self.details = details
-    self.encoding = encoding
+    self.encoder_decoder = encoder_decoder
     self.hparams = hparams
     self.min_note = min_note
     self.max_note = max_note
@@ -111,7 +111,7 @@ default_configs = {
         magenta.protobuf.generator_pb2.GeneratorDetails(
             id='basic_rnn',
             description='Melody RNN with one-hot encoding.'),
-        magenta.music.OneHotEventSequenceEncoding(
+        magenta.music.OneHotEventSequenceEncoderDecoder(
             magenta.music.MelodyOneHotEncoding(
                 min_note=DEFAULT_MIN_NOTE,
                 max_note=DEFAULT_MAX_NOTE)),
@@ -128,7 +128,7 @@ default_configs = {
         magenta.protobuf.generator_pb2.GeneratorDetails(
             id='lookback_rnn',
             description='Melody RNN with lookback encoding.'),
-        magenta.music.LookbackEventSequenceEncoding(
+        magenta.music.LookbackEventSequenceEncoderDecoder(
             magenta.music.MelodyOneHotEncoding(
                 min_note=DEFAULT_MIN_NOTE,
                 max_note=DEFAULT_MAX_NOTE)),
@@ -145,7 +145,7 @@ default_configs = {
         magenta.protobuf.generator_pb2.GeneratorDetails(
             id='attention_rnn',
             description='Melody RNN with lookback encoding and attention.'),
-        magenta.music.KeyMelodyEncoding(
+        magenta.music.KeyMelodyEncoderDecoder(
             min_note=DEFAULT_MIN_NOTE,
             max_note=DEFAULT_MAX_NOTE),
         magenta.common.HParams(
@@ -161,40 +161,40 @@ default_configs = {
 }
 
 
-def one_hot_melody_encoding(min_note, max_note):
-  """Return a OneHotEventSequenceEncoding for melodies.
+def one_hot_melody_encoder_decoder(min_note, max_note):
+  """Return a OneHotEventSequenceEncoderDecoder for melodies.
 
   Args:
     min_note: The minimum midi pitch the encoded melodies can have.
     max_note: The maximum midi pitch (exclusive) the encoded melodies can have.
 
   Returns:
-    A melody OneHotEventSequenceEncoding.
+    A melody OneHotEventSequenceEncoderDecoder.
   """
-  return magenta.music.OneHotEventSequenceEncoding(
+  return magenta.music.OneHotEventSequenceEncoderDecoder(
       magenta.music.MelodyOneHotEncoding(min_note, max_note))
 
 
-def lookback_melody_encoding(min_note, max_note):
-  """Return a LookbackEventSequenceEncoding for melodies.
+def lookback_melody_encoder_decoder(min_note, max_note):
+  """Return a LookbackEventSequenceEncoderDecoder for melodies.
 
   Args:
     min_note: The minimum midi pitch the encoded melodies can have.
     max_note: The maximum midi pitch (exclusive) the encoded melodies can have.
 
   Returns:
-    A melody LookbackEventSequenceEncoding.
+    A melody LookbackEventSequenceEncoderDecoder.
   """
-  return magenta.music.LookbackEventSequenceEncoding(
+  return magenta.music.LookbackEventSequenceEncoderDecoder(
       magenta.music.MelodyOneHotEncoding(min_note, max_note))
 
 
 # Dictionary of functions that take `min_note` and `max_note` and return the
-# appropriate EventSequenceEncoding object.
-melody_encodings = {
-    'onehot': one_hot_melody_encoding,
-    'lookback': lookback_melody_encoding,
-    'key': magenta.music.KeyMelodyEncoding
+# appropriate EventSequenceEncoderDecoder object.
+melody_encoder_decoders = {
+    'onehot': one_hot_melody_encoder_decoder,
+    'lookback': lookback_melody_encoder_decoder,
+    'key': magenta.music.KeyMelodyEncoderDecoder
 }
 
 
@@ -203,27 +203,29 @@ def config_from_flags():
 
   If `--config` is supplied, returns the matching default MelodyRnnConfig after
   updating the hyperparameters based on `--hparams`.
-  If `--melody_encoding` is supplied, returns a new MelodyRnnConfig using the
-  matching EventSequenceEncoding, generator details supplied by
+
+  If `--melody_encoder_decoder` is supplied, returns a new MelodyRnnConfig using
+  the matching EventSequenceEncoderDecoder, generator details supplied by
   `--generator_id` and `--generator_description`, and hyperparameters based on
   `--hparams`.
 
   Returns:
      The appropriate MelodyRnnConfig based on the supplied flags.
+
   Raises:
      MelodyRnnConfigException: When not exactly one of `--config` or
-         `melody_encoding` is supplied.
+         `melody_encoder_decoder` is supplied.
   """
-  if (FLAGS.melody_encoding, FLAGS.config).count(None) != 1:
+  if (FLAGS.melody_encoder_decoder, FLAGS.config).count(None) != 1:
     raise MelodyRnnConfigException(
-        'Exactly one of `--config` or `--melody_encoding` must be '
+        'Exactly one of `--config` or `--melody_encoder_decoder` must be '
         'supplied.')
 
-  if FLAGS.melody_encoding is not None:
-    if FLAGS.melody_encoding not in melody_encodings:
+  if FLAGS.melody_encoder_decoder is not None:
+    if FLAGS.melody_encoder_decoder not in melody_encoder_decoders:
       raise MelodyRnnConfigException(
-          '`--melody_encoding` must be one of %s. Got %s.' % (
-              melody_encodings.keys(), FLAGS.melody_encoding))
+          '`--melody_encoder_decoder` must be one of %s. Got %s.' % (
+              melody_encoder_decoders.keys(), FLAGS.melody_encoder_decoder))
     if FLAGS.generator_id is not None:
       generator_details = magenta.protobuf.generator_pb2.GeneratorDetails(
           id=FLAGS.generator_id)
@@ -231,11 +233,11 @@ def config_from_flags():
         generator_details.description = FLAGS.generator_description
     else:
       generator_details = None
-    encoding = melody_encodings[FLAGS.melody_encoding](
+    encoder_decoder = melody_encoder_decoders[FLAGS.melody_encoder_decoder](
         DEFAULT_MIN_NOTE, DEFAULT_MAX_NOTE)
     hparams = magenta.common.HParams()
     hparams.parse(FLAGS.hparams)
-    return MelodyRnnConfig(generator_details, encoding, hparams)
+    return MelodyRnnConfig(generator_details, encoder_decoder, hparams)
   else:
     if FLAGS.config not in default_configs:
       raise MelodyRnnConfigException(

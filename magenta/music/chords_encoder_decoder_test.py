@@ -11,12 +11,12 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Tests for chords_encoding."""
+"""Tests for chords_encoder_decoder."""
 
 # internal imports
 import tensorflow as tf
 
-from magenta.music import chords_encoding
+from magenta.music import chords_encoder_decoder
 from magenta.music import constants
 
 NO_CHORD = constants.NO_CHORD
@@ -25,7 +25,7 @@ NO_CHORD = constants.NO_CHORD
 class MajorMinorChordOneHotEncodingTest(tf.test.TestCase):
 
   def setUp(self):
-    self.enc = chords_encoding.MajorMinorChordOneHotEncoding()
+    self.enc = chords_encoder_decoder.MajorMinorChordOneHotEncoding()
 
   def testEncodeNoChord(self):
     index = self.enc.encode_event(NO_CHORD)
@@ -50,11 +50,11 @@ class MajorMinorChordOneHotEncodingTest(tf.test.TestCase):
 
   def testEncodeThirdlessChord(self):
     # suspended chord
-    with self.assertRaises(chords_encoding.ChordEncodingException):
+    with self.assertRaises(chords_encoder_decoder.ChordEncodingException):
       self.enc.encode_event('Gsus4')
 
     # power chord
-    with self.assertRaises(chords_encoding.ChordEncodingException):
+    with self.assertRaises(chords_encoder_decoder.ChordEncodingException):
       self.enc.encode_event('B-5')
 
   def testDecodeNoChord(self):

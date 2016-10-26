@@ -11,16 +11,16 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Tests for encoding."""
+"""Tests for encoder_decoder."""
 
 # internal imports
 import tensorflow as tf
 
 from magenta.common import sequence_example_lib
-from magenta.music import encoding
+from magenta.music import encoder_decoder
 
 
-class TrivialOneHotEncoding(encoding.OneHotEncoding):
+class TrivialOneHotEncoding(encoder_decoder.OneHotEncoding):
 
   def __init__(self, num_classes):
     self._num_classes = num_classes
@@ -40,10 +40,11 @@ class TrivialOneHotEncoding(encoding.OneHotEncoding):
     return event
 
 
-class OneHotEventSequenceEncodingTest(tf.test.TestCase):
+class OneHotEventSequenceEncoderDecoderTest(tf.test.TestCase):
 
   def setUp(self):
-    self.enc = encoding.OneHotEventSequenceEncoding(TrivialOneHotEncoding(3))
+    self.enc = encoder_decoder.OneHotEventSequenceEncoderDecoder(
+        TrivialOneHotEncoding(3))
 
   def testInputSize(self):
     self.assertEquals(3, self.enc.input_size)
@@ -117,11 +118,11 @@ class OneHotEventSequenceEncodingTest(tf.test.TestCase):
     self.assertListEqual(list(events3), [0, 1])
 
 
-class LookbackEventSequenceEncodingTest(tf.test.TestCase):
+class LookbackEventSequenceEncoderDecoderTest(tf.test.TestCase):
 
   def setUp(self):
-    self.enc = encoding.LookbackEventSequenceEncoding(TrivialOneHotEncoding(3),
-                                                      [1, 2], 2)
+    self.enc = encoder_decoder.LookbackEventSequenceEncoderDecoder(
+        TrivialOneHotEncoding(3), [1, 2], 2)
 
   def testInputSize(self):
     self.assertEquals(13, self.enc.input_size)

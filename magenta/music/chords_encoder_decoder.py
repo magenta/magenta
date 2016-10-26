@@ -21,7 +21,7 @@ encoding has 25 classes, all 12 major and minor triads plus "no chord".
 # internal imports
 from magenta.music import chord_symbols_lib
 from magenta.music import constants
-from magenta.music import encoding
+from magenta.music import encoder_decoder
 
 NOTES_PER_OCTAVE = constants.NOTES_PER_OCTAVE
 NO_CHORD = constants.NO_CHORD
@@ -31,7 +31,7 @@ class ChordEncodingException(Exception):
   pass
 
 
-class MajorMinorChordOneHotEncoding(encoding.OneHotEncoding):
+class MajorMinorChordOneHotEncoding(encoder_decoder.OneHotEncoding):
   """Encodes chords as root + major/minor, with zero index for "no chord".
 
   Encodes chords as follows:

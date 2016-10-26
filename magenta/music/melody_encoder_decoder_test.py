@@ -11,16 +11,16 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Tests for melody_encoding."""
+"""Tests for melody_encoder_decoder."""
 
 # internal imports
 import tensorflow as tf
 
 from magenta.common import sequence_example_lib
 from magenta.music import constants
-from magenta.music import encoding
+from magenta.music import encoder_decoder
 from magenta.music import melodies_lib
-from magenta.music import melody_encoding
+from magenta.music import melody_encoder_decoder
 
 NOTE_OFF = constants.MELODY_NOTE_OFF
 NO_EVENT = constants.MELODY_NO_EVENT
@@ -29,29 +29,29 @@ NO_EVENT = constants.MELODY_NO_EVENT
 class MelodyOneHotEncodingTest(tf.test.TestCase):
 
   def testInit(self):
-    melody_encoding.MelodyOneHotEncoding(0, 128)
+    melody_encoder_decoder.MelodyOneHotEncoding(0, 128)
     with self.assertRaises(ValueError):
-      melody_encoding.MelodyOneHotEncoding(-1, 12)
+      melody_encoder_decoder.MelodyOneHotEncoding(-1, 12)
     with self.assertRaises(ValueError):
-      melody_encoding.MelodyOneHotEncoding(60, 129)
+      melody_encoder_decoder.MelodyOneHotEncoding(60, 129)
     with self.assertRaises(ValueError):
-      melody_encoding.MelodyOneHotEncoding(72, 72)
+      melody_encoder_decoder.MelodyOneHotEncoding(72, 72)
 
   def testNumClasses(self):
     self.assertEqual(
-        14, melody_encoding.MelodyOneHotEncoding(60, 72).num_classes)
+        14, melody_encoder_decoder.MelodyOneHotEncoding(60, 72).num_classes)
     self.assertEqual(
-        130, melody_encoding.MelodyOneHotEncoding(0, 128).num_classes)
+        130, melody_encoder_decoder.MelodyOneHotEncoding(0, 128).num_classes)
     self.assertEqual(
-        3, melody_encoding.MelodyOneHotEncoding(60, 61).num_classes)
+        3, melody_encoder_decoder.MelodyOneHotEncoding(60, 61).num_classes)
 
   def testDefaultEvent(self):
     self.assertEqual(
         NO_EVENT,
-        melody_encoding.MelodyOneHotEncoding(60, 72).default_event)
+        melody_encoder_decoder.MelodyOneHotEncoding(60, 72).default_event)
 
   def testEncodeEvent(self):
-    enc = melody_encoding.MelodyOneHotEncoding(60, 72)
+    enc = melody_encoder_decoder.MelodyOneHotEncoding(60, 72)
     self.assertEqual(2, enc.encode_event(60))
     self.assertEqual(13, enc.encode_event(71))
     self.assertEqual(0, enc.encode_event(NO_EVENT))
@@ -64,7 +64,7 @@ class MelodyOneHotEncodingTest(tf.test.TestCase):
       enc.encode_event(72)
 
   def testDecodeEvent(self):
-    enc = melody_encoding.MelodyOneHotEncoding(60, 72)
+    enc = melody_encoder_decoder.MelodyOneHotEncoding(60, 72)
     self.assertEqual(63, enc.decode_event(5))
     self.assertEqual(60, enc.decode_event(2))
     self.assertEqual(71, enc.decode_event(13))
@@ -72,14 +72,14 @@ class MelodyOneHotEncodingTest(tf.test.TestCase):
     self.assertEqual(NOTE_OFF, enc.decode_event(1))
 
 
-class MelodyOneHotEventSequenceEncodingTest(tf.test.TestCase):
+class MelodyOneHotEventSequenceEncoderDecoderTest(tf.test.TestCase):
 
   def setUp(self):
     self.min_note = 60
     self.max_note = 72
     self.transpose_to_key = 0
-    self.med = encoding.OneHotEventSequenceEncoding(
-        melody_encoding.MelodyOneHotEncoding(self.min_note, self.max_note))
+    self.med = encoder_decoder.OneHotEventSequenceEncoderDecoder(
+        melody_encoder_decoder.MelodyOneHotEncoding(self.min_note, self.max_note))
 
   def testInitValues(self):
     self.assertEqual(self.med.input_size, 14)
@@ -174,11 +174,11 @@ class MelodyOneHotEventSequenceEncodingTest(tf.test.TestCase):
     self.assertListEqual(list(melody4), [60, NOTE_OFF])
 
 
-class MelodyLookbackEventSequenceEncodingTest(tf.test.TestCase):
+class MelodyLookbackEventSequenceEncoderDecoderTest(tf.test.TestCase):
 
   def testDefaultRange(self):
-    med = encoding.LookbackEventSequenceEncoding(
-        melody_encoding.MelodyOneHotEncoding(48, 84))
+    med = encoder_decoder.LookbackEventSequenceEncoderDecoder(
+        melody_encoder_decoder.MelodyOneHotEncoding(48, 84))
     self.assertEqual(med.input_size, 121)
     self.assertEqual(med.num_classes, 40)
 
@@ -365,8 +365,8 @@ class MelodyLookbackEventSequenceEncodingTest(tf.test.TestCase):
         med.get_inputs_batch(melodies))
 
   def testCustomRange(self):
-    med = encoding.LookbackEventSequenceEncoding(
-        melody_encoding.MelodyOneHotEncoding(min_note=24, max_note=36))
+    med = encoder_decoder.LookbackEventSequenceEncoderDecoder(
+        melody_encoder_decoder.MelodyOneHotEncoding(min_note=24, max_note=36))
 
     self.assertEqual(med.input_size, 49)
     self.assertEqual(med.num_classes, 16)
@@ -454,10 +454,10 @@ class MelodyLookbackEventSequenceEncodingTest(tf.test.TestCase):
         med.get_inputs_batch(melodies))
 
 
-class KeyMelodyEncodingTest(tf.test.TestCase):
+class KeyMelodyEncoderDecoderTest(tf.test.TestCase):
 
   def testDefaultRange(self):
-    med = melody_encoding.KeyMelodyEncoding(48, 84)
+    med = melody_encoder_decoder.KeyMelodyEncoderDecoder(48, 84)
     self.assertEqual(med.input_size, 74)
     self.assertEqual(med.num_classes, 40)
 
@@ -561,7 +561,7 @@ class KeyMelodyEncodingTest(tf.test.TestCase):
         med.get_inputs_batch(melodies))
 
   def testCustomRange(self):
-    med = melody_encoding.KeyMelodyEncoding(min_note=24, max_note=36)
+    med = melody_encoder_decoder.KeyMelodyEncoderDecoder(min_note=24, max_note=36)
 
     self.assertEqual(med.input_size, 50)
     self.assertEqual(med.num_classes, 16)

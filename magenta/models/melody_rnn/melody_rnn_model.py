@@ -42,7 +42,7 @@ class MelodyRnnModel(mm.BaseModel):
     """Initialize the MelodyRnnModel.
 
     Args:
-      config: A MelodyRnnConfig containing the MelodyEncoding and HParams to
+      config: A MelodyRnnConfig containing the MelodyEncoderDecoder and HParams to
         use.
     """
     super(MelodyRnnModel, self).__init__()
@@ -72,8 +72,8 @@ class MelodyRnnModel(mm.BaseModel):
       feed_dict[graph_temperature[0]] = temperature
     final_state, softmax = self._session.run(
         [graph_final_state, graph_softmax], feed_dict)
-    indices = self._config.encoding.extend_event_sequences(melodies,
-                                                           softmax)
+    indices = self._config.encoder_decoder.extend_event_sequences(melodies,
+                                                                  softmax)
 
     return melodies, final_state, softmax[range(len(melodies)), -1, indices]
 
@@ -156,7 +156,7 @@ class MelodyRnnModel(mm.BaseModel):
     # iterations can all take the same number of steps.
     first_iteration_num_steps = (num_steps - 1) % steps_per_iteration + 1
 
-    inputs = self._config.encoding.get_inputs_batch(
+    inputs = self._config.encoder_decoder.get_inputs_batch(
         melodies, full_length=True)
     initial_state = self._session.run(graph_initial_state)
     melodies, final_state, loglik = self._generate_branches(
@@ -169,7 +169,7 @@ class MelodyRnnModel(mm.BaseModel):
     for _ in range(num_iterations):
       melodies, final_state, loglik = self._prune_branches(
           melodies, final_state, loglik, k=beam_size)
-      inputs = self._config.encoding.get_inputs_batch(melodies)
+      inputs = self._config.encoder_decoder.get_inputs_batch(melodies)
       melodies, final_state, loglik = self._generate_branches(
           melodies, loglik, branch_factor, steps_per_iteration, inputs,
           final_state, temperature)

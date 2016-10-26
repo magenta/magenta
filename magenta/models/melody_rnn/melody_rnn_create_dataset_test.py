@@ -32,7 +32,7 @@ class MelodyRNNPipelineTest(tf.test.TestCase):
   def setUp(self):
     self.config = melody_rnn_config.MelodyRnnConfig(
         None,
-        magenta.music.OneHotEventSequenceEncoding(
+        magenta.music.OneHotEventSequenceEncoderDecoder(
             magenta.music.MelodyOneHotEncoding(0, 127)),
         magenta.common.HParams(),
         min_note=0,
@@ -58,7 +58,7 @@ class MelodyRNNPipelineTest(tf.test.TestCase):
     melody_extractor = melody_pipelines.MelodyExtractor(
         min_bars=7, min_unique_pitches=5, gap_bars=1.0,
         ignore_polyphonic_notes=False)
-    one_hot_encoding = magenta.music.OneHotEventSequenceEncoding(
+    one_hot_encoding = magenta.music.OneHotEventSequenceEncoderDecoder(
         magenta.music.MelodyOneHotEncoding(
             self.config.min_note, self.config.max_note))
     quantized = quantizer.transform(note_sequence)[0]

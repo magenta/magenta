@@ -26,7 +26,7 @@ class MelodyRNNGraphTest(tf.test.TestCase):
   def setUp(self):
     self.config = melody_rnn_config.MelodyRnnConfig(
         None,
-        magenta.music.OneHotEventSequenceEncoding(
+        magenta.music.OneHotEventSequenceEncoderDecoder(
             magenta.music.MelodyOneHotEncoding(0, 12)),
         magenta.common.HParams(
             batch_size=128,

@@ -13,19 +13,20 @@
 # limitations under the License.
 """Classes for converting between Melody objects and models inputs/outputs.
 
-MelodyOneHotEncoding is an encoding.OneHotEncoding that specifies a one-hot
-encoding for Melody events, i.e. MIDI pitch values plus note-off and no-event.
+MelodyOneHotEncoding is an encoder_decoder.OneHotEncoding that specifies a one-
+hot encoding for Melody events, i.e. MIDI pitch values plus note-off and no-
+event.
 
-KeyMelodyEncoding is an encoding.EventSequenceEncoding that specifies an
-encoding of Melody objects into input vectors and output labels for use by
-melody models.
+KeyMelodyEncoderDecoder is an encoder_decoder.EventSequenceEncoderDecoder that
+specifies an encoding of Melody objects into input vectors and output labels for
+use by melody models.
 """
 
 import collections
 
 # internal imports
 from magenta.music import constants
-from magenta.music import encoding
+from magenta.music import encoder_decoder
 from magenta.music import melodies_lib
 
 NUM_SPECIAL_MELODY_EVENTS = constants.NUM_SPECIAL_MELODY_EVENTS
@@ -36,10 +37,10 @@ MAX_MIDI_PITCH = constants.MAX_MIDI_PITCH
 NOTES_PER_OCTAVE = constants.NOTES_PER_OCTAVE
 DEFAULT_STEPS_PER_BAR = constants.DEFAULT_STEPS_PER_BAR
 
-DEFAULT_LOOKBACK_DISTANCES = encoding.DEFAULT_LOOKBACK_DISTANCES
+DEFAULT_LOOKBACK_DISTANCES = encoder_decoder.DEFAULT_LOOKBACK_DISTANCES
 
 
-class MelodyOneHotEncoding(encoding.OneHotEncoding):
+class MelodyOneHotEncoding(encoder_decoder.OneHotEncoding):
   """Basic one hot encoding for melody events.
 
   Encodes melody events as follows:
@@ -126,12 +127,12 @@ class MelodyOneHotEncoding(encoding.OneHotEncoding):
     return index - NUM_SPECIAL_MELODY_EVENTS + self._min_note
 
 
-class KeyMelodyEncoding(encoding.EventSequenceEncoding):
-  """A MelodyEncoding that encodes repeated events, time, and key."""
+class KeyMelodyEncoderDecoder(encoder_decoder.EventSequenceEncoderDecoder):
+  """A MelodyEncoderDecoder that encodes repeated events, time, and key."""
 
   def __init__(self, min_note, max_note, lookback_distances=None,
                binary_counter_bits=7):
-    """Initializes the KeyMelodyEncoding.
+    """Initializes the KeyMelodyEncoderDecoder.
 
     Args:
       min_note: The minimum midi pitch the encoded melody events can have.
