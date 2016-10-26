@@ -84,18 +84,19 @@ def musicxml_to_sequence_proto(musicxml_document):
           note = sequence.notes.add()
           note.instrument = musicxml_note.midi_channel
           note.program = musicxml_note.midi_program
-          note.start_time = musicxml_note.time_position
+          note.start_time = musicxml_note.note_duration.time_position
 
           # Fix negative time errors from incorrect MusicXML
           if note.start_time < 0:
             note.start_time = 0
 
-          note.end_time = note.start_time + musicxml_note.seconds
+          note.end_time = note.start_time + musicxml_note.note_duration.seconds
           note.pitch = musicxml_note.pitch[1] # Index 1 = MIDI pitch number
           note.velocity = musicxml_note.velocity
 
-  # TODO(@douglaseck): Estimate note type (e.g. quarter note) and populate
-  # note.numerator and note.denominator.
+          durationratio = musicxml_note.note_duration.durationratio()
+          note.numerator = durationratio.numerator
+          note.denominator = durationratio.denominator
 
   return sequence
 
