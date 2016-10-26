@@ -18,7 +18,7 @@
 import numpy as np
 import tensorflow as tf
 
-import poly_rnn_lib
+from magenta.models.poly_rnn import import poly_rnn_lib
 
 
 class Graph(object):
@@ -62,12 +62,12 @@ class Graph(object):
     share_output_parameters = False
 
     if rnn_type == 'lstm':
-      RNNFork = poly_rnn_lib.LSTMFork
-      RNN = poly_rnn_lib.LSTM
+      rnn_fork = poly_rnn_lib.LSTMFork
+      rnn = poly_rnn_lib.LSTM
       self.rnn_dim = 2 * h_dim
     elif rnn_type == 'gru':
-      RNNFork = poly_rnn_lib.GRUFork
-      RNN = poly_rnn_lib.GRU
+      rnn_fork = poly_rnn_lib.GRUFork
+      rnn = poly_rnn_lib.GRU
       self.rnn_dim = h_dim
     else:
       raise ValueError('Unknown rnn_type %s' % rnn_type)
@@ -105,12 +105,11 @@ class Graph(object):
     scan_inp_dim = (self.n_notes * duration_embed_dim + self.n_notes *
                     note_embed_dim)
 
-
     def step(inp_t, h1_tm1):
-      h1_t_proj, h1gate_t_proj = RNNFork(
+      h1_t_proj, h1gate_t_proj = rnn_fork(
           [inp_t], [scan_inp_dim], h_dim, random_state,
           weight_norm=weight_norm_middle)
-      h1_t = RNN(h1_t_proj, h1gate_t_proj, h1_tm1, h_dim, h_dim, random_state)
+      h1_t = rnn(h1_t_proj, h1gate_t_proj, h1_tm1, h_dim, h_dim, random_state)
       return h1_t
 
     h1_f = poly_rnn_lib.scan(step, [scan_inp], [self.init_h1])
