@@ -26,7 +26,7 @@ from magenta.pipelines import statistics
 class MelodyExtractor(pipeline.Pipeline):
   """Extracts monophonic melodies from a QuantizedSequence."""
 
-  def __init__(self, min_bars=7, max_steps=2000, min_unique_pitches=5,
+  def __init__(self, min_bars=7, max_steps=512, min_unique_pitches=5,
                gap_bars=1.0, ignore_polyphonic_notes=False):
     super(MelodyExtractor, self).__init__(
         input_type=sequences_lib.QuantizedSequence,
