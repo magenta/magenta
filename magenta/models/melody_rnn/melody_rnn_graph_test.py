@@ -27,7 +27,7 @@ class MelodyRNNGraphTest(tf.test.TestCase):
     self.config = melody_rnn_config.MelodyRnnConfig(
         None,
         magenta.music.OneHotEventSequenceEncoding(
-          magenta.music.MelodyOneHotEncoding(0, 12)),
+            magenta.music.MelodyOneHotEncoding(0, 12)),
         magenta.common.HParams(
             batch_size=128,
             rnn_layer_sizes=[128, 128],

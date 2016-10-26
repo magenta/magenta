@@ -22,7 +22,6 @@ melody models.
 """
 
 import collections
-from functools import partial
 
 # internal imports
 from magenta.music import constants
@@ -143,7 +142,7 @@ class KeyMelodyEncoding(encoding.EventSequenceEncoding):
           repeat. If None, use default lookback distances.
       binary_counter_bits: The number of input bits to use as a counter for the
           metric position of the next note.
-               """
+    """
     self._lookback_distances = (lookback_distances
                                 if lookback_distances is not None
                                 else DEFAULT_LOOKBACK_DISTANCES)

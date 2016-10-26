@@ -18,8 +18,7 @@ one-hot encoding for ChordProgression events, i.e. chord symbol strings. This
 encoding has 25 classes, all 12 major and minor triads plus "no chord".
 """
 
-import abc
-
+# internal imports
 from magenta.music import chord_symbols_lib
 from magenta.music import constants
 from magenta.music import encoding

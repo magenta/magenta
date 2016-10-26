@@ -33,7 +33,7 @@ class MelodyRNNPipelineTest(tf.test.TestCase):
     self.config = melody_rnn_config.MelodyRnnConfig(
         None,
         magenta.music.OneHotEventSequenceEncoding(
-          magenta.music.MelodyOneHotEncoding(0, 127)),
+            magenta.music.MelodyOneHotEncoding(0, 127)),
         magenta.common.HParams(),
         min_note=0,
         max_note=127,

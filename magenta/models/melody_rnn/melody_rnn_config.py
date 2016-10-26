@@ -161,20 +161,40 @@ default_configs = {
 }
 
 
+def one_hot_melody_encoding(min_note, max_note):
+  """Return a OneHotEventSequenceEncoding for melodies.
+
+  Args:
+    min_note: The minimum midi pitch the encoded melodies can have.
+    max_note: The maximum midi pitch (exclusive) the encoded melodies can have.
+
+  Returns:
+    A melody OneHotEventSequenceEncoding.
+  """
+  return magenta.music.OneHotEventSequenceEncoding(
+      magenta.music.MelodyOneHotEncoding(min_note, max_note))
+
+
+def lookback_melody_encoding(min_note, max_note):
+  """Return a LookbackEventSequenceEncoding for melodies.
+
+  Args:
+    min_note: The minimum midi pitch the encoded melodies can have.
+    max_note: The maximum midi pitch (exclusive) the encoded melodies can have.
+
+  Returns:
+    A melody LookbackEventSequenceEncoding.
+  """
+  return magenta.music.LookbackEventSequenceEncoding(
+      magenta.music.MelodyOneHotEncoding(min_note, max_note))
+
+
 # Dictionary of functions that take `min_note` and `max_note` and return the
 # appropriate EventSequenceEncoding object.
 melody_encodings = {
-    'onehot': lambda min_note, max_note:
-        magenta.music.OneHotEventSequenceEncoding(
-            magenta.music.MelodyOneHotEncoding(
-                min_note=min_note, max_note=max_note)),
-    'lookback': lambda min_note, max_note:
-        magenta.music.LookbackEventSequenceEncoding(
-            magenta.music.MelodyOneHotEncoding(
-                min_note=max_note, max_note=max_note)),
-    'key': lambda min_note, max_note:
-        magenta.music.KeyMelodyEncoding(
-            min_note=min_note, max_note=max_note)
+    'onehot': one_hot_melody_encoding,
+    'lookback': lookback_melody_encoding,
+    'key': magenta.music.KeyMelodyEncoding
 }
 
 
