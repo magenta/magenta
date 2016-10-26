@@ -21,6 +21,7 @@ into tensorflow.magenta.NoteSequence.
 from __future__ import division
 
 import xml.etree.ElementTree as ET
+from fractions import Fraction
 from zipfile import ZipFile
 from magenta.music import constants
 
@@ -386,15 +387,12 @@ class Note(object):
   """Internal representation of a MusicXML <note> element"""
   def __init__(self, xml_note, state):
     self.xml_note = xml_note
-    self.duration = 0               # MusicXML duration
-    self.midi_ticks = 0             # Duration in MIDI ticks
-    self.seconds = 0                # Duration in seconds
-    self.time_position = 0          # Onset time in seconds
     self.voice = 1
     self.is_rest = False
     self.is_in_chord = False
     self.is_grace_note = False
     self.pitch = None               # Tuple (Pitch Name, MIDI number)
+    self.note_duration = NoteDuration(state)
     self.state = state
     self.parse()
 
@@ -409,31 +407,20 @@ class Note(object):
       if child.tag == "chord":
         self.is_in_chord = True
       elif child.tag == "duration":
-        self.duration = int(child.text)
-
-        self.midi_ticks = self.duration
-        self.midi_ticks *= (constants.STANDARD_PPQ / self.state.divisions)
-
-        self.seconds = (self.midi_ticks / constants.STANDARD_PPQ)
-        self.seconds *= self.state.seconds_per_beat
-
-        self.time_position = self.state.time_position
-
-        if self.is_in_chord:
-          # If this is a chord, set the time position to the time position
-          # of the previous note (i.e. all the notes in the chord will have
-          # the same time position)
-          self.time_position = self.state.previous_note.time_position
-        else:
-          # Only increment time positions once in chord
-          self.state.time_position += self.seconds
-
+        self.note_duration.parseduration(self, child.text)
       elif child.tag == "pitch":
         self.parsepitch(child)
       elif child.tag == "rest":
         self.is_rest = True
       elif child.tag == "voice":
         self.voice = int(child.text)
+      elif child.tag == "dot":
+        self.note_duration.dots += 1
+      elif child.tag == "type":
+        self.note_duration.type = child.text
+      elif child.tag == "time-modification":
+        # A time-modification element represents a tuplet_ratio
+        self.parsetuplet(child)
 
   def parsepitch(self, xml_pitch):
     """Parse the MusicXML <pitch> element"""
@@ -463,6 +450,14 @@ class Note(object):
     midi_pitch = midi_pitch + self.state.transpose
     self.pitch = (pitch_string, midi_pitch)
 
+  def parsetuplet(self, xml_time_modification):
+    """Parses a tuplet ratio, represented in MusicXML by the
+    <time-modification> element
+    """
+    numerator = int(xml_time_modification.find("actual-notes").text)
+    denominator = int(xml_time_modification.find("normal-notes").text)
+    self.note_duration.tuplet_ratio = Fraction(numerator, denominator)
+
   @staticmethod
   def pitchtomidipitch(step, alter, octave):
     """Convert MusicXML pitch representation to MIDI pitch number"""
@@ -487,9 +482,9 @@ class Note(object):
     return midi_pitch
 
   def __str__(self):
-    note_string = "{duration: " + str(self.duration)
-    note_string += ", midi_ticks: " + str(self.midi_ticks)
-    note_string += ", seconds: " + str(self.seconds)
+    note_string = "{duration: " + str(self.note_duration.duration)
+    note_string += ", midi_ticks: " + str(self.note_duration.midi_ticks)
+    note_string += ", seconds: " + str(self.note_duration.seconds)
     if self.is_rest:
       note_string += ", rest: " + str(self.is_rest)
     else:
@@ -498,9 +493,90 @@ class Note(object):
 
     note_string += ", voice: " + str(self.voice)
     note_string += ", velocity: " + str(self.velocity) + "} "
-    note_string += "(@time: " + str(self.time_position) + ")"
+    note_string += "(@time: " + str(self.note_duration.time_position) + ")"
     return note_string
 
+
+class NoteDuration(object):
+  """Internal representation of a MusicXML note's duration properties"""
+  def __init__(self, state):
+    self.duration = 0                   # MusicXML duration
+    self.midi_ticks = 0                 # Duration in MIDI ticks
+    self.seconds = 0                    # Duration in seconds
+    self.time_position = 0              # Onset time in seconds
+    self.dots = 0                       # Number of augmentation dots
+    self.type = "quarter"               # MusicXML duration type
+    self.tuplet_ratio = Fraction(1, 1)  # Ratio for tuplets (default to 1)
+    self.state = state
+
+  def parseduration(self, note, duration):
+    """Parse the duration of a note and compute timings"""
+    self.duration = int(duration)
+
+    self.midi_ticks = self.duration
+    self.midi_ticks *= (constants.STANDARD_PPQ / self.state.divisions)
+
+    self.seconds = (self.midi_ticks / constants.STANDARD_PPQ)
+    self.seconds *= self.state.seconds_per_beat
+
+    self.time_position = self.state.time_position
+
+    if note.is_in_chord:
+      # If this is a chord, set the time position to the time position
+      # of the previous note (i.e. all the notes in the chord will have
+      # the same time position)
+      self.time_position = self.state.previous_note.time_position
+    else:
+      # Only increment time positions once in chord
+      self.state.time_position += self.seconds
+
+  def converttypetoratio(self):
+    """Convert the MusicXML note-type-value to a Python Fraction
+    Examples:
+    - whole = 1/1
+    - half = 1/2
+    - quarter = 1/4
+    - 32nd = 1/32
+    """
+    typeratiomap = {"maxima": Fraction(8, 1), "long": Fraction(4, 1),
+                    "breve": Fraction(2, 1), "whole": Fraction(1, 1),
+                    "half": Fraction(1, 2), "quarter": Fraction(1, 4),
+                    "eighth": Fraction(1, 8), "16th": Fraction(1, 16),
+                    "32nd": Fraction(1, 32), "64th": Fraction(1, 64),
+                    "128th": Fraction(1, 128), "256th": Fraction(1, 256),
+                    "512th": Fraction(1, 512), "1024th": Fraction(1, 1024)}
+
+    return typeratiomap[self.type]
+
+  def durationratio(self):
+    """Compute the duration ratio of the note as a Python Fraction
+    Examples:
+    - Whole Note = 1
+    - Quarter Note = 1/4
+    - Dotted Quarter Note = 3/8
+    - Triplet eighth note = 1/12
+    """
+    # Get ratio from MusicXML note type
+    durationratio = Fraction(1, 1)
+    typeratio = self.converttypetoratio()
+
+    # Compute tuplet ratio
+    durationratio = durationratio / self.tuplet_ratio
+    typeratio = typeratio / self.tuplet_ratio
+
+    # Add augmentation dots
+    one_half = Fraction(1, 2)
+    dotsum = Fraction(0, 1)
+    for dot in range(self.dots):
+      dotsum += (one_half ** (dot + 1)) * typeratio
+
+    durationratio = typeratio + dotsum
+    return durationratio
+
+  def durationfloat(self):
+    """Return the duration ratio as a float"""
+    ratio = self.durationratio()
+    return ratio.numerator / ratio.denominator
 
 class TimeSignature(object):
   """Internal representation of a MusicXML time signature
