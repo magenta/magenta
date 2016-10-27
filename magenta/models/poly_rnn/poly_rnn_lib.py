@@ -733,7 +733,7 @@ def Linear(list_of_inputs, input_dims, output_dim, random_state, name=None,
   input_var = tf.concat(concat_dim=nd - 1, values=list_of_inputs)
   input_dim = sum(input_dims)
   terms = []
-  if (init is None) or (isinstance(init, str):
+  if (init is None) or isinstance(init, str):
     weight_values, = make_numpy_weights(input_dim, [output_dim],
                                         random_state=random_state,
                                         init=init, scale=scale)
@@ -773,7 +773,7 @@ def Linear(list_of_inputs, input_dims, output_dim, random_state, name=None,
     terms.append(dot(input_var, weight))
 
   if biases:
-    if (init is None) or (isinstance(init, str):
+    if (init is None) or isinstance(init, str):
       b, = make_numpy_biases([output_dim])
     else:
       b = init[1]
