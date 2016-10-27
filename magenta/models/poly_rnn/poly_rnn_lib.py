@@ -12,21 +12,20 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import numpy as np
-import uuid
-from scipy import linalg
-import tensorflow as tf
+from collections import OrderedDict
+import StringIO
+import copy
 import os
 import re
-import copy
-import sys
-import magenta.music as mm
-try:
-    from StringIO import StringIO
-except ImportError:
-    from io import StringIO
+import uuid
 
-from collections import OrderedDict
+# internal imports
+import numpy as np
+from scipy import linalg
+import tensorflow as tf
+
+import magenta.music as mm
+
 
 """
 begin metautils
