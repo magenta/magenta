@@ -23,7 +23,7 @@ import os
 import tensorflow as tf
 import magenta
 
-from magenta.models.melody_rnn import melody_rnn_config
+from magenta.models.melody_rnn import melody_rnn_config_flags
 from magenta.pipelines import dag_pipeline
 from magenta.pipelines import melody_pipelines
 from magenta.pipelines import pipeline
@@ -101,7 +101,7 @@ def get_pipeline(melody_encoder_decoder):
 def run_from_flags():
   tf.logging.set_verbosity(FLAGS.log)
 
-  config = melody_rnn_config.config_from_flags()
+  config = melody_rnn_config_flags.config_from_flags()
   pipeline_instance = get_pipeline(config.encoder_decoder)
   FLAGS.input = os.path.expanduser(FLAGS.input)
   FLAGS.output_dir = os.path.expanduser(FLAGS.output_dir)

@@ -19,7 +19,7 @@ import time
 # internal imports
 import tensorflow as tf
 
-from magenta.models.melody_rnn import melody_rnn_config
+from magenta.models.melody_rnn import melody_rnn_config_flags
 from magenta.models.melody_rnn import melody_rnn_graph
 
 FLAGS = tf.app.flags.FLAGS
@@ -186,7 +186,7 @@ def main(unused_argv):
   sequence_example_file = os.path.expanduser(FLAGS.sequence_example_file)
   run_dir = os.path.expanduser(FLAGS.run_dir)
 
-  config = melody_rnn_config.config_from_flags()
+  config = melody_rnn_config_flags.config_from_flags()
 
   mode = 'eval' if FLAGS.eval else 'train'
   graph = melody_rnn_graph.build_graph(

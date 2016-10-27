@@ -17,7 +17,6 @@ from functools import partial
 
 # internal imports
 
-from magenta.models.melody_rnn import melody_rnn_config
 from magenta.models.melody_rnn import melody_rnn_model
 import magenta.music as mm
 
@@ -143,4 +142,4 @@ def get_generator_map():
   """
   return {key: partial(MelodyRnnSequenceGenerator,
                        melody_rnn_model.MelodyRnnModel(config), config.details)
-          for (key, config) in melody_rnn_config.default_configs.items()}
+          for (key, config) in melody_rnn_model.default_configs.items()}
