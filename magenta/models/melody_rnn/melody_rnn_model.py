@@ -23,6 +23,7 @@ from six.moves import range  # pylint: disable=redefined-builtin
 import tensorflow as tf
 
 from magenta.models.melody_rnn import melody_rnn_graph
+import magenta
 import magenta.music as mm
 
 
@@ -233,3 +234,65 @@ class MelodyRnnModel(mm.BaseModel):
     melody.transpose(-transpose_amount)
 
     return melody
+
+class MelodyRnnConfig(object):
+  """Stores a configuration for a MelodyRnnModel.
+
+  Attributes:
+    details: The GeneratorDetails message describing the config.
+    encoder_decoder: The MelodyRnnEncoderDecoder object to use.
+    hparams: The HParams containing hyperparameters to use.
+  """
+
+  def __init__(self, details, encoder_decoder, hparams):
+    self.details = details
+    self.encoder_decoder = encoder_decoder
+    self.hparams = hparams
+
+
+# Default configurations.
+default_configs = {
+    'basic_rnn': MelodyRnnConfig(
+        magenta.protobuf.generator_pb2.GeneratorDetails(
+            id='basic_rnn',
+            description='Melody RNN with one-hot encoding.'),
+        magenta.music.OneHotMelodyEncoderDecoder(),
+        magenta.common.HParams(
+            batch_size=128,
+            rnn_layer_sizes=[128, 128],
+            dropout_keep_prob=0.5,
+            skip_first_n_losses=0,
+            clip_norm=5,
+            initial_learning_rate=0.01,
+            decay_steps=1000,
+            decay_rate=0.85)),
+    'lookback_rnn': MelodyRnnConfig(
+        magenta.protobuf.generator_pb2.GeneratorDetails(
+            id='lookback_rnn',
+            description='Melody RNN with lookback encoding.'),
+        magenta.music.LookbackMelodyEncoderDecoder(),
+        magenta.common.HParams(
+            batch_size=128,
+            rnn_layer_sizes=[128, 128],
+            dropout_keep_prob=0.5,
+            skip_first_n_losses=0,
+            clip_norm=5,
+            initial_learning_rate=0.01,
+            decay_steps=1000,
+            decay_rate=0.95)),
+    'attention_rnn': MelodyRnnConfig(
+        magenta.protobuf.generator_pb2.GeneratorDetails(
+            id='attention_rnn',
+            description='Melody RNN with lookback encoding and attention.'),
+        magenta.music.KeyMelodyEncoderDecoder(),
+        magenta.common.HParams(
+            batch_size=128,
+            rnn_layer_sizes=[128, 128],
+            dropout_keep_prob=0.5,
+            skip_first_n_losses=0,
+            attn_length=40,
+            clip_norm=3,
+            initial_learning_rate=0.001,
+            decay_steps=1000,
+            decay_rate=0.97))
+}

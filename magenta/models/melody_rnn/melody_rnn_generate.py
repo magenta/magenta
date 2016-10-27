@@ -26,7 +26,7 @@ from six.moves import range  # pylint: disable=redefined-builtin
 import tensorflow as tf
 import magenta
 
-from magenta.models.melody_rnn import melody_rnn_config
+from magenta.models.melody_rnn import melody_rnn_config_flags
 from magenta.models.melody_rnn import melody_rnn_model
 from magenta.models.melody_rnn import melody_rnn_sequence_generator
 from magenta.protobuf import generator_pb2
@@ -236,7 +236,7 @@ def run_with_flags(generator):
 
 def main(unused_argv):
   """Saves bundle or runs generator based on flags."""
-  config = melody_rnn_config.config_from_flags()
+  config = melody_rnn_config_flags.config_from_flags()
   generator = melody_rnn_sequence_generator.MelodyRnnSequenceGenerator(
       model=melody_rnn_model.MelodyRnnModel(config),
       details=config.details,
