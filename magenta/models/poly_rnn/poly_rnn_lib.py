@@ -17,7 +17,6 @@ from collections import OrderedDict
 import copy
 import os
 import re
-import StringIO
 import uuid
 
 # internal imports
@@ -264,9 +263,7 @@ class TFRecordDurationAndPitchIterator(object):
                new_file_new_sequence=False,
                sequence_length=None,
                randomize=True):
-    """
-    Supports regular int, negative indexing, or float for setting stop_index.
-    """
+    """Supports regular int, negative indexing, or float for stop_index."""
     reader = mm.note_sequence_io.note_sequence_record_iterator(files_path)
     all_ds = []
     all_ps = []
@@ -439,20 +436,18 @@ class TFRecordDurationAndPitchIterator(object):
 ##
 
 
-def np_zeros(shape):
+def np_zeros(shp):
   """Builds a numpy variable filled with zeros.
 
-  Parameters
-  ----------
-  shape, tuple of ints
+  Args:
+    shape: tuple of ints
       shape of zeros to initialize
 
-  Returns
-  -------
-  initialized_zeros, array-like
+  Returns:
+    initialized_zeros, array-like
       Array-like of zeros the same size as shape parameter
   """
-  return np.zeros(shape).astype('float32')
+  return np.zeros(shp).astype('float32')
 
 
 def np_normal(shp, random_state, scale=0.01):
@@ -473,7 +468,7 @@ def np_normal(shp, random_state, scale=0.01):
     initialized_normal, array-like
       Array-like of normal random values the same size as shape parameter
   """
-  if type(shp[0]) is tuple:
+  if isinstance(shp[0], tuple):
     shp = (shp[1][0], shp[0][0]) + shp[1][1:]
   return (scale * random_state.randn(*shp)).astype('float32')
 
@@ -503,7 +498,7 @@ def np_tanh_fan_normal(shp, random_state, scale=1.):
       X. Glorot, Y. Bengio
   """
   # The . after the 2 is critical! shape has dtype int...
-  if type(shp[0]) is tuple:
+  if isinstance(shp[0], tuple):
     kern_sum = np.prod(shp[0]) + np.prod(shp[1])
     shp = (shp[1][0], shp[0][0]) + shp[1][1:]
   else:
@@ -536,7 +531,7 @@ def np_variance_scaled_uniform(shp, random_state, scale=1.):
   Efficient Backprop
       Y. LeCun, L. Bottou, G. Orr, K. Muller
   """
-  if type(shp[0]) is tuple:
+  if isinstance(shp[0], tuple):
     shp = (shp[1][0], shp[0][0]) + shp[1][1:]
     kern_sum = np.prod(shp[0])
   else:
@@ -571,14 +566,14 @@ def np_ortho(shp, random_state, scale=1.):
   neural networks
       A. Saxe, J. McClelland, S. Ganguli
   """
-  if type(shp[0]) is tuple:
+  if isinstance(shp[0], tuple):
     shp = (shp[1][0], shp[0][0]) + shp[1][1:]
     flat_shp = (shp[0], np.prd(shp[1:]))
   else:
     flat_shp = shp
   g = random_state.randn(*flat_shp)
-  U, S, VT = linalg.svd(g, full_matrices=False)
-  res = U if U.shape == flat_shp else VT  # pick one with the correct shape
+  u, _, vt = linalg.svd(g, full_matrices=False)
+  res = u if u.shape == flat_shp else vt  # pick one with the correct shape
   res = res.reshape(shp)
   return (scale * res).astype('float32')
 
@@ -632,14 +627,12 @@ def _get_shared(name):
 
 def _set_shared(name, variable):
   if name in _lib_shared_params.keys():
-      raise ValueError('Trying to set key %s which already exists!' % name)
+    raise ValueError('Trying to set key %s which already exists!' % name)
   _lib_shared_params[name] = variable
 
 
 def Embedding(indices, n_symbols, output_dim, random_state, name=None):
-  """
-  Last dimension of indices tensor must be 1!!!!
-  """
+  """Last dimension of indices tensor must be 1!!!!"""
   if name is None:
     name = _get_name()
 
@@ -648,16 +641,12 @@ def Embedding(indices, n_symbols, output_dim, random_state, name=None):
   except NameError:
     vectors = tf.Variable(
         random_state.randn(n_symbols, output_dim).astype('float32'),
-                           trainable=True)
+        trainable=True)
     _set_shared(name, vectors)
 
   ii = tf.cast(indices, 'int32')
   shp = shape(ii)
   nd = len(shp)
-  output_shape = [
-      shp[i]
-      for i in range(nd - 1)
-  ] + [output_dim]
   lu = tf.nn.embedding_lookup(vectors, ii)
   if nd == 3:
     lu = lu[:, :, 0, :]
@@ -668,8 +657,7 @@ def Embedding(indices, n_symbols, output_dim, random_state, name=None):
 
 def Multiembedding(multi_indices, n_symbols, output_dim, random_state,
                    name=None, share_all=False):
-  """
-  Helper to compute many embeddings and concatenate
+  """Helper to compute many embeddings and concatenate.
 
   Requires input indices to be 3D, with last axis being the "iteration"
   dimension
@@ -699,8 +687,7 @@ def Multiembedding(multi_indices, n_symbols, output_dim, random_state,
 
 
 def Automask(input_tensor, n_masks, axis=-1, name=None):
-  """
-  Auto masker to make multiple MADE/pixelRNN style masking easier
+  """Auto masker to make multiple MADE/pixelRNN style masking easier.
 
   n_masks *must* be an even divisor of input_tensor.shape[axis]
 
@@ -727,7 +714,7 @@ def Automask(input_tensor, n_masks, axis=-1, name=None):
   assert int(div * n_masks) == shp[-1]
   masks = [np.zeros(shp_tup).astype('float32') for i in range(n_masks)]
   if n_masks < 2:
-      raise ValueError('unhandled small n_masks value')
+    raise ValueError('unhandled small n_masks value')
   output_tensors = [masks[0] * input_tensor]
   for i in range(1, n_masks):
     masks[i][..., :i * div] = 1.
@@ -737,9 +724,7 @@ def Automask(input_tensor, n_masks, axis=-1, name=None):
 
 def Linear(list_of_inputs, input_dims, output_dim, random_state, name=None,
            init=None, scale='default', weight_norm=None, biases=True):
-  """
-  Can pass weights and biases directly if needed through init
-  """
+  """Can pass weights and biases directly if needed through init."""
   if weight_norm is None:
     # Let other classes delegate to default of linear
     weight_norm = True
@@ -776,10 +761,10 @@ def Linear(list_of_inputs, input_dims, output_dim, random_state, name=None,
   if weight_norm:
     norm_values = np.linalg.norm(weight_values, axis=0)
     try:
-        norms = _get_shared(name_wn)
+      norms = _get_shared(name_wn)
     except NameError:
-        norms = tf.Variable(norm_values, trainable=True)
-        _set_shared(name_wn, norms)
+      norms = tf.Variable(norm_values, trainable=True)
+      _set_shared(name_wn, norms)
     norm = tf.sqrt(tf.reduce_sum(tf.abs(weight ** 2), reduction_indices=[0],
                                  keep_dims=True))
     normed_weight = weight * (norms / norm)
