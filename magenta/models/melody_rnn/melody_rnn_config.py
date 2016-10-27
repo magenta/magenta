@@ -33,13 +33,13 @@ tf.app.flags.DEFINE_string(
 tf.app.flags.DEFINE_string(
     'generator_id',
     None,
-    'A unique ID for the generator. Required when `--config` is not supplied. '
-    'Overrides the default if `--config` is supplied.')
+    'A unique ID for the generator. Overrides the default if `--config` is '
+    'also supplied.')
 tf.app.flags.DEFINE_string(
     'generator_description',
     None,
-    'A description of the generator. Required when `--config` is not supplied. '
-    'Overrides the default if `--config` is supplied.')
+    'A description of the generator. Overrides the default if `--config` is '
+    'also supplied.')
 tf.app.flags.DEFINE_string(
     'hparams', '{}',
     'String representation of a Python dictionary containing hyperparameter '
@@ -136,8 +136,7 @@ def config_from_flags():
      The appropriate MelodyRnnConfig based on the supplied flags.
   Raises:
      MelodyRnnConfigException: When not exactly one of `--config` or
-         `melody_encoder_decoder` is supplied or the supplied values are
-         invalid.
+         `melody_encoder_decoder` is supplied.
   """
   if (FLAGS.melody_encoder_decoder, FLAGS.config).count(None) != 1:
     raise MelodyRnnConfigException(
@@ -149,14 +148,11 @@ def config_from_flags():
       raise MelodyRnnConfigException(
           '`--melody_encoder_decoder` must be one of %s. Got %s.' % (
               encoder_decoders.keys(), FLAGS.melody_encoder_decoder))
-    if None in (FLAGS.generator_id, FLAGS.generator_description):
-      raise MelodyRnnConfigException(
-          '`--generator_id` and `--generator_details` must both be supplied '
-          'with `--melody_encoder_decoder`.')
-    if FLAGS.generator_id is not None and FLAGS.generator_description:
+    if FLAGS.generator_id is not None:
       generator_details = magenta.protobuf.generator_pb2.GeneratorDetails(
-          id=FLAGS.generator_id,
-          description=FLAGS.generator_description)
+          id=FLAGS.generator_id)
+      if FLAGS.generator_description is not None:
+        generator_details.description = FLAGS.generator_description
     else:
       generator_details = None
     encoder_decoder = encoder_decoders[FLAGS.melody_encoder_decoder]

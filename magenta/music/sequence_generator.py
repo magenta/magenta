@@ -187,21 +187,26 @@ class BaseSequenceGenerator(object):
     self.initialize()
     return self._generate(input_sequence, generator_options)
 
-  def create_bundle_file(self, bundle_file, description=None):
+  def create_bundle_file(self, bundle_file):
     """Writes a generator_pb2.GeneratorBundle file in the specified location.
 
     Saves the checkpoint, metagraph, and generator id in one file.
 
     Args:
       bundle_file: Location to write the bundle file.
-      description: A short, human-readable text description of the bundle (e.g.,
-          training data, hyper parameters, etc.).
 
     Raises:
       SequenceGeneratorException: if there is an error creating the bundle file.
     """
     if not bundle_file:
       raise SequenceGeneratorException('Bundle file location not specified.')
+    if not self.details.id:
+      raise SequenceGeneratorException(
+          'Generator id must be included in GeneratorDetails when creating '
+          'a bundle file.')
+
+    if not self.details.description:
+      tf.logging.warn('Writing bundle file with no description.')
 
     self.initialize()
 
@@ -222,8 +227,6 @@ class BaseSequenceGenerator(object):
 
       bundle = generator_pb2.GeneratorBundle()
       bundle.generator_details.CopyFrom(self.details)
-      if description is not None:
-        bundle.bundle_details.description = description
       with tf.gfile.Open(checkpoint_filename, 'rb') as f:
         bundle.checkpoint_file.append(f.read())
       with tf.gfile.Open(metagraph_filename, 'rb') as f:
