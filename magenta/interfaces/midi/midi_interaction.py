@@ -70,13 +70,14 @@ def filter_instrument(sequence, instrument, from_time=0):
 
 
 def temperature_from_control_value(
-    val, min_temp=0.0, mid_temp=1.0, max_temp=2.0):
+    val, min_temp=0.1, mid_temp=1.0, max_temp=2.0):
   """Computes the temperature from an 8-bit MIDI control value.
 
   Linearly interpolates between the middle temperature and an endpoint.
 
   Args:
-    val: The MIDI control value in the range [0, 127].
+    val: The MIDI control value in the range [0, 127] or None. If None, returns
+        `mid_temp`.
     min_temp: The minimum temperature, which will be returned when `val` is 0.
     mid_temp: The middle temperature, which will be returned when `val` is 63
        or 64.
@@ -85,10 +86,12 @@ def temperature_from_control_value(
   Returns:
     A float temperature value based on the 8-bit MIDI control value.
   """
+  if val is None:
+    return mid_temp
   if val > 64:
-    return mid_temp + val * (max_temp - mid_temp) / 63
+    return mid_temp + (val - 64) * (max_temp - mid_temp) / 63
   elif val < 63:
-    return mid_temp - val * (mid_temp - min_temp) / 63
+    return min_temp + val * (mid_temp - min_temp) / 63
   else:
     return mid_temp
 
