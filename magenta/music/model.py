@@ -64,7 +64,6 @@ class BaseModel(object):
 
   def initialize_with_checkpoint_and_metagraph(self, checkpoint_filename,
                                                metagraph_filename):
-                                                metagraph_file):
     """Builds the TF graph with a checkpoint and metagraph.
 
     Args:
