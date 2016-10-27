@@ -38,6 +38,8 @@ from midi_io import sequence_proto_to_pretty_midi
 from midi_synth import fluidsynth
 from midi_synth import synthesize
 
+from model import BaseModel
+
 from notebook_utils import play_sequence
 
 from sequence_generator import BaseSequenceGenerator

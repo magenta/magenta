@@ -31,6 +31,7 @@ py_library(
         ":melody_encoder_decoder",
         ":midi_io",
         ":midi_synth",
+        ":model",
         ":note_sequence_io",
         ":notebook_utils",
         ":sequence_generator",
@@ -309,8 +310,9 @@ py_test(
     name = "sequence_generator_test",
     srcs = ["sequence_generator_test.py"],
     deps = [
-        ":sequence_generator",
         "//magenta/protobuf:generator_py_pb2",
+        ":model",
+        ":sequence_generator",
         # tensorflow dep
     ],
 )
@@ -382,6 +384,14 @@ py_test(
     ],
     deps = [
         ":music_xml_io",
+        # tensorflow dep
+    ],
+)
+
+py_library(
+    name = "model",
+    srcs = ["model.py"],
+    deps = [
         # tensorflow dep
     ],
 )

@@ -65,7 +65,9 @@ py_library(
     srcs = ["melody_rnn_model.py"],
     srcs_version = "PY2AND3",
     deps = [
+        ":melody_rnn_graph",
         "//magenta",
+        # tensorflow dep
     ],
 )
 
@@ -76,10 +78,8 @@ py_library(
     visibility = ["//magenta/interfaces:generator_interfaces"],
     deps = [
         ":melody_rnn_config",
-        ":melody_rnn_graph",
+        ":melody_rnn_model",
         "//magenta",
-        # numpy dep
-        # tensorflow dep
     ],
 )
 
@@ -108,7 +108,6 @@ py_test(
     ],
 )
 
-
 py_binary(
     name = "melody_rnn_train",
     srcs = ["melody_rnn_train.py"],
@@ -128,10 +127,11 @@ py_binary(
     srcs = ["melody_rnn_generate.py"],
     srcs_version = "PY2AND3",
     visibility = [
-        "//magenta/tools/pip:__subpackages__"
+        "//magenta/tools/pip:__subpackages__",
     ],
     deps = [
         ":melody_rnn_config",
+        ":melody_rnn_model",
         ":melody_rnn_sequence_generator",
         "//magenta",
         # tensorflow dep
