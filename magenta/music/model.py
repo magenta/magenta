@@ -67,8 +67,8 @@ class BaseModel(object):
     """Builds the TF graph with a checkpoint and metagraph.
 
     Args:
-      checkpoint_file: The path to the checkpoint file that should be used.
-      metagraph_file: The path to the metagraph file that should be used.
+      checkpoint_filename: The path to the checkpoint file that should be used.
+      metagraph_filename: The path to the metagraph file that should be used.
     """
     with tf.Graph().as_default():
       self._session = tf.Session()
