@@ -22,8 +22,8 @@ import numpy as np
 from six.moves import range  # pylint: disable=redefined-builtin
 import tensorflow as tf
 
-from magenta.models.melody_rnn import melody_rnn_graph
 import magenta
+from magenta.models.melody_rnn import melody_rnn_graph
 import magenta.music as mm
 
 
@@ -234,6 +234,7 @@ class MelodyRnnModel(mm.BaseModel):
     melody.transpose(-transpose_amount)
 
     return melody
+
 
 class MelodyRnnConfig(object):
   """Stores a configuration for a MelodyRnnModel.
