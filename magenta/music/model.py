@@ -49,13 +49,13 @@ class BaseModel(object):
   def initialize_with_checkpoint(self, checkpoint_file):
     """Builds the TF graph given a checkpoint file.
 
-    Calls into _build_graph, which must be implemented by the subclass, before
-    restoring the checkpoint.
+    Calls into _build_graph_for_generation, which must be implemented by the
+    subclass, before restoring the checkpoint.
 
     Args:
       checkpoint_file: The path to the checkpoint file that should be used.
     """
-    graph = self._build_graph()
+    graph = self._build_graph_for_generation()
     with graph.as_default():
       saver = tf.train.Saver()
       self._session = tf.Session()
