@@ -11,15 +11,17 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+"""Utilities for polyphonic RNN."""
 
 from collections import OrderedDict
-import StringIO
 import copy
 import os
 import re
+import StringIO
 import uuid
 
 # internal imports
+
 import numpy as np
 from scipy import linalg
 import tensorflow as tf
@@ -27,9 +29,11 @@ import tensorflow as tf
 import magenta.music as mm
 from magenta.protobuf import music_pb2
 
+
 ##
 # begin metautils
 ##
+
 
 def shape(x):
   # Get shape of Variable through hacky hacky string parsing
@@ -41,7 +45,7 @@ def shape(x):
   shape_tup = tuple([int(s) if s != '?' else -1
                      for s in shape_tup if len(s) >= 1])
   if sum([1 for s in shape_tup if s < 1]) > 1:
-      raise ValueError('too many ? dims')
+    raise ValueError('too many ? dims')
   return shape_tup
 
 
@@ -69,11 +73,11 @@ def dot(a, b):
 
 def ni_slice(sub_values, last_ind, axis=0):
   # TODO: Allow both to be negative indexed...
-  ndim = len(shape(sub_values))
+  ndims = len(shape(sub_values))
   im1 = 0 + abs(last_ind)
-  i = [[None, None]] * ndim
+  i = [[None, None]] * ndims
   i[axis] = [im1, None]
-  am = [False] * ndim
+  am = [False] * ndims
   am[axis] = True
   sl = [slice(*ii) for ii in i]
   ti = tf.reverse(sub_values, am)[sl]
@@ -82,11 +86,11 @@ def ni_slice(sub_values, last_ind, axis=0):
 
 def ni(t, ind, axis=0):
   # Negative single index helper
-  ndim = len(shape(t))
+  ndims = len(shape(t))
   im1 = -1 + abs(ind)
-  i = [[None, None]] * ndim
+  i = [[None, None]] * ndims
   i[axis] = [im1, im1 + 1]
-  am = [False] * ndim
+  am = [False] * ndims
   am[axis] = True
   sl = [slice(*ii) for ii in i]
   ti = tf.reverse(t, am)[sl]
@@ -103,11 +107,11 @@ def scan(fn, sequences, outputs_info):
     seq = sequences[i]
     nd = ndim(seq)
     if nd == 3:
-        pass
+      pass
     elif nd < 3:
-        sequences[i] = tf.expand_dims(sequences[i], nd)
+      sequences[i] = tf.expand_dims(sequences[i], nd)
     else:
-        raise ValueError('Ndim too different to correct')
+      raise ValueError('Ndim too different to correct')
 
   def check(l):
     shapes = [shape(s) for s in l]
@@ -134,7 +138,7 @@ def scan(fn, sequences, outputs_info):
     starts = []
     ends = []
     prev_shp = 0
-    for n, shp in enumerate(shps):
+    for _, shp in enumerate(shps):
       start = prev_shp
       end = start + shp[-1]
       starts.append(start)
@@ -252,23 +256,16 @@ def duration_and_pitch_to_midi(filename, durations, pitches, prime_until=0):
   pretty_midi_object.write(filename)
 
 
-class tfrecord_duration_and_pitch_iterator(object):
+class TFRecordDurationAndPitchIterator(object):
+
   def __init__(self, files_path, minibatch_size, start_index=0,
                stop_index=np.inf, make_mask=False,
                make_augmentations=False,
                new_file_new_sequence=False,
                sequence_length=None,
-               randomize=True, preprocess=None,
-               preprocess_kwargs={}):
+               randomize=True):
     """
-    Supports regular int, negative indexing, or float for setting
-    stop_index
-    Two "modes":
-        new_line_new_sequence will do variable length minibatches based
-        on newlines in the file
-
-        without new_line_new_sequence the file is effectively one continuous
-        stream, and minibatches will be sequence_length, batch_size, 1
+    Supports regular int, negative indexing, or float for setting stop_index.
     """
     reader = mm.note_sequence_io.note_sequence_record_iterator(files_path)
     all_ds = []
@@ -281,7 +278,6 @@ class tfrecord_duration_and_pitch_iterator(object):
       notes = ns.notes
       st = np.array([n.start_time for n in notes]).astype('float32')
       et = np.array([n.end_time for n in notes]).astype('float32')
-      dt = et - st
       pi = np.array([n.pitch for n in notes]).astype('float32')
 
       sample_times = sorted(list(set(st)))
@@ -299,21 +295,18 @@ class tfrecord_duration_and_pitch_iterator(object):
       start_slices = [ss[:sn] if len(ss) >= sn
                       else
                       np.concatenate((ss, np.array([ss[0]] * (sn - len(ss)),
-                                                  dtype='float32')))
+                                                   dtype='float32')))
                       for ss in start_slices]
       end_slices = [es[:sn] if len(es) >= sn
                     else
                     np.concatenate((es, np.array([max(es)] * (sn - len(es)),
-                                                  dtype='float32')))
+                                                 dtype='float32')))
                     for es in end_slices]
       start_slices = np.array(start_slices)
       end_slices = np.array(end_slices)
       delta_slices = end_slices - start_slices
-      maxlen = max([len(ps) for ps in pitch_slices])
       all_ds.append(np.array(delta_slices))
       all_ps.append(np.array(pitch_slices))
-    max_seq = max([len(ds) for ds in all_ds])
-    min_seq = min([len(ds) for ds in all_ds])
     assert len(all_ds) == len(all_ps)
     if new_file_new_sequence:
       raise ValueError('Unhandled case')
@@ -330,22 +323,22 @@ class tfrecord_duration_and_pitch_iterator(object):
           new_ds_list.append(ds)
           # Do +- 5 steps for all 11 offsets
           for i in range(5):
-              new_up = ps + i
-              # Put silences back
-              new_up[new_up == i] = 0.
-              # Edge case... shouldn't come up in general
-              new_up[new_up > 88] = 88.
-              new_down = ps - i
-              # Put silences back
-              new_down[new_down == -i] = 0.
-              # Edge case... shouldn't come up in general
-              new_down[new_down < 0.] = 1.
+            new_up = ps + i
+            # Put silences back
+            new_up[new_up == i] = 0.
+            # Edge case... shouldn't come up in general
+            new_up[new_up > 88] = 88.
+            new_down = ps - i
+            # Put silences back
+            new_down[new_down == -i] = 0.
+            # Edge case... shouldn't come up in general
+            new_down[new_down < 0.] = 1.
 
-              new_ps_list.append(new_up)
-              new_ds_list.append(ds)
+            new_ps_list.append(new_up)
+            new_ds_list.append(ds)
 
-              new_ps_list.append(new_down)
-              new_ds_list.append(ds)
+            new_ps_list.append(new_down)
+            new_ds_list.append(ds)
         all_ds = np.concatenate(new_ds_list)
         all_ps = np.concatenate(new_ps_list)
 
@@ -367,7 +360,7 @@ class tfrecord_duration_and_pitch_iterator(object):
                               all_ps.shape[1] // minibatch_size)
       all_ps = all_ps.transpose(2, 1, 0)
 
-      _len = len(all_ds)
+      len_ = len(all_ds)
       self._time_data = all_ds
       self._pitch_data = all_ps
 
@@ -382,21 +375,21 @@ class tfrecord_duration_and_pitch_iterator(object):
                        'new_line_new_sequence is False!')
 
     if stop_index >= 1:
-      self.stop_index = int(min(stop_index, _len))
+      self.stop_index = int(min(stop_index, len_))
     elif stop_index > 0:
       # percentage
-      self.stop_index = int(stop_index * _len)
+      self.stop_index = int(stop_index * len_)
     elif stop_index < 0:
       # negative index - must be int!
-      self.stop_index = _len + int(stop_index)
+      self.stop_index = len_ + int(stop_index)
 
     self.start_index = start_index
     if start_index < 0:
       # negative indexing
-      self.start_index = _len + start_index
+      self.start_index = len_ + start_index
     elif start_index < 1:
       # float
-      self.start_index = int(start_index * _len)
+      self.start_index = int(start_index * len_)
     else:
       # regular
       self.start_index = int(start_index)
@@ -445,9 +438,9 @@ class tfrecord_duration_and_pitch_iterator(object):
 # begin initializers and Theano functions
 ##
 
+
 def np_zeros(shape):
-  """
-  Builds a numpy variable filled with zeros
+  """Builds a numpy variable filled with zeros.
 
   Parameters
   ----------
@@ -462,58 +455,46 @@ def np_zeros(shape):
   return np.zeros(shape).astype('float32')
 
 
-def np_normal(shape, random_state, scale=0.01):
-  """
-  Builds a numpy variable filled with normal random values
+def np_normal(shp, random_state, scale=0.01):
+  """Builds a numpy variable filled with normal random values.
 
-  Parameters
-  ----------
-  shape, tuple of ints or tuple of tuples
+  Args:
+    shp: tuple of ints or tuple of tuples
       shape of values to initialize
       tuple of ints should be single shape
       tuple of tuples is primarily for convnets and should be of form
       ((n_in_kernels, kernel_width, kernel_height),
        (n_out_kernels, kernel_width, kernel_height))
-
-  random_state, numpy.random.RandomState() object
-
-  scale, float (default 0.01)
+    random_state: numpy.random.RandomState() object
+    scale: float (default 0.01)
       default of 0.01 results in normal random values with variance 0.01
 
-  Returns
-  -------
-  initialized_normal, array-like
+  Returns:
+    initialized_normal, array-like
       Array-like of normal random values the same size as shape parameter
   """
-  if type(shape[0]) is tuple:
-    shp = (shape[1][0], shape[0][0]) + shape[1][1:]
-  else:
-    shp = shape
+  if type(shp[0]) is tuple:
+    shp = (shp[1][0], shp[0][0]) + shp[1][1:]
   return (scale * random_state.randn(*shp)).astype('float32')
 
 
-def np_tanh_fan_normal(shape, random_state, scale=1.):
-  """
-  Builds a numpy variable filled with random values
+def np_tanh_fan_normal(shp, random_state, scale=1.):
+  """Builds a numpy variable filled with random values.
 
-  Parameters
-  ----------
-  shape, tuple of ints or tuple of tuples
+  Args:
+    shp: tuple of ints or tuple of tuples
       shape of values to initialize
       tuple of ints should be single shape
       tuple of tuples is primarily for convnets and should be of form
       ((n_in_kernels, kernel_width, kernel_height),
        (n_out_kernels, kernel_width, kernel_height))
-
-  random_state, numpy.random.RandomState() object
-
-  scale, float (default 1.)
+    random_state: numpy.random.RandomState() object
+    scale: float (default 1.)
       default of 1. results in normal random values
       with sqrt(2 / (fan in + fan out)) scale
 
-  Returns
-  -------
-  initialized_fan, array-like
+  Returns:
+    initialized_fan, array-like
       Array-like of random values the same size as shape parameter
 
   References
@@ -522,38 +503,32 @@ def np_tanh_fan_normal(shape, random_state, scale=1.):
       X. Glorot, Y. Bengio
   """
   # The . after the 2 is critical! shape has dtype int...
-  if type(shape[0]) is tuple:
-    kern_sum = np.prod(shape[0]) + np.prod(shape[1])
-    shp = (shape[1][0], shape[0][0]) + shape[1][1:]
+  if type(shp[0]) is tuple:
+    kern_sum = np.prod(shp[0]) + np.prod(shp[1])
+    shp = (shp[1][0], shp[0][0]) + shp[1][1:]
   else:
-    kern_sum = np.sum(shape)
-    shp = shape
+    kern_sum = np.sum(shp)
   var = scale * np.sqrt(2. / kern_sum)
   return var * random_state.randn(*shp).astype('float32')
 
 
-def np_variance_scaled_uniform(shape, random_state, scale=1.):
-  """
-  Builds a numpy variable filled with random values
+def np_variance_scaled_uniform(shp, random_state, scale=1.):
+  """Builds a numpy variable filled with random values.
 
-  Parameters
-  ----------
-  shape, tuple of ints or tuple of tuples
+  Args:
+    shp: tuple of ints or tuple of tuples
       shape of values to initialize
       tuple of ints should be single shape
       tuple of tuples is primarily for convnets and should be of form
       ((n_in_kernels, kernel_width, kernel_height),
        (n_out_kernels, kernel_width, kernel_height))
-
-  random_state, numpy.random.RandomState() object
-
-  scale, float (default 1.)
+    random_state: numpy.random.RandomState() object
+    scale: float (default 1.)
       default of 1. results in uniform random values
       with 1 * sqrt(1 / (n_dims)) scale
 
-  Returns
-  -------
-  initialized_scaled, array-like
+  Returns:
+    initialized_scaled, array-like
       Array-like of random values the same size as shape parameter
 
   References
@@ -561,39 +536,33 @@ def np_variance_scaled_uniform(shape, random_state, scale=1.):
   Efficient Backprop
       Y. LeCun, L. Bottou, G. Orr, K. Muller
   """
-  if type(shape[0]) is tuple:
-    shp = (shape[1][0], shape[0][0]) + shape[1][1:]
-    kern_sum = np.prod(shape[0])
+  if type(shp[0]) is tuple:
+    shp = (shp[1][0], shp[0][0]) + shp[1][1:]
+    kern_sum = np.prod(shp[0])
   else:
-    shp = shape
-    kern_sum = shape[0]
+    kern_sum = shp[0]
   #  Make sure bounds aren't the same
   bound = scale * np.sqrt(3. / kern_sum)  # sqrt(3) for std of uniform
   return random_state.uniform(low=-bound, high=bound, size=shp).astype(
       'float32')
 
 
-def np_ortho(shape, random_state, scale=1.):
-  """
-  Builds a numpy variable filled with orthonormal random values
+def np_ortho(shp, random_state, scale=1.):
+  """Builds a numpy variable filled with orthonormal random values.
 
-  Parameters
-  ----------
-  shape, tuple of ints or tuple of tuples
+  Args:
+    shp: tuple of ints or tuple of tuples
       shape of values to initialize
       tuple of ints should be single shape
       tuple of tuples is primarily for convnets and should be of form
       ((n_in_kernels, kernel_width, kernel_height),
        (n_out_kernels, kernel_width, kernel_height))
-
-  random_state, numpy.random.RandomState() object
-
-  scale, float (default 1.)
+    random_state: numpy.random.RandomState() object
+    scale: float (default 1.)
       default of 1. results in orthonormal random values sacled by 1.
 
-  Returns
-  -------
-  initialized_ortho, array-like
+  Returns:
+    initialized_ortho, array-like
       Array-like of random values the same size as shape parameter
 
   References
@@ -602,12 +571,11 @@ def np_ortho(shape, random_state, scale=1.):
   neural networks
       A. Saxe, J. McClelland, S. Ganguli
   """
-  if type(shape[0]) is tuple:
-    shp = (shape[1][0], shape[0][0]) + shape[1][1:]
+  if type(shp[0]) is tuple:
+    shp = (shp[1][0], shp[0][0]) + shp[1][1:]
     flat_shp = (shp[0], np.prd(shp[1:]))
   else:
-    shp = shape
-    flat_shp = shape
+    flat_shp = shp
   g = random_state.randn(*flat_shp)
   U, S, VT = linalg.svd(g, full_matrices=False)
   res = U if U.shape == flat_shp else VT  # pick one with the correct shape

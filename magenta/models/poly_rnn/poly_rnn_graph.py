@@ -18,7 +18,7 @@
 import numpy as np
 import tensorflow as tf
 
-from magenta.models.poly_rnn import import poly_rnn_lib
+from magenta.models.poly_rnn import poly_rnn_lib
 
 
 class Graph(object):
@@ -30,14 +30,14 @@ class Graph(object):
     # 30 steps ~= 30 seconds
     sequence_length = 30
 
-    self.train_itr = poly_rnn_lib.tfrecord_duration_and_pitch_iterator(
+    self.train_itr = poly_rnn_lib.TFRecordDurationAndPitchIterator(
         examples, self.batch_size, stop_index=.9,
         sequence_length=sequence_length)
 
     duration_mb, note_mb = next(self.train_itr)
     self.train_itr.reset()
 
-    self.valid_itr = poly_rnn_lib.tfrecord_duration_and_pitch_iterator(
+    self.valid_itr = poly_rnn_lib.TFRecordDurationAndPitchIterator(
         examples, self.batch_size, start_index=.9,
         sequence_length=sequence_length)
 
