@@ -153,7 +153,6 @@ def config_from_flags():
           id=FLAGS.generator_id)
       if FLAGS.generator_description is not None:
         generator_details.description = FLAGS.generator_description
-
     else:
       generator_details = None
     encoder_decoder = encoder_decoders[FLAGS.melody_encoder_decoder]
