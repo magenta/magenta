@@ -127,7 +127,8 @@ def main(unused_argv):
       generator,
       phrase_bars=FLAGS.phrase_bars,
       start_call_signal=start_call_signal,
-      end_call_signal=end_call_signal)
+      end_call_signal=end_call_signal,
+      temperature_control=FLAGS.temperature_control)
 
   print ''
   print 'Instructions:'
