@@ -176,7 +176,8 @@ def run_with_flags(generator):
     if primer_sequence.tempos and primer_sequence.tempos[0].qpm:
       qpm = primer_sequence.tempos[0].qpm
   else:
-    # No priming sequence specified. Default to a single note of middle C.
+    tf.logging.warning(
+        'No priming sequence specified. Defaulting to a single middle C.')
     primer_melody = magenta.music.Melody([60])
     primer_sequence = primer_melody.to_sequence(qpm=qpm)
 

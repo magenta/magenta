@@ -47,6 +47,14 @@ class BaseModel(object):
     pass
 
   def initialize_with_checkpoint(self, checkpoint_file):
+    """Builds the TF graph given a checkpoint file.
+
+    Calls into _build_graph, which must be implemented by the subclass, before
+    restoring the checkpoint.
+
+    Args:
+      checkpoint_file: The path to the checkpoint file that should be used.
+    """
     graph = self._build_graph()
     with graph.as_default():
       saver = tf.train.Saver()
@@ -56,18 +64,31 @@ class BaseModel(object):
 
   def initialize_with_checkpoint_and_metagraph(self, checkpoint_filename,
                                                metagraph_filename):
+                                                metagraph_file):
+    """Builds the TF graph with a checkpoint and metagraph.
+
+    Args:
+      checkpoint_file: The path to the checkpoint file that should be used.
+      metagraph_file: The path to the metagraph file that should be used.
+    """
     with tf.Graph().as_default():
       self._session = tf.Session()
       new_saver = tf.train.import_meta_graph(metagraph_filename)
       new_saver.restore(self._session, checkpoint_filename)
 
   def write_checkpoint_with_metagraph(self, checkpoint_filename):
+    """Writes the checkpoint and metagraph.
+
+    Args:
+      checkpoint_filename: Path to the checkpoint file.
+    """
     with self._session.graph.as_default():
       saver = tf.train.Saver(sharded=False)
       saver.save(self._session, checkpoint_filename, meta_graph_suffix='meta',
                  write_meta_graph=True)
 
   def close(self):
+    """Closes the TF session."""
     self._session.close()
     self._session = None
 
