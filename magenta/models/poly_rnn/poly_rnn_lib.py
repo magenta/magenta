@@ -260,182 +260,182 @@ class tfrecord_duration_and_pitch_iterator(object):
                sequence_length=None,
                randomize=True, preprocess=None,
                preprocess_kwargs={}):
-      """
-      Supports regular int, negative indexing, or float for setting
-      stop_index
-      Two "modes":
-          new_line_new_sequence will do variable length minibatches based
-          on newlines in the file
+    """
+    Supports regular int, negative indexing, or float for setting
+    stop_index
+    Two "modes":
+        new_line_new_sequence will do variable length minibatches based
+        on newlines in the file
 
-          without new_line_new_sequence the file is effectively one continuous
-          stream, and minibatches will be sequence_length, batch_size, 1
-      """
-      reader = mm.note_sequence_io.note_sequence_record_iterator(files_path)
-      all_ds = []
-      all_ps = []
-      self.note_classes = list(np.arange(88 + 1))  # + 1 for silence
-      # set automatically
-      # self.simultaneous_notes = int(max(np.sum(self._data, axis=0)))
-      self.simultaneous_notes = 4
-      for ns in reader:
-        notes = ns.notes
-        st = np.array([n.start_time for n in notes]).astype('float32')
-        et = np.array([n.end_time for n in notes]).astype('float32')
-        dt = et - st
-        pi = np.array([n.pitch for n in notes]).astype('float32')
+        without new_line_new_sequence the file is effectively one continuous
+        stream, and minibatches will be sequence_length, batch_size, 1
+    """
+    reader = mm.note_sequence_io.note_sequence_record_iterator(files_path)
+    all_ds = []
+    all_ps = []
+    self.note_classes = list(np.arange(88 + 1))  # + 1 for silence
+    # set automatically
+    # self.simultaneous_notes = int(max(np.sum(self._data, axis=0)))
+    self.simultaneous_notes = 4
+    for ns in reader:
+      notes = ns.notes
+      st = np.array([n.start_time for n in notes]).astype('float32')
+      et = np.array([n.end_time for n in notes]).astype('float32')
+      dt = et - st
+      pi = np.array([n.pitch for n in notes]).astype('float32')
 
-        sample_times = sorted(list(set(st)))
-        # go straight for pitch and delta time encoding
-        sn = self.simultaneous_notes
-        pitch_slices = [pi[st == sti][::-1] for sti in sample_times]
-        # This monster fills in 0s so that array size is consistent
-        pitch_slices = [p[:sn] if len(p) >= sn
-                        else
-                        np.concatenate((p, np.array([0.] * (sn - len(p)),
-                                                    dtype='float32')))
-                        for p in pitch_slices]
-        start_slices = [st[st == sti] for sti in sample_times]
-        end_slices = [et[st == sti] for sti in sample_times]
-        start_slices = [ss[:sn] if len(ss) >= sn
-                        else
-                        np.concatenate((ss, np.array([ss[0]] * (sn - len(ss)),
-                                                    dtype='float32')))
-                        for ss in start_slices]
-        end_slices = [es[:sn] if len(es) >= sn
+      sample_times = sorted(list(set(st)))
+      # go straight for pitch and delta time encoding
+      sn = self.simultaneous_notes
+      pitch_slices = [pi[st == sti][::-1] for sti in sample_times]
+      # This monster fills in 0s so that array size is consistent
+      pitch_slices = [p[:sn] if len(p) >= sn
                       else
-                      np.concatenate((es, np.array([max(es)] * (sn - len(es)),
-                                                    dtype='float32')))
-                      for es in end_slices]
-        start_slices = np.array(start_slices)
-        end_slices = np.array(end_slices)
-        delta_slices = end_slices - start_slices
-        maxlen = max([len(ps) for ps in pitch_slices])
-        all_ds.append(np.array(delta_slices))
-        all_ps.append(np.array(pitch_slices))
-      max_seq = max([len(ds) for ds in all_ds])
-      min_seq = min([len(ds) for ds in all_ds])
-      assert len(all_ds) == len(all_ps)
-      if new_file_new_sequence:
-        raise ValueError('Unhandled case')
+                      np.concatenate((p, np.array([0.] * (sn - len(p)),
+                                                  dtype='float32')))
+                      for p in pitch_slices]
+      start_slices = [st[st == sti] for sti in sample_times]
+      end_slices = [et[st == sti] for sti in sample_times]
+      start_slices = [ss[:sn] if len(ss) >= sn
+                      else
+                      np.concatenate((ss, np.array([ss[0]] * (sn - len(ss)),
+                                                  dtype='float32')))
+                      for ss in start_slices]
+      end_slices = [es[:sn] if len(es) >= sn
+                    else
+                    np.concatenate((es, np.array([max(es)] * (sn - len(es)),
+                                                  dtype='float32')))
+                    for es in end_slices]
+      start_slices = np.array(start_slices)
+      end_slices = np.array(end_slices)
+      delta_slices = end_slices - start_slices
+      maxlen = max([len(ps) for ps in pitch_slices])
+      all_ds.append(np.array(delta_slices))
+      all_ps.append(np.array(pitch_slices))
+    max_seq = max([len(ds) for ds in all_ds])
+    min_seq = min([len(ds) for ds in all_ds])
+    assert len(all_ds) == len(all_ps)
+    if new_file_new_sequence:
+      raise ValueError('Unhandled case')
+    else:
+      if not make_augmentations:
+        all_ds = np.concatenate(all_ds)
+        all_ps = np.concatenate(all_ps)
       else:
-        if not make_augmentations:
-          all_ds = np.concatenate(all_ds)
-          all_ps = np.concatenate(all_ps)
-        else:
-          new_ps_list = []
-          new_ds_list = []
-          assert len(all_ds) == len(all_ps)
-          for n, (ds, ps) in enumerate(zip(all_ds, all_ps)):
-            new_ps_list.append(ps)
-            new_ds_list.append(ds)
-            # Do +- 5 steps for all 11 offsets
-            for i in range(5):
-                new_up = ps + i
-                # Put silences back
-                new_up[new_up == i] = 0.
-                # Edge case... shouldn't come up in general
-                new_up[new_up > 88] = 88.
-                new_down = ps - i
-                # Put silences back
-                new_down[new_down == -i] = 0.
-                # Edge case... shouldn't come up in general
-                new_down[new_down < 0.] = 1.
+        new_ps_list = []
+        new_ds_list = []
+        assert len(all_ds) == len(all_ps)
+        for n, (ds, ps) in enumerate(zip(all_ds, all_ps)):
+          new_ps_list.append(ps)
+          new_ds_list.append(ds)
+          # Do +- 5 steps for all 11 offsets
+          for i in range(5):
+              new_up = ps + i
+              # Put silences back
+              new_up[new_up == i] = 0.
+              # Edge case... shouldn't come up in general
+              new_up[new_up > 88] = 88.
+              new_down = ps - i
+              # Put silences back
+              new_down[new_down == -i] = 0.
+              # Edge case... shouldn't come up in general
+              new_down[new_down < 0.] = 1.
 
-                new_ps_list.append(new_up)
-                new_ds_list.append(ds)
+              new_ps_list.append(new_up)
+              new_ds_list.append(ds)
 
-                new_ps_list.append(new_down)
-                new_ds_list.append(ds)
-          all_ds = np.concatenate(new_ds_list)
-          all_ps = np.concatenate(new_ps_list)
+              new_ps_list.append(new_down)
+              new_ds_list.append(ds)
+        all_ds = np.concatenate(new_ds_list)
+        all_ps = np.concatenate(new_ps_list)
 
-        self._min_time_data = np.min(all_ds)
-        self._max_time_data = np.max(all_ds)
-        self.time_classes = list(np.unique(all_ds.ravel()))
+      self._min_time_data = np.min(all_ds)
+      self._max_time_data = np.max(all_ds)
+      self.time_classes = list(np.unique(all_ds.ravel()))
 
-        truncate = len(all_ds) - len(all_ds) % minibatch_size
-        all_ds = all_ds[:truncate]
-        all_ps = all_ps[:truncate]
+      truncate = len(all_ds) - len(all_ds) % minibatch_size
+      all_ds = all_ds[:truncate]
+      all_ps = all_ps[:truncate]
 
-        # transpose necessary to preserve data structure!
-        all_ds = all_ds.transpose(1, 0)
-        all_ds = all_ds.reshape(-1, minibatch_size,
-                                all_ds.shape[1] // minibatch_size)
-        all_ds = all_ds.transpose(2, 1, 0)
-        all_ps = all_ps.transpose(1, 0)
-        all_ps = all_ps.reshape(-1, minibatch_size,
-                                all_ps.shape[1] // minibatch_size)
-        all_ps = all_ps.transpose(2, 1, 0)
+      # transpose necessary to preserve data structure!
+      all_ds = all_ds.transpose(1, 0)
+      all_ds = all_ds.reshape(-1, minibatch_size,
+                              all_ds.shape[1] // minibatch_size)
+      all_ds = all_ds.transpose(2, 1, 0)
+      all_ps = all_ps.transpose(1, 0)
+      all_ps = all_ps.reshape(-1, minibatch_size,
+                              all_ps.shape[1] // minibatch_size)
+      all_ps = all_ps.transpose(2, 1, 0)
 
-        _len = len(all_ds)
-        self._time_data = all_ds
-        self._pitch_data = all_ps
+      _len = len(all_ds)
+      self._time_data = all_ds
+      self._pitch_data = all_ps
 
-      self.minibatch_size = minibatch_size
-      self.new_file_new_sequence = new_file_new_sequence
-      self.sequence_length = sequence_length
-      if randomize:
-        self.random_state = np.random.RandomState(2177)
-      self.make_mask = make_mask
-      if new_file_new_sequence and sequence_length is None:
-        raise ValueError('sequence_length must be provided if',
-                         'new_line_new_sequence is False!')
+    self.minibatch_size = minibatch_size
+    self.new_file_new_sequence = new_file_new_sequence
+    self.sequence_length = sequence_length
+    if randomize:
+      self.random_state = np.random.RandomState(2177)
+    self.make_mask = make_mask
+    if new_file_new_sequence and sequence_length is None:
+      raise ValueError('sequence_length must be provided if',
+                       'new_line_new_sequence is False!')
 
-      if stop_index >= 1:
-        self.stop_index = int(min(stop_index, _len))
-      elif stop_index > 0:
-        # percentage
-        self.stop_index = int(stop_index * _len)
-      elif stop_index < 0:
-        # negative index - must be int!
-        self.stop_index = _len + int(stop_index)
+    if stop_index >= 1:
+      self.stop_index = int(min(stop_index, _len))
+    elif stop_index > 0:
+      # percentage
+      self.stop_index = int(stop_index * _len)
+    elif stop_index < 0:
+      # negative index - must be int!
+      self.stop_index = _len + int(stop_index)
 
-      self.start_index = start_index
-      if start_index < 0:
-        # negative indexing
-        self.start_index = _len + start_index
-      elif start_index < 1:
-        # float
-        self.start_index = int(start_index * _len)
+    self.start_index = start_index
+    if start_index < 0:
+      # negative indexing
+      self.start_index = _len + start_index
+    elif start_index < 1:
+      # float
+      self.start_index = int(start_index * _len)
+    else:
+      # regular
+      self.start_index = int(start_index)
+    if self.start_index >= self.stop_index:
+      ss = 'Invalid indexes - stop '
+      ss += '%s <= start %s !' % (self.stop_index, self.start_index)
+      raise ValueError(ss)
+    self._current_index = self.start_index
+
+  def __iter__(self):
+    return self
+
+  def next(self):
+    return self.__next__()
+
+  def __next__(self):
+    s = self._current_index
+    if self.new_file_new_sequence:
+      raise ValueError('not handled')
+    else:
+      e = s + self.sequence_length
+      if e > self.stop_index:
+        raise StopIteration('End of file iterator reached!')
+      time_data = self._time_data[s:e]
+      for n, i in enumerate(self.time_classes):
+        # turn them into duration classes
+        time_data[time_data == i] = n
+      time_data = time_data
+      pitch_data = self._pitch_data[s:e]
+
+      if self.make_mask is False:
+        res = (time_data, pitch_data)
       else:
-        # regular
-        self.start_index = int(start_index)
-      if self.start_index >= self.stop_index:
-        ss = 'Invalid indexes - stop '
-        ss += '%s <= start %s !' % (self.stop_index, self.start_index)
-        raise ValueError(ss)
-      self._current_index = self.start_index
+        raise ValueError('Unhandled mask making')
+      self._current_index = e
+      return res
 
-    def __iter__(self):
-      return self
-
-    def next(self):
-      return self.__next__()
-
-    def __next__(self):
-      s = self._current_index
-      if self.new_file_new_sequence:
-        raise ValueError('not handled')
-      else:
-        e = s + self.sequence_length
-        if e > self.stop_index:
-          raise StopIteration('End of file iterator reached!')
-        time_data = self._time_data[s:e]
-        for n, i in enumerate(self.time_classes):
-          # turn them into duration classes
-          time_data[time_data == i] = n
-        time_data = time_data
-        pitch_data = self._pitch_data[s:e]
-
-        if self.make_mask is False:
-          res = (time_data, pitch_data)
-        else:
-          raise ValueError('Unhandled mask making')
-        self._current_index = e
-        return res
-
-    def reset(self):
-      self._current_index = self.start_index
+  def reset(self):
+    self._current_index = self.start_index
 
 ##
 # end datasets
