@@ -733,7 +733,7 @@ def Linear(list_of_inputs, input_dims, output_dim, random_state, name=None,
   input_var = tf.concat(concat_dim=nd - 1, values=list_of_inputs)
   input_dim = sum(input_dims)
   terms = []
-  if (init is None) or (type(init) is str):
+  if (init is None) or (isinstance(init, str):
     weight_values, = make_numpy_weights(input_dim, [output_dim],
                                         random_state=random_state,
                                         init=init, scale=scale)
@@ -773,7 +773,7 @@ def Linear(list_of_inputs, input_dims, output_dim, random_state, name=None,
     terms.append(dot(input_var, weight))
 
   if biases:
-    if (init is None) or (type(init) is str):
+    if (init is None) or (isinstance(init, str):
       b, = make_numpy_biases([output_dim])
     else:
       b = init[1]
@@ -1018,21 +1018,21 @@ def LSTMFork(list_of_inputs, input_dims, output_dim, random_state, name=None,
   return inputs, 'LSTMGates'
 
 
-def softmax(X):
+def softmax(x):
   # should work for both 2D and 3D
-  dim = len(shape(X))
-  e_X = tf.exp(X - tf.reduce_max(X, reduction_indices=[dim - 1],
+  dim = len(shape(x))
+  e_x = tf.exp(x - tf.reduce_max(x, reduction_indices=[dim - 1],
                                  keep_dims=True))
-  out = e_X / tf.reduce_sum(e_X, reduction_indices=[dim - 1], keep_dims=True)
+  out = e_x / tf.reduce_sum(e_x, reduction_indices=[dim - 1], keep_dims=True)
   return out
 
 
-def numpy_softmax(X, temperature=1.):
+def numpy_softmax(x, temperature=1.):
   # should work for both 2D and 3D
-  dim = X.ndim
-  X = X / temperature
-  e_X = np.exp((X - X.max(axis=dim - 1, keepdims=True)))
-  out = e_X / e_X.sum(axis=dim - 1, keepdims=True)
+  dim = x.ndim
+  x /= temperature
+  e_x = np.exp((x - x.max(axis=dim - 1, keepdims=True)))
+  out = e_x / e_x.sum(axis=dim - 1, keepdims=True)
   return out
 
 
@@ -1046,32 +1046,26 @@ def sigmoid(x):
 
 def categorical_crossentropy(predicted_values, true_values, class_weights=None,
                              eps=None):
-  """
+  """Categorical crossentropy.
   Multinomial negative log likelihood of predicted compared to one hot
   true_values
 
-  Parameters
-  ----------
-  predicted_values : tensor, shape 2D or 3D
-      The predicted class probabilities out of some layer,
-      normally the output of a softmax
+  Args:
+    predicted_values: tensor, shape 2D or 3D
+        The predicted class probabilities out of some layer,
+        normally the output of a softmax
+    true_values: tensor, shape 2D or 3D
+        Ground truth one hot values
+    eps: float, default None
+        Epsilon to be added during log calculation to avoid NaN values.
+    class_weights: dictionary with form {class_index: weight)
+        Unspecified classes will get the default weight of 1.
+        See discussion here for understanding how class weights work
+        http://stackoverflow.com/questions/30972029/how-does-the-class-weight-parameter-in-scikit-learn-work
 
-  true_values : tensor, shape 2D or 3D
-      Ground truth one hot values
-
-  eps : float, default None
-      Epsilon to be added during log calculation to avoid NaN values.
-
-  class_weights : dictionary with form {class_index: weight)
-      Unspecified classes will get the default weight of 1.
-      See discussion here for understanding how class weights work
-      http://stackoverflow.com/questions/30972029/how-does-the-class-weight-parameter-in-scikit-learn-work
-
-  Returns
-  -------
-  categorical_crossentropy : tensor, shape predicted_values.shape[1:]
+  Returns:
+    categorical_crossentropy : tensor, shape predicted_values.shape[1:]
       The cost per sample, or per sample per step if 3D
-
   """
   if eps is not None:
     raise ValueError('Not yet implemented')
@@ -1087,11 +1081,11 @@ def categorical_crossentropy(predicted_values, true_values, class_weights=None,
       # squeeze out the last dimension
       tf.logging.info('Removing last dimension of 1 from %s' % str(tshp))
       if len(tshp) == 3:
-          true_values = true_values[:, :, 0]
+        true_values = true_values[:, :, 0]
       elif len(tshp) == 2:
-          true_values = true_values[:, 0]
+        true_values = true_values[:, 0]
       else:
-          raise ValueError('Unhandled dimensions in squeeze')
+        raise ValueError('Unhandled dimensions in squeeze')
     tshp = shape(true_values)
     if len(tshp) == (len(pshp) - 1):
       tf.logging.info('Changing %s to %s with one hot encoding' % (tshp, pshp))
@@ -1110,9 +1104,9 @@ def categorical_crossentropy(predicted_values, true_values, class_weights=None,
   if class_weights is not None:
     for k, v in class_weights.items():
       cw[k] = v
-    cw = cw / np.sum(cw)
+    cw /= np.sum(cw)
     # np.sum() cw really should be close to 1
-    cw = cw / (np.sum(cw) + 1E-12)
+    cw /= np.sum(cw) + 1E-12
   # expand dimensions for broadcasting
   if len(tshp) == 3:
     cw = cw[None, None, :]
@@ -1127,29 +1121,23 @@ def categorical_crossentropy(predicted_values, true_values, class_weights=None,
 
 
 def numpy_sample_softmax(coeff, random_state, class_weights=None, debug=False):
-  """
-  Numpy function to sample from a softmax distribution
+  """Numpy function to sample from a softmax distribution.
 
-  Parameters
-  ----------
-  coeff : array-like, shape 2D or higher
+  Args:
+  coeff: array-like, shape 2D or higher
       The predicted class probabilities out of some layer,
       normally the output of a softmax
-
-  random_state : numpy.random.RandomState() instance
-
-  class_weights : dictionary with form {class_index: weight}, default None
+  random_state: numpy.random.RandomState() instance
+  class_weights: dictionary with form {class_index: weight}, default None
       Unspecified classes will get the default weight of 1.
       See discussion here for understanding how class weights work
       http://stackoverflow.com/questions/30972029/how-does-the-class-weight-parameter-in-scikit-learn-work
-
   debug: Boolean, default False
       Take the argmax instead of sampling. Useful for debugging purposes or
       testing greedy sampling.
 
-  Returns
-  -------
-  samples : array-like, shape of coeff.shape[:-1]
+  Returns:
+    samples : array-like, shape of coeff.shape[:-1]
       Sampled values
   """
   reshape_dims = coeff.shape[:-1]
@@ -1157,16 +1145,16 @@ def numpy_sample_softmax(coeff, random_state, class_weights=None, debug=False):
   cw = np.ones((1, coeff.shape[-1])).astype('float32')
   if class_weights is not None:
     for k, v in class_weights.items():
-        cw[k] = v
-    cw = cw / np.sum(cw)
-    cw = cw / (np.sum(cw) + 1E-12)
+      cw[k] = v
+    cw /= np.sum(cw)
+    cw /= np.sum(cw) + 1E-12
   if debug:
     idx = coeff.argmax(axis=-1)
   else:
     coeff = cw * coeff
     # renormalize to avoid numpy errors about summation...
     # end result shouldn't change
-    coeff = coeff / (coeff.sum(axis=1, keepdims=True) + 1E-3)
+    coeff /= coeff.sum(axis=1, keepdims=True) + 1E-3
     idxs = [np.argmax(random_state.multinomial(1, pvals=coeff[i]))
             for i in range(len(coeff))]
     idx = np.array(idxs)
@@ -1191,13 +1179,11 @@ def save_checkpoint(checkpoint_dir, checkpoint_name, saver, sess):
 def run_loop(loop_function, train_dir, train_itr, valid_itr, n_epochs,
              checkpoint_delay=10, checkpoint_every_n_epochs=1,
              checkpoint_every_n_updates=np.inf,
-             checkpoint_every_n_seconds=1800,
-             monitor_frequency=1000, skip_minimums=False,
-             skip_most_recents=False,
+             skip_minimums=False,
              skip_n_train_minibatches=-1):
-  """
+  """Loop function.
   loop function must have the following api
-  _loop(itr, sess, inits=None, do_updates=True)
+  loop(itr, sess, inits=None, do_updates=True)
         return cost, init_1, init_2, ....
   must pass back a list!!! For only output cost, do
       return [cost]
@@ -1207,7 +1193,7 @@ def run_loop(loop_function, train_dir, train_itr, valid_itr, n_epochs,
   states
   """
   tf.logging.info('Running loops...')
-  _loop = loop_function
+  loop = loop_function
 
   checkpoint_dict = {}
   overall_train_costs = []
@@ -1246,7 +1232,7 @@ def run_loop(loop_function, train_dir, train_itr, valid_itr, n_epochs,
               next(train_itr)
               train_mb_count += 1
               continue
-            r = _loop(train_itr, sess, inits=inits, do_updates=True)
+            r = loop(train_itr, sess, inits=inits, do_updates=True)
             partial_train_costs = r[0]
             if len(r) > 1:
               inits = r[1:]
@@ -1295,7 +1281,7 @@ def run_loop(loop_function, train_dir, train_itr, valid_itr, n_epochs,
           valid_itr.reset()
           try:
             while True:
-              r = _loop(valid_itr, sess, inits=inits, do_updates=False)
+              r = loop(valid_itr, sess, inits=inits, do_updates=False)
               partial_valid_costs = r[0]
               if len(r) > 1:
                 inits = r[1:]
@@ -1319,7 +1305,8 @@ def run_loop(loop_function, train_dir, train_itr, valid_itr, n_epochs,
           # np.inf trick to avoid taking the min of length 0 list
           old_min_train_cost = min(overall_train_costs + [np.inf])
           if np.isnan(mean_epoch_train_cost):
-            tf.logging.info('Previous train costs %s' % overall_train_costs[-5:])
+            tf.logging.info(
+                'Previous train costs %s' % overall_train_costs[-5:])
             tf.logging.info('NaN detected in train cost, epoch %i' % e)
             raise ValueError('NaN detected in train')
           overall_train_costs.append(mean_epoch_train_cost)
@@ -1327,7 +1314,8 @@ def run_loop(loop_function, train_dir, train_itr, valid_itr, n_epochs,
           mean_epoch_valid_cost = np.mean(valid_costs_slice)
           old_min_valid_cost = min(overall_valid_costs + [np.inf])
           if np.isnan(mean_epoch_valid_cost):
-            tf.logging.info('Previous valid costs %s' % overall_valid_costs[-5:])
+            tf.logging.info(
+                'Previous valid costs %s' % overall_valid_costs[-5:])
             tf.logging.info('NaN detected in valid cost, epoch %i' % e)
             raise ValueError('NaN detected in valid')
           overall_valid_costs.append(mean_epoch_valid_cost)
