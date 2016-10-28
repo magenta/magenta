@@ -17,14 +17,14 @@
 import tensorflow as tf
 import magenta
 
-from magenta.models.melody_rnn import melody_rnn_config
 from magenta.models.melody_rnn import melody_rnn_graph
+from magenta.models.melody_rnn import melody_rnn_model
 
 
 class MelodyRNNGraphTest(tf.test.TestCase):
 
   def setUp(self):
-    self.config = melody_rnn_config.MelodyRnnConfig(
+    self.config = melody_rnn_model.MelodyRnnConfig(
         None,
         magenta.music.OneHotEventSequenceEncoderDecoder(
             magenta.music.MelodyOneHotEncoding(0, 12)),

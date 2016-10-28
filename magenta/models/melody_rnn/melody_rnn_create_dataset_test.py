@@ -17,8 +17,8 @@
 import tensorflow as tf
 import magenta
 
-from magenta.models.melody_rnn import melody_rnn_config
 from magenta.models.melody_rnn import melody_rnn_create_dataset
+from magenta.models.melody_rnn import melody_rnn_model
 from magenta.pipelines import melody_pipelines
 from magenta.pipelines import pipelines_common
 from magenta.protobuf import music_pb2
@@ -30,7 +30,7 @@ FLAGS = tf.app.flags.FLAGS
 class MelodyRNNPipelineTest(tf.test.TestCase):
 
   def setUp(self):
-    self.config = melody_rnn_config.MelodyRnnConfig(
+    self.config = melody_rnn_model.MelodyRnnConfig(
         None,
         magenta.music.OneHotEventSequenceEncoderDecoder(
             magenta.music.MelodyOneHotEncoding(0, 127)),
