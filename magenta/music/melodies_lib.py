@@ -18,16 +18,6 @@ object.
 
 Use Melody.to_sequence to write a melody to a NoteSequence proto. Then use
 midi_io.sequence_proto_to_midi_file to write that NoteSequence to a midi file.
-
-Use MelodyEncoderDecoder.squash_and_encode to convert a Melody object to a
-tf.train.SequenceExample of inputs and labels. These SequenceExamples are fed
-into the model during training and evaluation.
-
-During melody generation, use MelodyEncoderDecoder.get_inputs_batch to convert
-a list of melodies into an inputs batch which can be fed into the model to
-predict what the next note should be for each melody. Then use
-MelodyEncoderDecoder.extend_event_sequences to extend each of those melodies
-with an event sampled from the softmax output by the model.
 """
 
 import copy
@@ -231,7 +221,7 @@ class Melody(events_lib.SimpleEventSequence):
     key_histogram = self.get_major_key_histogram()
     return key_histogram.argmax()
 
-  def append_event(self, event):
+  def append(self, event):
     """Appends the event to the end of the melody and increments the end step.
 
     An implicit NOTE_OFF at the end of the melody will not be respected by this
@@ -244,7 +234,7 @@ class Melody(events_lib.SimpleEventSequence):
     """
     if not MIN_MELODY_EVENT <= event <= MAX_MELODY_EVENT:
       raise ValueError('Event out of range: %d' % event)
-    super(Melody, self).append_event(event)
+    super(Melody, self).append(event)
 
   def from_quantized_sequence(self,
                               quantized_sequence,

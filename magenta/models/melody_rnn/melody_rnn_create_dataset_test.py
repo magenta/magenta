@@ -18,6 +18,7 @@ import tensorflow as tf
 import magenta
 
 from magenta.models.melody_rnn import melody_rnn_create_dataset
+from magenta.models.melody_rnn import melody_rnn_model
 from magenta.pipelines import melody_pipelines
 from magenta.pipelines import pipelines_common
 from magenta.protobuf import music_pb2
@@ -27,6 +28,16 @@ FLAGS = tf.app.flags.FLAGS
 
 
 class MelodyRNNPipelineTest(tf.test.TestCase):
+
+  def setUp(self):
+    self.config = melody_rnn_model.MelodyRnnConfig(
+        None,
+        magenta.music.OneHotEventSequenceEncoderDecoder(
+            magenta.music.MelodyOneHotEncoding(0, 127)),
+        magenta.common.HParams(),
+        min_note=0,
+        max_note=127,
+        transpose_to_key=0)
 
   def testMelodyRNNPipeline(self):
     FLAGS.eval_ratio = 0.0
@@ -47,15 +58,19 @@ class MelodyRNNPipelineTest(tf.test.TestCase):
     melody_extractor = melody_pipelines.MelodyExtractor(
         min_bars=7, min_unique_pitches=5, gap_bars=1.0,
         ignore_polyphonic_notes=False)
-    one_hot_encoder = magenta.music.OneHotMelodyEncoderDecoder(0, 127, 0)
+    one_hot_encoding = magenta.music.OneHotEventSequenceEncoderDecoder(
+        magenta.music.MelodyOneHotEncoding(
+            self.config.min_note, self.config.max_note))
     quantized = quantizer.transform(note_sequence)[0]
-    print quantized.tracks
     melody = melody_extractor.transform(quantized)[0]
-    one_hot = one_hot_encoder.squash_and_encode(melody)
-    print one_hot
+    melody.squash(
+        self.config.min_note,
+        self.config.max_note,
+        self.config.transpose_to_key)
+    one_hot = one_hot_encoding.encode(melody)
     expected_result = {'training_melodies': [one_hot], 'eval_melodies': []}
 
-    pipeline_inst = melody_rnn_create_dataset.get_pipeline(one_hot_encoder)
+    pipeline_inst = melody_rnn_create_dataset.get_pipeline(self.config)
     result = pipeline_inst.transform(note_sequence)
     self.assertEqual(expected_result, result)
 
