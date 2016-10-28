@@ -440,7 +440,7 @@ def np_zeros(shp):
   """Builds a numpy variable filled with zeros.
 
   Args:
-    shape: tuple of ints
+    shp: tuple of ints
       shape of zeros to initialize
 
   Returns:
@@ -631,7 +631,7 @@ def _set_shared(name, variable):
   _lib_shared_params[name] = variable
 
 
-def Embedding(indices, n_symbols, output_dim, random_state, name=None):
+def embedding(indices, n_symbols, output_dim, random_state, name=None):
   """Last dimension of indices tensor must be 1!!!!"""
   if name is None:
     name = _get_name()
@@ -655,7 +655,7 @@ def Embedding(indices, n_symbols, output_dim, random_state, name=None):
   return lu
 
 
-def Multiembedding(multi_indices, n_symbols, output_dim, random_state,
+def multiembedding(multi_indices, n_symbols, output_dim, random_state,
                    name=None, share_all=False):
   """Helper to compute many embeddings and concatenate.
 
@@ -680,13 +680,13 @@ def Multiembedding(multi_indices, n_symbols, output_dim, random_state,
     else:
       names = [name + '_%i' % i for i in range(index_range)]
   for i in range(index_range):
-    e = Embedding(multi_indices[:, :, i], n_symbols, output_dim, random_state,
+    e = embedding(multi_indices[:, :, i], n_symbols, output_dim, random_state,
                   name=names[i])
     output_embeds.append(e)
   return tf.concat(2, output_embeds)
 
 
-def Automask(input_tensor, n_masks, axis=-1, name=None):
+def automask(input_tensor, n_masks, axis=-1, name=None):
   """Auto masker to make multiple MADE/pixelRNN style masking easier.
 
   n_masks *must* be an even divisor of input_tensor.shape[axis]
@@ -722,7 +722,7 @@ def Automask(input_tensor, n_masks, axis=-1, name=None):
   return output_tensors
 
 
-def Linear(list_of_inputs, input_dims, output_dim, random_state, name=None,
+def linear(list_of_inputs, input_dims, output_dim, random_state, name=None,
            init=None, scale='default', weight_norm=None, biases=True):
   """Can pass weights and biases directly if needed through init."""
   if weight_norm is None:
@@ -783,7 +783,7 @@ def Linear(list_of_inputs, input_dims, output_dim, random_state, name=None,
       biases = tf.Variable(b, trainable=True)
       _set_shared(name_b, biases)
     terms.append(biases)
-  out = reduce(lambda a, b: a + b, terms)
+  out = sum(terms)
   return out
 
 
@@ -791,42 +791,42 @@ def gru_weights(input_dim, hidden_dim, forward_init=None, hidden_init='normal',
                 random_state=None):
   if random_state is None:
     raise ValueError('Must pass random_state!')
-  shape = (input_dim, hidden_dim)
+  shp = (input_dim, hidden_dim)
   if forward_init == 'normal':
-    W = np.hstack([np_normal(shape, random_state),
-                   np_normal(shape, random_state),
-                   np_normal(shape, random_state)])
+    w = np.hstack([np_normal(shp, random_state),
+                   np_normal(shp, random_state),
+                   np_normal(shp, random_state)])
   elif forward_init == 'fan':
-    W = np.hstack([np_tanh_fan_normal(shape, random_state),
-                   np_tanh_fan_normal(shape, random_state),
-                   np_tanh_fan_normal(shape, random_state)])
+    w = np.hstack([np_tanh_fan_normal(shp, random_state),
+                   np_tanh_fan_normal(shp, random_state),
+                   np_tanh_fan_normal(shp, random_state)])
   elif forward_init is None:
     if input_dim == hidden_dim:
-      W = np.hstack([np_ortho(shape, random_state),
-                     np_ortho(shape, random_state),
-                     np_ortho(shape, random_state)])
+      w = np.hstack([np_ortho(shp, random_state),
+                     np_ortho(shp, random_state),
+                     np_ortho(shp, random_state)])
     else:
       # lecun
-      W = np.hstack([np_variance_scaled_uniform(shape, random_state),
-                     np_variance_scaled_uniform(shape, random_state),
-                     np_variance_scaled_uniform(shape, random_state)])
+      w = np.hstack([np_variance_scaled_uniform(shp, random_state),
+                     np_variance_scaled_uniform(shp, random_state),
+                     np_variance_scaled_uniform(shp, random_state)])
   else:
     raise ValueError('Unknown forward init type %s' % forward_init)
-  b = np_zeros((3 * shape[1],))
+  b = np_zeros((3 * shp[1],))
 
   if hidden_init == 'normal':
-    Wur = np.hstack([np_normal((shape[1], shape[1]), random_state),
-                     np_normal((shape[1], shape[1]), random_state), ])
-    U = np_normal((shape[1], shape[1]), random_state)
+    wur = np.hstack([np_normal((shp[1], shp[1]), random_state),
+                     np_normal((shp[1], shp[1]), random_state)])
+    U = np_normal((shp[1], shp[1]), random_state)
   elif hidden_init == 'ortho':
-    Wur = np.hstack([np_ortho((shape[1], shape[1]), random_state),
-                     np_ortho((shape[1], shape[1]), random_state), ])
-    U = np_ortho((shape[1], shape[1]), random_state)
-  return W, b, Wur, U
+    wur = np.hstack([np_ortho((shp[1], shp[1]), random_state),
+                     np_ortho((shp[1], shp[1]), random_state)])
+    u = np_ortho((shp[1], shp[1]), random_state)
+  return w, b, wur, u
 
 
-def GRU(inp, gate_inp, previous_state, input_dim, hidden_dim, random_state,
-        mask=None, name=None, init=None, scale='default', weight_norm=None,
+def gru(inp, gate_inp, previous_state, input_dim, hidden_dim, random_state,
+        mask=None, name=None, init=None, weight_norm=None,
         biases=False):
   if name is not None:
     raise ValueError('Unhandled parameter sharing in GRU')
@@ -848,19 +848,19 @@ def GRU(inp, gate_inp, previous_state, input_dim, hidden_dim, random_state,
   if ndm == (ndi - 1):
     mask = tf.expand_dims(mask, ndm - 1)
 
-  _, _, Wur, U = gru_weights(input_dim, hidden_dim,
+  _, _, wur, u = gru_weights(input_dim, hidden_dim,
                              hidden_init=hidden_init,
                              random_state=random_state)
   dim = hidden_dim
-  f1 = Linear([previous_state], [2 * hidden_dim], 2 * hidden_dim,
-              random_state, name=(name, 'update/reset'), init=[Wur],
+  f1 = linear([previous_state], [2 * hidden_dim], 2 * hidden_dim,
+              random_state, name=(name, 'update/reset'), init=[wur],
               biases=biases, weight_norm=weight_norm)
   gates = sigmoid(f1 + gate_inp)
   update = gates[:, :dim]
   reset = gates[:, dim:]
   state_reset = previous_state * reset
-  f2 = Linear([state_reset], [hidden_dim], hidden_dim,
-              random_state, name=(name, 'state'), init=[U], biases=biases,
+  f2 = linear([state_reset], [hidden_dim], hidden_dim,
+              random_state, name=(name, 'state'), init=[u], biases=biases,
               weight_norm=weight_norm)
   next_state = tf.tanh(f2 + inp)
   next_state = next_state * update + previous_state * (1. - update)
@@ -868,11 +868,11 @@ def GRU(inp, gate_inp, previous_state, input_dim, hidden_dim, random_state,
   return next_state
 
 
-def GRUFork(list_of_inputs, input_dims, output_dim, random_state, name=None,
+def gru_fork(list_of_inputs, input_dims, output_dim, random_state, name=None,
             init=None, scale='default', weight_norm=None, biases=True):
   if name is not None:
-    raise ValueError('Unhandled parameter sharing in GRUFork')
-  gates = Linear(list_of_inputs, input_dims, 3 * output_dim,
+    raise ValueError('Unhandled parameter sharing in gru_fork')
+  gates = linear(list_of_inputs, input_dims, 3 * output_dim,
                  random_state=random_state,
                  name=(name, 'gates'), init=init, scale=scale,
                  weight_norm=weight_norm, biases=biases)
@@ -893,51 +893,50 @@ def lstm_weights(input_dim, hidden_dim, forward_init=None, hidden_init='normal',
                  random_state=None):
   if random_state is None:
     raise ValueError('Must pass random_state!')
-  shape = (input_dim, hidden_dim)
+  shp = (input_dim, hidden_dim)
   if forward_init == 'normal':
-    W = np.hstack([np_normal(shape, random_state),
-                   np_normal(shape, random_state),
-                   np_normal(shape, random_state),
-                   np_normal(shape, random_state)])
+    w = np.hstack([np_normal(shp, random_state),
+                   np_normal(shp, random_state),
+                   np_normal(shp, random_state),
+                   np_normal(shp, random_state)])
   elif forward_init == 'fan':
-    W = np.hstack([np_tanh_fan_normal(shape, random_state),
-                   np_tanh_fan_normal(shape, random_state),
-                   np_tanh_fan_normal(shape, random_state),
-                   np_tanh_fan_normal(shape, random_state)])
+    w = np.hstack([np_tanh_fan_normal(shp, random_state),
+                   np_tanh_fan_normal(shp, random_state),
+                   np_tanh_fan_normal(shp, random_state),
+                   np_tanh_fan_normal(shp, random_state)])
   elif forward_init is None:
     if input_dim == hidden_dim:
-      W = np.hstack([np_ortho(shape, random_state),
-                     np_ortho(shape, random_state),
-                     np_ortho(shape, random_state),
-                     np_ortho(shape, random_state)])
+      w = np.hstack([np_ortho(shp, random_state),
+                     np_ortho(shp, random_state),
+                     np_ortho(shp, random_state),
+                     np_ortho(shp, random_state)])
     else:
       # lecun
-      W = np.hstack([np_variance_scaled_uniform(shape, random_state),
-                     np_variance_scaled_uniform(shape, random_state),
-                     np_variance_scaled_uniform(shape, random_state),
-                     np_variance_scaled_uniform(shape, random_state)])
+      w = np.hstack([np_variance_scaled_uniform(shp, random_state),
+                     np_variance_scaled_uniform(shp, random_state),
+                     np_variance_scaled_uniform(shp, random_state),
+                     np_variance_scaled_uniform(shp, random_state)])
   else:
     raise ValueError('Unknown forward init type %s' % forward_init)
-  b = np_zeros((4 * shape[1],))
+  b = np_zeros((4 * shp[1],))
   # Set forget gate bias to 1
-  b[shape[1]:2 * shape[1]] += 1.
+  b[shp[1]:2 * shp[1]] += 1.
 
   if hidden_init == 'normal':
-    U = np.hstack([np_normal((shape[1], shape[1]), random_state),
-                   np_normal((shape[1], shape[1]), random_state),
-                   np_normal((shape[1], shape[1]), random_state),
-                   np_normal((shape[1], shape[1]), random_state), ])
+    u = np.hstack([np_normal((shp[1], shp[1]), random_state),
+                   np_normal((shp[1], shp[1]), random_state),
+                   np_normal((shp[1], shp[1]), random_state),
+                   np_normal((shp[1], shp[1]), random_state)])
   elif hidden_init == 'ortho':
-    U = np.hstack([np_ortho((shape[1], shape[1]), random_state),
-                   np_ortho((shape[1], shape[1]), random_state),
-                   np_ortho((shape[1], shape[1]), random_state),
-                   np_ortho((shape[1], shape[1]), random_state), ])
-  return W, b, U
+    u = np.hstack([np_ortho((shp[1], shp[1]), random_state),
+                   np_ortho((shp[1], shp[1]), random_state),
+                   np_ortho((shp[1], shp[1]), random_state),
+                   np_ortho((shp[1], shp[1]), random_state)])
+  return w, b, u
 
 
-def LSTM(inp, gate_inp, previous_state, input_dim, hidden_dim, random_state,
-         mask=None, name=None, init=None, scale='default', weight_norm=None,
-         biases=False):
+def lstm(inp, gate_inp, previous_state, input_dim, hidden_dim, random_state,
+         mask=None, name=None, init=None, biases=False):
   """
   Output is the concatenation of hidden state and cell
   so 2 * hidden dim
@@ -947,7 +946,7 @@ def LSTM(inp, gate_inp, previous_state, input_dim, hidden_dim, random_state,
   if name is not None:
     raise ValueError('Unhandled parameter sharing in LSTM')
   if gate_inp != 'LSTMGates':
-    raise ValueError('Use LSTMFork to setup this block')
+    raise ValueError('Use lstm_fork to setup this block')
   if init is None:
     hidden_init = 'ortho'
   elif init == 'normal':
@@ -966,7 +965,7 @@ def LSTM(inp, gate_inp, previous_state, input_dim, hidden_dim, random_state,
   if ndm == (ndi - 1):
     mask = tf.expand_dims(mask, ndm - 1)
 
-  _, _, U = lstm_weights(input_dim, hidden_dim,
+  _, _, u = lstm_weights(input_dim, hidden_dim,
                          hidden_init=hidden_init,
                          random_state=random_state)
   dim = hidden_dim
@@ -977,10 +976,10 @@ def LSTM(inp, gate_inp, previous_state, input_dim, hidden_dim, random_state,
   previous_cell = _s(previous_state, 1)
   previous_st = _s(previous_state, 0)
 
-  preactivation = Linear([previous_st], [4 * hidden_dim],
+  preactivation = linear([previous_st], [4 * hidden_dim],
                          4 * hidden_dim,
                          random_state, name=(name, 'preactivation'),
-                         init=[U],
+                         init=[u],
                          biases=False) + inp
 
   ig = sigmoid(_s(preactivation, 0))
@@ -998,19 +997,19 @@ def LSTM(inp, gate_inp, previous_state, input_dim, hidden_dim, random_state,
   return next_state
 
 
-def LSTMFork(list_of_inputs, input_dims, output_dim, random_state, name=None,
-             init=None, scale='default', weight_norm=None, biases=True):
+def lstm_fork(list_of_inputs, input_dims, output_dim, random_state, name=None,
+             scale='default', weight_norm=None):
   """
   output dim should be the hidden size for each gate
   overall size will be 4x
   """
   if name is not None:
-    raise ValueError('Unhandled parameter sharing in LSTMFork')
+    raise ValueError('Unhandled parameter sharing in lstm_fork')
   inp_d = np.sum(input_dims)
-  W, b, U = lstm_weights(inp_d, output_dim,
+  w, b, u = lstm_weights(inp_d, output_dim,
                          random_state=random_state)
-  f_init = [W, b]
-  inputs = Linear(list_of_inputs, input_dims, 4 * output_dim,
+  f_init = [w, b]
+  inputs = linear(list_of_inputs, input_dims, 4 * output_dim,
                   random_state=random_state,
                   name=(name, 'inputs'), init=f_init, scale=scale,
                   weight_norm=weight_norm,
@@ -1182,6 +1181,7 @@ def run_loop(loop_function, train_dir, train_itr, valid_itr, n_epochs,
              skip_minimums=False,
              skip_n_train_minibatches=-1):
   """Loop function.
+
   loop function must have the following api
   loop(itr, sess, inits=None, do_updates=True)
         return cost, init_1, init_2, ....

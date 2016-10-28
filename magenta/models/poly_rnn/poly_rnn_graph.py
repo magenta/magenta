@@ -62,12 +62,12 @@ class Graph(object):
     share_output_parameters = False
 
     if rnn_type == 'lstm':
-      rnn_fork = poly_rnn_lib.LSTMFork
-      rnn = poly_rnn_lib.LSTM
+      rnn_fork = poly_rnn_lib.lstm_fork
+      rnn = poly_rnn_lib.lstm
       self.rnn_dim = 2 * h_dim
     elif rnn_type == 'gru':
-      rnn_fork = poly_rnn_lib.GRUFork
-      rnn = poly_rnn_lib.GRU
+      rnn_fork = poly_rnn_lib.gru_fork
+      rnn = poly_rnn_lib.gru
       self.rnn_dim = h_dim
     else:
       raise ValueError('Unknown rnn_type %s' % rnn_type)
@@ -93,11 +93,11 @@ class Graph(object):
     else:
       name_dur_emb = None
       name_note_emb = None
-    duration_embed = poly_rnn_lib.Multiembedding(
+    duration_embed = poly_rnn_lib.multiembedding(
         self.duration_inpt, n_duration_symbols, duration_embed_dim,
         random_state, name=name_dur_emb, share_all=share_all_embeddings)
 
-    note_embed = poly_rnn_lib.Multiembedding(
+    note_embed = poly_rnn_lib.multiembedding(
         self.note_inpt, n_note_symbols, note_embed_dim, random_state,
         name=name_note_emb, share_all=share_all_embeddings)
 
@@ -116,14 +116,14 @@ class Graph(object):
     h1 = h1_f
     self.final_h1 = poly_rnn_lib.ni(h1, -1)
 
-    target_note_embed = poly_rnn_lib.Multiembedding(
+    target_note_embed = poly_rnn_lib.multiembedding(
         self.note_target, n_note_symbols, note_embed_dim, random_state,
         name=name_note_emb, share_all=share_all_embeddings)
-    target_note_masked = poly_rnn_lib.Automask(target_note_embed, self.n_notes)
-    target_duration_embed = poly_rnn_lib.Multiembedding(
+    target_note_masked = poly_rnn_lib.automask(target_note_embed, self.n_notes)
+    target_duration_embed = poly_rnn_lib.multiembedding(
         self.duration_target, n_duration_symbols, duration_embed_dim,
         random_state, name=name_dur_emb, share_all=share_all_embeddings)
-    target_duration_masked = poly_rnn_lib.Automask(
+    target_duration_masked = poly_rnn_lib.automask(
         target_duration_embed, self.n_notes)
 
     costs = []
@@ -136,7 +136,7 @@ class Graph(object):
       name_note = None
       name_dur = None
     for i in range(self.n_notes):
-      note_pred = poly_rnn_lib.Linear(
+      note_pred = poly_rnn_lib.linear(
           [
               h1[:, :, :h_dim], scan_inp, target_note_masked[i],
               target_duration_masked[i]
@@ -146,7 +146,7 @@ class Graph(object):
           ],
           note_out_dims[i], random_state, weight_norm=weight_norm_outputs,
           name=name_note)
-      duration_pred = poly_rnn_lib.Linear(
+      duration_pred = poly_rnn_lib.linear(
           [
               h1[:, :, :h_dim], scan_inp, target_note_masked[i],
               target_duration_masked[i]
