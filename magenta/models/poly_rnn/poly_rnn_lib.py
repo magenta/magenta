@@ -686,7 +686,7 @@ def multiembedding(multi_indices, n_symbols, output_dim, random_state,
   return tf.concat(2, output_embeds)
 
 
-def automask(input_tensor, n_masks, axis=-1, name=None):
+def automask(input_tensor, n_masks, axis=-1):
   """Auto masker to make multiple MADE/pixelRNN style masking easier.
 
   n_masks *must* be an even divisor of input_tensor.shape[axis]
@@ -817,7 +817,7 @@ def gru_weights(input_dim, hidden_dim, forward_init=None, hidden_init='normal',
   if hidden_init == 'normal':
     wur = np.hstack([np_normal((shp[1], shp[1]), random_state),
                      np_normal((shp[1], shp[1]), random_state)])
-    U = np_normal((shp[1], shp[1]), random_state)
+    u = np_normal((shp[1], shp[1]), random_state)
   elif hidden_init == 'ortho':
     wur = np.hstack([np_ortho((shp[1], shp[1]), random_state),
                      np_ortho((shp[1], shp[1]), random_state)])
@@ -869,7 +869,7 @@ def gru(inp, gate_inp, previous_state, input_dim, hidden_dim, random_state,
 
 
 def gru_fork(list_of_inputs, input_dims, output_dim, random_state, name=None,
-            init=None, scale='default', weight_norm=None, biases=True):
+             init=None, scale='default', weight_norm=None, biases=True):
   if name is not None:
     raise ValueError('Unhandled parameter sharing in gru_fork')
   gates = linear(list_of_inputs, input_dims, 3 * output_dim,
@@ -936,7 +936,7 @@ def lstm_weights(input_dim, hidden_dim, forward_init=None, hidden_init='normal',
 
 
 def lstm(inp, gate_inp, previous_state, input_dim, hidden_dim, random_state,
-         mask=None, name=None, init=None, biases=False):
+         mask=None, name=None, init=None):
   """
   Output is the concatenation of hidden state and cell
   so 2 * hidden dim
@@ -998,7 +998,7 @@ def lstm(inp, gate_inp, previous_state, input_dim, hidden_dim, random_state,
 
 
 def lstm_fork(list_of_inputs, input_dims, output_dim, random_state, name=None,
-             scale='default', weight_norm=None):
+              scale='default', weight_norm=None):
   """
   output dim should be the hidden size for each gate
   overall size will be 4x
@@ -1006,7 +1006,7 @@ def lstm_fork(list_of_inputs, input_dims, output_dim, random_state, name=None,
   if name is not None:
     raise ValueError('Unhandled parameter sharing in lstm_fork')
   inp_d = np.sum(input_dims)
-  w, b, u = lstm_weights(inp_d, output_dim,
+  w, b, _ = lstm_weights(inp_d, output_dim,
                          random_state=random_state)
   f_init = [w, b]
   inputs = linear(list_of_inputs, input_dims, 4 * output_dim,
@@ -1046,6 +1046,7 @@ def sigmoid(x):
 def categorical_crossentropy(predicted_values, true_values, class_weights=None,
                              eps=None):
   """Categorical crossentropy.
+
   Multinomial negative log likelihood of predicted compared to one hot
   true_values
 
