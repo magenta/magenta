@@ -44,7 +44,7 @@ can skip this step if you already have any variant of conda installed).
 Next, create and activate a Magenta conda environment using Python 2.7 with
 Jupyter notebook support:
 
-```bash
+```
 conda create -n magenta python=2.7 jupyter
 source activate magenta
 ```
@@ -59,7 +59,7 @@ environment above. The important steps are selecting the correct binary
 
 Install the Magenta pip package:
 
-```bash
+```
 pip install magenta
 ```
 
@@ -74,7 +74,7 @@ Another way to try out Magenta is to use our Docker container.
 First, [install Docker](https://docs.docker.com/engine/installation/). Next, run
 this command:
 
-```bash
+```
 docker run -it -p 6006:6006 -v /tmp/magenta:/magenta-data tensorflow/magenta
 ```
 
@@ -82,18 +82,18 @@ This will start a shell in a directory with all Magenta components compiled,
 installed, and ready to run. It will also map port 6006 of the host machine to
 the container so you can view TensorBoard servers that run within the container.
 
-This also maps the directory ```/tmp/magenta``` on the host machine to
-```/magenta-data``` within the Docker session. Windows users can change
-```/tmp/magenta``` to a path such as ```C:/magenta```, and Mac and Linux users
-can use a path relative to their home folder such as ```~/magenta```.
-**WARNING**: only data saved in ```/magenta-data``` will persist across Docker
+This also maps the directory `/tmp/magenta` on the host machine to
+`/magenta-data` within the Docker session. Windows users can change
+`/tmp/magenta` to a path such as `C:/magenta`, and Mac and Linux users
+can use a path relative to their home folder such as `~/magenta`.
+**WARNING**: only data saved in `/magenta-data` will persist across Docker
 sessions.
 
 The Docker image also includes several pre-trained models in
-```/magenta/models```. For example, to generate some MIDI files using the
+`/magenta/models`. For example, to generate some MIDI files using the
 [Lookback Melody RNN](magenta/models/melody_rnn#lookback), run this command:
 
-```bash
+```
 melody_rnn_generate \
   --bundle_file=/magenta-models/lookback_rnn.mag \
   --output_dir=/magenta-data/lookback_rnn/generated \
@@ -102,10 +102,10 @@ melody_rnn_generate \
   --primer_melody="[60]"
 ```
 
-**NOTE**: Verify that the ```--output_dir``` path matches the path you
-mapped as your shared folder when running the ```docker run``` command. This
-example command presupposes that you are using ```/magenta-data``` as your
-shared folder from the example ```docker run``` command above.
+**NOTE**: Verify that the `--output_dir` path matches the path you
+mapped as your shared folder when running the `docker run` command. This
+example command presupposes that you are using `/magenta-data` as your
+shared folder from the example `docker run` command above.
 
 One downside to the Docker container is that it is isolated from the host. If
 you want to listen to a generated MIDI file, you'll need to copy it to the host
@@ -114,7 +114,7 @@ machine. Similarly, because our
 MIDI port, it will not work within the Docker container. You'll need to use the
 full Development Environment.
 
-Note: Our Docker image is also available at ```gcr.io/tensorflow/magenta```.
+Note: Our Docker image is also available at `gcr.io/tensorflow/magenta`.
 
 ## Generating MIDI
 
@@ -133,7 +133,9 @@ The installation has three components. You are going to need Bazel to build pack
 
 First, clone this repository:
 
-```git clone https://github.com/tensorflow/magenta.git```
+```
+git clone https://github.com/tensorflow/magenta.git
+```
 
 Next, [install Bazel](http://www.bazel.io/docs/install.html). We recommend the
 latest version, currently 0.3.1.
@@ -147,8 +149,33 @@ Python 3 eventually, but it is currently experimental.
 
 After that's done, run the tests with this command:
 
-```bazel test //magenta/...```
+```
+bazel test //magenta/...
+```
 
 To build and install the pip package from source, follow the
 [pip build instructions](magenta/tools/pip#building-the-package). You can also
 use our [build script](magenta/tools/build.sh).
+
+If you want to build and run commands with Bazel, you'll need to run the package
+that the build step generates. There are two ways to do this. The first option is
+to look at the output of the build command to find the path to the generated file.
+For example, if you want to build the melody_rnn_generate script:
+
+```
+$ bazel build //magenta/models/melody_rnn:melody_rnn_generate 
+INFO: Found 1 target...
+Target //magenta/models/melody_rnn:melody_rnn_generate up-to-date:
+  bazel-bin/magenta/models/melody_rnn/melody_rnn_generate
+
+$ bazel-bin/magenta/models/melody_rnn/melody_rnn_generate --config=...
+```
+
+The other option is to use the `bazel run` command, which combines the two steps
+above. Note that if you use `bazel run`, you'll need to add an extra `--` before
+the command line arguments to differentiate between Bazel arguments and arguments
+to the command.
+
+```
+$ bazel run //magenta/models/melody_rnn:melody_rnn_generate -- --config=...
+```
