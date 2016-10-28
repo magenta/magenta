@@ -21,8 +21,8 @@ import time
 import numpy as np
 import tensorflow as tf
 
-from magenta.model.polyrnn import poly_rnn_graph
-from magenta.model.polyrnn import poly_rnn_lib
+from magenta.models.poly_rnn import poly_rnn_graph
+from magenta.models.poly_rnn import poly_rnn_lib
 
 FLAGS = tf.app.flags.FLAGS
 tf.app.flags.DEFINE_string(
