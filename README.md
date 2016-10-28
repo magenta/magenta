@@ -163,7 +163,7 @@ to look at the output of the build command to find the path to the generated fil
 For example, if you want to build the melody_rnn_generate script:
 
 ```
-$ bazel build //magenta/models/melody_rnn:melody_rnn_generate 
+$ bazel build //magenta/models/melody_rnn:melody_rnn_generate
 INFO: Found 1 target...
 Target //magenta/models/melody_rnn:melody_rnn_generate up-to-date:
   bazel-bin/magenta/models/melody_rnn/melody_rnn_generate
