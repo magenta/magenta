@@ -14,45 +14,45 @@
 
 """Imports objects from music modules into the top-level music namespace."""
 
-from constants import *  # pylint: disable=wildcard-import
+from magenta.music.constants import *  # pylint: disable=wildcard-import
 
-from encoder_decoder import EventSequenceEncoderDecoder
-from encoder_decoder import LookbackEventSequenceEncoderDecoder
-from encoder_decoder import OneHotEncoding
-from encoder_decoder import OneHotEventSequenceEncoderDecoder
+from magenta.music.encoder_decoder import EventSequenceEncoderDecoder
+from magenta.music.encoder_decoder import LookbackEventSequenceEncoderDecoder
+from magenta.music.encoder_decoder import OneHotEncoding
+from magenta.music.encoder_decoder import OneHotEventSequenceEncoderDecoder
 
-from events_lib import NonIntegerStepsPerBarException
+from magenta.music.events_lib import NonIntegerStepsPerBarException
 
-from melodies_lib import BadNoteException
-from melodies_lib import extract_melodies
-from melodies_lib import Melody
-from melodies_lib import midi_file_to_melody
-from melodies_lib import PolyphonicMelodyException
+from magenta.music.melodies_lib import BadNoteException
+from magenta.music.melodies_lib import extract_melodies
+from magenta.music.melodies_lib import Melody
+from magenta.music.melodies_lib import midi_file_to_melody
+from magenta.music.melodies_lib import PolyphonicMelodyException
 
-from melody_encoder_decoder import KeyMelodyEncoderDecoder
-from melody_encoder_decoder import MelodyOneHotEncoding
+from magenta.music.melody_encoder_decoder import KeyMelodyEncoderDecoder
+from magenta.music.melody_encoder_decoder import MelodyOneHotEncoding
 
-from midi_io import midi_file_to_sequence_proto
-from midi_io import midi_to_sequence_proto
-from midi_io import MIDIConversionError
-from midi_io import sequence_proto_to_midi_file
-from midi_io import sequence_proto_to_pretty_midi
+from magenta.music.midi_io import midi_file_to_sequence_proto
+from magenta.music.midi_io import midi_to_sequence_proto
+from magenta.music.midi_io import MIDIConversionError
+from magenta.music.midi_io import sequence_proto_to_midi_file
+from magenta.music.midi_io import sequence_proto_to_pretty_midi
 
-from midi_synth import fluidsynth
-from midi_synth import synthesize
+from magenta.music.midi_synth import fluidsynth
+from magenta.music.midi_synth import synthesize
 
-from model import BaseModel
+from magenta.music.model import BaseModel
 
-from notebook_utils import play_sequence
+from magenta.music.notebook_utils import play_sequence
 
-from sequence_generator import BaseSequenceGenerator
-from sequence_generator import SequenceGeneratorException
+from magenta.music.sequence_generator import BaseSequenceGenerator
+from magenta.music.sequence_generator import SequenceGeneratorException
 
-from sequence_generator_bundle import GeneratorBundleParseException
-from sequence_generator_bundle import read_bundle_file
+from magenta.music.sequence_generator_bundle import GeneratorBundleParseException
+from magenta.music.sequence_generator_bundle import read_bundle_file
 
-from sequences_lib import BadTimeSignatureException
-from sequences_lib import extract_subsequence
-from sequences_lib import MultipleTimeSignatureException
-from sequences_lib import NegativeTimeException
-from sequences_lib import QuantizedSequence
+from magenta.music.sequences_lib import BadTimeSignatureException
+from magenta.music.sequences_lib import extract_subsequence
+from magenta.music.sequences_lib import MultipleTimeSignatureException
+from magenta.music.sequences_lib import NegativeTimeException
+from magenta.music.sequences_lib import QuantizedSequence
