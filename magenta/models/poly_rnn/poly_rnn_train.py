@@ -12,12 +12,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import os
-import tensorflow as tf
-import numpy as np
-import poly_rnn_lib
-import poly_rnn_graph
 import functools
+import os
+
+# internal imports
+
+import numpy as np
+import tensorflow as tf
+
+from magenta.models.poly_rnn import poly_rnn_graph
+from magenta.models.poly_rnn import poly_rnn_lib
 
 FLAGS = tf.app.flags.FLAGS
 tf.app.flags.DEFINE_string(
@@ -33,24 +37,24 @@ tf.app.flags.DEFINE_string(
 
 
 def _loop(graph, itr, sess, inits=None, do_updates=True):
-    i_h1 = np.zeros((graph.batch_size, graph.rnn_dim)).astype("float32")
-    duration_mb, note_mb = next(itr)
-    X_note_mb = note_mb[:-1]
-    y_note_mb = note_mb[1:]
-    X_duration_mb = duration_mb[:-1]
-    y_duration_mb = duration_mb[1:]
-    feed = {graph.note_inpt: X_note_mb,
-            graph.note_target: y_note_mb,
-            graph.duration_inpt: X_duration_mb,
-            graph.duration_target: y_duration_mb,
-            graph.init_h1: i_h1}
-    if do_updates:
-        outs = [graph.cost, graph.final_h1, graph.updates]
-        train_loss, h1_l, _ = sess.run(outs, feed)
-    else:
-        outs = [graph.cost, graph.final_h1]
-        train_loss, h1_l = sess.run(outs, feed)
-    return train_loss, h1_l
+  i_h1 = np.zeros((graph.batch_size, graph.rnn_dim)).astype('float32')
+  duration_mb, note_mb = next(itr)
+  x_note_mb = note_mb[:-1]
+  y_note_mb = note_mb[1:]
+  x_duration_mb = duration_mb[:-1]
+  y_duration_mb = duration_mb[1:]
+  feed = {graph.note_inpt: x_note_mb,
+          graph.note_target: y_note_mb,
+          graph.duration_inpt: x_duration_mb,
+          graph.duration_target: y_duration_mb,
+          graph.init_h1: i_h1}
+  if do_updates:
+    outs = [graph.cost, graph.final_h1, graph.updates]
+    train_loss, h1_l, _ = sess.run(outs, feed)
+  else:
+    outs = [graph.cost, graph.final_h1]
+    train_loss, h1_l = sess.run(outs, feed)
+  return train_loss, h1_l
 
 
 def main(unused_argv):
@@ -72,8 +76,10 @@ def main(unused_argv):
       checkpoint_every_n_epochs=5,
       skip_minimums=True)
 
+
 def console_entry_point():
   tf.app.run(main)
+
 
 if __name__ == '__main__':
   console_entry_point()
