@@ -17,16 +17,17 @@
 import tensorflow as tf
 import magenta
 
-from magenta.models.melody_rnn import melody_rnn_config
 from magenta.models.melody_rnn import melody_rnn_graph
+from magenta.models.melody_rnn import melody_rnn_model
 
 
 class MelodyRNNGraphTest(tf.test.TestCase):
 
   def setUp(self):
-    self.config = melody_rnn_config.MelodyRnnConfig(
+    self.config = melody_rnn_model.MelodyRnnConfig(
         None,
-        magenta.music.OneHotMelodyEncoderDecoder(0, 12, 0),
+        magenta.music.OneHotEventSequenceEncoderDecoder(
+            magenta.music.MelodyOneHotEncoding(0, 12)),
         magenta.common.HParams(
             batch_size=128,
             rnn_layer_sizes=[128, 128],
@@ -35,7 +36,10 @@ class MelodyRNNGraphTest(tf.test.TestCase):
             clip_norm=5,
             initial_learning_rate=0.01,
             decay_steps=1000,
-            decay_rate=0.85))
+            decay_rate=0.85),
+        min_note=0,
+        max_note=12,
+        transpose_to_key=0)
 
   def testBuildTrainGraph(self):
     g = melody_rnn_graph.build_graph(

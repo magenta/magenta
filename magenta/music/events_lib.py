@@ -16,18 +16,12 @@
 The abstract `EventSequence` class is an interface for a sequence of musical
 events. The `SimpleEventSequence` class is a basic implementation of this
 interface.
-
-The `EventsEncoderDecoder` is an abstract class for translating between event
-sequences and model data.
 """
 
 import abc
 import copy
-import numpy as np
 
-from six.moves import range  # pylint: disable=redefined-builtin
-
-from magenta.common import sequence_example_lib
+# internal imports
 from magenta.music import constants
 
 
@@ -82,7 +76,7 @@ class EventSequence(object):
     pass
 
   @abc.abstractmethod
-  def append_event(self, event):
+  def append(self, event):
     """Appends event to the end of the sequence and increments the end step.
 
     Args:
@@ -225,7 +219,7 @@ class SimpleEventSequence(EventSequence):
   def steps_per_quarter(self):
     return self._steps_per_quarter
 
-  def append_event(self, event):
+  def append(self, event):
     """Appends event to the end of the sequence and increments the end step.
 
     Args:
@@ -287,151 +281,3 @@ class SimpleEventSequence(EventSequence):
     self._end_step *= k
     self._steps_per_bar *= k
     self._steps_per_quarter *= k
-
-
-class EventsEncoderDecoder(object):
-  """An abstract class for translating between events and model data.
-
-  When building your dataset, the `encode` method takes in an event sequence
-  and returns a SequenceExample of inputs and labels. These SequenceExamples
-  are fed into the model during training and evaluation.
-
-  During generation, the `get_inputs_batch` method takes in a list of the
-  current event sequences and returns an inputs batch which is fed into the
-  model to predict what the next event should be for each sequence. The
-  `extend_event_sequences` method takes in the list of event sequences and the
-  softmax returned by the model and extends each sequence by one step by
-  sampling from the softmax probabilities. This loop (`get_inputs_batch` ->
-  inputs batch is fed through the model to get a softmax ->
-  `extend_event_sequences`) is repeated until the generated event sequences
-  have reached the desired length.
-
-  The `events_to_input`, `events_to_label`, and `class_index_to_event` methods
-  must be overwritten to be specific to your model.
-  """
-  __metaclass__ = abc.ABCMeta
-
-  def _encode(self, events):
-    """Returns a SequenceExample for the given event sequence.
-
-    Args:
-      events: An EventSequence object.
-
-    Returns:
-      A tf.train.SequenceExample containing inputs and labels.
-    """
-    inputs = []
-    labels = []
-    for i in range(len(events) - 1):
-      inputs.append(self.events_to_input(events, i))
-      labels.append(self.events_to_label(events, i + 1))
-    return sequence_example_lib.make_sequence_example(inputs, labels)
-
-  @abc.abstractproperty
-  def input_size(self):
-    """The size of the input vector used by this model.
-
-    Returns:
-        An integer, the length of the list returned by self.events_to_input.
-    """
-    pass
-
-  @abc.abstractproperty
-  def num_classes(self):
-    """The range of labels used by this model.
-
-    Returns:
-        An integer, the range of integers that can be returned by
-            self.events_to_label.
-    """
-    pass
-
-  @abc.abstractmethod
-  def events_to_input(self, events, position):
-    """Returns the input vector for the event at the given position.
-
-    Args:
-      events: An EventSequence object.
-      position: An integer event position in the sequence.
-
-    Returns:
-      An input vector, a self.input_size length list of floats.
-    """
-    pass
-
-  @abc.abstractmethod
-  def events_to_label(self, events, position):
-    """Returns the label for the event at the given position.
-
-    Args:
-      events: An EventSequence object.
-      position: An integer event position in the sequence.
-
-    Returns:
-      A label, an integer in the range [0, self.num_classes).
-    """
-    pass
-
-  def get_inputs_batch(self, event_sequences, full_length=False):
-    """Returns an inputs batch for the given event sequences.
-
-    Args:
-      event_sequences: A list of EventSequence objects.
-      full_length: If True, the inputs batch will be for the full length of
-          each event sequence. If False, the inputs batch will only be for the
-          last event of each event sequence. A full-length inputs batch is used
-          for the first step of extending the event sequences, since the RNN
-          cell state needs to be initialized with the priming sequence. For
-          subsequent generation steps, only a last-event inputs batch is used.
-
-    Returns:
-      An inputs batch. If `full_length` is True, the shape will be
-      [len(event_sequences), len(event_sequences[0]), INPUT_SIZE]. If
-      `full_length` is False, the shape will be
-      [len(event_sequences), 1, INPUT_SIZE].
-    """
-    inputs_batch = []
-    for events in event_sequences:
-      inputs = []
-      if full_length and len(event_sequences):
-        for i in range(len(events)):
-          inputs.append(self.events_to_input(events, i))
-      else:
-        inputs.append(self.events_to_input(events, len(events) - 1))
-      inputs_batch.append(inputs)
-    return inputs_batch
-
-  @abc.abstractmethod
-  def class_index_to_event(self, class_index, events):
-    """Returns the event for the given class index.
-
-    This is the reverse process of the self.events_to_label method.
-
-    Args:
-      class_index: An integer in the range [0, self.num_classes).
-      events: An EventSequence object.
-
-    Returns:
-      An event value.
-    """
-    pass
-
-  def extend_event_sequences(self, event_sequences, softmax):
-    """Extends the event_sequences by sampling the softmax probabilities.
-
-    Args:
-      event_sequences: A list of EventSequence objects.
-      softmax: A list of softmax probability vectors. The list of softmaxes
-          should be the same length as the list of event_sequences.
-
-    Returns:
-      A python list of chosen class indices, one for each event sequence.
-    """
-    num_classes = len(softmax[0][0])
-    chosen_classes = []
-    for i in xrange(len(event_sequences)):
-      chosen_class = np.random.choice(num_classes, p=softmax[i][-1])
-      event = self.class_index_to_event(chosen_class, event_sequences[i])
-      event_sequences[i].append_event(event)
-      chosen_classes.append(chosen_class)
-    return chosen_classes

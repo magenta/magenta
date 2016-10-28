@@ -36,12 +36,12 @@ class EventsLibTest(tf.test.TestCase):
   def testAppendEvent(self):
     events = events_lib.SimpleEventSequence(pad_event=0)
 
-    events.append_event(7)
+    events.append(7)
     self.assertListEqual([7], list(events))
     self.assertEqual(0, events.start_step)
     self.assertEqual(1, events.end_step)
 
-    events.append_event('cheese')
+    events.append('cheese')
     self.assertListEqual([7, 'cheese'], list(events))
     self.assertEqual(0, events.start_step)
     self.assertEqual(2, events.end_step)

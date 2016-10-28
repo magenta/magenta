@@ -22,8 +22,13 @@ import numpy as np
 from six.moves import range  # pylint: disable=redefined-builtin
 import tensorflow as tf
 
+import magenta
 from magenta.models.melody_rnn import melody_rnn_graph
 import magenta.music as mm
+
+DEFAULT_MIN_NOTE = 48
+DEFAULT_MAX_NOTE = 84
+DEFAULT_TRANSPOSE_TO_KEY = 0
 
 
 class MelodyRnnModelException(Exception):
@@ -43,7 +48,7 @@ class MelodyRnnModel(mm.BaseModel):
 
     Args:
       config: A MelodyRnnConfig containing the MelodyEncoderDecoder and HParams
-        use.
+        to use.
     """
     super(MelodyRnnModel, self).__init__()
     self._config = config
@@ -222,9 +227,9 @@ class MelodyRnnModel(mm.BaseModel):
     melody = copy.deepcopy(primer_melody)
 
     transpose_amount = melody.squash(
-        self._config.encoder_decoder.min_note,
-        self._config.encoder_decoder.max_note,
-        self._config.encoder_decoder.transpose_to_key)
+        self._config.min_note,
+        self._config.max_note,
+        self._config.transpose_to_key)
 
     if num_steps > len(melody):
       melody = self._beam_search(melody, num_steps - len(melody), temperature,
@@ -233,3 +238,106 @@ class MelodyRnnModel(mm.BaseModel):
     melody.transpose(-transpose_amount)
 
     return melody
+
+
+class MelodyRnnConfig(object):
+  """Stores a configuration for a MelodyRnn.
+
+  You can change `min_note` and `max_note` to increase/decrease the melody
+  range. Since melodies are transposed into this range to be run through
+  the model and then transposed back into their original range after the
+  melodies have been extended, the location of the range is somewhat
+  arbitrary, but the size of the range determines the possible size of the
+  generated melodies range. `transpose_to_key` should be set to the key
+  that if melodies were transposed into that key, they would best sit
+  between `min_note` and `max_note` with having as few notes outside that
+  range.
+
+  Attributes:
+    details: The GeneratorDetails message describing the config.
+    encoder_decoder: The EventSequenceEncoderDecoder object to use.
+    hparams: The HParams containing hyperparameters to use.
+    min_note: The minimum midi pitch the encoded melodies can have.
+    max_note: The maximum midi pitch (exclusive) the encoded melodies can have.
+    transpose_to_key: The key that encoded melodies will be transposed into, or
+        None if it should not be transposed.
+  """
+
+  def __init__(self, details, encoder_decoder, hparams,
+               min_note=DEFAULT_MIN_NOTE, max_note=DEFAULT_MAX_NOTE,
+               transpose_to_key=DEFAULT_TRANSPOSE_TO_KEY):
+    if min_note < mm.MIN_MIDI_PITCH:
+      raise ValueError('min_note must be >= 0. min_note is %d.' % min_note)
+    if max_note > mm.MAX_MIDI_PITCH + 1:
+      raise ValueError('max_note must be <= 128. max_note is %d.' % max_note)
+    if max_note - min_note < mm.NOTES_PER_OCTAVE:
+      raise ValueError('max_note - min_note must be >= 12. min_note is %d. '
+                       'max_note is %d. max_note - min_note is %d.' %
+                       (min_note, max_note, max_note - min_note))
+    if (transpose_to_key is not None and
+        (transpose_to_key < 0 or transpose_to_key > mm.NOTES_PER_OCTAVE - 1)):
+      raise ValueError('transpose_to_key must be >= 0 and <= 11. '
+                       'transpose_to_key is %d.' % transpose_to_key)
+
+    self.details = details
+    self.encoder_decoder = encoder_decoder
+    self.hparams = hparams
+    self.min_note = min_note
+    self.max_note = max_note
+    self.transpose_to_key = transpose_to_key
+
+
+# Default configurations.
+default_configs = {
+    'basic_rnn': MelodyRnnConfig(
+        magenta.protobuf.generator_pb2.GeneratorDetails(
+            id='basic_rnn',
+            description='Melody RNN with one-hot encoding.'),
+        magenta.music.OneHotEventSequenceEncoderDecoder(
+            magenta.music.MelodyOneHotEncoding(
+                min_note=DEFAULT_MIN_NOTE,
+                max_note=DEFAULT_MAX_NOTE)),
+        magenta.common.HParams(
+            batch_size=128,
+            rnn_layer_sizes=[128, 128],
+            dropout_keep_prob=0.5,
+            skip_first_n_losses=0,
+            clip_norm=5,
+            initial_learning_rate=0.01,
+            decay_steps=1000,
+            decay_rate=0.85)),
+    'lookback_rnn': MelodyRnnConfig(
+        magenta.protobuf.generator_pb2.GeneratorDetails(
+            id='lookback_rnn',
+            description='Melody RNN with lookback encoding.'),
+        magenta.music.LookbackEventSequenceEncoderDecoder(
+            magenta.music.MelodyOneHotEncoding(
+                min_note=DEFAULT_MIN_NOTE,
+                max_note=DEFAULT_MAX_NOTE)),
+        magenta.common.HParams(
+            batch_size=128,
+            rnn_layer_sizes=[128, 128],
+            dropout_keep_prob=0.5,
+            skip_first_n_losses=0,
+            clip_norm=5,
+            initial_learning_rate=0.01,
+            decay_steps=1000,
+            decay_rate=0.95)),
+    'attention_rnn': MelodyRnnConfig(
+        magenta.protobuf.generator_pb2.GeneratorDetails(
+            id='attention_rnn',
+            description='Melody RNN with lookback encoding and attention.'),
+        magenta.music.KeyMelodyEncoderDecoder(
+            min_note=DEFAULT_MIN_NOTE,
+            max_note=DEFAULT_MAX_NOTE),
+        magenta.common.HParams(
+            batch_size=128,
+            rnn_layer_sizes=[128, 128],
+            dropout_keep_prob=0.5,
+            skip_first_n_losses=0,
+            attn_length=40,
+            clip_norm=3,
+            initial_learning_rate=0.001,
+            decay_steps=1000,
+            decay_rate=0.97))
+}

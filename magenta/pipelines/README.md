@@ -145,14 +145,14 @@ ___Connecting pipelines together___
 
 Lets take a look at a real example. Magenta has `Quantizer` (defined [here](https://github.com/tensorflow/magenta/blob/master/magenta/pipelines/pipelines_common.py)) and `MelodyExtractor` (defined [here](https://github.com/tensorflow/magenta/blob/master/magenta/pipelines/melody_pipelines.py)). `Quantizer` takes note data in seconds and snaps, or quantizes, everything to a discrete grid of timesteps. It maps `NoteSequence` protocol buffers to [QuantizedSequence](https://github.com/tensorflow/magenta/blob/master/magenta/music/sequences_lib.py) objects. `MelodyExtractor` maps those `QuantizedSequence` objects to [Melody](https://github.com/tensorflow/magenta/blob/master/magenta/music/melodies_lib.py) objects. Finally, we want to partition the output into a training and test set. `Melody` objects are fed into `RandomPartition`, yet another `Pipeline` which outputs a dictionary of two lists: training output and test output.
 
-All of this is strung together in a `DAGPipeline` (code is [here](https://github.com/tensorflow/magenta/blob/master/magenta/models/shared/melody_rnn_create_dataset.py)). First each of the pipelines are intantiated with parameters:
+All of this is strung together in a `DAGPipeline` (code is [here](https://github.com/tensorflow/magenta/blob/master/magenta/models/shared/melody_rnn_create_dataset.py)). First each of the pipelines are instantiated with parameters:
 
 ```python
 quantizer = pipelines_common.Quantizer(steps_per_quarter=4)
 melody_extractor = pipelines_common.MelodyExtractor(
     min_bars=7, min_unique_pitches=5,
     gap_bars=1.0, ignore_polyphonic_notes=False)
-encoder_pipeline = EncoderPipeline(melody_encoder_decoder)
+encoder_pipeline = EncoderPipeline(config)
 partitioner = pipelines_common.RandomPartition(
     tf.train.SequenceExample,
     ['eval_melodies', 'training_melodies'],
