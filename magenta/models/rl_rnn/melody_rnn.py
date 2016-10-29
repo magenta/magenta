@@ -22,10 +22,10 @@ import os
 import numpy as np
 import tensorflow as tf
 
-from magenta.lib import melodies_lib
-from magenta.lib import midi_io
-from magenta.lib import sequences_lib
-from magenta.lib import sequence_example_lib
+from magenta.music import melodies_lib
+from magenta.music import midi_io
+from magenta.music import sequences_lib
+from magenta.common import sequence_example_lib
 
 import melody_rnn_encoder_decoder
 import rl_rnn_ops

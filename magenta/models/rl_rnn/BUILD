@@ -4,7 +4,7 @@ py_binary(
     deps = [
         ":melody_q",
         ":rl_rnn_ops",
-        "//magenta/lib:tf_lib",
+        "//magenta/common:tf_lib",
     ],
 )
 
@@ -14,8 +14,8 @@ py_binary(
     deps = [
         ":melody_rnn",
         ":rl_rnn_ops",
-        "//magenta/lib:melodies_lib",
-        "//magenta/lib:midi_io",
+        "//magenta/music:melodies_lib",
+        "//magenta/music:midi_io",
         # tensorflow dep
     ],
 )
@@ -26,9 +26,9 @@ py_binary(
     deps = [
         ":melody_rnn_encoder_decoder",
         ":rl_rnn_ops",
-        "//magenta/lib:melodies_lib",
-        "//magenta/lib:midi_io",
-        "//magenta/lib:sequences_lib",
+        "//magenta/music:melodies_lib",
+        "//magenta/music:midi_io",
+        "//magenta/music:sequences_lib",
         # tensorflow dep
     ],
 )
@@ -37,7 +37,7 @@ py_binary(
     name = "melody_rnn_encoder_decoder",
     srcs = ["melody_rnn_encoder_decoder.py"],
     deps = [
-        "//magenta/lib:melodies_lib",
+        "//magenta/music:melodies_lib",
     ],
 )
 
@@ -45,7 +45,7 @@ py_binary(
     name = "rl_rnn_ops",
     srcs = ["rl_rnn_ops.py"],
     deps = [
-        "//magenta/lib:tf_lib",
+        "//magenta/common:tf_lib",
         # tensorflow dep
     ],
 )

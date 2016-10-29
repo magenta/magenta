@@ -3,7 +3,7 @@
 import os
 import random
 
-from magenta.lib import tf_lib
+from magenta.common import tf_lib
 
 import numpy as np
 import tensorflow as tf

@@ -17,8 +17,8 @@ import numpy as np
 from scipy.misc import logsumexp
 import tensorflow as tf
 
-from magenta.lib import melodies_lib as mlib
-from magenta.lib import midi_io
+from magenta.music import melodies_lib as mlib
+from magenta.music import midi_io
 
 import melody_rnn
 import rl_rnn_ops

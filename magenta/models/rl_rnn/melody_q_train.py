@@ -12,7 +12,7 @@ import matplotlib.pyplot as plt
 
 import tensorflow as tf
 
-from magenta.lib import tf_lib
+from magenta.common import tf_lib
 
 import melody_q
 import rl_rnn_ops
