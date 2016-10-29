@@ -18,36 +18,36 @@
 licenses(["notice"])  # Apache 2.0
 
 py_binary(
-    name = "poly_rnn_train",
-    srcs = ["poly_rnn_train.py"],
+    name = "polyphonic_rnn_train",
+    srcs = ["polyphonic_rnn_train.py"],
     deps = [
-        ":poly_rnn_lib",
-        ":poly_rnn_graph",
+        ":polyphonic_rnn_lib",
+        ":polyphonic_rnn_graph",
         # tensorflow dep
     ],
 )
 
 py_binary(
-    name = "poly_rnn_generate",
-    srcs = ["poly_rnn_generate.py"],
+    name = "polyphonic_rnn_generate",
+    srcs = ["polyphonic_rnn_generate.py"],
     deps = [
-        ":poly_rnn_lib",
-        ":poly_rnn_graph",
+        ":polyphonic_rnn_lib",
+        ":polyphonic_rnn_graph",
         # tensorflow dep
     ],
 )
 
 py_library(
-    name = "poly_rnn_graph",
-    srcs = ["poly_rnn_graph.py"],
+    name = "polyphonic_rnn_graph",
+    srcs = ["polyphonic_rnn_graph.py"],
     deps = [
-        ":poly_rnn_lib",
+        ":polyphonic_rnn_lib",
     ],
 )
 
 py_library(
-    name = "poly_rnn_lib",
-    srcs = ["poly_rnn_lib.py"],
+    name = "polyphonic_rnn_lib",
+    srcs = ["polyphonic_rnn_lib.py"],
     deps = [
         "//magenta",
         # numpy dep
@@ -55,4 +55,3 @@ py_library(
         # tensorflow dep
     ],
 )
-

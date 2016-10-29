@@ -21,17 +21,17 @@ import time
 import numpy as np
 import tensorflow as tf
 
-from magenta.models.poly_rnn import poly_rnn_graph
-from magenta.models.poly_rnn import poly_rnn_lib
+from magenta.models.polyphonic_rnn import polyphonic_rnn_graph
+from magenta.models.polyphonic_rnn import polyphonic_rnn_lib
 
 FLAGS = tf.app.flags.FLAGS
 tf.app.flags.DEFINE_string(
     'note_sequence_input', None, 'Polyphonic tfrecord NoteSequence file.')
 tf.app.flags.DEFINE_string(
-    'checkpoint_dir', '/tmp/poly_rnn/checkpoints',
+    'checkpoint_dir', '/tmp/polyphonic_rnn/checkpoints',
     'Path to the directory where the latest checkpoint will be loaded from.')
 tf.app.flags.DEFINE_string(
-    'output_dir', '/tmp/poly_rnn/generated',
+    'output_dir', '/tmp/polyphonic_rnn/generated',
     'The directory where MIDI files will be saved to.')
 tf.app.flags.DEFINE_string(
     'log', 'INFO',
@@ -41,10 +41,10 @@ tf.app.flags.DEFINE_string(
 
 def sample(model_ckpt, runtime, note_sequence_input, sample_path, sample_len,
            temperature):
-  graph = poly_rnn_graph.Graph(note_sequence_input)
+  graph = polyphonic_rnn_graph.Graph(note_sequence_input)
   graph.valid_itr.reset()
   duration_mb, note_mb = graph.valid_itr.next()
-  poly_rnn_lib.duration_and_pitch_to_midi(
+  polyphonic_rnn_lib.duration_and_pitch_to_midi(
       sample_path + '/gt_%i.mid' % runtime, duration_mb[:, 0], note_mb[:, 0])
 
   with tf.Session() as sess:
@@ -57,7 +57,7 @@ def sample(model_ckpt, runtime, note_sequence_input, sample_path, sample_len,
     note_mb = note_mb[:prime]
     duration_mb = duration_mb[:prime]
     for n in range(duration_mb.shape[1]):
-      poly_rnn_lib.duration_and_pitch_to_midi(
+      polyphonic_rnn_lib.duration_and_pitch_to_midi(
           sample_path + '/pre%i_%i.mid' % (n, runtime),
           duration_mb[:, n], note_mb[:, n], prime)
 
@@ -88,9 +88,10 @@ def sample(model_ckpt, runtime, note_sequence_input, sample_path, sample_len,
         h_l = r[-1:]
         h1_l = h_l[-1]
         this_preds = r[:-1]
-        this_probs = [poly_rnn_lib.numpy_softmax(p, temperature=temperature)
-                      for p in this_preds]
-        this_samples = [poly_rnn_lib.numpy_sample_softmax(p, random_state)
+        this_probs = [
+            polyphonic_rnn_lib.numpy_softmax(p, temperature=temperature)
+            for p in this_preds]
+        this_samples = [polyphonic_rnn_lib.numpy_sample_softmax(p, random_state)
                         for p in this_probs]
         if j < (len(note_inputs) - 1):
           # bypass sampling for now - still in prime seq
@@ -108,7 +109,7 @@ def sample(model_ckpt, runtime, note_sequence_input, sample_path, sample_len,
       i_h1 = h1_l
 
     for n in range(full_durations.shape[1]):
-      poly_rnn_lib.duration_and_pitch_to_midi(
+      polyphonic_rnn_lib.duration_and_pitch_to_midi(
           sample_path + '/sampled%i_%i.mid' % (n, runtime),
           full_durations[:, n], full_notes[:, n], prime)
 
