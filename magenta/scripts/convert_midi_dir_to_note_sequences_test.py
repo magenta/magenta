@@ -19,7 +19,7 @@ import tempfile
 # internal imports
 import tensorflow as tf
 
-from magenta.lib import note_sequence_io
+from magenta.music import note_sequence_io
 from magenta.scripts import convert_midi_dir_to_note_sequences
 
 
@@ -83,9 +83,8 @@ class ConvertMidiDirToSequencesTest(tf.test.TestCase):
       for sequence in note_sequence_io.note_sequence_record_iterator(
           output_file.name):
         self.assertEquals(
-            note_sequence_io.generate_id(sequence.filename,
-                                         os.path.basename(relative_root),
-                                         'midi'),
+            note_sequence_io.generate_note_sequence_id(
+                sequence.filename, os.path.basename(relative_root), 'midi'),
             sequence.id)
         self.assertEquals(os.path.basename(root_dir), sequence.collection_name)
         self.assertNotEquals(0, len(sequence.notes))

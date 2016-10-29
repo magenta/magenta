@@ -27,8 +27,8 @@ import os
 # internal imports
 import tensorflow as tf
 
-from magenta.lib import midi_io
-from magenta.lib import note_sequence_io
+from magenta.music import midi_io
+from magenta.music import note_sequence_io
 
 FLAGS = tf.app.flags.FLAGS
 
@@ -88,8 +88,8 @@ def convert_directory(root_dir, sub_dir, sequence_writer, recursive=False):
       continue
     sequence.collection_name = os.path.basename(root_dir)
     sequence.filename = os.path.join(sub_dir, file_in_dir)
-    sequence.id = note_sequence_io.generate_id(sequence.filename,
-                                               sequence.collection_name, 'midi')
+    sequence.id = note_sequence_io.generate_note_sequence_id(
+        sequence.filename, sequence.collection_name, 'midi')
     sequence_writer.write(sequence)
     sequences_written += 1
   tf.logging.info("Converted %d MIDI files in '%s'.", sequences_written,
@@ -125,5 +125,8 @@ def main(unused_argv):
                     FLAGS.output_file)
 
 
+def console_entry_point():
+  tf.app.run(main)
+
 if __name__ == '__main__':
-  tf.app.run()
+  console_entry_point()

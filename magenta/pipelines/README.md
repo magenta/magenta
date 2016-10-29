@@ -5,7 +5,7 @@ Magenta has a lot of different models which require different types of inputs. S
 Files:
 
 * [pipeline.py](https://github.com/tensorflow/magenta/blob/master/magenta/pipelines/pipeline.py) defines the `Pipeline` abstract class and utility functions for running a `Pipeline` instance.
-* [pipelines_common.py](https://github.com/tensorflow/magenta/blob/master/magenta/pipelines/pipelines_common.py) contains some `Pipeline` implementations that convert to common data types, like `QuantizedSequence` and `MonophonicMelody`.
+* [pipelines_common.py](https://github.com/tensorflow/magenta/blob/master/magenta/pipelines/pipelines_common.py) contains some `Pipeline` implementations that convert to common data types, like `QuantizedSequence` and `Melody`.
 * [dag_pipeline.py](https://github.com/tensorflow/magenta/blob/master/magenta/pipelines/dag_pipeline.py) defines a `Pipeline` which connects arbitrary pipelines together inside it. These `Pipelines` can be connected into any directed acyclic graph (DAG).
 * [statistics.py](https://github.com/tensorflow/magenta/blob/master/magenta/pipelines/statistics.py) defines the `Statistic` abstract class and implementations. Statistics are useful for reporting about data processing.
 
@@ -143,16 +143,16 @@ ___Connecting pipelines together___
 
 `Pipeline` transforms A to B - input data to output data. But almost always it is cleaner to decompose this mapping into smaller pipelines, each with their own output representations. The recommended way to do this is to make a third `Pipeline` that runs the first two inside it. Magenta provides [DAGPipeline](https://github.com/tensorflow/magenta/blob/master/magenta/pipelines/dag_pipeline.py) - a `Pipeline` which takes a directed asyclic graph, or DAG, of `Pipeline` objects and runs it.
 
-Lets take a look at a real example. Magenta has `Quantizer` and `MonophonicMelodyExtractor` (defined [here](https://github.com/tensorflow/magenta/blob/master/magenta/pipelines/pipelines_common.py)). `Quantizer` takes note data in seconds and snaps, or quantizes, everything to a discrete grid of timesteps. It maps `NoteSequence` protocol buffers to [QuantizedSequence](https://github.com/tensorflow/magenta/blob/master/magenta/lib/sequences_lib.py) objects. `MonophonicMelodyExtractor` maps those `QuantizedSequence` objects to [MonophonicMelody](https://github.com/tensorflow/magenta/blob/master/magenta/lib/melodies_lib.py) objects. Finally, we want to partition the output into a training and test set. `MonophonicMelody` objects are fed into `RandomPartition`, yet another `Pipeline` which outputs a dictionary of two lists: training output and test output.
+Lets take a look at a real example. Magenta has `Quantizer` (defined [here](https://github.com/tensorflow/magenta/blob/master/magenta/pipelines/pipelines_common.py)) and `MelodyExtractor` (defined [here](https://github.com/tensorflow/magenta/blob/master/magenta/pipelines/melody_pipelines.py)). `Quantizer` takes note data in seconds and snaps, or quantizes, everything to a discrete grid of timesteps. It maps `NoteSequence` protocol buffers to [QuantizedSequence](https://github.com/tensorflow/magenta/blob/master/magenta/music/sequences_lib.py) objects. `MelodyExtractor` maps those `QuantizedSequence` objects to [Melody](https://github.com/tensorflow/magenta/blob/master/magenta/music/melodies_lib.py) objects. Finally, we want to partition the output into a training and test set. `Melody` objects are fed into `RandomPartition`, yet another `Pipeline` which outputs a dictionary of two lists: training output and test output.
 
-All of this is strung together in a `DAGPipeline` (code is [here](https://github.com/tensorflow/magenta/blob/master/magenta/models/shared/melody_rnn_create_dataset.py)). First each of the pipelines are intantiated with parameters:
+All of this is strung together in a `DAGPipeline` (code is [here](https://github.com/tensorflow/magenta/blob/master/magenta/models/shared/melody_rnn_create_dataset.py)). First each of the pipelines are instantiated with parameters:
 
 ```python
 quantizer = pipelines_common.Quantizer(steps_per_quarter=4)
-melody_extractor = pipelines_common.MonophonicMelodyExtractor(
+melody_extractor = pipelines_common.MelodyExtractor(
     min_bars=7, min_unique_pitches=5,
     gap_bars=1.0, ignore_polyphonic_notes=False)
-encoder_pipeline = EncoderPipeline(melody_encoder_decoder)
+encoder_pipeline = EncoderPipeline(config)
 partitioner = pipelines_common.RandomPartition(
     tf.train.SequenceExample,
     ['eval_melodies', 'training_melodies'],
