@@ -15,8 +15,7 @@
 
 from magenta.music import melodies_lib
 
-NUM_SPECIAL_EVENTS = melodies_lib.NUM_SPECIAL_EVENTS
-
+NUM_SPECIAL_EVENTS = 2
 MIN_NOTE = 48  # Inclusive
 MAX_NOTE = 84  # Exclusive
 TRANSPOSE_TO_KEY = 0  # C Major
