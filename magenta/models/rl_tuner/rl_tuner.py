@@ -83,7 +83,6 @@ class RLTuner(object):
   def __init__(self,
                # file paths and directories
                output_dir,
-               save_name,
                note_rnn_checkpoint_dir,
                midi_primer=None,
 
@@ -102,6 +101,7 @@ class RLTuner(object):
                num_actions=rl_tuner_ops.NUM_CLASSES,
 
                # Logistics.
+               save_name='rl_tuner.ckpt',
                output_every_nth=1000,
                backup_checkpoint_file=None,
                training_file_list=None,
@@ -112,7 +112,6 @@ class RLTuner(object):
 
     Args:
       output_dir: Where the model will save its compositions (midi files).
-      save_name: Name the model will use to save checkpoints.
       note_rnn_checkpoint_dir: The directory from which the internal NoteRNNLoader
         will load its checkpointed LSTM.
       midi_primer: A midi file that can be used to prime the model if
@@ -145,6 +144,7 @@ class RLTuner(object):
         to the model.
       num_actions: The size of the one-hot vector encoding a note that is
         output by the model.
+      save_name: Name the model will use to save checkpoints.
       output_every_nth: How many training steps before the model will print
         an output saying the cumulative reward, and save a checkpoint.
       backup_checkpoint_file: A checkpoint file to use in case one cannot be

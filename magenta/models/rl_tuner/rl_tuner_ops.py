@@ -1,4 +1,4 @@
-"""Helper functions to support the MelodyQNetwork and MelodyRNN classes."""
+"""Helper functions to support the RLTuner and NoteRNNLoader classes."""
 
 import os
 import random
