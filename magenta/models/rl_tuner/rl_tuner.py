@@ -184,7 +184,7 @@ class RLTuner(object):
         self.reward_mode = 'music_theory_only'
 
       if dqn_hparams is None:
-        self.dqn_hparams = rl_rnn_ops.default_dqn_hparams()
+        self.dqn_hparams = rl_tuner_ops.default_dqn_hparams()
       else:
         self.dqn_hparams = dqn_hparams
       self.discount_rate = tf.constant(self.dqn_hparams.discount_rate)
@@ -725,8 +725,8 @@ class RLTuner(object):
       if not sample_next_obs:
         return action, reward_scores
       else:
-        obs_note = rl_rnn_ops.sample_softmax(action_softmax)
-        next_obs = np.array(rl_rnn_ops.make_onehot([obs_note],
+        obs_note = rl_tuner_ops.sample_softmax(action_softmax)
+        next_obs = np.array(rl_tuner_ops.make_onehot([obs_note],
                                                    self.num_actions)).flatten()
         return action, next_obs, reward_scores
 
@@ -778,7 +778,7 @@ class RLTuner(object):
           (1, model.cell.state_size))
       priming_note = self.priming_notes[priming_idx]
       next_obs = np.array(
-          rl_rnn_ops.make_onehot([priming_note], self.num_actions)).flatten()
+          rl_tuner_ops.make_onehot([priming_note], self.num_actions)).flatten()
       if not suppress_output:
         tf.logging.info(
             'Feeding priming state for midi file %s and corresponding note %s',
@@ -866,20 +866,20 @@ class RLTuner(object):
       if most_probable:
         sample = np.argmax(softmax)
       else:
-        sample = rl_rnn_ops.sample_softmax(softmax)
+        sample = rl_tuner_ops.sample_softmax(softmax)
       generated_seq[i] = sample
-      next_obs = np.array(rl_rnn_ops.make_onehot([sample],
+      next_obs = np.array(rl_tuner_ops.make_onehot([sample],
                                                  self.num_actions)).flatten()
 
     tf.logging.info('Generated sequence: %s', generated_seq)
     print 'Generated sequence:', generated_seq
 
     melody = mlib.MonophonicMelody()
-    melody.from_event_list(rl_rnn_ops.decoder(generated_seq,
+    melody.from_event_list(rl_tuner_ops.decoder(generated_seq,
                                               self.q_network.transpose_amount))
 
     sequence = melody.to_sequence(qpm=self.q_network.bpm)
-    filename = rl_rnn_ops.get_next_file_name(self.output_dir, title, 'mid')
+    filename = rl_tuner_ops.get_next_file_name(self.output_dir, title, 'mid')
     midi_io.sequence_proto_to_midi_file(sequence, filename)
 
     tf.logging.info('Wrote a melody to %s', self.output_dir)
@@ -1023,7 +1023,7 @@ class RLTuner(object):
       random note
     """
     note_idx = np.random.randint(0, self.num_actions - 1)
-    return np.array(rl_rnn_ops.make_onehot([note_idx],
+    return np.array(rl_tuner_ops.make_onehot([note_idx],
                                            self.num_actions)).flatten()
 
   def train(self, num_steps=10000, exploration_period=5000, enable_random=True, verbose=False):
@@ -1585,7 +1585,7 @@ class RLTuner(object):
     lags = [1, 2, 3]
     sum_penalty = 0
     for lag in lags:
-      coeff = rl_rnn_ops.autocorrelate(composition, lag=lag)
+      coeff = rl_tuner_ops.autocorrelate(composition, lag=lag)
       if not np.isnan(coeff):
         if np.abs(coeff) > 0.15:
           sum_penalty += np.abs(coeff) * penalty_weight
@@ -2222,7 +2222,7 @@ class RLTuner(object):
 
     for lag in [1, 2, 3]:
       stat_dict['autocorrelation' + str(lag)].append(
-          rl_rnn_ops.autocorrelate(self.composition, lag))
+          rl_tuner_ops.autocorrelate(self.composition, lag))
 
     self.add_high_low_unique_stats(stat_dict)
 
@@ -2470,7 +2470,7 @@ class RLTuner(object):
       
       if test_composition is not None:
         obs_note = test_composition[i]
-        new_observation = np.array(rl_rnn_ops.make_onehot(
+        new_observation = np.array(rl_tuner_ops.make_onehot(
           [obs_note],self.num_actions)).flatten()
       
       composition = self.composition + [obs_note]
@@ -2514,7 +2514,7 @@ class RLTuner(object):
       print ""
 
       for lag in [1, 2, 3]:
-        print "Autocorr at lag", lag, rl_rnn_ops.autocorrelate(composition, lag)
+        print "Autocorr at lag", lag, rl_tuner_ops.autocorrelate(composition, lag)
       print ""
 
       self.composition.append(np.argmax(new_observation))

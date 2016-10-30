@@ -28,7 +28,7 @@ from magenta.music import sequences_lib
 from magenta.common import sequence_example_lib
 
 import note_rnn_encoder_decoder
-import rl_rnn_ops
+import rl_tuner_ops
 
 
 DEFAULT_BPM = 80.0
@@ -86,7 +86,7 @@ class NoteRNNLoader(object):
       self.hparams = hparams
     else:
       tf.logging.info('Empty hparams string. Using defaults')
-      self.hparams = rl_rnn_ops.default_hparams()
+      self.hparams = rl_tuner_ops.default_hparams()
 
     self.checkpoint_dir = os.path.join(experiment_dir, 'train')
     self.backup_checkpoint_file = backup_checkpoint_file
@@ -96,7 +96,7 @@ class NoteRNNLoader(object):
 
     self.load_primer()
 
-    self.variable_names = rl_rnn_ops.get_variable_names(self.graph, self.scope)
+    self.variable_names = rl_tuner_ops.get_variable_names(self.graph, self.scope)
 
     self.transpose_amount = 0
 
@@ -152,8 +152,8 @@ class NoteRNNLoader(object):
     """
     var_dict = dict()
     for var in self.variables():
-      inner_name = rl_rnn_ops.get_inner_scope(var.name)
-      inner_name = rl_rnn_ops.trim_variable_postfixes(inner_name)
+      inner_name = rl_tuner_ops.get_inner_scope(var.name)
+      inner_name = rl_tuner_ops.trim_variable_postfixes(inner_name)
       var_dict[self.checkpoint_scope + '/' + inner_name] = var
     return var_dict
 
@@ -167,7 +167,7 @@ class NoteRNNLoader(object):
         with tf.variable_scope(self.scope):
           # Make an LSTM cell with the number and size of layers specified in
           # hparams.
-          self.cell = rl_rnn_ops.make_cell(self.hparams)
+          self.cell = rl_tuner_ops.make_cell(self.hparams)
 
           # Shape of melody_sequence is batch size, melody length, number of
           # output note actions.
@@ -327,8 +327,8 @@ class NoteRNNLoader(object):
     """
 
     note_idx = np.argmax(softmax)
-    note_enc = rl_rnn_ops.make_onehot([note_idx], rl_rnn_ops.NUM_CLASSES)
-    return np.reshape(note_enc, (rl_rnn_ops.NUM_CLASSES))
+    note_enc = rl_tuner_ops.make_onehot([note_idx], rl_tuner_ops.NUM_CLASSES)
+    return np.reshape(note_enc, (rl_tuner_ops.NUM_CLASSES))
 
   def __call__(self):
     """Allows the network to be called, as in the following code snippet!
@@ -393,7 +393,7 @@ class NoteRNNLoader(object):
         singleton_lengths = np.full(self.batch_size, 1, dtype=int)
 
         input_batch = np.reshape(note,
-                                 (self.batch_size, 1, rl_rnn_ops.NUM_CLASSES))
+                                 (self.batch_size, 1, rl_tuner_ops.NUM_CLASSES))
 
         softmax, self.state_value = self.session.run(
             [self.softmax, self.state_tensor],
