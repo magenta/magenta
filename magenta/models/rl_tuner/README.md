@@ -1,4 +1,4 @@
-## Recurrent Reinforcement Learning for Generating Melodies
+### Recurrent Reinforcement Learning for Generating Melodies
 
 This code implements the models described in [this research paper][our arxiv].
 The idea is to take an LSTM that has been trained to predict the next note in a
@@ -32,9 +32,9 @@ In addition to the normal Q function, this code provides the ability to train
 the network with the [Psi learning][psi learning] and [G learning][g learning]
 functions. For more details, see [our paper][our arxiv].
 
-## Using the code
+## Understanding the code
 *   To initialize the RLTuner, pass it a directory containing a checkpoint of a 
-	trained Note RNN using the 'note_rnn_checkpoint_dir' parameter. It will 
+	trained Note RNN using the **note_rnn_checkpoint_dir** parameter. It will 
 	load the 'q_network', 'target_q_network', and 'reward_rnn', from this 
 	checkpoint.
 
