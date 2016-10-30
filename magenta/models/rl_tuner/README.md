@@ -30,38 +30,38 @@ improved and extended.
 
 In addition to the normal Q function, this code provides the ability to train 
 the network with the [Psi learning][psi learning] and [G learning][g learning]
-functions, which can be set with the **algorithm** hyperparameter. For details 
+functions, which can be set with the `algorithm` hyperparameter. For details 
 on each algorithm, see [our paper][our arxiv].
 
 ## Understanding the code
 *   To initialize the RLTuner, pass it a directory containing a checkpoint of a 
 	trained Note RNN using the `note_rnn_checkpoint_dir` parameter. It will 
-	load the **q_network**, **target_q_network**, and **reward_rnn**, from this 
+	load the `q_network`, `target_q_network`, and `reward_rnn` from this 
 	checkpoint.
 
-*	The tensorflow graph structure is defined in the **build_graph** function.
+*	The tensorflow graph structure is defined in the `build_graph` function.
 
-*	Use the **generate_music_sequence** function to generate a melody using the 
-	original Note RNN. If you set the **visualize_probs** parameter to True, it 
+*	Use the `generate_music_sequence` function to generate a melody using the 
+	original Note RNN. If you set the `visualize_probs` parameter to True, it 
 	will plot the note probabilities of the model over time.
 
-*	Train the model using the **train** function. It will continuously place 
-	notes using **action**, receive rewards using **collect_reward**, and save 
-	these experiences using **store**.
+*	Train the model using the `train` function. It will continuously place 
+	notes using `action`, receive rewards using `collect_reward`, and save 
+	these experiences using `store`.
 
-*	The network weights are updated using **training_step** which samples 
-	minibatches of experience from the model's **experience** buffer and uses 
-	this to compute gradients based on the loss function in **build_graph**.
+*	The network weights are updated using `training_step` which samples 
+	minibatches of experience from the model's `experience` buffer and uses 
+	this to compute gradients based on the loss function in `build_graph`.
 
-*	During training, the function **evaluate_model** is occasionally run to 
+*	During training, the function `evaluate_model` is occasionally run to 
 	test how much reward the model receives from both the Reward RNN and the 
 	music theory functions.
 
-*	After the model is trained, you can use the **save_model_and_figs** function
+*	After the model is trained, you can use the `save_model_and_figs` function
 	to save a checkpoint of the model and a set of figures of the rewards over 
 	time. 
 
-*	Finally, use **generate_music_sequence** again to see how the model's songs
+*	Finally, use `generate_music_sequence` again to see how the model's songs
 	have improved with training!
 
 ## How to run the model
