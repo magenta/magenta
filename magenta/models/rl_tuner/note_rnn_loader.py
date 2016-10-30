@@ -1,9 +1,9 @@
 """Defines a class and operations for the MelodyRNN model.
 
-Melody RNN allows a basic melody prediction LSTM RNN model to be loaded from a
-checkpoint file, primed, and used to predict next notes.
+Note RNN Loader allows a basic melody prediction LSTM RNN model to be loaded 
+from a checkpoint file, primed, and used to predict next notes.
 
-This class can be used as the q_network and target_q_network for the MelodyQ
+This class can be used as the q_network and target_q_network for the RLTuner
 class.
 
 The graph structure of this model is similar to basic_rnn, but more flexible.
@@ -27,22 +27,22 @@ from magenta.music import midi_io
 from magenta.music import sequences_lib
 from magenta.common import sequence_example_lib
 
-import melody_rnn_encoder_decoder
+import note_rnn_encoder_decoder
 import rl_rnn_ops
 
 
 DEFAULT_BPM = 80.0
 
 
-class MelodyRNN(object):
-  """Builds graph for a melody LSTM and instantiates weights from a checkpoint.
+class NoteRNNLoader(object):
+  """Builds graph for a Note RNN and instantiates weights from a checkpoint.
 
   Loads weights from a previously saved checkpoint file corresponding to a pre-
   trained basic_rnn model. Has functions that allow it to be primed with a MIDI
   melody, and allow it to be called to produce its predictions for the next
   note in a sequence.
 
-  Used as part of the MelodyQ class.
+  Used as part of the RLTuner class.
   """
 
   def __init__(self, graph, scope, experiment_dir, midi_primer,
@@ -300,7 +300,7 @@ class MelodyRNN(object):
         tf.logging.info('Priming the model with MIDI file %s', self.midi_primer)
 
       # Convert primer Melody to model inputs.
-      encoder = melody_rnn_encoder_decoder.MelodyEncoderDecoder()
+      encoder = note_rnn_encoder_decoder.MelodyEncoderDecoder()
       seq = encoder.encode(self.primer)
       features = seq.feature_lists.feature_list['inputs'].feature
       primer_input = [list(i.float_list.value) for i in features]
