@@ -50,13 +50,10 @@ explore by acting randomly, gradually annealing the probability of taking a
 random action over the course of the exploration period. After each composition
 is finished the q_network is reset and primed again.
 
-## Tips for training
-
-REDO
-
 ## Helpful links
 
-*   This model is based on the paper by [Mnih, Volodymyr, et al.]
-    (https://www.cs.toronto.edu/~vmnih/docs/dqn.pdf)
-*   The code was originally based on [this example]
+*   The code implements the model described in [this paper][our arxiv]
+*   The DQN code was originally based on [this example]
     (https://github.com/nivwusquorum/tensorflow-deepq/blob/master/tf_rl/)
+
+[our arxiv]: https://arxiv.org/abs/comingsoon
