@@ -64,8 +64,9 @@ on each algorithm, see [our paper][our arxiv].
 *	Finally, use `generate_music_sequence` again to see how the model's songs
 	have improved with training!
 
+
 ## How to run the model
-Or, you can simply run:
+To train the model you can use the provided jupyter notebook (`rl_tuner.ipynb`), or, you can simply run:
 
 ```
 bazel run magenta/models/rl_tuner:rl_tuner_train -- 
