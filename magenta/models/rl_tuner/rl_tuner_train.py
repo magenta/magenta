@@ -24,7 +24,7 @@ tf.app.flags.DEFINE_string('output_dir', '/home/natasha/Dropbox (MIT)/Google/RL-
                            'compositions (midi files)')
 tf.app.flags.DEFINE_string('checkpoint_name', '/home/natasha/Dropbox (MIT)/Google/RL-RNN-Projec/rl_rnn_output/rl_tuner_model.ckpt',
                            'Directory where the model will save checkpoints')
-tf.app.flags.DEFINE_string('note_rnn_checkpoint_dir', './testdata',
+tf.app.flags.DEFINE_string('note_rnn_checkpoint_dir', '/home/natasha/Developer/magenta_my_fork/magenta/magenta/models/rl_tuner/testdata',
                            'Path to directory holding checkpoints for note rnn'
                            'melody prediction models. These will be loaded into'
                            'the NoteRNNLoader class object. The directory should'
