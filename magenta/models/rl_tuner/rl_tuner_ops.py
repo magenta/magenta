@@ -78,6 +78,29 @@ def autocorrelate(signal, lag=1):
 
   return (x[lag:] * x[:n - lag]).sum() / float(n) / c0
 
+
+def linear_annealing(n, total, p_initial, p_final):
+    """Linearly interpolates a probability between p_initial and p_final.
+
+    Current probability is based on the current step, n. Used to linearly anneal
+    the exploration probability of the RLTuner.
+
+    Args:
+      n: The current step.
+      total: The total number of steps that will be taken (usually the length of
+        the exploration period).
+      p_initial: The initial probability.
+      p_final: The final probability.
+
+    Returns:
+      The current probability (between p_initial and p_final).
+    """
+    if n >= total:
+      return p_final
+    else:
+      return p_initial - (n * (p_initial - p_final)) / (total)
+
+
 def softmax(x):
     """Compute softmax values for each sets of scores in x."""
     e_x = np.exp(x - np.max(x))

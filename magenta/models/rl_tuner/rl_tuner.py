@@ -1,4 +1,9 @@
-"""Defines a Deep Q Network to create melodies using reinforcement learning.
+"""Defines a Deep Q Network (DQN) with augmented reward to create melodies 
+by using reinforcement learning to fine-tune a trained Note RNN according
+to some music theory rewards. 
+
+Also implements two alternatives to Q learning: Psi and G learning. The 
+algorithm can be switched using the 'algorithm' hyperparameter. 
 
 For more information, please consult the README.md file in this directory.
 """
@@ -20,8 +25,8 @@ import tensorflow as tf
 from magenta.music import melodies_lib as mlib
 from magenta.music import midi_io
 
-import melody_rnn
-import rl_rnn_ops
+import note_rnn_loader
+import rl_tuner_ops
 
 # Music theory constants used in defining reward functions.
 # Note that action 2 = midi note 48.
@@ -65,19 +70,21 @@ TRAIN_SEQUENCE_LENGTH = 192
 
 
 def reload_files():
-  """Used to reload the imported dependency files (necessary for colab)."""
-  reload(melody_rnn)
-  reload(rl_rnn_ops)
+  """Used to reload the imported dependency files (necessary for jupyter 
+  notebooks).
+  """
+  reload(note_rnn_loader)
+  reload(rl_tuner_ops)
 
 
-class MelodyQNetwork(object):
+class RLTuner(object):
   """Implements a recurrent DQN designed to produce melody sequences."""
 
   def __init__(self,
                # file paths and directories
                output_dir,
-               log_dir,
-               melody_checkpoint_dir,
+               save_name,
+               note_rnn_checkpoint_dir,
                midi_primer=None,
 
                # Hyperparameters
@@ -91,8 +98,8 @@ class MelodyQNetwork(object):
 
                # Other music related settings.
                num_notes_in_melody=32,
-               input_size=rl_rnn_ops.NUM_CLASSES,
-               num_actions=rl_rnn_ops.NUM_CLASSES,
+               input_size=rl_tuner_ops.NUM_CLASSES,
+               num_actions=rl_tuner_ops.NUM_CLASSES,
 
                # Logistics.
                output_every_nth=1000,
@@ -105,8 +112,8 @@ class MelodyQNetwork(object):
 
     Args:
       output_dir: Where the model will save its compositions (midi files).
-      log_dir: Where the model will save checkpoints.
-      melody_checkpoint_dir: The directory from which the internal MelodyRNN
+      save_name: Name the model will use to save checkpoints.
+      note_rnn_checkpoint_dir: The directory from which the internal NoteRNNLoader
         will load its checkpointed LSTM.
       midi_primer: A midi file that can be used to prime the model if
         priming_mode is set to 'single_midi'.
@@ -119,6 +126,7 @@ class MelodyQNetwork(object):
         Gauldin's book, "A Practical Approach to Eighteenth Century
         Counterpoint".
       reward_scaler: Controls the emphasis placed on the music theory rewards. 
+        This value is the inverse of 'c' in the academic paper.
       exploration_mode: can be 'egreedy' which is an epsilon greedy policy, or
         it can be 'boltzmann', in which the model will sample from its output
         distribution to choose the next action.
@@ -140,7 +148,7 @@ class MelodyQNetwork(object):
       output_every_nth: How many training steps before the model will print
         an output saying the cumulative reward, and save a checkpoint.
       backup_checkpoint_file: A checkpoint file to use in case one cannot be
-        found in the melody_checkpoint_dir.
+        found in the note_rnn_checkpoint_dir.
       training_file_list: A list of paths to tfrecord files containing melody 
         training data. This is necessary to use the 'random_midi' priming mode.
       summary_writer: A tf.train.SummaryWriter used to log metrics.
@@ -158,7 +166,7 @@ class MelodyQNetwork(object):
       self.num_actions = num_actions
       self.output_every_nth = output_every_nth
       self.output_dir = output_dir
-      self.log_dir = log_dir
+      self.save_path = os.path.join(output_dir, save_name)
       self.reward_scaler = reward_scaler
       self.reward_mode = reward_mode
       self.exploration_mode = exploration_mode
@@ -167,7 +175,7 @@ class MelodyQNetwork(object):
       self.algorithm = algorithm
       self.priming_mode = priming_mode
       self.midi_primer = midi_primer
-      self.melody_checkpoint_dir = melody_checkpoint_dir
+      self.note_rnn_checkpoint_dir = note_rnn_checkpoint_dir
       self.training_file_list = training_file_list
       self.backup_checkpoint_file = backup_checkpoint_file
       self.custom_hparams = custom_hparams
@@ -188,27 +196,26 @@ class MelodyQNetwork(object):
       # DQN state.
       self.actions_executed_so_far = 0
       self.experience = deque()
-
       self.iteration = 0
       self.summary_writer = summary_writer
-
       self.num_times_store_called = 0
       self.num_times_train_called = 0
 
+    # Stored reward metrics.
     self.reward_last_n = 0
     self.rewards_batched = []
     self.music_theory_reward_last_n = 0
     self.music_theory_rewards_batched = []
     self.note_rnn_reward_last_n = 0
     self.note_rnn_rewards_batched = []
-
     self.eval_avg_reward = []
     self.eval_avg_music_theory_reward = []
     self.eval_avg_note_rnn_reward = []
-
     self.target_val_list = []
 
-    # variables to keep track of characteristics of the current composition
+    # Variables to keep track of characteristics of the current composition
+    #TODO(natashajaques): Implement composition as a class to obtain data 
+    # encapsulation so that you can't accidentally change the leap direction.
     self.beat = 0
     self.composition = []
     self.composition_direction = 0
@@ -239,8 +246,8 @@ class MelodyQNetwork(object):
     with self.graph.as_default():
       # Add internal networks to the graph.
       tf.logging.info('Initializing q network')
-      self.q_network = melody_rnn.MelodyRNN(self.graph, 'q_network',
-                                            self.melody_checkpoint_dir,
+      self.q_network = note_rnn_loader.NoteRNNLoader(self.graph, 'q_network',
+                                            self.note_rnn_checkpoint_dir,
                                             self.midi_primer,
                                             training_file_list=
                                             self.training_file_list,
@@ -250,9 +257,9 @@ class MelodyQNetwork(object):
                                             hparams=self.custom_hparams)
 
       tf.logging.info('Initializing target q network')
-      self.target_q_network = melody_rnn.MelodyRNN(self.graph,
+      self.target_q_network = note_rnn_loader.NoteRNNLoader(self.graph,
                                                    'target_q_network',
-                                                   self.melody_checkpoint_dir,
+                                                   self.note_rnn_checkpoint_dir,
                                                    self.midi_primer,
                                                    training_file_list=
                                                    self.training_file_list,
@@ -262,9 +269,9 @@ class MelodyQNetwork(object):
                                                    hparams=self.custom_hparams)
 
       tf.logging.info('Initializing reward network')
-      self.reward_rnn = melody_rnn.MelodyRNN(self.graph,
+      self.reward_rnn = note_rnn_loader.NoteRNNLoader(self.graph,
                                              'reward_rnn',
-                                             self.melody_checkpoint_dir,
+                                             self.note_rnn_checkpoint_dir,
                                              self.midi_primer,
                                              training_file_list=
                                              self.training_file_list,
@@ -314,7 +321,13 @@ class MelodyQNetwork(object):
     """Restores this model from a saved checkpoint.
 
     Args:
-      checkpoint_dir: The directory containing the saved checkpoint.
+      directory: Path to directory where checkpoint is located. If 
+        None, defaults to self.output_dir.
+      checkpoint_name: The name of the checkpoint within the 
+        directory.
+      reward_file_name: The name of the .npz file where the stored
+        rewards are saved. If None, will not attempt to load stored
+        rewards.
     """
     if directory is None:
       directory = self.output_dir
@@ -347,6 +360,13 @@ class MelodyQNetwork(object):
 
 
   def save_model(self, name, directory=None):
+    """Saves a checkpoint of the model and a .npz file with stored rewards.
+
+    Args:
+      name: String name to use for the checkpoint and rewards files.
+      directory: Path to directory where the data will be saved. Defaults to
+        self.output_dir if None is provided.
+    """
     if directory is None:
       directory = self.output_dir
 
@@ -357,6 +377,11 @@ class MelodyQNetwork(object):
     self.save_stored_rewards(name)
 
   def save_stored_rewards(self, file_name):
+    """Saves the models stored rewards over time in a .npz file.
+
+    Args:
+      file_name: Name of the file that will be saved.
+    """
     training_epochs = len(self.rewards_batched) * self.output_every_nth
     filename = os.path.join(self.output_dir, file_name + '-' + str(training_epochs))
     np.savez(filename,
@@ -369,6 +394,15 @@ class MelodyQNetwork(object):
              target_val_list=self.target_val_list)
 
   def save_model_and_figs(self, name, directory=None):
+    """Saves the model checkpoint, .npz file, and reward plots.
+
+    Args:
+      name: Name of the model that will be used on the images,
+        checkpoint, and .npz files.
+      directory: Path to directory where files will be saved. 
+        If None defaults to self.output_dir.
+    """
+
     self.save_model(name, directory=directory)
     self.plot_rewards(image_name='TrainRewards-' + name + '.eps', directory=directory)
     self.plot_evaluation(image_name='EvaluationRewards-' + name + '.eps', directory=directory)
@@ -377,9 +411,16 @@ class MelodyQNetwork(object):
   def plot_rewards(self, image_name=None, directory=None):
     """Plots the cumulative rewards received as the model was trained.
 
-    Can be used in colab. If called outside of colab, execution of the program
-    will halt and a pop-up with the graph will appear. Execution will not
-    continue until the pop-up is closed.
+    If image_name is None, should be used in jupyter notebook. If 
+    called outside of jupyter, execution of the program will halt and 
+    a pop-up with the graph will appear. Execution will not continue 
+    until the pop-up is closed.
+
+    Args:
+      image_name: Name to use when saving the plot to a file. If not
+        provided, image will be shown immediately.
+      directory: Path to directory where figure should be saved. If
+        None, defaults to self.output_dir.
     """
     if directory is None:
       directory = self.output_dir
@@ -399,11 +440,19 @@ class MelodyQNetwork(object):
       plt.show()
 
   def plot_evaluation(self, image_name=None, directory=None, start_at_epoch=0):
-    """Plots the cumulative rewards received as the model was trained.
+    """Plots the rewards received as the model was evaluated during training.
 
-    Can be used in colab. If called outside of colab, execution of the program
-    will halt and a pop-up with the graph will appear. Execution will not
-    continue until the pop-up is closed.
+    If image_name is None, should be used in jupyter notebook. If 
+    called outside of jupyter, execution of the program will halt and 
+    a pop-up with the graph will appear. Execution will not continue 
+    until the pop-up is closed.
+
+    Args:
+      image_name: Name to use when saving the plot to a file. If not
+        provided, image will be shown immediately.
+      directory: Path to directory where figure should be saved. If
+        None, defaults to self.output_dir.
+      start_at_epoch: Training epoch where the plot should begin.
     """
     if directory is None:
       directory = self.output_dir
@@ -424,6 +473,19 @@ class MelodyQNetwork(object):
       plt.show()
 
   def plot_target_vals(self, image_name=None, directory=None):
+    """Plots the target values used to train the model over time.
+
+    If image_name is None, should be used in jupyter notebook. If 
+    called outside of jupyter, execution of the program will halt and 
+    a pop-up with the graph will appear. Execution will not continue 
+    until the pop-up is closed.
+
+    Args:
+      image_name: Name to use when saving the plot to a file. If not
+        provided, image will be shown immediately.
+      directory: Path to directory where figure should be saved. If
+        None, defaults to self.output_dir.
+    """
     if directory is None:
       directory = self.output_dir
 
@@ -440,7 +502,15 @@ class MelodyQNetwork(object):
       plt.show()
 
   def prime_internal_models(self, suppress_output=True):
-    """Primes both internal models with their default midi file primer."""
+    """Primes both internal models based on self.priming_mode.
+
+    Args:
+      suppress_output: If False, debugging statements will be printed.
+
+    Returns:
+      A one-hot encoding of the note output by the q_network to be used as 
+      the initial observation. 
+    """
     self.prime_internal_model(self.target_q_network, suppress_output=suppress_output)
     self.prime_internal_model(self.reward_rnn, suppress_output=suppress_output)
     next_obs = self.prime_internal_model(self.q_network, suppress_output=suppress_output)
@@ -475,7 +545,7 @@ class MelodyQNetwork(object):
     tf.logging.info('Stored priming notes: %s', self.priming_notes)
 
   def build_graph(self):
-    """Builds the reinforcement learning graph."""
+    """Builds the reinforcement learning tensorflow graph."""
 
     tf.logging.info('Adding reward computation portion of the graph')
     with tf.name_scope('reward_computation'):
@@ -488,6 +558,7 @@ class MelodyQNetwork(object):
       self.action_scores = tf.identity(self.q_network(), name='action_scores')
       tf.histogram_summary('action_scores', self.action_scores)
 
+      # The action values for the G algorithm are computed differently.
       if self.algorithm == 'g':
         self.g_action_scores = self.action_scores + self.reward_scores
 
@@ -499,6 +570,7 @@ class MelodyQNetwork(object):
                                                       name='predicted_actions'),
                                                       self.num_actions)
       else:
+        # Compute predicted action, which is the argmax of the action scores.
         self.action_softmax = tf.nn.softmax(self.action_scores,
                                             name='action_softmax')
         self.predicted_actions = tf.one_hot(tf.argmax(self.action_scores,
@@ -516,8 +588,8 @@ class MelodyQNetwork(object):
       # Rewards are observed from the environment and are fed in later.
       self.rewards = tf.placeholder(tf.float32, (None,), name='rewards')
 
-      # Total rewards are the observed rewards plus discounted estimated future
-      # rewards.
+      # Each algorithm is attempting to model future rewards with a different 
+      # function.
       if self.algorithm == 'psi':
         self.target_vals = tf.reduce_logsumexp(self.next_action_scores,
                                        reduction_indices=[1,])
@@ -528,9 +600,11 @@ class MelodyQNetwork(object):
         self.g_action_scores = tf.sub((self.next_action_scores + self.reward_scores), self.g_normalizer)
         self.target_vals = tf.reduce_logsumexp(self.g_action_scores, reduction_indices=[1,])
       else:
-        # use default based on q learning
+        # Use default based on Q learning.
         self.target_vals = tf.reduce_max(self.next_action_scores, reduction_indices=[1,])
         
+      # Total rewards are the observed rewards plus discounted estimated future
+      # rewards.
       self.future_rewards = self.rewards + self.discount_rate * self.target_vals
 
     tf.logging.info('Adding q value prediction portion of graph')
@@ -585,28 +659,6 @@ class MelodyQNetwork(object):
     self.summarize = tf.merge_all_summaries()
     self.no_op1 = tf.no_op()
 
-  @staticmethod
-  def linear_annealing(n, total, p_initial, p_final):
-    """Linearly interpolates a probability between p_initial and p_final.
-
-    Current probability is based on the current step, n. Used to linearly anneal
-    the exploration probability of the MelodyQNetwork.
-
-    Args:
-      n: The current step.
-      total: The total number of steps that will be taken (usually the length of
-        the exploration period).
-      p_initial: The initial probability.
-      p_final: The final probability.
-
-    Returns:
-      The current probability (between p_initial and p_final).
-    """
-    if n >= total:
-      return p_final
-    else:
-      return p_initial - (n * (p_initial - p_final)) / (total)
-
   def action(self, observation, exploration_period=0, enable_random=True,
              sample_next_obs=False):
     """Given an observation, runs the q_network to choose the current action.
@@ -623,8 +675,8 @@ class MelodyQNetwork(object):
         along with the action. If False, only the action is passed back.
 
     Returns:
-      The action chosen, and if sample_next_obs is True, also returns the next
-      observation.
+      The action chosen, the reward_scores returned by the reward_rnn, and if 
+      sample_next_obs is True, also returns the next observation.
     """
     assert len(observation.shape) == 1, 'Single observation only'
 
@@ -632,7 +684,7 @@ class MelodyQNetwork(object):
 
     if self.exploration_mode == 'egreedy':
       # Compute the exploration probability.
-      exploration_p = MelodyQNetwork.linear_annealing(
+      exploration_p = rl_tuner_ops.linear_annealing(
           self.actions_executed_so_far, exploration_period, 1.0,
           self.dqn_hparams.random_action_probability)
     elif self.exploration_mode == 'boltzmann':
@@ -707,9 +759,10 @@ class MelodyQNetwork(object):
     return rewards
 
   def prime_internal_model(self, model, suppress_output=True):
-    """Prime the internal MelodyRNN q_network based on the model's priming mode.
+    """Prime an internal model such as the q_network based on priming mode.
 
     Args:
+      model: The internal model that should be primed. 
       suppress_output: If False, statements about how the network is being
         primed will be printed to std out.
 
@@ -753,7 +806,7 @@ class MelodyQNetwork(object):
     self.leapt_from = None
     self.steps_since_last_leap = 0
 
-  def generate_music_sequence(self, title='melodyq_sample', visualize_probs=False,
+  def generate_music_sequence(self, title='rltuner_sample', visualize_probs=False,
     prob_image_name=None, length=None, most_probable=False):
     """Generates a music sequence with the current model, and saves it to MIDI.
 
@@ -986,6 +1039,7 @@ class MelodyQNetwork(object):
         random_action_probability.
       enable_random: If False, the model will not be able to act randomly /
         explore.
+      verbose: If True, will output debugging statements
     """
     print "Evaluating initial model..."
     self.evaluate_model()
@@ -1019,12 +1073,12 @@ class MelodyQNetwork(object):
       new_reward_state = np.array(self.reward_rnn.state_value).flatten()
 
       if verbose:
-        print "action (in train func):", np.argmax(action)
-        print "new obs (in train func):", np.argmax(new_observation)
+        print "Action (in train func):", np.argmax(action)
+        print "New obs (in train func):", np.argmax(new_observation)
         print "reward_rnn output for action (in train func):", self.reward_from_reward_rnn_scores(action, reward_scores)
         print "reward_rnn output for new obs (in train func):", self.reward_from_reward_rnn_scores(new_observation, reward_scores)
-        print "diff between successive reward_rnn states:", np.sum((reward_rnn_state - new_reward_state)**2)
-        print "diff between reward_rnn state and q_network state:", np.sum((new_state - new_reward_state)**2)
+        print "Diff between successive reward_rnn states:", np.sum((reward_rnn_state - new_reward_state)**2)
+        print "Diff between reward_rnn state and q_network state:", np.sum((new_state - new_reward_state)**2)
 
       reward = self.collect_reward(last_observation, new_observation, reward_scores, verbose=verbose)
 
@@ -1046,7 +1100,7 @@ class MelodyQNetwork(object):
 
         # Save a checkpoint.
         save_step = len(self.rewards_batched)*self.output_every_nth
-        self.saver.save(self.session, self.log_dir, global_step=save_step)
+        self.saver.save(self.session, self.save_path, global_step=save_step)
 
         if self.algorithm == 'g':
           self.rewards_batched.append(self.music_theory_reward_last_n + self.note_rnn_reward_last_n)
@@ -1067,7 +1121,7 @@ class MelodyQNetwork(object):
         print '\t\tNote RNN reward:', self.note_rnn_reward_last_n
 
         if self.exploration_mode == 'egreedy':
-          exploration_p = MelodyQNetwork.linear_annealing(
+          exploration_p = rl_tuner_ops.linear_annealing(
               self.actions_executed_so_far, exploration_period, 1.0,
               self.dqn_hparams.random_action_probability)
           tf.logging.info('\tExploration probability is %s', exploration_p)
@@ -1090,6 +1144,19 @@ class MelodyQNetwork(object):
         last_observation = self.prime_internal_models()
 
   def evaluate_model(self, num_trials=100, sample_next_obs=True):
+    """Used to evaluate the rewards the model receives without exploring.
+
+    Generates num_trials compositions and computes the note_rnn and music
+    theory rewards. Uses no exploration so rewards directly relate to the 
+    model's policy. Stores result in internal variables.
+
+    Args:
+      num_trials: The number of compositions to use for evaluation.
+      sample_next_obs: If True, the next note the model plays will be 
+        sampled from its output distribution. If False, the model will 
+        deterministically choose the note with maximum value.
+    """
+
     note_rnn_rewards = [0] * num_trials
     music_theory_rewards = [0] * num_trials
     total_rewards = [0] * num_trials
@@ -1145,11 +1212,13 @@ class MelodyQNetwork(object):
     Args:
       obs: A one-hot encoding of the observed note.
       action: A one-hot encoding of the chosen action.
+      reward_scores: The value for each note output by the reward_rnn.
       verbose: If True, additional logging statements about the reward after
         each function will be printed.
     Returns:
       Float reward value.
     """
+    # Gets and saves log p(a|s) as output by reward_rnn.
     note_rnn_reward = self.reward_from_reward_rnn_scores(action, reward_scores)
     self.note_rnn_reward_last_n += note_rnn_reward
 
@@ -1218,6 +1287,23 @@ class MelodyQNetwork(object):
     self.music_theory_reward_last_n += reward * self.reward_scaler
     return reward * self.reward_scaler
 
+  def reward_from_reward_rnn_scores(self, action, reward_scores):
+    """Rewards based on probabilities learned from data by trained RNN
+
+    Computes the reward_network's learned softmax probabilities. When used as
+    rewards, allows the model to maintain information it learned from data.
+
+    Args:
+      obs: One-hot encoding of the observed note.
+      action: One-hot encoding of the chosen action.
+      state: Vector representing the internal state of the q_network.
+    Returns:
+      Float reward value.
+    """
+    action_note = np.argmax(action)
+    normalization_constant = logsumexp(reward_scores)
+    return reward_scores[action_note] - normalization_constant
+
   def reward_music_theory(self, action, verbose=False):
     reward = self.reward_key(action)
     if verbose:
@@ -1266,24 +1352,6 @@ class MelodyQNetwork(object):
       print 'Reward high low unique:', reward
 
     return reward
-
-  def reward_from_reward_rnn_scores(self, action, reward_scores):
-    """Rewards based on probabilities learned from data by trained RNN
-
-    Rewards are based on the reward_network's learned softmax 
-    probabilities, allowing the model to maintain information it learned 
-    from data.
-
-    Args:
-      obs: One-hot encoding of the observed note.
-      action: One-hot encoding of the chosen action.
-      state: Vector representing the internal state of the q_network.
-    Returns:
-      Float reward value.
-    """
-    action_note = np.argmax(action)
-    normalization_constant = logsumexp(reward_scores)
-    return reward_scores[action_note] - normalization_constant
 
   def random_reward_shift_to_mean(self, reward):
     """Modifies reward by a small random values s to pull it towards the mean.
@@ -1942,6 +2010,7 @@ class MelodyQNetwork(object):
         leap.
       leaping_twice_punishment: Amount of reward received for leaping twice in
         the same direction.
+      verbose: If True, model will print additional debugging statements.
     Returns:
       Float reward value.
     """
@@ -1962,6 +2031,41 @@ class MelodyQNetwork(object):
     # rewards this. Could have some kind of interval_stats stored by
     # reward_preferred_intervals function.
     pass
+
+  def compute_composition_stats(self,
+                                num_compositions=10000,
+                                composition_length=32,
+                                key=None,
+                                tonic_note=C_MAJOR_TONIC):
+    """Uses the model to create many compositions, stores statistics about them.
+
+    Args:
+      num_compositions: The number of compositions to create.
+      composition_length: The number of beats in each composition.
+      key: The numeric values of notes belonging to this key. Defaults to
+        C-major if not provided.
+      tonic_note: The tonic/1st note of the desired key.
+    Returns:
+      A dictionary containing the computed statistics about the compositions.
+    """
+    stat_dict = self.initialize_stat_dict()
+
+    for i in range(num_compositions):
+      stat_dict = self.compose_and_evaluate_piece(
+          stat_dict,
+          composition_length=composition_length,
+          key=key,
+          tonic_note=tonic_note)
+      if i % (num_compositions / 10) == 0:
+        stat_dict['num_compositions'] = i
+        stat_dict['total_notes'] = i * composition_length
+
+    stat_dict['num_compositions'] = num_compositions
+    stat_dict['total_notes'] = num_compositions * composition_length
+
+    tf.logging.info(self.get_stat_dict_string(stat_dict))
+
+    return stat_dict
 
   # The following functions compute evaluation metrics to test whether the model
   # trained successfully.
@@ -2059,40 +2163,6 @@ class MelodyQNetwork(object):
 
     return return_str
 
-  def compute_composition_stats(self,
-                                num_compositions=10000,
-                                composition_length=32,
-                                key=None,
-                                tonic_note=C_MAJOR_TONIC):
-    """Uses the model to create many compositions, stores statistics about them.
-
-    Args:
-      num_compositions: The number of compositions to create.
-      composition_length: The number of beats in each composition.
-      key: The numeric values of notes belonging to this key. Defaults to
-        C-major if not provided.
-      tonic_note: The tonic/1st note of the desired key.
-    Returns:
-      A dictionary containing the computed statistics about the compositions.
-    """
-    stat_dict = self.initialize_stat_dict()
-
-    for i in range(num_compositions):
-      stat_dict = self.compose_and_evaluate_piece(
-          stat_dict,
-          composition_length=composition_length,
-          key=key,
-          tonic_note=tonic_note)
-      if i % (num_compositions / 10) == 0:
-        stat_dict['num_compositions'] = i
-        stat_dict['total_notes'] = i * composition_length
-
-    stat_dict['num_compositions'] = num_compositions
-    stat_dict['total_notes'] = num_compositions * composition_length
-
-    tf.logging.info(self.get_stat_dict_string(stat_dict))
-
-    return stat_dict
 
   def compose_and_evaluate_piece(self,
                                  stat_dict,
@@ -2339,6 +2409,15 @@ class MelodyQNetwork(object):
     return stat_dict
 
   def add_high_low_unique_stats(self, stat_dict):
+    """Updates stat dict if self.composition has unique extrema notes.
+
+    Args:
+      stat_dict: A dictionary containing fields for statistics about
+        compositions.
+    Returns:
+      A dictionary of composition statistics with 'notes_in_repeated_motif'
+      field updated.
+    """
     if self.detect_high_unique(self.composition):
       stat_dict['num_high_unique'] += 1
     if self.detect_low_unique(self.composition):
@@ -2352,13 +2431,25 @@ class MelodyQNetwork(object):
                                 tonic_note=C_MAJOR_TONIC,
                                 sample_next_obs=True,
                                 test_composition=None):
-    """Composes a piece and prints how it is evaluated with music theory functions
+    """Composes a piece and prints rewards from music theory functions.
+
+    Args:
+      composition_length: Desired number of notes int he piece.
+      key: The numeric values of notes belonging to this key. Defaults to C
+        Major if not provided.    
+      tonic_note: The tonic/1st note of the desired key.
+      sample_next_obs: If True, the next observation will be sampled from 
+        the model's output distribution. Otherwise the action with 
+        maximum value will be chosen deterministically.
+      test_composition: A composition (list of note values) can be passed 
+        in, in which case the function will evaluate the rewards that would
+        be received from playing this composition.
     """
     last_observation = self.prime_internal_models(suppress_output=True)
     self.reset_composition()
 
     for i in range(composition_length):
-      print "last observation", np.argmax(last_observation)
+      print "Last observation", np.argmax(last_observation)
       state = self.q_network.state_value
       
       if sample_next_obs:
@@ -2384,10 +2475,10 @@ class MelodyQNetwork(object):
       
       composition = self.composition + [obs_note]
       
-      print "new_observation", np.argmax(new_observation)
-      print "composition was", self.composition
-      print "action was", action_note
-      print "new composition", composition
+      print "New_observation", np.argmax(new_observation)
+      print "Composition was", self.composition
+      print "Action was", action_note
+      print "New composition", composition
       print ""
 
       # note to self: using new_observation rather than action because we want
@@ -2398,12 +2489,12 @@ class MelodyQNetwork(object):
       print "Key, tonic, and non-repeating rewards:"
       key_reward = self.reward_key(new_observation)
       if key_reward != 0.0:
-        print "key reward:", key_reward
+        print "Key reward:", key_reward
       tonic_reward = self.reward_tonic(new_observation)
       if tonic_reward != 0.0:
-        print "tonic note reward:", tonic_reward
+        print "Tonic note reward:", tonic_reward
       if self.detect_repeating_notes(obs_note):
-        print "repeating notes detected!"
+        print "Repeating notes detected!"
       print ""
 
       print "Interval reward:"
@@ -2413,7 +2504,7 @@ class MelodyQNetwork(object):
       print "Leap & motif rewards:"
       leap_reward = self.reward_leap_up_back(new_observation, verbose=True)
       if leap_reward != 0.0:
-        print "leap reward is:", leap_reward
+        print "Leap reward is:", leap_reward
       last_motif, num_unique_notes = self.detect_last_motif(composition)
       if last_motif is not None:
         print "Motif detected with", num_unique_notes, "notes"
@@ -2423,7 +2514,7 @@ class MelodyQNetwork(object):
       print ""
 
       for lag in [1, 2, 3]:
-        print "autocorr at lag", lag, rl_rnn_ops.autocorrelate(composition, lag)
+        print "Autocorr at lag", lag, rl_rnn_ops.autocorrelate(composition, lag)
       print ""
 
       self.composition.append(np.argmax(new_observation))
