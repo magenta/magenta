@@ -30,44 +30,47 @@ improved and extended.
 
 In addition to the normal Q function, this code provides the ability to train 
 the network with the [Psi learning][psi learning] and [G learning][g learning]
-functions. For more details, see [our paper][our arxiv].
+functions, which can be set with the **algorithm** hyperparameter. For details 
+on each algorithm, see [our paper][our arxiv].
 
 ## Understanding the code
 *   To initialize the RLTuner, pass it a directory containing a checkpoint of a 
-	trained Note RNN using the **note_rnn_checkpoint_dir** parameter. It will 
-	load the 'q_network', 'target_q_network', and 'reward_rnn', from this 
+	trained Note RNN using the `note_rnn_checkpoint_dir` parameter. It will 
+	load the **q_network**, **target_q_network**, and **reward_rnn**, from this 
 	checkpoint.
 
-*	The tensorflow graph structure is defined in the 'build_graph' function.
+*	The tensorflow graph structure is defined in the **build_graph** function.
 
-*	Use the 'generate_music_sequence' function to generate a melody using the 
-	original Note RNN. If you set the 'visualize_probs' parameter to True, it 
+*	Use the **generate_music_sequence** function to generate a melody using the 
+	original Note RNN. If you set the **visualize_probs** parameter to True, it 
 	will plot the note probabilities of the model over time.
 
-*	Train the model using the 'train' function. It will continuously place 
-	notes using the 'action' function, receive rewards using the 'collect_reward'
-	function, 
-During training, the total reward for a given action is computed as the reward
-received for that action, plus the maximum expected reward that can be obtained
-from the next state that results from the current action. The gradient of the
-difference between the 'q_network's estimated value for the action and the total
-reward is used to train the model. The 'target_q_network' is used to estimate
-the expected reward from the next state, to ensure stability. The
-'target_q_network' is not updated from the gradients, but rather it is updated
-gradually over time, based on the 'target_network_update_rate'.
+*	Train the model using the **train** function. It will continuously place 
+	notes using **action**, receive rewards using **collect_reward**, and save 
+	these experiences using **store**.
 
-The training loop continuously primes the q_network model for a new composition,
-allows it to select notes, and computes and stores the associated reward and
-LSTM state in an experience buffer. Random batches of (observation, state,
-action, reward, new_observation, new_state) tuples are sampled from the
-experience buffer to train the 'q_network' model. Initially, the model will
-explore by acting randomly, gradually annealing the probability of taking a
-random action over the course of the exploration period. After each composition
-is finished the q_network is reset and primed again.
+*	The network weights are updated using **training_step** which samples 
+	minibatches of experience from the model's **experience** buffer and uses 
+	this to compute gradients based on the loss function in **build_graph**.
+
+*	During training, the function **evaluate_model** is occasionally run to 
+	test how much reward the model receives from both the Reward RNN and the 
+	music theory functions.
+
+*	After the model is trained, you can use the **save_model_and_figs** function
+	to save a checkpoint of the model and a set of figures of the rewards over 
+	time. 
+
+*	Finally, use **generate_music_sequence** again to see how the model's songs
+	have improved with training!
 
 ## How to run the model
+Or, you can simply run:
 
-
+```
+bazel run magenta/models/rl_tuner:rl_tuner_train -- 
+--note_rnn_checkpoint_dir 'path' --midi_primer 'primer.mid' 
+```
 ## Helpful links
 
 *   The code implements the model described in [this paper][our arxiv]
