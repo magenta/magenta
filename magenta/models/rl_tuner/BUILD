@@ -37,7 +37,7 @@ py_binary(
     name = "note_rnn_encoder_decoder",
     srcs = ["note_rnn_encoder_decoder.py"],
     deps = [
-        "//magenta/music:melodies_lib",
+        "//magenta/music:melody_encoder_decoder",
     ],
 )
 

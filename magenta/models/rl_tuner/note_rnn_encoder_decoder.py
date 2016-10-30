@@ -13,7 +13,7 @@
 # limitations under the License.
 """A MelodyEncoderDecoder specific to the basic RNN model."""
 
-from magenta.music import melodies_lib
+from magenta.music import melody_encoder_decoder
 
 NUM_SPECIAL_EVENTS = 2
 MIN_NOTE = 48  # Inclusive
@@ -21,7 +21,7 @@ MAX_NOTE = 84  # Exclusive
 TRANSPOSE_TO_KEY = 0  # C Major
 
 
-class MelodyEncoderDecoder(melodies_lib.MelodyEncoderDecoder):
+class MelodyEncoderDecoder(melody_encoder_decoder.KeyMelodyEncoderDecoder):
   """A MelodyEncoderDecoder specific to the lookback RNN model.
 
   Attributes:
