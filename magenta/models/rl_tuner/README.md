@@ -1,5 +1,7 @@
 ## Recurrent Reinforcement Learning for Generating Melodies
 
+This code implements the models described in [this research paper][our arxiv].
+
 The MelodyQNetwork model is designed to apply reinforcement learning to a pre-
 trained LSTM RNN that can predict the next note in a sequence. It applies
 reinforcement learning via the classic Deep Q Learning method, in which a neural
