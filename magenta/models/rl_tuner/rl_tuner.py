@@ -874,9 +874,9 @@ class RLTuner(object):
     tf.logging.info('Generated sequence: %s', generated_seq)
     print 'Generated sequence:', generated_seq
 
-    melody = mlib.Melody()
-    melody.from_event_list(rl_tuner_ops.decoder(generated_seq,
-                                              self.q_network.transpose_amount))
+    melody = mlib.Melody(generated_seq, self.q_network.transpose_amount))
+    #melody.from_event_list(rl_tuner_ops.decoder(generated_seq,
+    #                                          self.q_network.transpose_amount))
 
     sequence = melody.to_sequence(qpm=self.q_network.bpm)
     filename = rl_tuner_ops.get_next_file_name(self.output_dir, title, 'mid')
