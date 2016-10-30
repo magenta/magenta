@@ -71,9 +71,15 @@ Or, you can simply run:
 bazel run magenta/models/rl_tuner:rl_tuner_train -- 
 --note_rnn_checkpoint_dir 'path' --midi_primer 'primer.mid' 
 ```
+
+## Improving the model
+If you have ideas for improving the sound of the model based on your own rules 
+for musical aesthetics, try modifying the `reward_music_theory` function!
+
 ## Helpful links
 
 *   The code implements the model described in [this paper][our arxiv]
+*	For more on DQN, see [this paper][dqn]
 *   The DQN code was originally based on [this example][dqn ex]
 
 [our arxiv]: https://arxiv.org/abs/comingsoon
