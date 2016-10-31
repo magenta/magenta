@@ -21,6 +21,8 @@ package tensorflow.magenta;
 // A message containing a symbolic music sequence. The design is largely
 // based on MIDI but it should be able to represent any music sequence.
 // For details see https://www.midi.org/specifications.
+// Note that repeated fields in this proto are not guaranteed to be sorted
+// by time.
 message NoteSequence {
   // Unique id.
   string id = 1;
