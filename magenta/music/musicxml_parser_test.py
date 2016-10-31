@@ -1,3 +1,5 @@
+# Copyright 2016 Google Inc. All Rights Reserved.
+#
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
@@ -67,18 +69,18 @@ class MusicXMLParserTest(tf.test.TestCase):
       sequence_proto: A tensorflow.magenta.Sequence proto.
     """
     # Test time signature changes.
-    self.assertEqual(len(musicxml.gettimesignatures()),
+    self.assertEqual(len(musicxml.get_time_signatures()),
                      len(sequence_proto.time_signatures))
-    for musicxml_time, sequence_time in zip(musicxml.gettimesignatures(),
+    for musicxml_time, sequence_time in zip(musicxml.get_time_signatures(),
                                             sequence_proto.time_signatures):
       self.assertEqual(musicxml_time.numerator, sequence_time.numerator)
       self.assertEqual(musicxml_time.denominator, sequence_time.denominator)
       self.assertAlmostEqual(musicxml_time.time_position, sequence_time.time)
 
     # Test key signature changes.
-    self.assertEqual(len(musicxml.getkeysignatures()),
+    self.assertEqual(len(musicxml.get_key_signatures()),
                      len(sequence_proto.key_signatures))
-    for musicxml_key, sequence_key in zip(musicxml.getkeysignatures(),
+    for musicxml_key, sequence_key in zip(musicxml.get_key_signatures(),
                                           sequence_proto.key_signatures):
 
       if musicxml_key.mode == "major":
@@ -95,7 +97,7 @@ class MusicXMLParserTest(tf.test.TestCase):
       self.assertAlmostEqual(musicxml_key.time_position, sequence_key.time)
 
     # Test tempos.
-    musicxml_tempos = musicxml.gettempos()
+    musicxml_tempos = musicxml.get_tempos()
     self.assertEqual(len(musicxml_tempos),
                      len(sequence_proto.tempos))
     for musicxml_tempo, sequence_tempo in zip(
@@ -145,7 +147,7 @@ class MusicXMLParserTest(tf.test.TestCase):
         # that 341.0 and 342.0 are +/- 1 of 341.333
         self.assertAlmostEqual(musicxml_note.note_duration.duration, \
                                musicxml_note.state.divisions * 4 \
-                               * musicxml_note.note_duration.durationfloat(), \
+                               * musicxml_note.note_duration.duration_float(),\
                                delta=1)
 
   def checkmusicxmltosequence(self, filename):
