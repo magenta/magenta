@@ -275,7 +275,6 @@ class Part(object):
     """Parse the <part> element"""
 
     # Reset the time position when parsing each part
-    #CURRENT_TIME_POSITION = 0
     self.state.time_position = 0
     self.state.midi_channel = self.score_part.midi_channel
     self.state.midi_program = self.score_part.midi_program
@@ -328,7 +327,6 @@ class Measure(object):
 
     for child in xml_attributes:
       if child.tag == "divisions":
-        #CURRENT_DIVISIONS = int(child.text)
         self.state.divisions = int(child.text)
       elif child.tag == "key":
         self.key_signature = KeySignature(self.state, child)
@@ -404,7 +402,7 @@ class Note(object):
       if child.tag == "chord":
         self.is_in_chord = True
       elif child.tag == "duration":
-        self.note_duration.parse_duration(self, child.text)
+        self.note_duration.parse_duration(self.is_in_chord, child.text)
       elif child.tag == "pitch":
         self.__parse_pitch(child)
       elif child.tag == "rest":
@@ -496,6 +494,15 @@ class Note(object):
 
 class NoteDuration(object):
   """Internal representation of a MusicXML note's duration properties"""
+
+  TYPE_RATIO_MAP = {"maxima": Fraction(8, 1), "long": Fraction(4, 1),
+                    "breve": Fraction(2, 1), "whole": Fraction(1, 1),
+                    "half": Fraction(1, 2), "quarter": Fraction(1, 4),
+                    "eighth": Fraction(1, 8), "16th": Fraction(1, 16),
+                    "32nd": Fraction(1, 32), "64th": Fraction(1, 64),
+                    "128th": Fraction(1, 128), "256th": Fraction(1, 256),
+                    "512th": Fraction(1, 512), "1024th": Fraction(1, 1024)}
+
   def __init__(self, state):
     self.duration = 0                   # MusicXML duration
     self.midi_ticks = 0                 # Duration in MIDI ticks
@@ -506,7 +513,7 @@ class NoteDuration(object):
     self.tuplet_ratio = Fraction(1, 1)  # Ratio for tuplets (default to 1)
     self.state = state
 
-  def parse_duration(self, note, duration):
+  def parse_duration(self, is_in_chord, duration):
     """Parse the duration of a note and compute timings"""
     self.duration = int(duration)
 
@@ -518,7 +525,7 @@ class NoteDuration(object):
 
     self.time_position = self.state.time_position
 
-    if note.is_in_chord:
+    if is_in_chord:
       # If this is a chord, set the time position to the time position
       # of the previous note (i.e. all the notes in the chord will have
       # the same time position)
@@ -535,15 +542,7 @@ class NoteDuration(object):
     - quarter = 1/4
     - 32nd = 1/32
     """
-    typeratiomap = {"maxima": Fraction(8, 1), "long": Fraction(4, 1),
-                    "breve": Fraction(2, 1), "whole": Fraction(1, 1),
-                    "half": Fraction(1, 2), "quarter": Fraction(1, 4),
-                    "eighth": Fraction(1, 8), "16th": Fraction(1, 16),
-                    "32nd": Fraction(1, 32), "64th": Fraction(1, 64),
-                    "128th": Fraction(1, 128), "256th": Fraction(1, 256),
-                    "512th": Fraction(1, 512), "1024th": Fraction(1, 1024)}
-
-    return typeratiomap[self.type]
+    return self.TYPE_RATIO_MAP[self.type]
 
   def duration_ratio(self):
     """Compute the duration ratio of the note as a Python Fraction
