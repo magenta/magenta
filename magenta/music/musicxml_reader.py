@@ -1,3 +1,5 @@
+# Copyright 2016 Google Inc. All Rights Reserved.
+#
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
@@ -46,7 +48,7 @@ def musicxml_to_sequence_proto(musicxml_document):
   sequence.ticks_per_quarter = musicxml_document.midi_resolution
 
   # Populate time signatures.
-  musicxml_time_signatures = musicxml_document.gettimesignatures()
+  musicxml_time_signatures = musicxml_document.get_time_signatures()
   for musicxml_time_signature in musicxml_time_signatures:
     time_signature = sequence.time_signatures.add()
     time_signature.time = musicxml_time_signature.time_position
@@ -54,7 +56,7 @@ def musicxml_to_sequence_proto(musicxml_document):
     time_signature.denominator = musicxml_time_signature.denominator
 
   # Populate key signatures.
-  musicxml_key_signatures = musicxml_document.getkeysignatures()
+  musicxml_key_signatures = musicxml_document.get_key_signatures()
   for musicxml_key in musicxml_key_signatures:
     key_signature = sequence.key_signatures.add()
     key_signature.time = musicxml_key.time_position
@@ -68,7 +70,7 @@ def musicxml_to_sequence_proto(musicxml_document):
       key_signature.mode = key_signature.MINOR
 
   # Populate tempo changes.
-  musicxml_tempos = musicxml_document.gettempos()
+  musicxml_tempos = musicxml_document.get_tempos()
   for musicxml_tempo in musicxml_tempos:
     tempo = sequence.tempos.add()
     tempo.time = musicxml_tempo.time_position
@@ -76,7 +78,7 @@ def musicxml_to_sequence_proto(musicxml_document):
 
   # Populate notes from each MusicXML part across all voices
   # Unlike MIDI import, notes are not sorted
-  sequence.total_time = musicxml_document.total_time
+  sequence.total_time = musicxml_document.total_time_secs
   for musicxml_part in musicxml_document.parts:
     for musicxml_measure in musicxml_part.measures:
       for musicxml_note in musicxml_measure.notes:
@@ -94,7 +96,7 @@ def musicxml_to_sequence_proto(musicxml_document):
           note.pitch = musicxml_note.pitch[1] # Index 1 = MIDI pitch number
           note.velocity = musicxml_note.velocity
 
-          durationratio = musicxml_note.note_duration.durationratio()
+          durationratio = musicxml_note.note_duration.duration_ratio()
           note.numerator = durationratio.numerator
           note.denominator = durationratio.denominator
 
