@@ -156,33 +156,33 @@ class MusicXMLParserTest(tf.test.TestCase):
     sequence_proto = musicxml_to_sequence_proto(source_musicxml)
     self.checkmusicxmlandsequence(source_musicxml, sequence_proto)
 
-  #def testsimplemusicxmltosequence(self):
-  #  """Test the simple flute scale MusicXML file"""
-  #  self.checkmusicxmltosequence(self.flute_scale_filename)
+  def testsimplemusicxmltosequence(self):
+    """Test the simple flute scale MusicXML file"""
+    self.checkmusicxmltosequence(self.flute_scale_filename)
 
-  #def testcomplexmusicxmltosequence(self):
-  #  """Test the complex band score MusicXML file"""
-  #  self.checkmusicxmltosequence(self.band_score_filename)
+  def testcomplexmusicxmltosequence(self):
+    """Test the complex band score MusicXML file"""
+    self.checkmusicxmltosequence(self.band_score_filename)
 
-  #def testtransposedxmltosequence(self):
-  #  """Test the translation from MusicXML to Sequence proto when the music
-  #  is transposed. Compare a transpoed MusicXML file (clarinet) to an
-  #  identical untransposed sequence (flute)
-  #  """
-  #  untransposed_musicxml = MusicXMLDocument(self.flute_scale_filename)
-  #  transposed_musicxml = MusicXMLDocument(self.clarinet_scale_filename)
-  #  untransposed_proto = musicxml_to_sequence_proto(untransposed_musicxml)
-  #  self.checkmusicxmlandsequence(transposed_musicxml, untransposed_proto)
+  def testtransposedxmltosequence(self):
+    """Test the translation from MusicXML to Sequence proto when the music
+    is transposed. Compare a transpoed MusicXML file (clarinet) to an
+    identical untransposed sequence (flute)
+    """
+    untransposed_musicxml = MusicXMLDocument(self.flute_scale_filename)
+    transposed_musicxml = MusicXMLDocument(self.clarinet_scale_filename)
+    untransposed_proto = musicxml_to_sequence_proto(untransposed_musicxml)
+    self.checkmusicxmlandsequence(transposed_musicxml, untransposed_proto)
 
-  #def testcompressedxmltosequence(self):
-  #  """Test the translation from MusicXML to Sequence proto when the music
-  #  is compressed in MXL format. Compare a compressed MusicXML file to an
-  #  identical uncompressed sequence
-  #  """
-  #  uncompressed_musicxml = MusicXMLDocument(self.flute_scale_filename)
-  #  compressed_musicxml = MusicXMLDocument(self.compressed_filename)
-  #  uncompressed_proto = musicxml_to_sequence_proto(uncompressed_musicxml)
-  #  self.checkmusicxmlandsequence(compressed_musicxml, uncompressed_proto)
+  def testcompressedxmltosequence(self):
+    """Test the translation from MusicXML to Sequence proto when the music
+    is compressed in MXL format. Compare a compressed MusicXML file to an
+    identical uncompressed sequence
+    """
+    uncompressed_musicxml = MusicXMLDocument(self.flute_scale_filename)
+    compressed_musicxml = MusicXMLDocument(self.compressed_filename)
+    uncompressed_proto = musicxml_to_sequence_proto(uncompressed_musicxml)
+    self.checkmusicxmlandsequence(compressed_musicxml, uncompressed_proto)
 
   def testrhythmdurationsxmltosequence(self):
     """Test the rhythm durations MusicXML file"""

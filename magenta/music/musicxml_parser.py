@@ -402,7 +402,8 @@ class Note(object):
       if child.tag == "chord":
         self.is_in_chord = True
       elif child.tag == "duration":
-        self.note_duration.parse_duration(self.is_in_chord, child.text)
+        self.note_duration.parse_duration(self.is_in_chord, self.is_grace_note,
+                                          child.text)
       elif child.tag == "pitch":
         self.__parse_pitch(child)
       elif child.tag == "rest":
@@ -511,11 +512,17 @@ class NoteDuration(object):
     self.dots = 0                       # Number of augmentation dots
     self.type = "quarter"               # MusicXML duration type
     self.tuplet_ratio = Fraction(1, 1)  # Ratio for tuplets (default to 1)
+    self.is_grace_note = True           # Assume true until not found
     self.state = state
 
-  def parse_duration(self, is_in_chord, duration):
+  def parse_duration(self, is_in_chord, is_grace_note, duration):
     """Parse the duration of a note and compute timings"""
     self.duration = int(duration)
+
+    # Due to an error in Sibelius' export, force this note to have the
+    # duration of the previous note if it is in a chord
+    if is_in_chord:
+      self.duration = self.state.previous_note.note_duration.duration
 
     self.midi_ticks = self.duration
     self.midi_ticks *= (constants.STANDARD_PPQ / self.state.divisions)
@@ -525,11 +532,16 @@ class NoteDuration(object):
 
     self.time_position = self.state.time_position
 
+    # Not sure how to handle durations of grace notes yet as they
+    # steal time from subsequent notes and they do not have a
+    # <duration> tag in the MusicXML
+    self.is_grace_note = is_grace_note
+
     if is_in_chord:
       # If this is a chord, set the time position to the time position
       # of the previous note (i.e. all the notes in the chord will have
       # the same time position)
-      self.time_position = self.state.previous_note.time_position
+      self.time_position = self.state.previous_note.note_duration.time_position
     else:
       # Only increment time positions once in chord
       self.state.time_position += self.seconds
@@ -553,21 +565,27 @@ class NoteDuration(object):
     - Triplet eighth note = 1/12
     """
     # Get ratio from MusicXML note type
-    durationratio = Fraction(1, 1)
-    typeratio = self.__convert_type_to_ratio()
+    duration_ratio = Fraction(1, 1)
+    type_ratio = self.__convert_type_to_ratio()
 
     # Compute tuplet ratio
-    durationratio = durationratio / self.tuplet_ratio
-    typeratio = typeratio / self.tuplet_ratio
+    duration_ratio = duration_ratio / self.tuplet_ratio
+    type_ratio = type_ratio / self.tuplet_ratio
 
     # Add augmentation dots
     one_half = Fraction(1, 2)
-    dotsum = Fraction(0, 1)
+    dot_sum = Fraction(0, 1)
     for dot in range(self.dots):
-      dotsum += (one_half ** (dot + 1)) * typeratio
+      dot_sum += (one_half ** (dot + 1)) * type_ratio
 
-    durationratio = typeratio + dotsum
-    return durationratio
+    duration_ratio = type_ratio + dot_sum
+
+    # If the note is a grace note, force its ratio to be 0
+    # because it does not have a <duration> tag
+    if self.is_grace_note:
+      duration_ratio = Fraction(0, 1)
+
+    return duration_ratio
 
   def duration_float(self):
     """Return the duration ratio as a float"""
