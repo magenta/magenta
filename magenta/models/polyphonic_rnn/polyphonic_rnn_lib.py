@@ -35,27 +35,20 @@ from magenta.protobuf import music_pb2
 
 
 def shape(x):
-  # Get shape of Variable through hacky hacky string parsing
-  shape_tup = repr(tf.Print(x, [tf.shape(x)])).split('shape=')[1]
-  shape_tup = shape_tup.split('dtype=')[0][:-1]
-  shape_tup = shape_tup.split(',')
-  shape_tup = [re.sub('[^0-9?]', '', s) for s in shape_tup]
-  # remove empty '' dims in 1D case
-  shape_tup = tuple([int(s) if s != '?' else -1
-                     for s in shape_tup if len(s) >= 1])
-  if sum([1 for s in shape_tup if s < 1]) > 1:
-    raise ValueError('too many ? dims')
-  return shape_tup
+  """Returns tensor shape as a tuple of integers, None dimensions as -1."""
+  return tuple([-1 if d is None else d for d in x.get_shape().as_list()])
 
 
 def ndim(x):
-  return len(shape(x))
+  """Returns the number of dimensions of the TensorFlow variable `x`.
 
+  Args:
+    x: A TensorFlow tensor object.
 
-# TODO: How can I correct this for shared / tied weights?
-def print_network(params):
-  n_params = sum([np.prod(shape(p)) for p in params])
-  tf.logging.info('Total number of parameters: %fM' % (n_params / float(1E6)))
+  Returns:
+    An integer denoting the number of dimensions in `x`.
+  """
+  return x.get_shape().ndims
 
 
 def dot(a, b):
@@ -348,6 +341,8 @@ class TFRecordDurationAndPitchIterator(object):
       all_ps = all_ps[:truncate]
 
       # transpose necessary to preserve data structure!
+      # cut the audio into long contiguous subsequences based on the minibatch
+      # size.
       all_ds = all_ds.transpose(1, 0)
       all_ds = all_ds.reshape(-1, minibatch_size,
                               all_ds.shape[1] // minibatch_size)
@@ -1212,7 +1207,6 @@ def run_loop(loop_function, train_dir, train_itr, valid_itr, n_epochs,
   valid_costs = [0.] * 1000000
   with tf.Session() as sess:
     tf.initialize_all_variables().run()
-    print_network(tf.trainable_variables())
     av = tf.all_variables()
     train_saver = tf.train.Saver(av)
     valid_saver = tf.train.Saver(av)
