@@ -128,9 +128,7 @@ class MusicXMLDocument(object):
         self.score_parts.append(score_part)
 
     # Parse parts
-    xml_parts = self.score.findall("part")
-    score_part_index = 0
-    for child in xml_parts:
+    for score_part_index, child in enumerate(self.score.findall("part")):
       # If a score part is missing, add a default score part
       if score_part_index >= len(self.score_parts):
         score_part = ScorePart(self.state)
@@ -207,7 +205,6 @@ class MusicXMLDocument(object):
     If no tempos are found, create a default tempo of 120 qpm.
     """
     tempos = []
-    #for part in self.parts:
     part = self.parts[0] # Use only first part
     for measure in part.measures:
       for tempo in measure.tempos:
@@ -246,9 +243,9 @@ class ScorePart(object):
       self.part_name = self.xml_score_part.find("part-name").text
 
     xml_midi_instrument = self.xml_score_part.find("midi-instrument")
-    if xml_midi_instrument != None and \
-      xml_midi_instrument.find("midi-channel") != None and \
-      xml_midi_instrument.find("midi-program") != None:
+    if (xml_midi_instrument != None and
+        xml_midi_instrument.find("midi-channel") != None and
+        xml_midi_instrument.find("midi-program") != None):
       self.midi_channel = int(xml_midi_instrument.find("midi-channel").text)
       self.midi_program = int(xml_midi_instrument.find("midi-program").text)
     else:
@@ -352,8 +349,8 @@ class Measure(object):
     backup_duration = int(xml_duration.text)
     midi_ticks = backup_duration * (constants.STANDARD_PPQ
                                     / self.state.divisions)
-    seconds = (midi_ticks / constants.STANDARD_PPQ) \
-               * self.state.seconds_per_quarter
+    seconds = ((midi_ticks / constants.STANDARD_PPQ)
+               * self.state.seconds_per_quarter)
     self.state.time_position -= seconds
 
   def __parse_direction(self, xml_direction):
@@ -378,8 +375,8 @@ class Measure(object):
     forward_duration = int(xml_duration.text)
     midi_ticks = forward_duration * (constants.STANDARD_PPQ
                                      / self.state.divisions)
-    seconds = (midi_ticks / constants.STANDARD_PPQ) \
-               * self.state.seconds_per_quarter
+    seconds = ((midi_ticks / constants.STANDARD_PPQ)
+               * self.state.seconds_per_quarter)
     self.state.time_position += seconds
 
 
