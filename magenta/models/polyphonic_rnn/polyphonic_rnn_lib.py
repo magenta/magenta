@@ -54,7 +54,6 @@ def ndim(x):
 def dot(a, b):
   # Generalized dot for nd sequences, assumes last axis is projection
   # b must be rank 2
-  # rediculously hacky string parsing... wowie
   a_tup = shape(a)
   b_tup = shape(b)
   a_i = tf.reshape(a, [-1, a_tup[-1]])
