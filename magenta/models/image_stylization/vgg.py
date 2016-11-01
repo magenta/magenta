@@ -21,6 +21,8 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
+import os
+
 # internal imports
 import tensorflow as tf
 
@@ -33,7 +35,7 @@ FLAGS = flags.FLAGS
 
 def checkpoint_file():
   """Get the path to the VGG16 checkpoint file from flags."""
-  return FLAGS.vgg_checkpoint
+  return os.path.expanduser(FLAGS.vgg_checkpoint)
 
 
 def vgg_16(inputs, reuse=False, pooling='avg', final_endpoint='fc8'):

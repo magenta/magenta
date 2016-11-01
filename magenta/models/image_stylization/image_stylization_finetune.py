@@ -22,6 +22,7 @@ from __future__ import division
 from __future__ import print_function
 
 import ast
+import os
 
 # internal imports
 import tensorflow as tf
@@ -81,8 +82,9 @@ def main(unused_argv=None):
       # Load style images and select one at random (for each graph execution, a
       # new random selection occurs)
       _, style_labels, style_gram_matrices = image_utils.style_image_inputs(
-          FLAGS.style_dataset_file, batch_size=FLAGS.batch_size,
-          image_size=FLAGS.image_size, square_crop=True, shuffle=True)
+          os.path.expanduser(FLAGS.style_dataset_file),
+          batch_size=FLAGS.batch_size, image_size=FLAGS.image_size,
+          square_crop=True, shuffle=True)
 
     with tf.device(tf.train.replica_device_setter(FLAGS.ps_tasks)):
       # Process style and weight flags
@@ -136,7 +138,7 @@ def main(unused_argv=None):
       # exist yet.
       saver_n_styles = tf.train.Saver(other_vars)
       def init_fn_n_styles(session):
-        saver_n_styles.restore(session, FLAGS.checkpoint)
+        saver_n_styles.restore(session, os.path.expanduser(FLAGS.checkpoint))
 
       def init_fn(session):
         init_fn_vgg(session)
@@ -151,7 +153,7 @@ def main(unused_argv=None):
       # Run training.
       slim.learning.train(
           train_op=train_op,
-          logdir=FLAGS.train_dir,
+          logdir=os.path.expanduser(FLAGS.train_dir),
           master=FLAGS.master,
           is_chief=FLAGS.task == 0,
           number_of_steps=FLAGS.train_steps,

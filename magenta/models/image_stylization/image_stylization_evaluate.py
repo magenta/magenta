@@ -18,6 +18,7 @@ from __future__ import division
 from __future__ import print_function
 
 import ast
+import os
 
 # internal imports
 import tensorflow as tf
@@ -83,8 +84,9 @@ def main(_):
 
     # Load style images.
     style_images, labels, style_gram_matrices = image_utils.style_image_inputs(
-        FLAGS.style_dataset_file, batch_size=FLAGS.num_styles,
-        image_size=FLAGS.image_size, square_crop=True, shuffle=False)
+        os.path.expanduser(FLAGS.style_dataset_file),
+        batch_size=FLAGS.num_styles, image_size=FLAGS.image_size,
+        square_crop=True, shuffle=False)
     labels = tf.unpack(labels)
 
     def _create_normalizer_params(style_label):
@@ -174,8 +176,8 @@ def main(_):
 
     slim.evaluation.evaluation_loop(
         master=FLAGS.master,
-        checkpoint_dir=FLAGS.train_dir,
-        logdir=FLAGS.eval_dir,
+        checkpoint_dir=os.path.expanduser(FLAGS.train_dir),
+        logdir=os.path.expanduser(FLAGS.eval_dir),
         eval_op=eval_op,
         num_evals=num_evals,
         eval_interval_secs=FLAGS.eval_interval_secs)

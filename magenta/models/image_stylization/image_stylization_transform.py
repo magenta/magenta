@@ -54,17 +54,21 @@ def main(unused_argv=None):
             'center': True,
             'scale': True})
     model_saver = tf.train.Saver(tf.all_variables())
-    checkpoint = FLAGS.checkpoint
+    checkpoint = os.path.expanduser(FLAGS.checkpoint)
     if tf.gfile.IsDirectory(checkpoint):
       checkpoint = tf.train.latest_checkpoint(checkpoint)
       tf.logging.info('loading latest checkpoint file: {}'.format(checkpoint))
     model_saver.restore(sess, checkpoint)
 
+    output_dir = os.path.expanduser(FLAGS.output_dir)
+    if not os.path.exists(output_dir):
+      os.makedirs(output_dir)
+
     stylized_images = stylized_images.eval()
     for which, stylized_image in zip(which_styles, stylized_images):
       image_utils.save_np_image(
           stylized_image[None, ...],
-          '{}/{}_{}.png'.format(FLAGS.output_dir, FLAGS.output_basename, which))
+          '{}/{}_{}.png'.format(output_dir, FLAGS.output_basename, which))
 
 
 def console_entry_point():

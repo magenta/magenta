@@ -24,6 +24,7 @@ from __future__ import division
 from __future__ import print_function
 
 import io
+import os
 
 # internal imports
 
@@ -64,8 +65,9 @@ def _bytes_feature(value):
 
 
 def main(unused_argv):
-  style_files = _parse_style_files(FLAGS.style_files)
-  with tf.python_io.TFRecordWriter(FLAGS.output_file) as writer:
+  style_files = _parse_style_files(os.path.expanduser(FLAGS.style_files))
+  with tf.python_io.TFRecordWriter(
+      os.path.expanduser(FLAGS.output_file)) as writer:
     for style_label, style_file in enumerate(style_files):
       tf.logging.info(
           'Processing style file %s: %s' % (style_label, style_file))
