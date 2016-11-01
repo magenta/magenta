@@ -17,6 +17,7 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
+import os
 import ast
 
 # internal imports
@@ -26,6 +27,7 @@ import tensorflow as tf
 
 from magenta.models.image_stylization import image_utils
 from magenta.models.image_stylization import model
+from magenta.models.image_stylization import ops
 
 
 flags = tf.flags
