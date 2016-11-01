@@ -18,6 +18,7 @@ from __future__ import division
 from __future__ import print_function
 
 import ast
+import os
 
 # internal imports
 
@@ -41,7 +42,8 @@ FLAGS = flags.FLAGS
 
 def main(unused_argv=None):
   # Load image
-  image = np.expand_dims(image_utils.load_np_image(FLAGS.input_image), 0)
+  image = np.expand_dims(image_utils.load_np_image(
+      os.path.expanduser(FLAGS.input_image)), 0)
 
   which_styles = ast.literal_eval(FLAGS.which_styles)
 
