@@ -4,10 +4,12 @@ To run this code:
 $ bazel test rl_tuner:rl_tuner_test
 """
 
-imporlt os
+import os
 
-imporlt rl_tuner
-imporlt rl_tuner_ops
+import tensorflow as tf
+
+import rl_tuner
+import rl_tuner_ops
 
 FLAGS = tf.app.flags.FLAGS
 tf.app.flags.DEFINE_string('test_tempdir', '',
@@ -93,4 +95,4 @@ class RLTunerTest(magic test thingy):
     self.assertTrue(len(stat_dict['autocorrelation1']) > 1)
 
 if __name__ == '__main__':
-  magic test thingy.main()
+  tf.test.main()
