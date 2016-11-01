@@ -62,7 +62,7 @@ def conditional_instance_norm(inputs,
     outputs_collections: collections to add the outputs.
     trainable: If `True` also add variables to the graph collection
       `GraphKeys.TRAINABLE_VARIABLES` (see tf.Variable).
-    scope: Optional scope for `variable_op_scope`.
+    scope: Optional scope for `variable_scope`.
 
   Returns:
     A `Tensor` representing the output of the operation.
@@ -71,8 +71,8 @@ def conditional_instance_norm(inputs,
     ValueError: if rank or last dimension of `inputs` is undefined, or if the
         input doesn't have 4 dimensions.
   """
-  with tf.variable_op_scope([inputs], scope, 'InstanceNorm',
-                            reuse=reuse) as sc:
+  with tf.variable_scope(scope, 'InstanceNorm', [inputs],
+                         reuse=reuse) as sc:
     inputs = ops.convert_to_tensor(inputs)
     inputs_shape = inputs.get_shape()
     inputs_rank = inputs_shape.ndims
@@ -156,7 +156,7 @@ def weighted_instance_norm(inputs,
     outputs_collections: collections to add the outputs.
     trainable: If `True` also add variables to the graph collection
       `GraphKeys.TRAINABLE_VARIABLES` (see tf.Variable).
-    scope: Optional scope for `variable_op_scope`.
+    scope: Optional scope for `variable_scope`.
 
   Returns:
     A `Tensor` representing the output of the operation.
@@ -165,8 +165,8 @@ def weighted_instance_norm(inputs,
     ValueError: if rank or last dimension of `inputs` is undefined, or if the
         input doesn't have 4 dimensions.
   """
-  with tf.variable_op_scope([inputs], scope, 'InstanceNorm',
-                            reuse=reuse) as sc:
+  with tf.variable_scope(scope, 'InstanceNorm', [inputs],
+                         reuse=reuse) as sc:
     inputs = ops.convert_to_tensor(inputs)
     inputs_shape = inputs.get_shape()
     inputs_rank = inputs_shape.ndims
