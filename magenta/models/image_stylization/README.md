@@ -49,12 +49,11 @@ Then, to train a model:
 
 ```bash
 $ image_stylization_train \
-      --train_dir=/tmp/image_stylization/train/run1
+      --train_dir=/tmp/image_stylization/run1/train
       --style_dataset_file=/tmp/image_stylization/style_images.tfrecord \
       --num_styles=<NUMBER_OF_STYLES> \
       --vgg_checkpoint=/path/to/vgg_16.ckpt \
-      --imagenet_data_dir=/path/to/imagenet-2012-tfrecord \
-      --style_dataset_file=/tmp/image_stylization/style_images.tfrecord
+      --imagenet_data_dir=/path/to/imagenet-2012-tfrecord
 ```
 
 To evaluate the model:
@@ -67,19 +66,17 @@ $ image_stylization_evaluate \
       --num_styles=<NUMBER_OF_STYLES> \
       --vgg_checkpoint=/path/to/vgg_16.ckpt \
       --imagenet_data_dir=/path/to/imagenet-2012-tfrecord \
-      --style_grid \
-      --style_dataset_file=/tmp/image_stylization/style_images.tfrecord
+      --style_grid
 ```
 
 You can also finetune a pre-trained model for new styles:
 
 ```bash
-$ ./bazel-bin/magenta/models/image_stylization/image_stylization_finetune \
+$ image_stylization_finetune \
       --checkpoint=/path/to/model.ckpt \
       --train_dir=/tmp/image_stylization/run2/train
       --style_dataset_file=/tmp/image_stylization/style_images.tfrecord \
       --num_styles=<NUMBER_OF_STYLES> \
       --vgg_checkpoint=/path/to/vgg_16.ckpt \
-      --imagenet_data_dir=/path/to/imagenet-2012-tfrecord \
-      --style_dataset_file=/tmp/image_stylization/style_images.tfrecord
+      --imagenet_data_dir=/path/to/imagenet-2012-tfrecord
 ```
