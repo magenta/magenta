@@ -23,7 +23,7 @@ bazel query 'kind(py_library, deps(//magenta))' | \
   sort
 """
 
-__version__ = '0.1.4'
+__version__ = '0.1.5'
 
 import magenta.common.sequence_example_lib
 import magenta.common.testing_lib
