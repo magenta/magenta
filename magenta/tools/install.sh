@@ -32,13 +32,13 @@ if [[ "$(uname)" == "Darwin" ]]; then
     readonly OS='MAC'
     readonly MINICONDA_SCRIPT='Miniconda2-latest-MacOSX-x86_64.sh'
     # Mac OS X, CPU only, Python 2.7:
-    readonly TF_BINARY_URL='https://storage.googleapis.com/tensorflow/mac/cpu/tensorflow-0.11.0rc0-py2-none-any.whl'
+    readonly TF_BINARY_URL='https://storage.googleapis.com/tensorflow/mac/cpu/tensorflow-0.11.0rc2-py2-none-any.whl'
 elif [[ "$(uname)" == "Linux" ]]; then
     echo 'Linux OS Detected'
     readonly OS='LINUX'
     readonly MINICONDA_SCRIPT='Miniconda2-latest-Linux-x86_64.sh'
     # Ubuntu/Linux 64-bit, CPU only, Python 2.7
-    readonly TF_BINARY_URL='https://storage.googleapis.com/tensorflow/linux/cpu/tensorflow-0.11.0rc0-cp27-none-linux_x86_64.whl'
+    readonly TF_BINARY_URL='https://storage.googleapis.com/tensorflow/linux/cpu/tensorflow-0.11.0rc2-cp27-none-linux_x86_64.whl'
 else
     err 'Detected neither OSX or Linux Operating System'
 fi
