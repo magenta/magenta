@@ -1,7 +1,8 @@
 """Tests for RLTuner and by proxy NoteRNNLoader.
 
 To run this code:
-$ bazel test rl_tuner:rl_tuner_test
+$ bazel test rl_tuner:rl_tuner_test -- \
+--test_tempdir 'path' --test_srcdir 'path'
 """
 
 import os
@@ -17,15 +18,13 @@ tf.app.flags.DEFINE_string('test_tempdir', '',
 tf.app.flags.DEFINE_string('test_srcdir', '',
                            'Directory containing source code to test.')
 
-class RLTunerTest(magic test thingy):
+class RLTunerTest(tf.test.TestCase):
 
   def setUp(self):
-    self.output_dir = os.path.join(FLAGS.test_tmpdir, 'melodyq_test')
-    base_dir = os.path.join(
-        FLAGS.test_srcdir,
-        '.../rl_rnn/')
-    self.checkpoint_dir = base_dir + 'testdata/'
-    self.checkpoint_file = self.checkpoint_dir + 'train/model.ckpt-1994'
+    self.output_dir = os.path.join(FLAGS.test_tmpdir, 'rl_tuner_test')
+    base_dir = FLAGS.test_srcdir
+    self.checkpoint_dir = os.path.join(base_dir, 'testdata/')
+    self.checkpoint_file = os.path.join(self.checkpoint_dir,'model.ckpt-1994')
     self.midi_primer = base_dir + 'testdata/primer.mid'
     self.hparams = rl_tuner_ops.small_model_hparams()
 
