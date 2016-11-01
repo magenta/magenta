@@ -65,7 +65,7 @@ def vgg_16(inputs, reuse=False, pooling='avg', final_endpoint='fc8'):
   pooling_fns = {'avg': slim.avg_pool2d, 'max': slim.max_pool2d}
   pooling_fn = pooling_fns[pooling]
 
-  with tf.variable_op_scope([inputs], 'vgg_16', reuse=reuse) as sc:
+  with tf.variable_scope('vgg_16', [inputs], reuse=reuse) as sc:
     end_points = {}
 
     def add_and_check_is_final(layer_name, net):
