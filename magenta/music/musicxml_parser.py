@@ -298,7 +298,6 @@ class Measure(object):
     self.time_signature = None
     self.key_signature = KeySignature(state) # Default to C major
     self.current_ticks = 0      # Cumulative tick counter for this measure
-    self.transpose = 0          # Number of semitones to transpose notes
     self.state = state
     self.__parse()
 
@@ -331,9 +330,9 @@ class Measure(object):
       elif child.tag == "time":
         self.time_signature = TimeSignature(self.state, child)
       elif child.tag == "transpose":
-        self.transpose = int(child.find("chromatic").text)
-        self.state.transpose = self.transpose
-        self.key_signature.key += self.transpose
+        transpose = int(child.find("chromatic").text)
+        self.state.transpose = transpose
+        self.key_signature.key += transpose
 
   def __parse_backup(self, xml_backup):
     """Parse the MusicXML <backup> element.
