@@ -37,7 +37,7 @@ class RLTunerTest(tf.test.TestCase):
                           self.midi_primer, custom_hparams=self.hparams,
                           backup_checkpoint_file=self.checkpoint_file)
 
-    initial_note = rlt.prime_q_model()
+    initial_note = rlt.prime_internal_models()
     self.assertTrue(initial_note is not None)
 
   def testInitialGeneration(self):
@@ -56,7 +56,7 @@ class RLTunerTest(tf.test.TestCase):
                           self.midi_primer, custom_hparams=self.hparams,
                           backup_checkpoint_file=self.checkpoint_file)
 
-    initial_note = rlt.prime_q_model()
+    initial_note = rlt.prime_internal_models()
 
     action = rlt.action(initial_note, 100, enable_random=False)
     self.assertTrue(action is not None)
