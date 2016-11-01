@@ -93,12 +93,12 @@ class ImagenetData(object):
     Raises:
       ValueError: if there are not data_files matching the subset.
     """
-    tf_record_pattern = os.path.join(FLAGS.imagenet_data_dir,
-                                     '%s-*' % self.subset)
+    imagenet_data_dir = os.path.expanduser(FLAGS.imagenet_data_dir)
+    tf_record_pattern = os.path.join(imagenet_data_dir, '%s-*' % self.subset)
     data_files = tf.gfile.Glob(tf_record_pattern)
     if not data_files:
       print('No files found for dataset ImageNet/%s at %s' %
-            (self.subset, FLAGS.imagenet_data_dir))
+            (self.subset, imagenet_data_dir))
 
       self.download_message()
       exit(-1)
