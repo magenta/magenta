@@ -267,7 +267,6 @@ class Part(object):
     self.xml_part = xml_part
     self.score_part = score_part
     self.measures = []
-    self.transposes = False
     self.state = state
     self.__parse()
 
@@ -282,7 +281,7 @@ class Part(object):
 
     xml_measures = self.xml_part.findall("measure")
     for child in xml_measures:
-      measure = Measure(child, self, self.state)
+      measure = Measure(child, self.state)
       self.measures.append(measure)
 
   def __str__(self):
@@ -292,7 +291,7 @@ class Part(object):
 
 class Measure(object):
   """Internal represention of the MusicXML <measure> element"""
-  def __init__(self, xml_measure, part, state):
+  def __init__(self, xml_measure, state):
     self.xml_measure = xml_measure
     self.notes = []
     self.tempos = []
@@ -300,7 +299,6 @@ class Measure(object):
     self.key_signature = KeySignature(state) # Default to C major
     self.current_ticks = 0      # Cumulative tick counter for this measure
     self.transpose = 0          # Number of semitones to transpose notes
-    self.part = part
     self.state = state
     self.__parse()
 
@@ -336,7 +334,6 @@ class Measure(object):
         self.transpose = int(child.find("chromatic").text)
         self.state.transpose = self.transpose
         self.key_signature.key += self.transpose
-        self.part.transposes = True
 
   def __parse_backup(self, xml_backup):
     """Parse the MusicXML <backup> element.
