@@ -22,6 +22,8 @@ into tensorflow.magenta.NoteSequence.
 # behavior of producing a float when dividing integers
 from __future__ import division
 
+import io
+import itertools as IT
 import xml.etree.ElementTree as ET
 from fractions import Fraction
 from zipfile import ZipFile
@@ -101,6 +103,7 @@ class MusicXMLDocument(object):
     Args:
         filename: The path of a MusicXML file
     """
+    score = None
     if filename.endswith('.mxl'):
       # Compressed MXL file. Uncompress in memory.
       filename = ZipFile(filename)
@@ -110,12 +113,26 @@ class MusicXMLDocument(object):
       namelist = filename.namelist()
       files = [name for name in namelist if not name.startswith('META-INF/')]
       compressed_file_name = files[0]
-      score = ET.fromstring(filename.read(compressed_file_name))
+      try:
+        score = ET.fromstring(filename.read(compressed_file_name))
+      except ET.ParseError as parse_error:
+        line_number, column = parse_error.position
+        line = next(IT.islice(io.BytesIO(content), line_number))
+        caret = '{:=>{}}'.format('^', column)
+        parse_error.msg = '{}\n{}\n{}'.format(parse_error, line, caret)
+        print(parse_error.msg)
     else:
       # Uncompressed XML file.
-      tree = ET.parse(filename)
-      score = tree.getroot()
-
+      try:
+        tree = ET.parse(filename)
+        score = tree.getroot()
+      except ET.ParseError as parse_error:
+        line_number, column = parse_error.position
+        line = next(IT.islice(io.BytesIO(content), line_number))
+        caret = '{:=>{}}'.format('^', column)
+        parse_error.msg = '{}\n{}\n{}'.format(parse_error, line, caret)
+        print(parse_error.msg)
+        
     return score
 
   def __parse(self):
