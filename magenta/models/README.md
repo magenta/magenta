@@ -2,6 +2,13 @@
 
 This directory contains Magenta models.
 
+## Image stylization
+
+This is the [Multistyle Pastiche Generator
+model](/magenta/models/image_stylization) described in
+[A Learned Representation For Artistic Style](https://arxiv.org/abs/1610.07629).
+It generates artistic representations of photographs.
+
 ## Generators
 All generators for NoteSequence-based models should expose their generator
 functionality by implementing the BaseSequenceGenerator abstract class defined
