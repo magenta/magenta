@@ -19,12 +19,10 @@ import rl_tuner
 import rl_tuner_ops
 
 FLAGS = tf.app.flags.FLAGS
-tf.app.flags.DEFINE_string('output_dir', '/home/natasha/Dropbox (MIT)/Google/RL-RNN-Project/rl_rnn_output/',
+tf.app.flags.DEFINE_string('output_dir', '',
                            'Directory where the model will save its'
-                           'compositions (midi files)')
-tf.app.flags.DEFINE_string('checkpoint_name', '/home/natasha/Dropbox (MIT)/Google/RL-RNN-Projec/rl_rnn_output/rl_tuner_model.ckpt',
-                           'Directory where the model will save checkpoints')
-tf.app.flags.DEFINE_string('note_rnn_checkpoint_dir', '/home/natasha/Developer/magenta_my_fork/magenta/magenta/models/rl_tuner/testdata',
+                           'compositions and checkpoints (midi files)')
+tf.app.flags.DEFINE_string('note_rnn_checkpoint_dir', '',
                            'Path to directory holding checkpoints for note rnn'
                            'melody prediction models. These will be loaded into'
                            'the NoteRNNLoader class object. The directory should'
@@ -32,9 +30,6 @@ tf.app.flags.DEFINE_string('note_rnn_checkpoint_dir', '/home/natasha/Developer/m
 tf.app.flags.DEFINE_string('note_rnn_checkpoint_name', 'model.ckpt-1994',
                            'Filename of a checkpoint within the '
                            'note_rnn_checkpoint_dir directory.')
-tf.app.flags.DEFINE_string('model_save_dir', '/home/natasha/Dropbox (MIT)/Google/RL-RNN-Project/checkpoints',
-                           'Directory where a checkpoint of the fully trained'
-                           'model will be saved.')
 tf.app.flags.DEFINE_string('midi_primer', './testdata/primer.mid',
                            'A midi file that can be used to prime the model')
 tf.app.flags.DEFINE_integer('training_steps', 1000000,
@@ -108,6 +103,4 @@ def main(_):
 
 
 if __name__ == '__main__':
-  #flags.MarkFlagAsRequired('note_rnn_checkpoint_dir')
-  #flags.MarkFlagAsRequired('midi_primer')
   tf.app.run()
