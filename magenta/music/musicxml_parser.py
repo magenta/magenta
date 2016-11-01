@@ -318,6 +318,9 @@ class Measure(object):
         self.notes.append(note)
         # Keep track of current note as previous note for chord timings
         self.state.previous_note = note
+      else:
+        # Ignore other tag types because they are not relevant to Magenta.
+        pass
 
   def __parse_attributes(self, xml_attributes):
     """Parse the MusicXML <attributes> element"""
@@ -333,6 +336,9 @@ class Measure(object):
         transpose = int(child.find("chromatic").text)
         self.state.transpose = transpose
         self.key_signature.key += transpose
+      else:
+        # Ignore other tag types because they are not relevant to Magenta.
+        pass
 
   def __parse_backup(self, xml_backup):
     """Parse the MusicXML <backup> element.
@@ -413,25 +419,40 @@ class Note(object):
       elif child.tag == "time-modification":
         # A time-modification element represents a tuplet_ratio
         self.__parse_tuplet(child)
+      else:
+        # Ignore other tag types because they are not relevant to Magenta.
+        pass
 
   def __parse_pitch(self, xml_pitch):
     """Parse the MusicXML <pitch> element"""
     step = xml_pitch.find("step").text
-    alter = 0
+    alter_text = ""
+    alter = 0.0
     if xml_pitch.find("alter") != None:
-      alter = xml_pitch.find("alter").text
+      alter_text = xml_pitch.find("alter").text
     octave = xml_pitch.find("octave").text
+
+    # Parse alter string to a float (floats represent microtonal alterations)
+    if alter_text != "":
+      alter = float(alter_text)
+
+    # Check if this is a semitone alter (i.e. an integer) or microtonal (float)
+    alter_semitones = int(alter)  # Number of semitones
+    is_microtonal_alter = (alter != alter_semitones)
 
     # Visual pitch representation
     alter_string = ""
-    if alter == "-2":
+    if alter_semitones == -2:
       alter_string = "bb"
-    elif alter == "-1":
+    elif alter_semitones == -1:
       alter_string = "b"
-    elif alter == "1":
+    elif alter_semitones == 1:
       alter_string = "#"
-    elif alter == "2":
+    elif alter_semitones == 2:
       alter_string = "x"
+
+    if is_microtonal_alter:
+      alter_string += " (+microtones) "
 
     # N.B. - pitch_string does not account for transposition
     pitch_string = step + alter_string + octave
@@ -468,6 +489,9 @@ class Note(object):
       pitch_class = 9
     elif step == "B":
       pitch_class = 11
+    else:
+      # Raise exception for unknown step (ex: "Q")
+      raise PitchStepParseException('Unable to parse pitch step ' + step)
 
     pitch_class = (pitch_class + int(alter)) % 12
     midi_pitch = (12 + pitch_class) + (int(octave) * 12)
@@ -686,3 +710,11 @@ class Tempo(object):
     tempo_str = "Tempo: " + str(self.qpm)
     tempo_str += " (@time: " + str(self.time_position) + ")"
     return tempo_str
+
+
+class PitchStepParseException(Exception):
+  """
+  Exception thrown when a pitch step cannot be parsed
+  because it is not one of A, B, C, D, E, F, or G
+  """
+  pass
