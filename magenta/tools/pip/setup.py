@@ -16,7 +16,10 @@
 from setuptools import find_packages
 from setuptools import setup
 
-import magenta
+# Bit of a hack to parse the version string stored in version.py without
+# executing __init__.py, which will end up requiring a bunch of dependencies to
+# execute (e.g., tensorflow, pretty_midi, etc.).
+eval(compile(open('magenta/version.py').read(), 'magenta/version.py', 'exec'))
 
 
 REQUIRED_PACKAGES = [
@@ -43,7 +46,7 @@ CONSOLE_SCRIPTS = [
 
 setup(
     name='magenta',
-    version=magenta.__version__,
+    version=__version__,
     description='Use machine learning to create art and music',
     long_description='',
     url='https://magenta.tensorflow.org/',

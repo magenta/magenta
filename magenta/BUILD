@@ -23,9 +23,15 @@ py_library(
     srcs = ["__init__.py"],
     visibility = ["//magenta:__subpackages__"],
     deps = [
+        ":version",
         "//magenta/common",
         "//magenta/music",
         "//magenta/pipelines",
         "//magenta/protobuf",
     ],
+)
+
+py_library(
+    name = "version",
+    srcs = ["version.py"],
 )

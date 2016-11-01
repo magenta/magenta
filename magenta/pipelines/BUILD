@@ -135,8 +135,6 @@ py_library(
     srcs = ["pipelines_common.py"],
     deps = [
         ":pipeline",
-        "//magenta/music:chord_symbols_lib",
-        "//magenta/music:chords_lib",
         "//magenta/music:melodies_lib",
         "//magenta/music:sequences_lib",
         "//magenta/protobuf:music_py_pb2",
