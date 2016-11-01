@@ -53,8 +53,7 @@ $ image_stylization_train \
       --style_dataset_file=/tmp/image_stylization/style_images.tfrecord \
       --num_styles=<NUMBER_OF_STYLES> \
       --vgg_checkpoint=/path/to/vgg_16.ckpt \
-      --imagenet_data_dir=/path/to/imagenet-2012-tfrecord \
-      --style_dataset_file=/tmp/image_stylization/style_images.tfrecord
+      --imagenet_data_dir=/path/to/imagenet-2012-tfrecord
 ```
 
 To evaluate the model:
@@ -67,8 +66,7 @@ $ image_stylization_evaluate \
       --num_styles=<NUMBER_OF_STYLES> \
       --vgg_checkpoint=/path/to/vgg_16.ckpt \
       --imagenet_data_dir=/path/to/imagenet-2012-tfrecord \
-      --style_grid \
-      --style_dataset_file=/tmp/image_stylization/style_images.tfrecord
+      --style_grid
 ```
 
 You can also finetune a pre-trained model for new styles:
@@ -80,6 +78,5 @@ $ ./bazel-bin/magenta/models/image_stylization/image_stylization_finetune \
       --style_dataset_file=/tmp/image_stylization/style_images.tfrecord \
       --num_styles=<NUMBER_OF_STYLES> \
       --vgg_checkpoint=/path/to/vgg_16.ckpt \
-      --imagenet_data_dir=/path/to/imagenet-2012-tfrecord \
-      --style_dataset_file=/tmp/image_stylization/style_images.tfrecord
+      --imagenet_data_dir=/path/to/imagenet-2012-tfrecord
 ```
