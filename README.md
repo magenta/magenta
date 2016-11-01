@@ -144,7 +144,7 @@ Bazel 0.3.2 and recommend staying with 0.3.1 until we find a solution).
 
 Finally,
 [install TensorFlow](https://www.tensorflow.org/get_started/os_setup.html).
-We require version 0.10 or later.
+We require version 0.11.0rc2 or later.
 
 Also, verify that your environment uses Python 2.7. We do aim to support
 Python 3 eventually, but it is currently experimental.
