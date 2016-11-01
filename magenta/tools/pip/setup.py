@@ -24,7 +24,7 @@ REQUIRED_PACKAGES = [
     'Pillow >= 3.4.2',
     'pretty_midi >= 0.2.6',
     'scipy >= 0.18.1',
-    'tensorflow >= 0.11.0rc2',
+    'tensorflow >= 0.11.0rc1',
     'wheel',
 ]
 
