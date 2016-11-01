@@ -23,8 +23,12 @@ If you are running Mac OS X or Ubuntu, you can try using our automated
 installation script. Just paste the following command into your terminal.
 
 ```
-curl https://raw.githubusercontent.com/tensorflow/magenta/master/magenta/tools/install.sh | bash
+curl https://raw.githubusercontent.com/tensorflow/magenta/master/magenta/tools/magenta-install.sh > /tmp/magenta-install.sh
+bash /tmp/magenta-install.sh
 ```
+
+After the script completes, open a new terminal window so the environment
+variable changes take effect.
 
 The Magenta libraries are now available for use within Python programs and
 Jupyter notebooks, and the Magenta scripts are installed in your path!
