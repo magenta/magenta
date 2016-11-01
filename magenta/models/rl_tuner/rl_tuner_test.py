@@ -80,7 +80,7 @@ class RLTunerTest(tf.test.TestCase):
     rlt.train(num_steps=31, exploration_period=3)
 
     self.assertTrue(len(rlt.composition) == 31)
-    self.assertTrue(os.path.exists(self.log_dir + '-30'))
+    self.assertTrue(os.path.exists(self.save_path + '-30'))
     self.assertTrue(len(rlt.rewards_batched) >= 1)
 
   def testCompositionStats(self):
