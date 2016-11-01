@@ -27,7 +27,6 @@ import tensorflow as tf
 
 from magenta.models.image_stylization import image_utils
 from magenta.models.image_stylization import model
-from magenta.models.image_stylization import ops
 
 
 flags = tf.flags
