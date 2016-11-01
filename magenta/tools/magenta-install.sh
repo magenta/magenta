@@ -71,7 +71,7 @@ if [[ ! $(which conda) ]]; then
     # files refuse to execute if run in a non-interactive environment.
     export PATH="${CONDA_PREFIX}/bin:${PATH}"
     if [[ ! $(which conda) ]]; then
-      err 'Could not find conda command'
+      err 'Could not find conda command. conda binary was not properly added to PATH'
     fi
 else
     echo ""
