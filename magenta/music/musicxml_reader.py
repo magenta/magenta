@@ -19,7 +19,6 @@ Input wrappers for converting MusicXML into tensorflow.magenta.NoteSequence.
 # internal imports
 from magenta.music.musicxml_parser import MusicXMLDocument
 from magenta.protobuf import music_pb2
-# pylint: enable=g-import-not-at-top
 
 class MusicXMLConversionError(Exception):
   """MusicXML conversion error handler"""
