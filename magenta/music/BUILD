@@ -256,7 +256,7 @@ py_library(
     srcs = ["midi_io.py"],
     srcs_version = "PY2AND3",
     deps = [
-        "//magenta/music:constants",
+        ":constants",
         "//magenta/protobuf:music_py_pb2",
         "@pretty_midi//:pretty_midi",
         # tensorflow dep
