@@ -135,7 +135,6 @@ py_library(
     srcs = ["pipelines_common.py"],
     deps = [
         ":pipeline",
-        "//magenta/music:melodies_lib",
         "//magenta/music:sequences_lib",
         "//magenta/protobuf:music_py_pb2",
         # numpy dep
