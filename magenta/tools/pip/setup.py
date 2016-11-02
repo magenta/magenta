@@ -21,13 +21,20 @@ import magenta
 
 REQUIRED_PACKAGES = [
     'mido >= 1.1.17',
+    'Pillow >= 3.4.2',
     'pretty_midi >= 0.2.6',
-    'tensorflow >= 0.10.0',
+    'scipy >= 0.18.1',
+    'tensorflow >= 0.11.0rc2',
     'wheel',
 ]
 
 CONSOLE_SCRIPTS = [
     'magenta.interfaces.midi.magenta_midi',
+    'magenta.models.image_stylization.image_stylization_create_dataset',
+    'magenta.models.image_stylization.image_stylization_evaluate',
+    'magenta.models.image_stylization.image_stylization_finetune',
+    'magenta.models.image_stylization.image_stylization_train',
+    'magenta.models.image_stylization.image_stylization_transform',
     'magenta.models.melody_rnn.melody_rnn_create_dataset',
     'magenta.models.melody_rnn.melody_rnn_generate',
     'magenta.models.melody_rnn.melody_rnn_train',
@@ -62,6 +69,11 @@ setup(
     entry_points={
         'console_scripts': ['%s = %s:console_entry_point' % (n, p) for n, p in
                             ((s.split('.')[-1], s) for s in CONSOLE_SCRIPTS)],
+    },
+
+    include_package_data=True,
+    package_data={
+        'magenta': ['models/image_stylization/evaluation_images/*.jpg'],
     },
 )
 

@@ -117,11 +117,8 @@ def midi_to_sequence_proto(midi_data):
     tempo.time = time_in_seconds
     tempo.qpm = tempo_in_qpm
 
-  # Populate notes by first gathering them all from the midi's instruments, then
-  # sorting them primarily by start and secondarily by end, and finally looping
-  # through this sorted list and appending each as a new sequence.note. We also
-  # here set the sequence.total_time as the max end time in the notes.
-  # TODO(douglaseck): Eliminate some of this boilerplate code.
+  # Populate notes by gathering them all from the midi's instruments.
+  # Also set the sequence.total_time as the max end time in the notes.
   midi_notes = []
   midi_pitch_bends = []
   midi_control_changes = []

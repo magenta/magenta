@@ -1,10 +1,10 @@
-FROM tensorflow/tensorflow:0.10.0-devel
+FROM tensorflow/tensorflow:0.11.0rc1-devel
 
 MAINTAINER Curtis Hawthorne <fjord@google.com>
 
 # Download and build Magenta.
 
-ENV MAGENTA_MASTER_REF v0.1.3
+ENV MAGENTA_MASTER_REF v0.1.5
 
 WORKDIR /
 RUN git clone https://github.com/tensorflow/magenta.git && \
@@ -24,6 +24,8 @@ RUN bazel build magenta/tools/pip:build_pip_package && \
 ADD http://download.magenta.tensorflow.org/models/lookback_rnn.mag /magenta-models/
 ADD http://download.magenta.tensorflow.org/models/attention_rnn.mag /magenta-models/
 ADD http://download.magenta.tensorflow.org/models/basic_rnn.mag /magenta-models/
+ADD http://download.magenta.tensorflow.org/models/multistyle-pastiche-generator-monet.ckpt /magenta-models/
+ADD http://download.magenta.tensorflow.org/models/multistyle-pastiche-generator-varied.ckpt /magenta-models/
 
 # /magenta-data should be mapped to the host on startup.
 RUN mkdir /magenta-data

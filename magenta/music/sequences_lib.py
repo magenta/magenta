@@ -83,6 +83,8 @@ class QuantizedSequence(object):
   are stored in tracks (which can be different instruments or the same
   instrument). There is also a time signature and key signature.
 
+  Notes stored in this object are not guaranteed to be sorted by time.
+
   Attributes:
     tracks: A dictionary mapping track number to list of Note tuples. Track
         number is taken from the instrument number of each NoteSequence note.

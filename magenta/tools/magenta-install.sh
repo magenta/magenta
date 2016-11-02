@@ -20,6 +20,19 @@
 # Exit on error
 set -e
 
+finish() {
+  if (( $? != 0)); then
+    echo ""
+    echo "==========================================="
+    echo "Installation did not finish successfully."
+    echo "Please follow the manual installation instructions at:"
+    echo "https://github.com/tensorflow/magenta"
+    echo "==========================================="
+    echo ""
+  fi
+}
+trap finish EXIT
+
 # For printing error messages
 err() {
   echo "[$(date +'%Y-%m-%dT%H:%M:%S%z')]: $@" >&2
@@ -32,13 +45,13 @@ if [[ "$(uname)" == "Darwin" ]]; then
     readonly OS='MAC'
     readonly MINICONDA_SCRIPT='Miniconda2-latest-MacOSX-x86_64.sh'
     # Mac OS X, CPU only, Python 2.7:
-    readonly TF_BINARY_URL='https://storage.googleapis.com/tensorflow/mac/cpu/tensorflow-0.11.0rc0-py2-none-any.whl'
+    readonly TF_BINARY_URL='https://storage.googleapis.com/tensorflow/mac/cpu/tensorflow-0.11.0rc2-py2-none-any.whl'
 elif [[ "$(uname)" == "Linux" ]]; then
     echo 'Linux OS Detected'
     readonly OS='LINUX'
     readonly MINICONDA_SCRIPT='Miniconda2-latest-Linux-x86_64.sh'
     # Ubuntu/Linux 64-bit, CPU only, Python 2.7
-    readonly TF_BINARY_URL='https://storage.googleapis.com/tensorflow/linux/cpu/tensorflow-0.11.0rc0-cp27-none-linux_x86_64.whl'
+    readonly TF_BINARY_URL='https://storage.googleapis.com/tensorflow/linux/cpu/tensorflow-0.11.0rc2-cp27-none-linux_x86_64.whl'
 else
     err 'Detected neither OSX or Linux Operating System'
 fi
@@ -51,13 +64,14 @@ if [[ ! $(which conda) ]]; then
     echo "==========================================="
     echo ""
     readonly CONDA_INSTALL="/tmp/${MINICONDA_SCRIPT}"
+    readonly CONDA_PREFIX="${HOME}/miniconda2"
     curl "https://repo.continuum.io/miniconda/${MINICONDA_SCRIPT}" > "${CONDA_INSTALL}"
-    bash $CONDA_INSTALL
-    # Miniconda installer appends to path differently for different OS
-    if [[ $OS == "LINUX" ]]; then
-        source "${HOME}/.bashrc"
-    elif [[ $OS == "MAC" ]]; then
-        source "${HOME}/.bash_profile"
+    bash "${CONDA_INSTALL}" -p "${CONDA_PREFIX}"
+    # Modify the path manually rather than sourcing .bashrc because some .bashrc
+    # files refuse to execute if run in a non-interactive environment.
+    export PATH="${CONDA_PREFIX}/bin:${PATH}"
+    if [[ ! $(which conda) ]]; then
+      err 'Could not find conda command. conda binary was not properly added to PATH'
     fi
 else
     echo ""
@@ -75,7 +89,17 @@ echo "=============================="
 echo ""
 
 conda create -n magenta python=2.7
+
+# Need to deactivate set -e because the conda activate script was not written
+# with set -e in mind, and because we source it here, the -e stays active.
+# In order to determine if any errors occurred while executing it, we verify
+# that the environment changed afterward.
+set +e
 source activate magenta
+set -e
+if [[ $(conda info --envs | grep "*" | awk '{print $1}') != "magenta" ]]; then
+  err 'Did not successfully activate the magenta conda environment'
+fi
 
 # Install tensorflow
 pip install --ignore-installed --upgrade $TF_BINARY_URL
@@ -99,17 +123,19 @@ echo ""
 echo "=============================="
 echo "Magenta Install Success!"
 echo ""
+echo "NOTE:"
+echo "For changes to become active, you will need to open a new terminal."
+echo ""
 echo "For complete uninstall, remove the installed anaconda directory:"
 echo "rm -r ~/miniconda2"
 echo ""
 echo "To just uninstall the environment run:"
 echo "conda remove -n magenta --all"
 echo ""
-echo "To run magenta activate your environment:"
+echo "To run magenta, activate your environment:"
 echo "source activate magenta"
 echo ""
 echo "You can deactivate when you're done:"
 echo "source deactivate"
 echo "=============================="
 echo ""
-

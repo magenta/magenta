@@ -23,8 +23,12 @@ If you are running Mac OS X or Ubuntu, you can try using our automated
 installation script. Just paste the following command into your terminal.
 
 ```
-curl https://raw.githubusercontent.com/tensorflow/magenta/master/magenta/tools/install.sh | bash
+curl https://raw.githubusercontent.com/tensorflow/magenta/master/magenta/tools/magenta-install.sh > /tmp/magenta-install.sh
+bash /tmp/magenta-install.sh
 ```
+
+After the script completes, open a new terminal window so the environment
+variable changes take effect.
 
 The Magenta libraries are now available for use within Python programs and
 Jupyter notebooks, and the Magenta scripts are installed in your path!
@@ -138,11 +142,13 @@ git clone https://github.com/tensorflow/magenta.git
 ```
 
 Next, [install Bazel](https://bazel.build/docs/install.html). We recommend the
-latest version, currently 0.3.1.
+latest version, currently 0.3.1 (**Note:** We're
+[investigating a problem](https://github.com/bazelbuild/bazel/issues/1997) with
+Bazel 0.3.2 and recommend staying with 0.3.1 until we find a solution).
 
 Finally,
 [install TensorFlow](https://www.tensorflow.org/get_started/os_setup.html).
-We require version 0.10 or later.
+We require version 0.11.0rc2 or later.
 
 Also, verify that your environment uses Python 2.7. We do aim to support
 Python 3 eventually, but it is currently experimental.
