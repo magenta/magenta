@@ -22,13 +22,13 @@ into tensorflow.magenta.NoteSequence.
 # behavior of producing a float when dividing integers
 from __future__ import division
 
-import io
-import itertools as IT
 import xml.etree.ElementTree as ET
 from fractions import Fraction
 from zipfile import ZipFile
 from magenta.music import constants
 
+DEFAULT_MIDI_PROGRAM = 0    # Default MIDI Program (0 = grand piano)
+DEFAULT_MIDI_CHANNEL = 0    # Default MIDI Channel (0 = first channel)
 
 class MusicXMLParserState(object):
   """Maintains internal state of the MusicXML parser"""
@@ -58,11 +58,11 @@ class MusicXMLParserState(object):
     # Default to a MIDI velocity of 64 (mf)
     self.velocity = 64
 
-    # Default MIDI program (1 = grand piano)
-    self.midi_program = 1
+    # Default MIDI program (0 = grand piano)
+    self.midi_program = DEFAULT_MIDI_PROGRAM
 
     # Current MIDI channel (usually equal to the part number)
-    self.midi_channel = 1
+    self.midi_channel = DEFAULT_MIDI_CHANNEL
 
     # Keep track of previous note to get chord timing correct
     # This variable stores an instance of the Note class (defined below)
@@ -115,24 +115,16 @@ class MusicXMLDocument(object):
       compressed_file_name = files[0]
       try:
         score = ET.fromstring(filename.read(compressed_file_name))
-      except ET.ParseError as parse_error:
-        line_number, column = parse_error.position
-        line = next(IT.islice(io.BytesIO(content), line_number))
-        caret = '{:=>{}}'.format('^', column)
-        parse_error.msg = '{}\n{}\n{}'.format(parse_error, line, caret)
-        print(parse_error.msg)
+      except ET.ParseError:
+        raise MusicXMLParseException()
     else:
       # Uncompressed XML file.
       try:
         tree = ET.parse(filename)
         score = tree.getroot()
-      except ET.ParseError as parse_error:
-        line_number, column = parse_error.position
-        line = next(IT.islice(io.BytesIO(content), line_number))
-        caret = '{:=>{}}'.format('^', column)
-        parse_error.msg = '{}\n{}\n{}'.format(parse_error, line, caret)
-        print(parse_error.msg)
-        
+      except ET.ParseError:
+        raise MusicXMLParseException()
+
     return score
 
   def __parse(self):
@@ -248,8 +240,8 @@ class ScorePart(object):
   def __init__(self, state, xml_score_part=None):
     self.xml_score_part = xml_score_part
     self.part_name = ""
-    self.midi_channel = 1
-    self.midi_program = 1
+    self.midi_channel = DEFAULT_MIDI_CHANNEL
+    self.midi_program = DEFAULT_MIDI_PROGRAM
     self.state = state
     if xml_score_part != None:
       self.__parse()
@@ -266,10 +258,14 @@ class ScorePart(object):
       self.midi_channel = int(xml_midi_instrument.find("midi-channel").text)
       self.midi_program = int(xml_midi_instrument.find("midi-program").text)
     else:
-      # If no MIDI info, increment MIDI channel and use default program
-      self.midi_channel = self.state.midi_channel + 1
-      self.state.midi_channel = self.midi_channel
-      self.midi_program = 1
+      # If no MIDI info, use the current MIDI channel from the state,
+      # then increment the state by one so the next part is on the next
+      # MIDI channel
+      self.midi_channel = self.state.midi_channel
+      self.state.midi_channel = self.midi_channel + 1
+
+      # Use the default MIDI program
+      self.midi_program = DEFAULT_MIDI_PROGRAM
 
   def __str__(self):
     score_str = "ScorePart: " + self.part_name
@@ -733,5 +729,12 @@ class PitchStepParseException(Exception):
   """
   Exception thrown when a pitch step cannot be parsed
   because it is not one of A, B, C, D, E, F, or G
+  """
+  pass
+
+class MusicXMLParseException(Exception):
+  """
+  Exception thrown when a the MusicXML contents cannot be parsed
+  by ElementTree
   """
   pass

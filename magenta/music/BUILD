@@ -320,6 +320,9 @@ py_test(
         ":musicxml_reader",
         "@mido//:mido",
         "@pretty_midi//:pretty_midi",
+        ":sequences_lib",
+        ":testing_lib",
+        "//magenta/common:testing_lib",
         # tensorflow dep
     ],
 )
