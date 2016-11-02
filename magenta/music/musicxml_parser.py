@@ -113,9 +113,10 @@ class MusicXMLDocument(object):
       # MusicXML file. Read the META-INF/container.xml file inside of the
       # MXL file to locate the MusicXML file within the MXL file
       # http://www.musicxml.com/tutorial/compressed-mxl-files/zip-archive-structure/
+
+      # Raise a MusicXMLParseException if multiple MusicXML files found
       namelist = filename.namelist()
       container_file = [x for x in namelist if x == 'META-INF/container.xml']
-
       compressed_file_name = ""
 
       try:
@@ -123,10 +124,16 @@ class MusicXMLDocument(object):
         for rootfile_tag in container.findall('./rootfiles/rootfile'):
           if 'media-type' in rootfile_tag.attrib:
             if rootfile_tag.attrib['media-type'] == MUSICXML_MIME_TYPE:
-              compressed_file_name = rootfile_tag.attrib['full-path']
+              if compressed_file_name == "":
+                compressed_file_name = rootfile_tag.attrib['full-path']
+              else:
+                raise MusicXMLParseException()
           else:
             # No media-type attribute, so assume this is the MusicXML file
-            compressed_file_name = rootfile_tag.attrib['full-path']
+            if compressed_file_name == "":
+              compressed_file_name = rootfile_tag.attrib['full-path']
+            else:
+              raise MusicXMLParseException()
       except ET.ParseError:
         raise MusicXMLParseException()
 
