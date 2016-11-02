@@ -502,7 +502,7 @@ class Note(object):
     octave = xml_pitch.find('octave').text
 
     # Parse alter string to a float (floats represent microtonal alterations)
-    if not alter_text:
+    if alter_text:
       alter = float(alter_text)
 
     # Check if this is a semitone alter (i.e. an integer) or microtonal (float)
