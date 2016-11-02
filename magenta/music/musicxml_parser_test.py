@@ -18,6 +18,9 @@ import os.path
 
 # internal imports
 import tensorflow as tf
+from magenta.common import testing_lib as common_testing_lib
+from magenta.music import sequences_lib
+from magenta.music import testing_lib
 from magenta.music.musicxml_parser import MusicXMLDocument
 from magenta.music.musicxml_reader import musicxml_to_sequence_proto
 
@@ -41,6 +44,9 @@ class MusicXMLParserTest(tf.test.TestCase):
   self.flute_scale_filename, but compressed in MXL format
   """
   def setUp(self):
+
+    self.steps_per_quarter = 4
+
     self.flute_scale_filename = os.path.join(
         tf.resource_loader.get_data_files_path(),
         'testdata/flute_scale.xml')
@@ -156,9 +162,37 @@ class MusicXMLParserTest(tf.test.TestCase):
     sequence_proto = musicxml_to_sequence_proto(source_musicxml)
     self.checkmusicxmlandsequence(source_musicxml, sequence_proto)
 
+  def checkFMajorScale(self, filename):
+    """Verify that the MusicXML scale file contains the correct
+    pitches (sounding pitch) and durations"""
+
+    # Expected QuantizedSequence
+    # Sequence tuple = (midi_pitch, velocity, start_seconds, end_seconds)
+    expected_quantized_sequence = sequences_lib.QuantizedSequence()
+    expected_quantized_sequence.steps_per_quarter = self.steps_per_quarter
+    expected_quantized_sequence.qpm = 120.0
+    expected_quantized_sequence.time_signature = sequences_lib.QuantizedSequence.TimeSignature(
+      numerator = 4, denominator = 4)
+    testing_lib.add_quantized_track_to_sequence(
+      expected_quantized_sequence, 0,
+      [(65, 64, 0, 4), (67, 64, 4, 8), (69, 64, 8, 12),
+      (70, 64, 12, 16), (72, 64, 16, 20), (74, 64, 20, 24),
+      (76, 64, 24, 28), (77, 64, 28, 32)]
+    )
+
+    # Convert MusicXML to QuantizedSequence
+    source_musicxml = MusicXMLDocument(filename)
+    sequence_proto = musicxml_to_sequence_proto(source_musicxml)
+    quantized = sequences_lib.QuantizedSequence()
+    quantized.from_note_sequence(sequence_proto, self.steps_per_quarter)
+
+    # Check equality
+    self.assertEqual(expected_quantized_sequence, quantized)
+
   def testsimplemusicxmltosequence(self):
     """Test the simple flute scale MusicXML file"""
     self.checkmusicxmltosequence(self.flute_scale_filename)
+    self.checkFMajorScale(self.flute_scale_filename)
 
   def testcomplexmusicxmltosequence(self):
     """Test the complex band score MusicXML file"""
@@ -173,6 +207,7 @@ class MusicXMLParserTest(tf.test.TestCase):
     transposed_musicxml = MusicXMLDocument(self.clarinet_scale_filename)
     untransposed_proto = musicxml_to_sequence_proto(untransposed_musicxml)
     self.checkmusicxmlandsequence(transposed_musicxml, untransposed_proto)
+    self.checkFMajorScale(self.clarinet_scale_filename)
 
   def testcompressedxmltosequence(self):
     """Test the translation from MusicXML to Sequence proto when the music
@@ -183,6 +218,7 @@ class MusicXMLParserTest(tf.test.TestCase):
     compressed_musicxml = MusicXMLDocument(self.compressed_filename)
     uncompressed_proto = musicxml_to_sequence_proto(uncompressed_musicxml)
     self.checkmusicxmlandsequence(compressed_musicxml, uncompressed_proto)
+    self.checkFMajorScale(self.clarinet_scale_filename)
 
   def testrhythmdurationsxmltosequence(self):
     """Test the rhythm durations MusicXML file"""
