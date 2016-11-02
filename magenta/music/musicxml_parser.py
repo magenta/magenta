@@ -427,7 +427,7 @@ class Measure(object):
           self.tempos.append(tempo)
           self.state.qpm = tempo.qpm
           self.state.seconds_per_quarter = 60 / self.state.qpm
-          if child.get('dynamics') != None:
+          if child.get('dynamics') is not None:
             self.state.velocity = int(child.get('dynamics'))
 
   def _parse_forward(self, xml_forward):
@@ -463,7 +463,7 @@ class Note(object):
     self._parse()
 
   def _parse(self):
-    """Parse the MusicXML <note> element"""
+    """Parse the MusicXML <note> element."""
 
     self.midi_channel = self.state.midi_channel
     self.midi_program = self.state.midi_program
@@ -538,7 +538,7 @@ class Note(object):
     Represented in MusicXML by the <time-modification> element.
 
     Args:
-      An xml time-modification element.
+      xml_time_modification: An xml time-modification element.
     """
     numerator = int(xml_time_modification.find('actual-notes').text)
     denominator = int(xml_time_modification.find('normal-notes').text)
@@ -693,6 +693,7 @@ class NoteDuration(object):
     ratio = self.duration_ratio()
     return ratio.numerator / ratio.denominator
 
+
 class TimeSignature(object):
   """Internal representation of a MusicXML time signature.
 
@@ -740,7 +741,7 @@ class KeySignature(object):
     self.mode = 'major'
     self.time_position = -1
     self.state = state
-    if xml_key != None:
+    if xml_key is not None:
       self._parse()
 
   def _parse(self):
@@ -773,6 +774,7 @@ class KeySignature(object):
 
 class Tempo(object):
   """Internal representation of a MusicXML tempo."""
+
   def __init__(self, state, xml_sound=None):
     self.xml_sound = xml_sound
     self.qpm = -1
@@ -804,6 +806,7 @@ class PitchStepParseException(Exception):
   Will happen if pitch step is not one of A, B, C, D, E, F, or G
   """
   pass
+
 
 class MusicXMLParseException(Exception):
   """Exception thrown when the MusicXML contents cannot be parsed."""
