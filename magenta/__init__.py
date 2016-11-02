@@ -20,10 +20,8 @@ bazel query 'kind(py_library, deps(//magenta))' | \
   grep '//magenta' | \
   egrep  -v "/([^:/]+):\1$" | \
   sed -e 's/\/\//import /' -e 's/\//./' -e 's/:/./' -e  's/py_pb2/pb2/' | \
-  sort
+  LANG=C sort
 """
-
-from magenta.version import __version__
 
 import magenta.common.concurrency
 import magenta.common.sequence_example_lib
@@ -37,8 +35,8 @@ import magenta.music.melody_encoder_decoder
 import magenta.music.midi_io
 import magenta.music.midi_synth
 import magenta.music.model
-import magenta.music.notebook_utils
 import magenta.music.note_sequence_io
+import magenta.music.notebook_utils
 import magenta.music.sequence_generator
 import magenta.music.sequence_generator_bundle
 import magenta.music.sequences_lib
@@ -51,3 +49,5 @@ import magenta.pipelines.statistics
 import magenta.protobuf.generator_pb2
 import magenta.protobuf.music_pb2
 import magenta.version
+
+from magenta.version import __version__
