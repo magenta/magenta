@@ -1,10 +1,8 @@
 ## Building a new pip package
 
 ### setup.py updates
-First, update the `_VERSION` field in `setup.py` to a new version number.
-
-Next, update the `REQUIRED_PACKAGES` list in the same file to ensure that all
-of our dependencies are listed and that they match the versions of the packages
+Update the `REQUIRED_PACKAGES` list in the same file to ensure that all of our
+dependencies are listed and that they match the versions of the packages
 referenced in the Bazel `WORKSPACE` file. Also check that the correct version of
 tensorflow is listed.
 

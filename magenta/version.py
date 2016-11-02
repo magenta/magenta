@@ -12,26 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Description:
-# Tools and models for using TensorFlow with music and art.
+r"""Separate file for storing the current version of Magenta.
 
-licenses(["notice"])  # Apache 2.0
+Stored in a separate file so that setup.py can reference the version without
+pulling in all the dependencies in __init__.py.
+"""
 
-# The Magenta public API.
-py_library(
-    name = "magenta",
-    srcs = ["__init__.py"],
-    visibility = ["//magenta:__subpackages__"],
-    deps = [
-        ":version",
-        "//magenta/common",
-        "//magenta/music",
-        "//magenta/pipelines",
-        "//magenta/protobuf",
-    ],
-)
+__version__ = '0.1.5'
 
-py_library(
-    name = "version",
-    srcs = ["version.py"],
-)
