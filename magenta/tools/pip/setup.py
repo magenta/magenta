@@ -19,7 +19,7 @@ from setuptools import setup
 # Bit of a hack to parse the version string stored in version.py without
 # executing __init__.py, which will end up requiring a bunch of dependencies to
 # execute (e.g., tensorflow, pretty_midi, etc.).
-eval(compile(open('magenta/version.py').read(), 'magenta/version.py', 'exec'))
+execfile('magenta/version.py')
 
 
 REQUIRED_PACKAGES = [
