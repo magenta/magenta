@@ -780,7 +780,7 @@ class Tempo(object):
     self.qpm = -1
     self.time_position = -1
     self.state = state
-    if xml_sound != None:
+    if xml_sound is not None:
       self._parse()
 
   def _parse(self):
