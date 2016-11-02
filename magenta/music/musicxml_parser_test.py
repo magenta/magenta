@@ -174,6 +174,9 @@ class MusicXMLParserTest(tf.test.TestCase):
     """Verify MusicXML scale file.
 
     Verify that it contains the correct pitches (sounding pitch) and durations.
+
+    Args:
+      filename: file to test.
     """
 
     # Expected QuantizedSequence
@@ -185,12 +188,12 @@ class MusicXMLParserTest(tf.test.TestCase):
         sequences_lib.QuantizedSequence.TimeSignature(numerator=4,
                                                       denominator=4))
     testing_lib.add_quantized_track_to_sequence(
-      expected_quantized_sequence, 0,
-      [
-          (65, 64, 0, 4), (67, 64, 4, 8), (69, 64, 8, 12),
-          (70, 64, 12, 16), (72, 64, 16, 20), (74, 64, 20, 24),
-          (76, 64, 24, 28), (77, 64, 28, 32)
-      ]
+        expected_quantized_sequence, 0,
+        [
+            (65, 64, 0, 4), (67, 64, 4, 8), (69, 64, 8, 12),
+            (70, 64, 12, 16), (72, 64, 16, 20), (74, 64, 20, 24),
+            (76, 64, 24, 28), (77, 64, 28, 32)
+        ]
     )
 
     # Convert MusicXML to QuantizedSequence
@@ -243,7 +246,7 @@ class MusicXMLParserTest(tf.test.TestCase):
     """
     uncompressed_musicxml = MusicXMLDocument(self.flute_scale_filename)
     compressed_musicxml = MusicXMLDocument(
-                            self.multiple_rootfile_compressed_filename)
+        self.multiple_rootfile_compressed_filename)
     uncompressed_proto = musicxml_to_sequence_proto(uncompressed_musicxml)
     self.checkmusicxmlandsequence(compressed_musicxml, uncompressed_proto)
     self.checkFMajorScale(self.flute_scale_filename)
