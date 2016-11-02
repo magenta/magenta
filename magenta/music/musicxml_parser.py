@@ -29,6 +29,7 @@ from magenta.music import constants
 
 DEFAULT_MIDI_PROGRAM = 0    # Default MIDI Program (0 = grand piano)
 DEFAULT_MIDI_CHANNEL = 0    # Default MIDI Channel (0 = first channel)
+MUSICXML_MIME_TYPE = 'application/vnd.recordare.musicxml+xml'
 
 class MusicXMLParserState(object):
   """Maintains internal state of the MusicXML parser"""
@@ -108,11 +109,27 @@ class MusicXMLDocument(object):
       # Compressed MXL file. Uncompress in memory.
       filename = ZipFile(filename)
 
-      # Ignore files in the META-INF directory.
-      # Only retrieve the first file
+      # A compressed MXL file may contain multiple files, but only one
+      # MusicXML file. Read the META-INF/container.xml file inside of the
+      # MXL file to locate the MusicXML file within the MXL file
+      # http://www.musicxml.com/tutorial/compressed-mxl-files/zip-archive-structure/
       namelist = filename.namelist()
-      files = [name for name in namelist if not name.startswith('META-INF/')]
-      compressed_file_name = files[0]
+      container_file = [x for x in namelist if x == 'META-INF/container.xml']
+
+      compressed_file_name = ""
+
+      try:
+        container = ET.fromstring(filename.read(container_file[0]))
+        for rootfile_tag in container.findall('./rootfiles/rootfile'):
+          if 'media-type' in rootfile_tag.attrib:
+            if rootfile_tag.attrib['media-type'] == MUSICXML_MIME_TYPE:
+              compressed_file_name = rootfile_tag.attrib['full-path']
+          else:
+            # No media-type attribute, so assume this is the MusicXML file
+            compressed_file_name = rootfile_tag.attrib['full-path']
+      except ET.ParseError:
+        raise MusicXMLParseException()
+
       try:
         score = ET.fromstring(filename.read(compressed_file_name))
       except ET.ParseError:

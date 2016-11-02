@@ -312,6 +312,7 @@ py_test(
         "testdata/el_capitan.xml",
         "testdata/flute_scale.xml",
         "testdata/flute_scale.mxl",
+        "testdata/flute_scale_with_png.mxl",
         "testdata/rhythm_durations.xml",
     ],
     srcs_version = "PY2AND3",
