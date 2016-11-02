@@ -63,6 +63,10 @@ class MusicXMLParserTest(tf.test.TestCase):
         tf.resource_loader.get_data_files_path(),
         'testdata/flute_scale.mxl')
 
+    self.multiple_rootfile_compressed_filename = os.path.join(
+        tf.resource_loader.get_data_files_path(),
+        'testdata/flute_scale_with_png.mxl')
+
     self.rhythm_durations_filename = os.path.join(
         tf.resource_loader.get_data_files_path(),
         'testdata/rhythm_durations.xml')
@@ -218,7 +222,21 @@ class MusicXMLParserTest(tf.test.TestCase):
     compressed_musicxml = MusicXMLDocument(self.compressed_filename)
     uncompressed_proto = musicxml_to_sequence_proto(uncompressed_musicxml)
     self.checkmusicxmlandsequence(compressed_musicxml, uncompressed_proto)
-    self.checkFMajorScale(self.clarinet_scale_filename)
+    self.checkFMajorScale(self.flute_scale_filename)
+
+  def testmultiplecompressedxmltosequence(self):
+    """Test the translation from MusicXML to Sequence proto when the music
+    is compressed in MXL format with multiple rootfiles. The example
+    MXL file contains a MusicXML file of the Flute F Major scale, as well
+    as the PNG rendering of the score contained within the single MXL file.
+    Compare a compressed MusicXML file to an identical uncompressed sequence
+    """
+    uncompressed_musicxml = MusicXMLDocument(self.flute_scale_filename)
+    compressed_musicxml = MusicXMLDocument(
+                            self.multiple_rootfile_compressed_filename)
+    uncompressed_proto = musicxml_to_sequence_proto(uncompressed_musicxml)
+    self.checkmusicxmlandsequence(compressed_musicxml, uncompressed_proto)
+    self.checkFMajorScale(self.flute_scale_filename)
 
   def testrhythmdurationsxmltosequence(self):
     """Test the rhythm durations MusicXML file"""
