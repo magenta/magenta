@@ -37,6 +37,7 @@ MUSICXML_MIME_TYPE = 'application/vnd.recordare.musicxml+xml'
 
 class MusicXMLParserState(object):
   """Maintains internal state of the MusicXML parser."""
+
   def __init__(self):
     # Default to one division per measure
     # From the MusicXML documentation: "The divisions element indicates
@@ -97,7 +98,7 @@ class MusicXMLDocument(object):
     self.state = MusicXMLParserState()
     # Total time in seconds
     self.total_time_secs = 0
-    self.__parse()
+    self._parse()
 
   @staticmethod
   def get_score(filename):
@@ -108,6 +109,9 @@ class MusicXMLDocument(object):
 
     Args:
         filename: The path of a MusicXML file
+
+    Returns:
+      The score as an xml.etree.ElementTree.
     """
     score = None
     if filename.endswith('.mxl'):
@@ -129,13 +133,13 @@ class MusicXMLDocument(object):
         for rootfile_tag in container.findall('./rootfiles/rootfile'):
           if 'media-type' in rootfile_tag.attrib:
             if rootfile_tag.attrib['media-type'] == MUSICXML_MIME_TYPE:
-              if compressed_file_name == '':
+              if not compressed_file_name:
                 compressed_file_name = rootfile_tag.attrib['full-path']
               else:
                 raise MusicXMLParseException()
           else:
             # No media-type attribute, so assume this is the MusicXML file
-            if compressed_file_name == '':
+            if not compressed_file_name:
               compressed_file_name = rootfile_tag.attrib['full-path']
             else:
               raise MusicXMLParseException()
@@ -156,7 +160,7 @@ class MusicXMLDocument(object):
 
     return score
 
-  def __parse(self):
+  def _parse(self):
     """Parse the uncompressed MusicXML document."""
     # Parse part-list
     xml_part_list = self.score.find('part-list')
@@ -174,7 +178,7 @@ class MusicXMLDocument(object):
 
       part = Part(child, self.score_parts[score_part_index], self.state)
       self.parts.append(part)
-      score_part_index = score_part_index + 1
+      score_part_index += 1
       if self.state.time_position > self.total_time_secs:
         self.total_time_secs = self.state.time_position
 
@@ -192,12 +196,15 @@ class MusicXMLDocument(object):
     Example: If Part 1 has a time siganture of 4/4 and Part 2 also
     has a time signature of 4/4, then only instance of 4/4 is sent
     to Magenta.
+
+    Returns:
+      A list of all TimeSignature objects used in this score.
     """
     time_signatures = []
     for part in self.parts:
       for measure in part.measures:
         if measure.time_signature is not None:
-          if not measure.time_signature in time_signatures:
+          if measure.time_signature not in time_signatures:
             # Prevent duplicate time signatures
             time_signatures.append(measure.time_signature)
 
@@ -221,16 +228,19 @@ class MusicXMLDocument(object):
 
     If no key signatures are found, create a default key signature of
     C major.
+
+    Returns:
+      A list of all KeySignature objects used in this score.
     """
     key_signatures = []
     for part in self.parts:
       for measure in part.measures:
         if measure.key_signature is not None:
-          if not measure.key_signature in key_signatures:
+          if measure.key_signature not in key_signatures:
             # Prevent duplicate key signatures
             key_signatures.append(measure.key_signature)
 
-    if len(key_signatures) == 0:
+    if not key_signatures:
       # If there are no key signatures, add C major at the beginning
       key_signature = KeySignature(self.state)
       key_signature.time_position = 0
@@ -240,16 +250,20 @@ class MusicXMLDocument(object):
 
   def get_tempos(self):
     """Return a list of all tempos in this score.
+
     If no tempos are found, create a default tempo of 120 qpm.
+
+    Returns:
+      A list of all Tempo objects used in this score.
     """
     tempos = []
-    part = self.parts[0] # Use only first part
+    part = self.parts[0]  # Use only first part
     for measure in part.measures:
       for tempo in measure.tempos:
         tempos.append(tempo)
 
     # If no tempos, add a default of 120 at beginning
-    if len(tempos) == 0:
+    if not tempos:
       tempo = Tempo(self.state)
       tempo.qpm = self.state.qpm
       tempo.time_position = 0
@@ -260,30 +274,32 @@ class MusicXMLDocument(object):
 
 class ScorePart(object):
   """"Internal representation of a MusicXML <score-part>.
+
   A <score-part> element contains MIDI program and channel info
   for the <part> elements in the MusicXML document.
 
   If no MIDI info is found for the part, use the next available
   MIDI channel and default to the Grand Piano program (MIDI Program #1)
   """
+
   def __init__(self, state, xml_score_part=None):
     self.xml_score_part = xml_score_part
     self.part_name = ''
     self.midi_channel = DEFAULT_MIDI_CHANNEL
     self.midi_program = DEFAULT_MIDI_PROGRAM
     self.state = state
-    if xml_score_part != None:
-      self.__parse()
+    if xml_score_part is not None:
+      self._parse()
 
-  def __parse(self):
-    """Parse the <score-part> element to an in-memory representation"""
-    if self.xml_score_part.find('part-name') != None:
+  def _parse(self):
+    """Parse the <score-part> element to an in-memory representation."""
+    if self.xml_score_part.find('part-name') is not None:
       self.part_name = self.xml_score_part.find('part-name').text
 
     xml_midi_instrument = self.xml_score_part.find('midi-instrument')
-    if (xml_midi_instrument != None and
-        xml_midi_instrument.find('midi-channel') != None and
-        xml_midi_instrument.find('midi-program') != None):
+    if (xml_midi_instrument is not None and
+        xml_midi_instrument.find('midi-channel') is not None and
+        xml_midi_instrument.find('midi-program') is not None):
       self.midi_channel = int(xml_midi_instrument.find('midi-channel').text)
       self.midi_program = int(xml_midi_instrument.find('midi-program').text)
     else:
@@ -304,16 +320,17 @@ class ScorePart(object):
 
 
 class Part(object):
-  """Internal represention of a MusicXML <part> element"""
+  """Internal represention of a MusicXML <part> element."""
+
   def __init__(self, xml_part, score_part, state):
     self.xml_part = xml_part
     self.score_part = score_part
     self.measures = []
     self.state = state
-    self.__parse()
+    self._parse()
 
-  def __parse(self):
-    """Parse the <part> element"""
+  def _parse(self):
+    """Parse the <part> element."""
 
     # Reset the time position when parsing each part
     self.state.time_position = 0
@@ -332,29 +349,30 @@ class Part(object):
 
 
 class Measure(object):
-  """Internal represention of the MusicXML <measure> element"""
+  """Internal represention of the MusicXML <measure> element."""
+
   def __init__(self, xml_measure, state):
     self.xml_measure = xml_measure
     self.notes = []
     self.tempos = []
     self.time_signature = None
-    self.key_signature = KeySignature(state) # Default to C major
-    self.current_ticks = 0      # Cumulative tick counter for this measure
+    self.key_signature = KeySignature(state)  # Default to C major
+    self.current_ticks = 0  # Cumulative tick counter for this measure
     self.state = state
-    self.__parse()
+    self._parse()
 
-  def __parse(self):
-    """Parse the <measure> element"""
+  def _parse(self):
+    """Parse the <measure> element."""
 
     for child in self.xml_measure:
       if child.tag == 'attributes':
-        self.__parse_attributes(child)
+        self._parse_attributes(child)
       elif child.tag == 'backup':
-        self.__parse_backup(child)
+        self._parse_backup(child)
       elif child.tag == 'direction':
-        self.__parse_direction(child)
+        self._parse_direction(child)
       elif child.tag == 'forward':
-        self.__parse_forward(child)
+        self._parse_forward(child)
       elif child.tag == 'note':
         note = Note(child, self.state)
         self.notes.append(note)
@@ -364,8 +382,8 @@ class Measure(object):
         # Ignore other tag types because they are not relevant to Magenta.
         pass
 
-  def __parse_attributes(self, xml_attributes):
-    """Parse the MusicXML <attributes> element"""
+  def _parse_attributes(self, xml_attributes):
+    """Parse the MusicXML <attributes> element."""
 
     for child in xml_attributes:
       if child.tag == 'divisions':
@@ -382,9 +400,13 @@ class Measure(object):
         # Ignore other tag types because they are not relevant to Magenta.
         pass
 
-  def __parse_backup(self, xml_backup):
+  def _parse_backup(self, xml_backup):
     """Parse the MusicXML <backup> element.
+
     This moves the global time position backwards.
+
+    Args:
+      xml_backup: XML element with tag type 'backup'.
     """
 
     xml_duration = xml_backup.find('duration')
@@ -395,12 +417,12 @@ class Measure(object):
                * self.state.seconds_per_quarter)
     self.state.time_position -= seconds
 
-  def __parse_direction(self, xml_direction):
+  def _parse_direction(self, xml_direction):
     """Parse the MusicXML <direction> element."""
 
     for child in xml_direction:
       if child.tag == 'sound':
-        if child.get('tempo') != None:
+        if child.get('tempo') is not None:
           tempo = Tempo(self.state, child)
           self.tempos.append(tempo)
           self.state.qpm = tempo.qpm
@@ -408,9 +430,13 @@ class Measure(object):
           if child.get('dynamics') != None:
             self.state.velocity = int(child.get('dynamics'))
 
-  def __parse_forward(self, xml_forward):
-    """Parse the MusicXML <backup> element.
+  def _parse_forward(self, xml_forward):
+    """Parse the MusicXML <forward> element.
+
     This moves the global time position forward.
+
+    Args:
+      xml_forward: XML element with tag type 'forward'.
     """
 
     xml_duration = xml_forward.find('duration')
@@ -423,7 +449,8 @@ class Measure(object):
 
 
 class Note(object):
-  """Internal representation of a MusicXML <note> element"""
+  """Internal representation of a MusicXML <note> element."""
+
   def __init__(self, xml_note, state):
     self.xml_note = xml_note
     self.voice = 1
@@ -433,9 +460,9 @@ class Note(object):
     self.pitch = None               # Tuple (Pitch Name, MIDI number)
     self.note_duration = NoteDuration(state)
     self.state = state
-    self.__parse()
+    self._parse()
 
-  def __parse(self):
+  def _parse(self):
     """Parse the MusicXML <note> element"""
 
     self.midi_channel = self.state.midi_channel
@@ -449,7 +476,7 @@ class Note(object):
         self.note_duration.parse_duration(self.is_in_chord, self.is_grace_note,
                                           child.text)
       elif child.tag == 'pitch':
-        self.__parse_pitch(child)
+        self._parse_pitch(child)
       elif child.tag == 'rest':
         self.is_rest = True
       elif child.tag == 'voice':
@@ -460,22 +487,22 @@ class Note(object):
         self.note_duration.type = child.text
       elif child.tag == 'time-modification':
         # A time-modification element represents a tuplet_ratio
-        self.__parse_tuplet(child)
+        self._parse_tuplet(child)
       else:
         # Ignore other tag types because they are not relevant to Magenta.
         pass
 
-  def __parse_pitch(self, xml_pitch):
-    """Parse the MusicXML <pitch> element"""
+  def _parse_pitch(self, xml_pitch):
+    """Parse the MusicXML <pitch> element."""
     step = xml_pitch.find('step').text
     alter_text = ''
     alter = 0.0
-    if xml_pitch.find('alter') != None:
+    if xml_pitch.find('alter') is not None:
       alter_text = xml_pitch.find('alter').text
     octave = xml_pitch.find('octave').text
 
     # Parse alter string to a float (floats represent microtonal alterations)
-    if alter_text != '':
+    if not alter_text:
       alter = float(alter_text)
 
     # Check if this is a semitone alter (i.e. an integer) or microtonal (float)
@@ -502,12 +529,16 @@ class Note(object):
     # Compute MIDI pitch number (C4 = 60, C1 = 24, C0 = 12)
     midi_pitch = self.pitch_to_midi_pitch(step, alter, octave)
     # Transpose MIDI pitch
-    midi_pitch = midi_pitch + self.state.transpose
+    midi_pitch += self.state.transpose
     self.pitch = (pitch_string, midi_pitch)
 
-  def __parse_tuplet(self, xml_time_modification):
-    """Parses a tuplet ratio, represented in MusicXML by the
-    <time-modification> element
+  def _parse_tuplet(self, xml_time_modification):
+    """Parses a tuplet ratio.
+
+    Represented in MusicXML by the <time-modification> element.
+
+    Args:
+      An xml time-modification element.
     """
     numerator = int(xml_time_modification.find('actual-notes').text)
     denominator = int(xml_time_modification.find('normal-notes').text)
@@ -515,7 +546,7 @@ class Note(object):
 
   @staticmethod
   def pitch_to_midi_pitch(step, alter, octave):
-    """Convert MusicXML pitch representation to MIDI pitch number"""
+    """Convert MusicXML pitch representation to MIDI pitch number."""
     pitch_class = 0
     if step == 'C':
       pitch_class = 0
@@ -556,7 +587,7 @@ class Note(object):
 
 
 class NoteDuration(object):
-  """Internal representation of a MusicXML note's duration properties"""
+  """Internal representation of a MusicXML note's duration properties."""
 
   TYPE_RATIO_MAP = {'maxima': Fraction(8, 1), 'long': Fraction(4, 1),
                     'breve': Fraction(2, 1), 'whole': Fraction(1, 1),
@@ -578,7 +609,7 @@ class NoteDuration(object):
     self.state = state
 
   def parse_duration(self, is_in_chord, is_grace_note, duration):
-    """Parse the duration of a note and compute timings"""
+    """Parse the duration of a note and compute timings."""
     self.duration = int(duration)
 
     # Due to an error in Sibelius' export, force this note to have the
@@ -608,31 +639,39 @@ class NoteDuration(object):
       # Only increment time positions once in chord
       self.state.time_position += self.seconds
 
-  def __convert_type_to_ratio(self):
-    """Convert the MusicXML note-type-value to a Python Fraction
+  def _convert_type_to_ratio(self):
+    """Convert the MusicXML note-type-value to a Python Fraction.
+
     Examples:
     - whole = 1/1
     - half = 1/2
     - quarter = 1/4
     - 32nd = 1/32
+
+    Returns:
+      A Fraction object representing the note type.
     """
     return self.TYPE_RATIO_MAP[self.type]
 
   def duration_ratio(self):
-    """Compute the duration ratio of the note as a Python Fraction
+    """Compute the duration ratio of the note as a Python Fraction.
+
     Examples:
     - Whole Note = 1
     - Quarter Note = 1/4
     - Dotted Quarter Note = 3/8
     - Triplet eighth note = 1/12
+
+    Returns:
+      The duration ratio as a Python Fraction.
     """
     # Get ratio from MusicXML note type
     duration_ratio = Fraction(1, 1)
-    type_ratio = self.__convert_type_to_ratio()
+    type_ratio = self._convert_type_to_ratio()
 
     # Compute tuplet ratio
-    duration_ratio = duration_ratio / self.tuplet_ratio
-    type_ratio = type_ratio / self.tuplet_ratio
+    duration_ratio /= self.tuplet_ratio
+    type_ratio /= self.tuplet_ratio
 
     # Add augmentation dots
     one_half = Fraction(1, 2)
@@ -650,27 +689,29 @@ class NoteDuration(object):
     return duration_ratio
 
   def duration_float(self):
-    """Return the duration ratio as a float"""
+    """Return the duration ratio as a float."""
     ratio = self.duration_ratio()
     return ratio.numerator / ratio.denominator
 
 class TimeSignature(object):
-  """Internal representation of a MusicXML time signature
+  """Internal representation of a MusicXML time signature.
+
   Does not support:
   - Composite time signatures: 3+2/8
   - Alternating time signatures 2/4 + 3/8
   - Senza misura
   """
+
   def __init__(self, state, xml_time):
     self.xml_time = xml_time
     self.numerator = -1
     self.denominator = -1
     self.time_position = -1
     self.state = state
-    self.__parse()
+    self._parse()
 
-  def __parse(self):
-    """Parse the MusicXML <time> element"""
+  def _parse(self):
+    """Parse the MusicXML <time> element."""
     self.numerator = int(self.xml_time.find('beats').text)
     self.denominator = int(self.xml_time.find('beat-type').text)
     self.time_position = self.state.time_position
@@ -688,7 +729,8 @@ class TimeSignature(object):
 
 
 class KeySignature(object):
-  """Internal representation of a MusicXML key signature"""
+  """Internal representation of a MusicXML key signature."""
+
   def __init__(self, state, xml_key=None):
     self.xml_key = xml_key
     # MIDI and MusicXML identify key by using "fifths":
@@ -699,10 +741,11 @@ class KeySignature(object):
     self.time_position = -1
     self.state = state
     if xml_key != None:
-      self.__parse()
+      self._parse()
 
-  def __parse(self):
-    """Parse the MusicXML <key> element into a MIDI compatible key
+  def _parse(self):
+    """Parse the MusicXML <key> element into a MIDI compatible key.
+
     If the mode is not minor (e.g. dorian), default to "major"
     because MIDI only supports major and minor modes.
     """
@@ -729,17 +772,18 @@ class KeySignature(object):
 
 
 class Tempo(object):
-  """Internal representation of a MusicXML tempo"""
+  """Internal representation of a MusicXML tempo."""
   def __init__(self, state, xml_sound=None):
     self.xml_sound = xml_sound
     self.qpm = -1
     self.time_position = -1
     self.state = state
     if xml_sound != None:
-      self.__parse()
+      self._parse()
 
-  def __parse(self):
+  def _parse(self):
     """Parse the MusicXML <sound> element and retrieve the tempo.
+
     If no tempo is specified, default to DEFAULT_QUARTERS_PER_MINUTE
     """
     self.qpm = float(self.xml_sound.get('tempo'))
@@ -755,15 +799,12 @@ class Tempo(object):
 
 
 class PitchStepParseException(Exception):
-  """
-  Exception thrown when a pitch step cannot be parsed
-  because it is not one of A, B, C, D, E, F, or G
+  """Exception thrown when a pitch step cannot be parsed.
+
+  Will happen if pitch step is not one of A, B, C, D, E, F, or G
   """
   pass
 
 class MusicXMLParseException(Exception):
-  """
-  Exception thrown when a the MusicXML contents cannot be parsed
-  by ElementTree
-  """
+  """Exception thrown when the MusicXML contents cannot be parsed."""
   pass
