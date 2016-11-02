@@ -62,8 +62,30 @@ class MelodyRnnModel(mm.BaseModel):
   def _build_graph_for_generation(self):
     return melody_rnn_graph.build_graph('generate', self._config)
 
-  def _generate_step(self, melodies, inputs, initial_state, temperature):
-    """Extends a list of melodies by a single step each."""
+  def _generate_step_for_batch(self, melodies, inputs, initial_state,
+                               temperature):
+    """Extends a batch of melodies by a single step each.
+
+    This method modifies the melodies in place.
+
+    Args:
+      melodies: A list of Melody objects. The list should have length equal to
+          `self._config.hparams.batch_size`.
+      inputs: A Python list of model inputs, with length equal to
+          `self._config.hparams.batch_size`.
+      initial_state: A numpy array containing the initial RNN state, where
+          `initial_state.shape[0]` is equal to
+          `self._config.hparams.batch_size`.
+      temperature: The softmax temperature.
+
+    Returns:
+      final_state: The final RNN state, a numpy array the same size as
+          `initial_state`.
+      softmax: The chosen softmax value for each melody, a 1-D numpy array of
+          length `self._config.hparams.batch_size`.
+    """
+    assert len(melodies) == self._config.hparams.batch_size
+
     graph_inputs = self._session.graph.get_collection('inputs')[0]
     graph_initial_state = self._session.graph.get_collection('initial_state')[0]
     graph_final_state = self._session.graph.get_collection('final_state')[0]
@@ -80,30 +102,125 @@ class MelodyRnnModel(mm.BaseModel):
     indices = self._config.encoder_decoder.extend_event_sequences(melodies,
                                                                   softmax)
 
-    return melodies, final_state, softmax[range(len(melodies)), -1, indices]
+    return final_state, softmax[range(len(melodies)), -1, indices]
+
+  def _generate_step(self, melodies, inputs, initial_state, temperature):
+    """Extends a list of melodies by a single step each.
+
+    This method modifies the melodies in place.
+
+    Args:
+      melodies: A list of Melody objects.
+      inputs: A Python list of model inputs, with length equal to the number of
+          melodies.
+      initial_state: A numpy array containing the initial RNN states, where
+          `initial_state.shape[0]` is equal to the number of melodies.
+      temperature: The softmax temperature.
+
+    Returns:
+      final_state: The final RNN state, a numpy array the same size as
+          `initial_state`.
+      softmax: The chosen softmax value for each melody, a 1-D numpy array the
+          same length as `melodies`.
+    """
+    batch_size = self._config.hparams.batch_size
+    num_full_batches = len(melodies) / batch_size
+
+    final_state = np.empty((len(melodies), initial_state.shape[1]))
+    softmax = np.empty(len(melodies))
+
+    offset = 0
+    for _ in range(num_full_batches):
+      # Generate a single step for one batch of melodies.
+      batch_indices = range(offset, offset + batch_size)
+      batch_final_state, batch_softmax = self._generate_step_for_batch(
+          [melodies[i] for i in batch_indices],
+          [inputs[i] for i in batch_indices],
+          initial_state[batch_indices, :],
+          temperature)
+      final_state[batch_indices, :] = batch_final_state
+      softmax[batch_indices] = batch_softmax
+      offset += batch_size
+
+    if offset < len(melodies):
+      # There's an extra non-full batch. Pad it with a bunch of copies of the
+      # final melody.
+      num_extra = len(melodies) - offset
+      pad_size = batch_size - num_extra
+      batch_indices = range(offset, len(melodies))
+      batch_final_state, batch_softmax = self._generate_step_for_batch(
+          [melodies[i] for i in batch_indices] + [copy.deepcopy(melodies[-1])
+                                                  for _ in range(pad_size)],
+          [inputs[i] for i in batch_indices] + inputs[-1] * pad_size,
+          np.append(initial_state[batch_indices, :],
+                    np.tile(inputs[-1, :], (pad_size, 1)),
+                    axis=0),
+          temperature)
+      final_state[batch_indices] = batch_final_state[0:num_extra, :]
+      softmax[batch_indices] = batch_softmax[0:num_extra]
+
+    return final_state, softmax
 
   def _generate_branches(self, melodies, loglik, branch_factor, num_steps,
                          inputs, initial_state, temperature):
-    """Performs a single iteration of branch generation for beam search."""
-    all_melodies = []
-    all_final_state = np.empty((0, initial_state.shape[1]))
-    all_loglik = np.empty(0)
+    """Performs a single iteration of branch generation for beam search.
 
-    for _ in range(branch_factor):
-      melodies_copy = copy.deepcopy(melodies)
-      loglik_copy = copy.deepcopy(loglik)
-      for _ in range(num_steps):
-        melodies_copy, final_state, softmax = self._generate_step(
-            melodies_copy, inputs, initial_state, temperature)
-        loglik_copy += np.log(softmax)
-      all_melodies += melodies_copy
-      all_final_state = np.append(all_final_state, final_state, axis=0)
-      all_loglik = np.append(all_loglik, loglik_copy, axis=0)
+    This method generates `branch_factor` branches for each melody in
+    `melodies`, where each branch extends the melody by `num_steps` steps.
+
+    Args:
+      melodies: A list of Melody objects.
+      loglik: A 1-D numpy array of melody log-likelihoods, the same size as
+          `melodies`.
+      branch_factor: The integer branch factor to use.
+      num_steps: The integer number of melody steps to take per branch.
+      inputs: A Python list of model inputs, with length equal to the number of
+          melodies.
+      initial_state: A numpy array containing the initial RNN states, where
+          `initial_state.shape[0]` is equal to the number of melodies.
+      temperature: The softmax temperature.
+
+    Returns:
+      all_melodies: A list of Melody objects, with `branch_factor` times as
+          many melodies as the initial list of melodies.
+      all_final_state: A numpy array of final RNN states, where
+          `final_state.shape[0]` is equal to the length of `all_melodies`.
+      all_loglik: A 1-D numpy array of melody log-likelihoods, with length equal
+          to the length of `all_melodies`.
+    """
+    all_melodies = [copy.deepcopy(melody)
+                    for melody in melodies * branch_factor]
+    all_inputs = inputs * branch_factor
+    all_final_state = np.tile(initial_state, (branch_factor, 1))
+    all_loglik = np.tile(loglik, (branch_factor,))
+
+    for _ in range(num_steps):
+      all_final_state, all_softmax = self._generate_step(
+          all_melodies, all_inputs, all_final_state, temperature)
+      all_loglik += np.log(all_softmax)
 
     return all_melodies, all_final_state, all_loglik
 
   def _prune_branches(self, melodies, final_state, loglik, k):
-    """Prune all but `k` melodies."""
+    """Prune all but `k` melodies.
+
+    This method prunes all but the `k` melodies with highest log-likelihood.
+
+    Args:
+      melodies: A list of Melody objects.
+      final_state: A numpy array containing the final RNN states, where
+          `final_state.shape[0]` is equal to the number of melodies.
+      loglik: A 1-D numpy array of melody log-likelihoods, the same size as
+          `melodies`.
+      k: The number of melodies to keep after pruning.
+
+    Returns:
+      melodies: The pruned list of Melody objects, of length `k`.
+      final_state: The pruned numpy array of final RNN states, where
+          `final_state.shape[0]` is equal to `k`.
+      loglik: The pruned melody log-likelihoods, a 1-D numpy array of length
+          `k`.
+    """
     indices = heapq.nlargest(k, range(len(melodies)), key=lambda i: loglik[i])
 
     melodies = [melodies[i] for i in indices]
@@ -163,7 +280,8 @@ class MelodyRnnModel(mm.BaseModel):
 
     inputs = self._config.encoder_decoder.get_inputs_batch(
         melodies, full_length=True)
-    initial_state = self._session.run(graph_initial_state)
+    initial_state = np.tile(
+        self._session.run(graph_initial_state), (beam_size, 1))
     melodies, final_state, loglik = self._generate_branches(
         melodies, loglik, branch_factor, first_iteration_num_steps, inputs,
         initial_state, temperature)
@@ -219,10 +337,6 @@ class MelodyRnnModel(mm.BaseModel):
     if len(primer_melody) >= num_steps:
       raise MelodyRnnModelException(
           'primer melody must be shorter than `num_steps`')
-
-    if beam_size != self._config.hparams.batch_size:
-      raise MelodyRnnModelException(
-          'currently beam search only supports using batch size as beam size')
 
     melody = copy.deepcopy(primer_melody)
 
