@@ -356,7 +356,7 @@ class Measure(object):
     self.notes = []
     self.tempos = []
     self.time_signature = None
-    self.key_signature = KeySignature(state)  # Default to C major
+    self.key_signature = None
     self.current_ticks = 0  # Cumulative tick counter for this measure
     self.state = state
     self._parse()
