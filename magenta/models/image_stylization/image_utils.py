@@ -28,9 +28,6 @@ import scipy
 import scipy.misc
 import tensorflow as tf
 
-from tensorflow.python.ops import control_flow_ops
-from tensorflow.python.platform import resource_loader
-
 from magenta.models.image_stylization import imagenet_data
 
 slim = tf.contrib.slim
@@ -315,7 +312,7 @@ def load_evaluation_images(image_size):
   Raises:
     IOError: If no evaluation images can be found.
   """
-  glob = os.path.join(resource_loader.get_data_files_path(),
+  glob = os.path.join(tf.platform.resource_loader.get_data_files_path(),
                       _EVALUATION_IMAGES_GLOB)
   evaluation_images = tf.gfile.Glob(glob)
   if not evaluation_images:
@@ -400,7 +397,7 @@ def _crop(image, offset_height, offset_width, crop_height, crop_width):
   rank_assertion = tf.Assert(
       tf.equal(tf.rank(image), 3),
       ['Rank of image must be equal to 3.'])
-  cropped_shape = control_flow_ops.with_dependencies(
+  cropped_shape = tf.control_flow_ops.with_dependencies(
       [rank_assertion],
       tf.pack([crop_height, crop_width, original_shape[2]]))
 
@@ -414,7 +411,7 @@ def _crop(image, offset_height, offset_width, crop_height, crop_width):
 
   # Use tf.slice instead of crop_to_bounding box as it accepts tensors to
   # define the crop size.
-  image = control_flow_ops.with_dependencies(
+  image = tf.control_flow_ops.with_dependencies(
       [size_assertion],
       tf.slice(image, offsets, cropped_shape))
   return tf.reshape(image, cropped_shape)
