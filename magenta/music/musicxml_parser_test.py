@@ -19,10 +19,13 @@ import os.path
 # internal imports
 
 import tensorflow as tf
+
+from magenta.common import testing_lib as common_testing_lib
+from magenta.music import musicxml_parser
+from magenta.music import musicxml_reader
 from magenta.music import sequences_lib
 from magenta.music import testing_lib
-from magenta.music.musicxml_parser import MusicXMLDocument
-from magenta.music.musicxml_reader import musicxml_to_sequence_proto
+from magenta.protobuf import music_pb2
 
 
 class MusicXMLParserTest(tf.test.TestCase):
@@ -166,8 +169,8 @@ class MusicXMLParserTest(tf.test.TestCase):
 
   def checkmusicxmltosequence(self, filename):
     """Test the translation from MusicXML to Sequence proto."""
-    source_musicxml = MusicXMLDocument(filename)
-    sequence_proto = musicxml_to_sequence_proto(source_musicxml)
+    source_musicxml = musicxml_parser.MusicXMLDocument(filename)
+    sequence_proto = musicxml_reader.musicxml_to_sequence_proto(source_musicxml)
     self.checkmusicxmlandsequence(source_musicxml, sequence_proto)
 
   def checkFMajorScale(self, filename):
@@ -197,8 +200,8 @@ class MusicXMLParserTest(tf.test.TestCase):
     )
 
     # Convert MusicXML to QuantizedSequence
-    source_musicxml = MusicXMLDocument(filename)
-    sequence_proto = musicxml_to_sequence_proto(source_musicxml)
+    source_musicxml = musicxml_parser.MusicXMLDocument(filename)
+    sequence_proto = musicxml_reader.musicxml_to_sequence_proto(source_musicxml)
     quantized = sequences_lib.QuantizedSequence()
     quantized.from_note_sequence(sequence_proto, self.steps_per_quarter)
 
@@ -220,9 +223,12 @@ class MusicXMLParserTest(tf.test.TestCase):
     Compare a transposed MusicXML file (clarinet) to an identical untransposed
     sequence (flute).
     """
-    untransposed_musicxml = MusicXMLDocument(self.flute_scale_filename)
-    transposed_musicxml = MusicXMLDocument(self.clarinet_scale_filename)
-    untransposed_proto = musicxml_to_sequence_proto(untransposed_musicxml)
+    untransposed_musicxml = musicxml_parser.MusicXMLDocument(
+        self.flute_scale_filename)
+    transposed_musicxml = musicxml_parser.MusicXMLDocument(
+        self.clarinet_scale_filename)
+    untransposed_proto = musicxml_reader.musicxml_to_sequence_proto(
+        untransposed_musicxml)
     self.checkmusicxmlandsequence(transposed_musicxml, untransposed_proto)
     self.checkFMajorScale(self.clarinet_scale_filename)
 
@@ -231,9 +237,12 @@ class MusicXMLParserTest(tf.test.TestCase):
 
     Compare a compressed MusicXML file to an identical uncompressed sequence.
     """
-    uncompressed_musicxml = MusicXMLDocument(self.flute_scale_filename)
-    compressed_musicxml = MusicXMLDocument(self.compressed_filename)
-    uncompressed_proto = musicxml_to_sequence_proto(uncompressed_musicxml)
+    uncompressed_musicxml = musicxml_parser.MusicXMLDocument(
+        self.flute_scale_filename)
+    compressed_musicxml = musicxml_parser.MusicXMLDocument(
+        self.compressed_filename)
+    uncompressed_proto = musicxml_reader.musicxml_to_sequence_proto(
+        uncompressed_musicxml)
     self.checkmusicxmlandsequence(compressed_musicxml, uncompressed_proto)
     self.checkFMajorScale(self.flute_scale_filename)
 
@@ -244,16 +253,52 @@ class MusicXMLParserTest(tf.test.TestCase):
     as well as the PNG rendering of the score contained within the single MXL
     file.
     """
-    uncompressed_musicxml = MusicXMLDocument(self.flute_scale_filename)
-    compressed_musicxml = MusicXMLDocument(
+    uncompressed_musicxml = musicxml_parser.MusicXMLDocument(
+        self.flute_scale_filename)
+    compressed_musicxml = musicxml_parser.MusicXMLDocument(
         self.multiple_rootfile_compressed_filename)
-    uncompressed_proto = musicxml_to_sequence_proto(uncompressed_musicxml)
+    uncompressed_proto = musicxml_reader.musicxml_to_sequence_proto(
+        uncompressed_musicxml)
     self.checkmusicxmlandsequence(compressed_musicxml, uncompressed_proto)
     self.checkFMajorScale(self.flute_scale_filename)
 
   def testrhythmdurationsxmltosequence(self):
     """Test the rhythm durations MusicXML file."""
     self.checkmusicxmltosequence(self.rhythm_durations_filename)
+
+  def testFluteScale(self):
+    """Verify properties of the flute scale."""
+    ns = musicxml_reader.musicxml_file_to_sequence_proto(
+        self.flute_scale_filename)
+    expected_ns = common_testing_lib.parse_test_proto(
+        music_pb2.NoteSequence,
+        """
+        ticks_per_quarter: 220
+        time_signatures: {
+          numerator: 4
+          denominator: 4
+        }
+        tempos: {
+          qpm: 120
+        }
+        key_signatures: {
+          key: F
+        }
+        total_time: 4.0
+        """)
+    expected_pitches = [65, 67, 69, 70, 72, 74, 76, 77]
+    time = 0
+    for pitch in expected_pitches:
+      note = expected_ns.notes.add()
+      note.pitch = pitch
+      note.start_time = time
+      time += .5
+      note.end_time = time
+      note.velocity = 64
+      note.numerator = 1
+      note.denominator = 4
+    self.maxDiff = None
+    self.assertProtoEquals(expected_ns, ns)
 
 if __name__ == '__main__':
   tf.test.main()
