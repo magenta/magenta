@@ -27,6 +27,7 @@ py_library(
     srcs = ["__init__.py"],
     deps = [
         ":constants",
+        ":drums_lib",
         ":melodies_lib",
         ":melody_encoder_decoder",
         ":midi_io",
@@ -115,6 +116,33 @@ py_library(
     name = "constants",
     srcs = ["constants.py"],
     srcs_version = "PY2AND3",
+)
+
+py_library(
+    name = "drums_lib",
+    srcs = ["drums_lib.py"],
+    srcs_version = "PY2AND3",
+    deps = [
+        ":constants",
+        ":events_lib",
+        ":midi_io",
+        ":sequences_lib",
+        "//magenta/pipelines:statistics",
+        "//magenta/protobuf:music_py_pb2",
+    ],
+)
+
+py_test(
+    name = "drums_lib_test",
+    srcs = ["drums_lib_test.py"],
+    srcs_version = "PY2AND3",
+    deps = [
+        ":drums_lib",
+        ":sequences_lib",
+        ":testing_lib",
+        "//magenta/protobuf:music_py_pb2",
+        # tensorflow dep
+    ],
 )
 
 py_library(

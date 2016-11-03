@@ -11,24 +11,22 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Tests for melody_pipelines."""
+"""Tests for drum_pipelines."""
 
 # internal imports
 import tensorflow as tf
 
 from magenta.common import testing_lib as common_testing_lib
-from magenta.music import constants
-from magenta.music import melodies_lib
+from magenta.music import drums_lib
 from magenta.music import sequences_lib
 from magenta.music import testing_lib
-from magenta.pipelines import melody_pipelines
+from magenta.pipelines import drum_pipelines
+
+DRUMS = lambda *args: frozenset(args)
+NO_DRUMS = frozenset()
 
 
-NOTE_OFF = constants.MELODY_NOTE_OFF
-NO_EVENT = constants.MELODY_NO_EVENT
-
-
-class MelodyPipelinesTest(tf.test.TestCase):
+class DrumPipelinesTest(tf.test.TestCase):
 
   def _unit_transform_test(self, unit, input_instance,
                            expected_outputs):
@@ -39,26 +37,26 @@ class MelodyPipelinesTest(tf.test.TestCase):
     if outputs:
       self.assertEqual(unit.output_type, type(outputs[0]))
 
-  def testMelodyExtractor(self):
+  def testDrumsExtractor(self):
     quantized_sequence = sequences_lib.QuantizedSequence()
     quantized_sequence.steps_per_quarter = 1
     testing_lib.add_quantized_track_to_sequence(
         quantized_sequence, 0,
-        [(12, 100, 2, 4), (11, 1, 6, 7)])
+        [(12, 100, 2, 4), (11, 1, 6, 7), (12, 1, 6, 8)],
+        is_drum=True)
     testing_lib.add_quantized_track_to_sequence(
         quantized_sequence, 1,
         [(12, 127, 2, 4), (14, 50, 6, 8)])
     expected_events = [
-        [NO_EVENT, NO_EVENT, 12, NO_EVENT, NOTE_OFF, NO_EVENT, 11],
-        [NO_EVENT, NO_EVENT, 12, NO_EVENT, NOTE_OFF, NO_EVENT, 14, NO_EVENT]]
-    expected_melodies = []
+        [NO_DRUMS, NO_DRUMS, DRUMS(12), NO_DRUMS, NO_DRUMS, NO_DRUMS,
+         DRUMS(11, 12)]]
+    expected_drum_tracks = []
     for events_list in expected_events:
-      melody = melodies_lib.Melody(
+      drums = drums_lib.DrumTrack(
           events_list, steps_per_quarter=1, steps_per_bar=4)
-      expected_melodies.append(melody)
-    unit = melody_pipelines.MelodyExtractor(
-        min_bars=1, min_unique_pitches=1, gap_bars=1)
-    self._unit_transform_test(unit, quantized_sequence, expected_melodies)
+      expected_drum_tracks.append(drums)
+    unit = drum_pipelines.DrumsExtractor(min_bars=1, gap_bars=1)
+    self._unit_transform_test(unit, quantized_sequence, expected_drum_tracks)
 
 
 if __name__ == '__main__':
