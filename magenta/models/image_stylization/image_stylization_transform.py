@@ -59,7 +59,7 @@ def _load_checkpoint(sess, checkpoint):
 
 def _describe_style(which_styles):
   """Returns a string describing a linear combination of styles."""
-  def format(v):
+  def _format(v):
     formatted = str(int(round(v * 1000.0)))
     while len(formatted) < 3:
       formatted = '0' + formatted
@@ -67,7 +67,7 @@ def _describe_style(which_styles):
 
   values = []
   for k in sorted(which_styles.keys()):
-    values.append('%s_%s' % (k, format(which_styles[k])))
+    values.append('%s_%s' % (k, _format(which_styles[k])))
   return '_'.join(values)
 
 
