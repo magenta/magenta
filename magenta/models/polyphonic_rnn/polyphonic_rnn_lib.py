@@ -16,7 +16,6 @@
 from collections import OrderedDict
 import copy
 import os
-import re
 import uuid
 
 # internal imports
