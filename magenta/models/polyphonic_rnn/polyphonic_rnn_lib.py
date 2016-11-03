@@ -28,6 +28,11 @@ import tensorflow as tf
 import magenta.music as mm
 from magenta.protobuf import music_pb2
 
+# This list represents the duration times (in seconds) that are supported.
+# If an input NoteSequence contains a note duration that is not in this list,
+# the entire NoteSequence will be discarded.
+# TODO(fjord): this filtering should happen at dataset creation time.
+TIME_CLASSES = [0.125, 0.25, 0.5, 0.75, 1.0, 1.5, 2.0, 3.0, 4.0, 6.0, 8.0, 12.0]
 
 ##
 # begin metautils
@@ -193,16 +198,15 @@ def duration_and_pitch_to_midi(filename, durations, pitches, prime_until=0):
   tempos.qpm = 120
   # ti.simultaneous_notes
   sn = 4
-  # ti.time_classes
-  # this should be moved out for sure - this is really duration class, pitch!
-  time_classes = [
-      0.125, 0.25, 0.5, 0.75, 1.0, 1.5, 2.0, 3.0, 4.0, 6.0, 8.0, 12.0]
 
+  # Translate durations from TIME_CLASSES indexes to TIME_CLASSES values.
   dt = copy.deepcopy(durations)
-  for n in range(len(time_classes)):
-    dt[dt == n] = time_classes[n]
+  for i, time_class in enumerate(TIME_CLASSES):
+    dt[dt == i] = time_class
 
-  # why / 8?
+  # TODO: Decoded times seem to be ~8x longer than they should be (in seconds)
+  # Should figure out why this is. Could be a problem with how times are stored
+  # in the model, or maybe a problem with input data.
   delta_times = [dt[..., i] / 8 for i in range(sn)]
   end_times = [delta_times[i].cumsum(axis=0) for i in range(sn)]
   start_times = [end_times[i] - delta_times[i] for i in range(sn)]
@@ -251,8 +255,6 @@ class TFRecordDurationAndPitchIterator(object):
 
   def __init__(self, files_path, minibatch_size, start_index=0,
                stop_index=np.inf, make_mask=False,
-               make_augmentations=False,
-               new_file_new_sequence=False,
                sequence_length=None,
                randomize=True):
     """Supports regular int, negative indexing, or float for stop_index."""
@@ -263,6 +265,7 @@ class TFRecordDurationAndPitchIterator(object):
     # set automatically
     # self.simultaneous_notes = int(max(np.sum(self._data, axis=0)))
     self.simultaneous_notes = 4
+    time_classes_set = set(TIME_CLASSES)
     for ns in reader:
       notes = ns.notes
       st = np.array([n.start_time for n in notes]).astype('float32')
@@ -294,76 +297,47 @@ class TFRecordDurationAndPitchIterator(object):
       start_slices = np.array(start_slices)
       end_slices = np.array(end_slices)
       delta_slices = end_slices - start_slices
+      unsupported_time_classes = set(delta_slices.ravel()) - time_classes_set
+      if unsupported_time_classes:
+        tf.logging.warning(
+            'NoteSequence %s:%s has unsupported time classes %s and will be '
+            'skipped',
+            ns.id, ns.filename, unsupported_time_classes)
+        continue
       all_ds.append(np.array(delta_slices))
       all_ps.append(np.array(pitch_slices))
     assert len(all_ds) == len(all_ps)
-    if new_file_new_sequence:
-      raise ValueError('Unhandled case')
-    else:
-      if not make_augmentations:
-        all_ds = np.concatenate(all_ds)
-        all_ps = np.concatenate(all_ps)
-      else:
-        new_ps_list = []
-        new_ds_list = []
-        assert len(all_ds) == len(all_ps)
-        for n, (ds, ps) in enumerate(zip(all_ds, all_ps)):
-          new_ps_list.append(ps)
-          new_ds_list.append(ds)
-          # Do +- 5 steps for all 11 offsets
-          for i in range(5):
-            new_up = ps + i
-            # Put silences back
-            new_up[new_up == i] = 0.
-            # Edge case... shouldn't come up in general
-            new_up[new_up > 88] = 88.
-            new_down = ps - i
-            # Put silences back
-            new_down[new_down == -i] = 0.
-            # Edge case... shouldn't come up in general
-            new_down[new_down < 0.] = 1.
+    all_ds = np.concatenate(all_ds)
+    all_ps = np.concatenate(all_ps)
 
-            new_ps_list.append(new_up)
-            new_ds_list.append(ds)
+    self._min_time_data = np.min(all_ds)
+    self._max_time_data = np.max(all_ds)
 
-            new_ps_list.append(new_down)
-            new_ds_list.append(ds)
-        all_ds = np.concatenate(new_ds_list)
-        all_ps = np.concatenate(new_ps_list)
+    truncate = len(all_ds) - len(all_ds) % minibatch_size
+    all_ds = all_ds[:truncate]
+    all_ps = all_ps[:truncate]
 
-      self._min_time_data = np.min(all_ds)
-      self._max_time_data = np.max(all_ds)
-      self.time_classes = list(np.unique(all_ds.ravel()))
+    # transpose necessary to preserve data structure!
+    # cut the audio into long contiguous subsequences based on the minibatch
+    # size.
+    all_ds = all_ds.transpose(1, 0)
+    all_ds = all_ds.reshape(-1, minibatch_size,
+                            all_ds.shape[1] // minibatch_size)
+    all_ds = all_ds.transpose(2, 1, 0)
+    all_ps = all_ps.transpose(1, 0)
+    all_ps = all_ps.reshape(-1, minibatch_size,
+                            all_ps.shape[1] // minibatch_size)
+    all_ps = all_ps.transpose(2, 1, 0)
 
-      truncate = len(all_ds) - len(all_ds) % minibatch_size
-      all_ds = all_ds[:truncate]
-      all_ps = all_ps[:truncate]
-
-      # transpose necessary to preserve data structure!
-      # cut the audio into long contiguous subsequences based on the minibatch
-      # size.
-      all_ds = all_ds.transpose(1, 0)
-      all_ds = all_ds.reshape(-1, minibatch_size,
-                              all_ds.shape[1] // minibatch_size)
-      all_ds = all_ds.transpose(2, 1, 0)
-      all_ps = all_ps.transpose(1, 0)
-      all_ps = all_ps.reshape(-1, minibatch_size,
-                              all_ps.shape[1] // minibatch_size)
-      all_ps = all_ps.transpose(2, 1, 0)
-
-      len_ = len(all_ds)
-      self._time_data = all_ds
-      self._pitch_data = all_ps
+    len_ = len(all_ds)
+    self._time_data = all_ds
+    self._pitch_data = all_ps
 
     self.minibatch_size = minibatch_size
-    self.new_file_new_sequence = new_file_new_sequence
     self.sequence_length = sequence_length
     if randomize:
       self.random_state = np.random.RandomState(2177)
     self.make_mask = make_mask
-    if new_file_new_sequence and sequence_length is None:
-      raise ValueError('sequence_length must be provided if',
-                       'new_line_new_sequence is False!')
 
     if stop_index >= 1:
       self.stop_index = int(min(stop_index, len_))
@@ -398,25 +372,22 @@ class TFRecordDurationAndPitchIterator(object):
 
   def __next__(self):
     s = self._current_index
-    if self.new_file_new_sequence:
-      raise ValueError('not handled')
-    else:
-      e = s + self.sequence_length
-      if e > self.stop_index:
-        raise StopIteration('End of file iterator reached!')
-      time_data = self._time_data[s:e]
-      for n, i in enumerate(self.time_classes):
-        # turn them into duration classes
-        time_data[time_data == i] = n
-      time_data = time_data
-      pitch_data = self._pitch_data[s:e]
+    e = s + self.sequence_length
+    if e > self.stop_index:
+      raise StopIteration('End of file iterator reached!')
+    time_data = self._time_data[s:e]
+    for n, i in enumerate(TIME_CLASSES):
+      # turn them into duration classes
+      time_data[time_data == i] = n
+    time_data = time_data
+    pitch_data = self._pitch_data[s:e]
 
-      if self.make_mask is False:
-        res = (time_data, pitch_data)
-      else:
-        raise ValueError('Unhandled mask making')
-      self._current_index = e
-      return res
+    if self.make_mask is False:
+      res = (time_data, pitch_data)
+    else:
+      raise ValueError('Unhandled mask making')
+    self._current_index = e
+    return res
 
   def reset(self):
     self._current_index = self.start_index

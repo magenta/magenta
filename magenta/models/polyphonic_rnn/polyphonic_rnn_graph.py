@@ -44,7 +44,7 @@ class Graph(object):
     num_note_features = note_mb.shape[-1]
     num_duration_features = duration_mb.shape[-1]
     n_note_symbols = len(self.train_itr.note_classes)
-    n_duration_symbols = len(self.train_itr.time_classes)
+    n_duration_symbols = len(polyphonic_rnn_lib.TIME_CLASSES)
     self.n_notes = self.train_itr.simultaneous_notes
     note_embed_dim = 20
     duration_embed_dim = 4
