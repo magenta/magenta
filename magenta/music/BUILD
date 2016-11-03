@@ -290,7 +290,7 @@ py_library(
     srcs_version = "PY2AND3",
     deps = [
         "//magenta/music:constants",
-        "//magenta/protobuf:music_py_pb2"
+        "//magenta/protobuf:music_py_pb2",
     ],
 )
 
@@ -300,7 +300,7 @@ py_library(
     srcs_version = "PY2AND3",
     deps = [
         "//magenta/music:musicxml_parser",
-        "//magenta/protobuf:music_py_pb2"
+        "//magenta/protobuf:music_py_pb2",
     ],
 )
 
@@ -310,8 +310,8 @@ py_test(
     data = [
         "testdata/clarinet_scale.xml",
         "testdata/el_capitan.xml",
-        "testdata/flute_scale.xml",
         "testdata/flute_scale.mxl",
+        "testdata/flute_scale.xml",
         "testdata/flute_scale_with_png.mxl",
         "testdata/rhythm_durations.xml",
     ],
@@ -319,11 +319,8 @@ py_test(
     deps = [
         ":musicxml_parser",
         ":musicxml_reader",
-        "@mido//:mido",
-        "@pretty_midi//:pretty_midi",
         ":sequences_lib",
         ":testing_lib",
-        "//magenta/common:testing_lib",
         # tensorflow dep
     ],
 )

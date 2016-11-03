@@ -17,12 +17,15 @@ Input wrappers for converting MusicXML into tensorflow.magenta.NoteSequence.
 """
 
 # internal imports
+
 from magenta.music.musicxml_parser import MusicXMLDocument
 from magenta.protobuf import music_pb2
 
+
 class MusicXMLConversionError(Exception):
-  """MusicXML conversion error handler"""
+  """MusicXML conversion error handler."""
   pass
+
 
 def musicxml_to_sequence_proto(musicxml_document):
   """Convert MusicXML file contents to a tensorflow.magenta.NoteSequence proto.
@@ -32,7 +35,7 @@ def musicxml_to_sequence_proto(musicxml_document):
 
   Args:
     musicxml_document: A parsed MusicXML file.
-    This file has been parsed by class MusicXMLDocument
+        This file has been parsed by class MusicXMLDocument
 
   Returns:
     A tensorflow.magenta.NoteSequence proto.
@@ -92,7 +95,7 @@ def musicxml_to_sequence_proto(musicxml_document):
             note.start_time = 0
 
           note.end_time = note.start_time + musicxml_note.note_duration.seconds
-          note.pitch = musicxml_note.pitch[1] # Index 1 = MIDI pitch number
+          note.pitch = musicxml_note.pitch[1]  # Index 1 = MIDI pitch number
           note.velocity = musicxml_note.velocity
 
           durationratio = musicxml_note.note_duration.duration_ratio()
@@ -100,6 +103,7 @@ def musicxml_to_sequence_proto(musicxml_document):
           note.denominator = durationratio.denominator
 
   return sequence
+
 
 def musicxml_file_to_sequence_proto(musicxml_file):
   """Converts a MusicXML file to a tensorflow.magenta.NoteSequence proto.
