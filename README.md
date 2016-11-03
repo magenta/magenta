@@ -99,6 +99,7 @@ The Docker image also includes several pre-trained models in
 
 ```
 melody_rnn_generate \
+  --config=lookback_rnn \
   --bundle_file=/magenta-models/lookback_rnn.mag \
   --output_dir=/magenta-data/lookback_rnn/generated \
   --num_outputs=10 \
