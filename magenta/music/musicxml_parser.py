@@ -35,6 +35,19 @@ DEFAULT_MIDI_CHANNEL = 0    # Default MIDI Channel (0 = first channel)
 MUSICXML_MIME_TYPE = 'application/vnd.recordare.musicxml+xml'
 
 
+class MusicXMLParseException(Exception):
+  """Exception thrown when the MusicXML contents cannot be parsed."""
+  pass
+
+
+class PitchStepParseException(MusicXMLParseException):
+  """Exception thrown when a pitch step cannot be parsed.
+
+  Will happen if pitch step is not one of A, B, C, D, E, F, or G
+  """
+  pass
+
+
 class MusicXMLParserState(object):
   """Maintains internal state of the MusicXML parser."""
 
@@ -136,27 +149,29 @@ class MusicXMLDocument(object):
               if not compressed_file_name:
                 compressed_file_name = rootfile_tag.attrib['full-path']
               else:
-                raise MusicXMLParseException()
+                raise MusicXMLParseException(
+                    'Multiple MusicXML files found in compressed archive')
           else:
             # No media-type attribute, so assume this is the MusicXML file
             if not compressed_file_name:
               compressed_file_name = rootfile_tag.attrib['full-path']
             else:
-              raise MusicXMLParseException()
-      except ET.ParseError:
-        raise MusicXMLParseException()
+              raise MusicXMLParseException(
+                  'Multiple MusicXML files found in compressed archive')
+      except ET.ParseError as e:
+        raise MusicXMLParseException(e)
 
       try:
         score = ET.fromstring(filename.read(compressed_file_name))
-      except ET.ParseError:
-        raise MusicXMLParseException()
+      except ET.ParseError as e:
+        raise MusicXMLParseException(e)
     else:
       # Uncompressed XML file.
       try:
         tree = ET.parse(filename)
         score = tree.getroot()
-      except ET.ParseError:
-        raise MusicXMLParseException()
+      except ET.ParseError as e:
+        raise MusicXMLParseException(e)
 
     return score
 
@@ -798,16 +813,3 @@ class Tempo(object):
     tempo_str = 'Tempo: ' + str(self.qpm)
     tempo_str += ' (@time: ' + str(self.time_position) + ')'
     return tempo_str
-
-
-class PitchStepParseException(Exception):
-  """Exception thrown when a pitch step cannot be parsed.
-
-  Will happen if pitch step is not one of A, B, C, D, E, F, or G
-  """
-  pass
-
-
-class MusicXMLParseException(Exception):
-  """Exception thrown when the MusicXML contents cannot be parsed."""
-  pass

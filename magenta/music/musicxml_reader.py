@@ -18,7 +18,7 @@ Input wrappers for converting MusicXML into tensorflow.magenta.NoteSequence.
 
 # internal imports
 
-from magenta.music.musicxml_parser import MusicXMLDocument
+from magenta.music import musicxml_parser
 from magenta.protobuf import music_pb2
 
 
@@ -117,5 +117,8 @@ def musicxml_file_to_sequence_proto(musicxml_file):
   Raises:
     MusicXMLConversionError: Invalid musicxml_file.
   """
-  musicxml_document = MusicXMLDocument(musicxml_file)
+  try:
+    musicxml_document = musicxml_parser.MusicXMLDocument(musicxml_file)
+  except musicxml_parser.MusicXMLParseException as e:
+    raise MusicXMLConversionError(e)
   return musicxml_to_sequence_proto(musicxml_document)
