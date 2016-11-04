@@ -137,20 +137,15 @@ class MusicXMLParserTest(tf.test.TestCase):
                              sequence_tempo.time)
 
     # Test parts/instruments.
-    seq_instruments = defaultdict(lambda: defaultdict(list))
+    seq_parts = defaultdict(list)
     for seq_note in sequence_proto.notes:
-      seq_instruments[
-          (seq_note.instrument, seq_note.program)]['notes'].append(seq_note)
+      seq_parts[seq_note.part].append(seq_note)
 
-    sorted_seq_instrument_keys = sorted(
-        seq_instruments.keys(),
-        key=lambda (instrument_id, program_id): (instrument_id, program_id))
+    self.assertEqual(len(musicxml.parts), len(seq_parts))
+    for musicxml_part, seq_part_id in zip(
+        musicxml.parts, sorted(seq_parts.keys())):
 
-    self.assertEqual(len(musicxml.parts), len(seq_instruments))
-    for musicxml_part, seq_instrument_key in zip(
-        musicxml.parts, sorted_seq_instrument_keys):
-
-      seq_instrument_notes = seq_instruments[seq_instrument_key]['notes']
+      seq_instrument_notes = seq_parts[seq_part_id]
       musicxml_notes = []
       for musicxml_measure in musicxml_part.measures:
         for musicxml_note in musicxml_measure.notes:
@@ -303,12 +298,17 @@ class MusicXMLParserTest(tf.test.TestCase):
           encoding_type: MUSIC_XML
           parser: MAGENTA_MUSIC_XML
         }
+        part_infos {
+          part: 0
+          name: "Flute"
+        }
         total_time: 4.0
         """)
     expected_pitches = [65, 67, 69, 70, 72, 74, 76, 77]
     time = 0
     for pitch in expected_pitches:
       note = expected_ns.notes.add()
+      note.part = 0
       note.pitch = pitch
       note.start_time = time
       time += .5
