@@ -27,10 +27,11 @@ from magenta.pipelines import statistics
 class ChordsExtractor(pipeline.Pipeline):
   """Extracts a chord progression from a QuantizedSequence."""
 
-  def __init__(self, max_steps=512, all_transpositions=False):
+  def __init__(self, max_steps=512, all_transpositions=False, name=None):
     super(ChordsExtractor, self).__init__(
         input_type=sequences_lib.QuantizedSequence,
-        output_type=chords_lib.ChordProgression)
+        output_type=chords_lib.ChordProgression,
+        name=name)
     self._max_steps = max_steps
     self._all_transpositions = all_transpositions
 

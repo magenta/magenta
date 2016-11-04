@@ -27,10 +27,12 @@ class MelodyExtractor(pipeline.Pipeline):
   """Extracts monophonic melodies from a QuantizedSequence."""
 
   def __init__(self, min_bars=7, max_steps=512, min_unique_pitches=5,
-               gap_bars=1.0, ignore_polyphonic_notes=False, filter_drums=True):
+               gap_bars=1.0, ignore_polyphonic_notes=False, filter_drums=True,
+               name=None):
     super(MelodyExtractor, self).__init__(
         input_type=sequences_lib.QuantizedSequence,
-        output_type=melodies_lib.Melody)
+        output_type=melodies_lib.Melody,
+        name=name)
     self._min_bars = min_bars
     self._max_steps = max_steps
     self._min_unique_pitches = min_unique_pitches

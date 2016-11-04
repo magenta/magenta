@@ -26,10 +26,11 @@ from magenta.pipelines import statistics
 class DrumsExtractor(pipeline.Pipeline):
   """Extracts drum tracks from a QuantizedSequence."""
 
-  def __init__(self, min_bars=7, max_steps=512, gap_bars=1.0):
+  def __init__(self, min_bars=7, max_steps=512, gap_bars=1.0, name=None):
     super(DrumsExtractor, self).__init__(
         input_type=sequences_lib.QuantizedSequence,
-        output_type=drums_lib.DrumTrack)
+        output_type=drums_lib.DrumTrack,
+        name=name)
     self._min_bars = min_bars
     self._max_steps = max_steps
     self._gap_bars = gap_bars
