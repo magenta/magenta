@@ -46,6 +46,14 @@ def musicxml_to_sequence_proto(musicxml_document):
 
   sequence = music_pb2.NoteSequence()
 
+  # Standard MusicXML fields.
+  sequence.source_info.source_type = (
+      music_pb2.NoteSequence.SourceInfo.SCORE_BASED)
+  sequence.source_info.encoding_type = (
+      music_pb2.NoteSequence.SourceInfo.MUSIC_XML)
+  sequence.source_info.parser = (
+      music_pb2.NoteSequence.SourceInfo.MAGENTA_MUSIC_XML)
+
   # Populate header.
   sequence.ticks_per_quarter = musicxml_document.midi_resolution
 

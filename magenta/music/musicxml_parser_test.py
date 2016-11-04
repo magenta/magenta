@@ -50,6 +50,7 @@ class MusicXMLParserTest(tf.test.TestCase):
   """
 
   def setUp(self):
+    self.maxDiff = None
 
     self.steps_per_quarter = 4
 
@@ -284,6 +285,11 @@ class MusicXMLParserTest(tf.test.TestCase):
         key_signatures: {
           key: F
         }
+        source_info: {
+          source_type: SCORE_BASED
+          encoding_type: MUSIC_XML
+          parser: MAGENTA_MUSIC_XML
+        }
         total_time: 4.0
         """)
     expected_pitches = [65, 67, 69, 70, 72, 74, 76, 77]
@@ -297,7 +303,6 @@ class MusicXMLParserTest(tf.test.TestCase):
       note.velocity = 64
       note.numerator = 1
       note.denominator = 4
-    self.maxDiff = None
     self.assertProtoEquals(expected_ns, ns)
 
 if __name__ == '__main__':
