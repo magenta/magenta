@@ -87,6 +87,10 @@ class MusicXMLParserTest(tf.test.TestCase):
         tf.resource_loader.get_data_files_path(),
         'testdata/rhythm_durations.xml')
 
+    self.st_anne_filename = os.path.join(
+        tf.resource_loader.get_data_files_path(),
+        'testdata/st_anne.xml')
+
     self.atonal_transposition_filename = os.path.join(
         tf.resource_loader.get_data_files_path(),
         'testdata/atonal_transposition_change.xml')
@@ -309,6 +313,7 @@ class MusicXMLParserTest(tf.test.TestCase):
     for pitch in expected_pitches:
       note = expected_ns.notes.add()
       note.part = 0
+      note.voice = 1
       note.pitch = pitch
       note.start_time = time
       time += .5
@@ -316,6 +321,236 @@ class MusicXMLParserTest(tf.test.TestCase):
       note.velocity = 64
       note.numerator = 1
       note.denominator = 4
+    self.assertProtoEquals(expected_ns, ns)
+
+  def testStAnne(self):
+    """Verify properties of the St. Anne file.
+
+    The file contains 2 parts and 4 voices.
+    """
+    ns = musicxml_reader.musicxml_file_to_sequence_proto(
+        self.st_anne_filename)
+    expected_ns = common_testing_lib.parse_test_proto(
+        music_pb2.NoteSequence,
+        """
+        ticks_per_quarter: 220
+        time_signatures: {
+          numerator: 4
+          denominator: 4
+        }
+        tempos: {
+          qpm: 120
+        }
+        key_signatures: {
+          key: C
+        }
+        source_info: {
+          source_type: SCORE_BASED
+          encoding_type: MUSIC_XML
+          parser: MAGENTA_MUSIC_XML
+        }
+        part_infos {
+          part: 0
+          name: "Harpsichord"
+        }
+        part_infos {
+          part: 1
+          name: "Piano"
+        }
+        total_time: 16.0
+        """)
+    pitches_0_1 = [
+        (67, .5),
+
+        (64, .5),
+        (69, .5),
+        (67, .5),
+        (72, .5),
+
+        (72, .5),
+        (71, .5),
+        (72, .5),
+        (67, .5),
+
+        (72, .5),
+        (67, .5),
+        (69, .5),
+        (66, .5),
+
+        (67, 1.5),
+
+        (71, .5),
+
+        (72, .5),
+        (69, .5),
+        (74, .5),
+        (71, .5),
+
+        (72, .5),
+        (69, .5),
+        (71, .5),
+        (67, .5),
+
+        (69, .5),
+        (72, .5),
+        (74, .5),
+        (71, .5),
+
+        (72, 1.5),
+    ]
+    pitches_0_2 = [
+        (60, .5),
+
+        (60, .5),
+        (60, .5),
+        (60, .5),
+        (64, .5),
+
+        (62, .5),
+        (62, .5),
+        (64, .5),
+        (64, .5),
+
+        (64, .5),
+        (64, .5),
+        (64, .5),
+        (62, .5),
+
+        (62, 1.5),
+
+        (62, .5),
+
+        (64, .5),
+        (60, .5),
+        (65, .5),
+        (62, .5),
+
+        (64, .75),
+        (62, .25),
+        (59, .5),
+        (60, .5),
+
+        (65, .5),
+        (64, .5),
+        (62, .5),
+        (62, .5),
+
+        (64, 1.5),
+    ]
+    pitches_1_1 = [
+        (52, .5),
+
+        (55, .5),
+        (57, .5),
+        (60, .5),
+        (60, .5),
+
+        (57, .5),
+        (55, .5),
+        (55, .5),
+        (60, .5),
+
+        (60, .5),
+        (59, .5),
+        (57, .5),
+        (57, .5),
+
+        (59, 1.5),
+
+        (55, .5),
+
+        (55, .5),
+        (57, .5),
+        (57, .5),
+        (55, .5),
+
+        (55, .5),
+        (57, .5),
+        (56, .5),
+        (55, .5),
+
+        (53, .5),
+        (55, .5),
+        (57, .5),
+        (55, .5),
+
+        (55, 1.5),
+    ]
+    pitches_1_2 = [
+        (48, .5),
+
+        (48, .5),
+        (53, .5),
+        (52, .5),
+        (57, .5),
+
+        (53, .5),
+        (55, .5),
+        (48, .5),
+        (48, .5),
+
+        (45, .5),
+        (52, .5),
+        (48, .5),
+        (50, .5),
+
+        (43, 1.5),
+
+        (55, .5),
+
+        (48, .5),
+        (53, .5),
+        (50, .5),
+        (55, .5),
+
+        (48, .5),
+        (53, .5),
+        (52, .5),
+        (52, .5),
+
+        (50, .5),
+        (48, .5),
+        (53, .5),
+        (55, .5),
+
+        (48, 1.5),
+    ]
+    part_voice_instrument_program_pitches = [
+        (0, 1, 1, 7, pitches_0_1),
+        (0, 2, 1, 7, pitches_0_2),
+        (1, 1, 2, 1, pitches_1_1),
+        (1, 2, 2, 1, pitches_1_2),
+    ]
+    for part, voice, instrument, program, pitches in (
+        part_voice_instrument_program_pitches):
+      time = 0
+      for pitch, duration in pitches:
+        note = expected_ns.notes.add()
+        note.part = part
+        note.voice = voice
+        note.pitch = pitch
+        note.start_time = time
+        time += duration
+        note.end_time = time
+        note.velocity = 64
+        note.instrument = instrument
+        note.program = program
+        if duration == .5:
+          note.numerator = 1
+          note.denominator = 4
+        if duration == .25:
+          note.numerator = 1
+          note.denominator = 8
+        if duration == .75:
+          note.numerator = 3
+          note.denominator = 8
+        if duration == 1.5:
+          note.numerator = 3
+          note.denominator = 4
+    expected_ns.notes.sort(
+        key=lambda note: (note.part, note.voice, note.start_time))
+    ns.notes.sort(
+        key=lambda note: (note.part, note.voice, note.start_time))
     self.assertProtoEquals(expected_ns, ns)
 
   def test_atonal_transposition(self):

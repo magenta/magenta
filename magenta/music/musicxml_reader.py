@@ -98,6 +98,7 @@ def musicxml_to_sequence_proto(musicxml_document):
         if not musicxml_note.is_rest:
           note = sequence.notes.add()
           note.part = part_index
+          note.voice = musicxml_note.voice
           note.instrument = musicxml_note.midi_channel
           note.program = musicxml_note.midi_program
           note.start_time = musicxml_note.note_duration.time_position
