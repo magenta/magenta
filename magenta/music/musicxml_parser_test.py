@@ -15,6 +15,7 @@
 
 from collections import defaultdict
 import os.path
+import tempfile
 
 # internal imports
 
@@ -551,6 +552,129 @@ class MusicXMLParserTest(tf.test.TestCase):
         key=lambda note: (note.part, note.voice, note.start_time))
     ns.notes.sort(
         key=lambda note: (note.part, note.voice, note.start_time))
+    self.assertProtoEquals(expected_ns, ns)
+
+  def testEmptyPartName(self):
+    """Verify that a part with an empty name can be parsed."""
+
+    xml = r"""<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+      <!DOCTYPE score-partwise PUBLIC
+          "-//Recordare//DTD MusicXML 3.0 Partwise//EN"
+          "http://www.musicxml.org/dtds/partwise.dtd">
+      <score-partwise version="3.0">
+        <part-list>
+          <score-part id="P1">
+            <part-name/>
+          </score-part>
+        </part-list>
+        <part id="P1">
+        </part>
+      </score-partwise>
+    """
+    with tempfile.NamedTemporaryFile() as temp_file:
+      temp_file.write(xml)
+      temp_file.flush()
+      ns = musicxml_reader.musicxml_file_to_sequence_proto(
+          temp_file.name)
+
+    expected_ns = common_testing_lib.parse_test_proto(
+        music_pb2.NoteSequence,
+        """
+        ticks_per_quarter: 220
+        source_info: {
+          source_type: SCORE_BASED
+          encoding_type: MUSIC_XML
+          parser: MAGENTA_MUSIC_XML
+        }
+        key_signatures {
+          key: C
+          time: 0
+        }
+        tempos {
+          qpm: 120.0
+        }
+        part_infos {
+          part: 0
+        }
+        total_time: 0.0
+        """)
+    self.assertProtoEquals(expected_ns, ns)
+
+  def testEmptyPartList(self):
+    """Verify that a part without a corresponding score-part can be parsed."""
+
+    xml = r"""<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+      <!DOCTYPE score-partwise PUBLIC
+          "-//Recordare//DTD MusicXML 3.0 Partwise//EN"
+          "http://www.musicxml.org/dtds/partwise.dtd">
+      <score-partwise version="3.0">
+        <part id="P1">
+        </part>
+      </score-partwise>
+    """
+    with tempfile.NamedTemporaryFile() as temp_file:
+      temp_file.write(xml)
+      temp_file.flush()
+      ns = musicxml_reader.musicxml_file_to_sequence_proto(
+          temp_file.name)
+
+    expected_ns = common_testing_lib.parse_test_proto(
+        music_pb2.NoteSequence,
+        """
+        ticks_per_quarter: 220
+        source_info: {
+          source_type: SCORE_BASED
+          encoding_type: MUSIC_XML
+          parser: MAGENTA_MUSIC_XML
+        }
+        key_signatures {
+          key: C
+          time: 0
+        }
+        tempos {
+          qpm: 120.0
+        }
+        part_infos {
+          part: 0
+        }
+        total_time: 0.0
+        """)
+    self.assertProtoEquals(expected_ns, ns)
+
+  def testEmptyDoc(self):
+    """Verify that an empty doc can be parsed."""
+
+    xml = r"""<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+      <!DOCTYPE score-partwise PUBLIC
+          "-//Recordare//DTD MusicXML 3.0 Partwise//EN"
+          "http://www.musicxml.org/dtds/partwise.dtd">
+      <score-partwise version="3.0">
+      </score-partwise>
+    """
+    with tempfile.NamedTemporaryFile() as temp_file:
+      temp_file.write(xml)
+      temp_file.flush()
+      ns = musicxml_reader.musicxml_file_to_sequence_proto(
+          temp_file.name)
+
+    expected_ns = common_testing_lib.parse_test_proto(
+        music_pb2.NoteSequence,
+        """
+        ticks_per_quarter: 220
+        source_info: {
+          source_type: SCORE_BASED
+          encoding_type: MUSIC_XML
+          parser: MAGENTA_MUSIC_XML
+        }
+        key_signatures {
+          key: C
+          time: 0
+        }
+        tempos {
+          qpm: 120.0
+        }
+        total_time: 0.0
+        """)
     self.assertProtoEquals(expected_ns, ns)
 
   def test_atonal_transposition(self):

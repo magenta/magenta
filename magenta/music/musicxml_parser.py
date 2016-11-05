@@ -179,10 +179,11 @@ class MusicXMLDocument(object):
     """Parse the uncompressed MusicXML document."""
     # Parse part-list
     xml_part_list = self._score.find('part-list')
-    for element in xml_part_list:
-      if element.tag == 'score-part':
-        score_part = ScorePart(element)
-        self._score_parts[score_part.id] = score_part
+    if xml_part_list is not None:
+      for element in xml_part_list:
+        if element.tag == 'score-part':
+          score_part = ScorePart(element)
+          self._score_parts[score_part.id] = score_part
 
     # Parse parts
     for score_part_index, child in enumerate(self._score.findall('part')):
@@ -267,10 +268,12 @@ class MusicXMLDocument(object):
       A list of all Tempo objects used in this score.
     """
     tempos = []
-    part = self.parts[0]  # Use only first part
-    for measure in part.measures:
-      for tempo in measure.tempos:
-        tempos.append(tempo)
+
+    if self.parts:
+      part = self.parts[0]  # Use only first part
+      for measure in part.measures:
+        for tempo in measure.tempos:
+          tempos.append(tempo)
 
     # If no tempos, add a default of 120 at beginning
     if not tempos:
@@ -305,7 +308,7 @@ class ScorePart(object):
     self.id = xml_score_part.attrib['id']
 
     if xml_score_part.find('part-name') is not None:
-      self.part_name = xml_score_part.find('part-name').text
+      self.part_name = xml_score_part.find('part-name').text or ''
 
     xml_midi_instrument = xml_score_part.find('midi-instrument')
     if (xml_midi_instrument is not None and
