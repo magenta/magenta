@@ -29,6 +29,8 @@ def add_track_to_sequence(note_sequence, instrument, notes):
     note.start_time = start_time
     note.end_time = end_time
     note.instrument = instrument
+    if end_time > note_sequence.total_time:
+      note_sequence.total_time = end_time
 
 
 def add_chords_to_sequence(note_sequence, chords):
@@ -51,6 +53,8 @@ def add_quantized_track_to_sequence(quantized_sequence, instrument, notes):
                                                 instrument=instrument,
                                                 program=0)
     track.append(note)
+    if end_step > quantized_sequence.total_steps:
+      quantized_sequence.total_steps = end_step
 
 
 def add_quantized_chords_to_sequence(quantized_sequence, chords):

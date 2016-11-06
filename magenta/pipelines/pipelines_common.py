@@ -11,11 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Defines Module base class and implementations.
-
-Modules are data processing building blocks for creating datasets.
-"""
-
+"""Common data processing pipelines."""
 
 import random
 
@@ -23,7 +19,6 @@ import random
 import numpy as np
 import tensorflow as tf
 
-from magenta.music import melodies_lib
 from magenta.music import sequences_lib
 from magenta.pipelines import pipeline
 from magenta.pipelines import statistics
@@ -33,52 +28,25 @@ from magenta.protobuf import music_pb2
 class Quantizer(pipeline.Pipeline):
   """A Module that quantizes NoteSequence data."""
 
-  def __init__(self, steps_per_quarter=4):
+  def __init__(self, steps_per_quarter=4, filter_drums=True):
     super(Quantizer, self).__init__(
         input_type=music_pb2.NoteSequence,
         output_type=sequences_lib.QuantizedSequence)
-    self.steps_per_quarter = steps_per_quarter
+    self._steps_per_quarter = steps_per_quarter
+    self._filter_drums = filter_drums
 
   def transform(self, note_sequence):
     quantized_sequence = sequences_lib.QuantizedSequence()
     try:
       quantized_sequence.from_note_sequence(note_sequence,
-                                            self.steps_per_quarter)
+                                            self._steps_per_quarter,
+                                            self._filter_drums)
       return [quantized_sequence]
     except sequences_lib.MultipleTimeSignatureException:
       tf.logging.debug('Multiple time signatures found in NoteSequence')
       self._set_stats([statistics.Counter(
           'sequences_discarded_because_multiple_time_signatures', 1)])
       return []
-
-
-class MelodyExtractor(pipeline.Pipeline):
-  """Extracts monophonic melodies from a QuantizedSequence."""
-
-  def __init__(self, min_bars=7, min_unique_pitches=5, gap_bars=1.0,
-               ignore_polyphonic_notes=False):
-    super(MelodyExtractor, self).__init__(
-        input_type=sequences_lib.QuantizedSequence,
-        output_type=melodies_lib.Melody)
-    self.min_bars = min_bars
-    self.min_unique_pitches = min_unique_pitches
-    self.gap_bars = gap_bars
-    self.ignore_polyphonic_notes = False
-
-  def transform(self, quantized_sequence):
-    try:
-      melodies, stats = melodies_lib.extract_melodies(
-          quantized_sequence,
-          min_bars=self.min_bars,
-          min_unique_pitches=self.min_unique_pitches,
-          gap_bars=self.gap_bars,
-          ignore_polyphonic_notes=self.ignore_polyphonic_notes)
-    except melodies_lib.NonIntegerStepsPerBarException as detail:
-      tf.logging.warning('Skipped sequence: %s', detail)
-      melodies = []
-      stats = [statistics.Counter('non_integer_steps_per_bar', 1)]
-    self._set_stats(stats)
-    return melodies
 
 
 class RandomPartition(pipeline.Pipeline):

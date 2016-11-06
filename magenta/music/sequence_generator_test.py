@@ -17,8 +17,18 @@
 
 import tensorflow as tf
 
+from magenta.music import model
 from magenta.music import sequence_generator
 from magenta.protobuf import generator_pb2
+
+
+class TestModel(model.BaseModel):
+
+  def __init__(self):
+    super(TestModel, self).__init__()
+
+  def _build_graph_for_generation(self):
+    pass
 
 
 class TestSequenceGenerator(sequence_generator.BaseSequenceGenerator):
@@ -28,22 +38,10 @@ class TestSequenceGenerator(sequence_generator.BaseSequenceGenerator):
         id='test_generator',
         description='Test Generator')
 
-    super(TestSequenceGenerator, self).__init__(details, checkpoint, bundle)
-
-  def _initialize_with_checkpoint(self, checkpoint_file):
-    pass
-
-  def _initialize_with_checkpoint_and_metagraph(self, checkpoint_file,
-                                                metagraph_file):
-    pass
-
-  def _close(self):
-    pass
+    super(TestSequenceGenerator, self).__init__(
+        TestModel(), details, checkpoint, bundle)
 
   def _generate(self):
-    pass
-
-  def _write_checkpoint_with_metagraph(self, checkpoint_file):
     pass
 
 

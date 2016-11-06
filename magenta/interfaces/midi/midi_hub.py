@@ -20,6 +20,14 @@ _DEFAULT_METRONOME_PITCH = 95
 _DEFAULT_METRONOME_VELOCITY = 64
 _METRONOME_CHANNEL = 0
 
+try:
+  # The RtMidi backend is easier to install and has support for virtual ports.
+  import rtmidi  # pylint: disable=unused-import,g-import-not-at-top
+  mido.set_backend('mido.backends.rtmidi')
+except ImportError:
+  # Tries to use PortMidi backend by default.
+  logging.warn('Could not import RtMidi. Virtual ports are disabled.')
+
 
 class MidiHubException(Exception):
   """Base class for exceptions in this module."""
@@ -264,29 +272,32 @@ class MidiPlayer(threading.Thread):
     start_time = time.time()
 
     new_message_list = []
-    # The set of pitches that are already playing but are not closed without
-    # being reopened in the future in the new sequence.
-    notes_to_close = set()
+    # The set of pitches that are already playing and will be closed without
+    # first being reopened in in the new sequence.
+    closed_notes = set()
     for note in sequence.notes:
       if note.start_time >= start_time:
         new_message_list.append(
             mido.Message(type='note_on', note=note.pitch,
                          velocity=note.velocity, time=note.start_time))
-      if note.end_time >= start_time:
         new_message_list.append(
             mido.Message(type='note_off', note=note.pitch, time=note.end_time))
-        if note.start_time < start_time and note.pitch not in self._open_notes:
-          notes_to_close.add(note.pitch)
+      elif note.end_time >= start_time and note.pitch in self._open_notes:
+        new_message_list.append(
+            mido.Message(type='note_off', note=note.pitch, time=note.end_time))
+        closed_notes.add(note.pitch)
 
-    for msg in self._message_queue:
-      if not notes_to_close:
-        break
-      if msg.note in notes_to_close:
-        assert msg.type == 'note_off'
-        new_message_list.append(msg)
-        notes_to_close.remove(msg.note)
+    # Close remaining open notes at the next event time to avoid abruptly ending
+    # notes.
+    notes_to_close = self._open_notes - closed_notes
+    if notes_to_close:
+      next_event_time = min(msg.time for msg in new_message_list)
+      for note in notes_to_close:
+        new_message_list.append(
+            mido.Message(type='note_off', note=note, time=next_event_time))
 
-    self._message_queue = deque(sorted(new_message_list, key=lambda x: x.time))
+    self._message_queue = deque(
+        sorted(new_message_list, key=lambda msg: (msg.time, msg.note)))
     self._update_cv.notify()
 
   @concurrency.serialized
@@ -749,9 +760,11 @@ class MidiHub(object):
 
   Args:
     input_midi_port: The string MIDI port name or mido.ports.BaseInput object to
-        use for input.
+        use for input. If a name is given that is not an available port, a
+        virtual port will be opened with that name.
     output_midi_port: The string MIDI port name mido.ports.BaseOutput object to
-        use for output.
+        use for output. If a name is given that is not an available port, a
+        virtual port will be opened with that name.
     texture_type: A TextureType Enum specifying the musical texture to assume
         during capture, passthrough, and playback.
     passthrough: A boolean specifying whether or not to pass incoming messages
@@ -777,12 +790,16 @@ class MidiHub(object):
     self._metronome = None
 
     # Open MIDI ports.
-    self._inport = (input_midi_port
-                    if isinstance(input_midi_port, mido.ports.BaseInput)
-                    else mido.open_input(input_midi_port))
-    self._outport = (output_midi_port
-                     if isinstance(output_midi_port, mido.ports.BaseOutput)
-                     else mido.open_output(output_midi_port))
+    self._inport = (
+        input_midi_port if isinstance(input_midi_port, mido.ports.BaseInput)
+        else mido.open_input(
+            input_midi_port,
+            virtual=input_midi_port not in get_available_input_ports()))
+    self._outport = (
+        output_midi_port if isinstance(output_midi_port, mido.ports.BaseOutput)
+        else mido.open_output(
+            output_midi_port,
+            virtual=output_midi_port not in get_available_output_ports()))
 
     # Start processing incoming messages.
     self._inport.callback = self._timestamp_and_handle_message
@@ -973,7 +990,6 @@ class MidiHub(object):
     """
     for regex in list(self._signals):
       if signal is None or regex.pattern == str(signal):
-        print str(signal)
         self._signals[regex].notify_all()
         del self._signals[regex]
 

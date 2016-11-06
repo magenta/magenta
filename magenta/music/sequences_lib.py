@@ -11,8 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Defines sequence of notes objects for creating datasets.
-"""
+"""Defines sequence of notes objects for creating datasets."""
 
 import collections
 import copy
@@ -45,6 +44,34 @@ class NegativeTimeException(Exception):
   pass
 
 
+def extract_subsequence(sequence, start_time, end_time):
+  """Extracts a subsequence from a NoteSequence.
+
+  Notes starting before `start_time` are not included. Notes ending after
+  `end_time` are truncated.
+
+  Args:
+    sequence: The NoteSequence to extract a subsequence from.
+    start_time: The float time in seconds to start the subsequence.
+    end_time: The float time in seconds to end the subsequence.
+
+  Returns:
+    A new NoteSequence that is a subsequence of `sequence` in the specified time
+    range.
+  """
+  subsequence = music_pb2.NoteSequence()
+  subsequence.CopyFrom(sequence)
+  del subsequence.notes[:]
+  for note in sequence.notes:
+    if note.start_time < start_time or note.start_time >= end_time:
+      continue
+    new_note = subsequence.notes.add()
+    new_note.CopyFrom(note)
+    new_note.end_time = min(note.end_time, end_time)
+  subsequence.total_time = min(sequence.total_time, end_time)
+  return subsequence
+
+
 def is_power_of_2(x):
   return x and not x & (x - 1)
 
@@ -55,6 +82,8 @@ class QuantizedSequence(object):
   Notes contain a pitch, velocity, start time, and end time. Notes
   are stored in tracks (which can be different instruments or the same
   instrument). There is also a time signature and key signature.
+
+  Notes stored in this object are not guaranteed to be sorted by time.
 
   Attributes:
     tracks: A dictionary mapping track number to list of Note tuples. Track
@@ -67,6 +96,7 @@ class QuantizedSequence(object):
         can also communicate more high level aspects of the music
         (see https://en.wikipedia.org/wiki/Time_signature).
     steps_per_quarter: How many quantization steps per quarter note of music.
+    total_steps: The total number of steps in the quantized sequence.
   """
 
   # Disabling pylint since it is recognizing these as attributes instead of
@@ -89,6 +119,7 @@ class QuantizedSequence(object):
     self.time_signature = QuantizedSequence.TimeSignature(numerator=4,
                                                           denominator=4)
     self.steps_per_quarter = 4
+    self.total_steps = 0
 
   def steps_per_bar(self):
     """Calculates steps per bar.
@@ -101,7 +132,8 @@ class QuantizedSequence(object):
     steps_per_bar_float = (self.steps_per_quarter * quarters_per_bar)
     return steps_per_bar_float
 
-  def from_note_sequence(self, note_sequence, steps_per_quarter):
+  def from_note_sequence(self, note_sequence, steps_per_quarter,
+                         filter_drums=True):
     """Populate self with a music_pb2.NoteSequence proto.
 
     Notes and time signature are saved to self with notes' start and end times
@@ -115,10 +147,12 @@ class QuantizedSequence(object):
 
     A note's start and end time are snapped to a nearby quantized step. See
     the comments above `QUANTIZE_CUTOFF` for details.
+
     Args:
       note_sequence: A music_pb2.NoteSequence protocol buffer.
       steps_per_quarter: Each quarter note of music will be divided into this
           many quantized time steps.
+      filter_drums: Whether to skip notes where `is_drum` is True.
 
     Raises:
       MultipleTimeSignatureException: If there is a change in time signature
@@ -153,7 +187,12 @@ class QuantizedSequence(object):
 
     quantize = lambda x: int(x + (1 - QUANTIZE_CUTOFF))
 
+    self.total_steps = quantize(note_sequence.total_time * steps_per_second)
+
     for note in note_sequence.notes:
+      if filter_drums and note.is_drum:
+        continue
+
       # Quantize the start and end times of the note.
       start_step = quantize(note.start_time * steps_per_second)
       end_step = quantize(note.end_time * steps_per_second)
@@ -165,6 +204,10 @@ class QuantizedSequence(object):
         raise NegativeTimeException(
             'Got negative note time: start_step = %s, end_step = %s' %
             (start_step, end_step))
+
+      # Extend quantized sequence if necessary.
+      if end_step > self.total_steps:
+        self.total_steps = end_step
 
       if note.instrument not in self.tracks:
         self.tracks[note.instrument] = []
@@ -198,6 +241,7 @@ class QuantizedSequence(object):
         self.qpm == other.qpm and
         self.time_signature == other.time_signature and
         self.steps_per_quarter == other.steps_per_quarter and
+        self.total_steps == other.total_steps and
         set(self.chords) == set(other.chords))
 
   def __deepcopy__(self, unused_memo=None):
@@ -207,4 +251,5 @@ class QuantizedSequence(object):
     new_copy.qpm = self.qpm
     new_copy.time_signature = self.time_signature
     new_copy.steps_per_quarter = self.steps_per_quarter
+    new_copy.total_steps = self.total_steps
     return new_copy

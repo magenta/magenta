@@ -16,33 +16,38 @@
 from setuptools import find_packages
 from setuptools import setup
 
-import magenta
+# Bit of a hack to parse the version string stored in version.py without
+# executing __init__.py, which will end up requiring a bunch of dependencies to
+# execute (e.g., tensorflow, pretty_midi, etc.).
+# Makes the __version__ variable available.
+execfile('magenta/version.py')
 
 
 REQUIRED_PACKAGES = [
     'mido >= 1.1.17',
+    'Pillow >= 3.4.2',
     'pretty_midi >= 0.2.6',
-    'tensorflow >= 0.10.0',
+    'scipy >= 0.18.1',
+    'tensorflow >= 0.11.0rc2',
     'wheel',
 ]
 
 CONSOLE_SCRIPTS = [
     'magenta.interfaces.midi.magenta_midi',
-    'magenta.models.attention_rnn.attention_rnn_create_dataset',
-    'magenta.models.attention_rnn.attention_rnn_generate',
-    'magenta.models.attention_rnn.attention_rnn_train',
-    'magenta.models.basic_rnn.basic_rnn_create_dataset',
-    'magenta.models.basic_rnn.basic_rnn_generate',
-    'magenta.models.basic_rnn.basic_rnn_train',
-    'magenta.models.lookback_rnn.lookback_rnn_create_dataset',
-    'magenta.models.lookback_rnn.lookback_rnn_generate',
-    'magenta.models.lookback_rnn.lookback_rnn_train',
+    'magenta.models.image_stylization.image_stylization_create_dataset',
+    'magenta.models.image_stylization.image_stylization_evaluate',
+    'magenta.models.image_stylization.image_stylization_finetune',
+    'magenta.models.image_stylization.image_stylization_train',
+    'magenta.models.image_stylization.image_stylization_transform',
+    'magenta.models.melody_rnn.melody_rnn_create_dataset',
+    'magenta.models.melody_rnn.melody_rnn_generate',
+    'magenta.models.melody_rnn.melody_rnn_train',
     'magenta.scripts.convert_midi_dir_to_note_sequences',
 ]
 
 setup(
     name='magenta',
-    version=magenta.__version__,
+    version=__version__,  # pylint: disable=undefined-variable
     description='Use machine learning to create art and music',
     long_description='',
     url='https://magenta.tensorflow.org/',
@@ -68,6 +73,11 @@ setup(
     entry_points={
         'console_scripts': ['%s = %s:console_entry_point' % (n, p) for n, p in
                             ((s.split('.')[-1], s) for s in CONSOLE_SCRIPTS)],
+    },
+
+    include_package_data=True,
+    package_data={
+        'magenta': ['models/image_stylization/evaluation_images/*.jpg'],
     },
 )
 

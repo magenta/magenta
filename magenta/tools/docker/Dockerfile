@@ -1,10 +1,10 @@
-FROM tensorflow/tensorflow:0.10.0-devel
+FROM tensorflow/tensorflow:0.11.0rc1-devel
 
 MAINTAINER Curtis Hawthorne <fjord@google.com>
 
 # Download and build Magenta.
 
-ENV MAGENTA_MASTER_REF ec86d0a57d274ac3b20d3d467098e91651107ac3
+ENV MAGENTA_MASTER_REF v0.1.5
 
 WORKDIR /
 RUN git clone https://github.com/tensorflow/magenta.git && \
@@ -13,10 +13,23 @@ RUN git clone https://github.com/tensorflow/magenta.git && \
 WORKDIR /magenta
 RUN bazel build //magenta/... && bazel test //magenta/...
 
+# Required to build the pip package
+RUN pip install pretty_midi
+
+RUN bazel build magenta/tools/pip:build_pip_package && \
+    bazel-bin/magenta/tools/pip/build_pip_package /tmp/magenta_pkg && \
+    pip install --upgrade /tmp/magenta_pkg/magenta-*.whl
+
 # Add pre-trained models
 ADD http://download.magenta.tensorflow.org/models/lookback_rnn.mag /magenta-models/
 ADD http://download.magenta.tensorflow.org/models/attention_rnn.mag /magenta-models/
 ADD http://download.magenta.tensorflow.org/models/basic_rnn.mag /magenta-models/
+ADD http://download.magenta.tensorflow.org/models/multistyle-pastiche-generator-monet.ckpt /magenta-models/
+ADD http://download.magenta.tensorflow.org/models/multistyle-pastiche-generator-varied.ckpt /magenta-models/
+
+# /magenta-data should be mapped to the host on startup.
+RUN mkdir /magenta-data
+WORKDIR /magenta-data
 
 # Start an interactive shell
 

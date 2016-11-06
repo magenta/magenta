@@ -18,11 +18,12 @@ import tensorflow as tf
 
 from magenta.music import chord_symbols_lib
 from magenta.music import chords_lib
+from magenta.music import constants
 from magenta.music import melodies_lib
 from magenta.music import sequences_lib
 from magenta.music import testing_lib
 
-NO_CHORD = chords_lib.NO_CHORD
+NO_CHORD = constants.NO_CHORD
 
 
 class ChordsLibTest(tf.test.TestCase):
@@ -98,6 +99,26 @@ class ChordsLibTest(tf.test.TestCase):
       chords.from_quantized_sequence(
           self.quantized_sequence, start_step=0, end_step=16)
 
+  def testExtractChords(self):
+    self.quantized_sequence.steps_per_quarter = 1
+    testing_lib.add_quantized_chords_to_sequence(
+        self.quantized_sequence, [('C', 2), ('G7', 6), ('F', 8)])
+    self.quantized_sequence.total_steps = 10
+    chord_progressions, _ = chords_lib.extract_chords(self.quantized_sequence)
+    expected = [[NO_CHORD, NO_CHORD, 'C', 'C', 'C', 'C', 'G7', 'G7', 'F', 'F']]
+    self.assertEqual(expected, [list(chords) for chords in chord_progressions])
+
+  def testExtractChordsAllTranspositions(self):
+    self.quantized_sequence.steps_per_quarter = 1
+    testing_lib.add_quantized_chords_to_sequence(
+        self.quantized_sequence, [('C', 1)])
+    self.quantized_sequence.total_steps = 2
+    chord_progressions, _ = chords_lib.extract_chords(self.quantized_sequence,
+                                                      all_transpositions=True)
+    expected = zip([NO_CHORD] * 12, ['G-', 'G', 'A-', 'A', 'B-', 'B',
+                                     'C', 'D-', 'D', 'E-', 'E', 'F'])
+    self.assertEqual(expected, [tuple(chords) for chords in chord_progressions])
+
   def testExtractChordsForMelodies(self):
     self.quantized_sequence.steps_per_quarter = 1
     testing_lib.add_quantized_track_to_sequence(
@@ -167,55 +188,6 @@ class ChordsLibTest(tf.test.TestCase):
         '  text: "N.C." time: 4.0 annotation_type: CHORD_SYMBOL '
         '> ',
         sequence)
-
-
-class MajorMinorEncoderDecoderTest(tf.test.TestCase):
-
-  def setUp(self):
-    self.encoder_decoder = chords_lib.MajorMinorEncoderDecoder()
-
-  def testEncodeNoChord(self):
-    index = self.encoder_decoder.encode_chord(NO_CHORD)
-    self.assertEquals(0, index)
-
-  def testEncodeChord(self):
-    # major triad
-    index = self.encoder_decoder.encode_chord('C')
-    self.assertEquals(1, index)
-
-    # minor triad
-    index = self.encoder_decoder.encode_chord('Cm')
-    self.assertEquals(13, index)
-
-    # dominant 7th
-    index = self.encoder_decoder.encode_chord('F7')
-    self.assertEquals(6, index)
-
-    # minor 9th
-    index = self.encoder_decoder.encode_chord('A-m9')
-    self.assertEquals(21, index)
-
-  def testEncodeThirdlessChord(self):
-    # suspended chord
-    with self.assertRaises(chords_lib.ChordEncodingException):
-      self.encoder_decoder.encode_chord('Gsus4')
-
-    # power chord
-    with self.assertRaises(chords_lib.ChordEncodingException):
-      self.encoder_decoder.encode_chord('B-5')
-
-  def testDecodeNoChord(self):
-    figure = self.encoder_decoder.decode_chord(0)
-    self.assertEquals(NO_CHORD, figure)
-
-  def testDecodeChord(self):
-    # major chord
-    figure = self.encoder_decoder.decode_chord(3)
-    self.assertEquals('D', figure)
-
-    # minor chord
-    figure = self.encoder_decoder.decode_chord(17)
-    self.assertEquals('Em', figure)
 
 
 if __name__ == '__main__':

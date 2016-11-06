@@ -27,21 +27,22 @@ sh_binary(
         "//magenta/interfaces/midi",
 
         # Models
-        "//magenta/models/attention_rnn",
-        "//magenta/models/basic_rnn",
-        "//magenta/models/lookback_rnn",
+        "//magenta/models/melody_rnn",
 
         # Scripts
         "//magenta/interfaces/midi:magenta_midi",
-        "//magenta/models/attention_rnn:attention_rnn_create_dataset",
-        "//magenta/models/attention_rnn:attention_rnn_generate",
-        "//magenta/models/attention_rnn:attention_rnn_train",
-        "//magenta/models/basic_rnn:basic_rnn_create_dataset",
-        "//magenta/models/basic_rnn:basic_rnn_generate",
-        "//magenta/models/basic_rnn:basic_rnn_train",
-        "//magenta/models/lookback_rnn:lookback_rnn_create_dataset",
-        "//magenta/models/lookback_rnn:lookback_rnn_generate",
-        "//magenta/models/lookback_rnn:lookback_rnn_train",
         "//magenta/scripts:convert_midi_dir_to_note_sequences",
+
+        # Melody RNN Scripts
+        "//magenta/models/melody_rnn:melody_rnn_create_dataset",
+        "//magenta/models/melody_rnn:melody_rnn_generate",
+        "//magenta/models/melody_rnn:melody_rnn_train",
+
+        # Image Stylization Scripts
+        "//magenta/models/image_stylization:image_stylization_create_dataset",
+        "//magenta/models/image_stylization:image_stylization_evaluate",
+        "//magenta/models/image_stylization:image_stylization_finetune",
+        "//magenta/models/image_stylization:image_stylization_train",
+        "//magenta/models/image_stylization:image_stylization_transform",
     ],
 )
