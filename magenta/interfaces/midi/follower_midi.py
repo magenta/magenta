@@ -117,7 +117,8 @@ def main(unused_argv):
   if FLAGS.output_port not in midi_hub.get_available_output_ports():
     print "Opening '%s' as a virtual MIDI port for output." % FLAGS.output_port
   hub = midi_hub.MidiHub(FLAGS.input_port, FLAGS.output_port,
-                         midi_hub.TextureType.MONOPHONIC, passthrough=FLAGS.passthrough)
+                         midi_hub.TextureType.MONOPHONIC,
+                         passthrough=FLAGS.passthrough)
 
   start_call_signal = (
       None if FLAGS.start_call_control_number is None else
@@ -182,8 +183,8 @@ class FollowerMidiInteraction(midi_interaction.MidiInteraction):
   Alternates between receiving input from the MidiHub ("call") and playing
   generated sequences ("response"). During the call stage, the input is captured
   and used to generate the response, which is then played back during the
-  response stage. The timing and length of the call and response stages are set 
-  by external MIDI signals. 
+  response stage. The timing and length of the call and response stages are set
+  by external MIDI signals.
 
   Args:
     midi_hub: The MidiHub to use for MIDI I/O.
@@ -250,7 +251,8 @@ class FollowerMidiInteraction(midi_interaction.MidiInteraction):
         # We end the call stage at the end of the next bar that is at least
         # `predicathead_quarters` in the future.
         end_time = time.time()
-        call_duration = ((time.time() - start_time) // quarter_duration) * quarter_duration
+        call_duration = ((time.time() - start_time) \
+          // quarter_duration) * quarter_duration
         quantized_end_time = start_time + call_duration
 
       # Set the metronome to stop at the appropriate time
@@ -268,7 +270,7 @@ class FollowerMidiInteraction(midi_interaction.MidiInteraction):
       # Generate sequence options.
       response_start_time = quantized_end_time
       response_end_time = quantized_end_time + call_duration
- 
+
       generator_options = magenta.protobuf.generator_pb2.GeneratorOptions()
       generator_options.generate_sections.add(
           start_time=response_start_time,
