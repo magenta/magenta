@@ -31,6 +31,7 @@ sh_binary(
 
         # Scripts
         "//magenta/interfaces/midi:magenta_midi",
+        "//magenta/interfaces/midi:follower_midi",
         "//magenta/scripts:convert_midi_dir_to_note_sequences",
 
         # Melody RNN Scripts
