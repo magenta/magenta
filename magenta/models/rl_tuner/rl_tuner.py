@@ -1451,10 +1451,10 @@ class RLTuner(object):
       if action_note == tonic_note:
         return reward_amount
     elif self.beat == first_note_of_final_bar + 1:
-      if action_note == rl_tuner_ops.NO_EVENT:
+      if action_note == NO_EVENT:
           return reward_amount
     elif self.beat > first_note_of_final_bar + 1:
-      if action_note == rl_tuner_ops.NO_EVENT or action_note == rl_tuner_ops.NOTE_OFF:
+      if action_note == NO_EVENT or action_note == NOTE_OFF:
         return reward_amount
     return 0.0
 
@@ -1490,9 +1490,9 @@ class RLTuner(object):
     for i in xrange(len(self.composition)-1, -1, -1):
       if self.composition[i] == action_note:
         num_repeated += 1
-      elif self.composition[i] == rl_tuner_ops.NOTE_OFF:
+      elif self.composition[i] == NOTE_OFF:
         contains_breaks = True
-      elif self.composition[i] == rl_tuner_ops.NO_EVENT:
+      elif self.composition[i] == NO_EVENT:
         contains_held_notes = True
       else:
         break
@@ -1581,7 +1581,7 @@ class RLTuner(object):
 
     last_bar = composition[-bar_length:]
 
-    actual_notes = [a for a in last_bar if a != rl_tuner_ops.NO_EVENT and a != rl_tuner_ops.NOTE_OFF]
+    actual_notes = [a for a in last_bar if a != NO_EVENT and a != NOTE_OFF]
     num_unique_notes = len(set(actual_notes))
     if num_unique_notes >= 3:
       return last_bar, num_unique_notes
@@ -1701,18 +1701,18 @@ class RLTuner(object):
 
     # get rid of non-notes in prev_note
     prev_note_index = len(self.composition) - 1
-    while (prev_note == rl_tuner_ops.NO_EVENT or
-           prev_note == rl_tuner_ops.NOTE_OFF) and prev_note_index >= 0:
+    while (prev_note == NO_EVENT or
+           prev_note == NOTE_OFF) and prev_note_index >= 0:
       prev_note = self.composition[prev_note_index]
       prev_note_index -= 1
-    if prev_note == rl_tuner_ops.NOTE_OFF or rl_tuner_ops.prev_note == NO_EVENT:
+    if prev_note == NOTE_OFF or prev_note == NO_EVENT:
       if verbose: print "action_note:", action_note, "prev_note:", prev_note
       return 0, action_note, prev_note
 
     if verbose: print "action_note:", action_note, "prev_note:", prev_note
 
     # get rid of non-notes in action_note
-    if action_note == rl_tuner_ops.NO_EVENT:
+    if action_note == NO_EVENT:
       if prev_note in tonic_notes or prev_note in fifth_notes:
         return rl_tuner_ops.HOLD_INTERVAL_AFTER_THIRD_OR_FIFTH, action_note, prev_note
       else:
@@ -1828,7 +1828,7 @@ class RLTuner(object):
       True if the lowest note was unique, False otherwise.
     """
     no_special_events = [x for x in composition
-                         if x != rl_tuner_ops.NO_EVENT and x != rl_tuner_ops.NOTE_OFF]
+                         if x != NO_EVENT and x != NOTE_OFF]
     if no_special_events:
       min_note = min(no_special_events)
       if list(composition).count(min_note) == 1:
@@ -1887,7 +1887,7 @@ class RLTuner(object):
 
     interval, action_note, prev_note = self.detect_sequential_interval(action)
 
-    if action_note == rl_tuner_ops.NOTE_OFF or action_note == rl_tuner_ops.NO_EVENT:
+    if action_note == NOTE_OFF or action_note == NO_EVENT:
       self.steps_since_last_leap += 1
       if verbose:
         tf.logging.info('Rest, adding to steps since last leap. It is'
