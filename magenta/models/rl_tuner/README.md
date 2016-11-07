@@ -1,9 +1,9 @@
 ### Recurrent Reinforcement Learning for Generating Melodies
 
-This code implements the models described in [this research paper][our arxiv].
-The idea is to take an LSTM that has been trained to predict the next note in a
-monophonic melody --- called a Note RNN --- and enhance it using reinforcement 
-learning (RL). 
+This code implements the models described in [this research paper][our arxiv],
+and [this blog][blog post]. The idea is to take an LSTM that has been trained 
+to predict the next note in a monophonic melody &mdash; called a Note RNN 
+&mdash; and enhance it using reinforcement learning (RL). 
 
 The RLTuner class implements a [Deep Q Network (DQN)][dqn], in which the Q network 
 learns the reward value of taking actions (playing notes) given the state of the 
@@ -84,6 +84,7 @@ for musical aesthetics, try modifying the `reward_music_theory` function!
 *   The DQN code was originally based on [this example][dqn ex]
 
 [our arxiv]: https://arxiv.org/abs/comingsoon
+[blog post]: https://notfuchsia.github.io/2016/10/24/natasha/
 [dqn ex]: https://github.com/nivwusquorum/tensorflow-deepq/blob/master/tf_rl/
 [g learning]: https://arxiv.org/pdf/1512.08562.pdf
 [psi learning]: http://homepages.inf.ed.ac.uk/svijayak/publications/rawlik-RSS2012.pdf
