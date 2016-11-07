@@ -18,8 +18,6 @@ BATCH_SIZE = 128
 
 # Music theory constants used in defining reward functions.
 # Note that action 2 = midi note 48.
-NOTE_OFF = 0
-NO_EVENT = 1
 INITIAL_MIDI_VALUE = 48
 NUM_SPECIAL_EVENTS = 2
 C_MAJOR_SCALE = [2, 4, 6, 7, 9, 11, 13, 14, 16, 18, 19, 21, 23, 25, 26]

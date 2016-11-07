@@ -28,8 +28,12 @@ from magenta.music import midi_io
 import note_rnn_loader
 import rl_tuner_ops
 
-# training data sequences are limited to this length, so the padding queue pads
-# to this length
+# Note values of pecial actions.
+NOTE_OFF = 0
+NO_EVENT = 1
+
+# Training data sequences are limited to this length, so the padding queue pads
+# to this length.
 TRAIN_SEQUENCE_LENGTH = 192
 
 def reload_files():
