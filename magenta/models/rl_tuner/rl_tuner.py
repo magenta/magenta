@@ -1691,7 +1691,7 @@ class RLTuner(object):
 
     c_major = False
     if key is None:
-      key = C_MAJOR_KEY
+      key = rl_tuner_ops.C_MAJOR_KEY
       c_notes = [2, 14, 26]
       g_notes = [9, 21, 33]
       e_notes = [6, 18, 30]
