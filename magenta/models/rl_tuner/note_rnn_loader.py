@@ -14,7 +14,7 @@ It also provides the ability to add the model's graph to an existing graph as a
 subcomponent, and then load variables from a checkpoint file into only that
 piece of the overall graph.
 
-These functions are necessary for use with the MelodyQ class.
+These functions are necessary for use with the RL Tuner class.
 """
 
 import os
