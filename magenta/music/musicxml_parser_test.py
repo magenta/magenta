@@ -318,9 +318,14 @@ class MusicXMLParserTest(tf.test.TestCase):
       note.denominator = 4
     self.assertProtoEquals(expected_ns, ns)
 
-  def testatonaltransposition(self):
-    """Test that transposition works when changing instrument transposition
-    within a single part in a score that has no key signature / is atonal.
+  def test_atonal_transposition(self):
+    """Test that transposition works when changing instrument transposition.
+
+    This can occur within a single part in a score where the score
+    has no key signature / is atonal. Examples include changing from a
+    non-transposing instrument to a transposing one (ex. Flute to Bb Clarinet)
+    or vice versa, or changing among transposing instruments (ex. Bb Clarinet
+    to Eb Alto Saxophone).
     """
     ns = musicxml_reader.musicxml_file_to_sequence_proto(
         self.atonal_transposition_filename)

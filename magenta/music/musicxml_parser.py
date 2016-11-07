@@ -410,7 +410,7 @@ class Measure(object):
       elif child.tag == 'transpose':
         transpose = int(child.find('chromatic').text)
         self.state.transpose = transpose
-        if self.key_signature != None:
+        if self.key_signature is not None:
           self.key_signature.key += transpose
       else:
         # Ignore other tag types because they are not relevant to Magenta.
