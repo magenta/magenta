@@ -1805,7 +1805,7 @@ class RLTuner(object):
   def evaluate_music_theory_metrics(self, num_compositions=10000, key=None,
                                     tonic_note=rl_tuner_ops.C_MAJOR_TONIC):
     stat_dict = rl_tuner_eval_metrics.compute_composition_stats(
-      rl_tuner,
+      self,
       num_compositions=num_compositions,
       composition_length=self.num_notes_in_melody,
       key=key,
