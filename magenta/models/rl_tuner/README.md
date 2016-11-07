@@ -9,7 +9,7 @@ The RLTuner class implements a [Deep Q Network (DQN)][dqn], in which the Q netwo
 learns the reward value of taking actions (playing notes) given the state of the 
 environment (the melody composed so far). The reward that the network learns 
 comes from two sources: 1) a set of music theory reward functions, and 2) the 
-output of a trained Note RNN, which gives p(a|s), the probability of playing the 
+output of a trained Note RNN, which gives *p(a|s)*, the probability of playing the 
 next note *a* given the state of the composition *s*, as originally learned from 
 data. This combination allows the model to maintain what it learned from data, 
 while constraining it to conform to a set of music theory rules. 
@@ -66,7 +66,7 @@ on each algorithm, see [our paper][our arxiv].
 
 
 ## How to run the model
-To train the model you can use the provided jupyter notebook (`rl_tuner.ipynb`), or, you can simply run:
+To train the model you can use the provided jupyter notebook ([rl_tuner.ipynb][ipynb]), or, you can simply run:
 
 ```
 bazel run magenta/models/rl_tuner:rl_tuner_train -- 
@@ -85,6 +85,7 @@ for musical aesthetics, try modifying the `reward_music_theory` function!
 
 [our arxiv]: https://arxiv.org/abs/comingsoon
 [blog post]: https://notfuchsia.github.io/2016/10/24/natasha/
+[ipynb]: https://nbviewer.jupyter.org/github/natashamjaques/magenta/blob/20d53280c47e490d04cca20ff0ddaca871a37b88/magenta/models/rl_tuner/rl_tuner.ipynb
 [dqn ex]: https://github.com/nivwusquorum/tensorflow-deepq/blob/master/tf_rl/
 [g learning]: https://arxiv.org/pdf/1512.08562.pdf
 [psi learning]: http://homepages.inf.ed.ac.uk/svijayak/publications/rawlik-RSS2012.pdf
