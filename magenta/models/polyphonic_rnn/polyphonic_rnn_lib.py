@@ -33,6 +33,12 @@ from magenta.protobuf import music_pb2
 # TODO(fjord): this filtering should happen at dataset creation time.
 TIME_CLASSES = [0.125, 0.25, 0.5, 0.75, 1.0, 1.5, 2.0, 3.0, 4.0, 6.0, 8.0, 12.0]
 
+# How many simultaneous notes to allow.
+SIMULTANEOUS_NOTES = 4
+
+# Note classes.
+NOTE_CLASSES = list(np.arange(88 + 1))  # + 1 for silence
+
 ##
 # begin metautils
 ##
@@ -195,8 +201,6 @@ def duration_and_pitch_to_midi(filename, durations, pitches, prime_until=0):
 
   tempos = sequence.tempos.add()
   tempos.qpm = 120
-  # ti.simultaneous_notes
-  sn = 4
 
   # Translate durations from TIME_CLASSES indexes to TIME_CLASSES values.
   dt = copy.deepcopy(durations)
@@ -206,17 +210,19 @@ def duration_and_pitch_to_midi(filename, durations, pitches, prime_until=0):
   # TODO: Decoded times seem to be ~8x longer than they should be (in seconds)
   # Should figure out why this is. Could be a problem with how times are stored
   # in the model, or maybe a problem with input data.
-  delta_times = [dt[..., i] / 8 for i in range(sn)]
-  end_times = [delta_times[i].cumsum(axis=0) for i in range(sn)]
-  start_times = [end_times[i] - delta_times[i] for i in range(sn)]
-  voices = [pitches[..., i] for i in range(sn)]
+  delta_times = [dt[..., i] / 8 for i in range(SIMULTANEOUS_NOTES)]
+  end_times = [delta_times[i].cumsum(axis=0) for i in range(SIMULTANEOUS_NOTES)]
+  start_times = [end_times[i] - delta_times[i]
+                 for i in range(SIMULTANEOUS_NOTES)]
+  voices = [pitches[..., i] for i in range(SIMULTANEOUS_NOTES)]
 
   midi_notes = []
   default_instrument = 0
   default_program = 0
   priming_instrument = 79
   priming_program = 79
-  sequence.total_time = float(max([end_times[i][-1] for i in range(sn)]))
+  sequence.total_time = float(max([end_times[i][-1]
+                                   for i in range(SIMULTANEOUS_NOTES)]))
 
   assert len(delta_times[0]) == len(voices[0])
   for n in range(len(delta_times[0])):
@@ -260,10 +266,6 @@ class TFRecordDurationAndPitchIterator(object):
     reader = mm.note_sequence_io.note_sequence_record_iterator(files_path)
     all_ds = []
     all_ps = []
-    self.note_classes = list(np.arange(88 + 1))  # + 1 for silence
-    # set automatically
-    # self.simultaneous_notes = int(max(np.sum(self._data, axis=0)))
-    self.simultaneous_notes = 4
     time_classes_set = set(TIME_CLASSES)
     for ns in reader:
       notes = ns.notes
@@ -273,25 +275,35 @@ class TFRecordDurationAndPitchIterator(object):
 
       sample_times = sorted(list(set(st)))
       # go straight for pitch and delta time encoding
-      sn = self.simultaneous_notes
       pitch_slices = [pi[st == sti][::-1] for sti in sample_times]
+      if any([len(pitches) > SIMULTANEOUS_NOTES for pitches in pitch_slices]):
+        tf.logging.warning(
+            'NoteSequence %s:%s has more than %s simultaneous notes and will '
+            'be skipped',
+            ns.id, ns.filename, SIMULTANEOUS_NOTES)
+        continue
       # This monster fills in 0s so that array size is consistent
-      pitch_slices = [p[:sn] if len(p) >= sn
+      pitch_slices = [p[:SIMULTANEOUS_NOTES] if len(p) >= SIMULTANEOUS_NOTES
                       else
-                      np.concatenate((p, np.array([0.] * (sn - len(p)),
-                                                  dtype='float32')))
+                      np.concatenate(
+                          (p, np.array([0.] * (SIMULTANEOUS_NOTES - len(p)),
+                                       dtype='float32')))
                       for p in pitch_slices]
       start_slices = [st[st == sti] for sti in sample_times]
       end_slices = [et[st == sti] for sti in sample_times]
-      start_slices = [ss[:sn] if len(ss) >= sn
+      start_slices = [ss[:SIMULTANEOUS_NOTES] if len(ss) >= SIMULTANEOUS_NOTES
                       else
-                      np.concatenate((ss, np.array([ss[0]] * (sn - len(ss)),
-                                                   dtype='float32')))
+                      np.concatenate(
+                          (ss, np.array(
+                              [ss[0]] * (SIMULTANEOUS_NOTES - len(ss)),
+                              dtype='float32')))
                       for ss in start_slices]
-      end_slices = [es[:sn] if len(es) >= sn
+      end_slices = [es[:SIMULTANEOUS_NOTES] if len(es) >= SIMULTANEOUS_NOTES
                     else
-                    np.concatenate((es, np.array([max(es)] * (sn - len(es)),
-                                                 dtype='float32')))
+                    np.concatenate(
+                        (es, np.array(
+                            [max(es)] * (SIMULTANEOUS_NOTES - len(es)),
+                            dtype='float32')))
                     for es in end_slices]
       start_slices = np.array(start_slices)
       end_slices = np.array(end_slices)
@@ -306,6 +318,7 @@ class TFRecordDurationAndPitchIterator(object):
       all_ds.append(np.array(delta_slices))
       all_ps.append(np.array(pitch_slices))
     assert len(all_ds) == len(all_ps)
+    tf.logging.info('Successfully processed %s NoteSequences', len(all_ds))
     all_ds = np.concatenate(all_ds)
     all_ps = np.concatenate(all_ps)
 
