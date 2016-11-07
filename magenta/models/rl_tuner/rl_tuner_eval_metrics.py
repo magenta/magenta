@@ -7,7 +7,7 @@ def compute_composition_stats(rl_tuner,
                               num_compositions=10000,
                               composition_length=32,
                               key=None,
-                              tonic_note=C_MAJOR_TONIC):
+                              tonic_note=rl_tuner_ops.C_MAJOR_TONIC):
   """Uses the model to create many compositions, stores statistics about them.
 
   Args:
