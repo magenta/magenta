@@ -1804,6 +1804,17 @@ class RLTuner(object):
 
   def evaluate_music_theory_metrics(self, num_compositions=10000, key=None,
                                     tonic_note=rl_tuner_ops.C_MAJOR_TONIC):
+    """Computes statistics about music theory rule adherence.
+
+    Args: 
+      num_compositions: How many compositions should be randomly generated
+        for computing the statistics.
+      key: The numeric values of notes belonging to this key. Defaults to C
+        Major if not provided.
+      tonic_note: The tonic/1st note of the desired key.
+
+    Returns: A dictionary containing the statistics.
+    """
     stat_dict = rl_tuner_eval_metrics.compute_composition_stats(
       self,
       num_compositions=num_compositions,

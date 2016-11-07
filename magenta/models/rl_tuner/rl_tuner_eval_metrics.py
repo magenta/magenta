@@ -1,3 +1,5 @@
+"""Code to evaluate how well an RL Tuner conforms to music theory rules."""
+
 import numpy as np
 import tensorflow as tf
 
