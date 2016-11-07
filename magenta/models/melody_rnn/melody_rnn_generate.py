@@ -234,10 +234,9 @@ def run_with_flags(generator):
     generated_sequence = generator.generate(input_sequence, generator_options)
 
     if FLAGS.exclude_primer_midi is True:
-      # Remove the first half ot the sequence. Iterating through all notes
-      # and popping the first one each time stops halfway through the list
-      # because we are continually shortening the list by 1 and moving onto
-      # the next index.
+      # Remove the first half of the sequence. Since we are continually
+      # shortening the list by 1 and moving onto the next index, only half
+      # of generated_sequence.notes are popped.
       for note in generated_sequence.notes:
         generated_sequence.notes.pop(0)
 
