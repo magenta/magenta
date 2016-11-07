@@ -1,6 +1,7 @@
 import numpy as np
 import tensorflow as tf
 
+import rl_tuner_ops
 
 # Music theory constants used in defining reward functions.
 # Note that action 2 = midi note 48.
@@ -58,10 +59,11 @@ def compute_composition_stats(rl_tuner,
   Returns:
     A dictionary containing the computed statistics about the compositions.
   """
-  stat_dict = rl_tuner.initialize_stat_dict()
+  stat_dict = initialize_stat_dict()
 
   for i in range(num_compositions):
-    stat_dict = rl_tuner.compose_and_evaluate_piece(
+    stat_dict = compose_and_evaluate_piece(
+        rl_tuner,
         stat_dict,
         composition_length=composition_length,
         key=key,
@@ -73,13 +75,13 @@ def compute_composition_stats(rl_tuner,
   stat_dict['num_compositions'] = num_compositions
   stat_dict['total_notes'] = num_compositions * composition_length
 
-  tf.logging.info(rl_tuner.get_stat_dict_string(stat_dict))
+  tf.logging.info(get_stat_dict_string(stat_dict))
 
   return stat_dict
 
 # The following functions compute evaluation metrics to test whether the model
 # trained successfully.
-def get_stat_dict_string(rl_tuner, stat_dict, print_interval_stats=True):
+def get_stat_dict_string(stat_dict, print_interval_stats=True):
   """Makes string of interesting statistics from a composition stat_dict.
 
   Args:
@@ -217,14 +219,14 @@ def compose_and_evaluate_piece(rl_tuner,
     obs_note = np.argmax(new_observation)
 
     # Compute note by note stats as it composes.
-    stat_dict = rl_tuner.add_interval_stat(new_observation, stat_dict, key=key)
-    stat_dict = rl_tuner.add_in_key_stat(obs_note, stat_dict, key=key)
-    stat_dict = rl_tuner.add_tonic_start_stat(
-        obs_note, stat_dict, tonic_note=tonic_note)
-    stat_dict = rl_tuner.add_repeating_note_stat(obs_note, stat_dict)
-    stat_dict = rl_tuner.add_motif_stat(new_observation, stat_dict)
-    stat_dict = rl_tuner.add_repeated_motif_stat(new_observation, stat_dict)
-    stat_dict = rl_tuner.add_leap_stats(new_observation, stat_dict)
+    stat_dict = add_interval_stat(rl_tuner, new_observation, stat_dict, key=key)
+    stat_dict = add_in_key_stat(rl_tuner, obs_note, stat_dict, key=key)
+    stat_dict = add_tonic_start_stat(
+        rl_tuner, obs_note, stat_dict, tonic_note=tonic_note)
+    stat_dict = add_repeating_note_stat(rl_tuner, obs_note, stat_dict)
+    stat_dict = add_motif_stat(rl_tuner, new_observation, stat_dict)
+    stat_dict = add_repeated_motif_stat(rl_tuner, new_observation, stat_dict)
+    stat_dict = add_leap_stats(rl_tuner, new_observation, stat_dict)
 
     rl_tuner.composition.append(np.argmax(new_observation))
     rl_tuner.beat += 1
@@ -234,11 +236,11 @@ def compose_and_evaluate_piece(rl_tuner,
     stat_dict['autocorrelation' + str(lag)].append(
         rl_tuner_ops.autocorrelate(rl_tuner.composition, lag))
 
-  rl_tuner.add_high_low_unique_stats(stat_dict)
+  add_high_low_unique_stats(rl_tuner, stat_dict)
 
   return stat_dict
 
-def initialize_stat_dict(rl_tuner):
+def initialize_stat_dict():
   """Initializes a dictionary which will hold statistics about compositions.
 
   Returns:
