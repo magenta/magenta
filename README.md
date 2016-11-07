@@ -143,9 +143,7 @@ git clone https://github.com/tensorflow/magenta.git
 ```
 
 Next, [install Bazel](https://bazel.build/docs/install.html). We recommend the
-latest version, currently 0.3.1 (**Note:** We're
-[investigating a problem](https://github.com/bazelbuild/bazel/issues/1997) with
-Bazel 0.3.2 and recommend staying with 0.3.1 until we find a solution).
+latest version, currently 0.4.0.
 
 Finally,
 [install TensorFlow](https://www.tensorflow.org/get_started/os_setup.html).
