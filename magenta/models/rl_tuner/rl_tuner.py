@@ -485,6 +485,123 @@ class RLTuner(object):
     self.summarize = tf.merge_all_summaries()
     self.no_op1 = tf.no_op()
 
+  def train(self, num_steps=10000, exploration_period=5000, enable_random=True, verbose=False):
+    """Main training function that allows model to act, collects reward, trains.
+
+    Iterates a number of times, getting the model to act each time, saving the
+    experience, and performing backprop.
+
+    Args:
+      num_steps: The number of training steps to execute.
+      exploration_period: The number of steps over which the probability of
+        exploring (taking a random action) is annealed from 1.0 to the model's
+        random_action_probability.
+      enable_random: If False, the model will not be able to act randomly /
+        explore.
+      verbose: If True, will output debugging statements
+    """
+    print "Evaluating initial model..."
+    self.evaluate_model()
+
+    self.actions_executed_so_far = 0
+
+    if self.stochastic_observations:
+      tf.logging.info('Using stochastic environment')
+
+    self.reset_composition()
+    last_observation = self.prime_internal_models(suppress_output=False)
+
+    for i in range(num_steps):
+      # Experiencing observation, state, action, reward, new observation,
+      # new state tuples, and storing them.
+      state = np.array(self.q_network.state_value).flatten()
+      reward_rnn_state = np.array(self.reward_rnn.state_value).flatten()
+
+      if self.exploration_mode == 'boltzmann' or self.stochastic_observations:
+        action, new_observation, reward_scores = self.action(last_observation,
+                                                             exploration_period,
+                                                             enable_random=enable_random,
+                                                             sample_next_obs=True)
+      else:
+        action, reward_scores = self.action(last_observation,
+                                            exploration_period,
+                                            enable_random=enable_random,
+                                            sample_next_obs=False)
+        new_observation = action
+      new_state = np.array(self.q_network.state_value).flatten()
+      new_reward_state = np.array(self.reward_rnn.state_value).flatten()
+
+      if verbose:
+        print "Action (in train func):", np.argmax(action)
+        print "New obs (in train func):", np.argmax(new_observation)
+        print "reward_rnn output for action (in train func):", self.reward_from_reward_rnn_scores(action, reward_scores)
+        print "reward_rnn output for new obs (in train func):", self.reward_from_reward_rnn_scores(new_observation, reward_scores)
+        print "Diff between successive reward_rnn states:", np.sum((reward_rnn_state - new_reward_state)**2)
+        print "Diff between reward_rnn state and q_network state:", np.sum((new_state - new_reward_state)**2)
+
+      reward = self.collect_reward(last_observation, new_observation, reward_scores, verbose=verbose)
+
+      self.store(last_observation, state, action, reward, new_observation,
+                 new_state, new_reward_state)
+
+      # Used to keep track of how the reward is changing over time.
+      self.reward_last_n += reward
+
+      # Used to keep track of the current musical composition and beat for
+      # the reward functions.
+      self.composition.append(np.argmax(new_observation))
+      self.beat += 1
+
+      if i > 0 and i % self.output_every_nth == 0:
+        print "Evaluating model..."
+        self.evaluate_model()
+        self.save_model(self.algorithm)
+
+        # Save a checkpoint.
+        save_step = len(self.rewards_batched)*self.output_every_nth
+        self.saver.save(self.session, self.save_path, global_step=save_step)
+
+        if self.algorithm == 'g':
+          self.rewards_batched.append(self.music_theory_reward_last_n + self.note_rnn_reward_last_n)
+        else:
+          self.rewards_batched.append(self.reward_last_n)
+        self.music_theory_rewards_batched.append(self.music_theory_reward_last_n)
+        self.note_rnn_rewards_batched.append(self.note_rnn_reward_last_n)
+
+        r = self.reward_last_n
+        tf.logging.info('Training iteration %s', i)
+        tf.logging.info('\tReward for last %s steps: %s', self.output_every_nth, r)
+        tf.logging.info('\t\tMusic theory reward: %s', self.music_theory_reward_last_n)
+        tf.logging.info('\t\tNote RNN reward: %s', self.note_rnn_reward_last_n)
+        
+        print 'Training iteration', i
+        print '\tReward for last', self.output_every_nth, 'steps:', r
+        print '\t\tMusic theory reward:', self.music_theory_reward_last_n
+        print '\t\tNote RNN reward:', self.note_rnn_reward_last_n
+
+        if self.exploration_mode == 'egreedy':
+          exploration_p = rl_tuner_ops.linear_annealing(
+              self.actions_executed_so_far, exploration_period, 1.0,
+              self.dqn_hparams.random_action_probability)
+          tf.logging.info('\tExploration probability is %s', exploration_p)
+          print '\tExploration probability is', exploration_p
+        
+        self.reward_last_n = 0
+        self.music_theory_reward_last_n = 0
+        self.note_rnn_reward_last_n = 0
+
+      # Backprop.
+      self.training_step()
+
+      # Update current state as last state.
+      last_observation = new_observation
+
+      # Reset the state after each composition is complete.
+      if self.beat % self.num_notes_in_melody == 0:
+        if verbose: print "\nResetting composition!\n"
+        self.reset_composition()
+        last_observation = self.prime_internal_models()
+
   def action(self, observation, exploration_period=0, enable_random=True,
              sample_next_obs=False):
     """Given an observation, runs the q_network to choose the current action.
@@ -675,123 +792,6 @@ class RLTuner(object):
       self.iteration += 1
 
     self.num_times_train_called += 1
-
-  def train(self, num_steps=10000, exploration_period=5000, enable_random=True, verbose=False):
-    """Main training function that allows model to act, collects reward, trains.
-
-    Iterates a number of times, getting the model to act each time, saving the
-    experience, and performing backprop.
-
-    Args:
-      num_steps: The number of training steps to execute.
-      exploration_period: The number of steps over which the probability of
-        exploring (taking a random action) is annealed from 1.0 to the model's
-        random_action_probability.
-      enable_random: If False, the model will not be able to act randomly /
-        explore.
-      verbose: If True, will output debugging statements
-    """
-    print "Evaluating initial model..."
-    self.evaluate_model()
-
-    self.actions_executed_so_far = 0
-
-    if self.stochastic_observations:
-      tf.logging.info('Using stochastic environment')
-
-    self.reset_composition()
-    last_observation = self.prime_internal_models(suppress_output=False)
-
-    for i in range(num_steps):
-      # Experiencing observation, state, action, reward, new observation,
-      # new state tuples, and storing them.
-      state = np.array(self.q_network.state_value).flatten()
-      reward_rnn_state = np.array(self.reward_rnn.state_value).flatten()
-
-      if self.exploration_mode == 'boltzmann' or self.stochastic_observations:
-        action, new_observation, reward_scores = self.action(last_observation,
-                                                             exploration_period,
-                                                             enable_random=enable_random,
-                                                             sample_next_obs=True)
-      else:
-        action, reward_scores = self.action(last_observation,
-                                            exploration_period,
-                                            enable_random=enable_random,
-                                            sample_next_obs=False)
-        new_observation = action
-      new_state = np.array(self.q_network.state_value).flatten()
-      new_reward_state = np.array(self.reward_rnn.state_value).flatten()
-
-      if verbose:
-        print "Action (in train func):", np.argmax(action)
-        print "New obs (in train func):", np.argmax(new_observation)
-        print "reward_rnn output for action (in train func):", self.reward_from_reward_rnn_scores(action, reward_scores)
-        print "reward_rnn output for new obs (in train func):", self.reward_from_reward_rnn_scores(new_observation, reward_scores)
-        print "Diff between successive reward_rnn states:", np.sum((reward_rnn_state - new_reward_state)**2)
-        print "Diff between reward_rnn state and q_network state:", np.sum((new_state - new_reward_state)**2)
-
-      reward = self.collect_reward(last_observation, new_observation, reward_scores, verbose=verbose)
-
-      self.store(last_observation, state, action, reward, new_observation,
-                 new_state, new_reward_state)
-
-      # Used to keep track of how the reward is changing over time.
-      self.reward_last_n += reward
-
-      # Used to keep track of the current musical composition and beat for
-      # the reward functions.
-      self.composition.append(np.argmax(new_observation))
-      self.beat += 1
-
-      if i > 0 and i % self.output_every_nth == 0:
-        print "Evaluating model..."
-        self.evaluate_model()
-        self.save_model(self.algorithm)
-
-        # Save a checkpoint.
-        save_step = len(self.rewards_batched)*self.output_every_nth
-        self.saver.save(self.session, self.save_path, global_step=save_step)
-
-        if self.algorithm == 'g':
-          self.rewards_batched.append(self.music_theory_reward_last_n + self.note_rnn_reward_last_n)
-        else:
-          self.rewards_batched.append(self.reward_last_n)
-        self.music_theory_rewards_batched.append(self.music_theory_reward_last_n)
-        self.note_rnn_rewards_batched.append(self.note_rnn_reward_last_n)
-
-        r = self.reward_last_n
-        tf.logging.info('Training iteration %s', i)
-        tf.logging.info('\tReward for last %s steps: %s', self.output_every_nth, r)
-        tf.logging.info('\t\tMusic theory reward: %s', self.music_theory_reward_last_n)
-        tf.logging.info('\t\tNote RNN reward: %s', self.note_rnn_reward_last_n)
-        
-        print 'Training iteration', i
-        print '\tReward for last', self.output_every_nth, 'steps:', r
-        print '\t\tMusic theory reward:', self.music_theory_reward_last_n
-        print '\t\tNote RNN reward:', self.note_rnn_reward_last_n
-
-        if self.exploration_mode == 'egreedy':
-          exploration_p = rl_tuner_ops.linear_annealing(
-              self.actions_executed_so_far, exploration_period, 1.0,
-              self.dqn_hparams.random_action_probability)
-          tf.logging.info('\tExploration probability is %s', exploration_p)
-          print '\tExploration probability is', exploration_p
-        
-        self.reward_last_n = 0
-        self.music_theory_reward_last_n = 0
-        self.note_rnn_reward_last_n = 0
-
-      # Backprop.
-      self.training_step()
-
-      # Update current state as last state.
-      last_observation = new_observation
-
-      # Reset the state after each composition is complete.
-      if self.beat % self.num_notes_in_melody == 0:
-        if verbose: print "\nResetting composition!\n"
-        self.reset_composition()
-        last_observation = self.prime_internal_models()
 
   def evaluate_model(self, num_trials=100, sample_next_obs=True):
     """Used to evaluate the rewards the model receives without exploring.
