@@ -400,7 +400,7 @@ def add_high_low_unique_stats(rl_tuner, stat_dict):
 def debug_music_theory_reward(rl_tuner,
                               composition_length=32,
                               key=None,
-                              tonic_note=C_MAJOR_TONIC,
+                              tonic_note=rl_tuner_ops.C_MAJOR_TONIC,
                               sample_next_obs=True,
                               test_composition=None):
   """Composes a piece and prints rewards from music theory functions.
