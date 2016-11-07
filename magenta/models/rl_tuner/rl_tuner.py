@@ -27,6 +27,7 @@ from magenta.music import midi_io
 
 import note_rnn_loader
 import rl_tuner_ops
+import rl_tuner_eval_metrics
 
 # Note values of pecial actions.
 NOTE_OFF = 0
@@ -1800,6 +1801,19 @@ class RLTuner(object):
         plt.savefig(self.output_dir + '/' + prob_image_name)
       else:
         plt.show()
+
+  def evaluate_music_theory_metrics(self, num_compositions=10000, key=None,
+                                    tonic_note=rl_tuner_ops.C_MAJOR_TONIC):
+    stat_dict = rl_tuner_eval_metrics.compute_composition_stats(
+      rl_tuner,
+      num_compositions=num_compositions,
+      composition_length=self.num_notes_in_melody,
+      key=key,
+      tonic_note=tonic_note)
+
+    print rl_tuner_eval_metrics.get_stat_dict_string(stat_dict)
+
+    return stat_dict
 
   def save_model(self, name, directory=None):
     """Saves a checkpoint of the model and a .npz file with stored rewards.
