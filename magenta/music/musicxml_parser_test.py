@@ -342,6 +342,11 @@ class MusicXMLParserTest(tf.test.TestCase):
         }
         key_signatures: {
         }
+        source_info: {
+          source_type: SCORE_BASED
+          encoding_type: MUSIC_XML
+          parser: MAGENTA_MUSIC_XML
+        }
         total_time: 4.0
         """)
     expected_pitches = [72, 74, 76, 77, 79, 77, 76, 74]
