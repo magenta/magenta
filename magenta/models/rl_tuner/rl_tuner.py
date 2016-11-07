@@ -284,205 +284,6 @@ class RLTuner(object):
       tf.logging.info('Getting priming melodies')
       self.get_priming_melodies()
 
-  def restore_from_directory(self, directory=None, checkpoint_name=None, reward_file_name=None):
-    """Restores this model from a saved checkpoint.
-
-    Args:
-      directory: Path to directory where checkpoint is located. If 
-        None, defaults to self.output_dir.
-      checkpoint_name: The name of the checkpoint within the 
-        directory.
-      reward_file_name: The name of the .npz file where the stored
-        rewards are saved. If None, will not attempt to load stored
-        rewards.
-    """
-    if directory is None:
-      directory = self.output_dir
-
-    if checkpoint_name is not None:
-      checkpoint_file = os.path.join(directory, checkpoint_name)
-    else:
-      print "directory", directory
-      checkpoint_file = tf.train.latest_checkpoint(directory)
-
-    if checkpoint_file is None:
-      print "Error! Cannot locate checkpoint in the directory"
-      return
-    print "Attempting to restore from checkpoint", checkpoint_file
-
-    self.saver.restore(self.session, checkpoint_file)
-
-    if reward_file_name is not None:
-      npz_file_name = os.path.join(directory, reward_file_name)
-      print "Attempting to load saved reward values from file", npz_file_name
-      npz_file = np.load(npz_file_name)
-
-      self.rewards_batched = npz_file['train_rewards']
-      self.music_theory_rewards_batched = npz_file['train_music_theory_rewards']
-      self.note_rnn_rewards_batched = npz_file['train_note_rnn_rewards']
-      self.eval_avg_reward = npz_file['eval_rewards']
-      self.eval_avg_music_theory_reward = npz_file['eval_music_theory_rewards']
-      self.eval_avg_note_rnn_reward = npz_file['eval_note_rnn_rewards']
-      self.target_val_list = npz_file['target_val_list']
-
-
-  def save_model(self, name, directory=None):
-    """Saves a checkpoint of the model and a .npz file with stored rewards.
-
-    Args:
-      name: String name to use for the checkpoint and rewards files.
-      directory: Path to directory where the data will be saved. Defaults to
-        self.output_dir if None is provided.
-    """
-    if directory is None:
-      directory = self.output_dir
-
-    save_loc = os.path.join(directory, name)
-    self.saver.save(self.session, save_loc, 
-                    global_step=len(self.rewards_batched)*self.output_every_nth)
-
-    self.save_stored_rewards(name)
-
-  def save_stored_rewards(self, file_name):
-    """Saves the models stored rewards over time in a .npz file.
-
-    Args:
-      file_name: Name of the file that will be saved.
-    """
-    training_epochs = len(self.rewards_batched) * self.output_every_nth
-    filename = os.path.join(self.output_dir, file_name + '-' + str(training_epochs))
-    np.savez(filename,
-             train_rewards=self.rewards_batched,
-             train_music_theory_rewards=self.music_theory_rewards_batched,
-             train_note_rnn_rewards=self.note_rnn_rewards_batched,
-             eval_rewards=self.eval_avg_reward,
-             eval_music_theory_rewards=self.eval_avg_music_theory_reward,
-             eval_note_rnn_rewards=self.eval_avg_note_rnn_reward,
-             target_val_list=self.target_val_list)
-
-  def save_model_and_figs(self, name, directory=None):
-    """Saves the model checkpoint, .npz file, and reward plots.
-
-    Args:
-      name: Name of the model that will be used on the images,
-        checkpoint, and .npz files.
-      directory: Path to directory where files will be saved. 
-        If None defaults to self.output_dir.
-    """
-
-    self.save_model(name, directory=directory)
-    self.plot_rewards(image_name='TrainRewards-' + name + '.eps', directory=directory)
-    self.plot_evaluation(image_name='EvaluationRewards-' + name + '.eps', directory=directory)
-    self.plot_target_vals(image_name='TargetVals-' + name + '.eps', directory=directory)
-
-  def plot_rewards(self, image_name=None, directory=None):
-    """Plots the cumulative rewards received as the model was trained.
-
-    If image_name is None, should be used in jupyter notebook. If 
-    called outside of jupyter, execution of the program will halt and 
-    a pop-up with the graph will appear. Execution will not continue 
-    until the pop-up is closed.
-
-    Args:
-      image_name: Name to use when saving the plot to a file. If not
-        provided, image will be shown immediately.
-      directory: Path to directory where figure should be saved. If
-        None, defaults to self.output_dir.
-    """
-    if directory is None:
-      directory = self.output_dir
-
-    reward_batch = self.output_every_nth
-    x = [reward_batch * i for i in np.arange(len(self.rewards_batched))]
-    plt.figure()
-    plt.plot(x, self.rewards_batched)
-    plt.plot(x, self.music_theory_rewards_batched)
-    plt.plot(x, self.note_rnn_rewards_batched)
-    plt.xlabel('Training epoch')
-    plt.ylabel('Cumulative reward for last ' + str(reward_batch) + ' steps')
-    plt.legend(['Total', 'Music theory', 'Note RNN'], loc='best')
-    if image_name is not None:
-      plt.savefig(directory + '/' + image_name)
-    else:
-      plt.show()
-
-  def plot_evaluation(self, image_name=None, directory=None, start_at_epoch=0):
-    """Plots the rewards received as the model was evaluated during training.
-
-    If image_name is None, should be used in jupyter notebook. If 
-    called outside of jupyter, execution of the program will halt and 
-    a pop-up with the graph will appear. Execution will not continue 
-    until the pop-up is closed.
-
-    Args:
-      image_name: Name to use when saving the plot to a file. If not
-        provided, image will be shown immediately.
-      directory: Path to directory where figure should be saved. If
-        None, defaults to self.output_dir.
-      start_at_epoch: Training epoch where the plot should begin.
-    """
-    if directory is None:
-      directory = self.output_dir
-
-    reward_batch = self.output_every_nth
-    x = [reward_batch * i for i in np.arange(len(self.eval_avg_reward))]
-    start_index = start_at_epoch / self.output_every_nth
-    plt.figure()
-    plt.plot(x[start_index:], self.eval_avg_reward[start_index:])
-    plt.plot(x[start_index:], self.eval_avg_music_theory_reward[start_index:])
-    plt.plot(x[start_index:], self.eval_avg_note_rnn_reward[start_index:])
-    plt.xlabel('Training epoch')
-    plt.ylabel('Average reward')
-    plt.legend(['Total', 'Music theory', 'Note RNN'], loc='best')
-    if image_name is not None:
-      plt.savefig(directory + '/' + image_name)
-    else:
-      plt.show()
-
-  def plot_target_vals(self, image_name=None, directory=None):
-    """Plots the target values used to train the model over time.
-
-    If image_name is None, should be used in jupyter notebook. If 
-    called outside of jupyter, execution of the program will halt and 
-    a pop-up with the graph will appear. Execution will not continue 
-    until the pop-up is closed.
-
-    Args:
-      image_name: Name to use when saving the plot to a file. If not
-        provided, image will be shown immediately.
-      directory: Path to directory where figure should be saved. If
-        None, defaults to self.output_dir.
-    """
-    if directory is None:
-      directory = self.output_dir
-
-    reward_batch = self.output_every_nth
-    x = [reward_batch * i for i in np.arange(len(self.target_val_list))]
-
-    plt.figure()
-    plt.plot(x,self.target_val_list)
-    plt.xlabel('Training epoch')
-    plt.ylabel('Target value')
-    if image_name is not None:
-      plt.savefig(directory + '/' + image_name)
-    else:
-      plt.show()
-
-  def prime_internal_models(self, suppress_output=True):
-    """Primes both internal models based on self.priming_mode.
-
-    Args:
-      suppress_output: If False, debugging statements will be printed.
-
-    Returns:
-      A one-hot encoding of the note output by the q_network to be used as 
-      the initial observation. 
-    """
-    self.prime_internal_model(self.target_q_network, suppress_output=suppress_output)
-    self.prime_internal_model(self.reward_rnn, suppress_output=suppress_output)
-    next_obs = self.prime_internal_model(self.q_network, suppress_output=suppress_output)
-    return next_obs
-
   def get_priming_melodies(self):
     """Runs a batch of training data through MelodyRNN model.
 
@@ -510,6 +311,64 @@ class RLTuner(object):
       self.priming_notes[i] = np.argmax(end_softmax)
 
     tf.logging.info('Stored priming notes: %s', self.priming_notes)
+
+  def prime_internal_model(self, model, suppress_output=True):
+    """Prime an internal model such as the q_network based on priming mode.
+
+    Args:
+      model: The internal model that should be primed. 
+      suppress_output: If False, statements about how the network is being
+        primed will be printed to std out.
+
+    Returns:
+      The first observation to feed into the model.
+    """
+    model.state_value = model.get_zero_state()
+
+    if self.priming_mode == 'random_midi':
+      priming_idx = np.random.randint(0, len(self.priming_states))
+      model.state_value = np.reshape(
+          self.priming_states[priming_idx, :],
+          (1, model.cell.state_size))
+      priming_note = self.priming_notes[priming_idx]
+      next_obs = np.array(
+          rl_tuner_ops.make_onehot([priming_note], self.num_actions)).flatten()
+      if not suppress_output:
+        tf.logging.info(
+            'Feeding priming state for midi file %s and corresponding note %s',
+            priming_idx, priming_note)
+    elif self.priming_mode == 'single_midi':
+      model.prime_model(suppress_output=suppress_output)
+      next_obs = model.priming_note
+    elif self.priming_mode == 'random_note':
+      next_obs = self.get_random_note()
+    else:
+      tf.logging.warn('Error! Not a valid priming mode. Priming with random note')
+      next_obs = self.get_random_note()
+
+    return next_obs
+
+  def get_random_note(self):
+    """Samle a note uniformly at random.
+
+    Returns:
+      random note
+    """
+    note_idx = np.random.randint(0, self.num_actions - 1)
+    return np.array(rl_tuner_ops.make_onehot([note_idx],
+                                           self.num_actions)).flatten()
+
+  def reset_composition(self):
+    """Starts the models internal composition over at beat 0, with no notes.
+
+    Also resets statistics about whether the composition is in the middle of a
+    melodic leap.
+    """
+    self.beat = 0
+    self.composition = []
+    self.composition_direction = 0
+    self.leapt_from = None
+    self.steps_since_last_leap = 0
 
   def build_graph(self):
     """Builds the reinforcement learning tensorflow graph."""
@@ -697,172 +556,6 @@ class RLTuner(object):
                                                    self.num_actions)).flatten()
         return action, next_obs, reward_scores
 
-  def get_reward_rnn_scores(self, observation, state):
-    """Get note scores from the reward_rnn to use as a reward based on data.
-
-    Runs the reward_rnn on an observation and initial state. Useful for
-    maintaining the probabilities of the original LSTM model while training with
-    reinforcement learning.
-
-    Args:
-      observation: One-hot encoding of the observed note.
-      state: Vector representing the internal state of the target_q_network
-        LSTM.
-
-    Returns:
-      Action scores produced by reward_rnn.
-    """
-    state = np.atleast_2d(state)
-
-    input_batch = np.reshape(observation, (self.reward_rnn.batch_size, 1,
-                                           self.num_actions))
-    lengths = np.full(self.reward_rnn.batch_size, 1, dtype=int)
-
-    rewards, = self.session.run(
-        self.reward_scores,
-        {self.reward_rnn.melody_sequence: input_batch,
-         self.reward_rnn.initial_state: state,
-         self.reward_rnn.lengths: lengths})
-    return rewards
-
-  def prime_internal_model(self, model, suppress_output=True):
-    """Prime an internal model such as the q_network based on priming mode.
-
-    Args:
-      model: The internal model that should be primed. 
-      suppress_output: If False, statements about how the network is being
-        primed will be printed to std out.
-
-    Returns:
-      The first observation to feed into the model.
-    """
-    model.state_value = model.get_zero_state()
-
-    if self.priming_mode == 'random_midi':
-      priming_idx = np.random.randint(0, len(self.priming_states))
-      model.state_value = np.reshape(
-          self.priming_states[priming_idx, :],
-          (1, model.cell.state_size))
-      priming_note = self.priming_notes[priming_idx]
-      next_obs = np.array(
-          rl_tuner_ops.make_onehot([priming_note], self.num_actions)).flatten()
-      if not suppress_output:
-        tf.logging.info(
-            'Feeding priming state for midi file %s and corresponding note %s',
-            priming_idx, priming_note)
-    elif self.priming_mode == 'single_midi':
-      model.prime_model(suppress_output=suppress_output)
-      next_obs = model.priming_note
-    elif self.priming_mode == 'random_note':
-      next_obs = self.get_random_note()
-    else:
-      tf.logging.warn('Error! Not a valid priming mode. Priming with random note')
-      next_obs = self.get_random_note()
-
-    return next_obs
-
-  def reset_composition(self):
-    """Starts the models internal composition over at beat 0, with no notes.
-
-    Also resets statistics about whether the composition is in the middle of a
-    melodic leap.
-    """
-    self.beat = 0
-    self.composition = []
-    self.composition_direction = 0
-    self.leapt_from = None
-    self.steps_since_last_leap = 0
-
-  def generate_music_sequence(self, title='rltuner_sample', visualize_probs=False,
-    prob_image_name=None, length=None, most_probable=False):
-    """Generates a music sequence with the current model, and saves it to MIDI.
-
-    The resulting MIDI file is saved to the model's output_dir directory. The
-    sequence is generated by sampling from the output probabilities at each
-    timestep, and feeding the resulting note back in as input to the model.
-
-    Args:
-      title: The name that will be used to save the output MIDI file.
-      visualize_probs: If True, the function will plot the softmax
-        probabilities of the model for each note that occur throughout the
-        sequence. Useful for debugging.
-      prob_image_name: The name of a file in which to save the softmax
-        probability image. If None, the image will simply be displayed.
-      length: The length of the sequence to be generated. Defaults to the
-        num_notes_in_melody parameter of the model.
-      most_probable: If True, instead of sampling each note in the sequence,
-        the model will always choose the argmax, most probable note.
-    """
-
-    if length is None:
-      length = self.num_notes_in_melody
-
-    self.reset_composition()
-    next_obs = self.prime_internal_models(suppress_output=False)
-    tf.logging.info('Priming with note %s', np.argmax(next_obs))
-
-    lengths = np.full(self.q_network.batch_size, 1, dtype=int)
-
-    if visualize_probs:
-      prob_image = np.zeros((self.input_size, length))
-
-    generated_seq = [0] * length
-    for i in range(length):
-      input_batch = np.reshape(next_obs, (self.q_network.batch_size, 1,
-                                          self.num_actions))
-      if self.algorithm == 'g':
-        (softmax, self.q_network.state_value, self.reward_rnn.state_value) = self.session.run(
-          [self.action_softmax, self.q_network.state_tensor, self.reward_rnn.state_tensor],
-          {self.q_network.melody_sequence: input_batch,
-           self.q_network.initial_state: self.q_network.state_value,
-           self.q_network.lengths: lengths,
-           self.reward_rnn.melody_sequence: input_batch,
-           self.reward_rnn.initial_state: self.reward_rnn.state_value,
-           self.reward_rnn.lengths: lengths})
-      else:
-        softmax, self.q_network.state_value = self.session.run(
-            [self.action_softmax, self.q_network.state_tensor],
-            {self.q_network.melody_sequence: input_batch,
-             self.q_network.initial_state: self.q_network.state_value,
-             self.q_network.lengths: lengths})
-      softmax = np.reshape(softmax, (self.num_actions))
-
-      if visualize_probs:
-        prob_image[:, i] = softmax #np.log(1.0 + softmax)
-
-      if most_probable:
-        sample = np.argmax(softmax)
-      else:
-        sample = rl_tuner_ops.sample_softmax(softmax)
-      generated_seq[i] = sample
-      next_obs = np.array(rl_tuner_ops.make_onehot([sample],
-                                                 self.num_actions)).flatten()
-
-    tf.logging.info('Generated sequence: %s', generated_seq)
-    print 'Generated sequence:', generated_seq
-
-    melody = mlib.Melody(rl_tuner_ops.decoder(generated_seq, self.q_network.transpose_amount))
-    #melody.from_event_list(rl_tuner_ops.decoder(generated_seq,
-    #                                          self.q_network.transpose_amount))
-
-    sequence = melody.to_sequence(qpm=self.q_network.bpm)
-    filename = rl_tuner_ops.get_next_file_name(self.output_dir, title, 'mid')
-    midi_io.sequence_proto_to_midi_file(sequence, filename)
-
-    tf.logging.info('Wrote a melody to %s', self.output_dir)
-
-    if visualize_probs:
-      tf.logging.info('Visualizing note selection probabilities:')
-      plt.figure()
-      plt.imshow(prob_image, interpolation='none', cmap='Reds')
-      plt.ylabel('Note probability')
-      plt.xlabel('Time (beat)')
-      plt.gca().invert_yaxis()
-      if prob_image_name is not None:
-        plt.savefig(self.output_dir + '/' + prob_image_name)
-      else:
-        plt.show()
-
   def store(self, observation, state, action, reward, newobservation, newstate, 
             new_reward_state):
     """Stores an experience in the model's experience replay buffer.
@@ -982,16 +675,6 @@ class RLTuner(object):
       self.iteration += 1
 
     self.num_times_train_called += 1
-
-  def get_random_note(self):
-    """Samle a note uniformly at random.
-
-    Returns:
-      random note
-    """
-    note_idx = np.random.randint(0, self.num_actions - 1)
-    return np.array(rl_tuner_ops.make_onehot([note_idx],
-                                           self.num_actions)).flatten()
 
   def train(self, num_steps=10000, exploration_period=5000, enable_random=True, verbose=False):
     """Main training function that allows model to act, collects reward, trains.
@@ -1270,6 +953,34 @@ class RLTuner(object):
     action_note = np.argmax(action)
     normalization_constant = logsumexp(reward_scores)
     return reward_scores[action_note] - normalization_constant
+
+  def get_reward_rnn_scores(self, observation, state):
+    """Get note scores from the reward_rnn to use as a reward based on data.
+
+    Runs the reward_rnn on an observation and initial state. Useful for
+    maintaining the probabilities of the original LSTM model while training with
+    reinforcement learning.
+
+    Args:
+      observation: One-hot encoding of the observed note.
+      state: Vector representing the internal state of the target_q_network
+        LSTM.
+
+    Returns:
+      Action scores produced by reward_rnn.
+    """
+    state = np.atleast_2d(state)
+
+    input_batch = np.reshape(observation, (self.reward_rnn.batch_size, 1,
+                                           self.num_actions))
+    lengths = np.full(self.reward_rnn.batch_size, 1, dtype=int)
+
+    rewards, = self.session.run(
+        self.reward_scores,
+        {self.reward_rnn.melody_sequence: input_batch,
+         self.reward_rnn.initial_state: state,
+         self.reward_rnn.lengths: lengths})
+    return rewards
 
   def reward_music_theory(self, action, verbose=False):
     reward = self.reward_key(action)
@@ -1999,3 +1710,291 @@ class RLTuner(object):
     # rewards this. Could have some kind of interval_stats stored by
     # reward_preferred_intervals function.
     pass
+
+  def generate_music_sequence(self, title='rltuner_sample', visualize_probs=False,
+    prob_image_name=None, length=None, most_probable=False):
+    """Generates a music sequence with the current model, and saves it to MIDI.
+
+    The resulting MIDI file is saved to the model's output_dir directory. The
+    sequence is generated by sampling from the output probabilities at each
+    timestep, and feeding the resulting note back in as input to the model.
+
+    Args:
+      title: The name that will be used to save the output MIDI file.
+      visualize_probs: If True, the function will plot the softmax
+        probabilities of the model for each note that occur throughout the
+        sequence. Useful for debugging.
+      prob_image_name: The name of a file in which to save the softmax
+        probability image. If None, the image will simply be displayed.
+      length: The length of the sequence to be generated. Defaults to the
+        num_notes_in_melody parameter of the model.
+      most_probable: If True, instead of sampling each note in the sequence,
+        the model will always choose the argmax, most probable note.
+    """
+
+    if length is None:
+      length = self.num_notes_in_melody
+
+    self.reset_composition()
+    next_obs = self.prime_internal_models(suppress_output=False)
+    tf.logging.info('Priming with note %s', np.argmax(next_obs))
+
+    lengths = np.full(self.q_network.batch_size, 1, dtype=int)
+
+    if visualize_probs:
+      prob_image = np.zeros((self.input_size, length))
+
+    generated_seq = [0] * length
+    for i in range(length):
+      input_batch = np.reshape(next_obs, (self.q_network.batch_size, 1,
+                                          self.num_actions))
+      if self.algorithm == 'g':
+        (softmax, self.q_network.state_value, self.reward_rnn.state_value) = self.session.run(
+          [self.action_softmax, self.q_network.state_tensor, self.reward_rnn.state_tensor],
+          {self.q_network.melody_sequence: input_batch,
+           self.q_network.initial_state: self.q_network.state_value,
+           self.q_network.lengths: lengths,
+           self.reward_rnn.melody_sequence: input_batch,
+           self.reward_rnn.initial_state: self.reward_rnn.state_value,
+           self.reward_rnn.lengths: lengths})
+      else:
+        softmax, self.q_network.state_value = self.session.run(
+            [self.action_softmax, self.q_network.state_tensor],
+            {self.q_network.melody_sequence: input_batch,
+             self.q_network.initial_state: self.q_network.state_value,
+             self.q_network.lengths: lengths})
+      softmax = np.reshape(softmax, (self.num_actions))
+
+      if visualize_probs:
+        prob_image[:, i] = softmax #np.log(1.0 + softmax)
+
+      if most_probable:
+        sample = np.argmax(softmax)
+      else:
+        sample = rl_tuner_ops.sample_softmax(softmax)
+      generated_seq[i] = sample
+      next_obs = np.array(rl_tuner_ops.make_onehot([sample],
+                                                 self.num_actions)).flatten()
+
+    tf.logging.info('Generated sequence: %s', generated_seq)
+    print 'Generated sequence:', generated_seq
+
+    melody = mlib.Melody(rl_tuner_ops.decoder(generated_seq, self.q_network.transpose_amount))
+    #melody.from_event_list(rl_tuner_ops.decoder(generated_seq,
+    #                                          self.q_network.transpose_amount))
+
+    sequence = melody.to_sequence(qpm=self.q_network.bpm)
+    filename = rl_tuner_ops.get_next_file_name(self.output_dir, title, 'mid')
+    midi_io.sequence_proto_to_midi_file(sequence, filename)
+
+    tf.logging.info('Wrote a melody to %s', self.output_dir)
+
+    if visualize_probs:
+      tf.logging.info('Visualizing note selection probabilities:')
+      plt.figure()
+      plt.imshow(prob_image, interpolation='none', cmap='Reds')
+      plt.ylabel('Note probability')
+      plt.xlabel('Time (beat)')
+      plt.gca().invert_yaxis()
+      if prob_image_name is not None:
+        plt.savefig(self.output_dir + '/' + prob_image_name)
+      else:
+        plt.show()
+
+  def save_model(self, name, directory=None):
+    """Saves a checkpoint of the model and a .npz file with stored rewards.
+
+    Args:
+      name: String name to use for the checkpoint and rewards files.
+      directory: Path to directory where the data will be saved. Defaults to
+        self.output_dir if None is provided.
+    """
+    if directory is None:
+      directory = self.output_dir
+
+    save_loc = os.path.join(directory, name)
+    self.saver.save(self.session, save_loc, 
+                    global_step=len(self.rewards_batched)*self.output_every_nth)
+
+    self.save_stored_rewards(name)
+
+  def save_stored_rewards(self, file_name):
+    """Saves the models stored rewards over time in a .npz file.
+
+    Args:
+      file_name: Name of the file that will be saved.
+    """
+    training_epochs = len(self.rewards_batched) * self.output_every_nth
+    filename = os.path.join(self.output_dir, file_name + '-' + str(training_epochs))
+    np.savez(filename,
+             train_rewards=self.rewards_batched,
+             train_music_theory_rewards=self.music_theory_rewards_batched,
+             train_note_rnn_rewards=self.note_rnn_rewards_batched,
+             eval_rewards=self.eval_avg_reward,
+             eval_music_theory_rewards=self.eval_avg_music_theory_reward,
+             eval_note_rnn_rewards=self.eval_avg_note_rnn_reward,
+             target_val_list=self.target_val_list)
+
+  def save_model_and_figs(self, name, directory=None):
+    """Saves the model checkpoint, .npz file, and reward plots.
+
+    Args:
+      name: Name of the model that will be used on the images,
+        checkpoint, and .npz files.
+      directory: Path to directory where files will be saved. 
+        If None defaults to self.output_dir.
+    """
+
+    self.save_model(name, directory=directory)
+    self.plot_rewards(image_name='TrainRewards-' + name + '.eps', directory=directory)
+    self.plot_evaluation(image_name='EvaluationRewards-' + name + '.eps', directory=directory)
+    self.plot_target_vals(image_name='TargetVals-' + name + '.eps', directory=directory)
+
+  def plot_rewards(self, image_name=None, directory=None):
+    """Plots the cumulative rewards received as the model was trained.
+
+    If image_name is None, should be used in jupyter notebook. If 
+    called outside of jupyter, execution of the program will halt and 
+    a pop-up with the graph will appear. Execution will not continue 
+    until the pop-up is closed.
+
+    Args:
+      image_name: Name to use when saving the plot to a file. If not
+        provided, image will be shown immediately.
+      directory: Path to directory where figure should be saved. If
+        None, defaults to self.output_dir.
+    """
+    if directory is None:
+      directory = self.output_dir
+
+    reward_batch = self.output_every_nth
+    x = [reward_batch * i for i in np.arange(len(self.rewards_batched))]
+    plt.figure()
+    plt.plot(x, self.rewards_batched)
+    plt.plot(x, self.music_theory_rewards_batched)
+    plt.plot(x, self.note_rnn_rewards_batched)
+    plt.xlabel('Training epoch')
+    plt.ylabel('Cumulative reward for last ' + str(reward_batch) + ' steps')
+    plt.legend(['Total', 'Music theory', 'Note RNN'], loc='best')
+    if image_name is not None:
+      plt.savefig(directory + '/' + image_name)
+    else:
+      plt.show()
+
+  def plot_evaluation(self, image_name=None, directory=None, start_at_epoch=0):
+    """Plots the rewards received as the model was evaluated during training.
+
+    If image_name is None, should be used in jupyter notebook. If 
+    called outside of jupyter, execution of the program will halt and 
+    a pop-up with the graph will appear. Execution will not continue 
+    until the pop-up is closed.
+
+    Args:
+      image_name: Name to use when saving the plot to a file. If not
+        provided, image will be shown immediately.
+      directory: Path to directory where figure should be saved. If
+        None, defaults to self.output_dir.
+      start_at_epoch: Training epoch where the plot should begin.
+    """
+    if directory is None:
+      directory = self.output_dir
+
+    reward_batch = self.output_every_nth
+    x = [reward_batch * i for i in np.arange(len(self.eval_avg_reward))]
+    start_index = start_at_epoch / self.output_every_nth
+    plt.figure()
+    plt.plot(x[start_index:], self.eval_avg_reward[start_index:])
+    plt.plot(x[start_index:], self.eval_avg_music_theory_reward[start_index:])
+    plt.plot(x[start_index:], self.eval_avg_note_rnn_reward[start_index:])
+    plt.xlabel('Training epoch')
+    plt.ylabel('Average reward')
+    plt.legend(['Total', 'Music theory', 'Note RNN'], loc='best')
+    if image_name is not None:
+      plt.savefig(directory + '/' + image_name)
+    else:
+      plt.show()
+
+  def plot_target_vals(self, image_name=None, directory=None):
+    """Plots the target values used to train the model over time.
+
+    If image_name is None, should be used in jupyter notebook. If 
+    called outside of jupyter, execution of the program will halt and 
+    a pop-up with the graph will appear. Execution will not continue 
+    until the pop-up is closed.
+
+    Args:
+      image_name: Name to use when saving the plot to a file. If not
+        provided, image will be shown immediately.
+      directory: Path to directory where figure should be saved. If
+        None, defaults to self.output_dir.
+    """
+    if directory is None:
+      directory = self.output_dir
+
+    reward_batch = self.output_every_nth
+    x = [reward_batch * i for i in np.arange(len(self.target_val_list))]
+
+    plt.figure()
+    plt.plot(x,self.target_val_list)
+    plt.xlabel('Training epoch')
+    plt.ylabel('Target value')
+    if image_name is not None:
+      plt.savefig(directory + '/' + image_name)
+    else:
+      plt.show()
+
+  def prime_internal_models(self, suppress_output=True):
+    """Primes both internal models based on self.priming_mode.
+
+    Args:
+      suppress_output: If False, debugging statements will be printed.
+
+    Returns:
+      A one-hot encoding of the note output by the q_network to be used as 
+      the initial observation. 
+    """
+    self.prime_internal_model(self.target_q_network, suppress_output=suppress_output)
+    self.prime_internal_model(self.reward_rnn, suppress_output=suppress_output)
+    next_obs = self.prime_internal_model(self.q_network, suppress_output=suppress_output)
+    return next_obs
+
+  def restore_from_directory(self, directory=None, checkpoint_name=None, reward_file_name=None):
+    """Restores this model from a saved checkpoint.
+
+    Args:
+      directory: Path to directory where checkpoint is located. If 
+        None, defaults to self.output_dir.
+      checkpoint_name: The name of the checkpoint within the 
+        directory.
+      reward_file_name: The name of the .npz file where the stored
+        rewards are saved. If None, will not attempt to load stored
+        rewards.
+    """
+    if directory is None:
+      directory = self.output_dir
+
+    if checkpoint_name is not None:
+      checkpoint_file = os.path.join(directory, checkpoint_name)
+    else:
+      print "directory", directory
+      checkpoint_file = tf.train.latest_checkpoint(directory)
+
+    if checkpoint_file is None:
+      print "Error! Cannot locate checkpoint in the directory"
+      return
+    print "Attempting to restore from checkpoint", checkpoint_file
+
+    self.saver.restore(self.session, checkpoint_file)
+
+    if reward_file_name is not None:
+      npz_file_name = os.path.join(directory, reward_file_name)
+      print "Attempting to load saved reward values from file", npz_file_name
+      npz_file = np.load(npz_file_name)
+
+      self.rewards_batched = npz_file['train_rewards']
+      self.music_theory_rewards_batched = npz_file['train_music_theory_rewards']
+      self.note_rnn_rewards_batched = npz_file['train_note_rnn_rewards']
+      self.eval_avg_reward = npz_file['eval_rewards']
+      self.eval_avg_music_theory_reward = npz_file['eval_music_theory_rewards']
+      self.eval_avg_note_rnn_reward = npz_file['eval_note_rnn_rewards']
+      self.target_val_list = npz_file['target_val_list']
