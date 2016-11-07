@@ -102,7 +102,7 @@ def main(_):
   rlt.save_model_and_figs(FLAGS.algorithm)
 
   tf.logging.info('\nCalculating music theory metric stats for 1000 compositions')
-  rlt.evaluate_music_theory_metrics(self, num_compositions=1000
+  rlt.evaluate_music_theory_metrics(self, num_compositions=1000)
 
 
 if __name__ == '__main__':
