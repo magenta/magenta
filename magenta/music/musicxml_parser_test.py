@@ -47,6 +47,15 @@ class MusicXMLParserTest(tf.test.TestCase):
 
   self.compressed_filename contains the same content as
   self.flute_scale_filename, but compressed in MXL format
+
+  self.rhythm_durations_filename contains a variety of rhythms (long, short,
+  dotted, tuplet, and dotted tuplet) to test the computation of rhythmic
+  ratios.
+
+  self.atonal_transposition_filename contains a change of instrument
+  from a non-transposing (Flute) to transposing (Bb Clarinet) in a score
+  with no key / atonal. This ensures that transposition works properly when
+  no key signature is found (Issue #355)
   """
 
   def setUp(self):
@@ -77,6 +86,10 @@ class MusicXMLParserTest(tf.test.TestCase):
     self.rhythm_durations_filename = os.path.join(
         tf.resource_loader.get_data_files_path(),
         'testdata/rhythm_durations.xml')
+
+    self.atonal_transposition_filename = os.path.join(
+        tf.resource_loader.get_data_files_path(),
+        'testdata/atonal_transposition_change.xml')
 
   def checkmusicxmlandsequence(self, musicxml, sequence_proto):
     """Compares MusicXMLDocument object against a sequence proto.
@@ -303,6 +316,41 @@ class MusicXMLParserTest(tf.test.TestCase):
       note.velocity = 64
       note.numerator = 1
       note.denominator = 4
+    self.assertProtoEquals(expected_ns, ns)
+
+  def testatonaltransposition(self):
+    """Test that transposition works when changing instrument transposition
+    within a single part in a score that has no key signature / is atonal.
+    """
+    ns = musicxml_reader.musicxml_file_to_sequence_proto(
+        self.atonal_transposition_filename)
+    expected_ns = common_testing_lib.parse_test_proto(
+        music_pb2.NoteSequence,
+        """
+        ticks_per_quarter: 220
+        time_signatures: {
+          numerator: 4
+          denominator: 4
+        }
+        tempos: {
+          qpm: 120
+        }
+        key_signatures: {
+        }
+        total_time: 4.0
+        """)
+    expected_pitches = [72, 74, 76, 77, 79, 77, 76, 74]
+    time = 0
+    for pitch in expected_pitches:
+      note = expected_ns.notes.add()
+      note.pitch = pitch
+      note.start_time = time
+      time += .5
+      note.end_time = time
+      note.velocity = 64
+      note.numerator = 1
+      note.denominator = 4
+    self.maxDiff = None
     self.assertProtoEquals(expected_ns, ns)
 
 if __name__ == '__main__':
