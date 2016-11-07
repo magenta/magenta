@@ -1,8 +1,6 @@
 import numpy as np
 import tensorflow as tf
 
-import rl_tuner
-
 
 # Music theory constants used in defining reward functions.
 # Note that action 2 = midi note 48.
