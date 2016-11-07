@@ -3,46 +3,6 @@ import tensorflow as tf
 
 import rl_tuner_ops
 
-# Music theory constants used in defining reward functions.
-# Note that action 2 = midi note 48.
-NOTE_OFF = 0
-NO_EVENT = 1
-C_MAJOR_SCALE = [2, 4, 6, 7, 9, 11, 13, 14, 16, 18, 19, 21, 23, 25, 26]
-C_MAJOR_KEY = [0, 1, 2, 4, 6, 7, 9, 11, 13, 14, 16, 18, 19, 21, 23, 25, 26, 28,
-               30, 31, 33, 35, 37]
-C_MAJOR_TONIC = 14
-A_MINOR_TONIC = 23
-
-# The number of half-steps in musical intervals, in order of dissonance
-OCTAVE = 12
-FIFTH = 7
-THIRD = 4
-SIXTH = 9
-SECOND = 2
-FOURTH = 5
-SEVENTH = 11
-HALFSTEP = 1
-
-# Special intervals that have unique rewards
-REST_INTERVAL = -1
-HOLD_INTERVAL = -1.5
-REST_INTERVAL_AFTER_THIRD_OR_FIFTH = -2
-HOLD_INTERVAL_AFTER_THIRD_OR_FIFTH = -2.5
-IN_KEY_THIRD = -3
-IN_KEY_FIFTH = -5
-
-# Indicate melody direction
-ASCENDING = 1
-DESCENDING = -1
-
-# Indicate whether a melodic leap has been resolved or if another leap was made
-LEAP_RESOLVED = 1
-LEAP_DOUBLED = -1
-
-# training data sequences are limited to this length, so the padding queue pads
-# to this length
-TRAIN_SEQUENCE_LENGTH = 192
-
 def compute_composition_stats(rl_tuner,
                               num_compositions=10000,
                               composition_length=32,
@@ -180,7 +140,7 @@ def compose_and_evaluate_piece(rl_tuner,
                                stat_dict,
                                composition_length=32,
                                key=None,
-                               tonic_note=C_MAJOR_TONIC,
+                               tonic_note=rl_tuner_ops.C_MAJOR_TONIC,
                                sample_next_obs=True):
   """Composes a piece using the model, stores statistics about it in a dict.
 
@@ -292,25 +252,25 @@ def add_interval_stat(rl_tuner, action, stat_dict, key=None):
   if interval == 0:
     return stat_dict
 
-  if interval == REST_INTERVAL:
+  if interval == rl_tuner_ops.REST_INTERVAL:
     stat_dict['num_rest_intervals'] += 1
-  elif interval == REST_INTERVAL_AFTER_THIRD_OR_FIFTH:
+  elif interval == rl_tuner_ops.REST_INTERVAL_AFTER_THIRD_OR_FIFTH:
     stat_dict['num_special_rest_intervals'] += 1
-  elif interval > OCTAVE:
+  elif interval > rl_tuner_ops.OCTAVE:
     stat_dict['num_octave_jumps'] += 1
-  elif interval == IN_KEY_FIFTH or interval == IN_KEY_THIRD:
+  elif interval == rl_tuner_ops.IN_KEY_FIFTH or interval == rl_tuner_ops.IN_KEY_THIRD:
     stat_dict['num_in_key_preferred_intervals'] += 1
-  elif interval == FIFTH:
+  elif interval == rl_tuner_ops.FIFTH:
     stat_dict['num_fifths'] += 1
-  elif interval == THIRD:
+  elif interval == rl_tuner_ops.THIRD:
     stat_dict['num_thirds'] += 1
-  elif interval == SIXTH:
+  elif interval == rl_tuner_ops.SIXTH:
     stat_dict['num_sixths'] += 1
-  elif interval == SECOND:
+  elif interval == rl_tuner_ops.SECOND:
     stat_dict['num_seconds'] += 1
-  elif interval == FOURTH:
+  elif interval == rl_tuner_ops.FOURTH:
     stat_dict['num_fourths'] += 1
-  elif interval == SEVENTH:
+  elif interval == rl_tuner_ops.SEVENTH:
     stat_dict['num_sevenths'] += 1
 
   return stat_dict
@@ -329,7 +289,7 @@ def add_in_key_stat(rl_tuner, action_note, stat_dict, key=None):
     updated.
   """
   if key is None:
-    key = C_MAJOR_KEY
+    key = rl_tuner_ops.C_MAJOR_KEY
 
   if action_note not in key:
     stat_dict['notes_not_in_key'] += 1
@@ -339,7 +299,7 @@ def add_in_key_stat(rl_tuner, action_note, stat_dict, key=None):
 def add_tonic_start_stat(rl_tuner,
                          action_note,
                          stat_dict,
-                         tonic_note=C_MAJOR_TONIC):
+                         tonic_note=rl_tuner_ops.C_MAJOR_TONIC):
   """Updates stat dict based on whether composition started with the tonic.
 
   Args:
@@ -414,9 +374,9 @@ def add_leap_stats(rl_tuner, action, stat_dict):
     A dictionary of composition statistics with leap-related fields updated.
   """
   leap_outcome = rl_tuner.detect_leap_up_back(action)
-  if leap_outcome == LEAP_RESOLVED:
+  if leap_outcome == rl_tuner_ops.LEAP_RESOLVED:
     stat_dict['num_resolved_leaps'] += 1
-  elif leap_outcome == LEAP_DOUBLED:
+  elif leap_outcome == rl_tuner_ops.LEAP_DOUBLED:
     stat_dict['num_leap_twice'] += 1
   return stat_dict
 

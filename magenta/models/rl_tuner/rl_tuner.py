@@ -28,46 +28,9 @@ from magenta.music import midi_io
 import note_rnn_loader
 import rl_tuner_ops
 
-# Music theory constants used in defining reward functions.
-# Note that action 2 = midi note 48.
-NOTE_OFF = 0
-NO_EVENT = 1
-C_MAJOR_SCALE = [2, 4, 6, 7, 9, 11, 13, 14, 16, 18, 19, 21, 23, 25, 26]
-C_MAJOR_KEY = [0, 1, 2, 4, 6, 7, 9, 11, 13, 14, 16, 18, 19, 21, 23, 25, 26, 28,
-               30, 31, 33, 35, 37]
-C_MAJOR_TONIC = 14
-A_MINOR_TONIC = 23
-
-# The number of half-steps in musical intervals, in order of dissonance
-OCTAVE = 12
-FIFTH = 7
-THIRD = 4
-SIXTH = 9
-SECOND = 2
-FOURTH = 5
-SEVENTH = 11
-HALFSTEP = 1
-
-# Special intervals that have unique rewards
-REST_INTERVAL = -1
-HOLD_INTERVAL = -1.5
-REST_INTERVAL_AFTER_THIRD_OR_FIFTH = -2
-HOLD_INTERVAL_AFTER_THIRD_OR_FIFTH = -2.5
-IN_KEY_THIRD = -3
-IN_KEY_FIFTH = -5
-
-# Indicate melody direction
-ASCENDING = 1
-DESCENDING = -1
-
-# Indicate whether a melodic leap has been resolved or if another leap was made
-LEAP_RESOLVED = 1
-LEAP_DOUBLED = -1
-
 # training data sequences are limited to this length, so the padding queue pads
 # to this length
 TRAIN_SEQUENCE_LENGTH = 192
-
 
 def reload_files():
   """Used to reload the imported dependency files (necessary for jupyter 
@@ -1390,7 +1353,7 @@ class RLTuner(object):
     """
 
     if scale is None:
-      scale = C_MAJOR_SCALE
+      scale = rl_tuner_ops.C_MAJOR_SCALE
 
     obs = np.argmax(obs)
     action = np.argmax(action)
@@ -1426,7 +1389,7 @@ class RLTuner(object):
       Float reward value.
     """
     if key is None:
-      key = C_MAJOR_KEY
+      key = rl_tuner_ops.C_MAJOR_KEY
 
     reward = 0
 
@@ -1452,7 +1415,7 @@ class RLTuner(object):
       Float reward value.
     """
     if key is None:
-      key = C_MAJOR_KEY
+      key = rl_tuner_ops.C_MAJOR_KEY
 
     reward = 0
 
@@ -1462,7 +1425,8 @@ class RLTuner(object):
 
     return reward
 
-  def reward_tonic(self, action, tonic_note=C_MAJOR_TONIC, reward_amount=3.0):
+  def reward_tonic(self, action, tonic_note=rl_tuner_ops.C_MAJOR_TONIC, 
+                   reward_amount=3.0):
     """Rewards for playing the tonic note at the right times.
 
     Rewards for playing the tonic as the first note of the first bar, and the
@@ -1483,10 +1447,10 @@ class RLTuner(object):
       if action_note == tonic_note:
         return reward_amount
     elif self.beat == first_note_of_final_bar + 1:
-      if action_note == NO_EVENT:
+      if action_note == rl_tuner_ops.NO_EVENT:
           return reward_amount
     elif self.beat > first_note_of_final_bar + 1:
-      if action_note == NO_EVENT or action_note == NOTE_OFF:
+      if action_note == rl_tuner_ops.NO_EVENT or action_note == rl_tuner_ops.NOTE_OFF:
         return reward_amount
     return 0.0
 
@@ -1522,9 +1486,9 @@ class RLTuner(object):
     for i in xrange(len(self.composition)-1, -1, -1):
       if self.composition[i] == action_note:
         num_repeated += 1
-      elif self.composition[i] == NOTE_OFF:
+      elif self.composition[i] == rl_tuner_ops.NOTE_OFF:
         contains_breaks = True
-      elif self.composition[i] == NO_EVENT:
+      elif self.composition[i] == rl_tuner_ops.NO_EVENT:
         contains_held_notes = True
       else:
         break
@@ -1613,7 +1577,7 @@ class RLTuner(object):
 
     last_bar = composition[-bar_length:]
 
-    actual_notes = [a for a in last_bar if a != NO_EVENT and a != NOTE_OFF]
+    actual_notes = [a for a in last_bar if a != rl_tuner_ops.NO_EVENT and a != rl_tuner_ops.NOTE_OFF]
     num_unique_notes = len(set(actual_notes))
     if num_unique_notes >= 3:
       return last_bar, num_unique_notes
@@ -1733,36 +1697,36 @@ class RLTuner(object):
 
     # get rid of non-notes in prev_note
     prev_note_index = len(self.composition) - 1
-    while (prev_note == NO_EVENT or
-           prev_note == NOTE_OFF) and prev_note_index >= 0:
+    while (prev_note == rl_tuner_ops.NO_EVENT or
+           prev_note == rl_tuner_ops.NOTE_OFF) and prev_note_index >= 0:
       prev_note = self.composition[prev_note_index]
       prev_note_index -= 1
-    if prev_note == NOTE_OFF or prev_note == NO_EVENT:
+    if prev_note == rl_tuner_ops.NOTE_OFF or rl_tuner_ops.prev_note == NO_EVENT:
       if verbose: print "action_note:", action_note, "prev_note:", prev_note
       return 0, action_note, prev_note
 
     if verbose: print "action_note:", action_note, "prev_note:", prev_note
 
     # get rid of non-notes in action_note
-    if action_note == NO_EVENT:
+    if action_note == rl_tuner_ops.NO_EVENT:
       if prev_note in tonic_notes or prev_note in fifth_notes:
-        return HOLD_INTERVAL_AFTER_THIRD_OR_FIFTH, action_note, prev_note
+        return rl_tuner_ops.HOLD_INTERVAL_AFTER_THIRD_OR_FIFTH, action_note, prev_note
       else:
-        return HOLD_INTERVAL, action_note, prev_note
+        return rl_tuner_ops.HOLD_INTERVAL, action_note, prev_note
     elif action_note == NOTE_OFF:
       if prev_note in tonic_notes or prev_note in fifth_notes:
-        return REST_INTERVAL_AFTER_THIRD_OR_FIFTH, action_note, prev_note
+        return rl_tuner_ops.REST_INTERVAL_AFTER_THIRD_OR_FIFTH, action_note, prev_note
       else:
-        return REST_INTERVAL, action_note, prev_note
+        return rl_tuner_ops.REST_INTERVAL, action_note, prev_note
 
     interval = abs(action_note - prev_note)
 
-    if c_major and interval == FIFTH and (
+    if c_major and interval == rl_tuner_ops.FIFTH and (
         prev_note in c_notes or prev_note in g_notes):
-      return IN_KEY_FIFTH, action_note, prev_note
-    if c_major and interval == THIRD and (
+      return rl_tuner_ops.IN_KEY_FIFTH, action_note, prev_note
+    if c_major and interval == rl_tuner_ops.THIRD and (
         prev_note in c_notes or prev_note in e_notes):
-      return IN_KEY_THIRD, action_note, prev_note
+      return rl_tuner_ops.IN_KEY_THIRD, action_note, prev_note
 
     return interval, action_note, prev_note
 
@@ -1788,49 +1752,49 @@ class RLTuner(object):
     reward = 0.0
 
     # rests can be good
-    if interval == REST_INTERVAL:
+    if interval == rl_tuner_ops.REST_INTERVAL:
       reward = 0.05
       if verbose: print "rest interval"
-    if interval == HOLD_INTERVAL:
+    if interval == rl_tuner_ops.HOLD_INTERVAL:
       reward = 0.075
-    if interval == REST_INTERVAL_AFTER_THIRD_OR_FIFTH:
+    if interval == rl_tuner_ops.REST_INTERVAL_AFTER_THIRD_OR_FIFTH:
       reward = 0.15
       if verbose: print "rest interval after 1st or 5th"
-    if interval == HOLD_INTERVAL_AFTER_THIRD_OR_FIFTH:
+    if interval == rl_tuner_ops.HOLD_INTERVAL_AFTER_THIRD_OR_FIFTH:
       reward = 0.3
 
     # large leaps and awkward intervals bad
-    if interval == SEVENTH:
+    if interval == rl_tuner_ops.SEVENTH:
       reward = -0.3
       if verbose: print "7th"
-    if interval > OCTAVE:
+    if interval > rl_tuner_ops.OCTAVE:
       reward = -1.0
       if verbose: print "More than octave"
 
     # common major intervals are good
-    if interval == IN_KEY_FIFTH:
+    if interval == rl_tuner_ops.IN_KEY_FIFTH:
       reward = 0.1
       if verbose: print "in key 5th"
-    if interval == IN_KEY_THIRD:
+    if interval == rl_tuner_ops.IN_KEY_THIRD:
       reward = 0.15
       if verbose: print "in key 3rd"
 
     # smaller steps are generally preferred
-    if interval == THIRD:
+    if interval == rl_tuner_ops.THIRD:
       reward = 0.09
       if verbose: print "3rd"
-    if interval == SECOND:
+    if interval == rl_tuner_ops.SECOND:
       reward = 0.08
       if verbose: print "2nd"
-    if interval == FOURTH:
+    if interval == rl_tuner_ops.FOURTH:
       reward = 0.07
       if verbose: print "4th"
 
     # larger leaps not as good, especially if not in key
-    if interval == SIXTH:
+    if interval == rl_tuner_ops.SIXTH:
       reward = 0.05
       if verbose: print "6th"
-    if interval == FIFTH:
+    if interval == rl_tuner_ops.FIFTH:
       reward = 0.02
       if verbose: print "5th"
 
@@ -1860,7 +1824,7 @@ class RLTuner(object):
       True if the lowest note was unique, False otherwise.
     """
     no_special_events = [x for x in composition
-                         if x != NO_EVENT and x != NOTE_OFF]
+                         if x != rl_tuner_ops.NO_EVENT and x != rl_tuner_ops.NOTE_OFF]
     if no_special_events:
       min_note = min(no_special_events)
       if list(composition).count(min_note) == 1:
@@ -1919,7 +1883,7 @@ class RLTuner(object):
 
     interval, action_note, prev_note = self.detect_sequential_interval(action)
 
-    if action_note == NOTE_OFF or action_note == NO_EVENT:
+    if action_note == rl_tuner_ops.NOTE_OFF or action_note == rl_tuner_ops.NO_EVENT:
       self.steps_since_last_leap += 1
       if verbose:
         tf.logging.info('Rest, adding to steps since last leap. It is'
@@ -1927,14 +1891,14 @@ class RLTuner(object):
       return 0
 
     # detect if leap
-    if interval >= FIFTH or interval == IN_KEY_FIFTH:
+    if interval >= rl_tuner_ops.FIFTH or interval == rl_tuner_ops.IN_KEY_FIFTH:
       if action_note > prev_note:
-        leap_direction = ASCENDING
+        leap_direction = rl_tuner_ops.ASCENDING
         if verbose:
           tf.logging.info('Detected an ascending leap')
           print 'Detected an ascending leap'
       else:
-        leap_direction = DESCENDING
+        leap_direction = rl_tuner_ops.DESCENDING
         if verbose:
           tf.logging.info('Detected a descending leap')
           print 'Detected a descending leap'
@@ -1948,7 +1912,7 @@ class RLTuner(object):
                          self.steps_since_last_leap)
             print 'Detected leap resolved by a leap. Num steps since last leap:', self.steps_since_last_leap
           if self.steps_since_last_leap > steps_between_leaps:
-            outcome = LEAP_RESOLVED
+            outcome = rl_tuner_ops.LEAP_RESOLVED
             if verbose:
               tf.logging.info('Sufficient steps before leap resolved, '
                            'awarding bonus')
@@ -1959,7 +1923,7 @@ class RLTuner(object):
           if verbose:
             tf.logging.info('Detected a double leap')
             print 'Detected a double leap!'
-          outcome = LEAP_DOUBLED
+          outcome = rl_tuner_ops.LEAP_DOUBLED
 
       # the composition had no previous leaps
       else:
@@ -1981,14 +1945,14 @@ class RLTuner(object):
       # if there was a leap before, check if composition has gradually returned
       # This could be changed by requiring you to only go a 5th back in the opposite
       # direction of the leap
-      if (self.composition_direction == ASCENDING and
+      if (self.composition_direction == rl_tuner_ops.ASCENDING and
           action_note <= self.leapt_from) or (
-              self.composition_direction == DESCENDING and
+              self.composition_direction == rl_tuner_ops.DESCENDING and
               action_note >= self.leapt_from):
         if verbose:
           tf.logging.info('detected a gradually resolved leap')
           print 'Detected a gradually resolved leap'
-        outcome = LEAP_RESOLVED
+        outcome = rl_tuner_ops.LEAP_RESOLVED
         self.composition_direction = 0
         self.leapt_from = None
 
@@ -2016,10 +1980,10 @@ class RLTuner(object):
     """
 
     leap_outcome = self.detect_leap_up_back(action, verbose=verbose)
-    if leap_outcome == LEAP_RESOLVED:
+    if leap_outcome == rl_tuner_ops.LEAP_RESOLVED:
       if verbose: print "leap resolved, awarding", resolving_leap_bonus
       return resolving_leap_bonus
-    elif leap_outcome == LEAP_DOUBLED:
+    elif leap_outcome == rl_tuner_ops.LEAP_DOUBLED:
       if verbose: print "leap doubled, awarding", leaping_twice_punishment
       return leaping_twice_punishment
     else:
