@@ -57,7 +57,7 @@ class RLTunerTest(tf.test.TestCase):
                            output_every_nth=30)
     rlt.train(num_steps=31, exploration_period=3)
 
-    self.assertTrue(os.path.exists(self.output_dir + '-30'))
+    self.assertTrue(os.path.exists(rlt.save_path + '-30'))
     self.assertTrue(len(rlt.rewards_batched) >= 1)
     self.assertTrue(len(rlt.eval_avg_reward) >= 1)
 
