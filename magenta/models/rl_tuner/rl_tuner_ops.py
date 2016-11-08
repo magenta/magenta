@@ -2,7 +2,6 @@
 
 import os
 import random
-import tempfile
 
 from magenta.common import tf_lib
 
@@ -278,11 +277,4 @@ def log_sum_exp(xs):
   xs -= maxes
   return tf.squeeze(maxes, [-1]) + tf.log(tf.reduce_sum(tf.exp(xs), -1))
 
-def extract_bundle_to_tmpdir(bundle, ckpt_name):
-  tmpdir = tempfile.mkdtemp()
-  print "tmpdir is", tmpdir
-  checkpoint_file = os.path.join(tmpdir, ckpt_name)
-  with tf.gfile.Open(checkpoint_file, 'wb') as f:
-    f.write(bundle.checkpoint_file)
-  return checkpoint_file, tmpdir
 

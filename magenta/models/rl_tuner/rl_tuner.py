@@ -49,11 +49,7 @@ def reload_files():
 class RLTuner(object):
   """Implements a recurrent DQN designed to produce melody sequences."""
 
-  def __init__(self,
-               # file paths and directories
-               output_dir,
-               note_rnn_checkpoint_dir=None,
-               midi_primer=None,
+  def __init__(self, output_dir,
 
                # Hyperparameters
                dqn_hparams=None,
@@ -62,17 +58,22 @@ class RLTuner(object):
                exploration_mode='egreedy',
                priming_mode='random_note',
                stochastic_observations=False,
-               algorithm='default',
+               algorithm='q',
+
+               # Trained Note RNN to load and tune
+               note_rnn_checkpoint_dir=None,
+               backup_checkpoint_file=None,
+               note_rnn_type='default',
 
                # Other music related settings.
                num_notes_in_melody=32,
                input_size=rl_tuner_ops.NUM_CLASSES,
                num_actions=rl_tuner_ops.NUM_CLASSES,
+               midi_primer=None,
 
                # Logistics.
                save_name='rl_tuner.ckpt',
                output_every_nth=1000,
-               backup_checkpoint_file=None,
                training_file_list=None,
                summary_writer=None,
                custom_hparams=None,
@@ -81,10 +82,6 @@ class RLTuner(object):
 
     Args:
       output_dir: Where the model will save its compositions (midi files).
-      note_rnn_checkpoint_dir: The directory from which the internal NoteRNNLoader
-        will load its checkpointed LSTM.
-      midi_primer: A midi file that can be used to prime the model if
-        priming_mode is set to 'single_midi'.
       dqn_hparams: A tf.HParams() object containing the hyperparameters of the
         DQN algorithm, including minibatch size, exploration probability, etc.
       reward_mode: Controls which reward function can be applied. There are
@@ -108,7 +105,16 @@ class RLTuner(object):
         will be sampled from the model's softmax output.
       algorithm: can be 'default', 'psi', 'g' or 'pure_rl', for different 
         learning algorithms
+      note_rnn_checkpoint_dir: The directory from which the internal NoteRNNLoader
+        will load its checkpointed LSTM.
+      backup_checkpoint_file: A checkpoint file to use in case one cannot be
+        found in the note_rnn_checkpoint_dir.
+      note_rnn_type: If 'default', will use the basic LSTM described in the 
+        research paper. If 'basic_rnn', will assume the checkpoint is from a
+        Magenta basic_rnn model.
       num_notes_in_melody: The length of a composition of the model
+      midi_primer: A midi file that can be used to prime the model if
+        priming_mode is set to 'single_midi'.
       input_size: the size of the one-hot vector encoding a note that is input
         to the model.
       num_actions: The size of the one-hot vector encoding a note that is
@@ -116,8 +122,6 @@ class RLTuner(object):
       save_name: Name the model will use to save checkpoints.
       output_every_nth: How many training steps before the model will print
         an output saying the cumulative reward, and save a checkpoint.
-      backup_checkpoint_file: A checkpoint file to use in case one cannot be
-        found in the note_rnn_checkpoint_dir.
       training_file_list: A list of paths to tfrecord files containing melody 
         training data. This is necessary to use the 'random_midi' priming mode.
       summary_writer: A tf.train.SummaryWriter used to log metrics.
