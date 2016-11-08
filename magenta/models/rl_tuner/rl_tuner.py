@@ -1811,7 +1811,7 @@ class RLTuner(object):
     #melody.from_event_list(rl_tuner_ops.decoder(generated_seq,
     #                                          self.q_network.transpose_amount))
 
-    sequence = melody.to_sequence(qpm=self.q_network.bpm)
+    sequence = melody.to_sequence(qpm=rl_tuner_ops.DEFAULT_BPM)
     filename = rl_tuner_ops.get_next_file_name(self.output_dir, title, 'mid')
     midi_io.sequence_proto_to_midi_file(sequence, filename)
 

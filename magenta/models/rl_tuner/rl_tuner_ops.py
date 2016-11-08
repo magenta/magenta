@@ -16,13 +16,16 @@ NUM_CLASSES = 38
 # Default batch size.
 BATCH_SIZE = 128
 
-# Music theory constants used in defining reward functions.
-# Note that action 2 = midi note 48.
+# Music-related constants.
 INITIAL_MIDI_VALUE = 48
 NUM_SPECIAL_EVENTS = 2
 MIN_NOTE = 48  # Inclusive
 MAX_NOTE = 84  # Exclusive
 TRANSPOSE_TO_KEY = 0  # C Major
+DEFAULT_BPM = 80.0
+
+# Music theory constants used in defining reward functions.
+# Note that action 2 = midi note 48.
 C_MAJOR_SCALE = [2, 4, 6, 7, 9, 11, 13, 14, 16, 18, 19, 21, 23, 25, 26]
 C_MAJOR_KEY = [0, 1, 2, 4, 6, 7, 9, 11, 13, 14, 16, 18, 19, 21, 23, 25, 26, 28,
                30, 31, 33, 35, 37]
