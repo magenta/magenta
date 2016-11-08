@@ -80,6 +80,7 @@ class NoteRNNLoader(object):
     self.checkpoint_scope = checkpoint_scope
     self.training_file_list = training_file_list
     self.bpm = bpm
+    self.checkpoint_dir = experiment_dir
 
     if hparams is not None:
       tf.logging.info('Using custom hparams')
