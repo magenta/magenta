@@ -52,10 +52,7 @@ py_binary(
 
 py_test(
     name = "rl_tuner_test",
-    size = "medium",
     srcs = ["rl_tuner_test.py"],
-    data =
-        ["testdata/primer.mid"] + glob(["testdata/train/*"]),
     deps = [
         ":rl_tuner",
         ":rl_tuner_ops",
