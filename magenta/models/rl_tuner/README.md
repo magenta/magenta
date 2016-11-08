@@ -44,7 +44,7 @@ on each algorithm, see [our paper][our arxiv].
 	place notes by calling `action`, receive rewards using `collect_reward`, 
 	and save these experiences using `store`.
 
-*	The network weights are updated using `training_step` which samples 
+*	The network weights are updated using `training_step`, which samples 
 	minibatches of experience from the model's `experience` buffer and uses 
 	this to compute gradients based on the loss function in `build_graph`.
 
@@ -59,15 +59,14 @@ on each algorithm, see [our paper][our arxiv].
 *	Finally, use `generate_music_sequence` to generate a melody with your 
 	trained model! You can also call this function before training, to see how 
 	the model's songs have improved with training! If you set the 
-	`visualize_probs` parameter to True, it will also plot the note probabilities 
-	of the model over time.
+	`visualize_probs` parameter to *True*, it will also plot the 
+	note probabilities of the model over time.
 
 ## Running the code
 To train the model you can use the provided jupyter notebook ([rl_tuner.ipynb][ipynb]), or, you can simply run:
 
 ```
-bazel run magenta/models/rl_tuner:rl_tuner_train -- 
---note_rnn_checkpoint_dir 'path' --midi_primer 'primer.mid' 
+bazel run magenta/models/rl_tuner:rl_tuner_train 
 ```
 
 ## Tuning your own model
@@ -82,9 +81,9 @@ train it via `note_rnn_hparams`. You can also pass in a path to the checkpoint
 file directly using `backup_checkpoint_file`.
 
 We also support tuning a *basic_rnn* trained using the Magenta code! To tune
-a basic_rnn, do the same thing, but set the `note_rnn_type` parameter to 
-'basic_rnn'. We also provide the script `unpack_ckpt_from_bundle` to help you 
-extract a checkpoint file from one of the 
+a basic_rnn, use the same `note_rnn_checkpoint_dir` parameter, but set the 
+`note_rnn_type` parameter to 'basic_rnn'. We also provide the script 
+`unpack_ckpt_from_bundle` to help you extract a checkpoint file from one of the 
 [pre-trained magenta bundles][magenta pretrained]. 
 
 ## Improving the model
