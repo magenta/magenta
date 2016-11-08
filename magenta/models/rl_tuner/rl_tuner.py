@@ -64,6 +64,7 @@ class RLTuner(object):
                note_rnn_checkpoint_dir=None,
                backup_checkpoint_file=None,
                note_rnn_type='default',
+               custom_hparams=None,
 
                # Other music related settings.
                num_notes_in_melody=32,
@@ -76,7 +77,6 @@ class RLTuner(object):
                output_every_nth=1000,
                training_file_list=None,
                summary_writer=None,
-               custom_hparams=None,
                initialize_immediately=True):
     """Initializes the MelodyQNetwork class.
 
@@ -112,6 +112,8 @@ class RLTuner(object):
       note_rnn_type: If 'default', will use the basic LSTM described in the 
         research paper. If 'basic_rnn', will assume the checkpoint is from a
         Magenta basic_rnn model.
+      custom_hparams: A tf.HParams object which defines the hyper parameters
+        used to train the MelodyRNN model that will be loaded from a checkpoint.
       num_notes_in_melody: The length of a composition of the model
       midi_primer: A midi file that can be used to prime the model if
         priming_mode is set to 'single_midi'.
@@ -125,8 +127,6 @@ class RLTuner(object):
       training_file_list: A list of paths to tfrecord files containing melody 
         training data. This is necessary to use the 'random_midi' priming mode.
       summary_writer: A tf.train.SummaryWriter used to log metrics.
-      custom_hparams: A tf.HParams object which defines the hyper parameters
-        used to train the MelodyRNN model that will be loaded from a checkpoint.
       initialize_immediately: if True, the class will instantiate its component
         MelodyRNN networks and build the graph in the constructor.
     """

@@ -31,9 +31,6 @@ from magenta.common import sequence_example_lib
 import rl_tuner_ops
 
 
-DEFAULT_BPM = 80.0
-
-
 class NoteRNNLoader(object):
   """Builds graph for a Note RNN and instantiates weights from a checkpoint.
 
@@ -48,7 +45,7 @@ class NoteRNNLoader(object):
   def __init__(self, graph, scope, experiment_dir, midi_primer=None,
                training_file_list=None, hparams=None,
                backup_checkpoint_file=None, softmax_within_graph=True,
-               checkpoint_scope='rnn_model', bpm=DEFAULT_BPM):
+               note_rnn_type='default', checkpoint_scope='rnn_model'):
     """Initialize by building the graph and loading a previous checkpoint.
 
     Args:
@@ -67,9 +64,11 @@ class NoteRNNLoader(object):
         output softmax probabilities for the next note. if False, it will output
         logits only. Used to control whether MelodyQ network is reinforcing
         softmax probabilities or logits.
+      note_rnn_type: If 'default', will use the basic LSTM described in the 
+        research paper. If 'basic_rnn', will assume the checkpoint is from a
+        Magenta basic_rnn model.
       checkpoint_scope: The scope in lstm which the model was originally defined
         when it was first trained.
-      bpm: Beats per minute to use for the compositions.
     """
     self.graph = graph
     self.session = None
@@ -78,8 +77,8 @@ class NoteRNNLoader(object):
     self.midi_primer = midi_primer
     self.softmax_within_graph = softmax_within_graph
     self.checkpoint_scope = checkpoint_scope
+    self.note_rnn_type = note_rnn_type
     self.training_file_list = training_file_list
-    self.bpm = bpm
     self.checkpoint_dir = experiment_dir
 
     if hparams is not None:
@@ -155,7 +154,8 @@ class NoteRNNLoader(object):
     for var in self.variables():
       inner_name = rl_tuner_ops.get_inner_scope(var.name)
       inner_name = rl_tuner_ops.trim_variable_postfixes(inner_name)
-      var_dict[self.checkpoint_scope + '/' + inner_name] = var
+      if self.note_rnn_type != 'basic_rnn':
+        var_dict[self.checkpoint_scope + '/' + inner_name] = var
     return var_dict
 
   def build_graph(self):
@@ -168,7 +168,7 @@ class NoteRNNLoader(object):
         with tf.variable_scope(self.scope):
           # Make an LSTM cell with the number and size of layers specified in
           # hparams.
-          self.cell = rl_tuner_ops.make_cell(self.hparams)
+          self.cell = rl_tuner_ops.make_cell(self.hparams, self.note_rnn_type)
 
           # Shape of melody_sequence is batch size, melody length, number of
           # output note actions.
@@ -274,8 +274,7 @@ class NoteRNNLoader(object):
   def load_primer(self):
     """Loads default MIDI primer file.
 
-    Also assigns the bpm and steps per bar of this file to be the model's
-    defaults.
+    Also assigns thesteps per bar of this file to be the model's defaults.
     """
 
     if not os.path.exists(self.midi_primer):

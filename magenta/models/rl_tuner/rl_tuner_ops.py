@@ -55,7 +55,23 @@ DESCENDING = -1
 LEAP_RESOLVED = 1
 LEAP_DOUBLED = -1
 
+
 def default_hparams():
+  """Generates the hparams used to train note rnn used in paper."""
+  return tf_lib.HParams(use_dynamic_rnn=True,
+                        batch_size=BATCH_SIZE,
+                        lr=0.0002,
+                        l2_reg=2.5e-5,
+                        clip_norm=5,
+                        initial_learning_rate=0.5,
+                        decay_steps=1000,
+                        decay_rate=0.85,
+                        rnn_layer_sizes=[100],
+                        skip_first_n_losses=32,
+                        one_hot_length=NUM_CLASSES,
+                        exponentially_decay_learning_rate=True)
+
+def large_model_hparams():
   """Generates the default hparams used to train a large note rnn."""
   return tf_lib.HParams(use_dynamic_rnn=True,
                         batch_size=BATCH_SIZE,
@@ -70,19 +86,16 @@ def default_hparams():
                         one_hot_length=NUM_CLASSES,
                         exponentially_decay_learning_rate=True)
 
-
-def small_model_hparams():
-  """Generates the hparams used to train a small note rnn."""
-  return tf_lib.HParams(use_dynamic_rnn=True,
-                        batch_size=BATCH_SIZE,
-                        lr=0.0002,
-                        l2_reg=2.5e-5,
+def basic_rnn_hparams():
+  """Generates the hparams used to train a basic_rnn."""
+  return tf_lib.HParams(batch_size=128,
+                        dropout_keep_prob=0.5,
                         clip_norm=5,
-                        initial_learning_rate=0.5,
+                        initial_learning_rate=0.01,
                         decay_steps=1000,
                         decay_rate=0.85,
-                        rnn_layer_sizes=[100],
-                        skip_first_n_losses=32,
+                        rnn_layer_sizes=[128, 128],
+                        skip_first_n_losses=0,
                         one_hot_length=NUM_CLASSES,
                         exponentially_decay_learning_rate=True)
 
@@ -256,12 +269,18 @@ def get_next_file_name(directory, prefix, extension):
     name = directory + '/' + prefix + str(i) + '.' + extension
   return name
 
-def make_cell(hparams, state_is_tuple=False):
+def make_cell(hparams, note_rnn_type, state_is_tuple=False):
   """Makes a basic LSTM cell for use in the NoteRNNLoader graph."""
   cells = []
   for num_units in hparams.rnn_layer_sizes:
-    cell = tf.nn.rnn_cell.LSTMCell(
-        num_units, state_is_tuple=state_is_tuple)
+    if note_rnn_type == 'default':
+      cell = tf.nn.rnn_cell.LSTMCell(
+          num_units, state_is_tuple=state_is_tuple)
+    else:
+      cell = tf.nn.rnn_cell.BasicLSTMCell(
+          num_units, state_is_tuple=state_is_tuple)
+      cell = tf.nn.rnn_cell.DropoutWrapper(
+          cell, output_keep_prob=hparams.dropout_keep_prob)
     cells.append(cell)
 
   cell = tf.nn.rnn_cell.MultiRNNCell(cells, state_is_tuple=state_is_tuple)
