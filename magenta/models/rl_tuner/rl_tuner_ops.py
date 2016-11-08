@@ -97,7 +97,7 @@ def basic_rnn_hparams():
                         initial_learning_rate=0.01,
                         decay_steps=1000,
                         decay_rate=0.85,
-                        rnn_layer_sizes=[128, 128],
+                        rnn_layer_sizes=[512, 512],
                         skip_first_n_losses=0,
                         one_hot_length=NUM_CLASSES,
                         exponentially_decay_learning_rate=True)
