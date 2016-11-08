@@ -57,6 +57,8 @@ class MusicXMLParserTest(tf.test.TestCase):
   from a non-transposing (Flute) to transposing (Bb Clarinet) in a score
   with no key / atonal. This ensures that transposition works properly when
   no key signature is found (Issue #355)
+
+  self.st_anne_filename contains a 4-voice piece written in two parts.
   """
 
   def setUp(self):
@@ -324,7 +326,57 @@ class MusicXMLParserTest(tf.test.TestCase):
       note.denominator = 4
     self.assertProtoEquals(expected_ns, ns)
 
-  def testStAnne(self):
+  def test_atonal_transposition(self):
+    """Test that transposition works when changing instrument transposition.
+
+    This can occur within a single part in a score where the score
+    has no key signature / is atonal. Examples include changing from a
+    non-transposing instrument to a transposing one (ex. Flute to Bb Clarinet)
+    or vice versa, or changing among transposing instruments (ex. Bb Clarinet
+    to Eb Alto Saxophone).
+    """
+    ns = musicxml_reader.musicxml_file_to_sequence_proto(
+        self.atonal_transposition_filename)
+    expected_ns = common_testing_lib.parse_test_proto(
+        music_pb2.NoteSequence,
+        """
+        ticks_per_quarter: 220
+        time_signatures: {
+          numerator: 4
+          denominator: 4
+        }
+        tempos: {
+          qpm: 120
+        }
+        key_signatures: {
+        }
+        part_infos {
+          part: 0
+          name: "Flute"
+        }
+        source_info: {
+          source_type: SCORE_BASED
+          encoding_type: MUSIC_XML
+          parser: MAGENTA_MUSIC_XML
+        }
+        total_time: 4.0
+        """)
+    expected_pitches = [72, 74, 76, 77, 79, 77, 76, 74]
+    time = 0
+    for pitch in expected_pitches:
+      note = expected_ns.notes.add()
+      note.pitch = pitch
+      note.start_time = time
+      time += .5
+      note.end_time = time
+      note.velocity = 64
+      note.numerator = 1
+      note.denominator = 4
+      note.voice = 1
+    self.maxDiff = None
+    self.assertProtoEquals(expected_ns, ns)
+
+  def test_st_anne(self):
     """Verify properties of the St. Anne file.
 
     The file contains 2 parts and 4 voices.
@@ -554,7 +606,7 @@ class MusicXMLParserTest(tf.test.TestCase):
         key=lambda note: (note.part, note.voice, note.start_time))
     self.assertProtoEquals(expected_ns, ns)
 
-  def testEmptyPartName(self):
+  def test_empty_part_name(self):
     """Verify that a part with an empty name can be parsed."""
 
     xml = r"""<?xml version="1.0" encoding="UTF-8" standalone="no"?>
@@ -600,7 +652,7 @@ class MusicXMLParserTest(tf.test.TestCase):
         """)
     self.assertProtoEquals(expected_ns, ns)
 
-  def testEmptyPartList(self):
+  def test_empty_part_list(self):
     """Verify that a part without a corresponding score-part can be parsed."""
 
     xml = r"""<?xml version="1.0" encoding="UTF-8" standalone="no"?>
@@ -641,7 +693,7 @@ class MusicXMLParserTest(tf.test.TestCase):
         """)
     self.assertProtoEquals(expected_ns, ns)
 
-  def testEmptyDoc(self):
+  def test_empty_doc(self):
     """Verify that an empty doc can be parsed."""
 
     xml = r"""<?xml version="1.0" encoding="UTF-8" standalone="no"?>
@@ -677,50 +729,6 @@ class MusicXMLParserTest(tf.test.TestCase):
         """)
     self.assertProtoEquals(expected_ns, ns)
 
-  def test_atonal_transposition(self):
-    """Test that transposition works when changing instrument transposition.
-
-    This can occur within a single part in a score where the score
-    has no key signature / is atonal. Examples include changing from a
-    non-transposing instrument to a transposing one (ex. Flute to Bb Clarinet)
-    or vice versa, or changing among transposing instruments (ex. Bb Clarinet
-    to Eb Alto Saxophone).
-    """
-    ns = musicxml_reader.musicxml_file_to_sequence_proto(
-        self.atonal_transposition_filename)
-    expected_ns = common_testing_lib.parse_test_proto(
-        music_pb2.NoteSequence,
-        """
-        ticks_per_quarter: 220
-        time_signatures: {
-          numerator: 4
-          denominator: 4
-        }
-        tempos: {
-          qpm: 120
-        }
-        key_signatures: {
-        }
-        source_info: {
-          source_type: SCORE_BASED
-          encoding_type: MUSIC_XML
-          parser: MAGENTA_MUSIC_XML
-        }
-        total_time: 4.0
-        """)
-    expected_pitches = [72, 74, 76, 77, 79, 77, 76, 74]
-    time = 0
-    for pitch in expected_pitches:
-      note = expected_ns.notes.add()
-      note.pitch = pitch
-      note.start_time = time
-      time += .5
-      note.end_time = time
-      note.velocity = 64
-      note.numerator = 1
-      note.denominator = 4
-    self.maxDiff = None
-    self.assertProtoEquals(expected_ns, ns)
 
 if __name__ == '__main__':
   tf.test.main()

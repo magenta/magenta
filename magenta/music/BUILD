@@ -336,6 +336,7 @@ py_test(
     name = "musicxml_parser_test",
     srcs = ["musicxml_parser_test.py"],
     data = [
+        "testdata/atonal_transposition_change.xml",
         "testdata/clarinet_scale.xml",
         "testdata/el_capitan.xml",
         "testdata/flute_scale.mxl",
@@ -343,7 +344,6 @@ py_test(
         "testdata/flute_scale_with_png.mxl",
         "testdata/rhythm_durations.xml",
         "testdata/st_anne.xml",
-        "testdata/atonal_transposition_change.xml",
     ],
     srcs_version = "PY2AND3",
     deps = [
