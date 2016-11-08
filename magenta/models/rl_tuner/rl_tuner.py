@@ -64,7 +64,7 @@ class RLTuner(object):
                note_rnn_checkpoint_dir=None,
                backup_checkpoint_file=None,
                note_rnn_type='default',
-               custom_hparams=None,
+               note_rnn_hparams=None,
 
                # Other music related settings.
                num_notes_in_melody=32,
@@ -112,7 +112,7 @@ class RLTuner(object):
       note_rnn_type: If 'default', will use the basic LSTM described in the 
         research paper. If 'basic_rnn', will assume the checkpoint is from a
         Magenta basic_rnn model.
-      custom_hparams: A tf.HParams object which defines the hyper parameters
+      note_rnn_hparams: A tf.HParams object which defines the hyper parameters
         used to train the MelodyRNN model that will be loaded from a checkpoint.
       num_notes_in_melody: The length of a composition of the model
       midi_primer: A midi file that can be used to prime the model if
@@ -151,7 +151,8 @@ class RLTuner(object):
       self.note_rnn_checkpoint_dir = note_rnn_checkpoint_dir
       self.training_file_list = training_file_list
       self.backup_checkpoint_file = backup_checkpoint_file
-      self.custom_hparams = custom_hparams
+      self.note_rnn_hparams = note_rnn_hparams
+      self.note_rnn_type = note_rnn_type
 
       if priming_mode == 'single_midi' and midi_primer is None:
         tf.logging.fatal('A midi primer file is required when using'
@@ -164,6 +165,12 @@ class RLTuner(object):
           'note_rnn.ckpt')
         self.note_rnn_checkpoint_dir = os.getcwd()
         self.backup_checkpoint_file = os.path.join(os.getcwd(), 'note_rnn.ckpt')
+
+      if self.note_rnn_hparams is None:
+        if self.note_rnn_type == 'basic_rnn':
+          self.note_rnn_hparams = rl_tuner_ops.basic_rnn_hparams()
+        else:
+          self.note_rnn_hparams = rl_tuner_ops.default_hparams()
 
       if self.algorithm == 'g' or self.algorithm == 'pure_rl':
         self.reward_mode = 'music_theory_only'
@@ -239,7 +246,8 @@ class RLTuner(object):
                                             softmax_within_graph=False,
                                             backup_checkpoint_file=
                                             self.backup_checkpoint_file,
-                                            hparams=self.custom_hparams)
+                                            hparams=self.note_rnn_hparams,
+                                            note_rnn_type=self.note_rnn_type)
 
       tf.logging.info('Initializing target q network')
       self.target_q_network = note_rnn_loader.NoteRNNLoader(self.graph,
@@ -251,7 +259,8 @@ class RLTuner(object):
                                                    softmax_within_graph=False,
                                                    backup_checkpoint_file=
                                                    self.backup_checkpoint_file,
-                                                   hparams=self.custom_hparams)
+                                                   hparams=self.note_rnn_hparams,
+                                                   note_rnn_type=self.note_rnn_type)
 
       tf.logging.info('Initializing reward network')
       self.reward_rnn = note_rnn_loader.NoteRNNLoader(self.graph,
@@ -263,7 +272,8 @@ class RLTuner(object):
                                              softmax_within_graph=False,
                                              backup_checkpoint_file=
                                              self.backup_checkpoint_file,
-                                             hparams=self.custom_hparams)
+                                             hparams=self.note_rnn_hparams,
+                                             note_rnn_type=self.note_rnn_type)
 
       tf.logging.info('Q network cell: %s', self.q_network.cell)
 
