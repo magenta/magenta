@@ -162,7 +162,7 @@ class RLTuner(object):
         self.backup_checkpoint_file = os.path.join(os.getcwd(), 'note_rnn.ckpt')
         print 'File should have been saved. Whats in the directory?'
         print 'listdir', os.listdir('.')
-        print 'os pwd', os.path.getcwd()
+        print 'os pwd', os.getcwd()
 
       if self.algorithm == 'g' or self.algorithm == 'pure_rl':
         self.reward_mode = 'music_theory_only'
