@@ -571,16 +571,16 @@ class RLTuner(object):
         self.evaluate_model()
         self.save_model(self.algorithm)
 
-        # Save a checkpoint.
-        save_step = len(self.rewards_batched)*self.output_every_nth
-        self.saver.save(self.session, self.save_path, global_step=save_step)
-
         if self.algorithm == 'g':
           self.rewards_batched.append(self.music_theory_reward_last_n + self.note_rnn_reward_last_n)
         else:
           self.rewards_batched.append(self.reward_last_n)
         self.music_theory_rewards_batched.append(self.music_theory_reward_last_n)
         self.note_rnn_rewards_batched.append(self.note_rnn_reward_last_n)
+
+        # Save a checkpoint.
+        save_step = len(self.rewards_batched)*self.output_every_nth
+        self.saver.save(self.session, self.save_path, global_step=save_step)
 
         r = self.reward_last_n
         tf.logging.info('Training iteration %s', i)
