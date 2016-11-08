@@ -7,6 +7,8 @@ $ bazel test rl_tuner:rl_tuner_test
 import os
 
 import tensorflow as tf
+import matplotlib
+matplotlib.use('Agg')
 
 import rl_tuner
 import rl_tuner_ops
@@ -55,6 +57,8 @@ class RLTunerTest(tf.test.TestCase):
                            output_every_nth=30)
     rlt.train(num_steps=31, exploration_period=3)
 
+    print 'len(rlt.composition):', len(rlt.composition)
+    print 'whats at path?', os.listdir(self.save_path)
     self.assertTrue(len(rlt.composition) == 31)
     self.assertTrue(os.path.exists(self.save_path + '-30'))
     self.assertTrue(len(rlt.rewards_batched) >= 1)
@@ -62,7 +66,7 @@ class RLTunerTest(tf.test.TestCase):
   def testCompositionStats(self):
     rlt = rl_tuner.RLTuner(self.output_dir, custom_hparams=self.hparams,
                            output_every_nth=30)
-    stat_dict = rlt.compute_composition_stats(num_compositions=10)
+    stat_dict = rlt.evaluate_music_theory_metrics(num_compositions=10)
 
     self.assertTrue(stat_dict['num_repeated_notes'] > 1)
     self.assertTrue(len(stat_dict['autocorrelation1']) > 1)
