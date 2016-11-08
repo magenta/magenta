@@ -353,8 +353,6 @@ def extract_drum_tracks(quantized_sequence,
       break
 
     # Require a certain drum track length.
-    stats['drum_track_lengths_in_bars'].increment(
-        len(drum_track) // drum_track.steps_per_bar)
     if len(drum_track) - 1 < drum_track.steps_per_bar * min_bars:
       stats['drum_tracks_discarded_too_short'].increment()
       continue
@@ -371,6 +369,9 @@ def extract_drum_tracks(quantized_sequence,
         truncated_length -= max_steps_truncate % drum_track.steps_per_bar
       drum_track.set_length(truncated_length)
       stats['drum_tracks_truncated'].increment()
+
+    stats['drum_track_lengths_in_bars'].increment(
+        len(drum_track) // drum_track.steps_per_bar)
 
     drum_tracks.append(drum_track)
 
