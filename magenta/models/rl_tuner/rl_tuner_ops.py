@@ -280,6 +280,7 @@ def log_sum_exp(xs):
 
 def extract_bundle_to_tmpdir(bundle, ckpt_name):
   tmpdir = tempfile.mkdtemp()
+  print "tmpdir is", tmpdir
   checkpoint_file = os.path.join(tmpdir, ckpt_name)
   with tf.gfile.Open(checkpoint_file, 'wb') as f:
     f.write(bundle.checkpoint_file)
