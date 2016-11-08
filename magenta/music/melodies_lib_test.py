@@ -396,6 +396,10 @@ class MelodiesLibTest(tf.test.TestCase):
     testing_lib.add_quantized_track_to_sequence(
         self.quantized_sequence, 1,
         [(12, 127, 2, 4), (14, 50, 6, 9)])
+    testing_lib.add_quantized_track_to_sequence(
+        self.quantized_sequence, 9,
+        [(13, 100, 2, 4), (15, 25, 6, 8)],
+        is_drum=True)
     expected = [[NO_EVENT, NO_EVENT, 12, NO_EVENT, NOTE_OFF, NO_EVENT, 11],
                 [NO_EVENT, NO_EVENT, 12, NO_EVENT, NOTE_OFF, NO_EVENT, 14,
                  NO_EVENT, NO_EVENT]]
@@ -565,7 +569,7 @@ class MelodiesLibTest(tf.test.TestCase):
     self.assertEqual(stats_dict['melodies_discarded_too_few_pitches'].count, 1)
     self.assertEqual(
         stats_dict['melody_lengths_in_bars'].counters,
-        {float('-inf'): 0, 0: 1, 1: 0, 2: 1, 10: 1, 20: 0, 30: 0, 40: 0, 50: 0,
+        {float('-inf'): 0, 0: 0, 1: 0, 2: 0, 10: 1, 20: 0, 30: 0, 40: 0, 50: 0,
          100: 0, 200: 0, 500: 0})
 
   def testMidiFileToMelody(self):
