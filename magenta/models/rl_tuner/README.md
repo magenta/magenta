@@ -92,9 +92,9 @@ for musical aesthetics, try modifying the `reward_music_theory` function!
 
 ## Helpful links
 
-*   The code implements the model described in [this paper][our arxiv]
-*	For more on DQN, see [this paper][dqn]
-*   The DQN code was originally based on [this example][dqn ex]
+*   The code implements the model described in [this paper][our arxiv].
+*	For more on DQN, see [this paper][dqn].
+*   The DQN code was originally based on [this example][dqn ex].
 
 [our arxiv]: https://arxiv.org/abs/comingsoon
 [blog post]: https://notfuchsia.github.io/2016/10/24/natasha/
