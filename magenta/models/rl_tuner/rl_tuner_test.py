@@ -1,8 +1,7 @@
 """Tests for RLTuner and by proxy NoteRNNLoader.
 
 To run this code:
-$ bazel test rl_tuner:rl_tuner_test -- \
---test_tempdir 'path'
+$ bazel test rl_tuner:rl_tuner_test
 """
 
 import os
@@ -13,7 +12,7 @@ import rl_tuner
 import rl_tuner_ops
 
 FLAGS = tf.app.flags.FLAGS
-tf.app.flags.DEFINE_string('test_tempdir', '',
+tf.app.flags.DEFINE_string('test_tempdir', '/tmp/rl_tuner_test',
                            'Directory where temporary test files are stored.')
 
 class RLTunerTest(tf.test.TestCase):
