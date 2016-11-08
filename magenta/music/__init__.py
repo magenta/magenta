@@ -16,6 +16,8 @@
 
 from magenta.music.constants import *  # pylint: disable=wildcard-import
 
+from magenta.music.drums_encoder_decoder import MultiDrumOneHotEncoding
+
 from magenta.music.drums_lib import DrumTrack
 from magenta.music.drums_lib import extract_drum_tracks
 from magenta.music.drums_lib import midi_file_to_drum_track

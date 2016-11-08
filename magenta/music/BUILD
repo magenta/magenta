@@ -27,6 +27,7 @@ py_library(
     srcs = ["__init__.py"],
     deps = [
         ":constants",
+        ":drums_encoder_decoder",
         ":drums_lib",
         ":melodies_lib",
         ":melody_encoder_decoder",
@@ -116,6 +117,25 @@ py_library(
     name = "constants",
     srcs = ["constants.py"],
     srcs_version = "PY2AND3",
+)
+
+py_library(
+    name = "drums_encoder_decoder",
+    srcs = ["drums_encoder_decoder.py"],
+    srcs_version = "PY2AND3",
+    deps = [
+        ":encoder_decoder",
+    ],
+)
+
+py_test(
+    name = "drums_encoder_decoder_test",
+    srcs = ["drums_encoder_decoder_test.py"],
+    srcs_version = "PY2AND3",
+    deps = [
+        ":drums_encoder_decoder",
+        # tensorflow dep
+    ],
 )
 
 py_library(
