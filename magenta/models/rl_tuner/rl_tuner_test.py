@@ -22,27 +22,17 @@ class RLTunerTest(tf.test.TestCase):
 
   def setUp(self):
     self.output_dir = os.path.join(FLAGS.test_tmpdir, 'rl_tuner_test')
-    base_dir = FLAGS.test_srcdir
-    self.checkpoint_dir = os.path.join(base_dir, 'testdata/')
-    self.checkpoint_file = os.path.join(self.checkpoint_dir,'model.ckpt-1994')
-    self.midi_primer = base_dir + 'testdata/primer.mid'
     self.hparams = rl_tuner_ops.small_model_hparams()
 
-  def testDataAvailable(self):
-    self.assertTrue(os.path.exists(self.midi_primer))
-    self.assertTrue(os.path.exists(self.checkpoint_dir))
-
   def testInitializationAndPriming(self):
-    rlt = rl_tuner.RLTuner(self.output_dir, self.checkpoint_dir, 
-                          self.midi_primer, custom_hparams=self.hparams,
+    rlt = rl_tuner.RLTuner(self.output_dir, custom_hparams=self.hparams,
                           backup_checkpoint_file=self.checkpoint_file)
 
     initial_note = rlt.prime_internal_models()
     self.assertTrue(initial_note is not None)
 
   def testInitialGeneration(self):
-    rlt = rl_tuner.RLTuner(self.output_dir, self.checkpoint_dir, 
-                          self.midi_primer, custom_hparams=self.hparams,
+    rlt = rl_tuner.RLTuner(self.output_dir, custom_hparams=self.hparams,
                           backup_checkpoint_file=self.checkpoint_file)
 
     plot_name = 'test_initial_plot.png'
@@ -52,8 +42,7 @@ class RLTunerTest(tf.test.TestCase):
     self.assertTrue(os.path.exists(output_path))
 
   def testAction(self):
-    rlt = rl_tuner.RLTuner(self.output_dir, self.checkpoint_dir, 
-                          self.midi_primer, custom_hparams=self.hparams,
+    rlt = rl_tuner.RLTuner(self.output_dir, custom_hparams=self.hparams,
                           backup_checkpoint_file=self.checkpoint_file)
 
     initial_note = rlt.prime_internal_models()
@@ -62,8 +51,7 @@ class RLTunerTest(tf.test.TestCase):
     self.assertTrue(action is not None)
 
   def testRewardNetwork(self):
-    rlt = rl_tuner.RLTuner(self.output_dir, self.checkpoint_dir, 
-                          self.midi_primer, custom_hparams=self.hparams,
+    rlt = rl_tuner.RLTuner(self.output_dir, custom_hparams=self.hparams,
                           backup_checkpoint_file=self.checkpoint_file)
 
     zero_state = rlt.q_network.get_zero_state()
@@ -73,8 +61,7 @@ class RLTunerTest(tf.test.TestCase):
     self.assertTrue(reward_scores is not None)
 
   def testTraining(self):
-    rlt = rl_tuner.RLTuner(self.output_dir, self.checkpoint_dir, 
-                          self.midi_primer, custom_hparams=self.hparams,
+    rlt = rl_tuner.RLTuner(self.output_dir, custom_hparams=self.hparams,
                           backup_checkpoint_file=self.checkpoint_file,
                           output_every_nth=30)
     rlt.train(num_steps=31, exploration_period=3)
@@ -84,8 +71,7 @@ class RLTunerTest(tf.test.TestCase):
     self.assertTrue(len(rlt.rewards_batched) >= 1)
 
   def testCompositionStats(self):
-    rlt = rl_tuner.RLTuner(self.output_dir, self.checkpoint_dir, 
-                          self.midi_primer, custom_hparams=self.hparams,
+    rlt = rl_tuner.RLTuner(self.output_dir, custom_hparams=self.hparams,
                           backup_checkpoint_file=self.checkpoint_file,
                           output_every_nth=30)
     stat_dict = rlt.compute_composition_stats(num_compositions=10)

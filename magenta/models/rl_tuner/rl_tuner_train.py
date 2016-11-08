@@ -27,7 +27,7 @@ tf.app.flags.DEFINE_string('note_rnn_checkpoint_dir', '',
                            'melody prediction models. These will be loaded into'
                            'the NoteRNNLoader class object. The directory should'
                            'contain a train subdirectory')
-tf.app.flags.DEFINE_string('note_rnn_checkpoint_name', 'model.ckpt-1994',
+tf.app.flags.DEFINE_string('note_rnn_checkpoint_name', 'note_rnn.ckpt',
                            'Filename of a checkpoint within the '
                            'note_rnn_checkpoint_dir directory.')
 tf.app.flags.DEFINE_string('midi_primer', './testdata/primer.mid',
@@ -54,9 +54,9 @@ tf.app.flags.DEFINE_float('reward_scaler', 0.1,
 tf.app.flags.DEFINE_string('training_data_path', '',
                            'Directory where the model will get melody training'
                            'examples')
-tf.app.flags.DEFINE_string('algorithm', 'default',
+tf.app.flags.DEFINE_string('algorithm', 'q',
                            'The name of the algorithm to use for training the'
-                           'model. Can be default, psi, or g')
+                           'model. Can be q, psi, or g')
 
 
 def main(_):
