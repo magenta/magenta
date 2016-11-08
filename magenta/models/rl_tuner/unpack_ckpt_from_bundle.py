@@ -27,7 +27,7 @@ def main(_):
   bundle = sequence_generator_bundle.read_bundle_file(bundle_file)
 
   with tf.gfile.Open(checkpoint_file, 'wb') as f:
-    f.write(bundle.checkpoint_file)
+    f.write(bundle.checkpoint_file[0])
 
 if __name__ == '__main__':
   tf.app.run()
