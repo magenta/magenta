@@ -19,15 +19,13 @@ class RLTunerTest(tf.test.TestCase):
     self.hparams = rl_tuner_ops.small_model_hparams()
 
   def testInitializationAndPriming(self):
-    rlt = rl_tuner.RLTuner(self.output_dir, custom_hparams=self.hparams,
-                          backup_checkpoint_file=self.checkpoint_file)
+    rlt = rl_tuner.RLTuner(self.output_dir, custom_hparams=self.hparams)
 
     initial_note = rlt.prime_internal_models()
     self.assertTrue(initial_note is not None)
 
   def testInitialGeneration(self):
-    rlt = rl_tuner.RLTuner(self.output_dir, custom_hparams=self.hparams,
-                          backup_checkpoint_file=self.checkpoint_file)
+    rlt = rl_tuner.RLTuner(self.output_dir, custom_hparams=self.hparams)
 
     plot_name = 'test_initial_plot.png'
     rlt.generate_music_sequence(visualize_probs=True,
@@ -36,8 +34,7 @@ class RLTunerTest(tf.test.TestCase):
     self.assertTrue(os.path.exists(output_path))
 
   def testAction(self):
-    rlt = rl_tuner.RLTuner(self.output_dir, custom_hparams=self.hparams,
-                          backup_checkpoint_file=self.checkpoint_file)
+    rlt = rl_tuner.RLTuner(self.output_dir, custom_hparams=self.hparams)
 
     initial_note = rlt.prime_internal_models()
 
@@ -45,8 +42,7 @@ class RLTunerTest(tf.test.TestCase):
     self.assertTrue(action is not None)
 
   def testRewardNetwork(self):
-    rlt = rl_tuner.RLTuner(self.output_dir, custom_hparams=self.hparams,
-                          backup_checkpoint_file=self.checkpoint_file)
+    rlt = rl_tuner.RLTuner(self.output_dir, custom_hparams=self.hparams)
 
     zero_state = rlt.q_network.get_zero_state()
     priming_note = rlt.get_random_note()
@@ -55,9 +51,8 @@ class RLTunerTest(tf.test.TestCase):
     self.assertTrue(reward_scores is not None)
 
   def testTraining(self):
-    rlt = rl_tuner.RLTuner(self.output_dir, custom_hparams=self.hparams,
-                          backup_checkpoint_file=self.checkpoint_file,
-                          output_every_nth=30)
+    rlt = rl_tuner.RLTuner(self.output_dir, custom_hparams=self.hparams
+                           output_every_nth=30)
     rlt.train(num_steps=31, exploration_period=3)
 
     self.assertTrue(len(rlt.composition) == 31)
@@ -66,8 +61,7 @@ class RLTunerTest(tf.test.TestCase):
 
   def testCompositionStats(self):
     rlt = rl_tuner.RLTuner(self.output_dir, custom_hparams=self.hparams,
-                          backup_checkpoint_file=self.checkpoint_file,
-                          output_every_nth=30)
+                           output_every_nth=30)
     stat_dict = rlt.compute_composition_stats(num_compositions=10)
 
     self.assertTrue(stat_dict['num_repeated_notes'] > 1)
