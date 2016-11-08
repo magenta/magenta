@@ -24,20 +24,11 @@ py_binary(
     name = "note_rnn_loader",
     srcs = ["note_rnn_loader.py"],
     deps = [
-        ":note_rnn_encoder_decoder",
         ":rl_tuner_ops",
         "//magenta/music:melodies_lib",
         "//magenta/music:midi_io",
         "//magenta/music:sequences_lib",
         # tensorflow dep
-    ],
-)
-
-py_binary(
-    name = "note_rnn_encoder_decoder",
-    srcs = ["note_rnn_encoder_decoder.py"],
-    deps = [
-        "//magenta/music:melody_encoder_decoder",
     ],
 )
 

@@ -28,7 +28,6 @@ from magenta.music import midi_io
 from magenta.music import sequences_lib
 from magenta.common import sequence_example_lib
 
-import note_rnn_encoder_decoder
 import rl_tuner_ops
 
 
@@ -305,7 +304,6 @@ class NoteRNNLoader(object):
             min_note=rl_tuner_ops.MIN_NOTE,
             max_note=rl_tuner_ops.MAX_NOTE))
 
-      #encoder = note_rnn_encoder_decoder.MelodyEncoderDecoder()
       seq = encoder.encode(self.primer)
       features = seq.feature_lists.feature_list['inputs'].feature
       primer_input = [list(i.float_list.value) for i in features]
