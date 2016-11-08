@@ -26,6 +26,7 @@ py_library(
     name = "pipelines",
     deps = [
         ":dag_pipeline",
+        ":drum_pipelines",
         ":melody_pipelines",
         ":pipeline",
         ":pipelines_common",
@@ -76,6 +77,32 @@ py_test(
         ":dag_pipeline",
         ":pipeline",
         ":statistics",
+        # tensorflow dep
+    ],
+)
+
+py_library(
+    name = "drum_pipelines",
+    srcs = ["drum_pipelines.py"],
+    deps = [
+        ":pipeline",
+        "//magenta/music:drums_lib",
+        "//magenta/music:events_lib",
+        "//magenta/music:sequences_lib",
+        # tensorflow dep
+    ],
+)
+
+py_test(
+    name = "drum_pipelines_test",
+    srcs = ["drum_pipelines_test.py"],
+    srcs_version = "PY2AND3",
+    deps = [
+        ":drum_pipelines",
+        "//magenta/common:testing_lib",
+        "//magenta/music:drums_lib",
+        "//magenta/music:sequences_lib",
+        "//magenta/music:testing_lib",
         # tensorflow dep
     ],
 )
