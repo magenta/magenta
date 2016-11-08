@@ -51,7 +51,7 @@ class RLTunerTest(tf.test.TestCase):
     self.assertTrue(reward_scores is not None)
 
   def testTraining(self):
-    rlt = rl_tuner.RLTuner(self.output_dir, custom_hparams=self.hparams
+    rlt = rl_tuner.RLTuner(self.output_dir, custom_hparams=self.hparams,
                            output_every_nth=30)
     rlt.train(num_steps=31, exploration_period=3)
 
