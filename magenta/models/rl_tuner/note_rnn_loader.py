@@ -45,7 +45,7 @@ class NoteRNNLoader(object):
   Used as part of the RLTuner class.
   """
 
-  def __init__(self, graph, scope, experiment_dir, midi_primer,
+  def __init__(self, graph, scope, experiment_dir, midi_primer=None,
                training_file_list=None, hparams=None,
                backup_checkpoint_file=None, softmax_within_graph=True,
                checkpoint_scope='rnn_model', bpm=DEFAULT_BPM):
@@ -94,7 +94,8 @@ class NoteRNNLoader(object):
     self.build_graph()
     self.state_value = self.get_zero_state()
 
-    self.load_primer()
+    if midi_primer is not None:
+      self.load_primer()
 
     self.variable_names = rl_tuner_ops.get_variable_names(self.graph, self.scope)
 
