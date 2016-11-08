@@ -11,14 +11,11 @@ import tensorflow as tf
 import rl_tuner
 import rl_tuner_ops
 
-FLAGS = tf.app.flags.FLAGS
-tf.app.flags.DEFINE_string('test_tempdir', '/tmp/rl_tuner_test',
-                           'Directory where temporary test files are stored.')
 
 class RLTunerTest(tf.test.TestCase):
 
   def setUp(self):
-    self.output_dir = os.path.join(FLAGS.test_tmpdir, 'rl_tuner_test')
+    self.output_dir = '/tmp/rl_tuner_test'
     self.hparams = rl_tuner_ops.small_model_hparams()
 
   def testInitializationAndPriming(self):
