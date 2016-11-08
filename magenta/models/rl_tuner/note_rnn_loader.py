@@ -22,6 +22,7 @@ import os
 import numpy as np
 import tensorflow as tf
 
+import magenta
 from magenta.music import melodies_lib
 from magenta.music import midi_io
 from magenta.music import sequences_lib
@@ -299,7 +300,12 @@ class NoteRNNLoader(object):
         tf.logging.info('Priming the model with MIDI file %s', self.midi_primer)
 
       # Convert primer Melody to model inputs.
-      encoder = note_rnn_encoder_decoder.MelodyEncoderDecoder()
+      encoder = magenta.music.OneHotEventSequenceEncoderDecoder(
+        magenta.music.MelodyOneHotEncoding(
+            min_note=rl_tuner_ops.MIN_NOTE,
+            max_note=rl_tuner_ops.MAX_NOTE))
+
+      #encoder = note_rnn_encoder_decoder.MelodyEncoderDecoder()
       seq = encoder.encode(self.primer)
       features = seq.feature_lists.feature_list['inputs'].feature
       primer_input = [list(i.float_list.value) for i in features]
