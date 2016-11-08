@@ -158,7 +158,7 @@ class NoteRNNLoader(object):
         if 'fully_connected' in inner_name and 'bias' in inner_name:
           # 'fully_connected/bias' has been changed to 'fully_connected/biases'
           # in newest checkpoints.
-          var_dict[self.checkpoint_scope + '/' + inner_name + 'es'] = var
+          var_dict[inner_name + 'es'] = var
         else:
           var_dict[inner_name] = var
       else:
