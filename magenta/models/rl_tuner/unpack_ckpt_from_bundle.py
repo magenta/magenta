@@ -9,7 +9,7 @@ import os
 
 import tensorflow as tf
 
-import magenta
+from magenta.music import sequence_generator_bundle
 
 import rl_tuner_ops
 
@@ -24,7 +24,7 @@ def main(_):
   bundle_file = FLAGS.bundle_path
   checkpoint_file = FLAGS.checkpoint_path
 
-  bundle = mg.music.sequence_generator_bundle.read_bundle_file(bundle_file)
+  bundle = sequence_generator_bundle.read_bundle_file(bundle_file)
 
   with tf.gfile.Open(checkpoint_file, 'wb') as f:
     f.write(bundle.checkpoint_file)

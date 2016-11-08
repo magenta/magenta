@@ -33,6 +33,15 @@ py_binary(
 )
 
 py_binary(
+    name = "unpack_ckpt_from_bundle",
+    srcs = ["unpack_ckpt_from_bundle.py"],
+    deps = [
+        ":rl_tuner_ops",
+        "//magenta/music:sequence_generator_bundle",
+    ],
+)
+
+py_binary(
     name = "rl_tuner_ops",
     srcs = ["rl_tuner_ops.py"],
     deps = [
