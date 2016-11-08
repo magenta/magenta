@@ -155,16 +155,14 @@ class NoteRNNLoader(object):
       inner_name = rl_tuner_ops.get_inner_scope(var.name)
       inner_name = rl_tuner_ops.trim_variable_postfixes(inner_name)
       if self.note_rnn_type == 'basic_rnn':
-        var_dict[inner_name] = var
-      else:
-        print inner_name
         if 'fully_connected' in inner_name and 'bias' in inner_name:
           # 'fully_connected/bias' has been changed to 'fully_connected/biases'
           # in newest checkpoints.
-          print "detected fully connected bias"
           var_dict[self.checkpoint_scope + '/' + inner_name + 'es'] = var
         else:
-          var_dict[self.checkpoint_scope + '/' + inner_name] = var
+          var_dict[inner_name] = var
+      else:
+        var_dict[self.checkpoint_scope + '/' + inner_name] = var
       
     return var_dict
 
