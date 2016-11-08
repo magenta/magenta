@@ -88,7 +88,6 @@ class NoteRNNLoader(object):
       tf.logging.info('Empty hparams string. Using defaults')
       self.hparams = rl_tuner_ops.default_hparams()
 
-    self.checkpoint_dir = os.path.join(experiment_dir, 'train')
     self.backup_checkpoint_file = backup_checkpoint_file
 
     self.build_graph()
@@ -263,13 +262,13 @@ class NoteRNNLoader(object):
       saver = tf.train.Saver(var_list=var_dict)
 
     tf.logging.info('Checkpoint dir: %s', checkpoint_dir)
-    print "checkpoint dir", checkpoint_dir
+    print "Note RNN checkpoint dir", checkpoint_dir
     checkpoint_file = tf.train.latest_checkpoint(checkpoint_dir)
     if checkpoint_file is None:
       print "can't find checkpoint file, using backup, which is", self.backup_checkpoint_file
       checkpoint_file = self.backup_checkpoint_file
     tf.logging.info('Checkpoint file: %s', checkpoint_file)
-    print "checkpoint file", checkpoint_file
+    print "Note RNN checkpoint file", checkpoint_file
 
     saver.restore(self.session, checkpoint_file)
 

@@ -154,11 +154,15 @@ class RLTuner(object):
                          'the single_midi priming mode.')
 
       if note_rnn_checkpoint_dir is None or note_rnn_checkpoint_dir == '':
+        print 'Retrieving checkpoint of Note RNN from Google cloud storage.'
         urllib.urlretrieve(
           'http://download.magenta.tensorflow.org/models/rl_tuner_note_rnn.ckpt', 
           'note_rnn.ckpt')
-        self.note_rnn_checkpoint_dir = "./"
-        self.backup_checkpoint_file = "note_rnn.ckpt"
+        self.note_rnn_checkpoint_dir = './'
+        self.backup_checkpoint_file = 'note_rnn.ckpt'
+        print 'File should have been saved. Whats in the directory?'
+        print 'listdir', os.listdir('.')
+        print 'os pwd', os.path.getcwd
 
       if self.algorithm == 'g' or self.algorithm == 'pure_rl':
         self.reward_mode = 'music_theory_only'
