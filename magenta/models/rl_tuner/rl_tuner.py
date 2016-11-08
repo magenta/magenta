@@ -149,7 +149,7 @@ class RLTuner(object):
       self.backup_checkpoint_file = backup_checkpoint_file
       self.custom_hparams = custom_hparams
 
-      if note_rnn_checkpoint_dir is None:
+      if note_rnn_checkpoint_dir is None or note_rnn_checkpoint_dir == "":
         urllib.urlretrieve(
           "download.magenta.tensorflow.org/models/rl_tuner_note_rnn.ckpt", 
           "note_rnn.ckpt")
