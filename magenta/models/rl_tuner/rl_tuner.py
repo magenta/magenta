@@ -13,6 +13,7 @@ import os
 from os import makedirs
 from os.path import exists
 import random
+import urllib
 
 #import matplotlib
 #matplotlib.use('Agg')
@@ -51,7 +52,7 @@ class RLTuner(object):
   def __init__(self,
                # file paths and directories
                output_dir,
-               note_rnn_checkpoint_dir,
+               note_rnn_checkpoint_dir=None,
                midi_primer=None,
 
                # Hyperparameters
@@ -147,6 +148,13 @@ class RLTuner(object):
       self.training_file_list = training_file_list
       self.backup_checkpoint_file = backup_checkpoint_file
       self.custom_hparams = custom_hparams
+
+      if note_rnn_checkpoint_dir is None:
+        urllib.urlretrieve(
+          "download.magenta.tensorflow.org/models/rl_tuner_note_rnn.ckpt", 
+          "note_rnn.ckpt")
+        self.note_rnn_checkpoint_dir = "./"
+        self.backup_checkpoint_file = "note_rnn.ckpt"
 
       if self.algorithm == 'g' or self.algorithm == 'pure_rl':
         self.reward_mode = 'music_theory_only'
