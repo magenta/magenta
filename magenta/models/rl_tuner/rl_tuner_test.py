@@ -2,7 +2,7 @@
 
 To run this code:
 $ bazel test rl_tuner:rl_tuner_test -- \
---test_tempdir 'path' --test_srcdir 'path'
+--test_tempdir 'path'
 """
 
 import os
@@ -15,8 +15,6 @@ import rl_tuner_ops
 FLAGS = tf.app.flags.FLAGS
 tf.app.flags.DEFINE_string('test_tempdir', '',
                            'Directory where temporary test files are stored.')
-tf.app.flags.DEFINE_string('test_srcdir', '',
-                           'Directory containing source code to test.')
 
 class RLTunerTest(tf.test.TestCase):
 
