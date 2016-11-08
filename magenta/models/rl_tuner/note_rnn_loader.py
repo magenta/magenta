@@ -155,9 +155,10 @@ class NoteRNNLoader(object):
       inner_name = rl_tuner_ops.get_inner_scope(var.name)
       inner_name = rl_tuner_ops.trim_variable_postfixes(inner_name)
       if self.note_rnn_type == 'basic_rnn':
-        var_dict[self.checkpoint_scope + '/' + inner_name] = var
-      else:
         var_dict[inner_name] = var
+      else:
+        var_dict[self.checkpoint_scope + '/' + inner_name] = var
+      
     return var_dict
 
   def build_graph(self):
