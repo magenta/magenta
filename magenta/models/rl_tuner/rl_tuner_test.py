@@ -31,6 +31,7 @@ matplotlib.use('Agg')
 import matplotlib.pyplot as plt  # pylint: disable=unused-import
 import tensorflow as tf
 
+from magenta.models.rl_tuner import note_rnn_loader
 from magenta.models.rl_tuner import rl_tuner
 # pylint: enable=g-import-not-at-top
 
@@ -38,16 +39,32 @@ from magenta.models.rl_tuner import rl_tuner
 class RLTunerTest(tf.test.TestCase):
 
   def setUp(self):
-    self.output_dir = tempfile.mkdtemp()
+    self.output_dir = tempfile.mkdtemp(dir=self.get_temp_dir())
+    self.checkpoint_dir = tempfile.mkdtemp(dir=self.get_temp_dir())
+    graph = tf.Graph()
+    self.session = tf.Session(graph=graph)
+    note_rnn = note_rnn_loader.NoteRNNLoader(
+        graph, scope='test', checkpoint_dir=None)
+    note_rnn.initialize_new(self.session)
+    with graph.as_default():
+      saver = tf.train.Saver(var_list=note_rnn.get_variable_name_dict())
+      saver.save(
+          self.session,
+          os.path.join(self.checkpoint_dir, 'model.ckpt'))
+
+  def tearDown(self):
+    self.session.close()
 
   def testInitializationAndPriming(self):
-    rlt = rl_tuner.RLTuner(self.output_dir)
+    rlt = rl_tuner.RLTuner(
+        self.output_dir, note_rnn_checkpoint_dir=self.checkpoint_dir)
 
     initial_note = rlt.prime_internal_models()
     self.assertTrue(initial_note is not None)
 
   def testInitialGeneration(self):
-    rlt = rl_tuner.RLTuner(self.output_dir)
+    rlt = rl_tuner.RLTuner(
+        self.output_dir, note_rnn_checkpoint_dir=self.checkpoint_dir)
 
     plot_name = 'test_initial_plot.png'
     rlt.generate_music_sequence(visualize_probs=True,
@@ -56,7 +73,8 @@ class RLTunerTest(tf.test.TestCase):
     self.assertTrue(os.path.exists(output_path))
 
   def testAction(self):
-    rlt = rl_tuner.RLTuner(self.output_dir)
+    rlt = rl_tuner.RLTuner(
+        self.output_dir, note_rnn_checkpoint_dir=self.checkpoint_dir)
 
     initial_note = rlt.prime_internal_models()
 
@@ -64,7 +82,8 @@ class RLTunerTest(tf.test.TestCase):
     self.assertTrue(action is not None)
 
   def testRewardNetwork(self):
-    rlt = rl_tuner.RLTuner(self.output_dir)
+    rlt = rl_tuner.RLTuner(
+        self.output_dir, note_rnn_checkpoint_dir=self.checkpoint_dir)
 
     zero_state = rlt.q_network.get_zero_state()
     priming_note = rlt.get_random_note()
@@ -73,7 +92,9 @@ class RLTunerTest(tf.test.TestCase):
     self.assertTrue(reward_scores is not None)
 
   def testTraining(self):
-    rlt = rl_tuner.RLTuner(self.output_dir, output_every_nth=30)
+    rlt = rl_tuner.RLTuner(
+        self.output_dir, note_rnn_checkpoint_dir=self.checkpoint_dir,
+        output_every_nth=30)
     rlt.train(num_steps=31, exploration_period=3)
 
     self.assertTrue(os.path.exists(rlt.save_path + '-30'))
@@ -81,10 +102,12 @@ class RLTunerTest(tf.test.TestCase):
     self.assertTrue(len(rlt.eval_avg_reward) >= 1)
 
   def testCompositionStats(self):
-    rlt = rl_tuner.RLTuner(self.output_dir, output_every_nth=30)
+    rlt = rl_tuner.RLTuner(
+        self.output_dir, note_rnn_checkpoint_dir=self.checkpoint_dir,
+        output_every_nth=30)
     stat_dict = rlt.evaluate_music_theory_metrics(num_compositions=10)
 
-    self.assertTrue(stat_dict['num_repeated_notes'] > 1)
+    self.assertTrue(stat_dict['num_repeated_notes'] >= 0)
     self.assertTrue(len(stat_dict['autocorrelation1']) > 1)
 
 if __name__ == '__main__':
