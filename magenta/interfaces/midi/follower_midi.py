@@ -187,7 +187,7 @@ class FollowerMidiInteraction(midi_interaction.MidiInteraction):
   by external MIDI signals.
 
   Args:
-    midi_hub: The MidiHub to use for MIDI I/O.
+    _midi_hub: The MidiHub to use for MIDI I/O.
     qpm: The quarters per minute to use for this interaction.
     sequence_generator: The SequenceGenerator to use to generate the responses
         in this interaction.
@@ -200,8 +200,9 @@ class FollowerMidiInteraction(midi_interaction.MidiInteraction):
         the call phrase at the end of the current bar. `phrase_bars` must be
         provided if None.
   """
+
   def __init__(self,
-               midi_hub,
+               _midi_hub,
                qpm,
                sequence_generator,
                quarters_per_bar=4,
@@ -209,7 +210,7 @@ class FollowerMidiInteraction(midi_interaction.MidiInteraction):
                start_call_signal=None,
                end_call_signal=None,
                play_metronome=True):
-    super(FollowerMidiInteraction, self).__init__(midi_hub, qpm)
+    super(FollowerMidiInteraction, self).__init__(_midi_hub, qpm)
     self._sequence_generator = sequence_generator
     self._quarters_per_bar = quarters_per_bar
     self._phrase_bars = phrase_bars
@@ -243,14 +244,14 @@ class FollowerMidiInteraction(midi_interaction.MidiInteraction):
 
       if self._phrase_bars is not None:
         # The duration of the call stage in quarter notes.
-        call_quarters = self._phrase_bars * self._quarters_per_bar
+        # call_quarters = self._phrase_bars * self._quarters_per_bar
       else:
         # Wait for end signal.
         self._midi_hub.wait_for_event(self._end_call_signal)
         # The duration of the call stage in quarter notes.
         # We end the call stage at the end of the next bar that is at least
         # `predicathead_quarters` in the future.
-        end_time = time.time()
+        # end_time = time.time()
         call_duration = ((time.time() - start_time)
                          // quarter_duration) * quarter_duration
         quantized_end_time = start_time + call_duration
