@@ -28,7 +28,7 @@ import matplotlib
 # Can't use 'Agg' in RL Tuner because it breaks plotting in notebooks.
 # pylint: disable=g-import-not-at-top
 matplotlib.use('Agg')
-import matplotlib.pyplot as plt  # pylint: enable=unused-import
+import matplotlib.pyplot as plt  # pylint: disable=unused-import
 import tensorflow as tf
 
 from magenta.models.rl_tuner import rl_tuner
