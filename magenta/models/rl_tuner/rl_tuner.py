@@ -686,15 +686,15 @@ class RLTuner(object):
 
     (action, action_softmax, self.q_network.state_value,
      reward_scores, self.reward_rnn.state_value) = self.session.run(
-        [self.predicted_actions, self.action_softmax,
-         self.q_network.state_tensor, self.reward_scores,
-         self.reward_rnn.state_tensor],
-        {self.q_network.melody_sequence: input_batch,
-         self.q_network.initial_state: self.q_network.state_value,
-         self.q_network.lengths: lengths,
-         self.reward_rnn.melody_sequence: input_batch,
-         self.reward_rnn.initial_state: self.reward_rnn.state_value,
-         self.reward_rnn.lengths: lengths})
+         [self.predicted_actions, self.action_softmax,
+          self.q_network.state_tensor, self.reward_scores,
+          self.reward_rnn.state_tensor],
+         {self.q_network.melody_sequence: input_batch,
+          self.q_network.initial_state: self.q_network.state_value,
+          self.q_network.lengths: lengths,
+          self.reward_rnn.melody_sequence: input_batch,
+          self.reward_rnn.initial_state: self.reward_rnn.state_value,
+          self.reward_rnn.lengths: lengths})
 
     reward_scores = np.reshape(reward_scores, (self.num_actions))
     action_softmax = np.reshape(action_softmax, (self.num_actions))
@@ -1762,14 +1762,14 @@ class RLTuner(object):
       if self.algorithm == 'g':
         (softmax, self.q_network.state_value,
          self.reward_rnn.state_value) = self.session.run(
-            [self.action_softmax, self.q_network.state_tensor,
-             self.reward_rnn.state_tensor],
-            {self.q_network.melody_sequence: input_batch,
-             self.q_network.initial_state: self.q_network.state_value,
-             self.q_network.lengths: lengths,
-             self.reward_rnn.melody_sequence: input_batch,
-             self.reward_rnn.initial_state: self.reward_rnn.state_value,
-             self.reward_rnn.lengths: lengths})
+             [self.action_softmax, self.q_network.state_tensor,
+              self.reward_rnn.state_tensor],
+             {self.q_network.melody_sequence: input_batch,
+              self.q_network.initial_state: self.q_network.state_value,
+              self.q_network.lengths: lengths,
+              self.reward_rnn.melody_sequence: input_batch,
+              self.reward_rnn.initial_state: self.reward_rnn.state_value,
+              self.reward_rnn.lengths: lengths})
       else:
         softmax, self.q_network.state_value = self.session.run(
             [self.action_softmax, self.q_network.state_tensor],
