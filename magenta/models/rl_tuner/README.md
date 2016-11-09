@@ -85,8 +85,8 @@ file directly using `note_rnn_checkpoint_file`.
 We also support tuning a *basic_rnn* trained using the Magenta code! To tune
 a basic_rnn, use the same `note_rnn_checkpoint_dir` parameter, but set the 
 `note_rnn_type` parameter to 'basic_rnn'. We also provide the script 
-`unpack_ckpt_from_bundle` to help you extract a checkpoint file from one of the 
-[pre-trained magenta bundles][magenta pretrained]. 
+`unpack_bundle` (in magenta/scripts) to help you extract a checkpoint file from 
+one of the [pre-trained magenta bundles][magenta pretrained]. 
 
 ## Improving the model
 If you have ideas for improving the sound of the model based on your own rules 
