@@ -159,7 +159,7 @@ def compose_and_evaluate_piece(rl_tuner,
     A dictionary updated to include statistics about the composition just
     created.
   """
-  last_observation = rl_tuner.prime_internal_models(suppress_output=True)
+  last_observation = rl_tuner.prime_internal_models()
   rl_tuner.reset_composition()
 
   for _ in range(composition_length):
@@ -419,7 +419,7 @@ def debug_music_theory_reward(rl_tuner,
       in, in which case the function will evaluate the rewards that would
       be received from playing this composition.
   """
-  last_observation = rl_tuner.prime_internal_models(suppress_output=True)
+  last_observation = rl_tuner.prime_internal_models()
   rl_tuner.reset_composition()
 
   for i in range(composition_length):
