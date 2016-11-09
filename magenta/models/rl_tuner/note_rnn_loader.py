@@ -281,7 +281,7 @@ class NoteRNNLoader(object):
   def load_primer(self):
     """Loads default MIDI primer file.
 
-    Also assigns thesteps per bar of this file to be the model's defaults.
+    Also assigns the steps per bar of this file to be the model's defaults.
     """
 
     if not os.path.exists(self.midi_primer):
@@ -298,11 +298,11 @@ class NoteRNNLoader(object):
     self.primer = extracted_melodies[0]
     self.steps_per_bar = self.primer.steps_per_bar
 
-  def prime_model(self, suppress_output=False):
+  def prime_model(self):
     """Primes the model with its default midi primer."""
     with self.graph.as_default():
       if not suppress_output:
-        tf.logging.info('Priming the model with MIDI file %s', self.midi_primer)
+        tf.logging.verbose('Priming the model with MIDI file %s', self.midi_primer)
 
       # Convert primer Melody to model inputs.
       encoder = magenta.music.OneHotEventSequenceEncoderDecoder(
