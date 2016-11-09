@@ -249,7 +249,7 @@ def add_interval_stat(rl_tuner, action, stat_dict, key=None):
     A dictionary of composition statistics with fields updated to include new
     intervals.
   """
-  interval, action_note, prev_note = rl_tuner.detect_sequential_interval(action, 
+  interval, action_note, prev_note = rl_tuner.detect_sequential_interval(action,
                                                                          key)
 
   if interval == 0:
@@ -261,7 +261,7 @@ def add_interval_stat(rl_tuner, action, stat_dict, key=None):
     stat_dict['num_special_rest_intervals'] += 1
   elif interval > rl_tuner_ops.OCTAVE:
     stat_dict['num_octave_jumps'] += 1
-  elif interval == (rl_tuner_ops.IN_KEY_FIFTH or 
+  elif interval == (rl_tuner_ops.IN_KEY_FIFTH or
                     interval == rl_tuner_ops.IN_KEY_THIRD):
     stat_dict['num_in_key_preferred_intervals'] += 1
   elif interval == rl_tuner_ops.FIFTH:
