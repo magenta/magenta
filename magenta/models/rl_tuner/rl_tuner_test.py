@@ -5,6 +5,7 @@ $ bazel test rl_tuner:rl_tuner_test
 """
 
 import os
+import tempfile
 
 import tensorflow as tf
 import matplotlib
@@ -17,7 +18,7 @@ import rl_tuner_ops
 class RLTunerTest(tf.test.TestCase):
 
   def setUp(self):
-    self.output_dir = '/tmp/rl_tuner_test'
+    self.output_dir = tempfile.mkdtemp()
     self.hparams = rl_tuner_ops.small_model_hparams()
 
   def testInitializationAndPriming(self):

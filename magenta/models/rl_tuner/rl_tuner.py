@@ -12,11 +12,8 @@ from collections import deque
 import os
 from os import makedirs
 from os.path import exists
-import random
 import urllib
 
-#import matplotlib
-#matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 
 import numpy as np
@@ -82,14 +79,12 @@ class RLTuner(object):
 
     Args:
       output_dir: Where the model will save its compositions (midi files).
-      dqn_hparams: A tf.HParams() object containing the hyperparameters of the
+      dqn_hparams: A tf_lib.hparams() object containing the hyperparameters of the
         DQN algorithm, including minibatch size, exploration probability, etc.
       reward_mode: Controls which reward function can be applied. There are
         several, including 'scale', which teaches the model to play a scale,
-        and of course 'music_theory', which is a music-theory-based reward
-        function composed of other functions. 'music_theory_gauldin' is based on
-        Gauldin's book, "A Practical Approach to Eighteenth Century
-        Counterpoint".
+        and of course 'music_theory_all', which is a music-theory-based reward
+        function composed of other functions. 
       reward_scaler: Controls the emphasis placed on the music theory rewards. 
         This value is the inverse of 'c' in the academic paper.
       exploration_mode: can be 'egreedy' which is an epsilon greedy policy, or
@@ -159,7 +154,7 @@ class RLTuner(object):
                          'the single_midi priming mode.')
 
       if note_rnn_checkpoint_dir is None or note_rnn_checkpoint_dir == '':
-        print 'Retrieving checkpoint of Note RNN from Google cloud storage.'
+        print 'Retrieving checkpoint of Note RNN from Magenta download server.'
         urllib.urlretrieve(
           'http://download.magenta.tensorflow.org/models/rl_tuner_note_rnn.ckpt', 
           'note_rnn.ckpt')
@@ -187,7 +182,7 @@ class RLTuner(object):
 
       # DQN state.
       self.actions_executed_so_far = 0
-      self.experience = deque()
+      self.experience = deque(maxlen=self.dqn_hparams.max_experience)
       self.iteration = 0
       self.summary_writer = summary_writer
       self.num_times_store_called = 0
@@ -340,13 +335,11 @@ class RLTuner(object):
 
     tf.logging.info('Stored priming notes: %s', self.priming_notes)
 
-  def prime_internal_model(self, model, suppress_output=True):
+  def prime_internal_model(self, model):
     """Prime an internal model such as the q_network based on priming mode.
 
     Args:
       model: The internal model that should be primed. 
-      suppress_output: If False, statements about how the network is being
-        primed will be printed to std out.
 
     Returns:
       The first observation to feed into the model.
@@ -361,12 +354,11 @@ class RLTuner(object):
       priming_note = self.priming_notes[priming_idx]
       next_obs = np.array(
           rl_tuner_ops.make_onehot([priming_note], self.num_actions)).flatten()
-      if not suppress_output:
-        tf.logging.info(
-            'Feeding priming state for midi file %s and corresponding note %s',
-            priming_idx, priming_note)
+      tf.logging.debug(
+        'Feeding priming state for midi file %s and corresponding note %s',
+        priming_idx, priming_note)
     elif self.priming_mode == 'single_midi':
-      model.prime_model(suppress_output=suppress_output)
+      model.prime_model()
       next_obs = model.priming_note
     elif self.priming_mode == 'random_note':
       next_obs = self.get_random_note()
@@ -537,7 +529,7 @@ class RLTuner(object):
       tf.logging.info('Using stochastic environment')
 
     self.reset_composition()
-    last_observation = self.prime_internal_models(suppress_output=False)
+    last_observation = self.prime_internal_models()
 
     for i in range(num_steps):
       # Experiencing observation, state, action, reward, new observation,
@@ -725,8 +717,6 @@ class RLTuner(object):
     if self.num_times_store_called % self.dqn_hparams.store_every_nth == 0:
       self.experience.append((observation, state, action, reward,
                               newobservation, newstate, new_reward_state))
-      if len(self.experience) > self.dqn_hparams.max_experience:
-        self.experience.popleft()
     self.num_times_store_called += 1
 
   def training_step(self):
@@ -841,7 +831,7 @@ class RLTuner(object):
 
     for t in range(num_trials):
 
-      last_observation = self.prime_internal_models(suppress_output=True)
+      last_observation = self.prime_internal_models()
       self.reset_composition()
 
       for n in range(self.num_notes_in_melody):
@@ -1764,7 +1754,7 @@ class RLTuner(object):
       length = self.num_notes_in_melody
 
     self.reset_composition()
-    next_obs = self.prime_internal_models(suppress_output=False)
+    next_obs = self.prime_internal_models()
     tf.logging.info('Priming with note %s', np.argmax(next_obs))
 
     lengths = np.full(self.q_network.batch_size, 1, dtype=int)
@@ -1811,7 +1801,7 @@ class RLTuner(object):
     #melody.from_event_list(rl_tuner_ops.decoder(generated_seq,
     #                                          self.q_network.transpose_amount))
 
-    sequence = melody.to_sequence(qpm=rl_tuner_ops.DEFAULT_BPM)
+    sequence = melody.to_sequence(qpm=rl_tuner_ops.DEFAULT_QPM)
     filename = rl_tuner_ops.get_next_file_name(self.output_dir, title, 'mid')
     midi_io.sequence_proto_to_midi_file(sequence, filename)
 
@@ -1995,19 +1985,16 @@ class RLTuner(object):
     else:
       plt.show()
 
-  def prime_internal_models(self, suppress_output=True):
+  def prime_internal_models(self):
     """Primes both internal models based on self.priming_mode.
-
-    Args:
-      suppress_output: If False, debugging statements will be printed.
 
     Returns:
       A one-hot encoding of the note output by the q_network to be used as 
       the initial observation. 
     """
-    self.prime_internal_model(self.target_q_network, suppress_output=suppress_output)
-    self.prime_internal_model(self.reward_rnn, suppress_output=suppress_output)
-    next_obs = self.prime_internal_model(self.q_network, suppress_output=suppress_output)
+    self.prime_internal_model(self.target_q_network)
+    self.prime_internal_model(self.reward_rnn)
+    next_obs = self.prime_internal_model(self.q_network)
     return next_obs
 
   def restore_from_directory(self, directory=None, checkpoint_name=None, reward_file_name=None):

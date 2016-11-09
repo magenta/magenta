@@ -22,7 +22,7 @@ NUM_SPECIAL_EVENTS = 2
 MIN_NOTE = 48  # Inclusive
 MAX_NOTE = 84  # Exclusive
 TRANSPOSE_TO_KEY = 0  # C Major
-DEFAULT_BPM = 80.0
+DEFAULT_QPM = 80.0
 
 # Music theory constants used in defining reward functions.
 # Note that action 2 = midi note 48.
@@ -74,23 +74,15 @@ def default_hparams():
                         one_hot_length=NUM_CLASSES,
                         exponentially_decay_learning_rate=True)
 
-def large_model_hparams():
-  """Generates the default hparams used to train a large note rnn."""
-  return tf_lib.HParams(use_dynamic_rnn=True,
-                        batch_size=BATCH_SIZE,
-                        lr=0.0002,
-                        l2_reg=2.5e-5,
-                        clip_norm=5,
-                        initial_learning_rate=0.5,
-                        decay_steps=1000,
-                        decay_rate=0.85,
-                        rnn_layer_sizes=[2500],
-                        skip_first_n_losses=8,
-                        one_hot_length=NUM_CLASSES,
-                        exponentially_decay_learning_rate=True)
-
 def basic_rnn_hparams():
-  """Generates the hparams used to train a basic_rnn."""
+  """Generates the hparams used to train a basic_rnn.
+
+  These are the hparams used in the .mag file found at 
+  https://github.com/tensorflow/magenta/tree/master/magenta/models/
+  melody_rnn#pre-trained
+  """
+  #TODO(natashajaques): ability to restore basic_rnn from any .mag 
+  # file.
   return tf_lib.HParams(batch_size=128,
                         dropout_keep_prob=0.5,
                         clip_norm=5,
