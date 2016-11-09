@@ -64,11 +64,15 @@ on each algorithm, see [our paper][our arxiv].
     note probabilities of the model over time.
 
 ## Running the code
+To start using the model, first set up your [Magenta
+environment](https://github.com/tensorflow/magenta/blob/master/README.md).
+you can either use a pre-trained model or train your own.
+
 To train the model you can use the provided jupyter notebook
 ([rl_tuner.ipynb][ipynb]), or, you can simply run:
 
 ```
-bazel run magenta/models/rl_tuner:rl_tuner_train
+rl_tuner_train
 ```
 
 ## Tuning your own model

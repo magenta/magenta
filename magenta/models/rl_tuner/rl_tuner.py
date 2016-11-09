@@ -44,7 +44,7 @@ from magenta.models.rl_tuner import note_rnn_loader
 from magenta.models.rl_tuner import rl_tuner_ops
 from magenta.models.rl_tuner import rl_tuner_eval_metrics
 
-# Note values of pecial actions.
+# Note values of special actions.
 NOTE_OFF = 0
 NO_EVENT = 1
 

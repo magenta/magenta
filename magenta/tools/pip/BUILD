@@ -26,17 +26,19 @@ sh_binary(
         # Interfaces
         "//magenta/interfaces/midi",
 
-        # Models
-        "//magenta/models/melody_rnn",
-
         # Scripts
         "//magenta/interfaces/midi:magenta_midi",
         "//magenta/scripts:convert_midi_dir_to_note_sequences",
 
-        # Melody RNN Scripts
+        # Melody RNN Model and Scripts
+        "//magenta/models/melody_rnn",
         "//magenta/models/melody_rnn:melody_rnn_create_dataset",
         "//magenta/models/melody_rnn:melody_rnn_generate",
         "//magenta/models/melody_rnn:melody_rnn_train",
+
+        # RL Tuner Model and Scripts
+        "//magenta/models/rl_tuner",
+        "//magenta/models/rl_tuner:rl_tuner_train",
 
         # Image Stylization Scripts
         "//magenta/models/image_stylization:image_stylization_create_dataset",
