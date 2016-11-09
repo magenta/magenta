@@ -13,6 +13,7 @@ import os
 from os import makedirs
 from os.path import exists
 import urllib
+import random
 
 import matplotlib.pyplot as plt
 
