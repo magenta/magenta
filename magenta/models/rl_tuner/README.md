@@ -80,7 +80,7 @@ will automatically download and use the checkpointed model we used for
 If you want to use your own model, you need to pass in the directory containing
 it using the `note_rnn_checkpoint_dir`, and the hyperparameters you used to 
 train it via `note_rnn_hparams`. You can also pass in a path to the checkpoint
-file directly using `backup_checkpoint_file`.
+file directly using `note_rnn_checkpoint_file`.
 
 We also support tuning a *basic_rnn* trained using the Magenta code! To tune
 a basic_rnn, use the same `note_rnn_checkpoint_dir` parameter, but set the 
