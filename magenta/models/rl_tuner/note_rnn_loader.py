@@ -157,7 +157,7 @@ class NoteRNNLoader(object):
           var_dict[inner_name] = var
       else:
         var_dict[self.checkpoint_scope + '/' + inner_name] = var
-      
+  
     return var_dict
 
   def build_graph(self):
@@ -188,7 +188,7 @@ class NoteRNNLoader(object):
             (self.train_sequence,
              self.train_labels,
              self.train_lengths) = sequence_example_lib.get_padded_batch(
-                 self.training_file_list, self.hparams.batch_size, 
+                 self.training_file_list, self.hparams.batch_size,
                  self.hparams.one_hot_length)
 
           # Closure function is used so that this part of the graph can be

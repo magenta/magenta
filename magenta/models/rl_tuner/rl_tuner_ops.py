@@ -77,11 +77,11 @@ def default_hparams():
 def basic_rnn_hparams():
   """Generates the hparams used to train a basic_rnn.
 
-  These are the hparams used in the .mag file found at 
+  These are the hparams used in the .mag file found at
   https://github.com/tensorflow/magenta/tree/master/magenta/models/
   melody_rnn#pre-trained
   """
-  #TODO(natashajaques): ability to restore basic_rnn from any .mag 
+  #TODO(natashajaques): ability to restore basic_rnn from any .mag
   # file.
   return tf_lib.HParams(batch_size=128,
                         dropout_keep_prob=0.5,
