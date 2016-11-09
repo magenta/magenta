@@ -52,3 +52,11 @@ py_test(
         # tensorflow dep
     ],
 )
+
+py_binary(
+    name = "unpack_bundle",
+    srcs = ["unpack_bundle.py"],
+    deps = [
+        "//magenta/music:sequence_generator_bundle",
+    ],
+)
