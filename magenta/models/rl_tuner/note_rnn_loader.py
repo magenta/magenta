@@ -1,6 +1,6 @@
 """Defines a class and operations for the MelodyRNN model.
 
-Note RNN Loader allows a basic melody prediction LSTM RNN model to be loaded 
+Note RNN Loader allows a basic melody prediction LSTM RNN model to be loaded
 from a checkpoint file, primed, and used to predict next notes.
 
 This class can be used as the q_network and target_q_network for the RLTuner
@@ -51,15 +51,15 @@ class NoteRNNLoader(object):
       graph: A tensorflow graph where the MelodyRNN's graph will be added.
       scope: The tensorflow scope where this network will be saved.
       checkpoint_dir: Path to the directory where the checkpoint file is saved.
-      checkpoint_file: Path to a checkpoint file to be used if none can be 
+      checkpoint_file: Path to a checkpoint file to be used if none can be
         found in the checkpoint_dir
       midi_primer: Path to a single midi file that can be used to prime the
         model.
-      training_file_list: List of paths to tfrecord files containing melody 
+      training_file_list: List of paths to tfrecord files containing melody
         training data.
-      hparams: A tf_lib.HParams object. Must match the hparams used to create 
+      hparams: A tf_lib.HParams object. Must match the hparams used to create
         the checkpoint file.
-      note_rnn_type: If 'default', will use the basic LSTM described in the 
+      note_rnn_type: If 'default', will use the basic LSTM described in the
         research paper. If 'basic_rnn', will assume the checkpoint is from a
         Magenta basic_rnn model.
       checkpoint_scope: The scope in lstm which the model was originally defined
@@ -256,7 +256,7 @@ class NoteRNNLoader(object):
     tf.logging.info('Checkpoint dir: %s', checkpoint_dir)
     checkpoint_file = tf.train.latest_checkpoint(checkpoint_dir)
     if checkpoint_file is None:
-      tf.logging.warn("Can't find checkpoint file, using %s", 
+      tf.logging.warn("Can't find checkpoint file, using %s",
                       self.checkpoint_file)
       checkpoint_file = self.checkpoint_file
     tf.logging.info('Checkpoint file: %s', checkpoint_file)

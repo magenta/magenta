@@ -1,9 +1,9 @@
-"""Defines a Deep Q Network (DQN) with augmented reward to create melodies 
+"""Defines a Deep Q Network (DQN) with augmented reward to create melodies
 by using reinforcement learning to fine-tune a trained Note RNN according
-to some music theory rewards. 
+to some music theory rewards.
 
-Also implements two alternatives to Q learning: Psi and G learning. The 
-algorithm can be switched using the 'algorithm' hyperparameter. 
+Also implements two alternatives to Q learning: Psi and G learning. The
+algorithm can be switched using the 'algorithm' hyperparameter.
 
 For more information, please consult the README.md file in this directory.
 """
@@ -37,7 +37,7 @@ NO_EVENT = 1
 TRAIN_SEQUENCE_LENGTH = 192
 
 def reload_files():
-  """Used to reload the imported dependency files (necessary for jupyter 
+  """Used to reload the imported dependency files (necessary for jupyter
   notebooks).
   """
   reload(note_rnn_loader)
@@ -81,14 +81,14 @@ class RLTuner(object):
 
     Args:
       output_dir: Where the model will save its compositions (midi files).
-      dqn_hparams: A tf_lib.hparams() object containing the hyperparameters of 
-        the DQN algorithm, including minibatch size, exploration probability, 
+      dqn_hparams: A tf_lib.hparams() object containing the hyperparameters of
+        the DQN algorithm, including minibatch size, exploration probability,
         etc.
       reward_mode: Controls which reward function can be applied. There are
         several, including 'scale', which teaches the model to play a scale,
         and of course 'music_theory_all', which is a music-theory-based reward
-        function composed of other functions. 
-      reward_scaler: Controls the emphasis placed on the music theory rewards. 
+        function composed of other functions.
+      reward_scaler: Controls the emphasis placed on the music theory rewards.
         This value is the inverse of 'c' in the academic paper.
       exploration_mode: can be 'egreedy' which is an epsilon greedy policy, or
         it can be 'boltzmann', in which the model will sample from its output
@@ -101,13 +101,13 @@ class RLTuner(object):
         play next (the argmax of its softmax probabilities) deterministically
         becomes the next note it will observe. If True, the next observation
         will be sampled from the model's softmax output.
-      algorithm: can be 'default', 'psi', 'g' or 'pure_rl', for different 
+      algorithm: can be 'default', 'psi', 'g' or 'pure_rl', for different
         learning algorithms
-      note_rnn_checkpoint_dir: The directory from which the internal 
+      note_rnn_checkpoint_dir: The directory from which the internal
         NoteRNNLoader will load its checkpointed LSTM.
       note_rnn_checkpoint_file: A checkpoint file to use in case one cannot be
         found in the note_rnn_checkpoint_dir.
-      note_rnn_type: If 'default', will use the basic LSTM described in the 
+      note_rnn_type: If 'default', will use the basic LSTM described in the
         research paper. If 'basic_rnn', will assume the checkpoint is from a
         Magenta basic_rnn model.
       note_rnn_hparams: A tf.HParams object which defines the hyper parameters
@@ -122,7 +122,7 @@ class RLTuner(object):
       save_name: Name the model will use to save checkpoints.
       output_every_nth: How many training steps before the model will print
         an output saying the cumulative reward, and save a checkpoint.
-      training_file_list: A list of paths to tfrecord files containing melody 
+      training_file_list: A list of paths to tfrecord files containing melody
         training data. This is necessary to use the 'random_midi' priming mode.
       summary_writer: A tf.train.SummaryWriter used to log metrics.
       initialize_immediately: if True, the class will instantiate its component
@@ -205,7 +205,7 @@ class RLTuner(object):
     self.target_val_list = []
 
     # Variables to keep track of characteristics of the current composition
-    #TODO(natashajaques): Implement composition as a class to obtain data 
+    #TODO(natashajaques): Implement composition as a class to obtain data
     # encapsulation so that you can't accidentally change the leap direction.
     self.beat = 0
     self.composition = []
@@ -219,7 +219,7 @@ class RLTuner(object):
     if initialize_immediately:
       self.initialize_internal_models_graph_session()
 
-  def initialize_internal_models_graph_session(self, 
+  def initialize_internal_models_graph_session(self,
                                                restore_from_checkpoint=True):
     """Initializes internal RNN models, builds the graph, starts the session.
 
@@ -444,25 +444,25 @@ class RLTuner(object):
       # Rewards are observed from the environment and are fed in later.
       self.rewards = tf.placeholder(tf.float32, (None,), name='rewards')
 
-      # Each algorithm is attempting to model future rewards with a different 
+      # Each algorithm is attempting to model future rewards with a different
       # function.
       if self.algorithm == 'psi':
         self.target_vals = tf.reduce_logsumexp(self.next_action_scores,
                                        reduction_indices=[1,])
       elif self.algorithm == 'g':
-        self.g_normalizer = tf.reduce_logsumexp(self.reward_scores, 
+        self.g_normalizer = tf.reduce_logsumexp(self.reward_scores,
                                                 reduction_indices=[1,])
         self.g_normalizer = tf.reshape(self.g_normalizer, [-1,1])
         self.g_normalizer = tf.tile(self.g_normalizer, [1,self.num_actions])
         self.g_action_scores = tf.sub(
           (self.next_action_scores + self.reward_scores), self.g_normalizer)
-        self.target_vals = tf.reduce_logsumexp(self.g_action_scores, 
+        self.target_vals = tf.reduce_logsumexp(self.g_action_scores,
                                                reduction_indices=[1,])
       else:
         # Use default based on Q learning.
-        self.target_vals = tf.reduce_max(self.next_action_scores, 
+        self.target_vals = tf.reduce_max(self.next_action_scores,
                                          reduction_indices=[1,])
-        
+
       # Total rewards are the observed rewards plus discounted estimated future
       # rewards.
       self.future_rewards = self.rewards + self.discount_rate * self.target_vals
@@ -563,7 +563,7 @@ class RLTuner(object):
       new_state = np.array(self.q_network.state_value).flatten()
       new_reward_state = np.array(self.reward_rnn.state_value).flatten()
 
-      reward = self.collect_reward(last_observation, new_observation, 
+      reward = self.collect_reward(last_observation, new_observation,
                                    reward_scores)
 
       self.store(last_observation, state, action, reward, new_observation,
@@ -597,12 +597,12 @@ class RLTuner(object):
 
         r = self.reward_last_n
         tf.logging.info('Training iteration %s', i)
-        tf.logging.info('\tReward for last %s steps: %s', 
+        tf.logging.info('\tReward for last %s steps: %s',
                         self.output_every_nth, r)
-        tf.logging.info('\t\tMusic theory reward: %s', 
+        tf.logging.info('\t\tMusic theory reward: %s',
                         self.music_theory_reward_last_n)
         tf.logging.info('\t\tNote RNN reward: %s', self.note_rnn_reward_last_n)
-        
+
         #TODO(natashamjaques): Remove print statement once tf.logging outputs
         # to Jupyter notebooks (once the following issue is resolved:
         # https://github.com/tensorflow/tensorflow/issues/3047)
@@ -616,7 +616,7 @@ class RLTuner(object):
               self.actions_executed_so_far, exploration_period, 1.0,
               self.dqn_hparams.random_action_probability)
           tf.logging.info('\tExploration probability is %s', exploration_p)
-        
+
         self.reward_last_n = 0
         self.music_theory_reward_last_n = 0
         self.note_rnn_reward_last_n = 0
@@ -649,7 +649,7 @@ class RLTuner(object):
         along with the action. If False, only the action is passed back.
 
     Returns:
-      The action chosen, the reward_scores returned by the reward_rnn, and if 
+      The action chosen, the reward_scores returned by the reward_rnn, and if
       sample_next_obs is True, also returns the next observation.
     """
     assert len(observation.shape) == 1, 'Single observation only'
@@ -670,10 +670,10 @@ class RLTuner(object):
                              (self.q_network.batch_size, 1, self.input_size))
     lengths = np.full(self.q_network.batch_size, 1, dtype=int)
 
-    (action, action_softmax, self.q_network.state_value, 
+    (action, action_softmax, self.q_network.state_value,
     reward_scores, self.reward_rnn.state_value) = self.session.run(
       [self.predicted_actions, self.action_softmax,
-       self.q_network.state_tensor, self.reward_scores, 
+       self.q_network.state_tensor, self.reward_scores,
        self.reward_rnn.state_tensor],
       {self.q_network.melody_sequence: input_batch,
        self.q_network.initial_state: self.q_network.state_value,
@@ -705,7 +705,7 @@ class RLTuner(object):
                                                    self.num_actions)).flatten()
         return action, next_obs, reward_scores
 
-  def store(self, observation, state, action, reward, newobservation, newstate, 
+  def store(self, observation, state, action, reward, newobservation, newstate,
             new_reward_state):
     """Stores an experience in the model's experience replay buffer.
 
@@ -723,7 +723,7 @@ class RLTuner(object):
         observation will be the same.
       newstate: The internal state of the q_network MelodyRNN that is
         observed after taking the action.
-      new_reward_state: The internal state of the reward_rnn network that is 
+      new_reward_state: The internal state of the reward_rnn network that is
         observed after taking the action
     """
     if self.num_times_store_called % self.dqn_hparams.store_every_nth == 0:
@@ -751,7 +751,7 @@ class RLTuner(object):
       states = np.empty((len(samples), self.q_network.cell.state_size))
       new_states = np.empty((len(samples),
                              self.target_q_network.cell.state_size))
-      reward_new_states = np.empty((len(samples), 
+      reward_new_states = np.empty((len(samples),
                                    self.reward_rnn.cell.state_size))
       observations = np.empty((len(samples), self.input_size))
       new_observations = np.empty((len(samples), self.input_size))
@@ -829,13 +829,13 @@ class RLTuner(object):
     """Used to evaluate the rewards the model receives without exploring.
 
     Generates num_trials compositions and computes the note_rnn and music
-    theory rewards. Uses no exploration so rewards directly relate to the 
+    theory rewards. Uses no exploration so rewards directly relate to the
     model's policy. Stores result in internal variables.
 
     Args:
       num_trials: The number of compositions to use for evaluation.
-      sample_next_obs: If True, the next note the model plays will be 
-        sampled from its output distribution. If False, the model will 
+      sample_next_obs: If True, the next note the model plays will be
+        sampled from its output distribution. If False, the model will
         deterministically choose the note with maximum value.
     """
 
@@ -865,7 +865,7 @@ class RLTuner(object):
 
         obs_note = np.argmax(new_observation)
 
-        note_rnn_reward = self.reward_from_reward_rnn_scores(new_observation, 
+        note_rnn_reward = self.reward_from_reward_rnn_scores(new_observation,
                                                              reward_scores)
         music_theory_reward = self.reward_music_theory(new_observation)
         adjusted_mt_reward = self.reward_scaler * music_theory_reward
@@ -953,7 +953,7 @@ class RLTuner(object):
 
       reward = self.reward_music_theory(action)
 
-      tf.logging.debug('Total music theory reward: %s', 
+      tf.logging.debug('Total music theory reward: %s',
                        self.reward_scaler * reward)
       tf.logging.debug('Total note rnn reward: %s', note_rnn_reward)
 
@@ -1169,18 +1169,18 @@ class RLTuner(object):
 
     return reward
 
-  def reward_tonic(self, action, tonic_note=rl_tuner_ops.C_MAJOR_TONIC, 
+  def reward_tonic(self, action, tonic_note=rl_tuner_ops.C_MAJOR_TONIC,
                    reward_amount=3.0):
     """Rewards for playing the tonic note at the right times.
 
     Rewards for playing the tonic as the first note of the first bar, and the
-    first note of the final bar. 
+    first note of the final bar.
 
     Args:
       action: One-hot encoding of the chosen action.
       tonic_note: The tonic/1st note of the desired key.
-      reward_amount: The amount the model will be awarded if it plays the 
-        tonic note at the right time. 
+      reward_amount: The amount the model will be awarded if it plays the
+        tonic note at the right time.
     Returns:
       Float reward value.
     """
@@ -1454,13 +1454,13 @@ class RLTuner(object):
     # get rid of non-notes in action_note
     if action_note == NO_EVENT:
       if prev_note in tonic_notes or prev_note in fifth_notes:
-        return (rl_tuner_ops.HOLD_INTERVAL_AFTER_THIRD_OR_FIFTH, 
+        return (rl_tuner_ops.HOLD_INTERVAL_AFTER_THIRD_OR_FIFTH,
                 action_note, prev_note)
       else:
         return rl_tuner_ops.HOLD_INTERVAL, action_note, prev_note
     elif action_note == NOTE_OFF:
       if prev_note in tonic_notes or prev_note in fifth_notes:
-        return (rl_tuner_ops.REST_INTERVAL_AFTER_THIRD_OR_FIFTH, 
+        return (rl_tuner_ops.REST_INTERVAL_AFTER_THIRD_OR_FIFTH,
                 action_note, prev_note)
       else:
         return rl_tuner_ops.REST_INTERVAL, action_note, prev_note
@@ -1672,7 +1672,7 @@ class RLTuner(object):
                        'It is now: %s', self.steps_since_last_leap)
 
       # If there was a leap before, check if composition has gradually returned
-      # This could be changed by requiring you to only go a 5th back in the 
+      # This could be changed by requiring you to only go a 5th back in the
       # opposite direction of the leap.
       if (self.composition_direction == rl_tuner_ops.ASCENDING and
           action_note <= self.leapt_from) or (
@@ -1719,8 +1719,8 @@ class RLTuner(object):
     # reward_preferred_intervals function.
     pass
 
-  def generate_music_sequence(self, title='rltuner_sample', 
-    visualize_probs=False, prob_image_name=None, length=None, 
+  def generate_music_sequence(self, title='rltuner_sample',
+    visualize_probs=False, prob_image_name=None, length=None,
     most_probable=False):
     """Generates a music sequence with the current model, and saves it to MIDI.
 
@@ -1758,9 +1758,9 @@ class RLTuner(object):
       input_batch = np.reshape(next_obs, (self.q_network.batch_size, 1,
                                           self.num_actions))
       if self.algorithm == 'g':
-        (softmax, self.q_network.state_value, 
+        (softmax, self.q_network.state_value,
           self.reward_rnn.state_value) = self.session.run(
-          [self.action_softmax, self.q_network.state_tensor, 
+          [self.action_softmax, self.q_network.state_tensor,
           self.reward_rnn.state_tensor],
           {self.q_network.melody_sequence: input_batch,
            self.q_network.initial_state: self.q_network.state_value,
@@ -1793,7 +1793,7 @@ class RLTuner(object):
     # https://github.com/tensorflow/tensorflow/issues/3047)
     print 'Generated sequence:', generated_seq
 
-    melody = mlib.Melody(rl_tuner_ops.decoder(generated_seq, 
+    melody = mlib.Melody(rl_tuner_ops.decoder(generated_seq,
                                               self.q_network.transpose_amount))
 
     sequence = melody.to_sequence(qpm=rl_tuner_ops.DEFAULT_QPM)
@@ -1818,7 +1818,7 @@ class RLTuner(object):
                                     tonic_note=rl_tuner_ops.C_MAJOR_TONIC):
     """Computes statistics about music theory rule adherence.
 
-    Args: 
+    Args:
       num_compositions: How many compositions should be randomly generated
         for computing the statistics.
       key: The numeric values of notes belonging to this key. Defaults to C
@@ -1854,7 +1854,7 @@ class RLTuner(object):
       directory = self.output_dir
 
     save_loc = os.path.join(directory, name)
-    self.saver.save(self.session, save_loc, 
+    self.saver.save(self.session, save_loc,
                     global_step=len(self.rewards_batched)*self.output_every_nth)
 
     self.save_stored_rewards(name)
@@ -1866,7 +1866,7 @@ class RLTuner(object):
       file_name: Name of the file that will be saved.
     """
     training_epochs = len(self.rewards_batched) * self.output_every_nth
-    filename = os.path.join(self.output_dir, 
+    filename = os.path.join(self.output_dir,
                             file_name + '-' + str(training_epochs))
     np.savez(filename,
              train_rewards=self.rewards_batched,
@@ -1883,24 +1883,24 @@ class RLTuner(object):
     Args:
       name: Name of the model that will be used on the images,
         checkpoint, and .npz files.
-      directory: Path to directory where files will be saved. 
+      directory: Path to directory where files will be saved.
         If None defaults to self.output_dir.
     """
 
     self.save_model(name, directory=directory)
-    self.plot_rewards(image_name='TrainRewards-' + name + '.eps', 
+    self.plot_rewards(image_name='TrainRewards-' + name + '.eps',
                       directory=directory)
-    self.plot_evaluation(image_name='EvaluationRewards-' + name + '.eps', 
+    self.plot_evaluation(image_name='EvaluationRewards-' + name + '.eps',
                          directory=directory)
-    self.plot_target_vals(image_name='TargetVals-' + name + '.eps', 
+    self.plot_target_vals(image_name='TargetVals-' + name + '.eps',
                           directory=directory)
 
   def plot_rewards(self, image_name=None, directory=None):
     """Plots the cumulative rewards received as the model was trained.
 
-    If image_name is None, should be used in jupyter notebook. If 
-    called outside of jupyter, execution of the program will halt and 
-    a pop-up with the graph will appear. Execution will not continue 
+    If image_name is None, should be used in jupyter notebook. If
+    called outside of jupyter, execution of the program will halt and
+    a pop-up with the graph will appear. Execution will not continue
     until the pop-up is closed.
 
     Args:
@@ -1929,9 +1929,9 @@ class RLTuner(object):
   def plot_evaluation(self, image_name=None, directory=None, start_at_epoch=0):
     """Plots the rewards received as the model was evaluated during training.
 
-    If image_name is None, should be used in jupyter notebook. If 
-    called outside of jupyter, execution of the program will halt and 
-    a pop-up with the graph will appear. Execution will not continue 
+    If image_name is None, should be used in jupyter notebook. If
+    called outside of jupyter, execution of the program will halt and
+    a pop-up with the graph will appear. Execution will not continue
     until the pop-up is closed.
 
     Args:
@@ -1962,9 +1962,9 @@ class RLTuner(object):
   def plot_target_vals(self, image_name=None, directory=None):
     """Plots the target values used to train the model over time.
 
-    If image_name is None, should be used in jupyter notebook. If 
-    called outside of jupyter, execution of the program will halt and 
-    a pop-up with the graph will appear. Execution will not continue 
+    If image_name is None, should be used in jupyter notebook. If
+    called outside of jupyter, execution of the program will halt and
+    a pop-up with the graph will appear. Execution will not continue
     until the pop-up is closed.
 
     Args:
@@ -1992,22 +1992,22 @@ class RLTuner(object):
     """Primes both internal models based on self.priming_mode.
 
     Returns:
-      A one-hot encoding of the note output by the q_network to be used as 
-      the initial observation. 
+      A one-hot encoding of the note output by the q_network to be used as
+      the initial observation.
     """
     self.prime_internal_model(self.target_q_network)
     self.prime_internal_model(self.reward_rnn)
     next_obs = self.prime_internal_model(self.q_network)
     return next_obs
 
-  def restore_from_directory(self, directory=None, checkpoint_name=None, 
+  def restore_from_directory(self, directory=None, checkpoint_name=None,
                              reward_file_name=None):
     """Restores this model from a saved checkpoint.
 
     Args:
-      directory: Path to directory where checkpoint is located. If 
+      directory: Path to directory where checkpoint is located. If
         None, defaults to self.output_dir.
-      checkpoint_name: The name of the checkpoint within the 
+      checkpoint_name: The name of the checkpoint within the
         directory.
       reward_file_name: The name of the .npz file where the stored
         rewards are saved. If None, will not attempt to load stored
@@ -2039,7 +2039,7 @@ class RLTuner(object):
     # to Jupyter notebooks (once the following issue is resolved:
     # https://github.com/tensorflow/tensorflow/issues/3047)
       print 'Attempting to load saved reward values from file', npz_file_name
-      tf.logging.info('Attempting to load saved reward values from file %s', 
+      tf.logging.info('Attempting to load saved reward values from file %s',
                       npz_file_name)
       npz_file = np.load(npz_file_name)
 
