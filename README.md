@@ -146,7 +146,7 @@ Next, [install Bazel](https://bazel.build/docs/install.html). We recommend the
 latest version, currently 0.4.0.
 
 You will also need to install some required python dependencies. We recommend
-using a conda envrionment and installing with pip:
+using a conda environment and installing with pip:
 
 ```
 pip install matplotlib scipy
