@@ -15,8 +15,9 @@ import tensorflow as tf
 
 from magenta.common import tf_lib
 
-import rl_tuner
-import rl_tuner_ops
+# internal imports
+from magenta.models.rl_tuner import rl_tuner
+from magenta.models.rl_tuner import rl_tuner_ops
 
 FLAGS = tf.app.flags.FLAGS
 tf.app.flags.DEFINE_string('output_dir', '',

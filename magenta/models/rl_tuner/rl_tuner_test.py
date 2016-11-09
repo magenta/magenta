@@ -7,12 +7,14 @@ $ bazel test rl_tuner:rl_tuner_test
 import os
 import tempfile
 
-import tensorflow as tf
 import matplotlib
 matplotlib.use('Agg')
 
-import rl_tuner
-import rl_tuner_ops
+# internal imports
+import tensorflow as tf
+
+from magenta.models.rl_tuner import rl_tuner
+from magenta.models.rl_tuner import rl_tuner_ops
 
 
 class RLTunerTest(tf.test.TestCase):

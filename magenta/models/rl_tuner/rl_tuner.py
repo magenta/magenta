@@ -19,14 +19,16 @@ import matplotlib.pyplot as plt
 
 import numpy as np
 from scipy.misc import logsumexp
+
+# internal imports
 import tensorflow as tf
 
 from magenta.music import melodies_lib as mlib
 from magenta.music import midi_io
 
-import note_rnn_loader
-import rl_tuner_ops
-import rl_tuner_eval_metrics
+from magenta.models.rl_tuner import  note_rnn_loader
+from magenta.models.rl_tuner import rl_tuner_ops
+from magenta.models.rl_tuner import rl_tuner_eval_metrics
 
 # Note values of pecial actions.
 NOTE_OFF = 0

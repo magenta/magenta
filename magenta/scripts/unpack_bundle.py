@@ -5,8 +5,7 @@ $ bazel run magenta/scripts:unpack_bundle -- \
 --bundle_path 'path' --checkpoint_path 'path'
 """
 
-import os
-
+# internal imports
 import tensorflow as tf
 
 from magenta.music import sequence_generator_bundle

@@ -20,6 +20,8 @@ These functions are necessary for use with the RL Tuner class.
 import os
 
 import numpy as np
+
+# internal imports
 import tensorflow as tf
 
 import magenta
@@ -28,7 +30,7 @@ from magenta.music import midi_io
 from magenta.music import sequences_lib
 from magenta.common import sequence_example_lib
 
-import rl_tuner_ops
+from magenta.models.rl_tuner import rl_tuner_ops
 
 
 class NoteRNNLoader(object):

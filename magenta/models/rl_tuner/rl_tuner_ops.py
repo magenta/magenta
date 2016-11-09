@@ -6,6 +6,8 @@ import random
 from magenta.common import tf_lib
 
 import numpy as np
+
+# internal imports
 import tensorflow as tf
 
 LSTM_STATE_NAME = 'lstm'
