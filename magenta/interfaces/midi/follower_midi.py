@@ -187,7 +187,7 @@ class FollowerMidiInteraction(midi_interaction.MidiInteraction):
   by external MIDI signals.
 
   Args:
-    _midi_hub: The MidiHub to use for MIDI I/O.
+    midi_hub_io: The MidiHub to use for MIDI I/O.
     qpm: The quarters per minute to use for this interaction.
     sequence_generator: The SequenceGenerator to use to generate the responses
         in this interaction.
@@ -202,7 +202,7 @@ class FollowerMidiInteraction(midi_interaction.MidiInteraction):
   """
 
   def __init__(self,
-               _midi_hub,
+               midi_hub_io,
                qpm,
                sequence_generator,
                quarters_per_bar=4,
@@ -210,7 +210,7 @@ class FollowerMidiInteraction(midi_interaction.MidiInteraction):
                start_call_signal=None,
                end_call_signal=None,
                play_metronome=True):
-    super(FollowerMidiInteraction, self).__init__(_midi_hub, qpm)
+    super(FollowerMidiInteraction, self).__init__(midi_hub_io, qpm)
     self._sequence_generator = sequence_generator
     self._quarters_per_bar = quarters_per_bar
     self._phrase_bars = phrase_bars
