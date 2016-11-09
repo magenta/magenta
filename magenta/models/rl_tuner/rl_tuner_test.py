@@ -18,7 +18,7 @@ import rl_tuner_ops
 class RLTunerTest(tf.test.TestCase):
 
   def setUp(self):
-    self.output_dir = tempfile.mkdtemp()å
+    self.output_dir = tempfile.mkdtemp()
 
   def testInitializationAndPriming(self):
     rlt = rl_tuner.RLTuner(self.output_dir)
