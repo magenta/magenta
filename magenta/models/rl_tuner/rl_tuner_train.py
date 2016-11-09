@@ -24,12 +24,16 @@ import os
 # internal imports
 
 import matplotlib
+# pylint: disable=g-import-not-at-top
 matplotlib.use('Agg')
+import matplotlib.pyplot as plt  # pylint: enable=unused-import
 import tensorflow as tf
 
 from magenta.common import tf_lib
 from magenta.models.rl_tuner import rl_tuner
 from magenta.models.rl_tuner import rl_tuner_ops
+# pylint: enable=g-import-not-at-top
+
 
 FLAGS = tf.app.flags.FLAGS
 tf.app.flags.DEFINE_string('output_dir', '',
