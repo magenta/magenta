@@ -349,7 +349,7 @@ class RLTuner(object):
     """Prime an internal model such as the q_network based on priming mode.
 
     Args:
-      model: The internal model that should be primed. 
+      model: The internal model that should be primed.
 
     Returns:
       The first observation to feed into the model.

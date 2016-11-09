@@ -42,7 +42,7 @@ class NoteRNNLoader(object):
   Used as part of the RLTuner class.
   """
 
-  def __init__(self, graph, scope, checkpoint_dir, checkpoint_file=None, 
+  def __init__(self, graph, scope, checkpoint_dir, checkpoint_file=None,
                midi_primer=None, training_file_list=None, hparams=None,
                note_rnn_type='default', checkpoint_scope='rnn_model'):
     """Initialize by building the graph and loading a previous checkpoint.
@@ -89,7 +89,7 @@ class NoteRNNLoader(object):
     if midi_primer is not None:
       self.load_primer()
 
-    self.variable_names = rl_tuner_ops.get_variable_names(self.graph, 
+    self.variable_names = rl_tuner_ops.get_variable_names(self.graph,
                                                           self.scope)
 
     self.transpose_amount = 0
