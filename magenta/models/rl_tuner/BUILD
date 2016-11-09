@@ -77,6 +77,7 @@ py_test(
     size = "medium",
     srcs = ["rl_tuner_test.py"],
     deps = [
+        ":note_rnn_loader",
         ":rl_tuner",
         ":rl_tuner_ops",
     ],
