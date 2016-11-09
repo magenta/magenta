@@ -227,7 +227,7 @@ class FollowerMidiInteraction(midi_interaction.MidiInteraction):
       if self._start_call_signal is not None:
         # Wait for start signal.
         self._midi_hub.wait_for_event(self._start_call_signal)
-        start_time= time.time()
+        start_time = time.time()
         # Check to see if a stop has been requested.
         if self._stop_signal.is_set():
           break
@@ -251,8 +251,8 @@ class FollowerMidiInteraction(midi_interaction.MidiInteraction):
         # We end the call stage at the end of the next bar that is at least
         # `predicathead_quarters` in the future.
         end_time = time.time()
-        call_duration = ((time.time() - start_time) \
-          // quarter_duration) * quarter_duration
+        call_duration = ((time.time() - start_time)
+                         // quarter_duration) * quarter_duration
         quantized_end_time = start_time + call_duration
 
       # Set the metronome to stop at the appropriate time
