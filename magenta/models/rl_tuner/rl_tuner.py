@@ -253,7 +253,7 @@ class RLTuner(object):
       self.target_q_network = note_rnn_loader.NoteRNNLoader(self.graph,
                                                    'target_q_network',
                                                    self.note_rnn_checkpoint_dir,
-                                                   self.midi_primer,
+                                                   midi_primer=self.midi_primer,
                                                    training_file_list=
                                                    self.training_file_list,
                                                    softmax_within_graph=False,
@@ -266,7 +266,7 @@ class RLTuner(object):
       self.reward_rnn = note_rnn_loader.NoteRNNLoader(self.graph,
                                              'reward_rnn',
                                              self.note_rnn_checkpoint_dir,
-                                             self.midi_primer,
+                                             midi_primer=self.midi_primer,
                                              training_file_list=
                                              self.training_file_list,
                                              softmax_within_graph=False,
