@@ -598,11 +598,11 @@ class RLTuner(object):
 
         if self.algorithm == 'g':
           self.rewards_batched.append(
-            self.music_theory_reward_last_n + self.note_rnn_reward_last_n)
+              self.music_theory_reward_last_n + self.note_rnn_reward_last_n)
         else:
           self.rewards_batched.append(self.reward_last_n)
         self.music_theory_rewards_batched.append(
-          self.music_theory_reward_last_n)
+            self.music_theory_reward_last_n)
         self.note_rnn_rewards_batched.append(self.note_rnn_reward_last_n)
 
         # Save a checkpoint.

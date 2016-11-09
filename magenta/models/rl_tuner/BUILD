@@ -72,6 +72,7 @@ py_binary(
 
 py_test(
     name = "rl_tuner_test",
+    size = "medium",
     srcs = ["rl_tuner_test.py"],
     deps = [
         ":rl_tuner",
