@@ -24,12 +24,13 @@ import tempfile
 # internal imports
 
 import matplotlib
+# pylint: disable=g-import-not-at-top
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import tensorflow as tf
 
 from magenta.models.rl_tuner import rl_tuner
-
+# pylint: enable=g-import-not-at-top
 
 class RLTunerTest(tf.test.TestCase):
 
