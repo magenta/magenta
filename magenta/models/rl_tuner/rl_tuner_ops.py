@@ -17,12 +17,12 @@
 import os
 import random
 
-from magenta.common import tf_lib
+# internal imports
 
 import numpy as np
-
-# internal imports
 import tensorflow as tf
+
+from magenta.common import tf_lib
 
 LSTM_STATE_NAME = 'lstm'
 
@@ -90,14 +90,18 @@ def default_hparams():
                         one_hot_length=NUM_CLASSES,
                         exponentially_decay_learning_rate=True)
 
+
 def basic_rnn_hparams():
   """Generates the hparams used to train a basic_rnn.
 
   These are the hparams used in the .mag file found at
   https://github.com/tensorflow/magenta/tree/master/magenta/models/
   melody_rnn#pre-trained
+
+  Returns: 
+    Hyperparameters of the downloadable basic_rnn pre-trained model.
   """
-  #TODO(natashajaques): ability to restore basic_rnn from any .mag
+  # TODO(natashajaques): ability to restore basic_rnn from any .mag
   # file.
   return tf_lib.HParams(batch_size=128,
                         dropout_keep_prob=0.5,
@@ -141,33 +145,34 @@ def autocorrelate(signal, lag=1):
 
 
 def linear_annealing(n, total, p_initial, p_final):
-    """Linearly interpolates a probability between p_initial and p_final.
+  """Linearly interpolates a probability between p_initial and p_final.
 
-    Current probability is based on the current step, n. Used to linearly anneal
-    the exploration probability of the RLTuner.
+  Current probability is based on the current step, n. Used to linearly anneal
+  the exploration probability of the RLTuner.
 
-    Args:
-      n: The current step.
-      total: The total number of steps that will be taken (usually the length of
-        the exploration period).
-      p_initial: The initial probability.
-      p_final: The final probability.
+  Args:
+    n: The current step.
+    total: The total number of steps that will be taken (usually the length of
+      the exploration period).
+    p_initial: The initial probability.
+    p_final: The final probability.
 
-    Returns:
-      The current probability (between p_initial and p_final).
-    """
-    if n >= total:
-      return p_final
-    else:
-      return p_initial - (n * (p_initial - p_final)) / (total)
+  Returns:
+    The current probability (between p_initial and p_final).
+  """
+  if n >= total:
+    return p_final
+  else:
+    return p_initial - (n * (p_initial - p_final)) / (total)
 
 
 def softmax(x):
-    """Compute softmax values for each sets of scores in x."""
-    e_x = np.exp(x - np.max(x))
-    return e_x / e_x.sum(axis=0)
+  """Compute softmax values for each sets of scores in x."""
+  e_x = np.exp(x - np.max(x))
+  return e_x / e_x.sum(axis=0)
 
-def sample_softmax(softmax):
+
+def sample_softmax(softmax_vect):
   """Samples a note from an array of softmax probabilities.
 
   Tries to do this with numpy, which requires that the probabilities add to 1.0
@@ -179,18 +184,18 @@ def sample_softmax(softmax):
     The index of the note that was chosen/sampled.
   """
   try:
-    sample = np.argmax(np.random.multinomial(1, pvals=softmax))
+    sample = np.argmax(np.random.multinomial(1, pvals=softmax_vect))
     return sample
   except:  # pylint: disable=bare-except
-    r = random.uniform(0, np.sum(softmax))
+    r = random.uniform(0, np.sum(softmax_vect))
     upto = 0
-    for i in range(len(softmax)):
-      if upto + softmax[i] >= r:
+    for i in range(len(softmax_vect)):
+      if upto + softmax_vect[i] >= r:
         return i
-      upto += softmax[i]
+      upto += softmax_vect[i]
     tf.logging.warn("Error! sample softmax function shouldn't get here")
     print "Error! sample softmax function shouldn't get here"
-    return len(softmax) - 1
+    return len(softmax_vect) - 1
 
 
 def decoder(event_list, transpose_amount):

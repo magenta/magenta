@@ -21,14 +21,13 @@ $ bazel test rl_tuner:rl_tuner_test
 import os
 import tempfile
 
+# internal imports
+
 import matplotlib
 matplotlib.use('Agg')
-
-# internal imports
 import tensorflow as tf
 
 from magenta.models.rl_tuner import rl_tuner
-from magenta.models.rl_tuner import rl_tuner_ops
 
 
 class RLTunerTest(tf.test.TestCase):
@@ -47,7 +46,7 @@ class RLTunerTest(tf.test.TestCase):
 
     plot_name = 'test_initial_plot.png'
     rlt.generate_music_sequence(visualize_probs=True,
-                               prob_image_name=plot_name)
+                                prob_image_name=plot_name)
     output_path = os.path.join(self.output_dir, plot_name)
     self.assertTrue(os.path.exists(output_path))
 
