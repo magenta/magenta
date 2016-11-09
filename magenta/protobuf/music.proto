@@ -246,6 +246,8 @@ message NoteSequence {
       UNKNOWN_PARSER = 0;
       MUSIC21 = 1;
       PRETTY_MIDI = 2;
+      // Magenta's built-in MusicXML parser.
+      MAGENTA_MUSIC_XML = 3;
     }
   }
 

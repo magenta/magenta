@@ -20,9 +20,6 @@ from __future__ import print_function
 # internal imports
 import tensorflow as tf
 
-from tensorflow.python.framework import ops
-from tensorflow.python.ops import init_ops
-
 slim = tf.contrib.slim
 
 
@@ -73,7 +70,7 @@ def conditional_instance_norm(inputs,
   """
   with tf.variable_scope(scope, 'InstanceNorm', [inputs],
                          reuse=reuse) as sc:
-    inputs = ops.convert_to_tensor(inputs)
+    inputs = tf.convert_to_tensor(inputs)
     inputs_shape = inputs.get_shape()
     inputs_rank = inputs_shape.ndims
     if inputs_rank is None:
@@ -106,10 +103,10 @@ def conditional_instance_norm(inputs,
     beta, gamma = None, None
     if center:
       beta = _label_conditioned_variable(
-          'beta', init_ops.zeros_initializer, labels, num_categories)
+          'beta', tf.zeros_initializer, labels, num_categories)
     if scale:
       gamma = _label_conditioned_variable(
-          'gamma', init_ops.ones_initializer, labels, num_categories)
+          'gamma', tf.ones_initializer, labels, num_categories)
     # Calculate the moments on the last axis (instance activations).
     mean, variance = tf.nn.moments(inputs, axis, keep_dims=True)
     # Compute layer normalization using the batch_normalization function.
@@ -167,7 +164,7 @@ def weighted_instance_norm(inputs,
   """
   with tf.variable_scope(scope, 'InstanceNorm', [inputs],
                          reuse=reuse) as sc:
-    inputs = ops.convert_to_tensor(inputs)
+    inputs = tf.convert_to_tensor(inputs)
     inputs_shape = inputs.get_shape()
     inputs_rank = inputs_shape.ndims
     if inputs_rank is None:
@@ -204,10 +201,10 @@ def weighted_instance_norm(inputs,
     beta, gamma = None, None
     if center:
       beta = _weighted_variable(
-          'beta', init_ops.zeros_initializer, weights, num_categories)
+          'beta', tf.zeros_initializer, weights, num_categories)
     if scale:
       gamma = _weighted_variable(
-          'gamma', init_ops.ones_initializer, weights, num_categories)
+          'gamma', tf.ones_initializer, weights, num_categories)
     # Calculate the moments on the last axis (instance activations).
     mean, variance = tf.nn.moments(inputs, axis, keep_dims=True)
     # Compute layer normalization using the batch_normalization function.

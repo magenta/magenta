@@ -242,7 +242,8 @@ class Melody(events_lib.SimpleEventSequence):
                               track=0,
                               gap_bars=1,
                               ignore_polyphonic_notes=False,
-                              pad_end=False):
+                              pad_end=False,
+                              filter_drums=True):
     """Populate self with a melody from the given QuantizedSequence object.
 
     A monophonic melody is extracted from the given `track` starting at time
@@ -273,6 +274,7 @@ class Melody(events_lib.SimpleEventSequence):
           the same time.
       pad_end: If True, the end of the melody will be padded with NO_EVENTs so
           that it will end at a bar boundary.
+      filter_drums: If True, notes for which `is_drum` is True will be ignored.
 
     Raises:
       NonIntegerStepsPerBarException: If `quantized_sequence`'s bar length
@@ -299,6 +301,9 @@ class Melody(events_lib.SimpleEventSequence):
 
     for note in notes:
       if note.start < start_step:
+        continue
+
+      if filter_drums and note.is_drum:
         continue
 
       # Ignore 0 velocity notes.
@@ -526,7 +531,8 @@ def extract_melodies(quantized_sequence,
                      gap_bars=1.0,
                      min_unique_pitches=5,
                      ignore_polyphonic_notes=True,
-                     pad_end=False):
+                     pad_end=False,
+                     filter_drums=True):
   """Extracts a list of melodies from the given QuantizedSequence object.
 
   This function will search through `quantized_sequence` for monophonic
@@ -565,6 +571,7 @@ def extract_melodies(quantized_sequence,
         the same time). If False, tracks with polyphony will be ignored.
     pad_end: If True, the end of the melody will be padded with NO_EVENTs so
         that it will end at a bar boundary.
+    filter_drums: If True, notes for which `is_drum` is True will be ignored.
 
   Returns:
     melodies: A python list of Melody instances.
@@ -606,7 +613,8 @@ def extract_melodies(quantized_sequence,
             start_step=start,
             gap_bars=gap_bars,
             ignore_polyphonic_notes=ignore_polyphonic_notes,
-            pad_end=pad_end)
+            pad_end=pad_end,
+            filter_drums=filter_drums)
       except PolyphonicMelodyException:
         stats['polyphonic_tracks_discarded'].increment()
         break  # Look for monophonic melodies in other tracks.
@@ -617,8 +625,6 @@ def extract_melodies(quantized_sequence,
         break
 
       # Require a certain melody length.
-      stats['melody_lengths_in_bars'].increment(
-          len(melody) // melody.steps_per_bar)
       if len(melody) - 1 < melody.steps_per_bar * min_bars:
         stats['melodies_discarded_too_short'].increment()
         continue
@@ -645,6 +651,9 @@ def extract_melodies(quantized_sequence,
 
       # TODO(danabo)
       # Add filter for rhythmic diversity.
+
+      stats['melody_lengths_in_bars'].increment(
+          len(melody) // melody.steps_per_bar)
 
       melodies.append(melody)
 

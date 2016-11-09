@@ -21,7 +21,7 @@ from magenta.protobuf import music_pb2
 CHORD_SYMBOL = music_pb2.NoteSequence.TextAnnotation.CHORD_SYMBOL
 
 
-def add_track_to_sequence(note_sequence, instrument, notes):
+def add_track_to_sequence(note_sequence, instrument, notes, is_drum=False):
   for pitch, velocity, start_time, end_time in notes:
     note = note_sequence.notes.add()
     note.pitch = pitch
@@ -29,6 +29,7 @@ def add_track_to_sequence(note_sequence, instrument, notes):
     note.start_time = start_time
     note.end_time = end_time
     note.instrument = instrument
+    note.is_drum = is_drum
     if end_time > note_sequence.total_time:
       note_sequence.total_time = end_time
 
@@ -41,7 +42,8 @@ def add_chords_to_sequence(note_sequence, chords):
     annotation.annotation_type = CHORD_SYMBOL
 
 
-def add_quantized_track_to_sequence(quantized_sequence, instrument, notes):
+def add_quantized_track_to_sequence(quantized_sequence, instrument, notes,
+                                    is_drum=False):
   if instrument not in quantized_sequence.tracks:
     quantized_sequence.tracks[instrument] = []
   track = quantized_sequence.tracks[instrument]
@@ -51,7 +53,8 @@ def add_quantized_track_to_sequence(quantized_sequence, instrument, notes):
                                                 start=start_step,
                                                 end=end_step,
                                                 instrument=instrument,
-                                                program=0)
+                                                program=0,
+                                                is_drum=is_drum)
     track.append(note)
     if end_step > quantized_sequence.total_steps:
       quantized_sequence.total_steps = end_step
