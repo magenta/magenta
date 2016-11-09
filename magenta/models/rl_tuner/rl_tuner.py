@@ -879,8 +879,6 @@ class RLTuner(object):
               sample_next_obs=sample_next_obs)
           new_observation = action
 
-        obs_note = np.argmax(new_observation)
-
         note_rnn_reward = self.reward_from_reward_rnn_scores(new_observation,
                                                              reward_scores)
         music_theory_reward = self.reward_music_theory(new_observation)
@@ -898,7 +896,6 @@ class RLTuner(object):
     self.eval_avg_reward.append(np.mean(total_rewards))
     self.eval_avg_note_rnn_reward.append(np.mean(note_rnn_rewards))
     self.eval_avg_music_theory_reward.append(np.mean(music_theory_rewards))
-
 
   def collect_reward(self, obs, action, reward_scores):
     """Calls whatever reward function is indicated in the reward_mode field.
@@ -984,15 +981,14 @@ class RLTuner(object):
     return reward * self.reward_scaler
 
   def reward_from_reward_rnn_scores(self, action, reward_scores):
-    """Rewards based on probabilities learned from data by trained RNN
+    """Rewards based on probabilities learned from data by trained RNN.
 
     Computes the reward_network's learned softmax probabilities. When used as
     rewards, allows the model to maintain information it learned from data.
 
     Args:
-      obs: One-hot encoding of the observed note.
-      action: One-hot encoding of the chosen action.
-      state: Vector representing the internal state of the q_network.
+      action: A one-hot encoding of the chosen action.
+      reward_scores: The value for each note output by the reward_rnn.
     Returns:
       Float reward value.
     """
@@ -1029,6 +1025,13 @@ class RLTuner(object):
     return rewards
 
   def reward_music_theory(self, action):
+    """Computes cumulative reward for all music theory functions.
+
+    Args:
+      action: A one-hot encoding of the chosen action.
+    Returns:
+      Float reward value.
+    """
     reward = self.reward_key(action)
     tf.logging.debug('Key: %s', reward)
     prev_reward = reward
@@ -1208,7 +1211,7 @@ class RLTuner(object):
         return reward_amount
     elif self.beat == first_note_of_final_bar + 1:
       if action_note == NO_EVENT:
-          return reward_amount
+        return reward_amount
     elif self.beat > first_note_of_final_bar + 1:
       if action_note == NO_EVENT or action_note == NOTE_OFF:
         return reward_amount
@@ -1736,8 +1739,8 @@ class RLTuner(object):
     pass
 
   def generate_music_sequence(self, title='rltuner_sample',
-    visualize_probs=False, prob_image_name=None, length=None,
-    most_probable=False):
+                              visualize_probs=False, prob_image_name=None,
+                              length=None, most_probable=False):
     """Generates a music sequence with the current model, and saves it to MIDI.
 
     The resulting MIDI file is saved to the model's output_dir directory. The
@@ -1775,15 +1778,15 @@ class RLTuner(object):
                                           self.num_actions))
       if self.algorithm == 'g':
         (softmax, self.q_network.state_value,
-          self.reward_rnn.state_value) = self.session.run(
-          [self.action_softmax, self.q_network.state_tensor,
-          self.reward_rnn.state_tensor],
-          {self.q_network.melody_sequence: input_batch,
-           self.q_network.initial_state: self.q_network.state_value,
-           self.q_network.lengths: lengths,
-           self.reward_rnn.melody_sequence: input_batch,
-           self.reward_rnn.initial_state: self.reward_rnn.state_value,
-           self.reward_rnn.lengths: lengths})
+        self.reward_rnn.state_value) = self.session.run(
+            [self.action_softmax, self.q_network.state_tensor,
+            self.reward_rnn.state_tensor],
+            {self.q_network.melody_sequence: input_batch,
+            self.q_network.initial_state: self.q_network.state_value,
+            self.q_network.lengths: lengths,
+            self.reward_rnn.melody_sequence: input_batch,
+            self.reward_rnn.initial_state: self.reward_rnn.state_value,
+            self.reward_rnn.lengths: lengths})
       else:
         softmax, self.q_network.state_value = self.session.run(
             [self.action_softmax, self.q_network.state_tensor],
@@ -1793,7 +1796,7 @@ class RLTuner(object):
       softmax = np.reshape(softmax, (self.num_actions))
 
       if visualize_probs:
-        prob_image[:, i] = softmax #np.log(1.0 + softmax)
+        prob_image[:, i] = softmax  # np.log(1.0 + softmax)
 
       if most_probable:
         sample = np.argmax(softmax)
@@ -1801,10 +1804,10 @@ class RLTuner(object):
         sample = rl_tuner_ops.sample_softmax(softmax)
       generated_seq[i] = sample
       next_obs = np.array(rl_tuner_ops.make_onehot([sample],
-                                                 self.num_actions)).flatten()
+                                                   self.num_actions)).flatten()
 
     tf.logging.info('Generated sequence: %s', generated_seq)
-    #TODO(natashamjaques): Remove print statement once tf.logging outputs
+    # TODO(natashamjaques): Remove print statement once tf.logging outputs
     # to Jupyter notebooks (once the following issue is resolved:
     # https://github.com/tensorflow/tensorflow/issues/3047)
     print 'Generated sequence:', generated_seq
@@ -1841,16 +1844,17 @@ class RLTuner(object):
         Major if not provided.
       tonic_note: The tonic/1st note of the desired key.
 
-    Returns: A dictionary containing the statistics.
+    Returns: 
+      A dictionary containing the statistics.
     """
     stat_dict = rl_tuner_eval_metrics.compute_composition_stats(
-      self,
-      num_compositions=num_compositions,
-      composition_length=self.num_notes_in_melody,
-      key=key,
-      tonic_note=tonic_note)
+        self,
+        num_compositions=num_compositions,
+        composition_length=self.num_notes_in_melody,
+        key=key,
+        tonic_note=tonic_note)
 
-    #TODO(natashamjaques): Remove print statement once tf.logging outputs
+    # TODO(natashamjaques): Remove print statement once tf.logging outputs
     # to Jupyter notebooks (once the following issue is resolved:
     # https://github.com/tensorflow/tensorflow/issues/3047)
     print rl_tuner_eval_metrics.get_stat_dict_string(stat_dict)
@@ -1996,7 +2000,7 @@ class RLTuner(object):
     x = [reward_batch * i for i in np.arange(len(self.target_val_list))]
 
     plt.figure()
-    plt.plot(x,self.target_val_list)
+    plt.plot(x, self.target_val_list)
     plt.xlabel('Training epoch')
     plt.ylabel('Target value')
     if image_name is not None:
@@ -2041,7 +2045,7 @@ class RLTuner(object):
     if checkpoint_file is None:
       tf.logging.fatal('Error! Cannot locate checkpoint in the directory')
       return
-    #TODO(natashamjaques): Remove print statement once tf.logging outputs
+    # TODO(natashamjaques): Remove print statement once tf.logging outputs
     # to Jupyter notebooks (once the following issue is resolved:
     # https://github.com/tensorflow/tensorflow/issues/3047)
     print 'Attempting to restore from checkpoint', checkpoint_file
@@ -2051,9 +2055,9 @@ class RLTuner(object):
 
     if reward_file_name is not None:
       npz_file_name = os.path.join(directory, reward_file_name)
-      #TODO(natashamjaques): Remove print statement once tf.logging outputs
-    # to Jupyter notebooks (once the following issue is resolved:
-    # https://github.com/tensorflow/tensorflow/issues/3047)
+      # TODO(natashamjaques): Remove print statement once tf.logging outputs
+      # to Jupyter notebooks (once the following issue is resolved:
+      # https://github.com/tensorflow/tensorflow/issues/3047)
       print 'Attempting to load saved reward values from file', npz_file_name
       tf.logging.info('Attempting to load saved reward values from file %s',
                       npz_file_name)
