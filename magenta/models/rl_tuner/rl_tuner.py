@@ -557,6 +557,9 @@ class RLTuner(object):
     if self.stochastic_observations:
       tf.logging.info('Using stochastic environment')
 
+    if self.exploration_mode == 'boltzmann' or self.stochastic_observations:
+        sample_next_obs = True
+
     self.reset_composition()
     last_observation = self.prime_internal_models()
 
@@ -566,16 +569,10 @@ class RLTuner(object):
       state = np.array(self.q_network.state_value).flatten()
       reward_rnn_state = np.array(self.reward_rnn.state_value).flatten()
 
-      if self.exploration_mode == 'boltzmann' or self.stochastic_observations:
-        action, new_observation, reward_scores = self.action(
+      action, new_observation, reward_scores = self.action(
           last_observation, exploration_period, enable_random=enable_random,
-          sample_next_obs=True)
-      else:
-        action, reward_scores = self.action(last_observation,
-                                            exploration_period,
-                                            enable_random=enable_random,
-                                            sample_next_obs=False)
-        new_observation = action
+          sample_next_obs=sample_next_obs)
+
       new_state = np.array(self.q_network.state_value).flatten()
       new_reward_state = np.array(self.reward_rnn.state_value).flatten()
 
@@ -665,8 +662,9 @@ class RLTuner(object):
         along with the action. If False, only the action is passed back.
 
     Returns:
-      The action chosen, the reward_scores returned by the reward_rnn, and if
-      sample_next_obs is True, also returns the next observation.
+      The action chosen, the reward_scores returned by the reward_rnn, and the 
+      next observation. If sample_next_obs is False, the next observation is 
+      equal to the action.
     """
     assert len(observation.shape) == 1, 'Single observation only'
 
@@ -708,13 +706,10 @@ class RLTuner(object):
 
     if enable_random and random.random() < exploration_p:
       note = self.get_random_note()
-      if sample_next_obs:
-        return note, note, reward_scores
-      else:
-        return note, reward_scores
+      return note, note, reward_scores
     else:
       if not sample_next_obs:
-        return action, reward_scores
+        return action, action, reward_scores
       else:
         obs_note = rl_tuner_ops.sample_softmax(action_softmax)
         next_obs = np.array(rl_tuner_ops.make_onehot([obs_note],
@@ -865,19 +860,11 @@ class RLTuner(object):
       self.reset_composition()
 
       for n in range(self.num_notes_in_melody):
-        if sample_next_obs:
-          action, new_observation, reward_scores = self.action(
-              last_observation,
-              0,
-              enable_random=False,
-              sample_next_obs=sample_next_obs)
-        else:
-          action, reward_scores = self.action(
-              last_observation,
-              0,
-              enable_random=False,
-              sample_next_obs=sample_next_obs)
-          new_observation = action
+        action, new_observation, reward_scores = self.action(
+            last_observation,
+            0,
+            enable_random=False,
+            sample_next_obs=sample_next_obs)
 
         note_rnn_reward = self.reward_from_reward_rnn_scores(new_observation,
                                                              reward_scores)
