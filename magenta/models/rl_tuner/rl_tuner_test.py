@@ -19,6 +19,7 @@ $ bazel test rl_tuner:rl_tuner_test
 """
 
 import os
+import os.path
 import tempfile
 
 # internal imports
@@ -97,7 +98,16 @@ class RLTunerTest(tf.test.TestCase):
         output_every_nth=30)
     rlt.train(num_steps=31, exploration_period=3)
 
-    self.assertTrue(os.path.exists(rlt.save_path + '-30'))
+    checkpoint_dir = os.path.dirname(rlt.save_path)
+    checkpoint_files = [
+        f for f in os.listdir(checkpoint_dir)
+        if os.path.isfile(os.path.join(checkpoint_dir, f))]
+    checkpoint_step_30 = [
+        f for f in checkpoint_files
+        if (os.path.basename(rlt.save_path) + '-30') in f]
+
+    self.assertTrue(len(checkpoint_step_30) > 0)
+
     self.assertTrue(len(rlt.rewards_batched) >= 1)
     self.assertTrue(len(rlt.eval_avg_reward) >= 1)
 
