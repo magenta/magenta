@@ -26,23 +26,21 @@ from collections import deque
 import os
 from os import makedirs
 from os.path import exists
-import urllib
 import random
-
-import matplotlib.pyplot as plt
-
-import numpy as np
-from scipy.misc import logsumexp
+import urllib
 
 # internal imports
-import tensorflow as tf
 
-from magenta.music import melodies_lib as mlib
-from magenta.music import midi_io
+import matplotlib.pyplot as plt
+import numpy as np
+from scipy.misc import logsumexp
+import tensorflow as tf
 
 from magenta.models.rl_tuner import note_rnn_loader
 from magenta.models.rl_tuner import rl_tuner_ops
 from magenta.models.rl_tuner import rl_tuner_eval_metrics
+from magenta.music import melodies_lib as mlib
+from magenta.music import midi_io
 
 # Note values of pecial actions.
 NOTE_OFF = 0
@@ -52,9 +50,9 @@ NO_EVENT = 1
 # to this length.
 TRAIN_SEQUENCE_LENGTH = 192
 
+
 def reload_files():
-  """Used to reload the imported dependency files (necessary for jupyter
-  notebooks).
+  """Used to reload the imported dependency files (needed for ipynb notebooks).
   """
   reload(note_rnn_loader)
   reload(rl_tuner_ops)
@@ -129,12 +127,12 @@ class RLTuner(object):
       note_rnn_hparams: A tf.HParams object which defines the hyper parameters
         used to train the MelodyRNN model that will be loaded from a checkpoint.
       num_notes_in_melody: The length of a composition of the model
-      midi_primer: A midi file that can be used to prime the model if
-        priming_mode is set to 'single_midi'.
       input_size: the size of the one-hot vector encoding a note that is input
         to the model.
       num_actions: The size of the one-hot vector encoding a note that is
         output by the model.
+      midi_primer: A midi file that can be used to prime the model if
+        priming_mode is set to 'single_midi'.
       save_name: Name the model will use to save checkpoints.
       output_every_nth: How many training steps before the model will print
         an output saying the cumulative reward, and save a checkpoint.
@@ -172,7 +170,7 @@ class RLTuner(object):
         tf.logging.fatal('A midi primer file is required when using'
                          'the single_midi priming mode.')
 
-      if note_rnn_checkpoint_dir is None or note_rnn_checkpoint_dir == '':
+      if note_rnn_checkpoint_dir is None or not note_rnn_checkpoint_dir:
         print 'Retrieving checkpoint of Note RNN from Magenta download server.'
         urllib.urlretrieve(
             'http://download.magenta.tensorflow.org/models/'
