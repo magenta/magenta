@@ -21,6 +21,7 @@ import tensorflow as tf
 
 from magenta.models.rl_tuner import rl_tuner_ops
 
+
 def compute_composition_stats(rl_tuner,
                               num_compositions=10000,
                               composition_length=32,
@@ -29,6 +30,7 @@ def compute_composition_stats(rl_tuner,
   """Uses the model to create many compositions, stores statistics about them.
 
   Args:
+    rl_tuner: An RLTuner object. 
     num_compositions: The number of compositions to create.
     composition_length: The number of beats in each composition.
     key: The numeric values of notes belonging to this key. Defaults to
@@ -56,6 +58,7 @@ def compute_composition_stats(rl_tuner,
   tf.logging.info(get_stat_dict_string(stat_dict))
 
   return stat_dict
+
 
 # The following functions compute evaluation metrics to test whether the model
 # trained successfully.
@@ -163,6 +166,7 @@ def compose_and_evaluate_piece(rl_tuner,
   """Composes a piece using the model, stores statistics about it in a dict.
 
   Args:
+    rl_tuner: An RLTuner object. 
     stat_dict: A dictionary storing statistics about a series of compositions.
     composition_length: The number of beats in the composition.
     key: The numeric values of notes belonging to this key. Defaults to
@@ -180,25 +184,24 @@ def compose_and_evaluate_piece(rl_tuner,
 
   for _ in range(composition_length):
     if sample_next_obs:
-      action, new_observation, reward_scores = rl_tuner.action(
+      action, new_observation, _ = rl_tuner.action(
           last_observation,
           0,
           enable_random=False,
           sample_next_obs=sample_next_obs)
     else:
-      action, reward_scores = rl_tuner.action(
+      action, _ = rl_tuner.action(
           last_observation,
           0,
           enable_random=False,
           sample_next_obs=sample_next_obs)
       new_observation = action
 
-    action_note = np.argmax(action)
     obs_note = np.argmax(new_observation)
 
     # Compute note by note stats as it composes.
     stat_dict = add_interval_stat(rl_tuner, new_observation, stat_dict, key=key)
-    stat_dict = add_in_key_stat(rl_tuner, obs_note, stat_dict, key=key)
+    stat_dict = add_in_key_stat(obs_note, stat_dict, key=key)
     stat_dict = add_tonic_start_stat(
         rl_tuner, obs_note, stat_dict, tonic_note=tonic_note)
     stat_dict = add_repeating_note_stat(rl_tuner, obs_note, stat_dict)
@@ -217,6 +220,7 @@ def compose_and_evaluate_piece(rl_tuner,
   add_high_low_unique_stats(rl_tuner, stat_dict)
 
   return stat_dict
+
 
 def initialize_stat_dict():
   """Initializes a dictionary which will hold statistics about compositions.
@@ -252,10 +256,12 @@ def initialize_stat_dict():
 
   return stat_dict
 
+
 def add_interval_stat(rl_tuner, action, stat_dict, key=None):
   """Computes the melodic interval just played and adds it to a stat dict.
 
   Args:
+    rl_tuner: An RLTuner object. 
     action: One-hot encoding of the chosen action.
     stat_dict: A dictionary containing fields for statistics about
       compositions.
@@ -265,7 +271,7 @@ def add_interval_stat(rl_tuner, action, stat_dict, key=None):
     A dictionary of composition statistics with fields updated to include new
     intervals.
   """
-  interval, action_note, prev_note = rl_tuner.detect_sequential_interval(action,
+  interval, _, _ = rl_tuner.detect_sequential_interval(action,
                                                                          key)
 
   if interval == 0:
@@ -295,7 +301,8 @@ def add_interval_stat(rl_tuner, action, stat_dict, key=None):
 
   return stat_dict
 
-def add_in_key_stat(rl_tuner, action_note, stat_dict, key=None):
+
+def add_in_key_stat(action_note, stat_dict, key=None):
   """Determines whether the note played was in key, and updates a stat dict.
 
   Args:
@@ -316,6 +323,7 @@ def add_in_key_stat(rl_tuner, action_note, stat_dict, key=None):
 
   return stat_dict
 
+
 def add_tonic_start_stat(rl_tuner,
                          action_note,
                          stat_dict,
@@ -323,6 +331,7 @@ def add_tonic_start_stat(rl_tuner,
   """Updates stat dict based on whether composition started with the tonic.
 
   Args:
+    rl_tuner: An RLTuner object. 
     action_note: An integer representing the chosen action.
     stat_dict: A dictionary containing fields for statistics about
       compositions.
@@ -335,10 +344,12 @@ def add_tonic_start_stat(rl_tuner,
     stat_dict['num_starting_tonic'] += 1
   return stat_dict
 
+
 def add_repeating_note_stat(rl_tuner, action_note, stat_dict):
   """Updates stat dict if an excessively repeated note was played.
 
   Args:
+    rl_tuner: An RLTuner object. 
     action_note: An integer representing the chosen action.
     stat_dict: A dictionary containing fields for statistics about
       compositions.
@@ -350,10 +361,12 @@ def add_repeating_note_stat(rl_tuner, action_note, stat_dict):
     stat_dict['num_repeated_notes'] += 1
   return stat_dict
 
+
 def add_motif_stat(rl_tuner, action, stat_dict):
   """Updates stat dict if a motif was just played.
 
   Args:
+    rl_tuner: An RLTuner object. 
     action: One-hot encoding of the chosen action.
     stat_dict: A dictionary containing fields for statistics about
       compositions.
@@ -367,10 +380,12 @@ def add_motif_stat(rl_tuner, action, stat_dict):
     stat_dict['notes_in_motif'] += 1
   return stat_dict
 
+
 def add_repeated_motif_stat(rl_tuner, action, stat_dict):
   """Updates stat dict if a repeated motif was just played.
 
   Args:
+    rl_tuner: An RLTuner object. 
     action: One-hot encoding of the chosen action.
     stat_dict: A dictionary containing fields for statistics about
       compositions.
@@ -383,10 +398,12 @@ def add_repeated_motif_stat(rl_tuner, action, stat_dict):
     stat_dict['notes_in_repeated_motif'] += 1
   return stat_dict
 
+
 def add_leap_stats(rl_tuner, action, stat_dict):
   """Updates stat dict if a melodic leap was just made or resolved.
 
   Args:
+    rl_tuner: An RLTuner object. 
     action: One-hot encoding of the chosen action.
     stat_dict: A dictionary containing fields for statistics about
       compositions.
@@ -400,10 +417,12 @@ def add_leap_stats(rl_tuner, action, stat_dict):
     stat_dict['num_leap_twice'] += 1
   return stat_dict
 
+
 def add_high_low_unique_stats(rl_tuner, stat_dict):
   """Updates stat dict if rl_tuner.composition has unique extrema notes.
 
   Args:
+    rl_tuner: An RLTuner object. 
     stat_dict: A dictionary containing fields for statistics about
       compositions.
   Returns:

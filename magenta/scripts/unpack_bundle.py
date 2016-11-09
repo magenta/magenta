@@ -31,6 +31,7 @@ tf.app.flags.DEFINE_string('checkpoint_path', '/tmp/model.ckpt',
                            'Path where the extracted checkpoint should'
                            'be saved')
 
+
 def main(_):
   bundle_file = FLAGS.bundle_path
   checkpoint_file = FLAGS.checkpoint_path
