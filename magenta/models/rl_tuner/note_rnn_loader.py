@@ -42,24 +42,24 @@ class NoteRNNLoader(object):
   Used as part of the RLTuner class.
   """
 
-  def __init__(self, graph, scope, experiment_dir, midi_primer=None,
-               training_file_list=None, hparams=None,
-               backup_checkpoint_file=None, softmax_within_graph=True,
-               note_rnn_type='default', checkpoint_scope='rnn_model'):
+  def __init__(self, graph, scope, checkpoint_dir, checkpoint_file=None, 
+               midi_primer=None, training_file_list=None, hparams=None,
+               softmax_within_graph=True, note_rnn_type='default', 
+               checkpoint_scope='rnn_model'):
     """Initialize by building the graph and loading a previous checkpoint.
 
     Args:
       graph: A tensorflow graph where the MelodyRNN's graph will be added.
       scope: The tensorflow scope where this network will be saved.
-      experiment_dir: Path to the directory where the checkpoint file is saved.
+      checkpoint_dir: Path to the directory where the checkpoint file is saved.
+      checkpoint_file: Path to a backup checkpoint file to be used if none can 
+        be found in the checkpoint_dir
       midi_primer: Path to a single midi file that can be used to prime the
         model.
       training_file_list: List of paths to tfrecord files containing melody 
         training data.
       hparams: A tf_lib.HParams object. Must match the hparams used to create the
         checkpoint file.
-      backup_checkpoint_file: Path to a backup checkpoint file to be used if
-        none can be found in the experiment_dir
       softmax_within_graph: If True, then when the network is called, it will
         output softmax probabilities for the next note. if False, it will output
         logits only. Used to control whether MelodyQ network is reinforcing
@@ -79,7 +79,7 @@ class NoteRNNLoader(object):
     self.checkpoint_scope = checkpoint_scope
     self.note_rnn_type = note_rnn_type
     self.training_file_list = training_file_list
-    self.checkpoint_dir = experiment_dir
+    self.checkpoint_dir = checkpoint_dir
 
     if hparams is not None:
       tf.logging.info('Using custom hparams')

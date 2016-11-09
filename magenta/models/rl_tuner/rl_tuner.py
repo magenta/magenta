@@ -62,7 +62,7 @@ class RLTuner(object):
 
                # Trained Note RNN to load and tune
                note_rnn_checkpoint_dir=None,
-               backup_checkpoint_file=None,
+               note_rnn_checkpoint_file=None,
                note_rnn_type='default',
                note_rnn_hparams=None,
 
@@ -107,7 +107,7 @@ class RLTuner(object):
         learning algorithms
       note_rnn_checkpoint_dir: The directory from which the internal NoteRNNLoader
         will load its checkpointed LSTM.
-      backup_checkpoint_file: A checkpoint file to use in case one cannot be
+      note_rnn_checkpoint_file: A checkpoint file to use in case one cannot be
         found in the note_rnn_checkpoint_dir.
       note_rnn_type: If 'default', will use the basic LSTM described in the 
         research paper. If 'basic_rnn', will assume the checkpoint is from a
@@ -148,9 +148,9 @@ class RLTuner(object):
       self.algorithm = algorithm
       self.priming_mode = priming_mode
       self.midi_primer = midi_primer
-      self.note_rnn_checkpoint_dir = note_rnn_checkpoint_dir
       self.training_file_list = training_file_list
-      self.backup_checkpoint_file = backup_checkpoint_file
+      self.note_rnn_checkpoint_dir = note_rnn_checkpoint_dir
+      self.note_rnn_checkpoint_file = note_rnn_checkpoint_file
       self.note_rnn_hparams = note_rnn_hparams
       self.note_rnn_type = note_rnn_type
 
@@ -164,7 +164,7 @@ class RLTuner(object):
           'http://download.magenta.tensorflow.org/models/rl_tuner_note_rnn.ckpt', 
           'note_rnn.ckpt')
         self.note_rnn_checkpoint_dir = os.getcwd()
-        self.backup_checkpoint_file = os.path.join(os.getcwd(), 'note_rnn.ckpt')
+        self.note_rnn_checkpoint_file = os.path.join(os.getcwd(), 'note_rnn.ckpt')
 
       if self.note_rnn_hparams is None:
         if self.note_rnn_type == 'basic_rnn':
@@ -245,7 +245,7 @@ class RLTuner(object):
                                             self.training_file_list,
                                             softmax_within_graph=False,
                                             backup_checkpoint_file=
-                                            self.backup_checkpoint_file,
+                                            self.note_rnn_checkpoint_file,
                                             hparams=self.note_rnn_hparams,
                                             note_rnn_type=self.note_rnn_type)
 
@@ -258,7 +258,7 @@ class RLTuner(object):
                                                    self.training_file_list,
                                                    softmax_within_graph=False,
                                                    backup_checkpoint_file=
-                                                   self.backup_checkpoint_file,
+                                                   self.note_rnn_checkpoint_file,
                                                    hparams=self.note_rnn_hparams,
                                                    note_rnn_type=self.note_rnn_type)
 
@@ -271,7 +271,7 @@ class RLTuner(object):
                                              self.training_file_list,
                                              softmax_within_graph=False,
                                              backup_checkpoint_file=
-                                             self.backup_checkpoint_file,
+                                             self.note_rnn_checkpoint_file,
                                              hparams=self.note_rnn_hparams,
                                              note_rnn_type=self.note_rnn_type)
 
