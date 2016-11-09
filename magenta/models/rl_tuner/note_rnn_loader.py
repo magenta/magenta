@@ -173,7 +173,7 @@ class NoteRNNLoader(object):
           var_dict[inner_name] = var
       else:
         var_dict[self.checkpoint_scope + '/' + inner_name] = var
-  
+
     return var_dict
 
   def build_graph(self):
