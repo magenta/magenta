@@ -35,33 +35,33 @@ functions, which can be set with the `algorithm` hyperparameter. For details
 on each algorithm, see [our paper][our arxiv].
 
 ## Code structure
-* 	In the constructor, RLTuner loads the `q_network`, `target_q_network`, and 
-	`reward_rnn` from a checkpointed Note RNN.
+*   In the constructor, RLTuner loads the `q_network`, `target_q_network`, and 
+    `reward_rnn` from a checkpointed Note RNN.
 
-*	The tensorflow graph architecture is defined in the `build_graph` 
-	function.
+*   The tensorflow graph architecture is defined in the `build_graph` 
+    function.
 
-*	The model is trained using the `train` function. It will continuously 
-	place notes by calling `action`, receive rewards using `collect_reward`, 
-	and save these experiences using `store`.
+*   The model is trained using the `train` function. It will continuously 
+    place notes by calling `action`, receive rewards using `collect_reward`, 
+    and save these experiences using `store`.
 
-*	The network weights are updated using `training_step`, which samples 
-	minibatches of experience from the model's `experience` buffer and uses 
-	this to compute gradients based on the loss function in `build_graph`.
+*   The network weights are updated using `training_step`, which samples 
+    minibatches of experience from the model's `experience` buffer and uses 
+    this to compute gradients based on the loss function in `build_graph`.
 
-*	During training, the function `evaluate_model` is occasionally run to 
-	test how much reward the model receives from both the Reward RNN and the 
-	music theory functions.
+*   During training, the function `evaluate_model` is occasionally run to 
+    test how much reward the model receives from both the Reward RNN and the 
+    music theory functions.
 
-*	After the model is trained, you can use the `save_model_and_figs` function
-	to save a checkpoint of the model and a set of figures of the rewards over 
-	time. 
+*   After the model is trained, you can use the `save_model_and_figs` function
+    to save a checkpoint of the model and a set of figures of the rewards over 
+    time. 
 
-*	Finally, use `generate_music_sequence` to generate a melody with your 
-	trained model! You can also call this function before training, to see how 
-	the model's songs have improved with training! If you set the 
-	`visualize_probs` parameter to *True*, it will also plot the 
-	note probabilities of the model over time.
+*   Finally, use `generate_music_sequence` to generate a melody with your 
+    trained model! You can also call this function before training, to see how 
+    the model's songs have improved with training! If you set the 
+    `visualize_probs` parameter to *True*, it will also plot the 
+    note probabilities of the model over time.
 
 ## Running the code
 To train the model you can use the provided jupyter notebook 
@@ -95,7 +95,7 @@ for musical aesthetics, try modifying the `reward_music_theory` function!
 ## Helpful links
 
 *   The code implements the model described in [this paper][our arxiv].
-*	For more on DQN, see [this paper][dqn].
+*   For more on DQN, see [this paper][dqn].
 *   The DQN code was originally based on [this example][dqn ex].
 
 [our arxiv]: https://arxiv.org/abs/comingsoon
