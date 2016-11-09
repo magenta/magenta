@@ -302,9 +302,10 @@ class RLTuner(object):
         q1 = self.session.run(q_vars[0])
 
         if np.sum((q1 - reward1)**2) == 0.0:
-          print "\nSuccessfully initialized internal nets from checkpoint!"
+          print '\nSuccessfully initialized internal nets from checkpoint!'
         else:
-          print "Error! The model was not initialized from checkpoint properly"
+          tf.logging.fatal('Error! The model was not initialized from '
+                           'checkpoint properly')
       else:
         self.q_network.initialize_new(self.session)
         self.target_q_network.initialize_new(self.session)
@@ -516,8 +517,7 @@ class RLTuner(object):
     self.summarize = tf.merge_all_summaries()
     self.no_op1 = tf.no_op()
 
-  def train(self, num_steps=10000, exploration_period=5000, enable_random=True, 
-            verbose=False):
+  def train(self, num_steps=10000, exploration_period=5000, enable_random=True):
     """Main training function that allows model to act, collects reward, trains.
 
     Iterates a number of times, getting the model to act each time, saving the
@@ -530,9 +530,8 @@ class RLTuner(object):
         random_action_probability.
       enable_random: If False, the model will not be able to act randomly /
         explore.
-      verbose: If True, will output debugging statements
     """
-    print "Evaluating initial model..."
+    tf.logging.info('Evaluating initial model...')
     self.evaluate_model()
 
     self.actions_executed_so_far = 0
@@ -562,21 +561,8 @@ class RLTuner(object):
       new_state = np.array(self.q_network.state_value).flatten()
       new_reward_state = np.array(self.reward_rnn.state_value).flatten()
 
-      if verbose:
-        print "Action (in train func):", np.argmax(action)
-        print "New obs (in train func):", np.argmax(new_observation)
-        r_act = self.reward_from_reward_rnn_scores(action, reward_scores)
-        print "reward_rnn output for action (in train func):", r_act
-        r_obs = self.reward_from_reward_rnn_scores(new_observation, 
-                                                   reward_scores)
-        print "reward_rnn output for new obs (in train func):", r_obs
-        r_diff = np.sum((reward_rnn_state - new_reward_state)**2)
-        print "Diff between successive reward_rnn states:", r_diff
-        s_diff = np.sum((new_state - new_reward_state)**2)
-        print "Diff between reward_rnn state and q_network state:", s_diff
-
       reward = self.collect_reward(last_observation, new_observation, 
-                                   reward_scores, verbose=verbose)
+                                   reward_scores)
 
       self.store(last_observation, state, action, reward, new_observation,
                  new_state, new_reward_state)
@@ -590,7 +576,7 @@ class RLTuner(object):
       self.beat += 1
 
       if i > 0 and i % self.output_every_nth == 0:
-        print "Evaluating model..."
+        tf.logging.info('Evaluating model...')
         self.evaluate_model()
         self.save_model(self.algorithm)
 
@@ -625,7 +611,6 @@ class RLTuner(object):
               self.actions_executed_so_far, exploration_period, 1.0,
               self.dqn_hparams.random_action_probability)
           tf.logging.info('\tExploration probability is %s', exploration_p)
-          print '\tExploration probability is', exploration_p
         
         self.reward_last_n = 0
         self.music_theory_reward_last_n = 0
@@ -639,7 +624,7 @@ class RLTuner(object):
 
       # Reset the state after each composition is complete.
       if self.beat % self.num_notes_in_melody == 0:
-        if verbose: print "\nResetting composition!\n"
+        tf.logging.debug('\nResetting composition!\n')
         self.reset_composition()
         last_observation = self.prime_internal_models()
 
@@ -894,7 +879,7 @@ class RLTuner(object):
     self.eval_avg_music_theory_reward.append(np.mean(music_theory_rewards))
 
 
-  def collect_reward(self, obs, action, reward_scores, verbose=False):
+  def collect_reward(self, obs, action, reward_scores):
     """Calls whatever reward function is indicated in the reward_mode field.
 
     New reward functions can be written and called from here. Note that the
@@ -907,8 +892,6 @@ class RLTuner(object):
       obs: A one-hot encoding of the observed note.
       action: A one-hot encoding of the chosen action.
       reward_scores: The value for each note output by the reward_rnn.
-      verbose: If True, additional logging statements about the reward after
-        each function will be printed.
     Returns:
       Float reward value.
     """
@@ -961,20 +944,18 @@ class RLTuner(object):
     elif self.reward_mode == 'preferred_intervals':
       reward = self.reward_preferred_intervals(action)
     elif self.reward_mode == 'music_theory_all':
-      if verbose:
-        print 'Note RNN reward:', note_rnn_reward
+      tf.logging.debug('Note RNN reward: %s', note_rnn_reward)
 
-      reward = self.reward_music_theory(action, verbose=verbose)
+      reward = self.reward_music_theory(action)
 
-      if verbose:
-        print 'Total music theory reward:', self.reward_scaler * reward
-        print 'Total note rnn reward:', note_rnn_reward
-        print ""
-      
+      tf.logging.debug('Total music theory reward: %s', 
+                       self.reward_scaler * reward)
+      tf.logging.debug('Total note rnn reward: %s', note_rnn_reward)
+
       self.music_theory_reward_last_n += reward * self.reward_scaler
       return reward * self.reward_scaler + note_rnn_reward
     elif self.reward_mode == 'music_theory_only':
-      reward = self.reward_music_theory(action, verbose=verbose)
+      reward = self.reward_music_theory(action)
     else:
       tf.logging.fatal('ERROR! Not a valid reward mode. Cannot compute reward')
 
@@ -1026,52 +1007,51 @@ class RLTuner(object):
          self.reward_rnn.lengths: lengths})
     return rewards
 
-  def reward_music_theory(self, action, verbose=False):
+  def reward_music_theory(self, action):
     reward = self.reward_key(action)
-    if verbose:
-      print 'Key:', reward
+    tf.logging.debug('Key: %s', reward)
     prev_reward = reward
 
     reward += self.reward_tonic(action)
-    if verbose and reward != prev_reward:
-      print 'Tonic:', reward
+    if reward != prev_reward:
+      tf.logging.debug('Tonic: %s', reward)
     prev_reward = reward
 
     reward += self.reward_penalize_repeating(action)
-    if verbose and reward != prev_reward:
-      print 'Penalize repeating:', reward
+    if reward != prev_reward:
+      tf.logging.debug('Penalize repeating: %s', reward)
     prev_reward = reward
 
     reward += self.reward_penalize_autocorrelation(action)
-    if verbose and reward != prev_reward:
-      print 'Penalize autocorr:', reward
+    if reward != prev_reward:
+      tf.logging.debug('Penalize autocorr: %s', reward)
     prev_reward = reward
 
     reward += self.reward_motif(action)
-    if verbose and reward != prev_reward:
-      print 'Reward motif:', reward
+    if reward != prev_reward:
+      tf.logging.debug('Reward motif: %s', reward)
     prev_reward = reward
 
     reward += self.reward_repeated_motif(action)
-    if verbose and reward != prev_reward:
-      print 'Reward repeated motif:', reward
+    if reward != prev_reward:
+      tf.logging.debug('Reward repeated motif: %s', reward)
     prev_reward = reward
 
     # New rewards based on Gauldin's book, "A Practical Approach to Eighteenth
     # Century Counterpoint"
     reward += self.reward_preferred_intervals(action)
-    if verbose and reward != prev_reward:
-      print 'Reward preferred_intervals:', reward
+    if reward != prev_reward:
+      tf.logging.debug('Reward preferred_intervals: %s', reward)
     prev_reward = reward
 
     reward += self.reward_leap_up_back(action)
-    if verbose and reward != prev_reward:
-      print 'Reward leap up back:', reward
+    if reward != prev_reward:
+      tf.logging.debug('Reward leap up back: %s', reward)
     prev_reward = reward
 
     reward += self.reward_high_low_unique(action)
-    if verbose and reward != prev_reward:
-      print 'Reward high low unique:', reward
+    if reward != prev_reward:
+      tf.logging.debug('Reward high low unique: %s', reward)
 
     return reward
 
@@ -1425,7 +1405,7 @@ class RLTuner(object):
     else:
       return 0.0
 
-  def detect_sequential_interval(self, action, key=None, verbose=False):
+  def detect_sequential_interval(self, action, key=None):
     """Finds the melodic interval between the action and the last note played.
 
     Uses constants to represent special intervals like rests.
@@ -1461,10 +1441,10 @@ class RLTuner(object):
       prev_note = self.composition[prev_note_index]
       prev_note_index -= 1
     if prev_note == NOTE_OFF or prev_note == NO_EVENT:
-      if verbose: print "action_note:", action_note, "prev_note:", prev_note
+      tf.logging.debug('Action_note: %s, prev_note: %s', action_note, prev_note)
       return 0, action_note, prev_note
 
-    if verbose: print "action_note:", action_note, "prev_note:", prev_note
+    tf.logging.debug('Action_note: %s, prev_note: %s', action_note, prev_note)
 
     # get rid of non-notes in action_note
     if action_note == NO_EVENT:
@@ -1491,8 +1471,7 @@ class RLTuner(object):
 
     return interval, action_note, prev_note
 
-  def reward_preferred_intervals(self, action, scaler=5.0, key=None, 
-    verbose=False):
+  def reward_preferred_intervals(self, action, scaler=5.0, key=None):
     """Dispenses reward based on the melodic interval just played.
 
     Args:
@@ -1503,12 +1482,11 @@ class RLTuner(object):
     Returns:
       Float reward value.
     """
-    interval, _, _ = self.detect_sequential_interval(action, key, 
-                                                     verbose=verbose)
-    if verbose: print "interval:", interval
+    interval, _, _ = self.detect_sequential_interval(action, key)
+    tf.logging.debug('Interval:', interval)
 
     if interval == 0:  # either no interval or involving uninteresting rests
-      if verbose: print "no interval or uninteresting"
+      tf.logging.debug('No interval or uninteresting.')
       return 0.0
 
     reward = 0.0
@@ -1516,51 +1494,51 @@ class RLTuner(object):
     # rests can be good
     if interval == rl_tuner_ops.REST_INTERVAL:
       reward = 0.05
-      if verbose: print "rest interval"
+      tf.logging.debug('Rest interval.')
     if interval == rl_tuner_ops.HOLD_INTERVAL:
       reward = 0.075
     if interval == rl_tuner_ops.REST_INTERVAL_AFTER_THIRD_OR_FIFTH:
       reward = 0.15
-      if verbose: print "rest interval after 1st or 5th"
+      tf.logging.debug('Rest interval after 1st or 5th.')
     if interval == rl_tuner_ops.HOLD_INTERVAL_AFTER_THIRD_OR_FIFTH:
       reward = 0.3
 
     # large leaps and awkward intervals bad
     if interval == rl_tuner_ops.SEVENTH:
       reward = -0.3
-      if verbose: print "7th"
+      tf.logging.debug('7th')
     if interval > rl_tuner_ops.OCTAVE:
       reward = -1.0
-      if verbose: print "More than octave"
+      tf.logging.debug('More than octave.')
 
     # common major intervals are good
     if interval == rl_tuner_ops.IN_KEY_FIFTH:
       reward = 0.1
-      if verbose: print "in key 5th"
+      tf.logging.debug('In key 5th')
     if interval == rl_tuner_ops.IN_KEY_THIRD:
       reward = 0.15
-      if verbose: print "in key 3rd"
+      tf.logging.debug('In key 3rd')
 
     # smaller steps are generally preferred
     if interval == rl_tuner_ops.THIRD:
       reward = 0.09
-      if verbose: print "3rd"
+      tf.logging.debug('3rd')
     if interval == rl_tuner_ops.SECOND:
       reward = 0.08
-      if verbose: print "2nd"
+      tf.logging.debug('2nd')
     if interval == rl_tuner_ops.FOURTH:
       reward = 0.07
-      if verbose: print "4th"
+      tf.logging.debug('4th')
 
     # larger leaps not as good, especially if not in key
     if interval == rl_tuner_ops.SIXTH:
       reward = 0.05
-      if verbose: print "6th"
+      tf.logging.debug('6th')
     if interval == rl_tuner_ops.FIFTH:
       reward = 0.02
-      if verbose: print "5th"
+      tf.logging.debug('5th')
 
-    if verbose: print "interval reward", reward * scaler
+    tf.logging.debug('Interval reward', reward * scaler)
     return reward * scaler
 
   def detect_high_unique(self, composition):
@@ -1619,7 +1597,7 @@ class RLTuner(object):
 
     return reward
 
-  def detect_leap_up_back(self, action, steps_between_leaps=6, verbose=False):
+  def detect_leap_up_back(self, action, steps_between_leaps=6):
     """Detects when the composition takes a musical leap, and if it is resolved.
 
     When the composition jumps up or down by an interval of a fifth or more,
@@ -1632,8 +1610,6 @@ class RLTuner(object):
       steps_between_leaps: Leaping back immediately does not constitute a
         satisfactory resolution of a leap. Therefore the composition must wait
         'steps_between_leaps' beats before leaping back.
-      verbose: If True, the model will output statements about whether it has
-        detected a leap.
     Returns:
       0 if there is no leap, 'LEAP_RESOLVED' if an existing leap has been
       resolved, 'LEAP_DOUBLED' if 2 leaps in the same direction were made.
@@ -1647,52 +1623,38 @@ class RLTuner(object):
 
     if action_note == NOTE_OFF or action_note == NO_EVENT:
       self.steps_since_last_leap += 1
-      if verbose:
-        tf.logging.info('Rest, adding to steps since last leap. It is'
-                     'now: %s', self.steps_since_last_leap)
+      tf.logging.debug('Rest, adding to steps since last leap. It is'
+                       'now: %s', self.steps_since_last_leap)
       return 0
 
     # detect if leap
     if interval >= rl_tuner_ops.FIFTH or interval == rl_tuner_ops.IN_KEY_FIFTH:
       if action_note > prev_note:
         leap_direction = rl_tuner_ops.ASCENDING
-        if verbose:
-          tf.logging.info('Detected an ascending leap')
-          print 'Detected an ascending leap'
+        tf.logging.debug('Detected an ascending leap')
       else:
         leap_direction = rl_tuner_ops.DESCENDING
-        if verbose:
-          tf.logging.info('Detected a descending leap')
-          print 'Detected a descending leap'
+        tf.logging.debug('Detected a descending leap')
 
       # there was already an unresolved leap
       if self.composition_direction != 0:
         if self.composition_direction != leap_direction:
-          if verbose:
-            tf.logging.info('Detected a resolved leap')
-            tf.logging.info('Num steps since last leap: %s',
-                         self.steps_since_last_leap)
-            print('Leap resolved by a leap. Num steps since last leap:', 
-                  self.steps_since_last_leap)
+          tf.logging.debug('Detected a resolved leap')
+          tf.logging.debug('Num steps since last leap: %s',
+                           self.steps_since_last_leap)
           if self.steps_since_last_leap > steps_between_leaps:
             outcome = rl_tuner_ops.LEAP_RESOLVED
-            if verbose:
-              tf.logging.info('Sufficient steps before leap resolved, '
-                           'awarding bonus')
-              print 'Sufficient steps were taken. Awarding bonus'
+            tf.logging.debug('Sufficient steps before leap resolved, '
+                             'awarding bonus')
           self.composition_direction = 0
           self.leapt_from = None
         else:
-          if verbose:
-            tf.logging.info('Detected a double leap')
-            print 'Detected a double leap!'
+          tf.logging.debug('Detected a double leap')
           outcome = rl_tuner_ops.LEAP_DOUBLED
 
       # the composition had no previous leaps
       else:
-        if verbose:
-          tf.logging.info('There was no previous leap direction')
-          print 'No previous leap direction'
+        tf.logging.debug('There was no previous leap direction')
         self.composition_direction = leap_direction
         self.leapt_from = prev_note
 
@@ -1701,9 +1663,8 @@ class RLTuner(object):
     # there is no leap
     else:
       self.steps_since_last_leap += 1
-      if verbose:
-        tf.logging.info('No leap, adding to steps since last leap. '
-                     'It is now: %s', self.steps_since_last_leap)
+      tf.logging.debug('No leap, adding to steps since last leap. '
+                       'It is now: %s', self.steps_since_last_leap)
 
       # If there was a leap before, check if composition has gradually returned
       # This could be changed by requiring you to only go a 5th back in the 
@@ -1712,20 +1673,15 @@ class RLTuner(object):
           action_note <= self.leapt_from) or (
               self.composition_direction == rl_tuner_ops.DESCENDING and
               action_note >= self.leapt_from):
-        if verbose:
-          tf.logging.info('detected a gradually resolved leap')
-          print 'Detected a gradually resolved leap'
+        tf.logging.debug('detected a gradually resolved leap')
         outcome = rl_tuner_ops.LEAP_RESOLVED
         self.composition_direction = 0
         self.leapt_from = None
 
     return outcome
 
-  def reward_leap_up_back(self,
-                          action,
-                          resolving_leap_bonus=5.0,
-                          leaping_twice_punishment=-5.0, 
-                          verbose=False):
+  def reward_leap_up_back(self, action, resolving_leap_bonus=5.0,
+                          leaping_twice_punishment=-5.0):
     """Applies punishment and reward based on the principle leap up leap back.
 
     Large interval jumps (more than a fifth) should be followed by moving back
@@ -1737,17 +1693,16 @@ class RLTuner(object):
         leap.
       leaping_twice_punishment: Amount of reward received for leaping twice in
         the same direction.
-      verbose: If True, model will print additional debugging statements.
     Returns:
       Float reward value.
     """
 
-    leap_outcome = self.detect_leap_up_back(action, verbose=verbose)
+    leap_outcome = self.detect_leap_up_back(action)
     if leap_outcome == rl_tuner_ops.LEAP_RESOLVED:
-      if verbose: print "leap resolved, awarding", resolving_leap_bonus
+      tf.logging.debug('Leap resolved, awarding %s', resolving_leap_bonus)
       return resolving_leap_bonus
     elif leap_outcome == rl_tuner_ops.LEAP_DOUBLED:
-      if verbose: print "leap doubled, awarding", leaping_twice_punishment
+      tf.logging.debug('Leap doubled, awarding %s', leaping_twice_punishment)
       return leaping_twice_punishment
     else:
       return 0.0
@@ -2052,19 +2007,19 @@ class RLTuner(object):
     if checkpoint_name is not None:
       checkpoint_file = os.path.join(directory, checkpoint_name)
     else:
-      print "directory", directory
+      tf.logging.info('Directory', directory)
       checkpoint_file = tf.train.latest_checkpoint(directory)
 
     if checkpoint_file is None:
-      print "Error! Cannot locate checkpoint in the directory"
+      tf.logging.fatal('Error! Cannot locate checkpoint in the directory')
       return
-    print "Attempting to restore from checkpoint", checkpoint_file
+    print 'Attempting to restore from checkpoint', checkpoint_file
 
     self.saver.restore(self.session, checkpoint_file)
 
     if reward_file_name is not None:
       npz_file_name = os.path.join(directory, reward_file_name)
-      print "Attempting to load saved reward values from file", npz_file_name
+      print 'Attempting to load saved reward values from file', npz_file_name
       npz_file = np.load(npz_file_name)
 
       self.rewards_batched = npz_file['train_rewards']
