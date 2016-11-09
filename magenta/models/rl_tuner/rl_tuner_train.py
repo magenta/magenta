@@ -76,7 +76,7 @@ def main(_):
                                         FLAGS.note_rnn_checkpoint_name)
 
   rlt = rl_tuner.RLTuner(output_dir,
-                         FLAGS.midi_primer, 
+                         midi_primer=FLAGS.midi_primer, 
                          dqn_hparams=dqn_hparams, 
                          reward_scaler=FLAGS.reward_scaler,
                          save_name = output_ckpt,
