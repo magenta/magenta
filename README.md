@@ -145,6 +145,13 @@ git clone https://github.com/tensorflow/magenta.git
 Next, [install Bazel](https://bazel.build/docs/install.html). We recommend the
 latest version, currently 0.4.0.
 
+You will also need to install some required python dependencies. We recommend
+using a conda envrionment and installing with pip:
+
+```
+pip install matplotlib scipy
+```
+
 Finally,
 [install TensorFlow](https://www.tensorflow.org/get_started/os_setup.html).
 We require version 0.11.0rc2 or later.
