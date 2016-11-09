@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Defines the main RL Tuner class. 
+"""Defines the main RL Tuner class.
 
 RL Tuner is a Deep Q Network (DQN) with augmented reward to create melodies
 by using reinforcement learning to fine-tune a trained Note RNN according
@@ -445,8 +445,8 @@ class RLTuner(object):
         # Compute predicted action, which is the argmax of the action scores.
         self.action_softmax = tf.nn.softmax(self.action_scores,
                                             name='action_softmax')
-        self.predicted_actions = tf.one_hot(tf.argmax(self.action_scores, 
-                                                      dimension=1, 
+        self.predicted_actions = tf.one_hot(tf.argmax(self.action_scores,
+                                                      dimension=1,
                                                       name='predicted_actions'),
                                             self.num_actions)
 
@@ -662,8 +662,8 @@ class RLTuner(object):
         along with the action. If False, only the action is passed back.
 
     Returns:
-      The action chosen, the reward_scores returned by the reward_rnn, and the 
-      next observation. If sample_next_obs is False, the next observation is 
+      The action chosen, the reward_scores returned by the reward_rnn, and the
+      next observation. If sample_next_obs is False, the next observation is
       equal to the action.
     """
     assert len(observation.shape) == 1, 'Single observation only'
@@ -1827,7 +1827,7 @@ class RLTuner(object):
         Major if not provided.
       tonic_note: The tonic/1st note of the desired key.
 
-    Returns: 
+    Returns:
       A dictionary containing the statistics.
     """
     stat_dict = rl_tuner_eval_metrics.compute_composition_stats(

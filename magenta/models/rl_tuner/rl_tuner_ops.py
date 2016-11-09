@@ -98,7 +98,7 @@ def basic_rnn_hparams():
   https://github.com/tensorflow/magenta/tree/master/magenta/models/
   melody_rnn#pre-trained
 
-  Returns: 
+  Returns:
     Hyperparameters of the downloadable basic_rnn pre-trained model.
   """
   # TODO(natashajaques): ability to restore basic_rnn from any .mag

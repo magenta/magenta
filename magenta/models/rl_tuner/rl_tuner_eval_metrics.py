@@ -30,7 +30,7 @@ def compute_composition_stats(rl_tuner,
   """Uses the model to create many compositions, stores statistics about them.
 
   Args:
-    rl_tuner: An RLTuner object. 
+    rl_tuner: An RLTuner object.
     num_compositions: The number of compositions to create.
     composition_length: The number of beats in each composition.
     key: The numeric values of notes belonging to this key. Defaults to
@@ -166,7 +166,7 @@ def compose_and_evaluate_piece(rl_tuner,
   """Composes a piece using the model, stores statistics about it in a dict.
 
   Args:
-    rl_tuner: An RLTuner object. 
+    rl_tuner: An RLTuner object.
     stat_dict: A dictionary storing statistics about a series of compositions.
     composition_length: The number of beats in the composition.
     key: The numeric values of notes belonging to this key. Defaults to
@@ -261,7 +261,7 @@ def add_interval_stat(rl_tuner, action, stat_dict, key=None):
   """Computes the melodic interval just played and adds it to a stat dict.
 
   Args:
-    rl_tuner: An RLTuner object. 
+    rl_tuner: An RLTuner object.
     action: One-hot encoding of the chosen action.
     stat_dict: A dictionary containing fields for statistics about
       compositions.
@@ -331,7 +331,7 @@ def add_tonic_start_stat(rl_tuner,
   """Updates stat dict based on whether composition started with the tonic.
 
   Args:
-    rl_tuner: An RLTuner object. 
+    rl_tuner: An RLTuner object.
     action_note: An integer representing the chosen action.
     stat_dict: A dictionary containing fields for statistics about
       compositions.
@@ -349,7 +349,7 @@ def add_repeating_note_stat(rl_tuner, action_note, stat_dict):
   """Updates stat dict if an excessively repeated note was played.
 
   Args:
-    rl_tuner: An RLTuner object. 
+    rl_tuner: An RLTuner object.
     action_note: An integer representing the chosen action.
     stat_dict: A dictionary containing fields for statistics about
       compositions.
@@ -366,7 +366,7 @@ def add_motif_stat(rl_tuner, action, stat_dict):
   """Updates stat dict if a motif was just played.
 
   Args:
-    rl_tuner: An RLTuner object. 
+    rl_tuner: An RLTuner object.
     action: One-hot encoding of the chosen action.
     stat_dict: A dictionary containing fields for statistics about
       compositions.
@@ -385,7 +385,7 @@ def add_repeated_motif_stat(rl_tuner, action, stat_dict):
   """Updates stat dict if a repeated motif was just played.
 
   Args:
-    rl_tuner: An RLTuner object. 
+    rl_tuner: An RLTuner object.
     action: One-hot encoding of the chosen action.
     stat_dict: A dictionary containing fields for statistics about
       compositions.
@@ -403,7 +403,7 @@ def add_leap_stats(rl_tuner, action, stat_dict):
   """Updates stat dict if a melodic leap was just made or resolved.
 
   Args:
-    rl_tuner: An RLTuner object. 
+    rl_tuner: An RLTuner object.
     action: One-hot encoding of the chosen action.
     stat_dict: A dictionary containing fields for statistics about
       compositions.
@@ -422,7 +422,7 @@ def add_high_low_unique_stats(rl_tuner, stat_dict):
   """Updates stat dict if rl_tuner.composition has unique extrema notes.
 
   Args:
-    rl_tuner: An RLTuner object. 
+    rl_tuner: An RLTuner object.
     stat_dict: A dictionary containing fields for statistics about
       compositions.
   Returns:
