@@ -60,7 +60,7 @@ tf.app.flags.DEFINE_string('algorithm', 'q',
 
 
 def main(_):
-  hparams = rl_tuner_ops.small_model_hparams()
+  hparams = rl_tuner_ops.default_hparams()
 
   dqn_hparams = tf_lib.HParams(random_action_probability=0.1,
                                store_every_nth=1,
@@ -75,14 +75,15 @@ def main(_):
   backup_checkpoint_file = os.path.join(FLAGS.note_rnn_checkpoint_dir, 
                                         FLAGS.note_rnn_checkpoint_name)
 
-  rlt = rl_tuner.RLTuner(output_dir, FLAGS.note_rnn_checkpoint_dir, 
+  rlt = rl_tuner.RLTuner(output_dir,
                          FLAGS.midi_primer, 
                          dqn_hparams=dqn_hparams, 
                          reward_scaler=FLAGS.reward_scaler,
                          save_name = output_ckpt,
                          output_every_nth=FLAGS.output_every_nth, 
-                         backup_checkpoint_file=backup_checkpoint_file,
-                         custom_hparams=hparams, 
+                         note_rnn_checkpoint_dir=FLAGS.note_rnn_checkpoint_dir,
+                         note_rnn_checkpoint_file=backup_checkpoint_file,
+                         note_rnn_hparams=hparams, 
                          num_notes_in_melody=FLAGS.num_notes_in_melody,
                          exploration_mode=FLAGS.exploration_mode,
                          algorithm=FLAGS.algorithm)
