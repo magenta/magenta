@@ -24,11 +24,11 @@ import tempfile
 # internal imports
 
 import matplotlib
+matplotlib.use('Agg')
+import matplotlib.pyplot as plt
 import tensorflow as tf
 
 from magenta.models.rl_tuner import rl_tuner
-
-matplotlib.use('Agg')
 
 
 class RLTunerTest(tf.test.TestCase):
