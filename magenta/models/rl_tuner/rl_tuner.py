@@ -244,7 +244,7 @@ class RLTuner(object):
                                             training_file_list=
                                             self.training_file_list,
                                             softmax_within_graph=False,
-                                            backup_checkpoint_file=
+                                            checkpoint_file=
                                             self.note_rnn_checkpoint_file,
                                             hparams=self.note_rnn_hparams,
                                             note_rnn_type=self.note_rnn_type)
@@ -257,7 +257,7 @@ class RLTuner(object):
                                                    training_file_list=
                                                    self.training_file_list,
                                                    softmax_within_graph=False,
-                                                   backup_checkpoint_file=
+                                                   checkpoint_file=
                                                    self.note_rnn_checkpoint_file,
                                                    hparams=self.note_rnn_hparams,
                                                    note_rnn_type=self.note_rnn_type)
@@ -270,7 +270,7 @@ class RLTuner(object):
                                              training_file_list=
                                              self.training_file_list,
                                              softmax_within_graph=False,
-                                             backup_checkpoint_file=
+                                             checkpoint_file=
                                              self.note_rnn_checkpoint_file,
                                              hparams=self.note_rnn_hparams,
                                              note_rnn_type=self.note_rnn_type)
