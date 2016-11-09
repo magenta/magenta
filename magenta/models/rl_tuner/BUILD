@@ -33,6 +33,7 @@ py_binary(
     deps = [
         ":note_rnn_loader",
         ":rl_tuner_ops",
+        ":rl_tuner_eval_metrics",
         "//magenta/music:melodies_lib",
         "//magenta/music:midi_io",
         # tensorflow dep
