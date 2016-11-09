@@ -1,7 +1,7 @@
 r"""Code to extract a tensorflow checkpoint from a bundle file.
 
 To run this code on your local machine:
-$ bazel run magenta/models/rl_tuner:unpack_ckpt_from_bundle -- \
+$ bazel run magenta/scripts:unpack_bundle -- \
 --bundle_path 'path' --checkpoint_path 'path'
 """
 
@@ -10,8 +10,6 @@ import os
 import tensorflow as tf
 
 from magenta.music import sequence_generator_bundle
-
-import rl_tuner_ops
 
 FLAGS = tf.app.flags.FLAGS
 tf.app.flags.DEFINE_string('bundle_path', '',
