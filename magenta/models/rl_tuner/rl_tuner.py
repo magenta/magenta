@@ -240,7 +240,7 @@ class RLTuner(object):
       tf.logging.info('Initializing q network')
       self.q_network = note_rnn_loader.NoteRNNLoader(self.graph, 'q_network',
                                             self.note_rnn_checkpoint_dir,
-                                            self.midi_primer,
+                                            midi_primer=self.midi_primer,
                                             training_file_list=
                                             self.training_file_list,
                                             softmax_within_graph=False,
