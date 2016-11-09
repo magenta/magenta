@@ -301,8 +301,7 @@ class NoteRNNLoader(object):
   def prime_model(self):
     """Primes the model with its default midi primer."""
     with self.graph.as_default():
-      if not suppress_output:
-        tf.logging.verbose('Priming the model with MIDI file %s', self.midi_primer)
+      tf.logging.debug('Priming the model with MIDI file %s', self.midi_primer)
 
       # Convert primer Melody to model inputs.
       encoder = magenta.music.OneHotEventSequenceEncoderDecoder(
