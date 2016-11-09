@@ -12,7 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Defines a Deep Q Network (DQN) with augmented reward to create melodies
+"""Defines the main RL Tuner class. 
+
+RL Tuner is a Deep Q Network (DQN) with augmented reward to create melodies
 by using reinforcement learning to fine-tune a trained Note RNN according
 to some music theory rewards.
 
