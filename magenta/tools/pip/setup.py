@@ -29,6 +29,7 @@ REQUIRED_PACKAGES = [
     'pretty_midi >= 0.2.6',
     'scipy >= 0.18.1',
     'tensorflow >= 0.11.0rc2',
+    'matplotlib >= 1.5.3',
     'wheel',
 ]
 
