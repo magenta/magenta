@@ -21,14 +21,18 @@ $ bazel test rl_tuner:rl_tuner_test
 import os
 import tempfile
 
-import matplotlib
-matplotlib.use('Agg')
-
 # internal imports
+
+import matplotlib
+# Need to use 'Agg' option for plotting and saving files from command line.
+# Can't use 'Agg' in RL Tuner because it breaks plotting in notebooks.
+# pylint: disable=g-import-not-at-top
+matplotlib.use('Agg')
+import matplotlib.pyplot as plt  # pylint: disable=unused-import
 import tensorflow as tf
 
 from magenta.models.rl_tuner import rl_tuner
-from magenta.models.rl_tuner import rl_tuner_ops
+# pylint: enable=g-import-not-at-top
 
 
 class RLTunerTest(tf.test.TestCase):
@@ -47,7 +51,7 @@ class RLTunerTest(tf.test.TestCase):
 
     plot_name = 'test_initial_plot.png'
     rlt.generate_music_sequence(visualize_probs=True,
-                               prob_image_name=plot_name)
+                                prob_image_name=plot_name)
     output_path = os.path.join(self.output_dir, plot_name)
     self.assertTrue(os.path.exists(output_path))
 

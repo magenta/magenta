@@ -19,19 +19,23 @@ $ bazel run magenta/models/rl_tuner:rl_tuner_train -- \
 --note_rnn_checkpoint_dir 'path' --midi_primer 'primer.mid' \
 --training_data_path 'path.tfrecord'
 """
-
-import matplotlib
-matplotlib.use('Agg')
-import matplotlib.pyplot as plt
 import os
 
+# internal imports
+
+import matplotlib
+# Need to use 'Agg' option for plotting and saving files from command line.
+# Can't use 'Agg' in RL Tuner because it breaks plotting in notebooks.
+# pylint: disable=g-import-not-at-top
+matplotlib.use('Agg')
+import matplotlib.pyplot as plt  # pylint: disable=unused-import
 import tensorflow as tf
 
 from magenta.common import tf_lib
-
-# internal imports
 from magenta.models.rl_tuner import rl_tuner
 from magenta.models.rl_tuner import rl_tuner_ops
+# pylint: enable=g-import-not-at-top
+
 
 FLAGS = tf.app.flags.FLAGS
 tf.app.flags.DEFINE_string('output_dir', '',
@@ -94,7 +98,7 @@ def main(_):
                          midi_primer=FLAGS.midi_primer,
                          dqn_hparams=dqn_hparams,
                          reward_scaler=FLAGS.reward_scaler,
-                         save_name = output_ckpt,
+                         save_name=output_ckpt,
                          output_every_nth=FLAGS.output_every_nth,
                          note_rnn_checkpoint_dir=FLAGS.note_rnn_checkpoint_dir,
                          note_rnn_checkpoint_file=backup_checkpoint_file,
@@ -107,13 +111,13 @@ def main(_):
 
   tf.logging.info('\nTraining...')
   rlt.train(num_steps=FLAGS.training_steps,
-               exploration_period=FLAGS.exploration_steps)
+            exploration_period=FLAGS.exploration_steps)
 
   tf.logging.info('\nFinished training. Saving output figures and composition.')
   rlt.plot_rewards(image_name='Rewards-' + FLAGS.algorithm + '.eps')
 
   rlt.generate_music_sequence(visualize_probs=True, title=FLAGS.algorithm,
-                                 prob_image_name=FLAGS.algorithm + '.png')
+                              prob_image_name=FLAGS.algorithm + '.png')
 
   rlt.save_model_and_figs(FLAGS.algorithm)
 

@@ -104,7 +104,7 @@ for musical aesthetics, try modifying the `reward_music_theory` function!
 
 [our arxiv]: https://arxiv.org/abs/comingsoon
 [blog post]: https://notfuchsia.github.io/2016/10/24/natasha/
-[ipynb]: https://nbviewer.jupyter.org/github/natashamjaques/magenta/blob/20d53280c47e490d04cca20ff0ddaca871a37b88/magenta/models/rl_tuner/rl_tuner.ipynb
+[ipynb]: https://nbviewer.jupyter.org/github/tensorflow/magenta/tree/master/magenta/models/rl_tuner/rl_tuner.ipynb
 [note rnn ckpt]: http://download.magenta.tensorflow.org/models/rl_tuner_note_rnn.ckpt
 [magenta pretrained]: https://github.com/tensorflow/magenta/tree/master/magenta/models/melody_rnn#pre-trained
 [dqn ex]: https://github.com/nivwusquorum/tensorflow-deepq/blob/master/tf_rl/
