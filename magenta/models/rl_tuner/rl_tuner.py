@@ -299,7 +299,12 @@ class RLTuner(object):
         q1 = self.session.run(q_vars[0])
 
         if np.sum((q1 - reward1)**2) == 0.0:
+          #TODO(natashamjaques): Remove print statement once tf.logging outputs
+          # to Jupyter notebooks (once the following issue is resolved:
+          # https://github.com/tensorflow/tensorflow/issues/3047)
           print '\nSuccessfully initialized internal nets from checkpoint!'
+          tf.logging.info('\nSuccessfully initialized internal nets from '
+                          'checkpoint!')
         else:
           tf.logging.fatal('Error! The model was not initialized from '
                            'checkpoint properly')
@@ -598,6 +603,9 @@ class RLTuner(object):
                         self.music_theory_reward_last_n)
         tf.logging.info('\t\tNote RNN reward: %s', self.note_rnn_reward_last_n)
         
+        #TODO(natashamjaques): Remove print statement once tf.logging outputs
+        # to Jupyter notebooks (once the following issue is resolved:
+        # https://github.com/tensorflow/tensorflow/issues/3047)
         print 'Training iteration', i
         print '\tReward for last', self.output_every_nth, 'steps:', r
         print '\t\tMusic theory reward:', self.music_theory_reward_last_n
@@ -1780,6 +1788,9 @@ class RLTuner(object):
                                                  self.num_actions)).flatten()
 
     tf.logging.info('Generated sequence: %s', generated_seq)
+    #TODO(natashamjaques): Remove print statement once tf.logging outputs
+    # to Jupyter notebooks (once the following issue is resolved:
+    # https://github.com/tensorflow/tensorflow/issues/3047)
     print 'Generated sequence:', generated_seq
 
     melody = mlib.Melody(rl_tuner_ops.decoder(generated_seq, 
@@ -1823,7 +1834,11 @@ class RLTuner(object):
       key=key,
       tonic_note=tonic_note)
 
+    #TODO(natashamjaques): Remove print statement once tf.logging outputs
+    # to Jupyter notebooks (once the following issue is resolved:
+    # https://github.com/tensorflow/tensorflow/issues/3047)
     print rl_tuner_eval_metrics.get_stat_dict_string(stat_dict)
+    tf.logging.info(stat_dict)
 
     return stat_dict
 
@@ -2010,13 +2025,22 @@ class RLTuner(object):
     if checkpoint_file is None:
       tf.logging.fatal('Error! Cannot locate checkpoint in the directory')
       return
+    #TODO(natashamjaques): Remove print statement once tf.logging outputs
+    # to Jupyter notebooks (once the following issue is resolved:
+    # https://github.com/tensorflow/tensorflow/issues/3047)
     print 'Attempting to restore from checkpoint', checkpoint_file
+    tf.logging.info('Attempting to restore from checkpoint %s', checkpoint_file)
 
     self.saver.restore(self.session, checkpoint_file)
 
     if reward_file_name is not None:
       npz_file_name = os.path.join(directory, reward_file_name)
+      #TODO(natashamjaques): Remove print statement once tf.logging outputs
+    # to Jupyter notebooks (once the following issue is resolved:
+    # https://github.com/tensorflow/tensorflow/issues/3047)
       print 'Attempting to load saved reward values from file', npz_file_name
+      tf.logging.info('Attempting to load saved reward values from file %s', 
+                      npz_file_name)
       npz_file = np.load(npz_file_name)
 
       self.rewards_batched = npz_file['train_rewards']
