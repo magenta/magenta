@@ -44,8 +44,7 @@ class NoteRNNLoader(object):
 
   def __init__(self, graph, scope, checkpoint_dir, checkpoint_file=None, 
                midi_primer=None, training_file_list=None, hparams=None,
-               softmax_within_graph=True, note_rnn_type='default', 
-               checkpoint_scope='rnn_model'):
+               note_rnn_type='default', checkpoint_scope='rnn_model'):
     """Initialize by building the graph and loading a previous checkpoint.
 
     Args:
@@ -60,10 +59,6 @@ class NoteRNNLoader(object):
         training data.
       hparams: A tf_lib.HParams object. Must match the hparams used to create 
         the checkpoint file.
-      softmax_within_graph: If True, then when the network is called, it will
-        output softmax probabilities for the next note. if False, it will output
-        logits only. Used to control whether MelodyQ network is reinforcing
-        softmax probabilities or logits.
       note_rnn_type: If 'default', will use the basic LSTM described in the 
         research paper. If 'basic_rnn', will assume the checkpoint is from a
         Magenta basic_rnn model.
@@ -75,7 +70,6 @@ class NoteRNNLoader(object):
     self.scope = scope
     self.batch_size = 1
     self.midi_primer = midi_primer
-    self.softmax_within_graph = softmax_within_graph
     self.checkpoint_scope = checkpoint_scope
     self.note_rnn_type = note_rnn_type
     self.training_file_list = training_file_list
@@ -227,19 +221,11 @@ class NoteRNNLoader(object):
                                       [-1, self.hparams.rnn_layer_sizes[-1]])
             logits_flat = tf.contrib.layers.legacy_linear(
                 outputs_flat, self.hparams.one_hot_length)
-            if self.softmax_within_graph:
-              softmax = tf.nn.softmax(logits_flat)
-              return softmax, final_state
-            else:
-              return logits_flat, final_state
+            return logits_flat, final_state
 
-          if self.softmax_within_graph:
-            (self.softmax, self.state_tensor) = run_network_on_melody(
+          (self.logits, self.state_tensor) = run_network_on_melody(
                 self.melody_sequence, self.lengths, self.initial_state)
-          else:
-            (self.logits, self.state_tensor) = run_network_on_melody(
-                self.melody_sequence, self.lengths, self.initial_state)
-            self.softmax = tf.nn.softmax(self.logits)
+          self.softmax = tf.nn.softmax(self.logits)
 
           self.run_network_on_melody = run_network_on_melody
 
@@ -250,13 +236,9 @@ class NoteRNNLoader(object):
             zero_state = self.cell.zero_state(
                 batch_size=self.hparams.batch_size, dtype=tf.float32)
 
-            if self.softmax_within_graph:
-              (self.train_softmax, self.train_state) = run_network_on_melody(
+            (self.train_logits, self.train_state) = run_network_on_melody(
                   self.train_sequence, self.train_lengths, zero_state)
-            else:
-              (self.train_logits, self.train_state) = run_network_on_melody(
-                  self.train_sequence, self.train_lengths, zero_state)
-              self.train_softmax = tf.nn.softmax(self.train_logits)
+            self.train_softmax = tf.nn.softmax(self.train_logits)
 
   def restore_vars_from_checkpoint(self, checkpoint_dir):
     """Loads model weights from a saved checkpoint.
@@ -357,14 +339,9 @@ class NoteRNNLoader(object):
     """
     with self.graph.as_default():
       with tf.variable_scope(self.scope, reuse=True):
-        if self.softmax_within_graph:
-          softmax, self.state_tensor = self.run_network_on_melody(
+        logits, self.state_tensor = self.run_network_on_melody(
               self.melody_sequence, self.lengths, self.initial_state)
-          return softmax
-        else:
-          logits, self.state_tensor = self.run_network_on_melody(
-              self.melody_sequence, self.lengths, self.initial_state)
-          return logits
+        return logits
 
   def run_training_batch(self):
     """Runs one batch of training data through the model.

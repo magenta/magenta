@@ -244,7 +244,6 @@ class RLTuner(object):
         midi_primer=self.midi_primer,
         training_file_list=
         self.training_file_list,
-        softmax_within_graph=False,
         checkpoint_file=
         self.note_rnn_checkpoint_file,
         hparams=self.note_rnn_hparams,
@@ -258,7 +257,6 @@ class RLTuner(object):
         midi_primer=self.midi_primer,
         training_file_list=
         self.training_file_list,
-        softmax_within_graph=False,
         checkpoint_file=
         self.note_rnn_checkpoint_file,
         hparams=self.note_rnn_hparams,
@@ -271,7 +269,6 @@ class RLTuner(object):
         midi_primer=self.midi_primer,
         training_file_list=
         self.training_file_list,
-        softmax_within_graph=False,
         checkpoint_file=
         self.note_rnn_checkpoint_file,
         hparams=self.note_rnn_hparams,
