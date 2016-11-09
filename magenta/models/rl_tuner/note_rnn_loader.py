@@ -51,8 +51,8 @@ class NoteRNNLoader(object):
       graph: A tensorflow graph where the MelodyRNN's graph will be added.
       scope: The tensorflow scope where this network will be saved.
       checkpoint_dir: Path to the directory where the checkpoint file is saved.
-      checkpoint_file: Path to a backup checkpoint file to be used if none can 
-        be found in the checkpoint_dir
+      checkpoint_file: Path to a checkpoint file to be used if none can be 
+        found in the checkpoint_dir
       midi_primer: Path to a single midi file that can be used to prime the
         model.
       training_file_list: List of paths to tfrecord files containing melody 
@@ -256,7 +256,7 @@ class NoteRNNLoader(object):
     tf.logging.info('Checkpoint dir: %s', checkpoint_dir)
     checkpoint_file = tf.train.latest_checkpoint(checkpoint_dir)
     if checkpoint_file is None:
-      tf.logging.warn("Can't find checkpoint file, using backup, which is %s", 
+      tf.logging.warn("Can't find checkpoint file, using %s", 
                       self.checkpoint_file)
       checkpoint_file = self.checkpoint_file
     tf.logging.info('Checkpoint file: %s', checkpoint_file)
