@@ -104,9 +104,9 @@ class RLTunerTest(tf.test.TestCase):
         if os.path.isfile(os.path.join(checkpoint_dir, f))]
     checkpoint_step_30 = [
         f for f in checkpoint_files
-        if (os.path.basename(rlt.save_path) + '-30') in f]
+        if os.path.basename(rlt.save_path) + '-30' in f]
 
-    self.assertTrue(len(checkpoint_step_30) > 0)
+    self.assertTrue(len(checkpoint_step_30))
 
     self.assertTrue(len(rlt.rewards_batched) >= 1)
     self.assertTrue(len(rlt.eval_avg_reward) >= 1)
