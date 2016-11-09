@@ -271,8 +271,7 @@ def add_interval_stat(rl_tuner, action, stat_dict, key=None):
     A dictionary of composition statistics with fields updated to include new
     intervals.
   """
-  interval, _, _ = rl_tuner.detect_sequential_interval(action,
-                                                                         key)
+  interval, _, _ = rl_tuner.detect_sequential_interval(action, key)
 
   if interval == 0:
     return stat_dict

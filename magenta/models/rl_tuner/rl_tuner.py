@@ -39,8 +39,8 @@ from scipy.misc import logsumexp
 import tensorflow as tf
 
 from magenta.models.rl_tuner import note_rnn_loader
-from magenta.models.rl_tuner import rl_tuner_ops
 from magenta.models.rl_tuner import rl_tuner_eval_metrics
+from magenta.models.rl_tuner import rl_tuner_ops
 from magenta.music import melodies_lib as mlib
 from magenta.music import midi_io
 
@@ -559,7 +559,7 @@ class RLTuner(object):
 
     sample_next_obs = False
     if self.exploration_mode == 'boltzmann' or self.stochastic_observations:
-        sample_next_obs = True
+      sample_next_obs = True
 
     self.reset_composition()
     last_observation = self.prime_internal_models()
@@ -685,7 +685,7 @@ class RLTuner(object):
     lengths = np.full(self.q_network.batch_size, 1, dtype=int)
 
     (action, action_softmax, self.q_network.state_value,
-    reward_scores, self.reward_rnn.state_value) = self.session.run(
+     reward_scores, self.reward_rnn.state_value) = self.session.run(
         [self.predicted_actions, self.action_softmax,
          self.q_network.state_tensor, self.reward_scores,
          self.reward_rnn.state_tensor],
@@ -708,8 +708,8 @@ class RLTuner(object):
         return action, action, reward_scores
       else:
         obs_note = rl_tuner_ops.sample_softmax(action_softmax)
-        next_obs = np.array(rl_tuner_ops.make_onehot([obs_note],
-                                                     self.num_actions)).flatten()
+        next_obs = np.array(
+            rl_tuner_ops.make_onehot([obs_note], self.num_actions)).flatten()
         return action, next_obs, reward_scores
 
   def store(self, observation, state, action, reward, newobservation, newstate,
@@ -856,7 +856,7 @@ class RLTuner(object):
       self.reset_composition()
 
       for _ in range(self.num_notes_in_melody):
-        action, new_observation, reward_scores = self.action(
+        _, new_observation, reward_scores = self.action(
             last_observation,
             0,
             enable_random=False,
@@ -1761,15 +1761,15 @@ class RLTuner(object):
                                           self.num_actions))
       if self.algorithm == 'g':
         (softmax, self.q_network.state_value,
-        self.reward_rnn.state_value) = self.session.run(
+         self.reward_rnn.state_value) = self.session.run(
             [self.action_softmax, self.q_network.state_tensor,
-            self.reward_rnn.state_tensor],
+             self.reward_rnn.state_tensor],
             {self.q_network.melody_sequence: input_batch,
-            self.q_network.initial_state: self.q_network.state_value,
-            self.q_network.lengths: lengths,
-            self.reward_rnn.melody_sequence: input_batch,
-            self.reward_rnn.initial_state: self.reward_rnn.state_value,
-            self.reward_rnn.lengths: lengths})
+             self.q_network.initial_state: self.q_network.state_value,
+             self.q_network.lengths: lengths,
+             self.reward_rnn.melody_sequence: input_batch,
+             self.reward_rnn.initial_state: self.reward_rnn.state_value,
+             self.reward_rnn.lengths: lengths})
       else:
         softmax, self.q_network.state_value = self.session.run(
             [self.action_softmax, self.q_network.state_tensor],

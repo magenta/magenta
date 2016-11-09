@@ -179,7 +179,7 @@ def sample_softmax(softmax_vect):
   with extreme precision. If this fails, uses a manual implementation.
 
   Args:
-    softmax: An array of probabilities.
+    softmax_vect: An array of probabilities.
   Returns:
     The index of the note that was chosen/sampled.
   """
