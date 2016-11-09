@@ -18,17 +18,16 @@ import rl_tuner_ops
 class RLTunerTest(tf.test.TestCase):
 
   def setUp(self):
-    self.output_dir = tempfile.mkdtemp()
-    self.hparams = rl_tuner_ops.default_hparams()
+    self.output_dir = tempfile.mkdtemp()å
 
   def testInitializationAndPriming(self):
-    rlt = rl_tuner.RLTuner(self.output_dir, custom_hparams=self.hparams)
+    rlt = rl_tuner.RLTuner(self.output_dir)
 
     initial_note = rlt.prime_internal_models()
     self.assertTrue(initial_note is not None)
 
   def testInitialGeneration(self):
-    rlt = rl_tuner.RLTuner(self.output_dir, custom_hparams=self.hparams)
+    rlt = rl_tuner.RLTuner(self.output_dir)
 
     plot_name = 'test_initial_plot.png'
     rlt.generate_music_sequence(visualize_probs=True,
@@ -37,7 +36,7 @@ class RLTunerTest(tf.test.TestCase):
     self.assertTrue(os.path.exists(output_path))
 
   def testAction(self):
-    rlt = rl_tuner.RLTuner(self.output_dir, custom_hparams=self.hparams)
+    rlt = rl_tuner.RLTuner(self.output_dir)
 
     initial_note = rlt.prime_internal_models()
 
@@ -45,7 +44,7 @@ class RLTunerTest(tf.test.TestCase):
     self.assertTrue(action is not None)
 
   def testRewardNetwork(self):
-    rlt = rl_tuner.RLTuner(self.output_dir, custom_hparams=self.hparams)
+    rlt = rl_tuner.RLTuner(self.output_dir)
 
     zero_state = rlt.q_network.get_zero_state()
     priming_note = rlt.get_random_note()
@@ -54,8 +53,7 @@ class RLTunerTest(tf.test.TestCase):
     self.assertTrue(reward_scores is not None)
 
   def testTraining(self):
-    rlt = rl_tuner.RLTuner(self.output_dir, custom_hparams=self.hparams,
-                           output_every_nth=30)
+    rlt = rl_tuner.RLTuner(self.output_dir, output_every_nth=30)
     rlt.train(num_steps=31, exploration_period=3)
 
     self.assertTrue(os.path.exists(rlt.save_path + '-30'))
@@ -63,8 +61,7 @@ class RLTunerTest(tf.test.TestCase):
     self.assertTrue(len(rlt.eval_avg_reward) >= 1)
 
   def testCompositionStats(self):
-    rlt = rl_tuner.RLTuner(self.output_dir, custom_hparams=self.hparams,
-                           output_every_nth=30)
+    rlt = rl_tuner.RLTuner(self.output_dir, output_every_nth=30)
     stat_dict = rlt.evaluate_music_theory_metrics(num_compositions=10)
 
     self.assertTrue(stat_dict['num_repeated_notes'] > 1)
