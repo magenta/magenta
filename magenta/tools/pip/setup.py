@@ -29,6 +29,7 @@ REQUIRED_PACKAGES = [
     'pretty_midi >= 0.2.6',
     'scipy >= 0.18.1',
     'tensorflow >= 0.11.0rc2',
+    'matplotlib >= 1.5.3',
     'wheel',
 ]
 
@@ -42,6 +43,7 @@ CONSOLE_SCRIPTS = [
     'magenta.models.melody_rnn.melody_rnn_create_dataset',
     'magenta.models.melody_rnn.melody_rnn_generate',
     'magenta.models.melody_rnn.melody_rnn_train',
+    'magenta.models.rl_tuner.rl_tuner_train',
     'magenta.scripts.convert_midi_dir_to_note_sequences',
 ]
 

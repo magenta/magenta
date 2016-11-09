@@ -17,19 +17,10 @@
 
 licenses(["notice"])  # Apache 2.0
 
-py_binary(
-    name = "rl_tuner_train",
-    srcs = ["rl_tuner_train.py"],
-    deps = [
-        ":rl_tuner",
-        ":rl_tuner_ops",
-        "//magenta/common:tf_lib",
-    ],
-)
-
-py_binary(
+py_library(
     name = "rl_tuner",
     srcs = ["rl_tuner.py"],
+    visibility = ["//magenta/tools/pip:__subpackages__"],
     deps = [
         ":note_rnn_loader",
         ":rl_tuner_ops",
@@ -41,6 +32,17 @@ py_binary(
 )
 
 py_binary(
+    name = "rl_tuner_train",
+    srcs = ["rl_tuner_train.py"],
+    visibility = ["//magenta/tools/pip:__subpackages__"],
+    deps = [
+        ":rl_tuner",
+        ":rl_tuner_ops",
+        "//magenta/common:tf_lib",
+    ],
+)
+
+py_library(
     name = "note_rnn_loader",
     srcs = ["note_rnn_loader.py"],
     deps = [
@@ -52,7 +54,7 @@ py_binary(
     ],
 )
 
-py_binary(
+py_library(
     name = "rl_tuner_eval_metrics",
     srcs = ["rl_tuner_eval_metrics.py"],
     deps = [
@@ -61,7 +63,7 @@ py_binary(
     ],
 )
 
-py_binary(
+py_library(
     name = "rl_tuner_ops",
     srcs = ["rl_tuner_ops.py"],
     deps = [

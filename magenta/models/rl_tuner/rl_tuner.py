@@ -44,7 +44,7 @@ from magenta.models.rl_tuner import rl_tuner_eval_metrics
 from magenta.music import melodies_lib as mlib
 from magenta.music import midi_io
 
-# Note values of pecial actions.
+# Note values of special actions.
 NOTE_OFF = 0
 NO_EVENT = 1
 

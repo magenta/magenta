@@ -120,5 +120,9 @@ def main(_):
   rlt.evaluate_music_theory_metrics(num_compositions=1000)
 
 
+def console_entry_point():
+  tf.app.run(main)
+
+
 if __name__ == '__main__':
-  tf.app.run()
+  console_entry_point()
