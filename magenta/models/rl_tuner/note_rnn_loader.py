@@ -33,18 +33,17 @@ These functions are necessary for use with the RL Tuner class.
 
 import os
 
-import numpy as np
-
 # internal imports
+
+import numpy as np
 import tensorflow as tf
 
 import magenta
+from magenta.common import sequence_example_lib
+from magenta.models.rl_tuner import rl_tuner_ops
 from magenta.music import melodies_lib
 from magenta.music import midi_io
 from magenta.music import sequences_lib
-from magenta.common import sequence_example_lib
-
-from magenta.models.rl_tuner import rl_tuner_ops
 
 
 class NoteRNNLoader(object):
@@ -240,7 +239,7 @@ class NoteRNNLoader(object):
             return logits_flat, final_state
 
           (self.logits, self.state_tensor) = run_network_on_melody(
-                self.melody_sequence, self.lengths, self.initial_state)
+              self.melody_sequence, self.lengths, self.initial_state)
           self.softmax = tf.nn.softmax(self.logits)
 
           self.run_network_on_melody = run_network_on_melody
@@ -253,7 +252,7 @@ class NoteRNNLoader(object):
                 batch_size=self.hparams.batch_size, dtype=tf.float32)
 
             (self.train_logits, self.train_state) = run_network_on_melody(
-                  self.train_sequence, self.train_lengths, zero_state)
+                self.train_sequence, self.train_lengths, zero_state)
             self.train_softmax = tf.nn.softmax(self.train_logits)
 
   def restore_vars_from_checkpoint(self, checkpoint_dir):
@@ -306,9 +305,9 @@ class NoteRNNLoader(object):
 
       # Convert primer Melody to model inputs.
       encoder = magenta.music.OneHotEventSequenceEncoderDecoder(
-        magenta.music.MelodyOneHotEncoding(
-            min_note=rl_tuner_ops.MIN_NOTE,
-            max_note=rl_tuner_ops.MAX_NOTE))
+          magenta.music.MelodyOneHotEncoding(
+              min_note=rl_tuner_ops.MIN_NOTE,
+              max_note=rl_tuner_ops.MAX_NOTE))
 
       seq = encoder.encode(self.primer)
       features = seq.feature_lists.feature_list['inputs'].feature
@@ -356,7 +355,7 @@ class NoteRNNLoader(object):
     with self.graph.as_default():
       with tf.variable_scope(self.scope, reuse=True):
         logits, self.state_tensor = self.run_network_on_melody(
-              self.melody_sequence, self.lengths, self.initial_state)
+            self.melody_sequence, self.lengths, self.initial_state)
         return logits
 
   def run_training_batch(self):
@@ -370,7 +369,7 @@ class NoteRNNLoader(object):
     """
     if self.training_file_list is None:
       tf.logging.warn('No training file path was provided, cannot run training'
-                   'batch')
+                      'batch')
       return
 
     coord = tf.train.Coordinator()

@@ -14,9 +14,9 @@
 
 """Code to evaluate how well an RL Tuner conforms to music theory rules."""
 
-import numpy as np
-
 # internal imports
+
+import numpy as np
 import tensorflow as tf
 
 from magenta.models.rl_tuner import rl_tuner_ops
