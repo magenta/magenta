@@ -175,11 +175,11 @@ class RLTuner(object):
       if note_rnn_checkpoint_dir is None or note_rnn_checkpoint_dir == '':
         print 'Retrieving checkpoint of Note RNN from Magenta download server.'
         urllib.urlretrieve(
-          'http://download.magenta.tensorflow.org/models/rl_tuner_note_rnn.ckpt',
-          'note_rnn.ckpt')
+            'http://download.magenta.tensorflow.org/models/'
+            'rl_tuner_note_rnn.ckpt', 'note_rnn.ckpt')
         self.note_rnn_checkpoint_dir = os.getcwd()
         self.note_rnn_checkpoint_file = os.path.join(os.getcwd(),
-                                                    'note_rnn.ckpt')
+                                                     'note_rnn.ckpt')
 
       if self.note_rnn_hparams is None:
         if self.note_rnn_type == 'basic_rnn':
@@ -221,7 +221,7 @@ class RLTuner(object):
     self.target_val_list = []
 
     # Variables to keep track of characteristics of the current composition
-    #TODO(natashajaques): Implement composition as a class to obtain data
+    # TODO(natashajaques): Implement composition as a class to obtain data
     # encapsulation so that you can't accidentally change the leap direction.
     self.beat = 0
     self.composition = []
@@ -255,40 +255,40 @@ class RLTuner(object):
       # Add internal networks to the graph.
       tf.logging.info('Initializing q network')
       self.q_network = note_rnn_loader.NoteRNNLoader(
-        self.graph, 'q_network',
-        self.note_rnn_checkpoint_dir,
-        midi_primer=self.midi_primer,
-        training_file_list=
-        self.training_file_list,
-        checkpoint_file=
-        self.note_rnn_checkpoint_file,
-        hparams=self.note_rnn_hparams,
-        note_rnn_type=self.note_rnn_type)
+          self.graph, 'q_network',
+          self.note_rnn_checkpoint_dir,
+          midi_primer=self.midi_primer,
+          training_file_list=
+          self.training_file_list,
+          checkpoint_file=
+          self.note_rnn_checkpoint_file,
+          hparams=self.note_rnn_hparams,
+          note_rnn_type=self.note_rnn_type)
 
       tf.logging.info('Initializing target q network')
       self.target_q_network = note_rnn_loader.NoteRNNLoader(
-        self.graph,
-        'target_q_network',
-        self.note_rnn_checkpoint_dir,
-        midi_primer=self.midi_primer,
-        training_file_list=
-        self.training_file_list,
-        checkpoint_file=
-        self.note_rnn_checkpoint_file,
-        hparams=self.note_rnn_hparams,
-        note_rnn_type=self.note_rnn_type)
+          self.graph,
+          'target_q_network',
+          self.note_rnn_checkpoint_dir,
+          midi_primer=self.midi_primer,
+          training_file_list=
+          self.training_file_list,
+          checkpoint_file=
+          self.note_rnn_checkpoint_file,
+          hparams=self.note_rnn_hparams,
+          note_rnn_type=self.note_rnn_type)
 
       tf.logging.info('Initializing reward network')
       self.reward_rnn = note_rnn_loader.NoteRNNLoader(
-        self.graph, 'reward_rnn',
-        self.note_rnn_checkpoint_dir,
-        midi_primer=self.midi_primer,
-        training_file_list=
-        self.training_file_list,
-        checkpoint_file=
-        self.note_rnn_checkpoint_file,
-        hparams=self.note_rnn_hparams,
-        note_rnn_type=self.note_rnn_type)
+          self.graph, 'reward_rnn',
+          self.note_rnn_checkpoint_dir,
+          midi_primer=self.midi_primer,
+          training_file_list=
+          self.training_file_list,
+          checkpoint_file=
+          self.note_rnn_checkpoint_file,
+          hparams=self.note_rnn_hparams,
+          note_rnn_type=self.note_rnn_type)
 
       tf.logging.info('Q network cell: %s', self.q_network.cell)
 
@@ -315,7 +315,7 @@ class RLTuner(object):
         q1 = self.session.run(q_vars[0])
 
         if np.sum((q1 - reward1)**2) == 0.0:
-          #TODO(natashamjaques): Remove print statement once tf.logging outputs
+          # TODO(natashamjaques): Remove print statement once tf.logging outputs
           # to Jupyter notebooks (once the following issue is resolved:
           # https://github.com/tensorflow/tensorflow/issues/3047)
           print '\nSuccessfully initialized internal nets from checkpoint!'
@@ -381,8 +381,8 @@ class RLTuner(object):
       next_obs = np.array(
           rl_tuner_ops.make_onehot([priming_note], self.num_actions)).flatten()
       tf.logging.debug(
-        'Feeding priming state for midi file %s and corresponding note %s',
-        priming_idx, priming_note)
+          'Feeding priming state for midi file %s and corresponding note %s',
+          priming_idx, priming_note)
     elif self.priming_mode == 'single_midi':
       model.prime_model()
       next_obs = model.priming_note
@@ -402,7 +402,7 @@ class RLTuner(object):
     """
     note_idx = np.random.randint(0, self.num_actions - 1)
     return np.array(rl_tuner_ops.make_onehot([note_idx],
-                                           self.num_actions)).flatten()
+                                             self.num_actions)).flatten()
 
   def reset_composition(self):
     """Starts the models internal composition over at beat 0, with no notes.
@@ -440,15 +440,15 @@ class RLTuner(object):
         self.predicted_actions = tf.one_hot(tf.argmax(self.g_action_scores,
                                                       dimension=1,
                                                       name='predicted_actions'),
-                                                      self.num_actions)
+                                            self.num_actions)
       else:
         # Compute predicted action, which is the argmax of the action scores.
         self.action_softmax = tf.nn.softmax(self.action_scores,
                                             name='action_softmax')
-        self.predicted_actions = tf.one_hot(tf.argmax(self.action_scores,
-                                                      dimension=1,
+        self.predicted_actions = tf.one_hot(tf.argmax(self.action_scores, 
+                                                      dimension=1, 
                                                       name='predicted_actions'),
-                                                      self.num_actions)
+                                            self.num_actions)
 
     tf.logging.info('Add estimating future rewards portion of graph')
     with tf.name_scope('estimating_future_rewards'):
@@ -464,14 +464,14 @@ class RLTuner(object):
       # function.
       if self.algorithm == 'psi':
         self.target_vals = tf.reduce_logsumexp(self.next_action_scores,
-                                       reduction_indices=[1,])
+                                               reduction_indices=[1,])
       elif self.algorithm == 'g':
         self.g_normalizer = tf.reduce_logsumexp(self.reward_scores,
                                                 reduction_indices=[1,])
-        self.g_normalizer = tf.reshape(self.g_normalizer, [-1,1])
-        self.g_normalizer = tf.tile(self.g_normalizer, [1,self.num_actions])
+        self.g_normalizer = tf.reshape(self.g_normalizer, [-1, 1])
+        self.g_normalizer = tf.tile(self.g_normalizer, [1, self.num_actions])
         self.g_action_scores = tf.sub(
-          (self.next_action_scores + self.reward_scores), self.g_normalizer)
+            (self.next_action_scores + self.reward_scores), self.g_normalizer)
         self.target_vals = tf.reduce_logsumexp(self.g_action_scores,
                                                reduction_indices=[1,])
       else:
@@ -568,7 +568,6 @@ class RLTuner(object):
       # Experiencing observation, state, action, reward, new observation,
       # new state tuples, and storing them.
       state = np.array(self.q_network.state_value).flatten()
-      reward_rnn_state = np.array(self.reward_rnn.state_value).flatten()
 
       action, new_observation, reward_scores = self.action(
           last_observation, exploration_period, enable_random=enable_random,
