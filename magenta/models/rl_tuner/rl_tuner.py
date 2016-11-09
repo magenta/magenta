@@ -26,7 +26,7 @@ import tensorflow as tf
 from magenta.music import melodies_lib as mlib
 from magenta.music import midi_io
 
-from magenta.models.rl_tuner import  note_rnn_loader
+from magenta.models.rl_tuner import note_rnn_loader
 from magenta.models.rl_tuner import rl_tuner_ops
 from magenta.models.rl_tuner import rl_tuner_eval_metrics
 
