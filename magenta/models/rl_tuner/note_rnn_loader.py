@@ -58,8 +58,8 @@ class NoteRNNLoader(object):
         model.
       training_file_list: List of paths to tfrecord files containing melody 
         training data.
-      hparams: A tf_lib.HParams object. Must match the hparams used to create the
-        checkpoint file.
+      hparams: A tf_lib.HParams object. Must match the hparams used to create 
+        the checkpoint file.
       softmax_within_graph: If True, then when the network is called, it will
         output softmax probabilities for the next note. if False, it will output
         logits only. Used to control whether MelodyQ network is reinforcing
@@ -95,7 +95,8 @@ class NoteRNNLoader(object):
     if midi_primer is not None:
       self.load_primer()
 
-    self.variable_names = rl_tuner_ops.get_variable_names(self.graph, self.scope)
+    self.variable_names = rl_tuner_ops.get_variable_names(self.graph, 
+                                                          self.scope)
 
     self.transpose_amount = 0
 
@@ -193,7 +194,8 @@ class NoteRNNLoader(object):
             (self.train_sequence,
              self.train_labels,
              self.train_lengths) = sequence_example_lib.get_padded_batch(
-                 self.training_file_list, self.hparams.batch_size, self.hparams.one_hot_length)
+                 self.training_file_list, self.hparams.batch_size, 
+                 self.hparams.one_hot_length)
 
           # Closure function is used so that this part of the graph can be
           # re-run in multiple places, such as __call__.
@@ -272,7 +274,8 @@ class NoteRNNLoader(object):
     tf.logging.info('Checkpoint dir: %s', checkpoint_dir)
     checkpoint_file = tf.train.latest_checkpoint(checkpoint_dir)
     if checkpoint_file is None:
-      tf.logging.warn("Can't find checkpoint file, using backup, which is %s", self.checkpoint_file)
+      tf.logging.warn("Can't find checkpoint file, using backup, which is %s", 
+                      self.checkpoint_file)
       checkpoint_file = self.checkpoint_file
     tf.logging.info('Checkpoint file: %s', checkpoint_file)
 

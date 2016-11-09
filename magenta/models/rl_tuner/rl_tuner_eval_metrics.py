@@ -249,7 +249,8 @@ def add_interval_stat(rl_tuner, action, stat_dict, key=None):
     A dictionary of composition statistics with fields updated to include new
     intervals.
   """
-  interval, action_note, prev_note = rl_tuner.detect_sequential_interval(action, key)
+  interval, action_note, prev_note = rl_tuner.detect_sequential_interval(action, 
+                                                                         key)
 
   if interval == 0:
     return stat_dict
@@ -260,7 +261,8 @@ def add_interval_stat(rl_tuner, action, stat_dict, key=None):
     stat_dict['num_special_rest_intervals'] += 1
   elif interval > rl_tuner_ops.OCTAVE:
     stat_dict['num_octave_jumps'] += 1
-  elif interval == rl_tuner_ops.IN_KEY_FIFTH or interval == rl_tuner_ops.IN_KEY_THIRD:
+  elif interval == (rl_tuner_ops.IN_KEY_FIFTH or 
+                    interval == rl_tuner_ops.IN_KEY_THIRD):
     stat_dict['num_in_key_preferred_intervals'] += 1
   elif interval == rl_tuner_ops.FIFTH:
     stat_dict['num_fifths'] += 1
@@ -457,7 +459,8 @@ def debug_music_theory_reward(rl_tuner,
 
     # note to rl_tuner: using new_observation rather than action because we want
     # stats about compositions, not what the model chooses to do
-    note_rnn_reward = rl_tuner.reward_from_reward_rnn_scores(new_observation, reward_scores)
+    note_rnn_reward = rl_tuner.reward_from_reward_rnn_scores(new_observation, 
+                                                             reward_scores)
     print "Note RNN reward:", note_rnn_reward, "\n"
 
     print "Key, tonic, and non-repeating rewards:"
@@ -482,7 +485,8 @@ def debug_music_theory_reward(rl_tuner,
     last_motif, num_unique_notes = rl_tuner.detect_last_motif(composition)
     if last_motif is not None:
       print "Motif detected with", num_unique_notes, "notes"
-    repeated_motif_exists, repeated_motif = rl_tuner.detect_repeated_motif(new_observation)
+    repeated_motif_exists, repeated_motif = rl_tuner.detect_repeated_motif(
+      new_observation)
     if repeated_motif_exists:
       print "Repeated motif detected! it is:", repeated_motif  
     print ""

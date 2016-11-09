@@ -25,8 +25,8 @@ tf.app.flags.DEFINE_string('output_dir', '',
 tf.app.flags.DEFINE_string('note_rnn_checkpoint_dir', '',
                            'Path to directory holding checkpoints for note rnn'
                            'melody prediction models. These will be loaded into'
-                           'the NoteRNNLoader class object. The directory should'
-                           'contain a train subdirectory')
+                           'the NoteRNNLoader class object. The directory '
+                           'should contain a train subdirectory')
 tf.app.flags.DEFINE_string('note_rnn_checkpoint_name', 'note_rnn.ckpt',
                            'Filename of a checkpoint within the '
                            'note_rnn_checkpoint_dir directory.')
@@ -102,7 +102,8 @@ def main(_):
 
   rlt.save_model_and_figs(FLAGS.algorithm)
 
-  tf.logging.info('\nCalculating music theory metric stats for 1000 compositions')
+  tf.logging.info('\nCalculating music theory metric stats for 1000 '
+                  'compositions')
   rlt.evaluate_music_theory_metrics(num_compositions=1000)
 
 

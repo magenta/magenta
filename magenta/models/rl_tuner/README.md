@@ -5,14 +5,15 @@ and [this blog][blog post]. The idea is to take an LSTM that has been trained
 to predict the next note in a monophonic melody &mdash; called a Note RNN 
 &mdash; and enhance it using reinforcement learning (RL). 
 
-The RLTuner class implements a [Deep Q Network (DQN)][dqn], in which the Q network 
-learns the reward value of taking actions (playing notes) given the state of the 
-environment (the melody composed so far). The reward that the network learns 
-comes from two sources: 1) a set of music theory reward functions, and 2) the 
-output of a trained Note RNN, which gives *p(a|s)*, the probability of playing the 
-next note *a* given the state of the composition *s*, as originally learned from 
-data. This combination allows the model to maintain what it learned from data, 
-while constraining it to conform to a set of music theory rules. 
+The RLTuner class implements a [Deep Q Network (DQN)][dqn], in which the Q 
+network  learns the reward value of taking actions (playing notes) given the 
+state of the environment (the melody composed so far). The reward that the 
+network learns comes from two sources: 1) a set of music theory reward 
+functions, and 2) the output of a trained Note RNN, which gives *p(a|s)*, the 
+probability of playing the next note *a* given the state of the composition *s*, 
+as originally learned from data. This combination allows the model to maintain 
+what it learned from data, while constraining it to conform to a set of music 
+theory rules. 
 
 Using a checkpoint file storing a trained Note RNN, the NoteRNNLoader class is 
 used to load three copies of the Note RNN into RLTuner. Two copies supply the 
@@ -63,7 +64,8 @@ on each algorithm, see [our paper][our arxiv].
 	note probabilities of the model over time.
 
 ## Running the code
-To train the model you can use the provided jupyter notebook ([rl_tuner.ipynb][ipynb]), or, you can simply run:
+To train the model you can use the provided jupyter notebook 
+([rl_tuner.ipynb][ipynb]), or, you can simply run:
 
 ```
 bazel run magenta/models/rl_tuner:rl_tuner_train 
