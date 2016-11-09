@@ -557,6 +557,7 @@ class RLTuner(object):
     if self.stochastic_observations:
       tf.logging.info('Using stochastic environment')
 
+    sample_next_obs = False
     if self.exploration_mode == 'boltzmann' or self.stochastic_observations:
         sample_next_obs = True
 
@@ -616,7 +617,7 @@ class RLTuner(object):
                         self.music_theory_reward_last_n)
         tf.logging.info('\t\tNote RNN reward: %s', self.note_rnn_reward_last_n)
 
-        #TODO(natashamjaques): Remove print statement once tf.logging outputs
+        # TODO(natashamjaques): Remove print statement once tf.logging outputs
         # to Jupyter notebooks (once the following issue is resolved:
         # https://github.com/tensorflow/tensorflow/issues/3047)
         print 'Training iteration', i
@@ -686,19 +687,15 @@ class RLTuner(object):
 
     (action, action_softmax, self.q_network.state_value,
     reward_scores, self.reward_rnn.state_value) = self.session.run(
-      [self.predicted_actions, self.action_softmax,
-       self.q_network.state_tensor, self.reward_scores,
-       self.reward_rnn.state_tensor],
-      {self.q_network.melody_sequence: input_batch,
-       self.q_network.initial_state: self.q_network.state_value,
-       self.q_network.lengths: lengths,
-       self.reward_rnn.melody_sequence: input_batch,
-       self.reward_rnn.initial_state: self.reward_rnn.state_value,
-       self.reward_rnn.lengths: lengths})
-
-    # this is apparently not needed
-    #if self.algorithm == 'psi':
-    #  action_scores = np.exp(action_scores)
+        [self.predicted_actions, self.action_softmax,
+         self.q_network.state_tensor, self.reward_scores,
+         self.reward_rnn.state_tensor],
+        {self.q_network.melody_sequence: input_batch,
+         self.q_network.initial_state: self.q_network.state_value,
+         self.q_network.lengths: lengths,
+         self.reward_rnn.melody_sequence: input_batch,
+         self.reward_rnn.initial_state: self.reward_rnn.state_value,
+         self.reward_rnn.lengths: lengths})
 
     reward_scores = np.reshape(reward_scores, (self.num_actions))
     action_softmax = np.reshape(action_softmax, (self.num_actions))
@@ -713,7 +710,7 @@ class RLTuner(object):
       else:
         obs_note = rl_tuner_ops.sample_softmax(action_softmax)
         next_obs = np.array(rl_tuner_ops.make_onehot([obs_note],
-                                                   self.num_actions)).flatten()
+                                                     self.num_actions)).flatten()
         return action, next_obs, reward_scores
 
   def store(self, observation, state, action, reward, newobservation, newstate,
@@ -763,7 +760,7 @@ class RLTuner(object):
       new_states = np.empty((len(samples),
                              self.target_q_network.cell.state_size))
       reward_new_states = np.empty((len(samples),
-                                   self.reward_rnn.cell.state_size))
+                                    self.reward_rnn.cell.state_size))
       observations = np.empty((len(samples), self.input_size))
       new_observations = np.empty((len(samples), self.input_size))
       action_mask = np.zeros((len(samples), self.num_actions))
@@ -859,7 +856,7 @@ class RLTuner(object):
       last_observation = self.prime_internal_models()
       self.reset_composition()
 
-      for n in range(self.num_notes_in_melody):
+      for _ in range(self.num_notes_in_melody):
         action, new_observation, reward_scores = self.action(
             last_observation,
             0,
