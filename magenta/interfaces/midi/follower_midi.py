@@ -244,15 +244,17 @@ class FollowerMidiInteraction(midi_interaction.MidiInteraction):
 
       if self._phrase_bars is not None:
         # The duration of the call stage in quarter notes.
-        # call_quarters = self._phrase_bars * self._quarters_per_bar
+        call_quarters = self._phrase_bars * self._quarters_per_bar
+        call_duration = call_quarters * quarter_duration
+        quantized_end_time = start_time + call_duration
       else:
         # Wait for end signal.
         self._midi_hub.wait_for_event(self._end_call_signal)
         # The duration of the call stage in quarter notes.
         # We end the call stage at the end of the next bar that is at least
         # `predicathead_quarters` in the future.
-        # end_time = time.time()
-        call_duration = ((time.time() - start_time)
+        end_time = time.time()
+        call_duration = ((end_time - start_time)
                          // quarter_duration) * quarter_duration
         quantized_end_time = start_time + call_duration
 
