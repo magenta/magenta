@@ -95,7 +95,7 @@ class MusicXMLDocument(object):
   """Internal representation of a MusicXML Document.
 
   Represents the top level object which holds the MusicXML document
-  Responsible for loading the .xml or .mxl file using the get_score method
+  Responsible for loading the .xml or .mxl file using the _get_score method
   If the file is .mxl, this class uncompresses it
 
   After the file is loaded, this class then parses the document into memory
@@ -103,18 +103,18 @@ class MusicXMLDocument(object):
   """
 
   def __init__(self, filename):
-    self.filename = filename
-    self.score = self.get_score(filename)
+    self._score = self._get_score(filename)
     self.parts = []
-    self.score_parts = []
+    # ScoreParts indexed by id.
+    self._score_parts = {}
     self.midi_resolution = constants.STANDARD_PPQ
-    self.state = MusicXMLParserState()
+    self._state = MusicXMLParserState()
     # Total time in seconds
     self.total_time_secs = 0
     self._parse()
 
   @staticmethod
-  def get_score(filename):
+  def _get_score(filename):
     """Given a MusicXML file, return the score as an xml.etree.ElementTree.
 
     Given a MusicXML file, return the score as an xml.etree.ElementTree
@@ -178,24 +178,20 @@ class MusicXMLDocument(object):
   def _parse(self):
     """Parse the uncompressed MusicXML document."""
     # Parse part-list
-    xml_part_list = self.score.find('part-list')
-    for element in xml_part_list:
-      if element.tag == 'score-part':
-        score_part = ScorePart(self.state, element)
-        self.score_parts.append(score_part)
+    xml_part_list = self._score.find('part-list')
+    if xml_part_list is not None:
+      for element in xml_part_list:
+        if element.tag == 'score-part':
+          score_part = ScorePart(element)
+          self._score_parts[score_part.id] = score_part
 
     # Parse parts
-    for score_part_index, child in enumerate(self.score.findall('part')):
-      # If a score part is missing, add a default score part
-      if score_part_index >= len(self.score_parts):
-        score_part = ScorePart(self.state)
-        self.score_parts.append(score_part)
-
-      part = Part(child, self.score_parts[score_part_index], self.state)
+    for score_part_index, child in enumerate(self._score.findall('part')):
+      part = Part(child, self._score_parts, self._state)
       self.parts.append(part)
       score_part_index += 1
-      if self.state.time_position > self.total_time_secs:
-        self.total_time_secs = self.state.time_position
+      if self._state.time_position > self.total_time_secs:
+        self.total_time_secs = self._state.time_position
 
   def get_time_signatures(self):
     """Return a list of all the time signatures used in this score.
@@ -257,7 +253,7 @@ class MusicXMLDocument(object):
 
     if not key_signatures:
       # If there are no key signatures, add C major at the beginning
-      key_signature = KeySignature(self.state)
+      key_signature = KeySignature(self._state)
       key_signature.time_position = 0
       key_signatures.append(key_signature)
 
@@ -272,15 +268,17 @@ class MusicXMLDocument(object):
       A list of all Tempo objects used in this score.
     """
     tempos = []
-    part = self.parts[0]  # Use only first part
-    for measure in part.measures:
-      for tempo in measure.tempos:
-        tempos.append(tempo)
+
+    if self.parts:
+      part = self.parts[0]  # Use only first part
+      for measure in part.measures:
+        for tempo in measure.tempos:
+          tempos.append(tempo)
 
     # If no tempos, add a default of 120 at beginning
     if not tempos:
-      tempo = Tempo(self.state)
-      tempo.qpm = self.state.qpm
+      tempo = Tempo(self._state)
+      tempo.qpm = self._state.qpm
       tempo.time_position = 0
       tempos.append(tempo)
 
@@ -293,37 +291,34 @@ class ScorePart(object):
   A <score-part> element contains MIDI program and channel info
   for the <part> elements in the MusicXML document.
 
-  If no MIDI info is found for the part, use the next available
-  MIDI channel and default to the Grand Piano program (MIDI Program #1)
+  If no MIDI info is found for the part, use the default MIDI channel (0)
+  and default to the Grand Piano program (MIDI Program #1).
   """
 
-  def __init__(self, state, xml_score_part=None):
-    self.xml_score_part = xml_score_part
+  def __init__(self, xml_score_part=None):
+    self.id = ''
     self.part_name = ''
     self.midi_channel = DEFAULT_MIDI_CHANNEL
     self.midi_program = DEFAULT_MIDI_PROGRAM
-    self.state = state
     if xml_score_part is not None:
-      self._parse()
+      self._parse(xml_score_part)
 
-  def _parse(self):
+  def _parse(self, xml_score_part):
     """Parse the <score-part> element to an in-memory representation."""
-    if self.xml_score_part.find('part-name') is not None:
-      self.part_name = self.xml_score_part.find('part-name').text
+    self.id = xml_score_part.attrib['id']
 
-    xml_midi_instrument = self.xml_score_part.find('midi-instrument')
+    if xml_score_part.find('part-name') is not None:
+      self.part_name = xml_score_part.find('part-name').text or ''
+
+    xml_midi_instrument = xml_score_part.find('midi-instrument')
     if (xml_midi_instrument is not None and
         xml_midi_instrument.find('midi-channel') is not None and
         xml_midi_instrument.find('midi-program') is not None):
       self.midi_channel = int(xml_midi_instrument.find('midi-channel').text)
       self.midi_program = int(xml_midi_instrument.find('midi-program').text)
     else:
-      # If no MIDI info, use the current MIDI channel from the state,
-      # then increment the state by one so the next part is on the next
-      # MIDI channel
-      self.midi_channel = self.state.midi_channel
-      self.state.midi_channel = self.midi_channel + 1
-
+      # If no MIDI info, use the default MIDI channel.
+      self.midi_channel = DEFAULT_MIDI_CHANNEL
       # Use the default MIDI program
       self.midi_program = DEFAULT_MIDI_PROGRAM
 
@@ -337,25 +332,32 @@ class ScorePart(object):
 class Part(object):
   """Internal represention of a MusicXML <part> element."""
 
-  def __init__(self, xml_part, score_part, state):
-    self.xml_part = xml_part
-    self.score_part = score_part
+  def __init__(self, xml_part, score_parts, state):
+    self.id = ''
+    self.score_part = None
     self.measures = []
-    self.state = state
-    self._parse()
+    self._state = state
+    self._parse(xml_part, score_parts)
 
-  def _parse(self):
+  def _parse(self, xml_part, score_parts):
     """Parse the <part> element."""
+    self.id = xml_part.attrib['id']
+    if self.id in score_parts:
+      self.score_part = score_parts[self.id]
+    else:
+      # If this part references a score-part id that was not found in the file,
+      # construct a default score-part.
+      self.score_part = ScorePart()
 
     # Reset the time position when parsing each part
-    self.state.time_position = 0
-    self.state.midi_channel = self.score_part.midi_channel
-    self.state.midi_program = self.score_part.midi_program
-    self.state.transpose = 0
+    self._state.time_position = 0
+    self._state.midi_channel = self.score_part.midi_channel
+    self._state.midi_program = self.score_part.midi_program
+    self._state.transpose = 0
 
-    xml_measures = self.xml_part.findall('measure')
+    xml_measures = xml_part.findall('measure')
     for child in xml_measures:
-      measure = Measure(child, self.state)
+      measure = Measure(child, self._state)
       self.measures.append(measure)
 
   def __str__(self):

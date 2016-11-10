@@ -15,6 +15,7 @@
 
 from collections import defaultdict
 import os.path
+import tempfile
 
 # internal imports
 
@@ -56,6 +57,8 @@ class MusicXMLParserTest(tf.test.TestCase):
   from a non-transposing (Flute) to transposing (Bb Clarinet) in a score
   with no key / atonal. This ensures that transposition works properly when
   no key signature is found (Issue #355)
+
+  self.st_anne_filename contains a 4-voice piece written in two parts.
   """
 
   def setUp(self):
@@ -86,6 +89,10 @@ class MusicXMLParserTest(tf.test.TestCase):
     self.rhythm_durations_filename = os.path.join(
         tf.resource_loader.get_data_files_path(),
         'testdata/rhythm_durations.xml')
+
+    self.st_anne_filename = os.path.join(
+        tf.resource_loader.get_data_files_path(),
+        'testdata/st_anne.xml')
 
     self.atonal_transposition_filename = os.path.join(
         tf.resource_loader.get_data_files_path(),
@@ -137,20 +144,15 @@ class MusicXMLParserTest(tf.test.TestCase):
                              sequence_tempo.time)
 
     # Test parts/instruments.
-    seq_instruments = defaultdict(lambda: defaultdict(list))
+    seq_parts = defaultdict(list)
     for seq_note in sequence_proto.notes:
-      seq_instruments[
-          (seq_note.instrument, seq_note.program)]['notes'].append(seq_note)
+      seq_parts[seq_note.part].append(seq_note)
 
-    sorted_seq_instrument_keys = sorted(
-        seq_instruments.keys(),
-        key=lambda (instrument_id, program_id): (instrument_id, program_id))
+    self.assertEqual(len(musicxml.parts), len(seq_parts))
+    for musicxml_part, seq_part_id in zip(
+        musicxml.parts, sorted(seq_parts.keys())):
 
-    self.assertEqual(len(musicxml.parts), len(seq_instruments))
-    for musicxml_part, seq_instrument_key in zip(
-        musicxml.parts, sorted_seq_instrument_keys):
-
-      seq_instrument_notes = seq_instruments[seq_instrument_key]['notes']
+      seq_instrument_notes = seq_parts[seq_part_id]
       musicxml_notes = []
       for musicxml_measure in musicxml_part.measures:
         for musicxml_note in musicxml_measure.notes:
@@ -303,12 +305,18 @@ class MusicXMLParserTest(tf.test.TestCase):
           encoding_type: MUSIC_XML
           parser: MAGENTA_MUSIC_XML
         }
+        part_infos {
+          part: 0
+          name: "Flute"
+        }
         total_time: 4.0
         """)
     expected_pitches = [65, 67, 69, 70, 72, 74, 76, 77]
     time = 0
     for pitch in expected_pitches:
       note = expected_ns.notes.add()
+      note.part = 0
+      note.voice = 1
       note.pitch = pitch
       note.start_time = time
       time += .5
@@ -342,6 +350,10 @@ class MusicXMLParserTest(tf.test.TestCase):
         }
         key_signatures: {
         }
+        part_infos {
+          part: 0
+          name: "Flute"
+        }
         source_info: {
           source_type: SCORE_BASED
           encoding_type: MUSIC_XML
@@ -360,8 +372,363 @@ class MusicXMLParserTest(tf.test.TestCase):
       note.velocity = 64
       note.numerator = 1
       note.denominator = 4
+      note.voice = 1
     self.maxDiff = None
     self.assertProtoEquals(expected_ns, ns)
+
+  def test_st_anne(self):
+    """Verify properties of the St. Anne file.
+
+    The file contains 2 parts and 4 voices.
+    """
+    ns = musicxml_reader.musicxml_file_to_sequence_proto(
+        self.st_anne_filename)
+    expected_ns = common_testing_lib.parse_test_proto(
+        music_pb2.NoteSequence,
+        """
+        ticks_per_quarter: 220
+        time_signatures: {
+          numerator: 4
+          denominator: 4
+        }
+        tempos: {
+          qpm: 120
+        }
+        key_signatures: {
+          key: C
+        }
+        source_info: {
+          source_type: SCORE_BASED
+          encoding_type: MUSIC_XML
+          parser: MAGENTA_MUSIC_XML
+        }
+        part_infos {
+          part: 0
+          name: "Harpsichord"
+        }
+        part_infos {
+          part: 1
+          name: "Piano"
+        }
+        total_time: 16.0
+        """)
+    pitches_0_1 = [
+        (67, .5),
+
+        (64, .5),
+        (69, .5),
+        (67, .5),
+        (72, .5),
+
+        (72, .5),
+        (71, .5),
+        (72, .5),
+        (67, .5),
+
+        (72, .5),
+        (67, .5),
+        (69, .5),
+        (66, .5),
+
+        (67, 1.5),
+
+        (71, .5),
+
+        (72, .5),
+        (69, .5),
+        (74, .5),
+        (71, .5),
+
+        (72, .5),
+        (69, .5),
+        (71, .5),
+        (67, .5),
+
+        (69, .5),
+        (72, .5),
+        (74, .5),
+        (71, .5),
+
+        (72, 1.5),
+    ]
+    pitches_0_2 = [
+        (60, .5),
+
+        (60, .5),
+        (60, .5),
+        (60, .5),
+        (64, .5),
+
+        (62, .5),
+        (62, .5),
+        (64, .5),
+        (64, .5),
+
+        (64, .5),
+        (64, .5),
+        (64, .5),
+        (62, .5),
+
+        (62, 1.5),
+
+        (62, .5),
+
+        (64, .5),
+        (60, .5),
+        (65, .5),
+        (62, .5),
+
+        (64, .75),
+        (62, .25),
+        (59, .5),
+        (60, .5),
+
+        (65, .5),
+        (64, .5),
+        (62, .5),
+        (62, .5),
+
+        (64, 1.5),
+    ]
+    pitches_1_1 = [
+        (52, .5),
+
+        (55, .5),
+        (57, .5),
+        (60, .5),
+        (60, .5),
+
+        (57, .5),
+        (55, .5),
+        (55, .5),
+        (60, .5),
+
+        (60, .5),
+        (59, .5),
+        (57, .5),
+        (57, .5),
+
+        (59, 1.5),
+
+        (55, .5),
+
+        (55, .5),
+        (57, .5),
+        (57, .5),
+        (55, .5),
+
+        (55, .5),
+        (57, .5),
+        (56, .5),
+        (55, .5),
+
+        (53, .5),
+        (55, .5),
+        (57, .5),
+        (55, .5),
+
+        (55, 1.5),
+    ]
+    pitches_1_2 = [
+        (48, .5),
+
+        (48, .5),
+        (53, .5),
+        (52, .5),
+        (57, .5),
+
+        (53, .5),
+        (55, .5),
+        (48, .5),
+        (48, .5),
+
+        (45, .5),
+        (52, .5),
+        (48, .5),
+        (50, .5),
+
+        (43, 1.5),
+
+        (55, .5),
+
+        (48, .5),
+        (53, .5),
+        (50, .5),
+        (55, .5),
+
+        (48, .5),
+        (53, .5),
+        (52, .5),
+        (52, .5),
+
+        (50, .5),
+        (48, .5),
+        (53, .5),
+        (55, .5),
+
+        (48, 1.5),
+    ]
+    part_voice_instrument_program_pitches = [
+        (0, 1, 1, 7, pitches_0_1),
+        (0, 2, 1, 7, pitches_0_2),
+        (1, 1, 2, 1, pitches_1_1),
+        (1, 2, 2, 1, pitches_1_2),
+    ]
+    for part, voice, instrument, program, pitches in (
+        part_voice_instrument_program_pitches):
+      time = 0
+      for pitch, duration in pitches:
+        note = expected_ns.notes.add()
+        note.part = part
+        note.voice = voice
+        note.pitch = pitch
+        note.start_time = time
+        time += duration
+        note.end_time = time
+        note.velocity = 64
+        note.instrument = instrument
+        note.program = program
+        if duration == .5:
+          note.numerator = 1
+          note.denominator = 4
+        if duration == .25:
+          note.numerator = 1
+          note.denominator = 8
+        if duration == .75:
+          note.numerator = 3
+          note.denominator = 8
+        if duration == 1.5:
+          note.numerator = 3
+          note.denominator = 4
+    expected_ns.notes.sort(
+        key=lambda note: (note.part, note.voice, note.start_time))
+    ns.notes.sort(
+        key=lambda note: (note.part, note.voice, note.start_time))
+    self.assertProtoEquals(expected_ns, ns)
+
+  def test_empty_part_name(self):
+    """Verify that a part with an empty name can be parsed."""
+
+    xml = r"""<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+      <!DOCTYPE score-partwise PUBLIC
+          "-//Recordare//DTD MusicXML 3.0 Partwise//EN"
+          "http://www.musicxml.org/dtds/partwise.dtd">
+      <score-partwise version="3.0">
+        <part-list>
+          <score-part id="P1">
+            <part-name/>
+          </score-part>
+        </part-list>
+        <part id="P1">
+        </part>
+      </score-partwise>
+    """
+    with tempfile.NamedTemporaryFile() as temp_file:
+      temp_file.write(xml)
+      temp_file.flush()
+      ns = musicxml_reader.musicxml_file_to_sequence_proto(
+          temp_file.name)
+
+    expected_ns = common_testing_lib.parse_test_proto(
+        music_pb2.NoteSequence,
+        """
+        ticks_per_quarter: 220
+        source_info: {
+          source_type: SCORE_BASED
+          encoding_type: MUSIC_XML
+          parser: MAGENTA_MUSIC_XML
+        }
+        key_signatures {
+          key: C
+          time: 0
+        }
+        tempos {
+          qpm: 120.0
+        }
+        part_infos {
+          part: 0
+        }
+        total_time: 0.0
+        """)
+    self.assertProtoEquals(expected_ns, ns)
+
+  def test_empty_part_list(self):
+    """Verify that a part without a corresponding score-part can be parsed."""
+
+    xml = r"""<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+      <!DOCTYPE score-partwise PUBLIC
+          "-//Recordare//DTD MusicXML 3.0 Partwise//EN"
+          "http://www.musicxml.org/dtds/partwise.dtd">
+      <score-partwise version="3.0">
+        <part id="P1">
+        </part>
+      </score-partwise>
+    """
+    with tempfile.NamedTemporaryFile() as temp_file:
+      temp_file.write(xml)
+      temp_file.flush()
+      ns = musicxml_reader.musicxml_file_to_sequence_proto(
+          temp_file.name)
+
+    expected_ns = common_testing_lib.parse_test_proto(
+        music_pb2.NoteSequence,
+        """
+        ticks_per_quarter: 220
+        source_info: {
+          source_type: SCORE_BASED
+          encoding_type: MUSIC_XML
+          parser: MAGENTA_MUSIC_XML
+        }
+        key_signatures {
+          key: C
+          time: 0
+        }
+        tempos {
+          qpm: 120.0
+        }
+        part_infos {
+          part: 0
+        }
+        total_time: 0.0
+        """)
+    self.assertProtoEquals(expected_ns, ns)
+
+  def test_empty_doc(self):
+    """Verify that an empty doc can be parsed."""
+
+    xml = r"""<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+      <!DOCTYPE score-partwise PUBLIC
+          "-//Recordare//DTD MusicXML 3.0 Partwise//EN"
+          "http://www.musicxml.org/dtds/partwise.dtd">
+      <score-partwise version="3.0">
+      </score-partwise>
+    """
+    with tempfile.NamedTemporaryFile() as temp_file:
+      temp_file.write(xml)
+      temp_file.flush()
+      ns = musicxml_reader.musicxml_file_to_sequence_proto(
+          temp_file.name)
+
+    expected_ns = common_testing_lib.parse_test_proto(
+        music_pb2.NoteSequence,
+        """
+        ticks_per_quarter: 220
+        source_info: {
+          source_type: SCORE_BASED
+          encoding_type: MUSIC_XML
+          parser: MAGENTA_MUSIC_XML
+        }
+        key_signatures {
+          key: C
+          time: 0
+        }
+        tempos {
+          qpm: 120.0
+        }
+        total_time: 0.0
+        """)
+    self.assertProtoEquals(expected_ns, ns)
+
 
 if __name__ == '__main__':
   tf.test.main()
