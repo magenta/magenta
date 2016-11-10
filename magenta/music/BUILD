@@ -34,6 +34,8 @@ py_library(
         ":midi_io",
         ":midi_synth",
         ":model",
+        ":musicxml_parser",
+        ":musicxml_reader",
         ":note_sequence_io",
         ":notebook_utils",
         ":sequence_generator",

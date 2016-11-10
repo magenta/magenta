@@ -22,20 +22,11 @@ package(
 licenses(["notice"])  # Apache 2.0
 
 py_binary(
-    name = "convert_midi_dir_to_note_sequences",
-    srcs = ["convert_midi_dir_to_note_sequences.py"],
+    name = "convert_dir_to_note_sequences",
+    srcs = ["convert_dir_to_note_sequences.py"],
     srcs_version = "PY2AND3",
     deps = [
-        "//magenta",
-        # tensorflow dep
-    ],
-)
-
-py_binary(
-    name = "convert_musicxml_dir_to_note_sequences",
-    srcs = ["convert_musicxml_dir_to_note_sequences.py"],
-    srcs_version = "PY2AND3",
-    deps = [
+        "//magenta/music:midi_io",
         "//magenta/music:musicxml_reader",
         "//magenta/music:note_sequence_io",
         # tensorflow dep
@@ -43,12 +34,12 @@ py_binary(
 )
 
 py_test(
-    name = "convert_midi_dir_to_note_sequences_test",
-    srcs = ["convert_midi_dir_to_note_sequences_test.py"],
+    name = "convert_dir_to_note_sequences_test",
+    srcs = ["convert_dir_to_note_sequences_test.py"],
     data = ["//magenta/testdata"],
     srcs_version = "PY2AND3",
     deps = [
-        ":convert_midi_dir_to_note_sequences",
+        ":convert_dir_to_note_sequences",
         # tensorflow dep
     ],
 )
