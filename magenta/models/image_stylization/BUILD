@@ -101,7 +101,7 @@ py_library(
     deps = [
         ":imagenet_data",
         # numpy dep
-        # placer dep
+        # storage dep
         # scipy dep
         # tensorflow dep
     ],
