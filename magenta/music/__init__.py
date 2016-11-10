@@ -52,9 +52,9 @@ from magenta.music.model import BaseModel
 from magenta.music.musicxml_parser import MusicXMLDocument
 from magenta.music.musicxml_parser import MusicXMLParseException
 
-from magenta.music.musicxml_reader import MusicXMLConversionError
 from magenta.music.musicxml_reader import musicxml_file_to_sequence_proto
 from magenta.music.musicxml_reader import musicxml_to_sequence_proto
+from magenta.music.musicxml_reader import MusicXMLConversionError
 
 from magenta.music.notebook_utils import play_sequence
 
