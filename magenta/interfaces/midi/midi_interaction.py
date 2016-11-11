@@ -69,6 +69,33 @@ def filter_instrument(sequence, instrument, from_time=0):
   return filtered_sequence
 
 
+def temperature_from_control_value(
+    val, min_temp=0.1, mid_temp=1.0, max_temp=2.0):
+  """Computes the temperature from an 8-bit MIDI control value.
+
+  Linearly interpolates between the middle temperature and an endpoint.
+
+  Args:
+    val: The MIDI control value in the range [0, 127] or None. If None, returns
+        `mid_temp`.
+    min_temp: The minimum temperature, which will be returned when `val` is 0.
+    mid_temp: The middle temperature, which will be returned when `val` is 63
+       or 64.
+    max_temp: The maximum temperature, which will be returned when `val` is 127.
+
+  Returns:
+    A float temperature value based on the 8-bit MIDI control value.
+  """
+  if val is None:
+    return mid_temp
+  if val > 64:
+    return mid_temp + (val - 64) * (max_temp - mid_temp) / 63
+  elif val < 63:
+    return min_temp + val * (mid_temp - min_temp) / 63
+  else:
+    return mid_temp
+
+
 class MidiInteraction(threading.Thread):
   """Base class for handling interaction between MIDI and SequenceGenerator.
 
@@ -139,7 +166,8 @@ class CallAndResponseMidiInteraction(MidiInteraction):
                steps_per_bar=16,
                phrase_bars=None,
                start_call_signal=None,
-               end_call_signal=None):
+               end_call_signal=None,
+               temperature_control=None):
     super(CallAndResponseMidiInteraction, self).__init__(midi_hub, qpm)
     self._sequence_generator = sequence_generator
     self._steps_per_bar = steps_per_bar
@@ -147,6 +175,7 @@ class CallAndResponseMidiInteraction(MidiInteraction):
     self._phrase_bars = phrase_bars
     self._start_call_signal = start_call_signal
     self._end_call_signal = end_call_signal
+    self._temperature_control = temperature_control
 
   def run(self):
     """The main loop for a real-time call and response interaction."""
@@ -163,6 +192,10 @@ class CallAndResponseMidiInteraction(MidiInteraction):
 
     # Call stage start in steps from the epoch.
     call_start_steps = start_steps
+
+    # The softmax temperature to use during generation.
+    temperature = temperature_from_control_value(
+        self._midi_hub.control_value(self._temperature_control))
 
     while not self._stop_signal.is_set():
       if self._start_call_signal is not None:
@@ -220,6 +253,15 @@ class CallAndResponseMidiInteraction(MidiInteraction):
       generator_options.generate_sections.add(
           start_time=response_start_steps * seconds_per_step,
           end_time=response_end_steps * seconds_per_step)
+
+      # Check for updated temperature.
+      new_temperature = temperature_from_control_value(
+          self._midi_hub.control_value(self._temperature_control))
+      if new_temperature is not None:
+        if temperature != new_temperature:
+          tf.logging.info('New temperature value: %d', new_temperature)
+          temperature = new_temperature
+        generator_options.args['temperature'].float_value = temperature
 
       # Generate response.
       response_sequence = self._sequence_generator.generate(

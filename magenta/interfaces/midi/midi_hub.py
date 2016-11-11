@@ -783,6 +783,9 @@ class MidiHub(object):
     # variable that will be notified when a matching messsage is received,
     # ignoring the time field.
     self._signals = {}
+    # A dictionary mapping integer control numbers to most recently-received
+    # integer value.
+    self._control_values = {}
     # Threads actively being used to capture incoming messages.
     self._captors = []
     # Potentially active player threads.
@@ -865,6 +868,10 @@ class MidiHub(object):
     # capture thread.
     for t in self._captors:
       t.receive(msg.copy())
+
+    # Update control values if this is a control change message.
+    if msg.type == 'control_change':
+      self._control_values[msg.control] = msg.value
 
     # Pass the message through to the output port, if appropriate.
     if not self._passthrough:
@@ -1037,3 +1044,16 @@ class MidiHub(object):
       self._players.append(player)
     player.start()
     return player
+
+  @concurrency.serialized
+  def control_value(self, control_number):
+    """Returns the most recently received value for the given control number.
+
+    Args:
+      control_number: The integer control number to return the value for.
+
+    Returns:
+      The most recently recieved integer value for the given control number, or
+      None if no values have been received for that control.
+    """
+    return self._control_values.get(control_number)

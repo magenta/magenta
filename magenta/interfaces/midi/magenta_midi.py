@@ -56,11 +56,16 @@ tf.app.flags.DEFINE_integer(
     None,
     'The control change number to use as a signal to end the call phrase. If '
     'None, `phrase_bars` must be specified.')
+tf.app.flags.DEFINE_integer(
+    'temperature_control_number',
+    None,
+    'The control change number to use for controlling temperature.')
 # TODO(adarob): Make the qpm adjustable by a control change signal.
 tf.app.flags.DEFINE_integer(
     'qpm',
     90,
     'The quarters per minute to use for the metronome and generated sequence.')
+
 tf.app.flags.DEFINE_string(
     'bundle_file',
     None,
@@ -123,7 +128,8 @@ def main(unused_argv):
       generator,
       phrase_bars=FLAGS.phrase_bars,
       start_call_signal=start_call_signal,
-      end_call_signal=end_call_signal)
+      end_call_signal=end_call_signal,
+      temperature_control_number=FLAGS.temperature_control_number)
 
   print ''
   print 'Instructions:'
