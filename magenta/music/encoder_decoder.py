@@ -472,7 +472,8 @@ class LookbackEventSequenceEncoderDecoder(EventSequenceEncoderDecoder):
     Returns:
       A label, an integer.
     """
-    if (position < self._lookback_distances[-1] and
+    if (self._lookback_distances and
+        position < self._lookback_distances[-1] and
         events[position] == self._one_hot_encoding.default_event):
       return (self._one_hot_encoding.num_classes +
               len(self._lookback_distances) - 1)
