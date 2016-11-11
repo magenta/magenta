@@ -167,7 +167,7 @@ class CallAndResponseMidiInteraction(MidiInteraction):
                phrase_bars=None,
                start_call_signal=None,
                end_call_signal=None,
-               temperature_control=None):
+               temperature_control_number=None):
     super(CallAndResponseMidiInteraction, self).__init__(midi_hub, qpm)
     self._sequence_generator = sequence_generator
     self._steps_per_bar = steps_per_bar
@@ -175,7 +175,7 @@ class CallAndResponseMidiInteraction(MidiInteraction):
     self._phrase_bars = phrase_bars
     self._start_call_signal = start_call_signal
     self._end_call_signal = end_call_signal
-    self._temperature_control = temperature_control
+    self._temperature_control_number = temperature_control_number
 
   def run(self):
     """The main loop for a real-time call and response interaction."""
@@ -195,7 +195,7 @@ class CallAndResponseMidiInteraction(MidiInteraction):
 
     # The softmax temperature to use during generation.
     temperature = temperature_from_control_value(
-        self._midi_hub.control_value(self._temperature_control))
+        self._midi_hub.control_value(self._temperature_control_number))
 
     while not self._stop_signal.is_set():
       if self._start_call_signal is not None:
@@ -256,7 +256,7 @@ class CallAndResponseMidiInteraction(MidiInteraction):
 
       # Check for updated temperature.
       new_temperature = temperature_from_control_value(
-          self._midi_hub.control_value(self._temperature_control))
+          self._midi_hub.control_value(self._temperature_control_number))
       if new_temperature is not None:
         if temperature != new_temperature:
           tf.logging.info('New temperature value: %d', new_temperature)
