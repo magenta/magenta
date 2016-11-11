@@ -50,7 +50,7 @@ message NoteSequence {
   // The total time of the Sequence in seconds.
   double total_time = 9;
   // The total time of the sequence in quantized steps.
-  int32 total_quantized_steps = 16;
+  int64 total_quantized_steps = 16;
 
   // MIDI-specific events that are generally relevant for performance, metadata
   // storage or re-synthesis but not for processing the music score.
@@ -80,11 +80,11 @@ message NoteSequence {
     // Start time in seconds.
     double start_time = 3;
     // Quantized start time in steps.
-    double quantized_start_step = 13;
+    int64 quantized_start_step = 13;
     // End time in seconds.
     double end_time = 4;
     // Quantized end time in steps.
-    double quantized_end_step = 14;
+    int64 quantized_end_step = 14;
     // Score-relative note length. E.g. a quarter note is 1/4.
     int32 numerator = 5;
     int32 denominator = 6;
@@ -277,7 +277,7 @@ message NoteSequence {
     // Time in seconds.
     double time = 1;
     // Quantized time in steps.
-    double quantized_step = 4;
+    int64 quantized_step = 4;
     // Text of the annotation.
     string text = 2;
     // Type of the annotation, to assist with automated interpretation.
