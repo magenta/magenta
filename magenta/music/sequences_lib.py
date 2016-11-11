@@ -92,9 +92,11 @@ def steps_per_bar_in_quantized_sequence(note_sequence):
   """
   assert note_sequence.quantization_info.steps_per_quarter > 0
 
-  quarters_per_beat = 4.0 / self.time_signature.denominator
-  quarters_per_bar = (quarters_per_beat * self.time_signature.numerator)
-  steps_per_bar_float = (self.steps_per_quarter * quarters_per_bar)
+  quarters_per_beat = 4.0 / note_sequence.time_signatures[0].denominator
+  quarters_per_bar = (quarters_per_beat *
+                      note_sequence.time_signatures[0].numerator)
+  steps_per_bar_float = (note_sequence.quantization_info.steps_per_quarter *
+                         quarters_per_bar)
   return steps_per_bar_float
 
 def quantize_note_sequence(note_sequence, steps_per_quarter):
