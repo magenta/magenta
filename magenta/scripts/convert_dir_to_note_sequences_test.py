@@ -20,7 +20,7 @@ import tempfile
 import tensorflow as tf
 
 from magenta.music import note_sequence_io
-from magenta.scripts import convert_midi_dir_to_note_sequences
+from magenta.scripts import convert_dir_to_note_sequences
 
 
 class ConvertMidiDirToSequencesTest(tf.test.TestCase):
@@ -39,7 +39,7 @@ class ConvertMidiDirToSequencesTest(tf.test.TestCase):
     tf.gfile.MkDir(sub_1_sub_dir)
 
     tf.gfile.Copy(midi_filename, os.path.join(root_dir, 'midi_1.mid'))
-    tf.gfile.Copy(midi_filename, os.path.join(root_dir, 'midi_2'))
+    tf.gfile.Copy(midi_filename, os.path.join(root_dir, 'midi_2.mid'))
     tf.gfile.Copy(midi_filename, os.path.join(sub_1_dir, 'midi_3.mid'))
     tf.gfile.Copy(midi_filename, os.path.join(sub_2_dir, 'midi_3.mid'))
     tf.gfile.Copy(midi_filename, os.path.join(sub_2_dir, 'midi_4.mid'))
@@ -56,7 +56,7 @@ class ConvertMidiDirToSequencesTest(tf.test.TestCase):
         'sub_2': set()
     }
     self.expected_dir_midi_contents = {
-        '': {'midi_1.mid', 'midi_2'},
+        '': {'midi_1.mid', 'midi_2.mid'},
         'sub_1': {'midi_3.mid'},
         'sub_2': {'midi_3.mid', 'midi_4.mid'},
         'sub_1/sub': {'midi_5.mid'}
@@ -77,7 +77,7 @@ class ConvertMidiDirToSequencesTest(tf.test.TestCase):
         prefix='ConvertMidiDirToSequencesTest') as output_file:
       with note_sequence_io.NoteSequenceRecordWriter(
           output_file.name) as writer:
-        convert_midi_dir_to_note_sequences.convert_directory(
+        convert_dir_to_note_sequences.convert_directory(
             root_dir, '', writer, recursive)
       actual_filenames = set()
       for sequence in note_sequence_io.note_sequence_record_iterator(

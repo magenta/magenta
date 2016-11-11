@@ -27,11 +27,15 @@ py_library(
     srcs = ["__init__.py"],
     deps = [
         ":constants",
+        ":drums_encoder_decoder",
+        ":drums_lib",
         ":melodies_lib",
         ":melody_encoder_decoder",
         ":midi_io",
         ":midi_synth",
         ":model",
+        ":musicxml_parser",
+        ":musicxml_reader",
         ":note_sequence_io",
         ":notebook_utils",
         ":sequence_generator",
@@ -115,6 +119,52 @@ py_library(
     name = "constants",
     srcs = ["constants.py"],
     srcs_version = "PY2AND3",
+)
+
+py_library(
+    name = "drums_encoder_decoder",
+    srcs = ["drums_encoder_decoder.py"],
+    srcs_version = "PY2AND3",
+    deps = [
+        ":encoder_decoder",
+    ],
+)
+
+py_test(
+    name = "drums_encoder_decoder_test",
+    srcs = ["drums_encoder_decoder_test.py"],
+    srcs_version = "PY2AND3",
+    deps = [
+        ":drums_encoder_decoder",
+        # tensorflow dep
+    ],
+)
+
+py_library(
+    name = "drums_lib",
+    srcs = ["drums_lib.py"],
+    srcs_version = "PY2AND3",
+    deps = [
+        ":constants",
+        ":events_lib",
+        ":midi_io",
+        ":sequences_lib",
+        "//magenta/pipelines:statistics",
+        "//magenta/protobuf:music_py_pb2",
+    ],
+)
+
+py_test(
+    name = "drums_lib_test",
+    srcs = ["drums_lib_test.py"],
+    srcs_version = "PY2AND3",
+    deps = [
+        ":drums_lib",
+        ":sequences_lib",
+        ":testing_lib",
+        "//magenta/protobuf:music_py_pb2",
+        # tensorflow dep
+    ],
 )
 
 py_library(
@@ -308,12 +358,14 @@ py_test(
     name = "musicxml_parser_test",
     srcs = ["musicxml_parser_test.py"],
     data = [
+        "testdata/atonal_transposition_change.xml",
         "testdata/clarinet_scale.xml",
         "testdata/el_capitan.xml",
         "testdata/flute_scale.mxl",
         "testdata/flute_scale.xml",
         "testdata/flute_scale_with_png.mxl",
         "testdata/rhythm_durations.xml",
+        "testdata/st_anne.xml",
     ],
     srcs_version = "PY2AND3",
     deps = [
@@ -360,6 +412,9 @@ py_library(
 py_library(
     name = "sequences_lib",
     srcs = ["sequences_lib.py"],
+    deps = [
+        ":constants",
+    ],
 )
 
 py_test(

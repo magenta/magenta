@@ -43,7 +43,6 @@ def musicxml_to_sequence_proto(musicxml_document):
   Raises:
     MusicXMLConversionError: An error occurred when parsing the MusicXML file.
   """
-
   sequence = music_pb2.NoteSequence()
 
   # Standard MusicXML fields.
@@ -89,11 +88,17 @@ def musicxml_to_sequence_proto(musicxml_document):
   # Populate notes from each MusicXML part across all voices
   # Unlike MIDI import, notes are not sorted
   sequence.total_time = musicxml_document.total_time_secs
-  for musicxml_part in musicxml_document.parts:
+  for part_index, musicxml_part in enumerate(musicxml_document.parts):
+    part_info = sequence.part_infos.add()
+    part_info.part = part_index
+    part_info.name = musicxml_part.score_part.part_name
+
     for musicxml_measure in musicxml_part.measures:
       for musicxml_note in musicxml_measure.notes:
         if not musicxml_note.is_rest:
           note = sequence.notes.add()
+          note.part = part_index
+          note.voice = musicxml_note.voice
           note.instrument = musicxml_note.midi_channel
           note.program = musicxml_note.midi_program
           note.start_time = musicxml_note.note_duration.time_position

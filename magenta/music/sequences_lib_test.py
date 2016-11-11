@@ -166,6 +166,93 @@ class SequencesLibTest(tf.test.TestCase):
     with self.assertRaises(sequences_lib.MultipleTimeSignatureException):
       quantized.from_note_sequence(self.note_sequence, self.steps_per_quarter)
 
+  def testFromNoteSequence_ImplicitTimeSignatureChange(self):
+    testing_lib.add_track_to_sequence(
+        self.note_sequence, 0,
+        [(12, 100, 0.01, 10.0), (11, 55, 0.22, 0.50), (40, 45, 2.50, 3.50),
+         (55, 120, 4.0, 4.01), (52, 99, 4.75, 5.0)])
+    del self.note_sequence.time_signatures[:]
+    quantized = sequences_lib.QuantizedSequence()
+
+    # No time signature.
+    quantized.from_note_sequence(self.note_sequence, self.steps_per_quarter)
+
+    # Implicit time signature change.
+    self.note_sequence.time_signatures.add(numerator=2, denominator=4, time=2)
+    with self.assertRaises(sequences_lib.MultipleTimeSignatureException):
+      quantized.from_note_sequence(self.note_sequence, self.steps_per_quarter)
+
+  def testFromNoteSequence_NoImplicitTimeSignatureChangeOutOfOrder(self):
+    testing_lib.add_track_to_sequence(
+        self.note_sequence, 0,
+        [(12, 100, 0.01, 10.0), (11, 55, 0.22, 0.50), (40, 45, 2.50, 3.50),
+         (55, 120, 4.0, 4.01), (52, 99, 4.75, 5.0)])
+    del self.note_sequence.time_signatures[:]
+    quantized = sequences_lib.QuantizedSequence()
+
+    # No time signature.
+    quantized.from_note_sequence(self.note_sequence, self.steps_per_quarter)
+
+    # No implicit time signature change, but time signatures are added out of
+    # order.
+    self.note_sequence.time_signatures.add(numerator=2, denominator=4, time=2)
+    self.note_sequence.time_signatures.add(numerator=2, denominator=4, time=0)
+    quantized.from_note_sequence(self.note_sequence, self.steps_per_quarter)
+
+  def testFromNoteSequence_TempoChange(self):
+    testing_lib.add_track_to_sequence(
+        self.note_sequence, 0,
+        [(12, 100, 0.01, 10.0), (11, 55, 0.22, 0.50), (40, 45, 2.50, 3.50),
+         (55, 120, 4.0, 4.01), (52, 99, 4.75, 5.0)])
+    del self.note_sequence.tempos[:]
+    quantized = sequences_lib.QuantizedSequence()
+    quantized.from_note_sequence(self.note_sequence, self.steps_per_quarter)
+
+    # Single tempo.
+    self.note_sequence.tempos.add(qpm=60, time=0)
+    quantized.from_note_sequence(self.note_sequence, self.steps_per_quarter)
+
+    # Multiple tempos with no change.
+    self.note_sequence.tempos.add(qpm=60, time=1)
+    quantized.from_note_sequence(self.note_sequence, self.steps_per_quarter)
+
+    # Tempo change.
+    self.note_sequence.tempos.add(qpm=120, time=2)
+    with self.assertRaises(sequences_lib.MultipleTempoException):
+      quantized.from_note_sequence(self.note_sequence, self.steps_per_quarter)
+
+  def testFromNoteSequence_ImplicitTempoChange(self):
+    testing_lib.add_track_to_sequence(
+        self.note_sequence, 0,
+        [(12, 100, 0.01, 10.0), (11, 55, 0.22, 0.50), (40, 45, 2.50, 3.50),
+         (55, 120, 4.0, 4.01), (52, 99, 4.75, 5.0)])
+    del self.note_sequence.tempos[:]
+    quantized = sequences_lib.QuantizedSequence()
+
+    # No tempo.
+    quantized.from_note_sequence(self.note_sequence, self.steps_per_quarter)
+
+    # Implicit tempo change.
+    self.note_sequence.tempos.add(qpm=60, time=2)
+    with self.assertRaises(sequences_lib.MultipleTempoException):
+      quantized.from_note_sequence(self.note_sequence, self.steps_per_quarter)
+
+  def testFromNoteSequence_NoImplicitTempoChangeOutOfOrder(self):
+    testing_lib.add_track_to_sequence(
+        self.note_sequence, 0,
+        [(12, 100, 0.01, 10.0), (11, 55, 0.22, 0.50), (40, 45, 2.50, 3.50),
+         (55, 120, 4.0, 4.01), (52, 99, 4.75, 5.0)])
+    del self.note_sequence.tempos[:]
+    quantized = sequences_lib.QuantizedSequence()
+
+    # No tempo.
+    quantized.from_note_sequence(self.note_sequence, self.steps_per_quarter)
+
+    # No implicit tempo change, but tempos are added out of order.
+    self.note_sequence.tempos.add(qpm=60, time=2)
+    self.note_sequence.tempos.add(qpm=60, time=0)
+    quantized.from_note_sequence(self.note_sequence, self.steps_per_quarter)
+
   def testRounding(self):
     testing_lib.add_track_to_sequence(
         self.note_sequence, 1,

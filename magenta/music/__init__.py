@@ -16,6 +16,12 @@
 
 from magenta.music.constants import *  # pylint: disable=wildcard-import
 
+from magenta.music.drums_encoder_decoder import MultiDrumOneHotEncoding
+
+from magenta.music.drums_lib import DrumTrack
+from magenta.music.drums_lib import extract_drum_tracks
+from magenta.music.drums_lib import midi_file_to_drum_track
+
 from magenta.music.encoder_decoder import EventSequenceEncoderDecoder
 from magenta.music.encoder_decoder import LookbackEventSequenceEncoderDecoder
 from magenta.music.encoder_decoder import OneHotEncoding
@@ -43,6 +49,13 @@ from magenta.music.midi_synth import synthesize
 
 from magenta.music.model import BaseModel
 
+from magenta.music.musicxml_parser import MusicXMLDocument
+from magenta.music.musicxml_parser import MusicXMLParseException
+
+from magenta.music.musicxml_reader import musicxml_file_to_sequence_proto
+from magenta.music.musicxml_reader import musicxml_to_sequence_proto
+from magenta.music.musicxml_reader import MusicXMLConversionError
+
 from magenta.music.notebook_utils import play_sequence
 
 from magenta.music.sequence_generator import BaseSequenceGenerator
@@ -53,6 +66,7 @@ from magenta.music.sequence_generator_bundle import read_bundle_file
 
 from magenta.music.sequences_lib import BadTimeSignatureException
 from magenta.music.sequences_lib import extract_subsequence
+from magenta.music.sequences_lib import MultipleTempoException
 from magenta.music.sequences_lib import MultipleTimeSignatureException
 from magenta.music.sequences_lib import NegativeTimeException
 from magenta.music.sequences_lib import QuantizedSequence

@@ -125,7 +125,7 @@ class LookbackEventSequenceEncoderDecoderTest(tf.test.TestCase):
         TrivialOneHotEncoding(3), [1, 2], 2)
 
   def testInputSize(self):
-    self.assertEquals(13, self.enc.input_size)
+    self.assertEqual(13, self.enc.input_size)
 
   def testNumClasses(self):
     self.assertEqual(5, self.enc.num_classes)
@@ -183,6 +183,47 @@ class LookbackEventSequenceEncoderDecoderTest(tf.test.TestCase):
     self.assertEqual(2, self.enc.class_index_to_event(2, events[:5]))
     self.assertEqual(0, self.enc.class_index_to_event(3, events[:5]))
     self.assertEqual(2, self.enc.class_index_to_event(4, events[:5]))
+
+  def testEmptyLookback(self):
+    enc = encoder_decoder.LookbackEventSequenceEncoderDecoder(
+        TrivialOneHotEncoding(3), [], 2)
+    self.assertEqual(5, enc.input_size)
+    self.assertEqual(3, enc.num_classes)
+
+    events = [0, 1, 0, 2, 0]
+
+    self.assertEqual([1.0, 0.0, 0.0, 1.0, -1.0],
+                     enc.events_to_input(events, 0))
+    self.assertEqual([0.0, 1.0, 0.0, -1.0, 1.0],
+                     enc.events_to_input(events, 1))
+    self.assertEqual([1.0, 0.0, 0.0, 1.0, 1.0],
+                     enc.events_to_input(events, 2))
+    self.assertEqual([0.0, 0.0, 1.0, -1.0, -1.0],
+                     enc.events_to_input(events, 3))
+    self.assertEqual([1.0, 0.0, 0.0, 1.0, -1.0],
+                     enc.events_to_input(events, 4))
+
+    self.assertEqual(0, enc.events_to_label(events, 0))
+    self.assertEqual(1, enc.events_to_label(events, 1))
+    self.assertEqual(0, enc.events_to_label(events, 2))
+    self.assertEqual(2, enc.events_to_label(events, 3))
+    self.assertEqual(0, enc.events_to_label(events, 4))
+
+    self.assertEqual(0, self.enc.class_index_to_event(0, events[:1]))
+    self.assertEqual(1, self.enc.class_index_to_event(1, events[:1]))
+    self.assertEqual(2, self.enc.class_index_to_event(2, events[:1]))
+    self.assertEqual(0, self.enc.class_index_to_event(0, events[:2]))
+    self.assertEqual(1, self.enc.class_index_to_event(1, events[:2]))
+    self.assertEqual(2, self.enc.class_index_to_event(2, events[:2]))
+    self.assertEqual(0, self.enc.class_index_to_event(0, events[:3]))
+    self.assertEqual(1, self.enc.class_index_to_event(1, events[:3]))
+    self.assertEqual(2, self.enc.class_index_to_event(2, events[:3]))
+    self.assertEqual(0, self.enc.class_index_to_event(0, events[:4]))
+    self.assertEqual(1, self.enc.class_index_to_event(1, events[:4]))
+    self.assertEqual(2, self.enc.class_index_to_event(2, events[:4]))
+    self.assertEqual(0, self.enc.class_index_to_event(0, events[:5]))
+    self.assertEqual(1, self.enc.class_index_to_event(1, events[:5]))
+    self.assertEqual(2, self.enc.class_index_to_event(2, events[:5]))
 
 
 if __name__ == '__main__':

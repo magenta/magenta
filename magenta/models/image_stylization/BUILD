@@ -34,6 +34,7 @@ py_binary(
         ":image_utils",
         ":learning",
         # scipy dep
+        # scipy pilutil dep
         # tensorflow dep
     ],
 )
@@ -100,6 +101,7 @@ py_library(
     deps = [
         ":imagenet_data",
         # numpy dep
+        # storage dep
         # scipy dep
         # tensorflow dep
     ],

@@ -15,6 +15,10 @@
 
 import collections
 import copy
+
+# internal imports
+
+from magenta.music import constants
 from magenta.protobuf import music_pb2
 
 # Set the quantization cutoff.
@@ -37,6 +41,10 @@ class BadTimeSignatureException(Exception):
 
 
 class MultipleTimeSignatureException(Exception):
+  pass
+
+
+class MultipleTempoException(Exception):
   pass
 
 
@@ -103,7 +111,8 @@ class QuantizedSequence(object):
   # classes.
   # pylint: disable=invalid-name
   Note = collections.namedtuple(
-      'Note', ['pitch', 'velocity', 'start', 'end', 'instrument', 'program'])
+      'Note',
+      ['pitch', 'velocity', 'start', 'end', 'instrument', 'program', 'is_drum'])
   TimeSignature = collections.namedtuple('TimeSignature',
                                          ['numerator', 'denominator'])
   ChordSymbol = collections.namedtuple('ChordSymbol', ['step', 'figure'])
@@ -132,8 +141,7 @@ class QuantizedSequence(object):
     steps_per_bar_float = (self.steps_per_quarter * quarters_per_bar)
     return steps_per_bar_float
 
-  def from_note_sequence(self, note_sequence, steps_per_quarter,
-                         filter_drums=True):
+  def from_note_sequence(self, note_sequence, steps_per_quarter):
     """Populate self with a music_pb2.NoteSequence proto.
 
     Notes and time signature are saved to self with notes' start and end times
@@ -152,11 +160,11 @@ class QuantizedSequence(object):
       note_sequence: A music_pb2.NoteSequence protocol buffer.
       steps_per_quarter: Each quarter note of music will be divided into this
           many quantized time steps.
-      filter_drums: Whether to skip notes where `is_drum` is True.
 
     Raises:
       MultipleTimeSignatureException: If there is a change in time signature
           in `note_sequence`.
+      MultipleTempoException: If there is a change in tempo in `note_sequence`.
       BadTimeSignatureException: If the time signature found in `note_sequence`
           has a denominator which is not a power of 2.
       NegativeTimeException: If a note or chord occurs at a negative time.
@@ -166,21 +174,49 @@ class QuantizedSequence(object):
     self.steps_per_quarter = steps_per_quarter
 
     if note_sequence.time_signatures:
-      self.time_signature = QuantizedSequence.TimeSignature(
-          note_sequence.time_signatures[0].numerator,
-          note_sequence.time_signatures[0].denominator)
-    for time_signature in note_sequence.time_signatures[1:]:
-      if (time_signature.numerator != self.time_signature.numerator or
-          time_signature.denominator != self.time_signature.denominator):
+      time_signatures = sorted(note_sequence.time_signatures,
+                               key=lambda ts: ts.time)
+      # There is an implicit 4/4 time signature at 0 time. So if the first time
+      # signature is something other than 4/4 and it's at a time other than 0,
+      # that's an implicit time signature change.
+      if time_signatures[0].time != 0 and not (
+          time_signatures[0].numerator == 4 and
+          time_signatures[0].denominator == 4):
         raise MultipleTimeSignatureException(
-            'NoteSequence has at least one time signature change.')
+            'NoteSequence has an implicit change from initial 4/4 time '
+            'signature.')
+
+      self.time_signature = QuantizedSequence.TimeSignature(
+          time_signatures[0].numerator, time_signatures[0].denominator)
+
+      for time_signature in time_signatures[1:]:
+        if (time_signature.numerator != self.time_signature.numerator or
+            time_signature.denominator != self.time_signature.denominator):
+          raise MultipleTimeSignatureException(
+              'NoteSequence has at least one time signature change.')
 
     if not is_power_of_2(self.time_signature.denominator):
       raise BadTimeSignatureException(
           'Denominator is not a power of 2. Time signature: %d/%d' %
           (self.time_signature.numerator, self.time_signature.denominator))
 
-    self.qpm = note_sequence.tempos[0].qpm if note_sequence.tempos else 120.0
+    if note_sequence.tempos:
+      tempos = sorted(note_sequence.tempos, key=lambda t: t.time)
+      # There is an implicit 120.0 qpm tempo at 0 time. So if the first tempo is
+      # something other that 120.0 and it's at a time other than 0, that's an
+      # implicit tempo change.
+      if tempos[0].time != 0 and tempos[0].qpm != 120.0:
+        raise MultipleTempoException(
+            'NoteSequence has an implicit tempo change from initial 120.0 qpm')
+
+      self.qpm = tempos[0].qpm
+
+      for tempo in tempos[1:]:
+        if tempo.qpm != self.qpm:
+          raise MultipleTempoException(
+              'NoteSequence has at least one tempo change.')
+    else:
+      self.qpm = constants.DEFAULT_QUARTERS_PER_MINUTE
 
     # Compute quantization steps per second.
     steps_per_second = steps_per_quarter * self.qpm / 60.0
@@ -190,9 +226,6 @@ class QuantizedSequence(object):
     self.total_steps = quantize(note_sequence.total_time * steps_per_second)
 
     for note in note_sequence.notes:
-      if filter_drums and note.is_drum:
-        continue
-
       # Quantize the start and end times of the note.
       start_step = quantize(note.start_time * steps_per_second)
       end_step = quantize(note.end_time * steps_per_second)
@@ -217,7 +250,8 @@ class QuantizedSequence(object):
                                  start=start_step,
                                  end=end_step,
                                  instrument=note.instrument,
-                                 program=note.program))
+                                 program=note.program,
+                                 is_drum=note.is_drum))
 
     # Also add chord symbol annotations to the quantized sequence.
     for annotation in note_sequence.text_annotations:

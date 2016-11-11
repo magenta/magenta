@@ -27,15 +27,18 @@ class MelodyExtractor(pipeline.Pipeline):
   """Extracts monophonic melodies from a QuantizedSequence."""
 
   def __init__(self, min_bars=7, max_steps=512, min_unique_pitches=5,
-               gap_bars=1.0, ignore_polyphonic_notes=False):
+               gap_bars=1.0, ignore_polyphonic_notes=False, filter_drums=True,
+               name=None):
     super(MelodyExtractor, self).__init__(
         input_type=sequences_lib.QuantizedSequence,
-        output_type=melodies_lib.Melody)
+        output_type=melodies_lib.Melody,
+        name=name)
     self._min_bars = min_bars
     self._max_steps = max_steps
     self._min_unique_pitches = min_unique_pitches
     self._gap_bars = gap_bars
-    self._ignore_polyphonic_notes = False
+    self._ignore_polyphonic_notes = ignore_polyphonic_notes
+    self._filter_drums = filter_drums
 
   def transform(self, quantized_sequence):
     try:
@@ -45,7 +48,8 @@ class MelodyExtractor(pipeline.Pipeline):
           max_steps_truncate=self._max_steps,
           min_unique_pitches=self._min_unique_pitches,
           gap_bars=self._gap_bars,
-          ignore_polyphonic_notes=self._ignore_polyphonic_notes)
+          ignore_polyphonic_notes=self._ignore_polyphonic_notes,
+          filter_drums=self._filter_drums)
     except events_lib.NonIntegerStepsPerBarException as detail:
       tf.logging.warning('Skipped sequence: %s', detail)
       melodies = []

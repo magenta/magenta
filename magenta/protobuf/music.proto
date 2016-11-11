@@ -63,6 +63,7 @@ message NoteSequence {
   // Arbitrary textual annotations.
   repeated TextAnnotation text_annotations = 14;
 
+  // Next tag: 13
   message Note {
     // MIDI pitch; see en.wikipedia.org/wiki/MIDI_Tuning_Standard for details.
     int32 pitch = 1;
@@ -84,10 +85,18 @@ message NoteSequence {
     int32 program = 8;
     // When true, the event is on an instrument that is a drum (MIDI channel 9).
     bool is_drum = 9;
-    // The part or voice index if this came from a score. Otherwise, just 0.
-    // For example, a score may have separate voices for Soprano, Alto, Tenor,
-    // Bass. This field allows that information to be retained.
+    // The part index if this came from a score. Otherwise, just 0.
+    // For example, a score may have separate parts for different instruments in
+    // an orchestra.
+    // If additional information is available about the part, a corresponding
+    // PartInfo should be defined with the same index.
     int32 part = 10;
+    // The voice index if this came from a score. Otherwise, just 0.
+    // For example, within a part, there may be multiple voices (e.g., Soprano,
+    // Alto, Tenor, Bass).
+    // Note that while voices indexes must be unique within a part, they are not
+    // guaranteed to be unique across parts.
+    int32 voice = 12;
   }
 
   // Adopted from Musescore with start enum shifted to 0; see
@@ -204,12 +213,12 @@ message NoteSequence {
     bool is_drum = 6;
   }
 
-  // Stores score-related information about a particular part (sometimes also
-  // called track or voice).
+  // Stores score-related information about a particular part.
+  // See usage within Note for more details.
   message PartInfo {
     // The part index.
     int32 part = 1;
-    // The name of the part. Examples: "Soprano" or "Trumpet".
+    // The name of the part. Examples: "Piano" or "Voice".
     string name = 2;
   }
 
