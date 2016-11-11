@@ -66,6 +66,7 @@ from magenta.music.sequence_generator_bundle import read_bundle_file
 
 from magenta.music.sequences_lib import BadTimeSignatureException
 from magenta.music.sequences_lib import extract_subsequence
+from magenta.music.sequences_lib import MultipleTempoException
 from magenta.music.sequences_lib import MultipleTimeSignatureException
 from magenta.music.sequences_lib import NegativeTimeException
 from magenta.music.sequences_lib import QuantizedSequence

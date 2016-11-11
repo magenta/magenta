@@ -412,6 +412,9 @@ py_library(
 py_library(
     name = "sequences_lib",
     srcs = ["sequences_lib.py"],
+    deps = [
+        ":constants",
+    ],
 )
 
 py_test(
