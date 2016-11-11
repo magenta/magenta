@@ -455,6 +455,7 @@ class MusicXMLParserTest(tf.test.TestCase):
           end_time: 0.5
           numerator: 1
           denominator: 4
+          voice: 1
         }
         notes {
           pitch: 74
@@ -463,6 +464,7 @@ class MusicXMLParserTest(tf.test.TestCase):
           end_time: 0.75
           numerator: 1
           denominator: 8
+          voice: 1
         }
         notes {
           pitch: 76
@@ -471,6 +473,7 @@ class MusicXMLParserTest(tf.test.TestCase):
           end_time: 1.25
           numerator: 1
           denominator: 4
+          voice: 1
         }
         notes {
           pitch: 77
@@ -479,6 +482,7 @@ class MusicXMLParserTest(tf.test.TestCase):
           end_time: 1.75
           numerator: 1
           denominator: 4
+          voice: 1
         }
         notes {
           pitch: 79
@@ -487,6 +491,10 @@ class MusicXMLParserTest(tf.test.TestCase):
           end_time: 2.75
           numerator: 1
           denominator: 2
+          voice: 1
+        }
+        part_infos {
+          name: "Flute"
         }
         source_info: {
           source_type: SCORE_BASED
@@ -509,8 +517,53 @@ class MusicXMLParserTest(tf.test.TestCase):
         music_pb2.NoteSequence,
         """
         ticks_per_quarter: 220
-        time_signatures: {
+        time_signatures {
+          numerator: 1
+          denominator: 4
+        }
+        time_signatures {
+          time: 0.5
           numerator: 4
+          denominator: 4
+        }
+        time_signatures {
+          time: 2.5
+          numerator: 4
+          denominator: 4
+        }
+        time_signatures {
+          time: 4.5
+          numerator: 4
+          denominator: 4
+        }
+        time_signatures {
+          time: 6.5
+          numerator: 3
+          denominator: 4
+        }
+        time_signatures {
+          time: 8.0
+          numerator: 1
+          denominator: 4
+        }
+        time_signatures {
+          time: 8.5
+          numerator: 4
+          denominator: 4
+        }
+        time_signatures {
+          time: 10.5
+          numerator: 4
+          denominator: 4
+        }
+        time_signatures {
+          time: 12.5
+          numerator: 4
+          denominator: 4
+        }
+        time_signatures {
+          time: 14.5
+          numerator: 3
           denominator: 4
         }
         tempos: {
