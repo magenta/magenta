@@ -102,7 +102,15 @@ class MusicXMLParserTest(tf.test.TestCase):
 
     self.chord_symbols_filename = os.path.join(
         tf.resource_loader.get_data_files_path(),
-        'testdata/chord_symbols.xml')
+        'testdata/chord_symbols.xml')        
+        
+    self.time_signature_filename = os.path.join(
+        tf.resource_loader.get_data_files_path(),
+        'testdata/st_anne.xml')
+
+    self.unmetered_filename = os.path.join(
+        tf.resource_loader.get_data_files_path(),
+        'testdata/unmetered_example.xml')
 
   def checkmusicxmlandsequence(self, musicxml, sequence_proto):
     """Compares MusicXMLDocument object against a sequence proto.
@@ -401,6 +409,92 @@ class MusicXMLParserTest(tf.test.TestCase):
       note.numerator = 1
       note.denominator = 4
       note.voice = 1
+    self.maxDiff = None
+    self.assertProtoEquals(expected_ns, ns)
+
+  def test_incomplete_measures(self):
+    """Test that incomplete measures have the correct time signature.
+
+    This can occur in pickup bars or incomplete measures. For example,
+    if the time signature in the MusicXML is 4/4, but the measure only
+    contains one quarter note, Magenta expects this pickup measure to have
+    a time signature of 1/4.
+    """
+    ns = musicxml_reader.musicxml_file_to_sequence_proto(
+        self.time_signature_filename)
+
+    # One time signature per measure
+    self.assertEqual(len(ns.time_signatures), 10)
+    self.assertEqual(len(ns.key_signatures), 1)
+    self.assertEqual(len(ns.notes), 112)
+
+  def test_unmetered_music(self):
+    """Test that time signatures are inserted for music without time signatures.
+
+    MusicXML does not require the use of time signatures. Music without
+    time signatures occur in medieval chant, cadenzas, and contemporary music.
+    """
+    ns = musicxml_reader.musicxml_file_to_sequence_proto(
+        self.unmetered_filename)
+    expected_ns = common_testing_lib.parse_test_proto(
+        music_pb2.NoteSequence,
+        """
+        ticks_per_quarter: 220
+        time_signatures: {
+          numerator: 11
+          denominator: 8
+        }
+        tempos: {
+          qpm: 120
+        }
+        key_signatures: {
+        }
+        notes {
+          pitch: 72
+          velocity: 64
+          end_time: 0.5
+          numerator: 1
+          denominator: 4
+        }
+        notes {
+          pitch: 74
+          velocity: 64
+          start_time: 0.5
+          end_time: 0.75
+          numerator: 1
+          denominator: 8
+        }
+        notes {
+          pitch: 76
+          velocity: 64
+          start_time: 0.75
+          end_time: 1.25
+          numerator: 1
+          denominator: 4
+        }
+        notes {
+          pitch: 77
+          velocity: 64
+          start_time: 1.25
+          end_time: 1.75
+          numerator: 1
+          denominator: 4
+        }
+        notes {
+          pitch: 79
+          velocity: 64
+          start_time: 1.75
+          end_time: 2.75
+          numerator: 1
+          denominator: 2
+        }
+        source_info: {
+          source_type: SCORE_BASED
+          encoding_type: MUSIC_XML
+          parser: MAGENTA_MUSIC_XML
+        }
+        total_time: 2.75
+        """)
     self.maxDiff = None
     self.assertProtoEquals(expected_ns, ns)
 

@@ -374,6 +374,8 @@ py_test(
         "testdata/flute_scale_with_png.mxl",
         "testdata/rhythm_durations.xml",
         "testdata/st_anne.xml",
+        "testdata/st_anne.xml",
+        "testdata/unmetered_example.xml"
     ],
     srcs_version = "PY2AND3",
     deps = [
