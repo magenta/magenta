@@ -10,7 +10,7 @@ MIDI_DIRECTORY=<folder containing MIDI files. can have child folders.>
 # TFRecord file that will contain NoteSequence protocol buffers.
 SEQUENCES_TFRECORD=/tmp/notesequences.tfrecord
 
-convert_midi_dir_to_note_sequences \
+convert_dir_to_note_sequences \
   --midi_dir=$MIDI_DIRECTORY \
   --output_file=$SEQUENCES_TFRECORD \
   --recursive

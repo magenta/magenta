@@ -102,7 +102,7 @@ faster for tests.
 ### Scripts
 
 Our pip package also includes several executable scripts (e.g.,
-`convert_midi_dir_to_note_sequences`). These are just python files that pip
+`convert_dir_to_note_sequences`). These are just python files that pip
 create executable wrappers around and installs to the python binary path. After
 installation, users will have the script installed in their path. To add a new
 script to the distribution, follow these steps:
