@@ -20,6 +20,7 @@ import copy
 
 from magenta.music import constants
 from magenta.protobuf import music_pb2
+from magenta.music import constants
 
 # Set the quantization cutoff.
 # Note events before this cutoff are rounded down to nearest step. Notes
