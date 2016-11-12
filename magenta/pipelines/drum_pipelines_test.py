@@ -21,6 +21,7 @@ from magenta.music import drums_lib
 from magenta.music import sequences_lib
 from magenta.music import testing_lib
 from magenta.pipelines import drum_pipelines
+from magenta.protobuf import music_pb2
 
 DRUMS = lambda *args: frozenset(args)
 NO_DRUMS = frozenset()
@@ -38,15 +39,23 @@ class DrumPipelinesTest(tf.test.TestCase):
       self.assertEqual(unit.output_type, type(outputs[0]))
 
   def testDrumsExtractor(self):
-    quantized_sequence = sequences_lib.QuantizedSequence()
-    quantized_sequence.steps_per_quarter = 1
-    testing_lib.add_quantized_track_to_sequence(
-        quantized_sequence, 0,
+    note_sequence = common_testing_lib.parse_test_proto(
+        music_pb2.NoteSequence,
+        """
+        time_signatures: {
+          numerator: 4
+          denominator: 4}
+        tempos: {
+          qpm: 60}""")
+    testing_lib.add_track_to_sequence(
+        note_sequence, 0,
         [(12, 100, 2, 4), (11, 1, 6, 7), (12, 1, 6, 8)],
         is_drum=True)
-    testing_lib.add_quantized_track_to_sequence(
-        quantized_sequence, 1,
+    testing_lib.add_track_to_sequence(
+        note_sequence, 1,
         [(12, 127, 2, 4), (14, 50, 6, 8)])
+    quantized_sequence = sequences_lib.quantize_note_sequence(
+        note_sequence, steps_per_quarter=1)
     expected_events = [
         [NO_DRUMS, NO_DRUMS, DRUMS(12), NO_DRUMS, NO_DRUMS, NO_DRUMS,
          DRUMS(11, 12)]]

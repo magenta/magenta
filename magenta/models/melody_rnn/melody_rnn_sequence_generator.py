@@ -85,8 +85,7 @@ class MelodyRnnSequenceGenerator(mm.BaseSequenceGenerator):
           (generate_section.start_time, last_end_time))
 
     # Quantize the priming sequence.
-    quantized_sequence = mm.QuantizedSequence()
-    quantized_sequence.from_note_sequence(
+    quantized_sequence = mm.quantize_note_sequence(
         primer_sequence, self._steps_per_quarter)
     # Setting gap_bars to infinite ensures that the entire input will be used.
     extracted_melodies, _ = mm.extract_melodies(

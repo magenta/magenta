@@ -21,16 +21,17 @@ from magenta.music import melodies_lib
 from magenta.music import sequences_lib
 from magenta.pipelines import pipeline
 from magenta.pipelines import statistics
+from magenta.protobuf import music_pb2
 
 
 class MelodyExtractor(pipeline.Pipeline):
-  """Extracts monophonic melodies from a QuantizedSequence."""
+  """Extracts monophonic melodies from a quantized NoteSequence."""
 
   def __init__(self, min_bars=7, max_steps=512, min_unique_pitches=5,
                gap_bars=1.0, ignore_polyphonic_notes=False, filter_drums=True,
                name=None):
     super(MelodyExtractor, self).__init__(
-        input_type=sequences_lib.QuantizedSequence,
+        input_type=music_pb2.NoteSequence,
         output_type=melodies_lib.Melody,
         name=name)
     self._min_bars = min_bars
