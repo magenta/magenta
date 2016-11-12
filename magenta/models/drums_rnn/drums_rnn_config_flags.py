@@ -21,8 +21,8 @@ from magenta.models.drums_rnn import drums_rnn_model
 FLAGS = tf.app.flags.FLAGS
 tf.app.flags.DEFINE_string(
     'config',
-    'beats',
-    "Which config to use. Must be one of 'beats' or 'beats_with_lookback'.")
+    'drum_kit',
+    "Which config to use. Must be one of 'one_drum' or 'drum_kit'.")
 tf.app.flags.DEFINE_string(
     'generator_id',
     None,

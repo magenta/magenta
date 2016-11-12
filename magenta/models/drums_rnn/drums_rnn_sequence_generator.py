@@ -16,9 +16,9 @@
 from functools import partial
 
 # internal imports
-import magenta.music as mm
-
 from magenta.models.drums_rnn import drums_rnn_model
+
+import magenta.music as mm
 
 
 class DrumsRnnSequenceGenerator(mm.BaseSequenceGenerator):
@@ -85,8 +85,7 @@ class DrumsRnnSequenceGenerator(mm.BaseSequenceGenerator):
           (generate_section.start_time, last_end_time))
 
     # Quantize the priming sequence.
-    quantized_sequence = mm.QuantizedSequence()
-    quantized_sequence.from_note_sequence(
+    quantized_sequence = mm.quantize_note_sequence(
         primer_sequence, self._steps_per_quarter)
     # Setting gap_bars to infinite ensures that the entire input will be used.
     extracted_drum_tracks, _ = mm.extract_drum_tracks(

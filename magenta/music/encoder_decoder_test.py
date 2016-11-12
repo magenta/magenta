@@ -18,33 +18,14 @@ import tensorflow as tf
 
 from magenta.common import sequence_example_lib
 from magenta.music import encoder_decoder
-
-
-class TrivialOneHotEncoding(encoder_decoder.OneHotEncoding):
-
-  def __init__(self, num_classes):
-    self._num_classes = num_classes
-
-  @property
-  def num_classes(self):
-    return self._num_classes
-
-  @property
-  def default_event(self):
-    return 0
-
-  def encode_event(self, event):
-    return event
-
-  def decode_event(self, event):
-    return event
+from magenta.music import testing_lib
 
 
 class OneHotEventSequenceEncoderDecoderTest(tf.test.TestCase):
 
   def setUp(self):
     self.enc = encoder_decoder.OneHotEventSequenceEncoderDecoder(
-        TrivialOneHotEncoding(3))
+        testing_lib.TrivialOneHotEncoding(3))
 
   def testInputSize(self):
     self.assertEquals(3, self.enc.input_size)
@@ -122,7 +103,7 @@ class LookbackEventSequenceEncoderDecoderTest(tf.test.TestCase):
 
   def setUp(self):
     self.enc = encoder_decoder.LookbackEventSequenceEncoderDecoder(
-        TrivialOneHotEncoding(3), [1, 2], 2)
+        testing_lib.TrivialOneHotEncoding(3), [1, 2], 2)
 
   def testInputSize(self):
     self.assertEqual(13, self.enc.input_size)
@@ -186,7 +167,7 @@ class LookbackEventSequenceEncoderDecoderTest(tf.test.TestCase):
 
   def testEmptyLookback(self):
     enc = encoder_decoder.LookbackEventSequenceEncoderDecoder(
-        TrivialOneHotEncoding(3), [], 2)
+        testing_lib.TrivialOneHotEncoding(3), [], 2)
     self.assertEqual(5, enc.input_size)
     self.assertEqual(3, enc.num_classes)
 

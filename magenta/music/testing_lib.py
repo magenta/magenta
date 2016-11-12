@@ -14,6 +14,7 @@
 """Testing support code."""
 
 # internal imports
+from magenta.music import encoder_decoder
 from magenta.protobuf import music_pb2
 
 # Shortcut to CHORD_SYMBOL annotation type.
@@ -58,3 +59,24 @@ def add_quantized_chord_steps_to_sequence(sequence, quantized_steps):
   assert len(chord_annotations) == len(quantized_steps)
   for chord, quantized_step in zip(chord_annotations, quantized_steps):
     chord.quantized_step = quantized_step
+
+
+class TrivialOneHotEncoding(encoder_decoder.OneHotEncoding):
+  """One-hot encoding that uses the identity encoding."""
+
+  def __init__(self, num_classes):
+    self._num_classes = num_classes
+
+  @property
+  def num_classes(self):
+    return self._num_classes
+
+  @property
+  def default_event(self):
+    return 0
+
+  def encode_event(self, event):
+    return event
+
+  def decode_event(self, event):
+    return event

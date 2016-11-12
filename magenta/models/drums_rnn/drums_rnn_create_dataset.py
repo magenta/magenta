@@ -17,34 +17,18 @@ This script will extract drum tracks from NoteSequence protos and save them to
 TensorFlow's SequenceExample protos for input to the drums RNN models.
 """
 
-import os
-
 # internal imports
 import tensorflow as tf
 import magenta
+
+from magenta.models.drums_rnn import drums_rnn_config_flags
+from magenta.models.shared import events_rnn_create_dataset
 
 from magenta.pipelines import dag_pipeline
 from magenta.pipelines import drum_pipelines
 from magenta.pipelines import pipeline
 from magenta.pipelines import pipelines_common
 from magenta.protobuf import music_pb2
-
-from magenta.models.drums_rnn import drums_rnn_config_flags
-
-FLAGS = tf.app.flags.FLAGS
-
-tf.app.flags.DEFINE_string('input', None,
-                           'TFRecord to read NoteSequence protos from.')
-tf.app.flags.DEFINE_string('output_dir', None,
-                           'Directory to write training and eval TFRecord '
-                           'files. The TFRecord files are populated with '
-                           'SequenceExample protos.')
-tf.app.flags.DEFINE_float('eval_ratio', 0.1,
-                          'Fraction of input to set aside for eval set. '
-                          'Partition is randomly selected.')
-tf.app.flags.DEFINE_string('log', 'INFO',
-                           'The threshold for what messages will be logged '
-                           'DEBUG, INFO, WARN, ERROR, or FATAL.')
 
 
 class EncoderPipeline(pipeline.Pipeline):
@@ -71,11 +55,12 @@ class EncoderPipeline(pipeline.Pipeline):
     return {}
 
 
-def get_pipeline(config):
+def get_pipeline(config, eval_ratio):
   """Returns the Pipeline instance which creates the RNN dataset.
 
   Args:
     config: A DrumsRnnConfig object.
+    eval_ratio: Fraction of input to set aside for evaluation set.
 
   Returns:
     A pipeline.Pipeline instance.
@@ -88,9 +73,9 @@ def get_pipeline(config):
   encoder_pipeline_train = EncoderPipeline(config, name='EncoderPipelineTrain')
   encoder_pipeline_eval = EncoderPipeline(config, name='EncoderPipelineEval')
   partitioner = pipelines_common.RandomPartition(
-      magenta.music.QuantizedSequence,
+      music_pb2.NoteSequence,
       ['eval_drum_tracks', 'training_drum_tracks'],
-      [FLAGS.eval_ratio])
+      [eval_ratio])
 
   dag = {quantizer: dag_pipeline.Input(music_pb2.NoteSequence),
          partitioner: quantizer,
@@ -103,21 +88,13 @@ def get_pipeline(config):
   return dag_pipeline.DAGPipeline(dag)
 
 
-def run_from_flags():
-  tf.logging.set_verbosity(FLAGS.log)
+def main(unused_argv):
+  events_rnn_create_dataset.setup_logs()
 
   config = drums_rnn_config_flags.config_from_flags()
-  pipeline_instance = get_pipeline(config)
-  FLAGS.input = os.path.expanduser(FLAGS.input)
-  FLAGS.output_dir = os.path.expanduser(FLAGS.output_dir)
-  pipeline.run_pipeline_serial(
-      pipeline_instance,
-      pipeline.tf_record_iterator(FLAGS.input, pipeline_instance.input_type),
-      FLAGS.output_dir)
-
-
-def main(unused_argv):
-  run_from_flags()
+  pipeline_instance = get_pipeline(
+      config, events_rnn_create_dataset.get_eval_ratio())
+  events_rnn_create_dataset.run_from_flags(pipeline_instance)
 
 
 def console_entry_point():

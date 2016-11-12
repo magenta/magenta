@@ -189,6 +189,7 @@ py_test(
     srcs_version = "PY2AND3",
     deps = [
         ":encoder_decoder",
+        ":testing_lib",
         "//magenta/common:sequence_example_lib",
         # tensorflow dep
     ],
@@ -469,6 +470,7 @@ py_library(
     name = "testing_lib",
     srcs = ["testing_lib.py"],
     deps = [
+        ":encoder_decoder",
         "//magenta/protobuf:music_py_pb2",
     ],
 )

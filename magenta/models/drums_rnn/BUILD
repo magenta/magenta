@@ -21,20 +21,10 @@ py_library(
     srcs = ["drums_rnn_config_flags.py"],
     srcs_version = "PY2AND3",
     visibility = [
-        "//magenta/models/drums_rnn:__subpackages__",
+        # internal model:drums_rnn
     ],
     deps = [
         ":drums_rnn_model",
-        # tensorflow dep
-    ],
-)
-
-py_library(
-    name = "drums_rnn_graph",
-    srcs = ["drums_rnn_graph.py"],
-    srcs_version = "PY2AND3",
-    deps = [
-        "//magenta",
         # tensorflow dep
     ],
 )
@@ -44,9 +34,8 @@ py_library(
     srcs = ["drums_rnn_model.py"],
     srcs_version = "PY2AND3",
     deps = [
-        ":drums_rnn_graph",
         "//magenta",
-        # tensorflow dep
+        "//magenta/models/shared:events_rnn_model",
     ],
 )
 
@@ -66,12 +55,24 @@ py_binary(
     srcs = ["drums_rnn_create_dataset.py"],
     srcs_version = "PY2AND3",
     visibility = [
-        "//magenta/models/drums_rnn:__subpackages__",
+        # internal model:drums_rnn
         "//magenta/tools/pip:__subpackages__",
     ],
     deps = [
         ":drums_rnn_config_flags",
         "//magenta",
+        "//magenta/models/shared:events_rnn_create_dataset",
+        # tensorflow dep
+    ],
+)
+
+py_test(
+    name = "drums_rnn_create_dataset_test",
+    srcs = ["drums_rnn_create_dataset_test.py"],
+    deps = [
+        ":drums_rnn_create_dataset",
+        "//magenta",
+        "//magenta/models/shared:events_rnn_model",
         # tensorflow dep
     ],
 )
@@ -85,7 +86,7 @@ py_binary(
     ],
     deps = [
         ":drums_rnn_config_flags",
-        ":drums_rnn_graph",
+        "//magenta/models/shared:events_rnn_train",
         # tensorflow dep
     ],
 )
@@ -102,6 +103,7 @@ py_binary(
         ":drums_rnn_model",
         ":drums_rnn_sequence_generator",
         "//magenta",
+        "//magenta/models/shared:events_rnn_generate",
         # tensorflow dep
     ],
 )

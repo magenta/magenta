@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Provides function to build a melody RNN model's graph."""
+"""Provides function to build an event sequence RNN model's graph."""
 
 # internal imports
 import tensorflow as tf
@@ -24,8 +24,8 @@ def build_graph(mode, config, sequence_example_file=None):
   Args:
     mode: 'train', 'eval', or 'generate'. Only mode related ops are added to
         the graph.
-    config: A MelodyRnnConfig containing the MelodyEncoderDecoder and HParams to
-        use.
+    config: An EventSequenceRnnConfig containing the encoder/decoder and HParams
+        to use.
     sequence_example_file: A string path to a TFRecord file containing
         tf.train.SequenceExample protos. Only needed for training and
         evaluation.

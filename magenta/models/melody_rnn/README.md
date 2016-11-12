@@ -18,7 +18,7 @@ In this configuration we introduce the use of attention. Attention allows the mo
 
 ## How to Use
 
-First, set up your [Magenta environment](https://github.com/tensorflow/magenta/blob/master/README.md). Next, you can either use a pre-trained model or train your own.
+First, set up your [Magenta environment](../../../README.md). Next, you can either use a pre-trained model or train your own.
 
 ## Pre-trained
 
@@ -110,7 +110,7 @@ tmp
 
 ### Create NoteSequences
 
-Our first step will be to convert a collection of MIDI files into NoteSequences. NoteSequences are [protocol buffers](https://developers.google.com/protocol-buffers/), which is a fast and efficient data format, and easier to work with than MIDI files. See [Building your Dataset](https://github.com/tensorflow/magenta/blob/master/magenta/scripts/README.md) for instructions on generating a TFRecord file of NoteSequences. In this example, we assume the NoteSequences were output to ```/tmp/notesequences.tfrecord```.
+Our first step will be to convert a collection of MIDI files into NoteSequences. NoteSequences are [protocol buffers](https://developers.google.com/protocol-buffers/), which is a fast and efficient data format, and easier to work with than MIDI files. See [Building your Dataset](../../scripts/README.md) for instructions on generating a TFRecord file of NoteSequences. In this example, we assume the NoteSequences were output to ```/tmp/notesequences.tfrecord```.
 
 ### Create SequenceExamples
 
