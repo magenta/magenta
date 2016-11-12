@@ -539,7 +539,7 @@ def extract_melodies(quantized_sequence,
                      ignore_polyphonic_notes=True,
                      pad_end=False,
                      filter_drums=True):
-  """Extracts a list of melodies from the given QuantizedSequence object.
+  """Extracts a list of melodies from the given quantized NoteSequence.
 
   This function will search through `quantized_sequence` for monophonic
   melodies in every track at every time step.
@@ -555,11 +555,11 @@ def extract_melodies(quantized_sequence,
   notes (preventing melodies that only repeat a few notes, such as those found
   in some accompaniment tracks, from being used).
 
-  After scanning each instrument track in the QuantizedSequence, a list of all
+  After scanning each instrument track in the quantized sequence, a list of all
   extracted Melody objects is returned.
 
   Args:
-    quantized_sequence: A sequences_lib.QuantizedSequence object.
+    quantized_sequence: A quantized NoteSequence.
     min_bars: Minimum length of melodies in number of bars. Shorter melodies are
         discarded.
     max_steps_truncate: Maximum number of steps in extracted melodies. If
@@ -588,6 +588,8 @@ def extract_melodies(quantized_sequence,
         (derived from its time signature) is not an integer number of time
         steps.
   """
+  assert quantized_sequence.quantization_info.steps_per_quarter > 0
+
   # TODO(danabo): Convert `ignore_polyphonic_notes` into a float which controls
   # the degree of polyphony that is acceptable.
   melodies = []

@@ -95,6 +95,7 @@ py_library(
         ":chord_symbols_lib",
         ":constants",
         ":events_lib",
+        ":sequences_lib",
         "//magenta/pipelines:statistics",
         "//magenta/protobuf:music_py_pb2",
     ],
@@ -111,6 +112,8 @@ py_test(
         ":melodies_lib",
         ":sequences_lib",
         ":testing_lib",
+        "//magenta/common:testing_lib",
+        "//magenta/protobuf:music_py_pb2",
         # tensorflow dep
     ],
 )
