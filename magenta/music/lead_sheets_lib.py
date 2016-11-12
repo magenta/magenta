@@ -266,14 +266,14 @@ def extract_lead_sheet_fragments(quantized_sequence,
                                  min_unique_pitches=5,
                                  ignore_polyphonic_notes=True,
                                  require_chords=False):
-  """Extracts a list of lead sheet fragments from the given QuantizedSequence.
+  """Extracts a list of lead sheet fragments from a quantized NoteSequence.
 
   This function first extracts melodies using melodies_lib.extract_melodies,
   then extracts the chords underlying each melody using
   chords_lib.extract_chords_for_melodies.
 
   Args:
-    quantized_sequence: A sequences_lib.QuantizedSequence object.
+    quantized_sequence: A quantized NoteSequence object.
     min_bars: Minimum length of melodies in number of bars. Shorter melodies are
         discarded.
     gap_bars: A melody comes to an end when this number of bars (measures) of
@@ -295,6 +295,7 @@ def extract_lead_sheet_fragments(quantized_sequence,
         (derived from its time signature) is not an integer number of time
         steps.
   """
+  assert quantized_sequence.quantization_info.steps_per_quarter > 0
   stats = dict([('empty_chord_progressions',
                  statistics.Counter('empty_chord_progressions'))])
   melodies, melody_stats = melodies_lib.extract_melodies(
