@@ -13,7 +13,7 @@
 # limitations under the License.
 """Utility functions for working with drums.
 
-Use extract_drum_tracks to extract drum tracks from a QuantizedSequence object.
+Use extract_drum_tracks to extract drum tracks from a quantized NoteSequence.
 
 Use DrumTrack.to_sequence to write a drum track to a NoteSequence proto. Then
 use midi_io.sequence_proto_to_midi_file to write that NoteSequence to a midi
@@ -45,7 +45,7 @@ class DrumTrack(events_lib.SimpleEventSequence):
   """Stores a quantized stream of drum events.
 
   DrumTrack is an intermediate representation that all drum models can use.
-  QuantizedSequence to DrumTrack code will do work to align drum notes and
+  Quantized sequence to DrumTrack code will do work to align drum notes and
   extract drum tracks. Model-specific code then needs to convert DrumTrack
   to SequenceExample protos for TensorFlow.
 
@@ -130,11 +130,11 @@ class DrumTrack(events_lib.SimpleEventSequence):
                               start_step=0,
                               gap_bars=1,
                               pad_end=False):
-    """Populate self with drums from the given QuantizedSequence object.
+    """Populate self with drums from the given quantized NoteSequence object.
 
     A drum track is extracted from the given quantized sequence starting at time
     step `start_step`. `start_step` can be used to drive extraction of multiple
-    drum tracks from the same QuantizedSequence. The end step of the extracted
+    drum tracks from the same quantized sequence. The end step of the extracted
     drum track will be stored in `self._end_step`.
 
     0 velocity notes are ignored. The drum extraction is ended when there are
@@ -146,7 +146,7 @@ class DrumTrack(events_lib.SimpleEventSequence):
     drum "pitches", or an empty frozenset to indicate no drums are played.
 
     Args:
-      quantized_sequence: A sequences_lib.QuantizedSequence instance.
+      quantized_sequence: A quantized NoteSequence instance.
       start_step: Start searching for drums at this time step.
       gap_bars: If this many bars or more follow a non-empty drum event, the
           drum track is ended.
@@ -158,27 +158,30 @@ class DrumTrack(events_lib.SimpleEventSequence):
           (derived from its time signature) is not an integer number of time
           steps.
     """
+    assert quantized_sequence.quantization_info.steps_per_quarter > 0
     self._reset()
 
     offset = None
-    steps_per_bar_float = quantized_sequence.steps_per_bar()
+    steps_per_bar_float = sequences_lib.steps_per_bar_in_quantized_sequence(
+        quantized_sequence)
     if steps_per_bar_float % 1 != 0:
       raise events_lib.NonIntegerStepsPerBarException(
           'There are %f timesteps per bar. Time signature: %d/%d' %
           (steps_per_bar_float, quantized_sequence.time_signature.numerator,
            quantized_sequence.time_signature.denominator))
     self._steps_per_bar = steps_per_bar = int(steps_per_bar_float)
-    self._steps_per_quarter = quantized_sequence.steps_per_quarter
+    self._steps_per_quarter = (
+        quantized_sequence.quantization_info.steps_per_quarter)
 
     # Group all drum notes that start at the same step.
-    all_tracks = [note for track in quantized_sequence.tracks
-                  for note in quantized_sequence.tracks[track]
-                  if note.is_drum                 # drums only
-                  and note.velocity               # no zero-velocity notes
-                  and note.start >= start_step]   # after start_step only
+    all_notes = [note for note in quantized_sequence.notes
+                 if note.is_drum                 # drums only
+                 and note.velocity               # no zero-velocity notes
+                 # after start_step only
+                 and note.quantized_start_step >= start_step]
     grouped_notes = collections.defaultdict(list)
-    for note in all_tracks:
-      grouped_notes[note.start].append(note)
+    for note in all_notes:
+      grouped_notes[note.quantized_start_step].append(note)
 
     # Sort by note start times.
     notes = sorted(grouped_notes.items(), key=operator.itemgetter(0))
