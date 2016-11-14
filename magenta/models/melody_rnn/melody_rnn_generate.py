@@ -52,8 +52,7 @@ tf.app.flags.DEFINE_boolean(
 tf.app.flags.DEFINE_string(
     'bundle_description', None,
     'A short, human-readable text description of the bundle (e.g., training '
-    'data, hyper parameters, etc.). Required when save_generator_bundle is '
-    'True.')
+    'data, hyper parameters, etc.).')
 tf.app.flags.DEFINE_string(
     'output_dir', '/tmp/melody_rnn/generated',
     'The directory where MIDI files will be saved to.')
@@ -251,6 +250,8 @@ def main(unused_argv):
 
   if FLAGS.save_generator_bundle:
     bundle_filename = os.path.expanduser(FLAGS.bundle_file)
+    if FLAGS.bundle_description is None:
+      tf.logging.warning('No bundle description provided.')
     tf.logging.info('Saving generator bundle to %s', bundle_filename)
     generator.create_bundle_file(bundle_filename, FLAGS.bundle_description)
   else:
