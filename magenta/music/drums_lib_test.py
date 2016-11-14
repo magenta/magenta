@@ -42,7 +42,7 @@ class DrumsLibTest(tf.test.TestCase):
         }
         """)
 
-  def testFromQuantizedSequence(self):
+  def testFromQuantizedNoteSequence(self):
     testing_lib.add_track_to_sequence(
         self.note_sequence, 0,
         [(12, 100, 0.0, 10.0), (11, 55, 0.25, 0.50), (40, 45, 2.50, 3.50),
@@ -59,7 +59,7 @@ class DrumsLibTest(tf.test.TestCase):
     self.assertEqual(expected, list(drums))
     self.assertEqual(16, drums.steps_per_bar)
 
-  def testFromQuantizedSequenceMultipleTracks(self):
+  def testFromQuantizedNoteSequenceMultipleTracks(self):
     testing_lib.add_track_to_sequence(
         self.note_sequence, 0,
         [(12, 100, 0, 10), (40, 45, 2.5, 3.5), (60, 100, 4, 5.5)],
@@ -82,7 +82,7 @@ class DrumsLibTest(tf.test.TestCase):
     self.assertEqual(expected, list(drums))
     self.assertEqual(16, drums.steps_per_bar)
 
-  def testFromQuantizedSequenceNotCommonTimeSig(self):
+  def testFromQuantizedNoteSequenceNotCommonTimeSig(self):
     self.note_sequence.time_signatures[0].numerator = 7
     self.note_sequence.time_signatures[0].denominator = 8
 

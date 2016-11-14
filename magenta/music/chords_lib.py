@@ -14,7 +14,7 @@
 """Utility functions for working with chord progressions.
 
 Use extract_chords_for_melodies to extract chord progressions from a
-QuantizedSequence object, aligned with already-extracted melodies.
+quantized NoteSequence object, aligned with already-extracted melodies.
 
 Use ChordProgression.to_sequence to write a chord progression to a
 NoteSequence proto, encoding the chords as text annotations.
@@ -301,7 +301,7 @@ def extract_chords(quantized_sequence, max_steps=None,
 
 
 def extract_chords_for_melodies(quantized_sequence, melodies):
-  """Extracts from the QuantizedSequence a chord progression for each melody.
+  """Extracts a chord progression from the quantized NoteSequence for melodies.
 
   This function will extract the underlying chord progression (encoded as text
   annotations) from `quantized_sequence` for each monophonic melody in
@@ -309,7 +309,7 @@ def extract_chords_for_melodies(quantized_sequence, melodies):
   corresponding melody.
 
   Args:
-    quantized_sequence: A sequences_lib.QuantizedSequence object.
+    quantized_sequence: A quantized NoteSequence object.
     melodies: A python list of Melody instances.
 
   Returns:

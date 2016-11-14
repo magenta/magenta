@@ -13,8 +13,8 @@
 # limitations under the License.
 """Utility functions for working with melodies.
 
-Use extract_melodies to extract monophonic melodies from a QuantizedSequence
-object.
+Use extract_melodies to extract monophonic melodies from a quantized
+NoteSequence object.
 
 Use Melody.to_sequence to write a melody to a NoteSequence proto. Then use
 midi_io.sequence_proto_to_midi_file to write that NoteSequence to a midi file.

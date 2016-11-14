@@ -178,7 +178,7 @@ class MelodiesLibTest(tf.test.TestCase):
     melody.squash(min_note=12 * 4, max_note=12 * 7, transpose_to_key=0)
     self.assertEqual(events, list(melody))
 
-  def testFromQuantizedSequence(self):
+  def testFromQuantizedNoteSequence(self):
     testing_lib.add_track_to_sequence(
         self.note_sequence, 0,
         [(12, 100, 0.01, 10.0), (11, 55, 0.22, 0.50), (40, 45, 2.50, 3.50),
@@ -194,7 +194,7 @@ class MelodiesLibTest(tf.test.TestCase):
     self.assertEqual(expected, list(melody))
     self.assertEqual(16, melody.steps_per_bar)
 
-  def testFromQuantizedSequenceNotCommonTimeSig(self):
+  def testFromQuantizedNoteSequenceNotCommonTimeSig(self):
     self.note_sequence.time_signatures[0].numerator = 7
     self.note_sequence.time_signatures[0].denominator = 8
 

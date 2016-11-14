@@ -377,7 +377,6 @@ py_test(
     deps = [
         ":musicxml_parser",
         ":musicxml_reader",
-        ":sequences_lib",
         ":testing_lib",
         "//magenta/common:testing_lib",
         "//magenta/protobuf:music_py_pb2",

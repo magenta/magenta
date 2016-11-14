@@ -73,7 +73,7 @@ class ChordsLibTest(tf.test.TestCase):
     with self.assertRaises(chord_symbols_lib.ChordSymbolException):
       chords.transpose(transpose_amount=-4)
 
-  def testFromQuantizedSequence(self):
+  def testFromQuantizedNoteSequence(self):
     testing_lib.add_chords_to_sequence(
         self.note_sequence,
         [('Am', 4), ('D7', 8), ('G13', 12), ('Csus', 14)])
@@ -87,7 +87,7 @@ class ChordsLibTest(tf.test.TestCase):
                 'G13', 'G13', 'Csus', 'Csus']
     self.assertEqual(expected, list(chords))
 
-  def testFromQuantizedSequenceWithinSingleChord(self):
+  def testFromQuantizedNoteSequenceWithinSingleChord(self):
     testing_lib.add_chords_to_sequence(
         self.note_sequence, [('F', 0), ('Gm', 8)])
     quantized_sequence = sequences_lib.quantize_note_sequence(
@@ -98,7 +98,7 @@ class ChordsLibTest(tf.test.TestCase):
     expected = ['F'] * 2
     self.assertEqual(expected, list(chords))
 
-  def testFromQuantizedSequenceWithNoChords(self):
+  def testFromQuantizedNoteSequenceWithNoChords(self):
     quantized_sequence = sequences_lib.quantize_note_sequence(
         self.note_sequence, self.steps_per_quarter)
     chords = chords_lib.ChordProgression()
@@ -107,7 +107,7 @@ class ChordsLibTest(tf.test.TestCase):
     expected = [NO_CHORD] * 16
     self.assertEqual(expected, list(chords))
 
-  def testFromQuantizedSequenceWithCoincidentChords(self):
+  def testFromQuantizedNoteSequenceWithCoincidentChords(self):
     testing_lib.add_chords_to_sequence(
         self.note_sequence,
         [('Am', 4), ('D7', 8), ('G13', 12), ('Csus', 12)])

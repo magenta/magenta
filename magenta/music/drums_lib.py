@@ -281,7 +281,7 @@ def extract_drum_tracks(quantized_sequence,
                         max_steps_discard=None,
                         gap_bars=1.0,
                         pad_end=False):
-  """Extracts a list of drum tracks from the given QuantizedSequence object.
+  """Extracts a list of drum tracks from the given quantized NoteSequence.
 
   This function will search through `quantized_sequence` for drum tracks. A drum
   track can span multiple "tracks" in the sequence. Only one drum track can be
@@ -296,11 +296,11 @@ def extract_drum_tracks(quantized_sequence,
 
   A drum track is only used if it is at least `min_bars` bars long.
 
-  After scanning the QuantizedSequence, a list of all extracted DrumTrack
+  After scanning the quantized NoteSequence, a list of all extracted DrumTrack
   objects is returned.
 
   Args:
-    quantized_sequence: A sequences_lib.QuantizedSequence object.
+    quantized_sequence: A quantized NoteSequence.
     min_bars: Minimum length of drum tracks in number of bars. Shorter drum
         tracks are discarded.
     max_steps_truncate: Maximum number of steps in extracted drum tracks. If
@@ -400,10 +400,8 @@ def midi_file_to_drum_track(midi_file, steps_per_quarter=4, qpm=None):
       qpm = sequence.tempos[0].qpm
     else:
       qpm = constants.DEFAULT_QUARTERS_PER_MINUTE
-  quantized_sequence = sequences_lib.QuantizedSequence()
-  quantized_sequence.qpm = qpm
-  quantized_sequence.from_note_sequence(
-      sequence, steps_per_quarter=steps_per_quarter)
+  quantized_sequence = sequences_lib.quantize_note_sequence(
+      self.note_sequence, steps_per_quarter=steps_per_quarter)
   drum_track = DrumTrack()
   drum_track.from_quantized_sequence(quantized_sequence)
   return drum_track
