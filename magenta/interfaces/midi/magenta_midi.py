@@ -65,72 +65,71 @@ tf.app.flags.DEFINE_integer(
     'qpm',
     90,
     'The quarters per minute to use for the metronome and generated sequence.')
-
 tf.app.flags.DEFINE_string(
-    'bundle_file',
+    'bundle_files',
     None,
-    'The location of the bundle file to use.')
+    'A comma-separated list of the location of the bundle files to use.')
+tf.app.flags.DEFINE_integer(
+    'generator_select_control_number',
+    None,
+    'The control number to use for selecting between generators when multiple '
+    'bundle files are specified. Required unless only a single bundle file is '
+    'specified.')
 
 # A map from a string generator name to its class.
 _GENERATOR_MAP = melody_rnn_sequence_generator.get_generator_map()
 
 
-def main(unused_argv):
+def _validate_flags():
+  """Returns True if flag values are valid or prints error and returns False."""
   if FLAGS.list_ports:
     print "Input ports: '%s'" % (
         "', '".join(midi_hub.get_available_input_ports()))
     print "Ouput ports: '%s'" % (
         "', '".join(midi_hub.get_available_output_ports()))
-    return
+    return False
 
-  if FLAGS.bundle_file is None:
+  if FLAGS.bundle_files is None:
     print '--bundle_file must be specified.'
-    return
+    return False
 
   if (FLAGS.end_call_control_number, FLAGS.phrase_bars).count(None) != 1:
     print('Exactly one of --end_call_control_number or --phrase_bars should be '
           'specified.')
-    return
+    return False
 
+  if (len(FLAGS.bundle_files.split(',')) > 1 and
+      FLAGS.generator_select_control_number == None):
+    print('If specifiying multiple bundle files (generators), '
+          '--generator_select_control_number must be specified.')
+    return False
+
+  return True
+
+
+def _load_generator_from_bundle_file(bundle_file)
+  """Returns initialized generator from bundle file path or None if fails."""
   try:
-    bundle = magenta.music.sequence_generator_bundle.read_bundle_file(
-        FLAGS.bundle_file)
-  except magenta.music.sequence_generator_bundle.GeneratorBundleParseException:
-    print 'Failed to parse bundle file: %s' % FLAGS.bundle_file
-    return
+      bundle = magenta.music.sequence_generator_bundle.read_bundle_file(
+          FLAGS.bundle_file)
+    except magenta.music.sequence_generator_bundle.GeneratorBundleParseException:
+      print 'Failed to parse bundle file: %s' % FLAGS.bundle_file
+      return None
 
-  generator_id = bundle.generator_details.id
-  if generator_id not in _GENERATOR_MAP:
-    print "Unrecognized SequenceGenerator ID '%s' in bundle file: %s" % (
-        generator_id, FLAGS.bundle_file)
-    return
+    generator_id = bundle.generator_details.id
+    if generator_id not in _GENERATOR_MAP:
+      print "Unrecognized SequenceGenerator ID '%s' in bundle file: %s" % (
+          generator_id, FLAGS.bundle_file)
+      return None
   generator = _GENERATOR_MAP[generator_id](checkpoint=None, bundle=bundle)
   generator.initialize()
   print "Loaded '%s' generator bundle from file '%s'." % (
       bundle.generator_details.id, FLAGS.bundle_file)
+  return generator
 
-  if FLAGS.input_port not in midi_hub.get_available_input_ports():
-    print "Opening '%s' as a virtual MIDI port for input." % FLAGS.input_port
-  if FLAGS.output_port not in midi_hub.get_available_output_ports():
-    print "Opening '%s' as a virtual MIDI port for output." % FLAGS.output_port
-  hub = midi_hub.MidiHub(FLAGS.input_port, FLAGS.output_port,
-                         midi_hub.TextureType.MONOPHONIC)
 
-  start_call_signal = (
-      None if FLAGS.start_call_control_number is None else
-      midi_hub.MidiSignal(control=FLAGS.start_call_control_number, value=0))
-  end_call_signal = (
-      None if FLAGS.end_call_control_number is None else
-      midi_hub.MidiSignal(control=FLAGS.end_call_control_number, value=0))
-  interaction = midi_interaction.CallAndResponseMidiInteraction(
-      hub,
-      FLAGS.qpm,
-      generator,
-      phrase_bars=FLAGS.phrase_bars,
-      start_call_signal=start_call_signal,
-      end_call_signal=end_call_signal,
-      temperature_control_number=FLAGS.temperature_control_number)
-
+def _print_instructions():
+  """Prints instructions for interaction based on the flag values."""
   print ''
   print 'Instructions:'
   if FLAGS.start_call_control_number is not None:
@@ -155,6 +154,44 @@ def main(unused_argv):
 
   print ''
   print 'To end the interaction, press CTRL-C.'
+
+
+def main(unused_argv):
+  if not _validate_flags():
+    return
+
+  # Load generators.
+  generators = []
+  for bundle_file in FLAGS.bundle_files.split(','):
+    generators.append(load_generator_from_bundle_file(bundle_file))
+    if generators[-1] is None:
+      return
+
+  # Initialize MidiHub.
+  if FLAGS.input_port not in midi_hub.get_available_input_ports():
+    print "Opening '%s' as a virtual MIDI port for input." % FLAGS.input_port
+  if FLAGS.output_port not in midi_hub.get_available_output_ports():
+    print "Opening '%s' as a virtual MIDI port for output." % FLAGS.output_port
+  hub = midi_hub.MidiHub(FLAGS.input_port, FLAGS.output_port,
+                         midi_hub.TextureType.MONOPHONIC)
+
+  start_call_signal = (
+      None if FLAGS.start_call_control_number is None else
+      midi_hub.MidiSignal(control=FLAGS.start_call_control_number, value=0))
+  end_call_signal = (
+      None if FLAGS.end_call_control_number is None else
+      midi_hub.MidiSignal(control=FLAGS.end_call_control_number, value=0))
+  interaction = midi_interaction.CallAndResponseMidiInteraction(
+      hub,
+      generators,
+      FLAGS.qpm,
+      generator_select_control_number=FLAGS.generator_select_control_number,
+      phrase_bars=FLAGS.phrase_bars,
+      start_call_signal=start_call_signal,
+      end_call_signal=end_call_signal,
+      temperature_control_number=FLAGS.temperature_control_number)
+
+  _print_instructions()
 
   interaction.start()
   try:

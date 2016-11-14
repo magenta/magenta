@@ -107,16 +107,42 @@ class MidiInteraction(threading.Thread):
 
   Args:
     midi_hub: The MidiHub to use for MIDI I/O.
+    sequence_generators: A collection of SequenceGenerator objects.
     qpm: The quarters per minute to use for this interaction.
+    generator_select_control_number: A MIDI control number in [0, 127] whose
+       value to use for selection a sequence generator from the collection.
+       Must be provided if `sequence_generators` contains multiple
+       SequenceGenerators.
+
+  Raises:
+    ValueError: If `generator_select_control_number` is None and
+        `sequence_generators` contains multiple SequenceGenerators.
   """
   _metaclass__ = abc.ABCMeta
 
-  def __init__(self, midi_hub, qpm):
+  def __init__(self, midi_hub, sequence_generators, qpm,
+               generator_select_control_number=None):
+    if generator_select_control_number == None and len(sequence_generators) > 1:
+      raise ValueError(
+        '`generator_select_control_number` cannot be None if there are '
+        'multiple SequenceGenerators.')
     self._midi_hub = midi_hub
+    self._sequence_generators = sequence_generators
     self._qpm = qpm
+    self._generator_select_control_number = generator_select_control_number
+
     # A signal to tell the main loop when to stop.
     self._stop_signal = threading.Event()
     super(MidiInteraction, self).__init__()
+
+  @property
+  def _sequence_generator(self):
+    """Returns the SequenceGenerator selected by the current control value."""
+    if len(self._sequence_generators) == 1:
+      return self._sequence_generators
+    val = self._midi_hub.control_value(self._generator_select_control_number)
+    return self._sequence_generators[val % len(self._sequence_generators)]
+
 
   @abc.abstractmethod
   def run(self):
@@ -154,22 +180,24 @@ class CallAndResponseMidiInteraction(MidiInteraction):
     end_call_signal: The optional midi_hub.MidiSignal to use as a signal to stop
         the call phrase at the end of the current bar. `phrase_bars` must be
         provided if None.
+    temperature_control_number:
   """
   _INITIAL_PREDICTAHEAD_STEPS = 4
   _MIN_PREDICTAHEAD_STEPS = 1
 
   def __init__(self,
                midi_hub,
+               sequence_generators,
                qpm,
-               sequence_generator,
+               generator_select_control_number=None,
                steps_per_quarter=4,
                steps_per_bar=16,
                phrase_bars=None,
                start_call_signal=None,
                end_call_signal=None,
                temperature_control_number=None):
-    super(CallAndResponseMidiInteraction, self).__init__(midi_hub, qpm)
-    self._sequence_generator = sequence_generator
+    super(CallAndResponseMidiInteraction, self).__init__(
+        midi_hub, sequence_generators, qpm, generator_select_control_number)
     self._steps_per_bar = steps_per_bar
     self._steps_per_quarter = steps_per_quarter
     self._phrase_bars = phrase_bars
@@ -255,13 +283,16 @@ class CallAndResponseMidiInteraction(MidiInteraction):
           end_time=response_end_steps * seconds_per_step)
 
       # Check for updated temperature.
-      new_temperature = temperature_from_control_value(
+      temperature = temperature_from_control_value(
           self._midi_hub.control_value(self._temperature_control_number))
-      if new_temperature is not None:
-        if temperature != new_temperature:
-          tf.logging.info('New temperature value: %d', new_temperature)
-          temperature = new_temperature
+      if temperature is not None:
         generator_options.args['temperature'].float_value = temperature
+
+      tf.logging.debug('Generator Details: %s',
+                       self._sequence_generator.details)
+      tf.logging.debug('Bundle Details: %s',
+                       self._sequence_generator.bundle_details)
+      tf.logging.debug('Generator Options: %s', generator_options)
 
       # Generate response.
       response_sequence = self._sequence_generator.generate(
