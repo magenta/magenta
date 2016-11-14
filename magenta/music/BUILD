@@ -377,7 +377,6 @@ py_test(
     deps = [
         ":musicxml_parser",
         ":musicxml_reader",
-        ":testing_lib",
         "//magenta/common:testing_lib",
         "//magenta/protobuf:music_py_pb2",
         # tensorflow dep
@@ -469,7 +468,6 @@ py_library(
     name = "testing_lib",
     srcs = ["testing_lib.py"],
     deps = [
-        ":sequences_lib",
         "//magenta/protobuf:music_py_pb2",
     ],
 )

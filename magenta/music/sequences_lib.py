@@ -13,7 +13,6 @@
 # limitations under the License.
 """Defines sequence of notes objects for creating datasets."""
 
-import collections
 import copy
 
 # internal imports
@@ -87,6 +86,9 @@ def _is_power_of_2(x):
 def steps_per_bar_in_quantized_sequence(note_sequence):
   """Calculates steps per bar in a NoteSequence that has been quantized.
 
+  Args:
+    note_sequence: the NoteSequence to examine.
+
   Returns:
     Steps per bar as a floating point number.
   """
@@ -98,6 +100,7 @@ def steps_per_bar_in_quantized_sequence(note_sequence):
   steps_per_bar_float = (note_sequence.quantization_info.steps_per_quarter *
                          quarters_per_bar)
   return steps_per_bar_float
+
 
 def quantize_note_sequence(note_sequence, steps_per_quarter):
   """Quantize a NoteSequence proto.
@@ -112,6 +115,9 @@ def quantize_note_sequence(note_sequence, steps_per_quarter):
     note_sequence: A music_pb2.NoteSequence protocol buffer.
     steps_per_quarter: Each quarter note of music will be divided into this
         many quantized time steps.
+
+  Returns:
+    A copy of the original NoteSequence, with quantized times added.
 
   Raises:
     MultipleTimeSignatureException: If there is a change in time signature

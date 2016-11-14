@@ -24,7 +24,6 @@ import tensorflow as tf
 from magenta.common import testing_lib as common_testing_lib
 from magenta.music import musicxml_parser
 from magenta.music import musicxml_reader
-from magenta.music import testing_lib
 from magenta.protobuf import music_pb2
 
 
@@ -195,6 +194,7 @@ class MusicXMLParserTest(tf.test.TestCase):
 
     Args:
       filename: file to test.
+      part_name: name of the part the sequence is expected to contain.
     """
 
     expected_ns = common_testing_lib.parse_test_proto(

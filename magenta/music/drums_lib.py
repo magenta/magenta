@@ -381,27 +381,19 @@ def extract_drum_tracks(quantized_sequence,
   return drum_tracks, stats.values()
 
 
-def midi_file_to_drum_track(midi_file, steps_per_quarter=4, qpm=None):
+def midi_file_to_drum_track(midi_file, steps_per_quarter=4):
   """Loads a drum track from a MIDI file.
 
   Args:
     midi_file: Absolute path to MIDI file.
     steps_per_quarter: Quantization of DrumTrack. For example, 4 = 16th notes.
-    qpm: Tempo in quarters per a minute. If not set, tries to use the first
-        tempo of the midi track and defaults to
-        magenta.music.DEFAULT_QUARTERS_PER_MINUTE if fails.
 
   Returns:
     A DrumTrack object extracted from the MIDI file.
   """
   sequence = midi_io.midi_file_to_sequence_proto(midi_file)
-  if qpm is None:
-    if sequence.tempos:
-      qpm = sequence.tempos[0].qpm
-    else:
-      qpm = constants.DEFAULT_QUARTERS_PER_MINUTE
   quantized_sequence = sequences_lib.quantize_note_sequence(
-      self.note_sequence, steps_per_quarter=steps_per_quarter)
+      sequence, steps_per_quarter=steps_per_quarter)
   drum_track = DrumTrack()
   drum_track.from_quantized_sequence(quantized_sequence)
   return drum_track
