@@ -23,34 +23,43 @@ package(
 load("@protobuf//:protobuf.bzl", "cc_proto_library")
 load("@protobuf//:protobuf.bzl", "py_proto_library")
 
+# Magenta public API.
+py_library(
+    name = "protobuf",
+    deps = [
+        ":generator_py_pb2",
+        ":music_py_pb2",
+    ],
+)
+
 py_proto_library(
     name = "music_py_pb2",
     srcs = ["music.proto"],
-    srcs_version = "PY2AND3",
-    protoc = "@protobuf//:protoc",
     default_runtime = "@protobuf//:protobuf_python",
+    protoc = "@protobuf//:protoc",
+    srcs_version = "PY2AND3",
 )
 
 cc_proto_library(
-   name = "music_proto",
-   srcs = ["music.proto"],
-   protoc = "@protobuf//:protoc",
-   default_runtime = "@protobuf//:protobuf",
+    name = "music_proto",
+    srcs = ["music.proto"],
+    default_runtime = "@protobuf//:protobuf",
+    protoc = "@protobuf//:protoc",
 )
 
 py_proto_library(
     name = "generator_py_pb2",
     srcs = ["generator.proto"],
-    deps = [":music_py_pb2"],
-    srcs_version = "PY2AND3",
-    protoc = "@protobuf//:protoc",
     default_runtime = "@protobuf//:protobuf_python",
+    protoc = "@protobuf//:protoc",
+    srcs_version = "PY2AND3",
+    deps = [":music_py_pb2"],
 )
 
 cc_proto_library(
-   name = "generator_proto",
-   srcs = ["generator.proto"],
-   deps = [":music_proto"],
-   protoc = "@protobuf//:protoc",
-   default_runtime = "@protobuf//:protobuf",
+    name = "generator_proto",
+    srcs = ["generator.proto"],
+    default_runtime = "@protobuf//:protobuf",
+    protoc = "@protobuf//:protoc",
+    deps = [":music_proto"],
 )

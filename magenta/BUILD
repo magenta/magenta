@@ -15,8 +15,23 @@
 # Description:
 # Tools and models for using TensorFlow with music and art.
 
-package(
-    default_visibility = ["//magenta:__subpackages__"],
+licenses(["notice"])  # Apache 2.0
+
+# The Magenta public API.
+py_library(
+    name = "magenta",
+    srcs = ["__init__.py"],
+    visibility = ["//magenta:__subpackages__"],
+    deps = [
+        ":version",
+        "//magenta/common",
+        "//magenta/music",
+        "//magenta/pipelines",
+        "//magenta/protobuf",
+    ],
 )
 
-licenses(["notice"])  # Apache 2.0
+py_library(
+    name = "version",
+    srcs = ["version.py"],
+)
