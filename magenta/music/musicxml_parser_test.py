@@ -14,6 +14,7 @@
 """Test to ensure correct import of MusicXML."""
 
 from collections import defaultdict
+import operator
 import os.path
 import tempfile
 
@@ -25,6 +26,9 @@ from magenta.common import testing_lib as common_testing_lib
 from magenta.music import musicxml_parser
 from magenta.music import musicxml_reader
 from magenta.protobuf import music_pb2
+
+# Shortcut to CHORD_SYMBOL annotation type.
+CHORD_SYMBOL = music_pb2.NoteSequence.TextAnnotation.CHORD_SYMBOL
 
 
 class MusicXMLParserTest(tf.test.TestCase):
@@ -95,6 +99,10 @@ class MusicXMLParserTest(tf.test.TestCase):
     self.atonal_transposition_filename = os.path.join(
         tf.resource_loader.get_data_files_path(),
         'testdata/atonal_transposition_change.xml')
+
+    self.chord_symbols_filename = os.path.join(
+        tf.resource_loader.get_data_files_path(),
+        'testdata/chord_symbols.xml')
 
   def checkmusicxmlandsequence(self, musicxml, sequence_proto):
     """Compares MusicXMLDocument object against a sequence proto.
@@ -748,6 +756,34 @@ class MusicXMLParserTest(tf.test.TestCase):
         total_time: 0.0
         """)
     self.assertProtoEquals(expected_ns, ns)
+
+  def test_chord_symbols(self):
+    ns = musicxml_reader.musicxml_file_to_sequence_proto(
+        self.chord_symbols_filename)
+    chord_symbols = [(annotation.time, annotation.text)
+                     for annotation in ns.text_annotations
+                     if annotation.annotation_type == CHORD_SYMBOL]
+    chord_symbols = list(sorted(chord_symbols, key=operator.itemgetter(0)))
+
+    expected_beats_and_chords = [
+        (0.0, 'N.C.'),
+        (4.0, 'Cmaj7'),
+        (12.0, 'F6(add9)'),
+        (16.0, 'F#dim7/A'),
+        (20.0, 'Bm7b5'),
+        (24.0, 'E7(#9)'),
+        (28.0, 'A7(add9)(no3)'),
+        (32.0, 'Bbsus2'),
+        (36.0, 'Am(maj7)'),
+        (38.0, 'D13'),
+        (40.0, 'E5'),
+        (44.0, 'Caug')
+    ]
+
+    # Adjust for 120 QPM.
+    expected_times_and_chords = [(beat / 2.0, chord)
+                                 for beat, chord in expected_beats_and_chords]
+    self.assertEqual(expected_times_and_chords, chord_symbols)
 
 
 if __name__ == '__main__':

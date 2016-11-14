@@ -21,6 +21,9 @@ Input wrappers for converting MusicXML into tensorflow.magenta.NoteSequence.
 from magenta.music import musicxml_parser
 from magenta.protobuf import music_pb2
 
+# Shortcut to CHORD_SYMBOL annotation type.
+CHORD_SYMBOL = music_pb2.NoteSequence.TextAnnotation.CHORD_SYMBOL
+
 
 class MusicXMLConversionError(Exception):
   """MusicXML conversion error handler."""
@@ -114,6 +117,13 @@ def musicxml_to_sequence_proto(musicxml_document):
           durationratio = musicxml_note.note_duration.duration_ratio()
           note.numerator = durationratio.numerator
           note.denominator = durationratio.denominator
+
+  musicxml_chord_symbols = musicxml_document.get_chord_symbols()
+  for musicxml_chord_symbol in musicxml_chord_symbols:
+    text_annotation = sequence.text_annotations.add()
+    text_annotation.time = musicxml_chord_symbol.time_position
+    text_annotation.text = musicxml_chord_symbol.get_figure_string()
+    text_annotation.annotation_type = CHORD_SYMBOL
 
   return sequence
 
