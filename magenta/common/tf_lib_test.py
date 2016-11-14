@@ -18,6 +18,7 @@ import tensorflow as tf
 
 from magenta.common import tf_lib
 
+
 class TfLibTest(tf.test.TestCase):
 
   def testHParams(self):
@@ -25,9 +26,8 @@ class TfLibTest(tf.test.TestCase):
     hparams.parse('{"hidden_size":512, "rnn_layers":[128, 128]}')
     self.assertEquals(hparams.batch_size, 128)
     self.assertEquals(
-      hparams.values(),
-      {'batch_size': 128, 'hidden_size': 512, 'batch_size': 128,
-       'rnn_layers': [128, 128]})
+        hparams.values(),
+        {'batch_size': 128, 'hidden_size': 512, 'rnn_layers': [128, 128]})
 
 
 if __name__ == '__main__':
