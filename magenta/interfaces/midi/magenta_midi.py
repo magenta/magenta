@@ -94,7 +94,7 @@ def _validate_flags():
     return False
 
   if FLAGS.bundle_files is None:
-    print '--bundle_file must be specified.'
+    print '--bundle_files must be specified.'
     return False
 
   if (FLAGS.end_call_control_number, FLAGS.phrase_bars).count(None) != 1:

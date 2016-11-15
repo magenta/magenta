@@ -139,7 +139,7 @@ class MidiInteraction(threading.Thread):
   def _sequence_generator(self):
     """Returns the SequenceGenerator selected by the current control value."""
     if len(self._sequence_generators) == 1:
-      return self._sequence_generators
+      return self._sequence_generators[0]
     val = self._midi_hub.control_value(self._generator_select_control_number)
     val = 0 if val is None else val
     return self._sequence_generators[val % len(self._sequence_generators)]
@@ -220,10 +220,6 @@ class CallAndResponseMidiInteraction(MidiInteraction):
 
     # Call stage start in steps from the epoch.
     call_start_steps = start_steps
-
-    # The softmax temperature to use during generation.
-    temperature = temperature_from_control_value(
-        self._midi_hub.control_value(self._temperature_control_number))
 
     while not self._stop_signal.is_set():
       if self._start_call_signal is not None:
