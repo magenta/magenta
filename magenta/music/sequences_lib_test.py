@@ -77,6 +77,18 @@ class SequencesLibTest(tf.test.TestCase):
 
     self.assertProtoEquals(expected_quantized_sequence, quantized_sequence)
 
+  def testIsQuantizedNoteSequence(self):
+    testing_lib.add_track_to_sequence(
+        self.note_sequence, 0,
+        [(12, 100, 0.01, 10.0), (11, 55, 0.22, 0.50), (40, 45, 2.50, 3.50),
+         (55, 120, 4.0, 4.01), (52, 99, 4.75, 5.0)])
+
+    quantized_sequence = sequences_lib.quantize_note_sequence(
+        self.note_sequence, steps_per_quarter=self.steps_per_quarter)
+
+    self.assertTrue(sequences_lib.is_quantized_sequence(quantized_sequence))
+    self.assertFalse(sequences_lib.is_quantized_sequence(self.note_sequence))
+
   def testQuantizeNoteSequence_TimeSignatureChange(self):
     testing_lib.add_track_to_sequence(
         self.note_sequence, 0,

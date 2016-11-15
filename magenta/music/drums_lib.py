@@ -158,7 +158,7 @@ class DrumTrack(events_lib.SimpleEventSequence):
           (derived from its time signature) is not an integer number of time
           steps.
     """
-    assert quantized_sequence.quantization_info.steps_per_quarter > 0
+    assert sequences_lib.is_quantized_sequence(quantized_sequence)
     self._reset()
 
     offset = None

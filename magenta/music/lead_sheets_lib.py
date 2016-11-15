@@ -21,6 +21,7 @@ from magenta.music import chords_lib
 from magenta.music import constants
 from magenta.music import events_lib
 from magenta.music import melodies_lib
+from magenta.music import sequences_lib
 from magenta.pipelines import statistics
 from magenta.protobuf import music_pb2
 
@@ -295,7 +296,7 @@ def extract_lead_sheet_fragments(quantized_sequence,
         (derived from its time signature) is not an integer number of time
         steps.
   """
-  assert quantized_sequence.quantization_info.steps_per_quarter > 0
+  assert sequences_lib.is_quantized_sequence(quantized_sequence)
   stats = dict([('empty_chord_progressions',
                  statistics.Counter('empty_chord_progressions'))])
   melodies, melody_stats = melodies_lib.extract_melodies(

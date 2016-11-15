@@ -224,6 +224,7 @@ py_library(
         ":constants",
         ":events_lib",
         ":melodies_lib",
+        ":sequences_lib",
         "//magenta/common:testing_lib",
         "//magenta/pipelines:statistics",
         "//magenta/protobuf:music_py_pb2",

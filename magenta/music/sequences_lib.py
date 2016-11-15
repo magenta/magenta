@@ -83,16 +83,30 @@ def _is_power_of_2(x):
   return x and not x & (x - 1)
 
 
+def is_quantized_sequence(note_sequence):
+  """Determines whether the given NoteSequence proto has been quantized.
+
+  Args:
+    note_sequence: A music_pb2.NoteSequence proto.
+
+  Returns:
+    True if the proto has been quantized via the quantize_note_sequence method.
+  """
+  # If the QuantizationInfo message has a non-zero steps_per_quarter, assume
+  # that the proto has been quantized.
+  return note_sequence.quantization_info.steps_per_quarter > 0
+
+
 def steps_per_bar_in_quantized_sequence(note_sequence):
   """Calculates steps per bar in a NoteSequence that has been quantized.
 
   Args:
-    note_sequence: the NoteSequence to examine.
+    note_sequence: The NoteSequence to examine.
 
   Returns:
     Steps per bar as a floating point number.
   """
-  assert note_sequence.quantization_info.steps_per_quarter > 0
+  assert is_quantized_sequence(note_sequence)
 
   quarters_per_beat = 4.0 / note_sequence.time_signatures[0].denominator
   quarters_per_bar = (quarters_per_beat *
@@ -108,8 +122,10 @@ def quantize_note_sequence(note_sequence, steps_per_quarter):
   The input NoteSequence is copied and quantization-related fields are
   populated.
 
-  A note's start and end time are snapped to a nearby quantized step. See
-  the comments above `QUANTIZE_CUTOFF` for details.
+  Note start and end times, and chord times are snapped to a nearby quantized
+  step, and the resulting times are stored in a separate field (e.g.,
+  quantized_start_step). See the comments above `QUANTIZE_CUTOFF` for details on
+  how the quantizing algorithm works.
 
   Args:
     note_sequence: A music_pb2.NoteSequence protocol buffer.
