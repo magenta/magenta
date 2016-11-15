@@ -141,6 +141,7 @@ class MidiInteraction(threading.Thread):
     if len(self._sequence_generators) == 1:
       return self._sequence_generators
     val = self._midi_hub.control_value(self._generator_select_control_number)
+    val = 0 if val is None else val
     return self._sequence_generators[val % len(self._sequence_generators)]
 
 

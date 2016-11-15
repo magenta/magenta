@@ -75,6 +75,10 @@ tf.app.flags.DEFINE_integer(
     'The control number to use for selecting between generators when multiple '
     'bundle files are specified. Required unless only a single bundle file is '
     'specified.')
+tf.app.flags.DEFINE_string(
+    'log', 'WARN',
+    'The threshold for what messages will be logged. DEBUG, INFO, WARN, ERROR, '
+    'or FATAL.')
 
 # A map from a string generator name to its class.
 _GENERATOR_MAP = melody_rnn_sequence_generator.get_generator_map()
@@ -107,24 +111,25 @@ def _validate_flags():
   return True
 
 
-def _load_generator_from_bundle_file(bundle_file)
+def _load_generator_from_bundle_file(bundle_file):
   """Returns initialized generator from bundle file path or None if fails."""
   try:
       bundle = magenta.music.sequence_generator_bundle.read_bundle_file(
-          FLAGS.bundle_file)
-    except magenta.music.sequence_generator_bundle.GeneratorBundleParseException:
-      print 'Failed to parse bundle file: %s' % FLAGS.bundle_file
-      return None
+          bundle_file)
+  except magenta.music.sequence_generator_bundle.GeneratorBundleParseException:
+    print 'Failed to parse bundle file: %s' % FLAGS.bundle_file
+    return None
 
-    generator_id = bundle.generator_details.id
-    if generator_id not in _GENERATOR_MAP:
-      print "Unrecognized SequenceGenerator ID '%s' in bundle file: %s" % (
-          generator_id, FLAGS.bundle_file)
-      return None
+  generator_id = bundle.generator_details.id
+  if generator_id not in _GENERATOR_MAP:
+    print "Unrecognized SequenceGenerator ID '%s' in bundle file: %s" % (
+        generator_id, FLAGS.bundle_file)
+    return None
+
   generator = _GENERATOR_MAP[generator_id](checkpoint=None, bundle=bundle)
   generator.initialize()
   print "Loaded '%s' generator bundle from file '%s'." % (
-      bundle.generator_details.id, FLAGS.bundle_file)
+      bundle.generator_details.id, bundle_file)
   return generator
 
 
@@ -157,13 +162,15 @@ def _print_instructions():
 
 
 def main(unused_argv):
+  tf.logging.set_verbosity(FLAGS.log)
+
   if not _validate_flags():
     return
 
   # Load generators.
   generators = []
   for bundle_file in FLAGS.bundle_files.split(','):
-    generators.append(load_generator_from_bundle_file(bundle_file))
+    generators.append(_load_generator_from_bundle_file(bundle_file))
     if generators[-1] is None:
       return
 
