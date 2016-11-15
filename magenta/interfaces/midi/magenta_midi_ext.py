@@ -42,24 +42,28 @@ tf.app.flags.DEFINE_string(
     'magenta_out',
     'The name of the output MIDI port.')
 tf.app.flags.DEFINE_integer(
-    'phrase_bars',
+    'clock_control_number',
     None,
-    'The number of bars of duration to use for the call and response phrases. '
-    'If none, `end_call_control_number` must be specified.')
-tf.app.flags.DEFINE_integer(
-    'start_call_control_number',
-    None,
-    'The control change number to use as a signal to start the call phrase. If '
-    'None, call will start immediately after response.')
+    'The control change number to use as a signal for a tick of the external '
+    'clock.')
 tf.app.flags.DEFINE_integer(
     'end_call_control_number',
     None,
-    'The control change number to use as a signal to end the call phrase. If '
-    'None, `phrase_bars` must be specified.')
+    'The control change number to use as a signal to end the call phrase.')
+tf.app.flags.DEFINE_integer(
+    'duration_control_number',
+    None,
+    'The control change number to use for controlling response duration. The '
+    'value for the control number will be used in bars. If not set, the '
+    'response duration will match the call duration.')
 tf.app.flags.DEFINE_integer(
     'temperature_control_number',
     None,
     'The control change number to use for controlling temperature.')
+tf.app.flags.DEFINE_boolean(
+    'allow_overlap',
+    False,
+    'Whether to allow the call to overlap with the response.')
 # TODO(adarob): Make the qpm adjustable by a control change signal.
 tf.app.flags.DEFINE_integer(
     'qpm',
@@ -97,11 +101,6 @@ def _validate_flags():
     print '--bundle_files must be specified.'
     return False
 
-  if (FLAGS.end_call_control_number, FLAGS.phrase_bars).count(None) != 1:
-    print('Exactly one of --end_call_control_number or --phrase_bars should be '
-          'specified.')
-    return False
-
   if (len(FLAGS.bundle_files.split(',')) > 1 and
       FLAGS.generator_select_control_number is None):
     print('If specifiying multiple bundle files (generators), '
@@ -137,26 +136,15 @@ def _print_instructions():
   """Prints instructions for interaction based on the flag values."""
   print ''
   print 'Instructions:'
-  if FLAGS.start_call_control_number is not None:
-    print ('When you want to begin the call phrase, signal control number %d '
-           'with value 0.' % FLAGS.start_call_control_number)
-  print 'Play when you hear the metronome ticking.'
-  if FLAGS.phrase_bars is not None:
-    print ('After %d bars (4 beats), Magenta will play its response.' %
-           FLAGS.phrase_bars)
-  else:
+  print 'Start playing when you want to begin the call phrase.'
+  if FLAGS.end_call_control_number is not None:
     print ('When you want to end the call phrase, signal control number %d '
-           'with value 0' % FLAGS.end_call_control_number)
-    print ('At the end of the current bar (4 beats), Magenta will play its '
-           'response.')
-  if FLAGS.start_call_control_number is not None:
-    print ('Once the response completes, the interface will wait for you to '
-           'signal a new call phrase using control number %d.' %
-           FLAGS.start_call_control_number)
+           'with value 0, or stop playing and wait.'
+           % FLAGS.end_call_control_number)
   else:
-    print ('Once the response completes, the metronome will tick and you can '
-           'play again.')
-
+    print 'When you want to end the call phrase, stop playing and wait.'
+  print ('Once the response completes, the interface will wait for you to '
+         'begin playing again to start a new call phrase.')
   print ''
   print 'To end the interaction, press CTRL-C.'
 
@@ -182,20 +170,19 @@ def main(unused_argv):
   hub = midi_hub.MidiHub(FLAGS.input_port, FLAGS.output_port,
                          midi_hub.TextureType.MONOPHONIC)
 
-  start_call_signal = (
-      None if FLAGS.start_call_control_number is None else
-      midi_hub.MidiSignal(control=FLAGS.start_call_control_number, value=0))
+  clock_signal = midi_hub.MidiSignal(control=FLAGS.clock_control_number)
   end_call_signal = (
       None if FLAGS.end_call_control_number is None else
-      midi_hub.MidiSignal(control=FLAGS.end_call_control_number, value=0))
-  interaction = midi_interaction.CallAndResponseMidiInteraction(
+      midi_hub.MidiSignal(control=FLAGS.end_call_control_number))
+  interaction = midi_interaction.ExternalClockCallAndResponse(
       hub,
       generators,
       FLAGS.qpm,
-      generator_select_control_number=FLAGS.generator_select_control_number,
-      phrase_bars=FLAGS.phrase_bars,
-      start_call_signal=start_call_signal,
+      FLAGS.generator_select_control_number,
+      clock_signal,
       end_call_signal=end_call_signal,
+      allow_overlap=FLAGS.allow_overlap,
+      duration_control_number=FLAGS.duration_control_number,
       temperature_control_number=FLAGS.temperature_control_number)
 
   _print_instructions()

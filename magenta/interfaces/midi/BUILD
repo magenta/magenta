@@ -71,3 +71,15 @@ py_binary(
         "//magenta/models/melody_rnn:melody_rnn_sequence_generator",
     ],
 )
+
+py_binary(
+    name = "magenta_midi_ext",
+    srcs = ["magenta_midi_ext.py"],
+    visibility = ["//magenta/tools/pip:__subpackages__"],
+    deps = [
+        ":midi_hub",
+        ":midi_interaction",
+        "//magenta",
+        "//magenta/models/melody_rnn:melody_rnn_sequence_generator",
+    ],
+)
