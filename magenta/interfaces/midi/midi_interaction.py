@@ -122,10 +122,10 @@ class MidiInteraction(threading.Thread):
 
   def __init__(self, midi_hub, sequence_generators, qpm,
                generator_select_control_number=None):
-    if generator_select_control_number == None and len(sequence_generators) > 1:
+    if generator_select_control_number is None and len(sequence_generators) > 1:
       raise ValueError(
-        '`generator_select_control_number` cannot be None if there are '
-        'multiple SequenceGenerators.')
+          '`generator_select_control_number` cannot be None if there are '
+          'multiple SequenceGenerators.')
     self._midi_hub = midi_hub
     self._sequence_generators = sequence_generators
     self._qpm = qpm
@@ -143,7 +143,6 @@ class MidiInteraction(threading.Thread):
     val = self._midi_hub.control_value(self._generator_select_control_number)
     val = 0 if val is None else val
     return self._sequence_generators[val % len(self._sequence_generators)]
-
 
   @abc.abstractmethod
   def run(self):

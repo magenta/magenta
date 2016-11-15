@@ -103,7 +103,7 @@ def _validate_flags():
     return False
 
   if (len(FLAGS.bundle_files.split(',')) > 1 and
-      FLAGS.generator_select_control_number == None):
+      FLAGS.generator_select_control_number is None):
     print('If specifiying multiple bundle files (generators), '
           '--generator_select_control_number must be specified.')
     return False
@@ -114,8 +114,8 @@ def _validate_flags():
 def _load_generator_from_bundle_file(bundle_file):
   """Returns initialized generator from bundle file path or None if fails."""
   try:
-      bundle = magenta.music.sequence_generator_bundle.read_bundle_file(
-          bundle_file)
+    bundle = magenta.music.sequence_generator_bundle.read_bundle_file(
+        bundle_file)
   except magenta.music.sequence_generator_bundle.GeneratorBundleParseException:
     print 'Failed to parse bundle file: %s' % FLAGS.bundle_file
     return None
