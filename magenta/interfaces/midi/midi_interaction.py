@@ -298,3 +298,117 @@ class CallAndResponseMidiInteraction(MidiInteraction):
     if self._end_call_signal is not None:
       self._midi_hub.wake_signal_waiters(self._end_call_signal)
     super(CallAndResponseMidiInteraction, self).stop()
+
+
+class ExternalClockCallAndResponse(midi_interaction.MidiInteraction):
+  """Implementation of a MidiInteraction which follows external sync timing.
+  Alternates between receiving input from the MidiHub ("call") and playing
+  generated sequences ("response"). During the call stage, the input is captured
+  and used to generate the response, which is then played back during the
+  response stage. The timing and length of the call and response stages are set
+  by external MIDI signals.
+  Args:
+    midi_hub_io: The MidiHub to use for MIDI I/O.
+    qpm: The quarters per minute to use for this interaction.
+    sequence_generator: The SequenceGenerator to use to generate the responses
+        in this interaction.
+    quarters_per_bar: The number of quarter notes in each bar/measure.
+    phrase_bars: The optional number of bars in each phrase. `end_call_signal`
+        must be provided if None.
+    start_call_signal: The control change number to use as a signal a new bar.
+    start_call_signal: The control change number to use as a signal to start the
+       call phrase.
+    end_call_signal: The optional midi_hub.MidiSignal to use as a signal to stop
+        the call phrase at the end of the current bar. `phrase_bars` must be
+        provided if None.
+  """
+  def __init__(self,
+               midi_hub,
+               qpm,
+               sequence_generator,
+               clock_signal=None,
+               end_call_signal=None,
+               allow_overlap=False):
+    super(ExternalClockCallAndResponse, self).__init__(midi_hub, qpm)
+    self._clock_signal = clock_signal
+    self._end_call_signal = end_call_signal
+    self._allow_overlap = allow_overlap
+
+    # Event for signalling when to end a call.
+    self._end_call = threading.Event()
+
+  def _end_call_callback(unused_captured_seq):
+    self._end_call.set()
+
+  def run(self):
+    """The main loop for a real-time call and response interaction."""
+
+    seconds_per_bar = 4 * 60.0 / self._qpm
+
+    captor = self._midi_hub.start_capture(self._qpm, 0)
+
+    # Set callback for end call signal.
+    captor.register_callback(self._end_call_callback,
+                             signal=self._end_call_signal)
+
+    # Keep track of the end of the previous tick time.
+    last_tick_time = 0
+
+    for captured_seq in captor.iterate(self._clock_signal):
+      if self._stop_signal.is_set():
+        break
+
+      tick_time = captured_sequence.total_time
+      last_end_time = (max(note.end_time for note in captured_notes.notes)
+                       if captured_notes.notes else None)
+      if not captured_sequence.notes:
+        # Reset captured sequence since we are still idling.
+        tf.logging.info('Idle...')
+        captor.start_time = tick_time
+      elif last_end_time <= last_tick_time or self._end_call.is_set():
+        # Create response and start playback.
+        tf.logging.info('Responding...')
+
+        # Compute duration of response.
+        num_bars = (self._midi_hub.control_number(self._duration_control_number)
+                    if self._duration_control_number is not None else None)
+        if num_bars is not None and num_bars > 0:
+          response_duration = num_bars * seconds_per_bar
+        else:
+          # Use capture duration.
+          response_duration = tick_time - captor.start_time
+
+        # Generate sequence options.
+        response_start_time = tick_time
+        response_end_time = response_start_time + response_duration
+
+        generator_options = magenta.protobuf.generator_pb2.GeneratorOptions()
+        generator_options.input_sections.add(
+            start_time = captor.start_time,
+            end_time = tick_time)
+        generator_options.generate_sections.add(
+            start_time=response_start_time,
+            end_time=response_end_time)
+
+        # Generate response.
+        response_sequence = self._sequence_generator.generate(
+            captured_sequence, generator_options)
+
+        # Start response playback. Specify the start_time to avoid stripping
+        # initial events due to generation lag.
+        self._midi_hub.start_playback(response_sequence,
+                                      start_time=response_start_time)
+
+        # Do not capture anything until the end of playback.
+        if not self._allow_overlap:
+          captor.start_time = response_end_time
+
+        # Clear end signal.
+        self._end_call.clear()
+      else:
+        # Continue listening.
+        tf.logging.info('Listening...')
+
+      last_tick_time = tick_time
+
+    captor.stop()

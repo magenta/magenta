@@ -225,13 +225,17 @@ class MidiPlayer(threading.Thread):
   Args:
     outport: The Mido port for sending messages.
     sequence: The NoteSequence to play.
+    start_time: The float time before which to strip events. Defaults to
+        construction time. Events before this time will be sent immediately on
+        start.
     allow_updates: If False, the thread will terminate after playback of
         `sequence` completes and calling `update_sequence` will result in an
         exception. Otherwise, the the thread will stay alive until `stop` is
         called, allowing for additional updates via `update_sequence`.
   """
 
-  def __init__(self, outport, sequence, allow_updates=False):
+  def __init__(self, outport, sequence, start_time=time.time(),
+               allow_updates=False):
     self._outport = outport
     # Set of notes (pitches) that are currently on.
     self._open_notes = set()
@@ -247,13 +251,13 @@ class MidiPlayer(threading.Thread):
     # Initialize message queue.
     # We first have to allow "updates" to set the initial sequence.
     self._allow_updates = True
-    self.update_sequence(sequence)
+    self.update_sequence(sequence, start_time=start_time)
     # We now make whether we allow updates dependent on the argument.
     self._allow_updates = allow_updates
     super(MidiPlayer, self).__init__()
 
   @concurrency.serialized
-  def update_sequence(self, sequence):
+  def update_sequence(self, sequence, start_time=time.time()):
     """Updates sequence being played by the MidiPlayer.
 
     Adds events to close any notes that are no longer being closed by the
@@ -262,14 +266,14 @@ class MidiPlayer(threading.Thread):
 
     Args:
       sequence: The NoteSequence to play back.
+      start_time: The float time before which to strip events. Defaults to call
+          time.
     Raises:
       MidiHubException: If called when _allow_updates is False.
     """
     if not self._allow_updates:
       raise MidiHubException(
           'Attempted to update a MidiPlayer sequence with updates disabled.')
-
-    start_time = time.time()
 
     new_message_list = []
     # The set of pitches that are already playing and will be closed without
@@ -384,6 +388,20 @@ class MidiCaptor(threading.Thread):
     # Active callback threads keyed by unique thread name.
     self._callbacks = {}
     super(MidiCaptor, self).__init__()
+
+  @property
+  @concurrency.serialized
+  def start_time(self):
+    return self._start_time
+
+  @start_time.setter
+  @concurrency.serialized
+  def start_time(self, value):
+    self._start_time = value
+    for i, note in enumerate(self._capture_sequence.notes):
+      if note.start_time >= self._start_time:
+        del self._captured_sequence.notes[:i]
+        break
 
   @property
   @concurrency.serialized
@@ -1028,18 +1046,21 @@ class MidiHub(object):
     self._metronome.stop(stop_time, block)
     self._metronome = None
 
-  def start_playback(self, sequence, allow_updates=False):
+  def start_playback(self, sequence, start_time=time.time(),
+                     allow_updates=False):
     """Plays the notes in aNoteSequence via the MIDI output port.
 
     Args:
       sequence: The NoteSequence to play, with times based on the wall clock.
+      start_time: The float time before which to strip events. Defaults to call
+          time. Events before this time will be sent immediately on start.
       allow_updates: A boolean specifying whether or not the player should stay
           allow the sequence to be updated and stay alive until `stop` is
           called.
     Returns:
       The MidiPlayer thread handling playback to enable updating.
     """
-    player = MidiPlayer(self._outport, sequence, allow_updates)
+    player = MidiPlayer(self._outport, sequence, start_time, allow_updates)
     with self._lock:
       self._players.append(player)
     player.start()
