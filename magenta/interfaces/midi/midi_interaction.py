@@ -282,7 +282,7 @@ class CallAndResponseMidiInteraction(MidiInteraction):
           start_time=response_start_steps * seconds_per_step,
           end_time=response_end_steps * seconds_per_step)
 
-      # Check for updated temperature.
+      # Get current temperature setting.
       temperature = temperature_from_control_value(
           self._midi_hub.control_value(self._temperature_control_number))
       if temperature is not None:
