@@ -328,7 +328,7 @@ class CallAndResponseMidiInteraction(MidiInteraction):
     super(CallAndResponseMidiInteraction, self).stop()
 
 
-class ExternalClockCallAndResponse(midi_interaction.MidiInteraction):
+class ExternalClockCallAndResponse(MidiInteraction):
   """Implementation of a MidiInteraction which follows external sync timing.
 
   Alternates between receiving input from the MidiHub ("call") and playing
@@ -387,13 +387,14 @@ class ExternalClockCallAndResponse(midi_interaction.MidiInteraction):
     captor = self._midi_hub.start_capture(self._qpm, 0)
 
     # Set callback for end call signal.
-    captor.register_callback(self._end_call_callback,
-                             signal=self._end_call_signal)
+    if self._end_call_signal is not None:
+      captor.register_callback(self._end_call_callback,
+                               signal=self._end_call_signal)
 
     # Keep track of the end of the previous tick time.
     last_tick_time = 0
 
-    for captured_seq in captor.iterate(self._clock_signal):
+    for captured_seq in captor.iterate(signal=self._clock_signal):
       if self._stop_signal.is_set():
         break
 

@@ -97,6 +97,10 @@ def _validate_flags():
         "', '".join(midi_hub.get_available_output_ports()))
     return False
 
+  if FLAGS.clock_control_number is None:
+    print '--clock_control_number must be specified.'
+    return False
+
   if FLAGS.bundle_files is None:
     print '--bundle_files must be specified.'
     return False
