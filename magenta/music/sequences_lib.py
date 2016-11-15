@@ -99,7 +99,7 @@ def assert_is_quantized_sequence(note_sequence):
     note_sequence: A music_pb2.NoteSequence proto.
 
   Raises:
-    SequenceNotQuantizedException if the sequence is not quantized.
+    SequenceNotQuantizedException: If the sequence is not quantized.
   """
   # If the QuantizationInfo message has a non-zero steps_per_quarter, assume
   # that the proto has been quantized.
