@@ -61,7 +61,6 @@ py_binary(
     deps = [
         ":drums_rnn_config_flags",
         "//magenta",
-        "//magenta/models/shared:events_rnn_create_dataset",
         # tensorflow dep
     ],
 )
@@ -86,6 +85,7 @@ py_binary(
     ],
     deps = [
         ":drums_rnn_config_flags",
+        "//magenta/models/shared:events_rnn_graph",
         "//magenta/models/shared:events_rnn_train",
         # tensorflow dep
     ],
@@ -103,7 +103,6 @@ py_binary(
         ":drums_rnn_model",
         ":drums_rnn_sequence_generator",
         "//magenta",
-        "//magenta/models/shared:events_rnn_generate",
         # tensorflow dep
     ],
 )

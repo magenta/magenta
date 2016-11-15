@@ -23,26 +23,6 @@ package(
 licenses(["notice"])  # Apache 2.0
 
 py_library(
-    name = "events_rnn_create_dataset",
-    srcs = ["events_rnn_create_dataset.py"],
-    srcs_version = "PY2AND3",
-    deps = [
-        "//magenta",
-        # tensorflow dep
-    ],
-)
-
-py_library(
-    name = "events_rnn_generate",
-    srcs = ["events_rnn_generate.py"],
-    srcs_version = "PY2AND3",
-    deps = [
-        "//magenta",
-        # tensorflow dep
-    ],
-)
-
-py_library(
     name = "events_rnn_graph",
     srcs = ["events_rnn_graph.py"],
     srcs_version = "PY2AND3",
@@ -80,7 +60,6 @@ py_library(
     srcs = ["events_rnn_train.py"],
     srcs_version = "PY2AND3",
     deps = [
-        ":events_rnn_graph",
         # tensorflow dep
     ],
 )
