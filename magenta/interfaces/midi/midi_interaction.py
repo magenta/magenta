@@ -154,6 +154,8 @@ class CallAndResponseMidiInteraction(MidiInteraction):
     end_call_signal: The optional midi_hub.MidiSignal to use as a signal to stop
         the call phrase at the end of the current bar. `phrase_bars` must be
         provided if None.
+    temperature_control_number: The optional control change number to use for
+        controlling temperature.
   """
   _INITIAL_PREDICTAHEAD_STEPS = 4
   _MIN_PREDICTAHEAD_STEPS = 1
@@ -192,10 +194,6 @@ class CallAndResponseMidiInteraction(MidiInteraction):
 
     # Call stage start in steps from the epoch.
     call_start_steps = start_steps
-
-    # The softmax temperature to use during generation.
-    temperature = temperature_from_control_value(
-        self._midi_hub.control_value(self._temperature_control_number))
 
     while not self._stop_signal.is_set():
       if self._start_call_signal is not None:
@@ -254,13 +252,10 @@ class CallAndResponseMidiInteraction(MidiInteraction):
           start_time=response_start_steps * seconds_per_step,
           end_time=response_end_steps * seconds_per_step)
 
-      # Check for updated temperature.
-      new_temperature = temperature_from_control_value(
+      # Set softmax temperature.
+      temperature = temperature_from_control_value(
           self._midi_hub.control_value(self._temperature_control_number))
-      if new_temperature is not None:
-        if temperature != new_temperature:
-          tf.logging.info('New temperature value: %d', new_temperature)
-          temperature = new_temperature
+      if temperature is not None:
         generator_options.args['temperature'].float_value = temperature
 
       # Generate response.
@@ -302,38 +297,49 @@ class CallAndResponseMidiInteraction(MidiInteraction):
 
 class ExternalClockCallAndResponse(midi_interaction.MidiInteraction):
   """Implementation of a MidiInteraction which follows external sync timing.
+
   Alternates between receiving input from the MidiHub ("call") and playing
   generated sequences ("response"). During the call stage, the input is captured
   and used to generate the response, which is then played back during the
-  response stage. The timing and length of the call and response stages are set
-  by external MIDI signals.
+  response stage.
+
+  The call phrase is started when notes are received and ended by an external
+  signal (`end_call_signal`) or after receiving no note events for a full tick.
+  The response phrase is immediately generated and played. Its length is
+  optionally determined by a control value set for `duration_control_number` or
+  by the length of the call.
+
   Args:
-    midi_hub_io: The MidiHub to use for MIDI I/O.
+    midi_hub: The MidiHub to use for MIDI I/O.
     qpm: The quarters per minute to use for this interaction.
     sequence_generator: The SequenceGenerator to use to generate the responses
         in this interaction.
-    quarters_per_bar: The number of quarter notes in each bar/measure.
-    phrase_bars: The optional number of bars in each phrase. `end_call_signal`
-        must be provided if None.
-    start_call_signal: The control change number to use as a signal a new bar.
-    start_call_signal: The control change number to use as a signal to start the
-       call phrase.
+    clock_signal: A midi_hub.MidiSignal to use as a clock.
     end_call_signal: The optional midi_hub.MidiSignal to use as a signal to stop
-        the call phrase at the end of the current bar. `phrase_bars` must be
-        provided if None.
-  """
+        the call phrase at the end of the current tick.
+    allow_overlap: A boolean specifying whether to allow the call to overlap
+        with the response.
+    duration_control_number: The optional control change number to use for
+        controlling the length of the response in bars.
+    temperature_control_number: The optional control change number to use for
+        controlling temperature.
+    """
   def __init__(self,
                midi_hub,
                qpm,
                sequence_generator,
-               clock_signal=None,
+               clock_signal,
                end_call_signal=None,
-               allow_overlap=False):
+               allow_overlap=False,
+               duration_control_number=None,
+               temperature_control_number=None):
     super(ExternalClockCallAndResponse, self).__init__(midi_hub, qpm)
+    self._sequence_generator = sequence_generator
     self._clock_signal = clock_signal
     self._end_call_signal = end_call_signal
     self._allow_overlap = allow_overlap
-
+    self._duration_control_number = duration_control_number
+    self._temperature_control_number = temperature_control_number
     # Event for signalling when to end a call.
     self._end_call = threading.Event()
 
@@ -342,7 +348,6 @@ class ExternalClockCallAndResponse(midi_interaction.MidiInteraction):
 
   def run(self):
     """The main loop for a real-time call and response interaction."""
-
     seconds_per_bar = 4 * 60.0 / self._qpm
 
     captor = self._midi_hub.start_capture(self._qpm, 0)
@@ -361,10 +366,12 @@ class ExternalClockCallAndResponse(midi_interaction.MidiInteraction):
       tick_time = captured_sequence.total_time
       last_end_time = (max(note.end_time for note in captured_notes.notes)
                        if captured_notes.notes else None)
+
       if not captured_sequence.notes:
         # Reset captured sequence since we are still idling.
         tf.logging.info('Idle...')
         captor.start_time = tick_time
+        self._end_call.clear()
       elif last_end_time <= last_tick_time or self._end_call.is_set():
         # Create response and start playback.
         tf.logging.info('Responding...')
@@ -389,6 +396,12 @@ class ExternalClockCallAndResponse(midi_interaction.MidiInteraction):
         generator_options.generate_sections.add(
             start_time=response_start_time,
             end_time=response_end_time)
+
+        # Set softmax temperature.
+        temperature = temperature_from_control_value(
+            self._midi_hub.control_value(self._temperature_control_number))
+        if temperature is not None:
+          generator_options.args['temperature'].float_value = temperature
 
         # Generate response.
         response_sequence = self._sequence_generator.generate(

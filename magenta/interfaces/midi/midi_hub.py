@@ -397,6 +397,7 @@ class MidiCaptor(threading.Thread):
   @start_time.setter
   @concurrency.serialized
   def start_time(self, value):
+    """Updates the start time, removing any notes that started before it."""
     self._start_time = value
     for i, note in enumerate(self._capture_sequence.notes):
       if note.start_time >= self._start_time:
