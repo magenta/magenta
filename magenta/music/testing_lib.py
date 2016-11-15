@@ -14,7 +14,6 @@
 """Testing support code."""
 
 # internal imports
-from magenta.music import sequences_lib
 from magenta.protobuf import music_pb2
 
 # Shortcut to CHORD_SYMBOL annotation type.
@@ -42,26 +41,20 @@ def add_chords_to_sequence(note_sequence, chords):
     annotation.annotation_type = CHORD_SYMBOL
 
 
-def add_quantized_track_to_sequence(quantized_sequence, instrument, notes,
-                                    is_drum=False):
-  if instrument not in quantized_sequence.tracks:
-    quantized_sequence.tracks[instrument] = []
-  track = quantized_sequence.tracks[instrument]
-  for pitch, velocity, start_step, end_step in notes:
-    note = sequences_lib.QuantizedSequence.Note(pitch=pitch,
-                                                velocity=velocity,
-                                                start=start_step,
-                                                end=end_step,
-                                                instrument=instrument,
-                                                program=0,
-                                                is_drum=is_drum)
-    track.append(note)
-    if end_step > quantized_sequence.total_steps:
-      quantized_sequence.total_steps = end_step
+def add_quantized_steps_to_sequence(sequence, quantized_steps):
+  assert len(sequence.notes) == len(quantized_steps)
+
+  for note, quantized_step in zip(sequence.notes, quantized_steps):
+    note.quantized_start_step = quantized_step[0]
+    note.quantized_end_step = quantized_step[1]
+
+    if quantized_step[1] > sequence.total_quantized_steps:
+      sequence.total_quantized_steps = quantized_step[1]
 
 
-def add_quantized_chords_to_sequence(quantized_sequence, chords):
-  for figure, step in chords:
-    chord = sequences_lib.QuantizedSequence.ChordSymbol(step=step,
-                                                        figure=figure)
-    quantized_sequence.chords.append(chord)
+def add_quantized_chord_steps_to_sequence(sequence, quantized_steps):
+  chord_annotations = [a for a in sequence.text_annotations
+                       if a.annotation_type == CHORD_SYMBOL]
+  assert len(chord_annotations) == len(quantized_steps)
+  for chord, quantized_step in zip(chord_annotations, quantized_steps):
+    chord.quantized_step = quantized_step

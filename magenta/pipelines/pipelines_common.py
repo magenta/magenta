@@ -31,14 +31,13 @@ class Quantizer(pipeline.Pipeline):
   def __init__(self, steps_per_quarter=4):
     super(Quantizer, self).__init__(
         input_type=music_pb2.NoteSequence,
-        output_type=sequences_lib.QuantizedSequence)
+        output_type=music_pb2.NoteSequence)
     self._steps_per_quarter = steps_per_quarter
 
   def transform(self, note_sequence):
-    quantized_sequence = sequences_lib.QuantizedSequence()
     try:
-      quantized_sequence.from_note_sequence(note_sequence,
-                                            self._steps_per_quarter)
+      quantized_sequence = sequences_lib.quantize_note_sequence(
+          note_sequence, self._steps_per_quarter)
       return [quantized_sequence]
     except sequences_lib.MultipleTimeSignatureException as e:
       tf.logging.debug('Multiple time signatures found in NoteSequence %s: %s',

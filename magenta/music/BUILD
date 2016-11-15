@@ -95,6 +95,7 @@ py_library(
         ":chord_symbols_lib",
         ":constants",
         ":events_lib",
+        ":sequences_lib",
         "//magenta/pipelines:statistics",
         "//magenta/protobuf:music_py_pb2",
     ],
@@ -111,6 +112,8 @@ py_test(
         ":melodies_lib",
         ":sequences_lib",
         ":testing_lib",
+        "//magenta/common:testing_lib",
+        "//magenta/protobuf:music_py_pb2",
         # tensorflow dep
     ],
 )
@@ -162,6 +165,7 @@ py_test(
         ":drums_lib",
         ":sequences_lib",
         ":testing_lib",
+        "//magenta/common:testing_lib",
         "//magenta/protobuf:music_py_pb2",
         # tensorflow dep
     ],
@@ -220,6 +224,8 @@ py_library(
         ":constants",
         ":events_lib",
         ":melodies_lib",
+        ":sequences_lib",
+        "//magenta/common:testing_lib",
         "//magenta/pipelines:statistics",
         "//magenta/protobuf:music_py_pb2",
     ],
@@ -267,6 +273,7 @@ py_test(
         ":melodies_lib",
         ":sequences_lib",
         ":testing_lib",
+        "//magenta/common:testing_lib",
         "//magenta/protobuf:music_py_pb2",
         # tensorflow dep
     ],
@@ -371,8 +378,6 @@ py_test(
     deps = [
         ":musicxml_parser",
         ":musicxml_reader",
-        ":sequences_lib",
-        ":testing_lib",
         "//magenta/common:testing_lib",
         "//magenta/protobuf:music_py_pb2",
         # tensorflow dep
@@ -425,6 +430,7 @@ py_test(
         ":sequences_lib",
         ":testing_lib",
         "//magenta/common:testing_lib",
+        "//magenta/protobuf:music_py_pb2",
         # tensorflow dep
     ],
 )
@@ -463,7 +469,6 @@ py_library(
     name = "testing_lib",
     srcs = ["testing_lib.py"],
     deps = [
-        ":sequences_lib",
         "//magenta/protobuf:music_py_pb2",
     ],
 )

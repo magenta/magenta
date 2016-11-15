@@ -13,7 +13,7 @@
 # limitations under the License.
 """Utility functions for working with drums.
 
-Use extract_drum_tracks to extract drum tracks from a QuantizedSequence object.
+Use extract_drum_tracks to extract drum tracks from a quantized NoteSequence.
 
 Use DrumTrack.to_sequence to write a drum track to a NoteSequence proto. Then
 use midi_io.sequence_proto_to_midi_file to write that NoteSequence to a midi
@@ -45,7 +45,7 @@ class DrumTrack(events_lib.SimpleEventSequence):
   """Stores a quantized stream of drum events.
 
   DrumTrack is an intermediate representation that all drum models can use.
-  QuantizedSequence to DrumTrack code will do work to align drum notes and
+  Quantized sequence to DrumTrack code will do work to align drum notes and
   extract drum tracks. Model-specific code then needs to convert DrumTrack
   to SequenceExample protos for TensorFlow.
 
@@ -130,11 +130,11 @@ class DrumTrack(events_lib.SimpleEventSequence):
                               start_step=0,
                               gap_bars=1,
                               pad_end=False):
-    """Populate self with drums from the given QuantizedSequence object.
+    """Populate self with drums from the given quantized NoteSequence object.
 
     A drum track is extracted from the given quantized sequence starting at time
     step `start_step`. `start_step` can be used to drive extraction of multiple
-    drum tracks from the same QuantizedSequence. The end step of the extracted
+    drum tracks from the same quantized sequence. The end step of the extracted
     drum track will be stored in `self._end_step`.
 
     0 velocity notes are ignored. The drum extraction is ended when there are
@@ -146,7 +146,7 @@ class DrumTrack(events_lib.SimpleEventSequence):
     drum "pitches", or an empty frozenset to indicate no drums are played.
 
     Args:
-      quantized_sequence: A sequences_lib.QuantizedSequence instance.
+      quantized_sequence: A quantized NoteSequence instance.
       start_step: Start searching for drums at this time step.
       gap_bars: If this many bars or more follow a non-empty drum event, the
           drum track is ended.
@@ -158,27 +158,30 @@ class DrumTrack(events_lib.SimpleEventSequence):
           (derived from its time signature) is not an integer number of time
           steps.
     """
+    sequences_lib.assert_is_quantized_sequence(quantized_sequence)
     self._reset()
 
     offset = None
-    steps_per_bar_float = quantized_sequence.steps_per_bar()
+    steps_per_bar_float = sequences_lib.steps_per_bar_in_quantized_sequence(
+        quantized_sequence)
     if steps_per_bar_float % 1 != 0:
       raise events_lib.NonIntegerStepsPerBarException(
           'There are %f timesteps per bar. Time signature: %d/%d' %
           (steps_per_bar_float, quantized_sequence.time_signature.numerator,
            quantized_sequence.time_signature.denominator))
     self._steps_per_bar = steps_per_bar = int(steps_per_bar_float)
-    self._steps_per_quarter = quantized_sequence.steps_per_quarter
+    self._steps_per_quarter = (
+        quantized_sequence.quantization_info.steps_per_quarter)
 
     # Group all drum notes that start at the same step.
-    all_tracks = [note for track in quantized_sequence.tracks
-                  for note in quantized_sequence.tracks[track]
-                  if note.is_drum                 # drums only
-                  and note.velocity               # no zero-velocity notes
-                  and note.start >= start_step]   # after start_step only
+    all_notes = [note for note in quantized_sequence.notes
+                 if note.is_drum                 # drums only
+                 and note.velocity               # no zero-velocity notes
+                 # after start_step only
+                 and note.quantized_start_step >= start_step]
     grouped_notes = collections.defaultdict(list)
-    for note in all_tracks:
-      grouped_notes[note.start].append(note)
+    for note in all_notes:
+      grouped_notes[note.quantized_start_step].append(note)
 
     # Sort by note start times.
     notes = sorted(grouped_notes.items(), key=operator.itemgetter(0))
@@ -278,7 +281,7 @@ def extract_drum_tracks(quantized_sequence,
                         max_steps_discard=None,
                         gap_bars=1.0,
                         pad_end=False):
-  """Extracts a list of drum tracks from the given QuantizedSequence object.
+  """Extracts a list of drum tracks from the given quantized NoteSequence.
 
   This function will search through `quantized_sequence` for drum tracks. A drum
   track can span multiple "tracks" in the sequence. Only one drum track can be
@@ -293,11 +296,11 @@ def extract_drum_tracks(quantized_sequence,
 
   A drum track is only used if it is at least `min_bars` bars long.
 
-  After scanning the QuantizedSequence, a list of all extracted DrumTrack
+  After scanning the quantized NoteSequence, a list of all extracted DrumTrack
   objects is returned.
 
   Args:
-    quantized_sequence: A sequences_lib.QuantizedSequence object.
+    quantized_sequence: A quantized NoteSequence.
     min_bars: Minimum length of drum tracks in number of bars. Shorter drum
         tracks are discarded.
     max_steps_truncate: Maximum number of steps in extracted drum tracks. If
@@ -378,28 +381,18 @@ def extract_drum_tracks(quantized_sequence,
   return drum_tracks, stats.values()
 
 
-def midi_file_to_drum_track(midi_file, steps_per_quarter=4, qpm=None):
+def midi_file_to_drum_track(midi_file, steps_per_quarter=4):
   """Loads a drum track from a MIDI file.
 
   Args:
     midi_file: Absolute path to MIDI file.
     steps_per_quarter: Quantization of DrumTrack. For example, 4 = 16th notes.
-    qpm: Tempo in quarters per a minute. If not set, tries to use the first
-        tempo of the midi track and defaults to
-        magenta.music.DEFAULT_QUARTERS_PER_MINUTE if fails.
 
   Returns:
     A DrumTrack object extracted from the MIDI file.
   """
   sequence = midi_io.midi_file_to_sequence_proto(midi_file)
-  if qpm is None:
-    if sequence.tempos:
-      qpm = sequence.tempos[0].qpm
-    else:
-      qpm = constants.DEFAULT_QUARTERS_PER_MINUTE
-  quantized_sequence = sequences_lib.QuantizedSequence()
-  quantized_sequence.qpm = qpm
-  quantized_sequence.from_note_sequence(
+  quantized_sequence = sequences_lib.quantize_note_sequence(
       sequence, steps_per_quarter=steps_per_quarter)
   drum_track = DrumTrack()
   drum_track.from_quantized_sequence(quantized_sequence)

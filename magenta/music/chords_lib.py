@@ -14,7 +14,7 @@
 """Utility functions for working with chord progressions.
 
 Use extract_chords_for_melodies to extract chord progressions from a
-QuantizedSequence object, aligned with already-extracted melodies.
+quantized NoteSequence object, aligned with already-extracted melodies.
 
 Use ChordProgression.to_sequence to write a chord progression to a
 NoteSequence proto, encoding the chords as text annotations.
@@ -28,6 +28,7 @@ from six.moves import range  # pylint: disable=redefined-builtin
 from magenta.music import chord_symbols_lib
 from magenta.music import constants
 from magenta.music import events_lib
+from magenta.music import sequences_lib
 from magenta.pipelines import statistics
 from magenta.protobuf import music_pb2
 
@@ -122,7 +123,7 @@ class ChordProgression(events_lib.SimpleEventSequence):
       self._events[i] = figure
 
   def from_quantized_sequence(self, quantized_sequence, start_step, end_step):
-    """Populate self with the chords from the given QuantizedSequence object.
+    """Populate self with the chords from the given quantized NoteSequence.
 
     A chord progression is extracted from the given sequence starting at time
     step `start_step` and ending at time step `end_step`.
@@ -131,7 +132,7 @@ class ChordProgression(events_lib.SimpleEventSequence):
     `quantized_sequence`.
 
     Args:
-      quantized_sequence: A sequences_lib.QuantizedSequence instance.
+      quantized_sequence: A quantized NoteSequence instance.
       start_step: Start populating chords at this time step.
       end_step: Stop populating chords at this time step.
 
@@ -141,52 +142,57 @@ class ChordProgression(events_lib.SimpleEventSequence):
           steps.
       CoincidentChordsException: If any of the chords start on the same step.
     """
+    sequences_lib.assert_is_quantized_sequence(quantized_sequence)
     self._reset()
 
-    steps_per_bar_float = quantized_sequence.steps_per_bar()
+    steps_per_bar_float = sequences_lib.steps_per_bar_in_quantized_sequence(
+        quantized_sequence)
     if steps_per_bar_float % 1 != 0:
       raise events_lib.NonIntegerStepsPerBarException(
           'There are %f timesteps per bar. Time signature: %d/%d' %
           (steps_per_bar_float, quantized_sequence.time_signature.numerator,
            quantized_sequence.time_signature.denominator))
     self._steps_per_bar = int(steps_per_bar_float)
-    self._steps_per_quarter = quantized_sequence.steps_per_quarter
+    self._steps_per_quarter = (
+        quantized_sequence.quantization_info.steps_per_quarter)
 
     # Sort track by chord times.
-    chords = sorted(quantized_sequence.chords, key=lambda chord: chord.step)
+    chords = sorted([a for a in quantized_sequence.text_annotations
+                     if a.annotation_type == CHORD_SYMBOL],
+                    key=lambda chord: chord.quantized_step)
 
     prev_step = None
     prev_figure = NO_CHORD
 
     for chord in chords:
-      if chord.step >= end_step:
+      if chord.quantized_step >= end_step:
         # No more chords within range.
         break
 
-      elif chord.step < start_step:
+      elif chord.quantized_step < start_step:
         # Chord is before start of range.
-        prev_step = chord.step
-        prev_figure = chord.figure
+        prev_step = chord.quantized_step
+        prev_figure = chord.text
         continue
 
-      if chord.step == prev_step:
-        if chord.figure == prev_figure:
+      if chord.quantized_step == prev_step:
+        if chord.text == prev_figure:
           # Identical coincident chords, just skip.
           continue
         else:
           # Two different chords start at the same time step.
           self._reset()
           raise CoincidentChordsException('chords %s and %s are coincident' %
-                                          (prev_figure, chord.figure))
+                                          (prev_figure, chord.text))
 
-      if chord.step > start_step:
+      if chord.quantized_step > start_step:
         # Add the previous chord.
         start_index = max(prev_step, start_step) - start_step
-        end_index = chord.step - start_step
+        end_index = chord.quantized_step - start_step
         self._add_chord(prev_figure, start_index, end_index)
 
-      prev_step = chord.step
-      prev_figure = chord.figure
+      prev_step = chord.quantized_step
+      prev_figure = chord.text
 
     if prev_step < end_step:
       # Add the last chord active before end_step.
@@ -253,13 +259,13 @@ class ChordProgression(events_lib.SimpleEventSequence):
 
 def extract_chords(quantized_sequence, max_steps=None,
                    all_transpositions=False):
-  """Extracts a single chord progression from the QuantizedSequence.
+  """Extracts a single chord progression from a quantized NoteSequence.
 
   This function will extract the underlying chord progression (encoded as text
   annotations) from `quantized_sequence`.
 
   Args:
-    quantized_sequence: A sequences_lib.QuantizedSequence object.
+    quantized_sequence: A quantized NoteSequence.
     max_steps: An integer, maximum length of a chord progression. Chord
         progressions will be trimmed to this length. If None, chord
         progressions will not be trimmed.
@@ -273,10 +279,12 @@ def extract_chords(quantized_sequence, max_steps=None,
         for each transposition.
     stats: A dictionary mapping string names to `statistics.Statistic` objects.
   """
+  sequences_lib.assert_is_quantized_sequence(quantized_sequence)
+
   stats = dict([('chords_truncated', statistics.Counter('chords_truncated'))])
   chords = ChordProgression()
   chords.from_quantized_sequence(
-      quantized_sequence, 0, quantized_sequence.total_steps)
+      quantized_sequence, 0, quantized_sequence.total_quantized_steps)
   if max_steps is not None:
     if len(chords) > max_steps:
       chords.set_length(max_steps)
@@ -293,7 +301,7 @@ def extract_chords(quantized_sequence, max_steps=None,
 
 
 def extract_chords_for_melodies(quantized_sequence, melodies):
-  """Extracts from the QuantizedSequence a chord progression for each melody.
+  """Extracts a chord progression from the quantized NoteSequence for melodies.
 
   This function will extract the underlying chord progression (encoded as text
   annotations) from `quantized_sequence` for each monophonic melody in
@@ -301,7 +309,7 @@ def extract_chords_for_melodies(quantized_sequence, melodies):
   corresponding melody.
 
   Args:
-    quantized_sequence: A sequences_lib.QuantizedSequence object.
+    quantized_sequence: A quantized NoteSequence object.
     melodies: A python list of Melody instances.
 
   Returns:

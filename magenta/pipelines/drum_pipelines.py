@@ -18,17 +18,17 @@ import tensorflow as tf
 
 from magenta.music import drums_lib
 from magenta.music import events_lib
-from magenta.music import sequences_lib
 from magenta.pipelines import pipeline
 from magenta.pipelines import statistics
+from magenta.protobuf import music_pb2
 
 
 class DrumsExtractor(pipeline.Pipeline):
-  """Extracts drum tracks from a QuantizedSequence."""
+  """Extracts drum tracks from a quantized NoteSequence."""
 
   def __init__(self, min_bars=7, max_steps=512, gap_bars=1.0, name=None):
     super(DrumsExtractor, self).__init__(
-        input_type=sequences_lib.QuantizedSequence,
+        input_type=music_pb2.NoteSequence,
         output_type=drums_lib.DrumTrack,
         name=name)
     self._min_bars = min_bars

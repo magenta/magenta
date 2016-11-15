@@ -13,8 +13,8 @@
 # limitations under the License.
 """Utility functions for working with melodies.
 
-Use extract_melodies to extract monophonic melodies from a QuantizedSequence
-object.
+Use extract_melodies to extract monophonic melodies from a quantized
+NoteSequence proto.
 
 Use Melody.to_sequence to write a melody to a NoteSequence proto. Then use
 midi_io.sequence_proto_to_midi_file to write that NoteSequence to a midi file.
@@ -59,7 +59,7 @@ class Melody(events_lib.SimpleEventSequence):
   """Stores a quantized stream of monophonic melody events.
 
   Melody is an intermediate representation that all melody models can use.
-  QuantizedSequence to Melody code will do work to align notes and extract
+  Quantized sequence to Melody code will do work to align notes and extract
   extract monophonic melodies. Model-specific code then needs to convert Melody
   to SequenceExample protos for TensorFlow.
 
@@ -239,17 +239,17 @@ class Melody(events_lib.SimpleEventSequence):
   def from_quantized_sequence(self,
                               quantized_sequence,
                               start_step=0,
-                              track=0,
+                              instrument=0,
                               gap_bars=1,
                               ignore_polyphonic_notes=False,
                               pad_end=False,
                               filter_drums=True):
-    """Populate self with a melody from the given QuantizedSequence object.
+    """Populate self with a melody from the given quantized NoteSequence.
 
-    A monophonic melody is extracted from the given `track` starting at time
-    step `start_step`. `track` and `start_step` can be used to drive extraction
-    of multiple melodies from the same QuantizedSequence. The end step of the
-    extracted melody will be stored in `self._end_step`.
+    A monophonic melody is extracted from the given `instrument` starting at
+    time step `start_step`. `instrument` and `start_step` can be used to drive
+    extraction of multiple melodies from the same quantized sequence. The end
+    step of the extracted melody will be stored in `self._end_step`.
 
     0 velocity notes are ignored. The melody extraction is ended when there are
     no held notes for a time stretch of `gap_bars` in bars (measures) of music.
@@ -263,9 +263,10 @@ class Melody(events_lib.SimpleEventSequence):
     raised.
 
     Args:
-      quantized_sequence: A sequences_lib.QuantizedSequence instance.
+      quantized_sequence: A NoteSequence quantized with
+          sequences_lib.quantize_note_sequence.
       start_step: Start searching for a melody at this time step.
-      track: Search for a melody in this track number.
+      instrument: Search for a melody in this instrument number.
       gap_bars: If this many bars or more follow a NOTE_OFF event, the melody
           is ended.
       ignore_polyphonic_notes: If True, the highest pitch is used in the melody
@@ -283,24 +284,28 @@ class Melody(events_lib.SimpleEventSequence):
       PolyphonicMelodyException: If any of the notes start on the same step
           and `ignore_polyphonic_notes` is False.
     """
+    sequences_lib.assert_is_quantized_sequence(quantized_sequence)
     self._reset()
 
     offset = None
-    steps_per_bar_float = quantized_sequence.steps_per_bar()
+    steps_per_bar_float = sequences_lib.steps_per_bar_in_quantized_sequence(
+        quantized_sequence)
     if steps_per_bar_float % 1 != 0:
       raise events_lib.NonIntegerStepsPerBarException(
           'There are %f timesteps per bar. Time signature: %d/%d' %
-          (steps_per_bar_float, quantized_sequence.time_signature.numerator,
-           quantized_sequence.time_signature.denominator))
+          (steps_per_bar_float, quantized_sequence.time_signatures[0].numerator,
+           quantized_sequence.time_signatures[0].denominator))
     self._steps_per_bar = steps_per_bar = int(steps_per_bar_float)
-    self._steps_per_quarter = quantized_sequence.steps_per_quarter
+    self._steps_per_quarter = (
+        quantized_sequence.quantization_info.steps_per_quarter)
 
     # Sort track by note start times, and secondarily by pitch descending.
-    notes = sorted(quantized_sequence.tracks[track],
-                   key=lambda note: (note.start, -note.pitch))
+    notes = sorted([n for n in quantized_sequence.notes
+                    if n.instrument == instrument],
+                   key=lambda note: (note.quantized_start_step, -note.pitch))
 
     for note in notes:
-      if note.start < start_step:
+      if note.quantized_start_step < start_step:
         continue
 
       if filter_drums and note.is_drum:
@@ -311,10 +316,11 @@ class Melody(events_lib.SimpleEventSequence):
         continue
 
       if offset is None:
-        offset = note.start - note.start % steps_per_bar
+        offset = note.quantized_start_step - (
+            note.quantized_start_step % steps_per_bar)
 
-      start_index = note.start - offset
-      end_index = note.end - offset
+      start_index = note.quantized_start_step - offset
+      end_index = note.quantized_end_step - offset
 
       if not self._events:
         # If there are no events, we don't need to check for polyphony.
@@ -533,7 +539,7 @@ def extract_melodies(quantized_sequence,
                      ignore_polyphonic_notes=True,
                      pad_end=False,
                      filter_drums=True):
-  """Extracts a list of melodies from the given QuantizedSequence object.
+  """Extracts a list of melodies from the given quantized NoteSequence.
 
   This function will search through `quantized_sequence` for monophonic
   melodies in every track at every time step.
@@ -549,11 +555,11 @@ def extract_melodies(quantized_sequence,
   notes (preventing melodies that only repeat a few notes, such as those found
   in some accompaniment tracks, from being used).
 
-  After scanning each instrument track in the QuantizedSequence, a list of all
+  After scanning each instrument track in the quantized sequence, a list of all
   extracted Melody objects is returned.
 
   Args:
-    quantized_sequence: A sequences_lib.QuantizedSequence object.
+    quantized_sequence: A quantized NoteSequence.
     min_bars: Minimum length of melodies in number of bars. Shorter melodies are
         discarded.
     max_steps_truncate: Maximum number of steps in extracted melodies. If
@@ -582,6 +588,8 @@ def extract_melodies(quantized_sequence,
         (derived from its time signature) is not an integer number of time
         steps.
   """
+  sequences_lib.assert_is_quantized_sequence(quantized_sequence)
+
   # TODO(danabo): Convert `ignore_polyphonic_notes` into a float which controls
   # the degree of polyphony that is acceptable.
   melodies = []
@@ -599,7 +607,8 @@ def extract_melodies(quantized_sequence,
       'melody_lengths_in_bars',
       [0, 1, 10, 20, 30, 40, 50, 100, 200, 500, min_bars // 2, min_bars,
        min_bars + 1, min_bars - 1])
-  for track in quantized_sequence.tracks:
+  instruments = set([n.instrument for n in quantized_sequence.notes])
+  for instrument in instruments:
     start = 0
 
     # Quantize the track into a Melody object.
@@ -609,7 +618,7 @@ def extract_melodies(quantized_sequence,
       try:
         melody.from_quantized_sequence(
             quantized_sequence,
-            track=track,
+            instrument=instrument,
             start_step=start,
             gap_bars=gap_bars,
             ignore_polyphonic_notes=ignore_polyphonic_notes,
@@ -681,9 +690,7 @@ def midi_file_to_melody(midi_file, steps_per_quarter=4, qpm=None,
       qpm = sequence.tempos[0].qpm
     else:
       qpm = constants.DEFAULT_QUARTERS_PER_MINUTE
-  quantized_sequence = sequences_lib.QuantizedSequence()
-  quantized_sequence.qpm = qpm
-  quantized_sequence.from_note_sequence(
+  quantized_sequence = sequences_lib.quantize_note_sequence(
       sequence, steps_per_quarter=steps_per_quarter)
   melody = Melody()
   melody.from_quantized_sequence(
