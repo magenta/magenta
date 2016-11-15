@@ -296,7 +296,7 @@ def extract_lead_sheet_fragments(quantized_sequence,
         (derived from its time signature) is not an integer number of time
         steps.
   """
-  assert sequences_lib.is_quantized_sequence(quantized_sequence)
+  sequences_lib.assert_is_quantized_sequence(quantized_sequence)
   stats = dict([('empty_chord_progressions',
                  statistics.Counter('empty_chord_progressions'))])
   melodies, melody_stats = melodies_lib.extract_melodies(

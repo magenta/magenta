@@ -51,6 +51,15 @@ class NegativeTimeException(Exception):
   pass
 
 
+class SequenceNotQuantizedException(Exception):
+  """Exception for when a quantized sequence was expected but not received.
+
+  Should not happen during normal operation and likely indicates a programming
+  error.
+  """
+  pass
+
+
 def extract_subsequence(sequence, start_time, end_time):
   """Extracts a subsequence from a NoteSequence.
 
@@ -83,18 +92,20 @@ def _is_power_of_2(x):
   return x and not x & (x - 1)
 
 
-def is_quantized_sequence(note_sequence):
-  """Determines whether the given NoteSequence proto has been quantized.
+def assert_is_quantized_sequence(note_sequence):
+  """Confirms that the given NoteSequence proto has been quantized.
 
   Args:
     note_sequence: A music_pb2.NoteSequence proto.
 
-  Returns:
-    True if the proto has been quantized via the quantize_note_sequence method.
+  Raises:
+    SequenceNotQuantizedException if the sequence is not quantized.
   """
   # If the QuantizationInfo message has a non-zero steps_per_quarter, assume
   # that the proto has been quantized.
-  return note_sequence.quantization_info.steps_per_quarter > 0
+  if not note_sequence.quantization_info.steps_per_quarter > 0:
+    raise SequenceNotQuantizedException('NoteSequence %s is not quantized.' %
+                                        note_sequence.id)
 
 
 def steps_per_bar_in_quantized_sequence(note_sequence):
@@ -106,7 +117,7 @@ def steps_per_bar_in_quantized_sequence(note_sequence):
   Returns:
     Steps per bar as a floating point number.
   """
-  assert is_quantized_sequence(note_sequence)
+  assert_is_quantized_sequence(note_sequence)
 
   quarters_per_beat = 4.0 / note_sequence.time_signatures[0].denominator
   quarters_per_bar = (quarters_per_beat *
