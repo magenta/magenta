@@ -43,9 +43,42 @@ class EventSequence(object):
   sequences of musical events of particular types. In all cases, model-specific
   code is responsible for converting this representation to SequenceExample
   protos for TensorFlow.
+  """
+  __metaclass__ = abc.ABCMeta
 
-  EventSequence represents an iterable object. Simply iterate to retrieve the
+  @abc.abstractmethod
+  def append(self, event):
+    """Appends event to the end of the sequence.
+
+    Args:
+      event: The event to append to the end.
+    """
+    pass
+
+  @abc.abstractmethod
+  def __getitem__(self, i):
+    """Returns the event at the given index."""
+    pass
+
+  @abc.abstractmethod
+  def __len__(self):
+    """How many events are in this EventSequence.
+
+    Returns:
+      Number of events as an integer.
+    """
+    pass
+
+
+class SimpleEventSequence(EventSequence):
+  """Stores a quantized stream of events.
+
+  This class can be instantiated, but its main purpose is to serve as a base
+  class for Melody, ChordProgression, and any other simple stream of musical
   events.
+
+  SimpleEventSequence represents an iterable object. Simply iterate to retrieve
+  the events.
 
   Attributes:
     start_step: The offset of the first step of the sequence relative to the
@@ -56,66 +89,6 @@ class EventSequence(object):
        always be the first step of a bar.
     steps_per_quarter: Number of steps in in a quarter note.
     steps_per_bar: Number of steps in a bar (measure) of music.
-  """
-  __metaclass__ = abc.ABCMeta
-
-  @abc.abstractproperty
-  def start_step(self):
-    pass
-
-  @abc.abstractproperty
-  def end_step(self):
-    pass
-
-  @abc.abstractproperty
-  def steps_per_quarter(self):
-    pass
-
-  @abc.abstractproperty
-  def steps_per_bar(self):
-    pass
-
-  @abc.abstractmethod
-  def append(self, event):
-    """Appends event to the end of the sequence and increments the end step.
-
-    Args:
-      event: The event to append to the end.
-    """
-    pass
-
-  @abc.abstractmethod
-  def set_length(self, steps, from_left=False):
-    """Sets the length of the sequence to the specified number of steps.
-
-    If the event sequence is not long enough, pads with `pad_event` to make the
-    sequence the specified length. If it is too long, it will be truncated to
-    the requested length.
-
-    Args:
-      steps: How many steps long the event sequence should be.
-      from_left: Whether to add/remove from the left instead of right.
-    """
-    pass
-
-  @abc.abstractmethod
-  def increase_resolution(self, k):
-    """Increase the resolution of an event sequence.
-
-    Increases the resolution of an EventSequence object by a factor of `k`.
-
-    Args:
-      k: An integer, the factor by which to increase the resolution of the
-          event sequence.
-    """
-
-
-class SimpleEventSequence(EventSequence):
-  """Stores a quantized stream of events.
-
-  This class can be instantiated, but its main purpose is to serve as a base
-  class for Melody, ChordProgression, and any other simple stream of musical
-  events.
   """
 
   def __init__(self, pad_event, events=None, start_step=0,
