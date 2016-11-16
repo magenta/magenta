@@ -209,7 +209,7 @@ class BaseSequenceGenerator(object):
 
     if not self.details.description:
       tf.logging.warn('Writing bundle file with no generator description.')
-    if not self.bundle_description:
+    if not bundle_description:
       tf.logging.warn('Writing bundle file with no bundle description.')
 
     self.initialize()
