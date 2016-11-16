@@ -25,7 +25,7 @@ First, set up your [Magenta environment](/README.md). Next, you can either use a
 If you want to get started right away, you can use a model that we've pre-trained on thousands of MIDI files.
 We host .mag bundle files for each of the configurations described above at these links:
 
-* [basic_rnnn](http://download.magenta.tensorflow.org/models/basic_rnn.mag).
+* [basic_rnn](http://download.magenta.tensorflow.org/models/basic_rnn.mag).
 * [lookback_rnn](http://download.magenta.tensorflow.org/models/lookback_rnn.mag).
 * [attention_rnn](http://download.magenta.tensorflow.org/models/attention_rnn.mag).
 
@@ -63,7 +63,7 @@ SequenceExamples are fed into the model during training and evaluation. Each Seq
 melody_rnn_create_dataset \
 --config=<one of 'basic_rnn', 'lookback_rnn', or 'attention_rnn'>
 --input=/tmp/notesequences.tfrecord \
---output_dir=/tmp/attention_rnn/sequence_examples \
+--output_dir=/tmp/melody_rnn/sequence_examples \
 --eval_ratio=0.10
 ```
 
@@ -74,8 +74,8 @@ Run the command below to start a training job using the attention configuration.
 ```
 melody_rnn_train \
 --config=attention_rnn \
---run_dir=/tmp/attention_rnn/logdir/run1 \
---sequence_example_file=/tmp/attention_rnn/sequence_examples/training_melodies.tfrecord \
+--run_dir=/tmp/melody_rnn/logdir/run1 \
+--sequence_example_file=/tmp/melody_rnn/sequence_examples/training_melodies.tfrecord \
 --hparams="{'batch_size':64,'rnn_layer_sizes':[64,64]}" \
 --num_training_steps=20000
 ```
@@ -85,8 +85,8 @@ Optionally run an eval job in parallel. `--run_dir`, `--hparams`, and `--num_tra
 ```
 melody_rnn_train \
 --config=attention_rnn \
---run_dir=/tmp/attention_rnn/logdir/run1 \
---sequence_example_file=/tmp/attention_rnn/sequence_examples/eval_melodies.tfrecord \
+--run_dir=/tmp/melody_rnn/logdir/run1 \
+--sequence_example_file=/tmp/melody_rnn/sequence_examples/eval_melodies.tfrecord \
 --hparams="{'batch_size':64,'rnn_layer_sizes':[64,64]}" \
 --num_training_steps=20000 \
 --eval
@@ -95,7 +95,7 @@ melody_rnn_train \
 Run TensorBoard to view the training and evaluation data.
 
 ```
-tensorboard --logdir=/tmp/attention_rnn/logdir
+tensorboard --logdir=/tmp/melody_rnn/logdir
 ```
 
 Then go to [http://localhost:6006](http://localhost:6006) to view the TensorBoard dashboard.
@@ -104,7 +104,7 @@ Then go to [http://localhost:6006](http://localhost:6006) to view the TensorBoar
 
 Melodies can be generated during or after training. Run the command below to generate a set of melodies using the latest checkpoint file of your trained model.
 
-`--run_dir` should be the same directory used for the training job. The `train` subdirectory within `--run_dir` is where the latest checkpoint file will be loaded from. For example, if we use `--run_dir=/tmp/attention_rnn/logdir/run1`. The most recent checkpoint file in `/tmp/attention_rnn/logdir/run1/train` will be used.
+`--run_dir` should be the same directory used for the training job. The `train` subdirectory within `--run_dir` is where the latest checkpoint file will be loaded from. For example, if we use `--run_dir=/tmp/melody_rnn/logdir/run1`. The most recent checkpoint file in `/tmp/melody_rnn/logdir/run1/train` will be used.
 
 `--hparams` should be the same hyperparameters used for the training job, although some of them will be ignored, like the batch size.
 
@@ -116,8 +116,8 @@ At least one note needs to be fed to the model before it can start generating co
 ```
 melody_rnn_generate \
 --config=attention_rnn \
---run_dir=/tmp/attention_rnn/logdir/run1 \
---output_dir=/tmp/attention_rnn/generated \
+--run_dir=/tmp/melody_rnn/logdir/run1 \
+--output_dir=/tmp/melody_rnn/generated \
 --num_outputs=10 \
 --num_steps=128 \
 --primer_melody="[60]"
@@ -137,7 +137,7 @@ support a ```--save_generator_bundle``` flag that calls this method. Example:
 ```sh
 melody_rnn_generate \
   --config=attention_rnn \
-  --run_dir=/tmp/attention_rnn/logdir/run1 \
+  --run_dir=/tmp/melody_rnn/logdir/run1 \
   --hparams="{'batch_size':64,'rnn_layer_sizes':[64,64]}" \
   --bundle_file=/tmp/attention_rnn.mag \
   --save_generator_bundle

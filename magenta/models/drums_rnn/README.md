@@ -59,7 +59,7 @@ Run the command below to start a training job using the attention configuration.
 drums_rnn_train \
 --config=drum_kit \
 --run_dir=/tmp/drums_rnn/logdir/run1 \
---sequence_example_file=/tmp/attention_rnn/sequence_examples/training_drum_tracks.tfrecord \
+--sequence_example_file=/tmp/drums_rnn/sequence_examples/training_drum_tracks.tfrecord \
 --hparams="{'batch_size':64,'rnn_layer_sizes':[64,64]}" \
 --num_training_steps=20000
 ```
