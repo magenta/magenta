@@ -13,8 +13,8 @@
 # limitations under the License.
 """Create a dataset of SequenceExamples from NoteSequence protos.
 
-This script will extract melodies from NoteSequence protos and save them to
-TensorFlow's SequenceExample protos for input to the melody RNN models.
+This script will extract drum tracks from NoteSequence protos and save them to
+TensorFlow's SequenceExample protos for input to the drums RNN models.
 """
 
 import os
@@ -23,10 +23,10 @@ import os
 import tensorflow as tf
 import magenta
 
-from magenta.models.melody_rnn import melody_rnn_config_flags
+from magenta.models.drums_rnn import drums_rnn_config_flags
 
 from magenta.pipelines import dag_pipeline
-from magenta.pipelines import melody_pipelines
+from magenta.pipelines import drum_pipelines
 from magenta.pipelines import pipeline
 from magenta.pipelines import pipelines_common
 from magenta.protobuf import music_pb2
@@ -47,29 +47,23 @@ tf.app.flags.DEFINE_string('log', 'INFO',
 
 
 class EncoderPipeline(pipeline.Pipeline):
-  """A Module that converts monophonic melodies to a model specific encoding."""
+  """A Module that converts drum tracks to a model specific encoding."""
 
-  def __init__(self, config):
+  def __init__(self, config, name):
     """Constructs an EncoderPipeline.
 
     Args:
-      config: A MelodyRnnConfig that specifies the encoder/decoder, pitch range,
-          and what key to transpose into.
+      config: A DrumsRnnConfig that specifies the encoder/decoder.
+      name: A unique pipeline name.
     """
     super(EncoderPipeline, self).__init__(
-        input_type=magenta.music.Melody,
-        output_type=tf.train.SequenceExample)
-    self._melody_encoder_decoder = config.encoder_decoder
-    self._min_note = config.min_note
-    self._max_note = config.max_note
-    self._transpose_to_key = config.transpose_to_key
+        input_type=magenta.music.DrumTrack,
+        output_type=tf.train.SequenceExample,
+        name=name)
+    self._drums_encoder_decoder = config.encoder_decoder
 
-  def transform(self, melody):
-    melody.squash(
-        self._min_note,
-        self._max_note,
-        self._transpose_to_key)
-    encoded = self._melody_encoder_decoder.encode(melody)
+  def transform(self, drums):
+    encoded = self._drums_encoder_decoder.encode(drums)
     return [encoded]
 
   def get_stats(self):
@@ -80,34 +74,39 @@ def get_pipeline(config, eval_ratio):
   """Returns the Pipeline instance which creates the RNN dataset.
 
   Args:
-    config: A MelodyRnnConfig object.
+    config: A DrumsRnnConfig object.
     eval_ratio: Fraction of input to set aside for evaluation set.
 
   Returns:
     A pipeline.Pipeline instance.
   """
   quantizer = pipelines_common.Quantizer(steps_per_quarter=4)
-  melody_extractor = melody_pipelines.MelodyExtractor(
-      min_bars=7, max_steps=512, min_unique_pitches=5,
-      gap_bars=1.0, ignore_polyphonic_notes=False)
-  encoder_pipeline = EncoderPipeline(config)
+  drums_extractor_train = drum_pipelines.DrumsExtractor(
+      min_bars=7, max_steps=512, gap_bars=1.0, name='DrumsExtractorTrain')
+  drums_extractor_eval = drum_pipelines.DrumsExtractor(
+      min_bars=7, max_steps=512, gap_bars=1.0, name='DrumsExtractorEval')
+  encoder_pipeline_train = EncoderPipeline(config, name='EncoderPipelineTrain')
+  encoder_pipeline_eval = EncoderPipeline(config, name='EncoderPipelineEval')
   partitioner = pipelines_common.RandomPartition(
-      tf.train.SequenceExample,
-      ['eval_melodies', 'training_melodies'],
+      music_pb2.NoteSequence,
+      ['eval_drum_tracks', 'training_drum_tracks'],
       [eval_ratio])
 
   dag = {quantizer: dag_pipeline.Input(music_pb2.NoteSequence),
-         melody_extractor: quantizer,
-         encoder_pipeline: melody_extractor,
-         partitioner: encoder_pipeline,
-         dag_pipeline.Output(): partitioner}
+         partitioner: quantizer,
+         drums_extractor_train: partitioner['training_drum_tracks'],
+         drums_extractor_eval: partitioner['eval_drum_tracks'],
+         encoder_pipeline_train: drums_extractor_train,
+         encoder_pipeline_eval: drums_extractor_eval,
+         dag_pipeline.Output('training_drum_tracks'): encoder_pipeline_train,
+         dag_pipeline.Output('eval_drum_tracks'): encoder_pipeline_eval}
   return dag_pipeline.DAGPipeline(dag)
 
 
 def main(unused_argv):
   tf.logging.set_verbosity(FLAGS.log)
 
-  config = melody_rnn_config_flags.config_from_flags()
+  config = drums_rnn_config_flags.config_from_flags()
   pipeline_instance = get_pipeline(
       config, FLAGS.eval_ratio)
 

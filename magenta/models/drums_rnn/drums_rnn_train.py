@@ -11,19 +11,19 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Train and evaluate a melody RNN model."""
+"""Train and evaluate a drums RNN model."""
 
 import os
 
 # internal imports
 import tensorflow as tf
 
-from magenta.models.melody_rnn import melody_rnn_config_flags
+from magenta.models.drums_rnn import drums_rnn_config_flags
 from magenta.models.shared import events_rnn_graph
 from magenta.models.shared import events_rnn_train
 
 FLAGS = tf.app.flags.FLAGS
-tf.app.flags.DEFINE_string('run_dir', '/tmp/melody_rnn/logdir/run1',
+tf.app.flags.DEFINE_string('run_dir', '/tmp/drums_rnn/logdir/run1',
                            'Path to the directory where checkpoints and '
                            'summary events will be saved during training and '
                            'evaluation. Separate subdirectories for training '
@@ -69,7 +69,7 @@ def main(unused_argv):
   sequence_example_file = os.path.expanduser(FLAGS.sequence_example_file)
   run_dir = os.path.expanduser(FLAGS.run_dir)
 
-  config = melody_rnn_config_flags.config_from_flags()
+  config = drums_rnn_config_flags.config_from_flags()
 
   mode = 'eval' if FLAGS.eval else 'train'
   graph = events_rnn_graph.build_graph(

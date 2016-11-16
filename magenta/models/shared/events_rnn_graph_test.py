@@ -11,23 +11,23 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Tests for melody_rnn_graph."""
+"""Tests for events_rnn_graph."""
 
 # internal imports
 import tensorflow as tf
 import magenta
 
-from magenta.models.melody_rnn import melody_rnn_graph
-from magenta.models.melody_rnn import melody_rnn_model
+from magenta.models.shared import events_rnn_graph
+from magenta.models.shared import events_rnn_model
 
 
-class MelodyRNNGraphTest(tf.test.TestCase):
+class EventSequenceRNNGraphTest(tf.test.TestCase):
 
   def setUp(self):
-    self.config = melody_rnn_model.MelodyRnnConfig(
+    self.config = events_rnn_model.EventSequenceRnnConfig(
         None,
         magenta.music.OneHotEventSequenceEncoderDecoder(
-            magenta.music.MelodyOneHotEncoding(0, 12)),
+            magenta.music.testing_lib.TrivialOneHotEncoding(12)),
         magenta.common.HParams(
             batch_size=128,
             rnn_layer_sizes=[128, 128],
@@ -36,28 +36,25 @@ class MelodyRNNGraphTest(tf.test.TestCase):
             clip_norm=5,
             initial_learning_rate=0.01,
             decay_steps=1000,
-            decay_rate=0.85),
-        min_note=0,
-        max_note=12,
-        transpose_to_key=0)
+            decay_rate=0.85))
 
   def testBuildTrainGraph(self):
-    g = melody_rnn_graph.build_graph(
+    g = events_rnn_graph.build_graph(
         'train', self.config, sequence_example_file='test')
     self.assertTrue(isinstance(g, tf.Graph))
 
   def testBuildEvalGraph(self):
-    g = melody_rnn_graph.build_graph(
+    g = events_rnn_graph.build_graph(
         'eval', self.config, sequence_example_file='test')
     self.assertTrue(isinstance(g, tf.Graph))
 
   def testBuildGenerateGraph(self):
-    g = melody_rnn_graph.build_graph('generate', self.config)
+    g = events_rnn_graph.build_graph('generate', self.config)
     self.assertTrue(isinstance(g, tf.Graph))
 
   def testBuildGraphWithAttention(self):
     self.config.hparams.attn_length = 10
-    g = melody_rnn_graph.build_graph(
+    g = events_rnn_graph.build_graph(
         'train', self.config, sequence_example_file='test')
     self.assertTrue(isinstance(g, tf.Graph))
 
