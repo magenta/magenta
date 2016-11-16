@@ -167,8 +167,8 @@ class DrumTrack(events_lib.SimpleEventSequence):
     if steps_per_bar_float % 1 != 0:
       raise events_lib.NonIntegerStepsPerBarException(
           'There are %f timesteps per bar. Time signature: %d/%d' %
-          (steps_per_bar_float, quantized_sequence.time_signature.numerator,
-           quantized_sequence.time_signature.denominator))
+          (steps_per_bar_float, quantized_sequence.time_signatures[0].numerator,
+           quantized_sequence.time_signatures[0].denominator))
     self._steps_per_bar = steps_per_bar = int(steps_per_bar_float)
     self._steps_per_quarter = (
         quantized_sequence.quantization_info.steps_per_quarter)
