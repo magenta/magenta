@@ -42,7 +42,7 @@ def build_graph(mode, config, sequence_example_file=None):
     raise ValueError("The mode parameter must be 'train', 'eval', "
                      "or 'generate'. The mode parameter was: %s" % mode)
 
-  # test
+  sequence_example_file_list = [sequence_example_file]
   hparams = config.hparams
   encoder_decoder = config.encoder_decoder
 
