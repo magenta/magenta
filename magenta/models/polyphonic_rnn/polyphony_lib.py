@@ -270,9 +270,7 @@ def extract_polyphonic_sequences(
   # Create a histogram measuring lengths (in bars not steps).
   stats['polyphonic_track_lengths_in_bars'] = statistics.Histogram(
       'polyphonic_track_lengths_in_bars',
-      [0, 1, 10, 20, 30, 40, 50, 100, 200, 500,
-       (min_steps_discard or 0) // steps_per_bar,
-       (max_steps_discard or 0) // steps_per_bar])
+      [0, 1, 10, 20, 30, 40, 50, 100, 200, 500, 1000])
 
   start = 0
 
