@@ -28,7 +28,9 @@ def build_graph(mode, config, sequence_example_file=None):
         to use.
     sequence_example_file: A string path to a TFRecord file containing
         tf.train.SequenceExample protos. Only needed for training and
-        evaluation.
+        evaluation. May be a sharded file of the form `<filebase>@<N>`
+        which expands to the list of files
+        [`<filebase>-00000-of-<N>`, ..., `<filebase>-<N-1>-of-<N>`].
 
   Returns:
     A tf.Graph instance which contains the TF ops.
@@ -56,7 +58,14 @@ def build_graph(mode, config, sequence_example_file=None):
     state_is_tuple = True
 
     if mode == 'train' or mode == 'eval':
-      sequence_example_file_list = [sequence_example_file]
+      if '@' in sequence_example_file:
+        filebase, num_shards = sequence_example_file.split('@')
+        num_shards = int(num_shards)
+        sequence_example_file_list = [
+            '%s-%05d-of-%05d' % (filebase, i, num_shards)
+            for i in range(num_shards)]
+      else:
+        sequence_example_file_list = [sequence_example_file]
       inputs, labels, lengths = magenta.common.get_padded_batch(
           sequence_example_file_list, hparams.batch_size, input_size)
 
