@@ -21,14 +21,14 @@ import os
 import numpy as np
 import tensorflow as tf
 
-from magenta.models.polyphonic_rnn import polyphonic_rnn_graph
-from magenta.models.polyphonic_rnn import polyphonic_rnn_lib
+from magenta.models.multi_event_rnn import multi_event_rnn_graph
+from magenta.models.multi_event_rnn import multi_event_rnn_lib
 
 FLAGS = tf.app.flags.FLAGS
 tf.app.flags.DEFINE_string(
     'note_sequence_input', None, 'Polyphonic tfrecord NoteSequence file.')
 tf.app.flags.DEFINE_string(
-    'checkpoint_dir', '/tmp/polyphonic_rnn/checkpoints',
+    'checkpoint_dir', '/tmp/multi_event_rnn/checkpoints',
     'Path to the directory where checkpoints and summary events will be saved '
     'during training')
 tf.app.flags.DEFINE_string(
@@ -66,8 +66,8 @@ def main(unused_argv):
     tf.gfile.MakeDirs(checkpoint_dir)
   tf.logging.info('Checkpoint dir: %s', checkpoint_dir)
 
-  graph = polyphonic_rnn_graph.Graph(FLAGS.note_sequence_input)
-  polyphonic_rnn_lib.run_loop(
+  graph = multi_event_rnn_graph.Graph(FLAGS.note_sequence_input)
+  multi_event_rnn_lib.run_loop(
       functools.partial(_loop, graph),
       checkpoint_dir,
       graph.train_itr,
