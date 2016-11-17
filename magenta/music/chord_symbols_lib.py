@@ -154,112 +154,112 @@ class BasicChordSymbolFunctions(ChordSymbolFunctions):
   _CHORD_KINDS = [
       # major triad
       (['', 'maj', 'M'],
-          ['1', '3', '5']),
+       ['1', '3', '5']),
 
       # minor triad
       (['m', 'min', '-'],
-          ['1', 'b3', '5']),
+       ['1', 'b3', '5']),
 
       # augmented triad
       (['+', 'aug'],
-          ['1', '3', '#5']),
+       ['1', '3', '#5']),
 
       # diminished triad
       (['o', 'dim'],
-          ['1', 'b3', 'b5']),
+       ['1', 'b3', 'b5']),
 
       # dominant 7th
       (['7'],
-          ['1', '3', '5', 'b7']),
+       ['1', '3', '5', 'b7']),
 
       # major 7th
       (['maj7', 'M7'],
-          ['1', '3', '5', '7']),
+       ['1', '3', '5', '7']),
 
       # minor 7th
       (['m7', 'min7', '-7'],
-          ['1', 'b3', '5', 'b7']),
+       ['1', 'b3', '5', 'b7']),
 
       # diminished 7th
       (['o7', 'dim7'],
-          ['1', 'b3', 'b5', 'bb7']),
+       ['1', 'b3', 'b5', 'bb7']),
 
       # augmented 7th
       (['+7', 'aug7'],
-          ['1', '3', '#5', 'b7']),
+       ['1', '3', '#5', 'b7']),
 
       # half-diminished
       (['m7b5', '-7b5', '/o', '/o7'],
-          ['1', 'b3', 'b5', 'b7']),
+       ['1', 'b3', 'b5', 'b7']),
 
       # minor triad with major 7th
       (['mmaj7', 'mM7', 'minmaj7', 'minM7', '-maj7', '-M7',
         'm(maj7)', 'm(M7)', 'min(maj7)', 'min(M7)', '-(maj7)', '-(M7)'],
-          ['1', 'b3', '5', '7']),
+       ['1', 'b3', '5', '7']),
 
       # major 6th
       (['6'],
-          ['1', '3', '5', '6']),
+       ['1', '3', '5', '6']),
 
       # minor 6th
       (['m6', 'min6', '-6'],
-          ['1', 'b3', '5', '6']),
+       ['1', 'b3', '5', '6']),
 
       # dominant 9th
       (['9'],
-          ['1', '3', '5', 'b7', '9']),
+       ['1', '3', '5', 'b7', '9']),
 
       # major 9th
       (['maj9', 'M9'],
-          ['1', '3', '5', '7', '9']),
+       ['1', '3', '5', '7', '9']),
 
       # minor 9th
       (['m9', 'min9', '-9'],
-          ['1', 'b3', '5', 'b7', '9']),
+       ['1', 'b3', '5', 'b7', '9']),
 
       # 6/9 chord
       (['6/9'],
-          ['1', '3', '5', '6', '9']),
+       ['1', '3', '5', '6', '9']),
 
       # dominant 11th
       (['11'],
-          ['1', '3', '5', 'b7', '9', '11']),
+       ['1', '3', '5', 'b7', '9', '11']),
 
       # major 11th
       (['maj11', 'M11'],
-          ['1', '3', '5', '7', '9', '11']),
+       ['1', '3', '5', '7', '9', '11']),
 
       # minor 11th
       (['m11', 'min11', '-11'],
-          ['1', 'b3', '5', 'b7', '9', '11']),
+       ['1', 'b3', '5', 'b7', '9', '11']),
 
       # dominant 13th
       (['13'],
-          ['1', '3', '5', 'b7', '9', '11', '13']),
+       ['1', '3', '5', 'b7', '9', '11', '13']),
 
       # major 13th
       (['maj13', 'M13'],
-          ['1', '3', '5', '7', '9', '11', '13']),
+       ['1', '3', '5', '7', '9', '11', '13']),
 
       # minor 13th
       (['m13', 'min13', '-13'],
-          ['1', 'b3', '5', 'b7', '9', '11', '13']),
+       ['1', 'b3', '5', 'b7', '9', '11', '13']),
 
       # suspended 2nd
       (['sus2'],
-          ['1', '2', '5']),
+       ['1', '2', '5']),
 
       # suspended 4th
       (['sus', 'sus4'],
-          ['1', '4', '5']),
+       ['1', '4', '5']),
 
       # pedal point
       (['ped'],
-          ['1']),
+       ['1']),
 
       # power chord
       (['5'],
-          ['1', '5'])
+       ['1', '5'])
   ]
 
   # Dictionary mapping chord kind abbreviations to names and scale degrees.
@@ -268,7 +268,7 @@ class BasicChordSymbolFunctions(ChordSymbolFunctions):
                                 for abbrev in abbrevs)
 
   # Function to add a scale degree.
-  def _add_scale_degree(degrees, degree, alter):
+  def _add_scale_degree(self, degrees, degree, alter):
     if degree in degrees:
       raise ChordSymbolException('Scale degree already in chord: %d' % degree)
     if degree == 7:
@@ -276,13 +276,13 @@ class BasicChordSymbolFunctions(ChordSymbolFunctions):
     degrees[degree] = alter
 
   # Function to remove a scale degree.
-  def _subtract_scale_degree(degrees, degree, unused_alter):
+  def _subtract_scale_degree(self, degrees, degree, unused_alter):
     if degree not in degrees:
       raise ChordSymbolException('Scale degree not in chord: %d' % degree)
     del degrees[degree]
 
   # Function to alter (or add) a scale degree.
-  def _alter_scale_degree(degrees, degree, alter):
+  def _alter_scale_degree(self, degrees, degree, alter):
     if degree in degrees:
       degrees[degree] += alter
     else:
@@ -293,23 +293,24 @@ class BasicChordSymbolFunctions(ChordSymbolFunctions):
   # types to aid in parsing, as each of the three basic operations has its own
   # requirements on the scale degree operand:
   #
-  # Addition can accept altered and unaltered scale degrees.
-  # Subtraction can only accept unaltered scale degrees.
-  # Alteration can only accept altered scale degrees.
+  #  - Addition can accept altered and unaltered scale degrees.
+  #  - Subtraction can only accept unaltered scale degrees.
+  #  - Alteration can only accept altered scale degrees.
+
   _DEGREE_MODIFICATIONS = {
-      'add':  (_add_scale_degree, 0),
+      'add': (_add_scale_degree, 0),
       'add#': (_add_scale_degree, 1),
       'addb': (_add_scale_degree, -1),
-      'no':   (_subtract_scale_degree, 0),
-      '#':    (_alter_scale_degree, 1),
-      'b':    (_alter_scale_degree, -1)
+      'no': (_subtract_scale_degree, 0),
+      '#': (_alter_scale_degree, 1),
+      'b': (_alter_scale_degree, -1)
   }
 
   # Regular expression patterns for chord symbol parts.
-  _ROOT_PATTERN = '[A-G](?:#*|b*)(?![#b])'
+  _ROOT_PATTERN = r'[A-G](?:#*|b*)(?![#b])'
   _CHORD_KIND_PATTERN = '|'.join(re.escape(abbrev)
                                  for abbrev in _CHORD_KINDS_BY_ABBREV)
-  _MODIFICATIONS_PATTERN = '(?:\(?(?:%s)[0-9]+\)?)*' % '|'.join(
+  _MODIFICATIONS_PATTERN = r'(?:\(?(?:%s)[0-9]+\)?)*' % '|'.join(
       re.escape(mod) for mod in _DEGREE_MODIFICATIONS)
   _BASS_PATTERN = '|/%s' % _ROOT_PATTERN
 
@@ -322,15 +323,15 @@ class BasicChordSymbolFunctions(ChordSymbolFunctions):
   _CHORD_SYMBOL_REGEX = re.compile(_CHORD_SYMBOL_PATTERN)
 
   # Regular expression for a single pitch class.
-  _PITCH_CLASS_PATTERN = '([A-G])(#*|b*)$'
+  _PITCH_CLASS_PATTERN = r'([A-G])(#*|b*)$'
   _PITCH_CLASS_REGEX = re.compile(_PITCH_CLASS_PATTERN)
 
   # Regular expression for a single scale degree.
-  _SCALE_DEGREE_PATTERN = '(#*|b*)([0-9]+)$'
+  _SCALE_DEGREE_PATTERN = r'(#*|b*)([0-9]+)$'
   _SCALE_DEGREE_REGEX = re.compile(_SCALE_DEGREE_PATTERN)
 
   # Regular expression for a single scale degree modification.
-  _MODIFICATION_PATTERN = '\(?(%s)([0-9]+)\)?' % '|'.join(
+  _MODIFICATION_PATTERN = r'\(?(%s)([0-9]+)\)?' % '|'.join(
       re.escape(mod) for mod in _DEGREE_MODIFICATIONS)
   _MODIFICATION_REGEX = re.compile(_MODIFICATION_PATTERN)
 
@@ -364,6 +365,16 @@ class BasicChordSymbolFunctions(ChordSymbolFunctions):
     This returns a list of function-degree-alteration triples. The function,
     when applied to the list of scale degrees, the degree to modify, and the
     alteration, performs the modification.
+
+    Args:
+      modifications_str: A string containing the scale degree modifications to
+          apply to a chord, in standard chord symbol format.
+
+    Returns:
+      A Python list of scale degree modification tuples, each of which contains
+      a) a function that applies the modification, b) the integer scale degree
+      to which to apply the modifications, and c) the number of semitones in the
+      modification.
     """
     modifications = []
     while modifications_str:
@@ -385,7 +396,7 @@ class BasicChordSymbolFunctions(ChordSymbolFunctions):
   def _apply_modifications(self, degrees, modifications):
     """Apply scale degree modifications to a scale degree dictionary."""
     for mod_fn, degree, alter in modifications:
-      mod_fn(degrees, degree, alter)
+      mod_fn(self, degrees, degree, alter)
 
   def _split_chord_symbol(self, figure):
     """Split a chord symbol into root, kind, degree modifications, and bass."""
@@ -401,12 +412,19 @@ class BasicChordSymbolFunctions(ChordSymbolFunctions):
     This converts the chord symbol string to a tuple representation with the
     following components:
 
-    Root: A tuple containing scale step and alteration.
-    Degrees: A dictionary where the keys are integer scale degrees, and values
-        are integer alterations. For example, if 9 -> -1 is in the dictionary,
-        the chord contains a b9.
-    Bass: A tuple containins scale step and alteration. If bass is unspecified,
-        the chord root is used.
+      Root: A tuple containing scale step and alteration.
+      Degrees: A dictionary where the keys are integer scale degrees, and values
+          are integer alterations. For example, if 9 -> -1 is in the dictionary,
+          the chord contains a b9.
+      Bass: A tuple containins scale step and alteration. If bass is
+          unspecified, the chord root is used.
+
+    Args:
+      figure: A chord symbol figure string.
+
+    Returns:
+      A tuple containing the chord root pitch class, scale degrees, and
+      bass pitch class.
     """
     root_str, kind_str, modifications_str, bass_str = self._split_chord_symbol(
         figure)
@@ -469,7 +487,7 @@ class BasicChordSymbolFunctions(ChordSymbolFunctions):
 
     if bass:
       # Bass exists, transpose it.
-      bass_step, bass_alter = bass
+      bass_step, bass_alter = bass  # pylint: disable=unpacking-non-sequence
       transposed_bass_step, transposed_bass_alter = self._transpose_pitch_class(
           bass_step, bass_alter, transpose_amount)
       transposed_bass_str = '/' + self._pitch_class_to_string(
@@ -502,7 +520,7 @@ class BasicChordSymbolFunctions(ChordSymbolFunctions):
     root_str, _, _, bass_str = self._split_chord_symbol(figure)
     bass = self._parse_bass(bass_str)
     if bass:
-      bass_step, bass_alter = bass
+      bass_step, bass_alter = bass  # pylint: disable=unpacking-non-sequence
     else:
       # Bass is the same as root.
       bass_step, bass_alter = self._parse_root(root_str)

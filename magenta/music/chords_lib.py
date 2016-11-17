@@ -368,6 +368,9 @@ class BasicChordRenderer(ChordRenderer):
       velocity: The MIDI note velocity to use.
       instrument: The MIDI instrument to use.
       program: The MIDI program to use.
+      octave: The octave in which to render chord notes. If the bass note is not
+          otherwise part of the chord, it will not be rendered in this octave.
+      bass_octave: The octave in which to render chord bass notes.
       chord_symbol_functions: ChordSymbolFunctions object with which to perform
           the actual transposition of chord symbol strings.
     """

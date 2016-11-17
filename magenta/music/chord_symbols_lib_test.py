@@ -73,7 +73,6 @@ class ChordSymbolFunctionsTest(tf.test.TestCase):
     pitch_classes = set(pitch % 12 for pitch in pitches)
     self.assertEqual(set([3, 7, 9, 11]), pitch_classes)
 
-
   def testRoot(self):
     root = self.chord_symbol_functions.chord_symbol_root('Dm9')
     self.assertEqual(2, root)
