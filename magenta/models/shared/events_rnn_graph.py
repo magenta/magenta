@@ -42,6 +42,7 @@ def build_graph(mode, config, sequence_example_file=None):
     raise ValueError("The mode parameter must be 'train', 'eval', "
                      "or 'generate'. The mode parameter was: %s" % mode)
 
+  sequence_example_file_list = [sequence_example_file]
   hparams = config.hparams
   encoder_decoder = config.encoder_decoder
 
@@ -57,7 +58,7 @@ def build_graph(mode, config, sequence_example_file=None):
 
     if mode == 'train' or mode == 'eval':
       inputs, labels, lengths = magenta.common.get_padded_batch(
-          [sequence_example_file], hparams.batch_size, input_size)
+          sequence_example_file_list, hparams.batch_size, input_size)
 
     elif mode == 'generate':
       inputs = tf.placeholder(tf.float32, [hparams.batch_size, None,
