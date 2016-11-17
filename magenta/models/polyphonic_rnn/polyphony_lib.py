@@ -292,4 +292,3 @@ def extract_polyphonic_sequences(
         num_steps // steps_per_bar)
 
   return poly_seqs, stats.values()
-

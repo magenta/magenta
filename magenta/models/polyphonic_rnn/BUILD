@@ -32,6 +32,17 @@ py_test(
 )
 
 py_library(
+    name = "polyphony_model",
+    srcs = ["polyphony_model.py"],
+    deps = [
+        ":polyphony_encoder_decoder",
+        "//magenta/models/shared:events_rnn_model",
+        "//magenta",
+        # tensorflow dep
+    ],
+)
+
+py_library(
     name = "polyphony_encoder_decoder",
     srcs = ["polyphony_encoder_decoder.py"],
     deps = [
@@ -47,6 +58,29 @@ py_test(
     deps = [
         ":polyphony_encoder_decoder",
         ":polyphony_lib",
+        "//magenta",
+        # tensorflow dep
+    ],
+)
+
+py_binary(
+    name = "polyphonic_rnn_create_dataset",
+    srcs = ["polyphonic_rnn_create_dataset.py"],
+    deps = [
+        ":polyphony_lib",
+        ":polyphony_model",
+        "//magenta",
+        # tensorflow dep
+    ],
+)
+
+py_test(
+    name = "polyphonic_rnn_create_dataset_test",
+    srcs = ["polyphonic_rnn_create_dataset_test.py"],
+    deps = [
+        ":polyphony_lib",
+        ":polyphonic_rnn_create_dataset",
+        "//magenta/models/shared:events_rnn_model",
         "//magenta",
         # tensorflow dep
     ],
