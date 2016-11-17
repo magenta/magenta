@@ -30,3 +30,24 @@ py_test(
         # tensorflow dep
     ],
 )
+
+py_library(
+    name = "polyphony_encoder_decoder",
+    srcs = ["polyphony_encoder_decoder.py"],
+    deps = [
+        ":polyphony_lib",
+        "//magenta",
+        # tensorflow dep
+    ],
+)
+
+py_test(
+    name = "polyphony_encoder_decoder_test",
+    srcs = ["polyphony_encoder_decoder_test.py"],
+    deps = [
+        ":polyphony_encoder_decoder",
+        ":polyphony_lib",
+        "//magenta",
+        # tensorflow dep
+    ],
+)

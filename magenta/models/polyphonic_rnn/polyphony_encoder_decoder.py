@@ -18,6 +18,53 @@ from __future__ import division
 # internal imports
 
 from magenta.music import encoder_decoder
+from magenta.models.polyphonic_rnn import polyphony_lib
+
+EVENT_CLASSES_WITHOUT_PITCH = [
+    polyphony_lib.EVENT_START,
+    polyphony_lib.EVENT_END,
+    polyphony_lib.EVENT_STEP_END,
+]
+
+EVENT_CLASSES_WITH_PITCH = [
+    polyphony_lib.EVENT_NEW_NOTE,
+    polyphony_lib.EVENT_CONTINUED_NOTE,
+]
+
+PITCH_CLASSES = polyphony_lib.MAX_MIDI_PITCH + 1
 
 class PolyphonyOneHotEncoding(encoder_decoder.OneHotEncoding):
-  def __init__(self, 
+  @property
+  def num_classes(self):
+    return len(EVENT_CLASSES_WITHOUT_PITCH) + (
+        len(EVENT_CLASSES_WITH_PITCH) * PITCH_CLASSES)
+
+  @property
+  def default_event(self):
+    return polyphony_lib.PolyphonicEvent(
+        event_type=polyphony_lib.EVENT_STEP_END, pitch=0)
+
+  def encode_event(self, event):
+    if event.event_type in EVENT_CLASSES_WITHOUT_PITCH:
+      return EVENT_CLASSES_WITHOUT_PITCH.index(event.event_type)
+    elif event.event_type in EVENT_CLASSES_WITH_PITCH:
+      return len(EVENT_CLASSES_WITHOUT_PITCH) + (
+          EVENT_CLASSES_WITH_PITCH.index(event.event_type) * PITCH_CLASSES +
+          event.pitch)
+    else:
+      raise ValueError('Unknown event type: %s' % event.event_type)
+
+  def decode_event(self, index):
+    if index < len(EVENT_CLASSES_WITHOUT_PITCH):
+      return polyphony_lib.PolyphonicEvent(
+          event_type=EVENT_CLASSES_WITHOUT_PITCH[index], pitch=0)
+
+    pitched_index = index - len(EVENT_CLASSES_WITHOUT_PITCH)
+    if pitched_index < len(EVENT_CLASSES_WITH_PITCH) * PITCH_CLASSES:
+      event_type = len(EVENT_CLASSES_WITHOUT_PITCH) + (
+          pitched_index // PITCH_CLASSES)
+      pitch = pitched_index % PITCH_CLASSES
+      return polyphony_lib.PolyphonicEvent(
+          event_type=event_type, pitch=pitch)
+
+    raise ValueError('Unknown event index: %s' % index)
