@@ -14,6 +14,8 @@
 
 """Imports objects into the top-level common namespace."""
 
+from file_lib import get_filename_list
+
 from sequence_example_lib import get_padded_batch
 from sequence_example_lib import make_sequence_example
 

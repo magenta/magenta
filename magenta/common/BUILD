@@ -27,6 +27,7 @@ py_library(
     srcs = ["__init__.py"],
     deps = [
         ":concurrency",
+        ":file_lib",
         ":sequence_example_lib",
         ":testing_lib",
         ":tf_lib",
@@ -45,6 +46,22 @@ py_test(
     srcs_version = "PY2AND3",
     deps = [
         ":concurrency",
+        # tensorflow dep
+    ],
+)
+
+py_library(
+    name = "file_lib",
+    srcs = ["file_lib.py"],
+    srcs_version = "PY2AND3",
+)
+
+py_test(
+    name = "file_lib_test",
+    srcs = ["file_lib_test.py"],
+    srcs_version = "PY2AND3",
+    deps = [
+        ":file_lib",
         # tensorflow dep
     ],
 )
