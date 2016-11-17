@@ -27,6 +27,7 @@ py_library(
     srcs = ["__init__.py"],
     deps = [
         ":concurrency",
+        ":file_lib",
         ":sequence_example_lib",
         ":testing_lib",
         ":tf_lib",
