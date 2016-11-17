@@ -147,81 +147,124 @@ class BasicChordSymbolFunctions(ChordSymbolFunctions):
   # Mapping from scale degree to offset in half steps.
   _DEGREE_OFFSETS = {1: 0, 2: 2, 3: 4, 4: 5, 5: 7, 6: 9, 7: 11}
 
-  # Dictionary mapping MusicXML chord kind to abbreviations and scale degrees.
-  _CHORD_KINDS = {
-      # triads
-      'major':                  (['', 'maj', 'M'],
-                                    ['1', '3', '5']),
-      'minor':                  (['m', 'min', '-'],
-                                    ['1', 'b3', '5']),
-      'augmented':              (['+', 'aug'],
-                                    ['1', '3', '#5']),
-      'diminished':             (['o', 'dim'],
-                                    ['1', 'b3', 'b5']),
+  # List of chord kinds with abbreviations and scale degrees. Scale degrees are
+  # represented as strings here a) for human readability, and b) because the
+  # number of semitones is insufficient when the chords have scale degree
+  # modifications.
+  _CHORD_KINDS = [
+      # major triad
+      (['', 'maj', 'M'],
+          ['1', '3', '5']),
 
-      # sevenths
-      'dominant':               (['7'],
-                                    ['1', '3', '5', 'b7']),
-      'major-seventh':          (['maj7', 'M7'],
-                                    ['1', '3', '5', '7']),
-      'minor-seventh':          (['m7', 'min7', '-7'],
-                                     ['1', 'b3', '5', 'b7']),
-      'diminished-seventh':     (['o7', 'dim7'],
-                                     ['1', 'b3', 'b5', 'bb7']),
-      'augmented-seventh':      (['+7', 'aug7'],
-                                     ['1', '3', '#5', 'b7']),
-      'half-diminished':        (['m7b5', '-7b5', '/o', '/o7'],
-                                     ['1', 'b3', 'b5', 'b7']),
-      'major-minor':            (['mmaj7', 'mM7', 'minmaj7', 'minM7', '-maj7', '-M7'],
-                                     ['1', 'b3', '5', '7']),
+      # minor triad
+      (['m', 'min', '-'],
+          ['1', 'b3', '5']),
 
-      # sixths
-      'major-sixth':            (['6'],
-                                     ['1', '3', '5', '6']),
-      'minor-sixth':            (['m6', 'min6', '-6'],
-                                     ['1', 'b3', '5', '6']),
+      # augmented triad
+      (['+', 'aug'],
+          ['1', '3', '#5']),
 
-      # ninths
-      'dominant-ninth':         (['9'],
-                                     ['1', '3', '5', 'b7', '9']),
-      'major-ninth':            (['maj9', 'M9'],
-                                     ['1', '3', '5', '7', '9']),
-      'minor-ninth':            (['m9', 'min9', '-9'],
-                                     ['1', 'b3', '5', 'b7', '9']),
+      # diminished triad
+      (['o', 'dim'],
+          ['1', 'b3', 'b5']),
 
-      # elevenths
-      'dominant-11th':          (['11'],
-                                     ['1', '3', '5', 'b7', '9', '11']),
-      'major-11th':             (['maj11', 'M11'],
-                                     ['1', '3', '5', '7', '9', '11']),
-      'minor-11th':             (['m11', 'min11', '-11'],
-                                     ['1', 'b3', '5', 'b7', '9', '11']),
+      # dominant 7th
+      (['7'],
+          ['1', '3', '5', 'b7']),
 
-      # thirteenths
-      'dominant-13th':          (['13'],
-                                     ['1', '3', '5', 'b7', '9', '11', '13']),
-      'major-13th':             (['maj13', 'M13'],
-                                     ['1', '3', '5', '7', '9', '11', '13']),
-      'minor-13th':             (['m13', 'min13', '-13'],
-                                     ['1', 'b3', '5', 'b7', '9', '11', '13']),
+      # major 7th
+      (['maj7', 'M7'],
+          ['1', '3', '5', '7']),
 
-      # suspended
-      'suspended-second':       (['sus2'],
-                                     ['1', '2', '5']),
-      'suspended-fourth':       (['sus', 'sus4'],
-                                     ['1', '4', '5']),
+      # minor 7th
+      (['m7', 'min7', '-7'],
+          ['1', 'b3', '5', 'b7']),
 
-      # other
-      'pedal':                  (['ped'],
-                                     ['1']),
-      'power':                  (['5'],
-                                     ['1', '5'])
-  }
+      # diminished 7th
+      (['o7', 'dim7'],
+          ['1', 'b3', 'b5', 'bb7']),
+
+      # augmented 7th
+      (['+7', 'aug7'],
+          ['1', '3', '#5', 'b7']),
+
+      # half-diminished
+      (['m7b5', '-7b5', '/o', '/o7'],
+          ['1', 'b3', 'b5', 'b7']),
+
+      # minor triad with major 7th
+      (['mmaj7', 'mM7', 'minmaj7', 'minM7', '-maj7', '-M7',
+        'm(maj7)', 'm(M7)', 'min(maj7)', 'min(M7)', '-(maj7)', '-(M7)'],
+          ['1', 'b3', '5', '7']),
+
+      # major 6th
+      (['6'],
+          ['1', '3', '5', '6']),
+
+      # minor 6th
+      (['m6', 'min6', '-6'],
+          ['1', 'b3', '5', '6']),
+
+      # dominant 9th
+      (['9'],
+          ['1', '3', '5', 'b7', '9']),
+
+      # major 9th
+      (['maj9', 'M9'],
+          ['1', '3', '5', '7', '9']),
+
+      # minor 9th
+      (['m9', 'min9', '-9'],
+          ['1', 'b3', '5', 'b7', '9']),
+
+      # 6/9 chord
+      (['6/9'],
+          ['1', '3', '5', '6', '9']),
+
+      # dominant 11th
+      (['11'],
+          ['1', '3', '5', 'b7', '9', '11']),
+
+      # major 11th
+      (['maj11', 'M11'],
+          ['1', '3', '5', '7', '9', '11']),
+
+      # minor 11th
+      (['m11', 'min11', '-11'],
+          ['1', 'b3', '5', 'b7', '9', '11']),
+
+      # dominant 13th
+      (['13'],
+          ['1', '3', '5', 'b7', '9', '11', '13']),
+
+      # major 13th
+      (['maj13', 'M13'],
+          ['1', '3', '5', '7', '9', '11', '13']),
+
+      # minor 13th
+      (['m13', 'min13', '-13'],
+          ['1', 'b3', '5', 'b7', '9', '11', '13']),
+
+      # suspended 2nd
+      (['sus2'],
+          ['1', '2', '5']),
+
+      # suspended 4th
+      (['sus', 'sus4'],
+          ['1', '4', '5']),
+
+      # pedal point
+      (['ped'],
+          ['1']),
+
+      # power chord
+      (['5'],
+          ['1', '5'])
+  ]
 
   # Dictionary mapping chord kind abbreviations to names and scale degrees.
-  _CHORD_KINDS_BY_ABBREV = dict((abbrev, (kind, degrees))
-                                for kind, (abbrevs, degrees)
-                                in _CHORD_KINDS.items()
+  _CHORD_KINDS_BY_ABBREV = dict((abbrev, degrees)
+                                for abbrevs, degrees in _CHORD_KINDS
                                 for abbrev in abbrevs)
 
   # Function to add a scale degree.
@@ -266,7 +309,7 @@ class BasicChordSymbolFunctions(ChordSymbolFunctions):
   _ROOT_PATTERN = '[A-G](?:#*|b*)(?![#b])'
   _CHORD_KIND_PATTERN = '|'.join(re.escape(abbrev)
                                  for abbrev in _CHORD_KINDS_BY_ABBREV)
-  _MODIFICATIONS_PATTERN = '(?:(?:%s)[0-9]+)*' % '|'.join(
+  _MODIFICATIONS_PATTERN = '(?:\(?(?:%s)[0-9]+\)?)*' % '|'.join(
       re.escape(mod) for mod in _DEGREE_MODIFICATIONS)
   _BASS_PATTERN = '|/%s' % _ROOT_PATTERN
 
@@ -287,7 +330,7 @@ class BasicChordSymbolFunctions(ChordSymbolFunctions):
   _SCALE_DEGREE_REGEX = re.compile(_SCALE_DEGREE_PATTERN)
 
   # Regular expression for a single scale degree modification.
-  _MODIFICATION_PATTERN = '(%s)([0-9]+)' % '|'.join(
+  _MODIFICATION_PATTERN = '\(?(%s)([0-9]+)\)?' % '|'.join(
       re.escape(mod) for mod in _DEGREE_MODIFICATIONS)
   _MODIFICATION_REGEX = re.compile(_MODIFICATION_PATTERN)
 
@@ -302,14 +345,14 @@ class BasicChordSymbolFunctions(ChordSymbolFunctions):
     return self._parse_pitch_class(root_str)
 
   def _parse_degree(self, degree_str):
-    """Parse scale degree from string (from internal chord kind dictionary)."""
+    """Parse scale degree from string (from internal kind representation)."""
     match = self._SCALE_DEGREE_REGEX.match(degree_str)
     alter, degree = match.groups()
     return int(degree), len(alter) * (1 if '#' in alter else -1)
 
   def _parse_kind(self, kind_str):
     """Parse chord kind from string, returning a scale degree dictionary."""
-    _, degrees = self._CHORD_KINDS_BY_ABBREV[kind_str]
+    degrees = self._CHORD_KINDS_BY_ABBREV[kind_str]
     # Here we make the assumption that each scale degree can be present in a
     # chord at most once. This is not generally true, as e.g. a chord could
     # contain both b9 and #9.
@@ -466,7 +509,7 @@ class BasicChordSymbolFunctions(ChordSymbolFunctions):
     return self._pitch_class_to_midi(bass_step, bass_alter)
 
   def chord_symbol_quality(self, figure):
-    """Return the quality (major, minor, dimished, augmented) of a chord."""
+    """Return the quality (major, minor, diminished, augmented) of a chord."""
     _, degrees, _ = self._parse_chord_symbol(figure)
     if 1 not in degrees or 3 not in degrees or 5 not in degrees:
       return CHORD_QUALITY_OTHER
