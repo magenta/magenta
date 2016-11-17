@@ -16,6 +16,12 @@ This configuration maps all drums to a 9-piece drum kit consisting of bass drum,
 
 First, set up your [Magenta environment](/README.md). Next, you can either use a pre-trained model or train your own.
 
+## Pre-trained
+
+If you want to get started right away, you can use a Drum Kit model that we've pre-trained on thousands of MIDI files:
+
+* [drum_kit](http://download.magenta.tensorflow.org/models/drum_kit_rnn.mag)
+
 ### Generate a drum track
 
 ```
