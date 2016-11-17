@@ -85,3 +85,14 @@ py_test(
         # tensorflow dep
     ],
 )
+
+py_binary(
+    name = "polyphonic_rnn_train",
+    srcs = ["polyphonic_rnn_train.py"],
+    deps = [
+        ":polyphony_model",
+        "//magenta/models/shared:events_rnn_graph",
+        "//magenta/models/shared:events_rnn_train",
+        # tensorflow dep
+    ],
+)
