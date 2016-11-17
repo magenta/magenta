@@ -16,11 +16,8 @@ py_library(
     name = "polyphony_lib",
     srcs = ["polyphony_lib.py"],
     deps = [
-        ":constants",
-        ":events_lib",
-        ":sequences_lib",
-        "//magenta/pipelines:statistics",
-        "//magenta/protobuf:music_py_pb2",
+        "//magenta",
+        # tensorflow dep
     ],
 )
 
@@ -29,10 +26,7 @@ py_test(
     srcs = ["polyphony_lib_test.py"],
     deps = [
         ":polyphony_lib",
-        ":sequences_lib",
-        ":testing_lib",
-        "//magenta/common:testing_lib",
-        "//magenta/protobuf:music_py_pb2",
+        "//magenta",
         # tensorflow dep
     ],
 )
