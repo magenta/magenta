@@ -50,6 +50,22 @@ py_test(
 )
 
 py_library(
+    name = "file_lib",
+    srcs = ["file_lib.py"],
+    srcs_version = "PY2AND3",
+)
+
+py_test(
+    name = "file_lib_test",
+    srcs = ["file_lib_test.py"],
+    srcs_version = "PY2AND3",
+    deps = [
+        ":file_lib",
+        # tensorflow dep
+    ],
+)
+
+py_library(
     name = "sequence_example_lib",
     srcs = ["sequence_example_lib.py"],
     srcs_version = "PY2AND3",
