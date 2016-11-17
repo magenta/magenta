@@ -98,8 +98,8 @@ tf.app.flags.DEFINE_string(
     'The threshold for what messages will be logged DEBUG, INFO, WARN, ERROR, '
     'or FATAL.')
 tf.app.flags.DEFINE_boolean(
-    'exclude_primer_midi', True,
-    'If true, instead of including the primer MIDI in the generated sequence, '
+    'exclude_primer_midi', False,
+    'If True, instead of including the primer MIDI in the generated sequence, '
     'will only output the newly generated MIDI.')
 
 
@@ -201,8 +201,8 @@ def run_with_flags(generator):
     start_time = last_end_time + _steps_to_seconds(1, qpm)
 
     generate_section = generator_options.generate_sections.add(
-      start_time=start_time,
-      end_time=total_seconds)
+        start_time=start_time,
+        end_time=total_seconds)
 
     if generate_section.start_time >= generate_section.end_time:
       tf.logging.fatal(
@@ -234,17 +234,15 @@ def run_with_flags(generator):
     generated_sequence = generator.generate(input_sequence, generator_options)
 
     if FLAGS.exclude_primer_midi:
-      # Remove the first half of the sequence. Since we are continually
-      # shortening the list by 1 and moving onto the next index, only half
-      # of generated_sequence.notes are popped.
-      for note in generated_sequence.notes:
-        generated_sequence.notes.pop(0)
-
-      # Subtract the length of the removed input_sequence from start_time and
-      # end_time of remaining notes.
-      for note in generated_sequence.notes:
-        note.start_time -= start_time
-        note.end_time   -= start_time
+      # Remove any notes with start_time less than start_time of generated
+      # sequence. Otherwise, subtract length of removed input_sequence from
+      # start_time and end_time of remaining notes.
+      for note in generated_sequence.notes[:]:
+        if note.start_time < start_time:
+          generated_sequence.notes.pop(0)
+        else:
+          note.start_time -= start_time
+          note.end_time   -= start_time
 
     midi_filename = '%s_%s.mid' % (date_and_time, str(i + 1).zfill(digits))
     midi_path = os.path.join(FLAGS.output_dir, midi_filename)
