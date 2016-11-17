@@ -1,3 +1,3 @@
-# Polyphonic RNN
+# Multi-event RNN
 
-Kyle Kastner's polyphonic RNN model.
+Kyle Kastner's multi-event RNN model.
