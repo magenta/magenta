@@ -46,10 +46,10 @@ class ChordsLibTest(tf.test.TestCase):
 
   def testTranspose(self):
     # Transpose ChordProgression with basic triads.
-    events = ['Cm', 'F', 'B-', 'E-']
+    events = ['Cm', 'F', 'Bb', 'Eb']
     chords = chords_lib.ChordProgression(events)
     chords.transpose(transpose_amount=7)
-    expected = ['Gm', 'C', 'F', 'B-']
+    expected = ['Gm', 'C', 'F', 'Bb']
     self.assertEqual(expected, list(chords))
 
     # Transpose ChordProgression with more complex chords.
@@ -60,7 +60,7 @@ class ChordsLibTest(tf.test.TestCase):
     self.assertEqual(expected, list(chords))
 
     # Transpose ChordProgression containing NO_CHORD.
-    events = ['C', 'B-', NO_CHORD, 'F', 'C']
+    events = ['C', 'Bb', NO_CHORD, 'F', 'C']
     chords = chords_lib.ChordProgression(events)
     chords.transpose(transpose_amount=4)
     expected = ['E', 'D', NO_CHORD, 'A', 'E']
@@ -136,8 +136,8 @@ class ChordsLibTest(tf.test.TestCase):
     quantized_sequence.total_quantized_steps = 2
     chord_progressions, _ = chords_lib.extract_chords(quantized_sequence,
                                                       all_transpositions=True)
-    expected = zip([NO_CHORD] * 12, ['G-', 'G', 'A-', 'A', 'B-', 'B',
-                                     'C', 'D-', 'D', 'E-', 'E', 'F'])
+    expected = zip([NO_CHORD] * 12, ['Gb', 'G', 'Ab', 'A', 'Bb', 'B',
+                                     'C', 'Db', 'D', 'Eb', 'E', 'F'])
     self.assertEqual(expected, [tuple(chords) for chords in chord_progressions])
 
   def testExtractChordsForMelodies(self):

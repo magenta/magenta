@@ -50,7 +50,6 @@ py_library(
     srcs = ["chord_symbols_lib.py"],
     srcs_version = "PY2AND3",
     deps = [
-        "@music21//:music21",
         # tensorflow dep
     ],
 )

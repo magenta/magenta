@@ -286,7 +286,15 @@ message NoteSequence {
     enum TextAnnotationType {
       // Unknown annotation type.
       UNKNOWN = 0;
-      // Chord symbol as used in lead sheets.
+      // Chord symbol as used in lead sheets. We treat text as the "ground
+      // truth" format for chord symbols, as the semantic interpretation of
+      // a chord symbol is often fuzzy. We defer this interpretation to
+      // individual models, each of which can translate chord symbol strings
+      // into model input in whatever way is deemed most appropriate for that
+      // model.
+      //
+      // Some examples of chord symbol text we consider reasonable: 'C#', 'A7',
+      // 'Fm7b5', 'N.C.', 'G(no3)', 'C/Bb', 'D-9(b5)', 'Gadd2', 'Abm(maj7)'.
       CHORD_SYMBOL = 1;
     }
   }
