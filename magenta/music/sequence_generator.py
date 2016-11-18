@@ -32,11 +32,9 @@ class SequenceGeneratorException(Exception):
   pass
 
 
+# TODO(adarob): Replace with tf.saver.checkpoint_file_exists when released.
 def _checkpoint_file_exists(checkpoint_file_or_prefix):
-  """Returns True if checkpoint file or files (for V2) exist.
-
-  Replace with tf.saver.checkpoint_file_exists when released.
-  """
+  """Returns True if checkpoint file or files (for V2) exist."""
   return (tf.gfile.Exists(checkpoint_file_or_prefix) or
           tf.gfile.Exists(checkpoint_file_or_prefix + '.index'))
 
