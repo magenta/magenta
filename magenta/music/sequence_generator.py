@@ -32,7 +32,7 @@ class SequenceGeneratorException(Exception):
   pass
 
 
-_checkpoint_file_exists(checkpoint_file_or_prefix):
+def _checkpoint_file_exists(checkpoint_file_or_prefix):
   """Returns True if checkpoint file or files (for V2) exist.
 
   Replace with tf.saver.checkpoint_file_exists when released.
