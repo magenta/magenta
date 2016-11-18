@@ -58,6 +58,7 @@ py_binary(
     name = "polyphonic_rnn_generate",
     srcs = ["polyphonic_rnn_generate.py"],
     deps = [
+        ":polyphony_lib",
         ":polyphony_model",
         ":polyphony_sequence_generator",
         "//magenta",
