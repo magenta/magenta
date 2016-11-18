@@ -136,7 +136,34 @@ class ChordSymbolFunctions(object):
 
 
 class BasicChordSymbolFunctions(ChordSymbolFunctions):
-  """Functions for parsing and interpreting chord symbol figure strings."""
+  """Functions for parsing and interpreting chord symbol figure strings.
+
+  The functions in this class treat a chord symbol string as having four
+  components:
+
+    Root: The root pitch class of the chord, e.g. 'C#'.
+    Kind: The type of chord, e.g. major, half-diminished, 13th. In the chord
+        symbol figure string the chord kind is abbreviated, e.g. 'm' or '-'
+        means minor, 'dim' or 'o' means diminished, '7' means dominant 7th.
+    Scale degree modifications: Zero or more modifications to the scale degrees
+        present in the chord. There are three different modification types:
+        addition (add a new scale degree), subtraction (remove a scale degree),
+        and alteration (modify a scale degree). For example, '#9' means to add
+        a raised 9th, or to alter the 9th to be raised if a 9th was already
+        present in the chord. Other possible modification strings include 'no3'
+        (remove the 3rd scale degree), 'add2' (add the 2nd scale degree), 'b5'
+        (flatten the 5th scale degree), etc.
+    Bass: The bass pitch class of the chord. If missing, the bass pitch class is
+        assumed to be the same as the root pitch class.
+
+  Before doing any other operations, the functions in this class attempt to
+  split the chord symbol figure string into these four components; if that
+  attempt fails a ChordSymbolException is raised.
+
+  After that, some operations leave some of the components unexamined, e.g.
+  transposition only modifies the root and bass, leaving the chord kind and
+  scale degree modifications unchanged.
+  """
 
   # Intervals between scale steps.
   _STEPS_ABOVE = {'A': 2, 'B': 1, 'C': 2, 'D': 2, 'E': 1, 'F': 2, 'G': 2}
@@ -306,12 +333,24 @@ class BasicChordSymbolFunctions(ChordSymbolFunctions):
       'b': (_alter_scale_degree, -1)
   }
 
-  # Regular expression patterns for chord symbol parts.
+  # Regular expression for chord root.
+  # Examples: 'C', 'G#', 'Ab', 'D######'
   _ROOT_PATTERN = r'[A-G](?:#*|b*)(?![#b])'
+
+  # Regular expression for chord kind (abbreviated).
+  # Examples: '', 'm7b5', 'min', '-13', '+', 'm(M7)', 'dim', '/o7', 'sus2'
   _CHORD_KIND_PATTERN = '|'.join(re.escape(abbrev)
                                  for abbrev in _CHORD_KINDS_BY_ABBREV)
+
+  # Regular expression for scale degree modifications. (To keep the regex
+  # simpler, parentheses are not required to match here, e.g. '(#9', 'add2)',
+  # '(b5(#9)', and 'no5)(b9' will all match.)
+  # Examples: '#9', 'add6add9', 'no5(b9)', '(add2b5no3)', '(no5)(b9)'
   _MODIFICATIONS_PATTERN = r'(?:\(?(?:%s)[0-9]+\)?)*' % '|'.join(
       re.escape(mod) for mod in _DEGREE_MODIFICATIONS)
+
+  # Regular expression for chord bass.
+  # Examples: '', '/C', '/Bb', '/F##', '/Dbbbb'
   _BASS_PATTERN = '|/%s' % _ROOT_PATTERN
 
   # Regular expression for full chord symbol.
@@ -323,14 +362,19 @@ class BasicChordSymbolFunctions(ChordSymbolFunctions):
   _CHORD_SYMBOL_REGEX = re.compile(_CHORD_SYMBOL_PATTERN)
 
   # Regular expression for a single pitch class.
+  # Examples: 'C', 'G#', 'Ab', 'D######'
   _PITCH_CLASS_PATTERN = r'([A-G])(#*|b*)$'
   _PITCH_CLASS_REGEX = re.compile(_PITCH_CLASS_PATTERN)
 
   # Regular expression for a single scale degree.
+  # Examples: '1', '7', 'b3', '#5', 'bb7', '13'
   _SCALE_DEGREE_PATTERN = r'(#*|b*)([0-9]+)$'
   _SCALE_DEGREE_REGEX = re.compile(_SCALE_DEGREE_PATTERN)
 
-  # Regular expression for a single scale degree modification.
+  # Regular expression for a single scale degree modification. (To keep the
+  # regex simpler, parentheses are not required to match here, so open or
+  # closing paren could be missing, e.g. '(#9' and 'add2)' will both match.)
+  # Examples: '#9', 'add6', 'no5', '(b5)', '(add9)'
   _MODIFICATION_PATTERN = r'\(?(%s)([0-9]+)\)?' % '|'.join(
       re.escape(mod) for mod in _DEGREE_MODIFICATIONS)
   _MODIFICATION_REGEX = re.compile(_MODIFICATION_PATTERN)
@@ -442,8 +486,6 @@ class BasicChordSymbolFunctions(ChordSymbolFunctions):
   def _transpose_pitch_class(self, step, alter, transpose_amount):
     """Transposes a chord symbol figure string by the given amount."""
     transpose_amount %= 12
-    if transpose_amount == 0:
-      return step, alter
 
     # Transpose up as many steps as we can.
     while transpose_amount >= self._STEPS_ABOVE[step]:

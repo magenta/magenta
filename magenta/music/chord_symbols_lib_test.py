@@ -40,6 +40,8 @@ class ChordSymbolFunctionsTest(tf.test.TestCase):
     self.assertEqual('F#', figure)
     figure = self.chord_symbol_functions.transpose_chord_symbol('Cbb', 6)
     self.assertEqual('Fb', figure)
+    figure = self.chord_symbol_functions.transpose_chord_symbol('C#', -5)
+    self.assertEqual('G#', figure)
 
     # Test more complex chords.
     figure = self.chord_symbol_functions.transpose_chord_symbol('Co7', 7)
