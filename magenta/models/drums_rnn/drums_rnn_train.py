@@ -35,8 +35,8 @@ tf.app.flags.DEFINE_string('run_dir', '/tmp/drums_rnn/logdir/run1',
 tf.app.flags.DEFINE_string('sequence_example_file', '',
                            'Path to TFRecord file containing '
                            'tf.SequenceExample records for training or '
-                           'evaluation. May be a sharded file of the form '
-                           '`<filebase>@<N>`.')
+                           'evaluation. A filepattern may also be provided, '
+                           'which will be expanded to all matching files.')
 tf.app.flags.DEFINE_integer('num_training_steps', 0,
                             'The the number of global training steps your '
                             'model should take before exiting training. '
@@ -67,14 +67,15 @@ def main(unused_argv):
     tf.logging.fatal('--sequence_example_file required')
     return
 
-  sequence_example_file = os.path.expanduser(FLAGS.sequence_example_file)
+  sequence_example_file_paths = tf.gfile.Glob(
+      os.path.expanduser(FLAGS.sequence_example_file))
   run_dir = os.path.expanduser(FLAGS.run_dir)
 
   config = drums_rnn_config_flags.config_from_flags()
 
   mode = 'eval' if FLAGS.eval else 'train'
   graph = events_rnn_graph.build_graph(
-      mode, config, sequence_example_file)
+      mode, config, sequence_example_file_paths)
 
   train_dir = os.path.join(run_dir, 'train')
   if not os.path.exists(train_dir):
