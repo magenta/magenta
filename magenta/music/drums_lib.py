@@ -305,6 +305,8 @@ def extract_drum_tracks(quantized_sequence,
 
   Args:
     quantized_sequence: A quantized NoteSequence.
+    search_start_step: Start searching for drums at this time step. Assumed to
+        be the beginning of a bar.
     min_bars: Minimum length of drum tracks in number of bars. Shorter drum
         tracks are discarded.
     max_steps_truncate: Maximum number of steps in extracted drum tracks. If

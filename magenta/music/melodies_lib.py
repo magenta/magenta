@@ -562,6 +562,8 @@ def extract_melodies(quantized_sequence,
 
   Args:
     quantized_sequence: A quantized NoteSequence.
+    search_start_step: Start searching for a melody at this time step. Assumed
+        to be the first step of a bar.
     min_bars: Minimum length of melodies in number of bars. Shorter melodies are
         discarded.
     max_steps_truncate: Maximum number of steps in extracted melodies. If
