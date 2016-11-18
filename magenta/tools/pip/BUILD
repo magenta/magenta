@@ -28,6 +28,7 @@ sh_binary(
 
         # Scripts
         "//magenta/interfaces/midi:magenta_midi",
+        "//magenta/interfaces/midi:magenta_midi_ext",
         "//magenta/scripts:convert_dir_to_note_sequences",
 
         # Melody RNN Model and Scripts
