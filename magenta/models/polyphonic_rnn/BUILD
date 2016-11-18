@@ -43,6 +43,29 @@ py_library(
 )
 
 py_library(
+    name = "polyphony_sequence_generator",
+    srcs = ["polyphony_sequence_generator.py"],
+    srcs_version = "PY2AND3",
+    visibility = ["//magenta/interfaces:generator_interfaces"],
+    deps = [
+        ":polyphony_lib",
+        ":polyphony_model",
+        "//magenta",
+    ],
+)
+
+py_binary(
+    name = "polyphonic_rnn_generate",
+    srcs = ["polyphonic_rnn_generate.py"],
+    deps = [
+        ":polyphony_model",
+        ":polyphony_sequence_generator",
+        "//magenta",
+        # tensorflow dep
+    ],
+)
+
+py_library(
     name = "polyphony_encoder_decoder",
     srcs = ["polyphony_encoder_decoder.py"],
     deps = [

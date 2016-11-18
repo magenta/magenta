@@ -19,6 +19,34 @@ import magenta
 from magenta.models.shared import events_rnn_model
 from magenta.models.polyphonic_rnn import polyphony_encoder_decoder
 
+
+class PolyphonicRnnModel(events_rnn_model.EventSequenceRnnModel):
+  """Class for RNN polyphonic sequence generation models."""
+
+  def generate_polyphonic_sequence(
+      self, num_steps, primer_sequence, temperature=1.0, beam_size=1,
+      branch_factor=1, steps_per_iteration=1):
+    """Generate a drum track from a primer drum track.
+    Args:
+      num_steps: The integer length in steps of the final track, after
+          generation. Includes the primer.
+      primer_sequence: The primer sequence, a PolyphonicSequence object.
+      temperature: A float specifying how much to divide the logits by
+         before computing the softmax. Greater than 1.0 makes tracks more
+         random, less than 1.0 makes tracks less random.
+      beam_size: An integer, beam size to use when generating tracks via
+          beam search.
+      branch_factor: An integer, beam search branch factor to use.
+      steps_per_iteration: An integer, number of steps to take per beam search
+          iteration.
+    Returns:
+      The generated PolyphonicSequence object (which begins with the provided
+      primer track).
+    """
+    return self._generate_events(num_steps, primer_sequence, temperature,
+                                 beam_size, branch_factor, steps_per_iteration)
+
+
 default_configs = {
     'polyphony': events_rnn_model.EventSequenceRnnConfig(
         magenta.protobuf.generator_pb2.GeneratorDetails(
