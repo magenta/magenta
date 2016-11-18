@@ -40,12 +40,12 @@ class EventSequenceRNNGraphTest(tf.test.TestCase):
 
   def testBuildTrainGraph(self):
     g = events_rnn_graph.build_graph(
-        'train', self.config, sequence_example_file='test')
+        'train', self.config, sequence_example_file_paths=['test'])
     self.assertTrue(isinstance(g, tf.Graph))
 
   def testBuildEvalGraph(self):
     g = events_rnn_graph.build_graph(
-        'eval', self.config, sequence_example_file='test')
+        'eval', self.config, sequence_example_file_paths=['test'])
     self.assertTrue(isinstance(g, tf.Graph))
 
   def testBuildGenerateGraph(self):
@@ -55,7 +55,7 @@ class EventSequenceRNNGraphTest(tf.test.TestCase):
   def testBuildGraphWithAttention(self):
     self.config.hparams.attn_length = 10
     g = events_rnn_graph.build_graph(
-        'train', self.config, sequence_example_file='test')
+        'train', self.config, sequence_example_file_paths=['test'])
     self.assertTrue(isinstance(g, tf.Graph))
 
 
