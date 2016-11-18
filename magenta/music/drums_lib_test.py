@@ -51,7 +51,7 @@ class DrumsLibTest(tf.test.TestCase):
     quantized_sequence = sequences_lib.quantize_note_sequence(
         self.note_sequence, self.steps_per_quarter)
     drums = drums_lib.DrumTrack()
-    drums.from_quantized_sequence(quantized_sequence, start_step=0)
+    drums.from_quantized_sequence(quantized_sequence, search_start_step=0)
     expected = ([DRUMS(12), DRUMS(11), NO_DRUMS, NO_DRUMS, NO_DRUMS, NO_DRUMS,
                  NO_DRUMS, NO_DRUMS, NO_DRUMS, NO_DRUMS, DRUMS(40), NO_DRUMS,
                  NO_DRUMS, NO_DRUMS, NO_DRUMS, NO_DRUMS, DRUMS(55, 60),
@@ -74,7 +74,7 @@ class DrumsLibTest(tf.test.TestCase):
     quantized_sequence = sequences_lib.quantize_note_sequence(
         self.note_sequence, self.steps_per_quarter)
     drums = drums_lib.DrumTrack()
-    drums.from_quantized_sequence(quantized_sequence, start_step=0)
+    drums.from_quantized_sequence(quantized_sequence, search_start_step=0)
     expected = ([DRUMS(12), DRUMS(11), NO_DRUMS, NO_DRUMS, NO_DRUMS, NO_DRUMS,
                  NO_DRUMS, NO_DRUMS, NO_DRUMS, NO_DRUMS, DRUMS(40), NO_DRUMS,
                  NO_DRUMS, NO_DRUMS, NO_DRUMS, NO_DRUMS, DRUMS(55, 60),
@@ -94,7 +94,7 @@ class DrumsLibTest(tf.test.TestCase):
     quantized_sequence = sequences_lib.quantize_note_sequence(
         self.note_sequence, self.steps_per_quarter)
     drums = drums_lib.DrumTrack()
-    drums.from_quantized_sequence(quantized_sequence, start_step=0)
+    drums.from_quantized_sequence(quantized_sequence, search_start_step=0)
     expected = ([DRUMS(12), DRUMS(11), NO_DRUMS, NO_DRUMS, NO_DRUMS, NO_DRUMS,
                  NO_DRUMS, NO_DRUMS, NO_DRUMS, NO_DRUMS, DRUMS(30, 40),
                  NO_DRUMS, NO_DRUMS, NO_DRUMS, NO_DRUMS, NO_DRUMS, DRUMS(55),
@@ -110,7 +110,7 @@ class DrumsLibTest(tf.test.TestCase):
     quantized_sequence = sequences_lib.quantize_note_sequence(
         self.note_sequence, self.steps_per_quarter)
     drums = drums_lib.DrumTrack()
-    drums.from_quantized_sequence(quantized_sequence, start_step=0)
+    drums.from_quantized_sequence(quantized_sequence, search_start_step=0)
     expected = [NO_DRUMS, NO_DRUMS, NO_DRUMS, NO_DRUMS, NO_DRUMS, NO_DRUMS,
                 DRUMS(12), NO_DRUMS, DRUMS(11)]
     self.assertEqual(expected, list(drums))
@@ -123,25 +123,25 @@ class DrumsLibTest(tf.test.TestCase):
     quantized_sequence = sequences_lib.quantize_note_sequence(
         self.note_sequence, steps_per_quarter=12)
     drums = drums_lib.DrumTrack()
-    drums.from_quantized_sequence(quantized_sequence, start_step=0)
+    drums.from_quantized_sequence(quantized_sequence, search_start_step=0)
     self.assertEqual(42, drums.steps_per_bar)
 
   def testFromNotesStartAndEndStep(self):
     testing_lib.add_track_to_sequence(
         self.note_sequence, 0,
         [(12, 100, 1, 2), (11, 100, 2.25, 2.5), (13, 100, 3.25, 3.75),
-         (14, 100, 4.75, 5), (15, 100, 5.25, 6.75)],
+         (14, 100, 8.75, 9), (15, 100, 9.25, 10.75)],
         is_drum=True)
 
     quantized_sequence = sequences_lib.quantize_note_sequence(
         self.note_sequence, self.steps_per_quarter)
 
     drums = drums_lib.DrumTrack()
-    drums.from_quantized_sequence(quantized_sequence, start_step=18)
-    expected = [NO_DRUMS, NO_DRUMS, NO_DRUMS, DRUMS(14), NO_DRUMS, DRUMS(15)]
+    drums.from_quantized_sequence(quantized_sequence, search_start_step=18)
+    expected = [NO_DRUMS, DRUMS(14), NO_DRUMS, DRUMS(15)]
     self.assertEqual(expected, list(drums))
-    self.assertEqual(16, drums.start_step)
-    self.assertEqual(22, drums.end_step)
+    self.assertEqual(34, drums.start_step)
+    self.assertEqual(38, drums.end_step)
 
   def testSetLength(self):
     events = [DRUMS(60)]

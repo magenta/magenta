@@ -238,7 +238,7 @@ class Melody(events_lib.SimpleEventSequence):
 
   def from_quantized_sequence(self,
                               quantized_sequence,
-                              start_step=0,
+                              search_start_step=0,
                               instrument=0,
                               gap_bars=1,
                               ignore_polyphonic_notes=False,
@@ -247,9 +247,9 @@ class Melody(events_lib.SimpleEventSequence):
     """Populate self with a melody from the given quantized NoteSequence.
 
     A monophonic melody is extracted from the given `instrument` starting at
-    time step `start_step`. `instrument` and `start_step` can be used to drive
-    extraction of multiple melodies from the same quantized sequence. The end
-    step of the extracted melody will be stored in `self._end_step`.
+    `search_start_step`. `instrument` and `search_start_step` can be used to
+    drive extraction of multiple melodies from the same quantized sequence. The
+    end step of the extracted melody will be stored in `self._end_step`.
 
     0 velocity notes are ignored. The melody extraction is ended when there are
     no held notes for a time stretch of `gap_bars` in bars (measures) of music.
@@ -265,7 +265,8 @@ class Melody(events_lib.SimpleEventSequence):
     Args:
       quantized_sequence: A NoteSequence quantized with
           sequences_lib.quantize_note_sequence.
-      start_step: Start searching for a melody at this time step.
+      search_start_step: Start searching for a melody at this time step. Assumed
+          to be the first step of a bar.
       instrument: Search for a melody in this instrument number.
       gap_bars: If this many bars or more follow a NOTE_OFF event, the melody
           is ended.
@@ -287,7 +288,6 @@ class Melody(events_lib.SimpleEventSequence):
     sequences_lib.assert_is_quantized_sequence(quantized_sequence)
     self._reset()
 
-    offset = None
     steps_per_bar_float = sequences_lib.steps_per_bar_in_quantized_sequence(
         quantized_sequence)
     if steps_per_bar_float % 1 != 0:
@@ -301,13 +301,18 @@ class Melody(events_lib.SimpleEventSequence):
 
     # Sort track by note start times, and secondarily by pitch descending.
     notes = sorted([n for n in quantized_sequence.notes
-                    if n.instrument == instrument],
+                    if n.instrument == instrument and
+                    n.quantized_start_step >= search_start_step],
                    key=lambda note: (note.quantized_start_step, -note.pitch))
 
-    for note in notes:
-      if note.quantized_start_step < start_step:
-        continue
+    if not notes:
+      return
 
+    # The first step in the melody, beginning at the first step of a bar.
+    melody_start_step = (
+        notes[0].quantized_start_step -
+        (notes[0].quantized_start_step - search_start_step) % steps_per_bar)
+    for note in notes:
       if filter_drums and note.is_drum:
         continue
 
@@ -315,19 +320,15 @@ class Melody(events_lib.SimpleEventSequence):
       if not note.velocity:
         continue
 
-      if offset is None:
-        offset = note.quantized_start_step - (
-            note.quantized_start_step % steps_per_bar)
-
-      start_index = note.quantized_start_step - offset
-      end_index = note.quantized_end_step - offset
+      start_index = note.quantized_start_step - melody_start_step
+      end_index = note.quantized_end_step - melody_start_step
 
       if not self._events:
         # If there are no events, we don't need to check for polyphony.
         self._add_note(note.pitch, start_index, end_index)
         continue
 
-      # If start_step comes before or lands on an already added note's start
+      # If `start_index` comes before or lands on an already added note's start
       # step, we cannot add it. In that case either discard the melody or keep
       # the highest pitch.
       last_on, last_off = self._get_last_on_off_events()
@@ -354,17 +355,17 @@ class Melody(events_lib.SimpleEventSequence):
       self._add_note(note.pitch, start_index, end_index)
 
     if not self._events:
-      # If no notes were added, don't set `start_step` and `end_step`.
+      # If no notes were added, don't set `_start_step` and `_end_step`.
       return
 
-    self._start_step = offset
+    self._start_step = melody_start_step
 
     # Strip final MELODY_NOTE_OFF event.
     if self._events[-1] == MELODY_NOTE_OFF:
       del self._events[-1]
 
     length = len(self)
-    # Optionally round up `end_step` to a multiple of `steps_per_bar`.
+    # Optionally round up `_end_step` to a multiple of `steps_per_bar`.
     if pad_end:
       length += -len(self) % steps_per_bar
     self.set_length(length)
@@ -531,6 +532,7 @@ class Melody(events_lib.SimpleEventSequence):
 
 
 def extract_melodies(quantized_sequence,
+                     search_start_step=0,
                      min_bars=7,
                      max_steps_truncate=None,
                      max_steps_discard=None,
@@ -560,6 +562,8 @@ def extract_melodies(quantized_sequence,
 
   Args:
     quantized_sequence: A quantized NoteSequence.
+    search_start_step: Start searching for a melody at this time step. Assumed
+        to be the first step of a bar.
     min_bars: Minimum length of melodies in number of bars. Shorter melodies are
         discarded.
     max_steps_truncate: Maximum number of steps in extracted melodies. If
@@ -608,9 +612,10 @@ def extract_melodies(quantized_sequence,
       [0, 1, 10, 20, 30, 40, 50, 100, 200, 500, min_bars // 2, min_bars,
        min_bars + 1, min_bars - 1])
   instruments = set([n.instrument for n in quantized_sequence.notes])
+  steps_per_bar = int(
+      sequences_lib.steps_per_bar_in_quantized_sequence(quantized_sequence))
   for instrument in instruments:
-    start = 0
-
+    instrument_search_start_step = search_start_step
     # Quantize the track into a Melody object.
     # If any notes start at the same time, only one is kept.
     while 1:
@@ -619,7 +624,7 @@ def extract_melodies(quantized_sequence,
         melody.from_quantized_sequence(
             quantized_sequence,
             instrument=instrument,
-            start_step=start,
+            search_start_step=instrument_search_start_step,
             gap_bars=gap_bars,
             ignore_polyphonic_notes=ignore_polyphonic_notes,
             pad_end=pad_end,
@@ -629,7 +634,10 @@ def extract_melodies(quantized_sequence,
         break  # Look for monophonic melodies in other tracks.
       except events_lib.NonIntegerStepsPerBarException:
         raise
-      start = melody.end_step
+      # Start search for next melody on next bar boundary (inclusive).
+      instrument_search_start_step = (
+          melody.end_step +
+          (search_start_step - melody.end_step) % steps_per_bar)
       if not melody:
         break
 
@@ -696,4 +704,3 @@ def midi_file_to_melody(midi_file, steps_per_quarter=4, qpm=None,
   melody.from_quantized_sequence(
       quantized_sequence, ignore_polyphonic_notes=ignore_polyphonic_notes)
   return melody
-

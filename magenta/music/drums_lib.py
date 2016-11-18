@@ -127,7 +127,7 @@ class DrumTrack(events_lib.SimpleEventSequence):
 
   def from_quantized_sequence(self,
                               quantized_sequence,
-                              start_step=0,
+                              search_start_step=0,
                               gap_bars=1,
                               pad_end=False):
     """Populate self with drums from the given quantized NoteSequence object.
@@ -147,7 +147,8 @@ class DrumTrack(events_lib.SimpleEventSequence):
 
     Args:
       quantized_sequence: A quantized NoteSequence instance.
-      start_step: Start searching for drums at this time step.
+      search_start_step: Start searching for drums at this time step. Assumed to
+          be the beginning of a bar.
       gap_bars: If this many bars or more follow a non-empty drum event, the
           drum track is ended.
       pad_end: If True, the end of the drums will be padded with empty events so
@@ -161,7 +162,6 @@ class DrumTrack(events_lib.SimpleEventSequence):
     sequences_lib.assert_is_quantized_sequence(quantized_sequence)
     self._reset()
 
-    offset = None
     steps_per_bar_float = sequences_lib.steps_per_bar_in_quantized_sequence(
         quantized_sequence)
     if steps_per_bar_float % 1 != 0:
@@ -178,7 +178,7 @@ class DrumTrack(events_lib.SimpleEventSequence):
                  if note.is_drum                 # drums only
                  and note.velocity               # no zero-velocity notes
                  # after start_step only
-                 and note.quantized_start_step >= start_step]
+                 and note.quantized_start_step >= search_start_step]
     grouped_notes = collections.defaultdict(list)
     for note in all_notes:
       grouped_notes[note.quantized_start_step].append(note)
@@ -186,13 +186,16 @@ class DrumTrack(events_lib.SimpleEventSequence):
     # Sort by note start times.
     notes = sorted(grouped_notes.items(), key=operator.itemgetter(0))
 
+    if not notes:
+      return
+
     gap_start_index = 0
 
+    track_start_step = (
+        notes[0][0] - (notes[0][0] - search_start_step) % steps_per_bar)
     for start, group in notes:
-      if offset is None:
-        offset = start - start % steps_per_bar
 
-      start_index = start - offset
+      start_index = start - track_start_step
       pitches = frozenset(note.pitch for note in group)
 
       # If a gap of `gap` or more steps is found, end the drum track.
@@ -207,13 +210,13 @@ class DrumTrack(events_lib.SimpleEventSequence):
       gap_start_index = start_index + 1
 
     if not self._events:
-      # If no drum events were added, don't set `start_step` and `end_step`.
+      # If no drum events were added, don't set `_start_step` and `_end_step`.
       return
 
-    self._start_step = offset
+    self._start_step = track_start_step
 
     length = len(self)
-    # Optionally round up `end_step` to a multiple of `steps_per_bar`.
+    # Optionally round up `_end_step` to a multiple of `steps_per_bar`.
     if pad_end:
       length += -len(self) % steps_per_bar
     self.set_length(length)
@@ -276,6 +279,7 @@ class DrumTrack(events_lib.SimpleEventSequence):
 
 
 def extract_drum_tracks(quantized_sequence,
+                        search_start_step=0,
                         min_bars=7,
                         max_steps_truncate=None,
                         max_steps_discard=None,
@@ -301,6 +305,8 @@ def extract_drum_tracks(quantized_sequence,
 
   Args:
     quantized_sequence: A quantized NoteSequence.
+    search_start_step: Start searching for drums at this time step. Assumed to
+        be the beginning of a bar.
     min_bars: Minimum length of drum tracks in number of bars. Shorter drum
         tracks are discarded.
     max_steps_truncate: Maximum number of steps in extracted drum tracks. If
@@ -337,7 +343,8 @@ def extract_drum_tracks(quantized_sequence,
       [0, 1, 10, 20, 30, 40, 50, 100, 200, 500, min_bars // 2, min_bars,
        min_bars + 1, min_bars - 1])
 
-  start = 0
+  steps_per_bar = int(
+      sequences_lib.steps_per_bar_in_quantized_sequence(quantized_sequence))
 
   # Quantize the track into a DrumTrack object.
   # If any notes start at the same time, only one is kept.
@@ -346,12 +353,14 @@ def extract_drum_tracks(quantized_sequence,
     try:
       drum_track.from_quantized_sequence(
           quantized_sequence,
-          start_step=start,
+          search_start_step=search_start_step,
           gap_bars=gap_bars,
           pad_end=pad_end)
     except events_lib.NonIntegerStepsPerBarException:
       raise
-    start = drum_track.end_step
+    search_start_step = (
+        drum_track.end_step +
+        (search_start_step - drum_track.end_step) % steps_per_bar)
     if not drum_track:
       break
 
