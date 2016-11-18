@@ -32,6 +32,15 @@ class SequenceGeneratorException(Exception):
   pass
 
 
+_checkpoint_file_exists(checkpoint_file_or_prefix):
+  """Returns True if checkpoint file or files (for V2) exist.
+
+  Replace with tf.saver.checkpoint_file_exists when released.
+  """
+  return (tf.gfile.Exists(checkpoint_file_or_prefix) or
+          tf.gfile.Exists(checkpoint_file_or_prefix + '.index'))
+
+
 class BaseSequenceGenerator(object):
   """Abstract class for generators."""
 
@@ -115,7 +124,8 @@ class BaseSequenceGenerator(object):
     # Either self._checkpoint or self._bundle should be set.
     # This is enforced by the constructor.
     if self._checkpoint is not None:
-      if not tf.gfile.Exists(self._checkpoint):
+      # Check if the checkpoint file exists.
+      if not _checkpoint_file_exists(self._checkpoint):
         raise SequenceGeneratorException(
             'Checkpoint path does not exist: %s' % (self._checkpoint))
       checkpoint_file = self._checkpoint
@@ -125,7 +135,7 @@ class BaseSequenceGenerator(object):
       if checkpoint_file is None:
         raise SequenceGeneratorException(
             'No checkpoint file found in directory: %s' % self._checkpoint)
-      if (not tf.gfile.Exists(checkpoint_file) or
+      if (not _checkpoint_file_exists(self._checkpoint) or
           tf.gfile.IsDirectory(checkpoint_file)):
         raise SequenceGeneratorException(
             'Checkpoint path is not a file: %s (supplied path: %s)' % (
