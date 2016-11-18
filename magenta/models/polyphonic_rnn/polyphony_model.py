@@ -28,7 +28,7 @@ default_configs = {
             polyphony_encoder_decoder.PolyphonyOneHotEncoding()),
         magenta.common.HParams(
             batch_size=128,
-            rnn_layer_sizes=[128, 128],
+            rnn_layer_sizes=[256, 256, 256],
             dropout_keep_prob=0.5,
             skip_first_n_losses=10,
             clip_norm=5,

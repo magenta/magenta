@@ -56,7 +56,7 @@ class PolySeqPipelineTest(tf.test.TestCase):
     pipeline_inst = polyphonic_rnn_create_dataset.get_pipeline(
       steps_per_quarter=4,
       min_steps=80,  # 5 measures
-      max_steps=1000,
+      max_steps=512,
       eval_ratio=0,
       config=self.config)
     result = pipeline_inst.transform(note_sequence)

@@ -135,7 +135,7 @@ def main(unused_argv):
   pipeline_instance = get_pipeline(
       steps_per_quarter=4,
       min_steps=80,  # 5 measures
-      max_steps=1000,
+      max_steps=512,
       eval_ratio=FLAGS.eval_ratio,
       config=polyphony_model.default_configs['polyphony'])
 
