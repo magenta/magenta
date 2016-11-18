@@ -33,9 +33,10 @@ tf.app.flags.DEFINE_string('run_dir', '/tmp/melody_rnn/logdir/run1',
                            'to the parent directory of `run_dir` to see all '
                            'your runs.')
 tf.app.flags.DEFINE_string('sequence_example_file', '',
-                           'Path(s) to TFRecord file(s) containing '
+                           'Path to TFRecord file containing '
                            'tf.SequenceExample records for training or '
-                           'evaluation.')
+                           'evaluation. A filepattern may also be provided, '
+                           'which will be expanded to all matching files.')
 tf.app.flags.DEFINE_integer('num_training_steps', 0,
                             'The the number of global training steps your '
                             'model should take before exiting training. '
