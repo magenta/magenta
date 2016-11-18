@@ -7,6 +7,7 @@ import time
 # internal imports
 import tensorflow as tf
 
+import magenta
 from magenta.protobuf import generator_pb2
 from magenta.protobuf import music_pb2
 
@@ -321,6 +322,7 @@ class CallAndResponseMidiInteraction(MidiInteraction):
       call_start_steps = response_end_steps
 
   def stop(self):
+    self._stop_signal.set()
     if self._start_call_signal is not None:
       self._midi_hub.wake_signal_waiters(self._start_call_signal)
     if self._end_call_signal is not None:
@@ -377,35 +379,35 @@ class ExternalClockCallAndResponse(MidiInteraction):
     # Event for signalling when to end a call.
     self._end_call = threading.Event()
 
-  def _end_call_callback(unused_captured_seq):
+  def _end_call_callback(self, unused_captured_seq):
     self._end_call.set()
 
   def run(self):
     """The main loop for a real-time call and response interaction."""
     seconds_per_bar = 4 * 60.0 / self._qpm
 
-    captor = self._midi_hub.start_capture(self._qpm, 0)
+    self._captor = self._midi_hub.start_capture(self._qpm, 0)
 
     # Set callback for end call signal.
     if self._end_call_signal is not None:
-      captor.register_callback(self._end_call_callback,
-                               signal=self._end_call_signal)
+      self._captor.register_callback(self._end_call_callback,
+                                     signal=self._end_call_signal)
 
     # Keep track of the end of the previous tick time.
     last_tick_time = 0
 
-    for captured_seq in captor.iterate(signal=self._clock_signal):
+    for captured_sequence in self._captor.iterate(signal=self._clock_signal):
       if self._stop_signal.is_set():
         break
 
       tick_time = captured_sequence.total_time
-      last_end_time = (max(note.end_time for note in captured_notes.notes)
-                       if captured_notes.notes else None)
+      last_end_time = (max(note.end_time for note in captured_sequence.notes)
+                       if captured_sequence.notes else None)
 
       if not captured_sequence.notes:
         # Reset captured sequence since we are still idling.
         tf.logging.info('Idle...')
-        captor.start_time = tick_time
+        self._captor.start_time = tick_time
         self._end_call.clear()
       elif last_end_time <= last_tick_time or self._end_call.is_set():
         # Create response and start playback.
@@ -418,7 +420,7 @@ class ExternalClockCallAndResponse(MidiInteraction):
           response_duration = num_bars * seconds_per_bar
         else:
           # Use capture duration.
-          response_duration = tick_time - captor.start_time
+          response_duration = tick_time - self._captor.start_time
 
         # Generate sequence options.
         response_start_time = tick_time
@@ -426,8 +428,8 @@ class ExternalClockCallAndResponse(MidiInteraction):
 
         generator_options = magenta.protobuf.generator_pb2.GeneratorOptions()
         generator_options.input_sections.add(
-            start_time = captor.start_time,
-            end_time = tick_time)
+            start_time=self._captor.start_time,
+            end_time=tick_time)
         generator_options.generate_sections.add(
             start_time=response_start_time,
             end_time=response_end_time)
@@ -441,15 +443,16 @@ class ExternalClockCallAndResponse(MidiInteraction):
         # Generate response.
         response_sequence = self._sequence_generator.generate(
             captured_sequence, generator_options)
-
         # Start response playback. Specify the start_time to avoid stripping
         # initial events due to generation lag.
         self._midi_hub.start_playback(response_sequence,
                                       start_time=response_start_time)
 
-        # Do not capture anything until the end of playback.
-        if not self._allow_overlap:
-          captor.start_time = response_end_time
+        # Optionally capture during playback.
+        if self._allow_overlap:
+          self._captor.start_time = response_start_time
+        else:
+          self._captor.start_time = response_end_time
 
         # Clear end signal.
         self._end_call.clear()
@@ -459,4 +462,7 @@ class ExternalClockCallAndResponse(MidiInteraction):
 
       last_tick_time = tick_time
 
-    captor.stop()
+  def stop(self):
+    self._stop_signal.set()
+    self._captor.stop()
+    super(ExternalClockCallAndResponse, self).stop()

@@ -399,10 +399,12 @@ class MidiCaptor(threading.Thread):
   def start_time(self, value):
     """Updates the start time, removing any notes that started before it."""
     self._start_time = value
-    for i, note in enumerate(self._capture_sequence.notes):
+    i = 0
+    for note in self._captured_sequence.notes:
       if note.start_time >= self._start_time:
-        del self._captured_sequence.notes[:i]
         break
+      i += 1
+    del self._captured_sequence.notes[:i]
 
   @property
   @concurrency.serialized
@@ -1018,6 +1020,8 @@ class MidiHub(object):
       if signal is None or regex.pattern == str(signal):
         self._signals[regex].notify_all()
         del self._signals[regex]
+    for captor in self._captors:
+      captor.wake_signal_waiters(signal)
 
   @concurrency.serialized
   def start_metronome(self, qpm, start_time):
