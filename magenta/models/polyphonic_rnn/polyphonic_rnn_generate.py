@@ -228,6 +228,7 @@ def main(unused_argv):
   tf.logging.set_verbosity(FLAGS.log)
 
   config = polyphony_model.default_configs['polyphony']
+
   generator = polyphony_sequence_generator.PolyphonicRnnSequenceGenerator(
       model=polyphony_model.PolyphonicRnnModel(config),
       details=config.details,

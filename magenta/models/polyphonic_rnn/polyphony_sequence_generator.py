@@ -113,6 +113,7 @@ class PolyphonicRnnSequenceGenerator(mm.BaseSequenceGenerator):
                 if name in generator_options.args)
 
     # !!! how to determine how many steps to generate?
+    # !!! should remove EVENT_END marker?
     generated_seq = self._model.generate_polyphonic_sequence(
         1000, poly_seq, **args)
     generated_sequence = generated_seq.to_sequence(qpm=qpm)

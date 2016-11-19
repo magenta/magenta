@@ -101,6 +101,23 @@ class PolyphonicSequence(events_lib.EventSequence):
     """Return an iterator over the events in this sequence."""
     return iter(self._events)
 
+  def __str__(self):
+    strs = []
+    for event in self:
+      if event.event_type == EVENT_START:
+        strs.append('START')
+      elif event.event_type == EVENT_END:
+        strs.append('END')
+      elif event.event_type == EVENT_STEP_END:
+        strs.append('|||')
+      elif event.event_type == EVENT_NEW_NOTE:
+        strs.append('(%s, NEW)' % event.pitch)
+      elif event.event_type == EVENT_CONTINUED_NOTE:
+        strs.append('(%s, CONTINUED)' % event.pitch)
+      else:
+        raise ValueError('Unknown event type: %s' % event.event_type)
+    return '\n'.join(strs)
+
   @property
   def num_steps(self):
     """Returns how many steps long this sequence is."""
@@ -141,13 +158,15 @@ class PolyphonicSequence(events_lib.EventSequence):
     events = [PolyphonicEvent(event_type=EVENT_START, pitch=0)]
 
     active_pitches = []
-    for step in range(last_step + 1):
+    for step in range(last_step):
       step_events = []
+
+      for pitch in pitch_end_steps[step]:
+        active_pitches.remove(pitch)
+
       for pitch in active_pitches:
         step_events.append(PolyphonicEvent(event_type=EVENT_CONTINUED_NOTE,
                                            pitch=pitch))
-      for pitch in pitch_end_steps[step]:
-        active_pitches.remove(pitch)
 
       for pitch in pitch_start_steps[step]:
         active_pitches.append(pitch)
@@ -219,7 +238,7 @@ class PolyphonicSequence(events_lib.EventSequence):
             note = sequence.notes.add()
             note.start_time = (pitch_start_step[1] * seconds_per_step +
                                sequence_start_time)
-            note.end_time = (step - 1) * seconds_per_step + sequence_start_time
+            note.end_time = step * seconds_per_step + sequence_start_time
             note.pitch = pitch_start_step[0]
             note.velocity = velocity
             note.instrument = instrument

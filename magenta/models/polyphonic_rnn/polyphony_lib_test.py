@@ -65,13 +65,8 @@ class PolyphonyLibTest(tf.test.TestCase):
         # step 2
         pe(EVENT_CONTINUED_NOTE, 60),
         pe(EVENT_CONTINUED_NOTE, 64),
-        pe(EVENT_CONTINUED_NOTE, 67),
         pe(EVENT_STEP_END, 0),
         # step 3
-        pe(EVENT_CONTINUED_NOTE, 60),
-        pe(EVENT_CONTINUED_NOTE, 64),
-        pe(EVENT_STEP_END, 0),
-        # step 4
         pe(EVENT_CONTINUED_NOTE, 60),
         pe(EVENT_STEP_END, 0),
 
@@ -119,7 +114,39 @@ class PolyphonyLibTest(tf.test.TestCase):
 
     testing_lib.add_track_to_sequence(
         self.note_sequence, 0,
-        [(60, 100, 0.0, 1.0), (64, 100, 0.0, 1.0)])
+        [(60, 100, 0.0, 2.0), (64, 100, 0.0, 2.0)])
+
+    # Make comparison easier
+    poly_seq_ns.notes.sort(key=lambda n: (n.start_time, n.pitch))
+    self.note_sequence.notes.sort(key=lambda n: (n.start_time, n.pitch))
+
+    self.assertEqual(self.note_sequence, poly_seq_ns)
+
+  def testToSequenceWithRepeatedNotes(self):
+    poly_seq = polyphony_lib.PolyphonicSequence(steps_per_quarter=1)
+
+    pe = polyphony_lib.PolyphonicEvent
+    poly_events = [
+        pe(EVENT_START, 0),
+        # step 0
+        pe(EVENT_NEW_NOTE, 60),
+        pe(EVENT_NEW_NOTE, 64),
+        pe(EVENT_STEP_END, 0),
+        # step 1
+        pe(EVENT_NEW_NOTE, 60),
+        pe(EVENT_CONTINUED_NOTE, 64),
+        pe(EVENT_STEP_END, 0),
+
+        pe(EVENT_END, 0),
+    ]
+    for event in poly_events:
+      poly_seq.append(event)
+
+    poly_seq_ns = poly_seq.to_sequence(qpm=60.0)
+
+    testing_lib.add_track_to_sequence(
+        self.note_sequence, 0,
+        [(60, 100, 0.0, 1.0), (64, 100, 0.0, 2.0), (60, 100, 1.0, 2.0)])
 
     # Make comparison easier
     poly_seq_ns.notes.sort(key=lambda n: (n.start_time, n.pitch))
