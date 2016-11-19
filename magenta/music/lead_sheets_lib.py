@@ -262,11 +262,17 @@ class LeadSheet(events_lib.EventSequence):
 
 
 def extract_lead_sheet_fragments(quantized_sequence,
+                                 search_start_step=0,
                                  min_bars=7,
+                                 max_steps_truncate=None,
+                                 max_steps_discard=None,
                                  gap_bars=1.0,
                                  min_unique_pitches=5,
                                  ignore_polyphonic_notes=True,
-                                 require_chords=False):
+                                 pad_end=False,
+                                 filter_drums=True,
+                                 require_chords=False,
+                                 all_transpositions=False):
   """Extracts a list of lead sheet fragments from a quantized NoteSequence.
 
   This function first extracts melodies using melodies_lib.extract_melodies,
@@ -275,8 +281,16 @@ def extract_lead_sheet_fragments(quantized_sequence,
 
   Args:
     quantized_sequence: A quantized NoteSequence object.
+    search_start_step: Start searching for a melody at this time step. Assumed
+        to be the first step of a bar.
     min_bars: Minimum length of melodies in number of bars. Shorter melodies are
         discarded.
+    max_steps_truncate: Maximum number of steps in extracted melodies. If
+        defined, longer melodies are truncated to this threshold. If pad_end is
+        also True, melodies will be truncated to the end of the last bar below
+        this threshold.
+    max_steps_discard: Maximum number of steps in extracted melodies. If
+        defined, longer melodies are discarded.
     gap_bars: A melody comes to an end when this number of bars (measures) of
         silence is encountered.
     min_unique_pitches: Minimum number of unique notes with octave equivalence.
@@ -284,9 +298,14 @@ def extract_lead_sheet_fragments(quantized_sequence,
     ignore_polyphonic_notes: If True, melodies will be extracted from
         `quantized_sequence` tracks that contain polyphony (notes start at the
         same time). If False, tracks with polyphony will be ignored.
+    pad_end: If True, the end of the melody will be padded with NO_EVENTs so
+        that it will end at a bar boundary.
+    filter_drums: If True, notes for which `is_drum` is True will be ignored.
     require_chords: If True, only return lead sheets that have at least one
         chord other than NO_CHORD. If False, lead sheets with only melody will
         also be returned.
+    all_transpositions: If True, also transpose each lead sheet fragment into
+        all 12 keys.
 
   Returns:
     A python list of LeadSheet instances.
@@ -300,18 +319,29 @@ def extract_lead_sheet_fragments(quantized_sequence,
   stats = dict([('empty_chord_progressions',
                  statistics.Counter('empty_chord_progressions'))])
   melodies, melody_stats = melodies_lib.extract_melodies(
-      quantized_sequence, min_bars=min_bars, gap_bars=gap_bars,
+      quantized_sequence, search_start_step=search_start_step,
+      min_bars=min_bars, max_steps_truncate=max_steps_truncate,
+      max_steps_discard=max_steps_discard, gap_bars=gap_bars,
       min_unique_pitches=min_unique_pitches,
-      ignore_polyphonic_notes=ignore_polyphonic_notes)
+      ignore_polyphonic_notes=ignore_polyphonic_notes, pad_end=pad_end,
+      filter_drums=filter_drums)
   chord_progressions, chord_stats = chords_lib.extract_chords_for_melodies(
       quantized_sequence, melodies)
   lead_sheets = []
   for melody, chords in zip(melodies, chord_progressions):
+    # If `chords` is None, it's because a chord progression could not be
+    # extracted for this particular melody.
     if chords is not None:
       if require_chords and all(chord == chords_lib.NO_CHORD
                                 for chord in chords):
         stats['empty_chord_progressions'].increment()
       else:
         lead_sheet = LeadSheet(melody, chords)
-        lead_sheets.append(lead_sheet)
+        if all_transpositions:
+          for amount in range(-6, 6):
+            transposed_lead_sheet = copy.deepcopy(lead_sheet)
+            transposed_lead_sheet.transpose(amount)
+            lead_sheets.append(transposed_lead_sheet)
+        else:
+          lead_sheets.append(lead_sheet)
   return lead_sheets, stats.values() + melody_stats + chord_stats
