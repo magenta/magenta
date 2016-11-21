@@ -416,6 +416,7 @@ class ExternalClockCallAndResponse(MidiInteraction):
     self._end_call.set()
     tf.logging.info('End call signal received.')
 
+  @property
   def _min_listen_ticks(self):
     if self._min_listen_ticks_control_number is None:
       return 0
@@ -423,6 +424,7 @@ class ExternalClockCallAndResponse(MidiInteraction):
         self._min_listen_ticks_control_number)
     return 0 if val is None else val
 
+  @property
   def _max_listen_ticks(self):
     if self._max_listen_ticks_control_number is None:
       return float('inf')
@@ -464,7 +466,10 @@ class ExternalClockCallAndResponse(MidiInteraction):
             last_end_time <= last_tick_time or
             listen_ticks >= self._max_listen_ticks):
         if listen_ticks < self._min_listen_ticks:
-          tf.logging.info('Input too short. Skipping.')
+          tf.logging.info(
+            'Input too short (%d vs %d). Skipping.',
+            listen_ticks,
+            self._min_listen_ticks)
           self._captor.start_time = tick_time
         else:
           # Create response and start playback.

@@ -789,7 +789,7 @@ class MidiHub(object):
     texture_type: A TextureType Enum specifying the musical texture to assume
         during capture, passthrough, and playback.
     passthrough: A boolean specifying whether or not to pass incoming messages
-        through to the output, applyig the appropriate texture rules.
+        through to the output, applying the appropriate texture rules.
   """
 
   def __init__(self, input_midi_port, output_midi_port, texture_type,
