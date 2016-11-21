@@ -17,10 +17,10 @@ import abc
 import inspect
 import os.path
 
-# internal imports
+import google3
 import tensorflow as tf
 
-from magenta.pipelines import statistics
+from google3.third_party.magenta.pipelines import statistics
 
 
 class InvalidTypeSignatureException(Exception):
@@ -34,19 +34,19 @@ class InvalidStatisticsException(Exception):
   pass
 
 
-class Key(object):
+class PipelineKey(object):
   """Represents a get operation on a Pipeline type signature.
 
   If a pipeline instance `my_pipeline` has `output_type`
-  {'key_1': Type1, 'key_2': Type2}, then Key(my_pipeline, 'key_1'),
-  represents the output type Type1. And likewise Key(my_pipeline, 'key_2')
-  represents Type2.
+  {'key_1': Type1, 'key_2': Type2}, then PipelineKey(my_pipeline, 'key_1'),
+  represents the output type Type1. And likewise
+  PipelineKey(my_pipeline, 'key_2') represents Type2.
 
-  Calling __getitem__ on a pipeline will return a Key instance.
-  So my_pipeline['key_1'] returns Key(my_pipeline, 'key_1'), and so on.
+  Calling __getitem__ on a pipeline will return a PipelineKey instance.
+  So my_pipeline['key_1'] returns PipelineKey(my_pipeline, 'key_1'), and so on.
 
-  Key objects are used for assembling a directed acyclic graph of Pipeline
-  instances. See dag_pipeline.py.
+  PipelineKey objects are used for assembling a directed acyclic graph of
+  Pipeline instances. See dag_pipeline.py.
   """
 
   def __init__(self, unit, key):
@@ -57,14 +57,14 @@ class Key(object):
           'Cannot take key %s of %s because output type %s is not a dictionary'
           % (key, unit, unit.output_type))
     if key not in unit.output_type:
-      raise KeyError('Key %s is not valid for %s with output type %s'
+      raise KeyError('PipelineKey %s is not valid for %s with output type %s'
                      % (key, unit, unit.output_type))
     self.key = key
     self.unit = unit
     self.output_type = unit.output_type[key]
 
   def __repr__(self):
-    return 'Key(%s, %s)' % (self.unit, self.key)
+    return 'PipelineKey(%s, %s)' % (self.unit, self.key)
 
 
 def _guarantee_dict(given, default_name):
@@ -113,12 +113,12 @@ class Pipeline(object):
   a list of transformed outputs, or a dictionary mapping names to lists of
   transformed outputs for each name.
 
-  The `get_stats` method returns any statistics that were collected during the
-  last call to `transform`. These statistics can give feedback about why any
+  The `get_stats` method returns any Statistics that were collected during the
+  last call to `transform`. These Statistics can give feedback about why any
   data was discarded and what the input data is like.
 
   `Pipeline` implementers should call `_set_stats` from within `transform` to
-  set the statistics that will be returned by the next call to `get_stats`.
+  set the Statistics that will be returned by the next call to `get_stats`.
   """
 
   __metaclass__ = abc.ABCMeta
@@ -137,8 +137,8 @@ class Pipeline(object):
     signature {'hello': str, 'number': int})
 
     `Pipeline` instances have (preferably unique) string names. These names act
-    as name spaces for the statistics produced by them. The `get_stats` method
-    will automatically prepend `name` to all of the statistics names before
+    as name spaces for the Statistics produced by them. The `get_stats` method
+    will automatically prepend `name` to all of the Statistics names before
     returning them.
 
     Args:
@@ -164,7 +164,7 @@ class Pipeline(object):
     self._stats = []
 
   def __getitem__(self, key):
-    return Key(self, key)
+    return PipelineKey(self, key)
 
   @property
   def input_type(self):
@@ -218,7 +218,7 @@ class Pipeline(object):
     pass
 
   def _set_stats(self, stats):
-    """Overwrites the current statistics returned by `get_stats`.
+    """Overwrites the current Statistics returned by `get_stats`.
 
     Implementers of Pipeline should call `_set_stats` from within `transform`.
 
@@ -226,8 +226,8 @@ class Pipeline(object):
       stats: An iterable of Statistic objects.
 
     Raises:
-      InvalidStatisticsException: If `stats` is not iterable, or if each
-          statistic is not a `Statistic` instance.
+      InvalidStatisticsException: If `stats` is not iterable, or if any
+          object in the list is not a `Statistic` instance.
     """
     if not hasattr(stats, '__iter__'):
       raise InvalidStatisticsException(
@@ -244,10 +244,10 @@ class Pipeline(object):
     return stat_copy
 
   def get_stats(self):
-    """Returns statistics about pipeline runs.
+    """Returns Statistics about pipeline runs.
 
     Call `get_stats` after each call to `transform`.
-    `transform` computes statistics which will be returned here.
+    `transform` computes Statistics which will be returned here.
 
     Returns:
       A list of `Statistic` objects.
@@ -373,7 +373,7 @@ def run_pipeline_serial(pipeline,
                                          output_names[0]).items():
       for output in outputs:
         writers[name].write(output.SerializeToString())
-        total_outputs += 1
+      total_outputs += len(outputs)
     stats = statistics.merge_statistics(stats + pipeline.get_stats())
     if total_inputs % 500 == 0:
       tf.logging.info('Processed %d inputs so far. Produced %d outputs.',

@@ -13,10 +13,10 @@
 # limitations under the License.
 """Tests for statistics."""
 
-# internal imports
+import google3
 import tensorflow as tf
 
-from magenta.pipelines import statistics
+from google3.third_party.magenta.pipelines import statistics
 
 
 class StatisticsTest(tf.test.TestCase):

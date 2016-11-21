@@ -17,7 +17,7 @@ import abc
 import bisect
 import copy
 
-# internal imports
+import google3
 import tensorflow as tf
 
 
@@ -29,7 +29,7 @@ class Statistic(object):
   """Holds statistics about a Pipeline run.
 
   Pipelines produce statistics on each call to `transform`.
-  Statistic objects can be merged together to aggregate
+  `Statistic` objects can be merged together to aggregate
   statistics over the course of many calls to `transform`.
 
   A `Statistic` also has a string name which is used during merging. Any two
@@ -50,7 +50,7 @@ class Statistic(object):
     Args:
       name: The string name for this `Statistic`. Any two `Statistic` objects
           with the same name will be merged together. The name should also
-          describe what this statistic is measuring.
+          describe what this Statistic is measuring.
     """
     self._name = name
 
@@ -71,7 +71,7 @@ class Statistic(object):
     """Return a string representation of this instance using the given name.
 
     Returns a human readable and nicely presented representation of this
-    instance. Since this instance does not know what its measuring, a string
+    instance. Since this instance does not know what it's measuring, a string
     name is given to use in the string representation.
 
     For example, if this Statistic held a count, say 5, and the given name was
@@ -100,44 +100,28 @@ class Statistic(object):
           'Name "%s" does not match this name "%s"' % (other.name, self.name))
     self._merge_from(other)
 
-  @property
-  def name(self):
-    """String name of this statistic.
-
-    This name is used to uniquely identify a statistic.
-
-    Returns:
-      The string name of `self`.
-    """
-    return self._name
-
-  @name.setter
-  def name(self, value):
-    assert isinstance(value, basestring) and value
-    self._name = value
-
   def __str__(self):
-    return self._pretty_print(self._name)
+    return self._pretty_print(self.name)
 
 
 def merge_statistics(stats_list):
-  """Merge together statistics of the same name in the given list.
+  """Merge together Statistics of the same name in the given list.
 
-  Any two statistics in the list with the same name will be merged into a
-  single statistic using the `merge_from` method.
+  Any two Statistics in the list with the same name will be merged into a
+  single Statistic using the `merge_from` method.
 
   Args:
     stats_list: A list of `Statistic` objects.
 
   Returns:
-    A list of merged statistics. Each name will appear only once.
+    A list of merged Statistics. Each name will appear only once.
   """
   name_map = {}
   for stat in stats_list:
-    if stat.name not in name_map:
-      name_map[stat.name] = stat
-    else:
+    if stat.name in name_map:
       name_map[stat.name].merge_from(stat)
+    else:
+      name_map[stat.name] = stat
   return name_map.values()
 
 
@@ -154,9 +138,11 @@ def log_statistics_list(stats_list, logger_fn=tf.logging.info):
 
 
 class Counter(Statistic):
-  """Holds a count.
+  """Represents a count of occurrences of events or objects.
 
-  Use `Counter` to count occurrences or sum values together.
+  `Counter` can help debug Pipeline computations. For example, by counting
+  objects (consumed, produced, etc...) by the Pipeline, or occurrences of
+  certain cases in the Pipeline.
   """
 
   def __init__(self, name, start_value=0):
@@ -192,7 +178,7 @@ class Counter(Statistic):
 
 
 class Histogram(Statistic):
-  """Represents a histogram.
+  """Represents a histogram of real-valued events.
 
   A histogram is a list of counts, each over a range of values.
   For example, given this list of values [0.5, 0.0, 1.0, 0.6, 1.5, 2.4, 0.1],
@@ -202,6 +188,10 @@ class Histogram(Statistic):
     [2, 3): 1
   Each range is inclusive in the lower bound and exclusive in the upper bound
   (hence the square open bracket but curved close bracket).
+
+  Usage examples:
+      A distribution over input/output lengths.
+      A distribution over compute times.
   """
 
   def __init__(self, name, buckets, verbose_pretty_print=False):

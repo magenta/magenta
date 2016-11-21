@@ -19,9 +19,10 @@ dag: Directed acyclic graph.
 unit: A Pipeline which is run inside DAGPipeline.
 connection: A key value pair in the DAG dictionary.
 dependency: The right hand side (value in key value dictionary pair) of a DAG
-    connection. Can be a Pipeline, Input, Key, or dictionary mapping names to
-    one of those.
-subordinate: Any Input, Pipeline, or Key object that appears in a dependency.
+    connection. Can be a Pipeline, DagInput, PipelineKey, or dictionary mapping
+    names to one of those.
+subordinate: Any DagInput, Pipeline, or PipelineKey object that appears in a
+    dependency.
 shorthand: Invalid things that can be put in the DAG which get converted to
     valid things before parsing. These things are for convenience.
 type signature: Something that can be returned from Pipeline's `output_type`
@@ -31,23 +32,23 @@ type signature: Something that can be returned from Pipeline's `output_type`
 
 import itertools
 
-# internal imports
-from magenta.pipelines import pipeline
+import google3
+from google3.third_party.magenta.pipelines import pipeline
 
 
-class Output(object):
+class DagOutput(object):
   """Represents an output destination for a `DAGPipeline`.
 
-  Each `Output(name)` instance given to DAGPipeline will
+  Each `DagOutput(name)` instance given to DAGPipeline will
   be a final output bucket with the same name. If writing
   output buckets to disk, the names become dataset names.
 
-  The name can be omitted if connecting `Output()` to a
+  The name can be omitted if connecting `DagOutput()` to a
   dictionary mapping names to pipelines.
   """
 
   def __init__(self, name=None):
-    """Create an `Output` with the given name.
+    """Create an `DagOutput` with the given name.
 
     Args:
       name: If given, a string name which defines the name of this output.
@@ -56,38 +57,38 @@ class Output(object):
     """
     self.name = name
 
-    # `output_type` and `input_type` are set by DAGPipeline. Since `Output` is
-    # not given its type, the type must be infered from what it is connected
-    # to in the DAG. Having `output_type` and `input_type` makes `Output` act
+    # `output_type` and `input_type` are set by DAGPipeline. Since `DagOutput`
+    # is not given its type, the type must be infered from what it is connected
+    # to in the DAG. Having `output_type` and `input_type` makes `DagOutput` act
     # like a `Pipeline` in some cases.
     self.output_type = None
     self.input_type = None
 
   def __eq__(self, other):
-    return isinstance(other, Output) and other.name == self.name
+    return isinstance(other, DagOutput) and other.name == self.name
 
   def __hash__(self):
     return hash(self.name)
 
   def __repr__(self):
-    return 'Output(%s)' % self.name
+    return 'DagOutput(%s)' % self.name
 
 
-class Input(object):
+class DagInput(object):
   """Represents an input source for a `DAGPipeline`.
 
-  Give an `Input` instance to `DAGPipeline` by connecting `Pipeline` objects
+  Give an `DagInput` instance to `DAGPipeline` by connecting `Pipeline` objects
   to it in the DAG.
 
   When `DAGPipeline.transform` is called, the input object
   will be fed to any Pipeline instances connected to an
-  `Input` given in the DAG.
+  `DagInput` given in the DAG.
 
-  The type given to `Input` will be the `DAGPipeline`'s `input_type`.
+  The type given to `DagInput` will be the `DAGPipeline`'s `input_type`.
   """
 
   def __init__(self, type_):
-    """Create an `Input` with the given type.
+    """Create an `DagInput` with the given type.
 
     Args:
       type_: The Python class which inputs to `DAGPipeline` should be
@@ -96,13 +97,13 @@ class Input(object):
     self.output_type = type_
 
   def __eq__(self, other):
-    return isinstance(other, Input) and other.output_type == self.output_type
+    return isinstance(other, DagInput) and other.output_type == self.output_type
 
   def __hash__(self):
     return hash(self.output_type)
 
   def __repr__(self):
-    return 'Input(%s)' % self.output_type
+    return 'DagInput(%s)' % self.output_type
 
 
 def _all_are_type(elements, target_type):
@@ -124,9 +125,9 @@ class InvalidDAGException(Exception):
 
   This can be because a `destination: dependency` pair is not in the form
   `Pipeline: Pipeline` or `Pipeline: {'name_1': Pipeline, ...}` (Note that
-  Pipeline or Key objects both are allowed in the dependency). It is also
-  thrown when `Input` is given as a destination, or `Output` is given as a
-  dependency.
+  Pipeline or PipelineKey objects both are allowed in the dependency). It is
+  also thrown when `DagInput` is given as a destination, or `DagOutput` is given
+  as a dependency.
   """
   pass
 
@@ -163,19 +164,19 @@ class TypeMismatchException(Exception):
 
 
 class BadInputOrOutputException(Exception):
-  """Thrown when `Input` or `Output` are not used in the graph correctly.
+  """Thrown when `DagInput` or `DagOutput` are not used in the graph correctly.
 
-  Specifically when there are no `Input` objects, more than one `Input` with
-  different types, or there is no `Output` object.
+  Specifically when there are no `DagInput` objects, more than one `DagInput`
+  with different types, or there is no `DagOutput` object.
   """
   pass
 
 
 class InvalidDictionaryOutput(Exception):
-  """Thrown when `Output` and dictionaries are not used correctly.
+  """Thrown when `DagOutput` and dictionaries are not used correctly.
 
-  Specifically when `Output()` is used without a dictionary dependency, or
-  `Output(name)` is used with a `name` and with a dictionary dependency.
+  Specifically when `DagOutput()` is used without a dictionary dependency, or
+  `DagOutput(name)` is used with a `name` and with a dictionary dependency.
   """
   pass
 
@@ -203,22 +204,24 @@ class DAGPipeline(pipeline.Pipeline):
     DAGPipeline runs.
 
     Args:
-      dag: A dictionary mapping `Pipeline` or `Output` instances to any of
-         `Pipeline`, `Key`, `Input`. `dag` defines a directed acyclic graph.
+      dag: A dictionary mapping `Pipeline` or `DagOutput` instances to any of
+         `Pipeline`, `PipelineKey`, `DagInput`. `dag` defines a directed acyclic
+         graph.
       pipeline_name: String name of this Pipeline object.
 
     Raises:
       InvalidDAGException: If each key value pair in the `dag` dictionary is
-          not of the form (Pipeline or Output): (Pipeline, Key, or Input).
+          not of the form
+          (Pipeline or DagOutput): (Pipeline, PipelineKey, or DagInput).
       TypeMismatchException: The type signature of each key and value in `dag`
           must match, otherwise this will be thrown.
       DuplicateNameException: If two `Pipeline` instances in `dag` have the
           same string name.
-      BadInputOrOutputException: If there are no `Output` instaces in `dag` or
-          not exactly one `Input` plus type combination in `dag`.
-      InvalidDictionaryOutput: If `Output()` is not connected to a dictionary,
-          or `Output(name)` is not connected to a Pipeline, Key, or Input
-          instance.
+      BadInputOrOutputException: If there are no `DagOutput` instaces in `dag`
+          or not exactly one `DagInput` plus type combination in `dag`.
+      InvalidDictionaryOutput: If `DagOutput()` is not connected to a
+          dictionary, or `DagOutput(name)` is not connected to a Pipeline,
+          PipelineKey, or DagInput instance.
       NotConnectedException: If a `Pipeline` used in a dependency has nothing
           feeding into it, or a `Pipeline` used as a destination does not feed
           anywhere.
@@ -229,13 +232,14 @@ class DAGPipeline(pipeline.Pipeline):
     self.dag = dict(self._expand_dag_shorthands(dag))
 
     # Make sure DAG is valid.
-    # Input types match output types. Nothing depends on outputs.
+    # DagInput types match output types. Nothing depends on outputs.
     # Things that require input get input. DAG is composed of correct types.
     for unit, dependency in self.dag.items():
-      if not isinstance(unit, (pipeline.Pipeline, Output)):
+      if not isinstance(unit, (pipeline.Pipeline, DagOutput)):
         raise InvalidDAGException(
             'Dependency {%s: %s} is invalid. Left hand side value %s must '
-            'either be a Pipeline or Output object' % (unit, dependency, unit))
+            'either be a Pipeline or DagOutput object'
+            % (unit, dependency, unit))
       if isinstance(dependency, dict):
         if not all([isinstance(name, basestring) for name in dependency]):
           raise InvalidDAGException(
@@ -244,24 +248,24 @@ class DAGPipeline(pipeline.Pipeline):
         values = dependency.values()
       else:
         values = [dependency]
-      for v in values:
-        if not (isinstance(v, pipeline.Pipeline) or
-                (isinstance(v, pipeline.Key) and
-                 isinstance(v.unit, pipeline.Pipeline)) or
-                isinstance(v, Input)):
+      for subordinate in values:
+        if not (isinstance(subordinate, pipeline.Pipeline) or
+                (isinstance(subordinate, pipeline.PipelineKey) and
+                 isinstance(subordinate.unit, pipeline.Pipeline)) or
+                isinstance(subordinate, DagInput)):
           raise InvalidDAGException(
-              'Dependency {%s: %s} is invalid. Right hand side value %s must '
-              'be either a Pipeline, Key, or Input object'
-              % (unit, dependency, v))
+              'Dependency {%s: %s} is invalid. Right hand side subordinate %s '
+              'must be either a Pipeline, PipelineKey, or DagInput object'
+              % (unit, dependency, subordinate))
 
       # Check that all input types match output types.
-      if isinstance(unit, Output):
-        # Output objects don't know their types.
+      if isinstance(unit, DagOutput):
+        # DagOutput objects don't know their types.
         continue
       if unit.input_type != self._get_type_signature_for_dependency(dependency):
         raise TypeMismatchException(
             'Invalid dependency {%s: %s}. Required `input_type` of left hand '
-            'side is %s. Output type of right hand side is %s.'
+            'side is %s. DagOutput type of right hand side is %s.'
             % (unit, dependency, unit.input_type,
                self._get_type_signature_for_dependency(dependency)))
 
@@ -277,8 +281,9 @@ class DAGPipeline(pipeline.Pipeline):
             'Pipelines %s and %s both have name "%s". Each Pipeline must have '
             'a unique name.' % (unit, other_unit, name))
 
-    # Find Input and Output objects and make sure they are being used correctly.
-    self.outputs = [unit for unit in self.dag if isinstance(unit, Output)]
+    # Find DagInput and DagOutput objects and make sure they are being used
+    # correctly.
+    self.outputs = [unit for unit in self.dag if isinstance(unit, DagOutput)]
     self.output_names = dict([(output.name, output) for output in self.outputs])
     for output in self.outputs:
       output.input_type = output.output_type = (
@@ -287,18 +292,18 @@ class DAGPipeline(pipeline.Pipeline):
     for deps in self.dag.values():
       units = self._get_units(deps)
       for unit in units:
-        if isinstance(unit, Input):
+        if isinstance(unit, DagInput):
           inputs.add(unit)
     if len(inputs) != 1:
       if not inputs:
         raise BadInputOrOutputException(
-            'No Input object found. Input is the start of the pipeline.')
+            'No DagInput object found. DagInput is the start of the pipeline.')
       else:
         raise BadInputOrOutputException(
-            'Multiple Input objects found. Only one input is supported.')
+            'Multiple DagInput objects found. Only one input is supported.')
     if not self.outputs:
       raise BadInputOrOutputException(
-          'No Output objects found. Output is the end of the pipeline.')
+          'No DagOutput objects found. DagOutput is the end of the pipeline.')
     self.input = inputs.pop()
 
     # Compute output_type for self and call super constructor.
@@ -384,8 +389,8 @@ class DAGPipeline(pipeline.Pipeline):
 
     {a: b} is expanded to
     {a: {"name_1": b["name_1"], "name_2": b["name_2"], ...}}.
-    {Output(): {"name_1", obj1, "name_2": obj2, ...} is expanded to
-    {Output("name_1"): obj1, Output("name_2"): obj2, ...}.
+    {DagOutput(): {"name_1", obj1, "name_2": obj2, ...} is expanded to
+    {DagOutput("name_1"): obj1, DagOutput("name_2"): obj2, ...}.
 
     Args:
       dag: A dictionary encoding the DAG.
@@ -394,7 +399,7 @@ class DAGPipeline(pipeline.Pipeline):
       Key, value pairs for a new dag dictionary.
 
     Raises:
-      InvalidDictionaryOutput: If `Output` is not used correctly.
+      InvalidDictionaryOutput: If `DagOutput` is not used correctly.
     """
     for key, val in dag.items():
       # Direct connection.
@@ -403,7 +408,7 @@ class DAGPipeline(pipeline.Pipeline):
           isinstance(key.input_type, dict) and
           key.input_type == val.output_type):
         yield key, dict([(name, val[name]) for name in val.output_type])
-      elif key == Output():
+      elif key == DagOutput():
         if (isinstance(val, pipeline.Pipeline) and
             isinstance(val.output_type, dict)):
           dependency = [(name, val[name]) for name in val.output_type]
@@ -411,23 +416,23 @@ class DAGPipeline(pipeline.Pipeline):
           dependency = val.items()
         else:
           raise InvalidDictionaryOutput(
-              'Output() with no name can only be connected to a dictionary or '
-              'a Pipeline whose output_type is a dictionary. Found Output() '
-              'connected to %s' % val)
+              'DagOutput() with no name can only be connected to a dictionary '
+              'or a Pipeline whose output_type is a dictionary. Found '
+              'DagOutput() connected to %s' % val)
         for name, subordinate in dependency:
-          yield Output(name), subordinate
-      elif isinstance(key, Output):
+          yield DagOutput(name), subordinate
+      elif isinstance(key, DagOutput):
         if isinstance(val, dict):
           raise InvalidDictionaryOutput(
-              'Output("%s") which has name "%s" can only be connectd to a '
-              'single input, not dictionary %s. Use Output() without name '
+              'DagOutput("%s") which has name "%s" can only be connectd to a '
+              'single input, not dictionary %s. Use DagOutput() without name '
               'instead.' % (key.name, key.name, val))
         if (isinstance(val, pipeline.Pipeline) and
             isinstance(val.output_type, dict)):
           raise InvalidDictionaryOutput(
-              'Output("%s") which has name "%s" can only be connectd to a '
+              'DagOutput("%s") which has name "%s" can only be connectd to a '
               'single input, not pipeline %s which has dictionary '
-              'output_type %s. Use Output() without name instead.'
+              'output_type %s. Use DagOutput() without name instead.'
               % (key.name, key.name, val, val.output_type))
         yield key, val
       else:
@@ -443,23 +448,25 @@ class DAGPipeline(pipeline.Pipeline):
     return [self._validate_subordinate(sub) for sub in dep_list]
 
   def _validate_subordinate(self, subordinate):
-    """Verifies that subordinate is Input, Key, or Pipeline."""
+    """Verifies that subordinate is DagInput, PipelineKey, or Pipeline."""
     if isinstance(subordinate, pipeline.Pipeline):
       return subordinate
-    if isinstance(subordinate, pipeline.Key):
+    if isinstance(subordinate, pipeline.PipelineKey):
       if not isinstance(subordinate.unit, pipeline.Pipeline):
         raise InvalidDAGException(
-            'Key object %s does not have a valid Pipeline' % subordinate)
+            'PipelineKey object %s does not have a valid Pipeline'
+            % subordinate)
       return subordinate.unit
-    if isinstance(subordinate, Input):
+    if isinstance(subordinate, DagInput):
       return subordinate
     raise InvalidDAGException(
-        'Looking for Pipeline, Key, or Input object, but got %s'
+        'Looking for Pipeline, PipelineKey, or DagInput object, but got %s'
         % type(subordinate))
 
   def _get_type_signature_for_dependency(self, dependency):
     """Gets the type signature of the dependency output."""
-    if isinstance(dependency, (pipeline.Pipeline, pipeline.Key, Input)):
+    if isinstance(dependency,
+                  (pipeline.Pipeline, pipeline.PipelineKey, DagInput)):
       return dependency.output_type
     return dict([(name, sub_dep.output_type)
                  for name, sub_dep in dependency.items()])
@@ -489,7 +496,7 @@ class DAGPipeline(pipeline.Pipeline):
     for unit in self.call_list[1:]:
       # Compute transformation.
 
-      if isinstance(unit, Output):
+      if isinstance(unit, DagOutput):
         unit_outputs = self._get_outputs_as_signature(self.dag[unit], results)
       else:
         unit_inputs = self._get_inputs_for_unit(unit, results)
@@ -510,8 +517,8 @@ class DAGPipeline(pipeline.Pipeline):
     """Returns a list or dict which matches the type signature of dependency.
 
     Args:
-      dependency: Input, Key, Pipeline instance, or dictionary mapping names to
-          those values.
+      dependency: DagInput, PipelineKey, Pipeline instance, or dictionary
+          mapping names to those values.
       outputs: A database of computed unit outputs. A dictionary mapping
           Pipeline to list of objects.
 
@@ -520,13 +527,13 @@ class DAGPipeline(pipeline.Pipeline):
       signature of the given dependency.
     """
     def _get_outputs_for_key(unit_or_key, outputs):
-      if isinstance(unit_or_key, pipeline.Key):
+      if isinstance(unit_or_key, pipeline.PipelineKey):
         if not outputs[unit_or_key.unit]:
           # If there are no outputs, just return nothing.
           return outputs[unit_or_key.unit]
         assert isinstance(outputs[unit_or_key.unit], dict)
         return outputs[unit_or_key.unit][unit_or_key.key]
-      assert isinstance(unit_or_key, (pipeline.Pipeline, Input))
+      assert isinstance(unit_or_key, (pipeline.Pipeline, DagInput))
       return outputs[unit_or_key]
     if isinstance(dependency, dict):
       return dict([(name, _get_outputs_for_key(unit_or_key, outputs))
@@ -608,7 +615,7 @@ class DAGPipeline(pipeline.Pipeline):
         for k, val in d.items():
           if not isinstance(val, list):
             raise InvalidTransformOutputException(
-                'Output from %s for key %s is not a list.' % (unit, k))
+                'DagOutput from %s for key %s is not a list.' % (unit, k))
           if not _all_are_type(val, unit.output_type[k]):
             raise InvalidTransformOutputException(
                 'Some outputs from %s for key %s are not of expected type %s. '

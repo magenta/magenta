@@ -19,17 +19,17 @@ TensorFlow's SequenceExample protos for input to the melody RNN models.
 
 import os
 
-# internal imports
+import google3
 import tensorflow as tf
-import magenta
+from google3.third_party import magenta
 
-from magenta.models.melody_rnn import melody_rnn_config_flags
+from google3.third_party.magenta.models.melody_rnn import melody_rnn_config_flags
 
-from magenta.pipelines import dag_pipeline
-from magenta.pipelines import melody_pipelines
-from magenta.pipelines import pipeline
-from magenta.pipelines import pipelines_common
-from magenta.protobuf import music_pb2
+from google3.third_party.magenta.pipelines import dag_pipeline
+from google3.third_party.magenta.pipelines import melody_pipelines
+from google3.third_party.magenta.pipelines import pipeline
+from google3.third_party.magenta.pipelines import pipelines_common
+from google3.third_party.magenta.protobuf import music_pb2
 
 FLAGS = tf.app.flags.FLAGS
 tf.app.flags.DEFINE_string('input', None,
@@ -72,9 +72,6 @@ class EncoderPipeline(pipeline.Pipeline):
     encoded = self._melody_encoder_decoder.encode(melody)
     return [encoded]
 
-  def get_stats(self):
-    return {}
-
 
 def get_pipeline(config, eval_ratio):
   """Returns the Pipeline instance which creates the RNN dataset.
@@ -96,11 +93,11 @@ def get_pipeline(config, eval_ratio):
       ['eval_melodies', 'training_melodies'],
       [eval_ratio])
 
-  dag = {quantizer: dag_pipeline.Input(music_pb2.NoteSequence),
+  dag = {quantizer: dag_pipeline.DagInput(music_pb2.NoteSequence),
          melody_extractor: quantizer,
          encoder_pipeline: melody_extractor,
          partitioner: encoder_pipeline,
-         dag_pipeline.Output(): partitioner}
+         dag_pipeline.DagOutput(): partitioner}
   return dag_pipeline.DAGPipeline(dag)
 
 
