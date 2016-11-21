@@ -32,8 +32,8 @@ type signature: Something that can be returned from Pipeline's `output_type`
 
 import itertools
 
-import google3
-from google3.third_party.magenta.pipelines import pipeline
+# internal imports
+from magenta.pipelines import pipeline
 
 
 class DagOutput(object):

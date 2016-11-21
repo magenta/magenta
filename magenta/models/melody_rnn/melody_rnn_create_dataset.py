@@ -19,17 +19,17 @@ TensorFlow's SequenceExample protos for input to the melody RNN models.
 
 import os
 
-import google3
+# internal imports
 import tensorflow as tf
-from google3.third_party import magenta
+import magenta
 
-from google3.third_party.magenta.models.melody_rnn import melody_rnn_config_flags
+from magenta.models.melody_rnn import melody_rnn_config_flags
 
-from google3.third_party.magenta.pipelines import dag_pipeline
-from google3.third_party.magenta.pipelines import melody_pipelines
-from google3.third_party.magenta.pipelines import pipeline
-from google3.third_party.magenta.pipelines import pipelines_common
-from google3.third_party.magenta.protobuf import music_pb2
+from magenta.pipelines import dag_pipeline
+from magenta.pipelines import melody_pipelines
+from magenta.pipelines import pipeline
+from magenta.pipelines import pipelines_common
+from magenta.protobuf import music_pb2
 
 FLAGS = tf.app.flags.FLAGS
 tf.app.flags.DEFINE_string('input', None,

@@ -17,7 +17,7 @@ import abc
 import bisect
 import copy
 
-import google3
+# internal imports
 import tensorflow as tf
 
 

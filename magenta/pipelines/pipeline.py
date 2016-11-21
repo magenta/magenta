@@ -17,10 +17,10 @@ import abc
 import inspect
 import os.path
 
-import google3
+# internal imports
 import tensorflow as tf
 
-from google3.third_party.magenta.pipelines import statistics
+from magenta.pipelines import statistics
 
 
 class InvalidTypeSignatureException(Exception):

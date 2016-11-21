@@ -16,12 +16,12 @@
 import os
 import tempfile
 
-import google3
+# internal imports
 import tensorflow as tf
 
-from google3.third_party.magenta.common import testing_lib
-from google3.third_party.magenta.pipelines import pipeline
-from google3.third_party.magenta.pipelines import statistics
+from magenta.common import testing_lib
+from magenta.pipelines import pipeline
+from magenta.pipelines import statistics
 
 
 MockStringProto = testing_lib.MockStringProto  # pylint: disable=invalid-name
