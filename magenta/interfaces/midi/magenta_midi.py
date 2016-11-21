@@ -64,7 +64,13 @@ tf.app.flags.DEFINE_integer(
 tf.app.flags.DEFINE_integer(
     'qpm',
     90,
-    'The quarters per minute to use for the metronome and generated sequence.')
+    'The quarters per minute to use for the metronome and generated sequence.'
+    'Overriden by values of control change signals for `tempo_control_number`.')
+tf.app.flags.DEFINE_integer(
+    'tempo_control_number',
+    None,
+    'The control change number to use for controlling tempo. qpm will be set '
+    'to 60 more than the value of the control change.')
 tf.app.flags.DEFINE_string(
     'bundle_files',
     None,
@@ -139,14 +145,14 @@ def _print_instructions():
   print 'Instructions:'
   if FLAGS.start_call_control_number is not None:
     print ('When you want to begin the call phrase, signal control number %d '
-           'with value 0.' % FLAGS.start_call_control_number)
+           'with value 127.' % FLAGS.start_call_control_number)
   print 'Play when you hear the metronome ticking.'
   if FLAGS.phrase_bars is not None:
     print ('After %d bars (4 beats), Magenta will play its response.' %
            FLAGS.phrase_bars)
   else:
     print ('When you want to end the call phrase, signal control number %d '
-           'with value 0' % FLAGS.end_call_control_number)
+           'with value 127' % FLAGS.end_call_control_number)
     print ('At the end of the current bar (4 beats), Magenta will play its '
            'response.')
   if FLAGS.start_call_control_number is not None:
@@ -184,15 +190,16 @@ def main(unused_argv):
 
   start_call_signal = (
       None if FLAGS.start_call_control_number is None else
-      midi_hub.MidiSignal(control=FLAGS.start_call_control_number, value=0))
+      midi_hub.MidiSignal(control=FLAGS.start_call_control_number, value=127))
   end_call_signal = (
       None if FLAGS.end_call_control_number is None else
-      midi_hub.MidiSignal(control=FLAGS.end_call_control_number, value=0))
+      midi_hub.MidiSignal(control=FLAGS.end_call_control_number, value=127))
   interaction = midi_interaction.CallAndResponseMidiInteraction(
       hub,
       generators,
       FLAGS.qpm,
       generator_select_control_number=FLAGS.generator_select_control_number,
+      tempo_control_number=FLAGS.tempo_control_number,
       phrase_bars=FLAGS.phrase_bars,
       start_call_signal=start_call_signal,
       end_call_signal=end_call_signal,
