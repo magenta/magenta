@@ -382,11 +382,33 @@ class ExternalClockCallAndResponse(MidiInteraction):
         the call phrase at the end of the current tick.
     allow_overlap: A boolean specifying whether to allow the call to overlap
         with the response.
-    duration_control_number: The optional control change number to use for
-        controlling the length of the response in bars.
+    min_listen_ticks_control_number: The optional control change number to use
+        for controlling the minimum call phrase length in clock ticks.
+    max_listen_ticks_control_number: The optional control change number to use
+        for controlling the maximum call phrase length in clock ticks.
+    response_ticks_control_number: The optional control change number to use for
+        controlling the length of the response in clock ticks.
     temperature_control_number: The optional control change number to use for
         controlling temperature.
+    state_control_number: The optinal control change number to use for sending
+        state update control changes. The values are 0 for `IDLE`, 1 for
+        `LISTENING`, and 2 for `RESPONDING`.
     """
+
+  class State(object):
+    """Class holding state value representations."""
+    IDLE = 0
+    LISTENING = 1
+    RESPONDING = 2
+
+    _STATE_NAMES = {
+        IDLE: 'Idle', LISTENING: 'Listening', RESPONDING:'Responding'}
+
+    @classmethod
+    def to_string(cls, state):
+      return cls._STATE_NAMES[state]
+
+
   def __init__(self,
                midi_hub,
                sequence_generators,
@@ -399,7 +421,8 @@ class ExternalClockCallAndResponse(MidiInteraction):
                min_listen_ticks_control_number=None,
                max_listen_ticks_control_number=None,
                response_ticks_control_number=None,
-               temperature_control_number=None):
+               temperature_control_number=None,
+               state_control_number=None):
     super(ExternalClockCallAndResponse, self).__init__(
         midi_hub, sequence_generators, qpm, generator_select_control_number)
     self._clock_signal = clock_signal
@@ -409,15 +432,24 @@ class ExternalClockCallAndResponse(MidiInteraction):
     self._max_listen_ticks_control_number = max_listen_ticks_control_number
     self._response_ticks_control_number = response_ticks_control_number
     self._temperature_control_number = temperature_control_number
+    self._state_control_number = state_control_number
     # Event for signalling when to end a call.
     self._end_call = threading.Event()
 
+  def _update_state(self, state):
+    """Logs and sends a control change with the state."""
+    if self._state_control_number is not None:
+      self._midi_hub.send_control_change(self._state_control_number, state)
+    tf.logging.info('State: %s', self.State.to_string(state))
+
   def _end_call_callback(self, unused_captured_seq):
+    """Method to use as a callback for setting the end call signal."""
     self._end_call.set()
     tf.logging.info('End call signal received.')
 
   @property
   def _min_listen_ticks(self):
+    """Returns the min listen ticks based on the current control value."""
     if self._min_listen_ticks_control_number is None:
       return 0
     val = self._midi_hub.control_number(
@@ -426,6 +458,7 @@ class ExternalClockCallAndResponse(MidiInteraction):
 
   @property
   def _max_listen_ticks(self):
+    """Returns the max listen ticks based on the current control value."""
     if self._max_listen_ticks_control_number is None:
       return float('inf')
     val = self._midi_hub.control_number(
@@ -461,7 +494,7 @@ class ExternalClockCallAndResponse(MidiInteraction):
       listen_ticks += 1
       if not captured_sequence.notes:
         # Reset captured sequence since we are still idling.
-        tf.logging.info('Idle...')
+        self._update_state(self.State.IDLE)
         self._captor.start_time = tick_time
         self._end_call.clear()
         listen_ticks = 0
@@ -476,7 +509,7 @@ class ExternalClockCallAndResponse(MidiInteraction):
           self._captor.start_time = tick_time
         else:
           # Create response and start playback.
-          tf.logging.info('Responding...')
+          self._update_state(self.State.RESPONDING)
 
           # Compute duration of response.
           num_ticks = (
@@ -525,7 +558,7 @@ class ExternalClockCallAndResponse(MidiInteraction):
         listen_ticks = 0
       else:
         # Continue listening.
-        tf.logging.info('Listening...')
+        self._update_state(self.State.LISTENING)
 
       last_tick_time = tick_time
 

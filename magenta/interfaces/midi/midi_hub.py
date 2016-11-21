@@ -1083,3 +1083,11 @@ class MidiHub(object):
       None if no values have been received for that control.
     """
     return self._control_values.get(control_number)
+
+  def send_control_change(self, control_number, value):
+    """Sends the specified control change message on the output port."""
+    self._outport.send(
+      mido.Message(
+          type='control_change',
+          control_number=control_number,
+          value=value))

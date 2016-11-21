@@ -101,6 +101,11 @@ tf.app.flags.DEFINE_integer(
     'The control number to use for selecting between generators when multiple '
     'bundle files are specified. Required unless only a single bundle file is '
     'specified.')
+tf.app.flags.DEFINE_integer(
+    'state_control_number',
+    None,
+    'The control number to use for sending the state. A value of 0 represents '
+    '`IDLE`, 1 is `LISTENING`, and 2 is `RESPONDING`.')
 tf.app.flags.DEFINE_string(
     'log', 'WARN',
     'The threshold for what messages will be logged. DEBUG, INFO, WARN, ERROR, '
@@ -214,7 +219,8 @@ def main(unused_argv):
       min_listen_ticks_control_number=FLAGS.min_listen_ticks_control_number,
       max_listen_ticks_control_number=FLAGS.max_listen_ticks_control_number,
       response_ticks_control_number=FLAGS.response_ticks_control_number,
-      temperature_control_number=FLAGS.temperature_control_number)
+      temperature_control_number=FLAGS.temperature_control_number,
+      state_control_number=FLAGS.state_control_number)
 
   _print_instructions()
 
