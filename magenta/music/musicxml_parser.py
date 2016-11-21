@@ -423,13 +423,13 @@ class Measure(object):
         self.notes.append(note)
         # Keep track of current note as previous note for chord timings
         self.state.previous_note = note
-      elif child.tag == 'harmony':
-        chord_symbol = ChordSymbol(child, self.state)
-        self.chord_symbols.append(chord_symbol)
-
+        
         # Sum up the MusicXML durations in voice 1 of this measure
         if note.voice == 1 and not note.is_in_chord:
           self.duration += note.note_duration.duration
+      elif child.tag == 'harmony':
+        chord_symbol = ChordSymbol(child, self.state)
+        self.chord_symbols.append(chord_symbol)
 
       else:
         # Ignore other tag types because they are not relevant to Magenta.
