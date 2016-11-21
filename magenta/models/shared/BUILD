@@ -12,74 +12,55 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Description:
-# Libraries for using TensorFlow with music and art.
+# Description: Shared functionality for models.
 
 package(
-    default_visibility = ["//magenta:__subpackages__"],
+    default_visibility = [
+        "//magenta/models:__subpackages__",
+        # internal models
+    ],
 )
 
 licenses(["notice"])  # Apache 2.0
 
-# The Magenta public API.
 py_library(
-    name = "common",
-    srcs = ["__init__.py"],
-    deps = [
-        ":concurrency",
-        ":sequence_example_lib",
-        ":testing_lib",
-        ":tf_lib",
-    ],
-)
-
-py_library(
-    name = "concurrency",
-    srcs = ["concurrency.py"],
+    name = "events_rnn_graph",
+    srcs = ["events_rnn_graph.py"],
     srcs_version = "PY2AND3",
+    deps = [
+        "//magenta",
+        # tensorflow dep
+    ],
 )
 
 py_test(
-    name = "concurrency_test",
-    srcs = ["concurrency_test.py"],
+    name = "events_rnn_graph_test",
+    srcs = ["events_rnn_graph_test.py"],
     srcs_version = "PY2AND3",
     deps = [
-        ":concurrency",
+        ":events_rnn_graph",
+        ":events_rnn_model",
+        "//magenta",
         # tensorflow dep
     ],
 )
 
 py_library(
-    name = "sequence_example_lib",
-    srcs = ["sequence_example_lib.py"],
+    name = "events_rnn_model",
+    srcs = ["events_rnn_model.py"],
     srcs_version = "PY2AND3",
     deps = [
+        ":events_rnn_graph",
+        "//magenta",
         # tensorflow dep
     ],
 )
 
 py_library(
-    name = "testing_lib",
-    srcs = ["testing_lib.py"],
-    deps = [
-        "@protobuf//:protobuf_python",
-        # numpy dep
-    ],
-)
-
-py_library(
-    name = "tf_lib",
-    srcs = ["tf_lib.py"],
-    srcs_version = "PY2AND3",
-)
-
-py_test(
-    name = "tf_lib_test",
-    srcs = ["tf_lib_test.py"],
+    name = "events_rnn_train",
+    srcs = ["events_rnn_train.py"],
     srcs_version = "PY2AND3",
     deps = [
-        ":tf_lib",
         # tensorflow dep
     ],
 )
-

@@ -22,6 +22,7 @@ from magenta.music import constants
 from magenta.music import sequences_lib
 from magenta.music import testing_lib
 from magenta.pipelines import chord_pipelines
+from magenta.protobuf import music_pb2
 
 NO_CHORD = constants.NO_CHORD
 
@@ -38,11 +39,19 @@ class ChordPipelinesTest(tf.test.TestCase):
       self.assertEqual(unit.output_type, type(outputs[0]))
 
   def testChordsExtractor(self):
-    quantized_sequence = sequences_lib.QuantizedSequence()
-    quantized_sequence.steps_per_quarter = 1
-    testing_lib.add_quantized_chords_to_sequence(
-        quantized_sequence, [('C', 2), ('Am', 4), ('F', 5)])
-    quantized_sequence.total_steps = 8
+    note_sequence = common_testing_lib.parse_test_proto(
+        music_pb2.NoteSequence,
+        """
+        time_signatures: {
+          numerator: 4
+          denominator: 4}
+        tempos: {
+          qpm: 60}""")
+    testing_lib.add_chords_to_sequence(
+        note_sequence, [('C', 2), ('Am', 4), ('F', 5)])
+    quantized_sequence = sequences_lib.quantize_note_sequence(
+        note_sequence, steps_per_quarter=1)
+    quantized_sequence.total_quantized_steps = 8
     expected_events = [[NO_CHORD, NO_CHORD, 'C', 'C', 'Am', 'F', 'F', 'F']]
     expected_chord_progressions = []
     for events_list in expected_events:

@@ -289,9 +289,8 @@ class NoteRNNLoader(object):
       return
 
     self.primer_sequence = midi_io.midi_file_to_sequence_proto(self.midi_primer)
-    quantized_seq = sequences_lib.QuantizedSequence()
-    quantized_seq.from_note_sequence(self.primer_sequence,
-                                     steps_per_quarter=4)
+    quantized_seq = sequences_lib.quantize_note_sequence(
+        self.primer_sequence, steps_per_quarter=4)
     extracted_melodies, _ = melodies_lib.extract_melodies(quantized_seq,
                                                           min_bars=0,
                                                           min_unique_pitches=1)
