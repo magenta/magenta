@@ -52,7 +52,7 @@ class Statistic(object):
           with the same name will be merged together. The name should also
           describe what this Statistic is measuring.
     """
-    self._name = name
+    self.name = name
 
   @abc.abstractmethod
   def _merge_from(self, other):
