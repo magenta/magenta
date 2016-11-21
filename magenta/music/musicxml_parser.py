@@ -95,7 +95,7 @@ class MusicXMLParserState(object):
     # Keep track of current transposition level in +/- semitones.
     self.transpose = 0
 
-    # Keep track of current time signature. Does not support polymeter
+    # Keep track of current time signature. Does not support polymeter.
     self.time_signature = None
 
 
@@ -378,8 +378,6 @@ class Part(object):
     xml_measures = xml_part.findall('measure')
     for child in xml_measures:
       measure = Measure(child, self._state)
-      # Update the time signature if a partial or pickup measure
-      measure.check_time_signature()
       self.measures.append(measure)
 
   def __str__(self):
@@ -405,6 +403,8 @@ class Measure(object):
     # can be inserted at the beginning of the measure
     self.start_time_position = self.state.time_position
     self._parse()
+    # Update the time signature if a partial or pickup measure
+    self._check_time_signature()
 
   def _parse(self):
     """Parse the <measure> element."""
@@ -501,14 +501,16 @@ class Measure(object):
                * self.state.seconds_per_quarter)
     self.state.time_position += seconds
 
-  def check_time_signature(self):
+  def _check_time_signature(self):
     """Correct the time signature for incomplete measures.
 
     If the measure is incomplete or a pickup, insert an appropriate
     time signature into this Measure.
     """
     # Compute the fractional time signature (duration / divisions)
-    fractional_time_signature = Fraction(self.duration, self.state.divisions)
+    # Multiply divisions by 4 because division is always parts per quarter note
+    fractional_time_signature = Fraction(self.duration,
+                                         self.state.divisions * 4)
 
     if self.state.time_signature is None and self.time_signature is None:
       # No global time signature yet and no time signature defined
@@ -516,9 +518,6 @@ class Measure(object):
       # Insert the fractional time signature as the time signature
       # for this measure
 
-      # If no time signature is given, assume an underlying quarter note pulse
-      fractional_time_signature = Fraction(self.duration,
-                                           self.state.divisions * 4)
       self.time_signature = TimeSignature(self.state)
       self.time_signature.numerator = fractional_time_signature.numerator
       self.time_signature.denominator = fractional_time_signature.denominator
@@ -529,11 +528,8 @@ class Measure(object):
       if self.state.time_signature is None:
         self.state.time_signature = self.time_signature
 
-      # Multiply by a time signature of
-      # 1 / (current time signature denominator)
+      # Get the current time signature denominator
       global_time_signature_denominator = self.state.time_signature.denominator
-      fractional_time_signature *= Fraction(1,
-                                            global_time_signature_denominator)
 
       # If the fractional time signature = 1 (e.g. 4/4),
       # make the numerator the same as the global denominator
