@@ -92,14 +92,14 @@ def get_pipeline(config, eval_ratio):
       ['eval_drum_tracks', 'training_drum_tracks'],
       [eval_ratio])
 
-  dag = {quantizer: dag_pipeline.Input(music_pb2.NoteSequence),
+  dag = {quantizer: dag_pipeline.DagInput(music_pb2.NoteSequence),
          partitioner: quantizer,
          drums_extractor_train: partitioner['training_drum_tracks'],
          drums_extractor_eval: partitioner['eval_drum_tracks'],
          encoder_pipeline_train: drums_extractor_train,
          encoder_pipeline_eval: drums_extractor_eval,
-         dag_pipeline.Output('training_drum_tracks'): encoder_pipeline_train,
-         dag_pipeline.Output('eval_drum_tracks'): encoder_pipeline_eval}
+         dag_pipeline.DagOutput('training_drum_tracks'): encoder_pipeline_train,
+         dag_pipeline.DagOutput('eval_drum_tracks'): encoder_pipeline_eval}
   return dag_pipeline.DAGPipeline(dag)
 
 
