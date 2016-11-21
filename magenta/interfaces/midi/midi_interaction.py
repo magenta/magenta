@@ -452,6 +452,9 @@ class ExternalClockCallAndResponse(MidiInteraction):
       if self._stop_signal.is_set():
         break
 
+      # Set to current QPM, since it might have changed.
+      captured_sequence.tempos[0].qpm = self._qpm
+
       tick_time = captured_sequence.total_time
       last_end_time = (max(note.end_time for note in captured_sequence.notes)
                        if captured_sequence.notes else None)
