@@ -67,14 +67,15 @@ def main(unused_argv):
     tf.logging.fatal('--sequence_example_file required')
     return
 
-  sequence_example_file = os.path.expanduser(FLAGS.sequence_example_file)
+  sequence_example_file_paths = tf.gfile.Glob(
+      os.path.expanduser(FLAGS.sequence_example_file))
   run_dir = os.path.expanduser(FLAGS.run_dir)
 
   config = melody_rnn_config_flags.config_from_flags()
 
   mode = 'eval' if FLAGS.eval else 'train'
   graph = events_rnn_graph.build_graph(
-      mode, config, sequence_example_file)
+      mode, config, sequence_example_file_paths)
 
   train_dir = os.path.join(run_dir, 'train')
   if not os.path.exists(train_dir):
