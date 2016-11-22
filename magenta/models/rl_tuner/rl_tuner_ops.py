@@ -101,8 +101,7 @@ def basic_rnn_hparams():
   Returns:
     Hyperparameters of the downloadable basic_rnn pre-trained model.
   """
-  # TODO(natashajaques): ability to restore basic_rnn from any .mag
-  # file.
+  # TODO(natashajaques): ability to restore basic_rnn from any .mag file.
   return tf_lib.HParams(batch_size=128,
                         dropout_keep_prob=0.5,
                         clip_norm=5,
@@ -267,7 +266,7 @@ def get_variable_names(graph, scope):
     List of variables.
   """
   with graph.as_default():
-    return [v.name for v in tf.all_variables() if v.name.startswith(scope)]
+    return [v.name for v in tf.global_variables() if v.name.startswith(scope)]
 
 
 def get_next_file_name(directory, prefix, extension):
@@ -290,28 +289,6 @@ def get_next_file_name(directory, prefix, extension):
     i += 1
     name = directory + '/' + prefix + str(i) + '.' + extension
   return name
-
-
-def make_cell(hparams, note_rnn_type, state_is_tuple=False):
-  """Makes a basic LSTM cell for use in the NoteRNNLoader graph."""
-  cells = []
-  for num_units in hparams.rnn_layer_sizes:
-    if note_rnn_type == 'default':
-      cell = tf.nn.rnn_cell.LSTMCell(
-          num_units, state_is_tuple=state_is_tuple)
-    else:
-      cell = tf.nn.rnn_cell.BasicLSTMCell(
-          num_units, state_is_tuple=state_is_tuple)
-      cell = tf.nn.rnn_cell.DropoutWrapper(
-          cell, output_keep_prob=hparams.dropout_keep_prob)
-    cells.append(cell)
-
-  cell = tf.nn.rnn_cell.MultiRNNCell(cells, state_is_tuple=state_is_tuple)
-  if hparams.attn_length:
-    cell = tf.contrib.rnn.AttentionCellWrapper(
-        cell, hparams.attn_length, state_is_tuple=state_is_tuple)
-
-  return cell
 
 
 def log_sum_exp(xs):

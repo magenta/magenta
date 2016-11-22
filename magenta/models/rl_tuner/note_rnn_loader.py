@@ -41,6 +41,7 @@ import tensorflow as tf
 import magenta
 from magenta.common import sequence_example_lib
 from magenta.models.rl_tuner import rl_tuner_ops
+from magenta.models.shared import events_rnn_graph
 from magenta.music import melodies_lib
 from magenta.music import midi_io
 from magenta.music import sequences_lib
@@ -151,7 +152,7 @@ class NoteRNNLoader(object):
         self.session = tf.Session(graph=self.graph)
       else:
         self.session = session
-      self.session.run(tf.initialize_all_variables())
+      self.session.run(tf.global_variables_initializer())
 
   def get_variable_name_dict(self):
     """Constructs a dict mapping the checkpoint variables to those in new graph.
@@ -185,8 +186,14 @@ class NoteRNNLoader(object):
         with tf.variable_scope(self.scope):
           # Make an LSTM cell with the number and size of layers specified in
           # hparams.
-          self.cell = rl_tuner_ops.make_cell(self.hparams, self.note_rnn_type)
-
+          self.cell = (
+              events_rnn_graph.make_rnn_cell(
+                  self.hparams.rnn_layer_sizes,
+                  base_cell=tf.nn.rnn_cell.LSTMCell)
+              if self.note_rnn_type == 'default'
+              else events_rnn_graph.make_rnn_cell(
+                  self.hparams.rnn_layer_sizes,
+                  self.hparams.dropout_keep_prob))
           # Shape of melody_sequence is batch size, melody length, number of
           # output note actions.
           self.melody_sequence = tf.placeholder(tf.float32,
