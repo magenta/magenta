@@ -467,8 +467,7 @@ class ExternalClockCallAndResponse(MidiInteraction):
 
   def run(self):
     """The main loop for a real-time call and response interaction."""
-    # TODO(adarob): Update qpm.
-    self._captor = self._midi_hub.start_capture(self._qpm, 0)
+    self._captor = self._midi_hub.start_capture(self._qpm, time.time())
 
     # Set callback for end call signal.
     if self._end_call_signal is not None:
@@ -493,6 +492,10 @@ class ExternalClockCallAndResponse(MidiInteraction):
                        if captured_sequence.notes else None)
 
       listen_ticks += 1
+
+      response_sequence = music_pb2.NoteSequence()
+      player = self._midi_hub.start_playback(
+          response_sequence, allow_updates=True)
 
       if not captured_sequence.notes:
         # Reset captured sequence since we are still idling.
@@ -547,8 +550,8 @@ class ExternalClockCallAndResponse(MidiInteraction):
               captured_sequence, generator_options)
           # Start response playback. Specify the start_time to avoid stripping
           # initial events due to generation lag.
-          self._midi_hub.start_playback(response_sequence,
-                                        start_time=response_start_time)
+          player.update_sequence(
+              response_sequence, start_time=response_start_time)
 
           # Optionally capture during playback.
           if self._allow_overlap:
