@@ -283,7 +283,7 @@ class EventSequenceRnnModel(mm.BaseModel):
     if control_events is not None:
       # We are conditioning on a control sequence.
       inputs = self._config.encoder_decoder.get_inputs_batch(
-          event_sequences, control_events, full_length=True)
+          control_events, event_sequences, full_length=True)
     else:
       inputs = self._config.encoder_decoder.get_inputs_batch(
           event_sequences, full_length=True)
@@ -302,7 +302,7 @@ class EventSequenceRnnModel(mm.BaseModel):
       if control_events is not None:
         # We are conditioning on a control sequence.
         inputs = self._config.encoder_decoder.get_inputs_batch(
-            event_sequences, control_events)
+            control_events, event_sequences)
       else:
         inputs = self._config.encoder_decoder.get_inputs_batch(event_sequences)
       event_sequences, final_state, loglik = self._generate_branches(
@@ -319,7 +319,8 @@ class EventSequenceRnnModel(mm.BaseModel):
     return event_sequences[0]
 
   def _generate_events(self, num_steps, primer_events, temperature=1.0,
-                       beam_size=1, branch_factor=1, steps_per_iteration=1):
+                       beam_size=1, branch_factor=1, steps_per_iteration=1,
+                       control_events=None):
     """Generate an event sequence from a primer sequence.
 
     Args:
@@ -334,6 +335,10 @@ class EventSequenceRnnModel(mm.BaseModel):
       branch_factor: An integer, beam search branch factor to use.
       steps_per_iteration: An integer, number of steps to take per beam search
           iteration.
+      control_events: A sequence of control events upon which to condition the
+          generation. If not None, the encoder/decoder should be a
+          ConditionalEventSequenceEncoderDecoder, and the control events will be
+          used along with the target sequence to generate model inputs.
 
     Returns:
       The generated event sequence (which begins with the provided primer).
@@ -342,17 +347,28 @@ class EventSequenceRnnModel(mm.BaseModel):
       EventSequenceRnnModelException: If the primer sequence has zero length or
           is not shorter than num_steps.
     """
+    if (control_events is not None and
+        not isinstance(self.encoder_decoder,
+                       mm.ConditionalEventSequenceEncoderDecoder)):
+      raise EventSequenceRnnModelException(
+          'control sequence provided but encoder/decoder is not a '
+          'ConditionalEventSequenceEncoderDecoder')
+
     if not primer_events:
       raise EventSequenceRnnModelException(
           'primer sequence must have non-zero length')
     if len(primer_events) >= num_steps:
       raise EventSequenceRnnModelException(
           'primer sequence must be shorter than `num_steps`')
+    if control_events is not None and len(control_events) < num_steps:
+      raise EventSequenceRnnModelException(
+          'control sequence must be at least `num_steps`')
 
     events = primer_events
     if num_steps > len(primer_events):
       events = self._beam_search(events, num_steps - len(events), temperature,
-                                 beam_size, branch_factor, steps_per_iteration)
+                                 beam_size, branch_factor, steps_per_iteration,
+                                 control_events)
     return events
 
 
