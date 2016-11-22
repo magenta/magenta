@@ -491,11 +491,14 @@ class ExternalClockCallAndResponse(MidiInteraction):
       tick_time = captured_sequence.total_time
       last_end_time = (max(note.end_time for note in captured_sequence.notes)
                        if captured_sequence.notes else None)
+
       listen_ticks += 1
+
       if not captured_sequence.notes:
         # Reset captured sequence since we are still idling.
         self._update_state(self.State.IDLE)
-        self._captor.start_time = tick_time
+        if self._captor.start_time < tick_time:
+          self._captor.start_time = tick_time
         self._end_call.clear()
         listen_ticks = 0
       elif (self._end_call.is_set() or
