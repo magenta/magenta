@@ -452,7 +452,7 @@ class ExternalClockCallAndResponse(MidiInteraction):
     """Returns the min listen ticks based on the current control value."""
     if self._min_listen_ticks_control_number is None:
       return 0
-    val = self._midi_hub.control_number(
+    val = self._midi_hub.control_value(
         self._min_listen_ticks_control_number)
     return 0 if val is None else val
 
@@ -461,7 +461,7 @@ class ExternalClockCallAndResponse(MidiInteraction):
     """Returns the max listen ticks based on the current control value."""
     if self._max_listen_ticks_control_number is None:
       return float('inf')
-    val = self._midi_hub.control_number(
+    val = self._midi_hub.control_value(
         self._max_listen_ticks_control_number)
     return float('inf') if val == 0 else val
 
@@ -513,7 +513,7 @@ class ExternalClockCallAndResponse(MidiInteraction):
 
           # Compute duration of response.
           num_ticks = (
-              self._midi_hub.control_number(self._response_ticks_control_number)
+              self._midi_hub.control_value(self._response_ticks_control_number)
               if self._response_ticks_control_number is not None else None)
           if num_ticks is not None and num_ticks > 0:
             response_duration = num_ticks * (last_tick_time - tick_time)
