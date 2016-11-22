@@ -52,6 +52,13 @@ class ChordSymbolParseException(MusicXMLParseException):
   """Exception thrown when a chord symbol cannot be parsed."""
   pass
 
+class MultipleTimeSignatureException(MusicXMLParseException):
+  """Exception thrown when multiple time signatures found in a measure."""
+  pass
+
+class AlternatingTimeSignatureException(MusicXMLParseException):
+  """Exception thrown when an alternating time signature is encountered."""
+  pass
 
 class MusicXMLParserState(object):
   """Maintains internal state of the MusicXML parser."""
@@ -423,7 +430,7 @@ class Measure(object):
         self.notes.append(note)
         # Keep track of current note as previous note for chord timings
         self.state.previous_note = note
-        
+
         # Sum up the MusicXML durations in voice 1 of this measure
         if note.voice == 1 and not note.is_in_chord:
           self.duration += note.note_duration.duration
@@ -444,7 +451,10 @@ class Measure(object):
       elif child.tag == 'key':
         self.key_signature = KeySignature(self.state, child)
       elif child.tag == 'time':
-        self.time_signature = TimeSignature(self.state, child)
+        if self.time_signature is None:
+          self.time_signature = TimeSignature(self.state, child)
+        else:
+          raise MultipleTimeSignatureException("Multiple time signatures")
       elif child.tag == 'transpose':
         transpose = int(child.find('chromatic').text)
         self.state.transpose = transpose
@@ -1083,6 +1093,12 @@ class TimeSignature(object):
 
   def _parse(self):
     """Parse the MusicXML <time> element."""
+    if (len(self.xml_time.findall('beats')) > 1 or
+        len(self.xml_time.findall('beat-type')) > 1):
+      # If more than 1 beats or beat-type found, this time signature is
+      # not supported (ex: alternating meter)
+      raise AlternatingTimeSignatureException("Alternating Time Signature")
+
     self.numerator = int(self.xml_time.find('beats').text)
     self.denominator = int(self.xml_time.find('beat-type').text)
     self.time_position = self.state.time_position

@@ -102,8 +102,8 @@ class MusicXMLParserTest(tf.test.TestCase):
 
     self.chord_symbols_filename = os.path.join(
         tf.resource_loader.get_data_files_path(),
-        'testdata/chord_symbols.xml')        
-        
+        'testdata/chord_symbols.xml')
+
     self.time_signature_filename = os.path.join(
         tf.resource_loader.get_data_files_path(),
         'testdata/st_anne.xml')
@@ -111,6 +111,14 @@ class MusicXMLParserTest(tf.test.TestCase):
     self.unmetered_filename = os.path.join(
         tf.resource_loader.get_data_files_path(),
         'testdata/unmetered_example.xml')
+
+    self.alternating_meter_filename = os.path.join(
+        tf.resource_loader.get_data_files_path(),
+        'testdata/alternating_meter.xml')
+
+    self.mid_measure_meter_filename = os.path.join(
+        tf.resource_loader.get_data_files_path(),
+        'testdata/mid_measure_time_signature.xml')
 
   def checkmusicxmlandsequence(self, musicxml, sequence_proto):
     """Compares MusicXMLDocument object against a sequence proto.
@@ -932,6 +940,19 @@ class MusicXMLParserTest(tf.test.TestCase):
                                  for beat, chord in expected_beats_and_chords]
     self.assertEqual(expected_times_and_chords, chord_symbols)
 
+  def test_alternating_meter(self):
+    try:
+      ns = musicxml_reader.musicxml_file_to_sequence_proto(
+          self.alternating_meter_filename)
+    except musicxml_reader.MusicXMLConversionError as exception:
+      print("Caught AlternatingTimeSignatureException")
+
+  def test_mid_measure_meter_change(self):
+    try:
+      ns = musicxml_reader.musicxml_file_to_sequence_proto(
+          self.mid_measure_meter_filename)
+    except musicxml_reader.MusicXMLConversionError as exception:
+      print("Caught MultipleTimeSignatureException")
 
 if __name__ == '__main__':
   tf.test.main()
