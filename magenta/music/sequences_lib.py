@@ -64,7 +64,8 @@ def extract_subsequence(sequence, start_time, end_time):
   """Extracts a subsequence from a NoteSequence.
 
   Notes starting before `start_time` are not included. Notes ending after
-  `end_time` are truncated.
+  `end_time` are truncated. Text annotations (including chord symbols) are also
+  only included if between `start_time` and `end_time`.
 
   Args:
     sequence: The NoteSequence to extract a subsequence from.
@@ -77,6 +78,7 @@ def extract_subsequence(sequence, start_time, end_time):
   """
   subsequence = music_pb2.NoteSequence()
   subsequence.CopyFrom(sequence)
+
   del subsequence.notes[:]
   for note in sequence.notes:
     if note.start_time < start_time or note.start_time >= end_time:
@@ -85,6 +87,13 @@ def extract_subsequence(sequence, start_time, end_time):
     new_note.CopyFrom(note)
     new_note.end_time = min(note.end_time, end_time)
   subsequence.total_time = min(sequence.total_time, end_time)
+
+  del subsequence.text_annotations[:]
+  for annotation in sequence.text_annotations:
+    if annotation.time < start_time or annotation.time >= end_time:
+      continue
+    new_annotation = subsequence.text_annotations.add()
+    new_annotation.CopyFrom(annotation)
   return subsequence
 
 
