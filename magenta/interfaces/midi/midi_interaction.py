@@ -515,8 +515,9 @@ class ExternalClockCallAndResponse(MidiInteraction):
           num_ticks = (
               self._midi_hub.control_value(self._response_ticks_control_number)
               if self._response_ticks_control_number is not None else None)
-          if num_ticks is not None and num_ticks > 0:
-            response_duration = num_ticks * (last_tick_time - tick_time)
+          if num_ticks:
+            response_duration = num_ticks * (tick_time - last_tick_time)
+            print response_duration
           else:
             # Use capture duration.
             response_duration = tick_time - self._captor.start_time
