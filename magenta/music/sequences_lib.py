@@ -177,13 +177,19 @@ def quantize_note_sequence(note_sequence, steps_per_quarter):
         time_signatures[0].denominator == 4):
       raise MultipleTimeSignatureException(
           'NoteSequence has an implicit change from initial 4/4 time '
-          'signature.')
+          'signature to %d/%d at %.2f seconds.' % (
+              time_signatures[0].numerator, time_signatures[0].denominator,
+              time_signatures[0].time))
 
     for time_signature in time_signatures[1:]:
       if (time_signature.numerator != qns.time_signatures[0].numerator or
           time_signature.denominator != qns.time_signatures[0].denominator):
         raise MultipleTimeSignatureException(
-            'NoteSequence has at least one time signature change.')
+            'NoteSequence has at least one time signature change from %d/%d to '
+            '%d/%d at %.2f seconds.' % (
+                time_signatures[0].numerator, time_signatures[0].denominator,
+                time_signature.numerator, time_signature.denominator,
+                time_signature.time))
 
     # Make it clear that there is only 1 time signature and it starts at the
     # beginning.
@@ -208,12 +214,17 @@ def quantize_note_sequence(note_sequence, steps_per_quarter):
     if tempos[0].time != 0 and (
         tempos[0].qpm != constants.DEFAULT_QUARTERS_PER_MINUTE):
       raise MultipleTempoException(
-          'NoteSequence has an implicit tempo change from initial 120.0 qpm')
+          'NoteSequence has an implicit tempo change from initial %.1f qpm to '
+          '%.1f qpm at %.2f seconds.' % (
+              constants.DEFAULT_QUARTERS_PER_MINUTE, tempos[0].qpm,
+              tempos[0].time))
 
     for tempo in tempos[1:]:
       if tempo.qpm != qns.tempos[0].qpm:
         raise MultipleTempoException(
-            'NoteSequence has at least one tempo change.')
+            'NoteSequence has at least one tempo change from %f qpm to %f qpm '
+            'at %.2f seconds.' % (tempos[0].qpm, tempo.qpm, tempo.time))
+
     # Make it clear that there is only 1 tempo and it starts at the beginning.
     qns.tempos[0].time = 0
     del qns.tempos[1:]
