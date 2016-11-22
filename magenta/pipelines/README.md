@@ -161,11 +161,11 @@ partitioner = pipelines_common.RandomPartition(
 Next, the DAG is defined. The DAG is encoded with a Python dictionary that maps each `Pipeline` instance to run to the pipelines it depends on. More on this below.
 
 ```python
-dag = {quantizer: Input(music_pb2.NoteSequence),
+dag = {quantizer: DagInput(music_pb2.NoteSequence),
        melody_extractor: quantizer,
        encoder_pipeline: melody_extractor,
        partitioner: encoder_pipeline,
-       Output(): partitioner}
+       DagOutput(): partitioner}
 ```
 
 Finally, the composite pipeline is created with a single line of code:
@@ -270,7 +270,7 @@ The dependency tells DAGPipeline what Pipeline's need to be run before running t
 
 ___Input and outputs___
 
-Finally, we need to tell DAGPipeline where its inputs go, and which pipelines produce its outputs. This is done with `Input` and `Output` objects. `Input` is given the input type that DAGPipeline will take, like `Input(str)`. `Output` is given a string name, like `Output('some_output')`. `DAGPipeline` always outputs a dictionary, and each `Output` in the DAG produces another name, output pair in `DAGPipeline`'s output. Currently, only 1 input is supported.
+Finally, we need to tell DAGPipeline where its inputs go, and which pipelines produce its outputs. This is done with `DagInput` and `DagOutput` objects. `DagInput` is given the input type that DAGPipeline will take, like `DagInput(str)`. `DagOutput` is given a string name, like `DagOutput('some_output')`. `DAGPipeline` always outputs a dictionary, and each `DagOutput` in the DAG produces another name, output pair in `DAGPipeline`'s output. Currently, only 1 input is supported.
 
 ___Usage examples___
 
@@ -285,9 +285,9 @@ print (FromPipeline.output_type, FromPipeline.input_type)
 
 to_pipe = ToPipeline()
 from_pipe = FromPipeline()
-dag = {from_pipe: Input(InputType),
+dag = {from_pipe: DagInput(InputType),
        to_pipe: from_pipe,
-       Output('my_output'): to_pipe}
+       DagOutput('my_output'): to_pipe}
 
 dag_pipe = DAGPipeline(dag)
 print dag_pipe.transform(InputType())
@@ -305,24 +305,24 @@ print (FromPipeline.output_type, FromPipeline.input_type)
 
 to_pipe = ToPipeline()
 from_pipe = FromPipeline()
-dag = {from_pipe: Input(InputType),
+dag = {from_pipe: DagInput(InputType),
        to_pipe: from_pipe,
-       Output('my_output'): to_pipe}
+       DagOutput('my_output'): to_pipe}
 
 dag_pipe = DAGPipeline(dag)
 print dag_pipe.transform(InputType())
 > {'my_output': [<__main__.OutputType object>]}
 ```
 
-Multiple outputs can be created by connecting a `Pipeline` with dictionary output to `Output()` without a name.
+Multiple outputs can be created by connecting a `Pipeline` with dictionary output to `DagOutput()` without a name.
 
 ```python
 print (MyPipeline.output_type, MyPipeline.input_type)
 > ({'output_1': Type1, 'output_2': Type2}, InputType)
 
 my_pipeline = MyPipeline()
-dag = {my_pipeline: Input(InputType),
-       Output(): my_pipeline}
+dag = {my_pipeline: DagInput(InputType),
+       DagOutput(): my_pipeline}
 
 dag_pipe = DAGPipeline(dag)
 print dag_pipe.transform(InputType())
@@ -350,11 +350,11 @@ first_pipe = FirstPipeline()
 second_pipe = SecondPipeline()
 third_pipe = ThirdPipeline()
 last_pipe = LastPipeline()
-dag = {first_pipe: Input(InputType),
+dag = {first_pipe: DagInput(InputType),
        second_pipe: first_pipe['type_1'],
        third_pipe: first_pipe['type_2'],
        last_pipe: {'type_x': second_pipe, 'type_y': third_pipe},
-       Output('my_output'): last_pipe}
+       DagOutput('my_output'): last_pipe}
 
 dag_pipe = DAGPipeline(dag)
 print dag_pipe.transform(InputType())
@@ -372,9 +372,9 @@ print (LastPipeline.output_type, LastPipeline.input_type)
 
 first_pipe = FirstPipeline()
 last_pipe = LastPipeline()
-dag = {first_pipe: Input(InputType),
+dag = {first_pipe: DagInput(InputType),
        last_pipe: {'type_x': first_pipe['type_2'], 'type_y': first_pipe['type_1']},
-       Output('my_output'): last_pipe}
+       DagOutput('my_output'): last_pipe}
 
 dag_pipe = DAGPipeline(dag)
 print dag_pipe.transform(InputType())
@@ -391,9 +391,9 @@ print pipeline_1.name
 print pipeline_2.name
 > 'Pipe2'
 
-dag = {pipeline_1: Input(pipeline_1.input_type),
+dag = {pipeline_1: DagInput(pipeline_1.input_type),
        pipeline_2: pipeline_1,
-       Output('output'): pipeline_2}
+       DagOutput('output'): pipeline_2}
 dag_pipe = DAGPipeline(dag)
 print dag_pipe.name
 > 'DAGPipeline'
@@ -411,7 +411,7 @@ for stat in dag_pipe.get_stats():
 
 ### InvalidDAGException
 
-Thrown when the DAG dictionary is not well formatted. This can be because a `destination: dependency` pair is not in the form `Pipeline: Pipeline` or `Pipeline: {'name_1': Pipeline, ...}` (Note that Pipeline or Key objects both are allowed in the dependency). It is also thrown when `Input` is given as a destination, or `Output` is given as a dependency.
+Thrown when the DAG dictionary is not well formatted. This can be because a `destination: dependency` pair is not in the form `Pipeline: Pipeline` or `Pipeline: {'name_1': Pipeline, ...}` (Note that Pipeline or Key objects both are allowed in the dependency). It is also thrown when `DagInput` is given as a destination, or `DagOutput` is given as a dependency.
 
 ### DuplicateNameException
 
@@ -490,7 +490,7 @@ BadTopologyException is thrown in these examples:
 ```python
 pipe1 = MyPipeline1()
 pipe2 = MyPipeline2()
-dag = {Output('output'): Input(MyType),
+dag = {DagOutput('output'): DagInput(MyType),
        pipe2: pipe1,
        pipe1: pipe2}
 DAGPipeline(dag)
@@ -500,10 +500,10 @@ DAGPipeline(dag)
 pipe1 = MyPipeline1()
 pipe2 = MyPipeline2()
 pipe3 = MyPipeline3()
-dag = {pipe1: Input(pipe1.input_type),
+dag = {pipe1: DagInput(pipe1.input_type),
        pipe2: {'a': pipe1, 'b': pipe3},
        pipe3: pipe2,
-       Output(): {'pipe2': pipe2, 'pipe3': pipe3}}
+       DagOutput(): {'pipe2': pipe2, 'pipe3': pipe3}}
 DAGPipeline(dag)
 ```
 
@@ -515,57 +515,57 @@ NotConnectedException is thrown in these examples:
 ```python
 pipe1 = MyPipeline1()
 pipe2 = MyPipeline2()
-dag = {pipe1: Input(pipe1.input_type),
-       Output('output'): pipe2}
+dag = {pipe1: DagInput(pipe1.input_type),
+       DagOutput('output'): pipe2}
 DAGPipeline(dag)
 ```
 
 ```python
 pipe1 = MyPipeline1()
 pipe2 = MyPipeline2()
-dag = {pipe1: Input(pipe1.input_type),
-       Output(): {'pipe1': pipe1, 'pipe2': pipe2}}
+dag = {pipe1: DagInput(pipe1.input_type),
+       DagOutput(): {'pipe1': pipe1, 'pipe2': pipe2}}
 DAGPipeline(dag)
 ```
 
 ```python
 pipe1 = MyPipeline1()
 pipe2 = MyPipeline2()
-dag = {pipe1: Input(pipe1.input_type),
+dag = {pipe1: DagInput(pipe1.input_type),
        pipe2: pipe1,
-       Output('pipe1'): pipe1}
+       DagOutput('pipe1'): pipe1}
 DAGPipeline(dag)
 ```
 
 ### BadInputOrOutputException
 
-Thrown when `Input` or `Output` are not used in the graph correctly. Specifically when there are no `Input` objects, more than one `Input` with different types, or there is no `Output` object.
+Thrown when `DagInput` or `DagOutput` are not used in the graph correctly. Specifically when there are no `DagInput` objects, more than one `DagInput` with different types, or there is no `DagOutput` object.
 
 BadInputOrOutputException is thrown in these examples:
 ```python
 pipe1 = MyPipeline1()
-dag = {pipe1: Input(pipe1.input_type)}
+dag = {pipe1: DagInput(pipe1.input_type)}
 DAGPipeline(dag)
 
-dag = {Output('output'): pipe1}
+dag = {DagOutput('output'): pipe1}
 DAGPipeline(dag)
 
 pipe2 = MyPipeline2()
-dag = {pipe1: Input(Type1),
-       pipe2: Input(Type2),
-       Output(): {'pipe1': pipe1, 'pipe2': pipe2}}
+dag = {pipe1: DagInput(Type1),
+       pipe2: DagInput(Type2),
+       DagOutput(): {'pipe1': pipe1, 'pipe2': pipe2}}
 DAGPipeline(dag)
 ```
 
-Having multiple `Input` instances with the same type is allowed.
+Having multiple `DagInput` instances with the same type is allowed.
 
 This example will not throw an exception:
 ```python
 pipeA = MyPipelineA()
 pipeB = MyPipelineB()
-dag = {pipeA: Input(MyType),
-       pipeB: Input(MyType),
-       Output(): {'pipeA': pipeA, 'pipeB': pipeB}}
+dag = {pipeA: DagInput(MyType),
+       pipeB: DagInput(MyType),
+       DagOutput(): {'pipeA': pipeA, 'pipeB': pipeB}}
 DAGPipeline(dag)
 ```
 
@@ -590,13 +590,13 @@ print my_pipeline_2.get_stats()
 
 ### InvalidDictionaryOutput
 
-Thrown when `Output` and dictionaries are not used correctly. Specifically when `Output()` is used without a dictionary dependency, or `Output(name)` is used with a `name` and with a dictionary dependency.
+Thrown when `DagOutput` and dictionaries are not used correctly. Specifically when `DagOutput()` is used without a dictionary dependency, or `DagOutput(name)` is used with a `name` and with a dictionary dependency.
 
 InvalidDictionaryOutput is thrown in these examples:
 ```python
 pipe1 = MyPipeline1()
 pipe2 = MyPipeline2()
-dag = {Output('output'): {'pipe1': pipe1, 'pipe2': pipe2}, ...}
+dag = {DagOutput('output'): {'pipe1': pipe1, 'pipe2': pipe2}, ...}
 DAGPipeline(dag)
 ```
 
@@ -605,7 +605,7 @@ print MyPipeline.output_type
 > MyType
 
 pipe = MyPipeline()
-dag = {Output(): pipe, ...}
+dag = {DagOutput(): pipe, ...}
 DAGPipeline(dag)
 ```
 

@@ -72,9 +72,6 @@ class EncoderPipeline(pipeline.Pipeline):
     encoded = self._melody_encoder_decoder.encode(melody)
     return [encoded]
 
-  def get_stats(self):
-    return {}
-
 
 def get_pipeline(config, eval_ratio):
   """Returns the Pipeline instance which creates the RNN dataset.
@@ -96,11 +93,11 @@ def get_pipeline(config, eval_ratio):
       ['eval_melodies', 'training_melodies'],
       [eval_ratio])
 
-  dag = {quantizer: dag_pipeline.Input(music_pb2.NoteSequence),
+  dag = {quantizer: dag_pipeline.DagInput(music_pb2.NoteSequence),
          melody_extractor: quantizer,
          encoder_pipeline: melody_extractor,
          partitioner: encoder_pipeline,
-         dag_pipeline.Output(): partitioner}
+         dag_pipeline.DagOutput(): partitioner}
   return dag_pipeline.DAGPipeline(dag)
 
 
