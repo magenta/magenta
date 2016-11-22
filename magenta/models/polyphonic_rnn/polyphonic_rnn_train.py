@@ -67,7 +67,8 @@ def main(unused_argv):
     tf.logging.fatal('--sequence_example_file required')
     return
 
-  sequence_example_file = os.path.expanduser(FLAGS.sequence_example_file)
+  sequence_example_file = tf.gfile.Glob(
+      os.path.expanduser(FLAGS.sequence_example_file))
   run_dir = os.path.expanduser(FLAGS.run_dir)
 
   config = polyphony_model.default_configs[FLAGS.config]
