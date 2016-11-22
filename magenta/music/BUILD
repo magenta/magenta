@@ -31,6 +31,7 @@ py_library(
         ":constants",
         ":drums_encoder_decoder",
         ":drums_lib",
+        ":lead_sheets_lib",
         ":melodies_lib",
         ":melody_encoder_decoder",
         ":midi_io",
