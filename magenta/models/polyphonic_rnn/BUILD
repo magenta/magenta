@@ -12,6 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+licenses(["notice"])  # Apache 2.0
+
 py_library(
     name = "polyphony_lib",
     srcs = ["polyphony_lib.py"],
