@@ -20,7 +20,7 @@ import magenta
 
 def make_rnn_cell(rnn_layer_sizes,
                   dropout_keep_prob=1.0,
-                  base_cell=tf.nn.rnn_cell.RnnCell,
+                  base_cell=tf.nn.rnn_cell.BasicLSTMCell,
                   state_is_tuple=False):
   """Makes a RNN cell from the given hyperparameters.
 

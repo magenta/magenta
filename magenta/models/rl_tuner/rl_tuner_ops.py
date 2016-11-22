@@ -104,14 +104,8 @@ def basic_rnn_hparams():
   # TODO(natashajaques): ability to restore basic_rnn from any .mag file.
   return tf_lib.HParams(batch_size=128,
                         dropout_keep_prob=0.5,
-                        clip_norm=5,
-                        initial_learning_rate=0.01,
-                        decay_steps=1000,
-                        decay_rate=0.85,
                         rnn_layer_sizes=[512, 512],
-                        skip_first_n_losses=0,
-                        one_hot_length=NUM_CLASSES,
-                        exponentially_decay_learning_rate=True)
+                        one_hot_length=NUM_CLASSES)
 
 
 def default_dqn_hparams():
@@ -289,6 +283,19 @@ def get_next_file_name(directory, prefix, extension):
     i += 1
     name = directory + '/' + prefix + str(i) + '.' + extension
   return name
+
+
+def make_rnn_cell(rnn_layer_sizes, state_is_tuple=False):
+  """Makes a default LSTM cell for use in the NoteRNNLoader graph."""
+  cells = []
+  for num_units in rnn_layer_sizes:
+    cell = tf.nn.rnn_cell.LSTMCell(
+        num_units, state_is_tuple=state_is_tuple)
+    cells.append(cell)
+
+  cell = tf.nn.rnn_cell.MultiRNNCell(cells, state_is_tuple=state_is_tuple)
+
+  return cell
 
 
 def log_sum_exp(xs):
