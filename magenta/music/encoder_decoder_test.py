@@ -207,5 +207,96 @@ class LookbackEventSequenceEncoderDecoderTest(tf.test.TestCase):
     self.assertEqual(2, self.enc.class_index_to_event(2, events[:5]))
 
 
+class ConditionalEventSequenceEncoderDecoderTest(tf.test.TestCase):
+
+  def setUp(self):
+    self.enc = encoder_decoder.ConditionalEventSequenceEncoderDecoder(
+        encoder_decoder.OneHotEventSequenceEncoderDecoder(
+            testing_lib.TrivialOneHotEncoding(2)),
+        encoder_decoder.OneHotEventSequenceEncoderDecoder(
+            testing_lib.TrivialOneHotEncoding(3)))
+
+  def testInputSize(self):
+    self.assertEquals(5, self.enc.input_size)
+
+  def testNumClasses(self):
+    self.assertEqual(3, self.enc.num_classes)
+
+  def testEventsToInput(self):
+    control_events = [1, 1, 1, 0, 0]
+    target_events = [0, 1, 0, 2, 0]
+    self.assertEqual(
+        [0.0, 1.0, 1.0, 0.0, 0.0],
+        self.enc.events_to_input(control_events, target_events, 0))
+    self.assertEqual(
+        [0.0, 1.0, 0.0, 1.0, 0.0],
+        self.enc.events_to_input(control_events, target_events, 1))
+    self.assertEqual(
+        [1.0, 0.0, 1.0, 0.0, 0.0],
+        self.enc.events_to_input(control_events, target_events, 2))
+    self.assertEqual(
+        [1.0, 0.0, 0.0, 0.0, 1.0],
+        self.enc.events_to_input(control_events, target_events, 3))
+
+  def testEventsToLabel(self):
+    target_events = [0, 1, 0, 2, 0]
+    self.assertEqual(0, self.enc.events_to_label(target_events, 0))
+    self.assertEqual(1, self.enc.events_to_label(target_events, 1))
+    self.assertEqual(0, self.enc.events_to_label(target_events, 2))
+    self.assertEqual(2, self.enc.events_to_label(target_events, 3))
+    self.assertEqual(0, self.enc.events_to_label(target_events, 4))
+
+  def testClassIndexToEvent(self):
+    target_events = [0, 1, 0, 2, 0]
+    self.assertEqual(0, self.enc.class_index_to_event(0, target_events))
+    self.assertEqual(1, self.enc.class_index_to_event(1, target_events))
+    self.assertEqual(2, self.enc.class_index_to_event(2, target_events))
+
+  def testEncode(self):
+    control_events = [1, 1, 1, 0, 0]
+    target_events = [0, 1, 0, 2, 0]
+    sequence_example = self.enc.encode(control_events, target_events)
+    expected_inputs = [[0.0, 1.0, 1.0, 0.0, 0.0],
+                       [0.0, 1.0, 0.0, 1.0, 0.0],
+                       [1.0, 0.0, 1.0, 0.0, 0.0],
+                       [1.0, 0.0, 0.0, 0.0, 1.0]]
+    expected_labels = [1, 0, 2, 0]
+    expected_sequence_example = sequence_example_lib.make_sequence_example(
+        expected_inputs, expected_labels)
+    self.assertEqual(sequence_example, expected_sequence_example)
+
+  def testGetInputsBatch(self):
+    control_event_sequences = [[1, 1, 1, 0, 0], [0, 0, 1]]
+    target_event_sequences = [[0, 1, 0, 2], [0, 1]]
+    expected_inputs_1 = [[0.0, 1.0, 1.0, 0.0, 0.0],
+                         [0.0, 1.0, 0.0, 1.0, 0.0],
+                         [1.0, 0.0, 1.0, 0.0, 0.0],
+                         [1.0, 0.0, 0.0, 0.0, 1.0]]
+    expected_inputs_2 = [[1.0, 0.0, 1.0, 0.0, 0.0],
+                         [0.0, 1.0, 0.0, 1.0, 0.0]]
+    expected_full_length_inputs_batch = [expected_inputs_1, expected_inputs_2]
+    expected_last_event_inputs_batch = [expected_inputs_1[-1:],
+                                        expected_inputs_2[-1:]]
+    self.assertListEqual(
+        expected_full_length_inputs_batch,
+        self.enc.get_inputs_batch(
+            control_event_sequences, target_event_sequences, True))
+    self.assertListEqual(
+        expected_last_event_inputs_batch,
+        self.enc.get_inputs_batch(
+            control_event_sequences, target_event_sequences))
+
+  def testExtendEventSequences(self):
+    target_events_1 = [0]
+    target_events_2 = [0]
+    target_events_3 = [0]
+    target_event_sequences = [target_events_1, target_events_2, target_events_3]
+    softmax = [[[0.0, 0.0, 1.0]], [[1.0, 0.0, 0.0]], [[0.0, 1.0, 0.0]]]
+    self.enc.extend_event_sequences(target_event_sequences, softmax)
+    self.assertListEqual(list(target_events_1), [0, 2])
+    self.assertListEqual(list(target_events_2), [0, 0])
+    self.assertListEqual(list(target_events_3), [0, 1])
+
+
 if __name__ == '__main__':
   tf.test.main()
