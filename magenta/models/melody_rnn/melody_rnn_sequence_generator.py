@@ -17,6 +17,7 @@ from functools import partial
 
 # internal imports
 
+import tensorflow as tf
 from magenta.models.melody_rnn import melody_rnn_model
 import magenta.music as mm
 
@@ -78,11 +79,12 @@ class MelodyRnnSequenceGenerator(mm.BaseSequenceGenerator):
     last_end_time = (max(n.end_time for n in primer_sequence.notes)
                      if primer_sequence.notes else 0)
     if last_end_time >= generate_section.start_time:
-      raise mm.SequenceGeneratorException(
+      tf.logging.warn(
           'Got GenerateSection request for section that is before or equal to '
           'the end of the NoteSequence. This model can only extend sequences. '
-          'Requested start time: %s, Final note end time: %s' %
-          (generate_section.start_time, last_end_time))
+          'Requested start time: %s, Final note end time: %s',
+          generate_section.start_time, last_end_time)
+      return input_sequence
 
     # Quantize the priming sequence.
     quantized_sequence = mm.QuantizedSequence()
