@@ -40,14 +40,14 @@ class Quantizer(pipeline.Pipeline):
           note_sequence, self._steps_per_quarter)
       return [quantized_sequence]
     except sequences_lib.MultipleTimeSignatureException as e:
-      tf.logging.debug('Multiple time signatures found in NoteSequence %s: %s',
+      tf.logging.warning('Multiple time signatures found in NoteSequence %s: %s',
                        note_sequence.filename, e)
       self._set_stats([statistics.Counter(
           'sequences_discarded_because_multiple_time_signatures', 1)])
       return []
     except sequences_lib.MultipleTempoException as e:
-      tf.logging.debug('Multiple tempos found in NoteSequence %s: %s',
-                       note_sequence.filename, e)
+      tf.logging.warning('Multiple tempos found in NoteSequence %s: %s',
+                         note_sequence.filename, e)
       self._set_stats([statistics.Counter(
           'sequences_discarded_because_multiple_tempos', 1)])
       return []

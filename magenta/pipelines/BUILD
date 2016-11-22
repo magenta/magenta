@@ -27,6 +27,7 @@ py_library(
     deps = [
         ":dag_pipeline",
         ":drum_pipelines",
+        ":lead_sheet_pipelines",
         ":melody_pipelines",
         ":pipeline",
         ":pipelines_common",
@@ -114,6 +115,7 @@ py_library(
     srcs = ["lead_sheet_pipelines.py"],
     deps = [
         ":pipeline",
+        "//magenta/music:chord_symbols_lib",
         "//magenta/music:events_lib",
         "//magenta/music:lead_sheets_lib",
         "//magenta/protobuf:music_py_pb2",

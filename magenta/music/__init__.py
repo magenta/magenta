@@ -22,6 +22,7 @@ from magenta.music.chords_encoder_decoder import MajorMinorChordOneHotEncoding
 from magenta.music.chords_encoder_decoder import TriadChordOneHotEncoding
 
 from magenta.music.chords_lib import BasicChordRenderer
+from magenta.music.chords_lib import ChordProgression
 from magenta.music.chords_lib import extract_chords
 from magenta.music.chords_lib import extract_chords_for_melodies
 

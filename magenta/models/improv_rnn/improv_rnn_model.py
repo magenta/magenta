@@ -23,23 +23,25 @@ import magenta.music as mm
 
 DEFAULT_MIN_NOTE = 48
 DEFAULT_MAX_NOTE = 84
-DEFAULT_TRANSPOSE_TO_KEY = 0
+DEFAULT_TRANSPOSE_TO_KEY = None
 
 
-class MelodyRnnModel(events_rnn_model.EventSequenceRnnModel):
-  """Class for RNN melody generation models."""
+class ImprovRnnModel(events_rnn_model.EventSequenceRnnModel):
+  """Class for RNN melody-given-chords generation models."""
 
-  def generate_melody(self, num_steps, primer_melody, temperature=1.0,
+  def generate_melody(self, primer_melody, backing_chords, temperature=1.0,
                       beam_size=1, branch_factor=1, steps_per_iteration=1):
-    """Generate a melody from a primer melody.
+    """Generate a melody from a primer melody and backing chords.
 
     Args:
-      num_steps: The integer length in steps of the final melody, after
-          generation. Includes the primer.
-      primer_melody: The primer melody, a Melody object.
+      primer_melody: The primer melody, a Melody object. Should be the same
+          length as the primer chords.
+      backing_chords: The backing chords, a ChordProgression object. Must be at
+          least as long as the primer melody. The melody will be extended to
+          match the length of the backing chords.
       temperature: A float specifying how much to divide the logits by
-         before computing the softmax. Greater than 1.0 makes melodies more
-         random, less than 1.0 makes melodies less random.
+          before computing the softmax. Greater than 1.0 makes melodies more
+          random, less than 1.0 makes melodies less random.
       beam_size: An integer, beam size to use when generating melodies via beam
           search.
       branch_factor: An integer, beam search branch factor to use.
@@ -51,22 +53,26 @@ class MelodyRnnModel(events_rnn_model.EventSequenceRnnModel):
           melody).
     """
     melody = copy.deepcopy(primer_melody)
+    chords = copy.deepcopy(backing_chords)
 
     transpose_amount = melody.squash(
         self._config.min_note,
         self._config.max_note,
         self._config.transpose_to_key)
+    chords.transpose(transpose_amount)
 
+    num_steps = len(chords)
     melody = self._generate_events(num_steps, melody, temperature, beam_size,
-                                   branch_factor, steps_per_iteration)
+                                   branch_factor, steps_per_iteration,
+                                   control_events=chords)
 
     melody.transpose(-transpose_amount)
 
     return melody
 
 
-class MelodyRnnConfig(events_rnn_model.EventSequenceRnnConfig):
-  """Stores a configuration for a MelodyRnn.
+class ImprovRnnConfig(events_rnn_model.EventSequenceRnnConfig):
+  """Stores a configuration for an ImprovRnn.
 
   You can change `min_note` and `max_note` to increase/decrease the melody
   range. Since melodies are transposed into this range to be run through
@@ -76,7 +82,9 @@ class MelodyRnnConfig(events_rnn_model.EventSequenceRnnConfig):
   generated melodies range. `transpose_to_key` should be set to the key
   that if melodies were transposed into that key, they would best sit
   between `min_note` and `max_note` with having as few notes outside that
-  range.
+  range. If `transpose_to_key` is None, melodies and chords will not be
+  transposed at generation time, but all of the training data will be transposed
+  into all 12 keys.
 
   Attributes:
     details: The GeneratorDetails message describing the config.
@@ -84,14 +92,15 @@ class MelodyRnnConfig(events_rnn_model.EventSequenceRnnConfig):
     hparams: The HParams containing hyperparameters to use.
     min_note: The minimum midi pitch the encoded melodies can have.
     max_note: The maximum midi pitch (exclusive) the encoded melodies can have.
-    transpose_to_key: The key that encoded melodies will be transposed into, or
-        None if it should not be transposed.
+    transpose_to_key: The key that encoded melodies and chords will be
+        transposed into, or None if they should not be transposed. If None, all
+        of the training data will be transposed into all 12 keys.
   """
 
   def __init__(self, details, encoder_decoder, hparams,
                min_note=DEFAULT_MIN_NOTE, max_note=DEFAULT_MAX_NOTE,
                transpose_to_key=DEFAULT_TRANSPOSE_TO_KEY):
-    super(MelodyRnnConfig, self).__init__(details, encoder_decoder, hparams)
+    super(ImprovRnnConfig, self).__init__(details, encoder_decoder, hparams)
 
     if min_note < mm.MIN_MIDI_PITCH:
       raise ValueError('min_note must be >= 0. min_note is %d.' % min_note)
@@ -113,35 +122,21 @@ class MelodyRnnConfig(events_rnn_model.EventSequenceRnnConfig):
 
 # Default configurations.
 default_configs = {
-    'basic_rnn': MelodyRnnConfig(
+    'basic_improv': ImprovRnnConfig(
         magenta.protobuf.generator_pb2.GeneratorDetails(
-            id='basic_rnn',
-            description='Melody RNN with one-hot encoding.'),
-        magenta.music.OneHotEventSequenceEncoderDecoder(
-            magenta.music.MelodyOneHotEncoding(
-                min_note=DEFAULT_MIN_NOTE,
-                max_note=DEFAULT_MAX_NOTE)),
+            id='basic_improv_rnn',
+            description='Basic melody-given-chords RNN with one-hot triad '
+                        'encoding for chords.'),
+        magenta.music.ConditionalEventSequenceEncoderDecoder(
+            magenta.music.OneHotEventSequenceEncoderDecoder(
+                magenta.music.TriadChordOneHotEncoding()),
+            magenta.music.OneHotEventSequenceEncoderDecoder(
+                magenta.music.MelodyOneHotEncoding(
+                    min_note=DEFAULT_MIN_NOTE,
+                    max_note=DEFAULT_MAX_NOTE))),
         magenta.common.HParams(
             batch_size=128,
-            rnn_layer_sizes=[128, 128],
-            dropout_keep_prob=0.5,
-            skip_first_n_losses=0,
-            clip_norm=5,
-            initial_learning_rate=0.01,
-            decay_steps=1000,
-            decay_rate=0.85)),
-
-    'lookback_rnn': MelodyRnnConfig(
-        magenta.protobuf.generator_pb2.GeneratorDetails(
-            id='lookback_rnn',
-            description='Melody RNN with lookback encoding.'),
-        magenta.music.LookbackEventSequenceEncoderDecoder(
-            magenta.music.MelodyOneHotEncoding(
-                min_note=DEFAULT_MIN_NOTE,
-                max_note=DEFAULT_MAX_NOTE)),
-        magenta.common.HParams(
-            batch_size=128,
-            rnn_layer_sizes=[128, 128],
+            rnn_layer_sizes=[64, 64],
             dropout_keep_prob=0.5,
             skip_first_n_losses=0,
             clip_norm=5,
@@ -149,21 +144,25 @@ default_configs = {
             decay_steps=1000,
             decay_rate=0.95)),
 
-    'attention_rnn': MelodyRnnConfig(
+    'attention_improv': ImprovRnnConfig(
         magenta.protobuf.generator_pb2.GeneratorDetails(
-            id='attention_rnn',
-            description='Melody RNN with lookback encoding and attention.'),
-        magenta.music.KeyMelodyEncoderDecoder(
-            min_note=DEFAULT_MIN_NOTE,
-            max_note=DEFAULT_MAX_NOTE),
+            id='attention_improv',
+            description='Melody-given-chords RNN with one-hot triad encoding '
+                        'for chords, attention, and binary counters.'),
+        magenta.music.ConditionalEventSequenceEncoderDecoder(
+            magenta.music.OneHotEventSequenceEncoderDecoder(
+                magenta.music.TriadChordOneHotEncoding()),
+            magenta.music.KeyMelodyEncoderDecoder(
+                min_note=DEFAULT_MIN_NOTE,
+                max_note=DEFAULT_MAX_NOTE)),
         magenta.common.HParams(
             batch_size=128,
-            rnn_layer_sizes=[128, 128],
+            rnn_layer_sizes=[128, 128, 128],
             dropout_keep_prob=0.5,
             skip_first_n_losses=0,
             attn_length=40,
             clip_norm=3,
             initial_learning_rate=0.001,
             decay_steps=1000,
-            decay_rate=0.97))
+            decay_rate=0.95))
 }
