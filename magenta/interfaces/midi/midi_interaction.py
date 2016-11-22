@@ -109,7 +109,6 @@ class MidiInteraction(threading.Thread):
   Args:
     midi_hub: The MidiHub to use for MIDI I/O.
     sequence_generators: A collection of SequenceGenerator objects.
-<<<<<<< HEAD
     qpm: The quarters per minute to use for this interaction. May be overriden
        by control changes sent to `tempo_control_number`.
     generator_select_control_number: An optional MIDI control number whose
@@ -119,13 +118,11 @@ class MidiInteraction(threading.Thread):
     tempo_control_number: An optional MIDI control number whose value to use to
        determine the qpm for this interaction. On receipt of a control change,
        the qpm will be set to 60 more than the control change value.
-=======
     qpm: The quarters per minute to use for this interaction.
     generator_select_control_number: A MIDI control number in [0, 127] whose
        value to use for selection a sequence generator from the collection.
        Must be provided if `sequence_generators` contains multiple
        SequenceGenerators.
->>>>>>> master
 
   Raises:
     ValueError: If `generator_select_control_number` is None and
@@ -133,30 +130,20 @@ class MidiInteraction(threading.Thread):
   """
   _metaclass__ = abc.ABCMeta
 
-<<<<<<< HEAD
   # Base QPM when set by a tempo control change.
   _BASE_QPM = 60
 
   def __init__(self, midi_hub, sequence_generators, qpm,
                generator_select_control_number=None, tempo_control_number=None):
-=======
-  def __init__(self, midi_hub, sequence_generators, qpm,
-               generator_select_control_number=None):
->>>>>>> master
     if generator_select_control_number is None and len(sequence_generators) > 1:
       raise ValueError(
           '`generator_select_control_number` cannot be None if there are '
           'multiple SequenceGenerators.')
     self._midi_hub = midi_hub
     self._sequence_generators = sequence_generators
-<<<<<<< HEAD
     self._default_qpm = qpm
     self._generator_select_control_number = generator_select_control_number
     self._tempo_control_number = tempo_control_number
-=======
-    self._qpm = qpm
-    self._generator_select_control_number = generator_select_control_number
->>>>>>> master
 
     # A signal to tell the main loop when to stop.
     self._stop_signal = threading.Event()
@@ -171,7 +158,6 @@ class MidiInteraction(threading.Thread):
     val = 0 if val is None else val
     return self._sequence_generators[val % len(self._sequence_generators)]
 
-<<<<<<< HEAD
   @property
   def _qpm(self):
     """Returns the qpm based on the current tempo control value."""
@@ -180,8 +166,6 @@ class MidiInteraction(threading.Thread):
     val = self._midi_hub.control_value(self._tempo_control_number)
     return self._default_qpm if val is None else val + self._BASE_QPM
 
-=======
->>>>>>> master
   @abc.abstractmethod
   def run(self):
     """The main loop for the interaction.
@@ -224,12 +208,8 @@ class CallAndResponseMidiInteraction(MidiInteraction):
     end_call_signal: The optional midi_hub.MidiSignal to use as a signal to stop
         the call phrase at the end of the current bar. `phrase_bars` must be
         provided if None.
-<<<<<<< HEAD
     temperature_control_number: The optional control change number to use for
         controlling temperature.
-=======
-    temperature_control_number:
->>>>>>> master
   """
   _INITIAL_PREDICTAHEAD_STEPS = 4
   _MIN_PREDICTAHEAD_STEPS = 1
