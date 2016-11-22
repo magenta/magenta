@@ -422,6 +422,7 @@ class ExternalClockCallAndResponse(MidiInteraction):
                max_listen_ticks_control_number=None,
                response_ticks_control_number=None,
                temperature_control_number=None,
+               loop_control_number=None,
                state_control_number=None):
     super(ExternalClockCallAndResponse, self).__init__(
         midi_hub, sequence_generators, qpm, generator_select_control_number)
@@ -432,6 +433,7 @@ class ExternalClockCallAndResponse(MidiInteraction):
     self._max_listen_ticks_control_number = max_listen_ticks_control_number
     self._response_ticks_control_number = response_ticks_control_number
     self._temperature_control_number = temperature_control_number
+    self._loop_control_number = loop_control_number
     self._state_control_number = state_control_number
     # Event for signalling when to end a call.
     self._end_call = threading.Event()
@@ -464,6 +466,11 @@ class ExternalClockCallAndResponse(MidiInteraction):
     val = self._midi_hub.control_value(
         self._max_listen_ticks_control_number)
     return float('inf') if not val else val
+
+  @property
+  def _should_loop(self):
+    return (self._loop_control_number and
+            self._midi_hub.control_value(self._loop_control_number) == 127)
 
   def run(self):
     """The main loop for a real-time call and response interaction."""
