@@ -92,6 +92,11 @@ tf.app.flags.DEFINE_integer(
     None,
     'The control change number to use for controlling tempo. qpm will be set '
     'to 60 more than the value of the control change.')
+tf.app.flags.DEFINE_integer(
+    'loop_control_number',
+    None,
+    'The control number to use for determining whether to loop the response. '
+    'A value of 127 turns looping on, and any other value turns it off.')
 tf.app.flags.DEFINE_string(
     'bundle_files',
     None,
@@ -222,6 +227,7 @@ def main(unused_argv):
       max_listen_ticks_control_number=FLAGS.max_listen_ticks_control_number,
       response_ticks_control_number=FLAGS.response_ticks_control_number,
       temperature_control_number=FLAGS.temperature_control_number,
+      loop_control_number=FLAGS.loop_control_number,
       state_control_number=FLAGS.state_control_number)
 
   _print_instructions()

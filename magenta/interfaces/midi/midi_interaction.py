@@ -69,6 +69,17 @@ def filter_instrument(sequence, instrument, from_time=0):
     filtered_sequence.notes.add().CopyFrom(note)
   return filtered_sequence
 
+def rezero(sequence, zero_time):
+  old_zero_time = min(n.start_time for n in sequence.notes)
+  delta_time = zero_time - old_zero_time
+
+  rezeroed_sequence = music_pb2.NoteSequence()
+  rezeroed_sequence.CopyFrom(sequence)
+  for note in rezeroed_sequence.notes:
+    note.start_time += delta_time
+    note.end_time += delta_time
+  rezeroed_sequence.total_time += delta_time
+  return rezeroed_sequence
 
 def temperature_from_control_value(
     val, min_temp=0.1, mid_temp=1.0, max_temp=2.0):
@@ -492,6 +503,10 @@ class ExternalClockCallAndResponse(MidiInteraction):
     # Keep track of the duration of a listen state.
     listen_ticks = 0
 
+    response_sequence = music_pb2.NoteSequence()
+    player = self._midi_hub.start_playback(
+        response_sequence, allow_updates=True)
+
     for captured_sequence in self._captor.iterate(signal=self._clock_signal):
       if self._stop_signal.is_set():
         break
@@ -504,10 +519,6 @@ class ExternalClockCallAndResponse(MidiInteraction):
                        if captured_sequence.notes else None)
 
       listen_ticks += 1
-
-      response_sequence = music_pb2.NoteSequence()
-      player = self._midi_hub.start_playback(
-          response_sequence, allow_updates=True)
 
       if not captured_sequence.notes:
         # Reset captured sequence since we are still idling.
@@ -578,7 +589,15 @@ class ExternalClockCallAndResponse(MidiInteraction):
         # Continue listening.
         self._update_state(self.State.LISTENING)
 
+      # Potentially loop previous response.
+      if (response_sequence.total_time <= tick_time and
+          self._should_loop):
+        response_sequence = rezero(response_sequence, tick_time)
+        player.update_sequence(response_sequence, start_time=tick_time)
+
       last_tick_time = tick_time
+
+    player.stop()
 
   def stop(self):
     self._stop_signal.set()
