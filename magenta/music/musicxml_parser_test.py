@@ -14,6 +14,7 @@
 """Test to ensure correct import of MusicXML."""
 
 from collections import defaultdict
+import operator
 import os.path
 import tempfile
 
@@ -24,9 +25,10 @@ import tensorflow as tf
 from magenta.common import testing_lib as common_testing_lib
 from magenta.music import musicxml_parser
 from magenta.music import musicxml_reader
-from magenta.music import sequences_lib
-from magenta.music import testing_lib
 from magenta.protobuf import music_pb2
+
+# Shortcut to CHORD_SYMBOL annotation type.
+CHORD_SYMBOL = music_pb2.NoteSequence.TextAnnotation.CHORD_SYMBOL
 
 
 class MusicXMLParserTest(tf.test.TestCase):
@@ -97,6 +99,10 @@ class MusicXMLParserTest(tf.test.TestCase):
     self.atonal_transposition_filename = os.path.join(
         tf.resource_loader.get_data_files_path(),
         'testdata/atonal_transposition_change.xml')
+
+    self.chord_symbols_filename = os.path.join(
+        tf.resource_loader.get_data_files_path(),
+        'testdata/chord_symbols.xml')
 
   def checkmusicxmlandsequence(self, musicxml, sequence_proto):
     """Compares MusicXMLDocument object against a sequence proto.
@@ -189,45 +195,67 @@ class MusicXMLParserTest(tf.test.TestCase):
     sequence_proto = musicxml_reader.musicxml_to_sequence_proto(source_musicxml)
     self.checkmusicxmlandsequence(source_musicxml, sequence_proto)
 
-  def checkFMajorScale(self, filename):
+  def checkFMajorScale(self, filename, part_name):
     """Verify MusicXML scale file.
 
     Verify that it contains the correct pitches (sounding pitch) and durations.
 
     Args:
       filename: file to test.
+      part_name: name of the part the sequence is expected to contain.
     """
 
-    # Expected QuantizedSequence
-    # Sequence tuple = (midi_pitch, velocity, start_seconds, end_seconds)
-    expected_quantized_sequence = sequences_lib.QuantizedSequence()
-    expected_quantized_sequence.steps_per_quarter = self.steps_per_quarter
-    expected_quantized_sequence.qpm = 120.0
-    expected_quantized_sequence.time_signature = (
-        sequences_lib.QuantizedSequence.TimeSignature(numerator=4,
-                                                      denominator=4))
-    testing_lib.add_quantized_track_to_sequence(
-        expected_quantized_sequence, 0,
-        [
-            (65, 64, 0, 4), (67, 64, 4, 8), (69, 64, 8, 12),
-            (70, 64, 12, 16), (72, 64, 16, 20), (74, 64, 20, 24),
-            (76, 64, 24, 28), (77, 64, 28, 32)
-        ]
-    )
+    expected_ns = common_testing_lib.parse_test_proto(
+        music_pb2.NoteSequence,
+        """
+        ticks_per_quarter: 220
+        source_info: {
+          source_type: SCORE_BASED
+          encoding_type: MUSIC_XML
+          parser: MAGENTA_MUSIC_XML
+        }
+        key_signatures {
+          key: F
+          time: 0
+        }
+        time_signatures {
+          numerator: 4
+          denominator: 4
+        }
+        tempos {
+          qpm: 120.0
+        }
+        total_time: 4.0
+        """)
 
-    # Convert MusicXML to QuantizedSequence
+    part_info = expected_ns.part_infos.add()
+    part_info.name = part_name
+
+    expected_pitches = [65, 67, 69, 70, 72, 74, 76, 77]
+    time = 0
+    for pitch in expected_pitches:
+      note = expected_ns.notes.add()
+      note.part = 0
+      note.voice = 1
+      note.pitch = pitch
+      note.start_time = time
+      time += .5
+      note.end_time = time
+      note.velocity = 64
+      note.numerator = 1
+      note.denominator = 4
+
+    # Convert MusicXML to NoteSequence
     source_musicxml = musicxml_parser.MusicXMLDocument(filename)
     sequence_proto = musicxml_reader.musicxml_to_sequence_proto(source_musicxml)
-    quantized = sequences_lib.QuantizedSequence()
-    quantized.from_note_sequence(sequence_proto, self.steps_per_quarter)
 
     # Check equality
-    self.assertEqual(expected_quantized_sequence, quantized)
+    self.assertProtoEquals(expected_ns, sequence_proto)
 
   def testsimplemusicxmltosequence(self):
     """Test the simple flute scale MusicXML file."""
     self.checkmusicxmltosequence(self.flute_scale_filename)
-    self.checkFMajorScale(self.flute_scale_filename)
+    self.checkFMajorScale(self.flute_scale_filename, 'Flute')
 
   def testcomplexmusicxmltosequence(self):
     """Test the complex band score MusicXML file."""
@@ -246,7 +274,7 @@ class MusicXMLParserTest(tf.test.TestCase):
     untransposed_proto = musicxml_reader.musicxml_to_sequence_proto(
         untransposed_musicxml)
     self.checkmusicxmlandsequence(transposed_musicxml, untransposed_proto)
-    self.checkFMajorScale(self.clarinet_scale_filename)
+    self.checkFMajorScale(self.clarinet_scale_filename, 'Clarinet in Bb')
 
   def testcompressedxmltosequence(self):
     """Test the translation from compressed MusicXML to Sequence proto.
@@ -260,7 +288,7 @@ class MusicXMLParserTest(tf.test.TestCase):
     uncompressed_proto = musicxml_reader.musicxml_to_sequence_proto(
         uncompressed_musicxml)
     self.checkmusicxmlandsequence(compressed_musicxml, uncompressed_proto)
-    self.checkFMajorScale(self.flute_scale_filename)
+    self.checkFMajorScale(self.flute_scale_filename, 'Flute')
 
   def testmultiplecompressedxmltosequence(self):
     """Test the translation from compressed MusicXML with multiple rootfiles.
@@ -276,7 +304,7 @@ class MusicXMLParserTest(tf.test.TestCase):
     uncompressed_proto = musicxml_reader.musicxml_to_sequence_proto(
         uncompressed_musicxml)
     self.checkmusicxmlandsequence(compressed_musicxml, uncompressed_proto)
-    self.checkFMajorScale(self.flute_scale_filename)
+    self.checkFMajorScale(self.flute_scale_filename, 'Flute')
 
   def testrhythmdurationsxmltosequence(self):
     """Test the rhythm durations MusicXML file."""
@@ -728,6 +756,34 @@ class MusicXMLParserTest(tf.test.TestCase):
         total_time: 0.0
         """)
     self.assertProtoEquals(expected_ns, ns)
+
+  def test_chord_symbols(self):
+    ns = musicxml_reader.musicxml_file_to_sequence_proto(
+        self.chord_symbols_filename)
+    chord_symbols = [(annotation.time, annotation.text)
+                     for annotation in ns.text_annotations
+                     if annotation.annotation_type == CHORD_SYMBOL]
+    chord_symbols = list(sorted(chord_symbols, key=operator.itemgetter(0)))
+
+    expected_beats_and_chords = [
+        (0.0, 'N.C.'),
+        (4.0, 'Cmaj7'),
+        (12.0, 'F6(add9)'),
+        (16.0, 'F#dim7/A'),
+        (20.0, 'Bm7b5'),
+        (24.0, 'E7(#9)'),
+        (28.0, 'A7(add9)(no3)'),
+        (32.0, 'Bbsus2'),
+        (36.0, 'Am(maj7)'),
+        (38.0, 'D13'),
+        (40.0, 'E5'),
+        (44.0, 'Caug')
+    ]
+
+    # Adjust for 120 QPM.
+    expected_times_and_chords = [(beat / 2.0, chord)
+                                 for beat, chord in expected_beats_and_chords]
+    self.assertEqual(expected_times_and_chords, chord_symbols)
 
 
 if __name__ == '__main__':

@@ -50,7 +50,6 @@ py_library(
     srcs = ["chord_symbols_lib.py"],
     srcs_version = "PY2AND3",
     deps = [
-        "@music21//:music21",
         # tensorflow dep
     ],
 )
@@ -95,6 +94,7 @@ py_library(
         ":chord_symbols_lib",
         ":constants",
         ":events_lib",
+        ":sequences_lib",
         "//magenta/pipelines:statistics",
         "//magenta/protobuf:music_py_pb2",
     ],
@@ -111,6 +111,8 @@ py_test(
         ":melodies_lib",
         ":sequences_lib",
         ":testing_lib",
+        "//magenta/common:testing_lib",
+        "//magenta/protobuf:music_py_pb2",
         # tensorflow dep
     ],
 )
@@ -162,6 +164,7 @@ py_test(
         ":drums_lib",
         ":sequences_lib",
         ":testing_lib",
+        "//magenta/common:testing_lib",
         "//magenta/protobuf:music_py_pb2",
         # tensorflow dep
     ],
@@ -185,6 +188,7 @@ py_test(
     srcs_version = "PY2AND3",
     deps = [
         ":encoder_decoder",
+        ":testing_lib",
         "//magenta/common:sequence_example_lib",
         # tensorflow dep
     ],
@@ -220,6 +224,8 @@ py_library(
         ":constants",
         ":events_lib",
         ":melodies_lib",
+        ":sequences_lib",
+        "//magenta/common:testing_lib",
         "//magenta/pipelines:statistics",
         "//magenta/protobuf:music_py_pb2",
     ],
@@ -267,6 +273,7 @@ py_test(
         ":melodies_lib",
         ":sequences_lib",
         ":testing_lib",
+        "//magenta/common:testing_lib",
         "//magenta/protobuf:music_py_pb2",
         # tensorflow dep
     ],
@@ -359,6 +366,7 @@ py_test(
     srcs = ["musicxml_parser_test.py"],
     data = [
         "testdata/atonal_transposition_change.xml",
+        "testdata/chord_symbols.xml",
         "testdata/clarinet_scale.xml",
         "testdata/el_capitan.xml",
         "testdata/flute_scale.mxl",
@@ -371,8 +379,6 @@ py_test(
     deps = [
         ":musicxml_parser",
         ":musicxml_reader",
-        ":sequences_lib",
-        ":testing_lib",
         "//magenta/common:testing_lib",
         "//magenta/protobuf:music_py_pb2",
         # tensorflow dep
@@ -425,6 +431,7 @@ py_test(
         ":sequences_lib",
         ":testing_lib",
         "//magenta/common:testing_lib",
+        "//magenta/protobuf:music_py_pb2",
         # tensorflow dep
     ],
 )
@@ -463,72 +470,11 @@ py_library(
     name = "testing_lib",
     srcs = ["testing_lib.py"],
     deps = [
-        ":sequences_lib",
+        ":encoder_decoder",
         "//magenta/protobuf:music_py_pb2",
     ],
 )
 
-py_library(
-    name = "pretty_music21",
-    srcs = ["pretty_music21.py"],
-    deps = [
-        "@music21//:music21",
-    ],
-)
-
-py_library(
-    name = "music21_to_note_sequence_io",
-    srcs = ["music21_to_note_sequence_io.py"],
-    deps = [
-        ":pretty_music21",
-        "//magenta/protobuf:music_py_pb2",
-    ],
-)
-
-py_library(
-    name = "music_xml_io",
-    srcs = ["music_xml_io.py"],
-    deps = [
-        ":music21_to_note_sequence_io",
-    ],
-)
-
-py_test(
-    name = "pretty_music21_test",
-    size = "medium",
-    srcs = ["pretty_music21_test.py"],
-    deps = [
-        ":pretty_music21",
-        "@music21//:music21",
-        # tensorflow dep
-    ],
-)
-
-py_test(
-    name = "music21_to_note_sequence_io_test",
-    size = "small",
-    srcs = ["music21_to_note_sequence_io_test.py"],
-    data = [
-        "testdata/bach-one_phrase-4_voices.xml",
-    ],
-    deps = [
-        ":music21_to_note_sequence_io",
-        # tensorflow dep
-    ],
-)
-
-py_test(
-    name = "music_xml_io_test",
-    size = "small",
-    srcs = ["music_xml_io_test.py"],
-    data = [
-        "testdata/bach-one_phrase-4_voices.xml",
-    ],
-    deps = [
-        ":music_xml_io",
-        # tensorflow dep
-    ],
-)
 
 py_library(
     name = "model",

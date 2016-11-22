@@ -32,6 +32,13 @@ class SequenceGeneratorException(Exception):
   pass
 
 
+# TODO(adarob): Replace with tf.saver.checkpoint_file_exists when released.
+def _checkpoint_file_exists(checkpoint_file_or_prefix):
+  """Returns True if checkpoint file or files (for V2) exist."""
+  return (tf.gfile.Exists(checkpoint_file_or_prefix) or
+          tf.gfile.Exists(checkpoint_file_or_prefix + '.index'))
+
+
 class BaseSequenceGenerator(object):
   """Abstract class for generators."""
 
@@ -115,7 +122,8 @@ class BaseSequenceGenerator(object):
     # Either self._checkpoint or self._bundle should be set.
     # This is enforced by the constructor.
     if self._checkpoint is not None:
-      if not tf.gfile.Exists(self._checkpoint):
+      # Check if the checkpoint file exists.
+      if not _checkpoint_file_exists(self._checkpoint):
         raise SequenceGeneratorException(
             'Checkpoint path does not exist: %s' % (self._checkpoint))
       checkpoint_file = self._checkpoint
@@ -125,7 +133,7 @@ class BaseSequenceGenerator(object):
       if checkpoint_file is None:
         raise SequenceGeneratorException(
             'No checkpoint file found in directory: %s' % self._checkpoint)
-      if (not tf.gfile.Exists(checkpoint_file) or
+      if (not _checkpoint_file_exists(self._checkpoint) or
           tf.gfile.IsDirectory(checkpoint_file)):
         raise SequenceGeneratorException(
             'Checkpoint path is not a file: %s (supplied path: %s)' % (
@@ -187,13 +195,15 @@ class BaseSequenceGenerator(object):
     self.initialize()
     return self._generate(input_sequence, generator_options)
 
-  def create_bundle_file(self, bundle_file):
+  def create_bundle_file(self, bundle_file, bundle_description=None):
     """Writes a generator_pb2.GeneratorBundle file in the specified location.
 
     Saves the checkpoint, metagraph, and generator id in one file.
 
     Args:
       bundle_file: Location to write the bundle file.
+      bundle_description: A short, human-readable string description of this
+          bundle.
 
     Raises:
       SequenceGeneratorException: if there is an error creating the bundle file.
@@ -206,7 +216,9 @@ class BaseSequenceGenerator(object):
           'a bundle file.')
 
     if not self.details.description:
-      tf.logging.warn('Writing bundle file with no description.')
+      tf.logging.warn('Writing bundle file with no generator description.')
+    if not bundle_description:
+      tf.logging.warn('Writing bundle file with no bundle description.')
 
     self.initialize()
 
@@ -227,6 +239,8 @@ class BaseSequenceGenerator(object):
 
       bundle = generator_pb2.GeneratorBundle()
       bundle.generator_details.CopyFrom(self.details)
+      if bundle_description:
+        bundle.bundle_details.description = bundle_description
       with tf.gfile.Open(checkpoint_filename, 'rb') as f:
         bundle.checkpoint_file.append(f.read())
       with tf.gfile.Open(metagraph_filename, 'rb') as f:

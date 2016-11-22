@@ -11,32 +11,30 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Provides function to build a melody RNN model's graph."""
+"""Provides function to build an event sequence RNN model's graph."""
 
 # internal imports
 import tensorflow as tf
 import magenta
 
 
-def build_graph(mode, config, sequence_example_file=None):
+def build_graph(mode, config, sequence_example_file_paths=None):
   """Builds the TensorFlow graph.
 
   Args:
     mode: 'train', 'eval', or 'generate'. Only mode related ops are added to
         the graph.
-    config: A MelodyRnnConfig containing the MelodyEncoderDecoder and HParams to
-        use.
-    sequence_example_file: A string path to a TFRecord file containing
+    config: An EventSequenceRnnConfig containing the encoder/decoder and HParams
+        to use.
+    sequence_example_file_paths: A list of paths to TFRecord files containing
         tf.train.SequenceExample protos. Only needed for training and
-        evaluation.
+        evaluation. May be a sharded file of the form.
 
   Returns:
     A tf.Graph instance which contains the TF ops.
 
   Raises:
-    ValueError: If mode is not 'train', 'eval', or 'generate', or if
-        sequence_example_file does not match a file when mode is 'train' or
-        'eval'.
+    ValueError: If mode is not 'train', 'eval', or 'generate'.
   """
   if mode not in ('train', 'eval', 'generate'):
     raise ValueError("The mode parameter must be 'train', 'eval', "
@@ -57,7 +55,7 @@ def build_graph(mode, config, sequence_example_file=None):
 
     if mode == 'train' or mode == 'eval':
       inputs, labels, lengths = magenta.common.get_padded_batch(
-          [sequence_example_file], hparams.batch_size, input_size)
+          sequence_example_file_paths, hparams.batch_size, input_size)
 
     elif mode == 'generate':
       inputs = tf.placeholder(tf.float32, [hparams.batch_size, None,

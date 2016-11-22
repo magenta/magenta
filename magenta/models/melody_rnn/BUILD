@@ -40,35 +40,12 @@ py_library(
 )
 
 py_library(
-    name = "melody_rnn_graph",
-    srcs = ["melody_rnn_graph.py"],
-    srcs_version = "PY2AND3",
-    deps = [
-        "//magenta",
-        # tensorflow dep
-    ],
-)
-
-py_test(
-    name = "melody_rnn_graph_test",
-    srcs = ["melody_rnn_graph_test.py"],
-    srcs_version = "PY2AND3",
-    deps = [
-        ":melody_rnn_graph",
-        ":melody_rnn_model",
-        "//magenta",
-        # tensorflow dep
-    ],
-)
-
-py_library(
     name = "melody_rnn_model",
     srcs = ["melody_rnn_model.py"],
     srcs_version = "PY2AND3",
     deps = [
-        ":melody_rnn_graph",
         "//magenta",
-        # tensorflow dep
+        "//magenta/models/shared:events_rnn_model",
     ],
 )
 
@@ -118,7 +95,8 @@ py_binary(
     ],
     deps = [
         ":melody_rnn_config_flags",
-        ":melody_rnn_graph",
+        "//magenta/models/shared:events_rnn_graph",
+        "//magenta/models/shared:events_rnn_train",
         # tensorflow dep
     ],
 )

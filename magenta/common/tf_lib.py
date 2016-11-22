@@ -34,15 +34,17 @@ class HParams(object):
     object.__setattr__(self, 'keyvals', init_hparams)
 
   def __getattr__(self, key):
+    """Returns value of the given hyperameter, or None if does not exist."""
     return self.keyvals.get(key)
 
   def __setattr__(self, key, value):
-    """Returns None if key does not exist."""
+    """Sets value for the hyperameter."""
     self.keyvals[key] = value
 
   def parse(self, string):
-    new_hparams = ast.literal_eval(string)
-    return HParams(**dict(self.keyvals, **new_hparams))
+    """Merges in new hyperparameters, replacing existing with same key."""
+    self.keyvals.update(ast.literal_eval(string))
 
   def values(self):
+    """Return the hyperparameter values as a Python dictionary."""
     return self.keyvals

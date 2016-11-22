@@ -67,13 +67,19 @@ class MelodyRnnSequenceGenerator(mm.BaseSequenceGenerator):
           'This model supports only 1 generate_sections message, but got %s' %
           len(generator_options.generate_sections))
 
+    qpm = (input_sequence.tempos[0].qpm
+           if input_sequence and input_sequence.tempos
+           else mm.DEFAULT_QUARTERS_PER_MINUTE)
+
     generate_section = generator_options.generate_sections[0]
     if generator_options.input_sections:
       input_section = generator_options.input_sections[0]
       primer_sequence = mm.extract_subsequence(
           input_sequence, input_section.start_time, input_section.end_time)
+      input_start_step = self._seconds_to_steps(input_section.start_time, qpm)
     else:
       primer_sequence = input_sequence
+      input_start_step = 0
 
     last_end_time = (max(n.end_time for n in primer_sequence.notes)
                      if primer_sequence.notes else 0)
@@ -85,18 +91,15 @@ class MelodyRnnSequenceGenerator(mm.BaseSequenceGenerator):
           (generate_section.start_time, last_end_time))
 
     # Quantize the priming sequence.
-    quantized_sequence = mm.QuantizedSequence()
-    quantized_sequence.from_note_sequence(
+    quantized_sequence = mm.quantize_note_sequence(
         primer_sequence, self._steps_per_quarter)
     # Setting gap_bars to infinite ensures that the entire input will be used.
     extracted_melodies, _ = mm.extract_melodies(
-        quantized_sequence, min_bars=0, min_unique_pitches=1,
-        gap_bars=float('inf'), ignore_polyphonic_notes=True)
+        quantized_sequence, search_start_step=input_start_step, min_bars=0,
+        min_unique_pitches=1, gap_bars=float('inf'),
+        ignore_polyphonic_notes=True)
     assert len(extracted_melodies) <= 1
 
-    qpm = (primer_sequence.tempos[0].qpm
-           if primer_sequence and primer_sequence.tempos
-           else mm.DEFAULT_QUARTERS_PER_MINUTE)
     start_step = self._seconds_to_steps(
         generate_section.start_time, qpm)
     end_step = self._seconds_to_steps(generate_section.end_time, qpm)
