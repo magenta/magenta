@@ -32,6 +32,7 @@ tf.app.flags.DEFINE_string('run_dir', '/tmp/polyphonic_rnn/logdir/run1',
                            'parent directory of `run_dir`. Point TensorBoard '
                            'to the parent directory of `run_dir` to see all '
                            'your runs.')
+tf.app.flags.DEFINE_string('config', 'polyphony', 'The config to use')
 tf.app.flags.DEFINE_string('sequence_example_file', '',
                            'Path to TFRecord file containing '
                            'tf.SequenceExample records for training or '
@@ -69,7 +70,7 @@ def main(unused_argv):
   sequence_example_file = os.path.expanduser(FLAGS.sequence_example_file)
   run_dir = os.path.expanduser(FLAGS.run_dir)
 
-  config = polyphony_model.default_configs['polyphony']
+  config = polyphony_model.default_configs[FLAGS.config]
 
   mode = 'eval' if FLAGS.eval else 'train'
   graph = events_rnn_graph.build_graph(
