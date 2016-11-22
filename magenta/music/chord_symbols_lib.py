@@ -244,6 +244,10 @@ class BasicChordSymbolFunctions(ChordSymbolFunctions):
       (['m9', 'min9', '-9'],
        ['1', 'b3', '5', 'b7', '9']),
 
+      # augmented 9th
+      (['+9', 'aug9'],
+       ['1', '3', '#5', 'b7', '9']),
+
       # 6/9 chord
       (['6/9'],
        ['1', '3', '5', '6', '9']),
@@ -279,6 +283,10 @@ class BasicChordSymbolFunctions(ChordSymbolFunctions):
       # suspended 4th
       (['sus', 'sus4'],
        ['1', '4', '5']),
+
+      # suspended 4th with dominant 7th
+      (['sus7', '7sus'],
+       ['1', '4', '5', 'b7']),
 
       # pedal point
       (['ped'],
