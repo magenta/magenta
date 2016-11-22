@@ -1089,5 +1089,5 @@ class MidiHub(object):
     self._outport.send(
       mido.Message(
           type='control_change',
-          control_number=control_number,
+          control=control_number,
           value=value))
