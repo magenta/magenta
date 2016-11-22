@@ -146,8 +146,6 @@ class PolyphonicSequence(events_lib.EventSequence):
     pitch_start_steps = collections.defaultdict(list)
     pitch_end_steps = collections.defaultdict(list)
 
-    # !!! filter for only 1 instrument. maybe in encoding pipeline?
-
     last_step = 0
     for note in quantized_sequence.notes:
       pitch_start_steps[note.quantized_start_step].append(note.pitch)
@@ -281,7 +279,9 @@ def extract_polyphonic_sequences(
 
   stats = dict([(stat_name, statistics.Counter(stat_name)) for stat_name in
                 ['polyphonic_tracks_discarded_too_short',
-                 'polyphonic_tracks_discarded_too_long']])
+                 'polyphonic_tracks_discarded_too_long',
+                 'polyphonic_tracks_discarded_more_than_1_instrument',
+                 'polyphonic_tracks_discarded_more_than_1_program']])
 
   steps_per_bar = sequences_lib.steps_per_bar_in_quantized_sequence(
       quantized_sequence)
@@ -292,6 +292,20 @@ def extract_polyphonic_sequences(
       [0, 1, 10, 20, 30, 40, 50, 100, 200, 500, 1000])
 
   start = 0
+
+  # Allow only 1 instrument and 1 program.
+  instruments = set()
+  programs = set()
+  for note in quantized_sequence.notes:
+    instruments.add(note.instrument)
+    programs.add(note.program)
+  if len(instruments) != 1:
+    stats['polyphonic_tracks_discarded_more_than_1_instrument'].increment()
+    return [], stats.values()
+  if len(programs) != 1:
+    stats['polyphonic_tracks_discarded_more_than_1_program'].increment()
+    return [], stats.values()
+
 
   # Translate the quantized sequence into a PolyphonicSequence.
   poly_seq = PolyphonicSequence(quantized_sequence)

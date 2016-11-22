@@ -203,6 +203,17 @@ class PolyphonyLibTest(tf.test.TestCase):
         quantized_sequence, min_steps_discard=3, max_steps_discard=5)
     self.assertEqual(0, len(seqs))
 
+  def testExtractPolyphonicMultiInstrument(self):
+    testing_lib.add_track_to_sequence(
+        self.note_sequence, 0, [(60, 100, 0.0, 4.0)])
+    testing_lib.add_track_to_sequence(
+        self.note_sequence, 1, [(60, 100, 0.0, 4.0)])
+    quantized_sequence = sequences_lib.quantize_note_sequence(
+        self.note_sequence, steps_per_quarter=1)
+
+    seqs, _ = polyphony_lib.extract_polyphonic_sequences(quantized_sequence)
+    self.assertEqual(0, len(seqs))
+
 
 if __name__ == '__main__':
   tf.test.main()
