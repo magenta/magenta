@@ -48,13 +48,8 @@ class PipelineUnitsCommonTest(tf.test.TestCase):
         note_sequence, 0,
         [(12, 100, 0.01, 10.0), (11, 55, 0.22, 0.50), (40, 45, 2.50, 3.50),
          (55, 120, 4.0, 4.01), (52, 99, 4.75, 5.0)])
-    expected_quantized_sequence = sequences_lib.QuantizedSequence()
-    expected_quantized_sequence.qpm = 60.0
-    expected_quantized_sequence.steps_per_quarter = steps_per_quarter
-    testing_lib.add_quantized_track_to_sequence(
-        expected_quantized_sequence, 0,
-        [(12, 100, 0, 40), (11, 55, 1, 2), (40, 45, 10, 14),
-         (55, 120, 16, 17), (52, 99, 19, 20)])
+    expected_quantized_sequence = sequences_lib.quantize_note_sequence(
+        note_sequence, steps_per_quarter)
 
     unit = pipelines_common.Quantizer(steps_per_quarter)
     self._unit_transform_test(unit, note_sequence,

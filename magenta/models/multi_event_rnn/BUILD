@@ -13,41 +13,41 @@
 # limitations under the License.
 
 # Description:
-# Polyphonic RNN model.
+# Multi-event RNN model.
 
 licenses(["notice"])  # Apache 2.0
 
 py_binary(
-    name = "polyphonic_rnn_train",
-    srcs = ["polyphonic_rnn_train.py"],
+    name = "multi_event_rnn_train",
+    srcs = ["multi_event_rnn_train.py"],
     deps = [
-        ":polyphonic_rnn_lib",
-        ":polyphonic_rnn_graph",
+        ":multi_event_rnn_lib",
+        ":multi_event_rnn_graph",
         # tensorflow dep
     ],
 )
 
 py_binary(
-    name = "polyphonic_rnn_generate",
-    srcs = ["polyphonic_rnn_generate.py"],
+    name = "multi_event_rnn_generate",
+    srcs = ["multi_event_rnn_generate.py"],
     deps = [
-        ":polyphonic_rnn_lib",
-        ":polyphonic_rnn_graph",
+        ":multi_event_rnn_lib",
+        ":multi_event_rnn_graph",
         # tensorflow dep
     ],
 )
 
 py_library(
-    name = "polyphonic_rnn_graph",
-    srcs = ["polyphonic_rnn_graph.py"],
+    name = "multi_event_rnn_graph",
+    srcs = ["multi_event_rnn_graph.py"],
     deps = [
-        ":polyphonic_rnn_lib",
+        ":multi_event_rnn_lib",
     ],
 )
 
 py_library(
-    name = "polyphonic_rnn_lib",
-    srcs = ["polyphonic_rnn_lib.py"],
+    name = "multi_event_rnn_lib",
+    srcs = ["multi_event_rnn_lib.py"],
     deps = [
         "//magenta",
         # numpy dep

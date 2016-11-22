@@ -11,7 +11,10 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Generate melodies from a trained checkpoint of a melody RNN model."""
+"""Generate drum tracks from a trained checkpoint of a drums RNN model.
+
+Uses flags to define operation.
+"""
 
 import ast
 import os
@@ -22,9 +25,10 @@ import time
 import tensorflow as tf
 import magenta
 
-from magenta.models.melody_rnn import melody_rnn_config_flags
-from magenta.models.melody_rnn import melody_rnn_model
-from magenta.models.melody_rnn import melody_rnn_sequence_generator
+from magenta.models.drums_rnn import drums_rnn_config_flags
+from magenta.models.drums_rnn import drums_rnn_model
+from magenta.models.drums_rnn import drums_rnn_sequence_generator
+
 from magenta.protobuf import generator_pb2
 from magenta.protobuf import music_pb2
 
@@ -50,49 +54,50 @@ tf.app.flags.DEFINE_string(
     'A short, human-readable text description of the bundle (e.g., training '
     'data, hyper parameters, etc.).')
 tf.app.flags.DEFINE_string(
-    'output_dir', '/tmp/melody_rnn/generated',
+    'output_dir', '/tmp/drums_rnn/generated',
     'The directory where MIDI files will be saved to.')
 tf.app.flags.DEFINE_integer(
     'num_outputs', 10,
-    'The number of melodies to generate. One MIDI file will be created for '
+    'The number of drum tracks to generate. One MIDI file will be created for '
     'each.')
 tf.app.flags.DEFINE_integer(
     'num_steps', 128,
-    'The total number of steps the generated melodies should be, priming '
-    'melody length + generated steps. Each step is a 16th of a bar.')
+    'The total number of steps the generated drum tracks should be, priming '
+    'drum track length + generated steps. Each step is a 16th of a bar.')
 tf.app.flags.DEFINE_string(
-    'primer_melody', '',
-    'A string representation of a Python list of '
-    'magenta.music.Melody event values. For example: '
-    '"[60, -2, 60, -2, 67, -2, 67, -2]". If specified, this melody will be '
-    'used as the priming melody. If a priming melody is not specified, '
-    'melodies will be generated from scratch.')
+    'primer_drums', '',
+    'A string representation of a Python list of tuples containing drum pitch '
+    'values. For example: '
+    '"[(36,42),(),(),(),(42,),(),(),()]". If specified, this drum track will '
+    'be used as the priming drum track. If a priming drum track is not '
+    'specified, drum tracks will be generated from scratch.')
 tf.app.flags.DEFINE_string(
     'primer_midi', '',
-    'The path to a MIDI file containing a melody that will be used as a '
-    'priming melody. If a primer melody is not specified, melodies will be '
-    'generated from scratch.')
+    'The path to a MIDI file containing a drum track that will be used as a '
+    'priming drum track. If a primer drum track is not specified, drum tracks '
+    'will be generated from scratch.')
 tf.app.flags.DEFINE_float(
     'qpm', None,
     'The quarters per minute to play generated output at. If a primer MIDI is '
     'given, the qpm from that will override this flag. If qpm is None, qpm '
     'will default to 120.')
 tf.app.flags.DEFINE_integer(
-    'steps_per_quarter', 4, 'What precision to use when quantizing the melody.')
+    'steps_per_quarter', 4,
+    'What precision to use when quantizing the drum track.')
 tf.app.flags.DEFINE_float(
     'temperature', 1.0,
-    'The randomness of the generated melodies. 1.0 uses the unaltered softmax '
-    'probabilities, greater than 1.0 makes melodies more random, less than 1.0 '
-    'makes melodies less random.')
+    'The randomness of the generated drum tracks. 1.0 uses the unaltered '
+    'softmax probabilities, greater than 1.0 makes tracks more random, less '
+    'than 1.0 makes tracks less random.')
 tf.app.flags.DEFINE_integer(
     'beam_size', 1,
-    'The beam size to use for beam search when generating melodies.')
+    'The beam size to use for beam search when generating drum tracks.')
 tf.app.flags.DEFINE_integer(
     'branch_factor', 1,
-    'The branch factor to use for beam search when generating melodies.')
+    'The branch factor to use for beam search when generating drum tracks.')
 tf.app.flags.DEFINE_integer(
     'steps_per_iteration', 1,
-    'The number of melody steps to take per beam search iteration.')
+    'The number of steps to take per beam search iteration.')
 tf.app.flags.DEFINE_string(
     'log', 'INFO',
     'The threshold for what messages will be logged DEBUG, INFO, WARN, ERROR, '
@@ -145,12 +150,12 @@ def _steps_to_seconds(steps, qpm):
 
 
 def run_with_flags(generator):
-  """Generates melodies and saves them as MIDI files.
+  """Generates drum tracks and saves them as MIDI files.
 
   Uses the options specified by the flags defined in this module.
 
   Args:
-    generator: The MelodyRnnSequenceGenerator to use for generation.
+    generator: The DrumsRnnSequenceGenerator to use for generation.
   """
   if not FLAGS.output_dir:
     tf.logging.fatal('--output_dir required')
@@ -166,18 +171,20 @@ def run_with_flags(generator):
 
   primer_sequence = None
   qpm = FLAGS.qpm if FLAGS.qpm else magenta.music.DEFAULT_QUARTERS_PER_MINUTE
-  if FLAGS.primer_melody:
-    primer_melody = magenta.music.Melody(ast.literal_eval(FLAGS.primer_melody))
-    primer_sequence = primer_melody.to_sequence(qpm=qpm)
+  if FLAGS.primer_drums:
+    primer_drums = magenta.music.DrumTrack(
+        [frozenset(pitches)
+         for pitches in ast.literal_eval(FLAGS.primer_drums)])
+    primer_sequence = primer_drums.to_sequence(qpm=qpm)
   elif primer_midi:
     primer_sequence = magenta.music.midi_file_to_sequence_proto(primer_midi)
     if primer_sequence.tempos and primer_sequence.tempos[0].qpm:
       qpm = primer_sequence.tempos[0].qpm
   else:
     tf.logging.warning(
-        'No priming sequence specified. Defaulting to a single middle C.')
-    primer_melody = magenta.music.Melody([60])
-    primer_sequence = primer_melody.to_sequence(qpm=qpm)
+        'No priming sequence specified. Defaulting to a single bass drum hit.')
+    primer_drums = magenta.music.DrumTrack([frozenset([36])])
+    primer_sequence = primer_drums.to_sequence(qpm=qpm)
 
   # Derive the total number of seconds to generate based on the QPM of the
   # priming sequence and the num_steps flag.
@@ -236,9 +243,9 @@ def main(unused_argv):
   """Saves bundle or runs generator based on flags."""
   tf.logging.set_verbosity(FLAGS.log)
 
-  config = melody_rnn_config_flags.config_from_flags()
-  generator = melody_rnn_sequence_generator.MelodyRnnSequenceGenerator(
-      model=melody_rnn_model.MelodyRnnModel(config),
+  config = drums_rnn_config_flags.config_from_flags()
+  generator = drums_rnn_sequence_generator.DrumsRnnSequenceGenerator(
+      model=drums_rnn_model.DrumsRnnModel(config),
       details=config.details,
       steps_per_quarter=FLAGS.steps_per_quarter,
       checkpoint=get_checkpoint(),

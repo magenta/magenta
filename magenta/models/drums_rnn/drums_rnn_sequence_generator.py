@@ -11,25 +11,25 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Melody RNN generation code as a SequenceGenerator interface."""
+"""Drums RNN generation code as a SequenceGenerator interface."""
 
 from functools import partial
 
 # internal imports
+from magenta.models.drums_rnn import drums_rnn_model
 
-from magenta.models.melody_rnn import melody_rnn_model
 import magenta.music as mm
 
 
-class MelodyRnnSequenceGenerator(mm.BaseSequenceGenerator):
+class DrumsRnnSequenceGenerator(mm.BaseSequenceGenerator):
   """Shared Melody RNN generation code as a SequenceGenerator interface."""
 
   def __init__(self, model, details, steps_per_quarter=4, checkpoint=None,
                bundle=None):
-    """Creates a MelodyRnnSequenceGenerator.
+    """Creates a DrumsRnnSequenceGenerator.
 
     Args:
-      model: Instance of MelodyRnnModel.
+      model: Instance of DrumsRnnModel.
       details: A generator_pb2.GeneratorDetails for this generator.
       steps_per_quarter: What precision to use when quantizing the melody. How
           many steps per quarter note.
@@ -38,7 +38,7 @@ class MelodyRnnSequenceGenerator(mm.BaseSequenceGenerator):
       bundle: A GeneratorBundle object that includes both the model checkpoint
           and metagraph. Mutually exclusive with `checkpoint`.
     """
-    super(MelodyRnnSequenceGenerator, self).__init__(
+    super(DrumsRnnSequenceGenerator, self).__init__(
         model, details, checkpoint, bundle)
     self._steps_per_quarter = steps_per_quarter
 
@@ -83,37 +83,37 @@ class MelodyRnnSequenceGenerator(mm.BaseSequenceGenerator):
 
     last_end_time = (max(n.end_time for n in primer_sequence.notes)
                      if primer_sequence.notes else 0)
-    if last_end_time > generate_section.start_time:
+    if last_end_time >= generate_section.start_time:
       raise mm.SequenceGeneratorException(
-          'Got GenerateSection request for section that is before the end of '
-          'the NoteSequence. This model can only extend sequences. Requested '
-          'start time: %s, Final note end time: %s' %
+          'Got GenerateSection request for section that is before or equal to '
+          'the end of the NoteSequence. This model can only extend sequences. '
+          'Requested start time: %s, Final note end time: %s' %
           (generate_section.start_time, last_end_time))
 
     # Quantize the priming sequence.
     quantized_sequence = mm.quantize_note_sequence(
         primer_sequence, self._steps_per_quarter)
     # Setting gap_bars to infinite ensures that the entire input will be used.
-    extracted_melodies, _ = mm.extract_melodies(
+    extracted_drum_tracks, _ = mm.extract_drum_tracks(
         quantized_sequence, search_start_step=input_start_step, min_bars=0,
-        min_unique_pitches=1, gap_bars=float('inf'),
-        ignore_polyphonic_notes=True)
-    assert len(extracted_melodies) <= 1
+        gap_bars=float('inf'))
+    assert len(extracted_drum_tracks) <= 1
 
     start_step = self._seconds_to_steps(
         generate_section.start_time, qpm)
     end_step = self._seconds_to_steps(generate_section.end_time, qpm)
 
-    if extracted_melodies and extracted_melodies[0]:
-      melody = extracted_melodies[0]
+    if extracted_drum_tracks and extracted_drum_tracks[0]:
+      drums = extracted_drum_tracks[0]
     else:
-      # If no melody could be extracted, create an empty melody that starts 1
-      # step before the request start_step. This will result in 1 step of
-      # silence when the melody is extended below.
-      melody = mm.Melody([], start_step=max(0, start_step - 1))
+      # If no drum track could be extracted, create an empty drum track that
+      # starts 1 step before the request start_step. This will result in 1 step
+      # of silence when the drum track is extended below.
+      drums = mm.DrumTrack([], start_step=max(0, start_step - 1))
 
-    # Ensure that the melody extends up to the step we want to start generating.
-    melody.set_length(start_step - melody.start_step)
+    # Ensure that the drum track extends up to the step we want to start
+    # generating.
+    drums.set_length(start_step - drums.start_step)
 
     # Extract generation arguments from generator options.
     arg_types = {
@@ -126,9 +126,9 @@ class MelodyRnnSequenceGenerator(mm.BaseSequenceGenerator):
                 for name, value_fn in arg_types.items()
                 if name in generator_options.args)
 
-    generated_melody = self._model.generate_melody(
-        end_step - melody.start_step, melody, **args)
-    generated_sequence = generated_melody.to_sequence(qpm=qpm)
+    generated_drums = self._model.generate_drum_track(
+        end_step - drums.start_step, drums, **args)
+    generated_sequence = generated_drums.to_sequence(qpm=qpm)
     assert (generated_sequence.total_time - generate_section.end_time) <= 1e-5
     return generated_sequence
 
@@ -143,6 +143,6 @@ def get_generator_map():
     Map from the generator ID to its SequenceGenerator class with a bound
     `config` argument.
   """
-  return {key: partial(MelodyRnnSequenceGenerator,
-                       melody_rnn_model.MelodyRnnModel(config), config.details)
-          for (key, config) in melody_rnn_model.default_configs.items()}
+  return {key: partial(DrumsRnnSequenceGenerator,
+                       drums_rnn_model.DrumsRnnModel(config), config.details)
+          for (key, config) in drums_rnn_model.default_configs.items()}

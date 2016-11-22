@@ -45,7 +45,7 @@ class MajorMinorChordOneHotEncodingTest(tf.test.TestCase):
     self.assertEquals(6, index)
 
     # minor 9th
-    index = self.enc.encode_event('A-m9')
+    index = self.enc.encode_event('Abm9')
     self.assertEquals(21, index)
 
   def testEncodeThirdlessChord(self):
@@ -55,7 +55,7 @@ class MajorMinorChordOneHotEncodingTest(tf.test.TestCase):
 
     # power chord
     with self.assertRaises(chords_encoder_decoder.ChordEncodingException):
-      self.enc.encode_event('B-5')
+      self.enc.encode_event('Bb5')
 
   def testDecodeNoChord(self):
     figure = self.enc.decode_event(0)

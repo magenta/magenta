@@ -89,7 +89,6 @@ tf.app.flags.DEFINE_string(
 # A map from a string generator name to its class.
 _GENERATOR_MAP = melody_rnn_sequence_generator.get_generator_map()
 
-
 def _validate_flags():
   """Returns True if flag values are valid or prints error and returns False."""
   if FLAGS.list_ports:

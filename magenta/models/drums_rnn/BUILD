@@ -12,36 +12,26 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Description: An RNN model for generating melodies.
+# Description: An RNN model for generating drum tracks.
 
 licenses(["notice"])  # Apache 2.0
 
 py_library(
-    name = "melody_rnn",
-    srcs = ["__init__.py"],
-    visibility = ["//magenta/tools/pip:__subpackages__"],
-    deps = [
-        ":melody_rnn_model",
-    ],
-)
-
-py_library(
-    name = "melody_rnn_config_flags",
-    srcs = ["melody_rnn_config_flags.py"],
+    name = "drums_rnn_config_flags",
+    srcs = ["drums_rnn_config_flags.py"],
     srcs_version = "PY2AND3",
     visibility = [
-        # internal model:melody_rnn
+        # internal model:drums_rnn
     ],
     deps = [
-        ":melody_rnn_model",
-        "//magenta",
+        ":drums_rnn_model",
         # tensorflow dep
     ],
 )
 
 py_library(
-    name = "melody_rnn_model",
-    srcs = ["melody_rnn_model.py"],
+    name = "drums_rnn_model",
+    srcs = ["drums_rnn_model.py"],
     srcs_version = "PY2AND3",
     deps = [
         "//magenta",
@@ -50,51 +40,51 @@ py_library(
 )
 
 py_library(
-    name = "melody_rnn_sequence_generator",
-    srcs = ["melody_rnn_sequence_generator.py"],
+    name = "drums_rnn_sequence_generator",
+    srcs = ["drums_rnn_sequence_generator.py"],
     srcs_version = "PY2AND3",
     visibility = ["//magenta/interfaces:generator_interfaces"],
     deps = [
-        ":melody_rnn_model",
+        ":drums_rnn_model",
         "//magenta",
     ],
 )
 
 py_binary(
-    name = "melody_rnn_create_dataset",
-    srcs = ["melody_rnn_create_dataset.py"],
+    name = "drums_rnn_create_dataset",
+    srcs = ["drums_rnn_create_dataset.py"],
     srcs_version = "PY2AND3",
     visibility = [
-        # internal model:melody_rnn
+        # internal model:drums_rnn
         "//magenta/tools/pip:__subpackages__",
     ],
     deps = [
-        ":melody_rnn_config_flags",
+        ":drums_rnn_config_flags",
         "//magenta",
         # tensorflow dep
     ],
 )
 
 py_test(
-    name = "melody_rnn_create_dataset_test",
-    srcs = ["melody_rnn_create_dataset_test.py"],
+    name = "drums_rnn_create_dataset_test",
+    srcs = ["drums_rnn_create_dataset_test.py"],
     deps = [
-        ":melody_rnn_create_dataset",
-        ":melody_rnn_model",
+        ":drums_rnn_create_dataset",
         "//magenta",
+        "//magenta/models/shared:events_rnn_model",
         # tensorflow dep
     ],
 )
 
 py_binary(
-    name = "melody_rnn_train",
-    srcs = ["melody_rnn_train.py"],
+    name = "drums_rnn_train",
+    srcs = ["drums_rnn_train.py"],
     srcs_version = "PY2AND3",
     visibility = [
         "//magenta/tools/pip:__subpackages__",
     ],
     deps = [
-        ":melody_rnn_config_flags",
+        ":drums_rnn_config_flags",
         "//magenta/models/shared:events_rnn_graph",
         "//magenta/models/shared:events_rnn_train",
         # tensorflow dep
@@ -102,16 +92,16 @@ py_binary(
 )
 
 py_binary(
-    name = "melody_rnn_generate",
-    srcs = ["melody_rnn_generate.py"],
+    name = "drums_rnn_generate",
+    srcs = ["drums_rnn_generate.py"],
     srcs_version = "PY2AND3",
     visibility = [
         "//magenta/tools/pip:__subpackages__",
     ],
     deps = [
-        ":melody_rnn_config_flags",
-        ":melody_rnn_model",
-        ":melody_rnn_sequence_generator",
+        ":drums_rnn_config_flags",
+        ":drums_rnn_model",
+        ":drums_rnn_sequence_generator",
         "//magenta",
         # tensorflow dep
     ],
