@@ -146,17 +146,15 @@ class PolyphonicSequence(events_lib.EventSequence):
     pitch_start_steps = collections.defaultdict(list)
     pitch_end_steps = collections.defaultdict(list)
 
-    last_step = 0
     for note in quantized_sequence.notes:
       pitch_start_steps[note.quantized_start_step].append(note.pitch)
       pitch_end_steps[note.quantized_end_step].append(note.pitch)
-      if note.quantized_end_step > last_step:
-        last_step = note.quantized_end_step
 
     events = [PolyphonicEvent(event_type=EVENT_START, pitch=0)]
 
     active_pitches = []
-    for step in range(last_step):
+    import pdb;pdb.set_trace()
+    for step in range(quantized_sequence.total_quantized_steps):
       step_events = []
 
       for pitch in pitch_end_steps[step]:
@@ -299,10 +297,10 @@ def extract_polyphonic_sequences(
   for note in quantized_sequence.notes:
     instruments.add(note.instrument)
     programs.add(note.program)
-  if len(instruments) != 1:
+  if len(instruments) > 1:
     stats['polyphonic_tracks_discarded_more_than_1_instrument'].increment()
     return [], stats.values()
-  if len(programs) != 1:
+  if len(programs) > 1:
     stats['polyphonic_tracks_discarded_more_than_1_program'].increment()
     return [], stats.values()
 

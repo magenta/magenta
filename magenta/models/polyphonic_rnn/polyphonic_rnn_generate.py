@@ -29,6 +29,7 @@ from magenta.models.polyphonic_rnn import polyphony_lib
 from magenta.models.polyphonic_rnn import polyphony_model
 from magenta.models.polyphonic_rnn import polyphony_sequence_generator
 
+from magenta.music import constants
 from magenta.protobuf import generator_pb2
 from magenta.protobuf import music_pb2
 
@@ -50,30 +51,28 @@ tf.app.flags.DEFINE_string(
     'A short, human-readable text description of the bundle (e.g., training '
     'data, hyper parameters, etc.).')
 tf.app.flags.DEFINE_string(
+    'config', 'polyphony', 'Config to use.')
+tf.app.flags.DEFINE_string(
     'output_dir', '/tmp/polyphonic_rnn/generated',
     'The directory where MIDI files will be saved to.')
 tf.app.flags.DEFINE_integer(
     'num_outputs', 10,
-    'The number of drum tracks to generate. One MIDI file will be created for '
+    'The number of tracks to generate. One MIDI file will be created for '
     'each.')
-#!!!
 tf.app.flags.DEFINE_integer(
-    'num_steps', 128,
-    'The total number of steps the generated drum tracks should be, priming '
-    'drum track length + generated steps. Each step is a 16th of a bar.')
-#!!!
+    'duration_seconds', 10,
+    'The total number of seconds the generated tracks should be, including the '
+    'priming track length.')
 tf.app.flags.DEFINE_string(
-    'primer_seq', '',
-    'A string representation of a Python list of tuples containing drum pitch '
-    'values. For example: '
-    '"[(36,42),(),(),(),(42,),(),(),()]". If specified, this drum track will '
-    'be used as the priming drum track. If a priming drum track is not '
-    'specified, drum tracks will be generated from scratch.')
+    'primer_pitches', '',
+    'A string representation of a Python list of pitches that will be used as '
+    'a starting chord with a quarter note duration. For example, C Major: '
+    '"[60, 64, 67]"')
 tf.app.flags.DEFINE_string(
     'primer_midi', '',
-    'The path to a MIDI file containing a drum track that will be used as a '
-    'priming drum track. If a primer drum track is not specified, drum tracks '
-    'will be generated from scratch.')
+    'The path to a MIDI file containing a polyphonic track that will be used '
+    'as a priming track. If a primer track is not specified, tracks will be '
+    'generated from scratch.')
 tf.app.flags.DEFINE_float(
     'qpm', None,
     'The quarters per minute to play generated output at. If a primer MIDI is '
@@ -81,18 +80,18 @@ tf.app.flags.DEFINE_float(
     'will default to 120.')
 tf.app.flags.DEFINE_integer(
     'steps_per_quarter', 4,
-    'What precision to use when quantizing the drum track.')
+    'What precision to use when quantizing the track.')
 tf.app.flags.DEFINE_float(
     'temperature', 1.0,
-    'The randomness of the generated drum tracks. 1.0 uses the unaltered '
+    'The randomness of the generated tracks. 1.0 uses the unaltered '
     'softmax probabilities, greater than 1.0 makes tracks more random, less '
     'than 1.0 makes tracks less random.')
 tf.app.flags.DEFINE_integer(
     'beam_size', 1,
-    'The beam size to use for beam search when generating drum tracks.')
+    'The beam size to use for beam search when generating tracks.')
 tf.app.flags.DEFINE_integer(
     'branch_factor', 1,
-    'The branch factor to use for beam search when generating drum tracks.')
+    'The branch factor to use for beam search when generating tracks.')
 tf.app.flags.DEFINE_integer(
     'steps_per_iteration', 1,
     'The number of steps to take per beam search iteration.')
@@ -151,61 +150,55 @@ def run_with_flags(generator):
 
   primer_sequence = None
   qpm = FLAGS.qpm if FLAGS.qpm else magenta.music.DEFAULT_QUARTERS_PER_MINUTE
-  #if FLAGS.primer_seq:
-  #  primer_drums = magenta.music.DrumTrack(
-  #      [frozenset(pitches)
-  #       for pitches in ast.literal_eval(FLAGS.primer_drums)])
-  #  primer_sequence = primer_drums.to_sequence(qpm=qpm)
-  #elif primer_midi:
-  #  primer_sequence = magenta.music.midi_file_to_sequence_proto(primer_midi)
-  #  if primer_sequence.tempos and primer_sequence.tempos[0].qpm:
-  #    qpm = primer_sequence.tempos[0].qpm
-  #else:
-  #tf.logging.warning(
-  #    'No priming sequence specified. Defaulting to a single bass drum hit.')
-  #primer_drums = polyphony_lib.PolyphonicSequence(
-  #    steps_per_quarter=FLAGS.steps_per_quarter)
-  #primer_sequence = primer_drums.to_sequence(qpm=qpm)
+  if FLAGS.primer_pitches:
+    primer_sequence = music_pb2.NoteSequence()
+    primer_sequence.tempos.add().qpm = qpm
+    primer_sequence.ticks_per_quarter = constants.STANDARD_PPQ
+    for pitch in ast.literal_eval(FLAGS.primer_pitches):
+      note = primer_sequence.notes.add()
+      note.start_time = 0
+      note.end_time = 60.0 / qpm
+      note.pitch = pitch
+      note.velocity = 100
+    primer_sequence.total_time = sequence.notes[-1].end_time
+  elif primer_midi:
+    primer_sequence = magenta.music.midi_file_to_sequence_proto(primer_midi)
+    if primer_sequence.tempos and primer_sequence.tempos[0].qpm:
+      qpm = primer_sequence.tempos[0].qpm
+  else:
+    tf.logging.warning(
+        'No priming sequence specified. Defaulting to silence.')
+    primer_sequence = music_pb2.NoteSequence()
+    primer_sequence.tempos.add().qpm = qpm
+    primer_sequence.ticks_per_quarter = constants.STANDARD_PPQ
+    primer_sequence.total_time = 60.0 / qpm
 
-  # Derive the total number of seconds to generate based on the QPM of the
-  # priming sequence and the num_steps flag.
-  # !!!
-  total_seconds = 10
+  # Derive the total number of seconds to generate.
+  generate_seconds = FLAGS.duration_seconds - primer_sequence.total_time
 
   # Specify start/stop time for generation based on starting generation at the
   # end of the priming sequence and continuing until the sequence is num_steps
   # long.
   generator_options = generator_pb2.GeneratorOptions()
-  #if primer_sequence:
-  #  input_sequence = primer_sequence
-  #  # Set the start time to begin on the next step after the last note ends.
-  #  last_end_time = (max(n.end_time for n in primer_sequence.notes)
-  #                   if primer_sequence.notes else 0)
-  #  generate_section = generator_options.generate_sections.add(
-  #      start_time=last_end_time + _steps_to_seconds(1, qpm),
-  #      end_time=total_seconds)
-
-  #  if generate_section.start_time >= generate_section.end_time:
-  #    tf.logging.fatal(
-  #        'Priming sequence is longer than the total number of steps '
-  #        'requested: Priming sequence length: %s, Generation length '
-  #        'requested: %s',
-  #        generate_section.start_time, total_seconds)
-  #    return
-  #else:
-  input_sequence = music_pb2.NoteSequence()
-  input_sequence.tempos.add().qpm = qpm
+  # Set the start time to begin when the last note ends.
   generate_section = generator_options.generate_sections.add(
-      # !!!
-      start_time=1,
-      end_time=total_seconds)
+      start_time=primer_sequence.total_time,
+      end_time=generate_seconds)
+
+  if generate_section.start_time >= generate_section.end_time:
+    tf.logging.fatal(
+        'Priming sequence is longer than the total number of steps '
+        'requested: Priming sequence length: %s, Generation length '
+        'requested: %s',
+        generate_section.start_time, generate_seconds)
+    return
 
   generator_options.args['temperature'].float_value = FLAGS.temperature
   generator_options.args['beam_size'].int_value = FLAGS.beam_size
   generator_options.args['branch_factor'].int_value = FLAGS.branch_factor
   generator_options.args[
       'steps_per_iteration'].int_value = FLAGS.steps_per_iteration
-  tf.logging.debug('input_sequence: %s', input_sequence)
+  tf.logging.debug('primer_sequence: %s', primer_sequence)
   tf.logging.debug('generator_options: %s', generator_options)
 
   # Make the generate request num_outputs times and save the output as midi
@@ -213,7 +206,7 @@ def run_with_flags(generator):
   date_and_time = time.strftime('%Y-%m-%d_%H%M%S')
   digits = len(str(FLAGS.num_outputs))
   for i in range(FLAGS.num_outputs):
-    generated_sequence = generator.generate(input_sequence, generator_options)
+    generated_sequence = generator.generate(primer_sequence, generator_options)
 
     midi_filename = '%s_%s.mid' % (date_and_time, str(i + 1).zfill(digits))
     midi_path = os.path.join(output_dir, midi_filename)
@@ -227,7 +220,7 @@ def main(unused_argv):
   """Saves bundle or runs generator based on flags."""
   tf.logging.set_verbosity(FLAGS.log)
 
-  config = polyphony_model.default_configs['polyphony']
+  config = polyphony_model.default_configs[FLAGS.config]
 
   generator = polyphony_sequence_generator.PolyphonicRnnSequenceGenerator(
       model=polyphony_model.PolyphonicRnnModel(config),
