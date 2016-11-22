@@ -28,7 +28,6 @@ from magenta.music import sequences_lib
 from magenta.pipelines import statistics
 from magenta.protobuf import music_pb2
 
-DEFAULT_STEPS_PER_BAR = constants.DEFAULT_STEPS_PER_BAR
 DEFAULT_STEPS_PER_QUARTER = constants.DEFAULT_STEPS_PER_QUARTER
 MAX_MIDI_PITCH = constants.MAX_MIDI_PITCH
 MIN_MIDI_PITCH = constants.MIN_MIDI_PITCH
@@ -49,7 +48,8 @@ class PolyphonicSequence(events_lib.EventSequence):
   Events are PolyphonicEvent tuples that encode event type and pitch.
   """
 
-  def __init__(self, quantized_sequence=None, steps_per_quarter=None):
+  def __init__(self, quantized_sequence=None, steps_per_quarter=None,
+               start_step=0):
     """Construct a PolyphonicSequence.
 
     Either quantized_sequence or steps_per_quarter should be supplied.
@@ -57,6 +57,8 @@ class PolyphonicSequence(events_lib.EventSequence):
     Args:
       quantized_sequence: a quantized NoteSequence proto.
       steps_per_quarter: how many steps a quarter note represents.
+      start_step: The offset of this sequence relative to the
+          beginning of the source sequence.
     """
     assert (quantized_sequence, steps_per_quarter).count(None) == 1
 
@@ -66,8 +68,26 @@ class PolyphonicSequence(events_lib.EventSequence):
       self._steps_per_quarter = (
           quantized_sequence.quantization_info.steps_per_quarter)
     else:
-      self._events = []
+      self._events = [PolyphonicEvent(event_type=EVENT_START, pitch=0)]
       self._steps_per_quarter = steps_per_quarter
+
+    self._start_step = start_step
+
+  @property
+  def start_step(self):
+    return self._start_step
+
+  @property
+  def steps_per_quarter(self):
+    return self._steps_per_quarter
+
+  def append_silence_steps(self, num_steps):
+    """Adds bars of silence to the end of the sequence."""
+    if self._events[-1].event_type == EVENT_END:
+      del self._events[-1]
+    for i in range(num_steps):
+      self._events.append(PolyphonicEvent(event_type=EVENT_STEP_END, pitch=0))
+    self._events.append(PolyphonicEvent(event_type=EVENT_END, pitch=0))
 
   def append(self, event):
     """Appends the event to the end of the sequence.
@@ -153,7 +173,6 @@ class PolyphonicSequence(events_lib.EventSequence):
     events = [PolyphonicEvent(event_type=EVENT_START, pitch=0)]
 
     active_pitches = []
-    import pdb;pdb.set_trace()
     for step in range(quantized_sequence.total_quantized_steps):
       step_events = []
 

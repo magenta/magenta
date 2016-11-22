@@ -43,8 +43,25 @@ class EventSequence(object):
   sequences of musical events of particular types. In all cases, model-specific
   code is responsible for converting this representation to SequenceExample
   protos for TensorFlow.
+
+  EventSequence represents an iterable object. Simply iterate to retrieve the
+  events.
+
+  Attributes:
+    start_step: The offset of the first step of the sequence relative to the
+        beginning of the source sequence. Should always be the first step of a
+        bar.
+    steps_per_quarter: Number of steps in in a quarter note.
   """
   __metaclass__ = abc.ABCMeta
+
+  @abc.abstractproperty
+  def start_step(self):
+    pass
+
+  @abc.abstractproperty
+  def steps_per_quarter(self):
+    pass
 
   @abc.abstractmethod
   def append(self, event):
@@ -58,6 +75,11 @@ class EventSequence(object):
   @abc.abstractmethod
   def __getitem__(self, i):
     """Returns the event at the given index."""
+    pass
+
+  @abc.abstractmethod
+  def __iter__(self, i):
+    """Returns an iterator over the events."""
     pass
 
   @abc.abstractmethod

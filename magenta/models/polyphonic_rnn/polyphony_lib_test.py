@@ -154,6 +154,50 @@ class PolyphonyLibTest(tf.test.TestCase):
 
     self.assertEqual(self.note_sequence, poly_seq_ns)
 
+  def testAppendSilenceSteps(self):
+    poly_seq = polyphony_lib.PolyphonicSequence(steps_per_quarter=1)
+    poly_seq.append_silence_steps(5)
+
+    self.assertEqual(5, poly_seq.num_steps)
+
+    pe = polyphony_lib.PolyphonicEvent
+    poly_events = [
+        pe(EVENT_START, 0),
+
+        pe(EVENT_STEP_END, 0),
+        pe(EVENT_STEP_END, 0),
+        pe(EVENT_STEP_END, 0),
+        pe(EVENT_STEP_END, 0),
+        pe(EVENT_STEP_END, 0),
+
+        pe(EVENT_END, 0),
+    ]
+    self.assertEqual(poly_events, list(poly_seq))
+
+    # Add 5 more steps to make sure EVENT_END is managed properly.
+    poly_seq.append_silence_steps(5)
+
+    self.assertEqual(10, poly_seq.num_steps)
+
+    pe = polyphony_lib.PolyphonicEvent
+    poly_events = [
+        pe(EVENT_START, 0),
+
+        pe(EVENT_STEP_END, 0),
+        pe(EVENT_STEP_END, 0),
+        pe(EVENT_STEP_END, 0),
+        pe(EVENT_STEP_END, 0),
+        pe(EVENT_STEP_END, 0),
+        pe(EVENT_STEP_END, 0),
+        pe(EVENT_STEP_END, 0),
+        pe(EVENT_STEP_END, 0),
+        pe(EVENT_STEP_END, 0),
+        pe(EVENT_STEP_END, 0),
+
+        pe(EVENT_END, 0),
+    ]
+    self.assertEqual(poly_events, list(poly_seq))
+
   def testNumSteps(self):
     poly_seq = polyphony_lib.PolyphonicSequence(steps_per_quarter=1)
 
@@ -190,6 +234,7 @@ class PolyphonyLibTest(tf.test.TestCase):
     self.assertEqual(1, len(seqs))
 
     self.note_sequence.notes[0].end_time = 1.0
+    self.note_sequence.total_time = 1.0
     quantized_sequence = sequences_lib.quantize_note_sequence(
         self.note_sequence, steps_per_quarter=1)
     seqs, _ = polyphony_lib.extract_polyphonic_sequences(
@@ -197,6 +242,7 @@ class PolyphonyLibTest(tf.test.TestCase):
     self.assertEqual(0, len(seqs))
 
     self.note_sequence.notes[0].end_time = 10.0
+    self.note_sequence.total_time = 10.0
     quantized_sequence = sequences_lib.quantize_note_sequence(
         self.note_sequence, steps_per_quarter=1)
     seqs, _ = polyphony_lib.extract_polyphonic_sequences(
