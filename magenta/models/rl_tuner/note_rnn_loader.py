@@ -191,7 +191,7 @@ class NoteRNNLoader(object):
           else:
             self.cell = events_rnn_graph.make_rnn_cell(
                 self.hparams.rnn_layer_sizes,
-                dropout_keep_prob=self.hparams.dropout_keep_prob))
+                dropout_keep_prob=self.hparams.dropout_keep_prob)
           # Shape of melody_sequence is batch size, melody length, number of
           # output note actions.
           self.melody_sequence = tf.placeholder(tf.float32,
