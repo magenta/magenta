@@ -463,7 +463,7 @@ class ExternalClockCallAndResponse(MidiInteraction):
       return float('inf')
     val = self._midi_hub.control_value(
         self._max_listen_ticks_control_number)
-    return float('inf') if val == 0 else val
+    return float('inf') if not val else val
 
   def run(self):
     """The main loop for a real-time call and response interaction."""
