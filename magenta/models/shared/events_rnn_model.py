@@ -230,7 +230,7 @@ class EventSequenceRnnModel(mm.BaseModel):
     return event_sequences, final_state, loglik
 
   def _beam_search(self, events, num_steps, temperature, beam_size,
-                   branch_factor, steps_per_iteration):
+                   branch_factor, steps_per_iteration, control_events=None):
     """Generates an event sequence using beam search.
 
     Initially, the beam is filled with `beam_size` copies of the initial event
@@ -264,6 +264,10 @@ class EventSequenceRnnModel(mm.BaseModel):
       beam_size: The integer beam size to use.
       branch_factor: The integer branch factor to use.
       steps_per_iteration: The integer number of steps to take per iteration.
+      control_events: A sequence of control events upon which to condition the
+          generation. If not None, the encoder/decoder should be a
+          ConditionalEventSequenceEncoderDecoder, and the control events will be
+          used along with the target sequence to generate model inputs.
 
     Returns:
       The highest-likelihood event sequence as computed by the beam search.
@@ -276,8 +280,13 @@ class EventSequenceRnnModel(mm.BaseModel):
     # iterations can all take the same number of steps.
     first_iteration_num_steps = (num_steps - 1) % steps_per_iteration + 1
 
-    inputs = self._config.encoder_decoder.get_inputs_batch(
-        event_sequences, full_length=True)
+    if control_events is not None:
+      # We are conditioning on a control sequence.
+      inputs = self._config.encoder_decoder.get_inputs_batch(
+          event_sequences, control_events, full_length=True)
+    else:
+      inputs = self._config.encoder_decoder.get_inputs_batch(
+          event_sequences, full_length=True)
     initial_state = np.tile(
         self._session.run(graph_initial_state), (beam_size, 1))
     event_sequences, final_state, loglik = self._generate_branches(
@@ -290,7 +299,12 @@ class EventSequenceRnnModel(mm.BaseModel):
     for _ in range(num_iterations):
       event_sequences, final_state, loglik = self._prune_branches(
           event_sequences, final_state, loglik, k=beam_size)
-      inputs = self._config.encoder_decoder.get_inputs_batch(event_sequences)
+      if control_events is not None:
+        # We are conditioning on a control sequence.
+        inputs = self._config.encoder_decoder.get_inputs_batch(
+            event_sequences, control_events)
+      else:
+        inputs = self._config.encoder_decoder.get_inputs_batch(event_sequences)
       event_sequences, final_state, loglik = self._generate_branches(
           event_sequences, loglik, branch_factor, steps_per_iteration, inputs,
           final_state, temperature)
@@ -347,7 +361,8 @@ class EventSequenceRnnConfig(object):
 
   Attributes:
     details: The GeneratorDetails message describing the config.
-    encoder_decoder: The EventSequenceEncoderDecoder object to use.
+    encoder_decoder: The EventSequenceEncoderDecoder or
+        ConditionalEventSequenceEncoderDecoder object to use.
     hparams: The HParams containing hyperparameters to use.
   """
 
