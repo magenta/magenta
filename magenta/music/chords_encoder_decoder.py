@@ -35,6 +35,7 @@ NO_CHORD = constants.NO_CHORD
 _PITCH_CLASS_MAPPING = ['C', 'C#', 'D', 'Eb', 'E', 'F',
                         'F#', 'G', 'Ab', 'A', 'Bb', 'B']
 
+
 class ChordEncodingException(Exception):
   pass
 
@@ -102,7 +103,6 @@ class TriadChordOneHotEncoding(encoder_decoder.OneHotEncoding):
     25-36: chords with an augmented triad, where 25 is C augmented, etc.
     37-48: chords with a diminished triad, where 37 is C diminished, etc.
   """
-
 
   def __init__(self, chord_symbol_functions=
                chord_symbols_lib.ChordSymbolFunctions.get()):
