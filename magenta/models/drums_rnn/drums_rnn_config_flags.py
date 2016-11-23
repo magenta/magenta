@@ -26,18 +26,16 @@ tf.app.flags.DEFINE_string(
 tf.app.flags.DEFINE_string(
     'generator_id',
     None,
-    'A unique ID for the generator. Overrides the default if `--config` is '
-    'also supplied.')
+    'A unique ID for the generator, overriding the default.')
 tf.app.flags.DEFINE_string(
     'generator_description',
     None,
-    'A description of the generator. Overrides the default if `--config` is '
-    'also supplied.')
+    'A description of the generator, overriding the default.')
 tf.app.flags.DEFINE_string(
     'hparams', '{}',
     'String representation of a Python dictionary containing hyperparameter '
     'to value mapping. This mapping is merged with the default '
-    'hyperparameters if `--config` is also supplied.')
+    'hyperparameters.')
 
 
 class DrumsRnnConfigFlagsException(Exception):
