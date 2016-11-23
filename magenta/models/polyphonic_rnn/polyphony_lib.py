@@ -58,13 +58,15 @@ class PolyphonicSequence(events_lib.EventSequence):
       quantized_sequence: a quantized NoteSequence proto.
       steps_per_quarter: how many steps a quarter note represents.
       start_step: The offset of this sequence relative to the
-          beginning of the source sequence.
+          beginning of the source sequence. If a quantized sequence is used as
+          input, only notes starting after this step will be considered.
     """
     assert (quantized_sequence, steps_per_quarter).count(None) == 1
 
     if quantized_sequence:
       sequences_lib.assert_is_quantized_sequence(quantized_sequence)
-      self._events = self._from_quantized_sequence(quantized_sequence)
+      self._events = self._from_quantized_sequence(quantized_sequence,
+                                                   start_step)
       self._steps_per_quarter = (
           quantized_sequence.quantization_info.steps_per_quarter)
     else:
@@ -81,13 +83,54 @@ class PolyphonicSequence(events_lib.EventSequence):
   def steps_per_quarter(self):
     return self._steps_per_quarter
 
-  def append_silence_steps(self, num_steps):
-    """Adds bars of silence to the end of the sequence."""
-    if self._events[-1].event_type == EVENT_END:
+  def trim_trailing_end__and_step_end_events(self):
+    """Removes the trailing EVENT_END event if present.
+
+    Should be called before using a sequence to prime generation.
+    """
+    while self._events[-1].event_type in (EVENT_END, EVENT_STEP_END):
       del self._events[-1]
+
+  def _append_silence_steps(self, num_steps):
+    """Adds bars of silence to the end of the sequence."""
+    self.trim_trailing_end_event()
     for i in range(num_steps):
       self._events.append(PolyphonicEvent(event_type=EVENT_STEP_END, pitch=0))
     self._events.append(PolyphonicEvent(event_type=EVENT_END, pitch=0))
+
+  def _trim_steps(self, num_steps):
+    """Trims a given number of steps from the end of the sequence."""
+    steps_trimmed = 0
+    for i in range(len(self._events) - 1, -1, -1):
+      if self._events[i].event_type == EVENT_STEP_END:
+        if steps_trimmed == num_steps:
+          del self._events[i + 1:]
+          break
+        steps_trimmed += 1
+      elif i == 0:
+        self._events = [PolyphonicEvent(event_type=EVENT_START, pitch=0)]
+        break
+    self._events.append(PolyphonicEvent(event_type=EVENT_END, pitch=0))
+
+  def set_length(self, steps, from_left=False):
+    """Sets the length of the sequence to the specified number of steps.
+
+    If the event sequence is not long enough, pads with `pad_event` to make the
+    sequence the specified length. If it is too long, it will be truncated to
+    the requested length.
+
+    Args:
+      steps: How many quantized steps long the event sequence should be.
+      from_left: Whether to add/remove from the left instead of right.
+    """
+    if from_left:
+      raise NotImplementedError('from_left is not supported')
+
+    if self.num_steps < steps:
+      self._append_silence_steps(steps - self.num_steps)
+    elif self.num_steps > steps:
+      self._trim_steps(self.num_steps - steps)
+    assert(self.num_steps == steps)
 
   def append(self, event):
     """Appends the event to the end of the sequence.
@@ -148,7 +191,7 @@ class PolyphonicSequence(events_lib.EventSequence):
     return steps
 
   @staticmethod
-  def _from_quantized_sequence(quantized_sequence):
+  def _from_quantized_sequence(quantized_sequence, search_start_step=0):
     """Populate self with events from the given quantized NoteSequence object.
 
     Sequences start with EVENT_START.
@@ -162,18 +205,23 @@ class PolyphonicSequence(events_lib.EventSequence):
 
     Args:
       quantized_sequence: A quantized NoteSequence instance.
+      search_start_step: Start searching for sequence at this time step.
+          Assumed to be the beginning of a bar.
     """
     pitch_start_steps = collections.defaultdict(list)
     pitch_end_steps = collections.defaultdict(list)
 
     for note in quantized_sequence.notes:
+      if note.quantized_start_step < search_start_step:
+        continue
       pitch_start_steps[note.quantized_start_step].append(note.pitch)
       pitch_end_steps[note.quantized_end_step].append(note.pitch)
 
     events = [PolyphonicEvent(event_type=EVENT_START, pitch=0)]
 
     active_pitches = []
-    for step in range(quantized_sequence.total_quantized_steps):
+    for step in range(search_start_step,
+                      quantized_sequence.total_quantized_steps):
       step_events = []
 
       for pitch in pitch_end_steps[step]:
@@ -198,7 +246,6 @@ class PolyphonicSequence(events_lib.EventSequence):
                   velocity=100,
                   instrument=0,
                   program=0,
-                  sequence_start_time=0.0,
                   qpm=constants.DEFAULT_QUARTERS_PER_MINUTE):
     """Converts the PolyphonicSequence to NoteSequence proto.
 
@@ -206,14 +253,14 @@ class PolyphonicSequence(events_lib.EventSequence):
       velocity: Midi velocity to give each note. Between 1 and 127 (inclusive).
       instrument: Midi instrument to give each note.
       program: Midi program to give each note.
-      sequence_start_time: A time in seconds (float) that the first event in the
-          sequence will land on.
       qpm: Quarter notes per minute (float).
 
     Returns:
       A NoteSequence proto.
     """
     seconds_per_step = 60.0 / qpm / self._steps_per_quarter
+
+    sequence_start_time = self.start_step * seconds_per_step
 
     sequence = music_pb2.NoteSequence()
     sequence.tempos.add().qpm = qpm
@@ -276,13 +323,16 @@ class PolyphonicSequence(events_lib.EventSequence):
 
 
 def extract_polyphonic_sequences(
-    quantized_sequence, min_steps_discard=None, max_steps_discard=None):
+    quantized_sequence, search_start_step=0, min_steps_discard=None,
+    max_steps_discard=None):
   """Extracts a polyphonic track from the given quantized NoteSequence.
 
   Currently, this extracts only one polyphonic sequence from a given track.
 
   Args:
     quantized_sequence: A quantized NoteSequence.
+    search_start_step: Start searching for sequence at this time step. Assumed
+        to be the beginning of a bar.
     min_steps_discard: Minimum length of tracks in steps. Shorter tracks are
         discarded.
     max_steps_discard: Maximum length of tracks in steps. Longer tracks are
@@ -325,7 +375,8 @@ def extract_polyphonic_sequences(
 
 
   # Translate the quantized sequence into a PolyphonicSequence.
-  poly_seq = PolyphonicSequence(quantized_sequence)
+  poly_seq = PolyphonicSequence(quantized_sequence,
+                                start_step=search_start_step)
 
   poly_seqs = []
   num_steps = poly_seq.num_steps

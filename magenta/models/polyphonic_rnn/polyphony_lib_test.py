@@ -94,7 +94,6 @@ class PolyphonyLibTest(tf.test.TestCase):
 
     pe = polyphony_lib.PolyphonicEvent
     poly_events = [
-        pe(EVENT_START, 0),
         # step 0
         pe(EVENT_NEW_NOTE, 60),
         pe(EVENT_NEW_NOTE, 64),
@@ -127,7 +126,6 @@ class PolyphonyLibTest(tf.test.TestCase):
 
     pe = polyphony_lib.PolyphonicEvent
     poly_events = [
-        pe(EVENT_START, 0),
         # step 0
         pe(EVENT_NEW_NOTE, 60),
         pe(EVENT_NEW_NOTE, 64),
@@ -154,9 +152,9 @@ class PolyphonyLibTest(tf.test.TestCase):
 
     self.assertEqual(self.note_sequence, poly_seq_ns)
 
-  def testAppendSilenceSteps(self):
+  def testSetLengthAddSteps(self):
     poly_seq = polyphony_lib.PolyphonicSequence(steps_per_quarter=1)
-    poly_seq.append_silence_steps(5)
+    poly_seq.set_length(5)
 
     self.assertEqual(5, poly_seq.num_steps)
 
@@ -175,7 +173,7 @@ class PolyphonyLibTest(tf.test.TestCase):
     self.assertEqual(poly_events, list(poly_seq))
 
     # Add 5 more steps to make sure EVENT_END is managed properly.
-    poly_seq.append_silence_steps(5)
+    poly_seq.set_length(10)
 
     self.assertEqual(10, poly_seq.num_steps)
 
@@ -193,6 +191,59 @@ class PolyphonyLibTest(tf.test.TestCase):
         pe(EVENT_STEP_END, 0),
         pe(EVENT_STEP_END, 0),
         pe(EVENT_STEP_END, 0),
+
+        pe(EVENT_END, 0),
+    ]
+    self.assertEqual(poly_events, list(poly_seq))
+
+  def testSetLengthRemoveSteps(self):
+    poly_seq = polyphony_lib.PolyphonicSequence(steps_per_quarter=1)
+
+    pe = polyphony_lib.PolyphonicEvent
+    poly_events = [
+        # step 0
+        pe(EVENT_NEW_NOTE, 60),
+        pe(EVENT_STEP_END, 0),
+        # step 1
+        pe(EVENT_NEW_NOTE, 64),
+        pe(EVENT_STEP_END, 0),
+        # step 2
+        pe(EVENT_NEW_NOTE, 67),
+        pe(EVENT_STEP_END, 0),
+
+        pe(EVENT_END, 0),
+    ]
+    for event in poly_events:
+      poly_seq.append(event)
+
+    poly_seq.set_length(2)
+    poly_events = [
+        pe(EVENT_START, 0),
+        # step 0
+        pe(EVENT_NEW_NOTE, 60),
+        pe(EVENT_STEP_END, 0),
+        # step 1
+        pe(EVENT_NEW_NOTE, 64),
+        pe(EVENT_STEP_END, 0),
+
+        pe(EVENT_END, 0),
+    ]
+    self.assertEqual(poly_events, list(poly_seq))
+
+    poly_seq.set_length(1)
+    poly_events = [
+        pe(EVENT_START, 0),
+        # step 0
+        pe(EVENT_NEW_NOTE, 60),
+        pe(EVENT_STEP_END, 0),
+
+        pe(EVENT_END, 0),
+    ]
+    self.assertEqual(poly_events, list(poly_seq))
+
+    poly_seq.set_length(0)
+    poly_events = [
+        pe(EVENT_START, 0),
 
         pe(EVENT_END, 0),
     ]

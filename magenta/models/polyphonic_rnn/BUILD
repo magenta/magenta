@@ -53,6 +53,7 @@ py_library(
         ":polyphony_lib",
         ":polyphony_model",
         "//magenta",
+        # tensorflow dep
     ],
 )
 

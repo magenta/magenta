@@ -73,6 +73,20 @@ class EventSequence(object):
     pass
 
   @abc.abstractmethod
+  def set_length(self, steps, from_left=False):
+    """Sets the length of the sequence to the specified number of steps.
+
+    If the event sequence is not long enough, will pad  to make the sequence
+    the specified length. If it is too long, it will be truncated to the
+    requested length.
+
+    Args:
+      steps: How many steps long the event sequence should be.
+      from_left: Whether to add/remove from the left instead of right.
+    """
+    pass
+
+  @abc.abstractmethod
   def __getitem__(self, i):
     """Returns the event at the given index."""
     pass

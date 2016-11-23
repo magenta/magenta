@@ -160,7 +160,7 @@ def run_with_flags(generator):
       note.end_time = 60.0 / qpm
       note.pitch = pitch
       note.velocity = 100
-    primer_sequence.total_time = sequence.notes[-1].end_time
+    primer_sequence.total_time = primer_sequence.notes[-1].end_time
   elif primer_midi:
     primer_sequence = magenta.music.midi_file_to_sequence_proto(primer_midi)
     if primer_sequence.tempos and primer_sequence.tempos[0].qpm:

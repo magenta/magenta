@@ -17,6 +17,8 @@ from functools import partial
 
 # internal imports
 
+import tensorflow as tf
+
 from magenta.models.polyphonic_rnn import polyphony_lib
 from magenta.models.polyphonic_rnn import polyphony_model
 
@@ -35,6 +37,8 @@ class PolyphonicRnnSequenceGenerator(mm.BaseSequenceGenerator):
       details: A generator_pb2.GeneratorDetails for this generator.
       steps_per_quarter: What precision to use when quantizing the melody. How
           many steps per quarter note.
+      steps_per_quarter: What precision to use when quantizing the sequence. How
+          many steps per quarter note.
       checkpoint: Where to search for the most recent model checkpoint. Mutually
           exclusive with `bundle`.
       bundle: A GeneratorBundle object that includes both the model checkpoint
@@ -43,6 +47,20 @@ class PolyphonicRnnSequenceGenerator(mm.BaseSequenceGenerator):
     super(PolyphonicRnnSequenceGenerator, self).__init__(
         model, details, checkpoint, bundle)
     self._steps_per_quarter = steps_per_quarter
+
+  def _seconds_to_steps(self, seconds, qpm):
+    """Converts seconds to steps.
+
+    Uses the generator's steps_per_quarter setting and the specified qpm.
+
+    Args:
+      seconds: number of seconds.
+      qpm: current qpm.
+
+    Returns:
+      Number of steps the seconds represent.
+    """
+    return int(seconds * (qpm / 60.0) * self._steps_per_quarter)
 
   def _generate(self, input_sequence, generator_options):
     if len(generator_options.input_sections) > 1:
@@ -59,8 +77,10 @@ class PolyphonicRnnSequenceGenerator(mm.BaseSequenceGenerator):
       input_section = generator_options.input_sections[0]
       primer_sequence = mm.extract_subsequence(
           input_sequence, input_section.start_time, input_section.end_time)
+      input_start_step = self._seconds_to_steps(input_section.start_time, qpm)
     else:
       primer_sequence = input_sequence
+      input_start_step = 0
 
     last_end_time = (max(n.end_time for n in primer_sequence.notes)
                      if primer_sequence.notes else 0)
@@ -77,29 +97,28 @@ class PolyphonicRnnSequenceGenerator(mm.BaseSequenceGenerator):
     # quantized sequences are guaranteed to have 1 tempo.
     qpm = quantized_primer_sequence.tempos[0].qpm
 
-    # !!! need ability to start at an offset because midi interaction uses
-    # wallclock times.
     extracted_seqs, stats = polyphony_lib.extract_polyphonic_sequences(
-        quantized_primer_sequence)
+        quantized_primer_sequence, search_start_step=input_start_step)
     assert len(extracted_seqs) <= 1
+
+    start_step = self._seconds_to_steps(
+        generate_section.start_time, qpm)
+    end_step = self._seconds_to_steps(generate_section.end_time, qpm)
 
     if extracted_seqs and extracted_seqs[0]:
       poly_seq = extracted_seqs[0]
     else:
-      # !!! Not sure how to handle this. Probably need to generate enough empty
-      # steps to fill in what is needed.
-      #
       # If no track could be extracted, create an empty track that starts 1 step
       # before the request start_step. This will result in 1 step of silence
-      # when the drum track is extended below.
+      # when the track is extended below.
       poly_seq = polyphony_lib.PolyphonicSequence(
           steps_per_quarter=(
-              quantized_primer_sequence.quantization_info.steps_per_quarter))
+              quantized_primer_sequence.quantization_info.steps_per_quarter),
+          start_step=start_step)
 
-    # !!!!!
-    # Ensure that the drum track extends up to the step we want to start
-    # generating.
-    #drums.set_length(start_step - drums.start_step)
+    # Ensure that the track extends up to the step we want to start generating.
+    poly_seq.set_length(start_step - poly_seq.start_step)
+    poly_seq.trim_trailing_end__and_step_end_events()
 
     # Extract generation arguments from generator options.
     arg_types = {
@@ -112,12 +131,22 @@ class PolyphonicRnnSequenceGenerator(mm.BaseSequenceGenerator):
                 for name, value_fn in arg_types.items()
                 if name in generator_options.args)
 
-    # !!! how to determine how many steps to generate?
-    # !!! should remove EVENT_END marker?
-    generated_seq = self._model.generate_polyphonic_sequence(
-        1000, poly_seq, **args)
-    generated_sequence = generated_seq.to_sequence(qpm=qpm)
-    #assert (generated_sequence.total_time - generate_section.end_time) <= 1e-5
+    total_steps = end_step - start_step
+    while poly_seq.num_steps < total_steps:
+      # Assume it takes ~5 rnn steps to generate one quantized step.
+      # Can't know for sure until generation is finished because the number of
+      # notes per quantized step is variable.
+      steps_to_gen = total_steps - poly_seq.num_steps
+      rnn_steps_to_gen = 5 * steps_to_gen
+      tf.logging.info(
+          'Need to generate %d more steps for this sequence, will try asking '
+          'for %d RNN steps' % (steps_to_gen, rnn_steps_to_gen))
+      poly_seq = self._model.generate_polyphonic_sequence(
+          len(poly_seq) + rnn_steps_to_gen, poly_seq, **args)
+    poly_seq.set_length(total_steps)
+
+    generated_sequence = poly_seq.to_sequence(qpm=qpm)
+    assert (generated_sequence.total_time - generate_section.end_time) <= 1e-5
     return generated_sequence
 
 
