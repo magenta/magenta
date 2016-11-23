@@ -4,10 +4,12 @@ Magenta has a lot of different models which require different types of inputs. S
 
 Files:
 
-* [pipeline.py](https://github.com/tensorflow/magenta/blob/master/magenta/pipelines/pipeline.py) defines the `Pipeline` abstract class and utility functions for running a `Pipeline` instance.
-* [pipelines_common.py](https://github.com/tensorflow/magenta/blob/master/magenta/pipelines/pipelines_common.py) contains some `Pipeline` implementations that convert to common data types, like `Melody`.
-* [dag_pipeline.py](https://github.com/tensorflow/magenta/blob/master/magenta/pipelines/dag_pipeline.py) defines a `Pipeline` which connects arbitrary pipelines together inside it. These `Pipelines` can be connected into any directed acyclic graph (DAG).
-* [statistics.py](https://github.com/tensorflow/magenta/blob/master/magenta/pipelines/statistics.py) defines the `Statistic` abstract class and implementations. Statistics are useful for reporting about data processing.
+* [pipeline.py](/magenta/pipelines/pipeline.py) defines the `Pipeline` abstract class and utility functions for running a `Pipeline` instance.
+* [pipelines_common.py](/magenta/pipelines/pipelines_common.py) contains some `Pipeline` implementations that convert to common data types, like `Melody`.
+* [dag_pipeline.py](/magenta/pipelines/dag_pipeline.py) defines a `Pipeline` which connects arbitrary pipelines together inside it. These `Pipelines` can be connected into any directed acyclic graph (DAG).
+* [statistics.py](/magenta/pipelines/statistics.py) defines the `Statistic` abstract class and implementations. Statistics are useful for reporting about data processing.
+
+* [chord_pipelines.py](/magenta/pipelines/chord_pipelines.py), [drum_pipelines.py](/magenta/pipelines/chord_pipelines.py), [melody_pipelines.py](/magenta/pipelines/chord_pipelines.py), and [lead_sheet_pipelines.py](/magenta/pipelines/chord_pipelines.py) define extractor pipelines for different types of musical event sequences.
 
 ## Pipeline
 
@@ -141,11 +143,11 @@ for stat in foo_extractor.get_stats():
 ## DAGPipeline
 ___Connecting pipelines together___
 
-`Pipeline` transforms A to B - input data to output data. But almost always it is cleaner to decompose this mapping into smaller pipelines, each with their own output representations. The recommended way to do this is to make a third `Pipeline` that runs the first two inside it. Magenta provides [DAGPipeline](https://github.com/tensorflow/magenta/blob/master/magenta/pipelines/dag_pipeline.py) - a `Pipeline` which takes a directed asyclic graph, or DAG, of `Pipeline` objects and runs it.
+`Pipeline` transforms A to B - input data to output data. But almost always it is cleaner to decompose this mapping into smaller pipelines, each with their own output representations. The recommended way to do this is to make a third `Pipeline` that runs the first two inside it. Magenta provides [DAGPipeline](/magenta/pipelines/dag_pipeline.py) - a `Pipeline` which takes a directed asyclic graph, or DAG, of `Pipeline` objects and runs it.
 
-Lets take a look at a real example. Magenta has `Quantizer` (defined [here](https://github.com/tensorflow/magenta/blob/master/magenta/pipelines/pipelines_common.py)) and `MelodyExtractor` (defined [here](https://github.com/tensorflow/magenta/blob/master/magenta/pipelines/melody_pipelines.py)). `Quantizer` takes note data in seconds and snaps, or quantizes, everything to a discrete grid of timesteps. It maps `NoteSequence` protocol buffers to `NoteSequence` protos with quanitzed times. `MelodyExtractor` maps those quantized `NoteSequence` protos to [Melody](https://github.com/tensorflow/magenta/blob/master/magenta/music/melodies_lib.py) objects. Finally, we want to partition the output into a training and test set. `Melody` objects are fed into `RandomPartition`, yet another `Pipeline` which outputs a dictionary of two lists: training output and test output.
+Lets take a look at a real example. Magenta has `Quantizer` (defined [here](/magenta/pipelines/pipelines_common.py)) and `MelodyExtractor` (defined [here](/magenta/pipelines/melody_pipelines.py)). `Quantizer` takes note data in seconds and snaps, or quantizes, everything to a discrete grid of timesteps. It maps `NoteSequence` protocol buffers to `NoteSequence` protos with quanitzed times. `MelodyExtractor` maps those quantized `NoteSequence` protos to [Melody](/magenta/music/melodies_lib.py) objects. Finally, we want to partition the output into a training and test set. `Melody` objects are fed into `RandomPartition`, yet another `Pipeline` which outputs a dictionary of two lists: training output and test output.
 
-All of this is strung together in a `DAGPipeline` (code is [here](https://github.com/tensorflow/magenta/blob/master/magenta/models/shared/melody_rnn_create_dataset.py)). First each of the pipelines are instantiated with parameters:
+All of this is strung together in a `DAGPipeline` (code is [here](/magenta/models/shared/melody_rnn_create_dataset.py)). First each of the pipelines are instantiated with parameters:
 
 ```python
 quantizer = pipelines_common.Quantizer(steps_per_quarter=4)
@@ -177,7 +179,7 @@ composite_pipeline = DAGPipeline(dag)
 
 Statistics are great for collecting information about a dataset, and inspecting why a dataset created by a `Pipeline` turned out the way it did. Stats collected by `Pipeline`s need to be able to do three things: be copied, be merged together, and print out their information.
 
-A [Statistic](https://github.com/tensorflow/magenta/blob/master/magenta/pipelines/statistics.py) abstract class is provided. Each `Statistic` needs to implement the `_merge_from` method which combines data from another statistic of the same type, the `copy` method, and the `_pretty_print` method.
+A [Statistic](/magenta/pipelines/statistics.py) abstract class is provided. Each `Statistic` needs to implement the `_merge_from` method which combines data from another statistic of the same type, the `copy` method, and the `_pretty_print` method.
 
 Each `Statistic` also has a string name which identifies what is being measured. `Statistic`s with the same names get merged downstream.
 

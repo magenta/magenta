@@ -359,7 +359,7 @@ class DAGPipeline(pipeline.Pipeline):
           nodes.add(m)
         elif graph[m][1] < 0:
           raise Exception(
-              'Congradulations, you found a bug! Please report this issue at '
+              'Congratulations, you found a bug! Please report this issue at '
               'https://github.com/tensorflow/magenta/issues and copy/paste the '
               'following: dag=%s, graph=%s, call_list=%s' % (self.dag, graph,
                                                              call_list))
