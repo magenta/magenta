@@ -320,7 +320,7 @@ class PolyphonicSequence(events_lib.EventSequence):
             note.instrument = instrument
             note.program = program
 
-        assert not len(pitches_to_end)
+        assert not pitches_to_end
 
         # Increment the step counter.
         step += 1
