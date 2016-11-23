@@ -45,10 +45,14 @@ class SequencesLibTest(tf.test.TestCase):
         sequence, 0,
         [(12, 100, 0.01, 10.0), (11, 55, 0.22, 0.50), (40, 45, 2.50, 3.50),
          (55, 120, 4.0, 4.01), (52, 99, 4.75, 5.0)])
+    testing_lib.add_chords_to_sequence(
+        sequence, [('C', 1.5), ('G7', 3.0), ('F', 4.8)])
     expected_subsequence = copy.copy(self.note_sequence)
     testing_lib.add_track_to_sequence(
         expected_subsequence, 0,
         [(40, 45, 2.50, 3.50), (55, 120, 4.0, 4.01)])
+    testing_lib.add_chords_to_sequence(
+        expected_subsequence, [('G7', 3.0)])
     expected_subsequence.total_time = 4.75
 
     subsequence = sequences_lib.extract_subsequence(sequence, 2.5, 4.75)
