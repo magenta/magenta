@@ -41,9 +41,13 @@ class HParams(object):
     """Sets value for the hyperameter."""
     self.keyvals[key] = value
 
-  def parse(self, string):
+  def update(self, values_dict):
     """Merges in new hyperparameters, replacing existing with same key."""
-    self.keyvals.update(ast.literal_eval(string))
+    self.keyvals.update(values_dict)
+
+  def parse(self, values_string):
+    """Merges in new hyperparameters, replacing existing with same key."""
+    self.update(ast.literal_eval(values_string))
 
   def values(self):
     """Return the hyperparameter values as a Python dictionary."""
