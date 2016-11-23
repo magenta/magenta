@@ -1,6 +1,6 @@
 ## Improv RNN
 
-This model generates melodies a la [Melody RNN](/models/melody_rnn/README.md), but conditions the melodies on an underlying chord progression. At each step of generation, the model is also given the current chord as input (encoded as a vector). Instead of training on MIDI files, the model is trained on lead sheets in MusicXML format.
+This model generates melodies a la [Melody RNN](/magenta/models/melody_rnn/README.md), but conditions the melodies on an underlying chord progression. At each step of generation, the model is also given the current chord as input (encoded as a vector). Instead of training on MIDI files, the model is trained on lead sheets in MusicXML format.
 
 ## Configurations
 
@@ -24,7 +24,7 @@ Our first step will be to convert a collection of MusicXML lead sheets into Note
 
 ### Create SequenceExamples
 
-SequenceExamples are fed into the model during training and evaluation. Each SequenceExample will contain a sequence of inputs and a sequence of labels that represent a lead sheet. Run the command below to extract lead sheets from our NoteSequences and save them as SequenceExamples. If we specify an `--eval_output` and an `--eval_ratio`, two collections of SequenceExamples will be generated, one for training, and one for evaluation. With an eval ratio of 0.10, 10% of the extracted drum tracks will be saved in the eval collection, and 90% will be saved in the training collection.
+SequenceExamples are fed into the model during training and evaluation. Each SequenceExample will contain a sequence of inputs and a sequence of labels that represent a lead sheet. Run the command below to extract lead sheets from our NoteSequences and save them as SequenceExamples. Two collections of SequenceExamples will be generated, one for training, and one for evaluation, where the fraction of SequenceExamples in the evaluation set is determined by `--eval_ratio`. With an eval ratio of 0.10, 10% of the extracted drum tracks will be saved in the eval collection, and 90% will be saved in the training collection.
 
 ```
 improv_rnn_create_dataset \
