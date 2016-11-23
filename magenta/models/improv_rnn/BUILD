@@ -25,7 +25,6 @@ py_library(
     ],
     deps = [
         ":improv_rnn_model",
-        "//magenta",
         # tensorflow dep
     ],
 )

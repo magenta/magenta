@@ -16,7 +16,6 @@
 # internal imports
 import tensorflow as tf
 
-import magenta
 from magenta.models.improv_rnn import improv_rnn_model
 
 FLAGS = tf.app.flags.FLAGS

@@ -33,10 +33,10 @@ class ImprovRNNPipelineTest(tf.test.TestCase):
     self.config = improv_rnn_model.ImprovRnnConfig(
         None,
         magenta.music.ConditionalEventSequenceEncoderDecoder(
-          magenta.music.OneHotEventSequenceEncoderDecoder(
-              magenta.music.MajorMinorChordOneHotEncoding()),
-          magenta.music.OneHotEventSequenceEncoderDecoder(
-              magenta.music.MelodyOneHotEncoding(0, 127))),
+            magenta.music.OneHotEventSequenceEncoderDecoder(
+                magenta.music.MajorMinorChordOneHotEncoding()),
+            magenta.music.OneHotEventSequenceEncoderDecoder(
+                magenta.music.MelodyOneHotEncoding(0, 127))),
         magenta.common.HParams(),
         min_note=0,
         max_note=127,
