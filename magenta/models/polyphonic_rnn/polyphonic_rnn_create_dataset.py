@@ -118,14 +118,14 @@ def get_pipeline(config, steps_per_quarter, min_steps, max_steps, eval_ratio):
       ['eval_poly_tracks', 'training_poly_tracks'],
       [eval_ratio])
 
-  dag = {quantizer: dag_pipeline.Input(music_pb2.NoteSequence),
+  dag = {quantizer: dag_pipeline.DagInput(music_pb2.NoteSequence),
          partitioner: quantizer,
          poly_extractor_train: partitioner['training_poly_tracks'],
          poly_extractor_eval: partitioner['eval_poly_tracks'],
          encoder_pipeline_train: poly_extractor_train,
          encoder_pipeline_eval: poly_extractor_eval,
-         dag_pipeline.Output('training_poly_tracks'): encoder_pipeline_train,
-         dag_pipeline.Output('eval_poly_tracks'): encoder_pipeline_eval}
+         dag_pipeline.DagOutput('training_poly_tracks'): encoder_pipeline_train,
+         dag_pipeline.DagOutput('eval_poly_tracks'): encoder_pipeline_eval}
   return dag_pipeline.DAGPipeline(dag)
 
 

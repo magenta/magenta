@@ -118,7 +118,7 @@ class PolyphonicRnnSequenceGenerator(mm.BaseSequenceGenerator):
 
     # Ensure that the track extends up to the step we want to start generating.
     poly_seq.set_length(start_step - poly_seq.start_step)
-    poly_seq.trim_trailing_end__and_step_end_events()
+    poly_seq.trim_trailing_end_and_step_end_events()
 
     # Extract generation arguments from generator options.
     arg_types = {

@@ -83,7 +83,7 @@ class PolyphonicSequence(events_lib.EventSequence):
   def steps_per_quarter(self):
     return self._steps_per_quarter
 
-  def trim_trailing_end__and_step_end_events(self):
+  def trim_trailing_end_and_step_end_events(self):
     """Removes the trailing EVENT_END event if present.
 
     Should be called before using a sequence to prime generation.
@@ -91,9 +91,17 @@ class PolyphonicSequence(events_lib.EventSequence):
     while self._events[-1].event_type in (EVENT_END, EVENT_STEP_END):
       del self._events[-1]
 
+  def trim_trailing_end_events(self):
+    """Removes the trailing EVENT_END event if present.
+
+    Should be called before using a sequence to prime generation.
+    """
+    while self._events[-1].event_type == EVENT_END:
+      del self._events[-1]
+
   def _append_silence_steps(self, num_steps):
     """Adds bars of silence to the end of the sequence."""
-    self.trim_trailing_end_event()
+    self.trim_trailing_end_events()
     for i in range(num_steps):
       self._events.append(PolyphonicEvent(event_type=EVENT_STEP_END, pitch=0))
     self._events.append(PolyphonicEvent(event_type=EVENT_END, pitch=0))
