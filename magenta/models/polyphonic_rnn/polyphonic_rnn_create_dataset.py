@@ -50,7 +50,7 @@ tf.app.flags.DEFINE_string('log', 'INFO',
 
 
 class PolyphonicSequenceExtractor(pipeline.Pipeline):
-  """Extracts drum tracks from a quantized NoteSequence."""
+  """Extracts polyphonic tracks from a quantized NoteSequence."""
 
   def __init__(self, min_steps, max_steps, name=None):
     super(PolyphonicSequenceExtractor, self).__init__(

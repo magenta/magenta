@@ -26,7 +26,7 @@ class PolyphonicRnnModel(events_rnn_model.EventSequenceRnnModel):
   def generate_polyphonic_sequence(
       self, num_steps, primer_sequence, temperature=1.0, beam_size=1,
       branch_factor=1, steps_per_iteration=1):
-    """Generate a drum track from a primer drum track.
+    """Generate a polyphonic track from a primer polyphonic track.
     Args:
       num_steps: The integer length in steps of the final track, after
           generation. Includes the primer.
