@@ -348,7 +348,7 @@ class EventSequenceRnnModel(mm.BaseModel):
           is not shorter than num_steps.
     """
     if (control_events is not None and
-        not isinstance(self.encoder_decoder,
+        not isinstance(self._config.encoder_decoder,
                        mm.ConditionalEventSequenceEncoderDecoder)):
       raise EventSequenceRnnModelException(
           'control sequence provided but encoder/decoder is not a '
