@@ -14,19 +14,22 @@
 """Tests for polyphony_lib."""
 
 # internal imports
+
 import tensorflow as tf
 
 from magenta.common import testing_lib as common_testing_lib
+
 from magenta.models.polyphonic_rnn import polyphony_lib
+from magenta.models.polyphonic_rnn.polyphony_lib import EVENT_CONTINUED_NOTE
+from magenta.models.polyphonic_rnn.polyphony_lib import EVENT_END
+from magenta.models.polyphonic_rnn.polyphony_lib import EVENT_NEW_NOTE
+from magenta.models.polyphonic_rnn.polyphony_lib import EVENT_START
+from magenta.models.polyphonic_rnn.polyphony_lib import EVENT_STEP_END
+
 from magenta.music import sequences_lib
 from magenta.music import testing_lib
 from magenta.protobuf import music_pb2
 
-from magenta.models.polyphonic_rnn.polyphony_lib import EVENT_START
-from magenta.models.polyphonic_rnn.polyphony_lib import EVENT_END
-from magenta.models.polyphonic_rnn.polyphony_lib import EVENT_STEP_END
-from magenta.models.polyphonic_rnn.polyphony_lib import EVENT_NEW_NOTE
-from magenta.models.polyphonic_rnn.polyphony_lib import EVENT_CONTINUED_NOTE
 
 class PolyphonyLibTest(tf.test.TestCase):
 

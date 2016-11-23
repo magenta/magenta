@@ -23,11 +23,9 @@ import os
 # internal imports
 
 import tensorflow as tf
-import magenta
 
 from magenta.models.polyphonic_rnn import polyphony_lib
 from magenta.models.polyphonic_rnn import polyphony_model
-from magenta.models.polyphonic_rnn import polyphony_encoder_decoder
 
 from magenta.pipelines import dag_pipeline
 from magenta.pipelines import pipeline
@@ -97,11 +95,11 @@ def get_pipeline(config, steps_per_quarter, min_steps, max_steps, eval_ratio):
   """Returns the Pipeline instance which creates the RNN dataset.
 
   Args:
+    config: An EventSequenceRnnConfig.
     steps_per_quarter: How many steps per quarter to use when quantizing.
     min_steps: Minimum number of steps for an extracted sequence.
     max_steps: Maximum number of steps for an extracted sequence.
     eval_ratio: Fraction of input to set aside for evaluation set.
-    config: An EventSequenceRnnConfig.
 
   Returns:
     A pipeline.Pipeline instance.

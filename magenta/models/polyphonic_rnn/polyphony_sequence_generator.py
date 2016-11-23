@@ -35,8 +35,6 @@ class PolyphonicRnnSequenceGenerator(mm.BaseSequenceGenerator):
     Args:
       model: Instance of PolyphonicRnnModel.
       details: A generator_pb2.GeneratorDetails for this generator.
-      steps_per_quarter: What precision to use when quantizing the melody. How
-          many steps per quarter note.
       steps_per_quarter: What precision to use when quantizing the sequence. How
           many steps per quarter note.
       checkpoint: Where to search for the most recent model checkpoint. Mutually
@@ -72,12 +70,19 @@ class PolyphonicRnnSequenceGenerator(mm.BaseSequenceGenerator):
           'This model supports only 1 generate_sections message, but got %s' %
           len(generator_options.generate_sections))
 
+    # This sequence will be quantized later, so it is guaranteed to have only 1
+    # tempo.
+    qpm = mm.DEFAULT_QUARTERS_PER_MINUTE
+    if input_sequence.tempos:
+      qpm = input_sequence.tempos[0].qpm
+
     generate_section = generator_options.generate_sections[0]
     if generator_options.input_sections:
       input_section = generator_options.input_sections[0]
       primer_sequence = mm.extract_subsequence(
           input_sequence, input_section.start_time, input_section.end_time)
-      input_start_step = self._seconds_to_steps(input_section.start_time, qpm)
+      input_start_step = self._seconds_to_steps(
+          input_section.start_time, qpm)
     else:
       primer_sequence = input_sequence
       input_start_step = 0
@@ -94,10 +99,8 @@ class PolyphonicRnnSequenceGenerator(mm.BaseSequenceGenerator):
     # Quantize the priming sequence.
     quantized_primer_sequence = mm.quantize_note_sequence(
         primer_sequence, self._steps_per_quarter)
-    # quantized sequences are guaranteed to have 1 tempo.
-    qpm = quantized_primer_sequence.tempos[0].qpm
 
-    extracted_seqs, stats = polyphony_lib.extract_polyphonic_sequences(
+    extracted_seqs, _ = polyphony_lib.extract_polyphonic_sequences(
         quantized_primer_sequence, search_start_step=input_start_step)
     assert len(extracted_seqs) <= 1
 
@@ -152,6 +155,7 @@ class PolyphonicRnnSequenceGenerator(mm.BaseSequenceGenerator):
 
 def get_generator_map():
   """Returns a map from the generator ID to its SequenceGenerator class.
+
   Binds the `config` argument so that the constructor matches the
   BaseSequenceGenerator class.
   Returns:

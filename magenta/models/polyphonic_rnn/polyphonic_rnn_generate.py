@@ -25,7 +25,6 @@ import time
 import tensorflow as tf
 import magenta
 
-from magenta.models.polyphonic_rnn import polyphony_lib
 from magenta.models.polyphonic_rnn import polyphony_model
 from magenta.models.polyphonic_rnn import polyphony_sequence_generator
 

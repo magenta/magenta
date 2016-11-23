@@ -17,8 +17,8 @@ from __future__ import division
 
 # internal imports
 
-from magenta.music import encoder_decoder
 from magenta.models.polyphonic_rnn import polyphony_lib
+from magenta.music import encoder_decoder
 
 EVENT_CLASSES_WITHOUT_PITCH = [
     polyphony_lib.EVENT_START,
@@ -33,7 +33,10 @@ EVENT_CLASSES_WITH_PITCH = [
 
 PITCH_CLASSES = polyphony_lib.MAX_MIDI_PITCH + 1
 
+
 class PolyphonyOneHotEncoding(encoder_decoder.OneHotEncoding):
+  """One-hot encoding for polyphonic events."""
+
   @property
   def num_classes(self):
     return len(EVENT_CLASSES_WITHOUT_PITCH) + (

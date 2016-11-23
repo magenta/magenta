@@ -20,6 +20,7 @@ import tensorflow as tf
 from magenta.models.polyphonic_rnn import polyphony_encoder_decoder
 from magenta.models.polyphonic_rnn import polyphony_lib
 
+
 class PolyphonyOneHotEncodingTest(tf.test.TestCase):
 
   def setUp(self):

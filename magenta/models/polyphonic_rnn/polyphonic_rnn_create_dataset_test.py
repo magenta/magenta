@@ -16,12 +16,12 @@
 # internal imports
 
 import tensorflow as tf
+
 import magenta
 
-from magenta.models.shared import events_rnn_model
 from magenta.models.polyphonic_rnn import polyphonic_rnn_create_dataset
 from magenta.models.polyphonic_rnn import polyphony_encoder_decoder
-from magenta.pipelines import pipelines_common
+from magenta.models.shared import events_rnn_model
 from magenta.protobuf import music_pb2
 
 
@@ -34,7 +34,7 @@ class PolySeqPipelineTest(tf.test.TestCase):
     self.config = events_rnn_model.EventSequenceRnnConfig(
         None,
         magenta.music.OneHotEventSequenceEncoderDecoder(
-          polyphony_encoder_decoder.PolyphonyOneHotEncoding()),
+            polyphony_encoder_decoder.PolyphonyOneHotEncoding()),
         magenta.common.HParams())
 
   def testPolyRNNPipeline(self):
@@ -54,13 +54,13 @@ class PolySeqPipelineTest(tf.test.TestCase):
          (55, 100, 14.1, 15.0), (54, 90, 15.6, 17.0), (60, 100, 17.1, 18.0)])
 
     pipeline_inst = polyphonic_rnn_create_dataset.get_pipeline(
-      steps_per_quarter=4,
-      min_steps=80,  # 5 measures
-      max_steps=512,
-      eval_ratio=0,
-      config=self.config)
+        steps_per_quarter=4,
+        min_steps=80,  # 5 measures
+        max_steps=512,
+        eval_ratio=0,
+        config=self.config)
     result = pipeline_inst.transform(note_sequence)
-    self.assertTrue(len(result['training_poly_tracks']) > 0)
+    self.assertTrue(len(result['training_poly_tracks']))
 
 
 if __name__ == '__main__':

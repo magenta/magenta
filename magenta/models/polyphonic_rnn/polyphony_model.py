@@ -16,8 +16,8 @@
 # internal imports
 
 import magenta
-from magenta.models.shared import events_rnn_model
 from magenta.models.polyphonic_rnn import polyphony_encoder_decoder
+from magenta.models.shared import events_rnn_model
 
 
 class PolyphonicRnnModel(events_rnn_model.EventSequenceRnnModel):
@@ -27,6 +27,7 @@ class PolyphonicRnnModel(events_rnn_model.EventSequenceRnnModel):
       self, num_steps, primer_sequence, temperature=1.0, beam_size=1,
       branch_factor=1, steps_per_iteration=1):
     """Generate a polyphonic track from a primer polyphonic track.
+
     Args:
       num_steps: The integer length in steps of the final track, after
           generation. Includes the primer.

@@ -16,10 +16,10 @@
 from __future__ import division
 
 import collections
-from six.moves import range  # pylint: disable=redefined-builtin
 
 # internal imports
 
+from six.moves import range  # pylint: disable=redefined-builtin
 import tensorflow as tf
 
 from magenta.music import constants
@@ -102,7 +102,7 @@ class PolyphonicSequence(events_lib.EventSequence):
   def _append_silence_steps(self, num_steps):
     """Adds bars of silence to the end of the sequence."""
     self.trim_trailing_end_events()
-    for i in range(num_steps):
+    for _ in range(num_steps):
       self._events.append(PolyphonicEvent(event_type=EVENT_STEP_END, pitch=0))
     self._events.append(PolyphonicEvent(event_type=EVENT_END, pitch=0))
 
@@ -138,7 +138,7 @@ class PolyphonicSequence(events_lib.EventSequence):
       self._append_silence_steps(steps - self.num_steps)
     elif self.num_steps > steps:
       self._trim_steps(self.num_steps - steps)
-    assert(self.num_steps == steps)
+    assert self.num_steps == steps
 
   def append(self, event):
     """Appends the event to the end of the sequence.
@@ -215,6 +215,9 @@ class PolyphonicSequence(events_lib.EventSequence):
       quantized_sequence: A quantized NoteSequence instance.
       search_start_step: Start searching for sequence at this time step.
           Assumed to be the beginning of a bar.
+
+    Returns:
+      A list of events.
     """
     pitch_start_steps = collections.defaultdict(list)
     pitch_end_steps = collections.defaultdict(list)
@@ -263,6 +266,9 @@ class PolyphonicSequence(events_lib.EventSequence):
       program: Midi program to give each note.
       qpm: Quarter notes per minute (float).
 
+    Raises:
+      ValueError: if an unknown event is encountered.
+
     Returns:
       A NoteSequence proto.
     """
@@ -285,13 +291,13 @@ class PolyphonicSequence(events_lib.EventSequence):
       elif event.event_type == EVENT_CONTINUED_NOTE:
         try:
           pitches_to_end.remove(event.pitch)
-        except ValueError as e:
+        except ValueError:
           tf.logging.debug(
               'Attempted to continue pitch %s at step %s, but pitch was not '
               'active. Ignoring.' % (event.pitch, step))
       elif event.event_type == EVENT_STEP_END or event.event_type == EVENT_END:
         if event.event_type == EVENT_END:
-          if len(pitch_start_steps):
+          if pitch_start_steps:
             tf.logging.debug(
                 'EVENT_STOP requested, but some pitches are still active. Will '
                 'implicitly end them.')
@@ -366,8 +372,6 @@ def extract_polyphonic_sequences(
       'polyphonic_track_lengths_in_bars',
       [0, 1, 10, 20, 30, 40, 50, 100, 200, 500, 1000])
 
-  start = 0
-
   # Allow only 1 instrument and 1 program.
   instruments = set()
   programs = set()
@@ -380,7 +384,6 @@ def extract_polyphonic_sequences(
   if len(programs) > 1:
     stats['polyphonic_tracks_discarded_more_than_1_program'].increment()
     return [], stats.values()
-
 
   # Translate the quantized sequence into a PolyphonicSequence.
   poly_seq = PolyphonicSequence(quantized_sequence,

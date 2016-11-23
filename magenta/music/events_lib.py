@@ -92,7 +92,7 @@ class EventSequence(object):
     pass
 
   @abc.abstractmethod
-  def __iter__(self, i):
+  def __iter__(self):
     """Returns an iterator over the events."""
     pass
 
