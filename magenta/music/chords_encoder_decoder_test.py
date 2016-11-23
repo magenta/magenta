@@ -128,5 +128,59 @@ class TriadChordOneHotEncodingTest(tf.test.TestCase):
     self.assertEquals('Fdim', figure)
 
 
+class PitchChordsEncoderDecoderTest(tf.test.TestCase):
+
+  def setUp(self):
+    self.enc = chords_encoder_decoder.PitchChordsEncoderDecoder()
+
+  def testInputSize(self):
+    self.assertEquals(37, self.enc.input_size)
+
+  def testEncodeNoChord(self):
+    input_ = self.enc.events_to_input([NO_CHORD], 0)
+    self.assertEquals([1.0] + [0.0] * 36, input_)
+
+  def testEncodeChord(self):
+    # major triad
+    input_ = self.enc.events_to_input(['C'], 0)
+    expected = [0.0,
+                1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+                1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0,
+                1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+    self.assertEquals(expected, input_)
+
+    # minor triad
+    input_ = self.enc.events_to_input(['F#m'], 0)
+    expected = [0.0,
+                0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+                0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0,
+                0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+    self.assertEquals(expected, input_)
+
+    # major triad with dominant 7th in bass
+    input_ = self.enc.events_to_input(['G/F'], 0)
+    expected = [0.0,
+                0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0,
+                0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0,
+                0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+    self.assertEquals(expected, input_)
+
+    # 13th chord
+    input_ = self.enc.events_to_input(['E13'], 0)
+    expected = [0.0,
+                0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+                0.0, 1.0, 1.0, 0.0, 1.0, 0.0, 1.0, 0.0, 1.0, 1.0, 0.0, 1.0,
+                0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+    self.assertEquals(expected, input_)
+
+    # minor triad with major 7th
+    input_ = self.enc.events_to_input(['Fm(maj7)'], 0)
+    expected = [0.0,
+                0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+                1.0, 0.0, 0.0, 0.0, 1.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0,
+                0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+    self.assertEquals(expected, input_)
+
+
 if __name__ == '__main__':
   tf.test.main()
