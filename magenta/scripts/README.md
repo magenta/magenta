@@ -12,7 +12,7 @@ INPUT_DIRECTORY=<folder containing MIDI and/or MusicXML files. can have child fo
 SEQUENCES_TFRECORD=/tmp/notesequences.tfrecord
 
 convert_dir_to_note_sequences \
-  --input_dir=$MIDI_DIRECTORY \
+  --input_dir=$INPUT_DIRECTORY \
   --output_file=$SEQUENCES_TFRECORD \
   --recursive
 ```
