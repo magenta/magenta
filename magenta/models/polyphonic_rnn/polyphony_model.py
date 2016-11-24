@@ -64,21 +64,5 @@ default_configs = {
             initial_learning_rate=0.001,
             decay_steps=1000,
             decay_rate=0.95)),
-    'polyphony_attn': events_rnn_model.EventSequenceRnnConfig(
-        magenta.protobuf.generator_pb2.GeneratorDetails(
-            id='polyphony_attn',
-            description='Polyphonic RNN with Attention'),
-        magenta.music.OneHotEventSequenceEncoderDecoder(
-            polyphony_encoder_decoder.PolyphonyOneHotEncoding()),
-        magenta.common.HParams(
-            batch_size=32,
-            attn_length=64,
-            rnn_layer_sizes=[256, 256, 256],
-            dropout_keep_prob=0.5,
-            skip_first_n_losses=10,
-            clip_norm=5,
-            initial_learning_rate=0.001,
-            decay_steps=1000,
-            decay_rate=0.95)),
 }
 
