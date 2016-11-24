@@ -396,7 +396,6 @@ def extract_polyphonic_sequences(
   stats = dict([(stat_name, statistics.Counter(stat_name)) for stat_name in
                 ['polyphonic_tracks_discarded_too_short',
                  'polyphonic_tracks_discarded_too_long',
-                 'polyphonic_tracks_discarded_more_than_1_instrument',
                  'polyphonic_tracks_discarded_more_than_1_program']])
 
   steps_per_bar = sequences_lib.steps_per_bar_in_quantized_sequence(
@@ -407,15 +406,10 @@ def extract_polyphonic_sequences(
       'polyphonic_track_lengths_in_bars',
       [0, 1, 10, 20, 30, 40, 50, 100, 200, 500, 1000])
 
-  # Allow only 1 instrument and 1 program.
-  instruments = set()
+  # Allow only 1 program.
   programs = set()
   for note in quantized_sequence.notes:
-    instruments.add(note.instrument)
     programs.add(note.program)
-  if len(instruments) > 1:
-    stats['polyphonic_tracks_discarded_more_than_1_instrument'].increment()
-    return [], stats.values()
   if len(programs) > 1:
     stats['polyphonic_tracks_discarded_more_than_1_program'].increment()
     return [], stats.values()
