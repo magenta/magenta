@@ -279,7 +279,7 @@ class PolyphonicSequence(events_lib.EventSequence):
         step_events.append(PolyphonicEvent(event_type=PolyphonicEvent.NEW_NOTE,
                                            pitch=pitch))
 
-      events.extend(sorted(step_events, key=lambda e: e.pitch))
+      events.extend(sorted(step_events, key=lambda e: e.pitch, reverse=True))
       events.append(
           PolyphonicEvent(event_type=PolyphonicEvent.STEP_END, pitch=None))
     events.append(PolyphonicEvent(event_type=PolyphonicEvent.END, pitch=None))

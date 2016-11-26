@@ -52,18 +52,15 @@ class PolyphonyLibTest(tf.test.TestCase):
     expected_poly_seq = [
         pe(pe.START, None),
         # step 0
-        pe(pe.NEW_NOTE, 60),
         pe(pe.NEW_NOTE, 64),
-        pe(pe.STEP_END, None),
+        pe(pe.NEW_NOTE, 60),
         # step 1
-        pe(pe.CONTINUED_NOTE, 60),
-        pe(pe.CONTINUED_NOTE, 64),
         pe(pe.NEW_NOTE, 67),
-        pe(pe.STEP_END, None),
-        # step 2
-        pe(pe.CONTINUED_NOTE, 60),
         pe(pe.CONTINUED_NOTE, 64),
-        pe(pe.STEP_END, None),
+        pe(pe.CONTINUED_NOTE, 60),
+        # step 2
+        pe(pe.CONTINUED_NOTE, 64),
+        pe(pe.CONTINUED_NOTE, 60),
         # step 3
         pe(pe.CONTINUED_NOTE, 60),
         pe(pe.STEP_END, None),
