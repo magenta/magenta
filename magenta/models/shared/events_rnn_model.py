@@ -404,7 +404,6 @@ class EventSequenceRnnModel(mm.BaseModel):
               if melody_step_count == event_step_count:
                 event_sequence.append(MELODY[i+1])
                 input_.extend(self._config.encoder_decoder.get_inputs_batch([event_sequence])[0])
-                import pdb;pdb.set_trace()
                 break
 
       event_sequences, final_state, loglik = self._generate_branches(
