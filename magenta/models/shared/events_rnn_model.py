@@ -26,6 +26,86 @@ from magenta.models.shared import events_rnn_graph
 from magenta.models.polyphonic_rnn import polyphony_lib
 import magenta.music as mm
 
+from magenta.models.polyphonic_rnn.polyphony_lib import EVENT_CONTINUED_NOTE
+from magenta.models.polyphonic_rnn.polyphony_lib import EVENT_END
+from magenta.models.polyphonic_rnn.polyphony_lib import EVENT_NEW_NOTE
+from magenta.models.polyphonic_rnn.polyphony_lib import EVENT_START
+from magenta.models.polyphonic_rnn.polyphony_lib import EVENT_STEP_END
+
+pe = polyphony_lib.PolyphonicEvent
+MELODY = [
+    pe(EVENT_STEP_END, 0),
+    pe(EVENT_NEW_NOTE, 72),
+    pe(EVENT_STEP_END, 0),
+    pe(EVENT_CONTINUED_NOTE, 72),
+    pe(EVENT_STEP_END, 0),
+    pe(EVENT_CONTINUED_NOTE, 72),
+    pe(EVENT_STEP_END, 0),
+    pe(EVENT_CONTINUED_NOTE, 72),
+
+    pe(EVENT_STEP_END, 0),
+    pe(EVENT_NEW_NOTE, 72),
+    pe(EVENT_STEP_END, 0),
+    pe(EVENT_CONTINUED_NOTE, 72),
+    pe(EVENT_STEP_END, 0),
+    pe(EVENT_CONTINUED_NOTE, 72),
+    pe(EVENT_STEP_END, 0),
+    pe(EVENT_CONTINUED_NOTE, 72),
+
+    pe(EVENT_STEP_END, 0),
+    pe(EVENT_NEW_NOTE, 79),
+    pe(EVENT_STEP_END, 0),
+    pe(EVENT_CONTINUED_NOTE, 79),
+    pe(EVENT_STEP_END, 0),
+    pe(EVENT_CONTINUED_NOTE, 79),
+    pe(EVENT_STEP_END, 0),
+    pe(EVENT_CONTINUED_NOTE, 79),
+
+    pe(EVENT_STEP_END, 0),
+    pe(EVENT_NEW_NOTE, 79),
+    pe(EVENT_STEP_END, 0),
+    pe(EVENT_CONTINUED_NOTE, 79),
+    pe(EVENT_STEP_END, 0),
+    pe(EVENT_CONTINUED_NOTE, 79),
+    pe(EVENT_STEP_END, 0),
+    pe(EVENT_CONTINUED_NOTE, 79),
+
+    pe(EVENT_STEP_END, 0),
+    pe(EVENT_NEW_NOTE, 81),
+    pe(EVENT_STEP_END, 0),
+    pe(EVENT_CONTINUED_NOTE, 81),
+    pe(EVENT_STEP_END, 0),
+    pe(EVENT_CONTINUED_NOTE, 81),
+    pe(EVENT_STEP_END, 0),
+    pe(EVENT_CONTINUED_NOTE, 81),
+
+    pe(EVENT_STEP_END, 0),
+    pe(EVENT_NEW_NOTE, 81),
+    pe(EVENT_STEP_END, 0),
+    pe(EVENT_CONTINUED_NOTE, 81),
+    pe(EVENT_STEP_END, 0),
+    pe(EVENT_CONTINUED_NOTE, 81),
+    pe(EVENT_STEP_END, 0),
+    pe(EVENT_CONTINUED_NOTE, 81),
+
+    pe(EVENT_STEP_END, 0),
+    pe(EVENT_NEW_NOTE, 79),
+    pe(EVENT_STEP_END, 0),
+    pe(EVENT_CONTINUED_NOTE, 79),
+    pe(EVENT_STEP_END, 0),
+    pe(EVENT_CONTINUED_NOTE, 79),
+    pe(EVENT_STEP_END, 0),
+    pe(EVENT_CONTINUED_NOTE, 79),
+
+    pe(EVENT_STEP_END, 0),
+    pe(EVENT_CONTINUED_NOTE, 79),
+    pe(EVENT_STEP_END, 0),
+    pe(EVENT_CONTINUED_NOTE, 79),
+    pe(EVENT_STEP_END, 0),
+    pe(EVENT_CONTINUED_NOTE, 79),
+    pe(EVENT_STEP_END, 0),
+    pe(EVENT_CONTINUED_NOTE, 79),
+]
 
 class EventSequenceRnnModelException(Exception):
   pass
@@ -309,9 +389,23 @@ class EventSequenceRnnModel(mm.BaseModel):
       for i in range(len(inputs)):
         event_sequence = event_sequences[i]
         input_ = inputs[i]
-        if event_sequence[-1].event_type == polyphony_lib.EVENT_STEP_END:
-          event_sequence.append(polyphony_lib.PolyphonicEvent(event_type=polyphony_lib.EVENT_NEW_NOTE, pitch=72))
-          input_.extend(self._config.encoder_decoder.get_inputs_batch([event_sequence])[0])
+        if (event_sequence[-1].event_type == polyphony_lib.EVENT_STEP_END or
+            event_sequence[-1].event_type == polyphony_lib.EVENT_START):
+          event_step_count = 0
+          for event in event_sequence:
+            if (event.event_type == polyphony_lib.EVENT_START or
+                event.event_type == polyphony_lib.EVENT_STEP_END):
+              event_step_count += 1
+          melody_step_count = 0
+          for i, event in enumerate(MELODY):
+            if (event.event_type == polyphony_lib.EVENT_START or
+                event.event_type == polyphony_lib.EVENT_STEP_END):
+              melody_step_count += 1
+              if melody_step_count == event_step_count:
+                event_sequence.append(MELODY[i+1])
+                input_.extend(self._config.encoder_decoder.get_inputs_batch([event_sequence])[0])
+                import pdb;pdb.set_trace()
+                break
 
       event_sequences, final_state, loglik = self._generate_branches(
           event_sequences, loglik, branch_factor, steps_per_iteration, inputs,
