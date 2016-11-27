@@ -23,6 +23,7 @@ from six.moves import range  # pylint: disable=redefined-builtin
 import tensorflow as tf
 
 from magenta.models.shared import events_rnn_graph
+from magenta.models.polyphonic_rnn import polyphony_lib
 import magenta.music as mm
 
 
@@ -305,6 +306,13 @@ class EventSequenceRnnModel(mm.BaseModel):
             control_events, event_sequences)
       else:
         inputs = self._config.encoder_decoder.get_inputs_batch(event_sequences)
+      for i in range(len(inputs)):
+        event_sequence = event_sequences[i]
+        input_ = inputs[i]
+        if event_sequence[-1].event_type == polyphony_lib.EVENT_STEP_END:
+          event_sequence.append(polyphony_lib.PolyphonicEvent(event_type=polyphony_lib.EVENT_NEW_NOTE, pitch=72))
+          input_.extend(self._config.encoder_decoder.get_inputs_batch([event_sequence])[0])
+
       event_sequences, final_state, loglik = self._generate_branches(
           event_sequences, loglik, branch_factor, steps_per_iteration, inputs,
           final_state, temperature)
