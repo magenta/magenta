@@ -310,6 +310,28 @@ class EventSequenceRnnModel(mm.BaseModel):
 
     return event_sequences, final_state, loglik
 
+  def _inject_melody(self, event_sequences, inputs):
+    for i in range(len(inputs)):
+      event_sequence = event_sequences[i]
+      input_ = inputs[i]
+      if (event_sequence[-1].event_type == polyphony_lib.EVENT_STEP_END or
+          event_sequence[-1].event_type == polyphony_lib.EVENT_START):
+        event_step_count = 0
+        for event in event_sequence:
+          if (event.event_type == polyphony_lib.EVENT_START or
+              event.event_type == polyphony_lib.EVENT_STEP_END):
+            event_step_count += 1
+        melody_step_count = 0
+        for i, event in enumerate(MELODY):
+          if (event.event_type == polyphony_lib.EVENT_START or
+              event.event_type == polyphony_lib.EVENT_STEP_END):
+            melody_step_count += 1
+            if melody_step_count == event_step_count:
+              event_sequence.append(MELODY[i+1])
+              input_.extend(self._config.encoder_decoder.get_inputs_batch([event_sequence])[0])
+              import pdb;pdb.set_trace()
+              break
+
   def _beam_search(self, events, num_steps, temperature, beam_size,
                    branch_factor, steps_per_iteration, control_events=None):
     """Generates an event sequence using beam search.
@@ -368,6 +390,8 @@ class EventSequenceRnnModel(mm.BaseModel):
     else:
       inputs = self._config.encoder_decoder.get_inputs_batch(
           event_sequences, full_length=True)
+      self._inject_melody(event_sequences, inputs)
+
     initial_state = np.tile(
         self._session.run(graph_initial_state), (beam_size, 1))
     event_sequences, final_state, loglik = self._generate_branches(
@@ -386,25 +410,7 @@ class EventSequenceRnnModel(mm.BaseModel):
             control_events, event_sequences)
       else:
         inputs = self._config.encoder_decoder.get_inputs_batch(event_sequences)
-      for i in range(len(inputs)):
-        event_sequence = event_sequences[i]
-        input_ = inputs[i]
-        if (event_sequence[-1].event_type == polyphony_lib.EVENT_STEP_END or
-            event_sequence[-1].event_type == polyphony_lib.EVENT_START):
-          event_step_count = 0
-          for event in event_sequence:
-            if (event.event_type == polyphony_lib.EVENT_START or
-                event.event_type == polyphony_lib.EVENT_STEP_END):
-              event_step_count += 1
-          melody_step_count = 0
-          for i, event in enumerate(MELODY):
-            if (event.event_type == polyphony_lib.EVENT_START or
-                event.event_type == polyphony_lib.EVENT_STEP_END):
-              melody_step_count += 1
-              if melody_step_count == event_step_count:
-                event_sequence.append(MELODY[i+1])
-                input_.extend(self._config.encoder_decoder.get_inputs_batch([event_sequence])[0])
-                break
+        self._inject_melody(event_sequences, inputs)
 
       event_sequences, final_state, loglik = self._generate_branches(
           event_sequences, loglik, branch_factor, steps_per_iteration, inputs,
