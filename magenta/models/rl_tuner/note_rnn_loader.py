@@ -152,7 +152,7 @@ class NoteRNNLoader(object):
         self.session = tf.Session(graph=self.graph)
       else:
         self.session = session
-      self.session.run(tf.global_variables_initializer())
+      self.session.run(tf.initialize_all_variables())
 
   def get_variable_name_dict(self):
     """Constructs a dict mapping the checkpoint variables to those in new graph.
@@ -415,4 +415,4 @@ class NoteRNNLoader(object):
       List of variable names.
     """
     with self.graph.as_default():
-      return [v for v in tf.global_variables() if v.name.startswith(self.scope)]
+      return [v for v in tf.all_variables() if v.name.startswith(self.scope)]
