@@ -105,6 +105,78 @@ MELODY = [
     pe(EVENT_CONTINUED_NOTE, 79),
     pe(EVENT_STEP_END, 0),
     pe(EVENT_CONTINUED_NOTE, 79),
+
+    pe(EVENT_STEP_END, 0),
+    pe(EVENT_NEW_NOTE, 77),
+    pe(EVENT_STEP_END, 0),
+    pe(EVENT_CONTINUED_NOTE, 77),
+    pe(EVENT_STEP_END, 0),
+    pe(EVENT_CONTINUED_NOTE, 77),
+    pe(EVENT_STEP_END, 0),
+    pe(EVENT_CONTINUED_NOTE, 77),
+
+    pe(EVENT_STEP_END, 0),
+    pe(EVENT_NEW_NOTE, 77),
+    pe(EVENT_STEP_END, 0),
+    pe(EVENT_CONTINUED_NOTE, 77),
+    pe(EVENT_STEP_END, 0),
+    pe(EVENT_CONTINUED_NOTE, 77),
+    pe(EVENT_STEP_END, 0),
+    pe(EVENT_CONTINUED_NOTE, 77),
+
+    pe(EVENT_STEP_END, 0),
+    pe(EVENT_NEW_NOTE, 76),
+    pe(EVENT_STEP_END, 0),
+    pe(EVENT_CONTINUED_NOTE, 76),
+    pe(EVENT_STEP_END, 0),
+    pe(EVENT_CONTINUED_NOTE, 76),
+    pe(EVENT_STEP_END, 0),
+    pe(EVENT_CONTINUED_NOTE, 76),
+
+    pe(EVENT_STEP_END, 0),
+    pe(EVENT_NEW_NOTE, 76),
+    pe(EVENT_STEP_END, 0),
+    pe(EVENT_CONTINUED_NOTE, 76),
+    pe(EVENT_STEP_END, 0),
+    pe(EVENT_CONTINUED_NOTE, 76),
+    pe(EVENT_STEP_END, 0),
+    pe(EVENT_CONTINUED_NOTE, 76),
+
+    pe(EVENT_STEP_END, 0),
+    pe(EVENT_NEW_NOTE, 74),
+    pe(EVENT_STEP_END, 0),
+    pe(EVENT_CONTINUED_NOTE, 74),
+    pe(EVENT_STEP_END, 0),
+    pe(EVENT_CONTINUED_NOTE, 74),
+    pe(EVENT_STEP_END, 0),
+    pe(EVENT_CONTINUED_NOTE, 74),
+
+    pe(EVENT_STEP_END, 0),
+    pe(EVENT_NEW_NOTE, 74),
+    pe(EVENT_STEP_END, 0),
+    pe(EVENT_CONTINUED_NOTE, 74),
+    pe(EVENT_STEP_END, 0),
+    pe(EVENT_CONTINUED_NOTE, 74),
+    pe(EVENT_STEP_END, 0),
+    pe(EVENT_CONTINUED_NOTE, 74),
+
+    pe(EVENT_STEP_END, 0),
+    pe(EVENT_NEW_NOTE, 72),
+    pe(EVENT_STEP_END, 0),
+    pe(EVENT_CONTINUED_NOTE, 72),
+    pe(EVENT_STEP_END, 0),
+    pe(EVENT_CONTINUED_NOTE, 72),
+    pe(EVENT_STEP_END, 0),
+    pe(EVENT_CONTINUED_NOTE, 72),
+
+    pe(EVENT_STEP_END, 0),
+    pe(EVENT_CONTINUED_NOTE, 72),
+    pe(EVENT_STEP_END, 0),
+    pe(EVENT_CONTINUED_NOTE, 72),
+    pe(EVENT_STEP_END, 0),
+    pe(EVENT_CONTINUED_NOTE, 72),
+    pe(EVENT_STEP_END, 0),
+    pe(EVENT_CONTINUED_NOTE, 72),
 ]
 
 class EventSequenceRnnModelException(Exception):
@@ -329,7 +401,6 @@ class EventSequenceRnnModel(mm.BaseModel):
             if melody_step_count == event_step_count:
               event_sequence.append(MELODY[i+1])
               input_.extend(self._config.encoder_decoder.get_inputs_batch([event_sequence])[0])
-              import pdb;pdb.set_trace()
               break
 
   def _beam_search(self, events, num_steps, temperature, beam_size,
