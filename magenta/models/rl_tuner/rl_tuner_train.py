@@ -80,7 +80,9 @@ tf.app.flags.DEFINE_string('algorithm', 'q',
 
 
 def main(_):
-  hparams = rl_tuner_ops.default_hparams()
+  hparams = (rl_tuner_ops.basic_rnn_hparams()
+             if FLAGS.note_rnn_type == 'basic_rnn'
+             else rl_tuner_ops.default_hparams())
 
   dqn_hparams = tf_lib.HParams(random_action_probability=0.1,
                                store_every_nth=1,
