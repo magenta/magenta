@@ -10,6 +10,7 @@ import time
 
 # internal imports
 import mido
+import tensorflow as tf
 
 # TODO(adarob): Use flattened imports.
 from magenta.common import concurrency
@@ -26,7 +27,7 @@ try:
   mido.set_backend('mido.backends.rtmidi')
 except ImportError:
   # Tries to use PortMidi backend by default.
-  logging.warn('Could not import RtMidi. Virtual ports are disabled.')
+  tf.logging.warn('Could not import RtMidi. Virtual ports are disabled.')
 
 
 class MidiHubException(Exception):
@@ -592,7 +593,7 @@ class MidiCaptor(threading.Thread):
       if signal is None:
         skipped_periods = (time.time() - next_yield_time) // period
         if skipped_periods > 0:
-          logging.warning(
+          tf.logging.warning(
               'Skipping %d %.3fs period(s) to catch up on iteration.',
               skipped_periods, period)
           next_yield_time += skipped_periods * period
@@ -893,7 +894,7 @@ class MidiHub(object):
     # Update control values if this is a control change message.
     if msg.type == 'control_change':
       if self._control_values.get(msg.control, None) is None:
-        logging.debug('Control change %d: %d', msg.control, msg.value)
+        tf.logging.debug('Control change %d: %d', msg.control, msg.value)
       self._control_values[msg.control] = msg.value
 
     # Pass the message through to the output port, if appropriate.
