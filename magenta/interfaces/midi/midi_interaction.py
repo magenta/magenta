@@ -571,8 +571,13 @@ class ExternalClockCallAndResponse(MidiInteraction):
           # Generate response.
           tf.logging.info(
               "Generating sequence using '%s' generator from bundle: %d",
-              self._generator.details.id, self._generator.bundle_details.id)
-          tf.logging.debug('Generator options: %s', generator_options)
+              self._sequence_generator.details.id,
+              self._sequence_generator.bundle_details.id)
+          tf.logging.debug('Generator Details: %s',
+                           self._sequence_generator.details)
+          tf.logging.debug('Bundle Details: %s',
+                           self._sequence_generator.bundle_details)
+          tf.logging.debug('Generator Options: %s', generator_options)
           response_sequence = self._sequence_generator.generate(
               captured_sequence, generator_options)
           # Start response playback. Specify the start_time to avoid stripping
