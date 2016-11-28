@@ -33,6 +33,7 @@ MAX_MIDI_PITCH = constants.MAX_MIDI_PITCH
 MIN_MIDI_PITCH = constants.MIN_MIDI_PITCH
 STANDARD_PPQ = constants.STANDARD_PPQ
 
+
 class PolyphonicEvent(object):
   """Class for storing events in a polyphonic sequence."""
 

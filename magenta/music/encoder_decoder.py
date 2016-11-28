@@ -48,13 +48,11 @@ import abc
 # internal imports
 
 import numpy as np
-import tensorflow as tf
-
 from six.moves import range  # pylint: disable=redefined-builtin
+import tensorflow as tf
 
 from magenta.common import sequence_example_lib
 from magenta.music import constants
-from magenta.music import events_lib
 from magenta.pipelines import pipeline
 
 

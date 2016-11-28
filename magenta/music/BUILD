@@ -179,7 +179,6 @@ py_library(
     srcs_version = "PY2AND3",
     deps = [
         ":constants",
-        ":events_lib",
         "//magenta/common:sequence_example_lib",
         "//magenta/pipelines",
         # numpy dep
