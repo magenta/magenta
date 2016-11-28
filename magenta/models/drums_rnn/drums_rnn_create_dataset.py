@@ -25,6 +25,7 @@ import magenta
 
 from magenta.models.drums_rnn import drums_rnn_config_flags
 
+from magenta.music import encoder_decoder
 from magenta.pipelines import dag_pipeline
 from magenta.pipelines import drum_pipelines
 from magenta.pipelines import pipeline
@@ -46,30 +47,6 @@ tf.app.flags.DEFINE_string('log', 'INFO',
                            'DEBUG, INFO, WARN, ERROR, or FATAL.')
 
 
-class EncoderPipeline(pipeline.Pipeline):
-  """A Module that converts drum tracks to a model specific encoding."""
-
-  def __init__(self, config, name):
-    """Constructs an EncoderPipeline.
-
-    Args:
-      config: A DrumsRnnConfig that specifies the encoder/decoder.
-      name: A unique pipeline name.
-    """
-    super(EncoderPipeline, self).__init__(
-        input_type=magenta.music.DrumTrack,
-        output_type=tf.train.SequenceExample,
-        name=name)
-    self._drums_encoder_decoder = config.encoder_decoder
-
-  def transform(self, drums):
-    encoded = self._drums_encoder_decoder.encode(drums)
-    return [encoded]
-
-  def get_stats(self):
-    return {}
-
-
 def get_pipeline(config, eval_ratio):
   """Returns the Pipeline instance which creates the RNN dataset.
 
@@ -85,8 +62,12 @@ def get_pipeline(config, eval_ratio):
       min_bars=7, max_steps=512, gap_bars=1.0, name='DrumsExtractorTrain')
   drums_extractor_eval = drum_pipelines.DrumsExtractor(
       min_bars=7, max_steps=512, gap_bars=1.0, name='DrumsExtractorEval')
-  encoder_pipeline_train = EncoderPipeline(config, name='EncoderPipelineTrain')
-  encoder_pipeline_eval = EncoderPipeline(config, name='EncoderPipelineEval')
+  encoder_pipeline_train = encoder_decoder.EncoderPipeline(
+      magenta.music.DrumTrack, config.encoder_decoder,
+      name='EncoderPipelineTrain')
+  encoder_pipeline_eval = encoder_decoder.EncoderPipeline(
+      magenta.music.DrumTrack, config.encoder_decoder,
+      name='EncoderPipelineEval')
   partitioner = pipelines_common.RandomPartition(
       music_pb2.NoteSequence,
       ['eval_drum_tracks', 'training_drum_tracks'],

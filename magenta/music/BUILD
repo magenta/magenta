@@ -181,7 +181,9 @@ py_library(
         ":constants",
         ":events_lib",
         "//magenta/common:sequence_example_lib",
+        "//magenta/pipelines",
         # numpy dep
+        # tensorflow dep
     ],
 )
 
@@ -477,7 +479,6 @@ py_library(
         "//magenta/protobuf:music_py_pb2",
     ],
 )
-
 
 py_library(
     name = "model",

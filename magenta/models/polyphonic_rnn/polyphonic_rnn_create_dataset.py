@@ -27,6 +27,7 @@ import tensorflow as tf
 from magenta.models.polyphonic_rnn import polyphony_lib
 from magenta.models.polyphonic_rnn import polyphony_model
 
+from magenta.music import encoder_decoder
 from magenta.pipelines import dag_pipeline
 from magenta.pipelines import pipeline
 from magenta.pipelines import pipelines_common
@@ -67,30 +68,6 @@ class PolyphonicSequenceExtractor(pipeline.Pipeline):
     return poly_seqs
 
 
-class EncoderPipeline(pipeline.Pipeline):
-  """A Module that converts polyphonic sequences to a model encoding."""
-
-  def __init__(self, config, name):
-    """Constructs an EncoderPipeline.
-
-    Args:
-      config: An EventSequenceRnnConfig.
-      name: A unique pipeline name.
-    """
-    super(EncoderPipeline, self).__init__(
-        input_type=polyphony_lib.PolyphonicSequence,
-        output_type=tf.train.SequenceExample,
-        name=name)
-    self._encoder_decoder = config.encoder_decoder
-
-  def transform(self, poly_seq):
-    encoded = self._encoder_decoder.encode(poly_seq)
-    return [encoded]
-
-  def get_stats(self):
-    return {}
-
-
 def get_pipeline(config, steps_per_quarter, min_steps, max_steps, eval_ratio):
   """Returns the Pipeline instance which creates the RNN dataset.
 
@@ -109,8 +86,12 @@ def get_pipeline(config, steps_per_quarter, min_steps, max_steps, eval_ratio):
       min_steps=min_steps, max_steps=max_steps, name='PolyExtractorTrain')
   poly_extractor_eval = PolyphonicSequenceExtractor(
       min_steps=min_steps, max_steps=max_steps, name='PolyExtractorEval')
-  encoder_pipeline_train = EncoderPipeline(config, name='EncoderPipelineTrain')
-  encoder_pipeline_eval = EncoderPipeline(config, name='EncoderPipelineEval')
+  encoder_pipeline_train = encoder_decoder.EncoderPipeline(
+      polyphony_lib.PolyphonicSequence, config.encoder_decoder,
+      name='EncoderPipelineTrain')
+  encoder_pipeline_eval = encoder_decoder.EncoderPipeline(
+      polyphony_lib.PolyphonicSequence, config.encoder_decoder,
+      name='EncoderPipelineEval')
   partitioner = pipelines_common.RandomPartition(
       music_pb2.NoteSequence,
       ['eval_poly_tracks', 'training_poly_tracks'],
