@@ -186,12 +186,12 @@ class NoteRNNLoader(object):
         with tf.variable_scope(self.scope):
           # Make an LSTM cell with the number and size of layers specified in
           # hparams.
-          if self.note_rnn_type == 'default':
-            self.cell = rl_tuner_ops.make_rnn_cell(self.hparams.rnn_layer_sizes)
-          else:
+          if self.note_rnn_type == 'basic_rnn':
             self.cell = events_rnn_graph.make_rnn_cell(
                 self.hparams.rnn_layer_sizes,
                 dropout_keep_prob=self.hparams.dropout_keep_prob)
+          else:
+            self.cell = rl_tuner_ops.make_rnn_cell(self.hparams.rnn_layer_sizes)
           # Shape of melody_sequence is batch size, melody length, number of
           # output note actions.
           self.melody_sequence = tf.placeholder(tf.float32,
