@@ -38,14 +38,10 @@ tf.app.flags.DEFINE_string(
     'run_dir', None,
     'Path to the directory where the latest checkpoint will be loaded from.')
 tf.app.flags.DEFINE_string(
-    'checkpoint_file', None,
-    'Path to the checkpoint file. run_dir will take priority over this flag.')
-tf.app.flags.DEFINE_string(
     'bundle_file', None,
     'Path to the bundle file. If specified, this will take priority over '
-    'run_dir and checkpoint_file, unless save_generator_bundle is True, in '
-    'which case both this flag and either run_dir or checkpoint_file are '
-    'required')
+    'run_dir, unless save_generator_bundle is True, in which case both this '
+    'flag and run_dir are required')
 tf.app.flags.DEFINE_boolean(
     'save_generator_bundle', False,
     'If true, instead of generating a sequence, will save this generator as a '
@@ -115,16 +111,13 @@ tf.app.flags.DEFINE_string(
 
 
 def get_checkpoint():
-  """Get the training dir or checkpoint path to be used by the model."""
-  if ((FLAGS.run_dir or FLAGS.checkpoint_file) and
-      FLAGS.bundle_file and not FLAGS.save_generator_bundle):
+  """Get the training dir to be used by the model."""
+  if (FLAGS.run_dir and FLAGS.bundle_file and not FLAGS.save_generator_bundle):
     raise magenta.music.SequenceGeneratorException(
-        'Cannot specify both bundle_file and run_dir or checkpoint_file')
+        'Cannot specify both bundle_file and run_dir')
   if FLAGS.run_dir:
     train_dir = os.path.join(os.path.expanduser(FLAGS.run_dir), 'train')
     return train_dir
-  elif FLAGS.checkpoint_file:
-    return os.path.expanduser(FLAGS.checkpoint_file)
   else:
     return None
 
