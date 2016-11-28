@@ -570,7 +570,7 @@ class ExternalClockCallAndResponse(MidiInteraction):
 
           # Generate response.
           tf.logging.info(
-              "Generating sequence using '%s' generator from bundle: %d",
+              "Generating sequence using '%s' generator from bundle: %s",
               self._sequence_generator.details.id,
               self._sequence_generator.bundle_details.id)
           tf.logging.debug('Generator Details: %s',
