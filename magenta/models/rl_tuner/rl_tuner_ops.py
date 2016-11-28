@@ -260,7 +260,7 @@ def get_variable_names(graph, scope):
     List of variables.
   """
   with graph.as_default():
-    return [v.name for v in tf.global_variables() if v.name.startswith(scope)]
+    return [v.name for v in tf.all_variables() if v.name.startswith(scope)]
 
 
 def get_next_file_name(directory, prefix, extension):
@@ -286,7 +286,21 @@ def get_next_file_name(directory, prefix, extension):
 
 
 def make_rnn_cell(rnn_layer_sizes, state_is_tuple=False):
-  """Makes a default LSTM cell for use in the NoteRNNLoader graph."""
+  """Makes a default LSTM cell for use in the NoteRNNLoader graph.
+
+  This model is only to be used for loading the checkpoint from the paper
+  written by @natashamjaques. In general, events_rnn_graph.make_rnn_cell should
+  be used instead.
+
+  Args:
+    rnn_layer_sizes: A list of integer sizes (in units) for each layer of the
+        RNN.
+    state_is_tuple: A boolean specifying whether to use tuple of hidden matrix
+        and cell matrix as a state instead of a concatenated matrix.
+
+  Returns:
+      A tf.nn.rnn_cell.MultiRNNCell based on the given hyperparameters.
+  """
   cells = []
   for num_units in rnn_layer_sizes:
     cell = tf.nn.rnn_cell.LSTMCell(

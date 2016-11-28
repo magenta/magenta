@@ -293,7 +293,7 @@ class RLTuner(object):
       # Prepare saver and session.
       self.saver = tf.train.Saver()
       self.session = tf.Session(graph=self.graph)
-      self.session.run(tf.global_variables_initializer())
+      self.session.run(tf.initialize_all_variables())
 
       # Initialize internal networks.
       if restore_from_checkpoint:
