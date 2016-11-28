@@ -14,11 +14,13 @@ This configuration is similar to the attention Melody RNN, but also provides the
 
 ## How to Use
 
-First, set up your [Magenta environment](/README.md). For now, you can only train your own Improv RNN.
+First, set up your [Magenta environment](/README.md). For now, you can only train your own Improv RNN, but we will be making pre-trained bundles available in the near future.
 
 ## Train your own
 
 ### Create NoteSequences
+
+The Improv RNN trains on [lead sheets](https://en.wikipedia.org/wiki/Lead_sheet), a musical representation containing chords and melody (and lyrics, which are ignored by the model). You can find lead sheets in various places on the web such as [MuseScore](https://musescore.com). Magenta is currently only able to read lead sheets in MusicXML format; MuseScore provides MusicXML download links, e.g. [https://musescore.com/score/2779326/download/mxl].
 
 Our first step will be to convert a collection of MusicXML lead sheets into NoteSequences. NoteSequences are [protocol buffers](https://developers.google.com/protocol-buffers/), which is a fast and efficient data format, and easier to work with than MIDI or MusicXML files. See [Building your Dataset](/magenta/scripts/README.md) for instructions on generating a TFRecord file of NoteSequences. In this example, we assume the NoteSequences were output to ```/tmp/notesequences.tfrecord```.
 
@@ -80,6 +82,7 @@ Melodies can be generated during or after training. Run the command below to gen
 At least one note needs to be fed to the model before it can start generating consecutive notes. We can use `--primer_melody` to specify a priming melody using a string representation of a Python list. The values in the list should be ints that follow the melodies_lib.Melody format (-2 = no event, -1 = note-off event, values 0 through 127 = note-on event for that MIDI pitch). For example `--primer_melody="[60, -2, 60, -2, 67, -2, 67, -2]"` would prime the model with the first four notes of Twinkle Twinkle Little Star. Instead of using `--primer_melody`, we can use `--primer_midi` to prime our model with a melody stored in a MIDI file.
 
 In addition, the backing chord progression must be provided using `--backing_chords`, a string representation of the backing chords separated by spaces. For example, `--backing_chords="Am Dm G C F Bdim E E"` uses the chords from I Will Survive. By default, each chord will last 16 steps (a single measure), but `--steps_per_chord` can also be set to a different value.
+
 ```
 improv_rnn_generate \
 --config=attention_improv \
