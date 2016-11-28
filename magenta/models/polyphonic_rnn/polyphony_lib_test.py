@@ -20,11 +20,6 @@ import tensorflow as tf
 from magenta.common import testing_lib as common_testing_lib
 
 from magenta.models.polyphonic_rnn import polyphony_lib
-from magenta.models.polyphonic_rnn.polyphony_lib import EVENT_CONTINUED_NOTE
-from magenta.models.polyphonic_rnn.polyphony_lib import EVENT_END
-from magenta.models.polyphonic_rnn.polyphony_lib import EVENT_NEW_NOTE
-from magenta.models.polyphonic_rnn.polyphony_lib import EVENT_START
-from magenta.models.polyphonic_rnn.polyphony_lib import EVENT_STEP_END
 
 from magenta.music import sequences_lib
 from magenta.music import testing_lib
@@ -55,25 +50,25 @@ class PolyphonyLibTest(tf.test.TestCase):
 
     pe = polyphony_lib.PolyphonicEvent
     expected_poly_seq = [
-        pe(EVENT_START, 0),
+        pe(pe.START, None),
         # step 0
-        pe(EVENT_NEW_NOTE, 60),
-        pe(EVENT_NEW_NOTE, 64),
-        pe(EVENT_STEP_END, 0),
+        pe(pe.NEW_NOTE, 60),
+        pe(pe.NEW_NOTE, 64),
+        pe(pe.STEP_END, None),
         # step 1
-        pe(EVENT_CONTINUED_NOTE, 60),
-        pe(EVENT_CONTINUED_NOTE, 64),
-        pe(EVENT_NEW_NOTE, 67),
-        pe(EVENT_STEP_END, 0),
+        pe(pe.CONTINUED_NOTE, 60),
+        pe(pe.CONTINUED_NOTE, 64),
+        pe(pe.NEW_NOTE, 67),
+        pe(pe.STEP_END, None),
         # step 2
-        pe(EVENT_CONTINUED_NOTE, 60),
-        pe(EVENT_CONTINUED_NOTE, 64),
-        pe(EVENT_STEP_END, 0),
+        pe(pe.CONTINUED_NOTE, 60),
+        pe(pe.CONTINUED_NOTE, 64),
+        pe(pe.STEP_END, None),
         # step 3
-        pe(EVENT_CONTINUED_NOTE, 60),
-        pe(EVENT_STEP_END, 0),
+        pe(pe.CONTINUED_NOTE, 60),
+        pe(pe.STEP_END, None),
 
-        pe(EVENT_END, 0),
+        pe(pe.END, None),
     ]
     self.assertEqual(expected_poly_seq, poly_seq)
 
@@ -98,16 +93,16 @@ class PolyphonyLibTest(tf.test.TestCase):
     pe = polyphony_lib.PolyphonicEvent
     poly_events = [
         # step 0
-        pe(EVENT_NEW_NOTE, 60),
-        pe(EVENT_NEW_NOTE, 64),
-        pe(EVENT_STEP_END, 0),
+        pe(pe.NEW_NOTE, 60),
+        pe(pe.NEW_NOTE, 64),
+        pe(pe.STEP_END, None),
         # step 1
-        pe(EVENT_CONTINUED_NOTE, 60),
-        pe(EVENT_CONTINUED_NOTE, 64),
-        pe(EVENT_CONTINUED_NOTE, 67),  # Was not started, should be ignored.
-        pe(EVENT_STEP_END, 0),
+        pe(pe.CONTINUED_NOTE, 60),
+        pe(pe.CONTINUED_NOTE, 64),
+        pe(pe.CONTINUED_NOTE, 67),  # Was not started, should be ignored.
+        pe(pe.STEP_END, None),
 
-        pe(EVENT_END, 0),
+        pe(pe.END, None),
     ]
     for event in poly_events:
       poly_seq.append(event)
@@ -130,15 +125,15 @@ class PolyphonyLibTest(tf.test.TestCase):
     pe = polyphony_lib.PolyphonicEvent
     poly_events = [
         # step 0
-        pe(EVENT_NEW_NOTE, 60),
-        pe(EVENT_NEW_NOTE, 64),
-        pe(EVENT_STEP_END, 0),
+        pe(pe.NEW_NOTE, 60),
+        pe(pe.NEW_NOTE, 64),
+        pe(pe.STEP_END, None),
         # step 1
-        pe(EVENT_NEW_NOTE, 60),
-        pe(EVENT_CONTINUED_NOTE, 64),
-        pe(EVENT_STEP_END, 0),
+        pe(pe.NEW_NOTE, 60),
+        pe(pe.CONTINUED_NOTE, 64),
+        pe(pe.STEP_END, None),
 
-        pe(EVENT_END, 0),
+        pe(pe.END, None),
     ]
     for event in poly_events:
       poly_seq.append(event)
@@ -163,39 +158,39 @@ class PolyphonyLibTest(tf.test.TestCase):
 
     pe = polyphony_lib.PolyphonicEvent
     poly_events = [
-        pe(EVENT_START, 0),
+        pe(pe.START, None),
 
-        pe(EVENT_STEP_END, 0),
-        pe(EVENT_STEP_END, 0),
-        pe(EVENT_STEP_END, 0),
-        pe(EVENT_STEP_END, 0),
-        pe(EVENT_STEP_END, 0),
+        pe(pe.STEP_END, None),
+        pe(pe.STEP_END, None),
+        pe(pe.STEP_END, None),
+        pe(pe.STEP_END, None),
+        pe(pe.STEP_END, None),
 
-        pe(EVENT_END, 0),
+        pe(pe.END, None),
     ]
     self.assertEqual(poly_events, list(poly_seq))
 
-    # Add 5 more steps to make sure EVENT_END is managed properly.
+    # Add 5 more steps to make sure END is managed properly.
     poly_seq.set_length(10)
 
     self.assertEqual(10, poly_seq.num_steps)
 
     pe = polyphony_lib.PolyphonicEvent
     poly_events = [
-        pe(EVENT_START, 0),
+        pe(pe.START, None),
 
-        pe(EVENT_STEP_END, 0),
-        pe(EVENT_STEP_END, 0),
-        pe(EVENT_STEP_END, 0),
-        pe(EVENT_STEP_END, 0),
-        pe(EVENT_STEP_END, 0),
-        pe(EVENT_STEP_END, 0),
-        pe(EVENT_STEP_END, 0),
-        pe(EVENT_STEP_END, 0),
-        pe(EVENT_STEP_END, 0),
-        pe(EVENT_STEP_END, 0),
+        pe(pe.STEP_END, None),
+        pe(pe.STEP_END, None),
+        pe(pe.STEP_END, None),
+        pe(pe.STEP_END, None),
+        pe(pe.STEP_END, None),
+        pe(pe.STEP_END, None),
+        pe(pe.STEP_END, None),
+        pe(pe.STEP_END, None),
+        pe(pe.STEP_END, None),
+        pe(pe.STEP_END, None),
 
-        pe(EVENT_END, 0),
+        pe(pe.END, None),
     ]
     self.assertEqual(poly_events, list(poly_seq))
 
@@ -205,50 +200,50 @@ class PolyphonyLibTest(tf.test.TestCase):
     pe = polyphony_lib.PolyphonicEvent
     poly_events = [
         # step 0
-        pe(EVENT_NEW_NOTE, 60),
-        pe(EVENT_STEP_END, 0),
+        pe(pe.NEW_NOTE, 60),
+        pe(pe.STEP_END, None),
         # step 1
-        pe(EVENT_NEW_NOTE, 64),
-        pe(EVENT_STEP_END, 0),
+        pe(pe.NEW_NOTE, 64),
+        pe(pe.STEP_END, None),
         # step 2
-        pe(EVENT_NEW_NOTE, 67),
-        pe(EVENT_STEP_END, 0),
+        pe(pe.NEW_NOTE, 67),
+        pe(pe.STEP_END, None),
 
-        pe(EVENT_END, 0),
+        pe(pe.END, None),
     ]
     for event in poly_events:
       poly_seq.append(event)
 
     poly_seq.set_length(2)
     poly_events = [
-        pe(EVENT_START, 0),
+        pe(pe.START, None),
         # step 0
-        pe(EVENT_NEW_NOTE, 60),
-        pe(EVENT_STEP_END, 0),
+        pe(pe.NEW_NOTE, 60),
+        pe(pe.STEP_END, None),
         # step 1
-        pe(EVENT_NEW_NOTE, 64),
-        pe(EVENT_STEP_END, 0),
+        pe(pe.NEW_NOTE, 64),
+        pe(pe.STEP_END, None),
 
-        pe(EVENT_END, 0),
+        pe(pe.END, None),
     ]
     self.assertEqual(poly_events, list(poly_seq))
 
     poly_seq.set_length(1)
     poly_events = [
-        pe(EVENT_START, 0),
+        pe(pe.START, None),
         # step 0
-        pe(EVENT_NEW_NOTE, 60),
-        pe(EVENT_STEP_END, 0),
+        pe(pe.NEW_NOTE, 60),
+        pe(pe.STEP_END, None),
 
-        pe(EVENT_END, 0),
+        pe(pe.END, None),
     ]
     self.assertEqual(poly_events, list(poly_seq))
 
     poly_seq.set_length(0)
     poly_events = [
-        pe(EVENT_START, 0),
+        pe(pe.START, None),
 
-        pe(EVENT_END, 0),
+        pe(pe.END, None),
     ]
     self.assertEqual(poly_events, list(poly_seq))
 
@@ -257,17 +252,17 @@ class PolyphonyLibTest(tf.test.TestCase):
 
     pe = polyphony_lib.PolyphonicEvent
     poly_events = [
-        pe(EVENT_START, 0),
+        pe(pe.START, None),
         # step 0
-        pe(EVENT_NEW_NOTE, 60),
-        pe(EVENT_NEW_NOTE, 64),
-        pe(EVENT_STEP_END, 0),
+        pe(pe.NEW_NOTE, 60),
+        pe(pe.NEW_NOTE, 64),
+        pe(pe.STEP_END, None),
         # step 1
-        pe(EVENT_CONTINUED_NOTE, 60),
-        pe(EVENT_CONTINUED_NOTE, 64),
-        pe(EVENT_STEP_END, 0),
+        pe(pe.CONTINUED_NOTE, 60),
+        pe(pe.CONTINUED_NOTE, 64),
+        pe(pe.STEP_END, None),
 
-        pe(EVENT_END, 0),
+        pe(pe.END, None),
     ]
     for event in poly_events:
       poly_seq.append(event)
@@ -313,6 +308,19 @@ class PolyphonyLibTest(tf.test.TestCase):
 
     seqs, _ = polyphony_lib.extract_polyphonic_sequences(quantized_sequence)
     self.assertEqual(0, len(seqs))
+
+  def testExtractNonZeroStart(self):
+    testing_lib.add_track_to_sequence(
+        self.note_sequence, 0, [(60, 100, 0.0, 4.0)])
+    quantized_sequence = sequences_lib.quantize_note_sequence(
+        self.note_sequence, steps_per_quarter=1)
+
+    seqs, _ = polyphony_lib.extract_polyphonic_sequences(
+        quantized_sequence, start_step=4, min_steps_discard=1)
+    self.assertEqual(0, len(seqs))
+    seqs, _ = polyphony_lib.extract_polyphonic_sequences(
+        quantized_sequence, start_step=0, min_steps_discard=1)
+    self.assertEqual(1, len(seqs))
 
 
 if __name__ == '__main__':

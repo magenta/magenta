@@ -18,7 +18,7 @@
 import tensorflow as tf
 
 from magenta.models.polyphonic_rnn import polyphony_encoder_decoder
-from magenta.models.polyphonic_rnn import polyphony_lib
+from magenta.models.polyphonic_rnn.polyphony_lib import PolyphonicEvent
 
 
 class PolyphonyOneHotEncodingTest(tf.test.TestCase):
@@ -27,16 +27,16 @@ class PolyphonyOneHotEncodingTest(tf.test.TestCase):
     self.enc = polyphony_encoder_decoder.PolyphonyOneHotEncoding()
 
   def testEncodeDecode(self):
-    start = polyphony_lib.PolyphonicEvent(
-        event_type=polyphony_lib.EVENT_START, pitch=0)
-    step_end = polyphony_lib.PolyphonicEvent(
-        event_type=polyphony_lib.EVENT_STEP_END, pitch=0)
-    new_note = polyphony_lib.PolyphonicEvent(
-        event_type=polyphony_lib.EVENT_NEW_NOTE, pitch=0)
-    continued_note = polyphony_lib.PolyphonicEvent(
-        event_type=polyphony_lib.EVENT_CONTINUED_NOTE, pitch=60)
-    continued_max_note = polyphony_lib.PolyphonicEvent(
-        event_type=polyphony_lib.EVENT_CONTINUED_NOTE, pitch=127)
+    start = PolyphonicEvent(
+        event_type=PolyphonicEvent.START, pitch=0)
+    step_end = PolyphonicEvent(
+        event_type=PolyphonicEvent.STEP_END, pitch=0)
+    new_note = PolyphonicEvent(
+        event_type=PolyphonicEvent.NEW_NOTE, pitch=0)
+    continued_note = PolyphonicEvent(
+        event_type=PolyphonicEvent.CONTINUED_NOTE, pitch=60)
+    continued_max_note = PolyphonicEvent(
+        event_type=PolyphonicEvent.CONTINUED_NOTE, pitch=127)
 
     index = self.enc.encode_event(start)
     self.assertEqual(0, index)

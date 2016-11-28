@@ -39,7 +39,8 @@ class TestSequenceGenerator(sequence_generator.BaseSequenceGenerator):
         description='Test Generator')
 
     super(TestSequenceGenerator, self).__init__(
-        TestModel(), details, checkpoint, bundle)
+        TestModel(), details, steps_per_quarter=4, checkpoint=checkpoint,
+        bundle=bundle)
 
   def _generate(self):
     pass

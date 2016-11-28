@@ -43,22 +43,7 @@ class PolyphonicRnnSequenceGenerator(mm.BaseSequenceGenerator):
           and metagraph. Mutually exclusive with `checkpoint`.
     """
     super(PolyphonicRnnSequenceGenerator, self).__init__(
-        model, details, checkpoint, bundle)
-    self._steps_per_quarter = steps_per_quarter
-
-  def _seconds_to_steps(self, seconds, qpm):
-    """Converts seconds to steps.
-
-    Uses the generator's steps_per_quarter setting and the specified qpm.
-
-    Args:
-      seconds: number of seconds.
-      qpm: current qpm.
-
-    Returns:
-      Number of steps the seconds represent.
-    """
-    return int(seconds * (qpm / 60.0) * self._steps_per_quarter)
+        model, details, steps_per_quarter, checkpoint, bundle)
 
   def _generate(self, input_sequence, generator_options):
     if len(generator_options.input_sections) > 1:
@@ -81,7 +66,7 @@ class PolyphonicRnnSequenceGenerator(mm.BaseSequenceGenerator):
       input_section = generator_options.input_sections[0]
       primer_sequence = mm.extract_subsequence(
           input_sequence, input_section.start_time, input_section.end_time)
-      input_start_step = self._seconds_to_steps(
+      input_start_step = self.seconds_to_steps(
           input_section.start_time, qpm)
     else:
       primer_sequence = input_sequence
@@ -98,15 +83,15 @@ class PolyphonicRnnSequenceGenerator(mm.BaseSequenceGenerator):
 
     # Quantize the priming sequence.
     quantized_primer_sequence = mm.quantize_note_sequence(
-        primer_sequence, self._steps_per_quarter)
+        primer_sequence, self.steps_per_quarter)
 
     extracted_seqs, _ = polyphony_lib.extract_polyphonic_sequences(
-        quantized_primer_sequence, search_start_step=input_start_step)
+        quantized_primer_sequence, start_step=input_start_step)
     assert len(extracted_seqs) <= 1
 
-    start_step = self._seconds_to_steps(
+    start_step = self.seconds_to_steps(
         generate_section.start_time, qpm)
-    end_step = self._seconds_to_steps(generate_section.end_time, qpm)
+    end_step = self.seconds_to_steps(generate_section.end_time, qpm)
 
     if extracted_seqs and extracted_seqs[0]:
       poly_seq = extracted_seqs[0]
