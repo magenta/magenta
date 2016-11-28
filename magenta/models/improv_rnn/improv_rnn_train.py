@@ -77,14 +77,12 @@ def main(unused_argv):
       mode, config, sequence_example_file_paths)
 
   train_dir = os.path.join(run_dir, 'train')
-  if not os.path.exists(train_dir):
-    tf.gfile.MakeDirs(train_dir)
+  tf.gfile.MakeDirs(train_dir)
   tf.logging.info('Train dir: %s', train_dir)
 
   if FLAGS.eval:
     eval_dir = os.path.join(run_dir, 'eval')
-    if not os.path.exists(eval_dir):
-      tf.gfile.MakeDirs(eval_dir)
+    tf.gfile.MakeDirs(eval_dir)
     tf.logging.info('Eval dir: %s', eval_dir)
     events_rnn_train.run_eval(graph, train_dir, eval_dir,
                               FLAGS.num_training_steps, FLAGS.summary_frequency)
