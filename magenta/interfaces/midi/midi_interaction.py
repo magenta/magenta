@@ -569,6 +569,10 @@ class ExternalClockCallAndResponse(MidiInteraction):
             generator_options.args['temperature'].float_value = temperature
 
           # Generate response.
+          tf.logging.info(
+              "Generating sequence using '%s' generator from bundle: %d",
+              self._generator.details.id, self._generator.bundle_details.id)
+          tf.logging.debug('Generator options: %s', generator_options)
           response_sequence = self._sequence_generator.generate(
               captured_sequence, generator_options)
           # Start response playback. Specify the start_time to avoid stripping

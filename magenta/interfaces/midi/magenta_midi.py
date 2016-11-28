@@ -125,6 +125,8 @@ def _load_generator_from_bundle_file(bundle_file):
     print 'Failed to parse bundle file: %s' % FLAGS.bundle_file
     return None
 
+  bundle.bundle_details.id = bundle_file
+
   generator_id = bundle.generator_details.id
   if generator_id not in _GENERATOR_MAP:
     print "Unrecognized SequenceGenerator ID '%s' in bundle file: %s" % (

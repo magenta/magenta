@@ -61,6 +61,7 @@ message GeneratorBundle {
 
   // Details about this specific bundle.
   message BundleDetails {
+    string id = 2;
     // A short, human-readable text description of the bundle (e.g., training
     // data, hyper parameters, etc.).
     string description = 1;
