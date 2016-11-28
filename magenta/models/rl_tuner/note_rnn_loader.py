@@ -165,12 +165,7 @@ class NoteRNNLoader(object):
       inner_name = rl_tuner_ops.get_inner_scope(var.name)
       inner_name = rl_tuner_ops.trim_variable_postfixes(inner_name)
       if self.note_rnn_type == 'basic_rnn':
-        if 'fully_connected' in inner_name and 'bias' in inner_name:
-          # 'fully_connected/bias' has been changed to 'fully_connected/biases'
-          # in newest checkpoints.
-          var_dict[inner_name + 'es'] = var
-        else:
-          var_dict[inner_name] = var
+        var_dict[inner_name] = var
       else:
         var_dict[self.checkpoint_scope + '/' + inner_name] = var
 
@@ -239,7 +234,10 @@ class NoteRNNLoader(object):
 
             outputs_flat = tf.reshape(outputs,
                                       [-1, self.hparams.rnn_layer_sizes[-1]])
-            logits_flat = tf.contrib.layers.legacy_linear(
+            linear_layer = (tf.contrib.layers.linear
+                            if self.note_rnn_type == 'basic_rnn'
+                            else tf.contrib.layers.legacy_linear)
+            logits_flat = linear_layer(
                 outputs_flat, self.hparams.one_hot_length)
             return logits_flat, final_state
 
