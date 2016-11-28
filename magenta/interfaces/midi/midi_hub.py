@@ -892,6 +892,8 @@ class MidiHub(object):
 
     # Update control values if this is a control change message.
     if msg.type == 'control_change':
+      if self._control_values.get(msg.control, None) is None:
+        logging.debug('Control change %d: %d', msg.control, msg.value)
       self._control_values[msg.control] = msg.value
 
     # Pass the message through to the output port, if appropriate.
