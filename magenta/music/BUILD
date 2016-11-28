@@ -26,9 +26,12 @@ py_library(
     name = "music",
     srcs = ["__init__.py"],
     deps = [
+        ":chords_encoder_decoder",
+        ":chords_lib",
         ":constants",
         ":drums_encoder_decoder",
         ":drums_lib",
+        ":lead_sheets_lib",
         ":melodies_lib",
         ":melody_encoder_decoder",
         ":midi_io",
