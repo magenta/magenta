@@ -288,9 +288,8 @@ def get_next_file_name(directory, prefix, extension):
 def make_rnn_cell(rnn_layer_sizes, state_is_tuple=False):
   """Makes a default LSTM cell for use in the NoteRNNLoader graph.
 
-  This model is only to be used for loading the checkpoint from the paper
-  written by @natashamjaques. In general, events_rnn_graph.make_rnn_cell should
-  be used instead.
+  This model is only to be used for loading the checkpoint from the research
+  paper. In general, events_rnn_graph.make_rnn_cell should be used instead.
 
   Args:
     rnn_layer_sizes: A list of integer sizes (in units) for each layer of the

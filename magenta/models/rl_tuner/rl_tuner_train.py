@@ -49,7 +49,10 @@ tf.app.flags.DEFINE_string('note_rnn_checkpoint_dir', '',
 tf.app.flags.DEFINE_string('note_rnn_checkpoint_name', 'note_rnn.ckpt',
                            'Filename of a checkpoint within the '
                            'note_rnn_checkpoint_dir directory.')
-tf.app.flags.DEFINE_string('note_rnn_type', 'default', '')
+tf.app.flags.DEFINE_string('note_rnn_type', 'default',
+                           'If `default`, will use the basic LSTM described in '
+                           'the research paper. If `basic_rnn`, will assume '
+                           'the checkpoint is from a Magenta basic_rnn model.')
 tf.app.flags.DEFINE_string('midi_primer', './testdata/primer.mid',
                            'A midi file that can be used to prime the model')
 tf.app.flags.DEFINE_integer('training_steps', 1000000,
