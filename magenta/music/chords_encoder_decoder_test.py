@@ -71,5 +71,62 @@ class MajorMinorChordOneHotEncodingTest(tf.test.TestCase):
     self.assertEquals('Em', figure)
 
 
+class TriadChordOneHotEncodingTest(tf.test.TestCase):
+
+  def setUp(self):
+    self.enc = chords_encoder_decoder.TriadChordOneHotEncoding()
+
+  def testEncodeNoChord(self):
+    index = self.enc.encode_event(NO_CHORD)
+    self.assertEquals(0, index)
+
+  def testEncodeChord(self):
+    # major triad
+    index = self.enc.encode_event('C13')
+    self.assertEquals(1, index)
+
+    # minor triad
+    index = self.enc.encode_event('Cm(maj7)')
+    self.assertEquals(13, index)
+
+    # augmented triad
+    index = self.enc.encode_event('Faug7')
+    self.assertEquals(30, index)
+
+    # diminished triad
+    index = self.enc.encode_event('Abm7b5')
+    self.assertEquals(45, index)
+
+  def testEncodeThirdlessChord(self):
+    # suspended chord
+    with self.assertRaises(chords_encoder_decoder.ChordEncodingException):
+      self.enc.encode_event('Gsus4')
+
+    # power chord
+    with self.assertRaises(chords_encoder_decoder.ChordEncodingException):
+      self.enc.encode_event('Bb5')
+
+  def testDecodeNoChord(self):
+    figure = self.enc.decode_event(0)
+    self.assertEquals(NO_CHORD, figure)
+
+  def testDecodeChord(self):
+    # major chord
+    figure = self.enc.decode_event(3)
+    self.assertEquals('D', figure)
+
+    # minor chord
+    figure = self.enc.decode_event(17)
+    self.assertEquals('Em', figure)
+
+    # augmented chord
+    figure = self.enc.decode_event(33)
+    self.assertEquals('Abaug', figure)
+
+    # diminished chord
+    figure = self.enc.decode_event(42)
+    self.assertEquals('Fdim', figure)
+
+
 if __name__ == '__main__':
   tf.test.main()

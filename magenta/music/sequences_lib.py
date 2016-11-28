@@ -64,7 +64,8 @@ def extract_subsequence(sequence, start_time, end_time):
   """Extracts a subsequence from a NoteSequence.
 
   Notes starting before `start_time` are not included. Notes ending after
-  `end_time` are truncated.
+  `end_time` are truncated. Text annotations (including chord symbols) are also
+  only included if between `start_time` and `end_time`.
 
   Args:
     sequence: The NoteSequence to extract a subsequence from.
@@ -77,6 +78,7 @@ def extract_subsequence(sequence, start_time, end_time):
   """
   subsequence = music_pb2.NoteSequence()
   subsequence.CopyFrom(sequence)
+
   del subsequence.notes[:]
   for note in sequence.notes:
     if note.start_time < start_time or note.start_time >= end_time:
@@ -85,6 +87,13 @@ def extract_subsequence(sequence, start_time, end_time):
     new_note.CopyFrom(note)
     new_note.end_time = min(note.end_time, end_time)
   subsequence.total_time = min(sequence.total_time, end_time)
+
+  del subsequence.text_annotations[:]
+  for annotation in sequence.text_annotations:
+    if annotation.time < start_time or annotation.time >= end_time:
+      continue
+    new_annotation = subsequence.text_annotations.add()
+    new_annotation.CopyFrom(annotation)
   return subsequence
 
 
@@ -168,13 +177,19 @@ def quantize_note_sequence(note_sequence, steps_per_quarter):
         time_signatures[0].denominator == 4):
       raise MultipleTimeSignatureException(
           'NoteSequence has an implicit change from initial 4/4 time '
-          'signature.')
+          'signature to %d/%d at %.2f seconds.' % (
+              time_signatures[0].numerator, time_signatures[0].denominator,
+              time_signatures[0].time))
 
     for time_signature in time_signatures[1:]:
       if (time_signature.numerator != qns.time_signatures[0].numerator or
           time_signature.denominator != qns.time_signatures[0].denominator):
         raise MultipleTimeSignatureException(
-            'NoteSequence has at least one time signature change.')
+            'NoteSequence has at least one time signature change from %d/%d to '
+            '%d/%d at %.2f seconds.' % (
+                time_signatures[0].numerator, time_signatures[0].denominator,
+                time_signature.numerator, time_signature.denominator,
+                time_signature.time))
 
     # Make it clear that there is only 1 time signature and it starts at the
     # beginning.
@@ -199,12 +214,17 @@ def quantize_note_sequence(note_sequence, steps_per_quarter):
     if tempos[0].time != 0 and (
         tempos[0].qpm != constants.DEFAULT_QUARTERS_PER_MINUTE):
       raise MultipleTempoException(
-          'NoteSequence has an implicit tempo change from initial 120.0 qpm')
+          'NoteSequence has an implicit tempo change from initial %.1f qpm to '
+          '%.1f qpm at %.2f seconds.' % (
+              constants.DEFAULT_QUARTERS_PER_MINUTE, tempos[0].qpm,
+              tempos[0].time))
 
     for tempo in tempos[1:]:
       if tempo.qpm != qns.tempos[0].qpm:
         raise MultipleTempoException(
-            'NoteSequence has at least one tempo change.')
+            'NoteSequence has at least one tempo change from %f qpm to %f qpm '
+            'at %.2f seconds.' % (tempos[0].qpm, tempo.qpm, tempo.time))
+
     # Make it clear that there is only 1 tempo and it starts at the beginning.
     qns.tempos[0].time = 0
     del qns.tempos[1:]

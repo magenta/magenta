@@ -65,7 +65,7 @@ on each algorithm, see [our paper][our arxiv].
 
 ## Running the code
 To start using the model, first set up your [Magenta
-environment](https://github.com/tensorflow/magenta/blob/master/README.md).
+environment](/README.md).
 you can either use a pre-trained model or train your own.
 
 To train the model you can use the provided jupyter notebook
