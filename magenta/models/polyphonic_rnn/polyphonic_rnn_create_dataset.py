@@ -29,6 +29,7 @@ from magenta.models.polyphonic_rnn import polyphony_lib
 from magenta.models.polyphonic_rnn import polyphony_model
 
 from magenta.music import constants
+from magenta.music import encoder_decoder
 from magenta.pipelines import dag_pipeline
 from magenta.pipelines import pipeline
 from magenta.pipelines import pipelines_common
