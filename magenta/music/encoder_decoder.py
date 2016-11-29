@@ -46,12 +46,14 @@ encoding includes binary counters for timekeeping.
 import abc
 
 # internal imports
-import numpy as np
 
+import numpy as np
 from six.moves import range  # pylint: disable=redefined-builtin
+import tensorflow as tf
 
 from magenta.common import sequence_example_lib
 from magenta.music import constants
+from magenta.pipelines import pipeline
 
 
 DEFAULT_STEPS_PER_BAR = constants.DEFAULT_STEPS_PER_BAR
@@ -715,3 +717,25 @@ class ConditionalEventSequenceEncoderDecoder(object):
       target_event_sequences[i].append(event)
       chosen_classes.append(chosen_class)
     return chosen_classes
+
+
+class EncoderPipeline(pipeline.Pipeline):
+  """A pipeline that converts an EventSequence to a model encoding."""
+
+  def __init__(self, input_type, encoder_decoder, name=None):
+    """Constructs an EncoderPipeline.
+
+    Args:
+      input_type: The type this pipeline expects as input.
+      encoder_decoder: An EventSequenceEncoderDecoder.
+      name: A unique pipeline name.
+    """
+    super(EncoderPipeline, self).__init__(
+        input_type=input_type,
+        output_type=tf.train.SequenceExample,
+        name=name)
+    self._encoder_decoder = encoder_decoder
+
+  def transform(self, seq):
+    encoded = self._encoder_decoder.encode(seq)
+    return [encoded]

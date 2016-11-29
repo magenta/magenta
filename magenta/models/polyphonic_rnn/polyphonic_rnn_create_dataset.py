@@ -13,21 +13,22 @@
 # limitations under the License.
 """Create a dataset of SequenceExamples from NoteSequence protos.
 
-This script will extract drum tracks from NoteSequence protos and save them to
-TensorFlow's SequenceExample protos for input to the drums RNN models.
+This script will extract polyphonic tracks from NoteSequence protos and save
+them to TensorFlow's SequenceExample protos for input to the polyphonic RNN
+models.
 """
 
 import os
 
 # internal imports
-import tensorflow as tf
-import magenta
 
-from magenta.models.drums_rnn import drums_rnn_config_flags
+import tensorflow as tf
+
+from magenta.models.polyphonic_rnn import polyphony_lib
+from magenta.models.polyphonic_rnn import polyphony_model
 
 from magenta.music import encoder_decoder
 from magenta.pipelines import dag_pipeline
-from magenta.pipelines import drum_pipelines
 from magenta.pipelines import pipeline
 from magenta.pipelines import pipelines_common
 from magenta.protobuf import music_pb2
@@ -47,56 +48,82 @@ tf.app.flags.DEFINE_string('log', 'INFO',
                            'DEBUG, INFO, WARN, ERROR, or FATAL.')
 
 
-def get_pipeline(config, eval_ratio):
+class PolyphonicSequenceExtractor(pipeline.Pipeline):
+  """Extracts polyphonic tracks from a quantized NoteSequence."""
+
+  def __init__(self, min_steps, max_steps, name=None):
+    super(PolyphonicSequenceExtractor, self).__init__(
+        input_type=music_pb2.NoteSequence,
+        output_type=polyphony_lib.PolyphonicSequence,
+        name=name)
+    self._min_steps = min_steps
+    self._max_steps = max_steps
+
+  def transform(self, quantized_sequence):
+    poly_seqs, stats = polyphony_lib.extract_polyphonic_sequences(
+        quantized_sequence,
+        min_steps_discard=self._min_steps,
+        max_steps_discard=self._max_steps)
+    self._set_stats(stats)
+    return poly_seqs
+
+
+def get_pipeline(config, steps_per_quarter, min_steps, max_steps, eval_ratio):
   """Returns the Pipeline instance which creates the RNN dataset.
 
   Args:
-    config: A DrumsRnnConfig object.
+    config: An EventSequenceRnnConfig.
+    steps_per_quarter: How many steps per quarter to use when quantizing.
+    min_steps: Minimum number of steps for an extracted sequence.
+    max_steps: Maximum number of steps for an extracted sequence.
     eval_ratio: Fraction of input to set aside for evaluation set.
 
   Returns:
     A pipeline.Pipeline instance.
   """
-  quantizer = pipelines_common.Quantizer(steps_per_quarter=4)
-  drums_extractor_train = drum_pipelines.DrumsExtractor(
-      min_bars=7, max_steps=512, gap_bars=1.0, name='DrumsExtractorTrain')
-  drums_extractor_eval = drum_pipelines.DrumsExtractor(
-      min_bars=7, max_steps=512, gap_bars=1.0, name='DrumsExtractorEval')
+  quantizer = pipelines_common.Quantizer(steps_per_quarter=steps_per_quarter)
+  poly_extractor_train = PolyphonicSequenceExtractor(
+      min_steps=min_steps, max_steps=max_steps, name='PolyExtractorTrain')
+  poly_extractor_eval = PolyphonicSequenceExtractor(
+      min_steps=min_steps, max_steps=max_steps, name='PolyExtractorEval')
   encoder_pipeline_train = encoder_decoder.EncoderPipeline(
-      magenta.music.DrumTrack, config.encoder_decoder,
+      polyphony_lib.PolyphonicSequence, config.encoder_decoder,
       name='EncoderPipelineTrain')
   encoder_pipeline_eval = encoder_decoder.EncoderPipeline(
-      magenta.music.DrumTrack, config.encoder_decoder,
+      polyphony_lib.PolyphonicSequence, config.encoder_decoder,
       name='EncoderPipelineEval')
   partitioner = pipelines_common.RandomPartition(
       music_pb2.NoteSequence,
-      ['eval_drum_tracks', 'training_drum_tracks'],
+      ['eval_poly_tracks', 'training_poly_tracks'],
       [eval_ratio])
 
   dag = {quantizer: dag_pipeline.DagInput(music_pb2.NoteSequence),
          partitioner: quantizer,
-         drums_extractor_train: partitioner['training_drum_tracks'],
-         drums_extractor_eval: partitioner['eval_drum_tracks'],
-         encoder_pipeline_train: drums_extractor_train,
-         encoder_pipeline_eval: drums_extractor_eval,
-         dag_pipeline.DagOutput('training_drum_tracks'): encoder_pipeline_train,
-         dag_pipeline.DagOutput('eval_drum_tracks'): encoder_pipeline_eval}
+         poly_extractor_train: partitioner['training_poly_tracks'],
+         poly_extractor_eval: partitioner['eval_poly_tracks'],
+         encoder_pipeline_train: poly_extractor_train,
+         encoder_pipeline_eval: poly_extractor_eval,
+         dag_pipeline.DagOutput('training_poly_tracks'): encoder_pipeline_train,
+         dag_pipeline.DagOutput('eval_poly_tracks'): encoder_pipeline_eval}
   return dag_pipeline.DAGPipeline(dag)
 
 
 def main(unused_argv):
   tf.logging.set_verbosity(FLAGS.log)
 
-  config = drums_rnn_config_flags.config_from_flags()
   pipeline_instance = get_pipeline(
-      config, FLAGS.eval_ratio)
+      steps_per_quarter=4,
+      min_steps=80,  # 5 measures
+      max_steps=512,
+      eval_ratio=FLAGS.eval_ratio,
+      config=polyphony_model.default_configs['polyphony'])
 
-  FLAGS.input = os.path.expanduser(FLAGS.input)
-  FLAGS.output_dir = os.path.expanduser(FLAGS.output_dir)
+  input_dir = os.path.expanduser(FLAGS.input)
+  output_dir = os.path.expanduser(FLAGS.output_dir)
   pipeline.run_pipeline_serial(
       pipeline_instance,
-      pipeline.tf_record_iterator(FLAGS.input, pipeline_instance.input_type),
-      FLAGS.output_dir)
+      pipeline.tf_record_iterator(input_dir, pipeline_instance.input_type),
+      output_dir)
 
 
 def console_entry_point():

@@ -11,34 +11,38 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Melody RNN generation code as a SequenceGenerator interface."""
+"""Polyphonic RNN generation code as a SequenceGenerator interface."""
 
 from functools import partial
 
 # internal imports
 
-from magenta.models.melody_rnn import melody_rnn_model
+import tensorflow as tf
+
+from magenta.models.polyphonic_rnn import polyphony_lib
+from magenta.models.polyphonic_rnn import polyphony_model
+
 import magenta.music as mm
 
 
-class MelodyRnnSequenceGenerator(mm.BaseSequenceGenerator):
-  """Shared Melody RNN generation code as a SequenceGenerator interface."""
+class PolyphonicRnnSequenceGenerator(mm.BaseSequenceGenerator):
+  """Polyphonic RNN generation code as a SequenceGenerator interface."""
 
   def __init__(self, model, details, steps_per_quarter=4, checkpoint=None,
                bundle=None):
-    """Creates a MelodyRnnSequenceGenerator.
+    """Creates a PolyphonicRnnSequenceGenerator.
 
     Args:
-      model: Instance of MelodyRnnModel.
+      model: Instance of PolyphonicRnnModel.
       details: A generator_pb2.GeneratorDetails for this generator.
-      steps_per_quarter: What precision to use when quantizing the melody. How
+      steps_per_quarter: What precision to use when quantizing the sequence. How
           many steps per quarter note.
       checkpoint: Where to search for the most recent model checkpoint. Mutually
           exclusive with `bundle`.
       bundle: A GeneratorBundle object that includes both the model checkpoint
           and metagraph. Mutually exclusive with `checkpoint`.
     """
-    super(MelodyRnnSequenceGenerator, self).__init__(
+    super(PolyphonicRnnSequenceGenerator, self).__init__(
         model, details, steps_per_quarter, checkpoint, bundle)
 
   def _generate(self, input_sequence, generator_options):
@@ -51,23 +55,26 @@ class MelodyRnnSequenceGenerator(mm.BaseSequenceGenerator):
           'This model supports only 1 generate_sections message, but got %s' %
           len(generator_options.generate_sections))
 
-    qpm = (input_sequence.tempos[0].qpm
-           if input_sequence and input_sequence.tempos
-           else mm.DEFAULT_QUARTERS_PER_MINUTE)
+    # This sequence will be quantized later, so it is guaranteed to have only 1
+    # tempo.
+    qpm = mm.DEFAULT_QUARTERS_PER_MINUTE
+    if input_sequence.tempos:
+      qpm = input_sequence.tempos[0].qpm
 
     generate_section = generator_options.generate_sections[0]
     if generator_options.input_sections:
       input_section = generator_options.input_sections[0]
       primer_sequence = mm.extract_subsequence(
           input_sequence, input_section.start_time, input_section.end_time)
-      input_start_step = self.seconds_to_steps(input_section.start_time, qpm)
+      input_start_step = self.seconds_to_steps(
+          input_section.start_time, qpm)
     else:
       primer_sequence = input_sequence
       input_start_step = 0
 
     last_end_time = (max(n.end_time for n in primer_sequence.notes)
                      if primer_sequence.notes else 0)
-    if last_end_time >= generate_section.start_time:
+    if last_end_time > generate_section.start_time:
       raise mm.SequenceGeneratorException(
           'Got GenerateSection request for section that is before or equal to '
           'the end of the NoteSequence. This model can only extend sequences. '
@@ -75,29 +82,31 @@ class MelodyRnnSequenceGenerator(mm.BaseSequenceGenerator):
           (generate_section.start_time, last_end_time))
 
     # Quantize the priming sequence.
-    quantized_sequence = mm.quantize_note_sequence(
+    quantized_primer_sequence = mm.quantize_note_sequence(
         primer_sequence, self.steps_per_quarter)
-    # Setting gap_bars to infinite ensures that the entire input will be used.
-    extracted_melodies, _ = mm.extract_melodies(
-        quantized_sequence, search_start_step=input_start_step, min_bars=0,
-        min_unique_pitches=1, gap_bars=float('inf'),
-        ignore_polyphonic_notes=True)
-    assert len(extracted_melodies) <= 1
+
+    extracted_seqs, _ = polyphony_lib.extract_polyphonic_sequences(
+        quantized_primer_sequence, start_step=input_start_step)
+    assert len(extracted_seqs) <= 1
 
     start_step = self.seconds_to_steps(
         generate_section.start_time, qpm)
     end_step = self.seconds_to_steps(generate_section.end_time, qpm)
 
-    if extracted_melodies and extracted_melodies[0]:
-      melody = extracted_melodies[0]
+    if extracted_seqs and extracted_seqs[0]:
+      poly_seq = extracted_seqs[0]
     else:
-      # If no melody could be extracted, create an empty melody that starts 1
-      # step before the request start_step. This will result in 1 step of
-      # silence when the melody is extended below.
-      melody = mm.Melody([], start_step=max(0, start_step - 1))
+      # If no track could be extracted, create an empty track that starts 1 step
+      # before the request start_step. This will result in 1 step of silence
+      # when the track is extended below.
+      poly_seq = polyphony_lib.PolyphonicSequence(
+          steps_per_quarter=(
+              quantized_primer_sequence.quantization_info.steps_per_quarter),
+          start_step=start_step)
 
-    # Ensure that the melody extends up to the step we want to start generating.
-    melody.set_length(start_step - melody.start_step)
+    # Ensure that the track extends up to the step we want to start generating.
+    poly_seq.set_length(start_step - poly_seq.start_step)
+    poly_seq.trim_trailing_end_and_step_end_events()
 
     # Extract generation arguments from generator options.
     arg_types = {
@@ -110,9 +119,21 @@ class MelodyRnnSequenceGenerator(mm.BaseSequenceGenerator):
                 for name, value_fn in arg_types.items()
                 if name in generator_options.args)
 
-    generated_melody = self._model.generate_melody(
-        end_step - melody.start_step, melody, **args)
-    generated_sequence = generated_melody.to_sequence(qpm=qpm)
+    total_steps = end_step - start_step
+    while poly_seq.num_steps < total_steps:
+      # Assume it takes ~5 rnn steps to generate one quantized step.
+      # Can't know for sure until generation is finished because the number of
+      # notes per quantized step is variable.
+      steps_to_gen = total_steps - poly_seq.num_steps
+      rnn_steps_to_gen = 5 * steps_to_gen
+      tf.logging.info(
+          'Need to generate %d more steps for this sequence, will try asking '
+          'for %d RNN steps' % (steps_to_gen, rnn_steps_to_gen))
+      poly_seq = self._model.generate_polyphonic_sequence(
+          len(poly_seq) + rnn_steps_to_gen, poly_seq, **args)
+    poly_seq.set_length(total_steps)
+
+    generated_sequence = poly_seq.to_sequence(qpm=qpm)
     assert (generated_sequence.total_time - generate_section.end_time) <= 1e-5
     return generated_sequence
 
@@ -122,11 +143,11 @@ def get_generator_map():
 
   Binds the `config` argument so that the constructor matches the
   BaseSequenceGenerator class.
-
   Returns:
     Map from the generator ID to its SequenceGenerator class with a bound
     `config` argument.
   """
-  return {key: partial(MelodyRnnSequenceGenerator,
-                       melody_rnn_model.MelodyRnnModel(config), config.details)
-          for (key, config) in melody_rnn_model.default_configs.items()}
+  return {key: partial(PolyphonicRnnSequenceGenerator,
+                       polyphony_model.PolyphonicRnnModel(config),
+                       config.details)
+          for (key, config) in polyphony_model.default_configs.items()}
