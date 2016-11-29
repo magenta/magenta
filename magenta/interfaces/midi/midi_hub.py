@@ -20,6 +20,8 @@ _DEFAULT_METRONOME_PITCH = 95
 _DEFAULT_METRONOME_VELOCITY = 64
 _METRONOME_CHANNEL = 0
 
+_DRUM_CHANNEL = 9
+
 try:
   # The RtMidi backend is easier to install and has support for virtual ports.
   import rtmidi  # pylint: disable=unused-import,g-import-not-at-top
@@ -423,6 +425,15 @@ class MidiCaptor(threading.Thread):
     """
     pass
 
+  def _add_note(self, msg):
+    """Adds and returns a new open note based on the MIDI message."""
+    new_note = self._captured_sequence.notes.add()
+    new_note.start_time = msg.time
+    new_note.pitch = msg.note
+    new_note.velocity = msg.velocity
+    new_note.is_drum = (msg.channel == _DRUM_CHANNEL)
+    return new_note
+
   def run(self):
     """Captures incoming messages until stop time or signal received."""
     while True:
@@ -704,11 +715,7 @@ class MonophonicMidiCaptor(MidiCaptor):
         # End the previous note.
         self._open_note.end_time = msg.time
 
-      new_note = self._captured_sequence.notes.add()
-      new_note.start_time = msg.time
-      new_note.pitch = msg.note
-      new_note.velocity = msg.velocity
-      self._open_note = new_note
+      self._open_note = self._add_note(msg)
 
 
 class PolyphonicMidiCaptor(MidiCaptor):
@@ -739,10 +746,7 @@ class PolyphonicMidiCaptor(MidiCaptor):
         # This is likely just a repeat of the previous message.
         return
 
-      new_note = self._captured_sequence.notes.add()
-      new_note.start_time = msg.time
-      new_note.pitch = msg.note
-      new_note.velocity = msg.velocity
+      new_note = self._add_note(msg)
       self._open_notes[new_note.pitch] = new_note
 
 
