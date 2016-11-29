@@ -26,8 +26,8 @@ import collections
 
 # internal imports
 from magenta.music import constants
-from magenta.music import encoder_decoder
-from magenta.music import melodies_lib
+from magenta.music.encoding import encoder_decoder
+from magenta.music.events import melodies_lib
 
 NUM_SPECIAL_MELODY_EVENTS = constants.NUM_SPECIAL_MELODY_EVENTS
 MELODY_NOTE_OFF = constants.MELODY_NOTE_OFF

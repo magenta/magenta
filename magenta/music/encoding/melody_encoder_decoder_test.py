@@ -18,9 +18,9 @@ import tensorflow as tf
 
 from magenta.common import sequence_example_lib
 from magenta.music import constants
-from magenta.music import encoder_decoder
-from magenta.music import melodies_lib
-from magenta.music import melody_encoder_decoder
+from magenta.music.encoding import encoder_decoder
+from magenta.music.encoding import melody_encoder_decoder
+from magenta.music.events import melodies_lib
 
 NOTE_OFF = constants.MELODY_NOTE_OFF
 NO_EVENT = constants.MELODY_NO_EVENT

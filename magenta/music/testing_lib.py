@@ -14,7 +14,7 @@
 """Testing support code."""
 
 # internal imports
-from magenta.music import encoder_decoder
+from magenta.music.encoding import encoder_decoder
 from magenta.protobuf import music_pb2
 
 # Shortcut to CHORD_SYMBOL annotation type.

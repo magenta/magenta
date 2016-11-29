@@ -41,8 +41,8 @@ py_library(
     deps = [
         ":pipeline",
         "//magenta/music:chord_symbols_lib",
-        "//magenta/music:chords_lib",
-        "//magenta/music:events_lib",
+        "//magenta/music/events:chords_lib",
+        "//magenta/music/events:events_lib",
         "//magenta/protobuf:music_py_pb2",
         # tensorflow dep
     ],
@@ -55,10 +55,10 @@ py_test(
     deps = [
         ":chord_pipelines",
         "//magenta/common:testing_lib",
-        "//magenta/music:chords_lib",
         "//magenta/music:constants",
         "//magenta/music:sequences_lib",
         "//magenta/music:testing_lib",
+        "//magenta/music/events:chords_lib",
         "//magenta/protobuf:music_py_pb2",
         # tensorflow dep
     ],
@@ -88,8 +88,8 @@ py_library(
     srcs = ["drum_pipelines.py"],
     deps = [
         ":pipeline",
-        "//magenta/music:drums_lib",
-        "//magenta/music:events_lib",
+        "//magenta/music/events:drums_lib",
+        "//magenta/music/events:events_lib",
         "//magenta/protobuf:music_py_pb2",
         # tensorflow dep
     ],
@@ -102,9 +102,9 @@ py_test(
     deps = [
         ":drum_pipelines",
         "//magenta/common:testing_lib",
-        "//magenta/music:drums_lib",
         "//magenta/music:sequences_lib",
         "//magenta/music:testing_lib",
+        "//magenta/music/events:drums_lib",
         "//magenta/protobuf:music_py_pb2",
         # tensorflow dep
     ],
@@ -116,8 +116,8 @@ py_library(
     deps = [
         ":pipeline",
         "//magenta/music:chord_symbols_lib",
-        "//magenta/music:events_lib",
-        "//magenta/music:lead_sheets_lib",
+        "//magenta/music/events:events_lib",
+        "//magenta/music/events:lead_sheets_lib",
         "//magenta/protobuf:music_py_pb2",
         # tensorflow dep
     ],
@@ -130,12 +130,12 @@ py_test(
     deps = [
         ":lead_sheet_pipelines",
         "//magenta/common:testing_lib",
-        "//magenta/music:chords_lib",
         "//magenta/music:constants",
-        "//magenta/music:lead_sheets_lib",
-        "//magenta/music:melodies_lib",
         "//magenta/music:sequences_lib",
         "//magenta/music:testing_lib",
+        "//magenta/music/events:chords_lib",
+        "//magenta/music/events:lead_sheets_lib",
+        "//magenta/music/events:melodies_lib",
         "//magenta/protobuf:music_py_pb2",
         # tensorflow dep
     ],
@@ -146,8 +146,8 @@ py_library(
     srcs = ["melody_pipelines.py"],
     deps = [
         ":pipeline",
-        "//magenta/music:events_lib",
-        "//magenta/music:melodies_lib",
+        "//magenta/music/events:events_lib",
+        "//magenta/music/events:melodies_lib",
         "//magenta/protobuf:music_py_pb2",
         # tensorflow dep
     ],
@@ -161,9 +161,9 @@ py_test(
         ":melody_pipelines",
         "//magenta/common:testing_lib",
         "//magenta/music:constants",
-        "//magenta/music:melodies_lib",
         "//magenta/music:sequences_lib",
         "//magenta/music:testing_lib",
+        "//magenta/music/events:melodies_lib",
         "//magenta/protobuf:music_py_pb2",
         # tensorflow dep
     ],

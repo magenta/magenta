@@ -19,7 +19,7 @@ from __future__ import division
 
 from magenta.models.polyphony_rnn import polyphony_lib
 from magenta.models.polyphony_rnn.polyphony_lib import PolyphonicEvent
-from magenta.music import encoder_decoder
+from magenta.music.encoding import encoder_decoder
 
 EVENT_CLASSES_WITHOUT_PITCH = [
     PolyphonicEvent.START,

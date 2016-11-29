@@ -18,11 +18,11 @@ import tensorflow as tf
 
 from magenta.common import testing_lib as common_testing_lib
 from magenta.music import chord_symbols_lib
-from magenta.music import chords_lib
 from magenta.music import constants
-from magenta.music import melodies_lib
 from magenta.music import sequences_lib
 from magenta.music import testing_lib
+from magenta.music.events import chords_lib
+from magenta.music.events import melodies_lib
 from magenta.protobuf import music_pb2
 
 NO_CHORD = constants.NO_CHORD

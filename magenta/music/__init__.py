@@ -17,43 +17,43 @@
 from magenta.music.chord_symbols_lib import ChordSymbolException
 from magenta.music.chord_symbols_lib import ChordSymbolFunctions
 
-from magenta.music.chords_encoder_decoder import ChordEncodingException
-from magenta.music.chords_encoder_decoder import MajorMinorChordOneHotEncoding
-from magenta.music.chords_encoder_decoder import PitchChordsEncoderDecoder
-from magenta.music.chords_encoder_decoder import TriadChordOneHotEncoding
-
-from magenta.music.chords_lib import BasicChordRenderer
-from magenta.music.chords_lib import ChordProgression
-from magenta.music.chords_lib import extract_chords
-from magenta.music.chords_lib import extract_chords_for_melodies
-
 from magenta.music.constants import *  # pylint: disable=wildcard-import
 
-from magenta.music.drums_encoder_decoder import MultiDrumOneHotEncoding
+from magenta.music.encoding.chords_encoder_decoder import ChordEncodingException
+from magenta.music.encoding.chords_encoder_decoder import MajorMinorChordOneHotEncoding
+from magenta.music.encoding.chords_encoder_decoder import PitchChordsEncoderDecoder
+from magenta.music.encoding.chords_encoder_decoder import TriadChordOneHotEncoding
 
-from magenta.music.drums_lib import DrumTrack
-from magenta.music.drums_lib import extract_drum_tracks
-from magenta.music.drums_lib import midi_file_to_drum_track
+from magenta.music.encoding.drums_encoder_decoder import MultiDrumOneHotEncoding
 
-from magenta.music.encoder_decoder import ConditionalEventSequenceEncoderDecoder
-from magenta.music.encoder_decoder import EventSequenceEncoderDecoder
-from magenta.music.encoder_decoder import LookbackEventSequenceEncoderDecoder
-from magenta.music.encoder_decoder import OneHotEncoding
-from magenta.music.encoder_decoder import OneHotEventSequenceEncoderDecoder
+from magenta.music.encoding.encoder_decoder import ConditionalEventSequenceEncoderDecoder
+from magenta.music.encoding.encoder_decoder import EventSequenceEncoderDecoder
+from magenta.music.encoding.encoder_decoder import LookbackEventSequenceEncoderDecoder
+from magenta.music.encoding.encoder_decoder import OneHotEncoding
+from magenta.music.encoding.encoder_decoder import OneHotEventSequenceEncoderDecoder
 
-from magenta.music.events_lib import NonIntegerStepsPerBarException
+from magenta.music.encoding.melody_encoder_decoder import KeyMelodyEncoderDecoder
+from magenta.music.encoding.melody_encoder_decoder import MelodyOneHotEncoding
 
-from magenta.music.lead_sheets_lib import extract_lead_sheet_fragments
-from magenta.music.lead_sheets_lib import LeadSheet
+from magenta.music.events.chords_lib import BasicChordRenderer
+from magenta.music.events.chords_lib import ChordProgression
+from magenta.music.events.chords_lib import extract_chords
+from magenta.music.events.chords_lib import extract_chords_for_melodies
 
-from magenta.music.melodies_lib import BadNoteException
-from magenta.music.melodies_lib import extract_melodies
-from magenta.music.melodies_lib import Melody
-from magenta.music.melodies_lib import midi_file_to_melody
-from magenta.music.melodies_lib import PolyphonicMelodyException
+from magenta.music.events.drums_lib import DrumTrack
+from magenta.music.events.drums_lib import extract_drum_tracks
+from magenta.music.events.drums_lib import midi_file_to_drum_track
 
-from magenta.music.melody_encoder_decoder import KeyMelodyEncoderDecoder
-from magenta.music.melody_encoder_decoder import MelodyOneHotEncoding
+from magenta.music.events.events_lib import NonIntegerStepsPerBarException
+
+from magenta.music.events.lead_sheets_lib import extract_lead_sheet_fragments
+from magenta.music.events.lead_sheets_lib import LeadSheet
+
+from magenta.music.events.melodies_lib import BadNoteException
+from magenta.music.events.melodies_lib import extract_melodies
+from magenta.music.events.melodies_lib import Melody
+from magenta.music.events.melodies_lib import midi_file_to_melody
+from magenta.music.events.melodies_lib import PolyphonicMelodyException
 
 from magenta.music.midi_io import midi_file_to_sequence_proto
 from magenta.music.midi_io import midi_to_sequence_proto
