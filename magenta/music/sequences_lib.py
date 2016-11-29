@@ -18,9 +18,9 @@ import copy
 # internal imports
 
 from magenta.music import constants
-from magenta.protobuf import music_pb2
 from magenta.pipelines import pipeline
 from magenta.pipelines import statistics
+from magenta.protobuf import music_pb2
 
 # Set the quantization cutoff.
 # Note events before this cutoff are rounded down to nearest step. Notes
