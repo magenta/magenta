@@ -26,7 +26,6 @@ import magenta
 from magenta.models.melody_rnn import melody_rnn_config_flags
 
 from magenta.pipelines import dag_pipeline
-from magenta.pipelines import melody_pipelines
 from magenta.pipelines import pipeline
 from magenta.pipelines import pipelines_common
 from magenta.protobuf import music_pb2
@@ -96,7 +95,7 @@ def get_pipeline(config, eval_ratio):
         name='TimeChangeSplitter_' + mode)
     quantizer = pipelines_common.Quantizer(
         steps_per_quarter=4, name='Quantizer_' + mode)
-    melody_extractor = melody_pipelines.MelodyExtractor(
+    melody_extractor = magenta.music.MelodyExtractor(
         min_bars=7, max_steps=512, min_unique_pitches=5,
         gap_bars=1.0, ignore_polyphonic_notes=False,
         name='MelodyExtractor_' + mode)

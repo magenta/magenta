@@ -24,6 +24,7 @@ from magenta.music.chords_encoder_decoder import TriadChordOneHotEncoding
 
 from magenta.music.chords_lib import BasicChordRenderer
 from magenta.music.chords_lib import ChordProgression
+from magenta.music.chords_lib import ChordsExtractor
 from magenta.music.chords_lib import extract_chords
 from magenta.music.chords_lib import extract_chords_for_melodies
 
@@ -31,6 +32,7 @@ from magenta.music.constants import *  # pylint: disable=wildcard-import
 
 from magenta.music.drums_encoder_decoder import MultiDrumOneHotEncoding
 
+from magenta.music.drums_lib import DrumsExtractor
 from magenta.music.drums_lib import DrumTrack
 from magenta.music.drums_lib import extract_drum_tracks
 from magenta.music.drums_lib import midi_file_to_drum_track
@@ -45,10 +47,12 @@ from magenta.music.events_lib import NonIntegerStepsPerBarException
 
 from magenta.music.lead_sheets_lib import extract_lead_sheet_fragments
 from magenta.music.lead_sheets_lib import LeadSheet
+from magenta.music.lead_sheets_lib import LeadSheetExtractor
 
 from magenta.music.melodies_lib import BadNoteException
 from magenta.music.melodies_lib import extract_melodies
 from magenta.music.melodies_lib import Melody
+from magenta.music.melodies_lib import MelodyExtractor
 from magenta.music.melodies_lib import midi_file_to_melody
 from magenta.music.melodies_lib import PolyphonicMelodyException
 

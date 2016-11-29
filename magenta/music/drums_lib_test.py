@@ -351,5 +351,46 @@ class DrumsLibTest(tf.test.TestCase):
     self.assertEqual(expected, drum_tracks)
 
 
+class DrumPipelinesTest(tf.test.TestCase):
+
+  def _unit_transform_test(self, unit, input_instance,
+                           expected_outputs):
+    outputs = unit.transform(input_instance)
+    self.assertTrue(isinstance(outputs, list))
+    common_testing_lib.assert_set_equality(self, expected_outputs, outputs)
+    self.assertEqual(unit.input_type, type(input_instance))
+    if outputs:
+      self.assertEqual(unit.output_type, type(outputs[0]))
+
+  def testDrumsExtractor(self):
+    note_sequence = common_testing_lib.parse_test_proto(
+        music_pb2.NoteSequence,
+        """
+        time_signatures: {
+          numerator: 4
+          denominator: 4}
+        tempos: {
+          qpm: 60}""")
+    testing_lib.add_track_to_sequence(
+        note_sequence, 0,
+        [(12, 100, 2, 4), (11, 1, 6, 7), (12, 1, 6, 8)],
+        is_drum=True)
+    testing_lib.add_track_to_sequence(
+        note_sequence, 1,
+        [(12, 127, 2, 4), (14, 50, 6, 8)])
+    quantized_sequence = sequences_lib.quantize_note_sequence(
+        note_sequence, steps_per_quarter=1)
+    expected_events = [
+        [NO_DRUMS, NO_DRUMS, DRUMS(12), NO_DRUMS, NO_DRUMS, NO_DRUMS,
+         DRUMS(11, 12)]]
+    expected_drum_tracks = []
+    for events_list in expected_events:
+      drums = drums_lib.DrumTrack(
+          events_list, steps_per_quarter=1, steps_per_bar=4)
+      expected_drum_tracks.append(drums)
+    unit = drums_lib.DrumsExtractor(min_bars=1, gap_bars=1)
+    self._unit_transform_test(unit, quantized_sequence, expected_drum_tracks)
+
+
 if __name__ == '__main__':
   tf.test.main()

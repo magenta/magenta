@@ -19,7 +19,6 @@ import magenta
 
 from magenta.models.drums_rnn import drums_rnn_create_dataset
 from magenta.models.shared import events_rnn_model
-from magenta.pipelines import drum_pipelines
 from magenta.pipelines import pipelines_common
 from magenta.protobuf import music_pb2
 
@@ -54,7 +53,7 @@ class DrumsRNNPipelineTest(tf.test.TestCase):
         is_drum=True)
 
     quantizer = pipelines_common.Quantizer(steps_per_quarter=4)
-    drums_extractor = drum_pipelines.DrumsExtractor(min_bars=7, gap_bars=1.0)
+    drums_extractor = magenta.music.DrumsExtractor(min_bars=7, gap_bars=1.0)
     one_hot_encoding = magenta.music.OneHotEventSequenceEncoderDecoder(
         magenta.music.MultiDrumOneHotEncoding())
     quantized = quantizer.transform(note_sequence)[0]

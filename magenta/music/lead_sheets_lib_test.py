@@ -214,5 +214,56 @@ class LeadSheetsLibTest(tf.test.TestCase):
                            sequence.text_annotations)
 
 
+class LeadSheetPipelinesTest(tf.test.TestCase):
+
+  def _unit_transform_test(self, unit, input_instance,
+                           expected_outputs):
+    outputs = unit.transform(input_instance)
+    self.assertTrue(isinstance(outputs, list))
+    common_testing_lib.assert_set_equality(self, expected_outputs, outputs)
+    self.assertEqual(unit.input_type, type(input_instance))
+    if outputs:
+      self.assertEqual(unit.output_type, type(outputs[0]))
+
+  def testLeadSheetExtractor(self):
+    note_sequence = common_testing_lib.parse_test_proto(
+        music_pb2.NoteSequence,
+        """
+        time_signatures: {
+          numerator: 4
+          denominator: 4}
+        tempos: {
+          qpm: 60}""")
+    testing_lib.add_track_to_sequence(
+        note_sequence, 0,
+        [(12, 100, 2, 4), (11, 1, 6, 7)])
+    testing_lib.add_track_to_sequence(
+        note_sequence, 1,
+        [(12, 127, 2, 4), (14, 50, 6, 8)])
+    testing_lib.add_chords_to_sequence(
+        note_sequence,
+        [('Cm7', 2), ('F9', 4), ('G7b9', 6)])
+    quantized_sequence = sequences_lib.quantize_note_sequence(
+        note_sequence, steps_per_quarter=1)
+    expected_melody_events = [
+        [NO_EVENT, NO_EVENT, 12, NO_EVENT, NOTE_OFF, NO_EVENT, 11],
+        [NO_EVENT, NO_EVENT, 12, NO_EVENT, NOTE_OFF, NO_EVENT, 14, NO_EVENT]]
+    expected_chord_events = [
+        [NO_CHORD, NO_CHORD, 'Cm7', 'Cm7', 'F9', 'F9', 'G7b9'],
+        [NO_CHORD, NO_CHORD, 'Cm7', 'Cm7', 'F9', 'F9', 'G7b9', 'G7b9']]
+    expected_lead_sheets = []
+    for melody_events, chord_events in zip(expected_melody_events,
+                                           expected_chord_events):
+      melody = melodies_lib.Melody(
+          melody_events, steps_per_quarter=1, steps_per_bar=4)
+      chords = chords_lib.ChordProgression(
+          chord_events, steps_per_quarter=1, steps_per_bar=4)
+      lead_sheet = lead_sheets_lib.LeadSheet(melody, chords)
+      expected_lead_sheets.append(lead_sheet)
+    unit = lead_sheets_lib.LeadSheetExtractor(
+        min_bars=1, min_unique_pitches=1, gap_bars=1, all_transpositions=False)
+    self._unit_transform_test(unit, quantized_sequence, expected_lead_sheets)
+
+
 if __name__ == '__main__':
   tf.test.main()
