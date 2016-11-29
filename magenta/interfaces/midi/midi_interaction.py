@@ -522,7 +522,8 @@ class ExternalClockCallAndResponse(MidiInteraction):
 
       if not captured_sequence.notes:
         # Reset captured sequence since we are still idling.
-        self._update_state(self.State.IDLE)
+        if response_sequence.total_time <= tick_time:
+          self._update_state(self.State.IDLE)
         if self._captor.start_time < tick_time:
           self._captor.start_time = tick_time
         self._end_call.clear()
