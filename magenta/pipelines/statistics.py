@@ -133,7 +133,7 @@ def log_statistics_list(stats_list, logger_fn=tf.logging.info):
     logger_fn: The function which will be called on the string representation
         of each `Statistic`.
   """
-  for stat in stats_list:
+  for stat in sorted(stats_list, key=lambda s: s.name):
     logger_fn(str(stat))
 
 

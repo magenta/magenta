@@ -18,6 +18,8 @@ import copy
 # internal imports
 
 from magenta.music import constants
+from magenta.pipelines import pipeline
+from magenta.pipelines import statistics
 from magenta.protobuf import music_pb2
 
 # Set the quantization cutoff.
@@ -266,3 +268,51 @@ def quantize_note_sequence(note_sequence, steps_per_quarter):
           'Got negative chord time: step = %s' % annotation.quantized_step)
 
   return qns
+
+
+class TranspositionPipeline(pipeline.Pipeline):
+  """Creates transposed versions of the input NoteSequence."""
+
+  def __init__(self, transposition_range, name=None):
+    """Creates a TranspositionPipeline.
+
+    Args:
+      transposition_range: Collection of integer pitch steps to transpose.
+      name: Pipeline name.
+    """
+    super(TranspositionPipeline, self).__init__(
+        input_type=music_pb2.NoteSequence,
+        output_type=music_pb2.NoteSequence,
+        name=name)
+    self._transposition_range = transposition_range
+
+  def transform(self, sequence):
+    stats = dict([(state_name, statistics.Counter(state_name)) for state_name in
+                  ['skipped_due_to_range_exceeded',
+                   'transpositions_generated']])
+
+    transposed = []
+    # Transpose up to a major third in either direction.
+    for amount in self._transposition_range:
+      if amount == 0:
+        transposed.append(sequence)
+      else:
+        ts = self._transpose(sequence, amount, stats)
+        if ts is not None:
+          transposed.append(ts)
+
+    stats['transpositions_generated'].increment(len(transposed))
+    self._set_stats(stats.values())
+    return transposed
+
+  @staticmethod
+  def _transpose(ns, amount, stats):
+    """Transposes a note sequence by the specified amount."""
+    ts = copy.deepcopy(ns)
+    for note in ts.notes:
+      note.pitch += amount
+      if (note.pitch < constants.MIN_MIDI_PITCH or
+          note.pitch > constants.MAX_MIDI_PITCH):
+        stats['skipped_due_to_range_exceeded'].increment()
+        return None
+    return ts

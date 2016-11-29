@@ -28,6 +28,7 @@ from magenta.models.polyphonic_rnn import polyphony_lib
 from magenta.models.polyphonic_rnn import polyphony_model
 
 from magenta.music import encoder_decoder
+from magenta.music import sequences_lib
 from magenta.pipelines import dag_pipeline
 from magenta.pipelines import pipeline
 from magenta.pipelines import pipelines_common
@@ -82,6 +83,15 @@ def get_pipeline(config, steps_per_quarter, min_steps, max_steps, eval_ratio):
     A pipeline.Pipeline instance.
   """
   quantizer = pipelines_common.Quantizer(steps_per_quarter=steps_per_quarter)
+  # Transpose up to a major third in either direction.
+  # Because our current dataset is Bach chorales, transposing more than a major
+  # third in either direction probably doesn't makes sense (e.g., because it is
+  # likely to exceed normal singing range).
+  transposition_range = range(-4, 5)
+  transposition_pipeline_train = sequences_lib.TranspositionPipeline(
+      transposition_range, name='TranspositionPipelineTrain')
+  transposition_pipeline_eval = sequences_lib.TranspositionPipeline(
+      transposition_range, name='TranspositionPipelineEval')
   poly_extractor_train = PolyphonicSequenceExtractor(
       min_steps=min_steps, max_steps=max_steps, name='PolyExtractorTrain')
   poly_extractor_eval = PolyphonicSequenceExtractor(
@@ -99,8 +109,10 @@ def get_pipeline(config, steps_per_quarter, min_steps, max_steps, eval_ratio):
 
   dag = {quantizer: dag_pipeline.DagInput(music_pb2.NoteSequence),
          partitioner: quantizer,
-         poly_extractor_train: partitioner['training_poly_tracks'],
-         poly_extractor_eval: partitioner['eval_poly_tracks'],
+         transposition_pipeline_train: partitioner['training_poly_tracks'],
+         transposition_pipeline_eval: partitioner['eval_poly_tracks'],
+         poly_extractor_train: transposition_pipeline_train,
+         poly_extractor_eval: transposition_pipeline_eval,
          encoder_pipeline_train: poly_extractor_train,
          encoder_pipeline_eval: poly_extractor_eval,
          dag_pipeline.DagOutput('training_poly_tracks'): encoder_pipeline_train,

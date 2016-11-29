@@ -424,6 +424,9 @@ py_library(
     srcs = ["sequences_lib.py"],
     deps = [
         ":constants",
+        "//magenta/pipelines:pipeline",
+        "//magenta/pipelines:statistics",
+        "//magenta/protobuf:music_py_pb2",
     ],
 )
 
