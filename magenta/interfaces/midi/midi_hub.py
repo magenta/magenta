@@ -283,6 +283,8 @@ class MidiPlayer(threading.Thread):
     # first being reopened in in the new sequence.
     closed_notes = set()
     for note in sequence.notes:
+      if note.start_time < start_time:
+        continue
       if note.start_time >= start_time:
         new_message_list.append(
             mido.Message(type='note_on', note=note.pitch,
@@ -310,7 +312,7 @@ class MidiPlayer(threading.Thread):
   @concurrency.serialized
   def run(self):
     """Plays messages in the queue until empty and _allow_updates is False."""
-    # Assumes model where NoteSequence is time-stampped with wall time.
+    # Assumes model where NoteSequence is time-stamped with wall time.
     # TODO(hanzorama): Argument to allow initial start not at sequence start?
 
     while self._message_queue and self._message_queue[0].time < time.time():
