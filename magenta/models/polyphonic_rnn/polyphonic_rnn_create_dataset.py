@@ -72,6 +72,8 @@ class PolyphonicSequenceExtractor(pipeline.Pipeline):
 
 
 class TranspositionPipeline(pipeline.Pipeline):
+  """Creates transposed versions of the input NoteSequence."""
+
   def __init__(self, name=None):
     super(TranspositionPipeline, self).__init__(
         input_type=music_pb2.NoteSequence,
@@ -80,8 +82,8 @@ class TranspositionPipeline(pipeline.Pipeline):
 
   def transform(self, sequence):
     stats = dict([(state_name, statistics.Counter(state_name)) for state_name in
-                   ['skipped_due_to_range_exceeded',
-                    'transpositions_generated']])
+                  ['skipped_due_to_range_exceeded',
+                   'transpositions_generated']])
 
     transposed = []
     # Transpose up to a major third in either direction.
