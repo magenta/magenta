@@ -277,7 +277,7 @@ class TranspositionPipeline(pipeline.Pipeline):
     """Creates a TranspositionPipeline.
 
     Args:
-      transposition_range: Range (in pitch steps) to transpose.
+      transposition_range: Collection of integer pitch steps to transpose.
       name: Pipeline name.
     """
     super(TranspositionPipeline, self).__init__(
