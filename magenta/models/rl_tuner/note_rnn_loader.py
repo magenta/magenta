@@ -41,6 +41,7 @@ import tensorflow as tf
 import magenta
 from magenta.common import sequence_example_lib
 from magenta.models.rl_tuner import rl_tuner_ops
+from magenta.models.shared import events_rnn_graph
 from magenta.music import melodies_lib
 from magenta.music import midi_io
 from magenta.music import sequences_lib
@@ -164,12 +165,7 @@ class NoteRNNLoader(object):
       inner_name = rl_tuner_ops.get_inner_scope(var.name)
       inner_name = rl_tuner_ops.trim_variable_postfixes(inner_name)
       if self.note_rnn_type == 'basic_rnn':
-        if 'fully_connected' in inner_name and 'bias' in inner_name:
-          # 'fully_connected/bias' has been changed to 'fully_connected/biases'
-          # in newest checkpoints.
-          var_dict[inner_name + 'es'] = var
-        else:
-          var_dict[inner_name] = var
+        var_dict[inner_name] = var
       else:
         var_dict[self.checkpoint_scope + '/' + inner_name] = var
 
@@ -185,8 +181,12 @@ class NoteRNNLoader(object):
         with tf.variable_scope(self.scope):
           # Make an LSTM cell with the number and size of layers specified in
           # hparams.
-          self.cell = rl_tuner_ops.make_cell(self.hparams, self.note_rnn_type)
-
+          if self.note_rnn_type == 'basic_rnn':
+            self.cell = events_rnn_graph.make_rnn_cell(
+                self.hparams.rnn_layer_sizes,
+                dropout_keep_prob=self.hparams.dropout_keep_prob)
+          else:
+            self.cell = rl_tuner_ops.make_rnn_cell(self.hparams.rnn_layer_sizes)
           # Shape of melody_sequence is batch size, melody length, number of
           # output note actions.
           self.melody_sequence = tf.placeholder(tf.float32,
@@ -234,7 +234,10 @@ class NoteRNNLoader(object):
 
             outputs_flat = tf.reshape(outputs,
                                       [-1, self.hparams.rnn_layer_sizes[-1]])
-            logits_flat = tf.contrib.layers.legacy_linear(
+            linear_layer = (tf.contrib.layers.linear
+                            if self.note_rnn_type == 'basic_rnn'
+                            else tf.contrib.layers.legacy_linear)
+            logits_flat = linear_layer(
                 outputs_flat, self.hparams.one_hot_length)
             return logits_flat, final_state
 

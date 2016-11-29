@@ -258,10 +258,8 @@ class RLTuner(object):
           self.graph, 'q_network',
           self.note_rnn_checkpoint_dir,
           midi_primer=self.midi_primer,
-          training_file_list=
-          self.training_file_list,
-          checkpoint_file=
-          self.note_rnn_checkpoint_file,
+          training_file_list=self.training_file_list,
+          checkpoint_file=self.note_rnn_checkpoint_file,
           hparams=self.note_rnn_hparams,
           note_rnn_type=self.note_rnn_type)
 
@@ -271,10 +269,8 @@ class RLTuner(object):
           'target_q_network',
           self.note_rnn_checkpoint_dir,
           midi_primer=self.midi_primer,
-          training_file_list=
-          self.training_file_list,
-          checkpoint_file=
-          self.note_rnn_checkpoint_file,
+          training_file_list=self.training_file_list,
+          checkpoint_file=self.note_rnn_checkpoint_file,
           hparams=self.note_rnn_hparams,
           note_rnn_type=self.note_rnn_type)
 
@@ -283,10 +279,8 @@ class RLTuner(object):
           self.graph, 'reward_rnn',
           self.note_rnn_checkpoint_dir,
           midi_primer=self.midi_primer,
-          training_file_list=
-          self.training_file_list,
-          checkpoint_file=
-          self.note_rnn_checkpoint_file,
+          training_file_list=self.training_file_list,
+          checkpoint_file=self.note_rnn_checkpoint_file,
           hparams=self.note_rnn_hparams,
           note_rnn_type=self.note_rnn_type)
 
