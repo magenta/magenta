@@ -283,8 +283,6 @@ class MidiPlayer(threading.Thread):
     # first being reopened in in the new sequence.
     closed_notes = set()
     for note in sequence.notes:
-      if note.start_time < start_time:
-        continue
       if note.start_time >= start_time:
         new_message_list.append(
             mido.Message(type='note_on', note=note.pitch,
