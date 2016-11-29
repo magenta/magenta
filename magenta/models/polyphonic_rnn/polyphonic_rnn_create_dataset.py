@@ -30,6 +30,7 @@ from magenta.models.polyphonic_rnn import polyphony_model
 
 from magenta.music import constants
 from magenta.music import encoder_decoder
+from magenta.music import sequences_lib
 from magenta.pipelines import dag_pipeline
 from magenta.pipelines import pipeline
 from magenta.pipelines import pipelines_common
@@ -71,47 +72,6 @@ class PolyphonicSequenceExtractor(pipeline.Pipeline):
     return poly_seqs
 
 
-class TranspositionPipeline(pipeline.Pipeline):
-  """Creates transposed versions of the input NoteSequence."""
-
-  def __init__(self, name=None):
-    super(TranspositionPipeline, self).__init__(
-        input_type=music_pb2.NoteSequence,
-        output_type=music_pb2.NoteSequence,
-        name=name)
-
-  def transform(self, sequence):
-    stats = dict([(state_name, statistics.Counter(state_name)) for state_name in
-                  ['skipped_due_to_range_exceeded',
-                   'transpositions_generated']])
-
-    transposed = []
-    # Transpose up to a major third in either direction.
-    for amount in range(-4, 5):
-      if amount == 0:
-        transposed.append(sequence)
-      else:
-        ts = self._transpose(sequence, amount, stats)
-        if ts is not None:
-          transposed.append(ts)
-
-    stats['transpositions_generated'].increment(len(transposed))
-    self._set_stats(stats.values())
-    return transposed
-
-  @staticmethod
-  def _transpose(ns, amount, stats):
-    """Transposes a note sequence by the specified amount."""
-    ts = copy.deepcopy(ns)
-    for note in ts.notes:
-      note.pitch += amount
-      if (note.pitch < constants.MIN_MIDI_PITCH or
-          note.pitch > constants.MAX_MIDI_PITCH):
-        stats['skipped_due_to_range_exceeded'].increment()
-        return None
-    return ts
-
-
 def get_pipeline(config, steps_per_quarter, min_steps, max_steps, eval_ratio):
   """Returns the Pipeline instance which creates the RNN dataset.
 
@@ -126,10 +86,15 @@ def get_pipeline(config, steps_per_quarter, min_steps, max_steps, eval_ratio):
     A pipeline.Pipeline instance.
   """
   quantizer = pipelines_common.Quantizer(steps_per_quarter=steps_per_quarter)
-  transposition_pipeline_train = TranspositionPipeline(
-      name='TranspositionPipelineTrain')
-  transposition_pipeline_eval = TranspositionPipeline(
-      name='TranspositionPipelineEval')
+  # Transpose up to a major third in either direction.
+  # Because our current dataset is Bach chorales, transposing more than a major
+  # third in either direction probably doesn't makes sense (e.g., because it is
+  # likely to exceed normal singing range).
+  transposition_range = range(-4, 5)
+  transposition_pipeline_train = sequences_lib.TranspositionPipeline(
+      transposition_range, name='TranspositionPipelineTrain')
+  transposition_pipeline_eval = sequences_lib.TranspositionPipeline(
+      transposition_range, name='TranspositionPipelineEval')
   poly_extractor_train = PolyphonicSequenceExtractor(
       min_steps=min_steps, max_steps=max_steps, name='PolyExtractorTrain')
   poly_extractor_eval = PolyphonicSequenceExtractor(
