@@ -580,6 +580,8 @@ class ExternalClockCallAndResponse(MidiInteraction):
           tf.logging.debug('Generator Options: %s', generator_options)
           response_sequence = self._sequence_generator.generate(
               captured_sequence, generator_options)
+          response_sequence = extract_subsequence(
+              response_sequence, response_start_time, response_end_time)
           # Start response playback. Specify the start_time to avoid stripping
           # initial events due to generation lag.
           player.update_sequence(
