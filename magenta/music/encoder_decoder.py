@@ -739,6 +739,3 @@ class EncoderPipeline(pipeline.Pipeline):
   def transform(self, seq):
     encoded = self._encoder_decoder.encode(seq)
     return [encoded]
-
-  def get_stats(self):
-    return {}

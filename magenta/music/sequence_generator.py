@@ -266,8 +266,8 @@ class BaseSequenceGenerator(object):
     Uses the generator's steps_per_quarter setting and the specified qpm.
 
     Args:
-      seconds: number of seconds.
-      qpm: current qpm.
+      seconds: Number of seconds.
+      qpm: Quarters per minute.
 
     Returns:
       Number of steps the seconds represent.

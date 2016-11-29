@@ -215,6 +215,10 @@ class PolyphonicSequence(events_lib.EventSequence):
     return '\n'.join(strs)
 
   @property
+  def end_step(self):
+    return self.start_step + self.num_steps
+
+  @property
   def num_steps(self):
     """Returns how many steps long this sequence is."""
     steps = 0

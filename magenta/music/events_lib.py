@@ -51,12 +51,19 @@ class EventSequence(object):
     start_step: The offset of the first step of the sequence relative to the
         beginning of the source sequence. Should always be the first step of a
         bar.
+    end_step: The offset to the beginning of the bar following the last step
+        of the sequence relative to the beginning of the source sequence. Will
+        always be the first step of a bar.
     steps_per_quarter: Number of steps in in a quarter note.
   """
   __metaclass__ = abc.ABCMeta
 
   @abc.abstractproperty
   def start_step(self):
+    pass
+
+  @abc.abstractproperty
+  def end_step(self):
     pass
 
   @abc.abstractproperty

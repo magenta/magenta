@@ -59,9 +59,9 @@ tf.app.flags.DEFINE_integer(
     'The number of tracks to generate. One MIDI file will be created for '
     'each.')
 tf.app.flags.DEFINE_integer(
-    'duration_seconds', 10,
-    'The total number of seconds the generated tracks should be, including the '
-    'priming track length.')
+    'num_steps', 128,
+    'The total number of steps the generated track should be, priming '
+    'track length + generated steps. Each step is a 16th of a bar.')
 tf.app.flags.DEFINE_string(
     'primer_pitches', '',
     'A string representation of a Python list of pitches that will be used as '
@@ -127,6 +127,21 @@ def get_bundle():
   return magenta.music.read_bundle_file(bundle_file)
 
 
+def _steps_to_seconds(steps, qpm):
+  """Converts steps to seconds.
+
+  Uses the current flag value for steps_per_quarter.
+
+  Args:
+    steps: number of steps.
+    qpm: current qpm.
+
+  Returns:
+    Number of seconds the steps represent.
+  """
+  return steps * 60.0 / qpm / FLAGS.steps_per_quarter
+
+
 def run_with_flags(generator):
   """Generates polyphonic tracks and saves them as MIDI files.
 
@@ -173,7 +188,8 @@ def run_with_flags(generator):
     primer_sequence.total_time = 60.0 / qpm
 
   # Derive the total number of seconds to generate.
-  generate_seconds = FLAGS.duration_seconds - primer_sequence.total_time
+  generate_seconds = (_steps_to_seconds(FLAGS.num_steps, qpm) -
+                      primer_sequence.total_time)
 
   # Specify start/stop time for generation based on starting generation at the
   # end of the priming sequence and continuing until the sequence is num_steps

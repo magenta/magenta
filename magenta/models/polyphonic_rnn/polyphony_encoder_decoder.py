@@ -45,7 +45,7 @@ class PolyphonyOneHotEncoding(encoder_decoder.OneHotEncoding):
 
   @property
   def default_event(self):
-    return PolyphonicEvent.PolyphonicEvent(
+    return PolyphonicEvent(
         event_type=PolyphonicEvent.STEP_END, pitch=0)
 
   def encode_event(self, event):
