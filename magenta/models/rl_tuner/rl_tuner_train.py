@@ -49,6 +49,10 @@ tf.app.flags.DEFINE_string('note_rnn_checkpoint_dir', '',
 tf.app.flags.DEFINE_string('note_rnn_checkpoint_name', 'note_rnn.ckpt',
                            'Filename of a checkpoint within the '
                            'note_rnn_checkpoint_dir directory.')
+tf.app.flags.DEFINE_string('note_rnn_type', 'default',
+                           'If `default`, will use the basic LSTM described in '
+                           'the research paper. If `basic_rnn`, will assume '
+                           'the checkpoint is from a Magenta basic_rnn model.')
 tf.app.flags.DEFINE_string('midi_primer', './testdata/primer.mid',
                            'A midi file that can be used to prime the model')
 tf.app.flags.DEFINE_integer('training_steps', 1000000,
@@ -79,7 +83,9 @@ tf.app.flags.DEFINE_string('algorithm', 'q',
 
 
 def main(_):
-  hparams = rl_tuner_ops.default_hparams()
+  hparams = (rl_tuner_ops.basic_rnn_hparams()
+             if FLAGS.note_rnn_type == 'basic_rnn'
+             else rl_tuner_ops.default_hparams())
 
   dqn_hparams = tf_lib.HParams(random_action_probability=0.1,
                                store_every_nth=1,
@@ -102,6 +108,7 @@ def main(_):
                          output_every_nth=FLAGS.output_every_nth,
                          note_rnn_checkpoint_dir=FLAGS.note_rnn_checkpoint_dir,
                          note_rnn_checkpoint_file=backup_checkpoint_file,
+                         note_rnn_type=FLAGS.note_rnn_type,
                          note_rnn_hparams=hparams,
                          num_notes_in_melody=FLAGS.num_notes_in_melody,
                          exploration_mode=FLAGS.exploration_mode,
@@ -109,11 +116,11 @@ def main(_):
 
   tf.logging.info('Saving images and melodies to: %s', rlt.output_dir)
 
-  tf.logging.info('\nTraining...')
+  tf.logging.info('Training...')
   rlt.train(num_steps=FLAGS.training_steps,
             exploration_period=FLAGS.exploration_steps)
 
-  tf.logging.info('\nFinished training. Saving output figures and composition.')
+  tf.logging.info('Finished training. Saving output figures and composition.')
   rlt.plot_rewards(image_name='Rewards-' + FLAGS.algorithm + '.eps')
 
   rlt.generate_music_sequence(visualize_probs=True, title=FLAGS.algorithm,
@@ -121,8 +128,8 @@ def main(_):
 
   rlt.save_model_and_figs(FLAGS.algorithm)
 
-  tf.logging.info('\nCalculating music theory metric stats for 1000 '
-                  'compositions')
+  tf.logging.info('Calculating music theory metric stats for 1000 '
+                  'compositions.')
   rlt.evaluate_music_theory_metrics(num_compositions=1000)
 
 

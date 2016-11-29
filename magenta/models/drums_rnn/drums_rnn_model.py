@@ -68,6 +68,7 @@ default_configs = {
             initial_learning_rate=0.001,
             decay_steps=1000,
             decay_rate=0.95)),
+
     'drum_kit': events_rnn_model.EventSequenceRnnConfig(
         magenta.protobuf.generator_pb2.GeneratorDetails(
             id='drum_kit',
