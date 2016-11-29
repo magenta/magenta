@@ -56,6 +56,10 @@ tf.app.flags.DEFINE_integer(
     None,
     'The control change number to use as a signal to end the call phrase.')
 tf.app.flags.DEFINE_integer(
+    'panic_control_number',
+    None,
+    'The control change number to use as a panic signal.')
+tf.app.flags.DEFINE_integer(
     'min_listen_ticks_control_number',
     None,
     'The control change number to use for controlling minimum listen duration. '
@@ -214,6 +218,9 @@ def main(unused_argv):
   end_call_signal = (
       None if FLAGS.end_call_control_number is None else
       midi_hub.MidiSignal(control=FLAGS.end_call_control_number, value=127))
+  panic_signal = (
+      None if FLAGS.panic_control_number is None else
+      midi_hub.MidiSignal(control=FLAGS.panic_control_number, value=127))
   interaction = midi_interaction.ExternalClockCallAndResponse(
       hub,
       generators,
@@ -222,6 +229,7 @@ def main(unused_argv):
       FLAGS.tempo_control_number,
       clock_signal,
       end_call_signal=end_call_signal,
+      panic_signal=panic_signal,
       allow_overlap=FLAGS.allow_overlap,
       min_listen_ticks_control_number=FLAGS.min_listen_ticks_control_number,
       max_listen_ticks_control_number=FLAGS.max_listen_ticks_control_number,

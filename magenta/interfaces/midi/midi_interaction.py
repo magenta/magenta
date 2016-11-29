@@ -433,6 +433,7 @@ class ExternalClockCallAndResponse(MidiInteraction):
                tempo_control_number,
                clock_signal,
                end_call_signal=None,
+               panic_signal=None,
                allow_overlap=False,
                min_listen_ticks_control_number=None,
                max_listen_ticks_control_number=None,
@@ -444,6 +445,7 @@ class ExternalClockCallAndResponse(MidiInteraction):
         midi_hub, sequence_generators, qpm, generator_select_control_number)
     self._clock_signal = clock_signal
     self._end_call_signal = end_call_signal
+    self._panic_signal = panic_signal
     self._allow_overlap = allow_overlap
     self._min_listen_ticks_control_number = min_listen_ticks_control_number
     self._max_listen_ticks_control_number = max_listen_ticks_control_number
@@ -453,6 +455,7 @@ class ExternalClockCallAndResponse(MidiInteraction):
     self._state_control_number = state_control_number
     # Event for signalling when to end a call.
     self._end_call = threading.Event()
+    self._panic = threading.Event()
 
   def _update_state(self, state):
     """Logs and sends a control change with the state."""
@@ -464,6 +467,11 @@ class ExternalClockCallAndResponse(MidiInteraction):
     """Method to use as a callback for setting the end call signal."""
     self._end_call.set()
     tf.logging.info('End call signal received.')
+
+  def _panic_callback(self, unused_captured_seq):
+    """Method to use as a callback for setting the panic signal."""
+    self._panic.set()
+    tf.logging.info('Panic signal received.')
 
   @property
   def _min_listen_ticks(self):
@@ -496,6 +504,9 @@ class ExternalClockCallAndResponse(MidiInteraction):
     if self._end_call_signal is not None:
       self._captor.register_callback(self._end_call_callback,
                                      signal=self._end_call_signal)
+    if self._panic_signal is not None:
+      self._captor.register_callback(self._panic_callback,
+                                     signal=self._panic_signal)
 
     # Keep track of the end of the previous tick time.
     last_tick_time = time.time()
@@ -510,6 +521,10 @@ class ExternalClockCallAndResponse(MidiInteraction):
     for captured_sequence in self._captor.iterate(signal=self._clock_signal):
       if self._stop_signal.is_set():
         break
+      if self._panic.is_set():
+        response_sequence = music_pb2.NoteSequence()
+        player.update_sequence(response_sequence)
+        self._panic.clear()
 
       # Set to current QPM, since it might have changed.
       captured_sequence.tempos[0].qpm = self._qpm
