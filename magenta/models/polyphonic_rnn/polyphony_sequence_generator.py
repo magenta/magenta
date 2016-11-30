@@ -71,7 +71,12 @@ class PolyphonicRnnSequenceGenerator(mm.BaseSequenceGenerator):
           input_section.start_time, qpm)
     else:
       primer_sequence = input_sequence
-      input_start_step = 0
+      if input_sequence.notes:
+        input_start_step = self.seconds_to_steps(
+            input_sequence.notes[0].start_time, qpm)
+      else:
+        input_start_step = self.seconds_to_steps(
+            input_sequence.notes[0].start_time, qpm) - 1
 
     last_end_time = (max(n.end_time for n in primer_sequence.notes)
                      if primer_sequence.notes else 0)
