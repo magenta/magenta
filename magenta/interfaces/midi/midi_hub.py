@@ -21,6 +21,7 @@ _DEFAULT_METRONOME_PITCH = 95
 _DEFAULT_METRONOME_VELOCITY = 64
 _METRONOME_CHANNEL = 0
 
+_OUTPUT_CHANNEL = 2
 _DRUM_CHANNEL = 9
 
 try:
@@ -302,6 +303,9 @@ class MidiPlayer(threading.Thread):
       for note in notes_to_close:
         new_message_list.append(
             mido.Message(type='note_off', note=note, time=next_event_time))
+
+    for msg in new_message_list:
+      msg.channel = _OUTPUT_CHANNEL
 
     self._message_queue = deque(
         sorted(new_message_list, key=lambda msg: (msg.time, msg.note)))
