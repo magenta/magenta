@@ -136,7 +136,7 @@ class PolyphonicSequence(events_lib.EventSequence):
   def _trim_steps(self, num_steps):
     """Trims a given number of steps from the end of the sequence."""
     steps_trimmed = 0
-    for i in reversed(range(len(self._events) - 1)):
+    for i in reversed(range(len(self._events))):
       if self._events[i].event_type == PolyphonicEvent.STEP_END:
         if steps_trimmed == num_steps:
           del self._events[i + 1:]
