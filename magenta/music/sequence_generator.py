@@ -272,5 +272,5 @@ class BaseSequenceGenerator(object):
     Returns:
       Number of steps the seconds represent.
     """
-    return int(seconds * (qpm / 60.0) * self.steps_per_quarter)
+    return int(seconds * (qpm / 60.0) * self.steps_per_quarter + 0.5)
 
