@@ -43,8 +43,8 @@ class PolyphonicRnnModel(events_rnn_model.EventSequenceRnnModel):
       modify_events_callback: An optional callback for modifying the event list.
           Can be used to inject events rather than having them generated. If not
           None, will be called with 3 arguments after every event: the current
-          EventSequenceEncoderDecoder, the current EventSequence, and the
-          current list of encoded event inputs.
+          EventSequenceEncoderDecoder, a list of current EventSequences, and a
+          list of current encoded event inputs.
     Returns:
       The generated PolyphonicSequence object (which begins with the provided
       primer track).
