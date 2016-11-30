@@ -440,8 +440,7 @@ class ExternalClockCallAndResponse(MidiInteraction):
                response_ticks_control_number=None,
                temperature_control_number=None,
                loop_control_number=None,
-               state_control_number=None,
-               clock_offset_control_number=None):
+               state_control_number=None):
     super(ExternalClockCallAndResponse, self).__init__(
         midi_hub, sequence_generators, qpm, generator_select_control_number)
     self._clock_signal = clock_signal
@@ -454,7 +453,6 @@ class ExternalClockCallAndResponse(MidiInteraction):
     self._temperature_control_number = temperature_control_number
     self._loop_control_number = loop_control_number
     self._state_control_number = state_control_number
-    self._clock_offset_control_number = clock_offset_control_number
     # Event for signalling when to end a call.
     self._end_call = threading.Event()
     self._panic = threading.Event()
@@ -494,15 +492,6 @@ class ExternalClockCallAndResponse(MidiInteraction):
     return float('inf') if not val else val
 
   @property
-  def _clock_offset(self):
-    if self._clock_offset_control_number is None:
-      return 0.0
-    val = self._midi_hub.control_value(self._clock_offset_control_number)
-    if val is None:
-      return 0.0
-    return -(val / 1000.)
-
-  @property
   def _should_loop(self):
     return (self._loop_control_number and
             self._midi_hub.control_value(self._loop_control_number) == 127)
@@ -528,8 +517,7 @@ class ExternalClockCallAndResponse(MidiInteraction):
     response_sequence = music_pb2.NoteSequence()
     response_start_time = 0
     player = self._midi_hub.start_playback(
-        response_sequence, offset=-self._latency_compensation,
-        allow_updates=True)
+        response_sequence, allow_updates=True)
 
     for captured_sequence in self._captor.iterate(signal=self._clock_signal):
       if self._stop_signal.is_set():
@@ -626,8 +614,7 @@ class ExternalClockCallAndResponse(MidiInteraction):
           # Start response playback. Specify the start_time to avoid stripping
           # initial events due to generation lag.
           player.update_sequence(
-              retime(response_sequence, self._clock_offset),
-              start_time=response_start_time + self._clock_offset)
+              response_sequence, start_time=response_start_time)
 
           # Optionally capture during playback.
           if self._allow_overlap:
@@ -649,8 +636,7 @@ class ExternalClockCallAndResponse(MidiInteraction):
                                    tick_time - response_start_time)
         response_start_time = tick_time
         player.update_sequence(
-            retime(response_sequence, self._clock_offset),
-            start_time=tick_time + self._clock_offset)
+            response_sequence, start_time=tick_time)
 
       last_tick_time = tick_time
 

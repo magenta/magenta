@@ -16,6 +16,13 @@ import tensorflow as tf
 from magenta.common import concurrency
 from magenta.protobuf import music_pb2
 
+FLAGS = tf.app.flags.FLAGS
+
+tf.app.flags.DEFINE_float(
+    'playback_offset',
+    -0.035,
+    'Seconds to adjust playback time.')
+
 _DEFAULT_METRONOME_TICK_DURATION = 0.05
 _DEFAULT_METRONOME_PITCH = 95
 _DEFAULT_METRONOME_VELOCITY = 64
@@ -238,7 +245,7 @@ class MidiPlayer(threading.Thread):
         called, allowing for additional updates via `update_sequence`.
   """
 
-  def __init__(self, outport, sequence, start_time=time.time(), offset=0.0,
+  def __init__(self, outport, sequence, start_time=time.time(),
                allow_updates=False):
     self._outport = outport
     # Set of notes (pitches) that are currently on.
@@ -251,7 +258,6 @@ class MidiPlayer(threading.Thread):
     self._message_queue = deque()
     # An event that is set when `stop` has been called.
     self._stop_signal = threading.Event()
-    self._offset = offset
 
     # Initialize message queue.
     # We first have to allow "updates" to set the initial sequence.
@@ -308,7 +314,7 @@ class MidiPlayer(threading.Thread):
 
     for msg in new_message_list:
       msg.channel = _OUTPUT_CHANNEL
-      msg.time += self._offset
+      msg.time += FLAGS.playback_offset
 
     self._message_queue = deque(
         sorted(new_message_list, key=lambda msg: (msg.time, msg.note)))
@@ -1065,8 +1071,8 @@ class MidiHub(object):
     self._metronome.stop(stop_time, block)
     self._metronome = None
 
-  def start_playback(
-      self, sequence, start_time=time.time(), allow_updates=False):
+  def start_playback(self, sequence, start_time=time.time(),
+                     allow_updates=False):
     """Plays the notes in aNoteSequence via the MIDI output port.
 
     Args:
@@ -1079,8 +1085,7 @@ class MidiHub(object):
     Returns:
       The MidiPlayer thread handling playback to enable updating.
     """
-    player = MidiPlayer(
-        self._outport, sequence, start_time, offset, allow_updates)
+    player = MidiPlayer(self._outport, sequence, start_time, allow_updates)
     with self._lock:
       self._players.append(player)
     player.start()
