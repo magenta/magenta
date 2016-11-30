@@ -136,7 +136,7 @@ class PolyphonicSequence(events_lib.EventSequence):
   def _trim_steps(self, num_steps):
     """Trims a given number of steps from the end of the sequence."""
     steps_trimmed = 0
-    for i in reversed(range(len(self._events) - 1)):
+    for i in reversed(range(len(self._events))):
       if self._events[i].event_type == PolyphonicEvent.STEP_END:
         if steps_trimmed == num_steps:
           del self._events[i + 1:]
@@ -279,7 +279,7 @@ class PolyphonicSequence(events_lib.EventSequence):
         step_events.append(PolyphonicEvent(event_type=PolyphonicEvent.NEW_NOTE,
                                            pitch=pitch))
 
-      events.extend(sorted(step_events, key=lambda e: e.pitch))
+      events.extend(sorted(step_events, key=lambda e: e.pitch, reverse=True))
       events.append(
           PolyphonicEvent(event_type=PolyphonicEvent.STEP_END, pitch=None))
     events.append(PolyphonicEvent(event_type=PolyphonicEvent.END, pitch=None))
@@ -396,7 +396,6 @@ def extract_polyphonic_sequences(
   stats = dict([(stat_name, statistics.Counter(stat_name)) for stat_name in
                 ['polyphonic_tracks_discarded_too_short',
                  'polyphonic_tracks_discarded_too_long',
-                 'polyphonic_tracks_discarded_more_than_1_instrument',
                  'polyphonic_tracks_discarded_more_than_1_program']])
 
   steps_per_bar = sequences_lib.steps_per_bar_in_quantized_sequence(
@@ -407,15 +406,10 @@ def extract_polyphonic_sequences(
       'polyphonic_track_lengths_in_bars',
       [0, 1, 10, 20, 30, 40, 50, 100, 200, 500, 1000])
 
-  # Allow only 1 instrument and 1 program.
-  instruments = set()
+  # Allow only 1 program.
   programs = set()
   for note in quantized_sequence.notes:
-    instruments.add(note.instrument)
     programs.add(note.program)
-  if len(instruments) > 1:
-    stats['polyphonic_tracks_discarded_more_than_1_instrument'].increment()
-    return [], stats.values()
   if len(programs) > 1:
     stats['polyphonic_tracks_discarded_more_than_1_program'].increment()
     return [], stats.values()

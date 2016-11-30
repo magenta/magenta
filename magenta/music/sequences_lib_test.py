@@ -264,6 +264,16 @@ class SequencesLibTest(tf.test.TestCase):
     self.assertEqual(12.0,
                      sequences_lib.steps_per_bar_in_quantized_sequence(qns))
 
+  def testTranspositionPipeline(self):
+    tp = sequences_lib.TranspositionPipeline(range(0, 2))
+    testing_lib.add_track_to_sequence(
+        self.note_sequence, 0,
+        [(12, 100, 1.0, 4.0)])
+    transposed = tp.transform(self.note_sequence)
+    self.assertEqual(2, len(transposed))
+    self.assertEqual(12, transposed[0].notes[0].pitch)
+    self.assertEqual(13, transposed[1].notes[0].pitch)
+
 
 if __name__ == '__main__':
   tf.test.main()

@@ -169,6 +169,5 @@ def _gram_matrix(feature_maps):
   denominator = tf.to_float(height * width)
   feature_maps = tf.reshape(
       feature_maps, tf.pack([batch_size, height * width, channels]))
-  matrix = tf.batch_matmul(
-      tf.transpose(feature_maps, [0, 2, 1]), feature_maps)
+  matrix = tf.matmul(feature_maps, feature_maps, adjoint_a=True)
   return matrix / denominator

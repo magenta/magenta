@@ -25,7 +25,7 @@ class PolyphonicRnnModel(events_rnn_model.EventSequenceRnnModel):
 
   def generate_polyphonic_sequence(
       self, num_steps, primer_sequence, temperature=1.0, beam_size=1,
-      branch_factor=1, steps_per_iteration=1):
+      branch_factor=1, steps_per_iteration=1, modify_events_callback=None):
     """Generate a polyphonic track from a primer polyphonic track.
 
     Args:
@@ -40,12 +40,18 @@ class PolyphonicRnnModel(events_rnn_model.EventSequenceRnnModel):
       branch_factor: An integer, beam search branch factor to use.
       steps_per_iteration: An integer, number of steps to take per beam search
           iteration.
+      modify_events_callback: An optional callback for modifying the event list.
+          Can be used to inject events rather than having them generated. If not
+          None, will be called with 3 arguments after every event: the current
+          EventSequenceEncoderDecoder, a list of current EventSequences, and a
+          list of current encoded event inputs.
     Returns:
       The generated PolyphonicSequence object (which begins with the provided
       primer track).
     """
     return self._generate_events(num_steps, primer_sequence, temperature,
-                                 beam_size, branch_factor, steps_per_iteration)
+                                 beam_size, branch_factor, steps_per_iteration,
+                                 modify_events_callback=modify_events_callback)
 
 
 default_configs = {
