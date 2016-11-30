@@ -221,7 +221,7 @@ class PolyphonicSequence(events_lib.EventSequence):
   @property
   def num_steps(self):
     """Returns how many steps long this sequence is."""
-    steps = 1  # implicit step end at the end of the sequence.
+    steps = 0
     for event in self:
       if event.event_type == PolyphonicEvent.STEP_END:
         steps += 1

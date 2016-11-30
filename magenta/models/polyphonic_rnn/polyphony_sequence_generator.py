@@ -71,12 +71,7 @@ class PolyphonicRnnSequenceGenerator(mm.BaseSequenceGenerator):
           input_section.start_time, qpm)
     else:
       primer_sequence = input_sequence
-      if input_sequence.notes:
-        input_start_step = self.seconds_to_steps(
-            input_sequence.notes[0].start_time, qpm)
-      else:
-        input_start_step = self.seconds_to_steps(
-            input_sequence.notes[0].start_time, qpm) - 1
+      input_start_step = 0
 
     last_end_time = (max(n.end_time for n in primer_sequence.notes)
                      if primer_sequence.notes else 0)
@@ -153,7 +148,22 @@ NOTE_EVENT = (PolyphonicEvent.NEW_NOTE, PolyphonicEvent.CONTINUED_NOTE)
 
 def _inject_melody(melody, start_step, encoder_decoder, event_sequences,
                    inputs):
+  """A modify_events_callback method for generate_polyphonic_sequence.
 
+  Should be called with functools.partial first, to fill in the melody and
+  start_step arguments.
+
+  Will extend the event sequence using events from the melody argument whenever
+  the event sequence gets to a new step.
+
+  Args:
+    melody: The PolyphonicSequence to use to extend the event sequence.
+    start_step: The length of the priming sequence in RNN steps.
+    encoder_decoder: Supplied by the callback. The current
+        EventSequenceEncoderDecoder.
+    event_sequences: Supplied by the callback. The current EventSequence.
+    inputs: Supplied by the callback. The current list of encoded events.
+  """
   assert len(event_sequences) == len(inputs)
 
   for i in range(len(inputs)):

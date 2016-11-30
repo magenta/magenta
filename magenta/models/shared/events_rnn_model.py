@@ -269,6 +269,11 @@ class EventSequenceRnnModel(mm.BaseModel):
           generation. If not None, the encoder/decoder should be a
           ConditionalEventSequenceEncoderDecoder, and the control events will be
           used along with the target sequence to generate model inputs.
+      modify_events_callback: An optional callback for modifying the event list.
+          Can be used to inject events rather than having them generated. If not
+          None, will be called with 3 arguments after every event: the current
+          EventSequenceEncoderDecoder, the current EventSequence, and the
+          current list of encoded event inputs.
 
     Returns:
       The highest-likelihood event sequence as computed by the beam search.
@@ -350,6 +355,11 @@ class EventSequenceRnnModel(mm.BaseModel):
           generation. If not None, the encoder/decoder should be a
           ConditionalEventSequenceEncoderDecoder, and the control events will be
           used along with the target sequence to generate model inputs.
+      modify_events_callback: An optional callback for modifying the event list.
+          Can be used to inject events rather than having them generated. If not
+          None, will be called with 3 arguments after every event: the current
+          EventSequenceEncoderDecoder, the current EventSequence, and the
+          current list of encoded event inputs.
 
     Returns:
       The generated event sequence (which begins with the provided primer).
