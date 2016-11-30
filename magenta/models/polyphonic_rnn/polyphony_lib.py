@@ -163,7 +163,6 @@ class PolyphonicSequence(events_lib.EventSequence):
     if from_left:
       raise NotImplementedError('from_left is not supported')
 
-    orig_num_steps = self.num_steps
     if self.num_steps < steps:
       self._append_silence_steps(steps - self.num_steps)
     elif self.num_steps > steps:
