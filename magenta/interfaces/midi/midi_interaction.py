@@ -565,15 +565,27 @@ class ExternalClockCallAndResponse(MidiInteraction):
           # Create response and start playback.
           self._update_state(self.State.RESPONDING)
 
+          capture_start_time = self._captor.start_time
+
+          if last_end_time <= last_tick_time:
+            # Move the sequence forward one tick in time.
+            captured_sequence = retime(captured_sequence,
+                                       tick_time - last_tick_time)
+            capture_start_time += tick_time - last_tick_time
+
           # Compute duration of response.
           num_ticks = (
               self._midi_hub.control_value(self._response_ticks_control_number)
               if self._response_ticks_control_number is not None else None)
           if num_ticks:
             response_duration = num_ticks * (tick_time - last_tick_time)
+          elif last_end_time <= last_tick_time:
+            response_duration = last_tick_time - capture_start_time
           else:
             # Use capture duration.
-            response_duration = tick_time - self._captor.start_time
+            response_duration = tick_time - capture_start_time
+
+          last_end_time <= last_tick_time
 
           # Generate sequence options.
           response_start_time = tick_time
@@ -581,11 +593,11 @@ class ExternalClockCallAndResponse(MidiInteraction):
 
           generator_options = magenta.protobuf.generator_pb2.GeneratorOptions()
           generator_options.input_sections.add(
-              start_time=self._captor.start_time - self._captor.start_time,
-              end_time=tick_time - self._captor.start_time)
+              start_time=self._captor.start_time - capture_start_time,
+              end_time=tick_time - capture_start_time)
           generator_options.generate_sections.add(
-              start_time=response_start_time - self._captor.start_time,
-              end_time=response_end_time - self._captor.start_time)
+              start_time=response_start_time - capture_start_time,
+              end_time=response_end_time - capture_start_time)
 
           # Get current temperature setting.
           temperature = temperature_from_control_value(
@@ -604,9 +616,9 @@ class ExternalClockCallAndResponse(MidiInteraction):
                            self._sequence_generator.bundle_details)
           tf.logging.debug('Generator Options: %s', generator_options)
           response_sequence = self._sequence_generator.generate(
-              retime(captured_sequence, -self._captor.start_time),
+              retime(captured_sequence, -capture_start_time),
               generator_options)
-          response_sequence = retime(response_sequence, self._captor.start_time)
+          response_sequence = retime(response_sequence, capture_start_time)
           response_sequence = magenta.music.extract_subsequence(
               response_sequence, response_start_time, response_end_time)
           # Start response playback. Specify the start_time to avoid stripping
