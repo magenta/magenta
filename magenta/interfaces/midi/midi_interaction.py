@@ -441,7 +441,7 @@ class ExternalClockCallAndResponse(MidiInteraction):
                temperature_control_number=None,
                loop_control_number=None,
                state_control_number=None,
-               latency_compensation=0.0):
+               clock_offset_control_number=None):
     super(ExternalClockCallAndResponse, self).__init__(
         midi_hub, sequence_generators, qpm, generator_select_control_number)
     self._clock_signal = clock_signal
@@ -454,7 +454,7 @@ class ExternalClockCallAndResponse(MidiInteraction):
     self._temperature_control_number = temperature_control_number
     self._loop_control_number = loop_control_number
     self._state_control_number = state_control_number
-    self._latency_compensation = latency_compensation
+    self._clock_offset_control_number = clock_offset_control_number
     # Event for signalling when to end a call.
     self._end_call = threading.Event()
     self._panic = threading.Event()
@@ -492,6 +492,15 @@ class ExternalClockCallAndResponse(MidiInteraction):
     val = self._midi_hub.control_value(
         self._max_listen_ticks_control_number)
     return float('inf') if not val else val
+
+  @property
+  def _clock_offset(self):
+    if self._clock_offset_control_number is None:
+      return 0.0
+    val = self._midi_hub.control_value(self._clock_offset_control_number)
+    if val is None:
+      return 0.0
+    return -(val / 1000.)
 
   @property
   def _should_loop(self):
@@ -617,7 +626,8 @@ class ExternalClockCallAndResponse(MidiInteraction):
           # Start response playback. Specify the start_time to avoid stripping
           # initial events due to generation lag.
           player.update_sequence(
-              response_sequence, start_time=response_start_time)
+              retime(response_sequence, self._clock_offset),
+              start_time=response_start_time + self._clock_offset)
 
           # Optionally capture during playback.
           if self._allow_overlap:
@@ -638,7 +648,9 @@ class ExternalClockCallAndResponse(MidiInteraction):
         response_sequence = retime(response_sequence,
                                    tick_time - response_start_time)
         response_start_time = tick_time
-        player.update_sequence(response_sequence, start_time=tick_time)
+        player.update_sequence(
+            retime(response_sequence, self._clock_offset),
+            start_time=tick_time + self._clock_offset)
 
       last_tick_time = tick_time
 

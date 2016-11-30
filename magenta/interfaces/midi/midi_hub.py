@@ -1065,8 +1065,8 @@ class MidiHub(object):
     self._metronome.stop(stop_time, block)
     self._metronome = None
 
-  def start_playback(self, sequence, start_time=time.time(), offset=0.0,
-                     allow_updates=False):
+  def start_playback(
+      self, sequence, start_time=time.time(), allow_updates=False):
     """Plays the notes in aNoteSequence via the MIDI output port.
 
     Args:
