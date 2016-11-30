@@ -194,6 +194,24 @@ class PolyphonyLibTest(tf.test.TestCase):
     ]
     self.assertEqual(poly_events, list(poly_seq))
 
+  def testSetLengthAddStepsToUnfinished(self):
+    poly_seq = polyphony_lib.PolyphonicSequence(steps_per_quarter=1)
+
+    # Construct a list with one silence step and no END.
+    pe = polyphony_lib.PolyphonicEvent
+    poly_seq.append(pe(pe.STEP_END, None))
+
+    poly_seq.set_length(2)
+    poly_events = [
+        pe(pe.START, None),
+
+        pe(pe.STEP_END, None),
+        pe(pe.STEP_END, None),
+
+        pe(pe.END, None),
+    ]
+    self.assertEqual(poly_events, list(poly_seq))
+
   def testSetLengthRemoveSteps(self):
     poly_seq = polyphony_lib.PolyphonicSequence(steps_per_quarter=1)
 
@@ -242,6 +260,24 @@ class PolyphonyLibTest(tf.test.TestCase):
     poly_seq.set_length(0)
     poly_events = [
         pe(pe.START, None),
+
+        pe(pe.END, None),
+    ]
+    self.assertEqual(poly_events, list(poly_seq))
+
+  def testSetLengthRemoveStepsFromUnfinished(self):
+    poly_seq = polyphony_lib.PolyphonicSequence(steps_per_quarter=1)
+
+    # Construct a list with two silence steps and no END.
+    pe = polyphony_lib.PolyphonicEvent
+    poly_seq.append(pe(pe.STEP_END, None))
+    poly_seq.append(pe(pe.STEP_END, None))
+
+    poly_seq.set_length(1)
+    poly_events = [
+        pe(pe.START, None),
+
+        pe(pe.STEP_END, None),
 
         pe(pe.END, None),
     ]
