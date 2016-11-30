@@ -84,5 +84,6 @@ py_binary(
         "//magenta",
         "//magenta/models/drums_rnn:drums_rnn_sequence_generator",
         "//magenta/models/melody_rnn:melody_rnn_sequence_generator",
+        "//magenta/models/polyphonic_rnn:polyphony_sequence_generator",
     ],
 )
