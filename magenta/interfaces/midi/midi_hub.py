@@ -20,7 +20,7 @@ FLAGS = tf.app.flags.FLAGS
 
 tf.app.flags.DEFINE_float(
     'playback_offset',
-    -0.035,
+    0.0,
     'Seconds to adjust playback time.')
 
 _DEFAULT_METRONOME_TICK_DURATION = 0.05
