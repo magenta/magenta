@@ -90,31 +90,23 @@ def rezero(sequence, zero_time):
   return retime(sequence, delta_time)
 
 def temperature_from_control_value(
-    val, min_temp=0.1, mid_temp=1.0, max_temp=2.0):
+    val, min_temp=0.1, max_temp=2.0, default=1.0):
   """Computes the temperature from an 8-bit MIDI control value.
 
-  Linearly interpolates between the middle temperature and an endpoint.
+  Linearly interpolates between `min_temp` and `max_temp`.
 
   Args:
     val: The MIDI control value in the range [0, 127] or None. If None, returns
         `mid_temp`.
     min_temp: The minimum temperature, which will be returned when `val` is 0.
-    mid_temp: The middle temperature, which will be returned when `val` is 63
-       or 64.
     max_temp: The maximum temperature, which will be returned when `val` is 127.
 
   Returns:
     A float temperature value based on the 8-bit MIDI control value.
   """
   if val is None:
-    return mid_temp
-  if val > 64:
-    return mid_temp + (val - 64) * (max_temp - mid_temp) / 63
-  elif val < 63:
-    return min_temp + val * (mid_temp - min_temp) / 63
-  else:
-    return mid_temp
-
+    return default
+  return min_temp + (val / 127.) * (max_temp - min_temp)
 
 class MidiInteraction(threading.Thread):
   """Base class for handling interaction between MIDI and SequenceGenerator.
@@ -448,7 +440,8 @@ class ExternalClockCallAndResponse(MidiInteraction):
                response_ticks_control_number=None,
                temperature_control_number=None,
                loop_control_number=None,
-               state_control_number=None):
+               state_control_number=None,
+               latency_compensation=0.0):
     super(ExternalClockCallAndResponse, self).__init__(
         midi_hub, sequence_generators, qpm, generator_select_control_number)
     self._clock_signal = clock_signal
@@ -461,6 +454,7 @@ class ExternalClockCallAndResponse(MidiInteraction):
     self._temperature_control_number = temperature_control_number
     self._loop_control_number = loop_control_number
     self._state_control_number = state_control_number
+    self._latency_compensation = latency_compensation
     # Event for signalling when to end a call.
     self._end_call = threading.Event()
     self._panic = threading.Event()
@@ -525,7 +519,8 @@ class ExternalClockCallAndResponse(MidiInteraction):
     response_sequence = music_pb2.NoteSequence()
     response_start_time = 0
     player = self._midi_hub.start_playback(
-        response_sequence, allow_updates=True)
+        response_sequence, offset=-self._latency_compensation,
+        allow_updates=True)
 
     for captured_sequence in self._captor.iterate(signal=self._clock_signal):
       if self._stop_signal.is_set():

@@ -116,6 +116,11 @@ tf.app.flags.DEFINE_integer(
     None,
     'The control number to use for sending the state. A value of 0 represents '
     '`IDLE`, 1 is `LISTENING`, and 2 is `RESPONDING`.')
+tf.app.flags.DEFINE_float(
+    'latency_compensation',
+    0.03,
+    'Time adjustment for MIDI playback to compensate for any latency. Events '
+    'will be sent the given number of seconds earlier than documented.')
 tf.app.flags.DEFINE_string(
     'log', 'WARN',
     'The threshold for what messages will be logged. DEBUG, INFO, WARN, ERROR, '
