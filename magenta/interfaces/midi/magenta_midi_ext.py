@@ -241,7 +241,8 @@ def main(unused_argv):
       response_ticks_control_number=FLAGS.response_ticks_control_number,
       temperature_control_number=FLAGS.temperature_control_number,
       loop_control_number=FLAGS.loop_control_number,
-      state_control_number=FLAGS.state_control_number)
+      state_control_number=FLAGS.state_control_number,
+      latency_compensation=FLAGS.latency_compensation)
 
   _print_instructions()
 
