@@ -230,7 +230,8 @@ class EventSequenceRnnModel(mm.BaseModel):
     return event_sequences, final_state, loglik
 
   def _beam_search(self, events, num_steps, temperature, beam_size,
-                   branch_factor, steps_per_iteration, control_events=None):
+                   branch_factor, steps_per_iteration, control_events=None,
+                   modify_events_callback=None):
     """Generates an event sequence using beam search.
 
     Initially, the beam is filled with `beam_size` copies of the initial event
@@ -268,6 +269,11 @@ class EventSequenceRnnModel(mm.BaseModel):
           generation. If not None, the encoder/decoder should be a
           ConditionalEventSequenceEncoderDecoder, and the control events will be
           used along with the target sequence to generate model inputs.
+      modify_events_callback: An optional callback for modifying the event list.
+          Can be used to inject events rather than having them generated. If not
+          None, will be called with 3 arguments after every event: the current
+          EventSequenceEncoderDecoder, a list of current EventSequences, and a
+          list of current encoded event inputs.
 
     Returns:
       The highest-likelihood event sequence as computed by the beam search.
@@ -287,6 +293,11 @@ class EventSequenceRnnModel(mm.BaseModel):
     else:
       inputs = self._config.encoder_decoder.get_inputs_batch(
           event_sequences, full_length=True)
+
+    if modify_events_callback:
+      modify_events_callback(
+          self._config.encoder_decoder, event_sequences, inputs)
+
     initial_state = np.tile(
         self._session.run(graph_initial_state), (beam_size, 1))
     event_sequences, final_state, loglik = self._generate_branches(
@@ -305,6 +316,11 @@ class EventSequenceRnnModel(mm.BaseModel):
             control_events, event_sequences)
       else:
         inputs = self._config.encoder_decoder.get_inputs_batch(event_sequences)
+
+      if modify_events_callback:
+        modify_events_callback(
+            self._config.encoder_decoder, event_sequences, inputs)
+
       event_sequences, final_state, loglik = self._generate_branches(
           event_sequences, loglik, branch_factor, steps_per_iteration, inputs,
           final_state, temperature)
@@ -320,7 +336,7 @@ class EventSequenceRnnModel(mm.BaseModel):
 
   def _generate_events(self, num_steps, primer_events, temperature=1.0,
                        beam_size=1, branch_factor=1, steps_per_iteration=1,
-                       control_events=None):
+                       control_events=None, modify_events_callback=None):
     """Generate an event sequence from a primer sequence.
 
     Args:
@@ -339,6 +355,11 @@ class EventSequenceRnnModel(mm.BaseModel):
           generation. If not None, the encoder/decoder should be a
           ConditionalEventSequenceEncoderDecoder, and the control events will be
           used along with the target sequence to generate model inputs.
+      modify_events_callback: An optional callback for modifying the event list.
+          Can be used to inject events rather than having them generated. If not
+          None, will be called with 3 arguments after every event: the current
+          EventSequenceEncoderDecoder, a list of current EventSequences, and a
+          list of current encoded event inputs.
 
     Returns:
       The generated event sequence (which begins with the provided primer).
@@ -368,7 +389,7 @@ class EventSequenceRnnModel(mm.BaseModel):
     if num_steps > len(primer_events):
       events = self._beam_search(events, num_steps - len(events), temperature,
                                  beam_size, branch_factor, steps_per_iteration,
-                                 control_events)
+                                 control_events, modify_events_callback)
     return events
 
 
