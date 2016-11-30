@@ -579,8 +579,6 @@ class ExternalClockCallAndResponse(MidiInteraction):
               if self._response_ticks_control_number is not None else None)
           if num_ticks:
             response_duration = num_ticks * (tick_time - last_tick_time)
-          elif last_end_time <= last_tick_time:
-            response_duration = last_tick_time - capture_start_time
           else:
             # Use capture duration.
             response_duration = tick_time - capture_start_time
@@ -593,7 +591,7 @@ class ExternalClockCallAndResponse(MidiInteraction):
 
           generator_options = magenta.protobuf.generator_pb2.GeneratorOptions()
           generator_options.input_sections.add(
-              start_time=self._captor.start_time - capture_start_time,
+              start_time=0,
               end_time=tick_time - capture_start_time)
           generator_options.generate_sections.add(
               start_time=response_start_time - capture_start_time,
