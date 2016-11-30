@@ -72,7 +72,7 @@ def filter_instrument(sequence, instrument, from_time=0):
 def rezero(sequence, zero_time):
   rezeroed_sequence = music_pb2.NoteSequence()
   rezeroed_sequence.CopyFrom(sequence)
-  if not sequences.notes:
+  if not sequence.notes:
     return rezeroed_sequence
   old_zero_time = min(n.start_time for n in sequence.notes)
   delta_time = zero_time - old_zero_time
