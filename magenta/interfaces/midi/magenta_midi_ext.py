@@ -16,7 +16,7 @@
 Captures monophonic input MIDI sequences and plays back responses from the
 sequence generator.
 """
-
+import copy
 import time
 
 # internal imports
@@ -167,7 +167,8 @@ def _load_generator_from_bundle_file(bundle_file):
         generator_id, FLAGS.bundle_file)
     return None
 
-  generator = _GENERATOR_MAP[generator_id](checkpoint=None, bundle=bundle)
+  generator = copy.deepcopy(
+      _GENERATOR_MAP[generator_id](checkpoint=None, bundle=bundle))
   generator.initialize()
   print "Loaded '%s' generator bundle from file '%s'." % (
       bundle.generator_details.id, bundle_file)
