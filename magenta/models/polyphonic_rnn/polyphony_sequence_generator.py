@@ -21,10 +21,11 @@ from functools import partial
 import tensorflow as tf
 
 from magenta.models.polyphonic_rnn import polyphony_lib
-from magenta.models.polyphonic_rnn.polyphony_lib import PolyphonicEvent
 from magenta.models.polyphonic_rnn import polyphony_model
+from magenta.models.polyphonic_rnn.polyphony_lib import PolyphonicEvent
 
 import magenta.music as mm
+
 
 class PolyphonicRnnSequenceGenerator(mm.BaseSequenceGenerator):
   """Polyphonic RNN generation code as a SequenceGenerator interface."""
@@ -145,6 +146,7 @@ class PolyphonicRnnSequenceGenerator(mm.BaseSequenceGenerator):
 
 START_OR_STEP_END = (PolyphonicEvent.START, PolyphonicEvent.STEP_END)
 NOTE_EVENT = (PolyphonicEvent.NEW_NOTE, PolyphonicEvent.CONTINUED_NOTE)
+
 
 def _inject_melody(melody, start_step, encoder_decoder, event_sequences,
                    inputs):

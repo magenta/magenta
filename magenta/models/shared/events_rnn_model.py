@@ -23,8 +23,8 @@ from six.moves import range  # pylint: disable=redefined-builtin
 import tensorflow as tf
 
 from magenta.models.shared import events_rnn_graph
-from magenta.models.polyphonic_rnn import polyphony_lib
 import magenta.music as mm
+
 
 class EventSequenceRnnModelException(Exception):
   pass
