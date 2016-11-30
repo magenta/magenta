@@ -523,7 +523,7 @@ class ExternalClockCallAndResponse(MidiInteraction):
     listen_ticks = 0
 
     response_sequence = music_pb2.NoteSequence()
-    response_duration = 0
+    response_start_time = 0
     player = self._midi_hub.start_playback(
         response_sequence, allow_updates=True)
 
@@ -641,7 +641,8 @@ class ExternalClockCallAndResponse(MidiInteraction):
       if (response_sequence.total_time <= tick_time and
           self._should_loop):
         response_sequence = retime(response_sequence,
-            tick_time - (response_sequence.total_time - response_duration))
+                                   tick_time - response_start_time)
+        response_start_time = tick_time
         player.update_sequence(response_sequence, start_time=tick_time)
 
       last_tick_time = tick_time
