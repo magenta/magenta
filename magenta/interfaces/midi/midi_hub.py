@@ -299,7 +299,8 @@ class MidiPlayer(threading.Thread):
     # notes.
     notes_to_close = self._open_notes - closed_notes
     if notes_to_close:
-      next_event_time = min(msg.time for msg in new_message_list)
+      next_event_time = (
+          min(msg.time for msg in new_message_list) if new_message_list else 0)
       for note in notes_to_close:
         new_message_list.append(
             mido.Message(type='note_off', note=note, time=next_event_time))
