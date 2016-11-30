@@ -124,6 +124,7 @@ tf.app.flags.DEFINE_string(
 # A map from a string generator name to its class.
 _GENERATOR_MAP = melody_rnn_sequence_generator.get_generator_map()
 _GENERATOR_MAP.update(drums_rnn_sequence_generator.get_generator_map())
+_GENERATOR_MAP.update(polyphony_sequence_generator.get_generator_map())
 
 
 def _validate_flags():
