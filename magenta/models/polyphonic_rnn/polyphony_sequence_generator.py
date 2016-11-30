@@ -121,6 +121,7 @@ class PolyphonicRnnSequenceGenerator(mm.BaseSequenceGenerator):
                 for name, value_fn in arg_types.items()
                 if name in generator_options.args)
 
+    # Inject the priming sequence as melody in the output of the generator.
     melody_to_inject = copy.deepcopy(poly_seq)
     args['modify_events_callback'] = partial(
         _inject_melody, melody_to_inject, poly_seq.num_steps)
