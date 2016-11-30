@@ -163,6 +163,7 @@ class PolyphonicSequence(events_lib.EventSequence):
     if from_left:
       raise NotImplementedError('from_left is not supported')
 
+    orig_num_steps = self.num_steps
     if self.num_steps < steps:
       self._append_silence_steps(steps - self.num_steps)
     elif self.num_steps > steps:
@@ -221,7 +222,7 @@ class PolyphonicSequence(events_lib.EventSequence):
   @property
   def num_steps(self):
     """Returns how many steps long this sequence is."""
-    steps = 0
+    steps = 1  # implicit step end at the end of the sequence.
     for event in self:
       if event.event_type == PolyphonicEvent.STEP_END:
         steps += 1

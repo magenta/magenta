@@ -26,159 +26,6 @@ from magenta.models.shared import events_rnn_graph
 from magenta.models.polyphonic_rnn import polyphony_lib
 import magenta.music as mm
 
-from magenta.models.polyphonic_rnn.polyphony_lib import EVENT_CONTINUED_NOTE
-from magenta.models.polyphonic_rnn.polyphony_lib import EVENT_END
-from magenta.models.polyphonic_rnn.polyphony_lib import EVENT_NEW_NOTE
-from magenta.models.polyphonic_rnn.polyphony_lib import EVENT_START
-from magenta.models.polyphonic_rnn.polyphony_lib import EVENT_STEP_END
-
-pe = polyphony_lib.PolyphonicEvent
-MELODY = [
-    pe(EVENT_STEP_END, 0),
-    pe(EVENT_NEW_NOTE, 72),
-    pe(EVENT_STEP_END, 0),
-    pe(EVENT_CONTINUED_NOTE, 72),
-    pe(EVENT_STEP_END, 0),
-    pe(EVENT_CONTINUED_NOTE, 72),
-    pe(EVENT_STEP_END, 0),
-    pe(EVENT_CONTINUED_NOTE, 72),
-
-    pe(EVENT_STEP_END, 0),
-    pe(EVENT_NEW_NOTE, 72),
-    pe(EVENT_STEP_END, 0),
-    pe(EVENT_CONTINUED_NOTE, 72),
-    pe(EVENT_STEP_END, 0),
-    pe(EVENT_CONTINUED_NOTE, 72),
-    pe(EVENT_STEP_END, 0),
-    pe(EVENT_CONTINUED_NOTE, 72),
-
-    pe(EVENT_STEP_END, 0),
-    pe(EVENT_NEW_NOTE, 79),
-    pe(EVENT_STEP_END, 0),
-    pe(EVENT_CONTINUED_NOTE, 79),
-    pe(EVENT_STEP_END, 0),
-    pe(EVENT_CONTINUED_NOTE, 79),
-    pe(EVENT_STEP_END, 0),
-    pe(EVENT_CONTINUED_NOTE, 79),
-
-    pe(EVENT_STEP_END, 0),
-    pe(EVENT_NEW_NOTE, 79),
-    pe(EVENT_STEP_END, 0),
-    pe(EVENT_CONTINUED_NOTE, 79),
-    pe(EVENT_STEP_END, 0),
-    pe(EVENT_CONTINUED_NOTE, 79),
-    pe(EVENT_STEP_END, 0),
-    pe(EVENT_CONTINUED_NOTE, 79),
-
-    pe(EVENT_STEP_END, 0),
-    pe(EVENT_NEW_NOTE, 81),
-    pe(EVENT_STEP_END, 0),
-    pe(EVENT_CONTINUED_NOTE, 81),
-    pe(EVENT_STEP_END, 0),
-    pe(EVENT_CONTINUED_NOTE, 81),
-    pe(EVENT_STEP_END, 0),
-    pe(EVENT_CONTINUED_NOTE, 81),
-
-    pe(EVENT_STEP_END, 0),
-    pe(EVENT_NEW_NOTE, 81),
-    pe(EVENT_STEP_END, 0),
-    pe(EVENT_CONTINUED_NOTE, 81),
-    pe(EVENT_STEP_END, 0),
-    pe(EVENT_CONTINUED_NOTE, 81),
-    pe(EVENT_STEP_END, 0),
-    pe(EVENT_CONTINUED_NOTE, 81),
-
-    pe(EVENT_STEP_END, 0),
-    pe(EVENT_NEW_NOTE, 79),
-    pe(EVENT_STEP_END, 0),
-    pe(EVENT_CONTINUED_NOTE, 79),
-    pe(EVENT_STEP_END, 0),
-    pe(EVENT_CONTINUED_NOTE, 79),
-    pe(EVENT_STEP_END, 0),
-    pe(EVENT_CONTINUED_NOTE, 79),
-
-    pe(EVENT_STEP_END, 0),
-    pe(EVENT_CONTINUED_NOTE, 79),
-    pe(EVENT_STEP_END, 0),
-    pe(EVENT_CONTINUED_NOTE, 79),
-    pe(EVENT_STEP_END, 0),
-    pe(EVENT_CONTINUED_NOTE, 79),
-    pe(EVENT_STEP_END, 0),
-    pe(EVENT_CONTINUED_NOTE, 79),
-
-    pe(EVENT_STEP_END, 0),
-    pe(EVENT_NEW_NOTE, 77),
-    pe(EVENT_STEP_END, 0),
-    pe(EVENT_CONTINUED_NOTE, 77),
-    pe(EVENT_STEP_END, 0),
-    pe(EVENT_CONTINUED_NOTE, 77),
-    pe(EVENT_STEP_END, 0),
-    pe(EVENT_CONTINUED_NOTE, 77),
-
-    pe(EVENT_STEP_END, 0),
-    pe(EVENT_NEW_NOTE, 77),
-    pe(EVENT_STEP_END, 0),
-    pe(EVENT_CONTINUED_NOTE, 77),
-    pe(EVENT_STEP_END, 0),
-    pe(EVENT_CONTINUED_NOTE, 77),
-    pe(EVENT_STEP_END, 0),
-    pe(EVENT_CONTINUED_NOTE, 77),
-
-    pe(EVENT_STEP_END, 0),
-    pe(EVENT_NEW_NOTE, 76),
-    pe(EVENT_STEP_END, 0),
-    pe(EVENT_CONTINUED_NOTE, 76),
-    pe(EVENT_STEP_END, 0),
-    pe(EVENT_CONTINUED_NOTE, 76),
-    pe(EVENT_STEP_END, 0),
-    pe(EVENT_CONTINUED_NOTE, 76),
-
-    pe(EVENT_STEP_END, 0),
-    pe(EVENT_NEW_NOTE, 76),
-    pe(EVENT_STEP_END, 0),
-    pe(EVENT_CONTINUED_NOTE, 76),
-    pe(EVENT_STEP_END, 0),
-    pe(EVENT_CONTINUED_NOTE, 76),
-    pe(EVENT_STEP_END, 0),
-    pe(EVENT_CONTINUED_NOTE, 76),
-
-    pe(EVENT_STEP_END, 0),
-    pe(EVENT_NEW_NOTE, 74),
-    pe(EVENT_STEP_END, 0),
-    pe(EVENT_CONTINUED_NOTE, 74),
-    pe(EVENT_STEP_END, 0),
-    pe(EVENT_CONTINUED_NOTE, 74),
-    pe(EVENT_STEP_END, 0),
-    pe(EVENT_CONTINUED_NOTE, 74),
-
-    pe(EVENT_STEP_END, 0),
-    pe(EVENT_NEW_NOTE, 74),
-    pe(EVENT_STEP_END, 0),
-    pe(EVENT_CONTINUED_NOTE, 74),
-    pe(EVENT_STEP_END, 0),
-    pe(EVENT_CONTINUED_NOTE, 74),
-    pe(EVENT_STEP_END, 0),
-    pe(EVENT_CONTINUED_NOTE, 74),
-
-    pe(EVENT_STEP_END, 0),
-    pe(EVENT_NEW_NOTE, 72),
-    pe(EVENT_STEP_END, 0),
-    pe(EVENT_CONTINUED_NOTE, 72),
-    pe(EVENT_STEP_END, 0),
-    pe(EVENT_CONTINUED_NOTE, 72),
-    pe(EVENT_STEP_END, 0),
-    pe(EVENT_CONTINUED_NOTE, 72),
-
-    pe(EVENT_STEP_END, 0),
-    pe(EVENT_CONTINUED_NOTE, 72),
-    pe(EVENT_STEP_END, 0),
-    pe(EVENT_CONTINUED_NOTE, 72),
-    pe(EVENT_STEP_END, 0),
-    pe(EVENT_CONTINUED_NOTE, 72),
-    pe(EVENT_STEP_END, 0),
-    pe(EVENT_CONTINUED_NOTE, 72),
-]
-
 class EventSequenceRnnModelException(Exception):
   pass
 
@@ -382,29 +229,9 @@ class EventSequenceRnnModel(mm.BaseModel):
 
     return event_sequences, final_state, loglik
 
-  def _inject_melody(self, event_sequences, inputs):
-    for i in range(len(inputs)):
-      event_sequence = event_sequences[i]
-      input_ = inputs[i]
-      if (event_sequence[-1].event_type == polyphony_lib.EVENT_STEP_END or
-          event_sequence[-1].event_type == polyphony_lib.EVENT_START):
-        event_step_count = 0
-        for event in event_sequence:
-          if (event.event_type == polyphony_lib.EVENT_START or
-              event.event_type == polyphony_lib.EVENT_STEP_END):
-            event_step_count += 1
-        melody_step_count = 0
-        for i, event in enumerate(MELODY):
-          if (event.event_type == polyphony_lib.EVENT_START or
-              event.event_type == polyphony_lib.EVENT_STEP_END):
-            melody_step_count += 1
-            if melody_step_count == event_step_count:
-              event_sequence.append(MELODY[i+1])
-              input_.extend(self._config.encoder_decoder.get_inputs_batch([event_sequence])[0])
-              break
-
   def _beam_search(self, events, num_steps, temperature, beam_size,
-                   branch_factor, steps_per_iteration, control_events=None):
+                   branch_factor, steps_per_iteration, control_events=None,
+                   modify_events_callback=None):
     """Generates an event sequence using beam search.
 
     Initially, the beam is filled with `beam_size` copies of the initial event
@@ -461,7 +288,10 @@ class EventSequenceRnnModel(mm.BaseModel):
     else:
       inputs = self._config.encoder_decoder.get_inputs_batch(
           event_sequences, full_length=True)
-      self._inject_melody(event_sequences, inputs)
+
+    if modify_events_callback:
+      modify_events_callback(
+          self._config.encoder_decoder, event_sequences, inputs)
 
     initial_state = np.tile(
         self._session.run(graph_initial_state), (beam_size, 1))
@@ -481,7 +311,10 @@ class EventSequenceRnnModel(mm.BaseModel):
             control_events, event_sequences)
       else:
         inputs = self._config.encoder_decoder.get_inputs_batch(event_sequences)
-        self._inject_melody(event_sequences, inputs)
+
+      if modify_events_callback:
+        modify_events_callback(
+            self._config.encoder_decoder, event_sequences, inputs)
 
       event_sequences, final_state, loglik = self._generate_branches(
           event_sequences, loglik, branch_factor, steps_per_iteration, inputs,
@@ -498,7 +331,7 @@ class EventSequenceRnnModel(mm.BaseModel):
 
   def _generate_events(self, num_steps, primer_events, temperature=1.0,
                        beam_size=1, branch_factor=1, steps_per_iteration=1,
-                       control_events=None):
+                       control_events=None, modify_events_callback=None):
     """Generate an event sequence from a primer sequence.
 
     Args:
@@ -546,7 +379,7 @@ class EventSequenceRnnModel(mm.BaseModel):
     if num_steps > len(primer_events):
       events = self._beam_search(events, num_steps - len(events), temperature,
                                  beam_size, branch_factor, steps_per_iteration,
-                                 control_events)
+                                 control_events, modify_events_callback)
     return events
 
 
