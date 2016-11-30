@@ -22,7 +22,7 @@ _DEFAULT_METRONOME_VELOCITY = 64
 _METRONOME_CHANNEL = 0
 
 _OUTPUT_CHANNEL = 1
-_DRUM_CHANNEL = 9
+_DRUM_CHANNEL = 8
 
 try:
   # The RtMidi backend is easier to install and has support for virtual ports.
