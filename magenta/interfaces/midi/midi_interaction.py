@@ -69,6 +69,16 @@ def filter_instrument(sequence, instrument, from_time=0):
     filtered_sequence.notes.add().CopyFrom(note)
   return filtered_sequence
 
+def retime(sequence, delta_time):
+  retimed_sequence = music_pb2.NoteSequence()
+  retimed_sequence.CopyFrom(sequence)
+
+  for note in retimed_sequence.notes:
+    note.start_time += delta_time
+    note.end_time += delta_time
+  retimed_sequence.total_time += delta_time
+  return retimed_sequence
+
 def rezero(sequence, zero_time):
   rezeroed_sequence = music_pb2.NoteSequence()
   rezeroed_sequence.CopyFrom(sequence)
@@ -77,11 +87,7 @@ def rezero(sequence, zero_time):
   old_zero_time = min(n.start_time for n in sequence.notes)
   delta_time = zero_time - old_zero_time
 
-  for note in rezeroed_sequence.notes:
-    note.start_time += delta_time
-    note.end_time += delta_time
-  rezeroed_sequence.total_time += delta_time
-  return rezeroed_sequence
+  return retime(sequence, delta_time)
 
 def temperature_from_control_value(
     val, min_temp=0.1, mid_temp=1.0, max_temp=2.0):
@@ -597,8 +603,9 @@ class ExternalClockCallAndResponse(MidiInteraction):
                            self._sequence_generator.bundle_details)
           tf.logging.debug('Generator Options: %s', generator_options)
           response_sequence = self._sequence_generator.generate(
-              rezero(captured_sequence, 0), generator_options)
-          response_sequence = rezero(captured_sequence, self._captor.start_time)
+              retime(captured_sequence, -self._captor.start_time),
+              generator_options)
+          response_sequence = retime(response_sequence, self._captor.start_time)
           response_sequence = magenta.music.extract_subsequence(
               response_sequence, response_start_time, response_end_time)
           # Start response playback. Specify the start_time to avoid stripping
