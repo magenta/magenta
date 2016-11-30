@@ -574,11 +574,11 @@ class ExternalClockCallAndResponse(MidiInteraction):
 
           generator_options = magenta.protobuf.generator_pb2.GeneratorOptions()
           generator_options.input_sections.add(
-              start_time=self._captor.start_time,
-              end_time=tick_time)
+              start_time=self._captor.start_time - self._captor.start_time,
+              end_time=tick_time - self._captor.start_time)
           generator_options.generate_sections.add(
-              start_time=response_start_time,
-              end_time=response_end_time)
+              start_time=response_start_time - self._captor.start_time,
+              end_time=response_end_time - self._captor.start_time)
 
           # Get current temperature setting.
           temperature = temperature_from_control_value(
@@ -597,7 +597,8 @@ class ExternalClockCallAndResponse(MidiInteraction):
                            self._sequence_generator.bundle_details)
           tf.logging.debug('Generator Options: %s', generator_options)
           response_sequence = self._sequence_generator.generate(
-              captured_sequence, generator_options)
+              rezero(captured_sequence, 0), generator_options)
+          response_sequence = rezero(captured_sequence, self._captor.start_time)
           response_sequence = magenta.music.extract_subsequence(
               response_sequence, response_start_time, response_end_time)
           # Start response playback. Specify the start_time to avoid stripping
