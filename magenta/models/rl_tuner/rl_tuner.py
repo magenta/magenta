@@ -422,7 +422,8 @@ class RLTuner(object):
       # Output of the q network gives the value of taking each action (playing
       # each note).
       self.action_scores = tf.identity(self.q_network(), name='action_scores')
-      tf.histogram_summary('action_scores', self.action_scores)
+      tf.histogram_summary(
+          'action_scores', self.action_scores)
 
       # The action values for the G algorithm are computed differently.
       if self.algorithm == 'g':
@@ -449,7 +450,8 @@ class RLTuner(object):
       # The target q network is used to estimate the value of the best action at
       # the state resulting from the current action.
       self.next_action_scores = tf.stop_gradient(self.target_q_network())
-      tf.histogram_summary('target_action_scores', self.next_action_scores)
+      tf.histogram_summary(
+          'target_action_scores', self.next_action_scores)
 
       # Rewards are observed from the environment and are fed in later.
       self.rewards = tf.placeholder(tf.float32, (None,), name='rewards')
@@ -524,7 +526,8 @@ class RLTuner(object):
         self.target_network_update.append(update_op)
       self.target_network_update = tf.group(*self.target_network_update)
 
-    tf.scalar_summary('prediction_error', self.prediction_error)
+    tf.scalar_summary(
+        'prediction_error', self.prediction_error)
 
     self.summarize = tf.merge_all_summaries()
     self.no_op1 = tf.no_op()
