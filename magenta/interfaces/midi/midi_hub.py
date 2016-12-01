@@ -22,13 +22,17 @@ tf.app.flags.DEFINE_float(
     'playback_offset',
     0.0,
     'Seconds to adjust playback time.')
+tf.app.flags.DEFINE_float(
+    'playback_channel',
+    0,
+    'Channel to send play events.')
+
 
 _DEFAULT_METRONOME_TICK_DURATION = 0.05
 _DEFAULT_METRONOME_PITCH = 95
 _DEFAULT_METRONOME_VELOCITY = 64
 _METRONOME_CHANNEL = 0
 
-_OUTPUT_CHANNEL = 1
 _DRUM_CHANNEL = 8
 
 try:
@@ -313,7 +317,7 @@ class MidiPlayer(threading.Thread):
             mido.Message(type='note_off', note=note, time=next_event_time))
 
     for msg in new_message_list:
-      msg.channel = _OUTPUT_CHANNEL
+      msg.channel = FLAGS.playback_channel
       msg.time += FLAGS.playback_offset
 
     self._message_queue = deque(
