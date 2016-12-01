@@ -65,8 +65,8 @@ tf.app.flags.DEFINE_integer(
 tf.app.flags.DEFINE_string(
     'primer_pitches', '',
     'A string representation of a Python list of pitches that will be used as '
-    'a starting chord with a quarter note duration. For example, C Major: '
-    '"[60, 64, 67]"')
+    'a starting sequence of quarter notes. For example: '
+    '"[60, 64, 67, 71]"')
 tf.app.flags.DEFINE_string(
     'primer_midi', '',
     'The path to a MIDI file containing a polyphonic track that will be used '
@@ -168,12 +168,14 @@ def run_with_flags(generator):
     primer_sequence = music_pb2.NoteSequence()
     primer_sequence.tempos.add().qpm = qpm
     primer_sequence.ticks_per_quarter = constants.STANDARD_PPQ
+    note_start_time = 0
     for pitch in ast.literal_eval(FLAGS.primer_pitches):
       note = primer_sequence.notes.add()
-      note.start_time = 0
-      note.end_time = 60.0 / qpm
+      note.start_time = note_start_time
+      note.end_time = note_start_time + (60.0 / qpm)
       note.pitch = pitch
       note.velocity = 100
+      note_start_time = note.end_time
     primer_sequence.total_time = primer_sequence.notes[-1].end_time
   elif primer_midi:
     primer_sequence = magenta.music.midi_file_to_sequence_proto(primer_midi)

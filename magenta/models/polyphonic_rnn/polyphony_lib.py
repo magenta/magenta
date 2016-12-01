@@ -293,7 +293,8 @@ class PolyphonicSequence(events_lib.EventSequence):
                   velocity=100,
                   instrument=0,
                   program=0,
-                  qpm=constants.DEFAULT_QUARTERS_PER_MINUTE):
+                  qpm=constants.DEFAULT_QUARTERS_PER_MINUTE,
+                  base_note_sequence=None):
     """Converts the PolyphonicSequence to NoteSequence proto.
 
     Assumes that the sequences ends with a STEP_END followed by an END event. To
@@ -304,6 +305,8 @@ class PolyphonicSequence(events_lib.EventSequence):
       instrument: Midi instrument to give each note.
       program: Midi program to give each note.
       qpm: Quarter notes per minute (float).
+      base_note_sequence: A NoteSequence to use a starting point. Must match the
+          specified qpm.
 
     Raises:
       ValueError: if an unknown event is encountered.
@@ -315,9 +318,13 @@ class PolyphonicSequence(events_lib.EventSequence):
 
     sequence_start_time = self.start_step * seconds_per_step
 
-    sequence = music_pb2.NoteSequence()
-    sequence.tempos.add().qpm = qpm
-    sequence.ticks_per_quarter = STANDARD_PPQ
+    if base_note_sequence:
+      sequence = base_note_sequence
+      assert sequence.tempos[0].qpm == qpm
+    else:
+      sequence = music_pb2.NoteSequence()
+      sequence.tempos.add().qpm = qpm
+      sequence.ticks_per_quarter = STANDARD_PPQ
 
     step = 0
     # Use lists rather than sets because one pitch may be active multiple times.
@@ -327,7 +334,7 @@ class PolyphonicSequence(events_lib.EventSequence):
       if event.event_type == PolyphonicEvent.START:
         pass
       elif event.event_type == PolyphonicEvent.END and i < len(self) - 1:
-        tf.logging.info(
+        tf.logging.debug(
             'Ignoring END maker before end of sequence at position %d' % i)
       elif event.event_type == PolyphonicEvent.NEW_NOTE:
         pitch_start_steps.append((event.pitch, step))
