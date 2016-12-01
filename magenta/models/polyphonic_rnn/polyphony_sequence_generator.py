@@ -91,24 +91,26 @@ class PolyphonicRnnSequenceGenerator(mm.BaseSequenceGenerator):
         quantized_primer_sequence, start_step=input_start_step)
     assert len(extracted_seqs) <= 1
 
-    start_step = self.seconds_to_steps(
+    generate_start_step = self.seconds_to_steps(
         generate_section.start_time, qpm)
-    end_step = self.seconds_to_steps(generate_section.end_time, qpm)
+    generate_end_step = self.seconds_to_steps(generate_section.end_time, qpm)
 
     if extracted_seqs and extracted_seqs[0]:
       poly_seq = extracted_seqs[0]
     else:
-      # If no track could be extracted, create an empty track that starts 1 step
-      # before the request start_step. This will result in 1 step of silence
-      # when the track is extended below.
+      # If no track could be extracted, create an empty track that starts at the
+      # requested generate_start_step. This will result in a sequence that
+      # contains only the START token.
       poly_seq = polyphony_lib.PolyphonicSequence(
           steps_per_quarter=(
               quantized_primer_sequence.quantization_info.steps_per_quarter),
-          start_step=start_step)
+          start_step=generate_start_step)
 
     # Ensure that the track extends up to the step we want to start generating.
-    poly_seq.set_length(start_step - poly_seq.start_step)
-    poly_seq.trim_trailing_end_and_step_end_events()
+    poly_seq.set_length(generate_start_step - poly_seq.start_step)
+    # Trim any trailing end events to prepare the sequence for more events to be
+    # appended during generation.
+    poly_seq.trim_trailing_end_events()
 
     # Extract generation arguments from generator options.
     arg_types = {
@@ -122,11 +124,30 @@ class PolyphonicRnnSequenceGenerator(mm.BaseSequenceGenerator):
                 if name in generator_options.args)
 
     # Inject the priming sequence as melody in the output of the generator.
+    # Note that start_step is 0 because we overwrite poly_seq below. If we
+    # included the priming sequence in poly_seq, it would be poly_seq.num_steps.
     melody_to_inject = copy.deepcopy(poly_seq)
     args['modify_events_callback'] = partial(
-        _inject_melody, melody_to_inject, poly_seq.num_steps)
+        _inject_melody, melody_to_inject, 0)
 
-    total_steps = end_step - start_step
+    # Overwrite poly_seq with a blank sequence to feed into the generator so it
+    # is conditioned only on the melody events that are injected as the sequence
+    # is created. Otherwise, the generator would have to determine the most
+    # likely sequence to follow a monophonic line, which is something not
+    # present in the current training data (Bach Chorales).
+    poly_seq = polyphony_lib.PolyphonicSequence(
+        steps_per_quarter=(
+            quantized_primer_sequence.quantization_info.steps_per_quarter),
+        start_step=generate_start_step)
+    poly_seq.trim_trailing_end_events()
+
+    # If we wanted to include the priming sequence and didn't clear poly_seq
+    # above, this is how we would calculate total_steps.
+    # total_steps = poly_seq.num_steps + (
+    #     generate_end_step - generate_start_step)
+
+    total_steps = generate_end_step - generate_start_step
+
     while poly_seq.num_steps < total_steps:
       # Assume it takes ~5 rnn steps to generate one quantized step.
       # Can't know for sure until generation is finished because the number of
@@ -140,8 +161,13 @@ class PolyphonicRnnSequenceGenerator(mm.BaseSequenceGenerator):
           len(poly_seq) + rnn_steps_to_gen, poly_seq, **args)
     poly_seq.set_length(total_steps)
 
-    generated_sequence = poly_seq.to_sequence(qpm=qpm)
-    assert (generated_sequence.total_time - generate_section.end_time) <= 1e-5
+    # Specify a base_note_sequence because the priming sequence is not included
+    # in poly_seq. If we did not clear poly_seq above, then we would not want to
+    # specify a base_note_sequence.
+    generated_sequence = poly_seq.to_sequence(
+        qpm=qpm, base_note_sequence=copy.deepcopy(primer_sequence))
+    assert (
+        abs(generated_sequence.total_time - generate_section.end_time) <= 1e-5)
     return generated_sequence
 
 
@@ -177,25 +203,25 @@ def _inject_melody(melody, start_step, encoder_decoder, event_sequences,
     if event_sequence[-1].event_type not in START_OR_STEP_END:
       continue
 
-    # Count how many events have happened so far.
-    event_step_count = 0
+    # Determine the current step event.
+    event_step_count = 1
     for event in event_sequence:
-      if event.event_type in START_OR_STEP_END:
+      if event.event_type == PolyphonicEvent.STEP_END:
         event_step_count += 1
 
     # Find the corresponding event in the input melody.
-    melody_step_count = start_step
+    melody_step_count = start_step + 1
     for i, event in enumerate(melody):
-      if event.event_type in START_OR_STEP_END:
+      if event.event_type == PolyphonicEvent.STEP_END:
         melody_step_count += 1
-        if melody_step_count == event_step_count:
-          melody_pos = i + 1
-          while melody_pos < len(melody) and (
-              melody[melody_pos].event_type in NOTE_EVENT):
-            event_sequence.append(melody[melody_pos])
-            input_.extend(encoder_decoder.get_inputs_batch([event_sequence])[0])
-            melody_pos += 1
-          break
+      if melody_step_count == event_step_count:
+        melody_pos = i + 1
+        while melody_pos < len(melody) and (
+            melody[melody_pos].event_type in NOTE_EVENT):
+          event_sequence.append(melody[melody_pos])
+          input_.extend(encoder_decoder.get_inputs_batch([event_sequence])[0])
+          melody_pos += 1
+        break
 
 
 def get_generator_map():
