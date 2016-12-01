@@ -175,8 +175,8 @@ def build_graph(mode, config, sequence_example_file_paths=None):
         tf.add_to_collection('learning_rate', learning_rate)
         tf.add_to_collection('train_op', train_op)
 
-        summaries.append(
-            tf.scalar_summary('learning_rate', learning_rate))
+        summaries.append(tf.scalar_summary(
+            'learning_rate', learning_rate))
 
       if mode == 'eval':
         summary_op = tf.merge_summary(summaries)
