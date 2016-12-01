@@ -123,8 +123,6 @@ class PolyphonicSequence(events_lib.EventSequence):
     for _ in range(num_steps):
       self._events.append(
           PolyphonicEvent(event_type=PolyphonicEvent.STEP_END, pitch=None))
-    self._events.append(
-        PolyphonicEvent(event_type=PolyphonicEvent.END, pitch=None))
 
   def _trim_steps(self, num_steps):
     """Trims a given number of steps from the end of the sequence."""
