@@ -22,7 +22,7 @@ tf.app.flags.DEFINE_float(
     'playback_offset',
     0.0,
     'Seconds to adjust playback time.')
-tf.app.flags.DEFINE_float(
+tf.app.flags.DEFINE_integer(
     'playback_channel',
     0,
     'Channel to send play events.')
