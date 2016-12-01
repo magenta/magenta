@@ -126,7 +126,7 @@ class PolyphonicRnnSequenceGenerator(mm.BaseSequenceGenerator):
     args['modify_events_callback'] = partial(
         _inject_melody, melody_to_inject, poly_seq.num_steps)
 
-    total_steps = end_step - start_step
+    total_steps = end_step - start_step + poly_seq.num_steps
     while poly_seq.num_steps < total_steps:
       # Assume it takes ~5 rnn steps to generate one quantized step.
       # Can't know for sure until generation is finished because the number of
