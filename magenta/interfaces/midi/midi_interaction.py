@@ -531,6 +531,7 @@ class ExternalClockCallAndResponse(MidiInteraction):
       captured_sequence.tempos[0].qpm = self._qpm
 
       tick_time = captured_sequence.total_time
+      tick_duration = tick_time - last_tick_time
       last_end_time = (max(note.end_time for note in captured_sequence.notes)
                        if captured_sequence.notes else None)
 
@@ -561,16 +562,15 @@ class ExternalClockCallAndResponse(MidiInteraction):
 
           if last_end_time <= last_tick_time:
             # Move the sequence forward one tick in time.
-            captured_sequence = retime(captured_sequence,
-                                       tick_time - last_tick_time)
-            capture_start_time += tick_time - last_tick_time
+            captured_sequence = retime(captured_sequence, tick_duration)
+            capture_start_time += tick_duration
 
           # Compute duration of response.
           num_ticks = (
-              self._midi_hub.control_value(self._response_ticks_control_number)
+              self._midi_hub.control_value(self._response_ticks_control_numbere_ticks_control_number)
               if self._response_ticks_control_number is not None else None)
           if num_ticks:
-            response_duration = num_ticks * (tick_time - last_tick_time)
+            response_duration = num_ticks * tick_duration
           else:
             # Use capture duration.
             response_duration = tick_time - capture_start_time
@@ -608,6 +608,14 @@ class ExternalClockCallAndResponse(MidiInteraction):
           response_sequence = self._sequence_generator.generate(
               retime(captured_sequence, -capture_start_time),
               generator_options)
+
+          # If it took too long to generate, push response to next tick.
+          if (time.time() - response_start_time) >= tick_duration / 4:
+            capture_start_time += tick_duration
+            response_start_time += tick_duration
+            response_end_time += tick_duration
+
+
           response_sequence = retime(response_sequence, capture_start_time)
           response_sequence = magenta.music.extract_subsequence(
               response_sequence, response_start_time, response_end_time)
