@@ -325,7 +325,10 @@ class PolyphonicSequence(events_lib.EventSequence):
 
     if base_note_sequence:
       sequence = base_note_sequence
-      assert sequence.tempos[0].qpm == qpm
+      if sequence.tempos[0].qpm != qpm:
+        raise ValueError(
+            'Supplied QPM (%d) does not match QPM of base_note_sequence (%d)'
+            % (qpm, sequence.tempos[0].qpm))
     else:
       sequence = music_pb2.NoteSequence()
       sequence.tempos.add().qpm = qpm
