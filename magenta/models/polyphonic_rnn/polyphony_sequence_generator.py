@@ -91,24 +91,24 @@ class PolyphonicRnnSequenceGenerator(mm.BaseSequenceGenerator):
         quantized_primer_sequence, start_step=input_start_step)
     assert len(extracted_seqs) <= 1
 
-    start_step = self.seconds_to_steps(
+    generate_start_step = self.seconds_to_steps(
         generate_section.start_time, qpm)
-    end_step = self.seconds_to_steps(generate_section.end_time, qpm)
+    generate_end_step = self.seconds_to_steps(generate_section.end_time, qpm)
 
     if extracted_seqs and extracted_seqs[0]:
       poly_seq = extracted_seqs[0]
     else:
-      # If no track could be extracted, create an empty track that starts 1 step
-      # before the request start_step. This will result in 1 step of silence
-      # when the track is extended below.
+      # If no track could be extracted, create an empty track that starts at the
+      # requested generate_start_step. This will result in a sequence that
+      # contains only the START token.
       poly_seq = polyphony_lib.PolyphonicSequence(
           steps_per_quarter=(
               quantized_primer_sequence.quantization_info.steps_per_quarter),
-          start_step=start_step)
+          start_step=generate_start_step)
 
     # Ensure that the track extends up to the step we want to start generating.
-    poly_seq.set_length(start_step - poly_seq.start_step)
-    poly_seq.trim_trailing_end_and_step_end_events()
+    poly_seq.set_length(generate_start_step - poly_seq.start_step)
+    poly_seq.trim_trailing_end_events()
 
     # Extract generation arguments from generator options.
     arg_types = {
@@ -126,7 +126,7 @@ class PolyphonicRnnSequenceGenerator(mm.BaseSequenceGenerator):
     args['modify_events_callback'] = partial(
         _inject_melody, melody_to_inject, poly_seq.num_steps)
 
-    total_steps = end_step - start_step
+    total_steps = poly_seq.num_steps + (generate_end_step - generate_start_step)
     while poly_seq.num_steps < total_steps:
       # Assume it takes ~5 rnn steps to generate one quantized step.
       # Can't know for sure until generation is finished because the number of
@@ -141,7 +141,8 @@ class PolyphonicRnnSequenceGenerator(mm.BaseSequenceGenerator):
     poly_seq.set_length(total_steps)
 
     generated_sequence = poly_seq.to_sequence(qpm=qpm)
-    assert (generated_sequence.total_time - generate_section.end_time) <= 1e-5
+    assert (
+        abs(generated_sequence.total_time - generate_section.end_time) <= 1e-5)
     return generated_sequence
 
 
