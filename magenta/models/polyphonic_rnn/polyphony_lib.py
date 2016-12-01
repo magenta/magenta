@@ -16,6 +16,7 @@
 from __future__ import division
 
 import collections
+import copy
 
 # internal imports
 
@@ -324,7 +325,7 @@ class PolyphonicSequence(events_lib.EventSequence):
     sequence_start_time = self.start_step * seconds_per_step
 
     if base_note_sequence:
-      sequence = base_note_sequence
+      sequence = copy.deepcopy(base_note_sequence)
       if sequence.tempos[0].qpm != qpm:
         raise ValueError(
             'Supplied QPM (%d) does not match QPM of base_note_sequence (%d)'
