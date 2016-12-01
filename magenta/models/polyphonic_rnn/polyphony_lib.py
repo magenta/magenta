@@ -221,7 +221,13 @@ class PolyphonicSequence(events_lib.EventSequence):
 
   @property
   def num_steps(self):
-    """Returns how many steps long this sequence is."""
+    """Returns how many steps long this sequence is.
+
+    Does not count incomplete steps (i.e., steps that do not have a terminating
+    STEP_END event).
+
+    Returns: Length of the sequence in quantized steps.
+    """
     steps = 0
     for event in self:
       if event.event_type == PolyphonicEvent.STEP_END:
@@ -330,7 +336,10 @@ class PolyphonicSequence(events_lib.EventSequence):
     pitches_to_end = []
     for i, event in enumerate(self):
       if event.event_type == PolyphonicEvent.START:
-        pass
+        if i != 0:
+          tf.logging.debug(
+              'Ignoring START marker not at beginning of sequence at position '
+              '%d' % i)
       elif event.event_type == PolyphonicEvent.END and i < len(self) - 1:
         tf.logging.debug(
             'Ignoring END maker before end of sequence at position %d' % i)
@@ -379,8 +388,9 @@ class PolyphonicSequence(events_lib.EventSequence):
           'the sequence was missing a STEP_END event before the end of the '
           'sequence. To ensure a well-formed sequence, call set_length first.')
 
+    sequence.total_time = seconds_per_step * (step - 1) + sequence_start_time
     if sequence.notes:
-      sequence.total_time = sequence.notes[-1].end_time
+      assert sequence.total_time >= sequence.notes[-1].end_time
 
     return sequence
 

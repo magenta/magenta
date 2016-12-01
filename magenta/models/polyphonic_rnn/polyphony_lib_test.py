@@ -13,6 +13,8 @@
 # limitations under the License.
 """Tests for polyphony_lib."""
 
+import copy
+
 # internal imports
 
 import tensorflow as tf
@@ -119,6 +121,58 @@ class PolyphonyLibTest(tf.test.TestCase):
 
     self.assertEqual(self.note_sequence, poly_seq_ns)
 
+  def testToSequenceWithExtraEndEvents(self):
+    poly_seq = polyphony_lib.PolyphonicSequence(steps_per_quarter=1)
+
+    pe = polyphony_lib.PolyphonicEvent
+    poly_events = [
+        # step 0
+        pe(pe.NEW_NOTE, 60),
+        pe(pe.END, None), # END event before end. Should be ignored.
+        pe(pe.NEW_NOTE, 64),
+        pe(pe.END, None), # END event before end. Should be ignored.
+        pe(pe.STEP_END, None),
+        pe(pe.END, None), # END event before end. Should be ignored.
+        # step 1
+        pe(pe.CONTINUED_NOTE, 60),
+        pe(pe.END, None), # END event before end. Should be ignored.
+        pe(pe.CONTINUED_NOTE, 64),
+        pe(pe.END, None), # END event before end. Should be ignored.
+        pe(pe.STEP_END, None),
+
+        pe(pe.END, None),
+    ]
+    for event in poly_events:
+      poly_seq.append(event)
+
+    poly_seq_ns = poly_seq.to_sequence(qpm=60.0)
+
+    testing_lib.add_track_to_sequence(
+        self.note_sequence, 0,
+        [(60, 100, 0.0, 2.0), (64, 100, 0.0, 2.0)])
+
+    # Make comparison easier
+    poly_seq_ns.notes.sort(key=lambda n: (n.start_time, n.pitch))
+    self.note_sequence.notes.sort(key=lambda n: (n.start_time, n.pitch))
+
+    self.assertEqual(self.note_sequence, poly_seq_ns)
+
+  def testToSequenceWithUnfinishedSequence(self):
+    poly_seq = polyphony_lib.PolyphonicSequence(steps_per_quarter=1)
+
+    pe = polyphony_lib.PolyphonicEvent
+    poly_events = [
+        # step 0
+        pe(pe.NEW_NOTE, 60),
+        pe(pe.NEW_NOTE, 64),
+        # missing STEP_END and END events at end of sequence.
+    ]
+    for event in poly_events:
+      poly_seq.append(event)
+
+    with self.assertRaises(ValueError):
+      poly_seq_ns = poly_seq.to_sequence(qpm=60.0)
+
   def testToSequenceWithRepeatedNotes(self):
     poly_seq = polyphony_lib.PolyphonicSequence(steps_per_quarter=1)
 
@@ -147,6 +201,64 @@ class PolyphonyLibTest(tf.test.TestCase):
     # Make comparison easier
     poly_seq_ns.notes.sort(key=lambda n: (n.start_time, n.pitch))
     self.note_sequence.notes.sort(key=lambda n: (n.start_time, n.pitch))
+
+    self.assertEqual(self.note_sequence, poly_seq_ns)
+
+  def testToSequenceWithBaseNoteSequence(self):
+    poly_seq = polyphony_lib.PolyphonicSequence(
+        steps_per_quarter=1, start_step=1)
+
+    pe = polyphony_lib.PolyphonicEvent
+    poly_events = [
+        # step 0
+        pe(pe.NEW_NOTE, 60),
+        pe(pe.NEW_NOTE, 64),
+        pe(pe.STEP_END, None),
+        # step 1
+        pe(pe.CONTINUED_NOTE, 60),
+        pe(pe.CONTINUED_NOTE, 64),
+        pe(pe.STEP_END, None),
+
+        pe(pe.END, None),
+    ]
+    for event in poly_events:
+      poly_seq.append(event)
+
+    base_seq = copy.deepcopy(self.note_sequence)
+    testing_lib.add_track_to_sequence(
+        base_seq, 0, [(60, 100, 0.0, 1.0)])
+
+    poly_seq_ns = poly_seq.to_sequence(qpm=60.0, base_note_sequence=base_seq)
+
+    testing_lib.add_track_to_sequence(
+        self.note_sequence, 0,
+        [(60, 100, 0.0, 1.0), (60, 100, 1.0, 3.0), (64, 100, 1.0, 3.0)])
+
+    # Make comparison easier
+    poly_seq_ns.notes.sort(key=lambda n: (n.start_time, n.pitch))
+    self.note_sequence.notes.sort(key=lambda n: (n.start_time, n.pitch))
+
+    self.assertEqual(self.note_sequence, poly_seq_ns)
+
+  def testToSequenceWithEmptySteps(self):
+    poly_seq = polyphony_lib.PolyphonicSequence(
+        steps_per_quarter=1)
+
+    pe = polyphony_lib.PolyphonicEvent
+    poly_events = [
+        # step 0
+        pe(pe.STEP_END, None),
+        # step 1
+        pe(pe.STEP_END, None),
+
+        pe(pe.END, None),
+    ]
+    for event in poly_events:
+      poly_seq.append(event)
+
+    poly_seq_ns = poly_seq.to_sequence(qpm=60.0)
+
+    self.note_sequence.total_time = 2
 
     self.assertEqual(self.note_sequence, poly_seq_ns)
 
@@ -194,7 +306,7 @@ class PolyphonyLibTest(tf.test.TestCase):
     ]
     self.assertEqual(poly_events, list(poly_seq))
 
-  def testSetLengthAddStepsToUnfinished(self):
+  def testSetLengthAddStepsToSequenceWithoutEnd(self):
     poly_seq = polyphony_lib.PolyphonicSequence(steps_per_quarter=1)
 
     # Construct a list with one silence step and no END.
@@ -206,6 +318,26 @@ class PolyphonyLibTest(tf.test.TestCase):
         pe(pe.START, None),
 
         pe(pe.STEP_END, None),
+        pe(pe.STEP_END, None),
+
+        pe(pe.END, None),
+    ]
+    self.assertEqual(poly_events, list(poly_seq))
+
+  def testSetLengthAddStepsToSequenceWithUnfinishedStep(self):
+    poly_seq = polyphony_lib.PolyphonicSequence(steps_per_quarter=1)
+
+    # Construct a list with one note and no STEP_END or END.
+    pe = polyphony_lib.PolyphonicEvent
+    poly_seq.append(pe(pe.NEW_NOTE, 60))
+
+    poly_seq.set_length(2)
+    poly_events = [
+        pe(pe.START, None),
+
+        pe(pe.NEW_NOTE, 60),
+        pe(pe.STEP_END, None),
+
         pe(pe.STEP_END, None),
 
         pe(pe.END, None),
@@ -265,13 +397,31 @@ class PolyphonyLibTest(tf.test.TestCase):
     ]
     self.assertEqual(poly_events, list(poly_seq))
 
-  def testSetLengthRemoveStepsFromUnfinished(self):
+  def testSetLengthRemoveStepsFromSequenceWithoutEnd(self):
     poly_seq = polyphony_lib.PolyphonicSequence(steps_per_quarter=1)
 
     # Construct a list with two silence steps and no END.
     pe = polyphony_lib.PolyphonicEvent
     poly_seq.append(pe(pe.STEP_END, None))
     poly_seq.append(pe(pe.STEP_END, None))
+
+    poly_seq.set_length(1)
+    poly_events = [
+        pe(pe.START, None),
+
+        pe(pe.STEP_END, None),
+
+        pe(pe.END, None),
+    ]
+    self.assertEqual(poly_events, list(poly_seq))
+
+  def testSetLengthRemoveStepsFromSequenceWithUnfinishedStep(self):
+    poly_seq = polyphony_lib.PolyphonicSequence(steps_per_quarter=1)
+
+    # Construct a list with a silence step, a new note, and no STEP_END or END.
+    pe = polyphony_lib.PolyphonicEvent
+    poly_seq.append(pe(pe.STEP_END, None))
+    poly_seq.append(pe(pe.NEW_NOTE, 60))
 
     poly_seq.set_length(1)
     poly_events = [
@@ -304,6 +454,55 @@ class PolyphonyLibTest(tf.test.TestCase):
       poly_seq.append(event)
 
     self.assertEqual(2, poly_seq.num_steps)
+
+  def testNumStepsIncompleteStep(self):
+    poly_seq = polyphony_lib.PolyphonicSequence(steps_per_quarter=1)
+
+    pe = polyphony_lib.PolyphonicEvent
+    poly_events = [
+        pe(pe.START, None),
+        # step 0
+        pe(pe.NEW_NOTE, 60),
+        pe(pe.NEW_NOTE, 64),
+        pe(pe.STEP_END, None),
+        # step 1
+        pe(pe.CONTINUED_NOTE, 60),
+        pe(pe.CONTINUED_NOTE, 64),
+        pe(pe.STEP_END, None),
+        # incomplete step. should not be counted.
+        pe(pe.NEW_NOTE, 72),
+
+    ]
+    for event in poly_events:
+      poly_seq.append(event)
+
+    self.assertEqual(2, poly_seq.num_steps)
+
+  def testTrimTrailingEndEvents(self):
+    poly_seq = polyphony_lib.PolyphonicSequence(steps_per_quarter=1)
+
+    pe = polyphony_lib.PolyphonicEvent
+    poly_events = [
+        # step 0
+        pe(pe.NEW_NOTE, 60),
+        pe(pe.STEP_END, None),
+
+        pe(pe.END, None),
+        pe(pe.END, None),
+    ]
+    for event in poly_events:
+      poly_seq.append(event)
+
+    poly_seq.trim_trailing_end_events()
+
+    poly_events_expected = [
+        pe(pe.START, None),
+        # step 0
+        pe(pe.NEW_NOTE, 60),
+        pe(pe.STEP_END, None),
+    ]
+
+    self.assertEqual(poly_events_expected, list(poly_seq))
 
   def testExtractPolyphonicSequences(self):
     testing_lib.add_track_to_sequence(

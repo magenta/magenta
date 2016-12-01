@@ -171,10 +171,6 @@ class PolyphonicRnnSequenceGenerator(mm.BaseSequenceGenerator):
     return generated_sequence
 
 
-START_OR_STEP_END = (PolyphonicEvent.START, PolyphonicEvent.STEP_END)
-NOTE_EVENT = (PolyphonicEvent.NEW_NOTE, PolyphonicEvent.CONTINUED_NOTE)
-
-
 def _inject_melody(melody, start_step, encoder_decoder, event_sequences,
                    inputs):
   """A modify_events_callback method for generate_polyphonic_sequence.
@@ -199,25 +195,29 @@ def _inject_melody(melody, start_step, encoder_decoder, event_sequences,
     event_sequence = event_sequences[i]
     input_ = inputs[i]
 
-    # Only modify the event sequence if we're at the start of a new step.
-    if event_sequence[-1].event_type not in START_OR_STEP_END:
+    # Only modify the event sequence if we're at the start of a new step or this
+    # is the first step.
+    if not (event_sequence[-1].event_type == PolyphonicEvent.STEP_END or
+            len(event_sequence) == 0 or
+            (event_sequence[-1].event_type == PolyphonicEvent.START and
+             len(event_sequence) == 1)):
       continue
 
     # Determine the current step event.
-    event_step_count = 1
+    event_step_count = 0
     for event in event_sequence:
       if event.event_type == PolyphonicEvent.STEP_END:
         event_step_count += 1
 
     # Find the corresponding event in the input melody.
-    melody_step_count = start_step + 1
+    melody_step_count = start_step
     for i, event in enumerate(melody):
       if event.event_type == PolyphonicEvent.STEP_END:
         melody_step_count += 1
       if melody_step_count == event_step_count:
         melody_pos = i + 1
         while melody_pos < len(melody) and (
-            melody[melody_pos].event_type in NOTE_EVENT):
+            melody[melody_pos].event_type != PolyphonicEvent.STEP_END):
           event_sequence.append(melody[melody_pos])
           input_.extend(encoder_decoder.get_inputs_batch([event_sequence])[0])
           melody_pos += 1
