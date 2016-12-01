@@ -181,15 +181,13 @@ def run_with_flags(generator):
       qpm = primer_sequence.tempos[0].qpm
   else:
     tf.logging.warning(
-        'No priming sequence specified. Defaulting to silence.')
+        'No priming sequence specified. Defaulting to empty sequence.')
     primer_sequence = music_pb2.NoteSequence()
     primer_sequence.tempos.add().qpm = qpm
     primer_sequence.ticks_per_quarter = constants.STANDARD_PPQ
-    primer_sequence.total_time = 60.0 / qpm
 
   # Derive the total number of seconds to generate.
-  generate_seconds = (_steps_to_seconds(FLAGS.num_steps, qpm) -
-                      primer_sequence.total_time)
+  generate_end_time = _steps_to_seconds(FLAGS.num_steps, qpm)
 
   # Specify start/stop time for generation based on starting generation at the
   # end of the priming sequence and continuing until the sequence is num_steps
@@ -198,14 +196,14 @@ def run_with_flags(generator):
   # Set the start time to begin when the last note ends.
   generate_section = generator_options.generate_sections.add(
       start_time=primer_sequence.total_time,
-      end_time=generate_seconds)
+      end_time=generate_end_time)
 
   if generate_section.start_time >= generate_section.end_time:
     tf.logging.fatal(
         'Priming sequence is longer than the total number of steps '
-        'requested: Priming sequence length: %s, Generation length '
+        'requested: Priming sequence length: %s, Total length '
         'requested: %s',
-        generate_section.start_time, generate_seconds)
+        generate_section.start_time, generate_end_time)
     return
 
   generator_options.args['temperature'].float_value = FLAGS.temperature
