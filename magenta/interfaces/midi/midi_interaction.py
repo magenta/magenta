@@ -567,7 +567,7 @@ class ExternalClockCallAndResponse(MidiInteraction):
 
           # Compute duration of response.
           num_ticks = (
-              self._midi_hub.control_value(self._response_ticks_control_numbere_ticks_control_number)
+              self._midi_hub.control_value(self._response_ticks_control_number)
               if self._response_ticks_control_number is not None else None)
           if num_ticks:
             response_duration = num_ticks * tick_duration
