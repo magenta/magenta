@@ -226,7 +226,8 @@ class PolyphonicSequence(events_lib.EventSequence):
     Does not count incomplete steps (i.e., steps that do not have a terminating
     STEP_END event).
 
-    Returns: Length of the sequence in quantized steps.
+    Returns:
+      Length of the sequence in quantized steps.
     """
     steps = 0
     for event in self:

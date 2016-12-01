@@ -128,16 +128,16 @@ class PolyphonyLibTest(tf.test.TestCase):
     poly_events = [
         # step 0
         pe(pe.NEW_NOTE, 60),
-        pe(pe.END, None), # END event before end. Should be ignored.
+        pe(pe.END, None),  # END event before end. Should be ignored.
         pe(pe.NEW_NOTE, 64),
-        pe(pe.END, None), # END event before end. Should be ignored.
+        pe(pe.END, None),  # END event before end. Should be ignored.
         pe(pe.STEP_END, None),
-        pe(pe.END, None), # END event before end. Should be ignored.
+        pe(pe.END, None),  # END event before end. Should be ignored.
         # step 1
         pe(pe.CONTINUED_NOTE, 60),
-        pe(pe.END, None), # END event before end. Should be ignored.
+        pe(pe.END, None),  # END event before end. Should be ignored.
         pe(pe.CONTINUED_NOTE, 64),
-        pe(pe.END, None), # END event before end. Should be ignored.
+        pe(pe.END, None),  # END event before end. Should be ignored.
         pe(pe.STEP_END, None),
 
         pe(pe.END, None),
@@ -171,7 +171,7 @@ class PolyphonyLibTest(tf.test.TestCase):
       poly_seq.append(event)
 
     with self.assertRaises(ValueError):
-      poly_seq_ns = poly_seq.to_sequence(qpm=60.0)
+      poly_seq.to_sequence(qpm=60.0)
 
   def testToSequenceWithRepeatedNotes(self):
     poly_seq = polyphony_lib.PolyphonicSequence(steps_per_quarter=1)

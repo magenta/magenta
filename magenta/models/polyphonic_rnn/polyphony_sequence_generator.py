@@ -198,7 +198,7 @@ def _inject_melody(melody, start_step, encoder_decoder, event_sequences,
     # Only modify the event sequence if we're at the start of a new step or this
     # is the first step.
     if not (event_sequence[-1].event_type == PolyphonicEvent.STEP_END or
-            len(event_sequence) == 0 or
+            not event_sequence or
             (event_sequence[-1].event_type == PolyphonicEvent.START and
              len(event_sequence) == 1)):
       continue
