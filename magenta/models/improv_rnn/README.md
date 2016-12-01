@@ -30,7 +30,7 @@ SequenceExamples are fed into the model during training and evaluation. Each Seq
 
 ```
 improv_rnn_create_dataset \
---config=<one of 'basic_improv' or 'attention_improv'>
+--config=<one of 'basic_improv', 'attention_improv', or 'chord_pitches_improv'>
 --input=/tmp/notesequences.tfrecord \
 --output_dir=/tmp/improv_rnn/sequence_examples \
 --eval_ratio=0.10

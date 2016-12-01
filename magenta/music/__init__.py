@@ -19,6 +19,7 @@ from magenta.music.chord_symbols_lib import ChordSymbolFunctions
 
 from magenta.music.chords_encoder_decoder import ChordEncodingException
 from magenta.music.chords_encoder_decoder import MajorMinorChordOneHotEncoding
+from magenta.music.chords_encoder_decoder import PitchChordsEncoderDecoder
 from magenta.music.chords_encoder_decoder import TriadChordOneHotEncoding
 
 from magenta.music.chords_lib import BasicChordRenderer
