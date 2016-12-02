@@ -166,8 +166,7 @@ class PolyphonicRnnSequenceGenerator(mm.BaseSequenceGenerator):
     # specify a base_note_sequence.
     generated_sequence = poly_seq.to_sequence(
         qpm=qpm, base_note_sequence=copy.deepcopy(primer_sequence))
-    assert (
-        abs(generated_sequence.total_time - generate_section.end_time) <= 1e-5)
+    assert (generated_sequence.total_time - generate_section.end_time) <= 1e-5
     return generated_sequence
 
 
