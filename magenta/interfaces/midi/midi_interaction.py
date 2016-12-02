@@ -613,7 +613,8 @@ class ExternalClockCallAndResponse(MidiInteraction):
 
           # If it took too long to generate, push response to next tick.
           if (time.time() - response_start_time) >= tick_duration / 4:
-            push_ticks = (time.time() - response_start_time) / tick_duration + 1
+            push_ticks = (
+                (time.time() - response_start_time) // tick_duration + 1)
             capture_start_time += push_ticks * tick_duration
             response_start_time += push_ticks * tick_duration
             response_end_time += push_ticks * tick_duration
