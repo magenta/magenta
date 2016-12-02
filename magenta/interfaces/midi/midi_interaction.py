@@ -533,9 +533,11 @@ class ExternalClockCallAndResponse(MidiInteraction):
       tick_time = captured_sequence.total_time
       tick_duration = tick_time - last_tick_time
       last_end_time = (max(note.end_time for note in captured_sequence.notes)
-                       if captured_sequence.notes else None)
+                       if captured_sequence.notes else 0.0)
+      silent_tick = last_end_time <= last_tick_time
 
-      listen_ticks += 1
+      if not silent_tick:
+        listen_ticks += 1
 
       if not captured_sequence.notes:
         # Reset captured sequence since we are still idling.
@@ -546,10 +548,8 @@ class ExternalClockCallAndResponse(MidiInteraction):
         self._end_call.clear()
         listen_ticks = 0
       elif (self._end_call.is_set() or
-            last_end_time <= last_tick_time or
+            silent_tick or
             listen_ticks >= self._max_listen_ticks):
-        if last_end_time <= last_tick_time:
-          listen_ticks -= 1
         if listen_ticks < self._min_listen_ticks:
           tf.logging.info(
             'Input too short (%d vs %d). Skipping.',
