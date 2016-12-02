@@ -548,6 +548,8 @@ class ExternalClockCallAndResponse(MidiInteraction):
       elif (self._end_call.is_set() or
             last_end_time <= last_tick_time or
             listen_ticks >= self._max_listen_ticks):
+        if last_end_time <= last_tick_time:
+          listen_ticks -= 1
         if listen_ticks < self._min_listen_ticks:
           tf.logging.info(
             'Input too short (%d vs %d). Skipping.',
@@ -615,7 +617,6 @@ class ExternalClockCallAndResponse(MidiInteraction):
             capture_start_time += push_ticks * tick_duration
             response_start_time += push_ticks * tick_duration
             response_end_time += push_ticks * tick_duration
-
 
           response_sequence = retime(response_sequence, capture_start_time)
           response_sequence = magenta.music.extract_subsequence(
