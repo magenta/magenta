@@ -183,8 +183,7 @@ class NoteRNNLoader(object):
           # hparams.
           if self.note_rnn_type == 'basic_rnn':
             self.cell = events_rnn_graph.make_rnn_cell(
-                self.hparams.rnn_layer_sizes,
-                dropout_keep_prob=self.hparams.dropout_keep_prob)
+                self.hparams.rnn_layer_sizes)
           else:
             self.cell = rl_tuner_ops.make_rnn_cell(self.hparams.rnn_layer_sizes)
           # Shape of melody_sequence is batch size, melody length, number of

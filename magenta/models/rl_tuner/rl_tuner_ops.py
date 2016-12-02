@@ -103,7 +103,6 @@ def basic_rnn_hparams():
   """
   # TODO(natashajaques): ability to restore basic_rnn from any .mag file.
   return tf_lib.HParams(batch_size=128,
-                        dropout_keep_prob=0.5,
                         rnn_layer_sizes=[512, 512],
                         one_hot_length=NUM_CLASSES)
 
