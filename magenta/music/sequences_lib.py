@@ -45,7 +45,15 @@ class MultipleTimeSignatureException(Exception):
   pass
 
 
+class NoTimeSignatureException(Exception):
+  pass
+
+
 class MultipleTempoException(Exception):
+  pass
+
+
+class NoTempoException(Exception):
   pass
 
 
@@ -53,8 +61,8 @@ class NegativeTimeException(Exception):
   pass
 
 
-class SequenceNotQuantizedException(Exception):
-  """Exception for when a quantized sequence was expected but not received.
+class QuantizationStatusException(Exception):
+  """Exception for when a sequence was unexpectedly quantized or unquantized.
 
   Should not happen during normal operation and likely indicates a programming
   error.
@@ -62,22 +70,34 @@ class SequenceNotQuantizedException(Exception):
   pass
 
 
-def extract_subsequence(sequence, start_time, end_time):
+def extract_subsequence(sequence, start_time, end_time, shift_to_zero=False):
   """Extracts a subsequence from a NoteSequence.
 
   Notes starting before `start_time` are not included. Notes ending after
   `end_time` are truncated. Text annotations (including chord symbols) are also
   only included if between `start_time` and `end_time`.
 
+  If `shift_to_zero` is True, all NoteSequence components other than notes and
+  text annotations will be removed.
+
   Args:
     sequence: The NoteSequence to extract a subsequence from.
     start_time: The float time in seconds to start the subsequence.
     end_time: The float time in seconds to end the subsequence.
+    shift_to_zero: If True, the extracted subsequence is shifted to start at
+        time zero.
 
   Returns:
     A new NoteSequence that is a subsequence of `sequence` in the specified time
     range.
+
+  Raises:
+    QuantizationStatusException: If the sequence has already been quantized.
   """
+  if is_quantized_sequence(sequence):
+    raise QuantizationStatusException(
+        'Can only extract subsequence from unquantized NoteSequence.')
+
   subsequence = music_pb2.NoteSequence()
   subsequence.CopyFrom(sequence)
 
@@ -88,7 +108,13 @@ def extract_subsequence(sequence, start_time, end_time):
     new_note = subsequence.notes.add()
     new_note.CopyFrom(note)
     new_note.end_time = min(note.end_time, end_time)
+    if shift_to_zero:
+      new_note.start_time -= start_time
+      new_note.end_time -= start_time
+
   subsequence.total_time = min(sequence.total_time, end_time)
+  if shift_to_zero:
+    subsequence.total_time -= start_time
 
   del subsequence.text_annotations[:]
   for annotation in sequence.text_annotations:
@@ -96,11 +122,34 @@ def extract_subsequence(sequence, start_time, end_time):
       continue
     new_annotation = subsequence.text_annotations.add()
     new_annotation.CopyFrom(annotation)
+    if shift_to_zero:
+      new_annotation.time -= start_time
+
+  if shift_to_zero:
+    # For simplicity, remove all other events.
+    del subsequence.time_signatures[:]
+    del subsequence.key_signatures[:]
+    del subsequence.tempos[:]
+    del subsequence.pitch_bends[:]
+    del subsequence.control_changes[:]
+
   return subsequence
 
 
 def _is_power_of_2(x):
   return x and not x & (x - 1)
+
+
+def is_quantized_sequence(note_sequence):
+  """Returns whether or not a NoteSequence proto has been quantized.
+
+  Args:
+    note_sequence: A music_pb2.NoteSequence proto.
+
+  Returns:
+    True if `note_sequence` is quantized, otherwise False.
+  """
+  return note_sequence.quantization_info.steps_per_quarter > 0
 
 
 def assert_is_quantized_sequence(note_sequence):
@@ -110,13 +159,13 @@ def assert_is_quantized_sequence(note_sequence):
     note_sequence: A music_pb2.NoteSequence proto.
 
   Raises:
-    SequenceNotQuantizedException: If the sequence is not quantized.
+    QuantizationStatusException: If the sequence is not quantized.
   """
   # If the QuantizationInfo message has a non-zero steps_per_quarter, assume
   # that the proto has been quantized.
-  if not note_sequence.quantization_info.steps_per_quarter > 0:
-    raise SequenceNotQuantizedException('NoteSequence %s is not quantized.' %
-                                        note_sequence.id)
+  if not is_quantized_sequence(note_sequence):
+    raise QuantizationStatusException('NoteSequence %s is not quantized.' %
+                                      note_sequence.id)
 
 
 def steps_per_bar_in_quantized_sequence(note_sequence):
@@ -136,6 +185,80 @@ def steps_per_bar_in_quantized_sequence(note_sequence):
   steps_per_bar_float = (note_sequence.quantization_info.steps_per_quarter *
                          quarters_per_bar)
   return steps_per_bar_float
+
+
+def split_note_sequence_on_time_changes(note_sequence):
+  """Split one NoteSequence into many around time signature and tempo changes.
+
+  This function splits a NoteSequence into multiple NoteSequences, each of which
+  contains only a single time signature and tempo. Each of the resulting
+  NoteSequences is shifted to start at time zero.
+
+  Args:
+    note_sequence: The NoteSequence to split.
+
+  Returns:
+    A Python list of NoteSequences, each of which has a single tempo and time
+    signature.
+  """
+  prev_change_time = 0.0
+  current_numerator = 4
+  current_denominator = 4
+  current_qpm = constants.DEFAULT_QUARTERS_PER_MINUTE
+
+  time_signatures_and_tempos = sorted(
+      list(note_sequence.time_signatures) + list(note_sequence.tempos),
+      key=lambda t: t.time)
+
+  subsequences = []
+
+  for time_change in time_signatures_and_tempos:
+    if time_change.time > prev_change_time:
+      # Time change is not coincident with the previous time change, we may
+      # actually need to split here.
+      if isinstance(time_change, music_pb2.NoteSequence.TimeSignature):
+        if (time_change.numerator == current_numerator and
+            time_change.denominator == current_denominator):
+          # Time signature didn't actually change.
+          continue
+      else:
+        if time_change.qpm == current_qpm:
+          # Tempo didn't actually change.
+          continue
+
+      # Extract the subsequence between the previous time change and this time
+      # change.
+      subsequence = extract_subsequence(note_sequence, prev_change_time,
+                                        time_change.time, shift_to_zero=True)
+      time_signature = subsequence.time_signatures.add()
+      time_signature.numerator = current_numerator
+      time_signature.denominator = current_denominator
+      tempo = subsequence.tempos.add()
+      tempo.qpm = current_qpm
+      subsequences.append(subsequence)
+
+    # Whether or not we split, update the last change time and current time
+    # signature and tempo.
+    prev_change_time = time_change.time
+    if isinstance(time_change, music_pb2.NoteSequence.TimeSignature):
+      current_numerator = time_change.numerator
+      current_denominator = time_change.denominator
+    else:
+      current_qpm = time_change.qpm
+
+  # Handle the final subsequence.
+  if note_sequence.total_time > prev_change_time:
+    subsequence = extract_subsequence(note_sequence, prev_change_time,
+                                      note_sequence.total_time,
+                                      shift_to_zero=True)
+    time_signature = subsequence.time_signatures.add()
+    time_signature.numerator = current_numerator
+    time_signature.denominator = current_denominator
+    tempo = subsequence.tempos.add()
+    tempo.qpm = current_qpm
+    subsequences.append(subsequence)
+
+  return subsequences
 
 
 def quantize_to_step(unquantized_seconds, steps_per_second,
