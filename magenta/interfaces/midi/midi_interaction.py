@@ -69,6 +69,7 @@ def filter_instrument(sequence, instrument, from_time=0):
     filtered_sequence.notes.add().CopyFrom(note)
   return filtered_sequence
 
+
 def retime(sequence, delta_time):
   retimed_sequence = music_pb2.NoteSequence()
   retimed_sequence.CopyFrom(sequence)
@@ -79,15 +80,6 @@ def retime(sequence, delta_time):
   retimed_sequence.total_time += delta_time
   return retimed_sequence
 
-def rezero(sequence, zero_time):
-  rezeroed_sequence = music_pb2.NoteSequence()
-  rezeroed_sequence.CopyFrom(sequence)
-  if not sequence.notes:
-    return rezeroed_sequence
-  old_zero_time = min(n.start_time for n in sequence.notes)
-  delta_time = zero_time - old_zero_time
-
-  return retime(sequence, delta_time)
 
 def temperature_from_control_value(
     val, min_temp=0.1, max_temp=2.0, default=1.0):
@@ -442,7 +434,8 @@ class ExternalClockCallAndResponse(MidiInteraction):
                loop_control_number=None,
                state_control_number=None):
     super(ExternalClockCallAndResponse, self).__init__(
-        midi_hub, sequence_generators, qpm, generator_select_control_number)
+        midi_hub, sequence_generators, qpm, generator_select_control_number,
+        tempo_control_number)
     self._clock_signal = clock_signal
     self._end_call_signal = end_call_signal
     self._panic_signal = panic_signal
