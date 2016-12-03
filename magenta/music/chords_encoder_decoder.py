@@ -155,3 +155,75 @@ class TriadChordOneHotEncoding(encoder_decoder.OneHotEncoding):
     else:
       # diminished
       return _PITCH_CLASS_MAPPING[index - 3 * NOTES_PER_OCTAVE - 1] + 'dim'
+
+
+class PitchChordsEncoderDecoder(encoder_decoder.EventSequenceEncoderDecoder):
+  """An encoder/decoder for chords that encodes chord root, pitches, and bass.
+
+  This class has no label encoding and can only be used to encode chords as
+  model input vectors. It can be used to help generate another type of event
+  sequence (e.g. melody) conditioned on chords.
+  """
+
+  def __init__(self, chord_symbol_functions=
+               chord_symbols_lib.ChordSymbolFunctions.get()):
+    """Initialize the PitchChordsEncoderDecoder object.
+
+    Args:
+      chord_symbol_functions: ChordSymbolFunctions object with which to perform
+          the actual parsing of chord symbol strings.
+    """
+    self._chord_symbol_functions = chord_symbol_functions
+
+  @property
+  def input_size(self):
+    return 3 * NOTES_PER_OCTAVE + 1
+
+  @property
+  def num_classes(self):
+    raise NotImplementedError
+
+  @property
+  def default_event_label(self):
+    raise NotImplementedError
+
+  def events_to_input(self, events, position):
+    """Returns the input vector for the given position in the chord progression.
+
+    Indices [0, 36]:
+    [0]: Whether or not this chord is "no chord".
+    [1, 12]: A one-hot encoding of the chord root pitch class.
+    [13, 24]: Whether or not each pitch class is present in the chord.
+    [25, 36]: A one-hot encoding of the chord bass pitch class.
+
+    Args:
+      events: A magenta.music.ChordProgression object.
+      position: An integer event position in the chord progression.
+
+    Returns:
+      An input vector, an self.input_size length list of floats.
+    """
+    chord = events[position]
+    input_ = [0.0] * self.input_size
+
+    if chord == NO_CHORD:
+      input_[0] = 1.0
+      return input_
+
+    root = self._chord_symbol_functions.chord_symbol_root(chord)
+    input_[1 + root] = 1.0
+
+    pitches = self._chord_symbol_functions.chord_symbol_pitches(chord)
+    for pitch in pitches:
+      input_[1 + NOTES_PER_OCTAVE + pitch] = 1.0
+
+    bass = self._chord_symbol_functions.chord_symbol_bass(chord)
+    input_[1 + 2 * NOTES_PER_OCTAVE + bass] = 1.0
+
+    return input_
+
+  def events_to_label(self, events, position):
+    raise NotImplementedError
+
+  def class_index_to_event(self, class_index, events):
+    raise NotImplementedError
