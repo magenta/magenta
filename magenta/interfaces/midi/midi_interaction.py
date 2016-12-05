@@ -426,6 +426,7 @@ class ExternalClockCallAndResponse(MidiInteraction):
                clock_signal,
                end_call_signal=None,
                panic_signal=None,
+               mutate_signal=None,
                allow_overlap=False,
                min_listen_ticks_control_number=None,
                max_listen_ticks_control_number=None,
@@ -439,6 +440,7 @@ class ExternalClockCallAndResponse(MidiInteraction):
     self._clock_signal = clock_signal
     self._end_call_signal = end_call_signal
     self._panic_signal = panic_signal
+    self._mutate_signal = mutate_signal
     self._allow_overlap = allow_overlap
     self._min_listen_ticks_control_number = min_listen_ticks_control_number
     self._max_listen_ticks_control_number = max_listen_ticks_control_number
@@ -488,6 +490,42 @@ class ExternalClockCallAndResponse(MidiInteraction):
   def _should_loop(self):
     return (self._loop_control_number and
             self._midi_hub.control_value(self._loop_control_number) == 127)
+
+
+  def _generate(self, input_sequence, zero_time, response_duration):
+    response_start_time = input_sequence.total_time
+    response_end_time = response_start_time + response_duration
+
+    generator_options = magenta.protobuf.generator_pb2.GeneratorOptions()
+    generator_options.input_sections.add(
+        start_time=0,
+        end_time=response_start_time)
+    generator_options.generate_sections.add(
+        start_time=response_start_time,
+        end_time=response_end_time)
+
+    # Get current temperature setting.
+    temperature = temperature_from_control_value(
+        self._midi_hub.control_value(self._temperature_control_number))
+    if temperature is not None:
+      generator_options.args['temperature'].float_value = temperature
+
+    # Generate response.
+    tf.logging.info(
+        "Generating sequence using '%s' generator from bundle: %s",
+        self._sequence_generator.details.id,
+        self._sequence_generator.bundle_details.id)
+    tf.logging.debug('Generator Details: %s',
+                     self._sequence_generator.details)
+    tf.logging.debug('Bundle Details: %s',
+                     self._sequence_generator.bundle_details)
+    tf.logging.debug('Generator Options: %s', generator_options)
+    response = self._sequence_generator.generate(
+        retime(input_sequence, -zero_time), generator_options))
+    response_sequence = magenta.music.extract_subsequence(
+        response_sequence, response_start_time, response_end_time)
+    return retime(response, zero_time)
+
 
   def run(self):
     """The main loop for a real-time call and response interaction."""
@@ -572,37 +610,12 @@ class ExternalClockCallAndResponse(MidiInteraction):
 
           last_end_time <= last_tick_time
 
-          # Generate sequence options.
           response_start_time = tick_time
-          response_end_time = response_start_time + response_duration
+          response_sequence = self._generate(
+              captured_sequence,
+              -capture_start_time
+              response_duration)
 
-          generator_options = magenta.protobuf.generator_pb2.GeneratorOptions()
-          generator_options.input_sections.add(
-              start_time=0,
-              end_time=tick_time - capture_start_time)
-          generator_options.generate_sections.add(
-              start_time=response_start_time - capture_start_time,
-              end_time=response_end_time - capture_start_time)
-
-          # Get current temperature setting.
-          temperature = temperature_from_control_value(
-              self._midi_hub.control_value(self._temperature_control_number))
-          if temperature is not None:
-            generator_options.args['temperature'].float_value = temperature
-
-          # Generate response.
-          tf.logging.info(
-              "Generating sequence using '%s' generator from bundle: %s",
-              self._sequence_generator.details.id,
-              self._sequence_generator.bundle_details.id)
-          tf.logging.debug('Generator Details: %s',
-                           self._sequence_generator.details)
-          tf.logging.debug('Bundle Details: %s',
-                           self._sequence_generator.bundle_details)
-          tf.logging.debug('Generator Options: %s', generator_options)
-          response_sequence = self._sequence_generator.generate(
-              retime(captured_sequence, -capture_start_time),
-              generator_options)
 
           # If it took too long to generate, push response to next tick.
           if (time.time() - response_start_time) >= tick_duration / 4:
@@ -613,8 +626,7 @@ class ExternalClockCallAndResponse(MidiInteraction):
             response_end_time += push_ticks * tick_duration
 
           response_sequence = retime(response_sequence, capture_start_time)
-          response_sequence = magenta.music.extract_subsequence(
-              response_sequence, response_start_time, response_end_time)
+
           # Start response playback. Specify the start_time to avoid stripping
           # initial events due to generation lag.
           player.update_sequence(
@@ -635,9 +647,14 @@ class ExternalClockCallAndResponse(MidiInteraction):
 
       # Potentially loop previous response.
       if (response_sequence.total_time <= tick_time and
-          self._should_loop):
-        response_sequence = retime(response_sequence,
-                                   tick_time - response_start_time)
+          (self._should_loop or self._mutate_signal)):
+        if self._mutate_signal:
+          response_sequence = self._generate(
+              response_sequence, -response_start_time,
+              response_sequence.total_time - response_start_time)
+        else:
+          response_sequence = retime(response_sequence,
+                                     tick_time - response_start_time)
         response_start_time = tick_time
         player.update_sequence(
             response_sequence, start_time=tick_time)
