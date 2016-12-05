@@ -941,18 +941,13 @@ class MusicXMLParserTest(tf.test.TestCase):
     self.assertEqual(expected_times_and_chords, chord_symbols)
 
   def test_alternating_meter(self):
-    try:
-      ns = musicxml_reader.musicxml_file_to_sequence_proto(
-          self.alternating_meter_filename)
-    except musicxml_reader.MusicXMLConversionError as exception:
-      print("Caught AlternatingTimeSignatureException")
+    with self.assertRaises(musicxml_parser.AlternatingTimeSignatureException):
+      musicxml_parser.MusicXMLDocument(self.alternating_meter_filename)
 
   def test_mid_measure_meter_change(self):
-    try:
-      ns = musicxml_reader.musicxml_file_to_sequence_proto(
-          self.mid_measure_meter_filename)
-    except musicxml_reader.MusicXMLConversionError as exception:
-      print("Caught MultipleTimeSignatureException")
+    with self.assertRaises(musicxml_parser.MultipleTimeSignatureException):
+      musicxml_parser.MusicXMLDocument(self.mid_measure_meter_filename)
+
 
 if __name__ == '__main__':
   tf.test.main()
