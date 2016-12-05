@@ -451,6 +451,7 @@ class ExternalClockCallAndResponse(MidiInteraction):
     # Event for signalling when to end a call.
     self._end_call = threading.Event()
     self._panic = threading.Event()
+    self._mutate = threading.Event()
 
   def _update_state(self, state):
     """Logs and sends a control change with the state."""
@@ -467,6 +468,11 @@ class ExternalClockCallAndResponse(MidiInteraction):
     """Method to use as a callback for setting the panic signal."""
     self._panic.set()
     tf.logging.info('Panic signal received.')
+
+  def _mutate_callback(self, unused_captured_seq):
+    """Method to use as a callback for setting the panic signal."""
+    self._mutate.set()
+    tf.logging.info('Mutate signal received.')
 
   @property
   def _min_listen_ticks(self):
@@ -521,7 +527,7 @@ class ExternalClockCallAndResponse(MidiInteraction):
                      self._sequence_generator.bundle_details)
     tf.logging.debug('Generator Options: %s', generator_options)
     response = self._sequence_generator.generate(
-        retime(input_sequence, -zero_time), generator_options))
+        retime(input_sequence, -zero_time), generator_options)
     response_sequence = magenta.music.extract_subsequence(
         response_sequence, response_start_time, response_end_time)
     return retime(response, zero_time)
@@ -538,6 +544,9 @@ class ExternalClockCallAndResponse(MidiInteraction):
     if self._panic_signal is not None:
       self._captor.register_callback(self._panic_callback,
                                      signal=self._panic_signal)
+    if self._mutate_signal is not None:
+      self._captor.register_callback(self._mutate_callback,
+                                     signal=self._mutate_signal)
 
     # Keep track of the end of the previous tick time.
     last_tick_time = time.time()
@@ -616,7 +625,6 @@ class ExternalClockCallAndResponse(MidiInteraction):
               -capture_start_time
               response_duration)
 
-
           # If it took too long to generate, push response to next tick.
           if (time.time() - response_start_time) >= tick_duration / 4:
             push_ticks = (
@@ -647,11 +655,12 @@ class ExternalClockCallAndResponse(MidiInteraction):
 
       # Potentially loop previous response.
       if (response_sequence.total_time <= tick_time and
-          (self._should_loop or self._mutate_signal)):
-        if self._mutate_signal:
+          (self._should_loop or self._mutate.is_set())):
+        if self._mutate.is_set():
           response_sequence = self._generate(
               response_sequence, -response_start_time,
               response_sequence.total_time - response_start_time)
+          self._mutate.clear()
         else:
           response_sequence = retime(response_sequence,
                                      tick_time - response_start_time)
