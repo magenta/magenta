@@ -260,6 +260,8 @@ class BaseSequenceGenerator(object):
       if tempdir is not None:
         tf.gfile.DeleteRecursively(tempdir)
 
+  # TODO(fjord): deprecate in favor of calling quantization methods in
+  # sequences_lib.
   def seconds_to_steps(self, seconds, qpm):
     """Converts seconds to quantized steps.
 
