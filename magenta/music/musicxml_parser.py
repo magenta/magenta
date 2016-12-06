@@ -414,7 +414,7 @@ class Measure(object):
     self.start_time_position = self.state.time_position
     self._parse()
     # Update the time signature if a partial or pickup measure
-    self._check_time_signature()
+    self._fix_time_signature()
 
   def _parse(self):
     """Parse the <measure> element."""
@@ -514,7 +514,7 @@ class Measure(object):
                * self.state.seconds_per_quarter)
     self.state.time_position += seconds
 
-  def _check_time_signature(self):
+  def _fix_time_signature(self):
     """Correct the time signature for incomplete measures.
 
     If the measure is incomplete or a pickup, insert an appropriate
