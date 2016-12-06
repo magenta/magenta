@@ -660,9 +660,10 @@ class ExternalClockCallAndResponse(MidiInteraction):
               response_sequence, response_start_time,
               response_sequence.total_time - response_start_time)
           self._mutate.clear()
-        else:
-          response_sequence = retime(response_sequence,
-                                     tick_time - response_start_time)
+          response_start_time = response_sequence.total_time
+
+        response_sequence = retime(response_sequence,
+                                   tick_time - response_start_time)
         response_start_time = tick_time
         player.update_sequence(
             response_sequence, start_time=tick_time)
