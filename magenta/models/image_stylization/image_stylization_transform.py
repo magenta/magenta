@@ -49,7 +49,7 @@ FLAGS = flags.FLAGS
 
 def _load_checkpoint(sess, checkpoint):
   """Loads a checkpoint file into the session."""
-  model_saver = tf.train.Saver(tf.all_variables())
+  model_saver = tf.train.Saver(tf.global_variables())
   checkpoint = os.path.expanduser(checkpoint)
   if tf.gfile.IsDirectory(checkpoint):
     checkpoint = tf.train.latest_checkpoint(checkpoint)
@@ -123,7 +123,8 @@ def _multiple_styles(input_image, which_styles, output_dir):
 
 def main(unused_argv=None):
   # Load image
-  image = np.expand_dims(image_utils.load_np_image(FLAGS.input_image), 0)
+  image = np.expand_dims(image_utils.load_np_image(
+      os.path.expanduser(FLAGS.input_image)), 0)
 
   output_dir = os.path.expanduser(FLAGS.output_dir)
   if not os.path.exists(output_dir):
