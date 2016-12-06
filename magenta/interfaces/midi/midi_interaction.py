@@ -500,15 +500,16 @@ class ExternalClockCallAndResponse(MidiInteraction):
 
   def _generate(self, input_sequence, zero_time,
                 response_start_time, response_duration):
+    response_start_time = response_start_time - zero_time
     response_end_time = response_start_time + response_duration
 
     generator_options = magenta.protobuf.generator_pb2.GeneratorOptions()
     generator_options.input_sections.add(
         start_time=0,
-        end_time=response_start_time - zero_time)
+        end_time=response_start_time)
     generator_options.generate_sections.add(
-        start_time=response_start_time - zero_time,
-        end_time=response_end_time - zero_time)
+        start_time=response_start_time,
+        end_time=response_end_time)
 
     # Get current temperature setting.
     temperature = temperature_from_control_value(
