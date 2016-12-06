@@ -18,8 +18,8 @@ licenses(["notice"])  # Apache 2.0
 
 py_library(
     name = "imagenet_data",
-    srcs = [
-        "imagenet_data.py",
+    srcs = ["imagenet_data.py"],
+    deps = [
         # tensorflow dep
     ],
 )
