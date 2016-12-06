@@ -103,6 +103,7 @@ py_library(
         # numpy dep
         # storage dep
         # scipy dep
+        # scipy pilutil dep
         # tensorflow dep
     ],
 )
