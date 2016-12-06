@@ -498,8 +498,8 @@ class ExternalClockCallAndResponse(MidiInteraction):
             self._midi_hub.control_value(self._loop_control_number) == 127)
 
 
-  def _generate(self, input_sequence, zero_time, response_duration):
-    response_start_time = input_sequence.total_time - zero_time
+  def _generate(self, input_sequence, zero_time,
+                response_start_time, response_duration):
     response_end_time = response_start_time + response_duration
 
     generator_options = magenta.protobuf.generator_pb2.GeneratorOptions()
@@ -556,6 +556,7 @@ class ExternalClockCallAndResponse(MidiInteraction):
 
     response_sequence = music_pb2.NoteSequence()
     response_start_time = 0
+    response_duration = 0
     player = self._midi_hub.start_playback(
         response_sequence, allow_updates=True)
 
@@ -623,6 +624,7 @@ class ExternalClockCallAndResponse(MidiInteraction):
           response_sequence = self._generate(
               captured_sequence,
               capture_start_time,
+              response_start_time,
               response_duration)
 
           # If it took too long to generate, push response to next tick.
@@ -657,10 +659,11 @@ class ExternalClockCallAndResponse(MidiInteraction):
           (self._should_loop or self._mutate.is_set())):
         if self._mutate.is_set():
           response_sequence = self._generate(
-              response_sequence, response_start_time,
-              response_sequence.total_time - response_start_time)
+              response_sequence,
+              response_start_time,
+              response_duration)
           self._mutate.clear()
-          response_start_time = response_sequence.total_time
+          response_start_time = response_start_time + response_duration
 
         response_sequence = retime(response_sequence,
                                    tick_time - response_start_time)
