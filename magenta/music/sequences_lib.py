@@ -148,6 +148,7 @@ def quantize_to_step(unquantized_seconds, steps_per_second,
   Args:
     unquantized_seconds: Seconds to quantize.
     steps_per_second: Quantizing resolution.
+    quantize_cutoff: Value to use for quantizing cutoff.
 
   Returns:
     The input value quantized to the nearest step.
