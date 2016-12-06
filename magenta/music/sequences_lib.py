@@ -138,6 +138,30 @@ def steps_per_bar_in_quantized_sequence(note_sequence):
   return steps_per_bar_float
 
 
+def quantize_to_step(unquantized_seconds, steps_per_second,
+                     quantize_cutoff=QUANTIZE_CUTOFF):
+  """Quantizes seconds to the nearest step, given steps_per_second.
+
+  See the comments above `QUANTIZE_CUTOFF` for details on how the quantizing
+  algorithm works.
+
+  Args:
+    unquantized_seconds: Seconds to quantize.
+    steps_per_second: Quantizing resolution.
+    quantize_cutoff: Value to use for quantizing cutoff.
+
+  Returns:
+    The input value quantized to the nearest step.
+  """
+  unquantized_steps = unquantized_seconds * steps_per_second
+  return int(unquantized_steps + (1 - quantize_cutoff))
+
+
+def steps_per_quarter_to_steps_per_second(steps_per_quarter, qpm):
+  """Calculates steps per second given steps_per_quarter and a qpm."""
+  return steps_per_quarter * qpm / 60.0
+
+
 def quantize_note_sequence(note_sequence, steps_per_quarter):
   """Quantize a NoteSequence proto.
 
@@ -236,16 +260,17 @@ def quantize_note_sequence(note_sequence, steps_per_quarter):
     tempo.time = 0
 
   # Compute quantization steps per second.
-  steps_per_second = steps_per_quarter * qns.tempos[0].qpm / 60.0
+  steps_per_second = steps_per_quarter_to_steps_per_second(
+      steps_per_quarter, qns.tempos[0].qpm)
 
-  quantize = lambda x: int(x + (1 - QUANTIZE_CUTOFF))
-
-  qns.total_quantized_steps = quantize(qns.total_time * steps_per_second)
+  qns.total_quantized_steps = quantize_to_step(qns.total_time, steps_per_second)
 
   for note in qns.notes:
     # Quantize the start and end times of the note.
-    note.quantized_start_step = quantize(note.start_time * steps_per_second)
-    note.quantized_end_step = quantize(note.end_time * steps_per_second)
+    note.quantized_start_step = quantize_to_step(
+        note.start_time, steps_per_second)
+    note.quantized_end_step = quantize_to_step(
+        note.end_time, steps_per_second)
     if note.quantized_end_step == note.quantized_start_step:
       note.quantized_end_step += 1
 
@@ -262,7 +287,8 @@ def quantize_note_sequence(note_sequence, steps_per_quarter):
   # Also quantize chord symbol annotations.
   for annotation in qns.text_annotations:
     # Quantize the chord time, disallowing negative time.
-    annotation.quantized_step = quantize(annotation.time * steps_per_second)
+    annotation.quantized_step = quantize_to_step(
+        annotation.time, steps_per_second)
     if annotation.quantized_step < 0:
       raise NegativeTimeException(
           'Got negative chord time: step = %s' % annotation.quantized_step)

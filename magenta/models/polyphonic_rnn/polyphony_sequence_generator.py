@@ -63,13 +63,16 @@ class PolyphonicRnnSequenceGenerator(mm.BaseSequenceGenerator):
     if input_sequence.tempos:
       qpm = input_sequence.tempos[0].qpm
 
+    steps_per_second = mm.steps_per_quarter_to_steps_per_second(
+        self.steps_per_quarter, qpm)
+
     generate_section = generator_options.generate_sections[0]
     if generator_options.input_sections:
       input_section = generator_options.input_sections[0]
       primer_sequence = mm.extract_subsequence(
           input_sequence, input_section.start_time, input_section.end_time)
-      input_start_step = self.seconds_to_steps(
-          input_section.start_time, qpm)
+      input_start_step = mm.quantize_to_step(
+          input_section.start_time, steps_per_second)
     else:
       primer_sequence = input_sequence
       input_start_step = 0
@@ -91,9 +94,13 @@ class PolyphonicRnnSequenceGenerator(mm.BaseSequenceGenerator):
         quantized_primer_sequence, start_step=input_start_step)
     assert len(extracted_seqs) <= 1
 
-    generate_start_step = self.seconds_to_steps(
-        generate_section.start_time, qpm)
-    generate_end_step = self.seconds_to_steps(generate_section.end_time, qpm)
+    generate_start_step = mm.quantize_to_step(
+        generate_section.start_time, steps_per_second)
+    # Note that when quantizing end_step, we set quantize_cutoff to 1.0 so it
+    # always rounds down. This avoids generating a sequence that ends at 5.0
+    # seconds when the requested end time is 4.99.
+    generate_end_step = mm.quantize_to_step(
+        generate_section.end_time, steps_per_second, quantize_cutoff=1.0)
 
     if extracted_seqs and extracted_seqs[0]:
       poly_seq = extracted_seqs[0]
