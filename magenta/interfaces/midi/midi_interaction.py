@@ -499,7 +499,7 @@ class ExternalClockCallAndResponse(MidiInteraction):
 
 
   def _generate(self, input_sequence, zero_time, response_duration):
-    response_start_time = input_sequence.total_time
+    response_start_time = input_sequence.total_time - zero_time
     response_end_time = response_start_time + response_duration
 
     generator_options = magenta.protobuf.generator_pb2.GeneratorOptions()
@@ -526,11 +526,11 @@ class ExternalClockCallAndResponse(MidiInteraction):
     tf.logging.debug('Bundle Details: %s',
                      self._sequence_generator.bundle_details)
     tf.logging.debug('Generator Options: %s', generator_options)
-    response = self._sequence_generator.generate(
+    response_sequence = self._sequence_generator.generate(
         retime(input_sequence, -zero_time), generator_options)
     response_sequence = magenta.music.extract_subsequence(
         response_sequence, response_start_time, response_end_time)
-    return retime(response, zero_time)
+    return retime(response_sequence, zero_time)
 
 
   def run(self):
@@ -622,18 +622,17 @@ class ExternalClockCallAndResponse(MidiInteraction):
           response_start_time = tick_time
           response_sequence = self._generate(
               captured_sequence,
-              -capture_start_time
+              capture_start_time,
               response_duration)
 
           # If it took too long to generate, push response to next tick.
           if (time.time() - response_start_time) >= tick_duration / 4:
             push_ticks = (
                 (time.time() - response_start_time) // tick_duration + 1)
-            capture_start_time += push_ticks * tick_duration
             response_start_time += push_ticks * tick_duration
             response_end_time += push_ticks * tick_duration
-
-          response_sequence = retime(response_sequence, capture_start_time)
+            response_sequence = retime(
+                response_sequence, push_ticks * tick_duration)
 
           # Start response playback. Specify the start_time to avoid stripping
           # initial events due to generation lag.
@@ -658,7 +657,7 @@ class ExternalClockCallAndResponse(MidiInteraction):
           (self._should_loop or self._mutate.is_set())):
         if self._mutate.is_set():
           response_sequence = self._generate(
-              response_sequence, -response_start_time,
+              response_sequence, response_start_time,
               response_sequence.total_time - response_start_time)
           self._mutate.clear()
         else:
