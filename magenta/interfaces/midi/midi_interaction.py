@@ -500,7 +500,7 @@ class ExternalClockCallAndResponse(MidiInteraction):
 
   def _generate(self, input_sequence, zero_time,
                 response_start_time, response_duration):
-    response_start_time = response_start_time - zero_time
+    response_start_time -= zero_time
     response_end_time = response_start_time + response_duration
 
     generator_options = magenta.protobuf.generator_pb2.GeneratorOptions()
@@ -662,6 +662,7 @@ class ExternalClockCallAndResponse(MidiInteraction):
           response_sequence = self._generate(
               response_sequence,
               response_start_time,
+              response_start_time + response_duration,
               response_duration)
           self._mutate.clear()
           response_start_time = response_start_time + response_duration
