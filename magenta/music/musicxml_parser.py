@@ -53,6 +53,16 @@ class ChordSymbolParseException(MusicXMLParseException):
   pass
 
 
+class MultipleTimeSignatureException(MusicXMLParseException):
+  """Exception thrown when multiple time signatures found in a measure."""
+  pass
+
+
+class AlternatingTimeSignatureException(MusicXMLParseException):
+  """Exception thrown when an alternating time signature is encountered."""
+  pass
+
+
 class MusicXMLParserState(object):
   """Maintains internal state of the MusicXML parser."""
 
@@ -94,6 +104,9 @@ class MusicXMLParserState(object):
 
     # Keep track of current transposition level in +/- semitones.
     self.transpose = 0
+
+    # Keep track of current time signature. Does not support polymeter.
+    self.time_signature = None
 
 
 class MusicXMLDocument(object):
@@ -163,20 +176,20 @@ class MusicXMLDocument(object):
             else:
               raise MusicXMLParseException(
                   'Multiple MusicXML files found in compressed archive')
-      except ET.ParseError as e:
-        raise MusicXMLParseException(e)
+      except ET.ParseError as exception:
+        raise MusicXMLParseException(exception)
 
       try:
         score = ET.fromstring(filename.read(compressed_file_name))
-      except ET.ParseError as e:
-        raise MusicXMLParseException(e)
+      except ET.ParseError as exception:
+        raise MusicXMLParseException(exception)
     else:
       # Uncompressed XML file.
       try:
         tree = ET.parse(filename)
         score = tree.getroot()
-      except ET.ParseError as e:
-        raise MusicXMLParseException(e)
+      except ET.ParseError as exception:
+        raise MusicXMLParseException(exception)
 
     return score
 
@@ -392,9 +405,16 @@ class Measure(object):
     self.tempos = []
     self.time_signature = None
     self.key_signature = None
-    self.current_ticks = 0  # Cumulative tick counter for this measure
+    # Cumulative duration in MusicXML duration.
+    # Used for time signature calculations
+    self.duration = 0
     self.state = state
+    # Record the starting time of this measure so that time signatures
+    # can be inserted at the beginning of the measure
+    self.start_time_position = self.state.time_position
     self._parse()
+    # Update the time signature if a partial or pickup measure
+    self._fix_time_signature()
 
   def _parse(self):
     """Parse the <measure> element."""
@@ -413,9 +433,14 @@ class Measure(object):
         self.notes.append(note)
         # Keep track of current note as previous note for chord timings
         self.state.previous_note = note
+
+        # Sum up the MusicXML durations in voice 1 of this measure
+        if note.voice == 1 and not note.is_in_chord:
+          self.duration += note.note_duration.duration
       elif child.tag == 'harmony':
         chord_symbol = ChordSymbol(child, self.state)
         self.chord_symbols.append(chord_symbol)
+
       else:
         # Ignore other tag types because they are not relevant to Magenta.
         pass
@@ -429,7 +454,10 @@ class Measure(object):
       elif child.tag == 'key':
         self.key_signature = KeySignature(self.state, child)
       elif child.tag == 'time':
-        self.time_signature = TimeSignature(self.state, child)
+        if self.time_signature is None:
+          self.time_signature = TimeSignature(self.state, child)
+        else:
+          raise MultipleTimeSignatureException('Multiple time signatures')
       elif child.tag == 'transpose':
         transpose = int(child.find('chromatic').text)
         self.state.transpose = transpose
@@ -485,6 +513,55 @@ class Measure(object):
     seconds = ((midi_ticks / constants.STANDARD_PPQ)
                * self.state.seconds_per_quarter)
     self.state.time_position += seconds
+
+  def _fix_time_signature(self):
+    """Correct the time signature for incomplete measures.
+
+    If the measure is incomplete or a pickup, insert an appropriate
+    time signature into this Measure.
+    """
+    # Compute the fractional time signature (duration / divisions)
+    # Multiply divisions by 4 because division is always parts per quarter note
+    fractional_time_signature = Fraction(self.duration,
+                                         self.state.divisions * 4)
+
+    if self.state.time_signature is None and self.time_signature is None:
+      # No global time signature yet and no time signature defined
+      # in this measure (no time signature or senza misura).
+      # Insert the fractional time signature as the time signature
+      # for this measure
+
+      self.time_signature = TimeSignature(self.state)
+      self.time_signature.numerator = fractional_time_signature.numerator
+      self.time_signature.denominator = fractional_time_signature.denominator
+      self.state.time_signature = self.time_signature
+    else:
+      # If no global time signature yet, set it to the
+      # time signature in this measure
+      if self.state.time_signature is None:
+        self.state.time_signature = self.time_signature
+
+      # Get the current time signature denominator
+      global_time_signature_denominator = self.state.time_signature.denominator
+
+      # If the fractional time signature = 1 (e.g. 4/4),
+      # make the numerator the same as the global denominator
+      if fractional_time_signature == 1:
+        new_time_signature = TimeSignature(self.state)
+        new_time_signature.numerator = global_time_signature_denominator
+        new_time_signature.denominator = global_time_signature_denominator
+      else:
+        # Otherwise, set the time signature to the fractional time signature
+        new_time_signature = TimeSignature(self.state)
+        new_time_signature.numerator = fractional_time_signature.numerator
+        new_time_signature.denominator = fractional_time_signature.denominator
+
+      # Insert a new time signature only if it does not equal the global
+      # time signature.
+      if new_time_signature != self.state.time_signature:
+        new_time_signature.time_position = self.start_time_position
+        self.time_signature = new_time_signature
+        self.state.time_signature = new_time_signature
 
 
 class Note(object):
@@ -1009,16 +1086,23 @@ class TimeSignature(object):
   - Senza misura
   """
 
-  def __init__(self, state, xml_time):
+  def __init__(self, state, xml_time=None):
     self.xml_time = xml_time
     self.numerator = -1
     self.denominator = -1
-    self.time_position = -1
+    self.time_position = 0
     self.state = state
-    self._parse()
+    if xml_time is not None:
+      self._parse()
 
   def _parse(self):
     """Parse the MusicXML <time> element."""
+    if (len(self.xml_time.findall('beats')) > 1 or
+        len(self.xml_time.findall('beat-type')) > 1):
+      # If more than 1 beats or beat-type found, this time signature is
+      # not supported (ex: alternating meter)
+      raise AlternatingTimeSignatureException('Alternating Time Signature')
+
     self.numerator = int(self.xml_time.find('beats').text)
     self.denominator = int(self.xml_time.find('beat-type').text)
     self.time_position = self.state.time_position
@@ -1033,6 +1117,9 @@ class TimeSignature(object):
     isequal = isequal and (self.denominator == other.denominator)
     isequal = isequal and (self.time_position == other.time_position)
     return isequal
+
+  def __ne__(self, other):
+    return not self.__eq__(other)
 
 
 class KeySignature(object):

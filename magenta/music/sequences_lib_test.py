@@ -154,6 +154,18 @@ class SequencesLibTest(tf.test.TestCase):
     sequences_lib.quantize_note_sequence(
         self.note_sequence, self.steps_per_quarter)
 
+  def testStepsPerQuarterToStepsPerSecond(self):
+    self.assertEqual(
+        4.0, sequences_lib.steps_per_quarter_to_steps_per_second(4, 60.0))
+
+  def testQuantizeToStep(self):
+    self.assertEqual(
+        32, sequences_lib.quantize_to_step(8.0001, 4))
+    self.assertEqual(
+        34, sequences_lib.quantize_to_step(8.4999, 4))
+    self.assertEqual(
+        33, sequences_lib.quantize_to_step(8.4999, 4, quantize_cutoff=1.0))
+
   def testFromNoteSequence_TempoChange(self):
     testing_lib.add_track_to_sequence(
         self.note_sequence, 0,
