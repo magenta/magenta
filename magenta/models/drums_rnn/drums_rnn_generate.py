@@ -81,9 +81,6 @@ tf.app.flags.DEFINE_float(
     'The quarters per minute to play generated output at. If a primer MIDI is '
     'given, the qpm from that will override this flag. If qpm is None, qpm '
     'will default to 120.')
-tf.app.flags.DEFINE_integer(
-    'steps_per_quarter', 4,
-    'What precision to use when quantizing the drum track.')
 tf.app.flags.DEFINE_float(
     'temperature', 1.0,
     'The randomness of the generated drum tracks. 1.0 uses the unaltered '
@@ -134,21 +131,6 @@ def get_bundle():
   return magenta.music.read_bundle_file(bundle_file)
 
 
-def _steps_to_seconds(steps, qpm):
-  """Converts steps to seconds.
-
-  Uses the current flag value for steps_per_quarter.
-
-  Args:
-    steps: number of steps.
-    qpm: current qpm.
-
-  Returns:
-    Number of seconds the steps represent.
-  """
-  return steps * 60.0 / qpm / FLAGS.steps_per_quarter
-
-
 def run_with_flags(generator):
   """Generates drum tracks and saves them as MIDI files.
 
@@ -188,7 +170,8 @@ def run_with_flags(generator):
 
   # Derive the total number of seconds to generate based on the QPM of the
   # priming sequence and the num_steps flag.
-  total_seconds = _steps_to_seconds(FLAGS.num_steps, qpm)
+  seconds_per_step = 60.0 / qpm / self.steps_per_quarter
+  total_seconds = FLAGS.num_steps * seconds_per_step
 
   # Specify start/stop time for generation based on starting generation at the
   # end of the priming sequence and continuing until the sequence is num_steps
@@ -200,7 +183,7 @@ def run_with_flags(generator):
     last_end_time = (max(n.end_time for n in primer_sequence.notes)
                      if primer_sequence.notes else 0)
     generate_section = generator_options.generate_sections.add(
-        start_time=last_end_time + _steps_to_seconds(1, qpm),
+        start_time=last_end_time + seconds_per_step,
         end_time=total_seconds)
 
     if generate_section.start_time >= generate_section.end_time:
@@ -247,7 +230,7 @@ def main(unused_argv):
   generator = drums_rnn_sequence_generator.DrumsRnnSequenceGenerator(
       model=drums_rnn_model.DrumsRnnModel(config),
       details=config.details,
-      steps_per_quarter=FLAGS.steps_per_quarter,
+      steps_per_quarter=config.steps_per_quarter,
       checkpoint=get_checkpoint(),
       bundle=get_bundle())
 
