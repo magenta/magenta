@@ -178,7 +178,7 @@ def run_with_flags(generator):
 
   # Derive the total number of seconds to generate based on the QPM of the
   # priming sequence and the length of the backing chord progression.
-  seconds_per_step = 60.0 / qpm / self.steps_per_quarter
+  seconds_per_step = 60.0 / qpm / generator.steps_per_quarter
   total_seconds = len(backing_chords) * seconds_per_step
 
   # Specify start/stop time for generation based on starting generation at the
@@ -214,7 +214,7 @@ def run_with_flags(generator):
     if text_annotation.annotation_type == CHORD_SYMBOL:
       chord = input_sequence.text_annotations.add()
       chord.CopyFrom(text_annotation)
-  input_sequence.total_time = _steps_to_seconds(len(backing_chords), qpm)
+  input_sequence.total_time = len(backing_chords) * seconds_per_step
 
   generator_options.args['temperature'].float_value = FLAGS.temperature
   generator_options.args['beam_size'].int_value = FLAGS.beam_size

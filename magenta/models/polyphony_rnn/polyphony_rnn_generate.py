@@ -185,7 +185,7 @@ def run_with_flags(generator):
     primer_sequence.ticks_per_quarter = constants.STANDARD_PPQ
 
   # Derive the total number of seconds to generate.
-  seconds_per_step = 60.0 / qpm / self.steps_per_quarter
+  seconds_per_step = 60.0 / qpm / generator.steps_per_quarter
   generate_end_time = FLAGS.num_steps * seconds_per_step
 
   # Specify start/stop time for generation based on starting generation at the

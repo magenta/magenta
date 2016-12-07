@@ -164,7 +164,7 @@ def run_with_flags(generator):
 
   # Derive the total number of seconds to generate based on the QPM of the
   # priming sequence and the num_steps flag.
-  seconds_per_step = 60.0 / qpm / self.steps_per_quarter
+  seconds_per_step = 60.0 / qpm / generator.steps_per_quarter
   total_seconds = FLAGS.num_steps * seconds_per_step
 
   # Specify start/stop time for generation based on starting generation at the
