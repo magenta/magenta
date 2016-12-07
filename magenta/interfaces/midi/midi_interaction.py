@@ -636,6 +636,8 @@ class ExternalClockCallAndResponse(MidiInteraction):
             response_end_time += push_ticks * tick_duration
             response_sequence = retime(
                 response_sequence, push_ticks * tick_duration)
+            tf.logging.warn(
+                'Response too late. Pushing back %d ticks.', push_ticks)
 
           # Start response playback. Specify the start_time to avoid stripping
           # initial events due to generation lag.
