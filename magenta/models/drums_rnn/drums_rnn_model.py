@@ -78,7 +78,8 @@ default_configs = {
             clip_norm=5,
             initial_learning_rate=0.001,
             decay_steps=1000,
-            decay_rate=0.95)),
+            decay_rate=0.95),
+        steps_per_quarter=2),
 
     'drum_kit': events_rnn_model.EventSequenceRnnConfig(
         magenta.protobuf.generator_pb2.GeneratorDetails(
