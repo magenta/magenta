@@ -397,9 +397,8 @@ def _crop(image, offset_height, offset_width, crop_height, crop_width):
   rank_assertion = tf.Assert(
       tf.equal(tf.rank(image), 3),
       ['Rank of image must be equal to 3.'])
-  cropped_shape = tf.control_flow_ops.with_dependencies(
-      [rank_assertion],
-      tf.pack([crop_height, crop_width, original_shape[2]]))
+  with tf.control_dependencies([rank_assertion]):
+    cropped_shape = tf.pack([crop_height, crop_width, original_shape[2]])
 
   size_assertion = tf.Assert(
       tf.logical_and(
@@ -411,9 +410,8 @@ def _crop(image, offset_height, offset_width, crop_height, crop_width):
 
   # Use tf.slice instead of crop_to_bounding box as it accepts tensors to
   # define the crop size.
-  image = tf.control_flow_ops.with_dependencies(
-      [size_assertion],
-      tf.slice(image, offsets, cropped_shape))
+  with tf.control_dependencies([size_assertion]):
+    image = tf.slice(image, offsets, cropped_shape)
   return tf.reshape(image, cropped_shape)
 
 
@@ -507,7 +505,7 @@ def _decode_jpeg(image_buffer, scope=None):
   Returns:
     3-D float Tensor with values ranging from [0, 1).
   """
-  with tf.op_scope([image_buffer], scope, 'decode_jpeg'):
+  with tf.name_scope(scope, 'decode_jpeg', [image_buffer]):
     # Decode the string as an RGB JPEG.
     # Note that the resulting image contains an unknown height and width
     # that is set dynamically by decode_jpeg. In other words, the height
