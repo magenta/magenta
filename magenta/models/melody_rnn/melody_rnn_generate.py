@@ -234,7 +234,7 @@ def run_with_flags(generator):
     generated_sequence = generator.generate(input_sequence, generator_options)
 
     if FLAGS.exclude_primer_midi:
-      # Remove any notes with start_time less than start_time of generated
+      # Delete any notes with start_time less than start_time of generated
       # sequence. Otherwise, subtract length of removed input_sequence from
       # start_time and end_time of remaining notes.
       for index, note in enumerate(generated_sequence.notes[:]):
