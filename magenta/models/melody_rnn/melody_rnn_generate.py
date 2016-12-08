@@ -99,7 +99,7 @@ tf.app.flags.DEFINE_string(
     'or FATAL.')
 tf.app.flags.DEFINE_boolean(
     'exclude_primer_midi', False,
-    'If True, instead of including the primer MIDI in the generated sequence, '
+    'If true, instead of including the primer MIDI in the generated sequence, '
     'will only output the newly generated MIDI.')
 
 
@@ -237,9 +237,9 @@ def run_with_flags(generator):
       # Remove any notes with start_time less than start_time of generated
       # sequence. Otherwise, subtract length of removed input_sequence from
       # start_time and end_time of remaining notes.
-      for note in generated_sequence.notes[:]:
+      for index, note in enumerate(generated_sequence.notes[:]):
         if note.start_time < start_time:
-          generated_sequence.notes.pop(0)
+          del generated_sequence.notes[index]
         else:
           note.start_time -= start_time
           note.end_time   -= start_time
