@@ -397,9 +397,8 @@ def _crop(image, offset_height, offset_width, crop_height, crop_width):
   rank_assertion = tf.Assert(
       tf.equal(tf.rank(image), 3),
       ['Rank of image must be equal to 3.'])
-  cropped_shape = tf.control_flow_ops.with_dependencies(
-      [rank_assertion],
-      tf.pack([crop_height, crop_width, original_shape[2]]))
+  with tf.control_dependencies([rank_assertion]):
+    cropped_shape = tf.pack([crop_height, crop_width, original_shape[2]])
 
   size_assertion = tf.Assert(
       tf.logical_and(
@@ -411,9 +410,8 @@ def _crop(image, offset_height, offset_width, crop_height, crop_width):
 
   # Use tf.slice instead of crop_to_bounding box as it accepts tensors to
   # define the crop size.
-  image = tf.control_flow_ops.with_dependencies(
-      [size_assertion],
-      tf.slice(image, offsets, cropped_shape))
+  with tf.control_dependencies([size_assertion]):
+    image = tf.slice(image, offsets, cropped_shape)
   return tf.reshape(image, cropped_shape)
 
 
