@@ -69,6 +69,8 @@ class SequencesLibTest(tf.test.TestCase):
     testing_lib.add_chords_to_sequence(
         expected_subsequence, [('C', 0.0), ('G7', 0.5)])
     expected_subsequence.total_time = 2.25
+    expected_subsequence.subsequence_info.start_time_offset = 2.5
+    expected_subsequence.subsequence_info.end_time_offset = 5.25
 
     subsequence = sequences_lib.extract_subsequence(sequence, 2.5, 4.75)
     self.assertProtoEquals(expected_subsequence, subsequence)
@@ -81,9 +83,15 @@ class SequencesLibTest(tf.test.TestCase):
          (55, 120, 4.0, 4.01), (52, 99, 4.75, 5.0)])
     testing_lib.add_chords_to_sequence(
         sequence, [('C', 1.5), ('G7', 3.0), ('F', 4.8)])
+
+    expected_subsequence = music_pb2.NoteSequence()
+    expected_subsequence.CopyFrom(sequence)
+    expected_subsequence.subsequence_info.start_time_offset = 0.0
+    expected_subsequence.subsequence_info.end_time_offset = 0.0
+
     subsequences = sequences_lib.split_note_sequence_on_time_changes(sequence)
     self.assertEquals(1, len(subsequences))
-    self.assertProtoEquals(sequence, subsequences[0])
+    self.assertProtoEquals(expected_subsequence, subsequences[0])
 
   def testSplitNoteSequenceDuplicateTimeChanges(self):
     sequence = common_testing_lib.parse_test_proto(
@@ -105,9 +113,14 @@ class SequencesLibTest(tf.test.TestCase):
     testing_lib.add_chords_to_sequence(
         sequence, [('C', 1.5), ('G7', 3.0), ('F', 4.8)])
 
+    expected_subsequence = music_pb2.NoteSequence()
+    expected_subsequence.CopyFrom(sequence)
+    expected_subsequence.subsequence_info.start_time_offset = 0.0
+    expected_subsequence.subsequence_info.end_time_offset = 0.0
+
     subsequences = sequences_lib.split_note_sequence_on_time_changes(sequence)
     self.assertEquals(1, len(subsequences))
-    self.assertProtoEquals(sequence, subsequences[0])
+    self.assertProtoEquals(expected_subsequence, subsequences[0])
 
   def testSplitNoteSequenceCoincidentTimeChanges(self):
     sequence = common_testing_lib.parse_test_proto(
@@ -146,6 +159,7 @@ class SequencesLibTest(tf.test.TestCase):
     testing_lib.add_chords_to_sequence(
         expected_subsequence_1, [('C', 1.5)])
     expected_subsequence_1.total_time = 2.0
+    expected_subsequence_1.subsequence_info.end_time_offset = 8.0
 
     expected_subsequence_2 = common_testing_lib.parse_test_proto(
         music_pb2.NoteSequence,
@@ -161,6 +175,7 @@ class SequencesLibTest(tf.test.TestCase):
     testing_lib.add_chords_to_sequence(
         expected_subsequence_2, [('C', 0.0), ('G7', 1.0), ('F', 2.8)])
     expected_subsequence_2.total_time = 8.0
+    expected_subsequence_2.subsequence_info.start_time_offset = 2.0
 
     subsequences = sequences_lib.split_note_sequence_on_time_changes(sequence)
     self.assertEquals(2, len(subsequences))
@@ -209,6 +224,7 @@ class SequencesLibTest(tf.test.TestCase):
     testing_lib.add_chords_to_sequence(
         expected_subsequence_1, [('C', 1.5), ('G7', 3.0)])
     expected_subsequence_1.total_time = 4.25
+    expected_subsequence_1.subsequence_info.end_time_offset = 0.75
 
     expected_subsequence_2 = common_testing_lib.parse_test_proto(
         music_pb2.NoteSequence,
@@ -223,6 +239,7 @@ class SequencesLibTest(tf.test.TestCase):
     testing_lib.add_chords_to_sequence(expected_subsequence_2, [
         ('G7', 0.0), ('F', 0.55)])
     expected_subsequence_2.total_time = 0.75
+    expected_subsequence_2.subsequence_info.start_time_offset = 4.25
 
     subsequences = sequences_lib.split_note_sequence_on_time_changes(
         sequence, split_notes=False)
@@ -267,6 +284,7 @@ class SequencesLibTest(tf.test.TestCase):
     testing_lib.add_chords_to_sequence(
         expected_subsequence_1, [('C', 1.5)])
     expected_subsequence_1.total_time = 2.0
+    expected_subsequence_1.subsequence_info.end_time_offset = 8.0
 
     expected_subsequence_2 = common_testing_lib.parse_test_proto(
         music_pb2.NoteSequence,
@@ -282,6 +300,8 @@ class SequencesLibTest(tf.test.TestCase):
     testing_lib.add_chords_to_sequence(
         expected_subsequence_2, [('C', 0.0), ('G7', 1.0)])
     expected_subsequence_2.total_time = 2.25
+    expected_subsequence_2.subsequence_info.start_time_offset = 2.0
+    expected_subsequence_2.subsequence_info.end_time_offset = 5.75
 
     expected_subsequence_3 = common_testing_lib.parse_test_proto(
         music_pb2.NoteSequence,
@@ -297,6 +317,7 @@ class SequencesLibTest(tf.test.TestCase):
     testing_lib.add_chords_to_sequence(
         expected_subsequence_3, [('G7', 0.0), ('F', 0.55)])
     expected_subsequence_3.total_time = 5.75
+    expected_subsequence_3.subsequence_info.start_time_offset = 4.25
 
     subsequences = sequences_lib.split_note_sequence_on_time_changes(sequence)
     self.assertEquals(3, len(subsequences))

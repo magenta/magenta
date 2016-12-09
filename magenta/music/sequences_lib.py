@@ -225,7 +225,12 @@ def extract_subsequence(sequence, start_time, end_time):
   del subsequence.pitch_bends[:]
   del subsequence.control_changes[:]
 
-  subsequence.total_time = min(sequence.total_time, end_time) - start_time
+  actual_end_time = min(sequence.total_time, end_time)
+  subsequence.total_time = actual_end_time - start_time
+
+  subsequence.subsequence_info.start_time_offset = start_time
+  subsequence.subsequence_info.end_time_offset = (
+      sequence.total_time - actual_end_time)
 
   return subsequence
 
