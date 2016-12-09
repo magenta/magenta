@@ -135,12 +135,12 @@ def build_graph(mode, config, sequence_example_file_paths=None):
 
       event_positions = tf.to_float(tf.not_equal(labels_flat, no_event_label))
       event_accuracy = tf.truediv(
-          tf.reduce_sum(tf.mul(correct_predictions, event_positions)),
+          tf.reduce_sum(tf.multiply(correct_predictions, event_positions)),
           tf.reduce_sum(event_positions)) * 100
 
       no_event_positions = tf.to_float(tf.equal(labels_flat, no_event_label))
       no_event_accuracy = tf.truediv(
-          tf.reduce_sum(tf.mul(correct_predictions, no_event_positions)),
+          tf.reduce_sum(tf.multiply(correct_predictions, no_event_positions)),
           tf.reduce_sum(no_event_positions)) * 100
 
       global_step = tf.Variable(0, trainable=False, name='global_step')
