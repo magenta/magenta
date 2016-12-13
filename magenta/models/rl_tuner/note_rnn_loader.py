@@ -164,7 +164,10 @@ class NoteRNNLoader(object):
     for var in self.variables():
       inner_name = rl_tuner_ops.get_inner_scope(var.name)
       inner_name = rl_tuner_ops.trim_variable_postfixes(inner_name)
-      if self.note_rnn_type == 'basic_rnn':
+      if '/Adam' in var.name:
+        # TODO(lukaszkaiser): investigate the problem here and remove this hack.
+        pass
+      elif self.note_rnn_type == 'basic_rnn':
         var_dict[inner_name] = var
       else:
         var_dict[self.checkpoint_scope + '/' + inner_name] = var
