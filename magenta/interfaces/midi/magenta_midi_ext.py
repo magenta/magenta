@@ -16,7 +16,6 @@
 Captures monophonic input MIDI sequences and plays back responses from the
 sequence generator.
 """
-import copy
 import time
 
 # internal imports
@@ -51,7 +50,8 @@ tf.app.flags.DEFINE_integer(
     'clock_control_number',
     None,
     'The control change number to use as a signal for a tick of the external '
-    'clock.')
+    'clock. If None, an internal clock is used that ticks once per bar based'
+    'on the qpm.')
 tf.app.flags.DEFINE_integer(
     'end_call_control_number',
     None,
@@ -59,11 +59,13 @@ tf.app.flags.DEFINE_integer(
 tf.app.flags.DEFINE_integer(
     'panic_control_number',
     None,
-    'The control change number to use as a panic signal.')
+    'The control change number to use as a panic signal to close open notes '
+    'and clear playback sequence.')
 tf.app.flags.DEFINE_integer(
     'mutate_control_number',
     None,
-    'The control change number to use as a mutate signal.')
+    'The control change number to use as a mutate signal to generate a new '
+    'response using the current response sequence as a seed.')
 tf.app.flags.DEFINE_integer(
     'min_listen_ticks_control_number',
     None,
@@ -85,15 +87,15 @@ tf.app.flags.DEFINE_integer(
     'response duration will match the call duration.')
 tf.app.flags.DEFINE_integer(
    'temperature_control_number',
-    None,
-    'The control change number to use for controlling temperature.')
+   None,
+   'The control change number to use for controlling softmax temperature.')
 tf.app.flags.DEFINE_boolean(
     'allow_overlap',
     False,
     'Whether to allow the call to overlap with the response.')
 tf.app.flags.DEFINE_integer(
     'qpm',
-    90,
+    120,
     'The quarters per minute to use for the metronome and generated sequence. '
     'Overriden by values of control change signals for `tempo_control_number`.')
 tf.app.flags.DEFINE_integer(
@@ -219,8 +221,15 @@ def main(unused_argv):
                          midi_hub.TextureType.MONOPHONIC,
                          passthrough=FLAGS.passthrough)
 
-  clock_signal = midi_hub.MidiSignal(
-      control=FLAGS.clock_control_number, value=127)
+  if FLAGS.clock_control_number is None:
+    # Set the tick duration to be a single bar, assuming a 4/4 time signature.
+    clock_signal = None
+    tick_duration = 4 * (60. / FLAGS.qpm)
+  else:
+    clock_signal = midi_hub.MidiSignal(
+        control=FLAGS.clock_control_number, value=127)
+    tick_duration = None
+
   end_call_signal = (
       None if FLAGS.end_call_control_number is None else
       midi_hub.MidiSignal(control=FLAGS.end_call_control_number, value=127))
@@ -235,8 +244,8 @@ def main(unused_argv):
       generators,
       FLAGS.qpm,
       FLAGS.generator_select_control_number,
-      FLAGS.tempo_control_number,
-      clock_signal,
+      clock_signal=clock_signal,
+      tick_duration=tick_duration,
       end_call_signal=end_call_signal,
       panic_signal=panic_signal,
       mutate_signal=mutate_signal,
@@ -244,6 +253,7 @@ def main(unused_argv):
       min_listen_ticks_control_number=FLAGS.min_listen_ticks_control_number,
       max_listen_ticks_control_number=FLAGS.max_listen_ticks_control_number,
       response_ticks_control_number=FLAGS.response_ticks_control_number,
+      tempo_control_number=FLAGS.tempo_control_number,
       temperature_control_number=FLAGS.temperature_control_number,
       loop_control_number=FLAGS.loop_control_number,
       state_control_number=FLAGS.state_control_number)

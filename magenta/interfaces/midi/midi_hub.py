@@ -1100,12 +1100,15 @@ class MidiHub(object):
     """Returns the most recently received value for the given control number.
 
     Args:
-      control_number: The integer control number to return the value for.
+      control_number: The integer control number to return the value for, or
+          None.
 
     Returns:
       The most recently recieved integer value for the given control number, or
       None if no values have been received for that control.
     """
+    if control_number is None:
+      return None
     return self._control_values.get(control_number)
 
   def send_control_change(self, control_number, value):
