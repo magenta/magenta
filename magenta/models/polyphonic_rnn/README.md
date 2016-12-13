@@ -54,13 +54,13 @@ This will generate a polyphonic sequence using a C Major chord as a primer.
 
 There are several command line options for controlling the generation process:
 
-* *primer_pitches*: A string representation of a Python list of pitches that will be used as a starting chord with a quarter note duration. For example: ```"[60, 64, 67]"```.
-* *primer_melody*: A string representation of a Python list of `magenta.music.Melody` event values. For example: `"[60, -2, 60, -2, 67, -2, 67, -2]"`.
-* *primer_midi*: The path to a MIDI file containing a polyphonic track that will be used as a priming track.
-* *condition_on_primer*: If set, the RNN will receive the primer as its input before it begins generating a new sequence.
-* *inject_primer_during_generation*: 'If set, the primer will be injected as a part of the generated sequence. This option is useful if you want the model to harmonize an existing melody.
+* **primer_pitches**: A string representation of a Python list of pitches that will be used as a starting chord with a quarter note duration. For example: ```"[60, 64, 67]"```.
+* **primer_melody**: A string representation of a Python list of `magenta.music.Melody` event values. For example: `"[60, -2, 60, -2, 67, -2, 67, -2]"`.
+* **primer_midi**: The path to a MIDI file containing a polyphonic track that will be used as a priming track.
+* **condition_on_primer**: If set, the RNN will receive the primer as its input before it begins generating a new sequence.
+* **inject_primer_during_generation**: 'If set, the primer will be injected as a part of the generated sequence. This option is useful if you want the model to harmonize an existing melody.
 
-Here's another example that will harmonize the first few notes of **Twinkle, Twinkle, Little Star**:
+Here's another example that will harmonize the first few notes of *Twinkle, Twinkle, Little Star*:
 
 ```
 BUNDLE_PATH=<absolute path of .mag file>
@@ -87,7 +87,7 @@ If you want to build a model that is similar to [BachBot](http://bachbot.com), y
 
 ### Create SequenceExamples
 
-SequenceExamples are fed into the model during training and evaluation. Each SequenceExample will contain a sequence of inputs and a sequence of labels that represent a polyphonic sequence. Run the command below to extract polyphonic sequences from our NoteSequences and save them as SequenceExamples. Two collections of SequenceExamples will be generated, one for training, and one for evaluation, where the fraction of SequenceExamples in the evaluation set is determined by `--eval_ratio`. With an eval ratio of 0.10, 10% of the extracted drum tracks will be saved in the eval collection, and 90% will be saved in the training collection.
+SequenceExamples are fed into the model during training and evaluation. Each SequenceExample will contain a sequence of inputs and a sequence of labels that represent a polyphonic sequence. Run the command below to extract polyphonic sequences from our NoteSequences and save them as SequenceExamples. Two collections of SequenceExamples will be generated, one for training, and one for evaluation, where the fraction of SequenceExamples in the evaluation set is determined by `--eval_ratio`. With an eval ratio of 0.10, 10% of the extracted polyphonic tracks will be saved in the eval collection, and 90% will be saved in the training collection.
 
 ```
 polyphonic_rnn_create_dataset \
@@ -108,7 +108,7 @@ polyphonic_rnn_train \
 --num_training_steps=20000
 ```
 
-Optionally run an eval job in parallel. `--run_dir`, `--hparams`, and `--num_training_steps` should all be the same values used for the training job. `--sequence_example_file` should point to the separate set of eval drum tracks. Include `--eval` to make this an eval job, resulting in the model only being evaluated without any of the weights being updated.
+Optionally run an eval job in parallel. `--run_dir`, `--hparams`, and `--num_training_steps` should all be the same values used for the training job. `--sequence_example_file` should point to the separate set of eval polyphonic tracks. Include `--eval` to make this an eval job, resulting in the model only being evaluated without any of the weights being updated.
 
 ```
 polyphonic_rnn_train \
@@ -122,12 +122,12 @@ polyphonic_rnn_train \
 Run TensorBoard to view the training and evaluation data.
 
 ```
-tensorboard --logdir=/tmp/drums_rnn/logdir
+tensorboard --logdir=/tmp/polyphonic_rnn/logdir
 ```
 
 Then go to [http://localhost:6006](http://localhost:6006) to view the TensorBoard dashboard.
 
-### Generate Drum Tracks
+### Generate Polyphonic Tracks
 
 Polyphonic tracks can be generated during or after training. Run the command below to generate a set of polyphonic tracks using the latest checkpoint file of your trained model.
 
@@ -135,7 +135,7 @@ Polyphonic tracks can be generated during or after training. Run the command bel
 
 `--hparams` should be the same hyperparameters used for the training job, although some of them will be ignored, like the batch size.
 
-`--output_dir` is where the generated MIDI files will be saved. `--num_outputs` is the number of drum tracks that will be generated. `--num_steps` is how long each melody will be in 16th steps (128 steps = 8 bars).
+`--output_dir` is where the generated MIDI files will be saved. `--num_outputs` is the number of polyphonic tracks that will be generated. `--num_steps` is how long each melody will be in 16th steps (128 steps = 8 bars).
 
 See above for more information on command line options related to priming sequences.
 
