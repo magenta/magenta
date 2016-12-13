@@ -172,7 +172,6 @@ class PolyphonicRnnSequenceGenerator(mm.BaseSequenceGenerator):
           len(poly_seq) + rnn_steps_to_gen, poly_seq, **args)
     poly_seq.set_length(total_steps)
 
-    import pdb;pdb.set_trace()
     if generator_options.args['condition_on_primer'].bool_value:
       generated_sequence = poly_seq.to_sequence(qpm=qpm)
     else:
