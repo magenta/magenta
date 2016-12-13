@@ -139,7 +139,7 @@ Polyphonic tracks can be generated during or after training. Run the command bel
 
 `--output_dir` is where the generated MIDI files will be saved. `--num_outputs` is the number of polyphonic tracks that will be generated. `--num_steps` is how long each melody will be in 16th steps (128 steps = 8 bars).
 
-See above for more information on command line options related to priming sequences.
+See above for more information on other command line options.
 
 ```
 polyphonic_rnn_generate \
@@ -163,10 +163,9 @@ To generate a bundle, use the
 method within SequenceGenerator. Our generator script
 supports a ```--save_generator_bundle``` flag that calls this method. Example:
 
-```sh
+```
 polyphonic_rnn_generate \
   --run_dir=/tmp/polyphonic_rnn/logdir/run1 \
-  --hparams="{'batch_size':64,'rnn_layer_sizes':[64,64]}" \
   --bundle_file=/tmp/polyphonic_rnn.mag \
   --save_generator_bundle
 ```
