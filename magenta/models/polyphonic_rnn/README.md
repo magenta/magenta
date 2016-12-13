@@ -55,10 +55,12 @@ This will generate a polyphonic sequence using a C Major chord as a primer.
 There are several command line options for controlling the generation process:
 
 * **primer_pitches**: A string representation of a Python list of pitches that will be used as a starting chord with a quarter note duration. For example: ```"[60, 64, 67]"```.
-* **primer_melody**: A string representation of a Python list of `magenta.music.Melody` event values. For example: `"[60, -2, 60, -2, 67, -2, 67, -2]"`.
+* **primer_melody**: A string representation of a Python list of `magenta.music.Melody` event values (-2 = no event, -1 = note-off event, values 0 through 127 = note-on event for that MIDI pitch). For example: `"[60, -2, 60, -2, 67, -2, 67, -2]"`.
 * **primer_midi**: The path to a MIDI file containing a polyphonic track that will be used as a priming track.
 * **condition_on_primer**: If set, the RNN will receive the primer as its input before it begins generating a new sequence.
-* **inject_primer_during_generation**: 'If set, the primer will be injected as a part of the generated sequence. This option is useful if you want the model to harmonize an existing melody.
+* **inject_primer_during_generation**: If set, the primer will be injected as a part of the generated sequence. This option is useful if you want the model to harmonize an existing melody.
+
+For a full list of command line options, run `polyphonic_rnn_generate --help`.
 
 Here's another example that will harmonize the first few notes of *Twinkle, Twinkle, Little Star*:
 
