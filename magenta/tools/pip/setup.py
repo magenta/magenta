@@ -43,6 +43,9 @@ CONSOLE_SCRIPTS = [
     'magenta.models.melody_rnn.melody_rnn_create_dataset',
     'magenta.models.melody_rnn.melody_rnn_generate',
     'magenta.models.melody_rnn.melody_rnn_train',
+    'magenta.models.melody_rnn.polyphonic_rnn_create_dataset',
+    'magenta.models.melody_rnn.polyphonic_rnn_generate',
+    'magenta.models.melody_rnn.polyphonic_rnn_train',
     'magenta.models.rl_tuner.rl_tuner_train',
     'magenta.scripts.convert_dir_to_note_sequences',
 ]

@@ -15,6 +15,15 @@
 licenses(["notice"])  # Apache 2.0
 
 py_library(
+    name = "polyphonic_rnn",
+    srcs = ["__init__.py"],
+    visibility = ["//magenta/tools/pip:__subpackages__"],
+    deps = [
+        ":polyphony_model",
+    ],
+)
+
+py_library(
     name = "polyphony_lib",
     srcs = ["polyphony_lib.py"],
     deps = [
@@ -60,6 +69,7 @@ py_library(
 py_binary(
     name = "polyphonic_rnn_generate",
     srcs = ["polyphonic_rnn_generate.py"],
+    visibility = ["//magenta/tools/pip:__subpackages__"],
     deps = [
         ":polyphony_lib",
         ":polyphony_model",
@@ -93,6 +103,7 @@ py_test(
 py_binary(
     name = "polyphonic_rnn_create_dataset",
     srcs = ["polyphonic_rnn_create_dataset.py"],
+    visibility = ["//magenta/tools/pip:__subpackages__"],
     deps = [
         ":polyphony_lib",
         ":polyphony_model",
@@ -116,6 +127,7 @@ py_test(
 py_binary(
     name = "polyphonic_rnn_train",
     srcs = ["polyphonic_rnn_train.py"],
+    visibility = ["//magenta/tools/pip:__subpackages__"],
     deps = [
         ":polyphony_model",
         "//magenta/models/shared:events_rnn_graph",

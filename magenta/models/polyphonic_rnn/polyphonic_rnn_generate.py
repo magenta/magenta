@@ -71,14 +71,11 @@ tf.app.flags.DEFINE_string(
     'primer_melody', '',
     'A string representation of a Python list of '
     'magenta.music.Melody event values. For example: '
-    '"[60, -2, 60, -2, 67, -2, 67, -2]". If specified, this melody will be '
-    'used as the priming melody. If a priming melody is not specified, '
-    'melodies will be generated from scratch.')
+    '"[60, -2, 60, -2, 67, -2, 67, -2]".')
 tf.app.flags.DEFINE_string(
     'primer_midi', '',
     'The path to a MIDI file containing a polyphonic track that will be used '
-    'as a priming track. If a primer track is not specified, tracks will be '
-    'generated from scratch.')
+    'as a priming track.')
 tf.app.flags.DEFINE_boolean(
     'condition_on_primer', False,
     'If set, the RNN will receive the primer as its input before it begins '
