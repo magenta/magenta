@@ -26,7 +26,7 @@ from magenta.interfaces.midi import midi_hub
 from magenta.interfaces.midi import midi_interaction
 from magenta.models.drums_rnn import drums_rnn_sequence_generator
 from magenta.models.melody_rnn import melody_rnn_sequence_generator
-from magenta.models.polyphonic_rnn import polyphony_sequence_generator
+from magenta.models.polyphony_rnn import polyphony_sequence_generator
 
 FLAGS = tf.app.flags.FLAGS
 
@@ -49,23 +49,24 @@ tf.app.flags.DEFINE_bool(
 tf.app.flags.DEFINE_integer(
     'clock_control_number',
     None,
-    'The control change number to use as a signal for a tick of the external '
-    'clock. If None, an internal clock is used that ticks once per bar based'
-    'on the qpm.')
+    'The control change number to use with value 127 as a signal for a tick of '
+    'the external clock. If None, an internal clock is used that ticks once '
+    'per bar based on the qpm.')
 tf.app.flags.DEFINE_integer(
     'end_call_control_number',
     None,
-    'The control change number to use as a signal to end the call phrase.')
+    'The control change number to use with value 127 as a signal to end the '
+    'call phrase on the next tick.')
 tf.app.flags.DEFINE_integer(
     'panic_control_number',
     None,
-    'The control change number to use as a panic signal to close open notes '
-    'and clear playback sequence.')
+    'The control change number to use with value 127 as a panic signal to '
+    'close open notes and clear playback sequence.')
 tf.app.flags.DEFINE_integer(
     'mutate_control_number',
     None,
-    'The control change number to use as a mutate signal to generate a new '
-    'response using the current response sequence as a seed.')
+    'The control change number to use with value 127 as a mutate signal to '
+    'generate a new response using the current response sequence as a seed.')
 tf.app.flags.DEFINE_integer(
     'min_listen_ticks_control_number',
     None,
@@ -111,7 +112,7 @@ tf.app.flags.DEFINE_integer(
     'loop_control_number',
     None,
     'The control number to use for determining whether to loop the response. '
-    'A value of 127 turns looping on, and any other value turns it off.')
+    'A value of 127 turns looping on and any other value turns it off.')
 tf.app.flags.DEFINE_string(
     'bundle_files',
     None,
@@ -130,11 +131,11 @@ tf.app.flags.DEFINE_integer(
 tf.app.flags.DEFINE_float(
     'playback_offset',
     0.0,
-    'Seconds to adjust playback time.')
+    'Time in seconds to adjust playback time by.')
 tf.app.flags.DEFINE_integer(
     'playback_channel',
     0,
-    'Channel to send play events.')
+    'MIDI channel to send play events.')
 tf.app.flags.DEFINE_string(
     'log', 'WARN',
     'The threshold for what messages will be logged. DEBUG, INFO, WARN, ERROR, '
@@ -194,13 +195,14 @@ def _print_instructions():
   """Prints instructions for interaction based on the flag values."""
   print ''
   print 'Instructions:'
-  print 'Start playing when you want to begin the call phrase.'
+  print 'Start playing  when you want to begin the call phrase.'
   if FLAGS.end_call_control_number is not None:
     print ('When you want to end the call phrase, signal control number %d '
-           'with value 127, or stop playing and wait.'
+           'with value 127, or stop playing and wait one clock tick.'
            % FLAGS.end_call_control_number)
   else:
-    print 'When you want to end the call phrase, stop playing and wait.'
+    print ('When you want to end the call phrase, stop playing and wait one '
+           'clock tick.')
   print ('Once the response completes, the interface will wait for you to '
          'begin playing again to start a new call phrase.')
   print ''
