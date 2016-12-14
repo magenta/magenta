@@ -701,5 +701,6 @@ class MidiHubTest(tf.test.TestCase):
         sent_messages,
         [mido.Message(type='control_change', control=0, value=1)])
 
+
 if __name__ == '__main__':
   tf.test.main()

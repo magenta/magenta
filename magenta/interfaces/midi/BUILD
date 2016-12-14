@@ -35,6 +35,7 @@ py_library(
     deps = [
         "//magenta",
         "@mido//:mido",
+        # tensorflow dep
     ],
 )
 
