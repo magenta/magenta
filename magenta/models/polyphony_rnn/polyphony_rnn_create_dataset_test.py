@@ -19,8 +19,8 @@ import tensorflow as tf
 
 import magenta
 
-from magenta.models.polyphony_rnn import polyphony_rnn_create_dataset
 from magenta.models.polyphony_rnn import polyphony_encoder_decoder
+from magenta.models.polyphony_rnn import polyphony_rnn_create_dataset
 from magenta.models.shared import events_rnn_model
 from magenta.protobuf import music_pb2
 
