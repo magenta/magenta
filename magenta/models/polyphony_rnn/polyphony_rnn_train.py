@@ -11,19 +11,19 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Train and evaluate a polyphonic RNN model."""
+"""Train and evaluate a polyphony RNN model."""
 
 import os
 
 # internal imports
 import tensorflow as tf
 
-from magenta.models.polyphonic_rnn import polyphony_model
+from magenta.models.polyphony_rnn import polyphony_model
 from magenta.models.shared import events_rnn_graph
 from magenta.models.shared import events_rnn_train
 
 FLAGS = tf.app.flags.FLAGS
-tf.app.flags.DEFINE_string('run_dir', '/tmp/polyphonic_rnn/logdir/run1',
+tf.app.flags.DEFINE_string('run_dir', '/tmp/polyphony_rnn/logdir/run1',
                            'Path to the directory where checkpoints and '
                            'summary events will be saved during training and '
                            'evaluation. Separate subdirectories for training '

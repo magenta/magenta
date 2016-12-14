@@ -12,6 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Imports Polyphonic RNN model."""
+"""Imports Polyphony RNN model."""
 
-from polyphony_model import PolyphonicRnnModel
+from polyphony_model import PolyphonyRnnModel

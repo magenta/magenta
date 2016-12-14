@@ -36,11 +36,11 @@ sh_binary(
         "//magenta/models/melody_rnn:melody_rnn_generate",
         "//magenta/models/melody_rnn:melody_rnn_train",
 
-        # Polyphonic RNN Model and Scripts
-        "//magenta/models/polyphonic_rnn",
-        "//magenta/models/polyphonic_rnn:polyphonic_rnn_create_dataset",
-        "//magenta/models/polyphonic_rnn:polyphonic_rnn_generate",
-        "//magenta/models/polyphonic_rnn:polyphonic_rnn_train",
+        # Polyphony RNN Model and Scripts
+        "//magenta/models/polyphony_rnn",
+        "//magenta/models/polyphony_rnn:polyphony_rnn_create_dataset",
+        "//magenta/models/polyphony_rnn:polyphony_rnn_generate",
+        "//magenta/models/polyphony_rnn:polyphony_rnn_train",
 
         # RL Tuner Model and Scripts
         "//magenta/models/rl_tuner",

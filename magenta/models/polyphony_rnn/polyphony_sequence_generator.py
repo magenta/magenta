@@ -20,22 +20,22 @@ from functools import partial
 
 import tensorflow as tf
 
-from magenta.models.polyphonic_rnn import polyphony_lib
-from magenta.models.polyphonic_rnn import polyphony_model
-from magenta.models.polyphonic_rnn.polyphony_lib import PolyphonicEvent
+from magenta.models.polyphony_rnn import polyphony_lib
+from magenta.models.polyphony_rnn import polyphony_model
+from magenta.models.polyphony_rnn.polyphony_lib import PolyphonicEvent
 
 import magenta.music as mm
 
 
-class PolyphonicRnnSequenceGenerator(mm.BaseSequenceGenerator):
-  """Polyphonic RNN generation code as a SequenceGenerator interface."""
+class PolyphonyRnnSequenceGenerator(mm.BaseSequenceGenerator):
+  """Polyphony RNN generation code as a SequenceGenerator interface."""
 
   def __init__(self, model, details, steps_per_quarter=4, checkpoint=None,
                bundle=None):
-    """Creates a PolyphonicRnnSequenceGenerator.
+    """Creates a PolyphonyRnnSequenceGenerator.
 
     Args:
-      model: Instance of PolyphonicRnnModel.
+      model: Instance of PolyphonyRnnModel.
       details: A generator_pb2.GeneratorDetails for this generator.
       steps_per_quarter: What precision to use when quantizing the sequence. How
           many steps per quarter note.
@@ -44,7 +44,7 @@ class PolyphonicRnnSequenceGenerator(mm.BaseSequenceGenerator):
       bundle: A GeneratorBundle object that includes both the model checkpoint
           and metagraph. Mutually exclusive with `checkpoint`.
     """
-    super(PolyphonicRnnSequenceGenerator, self).__init__(
+    super(PolyphonyRnnSequenceGenerator, self).__init__(
         model, details, steps_per_quarter, checkpoint, bundle)
 
   def _generate(self, input_sequence, generator_options):
@@ -247,8 +247,8 @@ def get_generator_map():
     bound `config` argument.
   """
   def create_sequence_generator(config, **kwargs):
-    return PolyphonicRnnSequenceGenerator(
-        polyphony_model.PolyphonicRnnModel(config), config.details, **kwargs)
+    return PolyphonyRnnSequenceGenerator(
+        polyphony_model.PolyphonyRnnModel(config), config.details, **kwargs)
 
   return {key: partial(create_sequence_generator, config)
           for (key, config) in polyphony_model.default_configs.items()}

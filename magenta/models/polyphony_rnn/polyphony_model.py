@@ -16,11 +16,11 @@
 # internal imports
 
 import magenta
-from magenta.models.polyphonic_rnn import polyphony_encoder_decoder
+from magenta.models.polyphony_rnn import polyphony_encoder_decoder
 from magenta.models.shared import events_rnn_model
 
 
-class PolyphonicRnnModel(events_rnn_model.EventSequenceRnnModel):
+class PolyphonyRnnModel(events_rnn_model.EventSequenceRnnModel):
   """Class for RNN polyphonic sequence generation models."""
 
   def generate_polyphonic_sequence(

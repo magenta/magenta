@@ -21,7 +21,7 @@ import tensorflow as tf
 
 from magenta.common import testing_lib as common_testing_lib
 
-from magenta.models.polyphonic_rnn import polyphony_lib
+from magenta.models.polyphony_rnn import polyphony_lib
 
 from magenta.music import sequences_lib
 from magenta.music import testing_lib

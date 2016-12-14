@@ -15,7 +15,7 @@
 licenses(["notice"])  # Apache 2.0
 
 py_library(
-    name = "polyphonic_rnn",
+    name = "polyphony_rnn",
     srcs = ["__init__.py"],
     visibility = ["//magenta/tools/pip:__subpackages__"],
     deps = [
@@ -67,8 +67,8 @@ py_library(
 )
 
 py_binary(
-    name = "polyphonic_rnn_generate",
-    srcs = ["polyphonic_rnn_generate.py"],
+    name = "polyphony_rnn_generate",
+    srcs = ["polyphony_rnn_generate.py"],
     visibility = ["//magenta/tools/pip:__subpackages__"],
     deps = [
         ":polyphony_lib",
@@ -101,8 +101,8 @@ py_test(
 )
 
 py_binary(
-    name = "polyphonic_rnn_create_dataset",
-    srcs = ["polyphonic_rnn_create_dataset.py"],
+    name = "polyphony_rnn_create_dataset",
+    srcs = ["polyphony_rnn_create_dataset.py"],
     visibility = ["//magenta/tools/pip:__subpackages__"],
     deps = [
         ":polyphony_lib",
@@ -113,11 +113,11 @@ py_binary(
 )
 
 py_test(
-    name = "polyphonic_rnn_create_dataset_test",
-    srcs = ["polyphonic_rnn_create_dataset_test.py"],
+    name = "polyphony_rnn_create_dataset_test",
+    srcs = ["polyphony_rnn_create_dataset_test.py"],
     deps = [
         ":polyphony_lib",
-        ":polyphonic_rnn_create_dataset",
+        ":polyphony_rnn_create_dataset",
         "//magenta/models/shared:events_rnn_model",
         "//magenta",
         # tensorflow dep
@@ -125,8 +125,8 @@ py_test(
 )
 
 py_binary(
-    name = "polyphonic_rnn_train",
-    srcs = ["polyphonic_rnn_train.py"],
+    name = "polyphony_rnn_train",
+    srcs = ["polyphony_rnn_train.py"],
     visibility = ["//magenta/tools/pip:__subpackages__"],
     deps = [
         ":polyphony_model",
