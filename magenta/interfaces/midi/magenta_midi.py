@@ -127,6 +127,14 @@ tf.app.flags.DEFINE_integer(
     None,
     'The control number to use for sending the state. A value of 0 represents '
     '`IDLE`, 1 is `LISTENING`, and 2 is `RESPONDING`.')
+tf.app.flags.DEFINE_float(
+    'playback_offset',
+    0.0,
+    'Seconds to adjust playback time.')
+tf.app.flags.DEFINE_integer(
+    'playback_channel',
+    0,
+    'Channel to send play events.')
 tf.app.flags.DEFINE_string(
     'log', 'WARN',
     'The threshold for what messages will be logged. DEBUG, INFO, WARN, ERROR, '
@@ -219,7 +227,9 @@ def main(unused_argv):
     print "Opening '%s' as a virtual MIDI port for output." % FLAGS.output_port
   hub = midi_hub.MidiHub(FLAGS.input_port, FLAGS.output_port,
                          midi_hub.TextureType.MONOPHONIC,
-                         passthrough=FLAGS.passthrough)
+                         passthrough=FLAGS.passthrough,
+                         playback_channel=FLAGS.playback_channel,
+                         playback_offset=FLAGS.playback_offset)
 
   if FLAGS.clock_control_number is None:
     # Set the tick duration to be a single bar, assuming a 4/4 time signature.
