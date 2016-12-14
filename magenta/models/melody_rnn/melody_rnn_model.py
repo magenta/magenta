@@ -64,6 +64,24 @@ class MelodyRnnModel(events_rnn_model.EventSequenceRnnModel):
 
     return melody
 
+  def melody_log_likelihood(self, melody):
+    """Evaluate the log likelihood of a melody under the model.
+
+    Args:
+      melody: The Melody object for which to evaluate the log likelihood.
+
+    Returns:
+      The log likelihood of `melody` under this model.
+    """
+    melody_copy = copy.deepcopy(melody)
+
+    melody_copy.squash(
+        self._config.min_note,
+        self._config.max_note,
+        self._config.transpose_to_key)
+
+    return self._evaluate_log_likelihood([melody_copy])[0]
+
 
 class MelodyRnnConfig(events_rnn_model.EventSequenceRnnConfig):
   """Stores a configuration for a MelodyRnn.

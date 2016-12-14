@@ -70,6 +70,29 @@ class ImprovRnnModel(events_rnn_model.EventSequenceRnnModel):
 
     return melody
 
+  def melody_log_likelihood(self, melody, backing_chords):
+    """Evaluate the log likelihood of a melody conditioned on backing chords.
+
+    Args:
+      melody: The Melody object for which to evaluate the log likelihood.
+      backing_chords: The backing chords, a ChordProgression object.
+
+    Returns:
+      The log likelihood of `melody` conditioned on `backing_chords` under this
+      model.
+    """
+    melody_copy = copy.deepcopy(melody)
+    chords_copy = copy.deepcopy(backing_chords)
+
+    transpose_amount = melody_copy.squash(
+        self._config.min_note,
+        self._config.max_note,
+        self._config.transpose_to_key)
+    chords_copy.transpose(transpose_amount)
+
+    return self._evaluate_log_likelihood([melody_copy],
+                                         control_events=chords_copy)[0]
+
 
 class ImprovRnnConfig(events_rnn_model.EventSequenceRnnConfig):
   """Stores a configuration for an ImprovRnn.

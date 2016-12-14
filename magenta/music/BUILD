@@ -194,6 +194,7 @@ py_test(
         ":encoder_decoder",
         ":testing_lib",
         "//magenta/common:sequence_example_lib",
+        # numpy dep
         # tensorflow dep
     ],
 )

@@ -53,6 +53,18 @@ class PolyphonicRnnModel(events_rnn_model.EventSequenceRnnModel):
                                  beam_size, branch_factor, steps_per_iteration,
                                  modify_events_callback=modify_events_callback)
 
+  def polyphonic_sequence_log_likelihood(self, sequence):
+    """Evaluate the log likelihood of a polyphonic sequence.
+
+    Args:
+      sequence: The PolyphonicSequence object for which to evaluate the log
+          likelihood.
+
+    Returns:
+      The log likelihood of `sequence` under this model.
+    """
+    return self._evaluate_log_likelihood([sequence])[0]
+
 
 default_configs = {
     'polyphony': events_rnn_model.EventSequenceRnnConfig(
