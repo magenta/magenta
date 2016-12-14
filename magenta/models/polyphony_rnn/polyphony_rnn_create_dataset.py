@@ -24,8 +24,8 @@ import os
 
 import tensorflow as tf
 
-from magenta.models.polyphonic_rnn import polyphony_lib
-from magenta.models.polyphonic_rnn import polyphony_model
+from magenta.models.polyphony_rnn import polyphony_lib
+from magenta.models.polyphony_rnn import polyphony_model
 
 from magenta.music import encoder_decoder
 from magenta.music import sequences_lib

@@ -17,8 +17,8 @@ from __future__ import division
 
 # internal imports
 
-from magenta.models.polyphonic_rnn import polyphony_lib
-from magenta.models.polyphonic_rnn.polyphony_lib import PolyphonicEvent
+from magenta.models.polyphony_rnn import polyphony_lib
+from magenta.models.polyphony_rnn.polyphony_lib import PolyphonicEvent
 from magenta.music import encoder_decoder
 
 EVENT_CLASSES_WITHOUT_PITCH = [

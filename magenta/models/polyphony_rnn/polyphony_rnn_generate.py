@@ -25,8 +25,8 @@ import time
 import tensorflow as tf
 import magenta
 
-from magenta.models.polyphonic_rnn import polyphony_model
-from magenta.models.polyphonic_rnn import polyphony_sequence_generator
+from magenta.models.polyphony_rnn import polyphony_model
+from magenta.models.polyphony_rnn import polyphony_sequence_generator
 
 from magenta.music import constants
 from magenta.protobuf import generator_pb2
@@ -52,7 +52,7 @@ tf.app.flags.DEFINE_string(
 tf.app.flags.DEFINE_string(
     'config', 'polyphony', 'Config to use.')
 tf.app.flags.DEFINE_string(
-    'output_dir', '/tmp/polyphonic_rnn/generated',
+    'output_dir', '/tmp/polyphony_rnn/generated',
     'The directory where MIDI files will be saved to.')
 tf.app.flags.DEFINE_integer(
     'num_outputs', 10,
@@ -161,7 +161,7 @@ def run_with_flags(generator):
   Uses the options specified by the flags defined in this module.
 
   Args:
-    generator: The PolyphonicRnnSequenceGenerator to use for generation.
+    generator: The PolyphonyRnnSequenceGenerator to use for generation.
   """
   if not FLAGS.output_dir:
     tf.logging.fatal('--output_dir required')
@@ -257,8 +257,8 @@ def main(unused_argv):
 
   config = polyphony_model.default_configs[FLAGS.config]
 
-  generator = polyphony_sequence_generator.PolyphonicRnnSequenceGenerator(
-      model=polyphony_model.PolyphonicRnnModel(config),
+  generator = polyphony_sequence_generator.PolyphonyRnnSequenceGenerator(
+      model=polyphony_model.PolyphonyRnnModel(config),
       details=config.details,
       steps_per_quarter=FLAGS.steps_per_quarter,
       checkpoint=get_checkpoint(),

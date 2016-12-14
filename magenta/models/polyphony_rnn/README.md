@@ -1,4 +1,4 @@
-## Polyphonic RNN
+## Polyphony RNN
 
 This model applies language modeling to polyphonic music generation using an LSTM. Unlike melodies, this model needs to be capable of modeling multiple simultaneous notes. Taking inspiration from [BachBot](http://bachbot.com/), we model polyphony as a single stream of note events with special START, STEP_END, and END symbols. Within a step, notes are sorted by pitch in descending order.
 
@@ -33,16 +33,16 @@ First, set up your [Magenta environment](/README.md). Next, you can either use a
 
 If you want to get started right away, you can use a model that we've pre-trained on Bach chorales:
 
-* [polyphonic_rnn](http://download.magenta.tensorflow.org/models/polyphonic_rnn.mag)
+* [polyphony_rnn](http://download.magenta.tensorflow.org/models/polyphony_rnn.mag)
 
 ### Generate a polyphonic sequence
 
 ```
 BUNDLE_PATH=<absolute path of .mag file>
 
-polyphonic_rnn_generate \
+polyphony_rnn_generate \
 --bundle_file=${BUNDLE_PATH} \
---output_dir=/tmp/polyphonic_rnn/generated \
+--output_dir=/tmp/polyphony_rnn/generated \
 --num_outputs=10 \
 --num_steps=128 \
 --primer_pitches="[67,64,60]" \
@@ -60,16 +60,16 @@ There are several command line options for controlling the generation process:
 * **condition_on_primer**: If set, the RNN will receive the primer as its input before it begins generating a new sequence. You most likely want this to be true if you're using **primer_pitches** to start the sequence with a chord to establish a certain key. If you're using **primer_melody** because you want to inject a melody into the output using **inject_primer_during_generation**, you likely want this to be false, otherwise the model will see a monophonic melody before being asked to produce a polyphonic sequence. However, it may be interesting to experiment with this being on or off for each of those cases.
 * **inject_primer_during_generation**: If set, the primer will be injected as a part of the generated sequence. This option is useful if you want the model to harmonize an existing melody. This option will most likely be used with **primer_melody** and `--condition_on_primer=false`.
 
-For a full list of command line options, run `polyphonic_rnn_generate --help`.
+For a full list of command line options, run `polyphony_rnn_generate --help`.
 
 Here's another example that will harmonize the first few notes of *Twinkle, Twinkle, Little Star*:
 
 ```
 BUNDLE_PATH=<absolute path of .mag file>
 
-polyphonic_rnn_generate \
+polyphony_rnn_generate \
 --bundle_file=${BUNDLE_PATH} \
---output_dir=/tmp/polyphonic_rnn/generated \
+--output_dir=/tmp/polyphony_rnn/generated \
 --num_outputs=10 \
 --num_steps=32 \
 --primer_melody="[60, -2, 60, -2, 67, -2, 67, -2, 69, -2, 69, -2, 67, -2, -2, -2]" \
@@ -92,9 +92,9 @@ If you want to build a model that is similar to [BachBot](http://bachbot.com), y
 SequenceExamples are fed into the model during training and evaluation. Each SequenceExample will contain a sequence of inputs and a sequence of labels that represent a polyphonic sequence. Run the command below to extract polyphonic sequences from your NoteSequences and save them as SequenceExamples. Two collections of SequenceExamples will be generated, one for training, and one for evaluation, where the fraction of SequenceExamples in the evaluation set is determined by `--eval_ratio`. With an eval ratio of 0.10, 10% of the extracted polyphonic tracks will be saved in the eval collection, and 90% will be saved in the training collection.
 
 ```
-polyphonic_rnn_create_dataset \
+polyphony_rnn_create_dataset \
 --input=/tmp/notesequences.tfrecord \
---output_dir=/tmp/polyphonic_rnn/sequence_examples \
+--output_dir=/tmp/polyphony_rnn/sequence_examples \
 --eval_ratio=0.10
 ```
 
@@ -103,9 +103,9 @@ polyphonic_rnn_create_dataset \
 Run the command below to start a training job using the attention configuration. `--run_dir` is the directory where checkpoints and TensorBoard data for this run will be stored. `--sequence_example_file` is the TFRecord file of SequenceExamples that will be fed to the model. `--num_training_steps` (optional) is how many update steps to take before exiting the training loop. If left unspecified, the training loop will run until terminated manually. `--hparams` (optional) can be used to specify hyperparameters other than the defaults. For this example, we specify a custom batch size of 64 instead of the default batch size of 128. Using smaller batch sizes can help reduce memory usage, which can resolve potential out-of-memory issues when training larger models. We'll also use a 2-layer RNN with 64 units each, instead of the default of 3 layers of 256 units each. This will make our model train faster. However, if you have enough compute power, you can try using larger layer sizes for better results.
 
 ```
-polyphonic_rnn_train \
---run_dir=/tmp/polyphonic_rnn/logdir/run1 \
---sequence_example_file=/tmp/polyphonic_rnn/sequence_examples/training_poly_tracks.tfrecord \
+polyphony_rnn_train \
+--run_dir=/tmp/polyphony_rnn/logdir/run1 \
+--sequence_example_file=/tmp/polyphony_rnn/sequence_examples/training_poly_tracks.tfrecord \
 --hparams="{'batch_size':64,'rnn_layer_sizes':[64,64]}" \
 --num_training_steps=20000
 ```
@@ -113,9 +113,9 @@ polyphonic_rnn_train \
 Optionally run an eval job in parallel. `--run_dir`, `--hparams`, and `--num_training_steps` should all be the same values used for the training job. `--sequence_example_file` should point to the separate set of eval polyphonic tracks. Include `--eval` to make this an eval job, resulting in the model only being evaluated without any of the weights being updated.
 
 ```
-polyphonic_rnn_train \
---run_dir=/tmp/polyphonic_rnn/logdir/run1 \
---sequence_example_file=/tmp/polyphonic_rnn/sequence_examples/eval_poly_tracks.tfrecord \
+polyphony_rnn_train \
+--run_dir=/tmp/polyphony_rnn/logdir/run1 \
+--sequence_example_file=/tmp/polyphony_rnn/sequence_examples/eval_poly_tracks.tfrecord \
 --hparams="{'batch_size':64,'rnn_layer_sizes':[64,64]}" \
 --num_training_steps=20000 \
 --eval
@@ -124,7 +124,7 @@ polyphonic_rnn_train \
 Run TensorBoard to view the training and evaluation data.
 
 ```
-tensorboard --logdir=/tmp/polyphonic_rnn/logdir
+tensorboard --logdir=/tmp/polyphony_rnn/logdir
 ```
 
 Then go to [http://localhost:6006](http://localhost:6006) to view the TensorBoard dashboard.
@@ -133,7 +133,7 @@ Then go to [http://localhost:6006](http://localhost:6006) to view the TensorBoar
 
 Polyphonic tracks can be generated during or after training. Run the command below to generate a set of polyphonic tracks using the latest checkpoint file of your trained model.
 
-`--run_dir` should be the same directory used for the training job. The `train` subdirectory within `--run_dir` is where the latest checkpoint file will be loaded from. For example, if we use `--run_dir=/tmp/polyphonic_rnn/logdir/run1`. The most recent checkpoint file in `/tmp/polyphonic_rnn/logdir/run1/train` will be used.
+`--run_dir` should be the same directory used for the training job. The `train` subdirectory within `--run_dir` is where the latest checkpoint file will be loaded from. For example, if we use `--run_dir=/tmp/polyphony_rnn/logdir/run1`. The most recent checkpoint file in `/tmp/polyphony_rnn/logdir/run1/train` will be used.
 
 `--hparams` should be the same hyperparameters used for the training job, although some of them will be ignored, like the batch size.
 
@@ -142,9 +142,9 @@ Polyphonic tracks can be generated during or after training. Run the command bel
 See above for more information on other command line options.
 
 ```
-polyphonic_rnn_generate \
---run_dir=/tmp/polyphonic_rnn/logdir/run1 \
---output_dir=/tmp/polyphonic_rnn/generated \
+polyphony_rnn_generate \
+--run_dir=/tmp/polyphony_rnn/logdir/run1 \
+--output_dir=/tmp/polyphony_rnn/generated \
 --num_outputs=10 \
 --num_steps=128 \
 --primer_pitches="[67,64,60]" \
@@ -164,8 +164,8 @@ method within SequenceGenerator. Our generator script
 supports a ```--save_generator_bundle``` flag that calls this method. Example:
 
 ```
-polyphonic_rnn_generate \
-  --run_dir=/tmp/polyphonic_rnn/logdir/run1 \
-  --bundle_file=/tmp/polyphonic_rnn.mag \
+polyphony_rnn_generate \
+  --run_dir=/tmp/polyphony_rnn/logdir/run1 \
+  --bundle_file=/tmp/polyphony_rnn.mag \
   --save_generator_bundle
 ```

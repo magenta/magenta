@@ -26,7 +26,7 @@ import magenta
 from magenta.interfaces.midi import midi_hub
 from magenta.interfaces.midi import midi_interaction
 from magenta.models.melody_rnn import melody_rnn_sequence_generator
-from magenta.models.polyphonic_rnn import polyphony_sequence_generator
+from magenta.models.polyphony_rnn import polyphony_sequence_generator
 
 FLAGS = tf.app.flags.FLAGS
 
