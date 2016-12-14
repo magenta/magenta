@@ -690,6 +690,16 @@ class MidiHubTest(tf.test.TestCase):
     self.midi_hub.wait_for_event(timeout=0.3)
     self.assertAlmostEqual(time.time() - wait_start, 0.3, delta=0.01)
 
+  def testSendControlChange(self):
+    self.midi_hub.send_control_change(0, 1)
+
+    sent_messages = []
+    while not self.port.message_queue.empty():
+      sent_messages.append(self.port.message_queue.get())
+
+    self.assertListEqual(
+        sent_messages,
+        [mido.Message(type='control_change', control=0, value=1)])
 
 if __name__ == '__main__':
   tf.test.main()
