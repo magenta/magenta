@@ -150,17 +150,23 @@ class Metronome(threading.Thread):
     start_time: The float wall time in seconds to treat as the first beat
         for alignment. If in the future, the first tick will not start until
         after this time.
+    qpb: The number of quarter notes per bar.
     stop_time: The float wall time in seconds after which the metronome should
         stop, or None if it should continue until `stop` is called.
     velocity: The velocity of the metronome's tick `note_on` message.
     pitch: The pitch of the metronome's tick `note_on` message.
     duration: The duration of the metronome's tick.
   """
+  # The pitch interval in semitones to raise metronome downbeats only.
+  _ACCENT_PITCH_INTERVAL = 7
+  # The amount to add to metronome velocity on downbeats only.
+  _ACCENT_VELOCITY_DELTA = 1
 
   def __init__(self,
                outport,
                qpm,
                start_time,
+               qpb,
                stop_time=None,
                velocity=_DEFAULT_METRONOME_VELOCITY,
                pitch=_DEFAULT_METRONOME_PITCH,
@@ -168,6 +174,7 @@ class Metronome(threading.Thread):
     self._outport = outport
     self._qpm = qpm
     self._start_time = start_time
+    self._qpb = qpb
     self._velocity = velocity
     self._pitch = pitch
     self._duration = duration
@@ -175,9 +182,18 @@ class Metronome(threading.Thread):
     self._stop_time = stop_time
     super(Metronome, self).__init__()
 
+
   def run(self):
     """Outputs metronome tone on the qpm interval until stop signal received."""
+    # limit metronome accent velocity to 127 max value.
+    accent_velocity = min(self._velocity + self._ACCENT_VELOCITY_DELTA, 127)
+    # only raise metronome accent pitch if there is headroom.
+    accent_pitch = (
+      self._pitch if self._pitch + self._ACCENT_PITCH_INTERVAL > 127
+      else self._pitch + self._ACCENT_PITCH_INTERVAL)
+
     period = 60. / self._qpm
+    metric_position = 0
     sleeper = concurrency.Sleeper()
     now = time.time()
     next_tick_time = max(
@@ -186,21 +202,29 @@ class Metronome(threading.Thread):
     while self._stop_time is None or self._stop_time > next_tick_time:
       sleeper.sleep_until(next_tick_time)
 
+      if metric_position == 0:
+        metronome_pitch = accent_pitch
+        metronome_velocity = accent_velocity
+      else:
+        metronome_pitch = self._pitch
+        metronome_velocity = self._velocity
+
       self._outport.send(
-          mido.Message(
-              type='note_on',
-              note=self._pitch,
-              channel=_METRONOME_CHANNEL,
-              velocity=self._velocity))
+        mido.Message(
+          type='note_on',
+          note=metronome_pitch,
+          channel=_METRONOME_CHANNEL,
+          velocity=metronome_velocity))
 
       sleeper.sleep(self._duration)
 
       self._outport.send(
-          mido.Message(
-              type='note_off',
-              note=self._pitch,
-              channel=_METRONOME_CHANNEL))
+        mido.Message(
+          type='note_off',
+          note=metronome_pitch,
+          channel=_METRONOME_CHANNEL))
 
+      metric_position = (metric_position + 1) % self._qpb
       now = time.time()
       next_tick_time = now + period - ((now - self._start_time) % period)
 
@@ -1005,17 +1029,18 @@ class MidiHub(object):
         del self._signals[regex]
 
   @concurrency.serialized
-  def start_metronome(self, qpm, start_time):
+  def start_metronome(self, qpm, start_time, qpb=4):
     """Starts or re-starts the metronome with the given arguments.
 
     Args:
       qpm: The quarter notes per minute to use.
       start_time: The wall time in seconds that the metronome is started on for
         synchronization and beat alignment. May be in the past.
+      qpb: The number of quarter notes per bar, defaults to 4/4 time.
     """
     if self._metronome is not None:
       self.stop_metronome()
-    self._metronome = Metronome(self._outport, qpm, start_time)
+    self._metronome = Metronome(self._outport, qpm, start_time, qpb)
     self._metronome.start()
 
   @concurrency.serialized
