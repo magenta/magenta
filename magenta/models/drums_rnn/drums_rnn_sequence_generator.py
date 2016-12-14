@@ -69,9 +69,9 @@ class DrumsRnnSequenceGenerator(mm.BaseSequenceGenerator):
                      if primer_sequence.notes else 0)
     if last_end_time > generate_section.start_time:
       raise mm.SequenceGeneratorException(
-          'Got GenerateSection request for section that is before or equal to '
-          'the end of the NoteSequence. This model can only extend sequences. '
-          'Requested start time: %s, Final note end time: %s' %
+          'Got GenerateSection request for section that is before the end of '
+          'the NoteSequence. This model can only extend sequences. Requested '
+          'start time: %s, Final note end time: %s' %
           (generate_section.start_time, last_end_time))
 
     # Quantize the priming sequence.
