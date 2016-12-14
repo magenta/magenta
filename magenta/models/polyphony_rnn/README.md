@@ -71,8 +71,10 @@ polyphony_rnn_generate \
 --bundle_file=${BUNDLE_PATH} \
 --output_dir=/tmp/polyphony_rnn/generated \
 --num_outputs=10 \
---num_steps=32 \
---primer_melody="[60, -2, 60, -2, 67, -2, 67, -2, 69, -2, 69, -2, 67, -2, -2, -2]" \
+--num_steps=64 \
+--primer_melody="[60, -2, -2, -2, 60, -2, -2, -2, "\
+"67, -2, -2, -2, 67, -2, -2, -2, 69, -2, -2, -2, "\
+"69, -2, -2, -2, 67, -2, -2, -2, -2, -2, -2, -2]" \
 --condition_on_primer=false \
 --inject_primer_during_generation=true
 ```
