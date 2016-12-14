@@ -60,17 +60,17 @@ class ImprovRnnSequenceGenerator(mm.BaseSequenceGenerator):
       # Use primer melody from input section only. Take backing chords from
       # beginning of input section through end of generate section.
       input_section = generator_options.input_sections[0]
-      primer_sequence = mm.extract_subsequence(
+      primer_sequence = mm.trim_note_sequence(
           input_sequence, input_section.start_time, input_section.end_time)
-      backing_sequence = mm.extract_subsequence(
+      backing_sequence = mm.trim_note_sequence(
           input_sequence, input_section.start_time, generate_section.end_time)
       input_start_step = self.seconds_to_steps(input_section.start_time, qpm)
     else:
       # No input section. Take primer melody from the beginning of the sequence
       # up until the start of the generate section.
-      primer_sequence = mm.extract_subsequence(
+      primer_sequence = mm.trim_note_sequence(
           input_sequence, 0.0, generate_section.start_time)
-      backing_sequence = mm.extract_subsequence(
+      backing_sequence = mm.trim_note_sequence(
           input_sequence, 0.0, generate_section.end_time)
       input_start_step = 0
 

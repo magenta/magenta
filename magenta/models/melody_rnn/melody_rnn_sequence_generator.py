@@ -58,7 +58,7 @@ class MelodyRnnSequenceGenerator(mm.BaseSequenceGenerator):
     generate_section = generator_options.generate_sections[0]
     if generator_options.input_sections:
       input_section = generator_options.input_sections[0]
-      primer_sequence = mm.extract_subsequence(
+      primer_sequence = mm.trim_note_sequence(
           input_sequence, input_section.start_time, input_section.end_time)
       input_start_step = self.seconds_to_steps(input_section.start_time, qpm)
     else:

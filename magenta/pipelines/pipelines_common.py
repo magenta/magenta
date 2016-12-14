@@ -25,13 +25,27 @@ from magenta.pipelines import statistics
 from magenta.protobuf import music_pb2
 
 
+class TimeChangeSplitter(pipeline.Pipeline):
+  """A Pipeline that splits NoteSequences on time signature & tempo changes."""
+
+  def __init__(self, name=None):
+    super(TimeChangeSplitter, self).__init__(
+        input_type=music_pb2.NoteSequence,
+        output_type=music_pb2.NoteSequence,
+        name=name)
+
+  def transform(self, note_sequence):
+    return sequences_lib.split_note_sequence_on_time_changes(note_sequence)
+
+
 class Quantizer(pipeline.Pipeline):
   """A Module that quantizes NoteSequence data."""
 
-  def __init__(self, steps_per_quarter=4):
+  def __init__(self, steps_per_quarter=4, name=None):
     super(Quantizer, self).__init__(
         input_type=music_pb2.NoteSequence,
-        output_type=music_pb2.NoteSequence)
+        output_type=music_pb2.NoteSequence,
+        name=name)
     self._steps_per_quarter = steps_per_quarter
 
   def transform(self, note_sequence):
