@@ -197,7 +197,7 @@ class CallAndResponseMidiInteraction(MidiInteraction):
     Raises:
       ValueError: If exactly one of `clock_signal` or `tick_duration` is not
          specified.
-    """
+  """
 
   class State(object):
     """Class holding state value representations."""
@@ -413,9 +413,9 @@ class CallAndResponseMidiInteraction(MidiInteraction):
             listen_ticks >= self._max_listen_ticks):
         if listen_ticks < self._min_listen_ticks:
           tf.logging.info(
-            'Input too short (%d vs %d). Skipping.',
-            listen_ticks,
-            self._min_listen_ticks)
+              'Input too short (%d vs %d). Skipping.',
+              listen_ticks,
+              self._min_listen_ticks)
           self._captor.start_time = tick_time
         else:
           # Create response and start playback.

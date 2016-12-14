@@ -86,9 +86,9 @@ tf.app.flags.DEFINE_integer(
     'value for the control number will be used in clock ticks. If not set, the '
     'response duration will match the call duration.')
 tf.app.flags.DEFINE_integer(
-   'temperature_control_number',
-   None,
-   'The control change number to use for controlling softmax temperature.')
+    'temperature_control_number',
+    None,
+    'The control change number to use for controlling softmax temperature.')
 tf.app.flags.DEFINE_boolean(
     'allow_overlap',
     False,
