@@ -466,7 +466,7 @@ class RLTuner(object):
                                                 reduction_indices=[1,])
         self.g_normalizer = tf.reshape(self.g_normalizer, [-1, 1])
         self.g_normalizer = tf.tile(self.g_normalizer, [1, self.num_actions])
-        self.g_action_scores = tf.sub(
+        self.g_action_scores = tf.subtract(
             (self.next_action_scores + self.reward_scores), self.g_normalizer)
         self.target_vals = tf.reduce_logsumexp(self.g_action_scores,
                                                reduction_indices=[1,])

@@ -15,18 +15,6 @@ import tensorflow as tf
 from magenta.common import concurrency
 from magenta.protobuf import music_pb2
 
-FLAGS = tf.app.flags.FLAGS
-
-tf.app.flags.DEFINE_float(
-    'playback_offset',
-    0.0,
-    'Seconds to adjust playback time.')
-tf.app.flags.DEFINE_integer(
-    'playback_channel',
-    0,
-    'Channel to send play events.')
-
-
 _DEFAULT_METRONOME_TICK_DURATION = 0.05
 _DEFAULT_METRONOME_PITCH = 95
 _DEFAULT_METRONOME_VELOCITY = 64
@@ -190,6 +178,9 @@ class Metronome(threading.Thread):
              velocity=_DEFAULT_METRONOME_VELOCITY,
              pitch=_DEFAULT_METRONOME_PITCH,
              duration=_DEFAULT_METRONOME_TICK_DURATION):
+    """Updates Metronome options."""
+    # Locking is not required since variables are independent and assignment is
+    # atomic.
     self._period = 60. / qpm
     self._start_time = start_time
     self._stop_time = stop_time
@@ -223,7 +214,7 @@ class Metronome(threading.Thread):
 
       now = time.time()
       next_tick_time = (
-        now + self._period - ((now - self._start_time) % self._period))
+          now + self._period - ((now - self._start_time) % self._period))
 
   def stop(self, stop_time=0, block=True):
     """Signals for the metronome to stop.
@@ -255,11 +246,16 @@ class MidiPlayer(threading.Thread):
         `sequence` completes and calling `update_sequence` will result in an
         exception. Otherwise, the the thread will stay alive until `stop` is
         called, allowing for additional updates via `update_sequence`.
+    channel: The MIDI channel to send playback events.
+    offset: The float time in seconds to adjust the playback event times by.
   """
 
   def __init__(self, outport, sequence, start_time=time.time(),
-               allow_updates=False):
+               allow_updates=False, channel=0, offset=0.0):
     self._outport = outport
+    self._channel = channel
+    self._offset = offset
+
     # Set of notes (pitches) that are currently on.
     self._open_notes = set()
     # Lock for serialization.
@@ -277,6 +273,7 @@ class MidiPlayer(threading.Thread):
     self.update_sequence(sequence, start_time=start_time)
     # We now make whether we allow updates dependent on the argument.
     self._allow_updates = allow_updates
+
     super(MidiPlayer, self).__init__()
 
   @concurrency.serialized
@@ -325,8 +322,8 @@ class MidiPlayer(threading.Thread):
             mido.Message(type='note_off', note=note, time=next_event_time))
 
     for msg in new_message_list:
-      msg.channel = FLAGS.playback_channel
-      msg.time += FLAGS.playback_offset
+      msg.channel = self._channel
+      msg.time += self._offset
 
     self._message_queue = deque(
         sorted(new_message_list, key=lambda msg: (msg.time, msg.note)))
@@ -820,12 +817,17 @@ class MidiHub(object):
         during capture, passthrough, and playback.
     passthrough: A boolean specifying whether or not to pass incoming messages
         through to the output, applying the appropriate texture rules.
+    playback_channel: The MIDI channel to send playback events.
+    playback_offset: The float time in seconds to adjust the playback event
+        times by.
   """
 
   def __init__(self, input_midi_port, output_midi_port, texture_type,
-               passthrough=True):
+               passthrough=True, playback_channel=0, playback_offset=0.0):
     self._texture_type = texture_type
     self._passthrough = passthrough
+    self._playback_channel = playback_channel
+    self._playback_offset = playback_offset
     # When `passthrough` is True, this is the set of open MIDI note pitches.
     self._open_notes = set()
     # This lock is used by the serialized decorator.
@@ -1098,7 +1100,8 @@ class MidiHub(object):
     Returns:
       The MidiPlayer thread handling playback to enable updating.
     """
-    player = MidiPlayer(self._outport, sequence, start_time, allow_updates)
+    player = MidiPlayer(self._outport, sequence, start_time, allow_updates,
+                        self._playback_channel, self._playback_offset)
     with self._lock:
       self._players.append(player)
     player.start()
@@ -1123,7 +1126,7 @@ class MidiHub(object):
   def send_control_change(self, control_number, value):
     """Sends the specified control change message on the output port."""
     self._outport.send(
-      mido.Message(
-          type='control_change',
-          control=control_number,
-          value=value))
+        mido.Message(
+            type='control_change',
+            control=control_number,
+            value=value))

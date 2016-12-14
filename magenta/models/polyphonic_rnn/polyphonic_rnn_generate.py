@@ -65,13 +65,26 @@ tf.app.flags.DEFINE_integer(
 tf.app.flags.DEFINE_string(
     'primer_pitches', '',
     'A string representation of a Python list of pitches that will be used as '
-    'a starting sequence of quarter notes. For example: '
-    '"[60, 64, 67, 71]"')
+    'a starting chord with a quarter note duration. For example: '
+    '"[60, 64, 67]"')
+tf.app.flags.DEFINE_string(
+    'primer_melody', '',
+    'A string representation of a Python list of '
+    'magenta.music.Melody event values. For example: '
+    '"[60, -2, 60, -2, 67, -2, 67, -2]".')
 tf.app.flags.DEFINE_string(
     'primer_midi', '',
     'The path to a MIDI file containing a polyphonic track that will be used '
-    'as a priming track. If a primer track is not specified, tracks will be '
-    'generated from scratch.')
+    'as a priming track.')
+tf.app.flags.DEFINE_boolean(
+    'condition_on_primer', False,
+    'If set, the RNN will receive the primer as its input before it begins '
+    'generating a new sequence.')
+tf.app.flags.DEFINE_boolean(
+    'inject_primer_during_generation', True,
+    'If set, the primer will be injected as a part of the generated sequence. '
+    'This option is useful if you want the model to harmonize an existing '
+    'melody.')
 tf.app.flags.DEFINE_float(
     'qpm', None,
     'The quarters per minute to play generated output at. If a primer MIDI is '
@@ -168,15 +181,16 @@ def run_with_flags(generator):
     primer_sequence = music_pb2.NoteSequence()
     primer_sequence.tempos.add().qpm = qpm
     primer_sequence.ticks_per_quarter = constants.STANDARD_PPQ
-    note_start_time = 0
     for pitch in ast.literal_eval(FLAGS.primer_pitches):
       note = primer_sequence.notes.add()
-      note.start_time = note_start_time
-      note.end_time = note_start_time + (60.0 / qpm)
+      note.start_time = 0
+      note.end_time = 60.0 / qpm
       note.pitch = pitch
       note.velocity = 100
-      note_start_time = note.end_time
     primer_sequence.total_time = primer_sequence.notes[-1].end_time
+  elif FLAGS.primer_melody:
+    primer_melody = magenta.music.Melody(ast.literal_eval(FLAGS.primer_melody))
+    primer_sequence = primer_melody.to_sequence(qpm=qpm)
   elif primer_midi:
     primer_sequence = magenta.music.midi_file_to_sequence_proto(primer_midi)
     if primer_sequence.tempos and primer_sequence.tempos[0].qpm:
@@ -213,6 +227,12 @@ def run_with_flags(generator):
   generator_options.args['branch_factor'].int_value = FLAGS.branch_factor
   generator_options.args[
       'steps_per_iteration'].int_value = FLAGS.steps_per_iteration
+
+  generator_options.args['condition_on_primer'].bool_value = (
+      FLAGS.condition_on_primer)
+  generator_options.args['no_inject_primer_during_generation'].bool_value = (
+      not FLAGS.inject_primer_during_generation)
+
   tf.logging.debug('primer_sequence: %s', primer_sequence)
   tf.logging.debug('generator_options: %s', generator_options)
 

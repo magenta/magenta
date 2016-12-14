@@ -392,6 +392,113 @@ class EventSequenceRnnModel(mm.BaseModel):
                                  control_events, modify_events_callback)
     return events
 
+  def _evaluate_batch_log_likelihood(self, event_sequences, inputs,
+                                     initial_state):
+    """Evaluates the log likelihood of a batch of event sequences.
+
+    Args:
+      event_sequences: A list of event sequences, each of which is a Python
+          list-like object. The list of event sequences should have length equal
+          to `self._config.hparams.batch_size`.
+      inputs: A Python list of model inputs, with length equal to
+          `self._config.hparams.batch_size`.
+      initial_state: A numpy array containing the initial RNN state, where
+          `initial_state.shape[0]` is equal to
+          `self._config.hparams.batch_size`.
+
+    Returns:
+      A Python list containing the log likelihood of each sequence in
+      `event_sequences`.
+    """
+    graph_inputs = self._session.graph.get_collection('inputs')[0]
+    graph_initial_state = self._session.graph.get_collection('initial_state')[0]
+    graph_softmax = self._session.graph.get_collection('softmax')[0]
+    graph_temperature = self._session.graph.get_collection('temperature')
+
+    feed_dict = {graph_inputs: inputs, graph_initial_state: initial_state}
+    # For backwards compatibility, we only try to pass temperature if the
+    # placeholder exists in the graph.
+    if graph_temperature:
+      feed_dict[graph_temperature[0]] = 1.0
+    softmax = self._session.run(graph_softmax, feed_dict)
+
+    return self._config.encoder_decoder.evaluate_log_likelihood(
+        event_sequences, softmax)
+
+  def _evaluate_log_likelihood(self, event_sequences, control_events=None):
+    """Evaluate log likelihood for a list of event sequences of the same length.
+
+    Args:
+      event_sequences: A list of event sequences for which to evaluate the log
+          likelihood.
+      control_events: A sequence of control events upon which to condition the
+          event sequences. If not None, the encoder/decoder should be a
+          ConditionalEventSequenceEncoderDecoder, and the log likelihood of each
+          event sequence will be computed conditional on the control sequence.
+
+    Returns:
+      The log likelihood of each sequence in `event_sequences`.
+
+    Raises:
+      EventSequenceRnnModelException: If the event sequences are not all the
+          same length, or if the control sequence is shorter than the event
+          sequences.
+    """
+    num_steps = len(event_sequences[0])
+    for events in event_sequences[1:]:
+      if len(events) != num_steps:
+        raise EventSequenceRnnModelException(
+            'log likelihood evaluation requires all event sequences to have '
+            'the same length')
+    if control_events is not None and len(control_events) < num_steps:
+      raise EventSequenceRnnModelException(
+          'control sequence must be at least as long as the event sequences')
+
+    batch_size = self._config.hparams.batch_size
+    num_full_batches = len(event_sequences) / batch_size
+
+    loglik = np.empty(len(event_sequences))
+
+    if control_events is not None:
+      # We are conditioning on a control sequence.
+      inputs = self._config.encoder_decoder.get_inputs_batch(
+          control_events, event_sequences, full_length=True)
+    else:
+      inputs = self._config.encoder_decoder.get_inputs_batch(
+          event_sequences, full_length=True)
+
+    graph_initial_state = self._session.graph.get_collection('initial_state')[0]
+    initial_state = np.tile(
+        self._session.run(graph_initial_state), (len(event_sequences), 1))
+
+    offset = 0
+    for _ in range(num_full_batches):
+      # Evaluate a single step for one batch of event sequences.
+      batch_indices = range(offset, offset + batch_size)
+      batch_loglik = self._evaluate_batch_log_likelihood(
+          [event_sequences[i] for i in batch_indices],
+          [inputs[i] for i in batch_indices],
+          initial_state[batch_indices, :])
+      loglik[batch_indices] = batch_loglik
+      offset += batch_size
+
+    if offset < len(event_sequences):
+      # There's an extra non-full batch. Pad it with a bunch of copies of the
+      # final sequence.
+      num_extra = len(event_sequences) - offset
+      pad_size = batch_size - num_extra
+      batch_indices = range(offset, len(event_sequences))
+      batch_loglik = self._evaluate_batch_log_likelihood(
+          [event_sequences[i] for i in batch_indices] + [
+              copy.deepcopy(event_sequences[-1]) for _ in range(pad_size)],
+          [inputs[i] for i in batch_indices] + inputs[-1] * pad_size,
+          np.append(initial_state[batch_indices, :],
+                    np.tile(inputs[-1, :], (pad_size, 1)),
+                    axis=0))
+      loglik[batch_indices] = batch_loglik[0:num_extra]
+
+    return loglik
+
 
 class EventSequenceRnnConfig(object):
   """Stores a configuration for an event sequence RNN.

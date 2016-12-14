@@ -165,9 +165,9 @@ def style_loss(style_gram_matrices, end_points, style_weights):
 
 def _gram_matrix(feature_maps):
   """Computes the Gram matrix for a set of feature maps."""
-  batch_size, height, width, channels = tf.unpack(tf.shape(feature_maps))
+  batch_size, height, width, channels = tf.unstack(tf.shape(feature_maps))
   denominator = tf.to_float(height * width)
   feature_maps = tf.reshape(
-      feature_maps, tf.pack([batch_size, height * width, channels]))
+      feature_maps, tf.stack([batch_size, height * width, channels]))
   matrix = tf.matmul(feature_maps, feature_maps, adjoint_a=True)
   return matrix / denominator

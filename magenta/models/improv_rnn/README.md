@@ -12,6 +12,14 @@ This configuration is similar to the basic Melody RNN, but also provides the cur
 
 This configuration is similar to the attention Melody RNN, but also provides the current chord encoded as a one-hot vector of the 48 triads.
 
+### Chord Pitches Improv
+
+This configuration is similar to Basic Improv, but instead of using a one-hot encoding for chord triads, encodes a chord as the concatenation of the following length-12 vectors:
+
+* a one-hot encoding of the chord root pitch class, e.g. `[0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0]` for a D major (or minor, etc.) chord
+* a binary vector indicating presence or absence of each pitch class, e.g. `[1, 0, 0, 1, 1, 0, 0, 1, 0, 0, 1, 0]` for a C7#9 chord
+* a one-hot encoding of the chord bass pitch class, which is usually the same as the chord root pitch class except in the case of "slash chords" like C/E
+
 ## How to Use
 
 First, set up your [Magenta environment](/README.md). For now, you can only train your own Improv RNN, but we will be making pre-trained bundles available in the near future.
@@ -30,7 +38,7 @@ SequenceExamples are fed into the model during training and evaluation. Each Seq
 
 ```
 improv_rnn_create_dataset \
---config=<one of 'basic_improv' or 'attention_improv'>
+--config=<one of 'basic_improv', 'attention_improv', or 'chord_pitches_improv'>
 --input=/tmp/notesequences.tfrecord \
 --output_dir=/tmp/improv_rnn/sequence_examples \
 --eval_ratio=0.10

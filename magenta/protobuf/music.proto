@@ -23,7 +23,7 @@ package tensorflow.magenta;
 // For details see https://www.midi.org/specifications.
 // Note that repeated fields in this proto are not guaranteed to be sorted
 // by time.
-// Next tag: 17
+// Next tag: 18
 message NoteSequence {
   // Unique id.
   string id = 1;
@@ -68,6 +68,10 @@ message NoteSequence {
 
   // Information about how/if this sequence was quantized.
   QuantizationInfo quantization_info = 15;
+
+  // Information about how this sequence was extracted from a larger source
+  // sequence (if that was the case).
+  SubsequenceInfo subsequence_info = 17;
 
   // Next tag: 15
   message Note {
@@ -303,5 +307,15 @@ message NoteSequence {
   message QuantizationInfo {
     // How many quantization steps per quarter note of music.
     int32 steps_per_quarter = 1;
+  }
+
+  // Information about the location of the sequence in a larger source sequence.
+  message SubsequenceInfo {
+    // Time in seconds from the start of the source sequence to the start of
+    // this sequence.
+    double start_time_offset = 1;
+    // Time in seconds from the end of this sequence to the end of the source
+    // sequence.
+    double end_time_offset = 2;
   }
 }
