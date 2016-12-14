@@ -193,6 +193,10 @@ class CallAndResponseMidiInteraction(MidiInteraction):
     state_control_number: The optinal control change number to use for sending
         state update control changes. The values are 0 for `IDLE`, 1 for
         `LISTENING`, and 2 for `RESPONDING`.
+
+    Raises:
+      ValueError: If exactly one of `clock_signal` or `tick_duration` is not
+         specified.
     """
 
   class State(object):
@@ -231,7 +235,7 @@ class CallAndResponseMidiInteraction(MidiInteraction):
         midi_hub, sequence_generators, qpm, generator_select_control_number,
         tempo_control_number, temperature_control_number)
     if [clock_signal, tick_duration].count(None) != 1:
-      raise MidiInteractionException(
+      raise ValueError(
           'Exactly one of `clock_signal` or `tick_duration` must be specified.')
     self._clock_signal = clock_signal
     self._tick_duration = tick_duration
