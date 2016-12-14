@@ -35,7 +35,6 @@ REQUIRED_PACKAGES = [
 
 CONSOLE_SCRIPTS = [
     'magenta.interfaces.midi.magenta_midi',
-    'magenta.interfaces.midi.magenta_midi_ext',
     'magenta.models.image_stylization.image_stylization_create_dataset',
     'magenta.models.image_stylization.image_stylization_evaluate',
     'magenta.models.image_stylization.image_stylization_finetune',

@@ -93,6 +93,10 @@ tf.app.flags.DEFINE_boolean(
     'allow_overlap',
     False,
     'Whether to allow the call to overlap with the response.')
+tf.app.flags.DEFINE_boolean(
+    'enable_metronome',
+    True,
+    'Whether to enable the metronome.')
 tf.app.flags.DEFINE_integer(
     'qpm',
     120,
@@ -141,10 +145,6 @@ def _validate_flags():
         "', '".join(midi_hub.get_available_input_ports()))
     print "Ouput ports: '%s'" % (
         "', '".join(midi_hub.get_available_output_ports()))
-    return False
-
-  if FLAGS.clock_control_number is None:
-    print '--clock_control_number must be specified.'
     return False
 
   if FLAGS.bundle_files is None:
@@ -239,7 +239,7 @@ def main(unused_argv):
   mutate_signal = (
       None if FLAGS.mutate_control_number is None else
       midi_hub.MidiSignal(control=FLAGS.mutate_control_number, value=127))
-  interaction = midi_interaction.ExternalClockCallAndResponse(
+  interaction = midi_interaction.CallAndResponseMidiInteraction(
       hub,
       generators,
       FLAGS.qpm,
@@ -250,6 +250,7 @@ def main(unused_argv):
       panic_signal=panic_signal,
       mutate_signal=mutate_signal,
       allow_overlap=FLAGS.allow_overlap,
+      enable_metronome=FLAGS.enable_metronome,
       min_listen_ticks_control_number=FLAGS.min_listen_ticks_control_number,
       max_listen_ticks_control_number=FLAGS.max_listen_ticks_control_number,
       response_ticks_control_number=FLAGS.response_ticks_control_number,

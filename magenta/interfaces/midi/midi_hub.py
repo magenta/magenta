@@ -2,7 +2,6 @@
 
 import abc
 from collections import deque
-import logging
 import Queue
 import re
 import threading
@@ -33,6 +32,7 @@ _DEFAULT_METRONOME_PITCH = 95
 _DEFAULT_METRONOME_VELOCITY = 64
 _METRONOME_CHANNEL = 0
 
+# 0-indexed.
 _DRUM_CHANNEL = 8
 
 try:
@@ -169,6 +169,7 @@ class Metronome(threading.Thread):
     pitch: The pitch of the metronome's tick `note_on` message.
     duration: The duration of the metronome's tick.
   """
+  daemon = True
 
   def __init__(self,
                outport,
@@ -179,26 +180,32 @@ class Metronome(threading.Thread):
                pitch=_DEFAULT_METRONOME_PITCH,
                duration=_DEFAULT_METRONOME_TICK_DURATION):
     self._outport = outport
-    self._qpm = qpm
+    self.update(qpm, start_time, stop_time, velocity, pitch, duration)
+    super(Metronome, self).__init__()
+
+  def update(self,
+             qpm,
+             start_time,
+             stop_time=None,
+             velocity=_DEFAULT_METRONOME_VELOCITY,
+             pitch=_DEFAULT_METRONOME_PITCH,
+             duration=_DEFAULT_METRONOME_TICK_DURATION):
+    self._period = 60. / qpm
     self._start_time = start_time
+    self._stop_time = stop_time
     self._velocity = velocity
     self._pitch = pitch
     self._duration = duration
-    # A signal for when to stop the metronome.
-    self._stop_time = stop_time
-    super(Metronome, self).__init__()
 
   def run(self):
     """Outputs metronome tone on the qpm interval until stop signal received."""
-    period = 60. / self._qpm
     sleeper = concurrency.Sleeper()
     now = time.time()
     next_tick_time = max(
         self._start_time,
-        now + period - ((now - self._start_time) % period))
+        now + self._period - ((now - self._start_time) % self._period))
     while self._stop_time is None or self._stop_time > next_tick_time:
       sleeper.sleep_until(next_tick_time)
-
       self._outport.send(
           mido.Message(
               type='note_on',
@@ -215,7 +222,8 @@ class Metronome(threading.Thread):
               channel=_METRONOME_CHANNEL))
 
       now = time.time()
-      next_tick_time = now + period - ((now - self._start_time) % period)
+      next_tick_time = (
+        now + self._period - ((now - self._start_time) % self._period))
 
   def stop(self, stop_time=0, block=True):
     """Signals for the metronome to stop.
@@ -621,7 +629,7 @@ class MidiCaptor(threading.Thread):
       if signal is None:
         skipped_periods = (time.time() - next_yield_time) // period
         if skipped_periods > 0:
-          tf.logging.warning(
+          tf.logging.warn(
               'Skipping %d %.3fs period(s) to catch up on iteration.',
               skipped_periods, period)
           next_yield_time += skipped_periods * period
@@ -1049,17 +1057,18 @@ class MidiHub(object):
 
   @concurrency.serialized
   def start_metronome(self, qpm, start_time):
-    """Starts or re-starts the metronome with the given arguments.
+    """Starts or updates the metronome with the given arguments.
 
     Args:
       qpm: The quarter notes per minute to use.
       start_time: The wall time in seconds that the metronome is started on for
         synchronization and beat alignment. May be in the past.
     """
-    if self._metronome is not None:
-      self.stop_metronome()
-    self._metronome = Metronome(self._outport, qpm, start_time)
-    self._metronome.start()
+    if self._metronome is not None and self._metronome.is_alive():
+      self._metronome.update(qpm, start_time)
+    else:
+      self._metronome = Metronome(self._outport, qpm, start_time)
+      self._metronome.start()
 
   @concurrency.serialized
   def stop_metronome(self, stop_time=0, block=True):

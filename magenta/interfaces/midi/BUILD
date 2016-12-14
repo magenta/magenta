@@ -69,19 +69,6 @@ py_binary(
         ":midi_hub",
         ":midi_interaction",
         "//magenta",
-        "//magenta/models/melody_rnn:melody_rnn_sequence_generator",
-        "//magenta/models/polyphonic_rnn:polyphony_sequence_generator",
-    ],
-)
-
-py_binary(
-    name = "magenta_midi_ext",
-    srcs = ["magenta_midi_ext.py"],
-    visibility = ["//magenta/tools/pip:__subpackages__"],
-    deps = [
-        ":midi_hub",
-        ":midi_interaction",
-        "//magenta",
         "//magenta/models/drums_rnn:drums_rnn_sequence_generator",
         "//magenta/models/melody_rnn:melody_rnn_sequence_generator",
         "//magenta/models/polyphonic_rnn:polyphony_sequence_generator",
