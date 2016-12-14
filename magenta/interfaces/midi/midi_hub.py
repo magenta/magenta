@@ -820,7 +820,6 @@ class MidiHub(object):
     playback_channel: The MIDI channel to send playback events.
     playback_offset: The float time in seconds to adjust the playback event
         times by.
-
   """
 
   def __init__(self, input_midi_port, output_midi_port, texture_type,
