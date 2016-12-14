@@ -223,7 +223,7 @@ class Metronome(threading.Thread):
 
       now = time.time()
       next_tick_time = (
-        now + self._period - ((now - self._start_time) % self._period))
+          now + self._period - ((now - self._start_time) % self._period))
 
   def stop(self, stop_time=0, block=True):
     """Signals for the metronome to stop.
@@ -1123,7 +1123,7 @@ class MidiHub(object):
   def send_control_change(self, control_number, value):
     """Sends the specified control change message on the output port."""
     self._outport.send(
-      mido.Message(
-          type='control_change',
-          control=control_number,
-          value=value))
+        mido.Message(
+            type='control_change',
+            control=control_number,
+            value=value))
