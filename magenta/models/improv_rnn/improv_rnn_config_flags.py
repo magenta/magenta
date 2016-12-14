@@ -22,7 +22,8 @@ FLAGS = tf.app.flags.FLAGS
 tf.app.flags.DEFINE_string(
     'config',
     None,
-    "Which config to use. Must be one of 'basic_improv' or 'attention_improv'.")
+    "Which config to use. Must be one of 'basic_improv', 'attention_improv', "
+    "or 'chord_pitches_improv'.")
 tf.app.flags.DEFINE_string(
     'generator_id',
     None,

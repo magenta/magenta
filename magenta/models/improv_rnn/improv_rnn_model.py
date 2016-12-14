@@ -124,7 +124,7 @@ class ImprovRnnConfig(events_rnn_model.EventSequenceRnnConfig):
 default_configs = {
     'basic_improv': ImprovRnnConfig(
         magenta.protobuf.generator_pb2.GeneratorDetails(
-            id='basic_improv_rnn',
+            id='basic_improv',
             description='Basic melody-given-chords RNN with one-hot triad '
                         'encoding for chords.'),
         magenta.music.ConditionalEventSequenceEncoderDecoder(
@@ -161,6 +161,26 @@ default_configs = {
             dropout_keep_prob=0.5,
             skip_first_n_losses=0,
             attn_length=40,
+            clip_norm=3,
+            initial_learning_rate=0.001,
+            decay_steps=1000,
+            decay_rate=0.95)),
+
+    'chord_pitches_improv': ImprovRnnConfig(
+        magenta.protobuf.generator_pb2.GeneratorDetails(
+            id='chord_pitches_improv',
+            description='Melody-given-chords RNN with chord pitches encoding.'),
+        magenta.music.ConditionalEventSequenceEncoderDecoder(
+            magenta.music.PitchChordsEncoderDecoder(),
+            magenta.music.OneHotEventSequenceEncoderDecoder(
+                magenta.music.MelodyOneHotEncoding(
+                    min_note=DEFAULT_MIN_NOTE,
+                    max_note=DEFAULT_MAX_NOTE))),
+        magenta.common.HParams(
+            batch_size=128,
+            rnn_layer_sizes=[256, 256, 256],
+            dropout_keep_prob=0.5,
+            skip_first_n_losses=0,
             clip_norm=3,
             initial_learning_rate=0.001,
             decay_steps=1000,
