@@ -327,9 +327,8 @@ class CallAndResponseMidiInteraction(MidiInteraction):
 
     # Generate response.
     tf.logging.info(
-        "Generating sequence using '%s' generator from bundle: %s",
-        self._sequence_generator.details.id,
-        self._sequence_generator.bundle_details.id)
+        "Generating sequence using '%s' generator.",
+        self._sequence_generator.details.id)
     tf.logging.debug('Generator Details: %s',
                      self._sequence_generator.details)
     tf.logging.debug('Bundle Details: %s',
