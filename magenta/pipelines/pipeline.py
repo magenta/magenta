@@ -18,6 +18,8 @@ import inspect
 import os.path
 
 # internal imports
+from six import string_types
+
 import tensorflow as tf
 
 from magenta.pipelines import statistics
@@ -91,7 +93,7 @@ def _assert_valid_type_signature(type_sig, type_sig_name):
   """
   if isinstance(type_sig, dict):
     for k, val in type_sig.items():
-      if not isinstance(k, basestring):
+      if not isinstance(k, string_types):
         raise InvalidTypeSignatureException(
             '%s key %s must be a string.' % (type_sig_name, k))
       if not inspect.isclass(val):
@@ -155,7 +157,7 @@ class Pipeline(object):
       # This will get the name of the subclass, not "Pipeline".
       self._name = type(self).__name__
     else:
-      assert isinstance(name, basestring)
+      assert isinstance(name, string_types)
       self._name = name
     _assert_valid_type_signature(input_type, 'input_type')
     _assert_valid_type_signature(output_type, 'output_type')

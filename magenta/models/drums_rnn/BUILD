@@ -68,6 +68,7 @@ py_binary(
 py_test(
     name = "drums_rnn_create_dataset_test",
     srcs = ["drums_rnn_create_dataset_test.py"],
+    srcs_version = "PY2AND3",
     deps = [
         ":drums_rnn_create_dataset",
         "//magenta",

@@ -25,6 +25,7 @@ licenses(["notice"])  # Apache 2.0
 py_library(
     name = "common",
     srcs = ["__init__.py"],
+    srcs_version = "PY2AND3",
     deps = [
         ":concurrency",
         ":sequence_example_lib",
@@ -61,6 +62,7 @@ py_library(
 py_library(
     name = "testing_lib",
     srcs = ["testing_lib.py"],
+    srcs_version = "PY2AND3",
     deps = [
         "@protobuf//:protobuf_python",
         # numpy dep

@@ -25,6 +25,7 @@ licenses(["notice"])  # Apache 2.0
 py_library(
     name = "music",
     srcs = ["__init__.py"],
+    srcs_version = "PY2AND3",
     deps = [
         ":chords_encoder_decoder",
         ":chords_lib",
@@ -426,6 +427,7 @@ py_library(
 py_library(
     name = "sequences_lib",
     srcs = ["sequences_lib.py"],
+    srcs_version = "PY2AND3",
     deps = [
         ":constants",
         "//magenta/pipelines:pipeline",
@@ -450,6 +452,7 @@ py_test(
 py_library(
     name = "sequence_generator_bundle",
     srcs = ["sequence_generator_bundle.py"],
+    srcs_version = "PY2AND3",
     deps = [
         "@protobuf//:protobuf_python",
         "//magenta/protobuf:generator_py_pb2",
@@ -460,6 +463,7 @@ py_library(
 py_library(
     name = "sequence_generator",
     srcs = ["sequence_generator.py"],
+    srcs_version = "PY2AND3",
     deps = [
         "//magenta/protobuf:generator_py_pb2",
         # tensorflow dep
@@ -469,6 +473,7 @@ py_library(
 py_test(
     name = "sequence_generator_test",
     srcs = ["sequence_generator_test.py"],
+    srcs_version = "PY2AND3",
     deps = [
         "//magenta/protobuf:generator_py_pb2",
         ":model",
@@ -480,6 +485,7 @@ py_test(
 py_library(
     name = "testing_lib",
     srcs = ["testing_lib.py"],
+    srcs_version = "PY2AND3",
     deps = [
         ":encoder_decoder",
         "//magenta/protobuf:music_py_pb2",
@@ -489,6 +495,7 @@ py_library(
 py_library(
     name = "model",
     srcs = ["model.py"],
+    srcs_version = "PY2AND3",
     deps = [
         # tensorflow dep
     ],

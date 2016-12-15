@@ -23,7 +23,7 @@ NoteSequence proto, encoding the chords as text annotations.
 import abc
 import copy
 
-from six.moves import range  # pylint: disable=redefined-builtin
+from six.moves import xrange  # pylint: disable=redefined-builtin
 
 from magenta.music import chord_symbols_lib
 from magenta.music import constants

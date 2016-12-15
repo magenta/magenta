@@ -18,7 +18,7 @@ import os
 import random
 
 # internal imports
-
+from six.moves import range  # pylint: disable=redefined-builtin
 import numpy as np
 import tensorflow as tf
 
@@ -217,7 +217,7 @@ def make_onehot(int_list, one_hot_length):
   Returns:
     A list of one-hot encodings of the ints.
   """
-  return [[1.0 if j == i else 0.0 for j in xrange(one_hot_length)]
+  return [[1.0 if j == i else 0.0 for j in range(one_hot_length)]
           for i in int_list]
 
 

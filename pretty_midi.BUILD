@@ -1,12 +1,12 @@
 py_library(
     name = "pretty_midi",
     srcs = [
-        "__init__.py",
-        "constants.py",
-        "containers.py",
-        "instrument.py",
-        "pretty_midi.py",
-        "utilities.py",
+        "pretty_midi/__init__.py",
+        "pretty_midi/constants.py",
+        "pretty_midi/containers.py",
+        "pretty_midi/instrument.py",
+        "pretty_midi/pretty_midi.py",
+        "pretty_midi/utilities.py",
     ],
     deps = [
         "@mido//:mido",

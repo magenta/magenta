@@ -33,6 +33,8 @@ import urllib
 
 # internal imports
 
+from six.moves import range  # pylint: disable=redefined-builtin
+
 import matplotlib.pyplot as plt
 import numpy as np
 from scipy.misc import logsumexp
@@ -1226,7 +1228,7 @@ class RLTuner(object):
     contains_breaks = False
 
     # Note that the current action yas not yet been added to the composition
-    for i in xrange(len(self.composition)-1, -1, -1):
+    for i in range(len(self.composition)-1, -1, -1):
       if self.composition[i] == action_note:
         num_repeated += 1
       elif self.composition[i] == NOTE_OFF:

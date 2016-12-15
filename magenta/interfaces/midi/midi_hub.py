@@ -2,7 +2,6 @@
 
 import abc
 from collections import deque
-import Queue
 import re
 import threading
 import time
@@ -10,6 +9,7 @@ import time
 # internal imports
 import mido
 import tensorflow as tf
+from six.moves.queue import Queue
 
 # TODO(adarob): Use flattened imports.
 from magenta.common import concurrency
@@ -400,7 +400,7 @@ class MidiCaptor(threading.Thread):
   def __init__(self, qpm, start_time=0, stop_time=None, stop_signal=None):
     # A lock for synchronization.
     self._lock = threading.RLock()
-    self._receive_queue = Queue.Queue()
+    self._receive_queue = Queue()
     self._captured_sequence = music_pb2.NoteSequence()
     self._captured_sequence.tempos.add(qpm=qpm)
     self._start_time = start_time

@@ -23,6 +23,7 @@ py_library(
         "//magenta/tools/pip:__subpackages__",
         # internal notebook binary
     ],
+    srcs_version = "PY2AND3",
     deps = [
         ":midi_hub",
         ":midi_interaction",
@@ -32,6 +33,7 @@ py_library(
 py_library(
     name = "midi_hub",
     srcs = ["midi_hub.py"],
+    srcs_version = "PY2AND3",
     deps = [
         "//magenta",
         "@mido//:mido",
@@ -54,6 +56,7 @@ py_test(
 py_library(
     name = "midi_interaction",
     srcs = ["midi_interaction.py"],
+    srcs_version = "PY2AND3",
     deps = [
         ":midi_hub",
         "//magenta",
@@ -65,6 +68,7 @@ py_binary(
     name = "magenta_midi",
     srcs = ["magenta_midi.py"],
     visibility = ["//magenta/tools/pip:__subpackages__"],
+    srcs_version = "PY2AND3",
     deps = [
         ":midi_hub",
         ":midi_interaction",

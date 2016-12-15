@@ -16,6 +16,8 @@
 import tempfile
 
 # internal imports
+from six.moves import range  # pylint: disable=redefined-builtin
+
 import tensorflow as tf
 
 from magenta.music import note_sequence_io
@@ -40,7 +42,7 @@ class NoteSequenceIoTest(tf.test.TestCase):
 
   def testNoteSequenceRecordWriterAndIterator(self):
     sequences = []
-    for i in xrange(4):
+    for i in range(4):
       sequence = music_pb2.NoteSequence()
       sequence.id = str(i)
       sequence.notes.add().pitch = i

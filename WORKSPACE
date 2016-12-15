@@ -1,9 +1,8 @@
-new_http_archive(
+new_git_repository(
   name = "pretty_midi",
   build_file = "pretty_midi.BUILD",
-  url = "https://github.com/craffel/pretty-midi/archive/0.2.6.tar.gz",
-  sha256 = "8326c9c87d5efc91670a5881581eb192b095a1c93afd5fddc91b2232af8e9b9b",
-  strip_prefix = "pretty-midi-0.2.6/pretty_midi",
+  remote = "https://github.com/craffel/pretty-midi",
+  commit = "db1c3c3da98b4fa9bc8044d1e4e7566811cda1a3",
 )
 
 git_repository(

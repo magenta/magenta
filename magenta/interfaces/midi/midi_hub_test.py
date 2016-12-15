@@ -14,7 +14,7 @@
 """Tests for midi_hub."""
 
 import collections
-import Queue
+from six.moves.queue import Queue
 import threading
 import time
 
@@ -34,7 +34,7 @@ class MockMidiPort(mido.ports.BaseIOPort):
 
   def __init__(self):
     super(MockMidiPort, self).__init__()
-    self.message_queue = Queue.Queue()
+    self.message_queue = Queue()
 
   def send(self, msg):
     msg.time = time.time()

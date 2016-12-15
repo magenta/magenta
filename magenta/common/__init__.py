@@ -14,7 +14,9 @@
 
 """Imports objects into the top-level common namespace."""
 
-from sequence_example_lib import get_padded_batch
-from sequence_example_lib import make_sequence_example
+from __future__ import absolute_import
 
-from tf_lib import HParams
+from .sequence_example_lib import get_padded_batch
+from .sequence_example_lib import make_sequence_example
+
+from .tf_lib import HParams

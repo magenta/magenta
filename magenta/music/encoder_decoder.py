@@ -263,7 +263,7 @@ class EventSequenceEncoderDecoder(object):
     """
     num_classes = len(softmax[0][0])
     chosen_classes = []
-    for i in xrange(len(event_sequences)):
+    for i in range(len(event_sequences)):
       chosen_class = np.random.choice(num_classes, p=softmax[i][-1])
       event = self.class_index_to_event(chosen_class, event_sequences[i])
       event_sequences[i].append(event)
@@ -733,7 +733,7 @@ class ConditionalEventSequenceEncoderDecoder(object):
     """
     num_classes = len(softmax[0][0])
     chosen_classes = []
-    for i in xrange(len(target_event_sequences)):
+    for i in range(len(target_event_sequences)):
       chosen_class = np.random.choice(num_classes, p=softmax[i][-1])
       event = self.class_index_to_event(chosen_class, target_event_sequences[i])
       target_event_sequences[i].append(event)
