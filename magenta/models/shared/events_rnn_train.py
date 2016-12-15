@@ -20,7 +20,7 @@ import tensorflow as tf
 
 
 def run_training(graph, train_dir, num_training_steps=None,
-                 summary_frequency=10):
+                 summary_frequency=10, should_stop_func=None):
   """Runs the training loop.
 
   Args:
@@ -30,6 +30,9 @@ def run_training(graph, train_dir, num_training_steps=None,
     num_training_steps: The number of steps to train for before exiting.
     summary_frequency: The number of steps between each summary. A summary is
         when graph values from the last step are logged to the console.
+    should_stop_func: An optional external function to act as a stop signal.
+        The function is expected to return a Boolean specifying whether or not
+        the training should stop.
   """
   global_step = graph.get_collection('global_step')[0]
   learning_rate = graph.get_collection('learning_rate')[0]
@@ -53,6 +56,8 @@ def run_training(graph, train_dir, num_training_steps=None,
     while not num_training_steps or global_step_ < num_training_steps:
       if sv.should_stop():
         break
+      if should_stop_func and should_stop_func():
+        break
       if (global_step_ + 1) % summary_frequency == 0:
         (global_step_, learning_rate_, loss_, perplexity_, accuracy_,
          _) = sess.run([global_step, learning_rate, loss, perplexity, accuracy,
@@ -71,7 +76,7 @@ def run_training(graph, train_dir, num_training_steps=None,
 
 
 def run_eval(graph, train_dir, eval_dir, num_training_steps=None,
-             summary_frequency=10):
+             summary_frequency=10, should_stop_func=None):
   """Runs the training loop.
 
   Args:
@@ -86,6 +91,9 @@ def run_eval(graph, train_dir, eval_dir, num_training_steps=None,
     summary_frequency: The number of seconds between each summary. A summary is
         when evaluation data is logged to the console and evaluation
         summary events are written to `eval_dir`.
+    should_stop_func: An optional external function to act as a stop signal.
+        When given the loss and global step, the function is expected to return
+        a Boolean specifying whether or not the eval should stop.
   """
   global_step = graph.get_collection('global_step')[0]
   loss = graph.get_collection('loss')[0]
@@ -119,6 +127,8 @@ def run_eval(graph, train_dir, eval_dir, num_training_steps=None,
                             'Perplexity: %.3f - '
                             'Accuracy: %.3f',
                             global_step_, loss_, perplexity_, accuracy_)
+            if should_stop_func and should_stop_func(loss_, global_step_):
+              break
 
             if global_step_ != last_global_step:
               summary_writer.add_summary(summary_op_, global_step=global_step_)

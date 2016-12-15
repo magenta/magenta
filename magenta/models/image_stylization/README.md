@@ -8,7 +8,7 @@ implements the paper "A Learned Representation for Artistic Style":
 Manjunath Kudlur*.
 
 # Setup
-Whether you want to stylize an image with one of our pre-trained models or train your own model, you need to set up your [Magenta environment](https://github.com/tensorflow/magenta/blob/master/README.md).
+Whether you want to stylize an image with one of our pre-trained models or train your own model, you need to set up your [Magenta environment](/README.md).
 
 # Stylizing an Image
 First, download one of our pre-trained models:

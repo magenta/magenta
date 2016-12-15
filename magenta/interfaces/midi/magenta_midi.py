@@ -16,7 +16,6 @@
 Captures monophonic input MIDI sequences and plays back responses from the
 sequence generator.
 """
-
 import time
 
 # internal imports
@@ -25,7 +24,9 @@ import magenta
 
 from magenta.interfaces.midi import midi_hub
 from magenta.interfaces.midi import midi_interaction
+from magenta.models.drums_rnn import drums_rnn_sequence_generator
 from magenta.models.melody_rnn import melody_rnn_sequence_generator
+from magenta.models.polyphony_rnn import polyphony_sequence_generator
 
 FLAGS = tf.app.flags.FLAGS
 
@@ -41,30 +42,77 @@ tf.app.flags.DEFINE_string(
     'output_port',
     'magenta_out',
     'The name of the output MIDI port.')
+tf.app.flags.DEFINE_bool(
+    'passthrough',
+    True,
+    'Whether to pass input messages through to the output port.')
 tf.app.flags.DEFINE_integer(
-    'phrase_bars',
+    'clock_control_number',
     None,
-    'The number of bars of duration to use for the call and response phrases. '
-    'If none, `end_call_control_number` must be specified.')
-tf.app.flags.DEFINE_integer(
-    'start_call_control_number',
-    None,
-    'The control change number to use as a signal to start the call phrase. If '
-    'None, call will start immediately after response.')
+    'The control change number to use with value 127 as a signal for a tick of '
+    'the external clock. If None, an internal clock is used that ticks once '
+    'per bar based on the qpm.')
 tf.app.flags.DEFINE_integer(
     'end_call_control_number',
     None,
-    'The control change number to use as a signal to end the call phrase. If '
-    'None, `phrase_bars` must be specified.')
+    'The control change number to use with value 127 as a signal to end the '
+    'call phrase on the next tick.')
+tf.app.flags.DEFINE_integer(
+    'panic_control_number',
+    None,
+    'The control change number to use with value 127 as a panic signal to '
+    'close open notes and clear playback sequence.')
+tf.app.flags.DEFINE_integer(
+    'mutate_control_number',
+    None,
+    'The control change number to use with value 127 as a mutate signal to '
+    'generate a new response using the current response sequence as a seed.')
+tf.app.flags.DEFINE_integer(
+    'min_listen_ticks_control_number',
+    None,
+    'The control change number to use for controlling minimum listen duration. '
+    'The value for the control number will be used in clock ticks. Inputs less '
+    'than this length will be ignored.')
+tf.app.flags.DEFINE_integer(
+    'max_listen_ticks_control_number',
+    None,
+    'The control change number to use for controlling maximum listen duration. '
+    'The value for the control number will be used in clock ticks. After this '
+    'number of ticks, a response will automatically be generated. A 0 value '
+    'signifies infinite duration.')
+tf.app.flags.DEFINE_integer(
+    'response_ticks_control_number',
+    None,
+    'The control change number to use for controlling response duration. The '
+    'value for the control number will be used in clock ticks. If not set, the '
+    'response duration will match the call duration.')
 tf.app.flags.DEFINE_integer(
     'temperature_control_number',
     None,
-    'The control change number to use for controlling temperature.')
-# TODO(adarob): Make the qpm adjustable by a control change signal.
+    'The control change number to use for controlling softmax temperature.')
+tf.app.flags.DEFINE_boolean(
+    'allow_overlap',
+    False,
+    'Whether to allow the call to overlap with the response.')
+tf.app.flags.DEFINE_boolean(
+    'enable_metronome',
+    True,
+    'Whether to enable the metronome.')
 tf.app.flags.DEFINE_integer(
     'qpm',
-    90,
-    'The quarters per minute to use for the metronome and generated sequence.')
+    120,
+    'The quarters per minute to use for the metronome and generated sequence. '
+    'Overriden by values of control change signals for `tempo_control_number`.')
+tf.app.flags.DEFINE_integer(
+    'tempo_control_number',
+    None,
+    'The control change number to use for controlling tempo. qpm will be set '
+    'to 60 more than the value of the control change.')
+tf.app.flags.DEFINE_integer(
+    'loop_control_number',
+    None,
+    'The control number to use for determining whether to loop the response. '
+    'A value of 127 turns looping on and any other value turns it off.')
 tf.app.flags.DEFINE_string(
     'bundle_files',
     None,
@@ -75,6 +123,19 @@ tf.app.flags.DEFINE_integer(
     'The control number to use for selecting between generators when multiple '
     'bundle files are specified. Required unless only a single bundle file is '
     'specified.')
+tf.app.flags.DEFINE_integer(
+    'state_control_number',
+    None,
+    'The control number to use for sending the state. A value of 0 represents '
+    '`IDLE`, 1 is `LISTENING`, and 2 is `RESPONDING`.')
+tf.app.flags.DEFINE_float(
+    'playback_offset',
+    0.0,
+    'Time in seconds to adjust playback time by.')
+tf.app.flags.DEFINE_integer(
+    'playback_channel',
+    0,
+    'MIDI channel to send play events.')
 tf.app.flags.DEFINE_string(
     'log', 'WARN',
     'The threshold for what messages will be logged. DEBUG, INFO, WARN, ERROR, '
@@ -82,6 +143,8 @@ tf.app.flags.DEFINE_string(
 
 # A map from a string generator name to its class.
 _GENERATOR_MAP = melody_rnn_sequence_generator.get_generator_map()
+_GENERATOR_MAP.update(drums_rnn_sequence_generator.get_generator_map())
+_GENERATOR_MAP.update(polyphony_sequence_generator.get_generator_map())
 
 
 def _validate_flags():
@@ -95,11 +158,6 @@ def _validate_flags():
 
   if FLAGS.bundle_files is None:
     print '--bundle_files must be specified.'
-    return False
-
-  if (FLAGS.end_call_control_number, FLAGS.phrase_bars).count(None) != 1:
-    print('Exactly one of --end_call_control_number or --phrase_bars should be '
-          'specified.')
     return False
 
   if (len(FLAGS.bundle_files.split(',')) > 1 and
@@ -137,26 +195,16 @@ def _print_instructions():
   """Prints instructions for interaction based on the flag values."""
   print ''
   print 'Instructions:'
-  if FLAGS.start_call_control_number is not None:
-    print ('When you want to begin the call phrase, signal control number %d '
-           'with value 0.' % FLAGS.start_call_control_number)
-  print 'Play when you hear the metronome ticking.'
-  if FLAGS.phrase_bars is not None:
-    print ('After %d bars (4 beats), Magenta will play its response.' %
-           FLAGS.phrase_bars)
-  else:
+  print 'Start playing  when you want to begin the call phrase.'
+  if FLAGS.end_call_control_number is not None:
     print ('When you want to end the call phrase, signal control number %d '
-           'with value 0' % FLAGS.end_call_control_number)
-    print ('At the end of the current bar (4 beats), Magenta will play its '
-           'response.')
-  if FLAGS.start_call_control_number is not None:
-    print ('Once the response completes, the interface will wait for you to '
-           'signal a new call phrase using control number %d.' %
-           FLAGS.start_call_control_number)
+           'with value 127, or stop playing and wait one clock tick.'
+           % FLAGS.end_call_control_number)
   else:
-    print ('Once the response completes, the metronome will tick and you can '
-           'play again.')
-
+    print ('When you want to end the call phrase, stop playing and wait one '
+           'clock tick.')
+  print ('Once the response completes, the interface will wait for you to '
+         'begin playing again to start a new call phrase.')
   print ''
   print 'To end the interaction, press CTRL-C.'
 
@@ -180,23 +228,48 @@ def main(unused_argv):
   if FLAGS.output_port not in midi_hub.get_available_output_ports():
     print "Opening '%s' as a virtual MIDI port for output." % FLAGS.output_port
   hub = midi_hub.MidiHub(FLAGS.input_port, FLAGS.output_port,
-                         midi_hub.TextureType.MONOPHONIC)
+                         midi_hub.TextureType.MONOPHONIC,
+                         passthrough=FLAGS.passthrough,
+                         playback_channel=FLAGS.playback_channel,
+                         playback_offset=FLAGS.playback_offset)
 
-  start_call_signal = (
-      None if FLAGS.start_call_control_number is None else
-      midi_hub.MidiSignal(control=FLAGS.start_call_control_number, value=0))
+  if FLAGS.clock_control_number is None:
+    # Set the tick duration to be a single bar, assuming a 4/4 time signature.
+    clock_signal = None
+    tick_duration = 4 * (60. / FLAGS.qpm)
+  else:
+    clock_signal = midi_hub.MidiSignal(
+        control=FLAGS.clock_control_number, value=127)
+    tick_duration = None
+
   end_call_signal = (
       None if FLAGS.end_call_control_number is None else
-      midi_hub.MidiSignal(control=FLAGS.end_call_control_number, value=0))
+      midi_hub.MidiSignal(control=FLAGS.end_call_control_number, value=127))
+  panic_signal = (
+      None if FLAGS.panic_control_number is None else
+      midi_hub.MidiSignal(control=FLAGS.panic_control_number, value=127))
+  mutate_signal = (
+      None if FLAGS.mutate_control_number is None else
+      midi_hub.MidiSignal(control=FLAGS.mutate_control_number, value=127))
   interaction = midi_interaction.CallAndResponseMidiInteraction(
       hub,
       generators,
       FLAGS.qpm,
-      generator_select_control_number=FLAGS.generator_select_control_number,
-      phrase_bars=FLAGS.phrase_bars,
-      start_call_signal=start_call_signal,
+      FLAGS.generator_select_control_number,
+      clock_signal=clock_signal,
+      tick_duration=tick_duration,
       end_call_signal=end_call_signal,
-      temperature_control_number=FLAGS.temperature_control_number)
+      panic_signal=panic_signal,
+      mutate_signal=mutate_signal,
+      allow_overlap=FLAGS.allow_overlap,
+      enable_metronome=FLAGS.enable_metronome,
+      min_listen_ticks_control_number=FLAGS.min_listen_ticks_control_number,
+      max_listen_ticks_control_number=FLAGS.max_listen_ticks_control_number,
+      response_ticks_control_number=FLAGS.response_ticks_control_number,
+      tempo_control_number=FLAGS.tempo_control_number,
+      temperature_control_number=FLAGS.temperature_control_number,
+      loop_control_number=FLAGS.loop_control_number,
+      state_control_number=FLAGS.state_control_number)
 
   _print_instructions()
 

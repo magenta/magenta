@@ -106,7 +106,7 @@ def conditional_instance_norm(inputs,
           'beta', tf.zeros_initializer, labels, num_categories)
     if scale:
       gamma = _label_conditioned_variable(
-          'gamma', tf.ones_initializer, labels, num_categories)
+          'gamma', tf.ones_initializer(), labels, num_categories)
     # Calculate the moments on the last axis (instance activations).
     mean, variance = tf.nn.moments(inputs, axis, keep_dims=True)
     # Compute layer normalization using the batch_normalization function.
@@ -204,7 +204,7 @@ def weighted_instance_norm(inputs,
           'beta', tf.zeros_initializer, weights, num_categories)
     if scale:
       gamma = _weighted_variable(
-          'gamma', tf.ones_initializer, weights, num_categories)
+          'gamma', tf.ones_initializer(), weights, num_categories)
     # Calculate the moments on the last axis (instance activations).
     mean, variance = tf.nn.moments(inputs, axis, keep_dims=True)
     # Compute layer normalization using the batch_normalization function.

@@ -47,6 +47,17 @@ class DrumsRnnModel(events_rnn_model.EventSequenceRnnModel):
     return self._generate_events(num_steps, primer_drums, temperature,
                                  beam_size, branch_factor, steps_per_iteration)
 
+  def drum_track_log_likelihood(self, drums):
+    """Evaluate the log likelihood of a drum track under the model.
+
+    Args:
+      drums: The DrumTrack object for which to evaluate the log likelihood.
+
+    Returns:
+      The log likelihood of `drums` under this model.
+    """
+    return self._evaluate_log_likelihood([drums])[0]
+
 
 # Default configurations.
 default_configs = {
@@ -68,6 +79,7 @@ default_configs = {
             initial_learning_rate=0.001,
             decay_steps=1000,
             decay_rate=0.95)),
+
     'drum_kit': events_rnn_model.EventSequenceRnnConfig(
         magenta.protobuf.generator_pb2.GeneratorDetails(
             id='drum_kit',

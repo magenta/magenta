@@ -33,7 +33,7 @@ variable changes take effect.
 The Magenta libraries are now available for use within Python programs and
 Jupyter notebooks, and the Magenta scripts are installed in your path!
 
-Note that you will need to run `source activate magenta` to use Magneta every
+Note that you will need to run `source activate magenta` to use Magenta every
 time you open a new terminal window.
 
 #### Manual Install
@@ -70,7 +70,7 @@ pip install magenta
 The Magenta libraries are now available for use within Python programs and
 Jupyter notebooks, and the Magenta scripts are installed in your path!
 
-Note that you will need to run `source activate magenta` to use Magneta every
+Note that you will need to run `source activate magenta` to use Magenta every
 time you open a new terminal window.
 
 ### Docker
@@ -118,6 +118,12 @@ machine. Similarly, because our
 [MIDI instrument interface](magenta/interfaces/midi) requires access to the host
 MIDI port, it will not work within the Docker container. You'll need to use the
 full Development Environment.
+
+You may find at some point after installation that we have released a new version of Magenta and your Docker image is out of date. To update the image to the latest version, run:
+
+```
+docker pull tensorflow/magenta
+```
 
 Note: Our Docker image is also available at `gcr.io/tensorflow/magenta`.
 

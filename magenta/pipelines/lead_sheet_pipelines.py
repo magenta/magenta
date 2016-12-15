@@ -16,6 +16,7 @@
 # internal imports
 import tensorflow as tf
 
+from magenta.music import chord_symbols_lib
 from magenta.music import events_lib
 from magenta.music import lead_sheets_lib
 from magenta.pipelines import pipeline
@@ -58,5 +59,9 @@ class LeadSheetExtractor(pipeline.Pipeline):
       tf.logging.warning('Skipped sequence: %s', detail)
       lead_sheets = []
       stats = [statistics.Counter('non_integer_steps_per_bar', 1)]
+    except chord_symbols_lib.ChordSymbolException as detail:
+      tf.logging.warning('Skipped sequence: %s', detail)
+      lead_sheets = []
+      stats = [statistics.Counter('chord_symbol_exception', 1)]
     self._set_stats(stats)
     return lead_sheets

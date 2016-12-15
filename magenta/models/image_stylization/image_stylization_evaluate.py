@@ -87,7 +87,7 @@ def main(_):
         os.path.expanduser(FLAGS.style_dataset_file),
         batch_size=FLAGS.num_styles, image_size=FLAGS.image_size,
         square_crop=True, shuffle=False)
-    labels = tf.unpack(labels)
+    labels = tf.unstack(labels)
 
     def _create_normalizer_params(style_label):
       """Creates normalizer parameters from a style label."""
@@ -117,11 +117,11 @@ def main(_):
           [tf.ones([1, FLAGS.image_size, FLAGS.image_size, 3]), style_images])
       stylized_training_example = _style_sweep(inputs[0])
       stylized_evaluation_images = [
-          _style_sweep(image) for image in tf.unpack(evaluation_images)]
+          _style_sweep(image) for image in tf.unstack(evaluation_images)]
       stylized_noise = _style_sweep(
           tf.random_uniform([FLAGS.image_size, FLAGS.image_size, 3]))
       stylized_style_images = [
-          _style_sweep(image) for image in tf.unpack(style_images)]
+          _style_sweep(image) for image in tf.unstack(style_images)]
       if FLAGS.style_crossover:
         grid = tf.concat(
             0,

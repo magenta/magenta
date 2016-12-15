@@ -39,23 +39,7 @@ class DrumsRnnSequenceGenerator(mm.BaseSequenceGenerator):
           and metagraph. Mutually exclusive with `checkpoint`.
     """
     super(DrumsRnnSequenceGenerator, self).__init__(
-        model, details, checkpoint, bundle)
-    self._steps_per_quarter = steps_per_quarter
-
-  def _seconds_to_steps(self, seconds, qpm):
-    """Converts seconds to steps.
-
-    Uses the generator's steps_per_quarter setting and the specified qpm.
-
-    Args:
-      seconds: number of seconds.
-      qpm: current qpm.
-
-    Returns:
-      Number of steps the seconds represent.
-    """
-
-    return int(seconds * (qpm / 60.0) * self._steps_per_quarter)
+        model, details, steps_per_quarter, checkpoint, bundle)
 
   def _generate(self, input_sequence, generator_options):
     if len(generator_options.input_sections) > 1:
@@ -74,34 +58,34 @@ class DrumsRnnSequenceGenerator(mm.BaseSequenceGenerator):
     generate_section = generator_options.generate_sections[0]
     if generator_options.input_sections:
       input_section = generator_options.input_sections[0]
-      primer_sequence = mm.extract_subsequence(
+      primer_sequence = mm.trim_note_sequence(
           input_sequence, input_section.start_time, input_section.end_time)
-      input_start_step = self._seconds_to_steps(input_section.start_time, qpm)
+      input_start_step = self.seconds_to_steps(input_section.start_time, qpm)
     else:
       primer_sequence = input_sequence
       input_start_step = 0
 
     last_end_time = (max(n.end_time for n in primer_sequence.notes)
                      if primer_sequence.notes else 0)
-    if last_end_time >= generate_section.start_time:
+    if last_end_time > generate_section.start_time:
       raise mm.SequenceGeneratorException(
-          'Got GenerateSection request for section that is before or equal to '
-          'the end of the NoteSequence. This model can only extend sequences. '
-          'Requested start time: %s, Final note end time: %s' %
+          'Got GenerateSection request for section that is before the end of '
+          'the NoteSequence. This model can only extend sequences. Requested '
+          'start time: %s, Final note end time: %s' %
           (generate_section.start_time, last_end_time))
 
     # Quantize the priming sequence.
     quantized_sequence = mm.quantize_note_sequence(
-        primer_sequence, self._steps_per_quarter)
+        primer_sequence, self.steps_per_quarter)
     # Setting gap_bars to infinite ensures that the entire input will be used.
     extracted_drum_tracks, _ = mm.extract_drum_tracks(
         quantized_sequence, search_start_step=input_start_step, min_bars=0,
         gap_bars=float('inf'))
     assert len(extracted_drum_tracks) <= 1
 
-    start_step = self._seconds_to_steps(
+    start_step = self.seconds_to_steps(
         generate_section.start_time, qpm)
-    end_step = self._seconds_to_steps(generate_section.end_time, qpm)
+    end_step = self.seconds_to_steps(generate_section.end_time, qpm)
 
     if extracted_drum_tracks and extracted_drum_tracks[0]:
       drums = extracted_drum_tracks[0]
@@ -134,15 +118,18 @@ class DrumsRnnSequenceGenerator(mm.BaseSequenceGenerator):
 
 
 def get_generator_map():
-  """Returns a map from the generator ID to its SequenceGenerator class.
+  """Returns a map from the generator ID to a SequenceGenerator class creator.
 
-  Binds the `config` argument so that the constructor matches the
-  BaseSequenceGenerator class.
+  Binds the `config` argument so that the arguments match the
+  BaseSequenceGenerator class constructor.
 
   Returns:
-    Map from the generator ID to its SequenceGenerator class with a bound
-    `config` argument.
+    Map from the generator ID to its SequenceGenerator class creator with a
+    bound `config` argument.
   """
-  return {key: partial(DrumsRnnSequenceGenerator,
-                       drums_rnn_model.DrumsRnnModel(config), config.details)
+  def create_sequence_generator(config, **kwargs):
+    return DrumsRnnSequenceGenerator(
+        drums_rnn_model.DrumsRnnModel(config), config.details, **kwargs)
+
+  return {key: partial(create_sequence_generator, config)
           for (key, config) in drums_rnn_model.default_configs.items()}

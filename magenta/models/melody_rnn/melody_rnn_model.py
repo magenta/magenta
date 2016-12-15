@@ -57,13 +57,30 @@ class MelodyRnnModel(events_rnn_model.EventSequenceRnnModel):
         self._config.max_note,
         self._config.transpose_to_key)
 
-    melody = self._generate_events(num_steps, primer_melody, temperature,
-                                   beam_size, branch_factor,
-                                   steps_per_iteration)
+    melody = self._generate_events(num_steps, melody, temperature, beam_size,
+                                   branch_factor, steps_per_iteration)
 
     melody.transpose(-transpose_amount)
 
     return melody
+
+  def melody_log_likelihood(self, melody):
+    """Evaluate the log likelihood of a melody under the model.
+
+    Args:
+      melody: The Melody object for which to evaluate the log likelihood.
+
+    Returns:
+      The log likelihood of `melody` under this model.
+    """
+    melody_copy = copy.deepcopy(melody)
+
+    melody_copy.squash(
+        self._config.min_note,
+        self._config.max_note,
+        self._config.transpose_to_key)
+
+    return self._evaluate_log_likelihood([melody_copy])[0]
 
 
 class MelodyRnnConfig(events_rnn_model.EventSequenceRnnConfig):
@@ -131,6 +148,7 @@ default_configs = {
             initial_learning_rate=0.01,
             decay_steps=1000,
             decay_rate=0.85)),
+
     'lookback_rnn': MelodyRnnConfig(
         magenta.protobuf.generator_pb2.GeneratorDetails(
             id='lookback_rnn',
@@ -148,6 +166,7 @@ default_configs = {
             initial_learning_rate=0.01,
             decay_steps=1000,
             decay_rate=0.95)),
+
     'attention_rnn': MelodyRnnConfig(
         magenta.protobuf.generator_pb2.GeneratorDetails(
             id='attention_rnn',

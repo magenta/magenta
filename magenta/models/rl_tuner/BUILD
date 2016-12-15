@@ -47,6 +47,7 @@ py_library(
     srcs = ["note_rnn_loader.py"],
     deps = [
         ":rl_tuner_ops",
+        "//magenta/models/shared:events_rnn_graph",
         "//magenta/music:melodies_lib",
         "//magenta/music:midi_io",
         "//magenta/music:sequences_lib",

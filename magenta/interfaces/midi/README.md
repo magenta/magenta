@@ -145,7 +145,8 @@ below):
 magenta_midi \
   --input_port=<controller port> \
   --output_port=<synthesizer port> \
-  --bundle_file=<bundle_file> \
+  --bundle_files=<bundle_file> \
+  --qpm=<quarters per minute>
   <additional interaction-specific args>
 ```
 
@@ -159,27 +160,23 @@ When you start the interface, "call" phrase capture will begin immediately. You
 will hear a metronome ticking and the keys will now produce sounds through your
 audio output.
 
-A requirement of this interaction is that you supply either `--phrase_bars` or
-`--end_call_control_number`.
+When you would like to hear a response, you should stop playing and a wait a
+bar, at which point the response will be played. Once the response completes,
+call phrase capture will begin again, and the process repeats.
 
-If you used the `--phrase_bars` flag, after the specified number of bars, the
-metronome will stop and a generated response will be played. After the same
-number of bars, a call phrase capture will begin again, and the process repeats.
-
-If you used the `--end_call_control_number` flag, you will signal with that
-control number and a value of 0 to end the call phrase. At the end of the
-current bar, the metronome will stop and a generated response will be played
-that is the same length as your call phrase. After the response completes, call
-phrase capture will begin again, and the process repeats.
+If you used the `--end_call_control_number` flag, you can signal with that
+control number and a value of 127 to end the call phrase instead of waiting for
+a bar of silence. At the end of the current bar, a generated response will be
+played that is the same length as your call phrase. After the response
+completes, call phrase capture will begin again, and the process repeats.
 
 Assuming you're using the
-[Attention RNN](/magenta/models/melody_rnn/README.md#configurations) bundle file and are
-using VPMK and FluidSynth, your command might look like this:
+[Attention RNN](/magenta/models/melody_rnn/README.md#configurations) bundle file
+and are using VPMK and FluidSynth, your command might look like this:
 
 ```bash
 magenta_midi \
   --input_port="VMPK Output" \
   --output_port="FluidSynth virtual port" \
-  --bundle_file=/tmp/attention_rnn.mag \
-  --phrase_bars=4
+  --bundle_files=/tmp/attention_rnn.mag \
 ```

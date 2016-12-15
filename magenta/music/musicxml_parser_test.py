@@ -104,6 +104,22 @@ class MusicXMLParserTest(tf.test.TestCase):
         tf.resource_loader.get_data_files_path(),
         'testdata/chord_symbols.xml')
 
+    self.time_signature_filename = os.path.join(
+        tf.resource_loader.get_data_files_path(),
+        'testdata/st_anne.xml')
+
+    self.unmetered_filename = os.path.join(
+        tf.resource_loader.get_data_files_path(),
+        'testdata/unmetered_example.xml')
+
+    self.alternating_meter_filename = os.path.join(
+        tf.resource_loader.get_data_files_path(),
+        'testdata/alternating_meter.xml')
+
+    self.mid_measure_meter_filename = os.path.join(
+        tf.resource_loader.get_data_files_path(),
+        'testdata/mid_measure_time_signature.xml')
+
   def checkmusicxmlandsequence(self, musicxml, sequence_proto):
     """Compares MusicXMLDocument object against a sequence proto.
 
@@ -404,6 +420,100 @@ class MusicXMLParserTest(tf.test.TestCase):
     self.maxDiff = None
     self.assertProtoEquals(expected_ns, ns)
 
+  def test_incomplete_measures(self):
+    """Test that incomplete measures have the correct time signature.
+
+    This can occur in pickup bars or incomplete measures. For example,
+    if the time signature in the MusicXML is 4/4, but the measure only
+    contains one quarter note, Magenta expects this pickup measure to have
+    a time signature of 1/4.
+    """
+    ns = musicxml_reader.musicxml_file_to_sequence_proto(
+        self.time_signature_filename)
+
+    # One time signature per measure
+    self.assertEqual(len(ns.time_signatures), 10)
+    self.assertEqual(len(ns.key_signatures), 1)
+    self.assertEqual(len(ns.notes), 112)
+
+  def test_unmetered_music(self):
+    """Test that time signatures are inserted for music without time signatures.
+
+    MusicXML does not require the use of time signatures. Music without
+    time signatures occur in medieval chant, cadenzas, and contemporary music.
+    """
+    ns = musicxml_reader.musicxml_file_to_sequence_proto(
+        self.unmetered_filename)
+    expected_ns = common_testing_lib.parse_test_proto(
+        music_pb2.NoteSequence,
+        """
+        ticks_per_quarter: 220
+        time_signatures: {
+          numerator: 11
+          denominator: 8
+        }
+        tempos: {
+          qpm: 120
+        }
+        key_signatures: {
+        }
+        notes {
+          pitch: 72
+          velocity: 64
+          end_time: 0.5
+          numerator: 1
+          denominator: 4
+          voice: 1
+        }
+        notes {
+          pitch: 74
+          velocity: 64
+          start_time: 0.5
+          end_time: 0.75
+          numerator: 1
+          denominator: 8
+          voice: 1
+        }
+        notes {
+          pitch: 76
+          velocity: 64
+          start_time: 0.75
+          end_time: 1.25
+          numerator: 1
+          denominator: 4
+          voice: 1
+        }
+        notes {
+          pitch: 77
+          velocity: 64
+          start_time: 1.25
+          end_time: 1.75
+          numerator: 1
+          denominator: 4
+          voice: 1
+        }
+        notes {
+          pitch: 79
+          velocity: 64
+          start_time: 1.75
+          end_time: 2.75
+          numerator: 1
+          denominator: 2
+          voice: 1
+        }
+        part_infos {
+          name: "Flute"
+        }
+        source_info: {
+          source_type: SCORE_BASED
+          encoding_type: MUSIC_XML
+          parser: MAGENTA_MUSIC_XML
+        }
+        total_time: 2.75
+        """)
+    self.maxDiff = None
+    self.assertProtoEquals(expected_ns, ns)
+
   def test_st_anne(self):
     """Verify properties of the St. Anne file.
 
@@ -415,8 +525,53 @@ class MusicXMLParserTest(tf.test.TestCase):
         music_pb2.NoteSequence,
         """
         ticks_per_quarter: 220
-        time_signatures: {
+        time_signatures {
+          numerator: 1
+          denominator: 4
+        }
+        time_signatures {
+          time: 0.5
           numerator: 4
+          denominator: 4
+        }
+        time_signatures {
+          time: 2.5
+          numerator: 4
+          denominator: 4
+        }
+        time_signatures {
+          time: 4.5
+          numerator: 4
+          denominator: 4
+        }
+        time_signatures {
+          time: 6.5
+          numerator: 3
+          denominator: 4
+        }
+        time_signatures {
+          time: 8.0
+          numerator: 1
+          denominator: 4
+        }
+        time_signatures {
+          time: 8.5
+          numerator: 4
+          denominator: 4
+        }
+        time_signatures {
+          time: 10.5
+          numerator: 4
+          denominator: 4
+        }
+        time_signatures {
+          time: 12.5
+          numerator: 4
+          denominator: 4
+        }
+        time_signatures {
+          time: 14.5
+          numerator: 3
           denominator: 4
         }
         tempos: {
@@ -784,6 +939,14 @@ class MusicXMLParserTest(tf.test.TestCase):
     expected_times_and_chords = [(beat / 2.0, chord)
                                  for beat, chord in expected_beats_and_chords]
     self.assertEqual(expected_times_and_chords, chord_symbols)
+
+  def test_alternating_meter(self):
+    with self.assertRaises(musicxml_parser.AlternatingTimeSignatureException):
+      musicxml_parser.MusicXMLDocument(self.alternating_meter_filename)
+
+  def test_mid_measure_meter_change(self):
+    with self.assertRaises(musicxml_parser.MultipleTimeSignatureException):
+      musicxml_parser.MusicXMLDocument(self.mid_measure_meter_filename)
 
 
 if __name__ == '__main__':

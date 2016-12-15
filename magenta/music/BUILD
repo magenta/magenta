@@ -26,9 +26,12 @@ py_library(
     name = "music",
     srcs = ["__init__.py"],
     deps = [
+        ":chords_encoder_decoder",
+        ":chords_lib",
         ":constants",
         ":drums_encoder_decoder",
         ":drums_lib",
+        ":lead_sheets_lib",
         ":melodies_lib",
         ":melody_encoder_decoder",
         ":midi_io",
@@ -176,9 +179,10 @@ py_library(
     srcs_version = "PY2AND3",
     deps = [
         ":constants",
-        ":events_lib",
         "//magenta/common:sequence_example_lib",
+        "//magenta/pipelines",
         # numpy dep
+        # tensorflow dep
     ],
 )
 
@@ -190,6 +194,7 @@ py_test(
         ":encoder_decoder",
         ":testing_lib",
         "//magenta/common:sequence_example_lib",
+        # numpy dep
         # tensorflow dep
     ],
 )
@@ -374,6 +379,9 @@ py_test(
         "testdata/flute_scale_with_png.mxl",
         "testdata/rhythm_durations.xml",
         "testdata/st_anne.xml",
+        "testdata/unmetered_example.xml",
+        "testdata/alternating_meter.xml",
+        "testdata/mid_measure_time_signature.xml"
     ],
     srcs_version = "PY2AND3",
     deps = [
@@ -420,6 +428,9 @@ py_library(
     srcs = ["sequences_lib.py"],
     deps = [
         ":constants",
+        "//magenta/pipelines:pipeline",
+        "//magenta/pipelines:statistics",
+        "//magenta/protobuf:music_py_pb2",
     ],
 )
 
@@ -474,7 +485,6 @@ py_library(
         "//magenta/protobuf:music_py_pb2",
     ],
 )
-
 
 py_library(
     name = "model",

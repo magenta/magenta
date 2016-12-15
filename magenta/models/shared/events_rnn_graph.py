@@ -18,6 +18,41 @@ import tensorflow as tf
 import magenta
 
 
+def make_rnn_cell(rnn_layer_sizes,
+                  dropout_keep_prob=1.0,
+                  attn_length=0,
+                  base_cell=tf.nn.rnn_cell.BasicLSTMCell,
+                  state_is_tuple=False):
+  """Makes a RNN cell from the given hyperparameters.
+
+  Args:
+    rnn_layer_sizes: A list of integer sizes (in units) for each layer of the
+        RNN.
+    dropout_keep_prob: The float probability to keep the output of any given
+        sub-cell.
+    attn_length: The size of the attention vector.
+    base_cell: The base tf.nn.rnn_cell.RnnCell to use for sub-cells.
+    state_is_tuple: A boolean specifying whether to use tuple of hidden matrix
+        and cell matrix as a state instead of a concatenated matrix.
+
+  Returns:
+      A tf.nn.rnn_cell.MultiRNNCell based on the given hyperparameters.
+  """
+  cells = []
+  for num_units in rnn_layer_sizes:
+    cell = base_cell(num_units, state_is_tuple=state_is_tuple)
+    cell = tf.nn.rnn_cell.DropoutWrapper(
+        cell, output_keep_prob=dropout_keep_prob)
+    cells.append(cell)
+
+  cell = tf.nn.rnn_cell.MultiRNNCell(cells, state_is_tuple=state_is_tuple)
+  if attn_length:
+    cell = tf.contrib.rnn.AttentionCellWrapper(
+        cell, attn_length, state_is_tuple=state_is_tuple)
+
+  return cell
+
+
 def build_graph(mode, config, sequence_example_file_paths=None):
   """Builds the TensorFlow graph.
 
@@ -67,18 +102,11 @@ def build_graph(mode, config, sequence_example_file_paths=None):
       # values to be tensors and not tuples, so state_is_tuple is set to False.
       state_is_tuple = False
 
-    cells = []
-    for num_units in hparams.rnn_layer_sizes:
-      cell = tf.nn.rnn_cell.BasicLSTMCell(
-          num_units, state_is_tuple=state_is_tuple)
-      cell = tf.nn.rnn_cell.DropoutWrapper(
-          cell, output_keep_prob=hparams.dropout_keep_prob)
-      cells.append(cell)
+    cell = make_rnn_cell(hparams.rnn_layer_sizes,
+                         dropout_keep_prob=hparams.dropout_keep_prob,
+                         attn_length=hparams.attn_length,
+                         state_is_tuple=state_is_tuple)
 
-    cell = tf.nn.rnn_cell.MultiRNNCell(cells, state_is_tuple=state_is_tuple)
-    if hparams.attn_length:
-      cell = tf.contrib.rnn.AttentionCellWrapper(
-          cell, hparams.attn_length, state_is_tuple=state_is_tuple)
     initial_state = cell.zero_state(hparams.batch_size, tf.float32)
 
     outputs, final_state = tf.nn.dynamic_rnn(
@@ -107,12 +135,12 @@ def build_graph(mode, config, sequence_example_file_paths=None):
 
       event_positions = tf.to_float(tf.not_equal(labels_flat, no_event_label))
       event_accuracy = tf.truediv(
-          tf.reduce_sum(tf.mul(correct_predictions, event_positions)),
+          tf.reduce_sum(tf.multiply(correct_predictions, event_positions)),
           tf.reduce_sum(event_positions)) * 100
 
       no_event_positions = tf.to_float(tf.equal(labels_flat, no_event_label))
       no_event_accuracy = tf.truediv(
-          tf.reduce_sum(tf.mul(correct_predictions, no_event_positions)),
+          tf.reduce_sum(tf.multiply(correct_predictions, no_event_positions)),
           tf.reduce_sum(no_event_positions)) * 100
 
       global_step = tf.Variable(0, trainable=False, name='global_step')
@@ -126,8 +154,10 @@ def build_graph(mode, config, sequence_example_file_paths=None):
           tf.scalar_summary('loss', loss),
           tf.scalar_summary('perplexity', perplexity),
           tf.scalar_summary('accuracy', accuracy),
-          tf.scalar_summary('event_accuracy', event_accuracy),
-          tf.scalar_summary('no_event_accuracy', no_event_accuracy),
+          tf.scalar_summary(
+              'event_accuracy', event_accuracy),
+          tf.scalar_summary(
+              'no_event_accuracy', no_event_accuracy),
       ]
 
       if mode == 'train':
@@ -145,7 +175,8 @@ def build_graph(mode, config, sequence_example_file_paths=None):
         tf.add_to_collection('learning_rate', learning_rate)
         tf.add_to_collection('train_op', train_op)
 
-        summaries.append(tf.scalar_summary('learning_rate', learning_rate))
+        summaries.append(tf.scalar_summary(
+            'learning_rate', learning_rate))
 
       if mode == 'eval':
         summary_op = tf.merge_summary(summaries)
