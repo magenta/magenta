@@ -342,6 +342,7 @@ class MidiHubTest(tf.test.TestCase):
     start_time = 1.0
     captor = self.midi_hub.start_capture(120, start_time)
 
+    # Channels are 0-indexed in mido.
     self.capture_messages[2].channel = 8
     self.send_capture_messages()
     time.sleep(0.1)
