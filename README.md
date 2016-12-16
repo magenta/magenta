@@ -1,4 +1,4 @@
-<img src="http://magenta.tensorflow.org/assets/magenta-logo.png" height="75">
+<img src="http://magenta.tensorflow.org/assets/magenta-logo-bg.png" height="75">
 
 **Magenta** is a project from the [Google Brain team](https://research.google.com/teams/brain/)
 that asks: Can we use machine learning to create compelling art and music? If
