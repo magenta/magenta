@@ -327,9 +327,8 @@ class CallAndResponseMidiInteraction(MidiInteraction):
 
     # Generate response.
     tf.logging.info(
-        "Generating sequence using '%s' generator from bundle: %s",
-        self._sequence_generator.details.id,
-        self._sequence_generator.bundle_details.id)
+        "Generating sequence using '%s' generator.",
+        self._sequence_generator.details.id)
     tf.logging.debug('Generator Details: %s',
                      self._sequence_generator.details)
     tf.logging.debug('Bundle Details: %s',
@@ -337,7 +336,7 @@ class CallAndResponseMidiInteraction(MidiInteraction):
     tf.logging.debug('Generator Options: %s', generator_options)
     response_sequence = self._sequence_generator.generate(
         adjust_sequence_times(input_sequence, -zero_time), generator_options)
-    response_sequence = magenta.music.extract_subsequence(
+    response_sequence = magenta.music.trim_note_sequence(
         response_sequence, response_start_time, response_end_time)
     return adjust_sequence_times(response_sequence, zero_time)
 
@@ -427,6 +426,7 @@ class CallAndResponseMidiInteraction(MidiInteraction):
             # Move the sequence forward one tick in time.
             captured_sequence = adjust_sequence_times(
                 captured_sequence, tick_duration)
+            captured_sequence.total_time = tick_time
             capture_start_time += tick_duration
 
           # Compute duration of response.
