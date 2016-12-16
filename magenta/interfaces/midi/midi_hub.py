@@ -297,6 +297,7 @@ class MidiPlayer(threading.Thread):
     if not self._allow_updates:
       raise MidiHubException(
           'Attempted to update a MidiPlayer sequence with updates disabled.')
+
     new_message_list = []
     # The set of pitches that are already playing and will be closed without
     # first being reopened in in the new sequence.
