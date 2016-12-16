@@ -7,7 +7,6 @@ You can watch a video of the demo in action on our
 
 __DISCLAIMER__
 > This demo uses Magenta, Ableton Live, MaxMSP, and Mira. It also only works on OSX. As a fair warning, it will take a bit of familiarity with this software for you to successfully connect all the pieces. It was developed specifically for the NIPS conference and is not designed around easy installation and maintenance.
-or the NIPS conference and is not designed around easy installation and maintenance.
 
 > If you do not have access to these pieces of software, a
 [simplified version](/magenta/interfaces/midi) of the demo without these
