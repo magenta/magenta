@@ -11,7 +11,7 @@ __DISCLAIMER__
 or the NIPS conference and is not designed around easy installation and maintenance.
 
 > If you do not have access to these pieces of software, a
-[simplified version](magenta/interfaces/midi) of the demo without these
+[simplified version](/magenta/interfaces/midi) of the demo without these
 dependencies is also available.
 
 With those disclaimers aside, many have found the experience of jamming with it to be quite fluid and fun, and we hope you do too. Also, this is _FAR_ from the only way to connect Magenta to a musical workstation, and we encourage you to come up with others and share. We'd love to see and host example interactions with other (and especially free) software such as Supercollider, Pure Data, etc. At the very least, perhaps you can use this demo as an example and launching point for integrating Magenta with your own preferred musical workflow.
