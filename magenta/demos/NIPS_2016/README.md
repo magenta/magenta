@@ -8,13 +8,17 @@ __DISCLAIMER__
 
 With those disclaimers aside, many have found the experience of jamming with it to be quite fluid and fun, and we hope you do too. Also, this is _FAR_ from the only way to connect Magenta to a musical workstation, and we encourage you to come up with others and share. We'd love to see and host example interactions with other (and especially free) software such as Supercollider, Pure Data, etc. At the very least, perhaps you can use this demo as an example and launching point for integrating Magenta with your own preferred musical workflow. 
 
+Here is a diagram of the way MIDI is routed in the demo:
 
+<p align="center">
+  <img src="midi_routing.png" alt="Diagram of MIDI Routing"/>
+</p>
 
 # Installation Instructions:
 
 ## Download this directory
 
-Download this demo directory 'NIPS_2016' with the included shell scripts. The simplest way to do this is to clone the magenta repo. 
+Download this demo directory `NIPS_2016` with the included shell scripts. The simplest way to do this is to clone the magenta repo. 
 
 
 ## Install Magenta (MIDI Generation)
@@ -54,7 +58,11 @@ We use the [Mira](https://cycling74.com/products/mira/#.WFIIdKIrJE4) iPad app to
 
 ## Setup IAC MIDI Drivers (Internal MIDI routing)
 
-[Setup internal MIDI routing buses](https://help.ableton.com/hc/en-us/articles/209774225-Using-virtual-MIDI-buses-in-Live) `IAC Driver IAC Bus 1`, `IAC Driver IAC Bus 2`, `IAC Driver IAC Bus 3`, and `IAC Driver IAC Bus 4` (OSX only)
+[Setup internal MIDI routing buses](https://help.ableton.com/hc/en-us/articles/209774225-Using-virtual-MIDI-buses-in-Live) 
+* `IAC Driver IAC Bus 1`
+* `IAC Driver IAC Bus 2`
+* `IAC Driver IAC Bus 3`
+* `IAC Driver IAC Bus 4`
 
 ## Install Ableton Live 9 Suite (Sound Generation)
 
