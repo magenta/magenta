@@ -277,7 +277,7 @@ class MidiPlayer(threading.Thread):
     super(MidiPlayer, self).__init__()
 
   @concurrency.serialized
-  def update_sequence(self, sequence, start_time=time.time()):
+  def update_sequence(self, sequence, start_time=None):
     """Updates sequence being played by the MidiPlayer.
 
     Adds events to close any notes that are no longer being closed by the
@@ -291,6 +291,9 @@ class MidiPlayer(threading.Thread):
     Raises:
       MidiHubException: If called when _allow_updates is False.
     """
+    if start_time is None:
+      start_time = time.time()
+
     if not self._allow_updates:
       raise MidiHubException(
           'Attempted to update a MidiPlayer sequence with updates disabled.')
