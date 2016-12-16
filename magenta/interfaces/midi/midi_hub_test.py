@@ -162,13 +162,15 @@ class MidiHubTest(tf.test.TestCase):
     player = self.midi_hub.start_playback(seq, allow_updates=False)
     player.join()
 
-    # The first note will not be played since it started before `start_playback`
-    # is called.
-    del notes[0]
     note_events = []
     for note in notes:
       note_events.append((note.start, 'note_on', note.pitch))
       note_events.append((note.end, 'note_off', note.pitch))
+
+    # The first note on will not be sent since it started before
+    # `start_playback` is called.
+    del note_events[0]
+
     note_events = collections.deque(sorted(note_events))
     while not self.port.message_queue.empty():
       msg = self.port.message_queue.get()
@@ -201,7 +203,7 @@ class MidiHubTest(tf.test.TestCase):
     player = self.midi_hub.start_playback(seq, allow_updates=True)
 
     # Sleep past first note start.
-    concurrency.Sleeper().sleep(0.2)
+    concurrency.Sleeper().sleep_until(start_time + 0.2)
 
     new_seq = music_pb2.NoteSequence()
     notes = [Note(1, 100, 0.0, 0.8), Note(2, 100, 0.0, 1.0),
@@ -340,7 +342,7 @@ class MidiHubTest(tf.test.TestCase):
     start_time = 1.0
     captor = self.midi_hub.start_capture(120, start_time)
 
-    self.capture_messages[2].channel = 9
+    self.capture_messages[2].channel = 8
     self.send_capture_messages()
     time.sleep(0.1)
 
