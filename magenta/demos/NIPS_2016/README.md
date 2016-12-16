@@ -1,7 +1,6 @@
 # Interactive Musical Improvisation with Magenta (NIPS 2016)
 
 This folder contains download instructions and the source code required to run the call and response demo that won "Best Demo" at NIPS 2016.
-<<<<<<< HEAD
 
 You can watch a video of the demo in action on our
 [blog](https://magenta.tensorflow.org/2016/12/16/nips-demo/).
