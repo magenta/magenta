@@ -23,7 +23,7 @@ Download this demo directory `NIPS_2016` with the included shell scripts. The si
 
 ## Install Magenta (MIDI Generation)
 
-Follow the [Magenta installation instructions](https://github.com/tensorflow/magenta) to install a pip package of magenta. Follow this [installation video]() for further help. If you've done it correctly you should be able to run the command `magenta_midi` from the command line.
+Follow the [Magenta installation instructions](https://github.com/tensorflow/magenta) to install a pip package of magenta. If you've done it correctly you should be able to run the command `magenta_midi` from the command line.
 
 ## Download Bundles (Pretrained Models)
 
