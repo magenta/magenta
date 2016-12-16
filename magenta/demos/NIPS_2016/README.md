@@ -33,7 +33,7 @@ The demo uses several models pretrained on a large MIDI corpus. You need to down
 * [Lookback RNN](http://download.magenta.tensorflow.org/models/lookback_rnn.mag)
 * [Attention RNN](http://download.magenta.tensorflow.org/models/attention_rnn.mag)
 * [RL-Tuned RNN](http://download.magenta.tensorflow.org/models/rl_rnn.mag)
-* [Polyphonic RNN](http://download.magenta.tensorflow.org/models/polyphony_rnn.mag)
+* [Polyphony RNN](http://download.magenta.tensorflow.org/models/polyphony_rnn.mag)
 * [Drum Kit RNN](http://download.magenta.tensorflow.org/models/drum_kit_rnn.mag)
 
 You can of course train your own models and bundle them, and swap them in and out for the pretrained models.
