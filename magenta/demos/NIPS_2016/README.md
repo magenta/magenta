@@ -1,12 +1,12 @@
 # Interactive Musical Improvisation with Magenta (NIPS 2016)
 
-This folder contains download instructions and the source code required to run the call and response demo that won "Best Demo" at NIPS 2016. 
+This folder contains download instructions and the source code required to run the call and response demo that won "Best Demo" at NIPS 2016.
 
 __DISCLAIMER__
-> This demo uses Magenta, Ableton Live, MaxMSP, and Mira. It also only works on OSX. As a fair warning, it will take a bit of familiarity with this software for you to successfully connect all the pieces. It was developed specifically for the NIPS conference and is not designed around easy installation and maintenance. 
+> This demo uses Magenta, Ableton Live, MaxMSP, and Mira. It also only works on OSX. As a fair warning, it will take a bit of familiarity with this software for you to successfully connect all the pieces. It was developed specifically for the NIPS conference and is not designed around easy installation and maintenance.
 
 
-With those disclaimers aside, many have found the experience of jamming with it to be quite fluid and fun, and we hope you do too. Also, this is _FAR_ from the only way to connect Magenta to a musical workstation, and we encourage you to come up with others and share. We'd love to see and host example interactions with other (and especially free) software such as Supercollider, Pure Data, etc. At the very least, perhaps you can use this demo as an example and launching point for integrating Magenta with your own preferred musical workflow. 
+With those disclaimers aside, many have found the experience of jamming with it to be quite fluid and fun, and we hope you do too. Also, this is _FAR_ from the only way to connect Magenta to a musical workstation, and we encourage you to come up with others and share. We'd love to see and host example interactions with other (and especially free) software such as Supercollider, Pure Data, etc. At the very least, perhaps you can use this demo as an example and launching point for integrating Magenta with your own preferred musical workflow.
 
 Here is a diagram of the way MIDI is routed in the demo:
 
@@ -18,7 +18,7 @@ Here is a diagram of the way MIDI is routed in the demo:
 
 ## Download this directory
 
-Download this demo directory `NIPS_2016` with the included shell scripts. The simplest way to do this is to clone the magenta repo. 
+Download this demo directory `NIPS_2016` with the included shell scripts. The simplest way to do this is to clone the magenta repo.
 
 
 ## Install Magenta (MIDI Generation)
@@ -46,10 +46,10 @@ We use [Max](https://cycling74.com/) as a frontend UI that simply sends MIDI con
 
 Once you install Max, you should download the patches and resources into the demo directory:
 
-* [Magenta Max Patch](https://storage.googleapis.com/download.magenta.tensorflow.org/demos/NIPS_2016/magenta_mira.maxpat)
-* [Max4Live Device: Sync to Magenta](https://storage.googleapis.com/download.magenta.tensorflow.org/demos/NIPS_2016/SyncCallAndResponse.amxd)
-* [Max4Live Device: Sync to Max](https://storage.googleapis.com/download.magenta.tensorflow.org/demos/NIPS_2016/SyncCallAndResponseToMax.amxd)
-* [Magenta Logo](https://storage.googleapis.com/download.magenta.tensorflow.org/demos/NIPS_2016/magenta_logo.png)
+* [Magenta Max Patch](http://download.magenta.tensorflow.org/demos/NIPS_2016/magenta_mira.maxpat)
+* [Max4Live Device: Sync to Magenta](http://download.magenta.tensorflow.org/demos/NIPS_2016/SyncCallAndResponse.amxd)
+* [Max4Live Device: Sync to Max](http://download.magenta.tensorflow.org/demos/NIPS_2016/SyncCallAndResponseToMax.amxd)
+* [Magenta Logo](http://download.magenta.tensorflow.org/demos/NIPS_2016/magenta_logo.png)
 
 
 ## Install Mira iPad App (iPad UI)
@@ -58,7 +58,7 @@ We use the [Mira](https://cycling74.com/products/mira/#.WFIIdKIrJE4) iPad app to
 
 ## Setup IAC MIDI Drivers (Internal MIDI routing)
 
-[Setup internal MIDI routing buses](https://help.ableton.com/hc/en-us/articles/209774225-Using-virtual-MIDI-buses-in-Live) 
+[Setup internal MIDI routing buses](https://help.ableton.com/hc/en-us/articles/209774225-Using-virtual-MIDI-buses-in-Live)
 * `IAC Driver IAC Bus 1`
 * `IAC Driver IAC Bus 2`
 * `IAC Driver IAC Bus 3`
@@ -78,13 +78,13 @@ __Sound Packs:__
 * Session Drums Studio
 * Retro Synths
 
-These dependencies can be removed by simply replacing the missing instruments in the Live set with different instruments. 
+These dependencies can be removed by simply replacing the missing instruments in the Live set with different instruments.
 
 ## Download Live Set
 
 Once you have Ableton and the sound packs installed you should download the Live Set into the demo directory:
 
-* [Magenta Demo Live Set](https://storage.googleapis.com/download.magenta.tensorflow.org/demos/NIPS_2016/NIPS_2016_Demo.als)
+* [Magenta Demo Live Set](http://download.magenta.tensorflow.org/demos/NIPS_2016/NIPS_2016_Demo.als)
 
 
 ## Run the Demo
