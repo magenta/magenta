@@ -97,7 +97,7 @@ Once you have Ableton and the sound packs installed you should download the Live
 
 * Connect MIDI Keyboard and MIDI Drum Pad, route them as inputs on the appropriate Ableton Live tracks (Labeled with MIDI Keyboard ->, and MIDI Drums ->)
 
-* Make sure the IAC Buses are enabled for 'Remote' input MIDI control of Ableton and the MIDI Keys/Drums are enable for 'Track' input.
+* Make sure that `from Max 1` is enabled for 'Remote' input MIDI control of Ableton, the MIDI Keys/Drums are enable for 'Track' input, and that the IAC Buses are configure for 'Track' Input and Output.
 
 * Rock out!
 
