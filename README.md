@@ -160,7 +160,8 @@ pip install matplotlib scipy
 
 Finally,
 [install TensorFlow](https://www.tensorflow.org/get_started/os_setup.html).
-We require version 0.11.0rc2 or later.
+To see what version of TensorFlow the code currently requires, check the
+dependency listed in [setup.py](magenta/tools/pip/setup.py).
 
 Also, verify that your environment uses Python 2.7. We do aim to support
 Python 3 eventually, but it is currently experimental.
