@@ -120,6 +120,7 @@ melody_rnn_generate \
 --output_dir=/tmp/melody_rnn/generated \
 --num_outputs=10 \
 --num_steps=128 \
+--hparams="{'batch_size':64,'rnn_layer_sizes':[64,64]}" \
 --primer_melody="[60]"
 ```
 
