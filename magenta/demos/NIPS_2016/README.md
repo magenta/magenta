@@ -108,7 +108,7 @@ Once you have Ableton and the sound packs installed you should download the Live
 
 # How to play the demo
 
-The demo is fundamentally a call and response type interaction, with optional looping. The player plays an input MIDI sequence "Call", and the model reads in this sequence and passes the latent state of the RNNs forward to generate a new sequence which is a continuation of the old sequence "Response". The call and response can be variable length, and the response can be looped to form a background groove that the player can then solo over. The loop can also be 'mutated', by passing it back through the RNN and looping the new output. The entire process is synced through a MIDI CC message that is sent from Ableton every bar. There are two models running simultaneously. 
+The demo is fundamentally a call and response type interaction, with optional looping. The player plays an input MIDI sequence "Call", and the model reads in this sequence and passes the latent state of the RNNs forward to generate a new sequence which is a continuation of the old sequence "Response". The call and response can be variable length, and the response can be looped to form a background groove that the player can then solo over. The loop can also be 'mutated', by passing it back through the RNN and looping the new output. The entire process is synced through a MIDI CC message that is sent from Ableton every bar. There are two models running simultaneously.
 
 A melody model:
 
@@ -122,7 +122,7 @@ And a drum model:
   <img src="drums_layout.png" alt="Diagram of Melody UI"/>
 </p>
 
-This enables many forms of musical interaction. For example, the player can input a drum pattern and loop the response, while they engage in a call and response with the melody model over the looping groove. They can then mutate that drum groove while still playing melody, and optionally set the melody model to loop while they solo over both grooves. 
+This enables many forms of musical interaction. For example, the player can input a drum pattern and loop the response, while they engage in a call and response with the melody model over the looping groove. They can then mutate that drum groove while still playing melody, and optionally set the melody model to loop while they solo over both grooves.
 
 ## UI Elements
 
@@ -140,7 +140,7 @@ This enables many forms of musical interaction. For example, the player can inpu
 
 * __Mutate__: Sends the response back through the RNN to create a new response that is a continuation of the old response. Sort of like a game of telephone.
 
-* __Temperature__: The broadening of the posterior distribution over notes to play. Good for adding variation to responses. High temperatures (>1.0) result in more random outputs. Low temperatures (<1.0) return closer to the exact most likely sequence. 
+* __Temperature__: The broadening of the posterior distribution over notes to play. Good for adding variation to responses. High temperatures (>1.0) result in more random outputs. Low temperatures (<1.0) return closer to the exact most likely sequence.
 
 * __Mute Input__: Pass player input to model, but do not play out loud. Good for altering a looping drum beat without hearing two beats playing at once.
 
