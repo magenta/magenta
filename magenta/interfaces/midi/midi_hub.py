@@ -169,7 +169,7 @@ class Metronome(threading.Thread):
                stop_time=None,
                velocity=_DEFAULT_METRONOME_VELOCITY,
                program=_DEFAULT_METRONOME_PROGRAM,
-               pitches=_DEFAULT_METRONOME_PITCHES,
+               pitches=None,
                duration=_DEFAULT_METRONOME_TICK_DURATION):
     self._outport = outport
     self.update(
@@ -182,7 +182,7 @@ class Metronome(threading.Thread):
              stop_time=None,
              velocity=_DEFAULT_METRONOME_VELOCITY,
              program=_DEFAULT_METRONOME_PROGRAM,
-             pitches=_DEFAULT_METRONOME_PITCHES,
+             pitches=None,
              duration=_DEFAULT_METRONOME_TICK_DURATION):
     """Updates Metronome options."""
     # Locking is not required since variables are independent and assignment is
@@ -195,7 +195,7 @@ class Metronome(threading.Thread):
     self._start_time = start_time
     self._stop_time = stop_time
     self._velocity = velocity
-    self._pitches = pitches
+    self._pitches = pitches or _DEFAULT_METRONOME_PITCHES
     self._duration = duration
 
   def run(self):
@@ -226,7 +226,6 @@ class Metronome(threading.Thread):
               type='note_off',
               note=self._pitches[metric_position],
               channel=_METRONOME_CHANNEL))
-
 
   def stop(self, stop_time=0, block=True):
     """Signals for the metronome to stop.
