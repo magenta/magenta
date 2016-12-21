@@ -16,9 +16,10 @@ from magenta.common import concurrency
 from magenta.protobuf import music_pb2
 
 _DEFAULT_METRONOME_TICK_DURATION = 0.05
-_DEFAULT_METRONOME_PITCH = 95
+_DEFAULT_METRONOME_PROGRAM = 117  # Melodic Tom
+_DEFAULT_METRONOME_PITCHES = [44, 35, 35, 35]
 _DEFAULT_METRONOME_VELOCITY = 64
-_METRONOME_CHANNEL = 0
+_METRONOME_CHANNEL = 1
 
 # 0-indexed.
 _DRUM_CHANNEL = 8
@@ -154,7 +155,9 @@ class Metronome(threading.Thread):
     stop_time: The float wall time in seconds after which the metronome should
         stop, or None if it should continue until `stop` is called.
     velocity: The velocity of the metronome's tick `note_on` message.
-    pitch: The pitch of the metronome's tick `note_on` message.
+    program: The MIDI program number to use for metronome ticks.
+    pitches: An ordered collection of integes representing MIDI pitches of the
+         metronome's tick, which will be cycled through.
     duration: The duration of the metronome's tick.
   """
   daemon = True
@@ -165,10 +168,12 @@ class Metronome(threading.Thread):
                start_time,
                stop_time=None,
                velocity=_DEFAULT_METRONOME_VELOCITY,
-               pitch=_DEFAULT_METRONOME_PITCH,
+               program=_DEFAULT_METRONOME_PROGRAM,
+               pitches=None,
                duration=_DEFAULT_METRONOME_TICK_DURATION):
     self._outport = outport
-    self.update(qpm, start_time, stop_time, velocity, pitch, duration)
+    self.update(
+        qpm, start_time, stop_time, velocity, program, pitches, duration)
     super(Metronome, self).__init__()
 
   def update(self,
@@ -176,31 +181,41 @@ class Metronome(threading.Thread):
              start_time,
              stop_time=None,
              velocity=_DEFAULT_METRONOME_VELOCITY,
-             pitch=_DEFAULT_METRONOME_PITCH,
+             program=_DEFAULT_METRONOME_PROGRAM,
+             pitches=None,
              duration=_DEFAULT_METRONOME_TICK_DURATION):
     """Updates Metronome options."""
     # Locking is not required since variables are independent and assignment is
     # atomic.
+    # Set the program number for the channel.
+    self._outport.send(
+        mido.Message(type='program_change', program=program,
+                     channel=_METRONOME_CHANNEL))
     self._period = 60. / qpm
     self._start_time = start_time
     self._stop_time = stop_time
     self._velocity = velocity
-    self._pitch = pitch
+    self._pitches = pitches or _DEFAULT_METRONOME_PITCHES
     self._duration = duration
 
   def run(self):
     """Outputs metronome tone on the qpm interval until stop signal received."""
     sleeper = concurrency.Sleeper()
-    now = time.time()
-    next_tick_time = max(
-        self._start_time,
-        now + self._period - ((now - self._start_time) % self._period))
-    while self._stop_time is None or self._stop_time > next_tick_time:
-      sleeper.sleep_until(next_tick_time)
+    while True:
+      now = time.time()
+      tick_number = max(0, int((now - self._start_time) // self._period) + 1)
+      tick_time = tick_number * self._period + self._start_time
+
+      if self._stop_time is not None and self._stop_time < tick_time:
+        break
+
+      sleeper.sleep_until(tick_time)
+
+      metric_position = tick_number % len(self._pitches)
       self._outport.send(
           mido.Message(
               type='note_on',
-              note=self._pitch,
+              note=self._pitches[metric_position],
               channel=_METRONOME_CHANNEL,
               velocity=self._velocity))
 
@@ -209,12 +224,8 @@ class Metronome(threading.Thread):
       self._outport.send(
           mido.Message(
               type='note_off',
-              note=self._pitch,
+              note=self._pitches[metric_position],
               channel=_METRONOME_CHANNEL))
-
-      now = time.time()
-      next_tick_time = (
-          now + self._period - ((now - self._start_time) % self._period))
 
   def stop(self, stop_time=0, block=True):
     """Signals for the metronome to stop.
