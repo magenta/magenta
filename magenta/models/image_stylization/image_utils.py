@@ -411,7 +411,8 @@ def _crop(image, offset_height, offset_width, crop_height, crop_width):
   # Use tf.strided_slice instead of crop_to_bounding box as it accepts tensors
   # to define the crop size.
   with tf.control_dependencies([size_assertion]):
-    image = tf.strided_slice(image, offsets, offsets + cropped_shape)
+    image = tf.strided_slice(image, offsets, offsets + cropped_shape,
+                             strides=tf.ones_like(offsets))
   return tf.reshape(image, cropped_shape)
 
 
