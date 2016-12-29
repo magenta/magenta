@@ -125,7 +125,7 @@ def build_graph(mode, config, sequence_example_file_paths=None):
 
       labels_flat = tf.reshape(labels, [-1])
       softmax_cross_entropy = tf.nn.sparse_softmax_cross_entropy_with_logits(
-          logits_flat, labels_flat)
+          labels=labels_flat, logits=logits_flat)
       loss = tf.reduce_mean(softmax_cross_entropy)
       perplexity = tf.reduce_mean(tf.exp(softmax_cross_entropy))
 
