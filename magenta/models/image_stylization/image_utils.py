@@ -294,7 +294,7 @@ def load_image(image_file, image_size=None):
     small_side = min(image.get_shape()[0].value, image.get_shape()[1].value)
     image = tf.image.resize_image_with_crop_or_pad(
         image, small_side, small_side)
-    image = tf.image.resize_images(image, image_size, image_size)
+    image = tf.image.resize_images(image, [image_size, image_size])
   image = tf.to_float(image) / 255.0
 
   return tf.expand_dims(image, 0)
