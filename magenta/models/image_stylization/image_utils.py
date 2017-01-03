@@ -312,7 +312,7 @@ def load_evaluation_images(image_size):
   Raises:
     IOError: If no evaluation images can be found.
   """
-  glob = os.path.join(tf.platform.resource_loader.get_data_files_path(),
+  glob = os.path.join(tf.resource_loader.get_data_files_path(),
                       _EVALUATION_IMAGES_GLOB)
   evaluation_images = tf.gfile.Glob(glob)
   if not evaluation_images:
