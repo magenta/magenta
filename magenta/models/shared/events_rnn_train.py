@@ -104,7 +104,7 @@ def run_eval(graph, train_dir, eval_dir, num_training_steps=None,
   with graph.as_default():
     saver = tf.train.Saver()
     with tf.Session() as sess:
-      summary_writer = tf.train.SummaryWriter(eval_dir, sess.graph)
+      summary_writer = tf.summary.FileWriter(eval_dir, sess.graph)
       coord = tf.train.Coordinator()
       threads = tf.train.start_queue_runners(sess=sess, coord=coord)
       global_step_ = 0
