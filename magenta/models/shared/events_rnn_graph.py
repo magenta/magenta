@@ -179,7 +179,7 @@ def build_graph(mode, config, sequence_example_file_paths=None):
             'learning_rate', learning_rate))
 
       if mode == 'eval':
-        summary_op = tf.merge_summary(summaries)
+        summary_op = tf.summary.merge(summaries)
         tf.add_to_collection('summary_op', summary_op)
 
     elif mode == 'generate':
