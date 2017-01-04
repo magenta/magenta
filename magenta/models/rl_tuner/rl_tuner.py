@@ -529,7 +529,7 @@ class RLTuner(object):
     tf.summary.scalar(
         'prediction_error', self.prediction_error)
 
-    self.summarize = tf.merge_all_summaries()
+    self.summarize = tf.summary.merge_all()
     self.no_op1 = tf.no_op()
 
   def train(self, num_steps=10000, exploration_period=5000, enable_random=True):
