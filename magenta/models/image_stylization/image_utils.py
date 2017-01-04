@@ -133,7 +133,7 @@ def imagenet_inputs(batch_size, image_size, num_readers=1,
     images = tf.reshape(images, shape=[batch_size, image_size, image_size, 3])
 
     # Display the training images in the visualizer.
-    tf.image_summary('images', images)
+    tf.summary.image('images', images)
 
     return images, tf.reshape(label_index_batch, [batch_size])
 

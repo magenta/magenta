@@ -151,12 +151,12 @@ def build_graph(mode, config, sequence_example_file_paths=None):
       tf.add_to_collection('global_step', global_step)
 
       summaries = [
-          tf.scalar_summary('loss', loss),
-          tf.scalar_summary('perplexity', perplexity),
-          tf.scalar_summary('accuracy', accuracy),
-          tf.scalar_summary(
+          tf.summary.scalar('loss', loss),
+          tf.summary.scalar('perplexity', perplexity),
+          tf.summary.scalar('accuracy', accuracy),
+          tf.summary.scalar(
               'event_accuracy', event_accuracy),
-          tf.scalar_summary(
+          tf.summary.scalar(
               'no_event_accuracy', no_event_accuracy),
       ]
 
@@ -175,7 +175,7 @@ def build_graph(mode, config, sequence_example_file_paths=None):
         tf.add_to_collection('learning_rate', learning_rate)
         tf.add_to_collection('train_op', train_op)
 
-        summaries.append(tf.scalar_summary(
+        summaries.append(tf.summary.scalar(
             'learning_rate', learning_rate))
 
       if mode == 'eval':
