@@ -259,7 +259,7 @@ def get_variable_names(graph, scope):
     List of variables.
   """
   with graph.as_default():
-    return [v.name for v in tf.all_variables() if v.name.startswith(scope)]
+    return [v.name for v in tf.global_variables() if v.name.startswith(scope)]
 
 
 def get_next_file_name(directory, prefix, extension):
@@ -315,5 +315,3 @@ def log_sum_exp(xs):
   maxes = tf.reduce_max(xs, keep_dims=True)
   xs -= maxes
   return tf.squeeze(maxes, [-1]) + tf.log(tf.reduce_sum(tf.exp(xs), -1))
-
-

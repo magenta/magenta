@@ -293,7 +293,7 @@ class RLTuner(object):
       # Prepare saver and session.
       self.saver = tf.train.Saver()
       self.session = tf.Session(graph=self.graph)
-      self.session.run(tf.initialize_all_variables())
+      self.session.run(tf.global_variables_initializer())
 
       # Initialize internal networks.
       if restore_from_checkpoint:
@@ -450,7 +450,7 @@ class RLTuner(object):
       # The target q network is used to estimate the value of the best action at
       # the state resulting from the current action.
       self.next_action_scores = tf.stop_gradient(self.target_q_network())
-      tf.histogram_summary(
+      tf.summary.histogram(
           'target_action_scores', self.next_action_scores)
 
       # Rewards are observed from the environment and are fed in later.
@@ -506,9 +506,9 @@ class RLTuner(object):
           self.gradients[i] = (tf.clip_by_norm(grad, 5), var)
 
       for grad, var in self.gradients:
-        tf.histogram_summary(var.name, var)
+        tf.summary.histogram(var.name, var)
         if grad is not None:
-          tf.histogram_summary(var.name + '/gradients', grad)
+          tf.summary.histogram(var.name + '/gradients', grad)
 
       # Backprop.
       self.train_op = self.optimizer.apply_gradients(self.gradients)
@@ -526,10 +526,10 @@ class RLTuner(object):
         self.target_network_update.append(update_op)
       self.target_network_update = tf.group(*self.target_network_update)
 
-    tf.scalar_summary(
+    tf.summary.scalar(
         'prediction_error', self.prediction_error)
 
-    self.summarize = tf.merge_all_summaries()
+    self.summarize = tf.summary.merge_all()
     self.no_op1 = tf.no_op()
 
   def train(self, num_steps=10000, exploration_period=5000, enable_random=True):
@@ -1834,12 +1834,6 @@ class RLTuner(object):
         key=key,
         tonic_note=tonic_note)
 
-    # TODO(natashamjaques): Remove print statement once tf.logging outputs
-    # to Jupyter notebooks (once the following issue is resolved:
-    # https://github.com/tensorflow/tensorflow/issues/3047)
-    print rl_tuner_eval_metrics.get_stat_dict_string(stat_dict)
-    tf.logging.info(stat_dict)
-
     return stat_dict
 
   def save_model(self, name, directory=None):
@@ -2019,7 +2013,7 @@ class RLTuner(object):
     if checkpoint_name is not None:
       checkpoint_file = os.path.join(directory, checkpoint_name)
     else:
-      tf.logging.info('Directory', directory)
+      tf.logging.info('Directory %s.', directory)
       checkpoint_file = tf.train.latest_checkpoint(directory)
 
     if checkpoint_file is None:
