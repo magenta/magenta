@@ -317,8 +317,8 @@ def load_evaluation_images(image_size):
   evaluation_images = tf.gfile.Glob(glob)
   if not evaluation_images:
     raise IOError('No evaluation images found')
-  return tf.concat(
-      0, [load_image(path, image_size) for path in evaluation_images])
+  return tf.concat_v2(
+      [load_image(path, image_size) for path in evaluation_images], 0)
 
 
 def form_image_grid(input_tensor, grid_shape, image_shape, num_channels):
