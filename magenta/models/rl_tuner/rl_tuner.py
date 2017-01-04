@@ -422,7 +422,7 @@ class RLTuner(object):
       # Output of the q network gives the value of taking each action (playing
       # each note).
       self.action_scores = tf.identity(self.q_network(), name='action_scores')
-      tf.histogram_summary(
+      tf.summary.histogram(
           'action_scores', self.action_scores)
 
       # The action values for the G algorithm are computed differently.

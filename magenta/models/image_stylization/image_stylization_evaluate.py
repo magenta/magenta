@@ -132,7 +132,7 @@ def main(_):
             0,
             [style_row, stylized_training_example, stylized_noise] +
             stylized_evaluation_images)
-      tf.image_summary(
+      tf.summary.image(
           'Style Grid',
           tf.cast(
               image_utils.form_image_grid(
@@ -165,7 +165,7 @@ def main(_):
 
       names_values, names_updates = slim.metrics.aggregate_metric_map(metrics)
       for name, value in names_values.iteritems():
-        summary_op = tf.scalar_summary(name, value, [])
+        summary_op = tf.summary.scalar(name, value, [])
         print_op = tf.Print(summary_op, [value], name)
         tf.add_to_collection(tf.GraphKeys.SUMMARIES, print_op)
       eval_op = names_updates.values()

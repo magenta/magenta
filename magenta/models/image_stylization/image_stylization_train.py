@@ -113,7 +113,7 @@ def main(unused_argv=None):
           inputs, stylized_inputs, style_gram_matrices, content_weights,
           style_weights)
       for key, value in loss_dict.iteritems():
-        tf.scalar_summary(key, value)
+        tf.summary.scalar(key, value)
 
       # Set up training
       optimizer = tf.train.AdamOptimizer(FLAGS.learning_rate)
