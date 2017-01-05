@@ -293,7 +293,7 @@ class RLTuner(object):
       # Prepare saver and session.
       self.saver = tf.train.Saver()
       self.session = tf.Session(graph=self.graph)
-      self.session.run(tf.initialize_all_variables())
+      self.session.run(tf.global_variables_initializer())
 
       # Initialize internal networks.
       if restore_from_checkpoint:
@@ -1834,12 +1834,6 @@ class RLTuner(object):
         key=key,
         tonic_note=tonic_note)
 
-    # TODO(natashamjaques): Remove print statement once tf.logging outputs
-    # to Jupyter notebooks (once the following issue is resolved:
-    # https://github.com/tensorflow/tensorflow/issues/3047)
-    print rl_tuner_eval_metrics.get_stat_dict_string(stat_dict)
-    tf.logging.info(stat_dict)
-
     return stat_dict
 
   def save_model(self, name, directory=None):
@@ -2019,7 +2013,7 @@ class RLTuner(object):
     if checkpoint_name is not None:
       checkpoint_file = os.path.join(directory, checkpoint_name)
     else:
-      tf.logging.info('Directory', directory)
+      tf.logging.info('Directory %s.', directory)
       checkpoint_file = tf.train.latest_checkpoint(directory)
 
     if checkpoint_file is None:
