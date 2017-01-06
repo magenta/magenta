@@ -1,6 +1,7 @@
 """A module for interfacing with the MIDI environment."""
 
 import abc
+from collections import defaultdict
 from collections import deque
 import Queue
 import re
@@ -846,10 +847,13 @@ class MidiHub(object):
     self._open_notes = set()
     # This lock is used by the serialized decorator.
     self._lock = threading.RLock()
-    # A dictionary mapping a string-formatted mido.Messages to a condition
-    # variable that will be notified when a matching messsage is received,
-    # ignoring the time field.
+    # A dictionary mapping a compiled MidiSignal regex to a condition variable
+    # that will be notified when a matching messsage is received.
     self._signals = {}
+    # A dictionary mapping a compiled MidiSignal regex to a list of functions
+    # that will be called with the triggering message in individual threads when
+    # a matching message is received.
+    self._callbacks = defaultdict(list)
     # A dictionary mapping integer control numbers to most recently-received
     # integer value.
     self._control_values = {}
@@ -928,6 +932,14 @@ class MidiHub(object):
       if regex.match(msg_str) is not None:
         self._signals[regex].notify_all()
         del self._signals[regex]
+
+    # Call any callbacks waiting for this message.
+    for regex in list(self._callbacks):
+      if regex.match(msg_str) is not None:
+        for fn in self._callbacks[regex]:
+          threading.Thread(target=fn, args=(msg,))
+
+        del self._callbacks[regex]
 
     # Remove any captors that are no longer alive.
     self._captors[:] = [t for t in self._captors if t.is_alive()]
@@ -1144,3 +1156,19 @@ class MidiHub(object):
             type='control_change',
             control=control_number,
             value=value))
+
+  @concurrency.serialized
+  def register_callback(self, fn, signal):
+    """Calls `fn` at every signal message.
+
+    The callback function must take exactly a single argument, which will be the
+    message triggering the signal.
+
+    Survives until signal is called or the MidiHub is destroyed.
+
+    Args:
+      fn: The callback function to call, passing in the triggering message.
+      signal: A MidiSignal to use as a signal to call `fn` on the triggering
+          message.
+    """
+    self._callbacks[re.compile(str(signal))].append(fn)

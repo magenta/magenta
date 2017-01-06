@@ -16,6 +16,7 @@
 Captures monophonic input MIDI sequences and plays back responses from the
 sequence generator.
 """
+from functools import partial
 import time
 
 # internal imports
@@ -145,6 +146,53 @@ tf.app.flags.DEFINE_string(
 _GENERATOR_MAP = melody_rnn_sequence_generator.get_generator_map()
 _GENERATOR_MAP.update(drums_rnn_sequence_generator.get_generator_map())
 _GENERATOR_MAP.update(polyphony_sequence_generator.get_generator_map())
+
+
+class CCMapper(object):
+
+  def __init__(self, cc_map, midi_hub_):
+    self._cc_map = cc_map
+    self._signals = cc_map.keys()
+    self._midi_hub = midi_hub_
+
+  @property
+  def map(self):
+    return self._cc_map
+
+  def _print_instructions(self):
+    print ('Enter the index of a signal to set the control change for, or `q` '
+           'when done.')
+    print
+    for i, signal in enumerate(self._signals):
+      print ('%d\t%d\t(current value: %s)' %
+             (i + 1, signal, self._cc_map.get(signal)))
+    print
+
+  def _update_signal(self, signal, msg):
+    if msg.value in self._cc_map.values():
+      print 'Control number %d is already assigned. Ignoring.' % msg.value
+      return
+
+    self._cc_map[signal] = msg.value
+    print 'Assigned control number %d to `%s`.' % (signal, msg.value)
+
+  def update_map(self):
+    while True:
+      self._print_instructions()
+      response = raw_input('Selection: ')
+      if response == 'q':
+        return
+      try:
+        signal = self._cc_map[int(response) - 1]
+      except:
+        print 'Invalid response:', response
+        continue
+      self._midi_hub.register_callback(
+          partial(self._update_signal, signal),
+          midi_hub.MidiSignal(type='control_change'))
+
+
+
 
 
 def _validate_flags():
