@@ -124,24 +124,30 @@ def build_graph(mode, config, sequence_example_file_paths=None):
         labels = labels[:, hparams.skip_first_n_losses:]
 
       labels_flat = tf.reshape(labels, [-1])
+      mask_flat = tf.reshape(tf.sequence_mask(lengths, dtype=tf.float32), [-1])
+      num_logits = tf.to_float(tf.reduce_sum(lengths))
+
       softmax_cross_entropy = tf.nn.sparse_softmax_cross_entropy_with_logits(
           labels=labels_flat, logits=logits_flat)
-      loss = tf.reduce_mean(softmax_cross_entropy)
-      perplexity = tf.reduce_mean(tf.exp(softmax_cross_entropy))
+      loss = tf.reduce_sum(mask_flat * softmax_cross_entropy) / num_logits
+      perplexity = (tf.reduce_sum(mask_flat * tf.exp(softmax_cross_entropy)) /
+                    num_logits)
 
       correct_predictions = tf.to_float(
-          tf.nn.in_top_k(logits_flat, labels_flat, 1))
-      accuracy = tf.reduce_mean(correct_predictions) * 100
+          tf.nn.in_top_k(logits_flat, labels_flat, 1)) * mask_flat
+      accuracy = tf.reduce_sum(correct_predictions) / num_logits * 100
 
-      event_positions = tf.to_float(tf.not_equal(labels_flat, no_event_label))
-      event_accuracy = tf.truediv(
-          tf.reduce_sum(tf.multiply(correct_predictions, event_positions)),
-          tf.reduce_sum(event_positions)) * 100
+      event_positions = (
+          tf.to_float(tf.not_equal(labels_flat, no_event_label)) * mask_flat)
+      event_accuracy = (
+          tf.reduce_sum(tf.multiply(correct_predictions, event_positions)) /
+          tf.reduce_sum(event_positions) * 100)
 
-      no_event_positions = tf.to_float(tf.equal(labels_flat, no_event_label))
-      no_event_accuracy = tf.truediv(
-          tf.reduce_sum(tf.multiply(correct_predictions, no_event_positions)),
-          tf.reduce_sum(no_event_positions)) * 100
+      no_event_positions = (
+          tf.to_float(tf.equal(labels_flat, no_event_label)) * mask_flat)
+      no_event_accuracy = (
+          tf.reduce_sum(tf.multiply(correct_predictions, no_event_positions)) /
+          tf.reduce_sum(no_event_positions) * 100)
 
       global_step = tf.Variable(0, trainable=False, name='global_step')
 
