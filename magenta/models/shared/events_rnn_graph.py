@@ -113,7 +113,7 @@ def build_graph(mode, config, sequence_example_file_paths=None):
         cell, inputs, lengths, initial_state, parallel_iterations=1,
         swap_memory=True)
 
-    outputs_flat = tf.reshape(outputs, [-1, hparams.rnn_layer_sizes[-1]])
+    outputs_flat = tf.reshape(outputs, [-1, cell.output_size])
     logits_flat = tf.contrib.layers.linear(outputs_flat, num_classes)
 
     if mode == 'train' or mode == 'eval':
