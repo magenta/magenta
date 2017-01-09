@@ -16,6 +16,7 @@
 # Tools and models for using TensorFlow with music and art.
 
 licenses(["notice"])  # Apache 2.0
+exports_files(["LICENSE"])
 
 # The Magenta public API.
 py_library(
