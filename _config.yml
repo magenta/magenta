@@ -1,0 +1,54 @@
+# Permalinks
+#
+# Use of `relative_permalinks` ensures post links from the index work properly.
+permalink:           pretty
+relative_permalinks: false
+paginate:            5
+gems: [jekyll-paginate]
+paginate_path: "page:num"
+
+# Setup
+title:               Magenta
+tagline:             "Music and art generation with machine intelligence"
+description:         Magenta is a project devoted to music and art generation
+                     with machine intelligence. It is part of TensorFlow, an
+                     open source machine learning library.
+base-url:             "base-url"
+baseurl:             ""
+url:                 "http://magenta.tensorflow.org"
+github:              "https://www.github.com/tensorflow/magenta"
+
+
+
+# About/contact. Deprecate!
+# author:
+ # name:              "Douglas Deprecate"
+ # url:               "http://research.google.com/pubs/author39086.html"
+ # email:             "deck@google.com"
+
+# Custom vars
+version:             0.0.1
+
+# Build settings
+markdown: kramdown
+
+# Authors
+authors:
+  danabo:
+   display_name: Dan Abolafia
+   name: Dan Abolafia
+   email: danabo@google.com
+   twitter: danielabolafia
+   github: danabo
+  douglaseck:
+   display_name: Douglas Eck
+   name: Douglas Eck
+   email: deck@google.com
+   web: http://research.google.com/pubs/author39086.html
+   twitter: douglas_eck
+   github: douglaseck
+  fredbertsch:
+   display_name: Fred Bertsch
+   name: Fred Bertsch
+   email: fredbertsch@google.com
+   github: fredbertsch

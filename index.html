@@ -1,0 +1,32 @@
+---
+layout: default
+---
+
+
+<div class="home">
+  <!-- <h1 class="page-heading">Posts</h1> -->
+  <ul class="post-list">
+    {% for post in site.posts %}
+      {% assign author = site.authors[post.author] %}
+      <li>
+        <h2>
+          <span class="post-link">{{ post.title }}</span>
+        </h2>
+        <span class="post-meta">{{ post.date | date: "%b %-d, %Y" }}</span>
+       {% if author %} •
+         {% if author.web %}
+           <a href={{ author.web }}>{{ author.name }}</a>
+         {% else %}
+           {{ author.name }}
+         {% endif %}
+         {% if author.github %}
+           ({% include icon-github.html username="douglaseck" %})
+         {% endif %}
+        {% endif %}
+        {{ post.excerpt }}
+        Read <a class="post-full-link" href="{{ post.url | prepend: site.baseurl }}">full post</a>.
+      </li>
+    {% endfor %}
+  </ul>
+
+</div>
