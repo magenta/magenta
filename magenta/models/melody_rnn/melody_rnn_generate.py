@@ -237,9 +237,9 @@ def run_with_flags(generator):
       # Delete any notes with start_time less than start_time of generated
       # sequence. Otherwise, subtract length of removed input_sequence from
       # start_time and end_time of remaining notes.
-      for index, note in enumerate(generated_sequence.notes[:]):
+      for note in generated_sequence.notes[:]:
         if note.start_time < start_time:
-          del generated_sequence.notes[index]
+          generated_sequence.notes.remove(note)
         else:
           note.start_time -= start_time
           note.end_time   -= start_time
