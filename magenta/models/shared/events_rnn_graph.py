@@ -110,7 +110,7 @@ def build_graph(mode, config, sequence_example_file_paths=None):
     initial_state = cell.zero_state(hparams.batch_size, tf.float32)
 
     outputs, final_state = tf.nn.dynamic_rnn(
-        cell, inputs, lengths, initial_state, parallel_iterations=1,
+        cell, inputs, initial_state=initial_state, parallel_iterations=1,
         swap_memory=True)
 
     outputs_flat = tf.reshape(outputs, [-1, cell.output_size])
@@ -127,8 +127,10 @@ def build_graph(mode, config, sequence_example_file_paths=None):
       mask_flat = tf.reshape(tf.sequence_mask(lengths, dtype=tf.float32), [-1])
       num_logits = tf.to_float(tf.reduce_sum(lengths))
 
-      softmax_cross_entropy = tf.nn.sparse_softmax_cross_entropy_with_logits(
-          labels=labels_flat, logits=logits_flat)
+      with tf.control_dependencies(
+          [tf.Assert(tf.greater(num_logits, 0.), [num_logits])]):
+        softmax_cross_entropy = tf.nn.sparse_softmax_cross_entropy_with_logits(
+            labels=labels_flat, logits=logits_flat)
       loss = tf.reduce_sum(mask_flat * softmax_cross_entropy) / num_logits
       perplexity = (tf.reduce_sum(mask_flat * tf.exp(softmax_cross_entropy)) /
                     num_logits)
