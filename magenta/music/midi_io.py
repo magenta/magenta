@@ -291,4 +291,4 @@ def sequence_proto_to_midi_file(sequence, output_file):
   pretty_midi_object = sequence_proto_to_pretty_midi(sequence)
   with tempfile.NamedTemporaryFile() as temp_file:
     pretty_midi_object.write(temp_file.name)
-    tf.gfile.Copy(temp_file.name, output_file)
+    tf.gfile.Copy(temp_file.name, output_file, overwrite=True)
