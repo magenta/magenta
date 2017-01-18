@@ -23,6 +23,7 @@ if sys.version_info.major <= 2:
   from cStringIO import StringIO
 else:
   from io import StringIO
+import tempfile
 
 
 # internal imports
@@ -288,4 +289,6 @@ def sequence_proto_to_midi_file(sequence, output_file):
     output_file: String path to MIDI file that will be written.
   """
   pretty_midi_object = sequence_proto_to_pretty_midi(sequence)
-  pretty_midi_object.write(output_file)
+  with tempfile.NamedTemporaryFile() as temp_file:
+    pretty_midi_object.write(temp_file.name)
+    tf.gfile.Copy(temp_file.name, output_file, overwrite=True)
