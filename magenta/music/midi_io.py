@@ -34,6 +34,10 @@ from magenta.music import constants
 from magenta.protobuf import music_pb2
 # pylint: enable=g-import-not-at-top
 
+# Allow pretty_midi to read MIDI files with absurdly high tick rates.
+# Useful for reading the MAPS dataset.
+# https://github.com/craffel/pretty-midi/issues/112
+pretty_midi.pretty_midi.MAX_TICK = 1e10
 
 # The offset used to change the mode of a key from major to minor when
 # generating a PrettyMIDI KeySignature.
