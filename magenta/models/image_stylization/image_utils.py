@@ -249,7 +249,7 @@ def load_np_image(image_file):
     with values in [0, 1].
   """
   with tempfile.NamedTemporaryFile() as f:
-    f.write(tf.gfile.GFile(image_file).read())
+    f.write(tf.gfile.GFile(image_file, 'rb').read())
     f.flush()
     image = scipy.misc.imread(f.name)
     # Workaround for black-and-white images
