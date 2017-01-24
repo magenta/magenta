@@ -70,6 +70,7 @@ class Quantizer(pipeline.Pipeline):
                         note_sequence.filename, e)
       self._set_stats([statistics.Counter(
           'sequences_discarded_because_negative_time', 1)])
+      return []
 
 
 class RandomPartition(pipeline.Pipeline):
