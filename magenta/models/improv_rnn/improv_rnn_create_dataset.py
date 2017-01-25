@@ -112,8 +112,8 @@ def get_pipeline(config, eval_ratio):
   for mode in ['eval', 'training']:
     time_change_splitter = pipelines_common.TimeChangeSplitter(
         name='TimeChangeSplitter_' + mode)
-    quantizer = pipelines_common.Quantizer(steps_per_quarter=4,
-        name='Quantizer_' + mode)
+    quantizer = pipelines_common.Quantizer(
+        steps_per_quarter=4, name='Quantizer_' + mode)
     lead_sheet_extractor = lead_sheet_pipelines.LeadSheetExtractor(
         min_bars=7, max_steps=512, min_unique_pitches=3, gap_bars=1.0,
         ignore_polyphonic_notes=False, all_transpositions=all_transpositions,

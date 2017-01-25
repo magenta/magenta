@@ -94,8 +94,8 @@ def get_pipeline(config, eval_ratio):
   for mode in ['eval', 'training']:
     time_change_splitter = pipelines_common.TimeChangeSplitter(
         name='TimeChangeSplitter_' + mode)
-    quantizer = pipelines_common.Quantizer(steps_per_quarter=4,
-        name='Quantizer_' + mode)
+    quantizer = pipelines_common.Quantizer(
+        steps_per_quarter=4, name='Quantizer_' + mode)
     melody_extractor = melody_pipelines.MelodyExtractor(
         min_bars=7, max_steps=512, min_unique_pitches=5,
         gap_bars=1.0, ignore_polyphonic_notes=False,
