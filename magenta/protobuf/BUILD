@@ -26,6 +26,7 @@ load("@protobuf//:protobuf.bzl", "py_proto_library")
 # Magenta public API.
 py_library(
     name = "protobuf",
+    srcs = ["__init__.py"],
     deps = [
         ":generator_py_pb2",
         ":music_py_pb2",
