@@ -207,6 +207,17 @@ class MidiIoTest(tf.test.TestCase):
 
     self.CheckPrettyMidiAndSequence(translated_midi, expected_sequence_proto)
 
+  def testSimpleSequenceToPrettyMidi_MultipleTempos(self):
+    source_midi = pretty_midi.PrettyMIDI(self.midi_simple_filename)
+    multi_tempo_sequence_proto = midi_io.midi_to_sequence_proto(source_midi)
+    multi_tempo_sequence_proto.tempos.add(time=1.0, qpm=60)
+    multi_tempo_sequence_proto.tempos.add(time=2.0, qpm=120)
+
+    translated_midi = midi_io.sequence_proto_to_pretty_midi(
+        multi_tempo_sequence_proto)
+
+    self.CheckPrettyMidiAndSequence(translated_midi, multi_tempo_sequence_proto)
+
   def testSimpleReadWriteMidi(self):
     self.CheckReadWriteMidi(self.midi_simple_filename)
 
