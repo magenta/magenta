@@ -26,7 +26,7 @@ If you want to get started right away, you can use a Drum Kit model that we've p
 
 ```
 BUNDLE_PATH=<absolute path of .mag file>
-CONFIG=<one of 'one_drum' or 'drum_kit'>
+CONFIG=<one of 'one_drum' or 'drum_kit', matching the bundle>
 
 drums_rnn_generate \
 --config=${CONFIG} \
