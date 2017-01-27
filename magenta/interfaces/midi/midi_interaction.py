@@ -482,12 +482,14 @@ class CallAndResponseMidiInteraction(MidiInteraction):
       if (response_sequence.total_time <= tick_time and
           (self._should_loop or self._mutate.is_set())):
         if self._mutate.is_set():
+          new_start_time = response_start_time + response_duration
+          new_end_time = new_start_time + response_duration
           response_sequence = self._generate(
               response_sequence,
               response_start_time,
-              response_start_time + response_duration,
-              response_start_time + 2 * response_duration)
-          response_start_time += response_duration
+              new_start_time,
+              new_end_time)
+          response_start_time = new_start_time
           self._mutate.clear()
 
         response_sequence = adjust_sequence_times(
