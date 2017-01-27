@@ -475,8 +475,8 @@ def quantize_note_sequence(note_sequence, steps_per_quarter):
     for tempo in tempos[1:]:
       if tempo.qpm != qns.tempos[0].qpm:
         raise MultipleTempoException(
-            'NoteSequence has at least one tempo change from %f qpm to %f qpm '
-            'at %.2f seconds.' % (tempos[0].qpm, tempo.qpm, tempo.time))
+            'NoteSequence has at least one tempo change from %.1f qpm to %.1f '
+            'qpm at %.2f seconds.' % (tempos[0].qpm, tempo.qpm, tempo.time))
 
     # Make it clear that there is only 1 tempo and it starts at the beginning.
     qns.tempos[0].time = 0
