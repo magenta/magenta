@@ -14,7 +14,7 @@
 """Classes for converting between drum tracks and models inputs/outputs."""
 
 # internal imports
-from magenta.music import encoder_decoder
+from magenta.music.encoding import encoder_decoder
 
 
 # Default list of 9 drum types, where each type is represented by a list of

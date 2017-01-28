@@ -16,8 +16,8 @@
 # internal imports
 import tensorflow as tf
 
-from magenta.music import chords_encoder_decoder
 from magenta.music import constants
+from magenta.music.encoding import chords_encoder_decoder
 
 NO_CHORD = constants.NO_CHORD
 

@@ -17,8 +17,8 @@
 import tensorflow as tf
 
 from magenta.music import chord_symbols_lib
-from magenta.music import chords_lib
-from magenta.music import events_lib
+from magenta.music.events import chords_lib
+from magenta.music.events import events_lib
 from magenta.pipelines import pipeline
 from magenta.pipelines import statistics
 from magenta.protobuf import music_pb2

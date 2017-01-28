@@ -25,7 +25,7 @@ import magenta
 
 from magenta.models.drums_rnn import drums_rnn_config_flags
 
-from magenta.music import encoder_decoder
+from magenta.music.encoding import encoder_decoder
 from magenta.pipelines import dag_pipeline
 from magenta.pipelines import drum_pipelines
 from magenta.pipelines import pipeline

@@ -25,8 +25,7 @@ py_library(
         ":note_rnn_loader",
         ":rl_tuner_ops",
         ":rl_tuner_eval_metrics",
-        "//magenta/music:melodies_lib",
-        "//magenta/music:midi_io",
+        "//magenta",
         # tensorflow dep
     ],
 )
@@ -48,9 +47,7 @@ py_library(
     deps = [
         ":rl_tuner_ops",
         "//magenta/models/shared:events_rnn_graph",
-        "//magenta/music:melodies_lib",
-        "//magenta/music:midi_io",
-        "//magenta/music:sequences_lib",
+        "//magenta",
         # tensorflow dep
     ],
 )
@@ -68,7 +65,7 @@ py_library(
     name = "rl_tuner_ops",
     srcs = ["rl_tuner_ops.py"],
     deps = [
-        "//magenta/common:tf_lib",
+        "//magenta",
         # tensorflow dep
     ],
 )

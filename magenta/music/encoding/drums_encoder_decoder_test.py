@@ -16,7 +16,7 @@
 # internal imports
 import tensorflow as tf
 
-from magenta.music import drums_encoder_decoder
+from magenta.music.encoding import drums_encoder_decoder
 
 DRUMS = lambda *args: frozenset(args)
 NO_DRUMS = frozenset()
