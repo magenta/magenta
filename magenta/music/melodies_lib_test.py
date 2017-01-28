@@ -643,5 +643,46 @@ class MelodiesLibTest(tf.test.TestCase):
     self.assertEqual(expected, melody)
 
 
+class MelodyPipelinesTest(tf.test.TestCase):
+
+  def _unit_transform_test(self, unit, input_instance,
+                           expected_outputs):
+    outputs = unit.transform(input_instance)
+    self.assertTrue(isinstance(outputs, list))
+    common_testing_lib.assert_set_equality(self, expected_outputs, outputs)
+    self.assertEqual(unit.input_type, type(input_instance))
+    if outputs:
+      self.assertEqual(unit.output_type, type(outputs[0]))
+
+  def testMelodyExtractor(self):
+    note_sequence = common_testing_lib.parse_test_proto(
+        music_pb2.NoteSequence,
+        """
+        time_signatures: {
+          numerator: 4
+          denominator: 4}
+        tempos: {
+          qpm: 60}""")
+    testing_lib.add_track_to_sequence(
+        note_sequence, 0,
+        [(12, 100, 2, 4), (11, 1, 6, 7)])
+    testing_lib.add_track_to_sequence(
+        note_sequence, 1,
+        [(12, 127, 2, 4), (14, 50, 6, 8)])
+    quantized_sequence = sequences_lib.quantize_note_sequence(
+        note_sequence, steps_per_quarter=1)
+    expected_events = [
+        [NO_EVENT, NO_EVENT, 12, NO_EVENT, NOTE_OFF, NO_EVENT, 11],
+        [NO_EVENT, NO_EVENT, 12, NO_EVENT, NOTE_OFF, NO_EVENT, 14, NO_EVENT]]
+    expected_melodies = []
+    for events_list in expected_events:
+      melody = melodies_lib.Melody(
+          events_list, steps_per_quarter=1, steps_per_bar=4)
+      expected_melodies.append(melody)
+    unit = melodies_lib.MelodyExtractor(
+        min_bars=1, min_unique_pitches=1, gap_bars=1)
+    self._unit_transform_test(unit, quantized_sequence, expected_melodies)
+
+
 if __name__ == '__main__':
   tf.test.main()

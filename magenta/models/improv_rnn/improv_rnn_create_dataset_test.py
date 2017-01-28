@@ -19,7 +19,6 @@ import magenta
 
 from magenta.models.improv_rnn import improv_rnn_create_dataset
 from magenta.models.improv_rnn import improv_rnn_model
-from magenta.pipelines import lead_sheet_pipelines
 from magenta.pipelines import pipelines_common
 from magenta.protobuf import music_pb2
 
@@ -60,7 +59,7 @@ class ImprovRNNPipelineTest(tf.test.TestCase):
         [('N.C.', 0.0), ('Am9', 5.0), ('D7', 10.0)])
 
     quantizer = pipelines_common.Quantizer(steps_per_quarter=4)
-    lead_sheet_extractor = lead_sheet_pipelines.LeadSheetExtractor(
+    lead_sheet_extractor = magenta.music.LeadSheetExtractor(
         min_bars=7, min_unique_pitches=5, gap_bars=1.0,
         ignore_polyphonic_notes=False, all_transpositions=False)
     conditional_encoding = magenta.music.ConditionalEventSequenceEncoderDecoder(

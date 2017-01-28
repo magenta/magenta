@@ -215,5 +215,41 @@ class ChordsLibTest(tf.test.TestCase):
         sequence)
 
 
+class ChordPipelinesTest(tf.test.TestCase):
+
+  def _unit_transform_test(self, unit, input_instance,
+                           expected_outputs):
+    outputs = unit.transform(input_instance)
+    self.assertTrue(isinstance(outputs, list))
+    common_testing_lib.assert_set_equality(self, expected_outputs, outputs)
+    self.assertEqual(unit.input_type, type(input_instance))
+    if outputs:
+      self.assertEqual(unit.output_type, type(outputs[0]))
+
+  def testChordsExtractor(self):
+    note_sequence = common_testing_lib.parse_test_proto(
+        music_pb2.NoteSequence,
+        """
+        time_signatures: {
+          numerator: 4
+          denominator: 4}
+        tempos: {
+          qpm: 60}""")
+    testing_lib.add_chords_to_sequence(
+        note_sequence, [('C', 2), ('Am', 4), ('F', 5)])
+    quantized_sequence = sequences_lib.quantize_note_sequence(
+        note_sequence, steps_per_quarter=1)
+    quantized_sequence.total_quantized_steps = 8
+    expected_events = [[NO_CHORD, NO_CHORD, 'C', 'C', 'Am', 'F', 'F', 'F']]
+    expected_chord_progressions = []
+    for events_list in expected_events:
+      chords = chords_lib.ChordProgression(
+          events_list, steps_per_quarter=1, steps_per_bar=4)
+      expected_chord_progressions.append(chords)
+    unit = chords_lib.ChordsExtractor(all_transpositions=False)
+    self._unit_transform_test(unit, quantized_sequence,
+                              expected_chord_progressions)
+
+
 if __name__ == '__main__':
   tf.test.main()

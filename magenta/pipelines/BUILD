@@ -26,41 +26,9 @@ py_library(
     name = "pipelines",
     deps = [
         ":dag_pipeline",
-        ":drum_pipelines",
-        ":lead_sheet_pipelines",
-        ":melody_pipelines",
         ":pipeline",
         ":pipelines_common",
         ":statistics",
-    ],
-)
-
-py_library(
-    name = "chord_pipelines",
-    srcs = ["chord_pipelines.py"],
-    deps = [
-        ":pipeline",
-        "//magenta/music:chord_symbols_lib",
-        "//magenta/music:chords_lib",
-        "//magenta/music:events_lib",
-        "//magenta/protobuf:music_py_pb2",
-        # tensorflow dep
-    ],
-)
-
-py_test(
-    name = "chord_pipelines_test",
-    srcs = ["chord_pipelines_test.py"],
-    srcs_version = "PY2AND3",
-    deps = [
-        ":chord_pipelines",
-        "//magenta/common:testing_lib",
-        "//magenta/music:chords_lib",
-        "//magenta/music:constants",
-        "//magenta/music:sequences_lib",
-        "//magenta/music:testing_lib",
-        "//magenta/protobuf:music_py_pb2",
-        # tensorflow dep
     ],
 )
 
@@ -79,92 +47,6 @@ py_test(
         ":dag_pipeline",
         ":pipeline",
         ":statistics",
-        # tensorflow dep
-    ],
-)
-
-py_library(
-    name = "drum_pipelines",
-    srcs = ["drum_pipelines.py"],
-    deps = [
-        ":pipeline",
-        "//magenta/music:drums_lib",
-        "//magenta/music:events_lib",
-        "//magenta/protobuf:music_py_pb2",
-        # tensorflow dep
-    ],
-)
-
-py_test(
-    name = "drum_pipelines_test",
-    srcs = ["drum_pipelines_test.py"],
-    srcs_version = "PY2AND3",
-    deps = [
-        ":drum_pipelines",
-        "//magenta/common:testing_lib",
-        "//magenta/music:drums_lib",
-        "//magenta/music:sequences_lib",
-        "//magenta/music:testing_lib",
-        "//magenta/protobuf:music_py_pb2",
-        # tensorflow dep
-    ],
-)
-
-py_library(
-    name = "lead_sheet_pipelines",
-    srcs = ["lead_sheet_pipelines.py"],
-    deps = [
-        ":pipeline",
-        "//magenta/music:chord_symbols_lib",
-        "//magenta/music:events_lib",
-        "//magenta/music:lead_sheets_lib",
-        "//magenta/protobuf:music_py_pb2",
-        # tensorflow dep
-    ],
-)
-
-py_test(
-    name = "lead_sheet_pipelines_test",
-    srcs = ["lead_sheet_pipelines_test.py"],
-    srcs_version = "PY2AND3",
-    deps = [
-        ":lead_sheet_pipelines",
-        "//magenta/common:testing_lib",
-        "//magenta/music:chords_lib",
-        "//magenta/music:constants",
-        "//magenta/music:lead_sheets_lib",
-        "//magenta/music:melodies_lib",
-        "//magenta/music:sequences_lib",
-        "//magenta/music:testing_lib",
-        "//magenta/protobuf:music_py_pb2",
-        # tensorflow dep
-    ],
-)
-
-py_library(
-    name = "melody_pipelines",
-    srcs = ["melody_pipelines.py"],
-    deps = [
-        ":pipeline",
-        "//magenta/music:events_lib",
-        "//magenta/music:melodies_lib",
-        "//magenta/protobuf:music_py_pb2",
-        # tensorflow dep
-    ],
-)
-
-py_test(
-    name = "melody_pipelines_test",
-    srcs = ["melody_pipelines_test.py"],
-    srcs_version = "PY2AND3",
-    deps = [
-        ":melody_pipelines",
-        "//magenta/common:testing_lib",
-        "//magenta/music:constants",
-        "//magenta/music:melodies_lib",
-        "//magenta/music:sequences_lib",
-        "//magenta/music:testing_lib",
-        "//magenta/protobuf:music_py_pb2",
         # tensorflow dep
     ],
 )

@@ -27,7 +27,6 @@ from magenta.models.drums_rnn import drums_rnn_config_flags
 
 from magenta.music import encoder_decoder
 from magenta.pipelines import dag_pipeline
-from magenta.pipelines import drum_pipelines
 from magenta.pipelines import pipeline
 from magenta.pipelines import pipelines_common
 from magenta.protobuf import music_pb2
@@ -68,7 +67,7 @@ def get_pipeline(config, eval_ratio):
         name='TimeChangeSplitter_' + mode)
     quantizer = pipelines_common.Quantizer(
         steps_per_quarter=4, name='Quantizer_' + mode)
-    drums_extractor = drum_pipelines.DrumsExtractor(
+    drums_extractor = magenta.music.DrumsExtractor(
         min_bars=7, max_steps=512, gap_bars=1.0, name='DrumsExtractor_' + mode)
     encoder_pipeline = encoder_decoder.EncoderPipeline(
         magenta.music.DrumTrack, config.encoder_decoder,
