@@ -30,6 +30,18 @@ sh_binary(
         "//magenta/interfaces/midi:magenta_midi",
         "//magenta/scripts:convert_dir_to_note_sequences",
 
+        # Drums RNN Model and Scripts
+        "//magenta/models/drums_rnn",
+        "//magenta/models/drums_rnn:drums_rnn_create_dataset",
+        "//magenta/models/drums_rnn:drums_rnn_generate",
+        "//magenta/models/drums_rnn:drums_rnn_train",
+
+        # Improv RNN Model and Scripts
+        "//magenta/models/improv_rnn",
+        "//magenta/models/improv_rnn:improv_rnn_create_dataset",
+        "//magenta/models/improv_rnn:improv_rnn_generate",
+        "//magenta/models/improv_rnn:improv_rnn_train",
+
         # Melody RNN Model and Scripts
         "//magenta/models/melody_rnn",
         "//magenta/models/melody_rnn:melody_rnn_create_dataset",
