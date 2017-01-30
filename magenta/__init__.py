@@ -27,11 +27,15 @@ import magenta.common.concurrency
 import magenta.common.sequence_example_lib
 import magenta.common.testing_lib
 import magenta.common.tf_lib
+import magenta.music.chord_symbols_lib
+import magenta.music.chords_encoder_decoder
+import magenta.music.chords_lib
 import magenta.music.constants
 import magenta.music.drums_encoder_decoder
 import magenta.music.drums_lib
 import magenta.music.encoder_decoder
 import magenta.music.events_lib
+import magenta.music.lead_sheets_lib
 import magenta.music.melodies_lib
 import magenta.music.melody_encoder_decoder
 import magenta.music.midi_io
@@ -47,6 +51,7 @@ import magenta.music.sequences_lib
 import magenta.music.testing_lib
 import magenta.pipelines.dag_pipeline
 import magenta.pipelines.drum_pipelines
+import magenta.pipelines.lead_sheet_pipelines
 import magenta.pipelines.melody_pipelines
 import magenta.pipelines.pipeline
 import magenta.pipelines.pipelines_common

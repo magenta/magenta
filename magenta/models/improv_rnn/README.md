@@ -36,7 +36,7 @@ If you want to get started right away, you can use a model that we've pre-traine
 BUNDLE_PATH=<absolute path of .mag file>
 CONFIG=<one of 'basic_improv', 'attention_improv' or 'chord_pitches_improv', matching the bundle>
 
-drums_rnn_generate \
+improv_rnn_generate \
 --config=${CONFIG} \
 --bundle_file=${BUNDLE_PATH} \
 --output_dir=/tmp/improv_rnn/generated \
