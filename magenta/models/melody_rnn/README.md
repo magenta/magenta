@@ -36,7 +36,7 @@ directory.
 
 ```
 BUNDLE_PATH=<absolute path of .mag file>
-CONFIG=<one of 'basic_rnn', 'lookback_rnn', or 'attention_rnn'>
+CONFIG=<one of 'basic_rnn', 'lookback_rnn', or 'attention_rnn', matching the bundle>
 
 melody_rnn_generate \
 --config=${CONFIG} \

@@ -4,7 +4,7 @@ MAINTAINER Curtis Hawthorne <fjord@google.com>
 
 # Download and build Magenta.
 
-ENV MAGENTA_MASTER_REF v0.1.8
+ENV MAGENTA_MASTER_REF v0.1.9
 
 # Required for local development
 RUN pip install scipy matplotlib

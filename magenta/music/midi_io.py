@@ -225,7 +225,8 @@ def sequence_proto_to_pretty_midi(sequence):
       tick_scale = 60.0 / (pm.resolution * seq_tempo.qpm)
       tick = pm.time_to_tick(seq_tempo.time)
       # pylint: disable=protected-access
-      pm._PrettyMIDI__tick_scales.append((tick, tick_scale))
+      pm._tick_scales.append((tick, tick_scale))
+      pm._update_tick_to_time(0)
       # pylint: enable=protected-access
 
   # Populate instrument events by first gathering notes and other event types
