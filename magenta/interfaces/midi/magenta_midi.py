@@ -89,7 +89,7 @@ tf.app.flags.DEFINE_integer(
 tf.app.flags.DEFINE_integer(
     'temperature_control_number',
     None,
-    'The control change number to use for controlling softmax temperature.')
+    'The control change number to use for controlling softmax temperature. This should be an integer between 0 and 127 corresponding to a softmax temperature between 0.1 and 2.')
 tf.app.flags.DEFINE_boolean(
     'allow_overlap',
     False,
