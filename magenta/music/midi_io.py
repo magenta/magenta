@@ -256,8 +256,6 @@ def sequence_proto_to_pretty_midi(
   # in lists then write them sorted to the PrettyMidi object.
   instrument_events = defaultdict(lambda: defaultdict(list))
   for seq_note in sequence.notes:
-    if max_event_time and seq_note.start_time > max_event_time:
-      continue
     instrument_events[(seq_note.instrument, seq_note.program,
                        seq_note.is_drum)]['notes'].append(
                            pretty_midi.Note(
