@@ -175,7 +175,8 @@ def midi_to_sequence_proto(midi_data):
   return sequence
 
 
-def sequence_proto_to_pretty_midi(sequence):
+def sequence_proto_to_pretty_midi(
+    sequence, drop_events_n_seconds_after_last_note=None):
   """Convert tensorflow.magenta.NoteSequence proto to a PrettyMIDI.
 
   Time is stored in the NoteSequence in absolute values (seconds) as opposed to
@@ -184,6 +185,9 @@ def sequence_proto_to_pretty_midi(sequence):
 
   Args:
     sequence: A tensorfow.magenta.NoteSequence proto.
+    drop_events_n_seconds_after_last_note: Events (e.g., time signature changes)
+        that occur this many seconds after the last note will be dropped. If
+        None, then no events will be dropped.
 
   Returns:
     A pretty_midi.PrettyMIDI object or None if sequence could not be decoded.
@@ -191,11 +195,22 @@ def sequence_proto_to_pretty_midi(sequence):
 
   ticks_per_quarter = (sequence.ticks_per_quarter if sequence.ticks_per_quarter
                        else constants.STANDARD_PPQ)
-  initial_qpm = (sequence.tempos[0].qpm if sequence.tempos
-                 else constants.DEFAULT_QUARTERS_PER_MINUTE)
+
+  max_event_time = None
+  if drop_events_n_seconds_after_last_note is not None:
+    max_event_time = (max([n.end_time for n in sequence.notes]) +
+                      drop_events_n_seconds_after_last_note)
+
+  # Try to find a tempo at time zero. The list is not guaranteed to be in order.
+  initial_seq_tempo = None
+  for seq_tempo in sequence.tempos:
+    if seq_tempo.time == 0:
+      initial_seq_tempo = seq_tempo
+      break
+
   kwargs = {}
-  if sequence.tempos and sequence.tempos[0].time == 0:
-    kwargs['initial_tempo'] = initial_qpm
+  kwargs['initial_tempo'] = (initial_seq_tempo.qpm if initial_seq_tempo
+                             else constants.DEFAULT_QUARTERS_PER_MINUTE)
   pm = pretty_midi.PrettyMIDI(resolution=ticks_per_quarter, **kwargs)
 
   # Create an empty instrument to contain time and key signatures.
@@ -204,12 +219,16 @@ def sequence_proto_to_pretty_midi(sequence):
 
   # Populate time signatures.
   for seq_ts in sequence.time_signatures:
+    if max_event_time and seq_ts.time > max_event_time:
+      continue
     time_signature = pretty_midi.containers.TimeSignature(
         seq_ts.numerator, seq_ts.denominator, seq_ts.time)
     pm.time_signature_changes.append(time_signature)
 
   # Populate key signatures.
   for seq_key in sequence.key_signatures:
+    if max_event_time and seq_key.time > max_event_time:
+      continue
     key_number = seq_key.key
     if seq_key.mode == seq_key.MINOR:
       key_number += _PRETTY_MIDI_MAJOR_TO_MINOR_OFFSET
@@ -217,17 +236,21 @@ def sequence_proto_to_pretty_midi(sequence):
         key_number, seq_key.time)
     pm.key_signature_changes.append(key_signature)
 
-  # Populate tempo. The first tempo change was done in PrettyMIDI constructor.
+  # Populate tempos.
   # TODO(douglaseck): Update this code if pretty_midi adds the ability to
   # write tempo.
-  if len(sequence.tempos) > 1:
-    for seq_tempo in sequence.tempos[1:]:
-      tick_scale = 60.0 / (pm.resolution * seq_tempo.qpm)
-      tick = pm.time_to_tick(seq_tempo.time)
-      # pylint: disable=protected-access
-      pm._tick_scales.append((tick, tick_scale))
-      pm._update_tick_to_time(0)
-      # pylint: enable=protected-access
+  for seq_tempo in sequence.tempos:
+    # Skip if this tempo was added in the PrettyMIDI constructor.
+    if seq_tempo == initial_seq_tempo:
+      continue
+    if max_event_time and seq_tempo.time > max_event_time:
+      continue
+    tick_scale = 60.0 / (pm.resolution * seq_tempo.qpm)
+    tick = pm.time_to_tick(seq_tempo.time)
+    # pylint: disable=protected-access
+    pm._tick_scales.append((tick, tick_scale))
+    pm._update_tick_to_time(0)
+    # pylint: enable=protected-access
 
   # Populate instrument events by first gathering notes and other event types
   # in lists then write them sorted to the PrettyMidi object.
@@ -239,10 +262,14 @@ def sequence_proto_to_pretty_midi(sequence):
                                seq_note.velocity, seq_note.pitch,
                                seq_note.start_time, seq_note.end_time))
   for seq_bend in sequence.pitch_bends:
+    if max_event_time and seq_bend.time > max_event_time:
+      continue
     instrument_events[(seq_bend.instrument, seq_bend.program,
                        seq_bend.is_drum)]['bends'].append(
                            pretty_midi.PitchBend(seq_bend.bend, seq_bend.time))
   for seq_cc in sequence.control_changes:
+    if max_event_time and seq_cc.time > max_event_time:
+      continue
     instrument_events[(seq_cc.instrument, seq_cc.program,
                        seq_cc.is_drum)]['controls'].append(
                            pretty_midi.ControlChange(
@@ -282,7 +309,8 @@ def midi_file_to_sequence_proto(midi_file):
     return midi_to_sequence_proto(midi_as_string)
 
 
-def sequence_proto_to_midi_file(sequence, output_file):
+def sequence_proto_to_midi_file(sequence, output_file,
+                                drop_events_n_seconds_after_last_note=None):
   """Convert tensorflow.magenta.NoteSequence proto to a MIDI file on disk.
 
   Time is stored in the NoteSequence in absolute values (seconds) as opposed to
@@ -292,8 +320,12 @@ def sequence_proto_to_midi_file(sequence, output_file):
   Args:
     sequence: A tensorfow.magenta.NoteSequence proto.
     output_file: String path to MIDI file that will be written.
+    drop_events_n_seconds_after_last_note: Events (e.g., time signature changes)
+        that occur this many seconds after the last note will be dropped. If
+        None, then no events will be dropped.
   """
-  pretty_midi_object = sequence_proto_to_pretty_midi(sequence)
+  pretty_midi_object = sequence_proto_to_pretty_midi(
+      sequence, drop_events_n_seconds_after_last_note)
   with tempfile.NamedTemporaryFile() as temp_file:
     pretty_midi_object.write(temp_file.name)
     tf.gfile.Copy(temp_file.name, output_file, overwrite=True)
