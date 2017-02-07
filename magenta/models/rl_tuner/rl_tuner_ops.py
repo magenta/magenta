@@ -21,7 +21,6 @@ import random
 
 import numpy as np
 import tensorflow as tf
-from tensorflow.contrib.rnn import rnn_cell
 
 from magenta.common import tf_lib
 
@@ -298,15 +297,17 @@ def make_rnn_cell(rnn_layer_sizes, state_is_tuple=False):
         and cell matrix as a state instead of a concatenated matrix.
 
   Returns:
-      A rnn_cell.MultiRNNCell based on the given hyperparameters.
+      A tf.contrib.rnn.rnn_cell.MultiRNNCell based on the given
+      hyperparameters.
   """
   cells = []
   for num_units in rnn_layer_sizes:
-    cell = rnn_cell.LSTMCell(
+    cell = tf.contrib.rnn.rnn_cell.LSTMCell(
         num_units, state_is_tuple=state_is_tuple)
     cells.append(cell)
 
-  cell = rnn_cell.MultiRNNCell(cells, state_is_tuple=state_is_tuple)
+  cell = tf.contrib.rnn.rnn_cell.MultiRNNCell(
+      cells, state_is_tuple=state_is_tuple)
 
   return cell
 

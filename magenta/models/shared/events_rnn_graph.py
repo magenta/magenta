@@ -15,14 +15,13 @@
 
 # internal imports
 import tensorflow as tf
-from tensorflow.contrib.rnn import rnn_cell
 import magenta
 
 
 def make_rnn_cell(rnn_layer_sizes,
                   dropout_keep_prob=1.0,
                   attn_length=0,
-                  base_cell=rnn_cell.BasicLSTMCell,
+                  base_cell=tf.contrib.rnn.rnn_cell.BasicLSTMCell,
                   state_is_tuple=False):
   """Makes a RNN cell from the given hyperparameters.
 
@@ -32,21 +31,23 @@ def make_rnn_cell(rnn_layer_sizes,
     dropout_keep_prob: The float probability to keep the output of any given
         sub-cell.
     attn_length: The size of the attention vector.
-    base_cell: The base rnn_cell.RnnCell to use for sub-cells.
+    base_cell: The base tf.contrib.rnn.rnn_cell.RnnCell to use for sub-cells.
     state_is_tuple: A boolean specifying whether to use tuple of hidden matrix
         and cell matrix as a state instead of a concatenated matrix.
 
   Returns:
-      A rnn_cell.MultiRNNCell based on the given hyperparameters.
+      A tf.contrib.rnn.rnn_cell.MultiRNNCell based on the given
+      hyperparameters.
   """
   cells = []
   for num_units in rnn_layer_sizes:
     cell = base_cell(num_units, state_is_tuple=state_is_tuple)
-    cell = rnn_cell.DropoutWrapper(
+    cell = tf.contrib.rnn.rnn_cell.DropoutWrapper(
         cell, output_keep_prob=dropout_keep_prob)
     cells.append(cell)
 
-  cell = rnn_cell.MultiRNNCell(cells, state_is_tuple=state_is_tuple)
+  cell = tf.contrib.rnn.rnn_cell.MultiRNNCell(
+      cells, state_is_tuple=state_is_tuple)
   if attn_length:
     cell = tf.contrib.rnn.AttentionCellWrapper(
         cell, attn_length, state_is_tuple=state_is_tuple)
