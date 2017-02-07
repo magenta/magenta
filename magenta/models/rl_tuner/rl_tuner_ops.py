@@ -297,17 +297,14 @@ def make_rnn_cell(rnn_layer_sizes, state_is_tuple=False):
         and cell matrix as a state instead of a concatenated matrix.
 
   Returns:
-      A tf.contrib.rnn.rnn_cell.MultiRNNCell based on the given
-      hyperparameters.
+      A tf.contrib.rnn.MultiRNNCell based on the given hyperparameters.
   """
   cells = []
   for num_units in rnn_layer_sizes:
-    cell = tf.contrib.rnn.rnn_cell.LSTMCell(
-        num_units, state_is_tuple=state_is_tuple)
+    cell = tf.contrib.rnn.LSTMCell(num_units, state_is_tuple=state_is_tuple)
     cells.append(cell)
 
-  cell = tf.contrib.rnn.rnn_cell.MultiRNNCell(
-      cells, state_is_tuple=state_is_tuple)
+  cell = tf.contrib.rnn.MultiRNNCell(cells, state_is_tuple=state_is_tuple)
 
   return cell
 
