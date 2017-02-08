@@ -61,7 +61,7 @@ SequenceExamples are fed into the model during training and evaluation. Each Seq
 
 ```
 melody_rnn_create_dataset \
---config=<one of 'basic_rnn', 'lookback_rnn', or 'attention_rnn'>
+--config=<one of 'basic_rnn', 'lookback_rnn', or 'attention_rnn'> \
 --input=/tmp/notesequences.tfrecord \
 --output_dir=/tmp/melody_rnn/sequence_examples \
 --eval_ratio=0.10
