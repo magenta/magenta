@@ -353,6 +353,7 @@ py_library(
     deps = [
         ":note_sequence_io",
         "//magenta/protobuf:music_py_pb2",
+        # intervaltree dep
         # numpy dep
         # tensorflow dep
     ],

@@ -24,6 +24,7 @@ execfile('magenta/version.py')
 
 
 REQUIRED_PACKAGES = [
+    'intervaltree >= 2.1.0',
     'mido >= 1.1.17',
     'Pillow >= 3.4.2',
     'pretty_midi >= 0.2.6',
