@@ -25,6 +25,8 @@ from magenta.music import musicnet_io
 class MusicNetIoTest(tf.test.TestCase):
 
   def setUp(self):
+    # This example archive contains a single file consisting of just a major
+    # chord.
     self.musicnet_example_filename = os.path.join(
         tf.resource_loader.get_data_files_path(),
         '../testdata/musicnet_example.npz')
@@ -34,12 +36,12 @@ class MusicNetIoTest(tf.test.TestCase):
     note_interval_tree = example['test'][1]
     sequence = musicnet_io.note_interval_tree_to_sequence_proto(
         note_interval_tree, 44100)
-    self.assertEqual(28, len(sequence.notes))
-    self.assertEqual(64, min(note.pitch for note in sequence.notes))
-    self.assertEqual(77, max(note.pitch for note in sequence.notes))
+    self.assertEqual(3, len(sequence.notes))
+    self.assertEqual(72, min(note.pitch for note in sequence.notes))
+    self.assertEqual(79, max(note.pitch for note in sequence.notes))
     self.assertTrue(all(note.instrument == 0 for note in sequence.notes))
-    self.assertTrue(all(note.program == 74 for note in sequence.notes))
-    self.assertEqual(603102 / 44100.0, sequence.total_time)
+    self.assertTrue(all(note.program == 42 for note in sequence.notes))
+    self.assertEqual(0.5, sequence.total_time)
 
   def testMusicNetIterator(self):
     iterator = musicnet_io.musicnet_iterator(self.musicnet_example_filename)
@@ -51,8 +53,8 @@ class MusicNetIoTest(tf.test.TestCase):
     self.assertEqual(
         '/id/musicnet/MusicNet/a94a8fe5ccb19ba61c4c0873d391e987982fbbd3',
         sequence.id)
-    self.assertEqual(28, len(sequence.notes))
-    self.assertEqual(583948, len(audio))
+    self.assertEqual(3, len(sequence.notes))
+    self.assertEqual(66150, len(audio))
 
 
 if __name__ == '__main__':
