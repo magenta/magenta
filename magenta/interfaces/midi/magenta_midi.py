@@ -91,7 +91,7 @@ tf.app.flags.DEFINE_integer(
     None,
     'The control change number to use for controlling softmax temperature.'
     'The value of control changes with this number will be used to set the '
-    'temperature in a linear range between 0.1 and 2.') 
+    'temperature in a linear range between 0.1 and 2.')
 tf.app.flags.DEFINE_boolean(
     'allow_overlap',
     False,
