@@ -1,3 +1,4 @@
+import os
 import sys
 import pickle
 import tensorflow as tf
@@ -18,8 +19,9 @@ def makeSequenceExample(song):
 	featureLists = tf.train.FeatureLists(feature_list=featureList)
 	return tf.train.SequenceExample(feature_lists=featureLists)
 
-def main():
-	filename = 'data/JSB Chorales.pickle'
+def convert():
+	dir_path = os.path.dirname(os.path.realpath(__file__))
+	filename = dir_path + '/JSB Chorales.pickle'
 	f = open(filename, 'r')
 
 	data = pickle.load(f)
@@ -50,7 +52,7 @@ def main():
 	# Write out a separate TFRecord file for each of train, test, validation sets
 	for setname,songs in binvecData.iteritems():
 		print "Converting {} set...".format(setname)
-		filename = "data/jsb_chorales_{}.tfrecord".format(setname)
+		filename = dir_path + "/jsb_chorales_{}.tfrecord".format(setname)
 		writer = tf.python_io.TFRecordWriter(filename)
 		for song in songs:
 			ex = makeSequenceExample(song)
@@ -58,7 +60,7 @@ def main():
 		writer.close()
 
 def test():
-	filename = 'data/jsb_chorales_test.tfrecord'
+	filename = dir_path + '/jsb_chorales_test.tfrecord'
 
 	# Build graph that'll load up and parse an example from the .tfrecord
 	filenameQueue = tf.train.string_input_producer([filename])
@@ -78,5 +80,5 @@ def test():
 
 
 if __name__ == '__main__':
-	# main()
-	test()
+	convert()
+	# test()
