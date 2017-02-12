@@ -19,5 +19,5 @@ Do this every time you fire up a new terminal to run code in this sub-repo.
 
 For consistency, all experiments should be run from the sub-repo root. To verify that you have everything set up correctly, make sure that you can run
 ```bash
-python experiments/rnn_independent/train.py
+python experiments/rnn_independent_jsb/train.py
 ```
