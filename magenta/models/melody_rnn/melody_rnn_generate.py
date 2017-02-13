@@ -97,6 +97,10 @@ tf.app.flags.DEFINE_string(
     'log', 'INFO',
     'The threshold for what messages will be logged DEBUG, INFO, WARN, ERROR, '
     'or FATAL.')
+tf.app.flags.DEFINE_boolean(
+    'exclude_primer_midi', False,
+    'If true, instead of including the primer MIDI in the generated sequence, '
+    'will only output the newly generated MIDI.')
 
 
 def get_checkpoint():
@@ -192,8 +196,10 @@ def run_with_flags(generator):
     # Set the start time to begin on the next step after the last note ends.
     last_end_time = (max(n.end_time for n in primer_sequence.notes)
                      if primer_sequence.notes else 0)
+    start_time = last_end_time + _steps_to_seconds(1, qpm)
+
     generate_section = generator_options.generate_sections.add(
-        start_time=last_end_time + _steps_to_seconds(1, qpm),
+        start_time=start_time,
         end_time=total_seconds)
 
     if generate_section.start_time >= generate_section.end_time:
@@ -221,8 +227,20 @@ def run_with_flags(generator):
   # files.
   date_and_time = time.strftime('%Y-%m-%d_%H%M%S')
   digits = len(str(FLAGS.num_outputs))
+
   for i in range(FLAGS.num_outputs):
     generated_sequence = generator.generate(input_sequence, generator_options)
+
+    if FLAGS.exclude_primer_midi:
+      # Delete any notes with start_time less than start_time of generated
+      # sequence. Otherwise, subtract length of removed input_sequence from
+      # start_time and end_time of remaining notes.
+      for note in generated_sequence.notes[:]:
+        if note.start_time < start_time:
+          generated_sequence.notes.remove(note)
+        else:
+          note.start_time -= start_time
+          note.end_time   -= start_time
 
     midi_filename = '%s_%s.mid' % (date_and_time, str(i + 1).zfill(digits))
     midi_path = os.path.join(FLAGS.output_dir, midi_filename)
