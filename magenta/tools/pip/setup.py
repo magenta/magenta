@@ -24,6 +24,7 @@ execfile('magenta/version.py')
 
 
 REQUIRED_PACKAGES = [
+    'intervaltree >= 2.1.0',
     'mido >= 1.1.17',
     'Pillow >= 3.4.2',
     'pretty_midi >= 0.2.6',
@@ -35,11 +36,17 @@ REQUIRED_PACKAGES = [
 
 CONSOLE_SCRIPTS = [
     'magenta.interfaces.midi.magenta_midi',
+    'magenta.models.drums_rnn.drums_rnn_create_dataset',
+    'magenta.models.drums_rnn.drums_rnn_generate',
+    'magenta.models.drums_rnn.drums_rnn_train',
     'magenta.models.image_stylization.image_stylization_create_dataset',
     'magenta.models.image_stylization.image_stylization_evaluate',
     'magenta.models.image_stylization.image_stylization_finetune',
     'magenta.models.image_stylization.image_stylization_train',
     'magenta.models.image_stylization.image_stylization_transform',
+    'magenta.models.improv_rnn.improv_rnn_create_dataset',
+    'magenta.models.improv_rnn.improv_rnn_generate',
+    'magenta.models.improv_rnn.improv_rnn_train',
     'magenta.models.melody_rnn.melody_rnn_create_dataset',
     'magenta.models.melody_rnn.melody_rnn_generate',
     'magenta.models.melody_rnn.melody_rnn_train',

@@ -17,6 +17,15 @@
 licenses(["notice"])  # Apache 2.0
 
 py_library(
+    name = "drums_rnn",
+    srcs = ["__init__.py"],
+    visibility = ["//magenta/tools/pip:__subpackages__"],
+    deps = [
+        ":drums_rnn_model",
+    ],
+)
+
+py_library(
     name = "drums_rnn_config_flags",
     srcs = ["drums_rnn_config_flags.py"],
     srcs_version = "PY2AND3",
