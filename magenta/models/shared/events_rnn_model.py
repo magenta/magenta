@@ -77,8 +77,11 @@ class EventSequenceRnnModel(mm.BaseModel):
     Returns:
       final_state: The final RNN state, a numpy array the same size as
           `initial_state`.
-      softmax: The chosen softmax value for each event sequence, a 1-D numpy
-          array of length `self._config.hparams.batch_size`.
+      loglik: The log-likelihood of the chosen softmax value for each event
+          sequence, a 1-D numpy array of length
+          `self._config.hparams.batch_size`. If `inputs` is a full-length inputs
+          batch, the log-likelihood of each entire sequence up to and including
+          the generated step will be computed and returned.
     """
     assert len(event_sequences) == self._config.hparams.batch_size
 
@@ -98,7 +101,18 @@ class EventSequenceRnnModel(mm.BaseModel):
     indices = self._config.encoder_decoder.extend_event_sequences(
         event_sequences, softmax)
 
-    return final_state, softmax[range(len(event_sequences)), -1, indices]
+    p = softmax[range(len(event_sequences)), -1, indices]
+
+    if softmax.shape[1] > 1:
+      # The inputs batch is longer than a single step, so we also want to
+      # compute the log-likelihood of the event sequences up until the step
+      # we're generating.
+      loglik = self._config.encoder_decoder.evaluate_log_likelihood(
+          event_sequences, softmax)
+    else:
+      loglik = np.zeros(len(event_sequences))
+
+    return final_state, loglik + np.log(p)
 
   def _generate_step(self, event_sequences, inputs, initial_state, temperature):
     """Extends a list of event sequences by a single step each.
@@ -116,26 +130,29 @@ class EventSequenceRnnModel(mm.BaseModel):
     Returns:
       final_state: The final RNN state, a numpy array the same size as
           `initial_state`.
-      softmax: The chosen softmax value for each event sequence, a 1-D numpy
-          array the same length as `event_sequences`.
+      loglik: The log-likelihood of the chosen softmax value for each event
+          sequence, a 1-D numpy array of length
+          `self._config.hparams.batch_size`. If `inputs` is a full-length inputs
+          batch, the log-likelihood of each entire sequence up to and including
+          the generated step will be computed and returned.
     """
     batch_size = self._config.hparams.batch_size
     num_full_batches = len(event_sequences) / batch_size
 
     final_state = np.empty((len(event_sequences), initial_state.shape[1]))
-    softmax = np.empty(len(event_sequences))
+    loglik = np.empty(len(event_sequences))
 
     offset = 0
     for _ in range(num_full_batches):
       # Generate a single step for one batch of event sequences.
       batch_indices = range(offset, offset + batch_size)
-      batch_final_state, batch_softmax = self._generate_step_for_batch(
+      batch_final_state, batch_loglik = self._generate_step_for_batch(
           [event_sequences[i] for i in batch_indices],
           [inputs[i] for i in batch_indices],
           initial_state[batch_indices, :],
           temperature)
       final_state[batch_indices, :] = batch_final_state
-      softmax[batch_indices] = batch_softmax
+      loglik[batch_indices] = batch_loglik
       offset += batch_size
 
     if offset < len(event_sequences):
@@ -144,7 +161,7 @@ class EventSequenceRnnModel(mm.BaseModel):
       num_extra = len(event_sequences) - offset
       pad_size = batch_size - num_extra
       batch_indices = range(offset, len(event_sequences))
-      batch_final_state, batch_softmax = self._generate_step_for_batch(
+      batch_final_state, batch_loglik = self._generate_step_for_batch(
           [event_sequences[i] for i in batch_indices] + [
               copy.deepcopy(event_sequences[-1]) for _ in range(pad_size)],
           [inputs[i] for i in batch_indices] + inputs[-1] * pad_size,
@@ -153,9 +170,9 @@ class EventSequenceRnnModel(mm.BaseModel):
                     axis=0),
           temperature)
       final_state[batch_indices] = batch_final_state[0:num_extra, :]
-      softmax[batch_indices] = batch_softmax[0:num_extra]
+      loglik[batch_indices] = batch_loglik[0:num_extra]
 
-    return final_state, softmax
+    return final_state, loglik
 
   def _generate_branches(self, event_sequences, loglik, branch_factor,
                          num_steps, inputs, initial_state, temperature):
@@ -193,9 +210,9 @@ class EventSequenceRnnModel(mm.BaseModel):
     all_loglik = np.tile(loglik, (branch_factor,))
 
     for _ in range(num_steps):
-      all_final_state, all_softmax = self._generate_step(
+      all_final_state, all_step_loglik = self._generate_step(
           all_event_sequences, all_inputs, all_final_state, temperature)
-      all_loglik += np.log(all_softmax)
+      all_loglik += all_step_loglik
 
     return all_event_sequences, all_final_state, all_loglik
 
@@ -508,9 +525,12 @@ class EventSequenceRnnConfig(object):
     encoder_decoder: The EventSequenceEncoderDecoder or
         ConditionalEventSequenceEncoderDecoder object to use.
     hparams: The HParams containing hyperparameters to use.
+    steps_per_quarter: The integer number of quantized time steps per quarter
+        note to use.
   """
 
-  def __init__(self, details, encoder_decoder, hparams):
+  def __init__(self, details, encoder_decoder, hparams, steps_per_quarter=4):
     self.details = details
     self.encoder_decoder = encoder_decoder
     self.hparams = hparams
+    self.steps_per_quarter = steps_per_quarter

@@ -119,7 +119,7 @@ def main(unused_argv=None):
           inputs, stylized_inputs, style_gram_matrices, content_weights,
           style_weights)
       for key, value in loss_dict.iteritems():
-        tf.scalar_summary(key, value)
+        tf.summary.scalar(key, value)
 
       instance_norm_vars = [var for var in slim.get_variables('transformer')
                             if 'InstanceNorm' in var.name]

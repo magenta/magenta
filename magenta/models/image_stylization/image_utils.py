@@ -133,7 +133,7 @@ def imagenet_inputs(batch_size, image_size, num_readers=1,
     images = tf.reshape(images, shape=[batch_size, image_size, image_size, 3])
 
     # Display the training images in the visualizer.
-    tf.image_summary('images', images)
+    tf.summary.image('images', images)
 
     return images, tf.reshape(label_index_batch, [batch_size])
 
@@ -249,7 +249,7 @@ def load_np_image(image_file):
     with values in [0, 1].
   """
   with tempfile.NamedTemporaryFile() as f:
-    f.write(tf.gfile.GFile(image_file).read())
+    f.write(tf.gfile.GFile(image_file, 'rb').read())
     f.flush()
     image = scipy.misc.imread(f.name)
     # Workaround for black-and-white images
@@ -294,7 +294,7 @@ def load_image(image_file, image_size=None):
     small_side = min(image.get_shape()[0].value, image.get_shape()[1].value)
     image = tf.image.resize_image_with_crop_or_pad(
         image, small_side, small_side)
-    image = tf.image.resize_images(image, image_size, image_size)
+    image = tf.image.resize_images(image, [image_size, image_size])
   image = tf.to_float(image) / 255.0
 
   return tf.expand_dims(image, 0)
@@ -312,13 +312,13 @@ def load_evaluation_images(image_size):
   Raises:
     IOError: If no evaluation images can be found.
   """
-  glob = os.path.join(tf.platform.resource_loader.get_data_files_path(),
+  glob = os.path.join(tf.resource_loader.get_data_files_path(),
                       _EVALUATION_IMAGES_GLOB)
   evaluation_images = tf.gfile.Glob(glob)
   if not evaluation_images:
     raise IOError('No evaluation images found')
-  return tf.concat(
-      0, [load_image(path, image_size) for path in evaluation_images])
+  return tf.concat_v2(
+      [load_image(path, image_size) for path in evaluation_images], 0)
 
 
 def form_image_grid(input_tensor, grid_shape, image_shape, num_channels):
@@ -581,7 +581,7 @@ def _parse_example_proto(example_serialized):
   ymax = tf.expand_dims(features['image/object/bbox/ymax'].values, 0)
 
   # Note that we impose an ordering of (y, x) just to make life difficult.
-  bbox = tf.concat(0, [ymin, xmin, ymax, xmax])
+  bbox = tf.concat_v2([ymin, xmin, ymax, xmax], 0)
 
   # Force the variable number of bounding boxes into the shape
   # [1, num_boxes, coords].

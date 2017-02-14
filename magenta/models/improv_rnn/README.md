@@ -22,7 +22,33 @@ This configuration is similar to Basic Improv, but instead of using a one-hot en
 
 ## How to Use
 
-First, set up your [Magenta environment](/README.md). For now, you can only train your own Improv RNN, but we will be making pre-trained bundles available in the near future.
+First, set up your [Magenta environment](/README.md). Next, you can either use a pre-trained model or train your own.
+
+## Pre-trained
+
+If you want to get started right away, you can use a model that we've pre-trained on thousands of MIDI files:
+
+* [chord_pitches_improv](http://download.magenta.tensorflow.org/models/chord_pitches_improv.mag)
+
+### Generate a melody over chords
+
+```
+BUNDLE_PATH=<absolute path of .mag file>
+CONFIG=<one of 'basic_improv', 'attention_improv' or 'chord_pitches_improv', matching the bundle>
+
+improv_rnn_generate \
+--config=${CONFIG} \
+--bundle_file=${BUNDLE_PATH} \
+--output_dir=/tmp/improv_rnn/generated \
+--num_outputs=10 \
+--primer_melody="[60]"
+--backing_chords="C G Am F C G Am F"
+--render_chords
+```
+
+This will generate a melody starting with a middle C over the chord progression C G Am F, where each chord lasts one bar and the progression is repeated twice. If you'd like, you can supply a longer priming melody using a string representation of a Python list. The values in the list should be ints that follow the melodies_lib.Melody format (-2 = no event, -1 = note-off event, values 0 through 127 = note-on event for that MIDI pitch). For example `--primer_melody="[60, -2, 60, -2, 67, -2, 67, -2]"` would prime the model with the first four notes of *Twinkle Twinkle Little Star*. Instead of using `--primer_melody`, we can use `--primer_midi` to prime our model with a melody stored in a MIDI file. For example, `--primer_midi=<absolute path to magenta/models/melody_rnn/primer.mid>` will prime the model with the melody in that MIDI file.
+
+You can modify the backing chords as you like; Magenta understands most basic chord types e.g. "A13", "Cdim", "F#m7b5". The `--steps_per_chord` option can be used to control the chord duration.
 
 ## Train your own
 
@@ -99,6 +125,7 @@ improv_rnn_generate \
 --num_outputs=10 \
 --primer_melody="[57]"
 --backing_chords="Am Dm G C F Bdim E E"
+--render_chords
 ```
 
 ### Creating a Bundle File

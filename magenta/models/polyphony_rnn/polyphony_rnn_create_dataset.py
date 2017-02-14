@@ -69,12 +69,11 @@ class PolyphonicSequenceExtractor(pipeline.Pipeline):
     return poly_seqs
 
 
-def get_pipeline(config, steps_per_quarter, min_steps, max_steps, eval_ratio):
+def get_pipeline(config, min_steps, max_steps, eval_ratio):
   """Returns the Pipeline instance which creates the RNN dataset.
 
   Args:
     config: An EventSequenceRnnConfig.
-    steps_per_quarter: How many steps per quarter to use when quantizing.
     min_steps: Minimum number of steps for an extracted sequence.
     max_steps: Maximum number of steps for an extracted sequence.
     eval_ratio: Fraction of input to set aside for evaluation set.
@@ -82,41 +81,38 @@ def get_pipeline(config, steps_per_quarter, min_steps, max_steps, eval_ratio):
   Returns:
     A pipeline.Pipeline instance.
   """
-  quantizer = pipelines_common.Quantizer(steps_per_quarter=steps_per_quarter)
   # Transpose up to a major third in either direction.
   # Because our current dataset is Bach chorales, transposing more than a major
   # third in either direction probably doesn't makes sense (e.g., because it is
   # likely to exceed normal singing range).
   transposition_range = range(-4, 5)
-  transposition_pipeline_train = sequences_lib.TranspositionPipeline(
-      transposition_range, name='TranspositionPipelineTrain')
-  transposition_pipeline_eval = sequences_lib.TranspositionPipeline(
-      transposition_range, name='TranspositionPipelineEval')
-  poly_extractor_train = PolyphonicSequenceExtractor(
-      min_steps=min_steps, max_steps=max_steps, name='PolyExtractorTrain')
-  poly_extractor_eval = PolyphonicSequenceExtractor(
-      min_steps=min_steps, max_steps=max_steps, name='PolyExtractorEval')
-  encoder_pipeline_train = encoder_decoder.EncoderPipeline(
-      polyphony_lib.PolyphonicSequence, config.encoder_decoder,
-      name='EncoderPipelineTrain')
-  encoder_pipeline_eval = encoder_decoder.EncoderPipeline(
-      polyphony_lib.PolyphonicSequence, config.encoder_decoder,
-      name='EncoderPipelineEval')
+
   partitioner = pipelines_common.RandomPartition(
       music_pb2.NoteSequence,
       ['eval_poly_tracks', 'training_poly_tracks'],
       [eval_ratio])
+  dag = {partitioner: dag_pipeline.DagInput(music_pb2.NoteSequence)}
 
-  dag = {quantizer: dag_pipeline.DagInput(music_pb2.NoteSequence),
-         partitioner: quantizer,
-         transposition_pipeline_train: partitioner['training_poly_tracks'],
-         transposition_pipeline_eval: partitioner['eval_poly_tracks'],
-         poly_extractor_train: transposition_pipeline_train,
-         poly_extractor_eval: transposition_pipeline_eval,
-         encoder_pipeline_train: poly_extractor_train,
-         encoder_pipeline_eval: poly_extractor_eval,
-         dag_pipeline.DagOutput('training_poly_tracks'): encoder_pipeline_train,
-         dag_pipeline.DagOutput('eval_poly_tracks'): encoder_pipeline_eval}
+  for mode in ['eval', 'training']:
+    time_change_splitter = pipelines_common.TimeChangeSplitter(
+        name='TimeChangeSplitter_' + mode)
+    quantizer = pipelines_common.Quantizer(
+        steps_per_quarter=config.steps_per_quarter, name='Quantizer_' + mode)
+    transposition_pipeline = sequences_lib.TranspositionPipeline(
+        transposition_range, name='TranspositionPipeline_' + mode)
+    poly_extractor = PolyphonicSequenceExtractor(
+        min_steps=min_steps, max_steps=max_steps, name='PolyExtractor_' + mode)
+    encoder_pipeline = encoder_decoder.EncoderPipeline(
+        polyphony_lib.PolyphonicSequence, config.encoder_decoder,
+        name='EncoderPipeline_' + mode)
+
+    dag[time_change_splitter] = partitioner[mode + '_poly_tracks']
+    dag[quantizer] = time_change_splitter
+    dag[transposition_pipeline] = quantizer
+    dag[poly_extractor] = transposition_pipeline
+    dag[encoder_pipeline] = poly_extractor
+    dag[dag_pipeline.DagOutput(mode + '_poly_tracks')] = encoder_pipeline
+
   return dag_pipeline.DAGPipeline(dag)
 
 
@@ -124,7 +120,6 @@ def main(unused_argv):
   tf.logging.set_verbosity(FLAGS.log)
 
   pipeline_instance = get_pipeline(
-      steps_per_quarter=4,
       min_steps=80,  # 5 measures
       max_steps=512,
       eval_ratio=FLAGS.eval_ratio,

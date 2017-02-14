@@ -95,8 +95,11 @@ message NoteSequence {
     // For MIDI source data, an instrument stores all events in a track having
     // the same program and channel, as done by pretty-midi.
     int32 instrument = 7;
-    // A program selects an instrument's sound. E.g. program 12 is vibraphone in
-    // General MIDI. See www.midi.org/specifications/item/gm-level-1-sound-set.
+    // A program selects an instrument's sound.
+    // Note that the General MIDI documentation is 1-based, but this field is
+    // 0-based. So GM documents program 12 as vibraphone, but this field would
+    // be set to 11 for that instrument.
+    // See www.midi.org/specifications/item/gm-level-1-sound-set.
     int32 program = 8;
     // When true, the event is on an instrument that is a drum (MIDI channel 9).
     bool is_drum = 9;
@@ -263,6 +266,7 @@ message NoteSequence {
       MUSIC_XML = 1;
       ABC = 2;
       MIDI = 3;
+      MUSICNET = 4;
     }
 
     // Name of parser used to parse the source file.
@@ -272,6 +276,8 @@ message NoteSequence {
       PRETTY_MIDI = 2;
       // Magenta's built-in MusicXML parser.
       MAGENTA_MUSIC_XML = 3;
+      // Magenta's parser for MusicNet data.
+      MAGENTA_MUSICNET = 4;
     }
   }
 

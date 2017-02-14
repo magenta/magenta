@@ -440,19 +440,17 @@ class CallAndResponseMidiInteraction(MidiInteraction):
             response_duration = tick_time - capture_start_time
 
           response_start_time = tick_time
-          response_end_time = response_start_time + response_duration
           response_sequence = self._generate(
               captured_sequence,
               capture_start_time,
               response_start_time,
-              response_end_time)
+              response_start_time + response_duration)
 
           # If it took too long to generate, push response to next tick.
           if (time.time() - response_start_time) >= tick_duration / 4:
             push_ticks = (
                 (time.time() - response_start_time) // tick_duration + 1)
             response_start_time += push_ticks * tick_duration
-            response_end_time += push_ticks * tick_duration
             response_sequence = adjust_sequence_times(
                 response_sequence, push_ticks * tick_duration)
             tf.logging.warn(
@@ -467,7 +465,7 @@ class CallAndResponseMidiInteraction(MidiInteraction):
           if self._allow_overlap:
             self._captor.start_time = response_start_time
           else:
-            self._captor.start_time = response_end_time
+            self._captor.start_time = response_start_time + response_duration
 
         # Clear end signal and reset listen_ticks.
         self._end_call.clear()
@@ -477,16 +475,22 @@ class CallAndResponseMidiInteraction(MidiInteraction):
         self._update_state(self.State.LISTENING)
 
       # Potentially loop or mutate previous response.
+      if self._mutate.is_set() and not response_sequence.notes:
+        self._mutate.clear()
+        tf.logging.warn('Ignoring mutate request with nothing to mutate.')
+
       if (response_sequence.total_time <= tick_time and
           (self._should_loop or self._mutate.is_set())):
         if self._mutate.is_set():
+          new_start_time = response_start_time + response_duration
+          new_end_time = new_start_time + response_duration
           response_sequence = self._generate(
               response_sequence,
               response_start_time,
-              response_end_time,
-              response_end_time + response_duration)
+              new_start_time,
+              new_end_time)
+          response_start_time = new_start_time
           self._mutate.clear()
-          response_start_time = response_end_time
 
         response_sequence = adjust_sequence_times(
             response_sequence, tick_time - response_start_time)
