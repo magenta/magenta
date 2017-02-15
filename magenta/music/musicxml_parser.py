@@ -24,7 +24,7 @@ from __future__ import division
 
 from fractions import Fraction
 import xml.etree.ElementTree as ET
-from zipfile import ZipFile
+import zipfile
 
 # internal imports
 
@@ -147,7 +147,10 @@ class MusicXMLDocument(object):
     score = None
     if filename.endswith('.mxl'):
       # Compressed MXL file. Uncompress in memory.
-      filename = ZipFile(filename)
+      try:
+        filename = zipfile.ZipFile(filename)
+      except zipfile.BadZipfile as exception:
+        raise MusicXMLParseException(exception)
 
       # A compressed MXL file may contain multiple files, but only one
       # MusicXML file. Read the META-INF/container.xml file inside of the
