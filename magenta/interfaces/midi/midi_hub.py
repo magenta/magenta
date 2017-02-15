@@ -937,7 +937,7 @@ class MidiHub(object):
     for regex in list(self._callbacks):
       if regex.match(msg_str) is not None:
         for fn in self._callbacks[regex]:
-          threading.Thread(target=fn, args=(msg,))
+          threading.Thread(target=fn, args=(msg,)).start()
 
         del self._callbacks[regex]
 
