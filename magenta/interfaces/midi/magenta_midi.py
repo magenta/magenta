@@ -175,9 +175,10 @@ class CCMapper(object):
 
   Args:
     cc_map: A dictionary containing mappings from signal names to control
-      change numbers (or None). This dictionary will be updated by the class.
+        change numbers (or None). This dictionary will be updated by the class.
     midi_hub_: An initialized MidiHub to receive inputs from.
   """
+
   def __init__(self, cc_map, midi_hub_):
     self._cc_map = cc_map
     self._signals = cc_map.keys()
@@ -199,7 +200,7 @@ class CCMapper(object):
 
     Args:
       signal: The name of the signal to update the control change for.
-      msg. The mido.Message whose control change the signal should be set to.
+      msg: The mido.Message whose control change the signal should be set to.
     """
     if msg.control in self._cc_map.values():
       print 'Control number %d is already assigned. Ignoring.' % msg.control
@@ -218,7 +219,7 @@ class CCMapper(object):
         return
       try:
         signal = self._signals[int(response) - 1]
-      except:
+      except (ValueError, IndexError):
         print 'Invalid response:', response
         continue
       self._update_event.clear()
