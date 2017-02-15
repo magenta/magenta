@@ -670,7 +670,7 @@ class MidiCaptor(threading.Thread):
   def register_callback(self, fn, signal=None, period=None):
     """Calls `fn` at every signal message or time period.
 
-    The callback function must take exactly a single argument, which will be the
+    The callback function must take exactly one argument, which will be the
     current captured NoteSequence.
 
     Exactly one of `signal` or `period` must be specified. Continues until the
@@ -1159,9 +1159,9 @@ class MidiHub(object):
 
   @concurrency.serialized
   def register_callback(self, fn, signal):
-    """Calls `fn` at every signal message.
+    """Calls `fn` at the next signal message.
 
-    The callback function must take exactly a single argument, which will be the
+    The callback function must take exactly one argument, which will be the
     message triggering the signal.
 
     Survives until signal is called or the MidiHub is destroyed.
