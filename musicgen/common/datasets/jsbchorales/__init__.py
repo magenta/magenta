@@ -1,6 +1,6 @@
 import os
 import os.path
-from common.datasets.jsbchorales.convert import convert
+from common.datasets.jsbchorales.convert import convert, vec_entry_to_pitch
 from common.datasets.autoregressiveSequenceDataset import AutoregressiveSequenceDataset
 
 dir_path = os.path.dirname(os.path.realpath(__file__))

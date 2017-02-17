@@ -5,7 +5,7 @@ def make_rnn_cell(rnn_layer_sizes,
 				  dropout_keep_prob=1.0,
 				  attn_length=0,
 				  base_cell=tf.nn.rnn_cell.BasicLSTMCell,
-				  state_is_tuple=True):
+				  state_is_tuple=False):
   cells = []
   for num_units in rnn_layer_sizes:
 	cell = base_cell(num_units, state_is_tuple=state_is_tuple)
