@@ -32,6 +32,7 @@ filegroup(
         "example_complex.mid",
         "example_event_order.mid",
         "example_is_drum.mid",
+        "musicnet_example.npz",
         "notesequences.tfrecord",
         "tfrecord_iterator_test.tfrecord",
     ],

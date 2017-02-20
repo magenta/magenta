@@ -525,9 +525,12 @@ class EventSequenceRnnConfig(object):
     encoder_decoder: The EventSequenceEncoderDecoder or
         ConditionalEventSequenceEncoderDecoder object to use.
     hparams: The HParams containing hyperparameters to use.
+    steps_per_quarter: The integer number of quantized time steps per quarter
+        note to use.
   """
 
-  def __init__(self, details, encoder_decoder, hparams):
+  def __init__(self, details, encoder_decoder, hparams, steps_per_quarter=4):
     self.details = details
     self.encoder_decoder = encoder_decoder
     self.hparams = hparams
+    self.steps_per_quarter = steps_per_quarter

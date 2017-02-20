@@ -129,7 +129,8 @@ def get_generator_map():
   """
   def create_sequence_generator(config, **kwargs):
     return MelodyRnnSequenceGenerator(
-        melody_rnn_model.MelodyRnnModel(config), config.details, **kwargs)
+        melody_rnn_model.MelodyRnnModel(config), config.details,
+        steps_per_quarter=config.steps_per_quarter, **kwargs)
 
   return {key: partial(create_sequence_generator, config)
           for (key, config) in melody_rnn_model.default_configs.items()}

@@ -109,10 +109,10 @@ def main(_):
               reuse=True,
               normalizer_params=_create_normalizer_params(style_label))
           for _, style_label in enumerate(labels)]
-      return tf.concat_v2([inputs] + stylized_inputs, 0)
+      return tf.concat([inputs] + stylized_inputs, 0)
 
     if FLAGS.style_grid:
-      style_row = tf.concat_v2(
+      style_row = tf.concat(
           [tf.ones([1, FLAGS.image_size, FLAGS.image_size, 3]), style_images],
           0)
       stylized_training_example = _style_sweep(inputs[0])
@@ -123,12 +123,12 @@ def main(_):
       stylized_style_images = [
           _style_sweep(image) for image in tf.unstack(style_images)]
       if FLAGS.style_crossover:
-        grid = tf.concat_v2(
+        grid = tf.concat(
             [style_row, stylized_training_example, stylized_noise] +
             stylized_evaluation_images + stylized_style_images,
             0)
       else:
-        grid = tf.concat_v2(
+        grid = tf.concat(
             [style_row, stylized_training_example, stylized_noise] +
             stylized_evaluation_images,
             0)

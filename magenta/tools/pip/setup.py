@@ -24,11 +24,12 @@ execfile('magenta/version.py')
 
 
 REQUIRED_PACKAGES = [
+    'intervaltree >= 2.1.0',
     'mido >= 1.1.17',
     'Pillow >= 3.4.2',
     'pretty_midi >= 0.2.6',
     'scipy >= 0.18.1',
-    'tensorflow >= 0.12.0rc1',
+    'tensorflow >= 1.0.0',
     'matplotlib >= 1.5.3',
     'wheel',
 ]

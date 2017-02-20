@@ -347,6 +347,31 @@ py_test(
 )
 
 py_library(
+    name = "musicnet_io",
+    srcs = ["musicnet_io.py"],
+    srcs_version = "PY2AND3",
+    deps = [
+        ":note_sequence_io",
+        "//magenta/protobuf:music_py_pb2",
+        # intervaltree dep
+        # numpy dep
+        # tensorflow dep
+    ],
+)
+
+py_test(
+    name = "musicnet_io_test",
+    srcs = ["musicnet_io_test.py"],
+    data = ["//magenta/testdata"],
+    srcs_version = "PY2AND3",
+    deps = [
+        ":musicnet_io",
+        # numpy dep
+        # tensorflow dep
+    ],
+)
+
+py_library(
     name = "musicxml_parser",
     srcs = ["musicxml_parser.py"],
     srcs_version = "PY2AND3",

@@ -150,6 +150,18 @@ magenta_midi \
   <additional interaction-specific args>
 ```
 
+## Assigning Control Signals
+You can assign control change numbers to different "knobs" for controlling the
+interface in two ways.
+
+* Assign the values on the command line using the appropriate flags (e.g.,
+`--temperature_control_number=1`).
+* Assign the values after startup by dynamically associating control changes
+from your MIDI controller with different control signals. You can enter the UI
+for doing this assignment by including the `--learn_controls` flag on the
+command-line at launch.
+
+
 ## Using the "Call and Response" Interaction
 
 "Call and response" is a type of interaction where one participant (you) produce

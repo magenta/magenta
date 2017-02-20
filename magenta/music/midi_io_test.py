@@ -218,6 +218,53 @@ class MidiIoTest(tf.test.TestCase):
 
     self.CheckPrettyMidiAndSequence(translated_midi, multi_tempo_sequence_proto)
 
+  def testSimpleSequenceToPrettyMidi_FirstTempoNotAtZero(self):
+    source_midi = pretty_midi.PrettyMIDI(self.midi_simple_filename)
+    multi_tempo_sequence_proto = midi_io.midi_to_sequence_proto(source_midi)
+    del multi_tempo_sequence_proto.tempos[:]
+    multi_tempo_sequence_proto.tempos.add(time=1.0, qpm=60)
+    multi_tempo_sequence_proto.tempos.add(time=2.0, qpm=120)
+
+    translated_midi = midi_io.sequence_proto_to_pretty_midi(
+        multi_tempo_sequence_proto)
+
+    # Translating to MIDI adds an implicit DEFAULT_QUARTERS_PER_MINUTE tempo
+    # at time 0, so recreate the list with that in place.
+    del multi_tempo_sequence_proto.tempos[:]
+    multi_tempo_sequence_proto.tempos.add(
+        time=0.0, qpm=constants.DEFAULT_QUARTERS_PER_MINUTE)
+    multi_tempo_sequence_proto.tempos.add(time=1.0, qpm=60)
+    multi_tempo_sequence_proto.tempos.add(time=2.0, qpm=120)
+
+    self.CheckPrettyMidiAndSequence(translated_midi, multi_tempo_sequence_proto)
+
+  def testSimpleSequenceToPrettyMidi_DropEventsAfterLastNote(self):
+    source_midi = pretty_midi.PrettyMIDI(self.midi_simple_filename)
+    multi_tempo_sequence_proto = midi_io.midi_to_sequence_proto(source_midi)
+    # Add a final tempo long after the last note.
+    multi_tempo_sequence_proto.tempos.add(time=600.0, qpm=120)
+
+    # Translate without dropping.
+    translated_midi = midi_io.sequence_proto_to_pretty_midi(
+        multi_tempo_sequence_proto)
+    self.CheckPrettyMidiAndSequence(translated_midi, multi_tempo_sequence_proto)
+
+    # Translate dropping anything after the last note.
+    translated_midi = midi_io.sequence_proto_to_pretty_midi(
+        multi_tempo_sequence_proto, drop_events_n_seconds_after_last_note=0)
+    # The added tempo should have been dropped.
+    del multi_tempo_sequence_proto.tempos[-1]
+    self.CheckPrettyMidiAndSequence(translated_midi, multi_tempo_sequence_proto)
+
+    # Add a final tempo 15 seconds after the last note.
+    last_note_time = max([n.end_time for n in multi_tempo_sequence_proto.notes])
+    multi_tempo_sequence_proto.tempos.add(time=last_note_time + 15, qpm=120)
+    # Translate dropping anything 30 seconds after the last note, which should
+    # preserve the added tempo.
+    translated_midi = midi_io.sequence_proto_to_pretty_midi(
+        multi_tempo_sequence_proto, drop_events_n_seconds_after_last_note=30)
+    self.CheckPrettyMidiAndSequence(translated_midi, multi_tempo_sequence_proto)
+
   def testSimpleReadWriteMidi(self):
     self.CheckReadWriteMidi(self.midi_simple_filename)
 

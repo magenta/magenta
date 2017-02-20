@@ -317,7 +317,7 @@ def load_evaluation_images(image_size):
   evaluation_images = tf.gfile.Glob(glob)
   if not evaluation_images:
     raise IOError('No evaluation images found')
-  return tf.concat_v2(
+  return tf.concat(
       [load_image(path, image_size) for path in evaluation_images], 0)
 
 
@@ -581,7 +581,7 @@ def _parse_example_proto(example_serialized):
   ymax = tf.expand_dims(features['image/object/bbox/ymax'].values, 0)
 
   # Note that we impose an ordering of (y, x) just to make life difficult.
-  bbox = tf.concat_v2([ymin, xmin, ymax, xmax], 0)
+  bbox = tf.concat([ymin, xmin, ymax, xmax], 0)
 
   # Force the variable number of bounding boxes into the shape
   # [1, num_boxes, coords].
