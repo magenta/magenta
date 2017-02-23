@@ -20,13 +20,6 @@ class SequenceGenerativeModel(Model):
 		return self.hparams.timeslice_size
 
 	"""
-	Names and shapes of all the inputs this model expects in its input dicts
-	"""
-	@property
-	def input_shapes(self):
-		return {'inputs': [self.timeslice_size]}
-
-	"""
 	Names and shapes of all the conditioning data this model expects in its condition dicts
 	"""
 	@property
@@ -51,18 +44,11 @@ class SequenceGenerativeModel(Model):
 		return self.rnn_cell().zero_state(batch_size, tf.float32)
 
 	"""
-	Initial input dict to use for this model in the absence of any priming inputs.
+	Initial timeslice to use for input to this model in the absence of any priming inputs.
 	By default, this just uses a zero vector of size self.timeslice_size.
 	"""	
-	def default_initial_input_dict(self):
-		return { 'inputs': np.zeros([self.timeslice_size]) }
-
-	"""
-	Takes a training batch dict and returns an RNN input dict (by copying out the
-	   relevant fields)
-	"""
-	def batch_to_input_dict(self, batch):
-		return { name: batch[name] for name in self.input_shapes.keys() }
+	def default_initial_timeslice(self):
+		return np.zeros([self.timeslice_size])
 
 	"""
 	Takes a training batch dict and returns an distribution conditioning dict (by
@@ -72,26 +58,19 @@ class SequenceGenerativeModel(Model):
 		return { name: batch[name] for name in self.condition_shapes.keys() }
 
 	"""
-	Takes an input dict and turns it into a single input vector for the RNN
-	By default, this just uses the 'inputs' field
-	"""
-	def input_dict_to_rnn_inputs(self, input_dict):
-		return input_dict['inputs']
-
-	"""
-	Takes a sampled output time slice, as well as the history of previous input dicts,
-	   and returns the next input dict
+	Takes a history of time slices, plus the current conditioning dict, and
+	   returns the next input vector to the RNN.
+	By default, just returns the last time slice in the history
 	By default, just puts the output time slice as the 'inputs' field
 	"""
-	def sample_to_next_input_dict(self, sample, input_dict_history):
-		return { 'inputs': sample }
+	def next_rnn_input(self, timeslice_history, condition_dict):
+		return timeslice_history[len(timeslice_history)-1]
 
 	"""
-	Run the RNN cell over the provided inputs, starting with initial_state
+	Run the RNN cell over the provided input vector, starting with initial_state
 	Returns RNN final state and ouput tensors
 	"""
-	def run_rnn(self, initial_state, input_dict):
-		rnn_inputs = self.input_dict_to_rnn_inputs(input_dict)
+	def run_rnn(self, initial_state, rnn_inputs):
 		cell = self.rnn_cell()
 		outputs, final_state = tf.nn.dynamic_rnn(
 			cell, rnn_inputs, initial_state=initial_state, parallel_iterations=1,
@@ -115,14 +94,18 @@ class SequenceGenerativeModel(Model):
 	"""
 	Override of method from Model class
 	Assumes that batch contains a 'lengths' and a 'outputs' field
+	NOTE: During training, we assume that timeslices + conditioning info has already been processed into
+	   a single, unified RNN input vector, which is provided as the 'inputs' field of the batch.
+	   Conditioning info is still separately available for building timeslice distributions.
 	"""
 	def training_loss(self, batch):
+		inputs = batch['inputs']
 		targets = batch['outputs']
 		lengths = batch['lengths']
 
 		batch_size = tf.shape(targets)[0]
 
-		_, rnn_outputs = self.run_rnn(self.initial_state(batch_size), self.batch_to_input_dict(batch))
+		_, rnn_outputs = self.run_rnn(self.initial_state(batch_size), inputs)
 		dist = self.get_step_dist(rnn_outputs, self.batch_to_condition_dict(batch))
 
 		targets_flat = tf.reshape(targets, [-1, self.timeslice_size])

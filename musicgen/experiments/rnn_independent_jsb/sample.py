@@ -19,6 +19,7 @@ utils.ensuredir(log_dir)
 
 
 model = RNNIndependent.from_file(log_dir + '/model.pickle')
+model.hparams.dropout_keep_prob = 1.0
 
 sampler = ForwardSample(model, log_dir, batch_size=10)
 
@@ -36,3 +37,5 @@ for i in range(len(samples)):
 	noteseq = polyseq.to_sequence()
 	filename = '{}/sample_{}.mid'.format(gen_dir, i)
 	sequence_proto_to_midi_file(noteseq, filename)
+
+print 'Done'

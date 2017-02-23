@@ -4,6 +4,7 @@ from common.models import RNNIndependent
 from common.datasets import jsbchorales
 from common import training
 from common import utils
+from common.datasets.jsbchorales import vec_entry_to_pitch
 from magenta.common import HParams
 
 args = sys.argv[1:]
@@ -17,9 +18,14 @@ log_dir = dir_path + '/trainOutput/' + experiment_name
 utils.ensuredir(log_dir)
 
 model_params = HParams(
-	timeslice_size = 54,
-	rnn_layer_sizes = [128],
-	dropout_keep_prob = 1.0,
+	timeslice_size = len(vec_entry_to_pitch()),
+
+	# rnn_layer_sizes = [128],
+	# dropout_keep_prob = 1.0,
+	# attn_length =  None,
+
+	rnn_layer_sizes = [128, 128],
+	dropout_keep_prob = 0.5,
 	attn_length =  None,
 )
 
