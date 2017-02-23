@@ -1,5 +1,5 @@
-from common.models.sequenceGenerativeModel import SequenceGenerativeModel
 import tensorflow as tf
+from common.models.sequenceGenerativeModel import SequenceGenerativeModel
 
 """
 An RNN that models a sequence of binary random vectors, where the components of each
@@ -7,8 +7,8 @@ An RNN that models a sequence of binary random vectors, where the components of 
 """
 class RNNIndependent(SequenceGenerativeModel):
 
-	def __init__(self, hparams):
-		super(RNNIndependent, self).__init__(hparams)
+	def __init__(self, hparams, sequence_encoder):
+		super(RNNIndependent, self).__init__(hparams, sequence_encoder)
 
 	def get_step_dist(self, rnn_outputs, condition_dict):
 		# Combine batch and time dimensions so we have a 2D tensor (i.e. a list of

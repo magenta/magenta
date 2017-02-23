@@ -3,7 +3,7 @@ import os
 from common.models import RNNIndependent
 from common.sampling import ForwardSample
 from common import utils, encoding
-from common.datasets.jsbchorales import vec_entry_to_pitch
+from common.datasets import jsbchorales
 from magenta.music import sequence_proto_to_midi_file
 
 args = sys.argv[1:]
@@ -16,8 +16,10 @@ dir_path = os.path.dirname(os.path.realpath(__file__))
 log_dir = dir_path + '/trainOutput/' + experiment_name
 utils.ensuredir(log_dir)
 
-
-model = RNNIndependent.from_file(log_dir + '/model.pickle')
+# TODO: Some way to save / get at the sequence encoder without having to load a dataset
+#   at sampling time?
+sequence_encoder = jsbchorales.test().sequence_encoder
+model = RNNIndependent.from_file(log_dir + '/model.pickle', sequence_encoder)
 model.hparams.dropout_keep_prob = 1.0
 
 sampler = ForwardSample(model, log_dir, batch_size=10)
@@ -31,7 +33,7 @@ utils.ensuredir(gen_dir)
 steps_per_quarter = 1  # I have no idea what a reasonable value for this is...
 for i in range(len(samples)):
 	sample = samples[i]
-	pitches = encoding.utils.binary_vectors_to_pitches(sample, vec_entry_to_pitch())
+	pitches = encoding.utils.binary_vectors_to_pitches(sample, jsbchorales.vec_entry_to_pitch())
 	polyseq = encoding.utils.pitches_to_PolyphonicSequence(pitches, steps_per_quarter)
 	noteseq = polyseq.to_sequence()
 	filename = '{}/sample_{}.mid'.format(gen_dir, i)

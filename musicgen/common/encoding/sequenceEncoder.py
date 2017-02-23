@@ -21,7 +21,7 @@ class SequenceEncoder(object):
 		pass
 
 	@abc.abstractproperty
-	def condition_info_shapes(self):
+	def condition_shapes(self):
 		"""
 		Returns a dictionary from names of extra condition info to their shapes.
 		(This should be empty if there's no conditioning)
@@ -29,7 +29,7 @@ class SequenceEncoder(object):
 		pass
 
 	@abc.abstractmethod
-	def rnn_input_for_timeslice(self, encoded_timeslices, index, condition_dicts=None):
+	def rnn_input_for_timeslice(self, encoded_timeslices, index, condition_dict=None):
 		pass
 
   	def encode(self, timeslices, condition_dicts=None):
@@ -37,7 +37,7 @@ class SequenceEncoder(object):
   		Turn the list of timeslices (and condition_dicts) into a tensorflow SequenceExample
   		"""
   		if condition_dicts is not None:
-  			assert(len(timeslices) == len(condition_dicts))
+  			assert(len(timeslices) == len(condition_dicts)+1)
   		n = len(timeslices)
 
   		# Encoded time slices
@@ -45,7 +45,7 @@ class SequenceEncoder(object):
 
   		# Get features for sequence example
   		features = {
-  			'inputs': [self.rnn_input_for_timeslice(encoded_timeslices, condition_dicts, i) for i in range(0,n-1)],
+  			'inputs': [self.rnn_input_for_timeslice(encoded_timeslices, i, (None if (condition_dicts is None) else condition_dicts[i])) for i in range(0,n-1)],
   			'outputs': [encoded_timeslices[i] for i in range(1,n)]
   		}
   		if condition_dicts is not None:
@@ -70,7 +70,7 @@ class SequenceEncoder(object):
   			'inputs': [self.rnn_input_size],
   			'outputs': [self.encoded_timeslice_size]
   		}
-  		for name,shape in self.condition_info_shapes:
+  		for name,shape in self.condition_shapes:
   			features[name] = shape
 
   		# Convert these into tf.FixedLenSequenceFeature
@@ -99,10 +99,10 @@ class OneToOneSequenceEncoder(SequenceEncoder):
 		return self.encoded_timeslice_size
 
 	@property
-	def condition_info_shapes(self):
+	def condition_shapes(self):
 		return {}
 
-	def rnn_input_for_timeslice(self, encoded_timeslices, condition_dicts, index):
+	def rnn_input_for_timeslice(self, encoded_timeslices, index, condition_dict=None):
 		return encoded_timeslices[index]
 
 

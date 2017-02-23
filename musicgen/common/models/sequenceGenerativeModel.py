@@ -11,20 +11,26 @@ class SequenceGenerativeModel(Model):
 
 	__metaclass__ = abc.ABCMeta
 
-	def __init__(self, hparams):
+	def __init__(self, hparams, sequence_encoder):
 		super(SequenceGenerativeModel, self).__init__(hparams)
+		self.sequence_encoder = sequence_encoder
 		self._rnn_cell = None
+
+	@classmethod
+	def from_file(cls, filename, sequence_encoder):
+		hparams = Model.hparams_from_file(filename)
+		return cls(hparams, sequence_encoder)
 
 	@property
   	def timeslice_size(self):
-		return self.hparams.timeslice_size
+		return self.sequence_encoder.encoded_timeslice_size
 
 	"""
 	Names and shapes of all the conditioning data this model expects in its condition dicts
 	"""
 	@property
 	def condition_shapes(self):
-		return {}
+		return self.sequence_encoder.condition_shapes
 
 	"""
 	Build the sub-graph for the RNN cell
@@ -60,11 +66,10 @@ class SequenceGenerativeModel(Model):
 	"""
 	Takes a history of time slices, plus the current conditioning dict, and
 	   returns the next input vector to the RNN.
-	By default, just returns the last time slice in the history
-	By default, just puts the output time slice as the 'inputs' field
 	"""
 	def next_rnn_input(self, timeslice_history, condition_dict):
-		return timeslice_history[len(timeslice_history)-1]
+		index = len(timeslice_history) - 1
+		return self.sequence_encoder.rnn_input_for_timeslice(timeslice_history, index, condition_dict)
 
 	"""
 	Run the RNN cell over the provided input vector, starting with initial_state

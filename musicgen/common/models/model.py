@@ -1,5 +1,5 @@
 import abc
-import pickle
+import cPickle as pickle
 from magenta.common import HParams
 
 """
@@ -25,12 +25,17 @@ class Model(object):
 	"""
 	@classmethod
 	def from_file(cls, filename):
+		hparams = Model.hparams_from_file(filename)
+		return cls(hparams)
+
+	@staticmethod
+	def hparams_from_file(filename):
 		f = open(filename, 'rb')
 		keyvals = pickle.load(f)
 		f.close()
 		hparams = HParams()
 		hparams.update(keyvals)
-		return cls(hparams)
+		return hparams
 
 	@abc.abstractmethod
 	def training_loss(self, batch):

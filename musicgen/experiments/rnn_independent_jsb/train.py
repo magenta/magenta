@@ -18,8 +18,6 @@ log_dir = dir_path + '/trainOutput/' + experiment_name
 utils.ensuredir(log_dir)
 
 model_params = HParams(
-	timeslice_size = len(vec_entry_to_pitch()),
-
 	# rnn_layer_sizes = [128],
 	# dropout_keep_prob = 1.0,
 	# attn_length =  None,
@@ -43,9 +41,9 @@ train_params = HParams(
 	save_model_secs = 30
 )
 
-model = RNNIndependent(model_params)
-model.save(log_dir + '/model.pickle')
-
 dataset = jsbchorales.train()
+
+model = RNNIndependent(model_params, dataset.sequence_encoder)
+model.save(log_dir + '/model.pickle')
 
 training.train(model, dataset, train_params)
