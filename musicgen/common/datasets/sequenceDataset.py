@@ -1,6 +1,6 @@
 import abc
-from common.datasets.dataset import Dataset
 import tensorflow as tf
+from common.datasets.dataset import Dataset
 
 """
 Base class for sequence datasets
@@ -9,25 +9,16 @@ class SequenceDataset(Dataset):
 
 	__metaclass__ = abc.ABCMeta
 
-	def __init__(self, filenames):
+	def __init__(self, filenames, sequence_encoder):
 		self.filenames = filenames
-
-	@abc.abstractmethod
-	def features(self):
-		"""
-		Should return a feature descriptor dictionary for use with
-			tf.parse_single_sequence_example.
-		"""
+		self.sequence_encoder = sequence_encoder
 
 	def load_single(self):
 		filenameQueue = tf.train.string_input_producer(self.filenames)
 		reader = tf.TFRecordReader()
 		_, serializedExample = reader.read(filenameQueue)
-		# For now, I'm assuming that we don't use any context features
-		_, sequenceFeatures = tf.parse_single_sequence_example(
-			serialized = serializedExample,
-			sequence_features = self.features()
-		)
+		sequenceFeatures = self.sequence_encoder.parse(serializedExample)
+		
 		anyfeature = sequenceFeatures.values()[0]
 		lengths = tf.shape(anyfeature)[0]
 		sequenceFeatures['lengths'] = lengths

@@ -2,25 +2,9 @@ import os
 import sys
 import pickle
 import tensorflow as tf
-from common import representation as rep
+from common.encoding import utils, OneToOneSequenceEncoder, IdentityTimeSliceEncoder
 
 dir_path = os.path.dirname(os.path.realpath(__file__))
-
-# Make a sequence example from a single song in binary vec list format
-# The sequence example stores (input, output) at each time step, where
-#    output is just the next vector in the sequence
-# For the time being, I'm just saving both the input and output as FloatLists
-def makeSequenceExample(song):
-	inputs = song[:len(song)-1]
-	outputs = song[1:]
-	inFeatures = [tf.train.Feature(float_list=tf.train.FloatList(value=inp)) for inp in inputs]
-	outFeatures = [tf.train.Feature(float_list=tf.train.FloatList(value=out)) for out in outputs]
-	featureList = {
-		'inputs': tf.train.FeatureList(feature=inFeatures),
-		'outputs': tf.train.FeatureList(feature=outFeatures)
-	}
-	featureLists = tf.train.FeatureLists(feature_list=featureList)
-	return tf.train.SequenceExample(feature_lists=featureLists)
 
 def load_pickle():
 	filename = dir_path + '/JSB Chorales.pickle'
@@ -63,33 +47,34 @@ def convert(addEmptyStartTuple=True):
 
 	# Convert all train, test, validation sets into binary vector representation
 	binvecData = {
-		setname: map(lambda song: rep.pitches_to_binary_vectors(song, vec_entry_to_pitch()), songs) for setname, songs in data.iteritems()
+		setname: map(lambda song: utils.pitches_to_binary_vectors(song, vec_entry_to_pitch()), songs) for setname, songs in data.iteritems()
 	}
 
 	# Write out a separate TFRecord file for each of train, test, validation sets
+	sequence_encoder = OneToOneSequenceEncoder(
+		IdentityTimeSliceEncoder(len(vec_entry_to_pitch()))
+	)
 	for setname,songs in binvecData.iteritems():
 		print "Converting {} set...".format(setname)
 		filename = dir_path + "/jsb_chorales_{}.tfrecord".format(setname)
 		writer = tf.python_io.TFRecordWriter(filename)
 		for song in songs:
-			ex = makeSequenceExample(song)
+			ex = sequence_encoder.encode(song)
 			writer.write(ex.SerializeToString())
 		writer.close()
 
 def test():
 	filename = dir_path + '/jsb_chorales_test.tfrecord'
 
+	sequence_encoder = OneToOneSequenceEncoder(
+		IdentityTimeSliceEncoder(len(vec_entry_to_pitch()))
+	)
+
 	# Build graph that'll load up and parse an example from the .tfrecord
 	filenameQueue = tf.train.string_input_producer([filename])
 	reader = tf.TFRecordReader()
 	_, serializedExample = reader.read(filenameQueue)
-	_, sequenceFeatures = tf.parse_single_sequence_example(
-		serialized = serializedExample,
-		sequence_features = {
-			'inputs': tf.FixedLenSequenceFeature([54], dtype=tf.float32),
-			'outputs': tf.FixedLenSequenceFeature([54], dtype=tf.float32)
-		}
-	)
+	sequenceFeatures = sequence_encoder.parse(serializedExample)
 
 	# Run this graph
 	seqFeatures = tf.contrib.learn.run_n(sequenceFeatures, n=1)
