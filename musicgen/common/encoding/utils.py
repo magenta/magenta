@@ -1,5 +1,6 @@
 import numpy as np
 from magenta.models.polyphony_rnn.polyphony_lib import PolyphonicEvent, PolyphonicSequence
+from magenta.music.drums_lib import DrumTrack
 
 """
 Converts a pitch tuple into a binary vector representation
@@ -74,3 +75,11 @@ def pitches_to_PolyphonicSequence(pitches_list, steps_per_quarter, start_step=0)
     events.append(PolyphonicEvent(event_type=PolyphonicEvent.END, pitch=None))
 
     return events
+
+"""
+Converts a list of pitch tuples into a magenta DrumTrack
+"""
+def pitches_to_DrumTrack(pitches_list):
+    #TODO: Expose 'steps_per_quarter' so we can control tempo
+    pitches_list = [frozenset(pitches) for pitches in pitches_list]
+    return DrumTrack(events=pitches_list)

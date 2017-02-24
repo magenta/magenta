@@ -26,3 +26,12 @@ class DrumTimeSliceEncoder(TimeSliceEncoder):
 				vec[index] = 1
 		return vec
 
+	def decode(self, binvector):
+		pitches = []
+		for i in range(len(binvector)):
+			if binvector[i] == 1:
+				possible_pitches_for_i = self._drum_map[i]
+				# Use the first possible pitch
+				pitches.append(possible_pitches_for_i[0])
+		return tuple(pitches)
+

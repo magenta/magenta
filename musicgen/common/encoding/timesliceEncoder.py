@@ -17,6 +17,11 @@ class TimeSliceEncoder(object):
   	def encode(self, timeslice):
   		pass
 
+  	@abc.abstractmethod
+  	def decode(self, encoded_timeslice):
+  		""" Undoes the effect of encode """
+  		pass
+
 
 """
 Encoder that does nothing; just returns whatever representation of the
@@ -33,3 +38,6 @@ class IdentityTimeSliceEncoder(TimeSliceEncoder):
 
 	def encode(self, timeslice):
 		return timeslice
+
+	def decode(self, encoded_timeslice):
+		return encoded_timeslice
