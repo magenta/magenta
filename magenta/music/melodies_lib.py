@@ -122,18 +122,6 @@ class Melody(events_lib.SimpleEventSequence):
         events, start_step=start_step, steps_per_bar=steps_per_bar,
         steps_per_quarter=steps_per_quarter)
 
-  def __deepcopy__(self, unused_memo=None):
-    return type(self)(events=copy.deepcopy(self._events),
-                      start_step=self.start_step,
-                      steps_per_bar=self.steps_per_bar,
-                      steps_per_quarter=self.steps_per_quarter)
-
-  def __eq__(self, other):
-    if not isinstance(other, Melody):
-      return False
-    else:
-      return super(Melody, self).__eq__(other)
-
   def _add_note(self, pitch, start_step, end_step):
     """Adds the given note to the `events` list.
 

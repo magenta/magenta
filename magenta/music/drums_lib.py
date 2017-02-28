@@ -99,18 +99,6 @@ class DrumTrack(events_lib.SimpleEventSequence):
         events, start_step=start_step, steps_per_bar=steps_per_bar,
         steps_per_quarter=steps_per_quarter)
 
-  def __deepcopy__(self, unused_memo=None):
-    return type(self)(events=copy.deepcopy(self._events),
-                      start_step=self.start_step,
-                      steps_per_bar=self.steps_per_bar,
-                      steps_per_quarter=self.steps_per_quarter)
-
-  def __eq__(self, other):
-    if not isinstance(other, DrumTrack):
-      return False
-    else:
-      return super(DrumTrack, self).__eq__(other)
-
   def append(self, event):
     """Appends the event to the end of the drums and increments the end step.
 

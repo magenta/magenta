@@ -83,18 +83,6 @@ class ChordProgression(events_lib.SimpleEventSequence):
     super(ChordProgression, self).__init__(pad_event=NO_CHORD,
                                            events=events, **kwargs)
 
-  def __deepcopy__(self, unused_memo=None):
-    return type(self)(events=copy.deepcopy(self._events),
-                      start_step=self.start_step,
-                      steps_per_bar=self.steps_per_bar,
-                      steps_per_quarter=self.steps_per_quarter)
-
-  def __eq__(self, other):
-    if not isinstance(other, ChordProgression):
-      return False
-    else:
-      return super(ChordProgression, self).__eq__(other)
-
   def _add_chord(self, figure, start_step, end_step):
     """Adds the given chord to the `events` list.
 
