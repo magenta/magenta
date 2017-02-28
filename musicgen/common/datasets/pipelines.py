@@ -41,3 +41,20 @@ class EncoderPipeline(pipeline.Pipeline):
 	def transform(self, seq):
 		encoded = self._encoder_decoder.encode(seq)
 		return [encoded]
+
+
+"""
+Catchall pipeline that allows arbitrary behavior given by the input 'transformFn' function
+"""
+class CustomFunctionPipeline(pipeline.Pipeline):
+
+	def __init__(self, input_type, output_type, transformFn, name=None):
+		super(CustomFunctionPipeline, self).__init__(
+				input_type=input_type,
+				output_type=output_type,
+				name=name)
+		self.transformFn = transformFn
+
+	def transform(self, seq):
+		return self.transformFn(seq)
+

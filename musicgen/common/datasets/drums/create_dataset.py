@@ -45,6 +45,16 @@ seq_encoder = common.encoding.OneToOneSequenceEncoder(
 	common.encoding.DrumTimeSliceEncoder()
 )
 
+# For use with a custom function pipeline
+def prepend_empty_drum_timeslice(drum_track):
+  timeslices = [timeslice for timeslice in drum_track]
+  timeslices.insert(0, frozenset())
+  new_drum_track = magenta.music.DrumTrack(timeslices,
+    start_step=drum_track.start_step,
+    steps_per_bar=drum_track.steps_per_bar,
+    steps_per_quarter=drum_track.steps_per_quarter)
+  return [new_drum_track]
+
 def get_pipeline(eval_ratio):
   """Returns the Pipeline instance which creates the RNN dataset.
 
@@ -61,15 +71,23 @@ def get_pipeline(eval_ratio):
   dag = {partitioner: dag_pipeline.DagInput(music_pb2.NoteSequence)}
 
   for mode in ['eval', 'training']:
+    # Split sequences on time/tempo change
     time_change_splitter = pipelines_common.TimeChangeSplitter(
         name='TimeChangeSplitter_' + mode)
    	# Filter out sequences that aren't 4/4 (relax this later?)
     time_sig_filter = my_pipelines.TimeSignatureFilter(4, 4,
     	name='TimeSignatureFilter_' + mode)
+    # Quantize sequences
     quantizer = pipelines_common.Quantizer(
         steps_per_quarter=steps_per_quarter, name='Quantizer_' + mode)
+    # Extract only the drum tracks
     drums_extractor = drum_pipelines.DrumsExtractor(
         min_bars=7, max_steps=512, gap_bars=1.0, name='DrumsExtractor_' + mode)
+    # Prepend an empty timeslice to all drum tracks
+    empty_prepender = my_pipelines.CustomFunctionPipeline(
+      magenta.music.DrumTrack, magenta.music.DrumTrack, prepend_empty_drum_timeslice,
+      name='PrependEmptyPipeline_' + mode)
+    # Convert drum tracks into tf SequenceExamples
     encoder_pipeline = my_pipelines.EncoderPipeline(
     	magenta.music.DrumTrack, seq_encoder,
     	name='EncoderPipeline_' + mode)
@@ -78,7 +96,8 @@ def get_pipeline(eval_ratio):
     dag[time_sig_filter] = time_change_splitter
     dag[quantizer] = time_sig_filter
     dag[drums_extractor] = quantizer
-    dag[encoder_pipeline] = drums_extractor
+    dag[empty_prepender] = drums_extractor
+    dag[encoder_pipeline] = empty_prepender
     dag[dag_pipeline.DagOutput(mode + '_drum_tracks')] = encoder_pipeline
 
   return dag_pipeline.DAGPipeline(dag)
