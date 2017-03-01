@@ -80,6 +80,8 @@ class ChordProgression(events_lib.SimpleEventSequence):
 
   def __init__(self, events=None, **kwargs):
     """Construct a ChordProgression."""
+    if 'pad_event' in kwargs:
+      del kwargs['pad_event']
     super(ChordProgression, self).__init__(pad_event=NO_CHORD,
                                            events=events, **kwargs)
 

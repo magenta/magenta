@@ -21,7 +21,6 @@ file.
 """
 
 import collections
-import copy
 import operator
 
 # internal imports
@@ -73,6 +72,8 @@ class DrumTrack(events_lib.SimpleEventSequence):
 
   def __init__(self, events=None, **kwargs):
     """Construct a DrumTrack."""
+    if 'pad_event' in kwargs:
+      del kwargs['pad_event']
     super(DrumTrack, self).__init__(pad_event=frozenset(),
                                     events=events, **kwargs)
 

@@ -120,9 +120,9 @@ class LeadSheet(events_lib.EventSequence):
     """
     return len(self._melody)
 
-  def __deepcopy__(self, unused_memo=None):
-    return LeadSheet(copy.deepcopy(self._melody),
-                     copy.deepcopy(self._chords))
+  def __deepcopy__(self, memo=None):
+    return LeadSheet(copy.deepcopy(self._melody, memo),
+                     copy.deepcopy(self._chords, memo))
 
   def __eq__(self, other):
     if not isinstance(other, LeadSheet):
