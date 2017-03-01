@@ -36,7 +36,7 @@ Jupyter notebooks, and the Magenta scripts are installed in your path!
 Note that you will need to run `source activate magenta` to use Magenta every
 time you open a new terminal window.
 
-#### Manual Install
+#### Manual Install with Anaconda
 
 If the automated script fails for any reason, or you'd prefer to install by
 hand, do the following steps.
@@ -51,7 +51,11 @@ Jupyter notebook support:
 ```
 conda create -n magenta python=2.7 jupyter
 source activate magenta
+conda install -c conda-forge tensorflow
+pip install magenta
 ```
+
+#### Manual Install without Anaconda
 
 Install the
 [latest Tensorflow Pip package](https://www.tensorflow.org/get_started/os_setup.html#using-pip)
