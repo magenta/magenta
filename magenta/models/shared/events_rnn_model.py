@@ -476,13 +476,16 @@ class EventSequenceRnnModel(mm.BaseModel):
 
     loglik = np.empty(len(event_sequences))
 
+    # Since we're computing log-likelihood and not generating, the inputs batch
+    # doesn't need to include the final event in each sequence.
     if control_events is not None:
       # We are conditioning on a control sequence.
       inputs = self._config.encoder_decoder.get_inputs_batch(
-          control_events, event_sequences, full_length=True)
+          control_events, [events[:-1] for events in event_sequences],
+          full_length=True)
     else:
       inputs = self._config.encoder_decoder.get_inputs_batch(
-          event_sequences, full_length=True)
+          [events[:-1] for events in event_sequences], full_length=True)
 
     graph_initial_state = self._session.graph.get_collection('initial_state')[0]
     initial_state = np.tile(
