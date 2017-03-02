@@ -26,8 +26,8 @@ model.hparams.dropout_keep_prob = 1.0
 
 sampler = ForwardSample(model, log_dir, batch_size=10)
 
-# Draw samples that are 32 steps long (32 steps = 8 bars, I think?)
-samples = sampler.sample(32)
+# Draw samples that are 64 steps long (4 steps per bar, I think?)
+samples = sampler.sample(64)
 
 # Convert samples: binaryvec -> pitches -> DrumTrack -> NoteSequence -> MIDI
 gen_dir = dir_path + '/generated/' + experiment_name

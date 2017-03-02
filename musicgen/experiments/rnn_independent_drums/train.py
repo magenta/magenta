@@ -19,7 +19,7 @@ log_dir = dir_path + '/trainOutput/' + experiment_name
 utils.ensuredir(log_dir)
 
 model_params = HParams(
-	rnn_layer_sizes = [128, 128],
+	rnn_layer_sizes = [256, 256, 256],
 	dropout_keep_prob = 0.5,
 	attn_length =  None,
 )
@@ -38,7 +38,7 @@ train_params = HParams(
 	save_model_secs = 30
 )
 
-data_filename = '/mnt/nfs_datasets/lakh_midi_full/drums_sequence_examples/training_drum_tracks.tfrecord'
+data_filename = '/mnt/nfs_datasets/lakh_midi_full/drums_prependEmpty/training_drum_tracks.tfrecord'
 input_size = DrumTimeSliceEncoder().output_size
 sequence_encoder = OneToOneSequenceEncoder(
 	IdentityTimeSliceEncoder(input_size)
