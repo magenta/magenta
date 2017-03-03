@@ -96,6 +96,7 @@ class SequenceGenerativeModel(Model):
 		When used for sampling, batch will typically be 1 (or more, for e.g. SMC), and time will be 1.
 		"""
 
+
 	"""
 	Override of method from Model class
 	Assumes that batch contains a 'lengths' and a 'outputs' field
