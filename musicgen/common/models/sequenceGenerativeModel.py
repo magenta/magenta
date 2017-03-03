@@ -51,10 +51,10 @@ class SequenceGenerativeModel(Model):
 
 	"""
 	Initial timeslice to use for input to this model in the absence of any priming inputs.
-	By default, this just uses a zero vector of size self.timeslice_size.
+	By default, this uses the encoder's empty timeslice (which is a zero vector)
 	"""	
 	def default_initial_timeslice(self):
-		return np.zeros([self.timeslice_size])
+		return self.sequence_encoder.timeslice_encoder.empty_timeslice
 
 	"""
 	Takes a training batch dict and returns an distribution conditioning dict (by

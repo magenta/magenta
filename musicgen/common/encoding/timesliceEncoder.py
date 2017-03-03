@@ -1,5 +1,6 @@
 
 import abc
+import numpy as np
 
 """
 Generalization of magenta's OneHotEncoding, so we can move beyond one-hot
@@ -22,10 +23,16 @@ class TimeSliceEncoder(object):
   		""" Undoes the effect of encode """
   		pass
 
+  	@property
+  	def empty_timeslice(self):
+  		""" Encoding of an empty timeslice """
+  		return np.zeros([self.output_size])
+
 
 """
 Encoder that does nothing; just returns whatever representation of the
    timeslice was passed to it
+Intended to pass-through binary vectors
 """
 class IdentityTimeSliceEncoder(TimeSliceEncoder):
 

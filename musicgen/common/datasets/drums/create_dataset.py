@@ -36,14 +36,11 @@ tf.app.flags.DEFINE_float('eval_ratio', 0.1,
 tf.app.flags.DEFINE_string('log', 'INFO',
                            'The threshold for what messages will be logged '
                            'DEBUG, INFO, WARN, ERROR, or FATAL.')
+tf.app.flags.DEFINE_boolean('use_lookback', False,
+                            'Whether to use the lookback sequence encoder or the normal one')
 
 # Quantizer settings (make this a command line arg at some point?)
 steps_per_quarter = 4
-
-# Sequence encoder (also make this configurable for e.g. adding lookback?)
-seq_encoder = common.encoding.OneToOneSequenceEncoder(
-	common.encoding.DrumTimeSliceEncoder()
-)
 
 # For use with a custom function pipeline
 def prepend_empty_drum_timeslice(drum_track):
@@ -55,7 +52,7 @@ def prepend_empty_drum_timeslice(drum_track):
     steps_per_quarter=drum_track.steps_per_quarter)
   return [new_drum_track]
 
-def get_pipeline(eval_ratio):
+def get_pipeline(eval_ratio, seq_encoder):
   """Returns the Pipeline instance which creates the RNN dataset.
 
   Args:
@@ -106,7 +103,19 @@ def get_pipeline(eval_ratio):
 def main(unused_argv):
   tf.logging.set_verbosity(FLAGS.log)
 
-  pipeline_instance = get_pipeline(FLAGS.eval_ratio)
+  seq_encoder = None
+  if FLAGS.use_lookback:
+    seq_encoder = common.encoding.LookbackSequenceEncoder(
+      common.encoding.DrumTimeSliceEncoder(),
+      lookback_distances=[],  # TODO: This is what magenta uses, but experiment with other values?
+      binary_counter_bits=6
+    )
+  else:
+    seq_encoder = common.encoding.OneToOneSequenceEncoder(
+      common.encoding.DrumTimeSliceEncoder()
+    )
+
+  pipeline_instance = get_pipeline(FLAGS.eval_ratio, seq_encoder)
 
   FLAGS.input = os.path.expanduser(FLAGS.input)
   FLAGS.output_dir = os.path.expanduser(FLAGS.output_dir)
