@@ -97,6 +97,14 @@ class SequenceGenerativeModel(Model):
 		"""
 
 	"""
+	Given the timeslice history and a condition dictionary, return a score in log-space.
+	Sampling algorithms, such as particle filtering, can take this into account.
+	By default, returns 0. Subclasses can override this behavior.
+	"""
+	def eval_factor_function(timeslice_history, condition_dict):
+		return 0
+
+	"""
 	Override of method from Model class
 	Assumes that batch contains a 'lengths' and a 'outputs' field
 	NOTE: During training, we assume that timeslices + conditioning info has already been processed into
