@@ -70,10 +70,6 @@ class SequenceGenerativeModel(Model):
 	"""
 	Takes a history of time slices, plus the current conditioning dict, and
 	   returns the next input vector to the RNN.
-	timeslice_history will be in (batch, 1, timeslice) format, but the sequence_encoder
-	   expects single (timeslice) vectors, so we need to split up the batches, process,
-	   then re-join them.
-	TODO: This seems a bit wasteful--might we consider making sequence_encoder work on batches?
 	"""
 	def next_rnn_input(self, timeslice_history, condition_dict):
 		index = len(timeslice_history) - 1
