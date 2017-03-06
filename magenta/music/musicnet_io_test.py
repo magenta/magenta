@@ -50,9 +50,7 @@ class MusicNetIoTest(tf.test.TestCase):
     self.assertEqual(1, len(pairs))
     self.assertEqual('test', sequence.filename)
     self.assertEqual('MusicNet', sequence.collection_name)
-    self.assertEqual(
-        '/id/musicnet/MusicNet/a94a8fe5ccb19ba61c4c0873d391e987982fbbd3',
-        sequence.id)
+    self.assertEqual('/id/musicnet/test', sequence.id)
     self.assertEqual(3, len(sequence.notes))
     self.assertEqual(66150, len(audio))
 
