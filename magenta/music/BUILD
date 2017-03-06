@@ -351,7 +351,6 @@ py_library(
     srcs = ["musicnet_io.py"],
     srcs_version = "PY2AND3",
     deps = [
-        ":note_sequence_io",
         "//magenta/protobuf:music_py_pb2",
         # intervaltree dep
         # numpy dep

@@ -19,7 +19,6 @@ import StringIO
 import numpy as np
 import tensorflow as tf
 
-from magenta.music import note_sequence_io
 from magenta.protobuf import music_pb2
 
 MUSICNET_SAMPLE_RATE = 44100
@@ -95,9 +94,7 @@ def musicnet_iterator(musicnet_file):
 
     sequence.filename = file_id
     sequence.collection_name = 'MusicNet'
-
-    sequence.id = note_sequence_io.generate_note_sequence_id(
-        sequence.filename, sequence.collection_name, 'musicnet')
+    sequence.id = '/id/musicnet/%s' % file_id
 
     sequence.source_info.source_type = (
         music_pb2.NoteSequence.SourceInfo.PERFORMANCE_BASED)
