@@ -38,20 +38,17 @@ train_params = HParams(
 	save_model_secs = 30
 )
 
+timeslice_encoder = encoding.IdentityTimeSliceEncoder(encoding.DrumTimeSliceEncoder().output_size)
+
 # data_filename = '/mnt/nfs_datasets/lakh_midi_full/drums_prependEmpty/training_drum_tracks.tfrecord'
-# timeslice_size = encoding.DrumTimeSliceEncoder().output_size
-# sequence_encoder = encoding.OneToOneSequenceEncoder(
-# 	encoding.IdentityTimeSliceEncoder(timeslice_size)
-# )
-# dataset = SequenceDataset([data_filename], sequence_encoder)
+# sequence_encoder = encoding.OneToOneSequenceEncoder(timeslice_encoder)
 
 data_filename = '/mnt/nfs_datasets/lakh_midi_full/drums_lookback_meter/training_drum_tracks.tfrecord'
-timeslice_size = encoding.DrumTimeSliceEncoder().output_size
-sequence_encoder = encoding.LookbackSequenceEncoder(
-	encoding.IdentityTimeSliceEncoder(timeslice_size),
+sequence_encoder = encoding.LookbackSequenceEncoder(timeslice_encoder,
 	lookback_distances=[],
 	binary_counter_bits=6
 )
+
 dataset = SequenceDataset([data_filename], sequence_encoder)
 
 features = dataset.load_single()

@@ -25,6 +25,10 @@ class SequenceGenerativeModel(Model):
   	def timeslice_size(self):
 		return self.sequence_encoder.encoded_timeslice_size
 
+	@property
+	def rnn_input_size(self):
+		return self.sequence_encoder.rnn_input_size
+
 	"""
 	Names and shapes of all the conditioning data this model expects in its condition dicts
 	"""
@@ -66,6 +70,10 @@ class SequenceGenerativeModel(Model):
 	"""
 	Takes a history of time slices, plus the current conditioning dict, and
 	   returns the next input vector to the RNN.
+	timeslice_history will be in (batch, 1, timeslice) format, but the sequence_encoder
+	   expects single (timeslice) vectors, so we need to split up the batches, process,
+	   then re-join them.
+	TODO: This seems a bit wasteful--might we consider making sequence_encoder work on batches?
 	"""
 	def next_rnn_input(self, timeslice_history, condition_dict):
 		index = len(timeslice_history) - 1
