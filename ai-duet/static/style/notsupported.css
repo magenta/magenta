@@ -1,0 +1,22 @@
+@import 'common.scss';
+
+$width: 220px;
+$height: 100px;
+
+#notsupported {
+	position: absolute;
+	top: 50%;
+	left: 50%;
+	text-align: center;
+	color: white;
+	margin-left: -$width/2;
+	width: $width;
+	height: $height;
+	margin-top: -$height/2;
+	font-family: $font-family;
+	font-size: 20px;
+
+	a {
+		color: white;
+	}
+}
