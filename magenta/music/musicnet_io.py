@@ -37,8 +37,11 @@ def note_interval_tree_to_sequence_proto(note_interval_tree, sample_rate):
   Returns:
     A NoteSequence proto containing the notes in the interval tree.
   """
-  note_intervals = note_interval_tree.items()
   sequence = music_pb2.NoteSequence()
+
+  # Sort note intervals by onset time.
+  note_intervals = sorted(note_interval_tree,
+                          key=lambda note_interval: note_interval.begin)
 
   # MusicNet represents "instruments" as MIDI program numbers. Here we map each
   # program to a separate MIDI instrument.
