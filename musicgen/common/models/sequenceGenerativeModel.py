@@ -98,12 +98,22 @@ class SequenceGenerativeModel(Model):
 
 
 	"""
-	Given the timeslice history and a condition dictionary, return a score in log-space.
+	Given the sample for the current timeslice and a condition dictionary, return a score in log-space.
 	Sampling algorithms, such as particle filtering, can take this into account.
 	By default, returns 0. Subclasses can override this behavior.
+
+	Condition dict has only one key and value pair.
 	"""
-	def eval_factor_function(timeslice_history, condition_dict):
-		return 0
+	def eval_factor_function(self, sample, condition_dict):
+		if len(condition_dict) == 0:
+			return 1
+		condition = condition_dict["known_notes"]
+		for index in range(len(condition)):
+			if condition[index] == -1:
+				continue
+			elif condition[index] != sample[index]:
+				return 0
+		return 1
 
 	"""
 	Override of method from Model class
