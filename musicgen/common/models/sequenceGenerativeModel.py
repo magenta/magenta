@@ -25,6 +25,10 @@ class SequenceGenerativeModel(Model):
   	def timeslice_size(self):
 		return self.sequence_encoder.encoded_timeslice_size
 
+	@property
+	def rnn_input_size(self):
+		return self.sequence_encoder.rnn_input_size
+
 	"""
 	Names and shapes of all the conditioning data this model expects in its condition dicts
 	"""

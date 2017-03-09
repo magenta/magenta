@@ -2,7 +2,7 @@ import sys
 import os
 from common.models import RNNIndependent
 from common.datasets import SequenceDataset
-from common.encoding import OneToOneSequenceEncoder, IdentityTimeSliceEncoder, DrumTimeSliceEncoder
+import common.encoding as encoding
 from common import training
 from common import utils
 from common.datasets.jsbchorales import vec_entry_to_pitch
@@ -38,11 +38,17 @@ train_params = HParams(
 	save_model_secs = 30
 )
 
-data_filename = '/mnt/nfs_datasets/lakh_midi_full/drums_prependEmpty/training_drum_tracks.tfrecord'
-input_size = DrumTimeSliceEncoder().output_size
-sequence_encoder = OneToOneSequenceEncoder(
-	IdentityTimeSliceEncoder(input_size)
+timeslice_encoder = encoding.IdentityTimeSliceEncoder(encoding.DrumTimeSliceEncoder().output_size)
+
+# data_filename = '/mnt/nfs_datasets/lakh_midi_full/drums_prependEmpty/training_drum_tracks.tfrecord'
+# sequence_encoder = encoding.OneToOneSequenceEncoder(timeslice_encoder)
+
+data_filename = '/mnt/nfs_datasets/lakh_midi_full/drums_lookback_meter/training_drum_tracks.tfrecord'
+sequence_encoder = encoding.LookbackSequenceEncoder(timeslice_encoder,
+	lookback_distances=[],
+	binary_counter_bits=6
 )
+
 dataset = SequenceDataset([data_filename], sequence_encoder)
 
 features = dataset.load_single()
@@ -51,3 +57,4 @@ model = RNNIndependent(model_params, sequence_encoder)
 model.save(log_dir + '/model.pickle')
 
 training.train(model, dataset, train_params)
+

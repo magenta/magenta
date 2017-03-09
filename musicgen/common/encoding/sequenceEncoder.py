@@ -141,7 +141,7 @@ class LookbackSequenceEncoder(SequenceEncoder):
 		offset = 0
 
 		# The current timeslice
-		timeslice_size = len(encoded_timeslices[index])
+		timeslice_size = self.timeslice_encoder.output_size
 		input_[offset:offset+timeslice_size] = encoded_timeslices[index]
 		offset += timeslice_size
 

@@ -15,7 +15,7 @@ class ForwardSample(object):
 		self.batch_size = batch_size
 
 		# Construct a graph that takes placeholder inputs and produces the time slice Distribution
-		self.input_placeholder = tf.placeholder(dtype=tf.float32, shape=[batch_size,None,self.model.timeslice_size], name = "inputs")
+		self.input_placeholder = tf.placeholder(dtype=tf.float32, shape=[batch_size,None,self.model.rnn_input_size], name = "inputs")
 		self.condition_dict_placeholders = {
 			name: tf.placeholder(dtype=tf.float32, shape=[batch_size,None]+shape) for name,shape in model.condition_shapes.iteritems()
 		}
@@ -76,13 +76,8 @@ class ForwardSample(object):
 			rnn_input = rnn_input[np.newaxis]
 		# Batchify the rnn input and each timeslice in the history
 		rnn_input = np.tile(rnn_input, [self.batch_size, 1, 1])
-		for i in range(len(timeslice_history)):
-			timeslice_history[i] = np.tile(timeslice_history[i], [self.batch_size, 1, 1])
-
-
-		if condition_dicts is not None:
-			# Batchify the (remaining) condition dicts, too
-			condition_dicts = [ batchify_dict(dic, self.batch_size) for dic in condition_dicts ]
+		# Keep of track of N different timeslice histories (N = self.batch_size)
+		timeslice_histories = [list(timeslice_history) for i in range(self.batch_size)]
 
 		# Initialize state
 		rnn_state = self.sess.run(self.rnn_state)
@@ -90,20 +85,22 @@ class ForwardSample(object):
 		# Iteratively draw sample, and convert the sample into the next input
 		for i in range(n_steps):
 			condition_dict = {} if (condition_dicts is None) else condition_dicts[i]
-			rnn_state, sample = self.sample_step(rnn_state, rnn_input, condition_dict, i)
+			# Batchify the condition dict before feeding it into sampling step
+			condition_dict_batch = batchify_dict(condition_dict, self.batch_size)
+			rnn_state, sample_batch = self.sample_step(rnn_state, rnn_input, condition_dict_batch)
 			while self.model.eval_factor_function(sample, condition_dict) == 0:
-				print "hullo"
 				rnn_state, sample = self.sample_step(rnn_state, rnn_input, condition_dict, i)
-			timeslice_history.append(sample)
-			rnn_input = self.model.next_rnn_input(timeslice_history, condition_dict)
+			# Split the batchified sample into N individual samples (N = self.batch_size)
+			# Then add these to timeslice_histories
+			timeslice_size = self.model.timeslice_size
+			samples = [np.reshape(sample, (timeslice_size)) for sample in np.split(sample_batch, self.batch_size)]
+			for i, sample in enumerate(samples):
+				timeslice_histories[i].append(sample)
+			# Construct the next RNN input for each history, then batchify these together
+			rnn_next_inputs = [self.model.next_rnn_input(history, condition_dict) for history in timeslice_histories]
+			rnn_input = np.stack(rnn_next_inputs)[:,np.newaxis]	# newaxis also adds singleton time dimension
 
-		# Concatenate timeslices along time dimension to make one big block.
-		# Then split along batch dimension, and then again along time dimension, so return value
-		#    is a triply-nested list
-		n_total = len(timeslice_history)
-		batchTensor = np.concatenate(timeslice_history, 1)
-		listOfSeqTensors = [seq[0] for seq in np.split(batchTensor, self.batch_size, axis=0)]
-		return[[slic[0] for slic in np.split(seq, n_total, axis=0)] for seq in listOfSeqTensors]
+		return timeslice_histories
 
 
 

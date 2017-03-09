@@ -2,7 +2,7 @@ import sys
 import os
 from common.models import RNNIndependent
 from common.sampling import ForwardSample
-from common.encoding import OneToOneSequenceEncoder, IdentityTimeSliceEncoder, DrumTimeSliceEncoder
+import common.encoding as encoding
 from common import utils
 import common.encoding.utils as enc_utils
 from magenta.music import sequence_proto_to_midi_file
@@ -17,10 +17,15 @@ dir_path = os.path.dirname(os.path.realpath(__file__))
 log_dir = dir_path + '/trainOutput/' + experiment_name
 utils.ensuredir(log_dir)
 
-drum_encoder = DrumTimeSliceEncoder()
-sequence_encoder = OneToOneSequenceEncoder(
-	IdentityTimeSliceEncoder(drum_encoder.output_size)
+drum_encoder = encoding.DrumTimeSliceEncoder()
+timeslice_encoder = encoding.IdentityTimeSliceEncoder(drum_encoder.output_size)
+
+# sequence_encoder = encoding.OneToOneSequenceEncoder(timeslice_encoder)
+sequence_encoder = encoding.LookbackSequenceEncoder(timeslice_encoder,
+	lookback_distances=[],
+	binary_counter_bits=6
 )
+
 model = RNNIndependent.from_file(log_dir + '/model.pickle', sequence_encoder)
 model.hparams.dropout_keep_prob = 1.0
 
