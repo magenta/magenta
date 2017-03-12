@@ -52,6 +52,175 @@ def make_rnn_cell(rnn_layer_sizes,
 
   return cell
 
+def dilated_cnn(inputs,
+                 initial_state,
+                 input_size,
+                 block_num=1,
+                 block_size=7,
+                 dropout_keep_prob=1.0,
+                 residual_cnl=16,
+                 dilation_cnl=8,
+                 output_cnl=32,
+                 use_gate=True,
+                 use_step=True,
+                 mode='train'):
+  """
+  Returns outputs of dilated CNN from the given hyperparameters.
+  This model uses convolution neural network as generative model like Wavenet.
+
+  Args:
+    inputs: Model inputs.
+    initial_state: A numpy array containing initial padding buffer of
+        generative CNN model.
+    input_size: The size of input vector.
+    block_num: The number of dilated convolution blocks.
+    block_size: The size of dilated convolution blocks.
+    dropout_keep_prob: The float probability to keep the output of any given
+        sub-cell.
+    residual_cnl: The size of hidden residual state.
+    dilation_cnl: The size of hidden dilation state.
+    output_cnl: The size of output vector.
+    use_gate: A boolean specifying whether to use gated activation units.
+    use_step: A boolean specifying whether to use skip connection.
+    mode: 'train', 'eval', or 'generate'.
+
+  Returns:
+    outputs: Model outputs
+    final_state: A numpy array containing next padding buffer of generative
+        CNN model.
+  """
+  if mode == 'train':
+    is_training = True
+  else:
+    is_training = False
+
+  dilation = [2**i for i in range(block_size)]*block_num
+  batch_num = tf.shape(inputs)[0]
+  h = tf.reshape(inputs, [batch_num,-1,1,input_size])
+  dlt_sum = [sum(dilation[:i]) for i in range(len(dilation))]
+  dlt_sum.append(sum(dilation))
+
+  with tf.variable_scope("first_conv"):
+    h = tf.contrib.layers.batch_norm(h, decay=0.999, center=True, scale=True,
+                              updates_collections=None, is_training=is_training,
+                              scope="first_conv", reuse=True)
+    first_weights = tf.get_variable(
+        "first_weights", [1,1,input_size,residual_cnl],
+        initializer=tf.random_normal_initializer())
+    h = tf.nn.conv2d(h, first_weights, strides=[1,1,1,1], padding='SAME')
+  final_state = []
+  if use_step:
+    step = []
+  for i,dlt in enumerate(dilation):
+    pad = initial_state[:,dlt_sum[i]*residual_cnl:dlt_sum[i+1]*residual_cnl]
+    pad = tf.reshape(pad,[batch_num,dlt,1,residual_cnl])
+    _h = h
+    h = tf.concat([pad,h],1)
+    _fs = tf.reshape(h[:,-dlt:,:,:],[batch_num,dlt*residual_cnl])
+    final_state.append(_fs)
+
+    with tf.variable_scope("conv{}".format(i)):
+      if use_gate:
+        gate_weights = tf.get_variable(
+            "gate_weights", [2,1,residual_cnl,dilation_cnl],
+            initializer=tf.random_normal_initializer())
+        gate_biases = tf.get_variable(
+            "gate_biases", [dilation_cnl],
+            initializer=tf.constant_initializer(0.0))
+        gate = tf.nn.atrous_conv2d(
+            h, gate_weights, dlt, padding="VALID")
+        gate = tf.contrib.layers.batch_norm(gate, decay=0.999, center=True,
+                                        scale=True, updates_collections=None,
+                                        is_training=is_training,
+                                        scope="gate_bn{}".format(i), reuse=True)
+        gate = tf.sigmoid(tf.nn.bias_add(gate, gate_biases))
+
+      filter_weights = tf.get_variable(
+          "filter_weights", [2,1,residual_cnl,dilation_cnl],
+          initializer=tf.random_normal_initializer())
+      filter_biases = tf.get_variable(
+          "filter_biases", [dilation_cnl],
+          initializer=tf.constant_initializer(0.0))
+      filtr = tf.nn.atrous_conv2d(
+          h, filter_weights, dlt, padding="VALID")
+      filtr = tf.contrib.layers.batch_norm(filtr, decay=0.999, center=True,
+                                    scale=True, updates_collections=None,
+                                    is_training=is_training,
+                                    scope="filter_bn{}".format(i), reuse=True)
+      filtr = tf.tanh(tf.nn.bias_add(filtr, filter_biases))
+
+      after_weights = tf.get_variable(
+          "after_weights", [1,1,dilation_cnl,residual_cnl],
+          initializer=tf.random_normal_initializer())
+      after_biases = tf.get_variable(
+          "after_biases", [residual_cnl],
+          initializer=tf.constant_initializer(0.0))
+      if use_gate:
+        after = tf.nn.conv2d(
+            gate*filtr, after_weights,strides=[1,1,1,1],padding='SAME')
+      else:
+        after = tf.nn.conv2d(
+            filtr, after_weights,strides=[1,1,1,1],padding='SAME')
+        after = tf.nn.bias_add(after, after_biases)
+
+      if use_step:
+        step.append(after)
+        h = after + _h
+
+  if use_step:
+    step = tf.concat(step,3)
+    step_weights = tf.get_variable(
+        "step_weights", [1,1,residual_cnl*len(dilation),output_cnl],
+        initializer=tf.random_normal_initializer())
+    h = tf.nn.conv2d(step, step_weights, strides=[1,1,1,1], padding='SAME')
+    h = tf.contrib.layers.batch_norm(h, decay=0.999, center=True, scale=True,
+                              updates_collections=None, is_training=is_training,
+                              scope="step_bn", reuse=True)
+    h = tf.nn.relu(h)
+
+    last_weights = tf.get_variable(
+        "last_weights", [1,1,output_cnl,output_cnl],
+        initializer=tf.random_normal_initializer())
+  else:
+    last_weights = tf.get_variable(
+        "last_weights", [1,1,residual_cnl,output_cnl],
+        initializer=tf.random_normal_initializer())
+
+  last_biases = tf.get_variable(
+      "last_biases", [output_cnl], initializer=tf.constant_initializer(0.0))
+  h = tf.nn.conv2d(h, last_weights, strides=[1,1,1,1], padding='SAME')
+  h = tf.contrib.layers.batch_norm(h, decay=0.999, center=True, scale=True,
+                            updates_collections=None, is_training=is_training,
+                            scope="last_bn", reuse=True)
+  h = tf.nn.relu(tf.nn.bias_add(h, last_biases))
+
+  h = tf.nn.dropout(h, dropout_keep_prob)
+  final_state = tf.concat(final_state,1)
+  outputs = tf.reshape(h, [batch_num,-1,output_cnl])
+  return outputs,final_state
+
+def get_dilated_cnn_initial_state(batch_size,
+                                  dtype,
+                                  input_size,
+                                  block_num=1,
+                                  block_size=7,
+                                  residual_cnl=16):
+  """
+  Returns a initial_state using in the dilated_cnn method.
+
+  Args:
+    batch_size: A size of input batch.
+    dtype: A type of initial_state
+    input_size: The size of input vector.
+    block_num: The number of dilated convolution blocks.
+    block_size: The size of dilated convolution blocks.
+    residual_cnl: The size of hidden residual state.
+  Returns:
+    initial_state: A numpy array containing initial_state of dilated_cnn.
+  """
+  dilation = [2**i for i in range(block_size)]*block_num
+  initial_state = tf.zeros([batch_size,sum(dilation)*residual_cnl])
+  return initial_state
 
 def build_graph(mode, config, sequence_example_file_paths=None):
   """Builds the TensorFlow graph.
@@ -102,18 +271,35 @@ def build_graph(mode, config, sequence_example_file_paths=None):
       # values to be tensors and not tuples, so state_is_tuple is set to False.
       state_is_tuple = False
 
-    cell = make_rnn_cell(hparams.rnn_layer_sizes,
-                         dropout_keep_prob=hparams.dropout_keep_prob,
-                         attn_length=hparams.attn_length,
-                         state_is_tuple=state_is_tuple)
+    if hparams.dilated_cnn:
+        initial_state = get_dilated_cnn_initial_state(
+            hparams.batch_size, tf.float32, input_size,
+            block_num=hparams.block_num,block_size=hparams.block_size,
+            residual_cnl=hparams.residual_cnl)
+        outputs, final_state = dilated_cnn(
+            inputs, initial_state, input_size,block_num=hparams.block_num,
+            block_size=hparams.block_size,
+            dropout_keep_prob=hparams.dropout_keep_prob,
+            residual_cnl=hparams.residual_cnl,
+            dilation_cnl=hparams.dilation_cnl,
+            output_cnl=hparams.output_cnl,
+            use_gate=hparams.use_gate, use_step=hparams.use_step,
+            mode=mode)
 
-    initial_state = cell.zero_state(hparams.batch_size, tf.float32)
+        outputs_flat = tf.reshape(outputs, [-1, hparams.output_cnl])
+    else:
+        cell = make_rnn_cell(hparams.rnn_layer_sizes,
+                             dropout_keep_prob=hparams.dropout_keep_prob,
+                             attn_length=hparams.attn_length,
+                             state_is_tuple=state_is_tuple)
 
-    outputs, final_state = tf.nn.dynamic_rnn(
-        cell, inputs, initial_state=initial_state, parallel_iterations=1,
-        swap_memory=True)
+        initial_state = cell.zero_state(hparams.batch_size, tf.float32)
 
-    outputs_flat = tf.reshape(outputs, [-1, cell.output_size])
+        outputs, final_state = tf.nn.dynamic_rnn(
+            cell, inputs, initial_state=initial_state, parallel_iterations=1,
+            swap_memory=True)
+
+        outputs_flat = tf.reshape(outputs, [-1, cell.output_size])
     logits_flat = tf.contrib.layers.linear(outputs_flat, num_classes)
 
     if mode == 'train' or mode == 'eval':

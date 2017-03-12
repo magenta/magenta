@@ -58,6 +58,19 @@ class EventSequenceRNNGraphTest(tf.test.TestCase):
         'train', self.config, sequence_example_file_paths=['test'])
     self.assertTrue(isinstance(g, tf.Graph))
 
+  def testBuildGraphCnn(self):
+    self.config.hparams.dilated_cnn = True
+    self.config.hparams.block_num = 1
+    self.config.hparams.block_size = 7
+    self.config.hparams.residual_cnl = 32
+    self.config.hparams.dilation_cnl = 16
+    self.config.hparams.output_cnl = 64
+    self.config.hparams.use_gate = True
+    self.config.hparams.use_step = True
+    g = events_rnn_graph.build_graph(
+        'train', self.config, sequence_example_file_paths=['test'])
+    self.assertTrue(isinstance(g, tf.Graph))
+
 
 if __name__ == '__main__':
   tf.test.main()
