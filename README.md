@@ -53,14 +53,6 @@ conda create -n magenta python=2.7 jupyter
 source activate magenta
 ```
 
-Install the
-[latest Tensorflow Pip package](https://www.tensorflow.org/get_started/os_setup.html#using-pip)
-for Python 2.7.  Note that you should skip the step for activating the
-`tensorflow` environment because you've already activated your `magenta`
-environment above. The important steps are selecting the correct binary
-(`export TF_BINARY_URL=...`) and installing that binary
-(`pip install --ignore-installed --upgrade $TF_BINARY_URL`).
-
 Install the Magenta pip package:
 
 ```
