@@ -288,7 +288,8 @@ class EventSequenceEncoderDecoder(object):
       loglik = 0.0
       for position in range(len(event_sequences[i]) - 1):
         index = self.events_to_label(event_sequences[i], position + 1)
-        loglik += np.log(softmax[i][position][index])
+        if position < len(softmax[i]):
+          loglik += np.log(softmax[i][position][index])
       all_loglik.append(loglik)
     return all_loglik
 
