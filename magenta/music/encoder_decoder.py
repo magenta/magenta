@@ -298,11 +298,11 @@ class EventSequenceEncoderDecoder(object):
             'event sequence must be longer than softmax vector (%d events but '
             'softmax vector has length %d)' % (len(event_sequences[i]),
                                                len(softmax[i])))
-      end_pos = len(event_sequences[i]) - 1
+      end_pos = len(event_sequences[i])
       start_pos = end_pos - len(softmax[i])
       loglik = 0.0
       for softmax_pos, position in enumerate(range(start_pos, end_pos)):
-        index = self.events_to_label(event_sequences[i], position + 1)
+        index = self.events_to_label(event_sequences[i], position)
         loglik += np.log(softmax[i][softmax_pos][index])
       all_loglik.append(loglik)
     return all_loglik
