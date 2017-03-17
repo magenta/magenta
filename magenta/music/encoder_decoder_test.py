@@ -103,8 +103,8 @@ class OneHotEventSequenceEncoderDecoderTest(tf.test.TestCase):
     events1 = [0, 1, 0]
     events2 = [1, 2, 2]
     event_sequences = [events1, events2]
-    softmax = [[[0.0, 0.5, 0.5], [0.3, 0.4, 0.3], [0.4, 0.6, 0.0]],
-               [[0.0, 0.6, 0.4], [0.0, 0.4, 0.6], [0.1, 0.1, 0.8]]]
+    softmax = [[[0.0, 0.5, 0.5], [0.3, 0.4, 0.3]],
+               [[0.0, 0.6, 0.4], [0.0, 0.4, 0.6]]]
     p = self.enc.evaluate_log_likelihood(event_sequences, softmax)
     self.assertListEqual([np.log(0.5) + np.log(0.3),
                           np.log(0.4) + np.log(0.6)], p)
@@ -310,8 +310,8 @@ class ConditionalEventSequenceEncoderDecoderTest(tf.test.TestCase):
     target_events_1 = [0, 1, 0]
     target_events_2 = [1, 2, 2]
     target_event_sequences = [target_events_1, target_events_2]
-    softmax = [[[0.0, 0.5, 0.5], [0.3, 0.4, 0.3], [0.4, 0.6, 0.0]],
-               [[0.0, 0.6, 0.4], [0.0, 0.4, 0.6], [0.1, 0.1, 0.8]]]
+    softmax = [[[0.0, 0.5, 0.5], [0.3, 0.4, 0.3]],
+               [[0.0, 0.6, 0.4], [0.0, 0.4, 0.6]]]
     p = self.enc.evaluate_log_likelihood(target_event_sequences, softmax)
     self.assertListEqual([np.log(0.5) + np.log(0.3),
                           np.log(0.4) + np.log(0.6)], p)
