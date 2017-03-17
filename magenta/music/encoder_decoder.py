@@ -746,14 +746,8 @@ class ConditionalEventSequenceEncoderDecoder(object):
     Returns:
       A Python list of chosen class indices, one for each target event sequence.
     """
-    num_classes = len(softmax[0][0])
-    chosen_classes = []
-    for i in xrange(len(target_event_sequences)):
-      chosen_class = np.random.choice(num_classes, p=softmax[i][-1])
-      event = self.class_index_to_event(chosen_class, target_event_sequences[i])
-      target_event_sequences[i].append(event)
-      chosen_classes.append(chosen_class)
-    return chosen_classes
+    return self._target_encoder_decoder.extend_event_sequences(
+        target_event_sequences, softmax)
 
   def evaluate_log_likelihood(self, target_event_sequences, softmax):
     """Evaluate the log likelihood of multiple target event sequences.
@@ -768,14 +762,8 @@ class ConditionalEventSequenceEncoderDecoder(object):
     Returns:
       A Python list containing the log likelihood of each target event sequence.
     """
-    all_loglik = []
-    for i in xrange(len(target_event_sequences)):
-      loglik = 0.0
-      for position in range(len(target_event_sequences[i]) - 1):
-        index = self.events_to_label(target_event_sequences[i], position + 1)
-        loglik += np.log(softmax[i][position][index])
-      all_loglik.append(loglik)
-    return all_loglik
+    return self._target_encoder_decoder.evaluate_log_likelihood(
+        target_event_sequences, softmax)
 
 
 class EncoderPipeline(pipeline.Pipeline):
