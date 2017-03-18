@@ -118,12 +118,12 @@ def build_graph(mode, config, sequence_example_file_paths=None):
 
     if mode == 'train' or mode == 'eval':
       labels_flat = tf.reshape(labels, [-1])
-      mask = tf.sequence_mask(lengths, dtype=tf.float32)
+      mask = tf.sequence_mask(lengths)
       if hparams.skip_first_n_losses:
-        skip = tf.minimum(lengths,hparams.skip_first_n_losses)
-        skip_mask = tf.sequence_mask(skip, dtype=tf.float32,
-                                     maxlen=tf.reduce_max(lengths))
-        mask -= skip_mask
+        skip = tf.minimum(lengths, hparams.skip_first_n_losses)
+        skip_mask = tf.sequence_mask(skip, maxlen=tf.reduce_max(lengths))
+        mask = tf.logical_and(mask, tf.logical_not(skip_mask))
+      mask = tf.cast(mask, tf.float32)
       mask_flat = tf.reshape(mask, [-1])
 
       num_logits = tf.to_float(tf.reduce_sum(lengths))
