@@ -34,19 +34,19 @@ class InvalidStatisticsException(Exception):
   pass
 
 
-class Key(object):
+class PipelineKey(object):
   """Represents a get operation on a Pipeline type signature.
 
   If a pipeline instance `my_pipeline` has `output_type`
-  {'key_1': Type1, 'key_2': Type2}, then Key(my_pipeline, 'key_1'),
-  represents the output type Type1. And likewise Key(my_pipeline, 'key_2')
-  represents Type2.
+  {'key_1': Type1, 'key_2': Type2}, then PipelineKey(my_pipeline, 'key_1'),
+  represents the output type Type1. And likewise
+  PipelineKey(my_pipeline, 'key_2') represents Type2.
 
-  Calling __getitem__ on a pipeline will return a Key instance.
-  So my_pipeline['key_1'] returns Key(my_pipeline, 'key_1'), and so on.
+  Calling __getitem__ on a pipeline will return a PipelineKey instance.
+  So my_pipeline['key_1'] returns PipelineKey(my_pipeline, 'key_1'), and so on.
 
-  Key objects are used for assembling a directed acyclic graph of Pipeline
-  instances. See dag_pipeline.py.
+  PipelineKey objects are used for assembling a directed acyclic graph of
+  Pipeline instances. See dag_pipeline.py.
   """
 
   def __init__(self, unit, key):
@@ -57,14 +57,14 @@ class Key(object):
           'Cannot take key %s of %s because output type %s is not a dictionary'
           % (key, unit, unit.output_type))
     if key not in unit.output_type:
-      raise KeyError('Key %s is not valid for %s with output type %s'
+      raise KeyError('PipelineKey %s is not valid for %s with output type %s'
                      % (key, unit, unit.output_type))
     self.key = key
     self.unit = unit
     self.output_type = unit.output_type[key]
 
   def __repr__(self):
-    return 'Key(%s, %s)' % (self.unit, self.key)
+    return 'PipelineKey(%s, %s)' % (self.unit, self.key)
 
 
 def _guarantee_dict(given, default_name):
@@ -113,12 +113,12 @@ class Pipeline(object):
   a list of transformed outputs, or a dictionary mapping names to lists of
   transformed outputs for each name.
 
-  The `get_stats` method returns any statistics that were collected during the
-  last call to `transform`. These statistics can give feedback about why any
+  The `get_stats` method returns any Statistics that were collected during the
+  last call to `transform`. These Statistics can give feedback about why any
   data was discarded and what the input data is like.
 
   `Pipeline` implementers should call `_set_stats` from within `transform` to
-  set the statistics that will be returned by the next call to `get_stats`.
+  set the Statistics that will be returned by the next call to `get_stats`.
   """
 
   __metaclass__ = abc.ABCMeta
@@ -137,8 +137,8 @@ class Pipeline(object):
     signature {'hello': str, 'number': int})
 
     `Pipeline` instances have (preferably unique) string names. These names act
-    as name spaces for the statistics produced by them. The `get_stats` method
-    will automatically prepend `name` to all of the statistics names before
+    as name spaces for the Statistics produced by them. The `get_stats` method
+    will automatically prepend `name` to all of the Statistics names before
     returning them.
 
     Args:
@@ -164,7 +164,7 @@ class Pipeline(object):
     self._stats = []
 
   def __getitem__(self, key):
-    return Key(self, key)
+    return PipelineKey(self, key)
 
   @property
   def input_type(self):
@@ -218,7 +218,7 @@ class Pipeline(object):
     pass
 
   def _set_stats(self, stats):
-    """Overwrites the current statistics returned by `get_stats`.
+    """Overwrites the current Statistics returned by `get_stats`.
 
     Implementers of Pipeline should call `_set_stats` from within `transform`.
 
@@ -226,8 +226,8 @@ class Pipeline(object):
       stats: An iterable of Statistic objects.
 
     Raises:
-      InvalidStatisticsException: If `stats` is not iterable, or if each
-          statistic is not a `Statistic` instance.
+      InvalidStatisticsException: If `stats` is not iterable, or if any
+          object in the list is not a `Statistic` instance.
     """
     if not hasattr(stats, '__iter__'):
       raise InvalidStatisticsException(
@@ -244,10 +244,10 @@ class Pipeline(object):
     return stat_copy
 
   def get_stats(self):
-    """Returns statistics about pipeline runs.
+    """Returns Statistics about pipeline runs.
 
     Call `get_stats` after each call to `transform`.
-    `transform` computes statistics which will be returned here.
+    `transform` computes Statistics which will be returned here.
 
     Returns:
       A list of `Statistic` objects.
@@ -307,7 +307,10 @@ def tf_record_iterator(tfrecord_file, proto):
     yield proto.FromString(raw_bytes)
 
 
-def run_pipeline_serial(pipeline, input_iterator, output_dir):
+def run_pipeline_serial(pipeline,
+                        input_iterator,
+                        output_dir,
+                        output_file_base=None):
   """Runs the a pipeline on a data source and writes to a directory.
 
   Run the the pipeline on each input from the iterator one at a time.
@@ -326,6 +329,8 @@ def run_pipeline_serial(pipeline, input_iterator, output_dir):
     output_dir: Path to directory where datasets will be written. Each dataset
         is a file whose name contains the pipeline's dataset name. If the
         directory does not exist, it will be created.
+    output_file_base: An optional string prefix for all datasets output by this
+        run. The prefix will also be followed by an underscore.
 
   Raises:
     ValueError: If any of `pipeline`'s output types do not have a
@@ -348,8 +353,14 @@ def run_pipeline_serial(pipeline, input_iterator, output_dir):
 
   output_names = pipeline.output_type_as_dict.keys()
 
-  output_paths = [os.path.join(output_dir, name + '.tfrecord')
-                  for name in output_names]
+  if output_file_base is None:
+    output_paths = [os.path.join(output_dir, name + '.tfrecord')
+                    for name in output_names]
+  else:
+    output_paths = [os.path.join(output_dir,
+                                 '%s_%s.tfrecord' % (output_file_base, name))
+                    for name in output_names]
+
   writers = dict([(name, tf.python_io.TFRecordWriter(path))
                   for name, path in zip(output_names, output_paths)])
 
@@ -362,7 +373,7 @@ def run_pipeline_serial(pipeline, input_iterator, output_dir):
                                          output_names[0]).items():
       for output in outputs:
         writers[name].write(output.SerializeToString())
-        total_outputs += 1
+      total_outputs += len(outputs)
     stats = statistics.merge_statistics(stats + pipeline.get_stats())
     if total_inputs % 500 == 0:
       tf.logging.info('Processed %d inputs so far. Produced %d outputs.',

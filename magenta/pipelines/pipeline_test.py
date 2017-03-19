@@ -19,7 +19,7 @@ import tempfile
 # internal imports
 import tensorflow as tf
 
-from magenta.lib import testing_lib
+from magenta.common import testing_lib
 from magenta.pipelines import pipeline
 from magenta.pipelines import statistics
 
@@ -138,11 +138,11 @@ class PipelineTest(tf.test.TestCase):
         set(result['dataset_2']))
 
   def testPipelineKey(self):
-    # This happens if Key() is used on a pipeline with out a dictionary output,
-    # or the key is not in the output_type dict.
+    # This happens if PipelineKey() is used on a pipeline with out a dictionary
+    # output, or the key is not in the output_type dict.
     pipeline_inst = MockPipeline()
     pipeline_key = pipeline_inst['dataset_1']
-    self.assertTrue(isinstance(pipeline_key, pipeline.Key))
+    self.assertTrue(isinstance(pipeline_key, pipeline.PipelineKey))
     self.assertEqual(pipeline_key.key, 'dataset_1')
     self.assertEqual(pipeline_key.unit, pipeline_inst)
     self.assertEqual(pipeline_key.output_type, MockStringProto)
@@ -162,7 +162,7 @@ class PipelineTest(tf.test.TestCase):
       _ = pipeline_inst['abc']
 
     with self.assertRaises(ValueError):
-      _ = pipeline.Key(1234, 'abc')
+      _ = pipeline.PipelineKey(1234, 'abc')
 
   def testInvalidTypeSignatureException(self):
 

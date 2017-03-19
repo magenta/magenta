@@ -2,6 +2,12 @@ build --define=allow_oversize_protos=true
 build --copt -funsigned-char
 build -c opt
 
+# Temporary flag to fix Python import issues. Requires bazel 0.4.5.
+# A permanent fix will be in the bazel 0.5 release, at which point this
+# flag should be removed.
+build --noexperimental_python_import_all_repositories
+test --noexperimental_python_import_all_repositories
+
 build --spawn_strategy=standalone
 test --spawn_strategy=standalone
 run --spawn_strategy=standalone

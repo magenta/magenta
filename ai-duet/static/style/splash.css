@@ -1,0 +1,366 @@
+@import 'common.scss';
+
+$topMargin: 35px;
+
+#splash {
+	position: absolute;
+	height: 100%;
+	width: 100%;
+	top: 0px;
+	left: 0px;
+	z-index: 100;
+	font-family: $font-family;
+	font-weight: bold;
+	color: white;
+	transition: opacity 0.2s;
+
+	&.disappear {
+		opacity: 0;
+		pointer-events: none;
+	}
+
+	#learnMore {
+		margin-top: $topMargin;
+		font-size: 18px;
+		display: block;
+		// @mixin yellowLink;
+	}
+
+	#titleContainer {
+		position: absolute;
+		top: 50%;
+		left: 50%;
+		width: 80%;
+		transform: translate(-50%, -50%);
+		text-align: center;
+		min-width: 300px;
+
+		#title {
+			line-height: 60px;
+			font-size: 55px;
+			letter-spacing: 1px;
+			font-weight: 300;
+		}
+
+		#subTitle, #howItWorks {
+			margin-top: $topMargin;
+			letter-spacing: 0.8px;
+			line-height: 30px;
+			font-size: 15px;
+			width: 100%;
+			margin-left: auto;
+			margin-right: auto;
+			text-align: center;
+			font-weight: 300;
+		}
+
+		#howItWorks {
+			$size : 20px;
+			$margin: 30px;
+
+			color: $orange;
+			width: auto;
+			display: inline-block;
+			margin-left: $margin;
+
+			&:before {
+				position: absolute;
+				width: $size;
+				height: $size;
+				margin-left: -$margin;
+				margin-top: $size / 4;
+				content : '';
+				background-image: url(../images/yellow_play_triangle.svg);
+			}
+
+			cursor: pointer;
+
+			transition: transform 0.1s;
+
+			&:hover {
+				transform: scale(1.1);
+			}
+		}
+
+		$loaderWidth: 200px;
+		$loaderHeight: 60px;
+
+		#loader {
+			position: relative;
+			margin-top: $topMargin;
+			background-color: black;
+			border: 2px solid $orange;
+			width: $loaderWidth;
+			height: $loaderHeight;
+			margin-left: auto;
+			margin-right: auto;
+			text-transform: uppercase;
+
+			&.clickable {
+				cursor: pointer;
+
+				transition: transform 0.1s;
+
+				&:hover {
+					transform: scale(1.1);
+				}
+
+				#fillText:active {
+					color: black!important;
+					background-color: $orange;
+
+					#piano {
+						filter: brightness(0);
+					}
+				}
+			}
+
+			#loaderText {
+				position: absolute;
+				width: 100%;
+				height: 100%;
+				color: black;
+				background-color: $orange;
+			}
+
+			#fill {
+				position: absolute;
+				height: 100%;
+				width: 0%;
+				overflow: hidden;
+				background-color: black;
+
+
+				#fillText {
+					width: $loaderWidth;
+					height: 100%;
+					color: $orange;
+
+					$imgWidth: 40px;
+					$margin : 52px;
+
+					* {
+						position: absolute;
+						top: 0px;
+					}
+
+					#play {
+						right: $margin;
+					}
+
+					#piano {
+						left: $margin;
+						width: $imgWidth;
+						height: 100%;
+						background-image : url(../images/keyboard_icon.svg);
+						background-position: center center;
+						background-repeat: no-repeat;
+					}
+				}
+			}
+
+			#loaderText, #fillText {
+				line-height: $loaderHeight;
+				font-size: 22px;
+				text-align: center;
+				font-weight: normal;
+			}
+		}
+	}
+
+	#buildWith {
+		margin-top: $topMargin;
+	}
+
+	$badgeWidth : 120px;
+	$badgeHeight: 60px;
+	$badgeMargin : 20px;
+	$badegOpacity: 0.7;
+
+	$smallScreen : 575px;
+	$smallBadgeWidth : 90px;
+	$smallBadgeHeight: 40px;
+	$smallBadgeMargin: 8px;
+
+	#badges {
+
+		position: absolute;
+		display: inline-block;
+		bottom: $badgeMargin;
+		left: $badgeMargin;
+
+		@media (max-width: $smallScreen) {
+			// bottom: $badgeMargin * 0.5;
+			bottom: 40px;
+			$badgesWidth : $smallBadgeWidth * 3 + $smallBadgeMargin * 3 + 2px;
+			width: $badgesWidth;
+			left: 50%;
+			margin-left: -$badgesWidth/2;
+			// left: $smallBadgeMargin * 2;			
+			// left: 50%;
+			// transform: translate(-50%, 0);
+		}
+
+		.badge {
+			display: inline-block;
+			position: relative;
+			margin-right: $badgeMargin;
+			width: $badgeWidth;
+			height: $badgeHeight;
+			background-repeat: no-repeat;
+			background-size: 100% 100%;
+			opacity: $badegOpacity;
+			overflow: hidden;
+
+			@media (max-width: $smallScreen) {
+				width: $smallBadgeWidth;
+				height: $smallBadgeHeight;	
+				font-size: 10px!important;
+				margin-right: $smallBadgeMargin;
+				opacity: 1;
+			}
+		}
+
+		#aiExperiments {
+			background-image: url(../images/badgeAI_master.svg);
+			&:hover {
+				opacity: 1;
+				&:active {
+					opacity: 0.3;
+				}
+			}
+		}
+
+		#googleFriends {
+			cursor: initial;
+			background-image: url(../images/badgeFriends_master.svg);	
+			margin-right: 0px;
+		}
+
+
+		#magentaLink {
+			font-weight: bold;
+			font-size: 12px;
+			margin-left: 0px;
+		    margin-right: 0px;
+		    color: white;
+
+			&:hover {
+				opacity: 1;
+			}
+
+			@media (max-width: $smallScreen) {
+				font-size: 7px;
+			}
+
+
+			div {
+				display: inline-block;
+				position: relative;
+			}
+
+			$imgSize : $badgeHeight;
+			$smallImg : $smallBadgeHeight;
+			#img {
+				background-image: url(../images/magenta_bw_logo.png);
+				background-size: 90% 90%;
+				background-position: left center;
+				background-repeat: no-repeat;
+				width: $imgSize;
+				height: $imgSize;
+				float: left;
+
+				@media (max-width: $smallScreen) {
+					width: $smallImg;
+					height: $smallImg;
+				}
+			}
+
+			#text {
+				margin-top: 14px;
+				float: right;
+				height: 100%;
+				width: $badgeWidth - $imgSize;
+
+				@media (max-width: $smallScreen) {
+					margin-top: 7px;
+					width: $smallBadgeWidth - $smallImg;
+				}
+
+				span {
+					color: $orange;
+					text-decoration: underline;
+					cursor: pointer;
+					&:hover:active {
+						color: white;
+					}
+				}
+			}
+
+		}
+
+		.badgeBreak{
+			display: inline-block;
+			position: relative;
+			margin-right: $badgeMargin;
+
+			$breakScale : 0.95;
+
+			$breakHeight: $badgeHeight * $breakScale;
+			height: $breakHeight;
+			background-color: white;
+			opacity: $badegOpacity / 2;
+			width: 1px;
+
+			@media (max-width: $smallScreen) {
+				$smallBreakHeight: $smallBadgeHeight * $breakScale;
+				height: $smallBreakHeight;
+				margin-right: $smallBadgeMargin;
+			}
+		}
+	}
+
+
+
+	#privacyAndTerms {
+		position: absolute;
+		bottom: $badgeMargin;
+		right: $badgeMargin;
+		width: auto;
+		font-weight: normal;
+
+		@media (max-width: $smallScreen) {
+			bottom: $smallBadgeMargin;
+			left: 50%;
+			right: initial;
+			transform: translate(-50%, 0);
+
+			* {
+				font-size: 8px!important;
+			}
+		}
+
+		* {
+			height: 14px;
+			line-height: 14px;
+			font-size: 10px;
+			color: white;
+			display: inline;
+			opacity: $badegOpacity;
+			margin: 2px;
+		}
+
+		a {
+			text-decoration: none;
+			cursor: pointer;
+
+			&:hover {
+				opacity: 1;
+
+				&:active {
+					opacity: 0.3;
+				}
+			}
+		}
+	}
+}

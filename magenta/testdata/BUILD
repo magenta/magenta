@@ -17,7 +17,7 @@
 
 package(
     default_visibility = [
-        "//magenta/lib:__subpackages__",
+        "//magenta/music:__subpackages__",
         "//magenta/pipelines:__subpackages__",
         "//magenta/scripts:__subpackages__",
     ],
@@ -28,10 +28,12 @@ licenses(["notice"])  # Apache 2.0
 filegroup(
     name = "testdata",
     srcs = [
-        'example.mid',
-        'example_complex.mid',
-        'notesequences.tfrecord',
-        'tfrecord_iterator_test.tfrecord',
+        "example.mid",
+        "example_complex.mid",
+        "example_event_order.mid",
+        "example_is_drum.mid",
+        "musicnet_example.npz",
+        "notesequences.tfrecord",
+        "tfrecord_iterator_test.tfrecord",
     ],
 )
-

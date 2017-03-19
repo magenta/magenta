@@ -22,5 +22,6 @@ package_group(
     name = "generator_interfaces",
     packages = [
         "//magenta/interfaces/midi",
+        # internal generator interfaces
     ]
 )

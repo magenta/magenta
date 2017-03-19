@@ -1,0 +1,88 @@
+@import 'common.scss';
+
+$borderWidth : 2px;
+$borderColor: rgb(215, 215, 215);
+$blackColor: black;
+$whiteColor: rgb(34, 34, 34);
+$blackHover : #aaa;
+$whiteHover : #aaa;
+
+$blackKeyMargin : $borderWidth + 2px;
+
+
+#keyboard {
+	position: absolute;
+	width: calc(100% - 2 * #{$borderWidth});
+	user-select: none;
+	cursor: pointer;
+
+	.key {
+		position: absolute;
+		height: calc(100% - 2 * #{$borderWidth});
+		width: 10px;
+		left: 0px;
+		top: 0px;
+		user-select: none;
+
+		&.black {
+			z-index: 1;
+			height: 50%;
+
+			#fill {
+				background-color: $blackColor;
+				width: calc(100% - #{$blackKeyMargin * 2});
+				left: $blackKeyMargin;
+			}
+		}
+
+		&.white {
+			z-index: 0;
+
+			#fill {
+				background-color: $whiteColor;
+			}
+		}
+
+		&.white, &.black {
+
+			&.hover #fill{
+				border-color: white;
+				background-color: $blackHover;
+
+			}
+		}
+
+		#fill {
+			position: absolute;
+			top: 0px;
+			left: 0px;
+			width: 100%;
+			height: 100%;
+			border: $borderWidth solid $borderColor;
+			pointer-events: none;
+
+		}
+
+		.highlight {
+
+			position: absolute;
+			top: 0px;
+			left: 0px;
+			width: 100%;
+			height: 100%;
+			pointer-events: none;
+			background-color: $blue;
+			opacity: 0;
+			transition: opacity 0.6s;
+
+			&.active {
+				opacity: 1;
+			}
+
+			&.ai {
+				background-color: $orange;
+			}
+		}
+
+	}
+}

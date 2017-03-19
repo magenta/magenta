@@ -9,7 +9,7 @@ py_library(
         "utilities.py",
     ],
     deps = [
-        "@midi//:midi",
+        "@mido//:mido",
     ],
     srcs_version = "PY2AND3",
     visibility = ["//visibility:public"],

@@ -12,73 +12,55 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Description:
-# Code shared by models.
+# Description: Shared functionality for models.
 
 package(
-    default_visibility = ["//magenta/models:__subpackages__"],
+    default_visibility = [
+        "//magenta/models:__subpackages__",
+        # internal models
+    ],
 )
 
 licenses(["notice"])  # Apache 2.0
 
 py_library(
-    name = "melody_rnn_create_dataset",
-    srcs = ["melody_rnn_create_dataset.py"],
+    name = "events_rnn_graph",
+    srcs = ["events_rnn_graph.py"],
     srcs_version = "PY2AND3",
     deps = [
-        # tensorflow dep
-        "//magenta/lib:melodies_lib",
-        "//magenta/pipelines:dag_pipeline",
-        "//magenta/pipelines:pipeline",
-        "//magenta/pipelines:pipelines_common",
-        "//magenta/protobuf:music_py_pb2",
+        "//magenta",
         # tensorflow dep
     ],
 )
 
 py_test(
-    name = "melody_rnn_create_dataset_test",
-    srcs = ["melody_rnn_create_dataset_test.py"],
+    name = "events_rnn_graph_test",
+    srcs = ["events_rnn_graph_test.py"],
+    srcs_version = "PY2AND3",
     deps = [
-        ":melody_rnn_create_dataset",
-        "//magenta/lib:melodies_lib",
-        "//magenta/lib:testing_lib",
-        "//magenta/protobuf:music_py_pb2",
-        "//magenta/pipelines:pipelines_common",
+        ":events_rnn_graph",
+        ":events_rnn_model",
+        "//magenta",
         # tensorflow dep
     ],
 )
 
 py_library(
-    name = "melody_rnn_generate",
-    srcs = ["melody_rnn_generate.py"],
+    name = "events_rnn_model",
+    srcs = ["events_rnn_model.py"],
     srcs_version = "PY2AND3",
     deps = [
-        "//magenta/lib:melodies_lib",
-        "//magenta/lib:midi_io",
+        ":events_rnn_graph",
+        "//magenta",
         # tensorflow dep
     ],
 )
 
 py_library(
-    name = "melody_rnn_sequence_generator",
-    srcs = ["melody_rnn_sequence_generator.py"],
-    srcs_version = "PY2AND3",
-    deps = [
-        "//magenta/lib:melodies_lib",
-        "//magenta/lib:sequence_generator",
-        "//magenta/lib:sequences_lib",
-        "//magenta/protobuf:generator_py_pb2",
-        # tensorflow dep
-    ],
-)
-
-py_library(
-    name = "melody_rnn_train",
-    srcs = ["melody_rnn_train.py"],
+    name = "events_rnn_train",
+    srcs = ["events_rnn_train.py"],
     srcs_version = "PY2AND3",
     deps = [
         # tensorflow dep
     ],
 )
-
