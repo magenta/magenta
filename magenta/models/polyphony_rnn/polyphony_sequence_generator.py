@@ -248,7 +248,8 @@ def get_generator_map():
   """
   def create_sequence_generator(config, **kwargs):
     return PolyphonyRnnSequenceGenerator(
-        polyphony_model.PolyphonyRnnModel(config), config.details, **kwargs)
+        polyphony_model.PolyphonyRnnModel(config), config.details,
+        steps_per_quarter=config.steps_per_quarter, **kwargs)
 
   return {key: partial(create_sequence_generator, config)
           for (key, config) in polyphony_model.default_configs.items()}

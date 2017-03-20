@@ -44,14 +44,10 @@ if [[ "$(uname)" == "Darwin" ]]; then
     echo 'Mac OS Detected'
     readonly OS='MAC'
     readonly MINICONDA_SCRIPT='Miniconda2-latest-MacOSX-x86_64.sh'
-    # Mac OS X, CPU only, Python 2.7:
-    readonly TF_BINARY_URL='https://storage.googleapis.com/tensorflow/mac/cpu/tensorflow-0.12.0rc1-py2-none-any.whl'
 elif [[ "$(uname)" == "Linux" ]]; then
     echo 'Linux OS Detected'
     readonly OS='LINUX'
     readonly MINICONDA_SCRIPT='Miniconda2-latest-Linux-x86_64.sh'
-    # Ubuntu/Linux 64-bit, CPU only, Python 2.7
-    readonly TF_BINARY_URL='https://storage.googleapis.com/tensorflow/linux/cpu/tensorflow-0.12.0rc1-cp27-none-linux_x86_64.whl'
 else
     err 'Detected neither OSX or Linux Operating System'
 fi
@@ -100,9 +96,6 @@ set -e
 if [[ $(conda info --envs | grep "*" | awk '{print $1}') != "magenta" ]]; then
   err 'Did not successfully activate the magenta conda environment'
 fi
-
-# Install tensorflow
-pip install --ignore-installed --upgrade $TF_BINARY_URL
 
 # Install other dependencies
 pip install jupyter magenta

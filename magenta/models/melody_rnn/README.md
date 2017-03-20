@@ -36,7 +36,7 @@ directory.
 
 ```
 BUNDLE_PATH=<absolute path of .mag file>
-CONFIG=<one of 'basic_rnn', 'lookback_rnn', or 'attention_rnn'>
+CONFIG=<one of 'basic_rnn', 'lookback_rnn', or 'attention_rnn', matching the bundle>
 
 melody_rnn_generate \
 --config=${CONFIG} \
@@ -61,7 +61,7 @@ SequenceExamples are fed into the model during training and evaluation. Each Seq
 
 ```
 melody_rnn_create_dataset \
---config=<one of 'basic_rnn', 'lookback_rnn', or 'attention_rnn'>
+--config=<one of 'basic_rnn', 'lookback_rnn', or 'attention_rnn'> \
 --input=/tmp/notesequences.tfrecord \
 --output_dir=/tmp/melody_rnn/sequence_examples \
 --eval_ratio=0.10
@@ -120,6 +120,7 @@ melody_rnn_generate \
 --output_dir=/tmp/melody_rnn/generated \
 --num_outputs=10 \
 --num_steps=128 \
+--hparams="{'batch_size':64,'rnn_layer_sizes':[64,64]}" \
 --primer_melody="[60]"
 ```
 

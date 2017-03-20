@@ -1,10 +1,10 @@
-FROM tensorflow/tensorflow:0.11.0rc1-devel
+FROM tensorflow/tensorflow:0.12.0-rc1-devel
 
 MAINTAINER Curtis Hawthorne <fjord@google.com>
 
 # Download and build Magenta.
 
-ENV MAGENTA_MASTER_REF v0.1.6
+ENV MAGENTA_MASTER_REF v0.1.9
 
 # Required for local development
 RUN pip install scipy matplotlib
@@ -24,9 +24,14 @@ RUN bazel build magenta/tools/pip:build_pip_package && \
 ADD http://download.magenta.tensorflow.org/models/lookback_rnn.mag /magenta-models/
 ADD http://download.magenta.tensorflow.org/models/attention_rnn.mag /magenta-models/
 ADD http://download.magenta.tensorflow.org/models/basic_rnn.mag /magenta-models/
+ADD http://download.magenta.tensorflow.org/models/drum_kit_rnn.mag /magenta-models/
+ADD http://download.magenta.tensorflow.org/models/polyphony_rnn.mag /magenta-models/
+ADD http://download.magenta.tensorflow.org/models/rl_rnn.mag /magenta-models/
+
+ADD http://download.magenta.tensorflow.org/models/rl_tuner_note_rnn.ckpt /magenta-models/
+
 ADD http://download.magenta.tensorflow.org/models/multistyle-pastiche-generator-monet.ckpt /magenta-models/
 ADD http://download.magenta.tensorflow.org/models/multistyle-pastiche-generator-varied.ckpt /magenta-models/
-ADD http://download.magenta.tensorflow.org/models/rl_tuner_note_rnn.ckpt /magenta-models/
 
 # /magenta-data should be mapped to the host on startup.
 RUN mkdir /magenta-data

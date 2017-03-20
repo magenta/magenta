@@ -417,4 +417,4 @@ class NoteRNNLoader(object):
       List of variable names.
     """
     with self.graph.as_default():
-      return [v for v in tf.all_variables() if v.name.startswith(self.scope)]
+      return [v for v in tf.global_variables() if v.name.startswith(self.scope)]

@@ -138,8 +138,10 @@ class MidiHubTest(tf.test.TestCase):
     time.sleep(0.8)
 
     self.midi_hub.stop_metronome()
-    self.assertEqual(6, self.port.message_queue.qsize())
+    self.assertEqual(7, self.port.message_queue.qsize())
 
+    msg = self.port.message_queue.get()
+    self.assertEqual(msg.type, 'program_change')
     next_tick_time = start_time
     while not self.port.message_queue.empty():
       msg = self.port.message_queue.get()

@@ -55,7 +55,6 @@ Once you install Max, you should download the patches and resources into the dem
 * [Magenta Max Patch](http://download.magenta.tensorflow.org/demos/NIPS_2016/magenta_mira.maxpat)
 * [Max4Live Device: Sync to Magenta](http://download.magenta.tensorflow.org/demos/NIPS_2016/SyncCallAndResponse.amxd)
 * [Max4Live Device: Sync to Max](http://download.magenta.tensorflow.org/demos/NIPS_2016/SyncCallAndResponseToMax.amxd)
-* [Magenta Logo](http://download.magenta.tensorflow.org/demos/NIPS_2016/magenta_logo.png)
 
 
 ## Install Mira iPad App (iPad UI)
@@ -106,4 +105,46 @@ Once you have Ableton and the sound packs installed you should download the Live
 * Make sure that `from Max 1` is enabled for 'Remote' input MIDI control of Ableton, the MIDI Keys/Drums are enable for 'Track' input, and that the IAC Buses are configure for 'Track' Input and Output.
 
 * Rock out!
+
+# How to play the demo
+
+The demo is fundamentally a call and response type interaction, with optional looping. The player plays an input MIDI sequence "Call", and the model reads in this sequence and passes the latent state of the RNNs forward to generate a new sequence which is a continuation of the old sequence "Response". The call and response can be variable length, and the response can be looped to form a background groove that the player can then solo over. The loop can also be 'mutated', by passing it back through the RNN and looping the new output. The entire process is synced through a MIDI CC message that is sent from Ableton every bar. There are two models running simultaneously.
+
+A melody model:
+
+<p align="center">
+  <img src="melody_layout.png" alt="Diagram of Melody UI"/>
+</p>
+
+And a drum model:
+
+<p align="center">
+  <img src="drums_layout.png" alt="Diagram of Melody UI"/>
+</p>
+
+This enables many forms of musical interaction. For example, the player can input a drum pattern and loop the response, while they engage in a call and response with the melody model over the looping groove. They can then mutate that drum groove while still playing melody, and optionally set the melody model to loop while they solo over both grooves.
+
+## UI Elements
+
+* __State__: Indicates the state of the model. If "Ready..." the model awaits user input. If "Listening", it is recording the user call. "Playing" indicates it has started its response. The model can listen while playing, so if the call and response length are the same, the player can continuously play while the model continuously responds. The state is only updated every bar, so if the user starts playing it will not say "Listening" until the next bar, even though that first bar is still included as part of the call.
+
+* __Call Length__: Number of bars to listen to call before responding. If set to "Auto", the call will wait until the player has not played for an entire bar.
+
+* __Response Length__: Number of bars the model will play in response. If set to "Auto", the response will be the same length as the call. For the drum model, it can be interesting to have a short call (4 bars) and a long response (32 bars), and see what variations and fills it creates over many bars.
+
+* __Loop__: If toggled, the response will play in a continuous loop.
+
+* __Solo__: If toggled, the model will receive no input from the player.
+
+* __Stop__: Clears and stops playback at the next bar.
+
+* __Mutate__: Sends the response back through the RNN to create a new response that is a continuation of the old response. Sort of like a game of telephone.
+
+* __Temperature__: The broadening of the posterior distribution over notes to play. Good for adding variation to responses. High temperatures (>1.0) result in more random outputs. Low temperatures (<1.0) return closer to the exact most likely sequence.
+
+* __Mute Input__: Pass player input to model, but do not play out loud. Good for altering a looping drum beat without hearing two beats playing at once.
+
+* __RNN__: Choice of pretrained RNN model to use in response.
+
+* __Metronome__: Volume of a metronome. The Ableton set needs to be playing to generate a response, which can be activated from Ableton itself or by pressing a small button in the upper left hand side above the "Master" volume control.
 

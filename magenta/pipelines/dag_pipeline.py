@@ -424,13 +424,13 @@ class DAGPipeline(pipeline.Pipeline):
       elif isinstance(key, DagOutput):
         if isinstance(val, dict):
           raise InvalidDictionaryOutput(
-              'DagOutput("%s") which has name "%s" can only be connectd to a '
+              'DagOutput("%s") which has name "%s" can only be connected to a '
               'single input, not dictionary %s. Use DagOutput() without name '
               'instead.' % (key.name, key.name, val))
         if (isinstance(val, pipeline.Pipeline) and
             isinstance(val.output_type, dict)):
           raise InvalidDictionaryOutput(
-              'DagOutput("%s") which has name "%s" can only be connectd to a '
+              'DagOutput("%s") which has name "%s" can only be connected to a '
               'single input, not pipeline %s which has dictionary '
               'output_type %s. Use DagOutput() without name instead.'
               % (key.name, key.name, val, val.output_type))

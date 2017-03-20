@@ -57,30 +57,29 @@ def get_pipeline(config, eval_ratio):
   Returns:
     A pipeline.Pipeline instance.
   """
-  quantizer = pipelines_common.Quantizer(steps_per_quarter=4)
-  drums_extractor_train = drum_pipelines.DrumsExtractor(
-      min_bars=7, max_steps=512, gap_bars=1.0, name='DrumsExtractorTrain')
-  drums_extractor_eval = drum_pipelines.DrumsExtractor(
-      min_bars=7, max_steps=512, gap_bars=1.0, name='DrumsExtractorEval')
-  encoder_pipeline_train = encoder_decoder.EncoderPipeline(
-      magenta.music.DrumTrack, config.encoder_decoder,
-      name='EncoderPipelineTrain')
-  encoder_pipeline_eval = encoder_decoder.EncoderPipeline(
-      magenta.music.DrumTrack, config.encoder_decoder,
-      name='EncoderPipelineEval')
   partitioner = pipelines_common.RandomPartition(
       music_pb2.NoteSequence,
       ['eval_drum_tracks', 'training_drum_tracks'],
       [eval_ratio])
+  dag = {partitioner: dag_pipeline.DagInput(music_pb2.NoteSequence)}
 
-  dag = {quantizer: dag_pipeline.DagInput(music_pb2.NoteSequence),
-         partitioner: quantizer,
-         drums_extractor_train: partitioner['training_drum_tracks'],
-         drums_extractor_eval: partitioner['eval_drum_tracks'],
-         encoder_pipeline_train: drums_extractor_train,
-         encoder_pipeline_eval: drums_extractor_eval,
-         dag_pipeline.DagOutput('training_drum_tracks'): encoder_pipeline_train,
-         dag_pipeline.DagOutput('eval_drum_tracks'): encoder_pipeline_eval}
+  for mode in ['eval', 'training']:
+    time_change_splitter = pipelines_common.TimeChangeSplitter(
+        name='TimeChangeSplitter_' + mode)
+    quantizer = pipelines_common.Quantizer(
+        steps_per_quarter=config.steps_per_quarter, name='Quantizer_' + mode)
+    drums_extractor = drum_pipelines.DrumsExtractor(
+        min_bars=7, max_steps=512, gap_bars=1.0, name='DrumsExtractor_' + mode)
+    encoder_pipeline = encoder_decoder.EncoderPipeline(
+        magenta.music.DrumTrack, config.encoder_decoder,
+        name='EncoderPipeline_' + mode)
+
+    dag[time_change_splitter] = partitioner[mode + '_drum_tracks']
+    dag[quantizer] = time_change_splitter
+    dag[drums_extractor] = quantizer
+    dag[encoder_pipeline] = drums_extractor
+    dag[dag_pipeline.DagOutput(mode + '_drum_tracks')] = encoder_pipeline
+
   return dag_pipeline.DAGPipeline(dag)
 
 

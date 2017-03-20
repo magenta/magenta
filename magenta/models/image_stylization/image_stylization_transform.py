@@ -85,7 +85,7 @@ def _multiple_images(input_image, which_styles, output_dir):
   """Stylizes an image into a set of styles and writes them to disk."""
   with tf.Graph().as_default(), tf.Session() as sess:
     stylized_images = model.transform(
-        tf.concat(0, [input_image for _ in range(len(which_styles))]),
+        tf.concat([input_image for _ in range(len(which_styles))], 0),
         normalizer_params={
             'labels': tf.constant(which_styles),
             'num_categories': FLAGS.num_styles,

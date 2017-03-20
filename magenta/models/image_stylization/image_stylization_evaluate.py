@@ -109,12 +109,12 @@ def main(_):
               reuse=True,
               normalizer_params=_create_normalizer_params(style_label))
           for _, style_label in enumerate(labels)]
-      return tf.concat(0, [inputs] + stylized_inputs)
+      return tf.concat([inputs] + stylized_inputs, 0)
 
     if FLAGS.style_grid:
       style_row = tf.concat(
-          0,
-          [tf.ones([1, FLAGS.image_size, FLAGS.image_size, 3]), style_images])
+          [tf.ones([1, FLAGS.image_size, FLAGS.image_size, 3]), style_images],
+          0)
       stylized_training_example = _style_sweep(inputs[0])
       stylized_evaluation_images = [
           _style_sweep(image) for image in tf.unstack(evaluation_images)]
@@ -124,15 +124,15 @@ def main(_):
           _style_sweep(image) for image in tf.unstack(style_images)]
       if FLAGS.style_crossover:
         grid = tf.concat(
-            0,
             [style_row, stylized_training_example, stylized_noise] +
-            stylized_evaluation_images + stylized_style_images)
+            stylized_evaluation_images + stylized_style_images,
+            0)
       else:
         grid = tf.concat(
-            0,
             [style_row, stylized_training_example, stylized_noise] +
-            stylized_evaluation_images)
-      tf.image_summary(
+            stylized_evaluation_images,
+            0)
+      tf.summary.image(
           'Style Grid',
           tf.cast(
               image_utils.form_image_grid(
@@ -165,7 +165,7 @@ def main(_):
 
       names_values, names_updates = slim.metrics.aggregate_metric_map(metrics)
       for name, value in names_values.iteritems():
-        summary_op = tf.scalar_summary(name, value, [])
+        summary_op = tf.summary.scalar(name, value, [])
         print_op = tf.Print(summary_op, [value], name)
         tf.add_to_collection(tf.GraphKeys.SUMMARIES, print_op)
       eval_op = names_updates.values()

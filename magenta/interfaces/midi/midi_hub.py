@@ -1,6 +1,7 @@
 """A module for interfacing with the MIDI environment."""
 
 import abc
+from collections import defaultdict
 from collections import deque
 import Queue
 import re
@@ -16,9 +17,10 @@ from magenta.common import concurrency
 from magenta.protobuf import music_pb2
 
 _DEFAULT_METRONOME_TICK_DURATION = 0.05
-_DEFAULT_METRONOME_PITCH = 95
+_DEFAULT_METRONOME_PROGRAM = 117  # Melodic Tom
+_DEFAULT_METRONOME_PITCHES = [44, 35, 35, 35]
 _DEFAULT_METRONOME_VELOCITY = 64
-_METRONOME_CHANNEL = 0
+_METRONOME_CHANNEL = 1
 
 # 0-indexed.
 _DRUM_CHANNEL = 8
@@ -154,7 +156,9 @@ class Metronome(threading.Thread):
     stop_time: The float wall time in seconds after which the metronome should
         stop, or None if it should continue until `stop` is called.
     velocity: The velocity of the metronome's tick `note_on` message.
-    pitch: The pitch of the metronome's tick `note_on` message.
+    program: The MIDI program number to use for metronome ticks.
+    pitches: An ordered collection of integes representing MIDI pitches of the
+         metronome's tick, which will be cycled through.
     duration: The duration of the metronome's tick.
   """
   daemon = True
@@ -165,10 +169,12 @@ class Metronome(threading.Thread):
                start_time,
                stop_time=None,
                velocity=_DEFAULT_METRONOME_VELOCITY,
-               pitch=_DEFAULT_METRONOME_PITCH,
+               program=_DEFAULT_METRONOME_PROGRAM,
+               pitches=None,
                duration=_DEFAULT_METRONOME_TICK_DURATION):
     self._outport = outport
-    self.update(qpm, start_time, stop_time, velocity, pitch, duration)
+    self.update(
+        qpm, start_time, stop_time, velocity, program, pitches, duration)
     super(Metronome, self).__init__()
 
   def update(self,
@@ -176,31 +182,41 @@ class Metronome(threading.Thread):
              start_time,
              stop_time=None,
              velocity=_DEFAULT_METRONOME_VELOCITY,
-             pitch=_DEFAULT_METRONOME_PITCH,
+             program=_DEFAULT_METRONOME_PROGRAM,
+             pitches=None,
              duration=_DEFAULT_METRONOME_TICK_DURATION):
     """Updates Metronome options."""
     # Locking is not required since variables are independent and assignment is
     # atomic.
+    # Set the program number for the channel.
+    self._outport.send(
+        mido.Message(type='program_change', program=program,
+                     channel=_METRONOME_CHANNEL))
     self._period = 60. / qpm
     self._start_time = start_time
     self._stop_time = stop_time
     self._velocity = velocity
-    self._pitch = pitch
+    self._pitches = pitches or _DEFAULT_METRONOME_PITCHES
     self._duration = duration
 
   def run(self):
     """Outputs metronome tone on the qpm interval until stop signal received."""
     sleeper = concurrency.Sleeper()
-    now = time.time()
-    next_tick_time = max(
-        self._start_time,
-        now + self._period - ((now - self._start_time) % self._period))
-    while self._stop_time is None or self._stop_time > next_tick_time:
-      sleeper.sleep_until(next_tick_time)
+    while True:
+      now = time.time()
+      tick_number = max(0, int((now - self._start_time) // self._period) + 1)
+      tick_time = tick_number * self._period + self._start_time
+
+      if self._stop_time is not None and self._stop_time < tick_time:
+        break
+
+      sleeper.sleep_until(tick_time)
+
+      metric_position = tick_number % len(self._pitches)
       self._outport.send(
           mido.Message(
               type='note_on',
-              note=self._pitch,
+              note=self._pitches[metric_position],
               channel=_METRONOME_CHANNEL,
               velocity=self._velocity))
 
@@ -209,12 +225,8 @@ class Metronome(threading.Thread):
       self._outport.send(
           mido.Message(
               type='note_off',
-              note=self._pitch,
+              note=self._pitches[metric_position],
               channel=_METRONOME_CHANNEL))
-
-      now = time.time()
-      next_tick_time = (
-          now + self._period - ((now - self._start_time) % self._period))
 
   def stop(self, stop_time=0, block=True):
     """Signals for the metronome to stop.
@@ -658,7 +670,7 @@ class MidiCaptor(threading.Thread):
   def register_callback(self, fn, signal=None, period=None):
     """Calls `fn` at every signal message or time period.
 
-    The callback function must take exactly a single argument, which will be the
+    The callback function must take exactly one argument, which will be the
     current captured NoteSequence.
 
     Exactly one of `signal` or `period` must be specified. Continues until the
@@ -835,10 +847,13 @@ class MidiHub(object):
     self._open_notes = set()
     # This lock is used by the serialized decorator.
     self._lock = threading.RLock()
-    # A dictionary mapping a string-formatted mido.Messages to a condition
-    # variable that will be notified when a matching messsage is received,
-    # ignoring the time field.
+    # A dictionary mapping a compiled MidiSignal regex to a condition variable
+    # that will be notified when a matching messsage is received.
     self._signals = {}
+    # A dictionary mapping a compiled MidiSignal regex to a list of functions
+    # that will be called with the triggering message in individual threads when
+    # a matching message is received.
+    self._callbacks = defaultdict(list)
     # A dictionary mapping integer control numbers to most recently-received
     # integer value.
     self._control_values = {}
@@ -917,6 +932,14 @@ class MidiHub(object):
       if regex.match(msg_str) is not None:
         self._signals[regex].notify_all()
         del self._signals[regex]
+
+    # Call any callbacks waiting for this message.
+    for regex in list(self._callbacks):
+      if regex.match(msg_str) is not None:
+        for fn in self._callbacks[regex]:
+          threading.Thread(target=fn, args=(msg,)).start()
+
+        del self._callbacks[regex]
 
     # Remove any captors that are no longer alive.
     self._captors[:] = [t for t in self._captors if t.is_alive()]
@@ -1133,3 +1156,19 @@ class MidiHub(object):
             type='control_change',
             control=control_number,
             value=value))
+
+  @concurrency.serialized
+  def register_callback(self, fn, signal):
+    """Calls `fn` at the next signal message.
+
+    The callback function must take exactly one argument, which will be the
+    message triggering the signal.
+
+    Survives until signal is called or the MidiHub is destroyed.
+
+    Args:
+      fn: The callback function to call, passing in the triggering message.
+      signal: A MidiSignal to use as a signal to call `fn` on the triggering
+          message.
+    """
+    self._callbacks[re.compile(str(signal))].append(fn)

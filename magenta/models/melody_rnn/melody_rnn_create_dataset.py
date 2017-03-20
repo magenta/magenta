@@ -49,16 +49,18 @@ tf.app.flags.DEFINE_string('log', 'INFO',
 class EncoderPipeline(pipeline.Pipeline):
   """A Module that converts monophonic melodies to a model specific encoding."""
 
-  def __init__(self, config):
+  def __init__(self, config, name):
     """Constructs an EncoderPipeline.
 
     Args:
       config: A MelodyRnnConfig that specifies the encoder/decoder, pitch range,
           and what key to transpose into.
+      name: A unique pipeline name.
     """
     super(EncoderPipeline, self).__init__(
         input_type=magenta.music.Melody,
-        output_type=tf.train.SequenceExample)
+        output_type=tf.train.SequenceExample,
+        name=name)
     self._melody_encoder_decoder = config.encoder_decoder
     self._min_note = config.min_note
     self._max_note = config.max_note
@@ -83,21 +85,29 @@ def get_pipeline(config, eval_ratio):
   Returns:
     A pipeline.Pipeline instance.
   """
-  quantizer = pipelines_common.Quantizer(steps_per_quarter=4)
-  melody_extractor = melody_pipelines.MelodyExtractor(
-      min_bars=7, max_steps=512, min_unique_pitches=5,
-      gap_bars=1.0, ignore_polyphonic_notes=False)
-  encoder_pipeline = EncoderPipeline(config)
   partitioner = pipelines_common.RandomPartition(
-      tf.train.SequenceExample,
+      music_pb2.NoteSequence,
       ['eval_melodies', 'training_melodies'],
       [eval_ratio])
+  dag = {partitioner: dag_pipeline.DagInput(music_pb2.NoteSequence)}
 
-  dag = {quantizer: dag_pipeline.DagInput(music_pb2.NoteSequence),
-         melody_extractor: quantizer,
-         encoder_pipeline: melody_extractor,
-         partitioner: encoder_pipeline,
-         dag_pipeline.DagOutput(): partitioner}
+  for mode in ['eval', 'training']:
+    time_change_splitter = pipelines_common.TimeChangeSplitter(
+        name='TimeChangeSplitter_' + mode)
+    quantizer = pipelines_common.Quantizer(
+        steps_per_quarter=config.steps_per_quarter, name='Quantizer_' + mode)
+    melody_extractor = melody_pipelines.MelodyExtractor(
+        min_bars=7, max_steps=512, min_unique_pitches=5,
+        gap_bars=1.0, ignore_polyphonic_notes=False,
+        name='MelodyExtractor_' + mode)
+    encoder_pipeline = EncoderPipeline(config, name='EncoderPipeline_' + mode)
+
+    dag[time_change_splitter] = partitioner[mode + '_melodies']
+    dag[quantizer] = time_change_splitter
+    dag[melody_extractor] = quantizer
+    dag[encoder_pipeline] = melody_extractor
+    dag[dag_pipeline.DagOutput(mode + '_melodies')] = encoder_pipeline
+
   return dag_pipeline.DAGPipeline(dag)
 
 

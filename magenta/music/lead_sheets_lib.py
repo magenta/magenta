@@ -109,8 +109,8 @@ class LeadSheet(events_lib.EventSequence):
     return self._melody[i], self._chords[i]
 
   def __getslice__(self, i, j):
-    """Returns the melody-chord tuples in the given slice range."""
-    return zip(self._melody[i:j], self._chords[i:j])
+    """Returns a LeadSheet object for the given slice range."""
+    return LeadSheet(self._melody[i:j], self._chords[i:j])
 
   def __len__(self):
     """How many events (melody-chord tuples) are in this LeadSheet.
@@ -120,9 +120,9 @@ class LeadSheet(events_lib.EventSequence):
     """
     return len(self._melody)
 
-  def __deepcopy__(self, unused_memo=None):
-    return type(self)(copy.deepcopy(self._melody),
-                      copy.deepcopy(self._chords))
+  def __deepcopy__(self, memo=None):
+    return LeadSheet(copy.deepcopy(self._melody, memo),
+                     copy.deepcopy(self._chords, memo))
 
   def __eq__(self, other):
     if not isinstance(other, LeadSheet):

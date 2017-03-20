@@ -259,7 +259,7 @@ def get_variable_names(graph, scope):
     List of variables.
   """
   with graph.as_default():
-    return [v.name for v in tf.all_variables() if v.name.startswith(scope)]
+    return [v.name for v in tf.global_variables() if v.name.startswith(scope)]
 
 
 def get_next_file_name(directory, prefix, extension):
@@ -297,15 +297,14 @@ def make_rnn_cell(rnn_layer_sizes, state_is_tuple=False):
         and cell matrix as a state instead of a concatenated matrix.
 
   Returns:
-      A tf.nn.rnn_cell.MultiRNNCell based on the given hyperparameters.
+      A tf.contrib.rnn.MultiRNNCell based on the given hyperparameters.
   """
   cells = []
   for num_units in rnn_layer_sizes:
-    cell = tf.nn.rnn_cell.LSTMCell(
-        num_units, state_is_tuple=state_is_tuple)
+    cell = tf.contrib.rnn.LSTMCell(num_units, state_is_tuple=state_is_tuple)
     cells.append(cell)
 
-  cell = tf.nn.rnn_cell.MultiRNNCell(cells, state_is_tuple=state_is_tuple)
+  cell = tf.contrib.rnn.MultiRNNCell(cells, state_is_tuple=state_is_tuple)
 
   return cell
 
@@ -315,5 +314,3 @@ def log_sum_exp(xs):
   maxes = tf.reduce_max(xs, keep_dims=True)
   xs -= maxes
   return tf.squeeze(maxes, [-1]) + tf.log(tf.reduce_sum(tf.exp(xs), -1))
-
-

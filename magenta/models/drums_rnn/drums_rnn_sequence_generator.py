@@ -129,7 +129,8 @@ def get_generator_map():
   """
   def create_sequence_generator(config, **kwargs):
     return DrumsRnnSequenceGenerator(
-        drums_rnn_model.DrumsRnnModel(config), config.details, **kwargs)
+        drums_rnn_model.DrumsRnnModel(config), config.details,
+        steps_per_quarter=config.steps_per_quarter, **kwargs)
 
   return {key: partial(create_sequence_generator, config)
           for (key, config) in drums_rnn_model.default_configs.items()}

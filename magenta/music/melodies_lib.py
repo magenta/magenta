@@ -20,8 +20,6 @@ Use Melody.to_sequence to write a melody to a NoteSequence proto. Then use
 midi_io.sequence_proto_to_midi_file to write that NoteSequence to a midi file.
 """
 
-import copy
-
 # internal imports
 import numpy as np
 from six.moves import range  # pylint: disable=redefined-builtin
@@ -98,6 +96,8 @@ class Melody(events_lib.SimpleEventSequence):
 
   def __init__(self, events=None, **kwargs):
     """Construct a Melody."""
+    if 'pad_event' in kwargs:
+      del kwargs['pad_event']
     super(Melody, self).__init__(pad_event=MELODY_NO_EVENT,
                                  events=events, **kwargs)
 
@@ -121,18 +121,6 @@ class Melody(events_lib.SimpleEventSequence):
     super(Melody, self)._from_event_list(
         events, start_step=start_step, steps_per_bar=steps_per_bar,
         steps_per_quarter=steps_per_quarter)
-
-  def __deepcopy__(self, unused_memo=None):
-    return type(self)(events=copy.deepcopy(self._events),
-                      start_step=self.start_step,
-                      steps_per_bar=self.steps_per_bar,
-                      steps_per_quarter=self.steps_per_quarter)
-
-  def __eq__(self, other):
-    if not isinstance(other, Melody):
-      return False
-    else:
-      return super(Melody, self).__eq__(other)
 
   def _add_note(self, pitch, start_step, end_step):
     """Adds the given note to the `events` list.
