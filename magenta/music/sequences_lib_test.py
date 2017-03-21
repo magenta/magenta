@@ -362,18 +362,62 @@ class SequencesLibTest(tf.test.TestCase):
 
     self.assertProtoEquals(expected_quantized_sequence, quantized_sequence)
 
+  def testQuantizeNoteSequenceAbsolute(self):
+    testing_lib.add_track_to_sequence(
+        self.note_sequence, 0,
+        [(12, 100, 0.01, 10.0), (11, 55, 0.22, 0.50), (40, 45, 2.50, 3.50),
+         (55, 120, 4.0, 4.01), (52, 99, 4.75, 5.0)])
+    testing_lib.add_chords_to_sequence(
+        self.note_sequence,
+        [('B7', 0.22), ('Em9', 4.0)])
+
+    expected_quantized_sequence = copy.deepcopy(self.note_sequence)
+    expected_quantized_sequence.quantization_info.steps_per_second = 4
+    testing_lib.add_quantized_steps_to_sequence(
+        expected_quantized_sequence,
+        [(0, 40), (1, 2), (10, 14), (16, 17), (19, 20)])
+    testing_lib.add_quantized_chord_steps_to_sequence(
+        expected_quantized_sequence, [1, 16])
+
+    quantized_sequence = sequences_lib.quantize_note_sequence_absolute(
+        self.note_sequence, steps_per_second=4)
+
+    self.assertProtoEquals(expected_quantized_sequence, quantized_sequence)
+
   def testAssertIsQuantizedNoteSequence(self):
     testing_lib.add_track_to_sequence(
         self.note_sequence, 0,
         [(12, 100, 0.01, 10.0), (11, 55, 0.22, 0.50), (40, 45, 2.50, 3.50),
          (55, 120, 4.0, 4.01), (52, 99, 4.75, 5.0)])
 
-    quantized_sequence = sequences_lib.quantize_note_sequence(
+    relative_quantized_sequence = sequences_lib.quantize_note_sequence(
         self.note_sequence, steps_per_quarter=self.steps_per_quarter)
+    absolute_quantized_sequence = sequences_lib.quantize_note_sequence_absolute(
+        self.note_sequence, steps_per_second=4)
 
-    sequences_lib.assert_is_quantized_sequence(quantized_sequence)
+    sequences_lib.assert_is_quantized_sequence(relative_quantized_sequence)
+    sequences_lib.assert_is_quantized_sequence(absolute_quantized_sequence)
     with self.assertRaises(sequences_lib.QuantizationStatusException):
       sequences_lib.assert_is_quantized_sequence(self.note_sequence)
+
+  def testAssertIsRelativeQuantizedNoteSequence(self):
+    testing_lib.add_track_to_sequence(
+        self.note_sequence, 0,
+        [(12, 100, 0.01, 10.0), (11, 55, 0.22, 0.50), (40, 45, 2.50, 3.50),
+         (55, 120, 4.0, 4.01), (52, 99, 4.75, 5.0)])
+
+    relative_quantized_sequence = sequences_lib.quantize_note_sequence(
+        self.note_sequence, steps_per_quarter=self.steps_per_quarter)
+    absolute_quantized_sequence = sequences_lib.quantize_note_sequence_absolute(
+        self.note_sequence, steps_per_second=4)
+
+    sequences_lib.assert_is_relative_quantized_sequence(
+        relative_quantized_sequence)
+    with self.assertRaises(sequences_lib.QuantizationStatusException):
+      sequences_lib.assert_is_relative_quantized_sequence(
+          absolute_quantized_sequence)
+    with self.assertRaises(sequences_lib.QuantizationStatusException):
+      sequences_lib.assert_is_relative_quantized_sequence(self.note_sequence)
 
   def testQuantizeNoteSequence_TimeSignatureChange(self):
     testing_lib.add_track_to_sequence(

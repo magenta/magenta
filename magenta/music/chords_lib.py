@@ -132,7 +132,7 @@ class ChordProgression(events_lib.SimpleEventSequence):
           steps.
       CoincidentChordsException: If any of the chords start on the same step.
     """
-    sequences_lib.assert_is_quantized_sequence(quantized_sequence)
+    sequences_lib.assert_is_relative_quantized_sequence(quantized_sequence)
     self._reset()
 
     steps_per_bar_float = sequences_lib.steps_per_bar_in_quantized_sequence(
@@ -266,7 +266,7 @@ def extract_chords(quantized_sequence, max_steps=None,
         for each transposition.
     stats: A dictionary mapping string names to `statistics.Statistic` objects.
   """
-  sequences_lib.assert_is_quantized_sequence(quantized_sequence)
+  sequences_lib.assert_is_relative_quantized_sequence(quantized_sequence)
 
   stats = dict([('chords_truncated', statistics.Counter('chords_truncated'))])
   chords = ChordProgression()

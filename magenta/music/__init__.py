@@ -102,6 +102,7 @@ from magenta.music.sequences_lib import MultipleTempoException
 from magenta.music.sequences_lib import MultipleTimeSignatureException
 from magenta.music.sequences_lib import NegativeTimeException
 from magenta.music.sequences_lib import quantize_note_sequence
+from magenta.music.sequences_lib import quantize_note_sequence_absolute
 from magenta.music.sequences_lib import quantize_to_step
 from magenta.music.sequences_lib import steps_per_bar_in_quantized_sequence
 from magenta.music.sequences_lib import steps_per_quarter_to_steps_per_second

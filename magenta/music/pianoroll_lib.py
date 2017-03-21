@@ -72,7 +72,7 @@ class PianorollSequence(events_lib.EventSequence):
     self._max_pitch = max_pitch
 
     if quantized_sequence:
-      sequences_lib.assert_is_quantized_sequence(quantized_sequence)
+      sequences_lib.assert_is_relative_quantized_sequence(quantized_sequence)
       self._events = self._from_quantized_sequence(quantized_sequence,
                                                    start_step, min_pitch,
                                                    max_pitch, split_repeats)
@@ -291,7 +291,7 @@ def extract_pianoroll_sequences(
     pianoroll_seqs: A python list of PianorollSequence instances.
     stats: A dictionary mapping string names to `statistics.Statistic` objects.
   """
-  sequences_lib.assert_is_quantized_sequence(quantized_sequence)
+  sequences_lib.assert_is_relative_quantized_sequence(quantized_sequence)
 
   stats = dict([(stat_name, statistics.Counter(stat_name)) for stat_name in
                 ['pianoroll_tracks_discarded_too_short',

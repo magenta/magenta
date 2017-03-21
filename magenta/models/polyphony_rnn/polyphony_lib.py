@@ -91,7 +91,7 @@ class PolyphonicSequence(events_lib.EventSequence):
     assert (quantized_sequence, steps_per_quarter).count(None) == 1
 
     if quantized_sequence:
-      sequences_lib.assert_is_quantized_sequence(quantized_sequence)
+      sequences_lib.assert_is_relative_quantized_sequence(quantized_sequence)
       self._events = self._from_quantized_sequence(quantized_sequence,
                                                    start_step)
       self._steps_per_quarter = (
@@ -420,7 +420,7 @@ def extract_polyphonic_sequences(
     poly_seqs: A python list of PolyphonicSequence instances.
     stats: A dictionary mapping string names to `statistics.Statistic` objects.
   """
-  sequences_lib.assert_is_quantized_sequence(quantized_sequence)
+  sequences_lib.assert_is_relative_quantized_sequence(quantized_sequence)
 
   stats = dict([(stat_name, statistics.Counter(stat_name)) for stat_name in
                 ['polyphonic_tracks_discarded_too_short',
