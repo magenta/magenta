@@ -168,9 +168,10 @@ def main(unused_argv):
     return
 
   input_dir = os.path.expanduser(FLAGS.input_dir)
+  output_dir = os.path.dirname(output_file)
   output_file = os.path.expanduser(FLAGS.output_file)
 
-  if not os.path.exists(os.path.dirname(output_file)):
+  if output_dir != '' and not os.path.exists(output_dir):
     os.makedirs(os.path.dirname(output_file))
 
   with note_sequence_io.NoteSequenceRecordWriter(
