@@ -94,7 +94,12 @@ class MelodyRnnSequenceGenerator(mm.BaseSequenceGenerator):
       # If no melody could be extracted, create an empty melody that starts 1
       # step before the request start_step. This will result in 1 step of
       # silence when the melody is extended below.
-      melody = mm.Melody([], start_step=max(0, start_step - 1))
+      steps_per_bar = int(
+          mm.steps_per_bar_in_quantized_sequence(quantized_sequence))
+      melody = mm.Melody([],
+                         start_step=max(0, start_step - 1),
+                         steps_per_bar=steps_per_bar,
+                         steps_per_quarter=self.steps_per_quarter)
 
     # Ensure that the melody extends up to the step we want to start generating.
     melody.set_length(start_step - melody.start_step)
