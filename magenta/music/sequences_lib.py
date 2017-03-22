@@ -18,6 +18,7 @@ import copy
 
 # internal imports
 import intervaltree
+import tensorflow as tf
 
 from magenta.music import constants
 from magenta.pipelines import pipeline
@@ -526,7 +527,7 @@ def quantize_note_sequence(note_sequence, steps_per_quarter):
 
 
 def apply_sustain_control_changes(note_sequence, sustain_control_number=64):
-  """Apply sustain pedal control changes to a (copy of a) NoteSequence.
+  """Returns a new NoteSequence with sustain pedal control changes applied.
 
   Extends each note within a sustain to the end of the sustain period. This is
   done on a per instrument/program basis, so notes are only affected by sustain
@@ -566,6 +567,9 @@ def apply_sustain_control_changes(note_sequence, sustain_control_number=64):
   for key, events in sustain_events_by_instrument_and_program.iteritems():
     start_time = None
     for time, value in events:
+      if value < 0 or value > 127:
+        tf.logging.warn(
+            'Sustain control change has out of range value: %d', value)
       if start_time is None and value >= 64:
         start_time = time
       elif start_time is not None and value < 64:
