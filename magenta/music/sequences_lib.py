@@ -576,7 +576,9 @@ def apply_sustain_control_changes(note_sequence, sustain_control_number=64):
 
   sequence = copy.deepcopy(note_sequence)
 
-  # Extend the end time of each note inside a sustain.
+  # Extend the end time of each note inside a sustain. This extends each end
+  # time to the end of the sustain period, even if a subsequent note with the
+  # same pitch has an onset within the sustain.
   for note in sequence.notes:
     sustain = sustain_intervals[(note.instrument, note.program)][note.end_time]
     assert len(sustain) <= 1
