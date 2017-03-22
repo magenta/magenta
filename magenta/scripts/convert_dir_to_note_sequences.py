@@ -168,8 +168,8 @@ def main(unused_argv):
     return
 
   input_dir = os.path.expanduser(FLAGS.input_dir)
-  output_dir = os.path.dirname(output_file)
   output_file = os.path.expanduser(FLAGS.output_file)
+  output_dir = os.path.dirname(output_file)
 
   if output_dir:
     tf.gfile.MakeDirs(output_dir)
