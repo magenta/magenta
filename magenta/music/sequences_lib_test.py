@@ -543,6 +543,27 @@ class SequencesLibTest(tf.test.TestCase):
     self.assertEqual(12.0,
                      sequences_lib.steps_per_bar_in_quantized_sequence(qns))
 
+  def testApplySustainControlChanges(self):
+    sequence = copy.copy(self.note_sequence)
+    testing_lib.add_control_changes_to_sequence(
+        sequence, 0,
+        [(0.0, 64, 127), (0.75, 64, 0), (2.0, 64, 127), (3.0, 64, 0),
+         (3.75, 64, 127), (4.5, 64, 127), (4.8, 64, 0), (4.9, 64, 127),
+         (6.0, 64, 0)])
+    testing_lib.add_track_to_sequence(
+        sequence, 1,
+        [(12, 100, 0.01, 10.0), (52, 99, 4.75, 5.0)])
+    expected_sequence = copy.copy(sequence)
+    testing_lib.add_track_to_sequence(
+        sequence, 0,
+        [(11, 55, 0.22, 0.50), (40, 45, 2.50, 3.50), (55, 120, 4.0, 4.01)])
+    testing_lib.add_track_to_sequence(
+        expected_sequence, 0,
+        [(11, 55, 0.22, 0.75), (40, 45, 2.50, 3.50), (55, 120, 4.0, 4.8)])
+
+    sus_sequence = sequences_lib.apply_sustain_control_changes(sequence)
+    self.assertProtoEquals(expected_sequence, sus_sequence)
+
   def testTranspositionPipeline(self):
     tp = sequences_lib.TranspositionPipeline(range(0, 2))
     testing_lib.add_track_to_sequence(
