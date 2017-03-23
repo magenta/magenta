@@ -265,6 +265,21 @@ class MidiIoTest(tf.test.TestCase):
         multi_tempo_sequence_proto, drop_events_n_seconds_after_last_note=30)
     self.CheckPrettyMidiAndSequence(translated_midi, multi_tempo_sequence_proto)
 
+  def testEmptySequenceToPrettyMidi_DropEventsAfterLastNote(self):
+    source_sequence = music_pb2.NoteSequence()
+
+    # Translate without dropping.
+    translated_midi = midi_io.sequence_proto_to_pretty_midi(
+        source_sequence)
+    self.assertEqual(1, len(translated_midi.instruments))
+    self.assertEqual(0, len(translated_midi.instruments[0].notes))
+
+    # Translate dropping anything after 30 seconds.
+    translated_midi = midi_io.sequence_proto_to_pretty_midi(
+        source_sequence, drop_events_n_seconds_after_last_note=30)
+    self.assertEqual(1, len(translated_midi.instruments))
+    self.assertEqual(0, len(translated_midi.instruments[0].notes))
+
   def testSimpleReadWriteMidi(self):
     self.CheckReadWriteMidi(self.midi_simple_filename)
 
