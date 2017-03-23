@@ -123,7 +123,7 @@ class MidiIoTest(tf.test.TestCase):
         seq_instruments.keys(),
         key=lambda (instr, program, is_drum): (instr, program, is_drum))
 
-    if len(seq_instruments) > 0:
+    if seq_instruments:
       self.assertEqual(len(midi.instruments), len(seq_instruments))
     else:
       self.assertEqual(1, len(midi.instruments))
