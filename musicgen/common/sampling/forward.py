@@ -82,8 +82,6 @@ class ForwardSample(object):
 			# Batchify the condition dict before feeding it into sampling step
 			condition_dict_batch = batchify_dict(condition_dict, self.batch_size)
 			rnn_state, sample_batch = self.sample_step(rnn_state, rnn_input, condition_dict_batch)
-			# while self.model.eval_factor_function(sample_batch, condition_dict) == 0:
-			# 	rnn_state, sample_batch = self.sample_step(rnn_state, rnn_input, condition_dict, i)
 			# Split the batchified sample into N individual samples (N = self.batch_size)
 			# Then add these to timeslice_histories
 			timeslice_size = self.model.timeslice_size
