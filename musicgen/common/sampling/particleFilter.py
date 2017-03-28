@@ -8,11 +8,6 @@ class ParticleFilter(ForwardSample):
 	def __init__(self, model, checkpoint_dir, batch_size=1):
 		super(ParticleFilter, self).__init__(model, checkpoint_dir, batch_size)
 
-		# Particle filtering stuff
-		self.log_probabilities = np.zeros(self.batch_size)
-		self.sample_placeholder = tf.placeholder(dtype = tf.int32, shape=[batch_size, self.model.timeslice_size], name = "samples")
-		self.log_probability_node = self.dist.log_prob(self.sample_placeholder)
-
 	"""
 	Generate for one time step
 	Returns next rnn state as well as the sampled time slice
@@ -40,31 +35,24 @@ class ParticleFilter(ForwardSample):
 		if condition_dict:
 			# Keep resampling until there are some samples that satisfy the conditions specified.
 			while not matching:
-				feed_dict[self.sample_placeholder] = sample 
-				log_probabilities = np.zeros((self.batch_size,))
+				probabilities = np.zeros((self.batch_size,))
 				for i in range(self.batch_size):
-					log_probabilities[i] += self.model.eval_factor_function(sample[i], condition_dict['known_notes'][i][0])
-				log_probabilities = np.exp(log_probabilities)
-				if sum(log_probabilities) > 0:
+					probabilities[i] += self.model.eval_factor_function(sample[i], condition_dict['known_notes'][i][0])
+				probabilities = np.exp(probabilities)
+				if sum(probabilities) > 0:
 					matching = True
 				else:
 					sample = self.sess.run(self.sampled_timeslice, feed_dict)
 
-			normalized_log_probabilities = np.array([float(i/sum(log_probabilities)) for i in log_probabilities])
+			normalized_probabilities = np.array([float(i/sum(probabilities)) for i in probabilities])
 			new_sample = np.zeros(sample.shape)
 			
 			# Resample from the distribution which favors samples that satisfy the conditions specified.
 			for i in range(self.batch_size):
-				new_dist = np.random.multinomial(1, normalized_log_probabilities)
+				new_dist = np.random.multinomial(1, normalized_probabilities)
 				new_sample[i] = np.matmul(new_dist.reshape(1, -1), sample)
 
 			sample = new_sample
-		
-		# Keep track of the log probability.
-		feed_dict[self.sample_placeholder] = sample
-		log_probabilities = self.sess.run(self.log_probability_node, feed_dict)
-		log_probabilities = np.sum(log_probabilities, axis = 1)
-		self.log_probabilities += log_probabilities
 
 		# Finally, we reshape the sample to be 3D again (the Distribution is over 2D [batch, depth]
 		#    tensors--we need to reshape it to [batch, time, depth], where time=1)

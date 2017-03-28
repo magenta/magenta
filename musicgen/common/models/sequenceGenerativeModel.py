@@ -101,31 +101,17 @@ class SequenceGenerativeModel(Model):
 		"""
 
 
-	"""
-	Given the sample for the current timeslice and a condition dictionary, return a score in log-space.
-	Sampling algorithms, such as particle filtering, can take this into account.
-	By default, returns 0. Subclasses can override this behavior.
-
-	Condition is an array of 1s, 0s, and -1s that specifies what the sample should be.
-
-	Return 0 or -inf
-
-	Change back to one sample at a time and call this batch times
-	"""
+	@abc.abstractmethod
 	def eval_factor_function(self, sample, condition):
-		if len(condition) == 0:
-			return 0
+		"""
+		Given the sample for the current timeslice and a condition dictionary, return a score in log-space.
+		Sampling algorithms, such as particle filtering, can take this into account.
+		By default, returns 0. Subclasses can override this behavior.
 
-		for index in range(len(condition)):
-			if index == len(condition) - 1:
-				if condition[index] == -1 or condition[index] == sample[index]:
-					return 0
-			elif condition[index] == -1:
-				continue
-			elif condition[index] != sample[index]:
-				return float('-inf')
+		Condition is an array of 1s, 0s, and -1s that specifies what the sample should be.
+
+		"""
 		
-		return 0
 
 	"""
 	Override of method from Model class

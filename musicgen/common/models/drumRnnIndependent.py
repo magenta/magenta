@@ -15,3 +15,19 @@ class DrumRNNIndependent(RNNIndependent):
 	@property
 	def condition_shapes(self):
 		return {'known_notes': [9]}
+
+	# Returns 0 or negative infinity if sample satisfies or doesn't satisfy condition.
+	def eval_factor_function(self, sample, condition):
+		if len(condition) == 0:
+			return 0
+
+		for index in range(len(condition)):
+			if index == len(condition) - 1:
+				if condition[index] == -1 or condition[index] == sample[index]:
+					return 0
+			elif condition[index] == -1:
+				continue
+			elif condition[index] != sample[index]:
+				return float('-inf')
+		
+		return 0
