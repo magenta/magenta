@@ -165,7 +165,8 @@ def dilated_cnn(inputs,
 
       if use_step:
         step.append(after)
-        h = after + _h
+        
+      h = after + _h
 
   if use_step:
     step = tf.concat(step,3)
