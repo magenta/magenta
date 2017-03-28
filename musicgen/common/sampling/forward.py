@@ -2,8 +2,6 @@ import tensorflow as tf
 import numpy as np
 import copy
 
-# TODO: 'temperature' parameter to control how random the sampling is?
-
 def batchify_dict(dic, batch_size):
 	return { name: np.tile(x, (batch_size, 1, 1)) for name,x in dic.iteritems() }
 
@@ -30,11 +28,6 @@ class ForwardSample(object):
 		saver = tf.train.Saver()
 		saver.restore(self.sess, checkpoint_filename)
 
-		# Particle filtering stuff
-		self.log_probabilities = np.zeros(self.batch_size)
-		self.sample_placeholder = tf.placeholder(dtype = tf.int32, shape=[batch_size, self.model.timeslice_size], name = "samples")
-		self.log_probability_node = self.dist.log_prob(self.sample_placeholder)
-
 	"""
 	Draw forward samples from a SequenceGenerativeModel for n_steps.
 	initial_timeslices: a sequence of timeslices to use for 'priming' the model.
@@ -47,7 +40,8 @@ class ForwardSample(object):
 
 		if condition_dicts is not None:
 			# Copy, b/c we're going to mutate it
-			condition_dicts = { k: v for k,v in condition_dicts.iteritems() }
+			#condition_dicts = { k: v for k,v in condition_dicts.iteritems() }
+			condition_dicts = copy.deepcopy(condition_dicts)
 			# Assert that we have enough
 			n_initial_timeslices = 1 if (initial_timeslices is None) else len(initial_timeslices)
 			assert(len(condition_dicts) == (n_initial_timeslices - 1) + n_steps)
@@ -88,8 +82,8 @@ class ForwardSample(object):
 			# Batchify the condition dict before feeding it into sampling step
 			condition_dict_batch = batchify_dict(condition_dict, self.batch_size)
 			rnn_state, sample_batch = self.sample_step(rnn_state, rnn_input, condition_dict_batch)
-			while self.model.eval_factor_function(sample, condition_dict) == 0:
-				rnn_state, sample = self.sample_step(rnn_state, rnn_input, condition_dict, i)
+			# while self.model.eval_factor_function(sample_batch, condition_dict) == 0:
+			# 	rnn_state, sample_batch = self.sample_step(rnn_state, rnn_input, condition_dict, i)
 			# Split the batchified sample into N individual samples (N = self.batch_size)
 			# Then add these to timeslice_histories
 			timeslice_size = self.model.timeslice_size
@@ -108,7 +102,7 @@ class ForwardSample(object):
 	Generate for one time step
 	Returns next rnn state as well as the sampled time slice
 	"""
-	def sample_step(self, rnn_state, rnn_input, condition_dict, step):
+	def sample_step(self, rnn_state, rnn_input, condition_dict):
 		# First, we run the graph to get the rnn outputs and next state
 		feed_dict = { self.input_placeholder: rnn_input, self.rnn_state: rnn_state }
 		next_state, outputs = self.sess.run([self.final_state, self.rnn_outputs], feed_dict)
@@ -127,34 +121,11 @@ class ForwardSample(object):
 		feed_dict[self.rnn_outputs] = outputs
 		sample = self.sess.run(self.sampled_timeslice, feed_dict)
 
-		for i in range(2):
-			# calculate log probabilities here for each element of sample
-			feed_dict[self.sample_placeholder] = sample 
-			log_probabilities = self.sess.run(self.log_probability_node, feed_dict)
-			log_probabilities = np.sum(-log_probabilities, axis = 1)
-			#log_probabilities = -log_probabilities[:, step]
-			normalized_log_probabilities = (self.log_probabilities+log_probabilities)/sum(self.log_probabilities + log_probabilities)
-			#print normalized_log_probabilities
-			
-			new_sample = np.zeros(sample.shape)
-			for i in range(self.batch_size):
-				new_dist = np.random.multinomial(1, normalized_log_probabilities)
-				new_sample[i] = np.matmul(new_dist.reshape(1, -1), sample)
-
-			sample = new_sample
-		
-		feed_dict[self.sample_placeholder] = sample
-		log_probabilities = self.sess.run(self.log_probability_node, feed_dict)
-		log_probabilities = np.sum(-log_probabilities, axis = 1)
-		self.log_probabilities += log_probabilities
-
 		# Finally, we reshape the sample to be 3D again (the Distribution is over 2D [batch, depth]
 		#    tensors--we need to reshape it to [batch, time, depth], where time=1)
 		sample = sample[:,np.newaxis,:]
 
 		return next_state, sample
-
-		#REBUILD environmment
 
 
 

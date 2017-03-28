@@ -106,18 +106,26 @@ class SequenceGenerativeModel(Model):
 	Sampling algorithms, such as particle filtering, can take this into account.
 	By default, returns 0. Subclasses can override this behavior.
 
-	Condition dict has only one key and value pair.
+	Condition is an array of 1s, 0s, and -1s that specifies what the sample should be.
+
+	Return 0 or -inf
+
+	Change back to one sample at a time and call this batch times
 	"""
-	def eval_factor_function(self, sample, condition_dict):
-		if len(condition_dict) == 0:
-			return 1
-		condition = condition_dict["known_notes"]
+	def eval_factor_function(self, sample, condition):
+		if len(condition) == 0:
+			return 0
+
 		for index in range(len(condition)):
-			if condition[index] == -1:
+			if index == len(condition) - 1:
+				if condition[index] == -1 or condition[index] == sample[index]:
+					return 0
+			elif condition[index] == -1:
 				continue
 			elif condition[index] != sample[index]:
-				return 0
-		return 1
+				return float('-inf')
+		
+		return 0
 
 	"""
 	Override of method from Model class
