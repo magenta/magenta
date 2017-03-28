@@ -266,6 +266,7 @@ message NoteSequence {
       MUSIC_XML = 1;
       ABC = 2;
       MIDI = 3;
+      MUSICNET = 4;
     }
 
     // Name of parser used to parse the source file.
@@ -275,6 +276,8 @@ message NoteSequence {
       PRETTY_MIDI = 2;
       // Magenta's built-in MusicXML parser.
       MAGENTA_MUSIC_XML = 3;
+      // Magenta's parser for MusicNet data.
+      MAGENTA_MUSICNET = 4;
     }
   }
 

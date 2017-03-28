@@ -93,7 +93,12 @@ class DrumsRnnSequenceGenerator(mm.BaseSequenceGenerator):
       # If no drum track could be extracted, create an empty drum track that
       # starts 1 step before the request start_step. This will result in 1 step
       # of silence when the drum track is extended below.
-      drums = mm.DrumTrack([], start_step=max(0, start_step - 1))
+      steps_per_bar = int(
+          mm.steps_per_bar_in_quantized_sequence(quantized_sequence))
+      drums = mm.DrumTrack([],
+                           start_step=max(0, start_step - 1),
+                           steps_per_bar=steps_per_bar,
+                           steps_per_quarter=self.steps_per_quarter)
 
     # Ensure that the drum track extends up to the step we want to start
     # generating.
@@ -129,7 +134,8 @@ def get_generator_map():
   """
   def create_sequence_generator(config, **kwargs):
     return DrumsRnnSequenceGenerator(
-        drums_rnn_model.DrumsRnnModel(config), config.details, **kwargs)
+        drums_rnn_model.DrumsRnnModel(config), config.details,
+        steps_per_quarter=config.steps_per_quarter, **kwargs)
 
   return {key: partial(create_sequence_generator, config)
           for (key, config) in drums_rnn_model.default_configs.items()}

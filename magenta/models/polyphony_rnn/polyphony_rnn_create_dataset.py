@@ -69,12 +69,11 @@ class PolyphonicSequenceExtractor(pipeline.Pipeline):
     return poly_seqs
 
 
-def get_pipeline(config, steps_per_quarter, min_steps, max_steps, eval_ratio):
+def get_pipeline(config, min_steps, max_steps, eval_ratio):
   """Returns the Pipeline instance which creates the RNN dataset.
 
   Args:
     config: An EventSequenceRnnConfig.
-    steps_per_quarter: How many steps per quarter to use when quantizing.
     min_steps: Minimum number of steps for an extracted sequence.
     max_steps: Maximum number of steps for an extracted sequence.
     eval_ratio: Fraction of input to set aside for evaluation set.
@@ -98,7 +97,7 @@ def get_pipeline(config, steps_per_quarter, min_steps, max_steps, eval_ratio):
     time_change_splitter = pipelines_common.TimeChangeSplitter(
         name='TimeChangeSplitter_' + mode)
     quantizer = pipelines_common.Quantizer(
-        steps_per_quarter=steps_per_quarter, name='Quantizer_' + mode)
+        steps_per_quarter=config.steps_per_quarter, name='Quantizer_' + mode)
     transposition_pipeline = sequences_lib.TranspositionPipeline(
         transposition_range, name='TranspositionPipeline_' + mode)
     poly_extractor = PolyphonicSequenceExtractor(
@@ -121,7 +120,6 @@ def main(unused_argv):
   tf.logging.set_verbosity(FLAGS.log)
 
   pipeline_instance = get_pipeline(
-      steps_per_quarter=4,
       min_steps=80,  # 5 measures
       max_steps=512,
       eval_ratio=FLAGS.eval_ratio,

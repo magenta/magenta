@@ -192,8 +192,13 @@ class SimpleEventSequence(EventSequence):
     return self._events[i]
 
   def __getslice__(self, i, j):
-    """Returns the events in the given slice range."""
-    return self._events[i:j]
+    """Returns this sequence restricted to events in the given slice range."""
+    i = min(max(i, 0), len(self))
+    return type(self)(pad_event=self._pad_event,
+                      events=self._events[i:j],
+                      start_step=self.start_step + i,
+                      steps_per_bar=self.steps_per_bar,
+                      steps_per_quarter=self.steps_per_quarter)
 
   def __len__(self):
     """How many events are in this SimpleEventSequence.
@@ -203,15 +208,15 @@ class SimpleEventSequence(EventSequence):
     """
     return len(self._events)
 
-  def __deepcopy__(self, unused_memo=None):
+  def __deepcopy__(self, memo=None):
     return type(self)(pad_event=self._pad_event,
-                      events=copy.deepcopy(self._events),
+                      events=copy.deepcopy(self._events, memo),
                       start_step=self.start_step,
                       steps_per_bar=self.steps_per_bar,
                       steps_per_quarter=self.steps_per_quarter)
 
   def __eq__(self, other):
-    if not isinstance(other, SimpleEventSequence):
+    if type(self) is not type(other):
       return False
     return (list(self) == list(other) and
             self.steps_per_bar == other.steps_per_bar and

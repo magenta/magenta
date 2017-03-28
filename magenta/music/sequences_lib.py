@@ -13,9 +13,12 @@
 # limitations under the License.
 """Defines sequence of notes objects for creating datasets."""
 
+import collections
 import copy
 
 # internal imports
+import intervaltree
+import tensorflow as tf
 
 from magenta.music import constants
 from magenta.pipelines import pipeline
@@ -521,6 +524,76 @@ def quantize_note_sequence(note_sequence, steps_per_quarter):
           'Got negative chord time: step = %s' % annotation.quantized_step)
 
   return qns
+
+
+def apply_sustain_control_changes(note_sequence, sustain_control_number=64):
+  """Returns a new NoteSequence with sustain pedal control changes applied.
+
+  Extends each note within a sustain to the end of the sustain period. This is
+  done on a per instrument/program basis, so notes are only affected by sustain
+  events for the same instrument/program.
+
+  Args:
+    note_sequence: The NoteSequence for which to apply sustain. This object will
+        not be modified.
+    sustain_control_number: The MIDI control number for sustain pedal. Control
+        events with this number and value 0-63 will be treated as sustain pedal
+        OFF events, and control events with this number and value 64-127 will be
+        treated as sustain pedal ON events.
+
+  Returns:
+    A copy of `note_sequence` but with note end times extended to account for
+    sustain.
+
+  Raises:
+    QuantizationStatusException: If `note_sequence` is quantized. Sustain can
+        only be applied to unquantized note sequences.
+  """
+  if is_quantized_sequence(note_sequence):
+    raise QuantizationStatusException(
+        'Can only apply sustain to unquantized NoteSequence.')
+
+  # Find all sustain events, sort, and organize by instrument/program.
+  sustain_events = sorted((cc.time, cc.control_value, cc.instrument, cc.program)
+                          for cc in note_sequence.control_changes
+                          if cc.control_number == sustain_control_number)
+  sustain_events_by_instrument_and_program = collections.defaultdict(list)
+  for time, value, instrument, program in sustain_events:
+    sustain_events_by_instrument_and_program[(instrument, program)].append(
+        (time, value))
+
+  # Build an interval tree for each instrument/program.
+  sustain_intervals = collections.defaultdict(intervaltree.IntervalTree)
+  for key, events in sustain_events_by_instrument_and_program.iteritems():
+    start_time = None
+    for time, value in events:
+      if value < 0 or value > 127:
+        tf.logging.warn(
+            'Sustain control change has out of range value: %d', value)
+      if start_time is None and value >= 64:
+        start_time = time
+      elif start_time is not None and value < 64:
+        sustain_intervals[key].addi(start_time, time)
+        start_time = None
+    if start_time is not None and start_time < note_sequence.total_time:
+      sustain_intervals[key].addi(start_time, note_sequence.total_time)
+
+  sequence = copy.deepcopy(note_sequence)
+
+  # Extend the end time of each note inside a sustain. This extends each end
+  # time to the end of the sustain period, even if a subsequent note with the
+  # same pitch has an onset within the sustain.
+  for note in sequence.notes:
+    sustain = sustain_intervals[(note.instrument, note.program)][note.end_time]
+    assert len(sustain) <= 1
+    if sustain:
+      end_time = sustain.pop().end
+      assert note.end_time <= end_time
+      note.end_time = end_time
+      if end_time > note_sequence.total_time:
+        note_sequence.total_time = end_time
+
+  return sequence
 
 
 class TranspositionPipeline(pipeline.Pipeline):

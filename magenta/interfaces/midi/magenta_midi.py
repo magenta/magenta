@@ -16,6 +16,9 @@
 Captures monophonic input MIDI sequences and plays back responses from the
 sequence generator.
 """
+from functools import partial
+import re
+import threading
 import time
 
 # internal imports
@@ -91,7 +94,7 @@ tf.app.flags.DEFINE_integer(
     None,
     'The control change number to use for controlling softmax temperature.'
     'The value of control changes with this number will be used to set the '
-    'temperature in a linear range between 0.1 and 2.') 
+    'temperature in a linear range between 0.1 and 2.')
 tf.app.flags.DEFINE_boolean(
     'allow_overlap',
     False,
@@ -138,15 +141,94 @@ tf.app.flags.DEFINE_integer(
     'playback_channel',
     0,
     'MIDI channel to send play events.')
+tf.app.flags.DEFINE_boolean(
+    'learn_controls',
+    False,
+    'Whether to allow programming of control flags on startup.')
 tf.app.flags.DEFINE_string(
     'log', 'WARN',
     'The threshold for what messages will be logged. DEBUG, INFO, WARN, ERROR, '
     'or FATAL.')
 
+_CONTROL_FLAGS = [
+    'clock_control_number',
+    'end_call_control_number',
+    'panic_control_number',
+    'mutate_control_number',
+    'min_listen_ticks_control_number',
+    'max_listen_ticks_control_number',
+    'response_ticks_control_number',
+    'temperature_control_number',
+    'tempo_control_number',
+    'loop_control_number',
+    'generator_select_control_number',
+    'state_control_number']
+
 # A map from a string generator name to its class.
 _GENERATOR_MAP = melody_rnn_sequence_generator.get_generator_map()
 _GENERATOR_MAP.update(drums_rnn_sequence_generator.get_generator_map())
 _GENERATOR_MAP.update(polyphony_sequence_generator.get_generator_map())
+
+
+class CCMapper(object):
+  """A class for mapping control change numbers to specific controls.
+
+  Args:
+    cc_map: A dictionary containing mappings from signal names to control
+        change numbers (or None). This dictionary will be updated by the class.
+    midi_hub_: An initialized MidiHub to receive inputs from.
+  """
+
+  def __init__(self, cc_map, midi_hub_):
+    self._cc_map = cc_map
+    self._signals = cc_map.keys()
+    self._midi_hub = midi_hub_
+    self._update_event = threading.Event()
+
+  def _print_instructions(self):
+    """Prints instructions for mapping control changes."""
+    print ('Enter the index of a signal to set the control change for, or `q` '
+           'when done.')
+    fmt = '{:>6}\t{:<20}\t{:>6}'
+    print fmt.format('Index', 'Control', 'Current')
+    for i, signal in enumerate(self._signals):
+      print fmt.format(i + 1, signal, self._cc_map.get(signal))
+    print
+
+  def _update_signal(self, signal, msg):
+    """Updates mapping for the signal to the message's control change.
+
+    Args:
+      signal: The name of the signal to update the control change for.
+      msg: The mido.Message whose control change the signal should be set to.
+    """
+    if msg.control in self._cc_map.values():
+      print 'Control number %d is already assigned. Ignoring.' % msg.control
+    else:
+      self._cc_map[signal] = msg.control
+      print 'Assigned control number %d to `%s`.' % (msg.control, signal)
+    self._update_event.set()
+
+  def update_map(self):
+    """Enters a loop that receives user input to set signal controls."""
+    while True:
+      print
+      self._print_instructions()
+      response = raw_input('Selection: ')
+      if response == 'q':
+        return
+      try:
+        signal = self._signals[int(response) - 1]
+      except (ValueError, IndexError):
+        print 'Invalid response:', response
+        continue
+      self._update_event.clear()
+      self._midi_hub.register_callback(
+          partial(self._update_signal, signal),
+          midi_hub.MidiSignal(type='control_change'))
+      print('Send a control signal using the control number you wish to '
+            'associate with `%s`.' % signal)
+      self._update_event.wait()
 
 
 def _validate_flags():
@@ -235,24 +317,29 @@ def main(unused_argv):
                          playback_channel=FLAGS.playback_channel,
                          playback_offset=FLAGS.playback_offset)
 
-  if FLAGS.clock_control_number is None:
+  control_map = {re.sub('_control_number$', '', f): FLAGS.__getattr__(f)
+                 for f in _CONTROL_FLAGS}
+  if FLAGS.learn_controls:
+    CCMapper(control_map, hub).update_map()
+
+  if control_map['clock'] is None:
     # Set the tick duration to be a single bar, assuming a 4/4 time signature.
     clock_signal = None
     tick_duration = 4 * (60. / FLAGS.qpm)
   else:
     clock_signal = midi_hub.MidiSignal(
-        control=FLAGS.clock_control_number, value=127)
+        control=control_map['clock'], value=127)
     tick_duration = None
 
   end_call_signal = (
-      None if FLAGS.end_call_control_number is None else
-      midi_hub.MidiSignal(control=FLAGS.end_call_control_number, value=127))
+      None if control_map['end_call'] is None else
+      midi_hub.MidiSignal(control=control_map['end_call'], value=127))
   panic_signal = (
-      None if FLAGS.panic_control_number is None else
-      midi_hub.MidiSignal(control=FLAGS.panic_control_number, value=127))
+      None if control_map['panic'] is None else
+      midi_hub.MidiSignal(control=control_map['panic'], value=127))
   mutate_signal = (
-      None if FLAGS.mutate_control_number is None else
-      midi_hub.MidiSignal(control=FLAGS.mutate_control_number, value=127))
+      None if control_map['mutate'] is None else
+      midi_hub.MidiSignal(control=control_map['mutate'], value=127))
   interaction = midi_interaction.CallAndResponseMidiInteraction(
       hub,
       generators,
@@ -265,13 +352,13 @@ def main(unused_argv):
       mutate_signal=mutate_signal,
       allow_overlap=FLAGS.allow_overlap,
       enable_metronome=FLAGS.enable_metronome,
-      min_listen_ticks_control_number=FLAGS.min_listen_ticks_control_number,
-      max_listen_ticks_control_number=FLAGS.max_listen_ticks_control_number,
-      response_ticks_control_number=FLAGS.response_ticks_control_number,
-      tempo_control_number=FLAGS.tempo_control_number,
-      temperature_control_number=FLAGS.temperature_control_number,
-      loop_control_number=FLAGS.loop_control_number,
-      state_control_number=FLAGS.state_control_number)
+      min_listen_ticks_control_number=control_map['min_listen_ticks'],
+      max_listen_ticks_control_number=control_map['max_listen_ticks'],
+      response_ticks_control_number=control_map['response_ticks'],
+      tempo_control_number=control_map['tempo'],
+      temperature_control_number=control_map['temperature'],
+      loop_control_number=control_map['loop'],
+      state_control_number=control_map['state'])
 
   _print_instructions()
 

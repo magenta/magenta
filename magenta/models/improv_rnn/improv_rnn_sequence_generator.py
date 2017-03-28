@@ -106,7 +106,12 @@ class ImprovRnnSequenceGenerator(mm.BaseSequenceGenerator):
       # If no melody could be extracted, create an empty melody that starts 1
       # step before the request start_step. This will result in 1 step of
       # silence when the melody is extended below.
-      melody = mm.Melody([], start_step=max(0, start_step - 1))
+      steps_per_bar = int(
+          mm.steps_per_bar_in_quantized_sequence(quantized_primer_sequence))
+      melody = mm.Melody([],
+                         start_step=max(0, start_step - 1),
+                         steps_per_bar=steps_per_bar,
+                         steps_per_quarter=self.steps_per_quarter)
 
     extracted_chords, _ = mm.extract_chords(quantized_backing_sequence)
     chords = extracted_chords[0]
@@ -150,7 +155,8 @@ def get_generator_map():
   """
   def create_sequence_generator(config, **kwargs):
     return ImprovRnnSequenceGenerator(
-        improv_rnn_model.ImprovRnnModel(config), config.details, **kwargs)
+        improv_rnn_model.ImprovRnnModel(config), config.details,
+        steps_per_quarter=config.steps_per_quarter, **kwargs)
 
   return {key: partial(create_sequence_generator, config)
           for (key, config) in improv_rnn_model.default_configs.items()}

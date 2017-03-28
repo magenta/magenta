@@ -21,7 +21,6 @@ file.
 """
 
 import collections
-import copy
 import operator
 
 # internal imports
@@ -73,6 +72,8 @@ class DrumTrack(events_lib.SimpleEventSequence):
 
   def __init__(self, events=None, **kwargs):
     """Construct a DrumTrack."""
+    if 'pad_event' in kwargs:
+      del kwargs['pad_event']
     super(DrumTrack, self).__init__(pad_event=frozenset(),
                                     events=events, **kwargs)
 
@@ -98,18 +99,6 @@ class DrumTrack(events_lib.SimpleEventSequence):
     super(DrumTrack, self)._from_event_list(
         events, start_step=start_step, steps_per_bar=steps_per_bar,
         steps_per_quarter=steps_per_quarter)
-
-  def __deepcopy__(self, unused_memo=None):
-    return type(self)(events=copy.deepcopy(self._events),
-                      start_step=self.start_step,
-                      steps_per_bar=self.steps_per_bar,
-                      steps_per_quarter=self.steps_per_quarter)
-
-  def __eq__(self, other):
-    if not isinstance(other, DrumTrack):
-      return False
-    else:
-      return super(DrumTrack, self).__eq__(other)
 
   def append(self, event):
     """Appends the event to the end of the drums and increments the end step.

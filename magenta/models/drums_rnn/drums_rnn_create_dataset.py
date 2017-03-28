@@ -67,7 +67,7 @@ def get_pipeline(config, eval_ratio):
     time_change_splitter = pipelines_common.TimeChangeSplitter(
         name='TimeChangeSplitter_' + mode)
     quantizer = pipelines_common.Quantizer(
-        steps_per_quarter=4, name='Quantizer_' + mode)
+        steps_per_quarter=config.steps_per_quarter, name='Quantizer_' + mode)
     drums_extractor = drum_pipelines.DrumsExtractor(
         min_bars=7, max_steps=512, gap_bars=1.0, name='DrumsExtractor_' + mode)
     encoder_pipeline = encoder_decoder.EncoderPipeline(
