@@ -72,7 +72,9 @@ this command:
 
 ```
 docker run -it -p 6006:6006 -v /tmp/magenta:/magenta-data tensorflow/magenta
+git pull # fetch latest changes
 ```
+
 
 This will start a shell in a directory with all Magenta components compiled,
 installed, and ready to run. It will also map port 6006 of the host machine to
