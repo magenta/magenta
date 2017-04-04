@@ -1,7 +1,6 @@
 import tensorflow as tf
 import numpy as np
-
-# TODO: 'temperature' parameter to control how random the sampling is?
+import copy
 
 def batchify_dict(dic, batch_size):
 	return { name: np.tile(x, (batch_size, 1, 1)) for name,x in dic.iteritems() }
@@ -10,10 +9,11 @@ class ForwardSample(object):
 
 	def __init__(self, model, checkpoint_dir, batch_size=1):
 		self.model = model
+		# how many sequences are going in parallel
 		self.batch_size = batch_size
 
 		# Construct a graph that takes placeholder inputs and produces the time slice Distribution
-		self.input_placeholder = tf.placeholder(dtype=tf.float32, shape=[batch_size,None,self.model.rnn_input_size])
+		self.input_placeholder = tf.placeholder(dtype=tf.float32, shape=[batch_size,None,self.model.rnn_input_size], name = "inputs")
 		self.condition_dict_placeholders = {
 			name: tf.placeholder(dtype=tf.float32, shape=[batch_size,None]+shape) for name,shape in model.condition_shapes.iteritems()
 		}
@@ -40,7 +40,8 @@ class ForwardSample(object):
 
 		if condition_dicts is not None:
 			# Copy, b/c we're going to mutate it
-			condition_dicts = { k: v for k,v in condition_dicts.iteritems() }
+			#condition_dicts = { k: v for k,v in condition_dicts.iteritems() }
+			condition_dicts = copy.deepcopy(condition_dicts)
 			# Assert that we have enough
 			n_initial_timeslices = 1 if (initial_timeslices is None) else len(initial_timeslices)
 			assert(len(condition_dicts) == (n_initial_timeslices - 1) + n_steps)

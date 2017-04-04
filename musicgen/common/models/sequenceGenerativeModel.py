@@ -100,13 +100,18 @@ class SequenceGenerativeModel(Model):
 		When used for sampling, batch will typically be 1 (or more, for e.g. SMC), and time will be 1.
 		"""
 
-	"""
-	Given the timeslice history and a condition dictionary, return a score in log-space.
-	Sampling algorithms, such as particle filtering, can take this into account.
-	By default, returns 0. Subclasses can override this behavior.
-	"""
-	def eval_factor_function(timeslice_history, condition_dict):
-		return 0
+
+	@abc.abstractmethod
+	def eval_factor_function(self, sample, condition):
+		"""
+		Given the sample for the current timeslice and a condition dictionary, return a score in log-space.
+		Sampling algorithms, such as particle filtering, can take this into account.
+		By default, returns 0. Subclasses can override this behavior.
+
+		Condition is an array of 1s, 0s, and -1s that specifies what the sample should be.
+
+		"""
+		
 
 	"""
 	Override of method from Model class
