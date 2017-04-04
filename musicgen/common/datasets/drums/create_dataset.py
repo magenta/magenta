@@ -16,6 +16,7 @@ from magenta.music import encoder_decoder
 from magenta.pipelines import dag_pipeline
 from magenta.pipelines import drum_pipelines
 from magenta.pipelines import pipeline
+from magenta.pipelines import statistics
 from magenta.pipelines import pipelines_common
 from magenta.protobuf import music_pb2
 
@@ -42,6 +43,7 @@ tf.app.flags.DEFINE_boolean('use_lookback', False,
 # Quantizer settings (make this a command line arg at some point?)
 steps_per_quarter = 4
 
+
 # For use with a custom function pipeline
 def prepend_empty_drum_timeslice(drum_track):
   timeslices = [timeslice for timeslice in drum_track]
@@ -51,6 +53,29 @@ def prepend_empty_drum_timeslice(drum_track):
     steps_per_bar=drum_track.steps_per_bar,
     steps_per_quarter=drum_track.steps_per_quarter)
   return [new_drum_track]
+
+
+class SparseFilterPipeline(pipeline.Pipeline):
+
+  def __init__(self, threshold, name=None):
+    super(SparseFilterPipeline, self).__init__(
+      input_type=magenta.music.DrumTrack,
+      output_type=magenta.music.DrumTrack,
+      name=name
+    )
+    self.threshold = threshold
+
+  def transform(self, drum_track):
+    nonempty_timeslices = [x for x in drum_track if len(x) > 0]
+    percent_nonempty = float(len(nonempty_timeslices)) / len(drum_track)
+    if percent_nonempty > self.threshold:
+      return [drum_track]
+    else:
+      tf.logging.warning('Filtering out drum track that had only %.2f%% non-empty timeslices',
+        percent_nonempty)
+      self._set_stats([statistics.Counter('drumtracks_discarded_because_too_sparse', 1)])
+      return []
+
 
 def get_pipeline(eval_ratio, seq_encoder):
   """Returns the Pipeline instance which creates the RNN dataset.
@@ -80,6 +105,8 @@ def get_pipeline(eval_ratio, seq_encoder):
     # Extract only the drum tracks
     drums_extractor = drum_pipelines.DrumsExtractor(
         min_bars=7, max_steps=512, gap_bars=1.0, name='DrumsExtractor_' + mode)
+    # Filter out any overly-sparse drum tracks
+    sparse_filter = SparseFilterPipeline(0.15, name='SparseFilterPipeline_' + mode)
     # Prepend an empty timeslice to all drum tracks
     empty_prepender = my_pipelines.CustomFunctionPipeline(
       magenta.music.DrumTrack, magenta.music.DrumTrack, prepend_empty_drum_timeslice,
@@ -93,7 +120,8 @@ def get_pipeline(eval_ratio, seq_encoder):
     dag[time_sig_filter] = time_change_splitter
     dag[quantizer] = time_sig_filter
     dag[drums_extractor] = quantizer
-    dag[empty_prepender] = drums_extractor
+    dag[sparse_filter] = drums_extractor
+    dag[empty_prepender] = sparse_filter
     dag[encoder_pipeline] = empty_prepender
     dag[dag_pipeline.DagOutput(mode + '_drum_tracks')] = encoder_pipeline
 

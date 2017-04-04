@@ -1,4 +1,5 @@
 from magenta.pipelines import pipeline
+from magenta.pipelines import statistics
 from magenta.protobuf import music_pb2
 import tensorflow as tf
 
@@ -18,9 +19,11 @@ class TimeSignatureFilter(pipeline.Pipeline):
 	def transform(self, note_sequence):
 		sigs = list(note_sequence.time_signatures)
 		for sig in sigs:
-			if sig.numerator != self.sig_numerator:
-				return []
-			if sig.denominator != self.sig_denominator:
+			if (sig.numerator != self.sig_numerator) or (sig.denominator != self.sig_denominator):
+				tf.logging.warning('Filtering out note sequence with time signature = %d/%d',
+					sig.numerator, sig.denominator)
+				self._set_stats([statistics.Counter(
+					'sequences_discarded_because_wrong_time_signature', 1)])
 				return []
 		return [note_sequence]
 
