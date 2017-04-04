@@ -198,7 +198,7 @@ def sequence_proto_to_pretty_midi(
 
   max_event_time = None
   if drop_events_n_seconds_after_last_note is not None:
-    max_event_time = (max([n.end_time for n in sequence.notes]) +
+    max_event_time = (max([n.end_time for n in sequence.notes] or [0]) +
                       drop_events_n_seconds_after_last_note)
 
   # Try to find a tempo at time zero. The list is not guaranteed to be in order.

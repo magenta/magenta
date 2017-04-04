@@ -201,7 +201,7 @@ def weighted_instance_norm(inputs,
     beta, gamma = None, None
     if center:
       beta = _weighted_variable(
-          'beta', tf.zeros_initializer, weights, num_categories)
+          'beta', tf.zeros_initializer(), weights, num_categories)
     if scale:
       gamma = _weighted_variable(
           'gamma', tf.ones_initializer(), weights, num_categories)

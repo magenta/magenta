@@ -117,14 +117,15 @@ def build_graph(mode, config, sequence_example_file_paths=None):
     logits_flat = tf.contrib.layers.linear(outputs_flat, num_classes)
 
     if mode == 'train' or mode == 'eval':
-      if hparams.skip_first_n_losses:
-        logits = tf.reshape(logits_flat, [hparams.batch_size, -1, num_classes])
-        logits = logits[:, hparams.skip_first_n_losses:, :]
-        logits_flat = tf.reshape(logits, [-1, num_classes])
-        labels = labels[:, hparams.skip_first_n_losses:]
-
       labels_flat = tf.reshape(labels, [-1])
-      mask_flat = tf.reshape(tf.sequence_mask(lengths, dtype=tf.float32), [-1])
+      mask = tf.sequence_mask(lengths)
+      if hparams.skip_first_n_losses:
+        skip = tf.minimum(lengths, hparams.skip_first_n_losses)
+        skip_mask = tf.sequence_mask(skip, maxlen=tf.reduce_max(lengths))
+        mask = tf.logical_and(mask, tf.logical_not(skip_mask))
+      mask = tf.cast(mask, tf.float32)
+      mask_flat = tf.reshape(mask, [-1])
+
       num_logits = tf.to_float(tf.reduce_sum(lengths))
 
       with tf.control_dependencies(
