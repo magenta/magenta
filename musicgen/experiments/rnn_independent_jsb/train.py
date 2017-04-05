@@ -44,7 +44,7 @@ train_params = HParams(
 dataset = jsbchorales.train()
 
 #model = RNNIndependent(model_params, dataset.sequence_encoder)
-model = RNNNade(model_params, dataset.sequence_encoder)
+model = RNNNade(model_params, dataset.sequence_encoder,size_hidden_layer=50)
 model.save(log_dir + '/model.pickle')
 
 training.train(model, dataset, train_params)
