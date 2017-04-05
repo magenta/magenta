@@ -1,6 +1,6 @@
 import sys
 import os
-from common.models import RNNIndependent
+from common.models import RNNIndependent, RNNNade
 from common.datasets import jsbchorales
 from common import training
 from common import utils
@@ -43,7 +43,8 @@ train_params = HParams(
 
 dataset = jsbchorales.train()
 
-model = RNNIndependent(model_params, dataset.sequence_encoder)
+#model = RNNIndependent(model_params, dataset.sequence_encoder)
+model = RNNNade(model_params, dataset.sequence_encoder)
 model.save(log_dir + '/model.pickle')
 
 training.train(model, dataset, train_params)
