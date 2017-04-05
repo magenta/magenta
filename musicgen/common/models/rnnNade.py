@@ -3,7 +3,7 @@ from common.models.sequenceGenerativeModel import SequenceGenerativeModel
 from common.distributions.Nade import NADE
 
 """
-An RNN that models a sequence of NADE objects, where the parameters of NADE
+An RNN that models a sequence of NADE objects, where the parameters of each NADE
    are determined by the RNN hidden state.
 """
 class RNNNade(SequenceGenerativeModel):
