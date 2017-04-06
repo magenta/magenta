@@ -217,7 +217,7 @@ def eval_op(batch, hparams, config_name):
     # Pitch shift
 
     pitch_plus_2 = tf.clip_by_value(batch["pitch"] + 2, 0, 127)
-    pitch_plus_2 = tf.clip_by_value(batch["pitch"] - 2, 0, 127)
+    pitch_minus_2 = tf.clip_by_value(batch["pitch"] - 2, 0, 127)
 
     batch["pitch"] = pitch_minus_2
     xhat_pitch_minus_2 = config.decode(z, batch, hparams,
