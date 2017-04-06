@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Utility helpers for NSynth."""
+"""Utility functions for NSynth."""
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
@@ -22,10 +22,14 @@ import importlib
 import librosa
 import numpy as np
 import tensorflow as tf
+import scipy.io.wavfile
 
 slim = tf.contrib.slim
 
 
+#===============================================================================
+# WaveNet Functions
+#===============================================================================
 def get_module(module_path):
   """Imports module from NSynth directory.
 
@@ -36,13 +40,86 @@ def get_module(module_path):
   Returns:
     module: Imported module.
   """
-  # pylint: disable=line-too-long
-  import_path = "magenta.models.nsynth.baseline.%s"
-  # pylint: enable=line-too-long
-  module = importlib.import_module(import_path % module_path)
+  import_path = "magenta.models.nsynth."
+  module = importlib.import_module(import_path + module_path)
   return module
 
 
+def save_wav(data, path):
+  """This saves a wav file locally and then copies the result to CNS.
+
+  Saving directly to CNS results in weird errors like:
+  "colossus writes are append-only; cannot write to file offset 4,
+  current length is 655404"
+
+  Args:
+    data: The float wav data, a 1D vector with values in [-1, 1].
+    path: The CNS file path to which we save.
+  """
+  tmp_path = "/tmp/tmp-%d.wav" % np.random.randint(2**32)
+
+  with tf.gfile.Open(tmp_path, "w") as f:
+    # The 0.9 is to prevent clipping.
+    data_16bit = (0.9 * data) * 2**15
+    scipy.io.wavfile.write(f, 16000, data_16bit.astype(np.int16))
+
+  tf.gfile.Copy(tmp_path, path, overwrite=True)
+  tf.gfile.Remove(tmp_path)
+
+
+def load_wav(path):
+  """Load a wav file and convert to floats within [-1, 1].
+
+  Args:
+    path: The CNS file path from which we load.
+
+  Returns:
+    The 16bit data in the range [-1, 1].
+  """
+  _, data_16bit = scipy.io.wavfile.read(tf.gfile.Open(path, "r"))
+  # Assert we are working with 16-bit audio.
+  assert data_16bit.dtype == np.int16
+  return data_16bit.astype(np.float32) / 2**15
+
+
+def mu_law(x, mu=255):
+  """A TF implementation of Mu-Law encoding.
+
+  Args:
+    x: The audio samples to encode.
+    mu: The Mu to use in our Mu-Law.
+
+  Returns:
+    out: The Mu-Law encoded int8 data.
+  """
+  out = tf.sign(x) * tf.log(1 + mu * tf.abs(x)) / np.log(1 + mu)
+  out = tf.cast(tf.floor(out * 128), tf.int8)
+  return out
+
+
+def inv_mu_law(x, mu=255):
+  """A TF implementation of inverse Mu-Law.
+
+  Args:
+    x: The Mu-Law samples to decode.
+    mu: The Mu we used to encode these samples.
+
+  Returns:
+    out: The decoded data.
+  """
+  x = tf.cast(x, tf.float32)
+  out = (x + 0.5) * 2. / (mu + 1)
+  out = tf.sign(out) / mu * ((1 + mu)**tf.abs(out) - 1)
+  out = tf.where(tf.equal(x, 0), x, out)
+  return out
+
+
+#===============================================================================
+# Baseline Functions
+#===============================================================================
+#---------------------------------------------------
+# Pre/Post-processing
+#---------------------------------------------------
 def get_optimizer(learning_rate, hparams):
   """Get the tf.train.Optimizer for this optimizer string.
 
@@ -71,35 +148,9 @@ def get_optimizer(learning_rate, hparams):
   }.get(hparams.optimizer)
 
 
-#---------------------------------------------------
-# Pre/Post-processing
-#---------------------------------------------------
-# ALL CQT and ICQT Dependent on librosa v5.0dev.
-def cqt(
-    audio,
-    sr=16000,
-    hop_length=64,
-    over_sample=3,
-    notes_per_octave=12,
-    octaves=7,
-    res_factor=1,
-    fmin=librosa.note_to_hz("C1"),  # 32.7 Hz
-    real=False,
-    scale=True):
-  return librosa.cqt(
-      audio.ravel(),
-      sr=sr,
-      hop_length=hop_length,
-      bins_per_octave=int(notes_per_octave * over_sample),
-      n_bins=int(octaves * notes_per_octave * over_sample),
-      real=real,
-      filter_scale=res_factor,
-      fmin=fmin,
-      scale=scale)
-
 
 def specgram(audio, n_fft=512, hop_length=None, mask=True, log_mag=True,
-             use_cqt=False, re_im=False, dphase=True, mag_only=False):
+             re_im=False, dphase=True, mag_only=False):
   """Spectrogram using librosa.
 
   Args:
@@ -108,7 +159,6 @@ def specgram(audio, n_fft=512, hop_length=None, mask=True, log_mag=True,
     hop_length: Stride of FFT. Defaults to n_fft/2.
     mask: Mask the phase derivative by the magnitude.
     log_mag: Use the logamplitude.
-    use_cqt: Perform CQT tranform instead of FFT
     re_im: Output Real and Imag. instead of logMag and dPhase.
     dphase: Use derivative of phase instead of phase.
     mag_only: Don't return phase.
@@ -123,10 +173,7 @@ def specgram(audio, n_fft=512, hop_length=None, mask=True, log_mag=True,
   fft_config = dict(n_fft=n_fft, win_length=n_fft, hop_length=hop_length,
                     center=True)
 
-  if use_cqt:
-    spec = cqt(audio)
-  else:
-    spec = librosa.stft(audio, **fft_config)
+  spec = librosa.stft(audio, **fft_config)
 
   if re_im:
     re = spec.real[:, :, np.newaxis]
@@ -203,7 +250,6 @@ def ispecgram(spec,
               hop_length=None,
               mask=True,
               log_mag=True,
-              use_cqt=False,
               re_im=False,
               dphase=True,
               mag_only=True,
@@ -216,7 +262,6 @@ def ispecgram(spec,
     hop_length: Stride of FFT. Defaults to n_fft/2.
     mask: Reverse the mask of the phase derivative by the magnitude.
     log_mag: Use the logamplitude.
-    use_cqt: Perform CQT tranform instead of FFT
     re_im: Output Real and Imag. instead of logMag and dPhase.
     dphase: Use derivative of phase instead of phase.
     mag_only: Specgram contains no phase.
@@ -256,10 +301,6 @@ def ispecgram(spec,
   if mag_only:
     audio = griffin_lim(
         mag, phase_angle, n_fft, hop_length, num_iters=num_iters)
-  elif use_cqt:
-    # audio = icqt(spec_real)
-    # ALL CQT and ICQT Dependent on librosa v5.0dev. 
-    raise "Requires librosa v5"
   else:
     audio = librosa.core.istft(spec_real, **ifft_config)
   return np.squeeze(audio / audio.max())
@@ -270,7 +311,6 @@ def batch_specgram(audio,
                    hop_length=None,
                    mask=True,
                    log_mag=True,
-                   use_cqt=False,
                    re_im=False,
                    dphase=True,
                    mag_only=False):
@@ -279,40 +319,40 @@ def batch_specgram(audio,
   res = []
   for b in range(batch_size):
     res.append(
-        specgram(audio[b], n_fft, hop_length, mask, log_mag, use_cqt, re_im,
+        specgram(audio[b], n_fft, hop_length, mask, log_mag, re_im,
                  dphase, mag_only))
   return np.array(res)
 
 
 def batch_ispecgram(spec, n_fft=512, hop_length=None, mask=True, log_mag=True,
-                    use_cqt=False, re_im=False, dphase=True, mag_only=False,
+                    re_im=False, dphase=True, mag_only=False,
                     num_iters=1000):
   assert len(spec.shape) == 4
   batch_size = spec.shape[0]
   res = []
   for b in range(batch_size):
     res.append(ispecgram(spec[b, :, :, :], n_fft, hop_length,
-                         mask, log_mag, use_cqt, re_im, dphase,
+                         mask, log_mag, re_im, dphase,
                          mag_only, num_iters))
   return np.array(res)
 
 
 def tf_specgram(audio, n_fft=512, hop_length=None, mask=True, log_mag=True,
-                use_cqt=False, re_im=False, dphase=True, mag_only=False):
+                re_im=False, dphase=True, mag_only=False):
   return tf.py_func(batch_specgram, [
-      audio, n_fft, hop_length, mask, log_mag, use_cqt, re_im, dphase, mag_only
+      audio, n_fft, hop_length, mask, log_mag, re_im, dphase, mag_only
   ], tf.float32)
 
 
 def tf_ispecgram(spec, n_fft=512, hop_length=None, mask=True,
-                 pad=True, log_mag=True, use_cqt=False, re_im=False,
+                 pad=True, log_mag=True, re_im=False,
                  dphase=True, mag_only=False, num_iters=1000):
   dims = spec.get_shape().as_list()
   # Add back in nyquist frequency
   x = spec if not pad else tf.concat(
       [spec, tf.zeros([dims[0], 1, dims[2], dims[3]])], 1)
   audio = tf.py_func(batch_ispecgram, [x, n_fft, hop_length, mask,
-                                       log_mag, use_cqt, re_im, dphase,
+                                       log_mag, re_im, dphase,
                                        mag_only, num_iters], tf.float32)
   return audio
 
@@ -423,7 +463,6 @@ def specgram_summaries(spec,
               mask=hparams.mask,
               log_mag=hparams.log_mag,
               pad=hparams.pad,
-              use_cqt=hparams.use_cqt,
               re_im=hparams.re_im,
               dphase=hparams.dphase,
               mag_only=hparams.mag_only),
@@ -549,7 +588,7 @@ def pitch_embeddings(batch, timesteps=1, n_pitches=128, dim_embedding=128,
   """Get a embedding of each pitch note.
 
   Args:
-    batch: NSynthReader batch.
+    batch: NSynthDataset batch dictionary.
     timesteps: Number of timesteps to replicate across.
     n_pitches: Number of one-hot embeddings.
     dim_embedding: Dimension of linear projection of one-hot encoding.
@@ -558,63 +597,19 @@ def pitch_embeddings(batch, timesteps=1, n_pitches=128, dim_embedding=128,
   Returns:
     embedding: A tensor of shape [batch_size, 1, timesteps, dim_embedding].
   """
-  batch_size = batch.pitch.get_shape().as_list()[0]
+  batch_size = batch["pitch"].get_shape().as_list()[0]
   with tf.variable_scope("PitchEmbedding", reuse=reuse):
     w = tf.get_variable(
         name="embedding_weights",
         shape=[n_pitches, dim_embedding],
         initializer=tf.random_normal_initializer())
-    one_hot_pitch = tf.reshape(batch.pitch, [batch_size])
+    one_hot_pitch = tf.reshape(batch["pitch"], [batch_size])
     one_hot_pitch = tf.one_hot(one_hot_pitch, depth=n_pitches)
     embedding = tf.matmul(one_hot_pitch, w)
     embedding = tf.reshape(embedding, [batch_size, 1, 1, dim_embedding])
     if timesteps > 1:
       embedding = tf.tile(embedding, [1, 1, timesteps, 1])
     return embedding
-
-
-def pad_and_crop_by_n(wav, n):
-  """Dequeue the input wav from the end and replace with zeros.
-
-  An example is ([.5, .2, -.2, .3], 2) --> [0, 0, .5, .2].
-
-  Args:
-    wav: The input wav samples. Expected to be 3d with the middle dimension
-      representing the data.
-    n: The amount to dequeue.
-
-  Returns:
-    ret: The padded and cropped input wav. Has the same shape and dtype.
-  """
-  num_samples = tf.shape(wav)[1]
-  ret = tf.pad(wav, [[0, 0], [n, 0], [0, 0]])
-  ret = tf.slice(ret, [0, 0, 0], [-1, num_samples, -1])
-  ret.set_shape(wav.shape)
-  return ret
-
-
-def dense(x, num_units, name, nonlinearity=None, collection=None):
-  """Builds a fully-connected layer."""
-  nonlinearity = nonlinearity or tf.identity
-
-  input_shape = x.shape
-  num_inputs = np.prod(input_shape[1:])
-  x_flat = tf.reshape(x, [-1, num_inputs])
-
-  with tf.variable_scope(name):
-    weights = tf.get_variable(
-        "weights", [num_inputs, num_units],
-        initializer=tf.uniform_unit_scaling_initializer())
-    bias = tf.get_variable(
-        "bias", [num_units], initializer=tf.constant_initializer(0.0))
-
-    if collection is not None:
-      tf.add_to_collection(collection, weights)
-      tf.add_to_collection(collection, bias)
-
-  tf.add_to_collection("regularizable", weights)
-
-  return nonlinearity(tf.matmul(x_flat, weights) + bias)
 
 
 def slim_batchnorm_arg_scope(is_training, activation_fn=None):
@@ -648,17 +643,6 @@ def slim_batchnorm_arg_scope(is_training, activation_fn=None):
       normalizer_fn=slim.batch_norm,
       normalizer_params=batch_norm_params) as scope:
     return scope
-
-
-def pool2d(x, stride=(2, 2), mode="MAX"):
-  with tf.variable_scope("Pool_{}_{}_{}".format(mode, stride[0], stride[1])):
-    pool_dict = {"MAX": slim.max_pool2d, "AVG": slim.avg_pool2d}
-    pool_fn = pool_dict[mode]
-    return pool_fn(inputs=x, kernel_size=stride, stride=stride, padding="SAME")
-
-
-def pool1d(x, stride=2, mode="MAX"):
-  return pool2d(x, stride=[stride, stride], mode=mode)
 
 
 def conv2d(x,
@@ -760,196 +744,6 @@ def conv2d(x,
     return x
 
 
-def conv1d(x,
-           kernel_size,
-           stride,
-           channels,
-           is_training,
-           scope="conv1d",
-           batch_norm=False,
-           residual=False,
-           gated=False,
-           activation_fn=tf.nn.relu,
-           resize=False,
-           transpose=False,
-           stacked_layers=1):
-  """1-D wrapper of 2-D convolution.
-
-  Args:
-    x: Tensor input [MB, H, W, CH].
-    kernel_size: Int.
-    stride: Int.
-    channels: Int, output channels.
-    is_training: Whether to collect stats for BatchNorm.
-    scope: Enclosing scope name.
-    batch_norm: Apply batch normalization
-    residual: Residual connections, have stacked_layers >= 2.
-    gated: Gating ala Wavenet.
-    activation_fn: Nonlinearity function.
-    resize: On transposed convolution, do ImageResize instead of conv_transpose.
-    transpose: Use conv_transpose instead of conv.
-    stacked_layers: Number of layers before a residual connection.
-
-  Returns:
-    x: Tensor output.
-  """
-  x = conv2d(
-      x=x,
-      kernel_size=[1, kernel_size],
-      stride=[1, stride],
-      channels=channels,
-      is_training=is_training,
-      scope=scope,
-      batch_norm=batch_norm,
-      residual=residual,
-      gated=gated,
-      activation_fn=activation_fn,
-      resize=resize,
-      transpose=transpose,
-      stacked_layers=stacked_layers)
-  return x
-
-
-def conv1d_frontend(x,
-                    conv_ksc=((16, 4, 161), (64, 16, 161), (640, 160, 161)),
-                    stride=320,
-                    is_training=True,
-                    batch_norm=False,
-                    residual=False,
-                    gated=False,
-                    activation_fn=tf.nn.relu,
-                    stacked_layers=1):
-  with tf.variable_scope("Conv_Frontend"):
-    h_list = []
-    for i, (k, s, c) in enumerate(conv_ksc):
-      h = conv1d(
-          x,
-          k,
-          s,
-          c,
-          is_training,
-          batch_norm=batch_norm,
-          residual=residual,
-          gated=gated,
-          scope="{}".format(i),
-          activation_fn=activation_fn,
-          stacked_layers=stacked_layers)
-      h = pool1d(h, stride / s)
-      h_list.append(h)
-    # Concat along channels dimension
-    return tf.concat(h_list, 3)
-
-
-def conv1d_backend(x,
-                   conv_ksc=((16, 4, 161), (64, 16, 161), (640, 160, 161)),
-                   stride=320,
-                   is_training=True):
-  """A multiscale upsampling convolution.
-
-  Args:
-    x: Input tensor.
-    conv_ksc: An iterable of iterables, with each element containing the kernel
-      size, stride, and number of channels for a layer. All will be constructed
-      parallel to eachother with their outputs combined.
-    stride: Total stride for all the layers.
-    is_training: Whether this is a training run.
-
-  Returns:
-    h: Output tensor.
-  """
-  with tf.variable_scope("Conv_Backend"):
-    h_list = []
-    for i, (k, s, c) in enumerate(conv_ksc):
-      h = conv1d(
-          x,
-          stride / s,
-          stride / s,
-          c,
-          is_training,
-          transpose=True,
-          scope="{}_upsample".format(i))
-      h = conv1d(
-          h,
-          k,
-          s,
-          1,
-          is_training,
-          batch_norm=False,
-          activation_fn=None,
-          transpose=True,
-          scope="{}_final".format(i))
-      h_list.append(h)
-
-    # Now concat the lists and add
-    #     h = tf.concat(h_list, 3)
-    #     h = conv1d(h, 1, 1, 1, is_training, activation_fn=None, gated=True)
-
-    # Now add the lists
-  h = tf.add_n(h_list)
-
-  return h
-
-
-def lstm_stack(x,
-               n_units=(128),
-               bidirectional=False,
-               forget_bias=1.0,
-               cell_clip=None,
-               scope=""):
-  """A stack of LSTMs, using efficient fused ops.
-
-  Args:
-    x: Input tensor, [Minibatch, (Height, 1), Time, Channels]. If tensor has
-      Height, it must be 1.
-    n_units: List of number of units in each layer. Makes stack len(n_units)
-      tall.
-    bidirectional: Make bidirectional LSTMs.
-    forget_bias: Inital value.
-    cell_clip: Level at which to clip cell values.
-    scope: Appends to scope namespace.
-
-  Returns:
-    y: Output tensor [MB, (Height, 1), Time, n_units[-1].
-  """
-  with tf.variable_scope("LSTM_Stack" + scope):
-    dims = x.get_shape().as_list()
-    if len(dims) == 4:
-      mb, unused_h, t, dim = dims
-      x = tf.reshape(x, [mb, t, dim])
-
-    # Transpose [MB, T, DIM] -> [T, MB, DIM]
-    x_rnn = tf.transpose(x, [1, 0, 2])
-
-    for i, n in enumerate(n_units):
-      with tf.variable_scope("Layer_{}".format(i)):
-        # BIDIRECTIONAL
-        if bidirectional:
-          with tf.variable_scope("FWD"):
-            cell_fwd = tf.contrib.rnn.LSTMBlockFusedCell(
-                num_units=n, forget_bias=forget_bias, cell_clip=cell_clip)
-            x_fwd, unused_state_fwd = cell_fwd(x_rnn, dtype=tf.float32)
-          with tf.variable_scope("BACK"):
-            cell_back = tf.contrib.rnn.LSTMBlockFusedCell(
-                num_units=n, forget_bias=forget_bias, cell_clip=cell_clip)
-            x_rev = tf.reverse(x_rnn, [True, False, False])
-            x_back_rev, unused_state_back = cell_back(x_rev, dtype=tf.float32)
-            x_back = tf.reverse(x_back_rev, [True, False, False])
-          # Add the two states
-          x_rnn = x_fwd + x_back
-
-        # Forward Only
-        else:
-          cell = tf.contrib.rnn.LSTMBlockFusedCell(
-              num_units=dim, forget_bias=forget_bias, cell_clip=cell_clip)
-          x_rnn, unused_final_state = cell(x_rnn, dtype=tf.float32)
-
-    # Revert to [MB, T, DIM]
-    y = tf.transpose(x_rnn, [1, 0, 2])
-    if len(dims) == 4:
-      y = tf.reshape(y, [mb, 1, t, -1])
-  return y
-
-
 def leaky_relu(leak=0.1):
   """Leaky ReLU activation function.
 
@@ -961,22 +755,3 @@ def leaky_relu(leak=0.1):
     A lambda computing the leaky ReLU function with the specified slope.
   """
   return lambda x: tf.maximum(x, leak * x)
-
-
-def maxout(num_pieces=2):
-  """Maxout activation function.
-
-  Args:
-    num_pieces: Integer number of linear pieces of the Maxout function.
-
-  Returns:
-    A function computing the Maxout function with the specified number of
-    linear pieces.
-  """
-
-  def _maxout(x):
-    num_filters = int(x.get_shape()[3] // num_pieces)
-    new_shape = [int(s) for s in x.get_shape()[:3]] + [num_filters, num_pieces]
-    return tf.reduce_max(tf.reshape(x, new_shape), 4)
-
-  return _maxout

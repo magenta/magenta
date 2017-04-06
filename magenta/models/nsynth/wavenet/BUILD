@@ -17,17 +17,6 @@ py_library(
 )
 
 py_library(
-    name = "data",
-    srcs = [
-        "nsynth_release_sstable.py",
-    ],
-    deps = [
-        # numpy dep
-        # tensorflow dep
-    ],
-)
-
-py_library(
     name = "masked",
     srcs = ["masked.py"],
     deps = [
@@ -38,7 +27,7 @@ py_library(
 py_library(
     name = "config_library",
     deps = [
-        ":data",
+        "//magenta/models/nsynth:reader",
         ":masked",
         # tensorflow dep
     ],
@@ -61,7 +50,7 @@ py_binary(
     ],
     deps = [
         ":configs",
-        ":utils",
+        "//magenta/models/nsynth:utils",
         # numpy dep
         # tensorflow dep
     ],
@@ -74,8 +63,8 @@ py_binary(
     ],
     deps = [
         ":configs",
-        ":data",
-        ":utils",
+        "//magenta/models/nsynth:reader",
+        "//magenta/models/nsynth:utils",
         # numpy dep
         # tensorflow dep
     ],

@@ -22,30 +22,24 @@ from __future__ import print_function
 # internal imports
 import tensorflow as tf
 
-from magenta.models.nsynth.baseline import datasets
-from magenta.models.nsynth.baseline import reader
-from magenta.models.nsynth.baseline import utils
+from magenta.models.nsynth import reader
+from magenta.models.nsynth import utils
 
 slim = tf.contrib.slim
 FLAGS = tf.app.flags.FLAGS
 
 tf.app.flags.DEFINE_string("master",
-                           "local",
-                           "BNS name of the TensorFlow master to use.")
-tf.app.flags.DEFINE_string("train_dir", "/tmp/baseline/train",
-                           "Directory where to write event logs.")
-tf.app.flags.DEFINE_string("dataset",
-                           "FGP88",
-                           "Which dataset to use. The data provider will "
-                           "automatically retrieve the associated spectrogram "
-                           "dataset.")
-tf.app.flags.DEFINE_string("config_hparams",
                            "",
-                           "Comma-delineated string of hyperparameters.")
+                           "BNS name of the TensorFlow master to use.")
+tf.app.flags.DEFINE_string("logdir", "/tmp/baseline/train",
+                           "Directory where to write event logs.")
+tf.app.flags.DEFINE_string("train_path",
+                           "",
+                           "Path the nsynth-train.tfrecord.")
 tf.app.flags.DEFINE_string("model", "ae", "Which model to use in models/")
 tf.app.flags.DEFINE_string("config",
-                           "same_conv",
-                           "Which model to use in configs/")
+                           "1024_nfft",
+                           "Which config to use in models/configs/")
 tf.app.flags.DEFINE_integer("save_summaries_secs",
                             15,
                             "Frequency at which summaries are saved, in "
@@ -62,24 +56,25 @@ tf.app.flags.DEFINE_integer("task",
                             0,
                             "Task ID. Used when training with multiple "
                             "workers to identify each worker.")
+tf.app.flags.DEFINE_string("log", "INFO",
+                           "The threshold for what messages will be logged."
+                           "DEBUG, INFO, WARN, ERROR, or FATAL.")
 
 
 def main(unused_argv):
-  if not tf.gfile.Exists(FLAGS.train_dir):
-    tf.gfile.MakeDirs(FLAGS.train_dir)
+  tf.logging.set_verbosity(FLAGS.log)
+
+  if not tf.gfile.Exists(FLAGS.logdir):
+    tf.gfile.MakeDirs(FLAGS.logdir)
 
   with tf.Graph().as_default():
 
     # If ps_tasks is 0, the local device is used. When using multiple
     # (non-local) replicas, the ReplicaDeviceSetter distributes the variables
     # across the different devices.
-    dataset = datasets.get_dataset(FLAGS.dataset, None)
-    model = utils.get_module("models.%s" % FLAGS.model)
-
-    hparams = model.get_hparams()
-    hparams.parse(FLAGS.config_hparams)
-    hparams.parse("samples_per_second=%d" % dataset.samples_per_second)
-    hparams.parse("num_samples=%d" % dataset.num_samples)
+    model = utils.get_module("baseline.models.%s" % FLAGS.model)
+    hparams = model.get_hparams(FLAGS.config)
+    print("HPARAMS", hparams.values())
 
     # Run the Reader on the CPU
     cpu_device = ("/job:worker/cpu:0" if FLAGS.ps_tasks else
@@ -87,16 +82,16 @@ def main(unused_argv):
 
     with tf.device(cpu_device):
       with tf.name_scope("Reader"):
-        batch = reader.NSynthReader(
-            dataset, hparams, is_training=True).get_batch()
+        batch = reader.NSynthDataset(
+            FLAGS.train_path, is_training=True).get_baseline_batch(hparams)
 
-    with tf.device(tf.ReplicaDeviceSetter(ps_tasks=FLAGS.ps_tasks)):
+    with tf.device(tf.train.replica_device_setter(ps_tasks=FLAGS.ps_tasks)):
       train_op = model.train_op(batch, hparams, FLAGS.config)
 
       # Run training
       slim.learning.train(
           train_op=train_op,
-          logdir=FLAGS.train_dir,
+          logdir=FLAGS.logdir,
           master=FLAGS.master,
           is_chief=FLAGS.task == 0,
           number_of_steps=hparams.max_steps,

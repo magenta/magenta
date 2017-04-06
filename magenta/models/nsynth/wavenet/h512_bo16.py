@@ -17,8 +17,8 @@
 import tensorflow as tf
 
 from magenta.models.nsynth.wavenet import masked
-from magenta.models.nsynth.wavenet import nsynth_release_sstable
-from magenta.models.nsynth.wavenet import utils
+from magenta.models.nsynth import utils
+from magenta.models.nsynth import reader
 
 
 class Config(object):
@@ -37,13 +37,12 @@ class Config(object):
     }
     self.ae_hop_length = 512
     self.ae_bottleneck_width = 16
-    if train_path:
-      self.data_train = nsynth_release_sstable.NSynthDataset(
-          train_path, is_training=True)
+    self.train_path = train_path
 
   def get_batch(self, batch_size):
-    return self.data_train.get_wavenet_batch(batch_size, length=6144)
-
+    assert self.train_path is not None
+    data_train = reader.NSynthDataset(self.train_path, is_training=True)
+    return data_train.get_wavenet_batch(batch_size, length=6144)
 
   @staticmethod
   def _condition(x, encoding):

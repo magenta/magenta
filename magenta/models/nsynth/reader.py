@@ -18,7 +18,11 @@ from __future__ import division
 from __future__ import print_function
 
 # internal imports
+import numpy as np
 import tensorflow as tf
+
+from magenta.models.nsynth import utils
+
 
 # FFT Specgram Shapes
 SPECGRAM_REGISTRY = {
@@ -50,6 +54,7 @@ class NSynthDataset(object):
     features = {
         "note_str": tf.FixedLenFeature([], dtype=tf.string),
         "pitch": tf.FixedLenFeature([1], dtype=tf.int64),
+        "velocity": tf.FixedLenFeature([1], dtype=tf.int64),
         "audio": tf.FixedLenFeature([64000], dtype=tf.float32),
         "qualities": tf.FixedLenFeature([10], dtype=tf.int64),
         "instrument_source": tf.FixedLenFeature([1], dtype=tf.int64),
@@ -57,7 +62,6 @@ class NSynthDataset(object):
     }
     example = tf.parse_single_example(serialized_example, features)
     return example
-
 
   def get_wavenet_batch(self, batch_size, length=64000):
     """Get the Tensor expressions from the reader.
@@ -101,137 +105,87 @@ class NSynthDataset(object):
     pitch = tf.cast(pitch, tf.int32)
     return {"pitch": pitch, "wav": crop, "key": key}
 
+  def get_baseline_batch(self, hparams):
+    """Get the Tensor expressions from the reader.
 
-#   def get_baseline_batch(self, hparams):
-#     """Get the Tensor expressions from the reader.
+    Args:
+      hparams: Hyperparameters object with specgram parameters.
 
-#     Args:
-#       batch_size: The integer batch size.
-#       length: Number of timesteps of a cropped sample to produce.
+    Returns:
+      A dict of key:tensor pairs. This includes "pitch", "wav", and "key".
+    """
+    example = self.get_example(hparams.batch_size)
+    audio = tf.slice(example["audio"], [0], [64000])
+    audio = tf.reshape(audio, [1, 64000])
+    pitch = tf.slice(example["pitch"], [0], [1])
+    velocity = tf.slice(example["velocity"], [0], [1])
+    instrument_source = tf.slice(example["instrument_source"], [0], [1])
+    instrument_family = tf.slice(example["instrument_family"], [0], [1])
+    qualities = tf.slice(example["qualities"], [0], [10])
+    qualities = tf.reshape(qualities, [1, 10])
 
-#     Returns:
-#       A dict of key:tensor pairs. This includes "pitch", "wav", and "key".
-#     """
+    print(example, audio, pitch, velocity, instrument_family, instrument_source, qualities)
+    # Get Specgrams
+    hop_length = hparams.hop_length
+    n_fft = hparams.n_fft
+    if hop_length and n_fft:
+      specgram = utils.tf_specgram(
+          audio,
+          n_fft=n_fft,
+          hop_length=hop_length,
+          mask=hparams.mask,
+          log_mag=hparams.log_mag,
+          re_im=hparams.re_im,
+          dphase=hparams.dphase,
+          mag_only=hparams.mag_only)
+      shape = [1] + SPECGRAM_REGISTRY[(n_fft, hop_length)]
+      if hparams.mag_only:
+        shape[-1] = 1
+      specgram = tf.reshape(specgram, shape)
+      tf.logging.info("SPECGRAM BEFORE PADDING", specgram)
 
-#     example = self.get_example(batch_size)
-#     wav = tf.slice(example["audio"], [0], [64000])
-#     pitch = tf.squeeze(example["pitch"])
-#     key = tf.squeeze(example["note_str"])
-#     instrument_source = tf.squeeze(example["instrument_source"])
-#     instrument_family = tf.squeeze(example["instrument_family"])
-#     qualities = tf.slice(example["qualities"], [0], 10]
+      if hparams.pad:
+        # Pad and crop specgram to 256x256
+        num_padding = 2**int(np.ceil(np.log(shape[2]) / np.log(2))) - shape[2]
+        tf.logging.info("num_pading: %d" % num_padding)
+        specgram = tf.reshape(specgram, shape)
+        specgram = tf.pad(specgram, [[0, 0], [0, 0], [0, num_padding], [0, 0]])
+        specgram = tf.slice(specgram, [0, 0, 0, 0], [-1, shape[1] - 1, -1, -1])
+        tf.logging.info("SPECGRAM AFTER PADDING", specgram)
 
-#     # program = tf.reshape(example.get("program", tf.constant(0)),
-#     #                      [1, 1])  # only for earlier datasets
-#     # pitch = tf.reshape(example.get("pitch", tf.constant(0)), [1, 1])
-#     # velocity = tf.reshape(example.get("velocity", tf.constant(0)), [1, 1])
-#     # instrument = tf.reshape(example.get("instrument", tf.constant(0)),
-#     #                         [1, 1])  # uid for instrument
-#     # instrument_family = tf.reshape(
-#     #     example.get("instrument_family", tf.constant(0)),
-#     #     [1, 1])  # uid for instrument
-#     # instrument_source = tf.reshape(
-#     #     example.get("instrument_source", tf.constant(0)),
-#     #     [1, 1])  # uid for instrument
-#     # qualities = tf.reshape(
-#     #     example.get("qualities",
-#     #                tf.constant(np.zeros(self.dataset.num_qualities))),
-#     #     [1, self.dataset.num_qualities])  # uid for instrument
-#     # audio = tf.slice(example["audio"], [0], [self.dataset.num_samples])
-#     # audio = tf.reshape(audio, [1, self.dataset.num_samples])
+    # Form a Batch
+    if self.is_training:
+      (audio, velocity, pitch, specgram, 
+       instrument_source, instrument_family,
+       qualities) = tf.train.shuffle_batch(
+           [
+               audio, velocity, pitch, specgram, 
+               instrument_source, instrument_family, qualities
+           ],
+           batch_size=hparams.batch_size,
+           capacity=20 * hparams.batch_size,
+           min_after_dequeue=10 * hparams.batch_size,
+           enqueue_many=True)
+    elif hparams.batch_size > 1:
+      (audio, velocity, pitch, specgram, 
+       instrument_source, instrument_family, qualities) = tf.train.batch(
+           [
+               audio, velocity, pitch, specgram, 
+               instrument_source, instrument_family, qualities
+           ],
+           batch_size=hparams.batch_size,
+           capacity=10 * hparams.batch_size,
+           enqueue_many=True)
 
-#     # audio.set_shape([1, self.dataset.num_samples])
-#     # key = tf.expand_dims(tf.expand_dims(key, 0), 0)
-#     # key.set_shape([1, 1])
+    audio.set_shape([hparams.batch_size, 64000])
 
-#     # Get Specgrams
-#     hop_length = hparams.hop_length
-#     n_fft = hparams.n_fft
-#     if hop_length and n_fft:
-#       specgram = utils.tf_specgram(
-#           audio,
-#           n_fft=n_fft,
-#           hop_length=hop_length,
-#           mask=hparams.mask,
-#           log_mag=hparams.log_mag,
-#           use_cqt=hparams.use_cqt,
-#           re_im=hparams.re_im,
-#           dphase=hparams.dphase,
-#           mag_only=hparams.mag_only)
-#       if hparams.use_cqt:
-#         shape = [1] + [252, 1001, 2]
-#       else:
-#         shape = [1] + datasets.SPECGRAM_REGISTRY[(n_fft, hop_length)]
-#         if hparams.mag_only:
-#           shape[-1] = 1
-#       specgram = tf.reshape(specgram, shape)
-#       tf.logging.info("SPECGRAM BEFORE PADDING", specgram)
+    batch = dict(
+        pitch=pitch, 
+        velocity=velocity, 
+        audio=audio,
+        instrument_source=instrument_source,
+        instrument_family=instrument_family, 
+        qualities=qualities,
+        spectrogram=specgram)
 
-#       if hparams.pad:
-#         # Pad and crop specgram to 256x256
-#         num_padding = 2**int(np.ceil(np.log(shape[2]) / np.log(2))) - shape[2]
-#         tf.logging.info("num_pading: %d" % num_padding)
-#         specgram = tf.reshape(specgram, shape)
-#         specgram = tf.pad(specgram, [[0, 0], [0, 0], [0, num_padding], [0, 0]])
-#         specgram = tf.slice(specgram, [0, 0, 0, 0], [-1, shape[1] - 1, -1, -1])
-#         tf.logging.info("SPECGRAM AFTER PADDING", specgram)
-
-#     # Form a Batch
-#     if self.is_training:
-#       (key, audio, velocity, program, pitch, specgram, instrument,
-#        instrument_source, instrument_family,
-#        qualities) = tf.train.shuffle_batch(
-#            [
-#                key, audio, velocity, program, pitch, specgram, instrument,
-#                instrument_source, instrument_family, qualities
-#            ],
-#            batch_size=hparams.batch_size,
-#            capacity=20 * hparams.batch_size,
-#            min_after_dequeue=10 * hparams.batch_size,
-#            enqueue_many=True,
-#            allow_smaller_final_batch=self.allow_smaller_final_batch)
-#     elif hparams.batch_size > 1:
-#       (key, audio, velocity, program, pitch, specgram, instrument,
-#        instrument_source, instrument_family, qualities) = tf.train.batch(
-#            [
-#                key, audio, velocity, program, pitch, specgram, instrument,
-#                instrument_source, instrument_family, qualities
-#            ],
-#            batch_size=hparams.batch_size,
-#            capacity=10 * hparams.batch_size,
-#            enqueue_many=True,
-#            allow_smaller_final_batch=self.allow_smaller_final_batch)
-
-#     audio.set_shape([hparams.batch_size, self.dataset.num_samples])
-
-#     batch = BATCH(
-#         key=key, program=program, pitch=pitch, velocity=velocity, audio=audio,
-#         instrument=instrument, instrument_source=instrument_source,
-#         instrument_family=instrument_family, qualities=qualities,
-#         spectrogram=specgram)
-
-#     return batch
-
-
-# # All dataset names are in caps, pylint: disable=invalid-name
-# # 4seconds * 16khz = 64000.
-# NUM_SAMPLES_16k = 64000
-# # 4seconds * 8khz = 32000.
-# NUM_SAMPLES_8k = 32000
-
-# NSYNTH_TRAIN = DATASET(
-#     samples_per_second=16000,
-#     path_train=os.path.join(DATA_DIR_PERM, "nsynth_rc4-train.tfrecord"),
-#     path_test=os.path.join(DATA_DIR_PERM, "nsynth_rc4-valid.tfrecord"),
-#     num_samples=NUM_SAMPLES_16k,
-#     num_qualities=10,
-#     features={
-#         "velocity": tf.FixedLenFeature([1], tf.int64),
-#         "pitch": tf.FixedLenFeature([1], tf.int64),
-#         "sample_rate": tf.FixedLenFeature([1], tf.int64),
-#         "audio": tf.FixedLenFeature([NUM_SAMPLES_16k], tf.float32),
-#         "instrument": tf.FixedLenFeature([1], tf.int64),
-#         "instrument_family": tf.FixedLenFeature([1], tf.int64),
-#         "instrument_source": tf.FixedLenFeature([1], tf.int64),
-#         "qualities": tf.FixedLenFeature([10], tf.int64),
-#     })
+    return batch

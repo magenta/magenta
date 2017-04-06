@@ -34,6 +34,8 @@ import tensorflow as tf
 slim = tf.contrib.slim
 FLAGS = tf.app.flags.FLAGS
 
+from magenta.models.nsynth import utils
+
 tf.app.flags.DEFINE_string("master", "",
                            "BNS name of the TensorFlow master to use.")
 tf.app.flags.DEFINE_string("config", "h512_bo16", "Model configuration name")
@@ -45,21 +47,24 @@ tf.app.flags.DEFINE_integer("ps_tasks", 0,
                             "Number of tasks in the ps job. If 0 no ps job is "
                             "used. We typically use 11.")
 tf.app.flags.DEFINE_integer("total_batch_size", 1,
-                            "Batch size spread across all sync replicas.
+                            "Batch size spread across all sync replicas."
                             "We use a size of 32.")
 tf.app.flags.DEFINE_string("logdir", "/tmp/nsynth",
                            "The log directory for this experiment.")
 tf.app.flags.DEFINE_string("train_path", "", "The path to the train tfrecord.")
 tf.app.flags.DEFINE_string("test_path", "", "The path to the test tfrecord.")
+tf.app.flags.DEFINE_string("log", "INFO",
+                           "The threshold for what messages will be logged."
+                           "DEBUG, INFO, WARN, ERROR, or FATAL.")
 
 
 def main(unused_argv=None):
+  tf.logging.set_verbosity(FLAGS.log)
+
   if FLAGS.config is None:
     raise RuntimeError("No config name specified.")
 
-  import_path = "magenta.models.nsynth.wavenet."
-  import_path += FLAGS.config
-  config = importlib.import_module(import_path).Config(
+  config = utils.get_module("wavenet." + FLAGS.config).Config(
       FLAGS.train_path, FLAGS.test_path)
 
   logdir = FLAGS.logdir
@@ -116,7 +121,7 @@ def main(unused_argv=None):
           name="train",
           colocate_gradients_with_ops=True)
 
-      train_op = tf.Print(train_op, [loss, global_step], "Step:")
+      # train_op = tf.Print(train_op, [loss, global_step], "Step:")
 
       session_config = tf.ConfigProto(allow_soft_placement=True)
 

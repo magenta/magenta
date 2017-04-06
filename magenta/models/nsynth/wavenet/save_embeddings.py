@@ -13,11 +13,11 @@
 # limitations under the License.
 """With a trained model, compute the embeddings on a directory of WAV files.
 
-Example usage from magenta/models/nsynth:
-bazel run save_embeddings -- \
---expdir=/usr/local/google/home/jesseengel/Downloads/wavenet-ckpt \
---wavdir=/usr/local/google/home/jesseengel/Desktop/WAVS \
---savedir=/usr/local/google/home/jesseengel/Desktop/EMBEDDINGS \
+Example usage:
+bazel run //magenta/models/nsynth/wavenet:save_embeddings -- \
+--expdir=$HOME/Desktop/nsynth-test/wavenet-ckpt \
+--wavdir=$HOME/Desktop/nsynth-test/WAVS \
+--savedir=$HOME/Desktop/nsynth-test/EMBEDDINGS \
 --sample_length=5120 \
 --batch_size=4
 """
@@ -29,7 +29,8 @@ import sys
 # internal imports
 import numpy as np
 import tensorflow as tf
-from magenta.models.nsynth.wavenet import utils
+
+from magenta.models.nsynth import utils
 
 FLAGS = tf.app.flags.FLAGS
 
@@ -41,18 +42,18 @@ tf.app.flags.DEFINE_string("savedir", "", "Where to save the embeddings.")
 tf.app.flags.DEFINE_string("config", "h512_bo16", "Model configuration name")
 tf.app.flags.DEFINE_integer("sample_length", 64000, "Sample length.")
 tf.app.flags.DEFINE_integer("batch_size", 16, "Sample length.")
+tf.app.flags.DEFINE_string("log", "INFO",
+                           "The threshold for what messages will be logged."
+                           "DEBUG, INFO, WARN, ERROR, or FATAL.")
 
 
 def main(unused_argv=None):
-  tf.logging.set_verbosity('DEBUG')
+  tf.logging.set_verbosity(FLAGS.log)
 
   if FLAGS.config is None:
     raise RuntimeError("No config name specified.")
 
-  # TODO(cinjon): Do we need to make this cleaner for the release?
-  import_path = "magenta.models.nsynth.wavenet."
-  import_path += FLAGS.config
-  config = importlib.import_module(import_path).Config()
+  config = utils.get_module("wavenet." + FLAGS.config).Config()
 
   expdir = FLAGS.expdir
   tf.logging.info("Will load checkpoint from %s." % expdir)

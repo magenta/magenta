@@ -21,13 +21,15 @@ from __future__ import print_function
 import numpy as np 
 import tensorflow as tf
 
-from magenta.models.nsynth.baseline import utils
+from magenta.models.nsynth import utils
+from magenta.common.tf_lib import HParams
 
 slim = tf.contrib.slim
 
 
-def get_hparams():
-  return tf.HParams(
+
+def get_hparams(config_name):
+  hparams = HParams(
       # Optimization
       batch_size=16,
       learning_rate=1e-4,
@@ -36,7 +38,7 @@ def get_hparams():
       samples_per_second=16000,
       num_samples=64000,
       # Preprocessing
-      n_fft=512,
+      n_fft=1024,
       hop_length=256,
       mask=True,
       log_mag=True,
@@ -54,6 +56,12 @@ def get_hparams():
       fw_loss_coeff=1.0,  # Frequency weighted cost
       fw_loss_cutoff=1000,
   )
+  # Set values from a dictionary in the config
+  config = utils.get_module("baseline.models.ae_configs.%s" % config_name)
+  if hasattr(config, "hparams"):
+    config_hparams = config.hparams
+    hparams.update(config_hparams)
+  return hparams
 
 
 def compute_mse_loss(x, xhat, hparams):
@@ -101,21 +109,21 @@ def train_op(batch, hparams, config_name):
   """Define a training op, including summaries and optimization.
 
   Args:
-    batch: Batch produced by NSynthReader.
-    hparams: Hyperparameters.
+    batch: Dictionary produced by NSynthDataset.
+    hparams: Hyperparameters dictionary.
     config_name: Name of config module.
 
   Returns:
     train_op: A complete iteration of training with summaries.
   """
-  config = utils.get_module("models.ae_configs.%s" % config_name)
+  config = utils.get_module("baseline.models.ae_configs.%s" % config_name)
 
   if hparams.raw_audio:
-    x = batch.audio
+    x = batch["audio"]
     # Add height and channel dims
     x = tf.expand_dims(tf.expand_dims(x, 1), -1)
   else:
-    x = batch.spectrogram
+    x = batch["spectrogram"]
 
   phase = False if hparams.mag_only or hparams.raw_audio else True
 
@@ -126,7 +134,7 @@ def train_op(batch, hparams, config_name):
 
   # For interpolation
   tf.add_to_collection("x", x)
-  tf.add_to_collection("pitch", batch.pitch)
+  tf.add_to_collection("pitch", batch["pitch"])
   tf.add_to_collection("z", z)
   tf.add_to_collection("xhat", xhat)
 
@@ -135,9 +143,15 @@ def train_op(batch, hparams, config_name):
 
   # Apply optimizer
   with tf.name_scope("Optimizer"):
-    unused_global_step = slim.variables.get_or_create_global_step()
-    optimizer = tf.AdamOptimizer(hparams.learning_rate, hparams.adam_beta)
-    train_step = slim.learning.create_train_op(total_loss, optimizer)
+    global_step = tf.get_variable(
+        "global_step", [],
+        tf.int32,
+        initializer=tf.constant_initializer(0),
+        trainable=False)
+    optimizer = tf.train.AdamOptimizer(hparams.learning_rate, hparams.adam_beta)
+    train_step = slim.learning.create_train_op(total_loss, 
+                                               optimizer,
+                                               global_step=global_step)
 
   return train_step
 
@@ -155,7 +169,7 @@ def eval_op(batch, hparams, config_name):
   """
   phase = False if hparams.mag_only or hparams.raw_audio else True
 
-  config = utils.get_module("models.ae_configs.%s" % config_name)
+  config = utils.get_module("baseline.models.ae_configs.%s" % config_name)
   if hparams.raw_audio:
     x = batch.audio
     # Add height and channel dims

@@ -18,9 +18,17 @@ All configs should have encode() and decode().
 
 # internal imports
 import tensorflow as tf
-from magenta.models.nsynth.baseline import utils
+from magenta.models.nsynth import utils
 
 slim = tf.contrib.slim
+
+hparams = dict(
+    num_latent=1984,
+    batch_size=8,
+    mag_only=True,
+    n_fft=1024,
+    fw_loss_coeff=10.0,
+    fw_loss_cutoff=4000,)
 
 
 def encode(x, hparams, is_training=True, reuse=False):
