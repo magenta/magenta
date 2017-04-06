@@ -28,13 +28,6 @@ Given the difficulty of training, we've included weights of models pretrained on
 * [Baseline][baseline-ckpt]
 * [WaveNet][wavenet-ckpt]
 
-_Note, to use the checkpoints you have to modify the checkpoint file paths (ex, wavenet-ckpt/checkpoint) to reflect the current absolute path on your computer._
-
-Example:
-```
-model_checkpoint_path: "/<path-to-directory>/model.ckpt-200000"
-all_model_checkpoint_paths: "/<path-to-directory>/model.ckpt-200000"
-```
 
 # Training
 
@@ -77,14 +70,14 @@ Example Usage:
 ```bash
 bazel run //magenta/models/nsynth/baseline:save_embeddings -- \
 --tfrecord_path=/<path>/nsynth-test.tfrecord \
---expdir=/<path>/baseline-ckpt \
+--checkpoint_path=/<path>/baseline-ckpt/model.ckpt-200000 \
 --savedir=/<path> \
 ```
 
 (WaveNet)
 ```bash
 bazel run //magenta/models/nsynth/wavenet:save_embeddings -- \
---expdir=/<path>/wavenet-ckpt \
+--checkpoint_path=/<path>/wavenet-ckpt/model.ckpt-200000 \
 --wavdir=/<path> \
 --savedir=/<path> \
 --sample_length=5120 \
