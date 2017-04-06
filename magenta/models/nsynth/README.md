@@ -21,7 +21,7 @@ A full description of the algorithm and accompanying dataset can be found in our
 
 # The Models
 
-This repository contains a baseline spectral autoencoder model and a WaveNet autoencoder model, each in their respective directories. The baseline model uses a spectrogram with fft_size 1024 and hop_size 256, MSE loss on the magnitudes, and the Griffin-Lim algorithm for reconstruction. The WaveNet model trains on mu-law encoded waveform chunks of size 6144. It learns embeddings with 16 dimensions that are downsampled by 512 in time. 
+This repository contains a baseline spectral autoencoder model and a WaveNet autoencoder model, each in their respective directories. The baseline model uses a spectrogram with fft_size 1024 and hop_size 256, MSE loss on the magnitudes, and the Griffin-Lim algorithm for reconstruction. The WaveNet model trains on mu-law encoded waveform chunks of size 6144. It learns embeddings with 16 dimensions that are downsampled by 512 in time.
 
 
 # Training
@@ -30,7 +30,7 @@ To train the model you first need a dataset containing raw audio. We have built
 a very large dataset of musical notes that you can use for this purpose:
 [the NSynth Dataset][dataset].
 
-Training for both these models is very expensive, and likely difficult for many practical setups. Nevertheless, We've included training code for completeness and transparency. The WaveNet model takes around 10 days on 32 K40 gpus (synchronous) to converge at ~200k iterations. The baseline model takes about 5 days on 6 K40 gpus (asynchronous). 
+Training for both these models is very expensive, and likely difficult for many practical setups. Nevertheless, We've included training code for completeness and transparency. The WaveNet model takes around 10 days on 32 K40 gpus (synchronous) to converge at ~200k iterations. The baseline model takes about 5 days on 6 K40 gpus (asynchronous).
 
 Example Usage:
 -------
@@ -49,9 +49,9 @@ bazel run //magenta/models/nsynth/wavenet/train -- \
 --logdir=/<path>
 ```
 
-The WaveNet training also requires tensorflow 1.1.0-rc1 or beyond. 
+The WaveNet training also requires tensorflow 1.1.0-rc1 or beyond.
 As of 04/05/17 this requires installing tensorflow from source
-(https://github.com/tensorflow/tensorflow/releases). 
+(https://github.com/tensorflow/tensorflow/releases).
 
 
 # Saving Embeddings
