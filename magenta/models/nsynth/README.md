@@ -38,15 +38,21 @@ Example Usage:
 (Baseline)
 ```bash
 bazel run //magenta/models/nsynth/baseline:train -- \
---train_path=/<path>/nsynth-train.tfrecord```
+--train_path=/<path>/nsynth-train.tfrecord \
+---logdir=/<path>
 ```
 
 (WaveNet)
 ```bash
 bazel run //magenta/models/nsynth/wavenet/train -- \
 --train_path=/<path>/nsynth-train.tfrecord \
---test_path=/<path>/nsynth-test.tfrecord 
+--test_path=/<path>/nsynth-test.tfrecord \
+--logdir=/<path>
 ```
+
+The WaveNet training also requires tensorflow 1.1.0-rc1 or beyond. 
+As of 04/05/17 this requires installing tensorflow from source
+(https://github.com/tensorflow/tensorflow/releases). 
 
 
 # Saving Embeddings

@@ -14,7 +14,6 @@
 """Run a pretrained autoencoder model on an entire dataset, saving encodings.
 """
 
-import getpass
 import os
 import sys
 
@@ -108,12 +107,6 @@ def main(unused_argv):
       threads = tf.train.start_queue_runners(sess=sess, coord=coord)
       i = 0
       z_val = []
-      key_val = []
-      pitch_val = []
-      instrument_val = []
-      instrument_family_val = []
-      instrument_source_val = []
-      qualities_val = []
       try:
         while True:
           if coord.should_stop():

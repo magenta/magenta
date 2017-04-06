@@ -11,13 +11,13 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""The training script that runs the party.
+r"""The training script that runs the party.
 
-This script requires tensorflow 1.1.0-rc1 or beyond. 
+This script requires tensorflow 1.1.0-rc1 or beyond.
 As of 04/05/17 this requires installing tensorflow from source,
 (https://github.com/tensorflow/tensorflow/releases)
 
-So that it works locally, the default worker_replicas and total_batch_size are 
+So that it works locally, the default worker_replicas and total_batch_size are
 set to 1. For training in 200k iterations, they both should be 32.
 
 Example usage from magenta/models/nsynth:
@@ -84,7 +84,7 @@ def main(unused_argv=None):
       inputs_dict = config.get_batch(worker_batch_size)
 
     with tf.device(
-        tf.train.replica_device_setter(ps_tasks=FLAGS.ps_tasks, 
+        tf.train.replica_device_setter(ps_tasks=FLAGS.ps_tasks,
                                        merge_devices=True)):
       global_step = tf.get_variable(
           "global_step", [],

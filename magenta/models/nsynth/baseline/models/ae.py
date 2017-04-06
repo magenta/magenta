@@ -18,14 +18,13 @@ from __future__ import division
 from __future__ import print_function
 
 # internal imports
-import numpy as np 
+import numpy as np
 import tensorflow as tf
 
 from magenta.models.nsynth import utils
 from magenta.common.tf_lib import HParams
 
 slim = tf.contrib.slim
-
 
 
 def get_hparams(config_name):
@@ -149,7 +148,7 @@ def train_op(batch, hparams, config_name):
         initializer=tf.constant_initializer(0),
         trainable=False)
     optimizer = tf.train.AdamOptimizer(hparams.learning_rate, hparams.adam_beta)
-    train_step = slim.learning.create_train_op(total_loss, 
+    train_step = slim.learning.create_train_op(total_loss,
                                                optimizer,
                                                global_step=global_step)
 
@@ -206,15 +205,18 @@ def eval_op(batch, hparams, config_name):
     # Linear interpolation
     z_shift_one_example = tf.concat([z[1:], z[:1]], 0)
     z_linear_half = (z + z_shift_one_example) / 2.0
-    xhat_linear_half = config.decode(z_linear_half, batch, hparams, reuse=reuse, is_training=False)
+    xhat_linear_half = config.decode(z_linear_half, batch, hparams, reuse=reuse, 
+                                     is_training=False)
 
     # Pitch shift
     batch_pitch_plus_2 = batch._replace(pitch=tf.clip_by_value(
         batch.pitch + 2, 0, 127))
     batch_pitch_minus_2 = batch._replace(pitch=tf.clip_by_value(
         batch.pitch - 2, 0, 127))
-    xhat_pitch_minus_2 = config.decode(z, batch_pitch_plus_2, hparams, reuse=reuse, is_training=False)
-    xhat_pitch_plus_2 = config.decode(z, batch_pitch_minus_2, hparams, reuse=reuse, is_training=False)
+    xhat_pitch_minus_2 = config.decode(z, batch_pitch_plus_2, hparams, 
+                                       reuse=reuse, is_training=False)
+    xhat_pitch_plus_2 = config.decode(z, batch_pitch_minus_2, hparams, 
+                                      reuse=reuse, is_training=False)
 
   utils.specgram_summaries(x, "Training Examples", hparams, phase=phase)
   utils.specgram_summaries(xhat, "Reconstructions", hparams, phase=phase)

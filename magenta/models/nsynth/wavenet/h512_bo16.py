@@ -16,9 +16,9 @@
 # internal imports
 import tensorflow as tf
 
-from magenta.models.nsynth.wavenet import masked
 from magenta.models.nsynth import utils
 from magenta.models.nsynth import reader
+from magenta.models.nsynth.wavenet import masked
 
 
 class Config(object):

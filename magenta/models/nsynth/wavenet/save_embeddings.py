@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""With a trained model, compute the embeddings on a directory of WAV files.
+r"""With a trained model, compute the embeddings on a directory of WAV files.
 
 Example usage:
 bazel run //magenta/models/nsynth/wavenet:save_embeddings -- \
@@ -22,7 +22,6 @@ bazel run //magenta/models/nsynth/wavenet:save_embeddings -- \
 --batch_size=4
 """
 
-import importlib
 import os
 import sys
 

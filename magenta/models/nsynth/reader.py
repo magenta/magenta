@@ -155,11 +155,11 @@ class NSynthDataset(object):
 
     # Form a Batch
     if self.is_training:
-      (audio, velocity, pitch, specgram, 
+      (audio, velocity, pitch, specgram,
        instrument_source, instrument_family,
        qualities) = tf.train.shuffle_batch(
            [
-               audio, velocity, pitch, specgram, 
+               audio, velocity, pitch, specgram,
                instrument_source, instrument_family, qualities
            ],
            batch_size=hparams.batch_size,
@@ -167,10 +167,10 @@ class NSynthDataset(object):
            min_after_dequeue=10 * hparams.batch_size,
            enqueue_many=True)
     elif hparams.batch_size > 1:
-      (audio, velocity, pitch, specgram, 
+      (audio, velocity, pitch, specgram,
        instrument_source, instrument_family, qualities) = tf.train.batch(
            [
-               audio, velocity, pitch, specgram, 
+               audio, velocity, pitch, specgram,
                instrument_source, instrument_family, qualities
            ],
            batch_size=hparams.batch_size,
@@ -180,11 +180,11 @@ class NSynthDataset(object):
     audio.set_shape([hparams.batch_size, 64000])
 
     batch = dict(
-        pitch=pitch, 
-        velocity=velocity, 
+        pitch=pitch,
+        velocity=velocity,
         audio=audio,
         instrument_source=instrument_source,
-        instrument_family=instrument_family, 
+        instrument_family=instrument_family,
         qualities=qualities,
         spectrogram=specgram)
 
