@@ -90,8 +90,6 @@ def main(unused_argv=None):
     session_config.graph_options.optimizer_options.opt_level = 2
     sess = tf.Session("", config=session_config)
 
-    # tf.start_queue_runners(sess)
-
     tf.logging.info("\tRestoring from checkpoint.")
     saver.restore(sess, ckpt_path)
 
