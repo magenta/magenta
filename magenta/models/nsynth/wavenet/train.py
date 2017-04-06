@@ -1,4 +1,4 @@
-# Copyright 2016 Google Inc. All Rights Reserved.
+# Copyright 2017 Google Inc. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -112,8 +112,6 @@ def main(unused_argv=None):
           global_step=global_step,
           name="train",
           colocate_gradients_with_ops=True)
-
-      # train_op = tf.Print(train_op, [loss, global_step], "Step:")
 
       session_config = tf.ConfigProto(allow_soft_placement=True)
 
