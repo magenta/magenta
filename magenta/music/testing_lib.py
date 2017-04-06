@@ -42,6 +42,15 @@ def add_chords_to_sequence(note_sequence, chords):
     annotation.annotation_type = CHORD_SYMBOL
 
 
+def add_control_changes_to_sequence(note_sequence, instrument, control_changes):
+  for time, control_number, control_value in control_changes:
+    control_change = note_sequence.control_changes.add()
+    control_change.time = time
+    control_change.control_number = control_number
+    control_change.control_value = control_value
+    control_change.instrument = instrument
+
+
 def add_quantized_steps_to_sequence(sequence, quantized_steps):
   assert len(sequence.notes) == len(quantized_steps)
 

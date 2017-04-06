@@ -169,9 +169,10 @@ def main(unused_argv):
 
   input_dir = os.path.expanduser(FLAGS.input_dir)
   output_file = os.path.expanduser(FLAGS.output_file)
+  output_dir = os.path.dirname(output_file)
 
-  if not os.path.exists(os.path.dirname(output_file)):
-    os.makedirs(os.path.dirname(output_file))
+  if output_dir:
+    tf.gfile.MakeDirs(output_dir)
 
   with note_sequence_io.NoteSequenceRecordWriter(
       output_file) as sequence_writer:
