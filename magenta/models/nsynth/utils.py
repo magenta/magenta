@@ -46,28 +46,6 @@ def get_module(module_path):
   return module
 
 
-def save_wav(data, path):
-  """This saves a wav file locally and then copies the result to CNS.
-
-  Saving directly to CNS results in weird errors like:
-  "colossus writes are append-only; cannot write to file offset 4,
-  current length is 655404"
-
-  Args:
-    data: The float wav data, a 1D vector with values in [-1, 1].
-    path: The CNS file path to which we save.
-  """
-  tmp_path = "/tmp/tmp-%d.wav" % np.random.randint(2**32)
-
-  with tf.gfile.Open(tmp_path, "w") as f:
-    # The 0.9 is to prevent clipping.
-    data_16bit = (0.9 * data) * 2**15
-    scipy.io.wavfile.write(f, 16000, data_16bit.astype(np.int16))
-
-  tf.gfile.Copy(tmp_path, path, overwrite=True)
-  tf.gfile.Remove(tmp_path)
-
-
 def load_wav(path):
   """Load a wav file and convert to floats within [-1, 1].
 
