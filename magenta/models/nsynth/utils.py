@@ -207,8 +207,6 @@ def griffin_lim(mag, phase_angle, n_fft, hop, num_iters):
 
   Returns:
     audio: 1-D array of float32 sound samples.
-
-
   """
   fft_config = dict(n_fft=n_fft, win_length=n_fft, hop_length=hop, center=True)
   ifft_config = dict(win_length=n_fft, hop_length=hop, center=True)
@@ -246,10 +244,10 @@ def ispecgram(spec,
     num_iters: Number of griffin-lim iterations for mag_only.
 
   Returns:
-    audio: 1-D array of sound samples. Peak normalized to 1
+    audio: 1-D array of sound samples. Peak normalized to 1.
   """
   if not hop_length:
-    hop_length = int(n_fft / 2.)
+    hop_length = n_fft // 2
 
   ifft_config = dict(win_length=n_fft, hop_length=hop_length,
                      center=True)
@@ -356,7 +354,7 @@ def form_image_grid(input_tensor, grid_shape, image_shape, num_channels):
     arranged into a grid.
 
   Raises:
-    ValueError: The grid shape and minibatch size don"t match, or the image
+    ValueError: The grid shape and minibatch size don't match, or the image
         shape and number of channels are incompatible with the input tensor.
   """
   if grid_shape[0] * grid_shape[1] != int(input_tensor.get_shape()[0]):
@@ -410,7 +408,7 @@ def specgram_summaries(spec,
   """
   batch_size, n_freq, n_time, unused_channels = spec.get_shape().as_list()
   # Must divide minibatch evenly
-  b = min(batch_size, rows*columns)
+  b = min(batch_size, rows * columns)
 
   if hparams.raw_audio:
     spec = tf.squeeze(spec)
@@ -549,7 +547,7 @@ def frequency_weighted_cost_mask(peak=10.0, hz_flat=1000, sr=16000, n_fft=512):
     n_fft: FFT size.
 
   Returns:
-    * Constant tensor [1, N_freq, 1] of cost weighting.
+    Constant tensor [1, N_freq, 1] of cost weighting.
   """
   n = int(n_fft / 2)
   cutoff = np.where(
@@ -700,7 +698,7 @@ def conv2d(x,
         # Apply residual to last layer  before the last nonlinearity
         if residual and (layer_idx == stacked_layers - 1):
           with tf.variable_scope("Residual"):
-            # Don"t upsample residual in time
+            # Don't upsample residual in time
             if stride[0] == 1 and stride[1] == 1:
               channels_in = x0.get_shape().as_list()[-1]
               # Make n_channels match for residual
