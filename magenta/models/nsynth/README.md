@@ -93,9 +93,9 @@ bazel run //magenta/models/nsynth/wavenet:save_embeddings -- \
 
 
 [arXiv]: https://arxiv.org/abs/1704.01279
-[baseline-ckpt]:https://download.magenta.tensorflow.org/models/nsynth/baseline-ckpt.tar
+[baseline-ckpt]:http://download.magenta.tensorflow.org/models/nsynth/baseline-ckpt.tar
 [blog]: https://magenta.tensorflow.org/nsynth
 [dataset]: https://magenta.tensorflow.org/datasets/nsynth
 [wavenet-blog]:https://deepmind.com/blog/wavenet-generative-model-raw-audio/
 [wavenet-paper]:https://arxiv.org/abs/1609.03499
-[wavenet-ckpt]:https://download.magenta.tensorflow.org/models/nsynth/wavenet-ckpt.tar
+[wavenet-ckpt]:http://download.magenta.tensorflow.org/models/nsynth/wavenet-ckpt.tar
