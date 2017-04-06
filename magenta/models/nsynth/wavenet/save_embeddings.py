@@ -11,7 +11,16 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""With a trained model, compute the embeddings on a directory of WAV files."""
+"""With a trained model, compute the embeddings on a directory of WAV files.
+
+Example usage from magenta/models/nsynth:
+bazel run save_embeddings -- \
+--expdir=/usr/local/google/home/jesseengel/Downloads/wavenet-ckpt \
+--wavdir=/usr/local/google/home/jesseengel/Desktop/WAVS \
+--savedir=/usr/local/google/home/jesseengel/Desktop/EMBEDDINGS \
+--sample_length=5120 \
+--batch_size=4
+"""
 
 import importlib
 import os
@@ -35,6 +44,8 @@ tf.app.flags.DEFINE_integer("batch_size", 16, "Sample length.")
 
 
 def main(unused_argv=None):
+  tf.logging.set_verbosity('DEBUG')
+
   if FLAGS.config is None:
     raise RuntimeError("No config name specified.")
 
@@ -46,17 +57,17 @@ def main(unused_argv=None):
   expdir = FLAGS.expdir
   tf.logging.info("Will load checkpoint from %s." % expdir)
   while not tf.gfile.Exists(expdir):
-    logging.info("\tExperiment save dir '%s' does not exist!", expdir)
+    tf.logging.info("\tExperiment save dir '%s' does not exist!", expdir)
     sys.exit(1)
 
   try:
     ckpt_path = tf.train.latest_checkpoint(expdir)
   except tf.errors.NotFoundError:
-    logging.info("There was a problem determining the latest checkpoint.")
+    tf.logging.info("There was a problem determining the latest checkpoint.")
     sys.exit(1)
 
   if not ckpt_path:
-    logging.info("No valid checkpoint path.")
+    tf.logging.info("No valid checkpoint path.")
     sys.exit(1)
 
   wavdir = FLAGS.wavdir
@@ -86,18 +97,18 @@ def main(unused_argv=None):
     session_config = tf.ConfigProto(allow_soft_placement=True)
     # Set the opt_level to prevent py_funcs from being executed multiple times.
     session_config.graph_options.optimizer_options.opt_level = 2
-    sess = tf.Session("local", config=session_config)
+    sess = tf.Session("", config=session_config)
 
     # tf.start_queue_runners(sess)
 
-    logging.info("\tRestoring from checkpoint.")
+    tf.logging.info("\tRestoring from checkpoint.")
     saver.restore(sess, ckpt_path)
 
     def is_wav(f):
       return f.lower().endswith(".wav")
 
     wavfiles = sorted([
-        os.path.join(wavdir, fname) for fname in tf.gfile.ListDir(wavdir)
+        os.path.join(wavdir, fname) for fname in tf.gfile.ListDirectory(wavdir)
         if is_wav(fname)
     ])
 

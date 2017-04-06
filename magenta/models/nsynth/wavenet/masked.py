@@ -26,7 +26,7 @@ def shift_right(x):
   Returns:
     x_sliced: The [mb, time, channels] tensor output.
   """
-  shape = x.shape_as_list()
+  shape = x.get_shape().as_list()
   x_padded = tf.pad(x, [[0, 0], [1, 0], [0, 0]])
   x_sliced = tf.slice(x_padded, [0, 0, 0], tf.stack([-1, shape[1], -1]))
   x_sliced.set_shape(shape)
@@ -67,7 +67,7 @@ def time_to_batch(x, block_size):
   Returns:
     Tensor of shape [nb*block_size, k, n]
   """
-  shape = x.shape_as_list()
+  shape = x.get_shape().as_list()
   y = tf.reshape(x, [
       shape[0], shape[1] / block_size, block_size, shape[2]
   ])
@@ -93,7 +93,7 @@ def batch_to_time(x, block_size):
   Returns:
     Tensor of shape [nb, k*block_size, n].
   """
-  shape = x.shape_as_list()
+  shape = x.get_shape().as_list()
   y = tf.reshape(x, [shape[0] / block_size, block_size, shape[1], shape[2]])
   y = tf.transpose(y, [0, 2, 1, 3])
   y = tf.reshape(y, [shape[0] / block_size, shape[1] * block_size, shape[2]])
@@ -126,7 +126,7 @@ def conv1d(x,
   Returns:
     y: The output of the 1D convolution.
   """
-  batch_size, length, num_input_channels = x.shape_as_list()
+  batch_size, length, num_input_channels = x.get_shape().as_list()
   assert length % dilation == 0
 
   kernel_shape = [1, filter_length, num_input_channels, num_filters]
@@ -144,10 +144,13 @@ def conv1d(x,
   if filter_length > 1 and causal:
     x_ttb = tf.pad(x_ttb, [[0, 0], [filter_length - 1, 0], [0, 0]])
 
-  x_4d = tf.reshape(x_ttb, [tf.shape(x_ttb)[0], 1, -1, num_input_channels])
+  x_ttb_shape = x_ttb.get_shape().as_list()
+  x_4d = tf.reshape(x_ttb, [x_ttb_shape[0], 1, 
+                            x_ttb_shape[1], num_input_channels])
   y = tf.nn.conv2d(x_4d, weights, strides, padding=padding)
   y = tf.nn.bias_add(y, biases)
-  y = tf.reshape(y, [tf.shape(y)[0], -1, num_filters])
+  y_shape = y.get_shape().as_list()
+  y = tf.reshape(y, [y_shape[0], y_shape[2], num_filters])
   y = batch_to_time(y, dilation)
   y.set_shape([batch_size, length, num_filters])
   return y
@@ -172,7 +175,7 @@ def pool1d(x, window_length, name, mode='avg', stride=None):
     pool_fn = tf.nn.max_pool
 
   stride = stride or window_length
-  batch_size, length, num_channels = x.shape_as_list()
+  batch_size, length, num_channels = x.get_shape().as_list()
   assert length % window_length == 0
   assert length % stride == 0
 

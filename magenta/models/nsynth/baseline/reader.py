@@ -72,27 +72,27 @@ class NSynthReader(object):
 
     key, serialized = reader.read(filename_queue)
 
-    parsed = tf.parse_single_example(serialized, self.dataset.features)
+    example = tf.parse_single_example(serialized, self.dataset.features)
 
     # We give these dummy variables if absent so that we can include them in the
     # batch processing below.
-    program = tf.reshape(parsed.get("program", tf.constant(0)),
+    program = tf.reshape(example.get("program", tf.constant(0)),
                          [1, 1])  # only for earlier datasets
-    pitch = tf.reshape(parsed.get("pitch", tf.constant(0)), [1, 1])
-    velocity = tf.reshape(parsed.get("velocity", tf.constant(0)), [1, 1])
-    instrument = tf.reshape(parsed.get("instrument", tf.constant(0)),
+    pitch = tf.reshape(example.get("pitch", tf.constant(0)), [1, 1])
+    velocity = tf.reshape(example.get("velocity", tf.constant(0)), [1, 1])
+    instrument = tf.reshape(example.get("instrument", tf.constant(0)),
                             [1, 1])  # uid for instrument
     instrument_family = tf.reshape(
-        parsed.get("instrument_family", tf.constant(0)),
+        example.get("instrument_family", tf.constant(0)),
         [1, 1])  # uid for instrument
     instrument_source = tf.reshape(
-        parsed.get("instrument_source", tf.constant(0)),
+        example.get("instrument_source", tf.constant(0)),
         [1, 1])  # uid for instrument
     qualities = tf.reshape(
-        parsed.get("qualities",
+        example.get("qualities",
                    tf.constant(np.zeros(self.dataset.num_qualities))),
         [1, self.dataset.num_qualities])  # uid for instrument
-    audio = tf.slice(parsed["audio"], [0], [self.dataset.num_samples])
+    audio = tf.slice(example["audio"], [0], [self.dataset.num_samples])
     audio = tf.reshape(audio, [1, self.dataset.num_samples])
     tf.summary.audio(
         "AudioFromQueue",

@@ -24,7 +24,7 @@ from magenta.models.nsynth.wavenet import utils
 class Config(object):
   """Configuration object that helps manage the graph."""
 
-  def __init__(self, train_path, test_path):
+  def __init__(self, train_path=None, test_path=None):
     self.num_iters = 200000
     self.learning_rate_schedule = {
         0: 2e-4,
@@ -37,8 +37,13 @@ class Config(object):
     }
     self.ae_hop_length = 512
     self.ae_bottleneck_width = 16
-    self.data_train = nsynth_release_sstable.NSynthDataset(
-        train_path, test_path, subset='train', is_training=True, length=6144)
+    if train_path:
+      self.data_train = nsynth_release_sstable.NSynthDataset(
+          train_path, is_training=True)
+
+  def get_batch(self, batch_size):
+    return self.data_train.get_wavenet_batch(batch_size, length=6144)
+
 
   @staticmethod
   def _condition(x, encoding):

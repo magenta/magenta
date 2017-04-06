@@ -26,7 +26,7 @@ import os
 import tensorflow as tf
 
 DATA_DIR = os.path.join("")
-DATA_DIR_PERM = ""
+DATA_DIR_PERM = "s"
 
 DATASET = namedtuple("dataset", [
     "path_train", "path_test",

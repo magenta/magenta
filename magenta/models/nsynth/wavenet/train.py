@@ -11,19 +11,30 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""The training script that runs the party."""
+"""The training script that runs the party.
+
+This script requires tensorflow 1.1.0-rc1 or beyond. 
+As of 04/05/17 this requires installing tensorflow from source,
+(https://github.com/tensorflow/tensorflow/releases)
+
+So that it works locally, the default worker_replicas and total_batch_size are 
+set to 1. For training in 200k iterations, they both should be 32.
+
+Example usage from magenta/models/nsynth:
+bazel run train -- //
+  --train_path=/<path>/nsynth-train.tfrecord //
+  --test_path=/<path>/nsynth-test.tfrecord //
+"""
 
 import importlib
 
 # internal imports
 import tensorflow as tf
-from tensorflow.python.training.sync_replicas_optimizer import SyncReplicasOptimizer
 
 slim = tf.contrib.slim
-
 FLAGS = tf.app.flags.FLAGS
 
-tf.app.flags.DEFINE_string("master", "local",
+tf.app.flags.DEFINE_string("master", "",
                            "BNS name of the TensorFlow master to use.")
 tf.app.flags.DEFINE_string("config", "h512_bo16", "Model configuration name")
 tf.app.flags.DEFINE_integer("task", 0,
@@ -33,10 +44,13 @@ tf.app.flags.DEFINE_integer("worker_replicas", 1,
 tf.app.flags.DEFINE_integer("ps_tasks", 0,
                             "Number of tasks in the ps job. If 0 no ps job is "
                             "used. We typically use 11.")
-tf.app.flags.DEFINE_string("logdir", "",
+tf.app.flags.DEFINE_integer("total_batch_size", 1,
+                            "Batch size spread across all sync replicas.
+                            "We use a size of 32.")
+tf.app.flags.DEFINE_string("logdir", "/tmp/nsynth",
                            "The log directory for this experiment.")
-tf.app.flags.DEFINE_string("train_path", "", "The path to the train shards.")
-tf.app.flags.DEFINE_string("test_path", "", "The path to the test shards.")
+tf.app.flags.DEFINE_string("train_path", "", "The path to the train tfrecord.")
+tf.app.flags.DEFINE_string("test_path", "", "The path to the test tfrecord.")
 
 
 def main(unused_argv=None):
@@ -52,7 +66,7 @@ def main(unused_argv=None):
   tf.logging.info("Saving to %s" % logdir)
 
   with tf.Graph().as_default():
-    total_batch_size = 32
+    total_batch_size = FLAGS.total_batch_size
     assert total_batch_size % FLAGS.worker_replicas == 0
     worker_batch_size = total_batch_size / FLAGS.worker_replicas
 
@@ -62,10 +76,11 @@ def main(unused_argv=None):
       cpu_device = "/job:worker/cpu:0"
 
     with tf.device(cpu_device):
-      inputs_dict = config.data_train.get_expressions(worker_batch_size)
+      inputs_dict = config.get_batch(worker_batch_size)
 
     with tf.device(
-        tf.ReplicaDeviceSetter(FLAGS.ps_tasks, merge_devices=True)):
+        tf.train.replica_device_setter(ps_tasks=FLAGS.ps_tasks, 
+                                       merge_devices=True)):
       global_step = tf.get_variable(
           "global_step", [],
           tf.int32,
@@ -81,15 +96,15 @@ def main(unused_argv=None):
       tf.summary.scalar("learning_rate", lr)
 
       # build the model graph
-      graph_desc = config.build(inputs_dict, is_training=True)
-      loss = graph_desc["loss"]
+      outputs_dict = config.build(inputs_dict, is_training=True)
+      loss = outputs_dict["loss"]
       tf.summary.scalar("train_loss", loss)
 
       worker_replicas = FLAGS.worker_replicas
       ema = tf.train.ExponentialMovingAverage(
           decay=0.9999, num_updates=global_step)
-      opt = SyncReplicasOptimizer(
-          tf.AdamOptimizer(lr, epsilon=1e-8),
+      opt = tf.train.SyncReplicasOptimizer(
+          tf.train.AdamOptimizer(lr, epsilon=1e-8),
           worker_replicas,
           total_num_replicas=worker_replicas,
           variable_averages=ema,
@@ -100,6 +115,8 @@ def main(unused_argv=None):
           global_step=global_step,
           name="train",
           colocate_gradients_with_ops=True)
+
+      train_op = tf.Print(train_op, [loss, global_step], "Step:")
 
       session_config = tf.ConfigProto(allow_soft_placement=True)
 

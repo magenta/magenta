@@ -173,7 +173,7 @@ def main(unused_argv):
   # Set save directory and checkpoint paths
   if FLAGS.job_name:
     uname = FLAGS.user_name if FLAGS.user_name else getpass.getuser()
-    base = ("/nsynth/%s/baseline/" %
+    base = ("s/nsynth/%s/baseline/" %
             uname)
     job_dir = os.path.join(base, FLAGS.job_name)
     tf.logging.info(uname, base, job_dir)
