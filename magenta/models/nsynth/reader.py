@@ -132,7 +132,6 @@ class NSynthDataset(object):
     qualities = tf.slice(example["qualities"], [0], [10])
     qualities = tf.reshape(qualities, [1, 10])
 
-    print(example, audio, pitch, velocity, instrument_family, instrument_source, qualities)
     # Get Specgrams
     hop_length = hparams.hop_length
     n_fft = hparams.n_fft

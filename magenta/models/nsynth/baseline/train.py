@@ -72,7 +72,6 @@ def main(unused_argv):
     # across the different devices.
     model = utils.get_module("baseline.models.%s" % FLAGS.model)
     hparams = model.get_hparams(FLAGS.config)
-    print("HPARAMS", hparams.values())
 
     # Run the Reader on the CPU
     cpu_device = ("/job:worker/cpu:0" if FLAGS.ps_tasks else

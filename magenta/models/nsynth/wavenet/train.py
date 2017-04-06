@@ -24,10 +24,10 @@ set to 1. For training in 200k iterations, they both should be 32.
 # internal imports
 import tensorflow as tf
 
+from magenta.models.nsynth import utils
+
 slim = tf.contrib.slim
 FLAGS = tf.app.flags.FLAGS
-
-from magenta.models.nsynth import utils
 
 tf.app.flags.DEFINE_string("master", "",
                            "BNS name of the TensorFlow master to use.")

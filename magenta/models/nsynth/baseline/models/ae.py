@@ -33,7 +33,7 @@ def get_hparams(config_name):
   Args:
     config_name: Name of config module to use.
 
-  Return:
+  Returns:
     A HParams object (magenta) with defaults.
   """
   hparams = HParams(
@@ -104,7 +104,7 @@ def compute_mse_loss(x, xhat, hparams):
           # Von Mises Distribution "Circular Normal"
           # Added constant to keep positive (Same Probability) range [0, 2]
           phase_loss = 1 - tf.reduce_mean(fm * m * tf.cos(
-              (x[:, :, :, 1] - xhat[:, :, :, 1]) * utils.np.pi))
+              (x[:, :, :, 1] - xhat[:, :, :, 1]) * np.pi))
         total_loss = mag_loss + hparams.phase_loss_coeff * phase_loss
         tf.summary.scalar("Loss/Mag", mag_loss)
         tf.summary.scalar("Loss/Phase", phase_loss)
