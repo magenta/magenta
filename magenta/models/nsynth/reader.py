@@ -35,7 +35,7 @@ SPECGRAM_REGISTRY = {
 
 
 class NSynthDataset(object):
-  """Dataset object to help manage the SSTable loading."""
+  """Dataset object to help manage the TFRecord loading."""
 
   def __init__(self, tfrecord_path, is_training=True):
     self.is_training = is_training
