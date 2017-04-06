@@ -11,8 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Run a pretrained autoencoder model on an entire dataset, saving encodings.
-"""
+"""Run a pretrained autoencoder model on an entire dataset, saving encodings."""
 
 import os
 import sys
@@ -29,7 +28,7 @@ FLAGS = tf.app.flags.FLAGS
 tf.app.flags.DEFINE_string("master", "",
                            "BNS name of the TensorFlow master to use.")
 tf.app.flags.DEFINE_string("model", "ae", "Which model to use in models/")
-tf.app.flags.DEFINE_string("config", "1024_nfft",
+tf.app.flags.DEFINE_string("config", "nfft_1024",
                            "Which model to use in configs/")
 tf.app.flags.DEFINE_string("expdir", "",
                            "The log directory for this experiment.")
@@ -61,7 +60,6 @@ def save_arrays(savedir, hparams, z_val):
 
 def main(unused_argv):
   tf.logging.set_verbosity(FLAGS.log)
-
 
   # Make some directories
   expdir = FLAGS.expdir

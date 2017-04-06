@@ -22,8 +22,8 @@ import importlib
 # internal imports
 import librosa
 import numpy as np
-import tensorflow as tf
 import scipy.io.wavfile
+import tensorflow as tf
 
 slim = tf.contrib.slim
 
@@ -147,7 +147,6 @@ def get_optimizer(learning_rate, hparams):
       "sgd":
           tf.GradientDescentOptimizer(learning_rate)
   }.get(hparams.optimizer)
-
 
 
 def specgram(audio, n_fft=512, hop_length=None, mask=True, log_mag=True,

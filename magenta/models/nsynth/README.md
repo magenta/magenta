@@ -46,7 +46,6 @@ bazel run //magenta/models/nsynth/baseline:train -- \
 ```bash
 bazel run //magenta/models/nsynth/wavenet/train -- \
 --train_path=/<path>/nsynth-train.tfrecord \
---test_path=/<path>/nsynth-test.tfrecord \
 --logdir=/<path>
 ```
 

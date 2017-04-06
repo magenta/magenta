@@ -11,16 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-r"""With a trained model, compute the embeddings on a directory of WAV files.
-
-Example usage:
-bazel run //magenta/models/nsynth/wavenet:save_embeddings -- \
---expdir=$HOME/Desktop/nsynth-test/wavenet-ckpt \
---wavdir=$HOME/Desktop/nsynth-test/WAVS \
---savedir=$HOME/Desktop/nsynth-test/EMBEDDINGS \
---sample_length=5120 \
---batch_size=4
-"""
+"""With a trained model, compute the embeddings on a directory of WAV files."""
 
 import os
 import sys
@@ -76,7 +67,7 @@ def main(unused_argv=None):
   savedir = FLAGS.savedir
   tf.logging.info("Will save embeddings to %s." % savedir)
   if not tf.gfile.Exists(savedir):
-    logging.info("Creating save directory...")
+    tf.logging.info("Creating save directory...")
     tf.gfile.MakeDirs(savedir)
 
   tf.logging.info("Building graph")

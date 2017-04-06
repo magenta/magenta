@@ -16,15 +16,15 @@
 # internal imports
 import tensorflow as tf
 
-from magenta.models.nsynth import utils
 from magenta.models.nsynth import reader
+from magenta.models.nsynth import utils
 from magenta.models.nsynth.wavenet import masked
 
 
 class Config(object):
   """Configuration object that helps manage the graph."""
 
-  def __init__(self, train_path=None, test_path=None):
+  def __init__(self, train_path=None):
     self.num_iters = 200000
     self.learning_rate_schedule = {
         0: 2e-4,

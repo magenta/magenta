@@ -22,7 +22,7 @@ from magenta.models.nsynth import utils
 
 slim = tf.contrib.slim
 
-hparams = dict(
+config_hparams = dict(
     num_latent=1984,
     batch_size=8,
     mag_only=True,

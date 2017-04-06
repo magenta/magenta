@@ -36,7 +36,7 @@ tf.app.flags.DEFINE_string("train_path",
                            "Path the nsynth-train.tfrecord.")
 tf.app.flags.DEFINE_string("model", "ae", "Which model to use in models/")
 tf.app.flags.DEFINE_string("config",
-                           "1024_nfft",
+                           "nfft_1024",
                            "Which config to use in models/configs/")
 tf.app.flags.DEFINE_integer("save_summaries_secs",
                             15,

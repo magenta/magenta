@@ -19,11 +19,6 @@ As of 04/05/17 this requires installing tensorflow from source,
 
 So that it works locally, the default worker_replicas and total_batch_size are
 set to 1. For training in 200k iterations, they both should be 32.
-
-Example usage from magenta/models/nsynth:
-bazel run train -- //
-  --train_path=/<path>/nsynth-train.tfrecord //
-  --test_path=/<path>/nsynth-test.tfrecord //
 """
 
 import importlib
@@ -52,7 +47,6 @@ tf.app.flags.DEFINE_integer("total_batch_size", 1,
 tf.app.flags.DEFINE_string("logdir", "/tmp/nsynth",
                            "The log directory for this experiment.")
 tf.app.flags.DEFINE_string("train_path", "", "The path to the train tfrecord.")
-tf.app.flags.DEFINE_string("test_path", "", "The path to the test tfrecord.")
 tf.app.flags.DEFINE_string("log", "INFO",
                            "The threshold for what messages will be logged."
                            "DEBUG, INFO, WARN, ERROR, or FATAL.")
@@ -65,7 +59,7 @@ def main(unused_argv=None):
     raise RuntimeError("No config name specified.")
 
   config = utils.get_module("wavenet." + FLAGS.config).Config(
-      FLAGS.train_path, FLAGS.test_path)
+      FLAGS.train_path)
 
   logdir = FLAGS.logdir
   tf.logging.info("Saving to %s" % logdir)
