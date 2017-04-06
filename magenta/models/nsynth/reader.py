@@ -42,6 +42,14 @@ class NSynthDataset(object):
     self.record_path = tfrecord_path
 
   def get_example(self, batch_size):
+    """Get a single example from the tfrecord file.
+
+    Args:
+      batch_size: Int, minibatch size.
+
+    Returns:
+      tf.Example protobuf parsed from tfrecord.
+    """
     reader = tf.TFRecordReader()
     num_epochs = None if self.is_training else 1
     capacity = batch_size
@@ -50,7 +58,7 @@ class NSynthDataset(object):
         num_epochs=num_epochs,
         shuffle=self.is_training,
         capacity=capacity)
-    key, serialized_example = reader.read(path_queue)
+    unused_key, serialized_example = reader.read(path_queue)
     features = {
         "note_str": tf.FixedLenFeature([], dtype=tf.string),
         "pitch": tf.FixedLenFeature([1], dtype=tf.int64),

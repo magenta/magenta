@@ -28,6 +28,14 @@ slim = tf.contrib.slim
 
 
 def get_hparams(config_name):
+  """Set hyperparameters.
+
+  Args:
+    config_name: Name of config module to use.
+
+  Return:
+    A HParams object (magenta) with defaults.
+  """
   hparams = HParams(
       # Optimization
       batch_size=16,
@@ -124,8 +132,6 @@ def train_op(batch, hparams, config_name):
   else:
     x = batch["spectrogram"]
 
-  phase = False if hparams.mag_only or hparams.raw_audio else True
-
   # Define the model
   with tf.name_scope("Model"):
     z = config.encode(x, hparams)
@@ -200,12 +206,12 @@ def eval_op(batch, hparams, config_name):
 
   # Interpolate
   with tf.name_scope("Interpolation"):
-    xhat = config.decode(z, batch, hparams, reuse=reuse, is_training=False)
+    xhat = config.decode(z, batch, hparams, reuse=True, is_training=False)
 
     # Linear interpolation
     z_shift_one_example = tf.concat([z[1:], z[:1]], 0)
     z_linear_half = (z + z_shift_one_example) / 2.0
-    xhat_linear_half = config.decode(z_linear_half, batch, hparams, reuse=reuse,
+    xhat_linear_half = config.decode(z_linear_half, batch, hparams, reuse=True,
                                      is_training=False)
 
     # Pitch shift
@@ -214,9 +220,9 @@ def eval_op(batch, hparams, config_name):
     batch_pitch_minus_2 = batch._replace(pitch=tf.clip_by_value(
         batch.pitch - 2, 0, 127))
     xhat_pitch_minus_2 = config.decode(z, batch_pitch_plus_2, hparams,
-                                       reuse=reuse, is_training=False)
+                                       reuse=True, is_training=False)
     xhat_pitch_plus_2 = config.decode(z, batch_pitch_minus_2, hparams,
-                                      reuse=reuse, is_training=False)
+                                      reuse=True, is_training=False)
 
   utils.specgram_summaries(x, "Training Examples", hparams, phase=phase)
   utils.specgram_summaries(xhat, "Reconstructions", hparams, phase=phase)

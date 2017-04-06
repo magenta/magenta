@@ -145,7 +145,7 @@ def conv1d(x,
     x_ttb = tf.pad(x_ttb, [[0, 0], [filter_length - 1, 0], [0, 0]])
 
   x_ttb_shape = x_ttb.get_shape().as_list()
-  x_4d = tf.reshape(x_ttb, [x_ttb_shape[0], 1, 
+  x_4d = tf.reshape(x_ttb, [x_ttb_shape[0], 1,
                             x_ttb_shape[1], num_input_channels])
   y = tf.nn.conv2d(x_4d, weights, strides, padding=padding)
   y = tf.nn.bias_add(y, biases)

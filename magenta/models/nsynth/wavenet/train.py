@@ -21,8 +21,6 @@ So that it works locally, the default worker_replicas and total_batch_size are
 set to 1. For training in 200k iterations, they both should be 32.
 """
 
-import importlib
-
 # internal imports
 import tensorflow as tf
 
