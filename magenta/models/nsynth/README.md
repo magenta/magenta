@@ -30,6 +30,12 @@ Given the difficulty of training, we've included weights of models pretrained on
 
 _Note, to use the checkpoints you have to modify the checkpoint file paths (ex, wavenet-ckpt/checkpoint) to reflect the current absolute path on your computer._
 
+Example:
+```
+model_checkpoint_path: "/<path-to-directory>/model.ckpt-200000"
+all_model_checkpoint_paths: "/<path-to-directory>/model.ckpt-200000"
+```
+
 # Training
 
 To train the model you first need a dataset containing raw audio. We have built

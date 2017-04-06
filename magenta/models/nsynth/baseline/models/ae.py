@@ -150,7 +150,7 @@ def train_op(batch, hparams, config_name):
   with tf.name_scope("Optimizer"):
     global_step = tf.get_variable(
         "global_step", [],
-        tf.int32,
+        tf.int64,
         initializer=tf.constant_initializer(0),
         trainable=False)
     optimizer = tf.train.AdamOptimizer(hparams.learning_rate, hparams.adam_beta)
@@ -176,11 +176,11 @@ def eval_op(batch, hparams, config_name):
 
   config = utils.get_module("baseline.models.ae_configs.%s" % config_name)
   if hparams.raw_audio:
-    x = batch.audio
+    x = batch["audio"]
     # Add height and channel dims
     x = tf.expand_dims(tf.expand_dims(x, 1), -1)
   else:
-    x = batch.spectrogram
+    x = batch["spectrogram"]
 
   # Define the model
   with tf.name_scope("Model"):
@@ -189,7 +189,7 @@ def eval_op(batch, hparams, config_name):
 
   # For interpolation
   tf.add_to_collection("x", x)
-  tf.add_to_collection("pitch", batch.pitch)
+  tf.add_to_collection("pitch", batch["pitch"])
   tf.add_to_collection("z", z)
   tf.add_to_collection("xhat", xhat)
 
@@ -215,13 +215,15 @@ def eval_op(batch, hparams, config_name):
                                      is_training=False)
 
     # Pitch shift
-    batch_pitch_plus_2 = batch._replace(pitch=tf.clip_by_value(
-        batch.pitch + 2, 0, 127))
-    batch_pitch_minus_2 = batch._replace(pitch=tf.clip_by_value(
-        batch.pitch - 2, 0, 127))
-    xhat_pitch_minus_2 = config.decode(z, batch_pitch_plus_2, hparams,
+
+    pitch_plus_2 = tf.clip_by_value(batch["pitch"] + 2, 0, 127)
+    pitch_plus_2 = tf.clip_by_value(batch["pitch"] - 2, 0, 127)
+
+    batch["pitch"] = pitch_minus_2
+    xhat_pitch_minus_2 = config.decode(z, batch, hparams,
                                        reuse=True, is_training=False)
-    xhat_pitch_plus_2 = config.decode(z, batch_pitch_minus_2, hparams,
+    batch["pitch"] = pitch_plus_2
+    xhat_pitch_plus_2 = config.decode(z, batch, hparams,
                                       reuse=True, is_training=False)
 
   utils.specgram_summaries(x, "Training Examples", hparams, phase=phase)

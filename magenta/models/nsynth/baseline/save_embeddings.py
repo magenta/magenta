@@ -50,7 +50,8 @@ def save_arrays(savedir, hparams, z_val):
   """
   z_save_val = np.array(z_val).reshape(-1, hparams.num_latent)
 
-  save_name = os.path.join(savedir, "{}_%s.npy".format(FLAGS.dataset_split))
+  name = FLAGS.tfrecord_path.split("/")[-1].split(".tfrecord")[0]
+  save_name = os.path.join(savedir, "{}_%s.npy".format(name))
   with tf.gfile.Open(save_name % "z", "w") as f:
     np.save(f, z_save_val)
 
@@ -78,7 +79,7 @@ def main(unused_argv):
   # Make the graph
   with tf.Graph().as_default():
     with tf.Session(config=tf.ConfigProto(allow_soft_placement=True)) as sess:
-      model = utils.get_module("models.%s" % FLAGS.model)
+      model = utils.get_module("baseline.models.%s" % FLAGS.model)
       hparams = model.get_hparams(FLAGS.config)
 
       # Load the trained model with is_training=False
@@ -87,7 +88,7 @@ def main(unused_argv):
             FLAGS.tfrecord_path,
             is_training=False).get_baseline_batch(hparams)
 
-      _ = model.eval_op(batch, hparams, FLAGS.config)
+      _ = model.train_op(batch, hparams, FLAGS.config)
       z = tf.get_collection("z")[0]
 
       init_op = tf.group(tf.global_variables_initializer(),
@@ -114,7 +115,7 @@ def main(unused_argv):
           tf.logging.info("Iter: %d" % i)
           tf.logging.info("Z:{}".format(res_val[0].shape))
           i += 1
-          if i + 1 % 100 == 0:
+          if i + 1 % 1 == 0:
             save_arrays(savedir, hparams, z_val)
       # Report all exceptions to the coordinator, pylint: disable=broad-except
       except Exception, e:
