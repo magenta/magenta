@@ -23,6 +23,12 @@ A full description of the algorithm and accompanying dataset can be found in our
 
 This repository contains a baseline spectral autoencoder model and a WaveNet autoencoder model, each in their respective directories. The baseline model uses a spectrogram with fft_size 1024 and hop_size 256, MSE loss on the magnitudes, and the Griffin-Lim algorithm for reconstruction. The WaveNet model trains on mu-law encoded waveform chunks of size 6144. It learns embeddings with 16 dimensions that are downsampled by 512 in time.
 
+Given the difficulty of training, we've included weights of models pretrained on the NSynth dataset. They are available for download as TensorFlow checkpoints:
+
+* [Baseline][baseline-ckpt]
+* [WaveNet][wavenet-ckpt]
+
+_Note, to use the checkpoints you have to modify the checkpoint file paths (ex, wavenet-ckpt/checkpoint) to reflect the current absolute path on your computer._
 
 # Training
 
@@ -56,14 +62,7 @@ As of 04/05/17 this requires installing tensorflow from source
 
 # Saving Embeddings
 
-Given the difficulty of training, we've included weights of models pretrained on the NSynth dataset. They are available for download as TensorFlow checkpoints: (
-
-* [Baseline][baseline-ckpt]
-* [WaveNet][wavenet-ckpt]
-
-_Note, to use the checkpoints you have to modify the checkpoint file paths (ex, wavenet-ckpt/checkpoint) to reflect the current absolute path on your computer._
-
-We've included scripts for saving embeddings from your own wave files (16kHz).
+We've included scripts for saving embeddings from your own wave files (16kHz audio expected).
 
 Example Usage:
 -------
