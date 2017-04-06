@@ -30,8 +30,12 @@ tf.app.flags.DEFINE_string("master", "",
 tf.app.flags.DEFINE_string("model", "ae", "Which model to use in models/")
 tf.app.flags.DEFINE_string("config", "nfft_1024",
                            "Which model to use in configs/")
-tf.app.flags.DEFINE_string("expdir", "",
-                           "The log directory for this experiment.")
+ttf.app.flags.DEFINE_string("expdir", "",
+                           "The log directory for this experiment. Required if "
+                           "`checkpoint_path` is not given.")
+tf.app.flags.DEFINE_string("checkpoint_path", "",
+                           "A path to the checkpoint. If not given, the latest "
+                           "checkpoint in `expdir` will be used.")
 tf.app.flags.DEFINE_string("tfrecord_path", "",
                            "Path to nsynth-{train, valid, test}.tfrecord.")
 tf.app.flags.DEFINE_string("savedir", "", "Where to save the embeddings.")
@@ -62,14 +66,23 @@ def save_arrays(savedir, hparams, z_val):
 def main(unused_argv):
   tf.logging.set_verbosity(FLAGS.log)
 
-  # Make some directories
-  expdir = FLAGS.expdir
-  assert tf.gfile.Exists(expdir), "Can't find directory %s" % expdir
-  tf.logging.info("CHECKPOINT_DIR: {}".format(expdir))
-  checkpoint_path = tf.train.latest_checkpoint(expdir)
-  tf.logging.info("CHECKPOINT_PATH: {}".format(checkpoint_path))
-  if not checkpoint_path:
-    tf.logging.info("There was a problem determining the latest checkpoint.")
+  if FLAGS.checkpoint_path:
+    ckpt_path = FLAGS.ckpt_path
+  else:
+    expdir = FLAGS.expdir
+    tf.logging.info("Will load latest checkpoint from %s.", expdir)
+    while not tf.gfile.Exists(expdir):
+      tf.logging.fatal("\tExperiment save dir '%s' does not exist!", expdir)
+      sys.exit(1)
+
+    try:
+      ckpt_path = tf.train.latest_checkpoint(expdir)
+    except tf.errors.NotFoundError:
+      tf.logging.fatal("There was a problem determining the latest checkpoint.")
+      sys.exit(1)
+
+  if not tf.train.checkpoint_exists(ckpt_path):
+    tf.logging.fatal("Invalid checkpoint path: %s", ckpt_path)
     sys.exit(1)
 
   savedir = FLAGS.savedir
