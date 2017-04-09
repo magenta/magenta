@@ -41,18 +41,19 @@ class NADE:
 		ct = 0
 
 		with tf.variable_scope("NADE_step"):
+			temp_a = self.a
 			while True:
-				p_vi = tf.sigmoid(tf.slice(b, begin = (0, ct), size = (-1, 1)) + tf.matmul(tf.sigmoid(a), tf.slice(V,begin = (0, ct), size = (-1,1))) )
+				p_vi = tf.sigmoid(tf.slice(self.b, begin = (0, ct), size = (-1, 1)) + tf.matmul(tf.sigmoid(temp_a), tf.slice(self.V,begin = (0, ct), size = (-1,1))) )
 				# The note at position ct is sampled according to a Bernouilli distribution of parameter p_vi
 				dist = tf.contrib.distributions.Bernoulli(p=p_vi, dtype=tf.float32)
 				vi = dist.sample()
-				a = a + tf.matmul(vi , tf.slice(W, begin = (ct, 0), size = (1,-1)) )   
+				temp_a = temp_a + tf.matmul(vi , tf.slice(self.W, begin = (ct, 0), size = (1,-1)) )   
 				temp_samples.append(vi)
 				ct += 1
 				if  ct >= timeslice_size:
 					break
 		p_temp = tf.stack(temp_samples, axis = 1)
-		p = tf.squeeze(p_temp, axis = 2) ## shape(?, 54)
+		p = tf.squeeze(p_temp, axis = 2)
 		sampled_timeslice = p
 		return(sampled_timeslice)
 
