@@ -35,3 +35,24 @@ class NADE:
 		#num_time_slices = tf.to_float(tf.reduce_sum(lengths))
 		#log_prob = tf.reduce_sum(mask_flat * log_prob) / num_time_slices
 		# is it equivalent to doing loss = -tf.reduce_mean((tf.squeeze(log_probability,axis=1)))??
+		
+	def sample(self):
+		temp_samples = []
+		ct = 0
+
+		with tf.variable_scope("NADE_step"):
+			while True:
+				p_vi = tf.sigmoid(tf.slice(b, begin = (0, ct), size = (-1, 1)) + tf.matmul(tf.sigmoid(a), tf.slice(V,begin = (0, ct), size = (-1,1))) )
+				# The note at position ct is sampled according to a Bernouilli distribution of parameter p_vi
+				dist = tf.contrib.distributions.Bernoulli(p=p_vi, dtype=tf.float32)
+				vi = dist.sample()
+				a = a + tf.matmul(vi , tf.slice(W, begin = (ct, 0), size = (1,-1)) )   
+				temp_samples.append(vi)
+				ct += 1
+				if  ct >= timeslice_size:
+					break
+		p_temp = tf.stack(temp_samples, axis = 1)
+		p = tf.squeeze(p_temp, axis = 2) ## shape(?, 54)
+		sampled_timeslice = p
+		return(sampled_timeslice)
+
