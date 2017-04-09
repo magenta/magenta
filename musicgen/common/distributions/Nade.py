@@ -56,4 +56,5 @@ class NADE:
 		p = tf.squeeze(p_temp, axis = 2)
 		sampled_timeslice = p
 		return(sampled_timeslice)
+		# Does sampled_timeslice in Nade have the same shape as the shape of sample_timeslice as in Independent?
 
