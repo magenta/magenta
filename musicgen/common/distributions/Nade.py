@@ -37,6 +37,7 @@ class NADE:
 		# is it equivalent to doing loss = -tf.reduce_mean((tf.squeeze(log_probability,axis=1)))??
 		
 	def sample(self):
+		timeslice_size = self.W.get_shape().as_list()[0]
 		temp_samples = []
 		ct = 0
 
