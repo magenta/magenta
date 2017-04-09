@@ -9,19 +9,20 @@ class NADE:
 		"""Construct Bernoulli distributions."""
 		self.a,self.b,self.W,self.V,self.dtype=a,b,W,V,dtype
       
-	def log_prob(self,targets):
+	def log_prob(self,targets_flat):
 		# assumes that targets is flattened
 		# outputs a vector of (log)probability - one (log)probability for each timeslice entry
+		timeslice_size = targets_flat.get_shape().as_list()[1]
 		ct = 0
 		offset = tf.constant(10**(-14), dtype=tf.float32,name='offset', verify_shape=False)
 		log_probability = 0
 		with tf.variable_scope("NADE_step"):
-			temp_a = a
+			temp_a = self.a
 			while True:
 				hi = tf.sigmoid(temp_a)
-				p_vi = tf.sigmoid(tf.slice(b,begin = (0, ct), size = (-1, 1)) + tf.matmul(hi, tf.slice(V, begin = (0, ct), size = (-1, 1))) )
+				p_vi = tf.sigmoid(tf.slice(self.b,begin = (0, ct), size = (-1, 1)) + tf.matmul(hi, tf.slice(self.V, begin = (0, ct), size = (-1, 1))) )
 				vi = tf.slice(targets_flat, begin = (0, ct), size = (-1, 1))
-				temp_a = temp_a + tf.matmul(vi , tf.slice(W, begin = (ct, 0), size = (1,-1)) )
+				temp_a = temp_a + tf.matmul(vi , tf.slice(self.W, begin = (ct, 0), size = (1,-1)) )
 				log_prob = tf.multiply(vi,tf.log(p_vi + offset)) + tf.multiply((1-vi),tf.log((1-p_vi) + offset))  
 				log_probability = log_probability + log_prob
 				ct += 1
