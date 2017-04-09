@@ -1,6 +1,6 @@
 import tensorflow as tf
 from common.models.sequenceGenerativeModel import SequenceGenerativeModel
-from common.distributions.Nade import NADE
+from common.distributions import Nade
 
 """
 An RNN that models a sequence of NADE objects, where the parameters of each NADE
