@@ -14,8 +14,6 @@
 
 # Description: Neural synthesizer model.
 
-licenses(["notice"])  # Apache 2.0
-
 package(
     default_visibility = [
         "//magenta/tools/pip:__subpackages__",
@@ -23,6 +21,7 @@ package(
     ],
 )
 
+licenses(["notice"])  # Apache 2.0
 
 py_library(
     name = "utils",

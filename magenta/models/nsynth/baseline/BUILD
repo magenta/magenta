@@ -14,14 +14,13 @@
 
 # Description: TF code for training baseline specgram autoencoder models
 
-licenses(["notice"])  # Apache 2.0
-
 package(
     default_visibility = [
         "//magenta/tools/pip:__subpackages__",
     ],
 )
 
+licenses(["notice"])  # Apache 2.0
 
 py_library(
     name = "ae_configs",

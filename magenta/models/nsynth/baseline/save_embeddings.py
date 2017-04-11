@@ -30,9 +30,9 @@ tf.app.flags.DEFINE_string("master", "",
 tf.app.flags.DEFINE_string("model", "ae", "Which model to use in models/")
 tf.app.flags.DEFINE_string("config", "nfft_1024",
                            "Which model to use in configs/")
-ttf.app.flags.DEFINE_string("expdir", "",
-                           "The log directory for this experiment. Required if "
-                           "`checkpoint_path` is not given.")
+tf.app.flags.DEFINE_string("expdir", "",
+                           "The log directory for this experiment. Required "
+                           "if`checkpoint_path` is not given.")
 tf.app.flags.DEFINE_string("checkpoint_path", "",
                            "A path to the checkpoint. If not given, the latest "
                            "checkpoint in `expdir` will be used.")
@@ -67,7 +67,7 @@ def main(unused_argv):
   tf.logging.set_verbosity(FLAGS.log)
 
   if FLAGS.checkpoint_path:
-    ckpt_path = FLAGS.ckpt_path
+    checkpoint_path = FLAGS.checkpoint_path
   else:
     expdir = FLAGS.expdir
     tf.logging.info("Will load latest checkpoint from %s.", expdir)
@@ -76,13 +76,13 @@ def main(unused_argv):
       sys.exit(1)
 
     try:
-      ckpt_path = tf.train.latest_checkpoint(expdir)
+      checkpoint_path = tf.train.latest_checkpoint(expdir)
     except tf.errors.NotFoundError:
       tf.logging.fatal("There was a problem determining the latest checkpoint.")
       sys.exit(1)
 
-  if not tf.train.checkpoint_exists(ckpt_path):
-    tf.logging.fatal("Invalid checkpoint path: %s", ckpt_path)
+  if not tf.train.checkpoint_exists(checkpoint_path):
+    tf.logging.fatal("Invalid checkpoint path: %s", checkpoint_path)
     sys.exit(1)
 
   savedir = FLAGS.savedir
