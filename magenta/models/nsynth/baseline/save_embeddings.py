@@ -30,9 +30,9 @@ tf.app.flags.DEFINE_string("master", "",
 tf.app.flags.DEFINE_string("model", "ae", "Which model to use in models/")
 tf.app.flags.DEFINE_string("config", "nfft_1024",
                            "Which model to use in configs/")
-ttf.app.flags.DEFINE_string("expdir", "",
-                            "The log directory for this experiment. Required "
-                            "if`checkpoint_path` is not given.")
+tf.app.flags.DEFINE_string("expdir", "",
+                           "The log directory for this experiment. Required "
+                           "if`checkpoint_path` is not given.")
 tf.app.flags.DEFINE_string("checkpoint_path", "",
                            "A path to the checkpoint. If not given, the latest "
                            "checkpoint in `expdir` will be used.")
