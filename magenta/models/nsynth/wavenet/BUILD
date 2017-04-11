@@ -23,15 +23,6 @@ package(
 licenses(["notice"])  # Apache 2.0
 
 py_library(
-    name = "utils",
-    srcs = ["utils.py"],
-    deps = [
-        # numpy dep
-        # tensorflow dep
-    ],
-)
-
-py_library(
     name = "masked",
     srcs = ["masked.py"],
     deps = [
