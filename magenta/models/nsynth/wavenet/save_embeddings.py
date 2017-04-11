@@ -50,7 +50,7 @@ def main(unused_argv=None):
   config = utils.get_module("wavenet." + FLAGS.config).Config()
 
   if FLAGS.checkpoint_path:
-    ckpt_path = FLAGS.ckpt_path
+    checkpoint_path = FLAGS.checkpoint_path
   else:
     expdir = FLAGS.expdir
     tf.logging.info("Will load latest checkpoint from %s.", expdir)
@@ -59,16 +59,16 @@ def main(unused_argv=None):
       sys.exit(1)
 
     try:
-      ckpt_path = tf.train.latest_checkpoint(expdir)
+      checkpoint_path = tf.train.latest_checkpoint(expdir)
     except tf.errors.NotFoundError:
       tf.logging.fatal("There was a problem determining the latest checkpoint.")
       sys.exit(1)
 
-  if not tf.train.checkpoint_exists(ckpt_path):
-    tf.logging.fatal("Invalid checkpoint path: %s", ckpt_path)
+  if not tf.train.checkpoint_exists(checkpoint_path):
+    tf.logging.fatal("Invalid checkpoint path: %s", checkpoint_path)
     sys.exit(1)
 
-  tf.logging.info("Will restore from checkpoint: %s", ckpt_path)
+  tf.logging.info("Will restore from checkpoint: %s", checkpoint_path)
 
   wavdir = FLAGS.wavdir
   tf.logging.info("Will load Wavs from %s." % wavdir)
@@ -100,7 +100,7 @@ def main(unused_argv=None):
     sess = tf.Session("", config=session_config)
 
     tf.logging.info("\tRestoring from checkpoint.")
-    saver.restore(sess, ckpt_path)
+    saver.restore(sess, checkpoint_path)
 
     def is_wav(f):
       return f.lower().endswith(".wav")
