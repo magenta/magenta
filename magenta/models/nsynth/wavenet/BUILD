@@ -14,13 +14,13 @@
 
 # Description: TF code for training wavenet autoencoder models
 
-licenses(["notice"])  # Apache 2.0
-
 package(
     default_visibility = [
         "//magenta/tools/pip:__subpackages__",
     ],
 )
+
+licenses(["notice"])  # Apache 2.0
 
 py_library(
     name = "utils",
