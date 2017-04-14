@@ -21,8 +21,15 @@ import magenta
 from magenta.protobuf import generator_pb2
 
 steps_per_quarter = 4
-qpm = 120
-BACKING_CHORDS = "C G Am F C G Am F"
+IMPROV_BACKING_CHORDS = "C G Am F C G Am F"
+DRUM_TEMPERATURE = 1.0
+DRUM_BEAM_SIZE = 1
+DRUM_BRANCH_FACTOR = 1
+DRUM_STEPS_PER_ITERATION = 1
+
+
+def _steps_to_seconds(steps, qpm):
+    return steps * 60.0 / qpm / steps_per_quarter
 
 
 def improv_generator(bundle='chord_pitches_improv'):
@@ -43,15 +50,18 @@ def improv_generator(bundle='chord_pitches_improv'):
     def generate_backing_chords(input_sequence, generator_options):
         # Create backing chord progression from flags.
         steps_per_chord = steps_per_quarter
-        backing_chords = BACKING_CHORDS
+        backing_chords = IMPROV_BACKING_CHORDS
         raw_chords = backing_chords.split()
         repeated_chords = [chord for chord in raw_chords
                            for _ in range(steps_per_chord)]
         backing_chords = magenta.music.ChordProgression(repeated_chords)
 
+        # grab qpm
+        qpm = input_sequence.tempos[0].qpm
+
         # Derive the total number of seconds to generate based on the QPM of the
         # priming sequence and the length of the backing chord progression.
-        seconds_per_step = 60.0 / qpm / generator.steps_per_quarter
+        seconds_per_step = _steps_to_seconds(1, qpm)
         total_seconds = len(backing_chords) * seconds_per_step
 
         # Specify start/stop time for generation based on starting generation at
@@ -101,11 +111,30 @@ def drums_generator(bundle='drum_kit'):
     config = magenta.models.drums_rnn.drums_rnn_model.default_configs[bundle]
     bundle_file = magenta.music.read_bundle_file(os.path.abspath(bundle+'.mag'))
 
-    return drums_rnn_sequence_generator.DrumsRnnSequenceGenerator(
-          model=drums_rnn_model.DrumsRnnModel(config),
-          details=config.details,
-          steps_per_quarter=steps_per_quarter,
-          bundle=bundle_file)
+    generator = drums_rnn_sequence_generator.DrumsRnnSequenceGenerator(
+                  model=drums_rnn_model.DrumsRnnModel(config),
+                  details=config.details,
+                  steps_per_quarter=steps_per_quarter,
+                  bundle=bundle_file)
+
+    def generate_extra_options(input_sequence, generator_options):
+        generator_options.args['temperature'].float_value = DRUM_TEMPERATURE
+        generator_options.args['beam_size'].int_value = DRUM_BEAM_SIZE
+        generator_options.args['branch_factor'].int_value = DRUM_BRANCH_FACTOR
+        generator_options.args['steps_per_iteration'].int_value = \
+            DRUM_STEPS_PER_ITERATION
+        return generator_options
+
+    old_generate = generator.generate
+
+    def wrapped_generate(input_sequence, generator_options):
+        # throw out old options as they have section generation info
+        generator_options = generate_extra_options(input_sequence,
+                                                   generator_options)
+        return old_generate(input_sequence, generator_options)
+
+    generator.generate = wrapped_generate
+    return generator
 
 
 def polyphony_generator(bundle='polyphony'):
@@ -138,14 +167,10 @@ def melody_generator(bundle='attention_rnn'):
           bundle=bundle_file)
 
 
-generator = melody_generator()
-# generator = improv_generator()
+# generator = melody_generator()
+generator = improv_generator()
 # generator = polyphony_generator()
 # generator = drums_generator()
-
-
-def _steps_to_seconds(steps, qpm):
-    return steps * 60.0 / qpm / steps_per_quarter
 
 
 def generate_midi(midi_data, total_seconds=10):
