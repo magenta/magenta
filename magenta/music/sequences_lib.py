@@ -647,24 +647,29 @@ def infer_chords_for_sequence(
   events = sorted(onsets + offsets)
 
   current_time = 0
+  current_figure = constants.NO_CHORD
   active_notes = set()
 
   for time, idx, is_offset in events:
     if time > current_time:
       active_pitches = set(sorted_notes[idx].pitch for idx in active_notes)
       if len(active_pitches) >= min_notes_per_chord:
-        # Infer a chord symbol for the active pitches and add a text annotation
-        # to the sequence.
+        # Infer a chord symbol for the active pitches.
         figure = chord_symbol_functions.pitches_to_chord_symbol(active_pitches)
-        text_annotation = sequence.text_annotations.add()
-        text_annotation.text = figure
-        text_annotation.annotation_type = CHORD_SYMBOL
-        if is_quantized_sequence(sequence):
-          text_annotation.time = (
-              current_time * sequence.quantization_info.steps_per_quarter)
-          text_annotation.quantized_step = current_time
-        else:
-          text_annotation.time = current_time
+
+        if figure != current_figure:
+          # Add a text annotation to the sequence.
+          text_annotation = sequence.text_annotations.add()
+          text_annotation.text = figure
+          text_annotation.annotation_type = CHORD_SYMBOL
+          if is_quantized_sequence(sequence):
+            text_annotation.time = (
+                current_time * sequence.quantization_info.steps_per_quarter)
+            text_annotation.quantized_step = current_time
+          else:
+            text_annotation.time = current_time
+
+        current_figure = figure
 
     current_time = time
     if is_offset:
