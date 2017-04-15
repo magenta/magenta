@@ -197,18 +197,18 @@ class BasicChordSymbolFunctions(ChordSymbolFunctions):
   # All scale degree names within an octave, used when attempting to name a
   # chord given pitches.
   _SCALE_DEGREES = [
-    ('1',),
-    ('b2', 'b9'),
-    ('2', '9'),
-    ('b3', '#9'),
-    ('3',),
-    ('4', '11'),
-    ('b5', '#11'),
-    ('5',),
-    ('#5', 'b13'),
-    ('6', 'bb7', '13'),
-    ('b7',),
-    ('7',)
+      ('1',),
+      ('b2', 'b9'),
+      ('2', '9'),
+      ('b3', '#9'),
+      ('3',),
+      ('4', '11'),
+      ('b5', '#11'),
+      ('5',),
+      ('#5', 'b13'),
+      ('6', 'bb7', '13'),
+      ('b7',),
+      ('7',)
   ]
 
   # List of chord kinds with abbreviations and scale degrees. Scale degrees are

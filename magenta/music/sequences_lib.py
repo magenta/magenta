@@ -633,11 +633,9 @@ def infer_chords_for_sequence(
   if is_quantized_sequence(sequence):
     note_start = lambda note: note.quantized_start_step
     note_end = lambda note: note.quantized_end_step
-    total_time = sequence.total_quantized_steps
   else:
     note_start = lambda note: note.start_time
     note_end = lambda note: note.end_time
-    total_time = sequence.total_time
 
   # Sort all note start and end events.
   onsets = [(note_start(note), idx, False)
