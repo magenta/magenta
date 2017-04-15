@@ -452,6 +452,7 @@ py_library(
     name = "sequences_lib",
     srcs = ["sequences_lib.py"],
     deps = [
+        ":chord_symbols_lib",
         ":constants",
         "//magenta/pipelines:pipeline",
         "//magenta/pipelines:statistics",
