@@ -23,7 +23,7 @@ import {About} from 'interface/About'
 import {Tutorial} from 'ai/Tutorial'
 import 'babel-polyfill'
 
-/////////////// SPLASH ///////////////////	
+/////////////// SPLASH ///////////////////
 
 const about = new About(document.body)
 const splash = new Splash(document.body)
@@ -78,15 +78,15 @@ keyboard.on('keyUp', (note) => {
 
 const ai = new AI()
 
-ai.on('keyDown', (note, time) => {
-	sound.keyDown(note, time, true)
-	keyboard.keyDown(note, time, true)
+ai.on('keyDown', (note, time, is_drum) => {
+	sound.keyDown(note, time, true, is_drum)
+	keyboard.keyDown(note, time, true, is_drum)
 	glow.ai(time)
 })
 
-ai.on('keyUp', (note, time) => {
-	sound.keyUp(note, time, true)
-	keyboard.keyUp(note, time, true)	
+ai.on('keyUp', (note, time, is_drum) => {
+	sound.keyUp(note, time, true, is_drum)
+	keyboard.keyUp(note, time, true, is_drum)
 	glow.ai(time)
 })
 
