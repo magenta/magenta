@@ -1,0 +1,3 @@
+## Creating a drums dataset
+
+`create_dataset.py` functions pretty much the same as any of magenta's dataset creation scripts (for example, here's [their guide](https://github.com/dritchie/magenta/tree/master/magenta/models/drums_rnn#train-your-own) to creating drum datasets for their framework). You'll need to first use magenta's `convert_dir_to_note_sequences` script to convert a bunch of MIDI files into a NoteSequence .tfrecord file. Then you use `create_dataset.py` to turn that file into two files (one for train, one for eval) containing training data that can be fed directly into a model. All of this is described in more detail at the link above.

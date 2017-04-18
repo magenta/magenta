@@ -65,6 +65,12 @@ class Quantizer(pipeline.Pipeline):
       self._set_stats([statistics.Counter(
           'sequences_discarded_because_multiple_tempos', 1)])
       return []
+    except sequences_lib.NegativeTimeException as e:
+      tf.logging.warning('Negative time note(s) found in NoteSequence %s: %s',
+                        note_sequence.filename, e)
+      self._set_stats([statistics.Counter(
+          'sequences_discarded_because_negative_time', 1)])
+      return []
 
 
 class RandomPartition(pipeline.Pipeline):
