@@ -25,7 +25,11 @@ from magenta.models.nsynth import utils
 FLAGS = tf.app.flags.FLAGS
 
 tf.app.flags.DEFINE_string("expdir", "",
-                           "The log directory for this experiment.")
+                           "The log directory for this experiment. Required if "
+                           "`checkpoint_path` is not given.")
+tf.app.flags.DEFINE_string("checkpoint_path", "",
+                           "A path to the checkpoint. If not given, the latest "
+                           "checkpoint in `expdir` will be used.")
 tf.app.flags.DEFINE_string("wavdir", "",
                            "The directory of WAVs to yield embeddings from.")
 tf.app.flags.DEFINE_string("savedir", "", "Where to save the embeddings.")
@@ -45,21 +49,26 @@ def main(unused_argv=None):
 
   config = utils.get_module("wavenet." + FLAGS.config).Config()
 
-  expdir = FLAGS.expdir
-  tf.logging.info("Will load checkpoint from %s." % expdir)
-  while not tf.gfile.Exists(expdir):
-    tf.logging.info("\tExperiment save dir '%s' does not exist!", expdir)
+  if FLAGS.checkpoint_path:
+    checkpoint_path = FLAGS.checkpoint_path
+  else:
+    expdir = FLAGS.expdir
+    tf.logging.info("Will load latest checkpoint from %s.", expdir)
+    while not tf.gfile.Exists(expdir):
+      tf.logging.fatal("\tExperiment save dir '%s' does not exist!", expdir)
+      sys.exit(1)
+
+    try:
+      checkpoint_path = tf.train.latest_checkpoint(expdir)
+    except tf.errors.NotFoundError:
+      tf.logging.fatal("There was a problem determining the latest checkpoint.")
+      sys.exit(1)
+
+  if not tf.train.checkpoint_exists(checkpoint_path):
+    tf.logging.fatal("Invalid checkpoint path: %s", checkpoint_path)
     sys.exit(1)
 
-  try:
-    ckpt_path = tf.train.latest_checkpoint(expdir)
-  except tf.errors.NotFoundError:
-    tf.logging.info("There was a problem determining the latest checkpoint.")
-    sys.exit(1)
-
-  if not ckpt_path:
-    tf.logging.info("No valid checkpoint path.")
-    sys.exit(1)
+  tf.logging.info("Will restore from checkpoint: %s", checkpoint_path)
 
   wavdir = FLAGS.wavdir
   tf.logging.info("Will load Wavs from %s." % wavdir)
@@ -91,7 +100,7 @@ def main(unused_argv=None):
     sess = tf.Session("", config=session_config)
 
     tf.logging.info("\tRestoring from checkpoint.")
-    saver.restore(sess, ckpt_path)
+    saver.restore(sess, checkpoint_path)
 
     def is_wav(f):
       return f.lower().endswith(".wav")
