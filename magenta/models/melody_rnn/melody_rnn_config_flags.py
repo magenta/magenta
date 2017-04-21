@@ -23,8 +23,8 @@ FLAGS = tf.app.flags.FLAGS
 tf.app.flags.DEFINE_string(
     'config',
     None,
-    "Which config to use. Must be one of 'basic', 'lookback', or 'attention'. "
-    "Mutually exclusive with `--melody_encoder_decoder`.")
+    "Which config to use. Must be one of 'basic_rnn', 'lookback_rnn', or "
+    "'attention_rnn'. Mutually exclusive with `--melody_encoder_decoder`.")
 tf.app.flags.DEFINE_string(
     'melody_encoder_decoder',
     None,
