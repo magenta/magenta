@@ -72,6 +72,7 @@ class Quantizer(pipeline.Pipeline):
           'sequences_discarded_because_bad_time_signature', 1)])
       return []
 
+
 class RandomPartition(pipeline.Pipeline):
   """Outputs multiple datasets.
 
