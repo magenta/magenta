@@ -54,5 +54,9 @@ class MelodyExtractor(pipeline.Pipeline):
       tf.logging.warning('Skipped sequence: %s', detail)
       melodies = []
       stats = [statistics.Counter('non_integer_steps_per_bar', 1)]
+    except events_lib.ZeroDivisionError as detail:
+      tf.logging.warning('Skipped sequence: %s', detail)
+      melodies = []
+      stats = [statistics.Counter('zero_division_error', 1)]
     self._set_stats(stats)
     return melodies
