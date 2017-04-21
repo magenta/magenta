@@ -77,6 +77,7 @@ def main(unused_argv=None):
   file_pattern = FLAGS.file_pattern
   tf.logging.info("Will load Wavs from %s." % wavdir)
   sample_rate = FLAGS.sample_rate
+  normalize_audio = FLAGS.normalize
   savedir = FLAGS.savedir
   tf.logging.info("Will save embeddings to %s." % savedir)
   if not tf.gfile.Exists(savedir):
@@ -127,6 +128,8 @@ def main(unused_argv=None):
             tf.logging.info("On file %s of %d (batch %d).", start_file, len(wavfiles), batch_number)
             encoding = []
             wavdata = utils.load_wav(f, sample_rate)
+            if normalize_audio:
+                wavdata = utils.normalize(wavdata)
             total_length = len(wavdata)
             a = 0
             while len(wavdata) > 0:
