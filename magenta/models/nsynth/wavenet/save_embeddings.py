@@ -114,18 +114,19 @@ def main(unused_argv=None):
       batch_number = (start_file / batch_size) + 1
       tf.logging.info("On file number %s (batch %d).", start_file, batch_number)
       end_file = start_file + batch_size
-      files = wavfiles[start_file:end_file]
+      wavefiles_batch = wavfiles[start_file:end_file]
 
       # Ensure that files has batch_size elements.
-      batch_filler = batch_size - len(files)
-      files.extend(batch_filler * [files[-1]])
+      batch_filler = batch_size - len(wavefiles_batch)
+      wavefiles_batch.extend(batch_filler * [wavefiles_batch[-1]])
 
-      wavdata = np.array([utils.load_wav(f)[:sample_length] for f in files])
+      wavdata = np.array(
+          [utils.load_wav(f)[:sample_length] for f in wavefiles_batch])
 
       try:
         encoding = sess.run(
             graph_encoding, feed_dict={wav_placeholder: wavdata})
-        for num, (wavfile, enc) in enumerate(zip(wavfiles, encoding)):
+        for num, (wavfile, enc) in enumerate(zip(wavefiles_batch, encoding)):
           filename = "%s_embeddings.npy" % wavfile.split("/")[-1].strip(".wav")
           with tf.gfile.Open(os.path.join(savedir, filename), "w") as f:
             np.save(f, enc)
