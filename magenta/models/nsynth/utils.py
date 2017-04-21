@@ -19,10 +19,8 @@ from __future__ import print_function
 
 import importlib
 
-# internal imports
 import librosa
 import numpy as np
-import scipy.io.wavfile
 import tensorflow as tf
 
 slim = tf.contrib.slim
@@ -46,7 +44,7 @@ def get_module(module_path):
   return module
 
 
-def load_wav(path):
+def load_wav(path, sample_rate):
   """Load a wav file and convert to floats within [-1, 1].
 
   Args:
@@ -55,11 +53,14 @@ def load_wav(path):
   Returns:
     The 16bit data in the range [-1, 1].
   """
-  _, data_16bit = scipy.io.wavfile.read(tf.gfile.Open(path, "r"))
-  # Assert we are working with 16-bit audio.
-  assert data_16bit.dtype == np.int16
-  return data_16bit.astype(np.float32) / 2**15
 
+  audio, _ = librosa.load(path, sr=sample_rate, mono=True)
+  return audio
+
+
+def normalize(samples):
+  normalized = np.multiply(samples,np.minimum(1,2/np.ptp(samples)))
+  return normalized
 
 def mu_law(x, mu=255):
   """A TF implementation of Mu-Law encoding.
