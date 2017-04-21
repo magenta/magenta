@@ -35,7 +35,10 @@ tf.app.flags.DEFINE_string("wavdir", "",
 tf.app.flags.DEFINE_string("savedir", "", "Where to save the embeddings.")
 tf.app.flags.DEFINE_string("config", "h512_bo16", "Model configuration name")
 tf.app.flags.DEFINE_integer("sample_length", 64000, "Sample length.")
-tf.app.flags.DEFINE_integer("batch_size", 16, "Sample length.")
+tf.app.flags.DEFINE_integer("sample_rate", 16000, "Sample rate.")
+tf.app.flags.DEFINE_integer("batch_size", 1, "Sample length.")
+tf.app.flags.DEFINE_integer("file_pattern", (".wav", ".mp3"), "File types to load")
+tf.app.flags.DEFINE_integer("normalize", True, "If loaded files should be normalized")
 tf.app.flags.DEFINE_string("log", "INFO",
                            "The threshold for what messages will be logged."
                            "DEBUG, INFO, WARN, ERROR, or FATAL.")
@@ -71,8 +74,10 @@ def main(unused_argv=None):
   tf.logging.info("Will restore from checkpoint: %s", checkpoint_path)
 
   wavdir = FLAGS.wavdir
+  file_pattern = FLAGS.file_pattern
   tf.logging.info("Will load Wavs from %s." % wavdir)
-
+  sample_rate = FLAGS.sample_rate
+  normalize_audio = FLAGS.normalize
   savedir = FLAGS.savedir
   tf.logging.info("Will save embeddings to %s." % savedir)
   if not tf.gfile.Exists(savedir):
@@ -102,40 +107,59 @@ def main(unused_argv=None):
     tf.logging.info("\tRestoring from checkpoint.")
     saver.restore(sess, checkpoint_path)
 
-    def is_wav(f):
-      return f.lower().endswith(".wav")
+    def is_audio_file(f):
+      return f.lower().endswith(file_pattern)
 
     wavfiles = sorted([
         os.path.join(wavdir, fname) for fname in tf.gfile.ListDirectory(wavdir)
-        if is_wav(fname)
+        if is_audio_file(fname)
     ])
 
     for start_file in xrange(0, len(wavfiles), batch_size):
-      batch_number = (start_file / batch_size) + 1
-      tf.logging.info("On file number %s (batch %d).", start_file, batch_number)
-      end_file = start_file + batch_size
-      files = wavfiles[start_file:end_file]
+        batch_number = (start_file / batch_size) + 1
+        end_file = start_file + batch_size
+        files = wavfiles[start_file:end_file]
 
-      # Ensure that files has batch_size elements.
-      batch_filler = batch_size - len(files)
-      files.extend(batch_filler * [files[-1]])
+        # Ensure that files has batch_size elements.
+        batch_filler = batch_size - len(files)
+        files.extend(batch_filler * [files[-1]])
 
-      wavdata = np.array([utils.load_wav(f)[:sample_length] for f in files])
-
-      try:
-        encoding = sess.run(
-            graph_encoding, feed_dict={wav_placeholder: wavdata})
-        for num, (wavfile, enc) in enumerate(zip(wavfiles, encoding)):
-          filename = "%s_embeddings.npy" % wavfile.split("/")[-1].strip(".wav")
-          with tf.gfile.Open(os.path.join(savedir, filename), "w") as f:
-            np.save(f, enc)
-
-          if num + batch_filler + 1 == batch_size:
-            break
-      except Exception, e:
-        tf.logging.info("Unexpected error happened: %s.", e)
-        raise
-
+        for f in files:
+            tf.logging.info("On file %s of %d (batch %d).", start_file, len(wavfiles), batch_number)
+            encoding = []
+            wavdata = utils.load_wav(f, sample_rate)
+            if normalize_audio:
+                wavdata = utils.normalize(wavdata)
+            total_length = len(wavdata)
+            a = 0
+            while len(wavdata) > 0:
+                a = a + sample_length
+                if len(wavdata) > sample_length:
+                    piece = wavdata[:sample_length]
+                    wavdata = wavdata[sample_length:]
+                else:
+                    piece = wavdata
+                    wavdata = []
+                if len(piece) < sample_length:
+                    piece_factor = len(piece) / sample_length
+                    piece = np.pad(piece, (0,(sample_length-len(piece))), mode='constant', constant_values=0)
+                else:
+                    piece_factor = None
+                try:
+                    piece = np.reshape(piece, (-1, sample_length))
+                    pred = sess.run(
+                            graph_encoding, feed_dict={wav_placeholder: piece})
+                    if piece_factor is None:
+                        encoding.append(pred.reshape(-1, config.ae_bottleneck_width))
+                    else:
+                        final_chunk_length = min(int(len(pred)*piece_factor)+1, len(pred))
+                        encoding.append(pred[:final_chunk_length].reshape(-1, config.ae_bottleneck_width))
+                    tf.logging.info("Classified: %i of %i samples", a, total_length)
+                except Exception as e:
+                    tf.logging.info("Unexpected error happened: %s.", e)
+            filename = "%s_embeddings.npy" % f.split("/")[-1].strip(".wav")
+            with tf.gfile.Open(os.path.join(savedir, filename), "w") as outfile:
+                np.save(outfile, np.asarray(encoding).reshape(-1, config.ae_bottleneck_width))
 
 if __name__ == "__main__":
   tf.app.run()
