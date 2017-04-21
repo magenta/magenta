@@ -176,9 +176,9 @@ class KeyMelodyEncoderDecoder(encoder_decoder.EventSequenceEncoderDecoder):
     """Returns the input vector for the given position in the melody.
 
     Returns a self.input_size length list of floats. Assuming
-    self._min_note = 48, self._note_range = 36, two lookback distances, and
-    seven binary counters, then self.input_size = 74. Each index represents a
-    different input signal to the model.
+    self._min_note = 48, self._note_range = 36, two lookback distances at 1 bar
+    and 2 bars, and 7 binary counters, then self.input_size = 74. Each index
+    represents a different input signal to the model.
 
     Indices [0, 73]:
     [0, 35]: A note is playing at that pitch [48, 84).
@@ -192,9 +192,11 @@ class KeyMelodyEncoderDecoder(encoder_decoder.EventSequenceEncoderDecoder):
     49: The next event is the start of a bar.
     [50, 61]: The keys the current melody is in.
     [62, 73]: The keys the last 3 notes are in.
+
     Args:
       events: A magenta.music.Melody object.
       position: An integer event position in the melody.
+
     Returns:
       An input vector, an self.input_size length list of floats.
     """
@@ -222,6 +224,7 @@ class KeyMelodyEncoderDecoder(encoder_decoder.EventSequenceEncoderDecoder):
 
     input_ = [0.0] * self.input_size
     offset = 0
+
     if current_note:
       # The pitch of current note if a note is playing.
       input_[offset + current_note - self._min_note] = 1.0
@@ -286,8 +289,9 @@ class KeyMelodyEncoderDecoder(encoder_decoder.EventSequenceEncoderDecoder):
     """Returns the label for the given position in the melody.
 
     Returns an int in the range [0, self.num_classes). Assuming
-    self._min_note = 48, self._note_range = 36, and two lookback distances,
-    then self.num_classes = 40.
+    self._min_note = 48, self._note_range = 36, and two lookback distances at
+    1 and 2 bars, then self.num_classes = 40.
+
     Values [0, 39]:
     [0, 35]: Note-on event for midi pitch [48, 84).
     36: No event.
@@ -298,6 +302,7 @@ class KeyMelodyEncoderDecoder(encoder_decoder.EventSequenceEncoderDecoder):
     Args:
       events: A magenta.music.Melody object.
       position: An integer event position in the melody.
+
     Returns:
       A label, an integer.
     """
@@ -332,6 +337,7 @@ class KeyMelodyEncoderDecoder(encoder_decoder.EventSequenceEncoderDecoder):
     Args:
       class_index: An int in the range [0, self.num_classes).
       events: The magenta.music.Melody events list of the current melody.
+
     Returns:
       A magenta.music.Melody event value.
     """
