@@ -114,6 +114,11 @@ class ChordSymbolFunctionsTest(tf.test.TestCase):
         [60, 64, 68, 70, 75])
     self.assertEqual('C+7(#9)', figure)
 
+    # Test invalid chord.
+    with self.assertRaises(chord_symbols_lib.ChordSymbolException):
+      self.chord_symbol_functions.pitches_to_chord_symbol(
+          [60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71])
+
   def testChordSymbolPitches(self):
     pitches = self.chord_symbol_functions.chord_symbol_pitches('Am')
     pitch_classes = set(pitch % 12 for pitch in pitches)

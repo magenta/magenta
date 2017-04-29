@@ -694,12 +694,13 @@ class BasicChordSymbolFunctions(ChordSymbolFunctions):
       relative_pitches = set((pitch - root) % 12 for pitch in pitch_classes)
       abbrev, degrees = self._largest_chord_kind_from_relative_pitches(
           relative_pitches)
-      if best_abbrev is None or (
-          len(self._CHORD_KINDS_BY_ABBREV[abbrev]) >
-          len(self._CHORD_KINDS_BY_ABBREV[best_abbrev])):
-        best_root = root
-        best_abbrev = abbrev
-        best_degrees = degrees
+      if abbrev is not None:
+        if best_abbrev is None or (
+            len(self._CHORD_KINDS_BY_ABBREV[abbrev]) >
+            len(self._CHORD_KINDS_BY_ABBREV[best_abbrev])):
+          best_root = root
+          best_abbrev = abbrev
+          best_degrees = degrees
 
     if best_root is None:
       raise ChordSymbolException(
