@@ -20,6 +20,7 @@ import copy
 import intervaltree
 import tensorflow as tf
 
+from magenta.music import chord_symbols_lib
 from magenta.music import constants
 from magenta.pipelines import pipeline
 from magenta.pipelines import statistics
@@ -594,6 +595,87 @@ def apply_sustain_control_changes(note_sequence, sustain_control_number=64):
         note_sequence.total_time = end_time
 
   return sequence
+
+
+def infer_chords_for_sequence(
+    sequence, instrument=None, min_notes_per_chord=3,
+    chord_symbol_functions=chord_symbols_lib.ChordSymbolFunctions.get()):
+  """Infers chords for a NoteSequence and adds them as TextAnnotations.
+
+  For each set of simultaneously-active notes in a NoteSequence (optionally for
+  only one instrument), infers a chord symbol and adds it to NoteSequence as a
+  TextAnnotation. Every change in the set of active notes will result in a new
+  chord symbol unless the new set is smaller than `min_notes_per_chord`.
+
+  If `sequence` is quantized, simultaneity will be determined by quantized steps
+  instead of time.
+
+  Args:
+    sequence: The NoteSequence for which chords will be inferred. Will be
+        modified in place.
+    instrument: The instrument number whose notes will be used for chord
+        inference. If None, all instruments will be used.
+    min_notes_per_chord: The minimum number of simultaneous notes for which to
+        infer a chord.
+    chord_symbol_functions: ChordSymbolFunctions object with which to perform
+          the actual inference of chord symbol from pitches.
+
+  Raises:
+    ChordSymbolException: If a chord cannot be determined for a set of
+    simultaneous notes in `sequence`.
+  """
+  notes = [note for note in sequence.notes
+           if not note.is_drum and (instrument is None or
+                                    note.instrument == instrument)]
+  sorted_notes = sorted(notes, key=lambda note: note.start_time)
+
+  # If the sequence is quantized, use quantized steps instead of time.
+  if is_quantized_sequence(sequence):
+    note_start = lambda note: note.quantized_start_step
+    note_end = lambda note: note.quantized_end_step
+  else:
+    note_start = lambda note: note.start_time
+    note_end = lambda note: note.end_time
+
+  # Sort all note start and end events.
+  onsets = [(note_start(note), idx, False)
+            for idx, note in enumerate(sorted_notes)]
+  offsets = [(note_end(note), idx, True)
+             for idx, note in enumerate(sorted_notes)]
+  events = sorted(onsets + offsets)
+
+  current_time = 0
+  current_figure = constants.NO_CHORD
+  active_notes = set()
+
+  for time, idx, is_offset in events:
+    if time > current_time:
+      active_pitches = set(sorted_notes[idx].pitch for idx in active_notes)
+      if len(active_pitches) >= min_notes_per_chord:
+        # Infer a chord symbol for the active pitches.
+        figure = chord_symbol_functions.pitches_to_chord_symbol(active_pitches)
+
+        if figure != current_figure:
+          # Add a text annotation to the sequence.
+          text_annotation = sequence.text_annotations.add()
+          text_annotation.text = figure
+          text_annotation.annotation_type = CHORD_SYMBOL
+          if is_quantized_sequence(sequence):
+            text_annotation.time = (
+                current_time * sequence.quantization_info.steps_per_quarter)
+            text_annotation.quantized_step = current_time
+          else:
+            text_annotation.time = current_time
+
+        current_figure = figure
+
+    current_time = time
+    if is_offset:
+      active_notes.remove(idx)
+    else:
+      active_notes.add(idx)
+
+  assert not active_notes
 
 
 class TranspositionPipeline(pipeline.Pipeline):

@@ -30,7 +30,7 @@ class ChordSymbolFunctionsTest(tf.test.TestCase):
   def setUp(self):
     self.chord_symbol_functions = chord_symbols_lib.ChordSymbolFunctions.get()
 
-  def testTranspose(self):
+  def testTransposeChordSymbol(self):
     # Test basic triads.
     figure = self.chord_symbol_functions.transpose_chord_symbol('C', 2)
     self.assertEqual('D', figure)
@@ -55,7 +55,71 @@ class ChordSymbolFunctionsTest(tf.test.TestCase):
     figure = self.chord_symbol_functions.transpose_chord_symbol('E7(add#9)', 0)
     self.assertEqual('E7(add#9)', figure)
 
-  def testPitches(self):
+  def testPitchesToChordSymbol(self):
+    # Test basic triads.
+    figure = self.chord_symbol_functions.pitches_to_chord_symbol(
+        [60, 64, 67])
+    self.assertEqual('C', figure)
+    figure = self.chord_symbol_functions.pitches_to_chord_symbol(
+        [45, 48, 52])
+    self.assertEqual('Am', figure)
+    figure = self.chord_symbol_functions.pitches_to_chord_symbol(
+        [63, 66, 69])
+    self.assertEqual('Ebo', figure)
+    figure = self.chord_symbol_functions.pitches_to_chord_symbol(
+        [71, 75, 79])
+    self.assertEqual('B+', figure)
+
+    # Test basic inversions.
+    figure = self.chord_symbol_functions.pitches_to_chord_symbol(
+        [59, 62, 67])
+    self.assertEqual('G/B', figure)
+    figure = self.chord_symbol_functions.pitches_to_chord_symbol(
+        [65, 70, 73])
+    self.assertEqual('Bbm/F', figure)
+
+    # Test suspended chords.
+    figure = self.chord_symbol_functions.pitches_to_chord_symbol(
+        [62, 67, 69])
+    self.assertEqual('Dsus', figure)
+    figure = self.chord_symbol_functions.pitches_to_chord_symbol(
+        [55, 60, 62, 65])
+    self.assertEqual('Gsus7', figure)
+    figure = self.chord_symbol_functions.pitches_to_chord_symbol(
+        [67, 69, 74])
+    self.assertEqual('Gsus2', figure)
+
+    # Test more complex chords.
+    figure = self.chord_symbol_functions.pitches_to_chord_symbol(
+        [45, 46, 50, 53])
+    self.assertEqual('Bbmaj7/A', figure)
+    figure = self.chord_symbol_functions.pitches_to_chord_symbol(
+        [63, 67, 70, 72, 74])
+    self.assertEqual('Cm9/Eb', figure)
+    figure = self.chord_symbol_functions.pitches_to_chord_symbol(
+        [53, 60, 64, 67, 70])
+    self.assertEqual('C7/F', figure)
+
+    # Test chords with modifications.
+    figure = self.chord_symbol_functions.pitches_to_chord_symbol(
+        [67, 71, 72, 74, 77])
+    self.assertEqual('G7(add4)', figure)
+    figure = self.chord_symbol_functions.pitches_to_chord_symbol(
+        [64, 68, 71, 74, 79])
+    self.assertEqual('E7(#9)', figure)
+    figure = self.chord_symbol_functions.pitches_to_chord_symbol(
+        [60, 62, 64, 67])
+    self.assertEqual('C(add2)', figure)
+    figure = self.chord_symbol_functions.pitches_to_chord_symbol(
+        [60, 64, 68, 70, 75])
+    self.assertEqual('C+7(#9)', figure)
+
+    # Test invalid chord.
+    with self.assertRaises(chord_symbols_lib.ChordSymbolException):
+      self.chord_symbol_functions.pitches_to_chord_symbol(
+          [60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71])
+
+  def testChordSymbolPitches(self):
     pitches = self.chord_symbol_functions.chord_symbol_pitches('Am')
     pitch_classes = set(pitch % 12 for pitch in pitches)
     self.assertEqual(set([0, 4, 9]), pitch_classes)
@@ -75,7 +139,7 @@ class ChordSymbolFunctionsTest(tf.test.TestCase):
     pitch_classes = set(pitch % 12 for pitch in pitches)
     self.assertEqual(set([3, 7, 9, 11]), pitch_classes)
 
-  def testRoot(self):
+  def testChordSymbolRoot(self):
     root = self.chord_symbol_functions.chord_symbol_root('Dm9')
     self.assertEqual(2, root)
     root = self.chord_symbol_functions.chord_symbol_root('E/G#')
@@ -89,7 +153,7 @@ class ChordSymbolFunctionsTest(tf.test.TestCase):
     root = self.chord_symbol_functions.chord_symbol_root('F(b7)(#9)(b13)')
     self.assertEqual(5, root)
 
-  def testBass(self):
+  def testChordSymbolBass(self):
     bass = self.chord_symbol_functions.chord_symbol_bass('Dm9')
     self.assertEqual(2, bass)
     bass = self.chord_symbol_functions.chord_symbol_bass('E/G#')
@@ -103,7 +167,7 @@ class ChordSymbolFunctionsTest(tf.test.TestCase):
     bass = self.chord_symbol_functions.chord_symbol_bass('G/o')
     self.assertEqual(7, bass)
 
-  def testQuality(self):
+  def testChordSymbolQuality(self):
     # Test major chords.
     quality = self.chord_symbol_functions.chord_symbol_quality('B13')
     self.assertEqual(CHORD_QUALITY_MAJOR, quality)

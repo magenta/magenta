@@ -14,7 +14,10 @@
 """Utility functions for working with chord symbols."""
 
 import abc
+import itertools
 import re
+
+from magenta.music import constants
 
 # chord quality enum
 CHORD_QUALITY_MAJOR = 0
@@ -67,6 +70,23 @@ class ChordSymbolFunctions(object):
 
     Raises:
       ChordSymbolException: If the given chord symbol cannot be interpreted.
+    """
+    pass
+
+  @abc.abstractmethod
+  def pitches_to_chord_symbol(self, pitches):
+    """Converts a set of pitches to a chord symbol.
+
+    Args:
+      pitches: A python list of integer pitch values.
+
+    Returns:
+      A chord symbol figure string representing the chord containing the
+      specified pitches.
+
+    Raises:
+      ChordSymbolException: If no known chord symbol corresponds to the
+          provided pitches.
     """
     pass
 
@@ -173,6 +193,23 @@ class BasicChordSymbolFunctions(ChordSymbolFunctions):
 
   # Mapping from scale degree to offset in half steps.
   _DEGREE_OFFSETS = {1: 0, 2: 2, 3: 4, 4: 5, 5: 7, 6: 9, 7: 11}
+
+  # All scale degree names within an octave, used when attempting to name a
+  # chord given pitches.
+  _SCALE_DEGREES = [
+      ('1',),
+      ('b2', 'b9'),
+      ('2', '9'),
+      ('b3', '#9'),
+      ('3',),
+      ('4', '11'),
+      ('b5', '#11'),
+      ('5',),
+      ('#5', 'b13'),
+      ('6', 'bb7', '13'),
+      ('b7',),
+      ('7',)
+  ]
 
   # List of chord kinds with abbreviations and scale degrees. Scale degrees are
   # represented as strings here a) for human readability, and b) because the
@@ -519,6 +556,68 @@ class BasicChordSymbolFunctions(ChordSymbolFunctions):
     """Convert a pitch class scale step and alteration to MIDI note."""
     return (self._STEPS_MIDI[step] + alter) % 12
 
+  def _largest_chord_kind_from_degrees(self, degrees):
+    """Find the largest chord that is contained in a set of scale degrees."""
+    best_chord_abbrev = None
+    best_chord_degrees = []
+    for chord_abbrevs, chord_degrees in self._CHORD_KINDS:
+      if len(chord_degrees) <= len(best_chord_degrees):
+        continue
+      if not set(chord_degrees) - set(degrees):
+        best_chord_abbrev, best_chord_degrees = chord_abbrevs[0], chord_degrees
+    return best_chord_abbrev
+
+  def _largest_chord_kind_from_relative_pitches(self, relative_pitches):
+    """Find the largest chord contained in a set of relative pitches."""
+    scale_degrees = [self._SCALE_DEGREES[pitch] for pitch in relative_pitches]
+    best_chord_abbrev = None
+    best_degrees = []
+    for degrees in itertools.product(*scale_degrees):
+      degree_steps = [self._parse_degree(degree_str)[0]
+                      for degree_str in degrees]
+      if len(degree_steps) > len(set(degree_steps)):
+        # This set of scale degrees has duplicates, which we do not currently
+        # allow.
+        continue
+      chord_abbrev = self._largest_chord_kind_from_degrees(degrees)
+      if best_chord_abbrev is None or (
+          len(self._CHORD_KINDS_BY_ABBREV[chord_abbrev]) >
+          len(self._CHORD_KINDS_BY_ABBREV[best_chord_abbrev])):
+        # We store the chord kind with the most matches, and the scale degrees
+        # representation that led to those matches (since a set of relative
+        # pitches can be interpreted as scale degrees in multiple ways).
+        best_chord_abbrev, best_degrees = chord_abbrev, degrees
+    return best_chord_abbrev, best_degrees
+
+  def _degrees_to_modifications(self, chord_degrees, target_chord_degrees):
+    """Find scale degree modifications to turn chord into target chord."""
+    degrees = dict(self._parse_degree(degree_str)
+                   for degree_str in chord_degrees)
+    target_degrees = dict(self._parse_degree(degree_str)
+                          for degree_str in target_chord_degrees)
+    modifications_str = ''
+    for degree in target_degrees:
+      if degree not in degrees:
+        # Add a scale degree.
+        alter = target_degrees[degree]
+        alter_str = abs(alter) * ('#' if alter >= 0 else 'b')
+        if alter and degree > 7:
+          modifications_str += '(%s%d)' % (alter_str, degree)
+        else:
+          modifications_str += '(add%s%d)' % (alter_str, degree)
+      elif degrees[degree] != target_degrees[degree]:
+        # Alter a scale degree. We shouldn't be altering to natural, that's a
+        # sign that we've chosen the wrong chord kind.
+        alter = target_degrees[degree]
+        assert alter != 0
+        alter_str = abs(alter) * ('#' if alter >= 0 else 'b')
+        modifications_str += '(%s%d)' % (alter_str, degree)
+    for degree in degrees:
+      if degree not in target_degrees:
+        # Subtract a scale degree.
+        modifications_str += '(no%d)' % degree
+    return modifications_str
+
   def transpose_chord_symbol(self, figure, transpose_amount):
     """Transposes a chord symbol figure string by the given amount."""
     # Split chord symbol into root, kind, modifications, and bass.
@@ -548,6 +647,87 @@ class BasicChordSymbolFunctions(ChordSymbolFunctions):
 
     return '%s%s%s%s' % (transposed_root_str, kind_str, modifications_str,
                          transposed_bass_str)
+
+  def pitches_to_chord_symbol(self, pitches):
+    """Converts a set of pitches to a chord symbol.
+
+    This is quite a complicated function and certainly imperfect, even apart
+    from the inherent ambiguity and context-dependence of chord naming. The
+    basic logic is as follows:
+
+    Consider that each pitch may be the root of the chord. For each potential
+    root, convert the other pitch classes to scale degrees (note that a single
+    pitch class may map to multiple scale degrees, e.g. b3 is the same as #9)
+    and find the chord kind that covers as many of these scale degrees as
+    possible while not including any extras. Then add any remaining scale
+    degrees as modifications.
+
+    This will not always return the most natural name for a chord, but it should
+    do something reasonable in most cases.
+
+    Args:
+      pitches: A python list of integer pitch values.
+
+    Returns:
+      A chord symbol figure string representing the chord containing the
+      specified pitches.
+
+    Raises:
+      ChordSymbolException: If no known chord symbol corresponds to the
+          provided pitches.
+    """
+    if not pitches:
+      return constants.NO_CHORD
+
+    # Convert to pitch classes and dedupe.
+    pitch_classes = set(pitch % 12 for pitch in pitches)
+
+    # Try using the bass note as root first.
+    bass = min(pitches) % 12
+    pitch_classes = [bass] + list(pitch_classes - set([bass]))
+
+    # Try each pitch class in turn as root.
+    best_root = None
+    best_abbrev = None
+    best_degrees = []
+    for root in pitch_classes:
+      relative_pitches = set((pitch - root) % 12 for pitch in pitch_classes)
+      abbrev, degrees = self._largest_chord_kind_from_relative_pitches(
+          relative_pitches)
+      if abbrev is not None:
+        if best_abbrev is None or (
+            len(self._CHORD_KINDS_BY_ABBREV[abbrev]) >
+            len(self._CHORD_KINDS_BY_ABBREV[best_abbrev])):
+          best_root = root
+          best_abbrev = abbrev
+          best_degrees = degrees
+
+    if best_root is None:
+      raise ChordSymbolException(
+          'Unable to determine chord symbol from pitches: %s' % str(pitches))
+
+    root_str = self._pitch_class_to_string(
+        *self._transpose_pitch_class('C', 0, best_root))
+    kind_str = best_abbrev
+
+    # If the bass pitch class is not one of the scale degrees in the chosen
+    # kind, we don't need to include an explicit modification for it.
+    best_chord_degrees = self._CHORD_KINDS_BY_ABBREV[best_abbrev]
+    if all(degree != bass_degree
+           for degree in best_chord_degrees
+           for bass_degree in self._SCALE_DEGREES[bass]):
+      best_degrees = [degree for degree in best_degrees
+                      if all(degree != bass_degree
+                             for bass_degree in self._SCALE_DEGREES[bass])]
+    modifications_str = self._degrees_to_modifications(
+        best_chord_degrees, best_degrees)
+
+    if bass == best_root:
+      return '%s%s%s' % (root_str, kind_str, modifications_str)
+    else:
+      bass_str = self._pitch_class_to_string(
+          *self._transpose_pitch_class('C', 0, bass))
+      return '%s%s%s/%s' % (root_str, kind_str, modifications_str, bass_str)
 
   def chord_symbol_pitches(self, figure):
     """Return the pitch classes contained in a chord."""

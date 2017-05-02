@@ -564,6 +564,39 @@ class SequencesLibTest(tf.test.TestCase):
     sus_sequence = sequences_lib.apply_sustain_control_changes(sequence)
     self.assertProtoEquals(expected_sequence, sus_sequence)
 
+  def testInferChordsForSequence(self):
+    # Test non-quantized sequence.
+    sequence = copy.copy(self.note_sequence)
+    testing_lib.add_track_to_sequence(
+        sequence, 0,
+        [(60, 100, 1.0, 3.0), (64, 100, 1.0, 2.0), (67, 100, 1.0, 2.0),
+         (65, 100, 2.0, 3.0), (69, 100, 2.0, 3.0),
+         (62, 100, 3.0, 5.0), (65, 100, 3.0, 4.0), (69, 100, 3.0, 4.0)])
+    expected_sequence = copy.copy(sequence)
+    testing_lib.add_chords_to_sequence(
+        expected_sequence, [('C', 1.0), ('F/C', 2.0), ('Dm', 3.0)])
+    sequences_lib.infer_chords_for_sequence(sequence)
+    self.assertProtoEquals(expected_sequence, sequence)
+
+    # Test quantized sequence.
+    sequence = copy.copy(self.note_sequence)
+    sequence.quantization_info.steps_per_quarter = 1
+    testing_lib.add_track_to_sequence(
+        sequence, 0,
+        [(60, 100, 1.1, 3.0), (64, 100, 1.0, 1.9), (67, 100, 1.0, 2.0),
+         (65, 100, 2.0, 3.2), (69, 100, 2.1, 3.1),
+         (62, 100, 2.9, 4.8), (65, 100, 3.0, 4.0), (69, 100, 3.0, 4.1)])
+    testing_lib.add_quantized_steps_to_sequence(
+        sequence,
+        [(1, 3), (1, 2), (1, 2), (2, 3), (2, 3), (3, 5), (3, 4), (3, 4)])
+    expected_sequence = copy.copy(sequence)
+    testing_lib.add_chords_to_sequence(
+        expected_sequence, [('C', 1.0), ('F/C', 2.0), ('Dm', 3.0)])
+    testing_lib.add_quantized_chord_steps_to_sequence(
+        expected_sequence, [1, 2, 3])
+    sequences_lib.infer_chords_for_sequence(sequence)
+    self.assertProtoEquals(expected_sequence, sequence)
+
   def testTranspositionPipeline(self):
     tp = sequences_lib.TranspositionPipeline(range(0, 2))
     testing_lib.add_track_to_sequence(
