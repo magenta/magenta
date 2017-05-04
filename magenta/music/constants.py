@@ -37,6 +37,9 @@ NOTES_PER_OCTAVE = 12
 # Chord symbol for "no chord".
 NO_CHORD = 'N.C.'
 
+# The indices of the pitch classes in a major scale.
+MAJOR_SCALE = [0, 2, 4, 5, 7, 9, 11]
+
 # NOTE_KEYS[note] = The major keys that note belongs to.
 # ex. NOTE_KEYS[0] lists all the major keys that contain the note C,
 # which are:
@@ -58,8 +61,7 @@ NO_CHORD = 'N.C.'
 #
 # NOTE_KEYS can be generated using the code below, but is explicitly declared
 # for readability:
-# scale = [1, 0, 1, 0, 1, 1, 0, 1, 0, 1, 0, 1]
-# NOTE_KEYS = [[j for j in range(12) if scale[(i - j) % 12]]
+# NOTE_KEYS = [[j for j in range(12) if (i - j) % 12 in MAJOR_SCALE]
 #              for i in range(12)]
 NOTE_KEYS = [
     [0, 1, 3, 5, 7, 8, 10],
