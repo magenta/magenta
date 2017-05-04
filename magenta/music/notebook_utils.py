@@ -48,6 +48,7 @@ def play_sequence(sequence,
 def plot_sequence(sequence,
                   show_figure=True):
   """Creates an interactive pianoroll for a tensorflow.magenta.NoteSequence.
+
   Example usage: plot a random melody.
     sequence = mm.Melody(np.random.randint(36, 72, 30)).to_sequence()
     bokeh_pianoroll(sequence)
