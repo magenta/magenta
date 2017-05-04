@@ -13,12 +13,13 @@
 # limitations under the License.
 """Python functions which run only within a Jupyter notebook."""
 
-# internal imports
-import IPython
-
 import collections
+
+# internal imports
+
 import bokeh
 import bokeh.plotting
+import IPython
 import pandas as pd
 
 from magenta.music import midi_synth
