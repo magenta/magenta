@@ -130,13 +130,19 @@ def extract_subsequence(sequence, start_time, end_time):
 
   Raises:
     QuantizationStatusException: If the sequence has already been quantized.
+    ValueError: If `start_time` is past the end of `sequence`.
   """
   if is_quantized_sequence(sequence):
     raise QuantizationStatusException(
         'Can only extract subsequence from unquantized NoteSequence.')
 
+  if start_time >= sequence.total_time:
+    raise ValueError('Cannot extract subsequence past end of sequence.')
+
   subsequence = music_pb2.NoteSequence()
   subsequence.CopyFrom(sequence)
+
+  subsequence.total_time = 0.0
 
   # Extract notes.
   del subsequence.notes[:]
@@ -147,6 +153,8 @@ def extract_subsequence(sequence, start_time, end_time):
     new_note.CopyFrom(note)
     new_note.start_time -= start_time
     new_note.end_time = min(note.end_time, end_time) - start_time
+    if new_note.end_time > subsequence.total_time:
+      subsequence.total_time = new_note.end_time
 
   # Extract time signatures.
   del subsequence.time_signatures[:]
@@ -229,12 +237,9 @@ def extract_subsequence(sequence, start_time, end_time):
   del subsequence.pitch_bends[:]
   del subsequence.control_changes[:]
 
-  actual_end_time = min(sequence.total_time, end_time)
-  subsequence.total_time = actual_end_time - start_time
-
   subsequence.subsequence_info.start_time_offset = start_time
   subsequence.subsequence_info.end_time_offset = (
-      sequence.total_time - actual_end_time)
+      sequence.total_time - start_time - subsequence.total_time)
 
   return subsequence
 
@@ -317,6 +322,8 @@ def split_note_sequence_on_time_changes(note_sequence, split_notes=True):
   time_signatures_and_tempos = sorted(
       list(note_sequence.time_signatures) + list(note_sequence.tempos),
       key=lambda t: t.time)
+  time_signatures_and_tempos = [t for t in time_signatures_and_tempos
+                                if t.time < note_sequence.total_time]
 
   notes_by_start_time = sorted(list(note_sequence.notes),
                                key=lambda note: note.start_time)
