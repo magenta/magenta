@@ -395,6 +395,7 @@ py_test(
     name = "musicxml_parser_test",
     srcs = ["musicxml_parser_test.py"],
     data = [
+        "testdata/alternating_meter.xml",
         "testdata/atonal_transposition_change.xml",
         "testdata/chord_symbols.xml",
         "testdata/clarinet_scale.xml",
@@ -402,11 +403,10 @@ py_test(
         "testdata/flute_scale.mxl",
         "testdata/flute_scale.xml",
         "testdata/flute_scale_with_png.mxl",
+        "testdata/mid_measure_time_signature.xml",
         "testdata/rhythm_durations.xml",
         "testdata/st_anne.xml",
         "testdata/unmetered_example.xml",
-        "testdata/alternating_meter.xml",
-        "testdata/mid_measure_time_signature.xml"
     ],
     srcs_version = "PY2AND3",
     deps = [
@@ -445,6 +445,8 @@ py_library(
     deps = [
         ":midi_synth",
         # IPython dep
+        # bokeh dep
+        # pandas dep
     ],
 )
 
