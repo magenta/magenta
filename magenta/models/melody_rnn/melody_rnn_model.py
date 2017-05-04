@@ -183,5 +183,30 @@ default_configs = {
             clip_norm=3,
             initial_learning_rate=0.001,
             decay_steps=1000,
-            decay_rate=0.97))
+            decay_rate=0.97)),
+
+    'dilated_cnn': MelodyRnnConfig(
+        magenta.protobuf.generator_pb2.GeneratorDetails(
+            id='dilated_cnn',
+            description='Melody CNN with one-hot encoding and dilated convolution.'),
+        magenta.music.OneHotEventSequenceEncoderDecoder(
+            magenta.music.MelodyOneHotEncoding(
+                min_note=DEFAULT_MIN_NOTE,
+                max_note=DEFAULT_MAX_NOTE)),
+        magenta.common.HParams(
+            batch_size=128,
+            dropout_keep_prob=0.5,
+            skip_first_n_losses=0,
+            clip_norm=3,
+            initial_learning_rate=0.01,
+            decay_steps=1000,
+            decay_rate=0.9,
+            dilated_cnn=True,
+            block_num=2,
+            block_size=7,
+            residual_cnl=16,
+            dilation_cnl=8,
+            output_cnl=32,
+            use_gate=True,
+            use_step=True))
 }

@@ -16,6 +16,10 @@ Lookback RNN introduces custom inputs and labels. The custom inputs allow the mo
 
 In this configuration we introduce the use of attention. Attention allows the model to more easily access past information without having to store that information in the RNN cell's state. This allows the model to more easily learn longer term dependencies, and results in melodies that have longer arching themes. For an overview of how the attention mechanism works and to hear some generated sample melodies, check out the [blog post](https://magenta.tensorflow.org/2016/07/15/lookback-rnn-attention-rnn/). You can also read through the `AttentionCellWrapper` code in Tensorflow to see what's really going on under the hood.
 
+### Dilated CNN
+
+This configuration uses Dilated CNN as generative model. It uses basic one-hot encoding as with 'Basic'.
+
 ## How to Use
 
 First, set up your [Magenta environment](/README.md). Next, you can either use a pre-trained model or train your own.
@@ -36,7 +40,7 @@ directory.
 
 ```
 BUNDLE_PATH=<absolute path of .mag file>
-CONFIG=<one of 'basic_rnn', 'lookback_rnn', or 'attention_rnn', matching the bundle>
+CONFIG=<one of 'basic_rnn', 'lookback_rnn', 'attention_rnn',　or 'dilated_cnn' matching the bundle>
 
 melody_rnn_generate \
 --config=${CONFIG} \
