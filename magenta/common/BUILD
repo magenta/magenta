@@ -42,9 +42,9 @@ py_library(
 
 py_test(
     name = "concurrency_test",
+    size = "small",
     srcs = ["concurrency_test.py"],
     srcs_version = "PY2AND3",
-    size = "small",
     deps = [
         ":concurrency",
         # tensorflow dep
@@ -72,9 +72,9 @@ py_library(
 
 py_test(
     name = "state_util_test",
+    size = "small",
     srcs = ["state_util_test.py"],
     srcs_version = "PY2AND3",
-    size = "small",
     deps = [
         ":state_util",
         # numpy dep
@@ -99,9 +99,9 @@ py_library(
 
 py_test(
     name = "tf_lib_test",
+    size = "small",
     srcs = ["tf_lib_test.py"],
     srcs_version = "PY2AND3",
-    size = "small",
     deps = [
         ":tf_lib",
         # tensorflow dep
