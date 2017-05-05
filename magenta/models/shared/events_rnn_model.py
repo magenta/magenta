@@ -22,6 +22,7 @@ import numpy as np
 from six.moves import range  # pylint: disable=redefined-builtin
 import tensorflow as tf
 
+from magenta.common import state_util
 from magenta.models.shared import events_rnn_graph
 import magenta.music as mm
 
@@ -48,14 +49,12 @@ class EventSequenceRnnModel(mm.BaseModel):
     super(EventSequenceRnnModel, self).__init__()
     self._config = config
 
-    # Override hparams for generation.
-    # TODO(fjord): once this class supports training, make this step conditional
-    # on the usage mode.
-    self._config.hparams.dropout_keep_prob = 1.0
-    self._config.hparams.batch_size = 1
-
   def _build_graph_for_generation(self):
     return events_rnn_graph.build_graph('generate', self._config)
+
+  def _batch_size(self):
+    """Extracts the batch size from the graph."""
+    return self._session.graph.get_collection('inputs')[0].shape[0].value
 
   def _generate_step_for_batch(self, event_sequences, inputs, initial_state,
                                temperature):
@@ -66,12 +65,11 @@ class EventSequenceRnnModel(mm.BaseModel):
     Args:
       event_sequences: A list of event sequences, each of which is a Python
           list-like object. The list of event sequences should have length equal
-          to `self._config.hparams.batch_size`.
+          to `self._batch_size()`. These are extended by this method.
       inputs: A Python list of model inputs, with length equal to
-          `self._config.hparams.batch_size`.
+          `self._batch_size()`.
       initial_state: A numpy array containing the initial RNN state, where
-          `initial_state.shape[0]` is equal to
-          `self._config.hparams.batch_size`.
+          `initial_state.shape[0]` is equal to `self._batch_size()`.
       temperature: The softmax temperature.
 
     Returns:
@@ -79,11 +77,11 @@ class EventSequenceRnnModel(mm.BaseModel):
           `initial_state`.
       loglik: The log-likelihood of the chosen softmax value for each event
           sequence, a 1-D numpy array of length
-          `self._config.hparams.batch_size`. If `inputs` is a full-length inputs
-          batch, the log-likelihood of each entire sequence up to and including
-          the generated step will be computed and returned.
+          `self._batch_size()`. If `inputs` is a full-length inputs batch, the
+          log-likelihood of each entire sequence up to and including the
+          generated step will be computed and returned.
     """
-    assert len(event_sequences) == self._config.hparams.batch_size
+    assert len(event_sequences) == self._batch_size()
 
     graph_inputs = self._session.graph.get_collection('inputs')[0]
     graph_initial_state = self._session.graph.get_collection('initial_state')[0]
@@ -114,68 +112,60 @@ class EventSequenceRnnModel(mm.BaseModel):
 
     return final_state, loglik + np.log(p)
 
-  def _generate_step(self, event_sequences, inputs, initial_state, temperature):
+  def _generate_step(self, event_sequences, inputs, initial_states,
+                     temperature):
     """Extends a list of event sequences by a single step each.
 
     This method modifies the event sequences in place.
 
     Args:
-      event_sequences: A list of event sequence objects.
+      event_sequences: A list of event sequence objects, which are extended by
+          this method.
       inputs: A Python list of model inputs, with length equal to the number of
           event sequences.
-      initial_state: A numpy array containing the initial RNN states, where
-          `initial_state.shape[0]` is equal to the number of event sequences.
+      initial_states: A collection of structures for the initial RNN states,
+          one for each event sequence.
       temperature: The softmax temperature.
 
     Returns:
-      final_state: The final RNN state, a numpy array the same size as
-          `initial_state`.
+      final_states: The final RNN states, a list the same size as
+          `initial_states`.
       loglik: The log-likelihood of the chosen softmax value for each event
           sequence, a 1-D numpy array of length
-          `self._config.hparams.batch_size`. If `inputs` is a full-length inputs
-          batch, the log-likelihood of each entire sequence up to and including
-          the generated step will be computed and returned.
+          `self._batch_size()`. If `inputs` is a full-length inputs batch, the
+          log-likelihood of each entire sequence up to and including the
+          generated step will be computed and returned.
     """
-    batch_size = self._config.hparams.batch_size
-    num_full_batches = len(event_sequences) / batch_size
+    batch_size = self._batch_size()
+    num_seqs = len(event_sequences)
+    num_batches = int(np.ceil(num_seqs / float(batch_size)))
 
-    final_state = np.empty((len(event_sequences), initial_state.shape[1]))
-    loglik = np.empty(len(event_sequences))
+    final_states = []
+    loglik = np.empty(num_seqs)
 
-    offset = 0
-    for _ in range(num_full_batches):
+    pad_amt = len(event_sequences) % batch_size
+    padded_event_sequences = event_sequences + [
+        copy.deepcopy(event_sequences[-1]) for _ in range(pad_amt)]
+    padded_inputs = inputs + [inputs[-1]] * pad_amt
+    padded_initial_states = initial_states + [initial_states[-1]] * pad_amt
+
+    for b in range(num_batches):
+      i, j = b * batch_size, (b + 1) * batch_size
+      pad_amt = max(0, j - num_seqs)
       # Generate a single step for one batch of event sequences.
-      batch_indices = range(offset, offset + batch_size)
       batch_final_state, batch_loglik = self._generate_step_for_batch(
-          [event_sequences[i] for i in batch_indices],
-          [inputs[i] for i in batch_indices],
-          initial_state[batch_indices, :],
+          padded_event_sequences[i:j],
+          padded_inputs[i:j],
+          state_util.batch(padded_initial_states[i:j], batch_size),
           temperature)
-      final_state[batch_indices, :] = batch_final_state
-      loglik[batch_indices] = batch_loglik
-      offset += batch_size
+      final_states += state_util.unbatch(
+          batch_final_state, batch_size)[:j - i - pad_amt]
+      loglik[i:j - pad_amt] = batch_loglik[:j - i - pad_amt]
 
-    if offset < len(event_sequences):
-      # There's an extra non-full batch. Pad it with a bunch of copies of the
-      # final sequence.
-      num_extra = len(event_sequences) - offset
-      pad_size = batch_size - num_extra
-      batch_indices = range(offset, len(event_sequences))
-      batch_final_state, batch_loglik = self._generate_step_for_batch(
-          [event_sequences[i] for i in batch_indices] + [
-              copy.deepcopy(event_sequences[-1]) for _ in range(pad_size)],
-          [inputs[i] for i in batch_indices] + inputs[-1] * pad_size,
-          np.append(initial_state[batch_indices, :],
-                    np.tile(inputs[-1, :], (pad_size, 1)),
-                    axis=0),
-          temperature)
-      final_state[batch_indices] = batch_final_state[0:num_extra, :]
-      loglik[batch_indices] = batch_loglik[0:num_extra]
-
-    return final_state, loglik
+    return final_states, loglik
 
   def _generate_branches(self, event_sequences, loglik, branch_factor,
-                         num_steps, inputs, initial_state, temperature):
+                         num_steps, inputs, initial_states, temperature):
     """Performs a single iteration of branch generation for beam search.
 
     This method generates `branch_factor` branches for each event sequence in
@@ -190,23 +180,22 @@ class EventSequenceRnnModel(mm.BaseModel):
       num_steps: The integer number of steps to take per branch.
       inputs: A Python list of model inputs, with length equal to the number of
           event sequences.
-      initial_state: A numpy array containing the initial RNN states, where
-          `initial_state.shape[0]` is equal to the number of event sequences.
+      initial_states: A collection of structures for the initial RNN states,
+          one for each event sequence.
       temperature: The softmax temperature.
 
     Returns:
       all_event_sequences: A list of event sequences, with `branch_factor` times
           as many event sequences as the initial list.
-      all_final_state: A numpy array of final RNN states, where
-          `final_state.shape[0]` is equal to the length of
-          `all_event_sequences`.
+      all_final_state: A list of structures for the initial RNN states, with a
+          length equal to the length of `all_event_sequences`.
       all_loglik: A 1-D numpy array of event sequence log-likelihoods, with
           length equal to the length of `all_event_sequences`.
     """
     all_event_sequences = [copy.deepcopy(events)
                            for events in event_sequences * branch_factor]
     all_inputs = inputs * branch_factor
-    all_final_state = np.tile(initial_state, (branch_factor, 1))
+    all_final_state = initial_states * branch_factor
     all_loglik = np.tile(loglik, (branch_factor,))
 
     for _ in range(num_steps):
@@ -216,7 +205,7 @@ class EventSequenceRnnModel(mm.BaseModel):
 
     return all_event_sequences, all_final_state, all_loglik
 
-  def _prune_branches(self, event_sequences, final_state, loglik, k):
+  def _prune_branches(self, event_sequences, final_states, loglik, k):
     """Prune all but `k` event sequences.
 
     This method prunes all but the `k` event sequences with highest log-
@@ -224,16 +213,16 @@ class EventSequenceRnnModel(mm.BaseModel):
 
     Args:
       event_sequences: A list of event sequence objects.
-      final_state: A numpy array containing the final RNN states, where
-          `final_state.shape[0]` is equal to the number of event sequences.
+      final_states: A collection of structures for the final RNN states,
+          one for each event sequence.
       loglik: A 1-D numpy array of log-likelihoods, the same size as
           `event_sequences`.
       k: The number of event sequences to keep after pruning.
 
     Returns:
       event_sequences: The pruned list of event sequences, of length `k`.
-      final_state: The pruned numpy array of final RNN states, where
-          `final_state.shape[0]` is equal to `k`.
+      final_states: The pruned list of structures for the final RNN states, of
+          length `k`.
       loglik: The pruned event sequence log-likelihoods, a 1-D numpy array of
           length `k`.
     """
@@ -241,10 +230,10 @@ class EventSequenceRnnModel(mm.BaseModel):
                              key=lambda i: loglik[i])
 
     event_sequences = [event_sequences[i] for i in indices]
-    final_state = final_state[indices, :]
+    final_states = [final_states[i] for i in indices]
     loglik = loglik[indices]
 
-    return event_sequences, final_state, loglik
+    return event_sequences, final_states, loglik
 
   def _beam_search(self, events, num_steps, temperature, beam_size,
                    branch_factor, steps_per_iteration, control_events=None,
@@ -315,11 +304,12 @@ class EventSequenceRnnModel(mm.BaseModel):
       modify_events_callback(
           self._config.encoder_decoder, event_sequences, inputs)
 
-    initial_state = np.tile(
-        self._session.run(graph_initial_state), (beam_size, 1))
+    zero_state = state_util.unbatch(
+        self._session.run(graph_initial_state))[0]
+    initial_states = [zero_state] * beam_size
     event_sequences, final_state, loglik = self._generate_branches(
         event_sequences, loglik, branch_factor, first_iteration_num_steps,
-        inputs, initial_state, temperature)
+        inputs, initial_states, temperature)
 
     num_iterations = (num_steps -
                       first_iteration_num_steps) / steps_per_iteration
@@ -416,12 +406,11 @@ class EventSequenceRnnModel(mm.BaseModel):
     Args:
       event_sequences: A list of event sequences, each of which is a Python
           list-like object. The list of event sequences should have length equal
-          to `self._config.hparams.batch_size`.
+          to `self._batch_size()`.
       inputs: A Python list of model inputs, with length equal to
-          `self._config.hparams.batch_size`.
+          `self._batch_size()`.
       initial_state: A numpy array containing the initial RNN state, where
-          `initial_state.shape[0]` is equal to
-          `self._config.hparams.batch_size`.
+          `initial_state.shape[0]` is equal to `self._batch_size()`.
 
     Returns:
       A Python list containing the log likelihood of each sequence in
@@ -471,7 +460,7 @@ class EventSequenceRnnModel(mm.BaseModel):
       raise EventSequenceRnnModelException(
           'control sequence must be at least as long as the event sequences')
 
-    batch_size = self._config.hparams.batch_size
+    batch_size = self._batch_size()
     num_full_batches = len(event_sequences) / batch_size
 
     loglik = np.empty(len(event_sequences))
