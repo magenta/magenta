@@ -49,16 +49,6 @@ class MajorMinorChordOneHotEncoding(encoder_decoder.OneHotEncoding):
     13-24: chords with a minor triad, where 13 is C minor, 14 is C# minor, etc.
   """
 
-  def __init__(self, chord_symbol_functions=
-               chord_symbols_lib.ChordSymbolFunctions.get()):
-    """Initialize the MajorMinorChordOneHotEncoding object.
-
-    Args:
-      chord_symbol_functions: ChordSymbolFunctions object with which to perform
-          the actual parsing of chord symbol strings.
-    """
-    self._chord_symbol_functions = chord_symbol_functions
-
   @property
   def num_classes(self):
     return 2 * NOTES_PER_OCTAVE + 1
@@ -71,8 +61,8 @@ class MajorMinorChordOneHotEncoding(encoder_decoder.OneHotEncoding):
     if event == NO_CHORD:
       return 0
 
-    root = self._chord_symbol_functions.chord_symbol_root(event)
-    quality = self._chord_symbol_functions.chord_symbol_quality(event)
+    root = chord_symbols_lib.chord_symbol_root(event)
+    quality = chord_symbols_lib.chord_symbol_quality(event)
 
     if quality == chord_symbols_lib.CHORD_QUALITY_MAJOR:
       return root + 1
@@ -104,16 +94,6 @@ class TriadChordOneHotEncoding(encoder_decoder.OneHotEncoding):
     37-48: chords with a diminished triad, where 37 is C diminished, etc.
   """
 
-  def __init__(self, chord_symbol_functions=
-               chord_symbols_lib.ChordSymbolFunctions.get()):
-    """Initialize the TriadChordOneHotEncoding object.
-
-    Args:
-      chord_symbol_functions: ChordSymbolFunctions object with which to perform
-          the actual parsing of chord symbol strings.
-    """
-    self._chord_symbol_functions = chord_symbol_functions
-
   @property
   def num_classes(self):
     return 4 * NOTES_PER_OCTAVE + 1
@@ -126,8 +106,8 @@ class TriadChordOneHotEncoding(encoder_decoder.OneHotEncoding):
     if event == NO_CHORD:
       return 0
 
-    root = self._chord_symbol_functions.chord_symbol_root(event)
-    quality = self._chord_symbol_functions.chord_symbol_quality(event)
+    root = chord_symbols_lib.chord_symbol_root(event)
+    quality = chord_symbols_lib.chord_symbol_quality(event)
 
     if quality == chord_symbols_lib.CHORD_QUALITY_MAJOR:
       return root + 1
@@ -165,16 +145,6 @@ class PitchChordsEncoderDecoder(encoder_decoder.EventSequenceEncoderDecoder):
   sequence (e.g. melody) conditioned on chords.
   """
 
-  def __init__(self, chord_symbol_functions=
-               chord_symbols_lib.ChordSymbolFunctions.get()):
-    """Initialize the PitchChordsEncoderDecoder object.
-
-    Args:
-      chord_symbol_functions: ChordSymbolFunctions object with which to perform
-          the actual parsing of chord symbol strings.
-    """
-    self._chord_symbol_functions = chord_symbol_functions
-
   @property
   def input_size(self):
     return 3 * NOTES_PER_OCTAVE + 1
@@ -210,14 +180,14 @@ class PitchChordsEncoderDecoder(encoder_decoder.EventSequenceEncoderDecoder):
       input_[0] = 1.0
       return input_
 
-    root = self._chord_symbol_functions.chord_symbol_root(chord)
+    root = chord_symbols_lib.chord_symbol_root(chord)
     input_[1 + root] = 1.0
 
-    pitches = self._chord_symbol_functions.chord_symbol_pitches(chord)
+    pitches = chord_symbols_lib.chord_symbol_pitches(chord)
     for pitch in pitches:
       input_[1 + NOTES_PER_OCTAVE + pitch] = 1.0
 
-    bass = self._chord_symbol_functions.chord_symbol_bass(chord)
+    bass = chord_symbols_lib.chord_symbol_bass(chord)
     input_[1 + 2 * NOTES_PER_OCTAVE + bass] = 1.0
 
     return input_

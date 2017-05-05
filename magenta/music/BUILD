@@ -53,6 +53,7 @@ py_library(
     srcs = ["chord_symbols_lib.py"],
     srcs_version = "PY2AND3",
     deps = [
+        ":constants",
         # tensorflow dep
     ],
 )
@@ -451,6 +452,7 @@ py_library(
     name = "sequences_lib",
     srcs = ["sequences_lib.py"],
     deps = [
+        ":chord_symbols_lib",
         ":constants",
         "//magenta/pipelines:pipeline",
         "//magenta/pipelines:statistics",
