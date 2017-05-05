@@ -226,21 +226,24 @@ class ChordProgression(events_lib.SimpleEventSequence):
 
     return sequence
 
-  def transpose(self, transpose_amount):
+  def transpose(self, transpose_amount, chord_symbol_functions=
+                chord_symbols_lib.ChordSymbolFunctions.get()):
     """Transpose chords in this ChordProgression.
 
     Args:
       transpose_amount: The number of half steps to transpose this
           ChordProgression. Positive values transpose up. Negative values
           transpose down.
+      chord_symbol_functions: ChordSymbolFunctions object with which to perform
+          the actual transposition of chord symbol strings.
 
     Raises:
       ChordSymbolException: If a chord (other than "no chord") fails to be
-          interpreted by the `chord_symbols_lib` module.
+          interpreted by the ChordSymbolFunctions object.
     """
     for i in xrange(len(self._events)):
       if self._events[i] != NO_CHORD:
-        self._events[i] = chord_symbols_lib.transpose_chord_symbol(
+        self._events[i] = chord_symbol_functions.transpose_chord_symbol(
             self._events[i], transpose_amount % NOTES_PER_OCTAVE)
 
 
@@ -346,7 +349,9 @@ class BasicChordRenderer(ChordRenderer):
                instrument=1,
                program=88,
                octave=4,
-               bass_octave=3):
+               bass_octave=3,
+               chord_symbol_functions=
+               chord_symbols_lib.ChordSymbolFunctions.get()):
     """Initialize a BasicChordRenderer object.
 
     Args:
@@ -356,12 +361,15 @@ class BasicChordRenderer(ChordRenderer):
       octave: The octave in which to render chord notes. If the bass note is not
           otherwise part of the chord, it will not be rendered in this octave.
       bass_octave: The octave in which to render chord bass notes.
+      chord_symbol_functions: ChordSymbolFunctions object with which to perform
+          the actual transposition of chord symbol strings.
     """
     self._velocity = velocity
     self._instrument = instrument
     self._program = program
     self._octave = octave
     self._bass_octave = bass_octave
+    self._chord_symbol_functions = chord_symbol_functions
 
   def _render_notes(self, sequence, pitches, bass_pitch, start_time, end_time):
     all_pitches = []
@@ -393,8 +401,10 @@ class BasicChordRenderer(ChordRenderer):
       if annotation.annotation_type == CHORD_SYMBOL:
         if prev_figure != NO_CHORD:
           # Render the previous chord.
-          pitches = chord_symbols_lib.chord_symbol_pitches(prev_figure)
-          bass_pitch = chord_symbols_lib.chord_symbol_bass(prev_figure)
+          pitches = self._chord_symbol_functions.chord_symbol_pitches(
+              prev_figure)
+          bass_pitch = self._chord_symbol_functions.chord_symbol_bass(
+              prev_figure)
           self._render_notes(sequence=sequence,
                              pitches=pitches,
                              bass_pitch=bass_pitch,
@@ -407,8 +417,8 @@ class BasicChordRenderer(ChordRenderer):
     if (prev_time < sequence.total_time and
         prev_figure != NO_CHORD):
       # Render the last chord.
-      pitches = chord_symbols_lib.chord_symbol_pitches(prev_figure)
-      bass_pitch = chord_symbols_lib.chord_symbol_bass(prev_figure)
+      pitches = self._chord_symbol_functions.chord_symbol_pitches(prev_figure)
+      bass_pitch = self._chord_symbol_functions.chord_symbol_bass(prev_figure)
       self._render_notes(sequence=sequence,
                          pitches=pitches,
                          bass_pitch=bass_pitch,

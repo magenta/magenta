@@ -21,8 +21,7 @@ import magenta
 def make_rnn_cell(rnn_layer_sizes,
                   dropout_keep_prob=1.0,
                   attn_length=0,
-                  base_cell=tf.contrib.rnn.BasicLSTMCell,
-                  state_is_tuple=False):
+                  base_cell=tf.contrib.rnn.BasicLSTMCell):
   """Makes a RNN cell from the given hyperparameters.
 
   Args:
@@ -32,23 +31,20 @@ def make_rnn_cell(rnn_layer_sizes,
         sub-cell.
     attn_length: The size of the attention vector.
     base_cell: The base tf.contrib.rnn.RNNCell to use for sub-cells.
-    state_is_tuple: A boolean specifying whether to use tuple of hidden matrix
-        and cell matrix as a state instead of a concatenated matrix.
 
   Returns:
       A tf.contrib.rnn.MultiRNNCell based on the given hyperparameters.
   """
   cells = []
   for num_units in rnn_layer_sizes:
-    cell = base_cell(num_units, state_is_tuple=state_is_tuple)
+    cell = base_cell(num_units)
     cell = tf.contrib.rnn.DropoutWrapper(
         cell, output_keep_prob=dropout_keep_prob)
     cells.append(cell)
 
-  cell = tf.contrib.rnn.MultiRNNCell(cells, state_is_tuple=state_is_tuple)
+  cell = tf.contrib.rnn.MultiRNNCell(cells)
   if attn_length:
-    cell = tf.contrib.rnn.AttentionCellWrapper(
-        cell, attn_length, state_is_tuple=state_is_tuple)
+    cell = tf.contrib.rnn.AttentionCellWrapper(cell, attn_length)
 
   return cell
 
@@ -86,7 +82,6 @@ def build_graph(mode, config, sequence_example_file_paths=None):
 
   with tf.Graph().as_default() as graph:
     inputs, labels, lengths, = None, None, None
-    state_is_tuple = True
 
     if mode == 'train' or mode == 'eval':
       inputs, labels, lengths = magenta.common.get_padded_batch(
@@ -95,23 +90,17 @@ def build_graph(mode, config, sequence_example_file_paths=None):
     elif mode == 'generate':
       inputs = tf.placeholder(tf.float32, [hparams.batch_size, None,
                                            input_size])
-      # If state_is_tuple is True, the output RNN cell state will be a tuple
-      # instead of a tensor. During training and evaluation this improves
-      # performance. However, during generation, the RNN cell state is fed
-      # back into the graph with a feed dict. Feed dicts require passed in
-      # values to be tensors and not tuples, so state_is_tuple is set to False.
-      state_is_tuple = False
 
-    cell = make_rnn_cell(hparams.rnn_layer_sizes,
-                         dropout_keep_prob=hparams.dropout_keep_prob,
-                         attn_length=hparams.attn_length,
-                         state_is_tuple=state_is_tuple)
+    cell = make_rnn_cell(
+        hparams.rnn_layer_sizes,
+        dropout_keep_prob=(
+            1.0 if mode == 'generate' else hparams.dropout_keep_prob),
+        attn_length=hparams.attn_length)
 
     initial_state = cell.zero_state(hparams.batch_size, tf.float32)
 
     outputs, final_state = tf.nn.dynamic_rnn(
-        cell, inputs, initial_state=initial_state, parallel_iterations=1,
-        swap_memory=True)
+        cell, inputs, initial_state=initial_state, swap_memory=True)
 
     outputs_flat = tf.reshape(outputs, [-1, cell.output_size])
     logits_flat = tf.contrib.layers.linear(outputs_flat, num_classes)

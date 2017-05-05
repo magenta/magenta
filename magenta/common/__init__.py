@@ -16,5 +16,6 @@
 
 from sequence_example_lib import get_padded_batch
 from sequence_example_lib import make_sequence_example
+import state_util
 
 from tf_lib import HParams

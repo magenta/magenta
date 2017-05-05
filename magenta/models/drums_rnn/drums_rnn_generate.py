@@ -227,6 +227,11 @@ def main(unused_argv):
   tf.logging.set_verbosity(FLAGS.log)
 
   config = drums_rnn_config_flags.config_from_flags()
+  if FLAGS.bundle_file and config.hparams.batch_size != 1:
+    tf.logging.warning(
+        'Setting batch_size to 1 since a bundle file is being used.')
+    config.hparams.batch_size = 1
+
   generator = drums_rnn_sequence_generator.DrumsRnnSequenceGenerator(
       model=drums_rnn_model.DrumsRnnModel(config),
       details=config.details,

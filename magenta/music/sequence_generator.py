@@ -32,13 +32,6 @@ class SequenceGeneratorException(Exception):
   pass
 
 
-# TODO(adarob): Replace with tf.saver.checkpoint_file_exists when released.
-def _checkpoint_file_exists(checkpoint_file_or_prefix):
-  """Returns True if checkpoint file or files (for V2) exist."""
-  return (tf.gfile.Exists(checkpoint_file_or_prefix) or
-          tf.gfile.Exists(checkpoint_file_or_prefix + '.index'))
-
-
 class BaseSequenceGenerator(object):
   """Abstract class for generators."""
 
@@ -131,7 +124,7 @@ class BaseSequenceGenerator(object):
     # This is enforced by the constructor.
     if self._checkpoint is not None:
       # Check if the checkpoint file exists.
-      if not _checkpoint_file_exists(self._checkpoint):
+      if not tf.train.checkpoint_exists(self._checkpoint):
         raise SequenceGeneratorException(
             'Checkpoint path does not exist: %s' % (self._checkpoint))
       checkpoint_file = self._checkpoint
@@ -141,7 +134,7 @@ class BaseSequenceGenerator(object):
       if checkpoint_file is None:
         raise SequenceGeneratorException(
             'No checkpoint file found in directory: %s' % self._checkpoint)
-      if (not _checkpoint_file_exists(self._checkpoint) or
+      if (not tf.train.checkpoint_exists(self._checkpoint) or
           tf.gfile.IsDirectory(checkpoint_file)):
         raise SequenceGeneratorException(
             'Checkpoint path is not a file: %s (supplied path: %s)' % (
@@ -275,4 +268,3 @@ class BaseSequenceGenerator(object):
       Number of steps the seconds represent.
     """
     return int(seconds * (qpm / 60.0) * self.steps_per_quarter)
-

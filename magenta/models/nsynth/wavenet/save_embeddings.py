@@ -50,7 +50,7 @@ def main(unused_argv=None):
   config = utils.get_module("wavenet." + FLAGS.config).Config()
 
   if FLAGS.checkpoint_path:
-    checkpoint_path = FLAGS.checkpoint_path
+    ckpt_path = FLAGS.ckpt_path
   else:
     expdir = FLAGS.expdir
     tf.logging.info("Will load latest checkpoint from %s.", expdir)
@@ -59,16 +59,16 @@ def main(unused_argv=None):
       sys.exit(1)
 
     try:
-      checkpoint_path = tf.train.latest_checkpoint(expdir)
+      ckpt_path = tf.train.latest_checkpoint(expdir)
     except tf.errors.NotFoundError:
       tf.logging.fatal("There was a problem determining the latest checkpoint.")
       sys.exit(1)
 
-  if not tf.train.checkpoint_exists(checkpoint_path):
-    tf.logging.fatal("Invalid checkpoint path: %s", checkpoint_path)
+  if not tf.train.checkpoint_exists(ckpt_path):
+    tf.logging.fatal("Invalid checkpoint path: %s", ckpt_path)
     sys.exit(1)
 
-  tf.logging.info("Will restore from checkpoint: %s", checkpoint_path)
+  tf.logging.info("Will restore from checkpoint: %s", ckpt_path)
 
   wavdir = FLAGS.wavdir
   tf.logging.info("Will load Wavs from %s." % wavdir)
@@ -100,7 +100,7 @@ def main(unused_argv=None):
     sess = tf.Session("", config=session_config)
 
     tf.logging.info("\tRestoring from checkpoint.")
-    saver.restore(sess, checkpoint_path)
+    saver.restore(sess, ckpt_path)
 
     def is_wav(f):
       return f.lower().endswith(".wav")
@@ -114,19 +114,18 @@ def main(unused_argv=None):
       batch_number = (start_file / batch_size) + 1
       tf.logging.info("On file number %s (batch %d).", start_file, batch_number)
       end_file = start_file + batch_size
-      wavefiles_batch = wavfiles[start_file:end_file]
+      files = wavfiles[start_file:end_file]
 
       # Ensure that files has batch_size elements.
-      batch_filler = batch_size - len(wavefiles_batch)
-      wavefiles_batch.extend(batch_filler * [wavefiles_batch[-1]])
+      batch_filler = batch_size - len(files)
+      files.extend(batch_filler * [files[-1]])
 
-      wavdata = np.array(
-          [utils.load_wav(f)[:sample_length] for f in wavefiles_batch])
+      wavdata = np.array([utils.load_wav(f)[:sample_length] for f in files])
 
       try:
         encoding = sess.run(
             graph_encoding, feed_dict={wav_placeholder: wavdata})
-        for num, (wavfile, enc) in enumerate(zip(wavefiles_batch, encoding)):
+        for num, (wavfile, enc) in enumerate(zip(wavfiles, encoding)):
           filename = "%s_embeddings.npy" % wavfile.split("/")[-1].strip(".wav")
           with tf.gfile.Open(os.path.join(savedir, filename), "w") as f:
             np.save(f, enc)
