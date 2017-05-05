@@ -248,10 +248,6 @@ def main(unused_argv):
   tf.logging.set_verbosity(FLAGS.log)
 
   config = improv_rnn_config_flags.config_from_flags()
-  if FLAGS.bundle_file and config.hparams.batch_size != 1:
-    tf.logging.warning(
-        'Setting batch_size to 1 since a bundle file is being used.')
-    config.hparams.batch_size = 1
 
   generator = improv_rnn_sequence_generator.ImprovRnnSequenceGenerator(
       model=improv_rnn_model.ImprovRnnModel(config),

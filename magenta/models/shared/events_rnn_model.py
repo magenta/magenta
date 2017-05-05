@@ -52,6 +52,10 @@ class EventSequenceRnnModel(mm.BaseModel):
   def _build_graph_for_generation(self):
     return events_rnn_graph.build_graph('generate', self._config)
 
+  def _batch_size(self):
+    """Extracts the batch size from the graph."""
+    return self._session.graph.get_collection('inputs')[0].shape[0].value
+
   def _generate_step_for_batch(self, event_sequences, inputs, initial_state,
                                temperature):
     """Extends a batch of event sequences by a single step each.
@@ -61,13 +65,11 @@ class EventSequenceRnnModel(mm.BaseModel):
     Args:
       event_sequences: A list of event sequences, each of which is a Python
           list-like object. The list of event sequences should have length equal
-          to `self._config.hparams.batch_size`. These are extended by this
-          method.
+          to `self._batch_size()`. These are extended by this method.
       inputs: A Python list of model inputs, with length equal to
-          `self._config.hparams.batch_size`.
+          `self._batch_size()`.
       initial_state: A numpy array containing the initial RNN state, where
-          `initial_state.shape[0]` is equal to
-          `self._config.hparams.batch_size`.
+          `initial_state.shape[0]` is equal to `self._batch_size()`.
       temperature: The softmax temperature.
 
     Returns:
@@ -75,11 +77,11 @@ class EventSequenceRnnModel(mm.BaseModel):
           `initial_state`.
       loglik: The log-likelihood of the chosen softmax value for each event
           sequence, a 1-D numpy array of length
-          `self._config.hparams.batch_size`. If `inputs` is a full-length inputs
-          batch, the log-likelihood of each entire sequence up to and including
-          the generated step will be computed and returned.
+          `self._batch_size()`. If `inputs` is a full-length inputs batch, the
+          log-likelihood of each entire sequence up to and including the
+          generated step will be computed and returned.
     """
-    assert len(event_sequences) == self._config.hparams.batch_size
+    assert len(event_sequences) == self._batch_size()
 
     graph_inputs = self._session.graph.get_collection('inputs')[0]
     graph_initial_state = self._session.graph.get_collection('initial_state')[0]
@@ -130,11 +132,11 @@ class EventSequenceRnnModel(mm.BaseModel):
           `initial_states`.
       loglik: The log-likelihood of the chosen softmax value for each event
           sequence, a 1-D numpy array of length
-          `self._config.hparams.batch_size`. If `inputs` is a full-length inputs
-          batch, the log-likelihood of each entire sequence up to and including
-          the generated step will be computed and returned.
+          `self._batch_size()`. If `inputs` is a full-length inputs batch, the
+          log-likelihood of each entire sequence up to and including the
+          generated step will be computed and returned.
     """
-    batch_size = self._config.hparams.batch_size
+    batch_size = self._batch_size()
     num_seqs = len(event_sequences)
     num_batches = int(np.ceil(num_seqs / float(batch_size)))
 
@@ -404,12 +406,11 @@ class EventSequenceRnnModel(mm.BaseModel):
     Args:
       event_sequences: A list of event sequences, each of which is a Python
           list-like object. The list of event sequences should have length equal
-          to `self._config.hparams.batch_size`.
+          to `self._batch_size()`.
       inputs: A Python list of model inputs, with length equal to
-          `self._config.hparams.batch_size`.
+          `self._batch_size()`.
       initial_state: A numpy array containing the initial RNN state, where
-          `initial_state.shape[0]` is equal to
-          `self._config.hparams.batch_size`.
+          `initial_state.shape[0]` is equal to `self._batch_size()`.
 
     Returns:
       A Python list containing the log likelihood of each sequence in
@@ -459,7 +460,7 @@ class EventSequenceRnnModel(mm.BaseModel):
       raise EventSequenceRnnModelException(
           'control sequence must be at least as long as the event sequences')
 
-    batch_size = self._config.hparams.batch_size
+    batch_size = self._batch_size()
     num_full_batches = len(event_sequences) / batch_size
 
     loglik = np.empty(len(event_sequences))
