@@ -26,9 +26,11 @@ execfile('magenta/version.py')
 REQUIRED_PACKAGES = [
     'IPython',
     'Pillow >= 3.4.2',
+    'bokeh >= 0.12.0',
     'intervaltree >= 2.1.0',
     'matplotlib >= 1.5.3',
     'mido >= 1.1.17',
+    'pandas >= 0.18.1',
     'pretty_midi >= 0.2.6',
     'scipy >= 0.18.1',
     'tensorflow >= 1.0.0',
@@ -93,4 +95,3 @@ setup(
         'magenta': ['models/image_stylization/evaluation_images/*.jpg'],
     },
 )
-

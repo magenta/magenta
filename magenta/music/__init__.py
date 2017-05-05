@@ -79,6 +79,7 @@ from magenta.music.musicxml_reader import musicxml_to_sequence_proto
 from magenta.music.musicxml_reader import MusicXMLConversionError
 
 from magenta.music.notebook_utils import play_sequence
+from magenta.music.notebook_utils import plot_sequence
 
 from magenta.music.sequence_generator import BaseSequenceGenerator
 from magenta.music.sequence_generator import SequenceGeneratorException
