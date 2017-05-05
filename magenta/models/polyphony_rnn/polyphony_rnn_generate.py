@@ -108,6 +108,11 @@ tf.app.flags.DEFINE_string(
     'log', 'INFO',
     'The threshold for what messages will be logged DEBUG, INFO, WARN, ERROR, '
     'or FATAL.')
+tf.app.flags.DEFINE_string(
+    'hparams', '{}',
+    'String representation of a Python dictionary containing hyperparameter '
+    'to value mapping. This mapping is merged with the default '
+    'hyperparameters.')
 
 
 def get_checkpoint():
@@ -239,6 +244,7 @@ def main(unused_argv):
   tf.logging.set_verbosity(FLAGS.log)
 
   config = polyphony_model.default_configs[FLAGS.config]
+  config.hparams.parse(FLAGS.hparams)
 
   generator = polyphony_sequence_generator.PolyphonyRnnSequenceGenerator(
       model=polyphony_model.PolyphonyRnnModel(config),
