@@ -598,8 +598,7 @@ def apply_sustain_control_changes(note_sequence, sustain_control_number=64):
 
 
 def infer_chords_for_sequence(
-    sequence, instrument=None, min_notes_per_chord=3,
-    chord_symbol_functions=chord_symbols_lib.ChordSymbolFunctions.get()):
+    sequence, instrument=None, min_notes_per_chord=3):
   """Infers chords for a NoteSequence and adds them as TextAnnotations.
 
   For each set of simultaneously-active notes in a NoteSequence (optionally for
@@ -617,8 +616,6 @@ def infer_chords_for_sequence(
         inference. If None, all instruments will be used.
     min_notes_per_chord: The minimum number of simultaneous notes for which to
         infer a chord.
-    chord_symbol_functions: ChordSymbolFunctions object with which to perform
-          the actual inference of chord symbol from pitches.
 
   Raises:
     ChordSymbolException: If a chord cannot be determined for a set of
@@ -653,7 +650,7 @@ def infer_chords_for_sequence(
       active_pitches = set(sorted_notes[idx].pitch for idx in active_notes)
       if len(active_pitches) >= min_notes_per_chord:
         # Infer a chord symbol for the active pitches.
-        figure = chord_symbol_functions.pitches_to_chord_symbol(active_pitches)
+        figure = chord_symbols_lib.pitches_to_chord_symbol(active_pitches)
 
         if figure != current_figure:
           # Add a text annotation to the sequence.

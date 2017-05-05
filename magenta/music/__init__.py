@@ -14,8 +14,13 @@
 
 """Imports objects from music modules into the top-level music namespace."""
 
+from magenta.music.chord_symbols_lib import chord_symbol_bass
+from magenta.music.chord_symbols_lib import chord_symbol_pitches
+from magenta.music.chord_symbols_lib import chord_symbol_quality
+from magenta.music.chord_symbols_lib import chord_symbol_root
 from magenta.music.chord_symbols_lib import ChordSymbolException
-from magenta.music.chord_symbols_lib import ChordSymbolFunctions
+from magenta.music.chord_symbols_lib import pitches_to_chord_symbol
+from magenta.music.chord_symbols_lib import transpose_chord_symbol
 
 from magenta.music.chords_encoder_decoder import ChordEncodingException
 from magenta.music.chords_encoder_decoder import MajorMinorChordOneHotEncoding
