@@ -221,7 +221,6 @@ def main(unused_argv):
   tf.logging.set_verbosity(FLAGS.log)
 
   config = melody_rnn_config_flags.config_from_flags()
-
   generator = melody_rnn_sequence_generator.MelodyRnnSequenceGenerator(
       model=melody_rnn_model.MelodyRnnModel(config),
       details=config.details,

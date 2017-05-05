@@ -227,7 +227,6 @@ def main(unused_argv):
   tf.logging.set_verbosity(FLAGS.log)
 
   config = drums_rnn_config_flags.config_from_flags()
-
   generator = drums_rnn_sequence_generator.DrumsRnnSequenceGenerator(
       model=drums_rnn_model.DrumsRnnModel(config),
       details=config.details,

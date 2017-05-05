@@ -248,7 +248,6 @@ def main(unused_argv):
   tf.logging.set_verbosity(FLAGS.log)
 
   config = improv_rnn_config_flags.config_from_flags()
-
   generator = improv_rnn_sequence_generator.ImprovRnnSequenceGenerator(
       model=improv_rnn_model.ImprovRnnModel(config),
       details=config.details,
