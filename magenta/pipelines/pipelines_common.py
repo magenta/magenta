@@ -65,6 +65,12 @@ class Quantizer(pipeline.Pipeline):
       self._set_stats([statistics.Counter(
           'sequences_discarded_because_multiple_tempos', 1)])
       return []
+    except sequences_lib.BadTimeSignatureException as e:
+      tf.logging.warning('Denominator not power of 2 in NoteSequence %s: %s',
+                         note_sequence.filename, e)
+      self._set_stats([statistics.Counter(
+          'sequences_discarded_because_bad_time_signature', 1)])
+      return []
 
 
 class RandomPartition(pipeline.Pipeline):
