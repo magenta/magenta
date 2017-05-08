@@ -41,6 +41,8 @@ py_library(
         ":musicxml_reader",
         ":note_sequence_io",
         ":notebook_utils",
+        ":pianoroll_encoder_decoder",
+        ":pianoroll_lib",
         ":sequence_generator",
         ":sequence_generator_bundle",
         ":sequences_lib",
@@ -447,6 +449,50 @@ py_library(
         # IPython dep
         # bokeh dep
         # pandas dep
+    ],
+)
+
+py_library(
+    name = "pianoroll_encoder_decoder",
+    srcs = ["pianoroll_encoder_decoder.py"],
+    deps = [
+        ":constants",
+        ":encoder_decoder",
+    ],
+)
+
+py_test(
+    name = "pianoroll_encoder_decoder_test",
+    srcs = ["pianoroll_encoder_decoder_test.py"],
+    deps = [
+        ":pianoroll_encoder_decoder",
+        # tensorflow dep
+    ],
+)
+
+py_library(
+    name = "pianoroll_lib",
+    srcs = ["pianoroll_lib.py"],
+    deps = [
+        ":constants",
+        ":events_lib",
+        ":sequences_lib",
+        "//magenta/pipelines:statistics",
+        "//magenta/protobuf:music_py_pb2",
+        # tensorflow dep
+    ],
+)
+
+py_test(
+    name = "pianoroll_lib_test",
+    srcs = ["pianoroll_lib_test.py"],
+    deps = [
+        ":pianoroll_lib",
+        ":sequences_lib",
+        ":testing_lib",
+        "//magenta/common:testing_lib",
+        "//magenta/protobuf:music_py_pb2",
+        # tensorflow dep
     ],
 )
 
