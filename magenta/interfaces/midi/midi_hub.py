@@ -132,7 +132,8 @@ class MidiSignal(object):
     else:
       # Generate regex pattern.
       parts = ['.*' if type_ is None else type_]
-      for name in mido.messages.get_spec(inferred_types[0]).arguments:
+      for name in mido.messages.SPEC_BY_TYPE[inferred_types[0]][
+          'value_names']:
         if name in kwargs:
           parts.append('%s=%d' % (name, kwargs[name]))
         else:
