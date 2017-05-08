@@ -81,6 +81,12 @@ from magenta.music.musicxml_reader import MusicXMLConversionError
 from magenta.music.notebook_utils import play_sequence
 from magenta.music.notebook_utils import plot_sequence
 
+from magenta.music.pianoroll_encoder_decoder import PianorollEncoderDecoder
+
+from magenta.music.pianoroll_lib import extract_pianoroll_sequences
+from magenta.music.pianoroll_lib import PianorollSequence
+
+
 from magenta.music.sequence_generator import BaseSequenceGenerator
 from magenta.music.sequence_generator import SequenceGeneratorException
 
