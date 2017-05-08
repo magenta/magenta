@@ -44,7 +44,8 @@ def make_rnn_cell(rnn_layer_sizes,
 
   cell = tf.contrib.rnn.MultiRNNCell(cells)
   if attn_length:
-    cell = tf.contrib.rnn.AttentionCellWrapper(cell, attn_length)
+    cell = tf.contrib.rnn.AttentionCellWrapper(
+        cell, attn_length, state_is_tuple=True)
 
   return cell
 
