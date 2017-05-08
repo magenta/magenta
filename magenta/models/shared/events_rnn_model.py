@@ -143,6 +143,7 @@ class EventSequenceRnnModel(mm.BaseModel):
     final_states = []
     loglik = np.empty(num_seqs)
 
+    # Compute padding to fill the final batch.
     pad_amt = -len(event_sequences) % batch_size
     padded_event_sequences = event_sequences + [
         copy.deepcopy(event_sequences[-1]) for _ in range(pad_amt)]
