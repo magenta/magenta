@@ -136,6 +136,7 @@ class EventSequenceRnnModel(mm.BaseModel):
           log-likelihood of each entire sequence up to and including the
           generated step will be computed and returned.
     """
+    # Split the sequences to extend into batches matching the model batch size.
     batch_size = self._batch_size()
     num_seqs = len(event_sequences)
     num_batches = int(np.ceil(num_seqs / float(batch_size)))
@@ -143,7 +144,8 @@ class EventSequenceRnnModel(mm.BaseModel):
     final_states = []
     loglik = np.empty(num_seqs)
 
-    pad_amt = len(event_sequences) % batch_size
+    # Add padding to fill the final batch.
+    pad_amt = -len(event_sequences) % batch_size
     padded_event_sequences = event_sequences + [
         copy.deepcopy(event_sequences[-1]) for _ in range(pad_amt)]
     padded_inputs = inputs + [inputs[-1]] * pad_amt
