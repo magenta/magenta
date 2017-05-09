@@ -408,6 +408,7 @@ py_test(
         "testdata/mid_measure_time_signature.xml",
         "testdata/rhythm_durations.xml",
         "testdata/st_anne.xml",
+        "testdata/unicode_filename.mxl",
         "testdata/unmetered_example.xml",
     ],
     srcs_version = "PY2AND3",
