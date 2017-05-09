@@ -58,6 +58,12 @@ sh_binary(
         "//magenta/models/rl_tuner",
         "//magenta/models/rl_tuner:rl_tuner_train",
 
+        # RNN-NADE Model and Scripts
+        "//magenta/models/rnn_nade",
+        "//magenta/models/rnn_nade:rnn_nade_create_dataset",
+        "//magenta/models/rnn_nade:rnn_nade_generate",
+        "//magenta/models/rnn_nade:rnn_nade_train",
+
         # Image Stylization Scripts
         "//magenta/models/image_stylization:image_stylization_create_dataset",
         "//magenta/models/image_stylization:image_stylization_evaluate",

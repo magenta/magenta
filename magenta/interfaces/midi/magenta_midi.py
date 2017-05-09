@@ -1,4 +1,4 @@
-# Copyright 2016 Google Inc. All Rights Reserved.
+ # Copyright 2016 Google Inc. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -30,6 +30,7 @@ from magenta.interfaces.midi import midi_interaction
 from magenta.models.drums_rnn import drums_rnn_sequence_generator
 from magenta.models.melody_rnn import melody_rnn_sequence_generator
 from magenta.models.polyphony_rnn import polyphony_sequence_generator
+from magenta.models.rnn_nade import rnn_nade_sequence_generator
 
 FLAGS = tf.app.flags.FLAGS
 
@@ -168,6 +169,7 @@ _CONTROL_FLAGS = [
 _GENERATOR_MAP = melody_rnn_sequence_generator.get_generator_map()
 _GENERATOR_MAP.update(drums_rnn_sequence_generator.get_generator_map())
 _GENERATOR_MAP.update(polyphony_sequence_generator.get_generator_map())
+_GENERATOR_MAP.update(rnn_nade_sequence_generator.get_generator_map())
 
 
 class CCMapper(object):

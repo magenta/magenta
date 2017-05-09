@@ -59,6 +59,37 @@ class PianorollLibTest(tf.test.TestCase):
     ]
     self.assertEqual(expected_pianoroll_seq, pianoroll_seq)
 
+  def testFromQuantizedNoteSequence_SplitRepeats(self):
+    testing_lib.add_track_to_sequence(
+        self.note_sequence, 0,
+        [(0, 100, 0.0, 2.0), (0, 100, 2.0, 4.0), (1, 100, 0.0, 2.0),
+         (2, 100, 2.0, 4.0)])
+    quantized_sequence = sequences_lib.quantize_note_sequence(
+        self.note_sequence, steps_per_quarter=1)
+    pianoroll_seq = list(pianoroll_lib.PianorollSequence(
+        quantized_sequence, min_pitch=0, split_repeats=True))
+
+    expected_pianoroll_seq = [
+        (0, 1),
+        (1,),
+        (0, 2),
+        (0, 2),
+    ]
+    self.assertEqual(expected_pianoroll_seq, pianoroll_seq)
+
+  def testFromEventsList_ShiftRange(self):
+    pianoroll_seq = list(pianoroll_lib.PianorollSequence(
+        events_list=[(0, 1), (2, 3), (4, 5), (6,)], steps_per_quarter=1,
+        min_pitch=1, max_pitch=4, shift_range=True))
+
+    expected_pianoroll_seq = [
+        (0,),
+        (1, 2),
+        (3,),
+        (),
+    ]
+    self.assertEqual(expected_pianoroll_seq, pianoroll_seq)
+
   def testToSequence(self):
     testing_lib.add_track_to_sequence(
         self.note_sequence, 0,
