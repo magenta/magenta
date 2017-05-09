@@ -704,7 +704,8 @@ class MidiHubTest(tf.test.TestCase):
 
     self.assertListEqual(
         sent_messages,
-        [mido.Message(type='control_change', control=0, value=1)])
+        [mido.Message(type='control_change', control=0, value=1,
+                      time=sent_messages[0].time)])
 
 
 if __name__ == '__main__':
