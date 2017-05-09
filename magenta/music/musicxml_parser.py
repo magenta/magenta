@@ -143,6 +143,9 @@ class MusicXMLDocument(object):
 
     Returns:
       The score as an xml.etree.ElementTree.
+
+    Raises:
+      MusicXMLParseException: if the file cannot be parsed.
     """
     score = None
     if filename.endswith('.mxl'):
