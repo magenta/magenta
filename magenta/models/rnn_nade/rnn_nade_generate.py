@@ -225,7 +225,7 @@ def main(unused_argv):
   config.hparams.parse(FLAGS.hparams)
   # Having too large of a batch size will slow generation down unnecessarily.
   config.hparams.batch_size = min(
-    config.hparams.batch_size, FLAGS.beam_size * FLAGS.branch_factor)
+      config.hparams.batch_size, FLAGS.beam_size * FLAGS.branch_factor)
 
   generator = rnn_nade_sequence_generator.RnnNadeSequenceGenerator(
       model=rnn_nade_model.RnnNadeModel(config),
