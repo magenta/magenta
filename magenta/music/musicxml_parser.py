@@ -143,12 +143,15 @@ class MusicXMLDocument(object):
 
     Returns:
       The score as an xml.etree.ElementTree.
+
+    Raises:
+      MusicXMLParseException: if the file cannot be parsed.
     """
     score = None
     if filename.endswith('.mxl'):
       # Compressed MXL file. Uncompress in memory.
       try:
-        filename = zipfile.ZipFile(filename)
+        mxlzip = zipfile.ZipFile(filename)
       except zipfile.BadZipfile as exception:
         raise MusicXMLParseException(exception)
 
@@ -158,12 +161,12 @@ class MusicXMLDocument(object):
       # http://www.musicxml.com/tutorial/compressed-mxl-files/zip-archive-structure/
 
       # Raise a MusicXMLParseException if multiple MusicXML files found
-      namelist = filename.namelist()
+      namelist = mxlzip.namelist()
       container_file = [x for x in namelist if x == 'META-INF/container.xml']
       compressed_file_name = ''
 
       try:
-        container = ET.fromstring(filename.read(container_file[0]))
+        container = ET.fromstring(mxlzip.read(container_file[0]))
         for rootfile_tag in container.findall('./rootfiles/rootfile'):
           if 'media-type' in rootfile_tag.attrib:
             if rootfile_tag.attrib['media-type'] == MUSICXML_MIME_TYPE:
@@ -182,8 +185,16 @@ class MusicXMLDocument(object):
       except ET.ParseError as exception:
         raise MusicXMLParseException(exception)
 
+      # zip file names are UTF-8 encoded.
+      compressed_file_name = compressed_file_name.encode('utf-8')
+
+      if compressed_file_name not in namelist:
+        raise MusicXMLParseException(
+            'Score file %s not found in zip archive' % compressed_file_name)
+
+      score_string = mxlzip.read(compressed_file_name)
       try:
-        score = ET.fromstring(filename.read(compressed_file_name))
+        score = ET.fromstring(score_string)
       except ET.ParseError as exception:
         raise MusicXMLParseException(exception)
     else:

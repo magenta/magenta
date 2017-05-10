@@ -292,6 +292,15 @@ class MusicXMLParserTest(tf.test.TestCase):
     self.checkmusicxmlandsequence(transposed_musicxml, untransposed_proto)
     self.checkFMajorScale(self.clarinet_scale_filename, 'Clarinet in Bb')
 
+  def testcompressedmxlunicodefilename(self):
+    """Test an MXL file containing a unicode filename within its zip archive."""
+
+    unicode_filename = os.path.join(
+        tf.resource_loader.get_data_files_path(),
+        'testdata/unicode_filename.mxl')
+    sequence = musicxml_reader.musicxml_file_to_sequence_proto(unicode_filename)
+    self.assertEqual(len(sequence.notes), 8)
+
   def testcompressedxmltosequence(self):
     """Test the translation from compressed MusicXML to Sequence proto.
 
