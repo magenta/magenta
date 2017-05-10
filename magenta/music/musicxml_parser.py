@@ -176,25 +176,30 @@ class MusicXMLDocument(object):
       container_file = [x for x in namelist if x == 'META-INF/container.xml']
       compressed_file_name = ''
 
-      try:
-        container = ET.fromstring(mxlzip.read(container_file[0]))
-        for rootfile_tag in container.findall('./rootfiles/rootfile'):
-          if 'media-type' in rootfile_tag.attrib:
-            if rootfile_tag.attrib['media-type'] == MUSICXML_MIME_TYPE:
+      if container_file:
+        try:
+          container = ET.fromstring(mxlzip.read(container_file[0]))
+          for rootfile_tag in container.findall('./rootfiles/rootfile'):
+            if 'media-type' in rootfile_tag.attrib:
+              if rootfile_tag.attrib['media-type'] == MUSICXML_MIME_TYPE:
+                if not compressed_file_name:
+                  compressed_file_name = rootfile_tag.attrib['full-path']
+                else:
+                  raise MusicXMLParseException(
+                      'Multiple MusicXML files found in compressed archive')
+            else:
+              # No media-type attribute, so assume this is the MusicXML file
               if not compressed_file_name:
                 compressed_file_name = rootfile_tag.attrib['full-path']
               else:
                 raise MusicXMLParseException(
                     'Multiple MusicXML files found in compressed archive')
-          else:
-            # No media-type attribute, so assume this is the MusicXML file
-            if not compressed_file_name:
-              compressed_file_name = rootfile_tag.attrib['full-path']
-            else:
-              raise MusicXMLParseException(
-                  'Multiple MusicXML files found in compressed archive')
-      except ET.ParseError as exception:
-        raise MusicXMLParseException(exception)
+        except ET.ParseError as exception:
+          raise MusicXMLParseException(exception)
+
+      if not compressed_file_name:
+        raise MusicXMLParseException(
+            'Unable to locate main .xml file in compressed archive.')
 
       # zip file names are UTF-8 encoded.
       compressed_file_name = compressed_file_name.encode('utf-8')
