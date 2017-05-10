@@ -964,8 +964,8 @@ class MusicXMLParserTest(tf.test.TestCase):
           'testdata/unpitched.xml'))
     with self.assertRaises(musicxml_reader.MusicXMLConversionError):
       musicxml_reader.musicxml_file_to_sequence_proto(os.path.join(
-            tf.resource_loader.get_data_files_path(),
-            'testdata/unpitched.xml'))
+          tf.resource_loader.get_data_files_path(),
+          'testdata/unpitched.xml'))
 
 if __name__ == '__main__':
   tf.test.main()
