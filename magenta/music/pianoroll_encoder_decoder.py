@@ -59,7 +59,7 @@ class PianorollEncoderDecoder(encoder_decoder.EventSequenceEncoderDecoder):
     return label
 
   def _event_to_input(self, event):
-    input_ = np.zeros(self.input_size, np.bool)
+    input_ = np.zeros(self.input_size, np.float32)
     input_[list(event)] = 1
     return input_
 

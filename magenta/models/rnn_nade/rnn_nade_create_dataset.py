@@ -88,6 +88,8 @@ def get_pipeline(config, min_steps, max_steps, eval_ratio):
   dag = {partitioner: dag_pipeline.DagInput(music_pb2.NoteSequence)}
 
   for mode in ['eval', 'training']:
+    time_change_splitter = pipelines_common.TimeChangeSplitter(
+        name='TimeChangeSplitter_' + mode)
     quantizer = pipelines_common.Quantizer(
         steps_per_quarter=config.steps_per_quarter, name='Quantizer_' + mode)
     pianoroll_extractor = PianorollSequenceExtractor(
@@ -97,7 +99,8 @@ def get_pipeline(config, min_steps, max_steps, eval_ratio):
         mm.PianorollSequence, config.encoder_decoder,
         name='EncoderPipeline_' + mode)
 
-    dag[quantizer] = partitioner[mode + '_pianoroll_tracks']
+    dag[time_change_splitter] = partitioner[mode + '_pianoroll_tracks']
+    dag[quantizer] = time_change_splitter
     dag[pianoroll_extractor] = quantizer
     dag[encoder_pipeline] = pianoroll_extractor
     dag[dag_pipeline.DagOutput(mode + '_pianoroll_tracks')] = encoder_pipeline

@@ -225,7 +225,7 @@ class RnnNade(object):
   def __init__(self, rnn_cell, num_dims, num_hidden):
     self._num_dims = num_dims
     self._rnn_cell = rnn_cell
-    self._fc_layer = tf_layers_core.FullyConnected(units=num_dims + num_hidden)
+    self._fc_layer = tf_layers_core.Dense(units=num_dims + num_hidden)
     self._nade = Nade(num_dims, num_hidden)
 
   def _get_rnn_zero_state(self, batch_size):
@@ -285,8 +285,8 @@ class RnnNade(object):
         initial_state=initial_rnn_state,
         output_layer=self._fc_layer)
 
-    final_outputs, final_rnn_state, _ = tf.contrib.seq2seq.dynamic_decode(
-        decoder)
+    final_outputs, final_rnn_state = tf.contrib.seq2seq.dynamic_decode(
+        decoder)[0:2]
 
     # Flatten time dimension.
     final_outputs_flat = flatten_maybe_padded_sequences(
