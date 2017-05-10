@@ -233,7 +233,11 @@ class RnnNade(object):
     return self._rnn_cell.zero_state(batch_size, tf.float32)
 
   # TODO(adarob): Switch to public Layer once available in TF pip package.
-  class SampleNadeLayer(tf_layers_base._Layer):  # pylint:disable=protected-access
+  TfBaseLayer = (
+      tf_layers_base.Layer if hasattr(tf_layers_base, 'Layer') else
+      tf_layers_base._Layer)  # pylint:disable=protected-access
+
+  class SampleNadeLayer(TfBaseLayer):
     """Layer that computes samples from a NADE."""
 
     def __init__(self, nade, name=None, **kwargs):
