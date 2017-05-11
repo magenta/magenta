@@ -60,7 +60,7 @@ There are several command line options for controlling the generation process:
 For a full list of command line options, run `rnn_nade_generate --help`.
 
 Here's an example that is primed with two bars of
-[*Twinkle, Twinkle, Little Star* set in two-voice counterpoint](http://www.noteflight.com/scores/view/2bd64f53ef4a4ec692f5be310780b634b2b5d98b):
+*Twinkle, Twinkle, Little Star* [set in two-voice counterpoint](http://www.noteflight.com/scores/view/2bd64f53ef4a4ec692f5be310780b634b2b5d98b):
 ```
 BUNDLE_PATH=<absolute path of .mag file>
 
