@@ -15,14 +15,13 @@ value is 0, the pitch is inactivate. A downside of this representation is that
 it is difficult to represent repeated legatto notes since they will appear as a
 single note in a pianoroll.
 
-Since we need to output multiple pitches at a each step, we cannot use a
-softmax. The [polyphony_rnn](/models/polyphony_rnn/README.md) posted previously
-skirted this issue by representing a single time step as multiple, sequential
-outputs from the RNN. In this model, we instead use a Neural Autoregressive
-Distribution Estimator, or NADE to sample multiple outputs given the RNN state
-at each step. See the original
-[RNN-NADE paper](http://www-etud.iro.umontreal.ca/~boulanni/ICML2012.pdf) and
-our code for more details on how this architecture works.
+Since we need to output multiple pitches at each step, we cannot use a softmax.
+The [polyphony_rnn](/models/polyphony_rnn/README.md) posted previously skirted
+this issue by representing a single time step as multiple, sequential outputs
+from the RNN. In this model, we instead use a Neural Autoregressive Distribution
+Estimator, or NADE to sample multiple outputs given the RNN state at each step.
+See the original [RNN-NADE paper](http://www-etud.iro.umontreal.ca/~boulanni/ICML2012.pdf)
+and our code for more details on how this architecture works.
 
 ## How to Use
 
@@ -35,8 +34,7 @@ If you want to get started right away, you can use a model that we've pre-traine
 * [rnn_nade](http://download.magenta.tensorflow.org/models/rnn_nade.mag): Trained
   on a large corpus of piano music scraped from the web.
 * [rnn_nade-bach](http://download.magenta.tensorflow.org/models/rnn_nade-bach.mag):
-  Trained on the [Bach Chorales](https://web.archive.org/web/20150503021418/http://www.jsbchorales.net/xml.shtml)
-  dataset.
+  Trained on the [Bach Chorales](https://web.archive.org/web/20150503021418/http://www.jsbchorales.net/xml.shtml) dataset.
 
 ### Generate a pianoroll sequence
 
@@ -61,9 +59,8 @@ There are several command line options for controlling the generation process:
 
 For a full list of command line options, run `rnn_nade_generate --help`.
 
-Here's an example that is primed with two bars of a fugue interpretation of
-*Twinkle, Twinkle, Little Star*:
-
+Here's an example that is primed with two bars of
+[*Twinkle, Twinkle, Little Star* set in two-voice counterpoint](http://www.noteflight.com/scores/view/2bd64f53ef4a4ec692f5be310780b634b2b5d98b):
 ```
 BUNDLE_PATH=<absolute path of .mag file>
 
