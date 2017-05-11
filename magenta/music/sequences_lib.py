@@ -17,7 +17,6 @@ import collections
 import copy
 
 # internal imports
-import intervaltree
 import tensorflow as tf
 
 from magenta.music import chord_symbols_lib
@@ -534,12 +533,23 @@ def quantize_note_sequence(note_sequence, steps_per_quarter):
   return qns
 
 
+# Constants for processing the note/sustain stream.
+# The order here matters because we we want to process 'on' events before we
+# process 'off' events, and we want to process sustain events before note
+# events.
+_SUSTAIN_ON = 0
+_SUSTAIN_OFF = 1
+_NOTE_ON = 2
+_NOTE_OFF = 3
+
+
 def apply_sustain_control_changes(note_sequence, sustain_control_number=64):
   """Returns a new NoteSequence with sustain pedal control changes applied.
 
-  Extends each note within a sustain to the end of the sustain period. This is
-  done on a per instrument/program basis, so notes are only affected by sustain
-  events for the same instrument/program.
+  Extends each note within a sustain to either the beginning of the next note of
+  the same pitch or the end of the sustain period, whichever happens first. This
+  is done on a per instrument basis, so notes are only affected by sustain
+  events for the same instrument.
 
   Args:
     note_sequence: The NoteSequence for which to apply sustain. This object will
@@ -561,45 +571,84 @@ def apply_sustain_control_changes(note_sequence, sustain_control_number=64):
     raise QuantizationStatusException(
         'Can only apply sustain to unquantized NoteSequence.')
 
-  # Find all sustain events, sort, and organize by instrument/program.
-  sustain_events = sorted((cc.time, cc.control_value, cc.instrument, cc.program)
-                          for cc in note_sequence.control_changes
-                          if cc.control_number == sustain_control_number)
-  sustain_events_by_instrument_and_program = collections.defaultdict(list)
-  for time, value, instrument, program in sustain_events:
-    sustain_events_by_instrument_and_program[(instrument, program)].append(
-        (time, value))
-
-  # Build an interval tree for each instrument/program.
-  sustain_intervals = collections.defaultdict(intervaltree.IntervalTree)
-  for key, events in sustain_events_by_instrument_and_program.iteritems():
-    start_time = None
-    for time, value in events:
-      if value < 0 or value > 127:
-        tf.logging.warn(
-            'Sustain control change has out of range value: %d', value)
-      if start_time is None and value >= 64:
-        start_time = time
-      elif start_time is not None and value < 64:
-        sustain_intervals[key].addi(start_time, time)
-        start_time = None
-    if start_time is not None and start_time < note_sequence.total_time:
-      sustain_intervals[key].addi(start_time, note_sequence.total_time)
-
   sequence = copy.deepcopy(note_sequence)
 
-  # Extend the end time of each note inside a sustain. This extends each end
-  # time to the end of the sustain period, even if a subsequent note with the
-  # same pitch has an onset within the sustain.
-  for note in sequence.notes:
-    sustain = sustain_intervals[(note.instrument, note.program)][note.end_time]
-    assert len(sustain) <= 1
-    if sustain:
-      end_time = sustain.pop().end
-      assert note.end_time <= end_time
-      note.end_time = end_time
-      if end_time > note_sequence.total_time:
-        note_sequence.total_time = end_time
+  # Sort all note on/off and sustain on/off events.
+  events = []
+  events.extend([(note.start_time, _NOTE_ON, note)
+                 for note in sequence.notes])
+  events.extend([(note.end_time, _NOTE_OFF, note)
+                 for note in sequence.notes])
+
+  for cc in sequence.control_changes:
+    if cc.control_number != sustain_control_number:
+      continue
+    value = cc.control_value
+    if value < 0 or value > 127:
+      tf.logging.warn(
+          'Sustain control change has out of range value: %d', value)
+    if value >= 64:
+      events.append((cc.time, _SUSTAIN_ON, cc))
+    elif value < 64:
+      events.append((cc.time, _SUSTAIN_OFF, cc))
+
+  # Sort, using the event type constants to ensure the order events are
+  # processed.
+  events.sort()
+
+  # Lists of active notes, keyed by instrument.
+  active_notes = collections.defaultdict(list)
+  # Whether sustain is active for a given instrument.
+  sus_active = collections.defaultdict(lambda: False)
+
+  # Iterate through all sustain on/off and note on/off events in order.
+  time = 0
+  for time, event_type, event in events:
+    if event_type == _SUSTAIN_ON:
+      sus_active[event.instrument] = True
+    elif event_type == _SUSTAIN_OFF:
+      sus_active[event.instrument] = False
+      # End all notes for the instrument that were being extended.
+      new_active_notes = []
+      for note in active_notes[event.instrument]:
+        if note.end_time < time:
+          # This note was being extended because of sustain.
+          # Update the end time and don't keep it in the list.
+          note.end_time = time
+        else:
+          # This note is actually still active, keep it.
+          new_active_notes.append(note)
+      active_notes[event.instrument] = new_active_notes
+    elif event_type == _NOTE_ON:
+      if sus_active[event.instrument]:
+        # If sustain is on, end all previous notes with the same pitch.
+        new_active_notes = []
+        for note in active_notes[event.instrument]:
+          if note.pitch == event.pitch:
+            note.end_time = time
+          else:
+            new_active_notes.append(note)
+        active_notes[event.instrument] = new_active_notes
+      # Add this new note to the list of active notes.
+      active_notes[event.instrument].append(event)
+    elif event_type == _NOTE_OFF:
+      if sus_active[event.instrument]:
+        # Note continues until another note of the same pitch or sustain ends.
+        pass
+      else:
+        # Remove this particular note from the active list.
+        # It may have already been removed if a note of the same pitch was
+        # played when sustain was active.
+        if event in active_notes[event.instrument]:
+          active_notes[event.instrument].remove(event)
+    else:
+      raise AssertionError('Invalid event_type: %s' % event_type)
+
+  # End any notes that were still active due to sustain.
+  for instrument in active_notes.values():
+    for note in instrument:
+      note.end_time = time
+  sequence.total_time = time
 
   return sequence
 

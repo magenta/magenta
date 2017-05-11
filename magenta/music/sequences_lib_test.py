@@ -558,6 +558,7 @@ class SequencesLibTest(tf.test.TestCase):
                      sequences_lib.steps_per_bar_in_quantized_sequence(qns))
 
   def testApplySustainControlChanges(self):
+    """Verify sustain controls extend notes until the end of the control."""
     sequence = copy.copy(self.note_sequence)
     testing_lib.add_control_changes_to_sequence(
         sequence, 0,
@@ -574,6 +575,91 @@ class SequencesLibTest(tf.test.TestCase):
     testing_lib.add_track_to_sequence(
         expected_sequence, 0,
         [(11, 55, 0.22, 0.75), (40, 45, 2.50, 3.50), (55, 120, 4.0, 4.8)])
+
+    sus_sequence = sequences_lib.apply_sustain_control_changes(sequence)
+    self.assertProtoEquals(expected_sequence, sus_sequence)
+
+  def testApplySustainControlChangesWithRepeatedNotes(self):
+    """Verify that sustain control handles repeated notes correctly.
+
+    For example, a single pitch played before sustain:
+    x-- x-- x--
+    After sustain:
+    x---x---x--
+
+    Notes should be extended until either the end of the sustain control or the
+    beginning of another note of the same pitch.
+    """
+    sequence = copy.copy(self.note_sequence)
+    testing_lib.add_control_changes_to_sequence(
+        sequence, 0,
+        [(1.0, 64, 127), (4.0, 64, 0)])
+    expected_sequence = copy.copy(sequence)
+    testing_lib.add_track_to_sequence(
+        sequence, 0,
+        [(60, 100, 0.25, 1.50), (60, 100, 1.25, 1.50), (72, 100, 2.00, 3.50),
+         (60, 100, 2.0, 3.00), (60, 100, 3.50, 4.50)])
+    testing_lib.add_track_to_sequence(
+        expected_sequence, 0,
+        [(60, 100, 0.25, 1.25), (60, 100, 1.25, 2.00), (72, 100, 2.00, 4.00),
+         (60, 100, 2.0, 3.50), (60, 100, 3.50, 4.50)])
+
+    sus_sequence = sequences_lib.apply_sustain_control_changes(sequence)
+    self.assertProtoEquals(expected_sequence, sus_sequence)
+
+  def testApplySustainControlChangesWithRepeatedNotesBeforeSustain(self):
+    """Repeated notes before sustain can overlap and should not be modified.
+
+    Once a repeat happens within the sustain, any active notes should end
+    before the next one starts.
+
+    This is kind of an edge case because a note overlapping a note of the same
+    pitch may not make sense, but apply_sustain_control_changes tries not to
+    modify events that happen outside of a sustain.
+    """
+    sequence = copy.copy(self.note_sequence)
+    testing_lib.add_control_changes_to_sequence(
+        sequence, 0,
+        [(1.0, 64, 127), (4.0, 64, 0)])
+    expected_sequence = copy.copy(sequence)
+    testing_lib.add_track_to_sequence(
+        sequence, 0,
+        [(60, 100, 0.25, 1.50), (60, 100, .50, 1.50), (60, 100, 1.25, 2.0)])
+    testing_lib.add_track_to_sequence(
+        expected_sequence, 0,
+        [(60, 100, 0.25, 1.25), (60, 100, 0.50, 1.25), (60, 100, 1.25, 4.00)])
+
+    sus_sequence = sequences_lib.apply_sustain_control_changes(sequence)
+    self.assertProtoEquals(expected_sequence, sus_sequence)
+
+  def testApplySustainControlChangesSimultaneousOnOff(self):
+    """Test sustain on and off events happening at the same time.
+
+    The off event should be processed last, so this should be a no-op.
+    """
+    sequence = copy.copy(self.note_sequence)
+    testing_lib.add_control_changes_to_sequence(
+        sequence, 0, [(1.0, 64, 127), (1.0, 64, 0)])
+    testing_lib.add_track_to_sequence(
+        sequence, 0,
+        [(60, 100, 0.50, 1.50), (60, 100, 2.0, 3.0)])
+
+    sus_sequence = sequences_lib.apply_sustain_control_changes(sequence)
+    self.assertProtoEquals(sequence, sus_sequence)
+
+  def testApplySustainControlChangesExtendNotesToEnd(self):
+    """Test sustain control extending the duration of the final note."""
+    sequence = copy.copy(self.note_sequence)
+    testing_lib.add_control_changes_to_sequence(
+        sequence, 0, [(1.0, 64, 127), (4.0, 64, 0)])
+    expected_sequence = copy.copy(sequence)
+    testing_lib.add_track_to_sequence(
+        sequence, 0,
+        [(60, 100, 0.50, 1.50), (72, 100, 2.0, 3.0)])
+    testing_lib.add_track_to_sequence(
+        expected_sequence, 0,
+        [(60, 100, 0.50, 4.00), (72, 100, 2.0, 4.0)])
+    expected_sequence.total_time = 4.0
 
     sus_sequence = sequences_lib.apply_sustain_control_changes(sequence)
     self.assertProtoEquals(expected_sequence, sus_sequence)
