@@ -18,8 +18,8 @@ import os
 # internal imports
 import tensorflow as tf
 
-from magenta.models.rnn_nade import rnn_nade_graph
-from magenta.models.rnn_nade import rnn_nade_model
+from magenta.models.pianoroll_rnn_nade import pianoroll_rnn_nade_graph
+from magenta.models.pianoroll_rnn_nade import pianoroll_rnn_nade_model
 from magenta.models.shared import events_rnn_train
 
 FLAGS = tf.app.flags.FLAGS
@@ -76,11 +76,11 @@ def main(unused_argv):
       os.path.expanduser(FLAGS.sequence_example_file))
   run_dir = os.path.expanduser(FLAGS.run_dir)
 
-  config = rnn_nade_model.default_configs[FLAGS.config]
+  config = pianoroll_rnn_nade_model.default_configs[FLAGS.config]
   config.hparams.parse(FLAGS.hparams)
 
   mode = 'eval' if FLAGS.eval else 'train'
-  graph = rnn_nade_graph.build_graph(
+  graph = pianoroll_rnn_nade_graph.build_graph(
       mode, config, sequence_example_file)
 
   train_dir = os.path.join(run_dir, 'train')

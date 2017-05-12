@@ -16,16 +16,16 @@
 # internal imports
 
 import magenta
-from magenta.models.rnn_nade import rnn_nade_graph
+from magenta.models.pianoroll_rnn_nade import pianoroll_rnn_nade_graph
 from magenta.models.shared import events_rnn_model
 import magenta.music as mm
 
 
-class RnnNadeModel(events_rnn_model.EventSequenceRnnModel):
+class PianorollRnnNadeModel(events_rnn_model.EventSequenceRnnModel):
   """Class for RNN-NADE sequence generation models."""
 
   def _build_graph_for_generation(self):
-    return rnn_nade_graph.build_graph('generate', self._config)
+    return pianoroll_rnn_nade_graph.build_graph('generate', self._config)
 
   def _generate_step_for_batch(self, pianoroll_sequences, inputs, initial_state,
                                temperature):

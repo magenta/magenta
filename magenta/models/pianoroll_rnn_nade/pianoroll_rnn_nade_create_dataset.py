@@ -23,7 +23,7 @@ import os
 
 import tensorflow as tf
 
-from magenta.models.rnn_nade import rnn_nade_model
+from magenta.models.pianoroll_rnn_nade import pianoroll_rnn_nade_model
 import magenta.music as mm
 from magenta.pipelines import dag_pipeline
 from magenta.pipelines import pipeline
@@ -40,10 +40,8 @@ tf.app.flags.DEFINE_string('output_dir', None,
 tf.app.flags.DEFINE_float('eval_ratio', 0.1,
                           'Fraction of input to set aside for eval set. '
                           'Partition is randomly selected.')
-tf.app.flags.DEFINE_string('config',
-                           'rnn-nade',
-                           'Which config to use. Must be one of those defined '
-                           '`rnn_nade_model.default_configs`.')
+tf.app.flags.DEFINE_string('config', 'rnn-nade',
+                           'Which config to use.')
 tf.app.flags.DEFINE_string('log', 'INFO',
                            'The threshold for what messages will be logged '
                            'DEBUG, INFO, WARN, ERROR, or FATAL.')
@@ -115,7 +113,7 @@ def main(unused_argv):
       min_steps=80,  # 5 measures
       max_steps=2048,
       eval_ratio=FLAGS.eval_ratio,
-      config=rnn_nade_model.default_configs[FLAGS.config])
+      config=pianoroll_rnn_nade_model.default_configs[FLAGS.config])
 
   input_dir = os.path.expanduser(FLAGS.input)
   output_dir = os.path.expanduser(FLAGS.output_dir)

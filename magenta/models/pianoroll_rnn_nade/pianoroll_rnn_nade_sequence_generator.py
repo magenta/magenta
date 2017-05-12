@@ -17,19 +17,19 @@ from functools import partial
 
 # internal imports
 
-from magenta.models.rnn_nade import rnn_nade_model
+from magenta.models.pianoroll_rnn_nade import pianoroll_rnn_nade_model
 import magenta.music as mm
 
 
-class RnnNadeSequenceGenerator(mm.BaseSequenceGenerator):
+class PianorollRnnNadeSequenceGenerator(mm.BaseSequenceGenerator):
   """RNN-NADE generation code as a SequenceGenerator interface."""
 
   def __init__(self, model, details, steps_per_quarter=4, checkpoint=None,
                bundle=None):
-    """Creates a RnnNadeSequenceGenerator.
+    """Creates a PianorollRnnNadeSequenceGenerator.
 
     Args:
-      model: Instance of RnnNAdeModel.
+      model: Instance of PianorollRnnNadeModel.
       details: A generator_pb2.GeneratorDetails for this generator.
       steps_per_quarter: What precision to use when quantizing the sequence. How
           many steps per quarter note.
@@ -38,7 +38,7 @@ class RnnNadeSequenceGenerator(mm.BaseSequenceGenerator):
       bundle: A GeneratorBundle object that includes both the model checkpoint
           and metagraph. Mutually exclusive with `checkpoint`.
     """
-    super(RnnNadeSequenceGenerator, self).__init__(
+    super(PianorollRnnNadeSequenceGenerator, self).__init__(
         model, details, steps_per_quarter, checkpoint, bundle)
 
   def _generate(self, input_sequence, generator_options):
@@ -136,9 +136,9 @@ def get_generator_map():
     bound `config` argument.
   """
   def create_sequence_generator(config, **kwargs):
-    return RnnNadeSequenceGenerator(
-        rnn_nade_model.RnnNadeModel(config), config.details,
+    return PianorollRnnNadeSequenceGenerator(
+        pianoroll_rnn_nade_model.PianorollRnnNadeModel(config), config.details,
         steps_per_quarter=config.steps_per_quarter, **kwargs)
 
   return {key: partial(create_sequence_generator, config)
-          for (key, config) in rnn_nade_model.default_configs.items()}
+          for (key, config) in pianoroll_rnn_nade_model.default_configs.items()}

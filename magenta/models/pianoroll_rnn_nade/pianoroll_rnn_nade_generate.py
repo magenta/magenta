@@ -25,8 +25,8 @@ import time
 import tensorflow as tf
 import magenta
 
-from magenta.models.rnn_nade import rnn_nade_model
-from magenta.models.rnn_nade import rnn_nade_sequence_generator
+from magenta.models.pianoroll_rnn_nade import pianoroll_rnn_nade_model
+from magenta.models.pianoroll_rnn_nade.pianoroll_rnn_nade_sequence_generator import PianorollRnnNadeSequenceGenerator
 
 from magenta.music import constants
 from magenta.protobuf import generator_pb2
@@ -52,7 +52,7 @@ tf.app.flags.DEFINE_string(
 tf.app.flags.DEFINE_string(
     'config', 'rnn-nade', 'Config to use.')
 tf.app.flags.DEFINE_string(
-    'output_dir', '/tmp/rnn_nade/generated',
+    'output_dir', '/tmp/pianoroll_rnn_nade/generated',
     'The directory where MIDI files will be saved to.')
 tf.app.flags.DEFINE_integer(
     'num_outputs', 10,
@@ -132,7 +132,7 @@ def run_with_flags(generator):
   Uses the options specified by the flags defined in this module.
 
   Args:
-    generator: The RnnNadeSequenceGenerator to use for generation.
+    generator: The PianorollRnnNadeSequenceGenerator to use for generation.
   """
   if not FLAGS.output_dir:
     tf.logging.fatal('--output_dir required')
@@ -221,14 +221,14 @@ def main(unused_argv):
   """Saves bundle or runs generator based on flags."""
   tf.logging.set_verbosity(FLAGS.log)
 
-  config = rnn_nade_model.default_configs[FLAGS.config]
+  config = pianoroll_rnn_nade_model.default_configs[FLAGS.config]
   config.hparams.parse(FLAGS.hparams)
   # Having too large of a batch size will slow generation down unnecessarily.
   config.hparams.batch_size = min(
       config.hparams.batch_size, FLAGS.beam_size * FLAGS.branch_factor)
 
-  generator = rnn_nade_sequence_generator.RnnNadeSequenceGenerator(
-      model=rnn_nade_model.RnnNadeModel(config),
+  generator = PianorollRnnNadeSequenceGenerator(
+      model=pianoroll_rnn_nade_model.PianorollRnnNadeModel(config),
       details=config.details,
       steps_per_quarter=config.steps_per_quarter,
       checkpoint=get_checkpoint(),

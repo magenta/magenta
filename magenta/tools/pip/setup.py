@@ -53,13 +53,13 @@ CONSOLE_SCRIPTS = [
     'magenta.models.melody_rnn.melody_rnn_create_dataset',
     'magenta.models.melody_rnn.melody_rnn_generate',
     'magenta.models.melody_rnn.melody_rnn_train',
+    'magenta.models.pianoroll_rnn_nade.pianoroll_rnn_nade_create_dataset',
+    'magenta.models.pianoroll_rnn_nade.pianoroll_rnn_nade_generate',
+    'magenta.models.pianoroll_rnn_nade.pianoroll_rnn_nade_train',
     'magenta.models.polyphony_rnn.polyphony_rnn_create_dataset',
     'magenta.models.polyphony_rnn.polyphony_rnn_generate',
     'magenta.models.polyphony_rnn.polyphony_rnn_train',
     'magenta.models.rl_tuner.rl_tuner_train',
-    'magenta.models.rnn_nade.rnn_nade_create_dataset',
-    'magenta.models.rnn_nade.rnn_nade_generate',
-    'magenta.models.rnn_nade.rnn_nade_train',
     'magenta.scripts.convert_dir_to_note_sequences',
 ]
 

@@ -12,6 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Imports RNN-NADE model."""
+"""Imports Pianoroll RNN-NADE model."""
 
-from rnn_nade_model import RnnNadeModel
+from pianoroll_rnn_nade_model import PianorollRnnNadeModel

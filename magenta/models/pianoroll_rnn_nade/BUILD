@@ -15,18 +15,18 @@
 licenses(["notice"])  # Apache 2.0
 
 py_library(
-    name = "rnn_nade",
+    name = "pianoroll_rnn_nade",
     srcs = ["__init__.py"],
     visibility = ["//magenta/tools/pip:__subpackages__"],
     deps = [
-        ":rnn_nade_model",
+        ":pianoroll_rnn_nade_model",
     ],
 )
 
 
 py_library(
-    name = "rnn_nade_graph",
-    srcs = ["rnn_nade_graph.py"],
+    name = "pianoroll_rnn_nade_graph",
+    srcs = ["pianoroll_rnn_nade_graph.py"],
     deps = [
         "//magenta",
         "//magenta/models/shared:events_rnn_graph",
@@ -35,13 +35,13 @@ py_library(
 )
 
 py_library(
-    name = "rnn_nade_model",
-    srcs = ["rnn_nade_model.py"],
+    name = "pianoroll_rnn_nade_model",
+    srcs = ["pianoroll_rnn_nade_model.py"],
     visibility = [
-        # internal model:rnn_nade
+        # internal model:pianoroll_rnn_nade
     ],
     deps = [
-        ":rnn_nade_graph",
+        ":pianoroll_rnn_nade_graph",
         "//magenta",
         "//magenta/models/shared:events_rnn_model",
         # tensorflow dep
@@ -49,48 +49,48 @@ py_library(
 )
 
 py_library(
-    name = "rnn_nade_sequence_generator",
-    srcs = ["rnn_nade_sequence_generator.py"],
+    name = "pianoroll_rnn_nade_sequence_generator",
+    srcs = ["pianoroll_rnn_nade_sequence_generator.py"],
     srcs_version = "PY2AND3",
     visibility = ["//magenta/interfaces:generator_interfaces"],
     deps = [
-        ":rnn_nade_model",
+        ":pianoroll_rnn_nade_model",
         "//magenta",
         # tensorflow dep
     ],
 )
 
 py_binary(
-    name = "rnn_nade_generate",
-    srcs = ["rnn_nade_generate.py"],
+    name = "pianoroll_rnn_nade_generate",
+    srcs = ["pianoroll_rnn_nade_generate.py"],
     visibility = ["//magenta/tools/pip:__subpackages__"],
     deps = [
-        ":rnn_nade_model",
-        ":rnn_nade_sequence_generator",
+        ":pianoroll_rnn_nade_model",
+        ":pianoroll_rnn_nade_sequence_generator",
         "//magenta",
         # tensorflow dep
     ],
 )
 
 py_binary(
-    name = "rnn_nade_create_dataset",
-    srcs = ["rnn_nade_create_dataset.py"],
+    name = "pianoroll_rnn_nade_create_dataset",
+    srcs = ["pianoroll_rnn_nade_create_dataset.py"],
     visibility = [
-        # internal model:rnn_nade
+        # internal model:pianoroll_rnn_nade
         "//magenta/tools/pip:__subpackages__",
     ],
     deps = [
-        ":rnn_nade_model",
+        ":pianoroll_rnn_nade_model",
         "//magenta",
         # tensorflow dep
     ],
 )
 
 py_test(
-    name = "rnn_nade_create_dataset_test",
-    srcs = ["rnn_nade_create_dataset_test.py"],
+    name = "pianoroll_rnn_nade_create_dataset_test",
+    srcs = ["pianoroll_rnn_nade_create_dataset_test.py"],
     deps = [
-        ":rnn_nade_create_dataset",
+        ":pianoroll_rnn_nade_create_dataset",
         "//magenta",
         "//magenta/models/shared:events_rnn_model",
         # tensorflow dep
@@ -98,12 +98,12 @@ py_test(
 )
 
 py_binary(
-    name = "rnn_nade_train",
-    srcs = ["rnn_nade_train.py"],
+    name = "pianoroll_rnn_nade_train",
+    srcs = ["pianoroll_rnn_nade_train.py"],
     visibility = ["//magenta/tools/pip:__subpackages__"],
     deps = [
-        ":rnn_nade_graph",
-        ":rnn_nade_model",
+        ":pianoroll_rnn_nade_graph",
+        ":pianoroll_rnn_nade_model",
         "//magenta/models/shared:events_rnn_train",
         # tensorflow dep
     ],
