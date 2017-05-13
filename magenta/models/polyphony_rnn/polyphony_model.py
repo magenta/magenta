@@ -74,10 +74,10 @@ default_configs = {
         magenta.music.OneHotEventSequenceEncoderDecoder(
             polyphony_encoder_decoder.PolyphonyOneHotEncoding()),
         magenta.common.HParams(
-            batch_size=64,
+            batch_size=100,
             rnn_layer_sizes=[256, 256, 256],
             dropout_keep_prob=0.5,
-            skip_first_n_losses=10,
+            skip_first_n_losses=0,
             clip_norm=5,
             initial_learning_rate=0.001,
             decay_steps=1000,
