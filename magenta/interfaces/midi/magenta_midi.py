@@ -29,8 +29,8 @@ from magenta.interfaces.midi import midi_hub
 from magenta.interfaces.midi import midi_interaction
 from magenta.models.drums_rnn import drums_rnn_sequence_generator
 from magenta.models.melody_rnn import melody_rnn_sequence_generator
+from magenta.models.pianoroll_rnn_nade import pianoroll_rnn_nade_sequence_generator
 from magenta.models.polyphony_rnn import polyphony_sequence_generator
-from magenta.models.rnn_nade import rnn_nade_sequence_generator
 
 FLAGS = tf.app.flags.FLAGS
 
@@ -169,7 +169,7 @@ _CONTROL_FLAGS = [
 _GENERATOR_MAP = melody_rnn_sequence_generator.get_generator_map()
 _GENERATOR_MAP.update(drums_rnn_sequence_generator.get_generator_map())
 _GENERATOR_MAP.update(polyphony_sequence_generator.get_generator_map())
-_GENERATOR_MAP.update(rnn_nade_sequence_generator.get_generator_map())
+_GENERATOR_MAP.update(pianoroll_rnn_nade_sequence_generator.get_generator_map())
 
 
 class CCMapper(object):
