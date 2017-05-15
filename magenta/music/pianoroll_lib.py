@@ -330,4 +330,3 @@ def extract_pianoroll_sequences(
     stats['pianoroll_track_lengths_in_bars'].increment(
         num_steps // steps_per_bar)
   return pianoroll_seqs, stats.values()
-

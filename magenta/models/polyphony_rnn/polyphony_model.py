@@ -83,4 +83,3 @@ default_configs = {
             decay_steps=1000,
             decay_rate=0.95)),
 }
-

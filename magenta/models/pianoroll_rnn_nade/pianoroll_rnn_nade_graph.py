@@ -13,6 +13,7 @@
 # limitations under the License.
 """Provides function to build an RNN-NADE model's graph."""
 
+import collections
 import math
 
 # internal imports
@@ -23,7 +24,6 @@ import magenta
 from magenta.models.shared import events_rnn_graph
 from tensorflow.python.layers import base as tf_layers_base
 from tensorflow.python.layers import core as tf_layers_core
-
 # TODO(adarob): Switch to public Layer once available in TF pip package.
 TF_BASE_LAYER = (
     tf_layers_base.Layer if hasattr(tf_layers_base, 'Layer') else
@@ -214,6 +214,31 @@ def safe_log(tensor):
   return tf.log(1e-6 + tensor)
 
 
+_RnnNadeStateTuple = collections.namedtuple(
+  'RnnNadeStateTuple', ('b_enc', 'b_dec', 'rnn_state'))
+
+
+class RnnNadeStateTuple(_RnnNadeStateTuple):
+  """Tuple used by RnnNade to store state.
+
+  Stores three elements `(b_enc, b_dec, rnn_state)`, in that order:
+    b_enc: NADE encoder bias terms (`b` in [1]), sized
+        `[batch_size, num_hidden]`.
+    b_dec: NADE decoder bias terms (`c` in [1]), sized `[batch_size, num_dims]`.
+    rnn_state: The RNN cell's state.
+  """
+  __slots__ = ()
+
+  @property
+  def dtype(self):
+    (b_enc, b_dec, rnn_state) = self
+    if not b_enc.dtype == b_dec.dtype == rnn_state.dtype:
+      raise TypeError(
+        'Inconsistent internal state: %s vs %s vs %s' %
+        (str(b_enc.dtype), str(b_dec.dtype), str(rnn_state.dtype)))
+    return b_enc.dtype
+
+
 class RnnNade(object):
   """RNN-NADE [2], a NADE parameterized by an RNN.
 
@@ -230,7 +255,8 @@ class RnnNade(object):
   def __init__(self, rnn_cell, num_dims, num_hidden):
     self._num_dims = num_dims
     self._rnn_cell = rnn_cell
-    self._fc_layer = tf_layers_core.Dense(units=num_dims + num_hidden)
+    with tf.variable_scope('decoder'):
+      self._fc_layer = tf_layers_core.Dense(units=num_dims + num_hidden)
     self._nade = Nade(num_dims, num_hidden)
 
   def _get_rnn_zero_state(self, batch_size):
@@ -253,22 +279,18 @@ class RnnNade(object):
   def _get_state(self,
                  inputs,
                  lengths=None,
-                 initial_rnn_state=None):
+                 initial_state=None):
     """Computes the state of the RNN-NADE (NADE bias parameters and RNN state).
 
     Args:
       inputs: A batch of sequences to compute the state from, sized
           `[batch_size, max(lengths), num_dims]` or `[batch_size, num_dims]`.
       lengths: The length of each sequence, sized `[batch_size]`.
-      initial_rnn_state: The initial state of the RNN, or None if the zero state
-          should be used.
+      initial_state: An RnnNadeStateTuple, the initial state of the RNN-NADE, or
+          None if the zero state should be used.
 
     Returns:
-      b_enc: The NADE encoding bias parameters for each value, sized
-          `[sum(lengths), num_hidden]`.
-      b_dec: The NADE decoding bias parameter for each value, sized
-          `[sum(lengths), num_dims]`.
-      final_rnn_state: The final state of the RNN.
+      final_state: An RnnNadeStateTuple, the final state of the RNN-NADE.
     """
     batch_size = inputs.shape[0].value
 
@@ -276,8 +298,8 @@ class RnnNade(object):
         tf.tile(tf.shape(inputs)[1:2], [batch_size]) if lengths is None else
         lengths)
     initial_rnn_state = (
-        self._get_rnn_zero_state(batch_size) if initial_rnn_state is None else
-        initial_rnn_state)
+        self._get_rnn_zero_state(batch_size) if initial_state is None else
+        initial_state.rnn_state)
 
     helper = tf.contrib.seq2seq.TrainingHelper(
         inputs=inputs,
@@ -300,7 +322,7 @@ class RnnNade(object):
         final_outputs_flat, [self._nade.num_hidden, self._nade.num_dims],
         axis=1)
 
-    return b_enc, b_dec, final_rnn_state
+    return RnnNadeStateTuple(b_enc, b_dec, final_rnn_state)
 
   def log_prob(self, sequences, lengths=None):
     """Computes the log probability of a sequence of values.
@@ -327,12 +349,12 @@ class RnnNade(object):
     # Add initial padding value to input sequences.
     inputs = tf.pad(inputs, [[0, 0], [1, 0], [0, 0]])
 
-    b_enc, b_dec, _ = self._get_state(inputs, lengths=lengths)
+    state = self._get_state(inputs, lengths=lengths)
 
     # Flatten time dimension.
     labels_flat = flatten_maybe_padded_sequences(sequences, lengths)
 
-    return self._nade.log_prob(labels_flat, b_enc, b_dec)
+    return self._nade.log_prob(labels_flat, state.b_enc, state.b_dec)
 
   def steps(self, inputs, state):
     """Computes the new RNN-NADE state from a batch of inputs.
@@ -340,21 +362,21 @@ class RnnNade(object):
     Args:
       inputs: A batch of values to compute the log probabilities of,
           sized `[batch_size, length, num_dims]`.
-      state: A tuple containing the state of the RNN-NADE for each value, sized
+      state: An RnnNadeStateTuple containing the RNN-NADE for each value, sized
           `([batch_size, self._nade.num_hidden], [batch_size, num_dims],
             [batch_size, self._rnn_cell.state_size]`).
 
     Returns:
       new_state: The updated RNN-NADE state tuple given the new inputs.
     """
-    _, _, rnn_state = state
-    return self._get_state(inputs, initial_rnn_state=rnn_state)
+    return self._get_state(inputs, initial_state=state)
 
   def sample_single(self, state):
     """Computes a sample and its probability from each of a batch of states.
 
     Args:
-      state: A tuple containing the state of the RNN-NADE for each sample, sized
+      state: An RnnNadeStateTuple containing the state of the RNN-NADE for each
+          sample, sized
           `([batch_size, self._nade.num_hidden], [batch_size, num_dims],
             [batch_size, self._rnn_cell.state_size]`).
 
@@ -362,26 +384,25 @@ class RnnNade(object):
       sample: A sample for each input state, sized `[batch_size, num_dims]`.
       log_prob: The log probability of each sample, sized `[batch_size, 1]`.
     """
-    b_enc, b_dec, _ = state
-
-    sample, log_prob = self._nade.sample(b_enc, b_dec)
+    sample, log_prob = self._nade.sample(state.b_enc, state.b_dec)
 
     return sample, log_prob
 
-  def get_state_placeholders(self, batch_size):
-    """Create tuple of placeholder tensors for representing RNN-NADE state.
+  def zero_state(self, batch_size):
+    """Create an RnnNadeStateTuple of zeros.
 
     Args:
       batch_size: batch size.
 
     Returns:
-      A tuple of placeholders that can be fed into the log_prob_single method
-      for the state parameter.
+      An RnnNadeStateTuple of zeros.
     """
-    zero_state = self._get_rnn_zero_state(batch_size)
-    return (tf.zeros((batch_size, self._nade.num_hidden), name='b_enc'),
-            tf.zeros((batch_size, self._num_dims), name='b_dec'),
-            zero_state)
+    with tf.name_scope('RnnNadeZeroState', values=[batch_size]):
+      zero_state = self._get_rnn_zero_state(batch_size)
+      return RnnNadeStateTuple(
+          tf.zeros((batch_size, self._nade.num_hidden), name='b_enc'),
+          tf.zeros((batch_size, self._num_dims), name='b_dec'),
+          zero_state)
 
 
 def flatten_maybe_padded_sequences(maybe_padded_sequences, lengths):
@@ -517,15 +538,17 @@ def build_graph(mode, config, sequence_example_file_paths=None):
         tf.add_to_collection('summary_op', summary_op)
 
     elif mode == 'generate':
-      initial_state = rnn_nade.get_state_placeholders(hparams.batch_size)
+      initial_state = rnn_nade.zero_state(hparams.batch_size)
 
       final_state = rnn_nade.steps(inputs, initial_state)
       samples, log_prob = rnn_nade.sample_single(initial_state)
 
       tf.add_to_collection('inputs', inputs)
       tf.add_to_collection('initial_state', initial_state)
-
       tf.add_to_collection('final_state', final_state)
+      magenta.common.state_util.register_for_metagraph(
+          ['initial_state', 'final_state'])
+
       tf.add_to_collection('sample', samples)
       tf.add_to_collection('log_prob', log_prob)
 

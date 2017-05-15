@@ -50,7 +50,7 @@ tf.app.flags.DEFINE_string(
     'A short, human-readable text description of the bundle (e.g., training '
     'data, hyper parameters, etc.).')
 tf.app.flags.DEFINE_string(
-    'config', 'rnn-nade', 'Config to use.')
+    'config', 'rnn-nade', 'Config to use. Ignored if bundle is provided.')
 tf.app.flags.DEFINE_string(
     'output_dir', '/tmp/pianoroll_rnn_nade/generated',
     'The directory where MIDI files will be saved to.')
@@ -81,7 +81,7 @@ tf.app.flags.DEFINE_float(
     'qpm', None,
     'The quarters per minute to play generated output at. If a primer MIDI is '
     'given, the qpm from that will override this flag. If qpm is None, qpm '
-    'will default to 120.')
+    'will default to 60.')
 tf.app.flags.DEFINE_integer(
     'beam_size', 1,
     'The beam size to use for beam search when generating tracks.')
@@ -147,7 +147,7 @@ def run_with_flags(generator):
     tf.gfile.MakeDirs(output_dir)
 
   primer_sequence = None
-  qpm = FLAGS.qpm if FLAGS.qpm else magenta.music.DEFAULT_QUARTERS_PER_MINUTE
+  qpm = FLAGS.qpm if FLAGS.qpm else 60
   if FLAGS.primer_pitches:
     primer_sequence = music_pb2.NoteSequence()
     primer_sequence.tempos.add().qpm = qpm
@@ -221,7 +221,10 @@ def main(unused_argv):
   """Saves bundle or runs generator based on flags."""
   tf.logging.set_verbosity(FLAGS.log)
 
-  config = pianoroll_rnn_nade_model.default_configs[FLAGS.config]
+  bundle = get_bundle()
+
+  config_id = bundle.generator_details.id if bundle else FLAGS.config
+  config = pianoroll_rnn_nade_model.default_configs[config_id]
   config.hparams.parse(FLAGS.hparams)
   # Having too large of a batch size will slow generation down unnecessarily.
   config.hparams.batch_size = min(
@@ -232,7 +235,7 @@ def main(unused_argv):
       details=config.details,
       steps_per_quarter=config.steps_per_quarter,
       checkpoint=get_checkpoint(),
-      bundle=get_bundle())
+      bundle=bundle)
 
   if FLAGS.save_generator_bundle:
     bundle_filename = os.path.expanduser(FLAGS.bundle_file)

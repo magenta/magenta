@@ -90,4 +90,3 @@ class BaseModel(object):
     """Closes the TF session."""
     self._session.close()
     self._session = None
-

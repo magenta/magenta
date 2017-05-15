@@ -70,6 +70,19 @@ class PianorollRnnNadeModel(events_rnn_model.EventSequenceRnnModel):
 
     return final_state, loglik[:, 0]
 
+  def initialize_with_checkpoint_and_metagraph(self, checkpoint_filename,
+                                               metagraph_filename):
+    """Builds the TF graph with a checkpoint and metagraph.
+
+    Args:
+      checkpoint_filename: The path to the checkpoint file that should be used.
+      metagraph_filename: The path to the metagraph file that should be used.
+    """
+    magenta.common.state_util.register_for_metagraph(
+        ['initial_state', 'final_state'])
+    mm.BaseModel.initialize_with_checkpoint_and_metagraph(
+      self, checkpoint_filename, metagraph_filename)
+
   def generate_pianoroll_sequence(
       self, num_steps, primer_sequence, beam_size=1, branch_factor=1,
       steps_per_iteration=1):
