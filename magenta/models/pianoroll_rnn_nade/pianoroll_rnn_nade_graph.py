@@ -234,8 +234,8 @@ class RnnNadeStateTuple(_RnnNadeStateTuple):
     (b_enc, b_dec, rnn_state) = self
     if not b_enc.dtype == b_dec.dtype == rnn_state.dtype:
       raise TypeError(
-        'Inconsistent internal state: %s vs %s vs %s' %
-        (str(b_enc.dtype), str(b_dec.dtype), str(rnn_state.dtype)))
+          'Inconsistent internal state: %s vs %s vs %s' %
+          (str(b_enc.dtype), str(b_dec.dtype), str(rnn_state.dtype)))
     return b_enc.dtype
 
 
