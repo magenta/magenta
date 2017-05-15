@@ -215,7 +215,7 @@ def safe_log(tensor):
 
 
 _RnnNadeStateTuple = collections.namedtuple(
-  'RnnNadeStateTuple', ('b_enc', 'b_dec', 'rnn_state'))
+    'RnnNadeStateTuple', ('b_enc', 'b_dec', 'rnn_state'))
 
 
 class RnnNadeStateTuple(_RnnNadeStateTuple):

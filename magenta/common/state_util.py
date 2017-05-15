@@ -104,7 +104,8 @@ def to_proto(state, export_scope=None):
   return state_def
 
 
-def from_proto(state_def, import_scope=None):
+def from_proto(state_def, import_scope=None):  # pylint: disable=unused-argument
+
   """Converts a state protobuf to a structure."""
   assert isinstance(state_def, state_pb2.StateDef)
   state = []
