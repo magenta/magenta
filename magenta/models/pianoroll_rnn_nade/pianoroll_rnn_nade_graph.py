@@ -546,14 +546,13 @@ def build_graph(mode, config, sequence_example_file_paths=None):
       samples, log_prob = rnn_nade.sample_single(initial_state)
 
       tf.add_to_collection('inputs', inputs)
+      tf.add_to_collection('sample', samples)
+      tf.add_to_collection('log_prob', log_prob)
+
+      # Flatten state tuples for metagraph compatibility.
       for state in tf_nest.flatten(initial_state):
         tf.add_to_collection('initial_state', state)
       for state in tf_nest.flatten(final_state):
         tf.add_to_collection('final_state', state)
-      #magenta.common.state_util.register_for_metagraph(
-      #    ['initial_state', 'final_state'])
-
-      tf.add_to_collection('sample', samples)
-      tf.add_to_collection('log_prob', log_prob)
 
   return graph
