@@ -84,8 +84,10 @@ class EventSequenceRnnModel(mm.BaseModel):
     assert len(event_sequences) == self._batch_size()
 
     graph_inputs = self._session.graph.get_collection('inputs')[0]
-    graph_initial_state = self._session.graph.get_collection('initial_state')[0]
-    graph_final_state = self._session.graph.get_collection('final_state')[0]
+    graph_initial_state = tuple(
+        self._session.graph.get_collection('initial_state'))
+    graph_final_state = tuple(
+        self._session.graph.get_collection('final_state'))
     graph_softmax = self._session.graph.get_collection('softmax')[0]
     graph_temperature = self._session.graph.get_collection('temperature')
 
@@ -287,7 +289,7 @@ class EventSequenceRnnModel(mm.BaseModel):
       The highest-likelihood event sequence as computed by the beam search.
     """
     event_sequences = [copy.deepcopy(events) for _ in range(beam_size)]
-    graph_initial_state = self._session.graph.get_collection('initial_state')[0]
+    graph_initial_state = self._session.graph.get_collection('initial_state')
     loglik = np.zeros(beam_size)
 
     # Choose the number of steps for the first iteration such that subsequent
@@ -307,7 +309,7 @@ class EventSequenceRnnModel(mm.BaseModel):
           self._config.encoder_decoder, event_sequences, inputs)
 
     zero_state = state_util.unbatch(
-        self._session.run(graph_initial_state))[0]
+        tuple(self._session.run(graph_initial_state)))[0]
     initial_states = [zero_state] * beam_size
     event_sequences, final_state, loglik = self._generate_branches(
         event_sequences, loglik, branch_factor, first_iteration_num_steps,
@@ -419,7 +421,7 @@ class EventSequenceRnnModel(mm.BaseModel):
       `event_sequences`.
     """
     graph_inputs = self._session.graph.get_collection('inputs')[0]
-    graph_initial_state = self._session.graph.get_collection('initial_state')[0]
+    graph_initial_state = self._session.graph.get_collection('initial_state')
     graph_softmax = self._session.graph.get_collection('softmax')[0]
     graph_temperature = self._session.graph.get_collection('temperature')
 
@@ -478,10 +480,9 @@ class EventSequenceRnnModel(mm.BaseModel):
       inputs = self._config.encoder_decoder.get_inputs_batch(
           [events[:-1] for events in event_sequences], full_length=True)
 
-    graph_initial_state = self._session.graph.get_collection('initial_state')[0]
-    initial_state = np.tile(
-        self._session.run(graph_initial_state), (len(event_sequences), 1))
-
+    graph_initial_state = self._session.graph.get_collection('initial_state')
+    initial_state = [
+        self._session.run(graph_initial_state)] * len(event_sequences)
     offset = 0
     for _ in range(num_full_batches):
       # Evaluate a single step for one batch of event sequences.
@@ -489,7 +490,7 @@ class EventSequenceRnnModel(mm.BaseModel):
       batch_loglik = self._evaluate_batch_log_likelihood(
           [event_sequences[i] for i in batch_indices],
           [inputs[i] for i in batch_indices],
-          initial_state[batch_indices, :])
+          initial_state[batch_indices])
       loglik[batch_indices] = batch_loglik
       offset += batch_size
 

@@ -24,6 +24,8 @@ import magenta
 from magenta.models.shared import events_rnn_graph
 from tensorflow.python.layers import base as tf_layers_base
 from tensorflow.python.layers import core as tf_layers_core
+from tensorflow.python.util import nest as tf_nest
+
 # TODO(adarob): Switch to public Layer once available in TF pip package.
 TF_BASE_LAYER = (
     tf_layers_base.Layer if hasattr(tf_layers_base, 'Layer') else
@@ -544,10 +546,12 @@ def build_graph(mode, config, sequence_example_file_paths=None):
       samples, log_prob = rnn_nade.sample_single(initial_state)
 
       tf.add_to_collection('inputs', inputs)
-      tf.add_to_collection('initial_state', initial_state)
-      tf.add_to_collection('final_state', final_state)
-      magenta.common.state_util.register_for_metagraph(
-          ['initial_state', 'final_state'])
+      for state in tf_nest.flatten(initial_state):
+        tf.add_to_collection('initial_state', state)
+      for state in tf_nest.flatten(final_state):
+        tf.add_to_collection('final_state', state)
+      #magenta.common.state_util.register_for_metagraph(
+      #    ['initial_state', 'final_state'])
 
       tf.add_to_collection('sample', samples)
       tf.add_to_collection('log_prob', log_prob)

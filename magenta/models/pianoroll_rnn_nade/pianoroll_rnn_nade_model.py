@@ -53,8 +53,10 @@ class PianorollRnnNadeModel(events_rnn_model.EventSequenceRnnModel):
     assert len(pianoroll_sequences) == self._batch_size()
 
     graph_inputs = self._session.graph.get_collection('inputs')[0]
-    graph_initial_state = self._session.graph.get_collection('initial_state')[0]
-    graph_final_state = self._session.graph.get_collection('final_state')[0]
+    graph_initial_state = tuple(
+        self._session.graph.get_collection('initial_state'))
+    graph_final_state = tuple(
+        self._session.graph.get_collection('final_state'))
     graph_sample = self._session.graph.get_collection('sample')[0]
     graph_log_prob = self._session.graph.get_collection('log_prob')[0]
 
@@ -78,8 +80,8 @@ class PianorollRnnNadeModel(events_rnn_model.EventSequenceRnnModel):
       checkpoint_filename: The path to the checkpoint file that should be used.
       metagraph_filename: The path to the metagraph file that should be used.
     """
-    magenta.common.state_util.register_for_metagraph(
-        ['initial_state', 'final_state'])
+    #magenta.common.state_util.register_for_metagraph(
+    #    ['initial_state', 'final_state'])
     mm.BaseModel.initialize_with_checkpoint_and_metagraph(
         self, checkpoint_filename, metagraph_filename)
 
