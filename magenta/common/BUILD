@@ -67,7 +67,6 @@ py_library(
     deps = [
         # numpy dep
         # tensorflow dep
-        "//magenta/protobuf:state_py_pb2",
     ],
 )
 

@@ -16,10 +16,7 @@
 # internal imports
 
 import numpy as np
-import tensorflow as tf
 
-from magenta.protobuf import state_pb2
-from tensorflow.python.framework import ops as tf_ops
 from tensorflow.python.util import nest as tf_nest
 
 

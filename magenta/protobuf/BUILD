@@ -29,7 +29,6 @@ py_library(
     deps = [
         ":generator_py_pb2",
         ":music_py_pb2",
-        ":state_py_pb2",
     ],
 )
 
@@ -63,12 +62,4 @@ cc_proto_library(
     default_runtime = "@protobuf//:protobuf",
     protoc = "@protobuf//:protoc",
     deps = [":music_proto"],
-)
-
-py_proto_library(
-    name = "state_py_pb2",
-    srcs = ["state.proto"],
-    default_runtime = "@protobuf//:protobuf_python",
-    protoc = "@protobuf//:protoc",
-    srcs_version = "PY2AND3",
 )
