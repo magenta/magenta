@@ -19,6 +19,7 @@ import magenta
 
 from tensorflow.python.util import nest as tf_nest
 
+
 def make_rnn_cell(rnn_layer_sizes,
                   dropout_keep_prob=1.0,
                   attn_length=0,
