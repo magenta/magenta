@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-r"""Separate file for storing the current version of Magenta.
+"""Separate file for storing the current version of Magenta.
 
 Stored in a separate file so that setup.py can reference the version without
 pulling in all the dependencies in __init__.py.
