@@ -16,6 +16,7 @@
 # internal imports
 
 import numpy as np
+
 from tensorflow.python.util import nest as tf_nest
 
 

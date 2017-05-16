@@ -27,8 +27,8 @@ from magenta.pipelines import statistics
 from magenta.protobuf import music_pb2
 
 DEFAULT_STEPS_PER_QUARTER = constants.DEFAULT_STEPS_PER_QUARTER
-MAX_MIDI_PITCH = 108
-MIN_MIDI_PITCH = 21
+MAX_MIDI_PITCH = 108  # Max piano pitch.
+MIN_MIDI_PITCH = 21  # Min piano pitch.
 STANDARD_PPQ = constants.STANDARD_PPQ
 
 
@@ -39,15 +39,19 @@ class PianorollSequence(events_lib.EventSequence):
   `min_pitch`.
   """
 
-  def __init__(self, quantized_sequence=None, steps_per_quarter=None,
-               start_step=0, min_pitch=MIN_MIDI_PITCH,
-               max_pitch=MAX_MIDI_PITCH):
+  def __init__(self, quantized_sequence=None, events_list=None,
+               steps_per_quarter=None, start_step=0, min_pitch=MIN_MIDI_PITCH,
+               max_pitch=MAX_MIDI_PITCH, split_repeats=True, shift_range=False):
     """Construct a PianorollSequence.
 
-    Either quantized_sequence or steps_per_quarter should be supplied.
+    Exactly one of `quantized_sequence` or `steps_per_quarter` must be supplied.
+    At most one of `quantized_sequence` and `events_list` may be supplied.
 
     Args:
-      quantized_sequence: a quantized NoteSequence proto.
+      quantized_sequence: an optional quantized NoteSequence proto to base
+          PianorollSequence on.
+      events_list: an optional list of Pianoroll events to base
+          PianorollSequence on.
       steps_per_quarter: how many steps a quarter note represents. Must be
           provided if `quanitzed_sequence` not given.
       start_step: The offset of this sequence relative to the
@@ -55,8 +59,14 @@ class PianorollSequence(events_lib.EventSequence):
           input, only notes starting after this step will be considered.
       min_pitch: The minimum valid pitch value, inclusive.
       max_pitch: The maximum valid pitch value, inclusive.
+      split_repeats: Whether to force repeated notes to have a 0-state step
+          between them when initializing from a quantized NoteSequence.
+      shift_range: If True, assume that the given events_list is in the full
+         MIDI pitch range and needs to be shifted and filtered based on
+         `min_pitch` and `max_pitch`.
     """
     assert (quantized_sequence, steps_per_quarter).count(None) == 1
+    assert (quantized_sequence, events_list).count(None) >= 1
 
     self._min_pitch = min_pitch
     self._max_pitch = max_pitch
@@ -65,13 +75,15 @@ class PianorollSequence(events_lib.EventSequence):
       sequences_lib.assert_is_quantized_sequence(quantized_sequence)
       self._events = self._from_quantized_sequence(quantized_sequence,
                                                    start_step, min_pitch,
-                                                   max_pitch)
+                                                   max_pitch, split_repeats)
       self._steps_per_quarter = (
           quantized_sequence.quantization_info.steps_per_quarter)
     else:
       self._events = []
       self._steps_per_quarter = steps_per_quarter
-
+      if events_list:
+        for e in events_list:
+          self.append(e, shift_range)
     self._start_step = start_step
 
   @property
@@ -106,14 +118,20 @@ class PianorollSequence(events_lib.EventSequence):
       del self._events[steps:]
     assert self.num_steps == steps
 
-  def append(self, event):
+  def append(self, event, shift_range=False):
     """Appends the event to the end of the sequence.
 
     Args:
       event: The polyphonic event to append to the end.
+      shift_range: If True, assume that the given event is in the full MIDI
+         pitch range and needs to be shifted and filtered based on `min_pitch`
+         and `max_pitch`.
     Raises:
       ValueError: If `event` is not a valid polyphonic event.
     """
+    if shift_range:
+      event = tuple(p - self._min_pitch for p in event
+                    if self._min_pitch <= p <= self._max_pitch)
     self._events.append(event)
 
   def __len__(self):
@@ -147,7 +165,7 @@ class PianorollSequence(events_lib.EventSequence):
 
   @staticmethod
   def _from_quantized_sequence(
-      quantized_sequence, start_step, min_pitch, max_pitch):
+      quantized_sequence, start_step, min_pitch, max_pitch, split_repeats):
     """Populate self with events from the given quantized NoteSequence object.
 
     Args:
@@ -156,6 +174,8 @@ class PianorollSequence(events_lib.EventSequence):
           Assumed to be the beginning of a bar.
       min_pitch: The minimum valid pitch value, inclusive.
       max_pitch: The maximum valid pitch value, inclusive.
+      split_repeats: Whether to force repeated notes to have a 0-state step
+          between them.
 
     Returns:
       A list of events.
@@ -173,6 +193,8 @@ class PianorollSequence(events_lib.EventSequence):
       note_start_offset = note.quantized_start_step - start_step
       note_end_offset = note.quantized_end_step - start_step
 
+      if split_repeats:
+        piano_roll[note_start_offset - 1, note_pitch_offset] = 0
       piano_roll[note_start_offset:note_end_offset, note_pitch_offset] = 1
 
     events = [tuple(np.where(frame)[0]) for frame in piano_roll]
@@ -293,7 +315,8 @@ def extract_pianoroll_sequences(
     return [], stats.values()
 
   # Translate the quantized sequence into a PianorollSequence.
-  pianoroll_seq = PianorollSequence(quantized_sequence, start_step=start_step)
+  pianoroll_seq = PianorollSequence(quantized_sequence=quantized_sequence,
+                                    start_step=start_step)
 
   pianoroll_seqs = []
   num_steps = pianoroll_seq.num_steps
@@ -304,7 +327,6 @@ def extract_pianoroll_sequences(
     stats['pianoroll_tracks_discarded_too_long'].increment()
   else:
     pianoroll_seqs.append(pianoroll_seq)
-    stats['pianoroll_tracks_discarded_more_than_1_program'].increment(
+    stats['pianoroll_track_lengths_in_bars'].increment(
         num_steps // steps_per_bar)
-
   return pianoroll_seqs, stats.values()
