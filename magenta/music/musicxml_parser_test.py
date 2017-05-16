@@ -17,6 +17,7 @@ from collections import defaultdict
 import operator
 import os.path
 import tempfile
+import zipfile
 
 # internal imports
 
@@ -966,6 +967,15 @@ class MusicXMLParserTest(tf.test.TestCase):
       musicxml_reader.musicxml_file_to_sequence_proto(os.path.join(
           tf.resource_loader.get_data_files_path(),
           'testdata/unpitched.xml'))
+
+  def test_empty_archive(self):
+    with tempfile.NamedTemporaryFile(suffix='.mxl') as temp_file:
+      z = zipfile.ZipFile(temp_file.name, 'w')
+      z.close()
+
+      with self.assertRaises(musicxml_reader.MusicXMLConversionError):
+        musicxml_reader.musicxml_file_to_sequence_proto(
+            temp_file.name)
 
 if __name__ == '__main__':
   tf.test.main()
