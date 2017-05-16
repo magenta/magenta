@@ -84,14 +84,13 @@ class EventSequenceRnnModel(mm.BaseModel):
     assert len(event_sequences) == self._batch_size()
 
     graph_inputs = self._session.graph.get_collection('inputs')[0]
-    graph_initial_state = tuple(
-        self._session.graph.get_collection('initial_state'))
-    graph_final_state = tuple(
-        self._session.graph.get_collection('final_state'))
+    graph_initial_state = self._session.graph.get_collection('initial_state')
+    graph_final_state = self._session.graph.get_collection('final_state')
     graph_softmax = self._session.graph.get_collection('softmax')[0]
     graph_temperature = self._session.graph.get_collection('temperature')
 
-    feed_dict = {graph_inputs: inputs, graph_initial_state: initial_state}
+    feed_dict = {graph_inputs: inputs,
+                 tuple(graph_initial_state): initial_state}
     # For backwards compatibility, we only try to pass temperature if the
     # placeholder exists in the graph.
     if graph_temperature:
@@ -308,8 +307,7 @@ class EventSequenceRnnModel(mm.BaseModel):
       modify_events_callback(
           self._config.encoder_decoder, event_sequences, inputs)
 
-    zero_state = state_util.unbatch(
-        tuple(self._session.run(graph_initial_state)))[0]
+    zero_state = state_util.unbatch(self._session.run(graph_initial_state))[0]
     initial_states = [zero_state] * beam_size
     event_sequences, final_state, loglik = self._generate_branches(
         event_sequences, loglik, branch_factor, first_iteration_num_steps,
@@ -425,7 +423,8 @@ class EventSequenceRnnModel(mm.BaseModel):
     graph_softmax = self._session.graph.get_collection('softmax')[0]
     graph_temperature = self._session.graph.get_collection('temperature')
 
-    feed_dict = {graph_inputs: inputs, graph_initial_state: initial_state}
+    feed_dict = {graph_inputs: inputs,
+                 tuple(graph_initial_state): initial_state}
     # For backwards compatibility, we only try to pass temperature if the
     # placeholder exists in the graph.
     if graph_temperature:
@@ -504,7 +503,7 @@ class EventSequenceRnnModel(mm.BaseModel):
           [event_sequences[i] for i in batch_indices] + [
               copy.deepcopy(event_sequences[-1]) for _ in range(pad_size)],
           [inputs[i] for i in batch_indices] + inputs[-1] * pad_size,
-          np.append(initial_state[batch_indices, :],
+          np.append(initial_state[batch_indices],
                     np.tile(inputs[-1, :], (pad_size, 1)),
                     axis=0))
       loglik[batch_indices] = batch_loglik[0:num_extra]
