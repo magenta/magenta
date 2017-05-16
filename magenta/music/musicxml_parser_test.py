@@ -957,6 +957,15 @@ class MusicXMLParserTest(tf.test.TestCase):
     with self.assertRaises(musicxml_parser.MultipleTimeSignatureException):
       musicxml_parser.MusicXMLDocument(self.mid_measure_meter_filename)
 
+  def test_unpitched_notes(self):
+    with self.assertRaises(musicxml_parser.UnpitchedNoteException):
+      musicxml_parser.MusicXMLDocument(os.path.join(
+          tf.resource_loader.get_data_files_path(),
+          'testdata/unpitched.xml'))
+    with self.assertRaises(musicxml_reader.MusicXMLConversionError):
+      musicxml_reader.musicxml_file_to_sequence_proto(os.path.join(
+          tf.resource_loader.get_data_files_path(),
+          'testdata/unpitched.xml'))
 
 if __name__ == '__main__':
   tf.test.main()

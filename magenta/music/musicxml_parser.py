@@ -63,6 +63,17 @@ class AlternatingTimeSignatureException(MusicXMLParseException):
   pass
 
 
+class UnpitchedNoteException(MusicXMLParseException):
+  """Exception thrown when an unpitched note is encountered.
+
+  We do not currently support parsing files with unpitched notes (e.g.,
+  percussion scores).
+
+  http://www.musicxml.com/tutorial/percussion/unpitched-notes/
+  """
+  pass
+
+
 class MusicXMLParserState(object):
   """Maintains internal state of the MusicXML parser."""
 
@@ -618,6 +629,8 @@ class Note(object):
       elif child.tag == 'time-modification':
         # A time-modification element represents a tuplet_ratio
         self._parse_tuplet(child)
+      elif child.tag == 'unpitched':
+        raise UnpitchedNoteException('Unpitched notes are not supported')
       else:
         # Ignore other tag types because they are not relevant to Magenta.
         pass

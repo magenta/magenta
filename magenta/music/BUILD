@@ -410,6 +410,7 @@ py_test(
         "testdata/st_anne.xml",
         "testdata/unicode_filename.mxl",
         "testdata/unmetered_example.xml",
+        "testdata/unpitched.xml",
     ],
     srcs_version = "PY2AND3",
     deps = [
