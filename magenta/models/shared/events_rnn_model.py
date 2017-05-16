@@ -84,14 +84,13 @@ class EventSequenceRnnModel(mm.BaseModel):
     assert len(event_sequences) == self._batch_size()
 
     graph_inputs = self._session.graph.get_collection('inputs')[0]
-    graph_initial_state = tuple(
-        self._session.graph.get_collection('initial_state'))
-    graph_final_state = tuple(
-        self._session.graph.get_collection('final_state'))
+    graph_initial_state = self._session.graph.get_collection('initial_state')
+    graph_final_state = self._session.graph.get_collection('final_state')
     graph_softmax = self._session.graph.get_collection('softmax')[0]
     graph_temperature = self._session.graph.get_collection('temperature')
 
-    feed_dict = {graph_inputs: inputs, graph_initial_state: initial_state}
+    feed_dict = {graph_inputs: inputs,
+                 tuple(graph_initial_state): initial_state}
     # For backwards compatibility, we only try to pass temperature if the
     # placeholder exists in the graph.
     if graph_temperature:
@@ -424,7 +423,8 @@ class EventSequenceRnnModel(mm.BaseModel):
     graph_softmax = self._session.graph.get_collection('softmax')[0]
     graph_temperature = self._session.graph.get_collection('temperature')
 
-    feed_dict = {graph_inputs: inputs, graph_initial_state: initial_state}
+    feed_dict = {graph_inputs: inputs,
+                 tuple(graph_initial_state): initial_state}
     # For backwards compatibility, we only try to pass temperature if the
     # placeholder exists in the graph.
     if graph_temperature:
