@@ -8,10 +8,10 @@ post demos, tutorial blog postings, and technical papers. If you’d like to kee
 up on Magenta as it grows, you can read our [blog](http://magenta.tensorflow.org) and or join our
 [discussion group](http://groups.google.com/a/tensorflow.org/forum/#!forum/magenta-discuss).
 
-## Contents
+## Getting Started
 
 * [Installation](#installation)
-* [Generating MIDI](#generating-midi)
+* [Generating MIDI](#using-magenta)
 * [Using a MIDI Instrument](#using-a-midi-interument)
 * [Development Environment (Advanced)](#development-environment)
 
