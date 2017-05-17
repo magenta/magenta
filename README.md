@@ -11,8 +11,8 @@ up on Magenta as it grows, you can read our [blog](http://magenta.tensorflow.org
 ## Getting Started
 
 * [Installation](#installation)
-* [Generating MIDI](#using-magenta)
-* [Using a MIDI Instrument](#using-a-midi-interument)
+* [Using Magenta](#using-magenta)
+* [Playing a MIDI Instrument](#playing-a-midi-interument)
 * [Development Environment (Advanced)](#development-environment)
 
 ## Installation
@@ -153,7 +153,7 @@ find instructions for each of the models by exploring the [models directory](mag
 
 To get started, create your own melodies with TensorFlow using one of the various configurations of our [Melody RNN](magenta/models/melody_rnn) model; a recurrent neural network for predicting melodies.
 
-## Using a MIDI Instrument
+## Playing a MIDI Instrument
 
 After you've trained one of the models above, you can use our [MIDI interface](magenta/interfaces/midi) to play with it interactively.
 
