@@ -19,7 +19,10 @@ licenses(["notice"])  # Apache 2.0
 py_library(
     name = "melody_rnn",
     srcs = ["__init__.py"],
-    visibility = ["//magenta/tools/pip:__subpackages__"],
+    visibility = [
+        # internal notebook binary
+        "//magenta/tools/pip:__subpackages__",
+    ],
     deps = [
         ":melody_rnn_model",
     ],
