@@ -43,6 +43,10 @@ py_library(
     name = "melody_rnn_model",
     srcs = ["melody_rnn_model.py"],
     srcs_version = "PY2AND3",
+    visibility = [
+        # internal model:melody_rnn
+        # internal notebook binary
+    ]
     deps = [
         "//magenta",
         "//magenta/models/shared:events_rnn_model",
@@ -53,7 +57,10 @@ py_library(
     name = "melody_rnn_sequence_generator",
     srcs = ["melody_rnn_sequence_generator.py"],
     srcs_version = "PY2AND3",
-    visibility = ["//magenta/interfaces:generator_interfaces"],
+    visibility = [
+        # internal notebook binary
+        "//magenta/interfaces:generator_interfaces"
+    ],
     deps = [
         ":melody_rnn_model",
         "//magenta",
