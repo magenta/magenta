@@ -8,6 +8,13 @@ post demos, tutorial blog postings, and technical papers. If you’d like to kee
 up on Magenta as it grows, you can read our [blog](http://magenta.tensorflow.org) and or join our
 [discussion group](http://groups.google.com/a/tensorflow.org/forum/#!forum/magenta-discuss).
 
+## Getting Started
+
+* [Installation](#installation)
+* [Using Magenta](#using-magenta)
+* [Playing a MIDI Instrument](#playing-a-midi-instrument)
+* [Development Environment (Advanced)](#development-environment)
+
 ## Installation
 
 ### Python Pip
@@ -139,12 +146,14 @@ docker pull tensorflow/magenta
 
 Note: Our Docker image is also available at `gcr.io/tensorflow/magenta`.
 
-## Generating MIDI
+## Using Magenta
 
-You can now create your own melodies with TensorFlow using one of the various configurations of our
-[Melody RNN](magenta/models/melody_rnn) model; a recurrent neural network for predicting melodies.
+You can now train our various models and use them to generate music, audio, and images. You can
+find instructions for each of the models by exploring the [models directory](magenta/models).
 
-## Using a MIDI Instrument
+To get started, create your own melodies with TensorFlow using one of the various configurations of our [Melody RNN](magenta/models/melody_rnn) model; a recurrent neural network for predicting melodies.
+
+## Playing a MIDI Instrument
 
 After you've trained one of the models above, you can use our [MIDI interface](magenta/interfaces/midi) to play with it interactively.
 
