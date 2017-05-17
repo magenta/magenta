@@ -18,6 +18,6 @@ magenta_midi \
     --loop_control_number=10 \
     --panic_control_number=11 \
     --mutate_control_number=12 \
-    --bundle_files=./basic_rnn.mag,./lookback_rnn.mag,./attention_rnn.mag,./rl_rnn.mag,./polyphony_rnn.mag \
+    --bundle_files=./basic_rnn.mag,./lookback_rnn.mag,./attention_rnn.mag,./rl_rnn.mag,./polyphony_rnn.mag,./pianoroll_rnn_nade.mag \
     --playback_offset=-0.035 \
     --playback_channel=1 \
