@@ -46,7 +46,7 @@ py_library(
     visibility = [
         # internal model:melody_rnn
         # internal notebook binary
-    ]
+    ],
     deps = [
         "//magenta",
         "//magenta/models/shared:events_rnn_model",
