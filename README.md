@@ -12,7 +12,7 @@ up on Magenta as it grows, you can read our [blog](http://magenta.tensorflow.org
 
 * [Installation](#installation)
 * [Using Magenta](#using-magenta)
-* [Playing a MIDI Instrument](#playing-a-midi-interument)
+* [Playing a MIDI Instrument](#playing-a-midi-instrument)
 * [Development Environment (Advanced)](#development-environment)
 
 ## Installation
