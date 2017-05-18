@@ -142,7 +142,8 @@ To use the midi interface, you must supply one or more trained model bundles
 (.mag files). You can either download them from the links on our model pages
 (e.g., [Melody RNN](/magenta/models/melody_rnn/README.md)) or create bundle
 files from your training checkpoints using the instructions on the model page.
-Once you're picked out the bundle files you wish to use, set the environment
+Once you're picked out the bundle files you wish to use, set the magenta_midi --help
+environment
 variable with a comma-separated list of paths to to the bundles. For example:
 
 ```bash
@@ -205,5 +206,5 @@ and are using VPMK and FluidSynth, your command might look like this:
 magenta_midi \
   --input_port="VMPK Output" \
   --output_port="FluidSynth virtual port" \
-  --bundle_files=/tmp/attention_rnn.mag \
+  --bundle_files=/tmp/attention_rnn.mag
 ```
