@@ -142,9 +142,8 @@ To use the midi interface, you must supply one or more trained model bundles
 (.mag files). You can either download them from the links on our model pages
 (e.g., [Melody RNN](/magenta/models/melody_rnn/README.md)) or create bundle
 files from your training checkpoints using the instructions on the model page.
-Once you're picked out the bundle files you wish to use, you may set the
-environment variable with a comma-separated list of paths to to the bundles.
-For example:
+Once you're picked out the bundle files you wish to use, set the environment
+variable with a comma-separated list of paths to to the bundles. For example:
 
 ```bash
 BUNDLE_PATHS=/path/to/bundle1.mag,/path/to/bundle2.mag
