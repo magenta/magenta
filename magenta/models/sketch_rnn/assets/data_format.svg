@@ -1,0 +1,1240 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="1038px" height="259px" viewBox="0 0 1038 259" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+    <!-- Generator: Sketch 43.1 (39012) - http://www.bohemiancoding.com/sketch -->
+    <title>Group 5</title>
+    <desc>Created with Sketch.</desc>
+    <defs></defs>
+    <g id="Page-1" stroke="none" stroke-width="1" fill="none" fill-rule="evenodd">
+        <g id="Group-5" transform="translate(-2.000000, 0.000000)">
+            <g id="Group-4" transform="translate(469.000000, 1.000000)" stroke-width="2" stroke-linecap="round">
+                <path d="M135.209302,182.096346 L135.209302,175.202658" id="Shape" stroke="#FC67B3"></path>
+                <path d="M135.209302,175.202658 L139.186046,143.491694" id="Shape" stroke="#FA67B4"></path>
+                <path d="M139.186046,143.491694 L149.790698,124.189368" id="Shape" stroke="#F768B5"></path>
+                <path d="M149.790698,124.189368 L185.581396,74.554817" id="Shape" stroke="#F469B6"></path>
+                <path d="M185.581396,74.554817 L214.744186,48.358804" id="Shape" stroke="#F269B7"></path>
+                <path d="M214.744186,48.358804 L285,8.37541523" id="Shape" stroke="#EF6AB8"></path>
+                <path d="M285,8.37541523 L312.83721,1.48172763" id="Shape" stroke="#EC6BB9"></path>
+                <path d="M312.83721,1.48172763 L352.604652,0.102990083" id="Shape" stroke="#EA6BBA"></path>
+                <path d="M352.604652,0.102990083 L385.744186,8.37541523" id="Shape" stroke="#E76CBB"></path>
+                <path d="M385.744186,8.37541523 L422.860466,24.9202658" id="Shape" stroke="#E56DBC"></path>
+                <path d="M422.860466,24.9202658 L466.604656,64.9036544" id="Shape" stroke="#E26DBD"></path>
+                <path d="M466.604656,64.9036544 L510.348839,139.355482" id="Shape" stroke="#DF6EBE"></path>
+                <path d="M510.348839,139.355482 L531.55814,191.747509" id="Shape" stroke="#DD6FBF"></path>
+                <path d="M531.55814,191.747509 L418.88372,191.747509" id="Shape" stroke="#DA6FC0"></path>
+                <path d="M418.88372,191.747509 L263.790698,172.445183" id="Shape" stroke="#D770C1"></path>
+                <path d="M263.790698,172.445183 L198.83721,172.445183" id="Shape" stroke="#D571C2"></path>
+                <path d="M198.83721,172.445183 L124.604652,186.232558" id="Shape" stroke="#D271C3"></path>
+                <path d="M204.139534,75.9335549 L234.627906,70.4186045" id="Shape" stroke="#CD73C5"></path>
+                <path d="M234.627906,70.4186045 L345.976744,70.4186045" id="Shape" stroke="#CA73C6"></path>
+                <path d="M345.976744,70.4186045 L405.627906,58.0099668" id="Shape" stroke="#C774C7"></path>
+                <path d="M405.627906,58.0099668 L432.139534,58.0099668" id="Shape" stroke="#C575C8"></path>
+                <path d="M197.511628,115.916943 L438.767441,122.810632" id="Shape" stroke="#BF76CA"></path>
+                <path d="M438.767441,122.810632 L490.465118,131.083057" id="Shape" stroke="#BD77CB"></path>
+                <path d="M278.372094,24.9202658 L253.186046,100.75083" id="Shape" stroke="#B778CD"></path>
+                <path d="M253.186046,100.75083 L225.348838,161.415282" id="Shape" stroke="#B579CE"></path>
+                <path d="M225.348838,161.415282 L225.348838,169.687707" id="Shape" stroke="#B279CF"></path>
+                <path d="M339.348838,24.9202658 L336.697674,180.717608" id="Shape" stroke="#AD7BD1"></path>
+                <path d="M391.046512,19.4053156 L391.046512,172.445183" id="Shape" stroke="#A87CD3"></path>
+                <path d="M157.744186,106.26578 L111.348838,106.26578" id="Shape" stroke="#A27DD5"></path>
+                <path d="M111.348838,106.26578 L71.5813957,96.6146175" id="Shape" stroke="#A07ED6"></path>
+                <path d="M71.5813957,96.6146175 L35.7906979,96.6146175" id="Shape" stroke="#9D7FD7"></path>
+                <path d="M35.7906979,96.6146175 L6.62790642,104.887044" id="Shape" stroke="#9A7FD8"></path>
+                <path d="M6.62790642,104.887044 L0,118.674419" id="Shape" stroke="#9880D9"></path>
+                <path d="M0,118.674419 L5.30232582,143.491694" id="Shape" stroke="#9580DA"></path>
+                <path d="M5.30232582,143.491694 L23.8604656,155.900332" id="Shape" stroke="#9281DB"></path>
+                <path d="M23.8604656,155.900332 L58.3255817,164.172758" id="Shape" stroke="#9082DC"></path>
+                <path d="M58.3255817,164.172758 L125.930232,161.415282" id="Shape" stroke="#8D82DD"></path>
+                <path d="M125.930232,161.415282 L135.209302,165.551495" id="Shape" stroke="#8A83DE"></path>
+                <path d="M42.4186043,109.023256 L26.511628,110.401993" id="Shape" stroke="#8584E0"></path>
+                <path d="M26.511628,110.401993 L22.5348839,115.916943" id="Shape" stroke="#8285E1"></path>
+                <path d="M22.5348839,115.916943 L25.1860462,124.189368" id="Shape" stroke="#8086E2"></path>
+                <path d="M25.1860462,124.189368 L38.4418602,125.568106" id="Shape" stroke="#7D86E3"></path>
+                <path d="M38.4418602,125.568106 L50.3720936,117.295681" id="Shape" stroke="#7B87E4"></path>
+                <path d="M50.3720936,117.295681 L50.3720936,113.159469" id="Shape" stroke="#7888E5"></path>
+                <path d="M50.3720936,113.159469 L39.7674419,109.023256" id="Shape" stroke="#7588E6"></path>
+                <path d="M10.6046516,143.491694 L25.1860462,142.112956" id="Shape" stroke="#708AE8"></path>
+                <path d="M25.1860462,142.112956 L41.0930237,132.461795" id="Shape" stroke="#6D8AE9"></path>
+                <path d="M161.72093,182.096346 L161.72093,212.428571" id="Shape" stroke="#688CEB"></path>
+                <path d="M161.72093,212.428571 L165.697674,224.837209" id="Shape" stroke="#658CEC"></path>
+                <path d="M165.697674,224.837209 L173.651162,235.86711" id="Shape" stroke="#638DED"></path>
+                <path d="M173.651162,235.86711 L180.27907,237.245848" id="Shape" stroke="#608EEE"></path>
+                <path d="M180.27907,237.245848 L198.83721,220.700996" id="Shape" stroke="#5D8EEF"></path>
+                <path d="M198.83721,220.700996 L216.069768,171.066445" id="Shape" stroke="#5B8FF0"></path>
+                <path d="M442.744183,188.990033 L448.046516,230.352159" id="Shape" stroke="#5590F2"></path>
+                <path d="M448.046516,230.352159 L454.674419,244.139535" id="Shape" stroke="#5391F3"></path>
+                <path d="M454.674419,244.139535 L459.976742,246.897009" id="Shape" stroke="#5092F4"></path>
+                <path d="M459.976742,246.897009 L467.930237,245.518273" id="Shape" stroke="#4D92F5"></path>
+                <path d="M467.930237,245.518273 L475.88372,235.86711" id="Shape" stroke="#4B93F6"></path>
+                <path d="M475.88372,235.86711 L483.837204,216.564784" id="Shape" stroke="#4894F7"></path>
+                <path d="M483.837204,216.564784 L486.488377,195.883721" id="Shape" stroke="#4694F8"></path>
+                <path d="M509.023258,135.219269 L536.860462,135.219269" id="Shape" stroke="#4096FA"></path>
+                <path d="M536.860462,135.219269 L555.418602,126.946844" id="Shape" stroke="#3E96FB"></path>
+                <path d="M555.418602,126.946844 L570,103.508306" id="Shape" stroke="#3B97FC"></path>
+                <path d="M570,103.508306 L568.674419,91.0996682" id="Shape" stroke="#3898FD"></path>
+                <path d="M568.674419,91.0996682 L550.11628,89.7209303" id="Shape" stroke="#3698FE"></path>
+                <path d="M550.11628,89.7209303 L490.465118,102.129568" id="Shape" stroke="#3399FF"></path>
+            </g>
+            <g id="Group-2" font-size="8" font-family="CourierNewPSMT, Courier New" font-weight="normal">
+                <text id="[" fill="#FF66B2">
+                    <tspan x="0.5" y="7">[</tspan>
+                </text>
+                <text id="0," fill="#FF66B2">
+                    <tspan x="8" y="7">0,</tspan>
+                </text>
+                <text id="-5," fill="#FF66B2">
+                    <tspan x="38" y="7">-5,</tspan>
+                </text>
+                <text id="0" fill="#FF66B2">
+                    <tspan x="78" y="7">0</tspan>
+                </text>
+                <text id="[" fill="#FC67B3">
+                    <tspan x="0.5" y="17">[</tspan>
+                </text>
+                <text id="3," fill="#FC67B3">
+                    <tspan x="8" y="17">3,</tspan>
+                </text>
+                <text id="-23," fill="#FC67B3">
+                    <tspan x="38" y="17">-23,</tspan>
+                </text>
+                <text id="0" fill="#FC67B3">
+                    <tspan x="78" y="17">0</tspan>
+                </text>
+                <text id="[" fill="#FA67B4">
+                    <tspan x="0.5" y="27">[</tspan>
+                </text>
+                <text id="8," fill="#FA67B4">
+                    <tspan x="8" y="27">8,</tspan>
+                </text>
+                <text id="-14," fill="#FA67B4">
+                    <tspan x="38" y="27">-14,</tspan>
+                </text>
+                <text id="0" fill="#FA67B4">
+                    <tspan x="78" y="27">0</tspan>
+                </text>
+                <text id="[" fill="#F768B5">
+                    <tspan x="0.5" y="37">[</tspan>
+                </text>
+                <text id="27," fill="#F768B5">
+                    <tspan x="8" y="37">27,</tspan>
+                </text>
+                <text id="-36," fill="#F768B5">
+                    <tspan x="38" y="37">-36,</tspan>
+                </text>
+                <text id="0" fill="#F768B5">
+                    <tspan x="78" y="37">0</tspan>
+                </text>
+                <text id="[" fill="#F569B6">
+                    <tspan x="0.5" y="47">[</tspan>
+                </text>
+                <text id="22," fill="#F569B6">
+                    <tspan x="8" y="47">22,</tspan>
+                </text>
+                <text id="-19," fill="#F569B6">
+                    <tspan x="38" y="47">-19,</tspan>
+                </text>
+                <text id="0" fill="#F569B6">
+                    <tspan x="78" y="47">0</tspan>
+                </text>
+                <text id="[" fill="#F269B7">
+                    <tspan x="0.5" y="57">[</tspan>
+                </text>
+                <text id="53," fill="#F269B7">
+                    <tspan x="8" y="57">53,</tspan>
+                </text>
+                <text id="-29," fill="#F269B7">
+                    <tspan x="38" y="57">-29,</tspan>
+                </text>
+                <text id="0" fill="#F269B7">
+                    <tspan x="78" y="57">0</tspan>
+                </text>
+                <text id="[" fill="#EF6AB8">
+                    <tspan x="0.5" y="67">[</tspan>
+                </text>
+                <text id="21," fill="#EF6AB8">
+                    <tspan x="8" y="67">21,</tspan>
+                </text>
+                <text id="-5," fill="#EF6AB8">
+                    <tspan x="38" y="67">-5,</tspan>
+                </text>
+                <text id="0" fill="#EF6AB8">
+                    <tspan x="78" y="67">0</tspan>
+                </text>
+                <text id="[" fill="#ED6BB9">
+                    <tspan x="0.5" y="77">[</tspan>
+                </text>
+                <text id="30," fill="#ED6BB9">
+                    <tspan x="8" y="77">30,</tspan>
+                </text>
+                <text id="-1," fill="#ED6BB9">
+                    <tspan x="38" y="77">-1,</tspan>
+                </text>
+                <text id="0" fill="#ED6BB9">
+                    <tspan x="78" y="77">0</tspan>
+                </text>
+                <text id="[" fill="#EA6BBA">
+                    <tspan x="0.5" y="87">[</tspan>
+                </text>
+                <text id="25," fill="#EA6BBA">
+                    <tspan x="8" y="87">25,</tspan>
+                </text>
+                <text id="6," fill="#EA6BBA">
+                    <tspan x="38" y="87">6,</tspan>
+                </text>
+                <text id="0" fill="#EA6BBA">
+                    <tspan x="78" y="87">0</tspan>
+                </text>
+                <text id="[" fill="#E76CBB">
+                    <tspan x="0.5" y="97">[</tspan>
+                </text>
+                <text id="28," fill="#E76CBB">
+                    <tspan x="8" y="97">28,</tspan>
+                </text>
+                <text id="12," fill="#E76CBB">
+                    <tspan x="38" y="97">12,</tspan>
+                </text>
+                <text id="0" fill="#E76CBB">
+                    <tspan x="78" y="97">0</tspan>
+                </text>
+                <text id="[" fill="#E56DBC">
+                    <tspan x="0.5" y="107">[</tspan>
+                </text>
+                <text id="33," fill="#E56DBC">
+                    <tspan x="8" y="107">33,</tspan>
+                </text>
+                <text id="29," fill="#E56DBC">
+                    <tspan x="38" y="107">29,</tspan>
+                </text>
+                <text id="0" fill="#E56DBC">
+                    <tspan x="78" y="107">0</tspan>
+                </text>
+                <text id="[" fill="#E26DBD">
+                    <tspan x="0.5" y="117">[</tspan>
+                </text>
+                <text id="33," fill="#E26DBD">
+                    <tspan x="8" y="117">33,</tspan>
+                </text>
+                <text id="54," fill="#E26DBD">
+                    <tspan x="38" y="117">54,</tspan>
+                </text>
+                <text id="0" fill="#E26DBD">
+                    <tspan x="78" y="117">0</tspan>
+                </text>
+                <text id="[" fill="#E06EBE">
+                    <tspan x="0.5" y="127">[</tspan>
+                </text>
+                <text id="16," fill="#E06EBE">
+                    <tspan x="8" y="127">16,</tspan>
+                </text>
+                <text id="38," fill="#E06EBE">
+                    <tspan x="38" y="127">38,</tspan>
+                </text>
+                <text id="0" fill="#E06EBE">
+                    <tspan x="78" y="127">0</tspan>
+                </text>
+                <text id="[" fill="#DD6FBF">
+                    <tspan x="0.5" y="137">[</tspan>
+                </text>
+                <text id="-85," fill="#DD6FBF">
+                    <tspan x="8" y="137">-85,</tspan>
+                </text>
+                <text id="0," fill="#DD6FBF">
+                    <tspan x="38" y="137">0,</tspan>
+                </text>
+                <text id="0" fill="#DD6FBF">
+                    <tspan x="78" y="137">0</tspan>
+                </text>
+                <text id="[" fill="#DA6FC0">
+                    <tspan x="0.5" y="147">[</tspan>
+                </text>
+                <text id="-117," fill="#DA6FC0">
+                    <tspan x="8" y="147">-117,</tspan>
+                </text>
+                <text id="-14," fill="#DA6FC0">
+                    <tspan x="38" y="147">-14,</tspan>
+                </text>
+                <text id="0" fill="#DA6FC0">
+                    <tspan x="78" y="147">0</tspan>
+                </text>
+                <text id="[" fill="#D870C1">
+                    <tspan x="0.5" y="157">[</tspan>
+                </text>
+                <text id="-49," fill="#D870C1">
+                    <tspan x="8" y="157">-49,</tspan>
+                </text>
+                <text id="0," fill="#D870C1">
+                    <tspan x="38" y="157">0,</tspan>
+                </text>
+                <text id="0" fill="#D870C1">
+                    <tspan x="78" y="157">0</tspan>
+                </text>
+                <text id="[" fill="#D570C2">
+                    <tspan x="0.5" y="167">[</tspan>
+                </text>
+                <text id="-56," fill="#D570C2">
+                    <tspan x="8" y="167">-56,</tspan>
+                </text>
+                <text id="10," fill="#D570C2">
+                    <tspan x="38" y="167">10,</tspan>
+                </text>
+                <text id="1" fill="#D570C2">
+                    <tspan x="78" y="167">1</tspan>
+                </text>
+                <text id="[" fill="#D371C3">
+                    <tspan x="0.5" y="177">[</tspan>
+                </text>
+                <text id="60," fill="#D371C3">
+                    <tspan x="8" y="177">60,</tspan>
+                </text>
+                <text id="-80," fill="#D371C3">
+                    <tspan x="38" y="177">-80,</tspan>
+                </text>
+                <text id="0" fill="#D371C3">
+                    <tspan x="78" y="177">0</tspan>
+                </text>
+                <text id="[" fill="#D072C4">
+                    <tspan x="0.5" y="187">[</tspan>
+                </text>
+                <text id="23," fill="#D072C4">
+                    <tspan x="8" y="187">23,</tspan>
+                </text>
+                <text id="-4," fill="#D072C4">
+                    <tspan x="38" y="187">-4,</tspan>
+                </text>
+                <text id="0" fill="#D072C4">
+                    <tspan x="78" y="187">0</tspan>
+                </text>
+                <text id="[" fill="#CD72C5">
+                    <tspan x="0.5" y="197">[</tspan>
+                </text>
+                <text id="84," fill="#CD72C5">
+                    <tspan x="8" y="197">84,</tspan>
+                </text>
+                <text id="0," fill="#CD72C5">
+                    <tspan x="38" y="197">0,</tspan>
+                </text>
+                <text id="0" fill="#CD72C5">
+                    <tspan x="78" y="197">0</tspan>
+                </text>
+                <text id="[" fill="#CB73C6">
+                    <tspan x="0.5" y="207">[</tspan>
+                </text>
+                <text id="45," fill="#CB73C6">
+                    <tspan x="8" y="207">45,</tspan>
+                </text>
+                <text id="-9," fill="#CB73C6">
+                    <tspan x="38" y="207">-9,</tspan>
+                </text>
+                <text id="0" fill="#CB73C6">
+                    <tspan x="78" y="207">0</tspan>
+                </text>
+                <text id="[" fill="#C874C7">
+                    <tspan x="0.5" y="217">[</tspan>
+                </text>
+                <text id="20," fill="#C874C7">
+                    <tspan x="8" y="217">20,</tspan>
+                </text>
+                <text id="0," fill="#C874C7">
+                    <tspan x="38" y="217">0,</tspan>
+                </text>
+                <text id="1" fill="#C874C7">
+                    <tspan x="78" y="217">1</tspan>
+                </text>
+                <text id="[" fill="#C574C8">
+                    <tspan x="0.5" y="227">[</tspan>
+                </text>
+                <text id="-177," fill="#C574C8">
+                    <tspan x="8" y="227">-177,</tspan>
+                </text>
+                <text id="42," fill="#C574C8">
+                    <tspan x="38" y="227">42,</tspan>
+                </text>
+                <text id="0" fill="#C574C8">
+                    <tspan x="78" y="227">0</tspan>
+                </text>
+                <text id="[" fill="#C375C9">
+                    <tspan x="0.5" y="237">[</tspan>
+                </text>
+                <text id="182," fill="#C375C9">
+                    <tspan x="8" y="237">182,</tspan>
+                </text>
+                <text id="5," fill="#C375C9">
+                    <tspan x="38" y="237">5,</tspan>
+                </text>
+                <text id="0" fill="#C375C9">
+                    <tspan x="78" y="237">0</tspan>
+                </text>
+                <text id="[" fill="#C076CA">
+                    <tspan x="0.5" y="247">[</tspan>
+                </text>
+                <text id="39," fill="#C076CA">
+                    <tspan x="8" y="247">39,</tspan>
+                </text>
+                <text id="6," fill="#C076CA">
+                    <tspan x="38" y="247">6,</tspan>
+                </text>
+                <text id="1" fill="#C076CA">
+                    <tspan x="78" y="247">1</tspan>
+                </text>
+                <text id="[" fill="#BE76CB">
+                    <tspan x="0.5" y="257">[</tspan>
+                </text>
+                <text id="-160," fill="#BE76CB">
+                    <tspan x="8" y="257">-160,</tspan>
+                </text>
+                <text id="-77," fill="#BE76CB">
+                    <tspan x="38" y="257">-77,</tspan>
+                </text>
+                <text id="0" fill="#BE76CB">
+                    <tspan x="78" y="257">0</tspan>
+                </text>
+                <text id="]" fill="#FF66B2">
+                    <tspan x="86" y="7">]</tspan>
+                </text>
+                <text id="]" fill="#FC67B3">
+                    <tspan x="86" y="17">]</tspan>
+                </text>
+                <text id="]" fill="#FA67B4">
+                    <tspan x="86" y="27">]</tspan>
+                </text>
+                <text id="]" fill="#F768B5">
+                    <tspan x="86" y="37">]</tspan>
+                </text>
+                <text id="]" fill="#F569B6">
+                    <tspan x="86" y="47">]</tspan>
+                </text>
+                <text id="]" fill="#F269B7">
+                    <tspan x="86" y="57">]</tspan>
+                </text>
+                <text id="]" fill="#EF6AB8">
+                    <tspan x="86" y="67">]</tspan>
+                </text>
+                <text id="]" fill="#ED6BB9">
+                    <tspan x="86" y="77">]</tspan>
+                </text>
+                <text id="]" fill="#EA6BBA">
+                    <tspan x="86" y="87">]</tspan>
+                </text>
+                <text id="]" fill="#E76CBB">
+                    <tspan x="86" y="97">]</tspan>
+                </text>
+                <text id="]" fill="#E56DBC">
+                    <tspan x="86" y="107">]</tspan>
+                </text>
+                <text id="]" fill="#E26DBD">
+                    <tspan x="86" y="117">]</tspan>
+                </text>
+                <text id="]" fill="#E06EBE">
+                    <tspan x="86" y="127">]</tspan>
+                </text>
+                <text id="]" fill="#DD6FBF">
+                    <tspan x="86" y="137">]</tspan>
+                </text>
+                <text id="]" fill="#DA6FC0">
+                    <tspan x="86" y="147">]</tspan>
+                </text>
+                <text id="]" fill="#D870C1">
+                    <tspan x="86" y="157">]</tspan>
+                </text>
+                <text id="]" fill="#D570C2">
+                    <tspan x="86" y="167">]</tspan>
+                </text>
+                <text id="]" fill="#D371C3">
+                    <tspan x="86" y="177">]</tspan>
+                </text>
+                <text id="]" fill="#D072C4">
+                    <tspan x="86" y="187">]</tspan>
+                </text>
+                <text id="]" fill="#CD72C5">
+                    <tspan x="86" y="197">]</tspan>
+                </text>
+                <text id="]" fill="#CB73C6">
+                    <tspan x="86" y="207">]</tspan>
+                </text>
+                <text id="]" fill="#C874C7">
+                    <tspan x="86" y="217">]</tspan>
+                </text>
+                <text id="]" fill="#C574C8">
+                    <tspan x="86" y="227">]</tspan>
+                </text>
+                <text id="]" fill="#C375C9">
+                    <tspan x="86" y="237">]</tspan>
+                </text>
+                <text id="]" fill="#C076CA">
+                    <tspan x="86" y="247">]</tspan>
+                </text>
+                <text id="]" fill="#BE76CB">
+                    <tspan x="86" y="257">]</tspan>
+                </text>
+            </g>
+            <g id="Group" transform="translate(150.000000, 0.000000)" font-size="8" font-family="CourierNewPSMT, Courier New" font-weight="normal">
+                <text id="[" fill="#BB77CC">
+                    <tspan x="0.5" y="7">[</tspan>
+                </text>
+                <text id="-19," fill="#BB77CC">
+                    <tspan x="8" y="7">-19,</tspan>
+                </text>
+                <text id="55," fill="#BB77CC">
+                    <tspan x="38" y="7">55,</tspan>
+                </text>
+                <text id="0" fill="#BB77CC">
+                    <tspan x="78" y="7">0</tspan>
+                </text>
+                <text id="[" fill="#B878CD">
+                    <tspan x="0.5" y="17">[</tspan>
+                </text>
+                <text id="-21," fill="#B878CD">
+                    <tspan x="8" y="17">-21,</tspan>
+                </text>
+                <text id="44," fill="#B878CD">
+                    <tspan x="38" y="17">44,</tspan>
+                </text>
+                <text id="0" fill="#B878CD">
+                    <tspan x="78" y="17">0</tspan>
+                </text>
+                <text id="[" fill="#B678CE">
+                    <tspan x="0.5" y="27">[</tspan>
+                </text>
+                <text id="0," fill="#B678CE">
+                    <tspan x="8" y="27">0,</tspan>
+                </text>
+                <text id="6," fill="#B678CE">
+                    <tspan x="38" y="27">6,</tspan>
+                </text>
+                <text id="1" fill="#B678CE">
+                    <tspan x="78" y="27">1</tspan>
+                </text>
+                <text id="[" fill="#B379CF">
+                    <tspan x="0.5" y="37">[</tspan>
+                </text>
+                <text id="86," fill="#B379CF">
+                    <tspan x="8" y="37">86,</tspan>
+                </text>
+                <text id="-105," fill="#B379CF">
+                    <tspan x="38" y="37">-105,</tspan>
+                </text>
+                <text id="0" fill="#B379CF">
+                    <tspan x="78" y="37">0</tspan>
+                </text>
+                <text id="[" fill="#B17AD0">
+                    <tspan x="0.5" y="47">[</tspan>
+                </text>
+                <text id="-2," fill="#B17AD0">
+                    <tspan x="8" y="47">-2,</tspan>
+                </text>
+                <text id="113," fill="#B17AD0">
+                    <tspan x="38" y="47">113,</tspan>
+                </text>
+                <text id="1" fill="#B17AD0">
+                    <tspan x="78" y="47">1</tspan>
+                </text>
+                <text id="[" fill="#AE7AD1">
+                    <tspan x="0.5" y="57">[</tspan>
+                </text>
+                <text id="41," fill="#AE7AD1">
+                    <tspan x="8" y="57">41,</tspan>
+                </text>
+                <text id="-117," fill="#AE7AD1">
+                    <tspan x="38" y="57">-117,</tspan>
+                </text>
+                <text id="0" fill="#AE7AD1">
+                    <tspan x="78" y="57">0</tspan>
+                </text>
+                <text id="[" fill="#AB7BD2">
+                    <tspan x="0.5" y="67">[</tspan>
+                </text>
+                <text id="0," fill="#AB7BD2">
+                    <tspan x="8" y="67">0,</tspan>
+                </text>
+                <text id="111," fill="#AB7BD2">
+                    <tspan x="38" y="67">111,</tspan>
+                </text>
+                <text id="1" fill="#AB7BD2">
+                    <tspan x="78" y="67">1</tspan>
+                </text>
+                <text id="[" fill="#A97CD3">
+                    <tspan x="0.5" y="77">[</tspan>
+                </text>
+                <text id="-176," fill="#A97CD3">
+                    <tspan x="8" y="77">-176,</tspan>
+                </text>
+                <text id="-48," fill="#A97CD3">
+                    <tspan x="38" y="77">-48,</tspan>
+                </text>
+                <text id="0" fill="#A97CD3">
+                    <tspan x="78" y="77">0</tspan>
+                </text>
+                <text id="[" fill="#A67CD4">
+                    <tspan x="0.5" y="87">[</tspan>
+                </text>
+                <text id="-35," fill="#A67CD4">
+                    <tspan x="8" y="87">-35,</tspan>
+                </text>
+                <text id="0," fill="#A67CD4">
+                    <tspan x="38" y="87">0,</tspan>
+                </text>
+                <text id="0" fill="#A67CD4">
+                    <tspan x="78" y="87">0</tspan>
+                </text>
+                <text id="[" fill="#A37DD5">
+                    <tspan x="0.5" y="97">[</tspan>
+                </text>
+                <text id="-30," fill="#A37DD5">
+                    <tspan x="8" y="97">-30,</tspan>
+                </text>
+                <text id="-7," fill="#A37DD5">
+                    <tspan x="38" y="97">-7,</tspan>
+                </text>
+                <text id="0" fill="#A37DD5">
+                    <tspan x="78" y="97">0</tspan>
+                </text>
+                <text id="[" fill="#A17ED6">
+                    <tspan x="0.5" y="107">[</tspan>
+                </text>
+                <text id="-27," fill="#A17ED6">
+                    <tspan x="8" y="107">-27,</tspan>
+                </text>
+                <text id="0," fill="#A17ED6">
+                    <tspan x="38" y="107">0,</tspan>
+                </text>
+                <text id="0" fill="#A17ED6">
+                    <tspan x="78" y="107">0</tspan>
+                </text>
+                <text id="[" fill="#9E7ED7">
+                    <tspan x="0.5" y="117">[</tspan>
+                </text>
+                <text id="-22," fill="#9E7ED7">
+                    <tspan x="8" y="117">-22,</tspan>
+                </text>
+                <text id="6," fill="#9E7ED7">
+                    <tspan x="38" y="117">6,</tspan>
+                </text>
+                <text id="0" fill="#9E7ED7">
+                    <tspan x="78" y="117">0</tspan>
+                </text>
+                <text id="[" fill="#9C7FD8">
+                    <tspan x="0.5" y="127">[</tspan>
+                </text>
+                <text id="-5," fill="#9C7FD8">
+                    <tspan x="8" y="127">-5,</tspan>
+                </text>
+                <text id="10," fill="#9C7FD8">
+                    <tspan x="38" y="127">10,</tspan>
+                </text>
+                <text id="0" fill="#9C7FD8">
+                    <tspan x="78" y="127">0</tspan>
+                </text>
+                <text id="[" fill="#9980D8">
+                    <tspan x="0.5" y="137">[</tspan>
+                </text>
+                <text id="4," fill="#9980D8">
+                    <tspan x="8" y="137">4,</tspan>
+                </text>
+                <text id="18," fill="#9980D8">
+                    <tspan x="38" y="137">18,</tspan>
+                </text>
+                <text id="0" fill="#9980D8">
+                    <tspan x="78" y="137">0</tspan>
+                </text>
+                <text id="[" fill="#9680D9">
+                    <tspan x="0.5" y="147">[</tspan>
+                </text>
+                <text id="14," fill="#9680D9">
+                    <tspan x="8" y="147">14,</tspan>
+                </text>
+                <text id="9," fill="#9680D9">
+                    <tspan x="38" y="147">9,</tspan>
+                </text>
+                <text id="0" fill="#9680D9">
+                    <tspan x="78" y="147">0</tspan>
+                </text>
+                <text id="[" fill="#9481DA">
+                    <tspan x="0.5" y="157">[</tspan>
+                </text>
+                <text id="26," fill="#9481DA">
+                    <tspan x="8" y="157">26,</tspan>
+                </text>
+                <text id="6," fill="#9481DA">
+                    <tspan x="38" y="157">6,</tspan>
+                </text>
+                <text id="0" fill="#9481DA">
+                    <tspan x="78" y="157">0</tspan>
+                </text>
+                <text id="[" fill="#9181DB">
+                    <tspan x="0.5" y="167">[</tspan>
+                </text>
+                <text id="51," fill="#9181DB">
+                    <tspan x="8" y="167">51,</tspan>
+                </text>
+                <text id="-2," fill="#9181DB">
+                    <tspan x="38" y="167">-2,</tspan>
+                </text>
+                <text id="0" fill="#9181DB">
+                    <tspan x="78" y="167">0</tspan>
+                </text>
+                <text id="[" fill="#8F82DC">
+                    <tspan x="0.5" y="177">[</tspan>
+                </text>
+                <text id="7," fill="#8F82DC">
+                    <tspan x="8" y="177">7,</tspan>
+                </text>
+                <text id="3," fill="#8F82DC">
+                    <tspan x="38" y="177">3,</tspan>
+                </text>
+                <text id="1" fill="#8F82DC">
+                    <tspan x="78" y="177">1</tspan>
+                </text>
+                <text id="[" fill="#8C83DD">
+                    <tspan x="0.5" y="187">[</tspan>
+                </text>
+                <text id="-70," fill="#8C83DD">
+                    <tspan x="8" y="187">-70,</tspan>
+                </text>
+                <text id="-41," fill="#8C83DD">
+                    <tspan x="38" y="187">-41,</tspan>
+                </text>
+                <text id="0" fill="#8C83DD">
+                    <tspan x="78" y="187">0</tspan>
+                </text>
+                <text id="[" fill="#8983DE">
+                    <tspan x="0.5" y="197">[</tspan>
+                </text>
+                <text id="-12," fill="#8983DE">
+                    <tspan x="8" y="197">-12,</tspan>
+                </text>
+                <text id="1," fill="#8983DE">
+                    <tspan x="38" y="197">1,</tspan>
+                </text>
+                <text id="0" fill="#8983DE">
+                    <tspan x="78" y="197">0</tspan>
+                </text>
+                <text id="[" fill="#8784DF">
+                    <tspan x="0.5" y="207">[</tspan>
+                </text>
+                <text id="-3," fill="#8784DF">
+                    <tspan x="8" y="207">-3,</tspan>
+                </text>
+                <text id="4," fill="#8784DF">
+                    <tspan x="38" y="207">4,</tspan>
+                </text>
+                <text id="0" fill="#8784DF">
+                    <tspan x="78" y="207">0</tspan>
+                </text>
+                <text id="[" fill="#8485E0">
+                    <tspan x="0.5" y="217">[</tspan>
+                </text>
+                <text id="2," fill="#8485E0">
+                    <tspan x="8" y="217">2,</tspan>
+                </text>
+                <text id="6," fill="#8485E0">
+                    <tspan x="38" y="217">6,</tspan>
+                </text>
+                <text id="0" fill="#8485E0">
+                    <tspan x="78" y="217">0</tspan>
+                </text>
+                <text id="[" fill="#8185E1">
+                    <tspan x="0.5" y="227">[</tspan>
+                </text>
+                <text id="10," fill="#8185E1">
+                    <tspan x="8" y="227">10,</tspan>
+                </text>
+                <text id="1," fill="#8185E1">
+                    <tspan x="38" y="227">1,</tspan>
+                </text>
+                <text id="0" fill="#8185E1">
+                    <tspan x="78" y="227">0</tspan>
+                </text>
+                <text id="[" fill="#7F86E2">
+                    <tspan x="0.5" y="237">[</tspan>
+                </text>
+                <text id="9," fill="#7F86E2">
+                    <tspan x="8" y="237">9,</tspan>
+                </text>
+                <text id="-6," fill="#7F86E2">
+                    <tspan x="38" y="237">-6,</tspan>
+                </text>
+                <text id="0" fill="#7F86E2">
+                    <tspan x="78" y="237">0</tspan>
+                </text>
+                <text id="[" fill="#7C87E3">
+                    <tspan x="0.5" y="247">[</tspan>
+                </text>
+                <text id="0," fill="#7C87E3">
+                    <tspan x="8" y="247">0,</tspan>
+                </text>
+                <text id="-3," fill="#7C87E3">
+                    <tspan x="38" y="247">-3,</tspan>
+                </text>
+                <text id="0" fill="#7C87E3">
+                    <tspan x="78" y="247">0</tspan>
+                </text>
+                <text id="[" fill="#7A87E4">
+                    <tspan x="0.5" y="257">[</tspan>
+                </text>
+                <text id="-8," fill="#7A87E4">
+                    <tspan x="8" y="257">-8,</tspan>
+                </text>
+                <text id="-3," fill="#7A87E4">
+                    <tspan x="38" y="257">-3,</tspan>
+                </text>
+                <text id="1" fill="#7A87E4">
+                    <tspan x="78" y="257">1</tspan>
+                </text>
+                <text id="]" fill="#BB77CC">
+                    <tspan x="86" y="7">]</tspan>
+                </text>
+                <text id="]" fill="#B878CD">
+                    <tspan x="86" y="17">]</tspan>
+                </text>
+                <text id="]" fill="#B678CE">
+                    <tspan x="86" y="27">]</tspan>
+                </text>
+                <text id="]" fill="#B379CF">
+                    <tspan x="86" y="37">]</tspan>
+                </text>
+                <text id="]" fill="#B17AD0">
+                    <tspan x="86" y="47">]</tspan>
+                </text>
+                <text id="]" fill="#AE7AD1">
+                    <tspan x="86" y="57">]</tspan>
+                </text>
+                <text id="]" fill="#AB7BD2">
+                    <tspan x="86" y="67">]</tspan>
+                </text>
+                <text id="]" fill="#A97CD3">
+                    <tspan x="86" y="77">]</tspan>
+                </text>
+                <text id="]" fill="#A67CD4">
+                    <tspan x="86" y="87">]</tspan>
+                </text>
+                <text id="]" fill="#A37DD5">
+                    <tspan x="86" y="97">]</tspan>
+                </text>
+                <text id="]" fill="#A17ED6">
+                    <tspan x="86" y="107">]</tspan>
+                </text>
+                <text id="]" fill="#9E7ED7">
+                    <tspan x="86" y="117">]</tspan>
+                </text>
+                <text id="]" fill="#9C7FD8">
+                    <tspan x="86" y="127">]</tspan>
+                </text>
+                <text id="]" fill="#9980D8">
+                    <tspan x="86" y="137">]</tspan>
+                </text>
+                <text id="]" fill="#9680D9">
+                    <tspan x="86" y="147">]</tspan>
+                </text>
+                <text id="]" fill="#9481DA">
+                    <tspan x="86" y="157">]</tspan>
+                </text>
+                <text id="]" fill="#9181DB">
+                    <tspan x="86" y="167">]</tspan>
+                </text>
+                <text id="]" fill="#8F82DC">
+                    <tspan x="86" y="177">]</tspan>
+                </text>
+                <text id="]" fill="#8C83DD">
+                    <tspan x="86" y="187">]</tspan>
+                </text>
+                <text id="]" fill="#8983DE">
+                    <tspan x="86" y="197">]</tspan>
+                </text>
+                <text id="]" fill="#8784DF">
+                    <tspan x="86" y="207">]</tspan>
+                </text>
+                <text id="]" fill="#8485E0">
+                    <tspan x="86" y="217">]</tspan>
+                </text>
+                <text id="]" fill="#8185E1">
+                    <tspan x="86" y="227">]</tspan>
+                </text>
+                <text id="]" fill="#7F86E2">
+                    <tspan x="86" y="237">]</tspan>
+                </text>
+                <text id="]" fill="#7C87E3">
+                    <tspan x="86" y="247">]</tspan>
+                </text>
+                <text id="]" fill="#7A87E4">
+                    <tspan x="86" y="257">]</tspan>
+                </text>
+            </g>
+            <g id="Group-3" transform="translate(310.000000, 0.000000)" font-size="8" font-family="CourierNewPSMT, Courier New" font-weight="normal">
+                <text id="[" fill="#7788E5">
+                    <tspan x="0.5" y="7">[</tspan>
+                </text>
+                <text id="-22," fill="#7788E5">
+                    <tspan x="8" y="7">-22,</tspan>
+                </text>
+                <text id="25," fill="#7788E5">
+                    <tspan x="38" y="7">25,</tspan>
+                </text>
+                <text id="0" fill="#7788E5">
+                    <tspan x="78" y="7">0</tspan>
+                </text>
+                <text id="[" fill="#7489E6">
+                    <tspan x="0.5" y="17">[</tspan>
+                </text>
+                <text id="11," fill="#7489E6">
+                    <tspan x="8" y="17">11,</tspan>
+                </text>
+                <text id="-1," fill="#7489E6">
+                    <tspan x="38" y="17">-1,</tspan>
+                </text>
+                <text id="0" fill="#7489E6">
+                    <tspan x="78" y="17">0</tspan>
+                </text>
+                <text id="[" fill="#7289E7">
+                    <tspan x="0.5" y="27">[</tspan>
+                </text>
+                <text id="12," fill="#7289E7">
+                    <tspan x="8" y="27">12,</tspan>
+                </text>
+                <text id="-7," fill="#7289E7">
+                    <tspan x="38" y="27">-7,</tspan>
+                </text>
+                <text id="1" fill="#7289E7">
+                    <tspan x="78" y="27">1</tspan>
+                </text>
+                <text id="[" fill="#6F8AE8">
+                    <tspan x="0.5" y="37">[</tspan>
+                </text>
+                <text id="91," fill="#6F8AE8">
+                    <tspan x="8" y="37">91,</tspan>
+                </text>
+                <text id="36," fill="#6F8AE8">
+                    <tspan x="38" y="37">36,</tspan>
+                </text>
+                <text id="0" fill="#6F8AE8">
+                    <tspan x="78" y="37">0</tspan>
+                </text>
+                <text id="[" fill="#6D8BE9">
+                    <tspan x="0.5" y="47">[</tspan>
+                </text>
+                <text id="0," fill="#6D8BE9">
+                    <tspan x="8" y="47">0,</tspan>
+                </text>
+                <text id="22," fill="#6D8BE9">
+                    <tspan x="38" y="47">22,</tspan>
+                </text>
+                <text id="0" fill="#6D8BE9">
+                    <tspan x="78" y="47">0</tspan>
+                </text>
+                <text id="[" fill="#6A8BEA">
+                    <tspan x="0.5" y="57">[</tspan>
+                </text>
+                <text id="3," fill="#6A8BEA">
+                    <tspan x="8" y="57">3,</tspan>
+                </text>
+                <text id="9," fill="#6A8BEA">
+                    <tspan x="38" y="57">9,</tspan>
+                </text>
+                <text id="0" fill="#6A8BEA">
+                    <tspan x="78" y="57">0</tspan>
+                </text>
+                <text id="[" fill="#678CEB">
+                    <tspan x="0.5" y="67">[</tspan>
+                </text>
+                <text id="6," fill="#678CEB">
+                    <tspan x="8" y="67">6,</tspan>
+                </text>
+                <text id="8," fill="#678CEB">
+                    <tspan x="38" y="67">8,</tspan>
+                </text>
+                <text id="0" fill="#678CEB">
+                    <tspan x="78" y="67">0</tspan>
+                </text>
+                <text id="[" fill="#658DEC">
+                    <tspan x="0.5" y="77">[</tspan>
+                </text>
+                <text id="5," fill="#658DEC">
+                    <tspan x="8" y="77">5,</tspan>
+                </text>
+                <text id="1," fill="#658DEC">
+                    <tspan x="38" y="77">1,</tspan>
+                </text>
+                <text id="0" fill="#658DEC">
+                    <tspan x="78" y="77">0</tspan>
+                </text>
+                <text id="[" fill="#628DED">
+                    <tspan x="0.5" y="87">[</tspan>
+                </text>
+                <text id="14," fill="#628DED">
+                    <tspan x="8" y="87">14,</tspan>
+                </text>
+                <text id="-12," fill="#628DED">
+                    <tspan x="38" y="87">-12,</tspan>
+                </text>
+                <text id="0" fill="#628DED">
+                    <tspan x="78" y="87">0</tspan>
+                </text>
+                <text id="[" fill="#5F8EEE">
+                    <tspan x="0.5" y="97">[</tspan>
+                </text>
+                <text id="13," fill="#5F8EEE">
+                    <tspan x="8" y="97">13,</tspan>
+                </text>
+                <text id="-36," fill="#5F8EEE">
+                    <tspan x="38" y="97">-36,</tspan>
+                </text>
+                <text id="1" fill="#5F8EEE">
+                    <tspan x="78" y="97">1</tspan>
+                </text>
+                <text id="[" fill="#5D8FEF">
+                    <tspan x="0.5" y="107">[</tspan>
+                </text>
+                <text id="171," fill="#5D8FEF">
+                    <tspan x="8" y="107">171,</tspan>
+                </text>
+                <text id="13," fill="#5D8FEF">
+                    <tspan x="38" y="107">13,</tspan>
+                </text>
+                <text id="0" fill="#5D8FEF">
+                    <tspan x="78" y="107">0</tspan>
+                </text>
+                <text id="[" fill="#5A8FF0">
+                    <tspan x="0.5" y="117">[</tspan>
+                </text>
+                <text id="4," fill="#5A8FF0">
+                    <tspan x="8" y="117">4,</tspan>
+                </text>
+                <text id="30," fill="#5A8FF0">
+                    <tspan x="38" y="117">30,</tspan>
+                </text>
+                <text id="0" fill="#5A8FF0">
+                    <tspan x="78" y="117">0</tspan>
+                </text>
+                <text id="[" fill="#5890F1">
+                    <tspan x="0.5" y="127">[</tspan>
+                </text>
+                <text id="5," fill="#5890F1">
+                    <tspan x="8" y="127">5,</tspan>
+                </text>
+                <text id="10," fill="#5890F1">
+                    <tspan x="38" y="127">10,</tspan>
+                </text>
+                <text id="0" fill="#5890F1">
+                    <tspan x="78" y="127">0</tspan>
+                </text>
+                <text id="[" fill="#5591F2">
+                    <tspan x="0.5" y="137">[</tspan>
+                </text>
+                <text id="4," fill="#5591F2">
+                    <tspan x="8" y="137">4,</tspan>
+                </text>
+                <text id="2," fill="#5591F2">
+                    <tspan x="38" y="137">2,</tspan>
+                </text>
+                <text id="0" fill="#5591F2">
+                    <tspan x="78" y="137">0</tspan>
+                </text>
+                <text id="[" fill="#5291F3">
+                    <tspan x="0.5" y="147">[</tspan>
+                </text>
+                <text id="6," fill="#5291F3">
+                    <tspan x="8" y="147">6,</tspan>
+                </text>
+                <text id="-1," fill="#5291F3">
+                    <tspan x="38" y="147">-1,</tspan>
+                </text>
+                <text id="0" fill="#5291F3">
+                    <tspan x="78" y="147">0</tspan>
+                </text>
+                <text id="[" fill="#5092F4">
+                    <tspan x="0.5" y="157">[</tspan>
+                </text>
+                <text id="6," fill="#5092F4">
+                    <tspan x="8" y="157">6,</tspan>
+                </text>
+                <text id="-7," fill="#5092F4">
+                    <tspan x="38" y="157">-7,</tspan>
+                </text>
+                <text id="0" fill="#5092F4">
+                    <tspan x="78" y="157">0</tspan>
+                </text>
+                <text id="[" fill="#4D92F5">
+                    <tspan x="0.5" y="167">[</tspan>
+                </text>
+                <text id="6," fill="#4D92F5">
+                    <tspan x="8" y="167">6,</tspan>
+                </text>
+                <text id="-14," fill="#4D92F5">
+                    <tspan x="38" y="167">-14,</tspan>
+                </text>
+                <text id="0" fill="#4D92F5">
+                    <tspan x="78" y="167">0</tspan>
+                </text>
+                <text id="[" fill="#4B93F6">
+                    <tspan x="0.5" y="177">[</tspan>
+                </text>
+                <text id="2," fill="#4B93F6">
+                    <tspan x="8" y="177">2,</tspan>
+                </text>
+                <text id="-15," fill="#4B93F6">
+                    <tspan x="38" y="177">-15,</tspan>
+                </text>
+                <text id="1" fill="#4B93F6">
+                    <tspan x="78" y="177">1</tspan>
+                </text>
+                <text id="[" fill="#4894F7">
+                    <tspan x="0.5" y="187">[</tspan>
+                </text>
+                <text id="17," fill="#4894F7">
+                    <tspan x="8" y="187">17,</tspan>
+                </text>
+                <text id="-44," fill="#4894F7">
+                    <tspan x="38" y="187">-44,</tspan>
+                </text>
+                <text id="0" fill="#4894F7">
+                    <tspan x="78" y="187">0</tspan>
+                </text>
+                <text id="[" fill="#4594F8">
+                    <tspan x="0.5" y="197">[</tspan>
+                </text>
+                <text id="21," fill="#4594F8">
+                    <tspan x="8" y="197">21,</tspan>
+                </text>
+                <text id="0," fill="#4594F8">
+                    <tspan x="38" y="197">0,</tspan>
+                </text>
+                <text id="0" fill="#4594F8">
+                    <tspan x="78" y="197">0</tspan>
+                </text>
+                <text id="[" fill="#4395F9">
+                    <tspan x="0.5" y="207">[</tspan>
+                </text>
+                <text id="14," fill="#4395F9">
+                    <tspan x="8" y="207">14,</tspan>
+                </text>
+                <text id="-6," fill="#4395F9">
+                    <tspan x="38" y="207">-6,</tspan>
+                </text>
+                <text id="0" fill="#4395F9">
+                    <tspan x="78" y="207">0</tspan>
+                </text>
+                <text id="[" fill="#4096FA">
+                    <tspan x="0.5" y="217">[</tspan>
+                </text>
+                <text id="11," fill="#4096FA">
+                    <tspan x="8" y="217">11,</tspan>
+                </text>
+                <text id="-17," fill="#4096FA">
+                    <tspan x="38" y="217">-17,</tspan>
+                </text>
+                <text id="0" fill="#4096FA">
+                    <tspan x="78" y="217">0</tspan>
+                </text>
+                <text id="[" fill="#3D96FB">
+                    <tspan x="0.5" y="227">[</tspan>
+                </text>
+                <text id="-1," fill="#3D96FB">
+                    <tspan x="8" y="227">-1,</tspan>
+                </text>
+                <text id="-9," fill="#3D96FB">
+                    <tspan x="38" y="227">-9,</tspan>
+                </text>
+                <text id="0" fill="#3D96FB">
+                    <tspan x="78" y="227">0</tspan>
+                </text>
+                <text id="[" fill="#3B97FC">
+                    <tspan x="0.5" y="237">[</tspan>
+                </text>
+                <text id="-14," fill="#3B97FC">
+                    <tspan x="8" y="237">-14,</tspan>
+                </text>
+                <text id="-1," fill="#3B97FC">
+                    <tspan x="38" y="237">-1,</tspan>
+                </text>
+                <text id="0" fill="#3B97FC">
+                    <tspan x="78" y="237">0</tspan>
+                </text>
+                <text id="[" fill="#3898FD">
+                    <tspan x="0.5" y="247">[</tspan>
+                </text>
+                <text id="-45," fill="#3898FD">
+                    <tspan x="8" y="247">-45,</tspan>
+                </text>
+                <text id="9," fill="#3898FD">
+                    <tspan x="38" y="247">9,</tspan>
+                </text>
+                <text id="1" fill="#3898FD">
+                    <tspan x="78" y="247">1</tspan>
+                </text>
+                <text id="]" fill="#7788E5">
+                    <tspan x="86" y="7">]</tspan>
+                </text>
+                <text id="]" fill="#7489E6">
+                    <tspan x="86" y="17">]</tspan>
+                </text>
+                <text id="]" fill="#7289E7">
+                    <tspan x="86" y="27">]</tspan>
+                </text>
+                <text id="]" fill="#6F8AE8">
+                    <tspan x="86" y="37">]</tspan>
+                </text>
+                <text id="]" fill="#6D8BE9">
+                    <tspan x="86" y="47">]</tspan>
+                </text>
+                <text id="]" fill="#6A8BEA">
+                    <tspan x="86" y="57">]</tspan>
+                </text>
+                <text id="]" fill="#678CEB">
+                    <tspan x="86" y="67">]</tspan>
+                </text>
+                <text id="]" fill="#658DEC">
+                    <tspan x="86" y="77">]</tspan>
+                </text>
+                <text id="]" fill="#628DED">
+                    <tspan x="86" y="87">]</tspan>
+                </text>
+                <text id="]" fill="#5F8EEE">
+                    <tspan x="86" y="97">]</tspan>
+                </text>
+                <text id="]" fill="#5D8FEF">
+                    <tspan x="86" y="107">]</tspan>
+                </text>
+                <text id="]" fill="#5A8FF0">
+                    <tspan x="86" y="117">]</tspan>
+                </text>
+                <text id="]" fill="#5890F1">
+                    <tspan x="86" y="127">]</tspan>
+                </text>
+                <text id="]" fill="#5591F2">
+                    <tspan x="86" y="137">]</tspan>
+                </text>
+                <text id="]" fill="#5291F3">
+                    <tspan x="86" y="147">]</tspan>
+                </text>
+                <text id="]" fill="#5092F4">
+                    <tspan x="86" y="157">]</tspan>
+                </text>
+                <text id="]" fill="#4D92F5">
+                    <tspan x="86" y="167">]</tspan>
+                </text>
+                <text id="]" fill="#4B93F6">
+                    <tspan x="86" y="177">]</tspan>
+                </text>
+                <text id="]" fill="#4894F7">
+                    <tspan x="86" y="187">]</tspan>
+                </text>
+                <text id="]" fill="#4594F8">
+                    <tspan x="86" y="197">]</tspan>
+                </text>
+                <text id="]" fill="#4395F9">
+                    <tspan x="86" y="207">]</tspan>
+                </text>
+                <text id="]" fill="#4096FA">
+                    <tspan x="86" y="217">]</tspan>
+                </text>
+                <text id="]" fill="#3D96FB">
+                    <tspan x="86" y="227">]</tspan>
+                </text>
+                <text id="]" fill="#3B97FC">
+                    <tspan x="86" y="237">]</tspan>
+                </text>
+                <text id="]" fill="#3898FD">
+                    <tspan x="86" y="247">]</tspan>
+                </text>
+            </g>
+        </g>
+    </g>
+</svg>

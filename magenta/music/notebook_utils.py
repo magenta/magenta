@@ -41,6 +41,7 @@ def play_sequence(sequence,
     sample_rate: The sample rate at which to synthesize.
     **synth_args: Additional keyword arguments to pass to the synth function.
   """
+
   array_of_floats = synth(sequence, sample_rate=sample_rate, **synth_args)
   IPython.display.display(IPython.display.Audio(array_of_floats,
                                                 rate=sample_rate))
