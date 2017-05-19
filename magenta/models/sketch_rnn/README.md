@@ -125,7 +125,7 @@ In addition, we have provided pre-trained models for selected QuickDraw datasets
 
 # Using a Model with Jupyter Notebook
 
-![Example Images](https://cdn.rawgit.com/magenta/sketch-rnn/master/assets/catbus.svg)
+![Example Images](https://cdn.rawgit.com/tensorflow/magenta/master/magenta/models/sketch_rnn/assets/catbus.svg)
 *Let's get the model to interpolate between a cat and a bus!*
 
 We've included a simple [Jupyter Notebook](https://github.com/tensorflow/magenta-staging/blob/sketch_rnn/magenta/models/sketch_rnn/sketch_rnn.ipynb) to show you how to load a pre-trained model and generate vector sketches.  You will be able to encode, decode, and morph between two vector images, and also generate new random ones.  When sampling images, you can tune the `temperature` parameter to control the level of uncertainty.
