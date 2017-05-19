@@ -10,7 +10,7 @@ This repo contains the TensorFlow code for `sketch-rnn`, the recurrent neural ne
 
 # Overview of Model
 
-`sketch-rnn` is a Sequence-to-Sequence Variational Autoencoder.The encoder RNN is a bi-directional RNN, and the decoder is an autoregressive mixture-density RNN. You can specify the type of RNN cell to use, and the size of the RNN using the settings `enc_model`, `dec_model`, `enc_size`, `dec_size`.
+`sketch-rnn` is a Sequence-to-Sequence Variational Autoencoder. The encoder RNN is a bi-directional RNN, and the decoder is an autoregressive mixture-density RNN. You can specify the type of RNN cell to use, and the size of the RNN using the settings `enc_model`, `dec_model`, `enc_size`, `dec_size`.
 
 The encoder will sample a latent code *z*, a vector of floats with a dimension of `z_size`. Like in the VAE, we can enforce a Gaussian IID distribution to *z*, and the strength of the KL Divergence loss term is controlled using `kl_weight`. There will be a tradeoff between KL Divergence Loss and the Reconstruction Loss. We also allow some room for the latent code to store information, and not be pure Gaussian IID. Once the KL Loss term gets below `kl_tolerance`, we will stop optimizing for this term.
 
@@ -130,7 +130,7 @@ In addition, we have provided pre-trained models for selected QuickDraw datasets
 
 *Let's get the model to interpolate between a cat and a bus!*
 
-We've included a simple [Jupyter Notebook](https://github.com/tensorflow/magenta-staging/blob/sketch_rnn/magenta/models/sketch_rnn/sketch_rnn.ipynb) to show you how to load a pre-trained model and generate vector sketches.  You will be able to encode, decode, and morph between two vector images, and also generate new random ones.  When sampling images, you can tune the `temperature` parameter to control the level of uncertainty.
+We've included a simple [Jupyter Notebook](http://github.com/tensorflow/magenta/blob/master/magenta/models/sketch_rnn/sketch_rnn.ipynb) to show you how to load a pre-trained model and generate vector sketches.  You will be able to encode, decode, and morph between two vector images, and also generate new random ones.  When sampling images, you can tune the `temperature` parameter to control the level of uncertainty.
 
 # Citation
 
