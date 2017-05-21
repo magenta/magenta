@@ -130,24 +130,48 @@ magenta_midi --list_ports
 
 You should see a list of available input and output ports, including both the
 controller (e.g., "VMPK Output") and synthesizer (e.g., "FluidSynth virtual
-port").
+port"). Set the environment variables based on the ports you want to use. For
+example:
 
-To use the midi interface, you must supply a trained model bundle (.mag file).
-You can either download one from the links on our model pages (e.g.,
-[Melody RNN](/magenta/models/melody_rnn/README.md) or create a bundle file from
-one of your training checkpoints using the instructions on the model page.
+```bash
+CONTROLLER_PORT="VMPK Output"
+SYNTH_PORT="FluidSynth virtual port 1"
+```
 
-You will now start the interface with this command, supplying the location of
-the .mag bundle file and any additional flags required by the interaction (see
-below):
+To use the midi interface, you must supply one or more trained model bundles
+(.mag files). You can either download them from the links on our model pages
+(e.g., [Melody RNN](/magenta/models/melody_rnn/README.md)) or create bundle
+files from your training checkpoints using the instructions on the model page.
+Once you're picked out the bundle files you wish to use, set the magenta_midi --help
+environment
+variable with a comma-separated list of paths to to the bundles. For example:
+
+```bash
+BUNDLE_PATHS=/path/to/bundle1.mag,/path/to/bundle2.mag
+```
+
+In summary, you should first define these variables:
+
+```bash
+CONTROLLER_PORT=<controller midi port name>
+SYNTH_PORT=<synth midi port name>
+BUNDLE_PATHS=<comma-separated paths to bundle files>
+```
+
+You may now start the interface with this command:
 
 ```bash
 magenta_midi \
-  --input_port=<controller port> \
-  --output_port=<synthesizer port> \
-  --bundle_files=<bundle_file> \
-  --qpm=<quarters per minute>
-  <additional interaction-specific args>
+  --input_port=${CONTROLLER_PORT} \
+  --output_port=${SYNTH_PORT} \
+  --bundle_files=${BUNDLE_PATHS}
+```
+
+There are many other options you can set to customize your interaction. To see
+a full list, you can enter:
+
+```bash
+magenta_midi --help
 ```
 
 ## Assigning Control Signals
@@ -190,5 +214,5 @@ and are using VPMK and FluidSynth, your command might look like this:
 magenta_midi \
   --input_port="VMPK Output" \
   --output_port="FluidSynth virtual port" \
-  --bundle_files=/tmp/attention_rnn.mag \
+  --bundle_files=/tmp/attention_rnn.mag
 ```
