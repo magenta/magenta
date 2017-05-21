@@ -107,6 +107,7 @@ At least one note needs to be fed to the model before it can start generating co
 drums_rnn_generate \
 --config=drum_kit \
 --run_dir=/tmp/drums_rnn/logdir/run1 \
+--hparams="{'batch_size':64,'rnn_layer_sizes':[64,64]}" \
 --output_dir=/tmp/drums_rnn/generated \
 --num_outputs=10 \
 --num_steps=128 \
