@@ -150,6 +150,14 @@ variable with a comma-separated list of paths to to the bundles. For example:
 BUNDLE_PATHS=/path/to/bundle1.mag,/path/to/bundle2.mag
 ```
 
+In summary, you should first define these variables:
+
+```bash
+CONTROLLER_PORT=<controller midi port name>
+SYNTH_PORT=<synth midi port name>
+BUNDLE_PATHS=<comma-separated paths to bundle files>
+```
+
 You may now start the interface with this command:
 
 ```bash
