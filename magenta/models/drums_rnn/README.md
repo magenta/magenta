@@ -51,7 +51,7 @@ SequenceExamples are fed into the model during training and evaluation. Each Seq
 
 ```
 drums_rnn_create_dataset \
---config=<one of 'one_drum' or 'drum_kit'>
+--config=<one of 'one_drum' or 'drum_kit'> \
 --input=/tmp/notesequences.tfrecord \
 --output_dir=/tmp/drums_rnn/sequence_examples \
 --eval_ratio=0.10
