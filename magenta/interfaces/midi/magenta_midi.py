@@ -249,10 +249,10 @@ def _validate_flags():
   if (len(FLAGS.bundle_files.split(',')) > 1 and
       FLAGS.generator_select_control_number is None):
     tf.logging.warning(
-      'You have specified multiple bundle files (generators), without setting '
-      '`--generator_select_control_number`. You will only be able to use the '
-      'first generator (%s).',
-      FLAGS.bundle_files[0])
+        'You have specified multiple bundle files (generators), without '
+        'setting `--generator_select_control_number`. You will only be able to '
+        'use the first generator (%s).',
+        FLAGS.bundle_files[0])
 
   return True
 

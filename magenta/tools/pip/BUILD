@@ -70,5 +70,9 @@ sh_binary(
         "//magenta/models/image_stylization:image_stylization_finetune",
         "//magenta/models/image_stylization:image_stylization_train",
         "//magenta/models/image_stylization:image_stylization_transform",
+
+        # SketchRNN Model and Scripts
+        "//magenta/models/sketch_rnn",
+        "//magenta/models/sketch_rnn:sketch_rnn_train",
     ],
 )
