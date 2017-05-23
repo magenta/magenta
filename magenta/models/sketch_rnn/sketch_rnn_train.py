@@ -131,7 +131,7 @@ def load_dataset(data_dir, model_params, inference_mode=False):
   eval_model_params.use_input_dropout = 0
   eval_model_params.use_recurrent_dropout = 0
   eval_model_params.use_output_dropout = 0
-  eval_model_params.is_training = 0
+  eval_model_params.is_training = 1
 
   sample_model_params = sketch_rnn_model.copy_hparams(eval_model_params)
   sample_model_params.batch_size = 1  # only sample one at a time
