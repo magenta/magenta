@@ -17,7 +17,10 @@ licenses(["notice"])  # Apache 2.0
 py_library(
     name = "pianoroll_rnn_nade",
     srcs = ["__init__.py"],
-    visibility = ["//magenta/tools/pip:__subpackages__"],
+    visibility = [
+        # internal notebook binary
+        "//magenta/tools/pip:__subpackages__"
+    ],
     deps = [
         ":pianoroll_rnn_nade_model",
     ],
