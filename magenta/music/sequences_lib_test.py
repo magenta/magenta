@@ -664,6 +664,27 @@ class SequencesLibTest(tf.test.TestCase):
     sus_sequence = sequences_lib.apply_sustain_control_changes(sequence)
     self.assertProtoEquals(expected_sequence, sus_sequence)
 
+  def testApplySustainControlChangesWithIdenticalNotes(self):
+    """In the case of identical notes, one should be dropped.
+
+    This is an edge case because in most cases, the same pitch should not sound
+    twice at the same time on one instrument.
+    """
+    sequence = copy.copy(self.note_sequence)
+    testing_lib.add_control_changes_to_sequence(
+        sequence, 0,
+        [(1.0, 64, 127), (4.0, 64, 0)])
+    expected_sequence = copy.copy(sequence)
+    testing_lib.add_track_to_sequence(
+        sequence, 0,
+        [(60, 100, 2.00, 2.50), (60, 100, 2.00, 2.50)])
+    testing_lib.add_track_to_sequence(
+        expected_sequence, 0,
+        [(60, 100, 2.00, 4.00)])
+
+    sus_sequence = sequences_lib.apply_sustain_control_changes(sequence)
+    self.assertProtoEquals(expected_sequence, sus_sequence)
+
   def testInferChordsForSequence(self):
     # Test non-quantized sequence.
     sequence = copy.copy(self.note_sequence)
