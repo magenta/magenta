@@ -220,13 +220,21 @@ def main(unused_argv):
   """Saves bundle or runs generator based on flags."""
   tf.logging.set_verbosity(FLAGS.log)
 
-  config = melody_rnn_config_flags.config_from_flags()
+  bundle = get_bundle()
+
+  if bundle:
+    config_id = bundle.generator_details.id
+    config = melody_rnn_model.default_configs[config_id]
+    config.hparams.parse(FLAGS.hparams)
+  else:
+    config = melody_rnn_config_flags.config_from_flags()
+
   generator = melody_rnn_sequence_generator.MelodyRnnSequenceGenerator(
       model=melody_rnn_model.MelodyRnnModel(config),
       details=config.details,
       steps_per_quarter=config.steps_per_quarter,
       checkpoint=get_checkpoint(),
-      bundle=get_bundle())
+      bundle=bundle)
 
   if FLAGS.save_generator_bundle:
     bundle_filename = os.path.expanduser(FLAGS.bundle_file)
