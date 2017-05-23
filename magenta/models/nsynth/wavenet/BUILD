@@ -31,6 +31,27 @@ py_library(
 )
 
 py_library(
+    name = "fastgen",
+    srcs = ["fastgen.py"],
+    deps = [
+        # tensorflow dep
+    ],
+)
+
+py_library(
+    name = "generate",
+    srcs = [
+        "generate.py",
+    ],
+    deps = [
+        ":configs",
+        "//magenta/models/nsynth:utils",
+        # numpy dep
+        # tensorflow dep
+    ],
+)
+
+py_library(
     name = "config_library",
     deps = [
         "//magenta/models/nsynth:reader",
