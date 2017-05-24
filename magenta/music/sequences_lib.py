@@ -423,7 +423,7 @@ def quantize_note_sequence(note_sequence, steps_per_quarter):
         in `note_sequence`.
     MultipleTempoException: If there is a change in tempo in `note_sequence`.
     BadTimeSignatureException: If the time signature found in `note_sequence`
-        has a denominator which is not a power of 2.
+        has a 0 numerator or a denominator which is not a power of 2.
     NegativeTimeException: If a note or chord occurs at a negative time.
   """
   qns = copy.deepcopy(note_sequence)
@@ -467,6 +467,11 @@ def quantize_note_sequence(note_sequence, steps_per_quarter):
   if not _is_power_of_2(qns.time_signatures[0].denominator):
     raise BadTimeSignatureException(
         'Denominator is not a power of 2. Time signature: %d/%d' %
+        (qns.time_signatures[0].numerator, qns.time_signatures[0].denominator))
+
+  if qns.time_signatures[0].numerator == 0:
+    raise BadTimeSignatureException(
+        'Numerator is 0. Time signature: %d/%d' %
         (qns.time_signatures[0].numerator, qns.time_signatures[0].denominator))
 
   if qns.tempos:

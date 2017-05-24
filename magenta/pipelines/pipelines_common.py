@@ -66,7 +66,7 @@ class Quantizer(pipeline.Pipeline):
           'sequences_discarded_because_multiple_tempos', 1)])
       return []
     except sequences_lib.BadTimeSignatureException as e:
-      tf.logging.warning('Denominator not power of 2 in NoteSequence %s: %s',
+      tf.logging.warning('Bad time signature in NoteSequence %s: %s',
                          note_sequence.filename, e)
       self._set_stats([statistics.Counter(
           'sequences_discarded_because_bad_time_signature', 1)])
