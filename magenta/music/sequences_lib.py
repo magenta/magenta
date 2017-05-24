@@ -630,7 +630,7 @@ def apply_sustain_control_changes(note_sequence, sustain_control_number=64):
               # This note now has no duration because another note of the same
               # pitch started at the same time. Only one of these notes should
               # be preserved, so delete this one.
-              # TODO(fjord): A more correctly solution would probably be to
+              # TODO(fjord): A more correct solution would probably be to
               # preserve both notes and make the same duration, but that is a
               # little more complicated to implement. Will keep this solution
               # until we find that we need the more complex one.
