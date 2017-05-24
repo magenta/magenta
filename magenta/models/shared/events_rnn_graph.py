@@ -40,14 +40,15 @@ def make_rnn_cell(rnn_layer_sizes,
   cells = []
   for num_units in rnn_layer_sizes:
     cell = base_cell(num_units)
+    if attn_length and not cells:
+      # Add attention wrapper to first layer.
+      cell = tf.contrib.rnn.AttentionCellWrapper(
+          cell, attn_length, state_is_tuple=True)
     cell = tf.contrib.rnn.DropoutWrapper(
         cell, output_keep_prob=dropout_keep_prob)
     cells.append(cell)
 
   cell = tf.contrib.rnn.MultiRNNCell(cells)
-  if attn_length:
-    cell = tf.contrib.rnn.AttentionCellWrapper(
-        cell, attn_length, state_is_tuple=True)
 
   return cell
 
