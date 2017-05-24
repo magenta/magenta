@@ -626,6 +626,15 @@ def apply_sustain_control_changes(note_sequence, sustain_control_number=64):
         for note in active_notes[event.instrument]:
           if note.pitch == event.pitch:
             note.end_time = time
+            if note.start_time == note.end_time:
+              # This note now has no duration because another note of the same
+              # pitch started at the same time. Only one of these notes should
+              # be preserved, so delete this one.
+              # TODO(fjord): A more correct solution would probably be to
+              # preserve both notes and make the same duration, but that is a
+              # little more complicated to implement. Will keep this solution
+              # until we find that we need the more complex one.
+              sequence.notes.remove(note)
           else:
             new_active_notes.append(note)
         active_notes[event.instrument] = new_active_notes
