@@ -49,6 +49,7 @@ py_library(
     name = "polyphony_model",
     srcs = ["polyphony_model.py"],
     deps = [
+        # internal notebook binary
         ":polyphony_encoder_decoder",
         "//magenta/models/shared:events_rnn_model",
         "//magenta",
@@ -62,6 +63,7 @@ py_library(
     srcs_version = "PY2AND3",
     visibility = ["//magenta/interfaces:generator_interfaces"],
     deps = [
+        # internal notebook binary
         ":polyphony_lib",
         ":polyphony_model",
         "//magenta",
