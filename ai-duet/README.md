@@ -4,7 +4,7 @@ A piano that responds to you.
 
 ## About
 
-This experiment lets you make music through machine learning. A neural network was trained on many MIDI examples and it learned about musical concepts, building a map of notes and timings. You just play a few notes, and see how the neural net responds. 
+This experiment lets you make music through machine learning. A neural network was trained on many MIDI examples and it learned about musical concepts, building a map of notes and timings. You just play a few notes, and see how the neural net responds.
 
 [https://aiexperiments.withgoogle.com/ai-duet](https://aiexperiments.withgoogle.com/ai-duet)
 
@@ -16,20 +16,20 @@ Built by [Yotam Mann](https://github.com/tambien) with friends on the Magenta an
 
 ## OVERVIEW
 
-A.I. Duet is composed of two parts, the front-end which is in the `static` folder and the back-end which is in the `server` folder. The front-end client creates short MIDI files using the players's input which is sent to a [Flask](http://flask.pocoo.org/) server. The server takes that MIDI input and "continues" it using [Magenta](https://github.com/tensorflow/magenta) and [TensorFlow](https://www.tensorflow.org/) which is then returned back to the client. 
+A.I. Duet is composed of two parts, the front-end which is in the `static` folder and the back-end which is in the `server` folder. The front-end client creates short MIDI files using the players's input which is sent to a [Flask](http://flask.pocoo.org/) server. The server takes that MIDI input and "continues" it using [Magenta](https://github.com/tensorflow/magenta) and [TensorFlow](https://www.tensorflow.org/) which is then returned back to the client.
 
 ## INSTALLATION
 
-Install [Flask](http://flask.pocoo.org/), Magenta and TensorFlow. Also download the [attention_rnn](http://download.magenta.tensorflow.org/models/attention_rnn.mag) bundle and put it in the `server` folder. 
+Install [Flask](http://flask.pocoo.org/), Magenta and TensorFlow. Also download the [attention_rnn](http://download.magenta.tensorflow.org/models/attention_rnn.mag) bundle and put it in the `server` folder.
 
-Then run the server from the command line: 
+Then run the server from the command line:
 
 ```bash
 cd server
 python server.py
 ```
 
-Then to build and install the front-end Javascript code, first make sure you have [Node.js](https://nodejs.org) 6 or above and [webpack](https://webpack.github.io/) installed. And then install of the dependencies of the project and build the code by typing the following in the terminal: 
+Then to build and install the front-end Javascript code, first make sure you have [Node.js](https://nodejs.org) 6 or above and [webpack](https://webpack.github.io/) installed. And then install of the dependencies of the project and build the code by typing the following in the terminal:
 
 ```bash
 cd static
@@ -39,9 +39,21 @@ webpack -p
 
 You can now play with A.I. Duet at [localhost:8080](http://localhost:8080).
 
+## OTHER MODELS
+
+To use other models(such as polyphony, improv, drum_rnn), download the appropriate model file below, put them in the 'server' folder
+and uncomment the corresponding line in server.py to run. For some models(such as improv) there are some additional settings hardcoded
+as constants at the top of the file which you can tweak.
+
+Models:
+
+* [drum_kit](http://download.magenta.tensorflow.org/models/drum_kit_rnn.mag)
+* [chord_pitches_improv](http://download.magenta.tensorflow.org/models/chord_pitches_improv.mag)
+* [polyphony_rnn](http://download.magenta.tensorflow.org/models/polyphony_rnn.mag)
+
 ## MIDI SUPPORT
 
-The A.I. Duet supports MIDI keyboard input using [Web Midi API](https://webaudio.github.io/web-midi-api/) and the [WebMIDI](https://github.com/cotejp/webmidi) library. 
+The A.I. Duet supports MIDI keyboard input using [Web Midi API](https://webaudio.github.io/web-midi-api/) and the [WebMIDI](https://github.com/cotejp/webmidi) library.
 
 ## PIANO KEYBOARD
 

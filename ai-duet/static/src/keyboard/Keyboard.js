@@ -107,12 +107,15 @@ class Keyboard extends events.EventEmitter{
 		}
 	}
 
-	keyDown(note, time=Tone.now(), ai=false){
+	keyDown(note, time=Tone.now(), ai=false, is_drum=false){
 		if (!this._active){
 			return
 		}
+		if (is_drum) {
+			note += 24
+		}
 		if (!this._currentKeys[note]){
-			this._currentKeys[note] = 0	
+			this._currentKeys[note] = 0
 		}
 		this._currentKeys[note] += 1
 		this._eventQueue.add({
@@ -121,9 +124,12 @@ class Keyboard extends events.EventEmitter{
 		})
 	}
 
-	keyUp(note, time=Tone.now(), ai=false){
+	keyUp(note, time=Tone.now(), ai=false, is_drum=false){
 		if (!this._active){
 			return
+		}
+		if (is_drum) {
+			note += 24
 		}
 		//add a little time to it in edge cases where the keydown and keyup are at the same time
 		time += 0.01

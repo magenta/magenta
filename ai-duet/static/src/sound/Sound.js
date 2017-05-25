@@ -20,6 +20,8 @@ import Frequency from 'Tone/type/Frequency'
 import MonoSynth from 'Tone/instrument/MonoSynth'
 import {Sampler} from 'sound/Sampler'
 
+const DRUM_RANGE = [35, 81];
+
 class Sound {
 	constructor(){
 
@@ -29,7 +31,7 @@ class Sound {
 		} else if (screen.availWidth < 1000 && screen.availHeight < 1000){
 			this._range = [48, 84]
 		} else {
-			this._range = [24, 108]			
+			this._range = [24, 108]
 		}
 
 
@@ -37,25 +39,34 @@ class Sound {
 
 		this._synth = new Sampler('audio/string_ensemble/', this._range)
 
+		this._drums = new Sampler('audio/synth_drum-mp3/', DRUM_RANGE)
+
 	}
 
 	load(){
-		return Promise.all([this._piano.load(), this._synth.load()])
+		return Promise.all([this._piano.load(), this._synth.load(), this._drums.load()])
 	}
 
-	keyDown(note, time=Tone.now(), ai=false){
+	keyDown(note, time=Tone.now(), ai=false, is_drum=false){
+		if (is_drum) {
+			this._drums.keyDown(note, time)
+			return
+		}
 		if (note >= this._range[0] && note <= this._range[1]){
 			this._piano.keyDown(note, time)
 			if (ai){
-				this._synth.volume = -8
-				this._synth.keyDown(note, time)
+					this._synth.volume = -8
+					this._synth.keyDown(note, time)
 			}
 		}
-
-
 	}
 
-	keyUp(note, time=Tone.now(), ai=false){
+	keyUp(note, time=Tone.now(), ai=false, is_drum=false){
+		if (is_drum) {
+			time += 0.05
+			this._drums.keyUp(note, time)
+			return
+		}
 		if (note >= this._range[0] && note <= this._range[1]){
 			time += 0.05
 			this._piano.keyUp(note, time)
