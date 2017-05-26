@@ -256,8 +256,23 @@ def is_quantized_sequence(note_sequence):
   Returns:
     True if `note_sequence` is quantized, otherwise False.
   """
+  # If the QuantizationInfo message has a non-zero steps_per_quarter or
+  # steps_per_second, assume that the proto has been quantized.
+  return (note_sequence.quantization_info.steps_per_quarter > 0 or
+          note_sequence.quantization_info.steps_per_second > 0)
+
+
+def is_relative_quantized_sequence(note_sequence):
+  """Returns whether a NoteSequence proto has been quantized relative to tempo.
+
+  Args:
+    note_sequence: A music_pb2.NoteSequence proto.
+
+  Returns:
+    True if `note_sequence` is quantized relative to tempo, otherwise False.
+  """
   # If the QuantizationInfo message has a non-zero steps_per_quarter, assume
-  # that the proto has been quantized.
+  # that the proto has been quantized relative to tempo.
   return note_sequence.quantization_info.steps_per_quarter > 0
 
 
@@ -275,6 +290,22 @@ def assert_is_quantized_sequence(note_sequence):
                                       note_sequence.id)
 
 
+def assert_is_relative_quantized_sequence(note_sequence):
+  """Confirms that a NoteSequence proto has been quantized relative to tempo.
+
+  Args:
+    note_sequence: A music_pb2.NoteSequence proto.
+
+  Raises:
+    QuantizationStatusException: If the sequence is not quantized relative to
+        tempo.
+  """
+  if not is_relative_quantized_sequence(note_sequence):
+    raise QuantizationStatusException('NoteSequence %s is not quantized or is '
+                                      'quantized based on absolute timing.' %
+                                      note_sequence.id)
+
+
 def steps_per_bar_in_quantized_sequence(note_sequence):
   """Calculates steps per bar in a NoteSequence that has been quantized.
 
@@ -284,7 +315,7 @@ def steps_per_bar_in_quantized_sequence(note_sequence):
   Returns:
     Steps per bar as a floating point number.
   """
-  assert_is_quantized_sequence(note_sequence)
+  assert_is_relative_quantized_sequence(note_sequence)
 
   quarters_per_beat = 4.0 / note_sequence.time_signatures[0].denominator
   quarters_per_bar = (quarters_per_beat *
@@ -399,11 +430,58 @@ def steps_per_quarter_to_steps_per_second(steps_per_quarter, qpm):
   return steps_per_quarter * qpm / 60.0
 
 
+def _quantize_notes(note_sequence, steps_per_second):
+  """Quantize the notes and chords of a NoteSequence proto in place.
+
+  Note start and end times, and chord times are snapped to a nearby quantized
+  step, and the resulting times are stored in a separate field (e.g.,
+  quantized_start_step). See the comments above `QUANTIZE_CUTOFF` for details on
+  how the quantizing algorithm works.
+
+  Args:
+    note_sequence: A music_pb2.NoteSequence protocol buffer. Will be modified in
+        place.
+    steps_per_second: Each second will be divided into this many quantized time
+        steps.
+
+  Raises:
+    NegativeTimeException: If a note or chord occurs at a negative time.
+  """
+  for note in note_sequence.notes:
+    # Quantize the start and end times of the note.
+    note.quantized_start_step = quantize_to_step(
+        note.start_time, steps_per_second)
+    note.quantized_end_step = quantize_to_step(
+        note.end_time, steps_per_second)
+    if note.quantized_end_step == note.quantized_start_step:
+      note.quantized_end_step += 1
+
+    # Do not allow notes to start or end in negative time.
+    if note.quantized_start_step < 0 or note.quantized_end_step < 0:
+      raise NegativeTimeException(
+          'Got negative note time: start_step = %s, end_step = %s' %
+          (note.quantized_start_step, note.quantized_end_step))
+
+    # Extend quantized sequence if necessary.
+    if note.quantized_end_step > note_sequence.total_quantized_steps:
+      note_sequence.total_quantized_steps = note.quantized_end_step
+
+  # Also quantize chord symbol annotations.
+  for annotation in note_sequence.text_annotations:
+    # Quantize the chord time, disallowing negative time.
+    annotation.quantized_step = quantize_to_step(
+        annotation.time, steps_per_second)
+    if annotation.quantized_step < 0:
+      raise NegativeTimeException(
+          'Got negative chord time: step = %s' % annotation.quantized_step)
+
+
 def quantize_note_sequence(note_sequence, steps_per_quarter):
-  """Quantize a NoteSequence proto.
+  """Quantize a NoteSequence proto relative to tempo.
 
   The input NoteSequence is copied and quantization-related fields are
-  populated.
+  populated. Sets the `steps_per_quarter` field in the `quantization_info`
+  message in the NoteSequence.
 
   Note start and end times, and chord times are snapped to a nearby quantized
   step, and the resulting times are stored in a separate field (e.g.,
@@ -506,34 +584,41 @@ def quantize_note_sequence(note_sequence, steps_per_quarter):
       steps_per_quarter, qns.tempos[0].qpm)
 
   qns.total_quantized_steps = quantize_to_step(qns.total_time, steps_per_second)
+  _quantize_notes(qns, steps_per_second)
 
-  for note in qns.notes:
-    # Quantize the start and end times of the note.
-    note.quantized_start_step = quantize_to_step(
-        note.start_time, steps_per_second)
-    note.quantized_end_step = quantize_to_step(
-        note.end_time, steps_per_second)
-    if note.quantized_end_step == note.quantized_start_step:
-      note.quantized_end_step += 1
+  return qns
 
-    # Do not allow notes to start or end in negative time.
-    if note.quantized_start_step < 0 or note.quantized_end_step < 0:
-      raise NegativeTimeException(
-          'Got negative note time: start_step = %s, end_step = %s' %
-          (note.quantized_start_step, note.quantized_end_step))
 
-    # Extend quantized sequence if necessary.
-    if note.quantized_end_step > qns.total_quantized_steps:
-      qns.total_quantized_steps = note.quantized_end_step
+def quantize_note_sequence_absolute(note_sequence, steps_per_second):
+  """Quantize a NoteSequence proto using absolute event times.
 
-  # Also quantize chord symbol annotations.
-  for annotation in qns.text_annotations:
-    # Quantize the chord time, disallowing negative time.
-    annotation.quantized_step = quantize_to_step(
-        annotation.time, steps_per_second)
-    if annotation.quantized_step < 0:
-      raise NegativeTimeException(
-          'Got negative chord time: step = %s' % annotation.quantized_step)
+  The input NoteSequence is copied and quantization-related fields are
+  populated. Sets the `steps_per_second` field in the `quantization_info`
+  message in the NoteSequence.
+
+  Note start and end times, and chord times are snapped to a nearby quantized
+  step, and the resulting times are stored in a separate field (e.g.,
+  quantized_start_step). See the comments above `QUANTIZE_CUTOFF` for details on
+  how the quantizing algorithm works.
+
+  Tempos and time signatures will be copied but ignored.
+
+  Args:
+    note_sequence: A music_pb2.NoteSequence protocol buffer.
+    steps_per_second: Each second will be divided into this many quantized time
+        steps.
+
+  Returns:
+    A copy of the original NoteSequence, with quantized times added.
+
+  Raises:
+    NegativeTimeException: If a note or chord occurs at a negative time.
+  """
+  qns = copy.deepcopy(note_sequence)
+  qns.quantization_info.steps_per_second = steps_per_second
+
+  qns.total_quantized_steps = quantize_to_step(qns.total_time, steps_per_second)
+  _quantize_notes(qns, steps_per_second)
 
   return qns
 

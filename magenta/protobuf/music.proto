@@ -311,8 +311,12 @@ message NoteSequence {
 
   // Information about how/if this sequence was quantized.
   message QuantizationInfo {
-    // How many quantization steps per quarter note of music.
-    int32 steps_per_quarter = 1;
+    oneof resolution {
+      // How many quantization steps per quarter note of music.
+      int32 steps_per_quarter = 1;
+      // How many quantization steps per second.
+      int32 steps_per_second = 2;
+    }
   }
 
   // Information about the location of the sequence in a larger source sequence.
