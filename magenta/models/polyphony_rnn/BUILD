@@ -50,7 +50,7 @@ py_library(
     srcs = ["polyphony_model.py"],
     visibility = [
         # internal notebook binary
-    ]
+    ],
     deps = [
         ":polyphony_encoder_decoder",
         "//magenta/models/shared:events_rnn_model",
