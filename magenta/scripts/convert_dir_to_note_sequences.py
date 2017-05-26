@@ -75,7 +75,7 @@ def convert_directory(root_dir, sub_dir, sequence_writer, recursive=False):
   sequences_written = 0
   sequences_skipped = 0
   for file_in_dir in files_in_dir:
-    full_file_path = os.path.join(dir_to_convert, file_in_dir)
+    full_file_path = os.path.join(dir_to_convert, file_in_dir).lower()
     if tf.gfile.IsDirectory(full_file_path):
       if recursive:
         recurse_sub_dirs.append(os.path.join(sub_dir, file_in_dir))
