@@ -348,7 +348,6 @@ class Model(object):
     if self.hps.is_training:
       self.cost = self.r_cost + self.kl_cost * self.hps.kl_weight
 
-    if self.hps.is_training:
       self.lr = tf.Variable(self.hps.learning_rate, trainable=False)
       optimizer = tf.train.AdamOptimizer(self.lr)
 
