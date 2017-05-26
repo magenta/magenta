@@ -138,9 +138,9 @@ def load_dataset(data_dir, model_params, inference_mode=False):
       data = np.load(StringIO(response.content))
     else:
       data = np.load(data_filepath)  # load this into dictionary
-    tf.logging.info("Loaded {}/{}/{} from {}".format(
-      len(data['train']), len(data['valid']), len(data['test']),
-      dataset))
+    tf.logging.info('Loaded {}/{}/{} from {}'.format(
+        len(data['train']), len(data['valid']), len(data['test']),
+        dataset))
     if train_strokes is None:
       train_strokes = data['train']
       valid_strokes = data['valid']
@@ -155,9 +155,9 @@ def load_dataset(data_dir, model_params, inference_mode=False):
   for stroke in all_strokes:
     num_points += len(stroke)
   avg_len = num_points / len(all_strokes)
-  tf.logging.info("Dataset combined: {} ({}/{}/{}), avg len {}".format(
-    len(all_strokes), len(train_strokes), len(valid_strokes),
-    len(test_strokes), int(avg_len)))
+  tf.logging.info('Dataset combined: {} ({}/{}/{}), avg len {}'.format(
+      len(all_strokes), len(train_strokes), len(valid_strokes),
+      len(test_strokes), int(avg_len)))
 
   # calculate the max strokes we need.
   max_seq_len = utils.get_max_len(all_strokes)
