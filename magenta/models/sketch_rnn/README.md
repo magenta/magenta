@@ -30,7 +30,7 @@ Example Usage:
 --------------
 
 ```bash
-sketch_rnn_train --log_root=checkpoint_path --data_dir=dataset_path --hparams='{"data_set":"dataset_filename.npz"}'
+sketch_rnn_train --log_root=checkpoint_path --data_dir=dataset_path --hparams='{"data_set":["dataset_filename.npz"]}'
 ```
 
 We recommend you create subdirectories inside `models` and `datasets` to hold your own data and checkpoints. The [TensorBoard](https://www.tensorflow.org/get_started/summaries_and_tensorboard) logs will be stored inside `checkpoint_path` for viewing training curves for the various losses on train/validation/test datasets.
@@ -38,39 +38,39 @@ We recommend you create subdirectories inside `models` and `datasets` to hold yo
 Here is a list of full options for the model, along with the default settings:
 
 ```python
-data_set='aaron_sheep.npz',  # Our dataset.
-num_steps=10000000,          # Total number of training set. Keep large.
-save_every=500,              # Number of batches per checkpoint creation.
-dec_rnn_size=512,            # Size of decoder.
-dec_model='lstm',            # Decoder: lstm, layer_norm or hyper.
-enc_rnn_size=256,            # Size of encoder.
-enc_model='lstm',            # Encoder: lstm, layer_norm or hyper.
-z_size=128,                  # Size of latent vector z. Recommend 32, 64 or 128.
-kl_weight=0.5,               # KL weight of loss equation. Recommend 0.5 or 1.0.
-kl_weight_start=0.01,        # KL start weight when annealing.
-kl_tolerance=0.2,            # Level of KL loss at which to stop optimizing for KL.
-batch_size=100,              # Minibatch size. Recommend leaving at 100.
-grad_clip=1.0,               # Gradient clipping. Recommend leaving at 1.0.
-num_mixture=20,              # Number of mixtures in Gaussian mixture model.
-learning_rate=0.001,         # Learning rate.
-decay_rate=0.9999,           # Learning rate decay per minibatch.
-kl_decay_rate=0.99995,       # KL annealing decay rate per minibatch.
-min_learning_rate=0.00001,   # Minimum learning rate.
-use_recurrent_dropout=True,  # Recurrent Dropout without Memory Loss. Recomended.
-recurrent_dropout_prob=0.90, # Probability of recurrent dropout keep.
-use_input_dropout=False,     # Input dropout. Recommend leaving False.
-input_dropout_prob=0.90,     # Probability of input dropout keep.
-use_output_dropout=False,    # Output droput. Recommend leaving False.
-output_dropout_prob=0.90,    # Probability of output dropout keep.
-random_scale_factor=0.15,    # Random scaling data augmention proportion.
-augment_stroke_prob=0.10,    # Point dropping augmentation proportion.
-conditional=True,            # If False, use decoder-only model.
+data_set=['aaron_sheep.npz'],  # Our dataset. Can be list of multiple .npz sets.
+num_steps=10000000,            # Total number of training set. Keep large.
+save_every=500,                # Number of batches per checkpoint creation.
+dec_rnn_size=512,              # Size of decoder.
+dec_model='lstm',              # Decoder: lstm, layer_norm or hyper.
+enc_rnn_size=256,              # Size of encoder.
+enc_model='lstm',              # Encoder: lstm, layer_norm or hyper.
+z_size=128,                    # Size of latent vector z. Recommend 32, 64 or 128.
+kl_weight=0.5,                 # KL weight of loss equation. Recommend 0.5 or 1.0.
+kl_weight_start=0.01,          # KL start weight when annealing.
+kl_tolerance=0.2,              # Level of KL loss at which to stop optimizing for KL.
+batch_size=100,                # Minibatch size. Recommend leaving at 100.
+grad_clip=1.0,                 # Gradient clipping. Recommend leaving at 1.0.
+num_mixture=20,                # Number of mixtures in Gaussian mixture model.
+learning_rate=0.001,           # Learning rate.
+decay_rate=0.9999,             # Learning rate decay per minibatch.
+kl_decay_rate=0.99995,         # KL annealing decay rate per minibatch.
+min_learning_rate=0.00001,     # Minimum learning rate.
+use_recurrent_dropout=True,    # Recurrent Dropout without Memory Loss. Recomended.
+recurrent_dropout_prob=0.90,   # Probability of recurrent dropout keep.
+use_input_dropout=False,       # Input dropout. Recommend leaving False.
+input_dropout_prob=0.90,       # Probability of input dropout keep.
+use_output_dropout=False,      # Output droput. Recommend leaving False.
+output_dropout_prob=0.90,      # Probability of output dropout keep.
+random_scale_factor=0.15,      # Random scaling data augmention proportion.
+augment_stroke_prob=0.10,      # Point dropping augmentation proportion.
+conditional=True,              # If False, use decoder-only model.
 ```
 
-Here are some options you may want to use to train the model on a very large dataset, and use [HyperLSTM](https://arxiv.org/abs/1609.09106) as the RNN cells.  For small datasets of less than 10K training examples, LSTM with Layer Normalization (`layer_norm` for both `enc_model` and `dec_model`) works best.
+Here are some options you may want to use to train the model on a very large dataset spanning three `.npz` files, and use [HyperLSTM](https://arxiv.org/abs/1609.09106) as the RNN cells.  For small datasets of less than 10K training examples, LSTM with Layer Normalization (`layer_norm` for both `enc_model` and `dec_model`) works best.
 
 ```bash
-sketch_rnn_train --log_root=models/big_model --data_dir=datasets/big_dataset --hparams='{"data_set":"big_dataset_filename.npz","dec_model":"hyper","dec_rnn_size":2048,"enc_model":"layer_norm","enc_rnn_size":512,"save_every":5000,"grad_clip":1.0,"use_recurrent_dropout":0}'
+sketch_rnn_train --log_root=models/big_model --data_dir=datasets/big_dataset --hparams='{"data_set":["class1.npz","class2.npz","class3.npz"],"dec_model":"hyper","dec_rnn_size":2048,"enc_model":"layer_norm","enc_rnn_size":512,"save_every":5000,"grad_clip":1.0,"use_recurrent_dropout":0}'
 ```
 
 We have tested this model on TensorFlow 1.0 and 1.1 for Python 2.7.

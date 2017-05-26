@@ -38,7 +38,7 @@ def copy_hparams(hparams):
 def get_default_hparams():
   """Return default HParams for sketch-rnn."""
   hparams = HParams(
-      data_set='aaron_sheep.npz',  # Our dataset.
+      data_set=['aaron_sheep.npz'],  # Our dataset.
       num_steps=10000000,  # Total number of steps of training. Keep large.
       save_every=500,  # Number of batches per checkpoint creation.
       max_seq_len=250,  # Not used. Will be changed by model. [Eliminate?]

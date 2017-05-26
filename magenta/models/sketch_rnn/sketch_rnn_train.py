@@ -76,6 +76,24 @@ def load_env(data_dir, model_dir):
   return load_dataset(data_dir, model_params, inference_mode=True)
 
 
+def load_model(model_dir):
+  """Loads model for inference mode, used in jupyter notebook."""
+  model_params = sketch_rnn_model.get_default_hparams()
+  with tf.gfile.Open(os.path.join(model_dir, 'model_config.json'), 'r') as f:
+    model_config = json.load(f)
+    model_params.update(model_config)
+
+  model_params.batch_size = 1  # only sample one at a time
+  eval_model_params = sketch_rnn_model.copy_hparams(model_params)
+  eval_model_params.use_input_dropout = 0
+  eval_model_params.use_recurrent_dropout = 0
+  eval_model_params.use_output_dropout = 0
+  eval_model_params.is_training = 0
+  sample_model_params = sketch_rnn_model.copy_hparams(eval_model_params)
+  sample_model_params.max_seq_len = 1  # sample one point at a time
+  return [model_params, eval_model_params, sample_model_params]
+
+
 def download_pretrained_models(
     models_root_dir='/tmp/sketch_rnn/models',
     pretrained_models_url=PRETRAINED_MODELS_URL):
@@ -150,13 +168,14 @@ def load_dataset(data_dir, model_params, inference_mode=False):
 
   eval_model_params = sketch_rnn_model.copy_hparams(model_params)
 
-  if inference_mode:
-    eval_model_params.batch_size = 1
-
   eval_model_params.use_input_dropout = 0
   eval_model_params.use_recurrent_dropout = 0
   eval_model_params.use_output_dropout = 0
   eval_model_params.is_training = 1
+
+  if inference_mode:
+    eval_model_params.batch_size = 1
+    eval_model_params.is_training = 0
 
   sample_model_params = sketch_rnn_model.copy_hparams(eval_model_params)
   sample_model_params.batch_size = 1  # only sample one at a time
