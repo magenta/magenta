@@ -18,6 +18,7 @@ import os
 # internal imports
 import tensorflow as tf
 
+import magenta
 from magenta.models.melody_rnn import melody_rnn_config_flags
 from magenta.models.shared import events_rnn_graph
 from magenta.models.shared import events_rnn_train
@@ -44,6 +45,10 @@ tf.app.flags.DEFINE_integer('num_training_steps', 0,
                             'the `global_step` Variable of the model being '
                             'evaluated has reached `num_training_steps`. '
                             'Leave as 0 to run until terminated manually.')
+tf.app.flags.DEFINE_integer('num_eval_examples', 0,
+                            'The number of evaluation examples your model '
+                            'should process for each evaluation step.'
+                            'Leave as 0 to use the entire evaluation set.')
 tf.app.flags.DEFINE_integer('summary_frequency', 10,
                             'A summary statement will be logged every '
                             '`summary_frequency` steps during training or '
@@ -87,8 +92,12 @@ def main(unused_argv):
     if not os.path.exists(eval_dir):
       tf.gfile.MakeDirs(eval_dir)
     tf.logging.info('Eval dir: %s', eval_dir)
-    events_rnn_train.run_eval(graph, train_dir, eval_dir,
-                              FLAGS.num_training_steps, FLAGS.summary_frequency)
+    num_batches = (
+        (FLAGS.num_eval_examples if FLAGS.num_eval_examples else
+         magenta.common.count_records(sequence_example_file_paths)) //
+        config.hparams.batch_size)
+    events_rnn_train.run_eval(graph, train_dir, eval_dir, num_batches,
+                              FLAGS.num_training_steps)
 
   else:
     events_rnn_train.run_training(graph, train_dir, FLAGS.num_training_steps,
@@ -101,3 +110,4 @@ def console_entry_point():
 
 if __name__ == '__main__':
   console_entry_point()
+

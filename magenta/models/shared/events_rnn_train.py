@@ -13,14 +13,13 @@
 # limitations under the License.
 """Train and evaluate an event sequence RNN model."""
 
-import time
-
 # internal imports
 import tensorflow as tf
 
 
 def run_training(graph, train_dir, num_training_steps=None,
-                 summary_frequency=10, should_stop_func=None):
+                 summary_frequency=10, save_checkpoint_secs=60,
+                 checkpoints_to_keep=10):
   """Runs the training loop.
 
   Args:
@@ -29,54 +28,51 @@ def run_training(graph, train_dir, num_training_steps=None,
         will be written to.
     num_training_steps: The number of steps to train for before exiting.
     summary_frequency: The number of steps between each summary. A summary is
-        when graph values from the last step are logged to the console.
-    should_stop_func: An optional external function to act as a stop signal.
-        The function is expected to return a Boolean specifying whether or not
-        the training should stop.
+        when graph values from the last step are logged to the console and
+        written to disk.
+    save_checkpoint_secs: The frequency at which to save checkpoints, in
+        seconds.
+    checkpoints_to_keep: The number of mostrecent checkpoints to keep in
+       `train_dir`.
   """
-  global_step = graph.get_collection('global_step')[0]
-  learning_rate = graph.get_collection('learning_rate')[0]
-  loss = graph.get_collection('loss')[0]
-  perplexity = graph.get_collection('perplexity')[0]
-  accuracy = graph.get_collection('accuracy')[0]
-  train_op = graph.get_collection('train_op')[0]
+  with graph.as_default():
+    global_step = tf.train.get_or_create_global_step()
+    loss = tf.get_collection('loss')[0]
+    perplexity = tf.get_collection('metrics/perplexity')[0]
+    accuracy = tf.get_collection('metrics/accuracy')[0]
+    train_op = tf.get_collection('train_op')[0]
 
-  sv = tf.train.Supervisor(graph=graph, logdir=train_dir, save_model_secs=30,
-                           global_step=global_step)
+    logging_dict = {
+        'Global Step': global_step,
+        'Loss': loss,
+        'Perplexity': perplexity,
+        'Accuracy': accuracy
+    }
+    hooks = [
+        tf.train.LoggingTensorHook(
+            logging_dict, every_n_iter=summary_frequency),
+        tf.train.StepCounterHook(
+            output_dir=train_dir, every_n_steps=summary_frequency)
+    ]
+    if num_training_steps:
+      hooks.append(tf.train.StopAtStepHook(num_training_steps))
 
-  with sv.managed_session() as sess:
-    global_step_ = sess.run(global_step)
-    if num_training_steps and global_step_ >= num_training_steps:
-      tf.logging.info('This checkpoint\'s global_step value is already %d, '
-                      'which is greater or equal to the specified '
-                      'num_training_steps value of %d. Exiting training.',
-                      global_step_, num_training_steps)
-      return
+    scaffold = tf.train.Scaffold(
+        saver=tf.train.Saver(max_to_keep=checkpoints_to_keep))
+
     tf.logging.info('Starting training loop...')
-    while not num_training_steps or global_step_ < num_training_steps:
-      if sv.should_stop():
-        break
-      if should_stop_func and should_stop_func():
-        break
-      if (global_step_ + 1) % summary_frequency == 0:
-        (global_step_, learning_rate_, loss_, perplexity_, accuracy_,
-         _) = sess.run([global_step, learning_rate, loss, perplexity, accuracy,
-                        train_op])
-        tf.logging.info('Global Step: %d - '
-                        'Learning Rate: %.5f - '
-                        'Loss: %.3f - '
-                        'Perplexity: %.3f - '
-                        'Accuracy: %.3f',
-                        global_step_, learning_rate_, loss_, perplexity_,
-                        accuracy_)
-      else:
-        global_step_, _ = sess.run([global_step, train_op])
-    sv.saver.save(sess, sv.save_path, global_step=sv.global_step)
+    tf.contrib.training.train(
+        train_op=train_op,
+        logdir=train_dir,
+        scaffold=scaffold,
+        hooks=hooks,
+        save_checkpoint_secs=save_checkpoint_secs,
+        save_summaries_steps=summary_frequency)
     tf.logging.info('Training complete.')
 
 
-def run_eval(graph, train_dir, eval_dir, num_training_steps=None,
-             summary_frequency=10, should_stop_func=None):
+# TODO(adarob): Limit to a single epoch each evaluation step.
+def run_eval(graph, train_dir, eval_dir, num_batches, num_training_steps=None):
   """Runs the training loop.
 
   Args:
@@ -85,62 +81,55 @@ def run_eval(graph, train_dir, eval_dir, num_training_steps=None,
         from for evaluation.
     eval_dir: The path to the directory where the evaluation summary events
         will be written to.
+    num_batches: The number of full batches to use for each evaluation step.
     num_training_steps: When the `global_step` from latest checkpoint loaded
         from for `train_dir` has reached `num_training_steps`, the evaluation
         loop will be stopped.
-    summary_frequency: The number of seconds between each summary. A summary is
-        when evaluation data is logged to the console and evaluation
-        summary events are written to `eval_dir`.
-    should_stop_func: An optional external function to act as a stop signal.
-        When given the loss and global step, the function is expected to return
-        a Boolean specifying whether or not the eval should stop.
   """
-  global_step = graph.get_collection('global_step')[0]
-  loss = graph.get_collection('loss')[0]
-  perplexity = graph.get_collection('perplexity')[0]
-  accuracy = graph.get_collection('accuracy')[0]
-  summary_op = graph.get_collection('summary_op')[0]
-
   with graph.as_default():
-    saver = tf.train.Saver()
-    with tf.Session() as sess:
-      summary_writer = tf.summary.FileWriter(eval_dir, sess.graph)
-      coord = tf.train.Coordinator()
-      threads = tf.train.start_queue_runners(sess=sess, coord=coord)
-      global_step_ = 0
-      last_global_step = None
-      tf.logging.info('Starting eval loop...')
-      try:
-        while not num_training_steps or global_step_ < num_training_steps:
-          checkpoint_path = tf.train.latest_checkpoint(train_dir)
-          if not checkpoint_path:
-            tf.logging.info('Waiting for checkpoint file in directory %s.',
-                            train_dir)
-          else:
-            saver.restore(sess, checkpoint_path)
+    global_step = tf.train.get_or_create_global_step()
+    loss = tf.get_collection('loss')[0]
+    perplexity = tf.get_collection('metrics/perplexity')[0]
+    accuracy = tf.get_collection('metrics/accuracy')[0]
+    eval_ops = tf.get_collection('eval_ops')
 
-            global_step_, loss_, perplexity_, accuracy_, summary_op_ = sess.run(
-                [global_step, loss, perplexity, accuracy, summary_op])
+    logging_dict = {
+        'Global Step': global_step,
+        'Loss': loss,
+        'Perplexity': perplexity,
+        'Accuracy': accuracy
+    }
+    hooks = [
+        EvalLoggingTensorHook(logging_dict, every_n_iter=num_batches),
+        tf.contrib.training.StopAfterNEvalsHook(num_batches),
+        tf.contrib.training.SummaryAtEndHook(eval_dir),
+    ]
+    if num_training_steps:
+      hooks.append(tf.train.StopAtStepHook(num_training_steps))
 
-            tf.logging.info('Global Step: %d - '
-                            'Loss: %.3f - '
-                            'Perplexity: %.3f - '
-                            'Accuracy: %.3f',
-                            global_step_, loss_, perplexity_, accuracy_)
-            if should_stop_func and should_stop_func(loss_, global_step_):
-              break
+    tf.contrib.training.evaluate_repeatedly(
+        train_dir,
+        eval_ops=eval_ops,
+        hooks=hooks,
+        eval_interval_secs=60)
 
-            if global_step_ != last_global_step:
-              summary_writer.add_summary(summary_op_, global_step=global_step_)
-              summary_writer.flush()
-              last_global_step = global_step_
 
-          time.sleep(summary_frequency)
+class EvalLoggingTensorHook(tf.train.LoggingTensorHook):
+  """A revised version of LoggingTensorHook to use during evaluation.
 
-      except tf.errors.OutOfRangeError as e:
-        tf.logging.warn('Got error reported to coordinator: %s', e)
-      finally:
-        coord.request_stop()
-        summary_writer.close()
+  This version supports being reset and increments `_iter_count` before run
+  instead of after run.
+  """
 
-      coord.join(threads)
+  def begin(self):
+    # Reset timer.
+    self._timer.update_last_triggered_step(0)
+    super(EvalLoggingTensorHook, self).begin()
+
+  def before_run(self, run_context):
+    self._iter_count += 1
+    return super(EvalLoggingTensorHook, self).before_run(run_context)
+
+  def after_run(self, run_context, run_values):
+    super(EvalLoggingTensorHook, self).after_run(run_context, run_values)
+    self._iter_count -= 1

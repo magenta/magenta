@@ -76,13 +76,51 @@ def get_padded_batch(file_list, batch_size, input_size,
 
   length = tf.shape(sequence['inputs'])[0]
 
-  queue = tf.PaddingFIFOQueue(
-      capacity=1000,
-      dtypes=[tf.float32, tf.int64, tf.int32],
-      shapes=[(None, input_size), (None,), ()])
+  # TODO(adarob): We should shuffle during training but shuffle_batch doesn't
+  # currently support dynamic_pad.
+  return tf.train.batch(
+      [sequence['inputs'], sequence['labels'], length],
+      batch_size=batch_size,
+      capacity=500,
+      num_threads=num_enqueuing_threads,
+      dynamic_pad=True,
+      allow_smaller_final_batch=False)
 
-  enqueue_ops = [queue.enqueue([sequence['inputs'],
-                                sequence['labels'],
-                                length])] * num_enqueuing_threads
-  tf.train.add_queue_runner(tf.train.QueueRunner(queue, enqueue_ops))
-  return queue.dequeue_many(batch_size)
+
+def count_records(file_list):
+  """Returns number of records in files from file_list."""
+  num_records = 0
+  for tfrecord_file in file_list:
+    tf.logging.info('Counting records in %s.', tfrecord_file)
+    for _ in tf.python_io.tf_record_iterator(tfrecord_file):
+      num_records += 1
+  tf.logging.info('Total records: %d', num_records)
+  return num_records
+
+
+def flatten_maybe_padded_sequences(maybe_padded_sequences, lengths):
+  """Flattens the batch of sequences, removing padding (if applicable).
+
+  Args:
+    maybe_padded_sequences: A tensor of possibly padded sequences to flatten,
+        sized `[N, M, ...]` where M = max(lengths).
+    lengths: The length of each sequence, sized `[N]`.
+
+  Returns:
+     flatten_maybe_padded_sequences: The flattened sequence tensor, sized
+         `[sum(lengths), ...]`.
+  """
+  def flatten_unpadded_sequences():
+    # The sequences are equal length, so we should just flatten over the first
+    # two dimensions.
+    return tf.reshape(maybe_padded_sequences,
+                      [-1] + maybe_padded_sequences.shape.as_list()[2:])
+
+  def flatten_padded_sequences():
+    indices = tf.where(tf.sequence_mask(lengths))
+    return tf.gather_nd(maybe_padded_sequences, indices)
+
+  return tf.cond(
+      tf.equal(tf.reduce_min(lengths), tf.shape(maybe_padded_sequences)[1]),
+      flatten_unpadded_sequences,
+      flatten_padded_sequences)
