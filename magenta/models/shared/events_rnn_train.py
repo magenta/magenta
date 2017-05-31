@@ -72,7 +72,7 @@ def run_training(graph, train_dir, num_training_steps=None,
 
 
 # TODO(adarob): Limit to a single epoch each evaluation step.
-def run_eval(graph, train_dir, eval_dir, num_batches, num_training_steps=None):
+def run_eval(graph, train_dir, eval_dir, num_batches, timeout_secs=300):
   """Runs the training loop.
 
   Args:
@@ -82,9 +82,8 @@ def run_eval(graph, train_dir, eval_dir, num_batches, num_training_steps=None):
     eval_dir: The path to the directory where the evaluation summary events
         will be written to.
     num_batches: The number of full batches to use for each evaluation step.
-    num_training_steps: When the `global_step` from latest checkpoint loaded
-        from for `train_dir` has reached `num_training_steps`, the evaluation
-        loop will be stopped.
+    timeout_secs: The number of seconds after which to stop waiting for a new
+        checkpoint.
   """
   with graph.as_default():
     global_step = tf.train.get_or_create_global_step()
@@ -104,14 +103,13 @@ def run_eval(graph, train_dir, eval_dir, num_batches, num_training_steps=None):
         tf.contrib.training.StopAfterNEvalsHook(num_batches),
         tf.contrib.training.SummaryAtEndHook(eval_dir),
     ]
-    if num_training_steps:
-      hooks.append(tf.train.StopAtStepHook(num_training_steps))
 
     tf.contrib.training.evaluate_repeatedly(
         train_dir,
         eval_ops=eval_ops,
         hooks=hooks,
-        eval_interval_secs=60)
+        eval_interval_secs=60,
+        timeout=timeout_secs)
 
 
 class EvalLoggingTensorHook(tf.train.LoggingTensorHook):

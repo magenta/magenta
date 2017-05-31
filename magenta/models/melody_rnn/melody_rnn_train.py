@@ -41,9 +41,6 @@ tf.app.flags.DEFINE_string('sequence_example_file', '',
 tf.app.flags.DEFINE_integer('num_training_steps', 0,
                             'The the number of global training steps your '
                             'model should take before exiting training. '
-                            'During evaluation, the eval loop will run until '
-                            'the `global_step` Variable of the model being '
-                            'evaluated has reached `num_training_steps`. '
                             'Leave as 0 to run until terminated manually.')
 tf.app.flags.DEFINE_integer('num_eval_examples', 0,
                             'The number of evaluation examples your model '
@@ -96,8 +93,7 @@ def main(unused_argv):
         (FLAGS.num_eval_examples if FLAGS.num_eval_examples else
          magenta.common.count_records(sequence_example_file_paths)) //
         config.hparams.batch_size)
-    events_rnn_train.run_eval(graph, train_dir, eval_dir, num_batches,
-                              FLAGS.num_training_steps)
+    events_rnn_train.run_eval(graph, train_dir, eval_dir, num_batches)
 
   else:
     events_rnn_train.run_training(graph, train_dir, FLAGS.num_training_steps,
@@ -110,4 +106,3 @@ def console_entry_point():
 
 if __name__ == '__main__':
   console_entry_point()
-
