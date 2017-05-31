@@ -63,7 +63,7 @@ def build_graph(mode, config, sequence_example_file_paths=None):
         to use.
     sequence_example_file_paths: A list of paths to TFRecord files containing
         tf.train.SequenceExample protos. Only needed for training and
-        evaluation. May be a sharded file of the form.
+        evaluation.
 
   Returns:
     A tf.Graph instance which contains the TF ops.
@@ -85,7 +85,7 @@ def build_graph(mode, config, sequence_example_file_paths=None):
   no_event_label = encoder_decoder.default_event_label
 
   with tf.Graph().as_default() as graph:
-    inputs, labels, lengths, = None, None, None
+    inputs, labels, lengths = None, None, None
 
     if mode == 'train' or mode == 'eval':
       inputs, labels, lengths = magenta.common.get_padded_batch(
@@ -104,7 +104,8 @@ def build_graph(mode, config, sequence_example_file_paths=None):
     initial_state = cell.zero_state(hparams.batch_size, tf.float32)
 
     outputs, final_state = tf.nn.dynamic_rnn(
-        cell, inputs, initial_state=initial_state, swap_memory=True)
+        cell, inputs, lengths=lengths, initial_state=initial_state,
+        swap_memory=True)
 
     outputs_flat = magenta.common.flatten_maybe_padded_sequences(
         outputs, lengths)

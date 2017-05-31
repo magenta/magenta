@@ -98,13 +98,14 @@ def count_records(file_list):
   return num_records
 
 
-def flatten_maybe_padded_sequences(maybe_padded_sequences, lengths):
+def flatten_maybe_padded_sequences(maybe_padded_sequences, lengths=None):
   """Flattens the batch of sequences, removing padding (if applicable).
 
   Args:
     maybe_padded_sequences: A tensor of possibly padded sequences to flatten,
         sized `[N, M, ...]` where M = max(lengths).
-    lengths: The length of each sequence, sized `[N]`.
+    lengths: Optional length of each sequence, sized `[N]`. If None, assumes no
+        padding.
 
   Returns:
      flatten_maybe_padded_sequences: The flattened sequence tensor, sized
@@ -115,6 +116,9 @@ def flatten_maybe_padded_sequences(maybe_padded_sequences, lengths):
     # two dimensions.
     return tf.reshape(maybe_padded_sequences,
                       [-1] + maybe_padded_sequences.shape.as_list()[2:])
+
+  if lengths is None:
+    return flatten_unpadded_sequences()
 
   def flatten_padded_sequences():
     indices = tf.where(tf.sequence_mask(lengths))
