@@ -104,7 +104,7 @@ def build_graph(mode, config, sequence_example_file_paths=None):
     initial_state = cell.zero_state(hparams.batch_size, tf.float32)
 
     outputs, final_state = tf.nn.dynamic_rnn(
-        cell, inputs, lengths=lengths, initial_state=initial_state,
+        cell, inputs, sequence_length=lengths, initial_state=initial_state,
         swap_memory=True)
 
     outputs_flat = magenta.common.flatten_maybe_padded_sequences(
