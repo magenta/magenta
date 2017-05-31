@@ -486,6 +486,7 @@ class Measure(object):
       elif child.tag == 'time':
         if self.time_signature is None:
           self.time_signature = TimeSignature(self.state, child)
+          self.state.time_signature = self.time_signature
         else:
           raise MultipleTimeSignatureException('Multiple time signatures')
       elif child.tag == 'transpose':
@@ -544,6 +545,31 @@ class Measure(object):
                * self.state.seconds_per_quarter)
     self.state.time_position += seconds
 
+    # Issue #674 - If the <forward> element is in a measure without
+    # any <note> elements, treat it as if it were a whole measure
+    # rest by inserting a rest of that duration
+    note_count = len(self.xml_measure.findall('./note'))
+    if note_count == 0:
+
+      # Undo time position advance if inserting a note
+      self.state.time_position -= seconds
+
+      # Insert the new note
+      new_note = '<note>'
+      new_note += '<rest /><duration>' + str(forward_duration) + '</duration>'
+      new_note += '<voice>1</voice><type>whole</type><staff>1</staff>'
+      new_note += '</note>'
+      new_note_xml = ET.fromstring(new_note)
+      note = Note(new_note_xml, self.state)
+      self.notes.append(note)
+
+      # Keep track of current note as previous note for chord timings
+      self.state.previous_note = note
+
+      # Sum up the MusicXML durations in voice 1 of this measure
+      if note.voice == 1 and not note.is_in_chord:
+        self.duration += note.note_duration.duration
+
   def _fix_time_signature(self):
     """Correct the time signature for incomplete measures.
 
@@ -552,43 +578,64 @@ class Measure(object):
     """
     # Compute the fractional time signature (duration / divisions)
     # Multiply divisions by 4 because division is always parts per quarter note
-    fractional_time_signature = Fraction(self.duration,
-                                         self.state.divisions * 4)
+    numerator = self.duration
+    denominator = self.state.divisions * 4
+    fractional_time_signature = Fraction(numerator, denominator)
 
     if self.state.time_signature is None and self.time_signature is None:
       # No global time signature yet and no time signature defined
       # in this measure (no time signature or senza misura).
       # Insert the fractional time signature as the time signature
       # for this measure
-
       self.time_signature = TimeSignature(self.state)
       self.time_signature.numerator = fractional_time_signature.numerator
       self.time_signature.denominator = fractional_time_signature.denominator
       self.state.time_signature = self.time_signature
     else:
+      #print self.state.time_signature, self.time_signature
       # If no global time signature yet, set it to the
       # time signature in this measure
       if self.state.time_signature is None:
         self.state.time_signature = self.time_signature
+
+      fractional_state_time_signature = Fraction(
+          self.state.time_signature.numerator,
+          self.state.time_signature.denominator)
+
+      # Check for pickup measure. Reset time signature to smaller numerator
+      pickup_measure = False
+      if numerator < self.state.time_signature.numerator:
+        pickup_measure = True
 
       # Get the current time signature denominator
       global_time_signature_denominator = self.state.time_signature.denominator
 
       # If the fractional time signature = 1 (e.g. 4/4),
       # make the numerator the same as the global denominator
-      if fractional_time_signature == 1:
+      if fractional_time_signature == 1 and not pickup_measure:
         new_time_signature = TimeSignature(self.state)
         new_time_signature.numerator = global_time_signature_denominator
         new_time_signature.denominator = global_time_signature_denominator
       else:
         # Otherwise, set the time signature to the fractional time signature
+        # Issue #674 - Use the original numerator and denominator
+        # instead of the fractional one
         new_time_signature = TimeSignature(self.state)
-        new_time_signature.numerator = fractional_time_signature.numerator
-        new_time_signature.denominator = fractional_time_signature.denominator
+        new_time_signature.numerator = numerator
+        new_time_signature.denominator = denominator
+
+        new_time_sig_fraction = Fraction(new_time_signature.numerator,
+                                         new_time_signature.denominator)
+
+        if new_time_sig_fraction == fractional_time_signature:
+          new_time_signature.numerator = fractional_time_signature.numerator
+          new_time_signature.denominator = fractional_time_signature.denominator
 
       # Insert a new time signature only if it does not equal the global
       # time signature.
-      if new_time_signature != self.state.time_signature:
+      if (self.time_signature is None
+          and fractional_time_signature != fractional_state_time_signature
+          or pickup_measure):
         new_time_signature.time_position = self.start_time_position
         self.time_signature = new_time_signature
         self.state.time_signature = new_time_signature
@@ -1034,10 +1081,12 @@ class ChordSymbol(object):
     return step + alter_string
 
   def _parse_root(self, xml_root):
+    """Parse the <root> tag for a chord symbol."""
     self.root = self._parse_pitch(xml_root, step_tag='root-step',
                                   alter_tag='root-alter')
 
   def _parse_bass(self, xml_bass):
+    """Parse the <bass> tag for a chord symbol."""
     self.bass = self._parse_pitch(xml_bass, step_tag='bass-step',
                                   alter_tag='bass-alter')
 
