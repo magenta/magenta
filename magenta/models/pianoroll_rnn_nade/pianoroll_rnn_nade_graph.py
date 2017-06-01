@@ -257,8 +257,7 @@ class RnnNade(object):
   def __init__(self, rnn_cell, num_dims, num_hidden):
     self._num_dims = num_dims
     self._rnn_cell = rnn_cell
-    with tf.variable_scope('decoder'):
-      self._fc_layer = tf_layers_core.Dense(units=num_dims + num_hidden)
+    self._fc_layer = tf_layers_core.Dense(units=num_dims + num_hidden)
     self._nade = Nade(num_dims, num_hidden)
 
   def _get_rnn_zero_state(self, batch_size):

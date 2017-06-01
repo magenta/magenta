@@ -51,6 +51,9 @@ tf.app.flags.DEFINE_integer('summary_frequency', 10,
                             '`summary_frequency` steps during training or '
                             'every `summary_frequency` seconds during '
                             'evaluation.')
+tf.app.flags.DEFINE_integer('num_checkpoints', 10,
+                            'The number of most recent checkpoints to keep in '
+                            'the training directory. Keeps all if 0.')
 tf.app.flags.DEFINE_boolean('eval', False,
                             'If True, this process only evaluates the model '
                             'and does not update weights.')
@@ -97,7 +100,8 @@ def main(unused_argv):
 
   else:
     events_rnn_train.run_training(graph, train_dir, FLAGS.num_training_steps,
-                                  FLAGS.summary_frequency)
+                                  FLAGS.summary_frequency,
+                                  checkpoints_to_keep=FLAGS.num_checkpoints)
 
 
 def console_entry_point():

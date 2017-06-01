@@ -32,8 +32,8 @@ def run_training(graph, train_dir, num_training_steps=None,
         written to disk.
     save_checkpoint_secs: The frequency at which to save checkpoints, in
         seconds.
-    checkpoints_to_keep: The number of mostrecent checkpoints to keep in
-       `train_dir`.
+    checkpoints_to_keep: The number of most recent checkpoints to keep in
+       `train_dir`. Keeps all if set to 0.
   """
   with graph.as_default():
     global_step = tf.train.get_or_create_global_step()
