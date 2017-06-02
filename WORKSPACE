@@ -38,3 +38,11 @@ new_http_archive(
     strip_prefix = "mido-1.2.6/mido",
     url = "https://github.com/olemb/mido/archive/1.2.6.tar.gz",
 )
+
+new_http_archive(
+    name = "concurrent",
+    build_file = "pythonfutures.BUILD",
+    sha256 = "7baa7eca5a0471531405c9d4be65af7c280ddd15c30321a12ee8c7f575f976ae",
+    strip_prefix = "pythonfutures-3.1.1/concurrent",
+    url = "https://github.com/agronholm/pythonfutures/archive/3.1.1.tar.gz",
+)
