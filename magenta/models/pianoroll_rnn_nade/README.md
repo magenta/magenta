@@ -101,7 +101,7 @@ Run the command below to start a training job using the attention configuration.
 ```
 pianoroll_rnn_nade_train \
 --run_dir=/tmp/pianoroll_rnn_nade/logdir/run1 \
---sequence_example_file=/tmp/rnn_nade/sequence_examples/training_pianoroll_tracks.tfrecord \
+--sequence_example_file=/tmp/pianoroll_rnn_nade/sequence_examples/training_pianoroll_tracks.tfrecord \
 --hparams="{'batch_size':48,'rnn_layer_sizes':[128]}" \
 --num_training_steps=20000
 ```

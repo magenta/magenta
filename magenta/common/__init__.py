@@ -14,6 +14,8 @@
 
 """Imports objects into the top-level common namespace."""
 
+from sequence_example_lib import count_records
+from sequence_example_lib import flatten_maybe_padded_sequences
 from sequence_example_lib import get_padded_batch
 from sequence_example_lib import make_sequence_example
 import state_util

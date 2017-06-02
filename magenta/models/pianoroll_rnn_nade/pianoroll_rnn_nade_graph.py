@@ -257,8 +257,7 @@ class RnnNade(object):
   def __init__(self, rnn_cell, num_dims, num_hidden):
     self._num_dims = num_dims
     self._rnn_cell = rnn_cell
-    with tf.variable_scope('decoder'):
-      self._fc_layer = tf_layers_core.Dense(units=num_dims + num_hidden)
+    self._fc_layer = tf_layers_core.Dense(units=num_dims + num_hidden)
     self._nade = Nade(num_dims, num_hidden)
 
   def _get_rnn_zero_state(self, batch_size):
@@ -317,7 +316,7 @@ class RnnNade(object):
         decoder)[0:2]
 
     # Flatten time dimension.
-    final_outputs_flat = flatten_maybe_padded_sequences(
+    final_outputs_flat = magenta.common.flatten_maybe_padded_sequences(
         final_outputs.rnn_output, lengths)
 
     b_enc, b_dec = tf.split(
@@ -354,7 +353,8 @@ class RnnNade(object):
     state = self._get_state(inputs, lengths=lengths)
 
     # Flatten time dimension.
-    labels_flat = flatten_maybe_padded_sequences(sequences, lengths)
+    labels_flat = magenta.common.flatten_maybe_padded_sequences(
+        sequences, lengths)
 
     return self._nade.log_prob(labels_flat, state.b_enc, state.b_dec)
 
@@ -405,34 +405,6 @@ class RnnNade(object):
           tf.zeros((batch_size, self._nade.num_hidden), name='b_enc'),
           tf.zeros((batch_size, self._num_dims), name='b_dec'),
           zero_state)
-
-
-def flatten_maybe_padded_sequences(maybe_padded_sequences, lengths):
-  """Flattens the batch of sequences, removing padding (if applicable).
-
-  Args:
-    maybe_padded_sequences: A tensor of possibly padded sequences to flatten,
-        sized `[N, M, ...]` where M = max(lengths).
-    lengths: The length of each sequence, sized `[N]`.
-
-  Returns:
-     flatten_maybe_padded_sequences: The flattened sequence tensor, sized
-         `[sum(lengths), ...]`.
-  """
-  def flatten_unpadded_sequences():
-    # The sequences are equal length, so we should just flatten over the first
-    # two dimensions.
-    return tf.reshape(maybe_padded_sequences,
-                      [-1] + maybe_padded_sequences.shape.as_list()[2:])
-
-  def flatten_padded_sequences():
-    indices = tf.where(tf.sequence_mask(lengths))
-    return tf.gather_nd(maybe_padded_sequences, indices)
-
-  return tf.cond(
-      tf.equal(tf.reduce_min(lengths), tf.shape(maybe_padded_sequences)[1]),
-      flatten_unpadded_sequences,
-      flatten_padded_sequences)
 
 
 def build_graph(mode, config, sequence_example_file_paths=None):
@@ -488,56 +460,58 @@ def build_graph(mode, config, sequence_example_file_paths=None):
     if mode == 'train' or mode == 'eval':
       log_probs, cond_probs = rnn_nade.log_prob(inputs, lengths)
 
-      inputs_flat = flatten_maybe_padded_sequences(inputs, lengths)
-      predictions_flat = tf.cast(tf.greater_equal(cond_probs, .5), tf.float32)
-
-      loss = tf.reduce_mean(-log_probs)
-
-      perplexity = tf.reduce_mean(tf.exp(log_probs)) * 100
-      accuracy = tf.reduce_mean(
-          tf.to_float(tf.equal(inputs_flat, predictions_flat))) * 100
-      accuracy_without_true_negatives = (
-          tf.reduce_sum(inputs_flat *
-                        tf.to_float(tf.equal(predictions_flat, inputs_flat))) /
-          tf.reduce_sum(inputs_flat) * 100)
-
-      global_step = tf.contrib.framework.get_or_create_global_step()
-
-      tf.add_to_collection('loss', loss)
-      tf.add_to_collection('perplexity', perplexity)
-      tf.add_to_collection('accuracy', accuracy)
-      tf.add_to_collection('accuracy_without_true_negatives',
-                           accuracy_without_true_negatives)
-
-      summaries = [
-          tf.summary.scalar('loss', loss),
-          tf.summary.scalar('perplexity', perplexity),
-          tf.summary.scalar('accuracy', accuracy),
-          tf.summary.scalar('accuracy_without_true_negatives',
-                            accuracy_without_true_negatives),
-      ]
+      inputs_flat = tf.to_float(
+          magenta.common.flatten_maybe_padded_sequences(inputs, lengths))
+      predictions_flat = tf.to_float(tf.greater_equal(cond_probs, .5))
 
       if mode == 'train':
-        learning_rate = tf.train.exponential_decay(
-            hparams.initial_learning_rate, global_step, hparams.decay_steps,
-            hparams.decay_rate, staircase=True, name='learning_rate')
+        loss = tf.reduce_mean(-log_probs)
+        perplexity = tf.reduce_mean(tf.exp(log_probs))
+        correct_predictions = tf.to_float(
+            tf.equal(inputs_flat, predictions_flat))
+        accuracy = tf.reduce_mean(correct_predictions)
+        precision = (tf.reduce_sum(inputs_flat * predictions_flat) /
+                     tf.reduce_sum(predictions_flat))
+        recall = (tf.reduce_sum(inputs_flat * predictions_flat) /
+                  tf.reduce_sum(inputs_flat))
 
-        opt = tf.train.AdamOptimizer(learning_rate)
-        params = tf.trainable_variables()
-        gradients = tf.gradients(loss, params)
-        clipped_gradients, _ = tf.clip_by_global_norm(gradients,
-                                                      hparams.clip_norm)
-        train_op = opt.apply_gradients(zip(clipped_gradients, params),
-                                       global_step)
-        tf.add_to_collection('learning_rate', learning_rate)
+        optimizer = tf.train.AdamOptimizer(learning_rate=hparams.learning_rate)
+
+        train_op = tf.contrib.slim.learning.create_train_op(
+            loss, optimizer, clip_gradient_norm=hparams.clip_norm)
         tf.add_to_collection('train_op', train_op)
 
-        summaries.append(tf.summary.scalar(
-            'learning_rate', learning_rate))
+        vars_to_summarize = {
+            'loss': loss,
+            'metrics/perplexity': perplexity,
+            'metrics/accuracy': accuracy,
+            'metrics/precision': precision,
+            'metrics/recall': recall,
+        }
+      elif mode == 'eval':
+        vars_to_summarize, update_ops = tf.contrib.metrics.aggregate_metric_map(
+            {
+                'loss': tf.metrics.mean(-log_probs),
+                'metrics/perplexity': tf.metrics.mean(tf.exp(log_probs)),
+                'metrics/accuracy': tf.metrics.accuracy(
+                    inputs_flat, predictions_flat),
+                'metrics/precision': tf.metrics.precision(
+                    inputs_flat, predictions_flat),
+                'metrics/recall': tf.metrics.recall(
+                    inputs_flat, predictions_flat),
+            })
+        for updates_op in update_ops.values():
+          tf.add_to_collection('eval_ops', updates_op)
 
-      if mode == 'eval':
-        summary_op = tf.summary.merge(summaries)
-        tf.add_to_collection('summary_op', summary_op)
+      precision = vars_to_summarize['metrics/precision']
+      recall = vars_to_summarize['metrics/precision']
+      f1_score = tf.where(
+          tf.greater(precision + recall, 0), 2 * (
+              (precision * recall) / (precision + recall)), 0)
+      vars_to_summarize['metrics/f1_score'] = f1_score
+      for var_name, var_value in vars_to_summarize.iteritems():
+        tf.summary.scalar(var_name, var_value)
+        tf.add_to_collection(var_name, var_value)
 
     elif mode == 'generate':
       initial_state = rnn_nade.zero_state(hparams.batch_size)

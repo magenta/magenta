@@ -32,11 +32,8 @@ class EventSequenceRNNGraphTest(tf.test.TestCase):
             batch_size=128,
             rnn_layer_sizes=[128, 128],
             dropout_keep_prob=0.5,
-            skip_first_n_losses=0,
             clip_norm=5,
-            initial_learning_rate=0.01,
-            decay_steps=1000,
-            decay_rate=0.85))
+            learning_rate=0.01))
 
   def testBuildTrainGraph(self):
     g = events_rnn_graph.build_graph(
