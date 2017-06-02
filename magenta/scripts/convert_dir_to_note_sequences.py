@@ -70,7 +70,7 @@ def convert_directory(root_dir, sub_dir, sequence_writer, recursive=False):
   """
   dir_to_convert = os.path.join(root_dir, sub_dir)
   tf.logging.info("Converting files in '%s'.", dir_to_convert)
-  files_in_dir = tf.gfile.ListDirectory(os.path.join(dir_to_convert))
+  files_in_dir = tf.gfile.ListDirectory(os.path.join(dir_to_convert)).lower()
   recurse_sub_dirs = []
   sequences_written = 0
   sequences_skipped = 0
