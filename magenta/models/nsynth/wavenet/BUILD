@@ -30,24 +30,27 @@ py_library(
     ],
 )
 
+
+py_library(
+    name = "h512_bo16",
+    srcs = ["h512_bo16.py"],
+    deps = [
+        # tensorflow dep
+        "//magenta/models/nsynth:reader",
+        "//magenta/models/nsynth:utils",
+        "//magenta/models/nsynth/wavenet:masked",
+    ],
+)
+
 py_library(
     name = "fastgen",
     srcs = ["fastgen.py"],
     deps = [
         # tensorflow dep
-    ],
-)
-
-py_library(
-    name = "generate",
-    srcs = [
-        "generate.py",
-    ],
-    deps = [
-        ":configs",
+        # scipy.io
+        # numpy
         "//magenta/models/nsynth:utils",
-        # numpy dep
-        # tensorflow dep
+        "//magenta/models/nsynth/wavenet:h512_bo16",
     ],
 )
 
@@ -67,6 +70,18 @@ py_library(
     ],
     deps = [
         ":config_library",
+    ],
+)
+
+py_binary(
+    name = "generate",
+    srcs = [
+        "generate.py",
+    ],
+    deps = [
+        ":configs",
+        ":fastgen",
+        # tensorflow dep
     ],
 )
 

@@ -15,11 +15,9 @@
 
 # internal imports
 import tensorflow as tf
-
 from magenta.models.nsynth import reader
 from magenta.models.nsynth import utils
 from magenta.models.nsynth.wavenet import masked
-from magenta.models.nsynth.wavenet import fastgen
 
 
 class FastGenerationConfig(object):
@@ -66,7 +64,7 @@ class FastGenerationConfig(object):
     # The WaveNet Decoder.
     ###
     l = x_scaled
-    l, inits, pushs = fastgen.causal_linear(
+    l, inits, pushs = utils.causal_linear(
         x=l[0],
         n_inputs=1,
         n_outputs=width,
@@ -78,14 +76,14 @@ class FastGenerationConfig(object):
     [push_ops.append(push) for push in pushs]
 
     # Set up skip connections.
-    s = fastgen.linear(l, width, skip_width, name='skip_start')
+    s = utils.linear(l, width, skip_width, name='skip_start')
 
     # Residual blocks with skip connections.
     for i in range(num_layers):
       dilation = 2**(i % num_stages)
 
       # dilated masked cnn
-      d, inits, pushs = fastgen.causal_linear(
+      d, inits, pushs = utils.causal_linear(
           x=l[0],
           n_inputs=width,
           n_outputs=width * 2,
@@ -97,7 +95,7 @@ class FastGenerationConfig(object):
       [push_ops.append(push) for push in pushs]
 
       # local conditioning
-      d = d + fastgen.linear(en, num_z, width * 2, name='cond_map_%d' % (i + 1))
+      d = d + utils.linear(en, num_z, width * 2, name='cond_map_%d' % (i + 1))
 
       # gated cnn
       assert d.get_shape().as_list()[2] % 2 == 0
@@ -105,20 +103,20 @@ class FastGenerationConfig(object):
       d = tf.sigmoid(d[:, :, :m]) * tf.tanh(d[:, :, m:])
 
       # residuals
-      l += fastgen.linear(d, width, width, name='res_%d' % (i + 1))
+      l += utils.linear(d, width, width, name='res_%d' % (i + 1))
 
       # skips
-      s += fastgen.linear(d, width, skip_width, name='skip_%d' % (i + 1))
+      s += utils.linear(d, width, skip_width, name='skip_%d' % (i + 1))
 
     s = tf.nn.relu(s)
-    s = fastgen.linear(s, skip_width, skip_width, name='out1') + \
-        fastgen.linear(en, num_z, skip_width, name='cond_map_out1')
+    s = utils.linear(s, skip_width, skip_width, name='out1') + \
+        utils.linear(en, num_z, skip_width, name='cond_map_out1')
     s = tf.nn.relu(s)
 
     ###
     # Compute the logits and get the loss.
     ###
-    logits = fastgen.linear(s, skip_width, 256, name='logits')
+    logits = utils.linear(s, skip_width, 256, name='logits')
     logits = tf.reshape(logits, [-1, 256])
     probs = tf.nn.softmax(logits, name='softmax')
 
