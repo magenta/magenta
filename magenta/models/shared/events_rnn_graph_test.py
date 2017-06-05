@@ -13,6 +13,8 @@
 # limitations under the License.
 """Tests for events_rnn_graph."""
 
+import tempfile
+
 # internal imports
 import tensorflow as tf
 import magenta
@@ -24,6 +26,9 @@ from magenta.models.shared import events_rnn_model
 class EventSequenceRNNGraphTest(tf.test.TestCase):
 
   def setUp(self):
+    self._sequence_file = tempfile.NamedTemporaryFile(
+        prefix='EventSequenceRNNGraphTest')
+
     self.config = events_rnn_model.EventSequenceRnnConfig(
         None,
         magenta.music.OneHotEventSequenceEncoderDecoder(
@@ -37,12 +42,14 @@ class EventSequenceRNNGraphTest(tf.test.TestCase):
 
   def testBuildTrainGraph(self):
     g = events_rnn_graph.build_graph(
-        'train', self.config, sequence_example_file_paths=['test'])
+        'train', self.config,
+        sequence_example_file_paths=[self._sequence_file.name])
     self.assertTrue(isinstance(g, tf.Graph))
 
   def testBuildEvalGraph(self):
     g = events_rnn_graph.build_graph(
-        'eval', self.config, sequence_example_file_paths=['test'])
+        'eval', self.config,
+        sequence_example_file_paths=[self._sequence_file.name])
     self.assertTrue(isinstance(g, tf.Graph))
 
   def testBuildGenerateGraph(self):
@@ -52,7 +59,8 @@ class EventSequenceRNNGraphTest(tf.test.TestCase):
   def testBuildGraphWithAttention(self):
     self.config.hparams.attn_length = 10
     g = events_rnn_graph.build_graph(
-        'train', self.config, sequence_example_file_paths=['test'])
+        'train', self.config,
+        sequence_example_file_paths=[self._sequence_file.name])
     self.assertTrue(isinstance(g, tf.Graph))
 
 
