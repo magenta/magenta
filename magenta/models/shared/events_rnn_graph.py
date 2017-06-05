@@ -89,7 +89,8 @@ def build_graph(mode, config, sequence_example_file_paths=None):
 
     if mode == 'train' or mode == 'eval':
       inputs, labels, lengths = magenta.common.get_padded_batch(
-          sequence_example_file_paths, hparams.batch_size, input_size)
+          sequence_example_file_paths, hparams.batch_size, input_size,
+          shuffle=mode == 'train')
 
     elif mode == 'generate':
       inputs = tf.placeholder(tf.float32, [hparams.batch_size, None,
