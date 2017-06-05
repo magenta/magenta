@@ -95,19 +95,15 @@ def imagenet_inputs(batch_size, image_size, num_readers=1,
         dtypes=[tf.string])
 
     # Create multiple readers to populate the queue of examples.
-    if num_readers > 1:
-      enqueue_ops = []
-      for _ in range(num_readers):
-        reader = imagenet.reader()
-        _, value = reader.read(filename_queue)
-        enqueue_ops.append(examples_queue.enqueue([value]))
-
-      tf.train.queue_runner.add_queue_runner(
-          tf.train.queue_runner.QueueRunner(examples_queue, enqueue_ops))
-      example_serialized = examples_queue.dequeue()
-    else:
+    enqueue_ops = []
+    for _ in range(num_readers):
       reader = imagenet.reader()
-      _, example_serialized = reader.read(filename_queue)
+      _, value = reader.read(filename_queue)
+      enqueue_ops.append(examples_queue.enqueue([value]))
+
+    tf.train.queue_runner.add_queue_runner(
+        tf.train.queue_runner.QueueRunner(examples_queue, enqueue_ops))
+    example_serialized = examples_queue.dequeue()
 
     images_and_labels = []
     for _ in range(num_preprocess_threads):
