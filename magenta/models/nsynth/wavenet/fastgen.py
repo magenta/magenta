@@ -15,9 +15,7 @@ import numpy as np
 def sample_categorical(pmf):
   cdf = np.cumsum(pmf)
   idx = np.random.rand()
-  i = 0
-  while(cdf[i] < idx):
-    i = i + 1
+  i = cdf.searchsorted(idx)
   return i
 
 
