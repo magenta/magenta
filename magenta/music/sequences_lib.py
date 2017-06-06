@@ -276,6 +276,20 @@ def is_relative_quantized_sequence(note_sequence):
   return note_sequence.quantization_info.steps_per_quarter > 0
 
 
+def is_absolute_quantized_sequence(note_sequence):
+  """Returns whether a NoteSequence proto has been quantized by absolute time.
+
+  Args:
+    note_sequence: A music_pb2.NoteSequence proto.
+
+  Returns:
+    True if `note_sequence` is quantized by absolute time, otherwise False.
+  """
+  # If the QuantizationInfo message has a non-zero steps_per_second, assume
+  # that the proto has been quantized by absolute time.
+  return note_sequence.quantization_info.steps_per_second > 0
+
+
 def assert_is_quantized_sequence(note_sequence):
   """Confirms that the given NoteSequence proto has been quantized.
 
@@ -303,6 +317,22 @@ def assert_is_relative_quantized_sequence(note_sequence):
   if not is_relative_quantized_sequence(note_sequence):
     raise QuantizationStatusException('NoteSequence %s is not quantized or is '
                                       'quantized based on absolute timing.' %
+                                      note_sequence.id)
+
+
+def assert_is_absolute_quantized_sequence(note_sequence):
+  """Confirms that a NoteSequence proto has been quantized by absolute time.
+
+  Args:
+    note_sequence: A music_pb2.NoteSequence proto.
+
+  Raises:
+    QuantizationStatusException: If the sequence is not quantized by absolute
+    time.
+  """
+  if not is_absolute_quantized_sequence(note_sequence):
+    raise QuantizationStatusException('NoteSequence %s is not quantized or is '
+                                      'quantized based on relative timing.' %
                                       note_sequence.id)
 
 
