@@ -5,5 +5,5 @@ set -e
 # Display commands to stderr.
 set -x
 
-cd git/magenta
+cd github/magenta
 kokoro/test.sh
