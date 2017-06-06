@@ -60,7 +60,7 @@ class KeyboardElement extends events.EventEmitter {
 			key.classList.add(isSharp ? 'black' : 'white')
 			this._container.appendChild(key)
 			// position the element
-			
+
 			let noteOctave = Math.floor(i / 12) - Math.floor(lowest / 12)
 			let offset = offsets[i % 12] + noteOctave * 7
 			key.style.width = `${keyWidth * 100}%`
@@ -71,7 +71,7 @@ class KeyboardElement extends events.EventEmitter {
 			const fill = document.createElement('div')
 			fill.id = 'fill'
 			key.appendChild(fill)
-			
+
 			this._bindKeyEvents(key)
 			this._keys[i] = key
 
@@ -125,6 +125,15 @@ class KeyboardElement extends events.EventEmitter {
 		key.addEventListener('touchcancel', this._absorbEvent.bind(this))
 	}
 
+	panic(ai=false){
+		const noteArray = ai ? this._aiNotes : this._notes
+		for (var noteNum in noteArray) {
+		  if (noteArray.hasOwnProperty(noteNum)) {
+		  	this.keyUp(noteNum, ai)
+			}
+		}
+	}
+
 	keyDown(noteNum, ai=false){
 		// console.log('down', noteNum, ai)
 		if (this._keys.hasOwnProperty(noteNum)){
@@ -152,7 +161,7 @@ class KeyboardElement extends events.EventEmitter {
 			} else {
 				noteArray[noteNum].shift().noteOff()
 			}
-		}	
+		}
 	}
 }
 

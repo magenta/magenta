@@ -139,6 +139,10 @@ tf.app.flags.DEFINE_float(
     0.0,
     'Time in seconds to adjust playback time by.')
 tf.app.flags.DEFINE_integer(
+    'capture_channel',
+    None,
+    'MIDI channel to capture events on. All are captured if `None`.')
+tf.app.flags.DEFINE_integer(
     'playback_channel',
     0,
     'MIDI channel to send play events.')
@@ -318,6 +322,7 @@ def main(unused_argv):
   hub = midi_hub.MidiHub(FLAGS.input_port, FLAGS.output_port,
                          midi_hub.TextureType.MONOPHONIC,
                          passthrough=FLAGS.passthrough,
+                         capture_channel=FLAGS.capture_channel,
                          playback_channel=FLAGS.playback_channel,
                          playback_offset=FLAGS.playback_offset)
 

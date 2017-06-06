@@ -23,7 +23,7 @@ _DEFAULT_METRONOME_VELOCITY = 64
 _METRONOME_CHANNEL = 1
 
 # 0-indexed.
-_DRUM_CHANNEL = 8
+_DRUM_CHANNEL = 9
 
 try:
   # The RtMidi backend is easier to install and has support for virtual ports.
@@ -839,9 +839,11 @@ class MidiHub(object):
   """
 
   def __init__(self, input_midi_port, output_midi_port, texture_type,
-               passthrough=True, playback_channel=0, playback_offset=0.0):
+               passthrough=True, capture_channel=None, playback_channel=0,
+               playback_offset=0.0):
     self._texture_type = texture_type
     self._passthrough = passthrough
+    self._capture_channel = capture_channel
     self._playback_channel = playback_channel
     self._playback_offset = playback_offset
     # When `passthrough` is True, this is the set of open MIDI note pitches.
@@ -927,6 +929,11 @@ class MidiHub(object):
     Args:
       msg: The mido.Message MIDI message to handle.
     """
+    if (self._capture_channel is not None and
+        msg.channel != self._capture_channel):
+      tf.logging.info(msg.channel)
+      return
+
     # Notify any threads waiting for this message.
     msg_str = str(msg)
     for regex in list(self._signals):

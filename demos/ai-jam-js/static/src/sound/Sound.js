@@ -46,9 +46,9 @@ class Sound {
 			[this._piano.load(), this._e_piano.load(), this._drums.load()])
 	}
 
-	keyDown(note, time=Tone.now(), ai=false, drums=false){
+	keyDown(note, time=Tone.now(), ai=false, drum=false){
 		if (note >= this._range[0] && note <= this._range[1]){
-			if (drums) {
+			if (drum) {
 			  this._drums.keyDown(note, time)
 			} else if (ai){
 				this._e_piano.keyDown(note, time)
@@ -60,10 +60,10 @@ class Sound {
 
 	}
 
-	keyUp(note, time=Tone.now(), ai=false, drums=false){
+	keyUp(note, time=Tone.now(), ai=false, drum=false){
 		if (note >= this._range[0] && note <= this._range[1]){
 			time += 0.05
-			if (drums) {
+			if (drum) {
 			  this._drums.keyUp(note, time)
 			} else if (ai){
 				this._e_piano.keyUp(note, time)

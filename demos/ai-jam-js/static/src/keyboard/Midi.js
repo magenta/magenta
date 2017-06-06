@@ -17,6 +17,11 @@
 import events from 'events'
 import WebMidi from 'webmidi'
 
+const MAGENTA_METRONOME_CHANNEL = 2
+
+const PIANO_CHANNEL = 1
+const DRUM_CHANNEL = 10
+
 const FROM_MAGENTA_PORT = 'magenta_out'
 const TO_MAGENTA_PORT = 'magenta_in'
 
@@ -33,6 +38,11 @@ class Midi extends events.EventEmitter{
 		super()
 
 		this._isEnabled = false
+
+		this._states = {}
+		this._states[DRUM_CHANNEL] = {temperature: 64, isLooping: false, bundleIndex: 0, outChannel: PIANO_CHANNEL}
+		this._states[PIANO_CHANNEL] = {temperature: 64, isLooping: false, bundleIndex: 0, outChannel: PIANO_CHANNEL}
+		this._outChannel = PIANO_CHANNEL
 
 		WebMidi.enable((err) => {
 			if (!err){
@@ -58,57 +68,66 @@ class Midi extends events.EventEmitter{
 
 				})
 			}
-
-			this._temperature = 64
-			this._isLooping = false
-			this._bundleIndex = 0
 		})
 	}
 
-	sendKeyDown(note) {
-		this._toMagenta.playNote(note)
+	setOutChannel(drum) {
+		if (drum) {
+			this._outChannel = DRUM_CHANNEL
+		} else {
+			this._outChannel = PIANO_CHANNEL
+		}
 	}
 
-	sendKeyUp(note) {
-		this._toMagenta.stopNote(note)
+	sendKeyDown(note, drum) {
+		this._toMagenta.playNote(note, this._outChannel)
+	}
+
+	sendKeyUp(note, drum) {
+		this._toMagenta.stopNote(note, this._outChannel)
 	}
 
 	adjustBundleIndex(amt){
-		this._bundleIndex = Math.min(Math.max(this._bundleIndex + amt, 0), 127)
-		console.info('Bundle Index: ' + this._bundleIndex)
-		this._toMagenta.sendControlChange(BUNDLE_CC, this._bundleIndex)
+		this._states[this._outChannel].bundleIndex = Math.min(Math.max(this._states[this._outChannel].bundleIndex + amt, 0), 127)
+		console.info('Bundle Index: ' + this._states[this._outChannel].bundleIndex)
+		this._toMagenta.sendControlChange(
+			  BUNDLE_CC, this._states[this._outChannel].bundleIndex, this._outChannel)
 	}
 
 	toggleLoop() {
-		this._isLooping = !this._isLooping
-		console.info('Looping: ' + this._isLooping)
-		this._toMagenta.sendControlChange(LOOP_CC, this._isLooping * 127)
+		this._states[this._outChannel].isLooping = !this._states[this._outChannel].isLooping
+		console.info('Looping: ' + this._states[this._outChannel].isLooping)
+		this._toMagenta.sendControlChange(
+				LOOP_CC, this._states[this._outChannel].isLooping * 127, this._outChannel)
 	}
 
 	triggerMutate() {
 		console.info('Mutate!')
-		this._toMagenta.sendControlChange(MUTATE_CC, 127)
+		this._toMagenta.sendControlChange(MUTATE_CC, 127, this._outChannel)
 	}
 
 	triggerPanic() {
 		console.info('PANIC!')
-		this._toMagenta.sendControlChange(PANIC_CC, 127)
+		this._toMagenta.sendControlChange(PANIC_CC, 127, this._outChannel)
 	}
 
 	adjustTemperature(amt) {
-		this._temperature = Math.min(Math.max(this._temperature + amt, 0), 127)
-		console.info('Temperature: ' + this._temperature)
-		this._toMagenta.sendControlChange(TEMPERATURE_CC, this._temperature)
+		this._states[this._outChannel].temperature = Math.min(Math.max(this._states[this._outChannel].temperature  + amt, 0), 127)
+		console.info('Temperature: ' + this._states[this._outChannel].temperature)
+		this._toMagenta.sendControlChange(
+			  TEMPERATURE_CC, this._states[this._outChannel].temperature, this._outChannel)
 	}
 
 	setCallBars(num_bars) {
 		console.info('Call Bars: ' + num_bars)
-		this._toMagenta.sendControlChange(LISTEN_TICKS_CC, num_bars)
+		this._toMagenta.sendControlChange(
+			  LISTEN_TICKS_CC, num_bars, this._outChannel)
 	}
 
 	setResponseBars(num_bars) {
 		console.info('Response Bars: ' + num_bars)
-		this._toMagenta.sendControlChange(RESPONSE_TICKS_CC, num_bars)
+		this._toMagenta.sendControlChange(
+			  RESPONSE_TICKS_CC, num_bars, this._outChannel)
 	}
 
 	_bindInput(inputDevice){
@@ -122,16 +141,24 @@ class Midi extends events.EventEmitter{
 					device.input.removeListener('noteOff')
 				}
 			})
-			inputDevice.addListener('noteon', isMagentaIn ? 1 : 'all', (event) => {
+			inputDevice.addListener(
+					'noteon',
+				  isMagentaIn ? [PIANO_CHANNEL, DRUM_CHANNEL] : 'all',
+				  (event) => {
 				try {
-					this.emit('keyDown', event.note.number, undefined, isMagentaIn)
+					this.emit('keyDown', event.note.number, undefined, isMagentaIn,
+										event.channel == DRUM_CHANNEL)
 				} catch(e){
 					console.warn(e)
 				}
 			})
-			inputDevice.addListener('noteoff', isMagentaIn ? 1 : 'all', (event) => {
+			inputDevice.addListener(
+					'noteoff',
+				  isMagentaIn ? [PIANO_CHANNEL, DRUM_CHANNEL] : 'all',
+				  (event) => {
 				try {
-					this.emit('keyUp', event.note.number, undefined, isMagentaIn)
+					this.emit('keyUp', event.note.number, undefined, isMagentaIn,
+										event.channel == DRUM_CHANNEL)
 				} catch(e){
 					console.warn(e)
 				}

@@ -29,6 +29,7 @@ class Keyboard extends events.EventEmitter{
 		this._midi = midi
 
 		this._active = false
+		this._drumMode = false
 
 		/**
 		 * The audio key keyboard
@@ -36,12 +37,12 @@ class Keyboard extends events.EventEmitter{
 		 */
 		this._keyboard = new AudioKeys({polyphony : 88, rows : 1, octaveControls : false})
 		this._keyboard.down((e) => {
-			this.keyDown(e.note)
-			this._emitKeyDown(e.note)
+			this.keyDown(e.note, undefined, false, this._drumMode)
+			this._emitKeyDown(e.note, undefined, false, this._drumMode)
 		})
 		this._keyboard.up((e) => {
-			this.keyUp(e.note)
-			this._emitKeyUp(e.note)
+			this.keyUp(e.note, undefined, false, this._drumMode)
+			this._emitKeyUp(e.note, undefined, false, this._drumMode)
 		})
 
 		/**
@@ -49,12 +50,12 @@ class Keyboard extends events.EventEmitter{
 		 */
 		this._keyboardInterface = new KeyboardElement(container, 48, 2)
 		this._keyboardInterface.on('keyDown', (note) => {
-			this.keyDown(note)
-			this._emitKeyDown(note)
+			this.keyDown(note, undefined, false, this._drumMode)
+			this._emitKeyDown(note, undefined, false, this._drumMode)
 		})
 		this._keyboardInterface.on('keyUp', (note) => {
-			this.keyUp(note)
-			this._emitKeyUp(note)
+			this.keyUp(note, undefined, false, this._drumMode)
+			this._emitKeyUp(note, undefined, false, this._drumMode)
 		})
 
 		window.addEventListener('resize', this._resize.bind(this))
@@ -74,14 +75,33 @@ class Keyboard extends events.EventEmitter{
 		container.appendChild(bottom)
 
 		//the midi input
-		this._midi.on('keyDown', (note, time, ai) => {
-			this.keyDown(note, time, ai)
-			this._emitKeyDown(note, time, ai)
+		this._midi.on('keyDown', (note, time, ai, drum) => {
+			if (this._drumMode == drum) {
+				this.keyDown(note, time, ai, drum)
+			}
+			this._emitKeyDown(note, time, ai, drum)
 		})
-		this._midi.on('keyUp', (note, time, ai) => {
-			this.keyUp(note, time, ai)
-			this._emitKeyUp(note, time, ai)
+		this._midi.on('keyUp', (note, time, ai, drum) => {
+			if (this._drumMode == drum) {
+				this.keyUp(note, time, ai, drum)
+			}
+			this._emitKeyUp(note, time, ai, drum)
 		})
+	}
+
+	_handleMidiEvent(event, note, time, ai, drum){
+		if (this._drumMode == drum) {
+			if (event == 'keyUp') {
+				this.keyUp(note, time, ai, drum)
+			} else if (event == 'keyDown') {
+				this.keyDown(note, time, ai, drum)
+			}
+		}
+		if (event == 'keyUp') {
+			this._emitKeyUp(note, time, ai, drum)
+		} else if (event == 'keyDown') {
+			this._emitKeyDown(note, time, ai, drum)
+		}
 	}
 
 	_loop(){
@@ -94,19 +114,19 @@ class Keyboard extends events.EventEmitter{
 
 	}
 
-	_emitKeyDown(note, time=Tone.now(), ai=false){
+	_emitKeyDown(note, time=Tone.now(), ai=false, drum=false){
 		if (this._active){
-			this.emit('keyDown', note, time, ai)
+			this.emit('keyDown', note, time, ai, drum)
 		}
 	}
 
-	_emitKeyUp(note, time=Tone.now(), ai=false){
+	_emitKeyUp(note, time=Tone.now(), ai=false, drum=false){
 		if (this._active){
-			this.emit('keyUp', note, time, ai)
+			this.emit('keyUp', note, time, ai, drum)
 		}
 	}
 
-	keyDown(note, time=Tone.now(), ai=false){
+	keyDown(note, time=Tone.now(), ai=false, drum=false){
 		if (!this._active){
 			return
 		}
@@ -124,7 +144,7 @@ class Keyboard extends events.EventEmitter{
 
 	}
 
-	keyUp(note, time=Tone.now(), ai=false){
+	keyUp(note, time=Tone.now(), ai=false, drum=false){
 		if (!this._active){
 			return
 		}
@@ -140,6 +160,14 @@ class Keyboard extends events.EventEmitter{
 				callback : this._keyboardInterface.keyUp.bind(this._keyboardInterface, note, ai)
 			})
 		}
+	}
+
+	toggleDrumMode() {
+		this._drumMode = !this._drumMode
+		this._midi.setOutChannel(this._drumMode)
+		this._keyboardInterface.panic(true)
+		this._keyboardInterface.panic(false)
+		console.log('Drum Mode: ' + this._drumMode)
 	}
 
 	_resize(){

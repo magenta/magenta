@@ -90,11 +90,13 @@ document.body.addEventListener('keyup', (e) => {
     	midi.adjustTemperature(-2)
     } else if (e.keyCode == 8) {  // Backspace/Delete
     	midi.triggerPanic()
-    }
+    } else if (e.keyCode == 9) {  // Tab
+    	keyboard.toggleDrumMode()
+		}
 }, true)
 
-keyboard.on('keyDown', (note, time, ai=false) => {
-	sound.keyDown(note, time, ai)
+keyboard.on('keyDown', (note, time, ai=false, drum=false) => {
+	sound.keyDown(note, time, ai, drum)
 	if (ai) {
 		glow.user()
 	} {
@@ -102,8 +104,8 @@ keyboard.on('keyDown', (note, time, ai=false) => {
 	}
 })
 
-keyboard.on('keyUp', (note, time, ai=false) => {
-	sound.keyUp(note, time, ai)
+keyboard.on('keyUp', (note, time, ai=false, drum=false) => {
+	sound.keyUp(note, time, ai, drum)
 	if (ai) {
 		glow.user()
 	} {
