@@ -38,11 +38,10 @@ def load_nsynth(encoding=True, batch_size=1, sample_length=64000):
   return graph
 
 
-def load_fastgen_nsynth(batch_size=1, sample_length=64000):
+def load_fastgen_nsynth(batch_size=1):
   """Load the NSynth fast generation network.
   Args:
     batch_size: Batch size number of observations to process. [1]
-    sample_length: Number of samples in the input audio. [64000]
   Returns:
     graph: The network as a dict with input placeholder in {'X'}
   """
@@ -93,10 +92,19 @@ def synthesize(wav_file,
   # Audio to resynthesize
   wav_data = utils.load_audio(wav_file, sample_length, sr=16000)
 
+  print "WAVE", wav_data.shape
+  print "SL", sample_length
+
+
   # Make sure sample_length is a multiple of hop_length
   hop_length = 512
+  if sample_length > wav_data.size:
+    sample_length = wav_data.size
   sample_length = (sample_length // hop_length) * hop_length
   wav_data = wav_data[:sample_length]
+
+  print "WAVE", wav_data.shape
+  print "SL", sample_length
 
   # Load up the model for encoding and find the encoding
   encoding = encode(wav_data, ckpt_path, sample_length=sample_length)
@@ -104,7 +112,7 @@ def synthesize(wav_file,
 
   session_config = tf.ConfigProto(allow_soft_placement=True)
   with tf.Graph().as_default(), tf.Session(config=session_config) as sess:
-    net = load_fastgen_nsynth(sample_length=sample_length)
+    net = load_fastgen_nsynth()
     saver = tf.train.Saver()
     saver.restore(sess, ckpt_path)
 
