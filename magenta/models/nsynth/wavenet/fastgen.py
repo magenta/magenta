@@ -12,6 +12,14 @@ from magenta.models.nsynth import utils
 from magenta.models.nsynth.wavenet.h512_bo16 import Config, FastGenerationConfig
 import numpy as np
 
+def sample_categorical(pmf):
+  cdf = np.cumsum(pmf)
+  idx = np.random.rand()
+  i = 0
+  while(cdf[i] < idx):
+    i = i + 1
+  return i
+
 
 def load_nsynth(encoding=True, batch_size=1, sample_length=64000):
   """Load the NSynth autoencoder network.
@@ -22,10 +30,9 @@ def load_nsynth(encoding=True, batch_size=1, sample_length=64000):
   Returns:
     graph: The network as a dict with input placeholder in {'X'}
   """
-  config = Config(encoding=encoding)
+  config = Config()
   with tf.device('/gpu:0'):
-    X = tf.placeholder(
-      tf.float32, shape=[batch_size, sample_length])
+    X = tf.placeholder(tf.float32, shape=[batch_size, sample_length])
     graph = config.build({"wav": X}, is_training=False)
     graph.update({'X': X})
   return graph
@@ -40,14 +47,14 @@ def load_fastgen_nsynth(batch_size=1, sample_length=64000):
     graph: The network as a dict with input placeholder in {'X'}
   """
   config = FastGenerationConfig()
-  X = tf.placeholder(
-    tf.float32, shape=[batch_size, 1])
-  graph = config.build({"wav": X})
-  graph.update({'X': X})
+  with tf.device('/gpu:0'):
+    X = tf.placeholder(tf.float32, shape=[batch_size, 1])
+    graph = config.build({"wav": X})
+    graph.update({'X': X})
   return graph
 
 
-def encode(wav_file, ckpt_path, sample_length=64000):
+def encode(wav_data, ckpt_path, sample_length=64000):
   """Padded loading of a wave file.
   Args:
     wav_file: Location of a wave file to load.
@@ -56,18 +63,17 @@ def encode(wav_file, ckpt_path, sample_length=64000):
   Returns:
     encoding: a [mb, 125, 16] encoding (for 64000 sample audio file).
   """
-
-  # Audio to resynthesize
-  wav_data = utils.load_audio(wav_file, sample_length)
+  if wav_data.ndim == 1:
+    wav_data = np.expand_dims(wav_data, 0)
 
   # Load up the model for encoding and find the encoding of 'wav_data'
-  with tf.Graph().as_default(), tf.Session() as sess:
-    net = load_nsynth(encoding=True)
+  session_config = tf.ConfigProto(allow_soft_placement=True)
+  with tf.Graph().as_default(), tf.Session(config=session_config) as sess:
+    net = load_nsynth(encoding=True, sample_length=sample_length)
     saver = tf.train.Saver()
     saver.restore(sess, ckpt_path)
     encoding = sess.run(net['encoding'], feed_dict={
       net['X']: wav_data})[0]
-
   return encoding
 
 
@@ -75,23 +81,30 @@ def synthesize(wav_file,
                ckpt_path='model.ckpt-200000',
                out_file='synthesis.wav',
                sample_length=64000,
-               synth_length=64000):
+               samples_per_save=1000):
   """Resynthesize an input audio file.
 
   Args:
     wav_file: Location of a wave file to load.
     ckpt_path: Location of the pretrained model. [model.ckpt-200000]
     out_file: Location to save the synthesized wave file. [synthesis.wav]
-    sample_length: The total length of the input wave file, padded with 0s. [64000]
-    synth_length: The total length to synthesize. [64000]
+    sample_length: Length of file to synthesize. [wav_file.length]
   """
+  # Audio to resynthesize
+  wav_data = utils.load_audio(wav_file, sample_length, sr=16000)
+
+  # Make sure sample_length is a multiple of hop_length
+  hop_length = 512
+  sample_length = (sample_length // hop_length) * hop_length
+  wav_data = wav_data[:sample_length]
 
   # Load up the model for encoding and find the encoding
-  encoding = encode(wav_file, ckpt_path)
+  encoding = encode(wav_data, ckpt_path, sample_length=sample_length)
   encoding_length = encoding.shape[0]
 
-  with tf.Graph().as_default(), tf.Session() as sess:
-    net = load_fastgen_nsynth()
+  session_config = tf.ConfigProto(allow_soft_placement=True)
+  with tf.Graph().as_default(), tf.Session(config=session_config) as sess:
+    net = load_fastgen_nsynth(sample_length=sample_length)
     saver = tf.train.Saver()
     saver.restore(sess, ckpt_path)
 
@@ -103,21 +116,17 @@ def synthesize(wav_file,
         dtype=np.float32)
     audio = np.float32(0)
 
-    for sample_i in range(synth_length):
-      enc_i = int(sample_i /
-        float(sample_length) *
-        float(encoding_length))
-      res = sess.run(
-          [net['predictions'], net['push_ops']],
-          feed_dict={
-            net['X']: np.atleast_2d(audio),
-            net['encoding']: encoding[enc_i]})[0]
-      cdf = np.cumsum(res)
-      idx = np.random.rand()
-      i = 0
-      while(cdf[i] < idx):
-        i = i + 1
-      audio = utils.inv_mu_law_numpy(i - 128)
+    for sample_i in range(sample_length):
+      enc_i = int(sample_i / float(sample_length) * float(encoding_length))
+      pmf = sess.run([net['predictions'], net['push_ops']],
+              feed_dict={net['X']: np.atleast_2d(audio),
+                         net['encoding']: encoding[enc_i]})[0]
+      sample_bin = sample_categorical(pmf)
+      audio = utils.inv_mu_law_numpy(sample_bin - 128)
       wav_synth[sample_i] = audio
+      if sample_i % 100 == 0:
+        tf.logging.info("Sample: %d" % sample_i)
+      if sample_i % samples_per_save == 0:
+        wavfile.write(out_file, 16000, wav_synth)
 
   wavfile.write(out_file, 16000, wav_synth)

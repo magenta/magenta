@@ -121,7 +121,7 @@ def main(unused_argv=None):
       wavefiles_batch.extend(batch_filler * [wavefiles_batch[-1]])
 
       wavdata = np.array(
-          [utils.load_wav(f)[:sample_length] for f in wavefiles_batch])
+          [utils.load_audio(f, sample_length) for f in wavefiles_batch])
 
       try:
         encoding = sess.run(

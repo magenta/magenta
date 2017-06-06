@@ -18,6 +18,7 @@ from __future__ import division
 from __future__ import print_function
 from six.moves import xrange
 
+import os
 import importlib
 
 # internal imports
@@ -28,6 +29,9 @@ import tensorflow as tf
 
 slim = tf.contrib.slim
 
+
+def shell_path(path):
+  return os.path.abspath(os.path.expanduser(os.path.expandvars(path)))
 
 #===============================================================================
 # WaveNet Functions
@@ -47,34 +51,17 @@ def get_module(module_path):
   return module
 
 
-def load_wav(path):
-  """Load a wav file and convert to floats within [-1, 1].
-
+def load_audio(path, sample_length=64000, sr=16000):
+  """Loading of a wave file.
   Args:
-    path: The CNS file path from which we load.
-
+    audio: Location of a wave file to load.
+    sample_length: The truncated total length of the final wave file.
   Returns:
-    The 16bit data in the range [-1, 1].
+    out: The audio in samples from -1.0 to 1.0
   """
-  _, data_16bit = scipy.io.wavfile.read(tf.gfile.Open(path, "r"))
-  # Assert we are working with 16-bit audio.
-  assert data_16bit.dtype == np.int16
-  return data_16bit.astype(np.float32) / 2**15
-
-
-def load_audio(wav_file, sample_length=64000):
-  """Padded loading of a wave file.
-  Args:
-    wav_file: Location of a wave file to load.
-    sample_length: The total length of the final wave file, padded with 0s.
-  Returns:
-    out: The padded audio in samples from -1.0 to 1.0
-  """
-  wav_data = np.array([load_wav(wav_file)[:sample_length]])
-  wav_data_padded = np.zeros((1, sample_length))
-  wav_data_padded[0, :min(sample_length, wav_data.shape[1])] = wav_data
-  wav_data = wav_data_padded
-  return wav_data
+  audio, _ = librosa.load(path, sr=sr)
+  audio = audio[:sample_length]
+  return audio
 
 
 def mu_law(x, mu=255):

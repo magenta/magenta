@@ -81,6 +81,7 @@ py_binary(
     deps = [
         ":configs",
         ":fastgen",
+        "//magenta/models/nsynth:utils",
         # tensorflow dep
     ],
 )
