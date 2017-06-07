@@ -173,7 +173,6 @@ class CallAndResponseMidiInteraction(MidiInteraction):
         input.
     allow_overlap: A boolean specifying whether to allow the call to overlap
         with the response.
-    enable_metronome: A boolean specifying whether to enable the metronome.
     metronome_channel: The optional 0-based MIDI channel to output metronome on.
         Ignored if `clock_signal` is provided.
     min_listen_ticks_control_number: The optional control change number to use

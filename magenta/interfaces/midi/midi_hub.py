@@ -175,7 +175,6 @@ class Metronome(threading.Thread):
         after this time.
     stop_time: The float wall time in seconds after which the metronome should
         stop, or None if it should continue until `stop` is called.
-    velocity: The velocity of the metronome's tick `note_on` message.
     program: The MIDI program number to use for metronome ticks.
     signals: An ordered collection of MidiSignals whose underlying messages are
         to be output on the metronome's tick, cyclically.
