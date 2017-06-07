@@ -41,17 +41,25 @@ class TimeChangeSplitter(pipeline.Pipeline):
 class Quantizer(pipeline.Pipeline):
   """A Module that quantizes NoteSequence data."""
 
-  def __init__(self, steps_per_quarter=4, name=None):
+  def __init__(self, steps_per_quarter=None, steps_per_second=None, name=None):
     super(Quantizer, self).__init__(
         input_type=music_pb2.NoteSequence,
         output_type=music_pb2.NoteSequence,
         name=name)
+    if (steps_per_quarter is not None) == (steps_per_second is not None):
+      raise ValueError(
+          'Exactly one of steps_per_quarter or steps_per_second must be set.')
     self._steps_per_quarter = steps_per_quarter
+    self._steps_per_second = steps_per_second
 
   def transform(self, note_sequence):
     try:
-      quantized_sequence = sequences_lib.quantize_note_sequence(
-          note_sequence, self._steps_per_quarter)
+      if self._steps_per_quarter is not None:
+        quantized_sequence = sequences_lib.quantize_note_sequence(
+            note_sequence, self._steps_per_quarter)
+      else:
+        quantized_sequence = sequences_lib.quantize_note_sequence_absolute(
+            note_sequence, self._steps_per_second)
       return [quantized_sequence]
     except sequences_lib.MultipleTimeSignatureException as e:
       tf.logging.warning('Multiple time signatures in NoteSequence %s: %s',
