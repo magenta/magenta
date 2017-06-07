@@ -44,14 +44,12 @@ class BaseSequenceGenerator(object):
 
   __metaclass__ = abc.ABCMeta
 
-  def __init__(self, model, details, steps_per_quarter, checkpoint, bundle):
+  def __init__(self, model, details, checkpoint, bundle):
     """Constructs a BaseSequenceGenerator.
 
     Args:
       model: An instance of BaseModel.
       details: A generator_pb2.GeneratorDetails for this generator.
-      steps_per_quarter: What precision to use when quantizing the melody. How
-          many steps per quarter note.
       checkpoint: Where to look for the most recent model checkpoint. Either a
           directory to be used with tf.train.latest_checkpoint or the path to a
           single checkpoint file. Or None if a bundle should be used.
@@ -63,7 +61,6 @@ class BaseSequenceGenerator(object):
     """
     self._model = model
     self._details = details
-    self._steps_per_quarter = steps_per_quarter
     self._checkpoint = checkpoint
     self._bundle = bundle
 
@@ -94,11 +91,6 @@ class BaseSequenceGenerator(object):
     if self._bundle is None:
       return None
     return self._bundle.bundle_details
-
-  @property
-  def steps_per_quarter(self):
-    """Returns the quantized steps per quarter."""
-    return self._steps_per_quarter
 
   @abc.abstractmethod
   def _generate(self, input_sequence, generator_options):
@@ -259,19 +251,3 @@ class BaseSequenceGenerator(object):
     finally:
       if tempdir is not None:
         tf.gfile.DeleteRecursively(tempdir)
-
-  # TODO(fjord): deprecate in favor of calling quantization methods in
-  # sequences_lib.
-  def seconds_to_steps(self, seconds, qpm):
-    """Converts seconds to quantized steps.
-
-    Uses the generator's steps_per_quarter setting and the specified qpm.
-
-    Args:
-      seconds: Number of seconds.
-      qpm: Quarters per minute.
-
-    Returns:
-      Number of steps the seconds represent.
-    """
-    return int(seconds * (qpm / 60.0) * self.steps_per_quarter)
