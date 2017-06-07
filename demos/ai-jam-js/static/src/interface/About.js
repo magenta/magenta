@@ -15,20 +15,37 @@
  */
 
 import 'style/about.css'
-import YouTubeIframeLoader from 'youtube-iframe'
 import events from 'events'
 
 const magentaLink = 'https://magenta.tensorflow.org/'
 const tfLink = 'https://www.tensorflow.org/'
 const toneLink = 'https://github.com/Tonejs/Tone.js'
-const sourceCode = 'https://github.com/googlecreativelab/aiexperiments-ai-duet'
+const sourceCode = 'https://github.com/tensorflow/magenta/demos/ai-jam-js'
+const ogSourceCode = 'https://github.com/googlecreativelab/aiexperiments-ai-duet'
 
-const blurbCopy = `Built by Yotam Mann with friends on the Magenta and Creative Lab teams at Google. 
+const blurbCopy = `Extended from the <a target='_blank' href='${ogSourceCode}'>
+				  AI Duet</a> experiment built by Yotam Mann with
+          friends on the Magenta and Creative Lab teams at Google.
 					It uses <a target='_blank' href='${tfLink}'>TensorFlow</a>,
-					<a target='_blank' href='${toneLink}'>Tone.js</a> and tools 
-					from the <a target='_blank' href='${magentaLink}'>Magenta project</a>. 
-					The open-source code is <a target='_blank' href='${sourceCode}'>available here</a>.
-					Click the keyboard, use your computer keys, or even plug in a MIDI keyboard.`
+					<a target='_blank' href='${toneLink}'>Tone.js</a> and tools
+					from the <a target='_blank' href='${magentaLink}'>Magenta project</a>.
+					The open-source code is <a target='_blank' href='${sourceCode}'>
+					available here</a>.
+
+					<p>Click the keyboard, use your computer keys, or even plug in a MIDI keyboard.</p>
+
+					<p>Keyboard shortcuts:
+					<table style="width:75%">
+					  <tr><td>TAB</td><td><i>Toggles between piano and drums.</i></td></tr>
+					  <tr><td>LEFT/RIGHT</td><td><i>Cycles through available models.</i></td></tr>
+					  <tr><td>UP/DOWN</td><td><i>Adjusts sampling 'temperature'. Higher temperatures sound more random.</i></td></tr>
+					  <tr><td>SPACE</td><td><i>Toggles looping of AI sequence.</i></td></tr>
+					  <tr><td>m</td><td><i>Mutates AI sequence.</i></td></tr>
+					  <tr><td>0-9</td><td><i>Sets AI response duration (in bars). 0 matches your input.</i></td></tr>
+					  <tr><td>SHIFT + 0-9</td><td><i>Sets input sequence duration (in bars). 0 matches your input.</i></td></tr>
+					  <tr><td>DELETE</td><td><i>Stops current AI playback.</i></td></tr>
+					</table></p>
+					`
 
 export class About extends events.EventEmitter{
 	constructor(container){
@@ -58,31 +75,8 @@ export class About extends events.EventEmitter{
 
 		const title = document.createElement('div')
 		title.id = 'title'
-		title.textContent = 'A.I. Duet'
+		title.textContent = 'A.I. Jam'
 		// content.appendChild(title)
-
-		const video = document.createElement('div')
-		video.id = 'video'
-		//vid YT0k99hCY5I 
-		video.innerHTML = `<iframe id='youtube-iframe' src="https://www.youtube.com/embed/0ZE1bfPtvZo?modestbranding=0&showinfo=0&enablejsapi=1" frameborder="0" allowfullscreen></iframe>`
-		content.appendChild(video)
-
-		this._ytplayer = null
-
-		this._playButton = document.createElement('div')
-		this._playButton.id = 'playButton'
-		this._playButton.classList.add('visible')
-		video.appendChild(this._playButton)
-
-		YouTubeIframeLoader.load((YT) => {
-			this._ytplayer = new YT.Player('youtube-iframe', {
-				events : {
-					onStateChange : (state) => {
-						this._playButton.classList.remove('visible')
-					}
-				}
-			})
-		})
 
 		const blurb = document.createElement('div')
 		blurb.id = 'blurb'
@@ -96,37 +90,22 @@ export class About extends events.EventEmitter{
 
 		this._container.classList.remove('visible')
 
-		if (this._ytplayer && this._ytplayer.stopVideo){
-			this._ytplayer.stopVideo()
-		}
 		this.emit('close')
 		if (window.ga){
 			ga('send', 'event', 'AI-Duet', 'Click', 'About - Close')
 		}
 	}
-	open(play=false){
+	open(){
 		this._toggleButton.classList.add('close')
 		this._toggleButton.classList.remove('open')
 
-		this._playButton.classList.add('visible')
 		this._container.classList.add('visible')
 		this.emit('open')
 		if (window.ga){
 			ga('send', 'event', 'AI-Duet', 'Click', 'About - Open')
 		}
-		if (play){
-			this._playVideo()
-		}
 	}
-	// waits until the player is ready to play the video, 
-	// otherwise goes back into waiting loop
-	_playVideo(retries=0){
-		if (this._ytplayer && this._ytplayer.playVideo){
-			this._ytplayer.playVideo()
-		} else if (retries < 10 && this.isOpen()){
-			setTimeout(() => this._playVideo(retries+1), 200);
-		}	
-	}
+
 	isOpen(){
 		return this._container.classList.contains('visible')
 	}

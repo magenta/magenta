@@ -858,7 +858,7 @@ class MidiHub(object):
         times by.
   """
 
-  def __init__(self, input_midi_port, output_midi_port, texture_type,
+  def __init__(self, input_midi_ports, output_midi_ports, texture_type,
                passthrough=True, capture_channel=None, playback_channel=0,
                playback_offset=0.0):
     self._texture_type = texture_type
@@ -888,22 +888,33 @@ class MidiHub(object):
 
     # Open MIDI ports.
 
-    if input_midi_port:
-      self._inport = (
-          input_midi_port if isinstance(input_midi_port, mido.ports.BaseInput)
-          else mido.open_input(
-              input_midi_port,
-              virtual=input_midi_port not in get_available_input_ports()))
-      # Start processing incoming messages.
-      self._inport.callback = self._timestamp_and_handle_message
+    if input_midi_ports:
+      for port in input_midi_ports:
+        if isinstance(port, mido.ports.BaseInput):
+          inport = port
+        else:
+          virtual = port not in get_available_input_ports()
+          if virtual:
+            tf.logging.info(
+              "Opening '%s' as a virtual MIDI port for input.", port)
+          inport = mido.open_input(port, virtual=virtual)
+        # Start processing incoming messages.
+        inport.callback = self._timestamp_and_handle_message
     else:
       tf.logging.warn('No input port specified. Capture disabled.')
       self._inport = None
-    self._outport = (
-      output_midi_port if isinstance(output_midi_port, mido.ports.BaseOutput)
-      else mido.open_output(
-          output_midi_port,
-          virtual=output_midi_port not in get_available_output_ports()))
+
+    outports = []
+    for port in output_midi_ports:
+      if isinstance(port, mido.ports.BaseInput):
+        outports.append(port)
+      else:
+        virtual = port not in get_available_output_ports()
+        if virtual:
+          tf.logging.info(
+            "Opening '%s' as a virtual MIDI port for output.", port)
+        outports.append(mido.open_output(port, virtual=virtual))
+    self._outport = mido.ports.MultiPort(outports)
 
   def __del__(self):
     """Stops all running threads and waits for them to terminate."""

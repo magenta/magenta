@@ -98,51 +98,6 @@
 		$smallScreen : 450px;
 		$mediumScreen : 700px;
 
-		#video {
-			top: 30px;
-			width: 100%;
-			cursor: pointer;
-			position: relative;
-
-			@media (max-width: $smallScreen) {
-				height: 200px;
-			}
-
-			@media (min-width: $smallScreen) and (max-width: $mediumScreen) {
-				height: 380px;
-			}
-
-			@media (min-width: $mediumScreen){
-				height: 450px;
-			}
-
-			iframe {
-				width: 100%;
-				height: 100%;
-			}
-
-			#playButton {
-				pointer-events: none;
-				position: absolute;
-				top: 50%;
-				left: 50%;
-				transform: translate(-50%, -50%);
-				width: 100px;
-				height: 100px;
-				background-image: url(../images/play_button.svg);
-				background-size: 100% 100%;
-				display: none;
-
-				&.visible {
-					display: initial;
-				}
-			}
-
-			&:hover #playButton svg{
-				fill: blue;
-			}
-		}
-
 		#blurb {
 
 			position: relative;

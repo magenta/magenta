@@ -22,11 +22,12 @@ import buckets from 'buckets-js'
 import Buffer from 'Tone/core/Buffer'
 
 class Keyboard extends events.EventEmitter{
-	constructor(container, midi){
+	constructor(container, midi, magenta){
 		super()
 
 		this._container = container
 		this._midi = midi
+		this._magenta = magenta
 
 		this._active = false
 		this._drumMode = false
@@ -135,7 +136,7 @@ class Keyboard extends events.EventEmitter{
 			return
 		}
 		if (!ai) {
-			this._midi.sendKeyDown(note)
+			this._magenta.selected().sendKeyDown(note)
 		}
 		if (!this._currentKeys[note]){
 			this._currentKeys[note] = 0
@@ -152,7 +153,7 @@ class Keyboard extends events.EventEmitter{
 			return
 		}
 		if (!ai) {
-			this._midi.sendKeyUp(note)
+			this._magenta.selected().sendKeyUp(note)
 		}
 		//add a little time to it in edge cases where the keydown and keyup are at the same time
 		time += 0.01

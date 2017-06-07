@@ -60,7 +60,7 @@ document.body.appendChild(container)
 const magenta = new Magenta()
 const midi = new Midi(magenta)
 const glow = new Glow(container)
-const keyboard = new Keyboard(container, midi)
+const keyboard = new Keyboard(container, midi, magenta)
 
 const sound = new Sound()
 sound.load()

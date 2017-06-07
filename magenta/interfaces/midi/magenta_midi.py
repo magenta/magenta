@@ -39,13 +39,13 @@ tf.app.flags.DEFINE_bool(
     False,
     'Only list available MIDI ports.')
 tf.app.flags.DEFINE_string(
-    'input_port',
+    'input_ports',
     'magenta_in',
-    'The name of the input MIDI port.')
+    'Comma-separated list of names of the input MIDI ports.')
 tf.app.flags.DEFINE_string(
-    'output_port',
+    'output_ports',
     'magenta_out',
-    'The name of the output MIDI port.')
+    'Comma-separated list of names of the output MIDI ports.')
 tf.app.flags.DEFINE_bool(
     'passthrough',
     True,
@@ -315,11 +315,8 @@ def main(unused_argv):
       return
 
   # Initialize MidiHub.
-  if FLAGS.input_port not in midi_hub.get_available_input_ports():
-    print "Opening '%s' as a virtual MIDI port for input." % FLAGS.input_port
-  if FLAGS.output_port not in midi_hub.get_available_output_ports():
-    print "Opening '%s' as a virtual MIDI port for output." % FLAGS.output_port
-  hub = midi_hub.MidiHub(FLAGS.input_port, FLAGS.output_port,
+  hub = midi_hub.MidiHub(FLAGS.input_ports.split(','),
+                         FLAGS.output_ports.split(','),
                          midi_hub.TextureType.POLYPHONIC,
                          passthrough=FLAGS.passthrough,
                          capture_channel=FLAGS.capture_channel,
