@@ -36,11 +36,12 @@ const blurbCopy = `Extended from the <a target='_blank' href='${ogSourceCode}'>
 
 					<p>Keyboard shortcuts:
 					<table style="width:75%">
+					  <tr><td>Z</td><td><i>Toggles the metronome.</i></td></tr>
 					  <tr><td>TAB</td><td><i>Toggles between piano and drums.</i></td></tr>
 					  <tr><td>LEFT/RIGHT</td><td><i>Cycles through available models.</i></td></tr>
 					  <tr><td>UP/DOWN</td><td><i>Adjusts sampling 'temperature'. Higher temperatures sound more random.</i></td></tr>
 					  <tr><td>SPACE</td><td><i>Toggles looping of AI sequence.</i></td></tr>
-					  <tr><td>m</td><td><i>Mutates AI sequence.</i></td></tr>
+					  <tr><td>M</td><td><i>Mutates AI sequence.</i></td></tr>
 					  <tr><td>0-9</td><td><i>Sets AI response duration (in bars). 0 matches your input.</i></td></tr>
 					  <tr><td>SHIFT + 0-9</td><td><i>Sets input sequence duration (in bars). 0 matches your input.</i></td></tr>
 					  <tr><td>DELETE</td><td><i>Stops current AI playback.</i></td></tr>

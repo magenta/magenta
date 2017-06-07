@@ -1,11 +1,11 @@
 {
-  "name": "ai-duet",
+  "name": "ai-jam",
   "version": "1.0.0",
   "description": "",
   "main": "build/Main.js",
   "repository": {
     "type": "git",
-    "url": "https://creativelab-internal.googlesource.com/cl-mlx-piano/"
+    "url": "https://magenta.tensorflow.org/"
   },
   "dependencies": {
     "autoprefixer-loader": "^3.2.0",

@@ -35,7 +35,7 @@ tf.app.flags.DEFINE_integer(
     'The control change number to use with value 127 as a signal for a tick of '
     'the clock (1 bar) and a value of 0 for each sub-tick (1 beat).')
 tf.app.flags.DEFINE_integer(
-    'output_channels',
+    'channel',
     '1',
     '0-based MIDI channel numbers to output to.')
 tf.app.flags.DEFINE_string(

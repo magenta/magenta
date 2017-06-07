@@ -84,7 +84,7 @@ document.body.addEventListener('keyup', (e) => {
     	magenta.selected().adjustBundleIndex(1)
     } else if (e.keyCode == 32) {  // Space bar
     	magenta.selected().toggleLoop()
-    } else if (e.keyCode == 77) {  // m
+    } else if (e.keyCode == 77) {  // M
     	magenta.selected().triggerMutate()
     } else if (e.keyCode == 38) {  // Up arrow
     	magenta.selected().adjustTemperature(2)
@@ -95,7 +95,9 @@ document.body.addEventListener('keyup', (e) => {
     } else if (e.keyCode == 9) {  // Tab
     	keyboard.toggleDrumMode()
     	magenta.toggleSelected()
-		}
+    } else if (e.keyCode == 90) {  // Z
+    	midi.toggleMetronome()
+    }
 }, true)
 
 keyboard.on('keyDown', (note, time, ai=false, drum=false) => {

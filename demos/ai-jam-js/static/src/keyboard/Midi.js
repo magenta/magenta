@@ -15,6 +15,7 @@
  */
 
 import events from 'events'
+import Tone from 'Tone/core/Tone'
 import WebMidi from 'webmidi'
 
 // 1-based
@@ -56,7 +57,8 @@ class Midi extends events.EventEmitter{
 
 	toggleMetronome() {
 		this._metronomeEnabled = !this._metronomeEnabled
-		if this._metronomeEnabled {
+		console.log('Metronome enabled: ' + this._metronomeEnabled)
+		if (this._metronomeEnabled) {
 			this._startMetronome()
 		} else {
 			this._stopMetronome()
@@ -66,11 +68,11 @@ class Midi extends events.EventEmitter{
 	_startMetronome() {
 		this._fromClock.addListener(
 				'controlchange', 'all', (event) => {
-					if (event.controller.number == this._magenta.CLOCK_CC) {
-						this.emit('keyDown', event.value == 127 ? 37 : 31,
-							        undefined, true, true)
-				}
-		})
+					this.emit('keyDown', event.value == 127 ? 37 : 31,
+						        Tone.now(), true, true)
+					this.emit('keyUp', event.value == 127 ? 37 : 31,
+						        Tone.now() + 0.15, true, true)
+				})
 	}
 
 	_stopMetronome() {
@@ -79,7 +81,7 @@ class Midi extends events.EventEmitter{
 
 	_bindInput(inputDevice){
 		if (this._isEnabled){
-			if (inputDevice.name == this._magenta.CLOCK_PORT_NAME) {
+			if (inputDevice.name == this._magenta.clockPortName()) {
 				this._fromClock = inputDevice
 				console.info('Connected to clock on port ' + inputDevice.name)
 				if (this._metronomeEnabled) {

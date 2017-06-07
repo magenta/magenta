@@ -100,7 +100,7 @@ tf.app.flags.DEFINE_boolean(
     'allow_overlap',
     False,
     'Whether to allow the call to overlap with the response.')
-tf.app.flags.DEFINE_integer(
+tf.app.flags.DEFINE_boolean(
     'enable_metronome',
     True,
     'Whether to enable the metronome. Ignored if `clock_control_number` is '
