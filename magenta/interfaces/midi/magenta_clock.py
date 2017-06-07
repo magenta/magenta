@@ -55,11 +55,11 @@ def main(unused_argv):
 
   # Assumes 4 beats per bar.
   metronome_signals = (
-    [midi_hub.MidiSignal(control=cc, value=127)] +
-    [midi_hub.MidiSignal(control=cc, value=0)] * 3)
+      [midi_hub.MidiSignal(control=cc, value=127)] +
+      [midi_hub.MidiSignal(control=cc, value=0)] * 3)
 
   hub.start_metronome(
-    FLAGS.qpm, start_time=0, signals=metronome_signals, channel=FLAGS.channel)
+      FLAGS.qpm, start_time=0, signals=metronome_signals, channel=FLAGS.channel)
 
   try:
     while True:

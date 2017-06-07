@@ -213,7 +213,7 @@ class Metronome(threading.Thread):
     # Set the program number for the channels.
     self._outport.send(
         mido.Message(
-          type='program_change', program=program, channel=self._channel))
+            type='program_change', program=program, channel=self._channel))
     self._period = 60. / qpm
     self._start_time = start_time
     self._stop_time = stop_time
@@ -894,7 +894,7 @@ class MidiHub(object):
           virtual = port not in get_available_input_ports()
           if virtual:
             tf.logging.info(
-              "Opening '%s' as a virtual MIDI port for input.", port)
+                "Opening '%s' as a virtual MIDI port for input.", port)
           inport = mido.open_input(port, virtual=virtual)
         # Start processing incoming messages.
         inport.callback = self._timestamp_and_handle_message
@@ -910,7 +910,7 @@ class MidiHub(object):
         virtual = port not in get_available_output_ports()
         if virtual:
           tf.logging.info(
-            "Opening '%s' as a virtual MIDI port for output.", port)
+              "Opening '%s' as a virtual MIDI port for output.", port)
         outports.append(mido.open_output(port, virtual=virtual))
     self._outport = mido.ports.MultiPort(outports)
 
@@ -1133,10 +1133,10 @@ class MidiHub(object):
     """
     if self._metronome is not None and self._metronome.is_alive():
       self._metronome.update(
-        qpm, start_time, signals=signals, channel=channel)
+          qpm, start_time, signals=signals, channel=channel)
     else:
       self._metronome = Metronome(
-        self._outport, qpm, start_time, signals=signals, channel=channel)
+          self._outport, qpm, start_time, signals=signals, channel=channel)
       self._metronome.start()
 
   @concurrency.serialized
