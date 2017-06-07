@@ -37,12 +37,16 @@ class Keyboard extends events.EventEmitter{
 		 */
 		this._keyboard = new AudioKeys({polyphony : 88, rows : 1, octaveControls : false})
 		this._keyboard.down((e) => {
-			this.keyDown(e.note, undefined, false, this._drumMode)
-			this._emitKeyDown(e.note, undefined, false, this._drumMode)
+			// The drums model only plays lower "notes".
+			var note = e.note - this._drumMode * 24
+			this.keyDown(note, undefined, false, this._drumMode)
+			this._emitKeyDown(note, undefined, false, this._drumMode)
 		})
 		this._keyboard.up((e) => {
-			this.keyUp(e.note, undefined, false, this._drumMode)
-			this._emitKeyUp(e.note, undefined, false, this._drumMode)
+			// The drums model only plays lower "notes".
+			var note = e.note - this._drumMode * 24
+			this.keyUp(note, undefined, false, this._drumMode)
+			this._emitKeyUp(note, undefined, false, this._drumMode)
 		})
 
 		/**
@@ -141,7 +145,6 @@ class Keyboard extends events.EventEmitter{
 			time : time,
 			callback : this._keyboardInterface.keyDown.bind(this._keyboardInterface, note, ai)
 		})
-
 	}
 
 	keyUp(note, time=Tone.now(), ai=false, drum=false){
@@ -175,10 +178,7 @@ class Keyboard extends events.EventEmitter{
 		let octaves = Math.round((window.innerWidth / keyWidth) / 12)
 		octaves = Math.max(octaves, 2)
 		octaves = Math.min(octaves, 7)
-		let baseNote = 48
-		if (octaves > 5){
-			baseNote -= (octaves - 5) * 12
-		}
+		let baseNote = 36
 		this._keyboardInterface.resize(baseNote, octaves)
 	}
 

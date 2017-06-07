@@ -18,9 +18,13 @@ from magenta.protobuf import music_pb2
 
 _DEFAULT_METRONOME_TICK_DURATION = 0.05
 _DEFAULT_METRONOME_PROGRAM = 117  # Melodic Tom
-_DEFAULT_METRONOME_PITCHES = [44, 35, 35, 35]
-_DEFAULT_METRONOME_VELOCITY = 64
-_METRONOME_CHANNEL = 1
+_DEFAULT_METRONOME_MESSAGES = [
+    mido.Message(type='note_on', note=44, velocity=64),
+    mido.Message(type='note_on', note=35, velocity=64),
+    mido.Message(type='note_on', note=35, velocity=64),
+    mido.Message(type='note_on', note=35, velocity=64),
+]
+_DEFAULT_METRONOME_CHANNEL = 1
 
 # 0-indexed.
 _DRUM_CHANNEL = 9
@@ -98,6 +102,9 @@ class MidiSignal(object):
           'Either a mido.Message should be provided or arguments. Not both.')
 
     type_ = msg.type if msg is not None else kwargs.get('type')
+    if 'type' in kwargs:
+      del kwargs['type']
+
     if type_ is not None and type_ not in self._VALID_ARGS:
       raise MidiHubException(
           "The type of a MidiSignal must be either 'note_on', 'note_off', "
@@ -126,23 +133,33 @@ class MidiSignal(object):
         if len(inferred_types) == 1:
           type_ = inferred_types[0]
 
-    if msg is not None:
-      self._regex_pattern = '^' + mido.messages.format_as_string(
-          msg, include_time=False) + r' time=\d+.\d+$'
+    self._msg = msg
+    self._kwargs = kwargs
+    self._type = type_
+    self._inferred_types = inferred_types
+
+  def to_message(self):
+    if self._msg:
+      return self._msg
     else:
-      # Generate regex pattern.
-      parts = ['.*' if type_ is None else type_]
-      for name in mido.messages.SPEC_BY_TYPE[inferred_types[0]][
-          'value_names']:
-        if name in kwargs:
-          parts.append('%s=%d' % (name, kwargs[name]))
-        else:
-          parts.append(r'%s=\d+' % name)
-      self._regex_pattern = '^' + ' '.join(parts) + r' time=\d+.\d+$'
+      return mido.Message(self._type, **self._kwargs)
 
   def __str__(self):
     """Returns a regex pattern for matching against a mido.Message string."""
-    return self._regex_pattern
+    if self._msg is not None:
+      regex_pattern = '^' + mido.messages.format_as_string(
+          self._msg, include_time=False) + r' time=\d+.\d+$'
+    else:
+      # Generate regex pattern.
+      parts = ['.*' if self._type is None else self._type]
+      for name in mido.messages.SPEC_BY_TYPE[self._inferred_types[0]][
+          'value_names']:
+        if name in self._kwargs:
+          parts.append('%s=%d' % (name, self._kwargs[name]))
+        else:
+          parts.append(r'%s=\d+' % name)
+      regex_pattern = '^' + ' '.join(parts) + r' time=\d+.\d+$'
+    return regex_pattern
 
 
 class Metronome(threading.Thread):
@@ -169,39 +186,41 @@ class Metronome(threading.Thread):
                qpm,
                start_time,
                stop_time=None,
-               velocity=_DEFAULT_METRONOME_VELOCITY,
                program=_DEFAULT_METRONOME_PROGRAM,
-               pitches=None,
-               duration=_DEFAULT_METRONOME_TICK_DURATION):
+               signals=None,
+               duration=_DEFAULT_METRONOME_TICK_DURATION,
+               channels=None):
     self._outport = outport
     self.update(
-        qpm, start_time, stop_time, velocity, program, pitches, duration)
+        qpm, start_time, stop_time, program, signals, duration, channels)
     super(Metronome, self).__init__()
 
   def update(self,
              qpm,
              start_time,
              stop_time=None,
-             velocity=_DEFAULT_METRONOME_VELOCITY,
              program=_DEFAULT_METRONOME_PROGRAM,
-             pitches=None,
-             duration=_DEFAULT_METRONOME_TICK_DURATION):
+             signals=None,
+             duration=_DEFAULT_METRONOME_TICK_DURATION,
+             channels=None):
     """Updates Metronome options."""
     # Locking is not required since variables are independent and assignment is
     # atomic.
-    # Set the program number for the channel.
-    self._outport.send(
-        mido.Message(type='program_change', program=program,
-                     channel=_METRONOME_CHANNEL))
+    self._channels = channels if channels else [_DEFAULT_METRONOME_CHANNEL]
+
+    # Set the program number for the channels.
+    for channel in self._channels:
+      self._outport.send(
+          mido.Message(type='program_change', program=program, channel=channel))
     self._period = 60. / qpm
     self._start_time = start_time
     self._stop_time = stop_time
-    self._velocity = velocity
-    self._pitches = pitches or _DEFAULT_METRONOME_PITCHES
+    self._messages = (_DEFAULT_METRONOME_MESSAGES if signals is None else
+                      [s.to_message() if s else None for s in signals])
     self._duration = duration
 
   def run(self):
-    """Outputs metronome tone on the qpm interval until stop signal received."""
+    """Sends message on the qpm interval until stop signal received."""
     sleeper = concurrency.Sleeper()
     while True:
       now = time.time()
@@ -213,21 +232,22 @@ class Metronome(threading.Thread):
 
       sleeper.sleep_until(tick_time)
 
-      metric_position = tick_number % len(self._pitches)
-      self._outport.send(
-          mido.Message(
-              type='note_on',
-              note=self._pitches[metric_position],
-              channel=_METRONOME_CHANNEL,
-              velocity=self._velocity))
+      metric_position = tick_number % len(self._messages)
+      tick_message = self._messages[metric_position]
 
-      sleeper.sleep(self._duration)
+      if tick_message is None:
+        continue
 
-      self._outport.send(
-          mido.Message(
-              type='note_off',
-              note=self._pitches[metric_position],
-              channel=_METRONOME_CHANNEL))
+      for channel in self._channels:
+        tick_message.channel = channel
+        self._outport.send(tick_message)
+
+      if tick_message.type == 'note_on':
+        sleeper.sleep(self._duration)
+        end_tick_message = mido.Message('note_off', note=tick_message.note)
+        for channel in self._channels:
+          end_tick_message.channel = channel
+          self._outport.send(end_tick_message)
 
   def stop(self, stop_time=0, block=True):
     """Signals for the metronome to stop.
@@ -867,19 +887,24 @@ class MidiHub(object):
     self._metronome = None
 
     # Open MIDI ports.
-    self._inport = (
-        input_midi_port if isinstance(input_midi_port, mido.ports.BaseInput)
-        else mido.open_input(
-            input_midi_port,
-            virtual=input_midi_port not in get_available_input_ports()))
     self._outport = (
-        output_midi_port if isinstance(output_midi_port, mido.ports.BaseOutput)
-        else mido.open_output(
-            output_midi_port,
-            virtual=output_midi_port not in get_available_output_ports()))
+      output_midi_port if isinstance(output_midi_port, mido.ports.BaseOutput)
+      else mido.open_output(
+          output_midi_port,
+          virtual=output_midi_port not in get_available_output_ports()))
 
-    # Start processing incoming messages.
-    self._inport.callback = self._timestamp_and_handle_message
+    if input_midi_port:
+      self._inport = (
+          input_midi_port if isinstance(input_midi_port, mido.ports.BaseInput)
+          else mido.open_input(
+              input_midi_port,
+              virtual=input_midi_port not in get_available_input_ports()))
+      # Start processing incoming messages.
+      self._inport.callback = self._timestamp_and_handle_message
+    else:
+      tf.logging.warn('No input port specified. Capture disabled.')
+      self._inport = None
+
 
   def __del__(self):
     """Stops all running threads and waits for them to terminate."""
@@ -931,7 +956,6 @@ class MidiHub(object):
     """
     if (self._capture_channel is not None and
         msg.channel != self._capture_channel):
-      tf.logging.info(msg.channel)
       return
 
     # Notify any threads waiting for this message.
@@ -1092,7 +1116,7 @@ class MidiHub(object):
       captor.wake_signal_waiters(signal)
 
   @concurrency.serialized
-  def start_metronome(self, qpm, start_time):
+  def start_metronome(self, qpm, start_time, signals=None, channels=None):
     """Starts or updates the metronome with the given arguments.
 
     Args:
@@ -1101,9 +1125,11 @@ class MidiHub(object):
         synchronization and beat alignment. May be in the past.
     """
     if self._metronome is not None and self._metronome.is_alive():
-      self._metronome.update(qpm, start_time)
+      self._metronome.update(
+        qpm, start_time, signals=signals, channels=channels)
     else:
-      self._metronome = Metronome(self._outport, qpm, start_time)
+      self._metronome = Metronome(
+        self._outport, qpm, start_time, signals=signals, channels=channels)
       self._metronome.start()
 
   @concurrency.serialized

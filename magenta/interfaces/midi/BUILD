@@ -75,3 +75,12 @@ py_binary(
         "//magenta/models/polyphony_rnn:polyphony_sequence_generator",
     ],
 )
+
+py_binary(
+    name = "midi_clock",
+    srcs = ["midi_clock.py"],
+    visibility = ["//magenta/tools/pip:__subpackages__"],
+    deps = [
+        ":midi_hub",
+    ],
+)

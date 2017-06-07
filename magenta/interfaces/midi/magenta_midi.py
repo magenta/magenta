@@ -100,10 +100,10 @@ tf.app.flags.DEFINE_boolean(
     'allow_overlap',
     False,
     'Whether to allow the call to overlap with the response.')
-tf.app.flags.DEFINE_boolean(
-    'enable_metronome',
-    True,
-    'Whether to enable the metronome.')
+tf.app.flags.DEFINE_integer(
+    'metronome_channel',
+    None,
+    'The 0-based MIDI channel to output the metronome on. Disabled if None.')
 tf.app.flags.DEFINE_integer(
     'qpm',
     120,
@@ -320,7 +320,7 @@ def main(unused_argv):
   if FLAGS.output_port not in midi_hub.get_available_output_ports():
     print "Opening '%s' as a virtual MIDI port for output." % FLAGS.output_port
   hub = midi_hub.MidiHub(FLAGS.input_port, FLAGS.output_port,
-                         midi_hub.TextureType.MONOPHONIC,
+                         midi_hub.TextureType.POLYPHONIC,
                          passthrough=FLAGS.passthrough,
                          capture_channel=FLAGS.capture_channel,
                          playback_channel=FLAGS.playback_channel,
@@ -360,7 +360,7 @@ def main(unused_argv):
       panic_signal=panic_signal,
       mutate_signal=mutate_signal,
       allow_overlap=FLAGS.allow_overlap,
-      enable_metronome=FLAGS.enable_metronome,
+      metronome_channel=FLAGS.metronome_channel,
       min_listen_ticks_control_number=control_map['min_listen_ticks'],
       max_listen_ticks_control_number=control_map['max_listen_ticks'],
       response_ticks_control_number=control_map['response_ticks'],

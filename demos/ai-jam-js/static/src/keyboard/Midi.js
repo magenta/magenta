@@ -22,8 +22,8 @@ const MAGENTA_METRONOME_CHANNEL = 2
 const PIANO_CHANNEL = 1
 const DRUM_CHANNEL = 10
 
-const FROM_MAGENTA_PORT = 'magenta_out'
-const TO_MAGENTA_PORT = 'magenta_in'
+const FROM_MAGENTA_PORT = 'IAC Driver IAC Bus 2'
+const TO_MAGENTA_PORT = 'IAC Driver IAC Bus 1'
 
 const BUNDLE_CC = 0
 const LOOP_CC = 1
@@ -32,6 +32,7 @@ const TEMPERATURE_CC = 3
 const RESPONSE_TICKS_CC = 4
 const LISTEN_TICKS_CC = 5
 const PANIC_CC = 6
+const CLOCK_CC = 42
 
 class Midi extends events.EventEmitter{
 	constructor(){
@@ -59,13 +60,12 @@ class Midi extends events.EventEmitter{
 					WebMidi.inputs.forEach((input) => this._bindInput(input))
 				}
 				WebMidi.addListener('connected', (device) => {
-					if (device.input){
+					if (device.input) {
 						this._bindInput(device.input)
 					}
-					if (device.output && device.output.name == TO_MAGENTA_PORT){
-						this._toMagenta = device.output
+					if (device.output && device.name == TO_MAGENTA_PORT) {
+						this._toMagenta = device.output;
 					}
-
 				})
 			}
 		})
@@ -132,8 +132,20 @@ class Midi extends events.EventEmitter{
 
 	_bindInput(inputDevice){
 		if (this._isEnabled){
+			if (inputDevice.name == TO_MAGENTA_PORT) {
+				console.info('Connected to clock on port ' + TO_MAGENTA_PORT)
+				inputDevice.addListener(
+					'controlchange', 'all', (event) => {
+						if (event.controller.number == CLOCK_CC) {
+							this.emit('keyDown', event.value == 127 ? 37 : 31,
+								        undefined, true, true)
+						}
+					}
+				)
+				return
+			}
 			console.info('Adding port: ' + inputDevice.name)
-			var isMagentaIn = inputDevice.name == "magenta_out"
+			var isMagentaIn = inputDevice.name == FROM_MAGENTA_PORT
 
 			WebMidi.addListener('disconnected', (device) => {
 				if (device.input){

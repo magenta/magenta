@@ -24,7 +24,7 @@ class Sampler{
 	constructor(baseUrl='', range=[21, 108]){
 		this._urls = {}
 		for (var note = range[0]; note <= range[1]; note++) {
-			this._urls[note - 1] = baseUrl + note + '.mp3'
+			this._urls[note] = baseUrl + note + '.mp3'
 		}
 		this._player = null
 

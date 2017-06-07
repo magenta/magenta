@@ -223,7 +223,7 @@ class CallAndResponseMidiInteraction(MidiInteraction):
                panic_signal=None,
                mutate_signal=None,
                allow_overlap=False,
-               enable_metronome=False,
+               metronome_channel=None,
                min_listen_ticks_control_number=None,
                max_listen_ticks_control_number=None,
                response_ticks_control_number=None,
@@ -243,7 +243,8 @@ class CallAndResponseMidiInteraction(MidiInteraction):
     self._panic_signal = panic_signal
     self._mutate_signal = mutate_signal
     self._allow_overlap = allow_overlap
-    self._enable_metronome = enable_metronome
+    self._metronome_channels = (
+        [metronome_channel] if metronome_channel is not None else [])
     self._min_listen_ticks_control_number = min_listen_ticks_control_number
     self._max_listen_ticks_control_number = max_listen_ticks_control_number
     self._response_ticks_control_number = response_ticks_control_number
@@ -345,8 +346,9 @@ class CallAndResponseMidiInteraction(MidiInteraction):
     start_time = time.time()
     self._captor = self._midi_hub.start_capture(self._qpm, start_time)
 
-    if not self._clock_signal and self._enable_metronome:
-      self._midi_hub.start_metronome(self._qpm, start_time)
+    if not self._clock_signal and self._metronome_channels:
+      self._midi_hub.start_metronome(
+          self._qpm, start_time, channels=self._metronome_channels)
 
     # Set callback for end call signal.
     if self._end_call_signal is not None:
@@ -385,8 +387,9 @@ class CallAndResponseMidiInteraction(MidiInteraction):
       tick_time = captured_sequence.total_time
 
       # Set to current QPM, since it might have changed.
-      if self._enable_metronome:
-        self._midi_hub.start_metronome(self._qpm, tick_time)
+      if not self._clock_signal and self._metronome_channels:
+        self._midi_hub.start_metronome(
+            self._qpm, tick_time, channels=self._metronome_channels)
       captured_sequence.tempos[0].qpm = self._qpm
 
       tick_duration = tick_time - last_tick_time
