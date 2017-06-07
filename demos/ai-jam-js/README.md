@@ -24,7 +24,7 @@ Install [Flask](http://flask.pocoo.org/) and [Magenta](/README.md#Installation).
 Then launch the experience from the command line:
 
 ```bash
-sh RUN.sh
+sh RUN_DEMO.sh
 ```
 
 ## BUILDING

@@ -101,10 +101,15 @@ tf.app.flags.DEFINE_boolean(
     False,
     'Whether to allow the call to overlap with the response.')
 tf.app.flags.DEFINE_integer(
+    'enable_metronome',
+    True,
+    'Whether to enable the metronome. Ignored if `clock_control_number` is '
+    'provided.')
+tf.app.flags.DEFINE_integer(
     'metronome_channel',
-    None,
-    'The 0-based MIDI channel to output the metronome on. Disabled if None. '
-    'Ignored if `clock_control_number` is provided.')
+    1,
+    'The 0-based MIDI channel to output the metronome on. Ignored if '
+    '`enable_metronome` is False or `clock_control_number` is provided.')
 tf.app.flags.DEFINE_integer(
     'qpm',
     120,
@@ -342,6 +347,8 @@ def main(unused_argv):
   mutate_signal = (
       None if control_map['mutate'] is None else
       midi_hub.MidiSignal(control=control_map['mutate'], value=127))
+  metronome_channel = (
+      FLAGS.metronome_channel if FLAGS.enable_metronome else None)
   interaction = midi_interaction.CallAndResponseMidiInteraction(
       hub,
       generators,
@@ -353,7 +360,7 @@ def main(unused_argv):
       panic_signal=panic_signal,
       mutate_signal=mutate_signal,
       allow_overlap=FLAGS.allow_overlap,
-      metronome_channel=FLAGS.metronome_channel,
+      metronome_channel=metronome_channel,
       min_listen_ticks_control_number=control_map['min_listen_ticks'],
       max_listen_ticks_control_number=control_map['max_listen_ticks'],
       response_ticks_control_number=control_map['response_ticks'],

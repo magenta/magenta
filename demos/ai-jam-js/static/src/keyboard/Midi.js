@@ -17,16 +17,9 @@
 import events from 'events'
 import WebMidi from 'webmidi'
 
-const MAGENTA_METRONOME_CHANNEL = 2
-
+// 1-based
 const PIANO_CHANNEL = 1
 const DRUM_CHANNEL = 10
-
-const FROM_MAGENTA_PORT = 'magenta_out'
-const TO_MAGENTA_PIANO_PORT = 'magenta_piano_in'
-const TO_MAGENTA_DRUMS_PORT = 'magenta_drums_in'
-
-const CLOCK_CC = 42
 
 class Midi extends events.EventEmitter{
 	constructor(magenta){
@@ -34,8 +27,9 @@ class Midi extends events.EventEmitter{
 
 		this._isEnabled = false
 
-		this._mPort = 0
 		this._magenta = magenta
+
+		this._metronomeEnabled = false
 
 		WebMidi.enable((err) => {
 			if (!err){
@@ -60,20 +54,40 @@ class Midi extends events.EventEmitter{
 		})
 	}
 
+	toggleMetronome() {
+		this._metronomeEnabled = !this._metronomeEnabled
+		if this._metronomeEnabled {
+			this._startMetronome()
+		} else {
+			this._stopMetronome()
+		}
+	}
+
+	_startMetronome() {
+		this._fromClock.addListener(
+				'controlchange', 'all', (event) => {
+					if (event.controller.number == this._magenta.CLOCK_CC) {
+						this.emit('keyDown', event.value == 127 ? 37 : 31,
+							        undefined, true, true)
+				}
+		})
+	}
+
+	_stopMetronome() {
+		this._fromClock.removeListener('controlchange')
+	}
+
 	_bindInput(inputDevice){
 		if (this._isEnabled){
-			if (inputDevice.name == this._magenta.clockPortName()) {
+			if (inputDevice.name == this._magenta.CLOCK_PORT_NAME) {
+				this._fromClock = inputDevice
 				console.info('Connected to clock on port ' + inputDevice.name)
-				inputDevice.addListener(
-					'controlchange', 'all', (event) => {
-						if (event.controller.number == CLOCK_CC) {
-							this.emit('keyDown', event.value == 127 ? 37 : 31,
-								        undefined, true, true)
-						}
-					}
-				)
+				if (this._metronomeEnabled) {
+					this._startMetronome()
+				}
 				return
 			}
+
 			var isMagentaIn = this._magenta.fromPortName() == inputDevice.name
 
 			if (isMagentaIn) {
