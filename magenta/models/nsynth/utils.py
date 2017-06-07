@@ -110,6 +110,37 @@ def inv_mu_law_numpy(x, mu=255.0):
   out = np.where(np.equal(x, 0), x, out)
   return out
 
+def trim_for_encoding(wav_data, sample_length, hop_length=512):
+  """Make sure audio is a even multiple of hop_szie.
+  Args:
+    wav_data: 1-D or 2-D array of floats.
+    sample_length: Max length of audio data.
+    hop_length: Pooling size of WaveNet autoencoder.
+
+  Returns:
+    wav_data: Trimmed array.
+    sample_length: Length of trimmed array.
+  """
+  if wav_data.ndim == 1:
+    # Max sample length is the data length
+    if sample_length > wav_data.size:
+      sample_length = wav_data.size
+    # Multiple of hop_length
+    sample_length = (sample_length // hop_length) * hop_length
+    # Trim
+    wav_data = wav_data[:sample_length]
+  # Assume all examples are the same length
+  elif wav_data.ndim == 2:
+    # Max sample length is the data length
+    if sample_length > wav_data[0].size:
+      sample_length = wav_data[0].size
+    # Multiple of hop_length
+    sample_length = (sample_length // hop_length) * hop_length
+    # Trim
+    wav_data = wav_data[:, :sample_length]
+
+  return wav_data, sample_length
+
 
 #===============================================================================
 # Baseline Functions

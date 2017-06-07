@@ -106,6 +106,7 @@ py_binary(
     ],
     deps = [
         ":configs",
+        ":fastgen",
         "//magenta/models/nsynth:reader",
         "//magenta/models/nsynth:utils",
         # numpy dep

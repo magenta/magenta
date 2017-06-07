@@ -23,8 +23,9 @@ from magenta.models.nsynth.wavenet import masked
 class FastGenerationConfig(object):
   """Configuration object that helps manage the graph."""
 
-  def __init__(self):
+  def __init__(self, batch_size=1):
     """."""
+    self.batch_size = batch_size
 
 
   def build(self, inputs):
@@ -47,7 +48,7 @@ class FastGenerationConfig(object):
 
     # Encode the source with 8-bit Mu-Law.
     x = inputs['wav']
-    batch_size = 1
+    batch_size = self.batch_size
     x_quantized = utils.mu_law(x)
     x_scaled = tf.cast(x_quantized, tf.float32) / 128.0
     x_scaled = tf.expand_dims(x_scaled, 2)
