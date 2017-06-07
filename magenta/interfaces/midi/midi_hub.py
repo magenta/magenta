@@ -139,10 +139,12 @@ class MidiSignal(object):
     self._inferred_types = inferred_types
 
   def to_message(self):
+    """Returns a message using the signal's specifications, if possible."""
     if self._msg:
       return self._msg
-    else:
-      return mido.Message(self._type, **self._kwargs)
+    if not self._type:
+      raise MidiHubException('Cannot build message if type is not inferrable.')
+    return mido.Message(self._type, **self._kwargs)
 
   def __str__(self):
     """Returns a regex pattern for matching against a mido.Message string."""
@@ -175,9 +177,10 @@ class Metronome(threading.Thread):
         stop, or None if it should continue until `stop` is called.
     velocity: The velocity of the metronome's tick `note_on` message.
     program: The MIDI program number to use for metronome ticks.
-    pitches: An ordered collection of integes representing MIDI pitches of the
-         metronome's tick, which will be cycled through.
+    signals: An ordered collection of MidiSignals whose underlying messages are
+        to be output on the metronome's tick, cyclically.
     duration: The duration of the metronome's tick.
+    channel: The MIDI channel to output on.
   """
   daemon = True
 
@@ -189,10 +192,10 @@ class Metronome(threading.Thread):
                program=_DEFAULT_METRONOME_PROGRAM,
                signals=None,
                duration=_DEFAULT_METRONOME_TICK_DURATION,
-               channels=None):
+               channel=None):
     self._outport = outport
     self.update(
-        qpm, start_time, stop_time, program, signals, duration, channels)
+        qpm, start_time, stop_time, program, signals, duration, channel)
     super(Metronome, self).__init__()
 
   def update(self,
@@ -202,16 +205,16 @@ class Metronome(threading.Thread):
              program=_DEFAULT_METRONOME_PROGRAM,
              signals=None,
              duration=_DEFAULT_METRONOME_TICK_DURATION,
-             channels=None):
+             channel=None):
     """Updates Metronome options."""
     # Locking is not required since variables are independent and assignment is
     # atomic.
-    self._channels = channels if channels else [_DEFAULT_METRONOME_CHANNEL]
+    self._channel = _DEFAULT_METRONOME_CHANNEL if channel is None else channel
 
     # Set the program number for the channels.
-    for channel in self._channels:
-      self._outport.send(
-          mido.Message(type='program_change', program=program, channel=channel))
+    self._outport.send(
+        mido.Message(
+          type='program_change', program=program, channel=self._channel))
     self._period = 60. / qpm
     self._start_time = start_time
     self._stop_time = stop_time
@@ -238,16 +241,14 @@ class Metronome(threading.Thread):
       if tick_message is None:
         continue
 
-      for channel in self._channels:
-        tick_message.channel = channel
-        self._outport.send(tick_message)
+      tick_message.channel = self._channel
+      self._outport.send(tick_message)
 
       if tick_message.type == 'note_on':
         sleeper.sleep(self._duration)
-        end_tick_message = mido.Message('note_off', note=tick_message.note)
-        for channel in self._channels:
-          end_tick_message.channel = channel
-          self._outport.send(end_tick_message)
+        end_tick_message = mido.Message(
+            'note_off', note=tick_message.note, channel=self._channel)
+        self._outport.send(end_tick_message)
 
   def stop(self, stop_time=0, block=True):
     """Signals for the metronome to stop.
@@ -859,11 +860,9 @@ class MidiHub(object):
   """
 
   def __init__(self, input_midi_ports, output_midi_ports, texture_type,
-               passthrough=True, capture_channel=None, playback_channel=0,
-               playback_offset=0.0):
+               passthrough=True, playback_channel=0, playback_offset=0.0):
     self._texture_type = texture_type
     self._passthrough = passthrough
-    self._capture_channel = capture_channel
     self._playback_channel = playback_channel
     self._playback_offset = playback_offset
     # When `passthrough` is True, this is the set of open MIDI note pitches.
@@ -964,10 +963,6 @@ class MidiHub(object):
     Args:
       msg: The mido.Message MIDI message to handle.
     """
-    if (self._capture_channel is not None and
-        msg.channel != self._capture_channel):
-      return
-
     # Notify any threads waiting for this message.
     msg_str = str(msg)
     for regex in list(self._signals):
@@ -1126,20 +1121,23 @@ class MidiHub(object):
       captor.wake_signal_waiters(signal)
 
   @concurrency.serialized
-  def start_metronome(self, qpm, start_time, signals=None, channels=None):
+  def start_metronome(self, qpm, start_time, signals=None, channel=None):
     """Starts or updates the metronome with the given arguments.
 
     Args:
       qpm: The quarter notes per minute to use.
       start_time: The wall time in seconds that the metronome is started on for
         synchronization and beat alignment. May be in the past.
+      signals: An ordered collection of MidiSignals whose underlying messages
+        are to be output on the metronome's tick, cyclically.
+      channel: The MIDI channel to output ticks on.
     """
     if self._metronome is not None and self._metronome.is_alive():
       self._metronome.update(
-        qpm, start_time, signals=signals, channels=channels)
+        qpm, start_time, signals=signals, channel=channel)
     else:
       self._metronome = Metronome(
-        self._outport, qpm, start_time, signals=signals, channels=channels)
+        self._outport, qpm, start_time, signals=signals, channel=channel)
       self._metronome.start()
 
   @concurrency.serialized

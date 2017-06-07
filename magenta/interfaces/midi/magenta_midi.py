@@ -103,7 +103,8 @@ tf.app.flags.DEFINE_boolean(
 tf.app.flags.DEFINE_integer(
     'metronome_channel',
     None,
-    'The 0-based MIDI channel to output the metronome on. Disabled if None.')
+    'The 0-based MIDI channel to output the metronome on. Disabled if None. '
+    'Ignored if `clock_control_number` is provided.')
 tf.app.flags.DEFINE_integer(
     'qpm',
     120,
@@ -138,10 +139,6 @@ tf.app.flags.DEFINE_float(
     'playback_offset',
     0.0,
     'Time in seconds to adjust playback time by.')
-tf.app.flags.DEFINE_integer(
-    'capture_channel',
-    None,
-    'MIDI channel to capture events on. All are captured if `None`.')
 tf.app.flags.DEFINE_integer(
     'playback_channel',
     0,
@@ -319,7 +316,6 @@ def main(unused_argv):
                          FLAGS.output_ports.split(','),
                          midi_hub.TextureType.POLYPHONIC,
                          passthrough=FLAGS.passthrough,
-                         capture_channel=FLAGS.capture_channel,
                          playback_channel=FLAGS.playback_channel,
                          playback_offset=FLAGS.playback_offset)
 
