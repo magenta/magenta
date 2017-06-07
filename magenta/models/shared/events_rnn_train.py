@@ -49,6 +49,7 @@ def run_training(graph, train_dir, num_training_steps=None,
         'Accuracy': accuracy
     }
     hooks = [
+        tf.train.NanTensorHook(loss),
         tf.train.LoggingTensorHook(
             logging_dict, every_n_iter=summary_frequency),
         tf.train.StepCounterHook(
