@@ -40,7 +40,6 @@ class Keyboard extends events.EventEmitter{
 		this._keyboard.down((e) => {
 			// The drums model only plays lower "notes".
 			var note = e.note - this._drumMode * 24
-			console.info(note)
 			this.keyDown(note, undefined, false, this._drumMode)
 			this._emitKeyDown(note, undefined, false, this._drumMode)
 		})
@@ -171,7 +170,7 @@ class Keyboard extends events.EventEmitter{
 		this._drumMode = !this._drumMode
 		this._keyboardInterface.panic(true)
 		this._keyboardInterface.panic(false)
-		console.log('Drum Mode: ' + this._drumMode)
+		console.info('Drum Mode: ' + this._drumMode)
 	}
 
 	_resize(){

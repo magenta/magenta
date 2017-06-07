@@ -17,7 +17,6 @@ from functools import partial
 
 # internal imports
 from magenta.models.drums_rnn import drums_rnn_model
-import tensorflow as tf
 
 import magenta.music as mm
 
