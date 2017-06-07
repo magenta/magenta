@@ -167,7 +167,6 @@ class Keyboard extends events.EventEmitter{
 
 	toggleDrumMode() {
 		this._drumMode = !this._drumMode
-		this._midi.setOutChannel(this._drumMode)
 		this._keyboardInterface.panic(true)
 		this._keyboardInterface.panic(false)
 		console.log('Drum Mode: ' + this._drumMode)

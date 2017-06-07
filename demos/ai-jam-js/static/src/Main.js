@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 
+import {Magenta} from 'ai/Magenta'
 import {Keyboard} from 'keyboard/Keyboard'
 import {Midi} from 'keyboard/Midi'
 import {Sound} from 'sound/Sound'
@@ -56,7 +57,8 @@ container.id = 'container'
 document.body.appendChild(container)
 
 
-const midi = new Midi()
+const magenta = new Magenta()
+const midi = new Midi(magenta)
 const glow = new Glow(container)
 const keyboard = new Keyboard(container, midi)
 
@@ -73,25 +75,26 @@ document.body.addEventListener('keyup', (e) => {
 		if (e.keyCode == 16) {
 			isShifted = false
 		} else if (isShifted && e.keyCode >= 48 && e.keyCode <= 57) {  // SHIFT + 0-9
-      midi.setCallBars(e.keyCode - 48)
+      magenta.selected().setCallBars(e.keyCode - 48)
 		} else if (e.keyCode >= 48 && e.keyCode <= 57) {  // 0-9
-      midi.setResponseBars(e.keyCode - 48)
+      magenta.selected().setResponseBars(e.keyCode - 48)
     } else if (e.keyCode == 37) {  // Left arrow
-    	midi.adjustBundleIndex(-1)
+    	magenta.selected().adjustBundleIndex(-1)
     } else if (e.keyCode == 39) {  // Right arrow
-    	midi.adjustBundleIndex(1)
+    	magenta.selected().adjustBundleIndex(1)
     } else if (e.keyCode == 32) {  // Space bar
-    	midi.toggleLoop()
+    	magenta.selected().toggleLoop()
     } else if (e.keyCode == 77) {  // m
-    	midi.triggerMutate()
+    	magenta.selected().triggerMutate()
     } else if (e.keyCode == 38) {  // Up arrow
-    	midi.adjustTemperature(2)
+    	magenta.selected().adjustTemperature(2)
     } else if (e.keyCode == 40) {  // Down arrow
-    	midi.adjustTemperature(-2)
+    	magenta.selected().adjustTemperature(-2)
     } else if (e.keyCode == 8) {  // Backspace/Delete
-    	midi.triggerPanic()
+    	magenta.selected().triggerPanic()
     } else if (e.keyCode == 9) {  // Tab
     	keyboard.toggleDrumMode()
+    	magenta.toggleSelected()
 		}
 }, true)
 
