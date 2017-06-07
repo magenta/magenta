@@ -109,6 +109,12 @@ def main(unused_argv=None):
       encoding, hop_length = encode(wav_data, 
                                     checkpoint_path, 
                                     sample_length=sample_length)
+      if encoding.ndim == 2:
+        encoding = np.expand_dims(encoding, 0)
+
+      tf.logging.info("Encoding:")
+      tf.logging.info(encoding.shape)
+      tf.logging.info("Sample length: %d" % sample_length)
 
       for num, (wavfile, enc) in enumerate(zip(wavefiles_batch, encoding)):
         filename = "%s_embeddings.npy" % wavfile.split("/")[-1].strip(".wav")

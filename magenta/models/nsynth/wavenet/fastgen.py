@@ -65,7 +65,7 @@ def encode(wav_data, checkpoint_path, sample_length=64000):
     wav_data = np.expand_dims(wav_data, 0)
     batch_size = 1
   elif wav_data.ndim == 2:
-    batch_size = wave_data.shape[0]
+    batch_size = wav_data.shape[0]
 
   # Load up the model for encoding and find the encoding of 'wav_data'
   session_config = tf.ConfigProto(allow_soft_placement=True)
@@ -84,8 +84,8 @@ def encode(wav_data, checkpoint_path, sample_length=64000):
   return encoding, hop_length
 
 
-def synthesize(wav_file=None,
-               encoding_file=None,
+def synthesize(source_file,
+               encodings=False,
                checkpoint_path='model.ckpt-200000',
                out_file='synthesis.wav',
                sample_length=64000,
@@ -93,23 +93,21 @@ def synthesize(wav_file=None,
   """Resynthesize an input audio file.
 
   Args:
-    wav_file: Location of a wave file to load.
-    encoding_file: Location of encoding file to load.
+    source_file: Location of a wave or .npy file to load.
+    encodings: If true load .npy file.
     checkpoint_path: Location of the pretrained model. [model.ckpt-200000]
     out_file: Location to save the synthesized wave file. [synthesis.wav]
-    sample_length: Length of file to synthesize. [wav_file.length]
+    sample_length: Length of file to synthesize. [source_file.length]
   """
-  if wav_file is not None:
+  if encodings:
+    encoding = np.load(source_file)
+    hop_length = Config().ae_hop_length
+  else:
     # Audio to resynthesize
-    wav_data = utils.load_audio(wav_file, sample_length, sr=16000)
+    wav_data = utils.load_audio(source_file, sample_length, sr=16000)
     # Load up the model for encoding and find the encoding
     encoding, hop_length = encode(wav_data, 
                                   checkpoint_path, sample_length=sample_length)
-  elif encoding_file is not None:
-    encoding = np.load(encoding_file)
-    hop_length = Config().ae_hop_length
-  else:
-    raise "Must specify either wav_file or encoding_file"
   # Get lengths
   encoding_length = encoding.shape[0]
   total_length = encoding_length * hop_length
