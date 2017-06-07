@@ -166,10 +166,10 @@ class DrumTrack(events_lib.SimpleEventSequence):
 
     # Group all drum notes that start at the same step.
     all_notes = [note for note in quantized_sequence.notes
-                 if (note.is_drum or ignore_is_drum)  # drums only
-                 and note.velocity  # no zero-velocity notes
-                 # after start_step only
-                 and note.quantized_start_step >= search_start_step]
+                 if ((note.is_drum or ignore_is_drum)  # drums only
+                     and note.velocity  # no zero-velocity notes
+                     # after start_step only
+                     and note.quantized_start_step >= search_start_step)]
     grouped_notes = collections.defaultdict(list)
     for note in all_notes:
       grouped_notes[note.quantized_start_step].append(note)
