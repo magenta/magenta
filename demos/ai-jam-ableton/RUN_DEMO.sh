@@ -9,8 +9,8 @@ open NIPS_2016_Demo.als
 open magenta_mira.maxpat
 
 magenta_midi \
-    --input_port="IAC Driver IAC Bus 1" \
-    --output_port="IAC Driver IAC Bus 2" \
+    --input_ports="IAC Driver IAC Bus 1" \
+    --output_ports="IAC Driver IAC Bus 2" \
     --passthrough=false \
     --qpm=120 \
     --allow_overlap=true \
@@ -34,8 +34,8 @@ magenta_midi \
 MAGENTA_PIANO=$!
 
 magenta_midi \
-    --input_port="IAC Driver IAC Bus 3" \
-    --output_port="IAC Driver IAC Bus 4" \
+    --input_ports="IAC Driver IAC Bus 3" \
+    --output_ports="IAC Driver IAC Bus 4" \
     --passthrough=false \
     --qpm=120 \
     --allow_overlap=true \
