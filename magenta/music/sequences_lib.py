@@ -22,8 +22,6 @@ import tensorflow as tf
 
 from magenta.music import chord_symbols_lib
 from magenta.music import constants
-from magenta.pipelines import pipeline
-from magenta.pipelines import statistics
 from magenta.protobuf import music_pb2
 
 # Set the quantization cutoff.
@@ -366,6 +364,8 @@ def split_note_sequence(note_sequence, hop_size_seconds, split_notes=True):
 
   Args:
     note_sequence: The NoteSequence to split.
+    hop_size_seconds: The hop size, in seconds, at which the NoteSequence will
+        be split.
     split_notes: If True, the NoteSequence will be split at all hop positions,
         regardless of whether or not any notes are sustained across the
         potential split time. If False, the NoteSequence will not be split at

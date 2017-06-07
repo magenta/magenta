@@ -177,7 +177,6 @@ py_library(
         ":pipeline",
         "//magenta/music:sequences_lib",
         "//magenta/protobuf:music_py_pb2",
-        # numpy dep
         # tensorflow dep
     ],
 )
@@ -225,7 +224,6 @@ py_library(
     deps = [
         ":pipeline",
         # numpy dep
-        # tensorflow dep
     ],
 )
 

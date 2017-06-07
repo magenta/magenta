@@ -17,7 +17,6 @@ import random
 
 # internal imports
 import numpy as np
-import tensorflow as tf
 
 from magenta.pipelines import pipeline
 from magenta.pipelines import statistics

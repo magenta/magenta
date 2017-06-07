@@ -16,7 +16,6 @@
 import copy
 
 # internal imports
-import numpy as np
 import tensorflow as tf
 
 from magenta.music import constants
@@ -31,6 +30,7 @@ CHORD_SYMBOL = music_pb2.NoteSequence.TextAnnotation.CHORD_SYMBOL
 
 class NoteSequencePipeline(pipeline.Pipeline):
   """Superclass for pipelines that input and output NoteSequences."""
+
   def __init__(self, name=None):
     super(NoteSequencePipeline, self).__init__(
         input_type=music_pb2.NoteSequence,
