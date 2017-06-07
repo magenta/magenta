@@ -19,66 +19,8 @@ import random
 import numpy as np
 import tensorflow as tf
 
-from magenta.music import sequences_lib
 from magenta.pipelines import pipeline
 from magenta.pipelines import statistics
-from magenta.protobuf import music_pb2
-
-
-class TimeChangeSplitter(pipeline.Pipeline):
-  """A Pipeline that splits NoteSequences on time signature & tempo changes."""
-
-  def __init__(self, name=None):
-    super(TimeChangeSplitter, self).__init__(
-        input_type=music_pb2.NoteSequence,
-        output_type=music_pb2.NoteSequence,
-        name=name)
-
-  def transform(self, note_sequence):
-    return sequences_lib.split_note_sequence_on_time_changes(note_sequence)
-
-
-class Quantizer(pipeline.Pipeline):
-  """A Module that quantizes NoteSequence data."""
-
-  def __init__(self, steps_per_quarter=None, steps_per_second=None, name=None):
-    super(Quantizer, self).__init__(
-        input_type=music_pb2.NoteSequence,
-        output_type=music_pb2.NoteSequence,
-        name=name)
-    if (steps_per_quarter is not None) == (steps_per_second is not None):
-      raise ValueError(
-          'Exactly one of steps_per_quarter or steps_per_second must be set.')
-    self._steps_per_quarter = steps_per_quarter
-    self._steps_per_second = steps_per_second
-
-  def transform(self, note_sequence):
-    try:
-      if self._steps_per_quarter is not None:
-        quantized_sequence = sequences_lib.quantize_note_sequence(
-            note_sequence, self._steps_per_quarter)
-      else:
-        quantized_sequence = sequences_lib.quantize_note_sequence_absolute(
-            note_sequence, self._steps_per_second)
-      return [quantized_sequence]
-    except sequences_lib.MultipleTimeSignatureException as e:
-      tf.logging.warning('Multiple time signatures in NoteSequence %s: %s',
-                         note_sequence.filename, e)
-      self._set_stats([statistics.Counter(
-          'sequences_discarded_because_multiple_time_signatures', 1)])
-      return []
-    except sequences_lib.MultipleTempoException as e:
-      tf.logging.warning('Multiple tempos found in NoteSequence %s: %s',
-                         note_sequence.filename, e)
-      self._set_stats([statistics.Counter(
-          'sequences_discarded_because_multiple_tempos', 1)])
-      return []
-    except sequences_lib.BadTimeSignatureException as e:
-      tf.logging.warning('Bad time signature in NoteSequence %s: %s',
-                         note_sequence.filename, e)
-      self._set_stats([statistics.Counter(
-          'sequences_discarded_because_bad_time_signature', 1)])
-      return []
 
 
 class RandomPartition(pipeline.Pipeline):
