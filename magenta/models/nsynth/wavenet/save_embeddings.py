@@ -25,9 +25,9 @@ from magenta.models.nsynth.wavenet.fastgen import encode
 
 FLAGS = tf.app.flags.FLAGS
 
-tf.app.flags.DEFINE_string("wavdir", "",
+tf.app.flags.DEFINE_string("source_path", "",
                            "The directory of WAVs to yield embeddings from.")
-tf.app.flags.DEFINE_string("savedir", "", "Where to save the embeddings.")
+tf.app.flags.DEFINE_string("save_path", "", "Where to save the embeddings.")
 tf.app.flags.DEFINE_string("checkpoint_path", "",
                            "A path to the checkpoint. If not given, the latest "
                            "checkpoint in `expdir` will be used.")
@@ -71,14 +71,14 @@ def main(unused_argv=None):
 
   tf.logging.info("Will restore from checkpoint: %s", checkpoint_path)
 
-  wavdir =  utils.shell_path(FLAGS.wavdir)
-  tf.logging.info("Will load Wavs from %s." % wavdir)
+  source_path =  utils.shell_path(FLAGS.source_path)
+  tf.logging.info("Will load Wavs from %s." % source_path)
 
-  savedir =  utils.shell_path(FLAGS.savedir)
-  tf.logging.info("Will save embeddings to %s." % savedir)
-  if not tf.gfile.Exists(savedir):
+  save_path =  utils.shell_path(FLAGS.save_path)
+  tf.logging.info("Will save embeddings to %s." % save_path)
+  if not tf.gfile.Exists(save_path):
     tf.logging.info("Creating save directory...")
-    tf.gfile.MakeDirs(savedir)
+    tf.gfile.MakeDirs(save_path)
 
   sample_length = FLAGS.sample_length
   batch_size = FLAGS.batch_size
@@ -87,7 +87,7 @@ def main(unused_argv=None):
     return f.lower().endswith(".wav")
 
   wavfiles = sorted([
-      os.path.join(wavdir, fname) for fname in tf.gfile.ListDirectory(wavdir)
+      os.path.join(source_path, fname) for fname in tf.gfile.ListDirectory(source_path)
       if is_wav(fname)
   ])
 
@@ -118,7 +118,7 @@ def main(unused_argv=None):
 
       for num, (wavfile, enc) in enumerate(zip(wavefiles_batch, encoding)):
         filename = "%s_embeddings.npy" % wavfile.split("/")[-1].strip(".wav")
-        with tf.gfile.Open(os.path.join(savedir, filename), "w") as f:
+        with tf.gfile.Open(os.path.join(save_path, filename), "w") as f:
           np.save(f, enc)
 
         if num + batch_filler + 1 == batch_size:
