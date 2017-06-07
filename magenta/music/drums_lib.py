@@ -118,7 +118,8 @@ class DrumTrack(events_lib.SimpleEventSequence):
                               quantized_sequence,
                               search_start_step=0,
                               gap_bars=1,
-                              pad_end=False):
+                              pad_end=False,
+                              ignore_is_drum=False):
     """Populate self with drums from the given quantized NoteSequence object.
 
     A drum track is extracted from the given quantized sequence starting at time
@@ -142,6 +143,7 @@ class DrumTrack(events_lib.SimpleEventSequence):
           drum track is ended.
       pad_end: If True, the end of the drums will be padded with empty events so
           that it will end at a bar boundary.
+      ignore_is_drum: Whether accept notes where `is_drum` is False.
 
     Raises:
       NonIntegerStepsPerBarException: If `quantized_sequence`'s bar length
@@ -164,10 +166,10 @@ class DrumTrack(events_lib.SimpleEventSequence):
 
     # Group all drum notes that start at the same step.
     all_notes = [note for note in quantized_sequence.notes
-                 if note.is_drum                 # drums only
-                 and note.velocity               # no zero-velocity notes
-                 # after start_step only
-                 and note.quantized_start_step >= search_start_step]
+                 if ((note.is_drum or ignore_is_drum)  # drums only
+                     and note.velocity  # no zero-velocity notes
+                     # after start_step only
+                     and note.quantized_start_step >= search_start_step)]
     grouped_notes = collections.defaultdict(list)
     for note in all_notes:
       grouped_notes[note.quantized_start_step].append(note)
@@ -273,7 +275,8 @@ def extract_drum_tracks(quantized_sequence,
                         max_steps_truncate=None,
                         max_steps_discard=None,
                         gap_bars=1.0,
-                        pad_end=False):
+                        pad_end=False,
+                        ignore_is_drum=False):
   """Extracts a list of drum tracks from the given quantized NoteSequence.
 
   This function will search through `quantized_sequence` for drum tracks. A drum
@@ -308,6 +311,7 @@ def extract_drum_tracks(quantized_sequence,
         of no drums is encountered.
     pad_end: If True, the end of the drum track will be padded with empty events
         so that it will end at a bar boundary.
+    ignore_is_drum: Whether accept notes where `is_drum` is False.
 
   Returns:
     drum_tracks: A python list of DrumTrack instances.
@@ -344,7 +348,8 @@ def extract_drum_tracks(quantized_sequence,
           quantized_sequence,
           search_start_step=search_start_step,
           gap_bars=gap_bars,
-          pad_end=pad_end)
+          pad_end=pad_end,
+          ignore_is_drum=ignore_is_drum)
     except events_lib.NonIntegerStepsPerBarException:
       raise
     search_start_step = (
@@ -395,4 +400,3 @@ def midi_file_to_drum_track(midi_file, steps_per_quarter=4):
   drum_track = DrumTrack()
   drum_track.from_quantized_sequence(quantized_sequence)
   return drum_track
-

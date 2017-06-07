@@ -80,7 +80,7 @@ class DrumsRnnSequenceGenerator(mm.BaseSequenceGenerator):
     # Setting gap_bars to infinite ensures that the entire input will be used.
     extracted_drum_tracks, _ = mm.extract_drum_tracks(
         quantized_sequence, search_start_step=input_start_step, min_bars=0,
-        gap_bars=float('inf'))
+        gap_bars=float('inf'), ignore_is_drum=True)
     assert len(extracted_drum_tracks) <= 1
 
     start_step = self.seconds_to_steps(
