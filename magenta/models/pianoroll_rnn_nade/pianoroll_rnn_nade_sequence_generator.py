@@ -39,7 +39,8 @@ class PianorollRnnNadeSequenceGenerator(mm.BaseSequenceGenerator):
           and metagraph. Mutually exclusive with `checkpoint`.
     """
     super(PianorollRnnNadeSequenceGenerator, self).__init__(
-        model, details, steps_per_quarter, checkpoint, bundle)
+        model, details, checkpoint, bundle)
+    self.steps_per_quarter = steps_per_quarter
 
   def _generate(self, input_sequence, generator_options):
     if len(generator_options.input_sections) > 1:

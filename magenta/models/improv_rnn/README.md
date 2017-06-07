@@ -41,8 +41,8 @@ improv_rnn_generate \
 --bundle_file=${BUNDLE_PATH} \
 --output_dir=/tmp/improv_rnn/generated \
 --num_outputs=10 \
---primer_melody="[60]"
---backing_chords="C G Am F C G Am F"
+--primer_melody="[60]" \
+--backing_chords="C G Am F C G Am F" \
 --render_chords
 ```
 
@@ -123,8 +123,8 @@ improv_rnn_generate \
 --run_dir=/tmp/improv_rnn/logdir/run1 \
 --output_dir=/tmp/improv_rnn/generated \
 --num_outputs=10 \
---primer_melody="[57]"
---backing_chords="Am Dm G C F Bdim E E"
+--primer_melody="[57]" \
+--backing_chords="Am Dm G C F Bdim E E" \
 --render_chords
 ```
 

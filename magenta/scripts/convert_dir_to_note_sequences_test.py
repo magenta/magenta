@@ -75,10 +75,8 @@ class ConvertMidiDirToSequencesTest(tf.test.TestCase):
 
     with tempfile.NamedTemporaryFile(
         prefix='ConvertMidiDirToSequencesTest') as output_file:
-      with note_sequence_io.NoteSequenceRecordWriter(
-          output_file.name) as writer:
-        convert_dir_to_note_sequences.convert_directory(
-            root_dir, '', writer, recursive)
+      convert_dir_to_note_sequences.convert_directory(
+          root_dir, output_file.name, 1, recursive)
       actual_filenames = set()
       for sequence in note_sequence_io.note_sequence_record_iterator(
           output_file.name):

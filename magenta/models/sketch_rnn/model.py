@@ -38,7 +38,7 @@ def copy_hparams(hparams):
 def get_default_hparams():
   """Return default HParams for sketch-rnn."""
   hparams = HParams(
-      data_set='aaron_sheep.npz',  # Our dataset.
+      data_set=['aaron_sheep.npz'],  # Our dataset.
       num_steps=10000000,  # Total number of steps of training. Keep large.
       save_every=500,  # Number of batches per checkpoint creation.
       max_seq_len=250,  # Not used. Will be changed by model. [Eliminate?]
@@ -348,7 +348,6 @@ class Model(object):
     if self.hps.is_training:
       self.cost = self.r_cost + self.kl_cost * self.hps.kl_weight
 
-    if self.hps.is_training:
       self.lr = tf.Variable(self.hps.learning_rate, trainable=False)
       optimizer = tf.train.AdamOptimizer(self.lr)
 

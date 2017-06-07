@@ -176,7 +176,7 @@ You will also need to install some required python dependencies. We recommend
 using a conda environment and installing with pip:
 
 ```
-pip install matplotlib scipy
+pip install matplotlib scipy bokeh IPython pandas
 ```
 
 Finally,
