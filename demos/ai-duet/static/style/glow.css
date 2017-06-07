@@ -1,0 +1,29 @@
+@import 'common.scss';
+
+#glow {
+
+	#ai, #user {
+		width: 100%;
+		height: 100%;
+		position: absolute;
+		top: 0px;
+		left: 0px;
+		transition: opacity 1.2s;
+
+		&.visible {
+			opacity: 0.3;
+		}
+	}
+
+	$glowReach : 60%;
+
+	#ai {
+		opacity: 0;
+		background-image: radial-gradient(ellipse farthest-corner at 50% 0px, $orange 0%, black $glowReach);
+	}
+
+	#user {
+		opacity: 0;
+		background-image: radial-gradient(ellipse farthest-corner at 50% 0px, $blue 0%, black $glowReach);
+	}
+}

@@ -47,6 +47,7 @@ message GeneratorOptions {
       bytes byte_value = 1;
       int32 int_value = 2;
       double float_value = 3;
+      bool bool_value = 4;
     }
   }
   map<string, ArgValue> args = 3;

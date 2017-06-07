@@ -1,0 +1,23 @@
+magenta_midi \
+    --input_port="IAC Driver IAC Bus 3" \
+    --output_port="IAC Driver IAC Bus 4" \
+    --passthrough=false \
+    --qpm=120 \
+    --allow_overlap=true \
+    --enable_metronome=false \
+    --log=DEBUG \
+    --clock_control_number=1 \
+    --end_call_control_number=2 \
+    --min_listen_ticks_control_number=3 \
+    --max_listen_ticks_control_number=4 \
+    --response_ticks_control_number=5 \
+    --temperature_control_number=6 \
+    --tempo_control_number=7 \
+    --generator_select_control_number=8 \
+    --state_control_number=9 \
+    --loop_control_number=10 \
+    --panic_control_number=11 \
+    --mutate_control_number=12 \
+    --bundle_files=./drum_kit_rnn.mag \
+    --playback_offset=-0.035 \
+    --playback_channel=2

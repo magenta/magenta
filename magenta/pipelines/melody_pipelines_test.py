@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Tests for pipelines_common."""
+"""Tests for melody_pipelines."""
 
 # internal imports
 import tensorflow as tf
@@ -22,6 +22,7 @@ from magenta.music import melodies_lib
 from magenta.music import sequences_lib
 from magenta.music import testing_lib
 from magenta.pipelines import melody_pipelines
+from magenta.protobuf import music_pb2
 
 
 NOTE_OFF = constants.MELODY_NOTE_OFF
@@ -40,14 +41,22 @@ class MelodyPipelinesTest(tf.test.TestCase):
       self.assertEqual(unit.output_type, type(outputs[0]))
 
   def testMelodyExtractor(self):
-    quantized_sequence = sequences_lib.QuantizedSequence()
-    quantized_sequence.steps_per_quarter = 1
-    testing_lib.add_quantized_track_to_sequence(
-        quantized_sequence, 0,
+    note_sequence = common_testing_lib.parse_test_proto(
+        music_pb2.NoteSequence,
+        """
+        time_signatures: {
+          numerator: 4
+          denominator: 4}
+        tempos: {
+          qpm: 60}""")
+    testing_lib.add_track_to_sequence(
+        note_sequence, 0,
         [(12, 100, 2, 4), (11, 1, 6, 7)])
-    testing_lib.add_quantized_track_to_sequence(
-        quantized_sequence, 1,
+    testing_lib.add_track_to_sequence(
+        note_sequence, 1,
         [(12, 127, 2, 4), (14, 50, 6, 8)])
+    quantized_sequence = sequences_lib.quantize_note_sequence(
+        note_sequence, steps_per_quarter=1)
     expected_events = [
         [NO_EVENT, NO_EVENT, 12, NO_EVENT, NOTE_OFF, NO_EVENT, 11],
         [NO_EVENT, NO_EVENT, 12, NO_EVENT, NOTE_OFF, NO_EVENT, 14, NO_EVENT]]

@@ -52,10 +52,9 @@ class EventSequence(object):
         beginning of the source sequence. Should always be the first step of a
         bar.
     end_step: The offset to the beginning of the bar following the last step
-       of the sequence relative to the beginning of the source sequence. Will
-       always be the first step of a bar.
+        of the sequence relative to the beginning of the source sequence. Will
+        always be the first step of a bar.
     steps_per_quarter: Number of steps in in a quarter note.
-    steps_per_bar: Number of steps in a bar (measure) of music.
   """
   __metaclass__ = abc.ABCMeta
 
@@ -71,13 +70,9 @@ class EventSequence(object):
   def steps_per_quarter(self):
     pass
 
-  @abc.abstractproperty
-  def steps_per_bar(self):
-    pass
-
   @abc.abstractmethod
   def append(self, event):
-    """Appends event to the end of the sequence and increments the end step.
+    """Appends event to the end of the sequence.
 
     Args:
       event: The event to append to the end.
@@ -88,9 +83,9 @@ class EventSequence(object):
   def set_length(self, steps, from_left=False):
     """Sets the length of the sequence to the specified number of steps.
 
-    If the event sequence is not long enough, pads with `pad_event` to make the
-    sequence the specified length. If it is too long, it will be truncated to
-    the requested length.
+    If the event sequence is not long enough, will pad  to make the sequence
+    the specified length. If it is too long, it will be truncated to the
+    requested length.
 
     Args:
       steps: How many steps long the event sequence should be.
@@ -99,15 +94,23 @@ class EventSequence(object):
     pass
 
   @abc.abstractmethod
-  def increase_resolution(self, k):
-    """Increase the resolution of an event sequence.
+  def __getitem__(self, i):
+    """Returns the event at the given index."""
+    pass
 
-    Increases the resolution of an EventSequence object by a factor of `k`.
+  @abc.abstractmethod
+  def __iter__(self):
+    """Returns an iterator over the events."""
+    pass
 
-    Args:
-      k: An integer, the factor by which to increase the resolution of the
-          event sequence.
+  @abc.abstractmethod
+  def __len__(self):
+    """How many events are in this EventSequence.
+
+    Returns:
+      Number of events as an integer.
     """
+    pass
 
 
 class SimpleEventSequence(EventSequence):
@@ -116,6 +119,19 @@ class SimpleEventSequence(EventSequence):
   This class can be instantiated, but its main purpose is to serve as a base
   class for Melody, ChordProgression, and any other simple stream of musical
   events.
+
+  SimpleEventSequence represents an iterable object. Simply iterate to retrieve
+  the events.
+
+  Attributes:
+    start_step: The offset of the first step of the sequence relative to the
+        beginning of the source sequence. Should always be the first step of a
+        bar.
+    end_step: The offset to the beginning of the bar following the last step
+       of the sequence relative to the beginning of the source sequence. Will
+       always be the first step of a bar.
+    steps_per_quarter: Number of steps in in a quarter note.
+    steps_per_bar: Number of steps in a bar (measure) of music.
   """
 
   def __init__(self, pad_event, events=None, start_step=0,
@@ -176,8 +192,13 @@ class SimpleEventSequence(EventSequence):
     return self._events[i]
 
   def __getslice__(self, i, j):
-    """Returns the events in the given slice range."""
-    return self._events[i:j]
+    """Returns this sequence restricted to events in the given slice range."""
+    i = min(max(i, 0), len(self))
+    return type(self)(pad_event=self._pad_event,
+                      events=self._events[i:j],
+                      start_step=self.start_step + i,
+                      steps_per_bar=self.steps_per_bar,
+                      steps_per_quarter=self.steps_per_quarter)
 
   def __len__(self):
     """How many events are in this SimpleEventSequence.
@@ -187,15 +208,15 @@ class SimpleEventSequence(EventSequence):
     """
     return len(self._events)
 
-  def __deepcopy__(self, unused_memo=None):
+  def __deepcopy__(self, memo=None):
     return type(self)(pad_event=self._pad_event,
-                      events=copy.deepcopy(self._events),
+                      events=copy.deepcopy(self._events, memo),
                       start_step=self.start_step,
                       steps_per_bar=self.steps_per_bar,
                       steps_per_quarter=self.steps_per_quarter)
 
   def __eq__(self, other):
-    if not isinstance(other, SimpleEventSequence):
+    if type(self) is not type(other):
       return False
     return (list(self) == list(other) and
             self.steps_per_bar == other.steps_per_bar and

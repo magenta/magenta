@@ -123,7 +123,13 @@ class MidiIoTest(tf.test.TestCase):
         seq_instruments.keys(),
         key=lambda (instr, program, is_drum): (instr, program, is_drum))
 
-    self.assertEqual(len(midi.instruments), len(seq_instruments))
+    if seq_instruments:
+      self.assertEqual(len(midi.instruments), len(seq_instruments))
+    else:
+      self.assertEqual(1, len(midi.instruments))
+      self.assertEqual(0, len(midi.instruments[0].notes))
+      self.assertEqual(0, len(midi.instruments[0].pitch_bends))
+
     for midi_instrument, seq_instrument_key in zip(
         midi.instruments, sorted_seq_instrument_keys):
 
@@ -206,6 +212,96 @@ class MidiIoTest(tf.test.TestCase):
         stripped_sequence_proto)
 
     self.CheckPrettyMidiAndSequence(translated_midi, expected_sequence_proto)
+
+  def testSimpleSequenceToPrettyMidi_MultipleTempos(self):
+    source_midi = pretty_midi.PrettyMIDI(self.midi_simple_filename)
+    multi_tempo_sequence_proto = midi_io.midi_to_sequence_proto(source_midi)
+    multi_tempo_sequence_proto.tempos.add(time=1.0, qpm=60)
+    multi_tempo_sequence_proto.tempos.add(time=2.0, qpm=120)
+
+    translated_midi = midi_io.sequence_proto_to_pretty_midi(
+        multi_tempo_sequence_proto)
+
+    self.CheckPrettyMidiAndSequence(translated_midi, multi_tempo_sequence_proto)
+
+  def testSimpleSequenceToPrettyMidi_FirstTempoNotAtZero(self):
+    source_midi = pretty_midi.PrettyMIDI(self.midi_simple_filename)
+    multi_tempo_sequence_proto = midi_io.midi_to_sequence_proto(source_midi)
+    del multi_tempo_sequence_proto.tempos[:]
+    multi_tempo_sequence_proto.tempos.add(time=1.0, qpm=60)
+    multi_tempo_sequence_proto.tempos.add(time=2.0, qpm=120)
+
+    translated_midi = midi_io.sequence_proto_to_pretty_midi(
+        multi_tempo_sequence_proto)
+
+    # Translating to MIDI adds an implicit DEFAULT_QUARTERS_PER_MINUTE tempo
+    # at time 0, so recreate the list with that in place.
+    del multi_tempo_sequence_proto.tempos[:]
+    multi_tempo_sequence_proto.tempos.add(
+        time=0.0, qpm=constants.DEFAULT_QUARTERS_PER_MINUTE)
+    multi_tempo_sequence_proto.tempos.add(time=1.0, qpm=60)
+    multi_tempo_sequence_proto.tempos.add(time=2.0, qpm=120)
+
+    self.CheckPrettyMidiAndSequence(translated_midi, multi_tempo_sequence_proto)
+
+  def testSimpleSequenceToPrettyMidi_DropEventsAfterLastNote(self):
+    source_midi = pretty_midi.PrettyMIDI(self.midi_simple_filename)
+    multi_tempo_sequence_proto = midi_io.midi_to_sequence_proto(source_midi)
+    # Add a final tempo long after the last note.
+    multi_tempo_sequence_proto.tempos.add(time=600.0, qpm=120)
+
+    # Translate without dropping.
+    translated_midi = midi_io.sequence_proto_to_pretty_midi(
+        multi_tempo_sequence_proto)
+    self.CheckPrettyMidiAndSequence(translated_midi, multi_tempo_sequence_proto)
+
+    # Translate dropping anything after the last note.
+    translated_midi = midi_io.sequence_proto_to_pretty_midi(
+        multi_tempo_sequence_proto, drop_events_n_seconds_after_last_note=0)
+    # The added tempo should have been dropped.
+    del multi_tempo_sequence_proto.tempos[-1]
+    self.CheckPrettyMidiAndSequence(translated_midi, multi_tempo_sequence_proto)
+
+    # Add a final tempo 15 seconds after the last note.
+    last_note_time = max([n.end_time for n in multi_tempo_sequence_proto.notes])
+    multi_tempo_sequence_proto.tempos.add(time=last_note_time + 15, qpm=120)
+    # Translate dropping anything 30 seconds after the last note, which should
+    # preserve the added tempo.
+    translated_midi = midi_io.sequence_proto_to_pretty_midi(
+        multi_tempo_sequence_proto, drop_events_n_seconds_after_last_note=30)
+    self.CheckPrettyMidiAndSequence(translated_midi, multi_tempo_sequence_proto)
+
+  def testEmptySequenceToPrettyMidi_DropEventsAfterLastNote(self):
+    source_sequence = music_pb2.NoteSequence()
+
+    # Translate without dropping.
+    translated_midi = midi_io.sequence_proto_to_pretty_midi(
+        source_sequence)
+    self.assertEqual(1, len(translated_midi.instruments))
+    self.assertEqual(0, len(translated_midi.instruments[0].notes))
+
+    # Translate dropping anything after 30 seconds.
+    translated_midi = midi_io.sequence_proto_to_pretty_midi(
+        source_sequence, drop_events_n_seconds_after_last_note=30)
+    self.assertEqual(1, len(translated_midi.instruments))
+    self.assertEqual(0, len(translated_midi.instruments[0].notes))
+
+  def testNonEmptySequenceWithNoNotesToPrettyMidi_DropEventsAfterLastNote(self):
+    source_sequence = music_pb2.NoteSequence()
+    source_sequence.tempos.add(time=0, qpm=120)
+    source_sequence.tempos.add(time=10, qpm=160)
+    source_sequence.tempos.add(time=40, qpm=240)
+
+    # Translate without dropping.
+    translated_midi = midi_io.sequence_proto_to_pretty_midi(
+        source_sequence)
+    self.CheckPrettyMidiAndSequence(translated_midi, source_sequence)
+
+    # Translate dropping anything after 30 seconds.
+    translated_midi = midi_io.sequence_proto_to_pretty_midi(
+        source_sequence, drop_events_n_seconds_after_last_note=30)
+    del source_sequence.tempos[-1]
+    self.CheckPrettyMidiAndSequence(translated_midi, source_sequence)
 
   def testSimpleReadWriteMidi(self):
     self.CheckReadWriteMidi(self.midi_simple_filename)

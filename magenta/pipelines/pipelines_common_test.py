@@ -34,6 +34,26 @@ class PipelineUnitsCommonTest(tf.test.TestCase):
     if outputs:
       self.assertEqual(unit.output_type, type(outputs[0]))
 
+  def testTimeChangeSplitter(self):
+    note_sequence = common_testing_lib.parse_test_proto(
+        music_pb2.NoteSequence,
+        """
+        time_signatures: {
+          time: 2.0
+          numerator: 3
+          denominator: 4}
+        tempos: {
+          qpm: 60}""")
+    testing_lib.add_track_to_sequence(
+        note_sequence, 0,
+        [(12, 100, 0.01, 10.0), (11, 55, 0.22, 0.50), (40, 45, 2.50, 3.50),
+         (55, 120, 4.0, 4.01), (52, 99, 4.75, 5.0)])
+    expected_sequences = sequences_lib.split_note_sequence_on_time_changes(
+        note_sequence)
+
+    unit = pipelines_common.TimeChangeSplitter()
+    self._unit_transform_test(unit, note_sequence, expected_sequences)
+
   def testQuantizer(self):
     steps_per_quarter = 4
     note_sequence = common_testing_lib.parse_test_proto(
@@ -48,13 +68,8 @@ class PipelineUnitsCommonTest(tf.test.TestCase):
         note_sequence, 0,
         [(12, 100, 0.01, 10.0), (11, 55, 0.22, 0.50), (40, 45, 2.50, 3.50),
          (55, 120, 4.0, 4.01), (52, 99, 4.75, 5.0)])
-    expected_quantized_sequence = sequences_lib.QuantizedSequence()
-    expected_quantized_sequence.qpm = 60.0
-    expected_quantized_sequence.steps_per_quarter = steps_per_quarter
-    testing_lib.add_quantized_track_to_sequence(
-        expected_quantized_sequence, 0,
-        [(12, 100, 0, 40), (11, 55, 1, 2), (40, 45, 10, 14),
-         (55, 120, 16, 17), (52, 99, 19, 20)])
+    expected_quantized_sequence = sequences_lib.quantize_note_sequence(
+        note_sequence, steps_per_quarter)
 
     unit = pipelines_common.Quantizer(steps_per_quarter)
     self._unit_transform_test(unit, note_sequence,

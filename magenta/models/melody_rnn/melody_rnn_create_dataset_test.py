@@ -40,7 +40,6 @@ class MelodyRNNPipelineTest(tf.test.TestCase):
         transpose_to_key=0)
 
   def testMelodyRNNPipeline(self):
-    FLAGS.eval_ratio = 0.0
     note_sequence = magenta.common.testing_lib.parse_test_proto(
         music_pb2.NoteSequence,
         """
@@ -70,7 +69,8 @@ class MelodyRNNPipelineTest(tf.test.TestCase):
     one_hot = one_hot_encoding.encode(melody)
     expected_result = {'training_melodies': [one_hot], 'eval_melodies': []}
 
-    pipeline_inst = melody_rnn_create_dataset.get_pipeline(self.config)
+    pipeline_inst = melody_rnn_create_dataset.get_pipeline(self.config,
+                                                           eval_ratio=0.0)
     result = pipeline_inst.transform(note_sequence)
     self.assertEqual(expected_result, result)
 

@@ -28,9 +28,6 @@ import scipy
 import scipy.misc
 import tensorflow as tf
 
-from tensorflow.python.ops import control_flow_ops
-from tensorflow.python.platform import resource_loader
-
 from magenta.models.image_stylization import imagenet_data
 
 slim = tf.contrib.slim
@@ -98,19 +95,15 @@ def imagenet_inputs(batch_size, image_size, num_readers=1,
         dtypes=[tf.string])
 
     # Create multiple readers to populate the queue of examples.
-    if num_readers > 1:
-      enqueue_ops = []
-      for _ in range(num_readers):
-        reader = imagenet.reader()
-        _, value = reader.read(filename_queue)
-        enqueue_ops.append(examples_queue.enqueue([value]))
-
-      tf.train.queue_runner.add_queue_runner(
-          tf.train.queue_runner.QueueRunner(examples_queue, enqueue_ops))
-      example_serialized = examples_queue.dequeue()
-    else:
+    enqueue_ops = []
+    for _ in range(num_readers):
       reader = imagenet.reader()
-      _, example_serialized = reader.read(filename_queue)
+      _, value = reader.read(filename_queue)
+      enqueue_ops.append(examples_queue.enqueue([value]))
+
+    tf.train.queue_runner.add_queue_runner(
+        tf.train.queue_runner.QueueRunner(examples_queue, enqueue_ops))
+    example_serialized = examples_queue.dequeue()
 
     images_and_labels = []
     for _ in range(num_preprocess_threads):
@@ -136,7 +129,7 @@ def imagenet_inputs(batch_size, image_size, num_readers=1,
     images = tf.reshape(images, shape=[batch_size, image_size, image_size, 3])
 
     # Display the training images in the visualizer.
-    tf.image_summary('images', images)
+    tf.summary.image('images', images)
 
     return images, tf.reshape(label_index_batch, [batch_size])
 
@@ -252,7 +245,7 @@ def load_np_image(image_file):
     with values in [0, 1].
   """
   with tempfile.NamedTemporaryFile() as f:
-    f.write(tf.gfile.GFile(image_file).read())
+    f.write(tf.gfile.GFile(image_file, 'rb').read())
     f.flush()
     image = scipy.misc.imread(f.name)
     # Workaround for black-and-white images
@@ -297,7 +290,7 @@ def load_image(image_file, image_size=None):
     small_side = min(image.get_shape()[0].value, image.get_shape()[1].value)
     image = tf.image.resize_image_with_crop_or_pad(
         image, small_side, small_side)
-    image = tf.image.resize_images(image, image_size, image_size)
+    image = tf.image.resize_images(image, [image_size, image_size])
   image = tf.to_float(image) / 255.0
 
   return tf.expand_dims(image, 0)
@@ -315,13 +308,13 @@ def load_evaluation_images(image_size):
   Raises:
     IOError: If no evaluation images can be found.
   """
-  glob = os.path.join(resource_loader.get_data_files_path(),
+  glob = os.path.join(tf.resource_loader.get_data_files_path(),
                       _EVALUATION_IMAGES_GLOB)
   evaluation_images = tf.gfile.Glob(glob)
   if not evaluation_images:
     raise IOError('No evaluation images found')
   return tf.concat(
-      0, [load_image(path, image_size) for path in evaluation_images])
+      [load_image(path, image_size) for path in evaluation_images], 0)
 
 
 def form_image_grid(input_tensor, grid_shape, image_shape, num_channels):
@@ -400,9 +393,8 @@ def _crop(image, offset_height, offset_width, crop_height, crop_width):
   rank_assertion = tf.Assert(
       tf.equal(tf.rank(image), 3),
       ['Rank of image must be equal to 3.'])
-  cropped_shape = control_flow_ops.with_dependencies(
-      [rank_assertion],
-      tf.pack([crop_height, crop_width, original_shape[2]]))
+  with tf.control_dependencies([rank_assertion]):
+    cropped_shape = tf.stack([crop_height, crop_width, original_shape[2]])
 
   size_assertion = tf.Assert(
       tf.logical_and(
@@ -410,13 +402,13 @@ def _crop(image, offset_height, offset_width, crop_height, crop_width):
           tf.greater_equal(original_shape[1], crop_width)),
       ['Crop size greater than the image size.'])
 
-  offsets = tf.to_int32(tf.pack([offset_height, offset_width, 0]))
+  offsets = tf.to_int32(tf.stack([offset_height, offset_width, 0]))
 
-  # Use tf.slice instead of crop_to_bounding box as it accepts tensors to
-  # define the crop size.
-  image = control_flow_ops.with_dependencies(
-      [size_assertion],
-      tf.slice(image, offsets, cropped_shape))
+  # Use tf.strided_slice instead of crop_to_bounding box as it accepts tensors
+  # to define the crop size.
+  with tf.control_dependencies([size_assertion]):
+    image = tf.strided_slice(image, offsets, offsets + cropped_shape,
+                             strides=tf.ones_like(offsets))
   return tf.reshape(image, cropped_shape)
 
 
@@ -510,7 +502,7 @@ def _decode_jpeg(image_buffer, scope=None):
   Returns:
     3-D float Tensor with values ranging from [0, 1).
   """
-  with tf.op_scope([image_buffer], scope, 'decode_jpeg'):
+  with tf.name_scope(scope, 'decode_jpeg', [image_buffer]):
     # Decode the string as an RGB JPEG.
     # Note that the resulting image contains an unknown height and width
     # that is set dynamically by decode_jpeg. In other words, the height
@@ -585,7 +577,7 @@ def _parse_example_proto(example_serialized):
   ymax = tf.expand_dims(features['image/object/bbox/ymax'].values, 0)
 
   # Note that we impose an ordering of (y, x) just to make life difficult.
-  bbox = tf.concat(0, [ymin, xmin, ymax, xmax])
+  bbox = tf.concat([ymin, xmin, ymax, xmax], 0)
 
   # Force the variable number of bounding boxes into the shape
   # [1, num_boxes, coords].

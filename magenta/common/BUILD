@@ -28,6 +28,7 @@ py_library(
     deps = [
         ":concurrency",
         ":sequence_example_lib",
+        ":state_util",
         ":testing_lib",
         ":tf_lib",
     ],
@@ -41,6 +42,7 @@ py_library(
 
 py_test(
     name = "concurrency_test",
+    size = "small",
     srcs = ["concurrency_test.py"],
     srcs_version = "PY2AND3",
     deps = [
@@ -59,6 +61,28 @@ py_library(
 )
 
 py_library(
+    name = "state_util",
+    srcs = ["state_util.py"],
+    srcs_version = "PY2AND3",
+    deps = [
+        # numpy dep
+        # tensorflow dep
+    ],
+)
+
+py_test(
+    name = "state_util_test",
+    size = "small",
+    srcs = ["state_util_test.py"],
+    srcs_version = "PY2AND3",
+    deps = [
+        ":state_util",
+        # numpy dep
+        # tensorflow dep
+    ],
+)
+
+py_library(
     name = "testing_lib",
     srcs = ["testing_lib.py"],
     deps = [
@@ -72,3 +96,15 @@ py_library(
     srcs = ["tf_lib.py"],
     srcs_version = "PY2AND3",
 )
+
+py_test(
+    name = "tf_lib_test",
+    size = "small",
+    srcs = ["tf_lib_test.py"],
+    srcs_version = "PY2AND3",
+    deps = [
+        ":tf_lib",
+        # tensorflow dep
+    ],
+)
+

@@ -24,25 +24,45 @@ execfile('magenta/version.py')
 
 
 REQUIRED_PACKAGES = [
-    'mido >= 1.1.17',
+    'IPython',
     'Pillow >= 3.4.2',
+    'bokeh >= 0.12.0',
+    'futures',
+    'intervaltree >= 2.1.0',
+    'matplotlib >= 1.5.3',
+    'mido == 1.2.6',
+    'pandas >= 0.18.1',
     'pretty_midi >= 0.2.6',
     'scipy >= 0.18.1',
-    'tensorflow >= 0.11.0rc2',
+    'tensorflow >= 1.0.0',
     'wheel',
 ]
 
 CONSOLE_SCRIPTS = [
     'magenta.interfaces.midi.magenta_midi',
+    'magenta.models.drums_rnn.drums_rnn_create_dataset',
+    'magenta.models.drums_rnn.drums_rnn_generate',
+    'magenta.models.drums_rnn.drums_rnn_train',
     'magenta.models.image_stylization.image_stylization_create_dataset',
     'magenta.models.image_stylization.image_stylization_evaluate',
     'magenta.models.image_stylization.image_stylization_finetune',
     'magenta.models.image_stylization.image_stylization_train',
     'magenta.models.image_stylization.image_stylization_transform',
+    'magenta.models.improv_rnn.improv_rnn_create_dataset',
+    'magenta.models.improv_rnn.improv_rnn_generate',
+    'magenta.models.improv_rnn.improv_rnn_train',
     'magenta.models.melody_rnn.melody_rnn_create_dataset',
     'magenta.models.melody_rnn.melody_rnn_generate',
     'magenta.models.melody_rnn.melody_rnn_train',
-    'magenta.scripts.convert_midi_dir_to_note_sequences',
+    'magenta.models.pianoroll_rnn_nade.pianoroll_rnn_nade_create_dataset',
+    'magenta.models.pianoroll_rnn_nade.pianoroll_rnn_nade_generate',
+    'magenta.models.pianoroll_rnn_nade.pianoroll_rnn_nade_train',
+    'magenta.models.polyphony_rnn.polyphony_rnn_create_dataset',
+    'magenta.models.polyphony_rnn.polyphony_rnn_generate',
+    'magenta.models.polyphony_rnn.polyphony_rnn_train',
+    'magenta.models.rl_tuner.rl_tuner_train',
+    'magenta.models.sketch_rnn.sketch_rnn_train',
+    'magenta.scripts.convert_dir_to_note_sequences',
 ]
 
 setup(
@@ -80,4 +100,3 @@ setup(
         'magenta': ['models/image_stylization/evaluation_images/*.jpg'],
     },
 )
-

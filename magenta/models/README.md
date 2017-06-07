@@ -2,6 +2,12 @@
 
 This directory contains Magenta models.
 
+## NSynth
+
+[Neural Audio Synthesis]](/magenta/models/nsynth) as described in
+[NSynth: Neural Audio Synthesis with WaveNet Autoencoders](https://arxiv.org/abs/1704.01279).
+
+
 ## Image stylization
 
 This is the [Multistyle Pastiche Generator

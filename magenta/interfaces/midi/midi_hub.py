@@ -1,8 +1,8 @@
 """A module for interfacing with the MIDI environment."""
 
 import abc
+from collections import defaultdict
 from collections import deque
-import logging
 import Queue
 import re
 import threading
@@ -10,15 +10,20 @@ import time
 
 # internal imports
 import mido
+import tensorflow as tf
 
 # TODO(adarob): Use flattened imports.
 from magenta.common import concurrency
 from magenta.protobuf import music_pb2
 
 _DEFAULT_METRONOME_TICK_DURATION = 0.05
-_DEFAULT_METRONOME_PITCH = 95
+_DEFAULT_METRONOME_PROGRAM = 117  # Melodic Tom
+_DEFAULT_METRONOME_PITCHES = [44, 35, 35, 35]
 _DEFAULT_METRONOME_VELOCITY = 64
-_METRONOME_CHANNEL = 0
+_METRONOME_CHANNEL = 1
+
+# 0-indexed.
+_DRUM_CHANNEL = 8
 
 try:
   # The RtMidi backend is easier to install and has support for virtual ports.
@@ -26,7 +31,7 @@ try:
   mido.set_backend('mido.backends.rtmidi')
 except ImportError:
   # Tries to use PortMidi backend by default.
-  logging.warn('Could not import RtMidi. Virtual ports are disabled.')
+  tf.logging.warn('Could not import RtMidi. Virtual ports are disabled.')
 
 
 class MidiHubException(Exception):
@@ -127,7 +132,8 @@ class MidiSignal(object):
     else:
       # Generate regex pattern.
       parts = ['.*' if type_ is None else type_]
-      for name in mido.messages.get_spec(inferred_types[0]).arguments:
+      for name in mido.messages.SPEC_BY_TYPE[inferred_types[0]][
+          'value_names']:
         if name in kwargs:
           parts.append('%s=%d' % (name, kwargs[name]))
         else:
@@ -151,9 +157,12 @@ class Metronome(threading.Thread):
     stop_time: The float wall time in seconds after which the metronome should
         stop, or None if it should continue until `stop` is called.
     velocity: The velocity of the metronome's tick `note_on` message.
-    pitch: The pitch of the metronome's tick `note_on` message.
+    program: The MIDI program number to use for metronome ticks.
+    pitches: An ordered collection of integes representing MIDI pitches of the
+         metronome's tick, which will be cycled through.
     duration: The duration of the metronome's tick.
   """
+  daemon = True
 
   def __init__(self,
                outport,
@@ -161,33 +170,54 @@ class Metronome(threading.Thread):
                start_time,
                stop_time=None,
                velocity=_DEFAULT_METRONOME_VELOCITY,
-               pitch=_DEFAULT_METRONOME_PITCH,
+               program=_DEFAULT_METRONOME_PROGRAM,
+               pitches=None,
                duration=_DEFAULT_METRONOME_TICK_DURATION):
     self._outport = outport
-    self._qpm = qpm
-    self._start_time = start_time
-    self._velocity = velocity
-    self._pitch = pitch
-    self._duration = duration
-    # A signal for when to stop the metronome.
-    self._stop_time = stop_time
+    self.update(
+        qpm, start_time, stop_time, velocity, program, pitches, duration)
     super(Metronome, self).__init__()
+
+  def update(self,
+             qpm,
+             start_time,
+             stop_time=None,
+             velocity=_DEFAULT_METRONOME_VELOCITY,
+             program=_DEFAULT_METRONOME_PROGRAM,
+             pitches=None,
+             duration=_DEFAULT_METRONOME_TICK_DURATION):
+    """Updates Metronome options."""
+    # Locking is not required since variables are independent and assignment is
+    # atomic.
+    # Set the program number for the channel.
+    self._outport.send(
+        mido.Message(type='program_change', program=program,
+                     channel=_METRONOME_CHANNEL))
+    self._period = 60. / qpm
+    self._start_time = start_time
+    self._stop_time = stop_time
+    self._velocity = velocity
+    self._pitches = pitches or _DEFAULT_METRONOME_PITCHES
+    self._duration = duration
 
   def run(self):
     """Outputs metronome tone on the qpm interval until stop signal received."""
-    period = 60. / self._qpm
     sleeper = concurrency.Sleeper()
-    now = time.time()
-    next_tick_time = max(
-        self._start_time,
-        now + period - ((now - self._start_time) % period))
-    while self._stop_time is None or self._stop_time > next_tick_time:
-      sleeper.sleep_until(next_tick_time)
+    while True:
+      now = time.time()
+      tick_number = max(0, int((now - self._start_time) // self._period) + 1)
+      tick_time = tick_number * self._period + self._start_time
 
+      if self._stop_time is not None and self._stop_time < tick_time:
+        break
+
+      sleeper.sleep_until(tick_time)
+
+      metric_position = tick_number % len(self._pitches)
       self._outport.send(
           mido.Message(
               type='note_on',
-              note=self._pitch,
+              note=self._pitches[metric_position],
               channel=_METRONOME_CHANNEL,
               velocity=self._velocity))
 
@@ -196,11 +226,8 @@ class Metronome(threading.Thread):
       self._outport.send(
           mido.Message(
               type='note_off',
-              note=self._pitch,
+              note=self._pitches[metric_position],
               channel=_METRONOME_CHANNEL))
-
-      now = time.time()
-      next_tick_time = now + period - ((now - self._start_time) % period)
 
   def stop(self, stop_time=0, block=True):
     """Signals for the metronome to stop.
@@ -225,14 +252,23 @@ class MidiPlayer(threading.Thread):
   Args:
     outport: The Mido port for sending messages.
     sequence: The NoteSequence to play.
+    start_time: The float time before which to strip events. Defaults to
+        construction time. Events before this time will be sent immediately on
+        start.
     allow_updates: If False, the thread will terminate after playback of
         `sequence` completes and calling `update_sequence` will result in an
         exception. Otherwise, the the thread will stay alive until `stop` is
         called, allowing for additional updates via `update_sequence`.
+    channel: The MIDI channel to send playback events.
+    offset: The float time in seconds to adjust the playback event times by.
   """
 
-  def __init__(self, outport, sequence, allow_updates=False):
+  def __init__(self, outport, sequence, start_time=time.time(),
+               allow_updates=False, channel=0, offset=0.0):
     self._outport = outport
+    self._channel = channel
+    self._offset = offset
+
     # Set of notes (pitches) that are currently on.
     self._open_notes = set()
     # Lock for serialization.
@@ -247,13 +283,14 @@ class MidiPlayer(threading.Thread):
     # Initialize message queue.
     # We first have to allow "updates" to set the initial sequence.
     self._allow_updates = True
-    self.update_sequence(sequence)
+    self.update_sequence(sequence, start_time=start_time)
     # We now make whether we allow updates dependent on the argument.
     self._allow_updates = allow_updates
+
     super(MidiPlayer, self).__init__()
 
   @concurrency.serialized
-  def update_sequence(self, sequence):
+  def update_sequence(self, sequence, start_time=None):
     """Updates sequence being played by the MidiPlayer.
 
     Adds events to close any notes that are no longer being closed by the
@@ -262,14 +299,17 @@ class MidiPlayer(threading.Thread):
 
     Args:
       sequence: The NoteSequence to play back.
+      start_time: The float time before which to strip events. Defaults to call
+          time.
     Raises:
       MidiHubException: If called when _allow_updates is False.
     """
+    if start_time is None:
+      start_time = time.time()
+
     if not self._allow_updates:
       raise MidiHubException(
           'Attempted to update a MidiPlayer sequence with updates disabled.')
-
-    start_time = time.time()
 
     new_message_list = []
     # The set of pitches that are already playing and will be closed without
@@ -291,10 +331,15 @@ class MidiPlayer(threading.Thread):
     # notes.
     notes_to_close = self._open_notes - closed_notes
     if notes_to_close:
-      next_event_time = min(msg.time for msg in new_message_list)
+      next_event_time = (
+          min(msg.time for msg in new_message_list) if new_message_list else 0)
       for note in notes_to_close:
         new_message_list.append(
             mido.Message(type='note_off', note=note, time=next_event_time))
+
+    for msg in new_message_list:
+      msg.channel = self._channel
+      msg.time += self._offset
 
     self._message_queue = deque(
         sorted(new_message_list, key=lambda msg: (msg.time, msg.note)))
@@ -303,7 +348,7 @@ class MidiPlayer(threading.Thread):
   @concurrency.serialized
   def run(self):
     """Plays messages in the queue until empty and _allow_updates is False."""
-    # Assumes model where NoteSequence is time-stampped with wall time.
+    # Assumes model where NoteSequence is time-stamped with wall time.
     # TODO(hanzorama): Argument to allow initial start not at sequence start?
 
     while self._message_queue and self._message_queue[0].time < time.time():
@@ -387,6 +432,23 @@ class MidiCaptor(threading.Thread):
 
   @property
   @concurrency.serialized
+  def start_time(self):
+    return self._start_time
+
+  @start_time.setter
+  @concurrency.serialized
+  def start_time(self, value):
+    """Updates the start time, removing any notes that started before it."""
+    self._start_time = value
+    i = 0
+    for note in self._captured_sequence.notes:
+      if note.start_time >= self._start_time:
+        break
+      i += 1
+    del self._captured_sequence.notes[:i]
+
+  @property
+  @concurrency.serialized
   def _stop_time(self):
     return self._stop_time_unsafe
 
@@ -422,6 +484,15 @@ class MidiCaptor(threading.Thread):
            received.
     """
     pass
+
+  def _add_note(self, msg):
+    """Adds and returns a new open note based on the MIDI message."""
+    new_note = self._captured_sequence.notes.add()
+    new_note.start_time = msg.time
+    new_note.pitch = msg.note
+    new_note.velocity = msg.velocity
+    new_note.is_drum = (msg.channel == _DRUM_CHANNEL)
+    return new_note
 
   def run(self):
     """Captures incoming messages until stop time or signal received."""
@@ -571,7 +642,7 @@ class MidiCaptor(threading.Thread):
       if signal is None:
         skipped_periods = (time.time() - next_yield_time) // period
         if skipped_periods > 0:
-          logging.warning(
+          tf.logging.warn(
               'Skipping %d %.3fs period(s) to catch up on iteration.',
               skipped_periods, period)
           next_yield_time += skipped_periods * period
@@ -600,7 +671,7 @@ class MidiCaptor(threading.Thread):
   def register_callback(self, fn, signal=None, period=None):
     """Calls `fn` at every signal message or time period.
 
-    The callback function must take exactly a single argument, which will be the
+    The callback function must take exactly one argument, which will be the
     current captured NoteSequence.
 
     Exactly one of `signal` or `period` must be specified. Continues until the
@@ -704,11 +775,7 @@ class MonophonicMidiCaptor(MidiCaptor):
         # End the previous note.
         self._open_note.end_time = msg.time
 
-      new_note = self._captured_sequence.notes.add()
-      new_note.start_time = msg.time
-      new_note.pitch = msg.note
-      new_note.velocity = msg.velocity
-      self._open_note = new_note
+      self._open_note = self._add_note(msg)
 
 
 class PolyphonicMidiCaptor(MidiCaptor):
@@ -739,10 +806,7 @@ class PolyphonicMidiCaptor(MidiCaptor):
         # This is likely just a repeat of the previous message.
         return
 
-      new_note = self._captured_sequence.notes.add()
-      new_note.start_time = msg.time
-      new_note.pitch = msg.note
-      new_note.velocity = msg.velocity
+      new_note = self._add_note(msg)
       self._open_notes[new_note.pitch] = new_note
 
 
@@ -768,21 +832,32 @@ class MidiHub(object):
     texture_type: A TextureType Enum specifying the musical texture to assume
         during capture, passthrough, and playback.
     passthrough: A boolean specifying whether or not to pass incoming messages
-        through to the output, applyig the appropriate texture rules.
+        through to the output, applying the appropriate texture rules.
+    playback_channel: The MIDI channel to send playback events.
+    playback_offset: The float time in seconds to adjust the playback event
+        times by.
   """
 
   def __init__(self, input_midi_port, output_midi_port, texture_type,
-               passthrough=True):
+               passthrough=True, playback_channel=0, playback_offset=0.0):
     self._texture_type = texture_type
     self._passthrough = passthrough
+    self._playback_channel = playback_channel
+    self._playback_offset = playback_offset
     # When `passthrough` is True, this is the set of open MIDI note pitches.
     self._open_notes = set()
     # This lock is used by the serialized decorator.
     self._lock = threading.RLock()
-    # A dictionary mapping a string-formatted mido.Messages to a condition
-    # variable that will be notified when a matching messsage is received,
-    # ignoring the time field.
+    # A dictionary mapping a compiled MidiSignal regex to a condition variable
+    # that will be notified when a matching messsage is received.
     self._signals = {}
+    # A dictionary mapping a compiled MidiSignal regex to a list of functions
+    # that will be called with the triggering message in individual threads when
+    # a matching message is received.
+    self._callbacks = defaultdict(list)
+    # A dictionary mapping integer control numbers to most recently-received
+    # integer value.
+    self._control_values = {}
     # Threads actively being used to capture incoming messages.
     self._captors = []
     # Potentially active player threads.
@@ -859,12 +934,26 @@ class MidiHub(object):
         self._signals[regex].notify_all()
         del self._signals[regex]
 
+    # Call any callbacks waiting for this message.
+    for regex in list(self._callbacks):
+      if regex.match(msg_str) is not None:
+        for fn in self._callbacks[regex]:
+          threading.Thread(target=fn, args=(msg,)).start()
+
+        del self._callbacks[regex]
+
     # Remove any captors that are no longer alive.
     self._captors[:] = [t for t in self._captors if t.is_alive()]
     # Add a different copy of the message to the receive queue of each live
     # capture thread.
     for t in self._captors:
       t.receive(msg.copy())
+
+    # Update control values if this is a control change message.
+    if msg.type == 'control_change':
+      if self._control_values.get(msg.control, None) != msg.value:
+        tf.logging.debug('Control change %d: %d', msg.control, msg.value)
+      self._control_values[msg.control] = msg.value
 
     # Pass the message through to the output port, if appropriate.
     if not self._passthrough:
@@ -992,20 +1081,23 @@ class MidiHub(object):
       if signal is None or regex.pattern == str(signal):
         self._signals[regex].notify_all()
         del self._signals[regex]
+    for captor in self._captors:
+      captor.wake_signal_waiters(signal)
 
   @concurrency.serialized
   def start_metronome(self, qpm, start_time):
-    """Starts or re-starts the metronome with the given arguments.
+    """Starts or updates the metronome with the given arguments.
 
     Args:
       qpm: The quarter notes per minute to use.
       start_time: The wall time in seconds that the metronome is started on for
         synchronization and beat alignment. May be in the past.
     """
-    if self._metronome is not None:
-      self.stop_metronome()
-    self._metronome = Metronome(self._outport, qpm, start_time)
-    self._metronome.start()
+    if self._metronome is not None and self._metronome.is_alive():
+      self._metronome.update(qpm, start_time)
+    else:
+      self._metronome = Metronome(self._outport, qpm, start_time)
+      self._metronome.start()
 
   @concurrency.serialized
   def stop_metronome(self, stop_time=0, block=True):
@@ -1021,19 +1113,63 @@ class MidiHub(object):
     self._metronome.stop(stop_time, block)
     self._metronome = None
 
-  def start_playback(self, sequence, allow_updates=False):
+  def start_playback(self, sequence, start_time=time.time(),
+                     allow_updates=False):
     """Plays the notes in aNoteSequence via the MIDI output port.
 
     Args:
       sequence: The NoteSequence to play, with times based on the wall clock.
+      start_time: The float time before which to strip events. Defaults to call
+          time. Events before this time will be sent immediately on start.
       allow_updates: A boolean specifying whether or not the player should stay
           allow the sequence to be updated and stay alive until `stop` is
           called.
     Returns:
       The MidiPlayer thread handling playback to enable updating.
     """
-    player = MidiPlayer(self._outport, sequence, allow_updates)
+    player = MidiPlayer(self._outport, sequence, start_time, allow_updates,
+                        self._playback_channel, self._playback_offset)
     with self._lock:
       self._players.append(player)
     player.start()
     return player
+
+  @concurrency.serialized
+  def control_value(self, control_number):
+    """Returns the most recently received value for the given control number.
+
+    Args:
+      control_number: The integer control number to return the value for, or
+          None.
+
+    Returns:
+      The most recently recieved integer value for the given control number, or
+      None if no values have been received for that control.
+    """
+    if control_number is None:
+      return None
+    return self._control_values.get(control_number)
+
+  def send_control_change(self, control_number, value):
+    """Sends the specified control change message on the output port."""
+    self._outport.send(
+        mido.Message(
+            type='control_change',
+            control=control_number,
+            value=value))
+
+  @concurrency.serialized
+  def register_callback(self, fn, signal):
+    """Calls `fn` at the next signal message.
+
+    The callback function must take exactly one argument, which will be the
+    message triggering the signal.
+
+    Survives until signal is called or the MidiHub is destroyed.
+
+    Args:
+      fn: The callback function to call, passing in the triggering message.
+      signal: A MidiSignal to use as a signal to call `fn` on the triggering
+          message.
+    """
+    self._callbacks[re.compile(str(signal))].append(fn)

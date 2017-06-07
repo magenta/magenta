@@ -19,18 +19,19 @@ import tensorflow as tf
 from magenta.music import chord_symbols_lib
 from magenta.music import chords_lib
 from magenta.music import events_lib
-from magenta.music import sequences_lib
 from magenta.pipelines import pipeline
 from magenta.pipelines import statistics
+from magenta.protobuf import music_pb2
 
 
 class ChordsExtractor(pipeline.Pipeline):
-  """Extracts a chord progression from a QuantizedSequence."""
+  """Extracts a chord progression from a quantized NoteSequence."""
 
-  def __init__(self, max_steps=512, all_transpositions=False):
+  def __init__(self, max_steps=512, all_transpositions=False, name=None):
     super(ChordsExtractor, self).__init__(
-        input_type=sequences_lib.QuantizedSequence,
-        output_type=chords_lib.ChordProgression)
+        input_type=music_pb2.NoteSequence,
+        output_type=chords_lib.ChordProgression,
+        name=name)
     self._max_steps = max_steps
     self._all_transpositions = all_transpositions
 

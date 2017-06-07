@@ -39,23 +39,7 @@ class MelodyRnnSequenceGenerator(mm.BaseSequenceGenerator):
           and metagraph. Mutually exclusive with `checkpoint`.
     """
     super(MelodyRnnSequenceGenerator, self).__init__(
-        model, details, checkpoint, bundle)
-    self._steps_per_quarter = steps_per_quarter
-
-  def _seconds_to_steps(self, seconds, qpm):
-    """Converts seconds to steps.
-
-    Uses the generator's steps_per_quarter setting and the specified qpm.
-
-    Args:
-      seconds: number of seconds.
-      qpm: current qpm.
-
-    Returns:
-      Number of steps the seconds represent.
-    """
-
-    return int(seconds * (qpm / 60.0) * self._steps_per_quarter)
+        model, details, steps_per_quarter, checkpoint, bundle)
 
   def _generate(self, input_sequence, generator_options):
     if len(generator_options.input_sections) > 1:
@@ -67,39 +51,42 @@ class MelodyRnnSequenceGenerator(mm.BaseSequenceGenerator):
           'This model supports only 1 generate_sections message, but got %s' %
           len(generator_options.generate_sections))
 
+    qpm = (input_sequence.tempos[0].qpm
+           if input_sequence and input_sequence.tempos
+           else mm.DEFAULT_QUARTERS_PER_MINUTE)
+
     generate_section = generator_options.generate_sections[0]
     if generator_options.input_sections:
       input_section = generator_options.input_sections[0]
-      primer_sequence = mm.extract_subsequence(
+      primer_sequence = mm.trim_note_sequence(
           input_sequence, input_section.start_time, input_section.end_time)
+      input_start_step = self.seconds_to_steps(input_section.start_time, qpm)
     else:
       primer_sequence = input_sequence
+      input_start_step = 0
 
     last_end_time = (max(n.end_time for n in primer_sequence.notes)
                      if primer_sequence.notes else 0)
-    if last_end_time >= generate_section.start_time:
+    if last_end_time > generate_section.start_time:
       raise mm.SequenceGeneratorException(
-          'Got GenerateSection request for section that is before or equal to '
-          'the end of the NoteSequence. This model can only extend sequences. '
-          'Requested start time: %s, Final note end time: %s' %
+          'Got GenerateSection request for section that is before the end of '
+          'the NoteSequence. This model can only extend sequences. Requested '
+          'start time: %s, Final note end time: %s' %
           (generate_section.start_time, last_end_time))
 
     # Quantize the priming sequence.
-    quantized_sequence = mm.QuantizedSequence()
-    quantized_sequence.from_note_sequence(
-        primer_sequence, self._steps_per_quarter)
+    quantized_sequence = mm.quantize_note_sequence(
+        primer_sequence, self.steps_per_quarter)
     # Setting gap_bars to infinite ensures that the entire input will be used.
     extracted_melodies, _ = mm.extract_melodies(
-        quantized_sequence, min_bars=0, min_unique_pitches=1,
-        gap_bars=float('inf'), ignore_polyphonic_notes=True)
+        quantized_sequence, search_start_step=input_start_step, min_bars=0,
+        min_unique_pitches=1, gap_bars=float('inf'),
+        ignore_polyphonic_notes=True)
     assert len(extracted_melodies) <= 1
 
-    qpm = (primer_sequence.tempos[0].qpm
-           if primer_sequence and primer_sequence.tempos
-           else mm.DEFAULT_QUARTERS_PER_MINUTE)
-    start_step = self._seconds_to_steps(
+    start_step = self.seconds_to_steps(
         generate_section.start_time, qpm)
-    end_step = self._seconds_to_steps(generate_section.end_time, qpm)
+    end_step = self.seconds_to_steps(generate_section.end_time, qpm)
 
     if extracted_melodies and extracted_melodies[0]:
       melody = extracted_melodies[0]
@@ -107,7 +94,12 @@ class MelodyRnnSequenceGenerator(mm.BaseSequenceGenerator):
       # If no melody could be extracted, create an empty melody that starts 1
       # step before the request start_step. This will result in 1 step of
       # silence when the melody is extended below.
-      melody = mm.Melody([], start_step=max(0, start_step - 1))
+      steps_per_bar = int(
+          mm.steps_per_bar_in_quantized_sequence(quantized_sequence))
+      melody = mm.Melody([],
+                         start_step=max(0, start_step - 1),
+                         steps_per_bar=steps_per_bar,
+                         steps_per_quarter=self.steps_per_quarter)
 
     # Ensure that the melody extends up to the step we want to start generating.
     melody.set_length(start_step - melody.start_step)
@@ -131,15 +123,19 @@ class MelodyRnnSequenceGenerator(mm.BaseSequenceGenerator):
 
 
 def get_generator_map():
-  """Returns a map from the generator ID to its SequenceGenerator class.
+  """Returns a map from the generator ID to a SequenceGenerator class creator.
 
-  Binds the `config` argument so that the constructor matches the
-  BaseSequenceGenerator class.
+  Binds the `config` argument so that the arguments match the
+  BaseSequenceGenerator class constructor.
 
   Returns:
-    Map from the generator ID to its SequenceGenerator class with a bound
-    `config` argument.
+    Map from the generator ID to its SequenceGenerator class creator with a
+    bound `config` argument.
   """
-  return {key: partial(MelodyRnnSequenceGenerator,
-                       melody_rnn_model.MelodyRnnModel(config), config.details)
+  def create_sequence_generator(config, **kwargs):
+    return MelodyRnnSequenceGenerator(
+        melody_rnn_model.MelodyRnnModel(config), config.details,
+        steps_per_quarter=config.steps_per_quarter, **kwargs)
+
+  return {key: partial(create_sequence_generator, config)
           for (key, config) in melody_rnn_model.default_configs.items()}

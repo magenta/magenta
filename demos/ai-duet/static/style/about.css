@@ -1,0 +1,160 @@
+/**
+ * Copyright 2016 Google Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+@import 'common.scss';
+
+#aboutButton {
+	$closeSize : 30px;
+	position: absolute;
+	top: 15px;
+	right: 15px;
+	width: $closeSize;
+	height: $closeSize;
+	cursor: pointer;
+	z-index: 1000;
+	transition: transform 0.1s;
+	text-align: center;
+
+	&:hover {
+		transform: scale(1.1);
+	}
+
+	&:before{
+		font-family: $font-family;
+		font-weight: bold;
+		width: 100%;
+		height: 100%;
+		position: absolute;
+		top: 0px;
+		right: 0px;
+		line-height: $closeSize;
+	}
+
+	&.close:before{
+		content: "✕";
+		font-size: 25px;
+		color: white;
+		background-color: transparent;
+
+	}
+	&.open:before{
+		content: "?";
+		background-color: white;
+		border-radius: 50%;
+		display: none;
+	}
+
+	&.show.open:before {
+		display: inline-block;
+	}
+}
+
+#about {
+	width: 100%;
+	height: 100%;
+	z-index: 10;
+	top: 0px;
+	left: 0px;
+	position: absolute;
+	overflow-y: auto;
+	display: none;
+
+	&.visible {
+		display: initial;
+	}
+
+	#content {
+		width: 90%;
+		margin: 50px auto 30px auto;
+		min-width: 300px;
+		max-width: 800px;
+		height: auto;
+		position: relative;
+		color: white;
+		font-family: $font-family;
+		position: relative;
+
+		#title {
+			font-family: $font-family;
+			font-size: 40px;
+			line-height: 30px;
+			margin: 20px 0px 30px 0px;
+			position: relative;
+		}
+
+		$smallScreen : 450px;
+		$mediumScreen : 700px;
+
+		#video {
+			top: 30px;
+			width: 100%;
+			cursor: pointer;
+			position: relative;
+
+			@media (max-width: $smallScreen) {
+				height: 200px;
+			}
+
+			@media (min-width: $smallScreen) and (max-width: $mediumScreen) {
+				height: 380px;
+			}
+
+			@media (min-width: $mediumScreen){
+				height: 450px;
+			}
+
+			iframe {
+				width: 100%;
+				height: 100%;
+			}
+
+			#playButton {
+				pointer-events: none;
+				position: absolute;
+				top: 50%;
+				left: 50%;
+				transform: translate(-50%, -50%);
+				width: 100px;
+				height: 100px;
+				background-image: url(../images/play_button.svg);
+				background-size: 100% 100%;
+				display: none;
+
+				&.visible {
+					display: initial;
+				}
+			}
+
+			&:hover #playButton svg{
+				fill: blue;
+			}
+		}
+
+		#blurb {
+
+			position: relative;
+			text-transform: none;
+			margin-top: 50px;
+			font-size: 14px;
+			line-height: 25px;
+
+			a {
+				color: $orange;
+			}
+		}
+
+	}
+}

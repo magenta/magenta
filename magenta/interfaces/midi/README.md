@@ -130,24 +130,61 @@ magenta_midi --list_ports
 
 You should see a list of available input and output ports, including both the
 controller (e.g., "VMPK Output") and synthesizer (e.g., "FluidSynth virtual
-port").
+port"). Set the environment variables based on the ports you want to use. For
+example:
 
-To use the midi interface, you must supply a trained model bundle (.mag file).
-You can either download one from the links on our model pages (e.g.,
-[Melody RNN](/magenta/models/melody_rnn/README.md) or create a bundle file from
-one of your training checkpoints using the instructions on the model page.
+```bash
+CONTROLLER_PORT="VMPK Output"
+SYNTH_PORT="FluidSynth virtual port 1"
+```
 
-You will now start the interface with this command, supplying the location of
-the .mag bundle file and any additional flags required by the interaction (see
-below):
+To use the midi interface, you must supply one or more trained model bundles
+(.mag files). You can either download them from the links on our model pages
+(e.g., [Melody RNN](/magenta/models/melody_rnn/README.md)) or create bundle
+files from your training checkpoints using the instructions on the model page.
+Once you're picked out the bundle files you wish to use, set the magenta_midi --help
+environment
+variable with a comma-separated list of paths to to the bundles. For example:
+
+```bash
+BUNDLE_PATHS=/path/to/bundle1.mag,/path/to/bundle2.mag
+```
+
+In summary, you should first define these variables:
+
+```bash
+CONTROLLER_PORT=<controller midi port name>
+SYNTH_PORT=<synth midi port name>
+BUNDLE_PATHS=<comma-separated paths to bundle files>
+```
+
+You may now start the interface with this command:
 
 ```bash
 magenta_midi \
-  --input_port=<controller port> \
-  --output_port=<synthesizer port> \
-  --bundle_file=<bundle_file> \
-  <additional interaction-specific args>
+  --input_port=${CONTROLLER_PORT} \
+  --output_port=${SYNTH_PORT} \
+  --bundle_files=${BUNDLE_PATHS}
 ```
+
+There are many other options you can set to customize your interaction. To see
+a full list, you can enter:
+
+```bash
+magenta_midi --help
+```
+
+## Assigning Control Signals
+You can assign control change numbers to different "knobs" for controlling the
+interface in two ways.
+
+* Assign the values on the command line using the appropriate flags (e.g.,
+`--temperature_control_number=1`).
+* Assign the values after startup by dynamically associating control changes
+from your MIDI controller with different control signals. You can enter the UI
+for doing this assignment by including the `--learn_controls` flag on the
+command-line at launch.
+
 
 ## Using the "Call and Response" Interaction
 
@@ -159,27 +196,23 @@ When you start the interface, "call" phrase capture will begin immediately. You
 will hear a metronome ticking and the keys will now produce sounds through your
 audio output.
 
-A requirement of this interaction is that you supply either `--phrase_bars` or
-`--end_call_control_number`.
+When you would like to hear a response, you should stop playing and a wait a
+bar, at which point the response will be played. Once the response completes,
+call phrase capture will begin again, and the process repeats.
 
-If you used the `--phrase_bars` flag, after the specified number of bars, the
-metronome will stop and a generated response will be played. After the same
-number of bars, a call phrase capture will begin again, and the process repeats.
-
-If you used the `--end_call_control_number` flag, you will signal with that
-control number and a value of 0 to end the call phrase. At the end of the
-current bar, the metronome will stop and a generated response will be played
-that is the same length as your call phrase. After the response completes, call
-phrase capture will begin again, and the process repeats.
+If you used the `--end_call_control_number` flag, you can signal with that
+control number and a value of 127 to end the call phrase instead of waiting for
+a bar of silence. At the end of the current bar, a generated response will be
+played that is the same length as your call phrase. After the response
+completes, call phrase capture will begin again, and the process repeats.
 
 Assuming you're using the
-[Attention RNN](/magenta/models/melody_rnn/README.md#configurations) bundle file and are
-using VPMK and FluidSynth, your command might look like this:
+[Attention RNN](/magenta/models/melody_rnn/README.md#configurations) bundle file
+and are using VPMK and FluidSynth, your command might look like this:
 
 ```bash
 magenta_midi \
   --input_port="VMPK Output" \
   --output_port="FluidSynth virtual port" \
-  --bundle_file=/tmp/attention_rnn.mag \
-  --phrase_bars=4
+  --bundle_files=/tmp/attention_rnn.mag
 ```

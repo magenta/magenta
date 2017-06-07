@@ -14,18 +14,27 @@
 """Test to ensure correct import of MusicXML."""
 
 from collections import defaultdict
+import operator
 import os.path
+import tempfile
+import zipfile
 
 # internal imports
+
 import tensorflow as tf
+
 from magenta.common import testing_lib as common_testing_lib
-from magenta.music import sequences_lib
-from magenta.music import testing_lib
-from magenta.music.musicxml_parser import MusicXMLDocument
-from magenta.music.musicxml_reader import musicxml_to_sequence_proto
+from magenta.music import musicxml_parser
+from magenta.music import musicxml_reader
+from magenta.protobuf import music_pb2
+
+# Shortcut to CHORD_SYMBOL annotation type.
+CHORD_SYMBOL = music_pb2.NoteSequence.TextAnnotation.CHORD_SYMBOL
+
 
 class MusicXMLParserTest(tf.test.TestCase):
-  """Class to test the MusicXML parser use cases
+  """Class to test the MusicXML parser use cases.
+
   self.flute_scale_filename contains an F-major scale of 8 quarter notes each
 
   self.clarinet_scale_filename contains a F-major scale of 8 quarter notes
@@ -42,8 +51,21 @@ class MusicXMLParserTest(tf.test.TestCase):
 
   self.compressed_filename contains the same content as
   self.flute_scale_filename, but compressed in MXL format
+
+  self.rhythm_durations_filename contains a variety of rhythms (long, short,
+  dotted, tuplet, and dotted tuplet) to test the computation of rhythmic
+  ratios.
+
+  self.atonal_transposition_filename contains a change of instrument
+  from a non-transposing (Flute) to transposing (Bb Clarinet) in a score
+  with no key / atonal. This ensures that transposition works properly when
+  no key signature is found (Issue #355)
+
+  self.st_anne_filename contains a 4-voice piece written in two parts.
   """
+
   def setUp(self):
+    self.maxDiff = None
 
     self.steps_per_quarter = 4
 
@@ -71,6 +93,34 @@ class MusicXMLParserTest(tf.test.TestCase):
         tf.resource_loader.get_data_files_path(),
         'testdata/rhythm_durations.xml')
 
+    self.st_anne_filename = os.path.join(
+        tf.resource_loader.get_data_files_path(),
+        'testdata/st_anne.xml')
+
+    self.atonal_transposition_filename = os.path.join(
+        tf.resource_loader.get_data_files_path(),
+        'testdata/atonal_transposition_change.xml')
+
+    self.chord_symbols_filename = os.path.join(
+        tf.resource_loader.get_data_files_path(),
+        'testdata/chord_symbols.xml')
+
+    self.time_signature_filename = os.path.join(
+        tf.resource_loader.get_data_files_path(),
+        'testdata/st_anne.xml')
+
+    self.unmetered_filename = os.path.join(
+        tf.resource_loader.get_data_files_path(),
+        'testdata/unmetered_example.xml')
+
+    self.alternating_meter_filename = os.path.join(
+        tf.resource_loader.get_data_files_path(),
+        'testdata/alternating_meter.xml')
+
+    self.mid_measure_meter_filename = os.path.join(
+        tf.resource_loader.get_data_files_path(),
+        'testdata/mid_measure_time_signature.xml')
+
   def checkmusicxmlandsequence(self, musicxml, sequence_proto):
     """Compares MusicXMLDocument object against a sequence proto.
 
@@ -93,9 +143,9 @@ class MusicXMLParserTest(tf.test.TestCase):
     for musicxml_key, sequence_key in zip(musicxml.get_key_signatures(),
                                           sequence_proto.key_signatures):
 
-      if musicxml_key.mode == "major":
+      if musicxml_key.mode == 'major':
         mode = 0
-      elif musicxml_key.mode == "minor":
+      elif musicxml_key.mode == 'minor':
         mode = 1
 
       # The Key enum in music.proto does NOT follow MIDI / MusicXML specs
@@ -117,20 +167,15 @@ class MusicXMLParserTest(tf.test.TestCase):
                              sequence_tempo.time)
 
     # Test parts/instruments.
-    seq_instruments = defaultdict(lambda: defaultdict(list))
+    seq_parts = defaultdict(list)
     for seq_note in sequence_proto.notes:
-      seq_instruments[
-          (seq_note.instrument, seq_note.program)]['notes'].append(seq_note)
+      seq_parts[seq_note.part].append(seq_note)
 
-    sorted_seq_instrument_keys = sorted(
-        seq_instruments.keys(),
-        key=lambda (instrument_id, program_id): (instrument_id, program_id))
+    self.assertEqual(len(musicxml.parts), len(seq_parts))
+    for musicxml_part, seq_part_id in zip(
+        musicxml.parts, sorted(seq_parts.keys())):
 
-    self.assertEqual(len(musicxml.parts), len(seq_instruments))
-    for musicxml_part, seq_instrument_key in zip(
-        musicxml.parts, sorted_seq_instrument_keys):
-
-      seq_instrument_notes = seq_instruments[seq_instrument_key]['notes']
+      seq_instrument_notes = seq_parts[seq_part_id]
       musicxml_notes = []
       for musicxml_measure in musicxml_part.measures:
         for musicxml_note in musicxml_measure.notes:
@@ -144,7 +189,7 @@ class MusicXMLParserTest(tf.test.TestCase):
         self.assertEqual(musicxml_note.velocity, sequence_note.velocity)
         self.assertAlmostEqual(musicxml_note.note_duration.time_position,
                                sequence_note.start_time)
-        self.assertAlmostEqual(musicxml_note.note_duration.time_position \
+        self.assertAlmostEqual(musicxml_note.note_duration.time_position
                                + musicxml_note.note_duration.seconds,
                                sequence_note.end_time)
         # Check that the duration specified in the MusicXML and the
@@ -155,92 +200,782 @@ class MusicXMLParserTest(tf.test.TestCase):
         # 341.0, 341.0, 342.0.
         # Check that (3 * 341.333) = (341 + 341 + 342) is true by checking
         # that 341.0 and 342.0 are +/- 1 of 341.333
-        self.assertAlmostEqual(musicxml_note.note_duration.duration, \
-                               musicxml_note.state.divisions * 4 \
-                               * musicxml_note.note_duration.duration_float(),\
-                               delta=1)
+        self.assertAlmostEqual(
+            musicxml_note.note_duration.duration,
+            musicxml_note.state.divisions * 4
+            * musicxml_note.note_duration.duration_float(),
+            delta=1)
 
   def checkmusicxmltosequence(self, filename):
     """Test the translation from MusicXML to Sequence proto."""
-    source_musicxml = MusicXMLDocument(filename)
-    sequence_proto = musicxml_to_sequence_proto(source_musicxml)
+    source_musicxml = musicxml_parser.MusicXMLDocument(filename)
+    sequence_proto = musicxml_reader.musicxml_to_sequence_proto(source_musicxml)
     self.checkmusicxmlandsequence(source_musicxml, sequence_proto)
 
-  def checkFMajorScale(self, filename):
-    """Verify that the MusicXML scale file contains the correct
-    pitches (sounding pitch) and durations"""
+  def checkFMajorScale(self, filename, part_name):
+    """Verify MusicXML scale file.
 
-    # Expected QuantizedSequence
-    # Sequence tuple = (midi_pitch, velocity, start_seconds, end_seconds)
-    expected_quantized_sequence = sequences_lib.QuantizedSequence()
-    expected_quantized_sequence.steps_per_quarter = self.steps_per_quarter
-    expected_quantized_sequence.qpm = 120.0
-    expected_quantized_sequence.time_signature = sequences_lib.QuantizedSequence.TimeSignature(
-      numerator = 4, denominator = 4)
-    testing_lib.add_quantized_track_to_sequence(
-      expected_quantized_sequence, 0,
-      [(65, 64, 0, 4), (67, 64, 4, 8), (69, 64, 8, 12),
-      (70, 64, 12, 16), (72, 64, 16, 20), (74, 64, 20, 24),
-      (76, 64, 24, 28), (77, 64, 28, 32)]
-    )
+    Verify that it contains the correct pitches (sounding pitch) and durations.
 
-    # Convert MusicXML to QuantizedSequence
-    source_musicxml = MusicXMLDocument(filename)
-    sequence_proto = musicxml_to_sequence_proto(source_musicxml)
-    quantized = sequences_lib.QuantizedSequence()
-    quantized.from_note_sequence(sequence_proto, self.steps_per_quarter)
+    Args:
+      filename: file to test.
+      part_name: name of the part the sequence is expected to contain.
+    """
+
+    expected_ns = common_testing_lib.parse_test_proto(
+        music_pb2.NoteSequence,
+        """
+        ticks_per_quarter: 220
+        source_info: {
+          source_type: SCORE_BASED
+          encoding_type: MUSIC_XML
+          parser: MAGENTA_MUSIC_XML
+        }
+        key_signatures {
+          key: F
+          time: 0
+        }
+        time_signatures {
+          numerator: 4
+          denominator: 4
+        }
+        tempos {
+          qpm: 120.0
+        }
+        total_time: 4.0
+        """)
+
+    part_info = expected_ns.part_infos.add()
+    part_info.name = part_name
+
+    expected_pitches = [65, 67, 69, 70, 72, 74, 76, 77]
+    time = 0
+    for pitch in expected_pitches:
+      note = expected_ns.notes.add()
+      note.part = 0
+      note.voice = 1
+      note.pitch = pitch
+      note.start_time = time
+      time += .5
+      note.end_time = time
+      note.velocity = 64
+      note.numerator = 1
+      note.denominator = 4
+
+    # Convert MusicXML to NoteSequence
+    source_musicxml = musicxml_parser.MusicXMLDocument(filename)
+    sequence_proto = musicxml_reader.musicxml_to_sequence_proto(source_musicxml)
 
     # Check equality
-    self.assertEqual(expected_quantized_sequence, quantized)
+    self.assertProtoEquals(expected_ns, sequence_proto)
 
   def testsimplemusicxmltosequence(self):
-    """Test the simple flute scale MusicXML file"""
+    """Test the simple flute scale MusicXML file."""
     self.checkmusicxmltosequence(self.flute_scale_filename)
-    self.checkFMajorScale(self.flute_scale_filename)
+    self.checkFMajorScale(self.flute_scale_filename, 'Flute')
 
   def testcomplexmusicxmltosequence(self):
-    """Test the complex band score MusicXML file"""
+    """Test the complex band score MusicXML file."""
     self.checkmusicxmltosequence(self.band_score_filename)
 
   def testtransposedxmltosequence(self):
-    """Test the translation from MusicXML to Sequence proto when the music
-    is transposed. Compare a transpoed MusicXML file (clarinet) to an
-    identical untransposed sequence (flute)
+    """Test the translation from transposed MusicXML to Sequence proto.
+
+    Compare a transposed MusicXML file (clarinet) to an identical untransposed
+    sequence (flute).
     """
-    untransposed_musicxml = MusicXMLDocument(self.flute_scale_filename)
-    transposed_musicxml = MusicXMLDocument(self.clarinet_scale_filename)
-    untransposed_proto = musicxml_to_sequence_proto(untransposed_musicxml)
+    untransposed_musicxml = musicxml_parser.MusicXMLDocument(
+        self.flute_scale_filename)
+    transposed_musicxml = musicxml_parser.MusicXMLDocument(
+        self.clarinet_scale_filename)
+    untransposed_proto = musicxml_reader.musicxml_to_sequence_proto(
+        untransposed_musicxml)
     self.checkmusicxmlandsequence(transposed_musicxml, untransposed_proto)
-    self.checkFMajorScale(self.clarinet_scale_filename)
+    self.checkFMajorScale(self.clarinet_scale_filename, 'Clarinet in Bb')
+
+  def testcompressedmxlunicodefilename(self):
+    """Test an MXL file containing a unicode filename within its zip archive."""
+
+    unicode_filename = os.path.join(
+        tf.resource_loader.get_data_files_path(),
+        'testdata/unicode_filename.mxl')
+    sequence = musicxml_reader.musicxml_file_to_sequence_proto(unicode_filename)
+    self.assertEqual(len(sequence.notes), 8)
 
   def testcompressedxmltosequence(self):
-    """Test the translation from MusicXML to Sequence proto when the music
-    is compressed in MXL format. Compare a compressed MusicXML file to an
-    identical uncompressed sequence
+    """Test the translation from compressed MusicXML to Sequence proto.
+
+    Compare a compressed MusicXML file to an identical uncompressed sequence.
     """
-    uncompressed_musicxml = MusicXMLDocument(self.flute_scale_filename)
-    compressed_musicxml = MusicXMLDocument(self.compressed_filename)
-    uncompressed_proto = musicxml_to_sequence_proto(uncompressed_musicxml)
+    uncompressed_musicxml = musicxml_parser.MusicXMLDocument(
+        self.flute_scale_filename)
+    compressed_musicxml = musicxml_parser.MusicXMLDocument(
+        self.compressed_filename)
+    uncompressed_proto = musicxml_reader.musicxml_to_sequence_proto(
+        uncompressed_musicxml)
     self.checkmusicxmlandsequence(compressed_musicxml, uncompressed_proto)
-    self.checkFMajorScale(self.flute_scale_filename)
+    self.checkFMajorScale(self.flute_scale_filename, 'Flute')
 
   def testmultiplecompressedxmltosequence(self):
-    """Test the translation from MusicXML to Sequence proto when the music
-    is compressed in MXL format with multiple rootfiles. The example
-    MXL file contains a MusicXML file of the Flute F Major scale, as well
-    as the PNG rendering of the score contained within the single MXL file.
-    Compare a compressed MusicXML file to an identical uncompressed sequence
+    """Test the translation from compressed MusicXML with multiple rootfiles.
+
+    The example MXL file contains a MusicXML file of the Flute F Major scale,
+    as well as the PNG rendering of the score contained within the single MXL
+    file.
     """
-    uncompressed_musicxml = MusicXMLDocument(self.flute_scale_filename)
-    compressed_musicxml = MusicXMLDocument(
-                            self.multiple_rootfile_compressed_filename)
-    uncompressed_proto = musicxml_to_sequence_proto(uncompressed_musicxml)
+    uncompressed_musicxml = musicxml_parser.MusicXMLDocument(
+        self.flute_scale_filename)
+    compressed_musicxml = musicxml_parser.MusicXMLDocument(
+        self.multiple_rootfile_compressed_filename)
+    uncompressed_proto = musicxml_reader.musicxml_to_sequence_proto(
+        uncompressed_musicxml)
     self.checkmusicxmlandsequence(compressed_musicxml, uncompressed_proto)
-    self.checkFMajorScale(self.flute_scale_filename)
+    self.checkFMajorScale(self.flute_scale_filename, 'Flute')
 
   def testrhythmdurationsxmltosequence(self):
-    """Test the rhythm durations MusicXML file"""
+    """Test the rhythm durations MusicXML file."""
     self.checkmusicxmltosequence(self.rhythm_durations_filename)
+
+  def testFluteScale(self):
+    """Verify properties of the flute scale."""
+    ns = musicxml_reader.musicxml_file_to_sequence_proto(
+        self.flute_scale_filename)
+    expected_ns = common_testing_lib.parse_test_proto(
+        music_pb2.NoteSequence,
+        """
+        ticks_per_quarter: 220
+        time_signatures: {
+          numerator: 4
+          denominator: 4
+        }
+        tempos: {
+          qpm: 120
+        }
+        key_signatures: {
+          key: F
+        }
+        source_info: {
+          source_type: SCORE_BASED
+          encoding_type: MUSIC_XML
+          parser: MAGENTA_MUSIC_XML
+        }
+        part_infos {
+          part: 0
+          name: "Flute"
+        }
+        total_time: 4.0
+        """)
+    expected_pitches = [65, 67, 69, 70, 72, 74, 76, 77]
+    time = 0
+    for pitch in expected_pitches:
+      note = expected_ns.notes.add()
+      note.part = 0
+      note.voice = 1
+      note.pitch = pitch
+      note.start_time = time
+      time += .5
+      note.end_time = time
+      note.velocity = 64
+      note.numerator = 1
+      note.denominator = 4
+    self.assertProtoEquals(expected_ns, ns)
+
+  def test_atonal_transposition(self):
+    """Test that transposition works when changing instrument transposition.
+
+    This can occur within a single part in a score where the score
+    has no key signature / is atonal. Examples include changing from a
+    non-transposing instrument to a transposing one (ex. Flute to Bb Clarinet)
+    or vice versa, or changing among transposing instruments (ex. Bb Clarinet
+    to Eb Alto Saxophone).
+    """
+    ns = musicxml_reader.musicxml_file_to_sequence_proto(
+        self.atonal_transposition_filename)
+    expected_ns = common_testing_lib.parse_test_proto(
+        music_pb2.NoteSequence,
+        """
+        ticks_per_quarter: 220
+        time_signatures: {
+          numerator: 4
+          denominator: 4
+        }
+        tempos: {
+          qpm: 120
+        }
+        key_signatures: {
+        }
+        part_infos {
+          part: 0
+          name: "Flute"
+        }
+        source_info: {
+          source_type: SCORE_BASED
+          encoding_type: MUSIC_XML
+          parser: MAGENTA_MUSIC_XML
+        }
+        total_time: 4.0
+        """)
+    expected_pitches = [72, 74, 76, 77, 79, 77, 76, 74]
+    time = 0
+    for pitch in expected_pitches:
+      note = expected_ns.notes.add()
+      note.pitch = pitch
+      note.start_time = time
+      time += .5
+      note.end_time = time
+      note.velocity = 64
+      note.numerator = 1
+      note.denominator = 4
+      note.voice = 1
+    self.maxDiff = None
+    self.assertProtoEquals(expected_ns, ns)
+
+  def test_incomplete_measures(self):
+    """Test that incomplete measures have the correct time signature.
+
+    This can occur in pickup bars or incomplete measures. For example,
+    if the time signature in the MusicXML is 4/4, but the measure only
+    contains one quarter note, Magenta expects this pickup measure to have
+    a time signature of 1/4.
+    """
+    ns = musicxml_reader.musicxml_file_to_sequence_proto(
+        self.time_signature_filename)
+
+    # One time signature per measure
+    self.assertEqual(len(ns.time_signatures), 10)
+    self.assertEqual(len(ns.key_signatures), 1)
+    self.assertEqual(len(ns.notes), 112)
+
+  def test_unmetered_music(self):
+    """Test that time signatures are inserted for music without time signatures.
+
+    MusicXML does not require the use of time signatures. Music without
+    time signatures occur in medieval chant, cadenzas, and contemporary music.
+    """
+    ns = musicxml_reader.musicxml_file_to_sequence_proto(
+        self.unmetered_filename)
+    expected_ns = common_testing_lib.parse_test_proto(
+        music_pb2.NoteSequence,
+        """
+        ticks_per_quarter: 220
+        time_signatures: {
+          numerator: 11
+          denominator: 8
+        }
+        tempos: {
+          qpm: 120
+        }
+        key_signatures: {
+        }
+        notes {
+          pitch: 72
+          velocity: 64
+          end_time: 0.5
+          numerator: 1
+          denominator: 4
+          voice: 1
+        }
+        notes {
+          pitch: 74
+          velocity: 64
+          start_time: 0.5
+          end_time: 0.75
+          numerator: 1
+          denominator: 8
+          voice: 1
+        }
+        notes {
+          pitch: 76
+          velocity: 64
+          start_time: 0.75
+          end_time: 1.25
+          numerator: 1
+          denominator: 4
+          voice: 1
+        }
+        notes {
+          pitch: 77
+          velocity: 64
+          start_time: 1.25
+          end_time: 1.75
+          numerator: 1
+          denominator: 4
+          voice: 1
+        }
+        notes {
+          pitch: 79
+          velocity: 64
+          start_time: 1.75
+          end_time: 2.75
+          numerator: 1
+          denominator: 2
+          voice: 1
+        }
+        part_infos {
+          name: "Flute"
+        }
+        source_info: {
+          source_type: SCORE_BASED
+          encoding_type: MUSIC_XML
+          parser: MAGENTA_MUSIC_XML
+        }
+        total_time: 2.75
+        """)
+    self.maxDiff = None
+    self.assertProtoEquals(expected_ns, ns)
+
+  def test_st_anne(self):
+    """Verify properties of the St. Anne file.
+
+    The file contains 2 parts and 4 voices.
+    """
+    ns = musicxml_reader.musicxml_file_to_sequence_proto(
+        self.st_anne_filename)
+    expected_ns = common_testing_lib.parse_test_proto(
+        music_pb2.NoteSequence,
+        """
+        ticks_per_quarter: 220
+        time_signatures {
+          numerator: 1
+          denominator: 4
+        }
+        time_signatures {
+          time: 0.5
+          numerator: 4
+          denominator: 4
+        }
+        time_signatures {
+          time: 2.5
+          numerator: 4
+          denominator: 4
+        }
+        time_signatures {
+          time: 4.5
+          numerator: 4
+          denominator: 4
+        }
+        time_signatures {
+          time: 6.5
+          numerator: 3
+          denominator: 4
+        }
+        time_signatures {
+          time: 8.0
+          numerator: 1
+          denominator: 4
+        }
+        time_signatures {
+          time: 8.5
+          numerator: 4
+          denominator: 4
+        }
+        time_signatures {
+          time: 10.5
+          numerator: 4
+          denominator: 4
+        }
+        time_signatures {
+          time: 12.5
+          numerator: 4
+          denominator: 4
+        }
+        time_signatures {
+          time: 14.5
+          numerator: 3
+          denominator: 4
+        }
+        tempos: {
+          qpm: 120
+        }
+        key_signatures: {
+          key: C
+        }
+        source_info: {
+          source_type: SCORE_BASED
+          encoding_type: MUSIC_XML
+          parser: MAGENTA_MUSIC_XML
+        }
+        part_infos {
+          part: 0
+          name: "Harpsichord"
+        }
+        part_infos {
+          part: 1
+          name: "Piano"
+        }
+        total_time: 16.0
+        """)
+    pitches_0_1 = [
+        (67, .5),
+
+        (64, .5),
+        (69, .5),
+        (67, .5),
+        (72, .5),
+
+        (72, .5),
+        (71, .5),
+        (72, .5),
+        (67, .5),
+
+        (72, .5),
+        (67, .5),
+        (69, .5),
+        (66, .5),
+
+        (67, 1.5),
+
+        (71, .5),
+
+        (72, .5),
+        (69, .5),
+        (74, .5),
+        (71, .5),
+
+        (72, .5),
+        (69, .5),
+        (71, .5),
+        (67, .5),
+
+        (69, .5),
+        (72, .5),
+        (74, .5),
+        (71, .5),
+
+        (72, 1.5),
+    ]
+    pitches_0_2 = [
+        (60, .5),
+
+        (60, .5),
+        (60, .5),
+        (60, .5),
+        (64, .5),
+
+        (62, .5),
+        (62, .5),
+        (64, .5),
+        (64, .5),
+
+        (64, .5),
+        (64, .5),
+        (64, .5),
+        (62, .5),
+
+        (62, 1.5),
+
+        (62, .5),
+
+        (64, .5),
+        (60, .5),
+        (65, .5),
+        (62, .5),
+
+        (64, .75),
+        (62, .25),
+        (59, .5),
+        (60, .5),
+
+        (65, .5),
+        (64, .5),
+        (62, .5),
+        (62, .5),
+
+        (64, 1.5),
+    ]
+    pitches_1_1 = [
+        (52, .5),
+
+        (55, .5),
+        (57, .5),
+        (60, .5),
+        (60, .5),
+
+        (57, .5),
+        (55, .5),
+        (55, .5),
+        (60, .5),
+
+        (60, .5),
+        (59, .5),
+        (57, .5),
+        (57, .5),
+
+        (59, 1.5),
+
+        (55, .5),
+
+        (55, .5),
+        (57, .5),
+        (57, .5),
+        (55, .5),
+
+        (55, .5),
+        (57, .5),
+        (56, .5),
+        (55, .5),
+
+        (53, .5),
+        (55, .5),
+        (57, .5),
+        (55, .5),
+
+        (55, 1.5),
+    ]
+    pitches_1_2 = [
+        (48, .5),
+
+        (48, .5),
+        (53, .5),
+        (52, .5),
+        (57, .5),
+
+        (53, .5),
+        (55, .5),
+        (48, .5),
+        (48, .5),
+
+        (45, .5),
+        (52, .5),
+        (48, .5),
+        (50, .5),
+
+        (43, 1.5),
+
+        (55, .5),
+
+        (48, .5),
+        (53, .5),
+        (50, .5),
+        (55, .5),
+
+        (48, .5),
+        (53, .5),
+        (52, .5),
+        (52, .5),
+
+        (50, .5),
+        (48, .5),
+        (53, .5),
+        (55, .5),
+
+        (48, 1.5),
+    ]
+    part_voice_instrument_program_pitches = [
+        (0, 1, 1, 7, pitches_0_1),
+        (0, 2, 1, 7, pitches_0_2),
+        (1, 1, 2, 1, pitches_1_1),
+        (1, 2, 2, 1, pitches_1_2),
+    ]
+    for part, voice, instrument, program, pitches in (
+        part_voice_instrument_program_pitches):
+      time = 0
+      for pitch, duration in pitches:
+        note = expected_ns.notes.add()
+        note.part = part
+        note.voice = voice
+        note.pitch = pitch
+        note.start_time = time
+        time += duration
+        note.end_time = time
+        note.velocity = 64
+        note.instrument = instrument
+        note.program = program
+        if duration == .5:
+          note.numerator = 1
+          note.denominator = 4
+        if duration == .25:
+          note.numerator = 1
+          note.denominator = 8
+        if duration == .75:
+          note.numerator = 3
+          note.denominator = 8
+        if duration == 1.5:
+          note.numerator = 3
+          note.denominator = 4
+    expected_ns.notes.sort(
+        key=lambda note: (note.part, note.voice, note.start_time))
+    ns.notes.sort(
+        key=lambda note: (note.part, note.voice, note.start_time))
+    self.assertProtoEquals(expected_ns, ns)
+
+  def test_empty_part_name(self):
+    """Verify that a part with an empty name can be parsed."""
+
+    xml = r"""<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+      <!DOCTYPE score-partwise PUBLIC
+          "-//Recordare//DTD MusicXML 3.0 Partwise//EN"
+          "http://www.musicxml.org/dtds/partwise.dtd">
+      <score-partwise version="3.0">
+        <part-list>
+          <score-part id="P1">
+            <part-name/>
+          </score-part>
+        </part-list>
+        <part id="P1">
+        </part>
+      </score-partwise>
+    """
+    with tempfile.NamedTemporaryFile() as temp_file:
+      temp_file.write(xml)
+      temp_file.flush()
+      ns = musicxml_reader.musicxml_file_to_sequence_proto(
+          temp_file.name)
+
+    expected_ns = common_testing_lib.parse_test_proto(
+        music_pb2.NoteSequence,
+        """
+        ticks_per_quarter: 220
+        source_info: {
+          source_type: SCORE_BASED
+          encoding_type: MUSIC_XML
+          parser: MAGENTA_MUSIC_XML
+        }
+        key_signatures {
+          key: C
+          time: 0
+        }
+        tempos {
+          qpm: 120.0
+        }
+        part_infos {
+          part: 0
+        }
+        total_time: 0.0
+        """)
+    self.assertProtoEquals(expected_ns, ns)
+
+  def test_empty_part_list(self):
+    """Verify that a part without a corresponding score-part can be parsed."""
+
+    xml = r"""<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+      <!DOCTYPE score-partwise PUBLIC
+          "-//Recordare//DTD MusicXML 3.0 Partwise//EN"
+          "http://www.musicxml.org/dtds/partwise.dtd">
+      <score-partwise version="3.0">
+        <part id="P1">
+        </part>
+      </score-partwise>
+    """
+    with tempfile.NamedTemporaryFile() as temp_file:
+      temp_file.write(xml)
+      temp_file.flush()
+      ns = musicxml_reader.musicxml_file_to_sequence_proto(
+          temp_file.name)
+
+    expected_ns = common_testing_lib.parse_test_proto(
+        music_pb2.NoteSequence,
+        """
+        ticks_per_quarter: 220
+        source_info: {
+          source_type: SCORE_BASED
+          encoding_type: MUSIC_XML
+          parser: MAGENTA_MUSIC_XML
+        }
+        key_signatures {
+          key: C
+          time: 0
+        }
+        tempos {
+          qpm: 120.0
+        }
+        part_infos {
+          part: 0
+        }
+        total_time: 0.0
+        """)
+    self.assertProtoEquals(expected_ns, ns)
+
+  def test_empty_doc(self):
+    """Verify that an empty doc can be parsed."""
+
+    xml = r"""<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+      <!DOCTYPE score-partwise PUBLIC
+          "-//Recordare//DTD MusicXML 3.0 Partwise//EN"
+          "http://www.musicxml.org/dtds/partwise.dtd">
+      <score-partwise version="3.0">
+      </score-partwise>
+    """
+    with tempfile.NamedTemporaryFile() as temp_file:
+      temp_file.write(xml)
+      temp_file.flush()
+      ns = musicxml_reader.musicxml_file_to_sequence_proto(
+          temp_file.name)
+
+    expected_ns = common_testing_lib.parse_test_proto(
+        music_pb2.NoteSequence,
+        """
+        ticks_per_quarter: 220
+        source_info: {
+          source_type: SCORE_BASED
+          encoding_type: MUSIC_XML
+          parser: MAGENTA_MUSIC_XML
+        }
+        key_signatures {
+          key: C
+          time: 0
+        }
+        tempos {
+          qpm: 120.0
+        }
+        total_time: 0.0
+        """)
+    self.assertProtoEquals(expected_ns, ns)
+
+  def test_chord_symbols(self):
+    ns = musicxml_reader.musicxml_file_to_sequence_proto(
+        self.chord_symbols_filename)
+    chord_symbols = [(annotation.time, annotation.text)
+                     for annotation in ns.text_annotations
+                     if annotation.annotation_type == CHORD_SYMBOL]
+    chord_symbols = list(sorted(chord_symbols, key=operator.itemgetter(0)))
+
+    expected_beats_and_chords = [
+        (0.0, 'N.C.'),
+        (4.0, 'Cmaj7'),
+        (12.0, 'F6(add9)'),
+        (16.0, 'F#dim7/A'),
+        (20.0, 'Bm7b5'),
+        (24.0, 'E7(#9)'),
+        (28.0, 'A7(add9)(no3)'),
+        (32.0, 'Bbsus2'),
+        (36.0, 'Am(maj7)'),
+        (38.0, 'D13'),
+        (40.0, 'E5'),
+        (44.0, 'Caug')
+    ]
+
+    # Adjust for 120 QPM.
+    expected_times_and_chords = [(beat / 2.0, chord)
+                                 for beat, chord in expected_beats_and_chords]
+    self.assertEqual(expected_times_and_chords, chord_symbols)
+
+  def test_alternating_meter(self):
+    with self.assertRaises(musicxml_parser.AlternatingTimeSignatureException):
+      musicxml_parser.MusicXMLDocument(self.alternating_meter_filename)
+
+  def test_mid_measure_meter_change(self):
+    with self.assertRaises(musicxml_parser.MultipleTimeSignatureException):
+      musicxml_parser.MusicXMLDocument(self.mid_measure_meter_filename)
+
+  def test_unpitched_notes(self):
+    with self.assertRaises(musicxml_parser.UnpitchedNoteException):
+      musicxml_parser.MusicXMLDocument(os.path.join(
+          tf.resource_loader.get_data_files_path(),
+          'testdata/unpitched.xml'))
+    with self.assertRaises(musicxml_reader.MusicXMLConversionError):
+      musicxml_reader.musicxml_file_to_sequence_proto(os.path.join(
+          tf.resource_loader.get_data_files_path(),
+          'testdata/unpitched.xml'))
+
+  def test_empty_archive(self):
+    with tempfile.NamedTemporaryFile(suffix='.mxl') as temp_file:
+      z = zipfile.ZipFile(temp_file.name, 'w')
+      z.close()
+
+      with self.assertRaises(musicxml_reader.MusicXMLConversionError):
+        musicxml_reader.musicxml_file_to_sequence_proto(
+            temp_file.name)
 
 if __name__ == '__main__':
   tf.test.main()

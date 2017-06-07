@@ -18,8 +18,8 @@ licenses(["notice"])  # Apache 2.0
 
 py_library(
     name = "imagenet_data",
-    srcs = [
-        "imagenet_data.py",
+    srcs = ["imagenet_data.py"],
+    deps = [
         # tensorflow dep
     ],
 )
@@ -34,6 +34,7 @@ py_binary(
         ":image_utils",
         ":learning",
         # scipy dep
+        # scipy pilutil dep
         # tensorflow dep
     ],
 )
@@ -100,7 +101,9 @@ py_library(
     deps = [
         ":imagenet_data",
         # numpy dep
+        # storage dep
         # scipy dep
+        # scipy pilutil dep
         # tensorflow dep
     ],
 )

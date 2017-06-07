@@ -19,7 +19,10 @@ licenses(["notice"])  # Apache 2.0
 py_library(
     name = "melody_rnn",
     srcs = ["__init__.py"],
-    visibility = ["//magenta/tools/pip:__subpackages__"],
+    visibility = [
+        # internal notebook binary
+        "//magenta/tools/pip:__subpackages__",
+    ],
     deps = [
         ":melody_rnn_model",
     ],
@@ -40,35 +43,16 @@ py_library(
 )
 
 py_library(
-    name = "melody_rnn_graph",
-    srcs = ["melody_rnn_graph.py"],
-    srcs_version = "PY2AND3",
-    deps = [
-        "//magenta",
-        # tensorflow dep
-    ],
-)
-
-py_test(
-    name = "melody_rnn_graph_test",
-    srcs = ["melody_rnn_graph_test.py"],
-    srcs_version = "PY2AND3",
-    deps = [
-        ":melody_rnn_graph",
-        ":melody_rnn_model",
-        "//magenta",
-        # tensorflow dep
-    ],
-)
-
-py_library(
     name = "melody_rnn_model",
     srcs = ["melody_rnn_model.py"],
     srcs_version = "PY2AND3",
+    visibility = [
+        # internal model:melody_rnn
+        # internal notebook binary
+    ],
     deps = [
-        ":melody_rnn_graph",
         "//magenta",
-        # tensorflow dep
+        "//magenta/models/shared:events_rnn_model",
     ],
 )
 
@@ -76,7 +60,10 @@ py_library(
     name = "melody_rnn_sequence_generator",
     srcs = ["melody_rnn_sequence_generator.py"],
     srcs_version = "PY2AND3",
-    visibility = ["//magenta/interfaces:generator_interfaces"],
+    visibility = [
+        # internal notebook binary
+        "//magenta/interfaces:generator_interfaces"
+    ],
     deps = [
         ":melody_rnn_model",
         "//magenta",
@@ -118,7 +105,8 @@ py_binary(
     ],
     deps = [
         ":melody_rnn_config_flags",
-        ":melody_rnn_graph",
+        "//magenta/models/shared:events_rnn_graph",
+        "//magenta/models/shared:events_rnn_train",
         # tensorflow dep
     ],
 )

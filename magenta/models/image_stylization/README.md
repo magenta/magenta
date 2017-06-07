@@ -8,7 +8,7 @@ implements the paper "A Learned Representation for Artistic Style":
 Manjunath Kudlur*.
 
 # Setup
-Whether you want to stylize an image with one of our pre-trained models or train your own model, you need to set up your [Magenta environment](https://github.com/tensorflow/magenta/blob/master/README.md).
+Whether you want to stylize an image with one of our pre-trained models or train your own model, you need to set up your [Magenta environment](/README.md).
 
 # Stylizing an Image
 First, download one of our pre-trained models:
@@ -31,6 +31,24 @@ $ image_stylization_transform \
 ```
 
 You'll have to specify the correct number of styles for the model you're using. For the Monet model this is 10 and for the varied model this is 32. The `which_styles` argument should be a Python list of integer style indices.
+
+`which_styles` can also be used to specify a linear combination of styles to
+combine in a single image. Use a Python dictionary that maps the style index to
+the weights for each style. If the style index is unspecified then it will have
+a zero weight. Note that the weights are not normalized.
+
+Here's an example that produces a stylization that is an average of all of the
+monet styles.
+
+```bash
+$ image_stylization_transform \
+      --num_styles=10 \
+      --checkpoint=multistyle-pastiche-generator-monet.ckpt \
+      --input_image=photo.jpg \
+      --which_styles="{0:0.1,1:0.1,2:0.1,3:0.1,4:0.1,5:0.1,6:0.1,7:0.1,8:0.1,9:0.1}" \
+      --output_dir=/tmp/image_stylization/output \
+      --output_basename="all_monet_styles"
+```
 
 # Training a Model
 To train your own model, you'll need three things:

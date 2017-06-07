@@ -82,7 +82,7 @@ class BaseModel(object):
       checkpoint_filename: Path to the checkpoint file.
     """
     with self._session.graph.as_default():
-      saver = tf.train.Saver(sharded=False)
+      saver = tf.train.Saver(sharded=False, write_version=tf.train.SaverDef.V1)
       saver.save(self._session, checkpoint_filename, meta_graph_suffix='meta',
                  write_meta_graph=True)
 
@@ -90,4 +90,3 @@ class BaseModel(object):
     """Closes the TF session."""
     self._session.close()
     self._session = None
-
