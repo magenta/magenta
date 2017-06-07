@@ -100,14 +100,13 @@ def main(unused_argv=None):
     # Ensure that files has batch_size elements.
     batch_filler = batch_size - len(wavefiles_batch)
     wavefiles_batch.extend(batch_filler * [wavefiles_batch[-1]])
-
     wav_data = np.array([utils.load_audio(f, sample_length) 
                          for f in wavefiles_batch])
     try:
       tf.reset_default_graph()
       # Load up the model for encoding and find the encoding
-      encoding, hop_length = encode(wav_data, 
-                                    checkpoint_path, 
+      encoding, hop_length = encode(wav_data,
+                                    checkpoint_path,
                                     sample_length=sample_length)
       if encoding.ndim == 2:
         encoding = np.expand_dims(encoding, 0)

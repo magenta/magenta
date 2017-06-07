@@ -49,7 +49,7 @@ def main(unused_argv=None):
     files = []
   for f in files:
     out_file = os.path.join(save_path,
-                  "gen_" + os.path.basename(f))
+                            "gen_" + os.path.splitext(os.path.basename(f))[0] + '.wav')
     tf.logging.info("OUTFILE %s" % out_file)
     synthesize(source_file=f,
                encodings=FLAGS.encodings,

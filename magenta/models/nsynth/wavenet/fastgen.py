@@ -93,7 +93,7 @@ def encode(wav_data, checkpoint_path, sample_length=64000):
                      sample_length=sample_length)
     saver = tf.train.Saver()
     saver.restore(sess, checkpoint_path)
-    encoding = sess.run(net['encoding'], feed_dict={net['X']: wav_data})[0]
+    encoding = sess.run(net['encoding'], feed_dict={net['X']: wav_data})
   return encoding, hop_length
 
 
@@ -114,13 +114,14 @@ def synthesize(source_file,
   """
   if encodings:
     encoding = np.load(source_file)
-    hop_length = Config().ae_hop_length
   else:
     # Audio to resynthesize
     wav_data = utils.load_audio(source_file, sample_length, sr=16000)
     # Load up the model for encoding and find the encoding
-    encoding, hop_length = encode(wav_data, 
+    encoding, hop_length = encode(wav_data,
                                   checkpoint_path, sample_length=sample_length)
+    if encoding.ndim == 3:
+      encoding = encoding[0]
   # Get lengths
   encoding_length = encoding.shape[0]
   total_length = encoding_length * hop_length
@@ -139,7 +140,7 @@ def synthesize(source_file,
     audio = np.float32(0)
 
     for sample_i in range(total_length):
-      enc_i = int(sample_i / float(sample_length) * float(encoding_length))
+      enc_i = sample_i // hop_length
       pmf = sess.run([net['predictions'], net['push_ops']],
               feed_dict={net['X']: np.atleast_2d(audio),
                          net['encoding']: encoding[enc_i]})[0]
