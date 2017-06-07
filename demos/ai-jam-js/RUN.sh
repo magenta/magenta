@@ -14,7 +14,7 @@ MAGENTA_CLOCK=$!
 magenta_midi \
   --input_ports="magenta_drums_in,magenta_clock" \
   --output_port="magenta_out" \
-  --bundle_files=/Users/adarob/Downloads/drum_kit_rnn.mag\
+  --bundle_files=./drum_kit_rnn.mag\
   --playback_channel=9 \
   --passthrough=False \
   --loop_control_number=1 \
@@ -30,7 +30,7 @@ MAGENTA_DRUMS=$!
 magenta_midi \
   --input_port="magenta_piano_in,magenta_clock" \
   --output_port="magenta_out" \
-  --bundle_files=/Users/adarob/Downloads/lookback_rnn.mag,/Users/adarob/Downloads/pianoroll_rnn_nade.mag\
+  --bundle_files=./pianoroll_rnn_nade.mag,./lookback_rnn.mag,./attention_rnn.mag\
   --capture_channel=0 \
   --playback_channel=0 \
   --passthrough=False \
@@ -44,6 +44,8 @@ magenta_midi \
   --clock_control_number=42 \
   --log=INFO &
 MAGENTA_PIANO=$!
+
+sleep 20
 
 open -a "Google Chrome" "http://localhost:8080"
 
