@@ -22,8 +22,9 @@ const MAGENTA_METRONOME_CHANNEL = 2
 const PIANO_CHANNEL = 1
 const DRUM_CHANNEL = 10
 
-const FROM_MAGENTA_PORT = 'IAC Driver IAC Bus 2'
-const TO_MAGENTA_PORT = 'IAC Driver IAC Bus 1'
+const FROM_MAGENTA_PORT = 'magenta_out'
+const TO_MAGENTA_PIANO_PORT = 'magenta_piano_in'
+const TO_MAGENTA_DRUMS_PORT = 'magenta_drums_in'
 
 const BUNDLE_CC = 0
 const LOOP_CC = 1
@@ -49,22 +50,19 @@ class Midi extends events.EventEmitter{
 			if (!err){
 				this._isEnabled = true
 
-				this._toMagenta = WebMidi.getOutputByName(TO_MAGENTA_PORT);
-				if (!this._toMagenta) {
-					console.error('Could not find magenta input port: ' + TO_MAGENTA_PORT)
-				} else {
-					console.info('Connected to magenta input port: ' + TO_MAGENTA_PORT)
-				}
+				this._toMagentaPiano = WebMidi.getOutputByName(TO_MAGENTA_PIANO_PORT);
+				this._toMagentaDrums = WebMidi.getOutputByName(TO_MAGENTA_DRUMS_PORT);
 
 				if (WebMidi.inputs){
 					WebMidi.inputs.forEach((input) => this._bindInput(input))
 				}
 				WebMidi.addListener('connected', (device) => {
+					console.info(device)
 					if (device.input) {
 						this._bindInput(device.input)
 					}
 					if (device.output && device.name == TO_MAGENTA_PORT) {
-						this._toMagenta = device.output;
+					  this._toMagenta = device.output;
 					}
 				})
 			}
@@ -73,9 +71,9 @@ class Midi extends events.EventEmitter{
 
 	setOutChannel(drum) {
 		if (drum) {
-			this._outChannel = DRUM_CHANNEL
+			this._outPort = this._toMangentaDrums
 		} else {
-			this._outChannel = PIANO_CHANNEL
+			this._outPort = this._toMangentaPiano
 		}
 	}
 

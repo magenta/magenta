@@ -887,24 +887,20 @@ class MidiHub(object):
     self._metronome = None
 
     # Open MIDI ports.
-    self._outport = (
-      output_midi_port if isinstance(output_midi_port, mido.ports.BaseOutput)
-      else mido.open_output(
+    if not input_midi_port:
+      self._outport = mido.open_ioport(
           output_midi_port,
-          virtual=output_midi_port not in get_available_output_ports()))
-
-    if input_midi_port:
-      self._inport = (
-          input_midi_port if isinstance(input_midi_port, mido.ports.BaseInput)
-          else mido.open_input(
-              input_midi_port,
-              virtual=input_midi_port not in get_available_input_ports()))
+          virtual=output_midi_port not in get_available_output_ports())
+      tf.logging.warn('No input port specified. Capture disabled.')
+    else:
+      self._inport = mido.open_input(
+          input_midi_port,
+          virtual=input_midi_port not in get_available_input_ports())
+      self._outport = mido.open_output(
+          output_midi_port,
+          virtual=output_midi_port not in get_available_output_ports())
       # Start processing incoming messages.
       self._inport.callback = self._timestamp_and_handle_message
-    else:
-      tf.logging.warn('No input port specified. Capture disabled.')
-      self._inport = None
-
 
   def __del__(self):
     """Stops all running threads and waits for them to terminate."""

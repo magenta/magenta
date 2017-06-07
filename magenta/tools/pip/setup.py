@@ -39,8 +39,8 @@ REQUIRED_PACKAGES = [
 ]
 
 CONSOLE_SCRIPTS = [
+    'magenta.interfaces.midi.magenta_clock',
     'magenta.interfaces.midi.magenta_midi',
-    'magenta.interfaces.midi.midi_clock',
     'magenta.models.drums_rnn.drums_rnn_create_dataset',
     'magenta.models.drums_rnn.drums_rnn_generate',
     'magenta.models.drums_rnn.drums_rnn_train',

@@ -77,8 +77,8 @@ py_binary(
 )
 
 py_binary(
-    name = "midi_clock",
-    srcs = ["midi_clock.py"],
+    name = "magenta_clock",
+    srcs = ["magenta_clock.py"],
     visibility = ["//magenta/tools/pip:__subpackages__"],
     deps = [
         ":midi_hub",
