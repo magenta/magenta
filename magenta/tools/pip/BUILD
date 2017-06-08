@@ -28,6 +28,7 @@ sh_binary(
 
         # Scripts
         "//magenta/interfaces/midi:magenta_midi",
+        "//magenta/interfaces/midi:midi_clock",
         "//magenta/scripts:convert_dir_to_note_sequences",
 
         # Drums RNN Model and Scripts
