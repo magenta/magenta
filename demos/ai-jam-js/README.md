@@ -38,11 +38,32 @@ node_modules/.bin/webpack -w
 
 ## MIDI SUPPORT
 
-The A.I. Duet supports MIDI keyboard input using [Web Midi API](https://webaudio.github.io/web-midi-api/) and the [WebMIDI](https://github.com/cotejp/webmidi) library.
+The A.I. Jam supports MIDI keyboard input using [Web Midi API](https://webaudio.github.io/web-midi-api/) and the [WebMIDI](https://github.com/cotejp/webmidi) library.
 
 ## PIANO KEYBOARD
 
 The piano can also be controlled from your computer keyboard thanks to [Audiokeys](https://github.com/kylestetz/AudioKeys). The center row of the keyboard is the white keys.
+
+## CONTROLS
+
+Currently, the only way to change settings for the models is to use the keyboard
+shortcuts below.
+
+For now, it is recommended that you open the Developer JavaScript Console in
+Chrome to view changes to settings based on your use of these shortcuts.
+
+| Key        | Action |
+|------------|--------|
+| Z          | Toggles the metronome. |
+| TAB        | Toggles between piano and drums. |
+| LEFT/RIGHT | Cycles through available models. |
+| UP/DOWN    | Adjusts sampling 'temperature'. Higher temperatures sound more random. |
+| SPACE      | Toggles looping of AI sequence. |
+| M          | Mutates AI sequence. |
+| 0-9        | Sets AI response duration (in bars). 0 matches your input. |
+| SHIFT + 0-9| Sets input sequence duration (in bars). 0 matches your input. |
+| DELETE     | Stops current AI playback. |
+| X          | Toggles "solo mode", which stops AI from listening to inputs. |
 
 ## AUDIO SAMPLES
 

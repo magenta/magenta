@@ -47,6 +47,9 @@ const blurbCopy = `Extended from the <a target='_blank' href='${ogSourceCode}'>
 					  <tr><td>DELETE</td><td><i>Stops current AI playback.</i></td></tr>
 					  <tr><td>X</td><td><i>Toggles "solo mode", which stops AI from listening to inputs.</i></td></tr>
 					</table></p>
+					<p><b>Note:</b> For now, it is recommended that you open the Developer
+					   JavaScript Console in Chrome to view changes to settings based on
+					   your use of these shortcuts.</p>
 					`
 
 export class About extends events.EventEmitter{
