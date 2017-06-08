@@ -105,7 +105,7 @@ def synthesize(source_file,
                out_file="synthesis.wav",
                sample_length=64000,
                samples_per_save=1000):
-"""Resynthesize an input audio file.
+  """Resynthesize an input audio file.
 
   Args:
     source_file: Location of a wave or .npy file to load.
@@ -116,7 +116,7 @@ def synthesize(source_file,
 
   Raises:
     RuntimeError: Source_file should be .wav or .npy.
-"""
+  """
   if source_file.endswith(".npy"):
     encoding = np.load(source_file)
     hop_length = Config().ae_hop_length
