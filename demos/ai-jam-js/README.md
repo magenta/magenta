@@ -65,7 +65,6 @@ Chrome to view changes to settings based on your use of these shortcuts.
 | DELETE     | Stops current AI playback. |
 | X          | Toggles "solo mode", which stops AI from listening to inputs. |
 
-
 ## AUDIO SAMPLES
 
 Audio synthesized from [FluidR3_GM.sf2](http://www.musescore.org/download/fluid-soundfont.tar.gz) ([Creative Commons Attribution 3.0](https://creativecommons.org/licenses/by/3.0/)).
