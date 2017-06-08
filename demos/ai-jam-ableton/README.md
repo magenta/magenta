@@ -9,8 +9,7 @@ __DISCLAIMER__
 > This demo uses Magenta, Ableton Live, MaxMSP, and Mira. It also only works on OSX. As a fair warning, it will take a bit of familiarity with this software for you to successfully connect all the pieces. It was developed specifically for the NIPS conference and is not designed around easy installation and maintenance.
 
 > If you do not have access to these pieces of software, a
-[simplified version](/magenta/interfaces/midi) of the demo without these
-dependencies is also available.
+[simplified version](/demos/ai-jam-js) of the demo without these dependencies is also available.
 
 With those disclaimers aside, many have found the experience of jamming with it to be quite fluid and fun, and we hope you do too. Also, this is _FAR_ from the only way to connect Magenta to a musical workstation, and we encourage you to come up with others and share. We'd love to see and host example interactions with other (and especially free) software such as Supercollider, Pure Data, etc. At the very least, perhaps you can use this demo as an example and launching point for integrating Magenta with your own preferred musical workflow.
 
