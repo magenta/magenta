@@ -31,6 +31,7 @@ class Keyboard extends events.EventEmitter{
 
 		this._active = false
 		this._drumMode = false
+		this._soloMode = false
 
 		/**
 		 * The audio key keyboard
@@ -135,7 +136,7 @@ class Keyboard extends events.EventEmitter{
 		if (!this._active){
 			return
 		}
-		if (!ai) {
+		if (!ai && !this._soloMode) {
 			this._magenta.selected().sendKeyDown(note)
 		}
 		if (!this._currentKeys[note]){
@@ -152,7 +153,7 @@ class Keyboard extends events.EventEmitter{
 		if (!this._active){
 			return
 		}
-		if (!ai) {
+		if (!ai && !this._soloMode) {
 			this._magenta.selected().sendKeyUp(note)
 		}
 		//add a little time to it in edge cases where the keydown and keyup are at the same time
@@ -171,6 +172,11 @@ class Keyboard extends events.EventEmitter{
 		this._keyboardInterface.panic(true)
 		this._keyboardInterface.panic(false)
 		console.info('Drum Mode: ' + this._drumMode)
+	}
+
+	toggleSoloMode() {
+		this._soloMode = !this._soloMode
+		console.info('Solo Mode: ' + this._soloMode)
 	}
 
 	_resize(){

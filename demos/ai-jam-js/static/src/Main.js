@@ -97,6 +97,8 @@ document.body.addEventListener('keyup', (e) => {
     	magenta.toggleSelected()
     } else if (e.keyCode == 90) {  // Z
     	midi.toggleMetronome()
+    } else if (e.keyCode == 88) {  // S
+    	keyboard.toggleSoloMode()
     }
 }, true)
 

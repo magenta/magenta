@@ -45,6 +45,7 @@ const blurbCopy = `Extended from the <a target='_blank' href='${ogSourceCode}'>
 					  <tr><td>0-9</td><td><i>Sets AI response duration (in bars). 0 matches your input.</i></td></tr>
 					  <tr><td>SHIFT + 0-9</td><td><i>Sets input sequence duration (in bars). 0 matches your input.</i></td></tr>
 					  <tr><td>DELETE</td><td><i>Stops current AI playback.</i></td></tr>
+					  <tr><td>X</td><td><i>Toggles "solo mode", which stops AI from listening to inputs.</i></td></tr>
 					</table></p>
 					`
 

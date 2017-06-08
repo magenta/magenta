@@ -57,7 +57,7 @@ class Midi extends events.EventEmitter{
 
 	toggleMetronome() {
 		this._metronomeEnabled = !this._metronomeEnabled
-		console.log('Metronome enabled: ' + this._metronomeEnabled)
+		console.info('Metronome enabled: ' + this._metronomeEnabled)
 		if (this._metronomeEnabled) {
 			this._startMetronome()
 		} else {
@@ -68,9 +68,9 @@ class Midi extends events.EventEmitter{
 	_startMetronome() {
 		this._fromClock.addListener(
 				'controlchange', 'all', (event) => {
-					this.emit('keyDown', event.value == 127 ? 37 : 31,
+					this.emit('keyDown', event.value == 127 ? 37 : 36,
 						        Tone.now(), true, true)
-					this.emit('keyUp', event.value == 127 ? 37 : 31,
+					this.emit('keyUp', event.value == 127 ? 37 : 36,
 						        Tone.now() + 0.15, true, true)
 				})
 	}
