@@ -105,15 +105,18 @@ def synthesize(source_file,
                out_file="synthesis.wav",
                sample_length=64000,
                samples_per_save=1000):
-  """Resynthesize an input audio file.
+"""Resynthesize an input audio file.
 
   Args:
     source_file: Location of a wave or .npy file to load.
     checkpoint_path: Location of the pretrained model. [model.ckpt-200000]
     out_file: Location to save the synthesized wave file. [synthesis.wav]
     sample_length: Length of file to synthesize. [source_file.length]
-    samples_per_save: Save a .wav after every amount of samples.s
-  """
+    samples_per_save: Save a .wav after every amount of samples.
+
+  Raises:
+    RuntimeError: Source_file should be .wav or .npy.
+"""
   if source_file.endswith(".npy"):
     encoding = np.load(source_file)
     hop_length = Config().ae_hop_length
