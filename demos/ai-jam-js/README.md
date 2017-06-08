@@ -50,7 +50,7 @@ Currently, the only way to change settings for the models is to use the keyboard
 shortcuts below.
 
 For now, it is recommended that you open the Developer JavaScript Console in
-Chrome to view changes to settings  based on your use of these shortcuts.
+Chrome to view changes to settings based on your use of these shortcuts.
 
 | Key        | Action |
 |------------|--------|
