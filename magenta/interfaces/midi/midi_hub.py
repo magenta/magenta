@@ -1128,9 +1128,9 @@ class MidiHub(object):
       qpm: The quarter notes per minute to use.
       start_time: The wall time in seconds that the metronome is started on for
         synchronization and beat alignment. May be in the past.
-    signals: An ordered collection of MidiSignals whose underlying messages are
-        to be output on the metronome's tick, cyclically. A None value can be
-        used in place of a MidiSignal to output nothing on a given tick.
+      signals: An ordered collection of MidiSignals whose underlying messages
+        are to be output on the metronome's tick, cyclically. A None value can
+        be used in place of a MidiSignal to output nothing on a given tick.
       channel: The MIDI channel to output ticks on.
     """
     if self._metronome is not None and self._metronome.is_alive():
