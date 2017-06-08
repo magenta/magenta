@@ -27,17 +27,15 @@ class FastGenerationConfig(object):
     """."""
     self.batch_size = batch_size
 
-
   def build(self, inputs):
     """Build the graph for this configuration.
 
     Args:
       inputs: A dict of inputs. For training, should contain 'wav'.
-      is_training: Whether we are training or not. Not used in this config.
 
     Returns:
-      A dict of outputs that includes the 'predictions', 'init_ops', the 'push_ops',
-      and the 'quantized_input'.
+      A dict of outputs that includes the 'predictions',
+      'init_ops', the 'push_ops', and the 'quantized_input'.
     """
     num_stages = 10
     num_layers = 30
@@ -73,8 +71,11 @@ class FastGenerationConfig(object):
         rate=1,
         batch_size=batch_size,
         filter_length=filter_length)
-    [init_ops.append(init) for init in inits]
-    [push_ops.append(push) for push in pushs]
+
+    for init in inits:
+      init_ops.append(init)
+    for push in pushs:
+      push_ops.append(push)
 
     # Set up skip connections.
     s = utils.linear(l, width, skip_width, name='skip_start')
@@ -92,11 +93,14 @@ class FastGenerationConfig(object):
           rate=dilation,
           batch_size=batch_size,
           filter_length=filter_length)
-      [init_ops.append(init) for init in inits]
-      [push_ops.append(push) for push in pushs]
+
+      for init in inits:
+        init_ops.append(init)
+      for push in pushs:
+        push_ops.append(push)
 
       # local conditioning
-      d = d + utils.linear(en, num_z, width * 2, name='cond_map_%d' % (i + 1))
+      d += utils.linear(en, num_z, width * 2, name='cond_map_%d' % (i + 1))
 
       # gated cnn
       assert d.get_shape().as_list()[2] % 2 == 0
@@ -110,8 +114,8 @@ class FastGenerationConfig(object):
       s += utils.linear(d, width, skip_width, name='skip_%d' % (i + 1))
 
     s = tf.nn.relu(s)
-    s = utils.linear(s, skip_width, skip_width, name='out1') + \
-        utils.linear(en, num_z, skip_width, name='cond_map_out1')
+    s = (utils.linear(s, skip_width, skip_width, name='out1') +
+         utils.linear(en, num_z, skip_width, name='cond_map_out1'))
     s = tf.nn.relu(s)
 
     ###
@@ -121,13 +125,11 @@ class FastGenerationConfig(object):
     logits = tf.reshape(logits, [-1, 256])
     probs = tf.nn.softmax(logits, name='softmax')
 
-    return {
-      'init_ops': init_ops,
-      'push_ops': push_ops,
-      'predictions': probs,
-      'encoding': encoding,
-      'quantized_input': x_quantized,
-    }
+    return {'init_ops': init_ops,
+            'push_ops': push_ops,
+            'predictions': probs,
+            'encoding': encoding,
+            'quantized_input': x_quantized,}
 
 
 class Config(object):

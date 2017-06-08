@@ -34,7 +34,6 @@ tf.app.flags.DEFINE_string("checkpoint_path", "",
 tf.app.flags.DEFINE_string("expdir", "",
                            "The log directory for this experiment. Required if "
                            "`checkpoint_path` is not given.")
-tf.app.flags.DEFINE_string("config", "h512_bo16", "Model configuration name")
 tf.app.flags.DEFINE_integer("sample_length", 64000, "Sample length.")
 tf.app.flags.DEFINE_integer("batch_size", 16, "Sample length.")
 tf.app.flags.DEFINE_string("log", "INFO",
@@ -45,15 +44,10 @@ tf.app.flags.DEFINE_string("log", "INFO",
 def main(unused_argv=None):
   tf.logging.set_verbosity(FLAGS.log)
 
-  if FLAGS.config is None:
-    raise RuntimeError("No config name specified.")
-
-  config = utils.get_module("wavenet." + FLAGS.config).Config()
-
   if FLAGS.checkpoint_path:
     checkpoint_path = utils.shell_path(FLAGS.checkpoint_path)
   else:
-    expdir =  utils.shell_path(FLAGS.expdir)
+    expdir = utils.shell_path(FLAGS.expdir)
     tf.logging.info("Will load latest checkpoint from %s.", expdir)
     while not tf.gfile.Exists(expdir):
       tf.logging.fatal("\tExperiment save dir '%s' does not exist!", expdir)
@@ -71,10 +65,10 @@ def main(unused_argv=None):
 
   tf.logging.info("Will restore from checkpoint: %s", checkpoint_path)
 
-  source_path =  utils.shell_path(FLAGS.source_path)
+  source_path = utils.shell_path(FLAGS.source_path)
   tf.logging.info("Will load Wavs from %s." % source_path)
 
-  save_path =  utils.shell_path(FLAGS.save_path)
+  save_path = utils.shell_path(FLAGS.save_path)
   tf.logging.info("Will save embeddings to %s." % save_path)
   if not tf.gfile.Exists(save_path):
     tf.logging.info("Creating save directory...")
@@ -86,10 +80,9 @@ def main(unused_argv=None):
   def is_wav(f):
     return f.lower().endswith(".wav")
 
-  wavfiles = sorted([
-      os.path.join(source_path, fname) for fname in tf.gfile.ListDirectory(source_path)
-      if is_wav(fname)
-  ])
+  wavfiles = sorted([os.path.join(source_path, fname)
+                     for fname in tf.gfile.ListDirectory(source_path)
+                     if is_wav(fname)])
 
   for start_file in xrange(0, len(wavfiles), batch_size):
     batch_number = (start_file / batch_size) + 1
@@ -100,14 +93,14 @@ def main(unused_argv=None):
     # Ensure that files has batch_size elements.
     batch_filler = batch_size - len(wavefiles_batch)
     wavefiles_batch.extend(batch_filler * [wavefiles_batch[-1]])
-    wav_data = np.array([utils.load_audio(f, sample_length) 
+    wav_data = np.array([utils.load_audio(f, sample_length)
                          for f in wavefiles_batch])
     try:
       tf.reset_default_graph()
       # Load up the model for encoding and find the encoding
-      encoding, hop_length = encode(wav_data,
-                                    checkpoint_path,
-                                    sample_length=sample_length)
+      encoding, _ = encode(wav_data,
+                           checkpoint_path,
+                           sample_length=sample_length)
       if encoding.ndim == 2:
         encoding = np.expand_dims(encoding, 0)
 

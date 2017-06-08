@@ -16,15 +16,13 @@
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
-from six.moves import xrange
 
-import os
 import importlib
+import os
 
 # internal imports
 import librosa
 import numpy as np
-import scipy.io.wavfile
 import tensorflow as tf
 
 slim = tf.contrib.slim
@@ -32,6 +30,7 @@ slim = tf.contrib.slim
 
 def shell_path(path):
   return os.path.abspath(os.path.expanduser(os.path.expandvars(path)))
+
 
 #===============================================================================
 # WaveNet Functions
@@ -53,9 +52,12 @@ def get_module(module_path):
 
 def load_audio(path, sample_length=64000, sr=16000):
   """Loading of a wave file.
+
   Args:
-    audio: Location of a wave file to load.
+    path: Location of a wave file to load.
     sample_length: The truncated total length of the final wave file.
+    sr: Samples per a second.
+
   Returns:
     out: The audio in samples from -1.0 to 1.0
   """
@@ -98,9 +100,11 @@ def inv_mu_law(x, mu=255):
 
 def inv_mu_law_numpy(x, mu=255.0):
   """A numpy implementation of inverse Mu-Law.
+
   Args:
     x: The Mu-Law samples to decode.
     mu: The Mu we used to encode these samples.
+
   Returns:
     out: The decoded data.
   """
@@ -110,8 +114,10 @@ def inv_mu_law_numpy(x, mu=255.0):
   out = np.where(np.equal(x, 0), x, out)
   return out
 
+
 def trim_for_encoding(wav_data, sample_length, hop_length=512):
   """Make sure audio is a even multiple of hop_szie.
+
   Args:
     wav_data: 1-D or 2-D array of floats.
     sample_length: Max length of audio data.
@@ -188,7 +194,7 @@ def specgram(audio, n_fft=512, hop_length=None, mask=True, log_mag=True,
     log_mag: Use the logamplitude.
     re_im: Output Real and Imag. instead of logMag and dPhase.
     dphase: Use derivative of phase instead of phase.
-    mag_only: Don't return phase.
+    mag_only: Don"t return phase.
 
   Returns:
     specgram: [n_fft/2 + 1, audio.size / hop_length, 2]. The first channel is
@@ -403,7 +409,7 @@ def form_image_grid(input_tensor, grid_shape, image_shape, num_channels):
     arranged into a grid.
 
   Raises:
-    ValueError: The grid shape and minibatch size don't match, or the image
+    ValueError: The grid shape and minibatch size don"t match, or the image
         shape and number of channels are incompatible with the input tensor.
   """
   if grid_shape[0] * grid_shape[1] != int(input_tensor.get_shape()[0]):
@@ -747,7 +753,7 @@ def conv2d(x,
         # Apply residual to last layer  before the last nonlinearity
         if residual and (layer_idx == stacked_layers - 1):
           with tf.variable_scope("Residual"):
-            # Don't upsample residual in time
+            # Don"t upsample residual in time
             if stride[0] == 1 and stride[1] == 1:
               channels_in = x0.get_shape().as_list()[-1]
               # Make n_channels match for residual
@@ -782,7 +788,8 @@ def leaky_relu(leak=0.1):
   return lambda x: tf.maximum(x, leak * x)
 
 
-def causal_linear(x, n_inputs, n_outputs, name, filter_length, rate, batch_size):
+def causal_linear(x, n_inputs, n_outputs, name,
+                  filter_length, rate, batch_size):
   """Applies dilated convolution using queues.
 
   Assumes a filter_length of 3.
@@ -801,7 +808,7 @@ def causal_linear(x, n_inputs, n_outputs, name, filter_length, rate, batch_size)
     (init_1, init_2): Initialization operations for the queues
     (push_1, push_2): Push operations for the queues
   """
-  assert(filter_length == 3)
+  assert filter_length == 3
 
   # create queue
   q_1 = tf.FIFOQueue(
@@ -822,23 +829,21 @@ def causal_linear(x, n_inputs, n_outputs, name, filter_length, rate, batch_size)
   push_2 = q_2.enqueue(state_1)
 
   # get pretrained weights
-  W = tf.get_variable(
-      name=name + '/W',
-      shape=[1, filter_length, n_inputs, n_outputs],
-      dtype=tf.float32)
-  b = tf.get_variable(
-      name=name + '/biases',
-      shape=[n_outputs],
-      dtype=tf.float32)
-  W_q_2 = tf.slice(W, [0, 0, 0, 0], [-1, 1, -1, -1])
-  W_q_1 = tf.slice(W, [0, 1, 0, 0], [-1, 1, -1, -1])
-  W_x = tf.slice(W, [0, 2, 0, 0], [-1, 1, -1, -1])
+  w = tf.get_variable(name=name + "/W",
+                      shape=[1, filter_length, n_inputs, n_outputs],
+                      dtype=tf.float32)
+  b = tf.get_variable(name=name + "/biases",
+                      shape=[n_outputs],
+                      dtype=tf.float32)
+  w_q_2 = tf.slice(w, [0, 0, 0, 0], [-1, 1, -1, -1])
+  w_q_1 = tf.slice(w, [0, 1, 0, 0], [-1, 1, -1, -1])
+  w_x = tf.slice(w, [0, 2, 0, 0], [-1, 1, -1, -1])
 
   # perform op w/ cached states
   y = tf.expand_dims(tf.nn.bias_add(
-      tf.matmul(state_2, W_q_2[0][0]) +
-      tf.matmul(state_1, W_q_1[0][0]) +
-      tf.matmul(x, W_x[0][0]),
+      tf.matmul(state_2, w_q_2[0][0]) +
+      tf.matmul(state_1, w_q_1[0][0]) +
+      tf.matmul(x, w_x[0][0]),
       b), 0)
   return y, (init_1, init_2), (push_1, push_2)
 
@@ -855,12 +860,10 @@ def linear(x, n_inputs, n_outputs, name):
   Returns:
     y: The output of the operation.
   """
-  W = tf.get_variable(
-      name=name + '/W',
-      shape=[1, 1, n_inputs, n_outputs],
-      dtype=tf.float32)
-  b = tf.get_variable(
-      name=name + '/biases',
-      shape=[n_outputs],
-      dtype=tf.float32)
-  return tf.expand_dims(tf.nn.bias_add(tf.matmul(x[0], W[0][0]), b), 0)
+  w = tf.get_variable(name=name + "/W",
+                      shape=[1, 1, n_inputs, n_outputs],
+                      dtype=tf.float32)
+  b = tf.get_variable(name=name + "/biases",
+                      shape=[n_outputs],
+                      dtype=tf.float32)
+  return tf.expand_dims(tf.nn.bias_add(tf.matmul(x[0], w[0][0]), b), 0)
