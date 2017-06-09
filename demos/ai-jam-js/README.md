@@ -22,7 +22,7 @@ Install [Flask](http://flask.pocoo.org/) and [Magenta](/README.md#Installation) 
 * [Pianoroll RNN-NADE](http://download.magenta.tensorflow.org/models/pianoroll_rnn_nade.mag)
 * [Drum Kit RNN](http://download.magenta.tensorflow.org/models/drum_kit_rnn.mag)
 
-Then launch the inerface from the command line:
+Then launch the interface from the command line:
 
 ```bash
 sh RUN_DEMO.sh
@@ -46,7 +46,7 @@ The A.I. Jam supports MIDI keyboard input using [Web Midi API](https://webaudio.
 
 MIDI input is routed from the browser to MIDI ports "magenta_piano_in" and "magenta_drums_in", on which two instances of the `magenta_midi` binary are listening; one for piano and the other for drums. Both of these instances output responses to the "magenta_out" port, which the browser is listening to for playback.
 
-The two `magenta_midi` instances are kept in sync by a running `midi_clock` binary that outputs a metronome using MIDI control change messages on the "magenta_clock" port. You can listen to the metronome by pressing the 'Z' key while the browser is in focus.
+The two `magenta_midi` instances are kept in sync by a running `midi_clock` binary that outputs a metronome using MIDI control change messages on the "magenta_clock" port. You can listen to the metronome by pressing the `Z` key while the browser is in focus.
 
 If you'd like to use your own device or software for synthesis, you can simply mute the browser tab and route these MIDI ports appropriately to your device.
 
@@ -62,18 +62,18 @@ shortcuts below.
 For now, it is recommended that you open the Developer JavaScript Console in
 Chrome to view changes to settings based on your use of these shortcuts.
 
-| Key        | Action |
-|------------|--------|
-| Z          | Toggles the metronome. |
-| TAB        | Toggles between piano and drums. |
-| LEFT/RIGHT | Cycles through available models. |
-| UP/DOWN    | Adjusts sampling 'temperature'. Higher temperatures sound more random. |
-| SPACE      | Toggles looping of AI sequence. |
-| M          | Mutates AI sequence. |
-| 0-9        | Sets AI response duration (in bars). 0 matches your input. |
-| SHIFT + 0-9| Sets input sequence duration (in bars). 0 matches your input. |
-| DELETE     | Stops current AI playback. |
-| X          | Toggles "solo mode", which stops AI from listening to inputs. |
+| Key              | Action |
+|------------------|--------|
+| `Z`              | Toggles the metronome. |
+| `TAB`            | Toggles between piano and drums. |
+| `LEFT`/`RIGHT`   | Cycles through available models. |
+| `UP`/`DOWN`      | Adjusts sampling 'temperature'. Higher temperatures sound more random. |
+| `SPACE`          | Toggles looping of AI sequence. |
+| `M`              | Mutates AI sequence. |
+| `0`-`9`          | Sets AI response duration (in bars). 0 matches your input. |
+| `SHIFT` + `0`-`9`| Sets input sequence duration (in bars). 0 matches your input. |
+| `DELETE`         | Stops current AI playback. |
+| `X`              | Toggles "solo mode", which stops AI from listening to inputs. |
 
 ## AUDIO SAMPLES
 
