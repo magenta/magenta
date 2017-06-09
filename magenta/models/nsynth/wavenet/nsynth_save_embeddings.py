@@ -27,7 +27,8 @@ FLAGS = tf.app.flags.FLAGS
 
 tf.app.flags.DEFINE_string("source_path", "",
                            "The directory of WAVs to yield embeddings from.")
-tf.app.flags.DEFINE_string("save_path", "", "Where to save the embeddings.")
+tf.app.flags.DEFINE_string("save_path", "", "The directory to save "
+                           "the embeddings.")
 tf.app.flags.DEFINE_string("checkpoint_path", "",
                            "A path to the checkpoint. If not given, the latest "
                            "checkpoint in `expdir` will be used.")

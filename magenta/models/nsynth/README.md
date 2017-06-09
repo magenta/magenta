@@ -30,7 +30,7 @@ Given the difficulty of training, we've included weights of models pretrained on
 
 # Generation
 
-The most straightforward way to create your own sounds with nsynth is to
+The most straightforward way to create your own sounds with NSynth is to
 generate sounds directly from .wav files without altering the embeddings. You
 can do this for sounds of any length as long as you set the `sample_length` high
 enough. Keep in mind the wavenet decoder works at 16kHz. The script below will

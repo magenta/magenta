@@ -77,14 +77,7 @@ sh_binary(
         "//magenta/models/sketch_rnn:sketch_rnn_train",
 
         # NSynth
-        "//magenta/models/nsynth:utils",
-        "//magenta/models/nsynth:reader",
-        "//magenta/models/nsynth/wavenet:train.py",
-        "//magenta/models/nsynth/wavenet:h512_bo16.py",
-        "//magenta/models/nsynth/wavenet:masked.py",
-        "//magenta/models/nsynth/wavenet:generate.py",
-        "//magenta/models/nsynth/wavenet:fastgen.py",
-        "//magenta/models/nsynth/wavenet:save_embeddings.py",
-
+        "//magenta/models/nsynth/wavenet:nsynth_generate",
+        "//magenta/models/nsynth/wavenet:nsynth_save_embeddings",
     ],
 )

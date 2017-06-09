@@ -74,9 +74,9 @@ py_library(
 )
 
 py_binary(
-    name = "generate",
+    name = "nsynth_generate",
     srcs = [
-        "generate.py",
+        "nsynth_generate.py",
     ],
     deps = [
         ":configs",
@@ -100,9 +100,9 @@ py_binary(
 )
 
 py_binary(
-    name = "save_embeddings",
+    name = "nsynth_save_embeddings",
     srcs = [
-        "save_embeddings.py",
+        "nsynth_save_embeddings.py",
     ],
     deps = [
         ":configs",
