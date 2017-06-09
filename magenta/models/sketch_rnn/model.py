@@ -24,7 +24,7 @@ import random
 import numpy as np
 import tensorflow as tf
 
-from magenta.common.tf_lib import HParams
+from magenta.common import HParams
 from magenta.models.sketch_rnn import rnn
 
 

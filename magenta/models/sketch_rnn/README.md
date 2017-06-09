@@ -30,7 +30,7 @@ Example Usage:
 --------------
 
 ```bash
-sketch_rnn_train --log_root=checkpoint_path --data_dir=dataset_path --hparams='{"data_set":["dataset_filename.npz"]}'
+sketch_rnn_train --log_root=checkpoint_path --data_dir=dataset_path --hparams="data_set=[dataset_filename.npz]"
 ```
 
 We recommend you create subdirectories inside `models` and `datasets` to hold your own data and checkpoints. The [TensorBoard](https://www.tensorflow.org/get_started/summaries_and_tensorboard) logs will be stored inside `checkpoint_path` for viewing training curves for the various losses on train/validation/test datasets.
@@ -70,7 +70,7 @@ conditional=True,              # If False, use decoder-only model.
 Here are some options you may want to use to train the model on a very large dataset spanning three `.npz` files, and use [HyperLSTM](https://arxiv.org/abs/1609.09106) as the RNN cells.  For small datasets of less than 10K training examples, LSTM with Layer Normalization (`layer_norm` for both `enc_model` and `dec_model`) works best.
 
 ```bash
-sketch_rnn_train --log_root=models/big_model --data_dir=datasets/big_dataset --hparams='{"data_set":["class1.npz","class2.npz","class3.npz"],"dec_model":"hyper","dec_rnn_size":2048,"enc_model":"layer_norm","enc_rnn_size":512,"save_every":5000,"grad_clip":1.0,"use_recurrent_dropout":0}'
+sketch_rnn_train --log_root=models/big_model --data_dir=datasets/big_dataset --hparams="data_set=[class1.npz,class2.npz,class3.npz],dec_model=hyper,dec_rnn_size=2048,enc_model=layer_norm,enc_rnn_size=512,save_every=5000,grad_clip=1.0,use_recurrent_dropout=0"
 ```
 
 We have tested this model on TensorFlow 1.0 and 1.1 for Python 2.7.

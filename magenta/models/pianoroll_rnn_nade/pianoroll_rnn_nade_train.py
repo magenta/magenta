@@ -61,10 +61,10 @@ tf.app.flags.DEFINE_string('log', 'INFO',
                            'The threshold for what messages will be logged '
                            'DEBUG, INFO, WARN, ERROR, or FATAL.')
 tf.app.flags.DEFINE_string(
-    'hparams', '{}',
-    'String representation of a Python dictionary containing hyperparameter '
-    'to value mapping. This mapping is merged with the default '
-    'hyperparameters.')
+    'hparams', '',
+    'Comma-separated list of `name=value` pairs. For each pair, the value of '
+    'the hyperparameter named `name` is set to `value`. This mapping is merged '
+    'with the default hyperparameters.')
 
 
 def main(unused_argv):
