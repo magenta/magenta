@@ -46,7 +46,7 @@ bazel run //magenta/models/nsynth/wavenet:generate -- \
 --checkpoint_path=/<path>/wavenet-ckpt/model.ckpt-200000 \
 --source_path=/<path> \
 --save_path=/<path> \
---sample_length=64000 \
+--sample_length=64000
 ```
 
 
@@ -64,7 +64,7 @@ Example Usage (Save Embeddings):
 bazel run //magenta/models/nsynth/baseline:save_embeddings -- \
 --tfrecord_path=/<path>/nsynth-test.tfrecord \
 --checkpoint_path=/<path>/baseline-ckpt/model.ckpt-200000 \
---savedir=/<path> \
+--savedir=/<path>
 ```
 
 (WaveNet)
