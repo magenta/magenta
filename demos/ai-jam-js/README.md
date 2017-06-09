@@ -14,31 +14,41 @@ Original interface built by [Yotam Mann](https://github.com/tambien) with friend
 
 ## GETTING STARTED
 
-Install [Flask](http://flask.pocoo.org/) and [Magenta >=v0.1.15](/README.md#Installation). Also download the following pre-trained models, and save them to this directory.
+### Pre-built Version
+
+Install [Flask](http://flask.pocoo.org/) and [Magenta](/README.md#Installation) (v0.1.15 or greater). Also download the following pre-trained models, and save them to this directory.
 
 * [Attention RNN](http://download.magenta.tensorflow.org/models/attention_rnn.mag)
 * [Pianoroll RNN-NADE](http://download.magenta.tensorflow.org/models/pianoroll_rnn_nade.mag)
 * [Drum Kit RNN](http://download.magenta.tensorflow.org/models/drum_kit_rnn.mag)
 
-Then launch the experience from the command line:
+Then launch the inerface from the command line:
 
 ```bash
 sh RUN_DEMO.sh
 ```
 
-## BUILDING
+### Development
 
-If you'd like to make modifications to this code, first make sure you have [Node.js](https://nodejs.org) 6 or above installed. And then install of the dependencies of the project and build the code by typing the following in the terminal:
+If you'd like to make modifications to this code, first make sure you have [Node.js](https://nodejs.org) 6 or above installed. You can then install of the dependencies of the project and build the code by typing the following in the terminal:
 
 ```bash
 cd static
 npm install
-node_modules/.bin/webpack -w
+node_modules/.bin/webpack
 ```
+
+Adding a `-w` flag to the final command will cause webpack to continuously re-compile the JavaScript code as you make changes.
 
 ## MIDI SUPPORT
 
 The A.I. Jam supports MIDI keyboard input using [Web Midi API](https://webaudio.github.io/web-midi-api/) and the [WebMIDI](https://github.com/cotejp/webmidi) library.
+
+MIDI input is routed from the browser to MIDI ports "magenta_piano_in" and "magenta_drums_in", on which two instances of the `magenta_midi` binary are listening; one for piano and the other for drums. Both of these instances output responses to the "magenta_out" port, which the browser is listening to for playback.
+
+The two `magenta_midi` instances are kept in sync by a running `midi_clock` binary that outputs a metronome using MIDI control change messages on the "magenta_clock" port. You can listen to the metronome by pressing the 'Z' key while the browser is in focus.
+
+If you'd like to use your own device or software for synthesis, you can simply mute the browser tab and route these MIDI ports appropriately to your device.
 
 ## PIANO KEYBOARD
 
