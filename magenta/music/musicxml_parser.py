@@ -416,9 +416,42 @@ class Part(object):
     self._state.transpose = 0
 
     xml_measures = xml_part.findall('measure')
-    for child in xml_measures:
-      measure = Measure(child, self._state)
-      self.measures.append(measure)
+    for measure in xml_measures:
+      # Issue #674: Repair measures that do not contain notes
+      # by inserting a whole measure rest
+      self._repair_empty_measure(measure)
+      parsed_measure = Measure(measure, self._state)
+      self.measures.append(parsed_measure)
+
+  def _repair_empty_measure(self, measure):
+    """Repair a measure if it is empty by inserting a whole measure rest.
+
+    If a <measure> only consists of a <forward> element that advances
+    the time cursor, remove the <forward> element and replace
+    with a whole measure rest of the same duration.
+    """
+    # Issue #674 - If the <forward> element is in a measure without
+    # any <note> elements, treat it as if it were a whole measure
+    # rest by inserting a rest of that duration
+    forward_count = len(measure.findall('forward'))
+    note_count = len(measure.findall('note'))
+    if note_count == 0 and forward_count == 1:
+
+      # Get the duration of the <forward> element
+      xml_forward = measure.find('forward')
+      xml_duration = xml_forward.find('duration')
+      forward_duration = int(xml_duration.text)
+
+      # Delete the <forward> element
+      measure.remove(xml_forward)
+
+      # Insert the new note
+      new_note = '<note>'
+      new_note += '<rest /><duration>' + str(forward_duration) + '</duration>'
+      new_note += '<voice>1</voice><type>whole</type><staff>1</staff>'
+      new_note += '</note>'
+      new_note_xml = ET.fromstring(new_note)
+      measure.append(new_note_xml)
 
   def __str__(self):
     part_str = 'Part: ' + self.score_part.part_name
@@ -545,31 +578,6 @@ class Measure(object):
                * self.state.seconds_per_quarter)
     self.state.time_position += seconds
 
-    # Issue #674 - If the <forward> element is in a measure without
-    # any <note> elements, treat it as if it were a whole measure
-    # rest by inserting a rest of that duration
-    note_count = len(self.xml_measure.findall('./note'))
-    if note_count == 0:
-
-      # Undo time position advance if inserting a note
-      self.state.time_position -= seconds
-
-      # Insert the new note
-      new_note = '<note>'
-      new_note += '<rest /><duration>' + str(forward_duration) + '</duration>'
-      new_note += '<voice>1</voice><type>whole</type><staff>1</staff>'
-      new_note += '</note>'
-      new_note_xml = ET.fromstring(new_note)
-      note = Note(new_note_xml, self.state)
-      self.notes.append(note)
-
-      # Keep track of current note as previous note for chord timings
-      self.state.previous_note = note
-
-      # Sum up the MusicXML durations in voice 1 of this measure
-      if note.voice == 1 and not note.is_in_chord:
-        self.duration += note.note_duration.duration
-
   def _fix_time_signature(self):
     """Correct the time signature for incomplete measures.
 
@@ -583,7 +591,7 @@ class Measure(object):
     fractional_time_signature = Fraction(numerator, denominator)
 
     if self.state.time_signature is None and self.time_signature is None:
-      # No global time signature yet and no time signature defined
+      # No global time signature yet and no measure time signature defined
       # in this measure (no time signature or senza misura).
       # Insert the fractional time signature as the time signature
       # for this measure
@@ -592,11 +600,6 @@ class Measure(object):
       self.time_signature.denominator = fractional_time_signature.denominator
       self.state.time_signature = self.time_signature
     else:
-      #print self.state.time_signature, self.time_signature
-      # If no global time signature yet, set it to the
-      # time signature in this measure
-      if self.state.time_signature is None:
-        self.state.time_signature = self.time_signature
 
       fractional_state_time_signature = Fraction(
           self.state.time_signature.numerator,
