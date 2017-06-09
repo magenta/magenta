@@ -46,9 +46,9 @@ py_library(
     name = "fastgen",
     srcs = ["fastgen.py"],
     deps = [
+        # numpy dep
+        # scipy dep
         # tensorflow dep
-        # scipy.io
-        # numpy
         "//magenta/models/nsynth:utils",
         "//magenta/models/nsynth/wavenet:h512_bo16",
     ],

@@ -194,7 +194,7 @@ def specgram(audio, n_fft=512, hop_length=None, mask=True, log_mag=True,
     log_mag: Use the logamplitude.
     re_im: Output Real and Imag. instead of logMag and dPhase.
     dphase: Use derivative of phase instead of phase.
-    mag_only: Don"t return phase.
+    mag_only: Don't return phase.
 
   Returns:
     specgram: [n_fft/2 + 1, audio.size / hop_length, 2]. The first channel is
@@ -409,7 +409,7 @@ def form_image_grid(input_tensor, grid_shape, image_shape, num_channels):
     arranged into a grid.
 
   Raises:
-    ValueError: The grid shape and minibatch size don"t match, or the image
+    ValueError: The grid shape and minibatch size don't match, or the image
         shape and number of channels are incompatible with the input tensor.
   """
   if grid_shape[0] * grid_shape[1] != int(input_tensor.get_shape()[0]):
@@ -753,7 +753,7 @@ def conv2d(x,
         # Apply residual to last layer  before the last nonlinearity
         if residual and (layer_idx == stacked_layers - 1):
           with tf.variable_scope("Residual"):
-            # Don"t upsample residual in time
+            # Don't upsample residual in time
             if stride[0] == 1 and stride[1] == 1:
               channels_in = x0.get_shape().as_list()[-1]
               # Make n_channels match for residual
