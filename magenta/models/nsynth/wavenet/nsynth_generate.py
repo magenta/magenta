@@ -78,5 +78,5 @@ def console_entry_point():
   tf.app.run(main)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
   console_entry_point()
