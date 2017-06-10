@@ -24,9 +24,9 @@ bazel query 'kind(py_library, deps(//magenta))' | \
 """
 
 import magenta.common.concurrency
+import magenta.common.HParams
 import magenta.common.sequence_example_lib
 import magenta.common.testing_lib
-import magenta.common.tf_lib
 import magenta.music.chord_symbols_lib
 import magenta.music.chords_encoder_decoder
 import magenta.music.chords_lib
