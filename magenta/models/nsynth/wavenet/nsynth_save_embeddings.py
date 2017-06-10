@@ -121,5 +121,9 @@ def main(unused_argv=None):
       raise
 
 
-if __name__ == "__main__":
-  tf.app.run()
+def console_entry_point():
+  tf.app.run(main)
+
+
+if __name__ == '__main__':
+  console_entry_point()
