@@ -116,7 +116,7 @@ def inv_mu_law_numpy(x, mu=255.0):
 
 
 def trim_for_encoding(wav_data, sample_length, hop_length=512):
-  """Make sure audio is a even multiple of hop_szie.
+  """Make sure audio is a even multiple of hop_size.
 
   Args:
     wav_data: 1-D or 2-D array of floats.
