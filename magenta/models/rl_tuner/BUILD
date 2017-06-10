@@ -38,7 +38,7 @@ py_binary(
     deps = [
         ":rl_tuner",
         ":rl_tuner_ops",
-        "//magenta/common:tf_lib",
+        "//magenta/common",
     ],
 )
 
@@ -68,7 +68,7 @@ py_library(
     name = "rl_tuner_ops",
     srcs = ["rl_tuner_ops.py"],
     deps = [
-        "//magenta/common:tf_lib",
+        "//magenta/common",
         # tensorflow dep
     ],
 )

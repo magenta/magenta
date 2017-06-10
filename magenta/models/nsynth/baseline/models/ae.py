@@ -21,7 +21,7 @@ from __future__ import print_function
 import numpy as np
 import tensorflow as tf
 
-from magenta.common.tf_lib import HParams
+from magenta.common import HParams
 from magenta.models.nsynth import utils
 
 slim = tf.contrib.slim

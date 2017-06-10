@@ -26,7 +26,7 @@ py_library(
     name = "ae_configs",
     srcs = glob(["models/ae_configs/*.py"]),
     deps = [
-        "//magenta/common:tf_lib",
+        "//magenta/common",
         "//magenta/models/nsynth:utils",
         # numpy dep
         # tensorflow dep
@@ -38,7 +38,7 @@ py_library(
     srcs = ["models/ae.py"],
     deps = [
         ":ae_configs",
-        "//magenta/common:tf_lib",
+        "//magenta/common",
         "//magenta/models/nsynth:utils",
         # tensorflow dep
     ],
