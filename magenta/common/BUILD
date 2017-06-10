@@ -30,7 +30,7 @@ py_library(
         ":sequence_example_lib",
         ":state_util",
         ":testing_lib",
-        ":tf_lib",
+        # tensorflow dep
     ],
 )
 
