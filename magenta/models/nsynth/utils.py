@@ -18,14 +18,18 @@ from __future__ import division
 from __future__ import print_function
 
 import importlib
+import os
 
 # internal imports
 import librosa
 import numpy as np
-import scipy.io.wavfile
 import tensorflow as tf
 
 slim = tf.contrib.slim
+
+
+def shell_path(path):
+  return os.path.abspath(os.path.expanduser(os.path.expandvars(path)))
 
 
 #===============================================================================
@@ -46,19 +50,20 @@ def get_module(module_path):
   return module
 
 
-def load_wav(path):
-  """Load a wav file and convert to floats within [-1, 1].
+def load_audio(path, sample_length=64000, sr=16000):
+  """Loading of a wave file.
 
   Args:
-    path: The CNS file path from which we load.
+    path: Location of a wave file to load.
+    sample_length: The truncated total length of the final wave file.
+    sr: Samples per a second.
 
   Returns:
-    The 16bit data in the range [-1, 1].
+    out: The audio in samples from -1.0 to 1.0
   """
-  _, data_16bit = scipy.io.wavfile.read(tf.gfile.Open(path, "r"))
-  # Assert we are working with 16-bit audio.
-  assert data_16bit.dtype == np.int16
-  return data_16bit.astype(np.float32) / 2**15
+  audio, _ = librosa.load(path, sr=sr)
+  audio = audio[:sample_length]
+  return audio
 
 
 def mu_law(x, mu=255):
@@ -91,6 +96,56 @@ def inv_mu_law(x, mu=255):
   out = tf.sign(out) / mu * ((1 + mu)**tf.abs(out) - 1)
   out = tf.where(tf.equal(x, 0), x, out)
   return out
+
+
+def inv_mu_law_numpy(x, mu=255.0):
+  """A numpy implementation of inverse Mu-Law.
+
+  Args:
+    x: The Mu-Law samples to decode.
+    mu: The Mu we used to encode these samples.
+
+  Returns:
+    out: The decoded data.
+  """
+  x = np.array(x).astype(np.float32)
+  out = (x + 0.5) * 2. / (mu + 1)
+  out = np.sign(out) / mu * ((1 + mu)**np.abs(out) - 1)
+  out = np.where(np.equal(x, 0), x, out)
+  return out
+
+
+def trim_for_encoding(wav_data, sample_length, hop_length=512):
+  """Make sure audio is a even multiple of hop_size.
+
+  Args:
+    wav_data: 1-D or 2-D array of floats.
+    sample_length: Max length of audio data.
+    hop_length: Pooling size of WaveNet autoencoder.
+
+  Returns:
+    wav_data: Trimmed array.
+    sample_length: Length of trimmed array.
+  """
+  if wav_data.ndim == 1:
+    # Max sample length is the data length
+    if sample_length > wav_data.size:
+      sample_length = wav_data.size
+    # Multiple of hop_length
+    sample_length = (sample_length // hop_length) * hop_length
+    # Trim
+    wav_data = wav_data[:sample_length]
+  # Assume all examples are the same length
+  elif wav_data.ndim == 2:
+    # Max sample length is the data length
+    if sample_length > wav_data[0].size:
+      sample_length = wav_data[0].size
+    # Multiple of hop_length
+    sample_length = (sample_length // hop_length) * hop_length
+    # Trim
+    wav_data = wav_data[:, :sample_length]
+
+  return wav_data, sample_length
 
 
 #===============================================================================
@@ -731,3 +786,84 @@ def leaky_relu(leak=0.1):
     A lambda computing the leaky ReLU function with the specified slope.
   """
   return lambda x: tf.maximum(x, leak * x)
+
+
+def causal_linear(x, n_inputs, n_outputs, name,
+                  filter_length, rate, batch_size):
+  """Applies dilated convolution using queues.
+
+  Assumes a filter_length of 3.
+
+  Args:
+    x: The [mb, time, channels] tensor input.
+    n_inputs: The input number of channels.
+    n_outputs: The output number of channels.
+    name: The variable scope to provide to W and biases.
+    filter_length: The length of the convolution, assumed to be 3.
+    rate: The rate or dilation
+    batch_size: Non-symbolic value for batch_size.
+
+  Returns:
+    y: The output of the operation
+    (init_1, init_2): Initialization operations for the queues
+    (push_1, push_2): Push operations for the queues
+  """
+  assert filter_length == 3
+
+  # create queue
+  q_1 = tf.FIFOQueue(
+      rate,
+      dtypes=tf.float32,
+      shapes=(batch_size, n_inputs))
+  q_2 = tf.FIFOQueue(
+      rate,
+      dtypes=tf.float32,
+      shapes=(batch_size, n_inputs))
+  init_1 = q_1.enqueue_many(
+      tf.zeros((rate, batch_size, n_inputs)))
+  init_2 = q_2.enqueue_many(
+      tf.zeros((rate, batch_size, n_inputs)))
+  state_1 = q_1.dequeue()
+  push_1 = q_1.enqueue(x)
+  state_2 = q_2.dequeue()
+  push_2 = q_2.enqueue(state_1)
+
+  # get pretrained weights
+  w = tf.get_variable(name=name + "/W",
+                      shape=[1, filter_length, n_inputs, n_outputs],
+                      dtype=tf.float32)
+  b = tf.get_variable(name=name + "/biases",
+                      shape=[n_outputs],
+                      dtype=tf.float32)
+  w_q_2 = tf.slice(w, [0, 0, 0, 0], [-1, 1, -1, -1])
+  w_q_1 = tf.slice(w, [0, 1, 0, 0], [-1, 1, -1, -1])
+  w_x = tf.slice(w, [0, 2, 0, 0], [-1, 1, -1, -1])
+
+  # perform op w/ cached states
+  y = tf.expand_dims(tf.nn.bias_add(
+      tf.matmul(state_2, w_q_2[0][0]) +
+      tf.matmul(state_1, w_q_1[0][0]) +
+      tf.matmul(x, w_x[0][0]),
+      b), 0)
+  return y, (init_1, init_2), (push_1, push_2)
+
+
+def linear(x, n_inputs, n_outputs, name):
+  """Simple linear layer.
+
+  Args:
+    x: The [mb, time, channels] tensor input.
+    n_inputs: The input number of channels.
+    n_outputs: The output number of channels.
+    name: The variable scope to provide to W and biases.
+
+  Returns:
+    y: The output of the operation.
+  """
+  w = tf.get_variable(name=name + "/W",
+                      shape=[1, 1, n_inputs, n_outputs],
+                      dtype=tf.float32)
+  b = tf.get_variable(name=name + "/biases",
+                      shape=[n_outputs],
+                      dtype=tf.float32)
+  return tf.expand_dims(tf.nn.bias_add(tf.matmul(x[0], w[0][0]), b), 0)
