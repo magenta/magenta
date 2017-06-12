@@ -19,5 +19,3 @@ from sequence_example_lib import flatten_maybe_padded_sequences
 from sequence_example_lib import get_padded_batch
 from sequence_example_lib import make_sequence_example
 import state_util
-
-from tensorflow.contrib.training.python.training.hparam import HParams

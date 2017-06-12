@@ -14,6 +14,7 @@
 """Polyphonic RNN model."""
 
 # internal imports
+import tensorflow as tf
 
 import magenta
 from magenta.models.polyphony_rnn import polyphony_encoder_decoder
@@ -73,7 +74,7 @@ default_configs = {
             description='Polyphonic RNN'),
         magenta.music.OneHotEventSequenceEncoderDecoder(
             polyphony_encoder_decoder.PolyphonyOneHotEncoding()),
-        magenta.common.HParams(
+        tf.contrib.training.HParams(
             batch_size=64,
             rnn_layer_sizes=[256, 256, 256],
             dropout_keep_prob=0.5,

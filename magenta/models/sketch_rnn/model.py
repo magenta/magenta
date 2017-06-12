@@ -24,20 +24,17 @@ import random
 import numpy as np
 import tensorflow as tf
 
-from magenta.common import HParams
 from magenta.models.sketch_rnn import rnn
 
 
 def copy_hparams(hparams):
   """Return a copy of an HParams instance."""
-  new_hparams = HParams()
-  new_hparams.update(hparams.keyvals)
-  return new_hparams
+  return tf.contrib.training.HParams(**hparams.values())
 
 
 def get_default_hparams():
   """Return default HParams for sketch-rnn."""
-  hparams = HParams(
+  hparams = tf.contrib.training.HParams(
       data_set=['aaron_sheep.npz'],  # Our dataset.
       num_steps=10000000,  # Total number of steps of training. Keep large.
       save_every=500,  # Number of batches per checkpoint creation.
