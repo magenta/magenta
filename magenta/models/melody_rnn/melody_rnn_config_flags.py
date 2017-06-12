@@ -41,10 +41,10 @@ tf.app.flags.DEFINE_string(
     'A description of the generator. Overrides the default if `--config` is '
     'also supplied.')
 tf.app.flags.DEFINE_string(
-    'hparams', '{}',
-    'String representation of a Python dictionary containing hyperparameter '
-    'to value mapping. This mapping is merged with the default '
-    'hyperparameters if `--config` is also supplied.')
+    'hparams', '',
+    'Comma-separated list of `name=value` pairs. For each pair, the value of '
+    'the hyperparameter named `name` is set to `value`. This mapping is merged '
+    'with the default hyperparameters.')
 
 
 class MelodyRnnConfigFlagsException(Exception):
