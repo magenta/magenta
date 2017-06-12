@@ -35,7 +35,7 @@ REQUIRED_PACKAGES = [
     'pretty_midi >= 0.2.6',
     'python-rtmidi',
     'scipy >= 0.18.1',
-    'tensorflow >= 1.0.0',
+    'tensorflow >= 1.1.0',
     'wheel',
 ]
 
