@@ -169,7 +169,7 @@ default_configs = {
         magenta.music.KeyMelodyEncoderDecoder(
             min_note=DEFAULT_MIN_NOTE,
             max_note=DEFAULT_MAX_NOTE),
-        magenta.common.HParams(
+        tf.contrib.training.HParams(
             batch_size=128,
             rnn_layer_sizes=[128, 128],
             dropout_keep_prob=0.5,
@@ -177,4 +177,3 @@ default_configs = {
             clip_norm=3,
             learning_rate=0.001))
 }
-
