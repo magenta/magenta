@@ -125,7 +125,7 @@ def config_from_flags():
       generator_details = None
     encoder_decoder = melody_encoder_decoders[FLAGS.melody_encoder_decoder](
         melody_rnn_model.DEFAULT_MIN_NOTE, melody_rnn_model.DEFAULT_MAX_NOTE)
-    hparams = magenta.common.HParams()
+    hparams = tf.contrib.training.HParams()
     hparams.parse(FLAGS.hparams)
     return melody_rnn_model.MelodyRnnConfig(
         generator_details, encoder_decoder, hparams)
