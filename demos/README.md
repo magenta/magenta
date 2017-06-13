@@ -2,7 +2,11 @@
 
 This directory contains various demonstrations of Magenta models.
 
-* [**AI Duet**](/demos/ai-duet): A browser-based piano that responds to you. Built by [Yotam Mann](https://github.com/tambien) with friends on the Magenta and Creative Lab teams at Google. Hosted version available as an [AI Experiment](https://aiexperiments.withgoogle.com/ai-duet).
+* [**AI Duet**](/demos/ai-duet): A browser-based piano that responds to,
+demonstrating a Magenta note sequence generation model. Built by
+[Yotam Mann](https://github.com/tambien) with friends on the Magenta and
+Creative Lab teams at Google. Hosted version available as an
+[AI Experiment](https://aiexperiments.withgoogle.com/ai-duet).
 * [**AI Jam (Ableton)**](/demos/ai-jam-ableton): A demonstration of several Magenta
 note sequence generation models originally developed as a demonstration for
 NIPS 2016. Requires an installation of Ableton Live and MaxForLive. You can
