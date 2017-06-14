@@ -30,7 +30,6 @@ py_library(
     ],
 )
 
-
 py_library(
     name = "h512_bo16",
     srcs = ["h512_bo16.py"],
@@ -82,6 +81,8 @@ py_binary(
         ":configs",
         ":fastgen",
         "//magenta/models/nsynth:utils",
+        # librosa dep
+        # numpy dep
         # tensorflow dep
     ],
 )

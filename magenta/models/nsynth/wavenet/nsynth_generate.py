@@ -14,10 +14,11 @@
 """A binary for generating samples given a folder of .wav files or encodings."""
 
 import os
+import numpy as np
 import tensorflow as tf
 
 from magenta.models.nsynth import utils
-from magenta.models.nsynth.wavenet.fastgen import synthesize
+from magenta.models.nsynth.wavenet import fastgen
 
 FLAGS = tf.app.flags.FLAGS
 
@@ -31,6 +32,7 @@ tf.app.flags.DEFINE_string("checkpoint_path", "model.ckpt-200000",
                            "Path to checkpoint.")
 tf.app.flags.DEFINE_integer("sample_length", 64000,
                             "Output file size in samples.")
+tf.app.flags.DEFINE_integer("batch_size", 1, "Number of samples per a batch.")
 tf.app.flags.DEFINE_string("log", "INFO",
                            "The threshold for what messages will be logged."
                            "DEBUG, INFO, WARN, ERROR, or FATAL.")
@@ -55,23 +57,45 @@ def main(unused_argv=None):
     else:
       raise RuntimeError("Folder must contain .wav or .npy files.")
     postfix = ".npy" if FLAGS.encodings else postfix
-    files = sorted([os.path.join(source_path, fname)
-                    for fname in files
-                    if fname.lower().endswith(postfix)])
+    files = sorted([
+        os.path.join(source_path, fname) for fname in files
+        if fname.lower().endswith(postfix)
+    ])
 
   elif source_path.lower().endswith(postfix):
     files = [source_path]
   else:
     files = []
-  for f in files:
-    out_file = os.path.join(save_path,
-                            "gen_" +
-                            os.path.splitext(os.path.basename(f))[0] + ".wav")
-    tf.logging.info("OUTFILE %s" % out_file)
-    synthesize(source_file=f,
-               checkpoint_path=checkpoint_path,
-               out_file=out_file,
-               sample_length=FLAGS.sample_length)
+
+  # Now synthesize from files
+  if FLAGS.batch_size > 1:
+    n_files = len(files)
+    file_i = 0
+    for i in range(0, n_files, FLAGS.batch_size):
+      batch_data = []
+      batch_names = []
+      for j in range(0, FLAGS.batch_size):
+        batch_data.append(np.load(files[i + j]))
+        out_file = os.path.join(
+            save_path, "gen_" +
+            os.path.splitext(os.path.basename(files[i + j]))[0] + ".wav")
+        batch_names.append(out_file)
+      batch_data = np.array(batch_data)
+      fastgen.synthesize_batch(
+          batch_data,
+          batch_names,
+          checkpoint_path=checkpoint_path,
+          sample_length=FLAGS.sample_length)
+  else:
+    for f in files:
+      out_file = os.path.join(
+          save_path, "gen_" + os.path.splitext(os.path.basename(f))[0] + ".wav")
+      tf.logging.info("OUTFILE %s" % out_file)
+      fastgen.synthesize(
+          source_file=f,
+          checkpoint_path=checkpoint_path,
+          out_file=out_file,
+          sample_length=FLAGS.sample_length)
 
 
 def console_entry_point():

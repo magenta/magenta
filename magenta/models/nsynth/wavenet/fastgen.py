@@ -129,12 +129,14 @@ def synthesize(source_file,
     # Load up the model for encoding and find the encoding
     encoding, hop_length = encode(
         wav_data, checkpoint_path, sample_length=sample_length)
-    if encoding.ndim == 3:
-      encoding = encoding[0]
   else:
     raise RuntimeError("File must be .wav or .npy")
+  if encoding.ndim == 1:
+    encoding = np.expand_dims(np.expand_dims(encoding, 0), 0)
+  if encoding.ndim == 2:
+    encoding = np.expand_dims(encoding, 0)
   # Get lengths
-  encoding_length = encoding.shape[0]
+  encoding_length = encoding.shape[1]
   total_length = encoding_length * hop_length
 
   session_config = tf.ConfigProto(allow_soft_placement=True)
@@ -154,10 +156,8 @@ def synthesize(source_file,
       enc_i = sample_i // hop_length
       pmf = sess.run(
           [net["predictions"], net["push_ops"]],
-          feed_dict={
-              net["X"]: audio,
-              net["encoding"]: np.expand_dims(encoding[enc_i], 0)
-          })[0]
+          feed_dict={net["X"]: audio,
+                     net["encoding"]: encoding[:, enc_i, :]})[0]
       sample_bin = sample_categorical(pmf)
       audio = utils.inv_mu_law_numpy(sample_bin - 128)
       audio_synth[sample_i] = audio[0]
@@ -169,13 +169,14 @@ def synthesize(source_file,
   wavfile.write(out_file, 16000, audio_synth)
 
 
-def save_batch(audio_batch, names_batch):
-  for audio, name in zip(audio_batch, names_batch):
+def save_batch(audio_batch, batch_names):
+  for audio, name in zip(audio_batch, batch_names):
+    tf.logging.info("Saving: %s" % name)
     wavfile.write(name, 16000, audio)
 
 
-def synthesize_batch(encodings,
-                     names_batch,
+def synthesize_batch(encoding,
+                     batch_names,
                      checkpoint_path="model.ckpt-200000",
                      sample_length=64000,
                      samples_per_save=1000):
@@ -183,14 +184,14 @@ def synthesize_batch(encodings,
 
   Args:
     encodings: Numpy array with [MB, Time, Dim].
-    names_batch: Iterable of output file names.
+    batch_names: Iterable of output file names.
     checkpoint_path: Location of the pretrained model. [model.ckpt-200000]
     sample_length: Length of file to synthesize. [source_file.length]
     samples_per_save: Save a .wav after every amount of samples.
   """
   hop_length = Config().ae_hop_length
   # Get lengths
-  batch_size = encodings.shape[0]
+  batch_size = encoding.shape[0]
   encoding_length = encoding.shape[1]
   total_length = encoding_length * hop_length
 
@@ -205,21 +206,17 @@ def synthesize_batch(encodings,
 
     # Regenerate the audio file sample by sample
     audio_batch = np.zeros((batch_size, total_length,), dtype=np.float32)
-    audio = np.zeros([
-        batch_size,
-    ])
+    audio = np.zeros([batch_size, 1])
 
     for sample_i in range(total_length):
       enc_i = sample_i // hop_length
       pmf = sess.run(
           [net["predictions"], net["push_ops"]],
-          feed_dict={
-              net["X"]: np.atleast_2d(audio),
-              net["encoding"]: encoding[:, enc_i, :]
-          })[0]
+          feed_dict={net["X"]: audio,
+                     net["encoding"]: encoding[:, enc_i, :]})[0]
       sample_bin = sample_categorical(pmf)
       audio = utils.inv_mu_law_numpy(sample_bin - 128)
-      audio_batch[:, sample_i] = audio
+      audio_batch[:, sample_i] = audio[:, 0]
       if sample_i % 100 == 0:
         tf.logging.info("Sample: %d" % sample_i)
       if sample_i % samples_per_save == 0:
