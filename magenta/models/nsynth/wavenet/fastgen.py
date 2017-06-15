@@ -114,7 +114,6 @@ def load_batch(files, sample_length=64000):
     batch_data: A padded array of audio or embeddings [batch, length, (dims)]
   """
   batch_data = []
-  batch_names = []
   max_length = 0
   is_npy = (os.path.splitext(files[0])[1] == ".npy")
   # Load the data
