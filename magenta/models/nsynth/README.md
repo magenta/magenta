@@ -46,7 +46,7 @@ nsynth_generate \
 --checkpoint_path=/<path>/wavenet-ckpt/model.ckpt-200000 \
 --source_path=/<path> \
 --save_path=/<path> \
---sample_length=64000
+--batch_size=4
 ```
 
 
@@ -73,7 +73,6 @@ nsynth_save_embeddings \
 --checkpoint_path=/<path>/wavenet-ckpt/model.ckpt-200000 \
 --source_path=/<path> \
 --save_path=/<path> \
---sample_length=64000 \
 --batch_size=4
 ```
 
@@ -86,8 +85,8 @@ nsynth_generate \
 --checkpoint_path=/<path>/wavenet-ckpt/model.ckpt-200000 \
 --source_path=/<path> \
 --save_path=/<path> \
---sample_length=64000 \
---encodings=true
+--encodings=true \
+--batch_size=4
 ```
 
 
@@ -118,9 +117,6 @@ bazel run //magenta/models/nsynth/wavenet/train -- \
 ```
 
 The WaveNet training also requires tensorflow 1.1.0-rc1 or beyond.
-As of 04/05/17 this requires installing tensorflow from source
-(https://github.com/tensorflow/tensorflow/releases).
-
 
 [arXiv]: https://arxiv.org/abs/1704.01279
 [baseline-ckpt]:http://download.magenta.tensorflow.org/models/nsynth/baseline-ckpt.tar
