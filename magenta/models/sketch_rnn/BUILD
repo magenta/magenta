@@ -31,7 +31,6 @@ py_library(
     srcs = ["model.py"],
     deps = [
         ":rnn",
-        "//magenta/common:tf_lib",
         # numpy dep
         # tensorflow dep
     ],

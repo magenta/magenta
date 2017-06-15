@@ -33,7 +33,7 @@ class EventSequenceRNNGraphTest(tf.test.TestCase):
         None,
         magenta.music.OneHotEventSequenceEncoderDecoder(
             magenta.music.testing_lib.TrivialOneHotEncoding(12)),
-        magenta.common.HParams(
+        tf.contrib.training.HParams(
             batch_size=128,
             rnn_layer_sizes=[128, 128],
             dropout_keep_prob=0.5,

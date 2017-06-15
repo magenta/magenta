@@ -35,7 +35,7 @@ class PolySeqPipelineTest(tf.test.TestCase):
         None,
         magenta.music.OneHotEventSequenceEncoderDecoder(
             polyphony_encoder_decoder.PolyphonyOneHotEncoding()),
-        magenta.common.HParams())
+        tf.contrib.training.HParams())
 
   def testPolyRNNPipeline(self):
     note_sequence = magenta.common.testing_lib.parse_test_proto(

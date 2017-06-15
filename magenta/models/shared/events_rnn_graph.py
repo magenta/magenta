@@ -100,7 +100,8 @@ def build_graph(mode, config, sequence_example_file_paths=None):
         hparams.rnn_layer_sizes,
         dropout_keep_prob=(
             1.0 if mode == 'generate' else hparams.dropout_keep_prob),
-        attn_length=hparams.attn_length)
+        attn_length=(
+            hparams.attn_length if hasattr(hparams, 'attn_length') else 0))
 
     initial_state = cell.zero_state(hparams.batch_size, tf.float32)
 

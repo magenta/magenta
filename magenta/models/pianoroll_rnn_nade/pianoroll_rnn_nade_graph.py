@@ -451,7 +451,8 @@ def build_graph(mode, config, sequence_example_file_paths=None):
     cell = events_rnn_graph.make_rnn_cell(
         hparams.rnn_layer_sizes,
         dropout_keep_prob=hparams.dropout_keep_prob if mode == 'train' else 1.0,
-        attn_length=hparams.attn_length)
+        attn_length=(
+            hparams.attn_length if hasattr(hparams, 'attn_length') else 0))
 
     rnn_nade = RnnNade(
         cell,
