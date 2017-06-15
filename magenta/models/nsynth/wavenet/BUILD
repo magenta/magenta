@@ -30,7 +30,6 @@ py_library(
     ],
 )
 
-
 py_library(
     name = "h512_bo16",
     srcs = ["h512_bo16.py"],

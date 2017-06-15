@@ -17,7 +17,7 @@ import os
 import tensorflow as tf
 
 from magenta.models.nsynth import utils
-from magenta.models.nsynth.wavenet.fastgen import synthesize
+from magenta.models.nsynth.wavenet import fastgen
 
 FLAGS = tf.app.flags.FLAGS
 
@@ -25,12 +25,13 @@ tf.app.flags.DEFINE_string("source_path", "", "Path to directory with either "
                            ".wav files or precomputed encodings in .npy files."
                            "If .wav files are present, use wav files. If no "
                            ".wav files are present, use .npy files")
-tf.app.flags.DEFINE_string("encodings", False, "If True, use only .npy files.")
+tf.app.flags.DEFINE_string("npy_only", False, "If True, use only .npy files.")
 tf.app.flags.DEFINE_string("save_path", "", "Path to output file dir.")
 tf.app.flags.DEFINE_string("checkpoint_path", "model.ckpt-200000",
                            "Path to checkpoint.")
-tf.app.flags.DEFINE_integer("sample_length", 64000,
-                            "Output file size in samples.")
+tf.app.flags.DEFINE_integer("sample_length", 100000000,
+                            "Max output file size in samples.")
+tf.app.flags.DEFINE_integer("batch_size", 1, "Number of samples per a batch.")
 tf.app.flags.DEFINE_string("log", "INFO",
                            "The threshold for what messages will be logged."
                            "DEBUG, INFO, WARN, ERROR, or FATAL.")
@@ -54,24 +55,34 @@ def main(unused_argv=None):
       postfix = ".npy"
     else:
       raise RuntimeError("Folder must contain .wav or .npy files.")
-    postfix = ".npy" if FLAGS.encodings else postfix
-    files = sorted([os.path.join(source_path, fname)
-                    for fname in files
-                    if fname.lower().endswith(postfix)])
+    postfix = ".npy" if FLAGS.npy_only else postfix
+    files = sorted([
+        os.path.join(source_path, fname) for fname in files
+        if fname.lower().endswith(postfix)
+    ])
 
   elif source_path.lower().endswith(postfix):
     files = [source_path]
   else:
     files = []
-  for f in files:
-    out_file = os.path.join(save_path,
-                            "gen_" +
-                            os.path.splitext(os.path.basename(f))[0] + ".wav")
-    tf.logging.info("OUTFILE %s" % out_file)
-    synthesize(source_file=f,
-               checkpoint_path=checkpoint_path,
-               out_file=out_file,
-               sample_length=FLAGS.sample_length)
+
+  # Now synthesize from files one batch at a time
+  batch_size = FLAGS.batch_size
+  sample_length = FLAGS.sample_length
+  n = len(files)
+  for start in range(0, n, batch_size):
+    end = start + batch_size
+    batch_files = files[start:end]
+    save_names = [
+        os.path.join(save_path,
+                     "gen_" + os.path.splitext(os.path.basename(f))[0] + ".wav")
+        for f in batch_files
+    ]
+    batch_data = fastgen.load_batch(batch_files, sample_length=sample_length)
+    # Encode waveforms
+    encodings = batch_data if postfix == ".npy" else fastgen.encode(
+        batch_data, checkpoint_path, sample_length=sample_length)
+    fastgen.synthesize(encodings, save_names, checkpoint_path=checkpoint_path)
 
 
 def console_entry_point():

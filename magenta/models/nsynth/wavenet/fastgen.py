@@ -19,6 +19,7 @@ Ramachandran, P., Le Paine, T., Khorrami, P., Babaeizadeh, M.,
 Chang, S., Zhang, Y., ... Huang, T. (2017).
 Fast Generation For Convolutional Autoregressive Models, 1-5.
 """
+import os
 import numpy as np
 from scipy.io import wavfile
 import tensorflow as tf
@@ -29,10 +30,15 @@ from magenta.models.nsynth.wavenet.h512_bo16 import FastGenerationConfig
 
 
 def sample_categorical(pmf):
-  cdf = np.cumsum(pmf)
-  idx = np.random.rand()
-  i = cdf.searchsorted(idx)
-  return i
+  if pmf.ndim == 1:
+    pmf = np.expand_dims(pmf, 0)
+  batch_size = pmf.shape[0]
+  cdf = np.cumsum(pmf, axis=1)
+  rand_vals = np.random.rand(batch_size)
+  idxs = np.zeros([batch_size, 1])
+  for i in range(batch_size):
+    idxs[i] = cdf[i].searchsorted(rand_vals[i])
+  return idxs
 
 
 def load_nsynth(batch_size=1, sample_length=64000):
@@ -77,7 +83,6 @@ def encode(wav_data, checkpoint_path, sample_length=64000):
     sample_length: The total length of the final wave file, padded with 0s.
   Returns:
     encoding: a [mb, 125, 16] encoding (for 64000 sample audio file).
-    hop_length: Pooling size of the autoencoder.
   """
   if wav_data.ndim == 1:
     wav_data = np.expand_dims(wav_data, 0)
@@ -89,54 +94,80 @@ def encode(wav_data, checkpoint_path, sample_length=64000):
   session_config = tf.ConfigProto(allow_soft_placement=True)
   with tf.Graph().as_default(), tf.Session(config=session_config) as sess:
     hop_length = Config().ae_hop_length
-    wav_data, sample_length = utils.trim_for_encoding(wav_data,
-                                                      sample_length,
+    wav_data, sample_length = utils.trim_for_encoding(wav_data, sample_length,
                                                       hop_length)
-    net = load_nsynth(batch_size=batch_size,
-                      sample_length=sample_length)
+    net = load_nsynth(batch_size=batch_size, sample_length=sample_length)
     saver = tf.train.Saver()
     saver.restore(sess, checkpoint_path)
     encoding = sess.run(net["encoding"], feed_dict={net["X"]: wav_data})
-  return encoding, hop_length
+  return encoding
 
 
-def synthesize(source_file,
+def load_batch(files, sample_length=64000):
+  """Load a batch of data from either .wav or .npy files.
+
+  Args:
+    files: A list of filepaths to .wav or .npy files
+    sample_length: Maximum sample length
+
+  Returns:
+    batch_data: A padded array of audio or embeddings [batch, length, (dims)]
+  """
+  batch_data = []
+  max_length = 0
+  is_npy = (os.path.splitext(files[0])[1] == ".npy")
+  # Load the data
+  for f in files:
+    if is_npy:
+      data = np.load(f)
+      batch_data.append(data)
+    else:
+      data = utils.load_audio(f, sample_length, sr=16000)
+      batch_data.append(data)
+    if data.shape[0] > max_length:
+      max_length = data.shape[0]
+  # Add padding
+  for i, data in enumerate(batch_data):
+    if data.shape[0] < max_length:
+      if is_npy:
+        padded = np.zeros([max_length, +data.shape[1]])
+        padded[:data.shape[0], :] = data
+      else:
+        padded = np.zeros([max_length])
+        padded[:data.shape[0]] = data
+      batch_data[i] = padded
+  # Return arrays
+  batch_data = np.array(batch_data)
+  return batch_data
+
+
+def save_batch(batch_audio, batch_save_paths):
+  for audio, name in zip(batch_audio, batch_save_paths):
+    tf.logging.info("Saving: %s" % name)
+    wavfile.write(name, 16000, audio)
+
+
+def synthesize(encodings,
+               save_paths,
                checkpoint_path="model.ckpt-200000",
-               out_file="synthesis.wav",
-               sample_length=64000,
                samples_per_save=1000):
   """Resynthesize an input audio file.
 
   Args:
-    source_file: Location of a wave or .npy file to load.
+    encodings: Numpy array with [MB, Time, Dim].
+    save_paths: Iterable of output file names.
     checkpoint_path: Location of the pretrained model. [model.ckpt-200000]
-    out_file: Location to save the synthesized wave file. [synthesis.wav]
-    sample_length: Length of file to synthesize. [source_file.length]
     samples_per_save: Save a .wav after every amount of samples.
-
-  Raises:
-    RuntimeError: Source_file should be .wav or .npy.
   """
-  if source_file.endswith(".npy"):
-    encoding = np.load(source_file)
-    hop_length = Config().ae_hop_length
-  elif source_file.endswith(".wav"):
-    # Audio to resynthesize
-    wav_data = utils.load_audio(source_file, sample_length, sr=16000)
-    # Load up the model for encoding and find the encoding
-    encoding, hop_length = encode(wav_data,
-                                  checkpoint_path, sample_length=sample_length)
-    if encoding.ndim == 3:
-      encoding = encoding[0]
-  else:
-    raise RuntimeError("File must be .wav or .npy")
+  hop_length = Config().ae_hop_length
   # Get lengths
-  encoding_length = encoding.shape[0]
+  batch_size = encodings.shape[0]
+  encoding_length = encodings.shape[1]
   total_length = encoding_length * hop_length
 
   session_config = tf.ConfigProto(allow_soft_placement=True)
   with tf.Graph().as_default(), tf.Session(config=session_config) as sess:
-    net = load_fastgen_nsynth()
+    net = load_fastgen_nsynth(batch_size=batch_size)
     saver = tf.train.Saver()
     saver.restore(sess, checkpoint_path)
 
@@ -144,20 +175,20 @@ def synthesize(source_file,
     sess.run(net["init_ops"])
 
     # Regenerate the audio file sample by sample
-    wav_synth = np.zeros((total_length,), dtype=np.float32)
-    audio = np.float32(0)
+    audio_batch = np.zeros((batch_size, total_length,), dtype=np.float32)
+    audio = np.zeros([batch_size, 1])
 
     for sample_i in range(total_length):
       enc_i = sample_i // hop_length
-      pmf = sess.run([net["predictions"], net["push_ops"]],
-                     feed_dict={net["X"]: np.atleast_2d(audio),
-                                net["encoding"]: encoding[enc_i]})[0]
+      pmf = sess.run(
+          [net["predictions"], net["push_ops"]],
+          feed_dict={net["X"]: audio,
+                     net["encoding"]: encodings[:, enc_i, :]})[0]
       sample_bin = sample_categorical(pmf)
       audio = utils.inv_mu_law_numpy(sample_bin - 128)
-      wav_synth[sample_i] = audio
+      audio_batch[:, sample_i] = audio[:, 0]
       if sample_i % 100 == 0:
         tf.logging.info("Sample: %d" % sample_i)
       if sample_i % samples_per_save == 0:
-        wavfile.write(out_file, 16000, wav_synth)
-
-  wavfile.write(out_file, 16000, wav_synth)
+        save_batch(audio_batch, save_paths)
+  save_batch(audio_batch, save_paths)

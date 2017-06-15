@@ -52,10 +52,8 @@ class FastGenerationConfig(object):
     x_scaled = tf.expand_dims(x_scaled, 2)
 
     encoding = tf.placeholder(
-        name='encoding',
-        shape=[num_z],
-        dtype=tf.float32)
-    en = tf.expand_dims(tf.expand_dims(encoding, 0), 0)
+        name='encoding', shape=[batch_size, num_z], dtype=tf.float32)
+    en = tf.expand_dims(encoding, 1)
 
     init_ops, push_ops = [], []
 
@@ -64,7 +62,7 @@ class FastGenerationConfig(object):
     ###
     l = x_scaled
     l, inits, pushs = utils.causal_linear(
-        x=l[0],
+        x=l,
         n_inputs=1,
         n_outputs=width,
         name='startconv',
@@ -86,7 +84,7 @@ class FastGenerationConfig(object):
 
       # dilated masked cnn
       d, inits, pushs = utils.causal_linear(
-          x=l[0],
+          x=l,
           n_inputs=width,
           n_outputs=width * 2,
           name='dilatedconv_%d' % (i + 1),
@@ -114,8 +112,8 @@ class FastGenerationConfig(object):
       s += utils.linear(d, width, skip_width, name='skip_%d' % (i + 1))
 
     s = tf.nn.relu(s)
-    s = (utils.linear(s, skip_width, skip_width, name='out1') +
-         utils.linear(en, num_z, skip_width, name='cond_map_out1'))
+    s = (utils.linear(s, skip_width, skip_width, name='out1') + utils.linear(
+        en, num_z, skip_width, name='cond_map_out1'))
     s = tf.nn.relu(s)
 
     ###
@@ -125,11 +123,13 @@ class FastGenerationConfig(object):
     logits = tf.reshape(logits, [-1, 256])
     probs = tf.nn.softmax(logits, name='softmax')
 
-    return {'init_ops': init_ops,
-            'push_ops': push_ops,
-            'predictions': probs,
-            'encoding': encoding,
-            'quantized_input': x_quantized,}
+    return {
+        'init_ops': init_ops,
+        'push_ops': push_ops,
+        'predictions': probs,
+        'encoding': encoding,
+        'quantized_input': x_quantized,
+    }
 
 
 class Config(object):

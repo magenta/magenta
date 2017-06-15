@@ -182,8 +182,14 @@ def get_optimizer(learning_rate, hparams):
   }.get(hparams.optimizer)
 
 
-def specgram(audio, n_fft=512, hop_length=None, mask=True, log_mag=True,
-             re_im=False, dphase=True, mag_only=False):
+def specgram(audio,
+             n_fft=512,
+             hop_length=None,
+             mask=True,
+             log_mag=True,
+             re_im=False,
+             dphase=True,
+             mag_only=False):
   """Spectrogram using librosa.
 
   Args:
@@ -203,8 +209,8 @@ def specgram(audio, n_fft=512, hop_length=None, mask=True, log_mag=True,
   if not hop_length:
     hop_length = int(n_fft / 2.)
 
-  fft_config = dict(n_fft=n_fft, win_length=n_fft, hop_length=hop_length,
-                    center=True)
+  fft_config = dict(
+      n_fft=n_fft, win_length=n_fft, hop_length=hop_length, center=True)
 
   spec = librosa.stft(audio, **fft_config)
 
@@ -304,21 +310,20 @@ def ispecgram(spec,
   if not hop_length:
     hop_length = n_fft // 2
 
-  ifft_config = dict(win_length=n_fft, hop_length=hop_length,
-                     center=True)
+  ifft_config = dict(win_length=n_fft, hop_length=hop_length, center=True)
 
   if mag_only:
     mag = spec[:, :, 0]
-    phase_angle = np.pi*np.random.rand(*mag.shape)
+    phase_angle = np.pi * np.random.rand(*mag.shape)
   elif re_im:
     spec_real = spec[:, :, 0] + 1.j * spec[:, :, 1]
   else:
     mag, p = spec[:, :, 0], spec[:, :, 1]
     if mask and log_mag:
-      p /= (mag + 1e-13*np.random.randn(*mag.shape))
+      p /= (mag + 1e-13 * np.random.randn(*mag.shape))
     if dphase:
       # Roll up phase
-      phase_angle = np.cumsum(p*np.pi, axis=1)
+      phase_angle = np.cumsum(p * np.pi, axis=1)
     else:
       phase_angle = p * np.pi
 
@@ -326,7 +331,7 @@ def ispecgram(spec,
   if log_mag:
     mag = (mag - 1.0) * 120.0
     mag = 10**(mag / 20.0)
-  phase = np.cos(phase_angle) + 1.j*np.sin(phase_angle)
+  phase = np.cos(phase_angle) + 1.j * np.sin(phase_angle)
   spec_real = mag * phase
 
   if mag_only:
@@ -350,41 +355,60 @@ def batch_specgram(audio,
   res = []
   for b in range(batch_size):
     res.append(
-        specgram(audio[b], n_fft, hop_length, mask, log_mag, re_im,
-                 dphase, mag_only))
+        specgram(audio[b], n_fft, hop_length, mask, log_mag, re_im, dphase,
+                 mag_only))
   return np.array(res)
 
 
-def batch_ispecgram(spec, n_fft=512, hop_length=None, mask=True, log_mag=True,
-                    re_im=False, dphase=True, mag_only=False,
+def batch_ispecgram(spec,
+                    n_fft=512,
+                    hop_length=None,
+                    mask=True,
+                    log_mag=True,
+                    re_im=False,
+                    dphase=True,
+                    mag_only=False,
                     num_iters=1000):
   assert len(spec.shape) == 4
   batch_size = spec.shape[0]
   res = []
   for b in range(batch_size):
-    res.append(ispecgram(spec[b, :, :, :], n_fft, hop_length,
-                         mask, log_mag, re_im, dphase,
-                         mag_only, num_iters))
+    res.append(
+        ispecgram(spec[b, :, :, :], n_fft, hop_length, mask, log_mag, re_im,
+                  dphase, mag_only, num_iters))
   return np.array(res)
 
 
-def tf_specgram(audio, n_fft=512, hop_length=None, mask=True, log_mag=True,
-                re_im=False, dphase=True, mag_only=False):
+def tf_specgram(audio,
+                n_fft=512,
+                hop_length=None,
+                mask=True,
+                log_mag=True,
+                re_im=False,
+                dphase=True,
+                mag_only=False):
   return tf.py_func(batch_specgram, [
       audio, n_fft, hop_length, mask, log_mag, re_im, dphase, mag_only
   ], tf.float32)
 
 
-def tf_ispecgram(spec, n_fft=512, hop_length=None, mask=True,
-                 pad=True, log_mag=True, re_im=False,
-                 dphase=True, mag_only=False, num_iters=1000):
+def tf_ispecgram(spec,
+                 n_fft=512,
+                 hop_length=None,
+                 mask=True,
+                 pad=True,
+                 log_mag=True,
+                 re_im=False,
+                 dphase=True,
+                 mag_only=False,
+                 num_iters=1000):
   dims = spec.get_shape().as_list()
   # Add back in nyquist frequency
   x = spec if not pad else tf.concat(
       [spec, tf.zeros([dims[0], 1, dims[2], dims[3]])], 1)
-  audio = tf.py_func(batch_ispecgram, [x, n_fft, hop_length, mask,
-                                       log_mag, re_im, dphase,
-                                       mag_only, num_iters], tf.float32)
+  audio = tf.py_func(batch_ispecgram, [
+      x, n_fft, hop_length, mask, log_mag, re_im, dphase, mag_only, num_iters
+  ], tf.float32)
   return audio
 
 
@@ -554,8 +578,8 @@ def softmax_summaries(loss, logits, one_hot_labels, name="softmax"):
   tf.summary.scalar(name + "_loss", loss)
 
   one_hot_labels = tf.cond(
-      tf.equal(tf.rank(one_hot_labels), 2),
-      lambda: tf.to_int32(tf.argmax(one_hot_labels, 1)),
+      tf.equal(tf.rank(one_hot_labels),
+               2), lambda: tf.to_int32(tf.argmax(one_hot_labels, 1)),
       lambda: tf.to_int32(one_hot_labels))
 
   in_top_1 = tf.nn.in_top_k(logits, one_hot_labels, 1)
@@ -607,14 +631,17 @@ def frequency_weighted_cost_mask(peak=10.0, hz_flat=1000, sr=16000, n_fft=512):
   n = int(n_fft / 2)
   cutoff = np.where(
       librosa.core.fft_frequencies(sr=sr, n_fft=n_fft) >= hz_flat)[0][0]
-  mask = np.concatenate([np.linspace(peak, 1.0, cutoff), np.ones(n-cutoff)])
+  mask = np.concatenate([np.linspace(peak, 1.0, cutoff), np.ones(n - cutoff)])
   return tf.constant(mask[np.newaxis, :, np.newaxis], dtype=tf.float32)
 
 
 #---------------------------------------------------
 # Neural Nets
 #---------------------------------------------------
-def pitch_embeddings(batch, timesteps=1, n_pitches=128, dim_embedding=128,
+def pitch_embeddings(batch,
+                     timesteps=1,
+                     n_pitches=128,
+                     dim_embedding=128,
                      reuse=False):
   """Get a embedding of each pitch note.
 
@@ -721,8 +748,7 @@ def conv2d(x,
     # Apply a stack of convolutions Before adding residual
     for layer_idx in range(stacked_layers):
       with slim.arg_scope(
-          slim_batchnorm_arg_scope(
-              is_training, activation_fn=None)):
+          slim_batchnorm_arg_scope(is_training, activation_fn=None)):
         # Use interpolation to upsample instead of conv_transpose
         if transpose and resize:
           unused_mb, h, w, unused_ch = x.get_shape().as_list()
@@ -788,8 +814,8 @@ def leaky_relu(leak=0.1):
   return lambda x: tf.maximum(x, leak * x)
 
 
-def causal_linear(x, n_inputs, n_outputs, name,
-                  filter_length, rate, batch_size):
+def causal_linear(x, n_inputs, n_outputs, name, filter_length, rate,
+                  batch_size):
   """Applies dilated convolution using queues.
 
   Assumes a filter_length of 3.
@@ -811,40 +837,32 @@ def causal_linear(x, n_inputs, n_outputs, name,
   assert filter_length == 3
 
   # create queue
-  q_1 = tf.FIFOQueue(
-      rate,
-      dtypes=tf.float32,
-      shapes=(batch_size, n_inputs))
-  q_2 = tf.FIFOQueue(
-      rate,
-      dtypes=tf.float32,
-      shapes=(batch_size, n_inputs))
-  init_1 = q_1.enqueue_many(
-      tf.zeros((rate, batch_size, n_inputs)))
-  init_2 = q_2.enqueue_many(
-      tf.zeros((rate, batch_size, n_inputs)))
+  q_1 = tf.FIFOQueue(rate, dtypes=tf.float32, shapes=(batch_size, 1, n_inputs))
+  q_2 = tf.FIFOQueue(rate, dtypes=tf.float32, shapes=(batch_size, 1, n_inputs))
+  init_1 = q_1.enqueue_many(tf.zeros((rate, batch_size, 1, n_inputs)))
+  init_2 = q_2.enqueue_many(tf.zeros((rate, batch_size, 1, n_inputs)))
   state_1 = q_1.dequeue()
   push_1 = q_1.enqueue(x)
   state_2 = q_2.dequeue()
   push_2 = q_2.enqueue(state_1)
 
   # get pretrained weights
-  w = tf.get_variable(name=name + "/W",
-                      shape=[1, filter_length, n_inputs, n_outputs],
-                      dtype=tf.float32)
-  b = tf.get_variable(name=name + "/biases",
-                      shape=[n_outputs],
-                      dtype=tf.float32)
+  w = tf.get_variable(
+      name=name + "/W",
+      shape=[1, filter_length, n_inputs, n_outputs],
+      dtype=tf.float32)
+  b = tf.get_variable(
+      name=name + "/biases", shape=[n_outputs], dtype=tf.float32)
   w_q_2 = tf.slice(w, [0, 0, 0, 0], [-1, 1, -1, -1])
   w_q_1 = tf.slice(w, [0, 1, 0, 0], [-1, 1, -1, -1])
   w_x = tf.slice(w, [0, 2, 0, 0], [-1, 1, -1, -1])
 
   # perform op w/ cached states
-  y = tf.expand_dims(tf.nn.bias_add(
-      tf.matmul(state_2, w_q_2[0][0]) +
-      tf.matmul(state_1, w_q_1[0][0]) +
-      tf.matmul(x, w_x[0][0]),
-      b), 0)
+  y = tf.nn.bias_add(
+      tf.matmul(state_2[:, 0, :], w_q_2[0][0]) + tf.matmul(
+          state_1[:, 0, :], w_q_1[0][0]) + tf.matmul(x[:, 0, :], w_x[0][0]), b)
+
+  y = tf.expand_dims(y, 1)
   return y, (init_1, init_2), (push_1, push_2)
 
 
@@ -860,10 +878,10 @@ def linear(x, n_inputs, n_outputs, name):
   Returns:
     y: The output of the operation.
   """
-  w = tf.get_variable(name=name + "/W",
-                      shape=[1, 1, n_inputs, n_outputs],
-                      dtype=tf.float32)
-  b = tf.get_variable(name=name + "/biases",
-                      shape=[n_outputs],
-                      dtype=tf.float32)
-  return tf.expand_dims(tf.nn.bias_add(tf.matmul(x[0], w[0][0]), b), 0)
+  w = tf.get_variable(
+      name=name + "/W", shape=[1, 1, n_inputs, n_outputs], dtype=tf.float32)
+  b = tf.get_variable(
+      name=name + "/biases", shape=[n_outputs], dtype=tf.float32)
+  y = tf.nn.bias_add(tf.matmul(x[:, 0, :], w[0][0]), b)
+  y = tf.expand_dims(y, 1)
+  return y
