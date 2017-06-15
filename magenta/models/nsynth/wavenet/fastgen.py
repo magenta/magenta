@@ -158,7 +158,6 @@ def synthesize(encodings,
     encodings: Numpy array with [MB, Time, Dim].
     save_paths: Iterable of output file names.
     checkpoint_path: Location of the pretrained model. [model.ckpt-200000]
-    sample_length: Length of file to synthesize. [source_file.length]
     samples_per_save: Save a .wav after every amount of samples.
   """
   hop_length = Config().ae_hop_length
