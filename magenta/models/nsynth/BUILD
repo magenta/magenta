@@ -16,8 +16,8 @@
 
 package(
     default_visibility = [
-        "//magenta/tools/pip:__subpackages__",
         "//magenta/models/nsynth:__subpackages__",
+        "//magenta/tools/pip:__subpackages__",
     ],
 )
 
@@ -26,6 +26,11 @@ licenses(["notice"])  # Apache 2.0
 py_library(
     name = "utils",
     srcs = ["utils.py"],
+    visibility = [
+        # internal notebook binary
+        "//magenta/models/nsynth:__subpackages__",
+        "//magenta/tools/pip:__subpackages__",
+    ],
     deps = [
         # librosa dep
         # numpy dep
@@ -41,5 +46,5 @@ py_library(
         ":utils",
         # numpy dep
         # tensorflow dep
-   ],
+    ],
 )
