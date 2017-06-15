@@ -94,7 +94,7 @@ Once you have Ableton and the sound packs installed you should download the Live
 
 ## Run the Demo
 
-* Run `bash magenta_melody.sh` and `bash magenta_drums.sh` in separate terminals for clearer debug messages.
+* Run `bash RUN_DEMO.sh`.
 
 * Open the `NIPS_2016_Demo.als` Ableton Live set and the `magenta_mira.maxpat` patch.
 

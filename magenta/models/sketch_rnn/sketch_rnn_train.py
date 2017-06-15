@@ -72,8 +72,7 @@ def load_env(data_dir, model_dir):
   """Loads environment for inference mode, used in jupyter notebook."""
   model_params = sketch_rnn_model.get_default_hparams()
   with tf.gfile.Open(os.path.join(model_dir, 'model_config.json'), 'r') as f:
-    model_config = json.load(f)
-    model_params.update(model_config)
+    model_params.parse_json(f.read())
   return load_dataset(data_dir, model_params, inference_mode=True)
 
 
@@ -81,8 +80,7 @@ def load_model(model_dir):
   """Loads model for inference mode, used in jupyter notebook."""
   model_params = sketch_rnn_model.get_default_hparams()
   with tf.gfile.Open(os.path.join(model_dir, 'model_config.json'), 'r') as f:
-    model_config = json.load(f)
-    model_params.update(model_config)
+    model_params.parse_json(f.read())
 
   model_params.batch_size = 1  # only sample one at a time
   eval_model_params = sketch_rnn_model.copy_hparams(model_params)
@@ -434,7 +432,7 @@ def trainer(model_params):
 
   tf.logging.info('sketch-rnn')
   tf.logging.info('Hyperparams:')
-  for key, val in model_params.keyvals.iteritems():
+  for key, val in model_params.values().iteritems():
     tf.logging.info('%s = %s', key, str(val))
   tf.logging.info('Loading data files.')
   datasets = load_dataset(FLAGS.data_dir, model_params)
@@ -459,7 +457,7 @@ def trainer(model_params):
   tf.gfile.MakeDirs(FLAGS.log_root)
   with tf.gfile.Open(
       os.path.join(FLAGS.log_root, 'model_config.json'), 'w') as f:
-    json.dump(model_params.keyvals, f, indent=True)
+    json.dump(model_params.values(), f, indent=True)
 
   train(sess, model, eval_model, train_set, valid_set, test_set)
 
