@@ -836,7 +836,6 @@ def causal_linear(x, n_inputs, n_outputs, name, filter_length, rate,
   """
   assert filter_length == 3
 
-  print("X CAUSAL:", x.get_shape().as_list())
   # create queue
   q_1 = tf.FIFOQueue(rate, dtypes=tf.float32, shapes=(batch_size, 1, n_inputs))
   q_2 = tf.FIFOQueue(rate, dtypes=tf.float32, shapes=(batch_size, 1, n_inputs))
@@ -863,7 +862,6 @@ def causal_linear(x, n_inputs, n_outputs, name, filter_length, rate,
       tf.matmul(state_2[:, 0, :], w_q_2[0][0]) + tf.matmul(
           state_1[:, 0, :], w_q_1[0][0]) + tf.matmul(x[:, 0, :], w_x[0][0]), b)
 
-  print("Y CAUSAL:", y.get_shape().as_list())
   y = tf.expand_dims(y, 1)
   return y, (init_1, init_2), (push_1, push_2)
 
@@ -880,7 +878,6 @@ def linear(x, n_inputs, n_outputs, name):
   Returns:
     y: The output of the operation.
   """
-  print(x.get_shape().as_list())
   w = tf.get_variable(
       name=name + "/W", shape=[1, 1, n_inputs, n_outputs], dtype=tf.float32)
   b = tf.get_variable(

@@ -81,8 +81,6 @@ py_binary(
         ":configs",
         ":fastgen",
         "//magenta/models/nsynth:utils",
-        # librosa dep
-        # numpy dep
         # tensorflow dep
     ],
 )

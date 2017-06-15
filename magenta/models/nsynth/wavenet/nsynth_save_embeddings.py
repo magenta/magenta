@@ -81,9 +81,10 @@ def main(unused_argv=None):
   def is_wav(f):
     return f.lower().endswith(".wav")
 
-  wavfiles = sorted([os.path.join(source_path, fname)
-                     for fname in tf.gfile.ListDirectory(source_path)
-                     if is_wav(fname)])
+  wavfiles = sorted([
+      os.path.join(source_path, fname)
+      for fname in tf.gfile.ListDirectory(source_path) if is_wav(fname)
+  ])
 
   for start_file in xrange(0, len(wavfiles), batch_size):
     batch_number = (start_file / batch_size) + 1
@@ -94,14 +95,12 @@ def main(unused_argv=None):
     # Ensure that files has batch_size elements.
     batch_filler = batch_size - len(wavefiles_batch)
     wavefiles_batch.extend(batch_filler * [wavefiles_batch[-1]])
-    wav_data = np.array([utils.load_audio(f, sample_length)
-                         for f in wavefiles_batch])
+    wav_data = np.array(
+        [utils.load_audio(f, sample_length) for f in wavefiles_batch])
     try:
       tf.reset_default_graph()
       # Load up the model for encoding and find the encoding
-      encoding, _ = encode(wav_data,
-                           checkpoint_path,
-                           sample_length=sample_length)
+      encoding = encode(wav_data, checkpoint_path, sample_length=sample_length)
       if encoding.ndim == 2:
         encoding = np.expand_dims(encoding, 0)
 
