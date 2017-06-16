@@ -30,6 +30,15 @@ from magenta.models.nsynth.wavenet.h512_bo16 import FastGenerationConfig
 
 
 def sample_categorical(pmf):
+  """Sample from a categorical distribution.
+
+  Args:
+    pmf: Probablity mass function. Output of a softmax over categories.
+      Array of shape [batch_size, number of categories]. Rows sum to 1.
+
+  Returns:
+    idxs: Array of size [batch_size, 1]. Integer of category sampled.
+  """
   if pmf.ndim == 1:
     pmf = np.expand_dims(pmf, 0)
   batch_size = pmf.shape[0]
@@ -75,7 +84,7 @@ def load_fastgen_nsynth(batch_size=1):
 
 
 def encode(wav_data, checkpoint_path, sample_length=64000):
-  """Padded loading of a wave file.
+  """Generate an array of embeddings from an array of audio.
 
   Args:
     wav_data: Numpy array [batch_size, sample_length]
@@ -99,8 +108,8 @@ def encode(wav_data, checkpoint_path, sample_length=64000):
     net = load_nsynth(batch_size=batch_size, sample_length=sample_length)
     saver = tf.train.Saver()
     saver.restore(sess, checkpoint_path)
-    encoding = sess.run(net["encoding"], feed_dict={net["X"]: wav_data})
-  return encoding
+    encodings = sess.run(net["encoding"], feed_dict={net["X"]: wav_data})
+  return encodings
 
 
 def load_batch(files, sample_length=64000):
@@ -151,13 +160,13 @@ def synthesize(encodings,
                save_paths,
                checkpoint_path="model.ckpt-200000",
                samples_per_save=1000):
-  """Resynthesize an input audio file.
+  """Synthesize audio from an array of embeddings.
 
   Args:
-    encodings: Numpy array with [MB, Time, Dim].
+    encodings: Numpy array with shape [batch_size, time, dim].
     save_paths: Iterable of output file names.
     checkpoint_path: Location of the pretrained model. [model.ckpt-200000]
-    samples_per_save: Save a .wav after every amount of samples.
+    samples_per_save: Save files after every amount of generated samples.
   """
   hop_length = Config().ae_hop_length
   # Get lengths
