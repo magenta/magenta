@@ -34,7 +34,7 @@ class DrumsRNNPipelineTest(tf.test.TestCase):
         None,
         magenta.music.OneHotEventSequenceEncoderDecoder(
             magenta.music.MultiDrumOneHotEncoding()),
-        magenta.common.HParams())
+        tf.contrib.training.HParams())
 
   def testDrumsRNNPipeline(self):
     note_sequence = magenta.common.testing_lib.parse_test_proto(

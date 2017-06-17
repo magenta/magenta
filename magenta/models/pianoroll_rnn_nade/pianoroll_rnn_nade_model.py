@@ -14,6 +14,7 @@
 """RNN-NADE model."""
 
 # internal imports
+import tensorflow as tf
 
 import magenta
 from magenta.models.pianoroll_rnn_nade import pianoroll_rnn_nade_graph
@@ -102,30 +103,24 @@ default_configs = {
             id='rnn-nade',
             description='RNN-NADE'),
         mm.PianorollEncoderDecoder(),
-        magenta.common.HParams(
+        tf.contrib.training.HParams(
             batch_size=64,
             rnn_layer_sizes=[128, 128, 128],
             nade_hidden_units=128,
             dropout_keep_prob=0.5,
-            skip_first_n_losses=10,
             clip_norm=5,
-            initial_learning_rate=0.001,
-            decay_steps=1000,
-            decay_rate=0.95)),
+            learning_rate=0.001)),
     'rnn-nade_attn': events_rnn_model.EventSequenceRnnConfig(
         magenta.protobuf.generator_pb2.GeneratorDetails(
             id='rnn-nade_attn',
             description='RNN-NADE with attention.'),
         mm.PianorollEncoderDecoder(),
-        magenta.common.HParams(
+        tf.contrib.training.HParams(
             batch_size=48,
             rnn_layer_sizes=[128, 128],
             attn_length=32,
             nade_hidden_units=128,
             dropout_keep_prob=0.5,
-            skip_first_n_losses=10,
             clip_norm=5,
-            initial_learning_rate=0.001,
-            decay_steps=1000,
-            decay_rate=0.95)),
+            learning_rate=0.001)),
 }

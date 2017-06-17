@@ -273,7 +273,7 @@ class Melody(events_lib.SimpleEventSequence):
       PolyphonicMelodyException: If any of the notes start on the same step
           and `ignore_polyphonic_notes` is False.
     """
-    sequences_lib.assert_is_quantized_sequence(quantized_sequence)
+    sequences_lib.assert_is_relative_quantized_sequence(quantized_sequence)
     self._reset()
 
     steps_per_bar_float = sequences_lib.steps_per_bar_in_quantized_sequence(
@@ -580,7 +580,7 @@ def extract_melodies(quantized_sequence,
         (derived from its time signature) is not an integer number of time
         steps.
   """
-  sequences_lib.assert_is_quantized_sequence(quantized_sequence)
+  sequences_lib.assert_is_relative_quantized_sequence(quantized_sequence)
 
   # TODO(danabo): Convert `ignore_polyphonic_notes` into a float which controls
   # the degree of polyphony that is acceptable.

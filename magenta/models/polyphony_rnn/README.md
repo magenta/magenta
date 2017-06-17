@@ -87,7 +87,7 @@ Note that we set `--inject_primer_during_generation=true` so that the primer mel
 
 Our first step will be to convert a collection of MIDI or MusicXML files into NoteSequences. NoteSequences are [protocol buffers](https://developers.google.com/protocol-buffers/), which is a fast and efficient data format, and easier to work with than MIDI files. See [Building your Dataset](/magenta/scripts/README.md) for instructions on generating a TFRecord file of NoteSequences. In this example, we assume the NoteSequences were output to ```/tmp/notesequences.tfrecord```.
 
-If you want to build a model that is similar to [BachBot](http://bachbot.com), you can try training on the [Bach Chorales](http://www.jsbchorales.net/xml.shtml) dataset. If that site is down, you can try the [archive.org mirror](https://web.archive.org/web/20150503021418/http://www.jsbchorales.net/xml.shtml).
+If you want to build a model that is similar to [BachBot](http://bachbot.com), you can try training on the Bach Chorales dataset, which is available either on this [archive.org mirror](https://web.archive.org/web/20150503021418/http://www.jsbchorales.net/xml.shtml) (the [original site](http://www.jsbchorales.net/xml.shtml) seems to be down) or via the [music21 bach corpus](https://github.com/cuthbertLab/music21/tree/master/music21/corpus/bach) (which also contains some additional Bach pieces).
 
 ### Create SequenceExamples
 
@@ -108,7 +108,7 @@ Run the command below to start a training job using the attention configuration.
 polyphony_rnn_train \
 --run_dir=/tmp/polyphony_rnn/logdir/run1 \
 --sequence_example_file=/tmp/polyphony_rnn/sequence_examples/training_poly_tracks.tfrecord \
---hparams="{'batch_size':64,'rnn_layer_sizes':[64,64]}" \
+--hparams="batch_size=64,rnn_layer_sizes=[64,64]" \
 --num_training_steps=20000
 ```
 
@@ -118,7 +118,7 @@ Optionally run an eval job in parallel. `--run_dir`, `--hparams`, and `--num_tra
 polyphony_rnn_train \
 --run_dir=/tmp/polyphony_rnn/logdir/run1 \
 --sequence_example_file=/tmp/polyphony_rnn/sequence_examples/eval_poly_tracks.tfrecord \
---hparams="{'batch_size':64,'rnn_layer_sizes':[64,64]}" \
+--hparams="batch_size=64,rnn_layer_sizes=[64,64]" \
 --num_training_steps=20000 \
 --eval
 ```
@@ -167,7 +167,7 @@ supports a ```--save_generator_bundle``` flag that calls this method. Example:
 
 ```
 polyphony_rnn_generate \
-  --run_dir=/tmp/polyphony_rnn/logdir/run1 \
-  --bundle_file=/tmp/polyphony_rnn.mag \
-  --save_generator_bundle
+--run_dir=/tmp/polyphony_rnn/logdir/run1 \
+--bundle_file=/tmp/polyphony_rnn.mag \
+--save_generator_bundle
 ```

@@ -8,7 +8,7 @@ Files:
 * [pipelines_common.py](/magenta/pipelines/pipelines_common.py) contains some `Pipeline` implementations that convert to common data types, like `Melody`.
 * [dag_pipeline.py](/magenta/pipelines/dag_pipeline.py) defines a `Pipeline` subclass `DAGPipeline` which connects arbitrary pipelines together inside it. These `Pipelines` can be connected into any directed acyclic graph (DAG).
 * [statistics.py](/magenta/pipelines/statistics.py) defines the `Statistic` abstract class and implementations. Statistics are useful for reporting about data processing.
-* [chord_pipelines.py](/magenta/pipelines/chord_pipelines.py), [drum_pipelines.py](/magenta/pipelines/chord_pipelines.py), [melody_pipelines.py](/magenta/pipelines/chord_pipelines.py), and [lead_sheet_pipelines.py](/magenta/pipelines/chord_pipelines.py) define extractor pipelines for different types of musical event sequences.
+* [chord_pipelines.py](/magenta/pipelines/chord_pipelines.py), [drum_pipelines.py](/magenta/pipelines/drum_pipelines.py), [melody_pipelines.py](/magenta/pipelines/melody_pipelines.py), and [lead_sheet_pipelines.py](/magenta/pipelines/lead_sheet_pipelines.py) define extractor pipelines for different types of musical event sequences.
 
 ## Pipeline
 

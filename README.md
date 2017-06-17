@@ -157,6 +157,8 @@ To get started, create your own melodies with TensorFlow using one of the variou
 
 After you've trained one of the models above, you can use our [MIDI interface](magenta/interfaces/midi) to play with it interactively.
 
+We also have created several [demos](/demos) that provide a UI for this interface, making it easier to use (e.g., the browser-based [AI Jam](/demos/ai-jam-js)).
+
 ## Development Environment
 If you want to develop on Magenta, you'll need to set up the full Development
 Environment.
@@ -176,7 +178,7 @@ You will also need to install some required python dependencies. We recommend
 using a conda environment and installing with pip:
 
 ```
-pip install matplotlib scipy
+pip install matplotlib scipy bokeh IPython pandas
 ```
 
 Finally,

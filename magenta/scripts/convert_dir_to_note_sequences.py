@@ -21,12 +21,14 @@ Example usage:
   $ ./bazel-bin/magenta/scripts/convert_dir_to_note_sequences \
     --input_dir=/path/to/input/dir \
     --output_file=/path/to/tfrecord/file \
-    --recursive
+    --num_threads=4 \
+    --log=INFO
 """
 
 import os
 
 # internal imports
+from concurrent import futures
 import tensorflow as tf
 
 from magenta.music import midi_io
@@ -42,66 +44,55 @@ tf.app.flags.DEFINE_string('output_file', None,
                            'if it already exists.')
 tf.app.flags.DEFINE_bool('recursive', False,
                          'Whether or not to recurse into subdirectories.')
+tf.app.flags.DEFINE_integer('num_threads', 1,
+                            'Number of worker threads to run in parallel.')
 tf.app.flags.DEFINE_string('log', 'INFO',
                            'The threshold for what messages will be logged '
                            'DEBUG, INFO, WARN, ERROR, or FATAL.')
 
 
-def convert_directory(root_dir, sub_dir, sequence_writer, recursive=False):
-  """Converts files to NoteSequences and writes to `sequence_writer`.
-
-  Input files found in the specified directory specified by the combination of
-  `root_dir` and `sub_dir` and converted to NoteSequence protos with the
-  basename of `root_dir` as the collection_name, and the relative path to the
-  file from `root_dir` as the filename. If `recursive` is true, recursively
-  converts any subdirectories of the specified directory.
+def queue_conversions(root_dir, sub_dir, pool, recursive=False):
+  """Queues callables for converting files to NoteSequences via threadpool.
 
   Args:
     root_dir: A string specifying a root directory.
     sub_dir: A string specifying a path to a directory under `root_dir` in which
         to convert contents.
-    sequence_writer: A NoteSequenceRecordWriter to write the resulting
-        NoteSequence protos to.
+    pool: A ThreadPoolExecutor submit the conversion callables to.
     recursive: A boolean specifying whether or not recursively convert files
         contained in subdirectories of the specified directory.
 
   Returns:
-    The number of NoteSequence protos written as an integer.
+    A map from the resulting Futures to the file paths being converted.
   """
   dir_to_convert = os.path.join(root_dir, sub_dir)
   tf.logging.info("Converting files in '%s'.", dir_to_convert)
   files_in_dir = tf.gfile.ListDirectory(os.path.join(dir_to_convert))
+  future_to_path = {}
   recurse_sub_dirs = []
-  sequences_written = 0
-  sequences_skipped = 0
   for file_in_dir in files_in_dir:
+    tf.logging.log_every_n(tf.logging.INFO, 'Queued %d files for conversion.',
+                           1000, len(future_to_path))
     full_file_path = os.path.join(dir_to_convert, file_in_dir)
-    if tf.gfile.IsDirectory(full_file_path):
-      if recursive:
-        recurse_sub_dirs.append(os.path.join(sub_dir, file_in_dir))
-      continue
-
-    if full_file_path.endswith('.mid') or full_file_path.endswith('.midi'):
-      sequence = convert_midi(root_dir, sub_dir, full_file_path)
-    elif full_file_path.endswith('.xml') or full_file_path.endswith('.mxl'):
-      sequence = convert_musicxml(root_dir, sub_dir, full_file_path)
+    if (full_file_path.lower().endswith('.mid') or
+        full_file_path.lower().endswith('.midi')):
+      future_to_path[pool.submit(
+          convert_midi, root_dir, sub_dir, full_file_path)] = full_file_path
+    elif (full_file_path.lower().endswith('.xml') or
+          full_file_path.lower().endswith('.mxl')):
+      future_to_path[pool.submit(
+          convert_musicxml, root_dir, sub_dir, full_file_path)] = full_file_path
     else:
-      tf.logging.info('Unable to find a converter for file %s', full_file_path)
-      sequence = None
+      if recursive and tf.gfile.IsDirectory(full_file_path):
+        recurse_sub_dirs.append(os.path.join(sub_dir, file_in_dir))
+      else:
+        tf.logging.warning(
+            'Unable to find a converter for file %s', full_file_path)
 
-    if sequence is None:
-      sequences_skipped += 1
-      continue
-
-    sequence_writer.write(sequence)
-    sequences_written += 1
-  tf.logging.info("Converted %d files in '%s'.", sequences_written,
-                  dir_to_convert)
-  tf.logging.info('Could not parse %d files.', sequences_skipped)
   for recurse_sub_dir in recurse_sub_dirs:
-    sequences_written += convert_directory(
-        root_dir, recurse_sub_dir, sequence_writer, recursive)
-  return sequences_written
+    future_to_path.update(queue_conversions(
+        root_dir, recurse_sub_dir, pool, recursive))
+  return future_to_path
 
 
 def convert_midi(root_dir, sub_dir, full_file_path):
@@ -128,6 +119,7 @@ def convert_midi(root_dir, sub_dir, full_file_path):
   sequence.filename = os.path.join(sub_dir, os.path.basename(full_file_path))
   sequence.id = note_sequence_io.generate_note_sequence_id(
       sequence.filename, sequence.collection_name, 'midi')
+  tf.logging.info('Converted MIDI file %s.', full_file_path)
   return sequence
 
 
@@ -154,7 +146,47 @@ def convert_musicxml(root_dir, sub_dir, full_file_path):
   sequence.filename = os.path.join(sub_dir, os.path.basename(full_file_path))
   sequence.id = note_sequence_io.generate_note_sequence_id(
       sequence.filename, sequence.collection_name, 'musicxml')
+  tf.logging.info('Converted MusicXML file %s.', full_file_path)
   return sequence
+
+
+def convert_directory(root_dir, output_file, num_threads,
+                      recursive=False):
+  """Converts files to NoteSequences and writes to `output_file`.
+
+  Input files found in `root_dir` are converted to NoteSequence protos with the
+  basename of `root_dir` as the collection_name, and the relative path to the
+  file from `root_dir` as the filename. If `recursive` is true, recursively
+  converts any subdirectories of the specified directory.
+
+  Args:
+    root_dir: A string specifying a root directory.
+    output_file: Path to TFRecord file to write results to.
+    num_threads: The number of threads to use for conversions.
+    recursive: A boolean specifying whether or not recursively convert files
+        contained in subdirectories of the specified directory.
+  """
+  with futures.ThreadPoolExecutor(max_workers=num_threads) as pool:
+    future_to_path = queue_conversions(root_dir, '', pool, recursive)
+
+    with note_sequence_io.NoteSequenceRecordWriter(output_file) as writer:
+      sequences_written = 0
+      for future in futures.as_completed(future_to_path):
+        path = future_to_path[future]
+        try:
+          sequence = future.result()
+        except Exception as exc:  # pylint: disable=broad-except
+          tf.logging.fatal('%r generated an exception: %s', path, exc)
+
+        if sequence:
+          writer.write(sequence)
+          sequences_written += 1
+        tf.logging.log_every_n(
+            tf.logging.INFO, "Wrote %d of %d NoteSequence protos to '%s'", 100,
+            sequences_written, len(future_to_path), output_file)
+
+    tf.logging.info("Wrote %d NoteSequence protos to '%s'", sequences_written,
+                    output_file)
 
 
 def main(unused_argv):
@@ -174,12 +206,7 @@ def main(unused_argv):
   if output_dir:
     tf.gfile.MakeDirs(output_dir)
 
-  with note_sequence_io.NoteSequenceRecordWriter(
-      output_file) as sequence_writer:
-    sequences_written = convert_directory(input_dir, '', sequence_writer,
-                                          FLAGS.recursive)
-    tf.logging.info("Wrote %d NoteSequence protos to '%s'", sequences_written,
-                    output_file)
+  convert_directory(input_dir, output_file, FLAGS.num_threads, FLAGS.recursive)
 
 
 def console_entry_point():

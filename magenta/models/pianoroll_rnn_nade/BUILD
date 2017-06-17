@@ -17,7 +17,10 @@ licenses(["notice"])  # Apache 2.0
 py_library(
     name = "pianoroll_rnn_nade",
     srcs = ["__init__.py"],
-    visibility = ["//magenta/tools/pip:__subpackages__"],
+    visibility = [
+        # internal notebook binary
+        "//magenta/tools/pip:__subpackages__"
+    ],
     deps = [
         ":pianoroll_rnn_nade_model",
     ],
@@ -38,6 +41,7 @@ py_library(
     name = "pianoroll_rnn_nade_model",
     srcs = ["pianoroll_rnn_nade_model.py"],
     visibility = [
+        # internal notebook binary
         # internal model:pianoroll_rnn_nade
     ],
     deps = [
@@ -52,7 +56,10 @@ py_library(
     name = "pianoroll_rnn_nade_sequence_generator",
     srcs = ["pianoroll_rnn_nade_sequence_generator.py"],
     srcs_version = "PY2AND3",
-    visibility = ["//magenta/interfaces:generator_interfaces"],
+    visibility = [
+        # internal notebook binary
+        "//magenta/interfaces:generator_interfaces"
+    ],
     deps = [
         ":pianoroll_rnn_nade_model",
         "//magenta",

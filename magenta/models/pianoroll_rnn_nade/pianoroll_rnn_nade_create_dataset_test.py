@@ -34,7 +34,7 @@ class PianorollPipelineTest(tf.test.TestCase):
     self.config = events_rnn_model.EventSequenceRnnConfig(
         None,
         mm.PianorollEncoderDecoder(88),
-        magenta.common.HParams())
+        tf.contrib.training.HParams())
 
   def testPianorollPipeline(self):
     note_sequence = magenta.common.testing_lib.parse_test_proto(

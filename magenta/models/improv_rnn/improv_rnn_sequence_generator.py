@@ -39,7 +39,8 @@ class ImprovRnnSequenceGenerator(mm.BaseSequenceGenerator):
           and metagraph. Mutually exclusive with `checkpoint`.
     """
     super(ImprovRnnSequenceGenerator, self).__init__(
-        model, details, steps_per_quarter, checkpoint, bundle)
+        model, details, checkpoint, bundle)
+    self.steps_per_quarter = steps_per_quarter
 
   def _generate(self, input_sequence, generator_options):
     if len(generator_options.input_sections) > 1:
@@ -54,6 +55,8 @@ class ImprovRnnSequenceGenerator(mm.BaseSequenceGenerator):
     qpm = (input_sequence.tempos[0].qpm
            if input_sequence and input_sequence.tempos
            else mm.DEFAULT_QUARTERS_PER_MINUTE)
+    steps_per_second = mm.steps_per_quarter_to_steps_per_second(
+        self.steps_per_quarter, qpm)
 
     generate_section = generator_options.generate_sections[0]
     if generator_options.input_sections:
@@ -64,7 +67,8 @@ class ImprovRnnSequenceGenerator(mm.BaseSequenceGenerator):
           input_sequence, input_section.start_time, input_section.end_time)
       backing_sequence = mm.trim_note_sequence(
           input_sequence, input_section.start_time, generate_section.end_time)
-      input_start_step = self.seconds_to_steps(input_section.start_time, qpm)
+      input_start_step = mm.quantize_to_step(
+          input_section.start_time, steps_per_second, quantize_cutoff=0.0)
     else:
       # No input section. Take primer melody from the beginning of the sequence
       # up until the start of the generate section.
@@ -85,9 +89,9 @@ class ImprovRnnSequenceGenerator(mm.BaseSequenceGenerator):
 
     # Quantize the priming and backing sequences.
     quantized_primer_sequence = mm.quantize_note_sequence(
-        primer_sequence, self._steps_per_quarter)
+        primer_sequence, self.steps_per_quarter)
     quantized_backing_sequence = mm.quantize_note_sequence(
-        backing_sequence, self._steps_per_quarter)
+        backing_sequence, self.steps_per_quarter)
 
     # Setting gap_bars to infinite ensures that the entire input will be used.
     extracted_melodies, _ = mm.extract_melodies(
@@ -96,9 +100,13 @@ class ImprovRnnSequenceGenerator(mm.BaseSequenceGenerator):
         ignore_polyphonic_notes=True)
     assert len(extracted_melodies) <= 1
 
-    start_step = self.seconds_to_steps(
-        generate_section.start_time, qpm)
-    end_step = self.seconds_to_steps(generate_section.end_time, qpm)
+    start_step = mm.quantize_to_step(
+        generate_section.start_time, steps_per_second, quantize_cutoff=0.0)
+    # Note that when quantizing end_step, we set quantize_cutoff to 1.0 so it
+    # always rounds down. This avoids generating a sequence that ends at 5.0
+    # seconds when the requested end time is 4.99.
+    end_step = mm.quantize_to_step(
+        generate_section.end_time, steps_per_second, quantize_cutoff=1.0)
 
     if extracted_melodies and extracted_melodies[0]:
       melody = extracted_melodies[0]

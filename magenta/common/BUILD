@@ -30,7 +30,6 @@ py_library(
         ":sequence_example_lib",
         ":state_util",
         ":testing_lib",
-        ":tf_lib",
     ],
 )
 
@@ -90,21 +89,3 @@ py_library(
         # numpy dep
     ],
 )
-
-py_library(
-    name = "tf_lib",
-    srcs = ["tf_lib.py"],
-    srcs_version = "PY2AND3",
-)
-
-py_test(
-    name = "tf_lib_test",
-    size = "small",
-    srcs = ["tf_lib_test.py"],
-    srcs_version = "PY2AND3",
-    deps = [
-        ":tf_lib",
-        # tensorflow dep
-    ],
-)
-

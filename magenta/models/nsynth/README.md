@@ -28,6 +28,68 @@ Given the difficulty of training, we've included weights of models pretrained on
 * [Baseline][baseline-ckpt]
 * [WaveNet][wavenet-ckpt]
 
+# Generation
+
+The most straightforward way to create your own sounds with NSynth is to
+generate sounds directly from .wav files without altering the embeddings. You
+can do this for sounds of any length as long as you set the `sample_length` high
+enough. Keep in mind the wavenet decoder works at 16kHz. The script below will
+take all .wav files in the `source_path` directory and create generated samples in the
+`save_path` directory. If you've installed with the pip package you can call the scripts directly without calling `bazel run`
+
+Example Usage (Generate from .wav files):
+-------
+
+(WaveNet)
+```bash
+nsynth_generate \
+--checkpoint_path=/<path>/wavenet-ckpt/model.ckpt-200000 \
+--source_path=/<path> \
+--save_path=/<path> \
+--batch_size=4
+```
+
+
+# Saving Embeddings
+
+We've included scripts for saving embeddings from your own wave files. This will
+save a single .npy file for each .wav file in the source_path directory. You can
+then alter those embeddings (for example, interpolating) and synthesize new sounds from them.
+
+Example Usage (Save Embeddings):
+-------
+
+(Baseline)
+```bash
+bazel run //magenta/models/nsynth/baseline:save_embeddings -- \
+--tfrecord_path=/<path>/nsynth-test.tfrecord \
+--checkpoint_path=/<path>/baseline-ckpt/model.ckpt-200000 \
+--savedir=/<path>
+```
+
+(WaveNet)
+```bash
+nsynth_save_embeddings \
+--checkpoint_path=/<path>/wavenet-ckpt/model.ckpt-200000 \
+--source_path=/<path> \
+--save_path=/<path> \
+--batch_size=4
+```
+
+Example Usage (Generate from .npy Embeddings):
+-------
+
+(WaveNet)
+```bash
+nsynth_generate \
+--checkpoint_path=/<path>/wavenet-ckpt/model.ckpt-200000 \
+--source_path=/<path> \
+--save_path=/<path> \
+--encodings=true \
+--batch_size=4
+```
+
+
 
 # Training
 
@@ -55,35 +117,6 @@ bazel run //magenta/models/nsynth/wavenet/train -- \
 ```
 
 The WaveNet training also requires tensorflow 1.1.0-rc1 or beyond.
-As of 04/05/17 this requires installing tensorflow from source
-(https://github.com/tensorflow/tensorflow/releases).
-
-
-# Saving Embeddings
-
-We've included scripts for saving embeddings from your own wave files (16kHz audio expected).
-
-Example Usage:
--------
-
-(Baseline)
-```bash
-bazel run //magenta/models/nsynth/baseline:save_embeddings -- \
---tfrecord_path=/<path>/nsynth-test.tfrecord \
---checkpoint_path=/<path>/baseline-ckpt/model.ckpt-200000 \
---savedir=/<path> \
-```
-
-(WaveNet)
-```bash
-bazel run //magenta/models/nsynth/wavenet:save_embeddings -- \
---checkpoint_path=/<path>/wavenet-ckpt/model.ckpt-200000 \
---wavdir=/<path> \
---savedir=/<path> \
---sample_length=5120 \
---batch_size=4
-```
-
 
 [arXiv]: https://arxiv.org/abs/1704.01279
 [baseline-ckpt]:http://download.magenta.tensorflow.org/models/nsynth/baseline-ckpt.tar

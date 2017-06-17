@@ -31,6 +31,29 @@ py_library(
 )
 
 py_library(
+    name = "h512_bo16",
+    srcs = ["h512_bo16.py"],
+    deps = [
+        # tensorflow dep
+        "//magenta/models/nsynth:reader",
+        "//magenta/models/nsynth:utils",
+        "//magenta/models/nsynth/wavenet:masked",
+    ],
+)
+
+py_library(
+    name = "fastgen",
+    srcs = ["fastgen.py"],
+    deps = [
+        # numpy dep
+        # scipy dep
+        # tensorflow dep
+        "//magenta/models/nsynth:utils",
+        "//magenta/models/nsynth/wavenet:h512_bo16",
+    ],
+)
+
+py_library(
     name = "config_library",
     deps = [
         "//magenta/models/nsynth:reader",
@@ -44,8 +67,25 @@ py_library(
     srcs = [
         "h512_bo16.py",
     ],
+    visibility = [
+        # internal notebook binary
+        "//magenta/tools/pip:__subpackages__",
+    ],
     deps = [
         ":config_library",
+    ],
+)
+
+py_binary(
+    name = "nsynth_generate",
+    srcs = [
+        "nsynth_generate.py",
+    ],
+    deps = [
+        ":configs",
+        ":fastgen",
+        "//magenta/models/nsynth:utils",
+        # tensorflow dep
     ],
 )
 
@@ -63,12 +103,13 @@ py_binary(
 )
 
 py_binary(
-    name = "save_embeddings",
+    name = "nsynth_save_embeddings",
     srcs = [
-        "save_embeddings.py",
+        "nsynth_save_embeddings.py",
     ],
     deps = [
         ":configs",
+        ":fastgen",
         "//magenta/models/nsynth:reader",
         "//magenta/models/nsynth:utils",
         # numpy dep

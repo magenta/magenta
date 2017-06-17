@@ -247,13 +247,24 @@ def main(unused_argv):
   """Saves bundle or runs generator based on flags."""
   tf.logging.set_verbosity(FLAGS.log)
 
-  config = improv_rnn_config_flags.config_from_flags()
+  bundle = get_bundle()
+
+  if bundle:
+    config_id = bundle.generator_details.id
+    config = improv_rnn_model.default_configs[config_id]
+    config.hparams.parse(FLAGS.hparams)
+  else:
+    config = improv_rnn_config_flags.config_from_flags()
+  # Having too large of a batch size will slow generation down unnecessarily.
+  config.hparams.batch_size = min(
+      config.hparams.batch_size, FLAGS.beam_size * FLAGS.branch_factor)
+
   generator = improv_rnn_sequence_generator.ImprovRnnSequenceGenerator(
       model=improv_rnn_model.ImprovRnnModel(config),
       details=config.details,
       steps_per_quarter=config.steps_per_quarter,
       checkpoint=get_checkpoint(),
-      bundle=get_bundle())
+      bundle=bundle)
 
   if FLAGS.save_generator_bundle:
     bundle_filename = os.path.expanduser(FLAGS.bundle_file)
