@@ -354,22 +354,25 @@ def steps_per_bar_in_quantized_sequence(note_sequence):
   return steps_per_bar_float
 
 
-def split_note_sequence(note_sequence, hop_size_seconds, split_notes=True):
+def split_note_sequence(note_sequence, hop_size_seconds,
+                        skip_splits_inside_notes=False):
   """Split one NoteSequence into many using a fixed hop size.
 
   This function splits a NoteSequence into multiple NoteSequences, all of fixed
   size (unless `split_notes` is False, in which case splits that would have
-  truncated notes will be skipped). Each of the resulting NoteSequences is
-  shifted to start at time zero.
+  truncated notes will be skipped; i.e. each split will either happen at a
+  multiple of `hop_size_seconds` or not at all). Each of the resulting
+  NoteSequences is shifted to start at time zero.
 
   Args:
     note_sequence: The NoteSequence to split.
     hop_size_seconds: The hop size, in seconds, at which the NoteSequence will
         be split.
-    split_notes: If True, the NoteSequence will be split at all hop positions,
-        regardless of whether or not any notes are sustained across the
-        potential split time. If False, the NoteSequence will not be split at
-        positions that occur within sustained notes.
+    skip_splits_inside_notes: If False, the NoteSequence will be split at all
+        hop positions, regardless of whether or not any notes are sustained
+        across the potential split time, thus sustained notes will be truncated.
+        If True, the NoteSequence will not be split at positions that occur
+        within sustained notes.
 
   Returns:
     A Python list of NoteSequences.
@@ -379,21 +382,21 @@ def split_note_sequence(note_sequence, hop_size_seconds, split_notes=True):
   notes_by_start_time = sorted(list(note_sequence.notes),
                                key=lambda note: note.start_time)
   note_idx = 0
-  active_notes = []
+  notes_crossing_split = []
 
   subsequences = []
 
   for split_time in np.arange(
       hop_size_seconds, note_sequence.total_time, hop_size_seconds):
-    # Update active notes.
+    # Update notes crossing potential split.
     while (note_idx < len(notes_by_start_time) and
            notes_by_start_time[note_idx].start_time < split_time):
-      active_notes.append(notes_by_start_time[note_idx])
+      notes_crossing_split.append(notes_by_start_time[note_idx])
       note_idx += 1
-    active_notes = [note for note in active_notes
-                    if note.end_time > split_time]
+    notes_crossing_split = [note for note in notes_crossing_split
+                            if note.end_time > split_time]
 
-    if split_notes or not active_notes:
+    if not (skip_splits_inside_notes and notes_crossing_split):
       # Extract the subsequence between the previous split time and this split
       # time.
       subsequence = extract_subsequence(
@@ -410,7 +413,8 @@ def split_note_sequence(note_sequence, hop_size_seconds, split_notes=True):
   return subsequences
 
 
-def split_note_sequence_on_time_changes(note_sequence, split_notes=True):
+def split_note_sequence_on_time_changes(note_sequence,
+                                        skip_splits_inside_notes=False):
   """Split one NoteSequence into many around time signature and tempo changes.
 
   This function splits a NoteSequence into multiple NoteSequences, each of which
@@ -420,10 +424,10 @@ def split_note_sequence_on_time_changes(note_sequence, split_notes=True):
 
   Args:
     note_sequence: The NoteSequence to split.
-    split_notes: If True, the NoteSequence will be split at all time changes,
-        regardless of whether or not any notes are sustained across the time
-        change. If False, the NoteSequence will not be split at time changes
-        that occur within sustained notes.
+    skip_splits_inside_notes: If False, the NoteSequence will be split at all
+        time changes, regardless of whether or not any notes are sustained
+        across the time change. If True, the NoteSequence will not be split at
+        time changes that occur within sustained notes.
 
   Returns:
     A Python list of NoteSequences.
@@ -443,7 +447,7 @@ def split_note_sequence_on_time_changes(note_sequence, split_notes=True):
   notes_by_start_time = sorted(list(note_sequence.notes),
                                key=lambda note: note.start_time)
   note_idx = 0
-  active_notes = []
+  notes_crossing_split = []
 
   subsequences = []
 
@@ -458,16 +462,16 @@ def split_note_sequence_on_time_changes(note_sequence, split_notes=True):
         # Tempo didn't actually change.
         continue
 
-    # Update active notes.
+    # Update notes crossing potential split.
     while (note_idx < len(notes_by_start_time) and
            notes_by_start_time[note_idx].start_time < time_change.time):
-      active_notes.append(notes_by_start_time[note_idx])
+      notes_crossing_split.append(notes_by_start_time[note_idx])
       note_idx += 1
-    active_notes = [note for note in active_notes
-                    if note.end_time > time_change.time]
+    notes_crossing_split = [note for note in notes_crossing_split
+                            if note.end_time > time_change.time]
 
     if time_change.time > prev_change_time:
-      if split_notes or not active_notes:
+      if not (skip_splits_inside_notes and notes_crossing_split):
         # Extract the subsequence between the previous time change and this
         # time change.
         subsequence = extract_subsequence(note_sequence, prev_change_time,

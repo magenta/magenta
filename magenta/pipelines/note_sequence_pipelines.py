@@ -32,6 +32,11 @@ class NoteSequencePipeline(pipeline.Pipeline):
   """Superclass for pipelines that input and output NoteSequences."""
 
   def __init__(self, name=None):
+    """Construct a NoteSequencePipeline. Should only be called by subclasses.
+
+    Args:
+      name: Pipeline name.
+    """
     super(NoteSequencePipeline, self).__init__(
         input_type=music_pb2.NoteSequence,
         output_type=music_pb2.NoteSequence,
@@ -42,6 +47,13 @@ class Splitter(NoteSequencePipeline):
   """A Pipeline that splits NoteSequences at regular intervals."""
 
   def __init__(self, hop_size_seconds, name=None):
+    """Creates a Splitter pipeline.
+
+    Args:
+      hop_size_seconds: Hop size in seconds that will be used to split a
+          NoteSequence at regular intervals.
+      name: Pipeline name.
+    """
     super(Splitter, self).__init__(name=name)
     self._hop_size_seconds = hop_size_seconds
 
@@ -61,6 +73,19 @@ class Quantizer(NoteSequencePipeline):
   """A Pipeline that quantizes NoteSequence data."""
 
   def __init__(self, steps_per_quarter=None, steps_per_second=None, name=None):
+    """Creates a Quantizer pipeline.
+
+    Exactly one of `steps_per_quarter` and `steps_per_second` should be defined.
+
+    Args:
+      steps_per_quarter: Steps per quarter note to use for quantization.
+      steps_per_second: Steps per second to use for quantization.
+      name: Pipeline name.
+
+    Raises:
+      ValueError: If both or neither of `steps_per_quarter` and
+          `steps_per_second` are set.
+    """
     super(Quantizer, self).__init__(name=name)
     if (steps_per_quarter is not None) == (steps_per_second is not None):
       raise ValueError(
