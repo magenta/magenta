@@ -15,6 +15,7 @@
 
 import collections
 import copy
+import itertools
 
 # internal imports
 import numpy as np
@@ -710,6 +711,57 @@ def quantize_note_sequence_absolute(note_sequence, steps_per_second):
   _quantize_notes(qns, steps_per_second)
 
   return qns
+
+
+def stretch_note_sequence(note_sequence, stretch_factor):
+  """Apply a constant temporal stretch to a NoteSequence proto.
+
+  Args:
+    note_sequence: The NoteSequence to stretch.
+    stretch_factor: How much to stretch the NoteSequence. Values greater than
+        one increase the length of the NoteSequence (making it "slower"). Values
+        less than one decrease the length of the NoteSequence (making it
+        "faster").
+
+  Returns:
+    A stretched copy of the original NoteSequence.
+
+  Raises:
+    QuantizationStatusException: If the `note_sequence` is quantized. Only
+        unquantized NoteSequences can be stretched.
+  """
+  if is_quantized_sequence(note_sequence):
+    raise QuantizationStatusException(
+        'Can only stretch unquantized NoteSequence.')
+
+  stretched_sequence = music_pb2.NoteSequence()
+  stretched_sequence.CopyFrom(note_sequence)
+
+  if stretch_factor == 1.0:
+    return stretched_sequence
+
+  # Stretch all notes.
+  for note in stretched_sequence.notes:
+    note.start_time *= stretch_factor
+    note.end_time *= stretch_factor
+  stretched_sequence.total_time *= stretch_factor
+
+  # Stretch all other event times.
+  events = itertools.chain(
+      stretched_sequence.time_signatures,
+      stretched_sequence.key_signatures,
+      stretched_sequence.tempos,
+      stretched_sequence.pitch_bends,
+      stretched_sequence.control_changes,
+      stretched_sequence.text_annotations)
+  for event in events:
+    event.time *= stretch_factor
+
+  # Stretch tempos.
+  for tempo in stretched_sequence.tempos:
+    tempo.qpm /= stretch_factor
+
+  return stretched_sequence
 
 
 # Constants for processing the note/sustain stream.

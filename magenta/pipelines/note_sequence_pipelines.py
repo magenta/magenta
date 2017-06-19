@@ -129,6 +129,24 @@ class SustainPipeline(NoteSequencePipeline):
     return [sequences_lib.apply_sustain_control_changes(note_sequence)]
 
 
+class StretchPipeline(NoteSequencePipeline):
+  """Creates stretched versions of the input NoteSequence."""
+
+  def __init__(self, stretch_factors, name=None):
+    """Creates a StretchPipeline.
+
+    Args:
+      stretch_factors: A Python list of uniform stretch factors to apply.
+      name: Pipeline name.
+    """
+    super(StretchPipeline, self).__init__(name=name)
+    self._stretch_factors = stretch_factors
+
+  def transform(self, note_sequence):
+    return [sequences_lib.stretch_note_sequence(note_sequence, stretch_factor)
+            for stretch_factor in self._stretch_factors]
+
+
 class TranspositionPipeline(NoteSequencePipeline):
   """Creates transposed versions of the input NoteSequence."""
 

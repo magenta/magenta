@@ -738,6 +738,26 @@ class SequencesLibTest(tf.test.TestCase):
     self.assertEqual(12.0,
                      sequences_lib.steps_per_bar_in_quantized_sequence(qns))
 
+  def testStretchNoteSequence(self):
+    expected_stretched_sequence = copy.deepcopy(self.note_sequence)
+    expected_stretched_sequence.tempos[0].qpm = 40
+
+    testing_lib.add_track_to_sequence(
+        self.note_sequence, 0,
+        [(12, 100, 0.0, 10.0), (11, 55, 0.2, 0.5), (40, 45, 2.5, 3.5)])
+    testing_lib.add_track_to_sequence(
+        expected_stretched_sequence, 0,
+        [(12, 100, 0.0, 15.0), (11, 55, 0.3, 0.75), (40, 45, 3.75, 5.25)])
+
+    testing_lib.add_chords_to_sequence(
+        self.note_sequence, [('B7', 0.5), ('Em9', 2.0)])
+    testing_lib.add_chords_to_sequence(
+        expected_stretched_sequence, [('B7', 0.75), ('Em9', 3.0)])
+
+    stretched_sequence = sequences_lib.stretch_note_sequence(
+        self.note_sequence, stretch_factor=1.5)
+    self.assertProtoEquals(expected_stretched_sequence, stretched_sequence)
+
   def testApplySustainControlChanges(self):
     """Verify sustain controls extend notes until the end of the control."""
     sequence = copy.copy(self.note_sequence)
