@@ -60,7 +60,7 @@ shortcuts below.
 | Key              | Action |
 |------------------|--------|
 | `Z`              | Toggles the metronome. |
-| `Q`            | Toggles between piano and drums. |
+| `Q`              | Toggles between piano and drums. |
 | `LEFT`/`RIGHT`   | Cycles through available models. |
 | `UP`/`DOWN`      | Adjusts sampling 'temperature'. Higher temperatures sound more random. |
 | `SPACE`          | Toggles looping of AI sequence. |
