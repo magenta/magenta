@@ -59,13 +59,10 @@ The piano can also be controlled from your computer keyboard thanks to [Audiokey
 Currently, the only way to change settings for the models is to use the keyboard
 shortcuts below.
 
-For now, it is recommended that you open the Developer JavaScript Console in
-Chrome to view changes to settings based on your use of these shortcuts.
-
 | Key              | Action |
 |------------------|--------|
 | `Z`              | Toggles the metronome. |
-| `TAB`            | Toggles between piano and drums. |
+| `Q`            | Toggles between piano and drums. |
 | `LEFT`/`RIGHT`   | Cycles through available models. |
 | `UP`/`DOWN`      | Adjusts sampling 'temperature'. Higher temperatures sound more random. |
 | `SPACE`          | Toggles looping of AI sequence. |
