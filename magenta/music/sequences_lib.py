@@ -17,12 +17,11 @@ import collections
 import copy
 
 # internal imports
+import numpy as np
 import tensorflow as tf
 
 from magenta.music import chord_symbols_lib
 from magenta.music import constants
-from magenta.pipelines import pipeline
-from magenta.pipelines import statistics
 from magenta.protobuf import music_pb2
 
 # Set the quantization cutoff.
@@ -355,7 +354,67 @@ def steps_per_bar_in_quantized_sequence(note_sequence):
   return steps_per_bar_float
 
 
-def split_note_sequence_on_time_changes(note_sequence, split_notes=True):
+def split_note_sequence(note_sequence, hop_size_seconds,
+                        skip_splits_inside_notes=False):
+  """Split one NoteSequence into many using a fixed hop size.
+
+  This function splits a NoteSequence into multiple NoteSequences, all of fixed
+  size (unless `split_notes` is False, in which case splits that would have
+  truncated notes will be skipped; i.e. each split will either happen at a
+  multiple of `hop_size_seconds` or not at all). Each of the resulting
+  NoteSequences is shifted to start at time zero.
+
+  Args:
+    note_sequence: The NoteSequence to split.
+    hop_size_seconds: The hop size, in seconds, at which the NoteSequence will
+        be split.
+    skip_splits_inside_notes: If False, the NoteSequence will be split at all
+        hop positions, regardless of whether or not any notes are sustained
+        across the potential split time, thus sustained notes will be truncated.
+        If True, the NoteSequence will not be split at positions that occur
+        within sustained notes.
+
+  Returns:
+    A Python list of NoteSequences.
+  """
+  prev_split_time = 0.0
+
+  notes_by_start_time = sorted(list(note_sequence.notes),
+                               key=lambda note: note.start_time)
+  note_idx = 0
+  notes_crossing_split = []
+
+  subsequences = []
+
+  for split_time in np.arange(
+      hop_size_seconds, note_sequence.total_time, hop_size_seconds):
+    # Update notes crossing potential split.
+    while (note_idx < len(notes_by_start_time) and
+           notes_by_start_time[note_idx].start_time < split_time):
+      notes_crossing_split.append(notes_by_start_time[note_idx])
+      note_idx += 1
+    notes_crossing_split = [note for note in notes_crossing_split
+                            if note.end_time > split_time]
+
+    if not (skip_splits_inside_notes and notes_crossing_split):
+      # Extract the subsequence between the previous split time and this split
+      # time.
+      subsequence = extract_subsequence(
+          note_sequence, prev_split_time, split_time)
+      subsequences.append(subsequence)
+      prev_split_time = split_time
+
+  # Handle the final subsequence.
+  if note_sequence.total_time > prev_split_time:
+    subsequence = extract_subsequence(note_sequence, prev_split_time,
+                                      note_sequence.total_time)
+    subsequences.append(subsequence)
+
+  return subsequences
+
+
+def split_note_sequence_on_time_changes(note_sequence,
+                                        skip_splits_inside_notes=False):
   """Split one NoteSequence into many around time signature and tempo changes.
 
   This function splits a NoteSequence into multiple NoteSequences, each of which
@@ -365,10 +424,10 @@ def split_note_sequence_on_time_changes(note_sequence, split_notes=True):
 
   Args:
     note_sequence: The NoteSequence to split.
-    split_notes: If True, the NoteSequence will be split at all time changes,
-        regardless of whether or not any notes are sustained across the time
-        change. If False, the NoteSequence will not be split at time changes
-        that occur within sustained notes.
+    skip_splits_inside_notes: If False, the NoteSequence will be split at all
+        time changes, regardless of whether or not any notes are sustained
+        across the time change. If True, the NoteSequence will not be split at
+        time changes that occur within sustained notes.
 
   Returns:
     A Python list of NoteSequences.
@@ -388,7 +447,7 @@ def split_note_sequence_on_time_changes(note_sequence, split_notes=True):
   notes_by_start_time = sorted(list(note_sequence.notes),
                                key=lambda note: note.start_time)
   note_idx = 0
-  active_notes = []
+  notes_crossing_split = []
 
   subsequences = []
 
@@ -403,16 +462,16 @@ def split_note_sequence_on_time_changes(note_sequence, split_notes=True):
         # Tempo didn't actually change.
         continue
 
-    # Update active notes.
+    # Update notes crossing potential split.
     while (note_idx < len(notes_by_start_time) and
            notes_by_start_time[note_idx].start_time < time_change.time):
-      active_notes.append(notes_by_start_time[note_idx])
+      notes_crossing_split.append(notes_by_start_time[note_idx])
       note_idx += 1
-    active_notes = [note for note in active_notes
-                    if note.end_time > time_change.time]
+    notes_crossing_split = [note for note in notes_crossing_split
+                            if note.end_time > time_change.time]
 
     if time_change.time > prev_change_time:
-      if split_notes or not active_notes:
+      if not (skip_splits_inside_notes and notes_crossing_split):
         # Extract the subsequence between the previous time change and this
         # time change.
         subsequence = extract_subsequence(note_sequence, prev_change_time,
@@ -858,51 +917,3 @@ def infer_chords_for_sequence(
       active_notes.add(idx)
 
   assert not active_notes
-
-
-class TranspositionPipeline(pipeline.Pipeline):
-  """Creates transposed versions of the input NoteSequence."""
-
-  def __init__(self, transposition_range, name=None):
-    """Creates a TranspositionPipeline.
-
-    Args:
-      transposition_range: Collection of integer pitch steps to transpose.
-      name: Pipeline name.
-    """
-    super(TranspositionPipeline, self).__init__(
-        input_type=music_pb2.NoteSequence,
-        output_type=music_pb2.NoteSequence,
-        name=name)
-    self._transposition_range = transposition_range
-
-  def transform(self, sequence):
-    stats = dict([(state_name, statistics.Counter(state_name)) for state_name in
-                  ['skipped_due_to_range_exceeded',
-                   'transpositions_generated']])
-
-    transposed = []
-    # Transpose up to a major third in either direction.
-    for amount in self._transposition_range:
-      if amount == 0:
-        transposed.append(sequence)
-      else:
-        ts = self._transpose(sequence, amount, stats)
-        if ts is not None:
-          transposed.append(ts)
-
-    stats['transpositions_generated'].increment(len(transposed))
-    self._set_stats(stats.values())
-    return transposed
-
-  @staticmethod
-  def _transpose(ns, amount, stats):
-    """Transposes a note sequence by the specified amount."""
-    ts = copy.deepcopy(ns)
-    for note in ts.notes:
-      note.pitch += amount
-      if (note.pitch < constants.MIN_MIDI_PITCH or
-          note.pitch > constants.MAX_MIDI_PITCH):
-        stats['skipped_due_to_range_exceeded'].increment()
-        return None
-    return ts
