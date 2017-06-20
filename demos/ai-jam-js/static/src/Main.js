@@ -21,6 +21,7 @@ import {Sound} from 'sound/Sound'
 import {Glow} from 'interface/Glow'
 import {Splash} from 'interface/Splash'
 import {About} from 'interface/About'
+import {Notifier} from 'interface/Notifier'
 import 'babel-polyfill'
 
 /////////////// SPLASH ///////////////////
@@ -56,11 +57,12 @@ const container = document.createElement('div')
 container.id = 'container'
 document.body.appendChild(container)
 
+const notifier = new Notifier(container)
 
-const magenta = new Magenta()
+const magenta = new Magenta(notifier)
 const midi = new Midi(magenta)
 const glow = new Glow(container)
-const keyboard = new Keyboard(container, midi, magenta)
+const keyboard = new Keyboard(container, midi, magenta, notifier)
 
 const sound = new Sound()
 sound.load()
@@ -92,7 +94,7 @@ document.body.addEventListener('keyup', (e) => {
     	magenta.selected().adjustTemperature(-2)
     } else if (e.keyCode == 8) {  // Backspace/Delete
     	magenta.selected().triggerPanic()
-    } else if (e.keyCode == 9) {  // Tab
+    } else if (e.keyCode == 81) {  // Q
     	keyboard.toggleDrumMode()
     	magenta.toggleSelected()
     } else if (e.keyCode == 90) {  // Z

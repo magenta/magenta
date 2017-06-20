@@ -37,7 +37,7 @@ const blurbCopy = `Extended from the <a target='_blank' href='${ogSourceCode}'>
 					<p>Keyboard shortcuts:
 					<table style="width:75%">
 					  <tr><td>Z</td><td><i>Toggles the metronome.</i></td></tr>
-					  <tr><td>TAB</td><td><i>Toggles between piano and drums.</i></td></tr>
+					  <tr><td>Q</td><td><i>Toggles between piano and drums.</i></td></tr>
 					  <tr><td>LEFT/RIGHT</td><td><i>Cycles through available models.</i></td></tr>
 					  <tr><td>UP/DOWN</td><td><i>Adjusts sampling 'temperature'. Higher temperatures sound more random.</i></td></tr>
 					  <tr><td>SPACE</td><td><i>Toggles looping of AI sequence.</i></td></tr>
@@ -47,9 +47,6 @@ const blurbCopy = `Extended from the <a target='_blank' href='${ogSourceCode}'>
 					  <tr><td>DELETE</td><td><i>Stops current AI playback.</i></td></tr>
 					  <tr><td>X</td><td><i>Toggles "solo mode", which stops AI from listening to inputs.</i></td></tr>
 					</table></p>
-					<p><b>Note:</b> For now, it is recommended that you open the Developer
-					   JavaScript Console in Chrome to view changes to settings based on
-					   your use of these shortcuts.</p>
 					`
 
 export class About extends events.EventEmitter{

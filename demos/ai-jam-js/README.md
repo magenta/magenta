@@ -6,8 +6,6 @@ An interactive A.I. jam session.
 
 This interface uses the frontend from the [A.I. Duet experiment](https://github.com/googlecreativelab/aiexperiments-ai-duet), combined with the [Magenta MIDI interface](/magenta/interfaces/midi/README.md) to recreate the experience of the award-winning [Magenta 2016 NIPS Demo](https://magenta.tensorflow.org/2016/12/16/nips-demo) in your browser.
 
-This is not an official Google product.
-
 ## CREDITS
 
 Original interface built by [Yotam Mann](https://github.com/tambien) with friends on the Magenta and Creative Lab teams at Google using [TensorFlow](https://tensorflow.org), [Tone.js](https://github.com/Tonejs/Tone.js) and open-source tools from the [Magenta](https://magenta.tensorflow.org/) project.
@@ -59,13 +57,10 @@ The piano can also be controlled from your computer keyboard thanks to [Audiokey
 Currently, the only way to change settings for the models is to use the keyboard
 shortcuts below.
 
-For now, it is recommended that you open the Developer JavaScript Console in
-Chrome to view changes to settings based on your use of these shortcuts.
-
 | Key              | Action |
 |------------------|--------|
 | `Z`              | Toggles the metronome. |
-| `TAB`            | Toggles between piano and drums. |
+| `Q`              | Toggles between piano and drums. |
 | `LEFT`/`RIGHT`   | Cycles through available models. |
 | `UP`/`DOWN`      | Adjusts sampling 'temperature'. Higher temperatures sound more random. |
 | `SPACE`          | Toggles looping of AI sequence. |

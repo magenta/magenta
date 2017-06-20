@@ -22,12 +22,13 @@ import buckets from 'buckets-js'
 import Buffer from 'Tone/core/Buffer'
 
 class Keyboard extends events.EventEmitter{
-	constructor(container, midi, magenta){
+	constructor(container, midi, magenta, notifier){
 		super()
 
 		this._container = container
 		this._midi = midi
 		this._magenta = magenta
+		this._notifier = notifier
 
 		this._active = false
 		this._drumMode = false
@@ -171,12 +172,20 @@ class Keyboard extends events.EventEmitter{
 		this._drumMode = !this._drumMode
 		this._keyboardInterface.panic(true)
 		this._keyboardInterface.panic(false)
-		console.info('Drum Mode: ' + this._drumMode)
+		if (this._drumMode) {
+			this._notifier.notify('Switched to <b>Drums</b>')
+		} else {
+			this._notifier.notify('Switched to <b>Piano</b>')
+		}
 	}
 
 	toggleSoloMode() {
 		this._soloMode = !this._soloMode
-		console.info('Solo Mode: ' + this._soloMode)
+		if (this._soloMode) {
+			this._notifier.notify('<b>Solo Mode</b> enabled')
+		} else {
+			this._notifier.notify('<b>Solo Mode</b> disabled')
+		}
 	}
 
 	_resize(){
