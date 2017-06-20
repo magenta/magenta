@@ -116,6 +116,29 @@ class PipelineUnitsCommonTest(tf.test.TestCase):
     unit = note_sequence_pipelines.SustainPipeline()
     self._unit_transform_test(unit, note_sequence, [expected_sequence])
 
+  def testStretchPipeline(self):
+    note_sequence = common_testing_lib.parse_test_proto(
+        music_pb2.NoteSequence,
+        """
+        time_signatures: {
+          time: 1.0
+          numerator: 4
+          denominator: 4}
+        tempos: {
+          qpm: 60}""")
+    testing_lib.add_track_to_sequence(
+        note_sequence, 0,
+        [(11, 55, 0.22, 0.50), (40, 45, 2.50, 3.50), (55, 120, 4.0, 4.01)])
+
+    expected_sequences = [
+        sequences_lib.stretch_note_sequence(note_sequence, 0.5),
+        sequences_lib.stretch_note_sequence(note_sequence, 1.0),
+        sequences_lib.stretch_note_sequence(note_sequence, 1.5)]
+
+    unit = note_sequence_pipelines.StretchPipeline(
+        stretch_factors=[0.5, 1.0, 1.5])
+    self._unit_transform_test(unit, note_sequence, expected_sequences)
+
   def testTranspositionPipeline(self):
     note_sequence = common_testing_lib.parse_test_proto(
         music_pb2.NoteSequence,
