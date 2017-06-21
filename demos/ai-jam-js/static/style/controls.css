@@ -1,0 +1,45 @@
+@import 'common.scss';
+
+#controls {
+  font-family: $font-family;
+  z-index: 110;
+
+  button {
+    font-size: 15px;
+    position: relative;
+    background-color: black;
+    color: white;
+    border: 1px solid white;
+    cursor: pointer;
+
+    &:focus {
+      outline:none;
+    }
+    &:hover {
+      background-color: #aaa;
+    }
+
+    &:active {
+      background-color: magenta;
+    }
+
+    &.active {
+      background-color: magenta;
+    }
+  }
+
+  .title{
+    font-size: 15px;
+    position: relative;
+    color: white;
+    height: auto;
+    display: inline-block;
+  }
+
+  .divider{
+    position: relative;
+    width: auto;
+    height: auto;
+    display: inline-block;
+  }
+}

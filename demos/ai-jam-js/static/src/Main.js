@@ -18,6 +18,7 @@ import {Magenta} from 'ai/Magenta'
 import {Keyboard} from 'keyboard/Keyboard'
 import {Midi} from 'keyboard/Midi'
 import {Sound} from 'sound/Sound'
+import {Controls} from 'interface/Controls'
 import {Glow} from 'interface/Glow'
 import {Splash} from 'interface/Splash'
 import {About} from 'interface/About'
@@ -63,6 +64,7 @@ const magenta = new Magenta(notifier)
 const midi = new Midi(magenta)
 const glow = new Glow(container)
 const keyboard = new Keyboard(container, midi, magenta, notifier)
+const controls = new Controls(container, midi, magenta, keyboard)
 
 const sound = new Sound()
 sound.load()
@@ -77,30 +79,29 @@ document.body.addEventListener('keyup', (e) => {
 		if (e.keyCode == 16) {
 			isShifted = false
 		} else if (isShifted && e.keyCode >= 48 && e.keyCode <= 57) {  // SHIFT + 0-9
-      magenta.selected().setCallBars(e.keyCode - 48)
+      controls.setCallBars(e.keyCode - 48)
 		} else if (e.keyCode >= 48 && e.keyCode <= 57) {  // 0-9
-      magenta.selected().setResponseBars(e.keyCode - 48)
+      controls.setResponseBars(e.keyCode - 48)
     } else if (e.keyCode == 37) {  // Left arrow
-    	magenta.selected().adjustBundleIndex(-1)
+    	controls.adjustModelIndex(-1)
     } else if (e.keyCode == 39) {  // Right arrow
-    	magenta.selected().adjustBundleIndex(1)
+    	controls.adjustModelIndex(1)
     } else if (e.keyCode == 32) {  // Space bar
-    	magenta.selected().toggleLoop()
+    	controls.toggleLoop()
     } else if (e.keyCode == 77) {  // M
-    	magenta.selected().triggerMutate()
+    	controls.triggerMutate()
     } else if (e.keyCode == 38) {  // Up arrow
     	magenta.selected().adjustTemperature(2)
     } else if (e.keyCode == 40) {  // Down arrow
     	magenta.selected().adjustTemperature(-2)
     } else if (e.keyCode == 8) {  // Backspace/Delete
-    	magenta.selected().triggerPanic()
+    	controls.triggerPanic()
     } else if (e.keyCode == 81) {  // Q
-    	keyboard.toggleDrumMode()
-    	magenta.toggleSelected()
+    	controls.toggleInstrument()
     } else if (e.keyCode == 90) {  // Z
-    	midi.toggleMetronome()
+    	controls.toggleMetronome()
     } else if (e.keyCode == 88) {  // S
-    	keyboard.toggleSoloMode()
+    	controls.toggleSolo()
     }
 }, true)
 
