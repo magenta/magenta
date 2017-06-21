@@ -14,13 +14,11 @@
  * limitations under the License.
  */
 
-import events from 'events'
 import 'style/controls.css'
 
-class Controls extends events.EventEmitter {
+class Controls {
 
   constructor(container, midi, magenta, keyboard){
-    super()
     this._container = document.createElement('div')
     this._container.id = 'controls'
     container.appendChild(this._container)
@@ -51,7 +49,6 @@ class Controls extends events.EventEmitter {
     this._callBarButtons = []
     this._callBarButtons.push(
       this._addButton('Auto', this.setCallBars.bind(this, 0)))
-    this._callBarButtons[0].classList.add('active')
     for (var i = 1; i <= 9; i++) {
       this._callBarButtons.push(
           this._addButton(i, this.setCallBars.bind(this, i)))
@@ -69,7 +66,6 @@ class Controls extends events.EventEmitter {
     this._responseBarButtons = []
     this._responseBarButtons.push(
       this._addButton('Auto', this.setResponseBars.bind(this, 0)))
-    this._responseBarButtons[0].classList.add('active')
     for (var i = 1; i <= 9; i++) {
       this._responseBarButtons.push(
           this._addButton(i, this.setResponseBars.bind(this, i)))
@@ -87,27 +83,32 @@ class Controls extends events.EventEmitter {
     this._addDivider()
     this._container.appendChild(document.createElement('br'))
 
-    // Model
+    // MODEL
     this._addTitle('Model:')
     this._addDivider(69)
     this._modelButtons = []
+    var maxModelsPerInstance = 0;
     for (var i = 0; i < this._magenta.instances().length; ++i) {
-      var inst = this._magenta.instance(i)
-      var instModelButtons = []
-      for (var j = 0; j < inst.models().length; ++j) {
-        var button = this._addButton(
-            inst.models()[j], this.setModel.bind(this, j))
-        if (i != 0) {
-          button.style.visibility = 'hidden'
-        }
-        if (j == 0) {
-          button.classList.add('active')
-        }
-        instModelButtons.push(button)
-      }
-      this._modelButtons.push(instModelButtons)
+      maxModelsPerInstance = Math.max(
+          maxModelsPerInstance, this._magenta.instance(i).models().length)
     }
-    this._addDivider()
+    for (var j = 0; j < maxModelsPerInstance; ++j) {
+      var button = this._addButton('Model' + j, this.setModel.bind(this, j))
+      this._modelButtons.push(button)
+    }
+    this._container.appendChild(document.createElement('br'))
+
+    // TEMPERATURE
+    this._addTitle('Temperature:')
+    this._addDivider(20)
+    var temp = document.createElement('input')
+    temp.classList.add('range')
+    temp.setAttribute('type', 'range')
+    temp.setAttribute('min', '0')
+    temp.setAttribute('max', '127')
+    temp.onchange = this._updateTemp.bind(this)
+    this._tempSlider = temp
+    this._container.appendChild(temp)
   }
 
   _addTitle(text) {
@@ -146,6 +147,36 @@ class Controls extends events.EventEmitter {
     setTimeout(() => {button.classList.remove('active')}, 500)
   }
 
+  _updateTemp(temp) {
+    this._magenta.selected().setTemperature(this._tempSlider.value)
+  }
+
+  reset() {
+    // Reset button states.
+    this.setCallBars(this._magenta.selected().callBars())
+    this.setResponseBars(this._magenta.selected().responseBars())
+    if (this._magenta.selected().isLooping()) {
+      this._loopButton.classList.add('active')
+    } else {
+      this._loopButton.classList.remove('active')
+    }
+
+    let numModels = this._magenta.selected().models().length
+    for (var j = 0; j < this._modelButtons.length; ++j) {
+      if (j < numModels) {
+        this._modelButtons[j].style.visibility = 'visible'
+        this._modelButtons[j].textContent = this._magenta.selected().models()[j]
+      } else {
+        this._modelButtons[j].style.visibility = 'hidden'
+      }
+      this._modelButtons[j].classList.remove('active')
+    }
+    this._modelButtons[this._magenta.selected().bundleIndex()].classList.add(
+      'active')
+
+    this._tempSlider.value = this._magenta.selected().temperature()
+  }
+
   toggleMetronome() {
     this._toggle(this._metronomeButton)
     this._midi.toggleMetronome()
@@ -170,25 +201,10 @@ class Controls extends events.EventEmitter {
       this._drumButton.classList.remove('active')
     }
 
-    this._modelButtons[this._magenta.selectedIndex()].forEach((button) => {
-      button.style.visibility = 'hidden'
-    })
     this._magenta.toggleSelected()
-    this._modelButtons[this._magenta.selectedIndex()].forEach((button) => {
-      button.style.visibility = 'visible'
-    })
-
     this._keyboard.toggleDrumMode()
 
-    // Reset button states.
-    this.setCallBars(this._magenta.selected().callBars())
-    this.setResponseBars(this._magenta.selected().responseBars())
-    if (this._magenta.selected().isLooping()) {
-      this._loopButton.classList.add('active')
-    } else {
-      this._loopButton.classList.remove('active')
-    }
-
+    this.reset()
   }
 
   setCallBars(numBars) {
@@ -196,7 +212,6 @@ class Controls extends events.EventEmitter {
       button.classList.remove('active')})
     this._callBarButtons[numBars].classList.add('active')
     this._magenta.selected().setCallBars(numBars)
-
   }
 
   setResponseBars(numBars) {
@@ -227,11 +242,18 @@ class Controls extends events.EventEmitter {
     this.setModel(j)
   }
 
+  adjustTemperature(amt) {
+    var newVal = Math.max(Math.min(
+        parseInt(this._tempSlider.value) + amt, 127), 0)
+    this._tempSlider.value = newVal
+    this._updateTemp(newVal)
+  }
+
   setModel(j) {
     var i = this._magenta.selectedIndex()
-    this._modelButtons[i].forEach((button) => {
+    this._modelButtons.forEach((button) => {
       button.classList.remove('active')})
-    this._modelButtons[i][j].classList.add('active')
+    this._modelButtons[j].classList.add('active')
     this._magenta.selected().setBundleIndex(j)
   }
 

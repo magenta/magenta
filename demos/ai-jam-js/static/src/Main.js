@@ -66,6 +66,8 @@ const glow = new Glow(container)
 const keyboard = new Keyboard(container, midi, magenta, notifier)
 const controls = new Controls(container, midi, magenta, keyboard)
 
+magenta.on('active', () => {controls.reset()})
+
 const sound = new Sound()
 sound.load()
 
@@ -91,9 +93,9 @@ document.body.addEventListener('keyup', (e) => {
     } else if (e.keyCode == 77) {  // M
     	controls.triggerMutate()
     } else if (e.keyCode == 38) {  // Up arrow
-    	magenta.selected().adjustTemperature(2)
+    	controls.adjustTemperature(2)
     } else if (e.keyCode == 40) {  // Down arrow
-    	magenta.selected().adjustTemperature(-2)
+    	controls.adjustTemperature(-2)
     } else if (e.keyCode == 8) {  // Backspace/Delete
     	controls.triggerPanic()
     } else if (e.keyCode == 81) {  // Q
