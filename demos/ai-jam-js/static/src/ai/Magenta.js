@@ -194,6 +194,4 @@ class Magenta extends events.EventEmitter {
   }
 }
 
-
-
 export {Magenta}
