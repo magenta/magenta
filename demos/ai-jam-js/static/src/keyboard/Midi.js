@@ -37,7 +37,7 @@ class Midi extends events.EventEmitter{
 				this._isEnabled = true
 
 				this._magenta.instances().forEach((instance) => {
-					instance.setPort(WebMidi.getOutputByName(instance.portName()))
+					this._magenta.updatePort(WebMidi.getOutputByName(instance.portName()))
 				})
 
 				if (WebMidi.inputs){

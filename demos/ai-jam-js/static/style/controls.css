@@ -1,0 +1,99 @@
+/**
+ * Copyright 2017 Google Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+@import 'common.scss';
+
+$sliderHeight : 8px;
+$thumbSize : 28px;
+$borderWidth : $sliderHeight;
+$magentaColor : #e144a1;
+
+#controls {
+  font-family: $font-family;
+  z-index: 110;
+
+  button {
+    font-size: 15px;
+    position: relative;
+    background-color: black;
+    color: white;
+    border: 1px solid white;
+    cursor: pointer;
+
+    &:focus {
+      outline:none;
+    }
+    &:hover {
+      background-color: #aaa;
+    }
+
+    &:active {
+      background-color: $magentaColor;
+    }
+
+    &.active {
+      background-color: $magentaColor;
+    }
+  }
+
+  input[type=range] {
+    appearance: none;
+    position: relative;
+
+    &:focus {
+      outline: none;
+    }
+
+    @mixin track {
+      cursor: pointer;
+      background: white
+    }
+
+    @mixin thumb {
+      box-shadow: 0px 0px 0px #000000;
+      border: 0px solid #000000;
+      height: 10px;
+      width: 15px;
+      border-radius: 5px;
+      background: $magentaColor;
+      cursor: pointer;
+      -webkit-appearance: none;
+    }
+
+    &::-webkit-slider-thumb{ @include thumb; }
+    &::-moz-range-thumb { @include thumb; }
+    &::-ms-thumb { @include thumb; }
+
+    &::-webkit-slider-runnable-track { @include track; }
+    &::-moz-range-track { @include track; }
+    &::-ms-track { @include track; }
+  }
+
+  .title{
+    font-size: 15px;
+    position: relative;
+    color: white;
+    height: auto;
+    display: inline-block;
+  }
+
+  .divider{
+    position: relative;
+    width: auto;
+    height: auto;
+    display: inline-block;
+  }
+}
