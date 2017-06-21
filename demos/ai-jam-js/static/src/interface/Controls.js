@@ -49,7 +49,7 @@ class Controls {
     this._callBarButtons = []
     this._callBarButtons.push(
       this._addButton('Auto', this.setCallBars.bind(this, 0)))
-    for (var i = 1; i <= 9; i++) {
+    for (var i = 1; i <= 8; i++) {
       this._callBarButtons.push(
           this._addButton(i, this.setCallBars.bind(this, i)))
     }
@@ -66,7 +66,7 @@ class Controls {
     this._responseBarButtons = []
     this._responseBarButtons.push(
       this._addButton('Auto', this.setResponseBars.bind(this, 0)))
-    for (var i = 1; i <= 9; i++) {
+    for (var i = 1; i <= 8; i++) {
       this._responseBarButtons.push(
           this._addButton(i, this.setResponseBars.bind(this, i)))
     }

@@ -80,9 +80,9 @@ document.body.addEventListener('keydown', (e) => {
 document.body.addEventListener('keyup', (e) => {
 		if (e.keyCode == 16) {
 			isShifted = false
-		} else if (isShifted && e.keyCode >= 48 && e.keyCode <= 57) {  // SHIFT + 0-9
+		} else if (isShifted && e.keyCode >= 48 && e.keyCode <= 56) {  // SHIFT + 0-8
       controls.setCallBars(e.keyCode - 48)
-		} else if (e.keyCode >= 48 && e.keyCode <= 57) {  // 0-9
+		} else if (e.keyCode >= 48 && e.keyCode <= 56) {  // 0-8
       controls.setResponseBars(e.keyCode - 48)
     } else if (e.keyCode == 37) {  // Left arrow
     	controls.adjustModelIndex(-1)

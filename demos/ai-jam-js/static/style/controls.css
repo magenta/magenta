@@ -3,6 +3,7 @@
 $sliderHeight : 8px;
 $thumbSize : 28px;
 $borderWidth : $sliderHeight;
+$magentaColor : #e144a1;
 
 #controls {
   font-family: $font-family;
@@ -24,11 +25,11 @@ $borderWidth : $sliderHeight;
     }
 
     &:active {
-      background-color: magenta;
+      background-color: $magentaColor;
     }
 
     &.active {
-      background-color: magenta;
+      background-color: $magentaColor;
     }
   }
 
@@ -51,7 +52,7 @@ $borderWidth : $sliderHeight;
       height: 10px;
       width: 15px;
       border-radius: 5px;
-      background: magenta;
+      background: $magentaColor;
       cursor: pointer;
       -webkit-appearance: none;
     }
