@@ -25,7 +25,6 @@ import {About} from 'interface/About'
 import {Notifier} from 'interface/Notifier'
 import 'babel-polyfill'
 import Tone from 'Tone/core/Tone'
-
 /////////////// SPLASH ///////////////////
 
 const about = new About(document.body)
@@ -119,11 +118,11 @@ keyboard.on('keyDown', (note, time, ai=false, drum=false) => {
 
 keyboard.on('keyUp', (note, time, ai=false, drum=false) => {
 	sound.keyUp(note, time, ai, drum)
-  if (ai) {
-    glow.user()
-  } {
-    glow.ai()
-  }
+	if (ai) {
+		glow.user()
+	} {
+		glow.ai()
+	}
 })
 
 midi.on('metronomeTick', (note) => {
