@@ -15,7 +15,6 @@
  */
 
 import events from 'events'
-import Tone from 'Tone/core/Tone'
 import WebMidi from 'webmidi'
 
 // 1-based
@@ -68,10 +67,7 @@ class Midi extends events.EventEmitter{
 	_startMetronome() {
 		this._fromClock.addListener(
 				'controlchange', 'all', (event) => {
-					this.emit('keyDown', event.value == 127 ? 37 : 36,
-						        Tone.now(), true, true)
-					this.emit('keyUp', event.value == 127 ? 37 : 36,
-						        Tone.now() + 0.15, true, true)
+					this.emit('metronomeTick', event.value == 0 ? 0 : 1)
 				})
 	}
 

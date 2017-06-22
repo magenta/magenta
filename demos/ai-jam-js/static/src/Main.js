@@ -24,6 +24,7 @@ import {Splash} from 'interface/Splash'
 import {About} from 'interface/About'
 import {Notifier} from 'interface/Notifier'
 import 'babel-polyfill'
+import Tone from 'Tone/core/Tone'
 
 /////////////// SPLASH ///////////////////
 
@@ -108,7 +109,7 @@ document.body.addEventListener('keyup', (e) => {
 }, true)
 
 keyboard.on('keyDown', (note, time, ai=false, drum=false) => {
-	sound.keyDown(note, time, ai, drum)
+	sound.keyDown(note, time, ai, drum ? 1 : 0)
 	if (ai) {
 		glow.user()
 	} {
@@ -117,10 +118,14 @@ keyboard.on('keyDown', (note, time, ai=false, drum=false) => {
 })
 
 keyboard.on('keyUp', (note, time, ai=false, drum=false) => {
-	sound.keyUp(note, time, ai, drum)
+	sound.keyUp(note, time, ai, drum ? 1 : 0)
 	if (ai) {
 		glow.user()
 	} {
 		glow.ai()
 	}
+})
+
+midi.on('metronomeTick', (note) => {
+  sound.metronomeTick(note)
 })
