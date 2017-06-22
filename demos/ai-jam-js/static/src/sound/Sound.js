@@ -48,9 +48,9 @@ class Sound {
 	keyDown(note, time=Tone.now(), ai=false, drum=false){
 		if (note >= this._range[0] && note <= this._range[1]){
 			if (drum) {
-		    this._drums.keyDown(note, time)
+			  this._drums.keyDown(note, time)
 			} else if (ai){
-		    this._e_piano.keyDown(note, time)
+			  this._e_piano.keyDown(note, time)
 			} else {
 			  this._piano.keyDown(note, time)
 			}
