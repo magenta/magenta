@@ -109,7 +109,7 @@ document.body.addEventListener('keyup', (e) => {
 }, true)
 
 keyboard.on('keyDown', (note, time, ai=false, drum=false) => {
-	sound.keyDown(note, time, ai, drum ? 1 : 0)
+	sound.keyDown(note, time, ai, drum)
 	if (ai) {
 		glow.user()
 	} {
@@ -118,11 +118,11 @@ keyboard.on('keyDown', (note, time, ai=false, drum=false) => {
 })
 
 keyboard.on('keyUp', (note, time, ai=false, drum=false) => {
-	sound.keyUp(note, time, ai, drum ? 1 : 0)
+	sound.keyUp(note, time, ai, drum)
 	if (ai) {
-		glow.user()
+    glow.user()
 	} {
-		glow.ai()
+    glow.ai()
 	}
 })
 
