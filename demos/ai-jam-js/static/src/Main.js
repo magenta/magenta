@@ -22,7 +22,7 @@ import {Controls} from 'interface/Controls'
 import {Glow} from 'interface/Glow'
 import {Splash} from 'interface/Splash'
 import {About} from 'interface/About'
-import {Notifier} from 'interface/Notifier'
+import {Status} from 'interface/Status'
 import 'babel-polyfill'
 import Tone from 'Tone/core/Tone'
 /////////////// SPLASH ///////////////////
@@ -58,13 +58,13 @@ const container = document.createElement('div')
 container.id = 'container'
 document.body.appendChild(container)
 
-const notifier = new Notifier(container)
+const status = new Status(container)
 
-const magenta = new Magenta(notifier)
+const magenta = new Magenta(status)
 const midi = new Midi(magenta)
 const glow = new Glow(container)
-const keyboard = new Keyboard(container, midi, magenta, notifier)
-const controls = new Controls(container, midi, magenta, keyboard)
+const keyboard = new Keyboard(container, midi, magenta, status)
+const controls = new Controls(container, magenta, keyboard)
 
 magenta.on('active', () => {controls.reset()})
 
@@ -126,5 +126,12 @@ keyboard.on('keyUp', (note, time, ai=false, drum=false) => {
 })
 
 midi.on('metronomeTick', (note) => {
-  sound.metronomeTick(note)
+  if (note == 1) {
+    status.setMetronome(0)
+  } else {
+    status.incrementMetronome()
+  }
+  if (controls.metronomeEnabled()) {
+    sound.metronomeTick(note)
+  }
 })

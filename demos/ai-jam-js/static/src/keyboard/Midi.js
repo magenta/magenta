@@ -54,35 +54,15 @@ class Midi extends events.EventEmitter{
 		})
 	}
 
-	toggleMetronome() {
-		this._metronomeEnabled = !this._metronomeEnabled
-		console.info('Metronome enabled: ' + this._metronomeEnabled)
-		if (this._metronomeEnabled) {
-			this._startMetronome()
-		} else {
-			this._stopMetronome()
-		}
-	}
-
-	_startMetronome() {
-		this._fromClock.addListener(
-				'controlchange', 'all', (event) => {
-					this.emit('metronomeTick', event.value == 0 ? 0 : 1)
-				})
-	}
-
-	_stopMetronome() {
-		this._fromClock.removeListener('controlchange')
-	}
-
 	_bindInput(inputDevice){
 		if (this._isEnabled){
 			if (inputDevice.name == this._magenta.clockPortName()) {
 				this._fromClock = inputDevice
 				console.info('Connected to clock on port ' + inputDevice.name)
-				if (this._metronomeEnabled) {
-					this._startMetronome()
-				}
+				this._fromClock.addListener(
+						'controlchange', 'all', (event) => {
+							this.emit('metronomeTick', event.value == 0 ? 0 : 1)
+						})
 				return
 			}
 
