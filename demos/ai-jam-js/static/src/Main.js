@@ -119,11 +119,11 @@ keyboard.on('keyDown', (note, time, ai=false, drum=false) => {
 
 keyboard.on('keyUp', (note, time, ai=false, drum=false) => {
 	sound.keyUp(note, time, ai, drum)
-	if (ai) {
+  if (ai) {
     glow.user()
-	} {
+  } {
     glow.ai()
-	}
+  }
 })
 
 midi.on('metronomeTick', (note) => {
