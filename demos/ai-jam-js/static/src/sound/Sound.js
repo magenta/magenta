@@ -31,11 +31,18 @@ class Sound {
 
 		this._drums = new Sampler('audio/drums/', this._range)
 
+		this._metronome = new Sampler('audio/metronome/', [0, 1])
 	}
 
 	load(){
 		return Promise.all(
-			[this._piano.load(), this._e_piano.load(), this._drums.load()])
+			[this._piano.load(), this._e_piano.load(),
+			 this._drums.load(), this._metronome.load()])
+	}
+
+	metronomeTick(note) {
+		this._metronome.keyDown(note, Tone.now())
+		this._metronome.keyUp(note, Tone.now() + 0.15)
 	}
 
 	keyDown(note, time=Tone.now(), ai=false, drum=false){
@@ -43,13 +50,11 @@ class Sound {
 			if (drum) {
 			  this._drums.keyDown(note, time)
 			} else if (ai){
-				this._e_piano.keyDown(note, time)
+			  this._e_piano.keyDown(note, time)
 			} else {
-				this._piano.keyDown(note, time)
+			  this._piano.keyDown(note, time)
 			}
 		}
-
-
 	}
 
 	keyUp(note, time=Tone.now(), ai=false, drum=false){

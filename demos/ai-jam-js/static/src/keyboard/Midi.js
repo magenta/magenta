@@ -15,7 +15,6 @@
  */
 
 import events from 'events'
-import Tone from 'Tone/core/Tone'
 import WebMidi from 'webmidi'
 
 // 1-based
@@ -55,38 +54,15 @@ class Midi extends events.EventEmitter{
 		})
 	}
 
-	toggleMetronome() {
-		this._metronomeEnabled = !this._metronomeEnabled
-		console.info('Metronome enabled: ' + this._metronomeEnabled)
-		if (this._metronomeEnabled) {
-			this._startMetronome()
-		} else {
-			this._stopMetronome()
-		}
-	}
-
-	_startMetronome() {
-		this._fromClock.addListener(
-				'controlchange', 'all', (event) => {
-					this.emit('keyDown', event.value == 127 ? 37 : 36,
-						        Tone.now(), true, true)
-					this.emit('keyUp', event.value == 127 ? 37 : 36,
-						        Tone.now() + 0.15, true, true)
-				})
-	}
-
-	_stopMetronome() {
-		this._fromClock.removeListener('controlchange')
-	}
-
 	_bindInput(inputDevice){
 		if (this._isEnabled){
 			if (inputDevice.name == this._magenta.clockPortName()) {
 				this._fromClock = inputDevice
 				console.info('Connected to clock on port ' + inputDevice.name)
-				if (this._metronomeEnabled) {
-					this._startMetronome()
-				}
+				this._fromClock.addListener(
+						'controlchange', 'all', (event) => {
+							this.emit('metronomeTick', event.value == 0 ? 0 : 1)
+						})
 				return
 			}
 

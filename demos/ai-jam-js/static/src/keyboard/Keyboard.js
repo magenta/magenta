@@ -96,21 +96,6 @@ class Keyboard extends events.EventEmitter{
 		})
 	}
 
-	_handleMidiEvent(event, note, time, ai, drum){
-		if (this._drumMode == drum) {
-			if (event == 'keyUp') {
-				this.keyUp(note, time, ai, drum)
-			} else if (event == 'keyDown') {
-				this.keyDown(note, time, ai, drum)
-			}
-		}
-		if (event == 'keyUp') {
-			this._emitKeyUp(note, time, ai, drum)
-		} else if (event == 'keyDown') {
-			this._emitKeyDown(note, time, ai, drum)
-		}
-	}
-
 	_loop(){
 		requestAnimationFrame(this._boundLoop)
 		const now = Tone.now()
@@ -118,7 +103,6 @@ class Keyboard extends events.EventEmitter{
 			const event = this._eventQueue.dequeue()
 			event.callback()
 		}
-
 	}
 
 	_emitKeyDown(note, time=Tone.now(), ai=false, drum=false){

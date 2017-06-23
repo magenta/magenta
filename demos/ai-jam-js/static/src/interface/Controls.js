@@ -18,12 +18,11 @@ import 'style/controls.css'
 
 class Controls {
 
-  constructor(container, midi, magenta, keyboard){
+  constructor(container, magenta, keyboard){
     this._container = document.createElement('div')
     this._container.id = 'controls'
     container.appendChild(this._container)
 
-    this._midi = midi
     this._magenta = magenta
     this._keyboard = keyboard
 
@@ -177,9 +176,12 @@ class Controls {
     this._tempSlider.value = this._magenta.selected().temperature()
   }
 
+  metronomeEnabled() {
+    return this._metronomeButton.classList.contains('active')
+  }
+
   toggleMetronome() {
     this._toggle(this._metronomeButton)
-    this._midi.toggleMetronome()
   }
 
   toggleLoop() {
