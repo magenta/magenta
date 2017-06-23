@@ -1,5 +1,7 @@
 #!/bin/bash
 
+python maybe_download_mags.py
+
 cd server
 python server.py &
 WEB_SERVER=$!
