@@ -173,8 +173,8 @@ def clean_strokes(sample_strokes, factor=100):
 
 
 def to_big_strokes(stroke, max_len=250):
-  """Converts from stroke-3 to stroke-5 format and pads to given length. (But
-  does not insert special start token)."""
+  """Converts from stroke-3 to stroke-5 format and pads to given length."""
+  # (But does not insert special start token).
 
   result = np.zeros((max_len, 5), dtype=float)
   l = len(stroke)
