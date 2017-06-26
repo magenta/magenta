@@ -297,7 +297,7 @@ def extract_pianoroll_sequences(
   sequences_lib.assert_is_relative_quantized_sequence(quantized_sequence)
 
   stats = dict([(stat_name, statistics.Counter(stat_name)) for stat_name in
-                ['pianoroll_tracks_truncated_too_long'
+                ['pianoroll_tracks_truncated_too_long',
                  'pianoroll_tracks_discarded_too_short',
                  'pianoroll_tracks_discarded_too_long',
                  'pianoroll_tracks_discarded_more_than_1_program']])
