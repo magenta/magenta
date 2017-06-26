@@ -285,6 +285,7 @@ class Model(object):
       This represents the reconstruction loss only (i.e. does not include the KL
       loss term)
       """
+
       result0 = tf_2d_normal(x1_data, x2_data, z_mu1, z_mu2, z_sigma1, z_sigma2,
                              z_corr)
       epsilon = 1e-6
