@@ -173,8 +173,9 @@ def clean_strokes(sample_strokes, factor=100):
 
 
 def to_big_strokes(stroke, max_len=250):
-  """Converts from stroke-3 to stroke-5 format and pads to given length. (But
-  does not insert special start token.)"""
+  """Converts from stroke-3 to stroke-5 format and pads to given length."""
+  # (But does not insert special start token).
+
   result = np.zeros((max_len, 5), dtype=float)
   l = len(stroke)
   assert l <= max_len
@@ -236,7 +237,7 @@ class DataLoader(object):
         data[:, 0:2] /= self.scale_factor
         raw_data.append(data)
         seq_len.append(len(data))
-    seq_len = np.array(seq_len) # nstrokes for each sketch
+    seq_len = np.array(seq_len)  # nstrokes for each sketch
     idx = np.argsort(seq_len)
     self.strokes = []
     for i in range(len(seq_len)):
