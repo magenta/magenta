@@ -283,7 +283,7 @@ class Model(object):
                      z_pen_logits, x1_data, x2_data, pen_data):
       """Returns a loss fn based on eq #26 of http://arxiv.org/abs/1308.0850.
       This represents the reconstruction loss only (i.e. does not include the KL
-      loss term)
+      loss term).
       """
 
       result0 = tf_2d_normal(x1_data, x2_data, z_mu1, z_mu2, z_sigma1, z_sigma2,
