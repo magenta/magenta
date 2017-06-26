@@ -80,6 +80,9 @@ def get_pipeline(config, min_steps, max_steps, eval_ratio):
   Returns:
     A pipeline.Pipeline instance.
   """
+  # Transpose up to a major third in either direction.
+  transposition_range = range(-4, 5)
+
   partitioner = pipelines_common.RandomPartition(
       music_pb2.NoteSequence,
       ['eval_pianoroll_tracks', 'training_pianoroll_tracks'],
@@ -87,10 +90,12 @@ def get_pipeline(config, min_steps, max_steps, eval_ratio):
   dag = {partitioner: dag_pipeline.DagInput(music_pb2.NoteSequence)}
 
   for mode in ['eval', 'training']:
-    time_change_splitter = note_sequence_pipelines.TimeChangeSplitter(
+    time_change_splitter = pipelines_common.TimeChangeSplitter(
         name='TimeChangeSplitter_' + mode)
-    quantizer = note_sequence_pipelines.Quantizer(
+    quantizer = pipelines_common.Quantizer(
         steps_per_quarter=config.steps_per_quarter, name='Quantizer_' + mode)
+    transposition_pipeline = note_sequence_pipelines.TranspositionPipeline(
+        transposition_range, name='TranspositionPipeline_' + mode)
     pianoroll_extractor = PianorollSequenceExtractor(
         min_steps=min_steps, max_steps=max_steps,
         name='PianorollExtractor_' + mode)
@@ -100,7 +105,8 @@ def get_pipeline(config, min_steps, max_steps, eval_ratio):
 
     dag[time_change_splitter] = partitioner[mode + '_pianoroll_tracks']
     dag[quantizer] = time_change_splitter
-    dag[pianoroll_extractor] = quantizer
+    dag[transposition_pipeline] = quantizer
+    dag[pianoroll_extractor] = transposition_pipeline
     dag[encoder_pipeline] = pianoroll_extractor
     dag[dag_pipeline.DagOutput(mode + '_pianoroll_tracks')] = encoder_pipeline
 
