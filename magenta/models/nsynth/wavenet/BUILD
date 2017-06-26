@@ -44,6 +44,10 @@ py_library(
 py_library(
     name = "fastgen",
     srcs = ["fastgen.py"],
+    visibility = [
+        # internal notebook binary
+        "//magenta/tools/pip:__subpackages__",
+    ],
     deps = [
         # numpy dep
         # scipy dep
