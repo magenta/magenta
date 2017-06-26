@@ -73,6 +73,7 @@ py_library(
     ],
     visibility = [
         # internal notebook binary
+        # internal models:nsynth:embedding_rnn
         "//magenta/tools/pip:__subpackages__",
     ],
     deps = [
