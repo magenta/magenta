@@ -90,9 +90,9 @@ def get_pipeline(config, min_steps, max_steps, eval_ratio):
   dag = {partitioner: dag_pipeline.DagInput(music_pb2.NoteSequence)}
 
   for mode in ['eval', 'training']:
-    time_change_splitter = pipelines_common.TimeChangeSplitter(
+    time_change_splitter = note_sequence_pipelines.TimeChangeSplitter(
         name='TimeChangeSplitter_' + mode)
-    quantizer = pipelines_common.Quantizer(
+    quantizer = note_sequence_pipelines.Quantizer(
         steps_per_quarter=config.steps_per_quarter, name='Quantizer_' + mode)
     transposition_pipeline = note_sequence_pipelines.TranspositionPipeline(
         transposition_range, name='TranspositionPipeline_' + mode)
