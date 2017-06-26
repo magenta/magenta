@@ -63,7 +63,7 @@ class PianorollSequenceExtractor(pipeline.Pipeline):
     pianoroll_seqs, stats = mm.extract_pianoroll_sequences(
         quantized_sequence,
         min_steps_discard=self._min_steps,
-        max_steps_discard=self._max_steps)
+        max_steps_truncate=self._max_steps)
     self._set_stats(stats)
     return pianoroll_seqs
 
