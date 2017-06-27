@@ -285,7 +285,7 @@ def extract_pianoroll_sequences(
     min_steps_discard: Minimum length of tracks in steps. Shorter tracks are
         discarded.
     max_steps_discard: Maximum length of tracks in steps. Longer tracks are
-        discarded Mutually exclusive with `max_steps_truncate`.
+        discarded. Mutually exclusive with `max_steps_truncate`.
     max_steps_truncate: Maximum length of tracks in steps. Longer tracks are
         truncated. Mutually exclusive with `max_steps_discard`.
 
