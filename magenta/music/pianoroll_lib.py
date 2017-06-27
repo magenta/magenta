@@ -285,15 +285,23 @@ def extract_pianoroll_sequences(
     min_steps_discard: Minimum length of tracks in steps. Shorter tracks are
         discarded.
     max_steps_discard: Maximum length of tracks in steps. Longer tracks are
-        discarded.
+        discarded Mutually exclusive with `max_steps_truncate`.
     max_steps_truncate: Maximum length of tracks in steps. Longer tracks are
-        truncated.
+        truncated. Mutually exclusive with `max_steps_discard`.
 
   Returns:
     pianoroll_seqs: A python list of PianorollSequence instances.
     stats: A dictionary mapping string names to `statistics.Statistic` objects.
+
+  Raises:
+    ValueError: If both `max_steps_discard` and `max_steps_truncate` are
+        specified.
   """
 
+  if (max_steps_discard, max_steps_truncate).count(None) == 0:
+    raise ValueError(
+      'Only one of `max_steps_discard` and `max_steps_truncate` can be '
+      'specified.')
   sequences_lib.assert_is_relative_quantized_sequence(quantized_sequence)
 
   stats = dict([(stat_name, statistics.Counter(stat_name)) for stat_name in
