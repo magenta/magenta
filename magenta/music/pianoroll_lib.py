@@ -273,7 +273,7 @@ class PianorollSequence(events_lib.EventSequence):
 
 def extract_pianoroll_sequences(
     quantized_sequence, start_step=0, min_steps_discard=None,
-    max_steps_discard=None):
+    max_steps_discard=None, max_steps_truncate=None):
   """Extracts a polyphonic track from the given quantized NoteSequence.
 
   Currently, this extracts only one pianoroll from a given track.
@@ -285,16 +285,28 @@ def extract_pianoroll_sequences(
     min_steps_discard: Minimum length of tracks in steps. Shorter tracks are
         discarded.
     max_steps_discard: Maximum length of tracks in steps. Longer tracks are
-        discarded.
+        discarded. Mutually exclusive with `max_steps_truncate`.
+    max_steps_truncate: Maximum length of tracks in steps. Longer tracks are
+        truncated. Mutually exclusive with `max_steps_discard`.
 
   Returns:
     pianoroll_seqs: A python list of PianorollSequence instances.
     stats: A dictionary mapping string names to `statistics.Statistic` objects.
+
+  Raises:
+    ValueError: If both `max_steps_discard` and `max_steps_truncate` are
+        specified.
   """
+
+  if (max_steps_discard, max_steps_truncate).count(None) == 0:
+    raise ValueError(
+        'Only one of `max_steps_discard` and `max_steps_truncate` can be '
+        'specified.')
   sequences_lib.assert_is_relative_quantized_sequence(quantized_sequence)
 
   stats = dict([(stat_name, statistics.Counter(stat_name)) for stat_name in
-                ['pianoroll_tracks_discarded_too_short',
+                ['pianoroll_tracks_truncated_too_long',
+                 'pianoroll_tracks_discarded_too_short',
                  'pianoroll_tracks_discarded_too_long',
                  'pianoroll_tracks_discarded_more_than_1_program']])
 
@@ -326,6 +338,9 @@ def extract_pianoroll_sequences(
   elif max_steps_discard is not None and num_steps > max_steps_discard:
     stats['pianoroll_tracks_discarded_too_long'].increment()
   else:
+    if max_steps_truncate is not None and num_steps > max_steps_truncate:
+      stats['pianoroll_tracks_truncated_too_long'].increment()
+      pianoroll_seq.set_length(max_steps_truncate)
     pianoroll_seqs.append(pianoroll_seq)
     stats['pianoroll_track_lengths_in_bars'].increment(
         num_steps // steps_per_bar)
