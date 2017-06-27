@@ -300,8 +300,8 @@ def extract_pianoroll_sequences(
 
   if (max_steps_discard, max_steps_truncate).count(None) == 0:
     raise ValueError(
-      'Only one of `max_steps_discard` and `max_steps_truncate` can be '
-      'specified.')
+        'Only one of `max_steps_discard` and `max_steps_truncate` can be '
+        'specified.')
   sequences_lib.assert_is_relative_quantized_sequence(quantized_sequence)
 
   stats = dict([(stat_name, statistics.Counter(stat_name)) for stat_name in
