@@ -38,7 +38,7 @@ MAGENTA_DRUMS=$!
 magenta_midi \
   --input_port="magenta_piano_in,magenta_clock" \
   --output_port="magenta_out" \
-  --bundle_files=./attention_rnn.mag,./pianoroll_rnn_nade.mag \
+  --bundle_files=./attention_rnn.mag,./pianoroll_rnn_nade.mag,./performance.mag \
   --qpm=120 \
   --allow_overlap=true \
   --playback_channel=0 \

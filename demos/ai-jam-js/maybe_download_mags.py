@@ -4,6 +4,7 @@ import urllib
 # This script downloads these .mag files if not already present.
 mag_files = [
     'http://download.magenta.tensorflow.org/models/attention_rnn.mag',
+    'http://download.magenta.tensorflow.org/models/performance.mag',
     'http://download.magenta.tensorflow.org/models/pianoroll_rnn_nade.mag',
     'http://download.magenta.tensorflow.org/models/drum_kit_rnn.mag',
 ]

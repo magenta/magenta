@@ -14,7 +14,7 @@ Original interface built by [Yotam Mann](https://github.com/tambien) with friend
 
 ### Pre-built Version
 
-Install [Flask](http://flask.pocoo.org/) and [Magenta](/README.md#Installation) (v0.1.15 or greater). 
+Install [Flask](http://flask.pocoo.org/) and [Magenta](/README.md#Installation) (v0.1.15 or greater).
 
 From the demos/ai-jam-js directory launch the interface from the command line:
 
@@ -24,9 +24,10 @@ sh RUN_DEMO.sh
 
 When the script is run, the following pre-trained models will be automatically downloaded to the demos/ai-jam-js directory:
 
-* [Attention RNN](http://download.magenta.tensorflow.org/models/attention_rnn.mag)
-* [Pianoroll RNN-NADE](http://download.magenta.tensorflow.org/models/pianoroll_rnn_nade.mag)
-* [Drum Kit RNN](http://download.magenta.tensorflow.org/models/drum_kit_rnn.mag)
+* [Attention RNN](/magenta/models/melody_rnn/README.md#attention)
+* [Pianoroll RNN-NADE](/magenta/models/pianoroll_rnn_nade/README.md)
+* [Performance RNN](/magenta/models/performance_rnn/README.md)
+* [Drum Kit RNN](/magenta/models/drums_rnn/README.md)
 
 ### Development
 
