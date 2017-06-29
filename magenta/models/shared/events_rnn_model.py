@@ -514,6 +514,9 @@ class EventSequenceRnnModel(mm.BaseModel):
 class EventSequenceRnnConfig(object):
   """Stores a configuration for an event sequence RNN.
 
+  Only one of `steps_per_quarter` or `steps_per_second` will be applicable for
+  any particular model.
+
   Attributes:
     details: The GeneratorDetails message describing the config.
     encoder_decoder: The EventSequenceEncoderDecoder or
@@ -521,10 +524,14 @@ class EventSequenceRnnConfig(object):
     hparams: The HParams containing hyperparameters to use.
     steps_per_quarter: The integer number of quantized time steps per quarter
         note to use.
+    steps_per_second: The integer number of quantized time steps per second to
+        use.
   """
 
-  def __init__(self, details, encoder_decoder, hparams, steps_per_quarter=4):
+  def __init__(self, details, encoder_decoder, hparams,
+               steps_per_quarter=4, steps_per_second=100):
     self.details = details
     self.encoder_decoder = encoder_decoder
     self.hparams = hparams
     self.steps_per_quarter = steps_per_quarter
+    self.steps_per_second = steps_per_second
