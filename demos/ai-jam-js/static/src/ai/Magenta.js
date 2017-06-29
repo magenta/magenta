@@ -21,7 +21,7 @@ const TO_MAGENTA_PIANO_PORT_NAME = 'magenta_piano_in'
 const TO_MAGENTA_DRUMS_PORT_NAME = 'magenta_drums_in'
 
 const DRUM_MODELS = ['Drums']
-const PIANO_MODELS = ['Attention', 'Pianoroll']
+const PIANO_MODELS = ['Attention', 'Pianoroll', 'Performance']
 
 // 0-based
 const CLOCK_CC = 1
