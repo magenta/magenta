@@ -49,6 +49,12 @@ sh_binary(
         "//magenta/models/melody_rnn:melody_rnn_generate",
         "//magenta/models/melody_rnn:melody_rnn_train",
 
+        # Performance RNN Model and Scripts
+        "//magenta/models/performance_rnn",
+        "//magenta/models/performance_rnn:performance_rnn_create_dataset",
+        "//magenta/models/performance_rnn:performance_rnn_generate",
+        "//magenta/models/performance_rnn:performance_rnn_train",
+
         # Pianoroll RNN-NADE Model and Scripts
         "//magenta/models/pianoroll_rnn_nade",
         "//magenta/models/pianoroll_rnn_nade:pianoroll_rnn_nade_create_dataset",
