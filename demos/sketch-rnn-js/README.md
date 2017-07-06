@@ -87,13 +87,13 @@ We found it sometimes simpler to copy the contents of the json file and place it
 
 ## Run Pre-built Examples
 
-There are a number of proof-of-concept demos built to use the Sketch RNN model.  You can look at the corresponding code to study in detail how the model works.  To run these examples, it is recommended to use a simple local webserver, such as the http-server can be obtained using npm, and load the local html file from the local server.  Some examples require this, since they need to dynamically load .json model files, and local static session doesn't allow for this in many browsers.
+There are a number of proof-of-concept demos built to use the Sketch RNN model.  You can look at the corresponding code to study in detail how the model works.  To run these examples, it is recommended to use a simple local webserver, such as the http-server that can be obtained using npm, and load the local html file from the local server.  Some examples require this, since they need to dynamically load .json model files, and local static session doesn't allow for this in many browsers.
 
 If you use the http-server, running something would be like putting `http://127.0.0.1:8080/basic_predict.html` in the address tab in Chrome.  For debugging, it is recommended you open a console tab on the side of the screen to look at the log messages.
 
 ### 1) basic\_vae.html / basic\_vae.js
 
-This basic demo will generate an unconditional images on the web page given random latent vectors.  In addition, we demonstrate what the an image looks like if we average the two latent vectors.
+This basic demo will generate an unconditional images on the web page given random latent vectors.  In addition, we demonstrate what an image looks like if we average the two latent vectors.
 
 ### 2) basic\_predict.html / basic\_predict.js
 
@@ -101,11 +101,12 @@ Similar to basic\_grid, this demo will keep on generating random vector images u
 
 ### 3) simple_predict.html / simple_predict.js
 
-This demo is also an unconditional generative, that tries to finish the drawing that the user starts.  If the user doesn't draw anything, the computer will keep on drawing stuff from scratch.
+This demo is also generates unconditionally, attempting to finish the drawing that the user starts.
+ If the user doesn't draw anything, the computer will keep on drawing stuff from scratch.
 
 Hitting restart will clear the current human drawing and start from scratch.
 
-In this demo, you can also select other classes, like "cat", "snail", "duck", "bus", etc.  The demo will dynamically load the json files in the models directory, but cache previously loaded json models.
+In this demo, you can also select other classes, like "cat", "snail", "duck", "bus", etc.  The demo will dynamically load the json files in the models directory but cache previously loaded json models.
 
 ### 4) predict.html / predict.js
 
@@ -121,17 +122,17 @@ The demo is a variational autoencoder built to mimic your drawings and produce s
 
 ### 7) multi_predict.html / multi_predict.js
 
-The demo is similar to `simple_predict`. In this version, you will draw the beginning of a sketch inside the area on the left, and the model will predict the rest of the drawing inside the smaller boxes on the right. This way, you can see a variety of different endings predicted by the model. You can also choose different categories to get the model to draw different objects based on the same incomplete starting sketch, to get the model to draw things like square cats, or circular trucks. You can always interrupt the model and continue working on your drawing inside the area on the left, and have the model continually predict where you left off afterwards.
+The demo is similar to `simple_predict`. In this version, you will draw the beginning of a sketch inside the area on the left, and the model will predict the rest of the drawing inside the smaller boxes on the right. This way, you can see a variety of different endings predicted by the model. You can also choose different categories to get the model to draw different objects based on the same incomplete starting sketch. For example, you can get the model to draw things like square cats or circular trucks. You can always interrupt the model and continue working on your drawing inside the area on the left, and have the model continually predict where you left off afterwards.
 
 ### 8) simplify_lines.html / simplify_lines.js
 
-This one does not use machine learning model at all.  We demonstrate how the data\_tool.js is used to help us simplify lines.  When you draw something on the screen, after you release the mouse, the line you have just drawn will be automatically simplified using the RDP algorithm with an epsilon parameter of 2.0.  All models are trained to assume simplified line data with epsilon 2.0, so for best effect it is wise to convert all input data with `DataTool.simplify_lines()` function (a very efficient JS implementation of RDP), before using `DataTool.lines_to_strokes()` to convert to stroke-based dataformat for sketch\_rnn.js model to process.
+This one does not use a machine learning model at all.  We demonstrate how  data\_tool.js is used to help us simplify lines.  When you draw something on the screen, after you release the mouse, the line you have just drawn will be automatically simplified using the RDP algorithm with an epsilon parameter of 2.0.  All models are trained to assume simplified line data with epsilon 2.0, so for best effect it is wise to convert all input data with `DataTool.simplify_lines()` function (a very efficient JS implementation of RDP), before using `DataTool.lines_to_strokes()` to convert to stroke-based dataformat for sketch\_rnn.js model to process.
 
 ## Usage of Sketch RNN model
 
 ### Pre-trained weight files
 
-The RNN model has 2 modes: unconditional and conditional generation.  Unconditional generations means the model will just generate a random vector image from scratch and not use any latent vectors as an input.  Conditional generation mode requires a latent vector (128-dim) as an input, and whatever the model generates will be defined by those 128 numbers that can control various aspects of the image.
+The RNN model has 2 modes: unconditional and conditional generation.  Unconditional generation means the model will just generate a random vector image from scratch and not use any latent vectors as an input.  Conditional generation mode requires a latent vector (128-dim) as an input, and whatever the model generates will be defined by those 128 numbers that can control various aspects of the image.
 
 Whether conditional or not, all of the raw weights of these models are individually stored as .json files inside the models directory.  For example, for the 'butterfly' class, there are 2 models that come pretrained:
 
@@ -145,7 +146,7 @@ Some of these models are also stored for convenience as .js format, in case you 
 
 ### Sketch RNN
 
-The main model is stored inside sketch\_rnn.js.  Before using the model, I assume you have some method to import the desired .json pre-trained weight file, and parse that into a JS object first.
+The main model is stored inside sketch\_rnn.js.  Before using the model, you need some method to import the desired .json pre-trained weight file, and parse that into a JS object first.
 
 To create a model:
 
@@ -160,9 +161,9 @@ To view the meta information for the pre_trained weights, just do a console.log(
 
 ### Scale Factors
 
-When training the models, all the offset data has been normalized to have a standard deviation of 1.0 on the training set, after simplifying the strokes.  Neural nets work best when training on normalized data.  However, the original data recorded with the QuickDraw web app stored things as pixels, which was scaled down so that on average the stroke offsets are ~ 1.0 length.  So each dataclass has its own `scale_factors` to scale down, and these numbers are usually between 60 to 120 depending on the dataset.  These scale factors are stored into `model.info.scale_factor`.  The model will assume all inputs and outputs to be in pixel space, not normalized space, and will do all the scaling for you.  You can modify these in the model using `model.set_scale_factor()` but I don't recommend this.  Rather than overwrite the `scale_factor`, modify the pixel_factor instead, as described in the next paragraph.
+When training the models, all the offset data has been normalized to have a standard deviation of 1.0 on the training set, after simplifying the strokes.  Neural nets work best when training on normalized data.  However, the original data recorded with the QuickDraw web app stored everything as pixels, which was scaled down so that on average the stroke offsets are ~ 1.0 length.  Thus each dataclass has its own `scale_factors` to scale down, and these numbers are usually between 60 to 120 depending on the dataset.  These scale factors are stored into `model.info.scale_factor`.  The model will assume all inputs and outputs to be in pixel space, not normalized space, and will do all the scaling for you.  You can modify these in the model using `model.set_scale_factor()`, but it is not recommended.  Rather than overwriting the `scale_factor`, modify the pixel_factor instead, as described in the next paragraph.
 
-If using PaperJS, I recommend leaving everything as it is.  But I noticed that when using P5.JS, all the recorded data looked a lot bigger vs the original app by a factor of exactly 2, and this is likely due to anti-aliasing functionality of web browsers.  Hence I introduced an extra scaling factor for the model called `pixel_factor`.  If you want to make interactive apps and receive realtime drawing data from the user, and you are using PaperJS, it is best to set do a `model.set_pixel_factor(1.0)`.  For p5.js, do a `model.set_pixel_factor(2.0)`.  For non-interactive applications, using a larger `set_pixel_factor` will reduce the size of the generated image.
+If using PaperJS, it is recommended that you leave everything as it is.  When using P5.JS, all the recorded data looks much bigger compared to the original app by a factor of exactly 2, and this is likely due to anti-aliasing functionality of web browsers.  Hence the extra scaling factor for the model called `pixel_factor`.  If you want to make interactive apps and receive realtime drawing data from the user, and you are using PaperJS, it is best to set do a `model.set_pixel_factor(1.0)`.  For p5.js, do a `model.set_pixel_factor(2.0)`.  For non-interactive applications, using a larger `set_pixel_factor` will reduce the size of the generated image.
 
 ### Line Data vs Stroke Data
 
@@ -195,7 +196,7 @@ Each row of the stroke will be 5 elements:
 ```
 p0 = 1 means the pen stays on the paper at the next stroke.
 p1 = 1 means the pen will is now above the paper after this stroke.  The next stroke will be the start of a new line.
-p2 = 1 means the drawing has stopped.  stop drawing anything!
+p2 = 1 means the drawing has stopped.  Stop drawing anything!
 ```
 
 The drawing will be decomposed into a list of `[dx, dy, p0, p1, p2]` strokes.
@@ -223,7 +224,7 @@ var example = model.generate(temperature);
 
 draw_example(example, 60, 100, new p.color(185, 23, 96)); // my custom method in basic_grid.js for p5.js
 ```
-If you have written a simple `draw_example` routine like me (i.e. in basic\_predict.js), and want to center and scale the image before rendering it, I have made some tools in the model to do this.
+If you have written a simple `draw_example` routine like me (i.e. in basic\_predict.js), and want to center and scale the image before rendering it, there are some tools in the model to do this.
 
 Say you have generated a cat using already using example = `model.generate(temperature)`, and want to draw that cat into a 100x100px bounding box between (10, 50) and (110, 150).  You can scale the image first, and then center it before plotting it out.
 ```javascript
@@ -231,11 +232,11 @@ var mod_example = model.scale_drawing(example, 100); // scales the drawing propo
 mod_example = model.center_drawing(example)
 draw_example(mod_example, 60, 100, new p.color(185, 23, 96));
 ```
-This will draw a scaled drawing to fill the bounding box and draw it at the center.  Note that I create a new list called mod_example to store the modified version as I want to keep the original example list unmodified.
+This will draw a scaled drawing to fill the bounding box and draw it at the center.  Note that this creates a new list called mod_example to store the modified version in order to keep the original example list unmodified.
 
 ### Unconditional Generation - One Stroke at a Time
 
-If you want to get the model to generate a stroke at a time, you can use the previous method to pre-generate the entire image, and then plot it out once every 1/60 seconds.  Alternative, you may want to distribute the computing power and generate on the fly.  This is useful for interactive applications.
+If you want to get the model to generate a stroke at a time, you can use the previous method to pre-generate the entire image, and then plot it out once every 1/60 seconds.  Alternatively, you may want to distribute the computing power and generate on the fly.  This is useful for interactive applications.
 
 To generate a stroke at a time, let's study basic.js, a p5.js example.  Almost pseudo-code:
 ```javascript
@@ -299,11 +300,11 @@ var draw = function() {
   prev_pen = [pen_down, pen_up, pen_end];
 };
 ```
-In the above example, using p5.js framework, the setup method is called first to initialize everything.  Afterwards, `draw()` is called 60 times a second, until `noLoop()` is called when we finish.  If you want to use the same model to draw other things again in the same session, just reinitialize the `rnn_state` like in the `setup()` function.  I usually use another routine like `init()` or `restart()` to do this and not rely on the p5.js `setup()` routine.
+In the above example, using p5.js framework, the setup method is called first to initialize everything.  Afterwards, `draw()` is called 60 times a second, until `noLoop()` is called when we finish.  If you want to use the same model to draw other things again in the same session, just reinitialize the `rnn_state` like in the `setup()` function.  You should use another routine like `init()` or `restart()` to do this and not rely on the p5.js `setup()` routine.
 
 ## Variational Autoencoder - Conditional Generation of Vector Images
 
-In this section, I will outline how to use the model to encode a given vector image into a 128-dimension vector of floating point numbers (the "latent vector" Z), and also how to take a given Z (which can be either previously encoded, modified by the user, or even entirely generated), and decode it into a vector image.
+In this section, you will see how to use the model to encode a given vector image into a 128-dimension vector of floating point numbers (the "latent vector" Z), and also how to take a given Z (which can be either previously encoded, modified by the user, or even entirely generated), and decode it into a vector image.
 
 To create a model, say from the cat class, you must choose between one of ant\_vae.json.
 
@@ -323,7 +324,7 @@ Unlike the traditional VAE paper, z is deterministic for a given example.  If we
 ```javascript
 var z = model.encode(example, encoding_temperature); // encoding_temperature between 0 and 1.
 ```
-I personally like the 2nd method as it provides more artistic variation, but it depends on your application.  If you are doing clustering and prefer more certainty, then the default method may be better and easier to debug.
+The 2nd method provides more artistic variation, but which is best for you depends on your application.  If you are doing clustering and prefer more certainty, then the default method may be better and easier to debug.
 
 If you collect a group of z's, you can do PCA or t-sne or other clustering methods to analyze your data, and even use the z's for classification.  As we may upgrade the model weights in the future, each model has a versioning system stored in model.info.version, so you may want to keep track of the model version with the z's of each class if you intend to save them to use at a later point.
 
@@ -335,7 +336,7 @@ var reconstruction = model.decode(z, temperature); // temperature between 0.01 t
 ```
 The process of reconstruction is also a stochastic process.  This means for a given z, you can, running model.decode a few times will give you different reconstruction images.  Keeping temperature = 0.01-0.1 will give you generally very similar images and this is useful for animation applications.
 
-For models with very low KL loss, ie < 0.50, you can even sample z from a gaussian distribution, and use that z to produce a legit vector image.  To sample z from a gaussian distribution:
+For models with very low KL loss, ie < 0.50, you can even sample z from a gaussian distribution and use that z to produce a legit vector image.  To sample z from a gaussian distribution:
 ```javascript
 var z = model.random_latent_vector();
 var reconstruction = model.decode(z, temperature);
