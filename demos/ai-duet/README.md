@@ -2,6 +2,9 @@
 
 A piano that responds to you.
 
+Note: This demo works only with our [Attention RNN model](https://github.com/tensorflow/magenta/tree/master/magenta/models/melody_rnn). To select from several different Magenta models (including Attention RNN), instead try the [AI Jam (JavaScript) demo](https://github.com/tensorflow/magenta/tree/master/demos/ai-jam-js) derived from this one.
+
+
 ## About
 
 This experiment lets you make music through machine learning. A neural network was trained on many MIDI examples and it learned about musical concepts, building a map of notes and timings. You just play a few notes, and see how the neural net responds. 
@@ -29,12 +32,12 @@ cd server
 python server.py
 ```
 
-Then to build and install the front-end Javascript code, first make sure you have [Node.js](https://nodejs.org) 6 or above and [webpack](https://webpack.github.io/) installed. And then install of the dependencies of the project and build the code by typing the following in the terminal: 
+Then to build and install the front-end Javascript code, first make sure you have [Node.js](https://nodejs.org) 6 or above and [webpack](https://webpack.github.io/) installed. And then install of the dependencies of the project and build the code by typing the following in a second terminal session: 
 
 ```bash
 cd static
 npm install
-webpack -p
+node_modules/.bin/webpack -p
 ```
 
 You can now play with A.I. Duet at [localhost:8080](http://localhost:8080).
