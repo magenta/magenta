@@ -2,15 +2,8 @@
 
 A piano that responds to you.
 
-## Note
+Note: This demo works only with our [Attention RNN model](https://github.com/tensorflow/magenta/tree/master/magenta/models/melody_rnn). To select from several different Magenta models (including Attention RNN), instead try the [AI Jam (JavaScript) demo](https://github.com/tensorflow/magenta/tree/master/demos/ai-duet) derived from this one.
 
-This demo works only with our [Attention RNN model]
-(https://github.com/tensorflow/magenta/tree/master/magenta/models/melody_rnn). 
-To select from several different Magenta models (including Attention RNN), 
-instead try
-the [AI Jam (JavaScript) demo]
-(https://github.com/tensorflow/magenta/tree/master/demos/ai-duet) derived from
-this one.
 
 ## About
 
