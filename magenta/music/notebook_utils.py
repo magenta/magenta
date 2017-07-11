@@ -69,8 +69,6 @@ def plot_sequence(sequence,
   def _sequence_to_pandas_dataframe(sequence):
     """Generates a pandas dataframe from a sequence."""
     pd_dict = collections.defaultdict(list)
-    min_velocity = 128
-    max_velocity = 0
     for note in sequence.notes:
       pd_dict['start_time'].append(note.start_time)
       pd_dict['end_time'].append(note.end_time)
