@@ -443,6 +443,67 @@ class Performance(events_lib.EventSequence):
     return sequence
 
 
+def performance_note_density_sequence(performance, window_size_seconds):
+  """Computes note density at every event in a performance.
+
+  Args:
+    performance: A Performance object for which to compute a note density
+        sequence.
+    window_size_seconds: The size of the window, in seconds, used to compute
+        note density (notes per second).
+
+  Returns:
+    A list of note densities of the same length as `performance`, with each
+    entry equal to the note density in the window starting at the corresponding
+    performance event time.
+  """
+  window_size_steps = int(round(
+      window_size_seconds * performance.steps_per_second))
+
+  prev_event_type = None
+  prev_density = 0.0
+
+  density_sequence = []
+
+  for i, event in enumerate(performance):
+    if (prev_event_type is not None and
+        prev_event_type != PerformanceEvent.TIME_SHIFT):
+      # The previous event didn't move us forward in time, so the note density
+      # here should be the same.
+      density_sequence.append(prev_density)
+      prev_event_type = event.event_type
+      continue
+
+    j = i
+    step_offset = 0
+    note_count = 0
+
+    # Count the number of note-on events within the window.
+    while step_offset < window_size_steps and j < len(performance):
+      if performance[j].event_type == PerformanceEvent.NOTE_ON:
+        note_count += 1
+      elif performance[j].event_type == PerformanceEvent.TIME_SHIFT:
+        step_offset += performance[j].event_value
+      j += 1
+
+    # If we're near the end of the performance, part of the window will
+    # necessarily be empty; we don't include this part of the window when
+    # calculating note density.
+    actual_window_size_steps = min(step_offset, window_size_steps)
+    if actual_window_size_steps > 0:
+      density = (
+          note_count * performance.steps_per_second / actual_window_size_steps)
+    else:
+      density = 0.0
+
+    density_sequence.append(density)
+
+    prev_event_type = event.event_type
+    prev_density = density
+
+  return density_sequence
+
+
 def extract_performances(
     quantized_sequence, start_step=0, min_events_discard=None,
     max_events_truncate=None, num_velocity_bins=0):

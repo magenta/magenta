@@ -78,6 +78,10 @@ tf.app.flags.DEFINE_string(
     'The path to a MIDI file containing a polyphonic track that will be used '
     'as a priming track.')
 tf.app.flags.DEFINE_float(
+    'notes_per_second', 10.0,
+    'When conditioning on note density, the desired density in notes per '
+    'second. If not conditioning, this value will be ignored.')
+tf.app.flags.DEFINE_float(
     'temperature', 1.0,
     'The randomness of the generated tracks. 1.0 uses the unaltered '
     'softmax probabilities, greater than 1.0 makes tracks more random, less '
@@ -192,6 +196,14 @@ def run_with_flags(generator):
         generate_section.start_time, generate_end_time)
     return
 
+  if (FLAGS.notes_per_second is not None and
+      not generator.note_density_conditioning):
+    tf.logging.warning(
+        'Notes per second requested via flag, but generator is not set up to '
+        'condition on note density. Requested note density will be ignored: %s',
+        FLAGS.notes_per_second)
+
+  generator_options.args['note_density'].float_value = FLAGS.notes_per_second
   generator_options.args['temperature'].float_value = FLAGS.temperature
   generator_options.args['beam_size'].int_value = FLAGS.beam_size
   generator_options.args['branch_factor'].int_value = FLAGS.branch_factor
@@ -234,6 +246,7 @@ def main(unused_argv):
       details=config.details,
       steps_per_second=config.steps_per_second,
       num_velocity_bins=config.num_velocity_bins,
+      note_density_conditioning=config.density_bin_ranges is not None,
       checkpoint=get_checkpoint(),
       bundle=bundle)
 

@@ -27,7 +27,7 @@ class PerformanceRnnModel(events_rnn_model.EventSequenceRnnModel):
 
   def generate_performance(
       self, num_steps, primer_sequence, temperature=1.0, beam_size=1,
-      branch_factor=1, steps_per_iteration=1):
+      branch_factor=1, steps_per_iteration=1, note_density=None):
     """Generate a performance track from a primer performance track.
 
     Args:
@@ -42,24 +42,40 @@ class PerformanceRnnModel(events_rnn_model.EventSequenceRnnModel):
       branch_factor: An integer, beam search branch factor to use.
       steps_per_iteration: An integer, number of steps to take per beam search
           iteration.
+      note_density: Desired note density of generated performance. If None,
+          don't condition on note density.
 
     Returns:
       The generated Performance object (which begins with the provided primer
       track).
     """
-    return self._generate_events(num_steps, primer_sequence, temperature,
-                                 beam_size, branch_factor, steps_per_iteration)
+    if note_density is not None:
+      control_events = [note_density] * num_steps
+    else:
+      control_events = None
 
-  def performance_log_likelihood(self, sequence):
+    return self._generate_events(num_steps, primer_sequence, temperature,
+                                 beam_size, branch_factor, steps_per_iteration,
+                                 control_events=control_events)
+
+  def performance_log_likelihood(self, sequence, note_density=None):
     """Evaluate the log likelihood of a performance.
 
     Args:
       sequence: The Performance object for which to evaluate the log likelihood.
+      note_density: Control note density on which performance is conditioned. If
+          None, don't condition on note density.
 
     Returns:
       The log likelihood of `sequence` under this model.
     """
-    return self._evaluate_log_likelihood([sequence])[0]
+    if note_density is not None:
+      control_events = [note_density] * len(sequence)
+    else:
+      control_events = None
+
+    return self._evaluate_log_likelihood(
+        [sequence], control_events=control_events)[0]
 
 
 class PerformanceRnnConfig(events_rnn_model.EventSequenceRnnConfig):
@@ -68,12 +84,20 @@ class PerformanceRnnConfig(events_rnn_model.EventSequenceRnnConfig):
   Attributes:
     num_velocity_bins: Number of velocity bins to use. If 0, don't use velocity
         at all.
+    density_bin_ranges: List of note density (notes per second) bin boundaries
+        to use when quantizing note density for conditioning. If None, don't
+        condition on note density.
+    density_window_size: Size of window used to compute note density, in
+        seconds.
   """
 
-  def __init__(self, details, encoder_decoder, hparams, num_velocity_bins=0):
+  def __init__(self, details, encoder_decoder, hparams, num_velocity_bins=0,
+               density_bin_ranges=None, density_window_size=3.0):
     super(PerformanceRnnConfig, self).__init__(
         details, encoder_decoder, hparams)
     self.num_velocity_bins = num_velocity_bins
+    self.density_bin_ranges = density_bin_ranges
+    self.density_window_size = density_window_size
 
 
 default_configs = {
@@ -104,4 +128,24 @@ default_configs = {
             clip_norm=3,
             learning_rate=0.001),
         num_velocity_bins=32),
+
+    'density_conditioned_performance_with_dynamics': PerformanceRnnConfig(
+        magenta.protobuf.generator_pb2.GeneratorDetails(
+            id='density_conditioned_performance_with_dynamics',
+            description='Note-density-conditioned Performance RNN + dynamics'),
+        magenta.music.ConditionalEventSequenceEncoderDecoder(
+            magenta.music.OneHotEventSequenceEncoderDecoder(
+                performance_encoder_decoder.NoteDensityOneHotEncoding(
+                    density_bin_ranges=[1.0, 2.0, 4.0, 8.0, 16.0, 32.0, 64.0])),
+            magenta.music.OneHotEventSequenceEncoderDecoder(
+                performance_encoder_decoder.PerformanceOneHotEncoding(
+                    num_velocity_bins=32))),
+        tf.contrib.training.HParams(
+            batch_size=64,
+            rnn_layer_sizes=[512, 512, 512],
+            dropout_keep_prob=1.0,
+            clip_norm=3,
+            learning_rate=0.001),
+        num_velocity_bins=32,
+        density_bin_ranges=[1.0, 2.0, 4.0, 8.0, 16.0, 32.0, 64.0]),
 }

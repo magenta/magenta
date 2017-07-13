@@ -296,6 +296,34 @@ class PerformanceLibTest(tf.test.TestCase):
 
     self.assertEqual(100, performance.num_steps)
 
+  def testPerformanceNoteDensitySequence(self):
+    performance = performance_lib.Performance(steps_per_second=100)
+
+    pe = performance_lib.PerformanceEvent
+    perf_events = [
+        pe(pe.NOTE_ON, 60),
+        pe(pe.NOTE_ON, 64),
+        pe(pe.NOTE_ON, 67),
+        pe(pe.TIME_SHIFT, 50),
+        pe(pe.NOTE_OFF, 60),
+        pe(pe.NOTE_OFF, 64),
+        pe(pe.TIME_SHIFT, 25),
+        pe(pe.NOTE_OFF, 67),
+        pe(pe.NOTE_ON, 64),
+        pe(pe.TIME_SHIFT, 25),
+        pe(pe.NOTE_OFF, 64)
+    ]
+    for event in perf_events:
+      performance.append(event)
+
+    expected_density_sequence = [
+        4.0, 4.0, 4.0, 4.0, 2.0, 2.0, 2.0, 4.0, 4.0, 4.0, 0.0]
+
+    density_sequence = performance_lib.performance_note_density_sequence(
+        performance, window_size_seconds=100)
+
+    self.assertEqual(expected_density_sequence, density_sequence)
+
   def testExtractPerformances(self):
     testing_lib.add_track_to_sequence(
         self.note_sequence, 0, [(60, 100, 0.0, 4.0)])

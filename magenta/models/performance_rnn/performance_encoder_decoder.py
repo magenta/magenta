@@ -71,3 +71,41 @@ class PerformanceOneHotEncoding(encoder_decoder.OneHotEncoding):
       offset += max_value - min_value + 1
 
     raise ValueError('Unknown event index: %s' % index)
+
+
+class NoteDensityOneHotEncoding(encoder_decoder.OneHotEncoding):
+  """One-hot encoding for performance note density events.
+
+  Encodes by quantizing note density events. When decoding, always decodes to
+  the minimum value for each bin. The first bin starts at zero note density.
+  """
+
+  def __init__(self, density_bin_ranges):
+    """Initialize a NoteDensityOneHotEncoding.
+
+    Args:
+      density_bin_ranges: List of note density (notes per second) bin boundaries
+          to use when quantizing. The number of bins will be one larger than the
+          list length.
+    """
+    self._density_bin_ranges = density_bin_ranges
+
+  @property
+  def num_classes(self):
+    return len(self._density_bin_ranges) + 1
+
+  @property
+  def default_event(self):
+    return 0.0
+
+  def encode_event(self, event):
+    for idx, density in enumerate(self._density_bin_ranges):
+      if event < density:
+        return idx
+    return len(self._density_bin_ranges)
+
+  def decode_event(self, index):
+    if index == 0:
+      return 0.0
+    else:
+      return self._density_bin_ranges[index - 1]
