@@ -436,7 +436,6 @@ class Part(object):
     forward_count = len(measure.findall('forward'))
     note_count = len(measure.findall('note'))
     if note_count == 0 and forward_count == 1:
-
       # Get the duration of the <forward> element
       xml_forward = measure.find('forward')
       xml_duration = xml_forward.find('duration')
@@ -600,7 +599,6 @@ class Measure(object):
       self.time_signature.denominator = fractional_time_signature.denominator
       self.state.time_signature = self.time_signature
     else:
-
       fractional_state_time_signature = Fraction(
           self.state.time_signature.numerator,
           self.state.time_signature.denominator)
@@ -627,8 +625,10 @@ class Measure(object):
         new_time_signature.numerator = numerator
         new_time_signature.denominator = denominator
 
-        new_time_sig_fraction = Fraction(new_time_signature.numerator,
-                                         new_time_signature.denominator)
+        #new_time_sig_fraction = Fraction(new_time_signature.numerator,
+        #                                 new_time_signature.denominator)
+        new_time_sig_fraction = Fraction(numerator,
+                                         denominator)
 
         if new_time_sig_fraction == fractional_time_signature:
           new_time_signature.numerator = fractional_time_signature.numerator
@@ -637,7 +637,7 @@ class Measure(object):
       # Insert a new time signature only if it does not equal the global
       # time signature.
       if (self.time_signature is None
-          and fractional_time_signature != fractional_state_time_signature
+          and (fractional_time_signature != fractional_state_time_signature)
           or pickup_measure):
         new_time_signature.time_position = self.start_time_position
         self.time_signature = new_time_signature
