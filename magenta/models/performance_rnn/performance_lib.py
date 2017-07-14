@@ -16,6 +16,7 @@
 from __future__ import division
 
 import collections
+import copy
 import math
 
 # internal imports
@@ -26,6 +27,8 @@ from magenta.music import events_lib
 from magenta.music import sequences_lib
 from magenta.pipelines import statistics
 from magenta.protobuf import music_pb2
+
+NOTES_PER_OCTAVE = constants.NOTES_PER_OCTAVE
 
 MAX_MIDI_PITCH = constants.MAX_MIDI_PITCH
 MIN_MIDI_PITCH = constants.MIN_MIDI_PITCH
@@ -502,6 +505,81 @@ def performance_note_density_sequence(performance, window_size_seconds):
     prev_density = density
 
   return density_sequence
+
+
+def performance_pitch_histogram_sequence(performance, window_size_seconds,
+                                         prior_count=0.01):
+  """Computes local pitch class histogram at every event in a performance.
+
+  Args:
+    performance: A Performance object for which to compute a pitch class
+        histogram sequence.
+    window_size_seconds: The size of the window, in seconds, used to compute
+        each histogram.
+    prior_count: A prior count to smooth the resulting histograms. This value
+        will be added to the actual pitch class counts.
+
+  Returns:
+    A list of pitch class histograms the same length as `performance`, where
+    each pitch class histogram is a length-12 list of float values summing to
+    one.
+  """
+  window_size_steps = int(round(
+      window_size_seconds * performance.steps_per_second))
+
+  prev_event_type = None
+  prev_histogram = [1.0 / NOTES_PER_OCTAVE] * NOTES_PER_OCTAVE
+
+  base_active_pitches = set()
+  histogram_sequence = []
+
+  for i, event in enumerate(performance):
+    # Maintain the base set of active pitches.
+    if event.event_type == PerformanceEvent.NOTE_ON:
+      base_active_pitches.add(event.event_value)
+    elif event.event_type == PerformanceEvent.NOTE_OFF:
+      base_active_pitches.discard(event.event_value)
+
+    if (prev_event_type is not None and
+        prev_event_type != PerformanceEvent.TIME_SHIFT):
+      # The previous event didn't move us forward in time, so the histogram here
+      # should be the same.
+      histogram_sequence.append(prev_histogram)
+      prev_event_type = event.event_type
+      continue
+
+    j = i
+    step_offset = 0
+
+    active_pitches = copy.deepcopy(base_active_pitches)
+    pitch_class_counts = [prior_count] * NOTES_PER_OCTAVE
+
+    # Count the total duration of each pitch class within the window.
+    while step_offset < window_size_steps and j < len(performance):
+      if performance[j].event_type == PerformanceEvent.NOTE_ON:
+        active_pitches.add(performance[j].event_value)
+      elif performance[j].event_type == PerformanceEvent.NOTE_OFF:
+        active_pitches.discard(performance[j].event_value)
+      elif performance[j].event_type == PerformanceEvent.TIME_SHIFT:
+        for pitch in active_pitches:
+          pitch_class_counts[pitch % NOTES_PER_OCTAVE] += (
+              performance[j].event_value / performance.steps_per_second)
+        step_offset += performance[j].event_value
+      j += 1
+
+    # Normalize by the total weight.
+    total = sum(pitch_class_counts)
+    if total > 0:
+      histogram = [count / total for count in pitch_class_counts]
+    else:
+      histogram = [1.0 / NOTES_PER_OCTAVE] * NOTES_PER_OCTAVE
+
+    histogram_sequence.append(histogram)
+
+    prev_event_type = event.event_type
+    prev_histogram = histogram
+
+  return histogram_sequence
 
 
 def extract_performances(

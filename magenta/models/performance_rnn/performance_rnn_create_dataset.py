@@ -68,6 +68,7 @@ class EncoderPipeline(pipeline.Pipeline):
     self._encoder_decoder = config.encoder_decoder
     self._density_bin_ranges = config.density_bin_ranges
     self._density_window_size = config.density_window_size
+    self._pitch_histogram_window_size = config.pitch_histogram_window_size
 
   def transform(self, performance):
     if self._density_bin_ranges is not None:
@@ -75,6 +76,11 @@ class EncoderPipeline(pipeline.Pipeline):
       density_sequence = performance_lib.performance_note_density_sequence(
           performance, self._density_window_size)
       encoded = self._encoder_decoder.encode(density_sequence, performance)
+    elif self._pitch_histogram_window_size is not None:
+      # Encode conditional on pitch class histogram.
+      histogram_sequence = performance_lib.performance_pitch_histogram_sequence(
+          performance, self._pitch_histogram_window_size)
+      encoded = self._encoder_decoder.encode(histogram_sequence, performance)
     else:
       # Encode unconditional.
       encoded = self._encoder_decoder.encode(performance)

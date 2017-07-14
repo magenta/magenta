@@ -78,9 +78,15 @@ tf.app.flags.DEFINE_string(
     'The path to a MIDI file containing a polyphonic track that will be used '
     'as a priming track.')
 tf.app.flags.DEFINE_float(
-    'notes_per_second', 10.0,
+    'notes_per_second', None,
     'When conditioning on note density, the desired density in notes per '
     'second. If not conditioning, this value will be ignored.')
+tf.app.flags.DEFINE_string(
+    'pitch_class_histogram', None,
+    'When conditioning on pitch class histogram, a string representation of '
+    'the desired pitch class histogram as a Python list. For example: '
+    '"[2, 0, 1, 0, 1, 1, 0, 1, 0, 1, 0, 1]". The values will be normalized to '
+    'sum to one.')
 tf.app.flags.DEFINE_float(
     'temperature', 1.0,
     'The randomness of the generated tracks. 1.0 uses the unaltered '
@@ -203,7 +209,19 @@ def run_with_flags(generator):
         'condition on note density. Requested note density will be ignored: %s',
         FLAGS.notes_per_second)
 
-  generator_options.args['note_density'].float_value = FLAGS.notes_per_second
+  if (FLAGS.pitch_class_histogram is not None and
+      not generator.pitch_histogram_conditioning):
+    tf.logging.warning(
+        'Pitch class histogram requested via flag, but generator is not set up '
+        'to condition on pitch class histogram. Requested pitch class '
+        'histogram will be ignored: %s', FLAGS.pitch_class_histogram)
+
+  if FLAGS.notes_per_second is not None:
+    generator_options.args['note_density'].float_value = FLAGS.notes_per_second
+  if FLAGS.pitch_class_histogram is not None:
+    generator_options.args['pitch_histogram'].byte_value = (
+        FLAGS.pitch_class_histogram)
+
   generator_options.args['temperature'].float_value = FLAGS.temperature
   generator_options.args['beam_size'].int_value = FLAGS.beam_size
   generator_options.args['branch_factor'].int_value = FLAGS.branch_factor
@@ -247,6 +265,8 @@ def main(unused_argv):
       steps_per_second=config.steps_per_second,
       num_velocity_bins=config.num_velocity_bins,
       note_density_conditioning=config.density_bin_ranges is not None,
+      pitch_histogram_conditioning=(
+          config.pitch_histogram_window_size is not None),
       checkpoint=get_checkpoint(),
       bundle=bundle)
 
