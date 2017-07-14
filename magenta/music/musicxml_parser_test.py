@@ -227,8 +227,6 @@ class MusicXMLParserTest(tf.test.TestCase):
             * musicxml_note.note_duration.duration_float(),
             delta=1)
 
-    # Test whole measure rest.
-
   def checkmusicxmltosequence(self, filename):
     """Test the translation from MusicXML to Sequence proto."""
     source_musicxml = musicxml_parser.MusicXMLDocument(filename)

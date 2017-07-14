@@ -625,8 +625,6 @@ class Measure(object):
         new_time_signature.numerator = numerator
         new_time_signature.denominator = denominator
 
-        #new_time_sig_fraction = Fraction(new_time_signature.numerator,
-        #                                 new_time_signature.denominator)
         new_time_sig_fraction = Fraction(numerator,
                                          denominator)
 
@@ -636,9 +634,8 @@ class Measure(object):
 
       # Insert a new time signature only if it does not equal the global
       # time signature.
-      if (self.time_signature is None
-          and (fractional_time_signature != fractional_state_time_signature)
-          or pickup_measure):
+      if (pickup_measure or (self.time_signature is None
+          and (fractional_time_signature != fractional_state_time_signature)):
         new_time_signature.time_position = self.start_time_position
         self.time_signature = new_time_signature
         self.state.time_signature = new_time_signature
