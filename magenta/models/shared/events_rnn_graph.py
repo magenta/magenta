@@ -63,7 +63,7 @@ def build_graph(mode, config, sequence_example_file_paths=None):
         to use.
     sequence_example_file_paths: A list of paths to TFRecord files containing
         tf.train.SequenceExample protos. Only needed for training and
-        evaluation. May be a sharded file of the form.
+        evaluation.
 
   Returns:
     A tf.Graph instance which contains the TF ops.
@@ -85,11 +85,12 @@ def build_graph(mode, config, sequence_example_file_paths=None):
   no_event_label = encoder_decoder.default_event_label
 
   with tf.Graph().as_default() as graph:
-    inputs, labels, lengths, = None, None, None
+    inputs, labels, lengths = None, None, None
 
     if mode == 'train' or mode == 'eval':
       inputs, labels, lengths = magenta.common.get_padded_batch(
-          sequence_example_file_paths, hparams.batch_size, input_size)
+          sequence_example_file_paths, hparams.batch_size, input_size,
+          shuffle=mode == 'train')
 
     elif mode == 'generate':
       inputs = tf.placeholder(tf.float32, [hparams.batch_size, None,
@@ -99,90 +100,78 @@ def build_graph(mode, config, sequence_example_file_paths=None):
         hparams.rnn_layer_sizes,
         dropout_keep_prob=(
             1.0 if mode == 'generate' else hparams.dropout_keep_prob),
-        attn_length=hparams.attn_length)
+        attn_length=(
+            hparams.attn_length if hasattr(hparams, 'attn_length') else 0))
 
     initial_state = cell.zero_state(hparams.batch_size, tf.float32)
 
     outputs, final_state = tf.nn.dynamic_rnn(
-        cell, inputs, initial_state=initial_state, swap_memory=True)
+        cell, inputs, sequence_length=lengths, initial_state=initial_state,
+        swap_memory=True)
 
-    outputs_flat = tf.reshape(outputs, [-1, cell.output_size])
+    outputs_flat = magenta.common.flatten_maybe_padded_sequences(
+        outputs, lengths)
     logits_flat = tf.contrib.layers.linear(outputs_flat, num_classes)
 
     if mode == 'train' or mode == 'eval':
-      labels_flat = tf.reshape(labels, [-1])
-      mask = tf.sequence_mask(lengths)
-      if hparams.skip_first_n_losses:
-        skip = tf.minimum(lengths, hparams.skip_first_n_losses)
-        skip_mask = tf.sequence_mask(skip, maxlen=tf.reduce_max(lengths))
-        mask = tf.logical_and(mask, tf.logical_not(skip_mask))
-      mask = tf.cast(mask, tf.float32)
-      mask_flat = tf.reshape(mask, [-1])
+      labels_flat = magenta.common.flatten_maybe_padded_sequences(
+          labels, lengths)
 
-      num_logits = tf.to_float(tf.reduce_sum(lengths))
+      softmax_cross_entropy = tf.nn.sparse_softmax_cross_entropy_with_logits(
+          labels=labels_flat, logits=logits_flat)
 
-      with tf.control_dependencies(
-          [tf.Assert(tf.greater(num_logits, 0.), [num_logits])]):
-        softmax_cross_entropy = tf.nn.sparse_softmax_cross_entropy_with_logits(
-            labels=labels_flat, logits=logits_flat)
-      loss = tf.reduce_sum(mask_flat * softmax_cross_entropy) / num_logits
-      perplexity = (tf.reduce_sum(mask_flat * tf.exp(softmax_cross_entropy)) /
-                    num_logits)
-
+      predictions_flat = tf.argmax(logits_flat, axis=1)
       correct_predictions = tf.to_float(
-          tf.nn.in_top_k(logits_flat, labels_flat, 1)) * mask_flat
-      accuracy = tf.reduce_sum(correct_predictions) / num_logits * 100
-
-      event_positions = (
-          tf.to_float(tf.not_equal(labels_flat, no_event_label)) * mask_flat)
-      event_accuracy = (
-          tf.reduce_sum(tf.multiply(correct_predictions, event_positions)) /
-          tf.reduce_sum(event_positions) * 100)
-
-      no_event_positions = (
-          tf.to_float(tf.equal(labels_flat, no_event_label)) * mask_flat)
-      no_event_accuracy = (
-          tf.reduce_sum(tf.multiply(correct_predictions, no_event_positions)) /
-          tf.reduce_sum(no_event_positions) * 100)
-
-      global_step = tf.Variable(0, trainable=False, name='global_step')
-
-      tf.add_to_collection('loss', loss)
-      tf.add_to_collection('perplexity', perplexity)
-      tf.add_to_collection('accuracy', accuracy)
-      tf.add_to_collection('global_step', global_step)
-
-      summaries = [
-          tf.summary.scalar('loss', loss),
-          tf.summary.scalar('perplexity', perplexity),
-          tf.summary.scalar('accuracy', accuracy),
-          tf.summary.scalar(
-              'event_accuracy', event_accuracy),
-          tf.summary.scalar(
-              'no_event_accuracy', no_event_accuracy),
-      ]
+          tf.equal(labels_flat, predictions_flat))
+      event_positions = tf.to_float(tf.not_equal(labels_flat, no_event_label))
+      no_event_positions = tf.to_float(tf.equal(labels_flat, no_event_label))
 
       if mode == 'train':
-        learning_rate = tf.train.exponential_decay(
-            hparams.initial_learning_rate, global_step, hparams.decay_steps,
-            hparams.decay_rate, staircase=True, name='learning_rate')
+        loss = tf.reduce_mean(softmax_cross_entropy)
+        perplexity = tf.reduce_mean(tf.exp(softmax_cross_entropy))
+        accuracy = tf.reduce_mean(correct_predictions)
+        event_accuracy = (
+            tf.reduce_sum(correct_predictions * event_positions) /
+            tf.reduce_sum(event_positions))
+        no_event_accuracy = (
+            tf.reduce_sum(correct_predictions * no_event_positions) /
+            tf.reduce_sum(no_event_positions))
 
-        opt = tf.train.AdamOptimizer(learning_rate)
-        params = tf.trainable_variables()
-        gradients = tf.gradients(loss, params)
-        clipped_gradients, _ = tf.clip_by_global_norm(gradients,
-                                                      hparams.clip_norm)
-        train_op = opt.apply_gradients(zip(clipped_gradients, params),
-                                       global_step)
-        tf.add_to_collection('learning_rate', learning_rate)
+        optimizer = tf.train.AdamOptimizer(learning_rate=hparams.learning_rate)
+
+        train_op = tf.contrib.slim.learning.create_train_op(
+            loss, optimizer, clip_gradient_norm=hparams.clip_norm)
         tf.add_to_collection('train_op', train_op)
 
-        summaries.append(tf.summary.scalar(
-            'learning_rate', learning_rate))
+        vars_to_summarize = {
+            'loss': loss,
+            'metrics/perplexity': perplexity,
+            'metrics/accuracy': accuracy,
+            'metrics/event_accuracy': event_accuracy,
+            'metrics/no_event_accuracy': no_event_accuracy,
+        }
+      elif mode == 'eval':
+        vars_to_summarize, update_ops = tf.contrib.metrics.aggregate_metric_map(
+            {
+                'loss': tf.metrics.mean(softmax_cross_entropy),
+                'metrics/accuracy': tf.metrics.accuracy(
+                    labels_flat, predictions_flat),
+                'metrics/per_class_accuracy':
+                    tf.metrics.mean_per_class_accuracy(
+                        labels_flat, predictions_flat, num_classes),
+                'metrics/event_accuracy': tf.metrics.recall(
+                    event_positions, correct_predictions),
+                'metrics/no_event_accuracy': tf.metrics.recall(
+                    no_event_positions, correct_predictions),
+                'metrics/perplexity': tf.metrics.mean(
+                    tf.exp(softmax_cross_entropy)),
+            })
+        for updates_op in update_ops.values():
+          tf.add_to_collection('eval_ops', updates_op)
 
-      if mode == 'eval':
-        summary_op = tf.summary.merge(summaries)
-        tf.add_to_collection('summary_op', summary_op)
+      for var_name, var_value in vars_to_summarize.iteritems():
+        tf.summary.scalar(var_name, var_value)
+        tf.add_to_collection(var_name, var_value)
 
     elif mode == 'generate':
       temperature = tf.placeholder(tf.float32, [])

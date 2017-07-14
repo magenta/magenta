@@ -28,6 +28,7 @@ sh_binary(
 
         # Scripts
         "//magenta/interfaces/midi:magenta_midi",
+        "//magenta/interfaces/midi:midi_clock",
         "//magenta/scripts:convert_dir_to_note_sequences",
 
         # Drums RNN Model and Scripts
@@ -47,6 +48,12 @@ sh_binary(
         "//magenta/models/melody_rnn:melody_rnn_create_dataset",
         "//magenta/models/melody_rnn:melody_rnn_generate",
         "//magenta/models/melody_rnn:melody_rnn_train",
+
+        # Performance RNN Model and Scripts
+        "//magenta/models/performance_rnn",
+        "//magenta/models/performance_rnn:performance_rnn_create_dataset",
+        "//magenta/models/performance_rnn:performance_rnn_generate",
+        "//magenta/models/performance_rnn:performance_rnn_train",
 
         # Pianoroll RNN-NADE Model and Scripts
         "//magenta/models/pianoroll_rnn_nade",
@@ -74,5 +81,9 @@ sh_binary(
         # SketchRNN Model and Scripts
         "//magenta/models/sketch_rnn",
         "//magenta/models/sketch_rnn:sketch_rnn_train",
+
+        # NSynth
+        "//magenta/models/nsynth/wavenet:nsynth_generate",
+        "//magenta/models/nsynth/wavenet:nsynth_save_embeddings",
     ],
 )

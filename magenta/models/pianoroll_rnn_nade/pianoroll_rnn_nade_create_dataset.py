@@ -26,6 +26,7 @@ import tensorflow as tf
 from magenta.models.pianoroll_rnn_nade import pianoroll_rnn_nade_model
 import magenta.music as mm
 from magenta.pipelines import dag_pipeline
+from magenta.pipelines import note_sequence_pipelines
 from magenta.pipelines import pipeline
 from magenta.pipelines import pipelines_common
 from magenta.protobuf import music_pb2
@@ -62,7 +63,7 @@ class PianorollSequenceExtractor(pipeline.Pipeline):
     pianoroll_seqs, stats = mm.extract_pianoroll_sequences(
         quantized_sequence,
         min_steps_discard=self._min_steps,
-        max_steps_discard=self._max_steps)
+        max_steps_truncate=self._max_steps)
     self._set_stats(stats)
     return pianoroll_seqs
 
@@ -79,6 +80,9 @@ def get_pipeline(config, min_steps, max_steps, eval_ratio):
   Returns:
     A pipeline.Pipeline instance.
   """
+  # Transpose up to a major third in either direction.
+  transposition_range = range(-4, 5)
+
   partitioner = pipelines_common.RandomPartition(
       music_pb2.NoteSequence,
       ['eval_pianoroll_tracks', 'training_pianoroll_tracks'],
@@ -86,10 +90,12 @@ def get_pipeline(config, min_steps, max_steps, eval_ratio):
   dag = {partitioner: dag_pipeline.DagInput(music_pb2.NoteSequence)}
 
   for mode in ['eval', 'training']:
-    time_change_splitter = pipelines_common.TimeChangeSplitter(
+    time_change_splitter = note_sequence_pipelines.TimeChangeSplitter(
         name='TimeChangeSplitter_' + mode)
-    quantizer = pipelines_common.Quantizer(
+    quantizer = note_sequence_pipelines.Quantizer(
         steps_per_quarter=config.steps_per_quarter, name='Quantizer_' + mode)
+    transposition_pipeline = note_sequence_pipelines.TranspositionPipeline(
+        transposition_range, name='TranspositionPipeline_' + mode)
     pianoroll_extractor = PianorollSequenceExtractor(
         min_steps=min_steps, max_steps=max_steps,
         name='PianorollExtractor_' + mode)
@@ -99,7 +105,8 @@ def get_pipeline(config, min_steps, max_steps, eval_ratio):
 
     dag[time_change_splitter] = partitioner[mode + '_pianoroll_tracks']
     dag[quantizer] = time_change_splitter
-    dag[pianoroll_extractor] = quantizer
+    dag[transposition_pipeline] = quantizer
+    dag[pianoroll_extractor] = transposition_pipeline
     dag[encoder_pipeline] = pianoroll_extractor
     dag[dag_pipeline.DagOutput(mode + '_pianoroll_tracks')] = encoder_pipeline
 

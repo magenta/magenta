@@ -16,6 +16,7 @@
 import copy
 
 # internal imports
+import tensorflow as tf
 
 import magenta
 from magenta.models.shared import events_rnn_model
@@ -139,15 +140,12 @@ default_configs = {
             magenta.music.MelodyOneHotEncoding(
                 min_note=DEFAULT_MIN_NOTE,
                 max_note=DEFAULT_MAX_NOTE)),
-        magenta.common.HParams(
+        tf.contrib.training.HParams(
             batch_size=128,
             rnn_layer_sizes=[128, 128],
             dropout_keep_prob=0.5,
-            skip_first_n_losses=0,
             clip_norm=5,
-            initial_learning_rate=0.01,
-            decay_steps=1000,
-            decay_rate=0.85)),
+            learning_rate=0.001)),
 
     'lookback_rnn': MelodyRnnConfig(
         magenta.protobuf.generator_pb2.GeneratorDetails(
@@ -157,15 +155,12 @@ default_configs = {
             magenta.music.MelodyOneHotEncoding(
                 min_note=DEFAULT_MIN_NOTE,
                 max_note=DEFAULT_MAX_NOTE)),
-        magenta.common.HParams(
+        tf.contrib.training.HParams(
             batch_size=128,
             rnn_layer_sizes=[128, 128],
             dropout_keep_prob=0.5,
-            skip_first_n_losses=0,
             clip_norm=5,
-            initial_learning_rate=0.01,
-            decay_steps=1000,
-            decay_rate=0.95)),
+            learning_rate=0.001)),
 
     'attention_rnn': MelodyRnnConfig(
         magenta.protobuf.generator_pb2.GeneratorDetails(
@@ -174,14 +169,11 @@ default_configs = {
         magenta.music.KeyMelodyEncoderDecoder(
             min_note=DEFAULT_MIN_NOTE,
             max_note=DEFAULT_MAX_NOTE),
-        magenta.common.HParams(
+        tf.contrib.training.HParams(
             batch_size=128,
             rnn_layer_sizes=[128, 128],
             dropout_keep_prob=0.5,
-            skip_first_n_losses=0,
             attn_length=40,
             clip_norm=3,
-            initial_learning_rate=0.001,
-            decay_steps=1000,
-            decay_rate=0.97))
+            learning_rate=0.001))
 }

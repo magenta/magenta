@@ -29,6 +29,7 @@ from magenta.interfaces.midi import midi_hub
 from magenta.interfaces.midi import midi_interaction
 from magenta.models.drums_rnn import drums_rnn_sequence_generator
 from magenta.models.melody_rnn import melody_rnn_sequence_generator
+from magenta.models.performance_rnn import performance_sequence_generator
 from magenta.models.pianoroll_rnn_nade import pianoroll_rnn_nade_sequence_generator
 from magenta.models.polyphony_rnn import polyphony_sequence_generator
 
@@ -39,13 +40,13 @@ tf.app.flags.DEFINE_bool(
     False,
     'Only list available MIDI ports.')
 tf.app.flags.DEFINE_string(
-    'input_port',
+    'input_ports',
     'magenta_in',
-    'The name of the input MIDI port.')
+    'Comma-separated list of names of the input MIDI ports.')
 tf.app.flags.DEFINE_string(
-    'output_port',
+    'output_ports',
     'magenta_out',
-    'The name of the output MIDI port.')
+    'Comma-separated list of names of the output MIDI ports.')
 tf.app.flags.DEFINE_bool(
     'passthrough',
     True,
@@ -103,7 +104,13 @@ tf.app.flags.DEFINE_boolean(
 tf.app.flags.DEFINE_boolean(
     'enable_metronome',
     True,
-    'Whether to enable the metronome.')
+    'Whether to enable the metronome. Ignored if `clock_control_number` is '
+    'provided.')
+tf.app.flags.DEFINE_integer(
+    'metronome_channel',
+    1,
+    'The 0-based MIDI channel to output the metronome on. Ignored if '
+    '`enable_metronome` is False or `clock_control_number` is provided.')
 tf.app.flags.DEFINE_integer(
     'qpm',
     120,
@@ -168,6 +175,7 @@ _CONTROL_FLAGS = [
 # A map from a string generator name to its class.
 _GENERATOR_MAP = melody_rnn_sequence_generator.get_generator_map()
 _GENERATOR_MAP.update(drums_rnn_sequence_generator.get_generator_map())
+_GENERATOR_MAP.update(performance_sequence_generator.get_generator_map())
 _GENERATOR_MAP.update(pianoroll_rnn_nade_sequence_generator.get_generator_map())
 _GENERATOR_MAP.update(polyphony_sequence_generator.get_generator_map())
 
@@ -311,12 +319,9 @@ def main(unused_argv):
       return
 
   # Initialize MidiHub.
-  if FLAGS.input_port not in midi_hub.get_available_input_ports():
-    print "Opening '%s' as a virtual MIDI port for input." % FLAGS.input_port
-  if FLAGS.output_port not in midi_hub.get_available_output_ports():
-    print "Opening '%s' as a virtual MIDI port for output." % FLAGS.output_port
-  hub = midi_hub.MidiHub(FLAGS.input_port, FLAGS.output_port,
-                         midi_hub.TextureType.MONOPHONIC,
+  hub = midi_hub.MidiHub(FLAGS.input_ports.split(','),
+                         FLAGS.output_ports.split(','),
+                         midi_hub.TextureType.POLYPHONIC,
                          passthrough=FLAGS.passthrough,
                          playback_channel=FLAGS.playback_channel,
                          playback_offset=FLAGS.playback_offset)
@@ -344,6 +349,8 @@ def main(unused_argv):
   mutate_signal = (
       None if control_map['mutate'] is None else
       midi_hub.MidiSignal(control=control_map['mutate'], value=127))
+  metronome_channel = (
+      FLAGS.metronome_channel if FLAGS.enable_metronome else None)
   interaction = midi_interaction.CallAndResponseMidiInteraction(
       hub,
       generators,
@@ -355,7 +362,7 @@ def main(unused_argv):
       panic_signal=panic_signal,
       mutate_signal=mutate_signal,
       allow_overlap=FLAGS.allow_overlap,
-      enable_metronome=FLAGS.enable_metronome,
+      metronome_channel=metronome_channel,
       min_listen_ticks_control_number=control_map['min_listen_ticks'],
       max_listen_ticks_control_number=control_map['max_listen_ticks'],
       response_ticks_control_number=control_map['response_ticks'],

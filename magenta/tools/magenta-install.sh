@@ -35,7 +35,7 @@ trap finish EXIT
 
 # For printing error messages
 err() {
-  echo "[$(date +'%Y-%m-%dT%H:%M:%S%z')]: $@" >&2
+  echo "[$(date +'%Y-%m-%dT%H:%M:%S%z')]: $*" >&2
   exit 1
 }
 

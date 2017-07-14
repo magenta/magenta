@@ -15,14 +15,14 @@
 
 import collections
 import copy
+import itertools
 
 # internal imports
+import numpy as np
 import tensorflow as tf
 
 from magenta.music import chord_symbols_lib
 from magenta.music import constants
-from magenta.pipelines import pipeline
-from magenta.pipelines import statistics
 from magenta.protobuf import music_pb2
 
 # Set the quantization cutoff.
@@ -256,9 +256,38 @@ def is_quantized_sequence(note_sequence):
   Returns:
     True if `note_sequence` is quantized, otherwise False.
   """
+  # If the QuantizationInfo message has a non-zero steps_per_quarter or
+  # steps_per_second, assume that the proto has been quantized.
+  return (note_sequence.quantization_info.steps_per_quarter > 0 or
+          note_sequence.quantization_info.steps_per_second > 0)
+
+
+def is_relative_quantized_sequence(note_sequence):
+  """Returns whether a NoteSequence proto has been quantized relative to tempo.
+
+  Args:
+    note_sequence: A music_pb2.NoteSequence proto.
+
+  Returns:
+    True if `note_sequence` is quantized relative to tempo, otherwise False.
+  """
   # If the QuantizationInfo message has a non-zero steps_per_quarter, assume
-  # that the proto has been quantized.
+  # that the proto has been quantized relative to tempo.
   return note_sequence.quantization_info.steps_per_quarter > 0
+
+
+def is_absolute_quantized_sequence(note_sequence):
+  """Returns whether a NoteSequence proto has been quantized by absolute time.
+
+  Args:
+    note_sequence: A music_pb2.NoteSequence proto.
+
+  Returns:
+    True if `note_sequence` is quantized by absolute time, otherwise False.
+  """
+  # If the QuantizationInfo message has a non-zero steps_per_second, assume
+  # that the proto has been quantized by absolute time.
+  return note_sequence.quantization_info.steps_per_second > 0
 
 
 def assert_is_quantized_sequence(note_sequence):
@@ -275,6 +304,38 @@ def assert_is_quantized_sequence(note_sequence):
                                       note_sequence.id)
 
 
+def assert_is_relative_quantized_sequence(note_sequence):
+  """Confirms that a NoteSequence proto has been quantized relative to tempo.
+
+  Args:
+    note_sequence: A music_pb2.NoteSequence proto.
+
+  Raises:
+    QuantizationStatusException: If the sequence is not quantized relative to
+        tempo.
+  """
+  if not is_relative_quantized_sequence(note_sequence):
+    raise QuantizationStatusException('NoteSequence %s is not quantized or is '
+                                      'quantized based on absolute timing.' %
+                                      note_sequence.id)
+
+
+def assert_is_absolute_quantized_sequence(note_sequence):
+  """Confirms that a NoteSequence proto has been quantized by absolute time.
+
+  Args:
+    note_sequence: A music_pb2.NoteSequence proto.
+
+  Raises:
+    QuantizationStatusException: If the sequence is not quantized by absolute
+    time.
+  """
+  if not is_absolute_quantized_sequence(note_sequence):
+    raise QuantizationStatusException('NoteSequence %s is not quantized or is '
+                                      'quantized based on relative timing.' %
+                                      note_sequence.id)
+
+
 def steps_per_bar_in_quantized_sequence(note_sequence):
   """Calculates steps per bar in a NoteSequence that has been quantized.
 
@@ -284,7 +345,7 @@ def steps_per_bar_in_quantized_sequence(note_sequence):
   Returns:
     Steps per bar as a floating point number.
   """
-  assert_is_quantized_sequence(note_sequence)
+  assert_is_relative_quantized_sequence(note_sequence)
 
   quarters_per_beat = 4.0 / note_sequence.time_signatures[0].denominator
   quarters_per_bar = (quarters_per_beat *
@@ -294,7 +355,67 @@ def steps_per_bar_in_quantized_sequence(note_sequence):
   return steps_per_bar_float
 
 
-def split_note_sequence_on_time_changes(note_sequence, split_notes=True):
+def split_note_sequence(note_sequence, hop_size_seconds,
+                        skip_splits_inside_notes=False):
+  """Split one NoteSequence into many using a fixed hop size.
+
+  This function splits a NoteSequence into multiple NoteSequences, all of fixed
+  size (unless `split_notes` is False, in which case splits that would have
+  truncated notes will be skipped; i.e. each split will either happen at a
+  multiple of `hop_size_seconds` or not at all). Each of the resulting
+  NoteSequences is shifted to start at time zero.
+
+  Args:
+    note_sequence: The NoteSequence to split.
+    hop_size_seconds: The hop size, in seconds, at which the NoteSequence will
+        be split.
+    skip_splits_inside_notes: If False, the NoteSequence will be split at all
+        hop positions, regardless of whether or not any notes are sustained
+        across the potential split time, thus sustained notes will be truncated.
+        If True, the NoteSequence will not be split at positions that occur
+        within sustained notes.
+
+  Returns:
+    A Python list of NoteSequences.
+  """
+  prev_split_time = 0.0
+
+  notes_by_start_time = sorted(list(note_sequence.notes),
+                               key=lambda note: note.start_time)
+  note_idx = 0
+  notes_crossing_split = []
+
+  subsequences = []
+
+  for split_time in np.arange(
+      hop_size_seconds, note_sequence.total_time, hop_size_seconds):
+    # Update notes crossing potential split.
+    while (note_idx < len(notes_by_start_time) and
+           notes_by_start_time[note_idx].start_time < split_time):
+      notes_crossing_split.append(notes_by_start_time[note_idx])
+      note_idx += 1
+    notes_crossing_split = [note for note in notes_crossing_split
+                            if note.end_time > split_time]
+
+    if not (skip_splits_inside_notes and notes_crossing_split):
+      # Extract the subsequence between the previous split time and this split
+      # time.
+      subsequence = extract_subsequence(
+          note_sequence, prev_split_time, split_time)
+      subsequences.append(subsequence)
+      prev_split_time = split_time
+
+  # Handle the final subsequence.
+  if note_sequence.total_time > prev_split_time:
+    subsequence = extract_subsequence(note_sequence, prev_split_time,
+                                      note_sequence.total_time)
+    subsequences.append(subsequence)
+
+  return subsequences
+
+
+def split_note_sequence_on_time_changes(note_sequence,
+                                        skip_splits_inside_notes=False):
   """Split one NoteSequence into many around time signature and tempo changes.
 
   This function splits a NoteSequence into multiple NoteSequences, each of which
@@ -304,10 +425,10 @@ def split_note_sequence_on_time_changes(note_sequence, split_notes=True):
 
   Args:
     note_sequence: The NoteSequence to split.
-    split_notes: If True, the NoteSequence will be split at all time changes,
-        regardless of whether or not any notes are sustained across the time
-        change. If False, the NoteSequence will not be split at time changes
-        that occur within sustained notes.
+    skip_splits_inside_notes: If False, the NoteSequence will be split at all
+        time changes, regardless of whether or not any notes are sustained
+        across the time change. If True, the NoteSequence will not be split at
+        time changes that occur within sustained notes.
 
   Returns:
     A Python list of NoteSequences.
@@ -327,7 +448,7 @@ def split_note_sequence_on_time_changes(note_sequence, split_notes=True):
   notes_by_start_time = sorted(list(note_sequence.notes),
                                key=lambda note: note.start_time)
   note_idx = 0
-  active_notes = []
+  notes_crossing_split = []
 
   subsequences = []
 
@@ -342,16 +463,16 @@ def split_note_sequence_on_time_changes(note_sequence, split_notes=True):
         # Tempo didn't actually change.
         continue
 
-    # Update active notes.
+    # Update notes crossing potential split.
     while (note_idx < len(notes_by_start_time) and
            notes_by_start_time[note_idx].start_time < time_change.time):
-      active_notes.append(notes_by_start_time[note_idx])
+      notes_crossing_split.append(notes_by_start_time[note_idx])
       note_idx += 1
-    active_notes = [note for note in active_notes
-                    if note.end_time > time_change.time]
+    notes_crossing_split = [note for note in notes_crossing_split
+                            if note.end_time > time_change.time]
 
     if time_change.time > prev_change_time:
-      if split_notes or not active_notes:
+      if not (skip_splits_inside_notes and notes_crossing_split):
         # Extract the subsequence between the previous time change and this
         # time change.
         subsequence = extract_subsequence(note_sequence, prev_change_time,
@@ -399,11 +520,58 @@ def steps_per_quarter_to_steps_per_second(steps_per_quarter, qpm):
   return steps_per_quarter * qpm / 60.0
 
 
+def _quantize_notes(note_sequence, steps_per_second):
+  """Quantize the notes and chords of a NoteSequence proto in place.
+
+  Note start and end times, and chord times are snapped to a nearby quantized
+  step, and the resulting times are stored in a separate field (e.g.,
+  quantized_start_step). See the comments above `QUANTIZE_CUTOFF` for details on
+  how the quantizing algorithm works.
+
+  Args:
+    note_sequence: A music_pb2.NoteSequence protocol buffer. Will be modified in
+        place.
+    steps_per_second: Each second will be divided into this many quantized time
+        steps.
+
+  Raises:
+    NegativeTimeException: If a note or chord occurs at a negative time.
+  """
+  for note in note_sequence.notes:
+    # Quantize the start and end times of the note.
+    note.quantized_start_step = quantize_to_step(
+        note.start_time, steps_per_second)
+    note.quantized_end_step = quantize_to_step(
+        note.end_time, steps_per_second)
+    if note.quantized_end_step == note.quantized_start_step:
+      note.quantized_end_step += 1
+
+    # Do not allow notes to start or end in negative time.
+    if note.quantized_start_step < 0 or note.quantized_end_step < 0:
+      raise NegativeTimeException(
+          'Got negative note time: start_step = %s, end_step = %s' %
+          (note.quantized_start_step, note.quantized_end_step))
+
+    # Extend quantized sequence if necessary.
+    if note.quantized_end_step > note_sequence.total_quantized_steps:
+      note_sequence.total_quantized_steps = note.quantized_end_step
+
+  # Also quantize chord symbol annotations.
+  for annotation in note_sequence.text_annotations:
+    # Quantize the chord time, disallowing negative time.
+    annotation.quantized_step = quantize_to_step(
+        annotation.time, steps_per_second)
+    if annotation.quantized_step < 0:
+      raise NegativeTimeException(
+          'Got negative chord time: step = %s' % annotation.quantized_step)
+
+
 def quantize_note_sequence(note_sequence, steps_per_quarter):
-  """Quantize a NoteSequence proto.
+  """Quantize a NoteSequence proto relative to tempo.
 
   The input NoteSequence is copied and quantization-related fields are
-  populated.
+  populated. Sets the `steps_per_quarter` field in the `quantization_info`
+  message in the NoteSequence.
 
   Note start and end times, and chord times are snapped to a nearby quantized
   step, and the resulting times are stored in a separate field (e.g.,
@@ -506,36 +674,94 @@ def quantize_note_sequence(note_sequence, steps_per_quarter):
       steps_per_quarter, qns.tempos[0].qpm)
 
   qns.total_quantized_steps = quantize_to_step(qns.total_time, steps_per_second)
-
-  for note in qns.notes:
-    # Quantize the start and end times of the note.
-    note.quantized_start_step = quantize_to_step(
-        note.start_time, steps_per_second)
-    note.quantized_end_step = quantize_to_step(
-        note.end_time, steps_per_second)
-    if note.quantized_end_step == note.quantized_start_step:
-      note.quantized_end_step += 1
-
-    # Do not allow notes to start or end in negative time.
-    if note.quantized_start_step < 0 or note.quantized_end_step < 0:
-      raise NegativeTimeException(
-          'Got negative note time: start_step = %s, end_step = %s' %
-          (note.quantized_start_step, note.quantized_end_step))
-
-    # Extend quantized sequence if necessary.
-    if note.quantized_end_step > qns.total_quantized_steps:
-      qns.total_quantized_steps = note.quantized_end_step
-
-  # Also quantize chord symbol annotations.
-  for annotation in qns.text_annotations:
-    # Quantize the chord time, disallowing negative time.
-    annotation.quantized_step = quantize_to_step(
-        annotation.time, steps_per_second)
-    if annotation.quantized_step < 0:
-      raise NegativeTimeException(
-          'Got negative chord time: step = %s' % annotation.quantized_step)
+  _quantize_notes(qns, steps_per_second)
 
   return qns
+
+
+def quantize_note_sequence_absolute(note_sequence, steps_per_second):
+  """Quantize a NoteSequence proto using absolute event times.
+
+  The input NoteSequence is copied and quantization-related fields are
+  populated. Sets the `steps_per_second` field in the `quantization_info`
+  message in the NoteSequence.
+
+  Note start and end times, and chord times are snapped to a nearby quantized
+  step, and the resulting times are stored in a separate field (e.g.,
+  quantized_start_step). See the comments above `QUANTIZE_CUTOFF` for details on
+  how the quantizing algorithm works.
+
+  Tempos and time signatures will be copied but ignored.
+
+  Args:
+    note_sequence: A music_pb2.NoteSequence protocol buffer.
+    steps_per_second: Each second will be divided into this many quantized time
+        steps.
+
+  Returns:
+    A copy of the original NoteSequence, with quantized times added.
+
+  Raises:
+    NegativeTimeException: If a note or chord occurs at a negative time.
+  """
+  qns = copy.deepcopy(note_sequence)
+  qns.quantization_info.steps_per_second = steps_per_second
+
+  qns.total_quantized_steps = quantize_to_step(qns.total_time, steps_per_second)
+  _quantize_notes(qns, steps_per_second)
+
+  return qns
+
+
+def stretch_note_sequence(note_sequence, stretch_factor):
+  """Apply a constant temporal stretch to a NoteSequence proto.
+
+  Args:
+    note_sequence: The NoteSequence to stretch.
+    stretch_factor: How much to stretch the NoteSequence. Values greater than
+        one increase the length of the NoteSequence (making it "slower"). Values
+        less than one decrease the length of the NoteSequence (making it
+        "faster").
+
+  Returns:
+    A stretched copy of the original NoteSequence.
+
+  Raises:
+    QuantizationStatusException: If the `note_sequence` is quantized. Only
+        unquantized NoteSequences can be stretched.
+  """
+  if is_quantized_sequence(note_sequence):
+    raise QuantizationStatusException(
+        'Can only stretch unquantized NoteSequence.')
+
+  stretched_sequence = music_pb2.NoteSequence()
+  stretched_sequence.CopyFrom(note_sequence)
+
+  if stretch_factor == 1.0:
+    return stretched_sequence
+
+  # Stretch all notes.
+  for note in stretched_sequence.notes:
+    note.start_time *= stretch_factor
+    note.end_time *= stretch_factor
+  stretched_sequence.total_time *= stretch_factor
+
+  # Stretch all other event times.
+  events = itertools.chain(
+      stretched_sequence.time_signatures,
+      stretched_sequence.key_signatures,
+      stretched_sequence.tempos,
+      stretched_sequence.pitch_bends,
+      stretched_sequence.control_changes,
+      stretched_sequence.text_annotations)
+  for event in events:
+    event.time *= stretch_factor
+
+  # Stretch tempos.
+  for tempo in stretched_sequence.tempos:
+    tempo.qpm /= stretch_factor
+
+  return stretched_sequence
 
 
 # Constants for processing the note/sustain stream.
@@ -743,51 +969,3 @@ def infer_chords_for_sequence(
       active_notes.add(idx)
 
   assert not active_notes
-
-
-class TranspositionPipeline(pipeline.Pipeline):
-  """Creates transposed versions of the input NoteSequence."""
-
-  def __init__(self, transposition_range, name=None):
-    """Creates a TranspositionPipeline.
-
-    Args:
-      transposition_range: Collection of integer pitch steps to transpose.
-      name: Pipeline name.
-    """
-    super(TranspositionPipeline, self).__init__(
-        input_type=music_pb2.NoteSequence,
-        output_type=music_pb2.NoteSequence,
-        name=name)
-    self._transposition_range = transposition_range
-
-  def transform(self, sequence):
-    stats = dict([(state_name, statistics.Counter(state_name)) for state_name in
-                  ['skipped_due_to_range_exceeded',
-                   'transpositions_generated']])
-
-    transposed = []
-    # Transpose up to a major third in either direction.
-    for amount in self._transposition_range:
-      if amount == 0:
-        transposed.append(sequence)
-      else:
-        ts = self._transpose(sequence, amount, stats)
-        if ts is not None:
-          transposed.append(ts)
-
-    stats['transpositions_generated'].increment(len(transposed))
-    self._set_stats(stats.values())
-    return transposed
-
-  @staticmethod
-  def _transpose(ns, amount, stats):
-    """Transposes a note sequence by the specified amount."""
-    ts = copy.deepcopy(ns)
-    for note in ts.notes:
-      note.pitch += amount
-      if (note.pitch < constants.MIN_MIDI_PITCH or
-          note.pitch > constants.MAX_MIDI_PITCH):
-        stats['skipped_due_to_range_exceeded'].increment()
-        return None
-    return ts

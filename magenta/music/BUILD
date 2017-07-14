@@ -506,9 +506,8 @@ py_library(
     deps = [
         ":chord_symbols_lib",
         ":constants",
-        "//magenta/pipelines:pipeline",
-        "//magenta/pipelines:statistics",
         "//magenta/protobuf:music_py_pb2",
+        # numpy dep
         # tensorflow dep
     ],
 )

@@ -81,7 +81,7 @@ pianoroll_rnn_nade_generate \
 
 Our first step will be to convert a collection of MIDI or MusicXML files into NoteSequences. NoteSequences are [protocol buffers](https://developers.google.com/protocol-buffers/), which is a fast and efficient data format, and easier to work with than MIDI files. See [Building your Dataset](/magenta/scripts/README.md) for instructions on generating a TFRecord file of NoteSequences. In this example, we assume the NoteSequences were output to ```/tmp/notesequences.tfrecord```.
 
-An example of training input is the [Bach Chorales](https://web.archive.org/web/20150503021418/http://www.jsbchorales.net/xml.shtml) dataset, which will teach the model to generate sequences that sound like Bach.
+An example of training input is the Bach Chorales dataset, which will teach the model to generate sequences that sound like Bach. It is available either on this [archive.org mirror](https://web.archive.org/web/20150503021418/http://www.jsbchorales.net/xml.shtml) (the [original site](http://www.jsbchorales.net/xml.shtml) seems to be down) or via the [music21 bach corpus](https://github.com/cuthbertLab/music21/tree/master/music21/corpus/bach) (which also contains some additional Bach pieces).
 
 ### Create SequenceExamples
 
@@ -101,8 +101,8 @@ Run the command below to start a training job using the attention configuration.
 ```
 pianoroll_rnn_nade_train \
 --run_dir=/tmp/pianoroll_rnn_nade/logdir/run1 \
---sequence_example_file=/tmp/rnn_nade/sequence_examples/training_pianoroll_tracks.tfrecord \
---hparams="{'batch_size':48,'rnn_layer_sizes':[128]}" \
+--sequence_example_file=/tmp/pianoroll_rnn_nade/sequence_examples/training_pianoroll_tracks.tfrecord \
+--hparams="batch_size=48,rnn_layer_sizes=[128]" \
 --num_training_steps=20000
 ```
 
@@ -112,7 +112,7 @@ Optionally run an eval job in parallel. `--run_dir`, `--hparams`, and `--num_tra
 pianoroll_rnn_nade_train \
 --run_dir=/tmp/pianoroll_rnn_nade/logdir/run1 \
 --sequence_example_file=/tmp/pianoroll_rnn_nade/sequence_examples/eval_pianoroll_tracks.tfrecord \
---hparams="{'batch_size':48,'rnn_layer_sizes':[128]}" \
+--hparams="batch_size=48,rnn_layer_sizes=[128]" \
 --num_training_steps=20000 \
 --eval
 ```
@@ -159,7 +159,7 @@ supports a ```--save_generator_bundle``` flag that calls this method. Example:
 
 ```
 pianoroll_rnn_nade_generate \
-  --run_dir=/tmp/pianoroll_rnn_nade/logdir/run1 \
-  --bundle_file=/tmp/pianoroll_rnn_nade.mag \
-  --save_generator_bundle
+--run_dir=/tmp/pianoroll_rnn_nade/logdir/run1 \
+--bundle_file=/tmp/pianoroll_rnn_nade.mag \
+--save_generator_bundle
 ```

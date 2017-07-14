@@ -20,7 +20,7 @@ import magenta
 from magenta.models.melody_rnn import melody_rnn_create_dataset
 from magenta.models.melody_rnn import melody_rnn_model
 from magenta.pipelines import melody_pipelines
-from magenta.pipelines import pipelines_common
+from magenta.pipelines import note_sequence_pipelines
 from magenta.protobuf import music_pb2
 
 
@@ -34,7 +34,7 @@ class MelodyRNNPipelineTest(tf.test.TestCase):
         None,
         magenta.music.OneHotEventSequenceEncoderDecoder(
             magenta.music.MelodyOneHotEncoding(0, 127)),
-        magenta.common.HParams(),
+        tf.contrib.training.HParams(),
         min_note=0,
         max_note=127,
         transpose_to_key=0)
@@ -53,7 +53,7 @@ class MelodyRNNPipelineTest(tf.test.TestCase):
         [(12, 100, 0.00, 2.0), (11, 55, 2.1, 5.0), (40, 45, 5.1, 8.0),
          (55, 120, 8.1, 11.0), (53, 99, 11.1, 14.1)])
 
-    quantizer = pipelines_common.Quantizer(steps_per_quarter=4)
+    quantizer = note_sequence_pipelines.Quantizer(steps_per_quarter=4)
     melody_extractor = melody_pipelines.MelodyExtractor(
         min_bars=7, min_unique_pitches=5, gap_bars=1.0,
         ignore_polyphonic_notes=False)

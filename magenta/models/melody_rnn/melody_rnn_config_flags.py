@@ -41,10 +41,10 @@ tf.app.flags.DEFINE_string(
     'A description of the generator. Overrides the default if `--config` is '
     'also supplied.')
 tf.app.flags.DEFINE_string(
-    'hparams', '{}',
-    'String representation of a Python dictionary containing hyperparameter '
-    'to value mapping. This mapping is merged with the default '
-    'hyperparameters if `--config` is also supplied.')
+    'hparams', '',
+    'Comma-separated list of `name=value` pairs. For each pair, the value of '
+    'the hyperparameter named `name` is set to `value`. This mapping is merged '
+    'with the default hyperparameters.')
 
 
 class MelodyRnnConfigFlagsException(Exception):
@@ -125,7 +125,7 @@ def config_from_flags():
       generator_details = None
     encoder_decoder = melody_encoder_decoders[FLAGS.melody_encoder_decoder](
         melody_rnn_model.DEFAULT_MIN_NOTE, melody_rnn_model.DEFAULT_MAX_NOTE)
-    hparams = magenta.common.HParams()
+    hparams = tf.contrib.training.HParams()
     hparams.parse(FLAGS.hparams)
     return melody_rnn_model.MelodyRnnConfig(
         generator_details, encoder_decoder, hparams)

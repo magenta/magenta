@@ -20,7 +20,7 @@ import magenta
 from magenta.models.improv_rnn import improv_rnn_create_dataset
 from magenta.models.improv_rnn import improv_rnn_model
 from magenta.pipelines import lead_sheet_pipelines
-from magenta.pipelines import pipelines_common
+from magenta.pipelines import note_sequence_pipelines
 from magenta.protobuf import music_pb2
 
 
@@ -37,7 +37,7 @@ class ImprovRNNPipelineTest(tf.test.TestCase):
                 magenta.music.MajorMinorChordOneHotEncoding()),
             magenta.music.OneHotEventSequenceEncoderDecoder(
                 magenta.music.MelodyOneHotEncoding(0, 127))),
-        magenta.common.HParams(),
+        tf.contrib.training.HParams(),
         min_note=0,
         max_note=127,
         transpose_to_key=0)
@@ -59,7 +59,7 @@ class ImprovRNNPipelineTest(tf.test.TestCase):
         note_sequence,
         [('N.C.', 0.0), ('Am9', 5.0), ('D7', 10.0)])
 
-    quantizer = pipelines_common.Quantizer(steps_per_quarter=4)
+    quantizer = note_sequence_pipelines.Quantizer(steps_per_quarter=4)
     lead_sheet_extractor = lead_sheet_pipelines.LeadSheetExtractor(
         min_bars=7, min_unique_pitches=5, gap_bars=1.0,
         ignore_polyphonic_notes=False, all_transpositions=False)

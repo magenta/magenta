@@ -87,7 +87,136 @@ class SequencesLibTest(tf.test.TestCase):
     with self.assertRaises(ValueError):
       sequences_lib.extract_subsequence(sequence, 15.0, 16.0)
 
+  def testSplitNoteSequence(self):
+    # Tests splitting a NoteSequence at regular hop size, truncating notes.
+    sequence = common_testing_lib.parse_test_proto(
+        music_pb2.NoteSequence,
+        """
+        time_signatures: {
+          numerator: 4
+          denominator: 4}
+        tempos: {
+          qpm: 60}""")
+    testing_lib.add_track_to_sequence(
+        sequence, 0,
+        [(12, 100, 0.01, 8.0), (11, 55, 0.22, 0.50), (40, 45, 2.50, 3.50),
+         (55, 120, 4.0, 4.01), (52, 99, 4.75, 5.0)])
+    testing_lib.add_chords_to_sequence(
+        sequence, [('C', 1.0), ('G7', 2.0), ('F', 4.0)])
+
+    expected_subsequence_1 = common_testing_lib.parse_test_proto(
+        music_pb2.NoteSequence,
+        """
+        time_signatures: {
+          numerator: 4
+          denominator: 4}
+        tempos: {
+          qpm: 60}""")
+    testing_lib.add_track_to_sequence(
+        expected_subsequence_1, 0,
+        [(12, 100, 0.01, 3.0), (11, 55, 0.22, 0.50), (40, 45, 2.50, 3.0)])
+    testing_lib.add_chords_to_sequence(
+        expected_subsequence_1, [('C', 1.0), ('G7', 2.0)])
+    expected_subsequence_1.total_time = 3.0
+    expected_subsequence_1.subsequence_info.end_time_offset = 5.0
+
+    expected_subsequence_2 = common_testing_lib.parse_test_proto(
+        music_pb2.NoteSequence,
+        """
+        time_signatures: {
+          numerator: 4
+          denominator: 4}
+        tempos: {
+          qpm: 60}""")
+    testing_lib.add_track_to_sequence(
+        expected_subsequence_2, 0,
+        [(55, 120, 1.0, 1.01), (52, 99, 1.75, 2.0)])
+    testing_lib.add_chords_to_sequence(
+        expected_subsequence_2, [('G7', 0.0), ('F', 1.0)])
+    expected_subsequence_2.total_time = 2.0
+    expected_subsequence_2.subsequence_info.start_time_offset = 3.0
+    expected_subsequence_2.subsequence_info.end_time_offset = 3.0
+
+    expected_subsequence_3 = common_testing_lib.parse_test_proto(
+        music_pb2.NoteSequence,
+        """
+        time_signatures: {
+          numerator: 4
+          denominator: 4}
+        tempos: {
+          qpm: 60}""")
+    testing_lib.add_chords_to_sequence(
+        expected_subsequence_3, [('F', 0.0)])
+    expected_subsequence_3.total_time = 0.0
+    expected_subsequence_3.subsequence_info.start_time_offset = 6.0
+    expected_subsequence_3.subsequence_info.end_time_offset = 2.0
+
+    subsequences = sequences_lib.split_note_sequence(
+        sequence, hop_size_seconds=3.0)
+    self.assertEquals(3, len(subsequences))
+    self.assertProtoEquals(expected_subsequence_1, subsequences[0])
+    self.assertProtoEquals(expected_subsequence_2, subsequences[1])
+    self.assertProtoEquals(expected_subsequence_3, subsequences[2])
+
+  def testSplitNoteSequenceSkipSplitsInsideNotes(self):
+    # Tests splitting a NoteSequence at regular hop size, skipping splits that
+    # would have occurred inside a note.
+    sequence = common_testing_lib.parse_test_proto(
+        music_pb2.NoteSequence,
+        """
+        time_signatures: {
+          numerator: 4
+          denominator: 4}
+        tempos: {
+          qpm: 60}""")
+    testing_lib.add_track_to_sequence(
+        sequence, 0,
+        [(12, 100, 0.01, 3.0), (11, 55, 0.22, 0.50), (40, 45, 2.50, 3.50),
+         (55, 120, 4.0, 4.01), (52, 99, 4.75, 5.0)])
+    testing_lib.add_chords_to_sequence(
+        sequence, [('C', 0.0), ('G7', 3.0), ('F', 4.5)])
+
+    expected_subsequence_1 = common_testing_lib.parse_test_proto(
+        music_pb2.NoteSequence,
+        """
+        time_signatures: {
+          numerator: 4
+          denominator: 4}
+        tempos: {
+          qpm: 60}""")
+    testing_lib.add_track_to_sequence(
+        expected_subsequence_1, 0,
+        [(12, 100, 0.01, 3.0), (11, 55, 0.22, 0.50), (40, 45, 2.50, 3.50)])
+    testing_lib.add_chords_to_sequence(
+        expected_subsequence_1, [('C', 0.0), ('G7', 3.0)])
+    expected_subsequence_1.total_time = 3.50
+    expected_subsequence_1.subsequence_info.end_time_offset = 1.5
+
+    expected_subsequence_2 = common_testing_lib.parse_test_proto(
+        music_pb2.NoteSequence,
+        """
+        time_signatures: {
+          numerator: 4
+          denominator: 4}
+        tempos: {
+          qpm: 60}""")
+    testing_lib.add_track_to_sequence(
+        expected_subsequence_2, 0,
+        [(55, 120, 0.0, 0.01), (52, 99, 0.75, 1.0)])
+    testing_lib.add_chords_to_sequence(
+        expected_subsequence_2, [('G7', 0.0), ('F', 0.5)])
+    expected_subsequence_2.total_time = 1.0
+    expected_subsequence_2.subsequence_info.start_time_offset = 4.0
+
+    subsequences = sequences_lib.split_note_sequence(
+        sequence, hop_size_seconds=2.0, skip_splits_inside_notes=True)
+    self.assertEquals(2, len(subsequences))
+    self.assertProtoEquals(expected_subsequence_1, subsequences[0])
+    self.assertProtoEquals(expected_subsequence_2, subsequences[1])
+
   def testSplitNoteSequenceNoTimeChanges(self):
+    # Tests splitting a NoteSequence on time changes for a NoteSequence that has
+    # no time changes (time signature and tempo changes).
     sequence = copy.copy(self.note_sequence)
     testing_lib.add_track_to_sequence(
         sequence, 0,
@@ -106,6 +235,8 @@ class SequencesLibTest(tf.test.TestCase):
     self.assertProtoEquals(expected_subsequence, subsequences[0])
 
   def testSplitNoteSequenceDuplicateTimeChanges(self):
+    # Tests splitting a NoteSequence on time changes for a NoteSequence that has
+    # duplicate time changes.
     sequence = common_testing_lib.parse_test_proto(
         music_pb2.NoteSequence,
         """
@@ -135,6 +266,8 @@ class SequencesLibTest(tf.test.TestCase):
     self.assertProtoEquals(expected_subsequence, subsequences[0])
 
   def testSplitNoteSequenceCoincidentTimeChanges(self):
+    # Tests splitting a NoteSequence on time changes for a NoteSequence that has
+    # two time changes occurring simultaneously.
     sequence = common_testing_lib.parse_test_proto(
         music_pb2.NoteSequence,
         """
@@ -195,7 +328,9 @@ class SequencesLibTest(tf.test.TestCase):
     self.assertProtoEquals(expected_subsequence_1, subsequences[0])
     self.assertProtoEquals(expected_subsequence_2, subsequences[1])
 
-  def testSplitNoteSequenceMultipleTimeChangesNoSplitNotes(self):
+  def testSplitNoteSequenceMultipleTimeChangesSkipSplitsInsideNotes(self):
+    # Tests splitting a NoteSequence on time changes skipping splits that occur
+    # inside notes.
     sequence = common_testing_lib.parse_test_proto(
         music_pb2.NoteSequence,
         """
@@ -255,12 +390,14 @@ class SequencesLibTest(tf.test.TestCase):
     expected_subsequence_2.subsequence_info.start_time_offset = 4.25
 
     subsequences = sequences_lib.split_note_sequence_on_time_changes(
-        sequence, split_notes=False)
+        sequence, skip_splits_inside_notes=True)
     self.assertEquals(2, len(subsequences))
     self.assertProtoEquals(expected_subsequence_1, subsequences[0])
     self.assertProtoEquals(expected_subsequence_2, subsequences[1])
 
   def testSplitNoteSequenceMultipleTimeChanges(self):
+    # Tests splitting a NoteSequence on time changes, truncating notes on splits
+    # that occur inside notes.
     sequence = common_testing_lib.parse_test_proto(
         music_pb2.NoteSequence,
         """
@@ -362,18 +499,62 @@ class SequencesLibTest(tf.test.TestCase):
 
     self.assertProtoEquals(expected_quantized_sequence, quantized_sequence)
 
+  def testQuantizeNoteSequenceAbsolute(self):
+    testing_lib.add_track_to_sequence(
+        self.note_sequence, 0,
+        [(12, 100, 0.01, 10.0), (11, 55, 0.22, 0.50), (40, 45, 2.50, 3.50),
+         (55, 120, 4.0, 4.01), (52, 99, 4.75, 5.0)])
+    testing_lib.add_chords_to_sequence(
+        self.note_sequence,
+        [('B7', 0.22), ('Em9', 4.0)])
+
+    expected_quantized_sequence = copy.deepcopy(self.note_sequence)
+    expected_quantized_sequence.quantization_info.steps_per_second = 4
+    testing_lib.add_quantized_steps_to_sequence(
+        expected_quantized_sequence,
+        [(0, 40), (1, 2), (10, 14), (16, 17), (19, 20)])
+    testing_lib.add_quantized_chord_steps_to_sequence(
+        expected_quantized_sequence, [1, 16])
+
+    quantized_sequence = sequences_lib.quantize_note_sequence_absolute(
+        self.note_sequence, steps_per_second=4)
+
+    self.assertProtoEquals(expected_quantized_sequence, quantized_sequence)
+
   def testAssertIsQuantizedNoteSequence(self):
     testing_lib.add_track_to_sequence(
         self.note_sequence, 0,
         [(12, 100, 0.01, 10.0), (11, 55, 0.22, 0.50), (40, 45, 2.50, 3.50),
          (55, 120, 4.0, 4.01), (52, 99, 4.75, 5.0)])
 
-    quantized_sequence = sequences_lib.quantize_note_sequence(
+    relative_quantized_sequence = sequences_lib.quantize_note_sequence(
         self.note_sequence, steps_per_quarter=self.steps_per_quarter)
+    absolute_quantized_sequence = sequences_lib.quantize_note_sequence_absolute(
+        self.note_sequence, steps_per_second=4)
 
-    sequences_lib.assert_is_quantized_sequence(quantized_sequence)
+    sequences_lib.assert_is_quantized_sequence(relative_quantized_sequence)
+    sequences_lib.assert_is_quantized_sequence(absolute_quantized_sequence)
     with self.assertRaises(sequences_lib.QuantizationStatusException):
       sequences_lib.assert_is_quantized_sequence(self.note_sequence)
+
+  def testAssertIsRelativeQuantizedNoteSequence(self):
+    testing_lib.add_track_to_sequence(
+        self.note_sequence, 0,
+        [(12, 100, 0.01, 10.0), (11, 55, 0.22, 0.50), (40, 45, 2.50, 3.50),
+         (55, 120, 4.0, 4.01), (52, 99, 4.75, 5.0)])
+
+    relative_quantized_sequence = sequences_lib.quantize_note_sequence(
+        self.note_sequence, steps_per_quarter=self.steps_per_quarter)
+    absolute_quantized_sequence = sequences_lib.quantize_note_sequence_absolute(
+        self.note_sequence, steps_per_second=4)
+
+    sequences_lib.assert_is_relative_quantized_sequence(
+        relative_quantized_sequence)
+    with self.assertRaises(sequences_lib.QuantizationStatusException):
+      sequences_lib.assert_is_relative_quantized_sequence(
+          absolute_quantized_sequence)
+    with self.assertRaises(sequences_lib.QuantizationStatusException):
+      sequences_lib.assert_is_relative_quantized_sequence(self.note_sequence)
 
   def testQuantizeNoteSequence_TimeSignatureChange(self):
     testing_lib.add_track_to_sequence(
@@ -557,6 +738,26 @@ class SequencesLibTest(tf.test.TestCase):
     self.assertEqual(12.0,
                      sequences_lib.steps_per_bar_in_quantized_sequence(qns))
 
+  def testStretchNoteSequence(self):
+    expected_stretched_sequence = copy.deepcopy(self.note_sequence)
+    expected_stretched_sequence.tempos[0].qpm = 40
+
+    testing_lib.add_track_to_sequence(
+        self.note_sequence, 0,
+        [(12, 100, 0.0, 10.0), (11, 55, 0.2, 0.5), (40, 45, 2.5, 3.5)])
+    testing_lib.add_track_to_sequence(
+        expected_stretched_sequence, 0,
+        [(12, 100, 0.0, 15.0), (11, 55, 0.3, 0.75), (40, 45, 3.75, 5.25)])
+
+    testing_lib.add_chords_to_sequence(
+        self.note_sequence, [('B7', 0.5), ('Em9', 2.0)])
+    testing_lib.add_chords_to_sequence(
+        expected_stretched_sequence, [('B7', 0.75), ('Em9', 3.0)])
+
+    stretched_sequence = sequences_lib.stretch_note_sequence(
+        self.note_sequence, stretch_factor=1.5)
+    self.assertProtoEquals(expected_stretched_sequence, stretched_sequence)
+
   def testApplySustainControlChanges(self):
     """Verify sustain controls extend notes until the end of the control."""
     sequence = copy.copy(self.note_sequence)
@@ -717,16 +918,6 @@ class SequencesLibTest(tf.test.TestCase):
         expected_sequence, [1, 2, 3])
     sequences_lib.infer_chords_for_sequence(sequence)
     self.assertProtoEquals(expected_sequence, sequence)
-
-  def testTranspositionPipeline(self):
-    tp = sequences_lib.TranspositionPipeline(range(0, 2))
-    testing_lib.add_track_to_sequence(
-        self.note_sequence, 0,
-        [(12, 100, 1.0, 4.0)])
-    transposed = tp.transform(self.note_sequence)
-    self.assertEqual(2, len(transposed))
-    self.assertEqual(12, transposed[0].notes[0].pitch)
-    self.assertEqual(13, transposed[1].notes[0].pitch)
 
 
 if __name__ == '__main__':

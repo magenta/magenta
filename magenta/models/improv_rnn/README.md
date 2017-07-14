@@ -41,8 +41,8 @@ improv_rnn_generate \
 --bundle_file=${BUNDLE_PATH} \
 --output_dir=/tmp/improv_rnn/generated \
 --num_outputs=10 \
---primer_melody="[60]"
---backing_chords="C G Am F C G Am F"
+--primer_melody="[60]" \
+--backing_chords="C G Am F C G Am F" \
 --render_chords
 ```
 
@@ -79,7 +79,7 @@ improv_rnn_train \
 --config=attention_improv \
 --run_dir=/tmp/improv_rnn/logdir/run1 \
 --sequence_example_file=/tmp/improv_rnn/sequence_examples/training_lead_sheets.tfrecord \
---hparams="{'batch_size':64,'rnn_layer_sizes':[64,64]}" \
+--hparams="batch_size=64,rnn_layer_sizes=[64,64]" \
 --num_training_steps=20000
 ```
 
@@ -123,8 +123,8 @@ improv_rnn_generate \
 --run_dir=/tmp/improv_rnn/logdir/run1 \
 --output_dir=/tmp/improv_rnn/generated \
 --num_outputs=10 \
---primer_melody="[57]"
---backing_chords="Am Dm G C F Bdim E E"
+--primer_melody="[57]" \
+--backing_chords="Am Dm G C F Bdim E E" \
 --render_chords
 ```
 
@@ -141,9 +141,9 @@ supports a ```--save_generator_bundle``` flag that calls this method. Example:
 
 ```sh
 improv_rnn_generate \
-  --config=attention_improv \
-  --run_dir=/tmp/improv_rnn/logdir/run1 \
-  --hparams="{'batch_size':64,'rnn_layer_sizes':[64,64]}" \
-  --bundle_file=/tmp/improv_rnn.mag \
-  --save_generator_bundle
+--config=attention_improv \
+--run_dir=/tmp/improv_rnn/logdir/run1 \
+--hparams="batch_size=64,rnn_layer_sizes=[64,64]" \
+--bundle_file=/tmp/improv_rnn.mag \
+--save_generator_bundle
 ```

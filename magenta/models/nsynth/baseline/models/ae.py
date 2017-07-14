@@ -21,7 +21,6 @@ from __future__ import print_function
 import numpy as np
 import tensorflow as tf
 
-from magenta.common.tf_lib import HParams
 from magenta.models.nsynth import utils
 
 slim = tf.contrib.slim
@@ -36,7 +35,7 @@ def get_hparams(config_name):
   Returns:
     A HParams object (magenta) with defaults.
   """
-  hparams = HParams(
+  hparams = tf.contrib.training.HParams(
       # Optimization
       batch_size=16,
       learning_rate=1e-4,

@@ -97,7 +97,7 @@ class RLTuner(object):
 
     Args:
       output_dir: Where the model will save its compositions (midi files).
-      dqn_hparams: A tf_lib.hparams() object containing the hyperparameters of
+      dqn_hparams: A HParams object containing the hyperparameters of
         the DQN algorithm, including minibatch size, exploration probability,
         etc.
       reward_mode: Controls which reward function can be applied. There are
@@ -126,7 +126,7 @@ class RLTuner(object):
       note_rnn_type: If 'default', will use the basic LSTM described in the
         research paper. If 'basic_rnn', will assume the checkpoint is from a
         Magenta basic_rnn model.
-      note_rnn_hparams: A tf.HParams object which defines the hyper parameters
+      note_rnn_hparams: A HParams object which defines the hyper parameters
         used to train the MelodyRNN model that will be loaded from a checkpoint.
       num_notes_in_melody: The length of a composition of the model
       input_size: the size of the one-hot vector encoding a note that is input
