@@ -35,124 +35,23 @@ default_octaves = [{
     'scale': 1.0,
     'iter_n': 190,
     'start_sigma': .44,
-    'end_sigma': 0.44,
+    'end_sigma': 0.304,
     }, {
     'scale': 1.2,
     'iter_n': 150,
     'start_sigma': 0.44,
-    'end_sigma': 0.44,
+    'end_sigma': 0.304,
     }, {
     'scale': 1.2,
     'iter_n': 150,
     'start_sigma': 0.44,
-    'end_sigma': 0.44,
+    'end_sigma': 0.304,
     }, {
     'scale': 1.0,
     'iter_n': 10,
     'start_sigma': 0.44,
-    'end_sigma': 0.44,
+    'end_sigma': 0.304,
     }]
-
-'''octaves = [
-    {
-        'layer':'import/softmax2_pre_activation',   # layer to perform image updates from
-        'scale':1,
-        'iter_n':190,
-        'start_sigma':2.5,
-        'end_sigma':0.78,
-    },
-    {
-        'layer':'import/softmax2_pre_activation',
-        'scale':1.2,
-        'iter_n':150,
-        'start_sigma':0.78*1.2,
-        'end_sigma':0.78,
-    },
-    {
-        'layer':'import/softmax2_pre_activation',
-        'scale':1.2,
-        'iter_n':70,
-        'start_sigma':0.78*1.2,
-        'end_sigma':0.44,
-    },
-    {
-        'layer':'import/softmax2_pre_activation',
-        'scale':1.2,
-        'iter_n':50,
-        'start_sigma':0.44,
-        'end_sigma':0.304,
-    },
-    {
-        'layer':'import/softmax2_pre_activation',
-        'scale':1.2,
-        'iter_n':30,
-        'start_sigma':0.44,
-        'end_sigma':0.304,
-    },
-    {
-        'layer':'import/softmax1_pre_activation',
-        'scale':1.2,
-        'iter_n':150,
-        'start_sigma':0.44,
-        'end_sigma':0.304,
-    },
-    {
-        'layer':'import/softmax1_pre_activation',
-        'scale':1.2,
-        'iter_n':70,
-        'start_sigma':0.44,
-        'end_sigma':0.304,
-    },
-    {
-        'layer':'import/softmax1_pre_activation',
-        'scale':1.2,
-        'iter_n':40,
-        'start_sigma':0.44,
-        'end_sigma':0.304,
-    },
-    {
-        'layer':'import/softmax1_pre_activation',
-        'scale':1.2,
-        'iter_n':30,
-        'start_sigma':0.44,
-        'end_sigma':0.304,
-    },
-    {
-        'layer':'import/softmax1_pre_activation',
-        'scale':1.2,
-        'iter_n':20,
-        'start_sigma':0.44,
-        'end_sigma':0.304,
-    },
-    {
-        'layer':'import/softmax1_pre_activation',
-        'scale':1.2,
-        'iter_n':20,
-        'start_sigma':0.44,
-        'end_sigma':0.304,
-    },
-    {
-        'layer':'import/softmax0_pre_activation',
-        'scale':1.2,
-        'iter_n':20,
-        'start_sigma':0.44,
-        'end_sigma':0.304,
-    },
-    {
-        'layer':'import/softmax0_pre_activation',
-        'scale':1.2,
-        'iter_n':20,
-        'start_sigma':0.44,
-        'end_sigma':0.304,
-    },
-    {
-        'layer':'import/softmax0_pre_activation',
-        'scale':1.0,
-        'iter_n':30,
-        'start_sigma':0.44,
-        'end_sigma':0.304,
-    }
-]'''
 
 dict_layer = {'r': 'relu', 'p': 'maxpool', 'c': 'conv2d'}
 
@@ -415,7 +314,8 @@ def _visualization_by_layer_name(
     path_logdir,
     path_outdir,
     background_color,
-    octaves
+    octaves,
+    use_bilateral
     ):
     """
 ....Generate and store filter visualization from the layer which has the name layer_name
@@ -488,7 +388,8 @@ def _visualization_by_layer_name(
                 path_outdir,
                 path_logdir,
                 background_color,
-                octaves
+                octaves,
+                use_bilateral
                 )
             is_deep_dream = False
 
@@ -520,7 +421,8 @@ def _deepdream(
     path_outdir,
     path_logdir,
     background_color,
-    octaves
+    octaves,
+    use_bilateral
     ):
 
     tensor_shape = op_tensor.get_shape().as_list()
@@ -605,13 +507,14 @@ def _deepdream(
                                 feed_dict={lap_in: np.roll(np.roll(grad,
                                 -sx, 2), -sy, 1)})
                         img = img + lap_out
-                        for (i, im) in enumerate(img):
-                            min_img = im.min()
-                            max_img = im.max()
-                            temp = denoise_bilateral((im - min_img)
-                                    / (max_img - min_img), sigma_color=sigma, sigma_spatial=sigma, multichannel=True)
-                            img[i] = temp * (max_img - min_img) \
-                                + min_img
+                        if use_bilateral:
+                            for (i, im) in enumerate(img):
+                                min_img = im.min()
+                                max_img = im.max()
+                                temp = denoise_bilateral((im - min_img)
+                                        / (max_img - min_img), sigma_color=sigma, sigma_spatial=sigma, multichannel=True)
+                                img[i] = temp * (max_img - min_img) \
+                                    + min_img
                 is_success = _write_deepdream(img, (layer, units, k),
                         path_outdir, path_logdir)
                 print '%s -> featuremap completed.' \
@@ -628,7 +531,8 @@ def class_visualization(
     path_logdir='./Log',
     path_outdir='./Output',
     background_color = np.float32([10, 90, 140]),
-    octaves=default_octaves
+    octaves=default_octaves,
+    use_bilateral=False
     ):
 
     is_success = True
@@ -670,7 +574,8 @@ def class_visualization(
                     path_logdir,
                     path_outdir,
                     background_color,
-                    octaves
+                    octaves,
+                    use_bilateral
                     )
             elif layer != None and layer.lower() in dict_layer.keys():
                 layer_type = dict_layer[layer.lower()]
@@ -690,7 +595,8 @@ def class_visualization(
                         path_logdir,
                         path_outdir,
                         background_color,
-                        octaves
+                        octaves,
+                        use_bilateral
                         )
             else:
                 print 'Skipping %s . %s is not valid layer name or layer type' \

@@ -59,6 +59,6 @@ start = time.time()
 # api call
 is_success = class_visualization(graph_or_path = tf.get_default_graph(), value_feed_dict = {t_input : im},
                                      layer=layer, classes = [2],path_logdir="./Log/Inception5",
-                                     path_outdir="./Output/Inception5", background_color=background_color, octaves=octaves)
+                                     path_outdir="./Output/Inception5", background_color=background_color, octaves=octaves, use_bilateral=False)
 start = time.time() - start
 print("Total Time = %f" % (start))
