@@ -4,7 +4,7 @@ MAINTAINER Curtis Hawthorne <fjord@google.com>
 
 # Download and build Magenta.
 
-ENV MAGENTA_MASTER_REF v0.1.12
+ENV MAGENTA_MASTER_REF v0.1.13
 
 # Required for local development
 RUN pip install scipy matplotlib intervaltree bokeh

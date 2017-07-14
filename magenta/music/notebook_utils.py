@@ -14,12 +14,15 @@
 """Python functions which run only within a Jupyter notebook."""
 
 import collections
+import os
+import urllib2
 
 # internal imports
 
 import bokeh
 import bokeh.plotting
 import IPython
+import numpy as np
 import pandas as pd
 
 from magenta.music import midi_synth
@@ -74,8 +77,14 @@ def plot_sequence(sequence,
       pd_dict['bottom'].append(note.pitch - 0.4)
       pd_dict['top'].append(note.pitch + 0.4)
       pd_dict['velocity'].append(note.velocity)
+      pd_dict['fill_alpha'].append(note.velocity / 128.0)
       pd_dict['instrument'].append(note.instrument)
       pd_dict['program'].append(note.program)
+
+    # If no velocity differences are found, set alpha to 1.0.
+    if np.max(pd_dict['velocity']) == np.min(pd_dict['velocity']):
+      pd_dict['fill_alpha'] = [1.0] * len(pd_dict['fill_alpha'])
+
     return pd.DataFrame(pd_dict)
 
   # These are hard-coded reasonable values, but the user can override them
@@ -101,17 +110,38 @@ def plot_sequence(sequence,
     color = bokeh.palettes.Spectral8[color_idx]
     source = bokeh.plotting.ColumnDataSource(instrument_df)
     fig.quad(top='top', bottom='bottom', left='start_time', right='end_time',
-             line_color='black', fill_color=color, source=source)
+             line_color='black', fill_color=color,
+             fill_alpha='fill_alpha', source=source)
   fig.select(dict(type=bokeh.models.HoverTool)).tooltips = (
       {'pitch': '@pitch',
        'program': '@program',
        'velo': '@velocity',
        'duration': '@duration',
        'start_time': '@start_time',
-       'end_time': '@end_time'})
+       'end_time': '@end_time',
+       'velocity': '@velocity',
+       'fill_alpha': '@fill_alpha'})
 
   if show_figure:
     bokeh.plotting.output_notebook()
     bokeh.plotting.show(fig)
     return None
   return fig
+
+
+def download_bundle(bundle_name, target_dir, force_reload=False):
+  """Downloads a Magenta bundle to target directory.
+
+  Args:
+     bundle_name: A string Magenta bundle name to download.
+     target_dir: A string local directory in which to write the bundle.
+     force_reload: A boolean that when True, reloads the bundle even if present.
+  """
+  bundle_target = os.path.join(target_dir, bundle_name)
+  if not os.path.exists(bundle_target) or force_reload:
+    response = urllib2.urlopen(
+        'http://download.magenta.tensorflow.org/models/%s' % bundle_name)
+    data = response.read()
+    local_file = open(bundle_target, 'wb')
+    local_file.write(data)
+    local_file.close()
