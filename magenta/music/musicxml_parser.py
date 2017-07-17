@@ -429,6 +429,9 @@ class Part(object):
     If a <measure> only consists of a <forward> element that advances
     the time cursor, remove the <forward> element and replace
     with a whole measure rest of the same duration.
+
+    Args:
+      measure: The measure to repair.
     """
     # Issue #674 - If the <forward> element is in a measure without
     # any <note> elements, treat it as if it were a whole measure
