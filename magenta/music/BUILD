@@ -411,6 +411,8 @@ py_test(
         "testdata/unicode_filename.mxl",
         "testdata/unmetered_example.xml",
         "testdata/unpitched.xml",
+        "testdata/whole_measure_rest_forward.xml",
+        "testdata/meter_test.xml",
     ],
     srcs_version = "PY2AND3",
     deps = [
