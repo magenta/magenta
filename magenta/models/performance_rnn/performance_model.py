@@ -57,11 +57,8 @@ class PerformanceRnnModel(events_rnn_model.EventSequenceRnnModel):
           conditioning variables.
     """
     if note_density is not None and pitch_histogram is not None:
-      raise ValueError(
-          'Conditioning on both note density and pitch histogram not currently '
-          'supported.')
-
-    if note_density is not None:
+      control_events = [(note_density, pitch_histogram)] * num_steps
+    elif note_density is not None:
       control_events = [note_density] * num_steps
     elif pitch_histogram is not None:
       control_events = [pitch_histogram] * num_steps
@@ -91,11 +88,8 @@ class PerformanceRnnModel(events_rnn_model.EventSequenceRnnModel):
           conditioning variables.
     """
     if note_density is not None and pitch_histogram is not None:
-      raise ValueError(
-          'Conditioning on both note density and pitch histogram not currently '
-          'supported.')
-
-    if note_density is not None:
+      control_events = [(note_density, pitch_histogram)] * len(sequence)
+    elif note_density is not None:
       control_events = [note_density] * len(sequence)
     elif pitch_histogram is not None:
       control_events = [pitch_histogram] * len(sequence)
@@ -179,7 +173,8 @@ default_configs = {
             clip_norm=3,
             learning_rate=0.001),
         num_velocity_bins=32,
-        density_bin_ranges=[1.0, 2.0, 4.0, 8.0, 16.0, 32.0, 64.0]),
+        density_bin_ranges=[1.0, 2.0, 4.0, 8.0, 16.0, 32.0, 64.0],
+        density_window_size=3.0),
 
     'pitch_conditioned_performance_with_dynamics': PerformanceRnnConfig(
         magenta.protobuf.generator_pb2.GeneratorDetails(
@@ -197,5 +192,30 @@ default_configs = {
             clip_norm=3,
             learning_rate=0.001),
         num_velocity_bins=32,
+        pitch_histogram_window_size=5.0),
+
+    'multiconditioned_performance_with_dynamics': PerformanceRnnConfig(
+        magenta.protobuf.generator_pb2.GeneratorDetails(
+            id='multiconditioned_performance_with_dynamics',
+            description='Density- and pitch-conditioned Performance RNN'),
+        magenta.music.ConditionalEventSequenceEncoderDecoder(
+            magenta.music.MultipleEventSequenceEncoder([
+                magenta.music.OneHotEventSequenceEncoderDecoder(
+                    performance_encoder_decoder.NoteDensityOneHotEncoding(
+                        density_bin_ranges=[
+                            1.0, 2.0, 4.0, 8.0, 16.0, 32.0, 64.0])),
+                performance_encoder_decoder.PitchHistogramEncoderDecoder()]),
+            magenta.music.OneHotEventSequenceEncoderDecoder(
+                performance_encoder_decoder.PerformanceOneHotEncoding(
+                    num_velocity_bins=32))),
+        tf.contrib.training.HParams(
+            batch_size=64,
+            rnn_layer_sizes=[512, 512, 512],
+            dropout_keep_prob=1.0,
+            clip_norm=3,
+            learning_rate=0.001),
+        num_velocity_bins=32,
+        density_bin_ranges=[1.0, 2.0, 4.0, 8.0, 16.0, 32.0, 64.0],
+        density_window_size=3.0,
         pitch_histogram_window_size=5.0)
 }

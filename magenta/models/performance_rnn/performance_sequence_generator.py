@@ -76,11 +76,6 @@ class PerformanceRnnSequenceGenerator(mm.BaseSequenceGenerator):
       ValueError: If both `note_density_conditioning` and
           `pitch_histogram_conditioning` are enabled.
     """
-    if note_density_conditioning and pitch_histogram_conditioning:
-      raise ValueError(
-          'Conditioning on both note density and pitch class histogram is not '
-          'currently supported.')
-
     super(PerformanceRnnSequenceGenerator, self).__init__(
         model, details, checkpoint, bundle)
     self.steps_per_second = steps_per_second
