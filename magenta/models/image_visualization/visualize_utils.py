@@ -55,9 +55,8 @@ default_octaves = [{
 
 dict_layer = {'r': 'relu', 'p': 'maxpool', 'c': 'conv2d'}
 
-
 ################################################
-# Helper Functions                             #
+# Helper Functions for Visualizing and Writing #
 ################################################
 
 # save given graph object as meta file
@@ -300,7 +299,6 @@ def lap_normalize(img, scale_n):
     tlevels = list(map(_normalize_std, tlevels))
     out = _lap_merge(tlevels)
     return out
-
 
 ################################################
 # Class Visualization using deepdream approach #
