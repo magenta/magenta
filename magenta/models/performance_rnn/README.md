@@ -23,6 +23,11 @@ If you want to get started right away, you can use a few models that we've pre-t
 
 * [performance](http://download.magenta.tensorflow.org/models/performance.mag)
 * [performance_with_dynamics](http://download.magenta.tensorflow.org/models/performance_with_dynamics.mag)
+* [density_conditioned_performance_with_dynamics](http://download.magenta.tensorflow.org/models/density_conditioned_performance_with_dynamics.mag)
+* [pitch_conditioned_performance_with_dynamics](http://download.magenta.tensorflow.org/models/performance_with_dynamics.mag)
+* [multiconditioned_performance_with_dynamics](http://download.magenta.tensorflow.org/models/performance_with_dynamics.mag)
+
+The latter three models are *conditional* models that can generate performances conditioned on desired note density, desired pitch class distribution, or both, respectively.
 
 ### Generate a performance
 
@@ -41,11 +46,18 @@ performance_rnn_generate \
 
 This will generate a performance starting with an ascending C major scale.
 
-There are several command line options for controlling the generation process:
+There are several command-line options for controlling the generation process:
 
 * **primer_pitches**: A string representation of a Python list of pitches that will be used as a starting chord with a short duration. For example: ```"[60, 64, 67]"```.
 * **primer_melody**: A string representation of a Python list of `magenta.music.Melody` event values (-2 = no event, -1 = note-off event, values 0 through 127 = note-on event for that MIDI pitch). For example: `"[60, -2, 60, -2, 67, -2, 67, -2]"`.
 * **primer_midi**: The path to a MIDI file containing a polyphonic track that will be used as a priming track.
+
+If you're using one of the conditional models, there are additional command-line options you can use:
+
+* **notes_per_second**: The desired number of notes per second in the output performance. Note that increasing this value will cause generation to take longer, as the number of RNN steps is roughly proportional to the number of notes generated.
+* **pitch_class_histogram**: A string representation of a Python list of 12 values representing the relative frequency of notes of each pitch class, starting with C. For example: `"[2, 0, 1, 0, 1, 1, 0, 1, 0, 1, 0, 1]"` will tend to stick to a C-major scale, with twice as much C as any of the other notes of the scale.
+
+These control variables are not strictly enforced, but can be used to guide the model's output. Currently these can only be set globally, affecting the entire performance.
 
 For a full list of command line options, run `performance_rnn_generate --help`.
 
