@@ -19,7 +19,7 @@ To visualize images from InceptionV5, set up your [Magenta environment](/README.
 
 In this repo, a 'params.py' file describes all of the parameters that 'class_visualization.py' will use in generating the visualization. Experimenting with these parameters, along with the other flags passed to 'class_visualization.py' us recommended. Here is a list of the existing parameters and default flag values:
 
-'''python
+```python
 # params.py
 octaves = [{
     'scale': 1.4,
@@ -53,4 +53,4 @@ logdir_path="./Log/Inception5"                                 # Path to folder 
 outdir_path="./Output/Inception5"                              # Path to folder where generated images will be stored")
 use_bilateral=True                                             # Flag for whether or not to use bilateral filtering, which is dependent on start_sigma and end_sigma in 'params.py'
 use_tv_bregman=True                                            # Flag for whether or not to perform total-variation denoising using split-Bregman optimization
-'''
+```
