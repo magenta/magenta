@@ -4,6 +4,7 @@ This directory contains Magenta models.
 
 * [**Drums RNN**](/magenta/models/drums_rnn): Applies language modeling to drum track generation using an LSTM.
 * [**Image Stylization**](/magenta/models/image_stylization): A "Multistyle Pastiche Generator" that generates artistics representations of photographs. Described in [*A Learned Representation For Artistic Style*](https://arxiv.org/abs/1610.07629).
+* [**Image Visualization**](/magenta/models/image_visualization): Generates visualizations of the classes a convolutional neural network learns. Code based on the [*TensorFlow implementation*](https://arxiv.org/abs/1610.07629) of [*Google's deep dream*](https://github.com/tensorflow/tensorflow/blob/master/tensorflow/examples/tutorials/deepdream/deepdream.ipynb).
 * [**Improv RNN**](/magenta/models/improv_rnn): Generates melodies a la [Melody RNN](/magenta/models/melody_rnn), but conditions the melodies on an underlying chord progression.
 * [**Melody RNN**](/magenta/models/melody_rnn): Applies language modeling to melody generation using an LSTM.
 * [**NSynth**](/magenta/models/nsynth): "Neural Audio Synthesis" as described in [*NSynth: Neural Audio Synthesis with WaveNet Autoencoders*](https://arxiv.org/abs/1704.01279).
