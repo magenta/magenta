@@ -416,9 +416,44 @@ class Part(object):
     self._state.transpose = 0
 
     xml_measures = xml_part.findall('measure')
-    for child in xml_measures:
-      measure = Measure(child, self._state)
-      self.measures.append(measure)
+    for measure in xml_measures:
+      # Issue #674: Repair measures that do not contain notes
+      # by inserting a whole measure rest
+      self._repair_empty_measure(measure)
+      parsed_measure = Measure(measure, self._state)
+      self.measures.append(parsed_measure)
+
+  def _repair_empty_measure(self, measure):
+    """Repair a measure if it is empty by inserting a whole measure rest.
+
+    If a <measure> only consists of a <forward> element that advances
+    the time cursor, remove the <forward> element and replace
+    with a whole measure rest of the same duration.
+
+    Args:
+      measure: The measure to repair.
+    """
+    # Issue #674 - If the <forward> element is in a measure without
+    # any <note> elements, treat it as if it were a whole measure
+    # rest by inserting a rest of that duration
+    forward_count = len(measure.findall('forward'))
+    note_count = len(measure.findall('note'))
+    if note_count == 0 and forward_count == 1:
+      # Get the duration of the <forward> element
+      xml_forward = measure.find('forward')
+      xml_duration = xml_forward.find('duration')
+      forward_duration = int(xml_duration.text)
+
+      # Delete the <forward> element
+      measure.remove(xml_forward)
+
+      # Insert the new note
+      new_note = '<note>'
+      new_note += '<rest /><duration>' + str(forward_duration) + '</duration>'
+      new_note += '<voice>1</voice><type>whole</type><staff>1</staff>'
+      new_note += '</note>'
+      new_note_xml = ET.fromstring(new_note)
+      measure.append(new_note_xml)
 
   def __str__(self):
     part_str = 'Part: ' + self.score_part.part_name
@@ -486,6 +521,7 @@ class Measure(object):
       elif child.tag == 'time':
         if self.time_signature is None:
           self.time_signature = TimeSignature(self.state, child)
+          self.state.time_signature = self.time_signature
         else:
           raise MultipleTimeSignatureException('Multiple time signatures')
       elif child.tag == 'transpose':
@@ -552,43 +588,58 @@ class Measure(object):
     """
     # Compute the fractional time signature (duration / divisions)
     # Multiply divisions by 4 because division is always parts per quarter note
-    fractional_time_signature = Fraction(self.duration,
-                                         self.state.divisions * 4)
+    numerator = self.duration
+    denominator = self.state.divisions * 4
+    fractional_time_signature = Fraction(numerator, denominator)
 
     if self.state.time_signature is None and self.time_signature is None:
-      # No global time signature yet and no time signature defined
+      # No global time signature yet and no measure time signature defined
       # in this measure (no time signature or senza misura).
       # Insert the fractional time signature as the time signature
       # for this measure
-
       self.time_signature = TimeSignature(self.state)
       self.time_signature.numerator = fractional_time_signature.numerator
       self.time_signature.denominator = fractional_time_signature.denominator
       self.state.time_signature = self.time_signature
     else:
-      # If no global time signature yet, set it to the
-      # time signature in this measure
-      if self.state.time_signature is None:
-        self.state.time_signature = self.time_signature
+      fractional_state_time_signature = Fraction(
+          self.state.time_signature.numerator,
+          self.state.time_signature.denominator)
+
+      # Check for pickup measure. Reset time signature to smaller numerator
+      pickup_measure = False
+      if numerator < self.state.time_signature.numerator:
+        pickup_measure = True
 
       # Get the current time signature denominator
       global_time_signature_denominator = self.state.time_signature.denominator
 
       # If the fractional time signature = 1 (e.g. 4/4),
       # make the numerator the same as the global denominator
-      if fractional_time_signature == 1:
+      if fractional_time_signature == 1 and not pickup_measure:
         new_time_signature = TimeSignature(self.state)
         new_time_signature.numerator = global_time_signature_denominator
         new_time_signature.denominator = global_time_signature_denominator
       else:
         # Otherwise, set the time signature to the fractional time signature
+        # Issue #674 - Use the original numerator and denominator
+        # instead of the fractional one
         new_time_signature = TimeSignature(self.state)
-        new_time_signature.numerator = fractional_time_signature.numerator
-        new_time_signature.denominator = fractional_time_signature.denominator
+        new_time_signature.numerator = numerator
+        new_time_signature.denominator = denominator
+
+        new_time_sig_fraction = Fraction(numerator,
+                                         denominator)
+
+        if new_time_sig_fraction == fractional_time_signature:
+          new_time_signature.numerator = fractional_time_signature.numerator
+          new_time_signature.denominator = fractional_time_signature.denominator
 
       # Insert a new time signature only if it does not equal the global
       # time signature.
-      if new_time_signature != self.state.time_signature:
+      if (pickup_measure or
+          (self.time_signature is None
+           and (fractional_time_signature != fractional_state_time_signature))):
         new_time_signature.time_position = self.start_time_position
         self.time_signature = new_time_signature
         self.state.time_signature = new_time_signature
@@ -1034,10 +1085,12 @@ class ChordSymbol(object):
     return step + alter_string
 
   def _parse_root(self, xml_root):
+    """Parse the <root> tag for a chord symbol."""
     self.root = self._parse_pitch(xml_root, step_tag='root-step',
                                   alter_tag='root-alter')
 
   def _parse_bass(self, xml_bass):
+    """Parse the <bass> tag for a chord symbol."""
     self.bass = self._parse_pitch(xml_bass, step_tag='bass-step',
                                   alter_tag='bass-alter')
 
