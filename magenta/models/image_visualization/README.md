@@ -17,6 +17,11 @@ So far, the demo uses Google's InceptionV5 CNN, which was trained on the ImageNe
 # Setup and Visualization
 To visualize images from InceptionV5, set up your [Magenta environment](/README.md).  
 
+Also add the following packages to your python environment:
+```
+pip install h5py wget scikit-image six
+```
+
 In this repo, a 'params.py' file describes all of the parameters that 'class_visualization.py' will use in generating the visualization. Experimenting with these parameters, along with the other flags passed to 'class_visualization.py' us recommended. Here is a list of the existing parameters and default flag values:
 
 ```python
