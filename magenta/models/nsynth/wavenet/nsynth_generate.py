@@ -61,7 +61,7 @@ def main(unused_argv=None):
         if fname.lower().endswith(postfix)
     ])
 
-  elif source_path.lower().endswith(postfix):
+  elif source_path.lower().endswith((".wav", ".npy")):
     files = [source_path]
   else:
     files = []
