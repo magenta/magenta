@@ -104,7 +104,7 @@ $ image_stylization_finetune \
 
 # Exporting a SavedModel binary
 
-[SavedModel](https://www.tensorflow.org/versions/master/api_docs/python/tf/saved_model/builder/SavedModelBuilder) is a binary format that encapsulates all the information needed to serve model inference at scale. You can use this binary to deploy a gRPC API using [tensorflow/serving](https://github.com/tensorflow/serving), or an HTTP/JSON API with [Google Cloud Machine Learning Engine](https://cloud.google.com/ml-engine/docs)
+[SavedModel](https://www.tensorflow.org/versions/master/api_docs/python/tf/saved_model/builder/SavedModelBuilder) is a binary format that encapsulates all the information needed to serve model inference at scale. You can use this binary to deploy a gRPC API using [tensorflow/serving](https://github.com/tensorflow/serving), or an HTTP/JSON API with [Google Cloud Machine Learning Engine](https://cloud.google.com/ml-engine/docs/how-tos/deploying-models)
 
 To export a SavedModel binary simply run the following command:
 
