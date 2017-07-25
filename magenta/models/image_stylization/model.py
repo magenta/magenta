@@ -128,9 +128,9 @@ def _upsampling(input_, kernel_size, stride, num_outputs, scope,
   if kernel_size % 2 == 0:
     raise ValueError('kernel_size is expected to be odd.')
   with tf.variable_scope(scope):
-    _, height, width, _ = [s.value for s in input_.get_shape()]
-    upsampled_input = tf.image.resize_nearest_neighbor(
-        input_, [stride * height, stride * width])
+    # Use shape as Tensor to support unknown image shapes
+    new_shape = tf.shape(input_, out_type=tf.int32)[1:3] * stride
+    upsampled_input = tf.image.resize_nearest_neighbor(input_, new_shape)
     return _conv2d(upsampled_input, kernel_size, 1, num_outputs, 'conv',
                    activation_fn=activation_fn)
 

@@ -101,3 +101,18 @@ $ image_stylization_finetune \
       --vgg_checkpoint=/path/to/vgg_16.ckpt \
       --imagenet_data_dir=/path/to/imagenet-2012-tfrecord
 ```
+
+# Exporting a SavedModel binary
+
+[SavedModel](https://www.tensorflow.org/versions/master/api_docs/python/tf/saved_model/builder/SavedModelBuilder) is a binary format that encapsulates all the information needed to serve model inference at scale. You can use this binary to deploy a gRPC API using [tensorflow/serving](https://github.com/tensorflow/serving), or an HTTP/JSON API with [Google Cloud Machine Learning Engine](https://cloud.google.com/ml-engine/docs)
+
+To export a SavedModel binary simply run the following command:
+
+```bash
+$ image_stylization_saved_model \
+      --checkpoint=/path/to/model.ckpt \
+      --num-styles=$NUMBER_OF_STYLES
+      --output-dir=output/
+```
+
+If unspecified `--style-constant` will require you to provide a `Tensor(dtype=tf.float32, shape=[num_styles])` with every image specifying the desired style mixture. You can also specify a `--style-constant` to be baked into the SavedModel binary, and used for all images sent to the API.
