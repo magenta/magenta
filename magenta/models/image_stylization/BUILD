@@ -100,6 +100,7 @@ py_binary(
     ],
     deps = [
         ":model",
+        ":ops",
     ],
 )
 
