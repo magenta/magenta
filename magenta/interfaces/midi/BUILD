@@ -19,6 +19,7 @@ licenses(["notice"])  # Apache 2.0
 
 py_library(
     name = "midi",
+    srcs_version = "PY2AND3",
     visibility = [
         "//magenta/tools/pip:__subpackages__",
         # internal notebook binary
@@ -32,6 +33,7 @@ py_library(
 py_library(
     name = "midi_hub",
     srcs = ["midi_hub.py"],
+    srcs_version = "PY2AND3",
     deps = [
         "//magenta",
         "@mido//:mido",
@@ -57,6 +59,7 @@ py_test(
 py_library(
     name = "midi_interaction",
     srcs = ["midi_interaction.py"],
+    srcs_version = "PY2AND3",
     deps = [
         ":midi_hub",
         "//magenta",
@@ -67,6 +70,7 @@ py_library(
 py_binary(
     name = "magenta_midi",
     srcs = ["magenta_midi.py"],
+    srcs_version = "PY2AND3",
     visibility = ["//magenta/tools/pip:__subpackages__"],
     deps = [
         ":midi_hub",
@@ -83,6 +87,7 @@ py_binary(
 py_binary(
     name = "midi_clock",
     srcs = ["midi_clock.py"],
+    srcs_version = "PY2AND3",
     visibility = ["//magenta/tools/pip:__subpackages__"],
     deps = [
         ":midi_hub",
