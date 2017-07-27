@@ -17,19 +17,20 @@ licenses(["notice"])  # Apache 2.0
 py_library(
     name = "pianoroll_rnn_nade",
     srcs = ["__init__.py"],
+    srcs_version = "PY2AND3",
     visibility = [
         # internal notebook binary
-        "//magenta/tools/pip:__subpackages__"
+        "//magenta/tools/pip:__subpackages__",
     ],
     deps = [
         ":pianoroll_rnn_nade_model",
     ],
 )
 
-
 py_library(
     name = "pianoroll_rnn_nade_graph",
     srcs = ["pianoroll_rnn_nade_graph.py"],
+    srcs_version = "PY2AND3",
     deps = [
         "//magenta",
         "//magenta/models/shared:events_rnn_graph",
@@ -40,6 +41,7 @@ py_library(
 py_library(
     name = "pianoroll_rnn_nade_model",
     srcs = ["pianoroll_rnn_nade_model.py"],
+    srcs_version = "PY2AND3",
     visibility = [
         # internal notebook binary
         # internal model:pianoroll_rnn_nade
@@ -58,7 +60,7 @@ py_library(
     srcs_version = "PY2AND3",
     visibility = [
         # internal notebook binary
-        "//magenta/interfaces:generator_interfaces"
+        "//magenta/interfaces:generator_interfaces",
     ],
     deps = [
         ":pianoroll_rnn_nade_model",
@@ -70,6 +72,7 @@ py_library(
 py_binary(
     name = "pianoroll_rnn_nade_generate",
     srcs = ["pianoroll_rnn_nade_generate.py"],
+    srcs_version = "PY2AND3",
     visibility = ["//magenta/tools/pip:__subpackages__"],
     deps = [
         ":pianoroll_rnn_nade_model",
@@ -82,6 +85,7 @@ py_binary(
 py_binary(
     name = "pianoroll_rnn_nade_create_dataset",
     srcs = ["pianoroll_rnn_nade_create_dataset.py"],
+    srcs_version = "PY2AND3",
     visibility = [
         # internal model:pianoroll_rnn_nade
         "//magenta/tools/pip:__subpackages__",
@@ -96,6 +100,7 @@ py_binary(
 py_test(
     name = "pianoroll_rnn_nade_create_dataset_test",
     srcs = ["pianoroll_rnn_nade_create_dataset_test.py"],
+    srcs_version = "PY2AND3",
     deps = [
         ":pianoroll_rnn_nade_create_dataset",
         "//magenta",
@@ -107,6 +112,7 @@ py_test(
 py_binary(
     name = "pianoroll_rnn_nade_train",
     srcs = ["pianoroll_rnn_nade_train.py"],
+    srcs_version = "PY2AND3",
     visibility = ["//magenta/tools/pip:__subpackages__"],
     deps = [
         ":pianoroll_rnn_nade_graph",

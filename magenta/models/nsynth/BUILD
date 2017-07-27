@@ -26,6 +26,7 @@ licenses(["notice"])  # Apache 2.0
 py_library(
     name = "utils",
     srcs = ["utils.py"],
+    srcs_version = "PY2AND3",
     visibility = [
         # internal notebook binary
         "//magenta/models/nsynth:__subpackages__",
@@ -42,6 +43,7 @@ py_library(
 py_library(
     name = "reader",
     srcs = ["reader.py"],
+    srcs_version = "PY2AND3",
     deps = [
         ":utils",
         # numpy dep

@@ -19,6 +19,7 @@ licenses(["notice"])  # Apache 2.0
 py_library(
     name = "drums_rnn",
     srcs = ["__init__.py"],
+    srcs_version = "PY2AND3",
     visibility = ["//magenta/tools/pip:__subpackages__"],
     deps = [
         ":drums_rnn_model",
@@ -77,6 +78,7 @@ py_binary(
 py_test(
     name = "drums_rnn_create_dataset_test",
     srcs = ["drums_rnn_create_dataset_test.py"],
+    srcs_version = "PY2AND3",
     deps = [
         ":drums_rnn_create_dataset",
         "//magenta",

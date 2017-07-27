@@ -1,9 +1,9 @@
 new_http_archive(
     name = "pretty_midi",
     build_file = "pretty_midi.BUILD",
-    sha256 = "8326c9c87d5efc91670a5881581eb192b095a1c93afd5fddc91b2232af8e9b9b",
-    strip_prefix = "pretty-midi-0.2.6/pretty_midi",
-    url = "https://github.com/craffel/pretty-midi/archive/0.2.6.tar.gz",
+    sha256 = "f359310473b3e1ed070beda08fbbd7564dc7fed26aec00f06bdb5088394ae4d2",
+    strip_prefix = "pretty-midi-0.2.8/pretty_midi",
+    url = "https://github.com/craffel/pretty-midi/archive/0.2.8.tar.gz",
 )
 
 http_archive(
@@ -37,12 +37,4 @@ new_http_archive(
     sha256 = "870d2f470ce1123324f9ef9676b6c9f2580293dd2a07fdfe00e20a47740e8b8e",
     strip_prefix = "mido-1.2.6/mido",
     url = "https://github.com/olemb/mido/archive/1.2.6.tar.gz",
-)
-
-new_http_archive(
-    name = "concurrent",
-    build_file = "pythonfutures.BUILD",
-    sha256 = "7baa7eca5a0471531405c9d4be65af7c280ddd15c30321a12ee8c7f575f976ae",
-    strip_prefix = "pythonfutures-3.1.1/concurrent",
-    url = "https://github.com/agronholm/pythonfutures/archive/3.1.1.tar.gz",
 )

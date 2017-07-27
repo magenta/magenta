@@ -20,6 +20,7 @@ licenses(["notice"])  # Apache 2.0
 py_library(
     name = "rl_tuner",
     srcs = ["rl_tuner.py"],
+    srcs_version = "PY2AND3",
     visibility = ["//magenta/tools/pip:__subpackages__"],
     deps = [
         ":note_rnn_loader",
@@ -34,6 +35,7 @@ py_library(
 py_binary(
     name = "rl_tuner_train",
     srcs = ["rl_tuner_train.py"],
+    srcs_version = "PY2AND3",
     visibility = ["//magenta/tools/pip:__subpackages__"],
     deps = [
         ":rl_tuner",
@@ -44,6 +46,7 @@ py_binary(
 py_library(
     name = "note_rnn_loader",
     srcs = ["note_rnn_loader.py"],
+    srcs_version = "PY2AND3",
     deps = [
         ":rl_tuner_ops",
         "//magenta/models/shared:events_rnn_graph",
@@ -57,6 +60,7 @@ py_library(
 py_library(
     name = "rl_tuner_eval_metrics",
     srcs = ["rl_tuner_eval_metrics.py"],
+    srcs_version = "PY2AND3",
     deps = [
         ":rl_tuner_ops",
         # tensorflow dep
@@ -66,6 +70,7 @@ py_library(
 py_library(
     name = "rl_tuner_ops",
     srcs = ["rl_tuner_ops.py"],
+    srcs_version = "PY2AND3",
     deps = [
         # tensorflow dep
     ],
@@ -75,6 +80,7 @@ py_test(
     name = "rl_tuner_test",
     size = "medium",
     srcs = ["rl_tuner_test.py"],
+    srcs_version = "PY2AND3",
     deps = [
         ":note_rnn_loader",
         ":rl_tuner",

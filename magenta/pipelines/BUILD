@@ -24,6 +24,7 @@ licenses(["notice"])  # Apache 2.0
 # The Magenta public API.
 py_library(
     name = "pipelines",
+    srcs_version = "PY2AND3",
     deps = [
         ":dag_pipeline",
         ":drum_pipelines",
@@ -39,6 +40,7 @@ py_library(
 py_library(
     name = "chord_pipelines",
     srcs = ["chord_pipelines.py"],
+    srcs_version = "PY2AND3",
     deps = [
         ":pipeline",
         "//magenta/music:chord_symbols_lib",
@@ -68,6 +70,7 @@ py_test(
 py_library(
     name = "dag_pipeline",
     srcs = ["dag_pipeline.py"],
+    srcs_version = "PY2AND3",
     deps = [
         ":pipeline",
     ],
@@ -76,6 +79,7 @@ py_library(
 py_test(
     name = "dag_pipeline_test",
     srcs = ["dag_pipeline_test.py"],
+    srcs_version = "PY2AND3",
     deps = [
         ":dag_pipeline",
         ":pipeline",
@@ -87,6 +91,7 @@ py_test(
 py_library(
     name = "drum_pipelines",
     srcs = ["drum_pipelines.py"],
+    srcs_version = "PY2AND3",
     deps = [
         ":pipeline",
         "//magenta/music:drums_lib",
@@ -114,6 +119,7 @@ py_test(
 py_library(
     name = "lead_sheet_pipelines",
     srcs = ["lead_sheet_pipelines.py"],
+    srcs_version = "PY2AND3",
     deps = [
         ":pipeline",
         "//magenta/music:chord_symbols_lib",
@@ -145,6 +151,7 @@ py_test(
 py_library(
     name = "melody_pipelines",
     srcs = ["melody_pipelines.py"],
+    srcs_version = "PY2AND3",
     deps = [
         ":pipeline",
         "//magenta/music:events_lib",
@@ -173,6 +180,7 @@ py_test(
 py_library(
     name = "note_sequence_pipelines",
     srcs = ["note_sequence_pipelines.py"],
+    srcs_version = "PY2AND3",
     deps = [
         ":pipeline",
         "//magenta/music:sequences_lib",
@@ -198,6 +206,7 @@ py_test(
 py_library(
     name = "pipeline",
     srcs = ["pipeline.py"],
+    srcs_version = "PY2AND3",
     deps = [
         ":statistics",
         "//magenta/protobuf:music_py_pb2",
@@ -221,6 +230,7 @@ py_test(
 py_library(
     name = "pipelines_common",
     srcs = ["pipelines_common.py"],
+    srcs_version = "PY2AND3",
     deps = [
         ":pipeline",
         # numpy dep
@@ -241,11 +251,13 @@ py_test(
 py_library(
     name = "statistics",
     srcs = ["statistics.py"],
+    srcs_version = "PY2AND3",
 )
 
 py_test(
     name = "statistics_test",
     srcs = ["statistics_test.py"],
+    srcs_version = "PY2AND3",
     deps = [
         ":statistics",
         # tensorflow dep
