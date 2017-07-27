@@ -17,13 +17,13 @@ Input and output wrappers for converting between MIDI and other formats.
 """
 
 from collections import defaultdict
-import six
 import sys
 import tempfile
 
 
 # internal imports
 import pretty_midi
+import six
 import tensorflow as tf
 
 from magenta.music import constants

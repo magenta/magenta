@@ -14,9 +14,9 @@
 """Tests for pipelines_common."""
 
 import functools
-import six
 
 # internal imports
+import six
 import tensorflow as tf
 
 from magenta.common import testing_lib as common_testing_lib
