@@ -16,6 +16,7 @@
 import abc
 import inspect
 import os.path
+import six
 
 # internal imports
 import tensorflow as tf
@@ -91,7 +92,7 @@ def _assert_valid_type_signature(type_sig, type_sig_name):
   """
   if isinstance(type_sig, dict):
     for k, val in type_sig.items():
-      if not isinstance(k, basestring):
+      if not isinstance(k, six.string_types):
         raise InvalidTypeSignatureException(
             '%s key %s must be a string.' % (type_sig_name, k))
       if not inspect.isclass(val):

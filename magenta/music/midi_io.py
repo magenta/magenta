@@ -17,12 +17,8 @@ Input and output wrappers for converting between MIDI and other formats.
 """
 
 from collections import defaultdict
+import six
 import sys
-# pylint: disable=g-import-not-at-top
-if sys.version_info.major <= 2:
-  from cStringIO import StringIO
-else:
-  from io import StringIO
 import tempfile
 
 
@@ -76,7 +72,7 @@ def midi_to_sequence_proto(midi_data):
     midi = midi_data
   else:
     try:
-      midi = pretty_midi.PrettyMIDI(StringIO(midi_data))
+      midi = pretty_midi.PrettyMIDI(six.BytesIO(midi_data))
     except:
       raise MIDIConversionError('Midi decoding error %s: %s' %
                                 (sys.exc_info()[0], sys.exc_info()[1]))
