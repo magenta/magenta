@@ -43,6 +43,9 @@ py_test(
     name = "midi_hub_test",
     srcs = ["midi_hub_test.py"],
     srcs_version = "PY2AND3",
+    tags = [
+        "manual",  # TODO(adarob): Remove manual tag once timeout is fixed. #759
+    ],
     deps = [
         ":midi_hub",
         "//magenta",
