@@ -13,7 +13,10 @@
 # limitations under the License.
 """Tests for pipelines_common."""
 
+import functools
+
 # internal imports
+import six
 import tensorflow as tf
 
 from magenta.common import testing_lib as common_testing_lib
@@ -36,7 +39,7 @@ class PipelineUnitsCommonTest(tf.test.TestCase):
         str, ['a', 'b', 'c'], [0.1, 0.4])
     random_nums = [0.55, 0.05, 0.34, 0.99]
     choices = ['c', 'a', 'b', 'c']
-    random_partition.rand_func = iter(random_nums).next
+    random_partition.rand_func = functools.partial(six.next, iter(random_nums))
     self.assertEqual(random_partition.input_type, str)
     self.assertEqual(random_partition.output_type,
                      {'a': str, 'b': str, 'c': str})

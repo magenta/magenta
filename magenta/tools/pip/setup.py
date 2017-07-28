@@ -31,6 +31,7 @@ REQUIRED_PACKAGES = [
     'intervaltree >= 2.1.0',
     'matplotlib >= 1.5.3',
     'mido == 1.2.6',
+    'numpy >= 1.11.0',
     'pandas >= 0.18.1',
     'pretty_midi >= 0.2.6',
     'python-rtmidi',
