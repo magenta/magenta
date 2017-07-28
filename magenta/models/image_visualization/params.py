@@ -24,6 +24,7 @@ octaves = [{
     }]
 
 # Set background color of image to visualize on
-background_color = np.float32([10, 90, 140])
+background_color = np.float32([44, 44, 44])
 
-classes = [1,2,3,4,5]
+#classes = [1,2,3,4,5]
+classes = [460]

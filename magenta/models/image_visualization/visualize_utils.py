@@ -313,7 +313,8 @@ def _visualization_by_layer_name(
     path_outdir,
     background_color,
     octaves,
-    use_bilateral
+    use_bilateral,
+    use_tv_bregman
     ):
     """
 ....Generate and store filter visualization from the layer which has the name layer_name
@@ -387,7 +388,8 @@ def _visualization_by_layer_name(
                 path_logdir,
                 background_color,
                 octaves,
-                use_bilateral
+                use_bilateral,
+                use_tv_bregman
                 )
             is_deep_dream = False
 
@@ -420,7 +422,8 @@ def _deepdream(
     path_logdir,
     background_color,
     octaves,
-    use_bilateral
+    use_bilateral,
+    use_tv_bregman
     ):
 
     tensor_shape = op_tensor.get_shape().as_list()
@@ -472,15 +475,15 @@ def _deepdream(
                         img = sess.run(resize_image,
                                 {image_to_resize: img,
                                 size_to_resize: np.int32(hw)})
-                        for (i, im) in enumerate(img):
-                            min_img = im.min()
-                            max_img = im.max()
-                            temp = denoise_tv_bregman((im - min_img)
-                                    / (max_img - min_img),
-                                    weight=config['TV_DENOISE_WEIGHT'])
-                            img[i] = temp * (max_img - min_img) \
-                                + min_img
-
+                        if use_tv_bregman:
+                            for (i, im) in enumerate(img):
+                                min_img = im.min()
+                                max_img = im.max()
+                                temp = denoise_tv_bregman((im - min_img)
+                                        / (max_img - min_img),
+                                        weight=config['TV_DENOISE_WEIGHT'])
+                                img[i] = temp * (max_img - min_img) \
+                                    + min_img
                     for j in range(octave['iter_n']):
                         sz = tile_size
                         (h, w) = img.shape[1:3]
@@ -510,7 +513,7 @@ def _deepdream(
                                 min_img = im.min()
                                 max_img = im.max()
                                 temp = denoise_bilateral((im - min_img)
-                                        / (max_img - min_img), sigma_color=sigma, sigma_spatial=sigma, multichannel=True)
+                                        / (max_img - min_img), win_size=5, sigma_color=sigma, sigma_spatial=sigma, multichannel=True)
                                 img[i] = temp * (max_img - min_img) \
                                     + min_img
                 is_success = _write_deepdream(img, (layer, units, k),
@@ -525,12 +528,13 @@ def class_visualization(
     value_feed_dict,
     layer,
     classes,
+    use_bilateral,
+    use_tv_bregman,
     input_tensor=None,
     path_logdir='./Log',
     path_outdir='./Output',
-    background_color = np.float32([10, 90, 140]),
-    octaves=default_octaves,
-    use_bilateral=False
+    background_color = np.float32([117, 117, 117]),
+    octaves=default_octaves
     ):
 
     is_success = True
@@ -573,7 +577,8 @@ def class_visualization(
                     path_outdir,
                     background_color,
                     octaves,
-                    use_bilateral
+                    use_bilateral,
+                    use_tv_bregman
                     )
             elif layer != None and layer.lower() in dict_layer.keys():
                 layer_type = dict_layer[layer.lower()]
@@ -594,7 +599,8 @@ def class_visualization(
                         path_outdir,
                         background_color,
                         octaves,
-                        use_bilateral
+                        use_bilateral,
+                        use_tv_bregman
                         )
             else:
                 print 'Skipping %s . %s is not valid layer name or layer type' \

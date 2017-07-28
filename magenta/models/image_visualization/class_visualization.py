@@ -16,6 +16,7 @@ flags.DEFINE_string("params_path", ".", "Path to folder containing python file '
 flags.DEFINE_string("logdir_path", "./Log/Inception5", "Path to folder where logs will be stored")
 flags.DEFINE_string("outdir_path", "./Output/Inception5", "Path to folder where generated images will be stored")
 flags.DEFINE_boolean("use_bilateral", True, "Flag for whether or not to use bilateral filtering. Params for bilateral filtering should be set for each octave defined in 'params.py'")
+flags.DEFINE_boolean("use_tv_bregman", False, "Flag for whether or not to perform total-variation denoising")
 FLAGS = flags.FLAGS
 
 sys.path.insert(0, FLAGS.params_path)
@@ -51,6 +52,6 @@ start = time.time()
 
 is_success = class_visualization(graph_or_path = tf.get_default_graph(), value_feed_dict = {t_input : im},
                                      layer=layer, classes=classes, path_logdir=FLAGS.logdir_path,
-                                     path_outdir=FLAGS.outdir_path, background_color=background_color, octaves=octaves, use_bilateral=FLAGS.use_bilateral)
+                                     path_outdir=FLAGS.outdir_path, background_color=background_color, octaves=octaves, use_bilateral=FLAGS.use_bilateral, use_tv_bregman=FLAGS.use_tv_bregman)
 start = time.time() - start
 print("Total Time = %f" % (start))
