@@ -662,7 +662,7 @@ def extract_melodies(quantized_sequence,
 
       melodies.append(melody)
 
-  return melodies, stats.values()
+  return melodies, list(stats.values())
 
 
 def midi_file_to_melody(midi_file, steps_per_quarter=4, qpm=None,

@@ -344,4 +344,4 @@ def extract_lead_sheet_fragments(quantized_sequence,
             lead_sheets.append(transposed_lead_sheet)
         else:
           lead_sheets.append(lead_sheet)
-  return lead_sheets, stats.values() + melody_stats + chord_stats
+  return lead_sheets, list(stats.values()) + melody_stats + chord_stats

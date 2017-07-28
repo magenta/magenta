@@ -238,7 +238,7 @@ class ChordProgression(events_lib.SimpleEventSequence):
       ChordSymbolException: If a chord (other than "no chord") fails to be
           interpreted by the `chord_symbols_lib` module.
     """
-    for i in xrange(len(self._events)):
+    for i in range(len(self._events)):
       if self._events[i] != NO_CHORD:
         self._events[i] = chord_symbols_lib.transpose_chord_symbol(
             self._events[i], transpose_amount % NOTES_PER_OCTAVE)
@@ -317,7 +317,7 @@ def extract_chords_for_melodies(quantized_sequence, melodies):
       chords = None
     chord_progressions.append(chords)
 
-  return chord_progressions, stats.values()
+  return chord_progressions, list(stats.values())
 
 
 class ChordRenderer(object):
