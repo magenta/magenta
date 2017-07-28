@@ -15,7 +15,7 @@
 
 import collections
 import os
-import urllib2
+from six.moves import urllib
 
 # internal imports
 
