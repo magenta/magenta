@@ -24,6 +24,10 @@ algorithm can be switched using the 'algorithm' hyperparameter.
 For more information, please consult the README.md file in this directory.
 """
 
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import print_function
+
 from collections import deque
 import os
 from os import makedirs
@@ -36,9 +40,8 @@ import urllib
 import matplotlib.pyplot as plt
 import numpy as np
 from scipy.misc import logsumexp
+from six.moves import range # pylint: disable=redefined-builtin
 import tensorflow as tf
-
-from six.moves import range
 
 from magenta.models.rl_tuner import note_rnn_loader
 from magenta.models.rl_tuner import rl_tuner_eval_metrics

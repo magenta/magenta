@@ -14,15 +14,19 @@
 
 """Helper functions to support the RLTuner and NoteRNNLoader classes."""
 
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import print_function
+
 import os
 import random
 
 # internal imports
 
 import numpy as np
+from six.moves import range # pylint: disable=redefined-builtin
 import tensorflow as tf
 
-from six.moves import range
 
 LSTM_STATE_NAME = 'lstm'
 
