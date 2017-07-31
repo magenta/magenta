@@ -16,6 +16,7 @@
 import collections
 import copy
 import itertools
+from operator import itemgetter
 
 # internal imports
 import numpy as np
@@ -825,7 +826,7 @@ def apply_sustain_control_changes(note_sequence, sustain_control_number=64):
 
   # Sort, using the event type constants to ensure the order events are
   # processed.
-  events.sort()
+  events.sort(key=itemgetter(0))
 
   # Lists of active notes, keyed by instrument.
   active_notes = collections.defaultdict(list)
