@@ -852,7 +852,7 @@ class SequencesLibTest(tf.test.TestCase):
     """Test sustain control extending the duration of the final note."""
     sequence = copy.copy(self.note_sequence)
     testing_lib.add_control_changes_to_sequence(
-        sequence, 0, [(1.0, 64, 127), (4.0, 64, 0)])
+        sequence, 0, [(1.0, 64, 127), (4.0, 64, 0), (5.0, 64, 127)])
     expected_sequence = copy.copy(sequence)
     testing_lib.add_track_to_sequence(
         sequence, 0,
