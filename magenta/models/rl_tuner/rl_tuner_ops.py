@@ -27,7 +27,6 @@ import numpy as np
 from six.moves import range  # pylint: disable=redefined-builtin
 import tensorflow as tf
 
-from six.moves import range
 
 LSTM_STATE_NAME = 'lstm'
 
