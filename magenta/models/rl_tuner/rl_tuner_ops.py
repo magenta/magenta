@@ -24,7 +24,7 @@ import random
 # internal imports
 
 import numpy as np
-from six.moves import range # pylint: disable=redefined-builtin
+from six.moves import range  # pylint: disable=redefined-builtin
 import tensorflow as tf
 
 

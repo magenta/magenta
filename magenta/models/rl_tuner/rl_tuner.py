@@ -40,7 +40,7 @@ import urllib
 import matplotlib.pyplot as plt
 import numpy as np
 from scipy.misc import logsumexp
-from six.moves import range # pylint: disable=redefined-builtin
+from six.moves import range  # pylint: disable=redefined-builtin
 import tensorflow as tf
 
 from magenta.models.rl_tuner import note_rnn_loader
