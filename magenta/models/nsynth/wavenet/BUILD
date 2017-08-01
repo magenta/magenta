@@ -25,6 +25,7 @@ licenses(["notice"])  # Apache 2.0
 py_library(
     name = "masked",
     srcs = ["masked.py"],
+    srcs_version = "PY2AND3",
     deps = [
         # tensorflow dep
     ],
@@ -33,6 +34,7 @@ py_library(
 py_library(
     name = "h512_bo16",
     srcs = ["h512_bo16.py"],
+    srcs_version = "PY2AND3",
     deps = [
         # tensorflow dep
         "//magenta/models/nsynth:reader",
@@ -44,6 +46,7 @@ py_library(
 py_library(
     name = "fastgen",
     srcs = ["fastgen.py"],
+    srcs_version = "PY2AND3",
     visibility = [
         # internal notebook binary
         "//magenta/tools/pip:__subpackages__",
@@ -59,6 +62,7 @@ py_library(
 
 py_library(
     name = "config_library",
+    srcs_version = "PY2AND3",
     deps = [
         "//magenta/models/nsynth:reader",
         ":masked",
@@ -71,6 +75,7 @@ py_library(
     srcs = [
         "h512_bo16.py",
     ],
+    srcs_version = "PY2AND3",
     visibility = [
         # internal notebook binary
         "//magenta/tools/pip:__subpackages__",
@@ -85,6 +90,7 @@ py_binary(
     srcs = [
         "nsynth_generate.py",
     ],
+    srcs_version = "PY2AND3",
     deps = [
         ":configs",
         ":fastgen",
@@ -98,6 +104,7 @@ py_binary(
     srcs = [
         "train.py",
     ],
+    srcs_version = "PY2AND3",
     deps = [
         ":configs",
         "//magenta/models/nsynth:utils",
@@ -111,6 +118,7 @@ py_binary(
     srcs = [
         "nsynth_save_embeddings.py",
     ],
+    srcs_version = "PY2AND3",
     deps = [
         ":configs",
         ":fastgen",

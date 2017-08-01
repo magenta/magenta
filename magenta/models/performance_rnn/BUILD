@@ -17,9 +17,10 @@ licenses(["notice"])  # Apache 2.0
 py_library(
     name = "performance_rnn",
     srcs = ["__init__.py"],
+    srcs_version = "PY2AND3",
     visibility = [
         # internal notebook binary
-        "//magenta/tools/pip:__subpackages__"
+        "//magenta/tools/pip:__subpackages__",
     ],
     deps = [
         ":performance_model",
@@ -29,6 +30,7 @@ py_library(
 py_library(
     name = "performance_lib",
     srcs = ["performance_lib.py"],
+    srcs_version = "PY2AND3",
     deps = [
         "//magenta",
         # tensorflow dep
@@ -38,6 +40,7 @@ py_library(
 py_test(
     name = "performance_lib_test",
     srcs = ["performance_lib_test.py"],
+    srcs_version = "PY2AND3",
     deps = [
         ":performance_lib",
         "//magenta",
@@ -48,6 +51,7 @@ py_test(
 py_library(
     name = "performance_model",
     srcs = ["performance_model.py"],
+    srcs_version = "PY2AND3",
     visibility = [
         # internal notebook binary
     ],
@@ -78,6 +82,7 @@ py_library(
 py_binary(
     name = "performance_rnn_generate",
     srcs = ["performance_rnn_generate.py"],
+    srcs_version = "PY2AND3",
     visibility = ["//magenta/tools/pip:__subpackages__"],
     deps = [
         ":performance_lib",
@@ -91,6 +96,7 @@ py_binary(
 py_library(
     name = "performance_encoder_decoder",
     srcs = ["performance_encoder_decoder.py"],
+    srcs_version = "PY2AND3",
     deps = [
         ":performance_lib",
         "//magenta",
@@ -101,6 +107,7 @@ py_library(
 py_test(
     name = "performance_encoder_decoder_test",
     srcs = ["performance_encoder_decoder_test.py"],
+    srcs_version = "PY2AND3",
     deps = [
         ":performance_encoder_decoder",
         ":performance_lib",
@@ -112,6 +119,7 @@ py_test(
 py_binary(
     name = "performance_rnn_create_dataset",
     srcs = ["performance_rnn_create_dataset.py"],
+    srcs_version = "PY2AND3",
     visibility = [
         # internal model:performance_rnn
         "//magenta/tools/pip:__subpackages__",
@@ -127,6 +135,7 @@ py_binary(
 py_test(
     name = "performance_rnn_create_dataset_test",
     srcs = ["performance_rnn_create_dataset_test.py"],
+    srcs_version = "PY2AND3",
     deps = [
         ":performance_lib",
         ":performance_model",
@@ -139,6 +148,7 @@ py_test(
 py_binary(
     name = "performance_rnn_train",
     srcs = ["performance_rnn_train.py"],
+    srcs_version = "PY2AND3",
     visibility = ["//magenta/tools/pip:__subpackages__"],
     deps = [
         ":performance_model",

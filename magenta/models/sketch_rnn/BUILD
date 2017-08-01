@@ -18,6 +18,7 @@ licenses(["notice"])  # Apache 2.0
 
 py_library(
     name = "sketch_rnn",
+    srcs_version = "PY2AND3",
     visibility = ["//magenta/tools/pip:__subpackages__"],
     deps = [
         ":model",
@@ -29,6 +30,7 @@ py_library(
 py_library(
     name = "model",
     srcs = ["model.py"],
+    srcs_version = "PY2AND3",
     deps = [
         ":rnn",
         # numpy dep
@@ -39,6 +41,7 @@ py_library(
 py_library(
     name = "rnn",
     srcs = ["rnn.py"],
+    srcs_version = "PY2AND3",
     deps = [
         # numpy dep
         # tensorflow dep
@@ -48,6 +51,7 @@ py_library(
 py_library(
     name = "utils",
     srcs = ["utils.py"],
+    srcs_version = "PY2AND3",
     deps = [
         # numpy dep
     ],
@@ -56,6 +60,7 @@ py_library(
 py_binary(
     name = "sketch_rnn_train",
     srcs = ["sketch_rnn_train.py"],
+    srcs_version = "PY2AND3",
     visibility = [
         "//magenta/tools/pip:__subpackages__",
     ],

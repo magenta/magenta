@@ -865,6 +865,25 @@ class SequencesLibTest(tf.test.TestCase):
     sus_sequence = sequences_lib.apply_sustain_control_changes(sequence)
     self.assertProtoEquals(expected_sequence, sus_sequence)
 
+  def testApplySustainControlChangesExtraneousSustain(self):
+    """Test applying extraneous sustain control at the end of the sequence."""
+    sequence = copy.copy(self.note_sequence)
+    testing_lib.add_control_changes_to_sequence(
+        sequence, 0, [(4.0, 64, 127), (5.0, 64, 0)])
+    expected_sequence = copy.copy(sequence)
+    testing_lib.add_track_to_sequence(
+        sequence, 0,
+        [(60, 100, 0.50, 1.50), (72, 100, 2.0, 3.0)])
+    testing_lib.add_track_to_sequence(
+        expected_sequence, 0,
+        [(60, 100, 0.50, 1.50), (72, 100, 2.0, 3.0)])
+    # The total_time field only takes *notes* into account, and should not be
+    # affected by a sustain-on event beyond the last note.
+    expected_sequence.total_time = 3.0
+
+    sus_sequence = sequences_lib.apply_sustain_control_changes(sequence)
+    self.assertProtoEquals(expected_sequence, sus_sequence)
+
   def testApplySustainControlChangesWithIdenticalNotes(self):
     """In the case of identical notes, one should be dropped.
 

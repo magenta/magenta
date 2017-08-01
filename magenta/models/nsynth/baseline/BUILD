@@ -25,6 +25,7 @@ licenses(["notice"])  # Apache 2.0
 py_library(
     name = "ae_configs",
     srcs = glob(["models/ae_configs/*.py"]),
+    srcs_version = "PY2AND3",
     deps = [
         "//magenta/models/nsynth:utils",
         # numpy dep
@@ -35,6 +36,7 @@ py_library(
 py_library(
     name = "ae",
     srcs = ["models/ae.py"],
+    srcs_version = "PY2AND3",
     deps = [
         ":ae_configs",
         "//magenta/models/nsynth:utils",
@@ -44,6 +46,7 @@ py_library(
 
 py_library(
     name = "library",
+    srcs_version = "PY2AND3",
     deps = [
         ":ae",
         "//magenta/models/nsynth:reader",
@@ -56,6 +59,7 @@ py_library(
 py_binary(
     name = "train",
     srcs = ["train.py"],
+    srcs_version = "PY2AND3",
     deps = [
         ":library",
     ],
@@ -64,8 +68,8 @@ py_binary(
 py_binary(
     name = "save_embeddings",
     srcs = ["save_embeddings.py"],
+    srcs_version = "PY2AND3",
     deps = [
         ":library",
     ],
 )
-

@@ -100,6 +100,8 @@ Performances can be generated during or after training. Run the command below to
 
 `--run_dir` should be the same directory used for the training job. The `train` subdirectory within `--run_dir` is where the latest checkpoint file will be loaded from. For example, if we use `--run_dir=/tmp/performance_rnn/logdir/run1`. The most recent checkpoint file in `/tmp/performance_rnn/logdir/run1/train` will be used.
 
+`--config` should be the same as used for the training job.
+
 `--hparams` should be the same hyperparameters used for the training job, although some of them will be ignored, like the batch size.
 
 `--output_dir` is where the generated MIDI files will be saved. `--num_outputs` is the number of performances that will be generated. `--num_steps` is how long each performance will be in steps, where one step is 10 ms (e.g. 3000 steps is 30 seconds).
@@ -110,6 +112,7 @@ See above for more information on other command line options.
 performance_rnn_generate \
 --run_dir=/tmp/performance_rnn/logdir/run1 \
 --output_dir=/tmp/performance_rnn/generated \
+--config=<one of 'performance' or 'performance_with_dynamics'> \
 --num_outputs=10 \
 --num_steps=3000 \
 --primer_melody="[60,62,64,65,67,69,71,72]"

@@ -26,11 +26,11 @@ py_binary(
     srcs = ["convert_dir_to_note_sequences.py"],
     srcs_version = "PY2AND3",
     deps = [
-        "@concurrent//:futures",
         "//magenta/music:midi_io",
         "//magenta/music:musicxml_reader",
         "//magenta/music:note_sequence_io",
         # tensorflow dep
+        # futures dep
     ],
 )
 
@@ -48,6 +48,7 @@ py_test(
 py_binary(
     name = "unpack_bundle",
     srcs = ["unpack_bundle.py"],
+    srcs_version = "PY2AND3",
     deps = [
         "//magenta/music:sequence_generator_bundle",
     ],

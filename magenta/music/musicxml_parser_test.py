@@ -62,6 +62,19 @@ class MusicXMLParserTest(tf.test.TestCase):
   no key signature is found (Issue #355)
 
   self.st_anne_filename contains a 4-voice piece written in two parts.
+
+  self.whole_measure_rest_forward_filename contains 4 measures:
+  Measures 1 and 2 contain whole note rests in 4/4. The first is a <note>,
+  the second uses a <forward>. The durations must match.
+  Measures 3 and 4 contain whole note rests in 2/4. The first is a <note>,
+  the second uses a <forward>. The durations must match.
+  (Issue #674).
+
+  self.meter_test_filename contains a different meter in each measure:
+  - 1/4 through 7/4 inclusive
+  - 1/8 through 12/8 inclusive
+  - 2/2 through 4/2 inclusive
+  - Common time and Cut time meters
   """
 
   def setUp(self):
@@ -120,6 +133,14 @@ class MusicXMLParserTest(tf.test.TestCase):
     self.mid_measure_meter_filename = os.path.join(
         tf.resource_loader.get_data_files_path(),
         'testdata/mid_measure_time_signature.xml')
+
+    self.whole_measure_rest_forward_filename = os.path.join(
+        tf.resource_loader.get_data_files_path(),
+        'testdata/whole_measure_rest_forward.xml')
+
+    self.meter_test_filename = os.path.join(
+        tf.resource_loader.get_data_files_path(),
+        'testdata/meter_test.xml')
 
   def checkmusicxmlandsequence(self, musicxml, sequence_proto):
     """Compares MusicXMLDocument object against a sequence proto.
@@ -442,7 +463,7 @@ class MusicXMLParserTest(tf.test.TestCase):
         self.time_signature_filename)
 
     # One time signature per measure
-    self.assertEqual(len(ns.time_signatures), 10)
+    self.assertEqual(len(ns.time_signatures), 6)
     self.assertEqual(len(ns.key_signatures), 1)
     self.assertEqual(len(ns.notes), 112)
 
@@ -545,16 +566,6 @@ class MusicXMLParserTest(tf.test.TestCase):
           denominator: 4
         }
         time_signatures {
-          time: 2.5
-          numerator: 4
-          denominator: 4
-        }
-        time_signatures {
-          time: 4.5
-          numerator: 4
-          denominator: 4
-        }
-        time_signatures {
           time: 6.5
           numerator: 3
           denominator: 4
@@ -566,16 +577,6 @@ class MusicXMLParserTest(tf.test.TestCase):
         }
         time_signatures {
           time: 8.5
-          numerator: 4
-          denominator: 4
-        }
-        time_signatures {
-          time: 10.5
-          numerator: 4
-          denominator: 4
-        }
-        time_signatures {
-          time: 12.5
           numerator: 4
           denominator: 4
         }
@@ -976,6 +977,645 @@ class MusicXMLParserTest(tf.test.TestCase):
       with self.assertRaises(musicxml_reader.MusicXMLConversionError):
         musicxml_reader.musicxml_file_to_sequence_proto(
             temp_file.name)
+
+  def test_whole_measure_rest_forward(self):
+    """Test that a whole measure rest can be encoded using <forward>.
+
+    A whole measure rest is usually encoded as a <note> with a duration
+    equal to that of a whole measure. An alternative encoding is to
+    use the <forward> element to advance the time cursor to a duration
+    equal to that of a whole measure. This implies a whole measure rest
+    when there are no <note> elements in this measure.
+    """
+    ns = musicxml_reader.musicxml_file_to_sequence_proto(
+        self.whole_measure_rest_forward_filename)
+    expected_ns = common_testing_lib.parse_test_proto(
+        music_pb2.NoteSequence,
+        """
+        ticks_per_quarter: 220
+        time_signatures {
+          numerator: 4
+          denominator: 4
+        }
+        time_signatures {
+          time: 6.0
+          numerator: 2
+          denominator: 4
+        }
+        key_signatures {
+        }
+        tempos {
+          qpm: 120
+        }
+        notes {
+          pitch: 72
+          velocity: 64
+          end_time: 2.0
+          numerator: 1
+          denominator: 1
+          voice: 1
+        }
+        notes {
+          pitch: 72
+          velocity: 64
+          start_time: 4.0
+          end_time: 6.0
+          numerator: 1
+          denominator: 1
+          voice: 1
+        }
+        notes {
+          pitch: 60
+          velocity: 64
+          start_time: 6.0
+          end_time: 7.0
+          numerator: 1
+          denominator: 2
+          voice: 1
+        }
+        notes {
+          pitch: 60
+          velocity: 64
+          start_time: 8.0
+          end_time: 9.0
+          numerator: 1
+          denominator: 2
+          voice: 1
+        }
+        total_time: 9.0
+        part_infos {
+          name: "Flute"
+        }
+        source_info {
+          source_type: SCORE_BASED
+          encoding_type: MUSIC_XML
+          parser: MAGENTA_MUSIC_XML
+        }
+        """)
+    self.assertProtoEquals(expected_ns, ns)
+
+  def test_meter(self):
+    """Test that meters are encoded properly.
+
+    Musical meters are expressed as a ratio of beats to divisions.
+    The MusicXML parser uses this ratio in lowest terms for timing
+    purposes. However, the meters should be in the actual terms
+    when appearing in a NoteSequence.
+    """
+    ns = musicxml_reader.musicxml_file_to_sequence_proto(
+        self.meter_test_filename)
+    expected_ns = common_testing_lib.parse_test_proto(
+        music_pb2.NoteSequence,
+        """
+        ticks_per_quarter: 220
+        time_signatures {
+          numerator: 1
+          denominator: 4
+        }
+        time_signatures {
+          time: 0.5
+          numerator: 2
+          denominator: 4
+        }
+        time_signatures {
+          time: 1.5
+          numerator: 3
+          denominator: 4
+        }
+        time_signatures {
+          time: 3.0
+          numerator: 4
+          denominator: 4
+        }
+        time_signatures {
+          time: 5.0
+          numerator: 5
+          denominator: 4
+        }
+        time_signatures {
+          time: 7.5
+          numerator: 6
+          denominator: 4
+        }
+        time_signatures {
+          time: 10.5
+          numerator: 7
+          denominator: 4
+        }
+        time_signatures {
+          time: 14.0
+          numerator: 1
+          denominator: 8
+        }
+        time_signatures {
+          time: 14.25
+          numerator: 2
+          denominator: 8
+        }
+        time_signatures {
+          time: 14.75
+          numerator: 3
+          denominator: 8
+        }
+        time_signatures {
+          time: 15.5
+          numerator: 4
+          denominator: 8
+        }
+        time_signatures {
+          time: 16.5
+          numerator: 5
+          denominator: 8
+        }
+        time_signatures {
+          time: 17.75
+          numerator: 6
+          denominator: 8
+        }
+        time_signatures {
+          time: 19.25
+          numerator: 7
+          denominator: 8
+        }
+        time_signatures {
+          time: 21.0
+          numerator: 8
+          denominator: 8
+        }
+        time_signatures {
+          time: 23.0
+          numerator: 9
+          denominator: 8
+        }
+        time_signatures {
+          time: 25.25
+          numerator: 10
+          denominator: 8
+        }
+        time_signatures {
+          time: 27.75
+          numerator: 11
+          denominator: 8
+        }
+        time_signatures {
+          time: 30.5
+          numerator: 12
+          denominator: 8
+        }
+        time_signatures {
+          time: 33.5
+          numerator: 2
+          denominator: 2
+        }
+        time_signatures {
+          time: 35.5
+          numerator: 3
+          denominator: 2
+        }
+        time_signatures {
+          time: 38.5
+          numerator: 4
+          denominator: 2
+        }
+        time_signatures {
+          time: 42.5
+          numerator: 4
+          denominator: 4
+        }
+        time_signatures {
+          time: 44.5
+          numerator: 2
+          denominator: 2
+        }
+        key_signatures {
+        }
+        tempos {
+          qpm: 120
+        }
+        notes {
+          pitch: 72
+          velocity: 64
+          end_time: 0.5
+          numerator: 1
+          denominator: 4
+          voice: 1
+        }
+        notes {
+          pitch: 72
+          velocity: 64
+          start_time: 0.5
+          end_time: 1.5
+          numerator: 1
+          denominator: 2
+          voice: 1
+        }
+        notes {
+          pitch: 72
+          velocity: 64
+          start_time: 1.5
+          end_time: 3.0
+          numerator: 3
+          denominator: 4
+          voice: 1
+        }
+        notes {
+          pitch: 72
+          velocity: 64
+          start_time: 3.0
+          end_time: 5.0
+          numerator: 1
+          denominator: 1
+          voice: 1
+        }
+        notes {
+          pitch: 72
+          velocity: 64
+          start_time: 5.0
+          end_time: 6.5
+          numerator: 3
+          denominator: 4
+          voice: 1
+        }
+        notes {
+          pitch: 72
+          velocity: 64
+          start_time: 6.5
+          end_time: 7.5
+          numerator: 1
+          denominator: 2
+          voice: 1
+        }
+        notes {
+          pitch: 72
+          velocity: 64
+          start_time: 7.5
+          end_time: 9.0
+          numerator: 3
+          denominator: 4
+          voice: 1
+        }
+        notes {
+          pitch: 72
+          velocity: 64
+          start_time: 9.0
+          end_time: 10.5
+          numerator: 3
+          denominator: 4
+          voice: 1
+        }
+        notes {
+          pitch: 72
+          velocity: 64
+          start_time: 10.5
+          end_time: 12.0
+          numerator: 3
+          denominator: 4
+          voice: 1
+        }
+        notes {
+          pitch: 72
+          velocity: 64
+          start_time: 12.0
+          end_time: 13.5
+          numerator: 3
+          denominator: 4
+          voice: 1
+        }
+        notes {
+          pitch: 72
+          velocity: 64
+          start_time: 13.5
+          end_time: 14.0
+          numerator: 1
+          denominator: 4
+          voice: 1
+        }
+        notes {
+          pitch: 72
+          velocity: 64
+          start_time: 14.0
+          end_time: 14.25
+          numerator: 1
+          denominator: 8
+          voice: 1
+        }
+        notes {
+          pitch: 72
+          velocity: 64
+          start_time: 14.25
+          end_time: 14.75
+          numerator: 1
+          denominator: 4
+          voice: 1
+        }
+        notes {
+          pitch: 72
+          velocity: 64
+          start_time: 14.75
+          end_time: 15.5
+          numerator: 3
+          denominator: 8
+          voice: 1
+        }
+        notes {
+          pitch: 72
+          velocity: 64
+          start_time: 15.5
+          end_time: 16.0
+          numerator: 1
+          denominator: 4
+          voice: 1
+        }
+        notes {
+          pitch: 72
+          velocity: 64
+          start_time: 16.0
+          end_time: 16.5
+          numerator: 1
+          denominator: 4
+          voice: 1
+        }
+        notes {
+          pitch: 72
+          velocity: 64
+          start_time: 16.5
+          end_time: 17.0
+          numerator: 1
+          denominator: 4
+          voice: 1
+        }
+        notes {
+          pitch: 72
+          velocity: 64
+          start_time: 17.0
+          end_time: 17.5
+          numerator: 1
+          denominator: 4
+          voice: 1
+        }
+        notes {
+          pitch: 72
+          velocity: 64
+          start_time: 17.5
+          end_time: 17.75
+          numerator: 1
+          denominator: 8
+          voice: 1
+        }
+        notes {
+          pitch: 72
+          velocity: 64
+          start_time: 17.75
+          end_time: 18.5
+          numerator: 3
+          denominator: 8
+          voice: 1
+        }
+        notes {
+          pitch: 72
+          velocity: 64
+          start_time: 18.5
+          end_time: 19.25
+          numerator: 3
+          denominator: 8
+          voice: 1
+        }
+        notes {
+          pitch: 72
+          velocity: 64
+          start_time: 19.25
+          end_time: 20.0
+          numerator: 3
+          denominator: 8
+          voice: 1
+        }
+        notes {
+          pitch: 72
+          velocity: 64
+          start_time: 20.0
+          end_time: 20.5
+          numerator: 1
+          denominator: 4
+          voice: 1
+        }
+        notes {
+          pitch: 72
+          velocity: 64
+          start_time: 20.5
+          end_time: 21.0
+          numerator: 1
+          denominator: 4
+          voice: 1
+        }
+        notes {
+          pitch: 72
+          velocity: 64
+          start_time: 21.0
+          end_time: 21.75
+          numerator: 3
+          denominator: 8
+          voice: 1
+        }
+        notes {
+          pitch: 72
+          velocity: 64
+          start_time: 21.75
+          end_time: 22.5
+          numerator: 3
+          denominator: 8
+          voice: 1
+        }
+        notes {
+          pitch: 72
+          velocity: 64
+          start_time: 22.5
+          end_time: 23.0
+          numerator: 1
+          denominator: 4
+          voice: 1
+        }
+        notes {
+          pitch: 72
+          velocity: 64
+          start_time: 23.0
+          end_time: 24.5
+          numerator: 3
+          denominator: 4
+          voice: 1
+        }
+        notes {
+          pitch: 72
+          velocity: 64
+          start_time: 24.5
+          end_time: 25.25
+          numerator: 3
+          denominator: 8
+          voice: 1
+        }
+        notes {
+          pitch: 72
+          velocity: 64
+          start_time: 25.25
+          end_time: 26.75
+          numerator: 3
+          denominator: 4
+          voice: 1
+        }
+        notes {
+          pitch: 72
+          velocity: 64
+          start_time: 26.75
+          end_time: 27.25
+          numerator: 1
+          denominator: 4
+          voice: 1
+        }
+        notes {
+          pitch: 72
+          velocity: 64
+          start_time: 27.25
+          end_time: 27.75
+          numerator: 1
+          denominator: 4
+          voice: 1
+        }
+        notes {
+          pitch: 72
+          velocity: 64
+          start_time: 27.75
+          end_time: 29.25
+          numerator: 3
+          denominator: 4
+          voice: 1
+        }
+        notes {
+          pitch: 72
+          velocity: 64
+          start_time: 29.25
+          end_time: 30.0
+          numerator: 3
+          denominator: 8
+          voice: 1
+        }
+        notes {
+          pitch: 72
+          velocity: 64
+          start_time: 30.0
+          end_time: 30.5
+          numerator: 1
+          denominator: 4
+          voice: 1
+        }
+        notes {
+          pitch: 72
+          velocity: 64
+          start_time: 30.5
+          end_time: 32.0
+          numerator: 3
+          denominator: 4
+          voice: 1
+        }
+        notes {
+          pitch: 72
+          velocity: 64
+          start_time: 32.0
+          end_time: 33.5
+          numerator: 3
+          denominator: 4
+          voice: 1
+        }
+        notes {
+          pitch: 72
+          velocity: 64
+          start_time: 33.5
+          end_time: 34.5
+          numerator: 1
+          denominator: 2
+          voice: 1
+        }
+        notes {
+          pitch: 72
+          velocity: 64
+          start_time: 34.5
+          end_time: 35.5
+          numerator: 1
+          denominator: 2
+          voice: 1
+        }
+        notes {
+          pitch: 72
+          velocity: 64
+          start_time: 35.5
+          end_time: 36.5
+          numerator: 1
+          denominator: 2
+          voice: 1
+        }
+        notes {
+          pitch: 72
+          velocity: 64
+          start_time: 36.5
+          end_time: 37.5
+          numerator: 1
+          denominator: 2
+          voice: 1
+        }
+        notes {
+          pitch: 72
+          velocity: 64
+          start_time: 37.5
+          end_time: 38.5
+          numerator: 1
+          denominator: 2
+          voice: 1
+        }
+        notes {
+          pitch: 72
+          velocity: 64
+          start_time: 38.5
+          end_time: 40.5
+          numerator: 1
+          denominator: 1
+          voice: 1
+        }
+        notes {
+          pitch: 72
+          velocity: 64
+          start_time: 40.5
+          end_time: 42.5
+          numerator: 1
+          denominator: 1
+          voice: 1
+        }
+        notes {
+          pitch: 72
+          velocity: 64
+          start_time: 42.5
+          end_time: 44.5
+          numerator: 1
+          denominator: 1
+          voice: 1
+        }
+        notes {
+          pitch: 72
+          velocity: 64
+          start_time: 44.5
+          end_time: 46.5
+          numerator: 1
+          denominator: 1
+          voice: 1
+        }
+        total_time: 46.5
+        part_infos {
+          name: "Flute"
+        }
+        source_info {
+          source_type: SCORE_BASED
+          encoding_type: MUSIC_XML
+          parser: MAGENTA_MUSIC_XML
+        }
+        """)
+    self.assertProtoEquals(expected_ns, ns)
 
 if __name__ == '__main__':
   tf.test.main()
