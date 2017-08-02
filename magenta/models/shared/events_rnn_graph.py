@@ -13,6 +13,10 @@
 # limitations under the License.
 """Provides function to build an event sequence RNN model's graph."""
 
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import print_function
+
 # internal imports
 import tensorflow as tf
 import magenta
