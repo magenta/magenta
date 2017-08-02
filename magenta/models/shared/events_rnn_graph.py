@@ -18,9 +18,9 @@ from __future__ import division
 from __future__ import print_function
 
 # internal imports
+import six
 import tensorflow as tf
 import magenta
-import six
 
 from tensorflow.python.util import nest as tf_nest
 
