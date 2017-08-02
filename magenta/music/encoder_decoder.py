@@ -43,6 +43,10 @@ encodings also consider whether the event sequence is repeating, and the input
 encoding includes binary counters for timekeeping.
 """
 
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import print_function
+
 import abc
 
 # internal imports
@@ -263,7 +267,7 @@ class EventSequenceEncoderDecoder(object):
     """
     num_classes = len(softmax[0][0])
     chosen_classes = []
-    for i in xrange(len(event_sequences)):
+    for i in range(len(event_sequences)):
       chosen_class = np.random.choice(num_classes, p=softmax[i][-1])
       event = self.class_index_to_event(chosen_class, event_sequences[i])
       event_sequences[i].append(event)
@@ -292,7 +296,7 @@ class EventSequenceEncoderDecoder(object):
           corresponding softmax vectors.
     """
     all_loglik = []
-    for i in xrange(len(event_sequences)):
+    for i in range(len(event_sequences)):
       if len(softmax[i]) >= len(event_sequences[i]):
         raise ValueError(
             'event sequence must be longer than softmax vector (%d events but '
@@ -470,7 +474,7 @@ class LookbackEventSequenceEncoderDecoder(EventSequenceEncoderDecoder):
     # Binary time counter giving the metric location of the *next* event.
     n = position + 1
     for i in range(self._binary_counter_bits):
-      input_[offset] = 1.0 if (n / 2 ** i) % 2 else -1.0
+      input_[offset] = 1.0 if (n // 2 ** i) % 2 else -1.0
       offset += 1
 
     # Last event is repeating N bars ago.
