@@ -151,7 +151,7 @@ class ChordProgression(events_lib.SimpleEventSequence):
                      if a.annotation_type == CHORD_SYMBOL],
                     key=lambda chord: chord.quantized_step)
 
-    prev_step = None
+    prev_step = start_step 
     prev_figure = NO_CHORD
 
     for chord in chords:
