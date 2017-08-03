@@ -33,7 +33,7 @@ The latter three models are *conditional* models that can generate performances 
 
 ```
 BUNDLE_PATH=<absolute path of .mag file>
-CONFIG=<one of 'performance' or 'performance_with_dynamics', matching the bundle>
+CONFIG=<one of 'performance', 'performance_with_dynamics', 'density_conditioned_performance_with_dynamics', 'pitch_conditioned_performance_with_dynamics', or 'multiconditioned_performance_with_dynamics', matching the bundle>
 
 performance_rnn_generate \
 --config=${CONFIG} \
@@ -72,8 +72,11 @@ Our first step will be to convert a collection of MIDI or MusicXML files into No
 SequenceExamples are fed into the model during training and evaluation. Each SequenceExample will contain a sequence of inputs and a sequence of labels that represent a performance. Run the command below to extract performances  from your NoteSequences and save them as SequenceExamples. Two collections of SequenceExamples will be generated, one for training, and one for evaluation, where the fraction of SequenceExamples in the evaluation set is determined by `--eval_ratio`. With an eval ratio of 0.10, 10% of the extracted performances will be saved in the eval collection, and 90% will be saved in the training collection.
 
 ```
+CONFIG=<one of 'performance', 'performance_with_dynamics', 'density_conditioned_performance_with_dynamics', 'pitch_conditioned_performance_with_dynamics', or 'multiconditioned_performance_with_dynamics'>
+
 performance_rnn_create_dataset \
---config=<one of 'performance' or 'performance_with_dynamics'> \ --input=/tmp/notesequences.tfrecord \
+--config=${CONFIG} \
+--input=/tmp/notesequences.tfrecord \
 --output_dir=/tmp/performance_rnn/sequence_examples \
 --eval_ratio=0.10
 ```
@@ -84,7 +87,7 @@ Run the command below to start a training job. `--config` should match the confi
 
 ```
 performance_rnn_train \
---config=<one of 'performance' or 'performance_with_dynamics'> \
+--config=${CONFIG} \
 --run_dir=/tmp/performance_rnn/logdir/run1 \
 --sequence_example_file=/tmp/performance_rnn/sequence_examples/training_performances.tfrecord
 ```
@@ -93,6 +96,7 @@ Optionally run an eval job in parallel. `--run_dir`, `--hparams`, and `--num_tra
 
 ```
 performance_rnn_train \
+--config=${CONFIG} \
 --run_dir=/tmp/performance_rnn/logdir/run1 \
 --sequence_example_file=/tmp/performance_rnn/sequence_examples/eval_performances.tfrecord \
 --eval
@@ -124,7 +128,7 @@ See above for more information on other command line options.
 performance_rnn_generate \
 --run_dir=/tmp/performance_rnn/logdir/run1 \
 --output_dir=/tmp/performance_rnn/generated \
---config=<one of 'performance' or 'performance_with_dynamics'> \
+--config=${CONFIG} \
 --num_outputs=10 \
 --num_steps=3000 \
 --primer_melody="[60,62,64,65,67,69,71,72]"
@@ -143,6 +147,7 @@ supports a ```--save_generator_bundle``` flag that calls this method. Example:
 
 ```
 performance_rnn_generate \
+  --config=${CONFIG}
   --run_dir=/tmp/performance_rnn/logdir/run1 \
   --bundle_file=/tmp/performance_rnn.mag \
   --save_generator_bundle
