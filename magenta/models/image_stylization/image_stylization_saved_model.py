@@ -37,10 +37,10 @@ def validate_checkpoint_path(checkpoint):
   return checkpoint
 
 
-def build_prediction_graph(style_constant, num_styles):
+def build_prediction_graph(style_constant, num_styles, default_batch_size=None):
   graph = tf.Graph()
   with graph.as_default():
-    image_bytes = tf.placeholder(tf.string, shape=[None])
+    image_bytes = tf.placeholder(tf.string, shape=[default_batch_size])
 
     images = tf.map_fn(
         functools.partial(tf.image.decode_jpeg, channels=3),
@@ -60,7 +60,7 @@ def build_prediction_graph(style_constant, num_styles):
       # TODO(elibixby) No way to provide an unbatched tensor to Cloud ML Engine
       # Fix to avoid averaging once this capability is added.
       style_weights = tf.placeholder(
-          dtype=tf.float32, shape=[None, num_styles])
+          dtype=tf.float32, shape=[default_batch_size, num_styles])
       style_num = tf.reduce_mean(style_weights, axis=0)
 
     stylized_images = model.transform(
@@ -70,8 +70,7 @@ def build_prediction_graph(style_constant, num_styles):
             'weights': style_num,
             'num_categories': num_styles,
             'center': True,
-            # To support abitrarily sized images, no rescaling
-            'scale': False
+            'scale': True
         }
     )
     output_images = tf.cast(stylized_images * 255.0, tf.uint8)
@@ -93,9 +92,9 @@ def build_prediction_graph(style_constant, num_styles):
   return graph, inputs_info, outputs_info
 
 
-def main(checkpoint, output_dir, style_constant, num_styles):
+def main(checkpoint, output_dir, style_constant, num_styles, default_batch_size=None):
   graph, inputs_info, outputs_info = build_prediction_graph(
-      style_constant, num_styles)
+      style_constant, num_styles, default_batch_size=default_batch_size)
 
   signature_def = saved_model.signature_def_utils.build_signature_def(
       inputs=inputs_info,
@@ -138,7 +137,7 @@ if __name__ == '__main__':
         help='Output directory. Will be created if it does not exist.'
     )
     parser.add_argument(
-        '--style_constant',
+        '--style-constant',
         type=json.loads,
         default=None,
         help="""\
@@ -148,5 +147,20 @@ if __name__ == '__main__':
             the constant weights to be used.\
         """
     )
+    parser.add_argument(
+        '--default-batch-size',
+        type=str,
+        default=None,
+        help="""\
+        Batch size of Tensors passed to API, can be left blank for variable
+        size Tensor support.\
+        """
+    )
     args = parser.parse_args()
-    main(args.checkpoint, args.output_dir, args.style_constant, args.num_styles)
+    main(
+        args.checkpoint,
+        args.output_dir,
+        args.style_constant,
+        args.num_styles,
+        default_batch_size=args.default_batch_size
+    )
