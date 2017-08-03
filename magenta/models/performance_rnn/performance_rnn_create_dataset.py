@@ -28,7 +28,6 @@ import tensorflow as tf
 from magenta.models.performance_rnn import performance_lib
 from magenta.models.performance_rnn import performance_model
 
-from magenta.music import encoder_decoder
 from magenta.pipelines import dag_pipeline
 from magenta.pipelines import note_sequence_pipelines
 from magenta.pipelines import pipeline
@@ -49,6 +48,52 @@ tf.app.flags.DEFINE_float('eval_ratio', 0.1,
 tf.app.flags.DEFINE_string('log', 'INFO',
                            'The threshold for what messages will be logged '
                            'DEBUG, INFO, WARN, ERROR, or FATAL.')
+
+
+class EncoderPipeline(pipeline.Pipeline):
+  """A Pipeline that converts performances to a model specific encoding."""
+
+  def __init__(self, config, name):
+    """Constructs an EncoderPipeline.
+
+    Args:
+      config: A PerformanceRnnConfig that specifies the encoder/decoder and
+          note density conditioning behavior.
+      name: A unique pipeline name.
+    """
+    super(EncoderPipeline, self).__init__(
+        input_type=performance_lib.Performance,
+        output_type=tf.train.SequenceExample,
+        name=name)
+    self._encoder_decoder = config.encoder_decoder
+    self._density_bin_ranges = config.density_bin_ranges
+    self._density_window_size = config.density_window_size
+    self._pitch_histogram_window_size = config.pitch_histogram_window_size
+
+  def transform(self, performance):
+    if (self._density_bin_ranges is not None and
+        self._pitch_histogram_window_size is not None):
+      # Encode conditional on note density and pitch class histogram.
+      density_sequence = performance_lib.performance_note_density_sequence(
+          performance, self._density_window_size)
+      histogram_sequence = performance_lib.performance_pitch_histogram_sequence(
+          performance, self._pitch_histogram_window_size)
+      encoded = self._encoder_decoder.encode(
+          zip(density_sequence, histogram_sequence), performance)
+    elif self._density_bin_ranges is not None:
+      # Encode conditional on note density.
+      density_sequence = performance_lib.performance_note_density_sequence(
+          performance, self._density_window_size)
+      encoded = self._encoder_decoder.encode(density_sequence, performance)
+    elif self._pitch_histogram_window_size is not None:
+      # Encode conditional on pitch class histogram.
+      histogram_sequence = performance_lib.performance_pitch_histogram_sequence(
+          performance, self._pitch_histogram_window_size)
+      encoded = self._encoder_decoder.encode(histogram_sequence, performance)
+    else:
+      # Encode unconditional.
+      encoded = self._encoder_decoder.encode(performance)
+    return [encoded]
 
 
 class PerformanceExtractor(pipeline.Pipeline):
@@ -112,9 +157,7 @@ def get_pipeline(config, min_events, max_events, eval_ratio):
         min_events=min_events, max_events=max_events,
         num_velocity_bins=config.num_velocity_bins,
         name='PerformanceExtractor_' + mode)
-    encoder_pipeline = encoder_decoder.EncoderPipeline(
-        performance_lib.Performance, config.encoder_decoder,
-        name='EncoderPipeline_' + mode)
+    encoder_pipeline = EncoderPipeline(config, name='EncoderPipeline_' + mode)
 
     dag[sustain_pipeline] = partitioner[mode + '_performances']
     dag[stretch_pipeline] = sustain_pipeline
