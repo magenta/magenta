@@ -24,6 +24,7 @@ import bokeh.plotting
 import IPython
 import numpy as np
 import pandas as pd
+import tensorflow as tf
 
 from magenta.music import midi_synth
 
@@ -139,8 +140,7 @@ def download_bundle(bundle_name, target_dir, force_reload=False):
      target_dir: A string local directory in which to write the bundle.
      force_reload: A boolean that when True, reloads the bundle even if present.
   """
-  if not os.path.exists(target_dir):
-    os.makedirs(target_dir)
+  tf.gfile.MakeDirs(target_dir)
   bundle_target = os.path.join(target_dir, bundle_name)
   if not os.path.exists(bundle_target) or force_reload:
     response = urllib2.urlopen(
