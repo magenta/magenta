@@ -23,8 +23,8 @@ import bokeh.plotting
 import IPython
 import numpy as np
 import pandas as pd
-from six.mmoves import urllib
 import tensorflow as tf
+from six.moves import urllib
 
 from magenta.music import midi_synth
 
