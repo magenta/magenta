@@ -766,6 +766,69 @@ class ConditionalEventSequenceEncoderDecoder(object):
         target_event_sequences, softmax)
 
 
+class MultipleEventSequenceEncoder(EventSequenceEncoderDecoder):
+  """An encoder that concatenates multiple component encoders.
+
+  This class, largely intended for use with control sequences for conditional
+  encoder/decoders, encodes event sequences with multiple encoders and
+  concatenates the encodings.
+
+  Despite being an EventSequenceEncoderDecoder this class does not decode.
+  """
+
+  def __init__(self, encoders, encode_single_sequence=False):
+    """Initialize a MultipleEventSequenceEncoder object.
+
+    Args:
+      encoders: A list of component EventSequenceEncoderDecoder objects whose
+          output will be concatenated.
+      encode_single_sequence: If True, at encoding time all of the encoders will
+          be applied to a single event sequence. If False, each event of the
+          event sequence should be a tuple with size the same as the number of
+          encoders, each of which will be applied to the events in the
+          corresponding position in the tuple, i.e. the first encoder will be
+          applied to the first element of each event tuple, the second encoder
+          will be applied to the second element, etc.
+    """
+    self._encoders = encoders
+    self._encode_single_sequence = encode_single_sequence
+
+  @property
+  def input_size(self):
+    return sum(encoder.input_size for encoder in self._encoders)
+
+  @property
+  def num_classes(self):
+    raise NotImplementedError
+
+  @property
+  def default_event_label(self):
+    raise NotImplementedError
+
+  def events_to_input(self, events, position):
+    input_ = []
+    if self._encode_single_sequence:
+      # Apply all encoders to the event sequence.
+      for encoder in self._encoders:
+        input_ += encoder.events_to_input(events, position)
+    else:
+      # The event sequence is a list of tuples. Apply each encoder to the
+      # elements in the corresponding tuple position.
+      event_sequences = zip(*events)
+      if len(event_sequences) != len(self._encoders):
+        raise ValueError(
+            'Event tuple size must be the same as the number of encoders.')
+      for encoder, event_sequence in zip(self._encoders, event_sequences):
+        input_ += encoder.events_to_input(event_sequence, position)
+    return input_
+
+  def events_to_label(self, events, position):
+    raise NotImplementedError
+
+  def class_index_to_event(self, class_index, events):
+    raise NotImplementedError
+
+
 class EncoderPipeline(pipeline.Pipeline):
   """A pipeline that converts an EventSequence to a model encoding."""
 

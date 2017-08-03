@@ -156,7 +156,7 @@ class Pipeline(object):
       # This will get the name of the subclass, not "Pipeline".
       self._name = type(self).__name__
     else:
-      assert isinstance(name, basestring)
+      assert isinstance(name, six.string_types)
       self._name = name
     _assert_valid_type_signature(input_type, 'input_type')
     _assert_valid_type_signature(output_type, 'output_type')
