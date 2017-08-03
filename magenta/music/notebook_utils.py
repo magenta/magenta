@@ -23,6 +23,7 @@ import bokeh.plotting
 import IPython
 import numpy as np
 import pandas as pd
+from six.mmoves import urllib
 import tensorflow as tf
 
 from magenta.music import midi_synth
@@ -142,7 +143,7 @@ def download_bundle(bundle_name, target_dir, force_reload=False):
   tf.gfile.MakeDirs(target_dir)
   bundle_target = os.path.join(target_dir, bundle_name)
   if not os.path.exists(bundle_target) or force_reload:
-    response = urllib2.urlopen(
+    response = urllib.request.urlopen(
         'http://download.magenta.tensorflow.org/models/%s' % bundle_name)
     data = response.read()
     local_file = open(bundle_target, 'wb')
