@@ -195,8 +195,13 @@ class EventSequenceRnnModel(mm.BaseModel):
       all_loglik: A 1-D numpy array of event sequence log-likelihoods, with
           length equal to the length of `all_event_sequences`.
     """
-    all_event_sequences = [copy.deepcopy(events)
-                           for events in event_sequences * branch_factor]
+    if branch_factor > 1:
+      all_event_sequences = [copy.deepcopy(events)
+                             for events in event_sequences * branch_factor]
+    else:
+      # No need to spend time coping the event sequences if there's no
+      # branching.
+      all_event_sequences = event_sequences
     all_inputs = inputs * branch_factor
     all_final_state = initial_states * branch_factor
     all_loglik = np.tile(loglik, (branch_factor,))
