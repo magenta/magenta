@@ -11,8 +11,8 @@ Manjunath Kudlur*.
 Whether you want to stylize an image with one of our pre-trained models or train your own model, you need to set up your [Magenta environment](/README.md).
 
 # Jupyter notebook
-There is a [Jupyter notebook][https://github.com/tensorflow/magenta-demos/blob/master/jupyter-notebooks/Image_Stylization_demo.ipynb] 
-in our magenta-demos repository which shows how to apply style transfer from a trained model. 
+There is a Jupyter notebook [Image_Stylization.ipynb](https://github.com/tensorflow/magenta-demos/blob/master/jupyter-notebooks/Image_Stylization_demo.ipynb) 
+in our [Magenta Demos](https://github.com/tensorflow/magenta-demos) repository showing how to apply style transfer from a trained model. 
 
 # Stylizing an Image
 First, download one of our pre-trained models:
