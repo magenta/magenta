@@ -69,8 +69,8 @@ environment](/README.md).
 you can either use a pre-trained model or train your own.
 
 To train the model you can use the jupyter notebook
-[RL_Tuner.ipynb](https://github.com/tensorflow/magenta-demos/blob/master/jupyter-notebooks/RL_tuner.ipynb) found
-in our [Magenta Demos](https://github.com/tensorflow/magenta-demos) repository or, you can simply run:
+[RL_Tuner.ipynb](https://github.com/tensorflow/magenta-demos/blob/master/jupyter-notebooks/RL_Tuner.ipynb) found
+in our [Magenta Demos](https://github.com/tensorflow/magenta-demos) repository or you can simply run:
 
 ```
 rl_tuner_train
