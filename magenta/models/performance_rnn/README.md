@@ -17,6 +17,11 @@ At generation time, a few undesired behaviors can occur: note-off events with no
 
 First, set up your [Magenta environment](/README.md). Next, you can either use a pre-trained model or train your own.
 
+## Jupyter notebook
+
+There is a Jupyter notebook [Performance_RNN.ipynb](https://github.com/tensorflow/magenta-demos/blob/master/jupyter-notebooks/Performance_RNN.ipynb) 
+in our [Magenta Demos](https://github.com/tensorflow/magenta-demos) repository showing how to generate performances from a trained model.
+
 ## Pre-trained
 
 If you want to get started right away, you can use a few models that we've pre-trained on [real performances from the Yamaha e-Piano Competition](http://www.piano-e-competition.com/midiinstructions.asp):
