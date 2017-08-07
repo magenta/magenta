@@ -19,6 +19,9 @@ employing a WaveNet-style autoencoder to learn its own temporal embeddings.
 A full description of the algorithm and accompanying dataset can be found in our
 [arXiv paper][arXiv] and [blog post][blog].
 
+A Jupyter notebook [NSynth.ipynb](https://github.com/tensorflow/magenta-demos/blob/master/jupyter-notebooks/NSynth.ipynb) 
+found in our [Magenta Demos](https://github.com/tensorflow/magenta-demos) repository shows some creative uses of NSynth.
+
 # The Models
 
 This repository contains a baseline spectral autoencoder model and a WaveNet autoencoder model, each in their respective directories. The baseline model uses a spectrogram with fft_size 1024 and hop_size 256, MSE loss on the magnitudes, and the Griffin-Lim algorithm for reconstruction. The WaveNet model trains on mu-law encoded waveform chunks of size 6144. It learns embeddings with 16 dimensions that are downsampled by 512 in time.
