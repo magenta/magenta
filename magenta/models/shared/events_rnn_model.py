@@ -30,12 +30,35 @@ import magenta.music as mm
 
 
 # Model state when generating event sequences, consisting of the next inputs to
-# feed the model, and the current RNN state.
-ModelState = collections.namedtuple('ModelState', ['inputs', 'rnn_state'])
+# feed the model, the current RNN state, the current control sequence (if
+# applicable), and state for the current control sequence (if applicable).
+ModelState = collections.namedtuple(
+    'ModelState', ['inputs', 'rnn_state', 'control_events', 'control_state'])
 
 
 class EventSequenceRnnModelException(Exception):
   pass
+
+
+def _extend_control_events_default(control_events, events, state):
+  """Default function for extending control event sequence.
+
+  This function extends a control event sequence by duplicating the final event
+  in the sequence.  The control event sequence will be extended to have length
+  one longer than the generated event sequence.
+
+  Args:
+    control_events: The control event sequence to extend.
+    events: The list of generated events.
+    state: State maintained while generating, unused.
+
+  Returns:
+    The resulting state after extending the control sequence (in this case the
+    state will be returned unmodified).
+  """
+  while len(control_events) <= len(events):
+    control_events.append(control_events[-1])
+  return state
 
 
 class EventSequenceRnnModel(mm.BaseModel):
@@ -121,7 +144,8 @@ class EventSequenceRnnModel(mm.BaseModel):
     return final_state, loglik + np.log(p)
 
   def _generate_step(self, event_sequences, model_states, logliks, temperature,
-                     control_events=None, modify_events_callback=None):
+                     extend_control_events_callback=None,
+                     modify_events_callback=None):
     """Extends a list of event sequences by a single step each.
 
     This method modifies the event sequences in place. It also returns the
@@ -135,10 +159,12 @@ class EventSequenceRnnModel(mm.BaseModel):
       logliks: A list containing the current log-likelihood for each event
           sequence.
       temperature: The softmax temperature.
-      control_events: A sequence of control events upon which to condition the
-          generation. If not None, the encoder/decoder should be a
-          ConditionalEventSequenceEncoderDecoder, and the control events will be
-          used along with the target sequence to generate model inputs.
+      extend_control_events_callback: A function that takes three arguments: a
+          current control event sequence, a current generated event sequence,
+          and the control state. The function should a) extend the control event
+          sequence to be one longer than the generated event sequence (or do
+          nothing if it is already at least this long), and b) return the
+          resulting control state.
       modify_events_callback: An optional callback for modifying the event list.
           Can be used to inject events rather than having them generated. If not
           None, will be called with 3 arguments after every event: the current
@@ -161,6 +187,12 @@ class EventSequenceRnnModel(mm.BaseModel):
     # Extract inputs and RNN states from the model states.
     inputs = [model_state.inputs for model_state in model_states]
     initial_states = [model_state.rnn_state for model_state in model_states]
+
+    # Also extract control sequences and states.
+    control_sequences = [
+        model_state.control_events for model_state in model_states]
+    control_states = [
+        model_state.control_state for model_state in model_states]
 
     final_states = []
     logliks = np.array(logliks, dtype=np.float32)
@@ -186,10 +218,15 @@ class EventSequenceRnnModel(mm.BaseModel):
       logliks[i:j - pad_amt] += batch_loglik[:j - i - pad_amt]
 
     # Construct inputs for next step.
-    if control_events is not None:
-      # We are conditioning on a control sequence.
+    if extend_control_events_callback is not None:
+      # We are conditioning on control sequences.
+      for idx in range(len(control_sequences)):
+        # Extend each control sequence to ensure that it is longer than the
+        # corresponding event sequence.
+        control_states[idx] = extend_control_events_callback(
+            control_sequences[idx], event_sequences[idx], control_states[idx])
       next_inputs = self._config.encoder_decoder.get_inputs_batch(
-          [control_events] * len(event_sequences), event_sequences)
+          control_sequences, event_sequences)
     else:
       next_inputs = self._config.encoder_decoder.get_inputs_batch(
           event_sequences)
@@ -199,14 +236,21 @@ class EventSequenceRnnModel(mm.BaseModel):
       modify_events_callback(
           self._config.encoder_decoder, event_sequences, next_inputs)
 
-    model_states = [ModelState(inputs=inputs, rnn_state=final_state)
-                    for inputs, final_state in zip(next_inputs, final_states)]
+    model_states = [ModelState(inputs=inputs, rnn_state=final_state,
+                               control_events=control_events,
+                               control_state=control_state)
+                    for inputs, final_state, control_events, control_state
+                    in zip(next_inputs, final_states,
+                           control_sequences, control_states)]
 
     return event_sequences, model_states, logliks
 
   def _generate_events(self, num_steps, primer_events, temperature=1.0,
                        beam_size=1, branch_factor=1, steps_per_iteration=1,
-                       control_events=None, modify_events_callback=None):
+                       control_events=None, control_state=None,
+                       extend_control_events_callback=(
+                           _extend_control_events_default),
+                       modify_events_callback=None):
     """Generate an event sequence from a primer sequence.
 
     Args:
@@ -224,7 +268,18 @@ class EventSequenceRnnModel(mm.BaseModel):
       control_events: A sequence of control events upon which to condition the
           generation. If not None, the encoder/decoder should be a
           ConditionalEventSequenceEncoderDecoder, and the control events will be
-          used along with the target sequence to generate model inputs.
+          used along with the target sequence to generate model inputs. In some
+          cases, the control event sequence cannot be fully-determined as later
+          control events depend on earlier generated events; use the
+          `extend_control_events_callback` argument to provide a function that
+          extends the control event sequence.
+      control_state: Initial state used by `extend_control_events_callback`.
+      extend_control_events_callback: A function that takes three arguments: a
+          current control event sequence, a current generated event sequence,
+          and the control state. The function should a) extend the control event
+          sequence to be one longer than the generated event sequence (or do
+          nothing if it is already at least this long), and b) return the
+          resulting control state.
       modify_events_callback: An optional callback for modifying the event list.
           Can be used to inject events rather than having them generated. If not
           None, will be called with 3 arguments after every event: the current
@@ -244,6 +299,10 @@ class EventSequenceRnnModel(mm.BaseModel):
       raise EventSequenceRnnModelException(
           'control sequence provided but encoder/decoder is not a '
           'ConditionalEventSequenceEncoderDecoder')
+    if control_events is not None and extend_control_events_callback is None:
+      raise EventSequenceRnnModelException(
+          'must provide callback for extending control sequence (or use'
+          'default)')
 
     if not primer_events:
       raise EventSequenceRnnModelException(
@@ -251,9 +310,6 @@ class EventSequenceRnnModel(mm.BaseModel):
     if len(primer_events) >= num_steps:
       raise EventSequenceRnnModelException(
           'primer sequence must be shorter than `num_steps`')
-    if control_events is not None and len(control_events) < num_steps:
-      raise EventSequenceRnnModelException(
-          'control sequence must be at least `num_steps`')
 
     if len(primer_events) >= num_steps:
       # Sequence is already long enough, no need to generate.
@@ -263,7 +319,10 @@ class EventSequenceRnnModel(mm.BaseModel):
 
     # Construct inputs for first step after primer.
     if control_events is not None:
-      # We are conditioning on a control sequence.
+      # We are conditioning on a control sequence. Make sure it is longer than
+      # the primer sequence.
+      control_state = extend_control_events_callback(
+          control_events, primer_events, control_state)
       inputs = self._config.encoder_decoder.get_inputs_batch(
           [control_events], event_sequences, full_length=True)
     else:
@@ -281,7 +340,9 @@ class EventSequenceRnnModel(mm.BaseModel):
     # Beam search will maintain a state for each sequence consisting of the next
     # inputs to feed the model, and the current RNN state. We start out with the
     # initial full inputs batch and the zero state.
-    initial_state = ModelState(inputs=inputs[0], rnn_state=initial_states[0])
+    initial_state = ModelState(
+        inputs=inputs[0], rnn_state=initial_states[0],
+        control_events=control_events, control_state=control_state)
 
     events, _, loglik = beam_search(
         initial_sequence=event_sequences[0],
@@ -289,7 +350,10 @@ class EventSequenceRnnModel(mm.BaseModel):
         generate_step_fn=functools.partial(
             self._generate_step,
             temperature=temperature,
-            control_events=control_events,
+            extend_control_events_callback=(
+                extend_control_events_callback
+                if control_events is not None
+                else None),
             modify_events_callback=modify_events_callback),
         num_steps=num_steps - len(primer_events),
         beam_size=beam_size,
