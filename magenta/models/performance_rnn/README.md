@@ -19,7 +19,7 @@ First, set up your [Magenta environment](/README.md). Next, you can either use a
 
 ## Jupyter notebook
 
-There is a Jupyter notebook [Performance_RNN.ipynb](https://github.com/tensorflow/magenta-demos/blob/master/jupyter-notebooks/Performance_RNN.ipynb) 
+There is a Jupyter notebook [Performance_RNN.ipynb](https://github.com/tensorflow/magenta-demos/blob/master/jupyter-notebooks/Performance_RNN.ipynb)
 in our [Magenta Demos](https://github.com/tensorflow/magenta-demos) repository showing how to generate performances from a trained model.
 
 ## Pre-trained

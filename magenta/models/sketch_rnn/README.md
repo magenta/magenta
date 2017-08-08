@@ -7,7 +7,7 @@ Before jumping in on any code examples, please first set up your [Magenta enviro
 *Examples of vector images produced by this generative model.*
 
 This repo contains the TensorFlow code for `sketch-rnn`, the recurrent neural network model described in [Teaching Machines to Draw](https://research.googleblog.com/2017/04/teaching-machines-to-draw.html) and [A Neural Representation of Sketch Drawings](https://arxiv.org/abs/1704.03477).
-We've also provided a Jupyter notebook [Sketch_RNN.ipynb](https://github.com/tensorflow/magenta-demos/blob/master/jupyter-notebooks/Sketch_RNN.ipynb) 
+We've also provided a Jupyter notebook [Sketch_RNN.ipynb](https://github.com/tensorflow/magenta-demos/blob/master/jupyter-notebooks/Sketch_RNN.ipynb)
 in our [Magenta Demos](https://github.com/tensorflow/magenta-demos) repository which demonstrates many of the examples discussed here.
 
 
