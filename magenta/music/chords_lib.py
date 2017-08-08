@@ -181,7 +181,7 @@ class ChordProgression(events_lib.SimpleEventSequence):
 
       if chord.quantized_step > start_step:
         # Add the previous chord.
-        if not prev_step:
+        if prev_step is None:
           start_index = 0
         else:
           start_index = max(prev_step, start_step) - start_step
@@ -191,9 +191,9 @@ class ChordProgression(events_lib.SimpleEventSequence):
       prev_step = chord.quantized_step
       prev_figure = chord.text
 
-    if not prev_step or prev_step < end_step:
+    if prev_step is None or prev_step < end_step:
       # Add the last chord active before end_step.
-      if not prev_step:
+      if prev_step is None:
         start_index = 0
       else:
         start_index = max(prev_step, start_step) - start_step
