@@ -48,7 +48,7 @@ py_library(
     srcs = ["melody_rnn_model.py"],
     srcs_version = "PY2AND3",
     visibility = [
-        # internal model:melody_rnn
+        # internal models
         # internal notebook binary
     ],
     deps = [

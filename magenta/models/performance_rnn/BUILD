@@ -54,6 +54,7 @@ py_library(
     srcs_version = "PY2AND3",
     visibility = [
         # internal notebook binary
+        # internal models
     ],
     deps = [
         ":performance_encoder_decoder",
