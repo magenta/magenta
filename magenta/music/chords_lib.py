@@ -155,7 +155,7 @@ class ChordProgression(events_lib.SimpleEventSequence):
                      if a.annotation_type == CHORD_SYMBOL],
                     key=lambda chord: chord.quantized_step)
 
-    prev_step = start_step
+    prev_step = None 
     prev_figure = NO_CHORD
 
     for chord in chords:
@@ -181,16 +181,22 @@ class ChordProgression(events_lib.SimpleEventSequence):
 
       if chord.quantized_step > start_step:
         # Add the previous chord.
-        start_index = max(prev_step, start_step) - start_step
+        if not prev_step:
+          start_index = 0
+        else:
+          start_index = max(prev_step, start_step) - start_step
         end_index = chord.quantized_step - start_step
         self._add_chord(prev_figure, start_index, end_index)
 
       prev_step = chord.quantized_step
       prev_figure = chord.text
 
-    if prev_step < end_step:
+    if not prev_step or prev_step < end_step:
       # Add the last chord active before end_step.
-      start_index = max(prev_step, start_step) - start_step
+      if not prev_step:
+        start_index = 0
+      else:
+        start_index = max(prev_step, start_step) - start_step
       end_index = end_step - start_step
       self._add_chord(prev_figure, start_index, end_index)
 
