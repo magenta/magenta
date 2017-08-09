@@ -13,13 +13,24 @@
 # limitations under the License.
 """Performance RNN model."""
 
+import collections
+import functools
+
 # internal imports
 
 import tensorflow as tf
 import magenta
 
 from magenta.models.performance_rnn import performance_encoder_decoder
+from magenta.models.performance_rnn.performance_lib import PerformanceEvent
 from magenta.models.shared import events_rnn_model
+
+
+# State for constructing a time-varying control sequence. Keeps track of the
+# current event position and time step in the generated performance, to allow
+# the control sequence to vary with clock time.
+PerformanceControlState = collections.namedtuple(
+    'PerformanceControlState', ['current_perf_index', 'current_perf_step'])
 
 
 class PerformanceRnnModel(events_rnn_model.EventSequenceRnnModel):
@@ -27,8 +38,8 @@ class PerformanceRnnModel(events_rnn_model.EventSequenceRnnModel):
 
   def generate_performance(
       self, num_steps, primer_sequence, temperature=1.0, beam_size=1,
-      branch_factor=1, steps_per_iteration=1, note_density=None,
-      pitch_histogram=None):
+      branch_factor=1, steps_per_iteration=1, note_density_fn=None,
+      pitch_histogram_fn=None):
     """Generate a performance track from a primer performance track.
 
     Args:
@@ -43,31 +54,36 @@ class PerformanceRnnModel(events_rnn_model.EventSequenceRnnModel):
       branch_factor: An integer, beam search branch factor to use.
       steps_per_iteration: An integer, number of steps to take per beam search
           iteration.
-      note_density: Desired note density of generated performance. If None,
-          don't condition on note density.
-      pitch_histogram: Desired pitch class histogram of generated performance.
-          If None, don't condition on pitch class histogram.
+      note_density_fn: A function that maps time step to desired note density,
+          or None if not conditioning on note density.
+      pitch_histogram_fn: A function that maps time step to desired pitch
+          histogram, or None if not conditioning on pitch histogram.
 
     Returns:
       The generated Performance object (which begins with the provided primer
       track).
-
-    Raises:
-      ValueError: If both `note_density` and `pitch_histogram` are provided as
-          conditioning variables.
     """
-    if note_density is not None and pitch_histogram is not None:
-      control_events = [(note_density, pitch_histogram)] * num_steps
-    elif note_density is not None:
-      control_events = [note_density] * num_steps
-    elif pitch_histogram is not None:
-      control_events = [pitch_histogram] * num_steps
+    if note_density_fn is not None or pitch_histogram_fn is not None:
+      if note_density_fn is not None and pitch_histogram_fn is not None:
+        control_events = [(note_density_fn(0), pitch_histogram_fn(0))]
+      elif note_density_fn is not None:
+        control_events = [note_density_fn(0)]
+      elif pitch_histogram_fn is not None:
+        control_events = [pitch_histogram_fn(0)]
+      control_state = PerformanceControlState(
+          current_perf_index=0, current_perf_step=0)
+      extend_control_events_callback = functools.partial(
+          _extend_control_events, note_density_fn, pitch_histogram_fn)
     else:
       control_events = None
+      control_state = None
+      extend_control_events_callback = None
 
-    return self._generate_events(num_steps, primer_sequence, temperature,
-                                 beam_size, branch_factor, steps_per_iteration,
-                                 control_events=control_events)
+    return self._generate_events(
+        num_steps, primer_sequence, temperature, beam_size, branch_factor,
+        steps_per_iteration, control_events=control_events,
+        control_state=control_state,
+        extend_control_events_callback=extend_control_events_callback)
 
   def performance_log_likelihood(self, sequence, note_density=None,
                                  pitch_histogram=None):
@@ -98,6 +114,52 @@ class PerformanceRnnModel(events_rnn_model.EventSequenceRnnModel):
 
     return self._evaluate_log_likelihood(
         [sequence], control_events=control_events)[0]
+
+
+def _extend_control_events(note_density_fn, pitch_histogram_fn, control_events,
+                           performance, control_state):
+  """Extend a performance control sequence.
+
+  Extends `control_events` -- a sequence of note densities, pitch class
+  histograms, or both -- to be one event longer than `performance`, so the next
+  event of `performance` can be conditionally generated.
+
+  This function is meant to be used as the `extend_control_events_callback`
+  in the `_generate_events` method of `EventSequenceRnnModel`.
+
+  Args:
+    note_density_fn: A function that maps time step to note density, or None if
+          not conditioning on note density.
+    pitch_histogram_fn: A function that maps time step to pitch histogram, or
+          None if not conditioning on pitch histogram.
+    control_events: The control sequence to extend.
+    performance: The Performance being generated.
+    control_state: A PerformanceControlState tuple containing the current
+        position in `performance`. We maintain this so as not to have to
+        recompute the total performance length (in steps) every time we want to
+        extend the control sequence.
+
+  Returns:
+    The PerformanceControlState after extending the control sequence one step
+    past the end of the generated performance.
+  """
+  idx = control_state.current_perf_index
+  step = control_state.current_perf_step
+
+  while idx < len(performance):
+    if performance[idx].event_type == PerformanceEvent.TIME_SHIFT:
+      step += performance[idx].event_value
+    idx += 1
+
+    if note_density_fn is not None and pitch_histogram_fn is not None:
+      control_events.append((note_density_fn(step), pitch_histogram_fn(step)))
+    elif note_density_fn is not None:
+      control_events.append(note_density_fn(step))
+    elif pitch_histogram_fn is not None:
+      control_events.append(pitch_histogram_fn(step))
+
+  return PerformanceControlState(
+      current_perf_index=idx, current_perf_step=step)
 
 
 class PerformanceRnnConfig(events_rnn_model.EventSequenceRnnConfig):

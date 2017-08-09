@@ -77,16 +77,20 @@ tf.app.flags.DEFINE_string(
     'primer_midi', '',
     'The path to a MIDI file containing a polyphonic track that will be used '
     'as a priming track.')
-tf.app.flags.DEFINE_float(
+tf.app.flags.DEFINE_string(
     'notes_per_second', None,
-    'When conditioning on note density, the desired density in notes per '
-    'second. If not conditioning, this value will be ignored.')
+    'When conditioning on note density, a string representation of the desired '
+    'density in notes per second. This can also be a string representation of '
+    'a Python list of densities, in which case each output performance will be '
+    'divided into equally-sized segments of constant note density, one per '
+    'specified density. If not conditioning, this value will be ignored.')
 tf.app.flags.DEFINE_string(
     'pitch_class_histogram', None,
     'When conditioning on pitch class histogram, a string representation of '
     'the desired pitch class histogram as a Python list. For example: '
     '"[2, 0, 1, 0, 1, 1, 0, 1, 0, 1, 0, 1]". The values will be normalized to '
-    'sum to one.')
+    'sum to one. Similar to `notes_per_second`, this can also be a list of '
+    'pitch class histograms.')
 tf.app.flags.DEFINE_float(
     'temperature', 1.0,
     'The randomness of the generated tracks. 1.0 uses the unaltered '
@@ -217,7 +221,7 @@ def run_with_flags(generator):
         'histogram will be ignored: %s', FLAGS.pitch_class_histogram)
 
   if FLAGS.notes_per_second is not None:
-    generator_options.args['note_density'].float_value = FLAGS.notes_per_second
+    generator_options.args['note_density'].byte_value = FLAGS.notes_per_second
   if FLAGS.pitch_class_histogram is not None:
     generator_options.args['pitch_histogram'].byte_value = (
         FLAGS.pitch_class_histogram)
