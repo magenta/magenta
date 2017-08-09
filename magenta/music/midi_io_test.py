@@ -13,6 +13,10 @@
 # limitations under the License.
 """Test to ensure correct midi input and output."""
 
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import print_function
+
 from collections import defaultdict
 import os.path
 import tempfile
@@ -121,7 +125,8 @@ class MidiIoTest(tf.test.TestCase):
 
     sorted_seq_instrument_keys = sorted(
         seq_instruments.keys(),
-        key=lambda (instr, program, is_drum): (instr, program, is_drum))
+        key=lambda instr_program_isdrum: (instr_program_isdrum[0],
+            instr_program_isdrum[1], instr_program_isdrum[2]))
 
     if seq_instruments:
       self.assertEqual(len(midi.instruments), len(seq_instruments))
