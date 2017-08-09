@@ -353,7 +353,7 @@ py_test(
 py_library(
     name = "musicnet_io",
     srcs = ["musicnet_io.py"],
-    srcs_version = "PY2AND3",
+    srcs_version = "PY2",
     deps = [
         "//magenta/protobuf:music_py_pb2",
         # intervaltree dep
@@ -366,7 +366,7 @@ py_test(
     name = "musicnet_io_test",
     srcs = ["musicnet_io_test.py"],
     data = ["//magenta/testdata"],
-    srcs_version = "PY2AND3",
+    srcs_version = "PY2",
     deps = [
         ":musicnet_io",
         # numpy dep
