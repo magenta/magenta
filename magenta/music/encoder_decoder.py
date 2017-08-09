@@ -826,7 +826,7 @@ class MultipleEventSequenceEncoder(EventSequenceEncoderDecoder):
     else:
       # The event sequence is a list of tuples. Apply each encoder to the
       # elements in the corresponding tuple position.
-      event_sequences = zip(*events)
+      event_sequences = list(zip(*events))
       if len(event_sequences) != len(self._encoders):
         raise ValueError(
             'Event tuple size must be the same as the number of encoders.')
