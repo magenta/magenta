@@ -20,6 +20,10 @@ Use ChordProgression.to_sequence to write a chord progression to a
 NoteSequence proto, encoding the chords as text annotations.
 """
 
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import print_function
+
 import abc
 import copy
 
@@ -177,16 +181,22 @@ class ChordProgression(events_lib.SimpleEventSequence):
 
       if chord.quantized_step > start_step:
         # Add the previous chord.
-        start_index = max(prev_step, start_step) - start_step
+        if prev_step is None:
+          start_index = 0
+        else:
+          start_index = max(prev_step, start_step) - start_step
         end_index = chord.quantized_step - start_step
         self._add_chord(prev_figure, start_index, end_index)
 
       prev_step = chord.quantized_step
       prev_figure = chord.text
 
-    if prev_step < end_step:
+    if prev_step is None or prev_step < end_step:
       # Add the last chord active before end_step.
-      start_index = max(prev_step, start_step) - start_step
+      if prev_step is None:
+        start_index = 0
+      else:
+        start_index = max(prev_step, start_step) - start_step
       end_index = end_step - start_step
       self._add_chord(prev_figure, start_index, end_index)
 
