@@ -281,7 +281,7 @@ class ConditionalEventSequenceEncoderDecoderTest(tf.test.TestCase):
     self.assertEqual(sequence_example, expected_sequence_example)
 
   def testGetInputsBatch(self):
-    control_events = [1, 1, 1, 0, 0]
+    control_event_sequences = [[1, 1, 1, 0, 0], [1, 1, 1, 0, 0]]
     target_event_sequences = [[0, 1, 0, 2], [0, 1]]
     expected_inputs_1 = [[0.0, 1.0, 1.0, 0.0, 0.0],
                          [0.0, 1.0, 0.0, 1.0, 0.0],
@@ -294,10 +294,12 @@ class ConditionalEventSequenceEncoderDecoderTest(tf.test.TestCase):
                                         expected_inputs_2[-1:]]
     self.assertListEqual(
         expected_full_length_inputs_batch,
-        self.enc.get_inputs_batch(control_events, target_event_sequences, True))
+        self.enc.get_inputs_batch(
+            control_event_sequences, target_event_sequences, True))
     self.assertListEqual(
         expected_last_event_inputs_batch,
-        self.enc.get_inputs_batch(control_events, target_event_sequences))
+        self.enc.get_inputs_batch(
+            control_event_sequences, target_event_sequences))
 
   def testExtendEventSequences(self):
     target_events_1 = [0]

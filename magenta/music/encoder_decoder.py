@@ -697,14 +697,15 @@ class ConditionalEventSequenceEncoderDecoder(object):
       labels.append(self.events_to_label(target_events, i + 1))
     return sequence_example_lib.make_sequence_example(inputs, labels)
 
-  def get_inputs_batch(self, control_events, target_event_sequences,
+  def get_inputs_batch(self, control_event_sequences, target_event_sequences,
                        full_length=False):
     """Returns an inputs batch for the given control and target event sequences.
 
     Args:
-      control_events: A single list-like control event sequence.
-      target_event_sequences: A list of list-like target event sequences. Each
-          target event sequence must be shorter than `control_events`.
+      control_event_sequences: A list of list-like control event sequences.
+      target_event_sequences: A list of list-like target event sequences, the
+          same length as `control_event_sequences`. Each target event sequence
+          must be shorter than the corresponding control event sequence.
       full_length: If True, the inputs batch will be for the full length of
           each control/target event sequence pair. If False, the inputs batch
           will only be for the last event of each target event sequence. A full-
@@ -720,11 +721,18 @@ class ConditionalEventSequenceEncoderDecoder(object):
       [len(target_event_sequences), 1, INPUT_SIZE].
 
     Raises:
-      ValueError: If one of the target event sequences is not longer than
-          `control_events`.
+      ValueError: If there are a different number of control and target event
+          sequences, or if one of the control event sequences is not shorter
+          than the corresponding control event sequence.
     """
+    if len(control_event_sequences) != len(target_event_sequences):
+      raise ValueError(
+          '%d control event sequences but %d target event sequences' %
+          (len(control_event_sequences, len(target_event_sequences))))
+
     inputs_batch = []
-    for target_events in target_event_sequences:
+    for control_events, target_events in zip(
+        control_event_sequences, target_event_sequences):
       if len(control_events) <= len(target_events):
         raise ValueError('control event sequence must be longer than target '
                          'event sequence (%d control events but %d target '
