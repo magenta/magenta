@@ -164,15 +164,23 @@ class PerformanceRnnSequenceGenerator(mm.BaseSequenceGenerator):
     # Make sure note density is present when conditioning on it and not present
     # otherwise.
     if not self.note_density_conditioning and 'note_density' in args:
+      tf.logging.warning(
+          'Not conditioning on note density, ignoring requested density.')
       del args['note_density']
     if self.note_density_conditioning and 'note_density' not in args:
+      tf.logging.warning(
+          'Conditioning on note density but none requested, using default.')
       args['note_density'] = [DEFAULT_NOTE_DENSITY]
 
     # Make sure pitch class histogram is present when conditioning on it and not
     # present otherwise.
     if not self.pitch_histogram_conditioning and 'pitch_histogram' in args:
+      tf.logging.warning(
+          'Not conditioning on pitch histogram, ignoring requested histogram.')
       del args['pitch_histogram']
     if self.pitch_histogram_conditioning and 'pitch_histogram' not in args:
+      tf.logging.warning(
+          'Conditioning on pitch histogram but none requested, using default.')
       args['pitch_histogram'] = [DEFAULT_PITCH_HISTOGRAM]
 
     # If a single note density or pitch class histogram is present, convert to
@@ -192,6 +200,7 @@ class PerformanceRnnSequenceGenerator(mm.BaseSequenceGenerator):
           args['pitch_histogram'][i] = [float(count) / total
                                         for count in args['pitch_histogram'][i]]
         else:
+          tf.logging.warning('Pitch histogram is empty, using default.')
           args['pitch_histogram'][i] = DEFAULT_PITCH_HISTOGRAM
 
     total_steps = performance.num_steps + (
