@@ -58,6 +58,7 @@ py_library(
     ],
     deps = [
         ":performance_encoder_decoder",
+        ":performance_lib",
         "//magenta/models/shared:events_rnn_model",
         "//magenta",
         # tensorflow dep
