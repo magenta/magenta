@@ -33,7 +33,7 @@ py_library(
     srcs_version = "PY2AND3",
     visibility = [
         # internal model:discrete_music_gan
-    ]
+    ],
     deps = [
         "//magenta",
         # tensorflow dep
@@ -104,7 +104,7 @@ py_library(
     srcs_version = "PY2AND3",
     visibility = [
         # internal model:discrete_music_gan
-    ]
+    ],
     deps = [
         ":performance_lib",
         "//magenta",
