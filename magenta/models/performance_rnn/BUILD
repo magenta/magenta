@@ -31,6 +31,9 @@ py_library(
     name = "performance_lib",
     srcs = ["performance_lib.py"],
     srcs_version = "PY2AND3",
+    visibility = [
+        # internal model:discrete_music_gan
+    ]
     deps = [
         "//magenta",
         # tensorflow dep
@@ -99,6 +102,9 @@ py_library(
     name = "performance_encoder_decoder",
     srcs = ["performance_encoder_decoder.py"],
     srcs_version = "PY2AND3",
+    visibility = [
+        # internal model:discrete_music_gan
+    ]
     deps = [
         ":performance_lib",
         "//magenta",
