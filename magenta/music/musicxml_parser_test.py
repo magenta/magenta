@@ -13,6 +13,10 @@
 # limitations under the License.
 """Test to ensure correct import of MusicXML."""
 
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import print_function
+
 from collections import defaultdict
 import operator
 import os.path

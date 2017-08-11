@@ -20,7 +20,9 @@ into tensorflow.magenta.NoteSequence.
 # Imports
 # Python 2 uses integer division for integers. Using this gives the Python 3
 # behavior of producing a float when dividing integers
+from __future__ import absolute_import
 from __future__ import division
+from __future__ import print_function
 
 from fractions import Fraction
 import six
