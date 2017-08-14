@@ -29,8 +29,8 @@ If you want to get started right away, you can use a few models that we've pre-t
 * [performance](http://download.magenta.tensorflow.org/models/performance.mag)
 * [performance_with_dynamics](http://download.magenta.tensorflow.org/models/performance_with_dynamics.mag)
 * [density_conditioned_performance_with_dynamics](http://download.magenta.tensorflow.org/models/density_conditioned_performance_with_dynamics.mag)
-* [pitch_conditioned_performance_with_dynamics](http://download.magenta.tensorflow.org/models/performance_with_dynamics.mag)
-* [multiconditioned_performance_with_dynamics](http://download.magenta.tensorflow.org/models/performance_with_dynamics.mag)
+* [pitch_conditioned_performance_with_dynamics](http://download.magenta.tensorflow.org/models/pitch_conditioned_performance_with_dynamics.mag)
+* [multiconditioned_performance_with_dynamics](http://download.magenta.tensorflow.org/models/multiconditioned_performance_with_dynamics.mag)
 
 The latter three models are *conditional* models that can generate performances conditioned on desired note density, desired pitch class distribution, or both, respectively.
 
