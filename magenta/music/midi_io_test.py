@@ -123,10 +123,7 @@ class MidiIoTest(tf.test.TestCase):
           (seq_control.instrument, seq_control.program, seq_control.is_drum)][
               'controls'].append(seq_control)
 
-    sorted_seq_instrument_keys = sorted(
-        seq_instruments.keys(),
-        key=lambda instr_program_isdrum: (instr_program_isdrum[0],
-            instr_program_isdrum[1], instr_program_isdrum[2]))
+    sorted_seq_instrument_keys = sorted(seq_instruments.keys())
 
     if seq_instruments:
       self.assertEqual(len(midi.instruments), len(seq_instruments))

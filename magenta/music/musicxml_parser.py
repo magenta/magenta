@@ -25,9 +25,9 @@ from __future__ import division
 from __future__ import print_function
 
 from fractions import Fraction
-import six
 import xml.etree.ElementTree as ET
 import zipfile
+import six
 
 # internal imports
 
@@ -185,14 +185,15 @@ class MusicXMLDocument(object):
         # which is almost definitely wrong. Here we need to explicitly check
         # for when this has occurred and change the encoding to utf-8.
         # https://stackoverflow.com/questions/37723505/namelist-from-zipfile-returns-strings-with-an-invalid-encoding
-        ZIP_FILENAME_UTF8_FLAG = 0x800
+        zip_filename_utf8_flag = 0x800
         for info in infolist:
-          if info.flag_bits & ZIP_FILENAME_UTF8_FLAG == 0:
+          if info.flag_bits & zip_filename_utf8_flag == 0:
             filename_bytes = info.filename.encode('437')
             filename = filename_bytes.decode('utf-8', 'replace')
             info.filename = filename
 
-      container_file = [x for x in infolist if x.filename == 'META-INF/container.xml']
+      container_file =
+            [x for x in infolist if x.filename == 'META-INF/container.xml']
       compressed_file_name = ''
 
       if container_file:
@@ -225,7 +226,8 @@ class MusicXMLDocument(object):
         # be able to lookup compressed_file_info below.
         compressed_file_name = compressed_file_name.encode('utf-8')
       try:
-        compressed_file_info = [x for x in infolist if x.filename == compressed_file_name][0]
+        compressed_file_info =
+            [x for x in infolist if x.filename == compressed_file_name][0]
       except IndexError:
         raise MusicXMLParseException(
             'Score file %s not found in zip archive' % compressed_file_name)
