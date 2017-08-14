@@ -27,10 +27,10 @@ from __future__ import print_function
 from fractions import Fraction
 import xml.etree.ElementTree as ET
 import zipfile
-import six
 
 # internal imports
 
+import six
 from magenta.music import constants
 
 DEFAULT_MIDI_PROGRAM = 0    # Default MIDI Program (0 = grand piano)
