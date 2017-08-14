@@ -193,7 +193,7 @@ class MusicXMLDocument(object):
             info.filename = filename
 
       container_file = [x for x in infolist
-          if x.filename == 'META-INF/container.xml']
+                        if x.filename == 'META-INF/container.xml']
       compressed_file_name = ''
 
       if container_file:
@@ -227,7 +227,7 @@ class MusicXMLDocument(object):
         compressed_file_name = compressed_file_name.encode('utf-8')
       try:
         compressed_file_info = [x for x in infolist
-            if x.filename == compressed_file_name][0]
+                                if x.filename == compressed_file_name][0]
       except IndexError:
         raise MusicXMLParseException(
             'Score file %s not found in zip archive' % compressed_file_name)
