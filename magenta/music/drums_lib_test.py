@@ -297,7 +297,7 @@ class DrumsLibTest(tf.test.TestCase):
         quantized_sequence, min_bars=2, gap_bars=1)
     drum_tracks = [list(drums) for drums in drum_tracks]
     self.assertEqual(
-        [[NO_DRUMS, NO_DRUMS, NO_DRUMS, DRUMS(12), NO_DRUMS, NO_DRUMS, NO_DRUMS, 
+        [[NO_DRUMS, NO_DRUMS, NO_DRUMS, DRUMS(12), NO_DRUMS, NO_DRUMS, NO_DRUMS,
           DRUMS(14)]],
         drum_tracks)
 
