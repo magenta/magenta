@@ -192,8 +192,8 @@ class MusicXMLDocument(object):
             filename = filename_bytes.decode('utf-8', 'replace')
             info.filename = filename
 
-      container_file =
-            [x for x in infolist if x.filename == 'META-INF/container.xml']
+      container_file = \
+          [x for x in infolist if x.filename == 'META-INF/container.xml']
       compressed_file_name = ''
 
       if container_file:
@@ -226,7 +226,7 @@ class MusicXMLDocument(object):
         # be able to lookup compressed_file_info below.
         compressed_file_name = compressed_file_name.encode('utf-8')
       try:
-        compressed_file_info =
+        compressed_file_info = \
             [x for x in infolist if x.filename == compressed_file_name][0]
       except IndexError:
         raise MusicXMLParseException(
