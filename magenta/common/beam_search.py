@@ -13,6 +13,10 @@
 # limitations under the License.
 """Beam search library."""
 
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import print_function
+
 import collections
 import copy
 import heapq
@@ -129,7 +133,7 @@ def beam_search(initial_sequence, initial_state, generate_step_fn, num_steps,
   beam_entries = _generate_branches(
       beam_entries, generate_step_fn, branch_factor, first_iteration_num_steps)
 
-  num_iterations = (num_steps - first_iteration_num_steps) / steps_per_iteration
+  num_iterations = (num_steps - first_iteration_num_steps) // steps_per_iteration
 
   for _ in range(num_iterations):
     beam_entries = _prune_branches(beam_entries, k=beam_size)
