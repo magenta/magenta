@@ -371,9 +371,9 @@ def run_pipeline_serial(pipeline,
   for input_ in input_iterator:
     total_inputs += 1
     for name, outputs in _guarantee_dict(pipeline.transform(input_),
-                                         output_names[0]).items():
+                                         list(output_names)[0]).items():
       for output in outputs:
-        writers[name].write(output.SerializeToString())
+        writers[name].write(output.SerializeToString().encode('utf-8'))
       total_outputs += len(outputs)
     stats = statistics.merge_statistics(stats + pipeline.get_stats())
     if total_inputs % 500 == 0:
@@ -410,7 +410,7 @@ def load_pipeline(pipeline, input_iterator):
   for input_object in input_iterator:
     total_inputs += 1
     outputs = _guarantee_dict(pipeline.transform(input_object),
-                              aggregated_outputs.keys()[0])
+                              list(aggregated_outputs.keys())[0])
     for name, output_list in outputs.items():
       aggregated_outputs[name].extend(output_list)
       total_outputs += len(output_list)

@@ -122,7 +122,7 @@ def merge_statistics(stats_list):
       name_map[stat.name].merge_from(stat)
     else:
       name_map[stat.name] = stat
-  return name_map.values()
+  return list(name_map.values())
 
 
 def log_statistics_list(stats_list, logger_fn=tf.logging.info):
