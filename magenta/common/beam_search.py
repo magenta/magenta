@@ -133,7 +133,7 @@ def beam_search(initial_sequence, initial_state, generate_step_fn, num_steps,
   beam_entries = _generate_branches(
       beam_entries, generate_step_fn, branch_factor, first_iteration_num_steps)
 
-  num_iterations = (num_steps - 
+  num_iterations = (num_steps -
                     first_iteration_num_steps) // steps_per_iteration
 
   for _ in range(num_iterations):
