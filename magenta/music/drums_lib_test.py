@@ -277,7 +277,7 @@ class DrumsLibTest(tf.test.TestCase):
   def testExtractDrumTracksTooShort(self):
     testing_lib.add_track_to_sequence(
         self.note_sequence, 0,
-        [(12, 127, 2, 4), (14, 50, 6, 7)],
+        [(12, 127, 3, 4), (14, 50, 6, 7)],
         is_drum=True)
     quantized_sequence = sequences_lib.quantize_note_sequence(
         self.note_sequence, steps_per_quarter=1)
@@ -285,6 +285,21 @@ class DrumsLibTest(tf.test.TestCase):
         quantized_sequence, min_bars=2, gap_bars=1)
     drum_tracks = [list(drums) for drums in drum_tracks]
     self.assertEqual([], drum_tracks)
+
+    del self.note_sequence.notes[:]
+    testing_lib.add_track_to_sequence(
+        self.note_sequence, 0,
+        [(12, 127, 3, 4), (14, 50, 7, 8)],
+        is_drum=True)
+    quantized_sequence = sequences_lib.quantize_note_sequence(
+        self.note_sequence, steps_per_quarter=1)
+    drum_tracks, _ = drums_lib.extract_drum_tracks(
+        quantized_sequence, min_bars=2, gap_bars=1)
+    drum_tracks = [list(drums) for drums in drum_tracks]
+    self.assertEqual(
+        [[NO_DRUMS, NO_DRUMS, NO_DRUMS, DRUMS(12), NO_DRUMS, NO_DRUMS, NO_DRUMS,
+          DRUMS(14)]],
+        drum_tracks)
 
   def testExtractDrumTracksPadEnd(self):
     testing_lib.add_track_to_sequence(

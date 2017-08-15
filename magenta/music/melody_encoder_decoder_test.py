@@ -13,6 +13,10 @@
 # limitations under the License.
 """Tests for melody_encoder_decoder."""
 
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import print_function
+
 # internal imports
 import tensorflow as tf
 
@@ -350,7 +354,7 @@ class MelodyLookbackEventSequenceEncoderDecoderTest(tf.test.TestCase):
     full_length_inputs_batch = med.get_inputs_batch(melodies, True)
 
     for i, melody_index in enumerate(melody_indices):
-      print i
+      print(i)
       partial_melody = melodies_lib.Melody(melody_events[:melody_index])
       self.assertListEqual(full_length_inputs_batch[0][melody_index],
                            expected_inputs[i])

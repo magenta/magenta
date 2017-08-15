@@ -17,18 +17,28 @@ At generation time, a few undesired behaviors can occur: note-off events with no
 
 First, set up your [Magenta environment](/README.md). Next, you can either use a pre-trained model or train your own.
 
+## Jupyter notebook
+
+There is a Jupyter notebook [Performance_RNN.ipynb](https://github.com/tensorflow/magenta-demos/blob/master/jupyter-notebooks/Performance_RNN.ipynb)
+in our [Magenta Demos](https://github.com/tensorflow/magenta-demos) repository showing how to generate performances from a trained model.
+
 ## Pre-trained
 
 If you want to get started right away, you can use a few models that we've pre-trained on [real performances from the Yamaha e-Piano Competition](http://www.piano-e-competition.com/midiinstructions.asp):
 
 * [performance](http://download.magenta.tensorflow.org/models/performance.mag)
 * [performance_with_dynamics](http://download.magenta.tensorflow.org/models/performance_with_dynamics.mag)
+* [density_conditioned_performance_with_dynamics](http://download.magenta.tensorflow.org/models/density_conditioned_performance_with_dynamics.mag)
+* [pitch_conditioned_performance_with_dynamics](http://download.magenta.tensorflow.org/models/pitch_conditioned_performance_with_dynamics.mag)
+* [multiconditioned_performance_with_dynamics](http://download.magenta.tensorflow.org/models/multiconditioned_performance_with_dynamics.mag)
+
+The latter three models are *conditional* models that can generate performances conditioned on desired note density, desired pitch class distribution, or both, respectively.
 
 ### Generate a performance
 
 ```
 BUNDLE_PATH=<absolute path of .mag file>
-CONFIG=<one of 'performance' or 'performance_with_dynamics', matching the bundle>
+CONFIG=<one of 'performance', 'performance_with_dynamics', 'density_conditioned_performance_with_dynamics', 'pitch_conditioned_performance_with_dynamics', or 'multiconditioned_performance_with_dynamics', matching the bundle>
 
 performance_rnn_generate \
 --config=${CONFIG} \
@@ -41,11 +51,18 @@ performance_rnn_generate \
 
 This will generate a performance starting with an ascending C major scale.
 
-There are several command line options for controlling the generation process:
+There are several command-line options for controlling the generation process:
 
 * **primer_pitches**: A string representation of a Python list of pitches that will be used as a starting chord with a short duration. For example: ```"[60, 64, 67]"```.
 * **primer_melody**: A string representation of a Python list of `magenta.music.Melody` event values (-2 = no event, -1 = note-off event, values 0 through 127 = note-on event for that MIDI pitch). For example: `"[60, -2, 60, -2, 67, -2, 67, -2]"`.
 * **primer_midi**: The path to a MIDI file containing a polyphonic track that will be used as a priming track.
+
+If you're using one of the conditional models, there are additional command-line options you can use:
+
+* **notes_per_second**: The desired number of notes per second in the output performance. Note that increasing this value will cause generation to take longer, as the number of RNN steps is roughly proportional to the number of notes generated.
+* **pitch_class_histogram**: A string representation of a Python list of 12 values representing the relative frequency of notes of each pitch class, starting with C. For example: `"[2, 0, 1, 0, 1, 1, 0, 1, 0, 1, 0, 1]"` will tend to stick to a C-major scale, with twice as much C as any of the other notes of the scale.
+
+These control variables are not strictly enforced, but can be used to guide the model's output. Currently these can only be set globally, affecting the entire performance.
 
 For a full list of command line options, run `performance_rnn_generate --help`.
 
@@ -60,8 +77,11 @@ Our first step will be to convert a collection of MIDI or MusicXML files into No
 SequenceExamples are fed into the model during training and evaluation. Each SequenceExample will contain a sequence of inputs and a sequence of labels that represent a performance. Run the command below to extract performances  from your NoteSequences and save them as SequenceExamples. Two collections of SequenceExamples will be generated, one for training, and one for evaluation, where the fraction of SequenceExamples in the evaluation set is determined by `--eval_ratio`. With an eval ratio of 0.10, 10% of the extracted performances will be saved in the eval collection, and 90% will be saved in the training collection.
 
 ```
+CONFIG=<one of 'performance', 'performance_with_dynamics', 'density_conditioned_performance_with_dynamics', 'pitch_conditioned_performance_with_dynamics', or 'multiconditioned_performance_with_dynamics'>
+
 performance_rnn_create_dataset \
---config=<one of 'performance' or 'performance_with_dynamics'> \ --input=/tmp/notesequences.tfrecord \
+--config=${CONFIG} \
+--input=/tmp/notesequences.tfrecord \
 --output_dir=/tmp/performance_rnn/sequence_examples \
 --eval_ratio=0.10
 ```
@@ -72,7 +92,7 @@ Run the command below to start a training job. `--config` should match the confi
 
 ```
 performance_rnn_train \
---config=<one of 'performance' or 'performance_with_dynamics'> \
+--config=${CONFIG} \
 --run_dir=/tmp/performance_rnn/logdir/run1 \
 --sequence_example_file=/tmp/performance_rnn/sequence_examples/training_performances.tfrecord
 ```
@@ -81,6 +101,7 @@ Optionally run an eval job in parallel. `--run_dir`, `--hparams`, and `--num_tra
 
 ```
 performance_rnn_train \
+--config=${CONFIG} \
 --run_dir=/tmp/performance_rnn/logdir/run1 \
 --sequence_example_file=/tmp/performance_rnn/sequence_examples/eval_performances.tfrecord \
 --eval
@@ -100,6 +121,8 @@ Performances can be generated during or after training. Run the command below to
 
 `--run_dir` should be the same directory used for the training job. The `train` subdirectory within `--run_dir` is where the latest checkpoint file will be loaded from. For example, if we use `--run_dir=/tmp/performance_rnn/logdir/run1`. The most recent checkpoint file in `/tmp/performance_rnn/logdir/run1/train` will be used.
 
+`--config` should be the same as used for the training job.
+
 `--hparams` should be the same hyperparameters used for the training job, although some of them will be ignored, like the batch size.
 
 `--output_dir` is where the generated MIDI files will be saved. `--num_outputs` is the number of performances that will be generated. `--num_steps` is how long each performance will be in steps, where one step is 10 ms (e.g. 3000 steps is 30 seconds).
@@ -110,6 +133,7 @@ See above for more information on other command line options.
 performance_rnn_generate \
 --run_dir=/tmp/performance_rnn/logdir/run1 \
 --output_dir=/tmp/performance_rnn/generated \
+--config=${CONFIG} \
 --num_outputs=10 \
 --num_steps=3000 \
 --primer_melody="[60,62,64,65,67,69,71,72]"
@@ -128,6 +152,7 @@ supports a ```--save_generator_bundle``` flag that calls this method. Example:
 
 ```
 performance_rnn_generate \
+  --config=${CONFIG}
   --run_dir=/tmp/performance_rnn/logdir/run1 \
   --bundle_file=/tmp/performance_rnn.mag \
   --save_generator_bundle

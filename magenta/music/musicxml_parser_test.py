@@ -13,6 +13,10 @@
 # limitations under the License.
 """Test to ensure correct import of MusicXML."""
 
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import print_function
+
 from collections import defaultdict
 import operator
 import os.path
@@ -803,7 +807,7 @@ class MusicXMLParserTest(tf.test.TestCase):
   def test_empty_part_name(self):
     """Verify that a part with an empty name can be parsed."""
 
-    xml = r"""<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+    xml = br"""<?xml version="1.0" encoding="UTF-8" standalone="no"?>
       <!DOCTYPE score-partwise PUBLIC
           "-//Recordare//DTD MusicXML 3.0 Partwise//EN"
           "http://www.musicxml.org/dtds/partwise.dtd">
@@ -849,7 +853,7 @@ class MusicXMLParserTest(tf.test.TestCase):
   def test_empty_part_list(self):
     """Verify that a part without a corresponding score-part can be parsed."""
 
-    xml = r"""<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+    xml = br"""<?xml version="1.0" encoding="UTF-8" standalone="no"?>
       <!DOCTYPE score-partwise PUBLIC
           "-//Recordare//DTD MusicXML 3.0 Partwise//EN"
           "http://www.musicxml.org/dtds/partwise.dtd">
@@ -890,7 +894,7 @@ class MusicXMLParserTest(tf.test.TestCase):
   def test_empty_doc(self):
     """Verify that an empty doc can be parsed."""
 
-    xml = r"""<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+    xml = br"""<?xml version="1.0" encoding="UTF-8" standalone="no"?>
       <!DOCTYPE score-partwise PUBLIC
           "-//Recordare//DTD MusicXML 3.0 Partwise//EN"
           "http://www.musicxml.org/dtds/partwise.dtd">

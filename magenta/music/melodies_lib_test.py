@@ -481,12 +481,17 @@ class MelodiesLibTest(tf.test.TestCase):
         [(12, 127, 2, 4), (14, 50, 6, 7)])
     testing_lib.add_track_to_sequence(
         self.note_sequence, 1,
+        [(12, 127, 2, 4), (14, 50, 6, 8)])
+    testing_lib.add_track_to_sequence(
+        self.note_sequence, 2,
         [(12, 127, 2, 4), (14, 50, 6, 9)])
 
     quantized_sequence = sequences_lib.quantize_note_sequence(
         self.note_sequence, steps_per_quarter=1)
 
     expected = [[NO_EVENT, NO_EVENT, 12, NO_EVENT, NOTE_OFF, NO_EVENT, 14,
+                 NO_EVENT],
+                [NO_EVENT, NO_EVENT, 12, NO_EVENT, NOTE_OFF, NO_EVENT, 14,
                  NO_EVENT, NO_EVENT]]
     melodies, _ = melodies_lib.extract_melodies(
         quantized_sequence, min_bars=2, gap_bars=1, min_unique_pitches=2,

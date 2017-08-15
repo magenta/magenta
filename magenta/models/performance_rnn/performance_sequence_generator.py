@@ -13,6 +13,9 @@
 # limitations under the License.
 """Performance RNN generation code as a SequenceGenerator interface."""
 
+from __future__ import division
+
+import ast
 from functools import partial
 import math
 
@@ -29,13 +32,24 @@ import magenta.music as mm
 # after 5 seconds.
 MAX_NOTE_DURATION_SECONDS = 5.0
 
+# Default note density to use when conditioning on note density.
+DEFAULT_NOTE_DENSITY = 10.0
+
+# Default pitch class histogram to use when conditioning on pitch class
+# histogram.
+DEFAULT_PITCH_HISTOGRAM = [
+    0.125, 0.025, 0.125, 0.025, 0.125, 0.125,
+    0.025, 0.125, 0.025, 0.125, 0.025, 0.125]
+
 
 class PerformanceRnnSequenceGenerator(mm.BaseSequenceGenerator):
   """Performance RNN generation code as a SequenceGenerator interface."""
 
   def __init__(self, model, details,
                steps_per_second=performance_lib.DEFAULT_STEPS_PER_SECOND,
-               num_velocity_bins=0, max_note_duration=MAX_NOTE_DURATION_SECONDS,
+               num_velocity_bins=0, note_density_conditioning=False,
+               pitch_histogram_conditioning=False,
+               max_note_duration=MAX_NOTE_DURATION_SECONDS,
                fill_generate_section=True, checkpoint=None, bundle=None):
     """Creates a PerformanceRnnSequenceGenerator.
 
@@ -45,6 +59,9 @@ class PerformanceRnnSequenceGenerator(mm.BaseSequenceGenerator):
       steps_per_second: Number of quantized steps per second.
       num_velocity_bins: Number of quantized velocity bins. If 0, don't use
           velocity.
+      note_density_conditioning: If True, generate conditional on note density.
+      pitch_histogram_conditioning: If True, generate conditional on pitch class
+          histogram.
       max_note_duration: The maximum note duration in seconds to allow during
           generation. This model often forgets to release notes; specifying a
           maximum duration can force it to do so.
@@ -56,11 +73,17 @@ class PerformanceRnnSequenceGenerator(mm.BaseSequenceGenerator):
           exclusive with `bundle`.
       bundle: A GeneratorBundle object that includes both the model checkpoint
           and metagraph. Mutually exclusive with `checkpoint`.
+
+    Raises:
+      ValueError: If both `note_density_conditioning` and
+          `pitch_histogram_conditioning` are enabled.
     """
     super(PerformanceRnnSequenceGenerator, self).__init__(
         model, details, checkpoint, bundle)
     self.steps_per_second = steps_per_second
     self.num_velocity_bins = num_velocity_bins
+    self.note_density_conditioning = note_density_conditioning
+    self.pitch_histogram_conditioning = pitch_histogram_conditioning
     self.max_note_duration = max_note_duration
     self.fill_generate_section = fill_generate_section
 
@@ -127,6 +150,8 @@ class PerformanceRnnSequenceGenerator(mm.BaseSequenceGenerator):
 
     # Extract generation arguments from generator options.
     arg_types = {
+        'note_density': lambda arg: ast.literal_eval(arg.byte_value),
+        'pitch_histogram': lambda arg: ast.literal_eval(arg.byte_value),
         'temperature': lambda arg: arg.float_value,
         'beam_size': lambda arg: arg.int_value,
         'branch_factor': lambda arg: arg.int_value,
@@ -136,20 +161,80 @@ class PerformanceRnnSequenceGenerator(mm.BaseSequenceGenerator):
                 for name, value_fn in arg_types.items()
                 if name in generator_options.args)
 
+    # Make sure note density is present when conditioning on it and not present
+    # otherwise.
+    if not self.note_density_conditioning and 'note_density' in args:
+      tf.logging.warning(
+          'Not conditioning on note density, ignoring requested density.')
+      del args['note_density']
+    if self.note_density_conditioning and 'note_density' not in args:
+      tf.logging.warning(
+          'Conditioning on note density but none requested, using default.')
+      args['note_density'] = [DEFAULT_NOTE_DENSITY]
+
+    # Make sure pitch class histogram is present when conditioning on it and not
+    # present otherwise.
+    if not self.pitch_histogram_conditioning and 'pitch_histogram' in args:
+      tf.logging.warning(
+          'Not conditioning on pitch histogram, ignoring requested histogram.')
+      del args['pitch_histogram']
+    if self.pitch_histogram_conditioning and 'pitch_histogram' not in args:
+      tf.logging.warning(
+          'Conditioning on pitch histogram but none requested, using default.')
+      args['pitch_histogram'] = [DEFAULT_PITCH_HISTOGRAM]
+
+    # If a single note density or pitch class histogram is present, convert to
+    # list to simplify further processing.
+    if (self.note_density_conditioning and
+        not isinstance(args['note_density'], list)):
+      args['note_density'] = [args['note_density']]
+    if (self.pitch_histogram_conditioning and
+        not isinstance(args['pitch_histogram'][0], list)):
+      args['pitch_histogram'] = [args['pitch_histogram']]
+
+    # Make sure each pitch class histogram sums to one.
+    if self.pitch_histogram_conditioning:
+      for i in range(len(args['pitch_histogram'])):
+        total = sum(args['pitch_histogram'][i])
+        if total > 0:
+          args['pitch_histogram'][i] = [float(count) / total
+                                        for count in args['pitch_histogram'][i]]
+        else:
+          tf.logging.warning('Pitch histogram is empty, using default.')
+          args['pitch_histogram'][i] = DEFAULT_PITCH_HISTOGRAM
+
     total_steps = performance.num_steps + (
         generate_end_step - generate_start_step)
+
+    # Set up functions that map generation step to note density & pitch
+    # histogram.
+    mean_note_density = DEFAULT_NOTE_DENSITY
+    if self.note_density_conditioning:
+      args['note_density_fn'] = partial(
+          _step_to_note_density,
+          num_steps=total_steps,
+          note_densities=args['note_density'])
+      mean_note_density = sum(args['note_density']) / len(args['note_density'])
+      del args['note_density']
+    if self.pitch_histogram_conditioning:
+      args['pitch_histogram_fn'] = partial(
+          _step_to_pitch_histogram,
+          num_steps=total_steps,
+          pitch_histograms=args['pitch_histogram'])
+      del args['pitch_histogram']
 
     if not performance:
       # Primer is empty; let's just start with silence.
       performance.set_length(min(performance_lib.MAX_SHIFT_STEPS, total_steps))
 
     while performance.num_steps < total_steps:
-      # Assume there's around 10 notes per second and 4 RNN steps per note.
-      # Can't know for sure until generation is finished because the number of
-      # notes per quantized step is variable.
+      # Assume the average specified (or default) note density and 4 RNN steps
+      # per note. Can't know for sure until generation is finished because the
+      # number of notes per quantized step is variable.
+      note_density = max(1.0, mean_note_density)
       steps_to_gen = total_steps - performance.num_steps
-      rnn_steps_to_gen = 40 * int(math.ceil(
-          float(steps_to_gen) / performance_lib.DEFAULT_STEPS_PER_SECOND))
+      rnn_steps_to_gen = int(math.ceil(
+          4.0 * note_density * steps_to_gen / self.steps_per_second))
       tf.logging.info(
           'Need to generate %d more steps for this sequence, will try asking '
           'for %d RNN steps' % (steps_to_gen, rnn_steps_to_gen))
@@ -170,6 +255,23 @@ class PerformanceRnnSequenceGenerator(mm.BaseSequenceGenerator):
     return generated_sequence
 
 
+def _step_to_index(step, num_steps, num_segments):
+  """Map step in performance to segment index for setting control value."""
+  return min(step * num_segments // num_steps, num_segments - 1)
+
+
+def _step_to_note_density(step, num_steps, note_densities):
+  """Map step in performance to desired control note density."""
+  index = _step_to_index(step, num_steps, len(note_densities))
+  return note_densities[index]
+
+
+def _step_to_pitch_histogram(step, num_steps, pitch_histograms):
+  """Map step in performance to desired pitch class histogram."""
+  index = _step_to_index(step, num_steps, len(pitch_histograms))
+  return pitch_histograms[index]
+
+
 def get_generator_map():
   """Returns a map from the generator ID to a SequenceGenerator class creator.
 
@@ -184,7 +286,11 @@ def get_generator_map():
     return PerformanceRnnSequenceGenerator(
         performance_model.PerformanceRnnModel(config), config.details,
         steps_per_second=config.steps_per_second,
-        num_velocity_bins=config.num_velocity_bins, fill_generate_section=False,
+        num_velocity_bins=config.num_velocity_bins,
+        note_density_conditioning=config.density_bin_ranges is not None,
+        pitch_histogram_conditioning=(
+            config.pitch_histogram_window_size is not None),
+        fill_generate_section=False,
         **kwargs)
 
   return {key: partial(create_sequence_generator, config)

@@ -25,11 +25,27 @@ licenses(["notice"])  # Apache 2.0
 py_library(
     name = "common",
     srcs = ["__init__.py"],
+    srcs_version = "PY2AND3",
     deps = [
+        ":beam_search",
         ":concurrency",
         ":sequence_example_lib",
         ":state_util",
         ":testing_lib",
+    ],
+)
+
+py_library(
+    name = "beam_search",
+    srcs = ["beam_search.py"],
+)
+
+py_test(
+    name = "beam_search_test",
+    srcs = ["beam_search_test.py"],
+    deps = [
+        ":beam_search",
+        # tensorflow dep
     ],
 )
 
@@ -84,6 +100,7 @@ py_test(
 py_library(
     name = "testing_lib",
     srcs = ["testing_lib.py"],
+    srcs_version = "PY2AND3",
     deps = [
         "@protobuf//:protobuf_python",
         # numpy dep

@@ -24,6 +24,10 @@ algorithm can be switched using the 'algorithm' hyperparameter.
 For more information, please consult the README.md file in this directory.
 """
 
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import print_function
+
 from collections import deque
 import os
 from os import makedirs
@@ -36,6 +40,7 @@ import urllib
 import matplotlib.pyplot as plt
 import numpy as np
 from scipy.misc import logsumexp
+from six.moves import range  # pylint: disable=redefined-builtin
 import tensorflow as tf
 
 from magenta.models.rl_tuner import note_rnn_loader
@@ -173,7 +178,7 @@ class RLTuner(object):
                          'the single_midi priming mode.')
 
       if note_rnn_checkpoint_dir is None or not note_rnn_checkpoint_dir:
-        print 'Retrieving checkpoint of Note RNN from Magenta download server.'
+        print('Retrieving checkpoint of Note RNN from Magenta download server.')
         urllib.urlretrieve(
             'http://download.magenta.tensorflow.org/models/'
             'rl_tuner_note_rnn.ckpt', 'note_rnn.ckpt')
@@ -312,7 +317,7 @@ class RLTuner(object):
           # TODO(natashamjaques): Remove print statement once tf.logging outputs
           # to Jupyter notebooks (once the following issue is resolved:
           # https://github.com/tensorflow/tensorflow/issues/3047)
-          print '\nSuccessfully initialized internal nets from checkpoint!'
+          print('\nSuccessfully initialized internal nets from checkpoint!')
           tf.logging.info('\nSuccessfully initialized internal nets from '
                           'checkpoint!')
         else:
@@ -616,10 +621,10 @@ class RLTuner(object):
         # TODO(natashamjaques): Remove print statement once tf.logging outputs
         # to Jupyter notebooks (once the following issue is resolved:
         # https://github.com/tensorflow/tensorflow/issues/3047)
-        print 'Training iteration', i
-        print '\tReward for last', self.output_every_nth, 'steps:', r
-        print '\t\tMusic theory reward:', self.music_theory_reward_last_n
-        print '\t\tNote RNN reward:', self.note_rnn_reward_last_n
+        print('Training iteration', i)
+        print('\tReward for last', self.output_every_nth, 'steps:', r)
+        print('\t\tMusic theory reward:', self.music_theory_reward_last_n)
+        print('\t\tNote RNN reward:', self.note_rnn_reward_last_n)
 
         if self.exploration_mode == 'egreedy':
           exploration_p = rl_tuner_ops.linear_annealing(
@@ -1226,7 +1231,7 @@ class RLTuner(object):
     contains_breaks = False
 
     # Note that the current action yas not yet been added to the composition
-    for i in xrange(len(self.composition)-1, -1, -1):
+    for i in range(len(self.composition)-1, -1, -1):
       if self.composition[i] == action_note:
         num_repeated += 1
       elif self.composition[i] == NOTE_OFF:
@@ -1790,7 +1795,7 @@ class RLTuner(object):
     # TODO(natashamjaques): Remove print statement once tf.logging outputs
     # to Jupyter notebooks (once the following issue is resolved:
     # https://github.com/tensorflow/tensorflow/issues/3047)
-    print 'Generated sequence:', generated_seq
+    print('Generated sequence:', generated_seq)
 
     melody = mlib.Melody(rl_tuner_ops.decoder(generated_seq,
                                               self.q_network.transpose_amount))
@@ -2022,7 +2027,7 @@ class RLTuner(object):
     # TODO(natashamjaques): Remove print statement once tf.logging outputs
     # to Jupyter notebooks (once the following issue is resolved:
     # https://github.com/tensorflow/tensorflow/issues/3047)
-    print 'Attempting to restore from checkpoint', checkpoint_file
+    print('Attempting to restore from checkpoint', checkpoint_file)
     tf.logging.info('Attempting to restore from checkpoint %s', checkpoint_file)
 
     self.saver.restore(self.session, checkpoint_file)
@@ -2032,7 +2037,7 @@ class RLTuner(object):
       # TODO(natashamjaques): Remove print statement once tf.logging outputs
       # to Jupyter notebooks (once the following issue is resolved:
       # https://github.com/tensorflow/tensorflow/issues/3047)
-      print 'Attempting to load saved reward values from file', npz_file_name
+      print('Attempting to load saved reward values from file', npz_file_name)
       tf.logging.info('Attempting to load saved reward values from file %s',
                       npz_file_name)
       npz_file = np.load(npz_file_name)

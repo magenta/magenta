@@ -16,6 +16,7 @@
 import collections
 import copy
 import itertools
+from operator import itemgetter
 
 # internal imports
 import numpy as np
@@ -825,7 +826,7 @@ def apply_sustain_control_changes(note_sequence, sustain_control_number=64):
 
   # Sort, using the event type constants to ensure the order events are
   # processed.
-  events.sort()
+  events.sort(key=itemgetter(0))
 
   # Lists of active notes, keyed by instrument.
   active_notes = collections.defaultdict(list)
@@ -846,6 +847,8 @@ def apply_sustain_control_changes(note_sequence, sustain_control_number=64):
           # This note was being extended because of sustain.
           # Update the end time and don't keep it in the list.
           note.end_time = time
+          if time > sequence.total_time:
+            sequence.total_time = time
         else:
           # This note is actually still active, keep it.
           new_active_notes.append(note)
@@ -888,7 +891,7 @@ def apply_sustain_control_changes(note_sequence, sustain_control_number=64):
   for instrument in active_notes.values():
     for note in instrument:
       note.end_time = time
-  sequence.total_time = time
+      sequence.total_time = time
 
   return sequence
 

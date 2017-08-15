@@ -13,11 +13,16 @@
 # limitations under the License.
 """For running data processing pipelines."""
 
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import print_function
+
 import abc
 import inspect
 import os.path
 
 # internal imports
+import six
 import tensorflow as tf
 
 from magenta.pipelines import statistics
@@ -91,7 +96,7 @@ def _assert_valid_type_signature(type_sig, type_sig_name):
   """
   if isinstance(type_sig, dict):
     for k, val in type_sig.items():
-      if not isinstance(k, basestring):
+      if not isinstance(k, six.string_types):
         raise InvalidTypeSignatureException(
             '%s key %s must be a string.' % (type_sig_name, k))
       if not inspect.isclass(val):
@@ -155,7 +160,7 @@ class Pipeline(object):
       # This will get the name of the subclass, not "Pipeline".
       self._name = type(self).__name__
     else:
-      assert isinstance(name, basestring)
+      assert isinstance(name, six.string_types)
       self._name = name
     _assert_valid_type_signature(input_type, 'input_type')
     _assert_valid_type_signature(output_type, 'output_type')
@@ -370,9 +375,12 @@ def run_pipeline_serial(pipeline,
   for input_ in input_iterator:
     total_inputs += 1
     for name, outputs in _guarantee_dict(pipeline.transform(input_),
-                                         output_names[0]).items():
+                                         list(output_names)[0]).items():
       for output in outputs:
-        writers[name].write(output.SerializeToString())
+        if six.PY3:
+          writers[name].write(output.SerializeToString().encode('utf-8'))
+        else:
+          writers[name].write(output.SerializeToString())
       total_outputs += len(outputs)
     stats = statistics.merge_statistics(stats + pipeline.get_stats())
     if total_inputs % 500 == 0:
@@ -409,7 +417,7 @@ def load_pipeline(pipeline, input_iterator):
   for input_object in input_iterator:
     total_inputs += 1
     outputs = _guarantee_dict(pipeline.transform(input_object),
-                              aggregated_outputs.keys()[0])
+                              list(aggregated_outputs.keys())[0])
     for name, output_list in outputs.items():
       aggregated_outputs[name].extend(output_list)
       total_outputs += len(output_list)

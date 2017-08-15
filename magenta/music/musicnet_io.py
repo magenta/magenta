@@ -11,7 +11,12 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Import NoteSequences from MusicNet."""
+"""Import NoteSequences from MusicNet.
+
+This file is py2only compatible because the original musicnet dataset
+was pickled using py2 and therefore cannot be deserialized with py3.
+
+"""
 
 import StringIO
 

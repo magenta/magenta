@@ -13,7 +13,12 @@
 # limitations under the License.
 """Provides function to build an event sequence RNN model's graph."""
 
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import print_function
+
 # internal imports
+import six
 import tensorflow as tf
 import magenta
 
@@ -169,7 +174,7 @@ def build_graph(mode, config, sequence_example_file_paths=None):
         for updates_op in update_ops.values():
           tf.add_to_collection('eval_ops', updates_op)
 
-      for var_name, var_value in vars_to_summarize.iteritems():
+      for var_name, var_value in six.iteritems(vars_to_summarize):
         tf.summary.scalar(var_name, var_value)
         tf.add_to_collection(var_name, var_value)
 
