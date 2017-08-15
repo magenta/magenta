@@ -355,7 +355,7 @@ py_library(
     srcs = ["musicnet_io.py"],
     srcs_version = "PY2ONLY",
     tags = [
-        # Include this tag in order to filter this test out of the suite when
+        # Include this tag in order to filter this target out of the suite when
         # using py3 with --test_tag_filters=-py2only. Necessary because the
         # musicnet dataset was pickled using py2 and is therefore incompatible
         # with py3.
