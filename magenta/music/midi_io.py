@@ -107,7 +107,7 @@ def midi_to_sequence_proto(midi_data):
     key_signature = sequence.key_signatures.add()
     key_signature.time = midi_key.time
     key_signature.key = midi_key.key_number % 12
-    midi_mode = midi_key.key_number / 12
+    midi_mode = midi_key.key_number // 12
     if midi_mode == 0:
       key_signature.mode = key_signature.MAJOR
     elif midi_mode == 1:
