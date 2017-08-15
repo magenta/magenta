@@ -13,6 +13,10 @@
 # limitations under the License.
 """Tests for pipeline."""
 
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import print_function
+
 import os
 import tempfile
 
@@ -47,17 +51,17 @@ class PipelineTest(tf.test.TestCase):
 
   def testFileIteratorRecursive(self):
     target_files = [
-        ('0.ext', 'hello world'),
-        ('a/1.ext', '123456'),
-        ('a/2.ext', 'abcd'),
-        ('b/c/3.ext', '9999'),
-        ('b/z/3.ext', 'qwerty'),
-        ('d/4.ext', 'mary had a little lamb'),
-        ('d/e/5.ext', 'zzzzzzzz'),
-        ('d/e/f/g/6.ext', 'yyyyyyyyyyy')]
+        ('0.ext', b'hello world'),
+        ('a/1.ext', b'123456'),
+        ('a/2.ext', b'abcd'),
+        ('b/c/3.ext', b'9999'),
+        ('b/z/3.ext', b'qwerty'),
+        ('d/4.ext', b'mary had a little lamb'),
+        ('d/e/5.ext', b'zzzzzzzz'),
+        ('d/e/f/g/6.ext', b'yyyyyyyyyyy')]
     extra_files = [
-        ('stuff.txt', 'some stuff'),
-        ('a/q/r/file', 'more stuff')]
+        ('stuff.txt', b'some stuff'),
+        ('a/q/r/file', b'more stuff')]
 
     root_dir = tempfile.mkdtemp(dir=self.get_temp_dir())
     for path, contents in target_files + extra_files:
@@ -72,16 +76,16 @@ class PipelineTest(tf.test.TestCase):
 
   def testFileIteratorNotRecursive(self):
     target_files = [
-        ('0.ext', 'hello world'),
-        ('1.ext', 'hi')]
+        ('0.ext', b'hello world'),
+        ('1.ext', b'hi')]
     extra_files = [
-        ('a/1.ext', '123456'),
-        ('a/2.ext', 'abcd'),
-        ('b/c/3.ext', '9999'),
-        ('d/e/5.ext', 'zzzzzzzz'),
-        ('d/e/f/g/6.ext', 'yyyyyyyyyyy'),
-        ('stuff.txt', 'some stuff'),
-        ('a/q/r/file', 'more stuff')]
+        ('a/1.ext', b'123456'),
+        ('a/2.ext', b'abcd'),
+        ('b/c/3.ext', b'9999'),
+        ('d/e/5.ext', b'zzzzzzzz'),
+        ('d/e/f/g/6.ext', b'yyyyyyyyyyy'),
+        ('stuff.txt', b'some stuff'),
+        ('a/q/r/file', b'more stuff')]
 
     root_dir = tempfile.mkdtemp(dir=self.get_temp_dir())
     for path, contents in target_files + extra_files:
@@ -100,7 +104,7 @@ class PipelineTest(tf.test.TestCase):
         '../testdata/tfrecord_iterator_test.tfrecord')
     self.assertEqual(
         [MockStringProto(string)
-         for string in ['hello world', '12345', 'success']],
+         for string in [b'hello world', b'12345', b'success']],
         list(pipeline.tf_record_iterator(tfrecord_file, MockStringProto)))
 
   def testRunPipelineSerial(self):
@@ -116,13 +120,13 @@ class PipelineTest(tf.test.TestCase):
 
     dataset_1_reader = tf.python_io.tf_record_iterator(dataset_1_dir)
     self.assertEqual(
-        set(['serialized:%s_A' % s for s in strings] +
-            ['serialized:%s_B' % s for s in strings]),
+        set([('serialized:%s_A' % s).encode('utf-8') for s in strings] +
+            [('serialized:%s_B' % s).encode('utf-8') for s in strings]),
         set(dataset_1_reader))
 
     dataset_2_reader = tf.python_io.tf_record_iterator(dataset_2_dir)
     self.assertEqual(
-        set(['serialized:%s_C' % s for s in strings]),
+        set([('serialized:%s_C' % s).encode('utf-8') for s in strings]),
         set(dataset_2_reader))
 
   def testPipelineIterator(self):

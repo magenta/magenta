@@ -13,6 +13,10 @@
 # limitations under the License.
 """Tests for sequence_generator."""
 
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import print_function
+
 # internal imports
 
 import tensorflow as tf
@@ -52,8 +56,8 @@ class SequenceGeneratorTest(tf.test.TestCase):
     bundle = generator_pb2.GeneratorBundle(
         generator_details=generator_pb2.GeneratorDetails(
             id='test_generator'),
-        checkpoint_file=['foo.ckpt'],
-        metagraph_file='foo.ckpt.meta')
+        checkpoint_file=[b'foo.ckpt'],
+        metagraph_file=b'foo.ckpt.meta')
 
     with self.assertRaises(sequence_generator.SequenceGeneratorException):
       TestSequenceGenerator(checkpoint='foo.ckpt', bundle=bundle)
@@ -67,8 +71,8 @@ class SequenceGeneratorTest(tf.test.TestCase):
     bundle = generator_pb2.GeneratorBundle(
         generator_details=generator_pb2.GeneratorDetails(
             id='test_generator'),
-        checkpoint_file=['foo.ckpt'],
-        metagraph_file='foo.ckpt.meta')
+        checkpoint_file=[b'foo.ckpt'],
+        metagraph_file=b'foo.ckpt.meta')
 
     TestSequenceGenerator(bundle=bundle)
 
@@ -89,8 +93,8 @@ class SequenceGeneratorTest(tf.test.TestCase):
         generator_details=generator_pb2.GeneratorDetails(
             id='test_generator'),
         bundle_details=bundle_details,
-        checkpoint_file=['foo.ckpt'],
-        metagraph_file='foo.ckpt.meta')
+        checkpoint_file=[b'foo.ckpt'],
+        metagraph_file=b'foo.ckpt.meta')
     seq_gen = TestSequenceGenerator(bundle=bundle)
     self.assertEquals(bundle_details, seq_gen.bundle_details)
 

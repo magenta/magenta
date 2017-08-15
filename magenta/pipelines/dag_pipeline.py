@@ -29,10 +29,14 @@ type signature: Something that can be returned from Pipeline's `output_type`
     or `input_type`. A python class, or dictionary mapping names to classes.
 """
 
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import print_function
 
 import itertools
 
 # internal imports
+import six
 from magenta.pipelines import pipeline
 
 
@@ -241,7 +245,7 @@ class DAGPipeline(pipeline.Pipeline):
             'either be a Pipeline or DagOutput object'
             % (unit, dependency, unit))
       if isinstance(dependency, dict):
-        if not all([isinstance(name, basestring) for name in dependency]):
+        if not all([isinstance(name, six.string_types) for name in dependency]):
           raise InvalidDAGException(
               'Dependency {%s: %s} is invalid. Right hand side keys %s must be '
               'strings' % (unit, dependency, dependency.keys()))
