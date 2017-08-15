@@ -13,6 +13,10 @@
 # limitations under the License.
 """Tests for sequence_generator."""
 
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import print_function
+
 # internal imports
 
 import tensorflow as tf
