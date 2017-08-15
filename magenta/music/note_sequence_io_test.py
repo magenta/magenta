@@ -20,7 +20,7 @@ from __future__ import print_function
 import tempfile
 
 # internal imports
-from six.moves import range # pylint: disable=redefined-builtin
+from six.moves import range  # pylint: disable=redefined-builtin
 import tensorflow as tf
 
 from magenta.music import note_sequence_io

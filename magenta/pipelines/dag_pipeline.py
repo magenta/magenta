@@ -36,8 +36,8 @@ from __future__ import print_function
 import itertools
 
 # internal imports
-from magenta.pipelines import pipeline
 import six
+from magenta.pipelines import pipeline
 
 
 class DagOutput(object):
