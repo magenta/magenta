@@ -9,5 +9,7 @@ sudo pip install tensorflow scipy matplotlib intervaltree bokeh IPython
 
 bazel test \
   --keep_going \
-  --test_output=errors -- \
+  --test_output=errors \
+  ${BAZEL_TEST_ARGS} \
+  -- \
   //magenta/...
