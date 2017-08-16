@@ -5,7 +5,7 @@ set -e
 # Display commands being run.
 set -x
 
-sudo pip install tensorflow scipy matplotlib intervaltree bokeh IPython
+sudo "${PIP}" install tensorflow scipy matplotlib intervaltree bokeh IPython
 
 bazel test \
   --keep_going \
