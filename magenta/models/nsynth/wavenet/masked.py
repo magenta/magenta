@@ -13,6 +13,10 @@
 # limitations under the License.
 """A library of functions that help with causal masking."""
 
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import print_function
+
 # internal imports
 import tensorflow as tf
 
@@ -69,11 +73,11 @@ def time_to_batch(x, block_size):
   """
   shape = x.get_shape().as_list()
   y = tf.reshape(x, [
-      shape[0], shape[1] / block_size, block_size, shape[2]
+      shape[0], shape[1] // block_size, block_size, shape[2]
   ])
   y = tf.transpose(y, [0, 2, 1, 3])
   y = tf.reshape(y, [
-      shape[0] * block_size, shape[1] / block_size, shape[2]
+      shape[0] * block_size, shape[1] // block_size, shape[2]
   ])
   y.set_shape([
       mul_or_none(shape[0], block_size), mul_or_none(shape[1], 1. / block_size),
@@ -94,9 +98,9 @@ def batch_to_time(x, block_size):
     Tensor of shape [nb, k*block_size, n].
   """
   shape = x.get_shape().as_list()
-  y = tf.reshape(x, [shape[0] / block_size, block_size, shape[1], shape[2]])
+  y = tf.reshape(x, [shape[0] // block_size, block_size, shape[1], shape[2]])
   y = tf.transpose(y, [0, 2, 1, 3])
-  y = tf.reshape(y, [shape[0] / block_size, shape[1] * block_size, shape[2]])
+  y = tf.reshape(y, [shape[0] // block_size, shape[1] * block_size, shape[2]])
   y.set_shape([mul_or_none(shape[0], 1. / block_size),
                mul_or_none(shape[1], block_size),
                shape[2]])
