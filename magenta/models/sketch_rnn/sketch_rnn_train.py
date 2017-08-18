@@ -17,7 +17,6 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-from cStringIO import StringIO
 import json
 import os
 import time
@@ -28,11 +27,12 @@ import zipfile
 
 import numpy as np
 import requests
+import six
 import tensorflow as tf
 
 from magenta.models.sketch_rnn import model as sketch_rnn_model
 from magenta.models.sketch_rnn import utils
-
+from six.moves import cStringIO as StringIO
 
 tf.logging.set_verbosity(tf.logging.INFO)
 
@@ -136,7 +136,10 @@ def load_dataset(data_dir, model_params, inference_mode=False):
       response = requests.get(data_filepath)
       data = np.load(StringIO(response.content))
     else:
-      data = np.load(data_filepath)  # load this into dictionary
+      if six.PY3:
+        data = np.load(data_filepath, encoding='latin1')  # load this into dictionary
+      else:
+        data = np.load(data_filepath)
     tf.logging.info('Loaded {}/{}/{} from {}'.format(
         len(data['train']), len(data['valid']), len(data['test']),
         dataset))
@@ -432,7 +435,7 @@ def trainer(model_params):
 
   tf.logging.info('sketch-rnn')
   tf.logging.info('Hyperparams:')
-  for key, val in model_params.values().iteritems():
+  for key, val in six.iteritems(model_params.values()):
     tf.logging.info('%s = %s', key, str(val))
   tf.logging.info('Loading data files.')
   datasets = load_dataset(FLAGS.data_dir, model_params)
