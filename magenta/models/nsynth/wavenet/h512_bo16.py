@@ -18,11 +18,12 @@ from __future__ import division
 from __future__ import print_function
 
 # internal imports
+from six.moves import range  # pylint: disable=redefined-builtin
 import tensorflow as tf
 from magenta.models.nsynth import reader
 from magenta.models.nsynth import utils
 from magenta.models.nsynth.wavenet import masked
-from six.moves import range  # pylint: disable=redefined-builtin 
+
 
 class FastGenerationConfig(object):
   """Configuration object that helps manage the graph."""
