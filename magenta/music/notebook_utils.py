@@ -13,9 +13,12 @@
 # limitations under the License.
 """Python functions which run only within a Jupyter notebook."""
 
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import print_function
+
 import collections
 import os
-import urllib2
 
 # internal imports
 
@@ -24,6 +27,7 @@ import bokeh.plotting
 import IPython
 import numpy as np
 import pandas as pd
+from six.moves import urllib
 
 from magenta.music import midi_synth
 
@@ -139,7 +143,7 @@ def download_bundle(bundle_name, target_dir, force_reload=False):
   """
   bundle_target = os.path.join(target_dir, bundle_name)
   if not os.path.exists(bundle_target) or force_reload:
-    response = urllib2.urlopen(
+    response = urllib.request.urlopen(
         'http://download.magenta.tensorflow.org/models/%s' % bundle_name)
     data = response.read()
     local_file = open(bundle_target, 'wb')

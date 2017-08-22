@@ -20,6 +20,10 @@ Use ChordProgression.to_sequence to write a chord progression to a
 NoteSequence proto, encoding the chords as text annotations.
 """
 
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import print_function
+
 import abc
 import copy
 
@@ -177,16 +181,22 @@ class ChordProgression(events_lib.SimpleEventSequence):
 
       if chord.quantized_step > start_step:
         # Add the previous chord.
-        start_index = max(prev_step, start_step) - start_step
+        if prev_step is None:
+          start_index = 0
+        else:
+          start_index = max(prev_step, start_step) - start_step
         end_index = chord.quantized_step - start_step
         self._add_chord(prev_figure, start_index, end_index)
 
       prev_step = chord.quantized_step
       prev_figure = chord.text
 
-    if prev_step < end_step:
+    if prev_step is None or prev_step < end_step:
       # Add the last chord active before end_step.
-      start_index = max(prev_step, start_step) - start_step
+      if prev_step is None:
+        start_index = 0
+      else:
+        start_index = max(prev_step, start_step) - start_step
       end_index = end_step - start_step
       self._add_chord(prev_figure, start_index, end_index)
 
@@ -238,7 +248,7 @@ class ChordProgression(events_lib.SimpleEventSequence):
       ChordSymbolException: If a chord (other than "no chord") fails to be
           interpreted by the `chord_symbols_lib` module.
     """
-    for i in xrange(len(self._events)):
+    for i in range(len(self._events)):
       if self._events[i] != NO_CHORD:
         self._events[i] = chord_symbols_lib.transpose_chord_symbol(
             self._events[i], transpose_amount % NOTES_PER_OCTAVE)
@@ -317,7 +327,7 @@ def extract_chords_for_melodies(quantized_sequence, melodies):
       chords = None
     chord_progressions.append(chords)
 
-  return chord_progressions, stats.values()
+  return chord_progressions, list(stats.values())
 
 
 class ChordRenderer(object):

@@ -20,7 +20,8 @@ from setuptools import setup
 # executing __init__.py, which will end up requiring a bunch of dependencies to
 # execute (e.g., tensorflow, pretty_midi, etc.).
 # Makes the __version__ variable available.
-execfile('magenta/version.py')
+with open('magenta/version.py') as in_file:
+    exec(in_file.read())
 
 
 REQUIRED_PACKAGES = [
@@ -90,6 +91,7 @@ setup(
         'Intended Audience :: Science/Research',
         'License :: OSI Approved :: Apache Software License',
         'Programming Language :: Python :: 2.7',
+        'Programming Language :: Python :: 3',
         'Topic :: Scientific/Engineering :: Mathematics',
         'Topic :: Software Development :: Libraries :: Python Modules',
         'Topic :: Software Development :: Libraries',

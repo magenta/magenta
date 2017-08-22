@@ -27,10 +27,27 @@ py_library(
     srcs = ["__init__.py"],
     srcs_version = "PY2AND3",
     deps = [
+        ":beam_search",
         ":concurrency",
         ":sequence_example_lib",
         ":state_util",
         ":testing_lib",
+    ],
+)
+
+py_library(
+    name = "beam_search",
+    srcs = ["beam_search.py"],
+    srcs_version = "PY2AND3",
+)
+
+py_test(
+    name = "beam_search_test",
+    srcs = ["beam_search_test.py"],
+    srcs_version = "PY2AND3",
+    deps = [
+        ":beam_search",
+        # tensorflow dep
     ],
 )
 

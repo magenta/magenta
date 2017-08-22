@@ -359,7 +359,7 @@ def extract_drum_tracks(quantized_sequence,
       break
 
     # Require a certain drum track length.
-    if len(drum_track) - 1 < drum_track.steps_per_bar * min_bars:
+    if len(drum_track) < drum_track.steps_per_bar * min_bars:
       stats['drum_tracks_discarded_too_short'].increment()
       continue
 

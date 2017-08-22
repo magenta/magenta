@@ -69,8 +69,8 @@ default_configs = {
         magenta.music.OneHotEventSequenceEncoderDecoder(
             magenta.music.MultiDrumOneHotEncoding([
                 [39] +  # use hand clap as default when decoding
-                range(mm.MIN_MIDI_PITCH, 39) +
-                range(39, mm.MAX_MIDI_PITCH + 1)])),
+                list(range(mm.MIN_MIDI_PITCH, 39)) +
+                list(range(39, mm.MAX_MIDI_PITCH + 1))])),
         tf.contrib.training.HParams(
             batch_size=128,
             rnn_layer_sizes=[128, 128],
