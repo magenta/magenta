@@ -1637,7 +1637,7 @@ class MusicXMLParserTest(tf.test.TestCase):
             <attributes>
               <divisions>2</divisions>
               <key>
-                // missing fifths element.
+                <!-- missing fifths element. -->
               </key>
               <time>
                 <beats>4</beats>
@@ -1661,6 +1661,51 @@ class MusicXMLParserTest(tf.test.TestCase):
       temp_file.write(xml)
       temp_file.flush()
       with self.assertRaises(musicxml_parser.KeyParseException):
+        musicxml_parser.MusicXMLDocument(temp_file.name)
+
+  def test_harmony_missing_degree(self):
+    xml = br"""<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+      <!DOCTYPE score-partwise PUBLIC
+          "-//Recordare//DTD MusicXML 3.0 Partwise//EN"
+          "http://www.musicxml.org/dtds/partwise.dtd">
+      <score-partwise version="3.0">
+        <part-list>
+          <score-part id="P1">
+            <part-name/>
+          </score-part>
+        </part-list>
+        <part id="P1">
+          <measure number="1">
+            <attributes>
+              <divisions>2</divisions>
+              <time>
+                <beats>4</beats>
+                <beat-type>4</beat-type>
+              </time>
+            </attributes>
+            <note>
+              <pitch>
+                <step>G</step>
+                <octave>4</octave>
+              </pitch>
+              <duration>2</duration>
+              <voice>1</voice>
+              <type>quarter</type>
+            </note>
+            <harmony>
+              <degree>
+                <!-- missing degree-value text -->
+                <degree-value></degree-value>
+              </degree>
+            </harmony>
+          </measure>
+        </part>
+      </score-partwise>
+    """
+    with tempfile.NamedTemporaryFile() as temp_file:
+      temp_file.write(xml)
+      temp_file.flush()
+      with self.assertRaises(musicxml_parser.ChordSymbolParseException):
         musicxml_parser.MusicXMLDocument(temp_file.name)
 
 
