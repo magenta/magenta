@@ -23,7 +23,7 @@ from setuptools import setup
 # execute (e.g., tensorflow, pretty_midi, etc.).
 # Makes the __version__ variable available.
 with open('magenta/version.py') as in_file:
-    exec(in_file.read())
+  exec(in_file.read())  # pylint: disable=exec-used
 
 if '--gpu' in sys.argv:
   gpu_mode = True
