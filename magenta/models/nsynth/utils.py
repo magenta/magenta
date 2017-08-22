@@ -23,6 +23,7 @@ import os
 # internal imports
 import librosa
 import numpy as np
+from six.moves import xrange
 import tensorflow as tf
 
 slim = tf.contrib.slim
