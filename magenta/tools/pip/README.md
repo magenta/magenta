@@ -10,6 +10,7 @@ tensorflow is listed.
 ```
 bazel build //magenta/tools/pip:build_pip_package
 bazel-bin/magenta/tools/pip/build_pip_package /tmp/magenta_pkg
+bazel-bin/magenta/tools/pip/build_pip_package /tmp/magenta_pkg --gpu
 ```
 
 Before this next step, make sure your preferred virtualenv or conda environment
@@ -22,16 +23,22 @@ pip install -U /tmp/magenta_pkg/magenta-N.N.N-py2-none-any.whl
 Next, test that it worked:
 
 ```
+# cd outside of the magenta repo.
 $ python
 >>> import magenta
->>> magenta.music.midi_file_to_sequence_proto('test.mid')
+>>> magenta.__version__
 ```
 
-You should see the NoteSequence representation of the midi file.
+Verify that the version of the installed package matches the new version number.
+
+Do the same test for the `magenta-gpu` package. The only difference with the
+gpu version of the package is that it depends on `tensorflow-gpu` instead of
+`tensorflow`.
 
 ### Upload the new version to pypi
 ```
 twine upload /tmp/magenta_pkg/magenta-N.N.N-py2-none-any.whl
+twine upload /tmp/magenta_pkg/magenta-gpu-N.N.N-py2-none-any.whl
 ```
 
 After this step, anyone should be able to `pip install magenta` and get the
