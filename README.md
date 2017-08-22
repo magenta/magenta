@@ -24,7 +24,7 @@ installation. We recommend using Anaconda to install it, but it can work in any
 standard Python 2.7 environment. These instructions will assume you are using
 Anaconda.
 
-Note that there are additional instructions below if you want to enable GPU support.
+Note that if you want to enable GPU support, you should follow the [GPU Installation](#gpu-installation) instructions below.
 
 #### Automated Install
 
@@ -74,21 +74,24 @@ Jupyter notebooks, and the Magenta scripts are installed in your path!
 Note that you will need to run `source activate magenta` to use Magenta every
 time you open a new terminal window.
 
-#### GPU Support
+#### GPU Installation
 
-If you have a GPU installed and you want Magenta to use it, there are some additional
-steps to take after you've installed the pip package (using either the automated
-install or the manual install above).
+If you have a GPU installed and you want Magenta to use it, you will need to
+follow the [Manual Install](#manual-install) instructions, but with a few
+modifications.
 
 First, make sure your system meets the [requirements to run tensorflow with GPU support](
 https://www.tensorflow.org/install/install_linux#nvidia_requirements_to_run_tensorflow_with_gpu_support).
 
-Next, activate your `magenta` environment and install the `tensorflow-gpu` pip package:
+Next, follow the [Manual Install](#manual-install) instructions, but install the
+`magenta-gpu` package instead of the `magenta` package:
 
 ```
-source activate magenta
-pip install tensorflow-gpu
+pip install magenta-gpu
 ```
+
+The only difference between the two packages is that `magenta-gpu` depends on
+`tensorflow-gpu` instead of `tensorflow`.
 
 Magenta should now have access to your GPU.
 
