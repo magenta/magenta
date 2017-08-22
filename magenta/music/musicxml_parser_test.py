@@ -1621,5 +1621,48 @@ class MusicXMLParserTest(tf.test.TestCase):
         """)
     self.assertProtoEquals(expected_ns, ns)
 
+  def test_key_missing_fifths(self):
+    xml = br"""<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+      <!DOCTYPE score-partwise PUBLIC
+          "-//Recordare//DTD MusicXML 3.0 Partwise//EN"
+          "http://www.musicxml.org/dtds/partwise.dtd">
+      <score-partwise version="3.0">
+        <part-list>
+          <score-part id="P1">
+            <part-name/>
+          </score-part>
+        </part-list>
+        <part id="P1">
+          <measure number="1">
+            <attributes>
+              <divisions>2</divisions>
+              <key>
+                // missing fifths element.
+              </key>
+              <time>
+                <beats>4</beats>
+                <beat-type>4</beat-type>
+              </time>
+            </attributes>
+            <note>
+              <pitch>
+                <step>G</step>
+                <octave>4</octave>
+              </pitch>
+              <duration>2</duration>
+              <voice>1</voice>
+              <type>quarter</type>
+            </note>
+          </measure>
+        </part>
+      </score-partwise>
+    """
+    with tempfile.NamedTemporaryFile() as temp_file:
+      temp_file.write(xml)
+      temp_file.flush()
+      with self.assertRaises(musicxml_parser.KeyParseException):
+        musicxml_parser.MusicXMLDocument(temp_file.name)
+
+
 if __name__ == '__main__':
   tf.test.main()

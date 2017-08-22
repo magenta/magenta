@@ -77,6 +77,11 @@ class UnpitchedNoteException(MusicXMLParseException):
   pass
 
 
+class KeyParseException(MusicXMLParseException):
+  """Exception thrown when a key signature cannot be parsed."""
+  pass
+
+
 class MusicXMLParserState(object):
   """Maintains internal state of the MusicXML parser."""
 
@@ -1250,7 +1255,15 @@ class KeySignature(object):
 
     If the mode is not minor (e.g. dorian), default to "major"
     because MIDI only supports major and minor modes.
+
+
+    Raises:
+      KeyParseException: If the fifths element is missing.
     """
+    fifths = self.xml_key.find('fifths')
+    if fifths is None:
+      raise KeyParseException(
+          'Could not find fifths attribute in key signature.')
     self.key = int(self.xml_key.find('fifths').text)
     mode = self.xml_key.find('mode')
     # Anything not minor will be interpreted as major
