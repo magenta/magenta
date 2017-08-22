@@ -62,6 +62,11 @@ TRAIN_SEQUENCE_LENGTH = 192
 def reload_files():
   """Used to reload the imported dependency files (needed for ipynb notebooks).
   """
+  try:
+    reload                        # Python 2
+  except NameError:
+    from importlib import reload  # Python 3
+
   reload(note_rnn_loader)
   reload(rl_tuner_ops)
   reload(rl_tuner_eval_metrics)
