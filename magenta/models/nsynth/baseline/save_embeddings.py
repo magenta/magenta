@@ -131,7 +131,7 @@ def main(unused_argv):
           if i + 1 % 1 == 0:
             save_arrays(savedir, hparams, z_val)
       # Report all exceptions to the coordinator, pylint: disable=broad-except
-      except Exception, e:
+      except Exception as e:
         coord.request_stop(e)
       # pylint: enable=broad-except
       finally:
