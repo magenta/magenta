@@ -1255,6 +1255,10 @@ class KeySignature(object):
 
     If the mode is not minor (e.g. dorian), default to "major"
     because MIDI only supports major and minor modes.
+
+
+    Raises:
+      KeyParseException: If the fifths element is missing.
     """
     fifths = self.xml_key.find('fifths')
     if fifths is None:
