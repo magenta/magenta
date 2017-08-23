@@ -147,7 +147,7 @@ class Model(object):
     use_recurrent_dropout = self.hps.use_recurrent_dropout
     use_input_dropout = self.hps.use_input_dropout
     use_output_dropout = self.hps.use_output_dropout
-    
+
     cell = cell_fn(
         hps.dec_rnn_size,
         use_recurrent_dropout=use_recurrent_dropout,
