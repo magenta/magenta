@@ -1127,6 +1127,8 @@ class ChordSymbol(object):
     if xml_degree.find('degree-value') is None:
       raise ChordSymbolParseException('Missing scale degree value in harmony')
     value_text = xml_degree.find('degree-value').text
+    if value_text is None:
+      raise ChordSymbolParseException('Missing scale degree')
     try:
       value = int(value_text)
     except ValueError:
