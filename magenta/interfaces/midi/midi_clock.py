@@ -67,7 +67,7 @@ def main(unused_argv):
   except KeyboardInterrupt:
     hub.stop_metronome()
 
-  print 'Clock stopped.'
+  print('Clock stopped.')
 
 
 def console_entry_point():
