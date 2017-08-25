@@ -16,12 +16,17 @@
 Captures monophonic input MIDI sequences and plays back responses from the
 sequence generator.
 """
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import print_function
+
 from functools import partial
 import re
 import threading
 import time
 
 # internal imports
+from six.moves import input  # pylint: disable=redefined-builtin
 import tensorflow as tf
 import magenta
 
@@ -32,7 +37,6 @@ from magenta.models.melody_rnn import melody_rnn_sequence_generator
 from magenta.models.performance_rnn import performance_sequence_generator
 from magenta.models.pianoroll_rnn_nade import pianoroll_rnn_nade_sequence_generator
 from magenta.models.polyphony_rnn import polyphony_sequence_generator
-from six.moves import input
 
 FLAGS = tf.app.flags.FLAGS
 
@@ -204,7 +208,7 @@ class CCMapper(object):
     print(fmt.format('Index', 'Control', 'Current'))
     for i, signal in enumerate(self._signals):
       print(fmt.format(i + 1, signal, self._cc_map.get(signal)))
-    print
+    print('')
 
   def _update_signal(self, signal, msg):
     """Updates mapping for the signal to the message's control change.
@@ -246,9 +250,9 @@ def _validate_flags():
   """Returns True if flag values are valid or prints error and returns False."""
   if FLAGS.list_ports:
     print("Input ports: '%s'" % (
-          "', '".join(midi_hub.get_available_input_ports())))
+        "', '".join(midi_hub.get_available_input_ports())))
     print("Ouput ports: '%s'" % (
-          "', '".join(midi_hub.get_available_output_ports())))
+        "', '".join(midi_hub.get_available_output_ports())))
     return False
 
   if FLAGS.bundle_files is None:
