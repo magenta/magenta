@@ -208,7 +208,7 @@ class CCMapper(object):
     print(fmt.format('Index', 'Control', 'Current'))
     for i, signal in enumerate(self._signals):
       print(fmt.format(i + 1, signal, self._cc_map.get(signal)))
-    print
+    print('')
 
   def _update_signal(self, signal, msg):
     """Updates mapping for the signal to the message's control change.
