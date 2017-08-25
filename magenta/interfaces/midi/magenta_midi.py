@@ -26,7 +26,7 @@ import threading
 import time
 
 # internal imports
-from six.moves import input
+from six.moves import input  # pylint: disable=redefined-builtin
 import tensorflow as tf
 import magenta
 
