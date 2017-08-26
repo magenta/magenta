@@ -566,7 +566,16 @@ class Measure(object):
         transpose = int(child.find('chromatic').text)
         self.state.transpose = transpose
         if self.key_signature is not None:
-          self.key_signature.key += transpose
+          # Transposition is chromatic. Every half step up is 5 steps backward
+          # on the circle of fifths, which has 12 positions.
+          key_transpose = (transpose * -5) % 12
+          new_key = self.key_signature.key + key_transpose
+          # If the new key has >6 sharps, translate to flats.
+          # TODO(fjord): Could be more smart about when to use sharps vs. flats
+          # when there are enharmonic equivalents.
+          if new_key > 6:
+            new_key %= -6
+          self.key_signature.key = new_key
       else:
         # Ignore other tag types because they are not relevant to Magenta.
         pass
