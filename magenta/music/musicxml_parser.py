@@ -935,11 +935,11 @@ class NoteDuration(object):
     return self._type
 
   @type.setter
-  def type(self, newType):
-    if newType not in self.TYPE_RATIO_MAP:
+  def type(self, new_type):
+    if new_type not in self.TYPE_RATIO_MAP:
       raise InvalidNoteDurationTypeException(
-          'Note duration type "{}" is not valid'.format(newType))
-    self._type = newType
+          'Note duration type "{}" is not valid'.format(new_type))
+    self._type = new_type
 
 
 class ChordSymbol(object):
