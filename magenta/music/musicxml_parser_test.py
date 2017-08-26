@@ -1759,7 +1759,8 @@ class MusicXMLParserTest(tf.test.TestCase):
       musicxml_parser.MusicXMLDocument(temp_file.name)
       sequence = musicxml_reader.musicxml_file_to_sequence_proto(temp_file.name)
       self.assertEqual(1, len(sequence.key_signatures))
-      self.assertEqual(music_pb2.NoteSequence.KeySignature.G_FLAT, sequence.key_signatures[0].key)
+      self.assertEqual(music_pb2.NoteSequence.KeySignature.G_FLAT,
+                       sequence.key_signatures[0].key)
 
   def test_beats_composite(self):
     xml = br"""<?xml version="1.0" encoding="UTF-8" standalone="no"?>
