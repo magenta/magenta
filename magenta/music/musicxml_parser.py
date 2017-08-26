@@ -66,6 +66,11 @@ class AlternatingTimeSignatureException(MusicXMLParseException):
   pass
 
 
+class TimeSignatureParseException(MusicXMLParseException):
+  """Exception thrown when the time signature could not be parsed."""
+  pass
+
+
 class UnpitchedNoteException(MusicXMLParseException):
   """Exception thrown when an unpitched note is encountered.
 
@@ -1218,8 +1223,14 @@ class TimeSignature(object):
       # not supported (ex: alternating meter)
       raise AlternatingTimeSignatureException('Alternating Time Signature')
 
-    self.numerator = int(self.xml_time.find('beats').text)
-    self.denominator = int(self.xml_time.find('beat-type').text)
+    beats = self.xml_time.find('beats').text
+    beat_type = self.xml_time.find('beat-type').text
+    try:
+      self.numerator = int(beats)
+      self.denominator = int(beat_type)
+    except ValueError:
+      raise TimeSignatureParseException(
+          'Could not parse time signature: {}/{}'.format(beats, beat_type))
     self.time_position = self.state.time_position
 
   def __str__(self):
