@@ -87,6 +87,11 @@ class KeyParseException(MusicXMLParseException):
   pass
 
 
+class InvalidNoteDurationTypeException(MusicXMLParseException):
+  """Exception thrown when a note's duration type is invalid."""
+  pass
+
+
 class MusicXMLParserState(object):
   """Maintains internal state of the MusicXML parser."""
 
@@ -835,7 +840,7 @@ class NoteDuration(object):
     self.seconds = 0                    # Duration in seconds
     self.time_position = 0              # Onset time in seconds
     self.dots = 0                       # Number of augmentation dots
-    self.type = 'quarter'               # MusicXML duration type
+    self._type = 'quarter'              # MusicXML duration type
     self.tuplet_ratio = Fraction(1, 1)  # Ratio for tuplets (default to 1)
     self.is_grace_note = True           # Assume true until not found
     self.state = state
@@ -924,6 +929,17 @@ class NoteDuration(object):
     """Return the duration ratio as a float."""
     ratio = self.duration_ratio()
     return ratio.numerator / ratio.denominator
+
+  @property
+  def type(self):
+    return self._type
+
+  @type.setter
+  def type(self, new_type):
+    if new_type not in self.TYPE_RATIO_MAP:
+      raise InvalidNoteDurationTypeException(
+          'Note duration type "{}" is not valid'.format(new_type))
+    self._type = new_type
 
 
 class ChordSymbol(object):
