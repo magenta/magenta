@@ -104,18 +104,19 @@ def trim_note_sequence(sequence, start_time, end_time):
   return subsequence
 
 
-def extract_subsequence(sequence, start_time, end_time):
+def extract_subsequence(sequence, start_time, end_time,
+                        sustain_control_number=64):
   """Extracts a subsequence from a NoteSequence.
 
   Notes starting before `start_time` are not included. Notes ending after
-  `end_time` are truncated. Time signature, tempo, key signature, and chord
-  changes outside the specified time range are removed; however, the most recent
-  event of each of these types prior to `start_time` is included at
-  `start_time`. This means that e.g. if a time signature of 3/4 is specified in
-  the original sequence prior to `start_time` (and is not followed by a
-  different time signature), the extracted subsequence will include a 3/4 time
-  signature event at `start_time`. Pitch bends and control changes are removed
-  entirely.
+  `end_time` are truncated. Time signature, tempo, key signature, chord changes,
+  and sustain pedal events outside the specified time range are removed;
+  however, the most recent event of each of these types prior to `start_time` is
+  included at `start_time`. This means that e.g. if a time signature of 3/4 is
+  specified in the original sequence prior to `start_time` (and is not followed
+  by a different time signature), the extracted subsequence will include a 3/4
+  time signature event at `start_time`. Pitch bends and control changes other
+  than sustain are removed entirely.
 
   The extracted subsequence is shifted to start at time zero.
 
@@ -123,6 +124,7 @@ def extract_subsequence(sequence, start_time, end_time):
     sequence: The NoteSequence to extract a subsequence from.
     start_time: The float time in seconds to start the subsequence.
     end_time: The float time in seconds to end the subsequence.
+    sustain_control_number: The MIDI control number for sustain pedal.
 
   Returns:
     A new NoteSequence containing the subsequence of `sequence` from the
@@ -156,86 +158,67 @@ def extract_subsequence(sequence, start_time, end_time):
     if new_note.end_time > subsequence.total_time:
       subsequence.total_time = new_note.end_time
 
-  # Extract time signatures.
+  # Extract time signatures, key signatures, tempos, and chord changes (other
+  # text annotations are deleted).
+
   del subsequence.time_signatures[:]
-  initial_time_signature = None
-  for time_signature in sorted(sequence.time_signatures,
-                               key=lambda time_signature: time_signature.time):
-    if time_signature.time <= start_time:
-      initial_time_signature = music_pb2.NoteSequence.TimeSignature()
-      initial_time_signature.CopyFrom(time_signature)
-      continue
-    elif time_signature.time >= end_time:
-      break
-    new_time_signature = subsequence.time_signatures.add()
-    new_time_signature.CopyFrom(time_signature)
-    new_time_signature.time -= start_time
-  if initial_time_signature:
-    initial_time_signature.time = 0.0
-    subsequence.time_signatures.extend([initial_time_signature])
-  subsequence.time_signatures.sort(key=lambda ts: ts.time)
-
-  # Extract key signatures.
   del subsequence.key_signatures[:]
-  initial_key_signature = None
-  for key_signature in sorted(sequence.key_signatures,
-                              key=lambda key_signature: key_signature.time):
-    if key_signature.time <= start_time:
-      initial_key_signature = music_pb2.NoteSequence.KeySignature()
-      initial_key_signature.CopyFrom(key_signature)
-      continue
-    elif key_signature.time >= end_time:
-      break
-    new_key_signature = subsequence.key_signatures.add()
-    new_key_signature.CopyFrom(key_signature)
-    new_key_signature.time -= start_time
-  if initial_key_signature:
-    initial_key_signature.time = 0.0
-    subsequence.key_signatures.extend([initial_key_signature])
-  subsequence.key_signatures.sort(key=lambda ks: ks.time)
-
-  # Extract tempos.
   del subsequence.tempos[:]
-  initial_tempo = None
-  for tempo in sorted(sequence.tempos, key=lambda tempo: tempo.time):
-    if tempo.time <= start_time:
-      initial_tempo = music_pb2.NoteSequence.Tempo()
-      initial_tempo.CopyFrom(tempo)
-      continue
-    elif tempo.time >= end_time:
-      break
-    new_tempo = subsequence.tempos.add()
-    new_tempo.CopyFrom(tempo)
-    new_tempo.time -= start_time
-  if initial_tempo:
-    initial_tempo.time = 0.0
-    subsequence.tempos.extend([initial_tempo])
-  subsequence.tempos.sort(key=lambda tempo: tempo.time)
-
-  # Extract chord symbols (other text annotations are deleted).
   del subsequence.text_annotations[:]
-  chord_symbols = [annotation for annotation in sequence.text_annotations
-                   if annotation.annotation_type == CHORD_SYMBOL]
-  initial_chord_symbol = None
-  for chord_symbol in sorted(chord_symbols,
-                             key=lambda chord_symbol: chord_symbol.time):
-    if chord_symbol.time <= start_time:
-      initial_chord_symbol = music_pb2.NoteSequence.TextAnnotation()
-      initial_chord_symbol.CopyFrom(chord_symbol)
-      continue
-    elif chord_symbol.time >= end_time:
-      break
-    new_chord_symbol = subsequence.text_annotations.add()
-    new_chord_symbol.CopyFrom(chord_symbol)
-    new_chord_symbol.time -= start_time
-  if initial_chord_symbol:
-    initial_chord_symbol.time = 0.0
-    subsequence.text_annotations.extend([initial_chord_symbol])
-  subsequence.text_annotations.sort(key=lambda ta: ta.time)
 
-  # Remove pitch bend and control change events.
-  del subsequence.pitch_bends[:]
+  event_types = [
+      music_pb2.NoteSequence.TimeSignature, music_pb2.NoteSequence.KeySignature,
+      music_pb2.NoteSequence.Tempo, music_pb2.NoteSequence.TextAnnotation]
+  events_by_type = [
+      sequence.time_signatures, sequence.key_signatures, sequence.tempos,
+      [annotation for annotation in sequence.text_annotations
+       if annotation.annotation_type == CHORD_SYMBOL]]
+  new_event_containers = [
+      subsequence.time_signatures, subsequence.key_signatures,
+      subsequence.tempos, subsequence.text_annotations]
+
+  for event_type, events, container in zip(
+      event_types, events_by_type, new_event_containers):
+    initial_event = None
+    for event in sorted(events, key=lambda event: event.time):
+      if event.time <= start_time:
+        initial_event = event_type()
+        initial_event.CopyFrom(event)
+        continue
+      elif event.time >= end_time:
+        break
+      new_event = container.add()
+      new_event.CopyFrom(event)
+      new_event.time -= start_time
+    if initial_event:
+      initial_event.time = 0.0
+      container.extend([initial_event])
+    container.sort(key=lambda event: event.time)
+
+  # Extract sustain pedal events (other control changes are deleted). Sustain
+  # pedal state prior to the extracted subsequence is maintained per-instrument.
   del subsequence.control_changes[:]
+  sustain_events = [cc for cc in sequence.control_changes
+                    if cc.control_number == sustain_control_number]
+  initial_sustain_events = {}
+  for sustain_event in sorted(sustain_events, key=lambda event: event.time):
+    if sustain_event.time <= start_time:
+      initial_sustain_event = music_pb2.NoteSequence.ControlChange()
+      initial_sustain_event.CopyFrom(sustain_event)
+      initial_sustain_events[sustain_event.instrument] = initial_sustain_event
+      continue
+    elif sustain_event.time >= end_time:
+      break
+    new_sustain_event = subsequence.control_changes.add()
+    new_sustain_event.CopyFrom(sustain_event)
+    new_sustain_event.time -= start_time
+  for _, initial_sustain_event in initial_sustain_events.items():
+    initial_sustain_event.time = 0.0
+    subsequence.control_changes.extend([initial_sustain_event])
+  subsequence.control_changes.sort(key=lambda cc: cc.time)
+
+  # Pitch bends are deleted entirely.
+  del subsequence.pitch_bends[:]
 
   subsequence.subsequence_info.start_time_offset = start_time
   subsequence.subsequence_info.end_time_offset = (
@@ -557,14 +540,14 @@ def _quantize_notes(note_sequence, steps_per_second):
     if note.quantized_end_step > note_sequence.total_quantized_steps:
       note_sequence.total_quantized_steps = note.quantized_end_step
 
-  # Also quantize chord symbol annotations.
-  for annotation in note_sequence.text_annotations:
-    # Quantize the chord time, disallowing negative time.
-    annotation.quantized_step = quantize_to_step(
-        annotation.time, steps_per_second)
-    if annotation.quantized_step < 0:
+  # Also quantize control changes and text annotations.
+  for event in itertools.chain(
+      note_sequence.control_changes, note_sequence.text_annotations):
+    # Quantize the event time, disallowing negative time.
+    event.quantized_step = quantize_to_step(event.time, steps_per_second)
+    if event.quantized_step < 0:
       raise NegativeTimeException(
-          'Got negative chord time: step = %s' % annotation.quantized_step)
+          'Got negative event time: step = %s' % event.quantized_step)
 
 
 def quantize_note_sequence(note_sequence, steps_per_quarter):

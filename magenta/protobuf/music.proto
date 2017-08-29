@@ -222,6 +222,8 @@ message NoteSequence {
   message ControlChange {
     // Time in seconds.
     double time = 1;
+    // Quantized time in steps.
+    int64 quantized_step = 7;
     // Control (or "controller") number e.g. 0x4 = Foot Controller.
     int32 control_number = 2;
     // The value for that controller in the range (0, 127).
