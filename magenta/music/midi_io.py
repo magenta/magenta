@@ -16,6 +16,10 @@
 Input and output wrappers for converting between MIDI and other formats.
 """
 
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import print_function
+
 from collections import defaultdict
 import sys
 import tempfile
@@ -103,7 +107,7 @@ def midi_to_sequence_proto(midi_data):
     key_signature = sequence.key_signatures.add()
     key_signature.time = midi_key.time
     key_signature.key = midi_key.key_number % 12
-    midi_mode = midi_key.key_number / 12
+    midi_mode = midi_key.key_number // 12
     if midi_mode == 0:
       key_signature.mode = key_signature.MAJOR
     elif midi_mode == 1:
@@ -300,7 +304,7 @@ def midi_file_to_sequence_proto(midi_file):
   Raises:
     MIDIConversionError: Invalid midi_file.
   """
-  with tf.gfile.Open(midi_file, 'r') as f:
+  with tf.gfile.Open(midi_file, 'rb') as f:
     midi_as_string = f.read()
     return midi_to_sequence_proto(midi_as_string)
 

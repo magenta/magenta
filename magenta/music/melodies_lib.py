@@ -630,7 +630,7 @@ def extract_melodies(quantized_sequence,
         break
 
       # Require a certain melody length.
-      if len(melody) - 1 < melody.steps_per_bar * min_bars:
+      if len(melody) < melody.steps_per_bar * min_bars:
         stats['melodies_discarded_too_short'].increment()
         continue
 

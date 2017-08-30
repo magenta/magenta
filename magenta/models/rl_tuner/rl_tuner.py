@@ -40,7 +40,9 @@ import urllib
 import matplotlib.pyplot as plt
 import numpy as np
 from scipy.misc import logsumexp
-from six.moves import range  # pylint: disable=redefined-builtin
+from six.moves import range          # pylint: disable=redefined-builtin
+from six.moves import reload_module  # pylint: disable=redefined-builtin
+from six.moves import urllib         # pylint: disable=redefined-builtin
 import tensorflow as tf
 
 from magenta.models.rl_tuner import note_rnn_loader
@@ -61,9 +63,9 @@ TRAIN_SEQUENCE_LENGTH = 192
 def reload_files():
   """Used to reload the imported dependency files (needed for ipynb notebooks).
   """
-  reload(note_rnn_loader)
-  reload(rl_tuner_ops)
-  reload(rl_tuner_eval_metrics)
+  reload_module(note_rnn_loader)
+  reload_module(rl_tuner_ops)
+  reload_module(rl_tuner_eval_metrics)
 
 
 class RLTuner(object):
@@ -179,7 +181,7 @@ class RLTuner(object):
 
       if note_rnn_checkpoint_dir is None or not note_rnn_checkpoint_dir:
         print('Retrieving checkpoint of Note RNN from Magenta download server.')
-        urllib.urlretrieve(
+        urllib.request.urlretrieve(
             'http://download.magenta.tensorflow.org/models/'
             'rl_tuner_note_rnn.ckpt', 'note_rnn.ckpt')
         self.note_rnn_checkpoint_dir = os.getcwd()

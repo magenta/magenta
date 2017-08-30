@@ -16,12 +16,17 @@
 Captures monophonic input MIDI sequences and plays back responses from the
 sequence generator.
 """
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import print_function
+
 from functools import partial
 import re
 import threading
 import time
 
 # internal imports
+from six.moves import input  # pylint: disable=redefined-builtin
 import tensorflow as tf
 import magenta
 
@@ -197,13 +202,13 @@ class CCMapper(object):
 
   def _print_instructions(self):
     """Prints instructions for mapping control changes."""
-    print ('Enter the index of a signal to set the control change for, or `q` '
-           'when done.')
+    print('Enter the index of a signal to set the control change for, or `q` '
+          'when done.')
     fmt = '{:>6}\t{:<20}\t{:>6}'
-    print fmt.format('Index', 'Control', 'Current')
+    print(fmt.format('Index', 'Control', 'Current'))
     for i, signal in enumerate(self._signals):
-      print fmt.format(i + 1, signal, self._cc_map.get(signal))
-    print
+      print(fmt.format(i + 1, signal, self._cc_map.get(signal)))
+    print('')
 
   def _update_signal(self, signal, msg):
     """Updates mapping for the signal to the message's control change.
@@ -213,24 +218,24 @@ class CCMapper(object):
       msg: The mido.Message whose control change the signal should be set to.
     """
     if msg.control in self._cc_map.values():
-      print 'Control number %d is already assigned. Ignoring.' % msg.control
+      print('Control number %d is already assigned. Ignoring.' % msg.control)
     else:
       self._cc_map[signal] = msg.control
-      print 'Assigned control number %d to `%s`.' % (msg.control, signal)
+      print('Assigned control number %d to `%s`.' % (msg.control, signal))
     self._update_event.set()
 
   def update_map(self):
     """Enters a loop that receives user input to set signal controls."""
     while True:
-      print
+      print('')
       self._print_instructions()
-      response = raw_input('Selection: ')
+      response = input('Selection: ')
       if response == 'q':
         return
       try:
         signal = self._signals[int(response) - 1]
       except (ValueError, IndexError):
-        print 'Invalid response:', response
+        print('Invalid response:', response)
         continue
       self._update_event.clear()
       self._midi_hub.register_callback(
@@ -244,14 +249,14 @@ class CCMapper(object):
 def _validate_flags():
   """Returns True if flag values are valid or prints error and returns False."""
   if FLAGS.list_ports:
-    print "Input ports: '%s'" % (
-        "', '".join(midi_hub.get_available_input_ports()))
-    print "Ouput ports: '%s'" % (
-        "', '".join(midi_hub.get_available_output_ports()))
+    print("Input ports: '%s'" % (
+        "', '".join(midi_hub.get_available_input_ports())))
+    print("Ouput ports: '%s'" % (
+        "', '".join(midi_hub.get_available_output_ports())))
     return False
 
   if FLAGS.bundle_files is None:
-    print '--bundle_files must be specified.'
+    print('--bundle_files must be specified.')
     return False
 
   if (len(FLAGS.bundle_files.split(',')) > 1 and
@@ -271,38 +276,38 @@ def _load_generator_from_bundle_file(bundle_file):
     bundle = magenta.music.sequence_generator_bundle.read_bundle_file(
         bundle_file)
   except magenta.music.sequence_generator_bundle.GeneratorBundleParseException:
-    print 'Failed to parse bundle file: %s' % FLAGS.bundle_file
+    print('Failed to parse bundle file: %s' % FLAGS.bundle_file)
     return None
 
   generator_id = bundle.generator_details.id
   if generator_id not in _GENERATOR_MAP:
-    print "Unrecognized SequenceGenerator ID '%s' in bundle file: %s" % (
-        generator_id, FLAGS.bundle_file)
+    print("Unrecognized SequenceGenerator ID '%s' in bundle file: %s" % (
+        generator_id, FLAGS.bundle_file))
     return None
 
   generator = _GENERATOR_MAP[generator_id](checkpoint=None, bundle=bundle)
   generator.initialize()
-  print "Loaded '%s' generator bundle from file '%s'." % (
-      bundle.generator_details.id, bundle_file)
+  print("Loaded '%s' generator bundle from file '%s'." % (
+      bundle.generator_details.id, bundle_file))
   return generator
 
 
 def _print_instructions():
   """Prints instructions for interaction based on the flag values."""
-  print ''
-  print 'Instructions:'
-  print 'Start playing  when you want to begin the call phrase.'
+  print('')
+  print('Instructions:')
+  print('Start playing  when you want to begin the call phrase.')
   if FLAGS.end_call_control_number is not None:
-    print ('When you want to end the call phrase, signal control number %d '
-           'with value 127, or stop playing and wait one clock tick.'
-           % FLAGS.end_call_control_number)
+    print('When you want to end the call phrase, signal control number %d '
+          'with value 127, or stop playing and wait one clock tick.'
+          % FLAGS.end_call_control_number)
   else:
-    print ('When you want to end the call phrase, stop playing and wait one '
-           'clock tick.')
-  print ('Once the response completes, the interface will wait for you to '
-         'begin playing again to start a new call phrase.')
-  print ''
-  print 'To end the interaction, press CTRL-C.'
+    print('When you want to end the call phrase, stop playing and wait one '
+          'clock tick.')
+  print('Once the response completes, the interface will wait for you to '
+        'begin playing again to start a new call phrase.')
+  print('')
+  print('To end the interaction, press CTRL-C.')
 
 
 def main(unused_argv):
@@ -380,7 +385,7 @@ def main(unused_argv):
   except KeyboardInterrupt:
     interaction.stop()
 
-  print 'Interaction stopped.'
+  print('Interaction stopped.')
 
 
 def console_entry_point():

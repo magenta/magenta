@@ -13,6 +13,8 @@
 # limitations under the License.
 """A setuptools based setup module for magenta."""
 
+import sys
+
 from setuptools import find_packages
 from setuptools import setup
 
@@ -20,8 +22,14 @@ from setuptools import setup
 # executing __init__.py, which will end up requiring a bunch of dependencies to
 # execute (e.g., tensorflow, pretty_midi, etc.).
 # Makes the __version__ variable available.
-execfile('magenta/version.py')
+with open('magenta/version.py') as in_file:
+  exec(in_file.read())  # pylint: disable=exec-used
 
+if '--gpu' in sys.argv:
+  gpu_mode = True
+  sys.argv.remove('--gpu')
+else:
+  gpu_mode = False
 
 REQUIRED_PACKAGES = [
     'IPython',
@@ -36,9 +44,13 @@ REQUIRED_PACKAGES = [
     'pretty_midi >= 0.2.6',
     'python-rtmidi',
     'scipy >= 0.18.1',
-    'tensorflow >= 1.1.0',
     'wheel',
 ]
+
+if gpu_mode:
+  REQUIRED_PACKAGES.append('tensorflow-gpu >= 1.1.0')
+else:
+  REQUIRED_PACKAGES.append('tensorflow >= 1.1.0')
 
 CONSOLE_SCRIPTS = [
     'magenta.interfaces.midi.magenta_midi',
@@ -74,7 +86,7 @@ CONSOLE_SCRIPTS = [
 ]
 
 setup(
-    name='magenta',
+    name='magenta-gpu' if gpu_mode else 'magenta',
     version=__version__,  # pylint: disable=undefined-variable
     description='Use machine learning to create art and music',
     long_description='',
@@ -90,6 +102,7 @@ setup(
         'Intended Audience :: Science/Research',
         'License :: OSI Approved :: Apache Software License',
         'Programming Language :: Python :: 2.7',
+        'Programming Language :: Python :: 3',
         'Topic :: Scientific/Engineering :: Mathematics',
         'Topic :: Software Development :: Libraries :: Python Modules',
         'Topic :: Software Development :: Libraries',

@@ -13,6 +13,10 @@
 # limitations under the License.
 """Tests for drums_encoder_decoder."""
 
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import print_function
+
 # internal imports
 import tensorflow as tf
 
@@ -61,7 +65,7 @@ class MultiDrumOneHotEncodingTest(tf.test.TestCase):
     # bits.
     event1 = self.enc.decode_event(1)
     event2 = self.enc.decode_event(
-        2 ** (len(drums_encoder_decoder.DEFAULT_DRUM_TYPE_PITCHES) / 2))
+        2 ** (len(drums_encoder_decoder.DEFAULT_DRUM_TYPE_PITCHES) // 2))
     self.assertEquals(frozenset, type(event1))
     self.assertEquals(frozenset, type(event2))
     self.assertEquals(1, len(event1))

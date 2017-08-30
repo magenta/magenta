@@ -13,7 +13,12 @@
 # limitations under the License.
 """A WaveNet-style AutoEncoder Configuration and FastGeneration Config."""
 
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import print_function
+
 # internal imports
+from six.moves import range  # pylint: disable=redefined-builtin
 import tensorflow as tf
 from magenta.models.nsynth import reader
 from magenta.models.nsynth import utils
@@ -216,7 +221,7 @@ class Config(object):
         filter_length=ae_filter_length,
         name='ae_startconv')
 
-    for num_layer in xrange(ae_num_layers):
+    for num_layer in range(ae_num_layers):
       dilation = 2**(num_layer % ae_num_stages)
       d = tf.nn.relu(en)
       d = masked.conv1d(
@@ -253,7 +258,7 @@ class Config(object):
         l, num_filters=skip_width, filter_length=1, name='skip_start')
 
     # Residual blocks with skip connections.
-    for i in xrange(num_layers):
+    for i in range(num_layers):
       dilation = 2**(i % num_stages)
       d = masked.conv1d(
           l,

@@ -41,7 +41,7 @@ function main() {
   pushd "${TMPDIR}"
   rm -f MANIFEST
   echo $(date) : "=== Building wheel"
-  python setup.py bdist_wheel # >/dev/null
+  python setup.py bdist_wheel --universal $2 # >/dev/null
   mkdir -p "${DEST}"
   cp dist/* "${DEST}"
   popd

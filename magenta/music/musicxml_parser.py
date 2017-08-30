@@ -20,7 +20,9 @@ into tensorflow.magenta.NoteSequence.
 # Imports
 # Python 2 uses integer division for integers. Using this gives the Python 3
 # behavior of producing a float when dividing integers
+from __future__ import absolute_import
 from __future__ import division
+from __future__ import print_function
 
 from fractions import Fraction
 import xml.etree.ElementTree as ET
@@ -28,6 +30,7 @@ import zipfile
 
 # internal imports
 
+import six
 from magenta.music import constants
 
 DEFAULT_MIDI_PROGRAM = 0    # Default MIDI Program (0 = grand piano)
@@ -63,6 +66,11 @@ class AlternatingTimeSignatureException(MusicXMLParseException):
   pass
 
 
+class TimeSignatureParseException(MusicXMLParseException):
+  """Exception thrown when the time signature could not be parsed."""
+  pass
+
+
 class UnpitchedNoteException(MusicXMLParseException):
   """Exception thrown when an unpitched note is encountered.
 
@@ -71,6 +79,16 @@ class UnpitchedNoteException(MusicXMLParseException):
 
   http://www.musicxml.com/tutorial/percussion/unpitched-notes/
   """
+  pass
+
+
+class KeyParseException(MusicXMLParseException):
+  """Exception thrown when a key signature cannot be parsed."""
+  pass
+
+
+class InvalidNoteDurationTypeException(MusicXMLParseException):
+  """Exception thrown when a note's duration type is invalid."""
   pass
 
 
@@ -172,8 +190,25 @@ class MusicXMLDocument(object):
       # http://www.musicxml.com/tutorial/compressed-mxl-files/zip-archive-structure/
 
       # Raise a MusicXMLParseException if multiple MusicXML files found
-      namelist = mxlzip.namelist()
-      container_file = [x for x in namelist if x == 'META-INF/container.xml']
+
+      infolist = mxlzip.infolist()
+      if six.PY3:
+        # In py3, instead of returning raw bytes, ZipFile.infolist() tries to
+        # guess the filenames' encoding based on file headers, and decodes using
+        # this encoding in order to return a list of strings. If the utf-8
+        # header is missing, it decodes using the DOS code page 437 encoding
+        # which is almost definitely wrong. Here we need to explicitly check
+        # for when this has occurred and change the encoding to utf-8.
+        # https://stackoverflow.com/questions/37723505/namelist-from-zipfile-returns-strings-with-an-invalid-encoding
+        zip_filename_utf8_flag = 0x800
+        for info in infolist:
+          if info.flag_bits & zip_filename_utf8_flag == 0:
+            filename_bytes = info.filename.encode('437')
+            filename = filename_bytes.decode('utf-8', 'replace')
+            info.filename = filename
+
+      container_file = [x for x in infolist
+                        if x.filename == 'META-INF/container.xml']
       compressed_file_name = ''
 
       if container_file:
@@ -200,15 +235,18 @@ class MusicXMLDocument(object):
       if not compressed_file_name:
         raise MusicXMLParseException(
             'Unable to locate main .xml file in compressed archive.')
-
-      # zip file names are UTF-8 encoded.
-      compressed_file_name = compressed_file_name.encode('utf-8')
-
-      if compressed_file_name not in namelist:
+      if six.PY2:
+        # In py2, the filenames in infolist are utf-8 encoded, so
+        # we encode the compressed_file_name as well in order to
+        # be able to lookup compressed_file_info below.
+        compressed_file_name = compressed_file_name.encode('utf-8')
+      try:
+        compressed_file_info = [x for x in infolist
+                                if x.filename == compressed_file_name][0]
+      except IndexError:
         raise MusicXMLParseException(
             'Score file %s not found in zip archive' % compressed_file_name)
-
-      score_string = mxlzip.read(compressed_file_name)
+      score_string = mxlzip.read(compressed_file_info)
       try:
         score = ET.fromstring(score_string)
       except ET.ParseError as exception:
@@ -802,7 +840,7 @@ class NoteDuration(object):
     self.seconds = 0                    # Duration in seconds
     self.time_position = 0              # Onset time in seconds
     self.dots = 0                       # Number of augmentation dots
-    self.type = 'quarter'               # MusicXML duration type
+    self._type = 'quarter'              # MusicXML duration type
     self.tuplet_ratio = Fraction(1, 1)  # Ratio for tuplets (default to 1)
     self.is_grace_note = True           # Assume true until not found
     self.state = state
@@ -891,6 +929,17 @@ class NoteDuration(object):
     """Return the duration ratio as a float."""
     ratio = self.duration_ratio()
     return ratio.numerator / ratio.denominator
+
+  @property
+  def type(self):
+    return self._type
+
+  @type.setter
+  def type(self, new_type):
+    if new_type not in self.TYPE_RATIO_MAP:
+      raise InvalidNoteDurationTypeException(
+          'Note duration type "{}" is not valid'.format(new_type))
+    self._type = new_type
 
 
 class ChordSymbol(object):
@@ -1099,6 +1148,8 @@ class ChordSymbol(object):
     if xml_degree.find('degree-value') is None:
       raise ChordSymbolParseException('Missing scale degree value in harmony')
     value_text = xml_degree.find('degree-value').text
+    if value_text is None:
+      raise ChordSymbolParseException('Missing scale degree')
     try:
       value = int(value_text)
     except ValueError:
@@ -1188,8 +1239,14 @@ class TimeSignature(object):
       # not supported (ex: alternating meter)
       raise AlternatingTimeSignatureException('Alternating Time Signature')
 
-    self.numerator = int(self.xml_time.find('beats').text)
-    self.denominator = int(self.xml_time.find('beat-type').text)
+    beats = self.xml_time.find('beats').text
+    beat_type = self.xml_time.find('beat-type').text
+    try:
+      self.numerator = int(beats)
+      self.denominator = int(beat_type)
+    except ValueError:
+      raise TimeSignatureParseException(
+          'Could not parse time signature: {}/{}'.format(beats, beat_type))
     self.time_position = self.state.time_position
 
   def __str__(self):
@@ -1227,7 +1284,15 @@ class KeySignature(object):
 
     If the mode is not minor (e.g. dorian), default to "major"
     because MIDI only supports major and minor modes.
+
+
+    Raises:
+      KeyParseException: If the fifths element is missing.
     """
+    fifths = self.xml_key.find('fifths')
+    if fifths is None:
+      raise KeyParseException(
+          'Could not find fifths attribute in key signature.')
     self.key = int(self.xml_key.find('fifths').text)
     mode = self.xml_key.find('mode')
     # Anything not minor will be interpreted as major

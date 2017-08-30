@@ -13,6 +13,10 @@
 # limitations under the License.
 """Tests for chords_lib."""
 
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import print_function
+
 # internal imports
 import tensorflow as tf
 
@@ -136,8 +140,8 @@ class ChordsLibTest(tf.test.TestCase):
     quantized_sequence.total_quantized_steps = 2
     chord_progressions, _ = chords_lib.extract_chords(quantized_sequence,
                                                       all_transpositions=True)
-    expected = zip([NO_CHORD] * 12, ['Gb', 'G', 'Ab', 'A', 'Bb', 'B',
-                                     'C', 'Db', 'D', 'Eb', 'E', 'F'])
+    expected = list(zip([NO_CHORD] * 12, ['Gb', 'G', 'Ab', 'A', 'Bb', 'B',
+                                          'C', 'Db', 'D', 'Eb', 'E', 'F']))
     self.assertEqual(expected, [tuple(chords) for chords in chord_progressions])
 
   def testExtractChordsForMelodies(self):

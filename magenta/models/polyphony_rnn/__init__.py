@@ -14,4 +14,8 @@
 
 """Imports Polyphony RNN model."""
 
-from polyphony_model import PolyphonyRnnModel
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import print_function
+
+from .polyphony_model import PolyphonyRnnModel

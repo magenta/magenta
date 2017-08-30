@@ -43,6 +43,10 @@ encodings also consider whether the event sequence is repeating, and the input
 encoding includes binary counters for timekeeping.
 """
 
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import print_function
+
 import abc
 
 # internal imports
@@ -263,7 +267,7 @@ class EventSequenceEncoderDecoder(object):
     """
     num_classes = len(softmax[0][0])
     chosen_classes = []
-    for i in xrange(len(event_sequences)):
+    for i in range(len(event_sequences)):
       chosen_class = np.random.choice(num_classes, p=softmax[i][-1])
       event = self.class_index_to_event(chosen_class, event_sequences[i])
       event_sequences[i].append(event)
@@ -292,7 +296,7 @@ class EventSequenceEncoderDecoder(object):
           corresponding softmax vectors.
     """
     all_loglik = []
-    for i in xrange(len(event_sequences)):
+    for i in range(len(event_sequences)):
       if len(softmax[i]) >= len(event_sequences[i]):
         raise ValueError(
             'event sequence must be longer than softmax vector (%d events but '
@@ -470,7 +474,7 @@ class LookbackEventSequenceEncoderDecoder(EventSequenceEncoderDecoder):
     # Binary time counter giving the metric location of the *next* event.
     n = position + 1
     for i in range(self._binary_counter_bits):
-      input_[offset] = 1.0 if (n / 2 ** i) % 2 else -1.0
+      input_[offset] = 1.0 if (n // 2 ** i) % 2 else -1.0
       offset += 1
 
     # Last event is repeating N bars ago.
@@ -693,14 +697,15 @@ class ConditionalEventSequenceEncoderDecoder(object):
       labels.append(self.events_to_label(target_events, i + 1))
     return sequence_example_lib.make_sequence_example(inputs, labels)
 
-  def get_inputs_batch(self, control_events, target_event_sequences,
+  def get_inputs_batch(self, control_event_sequences, target_event_sequences,
                        full_length=False):
     """Returns an inputs batch for the given control and target event sequences.
 
     Args:
-      control_events: A single list-like control event sequence.
-      target_event_sequences: A list of list-like target event sequences. Each
-          target event sequence must be shorter than `control_events`.
+      control_event_sequences: A list of list-like control event sequences.
+      target_event_sequences: A list of list-like target event sequences, the
+          same length as `control_event_sequences`. Each target event sequence
+          must be shorter than the corresponding control event sequence.
       full_length: If True, the inputs batch will be for the full length of
           each control/target event sequence pair. If False, the inputs batch
           will only be for the last event of each target event sequence. A full-
@@ -716,11 +721,18 @@ class ConditionalEventSequenceEncoderDecoder(object):
       [len(target_event_sequences), 1, INPUT_SIZE].
 
     Raises:
-      ValueError: If one of the target event sequences is not longer than
-          `control_events`.
+      ValueError: If there are a different number of control and target event
+          sequences, or if one of the control event sequences is not shorter
+          than the corresponding control event sequence.
     """
+    if len(control_event_sequences) != len(target_event_sequences):
+      raise ValueError(
+          '%d control event sequences but %d target event sequences' %
+          (len(control_event_sequences, len(target_event_sequences))))
+
     inputs_batch = []
-    for target_events in target_event_sequences:
+    for control_events, target_events in zip(
+        control_event_sequences, target_event_sequences):
       if len(control_events) <= len(target_events):
         raise ValueError('control event sequence must be longer than target '
                          'event sequence (%d control events but %d target '
@@ -814,7 +826,7 @@ class MultipleEventSequenceEncoder(EventSequenceEncoderDecoder):
     else:
       # The event sequence is a list of tuples. Apply each encoder to the
       # elements in the corresponding tuple position.
-      event_sequences = zip(*events)
+      event_sequences = list(zip(*events))
       if len(event_sequences) != len(self._encoders):
         raise ValueError(
             'Event tuple size must be the same as the number of encoders.')
