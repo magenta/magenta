@@ -70,6 +70,13 @@ def add_quantized_chord_steps_to_sequence(sequence, quantized_steps):
     chord.quantized_step = quantized_step
 
 
+def add_quantized_control_steps_to_sequence(sequence, quantized_steps):
+  assert len(sequence.control_changes) == len(quantized_steps)
+
+  for cc, quantized_step in zip(sequence.control_changes, quantized_steps):
+    cc.quantized_step = quantized_step
+
+
 class TrivialOneHotEncoding(encoder_decoder.OneHotEncoding):
   """One-hot encoding that uses the identity encoding."""
 

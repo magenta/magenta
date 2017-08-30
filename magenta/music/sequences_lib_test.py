@@ -62,12 +62,22 @@ class SequencesLibTest(tf.test.TestCase):
          (55, 120, 4.0, 4.01), (52, 99, 4.75, 5.0)])
     testing_lib.add_chords_to_sequence(
         sequence, [('C', 1.5), ('G7', 3.0), ('F', 4.8)])
+    testing_lib.add_control_changes_to_sequence(
+        sequence, 0,
+        [(0.0, 64, 127), (2.0, 64, 0), (4.0, 64, 127), (5.0, 64, 0)])
+    testing_lib.add_control_changes_to_sequence(
+        sequence, 1, [(2.0, 64, 127)])
     expected_subsequence = copy.copy(self.note_sequence)
     testing_lib.add_track_to_sequence(
         expected_subsequence, 0,
         [(40, 45, 0.0, 1.0), (55, 120, 1.5, 1.51)])
     testing_lib.add_chords_to_sequence(
         expected_subsequence, [('C', 0.0), ('G7', 0.5)])
+    testing_lib.add_control_changes_to_sequence(
+        expected_subsequence, 0, [(0.0, 64, 0), (1.5, 64, 127)])
+    testing_lib.add_control_changes_to_sequence(
+        expected_subsequence, 1, [(0.0, 64, 127)])
+    expected_subsequence.control_changes.sort(key=lambda cc: cc.time)
     expected_subsequence.total_time = 1.51
     expected_subsequence.subsequence_info.start_time_offset = 2.5
     expected_subsequence.subsequence_info.end_time_offset = 5.99
@@ -484,6 +494,9 @@ class SequencesLibTest(tf.test.TestCase):
     testing_lib.add_chords_to_sequence(
         self.note_sequence,
         [('B7', 0.22), ('Em9', 4.0)])
+    testing_lib.add_control_changes_to_sequence(
+        self.note_sequence, 0,
+        [(2.0, 64, 127), (4.0, 64, 0)])
 
     expected_quantized_sequence = copy.deepcopy(self.note_sequence)
     expected_quantized_sequence.quantization_info.steps_per_quarter = (
@@ -493,6 +506,8 @@ class SequencesLibTest(tf.test.TestCase):
         [(0, 40), (1, 2), (10, 14), (16, 17), (19, 20)])
     testing_lib.add_quantized_chord_steps_to_sequence(
         expected_quantized_sequence, [1, 16])
+    testing_lib.add_quantized_control_steps_to_sequence(
+        expected_quantized_sequence, [8, 16])
 
     quantized_sequence = sequences_lib.quantize_note_sequence(
         self.note_sequence, steps_per_quarter=self.steps_per_quarter)
@@ -507,6 +522,9 @@ class SequencesLibTest(tf.test.TestCase):
     testing_lib.add_chords_to_sequence(
         self.note_sequence,
         [('B7', 0.22), ('Em9', 4.0)])
+    testing_lib.add_control_changes_to_sequence(
+        self.note_sequence, 0,
+        [(2.0, 64, 127), (4.0, 64, 0)])
 
     expected_quantized_sequence = copy.deepcopy(self.note_sequence)
     expected_quantized_sequence.quantization_info.steps_per_second = 4
@@ -515,6 +533,8 @@ class SequencesLibTest(tf.test.TestCase):
         [(0, 40), (1, 2), (10, 14), (16, 17), (19, 20)])
     testing_lib.add_quantized_chord_steps_to_sequence(
         expected_quantized_sequence, [1, 16])
+    testing_lib.add_quantized_control_steps_to_sequence(
+        expected_quantized_sequence, [8, 16])
 
     quantized_sequence = sequences_lib.quantize_note_sequence_absolute(
         self.note_sequence, steps_per_second=4)
