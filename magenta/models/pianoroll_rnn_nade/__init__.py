@@ -14,4 +14,8 @@
 
 """Imports Pianoroll RNN-NADE model."""
 
-from pianoroll_rnn_nade_model import PianorollRnnNadeModel
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import print_function
+
+from .pianoroll_rnn_nade_model import PianorollRnnNadeModel
