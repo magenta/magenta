@@ -23,7 +23,7 @@ package tensorflow.magenta;
 // For details see https://www.midi.org/specifications.
 // Note that repeated fields in this proto are not guaranteed to be sorted
 // by time.
-// Next tag: 18
+// Next tag: 21
 message NoteSequence {
   // Unique id.
   string id = 1;

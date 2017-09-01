@@ -1,4 +1,4 @@
-# Copyright 2016 Google Inc. All Rights Reserved.
+# Copyright 2017 Google Inc. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -88,6 +88,7 @@ K:G
 
 
 class AbcParserTest(tf.test.TestCase):
+
   def setUp(self):
     self.maxDiff = None
 
@@ -217,60 +218,60 @@ class AbcParserTest(tf.test.TestCase):
     tunes = abc_parser.parse_tunebook(ENGLISH_ABC)
     self.assertEqual(3, len(tunes))
 
-    expected_ns1 = common_testing_lib.parse_test_proto(
-        music_pb2.NoteSequence,
-        """
-        ticks_per_quarter: 220
-        source_info: {
-          source_type: SCORE_BASED
-          encoding_type: ABC
-          parser: MAGENTA_ABC
-        }
-        reference_number: 1
-        titles: "Dusty Miller, The"
-        titles: "Binny's Jig"
-        composers: "Trad."
-        time_signatures {
-          numerator: 3
-          denominator: 4
-        }
-        """)
+    # expected_ns1 = common_testing_lib.parse_test_proto(
+    #     music_pb2.NoteSequence,
+    #     """
+    #     ticks_per_quarter: 220
+    #     source_info: {
+    #       source_type: SCORE_BASED
+    #       encoding_type: ABC
+    #       parser: MAGENTA_ABC
+    #     }
+    #     reference_number: 1
+    #     titles: "Dusty Miller, The"
+    #     titles: "Binny's Jig"
+    #     composers: "Trad."
+    #     time_signatures {
+    #       numerator: 3
+    #       denominator: 4
+    #     }
+    #     """)
     # TODO(fjord): add pitches
-    #self.assertProtoEquals(expected_ns1, tunes[0])
+    # self.assertProtoEquals(expected_ns1, tunes[0])
 
-    expected_ns2 = common_testing_lib.parse_test_proto(
-        music_pb2.NoteSequence,
-        """
-        ticks_per_quarter: 220
-        source_info: {
-          source_type: SCORE_BASED
-          encoding_type: ABC
-          parser: MAGENTA_ABC
-        }
-        reference_number: 2
-        titles: "Old Sir Simon the King"
-        composers: "Trad."
-        """)
+    # expected_ns2 = common_testing_lib.parse_test_proto(
+    #     music_pb2.NoteSequence,
+    #     """
+    #     ticks_per_quarter: 220
+    #     source_info: {
+    #       source_type: SCORE_BASED
+    #       encoding_type: ABC
+    #       parser: MAGENTA_ABC
+    #     }
+    #     reference_number: 2
+    #     titles: "Old Sir Simon the King"
+    #     composers: "Trad."
+    #     """)
     # TODO(fjord): add pitches
-    #self.assertProtoEquals(expected_ns2, tunes[1])
+    # self.assertProtoEquals(expected_ns2, tunes[1])
 
-    expected_ns3 = common_testing_lib.parse_test_proto(
-        music_pb2.NoteSequence,
-        """
-        ticks_per_quarter: 220
-        source_info: {
-          source_type: SCORE_BASED
-          encoding_type: ABC
-          parser: MAGENTA_ABC
-        }
-        reference_number: 3
-        titles: "William and Nancy"
-        titles: "New Mown Hay"
-        titles: "Legacy, The"
-        composers: "Trad."
-        """)
+    # expected_ns3 = common_testing_lib.parse_test_proto(
+    #     music_pb2.NoteSequence,
+    #     """
+    #     ticks_per_quarter: 220
+    #     source_info: {
+    #       source_type: SCORE_BASED
+    #       encoding_type: ABC
+    #       parser: MAGENTA_ABC
+    #     }
+    #     reference_number: 3
+    #     titles: "William and Nancy"
+    #     titles: "New Mown Hay"
+    #     titles: "Legacy, The"
+    #     composers: "Trad."
+    #     """)
     # TODO(fjord): add pitches
-    #self.assertProtoEquals(expected_ns3, tunes[2])
+    # self.assertProtoEquals(expected_ns3, tunes[2])
 
 
 if __name__ == '__main__':

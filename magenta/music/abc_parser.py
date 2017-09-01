@@ -1,4 +1,4 @@
-# Copyright 2016 Google Inc. All Rights Reserved.
+# Copyright 2017 Google Inc. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Parser for ABC files
+"""Parser for ABC files.
 
 http://abcnotation.com/wiki/abc:standard:v2.1
 """
@@ -30,6 +30,7 @@ from magenta.music import constants
 from magenta.protobuf import music_pb2
 
 def parse_tunebook(tunebook):
+  """Parse an ABC Tunebook string."""
   # Split tunebook into sections based on empty lines.
   sections = []
   current_lines = []
@@ -54,7 +55,10 @@ def parse_tunebook(tunebook):
   # tune that is being parsed.
   return [ABCTune(header + tune).note_sequence for tune in sections]
 
+
 class ABCTune(object):
+  """Class for parsing an individual ABC tune."""
+
   # http://abcnotation.com/wiki/abc:standard:v2.1#decorations
   DECORATION_TO_VELOCITY = {
       '!pppp!': 30,
@@ -125,7 +129,7 @@ class ABCTune(object):
       'g': music_pb2.NoteSequence.KeySignature.G,
       'g#': music_pb2.NoteSequence.KeySignature.G_SHARP,
       'ab': music_pb2.NoteSequence.KeySignature.A_FLAT,
-      'a':music_pb2.NoteSequence.KeySignature.A,
+      'a': music_pb2.NoteSequence.KeySignature.A,
       'a#': music_pb2.NoteSequence.KeySignature.A_SHARP,
       'bb': music_pb2.NoteSequence.KeySignature.B_FLAT,
       'b': music_pb2.NoteSequence.KeySignature.B,
