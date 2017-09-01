@@ -24,10 +24,12 @@ import re
 
 # internal imports
 
+from six.moves import range  # pylint: disable=redefined-builtin
 import tensorflow as tf
 
 from magenta.music import constants
 from magenta.protobuf import music_pb2
+
 
 def parse_tunebook(tunebook):
   """Parse an ABC Tunebook string."""
@@ -189,8 +191,11 @@ class ABCTune(object):
   NOTE_PATTERN = re.compile(r'(__|_|=|\^|\^\^)?([A-Ga-g])([\',]*)')
 
   def _parse_music_code(self, line):
+    """Parse the music code within an ABC file."""
+
+    # http://abcnotation.com/wiki/abc:standard:v2.1#the_tune_body
     pos = 0
-    while(pos < len(line)):
+    while pos < len(line):
       char = line[pos]
 
       note_match = ABCTune.NOTE_PATTERN.match(line, pos)
@@ -279,7 +284,7 @@ class ABCTune(object):
 
     proto_key = ABCTune.KEY_TO_PROTO_KEY[''.join(key_components[0:2]).lower()]
 
-    if key_components[2] == '':
+    if key_components[2] == '':  # pylint: disable=g-explicit-bool-comparison
       proto_mode = music_pb2.NoteSequence.KeySignature.MAJOR
     elif key_components[2] == 'm':
       proto_mode = music_pb2.NoteSequence.KeySignature.MINOR
@@ -297,7 +302,7 @@ class ABCTune(object):
     else:
       accidentals = ABCTune._sig_to_accidentals(sig)
 
-    while(pos < len(key)):
+    while pos < len(key):
       note_match = ABCTune.NOTE_PATTERN.match(key, pos)
       if note_match:
         pos += len(note_match.group(0))
