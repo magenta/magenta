@@ -111,6 +111,26 @@ class ABCTune(object):
     for key in keys:
       KEY_TO_SIG[key.lower()] = sig
 
+  KEY_TO_PROTO_KEY = {
+      'c': music_pb2.NoteSequence.KeySignature.C,
+      'c#': music_pb2.NoteSequence.KeySignature.C_SHARP,
+      'db': music_pb2.NoteSequence.KeySignature.D_FLAT,
+      'd': music_pb2.NoteSequence.KeySignature.D,
+      'd#': music_pb2.NoteSequence.KeySignature.D_SHARP,
+      'eb': music_pb2.NoteSequence.KeySignature.E_FLAT,
+      'e': music_pb2.NoteSequence.KeySignature.E,
+      'f': music_pb2.NoteSequence.KeySignature.F,
+      'f#': music_pb2.NoteSequence.KeySignature.F_SHARP,
+      'gb': music_pb2.NoteSequence.KeySignature.G_FLAT,
+      'g': music_pb2.NoteSequence.KeySignature.G,
+      'g#': music_pb2.NoteSequence.KeySignature.G_SHARP,
+      'ab': music_pb2.NoteSequence.KeySignature.A_FLAT,
+      'a':music_pb2.NoteSequence.KeySignature.A,
+      'a#': music_pb2.NoteSequence.KeySignature.A_SHARP,
+      'bb': music_pb2.NoteSequence.KeySignature.B_FLAT,
+      'b': music_pb2.NoteSequence.KeySignature.B,
+  }
+
   SHARPS_ORDER = 'FCGDAEB'
   FLATS_ORDER = 'BEADGCF'
 
@@ -226,7 +246,7 @@ class ABCTune(object):
 
   # http://abcnotation.com/wiki/abc:standard:v2.1#kkey
   KEY_PATTERN = re.compile(
-      r'([A-G])\s*([#b]?)\s*((?:maj|min|mix|dor|phr|lyd|loc|m)?)[^ ]*',
+      r'([A-G])\s*([#b]?)\s*((?:maj|ion|min|aeo|mix|dor|phr|lyd|loc|m)?)[^ ]*',
       re.IGNORECASE)
 
   @staticmethod
@@ -236,21 +256,21 @@ class ABCTune(object):
       raise ValueError('Could not parse key: {}'.format(key))
 
     key_components = list(key_match.groups())
-    # "Minor" is a special case that is abbreviated to 'm'.
-    # "Major" is a special case that is abbreviated to ''.
-    if key_components[2].lower() == 'min':
+    # "Minor" and "Aeolian" are special cases that are abbreviated to 'm'.
+    # "Major" and "Ionian" are special cases that are abbreviated to ''.
+    if key_components[2].lower() == 'min' or key_components[2].lower() == 'aeo':
       key_components[2] = 'm'
-    elif key_components[2].lower() == 'maj':
+    elif (key_components[2].lower() == 'maj' or
+          key_components[2].lower() == 'ion'):
       key_components[2] = ''
 
     sig = ABCTune.KEY_TO_SIG[''.join(key_components).lower()]
 
-    music_proto_keys = [11, 6, 1, 8, 3, 10, 5, 0, 7, 2, 9, 4, 11, 6, 1]
-    proto_key = music_proto_keys[sig + 7]
+    proto_key = ABCTune.KEY_TO_PROTO_KEY[''.join(key_components[0:2]).lower()]
 
     if key_components[2] == '':
       proto_mode = music_pb2.NoteSequence.KeySignature.MAJOR
-    elif key_components[2] == 'min':
+    elif key_components[2] == 'm':
       proto_mode = music_pb2.NoteSequence.KeySignature.MINOR
     else:
       # The proto doesn't currently handle modes other than major/minor.

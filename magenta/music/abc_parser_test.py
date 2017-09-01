@@ -95,11 +95,92 @@ class AbcParserTest(tf.test.TestCase):
     values = [v[1] for v in sorted(accidentals.iteritems())]
     self.assertEqual(expected, values)
 
-  def testParseKey(self):
+  def testParseKeyBasic(self):
+    # Most examples taken from
+    # http://abcnotation.com/wiki/abc:standard:v2.1#kkey
     accidentals, proto_key, proto_mode = abc_parser.ABCTune.parse_key('C major')
     self.compareAccidentals([0, 0, 0, 0, 0, 0, 0], accidentals)
     self.assertEqual(music_pb2.NoteSequence.KeySignature.C, proto_key)
     self.assertEqual(music_pb2.NoteSequence.KeySignature.MAJOR, proto_mode)
+
+    accidentals, proto_key, proto_mode = abc_parser.ABCTune.parse_key('A minor')
+    self.compareAccidentals([0, 0, 0, 0, 0, 0, 0], accidentals)
+    self.assertEqual(music_pb2.NoteSequence.KeySignature.A, proto_key)
+    self.assertEqual(music_pb2.NoteSequence.KeySignature.MINOR, proto_mode)
+
+    accidentals, proto_key, proto_mode = abc_parser.ABCTune.parse_key(
+        'C ionian')
+    self.compareAccidentals([0, 0, 0, 0, 0, 0, 0], accidentals)
+    self.assertEqual(music_pb2.NoteSequence.KeySignature.C, proto_key)
+    self.assertEqual(music_pb2.NoteSequence.KeySignature.MAJOR, proto_mode)
+
+    accidentals, proto_key, proto_mode = abc_parser.ABCTune.parse_key(
+        'A aeolian')
+    self.compareAccidentals([0, 0, 0, 0, 0, 0, 0], accidentals)
+    self.assertEqual(music_pb2.NoteSequence.KeySignature.A, proto_key)
+    self.assertEqual(music_pb2.NoteSequence.KeySignature.MINOR, proto_mode)
+
+    accidentals, proto_key, proto_mode = abc_parser.ABCTune.parse_key(
+        'G Mixolydian')
+    self.compareAccidentals([0, 0, 0, 0, 0, 0, 0], accidentals)
+    self.assertEqual(music_pb2.NoteSequence.KeySignature.G, proto_key)
+    self.assertEqual(music_pb2.NoteSequence.KeySignature.NOT_SPECIFIED,
+                     proto_mode)
+
+    accidentals, proto_key, proto_mode = abc_parser.ABCTune.parse_key(
+        'D dorian')
+    self.compareAccidentals([0, 0, 0, 0, 0, 0, 0], accidentals)
+    self.assertEqual(music_pb2.NoteSequence.KeySignature.D, proto_key)
+    self.assertEqual(music_pb2.NoteSequence.KeySignature.NOT_SPECIFIED,
+                     proto_mode)
+
+    accidentals, proto_key, proto_mode = abc_parser.ABCTune.parse_key(
+        'E phrygian')
+    self.compareAccidentals([0, 0, 0, 0, 0, 0, 0], accidentals)
+    self.assertEqual(music_pb2.NoteSequence.KeySignature.E, proto_key)
+    self.assertEqual(music_pb2.NoteSequence.KeySignature.NOT_SPECIFIED,
+                     proto_mode)
+
+    accidentals, proto_key, proto_mode = abc_parser.ABCTune.parse_key(
+        'F Lydian')
+    self.compareAccidentals([0, 0, 0, 0, 0, 0, 0], accidentals)
+    self.assertEqual(music_pb2.NoteSequence.KeySignature.F, proto_key)
+    self.assertEqual(music_pb2.NoteSequence.KeySignature.NOT_SPECIFIED,
+                     proto_mode)
+
+    accidentals, proto_key, proto_mode = abc_parser.ABCTune.parse_key(
+        'B Locrian')
+    self.compareAccidentals([0, 0, 0, 0, 0, 0, 0], accidentals)
+    self.assertEqual(music_pb2.NoteSequence.KeySignature.B, proto_key)
+    self.assertEqual(music_pb2.NoteSequence.KeySignature.NOT_SPECIFIED,
+                     proto_mode)
+
+    accidentals, proto_key, proto_mode = abc_parser.ABCTune.parse_key(
+        'F# mixolydian')
+    self.compareAccidentals([1, 0, 1, 1, 0, 1, 1], accidentals)
+    self.assertEqual(music_pb2.NoteSequence.KeySignature.F_SHARP, proto_key)
+    self.assertEqual(music_pb2.NoteSequence.KeySignature.NOT_SPECIFIED,
+                     proto_mode)
+
+    accidentals, proto_key, proto_mode = abc_parser.ABCTune.parse_key(
+        'F#Mix')
+    self.compareAccidentals([1, 0, 1, 1, 0, 1, 1], accidentals)
+    self.assertEqual(music_pb2.NoteSequence.KeySignature.F_SHARP, proto_key)
+    self.assertEqual(music_pb2.NoteSequence.KeySignature.NOT_SPECIFIED,
+                     proto_mode)
+
+    accidentals, proto_key, proto_mode = abc_parser.ABCTune.parse_key(
+        'F#MIX')
+    self.compareAccidentals([1, 0, 1, 1, 0, 1, 1], accidentals)
+    self.assertEqual(music_pb2.NoteSequence.KeySignature.F_SHARP, proto_key)
+    self.assertEqual(music_pb2.NoteSequence.KeySignature.NOT_SPECIFIED,
+                     proto_mode)
+
+    accidentals, proto_key, proto_mode = abc_parser.ABCTune.parse_key(
+        'Fm')
+    self.compareAccidentals([-1, -1, 0, -1, -1, 0, 0], accidentals)
+    self.assertEqual(music_pb2.NoteSequence.KeySignature.F, proto_key)
+    self.assertEqual(music_pb2.NoteSequence.KeySignature.MINOR, proto_mode)
 
   def testParseEnglishAbc(self):
     tunes = abc_parser.parse_tunebook(ENGLISH_ABC)
