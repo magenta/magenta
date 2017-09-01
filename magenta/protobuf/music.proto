@@ -73,6 +73,19 @@ message NoteSequence {
   // sequence (if that was the case).
   SubsequenceInfo subsequence_info = 17;
 
+  // A unique id to differentiate multiple pieces taken from the same input
+  // file.
+  int64 reference_number = 18;
+
+  // Title of the piece. Some pieces have multiple titles.
+  repeated string titles = 19;
+
+  // Composer of the piece. Some pieces have multiple composers.
+  // TODO(fjord): Should we go with a more complicated approach where each
+  // composer/artist has a role? Might be useful if we start having lyrics and
+  // want to include who wrote them in addition to the tune composer.
+  repeated string composers = 20;
+
   // Next tag: 15
   message Note {
     // MIDI pitch; see en.wikipedia.org/wiki/MIDI_Tuning_Standard for details.
@@ -280,6 +293,8 @@ message NoteSequence {
       MAGENTA_MUSIC_XML = 3;
       // Magenta's parser for MusicNet data.
       MAGENTA_MUSICNET = 4;
+      // Magenta's parser for ABC files.
+      MAGENTA_ABC = 5;
     }
   }
 
