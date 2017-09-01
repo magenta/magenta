@@ -207,10 +207,12 @@ class ABCTune(object):
             elif accidental == '_':
               note.pitch -= 1
             elif accidental == '=':
-              # TODO: handle given keysignature.
               pass
             else:
               raise ValueError('Invalid accidental: {}'.format(accidental))
+        else:
+          # No accidentals, so modify according to current key.
+          note.pitch += self._accidentals[note_match.group(2).upper()]
         if note_match.group(3):
           for octave in note_match.group(3):
             if octave == '\'':
@@ -246,7 +248,8 @@ class ABCTune(object):
 
   # http://abcnotation.com/wiki/abc:standard:v2.1#kkey
   KEY_PATTERN = re.compile(
-      r'([A-G])\s*([#b]?)\s*((?:maj|ion|min|aeo|mix|dor|phr|lyd|loc|m)?)[^ ]*',
+      r'([A-G])\s*([#b]?)\s*'
+      r'((?:(?:maj|ion|min|aeo|mix|dor|phr|lyd|loc|m)[^ ]*)?)',
       re.IGNORECASE)
 
   @staticmethod
@@ -256,6 +259,10 @@ class ABCTune(object):
       raise ValueError('Could not parse key: {}'.format(key))
 
     key_components = list(key_match.groups())
+
+    # Shorten the mode to be at most 3 letters long.
+    key_components[2] = key_components[2][:3]
+
     # "Minor" and "Aeolian" are special cases that are abbreviated to 'm'.
     # "Major" and "Ionian" are special cases that are abbreviated to ''.
     if key_components[2].lower() == 'min' or key_components[2].lower() == 'aeo':
@@ -264,7 +271,7 @@ class ABCTune(object):
           key_components[2].lower() == 'ion'):
       key_components[2] = ''
 
-    sig = ABCTune.KEY_TO_SIG[''.join(key_components).lower()]
+    sig = ABCTune.KEY_TO_SIG[''.join(key_components[0:3]).lower()]
 
     proto_key = ABCTune.KEY_TO_PROTO_KEY[''.join(key_components[0:2]).lower()]
 
@@ -276,7 +283,34 @@ class ABCTune(object):
       # The proto doesn't currently handle modes other than major/minor.
       proto_mode = music_pb2.NoteSequence.KeySignature.NOT_SPECIFIED
 
-    accidentals = ABCTune._sig_to_accidentals(sig)
+    # Match the rest of the string for possible modifications.
+    pos = key_match.end()
+    exppos = key[pos:].find('exp')
+    if exppos != -1:
+      # Only explicit accidentals will be used.
+      accidentals = ABCTune._sig_to_accidentals(0)
+      pos += exppos + 3
+    else:
+      accidentals = ABCTune._sig_to_accidentals(sig)
+
+    while(pos < len(key)):
+      note_match = ABCTune.NOTE_PATTERN.match(key, pos)
+      if note_match:
+        pos += len(note_match.group(0))
+
+        note = note_match.group(2).upper()
+        if note_match.group(1):
+          if note_match.group(1) == '^':
+            accidentals[note] = 1
+          elif note_match.group(1) == '_':
+            accidentals[note] = -1
+          elif note_match.group(1) == '=':
+            accidentals[note] = 0
+          else:
+            raise ValueError(
+                'Invalid accidental: {}'.format(note_match.group(1)))
+      else:
+        pos += 1
 
     return accidentals, proto_key, proto_mode
 
