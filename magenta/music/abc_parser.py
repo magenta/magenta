@@ -263,6 +263,9 @@ class ABCTune(object):
 
   @staticmethod
   def parse_key(key):
+    """Parse an ABC key string."""
+
+    # http://abcnotation.com/wiki/abc:standard:v2.1#kkey
     key_match = ABCTune.KEY_PATTERN.match(key)
     if not key_match:
       raise ValueError('Could not parse key: {}'.format(key))

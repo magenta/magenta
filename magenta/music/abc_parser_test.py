@@ -75,7 +75,7 @@ B:Mally's Cotswold Morris vol.1 2
 D:Morris On                   % can be heard on this record
 P:(AB)2(AC)2A                 % play the parts in this order
 M:6/8
-K:G                        
+K:G
 [P:A] D|"G"G2G GBd|"C"e2e "G"dBG|"D7"A2d "G"BAG|"C"E2"D7"F "G"G2:|
 [P:B] d|"G"e2d B2d|"C"gfe "G"d2d| "G"e2d    B2d|"C"gfe    "D7"d2c|
         "G"B2B Bcd|"C"e2e "G"dBG|"D7"A2d "G"BAG|"C"E2"D7"F "G"G2:|
