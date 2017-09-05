@@ -21,6 +21,7 @@ from __future__ import print_function
 
 import tensorflow as tf
 
+from magenta.common import testing_lib as common_testing_lib
 from magenta.music import abc_parser
 from magenta.protobuf import music_pb2
 
@@ -217,61 +218,131 @@ class AbcParserTest(tf.test.TestCase):
     tunes = abc_parser.parse_tunebook(ENGLISH_ABC)
     self.assertEqual(3, len(tunes))
 
-    # expected_ns1 = common_testing_lib.parse_test_proto(
-    #     music_pb2.NoteSequence,
-    #     """
-    #     ticks_per_quarter: 220
-    #     source_info: {
-    #       source_type: SCORE_BASED
-    #       encoding_type: ABC
-    #       parser: MAGENTA_ABC
-    #     }
-    #     reference_number: 1
-    #     titles: "Dusty Miller, The"
-    #     titles: "Binny's Jig"
-    #     composers: "Trad."
-    #     time_signatures {
-    #       numerator: 3
-    #       denominator: 4
-    #     }
-    #     """)
-    # TODO(fjord): add pitches
-    # self.assertProtoEquals(expected_ns1, tunes[0])
+    expected_ns1 = common_testing_lib.parse_test_proto(
+        music_pb2.NoteSequence,
+        """
+        ticks_per_quarter: 220
+        source_info: {
+          source_type: SCORE_BASED
+          encoding_type: ABC
+          parser: MAGENTA_ABC
+        }
+        reference_number: 1
+        titles: "Dusty Miller, The"
+        titles: "Binny's Jig"
+        composers: "Trad."
+        time_signatures {
+          numerator: 3
+          denominator: 4
+        }
+        key_signatures {
+          key: G
+        }
+        """)
+    # TODO(fjord): add notes
+    del tunes[0].notes[:]
+    self.assertProtoEquals(expected_ns1, tunes[0])
 
-    # expected_ns2 = common_testing_lib.parse_test_proto(
-    #     music_pb2.NoteSequence,
-    #     """
-    #     ticks_per_quarter: 220
-    #     source_info: {
-    #       source_type: SCORE_BASED
-    #       encoding_type: ABC
-    #       parser: MAGENTA_ABC
-    #     }
-    #     reference_number: 2
-    #     titles: "Old Sir Simon the King"
-    #     composers: "Trad."
-    #     """)
-    # TODO(fjord): add pitches
-    # self.assertProtoEquals(expected_ns2, tunes[1])
+    expected_ns2 = common_testing_lib.parse_test_proto(
+        music_pb2.NoteSequence,
+        """
+        ticks_per_quarter: 220
+        source_info: {
+          source_type: SCORE_BASED
+          encoding_type: ABC
+          parser: MAGENTA_ABC
+        }
+        reference_number: 2
+        titles: "Old Sir Simon the King"
+        composers: "Trad."
+        time_signatures {
+          numerator: 9
+          denominator: 8
+        }
+        time_signatures {
+          numerator: 12
+          denominator: 8
+        }
+        time_signatures {
+          numerator: 9
+          denominator: 8
+        }
+        key_signatures {
+          key: G
+        }
+        """)
+    # TODO(fjord): add notes and times.
+    del tunes[1].notes[:]
+    self.assertProtoEquals(expected_ns2, tunes[1])
 
-    # expected_ns3 = common_testing_lib.parse_test_proto(
-    #     music_pb2.NoteSequence,
-    #     """
-    #     ticks_per_quarter: 220
-    #     source_info: {
-    #       source_type: SCORE_BASED
-    #       encoding_type: ABC
-    #       parser: MAGENTA_ABC
-    #     }
-    #     reference_number: 3
-    #     titles: "William and Nancy"
-    #     titles: "New Mown Hay"
-    #     titles: "Legacy, The"
-    #     composers: "Trad."
-    #     """)
-    # TODO(fjord): add pitches
-    # self.assertProtoEquals(expected_ns3, tunes[2])
+    expected_ns3 = common_testing_lib.parse_test_proto(
+        music_pb2.NoteSequence,
+        """
+        ticks_per_quarter: 220
+        source_info: {
+          source_type: SCORE_BASED
+          encoding_type: ABC
+          parser: MAGENTA_ABC
+        }
+        reference_number: 3
+        titles: "William and Nancy"
+        titles: "New Mown Hay"
+        titles: "Legacy, The"
+        composers: "Trad."
+        time_signatures {
+          numerator: 6
+          denominator: 8
+        }
+        key_signatures {
+          key: G
+        }
+        """)
+    # TODO(fjord): add notes and times.
+    del tunes[2].notes[:]
+    del tunes[2].text_annotations[:]
+    self.assertProtoEquals(expected_ns3, tunes[2])
 
+  def testParseOctaves(self):
+    tunes = abc_parser.parse_tunebook("""X:1
+        T:Test
+        CC,',C,C'c
+        """)
+    self.assertEqual(1, len(tunes))
+
+    expected_ns1 = common_testing_lib.parse_test_proto(
+        music_pb2.NoteSequence,
+        """
+        ticks_per_quarter: 220
+        source_info: {
+          source_type: SCORE_BASED
+          encoding_type: ABC
+          parser: MAGENTA_ABC
+        }
+        reference_number: 1
+        titles: "Test"
+        notes {
+          pitch: 60
+          velocity: 90
+        }
+        notes {
+          pitch: 48
+          velocity: 90
+        }
+        notes {
+          pitch: 48
+          velocity: 90
+        }
+        notes {
+          pitch: 72
+          velocity: 90
+        }
+        notes {
+          pitch: 72
+          velocity: 90
+        }
+        """)
+    # TODO(fjord): add timing
+    self.assertProtoEquals(expected_ns1, tunes[0])
 
 if __name__ == '__main__':
   tf.test.main()

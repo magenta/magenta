@@ -50,7 +50,8 @@ def parse_tunebook(tunebook):
   # If there are multiple sections, the first one may be a header.
   # The first section is a header if it does not contain an X information field.
   header = []
-  if len(sections) > 1 and not any(['X:' in line for line in sections[0]]):
+  if len(sections) > 1 and not any(
+      [line.startswith('X:') for line in sections[0]]):
     header = sections.pop(0)
 
   # The header sets default values for each tune, so prepend it to every
@@ -226,7 +227,7 @@ class ABCTune(object):
           for octave in note_match.group(3):
             if octave == '\'':
               note.pitch += 12
-            elif octave == '"':
+            elif octave == ',':
               note.pitch -= 12
             else:
               raise ValueError('Invalid octave: {}'.format(octave))
@@ -247,6 +248,7 @@ class ABCTune(object):
         ta.time = self._current_time
         ta.text = annotation
         if annotation[0] in ABCTune.ABC_NOTE_TO_MIDI:
+          # http://abcnotation.com/wiki/abc:standard:v2.1#chord_symbols
           ta.annotation_type = (
               music_pb2.NoteSequence.TextAnnotation.CHORD_SYMBOL)
         else:
@@ -291,9 +293,18 @@ class ABCTune(object):
       proto_mode = music_pb2.NoteSequence.KeySignature.MAJOR
     elif key_components[2] == 'm':
       proto_mode = music_pb2.NoteSequence.KeySignature.MINOR
+    elif key_components[2] == 'mix':
+      proto_mode = music_pb2.NoteSequence.KeySignature.MIXOLYDIAN
+    elif key_components[2] == 'dor':
+      proto_mode = music_pb2.NoteSequence.KeySignature.DORIAN
+    elif key_components[2] == 'phr':
+      proto_mode = music_pb2.NoteSequence.KeySignature.PHRYGIAN
+    elif key_components[2] == 'lyd':
+      proto_mode = music_pb2.NoteSequence.KeySignature.LYDIAN
+    elif key_components[2] == 'loc':
+      proto_mode = music_pb2.NoteSequence.KeySignature.LOCRIAN
     else:
-      # The proto doesn't currently handle modes other than major/minor.
-      proto_mode = music_pb2.NoteSequence.KeySignature.NOT_SPECIFIED
+      raise ValueError('Unknown mode: {}'.format(key_components[2]))
 
     # Match the rest of the string for possible modifications.
     pos = key_match.end()
@@ -391,6 +402,7 @@ class ABCTune(object):
     elif field_name == 'O':
       pass
     elif field_name == 'P':
+      # TODO(fjord): implement part parsing.
       pass
     elif field_name == 'Q':
       pass
