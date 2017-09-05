@@ -281,7 +281,7 @@ class ABCTune(object):
     # "Major" and "Ionian" are special cases that are abbreviated to ''.
     if mode == 'min' or mode == 'aeo':
       mode = 'm'
-    elif (mode == 'maj' or mode == 'ion'):
+    elif mode == 'maj' or mode == 'ion':
       mode = ''
 
     sig = ABCTune.KEY_TO_SIG[''.join(key_components[0:2] + [mode]).lower()]
