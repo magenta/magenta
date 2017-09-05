@@ -188,9 +188,10 @@ class TranspositionPipeline(NoteSequencePipeline):
     """Transposes a note sequence by the specified amount."""
     ts = copy.deepcopy(ns)
     for note in ts.notes:
-      note.pitch += amount
-      if (note.pitch < constants.MIN_MIDI_PITCH or
-          note.pitch > constants.MAX_MIDI_PITCH):
-        stats['skipped_due_to_range_exceeded'].increment()
-        return None
+      if not note.is_drum:
+        note.pitch += amount
+        if (note.pitch < constants.MIN_MIDI_PITCH or
+            note.pitch > constants.MAX_MIDI_PITCH):
+          stats['skipped_due_to_range_exceeded'].increment()
+          return None
     return ts

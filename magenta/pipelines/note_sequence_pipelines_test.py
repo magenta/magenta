@@ -152,10 +152,16 @@ class PipelineUnitsCommonTest(tf.test.TestCase):
     testing_lib.add_track_to_sequence(
         note_sequence, 0,
         [(12, 100, 1.0, 4.0)])
+    testing_lib.add_track_to_sequence(
+        note_sequence, 1,
+        [(36, 100, 2.0, 2.01)],
+        is_drum=True)
     transposed = tp.transform(note_sequence)
     self.assertEqual(2, len(transposed))
     self.assertEqual(12, transposed[0].notes[0].pitch)
     self.assertEqual(13, transposed[1].notes[0].pitch)
+    self.assertEqual(36, transposed[0].notes[1].pitch)
+    self.assertEqual(36, transposed[1].notes[1].pitch)
 
 
 if __name__ == '__main__':
