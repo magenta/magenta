@@ -275,36 +275,35 @@ class ABCTune(object):
     key_components = list(key_match.groups())
 
     # Shorten the mode to be at most 3 letters long.
-    key_components[2] = key_components[2][:3]
+    mode = key_components[2][:3].lower()
 
     # "Minor" and "Aeolian" are special cases that are abbreviated to 'm'.
     # "Major" and "Ionian" are special cases that are abbreviated to ''.
-    if key_components[2].lower() == 'min' or key_components[2].lower() == 'aeo':
-      key_components[2] = 'm'
-    elif (key_components[2].lower() == 'maj' or
-          key_components[2].lower() == 'ion'):
-      key_components[2] = ''
+    if mode == 'min' or mode == 'aeo':
+      mode = 'm'
+    elif (mode == 'maj' or mode == 'ion'):
+      mode = ''
 
-    sig = ABCTune.KEY_TO_SIG[''.join(key_components[0:3]).lower()]
+    sig = ABCTune.KEY_TO_SIG[''.join(key_components[0:2] + [mode]).lower()]
 
     proto_key = ABCTune.KEY_TO_PROTO_KEY[''.join(key_components[0:2]).lower()]
 
-    if key_components[2] == '':  # pylint: disable=g-explicit-bool-comparison
+    if mode == '':  # pylint: disable=g-explicit-bool-comparison
       proto_mode = music_pb2.NoteSequence.KeySignature.MAJOR
-    elif key_components[2] == 'm':
+    elif mode == 'm':
       proto_mode = music_pb2.NoteSequence.KeySignature.MINOR
-    elif key_components[2] == 'mix':
+    elif mode == 'mix':
       proto_mode = music_pb2.NoteSequence.KeySignature.MIXOLYDIAN
-    elif key_components[2] == 'dor':
+    elif mode == 'dor':
       proto_mode = music_pb2.NoteSequence.KeySignature.DORIAN
-    elif key_components[2] == 'phr':
+    elif mode == 'phr':
       proto_mode = music_pb2.NoteSequence.KeySignature.PHRYGIAN
-    elif key_components[2] == 'lyd':
+    elif mode == 'lyd':
       proto_mode = music_pb2.NoteSequence.KeySignature.LYDIAN
-    elif key_components[2] == 'loc':
+    elif mode == 'loc':
       proto_mode = music_pb2.NoteSequence.KeySignature.LOCRIAN
     else:
-      raise ValueError('Unknown mode: {}'.format(key_components[2]))
+      raise ValueError('Unknown mode: {}'.format(mode))
 
     # Match the rest of the string for possible modifications.
     pos = key_match.end()

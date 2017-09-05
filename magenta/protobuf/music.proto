@@ -210,6 +210,11 @@ message NoteSequence {
       MAJOR = 0;
       MINOR = 1;
       NOT_SPECIFIED = 2;
+      MIXOLYDIAN = 3;
+      DORIAN = 4;
+      PHRYGIAN = 5;
+      LYDIAN = 6;
+      LOCRIAN = 7;
     }
   }
 
