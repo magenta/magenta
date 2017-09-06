@@ -334,7 +334,7 @@ message NoteSequence {
 
 // Stores metadata associated with a sequence.
 message SequenceMetadata {
-  optional string title = 1;
-  optional string artist = 2;
+  string title = 1;
+  string artist = 2;
   repeated string genre = 3;
 }
