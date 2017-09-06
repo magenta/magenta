@@ -377,10 +377,7 @@ def run_pipeline_serial(pipeline,
     for name, outputs in _guarantee_dict(pipeline.transform(input_),
                                          list(output_names)[0]).items():
       for output in outputs:
-        if six.PY3:
-          writers[name].write(output.SerializeToString().encode('utf-8'))
-        else:
-          writers[name].write(output.SerializeToString())
+        writers[name].write(output.SerializeToString())
       total_outputs += len(outputs)
     stats = statistics.merge_statistics(stats + pipeline.get_stats())
     if total_inputs % 500 == 0:
