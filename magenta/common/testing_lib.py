@@ -77,7 +77,7 @@ class MockStringProto(object):
   def SerializeToString(self):  # pylint: disable=invalid-name
     # protobuf's SerializeToString returns binary string
     if six.PY3:
-      return ('serialized:' + self.string).encode("utf-8")
+      return ('serialized:' + self.string).encode('utf-8')
     else:
       return 'serialized:' + self.string
 
