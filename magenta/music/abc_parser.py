@@ -208,10 +208,8 @@ class ABCTune(object):
       else:
         return (1, 8)
 
-
   # http://abcnotation.com/wiki/abc:standard:v2.1#pitch
   NOTE_PATTERN = re.compile(r'(__|_|=|\^|\^\^)?([A-Ga-g])([\',]*)')
-
 
   def _parse_music_code(self, line):
     """Parse the music code within an ABC file."""
@@ -358,7 +356,6 @@ class ABCTune(object):
 
     return accidentals, proto_key, proto_mode
 
-
   # http://abcnotation.com/wiki/abc:standard:v2.1#outdated_information_field_syntax
   # This syntax is deprecated but must still be supported.
   TEMPO_DEPRECATED_PATTERN = re.compile(r'C?\s*=?\s*(\d+)$')
@@ -366,7 +363,6 @@ class ABCTune(object):
   # http://abcnotation.com/wiki/abc:standard:v2.1#qtempo
   TEMPO_PATTERN = re.compile(r'(?:"[^"]*")?\s*((?:\d+/\d+\s*)+)\s*=\s*(\d+)')
   TEMPO_PATTERN_STRING_ONLY = re.compile(r'"([^"]*)"$')
-
 
   def _parse_information_field(self, field_name, field_content):
     # http://abcnotation.com/wiki/abc:standard:v2.1#information_fields
@@ -472,8 +468,8 @@ class ABCTune(object):
         tempo_unit = Fraction(*self._unit_note_length)
         tempo_rate = int(deprecated_tempo_match.group(1))
       elif tempo_string_only_match:
-        tf.logging.warning('Ignoring string-only tempo marking: {}'.format(
-            field_content))
+        tf.logging.warning(
+            'Ignoring string-only tempo marking: {}'.format(field_content))
         return
       else:
         raise ValueError('Could not parse tempo: {}'.format(field_content))
