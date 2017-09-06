@@ -20,6 +20,7 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
+from fractions import Fraction
 import re
 
 # internal imports
@@ -155,6 +156,7 @@ class ABCTune(object):
 
     self._current_time = 0
     self._accidentals = ABCTune._sig_to_accidentals(0)
+    self._current_unit_note_length = None
 
     # Default dynamic should be !mf! as per:
     # http://abcnotation.com/wiki/abc:standard:v2.1#decorations
@@ -188,6 +190,24 @@ class ABCTune(object):
       for i in range(abs(sig)):
         accidentals[ABCTune.FLATS_ORDER[i]] = -1
     return accidentals
+
+  @property
+  def _unit_note_length(self):
+    # http://abcnotation.com/wiki/abc:standard:v2.1#lunit_note_length
+
+    if self._current_unit_note_length:
+      return self._current_unit_note_length
+    elif not self._ns.time_signatures:
+      # For free meter, the default unit note length is 1/8.
+      return (1, 8)
+    else:
+      current_ts = self._ns.time_signatures[-1]
+      ratio = current_ts.numerator / current_ts.denominator
+      if ratio < 0.75:
+        return (1, 16)
+      else:
+        return (1, 8)
+
 
   # http://abcnotation.com/wiki/abc:standard:v2.1#pitch
   NOTE_PATTERN = re.compile(r'(__|_|=|\^|\^\^)?([A-Ga-g])([\',]*)')
@@ -337,6 +357,15 @@ class ABCTune(object):
 
     return accidentals, proto_key, proto_mode
 
+  # http://abcnotation.com/wiki/abc:standard:v2.1#outdated_information_field_syntax
+  # This syntax is deprecated but must still be supported.
+  TEMPO_DEPRECATED_PATTERN = re.compile(r'C?\s*=?\s*(\d+)$')
+
+  # http://abcnotation.com/wiki/abc:standard:v2.1#qtempo
+  TEMPO_PATTERN = re.compile(r'(?:"[^"]*")?\s*((?:\d+/\d+\s*)+)\s*=\s*(\d+)')
+  TEMPO_PATTERN_STRING_ONLY = re.compile(r'"([^"]*)"$')
+
+
   def _parse_information_field(self, field_name, field_content):
     # http://abcnotation.com/wiki/abc:standard:v2.1#information_fields
     if field_name == 'A':
@@ -371,7 +400,22 @@ class ABCTune(object):
       ks.mode = proto_mode
       ks.time = self._current_time
     elif field_name == 'L':
-      pass
+      # Unit note length
+      # http://abcnotation.com/wiki/abc:standard:v2.1#lunit_note_length
+      length = field_content.split('/', 1)
+
+      # Handle the case of L:1 being equivalent to L:1/1
+      if len(length) < 2:
+        length.append('1')
+
+      try:
+        numerator = int(length[0])
+        denominator = int(length[1])
+      except ValueError as e:
+        raise ValueError(e, 'Could not parse unit note length: {}'.format(
+            field_content))
+
+      self._current_unit_note_length = (numerator, denominator)
     elif field_name == 'M':
       # Meter
       # http://abcnotation.com/wiki/abc:standard:v2.1#mmeter
@@ -388,7 +432,7 @@ class ABCTune(object):
       elif field_content.lower() == 'none':
         pass
       else:
-        timesig = field_content.split('/', 2)
+        timesig = field_content.split('/', 1)
         if len(timesig) != 2:
           raise ValueError('Could not parse meter: {}'.format(field_content))
 
@@ -409,7 +453,29 @@ class ABCTune(object):
       # TODO(fjord): implement part parsing.
       pass
     elif field_name == 'Q':
-      pass
+      # Tempo
+      # http://abcnotation.com/wiki/abc:standard:v2.1#qtempo
+
+      tempo_match = ABCTune.TEMPO_PATTERN.match(field_content)
+      deprecated_tempo_match = ABCTune.TEMPO_DEPRECATED_PATTERN.match(field_content)
+      tempo_string_only_match = ABCTune.TEMPO_PATTERN_STRING_ONLY.match(field_content)
+      if tempo_match:
+        tempo_rate = int(tempo_match.group(2))
+        tempo_unit = Fraction(0)
+        for beat in tempo_match.group(1).split():
+          tempo_unit += Fraction(beat)
+      elif deprecated_tempo_match:
+        tempo_unit = Fraction(*self._unit_note_length)
+        tempo_rate = int(deprecated_tempo_match.group(1))
+      elif tempo_string_only_match:
+        tf.logging.warning('Ignoring string-only tempo marking: {}'.format(field_content))
+        return
+      else:
+        raise ValueError('Could not parse tempo: {}'.format(field_content))
+
+      tempo = self._ns.tempos.add()
+      tempo.time = self._current_time
+      tempo.qpm = float((tempo_unit / Fraction(1, 4)) * tempo_rate)
     elif field_name == 'R':
       pass
     elif field_name == 'r':
