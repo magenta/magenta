@@ -228,9 +228,11 @@ class AbcParserTest(tf.test.TestCase):
           parser: MAGENTA_ABC
         }
         reference_number: 1
-        titles: "Dusty Miller, The"
-        titles: "Binny's Jig"
-        composers: "Trad."
+        sequence_metadata {
+          title: "Dusty Miller, The; Binny's Jig"
+          artist: "Trad."
+          composers: "Trad."
+        }
         time_signatures {
           numerator: 3
           denominator: 4
@@ -253,8 +255,11 @@ class AbcParserTest(tf.test.TestCase):
           parser: MAGENTA_ABC
         }
         reference_number: 2
-        titles: "Old Sir Simon the King"
-        composers: "Trad."
+        sequence_metadata {
+          title: "Old Sir Simon the King"
+          artist: "Trad."
+          composers: "Trad."
+        }
         time_signatures {
           numerator: 9
           denominator: 8
@@ -285,10 +290,11 @@ class AbcParserTest(tf.test.TestCase):
           parser: MAGENTA_ABC
         }
         reference_number: 3
-        titles: "William and Nancy"
-        titles: "New Mown Hay"
-        titles: "Legacy, The"
-        composers: "Trad."
+        sequence_metadata {
+          title: "William and Nancy; New Mown Hay; Legacy, The"
+          artist: "Trad."
+          composers: "Trad."
+        }
         time_signatures {
           numerator: 6
           denominator: 8
@@ -319,7 +325,9 @@ class AbcParserTest(tf.test.TestCase):
           parser: MAGENTA_ABC
         }
         reference_number: 1
-        titles: "Test"
+        sequence_metadata {
+          title: "Test"
+        }
         notes {
           pitch: 60
           velocity: 90

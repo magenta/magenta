@@ -23,12 +23,15 @@ package tensorflow.magenta;
 // For details see https://www.midi.org/specifications.
 // Note that repeated fields in this proto are not guaranteed to be sorted
 // by time.
-// Next tag: 21
+// Next tag: 20
 message NoteSequence {
   // Unique id.
   string id = 1;
   // The path of the file relative to the root of the collection.
   string filename = 2;
+  // A unique id to differentiate multiple pieces taken from the same input
+  // file.
+  int64 reference_number = 18;
   // The collection from which the file comes. This can be shorthand e.g.
   // "bach". One purpose is to allow for easy selection of all or some files
   // from a particular source.
@@ -73,18 +76,8 @@ message NoteSequence {
   // sequence (if that was the case).
   SubsequenceInfo subsequence_info = 17;
 
-  // A unique id to differentiate multiple pieces taken from the same input
-  // file.
-  int64 reference_number = 18;
-
-  // Title of the piece. Some pieces have multiple titles.
-  repeated string titles = 19;
-
-  // Composer of the piece. Some pieces have multiple composers.
-  // TODO(fjord): Should we go with a more complicated approach where each
-  // composer/artist has a role? Might be useful if we start having lyrics and
-  // want to include who wrote them in addition to the tune composer.
-  repeated string composers = 20;
+  // Sequence metadata.
+  SequenceMetadata sequence_metadata = 19;
 
   // Next tag: 15
   message Note {
@@ -354,7 +347,15 @@ message NoteSequence {
 
 // Stores metadata associated with a sequence.
 message SequenceMetadata {
+  // Title of the piece.
   string title = 1;
+
+  // Primary artist of the sequence.
   string artist = 2;
+
+  // Genre(s) of the sequence.
   repeated string genre = 3;
+
+  // Composer of the sequece. Some pieces have multiple composers.
+  repeated string composers = 4;
 }

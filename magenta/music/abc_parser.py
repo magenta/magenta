@@ -345,7 +345,11 @@ class ABCTune(object):
     elif field_name == 'C':
       # Composer
       # http://abcnotation.com/wiki/abc:standard:v2.1#ccomposer
-      self._ns.composers.append(field_content)
+      self._ns.sequence_metadata.composers.append(field_content)
+
+      # The first composer will be set as the primary artist.
+      if not self._ns.sequence_metadata.artist:
+        self._ns.sequence_metadata.artist = field_content
     elif field_name == 'D':
       pass
     elif field_name == 'F':
@@ -416,7 +420,12 @@ class ABCTune(object):
     elif field_name == 'T':
       # Title
       # http://abcnotation.com/wiki/abc:standard:v2.1#ttune_title
-      self._ns.titles.append(field_content)
+
+      # If there are multiple titles, separate them with semicolons.
+      if self._ns.sequence_metadata.title:
+        self._ns.sequence_metadata.title += '; ' + field_content
+      else:
+        self._ns.sequence_metadata.title = field_content
     elif field_name == 'U':
       pass
     elif field_name == 'V':
