@@ -320,6 +320,9 @@ class ABCTune(object):
       r'((?:(?:maj|ion|min|aeo|mix|dor|phr|lyd|loc|m)[^ ]*)?)',
       re.IGNORECASE)
 
+  # http://abcnotation.com/wiki/abc:standard:v2.1#kkey
+  KEY_ACCIDENTALS_PATTERN = re.compile(r'(__|_|=|\^|\^\^)?([A-Ga-g])')
+
   @staticmethod
   def parse_key(key):
     """Parse an ABC key string."""
@@ -373,7 +376,7 @@ class ABCTune(object):
       accidentals = ABCTune._sig_to_accidentals(sig)
 
     while pos < len(key):
-      note_match = ABCTune.NOTE_PATTERN.match(key, pos)
+      note_match = ABCTune.KEY_ACCIDENTALS_PATTERN.match(key, pos)
       if note_match:
         pos += len(note_match.group(0))
 
