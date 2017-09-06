@@ -24,6 +24,7 @@ import re
 
 # internal imports
 
+import six
 from six.moves import range  # pylint: disable=redefined-builtin
 import tensorflow as tf
 
@@ -114,7 +115,7 @@ class ABCTune(object):
   }
 
   KEY_TO_SIG = {}
-  for sig, keys in SIG_TO_KEYS.iteritems():
+  for sig, keys in six.iteritems(SIG_TO_KEYS):
     for key in keys:
       KEY_TO_SIG[key.lower()] = sig
 
