@@ -19,6 +19,7 @@ from __future__ import print_function
 
 # internal imports
 
+import six
 import tensorflow as tf
 
 from magenta.common import testing_lib as common_testing_lib
@@ -93,7 +94,7 @@ class AbcParserTest(tf.test.TestCase):
     self.maxDiff = None
 
   def compareAccidentals(self, expected, accidentals):
-    values = [v[1] for v in sorted(accidentals.iteritems())]
+    values = [v[1] for v in sorted(six.iteritems(accidentals))]
     self.assertEqual(expected, values)
 
   def testParseKeyBasic(self):
