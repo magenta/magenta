@@ -456,7 +456,7 @@ class ABCTune(object):
 
       tempo_match = ABCTune.TEMPO_PATTERN.match(field_content)
       deprecated_tempo_match = ABCTune.TEMPO_DEPRECATED_PATTERN.match(
-            field_content)
+          field_content)
       tempo_string_only_match = ABCTune.TEMPO_PATTERN_STRING_ONLY.match(
           field_content)
       if tempo_match:
