@@ -600,6 +600,7 @@ py_library(
 py_library(
     name = "abc_parser",
     srcs = ["abc_parser.py"],
+    srcs_version = "PY2AND3",
     deps = [
         ":constants",
         "//magenta/protobuf:music_py_pb2",
@@ -609,6 +610,7 @@ py_library(
 py_test(
     name = "abc_parser_test",
     srcs = ["abc_parser_test.py"],
+    srcs_version = "PY2AND3",
     deps = [
         ":abc_parser",
         "//magenta/common:testing_lib",
