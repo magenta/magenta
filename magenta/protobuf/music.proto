@@ -331,3 +331,10 @@ message NoteSequence {
     double end_time_offset = 2;
   }
 }
+
+// Stores metadata associated with a sequence.
+message SequenceMetadata {
+  optional string title = 1;
+  optional string artist = 2;
+  repeated string genre = 3;
+}
