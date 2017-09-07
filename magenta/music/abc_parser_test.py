@@ -264,6 +264,8 @@ class AbcParserTest(tf.test.TestCase):
           key: G
         }
         """)
+    # TODO(fjord): verify chord annotations
+    del tunes[2].text_annotations[:]
     self.compareToAbc2midiAndMetadata(
         'testdata/english3.mid', expected_ns3_metadata, tunes[2])
 
@@ -317,7 +319,6 @@ class AbcParserTest(tf.test.TestCase):
           end_time: 1.25
         }
         """)
-    # TODO(fjord): add timing
     self.assertProtoEquals(expected_ns1, tunes[0])
 
   def testParseTempos(self):

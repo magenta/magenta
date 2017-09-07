@@ -207,6 +207,15 @@ class ABCTune(object):
         accidentals[ABCTune.FLATS_ORDER[i]] = -1
     return accidentals
 
+  @property
+  def _qpm(self):
+    """Returns the current QPM."""
+    if self._ns.tempos:
+      return self._ns.tempos[-1].qpm
+    else:
+      # No QPM has been specified, so will use the default one.
+      return constants.DEFAULT_QUARTERS_PER_MINUTE
+
   def _set_values_from_header(self):
     # Set unit note length. May depend on the current meter, so this has to be
     # calculated at the end of the header.
@@ -339,7 +348,7 @@ class ABCTune(object):
           raise ValueError('pitch {} is invalid'.format(note.pitch))
 
         # Note length
-        length = self._unit_note_length
+        length = self._current_unit_note_length
         # http://abcnotation.com/wiki/abc:standard:v2.1#note_lengths
         if note_match.group(4):
           slash_count = note_match.group(4).count('/')
@@ -621,6 +630,13 @@ class ABCTune(object):
     elif field_name == 'T':
       # Title
       # http://abcnotation.com/wiki/abc:standard:v2.1#ttune_title
+
+      if not self._in_header:
+        # TODO(fjord): Non-header titles are used to name parts of tunes, but
+        # NoteSequence doesn't currently have any place to put that information.
+        tf.logging.warning(
+            'Ignoring non-header title: {}'.format(field_content))
+        return
 
       # If there are multiple titles, separate them with semicolons.
       if self._ns.sequence_metadata.title:
