@@ -39,21 +39,43 @@ class AbcParserTest(tf.test.TestCase):
     values = [v[1] for v in sorted(six.iteritems(accidentals))]
     self.assertEqual(expected, values)
 
-  def compareAbc2midiNotes(self, expected, test):
-    self.assertEqual(len(expected.notes), len(test.notes))
+  def compareToAbc2midiAndMetadata(self, midi_path, expected_ns_metadata, test):
+    """Compare parsing results to the abc2midi "reference" implementation."""
+    abc2midi = midi_io.midi_file_to_sequence_proto(
+        os.path.join(tf.resource_loader.get_data_files_path(), midi_path))
+
+    # We don't yet support repeats, so just check the first 10 notes and only
+    # the first time signature.
+    del abc2midi.notes[10:]
+    del test.notes[10:]
+    del abc2midi.time_signatures[1:]
+    del test.time_signatures[1:]
 
     # abc2midi adds a 1-tick delay to the start of every note, but we don't.
-    tick_length = ((1 / (expected.tempos[0].qpm / 60)) /
-                   expected.ticks_per_quarter)
+    tick_length = ((1 / (abc2midi.tempos[0].qpm / 60)) /
+                   abc2midi.ticks_per_quarter)
 
-    expected_adj = copy.deepcopy(expected)
-    for note in expected_adj.notes:
+    for note in abc2midi.notes:
       note.start_time -= tick_length
 
-    for exp_note, test_note in zip(expected_adj.notes, test.notes):
+    self.assertEqual(len(abc2midi.notes), len(test.notes))
+    for exp_note, test_note in zip(abc2midi.notes, test.notes):
       # For now, don't compare velocities.
       exp_note.velocity = test_note.velocity
       self.assertProtoEquals(exp_note, test_note)
+
+    self.assertEqual(len(abc2midi.time_signatures), len(test.time_signatures))
+    for exp_timesig, test_timesig in zip(
+        abc2midi.time_signatures, test.time_signatures):
+      self.assertProtoEquals(exp_timesig, test_timesig)
+
+    # We've checked the notes and time signatures, now compare the rest of the
+    # proto to the expected proto.
+    test_copy = copy.deepcopy(test)
+    del test_copy.notes[:]
+    del test_copy.time_signatures[:]
+    self.assertProtoEquals(expected_ns_metadata, test_copy)
+
 
   def testParseKeyBasic(self):
     # Most examples taken from
@@ -179,15 +201,7 @@ class AbcParserTest(tf.test.TestCase):
                      'testdata/english.abc'))
     self.assertEqual(3, len(tunes))
 
-    abc2midi_1 = midi_io.midi_file_to_sequence_proto(
-        os.path.join(tf.resource_loader.get_data_files_path(),
-                     'testdata/english1.mid'))
-
-    del abc2midi_1.notes[10:]
-    del tunes[0].notes[10:]
-    self.compareAbc2midiNotes(abc2midi_1, tunes[0])
-
-    expected_ns1 = common_testing_lib.parse_test_proto(
+    expected_ns1_metadata = common_testing_lib.parse_test_proto(
         music_pb2.NoteSequence,
         """
         ticks_per_quarter: 220
@@ -202,19 +216,14 @@ class AbcParserTest(tf.test.TestCase):
           artist: "Trad."
           composers: "Trad."
         }
-        time_signatures {
-          numerator: 3
-          denominator: 4
-        }
         key_signatures {
           key: G
         }
         """)
-    # We've already compared notes, now check the other attributes.
-    del tunes[0].notes[:]
-    self.assertProtoEquals(expected_ns1, tunes[0])
+    self.compareToAbc2midiAndMetadata(
+        'testdata/english1.mid', expected_ns1_metadata, tunes[0])
 
-    expected_ns2 = common_testing_lib.parse_test_proto(
+    expected_ns2_metadata = common_testing_lib.parse_test_proto(
         music_pb2.NoteSequence,
         """
         ticks_per_quarter: 220
@@ -229,27 +238,14 @@ class AbcParserTest(tf.test.TestCase):
           artist: "Trad."
           composers: "Trad."
         }
-        time_signatures {
-          numerator: 9
-          denominator: 8
-        }
-        time_signatures {
-          numerator: 12
-          denominator: 8
-        }
-        time_signatures {
-          numerator: 9
-          denominator: 8
-        }
         key_signatures {
           key: G
         }
         """)
-    # TODO(fjord): add notes and times.
-    del tunes[1].notes[:]
-    self.assertProtoEquals(expected_ns2, tunes[1])
+    self.compareToAbc2midiAndMetadata(
+        'testdata/english2.mid', expected_ns2_metadata, tunes[1])
 
-    expected_ns3 = common_testing_lib.parse_test_proto(
+    expected_ns3_metadata = common_testing_lib.parse_test_proto(
         music_pb2.NoteSequence,
         """
         ticks_per_quarter: 220
@@ -264,18 +260,12 @@ class AbcParserTest(tf.test.TestCase):
           artist: "Trad."
           composers: "Trad."
         }
-        time_signatures {
-          numerator: 6
-          denominator: 8
-        }
         key_signatures {
           key: G
         }
         """)
-    # TODO(fjord): add notes and times.
-    del tunes[2].notes[:]
-    del tunes[2].text_annotations[:]
-    self.assertProtoEquals(expected_ns3, tunes[2])
+    self.compareToAbc2midiAndMetadata(
+        'testdata/english3.mid', expected_ns3_metadata, tunes[2])
 
   def testParseOctaves(self):
     tunes = abc_parser.parse_tunebook("""X:1
