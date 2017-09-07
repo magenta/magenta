@@ -215,7 +215,8 @@ class ABCTune(object):
 
     Should be called immediately after parsing the header.
 
-    Raises: ValueError if multiple time signatures were set in the header.
+    Raises:
+      ValueError: If multiple time signatures were set in the header.
     """
     # http://abcnotation.com/wiki/abc:standard:v2.1#lunit_note_length
 
