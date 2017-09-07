@@ -359,7 +359,7 @@ py_library(
         # using py3 with --build_tag_filters=-py2only. Necessary because the
         # musicnet dataset was pickled using py2 and is therefore incompatible
         # with py3.
-        "py2only"
+        "py2only",
     ],
     deps = [
         "//magenta/protobuf:music_py_pb2",
@@ -379,7 +379,7 @@ py_test(
         # using py3 with --test_tag_filters=-py2only. Necessary because the
         # musicnet dataset was pickled using py2 and is therefore incompatible
         # with py3.
-        "py2only"
+        "py2only",
     ],
     deps = [
         ":musicnet_io",
@@ -593,6 +593,28 @@ py_library(
     srcs = ["model.py"],
     srcs_version = "PY2AND3",
     deps = [
+        # tensorflow dep
+    ],
+)
+
+py_library(
+    name = "abc_parser",
+    srcs = ["abc_parser.py"],
+    srcs_version = "PY2AND3",
+    deps = [
+        ":constants",
+        "//magenta/protobuf:music_py_pb2",
+    ],
+)
+
+py_test(
+    name = "abc_parser_test",
+    srcs = ["abc_parser_test.py"],
+    srcs_version = "PY2AND3",
+    deps = [
+        ":abc_parser",
+        "//magenta/common:testing_lib",
+        "//magenta/protobuf:music_py_pb2",
         # tensorflow dep
     ],
 )

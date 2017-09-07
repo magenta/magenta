@@ -1,0 +1,447 @@
+# Copyright 2017 Google Inc. All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#    http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+"""Parser for ABC files.
+
+http://abcnotation.com/wiki/abc:standard:v2.1
+"""
+
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import print_function
+
+import re
+
+# internal imports
+
+import six
+from six.moves import range  # pylint: disable=redefined-builtin
+import tensorflow as tf
+
+from magenta.music import constants
+from magenta.protobuf import music_pb2
+
+
+def parse_tunebook(tunebook):
+  """Parse an ABC Tunebook string."""
+  # Split tunebook into sections based on empty lines.
+  sections = []
+  current_lines = []
+  for line in tunebook.splitlines():
+    line = line.strip()
+    if not line:
+      if current_lines:
+        sections.append(current_lines)
+        current_lines = []
+    else:
+      current_lines.append(line)
+  if current_lines:
+    sections.append(current_lines)
+
+  # If there are multiple sections, the first one may be a header.
+  # The first section is a header if it does not contain an X information field.
+  header = []
+  if len(sections) > 1 and not any(
+      [line.startswith('X:') for line in sections[0]]):
+    header = sections.pop(0)
+
+  # The header sets default values for each tune, so prepend it to every
+  # tune that is being parsed.
+  return [ABCTune(header + tune).note_sequence for tune in sections]
+
+
+class ABCTune(object):
+  """Class for parsing an individual ABC tune."""
+
+  # http://abcnotation.com/wiki/abc:standard:v2.1#decorations
+  DECORATION_TO_VELOCITY = {
+      '!pppp!': 30,
+      '!ppp!': 30,
+      '!pp!': 45,
+      '!p!': 60,
+      '!mp!': 75,
+      '!mf!': 90,
+      '!f!': 105,
+      '!ff!': 120,
+      '!fff!': 127,
+      '!ffff!': 127,
+  }
+
+  # http://abcnotation.com/wiki/abc:standard:v2.1#pitch
+  ABC_NOTE_TO_MIDI = {
+      'C': 60,
+      'D': 62,
+      'E': 64,
+      'F': 65,
+      'G': 67,
+      'A': 69,
+      'B': 71,
+      'c': 72,
+      'd': 74,
+      'e': 76,
+      'f': 77,
+      'g': 79,
+      'a': 81,
+      'b': 83,
+  }
+
+  # http://abcnotation.com/wiki/abc:standard:v2.1#kkey
+  SIG_TO_KEYS = {
+      7: ['C#', 'A#m', 'G#Mix', 'D#Dor', 'E#Phr', 'F#Lyd', 'B#Loc'],
+      6: ['F#', 'D#m', 'C#Mix', 'G#Dor', 'A#Phr', 'BLyd', 'E#Loc'],
+      5: ['B', 'G#m', 'F#Mix', 'C#Dor', 'D#Phr', 'ELyd', 'A#Loc'],
+      4: ['E', 'C#m', 'BMix', 'F#Dor', 'G#Phr', 'ALyd', 'D#Loc'],
+      3: ['A', 'F#m', 'EMix', 'BDor', 'C#Phr', 'DLyd', 'G#Loc'],
+      2: ['D', 'Bm', 'AMix', 'EDor', 'F#Phr', 'GLyd', 'C#Loc'],
+      1: ['G', 'Em', 'DMix', 'ADor', 'BPhr', 'CLyd', 'F#Loc'],
+      0: ['C', 'Am', 'GMix', 'DDor', 'EPhr', 'FLyd', 'BLoc'],
+      -1: ['F', 'Dm', 'CMix', 'GDor', 'APhr', 'BbLyd', 'ELoc'],
+      -2: ['Bb', 'Gm', 'FMix', 'CDor', 'DPhr', 'EbLyd', 'ALoc'],
+      -3: ['Eb', 'Cm', 'BbMix', 'FDor', 'GPhr', 'AbLyd', 'DLoc'],
+      -4: ['Ab', 'Fm', 'EbMix', 'BbDor', 'CPhr', 'DbLyd', 'GLoc'],
+      -5: ['Db', 'Bbm', 'AbMix', 'EbDor', 'FPhr', 'GbLyd', 'CLoc'],
+      -6: ['Gb', 'Ebm', 'DbMix', 'AbDor', 'BbPhr', 'CbLyd', 'FLoc'],
+      -7: ['Cb', 'Abm', 'GbMix', 'DbDor', 'EbPhr', 'FbLyd', 'BbLoc'],
+  }
+
+  KEY_TO_SIG = {}
+  for sig, keys in six.iteritems(SIG_TO_KEYS):
+    for key in keys:
+      KEY_TO_SIG[key.lower()] = sig
+
+  KEY_TO_PROTO_KEY = {
+      'c': music_pb2.NoteSequence.KeySignature.C,
+      'c#': music_pb2.NoteSequence.KeySignature.C_SHARP,
+      'db': music_pb2.NoteSequence.KeySignature.D_FLAT,
+      'd': music_pb2.NoteSequence.KeySignature.D,
+      'd#': music_pb2.NoteSequence.KeySignature.D_SHARP,
+      'eb': music_pb2.NoteSequence.KeySignature.E_FLAT,
+      'e': music_pb2.NoteSequence.KeySignature.E,
+      'f': music_pb2.NoteSequence.KeySignature.F,
+      'f#': music_pb2.NoteSequence.KeySignature.F_SHARP,
+      'gb': music_pb2.NoteSequence.KeySignature.G_FLAT,
+      'g': music_pb2.NoteSequence.KeySignature.G,
+      'g#': music_pb2.NoteSequence.KeySignature.G_SHARP,
+      'ab': music_pb2.NoteSequence.KeySignature.A_FLAT,
+      'a': music_pb2.NoteSequence.KeySignature.A,
+      'a#': music_pb2.NoteSequence.KeySignature.A_SHARP,
+      'bb': music_pb2.NoteSequence.KeySignature.B_FLAT,
+      'b': music_pb2.NoteSequence.KeySignature.B,
+  }
+
+  SHARPS_ORDER = 'FCGDAEB'
+  FLATS_ORDER = 'BEADGCF'
+
+  def __init__(self, tune_lines):
+    self._ns = music_pb2.NoteSequence()
+    # Standard ABC fields.
+    self._ns.source_info.source_type = (
+        music_pb2.NoteSequence.SourceInfo.SCORE_BASED)
+    self._ns.source_info.encoding_type = (
+        music_pb2.NoteSequence.SourceInfo.ABC)
+    self._ns.source_info.parser = (
+        music_pb2.NoteSequence.SourceInfo.MAGENTA_ABC)
+    self._ns.ticks_per_quarter = constants.STANDARD_PPQ
+
+    self._current_time = 0
+    self._accidentals = ABCTune._sig_to_accidentals(0)
+
+    # Default dynamic should be !mf! as per:
+    # http://abcnotation.com/wiki/abc:standard:v2.1#decorations
+    self._current_velocity = ABCTune.DECORATION_TO_VELOCITY['!mf!']
+
+    for line in tune_lines:
+      line = re.sub('%.*$', '', line)  # Strip comments.
+      line = line.strip()  # Strip whitespace.
+      if not line:
+        continue
+
+      # If the lines begins with a letter and a colon, it's an information
+      # field. Extract it.
+      info_field = re.match(r'([A-Za-z]):\s*(.*)', line)
+      if info_field:
+        self._parse_information_field(info_field.group(1), info_field.group(2))
+      else:
+        self._parse_music_code(line)
+
+  @property
+  def note_sequence(self):
+    return self._ns
+
+  @staticmethod
+  def _sig_to_accidentals(sig):
+    accidentals = {pitch: 0 for pitch in 'ABCDEFG'}
+    if sig > 0:
+      for i in range(sig):
+        accidentals[ABCTune.SHARPS_ORDER[i]] = 1
+    elif sig < 0:
+      for i in range(abs(sig)):
+        accidentals[ABCTune.FLATS_ORDER[i]] = -1
+    return accidentals
+
+  # http://abcnotation.com/wiki/abc:standard:v2.1#pitch
+  NOTE_PATTERN = re.compile(r'(__|_|=|\^|\^\^)?([A-Ga-g])([\',]*)')
+
+  def _parse_music_code(self, line):
+    """Parse the music code within an ABC file."""
+
+    # http://abcnotation.com/wiki/abc:standard:v2.1#the_tune_body
+    pos = 0
+    while pos < len(line):
+      char = line[pos]
+
+      note_match = ABCTune.NOTE_PATTERN.match(line, pos)
+      if note_match:
+        pos += len(note_match.group(0))
+
+        note = self._ns.notes.add()
+        note.velocity = self._current_velocity
+        note.start_time = self._current_time
+        # advance clock
+        note.end_time = self._current_time
+
+        note.pitch = ABCTune.ABC_NOTE_TO_MIDI[note_match.group(2)]
+        if note_match.group(1):
+          for accidental in note_match.group(1).split():
+            if accidental == '^':
+              note.pitch += 1
+            elif accidental == '_':
+              note.pitch -= 1
+            elif accidental == '=':
+              pass
+            else:
+              raise ValueError('Invalid accidental: {}'.format(accidental))
+        else:
+          # No accidentals, so modify according to current key.
+          note.pitch += self._accidentals[note_match.group(2).upper()]
+        if note_match.group(3):
+          for octave in note_match.group(3):
+            if octave == '\'':
+              note.pitch += 12
+            elif octave == ',':
+              note.pitch -= 12
+            else:
+              raise ValueError('Invalid octave: {}'.format(octave))
+        if (note.pitch < constants.MIN_MIDI_PITCH or
+            note.pitch > constants.MAX_MIDI_PITCH):
+          raise ValueError('pitch {} is invalid'.format(note.pitch))
+      elif char == '"':
+        # Text annotation
+        # http://abcnotation.com/wiki/abc:standard:v2.1#chord_symbols
+        # http://abcnotation.com/wiki/abc:standard:v2.1#annotations
+        endpos = line.find('"', pos + 1)
+        if endpos == -1:
+          raise ValueError('Could not find end of text annotation')
+        annotation = line[pos + 1:endpos]
+        pos = endpos + 1
+
+        ta = self._ns.text_annotations.add()
+        ta.time = self._current_time
+        ta.text = annotation
+        if annotation[0] in ABCTune.ABC_NOTE_TO_MIDI:
+          # http://abcnotation.com/wiki/abc:standard:v2.1#chord_symbols
+          ta.annotation_type = (
+              music_pb2.NoteSequence.TextAnnotation.CHORD_SYMBOL)
+        else:
+          ta.annotation_type = (
+              music_pb2.NoteSequence.TextAnnotation.UNKNOWN)
+      else:
+        pos += 1
+
+  # http://abcnotation.com/wiki/abc:standard:v2.1#kkey
+  KEY_PATTERN = re.compile(
+      r'([A-G])\s*([#b]?)\s*'
+      r'((?:(?:maj|ion|min|aeo|mix|dor|phr|lyd|loc|m)[^ ]*)?)',
+      re.IGNORECASE)
+
+  @staticmethod
+  def parse_key(key):
+    """Parse an ABC key string."""
+
+    # http://abcnotation.com/wiki/abc:standard:v2.1#kkey
+    key_match = ABCTune.KEY_PATTERN.match(key)
+    if not key_match:
+      raise ValueError('Could not parse key: {}'.format(key))
+
+    key_components = list(key_match.groups())
+
+    # Shorten the mode to be at most 3 letters long.
+    mode = key_components[2][:3].lower()
+
+    # "Minor" and "Aeolian" are special cases that are abbreviated to 'm'.
+    # "Major" and "Ionian" are special cases that are abbreviated to ''.
+    if mode == 'min' or mode == 'aeo':
+      mode = 'm'
+    elif mode == 'maj' or mode == 'ion':
+      mode = ''
+
+    sig = ABCTune.KEY_TO_SIG[''.join(key_components[0:2] + [mode]).lower()]
+
+    proto_key = ABCTune.KEY_TO_PROTO_KEY[''.join(key_components[0:2]).lower()]
+
+    if mode == '':  # pylint: disable=g-explicit-bool-comparison
+      proto_mode = music_pb2.NoteSequence.KeySignature.MAJOR
+    elif mode == 'm':
+      proto_mode = music_pb2.NoteSequence.KeySignature.MINOR
+    elif mode == 'mix':
+      proto_mode = music_pb2.NoteSequence.KeySignature.MIXOLYDIAN
+    elif mode == 'dor':
+      proto_mode = music_pb2.NoteSequence.KeySignature.DORIAN
+    elif mode == 'phr':
+      proto_mode = music_pb2.NoteSequence.KeySignature.PHRYGIAN
+    elif mode == 'lyd':
+      proto_mode = music_pb2.NoteSequence.KeySignature.LYDIAN
+    elif mode == 'loc':
+      proto_mode = music_pb2.NoteSequence.KeySignature.LOCRIAN
+    else:
+      raise ValueError('Unknown mode: {}'.format(mode))
+
+    # Match the rest of the string for possible modifications.
+    pos = key_match.end()
+    exppos = key[pos:].find('exp')
+    if exppos != -1:
+      # Only explicit accidentals will be used.
+      accidentals = ABCTune._sig_to_accidentals(0)
+      pos += exppos + 3
+    else:
+      accidentals = ABCTune._sig_to_accidentals(sig)
+
+    while pos < len(key):
+      note_match = ABCTune.NOTE_PATTERN.match(key, pos)
+      if note_match:
+        pos += len(note_match.group(0))
+
+        note = note_match.group(2).upper()
+        if note_match.group(1):
+          if note_match.group(1) == '^':
+            accidentals[note] = 1
+          elif note_match.group(1) == '_':
+            accidentals[note] = -1
+          elif note_match.group(1) == '=':
+            accidentals[note] = 0
+          else:
+            raise ValueError(
+                'Invalid accidental: {}'.format(note_match.group(1)))
+      else:
+        pos += 1
+
+    return accidentals, proto_key, proto_mode
+
+  def _parse_information_field(self, field_name, field_content):
+    # http://abcnotation.com/wiki/abc:standard:v2.1#information_fields
+    if field_name == 'A':
+      pass
+    elif field_name == 'B':
+      pass
+    elif field_name == 'C':
+      # Composer
+      # http://abcnotation.com/wiki/abc:standard:v2.1#ccomposer
+      self._ns.sequence_metadata.composers.append(field_content)
+
+      # The first composer will be set as the primary artist.
+      if not self._ns.sequence_metadata.artist:
+        self._ns.sequence_metadata.artist = field_content
+    elif field_name == 'D':
+      pass
+    elif field_name == 'F':
+      pass
+    elif field_name == 'G':
+      pass
+    elif field_name == 'H':
+      pass
+    elif field_name == 'I':
+      pass
+    elif field_name == 'K':
+      # Key
+      # http://abcnotation.com/wiki/abc:standard:v2.1#kkey
+      accidentals, proto_key, proto_mode = ABCTune.parse_key(field_content)
+      self._accidentals = accidentals
+      ks = self._ns.key_signatures.add()
+      ks.key = proto_key
+      ks.mode = proto_mode
+      ks.time = self._current_time
+    elif field_name == 'L':
+      pass
+    elif field_name == 'M':
+      # Meter
+      # http://abcnotation.com/wiki/abc:standard:v2.1#mmeter
+      if field_content.upper() == 'C':
+        ts = self._ns.time_signatures.add()
+        ts.numerator = 4
+        ts.denominator = 4
+        ts.time = self._current_time
+      elif field_content.upper() == 'C|':
+        ts = self._ns.time_signatures.add()
+        ts.numerator = 2
+        ts.denominator = 2
+        ts.time = self._current_time
+      elif field_content.lower() == 'none':
+        pass
+      else:
+        timesig = field_content.split('/', 2)
+        if len(timesig) != 2:
+          raise ValueError('Could not parse meter: {}'.format(field_content))
+
+        ts = self._ns.time_signatures.add()
+        ts.time = self._current_time
+        try:
+          ts.numerator = int(timesig[0])
+          ts.denominator = int(timesig[1])
+        except ValueError as e:
+          raise ValueError(e, 'Could not parse meter: {}'.format(field_content))
+    elif field_name == 'm':
+      pass
+    elif field_name == 'N':
+      pass
+    elif field_name == 'O':
+      pass
+    elif field_name == 'P':
+      # TODO(fjord): implement part parsing.
+      pass
+    elif field_name == 'Q':
+      pass
+    elif field_name == 'R':
+      pass
+    elif field_name == 'r':
+      pass
+    elif field_name == 'S':
+      pass
+    elif field_name == 's':
+      pass
+    elif field_name == 'T':
+      # Title
+      # http://abcnotation.com/wiki/abc:standard:v2.1#ttune_title
+
+      # If there are multiple titles, separate them with semicolons.
+      if self._ns.sequence_metadata.title:
+        self._ns.sequence_metadata.title += '; ' + field_content
+      else:
+        self._ns.sequence_metadata.title = field_content
+    elif field_name == 'U':
+      pass
+    elif field_name == 'V':
+      pass
+    elif field_name == 'W':
+      pass
+    elif field_name == 'w':
+      pass
+    elif field_name == 'X':
+      # Reference number
+      # http://abcnotation.com/wiki/abc:standard:v2.1#xreference_number
+      self._ns.reference_number = int(field_content)
+    elif field_name == 'Z':
+      pass
+    else:
+      tf.logging.warning(
+          'Unknown field name {} with content {}'.format(
+              field_name, field_content))
