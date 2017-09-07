@@ -610,8 +610,15 @@ py_library(
 py_test(
     name = "abc_parser_test",
     srcs = ["abc_parser_test.py"],
+    data = [
+        "testdata/english.abc",
+        "testdata/english1.mid",
+        "testdata/english2.mid",
+        "testdata/english3.mid",
+    ],
     srcs_version = "PY2AND3",
     deps = [
+        ":midi_io",
         ":abc_parser",
         "//magenta/common:testing_lib",
         "//magenta/protobuf:music_py_pb2",

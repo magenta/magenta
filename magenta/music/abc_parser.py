@@ -33,6 +33,11 @@ from magenta.music import constants
 from magenta.protobuf import music_pb2
 
 
+def parse_tunebook_file(filename):
+  """Parse an ABC Tunebook file."""
+  return parse_tunebook(tf.gfile.Open(filename, 'rb').read())
+
+
 def parse_tunebook(tunebook):
   """Parse an ABC Tunebook string."""
   # Split tunebook into sections based on empty lines.
@@ -246,7 +251,8 @@ class ABCTune(object):
     tempo.qpm = float((tempo_unit / Fraction(1, 4)) * tempo_rate)
 
   # http://abcnotation.com/wiki/abc:standard:v2.1#pitch
-  NOTE_PATTERN = re.compile(r'(__|_|=|\^|\^\^)?([A-Ga-g])([\',]*)')
+  NOTE_PATTERN = re.compile(
+      r'(__|_|=|\^|\^\^)?([A-Ga-g])([\',]*)(\d*/*\d*)')
 
   def _parse_music_code(self, line):
     """Parse the music code within an ABC file."""
@@ -258,15 +264,15 @@ class ABCTune(object):
 
       note_match = ABCTune.NOTE_PATTERN.match(line, pos)
       if note_match:
-        pos += len(note_match.group(0))
+        pos = note_match.end()
 
         note = self._ns.notes.add()
         note.velocity = self._current_velocity
         note.start_time = self._current_time
-        # advance clock
-        note.end_time = self._current_time
 
         note.pitch = ABCTune.ABC_NOTE_TO_MIDI[note_match.group(2)]
+
+        # Accidentals
         if note_match.group(1):
           for accidental in note_match.group(1).split():
             if accidental == '^':
@@ -280,6 +286,8 @@ class ABCTune(object):
         else:
           # No accidentals, so modify according to current key.
           note.pitch += self._accidentals[note_match.group(2).upper()]
+
+        # Octaves
         if note_match.group(3):
           for octave in note_match.group(3):
             if octave == '\'':
@@ -288,9 +296,32 @@ class ABCTune(object):
               note.pitch -= 12
             else:
               raise ValueError('Invalid octave: {}'.format(octave))
+
         if (note.pitch < constants.MIN_MIDI_PITCH or
             note.pitch > constants.MAX_MIDI_PITCH):
           raise ValueError('pitch {} is invalid'.format(note.pitch))
+
+        # Note length
+        length = self._unit_note_length
+        # http://abcnotation.com/wiki/abc:standard:v2.1#note_lengths
+        if note_match.group(4):
+          slash_count = note_match.group(4).count('/')
+          if slash_count > 1:
+            # Handle A// shorthand case.
+            if slash_count != len(note_match.group(4)):
+              raise ValueError(
+                  'Found multiple slashes with other characters: {}'.format(
+                      note_match.group(4)))
+            length /= slash_count
+          elif note_match.group(4).startswith('/'):
+            length /= int(note_match.group(4)[1:])
+          else:
+            length *= int(note_match.group(4))
+
+        # Advance clock based on note length.
+        self._current_time += (1 / (self._qpm / 60)) * (length / Fraction(1, 4))
+
+        note.end_time = self._current_time
       elif char == '"':
         # Text annotation
         # http://abcnotation.com/wiki/abc:standard:v2.1#chord_symbols

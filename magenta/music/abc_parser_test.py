@@ -17,6 +17,8 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
+import os.path
+
 # internal imports
 
 import six
@@ -24,69 +26,8 @@ import tensorflow as tf
 
 from magenta.common import testing_lib as common_testing_lib
 from magenta.music import abc_parser
+from magenta.music import midi_io
 from magenta.protobuf import music_pb2
-
-# Sample tunes taken from
-# http://abcnotation.com/wiki/abc:standard:v2.1#sample_abc_tunes
-
-ENGLISH_ABC = r"""%abc-2.1
-H:This file contains some example English tunes
-% note that the comments (like this one) are to highlight usages
-%  and would not normally be included in such detail
-O:England             % the origin of all tunes is England
-
-X:1                   % tune no 1
-T:Dusty Miller, The   % title
-T:Binny's Jig         % an alternative title
-C:Trad.               % traditional
-R:DH                  % double hornpipe
-M:3/4                 % meter
-K:G                   % key
-B>cd BAG|FA Ac BA|B>cd BAG|DG GB AG:|
-Bdd gfg|aA Ac BA|Bdd gfa|gG GB AG:|
-BG G/2G/2G BG|FA Ac BA|BG G/2G/2G BG|DG GB AG:|
-W:Hey, the dusty miller, and his dusty coat;
-W:He will win a shilling, or he spend a groat.
-W:Dusty was the coat, dusty was the colour;
-W:Dusty was the kiss, that I got frae the miller.
-
-X:2
-T:Old Sir Simon the King
-C:Trad.
-S:Offord MSS          % from Offord manuscript
-N:see also Playford   % reference note
-M:9/8
-R:SJ                  % slip jig
-N:originally in C     % transcription note
-K:G
-D|GFG GAG G2D|GFG GAG F2D|EFE EFE EFG|A2G F2E D2:|
-D|GAG GAB d2D|GAG GAB c2D|[1 EFE EFE EFG|A2G F2E D2:|\ % no line-break in score
-M:12/8                % change of meter
-[2 E2E EFE E2E EFG|\  % no line-break in score
-M:9/8                 % change of meter
-A2G F2E D2|]
-
-X:3
-T:William and Nancy
-T:New Mown Hay
-T:Legacy, The
-C:Trad.
-O:England; Gloucs; Bledington % place of origin
-B:Sussex Tune Book            % can be found in these books
-B:Mally's Cotswold Morris vol.1 2
-D:Morris On                   % can be heard on this record
-P:(AB)2(AC)2A                 % play the parts in this order
-M:6/8
-K:G
-[P:A] D|"G"G2G GBd|"C"e2e "G"dBG|"D7"A2d "G"BAG|"C"E2"D7"F "G"G2:|
-[P:B] d|"G"e2d B2d|"C"gfe "G"d2d| "G"e2d    B2d|"C"gfe    "D7"d2c|
-        "G"B2B Bcd|"C"e2e "G"dBG|"D7"A2d "G"BAG|"C"E2"D7"F "G"G2:|
-% changes of meter, using inline fields
-[T:Slows][M:4/4][L:1/4][P:C]"G"d2|"C"e2 "G"d2|B2 d2|"Em"gf "A7"e2|"D7"d2 "G"d2|\
-       "C"e2 "G"d2|[M:3/8][L:1/8] "G"B2 d |[M:6/8] "C"gfe "D7"d2c|
-        "G"B2B Bcd|"C"e2e "G"dBG|"D7"A2d "G"BAG|"C"E2"D7"F "G"G2:|
-"""
-
 
 class AbcParserTest(tf.test.TestCase):
 
@@ -216,8 +157,14 @@ class AbcParserTest(tf.test.TestCase):
     self.assertEqual(music_pb2.NoteSequence.KeySignature.MAJOR, proto_mode)
 
   def testParseEnglishAbc(self):
-    tunes = abc_parser.parse_tunebook(ENGLISH_ABC)
+    tunes = abc_parser.parse_tunebook_file(
+        os.path.join(tf.resource_loader.get_data_files_path(),
+                     'testdata/english.abc'))
     self.assertEqual(3, len(tunes))
+
+    abc2midi_1 = midi_io.midi_file_to_sequence_proto(
+        os.path.join(tf.resource_loader.get_data_files_path(),
+                     'testdata/english1.mid'))
 
     expected_ns1 = common_testing_lib.parse_test_proto(
         music_pb2.NoteSequence,
@@ -243,6 +190,7 @@ class AbcParserTest(tf.test.TestCase):
         }
         """)
     # TODO(fjord): add notes
+    import pdb;pdb.set_trace()
     del tunes[0].notes[:]
     self.assertProtoEquals(expected_ns1, tunes[0])
 
