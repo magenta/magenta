@@ -225,7 +225,8 @@ class ABCTune(object):
       self._current_unit_note_length = Fraction(1, 8)
     else:
       # Otherwise, base it on the current meter.
-      assert len(self._ns.time_signatures) == 1
+      if len(self._ns.time_signatures) != 1:
+        raise ValueError('Multiple time signatures set in header.')
       current_ts = self._ns.time_signatures[0]
       ratio = current_ts.numerator / current_ts.denominator
       if ratio < 0.75:
