@@ -384,8 +384,14 @@ class AbcParserTest(tf.test.TestCase):
 
         X:9
         Q:"Andante"
+
+        X:10
+        Q:100  % define tempo using deprecated syntax
+        % deprecated tempo syntax depends on unit note length. if it is
+        % not defined, it is derived from the current meter.
+        M:2/4  % define meter after tempo to verify that is supported.
         """)
-    self.assertEqual(9, len(tunes))
+    self.assertEqual(10, len(tunes))
 
     self.assertEqual(60, tunes[0].tempos[0].qpm)
     self.assertEqual(100, tunes[1].tempos[0].qpm)
@@ -396,6 +402,7 @@ class AbcParserTest(tf.test.TestCase):
     self.assertEqual(120, tunes[6].tempos[0].qpm)
     self.assertEqual(75, tunes[7].tempos[0].qpm)
     self.assertEqual(0, len(tunes[8].tempos))
+    self.assertEqual(25, tunes[9].tempos[0].qpm)
 
 if __name__ == '__main__':
   tf.test.main()
