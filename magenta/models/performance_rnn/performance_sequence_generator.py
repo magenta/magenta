@@ -150,8 +150,8 @@ class PerformanceRnnSequenceGenerator(mm.BaseSequenceGenerator):
 
     # Extract generation arguments from generator options.
     arg_types = {
-        'note_density': lambda arg: ast.literal_eval(arg.byte_value),
-        'pitch_histogram': lambda arg: ast.literal_eval(arg.byte_value),
+        'note_density': lambda arg: ast.literal_eval(arg.string_value),
+        'pitch_histogram': lambda arg: ast.literal_eval(arg.string_value),
         'temperature': lambda arg: arg.float_value,
         'beam_size': lambda arg: arg.int_value,
         'branch_factor': lambda arg: arg.int_value,

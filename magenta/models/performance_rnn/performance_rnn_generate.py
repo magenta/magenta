@@ -221,9 +221,9 @@ def run_with_flags(generator):
         'histogram will be ignored: %s', FLAGS.pitch_class_histogram)
 
   if FLAGS.notes_per_second is not None:
-    generator_options.args['note_density'].byte_value = FLAGS.notes_per_second
+    generator_options.args['note_density'].string_value = FLAGS.notes_per_second
   if FLAGS.pitch_class_histogram is not None:
-    generator_options.args['pitch_histogram'].byte_value = (
+    generator_options.args['pitch_histogram'].string_value = (
         FLAGS.pitch_class_histogram)
 
   generator_options.args['temperature'].float_value = FLAGS.temperature
