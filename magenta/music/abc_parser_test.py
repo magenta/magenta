@@ -17,6 +17,7 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
+import copy
 import os.path
 
 # internal imports
@@ -37,6 +38,22 @@ class AbcParserTest(tf.test.TestCase):
   def compareAccidentals(self, expected, accidentals):
     values = [v[1] for v in sorted(six.iteritems(accidentals))]
     self.assertEqual(expected, values)
+
+  def compareAbc2midiNotes(self, expected, test):
+    self.assertEqual(len(expected.notes), len(test.notes))
+
+    # abc2midi adds a 1-tick delay to the start of every note, but we don't.
+    tick_length = ((1 / (expected.tempos[0].qpm / 60)) /
+                   expected.ticks_per_quarter)
+
+    expected_adj = copy.deepcopy(expected)
+    for note in expected_adj.notes:
+      note.start_time -= tick_length
+
+    for exp_note, test_note in zip(expected_adj.notes, test.notes):
+      # For now, don't compare velocities.
+      exp_note.velocity = test_note.velocity
+      self.assertProtoEquals(exp_note, test_note)
 
   def testParseKeyBasic(self):
     # Most examples taken from
@@ -166,6 +183,10 @@ class AbcParserTest(tf.test.TestCase):
         os.path.join(tf.resource_loader.get_data_files_path(),
                      'testdata/english1.mid'))
 
+    del abc2midi_1.notes[10:]
+    del tunes[0].notes[10:]
+    self.compareAbc2midiNotes(abc2midi_1, tunes[0])
+
     expected_ns1 = common_testing_lib.parse_test_proto(
         music_pb2.NoteSequence,
         """
@@ -189,8 +210,7 @@ class AbcParserTest(tf.test.TestCase):
           key: G
         }
         """)
-    # TODO(fjord): add notes
-    import pdb;pdb.set_trace()
+    # We've already compared notes, now check the other attributes.
     del tunes[0].notes[:]
     self.assertProtoEquals(expected_ns1, tunes[0])
 
@@ -280,22 +300,31 @@ class AbcParserTest(tf.test.TestCase):
         notes {
           pitch: 60
           velocity: 90
+          end_time: 0.25
         }
         notes {
           pitch: 48
           velocity: 90
+          start_time: 0.25
+          end_time: 0.5
         }
         notes {
           pitch: 48
           velocity: 90
+          start_time: 0.5
+          end_time: 0.75
         }
         notes {
           pitch: 72
           velocity: 90
+          start_time: 0.75
+          end_time: 1.0
         }
         notes {
           pitch: 72
           velocity: 90
+          start_time: 1.0
+          end_time: 1.25
         }
         """)
     # TODO(fjord): add timing
