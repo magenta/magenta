@@ -264,6 +264,8 @@ class ABCTune(object):
 
   def _apply_broken_rhythm(self, broken_rhythm):
     """Applies a broken rhythm symbol to the two most recently added notes."""
+    # http://abcnotation.com/wiki/abc:standard:v2.1#broken_rhythm
+
     if len(self._ns.notes) < 2:
       raise ValueError('Cannot apply a broken rhythm with fewer than 2 notes')
 
