@@ -30,6 +30,7 @@ from magenta.music import abc_parser
 from magenta.music import midi_io
 from magenta.protobuf import music_pb2
 
+
 class AbcParserTest(tf.test.TestCase):
 
   def setUp(self):
@@ -75,7 +76,6 @@ class AbcParserTest(tf.test.TestCase):
     del test_copy.notes[:]
     del test_copy.time_signatures[:]
     self.assertProtoEquals(expected_ns_metadata, test_copy)
-
 
   def testParseKeyBasic(self):
     # Most examples taken from

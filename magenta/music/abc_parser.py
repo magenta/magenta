@@ -263,6 +263,7 @@ class ABCTune(object):
     tempo.qpm = float((tempo_unit / Fraction(1, 4)) * tempo_rate)
 
   def _apply_broken_rhythm(self, broken_rhythm):
+    """Applies a broken rhythm symbol to the two most recently added notes."""
     if len(self._ns.notes) < 2:
       raise ValueError('Cannot apply a broken rhythm with fewer than 2 notes')
 
