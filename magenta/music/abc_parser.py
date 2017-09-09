@@ -645,7 +645,7 @@ class ABCTune(object):
     elif field_name == 'U':
       pass
     elif field_name == 'V':
-      pass
+      raise ValueError('Multi-voice files are not currently supported.')
     elif field_name == 'W':
       pass
     elif field_name == 'w':
