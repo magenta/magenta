@@ -231,6 +231,24 @@ class AbcParserTest(tf.test.TestCase):
           time: 12.0
           section_id: 2
         }
+        section_groups {
+          sections {
+            section_id: 0
+          }
+          num_times: 2
+        }
+        section_groups {
+          sections {
+            section_id: 1
+          }
+          num_times: 2
+        }
+        section_groups {
+          sections {
+            section_id: 2
+          }
+          num_times: 2
+        }
         """)
     self.compareToAbc2midiAndMetadata(
         'testdata/english1.mid', expected_ns1_metadata, tunes[0])
