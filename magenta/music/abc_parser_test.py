@@ -220,6 +220,8 @@ class AbcParserTest(tf.test.TestCase):
           key: G
         }
         section_annotations {
+          time: 0.0
+          section_id: 0
         }
         section_annotations {
           time: 6.0
@@ -228,10 +230,6 @@ class AbcParserTest(tf.test.TestCase):
         section_annotations {
           time: 12.0
           section_id: 2
-        }
-        section_annotations {
-          time: 18.0
-          section_id: 3
         }
         """)
     self.compareToAbc2midiAndMetadata(

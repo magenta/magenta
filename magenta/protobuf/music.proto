@@ -77,7 +77,7 @@ message NoteSequence {
   repeated SectionAnnotation section_annotations = 20;
 
   // Instructions on how to play back the sections within a piece.
-  SectionGroup section_playback = 21;
+  repeated SectionGroup section_groups = 21;
 
   // Information about how/if this sequence was quantized.
   QuantizationInfo quantization_info = 15;

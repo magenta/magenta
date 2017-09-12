@@ -42,6 +42,10 @@ class MultiVoiceException(ABCParseException):
   """Exception when a multi-voice directive is encountered."""
 
 
+class RepeatParseException(ABCParseException):
+  """Exception when a repeat directive could not be parsed."""
+
+
 def parse_tunebook_file(filename):
   """Parse an ABC Tunebook file."""
   # 'r' mode will decode the file as utf-8 in py3.
@@ -174,6 +178,7 @@ class ABCTune(object):
     self._current_time = 0
     self._accidentals = ABCTune._sig_to_accidentals(0)
     self._current_unit_note_length = None
+    self._current_expected_repeats = None
 
     # Default dynamic should be !mf! as per:
     # http://abcnotation.com/wiki/abc:standard:v2.1#decorations
@@ -201,6 +206,7 @@ class ABCTune(object):
         self._parse_music_code(line)
     if self._in_header:
       self._set_values_from_header()
+    self._finalize_sections()
 
   @property
   def note_sequence(self):
@@ -282,6 +288,15 @@ class ABCTune(object):
     sa.time = time
     sa.section_id = new_id
 
+  def _finalize_sections(self):
+    # If a new section was started at the very end of the piece, delete it
+    # because it will contain no notes and is meaningless.
+    # This happens if the last line in the piece ends with a :| symbol. A new
+    # section is set up to handle upcoming notes, but then the end of the piece
+    # is reached.
+    if self._ns.section_annotations[-1].time == self._ns.notes[-1].end_time:
+      del self._ns.section_annotations[-1]
+
   def _apply_broken_rhythm(self, broken_rhythm):
     """Applies a broken rhythm symbol to the two most recently added notes."""
     # http://abcnotation.com/wiki/abc:standard:v2.1#broken_rhythm
@@ -320,11 +335,13 @@ class ABCTune(object):
   INLINE_INFORMATION_FIELD_PATTERN = re.compile(r'\[([A-Za-z]):\s*([^\]]+)\]')
 
   # http://abcnotation.com/wiki/abc:standard:v2.1#repeat_bar_symbols
-  BAR_SYMBOLS_PATTERN = re.compile(r'(:*[\[\]|]:*|::)\s*(\[[0-9,-]+)?')
+  BAR_SYMBOLS_PATTERN = re.compile(r'(:*[\[\]|]:*|:+)\s*(\[[0-9,-]+)?')
+  REPEAT_SYMBOLS_PATTERN = re.compile(r'(:*)[\[\]|](:*)')
 
   # http://abcnotation.com/wiki/abc:standard:v2.1#chord_symbols
   # http://abcnotation.com/wiki/abc:standard:v2.1#annotations
   TEXT_ANNOTATION_PATTERN = re.compile(r'"([^"]*)"')
+
 
   def _parse_music_code(self, line):
     """Parse the music code within an ABC file."""
@@ -422,12 +439,51 @@ class ABCTune(object):
           # We don't currently track regular bar lines
           continue
 
+        # A repeat implies the start of a new section, so make one.
         if not self._ns.section_annotations:
           # We're in a piece with sections, need to add a section marker at the
           # beginning of the piece if there isn't one there already.
           self._add_section(0)
-
         self._add_section(self._current_time)
+
+        if match.group(1).count(':') == len(match.group(1)):
+          colon_count = len(match.group(1))
+          if colon_count % 2 != 0:
+            raise RepeatParseException(
+                'Colon-only repeats must be divisible by 2: {}'.format(
+                    match.group(1)))
+            backward_repeats = forward_repeats = colon_count / 2
+        else:
+          repeat_match = ABCTune.REPEAT_SYMBOLS_PATTERN.match(match.group(1))
+          if not repeat_match:
+            raise RepeatParseException(
+                'Could not parse repeat pattern: {}'.format(match.group(1)))
+          # Count colons on either side.
+          backward_repeats = len(repeat_match.group(1))
+          forward_repeats = len(repeat_match.group(2))
+
+        if (self._current_expected_repeats and
+            backward_repeats != self._current_expected_repeats):
+          raise RepeatParseException(
+              'Mismatched forward/backward repeat symbols. '
+              'Expected {} but got {}.'.format(
+                  self._current_expected_repeats, backward_repeats))
+
+        if backward_repeats:
+          sg = self._ns.section_groups.add()
+          sg.sections.add(
+              section_id=self._ns.section_annotations[-2].section_id)
+          sg.num_times = backward_repeats + 1
+        else:
+          # There were not backward repeats, but we still want to play the
+          # previous section once.
+          sg = self._ns.section_groups.add()
+          sg.sections.add(
+              section_id=self._ns.section_annotations[-2].section_id)
+          sg.num_times = 1
+
+        self._current_expected_repeats = forward_repeats
+        print('{} - {}/{}'.format(match.group(1), backward_repeats, forward_repeats))
       elif match.re == ABCTune.TEXT_ANNOTATION_PATTERN:
         # Text annotation
         # http://abcnotation.com/wiki/abc:standard:v2.1#chord_symbols
