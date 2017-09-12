@@ -219,6 +219,20 @@ class AbcParserTest(tf.test.TestCase):
         key_signatures {
           key: G
         }
+        section_annotations {
+        }
+        section_annotations {
+          time: 6.0
+          section_id: 1
+        }
+        section_annotations {
+          time: 12.0
+          section_id: 2
+        }
+        section_annotations {
+          time: 18.0
+          section_id: 3
+        }
         """)
     self.compareToAbc2midiAndMetadata(
         'testdata/english1.mid', expected_ns1_metadata, tunes[0])

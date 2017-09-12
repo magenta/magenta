@@ -272,6 +272,16 @@ class ABCTune(object):
     tempo.time = self._current_time
     tempo.qpm = float((tempo_unit / Fraction(1, 4)) * tempo_rate)
 
+  def _add_section(self, time):
+    if self._ns.section_annotations:
+      new_id = self._ns.section_annotations[-1].section_id + 1
+    else:
+      new_id = 0
+
+    sa = self._ns.section_annotations.add()
+    sa.time = time
+    sa.section_id = new_id
+
   def _apply_broken_rhythm(self, broken_rhythm):
     """Applies a broken rhythm symbol to the two most recently added notes."""
     # http://abcnotation.com/wiki/abc:standard:v2.1#broken_rhythm
@@ -407,7 +417,17 @@ class ABCTune(object):
       elif match.re == ABCTune.INLINE_INFORMATION_FIELD_PATTERN:
         self._parse_information_field(match.group(1), match.group(2))
       elif match.re == ABCTune.BAR_SYMBOLS_PATTERN:
-        print('Bar symbol: {}'.format(match.groups()))
+        is_repeat = ':' in match.group(1) or match.group(2)
+        if not is_repeat:
+          # We don't currently track regular bar lines
+          continue
+
+        if not self._ns.section_annotations:
+          # We're in a piece with sections, need to add a section marker at the
+          # beginning of the piece if there isn't one there already.
+          self._add_section(0)
+
+        self._add_section(self._current_time)
       elif match.re == ABCTune.TEXT_ANNOTATION_PATTERN:
         # Text annotation
         # http://abcnotation.com/wiki/abc:standard:v2.1#chord_symbols
