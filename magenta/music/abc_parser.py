@@ -309,6 +309,13 @@ class ABCTune(object):
   # http://abcnotation.com/wiki/abc:standard:v2.1#use_of_fields_within_the_tune_body
   INLINE_INFORMATION_FIELD_PATTERN = re.compile(r'\[([A-Za-z]):\s*([^\]]+)\]')
 
+  # http://abcnotation.com/wiki/abc:standard:v2.1#repeat_bar_symbols
+  BAR_SYMBOLS_PATTERN = re.compile(r'(:*[\[\]|]:*|::)\s*(\[[0-9,-]+)?')
+
+  # http://abcnotation.com/wiki/abc:standard:v2.1#chord_symbols
+  # http://abcnotation.com/wiki/abc:standard:v2.1#annotations
+  TEXT_ANNOTATION_PATTERN = re.compile(r'"([^"]*)"')
+
   def _parse_music_code(self, line):
     """Parse the music code within an ABC file."""
 
@@ -318,22 +325,32 @@ class ABCTune(object):
     while pos < len(line):
       char = line[pos]
 
-      note_match = ABCTune.NOTE_PATTERN.match(line, pos)
-      broken_rhythm_match = ABCTune.BROKEN_RHYTHM_PATTERN.match(line, pos)
-      inline_information_field_match = (
-          ABCTune.INLINE_INFORMATION_FIELD_PATTERN.match(line, pos))
-      if note_match:
-        pos = note_match.end()
+      match = None
+      for regex in [
+          ABCTune.NOTE_PATTERN,
+          ABCTune.BROKEN_RHYTHM_PATTERN,
+          ABCTune.INLINE_INFORMATION_FIELD_PATTERN,
+          ABCTune.BAR_SYMBOLS_PATTERN,
+          ABCTune.TEXT_ANNOTATION_PATTERN]:
+        match = regex.match(line, pos)
+        if match:
+          break
 
+      if not match:
+        pos += 1
+        continue
+
+      pos = match.end()
+      if match.re == ABCTune.NOTE_PATTERN:
         note = self._ns.notes.add()
         note.velocity = self._current_velocity
         note.start_time = self._current_time
 
-        note.pitch = ABCTune.ABC_NOTE_TO_MIDI[note_match.group(2)]
+        note.pitch = ABCTune.ABC_NOTE_TO_MIDI[match.group(2)]
 
         # Accidentals
-        if note_match.group(1):
-          for accidental in note_match.group(1).split():
+        if match.group(1):
+          for accidental in match.group(1).split():
             if accidental == '^':
               note.pitch += 1
             elif accidental == '_':
@@ -345,11 +362,11 @@ class ABCTune(object):
                   'Invalid accidental: {}'.format(accidental))
         else:
           # No accidentals, so modify according to current key.
-          note.pitch += self._accidentals[note_match.group(2).upper()]
+          note.pitch += self._accidentals[match.group(2).upper()]
 
         # Octaves
-        if note_match.group(3):
-          for octave in note_match.group(3):
+        if match.group(3):
+          for octave in match.group(3):
             if octave == '\'':
               note.pitch += 12
             elif octave == ',':
@@ -364,15 +381,15 @@ class ABCTune(object):
         # Note length
         length = self._current_unit_note_length
         # http://abcnotation.com/wiki/abc:standard:v2.1#note_lengths
-        if note_match.group(4):
-          slash_count = note_match.group(4).count('/')
+        if match.group(4):
+          slash_count = match.group(4).count('/')
           if slash_count == len(note_match.group(4)):
             # Handle A// shorthand case.
             length /= 2 ** slash_count
-          elif note_match.group(4).startswith('/'):
-            length /= int(note_match.group(4)[1:])
+          elif match.group(4).startswith('/'):
+            length /= int(match.group(4)[1:])
           else:
-            length *= int(note_match.group(4))
+            length *= int(match.group(4))
 
         # Advance clock based on note length.
         self._current_time += (1 / (self._qpm / 60)) * (length / Fraction(1, 4))
@@ -382,27 +399,20 @@ class ABCTune(object):
         if broken_rhythm:
           self._apply_broken_rhythm(broken_rhythm)
           broken_rhythm = None
-      elif broken_rhythm_match:
-        pos = broken_rhythm_match.end()
+      elif match.re == ABCTune.BROKEN_RHYTHM_PATTERN:
         if broken_rhythm:
           raise ABCParseException(
               'Cannot specify a broken rhythm twice in a row.')
-        broken_rhythm = broken_rhythm_match.group(1)
-      elif inline_information_field_match:
-        pos = inline_information_field_match.end()
-        self._parse_information_field(
-            inline_information_field_match.group(1),
-            inline_information_field_match.group(2))
-      elif char == '"':
+        broken_rhythm = match.group(1)
+      elif match.re == ABCTune.INLINE_INFORMATION_FIELD_PATTERN:
+        self._parse_information_field(match.group(1), match.group(2))
+      elif match.re == ABCTune.BAR_SYMBOLS_PATTERN:
+        print('Bar symbol: {}'.format(match.groups()))
+      elif match.re == ABCTune.TEXT_ANNOTATION_PATTERN:
         # Text annotation
         # http://abcnotation.com/wiki/abc:standard:v2.1#chord_symbols
         # http://abcnotation.com/wiki/abc:standard:v2.1#annotations
-        endpos = line.find('"', pos + 1)
-        if endpos == -1:
-          raise ABCParseException('Could not find end of text annotation')
-        annotation = line[pos + 1:endpos]
-        pos = endpos + 1
-
+        annotation = match.group(1)
         ta = self._ns.text_annotations.add()
         ta.time = self._current_time
         ta.text = annotation
@@ -414,7 +424,7 @@ class ABCTune(object):
           ta.annotation_type = (
               music_pb2.NoteSequence.TextAnnotation.UNKNOWN)
       else:
-        pos += 1
+        raise ABCParseException('Unknown regex match!')
 
   # http://abcnotation.com/wiki/abc:standard:v2.1#kkey
   KEY_PATTERN = re.compile(
