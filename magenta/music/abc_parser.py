@@ -20,6 +20,7 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
+from fractions import Fraction
 import re
 
 # internal imports
@@ -155,11 +156,15 @@ class ABCTune(object):
 
     self._current_time = 0
     self._accidentals = ABCTune._sig_to_accidentals(0)
+    self._current_unit_note_length = None
 
     # Default dynamic should be !mf! as per:
     # http://abcnotation.com/wiki/abc:standard:v2.1#decorations
     self._current_velocity = ABCTune.DECORATION_TO_VELOCITY['!mf!']
 
+    self._in_header = True
+    self._header_tempo_unit = None
+    self._header_tempo_rate = None
     for line in tune_lines:
       line = re.sub('%.*$', '', line)  # Strip comments.
       line = line.strip()  # Strip whitespace.
@@ -172,7 +177,12 @@ class ABCTune(object):
       if info_field:
         self._parse_information_field(info_field.group(1), info_field.group(2))
       else:
+        if self._in_header:
+          self._set_values_from_header()
+          self._in_header = False
         self._parse_music_code(line)
+    if self._in_header:
+      self._set_values_from_header()
 
   @property
   def note_sequence(self):
@@ -188,6 +198,52 @@ class ABCTune(object):
       for i in range(abs(sig)):
         accidentals[ABCTune.FLATS_ORDER[i]] = -1
     return accidentals
+
+  def _set_values_from_header(self):
+    # Set unit note length. May depend on the current meter, so this has to be
+    # calculated at the end of the header.
+    self._set_unit_note_length_from_header()
+
+    # Set the tempo if it was specified in the header. May depend on current
+    # unit note length, so has to be calculated after that is set.
+    # _header_tempo_unit may be legitimately None, so check _header_tempo_rate.
+    if self._header_tempo_rate:
+      self._add_tempo(self._header_tempo_unit, self._header_tempo_rate)
+
+  def _set_unit_note_length_from_header(self):
+    """Sets the current unit note length.
+
+    Should be called immediately after parsing the header.
+
+    Raises:
+      ValueError: If multiple time signatures were set in the header.
+    """
+    # http://abcnotation.com/wiki/abc:standard:v2.1#lunit_note_length
+
+    if self._current_unit_note_length:
+      # If it has been set explicitly, leave it as is.
+      pass
+    elif not self._ns.time_signatures:
+      # For free meter, the default unit note length is 1/8.
+      self._current_unit_note_length = Fraction(1, 8)
+    else:
+      # Otherwise, base it on the current meter.
+      if len(self._ns.time_signatures) != 1:
+        raise ValueError('Multiple time signatures set in header.')
+      current_ts = self._ns.time_signatures[0]
+      ratio = current_ts.numerator / current_ts.denominator
+      if ratio < 0.75:
+        self._current_unit_note_length = Fraction(1, 16)
+      else:
+        self._current_unit_note_length = Fraction(1, 8)
+
+  def _add_tempo(self, tempo_unit, tempo_rate):
+    if tempo_unit is None:
+      tempo_unit = self._current_unit_note_length
+
+    tempo = self._ns.tempos.add()
+    tempo.time = self._current_time
+    tempo.qpm = float((tempo_unit / Fraction(1, 4)) * tempo_rate)
 
   # http://abcnotation.com/wiki/abc:standard:v2.1#pitch
   NOTE_PATTERN = re.compile(r'(__|_|=|\^|\^\^)?([A-Ga-g])([\',]*)')
@@ -337,6 +393,14 @@ class ABCTune(object):
 
     return accidentals, proto_key, proto_mode
 
+  # http://abcnotation.com/wiki/abc:standard:v2.1#outdated_information_field_syntax
+  # This syntax is deprecated but must still be supported.
+  TEMPO_DEPRECATED_PATTERN = re.compile(r'C?\s*=?\s*(\d+)$')
+
+  # http://abcnotation.com/wiki/abc:standard:v2.1#qtempo
+  TEMPO_PATTERN = re.compile(r'(?:"[^"]*")?\s*((?:\d+/\d+\s*)+)\s*=\s*(\d+)')
+  TEMPO_PATTERN_STRING_ONLY = re.compile(r'"([^"]*)"$')
+
   def _parse_information_field(self, field_name, field_content):
     # http://abcnotation.com/wiki/abc:standard:v2.1#information_fields
     if field_name == 'A':
@@ -371,7 +435,22 @@ class ABCTune(object):
       ks.mode = proto_mode
       ks.time = self._current_time
     elif field_name == 'L':
-      pass
+      # Unit note length
+      # http://abcnotation.com/wiki/abc:standard:v2.1#lunit_note_length
+      length = field_content.split('/', 1)
+
+      # Handle the case of L:1 being equivalent to L:1/1
+      if len(length) < 2:
+        length.append('1')
+
+      try:
+        numerator = int(length[0])
+        denominator = int(length[1])
+      except ValueError as e:
+        raise ValueError(e, 'Could not parse unit note length: {}'.format(
+            field_content))
+
+      self._current_unit_note_length = Fraction(numerator, denominator)
     elif field_name == 'M':
       # Meter
       # http://abcnotation.com/wiki/abc:standard:v2.1#mmeter
@@ -388,7 +467,7 @@ class ABCTune(object):
       elif field_content.lower() == 'none':
         pass
       else:
-        timesig = field_content.split('/', 2)
+        timesig = field_content.split('/', 1)
         if len(timesig) != 2:
           raise ValueError('Could not parse meter: {}'.format(field_content))
 
@@ -409,7 +488,43 @@ class ABCTune(object):
       # TODO(fjord): implement part parsing.
       pass
     elif field_name == 'Q':
-      pass
+      # Tempo
+      # http://abcnotation.com/wiki/abc:standard:v2.1#qtempo
+
+      tempo_match = ABCTune.TEMPO_PATTERN.match(field_content)
+      deprecated_tempo_match = ABCTune.TEMPO_DEPRECATED_PATTERN.match(
+          field_content)
+      tempo_string_only_match = ABCTune.TEMPO_PATTERN_STRING_ONLY.match(
+          field_content)
+      if tempo_match:
+        tempo_rate = int(tempo_match.group(2))
+        tempo_unit = Fraction(0)
+        for beat in tempo_match.group(1).split():
+          tempo_unit += Fraction(beat)
+      elif deprecated_tempo_match:
+        # http://abcnotation.com/wiki/abc:standard:v2.1#outdated_information_field_syntax
+        # In the deprecated syntax, the tempo is interpreted based on the unit
+        # note length, which is potentially dependent on the current meter.
+        # Set tempo_unit to None for now, and the current unit note length will
+        # be filled in later.
+        tempo_unit = None
+        tempo_rate = int(deprecated_tempo_match.group(1))
+      elif tempo_string_only_match:
+        tf.logging.warning(
+            'Ignoring string-only tempo marking: {}'.format(field_content))
+        return
+      else:
+        raise ValueError('Could not parse tempo: {}'.format(field_content))
+
+      if self._in_header:
+        # If we're in the header, save these until we've finished parsing the
+        # header. The deprecated syntax relies on the unit note length and
+        # meter, which may not be set yet. At the end of the header, we'll fill
+        # in the necessary information and add these.
+        self._header_tempo_unit = tempo_unit
+        self._header_tempo_rate = tempo_rate
+      else:
+        self._add_tempo(tempo_unit, tempo_rate)
     elif field_name == 'R':
       pass
     elif field_name == 'r':

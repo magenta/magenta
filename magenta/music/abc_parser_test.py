@@ -353,5 +353,62 @@ class AbcParserTest(tf.test.TestCase):
     # TODO(fjord): add timing
     self.assertProtoEquals(expected_ns1, tunes[0])
 
+  def testParseTempos(self):
+    # Examples from http://abcnotation.com/wiki/abc:standard:v2.1#qtempo
+    tunes = abc_parser.parse_tunebook("""
+        X:1
+        L:1/4
+        Q:60
+
+        X:2
+        L:1/4
+        Q:C=100
+
+        X:3
+        Q:1/2=120
+
+        X:4
+        Q:1/4 3/8 1/4 3/8=40
+
+        X:5
+        Q:5/4=40
+
+        X:6
+        Q: "Allegro" 1/4=120
+
+        X:7
+        Q: 1/4=120 "Allegro"
+
+        X:8
+        Q: 3/8=50 "Slowly"
+
+        X:9
+        Q:"Andante"
+
+        X:10
+        Q:100  % define tempo using deprecated syntax
+        % deprecated tempo syntax depends on unit note length. if it is
+        % not defined, it is derived from the current meter.
+        M:2/4  % define meter after tempo to verify that is supported.
+
+        X:11
+        Q:100  % define tempo using deprecated syntax
+        % deprecated tempo syntax depends on unit note length.
+        L:1/4  % define note length after tempo to verify that is supported.
+        """)
+    self.assertEqual(11, len(tunes))
+
+    self.assertEqual(60, tunes[0].tempos[0].qpm)
+    self.assertEqual(100, tunes[1].tempos[0].qpm)
+    self.assertEqual(240, tunes[2].tempos[0].qpm)
+    self.assertEqual(200, tunes[3].tempos[0].qpm)
+    self.assertEqual(200, tunes[4].tempos[0].qpm)
+    self.assertEqual(120, tunes[5].tempos[0].qpm)
+    self.assertEqual(120, tunes[6].tempos[0].qpm)
+    self.assertEqual(75, tunes[7].tempos[0].qpm)
+    self.assertEqual(0, len(tunes[8].tempos))
+    self.assertEqual(25, tunes[9].tempos[0].qpm)
+    self.assertEqual(100, tunes[10].tempos[0].qpm)
+
 if __name__ == '__main__':
   tf.test.main()
