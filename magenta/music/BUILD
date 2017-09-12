@@ -615,6 +615,7 @@ py_test(
         "testdata/english1.mid",
         "testdata/english2.mid",
         "testdata/english3.mid",
+        "testdata/zocharti_loch.abc",
     ],
     srcs_version = "PY2AND3",
     deps = [

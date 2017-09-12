@@ -505,5 +505,11 @@ class AbcParserTest(tf.test.TestCase):
         """)
     self.assertProtoEquals(expected_ns1, tunes[0])
 
+  def testMultiVoice(self):
+    with self.assertRaises(abc_parser.MultiVoiceException):
+      abc_parser.parse_tunebook_file(
+          os.path.join(tf.resource_loader.get_data_files_path(),
+                       'testdata/zocharti_loch.abc'))
+
 if __name__ == '__main__':
   tf.test.main()

@@ -33,6 +33,15 @@ from magenta.music import constants
 from magenta.protobuf import music_pb2
 
 
+class ABCParseException(Exception):
+  """Exception thrown when ABC contents cannot be parsed."""
+  pass
+
+
+class MultiVoiceException(ABCParseException):
+  """Exception when a multi-voice directive is encountered."""
+
+
 def parse_tunebook_file(filename):
   """Parse an ABC Tunebook file."""
   # 'r' mode will decode the file as utf-8 in py3.
@@ -234,7 +243,7 @@ class ABCTune(object):
     Should be called immediately after parsing the header.
 
     Raises:
-      ValueError: If multiple time signatures were set in the header.
+      ABCParseException: If multiple time signatures were set in the header.
     """
     # http://abcnotation.com/wiki/abc:standard:v2.1#lunit_note_length
 
@@ -247,7 +256,7 @@ class ABCTune(object):
     else:
       # Otherwise, base it on the current meter.
       if len(self._ns.time_signatures) != 1:
-        raise ValueError('Multiple time signatures set in header.')
+        raise ABCParseException('Multiple time signatures set in header.')
       current_ts = self._ns.time_signatures[0]
       ratio = current_ts.numerator / current_ts.denominator
       if ratio < 0.75:
@@ -268,14 +277,15 @@ class ABCTune(object):
     # http://abcnotation.com/wiki/abc:standard:v2.1#broken_rhythm
 
     if len(self._ns.notes) < 2:
-      raise ValueError('Cannot apply a broken rhythm with fewer than 2 notes')
+      raise ABCParseException(
+          'Cannot apply a broken rhythm with fewer than 2 notes')
 
     note1 = self._ns.notes[-2]
     note2 = self._ns.notes[-1]
     note1_len = note1.end_time - note1.start_time
     note2_len = note2.end_time - note2.start_time
     if note1_len != note2_len:
-      raise ValueError(
+      raise ABCParseException(
           'Cannot apply broken rhythm to two notes of different lengths')
 
     time_adj = note1_len / (2 ** len(broken_rhythm))
@@ -286,7 +296,7 @@ class ABCTune(object):
       note1.end_time += time_adj
       note2.start_time += time_adj
     else:
-      raise ValueError('Could not parse broken rhythm token: {}'.format(
+      raise ABCParseException('Could not parse broken rhythm token: {}'.format(
           broken_rhythm))
 
   # http://abcnotation.com/wiki/abc:standard:v2.1#pitch
@@ -331,7 +341,8 @@ class ABCTune(object):
             elif accidental == '=':
               pass
             else:
-              raise ValueError('Invalid accidental: {}'.format(accidental))
+              raise ABCParseException(
+                  'Invalid accidental: {}'.format(accidental))
         else:
           # No accidentals, so modify according to current key.
           note.pitch += self._accidentals[note_match.group(2).upper()]
@@ -344,11 +355,11 @@ class ABCTune(object):
             elif octave == ',':
               note.pitch -= 12
             else:
-              raise ValueError('Invalid octave: {}'.format(octave))
+              raise ABCParseException('Invalid octave: {}'.format(octave))
 
         if (note.pitch < constants.MIN_MIDI_PITCH or
             note.pitch > constants.MAX_MIDI_PITCH):
-          raise ValueError('pitch {} is invalid'.format(note.pitch))
+          raise ABCParseException('pitch {} is invalid'.format(note.pitch))
 
         # Note length
         length = self._current_unit_note_length
@@ -374,7 +385,8 @@ class ABCTune(object):
       elif broken_rhythm_match:
         pos = broken_rhythm_match.end()
         if broken_rhythm:
-          raise ValueError('Cannot specify a broken rhythm twice in a row.')
+          raise ABCParseException(
+              'Cannot specify a broken rhythm twice in a row.')
         broken_rhythm = broken_rhythm_match.group(1)
       elif inline_information_field_match:
         pos = inline_information_field_match.end()
@@ -387,7 +399,7 @@ class ABCTune(object):
         # http://abcnotation.com/wiki/abc:standard:v2.1#annotations
         endpos = line.find('"', pos + 1)
         if endpos == -1:
-          raise ValueError('Could not find end of text annotation')
+          raise ABCParseException('Could not find end of text annotation')
         annotation = line[pos + 1:endpos]
         pos = endpos + 1
 
@@ -420,7 +432,7 @@ class ABCTune(object):
     # http://abcnotation.com/wiki/abc:standard:v2.1#kkey
     key_match = ABCTune.KEY_PATTERN.match(key)
     if not key_match:
-      raise ValueError('Could not parse key: {}'.format(key))
+      raise ABCParseException('Could not parse key: {}'.format(key))
 
     key_components = list(key_match.groups())
 
@@ -453,7 +465,7 @@ class ABCTune(object):
     elif mode == 'loc':
       proto_mode = music_pb2.NoteSequence.KeySignature.LOCRIAN
     else:
-      raise ValueError('Unknown mode: {}'.format(mode))
+      raise ABCParseException('Unknown mode: {}'.format(mode))
 
     # Match the rest of the string for possible modifications.
     pos = key_match.end()
@@ -479,7 +491,7 @@ class ABCTune(object):
           elif note_match.group(1) == '=':
             accidentals[note] = 0
           else:
-            raise ValueError(
+            raise ABCParseException(
                 'Invalid accidental: {}'.format(note_match.group(1)))
       else:
         pos += 1
@@ -540,8 +552,8 @@ class ABCTune(object):
         numerator = int(length[0])
         denominator = int(length[1])
       except ValueError as e:
-        raise ValueError(e, 'Could not parse unit note length: {}'.format(
-            field_content))
+        raise ABCParseException(
+            e, 'Could not parse unit note length: {}'.format(field_content))
 
       self._current_unit_note_length = Fraction(numerator, denominator)
     elif field_name == 'M':
@@ -562,7 +574,8 @@ class ABCTune(object):
       else:
         timesig = field_content.split('/', 1)
         if len(timesig) != 2:
-          raise ValueError('Could not parse meter: {}'.format(field_content))
+          raise ABCParseException(
+              'Could not parse meter: {}'.format(field_content))
 
         ts = self._ns.time_signatures.add()
         ts.time = self._current_time
@@ -570,7 +583,8 @@ class ABCTune(object):
           ts.numerator = int(timesig[0])
           ts.denominator = int(timesig[1])
         except ValueError as e:
-          raise ValueError(e, 'Could not parse meter: {}'.format(field_content))
+          raise ABCParseException(
+              e, 'Could not parse meter: {}'.format(field_content))
     elif field_name == 'm':
       pass
     elif field_name == 'N':
@@ -607,7 +621,8 @@ class ABCTune(object):
             'Ignoring string-only tempo marking: {}'.format(field_content))
         return
       else:
-        raise ValueError('Could not parse tempo: {}'.format(field_content))
+        raise ABCParseException(
+            'Could not parse tempo: {}'.format(field_content))
 
       if self._in_header:
         # If we're in the header, save these until we've finished parsing the
@@ -645,7 +660,8 @@ class ABCTune(object):
     elif field_name == 'U':
       pass
     elif field_name == 'V':
-      raise ValueError('Multi-voice files are not currently supported.')
+      raise MultiVoiceException(
+          'Multi-voice files are not currently supported.')
     elif field_name == 'W':
       pass
     elif field_name == 'w':
