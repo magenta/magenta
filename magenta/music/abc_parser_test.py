@@ -447,5 +447,63 @@ class AbcParserTest(tf.test.TestCase):
         """)
     self.assertProtoEquals(expected_ns1, tunes[0])
 
+  def testSlashDuration(self):
+    tunes = abc_parser.parse_tunebook("""X:1
+        Q:1/4=120
+        L:1/4
+        T:Test
+        CC/C//C///C////
+        """)
+    self.assertEqual(1, len(tunes))
+
+    expected_ns1 = common_testing_lib.parse_test_proto(
+        music_pb2.NoteSequence,
+        """
+        ticks_per_quarter: 220
+        source_info: {
+          source_type: SCORE_BASED
+          encoding_type: ABC
+          parser: MAGENTA_ABC
+        }
+        reference_number: 1
+        sequence_metadata {
+          title: "Test"
+        }
+        tempos {
+          qpm: 120
+        }
+        notes {
+          pitch: 60
+          velocity: 90
+          start_time: 0.0
+          end_time: 0.5
+        }
+        notes {
+          pitch: 60
+          velocity: 90
+          start_time: 0.5
+          end_time: 0.75
+        }
+        notes {
+          pitch: 60
+          velocity: 90
+          start_time: 0.75
+          end_time: 0.875
+        }
+        notes {
+          pitch: 60
+          velocity: 90
+          start_time: 0.875
+          end_time: 0.9375
+        }
+        notes {
+          pitch: 60
+          velocity: 90
+          start_time: 0.9375
+          end_time: 0.96875
+        }
+        """)
+    self.assertProtoEquals(expected_ns1, tunes[0])
+
 if __name__ == '__main__':
   tf.test.main()

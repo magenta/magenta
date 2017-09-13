@@ -355,13 +355,9 @@ class ABCTune(object):
         # http://abcnotation.com/wiki/abc:standard:v2.1#note_lengths
         if note_match.group(4):
           slash_count = note_match.group(4).count('/')
-          if slash_count > 1:
+          if slash_count == len(note_match.group(4)):
             # Handle A// shorthand case.
-            if slash_count != len(note_match.group(4)):
-              raise ValueError(
-                  'Found multiple slashes with other characters: {}'.format(
-                      note_match.group(4)))
-            length /= slash_count
+            length /= 2 ** slash_count
           elif note_match.group(4).startswith('/'):
             length /= int(note_match.group(4)[1:])
           else:
