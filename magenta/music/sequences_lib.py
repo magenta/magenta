@@ -227,6 +227,49 @@ def extract_subsequence(sequence, start_time, end_time,
   return subsequence
 
 
+def shift_sequence_times(sequence, shift_seconds):
+  """Shifts times in a notesequence.
+
+  Only forward shifts are supported.
+
+  Args:
+    sequence: The NoteSequence to shift.
+    shift_seconds: The amount to shift.
+
+  Returns:
+    A new NoteSequence with shifted times.
+
+  Raises:
+    ValueError: If the shift amount is invalid.
+    QuantizationStatusException: If the sequence has already been quantized.
+  """
+  if shift_seconds <= 0:
+    raise ValueError('Invalid shift amount: {}'.format(shift_seconds))
+  if is_quantized_sequence(sequence):
+    raise QuantizationStatusException(
+        'Can only extract subsequence from unquantized NoteSequence.')
+
+  shifted = music_pb.NoteSequence()
+  shifted.CopyFrom(sequence)
+
+  # Delete subsequence_info because our frame of reference has shifted.
+  del shifted.subsequence_info
+
+  # Shift notes.
+  for note in shifted.notes:
+    note.start_time += shift_seconds
+    note.end_time += shift_seconds
+
+  events_to_shift = [
+      shifted.time_signatures, shifted.key_signatures, shifted.tempos,
+      shifted.pitch_bends, shifted.control_changes, shifted.text_annotations]
+
+  for event in itertools.chain(*events_to_shift):
+    event.time += shift_seconds
+
+  shifted.total_time += shift_seconds
+
+
 def _is_power_of_2(x):
   return x and not x & (x - 1)
 
