@@ -378,5 +378,74 @@ class AbcParserTest(tf.test.TestCase):
     self.assertEqual(25, tunes[9].tempos[0].qpm)
     self.assertEqual(100, tunes[10].tempos[0].qpm)
 
+  def testParseBrokenRhythm(self):
+    tunes = abc_parser.parse_tunebook("""X:1
+        Q:1/4=120
+        L:1/4
+        M:3/4
+        T:Test
+        B>cd B<cd
+        """)
+    self.assertEqual(1, len(tunes))
+
+    expected_ns1 = common_testing_lib.parse_test_proto(
+        music_pb2.NoteSequence,
+        """
+        ticks_per_quarter: 220
+        source_info: {
+          source_type: SCORE_BASED
+          encoding_type: ABC
+          parser: MAGENTA_ABC
+        }
+        reference_number: 1
+        sequence_metadata {
+          title: "Test"
+        }
+        time_signatures {
+          numerator: 3
+          denominator: 4
+        }
+        tempos {
+          qpm: 120
+        }
+        notes {
+          pitch: 71
+          velocity: 90
+          start_time: 0.0
+          end_time: 0.75
+        }
+        notes {
+          pitch: 72
+          velocity: 90
+          start_time: 0.75
+          end_time: 1.0
+        }
+        notes {
+          pitch: 74
+          velocity: 90
+          start_time: 1.0
+          end_time: 1.5
+        }
+        notes {
+          pitch: 71
+          velocity: 90
+          start_time: 1.5
+          end_time: 1.75
+        }
+        notes {
+          pitch: 72
+          velocity: 90
+          start_time: 1.75
+          end_time: 2.75
+        }
+        notes {
+          pitch: 74
+          velocity: 90
+          start_time: 2.5
+          end_time: 3.0
+        }
+        """)
+    self.assertProtoEquals(expected_ns1, tunes[0])
+
 if __name__ == '__main__':
   tf.test.main()
