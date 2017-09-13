@@ -17,6 +17,9 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
+import copy
+import os.path
+
 # internal imports
 
 import six
@@ -24,68 +27,8 @@ import tensorflow as tf
 
 from magenta.common import testing_lib as common_testing_lib
 from magenta.music import abc_parser
+from magenta.music import midi_io
 from magenta.protobuf import music_pb2
-
-# Sample tunes taken from
-# http://abcnotation.com/wiki/abc:standard:v2.1#sample_abc_tunes
-
-ENGLISH_ABC = r"""%abc-2.1
-H:This file contains some example English tunes
-% note that the comments (like this one) are to highlight usages
-%  and would not normally be included in such detail
-O:England             % the origin of all tunes is England
-
-X:1                   % tune no 1
-T:Dusty Miller, The   % title
-T:Binny's Jig         % an alternative title
-C:Trad.               % traditional
-R:DH                  % double hornpipe
-M:3/4                 % meter
-K:G                   % key
-B>cd BAG|FA Ac BA|B>cd BAG|DG GB AG:|
-Bdd gfg|aA Ac BA|Bdd gfa|gG GB AG:|
-BG G/2G/2G BG|FA Ac BA|BG G/2G/2G BG|DG GB AG:|
-W:Hey, the dusty miller, and his dusty coat;
-W:He will win a shilling, or he spend a groat.
-W:Dusty was the coat, dusty was the colour;
-W:Dusty was the kiss, that I got frae the miller.
-
-X:2
-T:Old Sir Simon the King
-C:Trad.
-S:Offord MSS          % from Offord manuscript
-N:see also Playford   % reference note
-M:9/8
-R:SJ                  % slip jig
-N:originally in C     % transcription note
-K:G
-D|GFG GAG G2D|GFG GAG F2D|EFE EFE EFG|A2G F2E D2:|
-D|GAG GAB d2D|GAG GAB c2D|[1 EFE EFE EFG|A2G F2E D2:|\ % no line-break in score
-M:12/8                % change of meter
-[2 E2E EFE E2E EFG|\  % no line-break in score
-M:9/8                 % change of meter
-A2G F2E D2|]
-
-X:3
-T:William and Nancy
-T:New Mown Hay
-T:Legacy, The
-C:Trad.
-O:England; Gloucs; Bledington % place of origin
-B:Sussex Tune Book            % can be found in these books
-B:Mally's Cotswold Morris vol.1 2
-D:Morris On                   % can be heard on this record
-P:(AB)2(AC)2A                 % play the parts in this order
-M:6/8
-K:G
-[P:A] D|"G"G2G GBd|"C"e2e "G"dBG|"D7"A2d "G"BAG|"C"E2"D7"F "G"G2:|
-[P:B] d|"G"e2d B2d|"C"gfe "G"d2d| "G"e2d    B2d|"C"gfe    "D7"d2c|
-        "G"B2B Bcd|"C"e2e "G"dBG|"D7"A2d "G"BAG|"C"E2"D7"F "G"G2:|
-% changes of meter, using inline fields
-[T:Slows][M:4/4][L:1/4][P:C]"G"d2|"C"e2 "G"d2|B2 d2|"Em"gf "A7"e2|"D7"d2 "G"d2|\
-       "C"e2 "G"d2|[M:3/8][L:1/8] "G"B2 d |[M:6/8] "C"gfe "D7"d2c|
-        "G"B2B Bcd|"C"e2e "G"dBG|"D7"A2d "G"BAG|"C"E2"D7"F "G"G2:|
-"""
 
 
 class AbcParserTest(tf.test.TestCase):
@@ -96,6 +39,43 @@ class AbcParserTest(tf.test.TestCase):
   def compareAccidentals(self, expected, accidentals):
     values = [v[1] for v in sorted(six.iteritems(accidentals))]
     self.assertEqual(expected, values)
+
+  def compareToAbc2midiAndMetadata(self, midi_path, expected_ns_metadata, test):
+    """Compare parsing results to the abc2midi "reference" implementation."""
+    abc2midi = midi_io.midi_file_to_sequence_proto(
+        os.path.join(tf.resource_loader.get_data_files_path(), midi_path))
+
+    # We don't yet support repeats, so just check the first 10 notes and only
+    # the first time signature.
+    del abc2midi.notes[10:]
+    del test.notes[10:]
+    del abc2midi.time_signatures[1:]
+    del test.time_signatures[1:]
+
+    # abc2midi adds a 1-tick delay to the start of every note, but we don't.
+    tick_length = ((1 / (abc2midi.tempos[0].qpm / 60)) /
+                   abc2midi.ticks_per_quarter)
+
+    for note in abc2midi.notes:
+      note.start_time -= tick_length
+
+    self.assertEqual(len(abc2midi.notes), len(test.notes))
+    for exp_note, test_note in zip(abc2midi.notes, test.notes):
+      # For now, don't compare velocities.
+      exp_note.velocity = test_note.velocity
+      self.assertProtoEquals(exp_note, test_note)
+
+    self.assertEqual(len(abc2midi.time_signatures), len(test.time_signatures))
+    for exp_timesig, test_timesig in zip(
+        abc2midi.time_signatures, test.time_signatures):
+      self.assertProtoEquals(exp_timesig, test_timesig)
+
+    # We've checked the notes and time signatures, now compare the rest of the
+    # proto to the expected proto.
+    test_copy = copy.deepcopy(test)
+    del test_copy.notes[:]
+    del test_copy.time_signatures[:]
+    self.assertProtoEquals(expected_ns_metadata, test_copy)
 
   def testParseKeyBasic(self):
     # Most examples taken from
@@ -216,10 +196,12 @@ class AbcParserTest(tf.test.TestCase):
     self.assertEqual(music_pb2.NoteSequence.KeySignature.MAJOR, proto_mode)
 
   def testParseEnglishAbc(self):
-    tunes = abc_parser.parse_tunebook(ENGLISH_ABC)
+    tunes = abc_parser.parse_tunebook_file(
+        os.path.join(tf.resource_loader.get_data_files_path(),
+                     'testdata/english.abc'))
     self.assertEqual(3, len(tunes))
 
-    expected_ns1 = common_testing_lib.parse_test_proto(
+    expected_ns1_metadata = common_testing_lib.parse_test_proto(
         music_pb2.NoteSequence,
         """
         ticks_per_quarter: 220
@@ -234,19 +216,14 @@ class AbcParserTest(tf.test.TestCase):
           artist: "Trad."
           composers: "Trad."
         }
-        time_signatures {
-          numerator: 3
-          denominator: 4
-        }
         key_signatures {
           key: G
         }
         """)
-    # TODO(fjord): add notes
-    del tunes[0].notes[:]
-    self.assertProtoEquals(expected_ns1, tunes[0])
+    self.compareToAbc2midiAndMetadata(
+        'testdata/english1.mid', expected_ns1_metadata, tunes[0])
 
-    expected_ns2 = common_testing_lib.parse_test_proto(
+    expected_ns2_metadata = common_testing_lib.parse_test_proto(
         music_pb2.NoteSequence,
         """
         ticks_per_quarter: 220
@@ -261,27 +238,14 @@ class AbcParserTest(tf.test.TestCase):
           artist: "Trad."
           composers: "Trad."
         }
-        time_signatures {
-          numerator: 9
-          denominator: 8
-        }
-        time_signatures {
-          numerator: 12
-          denominator: 8
-        }
-        time_signatures {
-          numerator: 9
-          denominator: 8
-        }
         key_signatures {
           key: G
         }
         """)
-    # TODO(fjord): add notes and times.
-    del tunes[1].notes[:]
-    self.assertProtoEquals(expected_ns2, tunes[1])
+    self.compareToAbc2midiAndMetadata(
+        'testdata/english2.mid', expected_ns2_metadata, tunes[1])
 
-    expected_ns3 = common_testing_lib.parse_test_proto(
+    expected_ns3_metadata = common_testing_lib.parse_test_proto(
         music_pb2.NoteSequence,
         """
         ticks_per_quarter: 220
@@ -296,18 +260,14 @@ class AbcParserTest(tf.test.TestCase):
           artist: "Trad."
           composers: "Trad."
         }
-        time_signatures {
-          numerator: 6
-          denominator: 8
-        }
         key_signatures {
           key: G
         }
         """)
-    # TODO(fjord): add notes and times.
-    del tunes[2].notes[:]
+    # TODO(fjord): verify chord annotations
     del tunes[2].text_annotations[:]
-    self.assertProtoEquals(expected_ns3, tunes[2])
+    self.compareToAbc2midiAndMetadata(
+        'testdata/english3.mid', expected_ns3_metadata, tunes[2])
 
   def testParseOctaves(self):
     tunes = abc_parser.parse_tunebook("""X:1
@@ -332,25 +292,33 @@ class AbcParserTest(tf.test.TestCase):
         notes {
           pitch: 60
           velocity: 90
+          end_time: 0.25
         }
         notes {
           pitch: 48
           velocity: 90
+          start_time: 0.25
+          end_time: 0.5
         }
         notes {
           pitch: 48
           velocity: 90
+          start_time: 0.5
+          end_time: 0.75
         }
         notes {
           pitch: 72
           velocity: 90
+          start_time: 0.75
+          end_time: 1.0
         }
         notes {
           pitch: 72
           velocity: 90
+          start_time: 1.0
+          end_time: 1.25
         }
         """)
-    # TODO(fjord): add timing
     self.assertProtoEquals(expected_ns1, tunes[0])
 
   def testParseTempos(self):
@@ -409,6 +377,133 @@ class AbcParserTest(tf.test.TestCase):
     self.assertEqual(0, len(tunes[8].tempos))
     self.assertEqual(25, tunes[9].tempos[0].qpm)
     self.assertEqual(100, tunes[10].tempos[0].qpm)
+
+  def testParseBrokenRhythm(self):
+    tunes = abc_parser.parse_tunebook("""X:1
+        Q:1/4=120
+        L:1/4
+        M:3/4
+        T:Test
+        B>cd B<cd
+        """)
+    self.assertEqual(1, len(tunes))
+
+    expected_ns1 = common_testing_lib.parse_test_proto(
+        music_pb2.NoteSequence,
+        """
+        ticks_per_quarter: 220
+        source_info: {
+          source_type: SCORE_BASED
+          encoding_type: ABC
+          parser: MAGENTA_ABC
+        }
+        reference_number: 1
+        sequence_metadata {
+          title: "Test"
+        }
+        time_signatures {
+          numerator: 3
+          denominator: 4
+        }
+        tempos {
+          qpm: 120
+        }
+        notes {
+          pitch: 71
+          velocity: 90
+          start_time: 0.0
+          end_time: 0.75
+        }
+        notes {
+          pitch: 72
+          velocity: 90
+          start_time: 0.75
+          end_time: 1.0
+        }
+        notes {
+          pitch: 74
+          velocity: 90
+          start_time: 1.0
+          end_time: 1.5
+        }
+        notes {
+          pitch: 71
+          velocity: 90
+          start_time: 1.5
+          end_time: 1.75
+        }
+        notes {
+          pitch: 72
+          velocity: 90
+          start_time: 1.75
+          end_time: 2.5
+        }
+        notes {
+          pitch: 74
+          velocity: 90
+          start_time: 2.5
+          end_time: 3.0
+        }
+        """)
+    self.assertProtoEquals(expected_ns1, tunes[0])
+
+  def testSlashDuration(self):
+    tunes = abc_parser.parse_tunebook("""X:1
+        Q:1/4=120
+        L:1/4
+        T:Test
+        CC/C//C///C////
+        """)
+    self.assertEqual(1, len(tunes))
+
+    expected_ns1 = common_testing_lib.parse_test_proto(
+        music_pb2.NoteSequence,
+        """
+        ticks_per_quarter: 220
+        source_info: {
+          source_type: SCORE_BASED
+          encoding_type: ABC
+          parser: MAGENTA_ABC
+        }
+        reference_number: 1
+        sequence_metadata {
+          title: "Test"
+        }
+        tempos {
+          qpm: 120
+        }
+        notes {
+          pitch: 60
+          velocity: 90
+          start_time: 0.0
+          end_time: 0.5
+        }
+        notes {
+          pitch: 60
+          velocity: 90
+          start_time: 0.5
+          end_time: 0.75
+        }
+        notes {
+          pitch: 60
+          velocity: 90
+          start_time: 0.75
+          end_time: 0.875
+        }
+        notes {
+          pitch: 60
+          velocity: 90
+          start_time: 0.875
+          end_time: 0.9375
+        }
+        notes {
+          pitch: 60
+          velocity: 90
+          start_time: 0.9375
+          end_time: 0.96875
+        }
+        """)
+    self.assertProtoEquals(expected_ns1, tunes[0])
 
 if __name__ == '__main__':
   tf.test.main()

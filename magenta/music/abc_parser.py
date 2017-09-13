@@ -33,6 +33,11 @@ from magenta.music import constants
 from magenta.protobuf import music_pb2
 
 
+def parse_tunebook_file(filename):
+  """Parse an ABC Tunebook file."""
+  return parse_tunebook(tf.gfile.Open(filename, 'rb').read())
+
+
 def parse_tunebook(tunebook):
   """Parse an ABC Tunebook string."""
   # Split tunebook into sections based on empty lines.
@@ -143,6 +148,8 @@ class ABCTune(object):
   SHARPS_ORDER = 'FCGDAEB'
   FLATS_ORDER = 'BEADGCF'
 
+  INFORMATION_FIELD_PATTERN = re.compile(r'([A-Za-z]):\s*(.*)')
+
   def __init__(self, tune_lines):
     self._ns = music_pb2.NoteSequence()
     # Standard ABC fields.
@@ -173,9 +180,10 @@ class ABCTune(object):
 
       # If the lines begins with a letter and a colon, it's an information
       # field. Extract it.
-      info_field = re.match(r'([A-Za-z]):\s*(.*)', line)
-      if info_field:
-        self._parse_information_field(info_field.group(1), info_field.group(2))
+      info_field_match = ABCTune.INFORMATION_FIELD_PATTERN.match(line)
+      if info_field_match:
+        self._parse_information_field(
+            info_field_match.group(1), info_field_match.group(2))
       else:
         if self._in_header:
           self._set_values_from_header()
@@ -198,6 +206,15 @@ class ABCTune(object):
       for i in range(abs(sig)):
         accidentals[ABCTune.FLATS_ORDER[i]] = -1
     return accidentals
+
+  @property
+  def _qpm(self):
+    """Returns the current QPM."""
+    if self._ns.tempos:
+      return self._ns.tempos[-1].qpm
+    else:
+      # No QPM has been specified, so will use the default one.
+      return constants.DEFAULT_QUARTERS_PER_MINUTE
 
   def _set_values_from_header(self):
     # Set unit note length. May depend on the current meter, so this has to be
@@ -245,28 +262,65 @@ class ABCTune(object):
     tempo.time = self._current_time
     tempo.qpm = float((tempo_unit / Fraction(1, 4)) * tempo_rate)
 
+  def _apply_broken_rhythm(self, broken_rhythm):
+    """Applies a broken rhythm symbol to the two most recently added notes."""
+    # http://abcnotation.com/wiki/abc:standard:v2.1#broken_rhythm
+
+    if len(self._ns.notes) < 2:
+      raise ValueError('Cannot apply a broken rhythm with fewer than 2 notes')
+
+    note1 = self._ns.notes[-2]
+    note2 = self._ns.notes[-1]
+    note1_len = note1.end_time - note1.start_time
+    note2_len = note2.end_time - note2.start_time
+    if note1_len != note2_len:
+      raise ValueError(
+          'Cannot apply broken rhythm to two notes of different lengths')
+
+    time_adj = note1_len / (2 ** len(broken_rhythm))
+    if broken_rhythm[0] == '<':
+      note1.end_time -= time_adj
+      note2.start_time -= time_adj
+    elif broken_rhythm[0] == '>':
+      note1.end_time += time_adj
+      note2.start_time += time_adj
+    else:
+      raise ValueError('Could not parse broken rhythm token: {}'.format(
+          broken_rhythm))
+
   # http://abcnotation.com/wiki/abc:standard:v2.1#pitch
-  NOTE_PATTERN = re.compile(r'(__|_|=|\^|\^\^)?([A-Ga-g])([\',]*)')
+  NOTE_PATTERN = re.compile(
+      r'(__|_|=|\^|\^\^)?([A-Ga-g])([\',]*)(\d*/*\d*)')
+
+  # http://abcnotation.com/wiki/abc:standard:v2.1#broken_rhythm
+  BROKEN_RHYTHM_PATTERN = re.compile(r'(<+|>+)')
+
+  # http://abcnotation.com/wiki/abc:standard:v2.1#use_of_fields_within_the_tune_body
+  INLINE_INFORMATION_FIELD_PATTERN = re.compile(r'\[([A-Za-z]):\s*([^\]]+)\]')
 
   def _parse_music_code(self, line):
     """Parse the music code within an ABC file."""
 
     # http://abcnotation.com/wiki/abc:standard:v2.1#the_tune_body
     pos = 0
+    broken_rhythm = None
     while pos < len(line):
       char = line[pos]
 
       note_match = ABCTune.NOTE_PATTERN.match(line, pos)
+      broken_rhythm_match = ABCTune.BROKEN_RHYTHM_PATTERN.match(line, pos)
+      inline_information_field_match = (
+          ABCTune.INLINE_INFORMATION_FIELD_PATTERN.match(line, pos))
       if note_match:
-        pos += len(note_match.group(0))
+        pos = note_match.end()
 
         note = self._ns.notes.add()
         note.velocity = self._current_velocity
         note.start_time = self._current_time
-        # advance clock
-        note.end_time = self._current_time
 
         note.pitch = ABCTune.ABC_NOTE_TO_MIDI[note_match.group(2)]
+
+        # Accidentals
         if note_match.group(1):
           for accidental in note_match.group(1).split():
             if accidental == '^':
@@ -280,6 +334,8 @@ class ABCTune(object):
         else:
           # No accidentals, so modify according to current key.
           note.pitch += self._accidentals[note_match.group(2).upper()]
+
+        # Octaves
         if note_match.group(3):
           for octave in note_match.group(3):
             if octave == '\'':
@@ -288,9 +344,42 @@ class ABCTune(object):
               note.pitch -= 12
             else:
               raise ValueError('Invalid octave: {}'.format(octave))
+
         if (note.pitch < constants.MIN_MIDI_PITCH or
             note.pitch > constants.MAX_MIDI_PITCH):
           raise ValueError('pitch {} is invalid'.format(note.pitch))
+
+        # Note length
+        length = self._current_unit_note_length
+        # http://abcnotation.com/wiki/abc:standard:v2.1#note_lengths
+        if note_match.group(4):
+          slash_count = note_match.group(4).count('/')
+          if slash_count == len(note_match.group(4)):
+            # Handle A// shorthand case.
+            length /= 2 ** slash_count
+          elif note_match.group(4).startswith('/'):
+            length /= int(note_match.group(4)[1:])
+          else:
+            length *= int(note_match.group(4))
+
+        # Advance clock based on note length.
+        self._current_time += (1 / (self._qpm / 60)) * (length / Fraction(1, 4))
+
+        note.end_time = self._current_time
+
+        if broken_rhythm:
+          self._apply_broken_rhythm(broken_rhythm)
+          broken_rhythm = None
+      elif broken_rhythm_match:
+        pos = broken_rhythm_match.end()
+        if broken_rhythm:
+          raise ValueError('Cannot specify a broken rhythm twice in a row.')
+        broken_rhythm = broken_rhythm_match.group(1)
+      elif inline_information_field_match:
+        pos = inline_information_field_match.end()
+        self._parse_information_field(
+            inline_information_field_match.group(1),
+            inline_information_field_match.group(2))
       elif char == '"':
         # Text annotation
         # http://abcnotation.com/wiki/abc:standard:v2.1#chord_symbols
@@ -319,6 +408,9 @@ class ABCTune(object):
       r'([A-G])\s*([#b]?)\s*'
       r'((?:(?:maj|ion|min|aeo|mix|dor|phr|lyd|loc|m)[^ ]*)?)',
       re.IGNORECASE)
+
+  # http://abcnotation.com/wiki/abc:standard:v2.1#kkey
+  KEY_ACCIDENTALS_PATTERN = re.compile(r'(__|_|=|\^|\^\^)?([A-Ga-g])')
 
   @staticmethod
   def parse_key(key):
@@ -373,7 +465,7 @@ class ABCTune(object):
       accidentals = ABCTune._sig_to_accidentals(sig)
 
     while pos < len(key):
-      note_match = ABCTune.NOTE_PATTERN.match(key, pos)
+      note_match = ABCTune.KEY_ACCIDENTALS_PATTERN.match(key, pos)
       if note_match:
         pos += len(note_match.group(0))
 
@@ -536,6 +628,13 @@ class ABCTune(object):
     elif field_name == 'T':
       # Title
       # http://abcnotation.com/wiki/abc:standard:v2.1#ttune_title
+
+      if not self._in_header:
+        # TODO(fjord): Non-header titles are used to name parts of tunes, but
+        # NoteSequence doesn't currently have any place to put that information.
+        tf.logging.warning(
+            'Ignoring non-header title: {}'.format(field_content))
+        return
 
       # If there are multiple titles, separate them with semicolons.
       if self._ns.sequence_metadata.title:
