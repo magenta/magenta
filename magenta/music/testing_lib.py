@@ -50,6 +50,7 @@ def add_control_changes_to_sequence(note_sequence, instrument, control_changes):
     control_change.control_value = control_value
     control_change.instrument = instrument
 
+
 def add_pitch_bends_to_sequence(
     note_sequence, instrument, program, pitch_bends):
   for time, bend in pitch_bends:
