@@ -281,7 +281,6 @@ class ABCTune(object):
     if broken_rhythm[0] == '<':
       note1.end_time -= time_adj
       note2.start_time -= time_adj
-      note2.end_time += time_adj
     elif broken_rhythm[0] == '>':
       note1.end_time += time_adj
       note2.start_time += time_adj

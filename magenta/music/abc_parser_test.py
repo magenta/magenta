@@ -436,7 +436,7 @@ class AbcParserTest(tf.test.TestCase):
           pitch: 72
           velocity: 90
           start_time: 1.75
-          end_time: 2.75
+          end_time: 2.5
         }
         notes {
           pitch: 74
