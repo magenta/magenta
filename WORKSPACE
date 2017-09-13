@@ -8,9 +8,9 @@ new_http_archive(
 
 http_archive(
     name = "protobuf",
-    sha256 = "2a25c2b71c707c5552ec9afdfb22532a93a339e1ca5d38f163fe4107af08c54c",
-    strip_prefix = "protobuf-3.2.0",
-    url = "https://github.com/google/protobuf/archive/v3.2.0.tar.gz",
+    sha256 = "3f833c1c367f53803f5f849181af4a4edb20f8dd1fbdced19b5a2d52ee43ed54",
+    strip_prefix = "protobuf-3.4.0",
+    url = "https://github.com/google/protobuf/releases/download/v3.4.0/protobuf-python-3.4.0.tar.gz",
 )
 
 new_http_archive(
