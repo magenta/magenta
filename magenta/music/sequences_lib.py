@@ -20,6 +20,7 @@ from operator import itemgetter
 
 # internal imports
 import numpy as np
+from six.moves import range  # pylint: disable=redefined-builtin
 import tensorflow as tf
 
 from magenta.music import chord_symbols_lib
@@ -272,13 +273,43 @@ def shift_sequence_times(sequence, shift_seconds):
   return shifted
 
 
+def remove_redundant_events(sequence):
+  """Returns a copy of the sequence with redundant events removed.
+
+  An event is considered redundant if it is a time signature, a key signature,
+  or a tempo that differs from the previous event of the same type only by time.
+  For example, a tempo mark of 120 qpm at 5 seconds would be considered
+  redundant if it followed a tempo mark of 120 qpm and 4 seconds.
+
+  Args:
+    sequence: The sequence to process.
+
+  Returns:
+    A new sequence with redundant events removed.
+  """
+  fixed_sequence = copy.deepcopy(sequence)
+  for events in [
+      fixed_sequence.time_signatures, fixed_sequence.key_signatures,
+      fixed_sequence.tempos]:
+    for i in range(len(events) - 1, 0, -1):
+      tmp_ts = copy.deepcopy(events[i])
+      tmp_ts.time = events[i - 1].time
+      # If the only difference between the two events is time, then delete the
+      # second one.
+      if tmp_ts == events[i - 1]:
+        del events[i]
+
+  return fixed_sequence
+
+
 def concatenate_sequences(*sequences):
   """Concatenate a series of NoteSequences together.
 
   Individual sequences will be shifted using shift_sequence_times and then
   merged together using the protobuf MergeFrom method. This means that any
   global values (e.g., ticks_per_quarter) will be overwritten by each sequence
-  and only the final value will be used.
+  and only the final value will be used. After this, redundant events will be
+  removed with remove_redundant_events.
 
   Args:
     *sequences: A variable number of sequences to concatenate.
@@ -296,7 +327,7 @@ def concatenate_sequences(*sequences):
 
     current_total_time = cat_seq.total_time
 
-  return cat_seq
+  return remove_redundant_events(cat_seq)
 
 
 def _is_power_of_2(x):
