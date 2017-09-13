@@ -958,6 +958,62 @@ class SequencesLibTest(tf.test.TestCase):
     sequences_lib.infer_chords_for_sequence(sequence)
     self.assertProtoEquals(expected_sequence, sequence)
 
+  def testShiftSequenceTimes(self):
+    sequence = copy.copy(self.note_sequence)
+    testing_lib.add_track_to_sequence(
+        sequence, 0,
+        [(12, 100, 0.01, 10.0), (11, 55, 0.22, 0.50), (40, 45, 2.50, 3.50),
+         (55, 120, 4.0, 4.01), (52, 99, 4.75, 5.0)])
+    testing_lib.add_chords_to_sequence(
+        sequence, [('C', 1.5), ('G7', 3.0), ('F', 4.8)])
+    testing_lib.add_control_changes_to_sequence(
+        sequence, 0,
+        [(0.0, 64, 127), (2.0, 64, 0), (4.0, 64, 127), (5.0, 64, 0)])
+    testing_lib.add_control_changes_to_sequence(
+        sequence, 1, [(2.0, 64, 127)])
+    testing_lib.add_pitch_bends_to_sequence(
+        sequence, 1, 1, [(2.0, 100), (3.0, 0)])
+
+    expected_sequence = copy.copy(self.note_sequence)
+    testing_lib.add_track_to_sequence(
+        expected_sequence, 0,
+        [(12, 100, 1.01, 11.0), (11, 55, 1.22, 1.50), (40, 45, 3.50, 4.50),
+         (55, 120, 5.0, 5.01), (52, 99, 5.75, 6.0)])
+    testing_lib.add_chords_to_sequence(
+        expected_sequence, [('C', 2.5), ('G7', 4.0), ('F', 5.8)])
+    testing_lib.add_control_changes_to_sequence(
+        expected_sequence, 0,
+        [(1.0, 64, 127), (3.0, 64, 0), (5.0, 64, 127), (6.0, 64, 0)])
+    testing_lib.add_control_changes_to_sequence(
+        expected_sequence, 1, [(3.0, 64, 127)])
+    testing_lib.add_pitch_bends_to_sequence(
+        expected_sequence, 1, 1, [(3.0, 100), (4.0, 0)])
+
+    expected_sequence.time_signatures[0].time = 1
+    expected_sequence.tempos[0].time = 1
+
+    shifted_sequence = sequences_lib.shift_sequence_times(sequence, 1.0)
+    self.assertProtoEquals(expected_sequence, shifted_sequence)
+
+  def testConcatenateSequences(self):
+    sequence1 = copy.copy(self.note_sequence)
+    testing_lib.add_track_to_sequence(
+        sequence1, 0,
+        [(60, 100, 0.0, 1.0), (72, 100, 0.5, 1.5)])
+    sequence2 = copy.copy(self.note_sequence)
+    testing_lib.add_track_to_sequence(
+        sequence2, 0,
+        [(59, 100, 0.0, 1.0), (71, 100, 0.5, 1.5)])
+
+    expected_sequence = copy.copy(self.note_sequence)
+    testing_lib.add_track_to_sequence(
+        expected_sequence, 0,
+        [(60, 100, 0.0, 1.0), (72, 100, 0.5, 1.5),
+         (59, 100, 1.5, 2.5), (71, 100, 2.0, 3.0)])
+
+    cat_seq = sequences_lib.concatenate_sequences(sequence1, sequence2)
+    self.assertProtoEquals(expected_sequence, cat_seq)
+
 
 if __name__ == '__main__':
   tf.test.main()

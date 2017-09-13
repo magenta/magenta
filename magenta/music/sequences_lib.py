@@ -249,11 +249,11 @@ def shift_sequence_times(sequence, shift_seconds):
     raise QuantizationStatusException(
         'Can only extract subsequence from unquantized NoteSequence.')
 
-  shifted = music_pb.NoteSequence()
+  shifted = music_pb2.NoteSequence()
   shifted.CopyFrom(sequence)
 
   # Delete subsequence_info because our frame of reference has shifted.
-  del shifted.subsequence_info
+  shifted.ClearField('subsequence_info')
 
   # Shift notes.
   for note in shifted.notes:
@@ -268,6 +268,35 @@ def shift_sequence_times(sequence, shift_seconds):
     event.time += shift_seconds
 
   shifted.total_time += shift_seconds
+
+  return shifted
+
+
+def concatenate_sequences(*sequences):
+  """Concatenate a series of NoteSequences together.
+
+  Individual sequences will be shifted using shift_sequence_times and then
+  merged together using the protobuf MergeFrom method. This means that any
+  global values (e.g., ticks_per_quarter) will be overwritten by each sequence
+  and only the final value will be used.
+
+  Args:
+    *sequences: A variable number of sequences to concatenate.
+
+  Returns:
+    A new sequence that is the result of concatenating *sequences.
+  """
+  current_total_time = 0
+  cat_seq = music_pb2.NoteSequence()
+  for sequence in sequences:
+    if current_total_time > 0:
+      cat_seq.MergeFrom(shift_sequence_times(sequence, current_total_time))
+    else:
+      cat_seq.MergeFrom(sequence)
+
+    current_total_time = cat_seq.total_time
+
+  return cat_seq
 
 
 def _is_power_of_2(x):
