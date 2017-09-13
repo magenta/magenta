@@ -294,7 +294,8 @@ class ABCTune(object):
     # This happens if the last line in the piece ends with a :| symbol. A new
     # section is set up to handle upcoming notes, but then the end of the piece
     # is reached.
-    if self._ns.section_annotations[-1].time == self._ns.notes[-1].end_time:
+    if (self._ns.section_annotations and
+        self._ns.section_annotations[-1].time == self._ns.notes[-1].end_time):
       del self._ns.section_annotations[-1]
 
   def _apply_broken_rhythm(self, broken_rhythm):
@@ -410,7 +411,7 @@ class ABCTune(object):
         # http://abcnotation.com/wiki/abc:standard:v2.1#note_lengths
         if match.group(4):
           slash_count = match.group(4).count('/')
-          if slash_count == len(note_match.group(4)):
+          if slash_count == len(match.group(4)):
             # Handle A// shorthand case.
             length /= 2 ** slash_count
           elif match.group(4).startswith('/'):
