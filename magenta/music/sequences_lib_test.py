@@ -1014,6 +1014,14 @@ class SequencesLibTest(tf.test.TestCase):
     cat_seq = sequences_lib.concatenate_sequences(sequence1, sequence2)
     self.assertProtoEquals(expected_sequence, cat_seq)
 
+  def testRemoveRedundantEvents(self):
+    sequence = copy.copy(self.note_sequence)
+    redundant_tempo = sequence.tempos.add()
+    redundant_tempo.CopyFrom(sequence.tempos[0])
+    redundant_tempo.time = 5.0
+
+    fixed_sequence = sequences_lib.remove_redundant_events(sequence)
+    self.assertProtoEquals(self.note_sequence, fixed_sequence)
 
 if __name__ == '__main__':
   tf.test.main()
