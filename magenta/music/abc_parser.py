@@ -50,6 +50,10 @@ class VariantEndingException(ABCParseException):
   """Variant endings are not yet supported."""
 
 
+class PartException(ABCParseException):
+  """ABC Parts are not yet supported."""
+
+
 def parse_tunebook_file(filename):
   """Parse an ABC Tunebook file."""
   # 'r' mode will decode the file as utf-8 in py3.
@@ -704,7 +708,7 @@ class ABCTune(object):
       pass
     elif field_name == 'P':
       # TODO(fjord): implement part parsing.
-      pass
+      raise PartException('ABC parts are not yet supported.')
     elif field_name == 'Q':
       # Tempo
       # http://abcnotation.com/wiki/abc:standard:v2.1#qtempo

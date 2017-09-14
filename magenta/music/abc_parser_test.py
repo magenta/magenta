@@ -199,9 +199,10 @@ class AbcParserTest(tf.test.TestCase):
     tunes, exceptions = abc_parser.parse_tunebook_file(
         os.path.join(tf.resource_loader.get_data_files_path(),
                      'testdata/english.abc'))
-    self.assertEqual(2, len(tunes))
-    self.assertEqual(1, len(exceptions))
+    self.assertEqual(1, len(tunes))
+    self.assertEqual(2, len(exceptions))
     self.assertTrue(isinstance(exceptions[0], abc_parser.VariantEndingException))
+    self.assertTrue(isinstance(exceptions[1], abc_parser.PartException))
 
     expected_ns1_metadata = common_testing_lib.parse_test_proto(
         music_pb2.NoteSequence,
@@ -277,29 +278,29 @@ class AbcParserTest(tf.test.TestCase):
     # self.compareToAbc2midiAndMetadata(
     #     'testdata/english2.mid', expected_ns2_metadata, tunes[1])
 
-    expected_ns3_metadata = common_testing_lib.parse_test_proto(
-        music_pb2.NoteSequence,
-        """
-        ticks_per_quarter: 220
-        source_info: {
-          source_type: SCORE_BASED
-          encoding_type: ABC
-          parser: MAGENTA_ABC
-        }
-        reference_number: 3
-        sequence_metadata {
-          title: "William and Nancy; New Mown Hay; Legacy, The"
-          artist: "Trad."
-          composers: "Trad."
-        }
-        key_signatures {
-          key: G
-        }
-        """)
-    # TODO(fjord): verify chord annotations
-    del tunes[3].text_annotations[:]
-    self.compareToAbc2midiAndMetadata(
-        'testdata/english3.mid', expected_ns3_metadata, tunes[3])
+    # expected_ns3_metadata = common_testing_lib.parse_test_proto(
+    #     music_pb2.NoteSequence,
+    #     """
+    #     ticks_per_quarter: 220
+    #     source_info: {
+    #       source_type: SCORE_BASED
+    #       encoding_type: ABC
+    #       parser: MAGENTA_ABC
+    #     }
+    #     reference_number: 3
+    #     sequence_metadata {
+    #       title: "William and Nancy; New Mown Hay; Legacy, The"
+    #       artist: "Trad."
+    #       composers: "Trad."
+    #     }
+    #     key_signatures {
+    #       key: G
+    #     }
+    #     """)
+    # # TODO(fjord): verify chord annotations
+    # del tunes[3].text_annotations[:]
+    # self.compareToAbc2midiAndMetadata(
+    #     'testdata/english3.mid', expected_ns3_metadata, tunes[3])
 
   def testParseOctaves(self):
     tunes, exceptions = abc_parser.parse_tunebook("""X:1
