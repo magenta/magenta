@@ -370,7 +370,6 @@ class ABCTune(object):
   # http://abcnotation.com/wiki/abc:standard:v2.1#annotations
   TEXT_ANNOTATION_PATTERN = re.compile(r'"([^"]*)"')
 
-
   def _parse_music_code(self, line):
     """Parse the music code within an ABC file."""
 
@@ -482,7 +481,7 @@ class ABCTune(object):
             raise RepeatParseException(
                 'Colon-only repeats must be divisible by 2: {}'.format(
                     match.group(1)))
-            backward_repeats = forward_repeats = colon_count / 2
+          backward_repeats = forward_repeats = colon_count / 2
         else:
           repeat_match = ABCTune.REPEAT_SYMBOLS_PATTERN.match(match.group(1))
           if not repeat_match:
