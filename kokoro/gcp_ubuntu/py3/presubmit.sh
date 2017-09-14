@@ -6,6 +6,7 @@ set -e
 set -x
 
 # Set up Python 3.6.1 environment.
+eval "$(pyenv init -)"
 eval 'pyenv shell 3.6.1'
 export PIP_COMMAND='python3.6 -m pip'
 # Ensure that python 3 is used.
