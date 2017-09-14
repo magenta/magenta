@@ -97,8 +97,8 @@ def parse_tunebook(tunebook):
       ns = abc_tune.note_sequence
       if ns.reference_number in tunes:
         raise ABCParseException(
-            'ABC Reference number {} appears more than once in this tunebook'.format(
-                ns.reference_number))
+            'ABC Reference number {} appears more than once in this '
+            'tunebook'.format(ns.reference_number))
       tunes[ns.reference_number] = ns
 
   return tunes, exceptions
@@ -378,8 +378,6 @@ class ABCTune(object):
     pos = 0
     broken_rhythm = None
     while pos < len(line):
-      char = line[pos]
-
       match = None
       for regex in [
           ABCTune.NOTE_PATTERN,

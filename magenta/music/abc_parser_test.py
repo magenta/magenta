@@ -51,7 +51,6 @@ class AbcParserTest(tf.test.TestCase):
                            test.section_groups)
     expanded_test = sequences_lib.expand_section_groups(test)
 
-
     abc2midi = midi_io.midi_file_to_sequence_proto(
         os.path.join(tf.resource_loader.get_data_files_path(), midi_path))
 
@@ -208,7 +207,8 @@ class AbcParserTest(tf.test.TestCase):
                      'testdata/english.abc'))
     self.assertEqual(1, len(tunes))
     self.assertEqual(2, len(exceptions))
-    self.assertTrue(isinstance(exceptions[0], abc_parser.VariantEndingException))
+    self.assertTrue(isinstance(exceptions[0],
+                               abc_parser.VariantEndingException))
     self.assertTrue(isinstance(exceptions[1], abc_parser.PartException))
 
     expected_metadata1 = common_testing_lib.parse_test_proto(
