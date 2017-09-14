@@ -46,6 +46,10 @@ class RepeatParseException(ABCParseException):
   """Exception when a repeat directive could not be parsed."""
 
 
+class VariantEndingException(ABCParseException):
+  """Variant endings are not yet supported."""
+
+
 def parse_tunebook_file(filename):
   """Parse an ABC Tunebook file."""
   # 'r' mode will decode the file as utf-8 in py3.
@@ -75,9 +79,25 @@ def parse_tunebook(tunebook):
       [line.startswith('X:') for line in sections[0]]):
     header = sections.pop(0)
 
-  # The header sets default values for each tune, so prepend it to every
-  # tune that is being parsed.
-  return [ABCTune(header + tune).note_sequence for tune in sections]
+  tunes = {}
+  exceptions = []
+
+  for tune in sections:
+    try:
+      # The header sets default values for each tune, so prepend it to every
+      # tune that is being parsed.
+      abc_tune = ABCTune(header + tune)
+    except ABCParseException as e:
+      exceptions.append(e)
+    else:
+      ns = abc_tune.note_sequence
+      if ns.reference_number in tunes:
+        raise ABCParseException(
+            'ABC Reference number {} appears more than once in this tunebook'.format(
+                ns.reference_number))
+      tunes[ns.reference_number] = ns
+
+  return tunes, exceptions
 
 
 class ABCTune(object):
@@ -439,6 +459,10 @@ class ABCTune(object):
         if not is_repeat:
           # We don't currently track regular bar lines
           continue
+
+        if match.group(2):
+          raise VariantEndingException(
+              'Variant ending {} is not supported.'.format(match.group(2)))
 
         # A repeat implies the start of a new section, so make one.
         if not self._ns.section_annotations:

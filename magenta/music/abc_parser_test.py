@@ -196,10 +196,12 @@ class AbcParserTest(tf.test.TestCase):
     self.assertEqual(music_pb2.NoteSequence.KeySignature.MAJOR, proto_mode)
 
   def testParseEnglishAbc(self):
-    tunes = abc_parser.parse_tunebook_file(
+    tunes, exceptions = abc_parser.parse_tunebook_file(
         os.path.join(tf.resource_loader.get_data_files_path(),
                      'testdata/english.abc'))
-    self.assertEqual(3, len(tunes))
+    self.assertEqual(2, len(tunes))
+    self.assertEqual(1, len(exceptions))
+    self.assertTrue(isinstance(exceptions[0], abc_parser.VariantEndingException))
 
     expected_ns1_metadata = common_testing_lib.parse_test_proto(
         music_pb2.NoteSequence,
@@ -251,29 +253,29 @@ class AbcParserTest(tf.test.TestCase):
         }
         """)
     self.compareToAbc2midiAndMetadata(
-        'testdata/english1.mid', expected_ns1_metadata, tunes[0])
+        'testdata/english1.mid', expected_ns1_metadata, tunes[1])
 
-    expected_ns2_metadata = common_testing_lib.parse_test_proto(
-        music_pb2.NoteSequence,
-        """
-        ticks_per_quarter: 220
-        source_info: {
-          source_type: SCORE_BASED
-          encoding_type: ABC
-          parser: MAGENTA_ABC
-        }
-        reference_number: 2
-        sequence_metadata {
-          title: "Old Sir Simon the King"
-          artist: "Trad."
-          composers: "Trad."
-        }
-        key_signatures {
-          key: G
-        }
-        """)
-    self.compareToAbc2midiAndMetadata(
-        'testdata/english2.mid', expected_ns2_metadata, tunes[1])
+    # expected_ns2_metadata = common_testing_lib.parse_test_proto(
+    #     music_pb2.NoteSequence,
+    #     """
+    #     ticks_per_quarter: 220
+    #     source_info: {
+    #       source_type: SCORE_BASED
+    #       encoding_type: ABC
+    #       parser: MAGENTA_ABC
+    #     }
+    #     reference_number: 2
+    #     sequence_metadata {
+    #       title: "Old Sir Simon the King"
+    #       artist: "Trad."
+    #       composers: "Trad."
+    #     }
+    #     key_signatures {
+    #       key: G
+    #     }
+    #     """)
+    # self.compareToAbc2midiAndMetadata(
+    #     'testdata/english2.mid', expected_ns2_metadata, tunes[1])
 
     expected_ns3_metadata = common_testing_lib.parse_test_proto(
         music_pb2.NoteSequence,
@@ -295,16 +297,17 @@ class AbcParserTest(tf.test.TestCase):
         }
         """)
     # TODO(fjord): verify chord annotations
-    del tunes[2].text_annotations[:]
+    del tunes[3].text_annotations[:]
     self.compareToAbc2midiAndMetadata(
-        'testdata/english3.mid', expected_ns3_metadata, tunes[2])
+        'testdata/english3.mid', expected_ns3_metadata, tunes[3])
 
   def testParseOctaves(self):
-    tunes = abc_parser.parse_tunebook("""X:1
+    tunes, exceptions = abc_parser.parse_tunebook("""X:1
         T:Test
         CC,',C,C'c
         """)
     self.assertEqual(1, len(tunes))
+    self.assertEqual(0, len(exceptions))
 
     expected_ns1 = common_testing_lib.parse_test_proto(
         music_pb2.NoteSequence,
@@ -349,11 +352,11 @@ class AbcParserTest(tf.test.TestCase):
           end_time: 1.25
         }
         """)
-    self.assertProtoEquals(expected_ns1, tunes[0])
+    self.assertProtoEquals(expected_ns1, tunes[1])
 
   def testParseTempos(self):
     # Examples from http://abcnotation.com/wiki/abc:standard:v2.1#qtempo
-    tunes = abc_parser.parse_tunebook("""
+    tunes, exceptions = abc_parser.parse_tunebook("""
         X:1
         L:1/4
         Q:60
@@ -395,21 +398,22 @@ class AbcParserTest(tf.test.TestCase):
         L:1/4  % define note length after tempo to verify that is supported.
         """)
     self.assertEqual(11, len(tunes))
+    self.assertEqual(0, len(exceptions))
 
-    self.assertEqual(60, tunes[0].tempos[0].qpm)
-    self.assertEqual(100, tunes[1].tempos[0].qpm)
-    self.assertEqual(240, tunes[2].tempos[0].qpm)
-    self.assertEqual(200, tunes[3].tempos[0].qpm)
+    self.assertEqual(60, tunes[1].tempos[0].qpm)
+    self.assertEqual(100, tunes[2].tempos[0].qpm)
+    self.assertEqual(240, tunes[3].tempos[0].qpm)
     self.assertEqual(200, tunes[4].tempos[0].qpm)
-    self.assertEqual(120, tunes[5].tempos[0].qpm)
+    self.assertEqual(200, tunes[5].tempos[0].qpm)
     self.assertEqual(120, tunes[6].tempos[0].qpm)
-    self.assertEqual(75, tunes[7].tempos[0].qpm)
-    self.assertEqual(0, len(tunes[8].tempos))
-    self.assertEqual(25, tunes[9].tempos[0].qpm)
-    self.assertEqual(100, tunes[10].tempos[0].qpm)
+    self.assertEqual(120, tunes[7].tempos[0].qpm)
+    self.assertEqual(75, tunes[8].tempos[0].qpm)
+    self.assertEqual(0, len(tunes[9].tempos))
+    self.assertEqual(25, tunes[10].tempos[0].qpm)
+    self.assertEqual(100, tunes[11].tempos[0].qpm)
 
   def testParseBrokenRhythm(self):
-    tunes = abc_parser.parse_tunebook("""X:1
+    tunes, exceptions = abc_parser.parse_tunebook("""X:1
         Q:1/4=120
         L:1/4
         M:3/4
@@ -417,6 +421,7 @@ class AbcParserTest(tf.test.TestCase):
         B>cd B<cd
         """)
     self.assertEqual(1, len(tunes))
+    self.assertEqual(0, len(exceptions))
 
     expected_ns1 = common_testing_lib.parse_test_proto(
         music_pb2.NoteSequence,
@@ -475,16 +480,17 @@ class AbcParserTest(tf.test.TestCase):
           end_time: 3.0
         }
         """)
-    self.assertProtoEquals(expected_ns1, tunes[0])
+    self.assertProtoEquals(expected_ns1, tunes[1])
 
   def testSlashDuration(self):
-    tunes = abc_parser.parse_tunebook("""X:1
+    tunes, exceptions = abc_parser.parse_tunebook("""X:1
         Q:1/4=120
         L:1/4
         T:Test
         CC/C//C///C////
         """)
     self.assertEqual(1, len(tunes))
+    self.assertEqual(0, len(exceptions))
 
     expected_ns1 = common_testing_lib.parse_test_proto(
         music_pb2.NoteSequence,
@@ -533,13 +539,15 @@ class AbcParserTest(tf.test.TestCase):
           end_time: 0.96875
         }
         """)
-    self.assertProtoEquals(expected_ns1, tunes[0])
+    self.assertProtoEquals(expected_ns1, tunes[1])
 
   def testMultiVoice(self):
-    with self.assertRaises(abc_parser.MultiVoiceException):
-      abc_parser.parse_tunebook_file(
-          os.path.join(tf.resource_loader.get_data_files_path(),
-                       'testdata/zocharti_loch.abc'))
+    tunes, exceptions = abc_parser.parse_tunebook_file(
+        os.path.join(tf.resource_loader.get_data_files_path(),
+                     'testdata/zocharti_loch.abc'))
+    self.assertEqual(0, len(tunes))
+    self.assertEqual(1, len(exceptions))
+    self.assertTrue(isinstance(exceptions[0], abc_parser.MultiVoiceException))
 
 if __name__ == '__main__':
   tf.test.main()
