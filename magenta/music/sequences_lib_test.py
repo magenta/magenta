@@ -1048,6 +1048,59 @@ class SequencesLibTest(tf.test.TestCase):
     fixed_sequence = sequences_lib.remove_redundant_events(sequence)
     self.assertProtoEquals(self.note_sequence, fixed_sequence)
 
+  def testExpandSectionGroups(self):
+    sequence = copy.copy(self.note_sequence)
+    testing_lib.add_track_to_sequence(
+        sequence, 0,
+        [(60, 100, 0.0, 1.0), (72, 100, 1.0, 2.0),
+         (59, 100, 2.0, 3.0), (71, 100, 3.0, 4.0)])
+    sequence.section_annotations.add(time=0, section_id=0)
+    sequence.section_annotations.add(time=1, section_id=1)
+    sequence.section_annotations.add(time=2, section_id=2)
+    sequence.section_annotations.add(time=3, section_id=3)
+
+    # A((BC)2D)2
+    sg = sequence.section_groups.add()
+    sg.sections.add(section_id=0)
+    sg.num_times = 1
+    sg = sequence.section_groups.add()
+    sg.sections.add(section_group=music_pb2.NoteSequence.SectionGroup(
+        sections=[music_pb2.NoteSequence.Section(section_id=1),
+                  music_pb2.NoteSequence.Section(section_id=2)],
+        num_times=2))
+    sg.sections.add(section_id=3)
+    sg.num_times = 2
+
+    expanded = sequences_lib.expand_section_groups(sequence)
+
+    expected = copy.copy(self.note_sequence)
+    testing_lib.add_track_to_sequence(
+        expected, 0,
+        [(60, 100, 0.0, 1.0),
+         (72, 100, 1.0, 2.0),
+         (59, 100, 2.0, 3.0),
+         (72, 100, 3.0, 4.0),
+         (59, 100, 4.0, 5.0),
+         (71, 100, 5.0, 6.0),
+         (72, 100, 6.0, 7.0),
+         (59, 100, 7.0, 8.0),
+         (72, 100, 8.0, 9.0),
+         (59, 100, 9.0, 10.0),
+         (71, 100, 10.0, 11.0)])
+    expected.section_annotations.add(time=0, section_id=0)
+    expected.section_annotations.add(time=1, section_id=1)
+    expected.section_annotations.add(time=2, section_id=2)
+    expected.section_annotations.add(time=3, section_id=1)
+    expected.section_annotations.add(time=4, section_id=2)
+    expected.section_annotations.add(time=5, section_id=3)
+    expected.section_annotations.add(time=6, section_id=1)
+    expected.section_annotations.add(time=7, section_id=2)
+    expected.section_annotations.add(time=8, section_id=1)
+    expected.section_annotations.add(time=9, section_id=2)
+    expected.section_annotations.add(time=10, section_id=3)
+    self.assertProtoEquals(expected, expanded)
+
+
   def testRemoveRedundantEventsOutOfOrder(self):
     sequence = copy.copy(self.note_sequence)
     meaningful_tempo = sequence.tempos.add()

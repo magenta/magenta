@@ -365,6 +365,9 @@ message NoteSequence {
     int64 section_id = 4;
   }
 
+  // A section.
+  // Either a section_id, which references a SectionAnnotation or a nested
+  // SectionGroup.
   message Section {
     oneof section_type {
       int64 section_id = 1;
@@ -372,6 +375,10 @@ message NoteSequence {
     }
   }
 
+  // A group of sections and an indication of how many times to play them.
+  // Note that a SectionGroup may contain nested SectionGroups. This is to
+  // capture some of the more complex structure in ABC files with part
+  // directives like P:((AB)3(CD)3)2.
   message SectionGroup {
     repeated Section sections = 1;
     int32 num_times = 2;

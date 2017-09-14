@@ -263,7 +263,8 @@ def shift_sequence_times(sequence, shift_seconds):
 
   events_to_shift = [
       shifted.time_signatures, shifted.key_signatures, shifted.tempos,
-      shifted.pitch_bends, shifted.control_changes, shifted.text_annotations]
+      shifted.pitch_bends, shifted.control_changes, shifted.text_annotations,
+      shifted.section_annotations]
 
   for event in itertools.chain(*events_to_shift):
     event.time += shift_seconds
@@ -348,7 +349,47 @@ def concatenate_sequences(sequences, sequence_durations=None):
     else:
       current_total_time = cat_seq.total_time
 
+  # Delete subsequence_info because we've joined several subsequences.
+  cat_seq.ClearField('subsequence_info')
+
   return remove_redundant_events(cat_seq)
+
+
+def expand_section_groups(sequence):
+  sections = {}
+  for i in range(len(sequence.section_annotations)):
+    section_id = sequence.section_annotations[i].section_id
+    start_time = sequence.section_annotations[i].time
+    if i < len(sequence.section_annotations) - 1:
+      end_time = sequence.section_annotations[i + 1].time
+    else:
+      end_time = sequence.total_time
+
+    subsequence = extract_subsequence(sequence, start_time, end_time)
+    # This is a subsequence, so the section_groups no longer make sense.
+    del subsequence.section_groups[:]
+    # This subsequence contains only 1 section and it has been shifted to time
+    # 0.
+    del subsequence.section_annotations[:]
+    subsequence.section_annotations.add(time=0, section_id=section_id)
+
+    sections[section_id] = subsequence
+
+  def sections_in_group(section_group):
+    sections = []
+    for section in section_group.sections:
+      field = section.WhichOneof('section_type')
+      if field == 'section_id':
+        sections.append(section.section_id)
+      elif field == 'section_group':
+        sections.extend(sections_in_group(section.section_group))
+    return sections * section_group.num_times
+
+  sections_to_concat = []
+  for section_group in sequence.section_groups:
+    sections_to_concat.extend(sections_in_group(section_group))
+
+  return concatenate_sequences(*[sections[i] for i in sections_to_concat])
 
 
 def _is_power_of_2(x):

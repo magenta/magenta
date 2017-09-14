@@ -45,13 +45,6 @@ class AbcParserTest(tf.test.TestCase):
     abc2midi = midi_io.midi_file_to_sequence_proto(
         os.path.join(tf.resource_loader.get_data_files_path(), midi_path))
 
-    # We don't yet support repeats, so just check the first 10 notes and only
-    # the first time signature.
-    del abc2midi.notes[10:]
-    del test.notes[10:]
-    del abc2midi.time_signatures[1:]
-    del test.time_signatures[1:]
-
     # abc2midi adds a 1-tick delay to the start of every note, but we don't.
     tick_length = ((1 / (abc2midi.tempos[0].qpm / 60)) /
                    abc2midi.ticks_per_quarter)

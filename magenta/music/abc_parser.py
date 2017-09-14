@@ -512,7 +512,6 @@ class ABCTune(object):
           sg.num_times = 1
 
         self._current_expected_repeats = forward_repeats
-        print('{} - {}/{}'.format(match.group(1), backward_repeats, forward_repeats))
       elif match.re == ABCTune.TEXT_ANNOTATION_PATTERN:
         # Text annotation
         # http://abcnotation.com/wiki/abc:standard:v2.1#chord_symbols
