@@ -1039,14 +1039,26 @@ class SequencesLibTest(tf.test.TestCase):
         sequence_durations=[2, 1.5, 2])
     self.assertProtoEquals(expected_sequence, cat_seq)
 
-  def testRemoveRedundantEvents(self):
+  def testRemoveRedundantData(self):
     sequence = copy.copy(self.note_sequence)
     redundant_tempo = sequence.tempos.add()
     redundant_tempo.CopyFrom(sequence.tempos[0])
     redundant_tempo.time = 5.0
+    sequence.sequence_metadata.composers.append('Foo')
+    sequence.sequence_metadata.composers.append('Bar')
+    sequence.sequence_metadata.composers.append('Foo')
+    sequence.sequence_metadata.composers.append('Bar')
+    sequence.sequence_metadata.genre.append('Classical')
+    sequence.sequence_metadata.genre.append('Classical')
 
-    fixed_sequence = sequences_lib.remove_redundant_events(sequence)
-    self.assertProtoEquals(self.note_sequence, fixed_sequence)
+    fixed_sequence = sequences_lib.remove_redundant_data(sequence)
+
+    expected_sequence = copy.copy(self.note_sequence)
+    expected_sequence.sequence_metadata.composers.append('Foo')
+    expected_sequence.sequence_metadata.composers.append('Bar')
+    expected_sequence.sequence_metadata.genre.append('Classical')
+
+    self.assertProtoEquals(expected_sequence, fixed_sequence)
 
   def testExpandSectionGroups(self):
     sequence = copy.copy(self.note_sequence)

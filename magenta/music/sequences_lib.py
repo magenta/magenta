@@ -274,13 +274,16 @@ def shift_sequence_times(sequence, shift_seconds):
   return shifted
 
 
-def remove_redundant_events(sequence):
-  """Returns a copy of the sequence with redundant events removed.
+def remove_redundant_data(sequence):
+  """Returns a copy of the sequence with redundant data removed.
 
   An event is considered redundant if it is a time signature, a key signature,
   or a tempo that differs from the previous event of the same type only by time.
   For example, a tempo mark of 120 qpm at 5 seconds would be considered
   redundant if it followed a tempo mark of 120 qpm and 4 seconds.
+
+  Fields in sequence_metadata are considered redundant if the same string is
+  repeated.
 
   Args:
     sequence: The sequence to process.
@@ -301,6 +304,22 @@ def remove_redundant_events(sequence):
       if tmp_ts == events[i - 1]:
         del events[i]
 
+  if fixed_sequence.HasField('sequence_metadata'):
+    # Add composers and genres, preserving order, but dropping duplicates.
+    del fixed_sequence.sequence_metadata.composers[:]
+    added_composer = set()
+    for composer in sequence.sequence_metadata.composers:
+      if composer not in added_composer:
+        fixed_sequence.sequence_metadata.composers.append(composer)
+        added_composer.add(composer)
+
+    del fixed_sequence.sequence_metadata.genre[:]
+    added_genre = set()
+    for genre in sequence.sequence_metadata.genre:
+      if genre not in added_genre:
+        fixed_sequence.sequence_metadata.genre.append(genre)
+        added_genre.add(genre)
+
   return fixed_sequence
 
 
@@ -310,8 +329,8 @@ def concatenate_sequences(sequences, sequence_durations=None):
   Individual sequences will be shifted using shift_sequence_times and then
   merged together using the protobuf MergeFrom method. This means that any
   global values (e.g., ticks_per_quarter) will be overwritten by each sequence
-  and only the final value will be used. After this, redundant events will be
-  removed with remove_redundant_events.
+  and only the final value will be used. After this, redundant data will be
+  removed with remove_redundant_data.
 
   Args:
     sequences: A list of sequences to concatenate.
@@ -352,7 +371,7 @@ def concatenate_sequences(sequences, sequence_durations=None):
   # Delete subsequence_info because we've joined several subsequences.
   cat_seq.ClearField('subsequence_info')
 
-  return remove_redundant_events(cat_seq)
+  return remove_redundant_data(cat_seq)
 
 
 def expand_section_groups(sequence):
@@ -375,6 +394,7 @@ def expand_section_groups(sequence):
 
     sections[section_id] = subsequence
 
+  # Recursively expand section_groups.
   def sections_in_group(section_group):
     sections = []
     for section in section_group.sections:

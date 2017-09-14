@@ -28,6 +28,7 @@ import tensorflow as tf
 from magenta.common import testing_lib as common_testing_lib
 from magenta.music import abc_parser
 from magenta.music import midi_io
+from magenta.music import sequences_lib
 from magenta.protobuf import music_pb2
 
 
@@ -40,8 +41,17 @@ class AbcParserTest(tf.test.TestCase):
     values = [v[1] for v in sorted(six.iteritems(accidentals))]
     self.assertEqual(expected, values)
 
-  def compareToAbc2midiAndMetadata(self, midi_path, expected_ns_metadata, test):
+  def compareToAbc2midiAndMetadata(self, midi_path, expected_metadata,
+                                   expected_expanded_metadata, test):
     """Compare parsing results to the abc2midi "reference" implementation."""
+    # Compare section annotations and groups before expanding.
+    self.assertProtoEquals(expected_metadata.section_annotations,
+                           test.section_annotations)
+    self.assertProtoEquals(expected_metadata.section_groups,
+                           test.section_groups)
+    expanded_test = sequences_lib.expand_section_groups(test)
+
+
     abc2midi = midi_io.midi_file_to_sequence_proto(
         os.path.join(tf.resource_loader.get_data_files_path(), midi_path))
 
@@ -52,23 +62,27 @@ class AbcParserTest(tf.test.TestCase):
     for note in abc2midi.notes:
       note.start_time -= tick_length
 
-    self.assertEqual(len(abc2midi.notes), len(test.notes))
-    for exp_note, test_note in zip(abc2midi.notes, test.notes):
+    self.assertEqual(len(abc2midi.notes), len(expanded_test.notes))
+    for exp_note, test_note in zip(abc2midi.notes, expanded_test.notes):
       # For now, don't compare velocities.
       exp_note.velocity = test_note.velocity
       self.assertProtoEquals(exp_note, test_note)
+    self.assertEqual(abc2midi.total_time, expanded_test.total_time)
 
-    self.assertEqual(len(abc2midi.time_signatures), len(test.time_signatures))
+    self.assertEqual(len(abc2midi.time_signatures),
+                     len(expanded_test.time_signatures))
     for exp_timesig, test_timesig in zip(
-        abc2midi.time_signatures, test.time_signatures):
+        abc2midi.time_signatures, expanded_test.time_signatures):
       self.assertProtoEquals(exp_timesig, test_timesig)
 
     # We've checked the notes and time signatures, now compare the rest of the
     # proto to the expected proto.
-    test_copy = copy.deepcopy(test)
-    del test_copy.notes[:]
-    del test_copy.time_signatures[:]
-    self.assertProtoEquals(expected_ns_metadata, test_copy)
+    expanded_test_copy = copy.deepcopy(expanded_test)
+    del expanded_test_copy.notes[:]
+    expanded_test_copy.ClearField('total_time')
+    del expanded_test_copy.time_signatures[:]
+
+    self.assertProtoEquals(expected_expanded_metadata, expanded_test_copy)
 
   def testParseKeyBasic(self):
     # Most examples taken from
@@ -197,7 +211,7 @@ class AbcParserTest(tf.test.TestCase):
     self.assertTrue(isinstance(exceptions[0], abc_parser.VariantEndingException))
     self.assertTrue(isinstance(exceptions[1], abc_parser.PartException))
 
-    expected_ns1_metadata = common_testing_lib.parse_test_proto(
+    expected_metadata1 = common_testing_lib.parse_test_proto(
         music_pb2.NoteSequence,
         """
         ticks_per_quarter: 220
@@ -246,9 +260,54 @@ class AbcParserTest(tf.test.TestCase):
           num_times: 2
         }
         """)
+    expected_expanded_metadata1 = common_testing_lib.parse_test_proto(
+        music_pb2.NoteSequence,
+        """
+        ticks_per_quarter: 220
+        source_info: {
+          source_type: SCORE_BASED
+          encoding_type: ABC
+          parser: MAGENTA_ABC
+        }
+        reference_number: 1
+        sequence_metadata {
+          title: "Dusty Miller, The; Binny's Jig"
+          artist: "Trad."
+          composers: "Trad."
+        }
+        key_signatures {
+          key: G
+        }
+        section_annotations {
+          time: 0.0
+          section_id: 0
+        }
+        section_annotations {
+          time: 6.0
+          section_id: 0
+        }
+        section_annotations {
+          time: 12.0
+          section_id: 1
+        }
+        section_annotations {
+          time: 18.0
+          section_id: 1
+        }
+        section_annotations {
+          time: 24.0
+          section_id: 2
+        }
+        section_annotations {
+          time: 30.0
+          section_id: 2
+        }
+        """)
     self.compareToAbc2midiAndMetadata(
-        'testdata/english1.mid', expected_ns1_metadata, tunes[1])
+        'testdata/english1.mid', expected_metadata1,
+        expected_expanded_metadata1, tunes[1])
 
+    # TODO(fjord): re-enable once we support variant endings.
     # expected_ns2_metadata = common_testing_lib.parse_test_proto(
     #     music_pb2.NoteSequence,
     #     """
@@ -271,6 +330,7 @@ class AbcParserTest(tf.test.TestCase):
     # self.compareToAbc2midiAndMetadata(
     #     'testdata/english2.mid', expected_ns2_metadata, tunes[1])
 
+    # TODO(fjord): re-enable once we support parts.
     # expected_ns3_metadata = common_testing_lib.parse_test_proto(
     #     music_pb2.NoteSequence,
     #     """
@@ -345,6 +405,7 @@ class AbcParserTest(tf.test.TestCase):
           start_time: 1.0
           end_time: 1.25
         }
+        total_time: 1.25
         """)
     self.assertProtoEquals(expected_ns1, tunes[1])
 
@@ -473,6 +534,7 @@ class AbcParserTest(tf.test.TestCase):
           start_time: 2.5
           end_time: 3.0
         }
+        total_time: 3.0
         """)
     self.assertProtoEquals(expected_ns1, tunes[1])
 
@@ -532,6 +594,7 @@ class AbcParserTest(tf.test.TestCase):
           start_time: 0.9375
           end_time: 0.96875
         }
+        total_time: 0.96875
         """)
     self.assertProtoEquals(expected_ns1, tunes[1])
 

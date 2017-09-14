@@ -621,6 +621,7 @@ py_test(
     deps = [
         ":midi_io",
         ":abc_parser",
+        ":sequences_lib",
         "//magenta/common:testing_lib",
         "//magenta/protobuf:music_py_pb2",
         # tensorflow dep

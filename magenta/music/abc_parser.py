@@ -232,6 +232,9 @@ class ABCTune(object):
       self._set_values_from_header()
     self._finalize_sections()
 
+    if self._ns.notes:
+      self._ns.total_time = self._ns.notes[-1].end_time
+
   @property
   def note_sequence(self):
     return self._ns
