@@ -35,7 +35,8 @@ from magenta.protobuf import music_pb2
 
 def parse_tunebook_file(filename):
   """Parse an ABC Tunebook file."""
-  return parse_tunebook(tf.gfile.Open(filename, 'rb').read())
+  # 'r' mode will decode the file as utf-8 in py3.
+  return parse_tunebook(tf.gfile.Open(filename, 'r').read())
 
 
 def parse_tunebook(tunebook):

@@ -6,7 +6,7 @@ set -e
 set -x
 
 # Ensure that python 2 is used.
-export PIP='pip'
+export PIP_COMMAND='sudo python2 -m pip'
 export BAZEL_TEST_ARGS='--force_python=py2'
 
 cd github/magenta
