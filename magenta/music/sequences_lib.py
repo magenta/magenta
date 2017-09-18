@@ -321,19 +321,23 @@ def concatenate_sequences(sequences, sequence_durations=None):
 
   Returns:
     A new sequence that is the result of concatenating *sequences.
+
+  Raises:
+    ValueError: If the length of sequences and sequence_durations do not match
+        or if a specified duration is less than the total_time of the sequence.
   """
   if sequence_durations and len(sequences) != len(sequence_durations):
-      raise ValueError(
-          'sequences and sequence_durations must be the same length.')
+    raise ValueError(
+        'sequences and sequence_durations must be the same length.')
   current_total_time = 0
   cat_seq = music_pb2.NoteSequence()
   for i in range(len(sequences)):
     sequence = sequences[i]
     if sequence_durations and sequence_durations[i] < sequence.total_time:
-        raise ValueError(
-            'Specified sequence duration ({}) must not be less than the '
-            'total_time of the sequence ({})'.format(
-                sequence_durations[i], sequence.total_time))
+      raise ValueError(
+          'Specified sequence duration ({}) must not be less than the '
+          'total_time of the sequence ({})'.format(
+              sequence_durations[i], sequence.total_time))
     if current_total_time > 0:
       cat_seq.MergeFrom(shift_sequence_times(sequence, current_total_time))
     else:
