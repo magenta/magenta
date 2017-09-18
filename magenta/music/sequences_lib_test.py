@@ -1017,22 +1017,26 @@ class SequencesLibTest(tf.test.TestCase):
   def testConcatenateSequencesWithSpecifiedDurations(self):
     sequence1 = copy.copy(self.note_sequence)
     testing_lib.add_track_to_sequence(
-        sequence1, 0,
-        [(60, 100, 0.0, 1.0), (72, 100, 0.5, 1.5)])
+        sequence1, 0, [(60, 100, 0.0, 1.0), (72, 100, 0.5, 1.5)])
     sequence2 = copy.copy(self.note_sequence)
     testing_lib.add_track_to_sequence(
         sequence2, 0,
-        [(59, 100, 0.0, 1.0), (71, 100, 0.5, 1.5)])
+        [(59, 100, 0.0, 1.0)])
+    sequence3 = copy.copy(self.note_sequence)
+    testing_lib.add_track_to_sequence(
+        sequence3, 0,
+        [(72, 100, 0.0, 1.0), (73, 100, 0.5, 1.5)])
 
     expected_sequence = copy.copy(self.note_sequence)
     testing_lib.add_track_to_sequence(
         expected_sequence, 0,
         [(60, 100, 0.0, 1.0), (72, 100, 0.5, 1.5),
-         (59, 100, 2.0, 3.0), (71, 100, 2.5, 3.5)])
+         (59, 100, 2.0, 3.0),
+         (72, 100, 3.5, 4.5), (73, 100, 4.0, 5.0)])
 
     cat_seq = sequences_lib.concatenate_sequences(
-        [sequence1, sequence2],
-        sequence_durations=[2, 2])
+        [sequence1, sequence2, sequence3],
+        sequence_durations=[2, 1.5, 2])
     self.assertProtoEquals(expected_sequence, cat_seq)
 
   def testRemoveRedundantEvents(self):

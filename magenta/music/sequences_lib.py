@@ -344,7 +344,7 @@ def concatenate_sequences(sequences, sequence_durations=None):
       cat_seq.MergeFrom(sequence)
 
     if sequence_durations:
-      current_total_time = sequence_durations[i]
+      current_total_time += sequence_durations[i]
     else:
       current_total_time = cat_seq.total_time
 
