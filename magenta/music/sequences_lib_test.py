@@ -1063,16 +1063,13 @@ class SequencesLibTest(tf.test.TestCase):
   def testRemoveRedundantDataOutOfOrder(self):
     sequence = copy.copy(self.note_sequence)
     meaningful_tempo = sequence.tempos.add()
-    meaningful_tempo.CopyFrom(sequence.tempos[0])
     meaningful_tempo.time = 5.0
     meaningful_tempo.qpm = 50
     redundant_tempo = sequence.tempos.add()
     redundant_tempo.CopyFrom(sequence.tempos[0])
-    redundant_tempo.time = 0.0
 
     expected_sequence = copy.copy(self.note_sequence)
     expected_meaningful_tempo = expected_sequence.tempos.add()
-    expected_meaningful_tempo.CopyFrom(expected_sequence.tempos[0])
     expected_meaningful_tempo.time = 5.0
     expected_meaningful_tempo.qpm = 50
 
@@ -1130,23 +1127,6 @@ class SequencesLibTest(tf.test.TestCase):
     expected.section_annotations.add(time=9, section_id=2)
     expected.section_annotations.add(time=10, section_id=3)
     self.assertProtoEquals(expected, expanded)
-
-
-  def testRemoveRedundantEventsOutOfOrder(self):
-    sequence = copy.copy(self.note_sequence)
-    meaningful_tempo = sequence.tempos.add()
-    meaningful_tempo.time = 5.0
-    meaningful_tempo.qpm = 50
-    redundant_tempo = sequence.tempos.add()
-    redundant_tempo.CopyFrom(sequence.tempos[0])
-
-    expected_sequence = copy.copy(self.note_sequence)
-    expected_meaningful_tempo = expected_sequence.tempos.add()
-    expected_meaningful_tempo.time = 5.0
-    expected_meaningful_tempo.qpm = 50
-
-    fixed_sequence = sequences_lib.remove_redundant_events(sequence)
-    self.assertProtoEquals(expected_sequence, fixed_sequence)
 
 if __name__ == '__main__':
   tf.test.main()
