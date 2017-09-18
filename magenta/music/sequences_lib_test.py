@@ -1051,16 +1051,13 @@ class SequencesLibTest(tf.test.TestCase):
   def testRemoveRedundantEventsOutOfOrder(self):
     sequence = copy.copy(self.note_sequence)
     meaningful_tempo = sequence.tempos.add()
-    meaningful_tempo.CopyFrom(sequence.tempos[0])
     meaningful_tempo.time = 5.0
     meaningful_tempo.qpm = 50
     redundant_tempo = sequence.tempos.add()
     redundant_tempo.CopyFrom(sequence.tempos[0])
-    redundant_tempo.time = 0.0
 
     expected_sequence = copy.copy(self.note_sequence)
     expected_meaningful_tempo = expected_sequence.tempos.add()
-    expected_meaningful_tempo.CopyFrom(expected_sequence.tempos[0])
     expected_meaningful_tempo.time = 5.0
     expected_meaningful_tempo.qpm = 50
 
