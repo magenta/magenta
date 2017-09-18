@@ -419,7 +419,6 @@ def expand_section_groups(sequence):
   for section_group in sequence.section_groups:
     sections_to_concat.extend(sections_in_group(section_group))
 
-  import pdb;pdb.set_trace()
   return concatenate_sequences(
       [sections[i] for i in sections_to_concat],
       [section_durations[i] for i in sections_to_concat])
