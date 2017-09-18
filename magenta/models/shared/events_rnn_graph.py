@@ -133,7 +133,7 @@ def build_graph(mode, config, sequence_example_file_paths=None):
 
       if mode == 'train':
         loss = tf.reduce_mean(softmax_cross_entropy)
-        perplexity = tf.reduce_mean(tf.exp(softmax_cross_entropy))
+        perplexity = tf.exp(loss)
         accuracy = tf.reduce_mean(correct_predictions)
         event_accuracy = (
             tf.reduce_sum(correct_predictions * event_positions) /
@@ -168,11 +168,13 @@ def build_graph(mode, config, sequence_example_file_paths=None):
                     event_positions, correct_predictions),
                 'metrics/no_event_accuracy': tf.metrics.recall(
                     no_event_positions, correct_predictions),
-                'metrics/perplexity': tf.metrics.mean(
-                    tf.exp(softmax_cross_entropy)),
             })
         for updates_op in update_ops.values():
           tf.add_to_collection('eval_ops', updates_op)
+
+        # Perplexity is just exp(loss) and doesn't need its own update op.
+        vars_to_summarize['metrics/perplexity'] = tf.exp(
+            vars_to_summarize['loss'])
 
       for var_name, var_value in six.iteritems(vars_to_summarize):
         tf.summary.scalar(var_name, var_value)
