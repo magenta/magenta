@@ -248,7 +248,7 @@ def shift_sequence_times(sequence, shift_seconds):
     raise ValueError('Invalid shift amount: {}'.format(shift_seconds))
   if is_quantized_sequence(sequence):
     raise QuantizationStatusException(
-        'Can only extract subsequence from unquantized NoteSequence.')
+        'Can shift only unquantized NoteSequences.')
 
   shifted = music_pb2.NoteSequence()
   shifted.CopyFrom(sequence)
@@ -291,6 +291,7 @@ def remove_redundant_events(sequence):
   for events in [
       fixed_sequence.time_signatures, fixed_sequence.key_signatures,
       fixed_sequence.tempos]:
+    events.sort(key=lambda e: e.time)
     for i in range(len(events) - 1, 0, -1):
       tmp_ts = copy.deepcopy(events[i])
       tmp_ts.time = events[i - 1].time
@@ -302,7 +303,7 @@ def remove_redundant_events(sequence):
   return fixed_sequence
 
 
-def concatenate_sequences(*sequences):
+def concatenate_sequences(sequences, sequence_durations=None):
   """Concatenate a series of NoteSequences together.
 
   Individual sequences will be shifted using shift_sequence_times and then
@@ -312,20 +313,36 @@ def concatenate_sequences(*sequences):
   removed with remove_redundant_events.
 
   Args:
-    *sequences: A variable number of sequences to concatenate.
+    sequences: A list of sequences to concatenate.
+    sequence_durations: An optional list of sequence durations to use. If not
+      specified, the total_time value will be used. Specifying durations is
+      useful if the sequences to be concatenated are effectively longer than
+      their total_time (e.g., a sequence that ends with a rest).
 
   Returns:
     A new sequence that is the result of concatenating *sequences.
   """
+  if sequence_durations and len(sequences) != len(sequence_durations):
+      raise ValueError(
+          'sequences and sequence_durations must be the same length.')
   current_total_time = 0
   cat_seq = music_pb2.NoteSequence()
-  for sequence in sequences:
+  for i in range(len(sequences)):
+    sequence = sequences[i]
+    if sequence_durations and sequence_durations[i] < sequence.total_time:
+        raise ValueError(
+            'Specified sequence duration ({}) must not be less than the '
+            'total_time of the sequence ({})'.format(
+                sequence_durations[i], sequence.total_time))
     if current_total_time > 0:
       cat_seq.MergeFrom(shift_sequence_times(sequence, current_total_time))
     else:
       cat_seq.MergeFrom(sequence)
 
-    current_total_time = cat_seq.total_time
+    if sequence_durations:
+      current_total_time = sequence_durations[i]
+    else:
+      current_total_time = cat_seq.total_time
 
   return remove_redundant_events(cat_seq)
 

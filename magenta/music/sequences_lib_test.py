@@ -1011,7 +1011,28 @@ class SequencesLibTest(tf.test.TestCase):
         [(60, 100, 0.0, 1.0), (72, 100, 0.5, 1.5),
          (59, 100, 1.5, 2.5), (71, 100, 2.0, 3.0)])
 
-    cat_seq = sequences_lib.concatenate_sequences(sequence1, sequence2)
+    cat_seq = sequences_lib.concatenate_sequences([sequence1, sequence2])
+    self.assertProtoEquals(expected_sequence, cat_seq)
+
+  def testConcatenateSequencesWithSpecifiedDurations(self):
+    sequence1 = copy.copy(self.note_sequence)
+    testing_lib.add_track_to_sequence(
+        sequence1, 0,
+        [(60, 100, 0.0, 1.0), (72, 100, 0.5, 1.5)])
+    sequence2 = copy.copy(self.note_sequence)
+    testing_lib.add_track_to_sequence(
+        sequence2, 0,
+        [(59, 100, 0.0, 1.0), (71, 100, 0.5, 1.5)])
+
+    expected_sequence = copy.copy(self.note_sequence)
+    testing_lib.add_track_to_sequence(
+        expected_sequence, 0,
+        [(60, 100, 0.0, 1.0), (72, 100, 0.5, 1.5),
+         (59, 100, 2.0, 3.0), (71, 100, 2.5, 3.5)])
+
+    cat_seq = sequences_lib.concatenate_sequences(
+        [sequence1, sequence2],
+        sequence_durations=[2, 2])
     self.assertProtoEquals(expected_sequence, cat_seq)
 
   def testRemoveRedundantEvents(self):
@@ -1022,6 +1043,25 @@ class SequencesLibTest(tf.test.TestCase):
 
     fixed_sequence = sequences_lib.remove_redundant_events(sequence)
     self.assertProtoEquals(self.note_sequence, fixed_sequence)
+
+  def testRemoveRedundantEventsOutOfOrder(self):
+    sequence = copy.copy(self.note_sequence)
+    meaningful_tempo = sequence.tempos.add()
+    meaningful_tempo.CopyFrom(sequence.tempos[0])
+    meaningful_tempo.time = 5.0
+    meaningful_tempo.qpm = 50
+    redundant_tempo = sequence.tempos.add()
+    redundant_tempo.CopyFrom(sequence.tempos[0])
+    redundant_tempo.time = 0.0
+
+    expected_sequence = copy.copy(self.note_sequence)
+    expected_meaningful_tempo = expected_sequence.tempos.add()
+    expected_meaningful_tempo.CopyFrom(expected_sequence.tempos[0])
+    expected_meaningful_tempo.time = 5.0
+    expected_meaningful_tempo.qpm = 50
+
+    fixed_sequence = sequences_lib.remove_redundant_events(sequence)
+    self.assertProtoEquals(expected_sequence, fixed_sequence)
 
 if __name__ == '__main__':
   tf.test.main()
