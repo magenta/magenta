@@ -384,6 +384,7 @@ def expand_section_groups(sequence):
     A new, expanded version of the sequence.
   """
   sections = {}
+  section_durations = {}
   for i in range(len(sequence.section_annotations)):
     section_id = sequence.section_annotations[i].section_id
     start_time = sequence.section_annotations[i].time
@@ -401,6 +402,7 @@ def expand_section_groups(sequence):
     subsequence.section_annotations.add(time=0, section_id=section_id)
 
     sections[section_id] = subsequence
+    section_durations[section_id] = end_time - start_time
 
   # Recursively expand section_groups.
   def sections_in_group(section_group):
@@ -417,7 +419,10 @@ def expand_section_groups(sequence):
   for section_group in sequence.section_groups:
     sections_to_concat.extend(sections_in_group(section_group))
 
-  return concatenate_sequences(*[sections[i] for i in sections_to_concat])
+  import pdb;pdb.set_trace()
+  return concatenate_sequences(
+      [sections[i] for i in sections_to_concat],
+      [section_durations[i] for i in sections_to_concat])
 
 
 def _is_power_of_2(x):

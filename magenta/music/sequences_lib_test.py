@@ -1060,6 +1060,25 @@ class SequencesLibTest(tf.test.TestCase):
 
     self.assertProtoEquals(expected_sequence, fixed_sequence)
 
+  def testRemoveRedundantDataOutOfOrder(self):
+    sequence = copy.copy(self.note_sequence)
+    meaningful_tempo = sequence.tempos.add()
+    meaningful_tempo.CopyFrom(sequence.tempos[0])
+    meaningful_tempo.time = 5.0
+    meaningful_tempo.qpm = 50
+    redundant_tempo = sequence.tempos.add()
+    redundant_tempo.CopyFrom(sequence.tempos[0])
+    redundant_tempo.time = 0.0
+
+    expected_sequence = copy.copy(self.note_sequence)
+    expected_meaningful_tempo = expected_sequence.tempos.add()
+    expected_meaningful_tempo.CopyFrom(expected_sequence.tempos[0])
+    expected_meaningful_tempo.time = 5.0
+    expected_meaningful_tempo.qpm = 50
+
+    fixed_sequence = sequences_lib.remove_redundant_data(sequence)
+    self.assertProtoEquals(expected_sequence, fixed_sequence)
+
   def testExpandSectionGroups(self):
     sequence = copy.copy(self.note_sequence)
     testing_lib.add_track_to_sequence(
