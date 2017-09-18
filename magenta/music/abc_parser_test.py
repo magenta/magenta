@@ -41,14 +41,20 @@ class AbcParserTest(tf.test.TestCase):
     values = [v[1] for v in sorted(six.iteritems(accidentals))]
     self.assertEqual(expected, values)
 
+  def compareProtoList(self, expected, test):
+    self.assertEqual(len(expected), len(test))
+    for e, t in zip(expected, test):
+      self.assertProtoEquals(e, t)
+
   def compareToAbc2midiAndMetadata(self, midi_path, expected_metadata,
                                    expected_expanded_metadata, test):
     """Compare parsing results to the abc2midi "reference" implementation."""
     # Compare section annotations and groups before expanding.
-    self.assertProtoEquals(expected_metadata.section_annotations,
-                           test.section_annotations)
-    self.assertProtoEquals(expected_metadata.section_groups,
-                           test.section_groups)
+    self.compareProtoList(expected_metadata.section_annotations,
+                          test.section_annotations)
+    self.compareProtoList(expected_metadata.section_groups,
+                          test.section_groups)
+
     expanded_test = sequences_lib.expand_section_groups(test)
 
     abc2midi = midi_io.midi_file_to_sequence_proto(
@@ -68,11 +74,8 @@ class AbcParserTest(tf.test.TestCase):
       self.assertProtoEquals(exp_note, test_note)
     self.assertEqual(abc2midi.total_time, expanded_test.total_time)
 
-    self.assertEqual(len(abc2midi.time_signatures),
-                     len(expanded_test.time_signatures))
-    for exp_timesig, test_timesig in zip(
-        abc2midi.time_signatures, expanded_test.time_signatures):
-      self.assertProtoEquals(exp_timesig, test_timesig)
+    self.compareProtoList(abc2midi.time_signatures,
+                          expanded_test.time_signatures)
 
     # We've checked the notes and time signatures, now compare the rest of the
     # proto to the expected proto.
@@ -605,6 +608,122 @@ class AbcParserTest(tf.test.TestCase):
     self.assertEqual(0, len(tunes))
     self.assertEqual(1, len(exceptions))
     self.assertTrue(isinstance(exceptions[0], abc_parser.MultiVoiceException))
+
+  def testRepeats(self):
+    # Several equivalent versions of the same tune.
+    tunes, exceptions = abc_parser.parse_tunebook("""
+        X:1
+        Q:1/4=120
+        L:1/4
+        T:Test
+        Bcd ::[]|[]:: Bcd
+
+        X:2
+        Q:1/4=120
+        L:1/4
+        T:Test
+        Bcd :::: Bcd
+
+        X:3
+        Q:1/4=120
+        L:1/4
+        T:Test
+        |::Bcd ::|:: Bcd ::|
+
+        % This version contains mismatched repeat symbols.
+        X:4
+        Q:1/4=120
+        L:1/4
+        T:Test
+        |::Bcd ::|: Bcd ::|
+        """)
+    self.assertEqual(3, len(tunes))
+    self.assertEqual(1, len(exceptions))
+    self.assertTrue(isinstance(exceptions[0], abc_parser.RepeatParseException))
+    expected_ns1 = common_testing_lib.parse_test_proto(
+        music_pb2.NoteSequence,
+        """
+        ticks_per_quarter: 220
+        source_info: {
+          source_type: SCORE_BASED
+          encoding_type: ABC
+          parser: MAGENTA_ABC
+        }
+        reference_number: 1
+        sequence_metadata {
+          title: "Test"
+        }
+        tempos {
+          qpm: 120
+        }
+        notes {
+          pitch: 71
+          velocity: 90
+          start_time: 0.0
+          end_time: 0.5
+        }
+        notes {
+          pitch: 72
+          velocity: 90
+          start_time: 0.5
+          end_time: 1.0
+        }
+        notes {
+          pitch: 74
+          velocity: 90
+          start_time: 1.0
+          end_time: 1.5
+        }
+        notes {
+          pitch: 71
+          velocity: 90
+          start_time: 1.5
+          end_time: 2.0
+        }
+        notes {
+          pitch: 72
+          velocity: 90
+          start_time: 2.0
+          end_time: 2.5
+        }
+        notes {
+          pitch: 74
+          velocity: 90
+          start_time: 2.5
+          end_time: 3.0
+        }
+        section_annotations {
+          time: 0
+          section_id: 0
+        }
+        section_annotations {
+          time: 1.5
+          section_id: 1
+        }
+        section_groups {
+          sections {
+            section_id: 0
+          }
+          num_times: 3
+        }
+        section_groups {
+          sections {
+            section_id: 1
+          }
+          num_times: 3
+        }
+        total_time: 3.0
+        """)
+    self.assertProtoEquals(expected_ns1, tunes[1])
+
+    # Other versions are identical except for the reference number.
+    expected_ns2 = copy.deepcopy(expected_ns1)
+    expected_ns2.reference_number = 2
+    self.assertProtoEquals(expected_ns2, tunes[2])
+
+    expected_ns3 = copy.deepcopy(expected_ns2)
+    expected_ns3.reference_number = 3
+    self.assertProtoEquals(expected_ns3, tunes[3])
 
 if __name__ == '__main__':
   tf.test.main()

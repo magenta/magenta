@@ -230,7 +230,8 @@ class ABCTune(object):
         self._parse_music_code(line)
     if self._in_header:
       self._set_values_from_header()
-    self._finalize_sections()
+
+    self._finalize()
 
     if self._ns.notes:
       self._ns.total_time = self._ns.notes[-1].end_time
@@ -315,7 +316,23 @@ class ABCTune(object):
     sa.time = time
     sa.section_id = new_id
 
+  def _finalize(self):
+    """Do final cleanup. To be called at the end of the tune."""
+    self._finalize_repeats()
+    self._finalize_sections()
+
+  def _finalize_repeats(self):
+    """Handle any pending repeats."""
+    # If we're still expecting a repeat at the end of the tune, the end of the
+    # tune implies it should happen.
+    if self._current_expected_repeats:
+      sg = self._ns.section_groups.add()
+      sg.sections.add(
+          section_id=self._ns.section_annotations[-1].section_id)
+      sg.num_times = self._current_expected_repeats
+
   def _finalize_sections(self):
+    """Handle any pending sections."""
     # If a new section was started at the very end of the piece, delete it
     # because it will contain no notes and is meaningless.
     # This happens if the last line in the piece ends with a :| symbol. A new
@@ -363,8 +380,13 @@ class ABCTune(object):
   INLINE_INFORMATION_FIELD_PATTERN = re.compile(r'\[([A-Za-z]):\s*([^\]]+)\]')
 
   # http://abcnotation.com/wiki/abc:standard:v2.1#repeat_bar_symbols
-  BAR_SYMBOLS_PATTERN = re.compile(r'(:*[\[\]|]:*|:+)\s*(\[[0-9,-]+)?')
-  REPEAT_SYMBOLS_PATTERN = re.compile(r'(:*)[\[\]|](:*)')
+
+  # Pattern for matching variant endings with an associated bar symbol.
+  BAR_AND_VARIANT_ENDINGS_PATTERN = re.compile(r'(:*)[\[\]|]+\s*([0-9,-]+)')
+  # Pattern for matching repeat symbols with an associated bar symbol.
+  BAR_AND_REPEAT_SYMBOLS_PATTERN = re.compile(r'(:*)[\[\]|]+(:*)')
+  # Pattern for matching repeat symbols without an associated bar symbol.
+  REPEAT_SYMBOLS_PATTERN = re.compile(r'(:+)')
 
   # http://abcnotation.com/wiki/abc:standard:v2.1#chord_symbols
   # http://abcnotation.com/wiki/abc:standard:v2.1#annotations
@@ -382,7 +404,9 @@ class ABCTune(object):
           ABCTune.NOTE_PATTERN,
           ABCTune.BROKEN_RHYTHM_PATTERN,
           ABCTune.INLINE_INFORMATION_FIELD_PATTERN,
-          ABCTune.BAR_SYMBOLS_PATTERN,
+          ABCTune.BAR_AND_VARIANT_ENDINGS_PATTERN,
+          ABCTune.BAR_AND_REPEAT_SYMBOLS_PATTERN,
+          ABCTune.REPEAT_SYMBOLS_PATTERN,
           ABCTune.TEXT_ANNOTATION_PATTERN]:
         match = regex.match(line, pos)
         if match:
@@ -458,38 +482,36 @@ class ABCTune(object):
         broken_rhythm = match.group(1)
       elif match.re == ABCTune.INLINE_INFORMATION_FIELD_PATTERN:
         self._parse_information_field(match.group(1), match.group(2))
-      elif match.re == ABCTune.BAR_SYMBOLS_PATTERN:
-        is_repeat = ':' in match.group(1) or match.group(2)
-        if not is_repeat:
-          # We don't currently track regular bar lines
-          continue
-
-        if match.group(2):
-          raise VariantEndingException(
-              'Variant ending {} is not supported.'.format(match.group(2)))
-
-        # A repeat implies the start of a new section, so make one.
-        if not self._ns.section_annotations:
-          # We're in a piece with sections, need to add a section marker at the
-          # beginning of the piece if there isn't one there already.
-          self._add_section(0)
-        self._add_section(self._current_time)
-
-        if match.group(1).count(':') == len(match.group(1)):
+      elif match.re == ABCTune.BAR_AND_VARIANT_ENDINGS_PATTERN:
+        raise VariantEndingException(
+            'Variant ending {} is not supported.'.format(match.group(0)))
+      elif (match.re == ABCTune.BAR_AND_REPEAT_SYMBOLS_PATTERN or
+            match.re == ABCTune.REPEAT_SYMBOLS_PATTERN):
+        if match.re == ABCTune.REPEAT_SYMBOLS_PATTERN:
           colon_count = len(match.group(1))
           if colon_count % 2 != 0:
             raise RepeatParseException(
                 'Colon-only repeats must be divisible by 2: {}'.format(
                     match.group(1)))
-          backward_repeats = forward_repeats = colon_count / 2
-        else:
-          repeat_match = ABCTune.REPEAT_SYMBOLS_PATTERN.match(match.group(1))
-          if not repeat_match:
-            raise RepeatParseException(
-                'Could not parse repeat pattern: {}'.format(match.group(1)))
+          backward_repeats = forward_repeats = int((colon_count / 2) + 1)
+        elif match.re == ABCTune.BAR_AND_REPEAT_SYMBOLS_PATTERN:
+          is_repeat = ':' in match.group(1) or match.group(2)
+          if not is_repeat:
+            # We don't currently track regular bar lines
+            continue
+
           # Count colons on either side.
-          backward_repeats = len(repeat_match.group(1))
-          forward_repeats = len(repeat_match.group(2))
+          if match.group(1):
+            backward_repeats = len(match.group(1)) + 1
+          else:
+            backward_repeats = None
+
+          if match.group(2):
+            forward_repeats = len(match.group(2)) + 1
+          else:
+            forward_repeats = None
+        else:
+          raise ABCParseException('Unexpected regex. Should not happen.')
 
         if (self._current_expected_repeats and
             backward_repeats != self._current_expected_repeats):
@@ -498,12 +520,19 @@ class ABCTune(object):
               'Expected {} but got {}.'.format(
                   self._current_expected_repeats, backward_repeats))
 
+        # A repeat implies the start of a new section, so make one.
+        if not self._ns.section_annotations and self._current_time > 0:
+          # We're in a piece with sections, need to add a section marker at the
+          # beginning of the piece if there isn't one there already.
+          self._add_section(0)
+        self._add_section(self._current_time)
+
         if backward_repeats:
           sg = self._ns.section_groups.add()
           sg.sections.add(
               section_id=self._ns.section_annotations[-2].section_id)
-          sg.num_times = backward_repeats + 1
-        else:
+          sg.num_times = backward_repeats
+        elif self._current_time > 0:
           # There were not backward repeats, but we still want to play the
           # previous section once.
           sg = self._ns.section_groups.add()
