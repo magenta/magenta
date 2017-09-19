@@ -51,8 +51,12 @@ message NoteSequence {
   // A Note combines a MIDI NoteOn and NoteOff into one event with duration.
   repeated Note notes = 8;
   // The total time of the Sequence in seconds.
+  // Total time is defined as the end time of the last note in the sequence.
+  // Any control changes or rests that occur after the end of the last note
+  // are not included in this time.
   double total_time = 9;
   // The total time of the sequence in quantized steps.
+  // This has the same meaning as the total_time field.
   int64 total_quantized_steps = 16;
 
   // MIDI-specific events that are generally relevant for performance, metadata
