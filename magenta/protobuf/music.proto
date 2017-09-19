@@ -23,7 +23,7 @@ package tensorflow.magenta;
 // For details see https://www.midi.org/specifications.
 // Note that repeated fields in this proto are not guaranteed to be sorted
 // by time.
-// Next tag: 20
+// Next tag: 22
 message NoteSequence {
   // Unique id.
   string id = 1;
@@ -72,6 +72,12 @@ message NoteSequence {
 
   // Arbitrary textual annotations.
   repeated TextAnnotation text_annotations = 14;
+
+  // Annotations indicating sections within a piece.
+  repeated SectionAnnotation section_annotations = 20;
+
+  // Instructions on how to play back the sections within a piece.
+  repeated SectionGroup section_groups = 21;
 
   // Information about how/if this sequence was quantized.
   QuantizationInfo quantization_info = 15;
@@ -346,6 +352,36 @@ message NoteSequence {
     // Time in seconds from the end of this sequence to the end of the source
     // sequence.
     double end_time_offset = 2;
+  }
+
+  // Information about a section within a piece.
+  // A section is considered to be active from its indicated time until either a
+  // new section is defined or the end of the piece is reached.
+  message SectionAnnotation {
+    // Time in seconds.
+    double time = 1;
+    // The id of the section.
+    // Section ids must be unique within a piece.
+    int64 section_id = 4;
+  }
+
+  // A section.
+  // Either a section_id, which references a SectionAnnotation or a nested
+  // SectionGroup.
+  message Section {
+    oneof section_type {
+      int64 section_id = 1;
+      SectionGroup section_group = 2;
+    }
+  }
+
+  // A group of sections and an indication of how many times to play them.
+  // Note that a SectionGroup may contain nested SectionGroups. This is to
+  // capture some of the more complex structure in ABC files with part
+  // directives like P:((AB)3(CD)3)2.
+  message SectionGroup {
+    repeated Section sections = 1;
+    int32 num_times = 2;
   }
 }
 

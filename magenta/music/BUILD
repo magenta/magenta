@@ -615,11 +615,13 @@ py_test(
         "testdata/english1.mid",
         "testdata/english2.mid",
         "testdata/english3.mid",
+        "testdata/zocharti_loch.abc",
     ],
     srcs_version = "PY2AND3",
     deps = [
         ":midi_io",
         ":abc_parser",
+        ":sequences_lib",
         "//magenta/common:testing_lib",
         "//magenta/protobuf:music_py_pb2",
         # tensorflow dep

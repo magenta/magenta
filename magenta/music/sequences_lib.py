@@ -263,7 +263,8 @@ def shift_sequence_times(sequence, shift_seconds):
 
   events_to_shift = [
       shifted.time_signatures, shifted.key_signatures, shifted.tempos,
-      shifted.pitch_bends, shifted.control_changes, shifted.text_annotations]
+      shifted.pitch_bends, shifted.control_changes, shifted.text_annotations,
+      shifted.section_annotations]
 
   for event in itertools.chain(*events_to_shift):
     event.time += shift_seconds
@@ -273,13 +274,16 @@ def shift_sequence_times(sequence, shift_seconds):
   return shifted
 
 
-def remove_redundant_events(sequence):
-  """Returns a copy of the sequence with redundant events removed.
+def remove_redundant_data(sequence):
+  """Returns a copy of the sequence with redundant data removed.
 
   An event is considered redundant if it is a time signature, a key signature,
   or a tempo that differs from the previous event of the same type only by time.
   For example, a tempo mark of 120 qpm at 5 seconds would be considered
   redundant if it followed a tempo mark of 120 qpm and 4 seconds.
+
+  Fields in sequence_metadata are considered redundant if the same string is
+  repeated.
 
   Args:
     sequence: The sequence to process.
@@ -300,6 +304,22 @@ def remove_redundant_events(sequence):
       if tmp_ts == events[i - 1]:
         del events[i]
 
+  if fixed_sequence.HasField('sequence_metadata'):
+    # Add composers and genres, preserving order, but dropping duplicates.
+    del fixed_sequence.sequence_metadata.composers[:]
+    added_composer = set()
+    for composer in sequence.sequence_metadata.composers:
+      if composer not in added_composer:
+        fixed_sequence.sequence_metadata.composers.append(composer)
+        added_composer.add(composer)
+
+    del fixed_sequence.sequence_metadata.genre[:]
+    added_genre = set()
+    for genre in sequence.sequence_metadata.genre:
+      if genre not in added_genre:
+        fixed_sequence.sequence_metadata.genre.append(genre)
+        added_genre.add(genre)
+
   return fixed_sequence
 
 
@@ -309,8 +329,8 @@ def concatenate_sequences(sequences, sequence_durations=None):
   Individual sequences will be shifted using shift_sequence_times and then
   merged together using the protobuf MergeFrom method. This means that any
   global values (e.g., ticks_per_quarter) will be overwritten by each sequence
-  and only the final value will be used. After this, redundant events will be
-  removed with remove_redundant_events.
+  and only the final value will be used. After this, redundant data will be
+  removed with remove_redundant_data.
 
   Args:
     sequences: A list of sequences to concatenate.
@@ -348,7 +368,60 @@ def concatenate_sequences(sequences, sequence_durations=None):
     else:
       current_total_time = cat_seq.total_time
 
-  return remove_redundant_events(cat_seq)
+  # Delete subsequence_info because we've joined several subsequences.
+  cat_seq.ClearField('subsequence_info')
+
+  return remove_redundant_data(cat_seq)
+
+
+def expand_section_groups(sequence):
+  """Expands a NoteSequence based on its section_groups.
+
+  Args:
+    sequence: The sequence to expand.
+
+  Returns:
+    A new, expanded version of the sequence.
+  """
+  sections = {}
+  section_durations = {}
+  for i in range(len(sequence.section_annotations)):
+    section_id = sequence.section_annotations[i].section_id
+    start_time = sequence.section_annotations[i].time
+    if i < len(sequence.section_annotations) - 1:
+      end_time = sequence.section_annotations[i + 1].time
+    else:
+      end_time = sequence.total_time
+
+    subsequence = extract_subsequence(sequence, start_time, end_time)
+    # This is a subsequence, so the section_groups no longer make sense.
+    del subsequence.section_groups[:]
+    # This subsequence contains only 1 section and it has been shifted to time
+    # 0.
+    del subsequence.section_annotations[:]
+    subsequence.section_annotations.add(time=0, section_id=section_id)
+
+    sections[section_id] = subsequence
+    section_durations[section_id] = end_time - start_time
+
+  # Recursively expand section_groups.
+  def sections_in_group(section_group):
+    sections = []
+    for section in section_group.sections:
+      field = section.WhichOneof('section_type')
+      if field == 'section_id':
+        sections.append(section.section_id)
+      elif field == 'section_group':
+        sections.extend(sections_in_group(section.section_group))
+    return sections * section_group.num_times
+
+  sections_to_concat = []
+  for section_group in sequence.section_groups:
+    sections_to_concat.extend(sections_in_group(section_group))
+
+  return concatenate_sequences(
+      [sections[i] for i in sections_to_concat],
+      [section_durations[i] for i in sections_to_concat])
 
 
 def _is_power_of_2(x):
