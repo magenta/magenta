@@ -20,6 +20,7 @@ NoteSequence within a limited range.
 """
 
 import os
+import random
 
 # internal imports
 
@@ -69,27 +70,28 @@ class EncoderPipeline(pipeline.Pipeline):
     self._density_bin_ranges = config.density_bin_ranges
     self._density_window_size = config.density_window_size
     self._pitch_histogram_window_size = config.pitch_histogram_window_size
+    self._optional_conditioning = config.optional_conditioning
 
   def transform(self, performance):
-    if (self._density_bin_ranges is not None and
+    if (self._density_bin_ranges is not None or
         self._pitch_histogram_window_size is not None):
-      # Encode conditional on note density and pitch class histogram.
-      density_sequence = performance_lib.performance_note_density_sequence(
-          performance, self._density_window_size)
-      histogram_sequence = performance_lib.performance_pitch_histogram_sequence(
-          performance, self._pitch_histogram_window_size)
+      # Encode conditional on note density and/or pitch class histogram.
+      control_sequences = []
+      if self._density_bin_ranges is not None:
+        control_sequences.append(
+            performance_lib.performance_note_density_sequence(
+                performance, self._density_window_size))
+      if self._pitch_histogram_window_size is not None:
+        control_sequences.append(
+            performance_lib.performance_pitch_histogram_sequence(
+                performance, self._pitch_histogram_window_size))
+      control_sequence = zip(*control_sequences)
+      if self._optional_conditioning:
+        # Disable conditioning globally with 50% probability.
+        disable = [random.choice([True, False])] * len(control_sequence)
+        control_sequence = zip(disable, control_sequence)
       encoded = self._encoder_decoder.encode(
-          zip(density_sequence, histogram_sequence), performance)
-    elif self._density_bin_ranges is not None:
-      # Encode conditional on note density.
-      density_sequence = performance_lib.performance_note_density_sequence(
-          performance, self._density_window_size)
-      encoded = self._encoder_decoder.encode(density_sequence, performance)
-    elif self._pitch_histogram_window_size is not None:
-      # Encode conditional on pitch class histogram.
-      histogram_sequence = performance_lib.performance_pitch_histogram_sequence(
-          performance, self._pitch_histogram_window_size)
-      encoded = self._encoder_decoder.encode(histogram_sequence, performance)
+          control_sequence, performance)
     else:
       # Encode unconditional.
       encoded = self._encoder_decoder.encode(performance)

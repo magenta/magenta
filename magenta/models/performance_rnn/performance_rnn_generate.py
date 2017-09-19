@@ -91,6 +91,13 @@ tf.app.flags.DEFINE_string(
     '"[2, 0, 1, 0, 1, 1, 0, 1, 0, 1, 0, 1]". The values will be normalized to '
     'sum to one. Similar to `notes_per_second`, this can also be a list of '
     'pitch class histograms.')
+tf.app.flags.DEFINE_string(
+    'disable_conditioning', None,
+    'When optional conditioning is available, a string representation of a '
+    'Boolean indicating whether or not to disable conditioning. Similar to '
+    '`notes_per_second` and `pitch_class_histogram`, this can also be a list '
+    'of Booleans; when it is a list, the other conditioning variables will be '
+    'ignored for segments where conditioning is disabled.')
 tf.app.flags.DEFINE_float(
     'temperature', 1.0,
     'The randomness of the generated tracks. 1.0 uses the unaltered '
@@ -220,11 +227,21 @@ def run_with_flags(generator):
         'to condition on pitch class histogram. Requested pitch class '
         'histogram will be ignored: %s', FLAGS.pitch_class_histogram)
 
+  if (FLAGS.disable_conditioning is not None and
+      not generator.optional_conditioning):
+    tf.logging.warning(
+        'Disable conditioning flag set, but generator is not set up for '
+        'optional conditioning. Requested disable conditioning flag will be '
+        'ignored: %s', FLAGS.disable_conditioning)
+
   if FLAGS.notes_per_second is not None:
     generator_options.args['note_density'].string_value = FLAGS.notes_per_second
   if FLAGS.pitch_class_histogram is not None:
     generator_options.args['pitch_histogram'].string_value = (
         FLAGS.pitch_class_histogram)
+  if FLAGS.disable_conditioning is not None:
+    generator_options.args['disable_conditioning'].string_value = (
+        FLAGS.disable_conditioning)
 
   generator_options.args['temperature'].float_value = FLAGS.temperature
   generator_options.args['beam_size'].int_value = FLAGS.beam_size
@@ -271,6 +288,7 @@ def main(unused_argv):
       note_density_conditioning=config.density_bin_ranges is not None,
       pitch_histogram_conditioning=(
           config.pitch_histogram_window_size is not None),
+      optional_conditioning=config.optional_conditioning,
       checkpoint=get_checkpoint(),
       bundle=bundle)
 

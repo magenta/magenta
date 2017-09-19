@@ -335,6 +335,7 @@ class ConditionalEventSequenceEncoderDecoderTest(tf.test.TestCase):
 
 
 class OptionalEventSequenceEncoderTest(tf.test.TestCase):
+
   def setUp(self):
     self.enc = encoder_decoder.OptionalEventSequenceEncoder(
         encoder_decoder.OneHotEventSequenceEncoderDecoder(
