@@ -20,6 +20,7 @@ from operator import itemgetter
 
 # internal imports
 import numpy as np
+from six.moves import range  # pylint: disable=redefined-builtin
 import tensorflow as tf
 
 from magenta.music import chord_symbols_lib
@@ -225,6 +226,129 @@ def extract_subsequence(sequence, start_time, end_time,
       sequence.total_time - start_time - subsequence.total_time)
 
   return subsequence
+
+
+def shift_sequence_times(sequence, shift_seconds):
+  """Shifts times in a notesequence.
+
+  Only forward shifts are supported.
+
+  Args:
+    sequence: The NoteSequence to shift.
+    shift_seconds: The amount to shift.
+
+  Returns:
+    A new NoteSequence with shifted times.
+
+  Raises:
+    ValueError: If the shift amount is invalid.
+    QuantizationStatusException: If the sequence has already been quantized.
+  """
+  if shift_seconds <= 0:
+    raise ValueError('Invalid shift amount: {}'.format(shift_seconds))
+  if is_quantized_sequence(sequence):
+    raise QuantizationStatusException(
+        'Can shift only unquantized NoteSequences.')
+
+  shifted = music_pb2.NoteSequence()
+  shifted.CopyFrom(sequence)
+
+  # Delete subsequence_info because our frame of reference has shifted.
+  shifted.ClearField('subsequence_info')
+
+  # Shift notes.
+  for note in shifted.notes:
+    note.start_time += shift_seconds
+    note.end_time += shift_seconds
+
+  events_to_shift = [
+      shifted.time_signatures, shifted.key_signatures, shifted.tempos,
+      shifted.pitch_bends, shifted.control_changes, shifted.text_annotations]
+
+  for event in itertools.chain(*events_to_shift):
+    event.time += shift_seconds
+
+  shifted.total_time += shift_seconds
+
+  return shifted
+
+
+def remove_redundant_events(sequence):
+  """Returns a copy of the sequence with redundant events removed.
+
+  An event is considered redundant if it is a time signature, a key signature,
+  or a tempo that differs from the previous event of the same type only by time.
+  For example, a tempo mark of 120 qpm at 5 seconds would be considered
+  redundant if it followed a tempo mark of 120 qpm and 4 seconds.
+
+  Args:
+    sequence: The sequence to process.
+
+  Returns:
+    A new sequence with redundant events removed.
+  """
+  fixed_sequence = copy.deepcopy(sequence)
+  for events in [
+      fixed_sequence.time_signatures, fixed_sequence.key_signatures,
+      fixed_sequence.tempos]:
+    events.sort(key=lambda e: e.time)
+    for i in range(len(events) - 1, 0, -1):
+      tmp_ts = copy.deepcopy(events[i])
+      tmp_ts.time = events[i - 1].time
+      # If the only difference between the two events is time, then delete the
+      # second one.
+      if tmp_ts == events[i - 1]:
+        del events[i]
+
+  return fixed_sequence
+
+
+def concatenate_sequences(sequences, sequence_durations=None):
+  """Concatenate a series of NoteSequences together.
+
+  Individual sequences will be shifted using shift_sequence_times and then
+  merged together using the protobuf MergeFrom method. This means that any
+  global values (e.g., ticks_per_quarter) will be overwritten by each sequence
+  and only the final value will be used. After this, redundant events will be
+  removed with remove_redundant_events.
+
+  Args:
+    sequences: A list of sequences to concatenate.
+    sequence_durations: An optional list of sequence durations to use. If not
+      specified, the total_time value will be used. Specifying durations is
+      useful if the sequences to be concatenated are effectively longer than
+      their total_time (e.g., a sequence that ends with a rest).
+
+  Returns:
+    A new sequence that is the result of concatenating *sequences.
+
+  Raises:
+    ValueError: If the length of sequences and sequence_durations do not match
+        or if a specified duration is less than the total_time of the sequence.
+  """
+  if sequence_durations and len(sequences) != len(sequence_durations):
+    raise ValueError(
+        'sequences and sequence_durations must be the same length.')
+  current_total_time = 0
+  cat_seq = music_pb2.NoteSequence()
+  for i in range(len(sequences)):
+    sequence = sequences[i]
+    if sequence_durations and sequence_durations[i] < sequence.total_time:
+      raise ValueError(
+          'Specified sequence duration ({}) must not be less than the '
+          'total_time of the sequence ({})'.format(
+              sequence_durations[i], sequence.total_time))
+    if current_total_time > 0:
+      cat_seq.MergeFrom(shift_sequence_times(sequence, current_total_time))
+    else:
+      cat_seq.MergeFrom(sequence)
+
+    if sequence_durations:
+      current_total_time += sequence_durations[i]
+    else:
+      current_total_time = cat_seq.total_time
+
+  return remove_redundant_events(cat_seq)
 
 
 def _is_power_of_2(x):

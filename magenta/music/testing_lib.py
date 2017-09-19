@@ -51,6 +51,17 @@ def add_control_changes_to_sequence(note_sequence, instrument, control_changes):
     control_change.instrument = instrument
 
 
+def add_pitch_bends_to_sequence(
+    note_sequence, instrument, program, pitch_bends):
+  for time, bend in pitch_bends:
+    pitch_bend = note_sequence.pitch_bends.add()
+    pitch_bend.time = time
+    pitch_bend.bend = bend
+    pitch_bend.program = program
+    pitch_bend.instrument = instrument
+    pitch_bend.is_drum = False  # Assume false for this test method.
+
+
 def add_quantized_steps_to_sequence(sequence, quantized_steps):
   assert len(sequence.notes) == len(quantized_steps)
 
