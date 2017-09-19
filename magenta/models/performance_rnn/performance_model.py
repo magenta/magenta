@@ -64,12 +64,12 @@ class PerformanceRnnModel(events_rnn_model.EventSequenceRnnModel):
       track).
     """
     if note_density_fn is not None or pitch_histogram_fn is not None:
-      if note_density_fn is not None and pitch_histogram_fn is not None:
-        control_events = [(note_density_fn(0), pitch_histogram_fn(0))]
-      elif note_density_fn is not None:
-        control_events = [note_density_fn(0)]
-      elif pitch_histogram_fn is not None:
-        control_events = [pitch_histogram_fn(0)]
+      initial_control_event = ()
+      if note_density_fn is not None:
+        initial_control_event += (note_density_fn(0),)
+      if pitch_histogram_fn is not None:
+        initial_control_event += (pitch_histogram_fn(0),)
+      control_events = [initial_control_event]
       control_state = PerformanceControlState(
           current_perf_index=0, current_perf_step=0)
       extend_control_events_callback = functools.partial(
@@ -103,12 +103,13 @@ class PerformanceRnnModel(events_rnn_model.EventSequenceRnnModel):
       ValueError: If both `note_density` and `pitch_histogram` are provided as
           conditioning variables.
     """
-    if note_density is not None and pitch_histogram is not None:
-      control_events = [(note_density, pitch_histogram)] * len(sequence)
-    elif note_density is not None:
-      control_events = [note_density] * len(sequence)
-    elif pitch_histogram is not None:
-      control_events = [pitch_histogram] * len(sequence)
+    if note_density is not None or pitch_histogram is not None:
+      control_event = ()
+      if note_density is not None:
+        control_event += (note_density,)
+      if pitch_histogram is not None:
+        control_event += (pitch_histogram,)
+      control_events = [control_event] * len(sequence)
     else:
       control_events = None
 
@@ -151,12 +152,12 @@ def _extend_control_events(note_density_fn, pitch_histogram_fn, control_events,
       step += performance[idx].event_value
     idx += 1
 
-    if note_density_fn is not None and pitch_histogram_fn is not None:
-      control_events.append((note_density_fn(step), pitch_histogram_fn(step)))
-    elif note_density_fn is not None:
-      control_events.append(note_density_fn(step))
-    elif pitch_histogram_fn is not None:
-      control_events.append(pitch_histogram_fn(step))
+    control_event = ()
+    if note_density_fn is not None:
+      control_event += (note_density_fn(step),)
+    if pitch_histogram_fn is not None:
+      control_event += (pitch_histogram_fn(step),)
+    control_events.append(control_event)
 
   return PerformanceControlState(
       current_perf_index=idx, current_perf_step=step)
@@ -222,9 +223,11 @@ default_configs = {
             id='density_conditioned_performance_with_dynamics',
             description='Note-density-conditioned Performance RNN + dynamics'),
         magenta.music.ConditionalEventSequenceEncoderDecoder(
-            magenta.music.OneHotEventSequenceEncoderDecoder(
-                performance_encoder_decoder.NoteDensityOneHotEncoding(
-                    density_bin_ranges=[1.0, 2.0, 4.0, 8.0, 16.0, 32.0, 64.0])),
+            magenta.music.MultipleEventSequenceEncoder([
+                magenta.music.OneHotEventSequenceEncoderDecoder(
+                    performance_encoder_decoder.NoteDensityOneHotEncoding(
+                        density_bin_ranges=[
+                            1.0, 2.0, 4.0, 8.0, 16.0, 32.0, 64.0]))]),
             magenta.music.OneHotEventSequenceEncoderDecoder(
                 performance_encoder_decoder.PerformanceOneHotEncoding(
                     num_velocity_bins=32))),
@@ -243,7 +246,8 @@ default_configs = {
             id='pitch_conditioned_performance_with_dynamics',
             description='Pitch-histogram-conditioned Performance RNN'),
         magenta.music.ConditionalEventSequenceEncoderDecoder(
-            performance_encoder_decoder.PitchHistogramEncoderDecoder(),
+            magenta.music.MultipleEventSequenceEncoder([
+                performance_encoder_decoder.PitchHistogramEncoderDecoder()]),
             magenta.music.OneHotEventSequenceEncoderDecoder(
                 performance_encoder_decoder.PerformanceOneHotEncoding(
                     num_velocity_bins=32))),
