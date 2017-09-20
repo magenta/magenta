@@ -899,7 +899,6 @@ class AbcParserTest(tf.test.TestCase):
     expected_ns9.reference_number = 9
     self.assertProtoEquals(expected_ns9, tunes[9])
 
-
   def testInvalidCharacter(self):
     tunes, exceptions = abc_parser.parse_tunebook("""
         X:1

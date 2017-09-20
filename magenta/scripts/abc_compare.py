@@ -41,11 +41,12 @@ tf.app.flags.DEFINE_string('input_dir', None,
 
 
 class CompareDirectory(tf.test.TestCase):
-  def runTest():
+
+  def runTest(self):
     pass
 
   def compare_directory(self, directory):
-    self.maxDiff = None
+    self.maxDiff = None  # pylint: disable=invalid-name
 
     files_in_dir = tf.gfile.ListDirectory(directory)
     files_parsed = 0
@@ -85,7 +86,7 @@ class CompareDirectory(tf.test.TestCase):
         for midi_note, test_note in zip(midi_ns.notes, expanded_tune.notes):
           try:
             self.assertProtoEquals(midi_note, test_note)
-          except Exception as e:
+          except Exception as e: # pylint: disable=broad-except
             print(e)
             pdb.set_trace()
         self.assertEqual(midi_ns.total_time, expanded_tune.total_time)

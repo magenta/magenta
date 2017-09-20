@@ -419,7 +419,7 @@ class ABCTune(object):
       r'(__|_|=|\^|\^\^)?([A-Ga-g])([\',]*)(\d*/*\d*)')
 
   # http://abcnotation.com/wiki/abc:standard:v2.1#chords_and_unisons
-  CHORD_PATTERN = re.compile(r'\[(' + NOTE_PATTERN.pattern + ')+\]')
+  CHORD_PATTERN = re.compile(r'\[(' + NOTE_PATTERN.pattern + r')+\]')
 
   # http://abcnotation.com/wiki/abc:standard:v2.1#broken_rhythm
   BROKEN_RHYTHM_PATTERN = re.compile(r'(<+|>+)')
