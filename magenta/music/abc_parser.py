@@ -346,7 +346,11 @@ class ABCTune(object):
 
     # Make sure the final section annotation is referenced in a section group.
     # If it hasn't been referenced yet, it just needs to be played once.
-    # This logic will need to be updated when we support parts.
+    # This checks that the final section_annotation is referenced in the final
+    # section_group.
+    # At this point, all of our section_groups have only 1 section, so this
+    # logic will need to be updated when we support parts and start creating
+    # more complex section_groups.
     if (self._ns.section_annotations and self._ns.section_groups and
         self._ns.section_groups[-1].sections[0].section_id !=
         self._ns.section_annotations[-1].section_id):
