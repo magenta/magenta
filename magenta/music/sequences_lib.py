@@ -377,12 +377,17 @@ def concatenate_sequences(sequences, sequence_durations=None):
 def expand_section_groups(sequence):
   """Expands a NoteSequence based on its section_groups.
 
+  If the sequence has no section_groups, the original sequence will be returned.
+
   Args:
     sequence: The sequence to expand.
 
   Returns:
     A new, expanded version of the sequence.
   """
+  if not sequence.section_groups:
+    return sequence
+
   sections = {}
   section_durations = {}
   for i in range(len(sequence.section_annotations)):
