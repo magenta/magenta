@@ -209,6 +209,7 @@ class ABCTune(object):
 
     self._current_time = 0
     self._accidentals = ABCTune._sig_to_accidentals(0)
+    self._bar_accidentals = {}
     self._current_unit_note_length = None
     self._current_expected_repeats = None
 
@@ -315,6 +316,13 @@ class ABCTune(object):
     tempo.qpm = float((tempo_unit / Fraction(1, 4)) * tempo_rate)
 
   def _add_section(self, time):
+    if not self._ns.section_annotations and time > 0:
+      # We're in a piece with sections, need to add a section marker at the
+      # beginning of the piece if there isn't one there already.
+      sa = self._ns.section_annotations.add()
+      sa.time = 0
+      sa.section_id = 0
+
     if self._ns.section_annotations:
       new_id = self._ns.section_annotations[-1].section_id + 1
     else:
@@ -408,7 +416,7 @@ class ABCTune(object):
   # Pattern for matching variant endings with an associated bar symbol.
   BAR_AND_VARIANT_ENDINGS_PATTERN = re.compile(r'(:*)[\[\]|]+\s*([0-9,-]+)')
   # Pattern for matching repeat symbols with an associated bar symbol.
-  BAR_AND_REPEAT_SYMBOLS_PATTERN = re.compile(r'(:*)[\[\]|]+(:*)')
+  BAR_AND_REPEAT_SYMBOLS_PATTERN = re.compile(r'(:*)([\[\]|]+)(:*)')
   # Pattern for matching repeat symbols without an associated bar symbol.
   REPEAT_SYMBOLS_PATTERN = re.compile(r'(:+)')
 
@@ -451,22 +459,28 @@ class ABCTune(object):
         note.start_time = self._current_time
 
         note.pitch = ABCTune.ABC_NOTE_TO_MIDI[match.group(2)]
+        note_name = match.group(2).upper()
 
         # Accidentals
         if match.group(1):
+          pitch_change = 0
           for accidental in match.group(1).split():
             if accidental == '^':
-              note.pitch += 1
+              pitch_change += 1
             elif accidental == '_':
-              note.pitch -= 1
+              pitch_change -= 1
             elif accidental == '=':
               pass
             else:
               raise ABCParseException(
                   'Invalid accidental: {}'.format(accidental))
+          note.pitch += pitch_change
+          self._bar_accidentals[note_name] = pitch_change
+        elif note_name in self._bar_accidentals:
+          note.pitch += self._bar_accidentals[note_name]
         else:
           # No accidentals, so modify according to current key.
-          note.pitch += self._accidentals[match.group(2).upper()]
+          note.pitch += self._accidentals[note_name]
 
         # Octaves
         if match.group(3):
@@ -534,9 +548,20 @@ class ABCTune(object):
                     match.group(1)))
           backward_repeats = forward_repeats = int((colon_count / 2) + 1)
         elif match.re == ABCTune.BAR_AND_REPEAT_SYMBOLS_PATTERN:
-          is_repeat = ':' in match.group(1) or match.group(2)
+          # We're in a new bar, so clear the bar-wise accidentals.
+          self._bar_accidentals.clear()
+
+          is_repeat = ':' in match.group(1) or match.group(3)
           if not is_repeat:
-            # We don't currently track regular bar lines
+            if len(match.group(2)) >= 2:
+              # This is a double bar that isn't a repeat.
+              if not self._current_expected_repeats:
+                # There was no previous forward repeat symbol.
+                # Add a new section so that if there is a backward repeat later
+                # on, it will repeat to this bar.
+                self._add_section(self._current_time)
+
+            # If this isn't a repeat, no additional work to do.
             continue
 
           # Count colons on either side.
@@ -545,8 +570,8 @@ class ABCTune(object):
           else:
             backward_repeats = None
 
-          if match.group(2):
-            forward_repeats = len(match.group(2)) + 1
+          if match.group(3):
+            forward_repeats = len(match.group(3)) + 1
           else:
             forward_repeats = None
         else:
@@ -560,10 +585,6 @@ class ABCTune(object):
                   self._current_expected_repeats, backward_repeats))
 
         # A repeat implies the start of a new section, so make one.
-        if not self._ns.section_annotations and self._current_time > 0:
-          # We're in a piece with sections, need to add a section marker at the
-          # beginning of the piece if there isn't one there already.
-          self._add_section(0)
         self._add_section(self._current_time)
 
         if backward_repeats:

@@ -663,8 +663,22 @@ class AbcParserTest(tf.test.TestCase):
         L:1/4
         T:Test
         |:: Bcd ::|: Bcd |
+
+        % Ambiguous repeat that should go to the last repeat symbol.
+        X:6
+        Q:1/4=120
+        L:1/4
+        T:Test
+        |:: Bcd ::| Bcd :|
+
+        % Ambiguous repeat that should go to the last double bar.
+        X:7
+        Q:1/4=120
+        L:1/4
+        T:Test
+        |:: Bcd ::| Bcd || Bcd :|
         """)
-    self.assertEqual(3, len(tunes))
+    self.assertEqual(5, len(tunes))
     self.assertEqual(2, len(exceptions))
     self.assertTrue(isinstance(exceptions[0], abc_parser.RepeatParseException))
     self.assertTrue(isinstance(exceptions[1], abc_parser.RepeatParseException))
@@ -749,9 +763,114 @@ class AbcParserTest(tf.test.TestCase):
     expected_ns2.reference_number = 2
     self.assertProtoEquals(expected_ns2, tunes[2])
 
-    expected_ns3 = copy.deepcopy(expected_ns2)
+    expected_ns3 = copy.deepcopy(expected_ns1)
     expected_ns3.reference_number = 3
     self.assertProtoEquals(expected_ns3, tunes[3])
+
+    # Also identical, except the last section is played only twice.
+    expected_ns6 = copy.deepcopy(expected_ns1)
+    expected_ns6.reference_number = 6
+    expected_ns6.section_groups[-1].num_times = 2
+    self.assertProtoEquals(expected_ns6, tunes[6])
+
+    expected_ns7 = common_testing_lib.parse_test_proto(
+        music_pb2.NoteSequence,
+        """
+        ticks_per_quarter: 220
+        source_info: {
+          source_type: SCORE_BASED
+          encoding_type: ABC
+          parser: MAGENTA_ABC
+        }
+        reference_number: 7
+        sequence_metadata {
+          title: "Test"
+        }
+        tempos {
+          qpm: 120
+        }
+        notes {
+          pitch: 71
+          velocity: 90
+          start_time: 0.0
+          end_time: 0.5
+        }
+        notes {
+          pitch: 72
+          velocity: 90
+          start_time: 0.5
+          end_time: 1.0
+        }
+        notes {
+          pitch: 74
+          velocity: 90
+          start_time: 1.0
+          end_time: 1.5
+        }
+        notes {
+          pitch: 71
+          velocity: 90
+          start_time: 1.5
+          end_time: 2.0
+        }
+        notes {
+          pitch: 72
+          velocity: 90
+          start_time: 2.0
+          end_time: 2.5
+        }
+        notes {
+          pitch: 74
+          velocity: 90
+          start_time: 2.5
+          end_time: 3.0
+        }
+        notes {
+          pitch: 71
+          velocity: 90
+          start_time: 3.0
+          end_time: 3.5
+        }
+        notes {
+          pitch: 72
+          velocity: 90
+          start_time: 3.5
+          end_time: 4.0
+        }
+        notes {
+          pitch: 74
+          velocity: 90
+          start_time: 4.0
+          end_time: 4.5
+        }
+        section_annotations {
+          time: 0
+          section_id: 0
+        }
+        section_annotations {
+          time: 1.5
+          section_id: 1
+        }
+        section_annotations {
+          time: 3.0
+          section_id: 2
+        }
+        section_groups {
+          sections {
+            section_id: 0
+          }
+          num_times: 3
+        }
+        section_groups {
+          sections {
+            section_id: 2
+          }
+          num_times: 2
+        }
+        total_time: 4.5
+        """)
+    self.assertProtoEquals(expected_ns7, tunes[7])
+
 
   def testInvalidCharacter(self):
     tunes, exceptions = abc_parser.parse_tunebook("""
