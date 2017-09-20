@@ -316,6 +316,18 @@ class ABCTune(object):
     tempo.qpm = float((tempo_unit / Fraction(1, 4)) * tempo_rate)
 
   def _add_section(self, time):
+    """Adds a new section to the NoteSequence.
+
+    If the most recently added section is for the same time, a new section will
+    not be created.
+
+    Args:
+      time: The time at which to create the new section.
+
+    Returns:
+      The id of the newly created section, or None if no new section was
+      created.
+    """
     if not self._ns.section_annotations and time > 0:
       # We're in a piece with sections, need to add a section marker at the
       # beginning of the piece if there isn't one there already.
@@ -324,6 +336,9 @@ class ABCTune(object):
       sa.section_id = 0
 
     if self._ns.section_annotations:
+      if self._ns.section_annotations[-1].time == time:
+        tf.logging.debug('Ignoring duplicate section at time {}'.format(time))
+        return None
       new_id = self._ns.section_annotations[-1].section_id + 1
     else:
       new_id = 0
@@ -331,6 +346,7 @@ class ABCTune(object):
     sa = self._ns.section_annotations.add()
     sa.time = time
     sa.section_id = new_id
+    return new_id
 
   def _finalize(self):
     """Do final cleanup. To be called at the end of the tune."""
@@ -559,7 +575,12 @@ class ABCTune(object):
                 # There was no previous forward repeat symbol.
                 # Add a new section so that if there is a backward repeat later
                 # on, it will repeat to this bar.
-                self._add_section(self._current_time)
+                new_section_id = self._add_section(self._current_time)
+                if new_section_id is not None:
+                  sg = self._ns.section_groups.add()
+                  sg.sections.add(
+                      section_id=self._ns.section_annotations[-2].section_id)
+                  sg.num_times = 1
 
             # If this isn't a repeat, no additional work to do.
             continue
@@ -585,16 +606,19 @@ class ABCTune(object):
                   self._current_expected_repeats, backward_repeats))
 
         # A repeat implies the start of a new section, so make one.
-        self._add_section(self._current_time)
+        new_section_id = self._add_section(self._current_time)
 
         if backward_repeats:
           sg = self._ns.section_groups.add()
           sg.sections.add(
               section_id=self._ns.section_annotations[-2].section_id)
           sg.num_times = backward_repeats
-        elif self._current_time > 0:
+        elif self._current_time > 0 and new_section_id is not None:
           # There were not backward repeats, but we still want to play the
           # previous section once.
+          # If new_section_id is None (implying that a section at the current
+          # time was created elsewhere), this is not needed because it should
+          # have been done when the section was created.
           sg = self._ns.section_groups.add()
           sg.sections.add(
               section_id=self._ns.section_annotations[-2].section_id)

@@ -677,8 +677,15 @@ class AbcParserTest(tf.test.TestCase):
         L:1/4
         T:Test
         |:: Bcd ::| Bcd || Bcd :|
+
+        % Ensure double bar doesn't confuse declared repeat.
+        X:8
+        Q:1/4=120
+        L:1/4
+        T:Test
+        |:: B || cd ::| Bcd || |: Bcd :|
         """)
-    self.assertEqual(5, len(tunes))
+    self.assertEqual(6, len(tunes))
     self.assertEqual(2, len(exceptions))
     self.assertTrue(isinstance(exceptions[0], abc_parser.RepeatParseException))
     self.assertTrue(isinstance(exceptions[1], abc_parser.RepeatParseException))
@@ -863,6 +870,12 @@ class AbcParserTest(tf.test.TestCase):
         }
         section_groups {
           sections {
+            section_id: 1
+          }
+          num_times: 1
+        }
+        section_groups {
+          sections {
             section_id: 2
           }
           num_times: 2
@@ -870,6 +883,10 @@ class AbcParserTest(tf.test.TestCase):
         total_time: 4.5
         """)
     self.assertProtoEquals(expected_ns7, tunes[7])
+
+    expected_ns8 = copy.deepcopy(expected_ns7)
+    expected_ns8.reference_number = 8
+    self.assertProtoEquals(expected_ns8, tunes[8])
 
 
   def testInvalidCharacter(self):
