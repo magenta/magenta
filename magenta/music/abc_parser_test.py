@@ -863,5 +863,77 @@ class AbcParserTest(tf.test.TestCase):
     self.assertTrue(isinstance(exceptions[0],
                                abc_parser.ChordException))
 
+  def testNoteAccidentalsPerBar(self):
+    tunes, exceptions = abc_parser.parse_tunebook("""
+        X:1
+        Q:1/4=120
+        L:1/4
+        T:Test
+        GF^GGg|Gg
+        """)
+    self.assertEqual(1, len(tunes))
+    self.assertEqual(0, len(exceptions))
+    expected_ns1 = common_testing_lib.parse_test_proto(
+        music_pb2.NoteSequence,
+        """
+        ticks_per_quarter: 220
+        source_info: {
+          source_type: SCORE_BASED
+          encoding_type: ABC
+          parser: MAGENTA_ABC
+        }
+        reference_number: 1
+        sequence_metadata {
+          title: "Test"
+        }
+        tempos {
+          qpm: 120
+        }
+        notes {
+          pitch: 67
+          velocity: 90
+          start_time: 0.0
+          end_time: 0.5
+        }
+        notes {
+          pitch: 65
+          velocity: 90
+          start_time: 0.5
+          end_time: 1.0
+        }
+        notes {
+          pitch: 68
+          velocity: 90
+          start_time: 1.0
+          end_time: 1.5
+        }
+        notes {
+          pitch: 68
+          velocity: 90
+          start_time: 1.5
+          end_time: 2.0
+        }
+        notes {
+          pitch: 80
+          velocity: 90
+          start_time: 2.0
+          end_time: 2.5
+        }
+        notes {
+          pitch: 67
+          velocity: 90
+          start_time: 2.5
+          end_time: 3.0
+        }
+        notes {
+          pitch: 79
+          velocity: 90
+          start_time: 3.0
+          end_time: 3.5
+        }
+        total_time: 3.5
+        """)
+    self.assertProtoEquals(expected_ns1, tunes[1])
+
 if __name__ == '__main__':
   tf.test.main()
