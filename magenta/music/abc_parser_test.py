@@ -678,14 +678,21 @@ class AbcParserTest(tf.test.TestCase):
         T:Test
         |:: Bcd ::| Bcd || Bcd :|
 
-        % Ensure double bar doesn't confuse declared repeat.
+        % Ambiguous repeat that should go to the last double bar.
         X:8
+        Q:1/4=120
+        L:1/4
+        T:Test
+        || Bcd ::| Bcd || Bcd :|
+
+        % Ensure double bar doesn't confuse declared repeat.
+        X:9
         Q:1/4=120
         L:1/4
         T:Test
         |:: B || cd ::| Bcd || |: Bcd :|
         """)
-    self.assertEqual(6, len(tunes))
+    self.assertEqual(7, len(tunes))
     self.assertEqual(2, len(exceptions))
     self.assertTrue(isinstance(exceptions[0], abc_parser.RepeatParseException))
     self.assertTrue(isinstance(exceptions[1], abc_parser.RepeatParseException))
@@ -887,6 +894,10 @@ class AbcParserTest(tf.test.TestCase):
     expected_ns8 = copy.deepcopy(expected_ns7)
     expected_ns8.reference_number = 8
     self.assertProtoEquals(expected_ns8, tunes[8])
+
+    expected_ns9 = copy.deepcopy(expected_ns7)
+    expected_ns9.reference_number = 9
+    self.assertProtoEquals(expected_ns9, tunes[9])
 
 
   def testInvalidCharacter(self):

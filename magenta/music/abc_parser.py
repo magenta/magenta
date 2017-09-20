@@ -571,7 +571,7 @@ class ABCTune(object):
           if not is_repeat:
             if len(match.group(2)) >= 2:
               # This is a double bar that isn't a repeat.
-              if not self._current_expected_repeats:
+              if not self._current_expected_repeats and self._current_time > 0:
                 # There was no previous forward repeat symbol.
                 # Add a new section so that if there is a backward repeat later
                 # on, it will repeat to this bar.
