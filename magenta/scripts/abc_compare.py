@@ -21,8 +21,8 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-import operator
 import os
+import pdb
 import re
 
 # internal imports
@@ -36,6 +36,7 @@ FLAGS = tf.app.flags.FLAGS
 tf.app.flags.DEFINE_string('input_dir', None,
                            'Directory containing files to convert.')
 
+
 def compare_directory(directory):
   files_in_dir = tf.gfile.ListDirectory(directory)
   for file_in_dir in files_in_dir:
@@ -45,7 +46,7 @@ def compare_directory(directory):
     midis = {}
     ref_num = 1
     while True:
-      midi = re.sub('\.abc$', str(ref_num) + '.mid',
+      midi = re.sub(r'\.abc$', str(ref_num) + '.mid',
                     os.path.join(directory, file_in_dir))
       if not tf.gfile.Exists(midi):
         break
@@ -67,7 +68,7 @@ def compare_directory(directory):
       for note in midi_ns.notes:
         note.start_time -= tick_length
       if len(midi_ns.notes) != len(expanded_tune.notes):
-        import pdb;pdb.set_trace()
+        pdb.set_trace()
       # TODO(fjord): check notes.
       # for exp_note, test_note in zip(abc2midi.notes, expanded_test.notes):
       #   # For now, don't compare velocities.

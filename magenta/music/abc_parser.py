@@ -483,7 +483,7 @@ class ABCTune(object):
           elif slash_count == 1:
             fraction = match.group(4).split('/', 1)
             # If no denominator is specified (e.g., "3/"), default to 2.
-            if fraction[1] == '':
+            if not fraction[1]:
               fraction[1] = 2
             length *= Fraction(int(fraction[0]), int(fraction[1]))
           elif slash_count == 0:
