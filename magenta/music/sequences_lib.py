@@ -377,7 +377,8 @@ def concatenate_sequences(sequences, sequence_durations=None):
 def expand_section_groups(sequence):
   """Expands a NoteSequence based on its section_groups.
 
-  If the sequence has no section_groups, the original sequence will be returned.
+  If the sequence has no section_groups, a copy of the original sequence will be
+  returned.
 
   Args:
     sequence: The sequence to expand.
@@ -386,7 +387,7 @@ def expand_section_groups(sequence):
     A new, expanded version of the sequence.
   """
   if not sequence.section_groups:
-    return sequence
+    return copy.deepcopy(sequence)
 
   sections = {}
   section_durations = {}
