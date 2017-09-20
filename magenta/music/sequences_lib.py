@@ -381,8 +381,13 @@ def expand_section_groups(sequence):
     sequence: The sequence to expand.
 
   Returns:
-    A new, expanded version of the sequence.
+    A copy of the original sequence, expanded based on its section_groups. If
+    the sequence has no section_groups, a copy of the original sequence will be
+    returned.
   """
+  if not sequence.section_groups:
+    return copy.deepcopy(sequence)
+
   sections = {}
   section_durations = {}
   for i in range(len(sequence.section_annotations)):

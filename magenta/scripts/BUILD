@@ -34,6 +34,18 @@ py_binary(
     ],
 )
 
+py_binary(
+    name = "abc_compare",
+    srcs = ["abc_compare.py"],
+    srcs_version = "PY2AND3",
+    deps = [
+        "//magenta/music:abc_parser",
+        "//magenta/music:midi_io",
+        "//magenta/music:sequences_lib",
+        # tensorflow dep
+    ],
+)
+
 py_test(
     name = "convert_dir_to_note_sequences_test",
     srcs = ["convert_dir_to_note_sequences_test.py"],

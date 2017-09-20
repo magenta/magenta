@@ -54,6 +54,10 @@ class PartException(ABCParseException):
   """ABC Parts are not yet supported."""
 
 
+class InvalidCharacterException(ABCParseException):
+  """Invalid character."""
+
+
 def parse_tunebook_file(filename):
   """Parse an ABC Tunebook file."""
   # 'r' mode will decode the file as utf-8 in py3.
@@ -323,13 +327,11 @@ class ABCTune(object):
 
   def _finalize_repeats(self):
     """Handle any pending repeats."""
-    # If we're still expecting a repeat at the end of the tune, the end of the
-    # tune implies it should happen.
+    # If we're still expecting a repeat at the end of the tune, that's an error
+    # in the file.
     if self._current_expected_repeats:
-      sg = self._ns.section_groups.add()
-      sg.sections.add(
-          section_id=self._ns.section_annotations[-1].section_id)
-      sg.num_times = self._current_expected_repeats
+      raise RepeatParseException(
+          'Expected a repeat at the end of the file, but did not get one.')
 
   def _finalize_sections(self):
     """Handle any pending sections."""
@@ -341,6 +343,21 @@ class ABCTune(object):
     if (self._ns.section_annotations and
         self._ns.section_annotations[-1].time == self._ns.notes[-1].end_time):
       del self._ns.section_annotations[-1]
+
+    # Make sure the final section annotation is referenced in a section group.
+    # If it hasn't been referenced yet, it just needs to be played once.
+    # This checks that the final section_annotation is referenced in the final
+    # section_group.
+    # At this point, all of our section_groups have only 1 section, so this
+    # logic will need to be updated when we support parts and start creating
+    # more complex section_groups.
+    if (self._ns.section_annotations and self._ns.section_groups and
+        self._ns.section_groups[-1].sections[0].section_id !=
+        self._ns.section_annotations[-1].section_id):
+      sg = self._ns.section_groups.add()
+      sg.sections.add(
+          section_id=self._ns.section_annotations[-1].section_id)
+      sg.num_times = 1
 
   def _apply_broken_rhythm(self, broken_rhythm):
     """Applies a broken rhythm symbol to the two most recently added notes."""
@@ -413,6 +430,9 @@ class ABCTune(object):
           break
 
       if not match:
+        if not line[pos].isspace():
+          raise InvalidCharacterException(
+              'Unexpected character: [{}]'.format(line[pos]))
         pos += 1
         continue
 
@@ -464,8 +484,17 @@ class ABCTune(object):
             length /= 2 ** slash_count
           elif match.group(4).startswith('/'):
             length /= int(match.group(4)[1:])
-          else:
+          elif slash_count == 1:
+            fraction = match.group(4).split('/', 1)
+            # If no denominator is specified (e.g., "3/"), default to 2.
+            if not fraction[1]:
+              fraction[1] = 2
+            length *= Fraction(int(fraction[0]), int(fraction[1]))
+          elif slash_count == 0:
             length *= int(match.group(4))
+          else:
+            raise ABCParseException(
+                'Could not parse note length: {}'.format(match.group(4)))
 
         # Advance clock based on note length.
         self._current_time += (1 / (self._qpm / 60)) * (length / Fraction(1, 4))

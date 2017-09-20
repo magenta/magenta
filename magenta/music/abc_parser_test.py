@@ -471,14 +471,30 @@ class AbcParserTest(tf.test.TestCase):
     self.assertEqual(100, tunes[11].tempos[0].qpm)
 
   def testParseBrokenRhythm(self):
-    tunes, exceptions = abc_parser.parse_tunebook("""X:1
+    # These tunes should be equivalent.
+    tunes, exceptions = abc_parser.parse_tunebook("""
+        X:1
         Q:1/4=120
         L:1/4
         M:3/4
         T:Test
         B>cd B<cd
+
+        X:2
+        Q:1/4=120
+        L:1/4
+        M:3/4
+        T:Test
+        B3/2c/2d B/2c3/2d
+
+        X:3
+        Q:1/4=120
+        L:1/4
+        M:3/4
+        T:Test
+        B3/c/d B/c3/d
         """)
-    self.assertEqual(1, len(tunes))
+    self.assertEqual(3, len(tunes))
     self.assertEqual(0, len(exceptions))
 
     expected_ns1 = common_testing_lib.parse_test_proto(
@@ -540,6 +556,11 @@ class AbcParserTest(tf.test.TestCase):
         total_time: 3.0
         """)
     self.assertProtoEquals(expected_ns1, tunes[1])
+    expected_ns2 = copy.deepcopy(expected_ns1)
+    expected_ns2.reference_number = 2
+    self.assertProtoEquals(expected_ns2, tunes[2])
+    expected_ns2.reference_number = 3
+    self.assertProtoEquals(expected_ns2, tunes[3])
 
   def testSlashDuration(self):
     tunes, exceptions = abc_parser.parse_tunebook("""X:1
@@ -616,13 +637,13 @@ class AbcParserTest(tf.test.TestCase):
         Q:1/4=120
         L:1/4
         T:Test
-        Bcd ::[]|[]:: Bcd
+        Bcd ::[]|[]:: Bcd ::|
 
         X:2
         Q:1/4=120
         L:1/4
         T:Test
-        Bcd :::: Bcd
+        Bcd :::: Bcd ::|
 
         X:3
         Q:1/4=120
@@ -636,10 +657,18 @@ class AbcParserTest(tf.test.TestCase):
         L:1/4
         T:Test
         |::Bcd ::|: Bcd ::|
+
+        % This version is missing a repeat symbol at the end.
+        X:5
+        Q:1/4=120
+        L:1/4
+        T:Test
+        |:: Bcd ::|: Bcd |
         """)
     self.assertEqual(3, len(tunes))
-    self.assertEqual(1, len(exceptions))
+    self.assertEqual(2, len(exceptions))
     self.assertTrue(isinstance(exceptions[0], abc_parser.RepeatParseException))
+    self.assertTrue(isinstance(exceptions[1], abc_parser.RepeatParseException))
     expected_ns1 = common_testing_lib.parse_test_proto(
         music_pb2.NoteSequence,
         """
@@ -724,6 +753,104 @@ class AbcParserTest(tf.test.TestCase):
     expected_ns3 = copy.deepcopy(expected_ns2)
     expected_ns3.reference_number = 3
     self.assertProtoEquals(expected_ns3, tunes[3])
+
+  def testInvalidCharacter(self):
+    tunes, exceptions = abc_parser.parse_tunebook("""
+        X:1
+        Q:1/4=120
+        L:1/4
+        T:Test
+        invalid notes!""")
+    self.assertEqual(0, len(tunes))
+    self.assertEqual(1, len(exceptions))
+    self.assertTrue(isinstance(exceptions[0],
+                               abc_parser.InvalidCharacterException))
+
+  def testOneSidedRepeat(self):
+    tunes, exceptions = abc_parser.parse_tunebook("""
+        X:1
+        Q:1/4=120
+        L:1/4
+        T:Test
+        Bcd :| Bcd
+        """)
+    self.assertEqual(1, len(tunes))
+    self.assertEqual(0, len(exceptions))
+    expected_ns1 = common_testing_lib.parse_test_proto(
+        music_pb2.NoteSequence,
+        """
+        ticks_per_quarter: 220
+        source_info: {
+          source_type: SCORE_BASED
+          encoding_type: ABC
+          parser: MAGENTA_ABC
+        }
+        reference_number: 1
+        sequence_metadata {
+          title: "Test"
+        }
+        tempos {
+          qpm: 120
+        }
+        notes {
+          pitch: 71
+          velocity: 90
+          start_time: 0.0
+          end_time: 0.5
+        }
+        notes {
+          pitch: 72
+          velocity: 90
+          start_time: 0.5
+          end_time: 1.0
+        }
+        notes {
+          pitch: 74
+          velocity: 90
+          start_time: 1.0
+          end_time: 1.5
+        }
+        notes {
+          pitch: 71
+          velocity: 90
+          start_time: 1.5
+          end_time: 2.0
+        }
+        notes {
+          pitch: 72
+          velocity: 90
+          start_time: 2.0
+          end_time: 2.5
+        }
+        notes {
+          pitch: 74
+          velocity: 90
+          start_time: 2.5
+          end_time: 3.0
+        }
+        section_annotations {
+          time: 0
+          section_id: 0
+        }
+        section_annotations {
+          time: 1.5
+          section_id: 1
+        }
+        section_groups {
+          sections {
+            section_id: 0
+          }
+          num_times: 2
+        }
+        section_groups {
+          sections {
+            section_id: 1
+          }
+          num_times: 1
+        }
+        total_time: 3.0
+        """)
+    self.assertProtoEquals(expected_ns1, tunes[1])
 
 if __name__ == '__main__':
   tf.test.main()

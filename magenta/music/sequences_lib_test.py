@@ -1128,5 +1128,20 @@ class SequencesLibTest(tf.test.TestCase):
     expected.section_annotations.add(time=10, section_id=3)
     self.assertProtoEquals(expected, expanded)
 
+  def testExpandWithoutSectionGroups(self):
+    sequence = copy.copy(self.note_sequence)
+    testing_lib.add_track_to_sequence(
+        sequence, 0,
+        [(60, 100, 0.0, 1.0), (72, 100, 1.0, 2.0),
+         (59, 100, 2.0, 3.0), (71, 100, 3.0, 4.0)])
+    sequence.section_annotations.add(time=0, section_id=0)
+    sequence.section_annotations.add(time=1, section_id=1)
+    sequence.section_annotations.add(time=2, section_id=2)
+    sequence.section_annotations.add(time=3, section_id=3)
+
+    expanded = sequences_lib.expand_section_groups(sequence)
+
+    self.assertEqual(sequence, expanded)
+
 if __name__ == '__main__':
   tf.test.main()

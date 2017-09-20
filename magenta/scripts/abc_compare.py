@@ -1,0 +1,95 @@
+# Copyright 2017 Google Inc. All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#    http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+"""Compare a directory of abc and midi files.
+
+Assumes a directory of abc files converted with something like:
+ls *.abc | xargs -l1 abc2midi
+"""
+
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import print_function
+
+import os
+import pdb
+import re
+
+# internal imports
+import tensorflow as tf
+from magenta.music import abc_parser
+from magenta.music import midi_io
+from magenta.music import sequences_lib
+
+FLAGS = tf.app.flags.FLAGS
+
+tf.app.flags.DEFINE_string('input_dir', None,
+                           'Directory containing files to convert.')
+
+
+def compare_directory(directory):
+  files_in_dir = tf.gfile.ListDirectory(directory)
+  for file_in_dir in files_in_dir:
+    if not file_in_dir.endswith('.abc'):
+      continue
+    abc = os.path.join(directory, file_in_dir)
+    midis = {}
+    ref_num = 1
+    while True:
+      midi = re.sub(r'\.abc$', str(ref_num) + '.mid',
+                    os.path.join(directory, file_in_dir))
+      if not tf.gfile.Exists(midi):
+        break
+      midis[ref_num] = midi
+      ref_num += 1
+
+    print('parsing {}'.format(abc))
+    tunes, exceptions = abc_parser.parse_tunebook_file(abc)
+    if len(tunes) != len(midis) - len(exceptions):
+      raise ValueError('Different number of tunes and midis for {}'.format(abc))
+
+    for tune in tunes.values():
+      expanded_tune = sequences_lib.expand_section_groups(tune)
+      midi_ns = midi_io.midi_file_to_sequence_proto(
+          midis[tune.reference_number])
+      # abc2midi adds a 1-tick delay to the start of every note, but we don't.
+      tick_length = ((1 / (midi_ns.tempos[0].qpm / 60)) /
+                     midi_ns.ticks_per_quarter)
+      for note in midi_ns.notes:
+        note.start_time -= tick_length
+      if len(midi_ns.notes) != len(expanded_tune.notes):
+        pdb.set_trace()
+      # TODO(fjord): check notes.
+      # for exp_note, test_note in zip(abc2midi.notes, expanded_test.notes):
+      #   # For now, don't compare velocities.
+      #   exp_note.velocity = test_note.velocity
+      #   self.assertProtoEquals(exp_note, test_note)
+      # self.assertEqual(abc2midi.total_time, expanded_test.total_time)
+
+
+def main(unused_argv):
+  if not FLAGS.input_dir:
+    tf.logging.fatal('--input_dir required')
+    return
+
+  input_dir = os.path.expanduser(FLAGS.input_dir)
+
+  compare_directory(input_dir)
+
+
+def console_entry_point():
+  tf.app.run(main)
+
+
+if __name__ == '__main__':
+  console_entry_point()
