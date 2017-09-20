@@ -14,6 +14,9 @@
 """Compare a directory of abc and midi files.
 
 Assumes a directory of abc files converted with something like:
+# First, remove 'hornpipe' rhythm marker because abc2midi changes note durations
+# when that is present.
+ls *.abc | xargs -l1 sed -i '/R: hornpipe/d'
 ls *.abc | xargs -l1 abc2midi
 """
 
@@ -37,44 +40,55 @@ tf.app.flags.DEFINE_string('input_dir', None,
                            'Directory containing files to convert.')
 
 
-def compare_directory(directory):
-  files_in_dir = tf.gfile.ListDirectory(directory)
-  for file_in_dir in files_in_dir:
-    if not file_in_dir.endswith('.abc'):
-      continue
-    abc = os.path.join(directory, file_in_dir)
-    midis = {}
-    ref_num = 1
-    while True:
-      midi = re.sub(r'\.abc$', str(ref_num) + '.mid',
-                    os.path.join(directory, file_in_dir))
-      if not tf.gfile.Exists(midi):
-        break
-      midis[ref_num] = midi
-      ref_num += 1
+class CompareDirectory(tf.test.TestCase):
+  def runTest():
+    pass
 
-    print('parsing {}'.format(abc))
-    tunes, exceptions = abc_parser.parse_tunebook_file(abc)
-    if len(tunes) != len(midis) - len(exceptions):
-      raise ValueError('Different number of tunes and midis for {}'.format(abc))
+  def compare_directory(self, directory):
+    self.maxDiff = None
 
-    for tune in tunes.values():
-      expanded_tune = sequences_lib.expand_section_groups(tune)
-      midi_ns = midi_io.midi_file_to_sequence_proto(
-          midis[tune.reference_number])
-      # abc2midi adds a 1-tick delay to the start of every note, but we don't.
-      tick_length = ((1 / (midi_ns.tempos[0].qpm / 60)) /
-                     midi_ns.ticks_per_quarter)
-      for note in midi_ns.notes:
-        note.start_time -= tick_length
-      if len(midi_ns.notes) != len(expanded_tune.notes):
-        pdb.set_trace()
-      # TODO(fjord): check notes.
-      # for exp_note, test_note in zip(abc2midi.notes, expanded_test.notes):
-      #   # For now, don't compare velocities.
-      #   exp_note.velocity = test_note.velocity
-      #   self.assertProtoEquals(exp_note, test_note)
-      # self.assertEqual(abc2midi.total_time, expanded_test.total_time)
+    files_in_dir = tf.gfile.ListDirectory(directory)
+    files_parsed = 0
+    for file_in_dir in files_in_dir:
+      if not file_in_dir.endswith('.abc'):
+        continue
+      abc = os.path.join(directory, file_in_dir)
+      midis = {}
+      ref_num = 1
+      while True:
+        midi = re.sub(r'\.abc$', str(ref_num) + '.mid',
+                      os.path.join(directory, file_in_dir))
+        if not tf.gfile.Exists(midi):
+          break
+        midis[ref_num] = midi
+        ref_num += 1
+
+      print('parsing {}: {}'.format(files_parsed, abc))
+      tunes, exceptions = abc_parser.parse_tunebook_file(abc)
+      files_parsed += 1
+      self.assertEqual(len(tunes), len(midis) - len(exceptions))
+
+      for tune in tunes.values():
+        expanded_tune = sequences_lib.expand_section_groups(tune)
+        midi_ns = midi_io.midi_file_to_sequence_proto(
+            midis[tune.reference_number])
+        # abc2midi adds a 1-tick delay to the start of every note, but we don't.
+        tick_length = ((1 / (midi_ns.tempos[0].qpm / 60)) /
+                       midi_ns.ticks_per_quarter)
+        for note in midi_ns.notes:
+          note.start_time -= tick_length
+          # For now, don't compare velocities.
+          note.velocity = 90
+        if len(midi_ns.notes) != len(expanded_tune.notes):
+          pdb.set_trace()
+          self.assertProtoEquals(midi_ns, expanded_tune)
+        for midi_note, test_note in zip(midi_ns.notes, expanded_tune.notes):
+          try:
+            self.assertProtoEquals(midi_note, test_note)
+          except Exception as e:
+            print(e)
+            pdb.set_trace()
+        self.assertEqual(midi_ns.total_time, expanded_tune.total_time)
 
 
 def main(unused_argv):
@@ -84,7 +98,7 @@ def main(unused_argv):
 
   input_dir = os.path.expanduser(FLAGS.input_dir)
 
-  compare_directory(input_dir)
+  CompareDirectory().compare_directory(input_dir)
 
 
 def console_entry_point():

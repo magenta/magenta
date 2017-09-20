@@ -58,6 +58,10 @@ class InvalidCharacterException(ABCParseException):
   """Invalid character."""
 
 
+class ChordException(ABCParseException):
+  """Chords are not supported."""
+
+
 def parse_tunebook_file(filename):
   """Parse an ABC Tunebook file."""
   # 'r' mode will decode the file as utf-8 in py3.
@@ -390,6 +394,9 @@ class ABCTune(object):
   NOTE_PATTERN = re.compile(
       r'(__|_|=|\^|\^\^)?([A-Ga-g])([\',]*)(\d*/*\d*)')
 
+  # http://abcnotation.com/wiki/abc:standard:v2.1#chords_and_unisons
+  CHORD_PATTERN = re.compile(r'\[(' + NOTE_PATTERN.pattern + ')+\]')
+
   # http://abcnotation.com/wiki/abc:standard:v2.1#broken_rhythm
   BROKEN_RHYTHM_PATTERN = re.compile(r'(<+|>+)')
 
@@ -419,6 +426,7 @@ class ABCTune(object):
       match = None
       for regex in [
           ABCTune.NOTE_PATTERN,
+          ABCTune.CHORD_PATTERN,
           ABCTune.BROKEN_RHYTHM_PATTERN,
           ABCTune.INLINE_INFORMATION_FIELD_PATTERN,
           ABCTune.BAR_AND_VARIANT_ENDINGS_PATTERN,
@@ -504,6 +512,8 @@ class ABCTune(object):
         if broken_rhythm:
           self._apply_broken_rhythm(broken_rhythm)
           broken_rhythm = None
+      elif match.re == ABCTune.CHORD_PATTERN:
+        raise ChordException('Chords are not supported.')
       elif match.re == ABCTune.BROKEN_RHYTHM_PATTERN:
         if broken_rhythm:
           raise ABCParseException(

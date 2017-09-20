@@ -65,13 +65,12 @@ class AbcParserTest(tf.test.TestCase):
                    abc2midi.ticks_per_quarter)
 
     for note in abc2midi.notes:
+      # For now, don't compare velocities.
+      note.velocity = 90
       note.start_time -= tick_length
 
-    self.assertEqual(len(abc2midi.notes), len(expanded_test.notes))
-    for exp_note, test_note in zip(abc2midi.notes, expanded_test.notes):
-      # For now, don't compare velocities.
-      exp_note.velocity = test_note.velocity
-      self.assertProtoEquals(exp_note, test_note)
+    self.compareProtoList(abc2midi.notes, expanded_test.notes)
+
     self.assertEqual(abc2midi.total_time, expanded_test.total_time)
 
     self.compareProtoList(abc2midi.time_signatures,
@@ -851,6 +850,18 @@ class AbcParserTest(tf.test.TestCase):
         total_time: 3.0
         """)
     self.assertProtoEquals(expected_ns1, tunes[1])
+
+  def testChords(self):
+    tunes, exceptions = abc_parser.parse_tunebook("""
+        X:1
+        Q:1/4=120
+        L:1/4
+        T:Test
+        [CEG]""")
+    self.assertEqual(0, len(tunes))
+    self.assertEqual(1, len(exceptions))
+    self.assertTrue(isinstance(exceptions[0],
+                               abc_parser.ChordException))
 
 if __name__ == '__main__':
   tf.test.main()
