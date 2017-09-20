@@ -86,7 +86,7 @@ class CompareDirectory(tf.test.TestCase):
         for midi_note, test_note in zip(midi_ns.notes, expanded_tune.notes):
           try:
             self.assertProtoEquals(midi_note, test_note)
-          except Exception as e: # pylint: disable=broad-except
+          except Exception as e:  # pylint: disable=broad-except
             print(e)
             pdb.set_trace()
         self.assertEqual(midi_ns.total_time, expanded_tune.total_time)
