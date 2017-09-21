@@ -471,6 +471,9 @@ class ABCTune(object):
   # http://abcnotation.com/wiki/abc:standard:v2.1#duplets_triplets_quadruplets_etc
   TUPLET_PATTERN = re.compile(r'\(\d')
 
+  # http://abcnotation.com/wiki/abc:standard:v2.1#typesetting_line-breaks
+  LINE_CONTINUATION_PATTERN = re.compile(r'\\$')
+
   def _parse_music_code(self, line):
     """Parse the music code within an ABC file."""
 
@@ -490,7 +493,8 @@ class ABCTune(object):
           ABCTune.TEXT_ANNOTATION_PATTERN,
           ABCTune.DECORATION_PATTERN,
           ABCTune.SLUR_PATTERN,
-          ABCTune.TUPLET_PATTERN]:
+          ABCTune.TUPLET_PATTERN,
+          ABCTune.LINE_CONTINUATION_PATTERN]:
         match = regex.match(line, pos)
         if match:
           break
@@ -687,6 +691,10 @@ class ABCTune(object):
         pass
       elif match.re == ABCTune.TUPLET_PATTERN:
         raise TupletException('Tuplets are not supported.')
+      elif match.re == ABCTune.LINE_CONTINUATION_PATTERN:
+        # http://abcnotation.com/wiki/abc:standard:v2.1#typesetting_line-breaks
+        # Line continuations are only for typesetting, so we can ignore them.
+        pass
       else:
         raise ABCParseException('Unknown regex match!')
 

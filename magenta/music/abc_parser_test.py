@@ -1125,5 +1125,24 @@ class AbcParserTest(tf.test.TestCase):
     self.assertEqual(1, len(exceptions))
     self.assertTrue(isinstance(exceptions[0], abc_parser.TupletException))
 
+  def testLineContinuation(self):
+    tunes, exceptions = abc_parser.parse_tunebook(r"""
+        X:1
+        Q:1/4=120
+        L:1/4
+        T:Test
+        abc \
+        cba|
+        abc\
+         cba|
+        abc cba|
+        cdef|\
+        \
+        cedf:|
+        """)
+    self.assertEqual(1, len(tunes))
+    self.assertEqual(0, len(exceptions))
+    self.assertEqual(26, len(tunes[1].notes))
+
 if __name__ == '__main__':
   tf.test.main()
