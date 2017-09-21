@@ -475,7 +475,6 @@ class ABCTune(object):
   # http://abcnotation.com/wiki/abc:standard:v2.1#typesetting_line-breaks
   LINE_CONTINUATION_PATTERN = re.compile(r'\\$')
 
-
   def _parse_music_code(self, line):
     """Parse the music code within an ABC file."""
 
