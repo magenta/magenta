@@ -58,6 +58,10 @@ class InvalidCharacterException(ABCParseException):
   """Invalid character."""
 
 
+class ChordException(ABCParseException):
+  """Chords are not supported."""
+
+
 def parse_tunebook_file(filename):
   """Parse an ABC Tunebook file."""
   # 'r' mode will decode the file as utf-8 in py3.
@@ -205,6 +209,7 @@ class ABCTune(object):
 
     self._current_time = 0
     self._accidentals = ABCTune._sig_to_accidentals(0)
+    self._bar_accidentals = {}
     self._current_unit_note_length = None
     self._current_expected_repeats = None
 
@@ -311,7 +316,29 @@ class ABCTune(object):
     tempo.qpm = float((tempo_unit / Fraction(1, 4)) * tempo_rate)
 
   def _add_section(self, time):
+    """Adds a new section to the NoteSequence.
+
+    If the most recently added section is for the same time, a new section will
+    not be created.
+
+    Args:
+      time: The time at which to create the new section.
+
+    Returns:
+      The id of the newly created section, or None if no new section was
+      created.
+    """
+    if not self._ns.section_annotations and time > 0:
+      # We're in a piece with sections, need to add a section marker at the
+      # beginning of the piece if there isn't one there already.
+      sa = self._ns.section_annotations.add()
+      sa.time = 0
+      sa.section_id = 0
+
     if self._ns.section_annotations:
+      if self._ns.section_annotations[-1].time == time:
+        tf.logging.debug('Ignoring duplicate section at time {}'.format(time))
+        return None
       new_id = self._ns.section_annotations[-1].section_id + 1
     else:
       new_id = 0
@@ -319,6 +346,7 @@ class ABCTune(object):
     sa = self._ns.section_annotations.add()
     sa.time = time
     sa.section_id = new_id
+    return new_id
 
   def _finalize(self):
     """Do final cleanup. To be called at the end of the tune."""
@@ -390,6 +418,9 @@ class ABCTune(object):
   NOTE_PATTERN = re.compile(
       r'(__|_|=|\^|\^\^)?([A-Ga-g])([\',]*)(\d*/*\d*)')
 
+  # http://abcnotation.com/wiki/abc:standard:v2.1#chords_and_unisons
+  CHORD_PATTERN = re.compile(r'\[(' + NOTE_PATTERN.pattern + r')+\]')
+
   # http://abcnotation.com/wiki/abc:standard:v2.1#broken_rhythm
   BROKEN_RHYTHM_PATTERN = re.compile(r'(<+|>+)')
 
@@ -401,7 +432,7 @@ class ABCTune(object):
   # Pattern for matching variant endings with an associated bar symbol.
   BAR_AND_VARIANT_ENDINGS_PATTERN = re.compile(r'(:*)[\[\]|]+\s*([0-9,-]+)')
   # Pattern for matching repeat symbols with an associated bar symbol.
-  BAR_AND_REPEAT_SYMBOLS_PATTERN = re.compile(r'(:*)[\[\]|]+(:*)')
+  BAR_AND_REPEAT_SYMBOLS_PATTERN = re.compile(r'(:*)([\[\]|]+)(:*)')
   # Pattern for matching repeat symbols without an associated bar symbol.
   REPEAT_SYMBOLS_PATTERN = re.compile(r'(:+)')
 
@@ -419,6 +450,7 @@ class ABCTune(object):
       match = None
       for regex in [
           ABCTune.NOTE_PATTERN,
+          ABCTune.CHORD_PATTERN,
           ABCTune.BROKEN_RHYTHM_PATTERN,
           ABCTune.INLINE_INFORMATION_FIELD_PATTERN,
           ABCTune.BAR_AND_VARIANT_ENDINGS_PATTERN,
@@ -443,22 +475,28 @@ class ABCTune(object):
         note.start_time = self._current_time
 
         note.pitch = ABCTune.ABC_NOTE_TO_MIDI[match.group(2)]
+        note_name = match.group(2).upper()
 
         # Accidentals
         if match.group(1):
+          pitch_change = 0
           for accidental in match.group(1).split():
             if accidental == '^':
-              note.pitch += 1
+              pitch_change += 1
             elif accidental == '_':
-              note.pitch -= 1
+              pitch_change -= 1
             elif accidental == '=':
               pass
             else:
               raise ABCParseException(
                   'Invalid accidental: {}'.format(accidental))
+          note.pitch += pitch_change
+          self._bar_accidentals[note_name] = pitch_change
+        elif note_name in self._bar_accidentals:
+          note.pitch += self._bar_accidentals[note_name]
         else:
           # No accidentals, so modify according to current key.
-          note.pitch += self._accidentals[match.group(2).upper()]
+          note.pitch += self._accidentals[note_name]
 
         # Octaves
         if match.group(3):
@@ -504,6 +542,8 @@ class ABCTune(object):
         if broken_rhythm:
           self._apply_broken_rhythm(broken_rhythm)
           broken_rhythm = None
+      elif match.re == ABCTune.CHORD_PATTERN:
+        raise ChordException('Chords are not supported.')
       elif match.re == ABCTune.BROKEN_RHYTHM_PATTERN:
         if broken_rhythm:
           raise ABCParseException(
@@ -524,9 +564,25 @@ class ABCTune(object):
                     match.group(1)))
           backward_repeats = forward_repeats = int((colon_count / 2) + 1)
         elif match.re == ABCTune.BAR_AND_REPEAT_SYMBOLS_PATTERN:
-          is_repeat = ':' in match.group(1) or match.group(2)
+          # We're in a new bar, so clear the bar-wise accidentals.
+          self._bar_accidentals.clear()
+
+          is_repeat = ':' in match.group(1) or match.group(3)
           if not is_repeat:
-            # We don't currently track regular bar lines
+            if len(match.group(2)) >= 2:
+              # This is a double bar that isn't a repeat.
+              if not self._current_expected_repeats and self._current_time > 0:
+                # There was no previous forward repeat symbol.
+                # Add a new section so that if there is a backward repeat later
+                # on, it will repeat to this bar.
+                new_section_id = self._add_section(self._current_time)
+                if new_section_id is not None:
+                  sg = self._ns.section_groups.add()
+                  sg.sections.add(
+                      section_id=self._ns.section_annotations[-2].section_id)
+                  sg.num_times = 1
+
+            # If this isn't a repeat, no additional work to do.
             continue
 
           # Count colons on either side.
@@ -535,8 +591,8 @@ class ABCTune(object):
           else:
             backward_repeats = None
 
-          if match.group(2):
-            forward_repeats = len(match.group(2)) + 1
+          if match.group(3):
+            forward_repeats = len(match.group(3)) + 1
           else:
             forward_repeats = None
         else:
@@ -550,20 +606,19 @@ class ABCTune(object):
                   self._current_expected_repeats, backward_repeats))
 
         # A repeat implies the start of a new section, so make one.
-        if not self._ns.section_annotations and self._current_time > 0:
-          # We're in a piece with sections, need to add a section marker at the
-          # beginning of the piece if there isn't one there already.
-          self._add_section(0)
-        self._add_section(self._current_time)
+        new_section_id = self._add_section(self._current_time)
 
         if backward_repeats:
           sg = self._ns.section_groups.add()
           sg.sections.add(
               section_id=self._ns.section_annotations[-2].section_id)
           sg.num_times = backward_repeats
-        elif self._current_time > 0:
+        elif self._current_time > 0 and new_section_id is not None:
           # There were not backward repeats, but we still want to play the
           # previous section once.
+          # If new_section_id is None (implying that a section at the current
+          # time was created elsewhere), this is not needed because it should
+          # have been done when the section was created.
           sg = self._ns.section_groups.add()
           sg.sections.add(
               section_id=self._ns.section_annotations[-2].section_id)
