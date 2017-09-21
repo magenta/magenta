@@ -62,6 +62,10 @@ class ChordException(ABCParseException):
   """Chords are not supported."""
 
 
+class DuplicateReferenceNumberException(ABCParseException):
+  """Found duplicate reference numbers."""
+
+
 def parse_tunebook_file(filename):
   """Parse an ABC Tunebook file."""
   # 'r' mode will decode the file as utf-8 in py3.
@@ -69,7 +73,19 @@ def parse_tunebook_file(filename):
 
 
 def parse_tunebook(tunebook):
-  """Parse an ABC Tunebook string."""
+  """Parse an ABC Tunebook string.
+
+  Args:
+    tunebook: The ABC tunebook as a string.
+
+  Returns:
+    tunes: A dictionary of reference number to NoteSequence of parsed ABC tunes.
+    exceptions: A list of exceptions for tunes that could not be parsed.
+
+  Raises:
+    DuplicateReferenceNumberException: If the same reference number appears more
+        than once in the tunebook.
+  """
   # Split tunebook into sections based on empty lines.
   sections = []
   current_lines = []
@@ -104,7 +120,7 @@ def parse_tunebook(tunebook):
     else:
       ns = abc_tune.note_sequence
       if ns.reference_number in tunes:
-        raise ABCParseException(
+        raise DuplicateReferenceNumberException(
             'ABC Reference number {} appears more than once in this '
             'tunebook'.format(ns.reference_number))
       tunes[ns.reference_number] = ns
@@ -464,7 +480,7 @@ class ABCTune(object):
       if not match:
         if not line[pos].isspace():
           raise InvalidCharacterException(
-              'Unexpected character: [{}]'.format(line[pos]))
+              'Unexpected character: [{}]'.format(line[pos].encode('utf-8'))
         pos += 1
         continue
 

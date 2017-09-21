@@ -691,11 +691,19 @@ class AbcParserTest(tf.test.TestCase):
         L:1/4
         T:Test
         |:: B || cd ::| Bcd || |: Bcd :|
+
+        % Mismatched repeat at the end.
+        X:10
+        Q:1/4=120
+        L:1/4
+        T:Test
+        B || cd :| Bcd || Bcd |:
         """)
     self.assertEqual(7, len(tunes))
-    self.assertEqual(2, len(exceptions))
+    self.assertEqual(3, len(exceptions))
     self.assertTrue(isinstance(exceptions[0], abc_parser.RepeatParseException))
     self.assertTrue(isinstance(exceptions[1], abc_parser.RepeatParseException))
+    self.assertTrue(isinstance(exceptions[2], abc_parser.RepeatParseException))
     expected_ns1 = common_testing_lib.parse_test_proto(
         music_pb2.NoteSequence,
         """
