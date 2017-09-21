@@ -692,12 +692,12 @@ class AbcParserTest(tf.test.TestCase):
         T:Test
         |:: B || cd ::| Bcd || |: Bcd :|
 
-        % Mismatched repeat at the end.
+        % Mismatched repeat at the very beginning.
         X:10
         Q:1/4=120
         L:1/4
         T:Test
-        B || cd :| Bcd || Bcd |:
+        :| Bcd |:: Bcd ::|
         """)
     self.assertEqual(7, len(tunes))
     self.assertEqual(3, len(exceptions))
@@ -1088,6 +1088,7 @@ class AbcParserTest(tf.test.TestCase):
         total_time: 3.5
         """)
     self.assertProtoEquals(expected_ns1, tunes[1])
+
 
 if __name__ == '__main__':
   tf.test.main()

@@ -480,7 +480,7 @@ class ABCTune(object):
       if not match:
         if not line[pos].isspace():
           raise InvalidCharacterException(
-              'Unexpected character: [{}]'.format(line[pos].encode('utf-8'))
+              'Unexpected character: [{}]'.format(line[pos].encode('utf-8')))
         pos += 1
         continue
 
@@ -625,6 +625,9 @@ class ABCTune(object):
         new_section_id = self._add_section(self._current_time)
 
         if backward_repeats:
+          if self._current_time == 0:
+            raise RepeatParseException(
+                'Cannot have a backward repeat at time 0')
           sg = self._ns.section_groups.add()
           sg.sections.add(
               section_id=self._ns.section_annotations[-2].section_id)
