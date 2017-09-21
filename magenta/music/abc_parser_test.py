@@ -1089,6 +1089,17 @@ class AbcParserTest(tf.test.TestCase):
         """)
     self.assertProtoEquals(expected_ns1, tunes[1])
 
+  def testDecorations(self):
+    tunes, exceptions = abc_parser.parse_tunebook("""
+        X:1
+        Q:1/4=120
+        L:1/4
+        T:Test
+        .a~bHcLdMeOfPgSATbucvd
+        """)
+    self.assertEqual(1, len(tunes))
+    self.assertEqual(0, len(exceptions))
+    self.assertEqual(11, len(tunes[1].notes))
 
 if __name__ == '__main__':
   tf.test.main()

@@ -456,6 +456,9 @@ class ABCTune(object):
   # http://abcnotation.com/wiki/abc:standard:v2.1#annotations
   TEXT_ANNOTATION_PATTERN = re.compile(r'"([^"]*)"')
 
+  # http://abcnotation.com/wiki/abc:standard:v2.1#decorations
+  DECORATION_PATTERN = re.compile(r'[.~HLMOPSTuv]')
+
   def _parse_music_code(self, line):
     """Parse the music code within an ABC file."""
 
@@ -472,7 +475,8 @@ class ABCTune(object):
           ABCTune.BAR_AND_VARIANT_ENDINGS_PATTERN,
           ABCTune.BAR_AND_REPEAT_SYMBOLS_PATTERN,
           ABCTune.REPEAT_SYMBOLS_PATTERN,
-          ABCTune.TEXT_ANNOTATION_PATTERN]:
+          ABCTune.TEXT_ANNOTATION_PATTERN,
+          ABCTune.DECORATION_PATTERN]:
         match = regex.match(line, pos)
         if match:
           break
@@ -659,6 +663,10 @@ class ABCTune(object):
         else:
           ta.annotation_type = (
               music_pb2.NoteSequence.TextAnnotation.UNKNOWN)
+      elif match.re == ABCTune.DECORATION_PATTERN:
+        # http://abcnotation.com/wiki/abc:standard:v2.1#decorations
+        # We don't currently do anything with decorations.
+        pass
       else:
         raise ABCParseException('Unknown regex match!')
 
