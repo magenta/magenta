@@ -66,6 +66,10 @@ class DuplicateReferenceNumberException(ABCParseException):
   """Found duplicate reference numbers."""
 
 
+class TupletException(ABCParseException):
+  """Tuplets are not supported."""
+
+
 def parse_tunebook_file(filename):
   """Parse an ABC Tunebook file."""
   # 'r' mode will decode the file as utf-8 in py3.
@@ -459,6 +463,14 @@ class ABCTune(object):
   # http://abcnotation.com/wiki/abc:standard:v2.1#decorations
   DECORATION_PATTERN = re.compile(r'[.~HLMOPSTuv]')
 
+  # http://abcnotation.com/wiki/abc:standard:v2.1#ties_and_slurs
+  # Either an opening parenthesis (not followed by a digit, since that indicates
+  # a tuplet) or a closing parenthesis.
+  SLUR_PATTERN = re.compile(r'\((?!\d)|\)')
+
+  # http://abcnotation.com/wiki/abc:standard:v2.1#duplets_triplets_quadruplets_etc
+  TUPLET_PATTERN = re.compile(r'\(\d')
+
   def _parse_music_code(self, line):
     """Parse the music code within an ABC file."""
 
@@ -476,7 +488,9 @@ class ABCTune(object):
           ABCTune.BAR_AND_REPEAT_SYMBOLS_PATTERN,
           ABCTune.REPEAT_SYMBOLS_PATTERN,
           ABCTune.TEXT_ANNOTATION_PATTERN,
-          ABCTune.DECORATION_PATTERN]:
+          ABCTune.DECORATION_PATTERN,
+          ABCTune.SLUR_PATTERN,
+          ABCTune.TUPLET_PATTERN]:
         match = regex.match(line, pos)
         if match:
           break
@@ -667,6 +681,12 @@ class ABCTune(object):
         # http://abcnotation.com/wiki/abc:standard:v2.1#decorations
         # We don't currently do anything with decorations.
         pass
+      elif match.re == ABCTune.SLUR_PATTERN:
+        # http://abcnotation.com/wiki/abc:standard:v2.1#ties_and_slurs
+        # We don't currently do anything with slurs.
+        pass
+      elif match.re == ABCTune.TUPLET_PATTERN:
+        raise TupletException('Tuplets are not supported.')
       else:
         raise ABCParseException('Unknown regex match!')
 

@@ -1101,5 +1101,29 @@ class AbcParserTest(tf.test.TestCase):
     self.assertEqual(0, len(exceptions))
     self.assertEqual(11, len(tunes[1].notes))
 
+  def testSlur(self):
+    tunes, exceptions = abc_parser.parse_tunebook("""
+        X:1
+        Q:1/4=120
+        L:1/4
+        T:Test
+        (ABC) ( a b c ) (c (d e f) g a)
+        """)
+    self.assertEqual(1, len(tunes))
+    self.assertEqual(0, len(exceptions))
+    self.assertEqual(12, len(tunes[1].notes))
+
+  def testTuplet(self):
+    tunes, exceptions = abc_parser.parse_tunebook("""
+        X:1
+        Q:1/4=120
+        L:1/4
+        T:Test
+        (3abc
+        """)
+    self.assertEqual(0, len(tunes))
+    self.assertEqual(1, len(exceptions))
+    self.assertTrue(isinstance(exceptions[0], abc_parser.TupletException))
+
 if __name__ == '__main__':
   tf.test.main()
