@@ -467,12 +467,14 @@ class ABCTune(object):
   # Either an opening parenthesis (not followed by a digit, since that indicates
   # a tuplet) or a closing parenthesis.
   SLUR_PATTERN = re.compile(r'\((?!\d)|\)')
+  TIE_PATTERN = re.compile(r'-')
 
   # http://abcnotation.com/wiki/abc:standard:v2.1#duplets_triplets_quadruplets_etc
   TUPLET_PATTERN = re.compile(r'\(\d')
 
   # http://abcnotation.com/wiki/abc:standard:v2.1#typesetting_line-breaks
   LINE_CONTINUATION_PATTERN = re.compile(r'\\$')
+
 
   def _parse_music_code(self, line):
     """Parse the music code within an ABC file."""
@@ -493,6 +495,7 @@ class ABCTune(object):
           ABCTune.TEXT_ANNOTATION_PATTERN,
           ABCTune.DECORATION_PATTERN,
           ABCTune.SLUR_PATTERN,
+          ABCTune.TIE_PATTERN,
           ABCTune.TUPLET_PATTERN,
           ABCTune.LINE_CONTINUATION_PATTERN]:
         match = regex.match(line, pos)
@@ -688,6 +691,12 @@ class ABCTune(object):
       elif match.re == ABCTune.SLUR_PATTERN:
         # http://abcnotation.com/wiki/abc:standard:v2.1#ties_and_slurs
         # We don't currently do anything with slurs.
+        pass
+      elif match.re == ABCTune.TIE_PATTERN:
+        # http://abcnotation.com/wiki/abc:standard:v2.1#ties_and_slurs
+        # We don't currently do anything with ties.
+        # TODO(fjord): Ideally, we would extend the duration of the previous
+        # note to include the duration of the next note.
         pass
       elif match.re == ABCTune.TUPLET_PATTERN:
         raise TupletException('Tuplets are not supported.')
