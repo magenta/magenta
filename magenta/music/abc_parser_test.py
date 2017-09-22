@@ -1017,6 +1017,56 @@ class AbcParserTest(tf.test.TestCase):
     self.assertTrue(isinstance(exceptions[0],
                                abc_parser.ChordException))
 
+  def testChordAnnotations(self):
+    tunes, exceptions = abc_parser.parse_tunebook("""
+        X:1
+        Q:1/4=120
+        L:1/4
+        T:Test
+        "G"G
+        % verify that an empty annotation doesn't cause problems.
+        ""D
+        """)
+    self.assertEqual(1, len(tunes))
+    self.assertEqual(0, len(exceptions))
+    expected_ns1 = common_testing_lib.parse_test_proto(
+        music_pb2.NoteSequence,
+        """
+        ticks_per_quarter: 220
+        source_info: {
+          source_type: SCORE_BASED
+          encoding_type: ABC
+          parser: MAGENTA_ABC
+        }
+        reference_number: 1
+        sequence_metadata {
+          title: "Test"
+        }
+        tempos {
+          qpm: 120
+        }
+        notes {
+          pitch: 67
+          velocity: 90
+          end_time: 0.5
+        }
+        notes {
+          pitch: 62
+          velocity: 90
+          start_time: 0.5
+          end_time: 1.0
+        }
+        text_annotations {
+          text: "G"
+          annotation_type: CHORD_SYMBOL
+        }
+        text_annotations {
+          time: 0.5
+        }
+        total_time: 1.0
+        """)
+    self.assertProtoEquals(expected_ns1, tunes[1])
+
   def testNoteAccidentalsPerBar(self):
     tunes, exceptions = abc_parser.parse_tunebook("""
         X:1

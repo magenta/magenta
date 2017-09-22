@@ -676,7 +676,7 @@ class ABCTune(object):
         ta = self._ns.text_annotations.add()
         ta.time = self._current_time
         ta.text = annotation
-        if annotation[0] in ABCTune.ABC_NOTE_TO_MIDI:
+        if annotation and annotation[0] in ABCTune.ABC_NOTE_TO_MIDI:
           # http://abcnotation.com/wiki/abc:standard:v2.1#chord_symbols
           ta.annotation_type = (
               music_pb2.NoteSequence.TextAnnotation.CHORD_SYMBOL)
