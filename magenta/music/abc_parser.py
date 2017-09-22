@@ -62,6 +62,14 @@ class ChordException(ABCParseException):
   """Chords are not supported."""
 
 
+class DuplicateReferenceNumberException(ABCParseException):
+  """Found duplicate reference numbers."""
+
+
+class TupletException(ABCParseException):
+  """Tuplets are not supported."""
+
+
 def parse_tunebook_file(filename):
   """Parse an ABC Tunebook file."""
   # 'r' mode will decode the file as utf-8 in py3.
@@ -69,7 +77,19 @@ def parse_tunebook_file(filename):
 
 
 def parse_tunebook(tunebook):
-  """Parse an ABC Tunebook string."""
+  """Parse an ABC Tunebook string.
+
+  Args:
+    tunebook: The ABC tunebook as a string.
+
+  Returns:
+    tunes: A dictionary of reference number to NoteSequence of parsed ABC tunes.
+    exceptions: A list of exceptions for tunes that could not be parsed.
+
+  Raises:
+    DuplicateReferenceNumberException: If the same reference number appears more
+        than once in the tunebook.
+  """
   # Split tunebook into sections based on empty lines.
   sections = []
   current_lines = []
@@ -104,7 +124,7 @@ def parse_tunebook(tunebook):
     else:
       ns = abc_tune.note_sequence
       if ns.reference_number in tunes:
-        raise ABCParseException(
+        raise DuplicateReferenceNumberException(
             'ABC Reference number {} appears more than once in this '
             'tunebook'.format(ns.reference_number))
       tunes[ns.reference_number] = ns
@@ -440,6 +460,21 @@ class ABCTune(object):
   # http://abcnotation.com/wiki/abc:standard:v2.1#annotations
   TEXT_ANNOTATION_PATTERN = re.compile(r'"([^"]*)"')
 
+  # http://abcnotation.com/wiki/abc:standard:v2.1#decorations
+  DECORATION_PATTERN = re.compile(r'[.~HLMOPSTuv]')
+
+  # http://abcnotation.com/wiki/abc:standard:v2.1#ties_and_slurs
+  # Either an opening parenthesis (not followed by a digit, since that indicates
+  # a tuplet) or a closing parenthesis.
+  SLUR_PATTERN = re.compile(r'\((?!\d)|\)')
+  TIE_PATTERN = re.compile(r'-')
+
+  # http://abcnotation.com/wiki/abc:standard:v2.1#duplets_triplets_quadruplets_etc
+  TUPLET_PATTERN = re.compile(r'\(\d')
+
+  # http://abcnotation.com/wiki/abc:standard:v2.1#typesetting_line-breaks
+  LINE_CONTINUATION_PATTERN = re.compile(r'\\$')
+
   def _parse_music_code(self, line):
     """Parse the music code within an ABC file."""
 
@@ -456,7 +491,12 @@ class ABCTune(object):
           ABCTune.BAR_AND_VARIANT_ENDINGS_PATTERN,
           ABCTune.BAR_AND_REPEAT_SYMBOLS_PATTERN,
           ABCTune.REPEAT_SYMBOLS_PATTERN,
-          ABCTune.TEXT_ANNOTATION_PATTERN]:
+          ABCTune.TEXT_ANNOTATION_PATTERN,
+          ABCTune.DECORATION_PATTERN,
+          ABCTune.SLUR_PATTERN,
+          ABCTune.TIE_PATTERN,
+          ABCTune.TUPLET_PATTERN,
+          ABCTune.LINE_CONTINUATION_PATTERN]:
         match = regex.match(line, pos)
         if match:
           break
@@ -464,7 +504,7 @@ class ABCTune(object):
       if not match:
         if not line[pos].isspace():
           raise InvalidCharacterException(
-              'Unexpected character: [{}]'.format(line[pos]))
+              'Unexpected character: [{}]'.format(line[pos].encode('utf-8')))
         pos += 1
         continue
 
@@ -609,6 +649,9 @@ class ABCTune(object):
         new_section_id = self._add_section(self._current_time)
 
         if backward_repeats:
+          if self._current_time == 0:
+            raise RepeatParseException(
+                'Cannot have a backward repeat at time 0')
           sg = self._ns.section_groups.add()
           sg.sections.add(
               section_id=self._ns.section_annotations[-2].section_id)
@@ -633,13 +676,33 @@ class ABCTune(object):
         ta = self._ns.text_annotations.add()
         ta.time = self._current_time
         ta.text = annotation
-        if annotation[0] in ABCTune.ABC_NOTE_TO_MIDI:
+        if annotation and annotation[0] in ABCTune.ABC_NOTE_TO_MIDI:
           # http://abcnotation.com/wiki/abc:standard:v2.1#chord_symbols
           ta.annotation_type = (
               music_pb2.NoteSequence.TextAnnotation.CHORD_SYMBOL)
         else:
           ta.annotation_type = (
               music_pb2.NoteSequence.TextAnnotation.UNKNOWN)
+      elif match.re == ABCTune.DECORATION_PATTERN:
+        # http://abcnotation.com/wiki/abc:standard:v2.1#decorations
+        # We don't currently do anything with decorations.
+        pass
+      elif match.re == ABCTune.SLUR_PATTERN:
+        # http://abcnotation.com/wiki/abc:standard:v2.1#ties_and_slurs
+        # We don't currently do anything with slurs.
+        pass
+      elif match.re == ABCTune.TIE_PATTERN:
+        # http://abcnotation.com/wiki/abc:standard:v2.1#ties_and_slurs
+        # We don't currently do anything with ties.
+        # TODO(fjord): Ideally, we would extend the duration of the previous
+        # note to include the duration of the next note.
+        pass
+      elif match.re == ABCTune.TUPLET_PATTERN:
+        raise TupletException('Tuplets are not supported.')
+      elif match.re == ABCTune.LINE_CONTINUATION_PATTERN:
+        # http://abcnotation.com/wiki/abc:standard:v2.1#typesetting_line-breaks
+        # Line continuations are only for typesetting, so we can ignore them.
+        pass
       else:
         raise ABCParseException('Unknown regex match!')
 

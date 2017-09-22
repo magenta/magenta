@@ -691,11 +691,19 @@ class AbcParserTest(tf.test.TestCase):
         L:1/4
         T:Test
         |:: B || cd ::| Bcd || |: Bcd :|
+
+        % Mismatched repeat at the very beginning.
+        X:10
+        Q:1/4=120
+        L:1/4
+        T:Test
+        :| Bcd |:: Bcd ::|
         """)
     self.assertEqual(7, len(tunes))
-    self.assertEqual(2, len(exceptions))
+    self.assertEqual(3, len(exceptions))
     self.assertTrue(isinstance(exceptions[0], abc_parser.RepeatParseException))
     self.assertTrue(isinstance(exceptions[1], abc_parser.RepeatParseException))
+    self.assertTrue(isinstance(exceptions[2], abc_parser.RepeatParseException))
     expected_ns1 = common_testing_lib.parse_test_proto(
         music_pb2.NoteSequence,
         """
@@ -1009,6 +1017,56 @@ class AbcParserTest(tf.test.TestCase):
     self.assertTrue(isinstance(exceptions[0],
                                abc_parser.ChordException))
 
+  def testChordAnnotations(self):
+    tunes, exceptions = abc_parser.parse_tunebook("""
+        X:1
+        Q:1/4=120
+        L:1/4
+        T:Test
+        "G"G
+        % verify that an empty annotation doesn't cause problems.
+        ""D
+        """)
+    self.assertEqual(1, len(tunes))
+    self.assertEqual(0, len(exceptions))
+    expected_ns1 = common_testing_lib.parse_test_proto(
+        music_pb2.NoteSequence,
+        """
+        ticks_per_quarter: 220
+        source_info: {
+          source_type: SCORE_BASED
+          encoding_type: ABC
+          parser: MAGENTA_ABC
+        }
+        reference_number: 1
+        sequence_metadata {
+          title: "Test"
+        }
+        tempos {
+          qpm: 120
+        }
+        notes {
+          pitch: 67
+          velocity: 90
+          end_time: 0.5
+        }
+        notes {
+          pitch: 62
+          velocity: 90
+          start_time: 0.5
+          end_time: 1.0
+        }
+        text_annotations {
+          text: "G"
+          annotation_type: CHORD_SYMBOL
+        }
+        text_annotations {
+          time: 0.5
+        }
+        total_time: 1.0
+        """)
+    self.assertProtoEquals(expected_ns1, tunes[1])
+
   def testNoteAccidentalsPerBar(self):
     tunes, exceptions = abc_parser.parse_tunebook("""
         X:1
@@ -1080,6 +1138,73 @@ class AbcParserTest(tf.test.TestCase):
         total_time: 3.5
         """)
     self.assertProtoEquals(expected_ns1, tunes[1])
+
+  def testDecorations(self):
+    tunes, exceptions = abc_parser.parse_tunebook("""
+        X:1
+        Q:1/4=120
+        L:1/4
+        T:Test
+        .a~bHcLdMeOfPgSATbucvd
+        """)
+    self.assertEqual(1, len(tunes))
+    self.assertEqual(0, len(exceptions))
+    self.assertEqual(11, len(tunes[1].notes))
+
+  def testSlur(self):
+    tunes, exceptions = abc_parser.parse_tunebook("""
+        X:1
+        Q:1/4=120
+        L:1/4
+        T:Test
+        (ABC) ( a b c ) (c (d e f) g a)
+        """)
+    self.assertEqual(1, len(tunes))
+    self.assertEqual(0, len(exceptions))
+    self.assertEqual(12, len(tunes[1].notes))
+
+  def testTie(self):
+    tunes, exceptions = abc_parser.parse_tunebook("""
+        X:1
+        Q:1/4=120
+        L:1/4
+        T:Test
+        abc-|cba c4-c4 C.-C
+        """)
+    self.assertEqual(1, len(tunes))
+    self.assertEqual(0, len(exceptions))
+    self.assertEqual(10, len(tunes[1].notes))
+
+  def testTuplet(self):
+    tunes, exceptions = abc_parser.parse_tunebook("""
+        X:1
+        Q:1/4=120
+        L:1/4
+        T:Test
+        (3abc
+        """)
+    self.assertEqual(0, len(tunes))
+    self.assertEqual(1, len(exceptions))
+    self.assertTrue(isinstance(exceptions[0], abc_parser.TupletException))
+
+  def testLineContinuation(self):
+    tunes, exceptions = abc_parser.parse_tunebook(r"""
+        X:1
+        Q:1/4=120
+        L:1/4
+        T:Test
+        abc \
+        cba|
+        abc\
+         cba|
+        abc cba|
+        cdef|\
+        \
+        cedf:|
+        """)
+    self.assertEqual(1, len(tunes))
+    self.assertEqual(0, len(exceptions))
+    self.assertEqual(26, len(tunes[1].notes))
 
 if __name__ == '__main__':
   tf.test.main()
