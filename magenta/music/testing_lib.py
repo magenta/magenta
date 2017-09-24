@@ -91,8 +91,11 @@ def add_quantized_control_steps_to_sequence(sequence, quantized_steps):
 class TrivialOneHotEncoding(encoder_decoder.OneHotEncoding):
   """One-hot encoding that uses the identity encoding."""
 
-  def __init__(self, num_classes):
+  def __init__(self, num_classes, num_steps=None):
+    if num_steps is not None and len(num_steps) != num_classes:
+      raise ValueError('num_steps must have length num_classes')
     self._num_classes = num_classes
+    self._num_steps = num_steps
 
   @property
   def num_classes(self):
@@ -107,3 +110,9 @@ class TrivialOneHotEncoding(encoder_decoder.OneHotEncoding):
 
   def decode_event(self, event):
     return event
+
+  def event_to_num_steps(self, event):
+    if self._num_steps is not None:
+      return self._num_steps[event]
+    else:
+      return 1

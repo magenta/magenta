@@ -110,6 +110,21 @@ class OneHotEncoding(object):
     """
     pass
 
+  def event_to_num_steps(self, unused_event):
+    """Returns the number of time steps corresponding to an event value.
+
+    This is used for normalization when computing metrics. Subclasses with
+    variable step size should override this method.
+
+    Args:
+      unused_event: An event value for which to return the number of steps.
+
+    Returns:
+      The number of steps corresponding to the given event value, defaulting to
+      one.
+    """
+    return 1
+
 
 class EventSequenceEncoderDecoder(object):
   """An abstract class for translating between events and model data.
@@ -208,6 +223,22 @@ class EventSequenceEncoderDecoder(object):
       An event value.
     """
     pass
+
+  def labels_to_num_steps(self, labels):
+    """Returns the total number of time steps for a sequence of class labels.
+
+    This is used for normalization when computing metrics. Subclasses with
+    variable step size should override this method.
+
+    Args:
+      labels: A list-like sequence of integers in the range
+          [0, self.num_classes).
+
+    Returns:
+      The total number of time steps for the label sequence, defaulting to one
+      per event.
+    """
+    return len(labels)
 
   def encode(self, events):
     """Returns a SequenceExample for the given event sequence.
@@ -384,6 +415,23 @@ class OneHotEventSequenceEncoderDecoder(EventSequenceEncoderDecoder):
     """
     return self._one_hot_encoding.decode_event(class_index)
 
+  def labels_to_num_steps(self, labels):
+    """Returns the total number of time steps for a sequence of class labels.
+
+    Args:
+      labels: A list-like sequence of integers in the range
+          [0, self.num_classes).
+
+    Returns:
+      The total number of time steps for the label sequence, as determined by
+      the one-hot encoding.
+    """
+    events = []
+    for label in labels:
+      events.append(self.class_index_to_event(label, events))
+    return sum(self._one_hot_encoding.event_to_num_steps(event)
+               for event in events)
+
 
 class LookbackEventSequenceEncoderDecoder(EventSequenceEncoderDecoder):
   """An EventSequenceEncoderDecoder that encodes repeated events and meter."""
@@ -556,6 +604,30 @@ class LookbackEventSequenceEncoderDecoder(EventSequenceEncoderDecoder):
     # Return the event for that class index.
     return self._one_hot_encoding.decode_event(class_index)
 
+  def labels_to_num_steps(self, labels):
+    """Returns the total number of time steps for a sequence of class labels.
+
+    This method assumes the event sequence begins with the event corresponding
+    to the first label, which is inconsistent with the `encode` method in
+    EventSequenceEncoderDecoder that uses the second event as the first label.
+    Therefore, if the label sequence includes a lookback to the very first event
+    and that event is a different number of time steps than the default event,
+    this method will give an incorrect answer.
+
+    Args:
+      labels: A list-like sequence of integers in the range
+          [0, self.num_classes).
+
+    Returns:
+      The total number of time steps for the label sequence, as determined by
+      the one-hot encoding.
+    """
+    events = []
+    for label in labels:
+      events.append(self.class_index_to_event(label, events))
+    return sum(self._one_hot_encoding.event_to_num_steps(event)
+               for event in events)
+
 
 class ConditionalEventSequenceEncoderDecoder(object):
   """An encoder/decoder for conditional event sequences.
@@ -669,6 +741,19 @@ class ConditionalEventSequenceEncoderDecoder(object):
     """
     return self._target_encoder_decoder.class_index_to_event(
         class_index, target_events)
+
+  def labels_to_num_steps(self, labels):
+    """Returns the total number of time steps for a sequence of class labels.
+
+    Args:
+      labels: A list-like sequence of integers in the range
+          [0, self.num_classes).
+
+    Returns:
+      The total number of time steps for the label sequence, as determined by
+      the target encoder/decoder.
+    """
+    return self._target_encoder_decoder.labels_to_num_steps(labels)
 
   def encode(self, control_events, target_events):
     """Returns a SequenceExample for the given event sequence pair.

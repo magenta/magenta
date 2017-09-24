@@ -72,3 +72,9 @@ class PolyphonyOneHotEncoding(encoder_decoder.OneHotEncoding):
           event_type=event_type, pitch=pitch)
 
     raise ValueError('Unknown event index: %s' % index)
+
+  def event_to_num_steps(self, event):
+    if event.event_type == PolyphonicEvent.STEP_END:
+      return 1
+    else:
+      return 0

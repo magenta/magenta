@@ -75,6 +75,12 @@ class PerformanceOneHotEncoding(encoder_decoder.OneHotEncoding):
 
     raise ValueError('Unknown event index: %s' % index)
 
+  def event_to_num_steps(self, event):
+    if event.event_type == PerformanceEvent.TIME_SHIFT:
+      return event.event_value
+    else:
+      return 0
+
 
 class NoteDensityOneHotEncoding(encoder_decoder.OneHotEncoding):
   """One-hot encoding for performance note density events.

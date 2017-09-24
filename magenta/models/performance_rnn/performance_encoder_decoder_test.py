@@ -61,6 +61,24 @@ class PerformanceOneHotEncodingTest(tf.test.TestCase):
       event = self.enc.decode_event(expected_index)
       self.assertEqual(expected_event, event)
 
+  def testEventToNumSteps(self):
+    self.assertEqual(0, self.enc.event_to_num_steps(
+        PerformanceEvent(event_type=PerformanceEvent.NOTE_ON, event_value=60)))
+    self.assertEqual(0, self.enc.event_to_num_steps(
+        PerformanceEvent(event_type=PerformanceEvent.NOTE_OFF, event_value=67)))
+    self.assertEqual(0, self.enc.event_to_num_steps(
+        PerformanceEvent(event_type=PerformanceEvent.VELOCITY, event_value=10)))
+
+    self.assertEqual(1, self.enc.event_to_num_steps(
+        PerformanceEvent(
+            event_type=PerformanceEvent.TIME_SHIFT, event_value=1)))
+    self.assertEqual(45, self.enc.event_to_num_steps(
+        PerformanceEvent(
+            event_type=PerformanceEvent.TIME_SHIFT, event_value=45)))
+    self.assertEqual(100, self.enc.event_to_num_steps(
+        PerformanceEvent(
+            event_type=PerformanceEvent.TIME_SHIFT, event_value=100)))
+
 
 class NoteDensityOneHotEncodingTest(tf.test.TestCase):
 
