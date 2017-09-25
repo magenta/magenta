@@ -327,5 +327,9 @@ def sequence_proto_to_midi_file(sequence, output_file,
   pretty_midi_object = sequence_proto_to_pretty_midi(
       sequence, drop_events_n_seconds_after_last_note)
   with tempfile.NamedTemporaryFile() as temp_file:
-    pretty_midi_object.write(temp_file.name)
+    pretty_midi_object.write(temp_file)
+    # Before copying the file, flush any contents
+    temp_file.flush()
+    # And back the file position to top (not need for Copy but for certainty)
+    temp_file.seek(0)
     tf.gfile.Copy(temp_file.name, output_file, overwrite=True)
