@@ -20,6 +20,6 @@ filegroup(
     name = "evaluation_images",
     srcs = glob(["*.jpg"]),
     visibility = [
-        "//learning/brain/research/image_stylization:__subpackages__",
+        "//magenta/models/image_stylization:__subpackages__",
     ],
 )
