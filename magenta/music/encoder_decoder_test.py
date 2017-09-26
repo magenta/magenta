@@ -30,7 +30,7 @@ class OneHotEventSequenceEncoderDecoderTest(tf.test.TestCase):
 
   def setUp(self):
     self.enc = encoder_decoder.OneHotEventSequenceEncoderDecoder(
-        testing_lib.TrivialOneHotEncoding(3))
+        testing_lib.TrivialOneHotEncoding(3, num_steps=range(3)))
 
   def testInputSize(self):
     self.assertEquals(3, self.enc.input_size)
@@ -59,6 +59,10 @@ class OneHotEventSequenceEncoderDecoderTest(tf.test.TestCase):
     self.assertEqual(0, self.enc.class_index_to_event(0, events))
     self.assertEqual(1, self.enc.class_index_to_event(1, events))
     self.assertEqual(2, self.enc.class_index_to_event(2, events))
+
+  def testLabelsToNumSteps(self):
+    labels = [0, 1, 0, 2, 0]
+    self.assertEqual(3, self.enc.labels_to_num_steps(labels))
 
   def testEncode(self):
     events = [0, 1, 0, 2, 0]
@@ -118,7 +122,7 @@ class LookbackEventSequenceEncoderDecoderTest(tf.test.TestCase):
 
   def setUp(self):
     self.enc = encoder_decoder.LookbackEventSequenceEncoderDecoder(
-        testing_lib.TrivialOneHotEncoding(3), [1, 2], 2)
+        testing_lib.TrivialOneHotEncoding(3, num_steps=range(3)), [1, 2], 2)
 
   def testInputSize(self):
     self.assertEqual(13, self.enc.input_size)
@@ -179,6 +183,13 @@ class LookbackEventSequenceEncoderDecoderTest(tf.test.TestCase):
     self.assertEqual(2, self.enc.class_index_to_event(2, events[:5]))
     self.assertEqual(0, self.enc.class_index_to_event(3, events[:5]))
     self.assertEqual(2, self.enc.class_index_to_event(4, events[:5]))
+
+  def testLabelsToNumSteps(self):
+    labels = [0, 1, 0, 2, 0]
+    self.assertEqual(3, self.enc.labels_to_num_steps(labels))
+
+    labels = [0, 1, 3, 2, 4]
+    self.assertEqual(5, self.enc.labels_to_num_steps(labels))
 
   def testEmptyLookback(self):
     enc = encoder_decoder.LookbackEventSequenceEncoderDecoder(
