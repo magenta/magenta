@@ -178,7 +178,7 @@ class MidiIoTest(tf.test.TestCase):
     # write. If that is implemented, this rewrite code should be
     # modified or deleted.
 
-    # When writing to the temp file, use the file object itself instead of 
+    # When writing to the temp file, use the file object itself instead of
     # file.name to avoid the permission error on Windows.
     with tempfile.NamedTemporaryFile(prefix='MidiIoTest') as rewrite_file:
       original_midi = pretty_midi.PrettyMIDI(filename)
