@@ -177,18 +177,22 @@ class MidiIoTest(tf.test.TestCase):
     # this sanitization be available outside of the context of a file
     # write. If that is implemented, this rewrite code should be
     # modified or deleted.
+
+    # When writing to the temp file, use the file object itself instead of
+    # file.name to avoid the permission error on Windows.
     with tempfile.NamedTemporaryFile(prefix='MidiIoTest') as rewrite_file:
       original_midi = pretty_midi.PrettyMIDI(filename)
-      original_midi.write(rewrite_file.name)
-      source_midi = pretty_midi.PrettyMIDI(rewrite_file.name)
+      original_midi.write(rewrite_file)  # Use file object
+      # Back the file position to top to reload the rewrite_file
+      rewrite_file.seek(0)
+      source_midi = pretty_midi.PrettyMIDI(rewrite_file)  # Use file object
       sequence_proto = midi_io.midi_to_sequence_proto(source_midi)
 
     # Translate the NoteSequence to MIDI and write to a file.
     with tempfile.NamedTemporaryFile(prefix='MidiIoTest') as temp_file:
       midi_io.sequence_proto_to_midi_file(sequence_proto, temp_file.name)
-
       # Read it back in and compare to source.
-      created_midi = pretty_midi.PrettyMIDI(temp_file.name)
+      created_midi = pretty_midi.PrettyMIDI(temp_file)  # Use file object
 
     self.CheckPrettyMidiAndSequence(created_midi, sequence_proto)
 
@@ -327,7 +331,9 @@ class MidiIoTest(tf.test.TestCase):
     with tempfile.NamedTemporaryFile(prefix='MidiDrumTest') as temp_file:
       midi_io.sequence_proto_to_midi_file(sequence_proto, temp_file.name)
       midi_data1 = mido.MidiFile(filename=self.midi_is_drum_filename)
-      midi_data2 = mido.MidiFile(filename=temp_file.name)
+      # Use the file object when writing to the tempfile
+      # to avoid permission error.
+      midi_data2 = mido.MidiFile(file=temp_file)
 
     # Count number of channel 9 Note Ons.
     channel_counts = [0, 0]
