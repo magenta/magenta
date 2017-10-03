@@ -186,9 +186,8 @@ def build_graph(mode, config, sequence_example_file_paths=None):
                 'metrics/no_event_accuracy': tf.metrics.recall(
                     no_event_positions, correct_predictions),
                 'metrics/loss_per_step': tf.metrics.mean(
-                    softmax_cross_entropy,
-                    weights=num_steps / tf.cast(tf.size(softmax_cross_entropy),
-                                                tf.float32)),
+                    tf.reduce_sum(softmax_cross_entropy) / num_steps,
+                    weights=num_steps),
             })
         for updates_op in update_ops.values():
           tf.add_to_collection('eval_ops', updates_op)
