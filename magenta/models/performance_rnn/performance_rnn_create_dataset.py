@@ -160,11 +160,19 @@ def get_pipeline(config, min_events, max_events, eval_ratio):
     encoder_pipeline = EncoderPipeline(config, name='EncoderPipeline_' + mode)
 
     dag[sustain_pipeline] = partitioner[mode + '_performances']
-    dag[stretch_pipeline] = sustain_pipeline
-    dag[splitter] = stretch_pipeline
+    if mode == 'eval':
+      # No stretching in eval.
+      dag[splitter] = sustain_pipeline
+    else:
+      dag[stretch_pipeline] = sustain_pipeline
+      dag[splitter] = stretch_pipeline
     dag[quantizer] = splitter
-    dag[transposition_pipeline] = quantizer
-    dag[perf_extractor] = transposition_pipeline
+    if mode == 'eval':
+      # No transposition in eval.
+      dag[perf_extractor] = quantizer
+    else:
+      dag[transposition_pipeline] = quantizer
+      dag[perf_extractor] = transposition_pipeline
     dag[encoder_pipeline] = perf_extractor
     dag[dag_pipeline.DagOutput(mode + '_performances')] = encoder_pipeline
 
