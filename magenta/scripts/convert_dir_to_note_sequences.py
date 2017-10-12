@@ -52,7 +52,7 @@ tf.app.flags.DEFINE_string('log', 'INFO',
                            'DEBUG, INFO, WARN, ERROR, or FATAL.')
 
 
-def queue_conversions(root_dir, sub_dir, writer, recursive=False):
+def convert_files(root_dir, sub_dir, writer, recursive=False):
   """Converts files
 
   Args:
@@ -99,7 +99,7 @@ def queue_conversions(root_dir, sub_dir, writer, recursive=False):
             'Unable to find a converter for file %s', full_file_path)
 
   for recurse_sub_dir in recurse_sub_dirs:
-    queue_conversions(root_dir, recurse_sub_dir, writer, recursive)
+    convert_files(root_dir, recurse_sub_dir, writer, recursive)
 
 
 def convert_midi(root_dir, sub_dir, full_file_path):
@@ -174,7 +174,7 @@ def convert_directory(root_dir, output_file, num_threads,
         contained in subdirectories of the specified directory.
   """
   with note_sequence_io.NoteSequenceRecordWriter(output_file) as writer:
-    queue_conversions(root_dir, '', writer, recursive)
+    convert_files(root_dir, '', writer, recursive)
 
 
 def main(unused_argv):
