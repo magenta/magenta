@@ -158,10 +158,54 @@ class PipelineUnitsCommonTest(tf.test.TestCase):
         is_drum=True)
     transposed = tp.transform(note_sequence)
     self.assertEqual(2, len(transposed))
+    self.assertEqual(2, len(transposed[0].notes))
+    self.assertEqual(2, len(transposed[1].notes))
     self.assertEqual(12, transposed[0].notes[0].pitch)
     self.assertEqual(13, transposed[1].notes[0].pitch)
     self.assertEqual(36, transposed[0].notes[1].pitch)
     self.assertEqual(36, transposed[1].notes[1].pitch)
+
+  def testTranspositionPipelineOutOfRangeNotes(self):
+    note_sequence = common_testing_lib.parse_test_proto(
+        music_pb2.NoteSequence,
+        """
+        time_signatures: {
+          numerator: 4
+          denominator: 4}
+        tempos: {
+          qpm: 60}""")
+    tp = note_sequence_pipelines.TranspositionPipeline(
+        range(0, 2), min_pitch=0, max_pitch=12)
+    testing_lib.add_track_to_sequence(
+        note_sequence, 0,
+        [(10, 100, 1.0, 2.0), (12, 100, 2.0, 4.0)])
+    transposed = tp.transform(note_sequence)
+    self.assertEqual(1, len(transposed))
+    self.assertEqual(2, len(transposed[0].notes))
+    self.assertEqual(10, transposed[0].notes[0].pitch)
+    self.assertEqual(12, transposed[0].notes[1].pitch)
+
+  def testTranspositionPipelineIgnoreOutOfRangeNotes(self):
+    note_sequence = common_testing_lib.parse_test_proto(
+        music_pb2.NoteSequence,
+        """
+        time_signatures: {
+          numerator: 4
+          denominator: 4}
+        tempos: {
+          qpm: 60}""")
+    tp = note_sequence_pipelines.TranspositionPipeline(
+        range(0, 2), ignore_out_of_range_notes=True, min_pitch=0, max_pitch=12)
+    testing_lib.add_track_to_sequence(
+        note_sequence, 0,
+        [(10, 100, 1.0, 2.0), (12, 100, 2.0, 4.0)])
+    transposed = tp.transform(note_sequence)
+    self.assertEqual(2, len(transposed))
+    self.assertEqual(2, len(transposed[0].notes))
+    self.assertEqual(1, len(transposed[1].notes))
+    self.assertEqual(10, transposed[0].notes[0].pitch)
+    self.assertEqual(11, transposed[1].notes[0].pitch)
+    self.assertEqual(12, transposed[0].notes[1].pitch)
 
 
 if __name__ == '__main__':
