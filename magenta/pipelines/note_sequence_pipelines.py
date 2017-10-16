@@ -150,19 +150,32 @@ class StretchPipeline(NoteSequencePipeline):
 class TranspositionPipeline(NoteSequencePipeline):
   """Creates transposed versions of the input NoteSequence."""
 
-  def __init__(self, transposition_range, name=None):
+  def __init__(self, transposition_range, ignore_out_of_range_notes=False,
+               min_pitch=constants.MIN_MIDI_PITCH,
+               max_pitch=constants.MAX_MIDI_PITCH, name=None):
     """Creates a TranspositionPipeline.
 
     Args:
       transposition_range: Collection of integer pitch steps to transpose.
+      ignore_out_of_range_notes: If True, transpositions will drop notes with
+          out-of-range pitches. If False, these transpositions will be dropped
+          in their entirety.
+      min_pitch: Integer pitch value below which notes will be considered
+          invalid.
+      max_pitch: Integer pitch value above which notes will be considered
+          invalid.
       name: Pipeline name.
     """
     super(TranspositionPipeline, self).__init__(name=name)
     self._transposition_range = transposition_range
+    self._ignore_out_of_range_notes = ignore_out_of_range_notes
+    self._min_pitch = min_pitch
+    self._max_pitch = max_pitch
 
   def transform(self, sequence):
     stats = dict([(state_name, statistics.Counter(state_name)) for state_name in
                   ['skipped_due_to_range_exceeded',
+                   'notes_dropped_due_to_range_exceeded',
                    'transpositions_generated']])
 
     for text_annotation in sequence.text_annotations:
@@ -183,15 +196,19 @@ class TranspositionPipeline(NoteSequencePipeline):
     self._set_stats(stats.values())
     return transposed
 
-  @staticmethod
-  def _transpose(ns, amount, stats):
+  def _transpose(self, ns, amount, stats):
     """Transposes a note sequence by the specified amount."""
     ts = copy.deepcopy(ns)
-    for note in ts.notes:
+    del ts.notes[:]
+    for note in copy.deepcopy(ns.notes):
       if not note.is_drum:
         note.pitch += amount
-        if (note.pitch < constants.MIN_MIDI_PITCH or
-            note.pitch > constants.MAX_MIDI_PITCH):
-          stats['skipped_due_to_range_exceeded'].increment()
-          return None
+        if note.pitch < self._min_pitch or note.pitch > self._max_pitch:
+          if self._ignore_out_of_range_notes:
+            stats['notes_dropped_due_to_range_exceeded'].increment()
+            continue
+          else:
+            stats['skipped_due_to_range_exceeded'].increment()
+            return None
+      ts.notes.extend([note])
     return ts
