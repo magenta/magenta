@@ -185,12 +185,9 @@ class TranspositionPipeline(NoteSequencePipeline):
 
     transposed = []
     for amount in self._transposition_range:
-      if amount == 0:
-        transposed.append(sequence)
-      else:
-        ts = self._transpose(sequence, amount, stats)
-        if ts is not None:
-          transposed.append(ts)
+      ts = self._transpose(sequence, amount, stats)
+      if ts is not None:
+        transposed.append(ts)
 
     stats['transpositions_generated'].increment(len(transposed))
     self._set_stats(stats.values())
