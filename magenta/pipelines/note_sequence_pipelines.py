@@ -185,6 +185,8 @@ class TranspositionPipeline(NoteSequencePipeline):
 
     transposed = []
     for amount in self._transposition_range:
+      # Note that transpose is called even with a transpose amount of zero, to
+      # ensure that out-of-range pitches are handled correctly.
       ts = self._transpose(sequence, amount, stats)
       if ts is not None:
         transposed.append(ts)
