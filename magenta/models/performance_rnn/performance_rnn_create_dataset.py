@@ -146,13 +146,15 @@ def get_pipeline(config, min_events, max_events, eval_ratio):
     sustain_pipeline = note_sequence_pipelines.SustainPipeline(
         name='SustainPipeline_' + mode)
     stretch_pipeline = note_sequence_pipelines.StretchPipeline(
-        stretch_factors, name='StretchPipeline_' + mode)
+        stretch_factors if mode == 'training' else [1.0],
+        name='StretchPipeline_' + mode)
     splitter = note_sequence_pipelines.Splitter(
         hop_size_seconds=30.0, name='Splitter_' + mode)
     quantizer = note_sequence_pipelines.Quantizer(
         steps_per_second=config.steps_per_second, name='Quantizer_' + mode)
     transposition_pipeline = note_sequence_pipelines.TranspositionPipeline(
-        transposition_range, name='TranspositionPipeline_' + mode)
+        transposition_range if mode == 'training' else [0],
+        name='TranspositionPipeline_' + mode)
     perf_extractor = PerformanceExtractor(
         min_events=min_events, max_events=max_events,
         num_velocity_bins=config.num_velocity_bins,
@@ -160,19 +162,11 @@ def get_pipeline(config, min_events, max_events, eval_ratio):
     encoder_pipeline = EncoderPipeline(config, name='EncoderPipeline_' + mode)
 
     dag[sustain_pipeline] = partitioner[mode + '_performances']
-    if mode == 'eval':
-      # No stretching in eval.
-      dag[splitter] = sustain_pipeline
-    else:
-      dag[stretch_pipeline] = sustain_pipeline
-      dag[splitter] = stretch_pipeline
+    dag[stretch_pipeline] = sustain_pipeline
+    dag[splitter] = stretch_pipeline
     dag[quantizer] = splitter
-    if mode == 'eval':
-      # No transposition in eval.
-      dag[perf_extractor] = quantizer
-    else:
-      dag[transposition_pipeline] = quantizer
-      dag[perf_extractor] = transposition_pipeline
+    dag[transposition_pipeline] = quantizer
+    dag[perf_extractor] = transposition_pipeline
     dag[encoder_pipeline] = perf_extractor
     dag[dag_pipeline.DagOutput(mode + '_performances')] = encoder_pipeline
 
