@@ -543,18 +543,22 @@ def steps_per_bar_in_quantized_sequence(note_sequence):
 
 def split_note_sequence(note_sequence, hop_size_seconds,
                         skip_splits_inside_notes=False):
-  """Split one NoteSequence into many using a fixed hop size.
+  """Split one NoteSequence into many at specified time intervals.
 
-  This function splits a NoteSequence into multiple NoteSequences, all of fixed
-  size (unless `split_notes` is False, in which case splits that would have
-  truncated notes will be skipped; i.e. each split will either happen at a
-  multiple of `hop_size_seconds` or not at all). Each of the resulting
-  NoteSequences is shifted to start at time zero.
+  If `hop_size_seconds` is a scalar, this function splits a NoteSequence into
+  multiple NoteSequences, all of fixed size (unless `split_notes` is False, in
+  which case splits that would have truncated notes will be skipped; i.e. each
+  split will either happen at a multiple of `hop_size_seconds` or not at all).
+  Each of the resulting NoteSequences is shifted to start at time zero.
+
+  If `hop_size_seconds` is a list, the NoteSequence will be split at each time
+  in the list (unless `split_notes` is False as above).
 
   Args:
     note_sequence: The NoteSequence to split.
     hop_size_seconds: The hop size, in seconds, at which the NoteSequence will
-        be split.
+        be split. Alternatively, this can be a Python list of times in seconds
+        at which to split the NoteSequence.
     skip_splits_inside_notes: If False, the NoteSequence will be split at all
         hop positions, regardless of whether or not any notes are sustained
         across the potential split time, thus sustained notes will be truncated.
@@ -573,8 +577,13 @@ def split_note_sequence(note_sequence, hop_size_seconds,
 
   subsequences = []
 
-  for split_time in np.arange(
-      hop_size_seconds, note_sequence.total_time, hop_size_seconds):
+  if isinstance(hop_size_seconds, list):
+    split_times = sorted(hop_size_seconds)
+  else:
+    split_times = np.arange(
+        hop_size_seconds, note_sequence.total_time, hop_size_seconds)
+
+  for split_time in split_times:
     # Update notes crossing potential split.
     while (note_idx < len(notes_by_start_time) and
            notes_by_start_time[note_idx].start_time < split_time):
