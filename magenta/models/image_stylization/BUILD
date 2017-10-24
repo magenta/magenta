@@ -98,6 +98,18 @@ py_binary(
     ],
 )
 
+py_binary(
+    name = "image_stylization_saved_model",
+    srcs = ["image_stylization_saved_model.py"],
+    visibility = [
+        "//magenta/tools/pip:__subpackages__",
+    ],
+    deps = [
+        ":model",
+        ":ops",
+    ],
+)
+
 py_library(
     name = "image_utils",
     srcs = ["image_utils.py"],
