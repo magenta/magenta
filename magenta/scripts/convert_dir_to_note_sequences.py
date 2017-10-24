@@ -29,7 +29,6 @@ import os
 import sys
 
 # internal imports
-from concurrent import futures
 import tensorflow as tf
 
 from magenta.music import midi_io

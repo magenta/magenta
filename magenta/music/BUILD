@@ -27,6 +27,7 @@ py_library(
     srcs = ["__init__.py"],
     srcs_version = "PY2AND3",
     deps = [
+        ":audio_io",
         ":chords_encoder_decoder",
         ":chords_lib",
         ":constants",
@@ -48,6 +49,29 @@ py_library(
         ":sequence_generator_bundle",
         ":sequences_lib",
         ":testing_lib",
+    ],
+)
+
+py_library(
+    name = "audio_io",
+    srcs = ["audio_io.py"],
+    srcs_version = "PY2AND3",
+    deps = [
+        "//magenta/protobuf:music_py_pb2"
+    ],
+)
+
+py_test(
+    name = "audio_io_test",
+    srcs = ["audio_io_test.py"],
+    srcs_version = "PY2AND3",
+    deps = [
+        ":audio_io",
+        "//magenta/protobuf:music_py_pb2"
+    ],
+    data = [
+        "testdata/example.wav",
+        "testdata/example_mono.wav",
     ],
 )
 
