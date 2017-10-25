@@ -11,29 +11,26 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Tests for audio_io.py"""
+"""Tests for audio_io.py."""
 
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
 import os
-import tempfile
-import tensorflow as tf
-import scipy
 import wave
+import tensorflow as tf
 
 from magenta.music import audio_io
-from magenta.protobuf import music_pb2
-
-import tensorflow as tf
 
 
 class AudioIoTest(tf.test.TestCase):
 
   def setUp(self):
-    self.wav_filename = os.path.join(tf.resource_loader.get_data_files_path(), 'testdata/example.wav')
-    self.wav_filename_mono = os.path.join(tf.resource_loader.get_data_files_path(), 'testdata/example_mono.wav')
+    self.wav_filename = os.path.join(tf.resource_loader.get_data_files_path(),
+                                     'testdata/example.wav')
+    self.wav_filename_mono = os.path.join(
+        tf.resource_loader.get_data_files_path(), 'testdata/example_mono.wav')
     self.wav_data = open(self.wav_filename).read()
     self.wav_data_mono = open(self.wav_filename_mono).read()
 

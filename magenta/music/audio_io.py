@@ -18,12 +18,10 @@ from __future__ import division
 from __future__ import print_function
 
 import cStringIO
-
 import librosa
 import numpy as np
 import scipy
 
-from magenta.protobuf import music_pb2
 
 class AudioIOException(BaseException):
   pass
@@ -89,7 +87,7 @@ def wav_data_to_samples(wav_data, sample_rate):
       y = librosa.to_mono(y)
     if native_sr != sample_rate:
       y = librosa.resample(y, native_sr, sample_rate)
-  except Exception, e:  # pylint: disable=broad-except
+  except Exception as e:  # pylint: disable=broad-except
     raise AudioIOException(e)
   return y
 

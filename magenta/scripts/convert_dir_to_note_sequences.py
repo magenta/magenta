@@ -26,7 +26,6 @@ Example usage:
 """
 
 import os
-import sys
 
 # internal imports
 import tensorflow as tf
@@ -52,7 +51,7 @@ tf.app.flags.DEFINE_string('log', 'INFO',
 
 
 def convert_files(root_dir, sub_dir, writer, recursive=False):
-  """Converts files
+  """Converts files.
 
   Args:
     root_dir: A string specifying a root directory.
@@ -156,8 +155,7 @@ def convert_musicxml(root_dir, sub_dir, full_file_path):
   return sequence
 
 
-def convert_directory(root_dir, output_file, num_threads,
-                      recursive=False):
+def convert_directory(root_dir, output_file, recursive=False):
   """Converts files to NoteSequences and writes to `output_file`.
 
   Input files found in `root_dir` are converted to NoteSequence protos with the
@@ -193,7 +191,7 @@ def main(unused_argv):
   if output_dir:
     tf.gfile.MakeDirs(output_dir)
 
-  convert_directory(input_dir, output_file, FLAGS.num_threads, FLAGS.recursive)
+  convert_directory(input_dir, output_file, FLAGS.recursive)
 
 
 def console_entry_point():
