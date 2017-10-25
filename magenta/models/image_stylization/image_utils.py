@@ -110,7 +110,7 @@ def imagenet_inputs(batch_size, image_size, num_readers=1,
       # Parse a serialized Example proto to extract the image and metadata.
       image_buffer, label_index, _, _ = _parse_example_proto(
           example_serialized)
-      image = _decode_jpeg(image_buffer)
+      image = tf.image.decode_jpeg(image_buffer, channels=3)
 
       # pylint: disable=protected-access
       image = _aspect_preserving_resize(image, image_size + 2)
@@ -490,30 +490,6 @@ def _aspect_preserving_resize(image, smallest_side):
   resized_image = tf.squeeze(resized_image)
   resized_image.set_shape([None, None, 3])
   return resized_image
-
-
-def _decode_jpeg(image_buffer, scope=None):
-  """Decode a JPEG string into one 3-D float image Tensor.
-
-  Args:
-    image_buffer: scalar string Tensor.
-    scope: Optional scope for op_scope.
-
-  Returns:
-    3-D float Tensor with values ranging from [0, 1).
-  """
-  with tf.name_scope(scope, 'decode_jpeg', [image_buffer]):
-    # Decode the string as an RGB JPEG.
-    # Note that the resulting image contains an unknown height and width
-    # that is set dynamically by decode_jpeg. In other words, the height
-    # and width of image is unknown at compile-time.
-    image = tf.image.decode_jpeg(image_buffer, channels=3)
-
-    # After this point, all image pixels reside in [0,1)
-    # until the very end, when they're rescaled to (-1, 1).  The various
-    # adjust_* ops all require this range for dtype float.
-    image = tf.image.convert_image_dtype(image, dtype=tf.float32)
-    return image
 
 
 def _parse_example_proto(example_serialized):
