@@ -57,7 +57,8 @@ py_library(
     srcs = ["audio_io.py"],
     srcs_version = "PY2AND3",
     deps = [
-        "//magenta/protobuf:music_py_pb2"
+        "//magenta/protobuf:music_py_pb2",
+        # librosa dep
     ],
 )
 
@@ -67,7 +68,8 @@ py_test(
     srcs_version = "PY2AND3",
     deps = [
         ":audio_io",
-        "//magenta/protobuf:music_py_pb2"
+        "//magenta/protobuf:music_py_pb2",
+        # librosa dep
     ],
     data = [
         "testdata/example.wav",
