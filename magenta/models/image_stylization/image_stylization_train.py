@@ -31,12 +31,12 @@ from magenta.models.image_stylization import vgg
 slim = tf.contrib.slim
 
 DEFAULT_CONTENT_WEIGHTS = '{"vgg_16/conv3": 1.0}'
-DEFAULT_STYLE_WEIGHTS = ('{"vgg_16/conv1": 0.5e-4, "vgg_16/conv2": 0.5e-4,'
-                         ' "vgg_16/conv3": 0.5e-4, "vgg_16/conv4": 0.5e-4}')
+DEFAULT_STYLE_WEIGHTS = ('{"vgg_16/conv1": 1e-4, "vgg_16/conv2": 1e-4,'
+                         ' "vgg_16/conv3": 1e-4, "vgg_16/conv4": 1e-4}')
 
 flags = tf.app.flags
 flags.DEFINE_float('clip_gradient_norm', 0, 'Clip gradients to this norm')
-flags.DEFINE_float('learning_rate', 1e-3, 'Learning rate')
+flags.DEFINE_float('learning_rate', 1e-4, 'Learning rate')
 flags.DEFINE_integer('batch_size', 16, 'Batch size.')
 flags.DEFINE_integer('image_size', 256, 'Image size.')
 flags.DEFINE_integer('ps_tasks', 0,
@@ -77,12 +77,12 @@ def main(unused_argv=None):
       # Load style images and select one at random (for each graph execution, a
       # new random selection occurs)
       [style_inputs, style_labels,
-          style_gram_matrices] = image_utils.style_image_inputs(
-            os.path.expanduser(FLAGS.style_dataset_file),
-            batch_size=FLAGS.batch_size,
-            image_size=FLAGS.image_size,
-            square_crop=True,
-            shuffle=True)
+       style_gram_matrices] = image_utils.style_image_inputs(
+           os.path.expanduser(FLAGS.style_dataset_file),
+           batch_size=FLAGS.batch_size,
+           image_size=FLAGS.image_size,
+           square_crop=True,
+           shuffle=True)
 
     with tf.device(tf.train.replica_device_setter(FLAGS.ps_tasks)):
       # Process style and weight flags
