@@ -166,7 +166,6 @@ def convert_directory(root_dir, output_file, recursive=False):
   Args:
     root_dir: A string specifying a root directory.
     output_file: Path to TFRecord file to write results to.
-    num_threads: The number of threads to use for conversions.
     recursive: A boolean specifying whether or not recursively convert files
         contained in subdirectories of the specified directory.
   """
