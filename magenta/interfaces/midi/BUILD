@@ -47,6 +47,7 @@ py_test(
     srcs_version = "PY2AND3",
     tags = [
         "manual",  # TODO(adarob): Remove manual tag once timeout is fixed. #759
+        "notap",
     ],
     deps = [
         ":midi_hub",
