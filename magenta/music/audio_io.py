@@ -157,7 +157,7 @@ def load_audio(audio_filename, sample_rate):
   """
   try:
     y, unused_sr = librosa.load(audio_filename, sr=sample_rate, mono=True)
-  except Exception, e:  # pylint: disable=broad-except
+  except Exception as e:  # pylint: disable=broad-except
     raise AudioIOReadException(e)
   return y
 
