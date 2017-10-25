@@ -77,7 +77,7 @@ def wav_data_to_samples(wav_data, sample_rate):
   try:
     # Read the wav file, converting sample rate & number of channels.
     native_sr, y = scipy.io.wavfile.read(cStringIO.StringIO(wav_data))
-  except Exception, e:  # pylint: disable=broad-except
+  except Exception as e:  # pylint: disable=broad-except
     raise AudioIOReadException(e)
   if y.dtype != np.int16:
     raise AudioIOException('WAV file not 16-bit PCM, unsupported')

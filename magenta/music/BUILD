@@ -59,6 +59,9 @@ py_library(
     deps = [
         "//magenta/protobuf:music_py_pb2",
         # librosa dep
+        # numpy dep
+        # scipy dep
+        # tensorflow dep
     ],
 )
 
@@ -70,6 +73,9 @@ py_test(
         ":audio_io",
         "//magenta/protobuf:music_py_pb2",
         # librosa dep
+        # numpy dep
+        # scipy dep
+        # tensorflow dep
     ],
     data = [
         "testdata/example.wav",
