@@ -32,6 +32,7 @@ py_library(
         ":sequence_example_lib",
         ":state_util",
         ":testing_lib",
+        ":tf_utils",
     ],
 )
 
@@ -106,5 +107,14 @@ py_library(
     deps = [
         "@protobuf//:protobuf_python",
         # numpy dep
+    ],
+)
+
+py_library(
+    name = "tf_utils",
+    srcs = ["tf_utils.py"],
+    srcs_version = "PY2AND3",
+    deps = [
+        # tensorflow dep
     ],
 )

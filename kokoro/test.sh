@@ -6,7 +6,7 @@ set -e
 set -x
 
 eval "${PIP_COMMAND} install --upgrade tensorflow scipy matplotlib \
-  intervaltree bokeh IPython librosa"
+  intervaltree bokeh IPython librosa mir_eval"
 
 bazel test \
   --keep_going \
