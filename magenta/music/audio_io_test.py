@@ -31,12 +31,12 @@ class AudioIoTest(tf.test.TestCase):
                                      'testdata/example.wav')
     self.wav_filename_mono = os.path.join(
         tf.resource_loader.get_data_files_path(), 'testdata/example_mono.wav')
-    self.wav_data = open(self.wav_filename).read()
-    self.wav_data_mono = open(self.wav_filename_mono).read()
+    self.wav_data = open(self.wav_filename, 'rb').read()
+    self.wav_data_mono = open(self.wav_filename_mono, 'rb').read()
 
   def testWavDataToSamples(self):
-    w = wave.open(self.wav_filename)
-    w_mono = wave.open(self.wav_filename_mono)
+    w = wave.open(self.wav_filename, 'rb')
+    w_mono = wave.open(self.wav_filename_mono, 'rb')
 
     # Check content size.
     y = audio_io.wav_data_to_samples(self.wav_data, sample_rate=16000)
