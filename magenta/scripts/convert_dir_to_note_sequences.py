@@ -26,10 +26,8 @@ Example usage:
 """
 
 import os
-import sys
 
 # internal imports
-from concurrent import futures
 import tensorflow as tf
 
 from magenta.music import midi_io
@@ -53,7 +51,7 @@ tf.app.flags.DEFINE_string('log', 'INFO',
 
 
 def convert_files(root_dir, sub_dir, writer, recursive=False):
-  """Converts files
+  """Converts files.
 
   Args:
     root_dir: A string specifying a root directory.
@@ -157,8 +155,7 @@ def convert_musicxml(root_dir, sub_dir, full_file_path):
   return sequence
 
 
-def convert_directory(root_dir, output_file, num_threads,
-                      recursive=False):
+def convert_directory(root_dir, output_file, recursive=False):
   """Converts files to NoteSequences and writes to `output_file`.
 
   Input files found in `root_dir` are converted to NoteSequence protos with the
@@ -169,7 +166,6 @@ def convert_directory(root_dir, output_file, num_threads,
   Args:
     root_dir: A string specifying a root directory.
     output_file: Path to TFRecord file to write results to.
-    num_threads: The number of threads to use for conversions.
     recursive: A boolean specifying whether or not recursively convert files
         contained in subdirectories of the specified directory.
   """
@@ -194,7 +190,7 @@ def main(unused_argv):
   if output_dir:
     tf.gfile.MakeDirs(output_dir)
 
-  convert_directory(input_dir, output_file, FLAGS.num_threads, FLAGS.recursive)
+  convert_directory(input_dir, output_file, FLAGS.recursive)
 
 
 def console_entry_point():
