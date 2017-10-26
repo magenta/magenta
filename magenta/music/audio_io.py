@@ -74,7 +74,7 @@ def wav_data_to_samples(wav_data, sample_rate):
   """
   try:
     # Read the wav file, converting sample rate & number of channels.
-    native_sr, y = scipy.io.wavfile.read(six.StringIO(wav_data))
+    native_sr, y = scipy.io.wavfile.read(six.BytesIO(wav_data))
   except Exception as e:  # pylint: disable=broad-except
     raise AudioIOReadException(e)
   if y.dtype != np.int16:
@@ -94,7 +94,7 @@ def wav_data_to_samples(wav_data, sample_rate):
 
 def samples_to_wav_data(samples, sample_rate):
   """Converts floating point samples to wav data."""
-  wav_io = six.StringIO()
+  wav_io = six.BytesIO()
   scipy.io.wavfile.write(wav_io, sample_rate, float_samples_to_int16(samples))
   return wav_io.getvalue()
 
