@@ -36,7 +36,7 @@ DEFAULT_STYLE_WEIGHTS = ('{"vgg_16/conv1": 1e-4, "vgg_16/conv2": 1e-4,'
 
 flags = tf.app.flags
 flags.DEFINE_float('clip_gradient_norm', 0, 'Clip gradients to this norm')
-flags.DEFINE_float('learning_rate', 1e-4, 'Learning rate')
+flags.DEFINE_float('learning_rate', 1e-3, 'Learning rate')
 flags.DEFINE_integer('batch_size', 16, 'Batch size.')
 flags.DEFINE_integer('image_size', 256, 'Image size.')
 flags.DEFINE_integer('ps_tasks', 0,
@@ -65,7 +65,6 @@ FLAGS = flags.FLAGS
 
 
 def main(unused_argv=None):
-  tf.logging.set_verbosity(tf.logging.INFO)
   with tf.Graph().as_default():
     # Force all input processing onto CPU in order to reserve the GPU for the
     # forward inference and back-propagation.
@@ -76,13 +75,10 @@ def main(unused_argv=None):
                                               FLAGS.image_size)
       # Load style images and select one at random (for each graph execution, a
       # new random selection occurs)
-      [style_inputs, style_labels,
-       style_gram_matrices] = image_utils.style_image_inputs(
-           os.path.expanduser(FLAGS.style_dataset_file),
-           batch_size=FLAGS.batch_size,
-           image_size=FLAGS.image_size,
-           square_crop=True,
-           shuffle=True)
+      _, style_labels, style_gram_matrices = image_utils.style_image_inputs(
+          os.path.expanduser(FLAGS.style_dataset_file),
+          batch_size=FLAGS.batch_size, image_size=FLAGS.image_size,
+          square_crop=True, shuffle=True)
 
     with tf.device(tf.train.replica_device_setter(FLAGS.ps_tasks)):
       # Process style and weight flags
@@ -118,12 +114,6 @@ def main(unused_argv=None):
           style_weights)
       for key, value in loss_dict.iteritems():
         tf.summary.scalar(key, value)
-
-
-      # Adding Image summaries to the tensorboard.
-      tf.summary.image('image/0_content_images', inputs)
-      tf.summary.image('image/1_style_images', style_inputs)
-      tf.summary.image('image/2_stylized_images', stylized_inputs)
 
       # Set up training
       optimizer = tf.train.AdamOptimizer(FLAGS.learning_rate)
