@@ -94,7 +94,7 @@ def plot_sequence(sequence,
   # These are hard-coded reasonable values, but the user can override them
   # by updating the figure if need be.
   fig = bokeh.plotting.figure(
-      tools='hover,pan,resize,box_zoom,reset,previewsave')
+      tools='hover,pan,box_zoom,reset,previewsave')
   fig.plot_width = 500
   fig.plot_height = 200
   fig.xaxis.axis_label = 'time (sec)'
