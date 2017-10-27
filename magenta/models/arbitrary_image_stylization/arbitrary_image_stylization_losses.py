@@ -58,7 +58,7 @@ def total_loss(content_inputs, style_inputs, stylized_inputs, content_weights,
 
   # Compute the content loss
   with tf.name_scope('content_loss'):
-    total_content_loss, content_loss_dict = learning_utils.content_loss(
+    total_content_loss, content_loss_dict = content_loss(
         content_end_points, stylized_end_points, content_weights)
 
   # Compute the style loss
