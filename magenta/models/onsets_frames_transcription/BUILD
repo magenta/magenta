@@ -128,3 +128,15 @@ py_binary(
         # tensorflow dep
     ],
 )
+
+py_binary(
+    name = "create_dataset",
+    srcs = ["create_dataset.py"],
+    srcs_version = "PY2AND3",
+    visibility = ["//magenta/tools/pip:__subpackages__"],
+    deps = [
+        "//magenta",
+        # tensorflow dep
+        # librosa dep
+    ],
+)
