@@ -27,8 +27,6 @@ import numpy as np
 import tensorflow as tf
 
 from magenta.music import audio_io
-from magenta.music import constants
-from magenta.music import events_lib
 from magenta.music import midi_io
 from magenta.music import sequences_lib
 from magenta.protobuf import music_pb2
@@ -37,8 +35,8 @@ FLAGS = tf.app.flags.FLAGS
 tf.app.flags.DEFINE_string('input_dir', None,
                            'Directory where the un-zipped MAPS files are.')
 tf.app.flags.DEFINE_string('output_dir', './',
-                            'Directory where the two output TFRecord files '
-                            '(train and test) will be placed.')
+                           'Directory where the two output TFRecord files '
+                           '(train and test) will be placed.')
 tf.app.flags.DEFINE_integer('min_length', 5, 'minimum segment length')
 tf.app.flags.DEFINE_integer('max_length', 20, 'maximum segment length')
 
@@ -220,6 +218,7 @@ def find_split_points(note_sequence, samples, sample_rate, min_length,
 
 
 def generate_train_set():
+  """Generate the train TFRecord."""
   train_file_pairs = []
   for directory in train_dirs:
     path = os.path.join(FLAGS.input_dir, directory)
@@ -227,7 +226,7 @@ def generate_train_set():
     wav_files = glob.glob(path)
     # find matching mid files
     for wav_file in wav_files:
-      base_name_root, base_name_ext = os.path.splitext(wav_file)
+      base_name_root, _ = os.path.splitext(wav_file)
       mid_file = base_name_root + '.mid'
       train_file_pairs.append((wav_file, mid_file))
 
@@ -270,6 +269,7 @@ def generate_train_set():
 
 
 def generate_test_set():
+  """Generate the test TFRecord."""
   test_file_pairs = []
   for directory in test_dirs:
     path = os.path.join(FLAGS.input_dir, directory)
@@ -277,7 +277,7 @@ def generate_test_set():
     wav_files = glob.glob(path)
     # find matching mid files
     for wav_file in wav_files:
-      base_name_root, base_name_ext = os.path.splitext(wav_file)
+      base_name_root, _ = os.path.splitext(wav_file)
       mid_file = base_name_root + '.mid'
       test_file_pairs.append((wav_file, mid_file))
 
@@ -308,10 +308,10 @@ def generate_test_set():
       writer.write(example.SerializeToString())
 
 
-def main(argv):
+def main(unused_argv):
   generate_train_set()
-  generate_test_test()
+  generate_test_set()
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
   tf.app.run(main)
