@@ -23,7 +23,6 @@ from __future__ import print_function
 
 import os
 
-# internal imports
 import tensorflow as tf
 
 slim = tf.contrib.slim
@@ -34,7 +33,16 @@ FLAGS = flags.FLAGS
 
 
 def checkpoint_file():
-  """Get the path to the VGG16 checkpoint file from flags."""
+  """Get the path to the VGG16 checkpoint file from flags.
+
+  Returns:
+    Path to the VGG checkpoint.
+  Raises:
+    ValueError: checkpoint is null.
+  """
+  if FLAGS.vgg_checkpoint is None:
+    raise ValueError('VGG checkpoint is None.')
+
   return os.path.expanduser(FLAGS.vgg_checkpoint)
 
 
@@ -106,3 +114,4 @@ def vgg_16(inputs, reuse=False, pooling='avg', final_endpoint='fc8'):
       if add_and_check_is_final('fc8', net): return end_points
 
     raise ValueError('final_endpoint (%s) not recognized', final_endpoint)
+

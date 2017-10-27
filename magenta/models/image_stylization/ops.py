@@ -17,8 +17,9 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-# internal imports
 import tensorflow as tf
+from tensorflow.python.framework import ops as framework_ops
+from tensorflow.python.ops import variable_scope
 
 slim = tf.contrib.slim
 
@@ -217,3 +218,87 @@ def weighted_instance_norm(inputs,
     return slim.utils.collect_named_outputs(outputs_collections,
                                             sc.original_name_scope,
                                             outputs)
+
+
+@slim.add_arg_scope
+def conditional_style_norm(inputs,
+                           style_params=None,
+                           activation_fn=None,
+                           reuse=None,
+                           outputs_collections=None,
+                           check_numerics=True,
+                           scope=None):
+  """Conditional style normalization.
+
+  Can be used as a normalizer function for conv2d. This method is similar
+  to conditional_instance_norm. But instead of creating the normalization
+  variables (beta and gamma), it gets these values as inputs in
+  style_params dictionary.
+
+  Args:
+    inputs: a tensor with 4 dimensions. The normalization occurs over height
+        and width.
+    style_params: a dict from the scope names of the variables of this
+         method + beta/gamma to the beta and gamma tensors.
+        eg. {'transformer/expand/conv2/conv/StyleNorm/beta': <tf.Tensor>,
+        'transformer/expand/conv2/conv/StyleNorm/gamma': <tf.Tensor>,
+        'transformer/residual/residual1/conv1/StyleNorm/beta': <tf.Tensor>,
+        'transformer/residual/residual1/conv1/StyleNorm/gamma': <tf.Tensor>}
+    activation_fn: optional activation function.
+    reuse: whether or not the layer and its variables should be reused. To be
+      able to reuse the layer scope must be given.
+    outputs_collections: collections to add the outputs.
+    check_numerics: whether to checks for NAN values in beta and gamma.
+    scope: optional scope for `variable_op_scope`.
+
+  Returns:
+    A `Tensor` representing the output of the operation.
+
+  Raises:
+    ValueError: if rank or last dimension of `inputs` is undefined, or if the
+        input doesn't have 4 dimensions.
+  """
+  with variable_scope.variable_scope(
+      scope, 'StyleNorm', [inputs], reuse=reuse) as sc:
+    inputs = framework_ops.convert_to_tensor(inputs)
+    inputs_shape = inputs.get_shape()
+    inputs_rank = inputs_shape.ndims
+    if inputs_rank is None:
+      raise ValueError('Inputs %s has undefined rank.' % inputs.name)
+    if inputs_rank != 4:
+      raise ValueError('Inputs %s is not a 4D tensor.' % inputs.name)
+    axis = [1, 2]
+    params_shape = inputs_shape[-1:]
+    if not params_shape.is_fully_defined():
+      raise ValueError('Inputs %s has undefined last dimension %s.' %
+                       (inputs.name, params_shape))
+
+    def _style_parameters(name):
+      """Gets style normalization parameters."""
+      var = style_params[('{}/{}'.format(sc.name, name))]
+
+      if check_numerics:
+        var = tf.check_numerics(var, 'NaN/Inf in {}'.format(var.name))
+      if var.get_shape().ndims < 2:
+        var = tf.expand_dims(var, 0)
+      var = tf.expand_dims(tf.expand_dims(var, 1), 1)
+
+      return var
+
+    # Allocates parameters for the beta and gamma of the normalization.
+    beta = _style_parameters('beta')
+    gamma = _style_parameters('gamma')
+
+    # Calculates the moments on the last axis (instance activations).
+    mean, variance = tf.nn.moments(inputs, axis, keep_dims=True)
+
+    # Compute layer normalization using the batch_normalization function.
+    variance_epsilon = 1E-5
+    outputs = tf.nn.batch_normalization(inputs, mean, variance, beta, gamma,
+                                        variance_epsilon)
+    outputs.set_shape(inputs_shape)
+    if activation_fn:
+      outputs = activation_fn(outputs)
+    return slim.utils.collect_named_outputs(outputs_collections,
+                                            sc.original_name_scope, outputs)
+
