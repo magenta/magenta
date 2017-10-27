@@ -146,7 +146,7 @@ training images to create the training dataset and use a subset of PBN
 and DTD testing images for testing dataset.
 
 The following command may be used to download DTD images and create a TFRecord
-file from images in cobwebbed category.
+file from images in cobweb category.
 
 ```bash
 $ cd /path/to/dataset
@@ -206,14 +206,15 @@ cobwebbed_0044.jpg from DTD dataset):
   <img src='images/stylized_cobwebbed_images/eiffel_tower_stylized_cobwebbed_0044_0.jpg' width="140px">
 </p>
 
-## Train a Model (on Large Dataset) With Data Augmentation
+## Train a Model on a Large Dataset With Data Augmentation
 
-To train a model with a good generalization over unobserved style images you
-need to train the model on a large training dataset (See Figure 5 of paper).
+To train a model with a good generalization over unobserved style images, you
+need to train the model on a large training dataset (see Figure 5
+[here](https://arxiv.org/abs/1705.06830)).
 We trained our model on PBN and DTD training images with data augmentation
-over style images for about 3M steps. We trained our model using 8 GPUS.
-But, it's possible to train the model using only one gpu. Just it will take
-more time.
+over style images for about 3M steps using 8 GPUS. You may train the model
+on 1 GPU, however this will take roughly 8 times as long.
+
 To train a model with data augmentation over style images use the following
 command.
 
