@@ -29,7 +29,6 @@ import tensorflow as tf
 from magenta.music import audio_io
 from magenta.music import midi_io
 from magenta.music import sequences_lib
-from magenta.protobuf import music_pb2
 
 FLAGS = tf.app.flags.FLAGS
 tf.app.flags.DEFINE_string('input_dir', None,
@@ -143,7 +142,7 @@ def find_split_points(note_sequence, samples, sample_rate, min_length,
   end_time = note_sequence.total_time
 
   note_sequence_sustain = sequences_lib.apply_sustain_control_changes(
-                                                                 note_sequence)
+      note_sequence)
 
   ranges_nosustain = _find_inactive_ranges(note_sequence)
   ranges_sustain = _find_inactive_ranges(note_sequence_sustain)
