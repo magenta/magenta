@@ -20,13 +20,10 @@ Manjunath Kudlur, Vincent Dumoulin, Jonathon Shlens*,
 Proceedings of the British Machine Vision Conference (BMVC), 2017.
 
 
-# Setup
-Set up your [Magenta environment](/README.md).
-
 # Stylizing an Image using a pre-trained model
-Download our pre-trained model:
+* Set up your [Magenta environment](/README.md).
 
-* [Pretrained on PNB and DTD training
+* Download our pre-trained model: [Pretrained on PNB and DTD training
   images](https://storage.googleapis.com/download.magenta.tensorflow.org/models/arbitrary_style_transfer.tar.gz)
 
 
@@ -121,6 +118,8 @@ $ arbitrary_image_stylization_with_weights \
 </table>
 
 # Training a Model
+
+## Set Up
 To train your own model, you need to have the following:
 
 1. A directory of images to use as styles. We used [Painter by Number dataset
@@ -137,6 +136,8 @@ To train your own model, you need to have the following:
 5. Make sure that you have checkout the slim
    [slim](https://github.com/tensorflow/tensorflow/blob/e062447136faa0a3513e3b0690598fee5c16a5db/tensorflow/contrib/slim/README.md)
    repository.
+
+## Create Style Dataset
 
 A first step is to prepare the style images and create a TFRecord file.
 To train and evaluate the model on different set of style images, you need
@@ -161,6 +162,8 @@ $ image_stylization_create_dataset \
     --compute_gram_matrices=False \
     --logtostderr
 ```
+
+## Train a Model on a Small Dataset
 
 Then, to train a model on dtd_cobwebbed.tfrecord without data augmentation
 use the following command. 
@@ -190,7 +193,7 @@ Since dtd_cobwebbed.tfrecord contains only 120
 images, training takes only a few hours and it's a good test
 to make sure everything work well.
 Example of stylization results over a few training
-style images (for style images cobwebbed_0129.jpg, 
+style images (on style images cobwebbed_0129.jpg, 
 cobwebbed_0116.jpg, cobwebbed_0053.jpg, cobwebbed_0057.jpg,
 cobwebbed_0044.jpg from DTD dataset):
 
@@ -202,6 +205,8 @@ cobwebbed_0044.jpg from DTD dataset):
   <img src='images/stylized_cobwebbed_images/eiffel_tower_stylized_cobwebbed_0057_0.jpg' width="140px">
   <img src='images/stylized_cobwebbed_images/eiffel_tower_stylized_cobwebbed_0044_0.jpg' width="140px">
 </p>
+
+## Train a Model (on Large Dataset) With Data Augmentation
 
 To train a model with a good generalization over unobserved style images you
 need to train the model on a large training dataset (See Figure 5 of paper).
@@ -227,8 +232,9 @@ $ arbitrary_image_stylization_train \
       --logtostderr
 ```
 
+## Run an evaluation job
 
-To run evaluation job on test style images use the following command.
+To run an evaluation job on test style images use the following command.
 
 Note that if you are running the training job on a GPU, then you can
 run a separate evaluation job on the CPU by setting CUDA_VISIBLE_DEVICES=' ':

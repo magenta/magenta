@@ -82,6 +82,7 @@ def total_loss(content_inputs, style_inputs, stylized_inputs, content_weights,
 
   return loss, loss_dict
 
+
 def content_loss(end_points, stylized_end_points, content_weights):
   """Content loss.
 
@@ -112,8 +113,6 @@ def content_loss(end_points, stylized_end_points, content_weights):
   content_loss_dict['total_content_loss'] = total_content_loss
 
   return total_content_loss, content_loss_dict
-
-
 
 
 def style_loss(style_end_points, stylized_end_points, style_weights):
