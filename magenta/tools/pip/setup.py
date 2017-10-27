@@ -40,6 +40,7 @@ REQUIRED_PACKAGES = [
     'librosa >= 0.5.1',
     'matplotlib >= 1.5.3',
     'mido == 1.2.6',
+    'mir_eval >= 0.4',
     'numpy >= 1.11.0',
     'pandas >= 0.18.1',
     'pretty_midi >= 0.2.6',
