@@ -204,7 +204,7 @@ class AbcParserTest(tf.test.TestCase):
     self.assertEqual(music_pb2.NoteSequence.KeySignature.MAJOR, proto_mode)
 
   def testParseEnglishAbc(self):
-    tunes, exceptions = abc_parser.parse_tunebook_file(
+    tunes, exceptions = abc_parser.parse_abc_tunebook_file(
         os.path.join(tf.resource_loader.get_data_files_path(),
                      'testdata/english.abc'))
     self.assertEqual(1, len(tunes))
@@ -358,7 +358,7 @@ class AbcParserTest(tf.test.TestCase):
     #     'testdata/english3.mid', expected_ns3_metadata, tunes[3])
 
   def testParseOctaves(self):
-    tunes, exceptions = abc_parser.parse_tunebook("""X:1
+    tunes, exceptions = abc_parser.parse_abc_tunebook("""X:1
         T:Test
         CC,',C,C'c
         """)
@@ -413,7 +413,7 @@ class AbcParserTest(tf.test.TestCase):
 
   def testParseTempos(self):
     # Examples from http://abcnotation.com/wiki/abc:standard:v2.1#qtempo
-    tunes, exceptions = abc_parser.parse_tunebook("""
+    tunes, exceptions = abc_parser.parse_abc_tunebook("""
         X:1
         L:1/4
         Q:60
@@ -471,7 +471,7 @@ class AbcParserTest(tf.test.TestCase):
 
   def testParseBrokenRhythm(self):
     # These tunes should be equivalent.
-    tunes, exceptions = abc_parser.parse_tunebook("""
+    tunes, exceptions = abc_parser.parse_abc_tunebook("""
         X:1
         Q:1/4=120
         L:1/4
@@ -562,7 +562,7 @@ class AbcParserTest(tf.test.TestCase):
     self.assertProtoEquals(expected_ns2, tunes[3])
 
   def testSlashDuration(self):
-    tunes, exceptions = abc_parser.parse_tunebook("""X:1
+    tunes, exceptions = abc_parser.parse_abc_tunebook("""X:1
         Q:1/4=120
         L:1/4
         T:Test
@@ -622,7 +622,7 @@ class AbcParserTest(tf.test.TestCase):
     self.assertProtoEquals(expected_ns1, tunes[1])
 
   def testMultiVoice(self):
-    tunes, exceptions = abc_parser.parse_tunebook_file(
+    tunes, exceptions = abc_parser.parse_abc_tunebook_file(
         os.path.join(tf.resource_loader.get_data_files_path(),
                      'testdata/zocharti_loch.abc'))
     self.assertEqual(0, len(tunes))
@@ -631,7 +631,7 @@ class AbcParserTest(tf.test.TestCase):
 
   def testRepeats(self):
     # Several equivalent versions of the same tune.
-    tunes, exceptions = abc_parser.parse_tunebook("""
+    tunes, exceptions = abc_parser.parse_abc_tunebook("""
         X:1
         Q:1/4=120
         L:1/4
@@ -908,7 +908,7 @@ class AbcParserTest(tf.test.TestCase):
     self.assertProtoEquals(expected_ns9, tunes[9])
 
   def testInvalidCharacter(self):
-    tunes, exceptions = abc_parser.parse_tunebook("""
+    tunes, exceptions = abc_parser.parse_abc_tunebook("""
         X:1
         Q:1/4=120
         L:1/4
@@ -920,7 +920,7 @@ class AbcParserTest(tf.test.TestCase):
                                abc_parser.InvalidCharacterException))
 
   def testOneSidedRepeat(self):
-    tunes, exceptions = abc_parser.parse_tunebook("""
+    tunes, exceptions = abc_parser.parse_abc_tunebook("""
         X:1
         Q:1/4=120
         L:1/4
@@ -1006,7 +1006,7 @@ class AbcParserTest(tf.test.TestCase):
     self.assertProtoEquals(expected_ns1, tunes[1])
 
   def testChords(self):
-    tunes, exceptions = abc_parser.parse_tunebook("""
+    tunes, exceptions = abc_parser.parse_abc_tunebook("""
         X:1
         Q:1/4=120
         L:1/4
@@ -1018,7 +1018,7 @@ class AbcParserTest(tf.test.TestCase):
                                abc_parser.ChordException))
 
   def testChordAnnotations(self):
-    tunes, exceptions = abc_parser.parse_tunebook("""
+    tunes, exceptions = abc_parser.parse_abc_tunebook("""
         X:1
         Q:1/4=120
         L:1/4
@@ -1068,7 +1068,7 @@ class AbcParserTest(tf.test.TestCase):
     self.assertProtoEquals(expected_ns1, tunes[1])
 
   def testNoteAccidentalsPerBar(self):
-    tunes, exceptions = abc_parser.parse_tunebook("""
+    tunes, exceptions = abc_parser.parse_abc_tunebook("""
         X:1
         Q:1/4=120
         L:1/4
@@ -1140,7 +1140,7 @@ class AbcParserTest(tf.test.TestCase):
     self.assertProtoEquals(expected_ns1, tunes[1])
 
   def testDecorations(self):
-    tunes, exceptions = abc_parser.parse_tunebook("""
+    tunes, exceptions = abc_parser.parse_abc_tunebook("""
         X:1
         Q:1/4=120
         L:1/4
@@ -1152,7 +1152,7 @@ class AbcParserTest(tf.test.TestCase):
     self.assertEqual(11, len(tunes[1].notes))
 
   def testSlur(self):
-    tunes, exceptions = abc_parser.parse_tunebook("""
+    tunes, exceptions = abc_parser.parse_abc_tunebook("""
         X:1
         Q:1/4=120
         L:1/4
@@ -1164,7 +1164,7 @@ class AbcParserTest(tf.test.TestCase):
     self.assertEqual(12, len(tunes[1].notes))
 
   def testTie(self):
-    tunes, exceptions = abc_parser.parse_tunebook("""
+    tunes, exceptions = abc_parser.parse_abc_tunebook("""
         X:1
         Q:1/4=120
         L:1/4
@@ -1176,7 +1176,7 @@ class AbcParserTest(tf.test.TestCase):
     self.assertEqual(10, len(tunes[1].notes))
 
   def testTuplet(self):
-    tunes, exceptions = abc_parser.parse_tunebook("""
+    tunes, exceptions = abc_parser.parse_abc_tunebook("""
         X:1
         Q:1/4=120
         L:1/4
@@ -1188,7 +1188,7 @@ class AbcParserTest(tf.test.TestCase):
     self.assertTrue(isinstance(exceptions[0], abc_parser.TupletException))
 
   def testLineContinuation(self):
-    tunes, exceptions = abc_parser.parse_tunebook(r"""
+    tunes, exceptions = abc_parser.parse_abc_tunebook(r"""
         X:1
         Q:1/4=120
         L:1/4

@@ -30,6 +30,7 @@ import os
 # internal imports
 import tensorflow as tf
 
+from magenta.music import abc_parser
 from magenta.music import midi_io
 from magenta.music import musicxml_reader
 from magenta.music import note_sequence_io
@@ -79,6 +80,7 @@ def convert_files(root_dir, sub_dir, writer, recursive=False):
         sequence = convert_midi(root_dir, sub_dir, full_file_path)
       except Exception as exc:  # pylint: disable=broad-except
         tf.logging.fatal('%r generated an exception: %s', full_file_path, exc)
+        continue
       if sequence:
         writer.write(sequence)
     elif (full_file_path.lower().endswith('.xml') or
@@ -87,8 +89,18 @@ def convert_files(root_dir, sub_dir, writer, recursive=False):
         sequence = convert_musicxml(root_dir, sub_dir, full_file_path)
       except Exception as exc:  # pylint: disable=broad-except
         tf.logging.fatal('%r generated an exception: %s', full_file_path, exc)
+        continue
       if sequence:
         writer.write(sequence)
+    elif full_file_path.lower().endswith('.abc'):
+      try:
+        sequences = convert_abc(root_dir, sub_dir, full_file_path)
+      except Exception as exc:  # pylint: disable=broad-except
+        tf.logging.fatal('%r generated an exception: %s', full_file_path, exc)
+        continue
+      if sequences:
+        for sequence in sequences:
+          writer.write(sequence)
     else:
       if recursive and tf.gfile.IsDirectory(full_file_path):
         recurse_sub_dirs.append(os.path.join(sub_dir, file_in_dir))
@@ -153,6 +165,43 @@ def convert_musicxml(root_dir, sub_dir, full_file_path):
       sequence.filename, sequence.collection_name, 'musicxml')
   tf.logging.info('Converted MusicXML file %s.', full_file_path)
   return sequence
+
+
+def convert_abc(root_dir, sub_dir, full_file_path):
+  """Converts an abc file to a sequence proto.
+
+  Args:
+    root_dir: A string specifying the root directory for the files being
+        converted.
+    sub_dir: The directory being converted currently.
+    full_file_path: the full path to the file to convert.
+
+  Returns:
+    Either a NoteSequence proto or None if the file could not be converted.
+  """
+  try:
+    tunes, exceptions = abc_parser.parse_abc_tunebook(
+        tf.gfile.FastGFile(full_file_path, 'rb').read())
+  except abc_parser.ABCParseException as e:
+    tf.logging.warning(
+        'Could not parse ABC file %s. It will be skipped. Error was: %s',
+        full_file_path, e)
+    return None
+
+  for exception in exceptions:
+    tf.logging.warning(
+        'Could not parse tune in ABC file %s. It will be skipped. Error was: '
+        '%s', full_file_path, exception)
+
+  sequences = []
+  for idx, tune in tunes.iteritems():
+    tune.collection_name = os.path.basename(root_dir)
+    tune.filename = os.path.join(sub_dir, os.path.basename(full_file_path))
+    tune.id = note_sequence_io.generate_note_sequence_id(
+        '{}_{}'.format(tune.filename, idx), tune.collection_name, 'abc')
+    sequences.append(tune)
+    tf.logging.info('Converted ABC file %s.', full_file_path)
+  return sequences
 
 
 def convert_directory(root_dir, output_file, recursive=False):
