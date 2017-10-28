@@ -71,7 +71,19 @@ class TupletException(ABCParseException):
 
 
 def parse_abc_tunebook_file(filename):
-  """Parse an ABC Tunebook file."""
+  """Parse an ABC Tunebook file.
+
+  Args:
+    filename: File path to an ABC tunebook.
+
+  Returns:
+    tunes: A dictionary of reference number to NoteSequence of parsed ABC tunes.
+    exceptions: A list of exceptions for tunes that could not be parsed.
+
+  Raises:
+    DuplicateReferenceNumberException: If the same reference number appears more
+        than once in the tunebook.
+  """
   # 'r' mode will decode the file as utf-8 in py3.
   return parse_abc_tunebook(tf.gfile.Open(filename, 'r').read())
 
