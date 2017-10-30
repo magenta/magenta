@@ -186,32 +186,6 @@ class PipelineUnitsCommonTest(tf.test.TestCase):
     self.assertEqual(11, transposed[0].notes[1].pitch)
     self.assertEqual(12, transposed[0].notes[2].pitch)
 
-  def testTranspositionPipelineIgnoreOutOfRangeNotes(self):
-    note_sequence = common_testing_lib.parse_test_proto(
-        music_pb2.NoteSequence,
-        """
-        time_signatures: {
-          numerator: 4
-          denominator: 4}
-        tempos: {
-          qpm: 60}""")
-    tp = note_sequence_pipelines.TranspositionPipeline(
-        range(-1, 2), ignore_out_of_range_notes=True, min_pitch=0, max_pitch=12)
-    testing_lib.add_track_to_sequence(
-        note_sequence, 0,
-        [(10, 100, 1.0, 2.0), (12, 100, 2.0, 4.0), (13, 100, 4.0, 5.0)])
-    transposed = tp.transform(note_sequence)
-    self.assertEqual(3, len(transposed))
-    self.assertEqual(3, len(transposed[0].notes))
-    self.assertEqual(2, len(transposed[1].notes))
-    self.assertEqual(1, len(transposed[2].notes))
-    self.assertEqual(9, transposed[0].notes[0].pitch)
-    self.assertEqual(10, transposed[1].notes[0].pitch)
-    self.assertEqual(11, transposed[2].notes[0].pitch)
-    self.assertEqual(11, transposed[0].notes[1].pitch)
-    self.assertEqual(12, transposed[1].notes[1].pitch)
-    self.assertEqual(12, transposed[0].notes[2].pitch)
-
 
 if __name__ == '__main__':
   tf.test.main()
