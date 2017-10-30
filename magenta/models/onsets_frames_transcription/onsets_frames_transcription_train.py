@@ -29,8 +29,6 @@ from magenta.models.onsets_frames_transcription import train_util
 
 FLAGS = tf.app.flags.FLAGS
 
-tf.app.flags.DEFINE_string('master', 'local',
-                           'BNS name of the TensorFlow runtime to use.')
 tf.app.flags.DEFINE_string(
     'examples_path', None,
     'Path to a TFRecord file of train/eval examples.')
@@ -57,14 +55,11 @@ tf.app.flags.DEFINE_integer(
 tf.app.flags.DEFINE_integer(
     'checkpoints_to_keep', 0,
     'Maximum number of checkpoints to keep in `train` mode or 0 for infinite.')
-tf.app.flags.DEFINE_enum(
-    'mode', 'train', ['train', 'eval', 'test'], 'Which mode to use.')
+tf.app.flags.DEFINE_string(
+    'mode', 'train', 'Which mode to use (train, eval, or test).')
 tf.app.flags.DEFINE_string(
     'hparams', '',
     'A comma-separated list of `name=value` hyperparameter values.')
-tf.app.flags.DEFINE_integer('task', 0, 'The task number for this worker.')
-tf.app.flags.DEFINE_integer('num_ps_tasks', 0,
-                            'The number of parameter server tasks')
 
 
 def run(hparams, run_dir):
@@ -80,8 +75,7 @@ def run(hparams, run_dir):
         eval_dir=eval_dir,
         examples_path=FLAGS.examples_path,
         num_batches=FLAGS.eval_num_batches,
-        hparams=hparams,
-        master=FLAGS.master)
+        hparams=hparams)
   elif FLAGS.mode == 'test':
     checkpoint_path = (os.path.expanduser(FLAGS.checkpoint_path)
                        if FLAGS.checkpoint_path else
@@ -93,24 +87,19 @@ def run(hparams, run_dir):
         test_dir=test_dir,
         examples_path=FLAGS.examples_path,
         num_batches=FLAGS.eval_num_batches,
-        hparams=hparams,
-        master=FLAGS.master)
+        hparams=hparams)
   elif FLAGS.mode == 'train':
     train_util.train(
         train_dir=train_dir,
         examples_path=FLAGS.examples_path,
         hparams=hparams,
         checkpoints_to_keep=FLAGS.checkpoints_to_keep,
-        num_steps=FLAGS.num_steps,
-        master=FLAGS.master,
-        task=FLAGS.task,
-        num_ps_tasks=FLAGS.num_ps_tasks)
+        num_steps=FLAGS.num_steps)
+  else:
+    raise ValueError('Invalid mode: {}'.format(FLAGS.mode))
 
 
 def main(unused_argv):
-  tf.app.flags.mark_flags_as_required(
-      ['examples_path', 'run_dir', 'mode'])
-
   run_dir = os.path.expanduser(FLAGS.run_dir)
 
   hparams = model.get_default_hparams()

@@ -49,7 +49,7 @@ BATCH_QUEUE_CAPACITY_SEQUENCES = 1000
 
 # This is the number of threads that take the records from the reader(s),
 # load the audio, create the spectrograms, and put them into the batch queue.
-NUM_BATCH_THREADS = 8
+NUM_BATCH_THREADS = 1
 
 
 def hparams_frame_size(hparams):
@@ -183,10 +183,8 @@ def preprocess_sequence(sequence_tensor):
 def transform_wav_data_op(wav_data_tensor, sequence_tensor, hparams,
                           is_training, jitter_amount_sec):
   """Transforms wav data."""
-  def transform_wav_data(wav_data, sequence):
+  def transform_wav_data(wav_data):
     """Transforms wav data."""
-    sequence = preprocess_sequence(sequence)
-
     # Only do audio transformations during training.
     if is_training:
       wav_data = audio_io.jitter_wav_data(wav_data, hparams.sample_rate,
@@ -200,7 +198,7 @@ def transform_wav_data_op(wav_data_tensor, sequence_tensor, hparams,
 
   return tf.py_func(
       transform_wav_data,
-      [wav_data_tensor, sequence_tensor],
+      [wav_data_tensor],
       tf.string,
       name='transform_wav_data_op')
 
@@ -556,11 +554,13 @@ def _provide_data(input_tensors, num_samples, batch_size, truncated_length,
       note_sequence, truncated_length, hparams)
 
   batch_tensors = {
-      'spec': spec,
-      'labels': labels,
-      'label_weights': label_weights,
+      'spec': tf.reshape(
+          spec, (truncated_length, hparams_frame_size(hparams), 1)),
+      'labels': tf.reshape(labels, (truncated_length, constants.MIDI_PITCHES)),
+      'label_weights': tf.reshape(
+          label_weights, (truncated_length, constants.MIDI_PITCHES)),
       'lengths': truncated_length,
-      'onsets': onsets,
+      'onsets': tf.reshape(onsets, (truncated_length, constants.MIDI_PITCHES)),
       'filenames': filename,
       'note_sequences': truncated_note_sequence,
   }

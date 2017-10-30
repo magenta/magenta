@@ -23,7 +23,7 @@ from __future__ import print_function
 from . import constants
 
 import tensorflow as tf
-import tf.contrib.slim as slim
+import tensorflow.contrib.slim as slim
 
 from magenta.common import flatten_maybe_padded_sequences
 from magenta.common import tf_utils
@@ -214,30 +214,32 @@ def get_default_hparams():
   Returns:
     A tf.HParams object representing the default hyperparameters for the model.
   """
-  return tf_utils.merge_hparams(constants.DEFAULT_HPARAMS, tf.HParams(
-      activation_loss=False,
-      batch_size=8,
-      clip_norm=3,
-      combined_lstm_units=128,
-      frame_bidirectional=True,
-      frame_lstm_units=0,
-      learning_rate=0.0006,
-      min_duration_ms=0,
-      min_frame_occupancy_for_label=0.0,
-      normalize_audio=False,
-      onset_bidirectional=True,
-      onset_delay=0,
-      onset_length=32,
-      onset_lstm_units=128,
-      onset_mode='length_ms',
-      sample_rate=constants.DEFAULT_FRAMES_PER_SECOND,
-      share_conv_features=False,
-      spec_fmin=30.0,
-      spec_hop_length=512,
-      spec_log_amplitude=True,
-      spec_n_bins=229,
-      spec_type='mel',
-      stop_activation_gradient=False,
-      stop_onset_gradient=False,
-      truncated_length=1500,  # 48 seconds
-      weight_frame_and_activation_loss=False))
+  return tf_utils.merge_hparams(
+      constants.DEFAULT_HPARAMS,
+      tf.contrib.training.HParams(
+          activation_loss=False,
+          batch_size=8,
+          clip_norm=3,
+          combined_lstm_units=128,
+          frame_bidirectional=True,
+          frame_lstm_units=0,
+          learning_rate=0.0006,
+          min_duration_ms=0,
+          min_frame_occupancy_for_label=0.0,
+          normalize_audio=False,
+          onset_bidirectional=True,
+          onset_delay=0,
+          onset_length=32,
+          onset_lstm_units=128,
+          onset_mode='length_ms',
+          sample_rate=constants.DEFAULT_SAMPLE_RATE,
+          share_conv_features=False,
+          spec_fmin=30.0,
+          spec_hop_length=512,
+          spec_log_amplitude=True,
+          spec_n_bins=229,
+          spec_type='mel',
+          stop_activation_gradient=False,
+          stop_onset_gradient=False,
+          truncated_length=1500,  # 48 seconds
+          weight_frame_and_activation_loss=False))

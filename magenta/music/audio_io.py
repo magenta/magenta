@@ -136,7 +136,7 @@ def jitter_wav_data(wav_data, sample_rate, jitter_seconds):
 
   y = wav_data_to_samples(wav_data, sample_rate=sample_rate)
   silence_samples = jitter_seconds * sample_rate
-  new_y = np.concatenate((np.zeros(silence_samples), y))
+  new_y = np.concatenate((np.zeros(np.int(silence_samples)), y))
   return samples_to_wav_data(new_y, sample_rate)
 
 
