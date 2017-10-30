@@ -27,6 +27,7 @@ py_library(
     srcs = ["__init__.py"],
     srcs_version = "PY2AND3",
     deps = [
+        ":abc_parser",
         ":audio_io",
         ":chords_encoder_decoder",
         ":chords_lib",
@@ -68,6 +69,10 @@ py_library(
 py_test(
     name = "audio_io_test",
     srcs = ["audio_io_test.py"],
+    data = [
+        "testdata/example.wav",
+        "testdata/example_mono.wav",
+    ],
     srcs_version = "PY2AND3",
     deps = [
         ":audio_io",
@@ -76,10 +81,6 @@ py_test(
         # numpy dep
         # scipy dep
         # tensorflow dep
-    ],
-    data = [
-        "testdata/example.wav",
-        "testdata/example_mono.wav",
     ],
 )
 

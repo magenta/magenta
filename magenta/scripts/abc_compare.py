@@ -65,7 +65,7 @@ class CompareDirectory(tf.test.TestCase):
         ref_num += 1
 
       print('parsing {}: {}'.format(files_parsed, abc))
-      tunes, exceptions = abc_parser.parse_tunebook_file(abc)
+      tunes, exceptions = abc_parser.parse_abc_tunebook_file(abc)
       files_parsed += 1
       self.assertEqual(len(tunes), len(midis) - len(exceptions))
 
