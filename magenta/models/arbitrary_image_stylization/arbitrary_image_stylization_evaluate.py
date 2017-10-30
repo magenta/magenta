@@ -105,13 +105,13 @@ def main(_):
 
     # Adds Image summaries to the tensorboard.
     tf.summary.image('image/{}/0_eval_content_inputs'.format(FLAGS.eval_name),
-                     eval_content_inputs_, 4)
+                     eval_content_inputs_, 3)
     tf.summary.image('image/{}/1_eval_style_inputs'.format(FLAGS.eval_name),
-                     eval_style_inputs_, 4)
+                     eval_style_inputs_, 3)
     tf.summary.image('image/{}/2_eval_stylized_images'.format(FLAGS.eval_name),
-                     stylized_images, 4)
+                     stylized_images, 3)
     tf.summary.image('image/{}/3_stylized_noise'.format(FLAGS.eval_name),
-                     stylized_noise, 4)
+                     stylized_noise, 3)
 
     metrics = {}
     for key, value in loss_dict.iteritems():
