@@ -17,7 +17,7 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-# internal imports
+
 import tensorflow as tf
 
 from magenta.models.image_stylization import ops
@@ -51,23 +51,27 @@ def transform(input_, normalizer_fn=ops.conditional_instance_norm,
         weights_initializer=tf.random_normal_initializer(0.0, 0.01),
         biases_initializer=tf.constant_initializer(0.0)):
       with tf.variable_scope('contract'):
-        h = _conv2d(input_, 9, 1, 32, 'conv1')
-        h = _conv2d(h, 3, 2, 64, 'conv2')
-        h = _conv2d(h, 3, 2, 128, 'conv3')
+        h = conv2d(input_, 9, 1, 32, 'conv1')
+        h = conv2d(h, 3, 2, 64, 'conv2')
+        h = conv2d(h, 3, 2, 128, 'conv3')
       with tf.variable_scope('residual'):
-        h = _residual_block(h, 3, 'residual1')
-        h = _residual_block(h, 3, 'residual2')
-        h = _residual_block(h, 3, 'residual3')
-        h = _residual_block(h, 3, 'residual4')
-        h = _residual_block(h, 3, 'residual5')
+        h = residual_block(h, 3, 'residual1')
+        h = residual_block(h, 3, 'residual2')
+        h = residual_block(h, 3, 'residual3')
+        h = residual_block(h, 3, 'residual4')
+        h = residual_block(h, 3, 'residual5')
       with tf.variable_scope('expand'):
-        h = _upsampling(h, 3, 2, 64, 'conv1')
-        h = _upsampling(h, 3, 2, 32, 'conv2')
-        return _upsampling(h, 9, 1, 3, 'conv3', activation_fn=tf.nn.sigmoid)
+        h = upsampling(h, 3, 2, 64, 'conv1')
+        h = upsampling(h, 3, 2, 32, 'conv2')
+        return upsampling(h, 9, 1, 3, 'conv3', activation_fn=tf.nn.sigmoid)
 
 
-def _conv2d(input_, kernel_size, stride, num_outputs, scope,
-            activation_fn=tf.nn.relu):
+def conv2d(input_,
+           kernel_size,
+           stride,
+           num_outputs,
+           scope,
+           activation_fn=tf.nn.relu):
   """Same-padded convolution with mirror padding instead of zero-padding.
 
   This function expects `kernel_size` to be odd.
@@ -102,8 +106,12 @@ def _conv2d(input_, kernel_size, stride, num_outputs, scope,
       scope=scope)
 
 
-def _upsampling(input_, kernel_size, stride, num_outputs, scope,
-                activation_fn=tf.nn.relu):
+def upsampling(input_,
+               kernel_size,
+               stride,
+               num_outputs,
+               scope,
+               activation_fn=tf.nn.relu):
   """A smooth replacement of a same-padded transposed convolution.
 
   This function first computes a nearest-neighbor upsampling of the input by a
@@ -128,14 +136,21 @@ def _upsampling(input_, kernel_size, stride, num_outputs, scope,
   if kernel_size % 2 == 0:
     raise ValueError('kernel_size is expected to be odd.')
   with tf.variable_scope(scope):
-    _, height, width, _ = [s.value for s in input_.get_shape()]
+    shape = tf.shape(input_)
+    height = shape[1]
+    width = shape[2]
     upsampled_input = tf.image.resize_nearest_neighbor(
         input_, [stride * height, stride * width])
-    return _conv2d(upsampled_input, kernel_size, 1, num_outputs, 'conv',
-                   activation_fn=activation_fn)
+    return conv2d(
+        upsampled_input,
+        kernel_size,
+        1,
+        num_outputs,
+        'conv',
+        activation_fn=activation_fn)
 
 
-def _residual_block(input_, kernel_size, scope, activation_fn=tf.nn.relu):
+def residual_block(input_, kernel_size, scope, activation_fn=tf.nn.relu):
   """A residual block made of two mirror-padded, same-padded convolutions.
 
   This function expects `kernel_size` to be odd.
@@ -156,6 +171,7 @@ def _residual_block(input_, kernel_size, scope, activation_fn=tf.nn.relu):
     raise ValueError('kernel_size is expected to be odd.')
   with tf.variable_scope(scope):
     num_outputs = input_.get_shape()[-1].value
-    h_1 = _conv2d(input_, kernel_size, 1, num_outputs, 'conv1', activation_fn)
-    h_2 = _conv2d(h_1, kernel_size, 1, num_outputs, 'conv2', None)
+    h_1 = conv2d(input_, kernel_size, 1, num_outputs, 'conv1', activation_fn)
+    h_2 = conv2d(h_1, kernel_size, 1, num_outputs, 'conv2', None)
     return input_ + h_2
+
