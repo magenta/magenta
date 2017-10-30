@@ -20,7 +20,6 @@ NoteSequence within a limited range.
 """
 
 import os
-import random
 
 # internal imports
 
@@ -87,15 +86,18 @@ class EncoderPipeline(pipeline.Pipeline):
                 performance, self._pitch_histogram_window_size))
       control_sequence = zip(*control_sequences)
       if self._optional_conditioning:
-        # Disable conditioning globally with 50% probability.
-        disable = [random.choice([True, False])] * len(control_sequence)
-        control_sequence = zip(disable, control_sequence)
-      encoded = self._encoder_decoder.encode(
-          control_sequence, performance)
+        # Create two copies, one with and one without conditioning.
+        encoded = [self._encoder_decoder.encode(
+                       zip([disable] * len(control_sequence), control_sequence),
+                       performance)
+                   for disable in [False, True]]
+      else:
+        encoded = [self._encoder_decoder.encode(
+            control_sequence, performance)]
     else:
       # Encode unconditional.
-      encoded = self._encoder_decoder.encode(performance)
-    return [encoded]
+      encoded = [self._encoder_decoder.encode(performance)]
+    return encoded
 
 
 class PerformanceExtractor(pipeline.Pipeline):
