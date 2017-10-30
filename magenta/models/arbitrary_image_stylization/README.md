@@ -36,12 +36,13 @@ $ cd /path/to/arbitrary_image_stylization
 $ arbitrary_image_stylization_with_weights \
   --checkpoint=/path/to/arbitrary_style_transfer/model.ckpt \
   --output_dir=/path/to/output_dir \
-  --style_images_paths=style_images/*.jpg \
-  --content_images_paths=content_images/*.jpg \
+  --style_images_paths=images/style_images/*.jpg \
+  --content_images_paths=images/content_images/*.jpg \
   --image_size=256 \
-  --content_square_crop=False
+  --content_square_crop=False \
   --style_image_size=256 \
-  --style_square_crop=False
+  --style_square_crop=False \
+  --logtostderr
 ```
 
 #### Example results
@@ -75,17 +76,18 @@ represents the desired weights for interpolation.
 $ cd /path/to/arbitrary_image_stylization
 # Note that 0.0 corresponds to an identity interpolation where as 1.0
 # corresponds to a fully stylized photograph.
-$ INTERPOLATION_WEIGHTS='[0.0 0.2 0.4 0.6 0.8 1.0]'
+$ INTERPOLATION_WEIGHTS='[0.0,0.2,0.4,0.6,0.8,1.0]'
 $ arbitrary_image_stylization_with_weights \
   --checkpoint=/path/to/arbitrary_style_transfer/model.ckpt \
   --output_dir=/path/to/output_dir \
-  --style_images_paths=style_images/*.jpg \
-  --content_images_paths=content_images/statue_of_liberty_sq.jpg \
+  --style_images_paths=images/style_images/*.jpg \
+  --content_images_paths=images/content_images/statue_of_liberty_sq.jpg \
   --image_size=256 \
-  --content_square_crop=False
+  --content_square_crop=False \
   --style_image_size=256 \
-  --style_square_crop=False
-  --interpolation_weights=$INTERPOLATION_WEIGHTS
+  --style_square_crop=False \
+  --interpolation_weights=$INTERPOLATION_WEIGHTS \
+  --logtostderr
 ```
 
 #### Example results
@@ -166,7 +168,7 @@ $ image_stylization_create_dataset \
 ## Train a Model on a Small Dataset
 
 Then, to train a model on dtd_cobwebbed.tfrecord without data augmentation
-use the following command. 
+use the following command.
 
 ```bash
 logdir=/path/to/logdir
@@ -193,7 +195,7 @@ Since dtd_cobwebbed.tfrecord contains only 120
 images, training takes only a few hours and it's a good test
 to make sure everything work well.
 Example of stylization results over a few training
-style images (on style images cobwebbed_0129.jpg, 
+style images (on style images cobwebbed_0129.jpg,
 cobwebbed_0116.jpg, cobwebbed_0053.jpg, cobwebbed_0057.jpg,
 cobwebbed_0044.jpg from DTD dataset):
 
@@ -225,8 +227,8 @@ $ arbitrary_image_stylization_train \
       --imagenet_data_dir=/path/to/imagenet-2012-tfrecord \
       --vgg_checkpoint=/path/to/vgg-checkpoint \
       --inception_v3_checkpoint=/path/to/inception-v3-checkpoint \
-      --style_dataset_file=/path/to/style_images.tfrecord
-      --train_dir="$logdir"/train_dir
+      --style_dataset_file=/path/to/style_images.tfrecord \
+      --train_dir="$logdir"/train_dir \
       --random_style_image_size=True \
       --augment_style_images=True \
       --center_crop=False \
@@ -241,11 +243,12 @@ Note that if you are running the training job on a GPU, then you can
 run a separate evaluation job on the CPU by setting CUDA_VISIBLE_DEVICES=' ':
 
 ```bash
-$CUDA_VISIBLE_DEVICES= arbitrary_image_stylization_evaluate \
+$ CUDA_VISIBLE_DEVICES= arbitrary_image_stylization_evaluate \
       --batch_size=16 \
       --imagenet_data_dir=/path/to/imagenet-2012-tfrecord \
-      --eval_style_dataset_file=/tmp/arbitrary_image_stylization/evaluation_style_images.tfrecord \
-      --checkpoint_dir=/tmp/arbitrary_image_stylization/train_dir \
-      --eval_dir="$logdir"/eval_dir
+      --eval_style_dataset_file=/path/to/evaluation_style_images.tfrecord \
+      --checkpoint_dir="$logdir"/train_dir \
+      --eval_dir="$logdir"/eval_dir \
+      --logtostderr
 ```
 
