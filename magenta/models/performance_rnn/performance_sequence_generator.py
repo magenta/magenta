@@ -48,7 +48,7 @@ class PerformanceRnnSequenceGenerator(mm.BaseSequenceGenerator):
   def __init__(self, model, details,
                steps_per_second=performance_lib.DEFAULT_STEPS_PER_SECOND,
                num_velocity_bins=0, note_density_conditioning=False,
-               pitch_histogram_conditioning=False,
+               pitch_histogram_conditioning=False, optional_conditioning=False,
                max_note_duration=MAX_NOTE_DURATION_SECONDS,
                fill_generate_section=True, checkpoint=None, bundle=None):
     """Creates a PerformanceRnnSequenceGenerator.
@@ -62,6 +62,7 @@ class PerformanceRnnSequenceGenerator(mm.BaseSequenceGenerator):
       note_density_conditioning: If True, generate conditional on note density.
       pitch_histogram_conditioning: If True, generate conditional on pitch class
           histogram.
+      optional_conditioning: If True, conditioning can be disabled dynamically.
       max_note_duration: The maximum note duration in seconds to allow during
           generation. This model often forgets to release notes; specifying a
           maximum duration can force it to do so.
@@ -73,10 +74,6 @@ class PerformanceRnnSequenceGenerator(mm.BaseSequenceGenerator):
           exclusive with `bundle`.
       bundle: A GeneratorBundle object that includes both the model checkpoint
           and metagraph. Mutually exclusive with `checkpoint`.
-
-    Raises:
-      ValueError: If both `note_density_conditioning` and
-          `pitch_histogram_conditioning` are enabled.
     """
     super(PerformanceRnnSequenceGenerator, self).__init__(
         model, details, checkpoint, bundle)
@@ -84,6 +81,7 @@ class PerformanceRnnSequenceGenerator(mm.BaseSequenceGenerator):
     self.num_velocity_bins = num_velocity_bins
     self.note_density_conditioning = note_density_conditioning
     self.pitch_histogram_conditioning = pitch_histogram_conditioning
+    self.optional_conditioning = optional_conditioning
     self.max_note_duration = max_note_duration
     self.fill_generate_section = fill_generate_section
 
@@ -152,6 +150,7 @@ class PerformanceRnnSequenceGenerator(mm.BaseSequenceGenerator):
     arg_types = {
         'note_density': lambda arg: ast.literal_eval(arg.string_value),
         'pitch_histogram': lambda arg: ast.literal_eval(arg.string_value),
+        'disable_conditioning': lambda arg: ast.literal_eval(arg.string_value),
         'temperature': lambda arg: arg.float_value,
         'beam_size': lambda arg: arg.int_value,
         'branch_factor': lambda arg: arg.int_value,
@@ -183,14 +182,26 @@ class PerformanceRnnSequenceGenerator(mm.BaseSequenceGenerator):
           'Conditioning on pitch histogram but none requested, using default.')
       args['pitch_histogram'] = [DEFAULT_PITCH_HISTOGRAM]
 
-    # If a single note density or pitch class histogram is present, convert to
-    # list to simplify further processing.
+    # Make sure disable conditioning flag is present when conditioning is
+    # optional and not present otherwise.
+    if not self.optional_conditioning and 'disable_conditioning' in args:
+      tf.logging.warning(
+          'No optional conditioning, ignoring disable conditioning flag.')
+      del args['disable_conditioning']
+    if self.optional_conditioning and 'disable_conditioning' not in args:
+      args['disable_conditioning'] = [False]
+
+    # If a single note density, pitch class histogram, or disable flag is
+    # present, convert to list to simplify further processing.
     if (self.note_density_conditioning and
         not isinstance(args['note_density'], list)):
       args['note_density'] = [args['note_density']]
     if (self.pitch_histogram_conditioning and
         not isinstance(args['pitch_histogram'][0], list)):
       args['pitch_histogram'] = [args['pitch_histogram']]
+    if (self.optional_conditioning and
+        not isinstance(args['disable_conditioning'], list)):
+      args['disable_conditioning'] = [args['disable_conditioning']]
 
     # Make sure each pitch class histogram sums to one.
     if self.pitch_histogram_conditioning:
@@ -206,8 +217,8 @@ class PerformanceRnnSequenceGenerator(mm.BaseSequenceGenerator):
     total_steps = performance.num_steps + (
         generate_end_step - generate_start_step)
 
-    # Set up functions that map generation step to note density & pitch
-    # histogram.
+    # Set up functions that map generation step to note density, pitch
+    # histogram, and disable conditioning flag.
     mean_note_density = DEFAULT_NOTE_DENSITY
     if self.note_density_conditioning:
       args['note_density_fn'] = partial(
@@ -222,6 +233,12 @@ class PerformanceRnnSequenceGenerator(mm.BaseSequenceGenerator):
           num_steps=total_steps,
           pitch_histograms=args['pitch_histogram'])
       del args['pitch_histogram']
+    if self.optional_conditioning:
+      args['disable_conditioning_fn'] = partial(
+          _step_to_disable_conditioning,
+          num_steps=total_steps,
+          disable_conditioning_flags=args['disable_conditioning'])
+      del args['disable_conditioning']
 
     if not performance:
       # Primer is empty; let's just start with silence.
@@ -272,6 +289,12 @@ def _step_to_pitch_histogram(step, num_steps, pitch_histograms):
   return pitch_histograms[index]
 
 
+def _step_to_disable_conditioning(step, num_steps, disable_conditioning_flags):
+  """Map step in performance to desired disable conditioning flag."""
+  index = _step_to_index(step, num_steps, len(disable_conditioning_flags))
+  return disable_conditioning_flags[index]
+
+
 def get_generator_map():
   """Returns a map from the generator ID to a SequenceGenerator class creator.
 
@@ -290,6 +313,7 @@ def get_generator_map():
         note_density_conditioning=config.density_bin_ranges is not None,
         pitch_histogram_conditioning=(
             config.pitch_histogram_window_size is not None),
+        optional_conditioning=config.optional_conditioning,
         fill_generate_section=False,
         **kwargs)
 

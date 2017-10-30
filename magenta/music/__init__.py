@@ -50,6 +50,7 @@ from magenta.music.encoder_decoder import LookbackEventSequenceEncoderDecoder
 from magenta.music.encoder_decoder import MultipleEventSequenceEncoder
 from magenta.music.encoder_decoder import OneHotEncoding
 from magenta.music.encoder_decoder import OneHotEventSequenceEncoderDecoder
+from magenta.music.encoder_decoder import OptionalEventSequenceEncoder
 
 from magenta.music.events_lib import NonIntegerStepsPerBarException
 

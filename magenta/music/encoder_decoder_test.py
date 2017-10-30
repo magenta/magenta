@@ -334,6 +334,35 @@ class ConditionalEventSequenceEncoderDecoderTest(tf.test.TestCase):
                           np.log(0.4) + np.log(0.6)], p)
 
 
+class OptionalEventSequenceEncoderTest(tf.test.TestCase):
+
+  def setUp(self):
+    self.enc = encoder_decoder.OptionalEventSequenceEncoder(
+        encoder_decoder.OneHotEventSequenceEncoderDecoder(
+            testing_lib.TrivialOneHotEncoding(3)))
+
+  def testInputSize(self):
+    self.assertEquals(4, self.enc.input_size)
+
+  def testEventsToInput(self):
+    events = [(False, 0), (False, 1), (False, 0), (True, 2), (True, 0)]
+    self.assertEqual(
+        [0.0, 1.0, 0.0, 0.0],
+        self.enc.events_to_input(events, 0))
+    self.assertEqual(
+        [0.0, 0.0, 1.0, 0.0],
+        self.enc.events_to_input(events, 1))
+    self.assertEqual(
+        [0.0, 1.0, 0.0, 0.0],
+        self.enc.events_to_input(events, 2))
+    self.assertEqual(
+        [1.0, 0.0, 0.0, 0.0],
+        self.enc.events_to_input(events, 3))
+    self.assertEqual(
+        [1.0, 0.0, 0.0, 0.0],
+        self.enc.events_to_input(events, 4))
+
+
 class MultipleEventSequenceEncoderTest(tf.test.TestCase):
 
   def setUp(self):

@@ -120,8 +120,8 @@ class NoteDensityOneHotEncoding(encoder_decoder.OneHotEncoding):
       return self._density_bin_ranges[index - 1]
 
 
-class PitchHistogramEncoderDecoder(encoder_decoder.EventSequenceEncoderDecoder):
-  """An encoder/decoder for pitch class histogram sequences.
+class PitchHistogramEncoder(encoder_decoder.EventSequenceEncoderDecoder):
+  """An encoder for pitch class histogram sequences.
 
   This class has no label encoding and is only a trivial input encoder that
   merely uses each histogram as the input vector.

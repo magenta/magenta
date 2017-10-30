@@ -863,6 +863,52 @@ class ConditionalEventSequenceEncoderDecoder(object):
         target_event_sequences, softmax)
 
 
+class OptionalEventSequenceEncoder(EventSequenceEncoderDecoder):
+  """An encoder that augments a base encoder with a disable flag.
+
+  This encoder encodes event sequences consisting of tuples where the first
+  element is a disable flag. When set, the encoding consists of a 1 followed by
+  a zero-encoding the size of the base encoder's input. When unset, the encoding
+  consists of a 0 followed by the base encoder's encoding.
+  """
+
+  def __init__(self, encoder):
+    """Initialize an OptionalEventSequenceEncoder object.
+
+    Args:
+      encoder: The base EventSequenceEncoderDecoder to use.
+    """
+    self._encoder = encoder
+
+  @property
+  def input_size(self):
+    return 1 + self._encoder.input_size
+
+  @property
+  def num_classes(self):
+    raise NotImplementedError
+
+  @property
+  def default_event_label(self):
+    raise NotImplementedError
+
+  def events_to_input(self, events, position):
+    # The event sequence is a list of tuples where the first element is a
+    # disable flag.
+    disable, _ = events[position]
+    if disable:
+      return [1.0] + [0.0] * self._encoder.input_size
+    else:
+      return [0.0] + self._encoder.events_to_input(
+          [event for _, event in events], position)
+
+  def events_to_label(self, events, position):
+    raise NotImplementedError
+
+  def class_index_to_event(self, class_index, events):
+    raise NotImplementedError
+
+
 class MultipleEventSequenceEncoder(EventSequenceEncoderDecoder):
   """An encoder that concatenates multiple component encoders.
 
