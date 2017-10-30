@@ -105,6 +105,10 @@ py_library(
         "evaluation_images",
     ],
     srcs_version = "PY2AND3",
+    visibility = [
+        "//magenta/models/image_stylization:__subpackages__",
+        "//magenta/models/arbitrary_image_stylization:__subpackages__",
+    ],
     deps = [
         ":imagenet_data",
         # numpy dep
@@ -119,6 +123,10 @@ py_library(
     name = "learning",
     srcs = ["learning.py"],
     srcs_version = "PY2AND3",
+    visibility = [
+        "//magenta/models/image_stylization:__subpackages__",
+        "//magenta/models/arbitrary_image_stylization:__subpackages__",
+    ],
     deps = [
         ":vgg",
         # numpy dep
@@ -130,6 +138,10 @@ py_library(
     name = "model",
     srcs = [
         "model.py",
+    ],
+    visibility = [
+        "//magenta/models/image_stylization:__subpackages__",
+        "//magenta/models/arbitrary_image_stylization:__subpackages__",
     ],
     srcs_version = "PY2AND3",
     deps = [
@@ -144,6 +156,10 @@ py_library(
         "ops.py",
     ],
     srcs_version = "PY2AND3",
+    visibility = [
+        "//magenta/models/image_stylization:__subpackages__",
+        "//magenta/models/arbitrary_image_stylization:__subpackages__",
+    ],
     deps = [
         # tensorflow dep
     ],
@@ -155,6 +171,10 @@ py_library(
         "vgg.py",
     ],
     srcs_version = "PY2AND3",
+    visibility = [
+        "//magenta/models/image_stylization:__subpackages__",
+        "//magenta/models/arbitrary_image_stylization:__subpackages__",
+    ],
     deps = [
         # tensorflow dep
     ],

@@ -14,6 +14,9 @@
 
 """Imports objects from music modules into the top-level music namespace."""
 
+from magenta.music.abc_parser import parse_abc_tunebook
+from magenta.music.abc_parser import parse_abc_tunebook_file
+
 from magenta.music.chord_symbols_lib import chord_symbol_bass
 from magenta.music.chord_symbols_lib import chord_symbol_pitches
 from magenta.music.chord_symbols_lib import chord_symbol_quality
