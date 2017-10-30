@@ -150,16 +150,12 @@ class StretchPipeline(NoteSequencePipeline):
 class TranspositionPipeline(NoteSequencePipeline):
   """Creates transposed versions of the input NoteSequence."""
 
-  def __init__(self, transposition_range, ignore_out_of_range_notes=False,
-               min_pitch=constants.MIN_MIDI_PITCH,
+  def __init__(self, transposition_range, min_pitch=constants.MIN_MIDI_PITCH,
                max_pitch=constants.MAX_MIDI_PITCH, name=None):
     """Creates a TranspositionPipeline.
 
     Args:
       transposition_range: Collection of integer pitch steps to transpose.
-      ignore_out_of_range_notes: If True, transpositions will drop notes with
-          out-of-range pitches. If False, these transpositions will be dropped
-          in their entirety.
       min_pitch: Integer pitch value below which notes will be considered
           invalid.
       max_pitch: Integer pitch value above which notes will be considered
@@ -168,20 +164,21 @@ class TranspositionPipeline(NoteSequencePipeline):
     """
     super(TranspositionPipeline, self).__init__(name=name)
     self._transposition_range = transposition_range
-    self._ignore_out_of_range_notes = ignore_out_of_range_notes
     self._min_pitch = min_pitch
     self._max_pitch = max_pitch
 
   def transform(self, sequence):
     stats = dict([(state_name, statistics.Counter(state_name)) for state_name in
                   ['skipped_due_to_range_exceeded',
-                   'notes_dropped_due_to_range_exceeded',
                    'transpositions_generated']])
 
-    for text_annotation in sequence.text_annotations:
-      if text_annotation.annotation_type == CHORD_SYMBOL:
-        tf.logging.warn('Chord symbols ignored by TranspositionPipeline.')
-        break
+    if sequence.key_signatures:
+      tf.logging.warn('Key signatures ignored by TranspositionPipeline.')
+    if any(note.pitch_name for note in sequence.notes):
+      tf.logging.warn('Pitch names ignored by TranspositionPipeline.')
+    if any(ta.annotation_type == CHORD_SYMBOL
+           for ta in sequence.text_annotations):
+      tf.logging.warn('Chord symbols ignored by TranspositionPipeline.')
 
     transposed = []
     for amount in self._transposition_range:
@@ -198,16 +195,10 @@ class TranspositionPipeline(NoteSequencePipeline):
   def _transpose(self, ns, amount, stats):
     """Transposes a note sequence by the specified amount."""
     ts = copy.deepcopy(ns)
-    del ts.notes[:]
-    for note in copy.deepcopy(ns.notes):
+    for note in ts.notes:
       if not note.is_drum:
         note.pitch += amount
         if note.pitch < self._min_pitch or note.pitch > self._max_pitch:
-          if self._ignore_out_of_range_notes:
-            stats['notes_dropped_due_to_range_exceeded'].increment()
-            continue
-          else:
-            stats['skipped_due_to_range_exceeded'].increment()
-            return None
-      ts.notes.extend([note])
+          stats['skipped_due_to_range_exceeded'].increment()
+          return None
     return ts
