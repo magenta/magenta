@@ -128,3 +128,28 @@ py_binary(
         # tensorflow dep
     ],
 )
+
+py_binary(
+    name = "onsets_frames_transcription_create_dataset",
+    srcs = ["onsets_frames_transcription_create_dataset.py"],
+    srcs_version = "PY2AND3",
+    visibility = ["//magenta/tools/pip:__subpackages__"],
+    deps = [
+        "//magenta",
+        # tensorflow dep
+        # librosa dep
+    ],
+)
+
+py_test(
+    name = "onsets_frames_transcription_create_dataset_test",
+    srcs = ["onsets_frames_transcription_create_dataset_test.py"],
+    srcs_version = "PY2AND3",
+    deps = [
+        ":onsets_frames_transcription_create_dataset",
+        "//magenta",
+        # tensorflow dep
+        # numpy dep
+    ],
+)
+
