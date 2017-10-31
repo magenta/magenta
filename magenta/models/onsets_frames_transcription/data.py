@@ -49,7 +49,7 @@ BATCH_QUEUE_CAPACITY_SEQUENCES = 1000
 
 # This is the number of threads that take the records from the reader(s),
 # load the audio, create the spectrograms, and put them into the batch queue.
-NUM_BATCH_THREADS = 1
+NUM_BATCH_THREADS = 8
 
 
 def hparams_frame_size(hparams):
