@@ -19,6 +19,7 @@ py_library(
     srcs = ["model.py"],
     srcs_version = "PY2AND3",
     deps = [
+        ":constants",
         "//magenta",
         # tensorflow dep
         # slim dep
@@ -69,6 +70,7 @@ py_library(
     deps = [
         "//magenta",
         ":data",
+        ":infer_util",
         ":model",
         "@pretty_midi//:pretty_midi",
         # mir_eval dep
