@@ -74,11 +74,11 @@ CONSOLE_SCRIPTS = [
     'magenta.models.nsynth.wavenet.nsynth_generate',
     'magenta.models.nsynth.wavenet.nsynth_save_embeddings',
     'magenta.models.onsets_frames_transcription.'
-        'onsets_frames_transcription_create_dataset',
+    'onsets_frames_transcription_create_dataset',
     'magenta.models.onsets_frames_transcription.'
-        'onsets_frames_transcription_infer',
+    'onsets_frames_transcription_infer',
     'magenta.models.onsets_frames_transcription.'
-        'onsets_frames_transcription_train',
+    'onsets_frames_transcription_train',
     'magenta.models.performance_rnn.performance_rnn_create_dataset',
     'magenta.models.performance_rnn.performance_rnn_generate',
     'magenta.models.performance_rnn.performance_rnn_train',
