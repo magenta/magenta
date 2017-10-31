@@ -85,5 +85,10 @@ sh_binary(
         # NSynth
         "//magenta/models/nsynth/wavenet:nsynth_generate",
         "//magenta/models/nsynth/wavenet:nsynth_save_embeddings",
+
+        # Onsets and Frames Transcription
+        "//magenta/models/onsets_frames_transcription:onsets_frames_transcription_create_dataset",
+        "//magenta/models/onsets_frames_transcription:onsets_frames_transcription_train",
+        "//magenta/models/onsets_frames_transcription:onsets_frames_transcription_infer",
     ],
 )

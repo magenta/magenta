@@ -111,6 +111,7 @@ py_binary(
     name = "onsets_frames_transcription_infer",
     srcs = ["onsets_frames_transcription_infer.py"],
     srcs_version = "PY2AND3",
+    visibility = ["//magenta/tools/pip:__subpackages__"],
     deps = [
         "//magenta",
         ":constants",
@@ -129,6 +130,7 @@ py_binary(
     name = "onsets_frames_transcription_train",
     srcs = ["onsets_frames_transcription_train.py"],
     srcs_version = "PY2AND3",
+    visibility = ["//magenta/tools/pip:__subpackages__"],
     deps = [
         ":model",
         ":train_util",
