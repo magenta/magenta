@@ -113,10 +113,15 @@ py_binary(
     srcs_version = "PY2AND3",
     deps = [
         "//magenta",
+        ":constants",
+        ":data",
+        ":infer_util",
+        ":model",
+        # librosa dep
         # numpy dep
         # scipy dep
-        # tensorflow dep
         # slim dep
+        # tensorflow dep
     ],
 )
 
@@ -154,4 +159,3 @@ py_test(
         # numpy dep
     ],
 )
-

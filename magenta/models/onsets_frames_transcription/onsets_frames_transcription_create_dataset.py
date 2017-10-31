@@ -295,8 +295,9 @@ def generate_test_set():
   with tf.python_io.TFRecordWriter(test_output_name) as writer:
     for pair in test_file_pairs:
       print(pair)
-      # load the wav data
-      wav_data = tf.gfile.Open(pair[0]).read()
+      # load the wav data and resample it.
+      samples = audio_io.load_audio(pair[0], FLAGS.sample_rate)
+      wav_data = audio_io.samples_to_wav_data(samples, FLAGS.sample_rate)
 
       # load the midi data and convert to a notesequence
       midi_data = tf.gfile.Open(pair[1]).read()
