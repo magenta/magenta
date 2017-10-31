@@ -31,17 +31,15 @@ import tensorflow as tf
 import tensorflow.contrib.slim as slim
 
 from magenta.common import tf_utils
-from magenta.models.onsets_frames_transcription_infer import constants
-from magenta.models.onsets_frames_transcription_infer import data
-from magenta.models.onsets_frames_transcription_infer import infer_util
-from magenta.models.onsets_frames_transcription_infer import model
+from magenta.models.onsets_frames_transcription import constants
+from magenta.models.onsets_frames_transcription import data
+from magenta.models.onsets_frames_transcription import infer_util
+from magenta.models.onsets_frames_transcription import model
 from magenta.music import midi_io
 
 
 FLAGS = tf.app.flags.FLAGS
 
-tf.app.flags.DEFINE_string('master', 'local',
-                           'BNS name of the TensorFlow runtime to use.')
 tf.app.flags.DEFINE_string(
     'acoustic_run_dir', None,
     'Path to look for acoustic checkpoints. Should contain subdir `train`.')
@@ -53,7 +51,8 @@ tf.app.flags.DEFINE_string(
     'examples_path', None,
     'Path to TFRecord of test examples.')
 tf.app.flags.DEFINE_string(
-    'run_dir', None, 'Path to store output midi files and summary events.')
+    'run_dir', '~/tmp/onsets_frames/infer',
+    'Path to store output midi files and summary events.')
 tf.app.flags.DEFINE_string(
     'hparams',
     'onset_mode=length_ms,onset_length=32',
@@ -70,6 +69,10 @@ tf.app.flags.DEFINE_integer(
 tf.app.flags.DEFINE_boolean(
     'require_onset', True,
     'If set, require an onset prediction for a new note to start.')
+tf.app.flags.DEFINE_string(
+    'log', 'INFO',
+    'The threshold for what messages will be logged: '
+    'DEBUG, INFO, WARN, ERROR, or FATAL.')
 
 
 def model_inference(acoustic_checkpoint, hparams, examples_path, run_dir):
@@ -93,9 +96,7 @@ def model_inference(acoustic_checkpoint, hparams, examples_path, run_dir):
           examples_path=examples_path,
           hparams=hparams,
           is_training=False,
-          split_length=0,
-          truncated_length=truncated_length,
-          include_note_sequences=True)
+          truncated_length=truncated_length)
 
       _, _, data_labels, acoustic_logits, _ = model.get_model(
           acoustic_data_provider, hparams, is_training=False)
@@ -132,7 +133,7 @@ def model_inference(acoustic_checkpoint, hparams, examples_path, run_dir):
 
     scaffold = tf.train.Scaffold(init_fn=init_fn)
     session_creator = tf.train.ChiefSessionCreator(
-        scaffold=scaffold, master=FLAGS.master)
+        scaffold=scaffold)
     with tf.train.MonitoredSession(session_creator=session_creator) as sess:
       tf.logging.info('running session')
       summary_writer = tf.summary.FileWriter(
@@ -237,9 +238,7 @@ def model_inference(acoustic_checkpoint, hparams, examples_path, run_dir):
 
 
 def main(unused_argv):
-  tf.app.flags.mark_flags_as_required([
-      'acoustic_run_dir', 'examples_path'
-  ])
+  tf.logging.set_verbosity(FLAGS.log)
 
   if FLAGS.acoustic_checkpoint_filename:
     acoustic_checkpoint = os.path.join(
