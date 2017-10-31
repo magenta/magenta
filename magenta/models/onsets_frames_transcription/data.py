@@ -180,8 +180,8 @@ def preprocess_sequence(sequence_tensor):
   return sequence
 
 
-def transform_wav_data_op(wav_data_tensor, sequence_tensor, hparams,
-                          is_training, jitter_amount_sec):
+def transform_wav_data_op(wav_data_tensor, hparams, is_training,
+                          jitter_amount_sec):
   """Transforms wav data."""
   def transform_wav_data(wav_data):
     """Transforms wav data."""
@@ -425,7 +425,6 @@ def _preprocess_data(sequence, audio, hparams, is_training):
 
   transformed_wav = transform_wav_data_op(
       audio,
-      sequence,
       hparams=hparams,
       is_training=is_training,
       jitter_amount_sec=wav_jitter_amount_ms / 1000.)
