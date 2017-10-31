@@ -87,10 +87,11 @@ class EncoderPipeline(pipeline.Pipeline):
       control_sequence = zip(*control_sequences)
       if self._optional_conditioning:
         # Create two copies, one with and one without conditioning.
-        encoded = [self._encoder_decoder.encode(
-                       zip([disable] * len(control_sequence), control_sequence),
-                       performance)
-                   for disable in [False, True]]
+        encoded = [
+            self._encoder_decoder.encode(
+                zip([disable] * len(control_sequence), control_sequence),
+                performance)
+            for disable in [False, True]]
       else:
         encoded = [self._encoder_decoder.encode(
             control_sequence, performance)]
