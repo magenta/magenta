@@ -146,7 +146,7 @@ def load_batch(files, sample_length=64000):
         padded[:data.shape[0]] = data
       batch_data[i] = padded
   # Return arrays
-  batch_data = np.array(batch_data)
+  batch_data = np.vstack(batch_data)
   return batch_data
 
 
@@ -184,15 +184,21 @@ def synthesize(encodings,
     sess.run(net["init_ops"])
 
     # Regenerate the audio file sample by sample
-    audio_batch = np.zeros((batch_size, total_length,), dtype=np.float32)
+    audio_batch = np.zeros(
+        (
+            batch_size,
+            total_length,
+        ), dtype=np.float32)
     audio = np.zeros([batch_size, 1])
 
     for sample_i in range(total_length):
       enc_i = sample_i // hop_length
       pmf = sess.run(
           [net["predictions"], net["push_ops"]],
-          feed_dict={net["X"]: audio,
-                     net["encoding"]: encodings[:, enc_i, :]})[0]
+          feed_dict={
+              net["X"]: audio,
+              net["encoding"]: encodings[:, enc_i, :]
+          })[0]
       sample_bin = sample_categorical(pmf)
       audio = utils.inv_mu_law_numpy(sample_bin - 128)
       audio_batch[:, sample_i] = audio[:, 0]
