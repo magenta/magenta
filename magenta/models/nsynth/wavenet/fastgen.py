@@ -101,6 +101,7 @@ def encode(wav_data, checkpoint_path, sample_length=64000):
 
   # Load up the model for encoding and find the encoding of "wav_data"
   session_config = tf.ConfigProto(allow_soft_placement=True)
+  session_config.gpu_options.allow_growth = True
   with tf.Graph().as_default(), tf.Session(config=session_config) as sess:
     hop_length = Config().ae_hop_length
     wav_data, sample_length = utils.trim_for_encoding(wav_data, sample_length,
@@ -175,6 +176,7 @@ def synthesize(encodings,
   total_length = encoding_length * hop_length
 
   session_config = tf.ConfigProto(allow_soft_placement=True)
+  session_config.gpu_options.allow_growth = True
   with tf.Graph().as_default(), tf.Session(config=session_config) as sess:
     net = load_fastgen_nsynth(batch_size=batch_size)
     saver = tf.train.Saver()
