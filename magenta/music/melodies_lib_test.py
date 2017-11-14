@@ -173,7 +173,7 @@ class MelodiesLibTest(tf.test.TestCase):
     self.assertEqual(expected, list(melody))
 
   def testSquashAllNotesOff(self):
-    events = [NO_EVENT, NOTE_OFF, NO_EVENT, NO_EVENT]
+    events = [NO_EVENT, NO_EVENT, NO_EVENT, NO_EVENT]
     melody = melodies_lib.Melody(events)
     melody.squash(min_note=12 * 4, max_note=12 * 7, transpose_to_key=0)
     self.assertEqual(events, list(melody))
@@ -646,6 +646,25 @@ class MelodiesLibTest(tf.test.TestCase):
     expected = melodies_lib.Melody([60, 62, 64, 66, 68, 70,
                                     72, 70, 68, 66, 64, 62])
     self.assertEqual(expected, melody)
+
+  def testSlice(self):
+    testing_lib.add_track_to_sequence(
+        self.note_sequence, 0,
+        [(12, 100, 1, 3), (11, 100, 5, 7), (13, 100, 9, 10)])
+    quantized_sequence = sequences_lib.quantize_note_sequence(
+        self.note_sequence, steps_per_quarter=1)
+
+    melody = melodies_lib.Melody()
+    melody.from_quantized_sequence(quantized_sequence,
+                                   search_start_step=0, instrument=0,
+                                   ignore_polyphonic_notes=False)
+    expected = [NO_EVENT, 12, NO_EVENT, NOTE_OFF, NO_EVENT, 11, NO_EVENT,
+                NOTE_OFF, NO_EVENT, 13]
+    self.assertEqual(expected, list(melody))
+
+    expected_slice = [NO_EVENT, NO_EVENT, NO_EVENT, 11, NO_EVENT, NOTE_OFF,
+                      NO_EVENT]
+    self.assertEqual(expected_slice, list(melody[2:-1]))
 
 
 if __name__ == '__main__':
