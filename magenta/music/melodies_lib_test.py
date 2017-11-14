@@ -650,7 +650,7 @@ class MelodiesLibTest(tf.test.TestCase):
   def testSlice(self):
     testing_lib.add_track_to_sequence(
         self.note_sequence, 0,
-        [(12, 100, 1, 3), (11, 100, 5, 8)])
+        [(12, 100, 1, 3), (11, 100, 5, 7), (13, 100, 9, 10)])
     quantized_sequence = sequences_lib.quantize_note_sequence(
         self.note_sequence, steps_per_quarter=1)
 
@@ -659,10 +659,11 @@ class MelodiesLibTest(tf.test.TestCase):
                                    search_start_step=0, instrument=0,
                                    ignore_polyphonic_notes=False)
     expected = [NO_EVENT, 12, NO_EVENT, NOTE_OFF, NO_EVENT, 11, NO_EVENT,
-                NO_EVENT]
+                NOTE_OFF, NO_EVENT, 13]
     self.assertEqual(expected, list(melody))
 
-    expected_slice = [NO_EVENT, NO_EVENT, NO_EVENT, 11, NO_EVENT]
+    expected_slice = [NO_EVENT, NO_EVENT, NO_EVENT, 11, NO_EVENT, NOTE_OFF,
+                      NO_EVENT]
     self.assertEqual(expected_slice, list(melody[2:-1]))
 
 
