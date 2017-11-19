@@ -40,7 +40,7 @@ tf.app.flags.DEFINE_integer("gpu_number", 0, "Number of the gpu to use. "
 
 
 def main(unused_argv=None):
-  os.environ["CUDA_VISIBLE_DEVICES"]=str(FLAGS.gpu_number)
+  os.environ["CUDA_VISIBLE_DEVICES"] = str(FLAGS.gpu_number)
   source_path = utils.shell_path(FLAGS.source_path)
   checkpoint_path = utils.shell_path(FLAGS.checkpoint_path)
   save_path = utils.shell_path(FLAGS.save_path)
