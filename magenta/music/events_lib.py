@@ -180,18 +180,17 @@ class SimpleEventSequence(EventSequence):
     """
     return iter(self._events)
 
-  def __getitem__(self, i):
-    """Returns the event at the given index."""
-    return self._events[i]
-
-  def __getslice__(self, i, j):
-    """Returns this sequence restricted to events in the given slice range."""
-    i = min(max(i, 0), len(self))
-    return type(self)(pad_event=self._pad_event,
-                      events=self._events[i:j],
-                      start_step=self.start_step + i,
-                      steps_per_bar=self.steps_per_bar,
-                      steps_per_quarter=self.steps_per_quarter)
+  def __getitem__(self, key):
+    """Returns the slice or individual item."""
+    if isinstance(key, int):
+      return self._events[key]
+    elif isinstance(key, slice):
+      events = self._events.__getitem__(key)
+      return type(self)(pad_event=self._pad_event,
+                        events=events,
+                        start_step=self.start_step + (key.start or 0),
+                        steps_per_bar=self.steps_per_bar,
+                        steps_per_quarter=self.steps_per_quarter)
 
   def __len__(self):
     """How many events are in this SimpleEventSequence.

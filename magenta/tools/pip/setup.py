@@ -50,9 +50,9 @@ REQUIRED_PACKAGES = [
 ]
 
 if gpu_mode:
-  REQUIRED_PACKAGES.append('tensorflow-gpu >= 1.1.0')
+  REQUIRED_PACKAGES.append('tensorflow-gpu >= 1.4.0')
 else:
-  REQUIRED_PACKAGES.append('tensorflow >= 1.1.0')
+  REQUIRED_PACKAGES.append('tensorflow >= 1.4.0')
 
 CONSOLE_SCRIPTS = [
     'magenta.interfaces.midi.magenta_midi',

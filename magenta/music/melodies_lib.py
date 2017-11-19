@@ -118,8 +118,15 @@ class Melody(events_lib.SimpleEventSequence):
     for event in events:
       if not MIN_MELODY_EVENT <= event <= MAX_MELODY_EVENT:
         raise ValueError('Melody event out of range: %d' % event)
+    # Replace MELODY_NOTE_OFF events with MELODY_NO_EVENT before first note.
+    cleaned_events = list(events)
+    for i, e in enumerate(events):
+      if e not in (MELODY_NO_EVENT, MELODY_NOTE_OFF):
+        break
+      cleaned_events[i] = MELODY_NO_EVENT
+
     super(Melody, self)._from_event_list(
-        events, start_step=start_step, steps_per_bar=steps_per_bar,
+        cleaned_events, start_step=start_step, steps_per_bar=steps_per_bar,
         steps_per_quarter=steps_per_quarter)
 
   def _add_note(self, pitch, start_step, end_step):
