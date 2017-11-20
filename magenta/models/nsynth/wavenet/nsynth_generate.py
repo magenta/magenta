@@ -35,8 +35,8 @@ tf.app.flags.DEFINE_integer("batch_size", 1, "Number of samples per a batch.")
 tf.app.flags.DEFINE_string("log", "INFO",
                            "The threshold for what messages will be logged."
                            "DEBUG, INFO, WARN, ERROR, or FATAL.")
-tf.app.flags.DEFINE_integer("gpu_number", 0, "Number of the gpu to use. "
-                            "For multigpu generation).")
+tf.app.flags.DEFINE_integer("gpu_number", 0,
+                            "Number of the gpu to use for multigpu generation.")
 
 
 def main(unused_argv=None):
