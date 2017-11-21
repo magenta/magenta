@@ -94,6 +94,7 @@ def samples_to_wav_data(samples, sample_rate):
   scipy.io.wavfile.write(wav_io, sample_rate, float_samples_to_int16(samples))
   return wav_io.getvalue()
 
+
 def crop_samples(samples, sample_rate, crop_beginning_seconds,
                  total_length_seconds):
   """Crop WAV data.
