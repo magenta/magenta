@@ -31,10 +31,6 @@ class AudioIOReadException(AudioIOException):
   pass
 
 
-class AudioIOWriteException(AudioIOException):
-  pass
-
-
 class AudioIODataTypeException(AudioIOException):
   pass
 
@@ -97,6 +93,28 @@ def samples_to_wav_data(samples, sample_rate):
   wav_io = six.BytesIO()
   scipy.io.wavfile.write(wav_io, sample_rate, float_samples_to_int16(samples))
   return wav_io.getvalue()
+
+
+def crop_samples(samples, sample_rate, crop_beginning_seconds,
+                 total_length_seconds):
+  """Crop WAV data.
+
+  Args:
+    samples: Numpy Array containing samples.
+    sample_rate: The sample rate at which to interpret the samples.
+    crop_beginning_seconds: How many seconds to crop from the beginning of the
+        audio.
+    total_length_seconds: The desired duration of the audio. After cropping the
+        beginning of the audio, any audio longer than this value will be
+        deleted.
+
+  Returns:
+    A cropped version of the samples.
+  """
+  samples_to_crop = int(crop_beginning_seconds * sample_rate)
+  total_samples = int(total_length_seconds * sample_rate)
+  cropped_samples = samples[samples_to_crop:(samples_to_crop + total_samples)]
+  return cropped_samples
 
 
 def crop_wav_data(wav_data, sample_rate, crop_beginning_seconds,
