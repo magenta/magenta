@@ -228,12 +228,12 @@ def run(config_map):
   """Load model params, save config file and start trainer."""
 
   if not FLAGS.run_dir:
-    raise ValueError('Invalid run directory: %s' % FLAGS.run_dir)  
+    raise ValueError('Invalid run directory: %s' % FLAGS.run_dir)
   run_dir = os.path.expanduser(FLAGS.run_dir)
   train_dir = os.path.join(run_dir, 'train')
 
   if FLAGS.config not in config_map:
-    raise ValueError('Invalid config: %s' % config)
+    raise ValueError('Invalid config: %s' % FLAGS.config)
   config = config_map[FLAGS.config]
   if FLAGS.hparams:
     config.hparams.parse(FLAGS.hparams)
@@ -265,8 +265,9 @@ def run(config_map):
         task=FLAGS.task,
         num_data_threads=FLAGS.num_data_threads)
 
+
 def main(unused_argv):
-    run(configs.config_map)
+  run(configs.config_map)
 
 
 def console_entry_point():

@@ -23,11 +23,10 @@ import functools
 import numpy as np
 import tensorflow as tf
 
+from magenta.models.music_vae import data
 from magenta.music import constants
 from magenta.music import testing_lib
 from magenta.protobuf import music_pb2
-
-from magenta.models.music_vae import data
 
 NO_EVENT = constants.MELODY_NO_EVENT
 NOTE_OFF = constants.MELODY_NOTE_OFF
