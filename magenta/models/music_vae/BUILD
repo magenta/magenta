@@ -40,6 +40,7 @@ py_library(
     deps = [
         "//magenta",
         # numpy dep
+        # recordio dep
         # tensorflow dep
     ],
 )
@@ -96,7 +97,7 @@ py_library(
 
 py_binary(
     name = "music_vae_train",
-    srcs = ["train.py"],
+    srcs = ["music_vae_train.py"],
     srcs_version = "PY2AND3",
     visibility = [
         # internal model:music_vae
