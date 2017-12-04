@@ -28,7 +28,6 @@ import random
 import numpy as np
 import tensorflow as tf
 
-from tensorflow.python.lib.io import tf_record
 import magenta.music as mm
 from magenta.music import sequences_lib
 from magenta.protobuf import music_pb2
@@ -753,7 +752,7 @@ def count_examples(examples_path, note_sequence_converter):
 
   for f in filenames:
     tf.logging.info('Counting examples in %s.', f)
-    with tf_record.tf_record_iterator(f) as reader:
+    with tf.python_io.tf_record_iterator(f) as reader:
       for note_sequence_str in reader:
         note_sequence = music_pb2.NoteSequence.FromString(note_sequence_str)
         seqs, _ = note_sequence_converter.to_tensors(note_sequence)
