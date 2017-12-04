@@ -1,10 +1,10 @@
-"""Cofnigurations for MusicVAE models."""
+"""Configurations for MusicVAE models."""
 import collections
 
-from tensorflow.contrib.training import HParams
 from magenta.models.music_vae import data
 from magenta.models.music_vae import lstm_models
 from magenta.models.music_vae.base_model import MusicVAE
+from tensorflow.contrib.training import HParams
 
 
 class Config(collections.namedtuple(
@@ -16,13 +16,10 @@ class Config(collections.namedtuple(
     return self._asdict()
 
 
-config_map = {}
-
-
-def update_config(config, update_map):
-  config_map = config.values()
-  config_map.update(update_map)
-  return Config(**config_map)
+def update_config(config, update_dict):
+  config_dict = config.values()
+  config_dict.update(update_dict)
+  return Config(**config_dict)
 
 
 def merge_hparams(hp1, hp2):
@@ -30,6 +27,10 @@ def merge_hparams(hp1, hp2):
   hparams_map = hp1.values()
   hparams_map.update(hp2.values())
   return HParams(**hparams_map)
+
+
+config_map = {}
+
 
 # Melody
 config_map['cat-mel_2bar_small'] = Config(
@@ -104,7 +105,7 @@ config_map['cat-mel_2bar_big'] = Config(
 # Drums
 config_map['cat-drums_2bar_small'] = Config(
     model=MusicVAE(lstm_models.BidirectionalLstmEncoder(),
-                 lstm_models.CategoricalLstmDecoder()),
+                   lstm_models.CategoricalLstmDecoder()),
     hparams=merge_hparams(
         lstm_models.get_default_hparams(),
         HParams(
@@ -126,7 +127,7 @@ config_map['cat-drums_2bar_small'] = Config(
 
 config_map['cat-drums_2bar_med'] = Config(
     model=MusicVAE(lstm_models.BidirectionalLstmEncoder(),
-                 lstm_models.CategoricalLstmDecoder()),
+                   lstm_models.CategoricalLstmDecoder()),
     hparams=merge_hparams(
         lstm_models.get_default_hparams(),
         HParams(

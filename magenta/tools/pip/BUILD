@@ -49,6 +49,10 @@ sh_binary(
         "//magenta/models/melody_rnn:melody_rnn_generate",
         "//magenta/models/melody_rnn:melody_rnn_train",
 
+        # Music VAE  Model and Scripts
+        "//magenta/models/music_vae",
+        "//magenta/models/music_vae:music_vae_train",
+
         # Performance RNN Model and Scripts
         "//magenta/models/performance_rnn",
         "//magenta/models/performance_rnn:performance_rnn_create_dataset",

@@ -420,7 +420,7 @@ class OneHotMelodyConverter(LegacyEventListOneHotConverter):
                max_pitch=PIANO_MAX_MIDI_PITCH, valid_programs=None,
                skip_polyphony=False, max_bars=None, slice_bars=None,
                gap_bars=1.0, steps_per_quarter=4, quarters_per_bar=4,
-               add_end_token=False,  pad_to_total_time=False,
+               add_end_token=False, pad_to_total_time=False,
                max_tensors_per_notesequence=5, presplit_on_time_changes=True):
     self._min_pitch = min_pitch
     self._max_pitch = max_pitch

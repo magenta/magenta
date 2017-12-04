@@ -12,9 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Imports Music VAE model."""
-from .base_model import MusicVAE
-from .base_model import BaseEncoder
 from .base_model import BaseDecoder
+from .base_model import BaseEncoder
+from .base_model import MusicVAE
 
 from .configs import Config
 from .configs import update_config

@@ -23,9 +23,9 @@ import abc
 import tensorflow as tf
 
 from magenta.common import flatten_maybe_padded_sequences
+from magenta.models.music_vae import base_model
 from tensorflow.python.framework import tensor_util
 from tensorflow.python.layers import core as layers_core
-from magenta.models.music_vae import base_model
 
 
 def rnn_cell(rnn_cell_size, dropout_keep_prob, attn_len=0):

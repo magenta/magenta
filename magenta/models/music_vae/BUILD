@@ -95,7 +95,7 @@ py_library(
 )
 
 py_binary(
-    name = "train",
+    name = "music_vae_train",
     srcs = ["train.py"],
     srcs_version = "PY2AND3",
     visibility = [
