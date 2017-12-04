@@ -28,6 +28,7 @@ from tensorflow.python.framework import tensor_util
 from tensorflow.python.layers import core as layers_core
 from tensorflow.python.util import nest as tf_nest
 
+
 def rnn_cell(rnn_cell_size, dropout_keep_prob, attn_len=0):
   """Builds an LSTMBlockCell based on the given parameters."""
   cells = []
