@@ -41,7 +41,7 @@ py_library(
         "//magenta",
         # numpy dep
         # recordio dep
-        # tensorflow dep
+        # tensorflow google dep
     ],
 )
 

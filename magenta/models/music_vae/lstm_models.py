@@ -26,7 +26,7 @@ from magenta.common import flatten_maybe_padded_sequences
 from magenta.models.music_vae import base_model
 from tensorflow.python.framework import tensor_util
 from tensorflow.python.layers import core as layers_core
-
+from tensorflow.python.util import nest as tf_nest
 
 def rnn_cell(rnn_cell_size, dropout_keep_prob, attn_len=0):
   """Builds an LSTMBlockCell based on the given parameters."""
@@ -47,8 +47,8 @@ def rnn_cell(rnn_cell_size, dropout_keep_prob, attn_len=0):
 
 def initial_cell_state_from_embedding(cell, z, batch_size, name=None):
   """Computes an initial RNN `cell` state from an embedding, `z`."""
-  flat_state_sizes = tf.nest.flatten(cell.state_size)
-  return tf.nest.pack_sequence_as(
+  flat_state_sizes = tf_nest.flatten(cell.state_size)
+  return tf_nest.pack_sequence_as(
       cell.zero_state(batch_size=batch_size, dtype=tf.float32),
       tf.split(
           tf.layers.dense(

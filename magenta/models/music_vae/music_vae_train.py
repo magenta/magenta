@@ -51,7 +51,7 @@ flags.DEFINE_integer(
     'Maximum number of checkpoints to keep in `train` mode or 0 for infinite.')
 flags.DEFINE_string(
     'mode', 'train',
-    'Which mode to use.')
+    'Which mode to use (`train` or `eval`).')
 flags.DEFINE_string(
     'config', '',
     'The name of the config to use.')
@@ -162,7 +162,7 @@ def train(train_dir,
 
       hooks.append(tf.train.LoggingTensorHook(logging_dict, every_n_iter=100))
       if num_steps:
-        hooks.append(tf.StopAtStepHook(last_step=num_steps))
+        hooks.append(tf.train.StopAtStepHook(last_step=num_steps))
 
       scaffold = tf.train.Scaffold(
           saver=tf.train.Saver(max_to_keep=checkpoints_to_keep))
@@ -231,6 +231,9 @@ def run(config_map):
     raise ValueError('Invalid run directory: %s' % FLAGS.run_dir)
   run_dir = os.path.expanduser(FLAGS.run_dir)
   train_dir = os.path.join(run_dir, 'train')
+
+  if FLAGS.mode not in ['train', 'eval']:
+    raise ValueError('Invalid mode: %s' % FLAGS.mode)
 
   if FLAGS.config not in config_map:
     raise ValueError('Invalid config: %s' % FLAGS.config)
