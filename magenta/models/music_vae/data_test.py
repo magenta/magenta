@@ -51,7 +51,7 @@ class BaseDataTest(object):
   def assertArraySetsEqual(self, lhs, rhs):
     def _np_sorted(arr_list):
       return sorted(arr_list, key=lambda x: x.tostring())
-    self.assertEquals(len(lhs), len(rhs))
+    self.assertEqual(len(lhs), len(rhs))
     for a, b in zip(_np_sorted(lhs), _np_sorted(rhs)):
       np.testing.assert_array_equal(a, b)
 
@@ -90,12 +90,12 @@ class BaseOneHotDataTest(BaseDataTest):
   def testUnslicedEndToken(self):
     orig_converter = self.converter_class(
         steps_per_quarter=1, slice_bars=None)
-    self.assertEquals(None, orig_converter.end_token)
+    self.assertEqual(None, orig_converter.end_token)
     converter = self.converter_class(
         steps_per_quarter=1, slice_bars=None, add_end_token=True)
-    self.assertEquals(orig_converter.input_depth + 1, converter.input_depth)
-    self.assertEquals(orig_converter.output_depth, converter.end_token)
-    self.assertEquals(orig_converter.output_depth + 1, converter.output_depth)
+    self.assertEqual(orig_converter.input_depth + 1, converter.input_depth)
+    self.assertEqual(orig_converter.output_depth, converter.end_token)
+    self.assertEqual(orig_converter.output_depth + 1, converter.output_depth)
 
     expected_unsliced_labels = [
         np.append(l, [converter.end_token])
@@ -193,22 +193,22 @@ class OneHotMelodyConverterTest(BaseOneHotDataTest, tf.test.TestCase):
   def testMaxOutputsPerNoteSequence(self):
     converter = data.OneHotMelodyConverter(
         steps_per_quarter=1, slice_bars=2, max_tensors_per_notesequence=2)
-    self.assertEquals(2, len(converter.to_tensors(self.sequence)[0]))
+    self.assertEqual(2, len(converter.to_tensors(self.sequence)[0]))
 
     converter.max_tensors_per_notesequence = 3
-    self.assertEquals(3, len(converter.to_tensors(self.sequence)[0]))
+    self.assertEqual(3, len(converter.to_tensors(self.sequence)[0]))
 
     converter.max_tensors_per_notesequence = 100
-    self.assertEquals(5, len(converter.to_tensors(self.sequence)[0]))
+    self.assertEqual(5, len(converter.to_tensors(self.sequence)[0]))
 
   def testIsTraining(self):
     converter = data.OneHotMelodyConverter(
         steps_per_quarter=1, slice_bars=2, max_tensors_per_notesequence=2)
     self.is_training = True
-    self.assertEquals(2, len(converter.to_tensors(self.sequence)[0]))
+    self.assertEqual(2, len(converter.to_tensors(self.sequence)[0]))
 
     converter.max_tensors_per_notesequence = None
-    self.assertEquals(5, len(converter.to_tensors(self.sequence)[0]))
+    self.assertEqual(5, len(converter.to_tensors(self.sequence)[0]))
 
   def testToNoteSequence(self):
     converter = data.OneHotMelodyConverter(
@@ -217,7 +217,7 @@ class OneHotMelodyConverterTest(BaseOneHotDataTest, tf.test.TestCase):
         filter_instrument(self.sequence, 0))
     sequences = converter.to_notesequences(output_tensors)
 
-    self.assertEquals(1, len(sequences))
+    self.assertEqual(1, len(sequences))
     expected_sequence = music_pb2.NoteSequence(ticks_per_quarter=220)
     expected_sequence.tempos.add(qpm=120)
     testing_lib.add_track_to_sequence(
@@ -272,22 +272,22 @@ class OneHotDrumsConverterTest(BaseOneHotDataTest, tf.test.TestCase):
   def testMaxOutputsPerNoteSequence(self):
     converter = data.OneHotDrumsConverter(
         steps_per_quarter=1, slice_bars=1, max_tensors_per_notesequence=2)
-    self.assertEquals(2, len(converter.to_tensors(self.sequence)[0]))
+    self.assertEqual(2, len(converter.to_tensors(self.sequence)[0]))
 
     converter.max_tensors_per_notesequence = 3
-    self.assertEquals(3, len(converter.to_tensors(self.sequence)[0]))
+    self.assertEqual(3, len(converter.to_tensors(self.sequence)[0]))
 
     converter.max_tensors_per_notesequence = 100
-    self.assertEquals(5, len(converter.to_tensors(self.sequence)[0]))
+    self.assertEqual(5, len(converter.to_tensors(self.sequence)[0]))
 
   def testIsTraining(self):
     converter = data.OneHotDrumsConverter(
         steps_per_quarter=1, slice_bars=1, max_tensors_per_notesequence=2)
     self.is_training = True
-    self.assertEquals(2, len(converter.to_tensors(self.sequence)[0]))
+    self.assertEqual(2, len(converter.to_tensors(self.sequence)[0]))
 
     converter.max_tensors_per_notesequence = None
-    self.assertEquals(5, len(converter.to_tensors(self.sequence)[0]))
+    self.assertEqual(5, len(converter.to_tensors(self.sequence)[0]))
 
   def testToNoteSequence(self):
     converter = data.OneHotDrumsConverter(
@@ -296,7 +296,7 @@ class OneHotDrumsConverterTest(BaseOneHotDataTest, tf.test.TestCase):
         filter_instrument(self.sequence, 1))
     sequences = converter.to_notesequences(output_tensors)
 
-    self.assertEquals(1, len(sequences))
+    self.assertEqual(1, len(sequences))
     expected_sequence = music_pb2.NoteSequence(ticks_per_quarter=220)
     expected_sequence.tempos.add(qpm=120)
     testing_lib.add_track_to_sequence(
@@ -420,7 +420,7 @@ class TrioConverterTest(BaseDataTest, tf.test.TestCase):
     output_tensors = np.concatenate([mel_oh, bass_oh, drums_oh], axis=-1)
 
     sequences = converter.to_notesequences([output_tensors])
-    self.assertEquals(1, len(sequences))
+    self.assertEqual(1, len(sequences))
 
     self.assertProtoEquals(
         """

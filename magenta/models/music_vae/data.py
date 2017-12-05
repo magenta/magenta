@@ -227,7 +227,7 @@ class BaseNoteSequenceConverter(object):
       if r[0]:
         results.extend(zip(*r))
     sampled_results = self._maybe_sample_outputs(results)
-    return zip(*sampled_results) if sampled_results else ([], [])
+    return list(zip(*sampled_results)) if sampled_results else ([], [])
 
   def to_notesequences(self, samples):
     """Python method that decodes samples into list of NoteSequences."""
@@ -576,8 +576,6 @@ class TrioConverter(BaseNoteSequenceConverter):
     BASS = 2
     DRUMS = 3
     INVALID = 4
-  _PROGRAM_MAP = dict([(i, InstrumentType.MEL) for i in MEL_PROGRAMS] +
-                      [(i, InstrumentType.BASS) for i in BASS_PROGRAMS])
 
   def __init__(
       self, slice_bars=None, gap_bars=2, max_bars=1024, steps_per_quarter=4,
@@ -601,6 +599,10 @@ class TrioConverter(BaseNoteSequenceConverter):
         self._melody_converter.output_depth,
         self._drums_converter.output_depth)
     output_depth = sum(self._split_output_depths)
+
+    self._program_map = dict(
+      [(i, TrioConverter.InstrumentType.MEL) for i in MEL_PROGRAMS] +
+      [(i, TrioConverter.InstrumentType.BASS) for i in BASS_PROGRAMS])
 
     super(TrioConverter, self).__init__(
         input_depth=output_depth,
@@ -637,7 +639,7 @@ class TrioConverter(BaseNoteSequenceConverter):
         continue
       inferred_type = (
           self.InstrumentType.DRUMS if note.is_drum else
-          self._PROGRAM_MAP.get(note.program, self.InstrumentType.INVALID))
+          self._program_map.get(note.program, self.InstrumentType.INVALID))
       if not instrument_type[i]:
         instrument_type[i] = inferred_type
       elif instrument_type[i] != inferred_type:
