@@ -61,29 +61,6 @@ config_map['cat-mel_2bar_small'] = Config(
     eval_examples_path=None,
 )
 
-config_map['cat-mel_2bar_med'] = Config(
-    model=MusicVAE(lstm_models.BidirectionalLstmEncoder(),
-                   lstm_models.CategoricalLstmDecoder()),
-    hparams=merge_hparams(
-        lstm_models.get_default_hparams(),
-        HParams(
-            batch_size=512,
-            max_seq_len=32,  # 2 bars w/ 16 steps per bar
-            z_size=512,
-            enc_rnn_size=[1024],
-            dec_rnn_size=[1024, 1024, 1024],
-        )),
-    note_sequence_augmenter=None,
-    note_sequence_converter=data.OneHotMelodyConverter(
-        valid_programs=data.MEL_PROGRAMS,
-        skip_polyphony=True,
-        max_bars=100,  # Truncate long melodies before slicing.
-        slice_bars=2,
-        steps_per_quarter=4),
-    train_examples_path=None,
-    eval_examples_path=None,
-)
-
 config_map['cat-mel_2bar_big'] = Config(
     model=MusicVAE(lstm_models.BidirectionalLstmEncoder(),
                    lstm_models.CategoricalLstmDecoder()),
@@ -119,28 +96,6 @@ config_map['cat-drums_2bar_small'] = Config(
             z_size=256,
             enc_rnn_size=[512],
             dec_rnn_size=[256, 256],
-        )),
-    note_sequence_augmenter=None,
-    note_sequence_converter=data.OneHotDrumsConverter(
-        max_bars=100,  # Truncate long drum sequences before slicing.
-        slice_bars=2,
-        steps_per_quarter=4,
-        binary_input=True),
-    train_examples_path=None,
-    eval_examples_path=None,
-)
-
-config_map['cat-drums_2bar_med'] = Config(
-    model=MusicVAE(lstm_models.BidirectionalLstmEncoder(),
-                   lstm_models.CategoricalLstmDecoder()),
-    hparams=merge_hparams(
-        lstm_models.get_default_hparams(),
-        HParams(
-            batch_size=512,
-            max_seq_len=32,  # 2 bars w/ 16 steps per bar
-            z_size=256,
-            enc_rnn_size=[1024],
-            dec_rnn_size=[512, 512, 512],
         )),
     note_sequence_augmenter=None,
     note_sequence_converter=data.OneHotDrumsConverter(
@@ -234,40 +189,8 @@ config_map['hiercat-trio_b16_h16_big'] = Config(
     eval_examples_path=None,
 )
 
-config_map['hiercat-trio_b16_h16_med'] = Config(
-    model=MusicVAE(
-        lstm_models.BidirectionalLstmEncoder(),
-        lstm_models.HierarchicalMultiOutLstmDecoder(
-            core_decoders=[
-                lstm_models.CategoricalLstmDecoder(),
-                lstm_models.CategoricalLstmDecoder(),
-                lstm_models.CategoricalLstmDecoder()],
-            output_depths=[
-                90,  # melody
-                90,  # bass
-                512,  # drums
-            ])),
-    hparams=merge_hparams(
-        lstm_models.get_default_hparams(),
-        HParams(
-            batch_size=256,
-            max_seq_len=256,
-            z_size=512,
-            enc_rnn_size=[1024, 1024],
-            dec_rnn_size=[1024],
-            hierarchical_output_sizes=[16],
-        )),
-    note_sequence_augmenter=None,
-    note_sequence_converter=data.TrioConverter(
-        steps_per_quarter=4,
-        slice_bars=16,
-        gap_bars=2),
-    train_examples_path=None,
-    eval_examples_path=None,
-)
-
-# 16-bar Models
-config_map['cat-mel_16bar_med'] = Config(
+# 16-bar Melody Models
+config_map['cat-mel_16bar_big'] = Config(
     model=MusicVAE(
         lstm_models.BidirectionalLstmEncoder(),
         lstm_models.CategoricalLstmDecoder()),
@@ -277,12 +200,11 @@ config_map['cat-mel_16bar_med'] = Config(
             batch_size=512,
             max_seq_len=256,
             z_size=512,
-            enc_rnn_size=[1024, 1024],
-            dec_rnn_size=[1024, 1024, 1024],
+            enc_rnn_size=[2048, 2048],
+            dec_rnn_size=[2048, 2048, 2048],
         )),
     note_sequence_augmenter=None,
     note_sequence_converter=data.OneHotMelodyConverter(
-        valid_programs=data.MEL_PROGRAMS,
         skip_polyphony=True,
         max_bars=100,  # Truncate long melodies before slicing.
         slice_bars=16,
@@ -291,7 +213,7 @@ config_map['cat-mel_16bar_med'] = Config(
     eval_examples_path=None,
 )
 
-config_map['hiercat-mel_16bar_med'] = Config(
+config_map['hiercat-mel_16bar_big'] = Config(
     model=MusicVAE(
         lstm_models.BidirectionalLstmEncoder(),
         lstm_models.HierarchicalMultiOutLstmDecoder(
@@ -303,8 +225,8 @@ config_map['hiercat-mel_16bar_med'] = Config(
             batch_size=512,
             max_seq_len=256,
             z_size=512,
-            enc_rnn_size=[1024, 1024],
-            dec_rnn_size=[1024],
+            enc_rnn_size=[2048, 2048],
+            dec_rnn_size=[1024, 1024],
             hierarchical_output_sizes=[16],
         )),
     note_sequence_augmenter=None,
