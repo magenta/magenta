@@ -230,7 +230,7 @@ def run(config_map, file_reader_class=tf.data.TFRecordDataset):
     file_reader_class: The tf.data.Dataset class to use for reading files.
 
   Raises:
-    ValueError if required flags are missing or invalid.
+    ValueError: if required flags are missing or invalid.
   """
   if not FLAGS.run_dir:
     raise ValueError('Invalid run directory: %s' % FLAGS.run_dir)
