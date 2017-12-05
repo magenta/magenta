@@ -224,7 +224,7 @@ def evaluate(train_dir,
         master=master)
 
 
-def run(config_map, file_reader_class=tf.data.TFRecordDataset),:
+def run(config_map, file_reader_class=tf.data.TFRecordDataset):
   """Load model params, save config file and start trainer.
 
   Args:

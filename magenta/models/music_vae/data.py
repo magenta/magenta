@@ -601,8 +601,8 @@ class TrioConverter(BaseNoteSequenceConverter):
     output_depth = sum(self._split_output_depths)
 
     self._program_map = dict(
-      [(i, TrioConverter.InstrumentType.MEL) for i in MEL_PROGRAMS] +
-      [(i, TrioConverter.InstrumentType.BASS) for i in BASS_PROGRAMS])
+        [(i, TrioConverter.InstrumentType.MEL) for i in MEL_PROGRAMS] +
+        [(i, TrioConverter.InstrumentType.BASS) for i in BASS_PROGRAMS])
 
     super(TrioConverter, self).__init__(
         input_depth=output_depth,
@@ -778,7 +778,7 @@ def get_dataset(config, file_reader_class=tf.data.TFRecordDataset,
   if is_training:
     random.shuffle(filenames)
   tf.logging.info('Reading examples from: %s', filenames)
-  reader = reader_class(filenames)
+  reader = file_reader_class(filenames)
 
   def _remove_pad_fn(padded_seq_1, padded_seq_2, length):
     return padded_seq_1[0:length], padded_seq_2[0:length], length
