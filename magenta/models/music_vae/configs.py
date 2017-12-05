@@ -4,7 +4,7 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-mport collections
+import collections
 
 from magenta.models.music_vae import data
 from magenta.models.music_vae import lstm_models
@@ -316,5 +316,3 @@ config_map['hiercat-mel_16bar_med'] = Config(
     train_examples_path=None,
     eval_examples_path=None,
 )
-
-

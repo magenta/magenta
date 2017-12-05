@@ -45,6 +45,7 @@ MEL_PROGRAMS = range(0, 31)  # piano, chromatic percussion, organ, guitar
 BASS_PROGRAMS = range(32, 39)
 ELECTRIC_BASS_PROGRAM = 33
 
+
 def _maybe_pad_seqs(seqs, dtype):
   """Pads sequences to match the longest and returns as a numpy array."""
   if not len(seqs):  # pylint:disable=g-explicit-length-test

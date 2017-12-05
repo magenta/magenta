@@ -112,8 +112,7 @@ def train(train_dir,
           master='',
           num_sync_workers=0,
           num_ps_tasks=0,
-          task=0,
-          num_data_threads=1):
+          task=0):
   """Train loop."""
   tf.gfile.MakeDirs(train_dir)
   is_chief = (task == 0)
@@ -182,8 +181,7 @@ def evaluate(train_dir,
              config,
              dataset,
              num_batches=None,
-             master='',
-             num_data_threads=1):
+             master=''):
   """Evaluate the model repeatedly."""
   tf.gfile.MakeDirs(eval_dir)
 
@@ -195,7 +193,7 @@ def evaluate(train_dir,
           config.note_sequence_converter) // config.hparams.batch_size
     eval_dataset = (
         dataset
-        .padded_batch(config.hparams.batch_size, eval_dataset.output_shapes)
+        .padded_batch(config.hparams.batch_size, dataset.output_shapes)
         .take(num_batches))
     iterator = eval_dataset.make_one_shot_iterator()
     input_sequence, output_sequence, sequence_length = iterator.get_next()
@@ -230,6 +228,9 @@ def run(config_map, file_reader_class=tf.data.TFRecordDataset):
   Args:
     config_map: Dictionary mapping configuration name to Config object.
     file_reader_class: The tf.data.Dataset class to use for reading files.
+
+  Raises:
+    ValueError if required flags are missing or invalid.
   """
   if not FLAGS.run_dir:
     raise ValueError('Invalid run directory: %s' % FLAGS.run_dir)
@@ -252,7 +253,9 @@ def run(config_map, file_reader_class=tf.data.TFRecordDataset):
     config.hparams.batch_size //= FLAGS.num_sync_workers
 
   dataset = data.get_dataset(
-      config, file_reader_class=file_reader_class, num_threads=num_data_threads,
+      config,
+      file_reader_class=file_reader_class,
+      num_threads=FLAGS.num_data_threads,
       is_training=True)
 
   if FLAGS.mode == 'eval':
@@ -263,8 +266,7 @@ def run(config_map, file_reader_class=tf.data.TFRecordDataset):
         config=config,
         dataset=dataset,
         num_batches=FLAGS.eval_num_batches,
-        master=FLAGS.master,
-        num_data_threads=FLAGS.num_data_threads)
+        master=FLAGS.master)
   elif FLAGS.mode == 'train':
     train(
         train_dir,
@@ -275,8 +277,7 @@ def run(config_map, file_reader_class=tf.data.TFRecordDataset):
         master=FLAGS.master,
         num_sync_workers=FLAGS.num_sync_workers,
         num_ps_tasks=FLAGS.num_ps_tasks,
-        task=FLAGS.task,
-        num_data_threads=FLAGS.num_data_threads)
+        task=FLAGS.task)
 
 
 def main(unused_argv):
