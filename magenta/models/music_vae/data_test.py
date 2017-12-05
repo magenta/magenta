@@ -435,11 +435,11 @@ class TrioConverterTest(BaseDataTest, tf.test.TestCase):
           velocity: 80
         >
         notes <
-          instrument: 2 pitch: 36 start_time: 0.0 end_time: 0.5 velocity: 80
+          instrument: 9 pitch: 36 start_time: 0.0 end_time: 0.5 velocity: 80
           is_drum: True
         >
         notes <
-          instrument: 2 pitch: 38 start_time: 2.0 end_time: 2.5 velocity: 80
+          instrument: 9 pitch: 38 start_time: 2.0 end_time: 2.5 velocity: 80
           is_drum: True
         >
         total_time: 4.0
