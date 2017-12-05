@@ -1,5 +1,10 @@
 """Configurations for MusicVAE models."""
-import collections
+
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import print_function
+
+mport collections
 
 from magenta.models.music_vae import data
 from magenta.models.music_vae import lstm_models
@@ -52,8 +57,8 @@ config_map['cat-mel_2bar_small'] = Config(
         max_bars=100,  # Truncate long melodies before slicing.
         slice_bars=2,
         steps_per_quarter=4),
-    train_examples_path='',
-    eval_examples_path='',
+    train_examples_path=None,
+    eval_examples_path=None,
 )
 
 config_map['cat-mel_2bar_med'] = Config(
@@ -75,8 +80,8 @@ config_map['cat-mel_2bar_med'] = Config(
         max_bars=100,  # Truncate long melodies before slicing.
         slice_bars=2,
         steps_per_quarter=4),
-    train_examples_path='',
-    eval_examples_path='',
+    train_examples_path=None,
+    eval_examples_path=None,
 )
 
 config_map['cat-mel_2bar_big'] = Config(
@@ -98,8 +103,8 @@ config_map['cat-mel_2bar_big'] = Config(
         max_bars=100,  # Truncate long melodies before slicing.
         slice_bars=2,
         steps_per_quarter=4),
-    train_examples_path='',
-    eval_examples_path='',
+    train_examples_path=None,
+    eval_examples_path=None,
 )
 
 # Drums
@@ -121,8 +126,8 @@ config_map['cat-drums_2bar_small'] = Config(
         slice_bars=2,
         steps_per_quarter=4,
         binary_input=True),
-    train_examples_path='',
-    eval_examples_path='',
+    train_examples_path=None,
+    eval_examples_path=None,
 )
 
 config_map['cat-drums_2bar_med'] = Config(
@@ -143,8 +148,8 @@ config_map['cat-drums_2bar_med'] = Config(
         slice_bars=2,
         steps_per_quarter=4,
         binary_input=True),
-    train_examples_path='',
-    eval_examples_path='',
+    train_examples_path=None,
+    eval_examples_path=None,
 )
 
 config_map['cat-drums_2bar_big'] = Config(
@@ -165,8 +170,8 @@ config_map['cat-drums_2bar_big'] = Config(
         slice_bars=2,
         steps_per_quarter=4,
         binary_input=True),
-    train_examples_path='',
-    eval_examples_path='',
+    train_examples_path=None,
+    eval_examples_path=None,
 )
 
 # Trio Models
@@ -193,8 +198,8 @@ config_map['cat-trio_b16_h16_big'] = Config(
         steps_per_quarter=4,
         slice_bars=16,
         gap_bars=2),
-    train_examples_path='',
-    eval_examples_path='',
+    train_examples_path=None,
+    eval_examples_path=None,
 )
 
 config_map['hiercat-trio_b16_h16_big'] = Config(
@@ -225,8 +230,8 @@ config_map['hiercat-trio_b16_h16_big'] = Config(
         steps_per_quarter=4,
         slice_bars=16,
         gap_bars=2),
-    train_examples_path='',
-    eval_examples_path='',
+    train_examples_path=None,
+    eval_examples_path=None,
 )
 
 config_map['hiercat-trio_b16_h16_med'] = Config(
@@ -257,8 +262,8 @@ config_map['hiercat-trio_b16_h16_med'] = Config(
         steps_per_quarter=4,
         slice_bars=16,
         gap_bars=2),
-    train_examples_path='',
-    eval_examples_path='',
+    train_examples_path=None,
+    eval_examples_path=None,
 )
 
 # 16-bar Models
@@ -282,8 +287,8 @@ config_map['cat-mel_16bar_med'] = Config(
         max_bars=100,  # Truncate long melodies before slicing.
         slice_bars=16,
         steps_per_quarter=4),
-    train_examples_path='',
-    eval_examples_path='',
+    train_examples_path=None,
+    eval_examples_path=None,
 )
 
 config_map['hiercat-mel_16bar_med'] = Config(
@@ -308,8 +313,8 @@ config_map['hiercat-mel_16bar_med'] = Config(
         max_bars=100,  # Truncate long melodies before slicing.
         slice_bars=16,
         steps_per_quarter=4),
-    train_examples_path='',
-    eval_examples_path='',
+    train_examples_path=None,
+    eval_examples_path=None,
 )
 
 

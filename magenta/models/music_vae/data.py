@@ -43,7 +43,7 @@ MAX_INSTRUMENT_NUMBER = 127
 
 MEL_PROGRAMS = range(0, 31)  # piano, chromatic percussion, organ, guitar
 BASS_PROGRAMS = range(32, 39)
-
+ELECTRIC_BASS_PROGRAM = 33
 
 def _maybe_pad_seqs(seqs, dtype):
   """Pads sequences to match the longest and returns as a numpy array."""
@@ -734,9 +734,9 @@ class TrioConverter(BaseNoteSequenceConverter):
 
       for n in bass_ns.notes:
         n.instrument = 1
-        n.program = BASS_PROGRAMS[1]
+        n.program = ELECTRIC_BASS_PROGRAM
       for n in drums_ns.notes:
-        n.instrument = 2
+        n.instrument = 9
 
       ns = mel_ns
       ns.notes.extend(bass_ns.notes)
@@ -764,7 +764,8 @@ def count_examples(examples_path, note_sequence_converter):
   return num_examples
 
 
-def get_dataset(config, num_threads=1, is_training=False):
+def get_dataset(config, file_reader_class=tf.data.TFRecordDataset,
+                num_threads=1, is_training=False):
   """Returns a Dataset object that encodes raw serialized NoteSequences."""
   examples_path = (
       config.train_examples_path if is_training else config.eval_examples_path)
@@ -777,7 +778,7 @@ def get_dataset(config, num_threads=1, is_training=False):
   if is_training:
     random.shuffle(filenames)
   tf.logging.info('Reading examples from: %s', filenames)
-  reader = tf.data.TFRecordDataset(filenames)
+  reader = reader_class(filenames)
 
   def _remove_pad_fn(padded_seq_1, padded_seq_2, length):
     return padded_seq_1[0:length], padded_seq_2[0:length], length

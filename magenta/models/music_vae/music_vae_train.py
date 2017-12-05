@@ -30,7 +30,7 @@ FLAGS = flags.FLAGS
 
 flags.DEFINE_string(
     'master', 'local',
-    'BNS name of the TensorFlow runtime to use.')
+    'The TensorFlow master to use.')
 flags.DEFINE_string(
     'examples_path', None,
     'Path to a TFRecord file of NoteSequence examples. Overrides the config.')
@@ -106,6 +106,7 @@ def _trial_summary(hparams, examples_path, output_dir):
 
 def train(train_dir,
           config,
+          dataset,
           checkpoints_to_keep=5,
           num_steps=None,
           master='',
@@ -122,8 +123,7 @@ def train(train_dir,
         num_ps_tasks, merge_devices=True)):
       config.note_sequence_converter.is_training = True
       train_dataset = (
-          data.get_dataset(
-              config, num_threads=num_data_threads, is_training=True)
+          dataset
           .repeat()
           .shuffle(buffer_size=FLAGS.shuffle_buffer_size))
       train_dataset = train_dataset.padded_batch(
@@ -180,6 +180,7 @@ def train(train_dir,
 def evaluate(train_dir,
              eval_dir,
              config,
+             dataset,
              num_batches=None,
              master='',
              num_data_threads=1):
@@ -192,10 +193,8 @@ def evaluate(train_dir,
       num_batches = data.count_examples(
           config.eval_examples_path,
           config.note_sequence_converter) // config.hparams.batch_size
-    eval_dataset = data.get_dataset(
-        config, num_threads=num_data_threads, is_training=False)
     eval_dataset = (
-        eval_dataset
+        dataset
         .padded_batch(config.hparams.batch_size, eval_dataset.output_shapes)
         .take(num_batches))
     iterator = eval_dataset.make_one_shot_iterator()
@@ -225,9 +224,13 @@ def evaluate(train_dir,
         master=master)
 
 
-def run(config_map):
-  """Load model params, save config file and start trainer."""
+def run(config_map, file_reader_class=tf.data.TFRecordDataset),:
+  """Load model params, save config file and start trainer.
 
+  Args:
+    config_map: Dictionary mapping configuration name to Config object.
+    file_reader_class: The tf.data.Dataset class to use for reading files.
+  """
   if not FLAGS.run_dir:
     raise ValueError('Invalid run directory: %s' % FLAGS.run_dir)
   run_dir = os.path.expanduser(FLAGS.run_dir)
@@ -248,12 +251,17 @@ def run(config_map):
   if FLAGS.num_sync_workers:
     config.hparams.batch_size //= FLAGS.num_sync_workers
 
+  dataset = data.get_dataset(
+      config, file_reader_class=file_reader_class, num_threads=num_data_threads,
+      is_training=True)
+
   if FLAGS.mode == 'eval':
     eval_dir = os.path.join(run_dir, 'eval' + FLAGS.eval_dir_suffix)
     evaluate(
         train_dir,
         eval_dir,
         config=config,
+        dataset=dataset,
         num_batches=FLAGS.eval_num_batches,
         master=FLAGS.master,
         num_data_threads=FLAGS.num_data_threads)
@@ -261,6 +269,7 @@ def run(config_map):
     train(
         train_dir,
         config=config,
+        dataset=dataset,
         checkpoints_to_keep=FLAGS.checkpoints_to_keep,
         num_steps=FLAGS.num_steps,
         master=FLAGS.master,
