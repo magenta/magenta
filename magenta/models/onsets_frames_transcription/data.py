@@ -605,7 +605,7 @@ def provide_batch(batch_size,
     if num_samples:
       num_batches = num_samples // batch_size
 
-    if not is_training:
+    if not is_training and num_batches is not None:
       # Emulate behavior of train.batch with allow_smaller_final_batch=False.
       dataset = dataset.take(num_batches)
 

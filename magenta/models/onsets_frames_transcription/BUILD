@@ -16,6 +16,7 @@ licenses(["notice"])  # Apache 2.0
 
 py_library(
     name = "onsets_frames_transcription",
+    visibility = ["//magenta/tools/pip:__subpackages__"],
     srcs = ["__init__.py"],
     deps = [
         ":data",
