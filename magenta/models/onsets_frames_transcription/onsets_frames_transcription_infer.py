@@ -91,7 +91,7 @@ def model_inference(acoustic_checkpoint, hparams, examples_path, run_dir):
         truncated_length = int(
             math.ceil((FLAGS.max_seconds_per_sequence *
                        data.hparams_frames_per_second(hparams))))
-      acoustic_data_provider = data.provide_batch(
+      acoustic_data_provider, _ = data.provide_batch(
           batch_size=1,
           examples_path=examples_path,
           hparams=hparams,

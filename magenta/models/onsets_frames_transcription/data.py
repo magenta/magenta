@@ -45,7 +45,7 @@ import magenta.music as mm
 from magenta.music import audio_io
 from magenta.protobuf import music_pb2
 
-BATCH_QUEUE_CAPACITY_SEQUENCES = 1000
+BATCH_QUEUE_CAPACITY_SEQUENCES = 50
 
 # This is the number of threads that take the records from the reader(s),
 # load the audio, create the spectrograms, and put them into the batch queue.
@@ -441,63 +441,45 @@ def _preprocess_data(sequence, audio, hparams, is_training):
 
 
 def _get_input_tensors_from_tfrecord(files, hparams, is_training):
-  """Creates a DatasetDataProvider to read transcription data from TFRecord."""
-  keys_to_features = {
-      'id': tf.FixedLenFeature(shape=(), dtype=tf.string),
-      'sequence': tf.FixedLenFeature(shape=(), dtype=tf.string),
-      'audio': tf.FixedLenFeature(shape=(), dtype=tf.string),
-  }
-
-  items_to_handlers = {
-      'id': slim.tfexample_decoder.Tensor('id'),
-      'sequence': slim.tfexample_decoder.Tensor('sequence'),
-      'audio': slim.tfexample_decoder.Tensor('audio'),
-  }
-
-  items_to_descriptions = {
-      'id': 'ID for sequence/audio pair.',
-      'sequence': 'Serialized NoteSequence.',
-      'audio': 'WAV data.',
-  }
-
-  decoder = slim.tfexample_decoder.TFExampleDecoder(
-      keys_to_features=keys_to_features, items_to_handlers=items_to_handlers)
-
+  """Creates a Dataset to read transcription data from TFRecord."""
   # Iterate through all data to determine how many records there are.
   tf.logging.info('Finding number of examples in %s', files)
   data_files = slim.parallel_reader.get_data_files(files)
   num_examples = 0
-  for filename in data_files:
-    for _ in tf.python_io.tf_record_iterator(filename):
-      num_examples += 1
+  if not is_training:
+    for filename in data_files:
+      for _ in tf.python_io.tf_record_iterator(filename):
+        num_examples += 1
 
   tf.logging.info('Found %d examples in %s', num_examples, files)
 
-  dataset = slim.dataset.Dataset(
-      data_sources=files,
-      reader=tf.TFRecordReader,
-      decoder=decoder,
-      num_samples=num_examples,
-      items_to_descriptions=items_to_descriptions)
+  def _parse(example_proto):
+    features = {
+        'id': tf.FixedLenFeature(shape=(), dtype=tf.string),
+        'sequence': tf.FixedLenFeature(shape=(), dtype=tf.string),
+        'audio': tf.FixedLenFeature(shape=(), dtype=tf.string),
+    }
+    return tf.parse_single_example(example_proto, features)
 
-  provider = slim.dataset_data_provider.DatasetDataProvider(
-      dataset=dataset,
-      num_readers=len(data_files),
-      num_epochs=None if is_training else 1,
-      shuffle=is_training)
+  def _preprocess(record):
+    spec, labels, label_weights, length, onsets = _preprocess_data(
+        record['sequence'], record['audio'], hparams, is_training)
+    return InputTensors(
+        spec=spec,
+        labels=labels,
+        label_weights=label_weights,
+        length=length,
+        onsets=onsets,
+        filename=record['id'],
+        note_sequence=record['sequence'])
 
-  filename, sequence, audio = provider.get(['id', 'sequence', 'audio'])
-  spec, labels, label_weights, length, onsets = _preprocess_data(
-      sequence, audio, hparams, is_training)
+  dataset = tf.data.TFRecordDataset(files).map(_parse).map(
+      _preprocess, num_parallel_calls=NUM_BATCH_THREADS)
 
-  return (InputTensors(
-      spec=spec,
-      labels=labels,
-      label_weights=label_weights,
-      length=length,
-      onsets=onsets,
-      filename=filename,
-      note_sequence=sequence), num_examples)
+  if is_training:
+    dataset = dataset.repeat()
+
+  return dataset, num_examples
 
 
 class TranscriptionData(dict):
@@ -508,8 +490,7 @@ class TranscriptionData(dict):
     self.__dict__ = self
 
 
-def _provide_data(input_tensors, num_samples, batch_size, truncated_length,
-                  hparams, batch_threads):
+def _provide_data(input_tensors, truncated_length, hparams):
   """Returns tensors for reading batches from provider."""
   (spec, labels, label_weights, length, onsets, filename,
    note_sequence) = input_tensors
@@ -520,7 +501,6 @@ def _provide_data(input_tensors, num_samples, batch_size, truncated_length,
   onsets = tf.reshape(onsets, (-1, constants.MIDI_PITCHES))
   spec = tf.reshape(spec, (-1, hparams_frame_size(hparams)))
 
-  batch_queue_capacity = BATCH_QUEUE_CAPACITY_SEQUENCES
   truncated_length = (tf.reduce_min([truncated_length, length])
                       if truncated_length else length)
 
@@ -564,29 +544,14 @@ def _provide_data(input_tensors, num_samples, batch_size, truncated_length,
       'note_sequences': truncated_note_sequence,
   }
 
-  tf.logging.info('Using batch queue capacity of %d with %d threads',
-                  batch_queue_capacity, batch_threads)
-  batch = tf.train.batch(
-      batch_tensors,
-      batch_size=batch_size,
-      num_threads=batch_threads,
-      capacity=batch_queue_capacity,
-      dynamic_pad=True,
-      allow_smaller_final_batch=False)
-
-  data = TranscriptionData(batch)
-  # Round down because allow_smaller_final_batch=False.
-  data['num_batches'] = num_samples // batch_size
-
-  return data
+  return batch_tensors
 
 
 def provide_batch(batch_size,
                   examples_path,
                   hparams,
                   truncated_length=0,
-                  is_training=True,
-                  batch_threads=NUM_BATCH_THREADS):
+                  is_training=True):
   """Returns batches of tensors read from TFRecord files.
 
   Args:
@@ -596,8 +561,6 @@ def provide_batch(batch_size,
     truncated_length: An optional integer specifying whether sequences should be
       truncated this length before (optionally) being split.
     is_training: Whether this is a training run.
-    batch_threads: The number of threads to use for batching raw input to
-      Tensors.
 
   Returns:
     Batched tensors in a TranscriptionData NamedTuple.
@@ -607,8 +570,43 @@ def provide_batch(batch_size,
     # Read examples from a TFRecord file containing serialized NoteSequence
     # and audio.
     files = tf.gfile.Glob(os.path.expanduser(examples_path))
-    input_tensors, num_samples = _get_input_tensors_from_tfrecord(
+    input_dataset, num_samples = _get_input_tensors_from_tfrecord(
         files, hparams, is_training)
+
+
+    batch_queue_capacity = BATCH_QUEUE_CAPACITY_SEQUENCES
+
+    dataset = input_dataset.map(
+        functools.partial(
+            _provide_data, truncated_length=truncated_length, hparams=hparams),
+        num_parallel_calls=NUM_BATCH_THREADS)
+
+    if is_training:
+      dataset = dataset.shuffle(buffer_size=batch_queue_capacity // 10)
+
+    # batching/padding
+    dataset = dataset.padded_batch(
+        batch_size, padded_shapes=dataset.output_shapes)
+
+    # Round down because allow_smaller_final_batch=False.
+    num_batches = None
+    if num_samples:
+      num_batches = num_samples // batch_size
+
+    if not is_training:
+      # Emulate behavior of train.batch with allow_smaller_final_batch=False.
+      dataset = dataset.take(num_batches)
+
+    dataset = dataset.prefetch(batch_queue_capacity)
+
+    iterator = dataset.make_one_shot_iterator()
+    data = TranscriptionData(iterator.get_next())
+    data['max_length'] = tf.reduce_max(data['lengths'])
+    if num_batches:
+      data['num_batches'] = num_batches
+    if 'events' in data:
+      data['event_num_values'] = sequence_to_events_num_values(hparams)
+    return data
 
     return _provide_data(input_tensors, num_samples, batch_size,
                          truncated_length, hparams, batch_threads)
