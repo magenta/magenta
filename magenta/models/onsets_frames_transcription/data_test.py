@@ -141,12 +141,11 @@ class DataTest(tf.test.TestCase):
             expected_inputs[i + j][1] = np.pad(
                 expected_inputs[i + j][1],
                 [(0, pad_amt), (0, 0)], 'constant')
-        for exp_input, input_ in zip(expected_inputs[i + j], inputs):
-          self.assertAllEqual(np.squeeze(exp_input), np.squeeze(input_[j]))
+          for exp_input, input_ in zip(expected_inputs[i + j], inputs):
+            self.assertAllEqual(np.squeeze(exp_input), np.squeeze(input_[j]))
 
       with self.assertRaisesOpError('End of sequence'):
         _ = sess.run(input_tensors)
-
 
   def _SyntheticSequence(self, duration, note):
     seq = music_pb2.NoteSequence(total_time=duration)
