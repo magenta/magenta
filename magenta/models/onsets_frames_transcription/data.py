@@ -620,7 +620,5 @@ def provide_batch(batch_size,
     data['max_length'] = tf.reduce_max(data['lengths'])
     if num_batches:
       data['num_batches'] = num_batches
-    if 'events' in data:
-      data['event_num_values'] = sequence_to_events_num_values(hparams)
 
     return data, iterator

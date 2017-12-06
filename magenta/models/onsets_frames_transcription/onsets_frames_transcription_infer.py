@@ -113,8 +113,8 @@ def model_inference(acoustic_checkpoint, hparams, examples_path, run_dir):
 
     onset_probs_flat = tf.get_default_graph().get_tensor_by_name(
         'acoustic/onsets/onset_probs_flat:0')
-     frame_probs_flat = tf.get_default_graph().get_tensor_by_name(
-         'acoustic/frame_probs_flat:0')
+    frame_probs_flat = tf.get_default_graph().get_tensor_by_name(
+        'acoustic/frame_probs_flat:0')
 
     # Define some metrics.
     (metrics_to_updates,

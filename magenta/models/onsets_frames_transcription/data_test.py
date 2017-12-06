@@ -136,14 +136,13 @@ class DataTest(tf.test.TestCase):
             expected_inputs[i + j] = list(expected_inputs[i + j])
             pad_amt = max_length - input_length
             expected_inputs[i + j][0] = np.pad(
-                  expected_inputs[i + j][0],
-                  [(0, pad_amt), (0, 0)], 'constant')
-	    expected_inputs[i + j][1] = np.pad(
-		expected_inputs[i + j][1],
-		[(0, pad_amt), (0, 0)], 'constant')
-	  for exp_input, input_ in zip(expected_inputs[i + j], inputs):
-	    self.assertAllEqual(
-		np.squeeze(exp_input), np.squeeze(input_[j]))
+                expected_inputs[i + j][0],
+                [(0, pad_amt), (0, 0)], 'constant')
+            expected_inputs[i + j][1] = np.pad(
+                expected_inputs[i + j][1],
+                [(0, pad_amt), (0, 0)], 'constant')
+        for exp_input, input_ in zip(expected_inputs[i + j], inputs):
+          self.assertAllEqual(np.squeeze(exp_input), np.squeeze(input_[j]))
 
       with self.assertRaisesOpError('End of sequence'):
         _ = sess.run(input_tensors)
