@@ -93,7 +93,7 @@ def model_inference(acoustic_checkpoint, hparams, examples_path, run_dir):
                        data.hparams_frames_per_second(hparams))))
       acoustic_data_provider, _ = data.provide_batch(
           batch_size=1,
-          examples_path=examples_path,
+          examples=examples_path,
           hparams=hparams,
           is_training=False,
           truncated_length=truncated_length)

@@ -114,9 +114,9 @@ class DataTest(tf.test.TestCase):
     hparams = copy.deepcopy(constants.DEFAULT_HPARAMS)
 
     with self.test_session() as sess:
-      batch = data.provide_batch(
+      batch, _ = data.provide_batch(
           batch_size=batch_size,
-          examples_path=examples_path,
+          examples=examples_path,
           hparams=hparams,
           truncated_length=truncated_length,
           is_training=False)

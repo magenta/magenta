@@ -34,12 +34,13 @@ import tensorflow.contrib.slim as slim
 
 def _get_data(examples_path, hparams, is_training):
   hparams_dict = hparams.values()
-  return data.provide_batch(
+  batch, _ = data.provide_batch(
       hparams.batch_size,
       examples_path=examples_path,
       hparams=hparams,
       truncated_length=hparams_dict.get('truncated_length', None),
       is_training=is_training)
+  return batch
 
 
 # Should not be called from within the graph to avoid redundant summaries.

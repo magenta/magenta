@@ -440,7 +440,15 @@ def _preprocess_data(sequence, audio, hparams, is_training):
   return spec, labels, label_weights, length, onsets
 
 
-def _get_input_tensors_from_tfrecord(files, hparams, is_training):
+def _get_input_tensors_from_examples_list(examples_list, is_training):
+  """Get input tensors from a list or placeholder of examples."""
+  num_examples = 0
+  if not is_training and not isinstance(examples_list, tf.Tensor):
+    num_examples = len(examples_list)
+  return tf.data.Dataset.from_tensor_slices(examples_list), num_examples
+
+
+def _get_input_tensors_from_tfrecord(files, is_training):
   """Creates a Dataset to read transcription data from TFRecord."""
   # Iterate through all data to determine how many records there are.
   tf.logging.info('Finding number of examples in %s', files)
@@ -453,33 +461,7 @@ def _get_input_tensors_from_tfrecord(files, hparams, is_training):
 
   tf.logging.info('Found %d examples in %s', num_examples, files)
 
-  def _parse(example_proto):
-    features = {
-        'id': tf.FixedLenFeature(shape=(), dtype=tf.string),
-        'sequence': tf.FixedLenFeature(shape=(), dtype=tf.string),
-        'audio': tf.FixedLenFeature(shape=(), dtype=tf.string),
-    }
-    return tf.parse_single_example(example_proto, features)
-
-  def _preprocess(record):
-    spec, labels, label_weights, length, onsets = _preprocess_data(
-        record['sequence'], record['audio'], hparams, is_training)
-    return InputTensors(
-        spec=spec,
-        labels=labels,
-        label_weights=label_weights,
-        length=length,
-        onsets=onsets,
-        filename=record['id'],
-        note_sequence=record['sequence'])
-
-  dataset = tf.data.TFRecordDataset(files).map(_parse).map(
-      _preprocess, num_parallel_calls=NUM_BATCH_THREADS)
-
-  if is_training:
-    dataset = dataset.repeat()
-
-  return dataset, num_examples
+  return tf.data.TFRecordDataset(files), num_examples
 
 
 class TranscriptionData(dict):
@@ -548,7 +530,7 @@ def _provide_data(input_tensors, truncated_length, hparams):
 
 
 def provide_batch(batch_size,
-                  examples_path,
+                  examples,
                   hparams,
                   truncated_length=0,
                   is_training=True):
@@ -556,7 +538,8 @@ def provide_batch(batch_size,
 
   Args:
     batch_size: The integer number of records per batch.
-    examples_path: A string path to a TFRecord file of examples.
+    examples: A string path to a TFRecord file of examples, a python list
+      of serialized examples, or a Tensor placeholder for serialized examples.
     hparams: HParams object specifying hyperparameters.
     truncated_length: An optional integer specifying whether sequences should be
       truncated this length before (optionally) being split.
@@ -567,12 +550,41 @@ def provide_batch(batch_size,
   """
   # Do data pre-processing on the CPU instead of the GPU.
   with tf.device('/cpu:0'):
-    # Read examples from a TFRecord file containing serialized NoteSequence
-    # and audio.
-    files = tf.gfile.Glob(os.path.expanduser(examples_path))
-    input_dataset, num_samples = _get_input_tensors_from_tfrecord(
-        files, hparams, is_training)
+    if isinstance(examples, str):
+      # Read examples from a TFRecord file containing serialized NoteSequence
+      # and audio.
+      files = tf.gfile.Glob(os.path.expanduser(examples))
+      input_dataset, num_samples = _get_input_tensors_from_tfrecord(
+          files, is_training)
+    else:
+      input_dataset, num_samples = _get_input_tensors_from_examples_list(
+          examples, is_training)
 
+    def _parse(example_proto):
+      features = {
+          'id': tf.FixedLenFeature(shape=(), dtype=tf.string),
+          'sequence': tf.FixedLenFeature(shape=(), dtype=tf.string),
+          'audio': tf.FixedLenFeature(shape=(), dtype=tf.string),
+      }
+      return tf.parse_single_example(example_proto, features)
+
+    def _preprocess(record):
+      spec, labels, label_weights, length, onsets = _preprocess_data(
+          record['sequence'], record['audio'], hparams, is_training)
+      return InputTensors(
+          spec=spec,
+          labels=labels,
+          label_weights=label_weights,
+          length=length,
+          onsets=onsets,
+          filename=record['id'],
+          note_sequence=record['sequence'])
+
+    input_dataset = input_dataset.map(_parse).map(
+        _preprocess, num_parallel_calls=NUM_BATCH_THREADS)
+
+    if is_training:
+      input_dataset = input_dataset.repeat()
 
     batch_queue_capacity = BATCH_QUEUE_CAPACITY_SEQUENCES
 
@@ -599,14 +611,16 @@ def provide_batch(batch_size,
 
     dataset = dataset.prefetch(batch_queue_capacity)
 
-    iterator = dataset.make_one_shot_iterator()
+    if isinstance(examples, tf.Tensor):
+      iterator = dataset.make_initializable_iterator()
+    else:
+      iterator = dataset.make_one_shot_iterator()
+
     data = TranscriptionData(iterator.get_next())
     data['max_length'] = tf.reduce_max(data['lengths'])
     if num_batches:
       data['num_batches'] = num_batches
     if 'events' in data:
       data['event_num_values'] = sequence_to_events_num_values(hparams)
-    return data
 
-    return _provide_data(input_tensors, num_samples, batch_size,
-                         truncated_length, hparams, batch_threads)
+    return data, iterator

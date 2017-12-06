@@ -15,6 +15,17 @@
 licenses(["notice"])  # Apache 2.0
 
 py_library(
+    name = "onsets_frames_transcription",
+    srcs = ["__init__.py"],
+    deps = [
+        ":data",
+	":constants",
+	":infer_util",
+    ],
+)
+
+
+py_library(
     name = "model",
     srcs = ["model.py"],
     srcs_version = "PY2AND3",
