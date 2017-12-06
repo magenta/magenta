@@ -130,7 +130,7 @@ config_map['cat-drums_2bar_big'] = Config(
 )
 
 # Trio Models
-config_map['cat-trio_b16_h16_big'] = Config(
+config_map['cat-trio_16bar_big'] = Config(
     model=MusicVAE(
         lstm_models.BidirectionalLstmEncoder(),
         lstm_models.MultiOutCategoricalLstmDecoder(
@@ -157,7 +157,7 @@ config_map['cat-trio_b16_h16_big'] = Config(
     eval_examples_path=None,
 )
 
-config_map['hiercat-trio_b16_h16_big'] = Config(
+config_map['hiercat-trio_16bar_big'] = Config(
     model=MusicVAE(
         lstm_models.BidirectionalLstmEncoder(),
         lstm_models.HierarchicalMultiOutLstmDecoder(
