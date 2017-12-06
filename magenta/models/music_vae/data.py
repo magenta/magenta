@@ -28,7 +28,6 @@ import random
 import numpy as np
 import tensorflow as tf
 
-# import internal record reader
 import magenta.music as mm
 from magenta.music import sequences_lib
 from magenta.protobuf import music_pb2

@@ -40,7 +40,7 @@ py_library(
     deps = [
         "//magenta",
         # numpy dep
-        # tensorflow goog dep
+        # tensorflow dep
     ],
 )
 
