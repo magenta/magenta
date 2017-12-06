@@ -407,7 +407,7 @@ class RnnNade(object):
           zero_state)
 
 
-def build_graph(mode, config, sequence_example_file_paths=None):
+def get_build_graph_fn(mode, config, sequence_example_file_paths=None):
   """Returns a function that builds the TensorFlow graph.
 
   Args:

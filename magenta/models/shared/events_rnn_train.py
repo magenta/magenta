@@ -17,13 +17,13 @@
 import tensorflow as tf
 
 
-def run_training(build_graph, train_dir, num_training_steps=None,
+def run_training(build_graph_fn, train_dir, num_training_steps=None,
                  summary_frequency=10, save_checkpoint_secs=60,
                  checkpoints_to_keep=10, master='', task=0, num_ps_tasks=0):
   """Runs the training loop.
 
   Args:
-    build_graph: A function that builds the graph ops.
+    build_graph_fn: A function that builds the graph ops.
     train_dir: The path to the directory where checkpoints and summary events
         will be written to.
     num_training_steps: The number of steps to train for before exiting.
@@ -40,7 +40,7 @@ def run_training(build_graph, train_dir, num_training_steps=None,
   """
   with tf.Graph().as_default():
     with tf.device(tf.train.replica_device_setter(num_ps_tasks)):
-      build_graph()
+      build_graph_fn()
 
       global_step = tf.train.get_or_create_global_step()
       loss = tf.get_collection('loss')[0]
@@ -81,11 +81,12 @@ def run_training(build_graph, train_dir, num_training_steps=None,
 
 
 # TODO(adarob): Limit to a single epoch each evaluation step.
-def run_eval(build_graph, train_dir, eval_dir, num_batches, timeout_secs=300):
+def run_eval(build_graph_fn, train_dir, eval_dir, num_batches,
+             timeout_secs=300):
   """Runs the training loop.
 
   Args:
-    build_graph: A function that builds the graph ops.
+    build_graph_fn: A function that builds the graph ops.
     train_dir: The path to the directory where checkpoints will be loaded
         from for evaluation.
     eval_dir: The path to the directory where the evaluation summary events
@@ -95,7 +96,7 @@ def run_eval(build_graph, train_dir, eval_dir, num_batches, timeout_secs=300):
         checkpoint.
   """
   with tf.Graph().as_default():
-    build_graph()
+    build_graph_fn()
 
     global_step = tf.train.get_or_create_global_step()
     loss = tf.get_collection('loss')[0]
