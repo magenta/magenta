@@ -1,7 +1,7 @@
 ## Onsets and Frames: Dual-Objective Piano Transcription
 
 For model details, see our paper on arXiv:
-[Onsets and Frames: Dual-Objective Piano Transcription](https://arxiv.org/abs/1710.11153)
+[Onsets and Frames: Dual-Objective Piano Transcription](https://arxiv.org/abs/1710.11153). You can also listen to the [Audio Examples](http://download.magenta.tensorflow.org/models/onsets_frames_transcription/index.html) described in the paper.
 
 ## Colab Notebook
 
