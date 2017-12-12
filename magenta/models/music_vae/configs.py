@@ -6,6 +6,7 @@ from __future__ import print_function
 
 import collections
 
+from magenta.common import merge_hparams
 from magenta.models.music_vae import data
 from magenta.models.music_vae import lstm_models
 from magenta.models.music_vae.base_model import MusicVAE
@@ -25,13 +26,6 @@ def update_config(config, update_dict):
   config_dict = config.values()
   config_dict.update(update_dict)
   return Config(**config_dict)
-
-
-def merge_hparams(hp1, hp2):
-  """Merge hp1 and hp2, preferring hp2 when conflicting."""
-  hparams_map = hp1.values()
-  hparams_map.update(hp2.values())
-  return HParams(**hparams_map)
 
 
 config_map = {}

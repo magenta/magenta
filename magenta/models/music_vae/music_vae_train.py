@@ -180,17 +180,13 @@ def evaluate(train_dir,
              eval_dir,
              config,
              dataset,
-             num_batches=None,
+             num_batches,
              master=''):
   """Evaluate the model repeatedly."""
   tf.gfile.MakeDirs(eval_dir)
 
   _trial_summary(config.hparams, config.eval_examples_path, eval_dir)
   with tf.Graph().as_default():
-    if not num_batches:
-      num_batches = data.count_examples(
-          config.eval_examples_path,
-          config.note_sequence_converter) // config.hparams.batch_size
     eval_dataset = (
         dataset
         .padded_batch(config.hparams.batch_size, dataset.output_shapes)
@@ -222,12 +218,15 @@ def evaluate(train_dir,
         master=master)
 
 
-def run(config_map, file_reader_class=tf.data.TFRecordDataset):
+def run(config_map,
+        tf_file_reader_class=tf.data.TFRecordDataset,
+        file_reader=tf.python_io.tf_record_iterator):
   """Load model params, save config file and start trainer.
 
   Args:
     config_map: Dictionary mapping configuration name to Config object.
-    file_reader_class: The tf.data.Dataset class to use for reading files.
+    tf_file_reader_class: The tf.data.Dataset class to use for reading files.
+    file_reader: The Python reader to use for reading files.
 
   Raises:
     ValueError: if required flags are missing or invalid.
@@ -254,18 +253,22 @@ def run(config_map, file_reader_class=tf.data.TFRecordDataset):
 
   dataset = data.get_dataset(
       config,
-      file_reader_class=file_reader_class,
+      tf_file_reader_class=tf_file_reader_class,
       num_threads=FLAGS.num_data_threads,
       is_training=True)
 
   if FLAGS.mode == 'eval':
+    num_batches = FLAGS.eval_num_batches or data.count_examples(
+        config.eval_examples_path,
+        config.note_sequence_converter,
+        file_reader) // config.hparams.batch_size
     eval_dir = os.path.join(run_dir, 'eval' + FLAGS.eval_dir_suffix)
     evaluate(
         train_dir,
         eval_dir,
         config=config,
         dataset=dataset,
-        num_batches=FLAGS.eval_num_batches,
+        num_batches=num_batches,
         master=FLAGS.master)
   elif FLAGS.mode == 'train':
     train(
