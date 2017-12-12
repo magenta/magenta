@@ -747,7 +747,8 @@ class TrioConverter(BaseNoteSequenceConverter):
     return output_sequences
 
 
-def count_examples(examples_path, note_sequence_converter):
+def count_examples(examples_path, note_sequence_converter,
+                   file_reader_class):
   """Counts the number of examples produced by the converter from files."""
   filenames = tf.gfile.Glob(examples_path)
 
@@ -755,16 +756,16 @@ def count_examples(examples_path, note_sequence_converter):
 
   for f in filenames:
     tf.logging.info('Counting examples in %s.', f)
-    with tf.python_io.tf_record_iterator(f) as reader:
-      for note_sequence_str in reader:
-        note_sequence = music_pb2.NoteSequence.FromString(note_sequence_str)
-        seqs, _ = note_sequence_converter.to_tensors(note_sequence)
-        num_examples += len(seqs)
+    reader = file_reader_class(f)
+    for note_sequence_str in reader:
+      note_sequence = music_pb2.NoteSequence.FromString(note_sequence_str)
+      seqs, _ = note_sequence_converter.to_tensors(note_sequence)
+      num_examples += len(seqs)
   tf.logging.info('Total examples: %d', num_examples)
   return num_examples
 
 
-def get_dataset(config, file_reader_class=tf.data.TFRecordDataset,
+def get_dataset(config, tf_file_reader_class=tf.data.TFRecordDataset,
                 num_threads=1, is_training=False):
   """Returns a Dataset object that encodes raw serialized NoteSequences."""
   examples_path = (
@@ -778,18 +779,4 @@ def get_dataset(config, file_reader_class=tf.data.TFRecordDataset,
   if is_training:
     random.shuffle(filenames)
   tf.logging.info('Reading examples from: %s', filenames)
-  reader = file_reader_class(filenames)
-
-  def _remove_pad_fn(padded_seq_1, padded_seq_2, length):
-    return padded_seq_1[0:length], padded_seq_2[0:length], length
-
-  dataset = reader
-  if note_sequence_augmenter is not None:
-    dataset = dataset.map(note_sequence_augmenter.tf_augment)
-  dataset = (dataset
-             .map(note_sequence_converter.tf_to_tensors,
-                  num_parallel_calls=num_threads)
-             .flat_map(
-                 lambda x, y, z: tf.data.Dataset.from_tensor_slices((x, y, z)))
-             .map(_remove_pad_fn))
-  return dataset
+  reader = tf_file_reader_class(filenames)
