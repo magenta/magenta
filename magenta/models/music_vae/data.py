@@ -748,7 +748,7 @@ class TrioConverter(BaseNoteSequenceConverter):
 
 
 def count_examples(examples_path, note_sequence_converter,
-                   file_reader_class):
+                   file_reader=tf.python_io.tf_record_iterator):
   """Counts the number of examples produced by the converter from files."""
   filenames = tf.gfile.Glob(examples_path)
 
@@ -756,7 +756,7 @@ def count_examples(examples_path, note_sequence_converter,
 
   for f in filenames:
     tf.logging.info('Counting examples in %s.', f)
-    reader = file_reader_class(f)
+    reader = file_reader(f)
     for note_sequence_str in reader:
       note_sequence = music_pb2.NoteSequence.FromString(note_sequence_str)
       seqs, _ = note_sequence_converter.to_tensors(note_sequence)
