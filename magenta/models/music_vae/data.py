@@ -780,3 +780,17 @@ def get_dataset(config, tf_file_reader_class=tf.data.TFRecordDataset,
     random.shuffle(filenames)
   tf.logging.info('Reading examples from: %s', filenames)
   reader = tf_file_reader_class(filenames)
+
+  def _remove_pad_fn(padded_seq_1, padded_seq_2, length):
+    return padded_seq_1[0:length], padded_seq_2[0:length], length
+
+  dataset = reader
+  if note_sequence_augmenter is not None:
+    dataset = dataset.map(note_sequence_augmenter.tf_augment)
+  dataset = (dataset
+             .map(note_sequence_converter.tf_to_tensors,
+                  num_parallel_calls=num_threads)
+             .flat_map(
+                 lambda x, y, z: tf.data.Dataset.from_tensor_slices((x, y, z)))
+             .map(_remove_pad_fn))
+  return dataset
