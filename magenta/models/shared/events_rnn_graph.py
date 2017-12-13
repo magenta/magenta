@@ -59,8 +59,8 @@ def make_rnn_cell(rnn_layer_sizes,
   return cell
 
 
-def build_graph(mode, config, sequence_example_file_paths=None):
-  """Builds the TensorFlow graph.
+def get_build_graph_fn(mode, config, sequence_example_file_paths=None):
+  """Returns a function that builds the TensorFlow graph.
 
   Args:
     mode: 'train', 'eval', or 'generate'. Only mode related ops are added to
@@ -72,7 +72,7 @@ def build_graph(mode, config, sequence_example_file_paths=None):
         evaluation.
 
   Returns:
-    A tf.Graph instance which contains the TF ops.
+    A function that builds the TF ops when called.
 
   Raises:
     ValueError: If mode is not 'train', 'eval', or 'generate'.
@@ -90,7 +90,8 @@ def build_graph(mode, config, sequence_example_file_paths=None):
   num_classes = encoder_decoder.num_classes
   no_event_label = encoder_decoder.default_event_label
 
-  with tf.Graph().as_default() as graph:
+  def build():
+    """Builds the Tensorflow graph."""
     inputs, labels, lengths = None, None, None
 
     if mode == 'train' or mode == 'eval':
@@ -217,4 +218,4 @@ def build_graph(mode, config, sequence_example_file_paths=None):
       for state in tf_nest.flatten(final_state):
         tf.add_to_collection('final_state', state)
 
-  return graph
+  return build

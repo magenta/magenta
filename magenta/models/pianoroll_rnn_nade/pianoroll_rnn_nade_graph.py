@@ -407,8 +407,8 @@ class RnnNade(object):
           zero_state)
 
 
-def build_graph(mode, config, sequence_example_file_paths=None):
-  """Builds the TensorFlow graph.
+def get_build_graph_fn(mode, config, sequence_example_file_paths=None):
+  """Returns a function that builds the TensorFlow graph.
 
   Args:
     mode: 'train', 'eval', or 'generate'. Only mode related ops are added to
@@ -420,7 +420,7 @@ def build_graph(mode, config, sequence_example_file_paths=None):
         evaluation. May be a sharded file of the form.
 
   Returns:
-    A tf.Graph instance which contains the TF ops.
+    A function that builds the TF ops when called.
 
   Raises:
     ValueError: If mode is not 'train', 'eval', or 'generate'.
@@ -436,7 +436,8 @@ def build_graph(mode, config, sequence_example_file_paths=None):
 
   input_size = encoder_decoder.input_size
 
-  with tf.Graph().as_default() as graph:
+  def build():
+    """Builds the Tensorflow graph."""
     inputs, lengths = None, None
 
     if mode == 'train' or mode == 'eval':
@@ -531,4 +532,4 @@ def build_graph(mode, config, sequence_example_file_paths=None):
       for state in tf_nest.flatten(final_state):
         tf.add_to_collection('final_state', state)
 
-  return graph
+  return build
