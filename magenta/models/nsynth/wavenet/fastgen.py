@@ -101,6 +101,7 @@ def encode(wav_data, checkpoint_path, sample_length=64000):
 
   # Load up the model for encoding and find the encoding of "wav_data"
   session_config = tf.ConfigProto(allow_soft_placement=True)
+  session_config.gpu_options.allow_growth = True
   with tf.Graph().as_default(), tf.Session(config=session_config) as sess:
     hop_length = Config().ae_hop_length
     wav_data, sample_length = utils.trim_for_encoding(wav_data, sample_length,
@@ -146,7 +147,7 @@ def load_batch(files, sample_length=64000):
         padded[:data.shape[0]] = data
       batch_data[i] = padded
   # Return arrays
-  batch_data = np.array(batch_data)
+  batch_data = np.vstack(batch_data)
   return batch_data
 
 
@@ -175,6 +176,7 @@ def synthesize(encodings,
   total_length = encoding_length * hop_length
 
   session_config = tf.ConfigProto(allow_soft_placement=True)
+  session_config.gpu_options.allow_growth = True
   with tf.Graph().as_default(), tf.Session(config=session_config) as sess:
     net = load_fastgen_nsynth(batch_size=batch_size)
     saver = tf.train.Saver()
@@ -184,15 +186,21 @@ def synthesize(encodings,
     sess.run(net["init_ops"])
 
     # Regenerate the audio file sample by sample
-    audio_batch = np.zeros((batch_size, total_length,), dtype=np.float32)
+    audio_batch = np.zeros(
+        (
+            batch_size,
+            total_length,
+        ), dtype=np.float32)
     audio = np.zeros([batch_size, 1])
 
     for sample_i in range(total_length):
       enc_i = sample_i // hop_length
       pmf = sess.run(
           [net["predictions"], net["push_ops"]],
-          feed_dict={net["X"]: audio,
-                     net["encoding"]: encodings[:, enc_i, :]})[0]
+          feed_dict={
+              net["X"]: audio,
+              net["encoding"]: encodings[:, enc_i, :]
+          })[0]
       sample_bin = sample_categorical(pmf)
       audio = utils.inv_mu_law_numpy(sample_bin - 128)
       audio_batch[:, sample_i] = audio[:, 0]
