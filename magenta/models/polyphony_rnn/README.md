@@ -164,7 +164,8 @@ some metadata about the model into a single file.
 To generate a bundle, use the
 [create_bundle_file](/magenta/music/sequence_generator.py)
 method within SequenceGenerator. Our generator script
-supports a ```--save_generator_bundle``` flag that calls this method. In addition, you need add `--hparams` which is used for the training job.Example:
+supports a ```--save_generator_bundle``` flag that calls this method. When using the --save_generator_bundle mode, you need to supply the --hparams flag with the same values used during training.
+Example:
 
 ```
 polyphony_rnn_generate \
