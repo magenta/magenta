@@ -28,6 +28,7 @@ py_library(
     deps = [
         ":base_model",
         ":configs",
+        ":data",
         ":lstm_models",
         ":trained_model",
     ],
@@ -37,9 +38,6 @@ py_library(
     name = "data",
     srcs = ["data.py"],
     srcs_version = "PY2AND3",
-    visibility = [
-        # internal model:music_vae
-    ],
     deps = [
         "//magenta",
         # numpy dep
