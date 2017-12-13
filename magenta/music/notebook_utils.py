@@ -11,47 +11,98 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Python functions which run only within a Jupyter notebook."""
+"""Python functions which run only within a Jupyter or Colab notebook."""
 
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
+import base64
 import collections
+from io import BytesIO
 import os
 
 # internal imports
 
 import bokeh
 import bokeh.plotting
-import IPython
+from IPython import display
 import numpy as np
 import pandas as pd
+from scipy.io import wavfile
 from six.moves import urllib
 
 from magenta.music import midi_synth
 
 _DEFAULT_SAMPLE_RATE = 44100
+_play_id = 0  # Used for ephemeral colab_play.
+
+
+def colab_play(array_of_floats, sample_rate, ephemeral=True, autoplay=False):
+  """Creates an HTML5 audio widget to play a sound in Colab.
+
+  This function should only be called from a Colab notebook.
+
+  Args:
+    array_of_floats: A 1D or 2D array-like container of float sound
+      samples. Values outside of the range [-1, 1] will be clipped.
+    sample_rate: Sample rate in samples per second.
+    ephemeral: If set to True, the widget will be ephemeral, and disappear
+      on reload (and it won't be counted against realtime document size).
+    autoplay: If True, automatically start playing the sound when the
+      widget is rendered.
+  """
+  from google.colab.output import _js_builder as js  # pylint: disable=g-import-not-at-top,protected-access
+
+  normalizer = float(np.iinfo(np.int16).max)
+  array_of_ints = np.array(
+      np.asarray(array_of_floats) * normalizer, dtype=np.int16)
+  memfile = BytesIO()
+  wavfile.write(memfile, sample_rate, array_of_ints)
+  html = """<audio controls {autoplay}>
+              <source controls src="data:audio/wav;base64,{base64_wavfile}"
+              type="audio/wav" />
+              Your browser does not support the audio element.
+            </audio>"""
+  html = html.format(
+      autoplay='autoplay' if autoplay else '',
+      base64_wavfile=base64.encodestring(memfile.getvalue()))
+  memfile.close()
+  global _play_id
+  _play_id += 1
+  if ephemeral:
+    element = 'id_%s' % _play_id
+    display.display(display.HTML('<div id="%s"> </div>' % element))
+    js.Js('document', mode=js.EVAL).getElementById(element).innerHTML = html
+  else:
+    display.display(display.HTML(html))
 
 
 def play_sequence(sequence,
                   synth=midi_synth.synthesize,
                   sample_rate=_DEFAULT_SAMPLE_RATE,
+                  colab_ephemeral=True,
                   **synth_args):
   """Creates an interactive player for a synthesized note sequence.
 
-  This function should only be called from a Jupyter notebook.
+  This function should only be called from a Jupyter or Colab notebook.
 
   Args:
     sequence: A music_pb2.NoteSequence to synthesize and play.
     synth: A synthesis function that takes a sequence and sample rate as input.
     sample_rate: The sample rate at which to synthesize.
+    colab_ephemeral: If set to True, the widget will be ephemeral in Colab, and
+      disappear on reload (and it won't be counted against realtime document
+      size).
     **synth_args: Additional keyword arguments to pass to the synth function.
   """
-
   array_of_floats = synth(sequence, sample_rate=sample_rate, **synth_args)
-  IPython.display.display(IPython.display.Audio(array_of_floats,
-                                                rate=sample_rate))
+
+  try:
+    import google.colab  # pylint: disable=unused-import,unused-variable,g-import-not-at-top
+    colab_play(array_of_floats, sample_rate, colab_ephemeral)
+  except ImportError:
+    display.display(display.Audio(array_of_floats, rate=sample_rate))
 
 
 def plot_sequence(sequence,
