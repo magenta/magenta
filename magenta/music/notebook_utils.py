@@ -19,6 +19,7 @@ from __future__ import print_function
 
 import base64
 import collections
+from io import BytesIO
 import os
 
 # internal imports
@@ -51,13 +52,12 @@ def colab_play(array_of_floats, sample_rate, ephemeral=True, autoplay=False):
     autoplay: If True, automatically start playing the sound when the
       widget is rendered.
   """
-  import cStringIO  # pylint: disable=g-import-not-at-top
   from google.colab.output import _js_builder as js  # pylint: disable=g-import-not-at-top,protected-access
 
   normalizer = float(np.iinfo(np.int16).max)
   array_of_ints = np.array(
       np.asarray(array_of_floats) * normalizer, dtype=np.int16)
-  memfile = cStringIO.StringIO()
+  memfile = BytesIO()
   wavfile.write(memfile, sample_rate, array_of_ints)
   html = """<audio controls {autoplay}>
               <source controls src="data:audio/wav;base64,{base64_wavfile}"
