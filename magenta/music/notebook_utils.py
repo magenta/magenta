@@ -54,7 +54,7 @@ def colab_play(array_of_floats, sample_rate, ephemeral=True, autoplay=False):
   """
   # pylint: disable=g-import-not-at-top
   from google.colab import output
-  from google.colab.output import _js_builder as js
+  from google.colab.output import _js_builder as js  # pylint: disable=protected-access
   # pylint: enable=g-import-not-at-top
 
   normalizer = float(np.iinfo(np.int16).max)
@@ -72,12 +72,11 @@ def colab_play(array_of_floats, sample_rate, ephemeral=True, autoplay=False):
       base64_wavfile=base64.encodestring(memfile.getvalue()))
   memfile.close()
   global _play_id
-  _play_id += 1;
+  _play_id += 1
   if ephemeral:
     element = 'id_%s' % _play_id
-    output._publish.html('<div id="%s"> </div>' % element)
-    r = js.Js('document', mode=js.EVAL).getElementById(element).innerHTML = html
-    # We eval the result to make sure that the element went through.
+    output._publish.html('<div id="%s"> </div>' % element)  # pylint: disable=protected-access
+    js.Js('document', mode=js.EVAL).getElementById(element).innerHTML = html
   else:
     output._publish.html(html)
 
