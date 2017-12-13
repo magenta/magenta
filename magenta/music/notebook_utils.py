@@ -52,10 +52,7 @@ def colab_play(array_of_floats, sample_rate, ephemeral=True, autoplay=False):
     autoplay: If True, automatically start playing the sound when the
       widget is rendered.
   """
-  # pylint: disable=g-import-not-at-top,protected-access
-  from google.colab import output
-  from google.colab.output import _js_builder as js
-  # pylint: enable=g-import-not-at-top,protected-access
+  from google.colab.output import _js_builder as js  # pylint: disable=g-import-not-at-top,protected-access
 
   normalizer = float(np.iinfo(np.int16).max)
   array_of_ints = np.array(
