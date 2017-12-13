@@ -26,7 +26,7 @@ import os
 
 import bokeh
 import bokeh.plotting
-import IPython
+from IPython import display
 import numpy as np
 import pandas as pd
 from scipy.io import wavfile
@@ -55,7 +55,7 @@ def colab_play(array_of_floats, sample_rate, ephemeral=True, autoplay=False):
   # pylint: disable=g-import-not-at-top,protected-access
   from google.colab import output
   from google.colab.output import _js_builder as js
-  # pylint: enable=g-import-not-at-top
+  # pylint: enable=g-import-not-at-top,protected-access
 
   normalizer = float(np.iinfo(np.int16).max)
   array_of_ints = np.array(
@@ -75,11 +75,10 @@ def colab_play(array_of_floats, sample_rate, ephemeral=True, autoplay=False):
   _play_id += 1
   if ephemeral:
     element = 'id_%s' % _play_id
-    output._publish.html('<div id="%s"> </div>' % element)
+    display.display(display.HTML('<div id="%s"> </div>' % element))
     js.Js('document', mode=js.EVAL).getElementById(element).innerHTML = html
   else:
-    output._publish.html(html)
-  # pylint: disable=protected-access
+    display.display(display.HTML(html))
 
 
 def play_sequence(sequence,
@@ -106,8 +105,7 @@ def play_sequence(sequence,
     import google.colab  # pylint: disable=unused-import,unused-variable,g-import-not-at-top
     colab_play(array_of_floats, sample_rate, colab_ephemeral)
   except ImportError:
-    IPython.display.display(IPython.display.Audio(array_of_floats,
-                                                  rate=sample_rate))
+    display.display(display.Audio(array_of_floats, rate=sample_rate))
 
 
 def plot_sequence(sequence,
