@@ -194,7 +194,15 @@ class BaseNoteSequenceConverter(object):
 
   @abc.abstractmethod
   def _to_tensors(self, note_sequence):
-    """Implementation that converts `note_sequence` into list of tensors."""
+    """Implementation that converts `note_sequence` into list of tensors.
+
+    Args:
+     note_sequence: NoteSequence to convert.
+
+    Returns:
+      input_tensors: Tensors to feed to the encoder.
+      output_tensors: Tensors to feed to the decoder.
+    """
     pass
 
   @abc.abstractmethod
@@ -268,17 +276,17 @@ class BaseNoteSequenceConverter(object):
 
 
 class LegacyEventListOneHotConverter(BaseNoteSequenceConverter):
-  """Converts NoteSequences using legacy EventSequenceEncoderDecoder framework.
+  """Converts NoteSequences using legacy OneHotEncoding framework.
 
   Quantizes the sequences, extracts event lists in the requested size range,
-  uniquifies, and converts to encoding. Uses the EventSequenceEncoderDecoder's
+  uniquifies, and converts to encoding. Uses the OneHotEncoding's
   output encoding for both the input and output.
 
   Args:
-    event_list_fn: A function that returns a new EventList.
-    event_extractor_fn: A function for extracing events into EventLists. The
+    event_list_fn: A function that returns a new EventSequence.
+    event_extractor_fn: A function for extracing events into EventSequences. The
       sole input should be the quantized NoteSequence.
-    legacy_encoder_decoder: An instantiated EventSequenceEncoderDecoder to use.
+    legacy_encoder_decoder: An instantiated OneHotEncoding object to use.
     add_end_token: Whether or not to add the end token. Recommended to be False
       for fixed-length outputs.
     slice_bars: Optional size of window to slide over raw event lists after
@@ -377,9 +385,9 @@ class LegacyEventListOneHotConverter(BaseNoteSequenceConverter):
     return seqs, seqs
 
   def _to_notesequences(self, samples):
-    sample_labels = np.argmax(samples, axis=-1)
     output_sequences = []
-    for s in sample_labels:
+    for sample in samples:
+      s = np.argmax(sample, axis=-1)
       if self._end_token is not None and self._end_token in s:
         s = s[:s.tolist().index(self._end_token)]
       event_list = self._event_list_fn()

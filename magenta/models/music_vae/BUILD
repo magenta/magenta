@@ -28,6 +28,7 @@ py_library(
     deps = [
         ":base_model",
         ":configs",
+        ":data",
         ":lstm_models",
         ":trained_model",
     ],
