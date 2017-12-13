@@ -52,9 +52,9 @@ def colab_play(array_of_floats, sample_rate, ephemeral=True, autoplay=False):
     autoplay: If True, automatically start playing the sound when the
       widget is rendered.
   """
-  # pylint: disable=g-import-not-at-top
+  # pylint: disable=g-import-not-at-top,protected-access
   from google.colab import output
-  from google.colab.output import _js_builder as js  # pylint: disable=protected-access
+  from google.colab.output import _js_builder as js
   # pylint: enable=g-import-not-at-top
 
   normalizer = float(np.iinfo(np.int16).max)
@@ -75,10 +75,11 @@ def colab_play(array_of_floats, sample_rate, ephemeral=True, autoplay=False):
   _play_id += 1
   if ephemeral:
     element = 'id_%s' % _play_id
-    output._publish.html('<div id="%s"> </div>' % element)  # pylint: disable=protected-access
+    output._publish.html('<div id="%s"> </div>' % element)
     js.Js('document', mode=js.EVAL).getElementById(element).innerHTML = html
   else:
     output._publish.html(html)
+  # pylint: disable=protected-access
 
 
 def play_sequence(sequence,
@@ -102,7 +103,7 @@ def play_sequence(sequence,
   array_of_floats = synth(sequence, sample_rate=sample_rate, **synth_args)
 
   try:
-    import google.colab  # pylint: disable=unused-import,g-import-not-at-top
+    import google.colab  # pylint: disable=unused-import,unused-variable,g-import-not-at-top
     colab_play(array_of_floats, sample_rate, colab_ephemeral)
   except ImportError:
     IPython.display.display(IPython.display.Audio(array_of_floats,
