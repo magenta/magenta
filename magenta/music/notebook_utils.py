@@ -19,7 +19,7 @@ from __future__ import print_function
 
 import base64
 import collections
-import cStringIO
+from io import StringIO
 import os
 
 # internal imports
@@ -57,7 +57,7 @@ def colab_play(array_of_floats, sample_rate, ephemeral=True, autoplay=False):
   normalizer = float(np.iinfo(np.int16).max)
   array_of_ints = np.array(
       np.asarray(array_of_floats) * normalizer, dtype=np.int16)
-  memfile = cStringIO.StringIO()
+  memfile = StringIO()
   wavfile.write(memfile, sample_rate, array_of_ints)
   html = """<audio controls {autoplay}>
               <source controls src="data:audio/wav;base64,{base64_wavfile}"
