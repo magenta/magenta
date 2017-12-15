@@ -154,7 +154,7 @@ class Nade(object):
             tf.transpose(tf.squeeze(tf.stack(cond_p), [2])))
 
   def sample(self, b_enc=None, b_dec=None):
-   """Generate samples for the batch from the NADE.
+    """Generate samples for the batch from the NADE.
 
     Args:
       b_enc: External encoder bias terms (`b` in [1]), sized
