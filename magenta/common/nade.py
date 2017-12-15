@@ -27,7 +27,6 @@ def _safe_log(tensor):
   """Lower bounded log function."""
   return tf.log(1e-6 + tensor)
 
-
 class Nade(object):
   """Neural Autoregressive Distribution Estimator [1], with external bias.
 
