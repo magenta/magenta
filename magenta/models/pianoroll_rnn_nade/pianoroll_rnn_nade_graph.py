@@ -14,7 +14,6 @@
 """Provides function to build an RNN-NADE model's graph."""
 
 import collections
-import math
 
 # internal imports
 
