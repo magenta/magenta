@@ -92,11 +92,11 @@ config_map['cat-drums_2bar_small'] = Config(
             dec_rnn_size=[256, 256],
         )),
     note_sequence_augmenter=None,
-    note_sequence_converter=data.OneHotDrumsConverter(
+    note_sequence_converter=data.DrumsConverter(
         max_bars=100,  # Truncate long drum sequences before slicing.
         slice_bars=2,
         steps_per_quarter=4,
-        binary_input=True),
+        roll_input=True),
     train_examples_path=None,
     eval_examples_path=None,
 )
@@ -114,11 +114,11 @@ config_map['cat-drums_2bar_big'] = Config(
             dec_rnn_size=[2048, 2048, 2048],
         )),
     note_sequence_augmenter=None,
-    note_sequence_converter=data.OneHotDrumsConverter(
+    note_sequence_converter=data.DrumsConverter(
         max_bars=100,  # Truncate long drum sequences before slicing.
         slice_bars=2,
         steps_per_quarter=4,
-        binary_input=True),
+        roll_input=True),
     train_examples_path=None,
     eval_examples_path=None,
 )
