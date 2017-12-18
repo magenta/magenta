@@ -94,7 +94,7 @@ class Nade(object):
 
     Returns:
        log_prob: The log probabilities of each observation in the batch, sized
-           `[batch_size, 1]`.
+           `[batch_size]`.
        cond_probs: The conditional probabilities at each index for every batch,
            sized `[batch_size, num_dims]`.
     """
@@ -153,7 +153,7 @@ class Nade(object):
     return (tf.squeeze(log_p, squeeze_dims=[1]),
             tf.transpose(tf.squeeze(tf.stack(cond_p), [2])))
 
-  def sample(self, b_enc=None, b_dec=None):
+  def sample(self, b_enc=None, b_dec=None, n=None):
     """Generate samples for the batch from the NADE.
 
     Args:
@@ -163,16 +163,24 @@ class Nade(object):
       b_dec: External decoder bias terms (`c` in [1]), sized
           `[batch_size, num_dims]`, or None if the internal bias term should
           be used.
+      n: The number of samples to generate, or None, if the batch size of
+        `b_enc` should be used.
 
     Returns:
       sample: The generated samples, sized `[batch_size, num_dims]`.
       log_prob: The log probabilities of each observation in the batch, sized
-          `[batch_size, 1]`.
+          `[batch_size]`.
     """
     b_enc = b_enc if b_enc is not None else self.b_enc
     b_dec = b_dec if b_dec is not None else self.b_dec
 
-    batch_size = tf.shape(b_enc)[0]
+    batch_size = n or tf.shape(b_enc)[0]
+
+    # Broadcast if needed.
+    if b_enc.shape[0] == 1 != batch_size:
+      b_enc = tf.tile(b_enc, [batch_size, 1])
+    if b_dec.shape[0] == 1 != batch_size:
+      b_dec = tf.tile(b_dec, [batch_size, 1])
 
     a_0 = b_enc
     sample_0 = []
@@ -214,7 +222,8 @@ class Nade(object):
     for i in range(self.num_dims):
       a, sample, log_p = loop_body(i, a, sample, log_p)
 
-    return tf.transpose(tf.squeeze(tf.stack(sample), [2])), log_p
+    return (tf.transpose(tf.squeeze(tf.stack(sample), [2])),
+            tf.squeeze(log_p, squeeze_dims=[1]))
 
   def _cond_prob(self, a, w_dec_i, b_dec_i):
     """Gets the conditional probability for a single dimension.

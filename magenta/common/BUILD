@@ -80,6 +80,18 @@ py_library(
     ],
 )
 
+py_test(
+    name = "nade_test",
+    size = "small",
+    srcs = ["nade_test.py"],
+    srcs_version = "PY2AND3",
+    deps = [
+        ":nade",
+        # numpy dep
+        # tensorflow dep
+    ],
+)
+
 py_library(
     name = "sequence_example_lib",
     srcs = ["sequence_example_lib.py"],
