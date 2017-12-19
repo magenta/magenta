@@ -44,6 +44,10 @@ MEL_PROGRAMS = range(0, 31)  # piano, chromatic percussion, organ, guitar
 BASS_PROGRAMS = range(32, 39)
 ELECTRIC_BASS_PROGRAM = 33
 
+REDUCED_DRUM_PITCH_CLASSES = drums_encoder_decoder.DEFAULT_DRUM_TYPE_PITCHES
+FULL_DRUM_PITCH_CLASSES = [
+    [p] for c in drums_encoder_decoder.DEFAULT_DRUM_TYPE_PITCHES for p in c]
+
 
 def _maybe_pad_seqs(seqs, dtype):
   """Pads sequences to match the longest and returns as a numpy array."""
@@ -57,6 +61,14 @@ def _maybe_pad_seqs(seqs, dtype):
     return (np.array([np.pad(s, [(0, length - len(s)), (0, 0)], mode='constant')
                       for s in seqs], dtype),
             np.array(lengths, np.int32))
+
+
+def _extract_instrument(note_sequence, instrument):
+  extracted_ns = copy.copy(note_sequence)
+  del extracted_ns.notes[:]
+  extracted_ns.notes.extend(
+      n for n in note_sequence.notes if n.instrument == instrument)
+  return extracted_ns
 
 
 def np_onehot(indices, depth, dtype=np.bool):
