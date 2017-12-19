@@ -131,7 +131,7 @@ class Nade(object):
       b_dec_i = b_dec_arr[i]
       v_i = x_arr[i]
 
-      cond_p_i = self._cond_prob(a, w_dec_i, b_dec_i)
+      cond_p_i, _ = self._cond_prob(a, w_dec_i, b_dec_i)
 
       # Get log probability for this value. Log space avoids numerical issues.
       log_p_i = v_i * _safe_log(cond_p_i) + (1 - v_i) * _safe_log(1 - cond_p_i)
@@ -155,7 +155,7 @@ class Nade(object):
     return (tf.squeeze(log_p, squeeze_dims=[1]),
             tf.transpose(tf.squeeze(tf.stack(cond_p), [2])))
 
-  def sample(self, b_enc=None, b_dec=None, n=None):
+  def sample(self, b_enc=None, b_dec=None, n=None. temperature=None):
     """Generate samples for the batch from the NADE.
 
     Args:
@@ -166,7 +166,9 @@ class Nade(object):
           `[batch_size, num_dims]`, or None if the internal bias term should
           be used.
       n: The number of samples to generate, or None, if the batch size of
-        `b_enc` should be used.
+          `b_enc` should be used.
+      temperature: The optional amount to divide the logits by before sampling
+          each Bernoulli.
 
     Returns:
       sample: The generated samples, sized `[batch_size, num_dims]`.
@@ -200,10 +202,14 @@ class Nade(object):
       w_dec_i = w_dec_arr[i]
       b_dec_i = b_dec_arr[i]
 
-      cond_p_i = self._cond_prob(a, w_dec_i, b_dec_i)
+      cond_p_i, cond_l_i = self._cond_prob(a, w_dec_i, b_dec_i)
 
-      bernoulli = tf.contrib.distributions.Bernoulli(probs=cond_p_i,
-                                                     dtype=tf.float32)
+      if temperature is None:
+        bernoulli = tf.distributions.Bernoulli(probs=cond_p_i, dtype=tf.float32)
+      else:
+        bernoulli = tf.distributions.Bernoulli(
+          logits=cond_l_i / temperature, dtype=tf.float32)
+
       v_i = bernoulli.sample()
 
       # Accumulate sampled values.
@@ -237,9 +243,13 @@ class Nade(object):
       b_dec_i: The decoder bias terms, sized `[batch_size, 1]`.
 
     Returns:
-      The conditional probability of the dimension, sized `[batch_size, 1]`.
+      cond_p_i: The conditional probability of the dimension, sized
+        `[batch_size, 1]`.
+      cond_l_i: The conditional logits of the dimension, sized
+        `[batch_size, 1]`.
     """
     # Decode hidden units to get conditional probability.
     h = tf.sigmoid(a)
-    p_cond_i = tf.sigmoid(b_dec_i + tf.matmul(h, w_dec_i))
-    return p_cond_i
+    cond_l_i = b_dec_i + tf.matmul(h, w_dec_i)
+    cond_p_i = tf.sigmoid(cond_l_i)
+    return cond_p_i, cond_l_i
