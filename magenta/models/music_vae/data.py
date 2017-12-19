@@ -29,6 +29,7 @@ import numpy as np
 import tensorflow as tf
 
 import magenta.music as mm
+from magenta.music import drums_encoder_decoder
 from magenta.music import sequences_lib
 from magenta.protobuf import music_pb2
 

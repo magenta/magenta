@@ -522,7 +522,7 @@ class HierarchicalMultiOutLstmDecoder(base_model.BaseDecoder):
     return tf.concat(sample_ids, axis=-1)
 
 
-class MultiLabelRnnNadeDecoder(lstm_models.BaseLstmDecoder):
+class MultiLabelRnnNadeDecoder(BaseLstmDecoder):
   """LSTM decoder with multi-label output provided by a NADE."""
 
   def build(self, hparams, output_depth, is_training=False):
