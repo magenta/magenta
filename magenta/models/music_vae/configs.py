@@ -147,7 +147,7 @@ CONFIG_MAP['nade-drums_2bar_reduced'] = Config(
     eval_examples_path=None,
 )
 
-CONFIG_MAP['nade-drums_2bar_reduced'] = Config(
+CONFIG_MAP['nade-drums_2bar_full'] = Config(
     model=MusicVAE(lstm_models.BidirectionalLstmEncoder(),
                    lstm_models.MultiLabelRnnNadeDecoder()),
     hparams=merge_hparams(
