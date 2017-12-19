@@ -29,16 +29,18 @@ def _safe_log(tensor):
 
 
 class Nade(object):
-  """Neural Autoregressive Distribution Estimator [1], with external bias.
+  """Neural Autoregressive Distribution Estimator [1].
 
   [1]: https://arxiv.org/abs/1605.02226
 
   Args:
     num_dims: The number of binary dimensions for each observation.
     num_hidden: The number of hidden units in the NADE.
+    internal_bias: Whether the model should maintain its own bias varaibles.
+        Otherwise, external values must be passed to `log_prob` and `sample`.
   """
 
-  def __init__(self, num_dims, num_hidden, name='nade'):
+  def __init__(self, num_dims, num_hidden, internal_bias=False, name='nade'):
     self._num_dims = num_dims
     self._num_hidden = num_hidden
 
@@ -58,13 +60,13 @@ class Nade(object):
           initializer=initializer)
       # Internal encoder bias term (`b` in [1]). Will be used if external biases
       # are not provided.
-      self.b_enc = tf.get_variable(
+      self.b_enc = None if not internal_bias else tf.get_variable(
           'b_enc',
           shape=[1, self._num_hidden],
           initializer=initializer)
       # Internal decoder bias term (`c` in [1]). Will be used if external biases
       # are not provided.
-      self.b_dec = tf.get_variable(
+      self.b_dec = None if not internal_bias else tf.get_variable(
           'b_dec',
           shape=[1, self._num_dims],
           initializer=initializer)
