@@ -208,7 +208,7 @@ class Nade(object):
         bernoulli = tf.distributions.Bernoulli(probs=cond_p_i, dtype=tf.float32)
       else:
         bernoulli = tf.distributions.Bernoulli(
-          logits=cond_l_i / temperature, dtype=tf.float32)
+            logits=cond_l_i / temperature, dtype=tf.float32)
 
       v_i = bernoulli.sample()
 
