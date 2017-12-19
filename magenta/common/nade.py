@@ -155,7 +155,7 @@ class Nade(object):
     return (tf.squeeze(log_p, squeeze_dims=[1]),
             tf.transpose(tf.squeeze(tf.stack(cond_p), [2])))
 
-  def sample(self, b_enc=None, b_dec=None, n=None. temperature=None):
+  def sample(self, b_enc=None, b_dec=None, n=None, temperature=None):
     """Generate samples for the batch from the NADE.
 
     Args:
