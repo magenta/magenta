@@ -90,6 +90,7 @@ CONSOLE_SCRIPTS = [
     'magenta.models.polyphony_rnn.polyphony_rnn_train',
     'magenta.models.rl_tuner.rl_tuner_train',
     'magenta.models.sketch_rnn.sketch_rnn_train',
+    'magenta.models.music_vae.music_vae_train',
     'magenta.scripts.convert_dir_to_note_sequences',
 ]
 
