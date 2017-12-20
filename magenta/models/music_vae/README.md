@@ -56,7 +56,7 @@ and learning rate by setting the flag as follows:
 --hparams=batch_size=32,learning_rate=0.0005
 ```
 
-Finaly, you should also launch an evaluation job (using ``--mode=eval`` with a
+Finally, you should also launch an evaluation job (using ``--mode=eval`` with a
 healdout dataset) in order to compute metrics such as accuracy and to avoid
  overfitting.
 
