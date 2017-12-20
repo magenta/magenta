@@ -75,7 +75,12 @@ flags.DEFINE_integer(
     'shuffle_buffer_size', 256,
     'Size of shuffle buffer.')
 flags.DEFINE_string(
-    'eval_dir_suffix', '', 'Suffix to add to eval output directory.')
+    'eval_dir_suffix', '',
+    'Suffix to add to eval output directory.')
+flags.DEFINE_string(
+    'log', 'INFO',
+    'The threshold for what messages will be logged: '
+    'DEBUG, INFO, WARN, ERROR, or FATAL.')
 
 
 # Should not be called from within the graph to avoid redundant summaries.
@@ -284,6 +289,7 @@ def run(config_map,
 
 
 def main(unused_argv):
+  tf.logging.set_verbosity(FLAGS.log)
   run(configs.CONFIG_MAP)
 
 

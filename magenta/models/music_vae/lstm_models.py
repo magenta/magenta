@@ -127,11 +127,14 @@ class BidirectionalLstmEncoder(base_model.BaseEncoder):
         dtype=tf.float32,
         scope='encoder')
 
+    # Concatenate the final outputs for each direction.
+    # Note we access the outputs (h) from the states since the backward outputs
+    # are reversed to the input order in the returned outputs.
     unused_outputs, last_states_fw, last_states_bw = res
     last_state_fw = last_states_fw[-1][-1]
     last_state_bw = last_states_bw[-1][-1]
-
     last_h = tf.concat([last_state_fw.h, last_state_bw.h], 1)
+
     return last_h
 
 
