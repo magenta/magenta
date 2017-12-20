@@ -36,8 +36,8 @@ into NoteSequences following the instructions in
 [Building your Dataset](/magenta/scripts/README.md). You can then choose one of
 the pre-defined Configurations in [configs.py](configs.py) or define your own.
 Finally, you must execute the [training script](train.py). Below is an example
-command, training the ``cat-mel_2bar_small`` configuration and assuming your
-examples are stored at ``/tmp/music_vae/mel_train_examples.tfrecord``.
+command, training the `cat-mel_2bar_small` configuration and assuming your
+examples are stored at `/tmp/music_vae/mel_train_examples.tfrecord`.
 
 ```
 music_vae_train \
@@ -47,7 +47,7 @@ music_vae_train \
 --examples_path=/tmp/music_vae/mel_train_examples.tfrecord
 ```
 
-You will likely need to adjust some of the hyperparamters with the ``--hparams``
+You will likely need to adjust some of the hyperparamters with the `--hparams`
 flag for your particular train set and hardware. For example, if the default
 batch size of a config is too large for your GPU, you can reduce the batch size
 and learning rate by setting the flag as follows:
@@ -56,7 +56,7 @@ and learning rate by setting the flag as follows:
 --hparams=batch_size=32,learning_rate=0.0005
 ```
 
-Finally, you should also launch an evaluation job (using ``--mode=eval`` with a
+Finally, you should also launch an evaluation job (using `--mode=eval` with a
 healdout dataset) in order to compute metrics such as accuracy and to avoid
  overfitting.
 
