@@ -57,8 +57,8 @@ and learning rate by setting the flag as follows:
 ```
 
 Finally, you should also launch an evaluation job (using `--mode=eval` with a
-healdout dataset) in order to compute metrics such as accuracy and to avoid
- overfitting.
+heldout dataset) in order to compute metrics such as accuracy and to avoid
+overfitting.
 
 Once your model has trained sufficiently, you can load the checkpoint into the
 [Colab Notebook](https://colab.research.google.com/notebook#fileId=/v2/external/notebooks/magenta/music_vae/music_vae.ipynb) to do inference and produce audio outputs.
