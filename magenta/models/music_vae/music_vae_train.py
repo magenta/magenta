@@ -79,8 +79,8 @@ flags.DEFINE_string(
     'Suffix to add to eval output directory.')
 flags.DEFINE_string(
     'log', 'INFO',
-     'The threshold for what messages will be logged: '
-     'DEBUG, INFO, WARN, ERROR, or FATAL.')
+    'The threshold for what messages will be logged: '
+    'DEBUG, INFO, WARN, ERROR, or FATAL.')
 
 
 # Should not be called from within the graph to avoid redundant summaries.
