@@ -53,6 +53,11 @@ class BaseDataTest(object):
       return sorted(arr_list, key=lambda x: x.tostring())
     self.assertEqual(len(lhs), len(rhs))
     for a, b in zip(_np_sorted(lhs), _np_sorted(rhs)):
+      # Convert bool type to int for easier-to-read error messages.
+      if a.dtype == np.bool:
+        a = a.astype(np.int)
+      if b.dtype == np.bool:
+        b = b.astype(np.int)
       np.testing.assert_array_equal(a, b)
 
 
@@ -267,10 +272,10 @@ class OneHotDrumsConverterTest(BaseOneHotDataTest, tf.test.TestCase):
     self.expected_sliced_labels = [
         np.array(es) for es in expected_sliced_events]
 
-    self.converter_class = data.OneHotDrumsConverter
+    self.converter_class = data.DrumsConverter
 
   def testMaxOutputsPerNoteSequence(self):
-    converter = data.OneHotDrumsConverter(
+    converter = data.DrumsConverter(
         steps_per_quarter=1, slice_bars=1, max_tensors_per_notesequence=2)
     self.assertEqual(2, len(converter.to_tensors(self.sequence)[0]))
 
@@ -281,7 +286,7 @@ class OneHotDrumsConverterTest(BaseOneHotDataTest, tf.test.TestCase):
     self.assertEqual(5, len(converter.to_tensors(self.sequence)[0]))
 
   def testIsTraining(self):
-    converter = data.OneHotDrumsConverter(
+    converter = data.DrumsConverter(
         steps_per_quarter=1, slice_bars=1, max_tensors_per_notesequence=2)
     self.is_training = True
     self.assertEqual(2, len(converter.to_tensors(self.sequence)[0]))
@@ -290,7 +295,7 @@ class OneHotDrumsConverterTest(BaseOneHotDataTest, tf.test.TestCase):
     self.assertEqual(5, len(converter.to_tensors(self.sequence)[0]))
 
   def testToNoteSequence(self):
-    converter = data.OneHotDrumsConverter(
+    converter = data.DrumsConverter(
         steps_per_quarter=1, slice_bars=2, max_tensors_per_notesequence=1)
     _, output_tensors = converter.to_tensors(
         filter_instrument(self.sequence, 1))
@@ -308,7 +313,7 @@ class OneHotDrumsConverterTest(BaseOneHotDataTest, tf.test.TestCase):
     self.assertProtoEquals(expected_sequence, sequences[0])
 
 
-class BinaryInputsOneHotDrumsConverterTest(OneHotDrumsConverterTest):
+class RollInputsOneHotDrumsConverterTest(OneHotDrumsConverterTest):
 
   def labels_to_inputs(self, labels, converter):
     inputs = []
@@ -317,134 +322,117 @@ class BinaryInputsOneHotDrumsConverterTest(OneHotDrumsConverterTest):
                         converter.input_dtype)
       for i, l in enumerate(label_arr):
         if l == converter.end_token:
-          input_[i, -1] = 1
+          input_[i, -2] = 1
         elif l == 0:
-          input_[i, -(1 + (converter.end_token is not None))] = 1
+          input_[i, -1] = 1
         else:
           j = 0
           while l:
             input_[i, j] = l % 2
             l >>= 1
             j += 1
-        assert np.any(input_[i]), label_arr.astype(np.int)
+          assert np.any(input_[i]), label_arr.astype(np.int)
       inputs.append(input_)
     return inputs
 
   def setUp(self):
-    super(BinaryInputsOneHotDrumsConverterTest, self).setUp()
+    super(RollInputsOneHotDrumsConverterTest, self).setUp()
     self.converter_class = functools.partial(
-        data.OneHotDrumsConverter, binary_input=True)
+        data.DrumsConverter, roll_input=True)
 
 
-class TrioConverterTest(BaseDataTest, tf.test.TestCase):
+class RollOutputsDrumsConverterTest(BaseDataTest, tf.test.TestCase):
 
   def setUp(self):
     sequence = music_pb2.NoteSequence()
     sequence.tempos.add(qpm=60)
-    # Mel 1, coverage bars: [3, 9] / [2, 9]
     testing_lib.add_track_to_sequence(
-        sequence, 1, [(51, 1, 13, 37)])
-    # Mel 2, coverage bars: [1, 3] / [0, 4]
-    testing_lib.add_track_to_sequence(
-        sequence, 2, [(52, 1, 4, 16)])
-    # Bass, coverage bars: [0, 1], [4, 6] / [0, 7]
-    testing_lib.add_track_to_sequence(
-        sequence, 3, [(50, 1, 2, 5), (49, 1, 16, 25)])
-    # Drum, coverage bars: [0, 2], [6, 7] / [0, 3], [5, 8]
-    testing_lib.add_track_to_sequence(
-        sequence, 4,
-        [(35, 1, 0, 1), (40, 1, 4, 5),
-         (35, 1, 9, 9), (35, 1, 25, 25),
-         (40, 1, 29, 29)],
+        sequence, 0,
+        [(35, 100, 0, 10), (35, 55, 1, 2), (44, 55, 1, 2),
+         (40, 45, 4, 5),
+         (35, 45, 9, 10),
+         (40, 45, 13, 13),
+         (55, 120, 16, 18), (60, 100, 16, 17), (52, 99, 19, 20),
+         (40, 45, 33, 34), (55, 120, 36, 37), (60, 100, 36, 37),
+         (52, 99, 39, 42)],
         is_drum=True)
-
-    for n in sequence.notes:
-      if n.instrument == 1:
-        n.program = 0
-      elif n.instrument == 2:
-        n.program = 10
-      elif n.instrument == 3:
-        n.program = 33
-
+    testing_lib.add_track_to_sequence(
+        sequence, 1,
+        [(35, 100, 5, 10), (35, 55, 6, 8), (44, 55, 7, 9)],
+        is_drum=False)
     self.sequence = sequence
 
-    m1 = np.array(
-        [NO_EVENT] * 13 + [30] + [NO_EVENT] * 23 + [NOTE_OFF] + [NO_EVENT] * 2,
-        np.int32) + 2
-    m2 = np.array(
-        [NO_EVENT] * 4 + [31] + [NO_EVENT] * 11 + [NOTE_OFF] + [NO_EVENT] * 23,
-        np.int32) + 2
-    b = np.array(
-        [NO_EVENT, NO_EVENT, 29, NO_EVENT, NO_EVENT, NOTE_OFF] +
-        [NO_EVENT] * 10 + [28] + [NO_EVENT] * 8 + [NOTE_OFF] + [NO_EVENT] * 14,
-        np.int32) + 2
-    d = ([1, NO_DRUMS, NO_DRUMS, NO_DRUMS,
-          2, NO_DRUMS, NO_DRUMS, NO_DRUMS,
-          NO_DRUMS, 1, NO_DRUMS, NO_DRUMS] +
-         [NO_DRUMS] * 12 +
-         [NO_DRUMS, 1, NO_DRUMS, NO_DRUMS,
-          NO_DRUMS, 2, NO_DRUMS, NO_DRUMS] +
-         [NO_DRUMS] * 4)
-
-    expected_sliced_sets = [
-        ((2, 4), (m1, b, d)),
-        ((5, 7), (m1, b, d)),
-        ((6, 8), (m1, b, d)),
-        ((0, 2), (m2, b, d)),
-        ((1, 3), (m2, b, d)),
-        ((2, 4), (m2, b, d)),
-    ]
-
-    self.expected_sliced_labels = [
-        np.stack([l[i*4:j*4] for l in x]) for (i, j), x in expected_sliced_sets]
-
   def testSliced(self):
-    converter = data.TrioConverter(
-        steps_per_quarter=1, gap_bars=1, slice_bars=2,
-        max_tensors_per_notesequence=None)
-    in_tensors, out_tensors = converter.to_tensors(self.sequence)
-    self.assertArraySetsEqual(in_tensors, out_tensors)
-    actual_sliced_labels = [
-        np.stack(np.argmax(s, axis=-1) for s in np.split(t, [90, 180], axis=-1))
-        for t in out_tensors]
+    expected_sliced_events = [
+        ([0], [0, 2], [], [],
+         [1], [], [], []),
+        ([], [0], [], [],
+         [], [1], [], []),
+        ([], [1], [], [],
+         [5, 7], [], [], [8]),
+    ]
+    expected_silent_array = np.array([
+        [0, 0, 1, 1, 0, 1, 1, 1],
+        [1, 0, 1, 1, 1, 0, 1, 1],
+        [1, 0, 1, 1, 0, 1, 1, 0],
+    ])
+    expected_output_tensors = np.zeros(
+        (len(expected_sliced_events), 8, len(data.REDUCED_DRUM_PITCH_CLASSES)),
+        np.bool)
+    for i, events in enumerate(expected_sliced_events):
+      for j, e in enumerate(events):
+        expected_output_tensors[i, j, e] = 1
 
-    self.assertArraySetsEqual(self.expected_sliced_labels, actual_sliced_labels)
+    converter = data.DrumsConverter(
+        pitch_classes=data.REDUCED_DRUM_PITCH_CLASSES,
+        slice_bars=2,
+        steps_per_quarter=1,
+        roll_input=True,
+        roll_output=True,
+        max_tensors_per_notesequence=None)
+
+    self.assertEqual(10, converter.input_depth)
+    self.assertEqual(9, converter.output_depth)
+
+    input_tensors, output_tensors = converter.to_tensors(self.sequence)
+
+    self.assertArraySetsEqual(
+        np.append(
+            expected_output_tensors,
+            np.expand_dims(expected_silent_array, axis=2),
+            axis=2),
+        input_tensors)
+    self.assertArraySetsEqual(expected_output_tensors, output_tensors)
 
   def testToNoteSequence(self):
-    converter = data.TrioConverter(
-        steps_per_quarter=1, slice_bars=2, max_tensors_per_notesequence=1)
+    converter = data.DrumsConverter(
+        pitch_classes=data.REDUCED_DRUM_PITCH_CLASSES,
+        slice_bars=None,
+        gap_bars=None,
+        steps_per_quarter=1,
+        roll_input=True,
+        roll_output=True,
+        max_tensors_per_notesequence=None)
 
-    mel_oh = data.np_onehot(self.expected_sliced_labels[3][0], 90)
-    bass_oh = data.np_onehot(self.expected_sliced_labels[3][1], 90)
-    drums_oh = data.np_onehot(self.expected_sliced_labels[3][2], 512)
-    output_tensors = np.concatenate([mel_oh, bass_oh, drums_oh], axis=-1)
+    _, output_tensors = converter.to_tensors(self.sequence)
+    sequences = converter.to_notesequences(output_tensors)
 
-    sequences = converter.to_notesequences([output_tensors])
     self.assertEqual(1, len(sequences))
-
-    self.assertProtoEquals(
-        """
-        ticks_per_quarter: 220
-        tempos < qpm: 120 >
-        notes <
-          instrument: 0 pitch: 52 start_time: 2.0 end_time: 4.0 program: 0
-          velocity: 80
-        >
-        notes <
-          instrument: 1 pitch: 50 start_time: 1.0 end_time: 2.5 program: 33
-          velocity: 80
-        >
-        notes <
-          instrument: 9 pitch: 36 start_time: 0.0 end_time: 0.5 velocity: 80
-          is_drum: True
-        >
-        notes <
-          instrument: 9 pitch: 38 start_time: 2.0 end_time: 2.5 velocity: 80
-          is_drum: True
-        >
-        total_time: 4.0
-        """,
-        sequences[0])
+    expected_sequence = music_pb2.NoteSequence(ticks_per_quarter=220)
+    expected_sequence.tempos.add(qpm=120)
+    testing_lib.add_track_to_sequence(
+        expected_sequence, 0,
+        [(36, 80, 0, 0.5), (42, 80, 0.5, 1.0), (36, 80, 0.5, 1.0),
+         (38, 80, 2.0, 2.5),
+         (36, 80, 4.5, 5.0),
+         (38, 80, 6.5, 7.0),
+         (48, 80, 8.0, 8.5), (49, 80, 8.0, 8.5), (51, 80, 9.5, 10.0),
+         (38, 80, 16.5, 17.0), (48, 80, 18.0, 18.5), (49, 80, 18.0, 18.5),
+         (51, 80, 19.5, 20.0)],
+        is_drum=True)
+    for n in expected_sequence.notes:
+      n.instrument = 9
+    self.assertProtoEquals(expected_sequence, sequences[0])
 
 
 if __name__ == '__main__':

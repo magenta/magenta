@@ -29,6 +29,7 @@ import numpy as np
 import tensorflow as tf
 
 import magenta.music as mm
+from magenta.music import drums_encoder_decoder
 from magenta.music import sequences_lib
 from magenta.protobuf import music_pb2
 
@@ -44,6 +45,10 @@ MEL_PROGRAMS = range(0, 31)  # piano, chromatic percussion, organ, guitar
 BASS_PROGRAMS = range(32, 39)
 ELECTRIC_BASS_PROGRAM = 33
 
+REDUCED_DRUM_PITCH_CLASSES = drums_encoder_decoder.DEFAULT_DRUM_TYPE_PITCHES
+FULL_DRUM_PITCH_CLASSES = [
+    [p] for c in drums_encoder_decoder.DEFAULT_DRUM_TYPE_PITCHES for p in c]
+
 
 def _maybe_pad_seqs(seqs, dtype):
   """Pads sequences to match the longest and returns as a numpy array."""
@@ -57,6 +62,14 @@ def _maybe_pad_seqs(seqs, dtype):
     return (np.array([np.pad(s, [(0, length - len(s)), (0, 0)], mode='constant')
                       for s in seqs], dtype),
             np.array(lengths, np.int32))
+
+
+def _extract_instrument(note_sequence, instrument):
+  extracted_ns = copy.copy(note_sequence)
+  del extracted_ns.notes[:]
+  extracted_ns.notes.extend(
+      n for n in note_sequence.notes if n.instrument == instrument)
+  return extracted_ns
 
 
 def np_onehot(indices, depth, dtype=np.bool):
@@ -287,7 +300,7 @@ class LegacyEventListOneHotConverter(BaseNoteSequenceConverter):
     event_extractor_fn: A function for extracing events into EventSequences. The
       sole input should be the quantized NoteSequence.
     legacy_encoder_decoder: An instantiated OneHotEncoding object to use.
-    add_end_token: Whether or not to add the end token. Recommended to be False
+    add_end_token: Whether or not to add an end token. Recommended to be False
       for fixed-length outputs.
     slice_bars: Optional size of window to slide over raw event lists after
       extraction.
@@ -379,7 +392,7 @@ class LegacyEventListOneHotConverter(BaseNoteSequenceConverter):
     for t in unique_event_tuples:
       seqs.append(np_onehot(
           [self._legacy_encoder_decoder.encode_event(e) for e in t] +
-          ([] if self._end_token is None else [self._end_token]),
+          ([] if self.end_token is None else [self.end_token]),
           self.output_depth, self.output_dtype))
 
     return seqs, seqs
@@ -388,11 +401,11 @@ class LegacyEventListOneHotConverter(BaseNoteSequenceConverter):
     output_sequences = []
     for sample in samples:
       s = np.argmax(sample, axis=-1)
-      if self._end_token is not None and self._end_token in s:
-        s = s[:s.tolist().index(self._end_token)]
+      if self.end_token is not None and self.end_token in s:
+        s = s[:s.tolist().index(self.end_token)]
       event_list = self._event_list_fn()
       for e in s:
-        assert e != self._end_token
+        assert e != self.end_token
         event_list.append(self._legacy_encoder_decoder.decode_event(e))
       output_sequences.append(event_list.to_sequence(velocity=80))
     return output_sequences
@@ -471,13 +484,14 @@ class OneHotMelodyConverter(LegacyEventListOneHotConverter):
     return super(OneHotMelodyConverter, self)._to_tensors(note_sequence)
 
 
-class OneHotDrumsConverter(LegacyEventListOneHotConverter):
-  """Converter for legacy MultiDrumOneHotEncoding with binary inputs.
+class DrumsConverter(BaseNoteSequenceConverter):
+  """Converter for legacy drums with either pianoroll or one-hot tensors.
 
-  Outputs are one-hot encoded labels representing up to 9 possible drum hits at
-  a given time, as defined in legacy MultiDrumOneHotEncoding. Inputs are
-  optionally the separate drum hits represented by a binary array at each
-  timestep.
+  Inputs/outputs are either a "pianoroll"-like encoding of all possible drum
+  hits at a given step, or a one-hot encoding of the pianoroll.
+
+  The "roll" input encoding includes a final NOR bit (after the optional end
+  token).
 
   Args:
     max_bars: Optional maximum number of bars per extracted drums, before
@@ -486,75 +500,163 @@ class OneHotDrumsConverter(LegacyEventListOneHotConverter):
       extraction.
     gap_bars: If this many bars or more follow a non-empty drum event, the
       drum track is ended. Disabled when set to 0 or None.
+    pitch_classes: A collection of collections, with each sub-collection
+      containing the set of pitches representing a single class to group by. By
+      default, groups valid drum pitches into 9 different classes.
+    add_end_token: Whether or not to add an end token. Recommended to be False
+      for fixed-length outputs.
     steps_per_quarter: The number of quantization steps per quarter note.
     quarters_per_bar: The number of quarter notes per bar.
     pad_to_total_time: Pads each input/output tensor to the total time of the
       NoteSequence.
-    add_end_token: Whether to add an end token at the end of each sequence.
+    roll_input: Whether to use a pianoroll-like representation as the input
+      instead of a one-hot encoding.
+    roll_output: Whether to use a pianoroll-like representation as the output
+      instead of a one-hot encoding.
     max_tensors_per_notesequence: The maximum number of outputs to return
       for each NoteSequence.
-    binary_input: Whether to use the separate drum hits represented by a binary
-      array at each timestep as the input, instead of the one-hot output
-      representation.
+    presplit_on_time_changes: Whether to split NoteSequence on time changes
+      before converting.
   """
 
   def __init__(self, max_bars=None, slice_bars=None, gap_bars=1.0,
-               steps_per_quarter=4, quarters_per_bar=4, pad_to_total_time=False,
-               add_end_token=False, max_tensors_per_notesequence=5,
-               binary_input=False, presplit_on_time_changes=True):
-    steps_per_bar = steps_per_quarter * quarters_per_bar
-    max_steps_truncate = steps_per_bar * max_bars if max_bars else None
-    self._binary_input = binary_input
+               pitch_classes=None, add_end_token=False, steps_per_quarter=4,
+               quarters_per_bar=4, pad_to_total_time=False, roll_input=False,
+               roll_output=False, max_tensors_per_notesequence=5,
+               presplit_on_time_changes=True):
+    self._pitch_classes = pitch_classes or REDUCED_DRUM_PITCH_CLASSES
+    self._pitch_class_map = {
+        p: i for i, pitches in enumerate(self._pitch_classes) for p in pitches}
 
-    def drumtrack_fn():
-      return mm.DrumTrack(
-          steps_per_bar=steps_per_bar,
-          steps_per_quarter=steps_per_quarter)
-    drums_extractor_fn = functools.partial(
+    self._steps_per_quarter = steps_per_quarter
+    self._steps_per_bar = steps_per_quarter * quarters_per_bar
+    self._slice_steps = self._steps_per_bar * slice_bars if slice_bars else None
+    self._pad_to_total_time = pad_to_total_time
+    self._roll_input = roll_input
+    self._roll_output = roll_output
+
+    self._drums_extractor_fn = functools.partial(
         mm.extract_drum_tracks,
         min_bars=1,
         gap_bars=gap_bars or float('inf'),
-        max_steps_truncate=max_steps_truncate,
+        max_steps_truncate=self._steps_per_bar * max_bars if max_bars else None,
         pad_end=True)
-    super(OneHotDrumsConverter, self).__init__(
-        drumtrack_fn,
-        drums_extractor_fn,
-        mm.MultiDrumOneHotEncoding(),
-        add_end_token=add_end_token,
-        slice_bars=slice_bars,
-        pad_to_total_time=pad_to_total_time,
-        steps_per_quarter=steps_per_quarter,
-        quarters_per_bar=quarters_per_bar,
-        max_tensors_per_notesequence=max_tensors_per_notesequence,
-        presplit_on_time_changes=presplit_on_time_changes)
 
-    if binary_input:
-      # Binary input tensor is log_2 of the output depth after removing the end
-      # token plus an additional dimension to represent the "empty" label.
-      self._input_depth = (
-          int(np.log2(self._output_depth - add_end_token)) + 1 + add_end_token)
+    num_classes = len(self._pitch_classes)
+
+    self._pr_encoder_decoder = mm.PianorollEncoderDecoder(
+        input_size=num_classes + add_end_token)
+    # Use pitch classes as `drum_type_pitches` since we have already done the
+    # mapping.
+    self._oh_encoder_decoder = mm.MultiDrumOneHotEncoding(
+        drum_type_pitches=[(i,) for i in range(num_classes)])
+
+    output_depth = (num_classes if self._roll_output else
+                    self._oh_encoder_decoder.num_classes) + add_end_token
+    super(DrumsConverter, self).__init__(
+        input_depth=(
+            num_classes + 1 if self._roll_input else
+            self._oh_encoder_decoder.num_classes) + add_end_token,
+        input_dtype=np.bool,
+        output_depth=output_depth,
+        output_dtype=np.bool,
+        end_token=output_depth - 1 if add_end_token else None,
+        presplit_on_time_changes=presplit_on_time_changes,
+        max_tensors_per_notesequence=max_tensors_per_notesequence)
 
   def _to_tensors(self, note_sequence):
-    input_seqs, output_seqs = super(OneHotDrumsConverter, self)._to_tensors(
-        note_sequence)
-    if not self._binary_input:
-      return input_seqs, output_seqs
-    input_seqs = []
-    has_end_token = self.end_token is not None
-    for out_seq in output_seqs:
-      labels = np.argmax(out_seq, axis=-1)
-      in_seq = np.zeros((len(labels), self.input_depth), self.input_dtype)
-      for i, l in enumerate(labels):
-        if has_end_token and l == self.end_token:
-          in_seq[i, -1] = 1
-        elif l == 0:
-          in_seq[i, -(1 + has_end_token)] = 1
+    """Converts NoteSequence to unique sequences."""
+    try:
+      quantized_sequence = mm.quantize_note_sequence(
+          note_sequence, self._steps_per_quarter)
+      if (mm.steps_per_bar_in_quantized_sequence(quantized_sequence) !=
+          self._steps_per_bar):
+        return [], []
+    except (mm.BadTimeSignatureException, mm.NonIntegerStepsPerBarException,
+            mm.NegativeTimeException) as e:
+      return [], []
+
+    new_notes = []
+    for n in quantized_sequence.notes:
+      if not n.is_drum:
+        continue
+      if n.pitch not in self._pitch_class_map:
+        continue
+      n.pitch = self._pitch_class_map[n.pitch]
+      new_notes.append(n)
+    del quantized_sequence.notes[:]
+    quantized_sequence.notes.extend(new_notes)
+
+    event_lists, unused_stats = self._drums_extractor_fn(quantized_sequence)
+
+    if self._pad_to_total_time:
+      for e in event_lists:
+        e.set_length(len(e) + e.start_step, from_left=True)
+        e.set_length(quantized_sequence.total_quantized_steps)
+    if self._slice_steps:
+      sliced_event_tuples = []
+      for l in event_lists:
+        for i in range(self._slice_steps, len(l) + 1, self._steps_per_bar):
+          sliced_event_tuples.append(tuple(l[i - self._slice_steps: i]))
+    else:
+      sliced_event_tuples = [tuple(l) for l in event_lists]
+
+    unique_event_tuples = list(set(sliced_event_tuples))
+    unique_event_tuples = self._maybe_sample_outputs(unique_event_tuples)
+
+    rolls = []
+    oh_vecs = []
+    for t in unique_event_tuples:
+      if self._roll_input or self._roll_output:
+        if self.end_token is not None:
+          t_roll = list(t) + [(self._pr_encoder_decoder.input_size - 1,)]
         else:
-          for j in range(self.input_depth - has_end_token - 1):
-            in_seq[i, j] = (l >> j) % 2
-        assert np.any(in_seq[i]), '%s %d' % (labels, i)
-      input_seqs.append(in_seq)
+          t_roll = t
+        rolls.append(np.vstack([
+            self._pr_encoder_decoder.events_to_input(t_roll, i).astype(np.bool)
+            for i in range(len(t_roll))]))
+      if not (self._roll_input and self._roll_output):
+        labels = [self._oh_encoder_decoder.encode_event(e) for e in t]
+        if self.end_token is not None:
+          labels += [self._oh_encoder_decoder.num_classes]
+        oh_vecs.append(np_onehot(
+            labels,
+            self._oh_encoder_decoder.num_classes + (self.end_token is not None),
+            np.bool))
+
+    if self._roll_input:
+      input_seqs = [
+          np.append(roll, np.expand_dims(np.all(roll == 0, axis=1), axis=1),
+                    axis=1) for roll in rolls]
+    else:
+      input_seqs = oh_vecs
+
+    output_seqs = rolls if self._roll_output else oh_vecs
+
     return input_seqs, output_seqs
+
+  def _to_notesequences(self, samples):
+    output_sequences = []
+    for s in samples:
+      if self._roll_output:
+        if self.end_token is not None:
+          end_i = np.where(s[:, self.end_token])
+          if len(end_i):  # pylint: disable=g-explicit-length-test
+            s = s[:end_i[0]]
+        events_list = [frozenset(np.where(e)[0]) for e in s]
+      else:
+        s = np.argmax(s, axis=-1)
+        if self.end_token is not None and self.end_token in s:
+          s = s[:s.tolist().index(self.end_token)]
+        events_list = [self._oh_encoder_decoder.decode_event(e) for e in s]
+      # Map classes to exemplars.
+      events_list = [
+          frozenset(self._pitch_classes[c][0] for c in e) for e in events_list]
+      track = mm.DrumTrack(
+          events=events_list, steps_per_bar=self._steps_per_bar,
+          steps_per_quarter=self._steps_per_quarter)
+      output_sequences.append(track.to_sequence(velocity=80))
+    return output_sequences
 
 
 class TrioConverter(BaseNoteSequenceConverter):
@@ -592,7 +694,7 @@ class TrioConverter(BaseNoteSequenceConverter):
         gap_bars=None, steps_per_quarter=steps_per_quarter,
         pad_to_total_time=True, presplit_on_time_changes=False,
         max_tensors_per_notesequence=None)
-    self._drums_converter = OneHotDrumsConverter(
+    self._drums_converter = DrumsConverter(
         gap_bars=None, steps_per_quarter=steps_per_quarter,
         pad_to_total_time=True, presplit_on_time_changes=False,
         max_tensors_per_notesequence=None)
@@ -668,13 +770,6 @@ class TrioConverter(BaseNoteSequenceConverter):
     if len(instruments_by_type) < 3:
       # This NoteSequence doesn't have all 3 types.
       return [], []
-
-    def _extract_instrument(note_sequence, instrument):
-      extracted_ns = copy.copy(note_sequence)
-      del extracted_ns.notes[:]
-      extracted_ns.notes.extend(
-          n for n in note_sequence.notes if n.instrument == instrument)
-      return extracted_ns
 
     # Encode individual instruments.
     # Set total time so that instruments will be padded correctly.

@@ -23,6 +23,7 @@ import abc
 import tensorflow as tf
 
 from magenta.common import flatten_maybe_padded_sequences
+from magenta.common import Nade
 from magenta.models.music_vae import base_model
 from tensorflow.python.framework import tensor_util
 from tensorflow.python.layers import core as layers_core
@@ -519,6 +520,47 @@ class HierarchicalMultiOutLstmDecoder(base_model.BaseDecoder):
         sample_ids.append(tf.concat(sample_ids_j, axis=1))
 
     return tf.concat(sample_ids, axis=-1)
+
+
+class MultiLabelRnnNadeDecoder(BaseLstmDecoder):
+  """LSTM decoder with multi-label output provided by a NADE."""
+
+  def build(self, hparams, output_depth, is_training=False):
+    self._nade = Nade(output_depth, hparams.nade_num_hidden)
+    super(MultiLabelRnnNadeDecoder, self).build(
+        hparams, output_depth, is_training)
+    # Overwrite output layer for NADE parameterization.
+    self._output_layer = layers_core.Dense(
+        self._nade.num_hidden + output_depth, name='output_projection')
+
+  def _flat_reconstruction_loss(self, flat_x_target, flat_rnn_output):
+    b_enc, b_dec = tf.split(
+        flat_rnn_output,
+        [self._nade.num_hidden, self._output_depth], axis=1)
+    ll, cond_probs = self._nade.log_prob(
+        flat_x_target, b_enc=b_enc, b_dec=b_dec)
+    r_loss = -ll
+    flat_truth = tf.cast(flat_x_target, tf.bool)
+    flat_predictions = tf.greater_equal(cond_probs, 0.5)
+
+    metric_map = {
+        'metrics/accuracy':
+            tf.metrics.mean(
+                tf.reduce_all(tf.equal(flat_truth, flat_predictions), axis=-1)),
+        'metrics/recall':
+            tf.metrics.recall(flat_truth, flat_predictions),
+        'metrics/precision':
+            tf.metrics.precision(flat_truth, flat_predictions),
+    }
+
+    return r_loss, metric_map, flat_truth, flat_predictions
+
+  def _sample(self, rnn_output, temperature=None):
+    del temperature  # temperature unused
+    b_enc, b_dec = tf.split(
+        rnn_output, [self._nade.num_hidden, self._output_depth], axis=1)
+    sample, _ = self._nade.sample(b_enc=b_enc, b_dec=b_dec)
+    return sample
 
 
 def get_default_hparams():

@@ -284,7 +284,7 @@ def run(config_map,
 
 
 def main(unused_argv):
-  run(configs.config_map)
+  run(configs.CONFIG_MAP)
 
 
 def console_entry_point():

@@ -27,7 +27,7 @@ class NadeTest(tf.test.TestCase):
     num_hidden = 6
     num_dims = 8
     test_inputs = tf.random_normal(shape=(batch_size, num_dims))
-    nade = Nade(num_dims, num_hidden)
+    nade = Nade(num_dims, num_hidden, internal_bias=True)
     log_prob, cond_probs = nade.log_prob(test_inputs)
     sample, sample_prob = nade.sample(n=batch_size)
     with self.test_session() as sess:
