@@ -256,13 +256,31 @@ def run(config_map,
   if FLAGS.num_sync_workers:
     config.hparams.batch_size //= FLAGS.num_sync_workers
 
+  if FLAGS.mode == 'train':
+    is_training = True
+  elif FLAGS.mode == 'eval':
+    is_training = False
+  else:
+    raise ValueError('Invalid mode: {}'.format(FLAGS.mode))
+
   dataset = data.get_dataset(
       config,
       tf_file_reader_class=tf_file_reader_class,
       num_threads=FLAGS.num_data_threads,
-      is_training=True)
+      is_training=is_training)
 
-  if FLAGS.mode == 'eval':
+  if is_training:
+    train(
+        train_dir,
+        config=config,
+        dataset=dataset,
+        checkpoints_to_keep=FLAGS.checkpoints_to_keep,
+        num_steps=FLAGS.num_steps,
+        master=FLAGS.master,
+        num_sync_workers=FLAGS.num_sync_workers,
+        num_ps_tasks=FLAGS.num_ps_tasks,
+        task=FLAGS.task)
+  else:
     num_batches = FLAGS.eval_num_batches or data.count_examples(
         config.eval_examples_path,
         config.note_sequence_converter,
@@ -275,17 +293,6 @@ def run(config_map,
         dataset=dataset,
         num_batches=num_batches,
         master=FLAGS.master)
-  elif FLAGS.mode == 'train':
-    train(
-        train_dir,
-        config=config,
-        dataset=dataset,
-        checkpoints_to_keep=FLAGS.checkpoints_to_keep,
-        num_steps=FLAGS.num_steps,
-        master=FLAGS.master,
-        num_sync_workers=FLAGS.num_sync_workers,
-        num_ps_tasks=FLAGS.num_ps_tasks,
-        task=FLAGS.task)
 
 
 def main(unused_argv):
