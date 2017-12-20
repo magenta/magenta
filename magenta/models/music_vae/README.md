@@ -47,8 +47,18 @@ music_vae_train \
 --examples_path=/tmp/music_vae/mel_train_examples.tfrecord
 ```
 
-You should also launch an evaluation job (using ``--mode=eval`` with a heldout
-dataset) in order to compute metrics such as accuracy and to avoid overfitting.
+You will likely need to adjust some of the hyperparamters with the ``--hparams``
+flag for your particular train set and hardware. For example, if the default
+batch size of a config is too large for your GPU, you can reduce the batch size
+and learning rate by setting the flag as follows:
+
+```
+--hparams=batch_size=32,learning_rate=0.0005
+```
+
+Finaly, you should also launch an evaluation job (using ``--mode=eval`` with a
+healdout dataset) in order to compute metrics such as accuracy and to avoid
+ overfitting.
 
 Once your model has trained sufficiently, you can load the checkpoint into the
 [Colab Notebook](https://colab.research.google.com/notebook#fileId=/v2/external/notebooks/magenta/music_vae/music_vae.ipynb) to do inference and produce audio outputs.
