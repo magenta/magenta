@@ -121,7 +121,8 @@ def train(train_dir,
   """Train loop."""
   tf.gfile.MakeDirs(train_dir)
   is_chief = (task == 0)
-  _trial_summary(config.hparams, config.train_examples_path, train_dir)
+  if is_chief:
+    _trial_summary(config.hparams, config.train_examples_path, train_dir)
   with tf.Graph().as_default():
     with tf.device(tf.train.replica_device_setter(
         num_ps_tasks, merge_devices=True)):
