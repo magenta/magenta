@@ -492,6 +492,7 @@ class HierarchicalMultiOutLstmDecoder(base_model.BaseDecoder):
             'by the previous. Got: %d !/ %d', h_size, len(embeddings))
       all_outputs = []
       with tf.variable_scope('hierarchical_layer_%d' % i) as scope:
+        # TODO(adarob): Add CudnnLSTM support.
         cell = rnn_cell(hparams.dec_rnn_size, dropout_keep_prob=1.0)
         for e in embeddings:
           initial_state = initial_cell_state_from_embedding(
