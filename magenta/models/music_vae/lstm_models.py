@@ -472,8 +472,6 @@ class CategoricalLstmDecoder(BaseLstmDecoder):
     beam_initial_state = tf.contrib.seq2seq.tile_batch(
         initial_state, multiplier=beam_width)
 
-    tf.logging.info(beam_initial_state)
-
     # Tile `z` across beams.
     beam_z = tf.tile(tf.expand_dims(z, 1), [1, beam_width, 1])
 
