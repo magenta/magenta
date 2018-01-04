@@ -138,6 +138,7 @@ class BidirectionalLstmEncoder(base_model.BaseEncoder):
 
   def build(self, hparams, is_training=True):
     self._is_training = is_training
+    self._use_cudnn = hparams.use_cudnn_enc
     dropout_keep_prob = hparams.dropout_keep_prob if is_training else 1.0
 
     tf.logging.info('\nEncoder Cells (bidirectional):\n'
@@ -147,25 +148,26 @@ class BidirectionalLstmEncoder(base_model.BaseEncoder):
                     hparams.enc_rnn_size,
                     dropout_keep_prob,
                     dropout_keep_prob)
-    self._enc_cells_fw = []
-    self._enc_cells_bw = []
-    for layer_size in hparams.enc_rnn_size:
-      self._enc_cells_fw.append(rnn_cell([layer_size], dropout_keep_prob))
-      self._enc_cells_bw.append(rnn_cell([layer_size], dropout_keep_prob))
-
-    self._cudnn_enc_lstm = cudnn_lstm_layer(
-        hparams.enc_rnn_size,
-        dropout_keep_prob,
-        direction='bidirectional',
-        name='encoder') if hparams.use_cudnn_enc else None
+    if self._use_cudnn:
+      self._cudnn_enc_lstm = cudnn_lstm_layer(
+          hparams.enc_rnn_size,
+          dropout_keep_prob,
+          direction='bidirectional',
+          name='encoder')
+    else:
+      self._enc_cells_fw = []
+      self._enc_cells_bw = []
+      for layer_size in hparams.enc_rnn_size:
+        self._enc_cells_fw.append(rnn_cell([layer_size], dropout_keep_prob))
+        self._enc_cells_bw.append(rnn_cell([layer_size], dropout_keep_prob))
 
   def encode(self, sequence, sequence_length):
-    if self._cudnn_enc_lstm:
+    if self._use_cudnn:
       with tf.control_dependencies(
           [tf.assert_equal(
               sequence_length, tf.shape(sequence)[1],
-              message='`use_cudnn_enc` must be false if sequence lengths vary.')
-          ] if self._cudnn_enc_lstm.num_layers > 1 else []):
+              message='`use_cudnn_enc` must be False if sequence lengths vary.')
+          ]):
         _, (states_h, _) = self._cudnn_enc_lstm(
             tf.transpose(sequence, [1, 0, 2]),
             training=self._is_training)
