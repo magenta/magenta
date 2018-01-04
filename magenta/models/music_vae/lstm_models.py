@@ -502,6 +502,7 @@ class CategoricalLstmDecoder(BaseLstmDecoder):
         swap_memory=True,
         scope='decoder')
 
+    # Return the best beam.
     return tf.one_hot(
         final_output.predicted_ids[:, :, 0],
         self._output_depth)
