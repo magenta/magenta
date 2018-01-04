@@ -46,7 +46,7 @@ def rnn_cell(rnn_cell_size, dropout_keep_prob):
 
 
 def cudnn_lstm_layer(
-    layer_sizes, dropout_keep_prob, direction='unidirectional', name=None):
+    layer_sizes, dropout_keep_prob, direction='unidirectional', name='rnn'):
   """Builds a CudnnLSTM Layer based on the given parameters."""
   for ls in layer_sizes:
     if ls != layer_sizes[0]:
