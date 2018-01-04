@@ -60,7 +60,7 @@ def cudnn_lstm_layer(layer_sizes, dropout_keep_prob, direction, name):
       name=name)
 
   class BackwardCompatibleSaveableClass(lstm._saveable_cls):  # pylint:disable=protected-access
-   """Overrides CudnnOpaqueParamsSaveable for backward-compatible var names."""
+    """Overrides CudnnOpaqueParamsSaveable for backward-compatible var names."""
 
     def _TFCanonicalNamePrefix(self, layer, is_fwd=True):
       if direction == 'unidirectional':
