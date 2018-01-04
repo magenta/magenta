@@ -462,7 +462,8 @@ class CategoricalLstmDecoder(BaseLstmDecoder):
     # Use a dummy Z in unconditional case.
     z = tf.zeros((n, 0), tf.float32) if z is None else z
 
-    # If not given, start with '-1' token.
+    # If not given, start with dummy `-1` token and replace with zero vectors in
+    # `embedding_fn`.
     start_tokens = start_inputs if start_inputs is not None else -1 * tf.ones(
         [n], dtype=tf.int32)
 
@@ -471,16 +472,15 @@ class CategoricalLstmDecoder(BaseLstmDecoder):
     initial_state = tf.contrib.seq2seq.tile_batch(
         initial_state, multiplier=beam_width)
 
-    z = tf.expand_dims(z, 1)
-    z = tf.tile(z, [1, beam_width, 1])
-
     def embedding_fn(tokens):
-      # Handle start inputs.
+      # If tokens are the start_tokens (negative), replace with zero vectors.
       next_inputs = tf.cond(
           tf.less(tokens[0, 0], 0),
           lambda: tf.zeros([n, beam_width, self._output_depth]),
           lambda: tf.one_hot(tokens, self._output_depth))
-      # In the conditional case, also concatenate the Z.
+      # Tile `z` across beams and concatenate.
+      z = tf.expand_dims(z, 1)
+      z = tf.tile(z, [1, beam_width, 1])
       next_inputs = tf.concat([next_inputs, z], axis=-1)
       return next_inputs
 
