@@ -41,12 +41,12 @@ MIDI_PITCHES = 128
 
 MAX_INSTRUMENT_NUMBER = 127
 
-MEL_PROGRAMS = range(0, 31)  # piano, chromatic percussion, organ, guitar
-BASS_PROGRAMS = range(32, 39)
+MEL_PROGRAMS = range(0, 32)  # piano, chromatic percussion, organ, guitar
+BASS_PROGRAMS = range(32, 40)
 ELECTRIC_BASS_PROGRAM = 33
 
 REDUCED_DRUM_PITCH_CLASSES = drums_encoder_decoder.DEFAULT_DRUM_TYPE_PITCHES
-FULL_DRUM_PITCH_CLASSES = [
+FULL_DRUM_PITCH_CLASSES = [  # 61 classes
     [p] for c in drums_encoder_decoder.DEFAULT_DRUM_TYPE_PITCHES for p in c]
 
 

@@ -479,8 +479,9 @@ class HierarchicalMultiOutLstmDecoder(base_model.BaseDecoder):
     self.hparams = hparams
     self._is_training = is_training
 
-    for cd, od in zip(self._core_decoders, self._output_depths):
-      cd.build(hparams, od, is_training)
+    for j, (cd, od) in enumerate(zip(self._core_decoders, self._output_depths)):
+      with tf.variable_scope('core_decoder_%d' % j):
+        cd.build(hparams, od, is_training)
 
   def _hierarchical_decode(self, z=None):
     hparams = self.hparams
@@ -616,7 +617,8 @@ class MultiLabelRnnNadeDecoder(BaseLstmDecoder):
   """LSTM decoder with multi-label output provided by a NADE."""
 
   def build(self, hparams, output_depth, is_training=False):
-    self._nade = Nade(output_depth, hparams.nade_num_hidden)
+    self._nade = Nade(
+        output_depth, hparams.nade_num_hidden, name='decoder/nade')
     super(MultiLabelRnnNadeDecoder, self).build(
         hparams, output_depth, is_training)
     # Overwrite output layer for NADE parameterization.
@@ -646,10 +648,11 @@ class MultiLabelRnnNadeDecoder(BaseLstmDecoder):
     return r_loss, metric_map, flat_truth, flat_predictions
 
   def _sample(self, rnn_output, temperature=None):
-    del temperature  # temperature unused
+    """Sample from NADE, returning the argmax if no temperature is provided."""
     b_enc, b_dec = tf.split(
         rnn_output, [self._nade.num_hidden, self._output_depth], axis=1)
-    sample, _ = self._nade.sample(b_enc=b_enc, b_dec=b_dec)
+    sample, _ = self._nade.sample(
+        b_enc=b_enc, b_dec=b_dec, temperature=temperature)
     return sample
 
 
