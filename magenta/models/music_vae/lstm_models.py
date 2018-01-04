@@ -45,7 +45,8 @@ def rnn_cell(rnn_cell_size, dropout_keep_prob):
   return rnn.MultiRNNCell(cells)
 
 
-def cudnn_lstm_layer(layer_sizes, dropout_keep_prob, direction, name):
+def cudnn_lstm_layer(
+    layer_sizes, dropout_keep_prob, direction='unidirectional', name=None):
   """Builds a CudnnLSTM Layer based on the given parameters."""
   for ls in layer_sizes:
     if ls != layer_sizes[0]:
@@ -58,6 +59,11 @@ def cudnn_lstm_layer(layer_sizes, dropout_keep_prob, direction, name):
       direction=direction,
       dropout=1.0 - dropout_keep_prob,
       name=name)
+
+  def _cudnn_lstm_state(lstm_cell_state):
+    h = tf.stack([s.h for s in lstm_cell_state])
+    c = tf.stack([s.c for s in lstm_cell_state])
+    return (h, c)
 
   class BackwardCompatibleSaveableClass(lstm._saveable_cls):  # pylint:disable=protected-access
     """Overrides CudnnOpaqueParamsSaveable for backward-compatible var names."""
@@ -148,7 +154,6 @@ class BidirectionalLstmEncoder(base_model.BaseEncoder):
     self._cudnn_enc_lstm = cudnn_lstm_layer(
         hparams.enc_rnn_size,
         dropout_keep_prob,
-        direction='bidirectional',
         name='encoder') if hparams.use_cudnn_enc else None
 
   def encode(self, sequence, sequence_length):
@@ -216,7 +221,6 @@ class BaseLstmDecoder(base_model.BaseDecoder):
     self._cudnn_dec_lstm = cudnn_lstm_layer(
         hparams.dec_rnn_size,
         dropout_keep_prob,
-        direction='unidirectional',
         name='decoder') if hparams.use_cudnn_dec else None
 
   @abc.abstractmethod
@@ -256,11 +260,9 @@ class BaseLstmDecoder(base_model.BaseDecoder):
 
     if (isinstance(helper, seq2seq.TrainingHelper) and
         self._cudnn_dec_lstm):
-      initial_h = tf.stack([s.h for s in initial_state])
-      initial_c = tf.stack([s.c for s in initial_state])
       rnn_output, _ = self._cudnn_dec_lstm(
           tf.transpose(x_input, [1, 0, 2]),
-          initial_state=(initial_h, initial_c),
+          initial_state=_cudnn_lstm_state(initial_state),
           training=self._is_training)
       with tf.variable_scope('decoder'):
         rnn_output = self._output_layer(rnn_output)
@@ -470,6 +472,8 @@ class HierarchicalMultiOutLstmDecoder(base_model.BaseDecoder):
           'Decoder output depth does not match sum of sub-decoders: %s vs %d',
           self._output_depths, output_depth)
     self.hparams = hparams
+    self._is_training = is_training
+
     for cd, od in zip(self._core_decoders, self._output_depths):
       cd.build(hparams, od, is_training)
 
@@ -491,17 +495,27 @@ class HierarchicalMultiOutLstmDecoder(base_model.BaseDecoder):
         raise ValueError(
             'Each size in `hierarchical_output_sizes` must be evenly divisible '
             'by the previous. Got: %d !/ %d', h_size, len(embeddings))
+      num_steps = h_size // len(embeddings)
       all_outputs = []
       with tf.variable_scope('hierarchical_layer_%d' % i) as scope:
-        # TODO(adarob): Add CudnnLSTM support.
         cell = rnn_cell(hparams.dec_rnn_size, dropout_keep_prob=1.0)
+        cudnn_cell = cudnn_lstm_layer(
+            hparams.enc_rnn_size,
+            dropout_keep_prob=1.0)
         for e in embeddings:
           initial_state = initial_cell_state_from_embedding(
               cell, e, batch_size, name='e_to_initial_state')
-          input_ = tf.zeros((batch_size, 1))
-          outputs, _ = tf.nn.static_rnn(
-              cell, [input_] * (h_size // len(embeddings)),
-              initial_state=initial_state)
+          if hparams.use_cudnn_dec:
+            input_ = tf.zeros([num_steps, batch_size, 1])
+            outputs, _ = cudnn_cell(
+                input_,
+                initial_state=_cudnn_lstm_state(initial_state),
+                training=self._is_training)
+            outputs = tf.unstack(outputs)
+          else:
+            input_ = [tf.zeros([batch_size, 1])] * num_steps
+            outputs, _ = tf.nn.static_rnn(
+                cell, input_, initial_state=initial_state)
           all_outputs.extend(outputs)
           # Reuse layer next time.
           scope.reuse_variables()
