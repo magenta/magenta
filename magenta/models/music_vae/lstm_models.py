@@ -25,26 +25,61 @@ import tensorflow as tf
 from magenta.common import flatten_maybe_padded_sequences
 from magenta.common import Nade
 from magenta.models.music_vae import base_model
+from tensorflow.contrib import rnn
+from tensorflow.contrib import seq2seq
+from tensorflow.contrib.cudnn_rnn.python.layers import cudnn_rnn
 from tensorflow.python.framework import tensor_util
 from tensorflow.python.layers import core as layers_core
 from tensorflow.python.util import nest as tf_nest
 
 
-def rnn_cell(rnn_cell_size, dropout_keep_prob, attn_len=0):
+def rnn_cell(rnn_cell_size, dropout_keep_prob):
   """Builds an LSTMBlockCell based on the given parameters."""
   cells = []
   for layer_size in rnn_cell_size:
-    cell = tf.contrib.rnn.LSTMBlockCell(layer_size)
-    if attn_len and not cells:
-      # Add attention wrapper to first layer.
-      cell = tf.contrib.rnn.AttentionCellWrapper(
-          cell, attn_len, state_is_tuple=True)
-    cell = tf.contrib.rnn.DropoutWrapper(
+    cell = rnn.LSTMBlockCell(layer_size)
+    cell = rnn.DropoutWrapper(
         cell,
-        input_keep_prob=dropout_keep_prob,
-        output_keep_prob=dropout_keep_prob)
+        input_keep_prob=dropout_keep_prob)
     cells.append(cell)
-  return tf.contrib.rnn.MultiRNNCell(cells)
+  return rnn.MultiRNNCell(cells)
+
+
+def cudnn_lstm_layer(
+    layer_sizes, dropout_keep_prob, direction='unidirectional', name='rnn'):
+  """Builds a CudnnLSTM Layer based on the given parameters."""
+  for ls in layer_sizes:
+    if ls != layer_sizes[0]:
+      raise ValueError(
+          'CudnnLSTM does not support layers with differing sizes. Got: %s',
+          layer_sizes)
+  lstm = cudnn_rnn.CudnnLSTM(
+      num_layers=len(layer_sizes),
+      num_units=layer_sizes[0],
+      direction=direction,
+      dropout=1.0 - dropout_keep_prob,
+      name=name)
+
+  class BackwardCompatibleSaveableClass(lstm._saveable_cls):  # pylint:disable=protected-access
+    """Overrides CudnnOpaqueParamsSaveable for backward-compatible var names."""
+
+    def _TFCanonicalNamePrefix(self, layer, is_fwd=True):
+      if self._direction == 'unidirectional':
+        return 'multi_rnn_cell/cell_%d/lstm_cell' % layer
+      else:
+        return (
+            'cell_%d/bidirectional_rnn/%s/multi_rnn_cell/cell_0/lstm_cell'
+            % (layer, 'fw' if is_fwd else 'bw'))
+
+  lstm._saveable_cls = BackwardCompatibleSaveableClass  # pylint:disable=protected-access
+  return lstm
+
+
+def _cudnn_lstm_state(lstm_cell_state):
+  """Convert tuple of LSTMCellStateTuples to CudnnLSTM format."""
+  h = tf.stack([s.h for s in lstm_cell_state])
+  c = tf.stack([s.c for s in lstm_cell_state])
+  return (h, c)
 
 
 def initial_cell_state_from_embedding(cell, z, batch_size, name=None):
@@ -102,6 +137,8 @@ class BidirectionalLstmEncoder(base_model.BaseEncoder):
   """Bidirectional LSTM Encoder."""
 
   def build(self, hparams, is_training=True):
+    self._is_training = is_training
+    self._use_cudnn = hparams.use_cudnn_enc
     dropout_keep_prob = hparams.dropout_keep_prob if is_training else 1.0
 
     tf.logging.info('\nEncoder Cells (bidirectional):\n'
@@ -111,29 +148,49 @@ class BidirectionalLstmEncoder(base_model.BaseEncoder):
                     hparams.enc_rnn_size,
                     dropout_keep_prob,
                     dropout_keep_prob)
-    self._enc_cells_fw = []
-    self._enc_cells_bw = []
-    for layer_size in hparams.enc_rnn_size:
-      self._enc_cells_fw.append(rnn_cell([layer_size], dropout_keep_prob))
-      self._enc_cells_bw.append(rnn_cell([layer_size], dropout_keep_prob))
+    if self._use_cudnn:
+      self._cudnn_enc_lstm = cudnn_lstm_layer(
+          hparams.enc_rnn_size,
+          dropout_keep_prob,
+          direction='bidirectional',
+          name='encoder')
+    else:
+      self._enc_cells_fw = []
+      self._enc_cells_bw = []
+      for layer_size in hparams.enc_rnn_size:
+        self._enc_cells_fw.append(rnn_cell([layer_size], dropout_keep_prob))
+        self._enc_cells_bw.append(rnn_cell([layer_size], dropout_keep_prob))
 
   def encode(self, sequence, sequence_length):
-    res = tf.contrib.rnn.stack_bidirectional_dynamic_rnn(
-        self._enc_cells_fw,
-        self._enc_cells_bw,
-        sequence,
-        sequence_length=sequence_length,
-        time_major=False,
-        dtype=tf.float32,
-        scope='encoder')
+    if self._use_cudnn:
+      with tf.control_dependencies(
+          [tf.assert_equal(
+              sequence_length, tf.shape(sequence)[1],
+              message='`use_cudnn_enc` must be False if sequence lengths vary.')
+          ]):
+        _, (states_h, _) = self._cudnn_enc_lstm(
+            tf.transpose(sequence, [1, 0, 2]),
+            training=self._is_training)
+
+      # Note we access the outputs (h) from the states since the backward
+      # ouputs are reversed to the input order in the returned outputs.
+      last_h_fw, last_h_bw = states_h[-2], states_h[-1]
+    else:
+      _, states_fw, states_bw = rnn.stack_bidirectional_dynamic_rnn(
+          self._enc_cells_fw,
+          self._enc_cells_bw,
+          sequence,
+          sequence_length=sequence_length,
+          time_major=False,
+          dtype=tf.float32,
+          scope='encoder')
+      # Note we access the outputs (h) from the states since the backward
+      # ouputs are reversed to the input order in the returned outputs.
+      last_h_fw = states_fw[-1][-1].h
+      last_h_bw = states_bw[-1][-1].h
 
     # Concatenate the final outputs for each direction.
-    # Note we access the outputs (h) from the states since the backward outputs
-    # are reversed to the input order in the returned outputs.
-    unused_outputs, last_states_fw, last_states_bw = res
-    last_state_fw = last_states_fw[-1][-1]
-    last_state_bw = last_states_bw[-1][-1]
-    last_h = tf.concat([last_state_fw.h, last_state_bw.h], 1)
+    last_h = tf.concat([last_h_fw, last_h_bw], 1)
 
     return last_h
 
@@ -147,6 +204,8 @@ class BaseLstmDecoder(base_model.BaseDecoder):
   """
 
   def build(self, hparams, output_depth, is_training=False):
+    self._is_training = is_training
+
     dropout_keep_prob = hparams.dropout_keep_prob if is_training else 1.0
     tf.logging.info('\nDecoder Cells:\n'
                     '  units: %s\n'
@@ -163,8 +222,11 @@ class BaseLstmDecoder(base_model.BaseDecoder):
         output_depth, name='output_projection')
     self._dec_cell = rnn_cell(
         hparams.dec_rnn_size,
-        hparams.dropout_keep_prob,
-        hparams.dec_rnn_attn_len)
+        dropout_keep_prob)
+    self._cudnn_dec_lstm = cudnn_lstm_layer(
+        hparams.dec_rnn_size,
+        dropout_keep_prob,
+        name='decoder') if hparams.use_cudnn_dec else None
 
   @abc.abstractmethod
   def _sample(self, rnn_output, temperature):
@@ -197,20 +259,31 @@ class BaseLstmDecoder(base_model.BaseDecoder):
     """
     pass
 
-  def _decode(self, batch_size, helper, z, max_length=None):
+  def _decode(self, batch_size, helper, z, max_length=None, x_input=None):
     initial_state = initial_cell_state_from_embedding(
         self._dec_cell, z, batch_size, name='decoder/z_to_initial_state')
 
-    decoder = tf.contrib.seq2seq.BasicDecoder(
-        self._dec_cell,
-        helper,
-        initial_state=initial_state,
-        output_layer=self._output_layer)
-    final_output, _, _ = tf.contrib.seq2seq.dynamic_decode(
-        decoder,
-        maximum_iterations=max_length,
-        swap_memory=True,
-        scope='decoder')
+    if (isinstance(helper, seq2seq.TrainingHelper) and
+        self._cudnn_dec_lstm):
+      rnn_output, _ = self._cudnn_dec_lstm(
+          tf.transpose(x_input, [1, 0, 2]),
+          initial_state=_cudnn_lstm_state(initial_state),
+          training=self._is_training)
+      with tf.variable_scope('decoder'):
+        rnn_output = self._output_layer(rnn_output)
+      final_output = seq2seq.BasicDecoderOutput(
+          rnn_output=tf.transpose(rnn_output, [1, 0, 2]), sample_id=None)
+    else:
+      decoder = seq2seq.BasicDecoder(
+          self._dec_cell,
+          helper,
+          initial_state=initial_state,
+          output_layer=self._output_layer)
+      final_output, _, _ = seq2seq.dynamic_decode(
+          decoder,
+          maximum_iterations=max_length,
+          swap_memory=True,
+          scope='decoder')
     return final_output
 
   def reconstruction_loss(self, x_input, x_target, x_length, z=None):
@@ -242,17 +315,18 @@ class BaseLstmDecoder(base_model.BaseDecoder):
     if sampling_probability_static == 0.0:
       # Use teacher forcing.
       x_input = tf.concat([x_input, repeated_z], axis=2)
-      helper = tf.contrib.seq2seq.TrainingHelper(x_input, x_length)
+      helper = seq2seq.TrainingHelper(x_input, x_length)
     else:
       # Use scheduled sampling.
-      helper = tf.contrib.seq2seq.ScheduledOutputTrainingHelper(
+      helper = seq2seq.ScheduledOutputTrainingHelper(
           inputs=x_input,
           sequence_length=x_length,
           auxiliary_inputs=repeated_z if has_z else None,
           sampling_probability=self._sampling_probability,
           next_inputs_fn=self._sample)
 
-    decoder_outputs = self._decode(batch_size, helper=helper, z=z)
+    decoder_outputs = self._decode(batch_size, helper=helper, z=z,
+                                   x_input=x_input)
     flat_x_target = flatten_maybe_padded_sequences(x_target, x_length)
     flat_rnn_output = flatten_maybe_padded_sequences(
         decoder_outputs.rnn_output, x_length)
@@ -290,7 +364,7 @@ class BaseLstmDecoder(base_model.BaseDecoder):
     # In the conditional case, concatenate Z to the sampled value.
     next_inputs_fn = lambda x: tf.concat([x, z], axis=-1)
 
-    sampler = tf.contrib.seq2seq.InferenceHelper(
+    sampler = seq2seq.InferenceHelper(
         sample_fn, sample_shape=[self._output_depth], sample_dtype=tf.float32,
         start_inputs=start_inputs, end_fn=end_fn, next_inputs_fn=next_inputs_fn)
 
@@ -403,6 +477,8 @@ class HierarchicalMultiOutLstmDecoder(base_model.BaseDecoder):
           'Decoder output depth does not match sum of sub-decoders: %s vs %d',
           self._output_depths, output_depth)
     self.hparams = hparams
+    self._is_training = is_training
+
     for cd, od in zip(self._core_decoders, self._output_depths):
       cd.build(hparams, od, is_training)
 
@@ -424,16 +500,27 @@ class HierarchicalMultiOutLstmDecoder(base_model.BaseDecoder):
         raise ValueError(
             'Each size in `hierarchical_output_sizes` must be evenly divisible '
             'by the previous. Got: %d !/ %d', h_size, len(embeddings))
+      num_steps = h_size // len(embeddings)
       all_outputs = []
       with tf.variable_scope('hierarchical_layer_%d' % i) as scope:
-        cell = rnn_cell(hparams.dec_rnn_size, dropout_keep_prob=1.0, attn_len=0)
+        cell = rnn_cell(hparams.dec_rnn_size, dropout_keep_prob=1.0)
+        cudnn_cell = cudnn_lstm_layer(
+            hparams.enc_rnn_size,
+            dropout_keep_prob=1.0)
         for e in embeddings:
           initial_state = initial_cell_state_from_embedding(
               cell, e, batch_size, name='e_to_initial_state')
-          input_ = tf.zeros((batch_size, 1))
-          outputs, _ = tf.nn.static_rnn(
-              cell, [input_] * (h_size // len(embeddings)),
-              initial_state=initial_state)
+          if hparams.use_cudnn_dec:
+            input_ = tf.zeros([num_steps, batch_size, 1])
+            outputs, _ = cudnn_cell(
+                input_,
+                initial_state=_cudnn_lstm_state(initial_state),
+                training=self._is_training)
+            outputs = tf.unstack(outputs)
+          else:
+            input_ = [tf.zeros([batch_size, 1])] * num_steps
+            outputs, _ = tf.nn.static_rnn(
+                cell, input_, initial_state=initial_state)
           all_outputs.extend(outputs)
           # Reuse layer next time.
           scope.reuse_variables()
@@ -572,10 +659,11 @@ def get_default_hparams():
   hparams_map.update({
       'conditional': True,
       'dec_rnn_size': [512],  # Decoder RNN: number of units per layer.
-      'dec_rnn_attn_len': 0,  # Decoder RNN: length of attention vector.
       'enc_rnn_size': [256],  # Encoder RNN: number of units per layer per dir.
       'dropout_keep_prob': 1.0,  # Probability all dropout keep.
       'sampling_schedule': 'constant',  # constant, exponential, inverse_sigmoid
       'sampling_rate': 0.0,  # Interpretation is based on `sampling_schedule`.
+      'use_cudnn_dec': False,  # Uses faster CudnnLstm to train. For GPU only.
+      'use_cudnn_enc': False,  # Only enable for sequences w/ equal length.
   })
   return tf.contrib.training.HParams(**hparams_map)
