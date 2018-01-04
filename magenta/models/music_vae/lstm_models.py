@@ -469,8 +469,11 @@ class CategoricalLstmDecoder(BaseLstmDecoder):
 
     initial_state = initial_cell_state_from_embedding(
         self._dec_cell, z, n, name='decoder/z_to_initial_state')
-    initial_state = tf.contrib.seq2seq.tile_batch(
+    beam_initial_state = tf.contrib.seq2seq.tile_batch(
         initial_state, multiplier=beam_width)
+
+    # Tile `z` across beams.
+    beam_z = tf.tile(tf.expand_dims(z, 1), [1, beam_width, 1])
 
     def embedding_fn(tokens):
       # If tokens are the start_tokens (negative), replace with zero vectors.
@@ -478,10 +481,9 @@ class CategoricalLstmDecoder(BaseLstmDecoder):
           tf.less(tokens[0, 0], 0),
           lambda: tf.zeros([n, beam_width, self._output_depth]),
           lambda: tf.one_hot(tokens, self._output_depth))
-      # Tile `z` across beams and concatenate.
-      z = tf.expand_dims(z, 1)
-      z = tf.tile(z, [1, beam_width, 1])
-      next_inputs = tf.concat([next_inputs, z], axis=-1)
+
+      # Concatenate `z` to next inputs.
+      next_inputs = tf.concat([next_inputs, beam_z], axis=-1)
       return next_inputs
 
     decoder = tf.contrib.seq2seq.BeamSearchDecoder(
@@ -489,7 +491,7 @@ class CategoricalLstmDecoder(BaseLstmDecoder):
         embedding_fn,
         start_tokens,
         end_token,
-        initial_state,
+        beam_initial_state,
         beam_width,
         output_layer=self._output_layer,
         length_penalty_weight=0.0)
