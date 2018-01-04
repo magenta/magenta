@@ -64,7 +64,7 @@ def cudnn_lstm_layer(
     """Overrides CudnnOpaqueParamsSaveable for backward-compatible var names."""
 
     def _TFCanonicalNamePrefix(self, layer, is_fwd=True):
-      if direction == 'unidirectional':
+      if self._direction == 'unidirectional':
         return 'multi_rnn_cell/cell_%d/lstm_cell' % layer
       else:
         return (
@@ -156,6 +156,7 @@ class BidirectionalLstmEncoder(base_model.BaseEncoder):
     self._cudnn_enc_lstm = cudnn_lstm_layer(
         hparams.enc_rnn_size,
         dropout_keep_prob,
+        direction='bidirectional',
         name='encoder') if hparams.use_cudnn_enc else None
 
   def encode(self, sequence, sequence_length):
