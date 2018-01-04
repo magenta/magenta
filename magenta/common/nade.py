@@ -212,8 +212,6 @@ class Nade(object):
             logits=cond_l_i / temperature, dtype=tf.float32)
         v_i = bernoulli.sample()
 
-      v_i = bernoulli.sample()
-
       # Accumulate sampled values.
       sample_new = sample + [v_i]
 
