@@ -364,7 +364,6 @@ class BaseLstmDecoder(base_model.BaseDecoder):
       samples: Sampled sequences. Sized `[n, max_length, output_depth]`.
     Raises:
       ValueError: If `z` is provided and its first dimension does not equal `n`.
-      ValueError: If `beam_width` is provided and `end_token` is not.
     """
     if z is not None and z.shape[0].value != n:
       raise ValueError(
@@ -437,21 +436,20 @@ class CategoricalLstmDecoder(BaseLstmDecoder):
       beam_width: (Optional) Width of beam to use for beam search. Beam search
         is disabled if not provided.
       end_token: (Optional) Scalar token signaling the end of the sequence to
-        use for early stopping. Required for beam search (if `beam_width`
-        is given).
+        use for early stopping.
     Returns:
       samples: Sampled sequences. Sized `[n, max_length, output_depth]`.
     Raises:
       ValueError: If `z` is provided and its first dimension does not equal `n`.
-      ValueError: If `beam_width` is provided and `end_token` is not.
     """
     if beam_width is None:
-      end_fn = lambda x: tf.equal(tf.argmax(x, axis=-1), end_token)
+      end_fn = (None if end_token is None else
+                lambda x: tf.equal(tf.argmax(x, axis=-1), end_token))
       return super(CategoricalLstmDecoder, self).sample(
           n, max_length, z, temperature, start_inputs, end_fn)
 
-    if end_token is None:
-      raise ValueError('`end_token` is required for beam search.')
+    # If `end_token` is not given, use an impossible value.
+    end_token = self._output_depth if end_token is None else end_token
     if z is not None and z.shape[0].value != n:
       raise ValueError(
           '`z` must have a first dimension that equals `n` when given. '
@@ -464,13 +462,17 @@ class CategoricalLstmDecoder(BaseLstmDecoder):
 
     # If not given, start with dummy `-1` token and replace with zero vectors in
     # `embedding_fn`.
-    start_tokens = start_inputs if start_inputs is not None else -1 * tf.ones(
-        [n], dtype=tf.int32)
+    start_tokens = (
+        tf.argmax(start_inputs, axis=-1, output_type=tf.int32)
+        if start_inputs is not None else
+        -1 * tf.ones([n], dtype=tf.int32))
 
     initial_state = initial_cell_state_from_embedding(
         self._dec_cell, z, n, name='decoder/z_to_initial_state')
     beam_initial_state = tf.contrib.seq2seq.tile_batch(
         initial_state, multiplier=beam_width)
+
+    tf.logging.info(beam_initial_state)
 
     # Tile `z` across beams.
     beam_z = tf.tile(tf.expand_dims(z, 1), [1, beam_width, 1])
@@ -502,7 +504,6 @@ class CategoricalLstmDecoder(BaseLstmDecoder):
         swap_memory=True,
         scope='decoder')
 
-    # Return the best beam.
     return tf.one_hot(
         final_output.predicted_ids[:, :, 0],
         self._output_depth)
@@ -687,7 +688,8 @@ class HierarchicalMultiOutLstmDecoder(base_model.BaseDecoder):
             tf.stack(all_truth, axis=-1),
             tf.stack(all_predictions, axis=-1))
 
-  def sample(self, n, max_length=None, z=None, temperature=1.0):
+  def sample(self, n, max_length=None, z=None, temperature=1.0,
+             **core_sampler_kwargs):
     if z is not None and z.shape[0].value != n:
       raise ValueError(
           '`z` must have a first dimension that equals `n` when given. '
@@ -713,7 +715,8 @@ class HierarchicalMultiOutLstmDecoder(base_model.BaseDecoder):
                   z=e,
                   temperature=temperature,
                   start_inputs=(
-                      sample_ids_j[-1][:, -1] if sample_ids_j else None)))
+                      sample_ids_j[-1][:, -1] if sample_ids_j else None),
+                  **core_sampler_kwargs))
           scope.reuse_variables()
         sample_ids.append(tf.concat(sample_ids_j, axis=1))
 
