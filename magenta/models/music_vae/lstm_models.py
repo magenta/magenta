@@ -74,11 +74,13 @@ def cudnn_lstm_layer(
   lstm._saveable_cls = BackwardCompatibleSaveableClass  # pylint:disable=protected-access
   return lstm
 
+
 def _cudnn_lstm_state(lstm_cell_state):
   """Convert tuple of LSTMCellStateTuples to CudnnLSTM format."""
   h = tf.stack([s.h for s in lstm_cell_state])
   c = tf.stack([s.c for s in lstm_cell_state])
   return (h, c)
+
 
 def initial_cell_state_from_embedding(cell, z, batch_size, name=None):
   """Computes an initial RNN `cell` state from an embedding, `z`."""
