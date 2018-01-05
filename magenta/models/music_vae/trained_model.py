@@ -38,14 +38,16 @@ class TrainedModel(object):
     config: The Config to build the model graph with.
     batch_size: The batch size to build the model graph with.
     checkpoint_dir_or_path: The directory containing checkpoints for the model,
-        the most recent of which will be loaded, or a direct path to a specific
-        checkpoint.
+      the most recent of which will be loaded, or a direct path to a specific
+      checkpoint.
     session_target: Optinal execution engine to connect to. Defaults to
-        in-process.
+      in-process.
+    sample_kwargs: Additional, non-tensor keyward arguments to pass to sample
+      call.
   """
 
   def __init__(self, config, batch_size, checkpoint_dir_or_path=None,
-               session_target=''):
+               session_target='', **sample_kwargs):
     checkpoint_path = (tf.train.latest_checkpoint(checkpoint_dir_or_path)
                        if tf.gfile.IsDirectory(checkpoint_dir_or_path) else
                        checkpoint_dir_or_path)
@@ -74,7 +76,8 @@ class TrainedModel(object):
           batch_size,
           max_length=self._max_length,
           z=self._z_input,
-          temperature=self._temperature)
+          temperature=self._temperature,
+          **sample_kwargs)
       if self._config.hparams.conditional:
         q_z = model.encode(self._inputs, self._inputs_length)
         self._mu = q_z.loc
@@ -90,17 +93,17 @@ class TrainedModel(object):
 
     Args:
       n: The number of samples to return. A full batch will be returned if not
-          specified.
+        specified.
       length: The maximum length of a sample in decoder iterations. Required
-          if end tokens are not being used.
+        if end tokens are not being used.
       temperature: The softmax temperature to use (if applicable).
       same_z: Whether to use the same latent vector for all samples in the
-          batch (if applicable).
+        batch (if applicable).
     Returns:
       A list of samples as NoteSequence objects.
     Raises:
       ValueError: If `length` is not specified and an end token is not being
-          used.
+        used.
     """
     batch_size = self._config.hparams.batch_size
     n = n or batch_size
@@ -136,15 +139,15 @@ class TrainedModel(object):
     Args:
       note_sequences: A collection of NoteSequence objects to encode.
       assert_same_length: Whether to raise an AssertionError if all of the
-          extracted sequences are not the same length.
+        extracted sequences are not the same length.
     Returns:
       The encoded `z`, `mu`, and `sigma` values.
     Raises:
-       RuntimeError: If called for a non-conditional model.
-       NoExtractedExamplesException: If no examples were extracted.
-       MultipleExtractedExamplesException: If multiple examples were extracted.
-       AssertionError: If `assert_same_length` is True and any extracted
-           sequences differ in length.
+      RuntimeError: If called for a non-conditional model.
+      NoExtractedExamplesException: If no examples were extracted.
+      MultipleExtractedExamplesException: If multiple examples were extracted.
+      AssertionError: If `assert_same_length` is True and any extracted
+        sequences differ in length.
     """
     if not self._config.hparams.conditional:
       raise RuntimeError('Cannot encode with a non-conditional model.')
@@ -210,14 +213,14 @@ class TrainedModel(object):
     Args:
       z: A collection of latent vectors to decode.
       length: The maximum length of a sample in decoder iterations. Required
-          if end tokens are not being used.
+        if end tokens are not being used.
       temperature: The softmax temperature to use (if applicable).
     Returns:
       A list of decodings as NoteSequence objects.
     Raises:
       RuntimeError: If called for a non-conditional model.
       ValueError: If `length` is not specified and an end token is not being
-          used.
+        used.
     """
     return self._config.note_sequence_converter.to_notesequences(
         self.decode_to_tensors(z, length, temperature))
@@ -228,14 +231,14 @@ class TrainedModel(object):
     Args:
       z: A collection of latent vectors to decode.
       length: The maximum length of a sample in decoder iterations. Required
-          if end tokens are not being used.
+        if end tokens are not being used.
       temperature: The softmax temperature to use (if applicable).
     Returns:
       Outputs from decoder as a 2D numpy array.
     Raises:
       RuntimeError: If called for a non-conditional model.
       ValueError: If `length` is not specified and an end token is not being
-          used.
+        used.
     """
     if not self._config.hparams.conditional:
       raise RuntimeError('Cannot decode with a non-conditional model.')
@@ -257,5 +260,5 @@ class TrainedModel(object):
           self._z_input: z[i*batch_size:(i+1)*batch_size],
           self._max_length: length,
       }
-      outputs.append(self._sess.run(self._outputs, feed_dict))
-    return np.vstack(outputs)[:n]
+      outputs.extend(self._sess.run(self._outputs, feed_dict))
+    return outputs[:n]

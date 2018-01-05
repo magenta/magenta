@@ -109,6 +109,8 @@ class BaseDecoder(object):
         data representation does not include end tokens.
       z: (Optional) Latent vectors to sample from. Required if model is
         conditional. Sized `[n, z_size]`.
+    Returns:
+      samples: Sampled sequences. Sized `[n, max_length, output_depth]`.
     """
     pass
 
