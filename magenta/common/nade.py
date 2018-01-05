@@ -167,8 +167,9 @@ class Nade(object):
           be used.
       n: The number of samples to generate, or None, if the batch size of
           `b_enc` should be used.
-      temperature: The optional amount to divide the logits by before sampling
-          each Bernoulli.
+      temperature: The amount to divide the logits by before sampling
+          each Bernoulli, or None if a threshold of 0.5 should be used instead
+          of sampling.
 
     Returns:
       sample: The generated samples, sized `[batch_size, num_dims]`.
@@ -205,12 +206,11 @@ class Nade(object):
       cond_p_i, cond_l_i = self._cond_prob(a, w_dec_i, b_dec_i)
 
       if temperature is None:
-        bernoulli = tf.distributions.Bernoulli(probs=cond_p_i, dtype=tf.float32)
+        v_i = tf.to_float(tf.greater_equal(cond_p_i, 0.5))
       else:
         bernoulli = tf.distributions.Bernoulli(
             logits=cond_l_i / temperature, dtype=tf.float32)
-
-      v_i = bernoulli.sample()
+        v_i = bernoulli.sample()
 
       # Accumulate sampled values.
       sample_new = sample + [v_i]
