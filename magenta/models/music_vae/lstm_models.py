@@ -82,11 +82,11 @@ def _cudnn_lstm_state(lstm_cell_state):
   return (h, c)
 
 
-def initial_cell_state_from_embedding(cell, z, batch_size, name=None):
+def initial_cell_state_from_embedding(cell, z, name=None):
   """Computes an initial RNN `cell` state from an embedding, `z`."""
   flat_state_sizes = tf_nest.flatten(cell.state_size)
   return tf_nest.pack_sequence_as(
-      cell.zero_state(batch_size=batch_size, dtype=tf.float32),
+      cell.zero_state(batch_size=z.shape[0], dtype=tf.float32),
       tf.split(
           tf.layers.dense(
               z,
@@ -234,7 +234,7 @@ class BaseLstmDecoder(base_model.BaseDecoder):
 
     Args:
       rnn_output: The output from a single timestep of the RNN, sized
-          [batch_size, rnn_output_size].
+          `[batch_size, rnn_output_size]`.
       temperature: A scalar float specifying a sampling temperature.
     Returns:
       A batch of samples from the model.
@@ -247,11 +247,11 @@ class BaseLstmDecoder(base_model.BaseDecoder):
 
     Args:
       flat_x_target: The flattened ground truth vectors, sized
-        [sum(x_length), self._output_depth].
+        `[sum(x_length), self._output_depth]`.
       flat_rnn_output: The flattened output from all timeputs of the RNN,
-        sized [sum(x_length), rnn_output_size].
+        sized `[sum(x_length), rnn_output_size]`.
     Returns:
-      r_loss: The unreduced reconstruction losses, sized [sum(x_length)].
+      r_loss: The unreduced reconstruction losses, sized `[sum(x_length)]`.
       metric_map: A map of metric names to tuples, each of which contain the
         pair of (value_tensor, update_op) from a tf.metrics streaming metric.
       truths: Ground truth labels.
@@ -259,12 +259,26 @@ class BaseLstmDecoder(base_model.BaseDecoder):
     """
     pass
 
-  def _decode(self, batch_size, helper, z, max_length=None, x_input=None):
-    initial_state = initial_cell_state_from_embedding(
-        self._dec_cell, z, batch_size, name='decoder/z_to_initial_state')
+  def _decode(self, z, helper, max_length=None, x_input=None):
+    """Decodes the given batch of latent vectors vectors, which may be 0-length.
 
-    if (isinstance(helper, seq2seq.TrainingHelper) and
-        self._cudnn_dec_lstm):
+    Args:
+      z: Batch of latent vectors, sized `[batch_size, z_size]`, where `z_size`
+        may be 0 for unconditioned decoding.
+      helper: A seq2seq.Helper to use. If a TrainingHelper is passed and a
+        CudnnLSTM has previously been defined, it will be used instead.
+      max_length: (Optinal) The maximum iterations to decode.
+      x_input: (Optional) The inputs to the decoder for teacher forcing.
+        Required if CudnnLSTM is to be used.
+
+    Returns:
+      final_output: The final seq2seq.BasicDecoderOutput.
+    """
+    initial_state = initial_cell_state_from_embedding(
+        self._dec_cell, z, name='decoder/z_to_initial_state')
+
+    # CudnnLSTM does not support sampling so it can only replace TrainingHelper.
+    if  self._cudnn_dec_lstm and type(helper) == seq2seq.TrainingHelper:  # pylint:disable=unidiomatic-typecheck
       rnn_output, _ = self._cudnn_dec_lstm(
           tf.transpose(x_input, [1, 0, 2]),
           initial_state=_cudnn_lstm_state(initial_state),
@@ -274,6 +288,10 @@ class BaseLstmDecoder(base_model.BaseDecoder):
       final_output = seq2seq.BasicDecoderOutput(
           rnn_output=tf.transpose(rnn_output, [1, 0, 2]), sample_id=None)
     else:
+      if self._cudnn_dec_lstm:
+        tf.logging.warning(
+            'CudnnLSTM does not support sampling. Using `dynamic_decode` '
+            'instead.')
       decoder = seq2seq.BasicDecoder(
           self._dec_cell,
           helper,
@@ -301,7 +319,8 @@ class BaseLstmDecoder(base_model.BaseDecoder):
     Returns:
       r_loss: The reconstruction loss for each sequence in the batch.
       metric_map: Map from metric name to tf.metrics return values for logging.
-      truths: Ground truth labels, sized
+      truths: Ground truth labels.
+      predictions: Predicted labels.
     """
     batch_size = x_input.shape[0].value
 
@@ -325,8 +344,7 @@ class BaseLstmDecoder(base_model.BaseDecoder):
           sampling_probability=self._sampling_probability,
           next_inputs_fn=self._sample)
 
-    decoder_outputs = self._decode(batch_size, helper=helper, z=z,
-                                   x_input=x_input)
+    decoder_outputs = self._decode(z, helper=helper, x_input=x_input)
     flat_x_target = flatten_maybe_padded_sequences(x_target, x_length)
     flat_rnn_output = flatten_maybe_padded_sequences(
         decoder_outputs.rnn_output, x_length)
@@ -388,8 +406,7 @@ class BaseLstmDecoder(base_model.BaseDecoder):
         sample_fn, sample_shape=[self._output_depth], sample_dtype=tf.float32,
         start_inputs=start_inputs, end_fn=end_fn, next_inputs_fn=next_inputs_fn)
 
-    decoder_outputs = self._decode(
-        n, helper=sampler, z=z, max_length=max_length)
+    decoder_outputs = self._decode(z, helper=sampler, max_length=max_length)
 
     return decoder_outputs.sample_id
 
@@ -468,8 +485,8 @@ class CategoricalLstmDecoder(BaseLstmDecoder):
         -1 * tf.ones([n], dtype=tf.int32))
 
     initial_state = initial_cell_state_from_embedding(
-        self._dec_cell, z, n, name='decoder/z_to_initial_state')
-    beam_initial_state = tf.contrib.seq2seq.tile_batch(
+        self._dec_cell, z, name='decoder/z_to_initial_state')
+    beam_initial_state = seq2seq.tile_batch(
         initial_state, multiplier=beam_width)
 
     # Tile `z` across beams.
@@ -486,7 +503,7 @@ class CategoricalLstmDecoder(BaseLstmDecoder):
       next_inputs = tf.concat([next_inputs, beam_z], axis=-1)
       return next_inputs
 
-    decoder = tf.contrib.seq2seq.BeamSearchDecoder(
+    decoder = seq2seq.BeamSearchDecoder(
         self._dec_cell,
         embedding_fn,
         start_tokens,
@@ -496,7 +513,7 @@ class CategoricalLstmDecoder(BaseLstmDecoder):
         output_layer=self._output_layer,
         length_penalty_weight=0.0)
 
-    final_output, _, _ = tf.contrib.seq2seq.dynamic_decode(
+    final_output, _, _ = seq2seq.dynamic_decode(
         decoder,
         maximum_iterations=max_length,
         swap_memory=True,
@@ -617,7 +634,7 @@ class HierarchicalMultiOutLstmDecoder(base_model.BaseDecoder):
             dropout_keep_prob=1.0)
         for e in embeddings:
           initial_state = initial_cell_state_from_embedding(
-              cell, e, batch_size, name='e_to_initial_state')
+              cell, e, name='e_to_initial_state')
           if hparams.use_cudnn_dec:
             input_ = tf.zeros([num_steps, batch_size, 1])
             outputs, _ = cudnn_cell(
