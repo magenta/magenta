@@ -277,9 +277,8 @@ class BaseLstmDecoder(base_model.BaseDecoder):
     initial_state = initial_cell_state_from_embedding(
         self._dec_cell, z, name='decoder/z_to_initial_state')
 
-    # CudnnLSTM is only a replacement for TrainingHelper since it does not
-    # support sampling.
-    if type(helper) == seq2seq.TrainingHelper and self._cudnn_dec_lstm:  # pylint:disable=unidiomatic-typecheck
+    # CudnnLSTM does not support sampling so it can only replace TrainingHelper.
+    if  self._cudnn_dec_lstm and type(helper) == seq2seq.TrainingHelper:  # pylint:disable=unidiomatic-typecheck
       rnn_output, _ = self._cudnn_dec_lstm(
           tf.transpose(x_input, [1, 0, 2]),
           initial_state=_cudnn_lstm_state(initial_state),
@@ -289,6 +288,10 @@ class BaseLstmDecoder(base_model.BaseDecoder):
       final_output = seq2seq.BasicDecoderOutput(
           rnn_output=tf.transpose(rnn_output, [1, 0, 2]), sample_id=None)
     else:
+      if self._cudnn_dec_lstm:
+        tf.logging.warning(
+            'CudnnLSTM does not support sampling. Using `dynamic_decode` '
+            'instead.')
       decoder = seq2seq.BasicDecoder(
           self._dec_cell,
           helper,
