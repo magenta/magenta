@@ -262,14 +262,14 @@ class BaseLstmDecoder(base_model.BaseDecoder):
   def _decode(self, z, helper, max_length=None, x_input=None):
     """Decodes the given batch of latent vectors vectors, which may be 0-length.
 
-      Args:
-        z: Batch of latent vectors, sized `[batch_size, z_size]`, where `z_size`
-          may be 0 for unconditioned decoding.
-        helper: A seq2seq.Helper to use. If a TrainingHelper is passed and a
-          CudnnLSTM has previously been defined, it will be used instead.
-        max_length: (Optinal) The maximum iterations to decode.
-        x_input: (Optional) The inputs to the decoder for teacher forcing.
-          Required if CudnnLSTM is to be used.
+    Args:
+      z: Batch of latent vectors, sized `[batch_size, z_size]`, where `z_size`
+        may be 0 for unconditioned decoding.
+      helper: A seq2seq.Helper to use. If a TrainingHelper is passed and a
+        CudnnLSTM has previously been defined, it will be used instead.
+      max_length: (Optinal) The maximum iterations to decode.
+      x_input: (Optional) The inputs to the decoder for teacher forcing.
+        Required if CudnnLSTM is to be used.
 
     Returns:
       final_output: The final seq2seq.BasicDecoderOutput.
@@ -279,7 +279,7 @@ class BaseLstmDecoder(base_model.BaseDecoder):
 
     # CudnnLSTM is only a replacement for TrainingHelper since it does not
     # support sampling.
-    if type(helper) == seq2seq.TrainingHelper and self._cudnn_dec_lstm:
+    if type(helper) == seq2seq.TrainingHelper and self._cudnn_dec_lstm:  # pylint:disable=unidiomatic-typecheck
       rnn_output, _ = self._cudnn_dec_lstm(
           tf.transpose(x_input, [1, 0, 2]),
           initial_state=_cudnn_lstm_state(initial_state),
