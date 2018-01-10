@@ -169,7 +169,7 @@ def train(train_dir,
             global_norm < config.hparams.grad_norm_clip_to_zero,
             lambda: tf.clip_by_global_norm(  # pylint:disable=g-long-lambda
                 grads, config.hparams.grad_clip, use_norm=global_norm)[0],
-            lambda: tf.zeros(len(grads)))
+            lambda: [tf.zeros(tf.shape(g)) for g in grads])
       else:
         raise ValueError(
             'Unknown clip_mode: {}'.format(config.hparams.clip_mode))
