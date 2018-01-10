@@ -165,10 +165,10 @@ def train(train_dir,
         g = config.hparams.grad_clip
         capped_grads = [tf.clip_by_value(grad, -g, g) for grad in grads]
       elif config.hparams.clip_mode == 'global_norm':
-        tf.cond(
+        grads = tf.cond(
             global_norm < config.hparams.grad_norm_clip_to_zero,
-            lambda: grads, _ = tf.clip_by_global_norm(
-                grads, config.hparams.grad_clip, use_norm=global_norm),
+            lambda: tf.clip_by_global_norm(
+                grads, config.hparams.grad_clip, use_norm=global_norm)[0],
             lambda: grads *= 0.0)
       else:
         raise ValueError(
