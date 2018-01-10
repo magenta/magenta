@@ -157,9 +157,22 @@ def train(train_dir,
             num_sync_workers)
         hooks.append(optimizer.make_session_run_hook(is_chief))
 
-      gvs = optimizer.compute_gradients(model.loss)
-      g = config.hparams.grad_clip
-      capped_gvs = [(tf.clip_by_value(grad, -g, g), var) for grad, var in gvs]
+      grads, var_list = optimizer.compute_gradients(model.loss)
+      global_norm = tf.global_norm(grads)
+      tf.summary.scalar('global_norm', global_norm)
+
+      if config.hparams.clip_mode == 'value':
+        g = config.hparams.grad_clip
+        capped_grads = [tf.clip_by_value(grad, -g, g) for grad in grads]
+      elif config.hparams.clip_mode == 'global_norm':
+        tf.cond(
+            global_norm < config.hparams.grad_norm_clip_to_zero,
+            lambda: grads, _ = tf.clip_by_global_norm(
+                grads, config.hparams.grad_clip, use_norm=global_norm),
+            lambda: grads *= 0.0)
+      else:
+        raise ValueError(
+            'Unknown clip_mode: {}'.format(config.hparams.clip_mode))
       train_op = optimizer.apply_gradients(
           capped_gvs, global_step=model.global_step, name='train_step')
 
