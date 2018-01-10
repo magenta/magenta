@@ -42,7 +42,7 @@ class TrainedModel(object):
       checkpoint.
     session_target: Optinal execution engine to connect to. Defaults to
       in-process.
-    sample_kwargs: Additional, non-tensor keyward arguments to pass to sample
+    sample_kwargs: Additional, non-tensor keyword arguments to pass to sample
       call.
   """
 
