@@ -167,8 +167,8 @@ def train(train_dir,
       elif config.hparams.clip_mode == 'global_norm':
         clipped_grads = tf.cond(
             global_norm < config.hparams.grad_norm_clip_to_zero,
-            lambda: tf.clip_by_global_norm(
-                grads, config.hparams.grad_clip, use_norm=global_norm)[0],  # pylint:disable=g-long-lambda
+            lambda: tf.clip_by_global_norm(  # pylint:disable=g-long-lambda
+                grads, config.hparams.grad_clip, use_norm=global_norm)[0],
             lambda: grads * 0.0)
       else:
         raise ValueError(
