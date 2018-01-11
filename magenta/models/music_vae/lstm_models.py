@@ -225,7 +225,7 @@ class BidirectionalLstmEncoder(base_model.BaseEncoder):
       for lstm_fw, lstm_bw in zip(cells_fw, cells_bw):
         outputs_fw, _ = lstm_fw(inputs_fw, training=self._is_training)
         inputs_bw = tf.reverse_sequence(
-            outputs_fw, sequence_length, seq_axis=0, batch_axis=1)
+            inputs_fw, sequence_length, seq_axis=0, batch_axis=1)
         outputs_bw, _ = lstm_bw(inputs_bw, training=self._is_training)
         outputs_bw = tf.reverse_sequence(
             outputs_bw, sequence_length, seq_axis=0, batch_axis=1)
