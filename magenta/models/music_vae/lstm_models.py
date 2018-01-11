@@ -64,7 +64,12 @@ def cudnn_lstm_layer(layer_sizes, dropout_keep_prob, name_or_scope='rnn'):
     """Overrides CudnnLSTMSaveable for backward-compatible var names."""
 
     def _TFCanonicalNamePrefix(self, layer, is_fwd=True):
-      return 'multi_rnn_cell/cell_%d/lstm_cell' % layer
+      if self._direction == 'unidirectional':
+        return 'multi_rnn_cell/cell_%d/lstm_cell' % layer
+      else:
+        return (
+            'cell_%d/bidirectional_rnn/%s/multi_rnn_cell/cell_0/lstm_cell'
+            % (layer, 'fw' if is_fwd else 'bw'))
 
   lstm._saveable_cls = BackwardCompatibleCudnnLSTMSaveable  # pylint:disable=protected-access
   return lstm
