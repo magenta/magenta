@@ -49,6 +49,9 @@ flags.DEFINE_integer(
 flags.DEFINE_integer(
     'checkpoints_to_keep', 100,
     'Maximum number of checkpoints to keep in `train` mode or 0 for infinite.')
+flags.DEFINE_integer(
+    'keep_checkpoint_every_n_hours', 1,
+    'In addition to checkpoints_to_keep, keep a checkpoint every N hours.')
 flags.DEFINE_string(
     'mode', 'train',
     'Which mode to use (`train` or `eval`).')
@@ -113,6 +116,7 @@ def train(train_dir,
           config,
           dataset,
           checkpoints_to_keep=5,
+          keep_checkpoint_every_n_hours=1,
           num_steps=None,
           master='',
           num_sync_workers=0,
@@ -171,7 +175,9 @@ def train(train_dir,
         hooks.append(tf.train.StopAtStepHook(last_step=num_steps))
 
       scaffold = tf.train.Scaffold(
-          saver=tf.train.Saver(max_to_keep=checkpoints_to_keep))
+          saver=tf.train.Saver(
+              max_to_keep=checkpoints_to_keep,
+              keep_checkpoint_every_n_hours=keep_checkpoint_every_n_hours))
       tf.contrib.training.train(
           train_op=train_op,
           logdir=train_dir,
@@ -276,6 +282,7 @@ def run(config_map,
         config=config,
         dataset=dataset,
         checkpoints_to_keep=FLAGS.checkpoints_to_keep,
+        keep_checkpoint_every_n_hours=FLAGS.keep_checkpoint_every_n_hours,
         num_steps=FLAGS.num_steps,
         master=FLAGS.master,
         num_sync_workers=FLAGS.num_sync_workers,
