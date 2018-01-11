@@ -142,6 +142,7 @@ def train(train_dir,
       output_sequence.set_shape(
           [config.hparams.batch_size, None,
            config.note_sequence_converter.output_depth])
+      sequence_length.set_shape([config.hparams.batch_size])
 
       model = config.model
       model.build(config.hparams,
@@ -205,6 +206,7 @@ def evaluate(train_dir,
     output_sequence.set_shape(
         [config.hparams.batch_size, None,
          config.note_sequence_converter.output_depth])
+    sequence_length.set_shape([config.hparams.batch_size])
 
     model = config.model
     model.build(config.hparams,
