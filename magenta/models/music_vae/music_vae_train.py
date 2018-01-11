@@ -161,11 +161,25 @@ def train(train_dir,
             num_sync_workers)
         hooks.append(optimizer.make_session_run_hook(is_chief))
 
-      gvs = optimizer.compute_gradients(model.loss)
-      g = config.hparams.grad_clip
-      capped_gvs = [(tf.clip_by_value(grad, -g, g), var) for grad, var in gvs]
+      grads, var_list = zip(*optimizer.compute_gradients(model.loss))
+      global_norm = tf.global_norm(grads)
+      tf.summary.scalar('global_norm', global_norm)
+
+      if config.hparams.clip_mode == 'value':
+        g = config.hparams.grad_clip
+        clipped_grads = [tf.clip_by_value(grad, -g, g) for grad in grads]
+      elif config.hparams.clip_mode == 'global_norm':
+        clipped_grads = tf.cond(
+            global_norm < config.hparams.grad_norm_clip_to_zero,
+            lambda: tf.clip_by_global_norm(  # pylint:disable=g-long-lambda
+                grads, config.hparams.grad_clip, use_norm=global_norm)[0],
+            lambda: [tf.zeros(tf.shape(g)) for g in grads])
+      else:
+        raise ValueError(
+            'Unknown clip_mode: {}'.format(config.hparams.clip_mode))
       train_op = optimizer.apply_gradients(
-          capped_gvs, global_step=model.global_step, name='train_step')
+          zip(clipped_grads, var_list), global_step=model.global_step,
+          name='train_step')
 
       logging_dict = {'global_step': model.global_step,
                       'loss': model.loss}
