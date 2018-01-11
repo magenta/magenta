@@ -143,6 +143,7 @@ class MusicVAE(object):
                     self.encoder.__class__.__name__,
                     self.decoder.__class__.__name__,
                     hparams.values())
+    self.global_step = tf.train.get_or_create_global_step()
     self._hparams = hparams
     self._encoder.build(hparams, is_training)
     self._decoder.build(hparams, output_depth, is_training)
@@ -186,8 +187,6 @@ class MusicVAE(object):
     """Builds a model with loss for train/eval."""
     hparams = self.hparams
     batch_size = hparams.batch_size
-
-    self.global_step = tf.train.get_or_create_global_step()
 
     input_sequence = tf.to_float(input_sequence)
     output_sequence = tf.to_float(output_sequence)

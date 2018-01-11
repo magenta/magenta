@@ -45,8 +45,7 @@ def rnn_cell(rnn_cell_size, dropout_keep_prob):
   return rnn.MultiRNNCell(cells)
 
 
-def cudnn_lstm_layer(
-    layer_sizes, dropout_keep_prob, direction='unidirectional', name='rnn'):
+def cudnn_lstm_layer(layer_sizes, dropout_keep_prob, name_or_scope='rnn'):
   """Builds a CudnnLSTM Layer based on the given parameters."""
   for ls in layer_sizes:
     if ls != layer_sizes[0]:
@@ -56,12 +55,13 @@ def cudnn_lstm_layer(
   lstm = cudnn_rnn.CudnnLSTM(
       num_layers=len(layer_sizes),
       num_units=layer_sizes[0],
-      direction=direction,
+      direction='unidirectional',
       dropout=1.0 - dropout_keep_prob,
-      name=name)
+      name=name_or_scope)
 
-  class BackwardCompatibleSaveableClass(lstm._saveable_cls):  # pylint:disable=protected-access
-    """Overrides CudnnOpaqueParamsSaveable for backward-compatible var names."""
+  class BackwardCompatibleCudnnLSTMSaveable(
+      tf.contrib.cudnn_rnn.CudnnLSTMSaveable):
+    """Overrides CudnnLSTMSaveable for backward-compatible var names."""
 
     def _TFCanonicalNamePrefix(self, layer, is_fwd=True):
       if self._direction == 'unidirectional':
@@ -71,7 +71,7 @@ def cudnn_lstm_layer(
             'cell_%d/bidirectional_rnn/%s/multi_rnn_cell/cell_0/lstm_cell'
             % (layer, 'fw' if is_fwd else 'bw'))
 
-  lstm._saveable_cls = BackwardCompatibleSaveableClass  # pylint:disable=protected-access
+  lstm._saveable_cls = BackwardCompatibleCudnnLSTMSaveable  # pylint:disable=protected-access
   return lstm
 
 
@@ -99,7 +99,7 @@ def initial_cell_state_from_embedding(cell, z, name=None):
 
 
 def _get_sampling_probability(hparams, is_training):
-  """Returns `sampling_probabiliy` if `sampling schedule` given or 0."""
+  """Returns `sampling_probabiliy` if `sampling_schedule` given or 0."""
   if (not hasattr(hparams, 'sampling_schedule') or
       not hparams.sampling_schedule):
     return tf.convert_to_tensor(0.0, tf.float32)
@@ -117,7 +117,7 @@ def _get_sampling_probability(hparams, is_training):
   elif hparams.sampling_schedule == 'inverse_sigmoid':
     k = tf.constant(hparams.sampling_rate)
     sampling_probability = 1.0 - (
-        k / (k + tf.exp(tf.to_float(tf.train.get_or_create_global_step()) / k)))
+        k / (k + tf.exp(tf.to_float(tf.train.get_global_step()) / k)))
   elif hparams.sampling_schedule == 'exponential':
     if not 0 < hparams.sampling_rate < 1:
       raise ValueError(
@@ -125,7 +125,7 @@ def _get_sampling_probability(hparams, is_training):
           % hparams.sampling_rate)
     k = tf.constant(hparams.sampling_rate)
     sampling_probability = (
-        1.0 - tf.pow(k, tf.to_float(tf.train.get_or_create_global_step())))
+        1.0 - tf.pow(k, tf.to_float(tf.train.get_global_step())))
   else:
     tf.logging.fatal('Invalid sampling_schedule: %s',
                      hparams.sampling_schedule)
@@ -133,12 +133,52 @@ def _get_sampling_probability(hparams, is_training):
   return tf.convert_to_tensor(sampling_probability, tf.float32)
 
 
+class LstmEncoder(base_model.BaseEncoder):
+  """Unidirectional LSTM Encoder."""
+
+  def build(self, hparams, is_training=True, name_or_scope='encoder'):
+    self._is_training = is_training
+    self._name_or_scope = name_or_scope
+    self._use_cudnn = hparams.use_cudnn_enc
+    dropout_keep_prob = hparams.dropout_keep_prob if is_training else 1.0
+
+    tf.logging.info('\nEncoder Cells (unidirectional):\n'
+                    '  units: %s\n'
+                    '  input dropout keep prob: %4.4f\n'
+                    '  output dropout keep prob: %4.4f\n',
+                    hparams.enc_rnn_size,
+                    dropout_keep_prob,
+                    dropout_keep_prob)
+    if self._use_cudnn:
+      self._cudnn_lstm = cudnn_lstm_layer(
+          hparams.enc_rnn_size,
+          dropout_keep_prob,
+          name_or_scope=self._name_or_scope)
+    else:
+      self._cell = rnn_cell(
+          hparams.enc_rnn_size, dropout_keep_prob)
+
+  def encode(self, sequence, sequence_length):
+    # Convert to time-major.
+    sequence = tf.transpose(sequence, [1, 0, 2])
+    if self._use_cudnn:
+      outputs, _ = self._cudnn_lstm(
+          tf.transpose(sequence, [1, 0, 2]),
+          training=self._is_training)
+    else:
+      outputs, _ = tf.nn.dynamic_rnn(
+          self._cell, sequence, sequence_length, dtype=tf.float32,
+          time_major=True, scope=self._name_or_scope)
+    return outputs[-1]
+
+
 class BidirectionalLstmEncoder(base_model.BaseEncoder):
   """Bidirectional LSTM Encoder."""
 
-  def build(self, hparams, is_training=True):
+  def build(self, hparams, is_training=True, name_or_scope='encoder'):
     self._is_training = is_training
-    self._use_cudnn = hparams.use_cudnn_enc
+    self._name_or_scope = name_or_scope
+    self._use_cudnn = hparams.use_cudnn
     dropout_keep_prob = hparams.dropout_keep_prob if is_training else 1.0
 
     tf.logging.info('\nEncoder Cells (bidirectional):\n'
@@ -148,51 +188,73 @@ class BidirectionalLstmEncoder(base_model.BaseEncoder):
                     hparams.enc_rnn_size,
                     dropout_keep_prob,
                     dropout_keep_prob)
-    if self._use_cudnn:
-      self._cudnn_enc_lstm = cudnn_lstm_layer(
-          hparams.enc_rnn_size,
-          dropout_keep_prob,
-          direction='bidirectional',
-          name='encoder')
+
+    if isinstance(name_or_scope, tf.VariableScope):
+      name = name_or_scope.name
+      reuse = name_or_scope.reuse
     else:
-      self._enc_cells_fw = []
-      self._enc_cells_bw = []
-      for layer_size in hparams.enc_rnn_size:
-        self._enc_cells_fw.append(rnn_cell([layer_size], dropout_keep_prob))
-        self._enc_cells_bw.append(rnn_cell([layer_size], dropout_keep_prob))
+      name = name_or_scope
+      reuse = None
+
+    cells_fw = []
+    cells_bw = []
+    for i, layer_size in enumerate(hparams.enc_rnn_size):
+      if self._use_cudnn:
+        cells_fw.append(cudnn_lstm_layer(
+            [layer_size], dropout_keep_prob,
+            name_or_scope=tf.VariableScope(
+                reuse,
+                name + '/cell_%d/bidirectional_rnn/fw' % i)))
+        cells_bw.append(cudnn_lstm_layer(
+            [layer_size], dropout_keep_prob,
+            name_or_scope=tf.VariableScope(
+                reuse,
+                name + '/cell_%d/bidirectional_rnn/bw' % i)))
+      else:
+        cells_fw.append(rnn_cell([layer_size], dropout_keep_prob))
+        cells_bw.append(rnn_cell([layer_size], dropout_keep_prob))
+
+    self._cells = (cells_fw, cells_bw)
 
   def encode(self, sequence, sequence_length):
+    cells_fw, cells_bw = self._cells
     if self._use_cudnn:
-      with tf.control_dependencies(
-          [tf.assert_equal(
-              sequence_length, tf.shape(sequence)[1],
-              message='`use_cudnn_enc` must be False if sequence lengths vary.')
-          ]):
-        _, (states_h, _) = self._cudnn_enc_lstm(
-            tf.transpose(sequence, [1, 0, 2]),
-            training=self._is_training)
+      # Implements stacked bidirectional LSTM for variable-length sequences,
+      # which are not supported by the CudnnLSTM layer.
+      inputs_fw = tf.transpose(sequence, [1, 0, 2])
+      for lstm_fw, lstm_bw in zip(cells_fw, cells_bw):
+        outputs_fw, _ = lstm_fw(inputs_fw, training=self._is_training)
+        inputs_bw = tf.reverse_sequence(
+            outputs_fw, sequence_length, seq_axis=0, batch_axis=1)
+        outputs_bw, _ = lstm_bw(inputs_bw, training=self._is_training)
+        outputs_bw = tf.reverse_sequence(
+            outputs_bw, sequence_length, seq_axis=0, batch_axis=1)
 
-      # Note we access the outputs (h) from the states since the backward
-      # ouputs are reversed to the input order in the returned outputs.
-      last_h_fw, last_h_bw = states_h[-2], states_h[-1]
+        inputs_fw = tf.concat([outputs_fw, outputs_bw], axis=2)
+
+      last_indices = tf.stack(
+          [tf.range(sequence_length.shape[0]),
+           tf.maximum(0, sequence_length - 1)],
+          axis=1)
+      last_h_fw = tf.gather_nd(outputs_fw, last_indices)
+      # outputs_bw has already been reversed.
+      last_h_bw = outputs_bw[0]
+
     else:
       _, states_fw, states_bw = rnn.stack_bidirectional_dynamic_rnn(
-          self._enc_cells_fw,
-          self._enc_cells_bw,
+          cells_fw,
+          cells_bw,
           sequence,
           sequence_length=sequence_length,
           time_major=False,
           dtype=tf.float32,
-          scope='encoder')
+          scope=self._name_or_scope)
       # Note we access the outputs (h) from the states since the backward
       # ouputs are reversed to the input order in the returned outputs.
       last_h_fw = states_fw[-1][-1].h
       last_h_bw = states_bw[-1][-1].h
 
-    # Concatenate the final outputs for each direction.
-    last_h = tf.concat([last_h_fw, last_h_bw], 1)
-
-    return last_h
+    return tf.concat([last_h_fw, last_h_bw], 1)
 
 
 class BaseLstmDecoder(base_model.BaseDecoder):
@@ -226,7 +288,7 @@ class BaseLstmDecoder(base_model.BaseDecoder):
     self._cudnn_dec_lstm = cudnn_lstm_layer(
         hparams.dec_rnn_size,
         dropout_keep_prob,
-        name='decoder') if hparams.use_cudnn_dec else None
+        name_or_scope='decoder') if hparams.use_cudnn else None
 
   @abc.abstractmethod
   def _sample(self, rnn_output, temperature):
@@ -630,12 +692,13 @@ class HierarchicalMultiOutLstmDecoder(base_model.BaseDecoder):
       with tf.variable_scope('hierarchical_layer_%d' % i) as scope:
         cell = rnn_cell(hparams.dec_rnn_size, dropout_keep_prob=1.0)
         cudnn_cell = cudnn_lstm_layer(
-            hparams.enc_rnn_size,
+            hparams.dec_rnn_size,
             dropout_keep_prob=1.0)
         for e in embeddings:
+          e.set_shape([batch_size] + e.shape[1:].as_list())
           initial_state = initial_cell_state_from_embedding(
               cell, e, name='e_to_initial_state')
-          if hparams.use_cudnn_dec:
+          if hparams.use_cudnn:
             input_ = tf.zeros([num_steps, batch_size, 1])
             outputs, _ = cudnn_cell(
                 input_,
@@ -792,7 +855,6 @@ def get_default_hparams():
       'dropout_keep_prob': 1.0,  # Probability all dropout keep.
       'sampling_schedule': 'constant',  # constant, exponential, inverse_sigmoid
       'sampling_rate': 0.0,  # Interpretation is based on `sampling_schedule`.
-      'use_cudnn_dec': False,  # Uses faster CudnnLstm to train. For GPU only.
-      'use_cudnn_enc': False,  # Only enable for sequences w/ equal length.
+      'use_cudnn': False,  # Uses faster CudnnLSTM to train. For GPU only.
   })
   return tf.contrib.training.HParams(**hparams_map)
