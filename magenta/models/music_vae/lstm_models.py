@@ -61,9 +61,20 @@ def cudnn_lstm_layer(layer_sizes, dropout_keep_prob, name_or_scope='rnn'):
 
   class BackwardCompatibleCudnnLSTMSaveable(
       tf.contrib.cudnn_rnn.CudnnLSTMSaveable):
-    """Overrides CudnnLSTMSaveable for backward-compatible var names."""
+    """Overrides CudnnLSTMSaveable for backward-compatibility."""
+
+    def _cudnn_to_tf_biases(self, *cu_biases):
+      """Overrides to subtract 1.0 from `forget_bias` (see BasicLSTMCell)."""
+      biases = (
+          super(BackwardCompatibleCudnnLSTMSaveable, self)._cudnn_to_tf_biases(
+              *cu_biases))[0]
+      i, f, c, o = tf.split(biases, 4)
+      f -= 1.0
+      return (tf.concat([i, f, c, o], axis=0),)
 
     def _TFCanonicalNamePrefix(self, layer, is_fwd=True):
+      """Overrides for backward-compatible variable names."""
+
       if self._direction == 'unidirectional':
         return 'multi_rnn_cell/cell_%d/lstm_cell' % layer
       else:
@@ -82,6 +93,14 @@ def _cudnn_lstm_state(lstm_cell_state):
   return (h, c)
 
 
+def _get_final(time_major_sequence, sequence_length):
+  final_index = tf.stack(
+      [tf.range(sequence_length.shape[0]),
+       tf.maximum(0, sequence_length - 1)],
+      axis=1)
+  return tf.gather_nd(time_major_sequence, final_index)
+
+
 def initial_cell_state_from_embedding(cell, z, name=None):
   """Computes an initial RNN `cell` state from an embedding, `z`."""
   flat_state_sizes = tf_nest.flatten(cell.state_size)
@@ -96,7 +115,6 @@ def initial_cell_state_from_embedding(cell, z, name=None):
               name=name),
           flat_state_sizes,
           axis=1))
-
 
 def _get_sampling_probability(hparams, is_training):
   """Returns `sampling_probabiliy` if `sampling_schedule` given or 0."""
@@ -139,7 +157,7 @@ class LstmEncoder(base_model.BaseEncoder):
   def build(self, hparams, is_training=True, name_or_scope='encoder'):
     self._is_training = is_training
     self._name_or_scope = name_or_scope
-    self._use_cudnn = hparams.use_cudnn_enc
+    self._use_cudnn = hparams.use_cudnn
     dropout_keep_prob = hparams.dropout_keep_prob if is_training else 1.0
 
     tf.logging.info('\nEncoder Cells (unidirectional):\n'
@@ -163,13 +181,13 @@ class LstmEncoder(base_model.BaseEncoder):
     sequence = tf.transpose(sequence, [1, 0, 2])
     if self._use_cudnn:
       outputs, _ = self._cudnn_lstm(
-          tf.transpose(sequence, [1, 0, 2]),
-          training=self._is_training)
+          sequence, training=self._is_training)
+      return _get_final(outputs, sequence_length)
     else:
       outputs, _ = tf.nn.dynamic_rnn(
           self._cell, sequence, sequence_length, dtype=tf.float32,
           time_major=True, scope=self._name_or_scope)
-    return outputs[-1]
+      return outputs[-1]
 
 
 class BidirectionalLstmEncoder(base_model.BaseEncoder):
@@ -232,12 +250,8 @@ class BidirectionalLstmEncoder(base_model.BaseEncoder):
 
         inputs_fw = tf.concat([outputs_fw, outputs_bw], axis=2)
 
-      last_indices = tf.stack(
-          [tf.range(sequence_length.shape[0]),
-           tf.maximum(0, sequence_length - 1)],
-          axis=1)
-      last_h_fw = tf.gather_nd(outputs_fw, last_indices)
-      # outputs_bw has already been reversed.
+      last_h_fw = _get_final(outputs_fw, sequence_length)
+      # outputs_bw has already been reversed, so we can take the first element.
       last_h_bw = outputs_bw[0]
 
     else:
@@ -340,7 +354,7 @@ class BaseLstmDecoder(base_model.BaseDecoder):
         self._dec_cell, z, name='decoder/z_to_initial_state')
 
     # CudnnLSTM does not support sampling so it can only replace TrainingHelper.
-    if  self._cudnn_dec_lstm and type(helper) == seq2seq.TrainingHelper:  # pylint:disable=unidiomatic-typecheck
+    if  self._cudnn_dec_lstm and type(helper) is seq2seq.TrainingHelper:  # pylint:disable=unidiomatic-typecheck
       rnn_output, _ = self._cudnn_dec_lstm(
           tf.transpose(x_input, [1, 0, 2]),
           initial_state=_cudnn_lstm_state(initial_state),
@@ -493,10 +507,9 @@ class CategoricalLstmDecoder(BaseLstmDecoder):
     return r_loss, metric_map, flat_truth, flat_predictions
 
   def _sample(self, rnn_output, temperature=1.0):
-    sampler = tf.contrib.distributions.Categorical(
-        logits=rnn_output / temperature)
-    sample_labels = sampler.sample()
-    return tf.one_hot(sample_labels, self._output_depth, dtype=tf.float32)
+    sampler = tf.contrib.distributions.OneHotCategorical(
+        logits=rnn_output / temperature, dtype=tf.float32)
+    return sampler.sample()
 
   def sample(self, n, max_length=None, z=None, temperature=None,
              start_inputs=None, beam_width=None, end_token=None):
