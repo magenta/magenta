@@ -315,10 +315,6 @@ def build_graph(is_training, hparams, placeholders=None):
 def load_checkpoint(path):
   """Builds graph, loads checkpoint, and returns wrapped model."""
   print('Loading checkpoint from', path)
-  #print('Path prefix retrieved by tf.resource_loader.get_data_files_path:',
-  #      tf.resource_loader.get_data_files_path())
-  #path = os.path.join(tf.resource_loader.get_data_files_path(), path)
-  #print('Full path:', path)
   hparams = lib_hparams.load_hparams(path)
   model = build_graph(is_training=False, hparams=hparams)
   wmodel = lib_tfutil.WrappedModel(model, model.loss.graph, hparams)
