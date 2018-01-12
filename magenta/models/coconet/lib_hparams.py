@@ -7,7 +7,7 @@ import os
 # internal imports
 import tensorflow as tf
 import yaml
-from google3.third_party.magenta.models.coconet import lib_util
+from magenta.models.coconet import lib_util
 
 
 class ModelMisspecificationError(Exception):
@@ -19,7 +19,7 @@ def load_hparams(checkpoint_path):
   # hparams_fpath = os.path.join(os.path.dirname(checkpoint_path), 'config')
   hparams_fpath = os.path.join(checkpoint_path, 'config')
   with tf.gfile.Open(hparams_fpath, 'r') as p:
-    hparams = yaml.load(p)
+    hparams = Hyperparameters.load(p)
   return hparams
 
 
@@ -107,7 +107,7 @@ class Hyperparameters(object):
 
   @property
   def log_subdir_str(self):
-    return '%s_%s' % (self.conv_arch.name, self.__str__())
+    return '%s_%s' % (self.get_conv_arch().name, self.__str__())
 
   @property
   def name(self):
@@ -150,20 +150,25 @@ class Hyperparameters(object):
         '%s=%s' % (shorthand[key], getattr(self, key)) for key in sorted_keys)
     return line
 
-  @property
-  def conv_arch(self):
+  def get_conv_arch(self):
     """Returns the model architecture."""
-    try:
-      return self._conv_arch
-    except AttributeError:
-      self._conv_arch = Architecture.make(
-          self.architecture,
-          self.input_depth,
-          self.num_layers,
-          self.num_filters,
-          self.num_pitches,
-          output_depth=self.output_depth)
-      return self._conv_arch
+    return Architecture.make(
+        self.architecture,
+        self.input_depth,
+        self.num_layers,
+        self.num_filters,
+        self.num_pitches,
+        output_depth=self.output_depth)
+
+  def dump(self, file):
+    yaml.dump(self.__dict__, file)
+
+  @staticmethod
+  def load(file):
+    params_dict = yaml.load(file)
+    hparams = Hyperparameters()
+    hparams.update(params_dict)
+    return hparams
 
 
 class Architecture(lib_util.Factory):

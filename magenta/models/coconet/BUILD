@@ -21,6 +21,9 @@ py_library(
     name = "lib_data",
     srcs = ["lib_data.py"],
     srcs_version = "PY2AND3",
+    data = [
+        "testdata/TestData.npz",
+    ],
     deps = [
         ":lib_mask",
         ":lib_pianoroll",

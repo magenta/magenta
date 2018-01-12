@@ -7,7 +7,6 @@ import time
 # internal imports
 import numpy as np
 import tensorflow as tf
-import yaml
 from magenta.models.coconet import lib_data
 from magenta.models.coconet import lib_graph
 from magenta.models.coconet import lib_hparams
@@ -209,9 +208,9 @@ def main(unused_argv):
   logdir = os.path.join(FLAGS.logdir, hparams.log_subdir_str)
   tf.gfile.MakeDirs(logdir)
   config_fpath = os.path.join(logdir, 'config')
-  print('Writing to', config_fpath)
+  tf.logging.info('Writing to %s', config_fpath)
   with tf.gfile.Open(config_fpath, 'w') as p:
-    yaml.dump(hparams, p)
+    hparams.dump(p)
 
   # Build the graph and subsequently running it for train and validation.
   with tf.Graph().as_default():

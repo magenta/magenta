@@ -30,70 +30,31 @@ Uria, B., Murray, I., & Larochelle, H. (2014, January). A deep and tractable den
 Yao, L., Ozair, S., Cho, K., & Bengio, Y. (2014, September). On the equivalence between deep nade and generative stochastic networks. In Joint European Conference on Machine Learning and Knowledge Discovery in Databases (pp. 322-336). Springer, Berlin, Heidelberg.
 
 ## How to Use
-
-To try out Coconet, set the parameters in the commands before running them:
+We made template scripts for interacting with coconet in four ways: training a
+new model, generating from a model, evaluating a model, and evaluating
+generated samples.  There are many variables in the script that are currently
+set to defaults that may require customization.
 
 ### Generating from Coconet
 
 For generating from a pretrained model:
 
-Download a model thats pretrained on the J.S. Bach chorales dataset from here: http://download.magenta.tensorflow.org/models/coconet/checkpoint.zip
-and set the checkpoint variable to the path to the inner most directory.
+Download a model pretrained on J.S. Bach chorales from http://download.magenta.tensorflow.org/models/coconet/checkpoint.zip and pass the path uptill the inner most directory as first argument to script.
 
-bazel run //magenta/models/coconet:coconet_sample \
--- \
---log_dir=$log_dir \
---checkpoint="$checkpoint" \
---gen_batch_size=$gen_batch_size \
---piece_length=$piece_length \
---temperature=0.99 \
---strategy=$strategy \
---generation_output_dir=$generation_output_dir \
---logtostderr
+sh sample_bazel.sh path_to_checkpoint
 
+For example,
+path_to_checkpoint could be $HOME/Downloads/checkpoint/coconet-64layers-128filters
 
 ### Training your own Coconet
 
-For training your own model:
-bazel run //magenta/models/coconet:coconet_train \
-  -- \
-  --logdir=$logdir \
-  --data_dir=$data_dir \
-  --dataset=$dataset \
-  --crop_piece_len=$crop_piece_len \
-  --separate_instruments=$separate_instruments \
-  --quantization_level=$quantization_level \
-  --maskout_method=$maskout_method \
-  --num_layers=$num_layers \
-  --num_filters=$num_filters \
-  --use_residual \
-  --batch_size=$batch_size \
-  --logtostderr
-
+sh train_bazel.sh
 
 ### Evaluating a trained Coconet
 
-For evaluating the model:
-bazel run //magenta/models/coconet:coconet_evaluate \
--- \
---data_dir=$data_dir \
---eval_logdir=$eval_logdir \
---checkpoint=$checkpoint \
---fold=$fold \
---unit=$unit \
---chronological=$chronological \
---ensemble_size=$ensemble_size \
---logtostderr
-
+sh evalmodel_bazel.sh path_to_checkpoint
 
 ### Evaluating samples generated from Coconet
 
-bazel run //magenta/models/coconet:coconet_evaluate $sample_file \
---logtostderr \
---checkpoint $checkpoint \
---eval_logdir $eval_logdir \
---unit $unit \
---chronological $chronological \
---ensemble_size 5 \
-
+sh evalsample_bazel.sh path_to_checkpoint
 

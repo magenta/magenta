@@ -36,6 +36,9 @@ flags.DEFINE_bool("midi_io", False, "Run in midi in and midi out mode."
 
 
 def main(unused_argv):
+  if FLAGS.checkpoint is None or not FLAGS.checkpoint:
+    raise ValueError(
+        'Need to provide a path to checkpoint directory.')
   wmodel = instantiate_model(FLAGS.checkpoint)
   generator = Generator(wmodel, FLAGS.strategy)
   midi_outs = generator.run_generation(

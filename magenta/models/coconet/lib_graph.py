@@ -41,7 +41,7 @@ class CoconetGraph(object):
     featuremaps = self.get_convnet_input()
     self.residual_init()
 
-    layers = self.hparams.conv_arch.layers
+    layers = self.hparams.get_conv_arch().layers
     n = len(layers)
     for i, layer in enumerate(layers):
       with tf.variable_scope('conv%d' % i):

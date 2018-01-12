@@ -28,11 +28,14 @@ flags.DEFINE_integer('ensemble_size', 5,
                      'Number of ensemble members to average.')
 flags.DEFINE_bool('chronological', False,
                   'Indicates evaluation should proceed in chronological order.')
-flags.DEFINE_string('checkpoint', None, 'Path to checkpoint file.')
-flags.DEFINE_list('sample_npz_paths', [], 'Path to samples to be evaluated.')
+flags.DEFINE_string('checkpoint', None, 'Path to checkpoint directory.')
+flags.DEFINE_string('sample_npy_path', None, 'Path to samples to be evaluated.')
 
 
 def main(unused_argv):
+  if FLAGS.checkpoint is None or not FLAGS.checkpoint:
+    raise ValueError(
+        'Need to provide a path to checkpoint directory.')
   wmodel = lib_graph.load_checkpoint(FLAGS.checkpoint)
   if FLAGS.eval_logdir is None:
     raise ValueError(
@@ -45,14 +48,14 @@ def main(unused_argv):
       FLAGS.unit, wmodel=wmodel, chronological=FLAGS.chronological)
   evaluator = lib_evaluation.EnsemblingEvaluator(evaluator, FLAGS.ensemble_size)
 
-  if not FLAGS.sample_npz_paths and FLAGS.fold is None:
+  if not FLAGS.sample_npy_path and FLAGS.fold is None:
     raise ValueError(
-        'Either --fold must be specified, or paths of npz files to load must '
+        'Either --fold must be specified, or paths of npy files to load must '
         'be given, but not both.')
   if FLAGS.fold is not None:
     evaluate_fold(FLAGS.fold, evaluator, wmodel.hparams, eval_logdir)
-  if FLAGS.sample_npz_paths is not None:
-    evaluate_paths(FLAGS.sample_npz_paths, evaluator, wmodel.hparams,
+  if FLAGS.sample_npy_path is not None:
+    evaluate_paths([FLAGS.sample_npy_path], evaluator, wmodel.hparams,
                    eval_logdir)
   print('Done')
 

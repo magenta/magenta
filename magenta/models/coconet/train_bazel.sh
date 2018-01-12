@@ -19,8 +19,8 @@ quantization_level=0.125  # 16th notes
 
 # Hyperparameters.
 maskout_method=orderless
-num_layers=64
-num_filters=128
+num_layers=32
+num_filters=64
 batch_size=10
 
 # Run command.
