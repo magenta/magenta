@@ -75,7 +75,6 @@ def cudnn_lstm_layer(layer_sizes, dropout_keep_prob, name_or_scope='rnn'):
 
     def _TFCanonicalNamePrefix(self, layer, is_fwd=True):
       """Overrides for backward-compatible variable names."""
-
       if self._direction == 'unidirectional':
         return 'multi_rnn_cell/cell_%d/lstm_cell' % layer
       else:
