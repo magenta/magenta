@@ -138,6 +138,8 @@ def train(train_dir,
       train_dataset = train_dataset.padded_batch(
           config.hparams.batch_size, train_dataset.output_shapes)
 
+      train_dataset = train_dataset.prefetch(5)
+
       iterator = train_dataset.make_one_shot_iterator()
       input_sequence, output_sequence, sequence_length = iterator.get_next()
       input_sequence.set_shape(
@@ -218,6 +220,9 @@ def evaluate(train_dir,
         dataset
         .padded_batch(config.hparams.batch_size, dataset.output_shapes)
         .take(num_batches))
+
+    eval_dataset = eval_dataset.prefetch(5)
+
     iterator = eval_dataset.make_one_shot_iterator()
     input_sequence, output_sequence, sequence_length = iterator.get_next()
     input_sequence.set_shape(
