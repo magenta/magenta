@@ -69,6 +69,7 @@ def cudnn_lstm_layer(layer_sizes, dropout_keep_prob, name_or_scope='rnn'):
           super(BackwardCompatibleCudnnLSTMSaveable, self)._cudnn_to_tf_biases(
               *cu_biases))[0]
       i, f, c, o = tf.split(biases, 4)
+      # Non-Cudnn LSTM cells add 1.0 to the forget bias variable.
       f -= 1.0
       return (tf.concat([i, f, c, o], axis=0),)
 
