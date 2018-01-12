@@ -116,6 +116,7 @@ def initial_cell_state_from_embedding(cell, z, name=None):
           flat_state_sizes,
           axis=1))
 
+
 def _get_sampling_probability(hparams, is_training):
   """Returns `sampling_probabiliy` if `sampling_schedule` given or 0."""
   if (not hasattr(hparams, 'sampling_schedule') or
