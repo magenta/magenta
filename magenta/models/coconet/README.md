@@ -30,16 +30,17 @@ Uria, B., Murray, I., & Larochelle, H. (2014, January). A deep and tractable den
 Yao, L., Ozair, S., Cho, K., & Bengio, Y. (2014, September). On the equivalence between deep nade and generative stochastic networks. In Joint European Conference on Machine Learning and Knowledge Discovery in Databases (pp. 322-336). Springer, Berlin, Heidelberg.
 
 ## How to Use
-We made template scripts for interacting with coconet in four ways: training a
+We made template scripts for interacting with Coconet in four ways: training a
 new model, generating from a model, evaluating a model, and evaluating
 generated samples.  There are many variables in the script that are currently
-set to defaults that may require customization.
+set to defaults that may require customization.  Run these scripts from within the coconet
+directory.
 
 ### Generating from Coconet
 
 For generating from a pretrained model:
 
-Download a model pretrained on J.S. Bach chorales from http://download.magenta.tensorflow.org/models/coconet/checkpoint.zip and pass the path uptill the inner most directory as first argument to script.
+Download a model pretrained on J.S. Bach chorales from http://download.magenta.tensorflow.org/models/coconet/checkpoint.zip and pass the path up till the inner most directory as first argument to script.
 
 sh sample_bazel.sh path_to_checkpoint
 
