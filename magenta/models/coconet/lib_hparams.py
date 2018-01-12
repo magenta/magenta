@@ -160,12 +160,12 @@ class Hyperparameters(object):
         self.num_pitches,
         output_depth=self.output_depth)
 
-  def dump(self, file):
-    yaml.dump(self.__dict__, file)
+  def dump(self, file_object):
+    yaml.dump(self.__dict__, file_object)
 
   @staticmethod
-  def load(file):
-    params_dict = yaml.load(file)
+  def load(file_object):
+    params_dict = yaml.load(file_object)
     hparams = Hyperparameters()
     hparams.update(params_dict)
     return hparams

@@ -117,7 +117,6 @@ py_library(
         ":lib_tfutil",
         ":lib_util",
         # numpy dep
-        # tensorflow dep
     ],
 )
 
