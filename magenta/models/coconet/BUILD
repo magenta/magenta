@@ -25,8 +25,8 @@ py_library(
         ":lib_mask",
         ":lib_pianoroll",
         ":lib_util",
-        # numpy deps
-        # tensorflow deps
+        # numpy dep
+        # tensorflow dep
     ],
 )
 
@@ -36,8 +36,8 @@ py_library(
     srcs_version = "PY2AND3",
     deps = [
         ":lib_util",
-        # numpy deps
-        # tensorflow deps
+        # numpy dep
+        # tensorflow dep
     ],
 )
 
@@ -46,8 +46,8 @@ py_library(
     srcs = ["lib_util.py"],
     srcs_version = "PY2AND3",
     deps = [
-        # numpy deps
-        # tensorflow deps
+        # numpy dep
+        # tensorflow dep
     ],
 )
 
@@ -56,8 +56,8 @@ py_library(
     srcs = ["lib_tfutil.py"],
     srcs_version = "PY2AND3",
     deps = [
-        # numpy deps
-        # tensorflow deps
+        # numpy dep
+        # tensorflow dep
     ],
 )
 
@@ -66,7 +66,7 @@ py_library(
     srcs = ["lib_pianoroll.py"],
     srcs_version = "PY2AND3",
     deps = [
-        # numpy deps
+        # numpy dep
         "@pretty_midi//:pretty_midi",
     ],
 )
@@ -79,7 +79,7 @@ py_library(
         ":lib_hparams",
         ":lib_tfutil",
         ":lib_util",
-        # tensorflow deps
+        # tensorflow dep
     ],
 )
 
@@ -89,8 +89,8 @@ py_library(
     srcs_version = "PY2AND3",
     deps = [
         ":lib_util",
-        # tensorflow deps
-        # yaml deps
+        # tensorflow dep
+        # yaml dep
     ],
 )
 
@@ -99,7 +99,7 @@ py_library(
     srcs = ["lib_logging.py"],
     srcs_version = "PY2AND3",
     deps = [
-        # numpy deps
+        # numpy dep
     ],
 )
 
@@ -113,8 +113,8 @@ py_library(
         ":lib_mask",
         ":lib_tfutil",
         ":lib_util",
-        # numpy deps
-        # tensorflow deps
+        # numpy dep
+        # tensorflow dep
     ],
 )
 
@@ -126,9 +126,9 @@ py_library(
         ":lib_mask",
         ":lib_tfutil",
         ":lib_util",
-        # numpy deps
-        # scipy deps
-        # tensorflow deps
+        # numpy dep
+        # scipy dep
+        # tensorflow dep
     ],
 )
 
@@ -144,9 +144,9 @@ py_binary(
         ":lib_graph",
         ":lib_hparams",
         ":lib_util",
-        # numpy deps
-        # tensorflow deps
-        # yaml deps
+        # numpy dep
+        # tensorflow dep
+        # yaml dep
     ],
 )
 
@@ -162,8 +162,8 @@ py_binary(
         ":lib_evaluation",
         ":lib_graph",
         ":lib_util",
-        # numpy deps
-        # tensorflow deps
+        # numpy dep
+        # tensorflow dep
     ],
 )
 
@@ -179,8 +179,8 @@ py_binary(
         ":lib_pianoroll",
         ":lib_sampling",
         ":lib_util",
-        # numpy deps
+        # numpy dep
         "@pretty_midi//:pretty_midi",
-        # tensorflow deps
+        # tensorflow dep
     ],
 )
