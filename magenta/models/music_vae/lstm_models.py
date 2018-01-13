@@ -126,10 +126,34 @@ def initial_cell_state_from_embedding(cell, z, name=None):
 
 
 def _get_sampling_probability(hparams, is_training):
-  """Returns `sampling_probabiliy` if `sampling_schedule` given or 0."""
+  """Returns the sampling probability as a tensor based on the hparams.
+
+  Supports three sampling schedules (`hparams.sampling_schedule`):
+    constant: `hparams.sampling_rate` is the sampling probability. Must be in
+      the interval [0, 1].
+    exponential: `hparams.sampling_rate` is the base of the decay exponential.
+      Must be in the interval (0, 1). Larger values imply a slower increase in
+      sampling.
+    inverse_sigmoid: `hparams.sampling_rate` is in the interval [1, inf).
+      Larger values imply a slower increase in sampling.
+
+  A constant value of 0 is returned if `hparams.sampling_schedule` is undefined.
+
+  If not training and a non-0 sampling schedule is defined, a constant value of
+  1 is returned since this is assumed to be a test/eval job associated with a
+  scheduled sampling trainer.
+
+  Args:
+    hparams: An HParams object containing model hyperparameters.
+    is_training: Whether or not the model is being used for training.
+
+  Raises:
+    ValueError: On an invalid `sampling_schedule` or `sampling_rate` hparam.
+  """
   if (not hasattr(hparams, 'sampling_schedule') or
-      not hparams.sampling_schedule):
-    return tf.convert_to_tensor(0.0, tf.float32)
+      not hparams.sampling_schedule or
+      (hparams.sampling_schedule == 'constant' and hparams.sampling_rate == 0)):
+    return tf.constant(0.0)
 
   if not is_training:
     # This is likely an eval/test job associated with a training job using
@@ -139,25 +163,34 @@ def _get_sampling_probability(hparams, is_training):
         hparams.sampling_schedule, hparams.sampling_rate)
     hparams.sampling_schedule = 'constant'
     hparams.sampling_rate = 1.0
-  if hparams.sampling_schedule == 'constant':
-    sampling_probability = tf.constant(hparams.sampling_rate)
-  elif hparams.sampling_schedule == 'inverse_sigmoid':
-    k = tf.constant(hparams.sampling_rate)
-    sampling_probability = 1.0 - (
-        k / (k + tf.exp(tf.to_float(tf.train.get_global_step()) / k)))
-  elif hparams.sampling_schedule == 'exponential':
-    if not 0 < hparams.sampling_rate < 1:
+
+  schedule = hparams.sampling_schedule
+  rate = hparams.sampling_rate
+  step = tf.to_float(tf.train.get_global_step())
+
+  if schedule == 'constant':
+    if not 0 <= rate <= 1:
       raise ValueError(
-          'Exponential sampling rate must be in the interval (0, 1). Got %f.'
+          '`constant` sampling rate must be in the interval [0, 1]. Got %f.'
+          % rate)
+    sampling_probability = tf.constant(rate)
+  elif schedule == 'inverse_sigmoid':
+    if rate < 1:
+      raise ValueError(
+          '`inverse_sigmoid` sampling rate must be at least 1. Got %f.' % rate)
+    k = tf.constant(rate)
+    sampling_probability = 1.0 - k / (k + tf.exp(step / k))
+  elif schedule == 'exponential':
+    if not 0 < rate < 1:
+      raise ValueError(
+          '`exponential` sampling rate must be in the interval (0, 1). Got %f.'
           % hparams.sampling_rate)
-    k = tf.constant(hparams.sampling_rate)
-    sampling_probability = (
-        1.0 - tf.pow(k, tf.to_float(tf.train.get_global_step())))
+    k = tf.constant(rate)
+    sampling_probability = 1.0 - tf.pow(k, step)
   else:
-    tf.logging.fatal('Invalid sampling_schedule: %s',
-                     hparams.sampling_schedule)
+    raise ValueError('Invalid `sampling_schedule`: %s' % schedule)
   tf.summary.scalar('sampling_probability', sampling_probability)
-  return tf.convert_to_tensor(sampling_probability, tf.float32)
+  return sampling_probability
 
 
 class LstmEncoder(base_model.BaseEncoder):
