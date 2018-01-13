@@ -65,13 +65,21 @@ def cudnn_lstm_layer(layer_sizes, dropout_keep_prob, name_or_scope='rnn'):
 
     def _cudnn_to_tf_biases(self, *cu_biases):
       """Overrides to subtract 1.0 from `forget_bias` (see BasicLSTMCell)."""
-      biases = (
+      (tf_bias,) = (
           super(BackwardCompatibleCudnnLSTMSaveable, self)._cudnn_to_tf_biases(
-              *cu_biases))[0]
-      i, f, c, o = tf.split(biases, 4)
+              *cu_biases))
+      i, f, c, o = tf.split(tf_bias, 4)
       # Non-Cudnn LSTM cells add 1.0 to the forget bias variable.
-      f -= 1.0
-      return (tf.concat([i, f, c, o], axis=0),)
+      return (tf.concat([i, f - 1.0, c, o], axis=0),)
+
+    def _tf_to_cudnn_biases(self, *tf_biases):
+      """Overrides to add 1.0 to `forget_bias` (see BasicLSTMCell)."""
+      (tf_bias,) = tf_biases
+      i, f, c, o = tf.split(tf_bias, 4)
+      # Non-Cudnn LSTM cells add 1.0 to the forget bias variable.
+      return (
+          super(BackwardCompatibleCudnnLSTMSaveable, self)._tf_to_cudnn_biases(
+              tf.concat([i, f + 1.0, c, o], axis=0)))
 
     def _TFCanonicalNamePrefix(self, layer, is_fwd=True):
       """Overrides for backward-compatible variable names."""
