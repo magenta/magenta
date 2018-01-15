@@ -103,8 +103,8 @@ def _cudnn_lstm_state(lstm_cell_state):
 
 def _get_final(time_major_sequence, sequence_length):
   final_index = tf.stack(
-      [tf.range(sequence_length.shape[0]),
-       tf.maximum(0, sequence_length - 1)],
+      [tf.maximum(0, sequence_length - 1),
+       tf.range(sequence_length.shape[0])],
       axis=1)
   return tf.gather_nd(time_major_sequence, final_index)
 
