@@ -68,18 +68,18 @@ def cudnn_lstm_layer(layer_sizes, dropout_keep_prob, name_or_scope='rnn'):
       (tf_bias,) = (
           super(BackwardCompatibleCudnnLSTMSaveable, self)._cudnn_to_tf_biases(
               *cu_biases))
-      i, f, c, o = tf.split(tf_bias, 4)
+      i, c, f, o = tf.split(tf_bias, 4)
       # Non-Cudnn LSTM cells add 1.0 to the forget bias variable.
-      return (tf.concat([i, f - 1.0, c, o], axis=0),)
+      return (tf.concat([i, c, f - 1.0, o], axis=0),)
 
     def _tf_to_cudnn_biases(self, *tf_biases):
       """Overrides to add 1.0 to `forget_bias` (see BasicLSTMCell)."""
       (tf_bias,) = tf_biases
-      i, f, c, o = tf.split(tf_bias, 4)
+      i, c, f, o = tf.split(tf_bias, 4)
       # Non-Cudnn LSTM cells add 1.0 to the forget bias variable.
       return (
           super(BackwardCompatibleCudnnLSTMSaveable, self)._tf_to_cudnn_biases(
-              tf.concat([i, f + 1.0, c, o], axis=0)))
+              tf.concat([i, c, f + 1.0, o], axis=0)))
 
     def _TFCanonicalNamePrefix(self, layer, is_fwd=True):
       """Overrides for backward-compatible variable names."""
@@ -103,8 +103,8 @@ def _cudnn_lstm_state(lstm_cell_state):
 
 def _get_final(time_major_sequence, sequence_length):
   final_index = tf.stack(
-      [tf.range(sequence_length.shape[0]),
-       tf.maximum(0, sequence_length - 1)],
+      [tf.maximum(0, sequence_length - 1),
+       tf.range(sequence_length.shape[0])],
       axis=1)
   return tf.gather_nd(time_major_sequence, final_index)
 
