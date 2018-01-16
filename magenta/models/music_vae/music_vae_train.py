@@ -224,7 +224,7 @@ def evaluate(train_dir,
         .padded_batch(config.hparams.batch_size, dataset.output_shapes)
         .take(num_batches))
 
-    eval_dataset = eval_dataset.prefetch(5)
+    eval_dataset = eval_dataset.prefetch(FLAGS.prefetch_size)
 
     iterator = eval_dataset.make_one_shot_iterator()
     input_sequence, output_sequence, sequence_length = iterator.get_next()
