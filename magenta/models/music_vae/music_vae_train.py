@@ -140,7 +140,6 @@ def train(train_dir,
           .shuffle(buffer_size=FLAGS.shuffle_buffer_size))
       train_dataset = train_dataset.padded_batch(
           config.hparams.batch_size, train_dataset.output_shapes)
-
       train_dataset = train_dataset.prefetch(FLAGS.prefetch_size)
 
       iterator = train_dataset.make_one_shot_iterator()
@@ -223,7 +222,6 @@ def evaluate(train_dir,
         dataset
         .padded_batch(config.hparams.batch_size, dataset.output_shapes)
         .take(num_batches))
-
     eval_dataset = eval_dataset.prefetch(FLAGS.prefetch_size)
 
     iterator = eval_dataset.make_one_shot_iterator()
