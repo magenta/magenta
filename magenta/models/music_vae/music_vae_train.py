@@ -77,6 +77,9 @@ flags.DEFINE_integer(
 flags.DEFINE_integer(
     'shuffle_buffer_size', 256,
     'Size of shuffle buffer.')
+flags.DEFINE_integer(
+    'prefetch_size', 4,
+    'How many batches to prefetch at the end of the data pipeline.')
 flags.DEFINE_string(
     'eval_dir_suffix', '',
     'Suffix to add to eval output directory.')
@@ -137,6 +140,7 @@ def train(train_dir,
           .shuffle(buffer_size=FLAGS.shuffle_buffer_size))
       train_dataset = train_dataset.padded_batch(
           config.hparams.batch_size, train_dataset.output_shapes)
+      train_dataset = train_dataset.prefetch(FLAGS.prefetch_size)
 
       iterator = train_dataset.make_one_shot_iterator()
       input_sequence, output_sequence, sequence_length = iterator.get_next()
@@ -218,6 +222,8 @@ def evaluate(train_dir,
         dataset
         .padded_batch(config.hparams.batch_size, dataset.output_shapes)
         .take(num_batches))
+    eval_dataset = eval_dataset.prefetch(FLAGS.prefetch_size)
+
     iterator = eval_dataset.make_one_shot_iterator()
     input_sequence, output_sequence, sequence_length = iterator.get_next()
     input_sequence.set_shape(
