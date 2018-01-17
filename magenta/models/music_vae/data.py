@@ -729,10 +729,10 @@ class TrioConverter(BaseNoteSequenceConverter):
           note_sequence, self._steps_per_quarter)
       if (mm.steps_per_bar_in_quantized_sequence(quantized_sequence) !=
           self._steps_per_bar):
-        return []
+        return [], []
     except (mm.BadTimeSignatureException, mm.NonIntegerStepsPerBarException,
             mm.NegativeTimeException):
-      return []
+      return [], []
 
     total_bars = int(
         np.ceil(quantized_sequence.total_quantized_steps / self._steps_per_bar))
