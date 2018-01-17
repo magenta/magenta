@@ -75,9 +75,6 @@ flags.DEFINE_integer(
     'num_data_threads', 4,
     'The number of data preprocessing threads.')
 flags.DEFINE_integer(
-    'shuffle_buffer_size', 256,
-    'Size of shuffle buffer.')
-flags.DEFINE_integer(
     'prefetch_size', 4,
     'How many batches to prefetch at the end of the data pipeline.')
 flags.DEFINE_string(
@@ -133,24 +130,23 @@ def train(train_dir,
   with tf.Graph().as_default():
     with tf.device(tf.train.replica_device_setter(
         num_ps_tasks, merge_devices=True)):
+      batch_size = config.hparams.batch_size
       config.note_sequence_converter.is_training = True
       train_dataset = (
           dataset
           .repeat()
-          .shuffle(buffer_size=FLAGS.shuffle_buffer_size))
+          .shuffle(buffer_size=batch_size * 4))
       train_dataset = train_dataset.padded_batch(
-          config.hparams.batch_size, train_dataset.output_shapes)
+          batch_size, train_dataset.output_shapes)
       train_dataset = train_dataset.prefetch(FLAGS.prefetch_size)
 
       iterator = train_dataset.make_one_shot_iterator()
       input_sequence, output_sequence, sequence_length = iterator.get_next()
       input_sequence.set_shape(
-          [config.hparams.batch_size, None,
-           config.note_sequence_converter.input_depth])
+          [batch_size, None, config.note_sequence_converter.input_depth])
       output_sequence.set_shape(
-          [config.hparams.batch_size, None,
-           config.note_sequence_converter.output_depth])
-      sequence_length.set_shape([config.hparams.batch_size])
+          [batch_size, None, config.note_sequence_converter.output_depth])
+      sequence_length.set_shape([batch_size])
 
       model = config.model
       model.build(config.hparams,
