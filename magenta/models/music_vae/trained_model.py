@@ -72,7 +72,7 @@ class TrainedModel(object):
       self._inputs_length = tf.placeholder(tf.int32, shape=[batch_size])
       self._max_length = tf.placeholder(tf.int32, shape=())
       # Outputs
-      self._outputs = model.sample(
+      self._outputs, _ = model.sample(
           batch_size,
           max_length=self._max_length,
           z=self._z_input,

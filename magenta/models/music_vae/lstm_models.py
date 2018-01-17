@@ -405,6 +405,8 @@ class BaseLstmDecoder(base_model.BaseDecoder):
         rnn_output = self._output_layer(rnn_output)
       final_output = seq2seq.BasicDecoderOutput(
           rnn_output=tf.transpose(rnn_output, [1, 0, 2]), sample_id=None)
+      # TODO(adarob): Return a final state for fixed-length outputs.
+      final_state = None
     else:
       if self._cudnn_dec_lstm:
         tf.logging.warning(
@@ -415,12 +417,12 @@ class BaseLstmDecoder(base_model.BaseDecoder):
           helper,
           initial_state=initial_state,
           output_layer=self._output_layer)
-      final_output, _, _ = seq2seq.dynamic_decode(
+      final_output, final_state, _ = seq2seq.dynamic_decode(
           decoder,
           maximum_iterations=max_length,
           swap_memory=True,
           scope='decoder')
-    return final_output
+    return final_output, final_state
 
   def reconstruction_loss(self, x_input, x_target, x_length, z=None):
     """Reconstruction loss calculation.
@@ -462,7 +464,8 @@ class BaseLstmDecoder(base_model.BaseDecoder):
           sampling_probability=self._sampling_probability,
           next_inputs_fn=self._sample)
 
-    decoder_outputs = self._decode(z, helper=helper, x_input=x_input)
+    decoder_outputs, final_state = self._decode(
+        z, helper=helper, x_input=x_input)
     flat_x_target = flatten_maybe_padded_sequences(x_target, x_length)
     flat_rnn_output = flatten_maybe_padded_sequences(
         decoder_outputs.rnn_output, x_length)
@@ -477,7 +480,7 @@ class BaseLstmDecoder(base_model.BaseDecoder):
       r_losses.append(tf.reduce_sum(r_loss[b:e]))
     r_loss = tf.stack(r_losses)
 
-    return r_loss, metric_map, truths, predictions
+    return r_loss, metric_map, truths, predictions, final_state
 
   def sample(self, n, max_length=None, z=None, temperature=1.0,
              start_inputs=None, end_fn=None):
@@ -524,9 +527,10 @@ class BaseLstmDecoder(base_model.BaseDecoder):
         sample_fn, sample_shape=[self._output_depth], sample_dtype=tf.float32,
         start_inputs=start_inputs, end_fn=end_fn, next_inputs_fn=next_inputs_fn)
 
-    decoder_outputs = self._decode(z, helper=sampler, max_length=max_length)
+    decoder_outputs, final_state = self._decode(
+        z, helper=sampler, max_length=max_length)
 
-    return decoder_outputs.sample_id
+    return decoder_outputs.sample_id, final_state
 
 
 class CategoricalLstmDecoder(BaseLstmDecoder):
@@ -630,7 +634,7 @@ class CategoricalLstmDecoder(BaseLstmDecoder):
         output_layer=self._output_layer,
         length_penalty_weight=0.0)
 
-    final_output, _, _ = seq2seq.dynamic_decode(
+    final_output, final_state, _ = seq2seq.dynamic_decode(
         decoder,
         maximum_iterations=max_length,
         swap_memory=True,
@@ -638,7 +642,7 @@ class CategoricalLstmDecoder(BaseLstmDecoder):
 
     return tf.one_hot(
         final_output.predicted_ids[:, :, 0],
-        self._output_depth)
+        self._output_depth), final_state
 
 
 class MultiOutCategoricalLstmDecoder(CategoricalLstmDecoder):
