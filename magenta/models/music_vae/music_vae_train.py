@@ -134,8 +134,7 @@ def train(train_dir,
       config.note_sequence_converter.is_training = True
       train_dataset = (
           dataset
-          .repeat()
-          .shuffle(buffer_size=batch_size * 4))
+          .shuffle_and_repeat(buffer_size=batch_size * 4))
       train_dataset = train_dataset.padded_batch(
           batch_size, train_dataset.output_shapes)
       train_dataset = train_dataset.prefetch(FLAGS.prefetch_size)
