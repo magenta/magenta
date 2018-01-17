@@ -878,11 +878,12 @@ def get_dataset(config, tf_file_reader_class=tf.data.TFRecordDataset,
   note_sequence_converter = config.note_sequence_converter
   note_sequence_converter.is_training = is_training
 
-  filenames = tf.gfile.Glob(examples_path)
-  if is_training:
-    random.shuffle(filenames)
-  tf.logging.info('Reading examples from: %s', filenames)
-  reader = tf_file_reader_class(filenames)
+  tf.logging.info('Reading examples from: %s', examples_path)
+
+  files = tf.data.Dataset.list_files(examples_path)
+  reader = files.apply(
+      tf.contrib.data.parallel_interleave(
+          tf_file_reader_class, cycle_length=num_threads))
 
   def _remove_pad_fn(padded_seq_1, padded_seq_2, length):
     return padded_seq_1[0:length], padded_seq_2[0:length], length

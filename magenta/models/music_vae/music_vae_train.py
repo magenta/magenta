@@ -132,10 +132,8 @@ def train(train_dir,
         num_ps_tasks, merge_devices=True)):
       batch_size = config.hparams.batch_size
       config.note_sequence_converter.is_training = True
-      train_dataset = (
-          dataset
-          .repeat()
-          .shuffle(buffer_size=batch_size * 4))
+      train_dataset = dataset.apply(
+          tf.contrib.data.shuffle_and_repeat(buffer_size=batch_size * 4))
       train_dataset = train_dataset.padded_batch(
           batch_size, train_dataset.output_shapes)
       train_dataset = train_dataset.prefetch(FLAGS.prefetch_size)
