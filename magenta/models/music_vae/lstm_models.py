@@ -810,8 +810,9 @@ class HierarchicalMultiOutLstmDecoder(base_model.BaseDecoder):
     all_truth = []
     all_predictions = []
     metric_map = {}
+    all_final_states = []
     for j, loss_outputs_j in enumerate(loss_outputs):
-      r_losses, _, truth, predictions = zip(*loss_outputs_j)
+      r_losses, _, truth, predictions, final_states = zip(*loss_outputs_j)
       all_r_losses.append(tf.reduce_sum(r_losses, axis=0))
       all_truth.append(tf.concat(truth, axis=-1))
       all_predictions.append(tf.concat(predictions, axis=-1))
@@ -820,11 +821,13 @@ class HierarchicalMultiOutLstmDecoder(base_model.BaseDecoder):
       metric_map['metrics/mean_per_class_accuracy_%d' % j] = (
           tf.metrics.mean_per_class_accuracy(
               all_truth[-1], all_predictions[-1], self._output_depths[j]))
+      all_final_states.append(final_states)
 
     return (tf.reduce_sum(all_r_losses, axis=0),
             metric_map,
             tf.stack(all_truth, axis=-1),
-            tf.stack(all_predictions, axis=-1))
+            tf.stack(all_predictions, axis=-1),
+            all_final_states)
 
   def sample(self, n, max_length=None, z=None, temperature=1.0,
              **core_sampler_kwargs):
@@ -842,23 +845,27 @@ class HierarchicalMultiOutLstmDecoder(base_model.BaseDecoder):
     embeddings = self._hierarchical_decode(z)
 
     sample_ids = []
+    final_states = []
     for j, cd in enumerate(self._core_decoders):
       sample_ids_j = []
+      final_states_j = []
       with tf.variable_scope('core_decoder_%d' % j) as scope:
         for e in embeddings:
-          sample_ids_j.append(
-              cd.sample(
-                  n,
-                  max_length // len(embeddings),
-                  z=e,
-                  temperature=temperature,
-                  start_inputs=(
-                      sample_ids_j[-1][:, -1] if sample_ids_j else None),
-                  **core_sampler_kwargs))
+          sample_ids_j_e, final_states_j_e = cd.sample(
+              n,
+              max_length // len(embeddings),
+              z=e,
+              temperature=temperature,
+              start_inputs=(
+                  sample_ids_j[-1][:, -1] if sample_ids_j else None),
+              **core_sampler_kwargs)
+          sample_ids_j.append(sample_ids_j_e)
+          final_states_j.append(final_states_j_e)
           scope.reuse_variables()
         sample_ids.append(tf.concat(sample_ids_j, axis=1))
+        final_states.append(final_states_j)
 
-    return tf.concat(sample_ids, axis=-1)
+    return tf.concat(sample_ids, axis=-1), final_states
 
 
 class MultiLabelRnnNadeDecoder(BaseLstmDecoder):
