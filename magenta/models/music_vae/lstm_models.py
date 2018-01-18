@@ -391,6 +391,7 @@ class BaseLstmDecoder(base_model.BaseDecoder):
 
     Returns:
       final_output: The final seq2seq.BasicDecoderOutput.
+      final_state: The final states of the decoder, or None if using Cudnn.
     """
     initial_state = initial_cell_state_from_embedding(
         self._dec_cell, z, name='decoder/z_to_initial_state')
@@ -405,6 +406,8 @@ class BaseLstmDecoder(base_model.BaseDecoder):
         rnn_output = self._output_layer(rnn_output)
       final_output = seq2seq.BasicDecoderOutput(
           rnn_output=tf.transpose(rnn_output, [1, 0, 2]), sample_id=None)
+      # TODO(adarob): Return a final state for fixed-length outputs.
+      final_state = None
     else:
       if self._cudnn_dec_lstm:
         tf.logging.warning(
@@ -415,12 +418,12 @@ class BaseLstmDecoder(base_model.BaseDecoder):
           helper,
           initial_state=initial_state,
           output_layer=self._output_layer)
-      final_output, _, _ = seq2seq.dynamic_decode(
+      final_output, final_state, _ = seq2seq.dynamic_decode(
           decoder,
           maximum_iterations=max_length,
           swap_memory=True,
           scope='decoder')
-    return final_output
+    return final_output, final_state
 
   def reconstruction_loss(self, x_input, x_target, x_length, z=None):
     """Reconstruction loss calculation.
@@ -439,6 +442,7 @@ class BaseLstmDecoder(base_model.BaseDecoder):
       metric_map: Map from metric name to tf.metrics return values for logging.
       truths: Ground truth labels.
       predictions: Predicted labels.
+      final_state: The final states of the decoder, or None if using Cudnn.
     """
     batch_size = x_input.shape[0].value
 
@@ -462,7 +466,8 @@ class BaseLstmDecoder(base_model.BaseDecoder):
           sampling_probability=self._sampling_probability,
           next_inputs_fn=self._sample)
 
-    decoder_outputs = self._decode(z, helper=helper, x_input=x_input)
+    decoder_outputs, final_state = self._decode(
+        z, helper=helper, x_input=x_input)
     flat_x_target = flatten_maybe_padded_sequences(x_target, x_length)
     flat_rnn_output = flatten_maybe_padded_sequences(
         decoder_outputs.rnn_output, x_length)
@@ -477,7 +482,7 @@ class BaseLstmDecoder(base_model.BaseDecoder):
       r_losses.append(tf.reduce_sum(r_loss[b:e]))
     r_loss = tf.stack(r_losses)
 
-    return r_loss, metric_map, truths, predictions
+    return r_loss, metric_map, truths, predictions, final_state
 
   def sample(self, n, max_length=None, z=None, temperature=1.0,
              start_inputs=None, end_fn=None):
@@ -498,6 +503,7 @@ class BaseLstmDecoder(base_model.BaseDecoder):
         shaped `[batch_size]` indicating whether each sample is an end token.
     Returns:
       samples: Sampled sequences. Sized `[n, max_length, output_depth]`.
+      final_state: The final states of the decoder.
     Raises:
       ValueError: If `z` is provided and its first dimension does not equal `n`.
     """
@@ -524,9 +530,10 @@ class BaseLstmDecoder(base_model.BaseDecoder):
         sample_fn, sample_shape=[self._output_depth], sample_dtype=tf.float32,
         start_inputs=start_inputs, end_fn=end_fn, next_inputs_fn=next_inputs_fn)
 
-    decoder_outputs = self._decode(z, helper=sampler, max_length=max_length)
+    decoder_outputs, final_state = self._decode(
+        z, helper=sampler, max_length=max_length)
 
-    return decoder_outputs.sample_id
+    return decoder_outputs.sample_id, final_state
 
 
 class CategoricalLstmDecoder(BaseLstmDecoder):
@@ -573,6 +580,7 @@ class CategoricalLstmDecoder(BaseLstmDecoder):
         use for early stopping.
     Returns:
       samples: Sampled sequences. Sized `[n, max_length, output_depth]`.
+      final_state: The final states of the decoder.
     Raises:
       ValueError: If `z` is provided and its first dimension does not equal `n`.
     """
@@ -630,15 +638,14 @@ class CategoricalLstmDecoder(BaseLstmDecoder):
         output_layer=self._output_layer,
         length_penalty_weight=0.0)
 
-    final_output, _, _ = seq2seq.dynamic_decode(
+    final_output, final_state, _ = seq2seq.dynamic_decode(
         decoder,
         maximum_iterations=max_length,
         swap_memory=True,
         scope='decoder')
 
-    return tf.one_hot(
-        final_output.predicted_ids[:, :, 0],
-        self._output_depth)
+    return (tf.one_hot(final_output.predicted_ids[:, :, 0], self._output_depth),
+            final_state)
 
 
 class MultiOutCategoricalLstmDecoder(CategoricalLstmDecoder):
@@ -806,8 +813,9 @@ class HierarchicalMultiOutLstmDecoder(base_model.BaseDecoder):
     all_truth = []
     all_predictions = []
     metric_map = {}
+    all_final_states = []
     for j, loss_outputs_j in enumerate(loss_outputs):
-      r_losses, _, truth, predictions = zip(*loss_outputs_j)
+      r_losses, _, truth, predictions, final_states = zip(*loss_outputs_j)
       all_r_losses.append(tf.reduce_sum(r_losses, axis=0))
       all_truth.append(tf.concat(truth, axis=-1))
       all_predictions.append(tf.concat(predictions, axis=-1))
@@ -816,11 +824,13 @@ class HierarchicalMultiOutLstmDecoder(base_model.BaseDecoder):
       metric_map['metrics/mean_per_class_accuracy_%d' % j] = (
           tf.metrics.mean_per_class_accuracy(
               all_truth[-1], all_predictions[-1], self._output_depths[j]))
+      all_final_states.append(final_states)
 
     return (tf.reduce_sum(all_r_losses, axis=0),
             metric_map,
             tf.stack(all_truth, axis=-1),
-            tf.stack(all_predictions, axis=-1))
+            tf.stack(all_predictions, axis=-1),
+            all_final_states)
 
   def sample(self, n, max_length=None, z=None, temperature=1.0,
              **core_sampler_kwargs):
@@ -838,23 +848,27 @@ class HierarchicalMultiOutLstmDecoder(base_model.BaseDecoder):
     embeddings = self._hierarchical_decode(z)
 
     sample_ids = []
+    final_states = []
     for j, cd in enumerate(self._core_decoders):
       sample_ids_j = []
+      final_states_j = []
       with tf.variable_scope('core_decoder_%d' % j) as scope:
         for e in embeddings:
-          sample_ids_j.append(
-              cd.sample(
-                  n,
-                  max_length // len(embeddings),
-                  z=e,
-                  temperature=temperature,
-                  start_inputs=(
-                      sample_ids_j[-1][:, -1] if sample_ids_j else None),
-                  **core_sampler_kwargs))
+          sample_ids_j_e, final_states_j_e = cd.sample(
+              n,
+              max_length // len(embeddings),
+              z=e,
+              temperature=temperature,
+              start_inputs=(
+                  sample_ids_j[-1][:, -1] if sample_ids_j else None),
+              **core_sampler_kwargs)
+          sample_ids_j.append(sample_ids_j_e)
+          final_states_j.append(final_states_j_e)
           scope.reuse_variables()
         sample_ids.append(tf.concat(sample_ids_j, axis=1))
+        final_states.append(final_states_j)
 
-    return tf.concat(sample_ids, axis=-1)
+    return tf.concat(sample_ids, axis=-1), final_states
 
 
 class MultiLabelRnnNadeDecoder(BaseLstmDecoder):
