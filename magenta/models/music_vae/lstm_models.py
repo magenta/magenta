@@ -391,6 +391,7 @@ class BaseLstmDecoder(base_model.BaseDecoder):
 
     Returns:
       final_output: The final seq2seq.BasicDecoderOutput.
+      final_state: The final states of the decoder, or None if using Cudnn.
     """
     initial_state = initial_cell_state_from_embedding(
         self._dec_cell, z, name='decoder/z_to_initial_state')
@@ -441,6 +442,7 @@ class BaseLstmDecoder(base_model.BaseDecoder):
       metric_map: Map from metric name to tf.metrics return values for logging.
       truths: Ground truth labels.
       predictions: Predicted labels.
+      final_state: The final states of the decoder, or None if using Cudnn.
     """
     batch_size = x_input.shape[0].value
 
@@ -501,6 +503,7 @@ class BaseLstmDecoder(base_model.BaseDecoder):
         shaped `[batch_size]` indicating whether each sample is an end token.
     Returns:
       samples: Sampled sequences. Sized `[n, max_length, output_depth]`.
+      final_state: The final states of the decoder.
     Raises:
       ValueError: If `z` is provided and its first dimension does not equal `n`.
     """
@@ -577,6 +580,7 @@ class CategoricalLstmDecoder(BaseLstmDecoder):
         use for early stopping.
     Returns:
       samples: Sampled sequences. Sized `[n, max_length, output_depth]`.
+      final_state: The final states of the decoder.
     Raises:
       ValueError: If `z` is provided and its first dimension does not equal `n`.
     """
@@ -640,9 +644,8 @@ class CategoricalLstmDecoder(BaseLstmDecoder):
         swap_memory=True,
         scope='decoder')
 
-    return tf.one_hot(
-        final_output.predicted_ids[:, :, 0],
-        self._output_depth), final_state
+    return (tf.one_hot(final_output.predicted_ids[:, :, 0], self._output_depth),
+            final_state)
 
 
 class MultiOutCategoricalLstmDecoder(CategoricalLstmDecoder):
