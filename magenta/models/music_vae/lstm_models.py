@@ -204,7 +204,7 @@ class LstmEncoder(base_model.BaseEncoder):
     self._use_cudnn = hparams.use_cudnn
 
     tf.logging.info('\nEncoder Cells (unidirectional):\n'
-                    '  units: %s\n'
+                    '  units: %s\n',
                     hparams.enc_rnn_size)
     if self._use_cudnn:
       self._cudnn_lstm = cudnn_lstm_layer(
@@ -239,7 +239,7 @@ class BidirectionalLstmEncoder(base_model.BaseEncoder):
     self._use_cudnn = hparams.use_cudnn
 
     tf.logging.info('\nEncoder Cells (bidirectional):\n'
-                    '  units: %s\n'
+                    '  units: %s\n',
                     hparams.enc_rnn_size)
 
     if isinstance(name_or_scope, tf.VariableScope):
@@ -320,7 +320,7 @@ class BaseLstmDecoder(base_model.BaseDecoder):
     self._is_training = is_training
 
     tf.logging.info('\nDecoder Cells:\n'
-                    '  units: %s\n'
+                    '  units: %s\n',
                     hparams.dec_rnn_size)
 
     self._sampling_probability = _get_sampling_probability(
