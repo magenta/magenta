@@ -49,6 +49,7 @@ def rnn_cell(rnn_cell_size, dropout_keep_prob, is_training=True):
 def cudnn_lstm_layer(layer_sizes, dropout_keep_prob, is_training=True,
                      name_or_scope='rnn'):
   """Builds a CudnnLSTM Layer based on the given parameters."""
+  dropout_keep_prob = dropout_keep_prob if is_training else 1.0
   for ls in layer_sizes:
     if ls != layer_sizes[0]:
       raise ValueError(
