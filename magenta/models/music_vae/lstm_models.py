@@ -33,8 +33,9 @@ from tensorflow.python.layers import core as layers_core
 from tensorflow.python.util import nest as tf_nest
 
 
-def rnn_cell(rnn_cell_size, dropout_keep_prob):
+def rnn_cell(rnn_cell_size, dropout_keep_prob, is_training=True):
   """Builds an LSTMBlockCell based on the given parameters."""
+  dropout_keep_prob = dropout_keep_prob if is_training else 1.0
   cells = []
   for layer_size in rnn_cell_size:
     cell = rnn.LSTMBlockCell(layer_size)
@@ -45,8 +46,10 @@ def rnn_cell(rnn_cell_size, dropout_keep_prob):
   return rnn.MultiRNNCell(cells)
 
 
-def cudnn_lstm_layer(layer_sizes, dropout_keep_prob, name_or_scope='rnn'):
+def cudnn_lstm_layer(layer_sizes, dropout_keep_prob, is_training=True,
+                     name_or_scope='rnn'):
   """Builds a CudnnLSTM Layer based on the given parameters."""
+  dropout_keep_prob = dropout_keep_prob if is_training else 1.0
   for ls in layer_sizes:
     if ls != layer_sizes[0]:
       raise ValueError(
@@ -200,23 +203,19 @@ class LstmEncoder(base_model.BaseEncoder):
     self._is_training = is_training
     self._name_or_scope = name_or_scope
     self._use_cudnn = hparams.use_cudnn
-    dropout_keep_prob = hparams.dropout_keep_prob if is_training else 1.0
 
     tf.logging.info('\nEncoder Cells (unidirectional):\n'
-                    '  units: %s\n'
-                    '  input dropout keep prob: %4.4f\n'
-                    '  output dropout keep prob: %4.4f\n',
-                    hparams.enc_rnn_size,
-                    dropout_keep_prob,
-                    dropout_keep_prob)
+                    '  units: %s\n',
+                    hparams.enc_rnn_size)
     if self._use_cudnn:
       self._cudnn_lstm = cudnn_lstm_layer(
           hparams.enc_rnn_size,
-          dropout_keep_prob,
+          hparams.dropout_keep_prob,
+          is_training,
           name_or_scope=self._name_or_scope)
     else:
       self._cell = rnn_cell(
-          hparams.enc_rnn_size, dropout_keep_prob)
+          hparams.enc_rnn_size, hparams.dropout_keep_prob, is_training)
 
   def encode(self, sequence, sequence_length):
     # Convert to time-major.
@@ -239,15 +238,10 @@ class BidirectionalLstmEncoder(base_model.BaseEncoder):
     self._is_training = is_training
     self._name_or_scope = name_or_scope
     self._use_cudnn = hparams.use_cudnn
-    dropout_keep_prob = hparams.dropout_keep_prob if is_training else 1.0
 
     tf.logging.info('\nEncoder Cells (bidirectional):\n'
-                    '  units: %s\n'
-                    '  input dropout keep prob: %4.4f\n'
-                    '  output dropout keep prob: %4.4f\n',
-                    hparams.enc_rnn_size,
-                    dropout_keep_prob,
-                    dropout_keep_prob)
+                    '  units: %s\n',
+                    hparams.enc_rnn_size)
 
     if isinstance(name_or_scope, tf.VariableScope):
       name = name_or_scope.name
@@ -261,18 +255,20 @@ class BidirectionalLstmEncoder(base_model.BaseEncoder):
     for i, layer_size in enumerate(hparams.enc_rnn_size):
       if self._use_cudnn:
         cells_fw.append(cudnn_lstm_layer(
-            [layer_size], dropout_keep_prob,
+            [layer_size], hparams.dropout_keep_prob, is_training,
             name_or_scope=tf.VariableScope(
                 reuse,
                 name + '/cell_%d/bidirectional_rnn/fw' % i)))
         cells_bw.append(cudnn_lstm_layer(
-            [layer_size], dropout_keep_prob,
+            [layer_size], hparams.dropout_keep_prob, is_training,
             name_or_scope=tf.VariableScope(
                 reuse,
                 name + '/cell_%d/bidirectional_rnn/bw' % i)))
       else:
-        cells_fw.append(rnn_cell([layer_size], dropout_keep_prob))
-        cells_bw.append(rnn_cell([layer_size], dropout_keep_prob))
+        cells_fw.append(
+            rnn_cell([layer_size], hparams.dropout_keep_prob, is_training))
+        cells_bw.append(
+            rnn_cell([layer_size], hparams.dropout_keep_prob, is_training))
 
     self._cells = (cells_fw, cells_bw)
 
@@ -324,14 +320,9 @@ class BaseLstmDecoder(base_model.BaseDecoder):
   def build(self, hparams, output_depth, is_training=False):
     self._is_training = is_training
 
-    dropout_keep_prob = hparams.dropout_keep_prob if is_training else 1.0
     tf.logging.info('\nDecoder Cells:\n'
-                    '  units: %s\n'
-                    '  input dropout keep prob: %4.4f\n'
-                    '  output dropout keep prob: %4.4f\n',
-                    hparams.dec_rnn_size,
-                    dropout_keep_prob,
-                    dropout_keep_prob)
+                    '  units: %s\n',
+                    hparams.dec_rnn_size)
 
     self._sampling_probability = _get_sampling_probability(
         hparams, is_training)
@@ -339,11 +330,9 @@ class BaseLstmDecoder(base_model.BaseDecoder):
     self._output_layer = layers_core.Dense(
         output_depth, name='output_projection')
     self._dec_cell = rnn_cell(
-        hparams.dec_rnn_size,
-        dropout_keep_prob)
+        hparams.dec_rnn_size, hparams.dropout_keep_prob, is_training)
     self._cudnn_dec_lstm = cudnn_lstm_layer(
-        hparams.dec_rnn_size,
-        dropout_keep_prob,
+        hparams.dec_rnn_size, hparams.dropout_keep_prob, is_training,
         name_or_scope='decoder') if hparams.use_cudnn else None
 
   @abc.abstractmethod
@@ -752,10 +741,10 @@ class HierarchicalMultiOutLstmDecoder(base_model.BaseDecoder):
       num_steps = h_size // len(embeddings)
       all_outputs = []
       with tf.variable_scope('hierarchical_layer_%d' % i) as scope:
-        cell = rnn_cell(hparams.dec_rnn_size, dropout_keep_prob=1.0)
+        cell = rnn_cell(
+            hparams.dec_rnn_size, hparams.dropout_keep_prob, self._is_training)
         cudnn_cell = cudnn_lstm_layer(
-            hparams.dec_rnn_size,
-            dropout_keep_prob=1.0)
+            hparams.dec_rnn_size, hparams.dropout_keep_prob, self._is_training)
         for e in embeddings:
           e.set_shape([batch_size] + e.shape[1:].as_list())
           initial_state = initial_cell_state_from_embedding(
