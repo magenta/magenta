@@ -134,7 +134,7 @@ class BaseConverter(object):
 
   Inheriting classes must implement the following abstract methods:
     -`_to_tensors`
-    -`_to_item`
+    -`_to_items`
   """
 
   __metaclass__ = abc.ABCMeta
@@ -223,7 +223,7 @@ class BaseConverter(object):
     pass
 
   @abc.abstractmethod
-  def _to_item(self, samples):
+  def _to_items(self, samples):
     """Implementation that decodes model samples into list of items."""
     pass
 
@@ -326,6 +326,10 @@ class BaseNoteSequenceConverter(BaseConverter):
   def _to_notesequences(self, samples):
     """Implementation that decodes model samples into list of NoteSequences."""
     return
+
+  def to_notesequences(self, samples):
+    """Python method that decodes samples into list of NoteSequences."""
+    return self._to_items(samples)
 
   def to_tensors(self, note_sequence):
     """Python method that converts `note_sequence` into list of tensors."""
