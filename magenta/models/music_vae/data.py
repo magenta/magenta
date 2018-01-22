@@ -310,7 +310,7 @@ class BaseNoteSequenceConverter(BaseConverter):
     super(BaseNoteSequenceConverter, self).__init__(
         input_depth, input_dtype, output_depth, output_dtype, end_token,
         max_tensors_per_item=max_tensors_per_notesequence,
-        str_to_item_fn=lambda s: music_pb2.NoteSequence.FromString(s))
+        str_to_item_fn=music_pb2.NoteSequence.FromString)
 
     self._presplit_on_time_changes = presplit_on_time_changes
 
