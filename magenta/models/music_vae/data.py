@@ -250,7 +250,7 @@ class BaseConverter(object):
     return self._to_items(samples)
 
   def tf_to_tensors(self, item_scalar):
-    """TensorFlow op that converts NoteSequence into output tensors.
+    """TensorFlow op that converts item into output tensors.
 
     Sequences will be padded to match the length of the longest.
 
