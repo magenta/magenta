@@ -923,9 +923,9 @@ def count_examples(examples_path, note_sequence_converter,
   for f in filenames:
     tf.logging.info('Counting examples in %s.', f)
     reader = file_reader(f)
-    for note_sequence_str in reader:
-      note_sequence = music_pb2.NoteSequence.FromString(note_sequence_str)
-      seqs, _ = note_sequence_converter.to_tensors(note_sequence)
+    for item_str in reader:
+      item = note_sequence_converter.str_to_item_fn(item_str)
+      seqs, _ = note_sequence_converter.to_tensors(item)
       num_examples += len(seqs)
   tf.logging.info('Total examples: %d', num_examples)
   return num_examples
