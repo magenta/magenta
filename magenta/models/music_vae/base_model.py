@@ -323,7 +323,7 @@ def get_default_hparams():
       clip_mode='value',  # value or global_norm.
       # If clip_mode=global_norm and global_norm is greater than this value,
       # the gradient will be clipped to 0, effectively ignoring the step.
-      grad_norm_clip_to_zero=1000,
+      grad_norm_clip_to_zero=10000,
       learning_rate=0.001,  # Learning rate.
       decay_rate=0.9999,  # Learning rate decay per minibatch.
       min_learning_rate=0.00001,  # Minimum learning rate.
