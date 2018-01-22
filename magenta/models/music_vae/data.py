@@ -166,6 +166,10 @@ class BaseConverter(object):
   def is_training(self):
     return self._is_training
 
+  @property
+  def str_to_item_fn(self):
+    return self._str_to_item_fn
+
   @is_training.setter
   def is_training(self, value):
     self._is_training = value
@@ -259,7 +263,7 @@ class BaseConverter(object):
         unpadded lengths of the tensor sequences resulting from the input.
     """
     def _convert_and_pad(item_str):
-      item = self._str_to_item_fn(item_str)
+      item = self.str_to_item_fn(item_str)
       inputs, outputs = self.to_tensors(item)
       inputs, lengths = _maybe_pad_seqs(inputs, self.output_dtype)
       outputs, _ = _maybe_pad_seqs(outputs, self.output_dtype)
