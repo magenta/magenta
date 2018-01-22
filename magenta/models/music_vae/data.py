@@ -464,7 +464,7 @@ class LegacyEventListOneHotConverter(BaseNoteSequenceConverter):
     output_sequences = []
     for sample in samples:
       s = np.argmax(sample, axis=-1)
-      if self.end_token is not None and self.end_token in s:
+      if self.end_token is not None and self.end_token in s.tolist():
         s = s[:s.tolist().index(self.end_token)]
       event_list = self._event_list_fn()
       for e in s:
