@@ -152,6 +152,8 @@ class BaseConverter(object):
       end_token: Optional end token.
       max_tensors_per_item: The maximum number of outputs to return for each
         input.
+      str_to_item_fn: Callable to convert raw string input into an item for
+        conversion.
     """
     self._input_depth = input_depth
     self._input_dtype = input_dtype
@@ -306,9 +308,9 @@ class BaseNoteSequenceConverter(BaseConverter):
         for each NoteSequence.
     """
     super(BaseNoteSequenceConverter, self).__init__(
-      input_depth, input_dtype, output_depth, output_dtype, end_token,
-      max_tensors_per_item=max_tensors_per_notesequence,
-      str_to_item_fn=lambda s: music_pb2.NoteSequence.FromString(s))
+        input_depth, input_dtype, output_depth, output_dtype, end_token,
+        max_tensors_per_item=max_tensors_per_notesequence,
+        str_to_item_fn=lambda s: music_pb2.NoteSequence.FromString(s))
 
     self._presplit_on_time_changes = presplit_on_time_changes
 
@@ -323,7 +325,7 @@ class BaseNoteSequenceConverter(BaseConverter):
   @abc.abstractmethod
   def _to_notesequences(self, samples):
     """Implementation that decodes model samples into list of NoteSequences."""
-    pass
+    return
 
   def to_tensors(self, note_sequence):
     """Python method that converts `note_sequence` into list of tensors."""
@@ -340,7 +342,7 @@ class BaseNoteSequenceConverter(BaseConverter):
     sampled_results = self._maybe_sample_outputs(results)
     return list(zip(*sampled_results)) if sampled_results else ([], [])
 
-  def to_items(self, samples):
+  def _to_items(self, samples):
     """Python method that decodes samples into list of NoteSequences."""
     return self._to_notesequences(samples)
 

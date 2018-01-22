@@ -133,8 +133,8 @@ class TrainedModel(object):
     return self._config.note_sequence_converter.to_notesequences(
         np.vstack(outputs)[:n])
 
-  def encode(self, items, assert_same_length=False):
-    """Encodes a collection of items into latent vectors.
+  def encode(self, note_sequences, assert_same_length=False):
+    """Encodes a collection of NoteSequences into latent vectors.
 
     Args:
       note_sequences: A collection of NoteSequence objects to encode.
