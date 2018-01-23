@@ -227,10 +227,9 @@ class BaseConverter(object):
     """Implementation that decodes model samples into list of items."""
     pass
 
-  def _maybe_sample_outputs(self, outputs):
+ def _maybe_sample_outputs(self, outputs):
     """If should limit outputs, returns up to limit (randomly if training)."""
-    if (not self.max_tensors_per_item or
-        len(outputs) <= self.max_tensors_per_item):
+    if len(outputs) <= self.max_tensors_per_item:
       return outputs
     if self.is_training:
       indices = set(np.random.choice(
@@ -242,8 +241,11 @@ class BaseConverter(object):
   def to_tensors(self, item):
     """Python method that converts `item` into list of tensors."""
     results = self._to_tensors(item)
-    sampled_results = self._maybe_sample_outputs(zip(*results))
-    return list(zip(*sampled_results)) if sampled_results else ([], [])
+    if self.max_tensors_per_item:
+      sampled_results = self._maybe_sample_outputs(zip(*results))
+      return list(zip(*sampled_results)) if sampled_results else ([], [])
+    else:
+      return results
 
   def to_items(self, samples):
     """Python method that decodes samples into list of items."""
