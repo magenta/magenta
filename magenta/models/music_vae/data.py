@@ -227,9 +227,10 @@ class BaseConverter(object):
     """Implementation that decodes model samples into list of items."""
     pass
 
- def _maybe_sample_outputs(self, outputs):
+  def _maybe_sample_outputs(self, outputs):
     """If should limit outputs, returns up to limit (randomly if training)."""
-    if len(outputs) <= self.max_tensors_per_item:
+    if (not self.max_tensors_per_item or 
+        len(outputs) <= self.max_tensors_per_item)`:
       return outputs
     if self.is_training:
       indices = set(np.random.choice(
@@ -345,8 +346,11 @@ class BaseNoteSequenceConverter(BaseConverter):
       r = self._to_tensors(ns)
       if r[0]:
         results.extend(zip(*r))
-    sampled_results = self._maybe_sample_outputs(results)
-    return list(zip(*sampled_results)) if sampled_results else ([], [])
+    if self.max_tensors_per_item:
+      sampled_results = self._maybe_sample_outputs(zip(*results))
+      return list(zip(*sampled_results)) if sampled_results else ([], [])
+    else:
+      return results
 
   def _to_items(self, samples):
     """Python method that decodes samples into list of NoteSequences."""
