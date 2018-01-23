@@ -129,20 +129,20 @@ class NoteSequenceAugmenter(object):
     return augmented_note_sequence_scalar
 
 
-class BaseNoteSequenceConverter(object):
-  """Base class for NoteSequence data converters.
+class BaseConverter(object):
+  """Base class for data converters between items and tensors.
 
   Inheriting classes must implement the following abstract methods:
     -`_to_tensors`
-    -`_to_notesequences`
+    -`_to_items`
   """
 
   __metaclass__ = abc.ABCMeta
 
   def __init__(self, input_depth, input_dtype, output_depth, output_dtype,
-               end_token, presplit_on_time_changes=True,
-               max_tensors_per_notesequence=None):
-    """Initializes BaseNoteSequenceConverter.
+               end_token, max_tensors_per_item=None,
+               str_to_item_fn=lambda s: s):
+    """Initializes BaseConverter.
 
     Args:
       input_depth: Depth of final dimension of input (encoder) tensors.
@@ -150,35 +150,39 @@ class BaseNoteSequenceConverter(object):
       output_depth: Depth of final dimension of output (decoder) tensors.
       output_dtype: DType of output (decoder) tensors.
       end_token: Optional end token.
-      presplit_on_time_changes: Whether to split NoteSequence on time changes
-        before converting.
-      max_tensors_per_notesequence: The maximum number of outputs to return
-        for each NoteSequence.
+      max_tensors_per_item: The maximum number of outputs to return for each
+        input.
+      str_to_item_fn: Callable to convert raw string input into an item for
+        conversion.
     """
     self._input_depth = input_depth
     self._input_dtype = input_dtype
     self._output_depth = output_depth
     self._output_dtype = output_dtype
     self._end_token = end_token
-    self._presplit_on_time_changes = presplit_on_time_changes
-    self._max_tensors_per_notesequence = max_tensors_per_notesequence
+    self._max_tensors_per_input = max_tensors_per_item
+    self._str_to_item_fn = str_to_item_fn
     self._is_training = False
 
   @property
   def is_training(self):
     return self._is_training
 
+  @property
+  def str_to_item_fn(self):
+    return self._str_to_item_fn
+
   @is_training.setter
   def is_training(self, value):
     self._is_training = value
 
   @property
-  def max_tensors_per_notesequence(self):
-    return self._max_tensors_per_notesequence
+  def max_tensors_per_item(self):
+    return self._max_tensors_per_input
 
-  @max_tensors_per_notesequence.setter
-  def max_tensors_per_notesequence(self, value):
-    self._max_tensors_per_notesequence = value
+  @max_tensors_per_item.setter
+  def max_tensors_per_item(self, value):
+    self._max_tensors_per_input = value
 
   @property
   def end_token(self):
@@ -206,11 +210,11 @@ class BaseNoteSequenceConverter(object):
     return self._output_dtype
 
   @abc.abstractmethod
-  def _to_tensors(self, note_sequence):
-    """Implementation that converts `note_sequence` into list of tensors.
+  def _to_tensors(self, item):
+    """Implementation that converts item into list of tensors.
 
     Args:
-     note_sequence: NoteSequence to convert.
+     item: Item to convert.
 
     Returns:
       input_tensors: Tensors to feed to the encoder.
@@ -219,21 +223,113 @@ class BaseNoteSequenceConverter(object):
     pass
 
   @abc.abstractmethod
-  def _to_notesequences(self, samples):
-    """Implementation that decodes model samples into list of NoteSequences."""
+  def _to_items(self, samples):
+    """Implementation that decodes model samples into list of items."""
     pass
 
   def _maybe_sample_outputs(self, outputs):
     """If should limit outputs, returns up to limit (randomly if training)."""
-    if (not self.max_tensors_per_notesequence or
-        len(outputs) <= self.max_tensors_per_notesequence):
+    if (not self.max_tensors_per_item or
+        len(outputs) <= self.max_tensors_per_item):
       return outputs
     if self.is_training:
       indices = set(np.random.choice(
-          len(outputs), size=self.max_tensors_per_notesequence, replace=False))
+          len(outputs), size=self.max_tensors_per_item, replace=False))
       return [outputs[i] for i in indices]
     else:
-      return outputs[:self.max_tensors_per_notesequence]
+      return outputs[:self.max_tensors_per_item]
+
+  def to_tensors(self, item):
+    """Python method that converts `item` into list of tensors."""
+    results = self._to_tensors(item)
+    sampled_results = self._maybe_sample_outputs(zip(*results))
+    return list(zip(*sampled_results)) if sampled_results else ([], [])
+
+  def to_items(self, samples):
+    """Python method that decodes samples into list of items."""
+    return self._to_items(samples)
+
+  def tf_to_tensors(self, item_scalar):
+    """TensorFlow op that converts item into output tensors.
+
+    Sequences will be padded to match the length of the longest.
+
+    Args:
+      item_scalar: A scalar of type tf.String containing the raw item to be
+        converted to tensors.
+
+    Returns:
+      outputs: A Tensor, shaped [num encoded seqs, max(lengths), output_depth],
+        containing the padded output encodings resulting from the input.
+      lengths: A tf.int32 Tensor, shaped [num encoded seqs], containing the
+        unpadded lengths of the tensor sequences resulting from the input.
+    """
+    def _convert_and_pad(item_str):
+      item = self.str_to_item_fn(item_str)
+      inputs, outputs = self.to_tensors(item)
+      inputs, lengths = _maybe_pad_seqs(inputs, self.output_dtype)
+      outputs, _ = _maybe_pad_seqs(outputs, self.output_dtype)
+      return inputs, outputs, lengths
+    inputs, outputs, lengths = tf.py_func(
+        _convert_and_pad,
+        [item_scalar],
+        [self.input_dtype, self.output_dtype, tf.int32],
+        name='convert_and_pad')
+    inputs.set_shape([None, None, self.input_depth])
+    outputs.set_shape([None, None, self.output_depth])
+    lengths.set_shape([None])
+    return inputs, outputs, lengths
+
+
+class BaseNoteSequenceConverter(BaseConverter):
+  """Base class for NoteSequence data converters.
+
+  Inheriting classes must implement the following abstract methods:
+    -`_to_tensors`
+    -`_to_notesequences`
+  """
+
+  __metaclass__ = abc.ABCMeta
+
+  def __init__(self, input_depth, input_dtype, output_depth, output_dtype,
+               end_token, presplit_on_time_changes=True,
+               max_tensors_per_notesequence=None):
+    """Initializes BaseNoteSequenceConverter.
+
+    Args:
+      input_depth: Depth of final dimension of input (encoder) tensors.
+      input_dtype: DType of input (encoder) tensors.
+      output_depth: Depth of final dimension of output (decoder) tensors.
+      output_dtype: DType of output (decoder) tensors.
+      end_token: Optional end token.
+      presplit_on_time_changes: Whether to split NoteSequence on time changes
+        before converting.
+      max_tensors_per_notesequence: The maximum number of outputs to return
+        for each NoteSequence.
+    """
+    super(BaseNoteSequenceConverter, self).__init__(
+        input_depth, input_dtype, output_depth, output_dtype, end_token,
+        max_tensors_per_item=max_tensors_per_notesequence,
+        str_to_item_fn=music_pb2.NoteSequence.FromString)
+
+    self._presplit_on_time_changes = presplit_on_time_changes
+
+  @property
+  def max_tensors_per_notesequence(self):
+    return self.max_tensors_per_item
+
+  @max_tensors_per_notesequence.setter
+  def max_tensors_per_notesequence(self, value):
+    self.max_tensors_per_item = value
+
+  @abc.abstractmethod
+  def _to_notesequences(self, samples):
+    """Implementation that decodes model samples into list of NoteSequences."""
+    return
+
+  def to_notesequences(self, samples):
+    """Python method that decodes samples into list of NoteSequences."""
+    return self._to_items(samples)
 
   def to_tensors(self, note_sequence):
     """Python method that converts `note_sequence` into list of tensors."""
@@ -250,42 +346,9 @@ class BaseNoteSequenceConverter(object):
     sampled_results = self._maybe_sample_outputs(results)
     return list(zip(*sampled_results)) if sampled_results else ([], [])
 
-  def to_notesequences(self, samples):
+  def _to_items(self, samples):
     """Python method that decodes samples into list of NoteSequences."""
     return self._to_notesequences(samples)
-
-  def tf_to_tensors(self, note_sequence_scalar):
-    """TensorFlow op that converts NoteSequence into output tensors.
-
-    Sequences will be padded to match the length of the longest.
-
-    Args:
-      note_sequence_scalar: A scalar of type tf.String containing a serialized
-         NoteSequence to be encoded.
-
-    Returns:
-      outputs: A Tensor, shaped [num encoded seqs, max(lengths), output_depth],
-        containing the padded output encodings resulting from the input
-        NoteSequence.
-      lengths: A tf.int32 Tensor, shaped [num encoded seqs], containing the
-        unpadded lengths of the tensor sequences resulting from the input
-        NoteSequence.
-    """
-    def _convert_and_pad(note_sequence_str):
-      note_sequence = music_pb2.NoteSequence.FromString(note_sequence_str)
-      inputs, outputs = self.to_tensors(note_sequence)
-      inputs, lengths = _maybe_pad_seqs(inputs, self.output_dtype)
-      outputs, _ = _maybe_pad_seqs(outputs, self.output_dtype)
-      return inputs, outputs, lengths
-    inputs, outputs, lengths = tf.py_func(
-        _convert_and_pad,
-        [note_sequence_scalar],
-        [self.input_dtype, self.output_dtype, tf.int32],
-        name='convert_and_pad')
-    inputs.set_shape([None, None, self.input_depth])
-    outputs.set_shape([None, None, self.output_depth])
-    lengths.set_shape([None])
-    return inputs, outputs, lengths
 
 
 class LegacyEventListOneHotConverter(BaseNoteSequenceConverter):
@@ -401,7 +464,7 @@ class LegacyEventListOneHotConverter(BaseNoteSequenceConverter):
     output_sequences = []
     for sample in samples:
       s = np.argmax(sample, axis=-1)
-      if self.end_token is not None and self.end_token in s:
+      if self.end_token is not None and self.end_token in s.tolist():
         s = s[:s.tolist().index(self.end_token)]
       event_list = self._event_list_fn()
       for e in s:
@@ -860,9 +923,9 @@ def count_examples(examples_path, note_sequence_converter,
   for f in filenames:
     tf.logging.info('Counting examples in %s.', f)
     reader = file_reader(f)
-    for note_sequence_str in reader:
-      note_sequence = music_pb2.NoteSequence.FromString(note_sequence_str)
-      seqs, _ = note_sequence_converter.to_tensors(note_sequence)
+    for item_str in reader:
+      item = note_sequence_converter.str_to_item_fn(item_str)
+      seqs, _ = note_sequence_converter.to_tensors(item)
       num_examples += len(seqs)
   tf.logging.info('Total examples: %d', num_examples)
   return num_examples
