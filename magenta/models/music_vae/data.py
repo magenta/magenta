@@ -229,7 +229,7 @@ class BaseConverter(object):
 
   def _maybe_sample_outputs(self, outputs):
     """If should limit outputs, returns up to limit (randomly if training)."""
-    if (not self.max_tensors_per_item or 
+    if (not self.max_tensors_per_item or
         len(outputs) <= self.max_tensors_per_item)`:
       return outputs
     if self.is_training:
