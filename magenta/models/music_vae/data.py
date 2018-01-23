@@ -267,7 +267,7 @@ class BaseConverter(object):
     def _convert_and_pad(item_str):
       item = self.str_to_item_fn(item_str)
       inputs, outputs = self.to_tensors(item)
-      inputs, lengths = _maybe_pad_seqs(inputs, self.output_dtype)
+      inputs, lengths = _maybe_pad_seqs(inputs, self.input_dtype)
       outputs, _ = _maybe_pad_seqs(outputs, self.output_dtype)
       return inputs, outputs, lengths
     inputs, outputs, lengths = tf.py_func(
