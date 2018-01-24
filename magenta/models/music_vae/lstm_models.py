@@ -636,6 +636,7 @@ class CategoricalLstmDecoder(BaseLstmDecoder):
     return (tf.one_hot(final_output.predicted_ids[:, :, 0], self._output_depth),
             nest.map_structure(lambda x: x[:, 0], final_state.cell_state))
 
+
 class MultiOutCategoricalLstmDecoder(CategoricalLstmDecoder):
   """LSTM decoder with multiple categorical outputs."""
 
