@@ -36,7 +36,7 @@ def _get_data(examples_path, hparams, is_training):
   hparams_dict = hparams.values()
   batch, _ = data.provide_batch(
       hparams.batch_size,
-      examples_path=examples_path,
+      examples=examples_path,
       hparams=hparams,
       truncated_length=hparams_dict.get('truncated_length', None),
       is_training=is_training)
