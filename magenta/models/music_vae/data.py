@@ -242,8 +242,11 @@ class BaseConverter(object):
   def to_tensors(self, item):
     """Python method that converts `item` into list of tensors."""
     results = self._to_tensors(item)
-    sampled_results = self._maybe_sample_outputs(zip(*results))
-    return list(zip(*sampled_results)) if sampled_results else ([], [])
+    if self.max_tensors_per_item:
+      sampled_results = self._maybe_sample_outputs(zip(*results))
+      return list(zip(*sampled_results)) if sampled_results else ([], [])
+    else:
+      return results
 
   def to_items(self, samples):
     """Python method that decodes samples into list of items."""
@@ -267,7 +270,7 @@ class BaseConverter(object):
     def _convert_and_pad(item_str):
       item = self.str_to_item_fn(item_str)
       inputs, outputs = self.to_tensors(item)
-      inputs, lengths = _maybe_pad_seqs(inputs, self.output_dtype)
+      inputs, lengths = _maybe_pad_seqs(inputs, self.input_dtype)
       outputs, _ = _maybe_pad_seqs(outputs, self.output_dtype)
       return inputs, outputs, lengths
     inputs, outputs, lengths = tf.py_func(
@@ -343,8 +346,11 @@ class BaseNoteSequenceConverter(BaseConverter):
       r = self._to_tensors(ns)
       if r[0]:
         results.extend(zip(*r))
-    sampled_results = self._maybe_sample_outputs(results)
-    return list(zip(*sampled_results)) if sampled_results else ([], [])
+    if self.max_tensors_per_item:
+      sampled_results = self._maybe_sample_outputs(zip(*results))
+      return list(zip(*sampled_results)) if sampled_results else ([], [])
+    else:
+      return results
 
   def _to_items(self, samples):
     """Python method that decodes samples into list of NoteSequences."""
