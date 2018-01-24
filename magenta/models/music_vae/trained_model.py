@@ -172,7 +172,7 @@ class TrainedModel(object):
             (len(inputs) - 1, len(inputs[0]), len(inputs[-1])))
     return self.encode_tensors(inputs, lengths)
 
-   def encode_tensors(self, input_tensors, lengths):
+  def encode_tensors(self, input_tensors, lengths):
     """Encodes a collection of input tensors into latent vectors.
 
     Args:

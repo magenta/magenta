@@ -633,6 +633,7 @@ class CategoricalLstmDecoder(BaseLstmDecoder):
         swap_memory=True,
         scope='decoder')
 
+    # Returns samples and final states from the best beams.
     return (tf.one_hot(final_output.predicted_ids[:, :, 0], self._output_depth),
             nest.map_structure(lambda x: x[:, 0], final_state.cell_state))
 
