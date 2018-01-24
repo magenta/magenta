@@ -949,7 +949,11 @@ def get_dataset(config, tf_file_reader_class=tf.data.TFRecordDataset,
           tf_file_reader_class, cycle_length=num_threads))
 
   def _remove_pad_fn(padded_seq_1, padded_seq_2, length):
-    return padded_seq_1[0:length], padded_seq_2[0:length], length
+    if length.shape.ndims == 0:
+      return padded_seq_1[0:length], padded_seq_2[0:length], length
+    else:
+      # Don't remove padding for hierarchical examples.
+      return padded_seq_1, padded_seq_2, length
 
   dataset = reader
   if note_sequence_augmenter is not None:
