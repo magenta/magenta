@@ -35,9 +35,12 @@ tf.app.flags.DEFINE_integer("batch_size", 1, "Number of samples per a batch.")
 tf.app.flags.DEFINE_string("log", "INFO",
                            "The threshold for what messages will be logged."
                            "DEBUG, INFO, WARN, ERROR, or FATAL.")
+tf.app.flags.DEFINE_integer("gpu_number", 0,
+                            "Number of the gpu to use for multigpu generation.")
 
 
 def main(unused_argv=None):
+  os.environ["CUDA_VISIBLE_DEVICES"] = str(FLAGS.gpu_number)
   source_path = utils.shell_path(FLAGS.source_path)
   checkpoint_path = utils.shell_path(FLAGS.checkpoint_path)
   save_path = utils.shell_path(FLAGS.save_path)
@@ -57,7 +60,8 @@ def main(unused_argv=None):
       raise RuntimeError("Folder must contain .wav or .npy files.")
     postfix = ".npy" if FLAGS.npy_only else postfix
     files = sorted([
-        os.path.join(source_path, fname) for fname in files
+        os.path.join(source_path, fname)
+        for fname in files
         if fname.lower().endswith(postfix)
     ])
 
@@ -82,7 +86,12 @@ def main(unused_argv=None):
     # Encode waveforms
     encodings = batch_data if postfix == ".npy" else fastgen.encode(
         batch_data, checkpoint_path, sample_length=sample_length)
-    fastgen.synthesize(encodings, save_names, checkpoint_path=checkpoint_path)
+    if FLAGS.gpu_number != 0:
+      with tf.device("/device:GPU:%d" % FLAGS.gpu_number):
+        fastgen.synthesize(
+            encodings, save_names, checkpoint_path=checkpoint_path)
+    else:
+      fastgen.synthesize(encodings, save_names, checkpoint_path=checkpoint_path)
 
 
 def console_entry_point():

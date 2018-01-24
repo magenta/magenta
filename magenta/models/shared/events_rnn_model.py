@@ -80,7 +80,7 @@ class EventSequenceRnnModel(mm.BaseModel):
     self._config = config
 
   def _build_graph_for_generation(self):
-    return events_rnn_graph.build_graph('generate', self._config)
+    events_rnn_graph.get_build_graph_fn('generate', self._config)()
 
   def _batch_size(self):
     """Extracts the batch size from the graph."""

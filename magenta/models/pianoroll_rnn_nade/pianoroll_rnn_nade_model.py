@@ -26,7 +26,8 @@ class PianorollRnnNadeModel(events_rnn_model.EventSequenceRnnModel):
   """Class for RNN-NADE sequence generation models."""
 
   def _build_graph_for_generation(self):
-    return pianoroll_rnn_nade_graph.build_graph('generate', self._config)
+    return pianoroll_rnn_nade_graph.get_build_graph_fn(
+        'generate', self._config)()
 
   def _generate_step_for_batch(self, pianoroll_sequences, inputs, initial_state,
                                temperature):

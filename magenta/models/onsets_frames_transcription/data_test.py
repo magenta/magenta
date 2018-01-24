@@ -114,44 +114,38 @@ class DataTest(tf.test.TestCase):
     hparams = copy.deepcopy(constants.DEFAULT_HPARAMS)
 
     with self.test_session() as sess:
-      batch = data.provide_batch(
+      batch, _ = data.provide_batch(
           batch_size=batch_size,
-          examples_path=examples_path,
+          examples=examples_path,
           hparams=hparams,
           truncated_length=truncated_length,
-          is_training=False,
-          batch_threads=1)
+          is_training=False)
       sess.run(tf.local_variables_initializer())
       input_tensors = [
           batch.spec, batch.labels, batch.lengths, batch.filenames]
       self.assertEqual(len(expected_inputs) // batch_size, batch.num_batches)
-      with tf.contrib.slim.queues.QueueRunners(sess):
-        for i in range(0, batch.num_batches * batch_size, batch_size):
-          # Wait to ensure example is pre-processed.
-          time.sleep(0.1)
-          inputs = sess.run(input_tensors)
-          max_length = np.max(inputs[2])
-          for j in range(batch_size):
-            # Add batch padding if needed.
-            input_length = expected_inputs[i + j][2]
-            if input_length < max_length:
-              expected_inputs[i + j] = list(expected_inputs[i + j])
-              pad_amt = max_length - input_length
-              expected_inputs[i + j][0] = np.pad(
-                  expected_inputs[i + j][0],
-                  [(0, pad_amt), (0, 0)], 'constant')
-              expected_inputs[i + j][1] = np.pad(
-                  expected_inputs[i + j][1],
-                  [(0, pad_amt), (0, 0)], 'constant')
-            for exp_input, input_ in zip(expected_inputs[i + j], inputs):
-              self.assertAllEqual(
-                  np.squeeze(exp_input), np.squeeze(input_[j]))
+      for i in range(0, batch.num_batches * batch_size, batch_size):
+        # Wait to ensure example is pre-processed.
+        time.sleep(0.1)
+        inputs = sess.run(input_tensors)
+        max_length = np.max(inputs[2])
+        for j in range(batch_size):
+          # Add batch padding if needed.
+          input_length = expected_inputs[i + j][2]
+          if input_length < max_length:
+            expected_inputs[i + j] = list(expected_inputs[i + j])
+            pad_amt = max_length - input_length
+            expected_inputs[i + j][0] = np.pad(
+                expected_inputs[i + j][0],
+                [(0, pad_amt), (0, 0)], 'constant')
+            expected_inputs[i + j][1] = np.pad(
+                expected_inputs[i + j][1],
+                [(0, pad_amt), (0, 0)], 'constant')
+          for exp_input, input_ in zip(expected_inputs[i + j], inputs):
+            self.assertAllEqual(np.squeeze(exp_input), np.squeeze(input_[j]))
 
-        with self.assertRaisesOpError(
-            'is closed and has insufficient elements '
-            '\\(requested %d, current size %d\\)' % (
-                batch_size, len(expected_inputs) % batch_size)):
-          _ = sess.run(input_tensors)
+      with self.assertRaisesOpError('End of sequence'):
+        _ = sess.run(input_tensors)
 
   def _SyntheticSequence(self, duration, note):
     seq = music_pb2.NoteSequence(total_time=duration)

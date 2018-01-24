@@ -166,6 +166,7 @@ def get_model(transcription_data, hparams, is_training=True):
 
     frame_labels_flat = flatten_maybe_padded_sequences(frame_labels, lengths)
     frame_probs_flat = flatten_maybe_padded_sequences(frame_probs, lengths)
+    tf.identity(frame_probs_flat, name='frame_probs_flat')
     frame_label_weights_flat = flatten_maybe_padded_sequences(
         frame_label_weights, lengths)
     frame_losses = tf_utils.log_loss(

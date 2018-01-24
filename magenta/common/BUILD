@@ -29,6 +29,7 @@ py_library(
     deps = [
         ":beam_search",
         ":concurrency",
+        ":nade",
         ":sequence_example_lib",
         ":state_util",
         ":testing_lib",
@@ -65,6 +66,28 @@ py_test(
     srcs_version = "PY2AND3",
     deps = [
         ":concurrency",
+        # tensorflow dep
+    ],
+)
+
+py_library(
+    name = "nade",
+    srcs = ["nade.py"],
+    srcs_version = "PY2AND3",
+    deps = [
+        # numpy dep
+        # tensorflow dep
+    ],
+)
+
+py_test(
+    name = "nade_test",
+    size = "small",
+    srcs = ["nade_test.py"],
+    srcs_version = "PY2AND3",
+    deps = [
+        ":nade",
+        # numpy dep
         # tensorflow dep
     ],
 )

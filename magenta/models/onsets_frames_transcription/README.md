@@ -1,11 +1,15 @@
 ## Onsets and Frames: Dual-Objective Piano Transcription
 
 For model details, see our paper on arXiv:
-[Onsets and Frames: Dual-Objective Piano Transcription](https://arxiv.org/abs/1710.11153)
+[Onsets and Frames: Dual-Objective Piano Transcription](https://arxiv.org/abs/1710.11153). You can also listen to the [Audio Examples](http://download.magenta.tensorflow.org/models/onsets_frames_transcription/index.html) described in the paper.
+
+## Colab Notebook
+
+The easiest way to use the model is with our [Onsets and Frames Colab Notebook](https://colab.research.google.com/notebook#fileId=/v2/external/notebooks/magenta/onsets_frames_transcription/onsets_frames_transcription.ipynb). You can upload arbitrary audio files and receive a transcription without installing any software.
 
 ## How to Use
 
-First, set up your [Magenta environment](/README.md). Next, you can either use a pre-trained model or train your own.
+If you would like to run the model locally, first set up your [Magenta environment](/README.md). Next, you can either use a pre-trained model or train your own.
 
 ## Dataset creation
 

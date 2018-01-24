@@ -79,7 +79,7 @@ def main(unused_argv):
   config = drums_rnn_config_flags.config_from_flags()
 
   mode = 'eval' if FLAGS.eval else 'train'
-  graph = events_rnn_graph.build_graph(
+  build_graph_fn = events_rnn_graph.get_build_graph_fn(
       mode, config, sequence_example_file_paths)
 
   train_dir = os.path.join(run_dir, 'train')
@@ -96,10 +96,11 @@ def main(unused_argv):
         (FLAGS.num_eval_examples if FLAGS.num_eval_examples else
          magenta.common.count_records(sequence_example_file_paths)) //
         config.hparams.batch_size)
-    events_rnn_train.run_eval(graph, train_dir, eval_dir, num_batches)
+    events_rnn_train.run_eval(build_graph_fn, train_dir, eval_dir, num_batches)
 
   else:
-    events_rnn_train.run_training(graph, train_dir, FLAGS.num_training_steps,
+    events_rnn_train.run_training(build_graph_fn, train_dir,
+                                  FLAGS.num_training_steps,
                                   FLAGS.summary_frequency,
                                   checkpoints_to_keep=FLAGS.num_checkpoints)
 

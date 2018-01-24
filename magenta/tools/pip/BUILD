@@ -49,6 +49,10 @@ sh_binary(
         "//magenta/models/melody_rnn:melody_rnn_generate",
         "//magenta/models/melody_rnn:melody_rnn_train",
 
+        # Music VAE  Model and Scripts
+        "//magenta/models/music_vae",
+        "//magenta/models/music_vae:music_vae_train",
+
         # Performance RNN Model and Scripts
         "//magenta/models/performance_rnn",
         "//magenta/models/performance_rnn:performance_rnn_create_dataset",
@@ -87,6 +91,7 @@ sh_binary(
         "//magenta/models/nsynth/wavenet:nsynth_save_embeddings",
 
         # Onsets and Frames Transcription
+        "//magenta/models/onsets_frames_transcription",
         "//magenta/models/onsets_frames_transcription:onsets_frames_transcription_create_dataset",
         "//magenta/models/onsets_frames_transcription:onsets_frames_transcription_train",
         "//magenta/models/onsets_frames_transcription:onsets_frames_transcription_infer",

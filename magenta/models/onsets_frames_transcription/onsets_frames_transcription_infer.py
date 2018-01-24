@@ -58,7 +58,10 @@ tf.app.flags.DEFINE_string(
     'onset_mode=length_ms,onset_length=32',
     'A comma-separated list of `name=value` hyperparameter values.')
 tf.app.flags.DEFINE_float(
-    'note_threshold', 0.5,
+    'frame_threshold', 0.5,
+    'Threshold to use when sampling from the acoustic model.')
+tf.app.flags.DEFINE_float(
+    'onset_threshold', 0.5,
     'Threshold to use when sampling from the acoustic model.')
 tf.app.flags.DEFINE_integer(
     'max_seconds_per_sequence', 0,
@@ -91,14 +94,14 @@ def model_inference(acoustic_checkpoint, hparams, examples_path, run_dir):
         truncated_length = int(
             math.ceil((FLAGS.max_seconds_per_sequence *
                        data.hparams_frames_per_second(hparams))))
-      acoustic_data_provider = data.provide_batch(
+      acoustic_data_provider, _ = data.provide_batch(
           batch_size=1,
-          examples_path=examples_path,
+          examples=examples_path,
           hparams=hparams,
           is_training=False,
           truncated_length=truncated_length)
 
-      _, _, data_labels, acoustic_logits, _ = model.get_model(
+      _, _, data_labels, _, _ = model.get_model(
           acoustic_data_provider, hparams, is_training=False)
 
     # The checkpoints won't have the new scopes.
@@ -110,6 +113,8 @@ def model_inference(acoustic_checkpoint, hparams, examples_path, run_dir):
 
     onset_probs_flat = tf.get_default_graph().get_tensor_by_name(
         'acoustic/onsets/onset_probs_flat:0')
+    frame_probs_flat = tf.get_default_graph().get_tensor_by_name(
+        'acoustic/frame_probs_flat:0')
 
     # Define some metrics.
     (metrics_to_updates,
@@ -149,7 +154,7 @@ def model_inference(acoustic_checkpoint, hparams, examples_path, run_dir):
             data_labels,
             acoustic_data_provider.filenames,
             acoustic_data_provider.note_sequences,
-            acoustic_logits,
+            frame_probs_flat,
             onset_probs_flat,
         ])
         # We expect these all to be length 1 because batch size is 1.
@@ -157,9 +162,9 @@ def model_inference(acoustic_checkpoint, hparams, examples_path, run_dir):
         # These should be the same length and have been flattened.
         assert len(labels) == len(logits) == len(onset_logits)
 
-        frame_predictions = logits > FLAGS.note_threshold
+        frame_predictions = logits > FLAGS.frame_threshold
         if FLAGS.require_onset:
-          onset_predictions = onset_logits > FLAGS.note_threshold
+          onset_predictions = onset_logits > FLAGS.onset_threshold
         else:
           onset_predictions = None
 
