@@ -15,8 +15,8 @@ from tensorflow.contrib.training import HParams
 
 class Config(collections.namedtuple(
     'Config',
-    ['model', 'hparams', 'note_sequence_augmenter',
-     'note_sequence_converter', 'train_examples_path', 'eval_examples_path'])):
+    ['model', 'hparams', 'note_sequence_augmenter', 'data_converter',
+     'train_examples_path', 'eval_examples_path'])):
 
   def values(self):
     return self._asdict()
@@ -45,7 +45,7 @@ CONFIG_MAP['cat-mel_2bar_small'] = Config(
             dec_rnn_size=[256, 256],
         )),
     note_sequence_augmenter=None,
-    note_sequence_converter=data.OneHotMelodyConverter(
+    data_converter=data.OneHotMelodyConverter(
         valid_programs=data.MEL_PROGRAMS,
         skip_polyphony=False,
         max_bars=100,  # Truncate long melodies before slicing.
@@ -68,7 +68,7 @@ CONFIG_MAP['cat-mel_2bar_big'] = Config(
             dec_rnn_size=[2048, 2048, 2048],
         )),
     note_sequence_augmenter=None,
-    note_sequence_converter=data.OneHotMelodyConverter(
+    data_converter=data.OneHotMelodyConverter(
         valid_programs=data.MEL_PROGRAMS,
         skip_polyphony=False,
         max_bars=100,  # Truncate long melodies before slicing.
@@ -92,7 +92,7 @@ CONFIG_MAP['cat-drums_2bar_small'] = Config(
             dec_rnn_size=[256, 256],
         )),
     note_sequence_augmenter=None,
-    note_sequence_converter=data.DrumsConverter(
+    data_converter=data.DrumsConverter(
         max_bars=100,  # Truncate long drum sequences before slicing.
         slice_bars=2,
         steps_per_quarter=4,
@@ -114,7 +114,7 @@ CONFIG_MAP['cat-drums_2bar_big'] = Config(
             dec_rnn_size=[2048, 2048, 2048],
         )),
     note_sequence_augmenter=None,
-    note_sequence_converter=data.DrumsConverter(
+    data_converter=data.DrumsConverter(
         max_bars=100,  # Truncate long drum sequences before slicing.
         slice_bars=2,
         steps_per_quarter=4,
@@ -137,7 +137,7 @@ CONFIG_MAP['nade-drums_2bar_reduced'] = Config(
             nade_num_hidden=128,
         )),
     note_sequence_augmenter=None,
-    note_sequence_converter=data.DrumsConverter(
+    data_converter=data.DrumsConverter(
         max_bars=100,  # Truncate long drum sequences before slicing.
         slice_bars=2,
         steps_per_quarter=4,
@@ -161,7 +161,7 @@ CONFIG_MAP['nade-drums_2bar_full'] = Config(
             nade_num_hidden=128,
         )),
     note_sequence_augmenter=None,
-    note_sequence_converter=data.DrumsConverter(
+    data_converter=data.DrumsConverter(
         max_bars=100,  # Truncate long drum sequences before slicing.
         pitch_classes=data.FULL_DRUM_PITCH_CLASSES,
         slice_bars=2,
@@ -192,7 +192,7 @@ CONFIG_MAP['cat-trio_16bar_big'] = Config(
             dec_rnn_size=[2048, 2048, 2048],
         )),
     note_sequence_augmenter=None,
-    note_sequence_converter=data.TrioConverter(
+    data_converter=data.TrioConverter(
         steps_per_quarter=4,
         slice_bars=16,
         gap_bars=2),
@@ -224,7 +224,7 @@ CONFIG_MAP['hiercat-trio_16bar_big'] = Config(
             hierarchical_output_sizes=[16],
         )),
     note_sequence_augmenter=None,
-    note_sequence_converter=data.TrioConverter(
+    data_converter=data.TrioConverter(
         steps_per_quarter=4,
         slice_bars=16,
         gap_bars=2),
@@ -247,7 +247,7 @@ CONFIG_MAP['cat-mel_16bar_big'] = Config(
             dec_rnn_size=[2048, 2048, 2048],
         )),
     note_sequence_augmenter=None,
-    note_sequence_converter=data.OneHotMelodyConverter(
+    data_converter=data.OneHotMelodyConverter(
         skip_polyphony=False,
         max_bars=100,  # Truncate long melodies before slicing.
         slice_bars=16,
@@ -273,7 +273,7 @@ CONFIG_MAP['hiercat-mel_16bar_big'] = Config(
             hierarchical_output_sizes=[16],
         )),
     note_sequence_augmenter=None,
-    note_sequence_converter=data.OneHotMelodyConverter(
+    data_converter=data.OneHotMelodyConverter(
         skip_polyphony=False,
         max_bars=100,  # Truncate long melodies before slicing.
         slice_bars=16,

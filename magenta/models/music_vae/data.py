@@ -56,12 +56,11 @@ def _maybe_pad_seqs(seqs, dtype):
     return np.zeros((0, 0, 0), dtype), np.zeros((0, 1), np.int32)
   lengths = [len(s) for s in seqs]
   if len(set(lengths)) == 1:
-    return np.array(seqs, dtype), np.array(lengths, np.int32)
+    return np.array(seqs, dtype)
   else:
     length = max(lengths)
     return (np.array([np.pad(s, [(0, length - len(s)), (0, 0)], mode='constant')
-                      for s in seqs], dtype),
-            np.array(lengths, np.int32))
+                      for s in seqs], dtype))
 
 
 def _extract_instrument(note_sequence, instrument):
@@ -141,7 +140,7 @@ class BaseConverter(object):
 
   def __init__(self, input_depth, input_dtype, output_depth, output_dtype,
                end_token, max_tensors_per_item=None,
-               str_to_item_fn=lambda s: s):
+               str_to_item_fn=lambda s: s, length_shape=()):
     """Initializes BaseConverter.
 
     Args:
@@ -154,6 +153,7 @@ class BaseConverter(object):
         input.
       str_to_item_fn: Callable to convert raw string input into an item for
         conversion.
+      length_shape: Shape of length returned by `to_tensor`.
     """
     self._input_depth = input_depth
     self._input_dtype = input_dtype
@@ -163,6 +163,7 @@ class BaseConverter(object):
     self._max_tensors_per_input = max_tensors_per_item
     self._str_to_item_fn = str_to_item_fn
     self._is_training = False
+    self._length_shape = length_shape
 
   @property
   def is_training(self):
@@ -209,6 +210,11 @@ class BaseConverter(object):
     """DType of outputs (from decoder)."""
     return self._output_dtype
 
+  @property
+  def length_shape(self):
+    """Shape of length returned by `to_tensor`."""
+    return self._length_shape
+
   @abc.abstractmethod
   def _to_tensors(self, item):
     """Implementation that converts item into list of tensors.
@@ -241,9 +247,10 @@ class BaseConverter(object):
 
   def to_tensors(self, item):
     """Python method that converts `item` into list of tensors."""
-    results = self._to_tensors(item)
-    sampled_results = self._maybe_sample_outputs(zip(*results))
-    return list(zip(*sampled_results)) if sampled_results else ([], [])
+    inputs, outputs = self._to_tensors(item)
+    lengths = [len(i) for i in inputs]
+    sampled_results = self._maybe_sample_outputs(zip(inputs, outputs, lengths))
+    return tuple(zip(*sampled_results)) if sampled_results else ([], [], [])
 
   def to_items(self, samples):
     """Python method that decodes samples into list of items."""
@@ -266,10 +273,10 @@ class BaseConverter(object):
     """
     def _convert_and_pad(item_str):
       item = self.str_to_item_fn(item_str)
-      inputs, outputs = self.to_tensors(item)
-      inputs, lengths = _maybe_pad_seqs(inputs, self.output_dtype)
-      outputs, _ = _maybe_pad_seqs(outputs, self.output_dtype)
-      return inputs, outputs, lengths
+      inputs, outputs, lengths = self.to_tensors(item)
+      inputs = _maybe_pad_seqs(inputs, self.input_dtype)
+      outputs = _maybe_pad_seqs(outputs, self.output_dtype)
+      return inputs, outputs, np.array(lengths, np.int32)
     inputs, outputs, lengths = tf.py_func(
         _convert_and_pad,
         [item_scalar],
@@ -340,11 +347,12 @@ class BaseNoteSequenceConverter(BaseConverter):
       note_sequences = [note_sequence]
     results = []
     for ns in note_sequences:
-      r = self._to_tensors(ns)
-      if r[0]:
-        results.extend(zip(*r))
+      inputs, outputs = self._to_tensors(ns)
+      if inputs:
+        lengths = [len(i) for i in inputs]
+        results.extend(zip(inputs, outputs, lengths))
     sampled_results = self._maybe_sample_outputs(results)
-    return list(zip(*sampled_results)) if sampled_results else ([], [])
+    return tuple(zip(*sampled_results)) if sampled_results else ([], [], [])
 
   def _to_items(self, samples):
     """Python method that decodes samples into list of NoteSequences."""
@@ -842,14 +850,14 @@ class TrioConverter(BaseNoteSequenceConverter):
     encoded_instruments = {}
     for i in (instruments_by_type[self.InstrumentType.MEL] +
               instruments_by_type[self.InstrumentType.BASS]):
-      _, t = self._melody_converter.to_tensors(
+      _, t, _ = self._melody_converter.to_tensors(
           _extract_instrument(note_sequence, i))
       if t:
         encoded_instruments[i] = t[0]
       else:
         coverage[:, i] = False
     for i in instruments_by_type[self.InstrumentType.DRUMS]:
-      _, t = self._drums_converter.to_tensors(
+      _, t, _ = self._drums_converter.to_tensors(
           _extract_instrument(note_sequence, i))
       if t:
         encoded_instruments[i] = t[0]
@@ -913,7 +921,7 @@ class TrioConverter(BaseNoteSequenceConverter):
     return output_sequences
 
 
-def count_examples(examples_path, note_sequence_converter,
+def count_examples(examples_path, data_converter,
                    file_reader=tf.python_io.tf_record_iterator):
   """Counts the number of examples produced by the converter from files."""
   filenames = tf.gfile.Glob(examples_path)
@@ -924,8 +932,8 @@ def count_examples(examples_path, note_sequence_converter,
     tf.logging.info('Counting examples in %s.', f)
     reader = file_reader(f)
     for item_str in reader:
-      item = note_sequence_converter.str_to_item_fn(item_str)
-      seqs, _ = note_sequence_converter.to_tensors(item)
+      item = data_converter.str_to_item_fn(item_str)
+      seqs, _, _ = data_converter.to_tensors(item)
       num_examples += len(seqs)
   tf.logging.info('Total examples: %d', num_examples)
   return num_examples
@@ -938,8 +946,8 @@ def get_dataset(config, tf_file_reader_class=tf.data.TFRecordDataset,
       config.train_examples_path if is_training else config.eval_examples_path)
   note_sequence_augmenter = (
       config.note_sequence_augmenter if is_training else None)
-  note_sequence_converter = config.note_sequence_converter
-  note_sequence_converter.is_training = is_training
+  data_converter = config.data_converter
+  data_converter.is_training = is_training
 
   tf.logging.info('Reading examples from: %s', examples_path)
 
@@ -949,15 +957,20 @@ def get_dataset(config, tf_file_reader_class=tf.data.TFRecordDataset,
           tf_file_reader_class, cycle_length=num_threads))
 
   def _remove_pad_fn(padded_seq_1, padded_seq_2, length):
-    return padded_seq_1[0:length], padded_seq_2[0:length], length
+    if length.shape.ndims == 0:
+      return padded_seq_1[0:length], padded_seq_2[0:length], length
+    else:
+      # Don't remove padding for hierarchical examples.
+      return padded_seq_1, padded_seq_2, length
 
   dataset = reader
   if note_sequence_augmenter is not None:
     dataset = dataset.map(note_sequence_augmenter.tf_augment)
   dataset = (dataset
-             .map(note_sequence_converter.tf_to_tensors,
+             .map(data_converter.tf_to_tensors,
                   num_parallel_calls=num_threads)
              .flat_map(
                  lambda x, y, z: tf.data.Dataset.from_tensor_slices((x, y, z)))
              .map(_remove_pad_fn))
+
   return dataset
