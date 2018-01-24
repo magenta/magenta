@@ -112,6 +112,18 @@ def _trial_summary(hparams, examples_path, output_dir):
     writer.close()
 
 
+def _get_input_tensors(dataset, config):
+  batch_size = config.hparams.batch_size
+  iterator = dataset.make_one_shot_iterator()
+  input_sequence, output_sequence, sequence_length = iterator.get_next()
+  input_sequence.set_shape(
+      [batch_size, None, config.note_sequence_converter.input_depth])
+  output_sequence.set_shape(
+      [batch_size, None, config.note_sequence_converter.output_depth])
+  sequence_length.set_shape([batch_size] + sequence_length.shape[1:].as_list())
+  return input_sequence, output_sequence, sequence_length
+
+
 def train(train_dir,
           config,
           dataset,
@@ -138,20 +150,12 @@ def train(train_dir,
           batch_size, train_dataset.output_shapes)
       train_dataset = train_dataset.prefetch(FLAGS.prefetch_size)
 
-      iterator = train_dataset.make_one_shot_iterator()
-      input_sequence, output_sequence, sequence_length = iterator.get_next()
-      input_sequence.set_shape(
-          [batch_size, None, config.note_sequence_converter.input_depth])
-      output_sequence.set_shape(
-          [batch_size, None, config.note_sequence_converter.output_depth])
-      sequence_length.set_shape([batch_size])
-
       model = config.model
       model.build(config.hparams,
                   config.note_sequence_converter.output_depth,
                   is_training=True)
 
-      optimizer = model.train(input_sequence, output_sequence, sequence_length)
+      optimizer = model.train(*_get_input_tensors(train_dataset, config))
 
       hooks = []
       if num_sync_workers:
@@ -218,22 +222,12 @@ def evaluate(train_dir,
         .take(num_batches))
     eval_dataset = eval_dataset.prefetch(FLAGS.prefetch_size)
 
-    iterator = eval_dataset.make_one_shot_iterator()
-    input_sequence, output_sequence, sequence_length = iterator.get_next()
-    input_sequence.set_shape(
-        [config.hparams.batch_size, None,
-         config.note_sequence_converter.input_depth])
-    output_sequence.set_shape(
-        [config.hparams.batch_size, None,
-         config.note_sequence_converter.output_depth])
-    sequence_length.set_shape([config.hparams.batch_size])
-
     model = config.model
     model.build(config.hparams,
                 config.note_sequence_converter.output_depth,
                 is_training=False)
 
-    eval_op = model.eval(input_sequence, output_sequence, sequence_length)
+    eval_op = model.eval(*_get_input_tensors(eval_dataset, config))
 
     hooks = [
         tf.contrib.training.StopAfterNEvalsHook(num_batches),

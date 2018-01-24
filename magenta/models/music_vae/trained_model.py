@@ -130,8 +130,7 @@ class TrainedModel(object):
     outputs = []
     for _ in range(int(np.ceil(n / batch_size))):
       outputs.append(self._sess.run(self._outputs, feed_dict))
-    return self._config.note_sequence_converter.to_notesequences(
-        np.vstack(outputs)[:n])
+    return self._config.note_sequence_converter.to_items(np.vstack(outputs)[:n])
 
   def encode(self, note_sequences, assert_same_length=False):
     """Encodes a collection of NoteSequences into latent vectors.
@@ -222,7 +221,7 @@ class TrainedModel(object):
       ValueError: If `length` is not specified and an end token is not being
         used.
     """
-    return self._config.note_sequence_converter.to_notesequences(
+    return self._config.note_sequence_converter.to_items(
         self.decode_to_tensors(z, length, temperature))
 
   def decode_to_tensors(self, z, length=None, temperature=1.0):
