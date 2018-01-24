@@ -43,7 +43,7 @@ def rnn_cell(rnn_cell_size, dropout_keep_prob, is_training=True):
         cell,
         input_keep_prob=dropout_keep_prob)
     cells.append(cell)
-  return rnn.MultiRNNell(cells)
+  return rnn.MultiRNNCell(cells)
 
 
 def cudnn_lstm_layer(layer_sizes, dropout_keep_prob, is_training=True,
