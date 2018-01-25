@@ -284,7 +284,7 @@ class BaseConverter(object):
         name='convert_and_pad')
     inputs.set_shape([None, None, self.input_depth])
     outputs.set_shape([None, None, self.output_depth])
-    lengths.set_shape([None])
+    lengths.set_shape([None] + list(self.length_shape))
     return inputs, outputs, lengths
 
 
