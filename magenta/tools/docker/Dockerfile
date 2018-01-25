@@ -1,13 +1,18 @@
-FROM tensorflow/tensorflow:1.1.0-devel
+FROM tensorflow/tensorflow:1.4.1-devel
 
 MAINTAINER Curtis Hawthorne <fjord@google.com>
 
 # Download and build Magenta.
 
-ENV MAGENTA_MASTER_REF v0.1.13
+ENV MAGENTA_MASTER_REF v0.3.2
 
 # Required for local development
-RUN pip install scipy matplotlib intervaltree bokeh
+RUN pip install scipy matplotlib intervaltree bokeh IPython librosa mir_eval
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+        build-essential libasound2-dev libjack-dev && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
 
 WORKDIR /
 RUN git clone https://github.com/tensorflow/magenta.git && \
