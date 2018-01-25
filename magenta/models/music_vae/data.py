@@ -53,7 +53,7 @@ FULL_DRUM_PITCH_CLASSES = [  # 61 classes
 def _maybe_pad_seqs(seqs, dtype):
   """Pads sequences to match the longest and returns as a numpy array."""
   if not len(seqs):  # pylint:disable=g-explicit-length-test
-    return np.zeros((0, 0, 0), dtype), np.zeros((0, 1), np.int32)
+    return np.zeros((0, 0, 0), dtype)
   lengths = [len(s) for s in seqs]
   if len(set(lengths)) == 1:
     return np.array(seqs, dtype)
