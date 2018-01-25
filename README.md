@@ -11,9 +11,9 @@ from the [Google Brain team](https://research.google.com/teams/brain/)
 but many others have contributed significantly to the project. We use
 [TensorFlow](https://www.tensorflow.org) and release our models and
 tools in open source on this GitHub.  If you’d like to learn more
-about Magenta, check out our [blog](http://magenta.tensorflow.org),
+about Magenta, check out our [blog](https://magenta.tensorflow.org),
 where we post technical details.  You can also join our [discussion
-group](http://groups.google.com/a/tensorflow.org/forum/#!forum/magenta-discuss).
+group](https://groups.google.com/a/tensorflow.org/forum/#!forum/magenta-discuss).
 
 ## Getting Started
 
