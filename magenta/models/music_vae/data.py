@@ -53,7 +53,7 @@ FULL_DRUM_PITCH_CLASSES = [  # 61 classes
 def _maybe_pad_seqs(seqs, dtype):
   """Pads sequences to match the longest and returns as a numpy array."""
   if not len(seqs):  # pylint:disable=g-explicit-length-test
-    return np.zeros((0, 0, 0), dtype), np.zeros((0, 1), np.int32)
+    return np.zeros((0, 0, 0), dtype)
   lengths = [len(s) for s in seqs]
   if len(set(lengths)) == 1:
     return np.array(seqs, dtype)
@@ -284,7 +284,7 @@ class BaseConverter(object):
         name='convert_and_pad')
     inputs.set_shape([None, None, self.input_depth])
     outputs.set_shape([None, None, self.output_depth])
-    lengths.set_shape([None])
+    lengths.set_shape([None] + list(self.length_shape))
     return inputs, outputs, lengths
 
 
