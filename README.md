@@ -1,6 +1,6 @@
 <img src="magenta-logo-bg.png" height="75">
 
-**Magenta** is a research project exploring the role of machine learning 
+**Magenta** is a research project exploring the role of machine learning
 in the process of creating art and music.  Primarily this
 involves developing new deep learning and reinforcement learning
 algorithms for generating songs, images, drawings, and other materials. But it's also
