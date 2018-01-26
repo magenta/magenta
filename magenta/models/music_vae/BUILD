@@ -30,6 +30,7 @@ py_library(
         ":configs",
         ":data",
         ":lstm_models",
+        ":lstm_utils",
         ":trained_model",
     ],
 )
@@ -77,11 +78,21 @@ py_library(
 )
 
 py_library(
+    name = "lstm_utils",
+    srcs = ["lstm_utils.py"],
+    srcs_version = "PY2AND3",
+    deps = [
+        # tensorflow dep
+    ],
+)
+
+py_library(
     name = "lstm_models",
     srcs = ["lstm_models.py"],
     srcs_version = "PY2AND3",
     deps = [
         ":base_model",
+        ":lstm_utils",
     ],
 )
 

@@ -43,6 +43,11 @@ class BaseEncoder(object):
     """
     pass
 
+  @abc.abstractproperty
+  def output_depth(self):
+    """Returns the size of the output final dimension."""
+    pass
+
   @abc.abstractmethod
   def encode(self, sequence, sequence_length):
     """Encodes input sequences into a precursors for latent code `z`.
