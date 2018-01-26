@@ -34,6 +34,11 @@ class BaseEncoder(object):
   """
   __metaclass__ = abc.ABCMeta
 
+  @abc.abstractproperty
+  def output_depth(self):
+    """Returns the size of the output final dimension."""
+    pass
+
   def build(self, hparams, is_training=True):
     """Builder method for BaseEncoder.
 
@@ -41,11 +46,6 @@ class BaseEncoder(object):
       hparams: An HParams object containing model hyperparameters.
       is_training: Whether or not the model is being used for training.
     """
-    pass
-
-  @abc.abstractproperty
-  def output_depth(self):
-    """Returns the size of the output final dimension."""
     pass
 
   @abc.abstractmethod
