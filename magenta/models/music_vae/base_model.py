@@ -39,6 +39,7 @@ class BaseEncoder(object):
     """Returns the size of the output final dimension."""
     pass
 
+  @abc.abstractmethod
   def build(self, hparams, is_training=True):
     """Builder method for BaseEncoder.
 
