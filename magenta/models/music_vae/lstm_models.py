@@ -28,7 +28,6 @@ from magenta.models.music_vae import base_model
 from magenta.models.music_vae import lstm_utils
 from tensorflow.contrib import rnn
 from tensorflow.contrib import seq2seq
-from tensorflow.contrib.cudnn_rnn.python.layers import cudnn_rnn
 from tensorflow.python.framework import tensor_util
 from tensorflow.python.layers import core as layers_core
 from tensorflow.python.util import nest
