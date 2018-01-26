@@ -34,6 +34,12 @@ class BaseEncoder(object):
   """
   __metaclass__ = abc.ABCMeta
 
+  @abc.abstractproperty
+  def output_depth(self):
+    """Returns the size of the output final dimension."""
+    pass
+
+  @abc.abstractmethod
   def build(self, hparams, is_training=True):
     """Builder method for BaseEncoder.
 

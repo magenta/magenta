@@ -25,179 +25,20 @@ import tensorflow as tf
 from magenta.common import flatten_maybe_padded_sequences
 from magenta.common import Nade
 from magenta.models.music_vae import base_model
+from magenta.models.music_vae import lstm_utils
 from tensorflow.contrib import rnn
 from tensorflow.contrib import seq2seq
-from tensorflow.contrib.cudnn_rnn.python.layers import cudnn_rnn
 from tensorflow.python.framework import tensor_util
 from tensorflow.python.layers import core as layers_core
 from tensorflow.python.util import nest
 
 
-def rnn_cell(rnn_cell_size, dropout_keep_prob, is_training=True):
-  """Builds an LSTMBlockCell based on the given parameters."""
-  dropout_keep_prob = dropout_keep_prob if is_training else 1.0
-  cells = []
-  for layer_size in rnn_cell_size:
-    cell = rnn.LSTMBlockCell(layer_size)
-    cell = rnn.DropoutWrapper(
-        cell,
-        input_keep_prob=dropout_keep_prob)
-    cells.append(cell)
-  return rnn.MultiRNNCell(cells)
-
-
-def cudnn_lstm_layer(layer_sizes, dropout_keep_prob, is_training=True,
-                     name_or_scope='rnn'):
-  """Builds a CudnnLSTM Layer based on the given parameters."""
-  dropout_keep_prob = dropout_keep_prob if is_training else 1.0
-  for ls in layer_sizes:
-    if ls != layer_sizes[0]:
-      raise ValueError(
-          'CudnnLSTM does not support layers with differing sizes. Got: %s',
-          layer_sizes)
-  lstm = cudnn_rnn.CudnnLSTM(
-      num_layers=len(layer_sizes),
-      num_units=layer_sizes[0],
-      direction='unidirectional',
-      dropout=1.0 - dropout_keep_prob,
-      name=name_or_scope)
-
-  class BackwardCompatibleCudnnLSTMSaveable(
-      tf.contrib.cudnn_rnn.CudnnLSTMSaveable):
-    """Overrides CudnnLSTMSaveable for backward-compatibility."""
-
-    def _cudnn_to_tf_biases(self, *cu_biases):
-      """Overrides to subtract 1.0 from `forget_bias` (see BasicLSTMCell)."""
-      (tf_bias,) = (
-          super(BackwardCompatibleCudnnLSTMSaveable, self)._cudnn_to_tf_biases(
-              *cu_biases))
-      i, c, f, o = tf.split(tf_bias, 4)
-      # Non-Cudnn LSTM cells add 1.0 to the forget bias variable.
-      return (tf.concat([i, c, f - 1.0, o], axis=0),)
-
-    def _tf_to_cudnn_biases(self, *tf_biases):
-      """Overrides to add 1.0 to `forget_bias` (see BasicLSTMCell)."""
-      (tf_bias,) = tf_biases
-      i, c, f, o = tf.split(tf_bias, 4)
-      # Non-Cudnn LSTM cells add 1.0 to the forget bias variable.
-      return (
-          super(BackwardCompatibleCudnnLSTMSaveable, self)._tf_to_cudnn_biases(
-              tf.concat([i, c, f + 1.0, o], axis=0)))
-
-    def _TFCanonicalNamePrefix(self, layer, is_fwd=True):
-      """Overrides for backward-compatible variable names."""
-      if self._direction == 'unidirectional':
-        return 'multi_rnn_cell/cell_%d/lstm_cell' % layer
-      else:
-        return (
-            'cell_%d/bidirectional_rnn/%s/multi_rnn_cell/cell_0/lstm_cell'
-            % (layer, 'fw' if is_fwd else 'bw'))
-
-  lstm._saveable_cls = BackwardCompatibleCudnnLSTMSaveable  # pylint:disable=protected-access
-  return lstm
-
-
-def _cudnn_lstm_state(lstm_cell_state):
-  """Convert tuple of LSTMCellStateTuples to CudnnLSTM format."""
-  h = tf.stack([s.h for s in lstm_cell_state])
-  c = tf.stack([s.c for s in lstm_cell_state])
-  return (h, c)
-
-
-def _get_final(time_major_sequence, sequence_length):
-  final_index = tf.stack(
-      [tf.maximum(0, sequence_length - 1),
-       tf.range(sequence_length.shape[0])],
-      axis=1)
-  return tf.gather_nd(time_major_sequence, final_index)
-
-
-def initial_cell_state_from_embedding(cell, z, name=None):
-  """Computes an initial RNN `cell` state from an embedding, `z`."""
-  flat_state_sizes = nest.flatten(cell.state_size)
-  return nest.pack_sequence_as(
-      cell.zero_state(batch_size=z.shape[0], dtype=tf.float32),
-      tf.split(
-          tf.layers.dense(
-              z,
-              sum(flat_state_sizes),
-              activation=tf.tanh,
-              kernel_initializer=tf.random_normal_initializer(stddev=0.001),
-              name=name),
-          flat_state_sizes,
-          axis=1))
-
-
-def _get_sampling_probability(hparams, is_training):
-  """Returns the sampling probability as a tensor based on the hparams.
-
-  Supports three sampling schedules (`hparams.sampling_schedule`):
-    constant: `hparams.sampling_rate` is the sampling probability. Must be in
-      the interval [0, 1].
-    exponential: `hparams.sampling_rate` is the base of the decay exponential.
-      Must be in the interval (0, 1). Larger values imply a slower increase in
-      sampling.
-    inverse_sigmoid: `hparams.sampling_rate` is in the interval [1, inf).
-      Larger values imply a slower increase in sampling.
-
-  A constant value of 0 is returned if `hparams.sampling_schedule` is undefined.
-
-  If not training and a non-0 sampling schedule is defined, a constant value of
-  1 is returned since this is assumed to be a test/eval job associated with a
-  scheduled sampling trainer.
-
-  Args:
-    hparams: An HParams object containing model hyperparameters.
-    is_training: Whether or not the model is being used for training.
-
-  Raises:
-    ValueError: On an invalid `sampling_schedule` or `sampling_rate` hparam.
-  """
-  if (not hasattr(hparams, 'sampling_schedule') or
-      not hparams.sampling_schedule or
-      (hparams.sampling_schedule == 'constant' and hparams.sampling_rate == 0)):
-    return tf.constant(0.0)
-
-  if not is_training:
-    # This is likely an eval/test job associated with a training job using
-    # scheduled sampling.
-    tf.logging.warning(
-        'Setting non-training sampling schedule from %s:%f to constant:1.0.',
-        hparams.sampling_schedule, hparams.sampling_rate)
-    hparams.sampling_schedule = 'constant'
-    hparams.sampling_rate = 1.0
-
-  schedule = hparams.sampling_schedule
-  rate = hparams.sampling_rate
-  step = tf.to_float(tf.train.get_global_step())
-
-  if schedule == 'constant':
-    if not 0 <= rate <= 1:
-      raise ValueError(
-          '`constant` sampling rate must be in the interval [0, 1]. Got %f.'
-          % rate)
-    sampling_probability = tf.constant(rate)
-  elif schedule == 'inverse_sigmoid':
-    if rate < 1:
-      raise ValueError(
-          '`inverse_sigmoid` sampling rate must be at least 1. Got %f.' % rate)
-    k = tf.constant(rate)
-    sampling_probability = 1.0 - k / (k + tf.exp(step / k))
-  elif schedule == 'exponential':
-    if not 0 < rate < 1:
-      raise ValueError(
-          '`exponential` sampling rate must be in the interval (0, 1). Got %f.'
-          % hparams.sampling_rate)
-    k = tf.constant(rate)
-    sampling_probability = 1.0 - tf.pow(k, step)
-  else:
-    raise ValueError('Invalid `sampling_schedule`: %s' % schedule)
-  tf.summary.scalar('sampling_probability', sampling_probability)
-  return sampling_probability
-
-
 class LstmEncoder(base_model.BaseEncoder):
   """Unidirectional LSTM Encoder."""
+
+  @property
+  def output_depth(self):
+    return self._cell.output_size
 
   def build(self, hparams, is_training=True, name_or_scope='encoder'):
     self._is_training = is_training
@@ -208,13 +49,13 @@ class LstmEncoder(base_model.BaseEncoder):
                     '  units: %s\n',
                     hparams.enc_rnn_size)
     if self._use_cudnn:
-      self._cudnn_lstm = cudnn_lstm_layer(
+      self._cudnn_lstm = lstm_utils.cudnn_lstm_layer(
           hparams.enc_rnn_size,
           hparams.dropout_keep_prob,
           is_training,
           name_or_scope=self._name_or_scope)
     else:
-      self._cell = rnn_cell(
+      self._cell = lstm_utils.rnn_cell(
           hparams.enc_rnn_size, hparams.dropout_keep_prob, is_training)
 
   def encode(self, sequence, sequence_length):
@@ -223,7 +64,7 @@ class LstmEncoder(base_model.BaseEncoder):
     if self._use_cudnn:
       outputs, _ = self._cudnn_lstm(
           sequence, training=self._is_training)
-      return _get_final(outputs, sequence_length)
+      return lstm_utils.get_final(outputs, sequence_length)
     else:
       outputs, _ = tf.nn.dynamic_rnn(
           self._cell, sequence, sequence_length, dtype=tf.float32,
@@ -233,6 +74,12 @@ class LstmEncoder(base_model.BaseEncoder):
 
 class BidirectionalLstmEncoder(base_model.BaseEncoder):
   """Bidirectional LSTM Encoder."""
+
+  @property
+  def output_depth(self):
+    if self._use_cudnn:
+      return self._cells[0][-1].num_units + self._cells[1][-1].num_units
+    return self._cells[0][-1].output_size + self._cells[1][-1].output_size
 
   def build(self, hparams, is_training=True, name_or_scope='encoder'):
     self._is_training = is_training
@@ -254,21 +101,23 @@ class BidirectionalLstmEncoder(base_model.BaseEncoder):
     cells_bw = []
     for i, layer_size in enumerate(hparams.enc_rnn_size):
       if self._use_cudnn:
-        cells_fw.append(cudnn_lstm_layer(
+        cells_fw.append(lstm_utils.cudnn_lstm_layer(
             [layer_size], hparams.dropout_keep_prob, is_training,
             name_or_scope=tf.VariableScope(
                 reuse,
                 name + '/cell_%d/bidirectional_rnn/fw' % i)))
-        cells_bw.append(cudnn_lstm_layer(
+        cells_bw.append(lstm_utils.cudnn_lstm_layer(
             [layer_size], hparams.dropout_keep_prob, is_training,
             name_or_scope=tf.VariableScope(
                 reuse,
                 name + '/cell_%d/bidirectional_rnn/bw' % i)))
       else:
         cells_fw.append(
-            rnn_cell([layer_size], hparams.dropout_keep_prob, is_training))
+            lstm_utils.rnn_cell(
+                [layer_size], hparams.dropout_keep_prob, is_training))
         cells_bw.append(
-            rnn_cell([layer_size], hparams.dropout_keep_prob, is_training))
+            lstm_utils.rnn_cell(
+                [layer_size], hparams.dropout_keep_prob, is_training))
 
     self._cells = (cells_fw, cells_bw)
 
@@ -288,7 +137,7 @@ class BidirectionalLstmEncoder(base_model.BaseEncoder):
 
         inputs_fw = tf.concat([outputs_fw, outputs_bw], axis=2)
 
-      last_h_fw = _get_final(outputs_fw, sequence_length)
+      last_h_fw = lstm_utils.get_final(outputs_fw, sequence_length)
       # outputs_bw has already been reversed, so we can take the first element.
       last_h_bw = outputs_bw[0]
 
@@ -324,14 +173,14 @@ class BaseLstmDecoder(base_model.BaseDecoder):
                     '  units: %s\n',
                     hparams.dec_rnn_size)
 
-    self._sampling_probability = _get_sampling_probability(
+    self._sampling_probability = lstm_utils.get_sampling_probability(
         hparams, is_training)
     self._output_depth = output_depth
     self._output_layer = layers_core.Dense(
         output_depth, name='output_projection')
-    self._dec_cell = rnn_cell(
+    self._dec_cell = lstm_utils.rnn_cell(
         hparams.dec_rnn_size, hparams.dropout_keep_prob, is_training)
-    self._cudnn_dec_lstm = cudnn_lstm_layer(
+    self._cudnn_dec_lstm = lstm_utils.cudnn_lstm_layer(
         hparams.dec_rnn_size, hparams.dropout_keep_prob, is_training,
         name_or_scope='decoder') if hparams.use_cudnn else None
 
@@ -366,7 +215,7 @@ class BaseLstmDecoder(base_model.BaseDecoder):
     """
     pass
 
-  def _decode(self, z, helper, max_length=None, x_input=None):
+  def _decode(self, z, helper, max_length=None):
     """Decodes the given batch of latent vectors vectors, which may be 0-length.
 
     Args:
@@ -375,44 +224,51 @@ class BaseLstmDecoder(base_model.BaseDecoder):
       helper: A seq2seq.Helper to use. If a TrainingHelper is passed and a
         CudnnLSTM has previously been defined, it will be used instead.
       max_length: (Optinal) The maximum iterations to decode.
-      x_input: (Optional) The inputs to the decoder for teacher forcing.
-        Required if CudnnLSTM is to be used.
 
     Returns:
-      final_output: The final seq2seq.BasicDecoderOutput.
-      final_state: The final states of the decoder, or None if using Cudnn.
+      results: The LstmDecodeResults.
     """
-    initial_state = initial_cell_state_from_embedding(
+    initial_state = lstm_utils.initial_cell_state_from_embedding(
         self._dec_cell, z, name='decoder/z_to_initial_state')
 
     # CudnnLSTM does not support sampling so it can only replace TrainingHelper.
     if  self._cudnn_dec_lstm and type(helper) is seq2seq.TrainingHelper:  # pylint:disable=unidiomatic-typecheck
       rnn_output, _ = self._cudnn_dec_lstm(
-          tf.transpose(x_input, [1, 0, 2]),
-          initial_state=_cudnn_lstm_state(initial_state),
+          tf.transpose(helper.inputs, [1, 0, 2]),
+          initial_state=lstm_utils.cudnn_lstm_state(initial_state),
           training=self._is_training)
       with tf.variable_scope('decoder'):
         rnn_output = self._output_layer(rnn_output)
-      final_output = seq2seq.BasicDecoderOutput(
-          rnn_output=tf.transpose(rnn_output, [1, 0, 2]), sample_id=None)
-      # TODO(adarob): Return a final state for fixed-length outputs.
-      final_state = None
+
+      results = lstm_utils.LstmDecodeResults(
+          rnn_input=helper.inputs[:, :, :self._output_depth],
+          rnn_output=tf.transpose(rnn_output, [1, 0, 2]),
+          samples=None,
+          final_state=None,
+          final_sequence_lengths=helper.sequence_length)
     else:
       if self._cudnn_dec_lstm:
         tf.logging.warning(
             'CudnnLSTM does not support sampling. Using `dynamic_decode` '
             'instead.')
-      decoder = seq2seq.BasicDecoder(
+      decoder = lstm_utils.Seq2SeqLstmDecoder(
           self._dec_cell,
           helper,
           initial_state=initial_state,
           output_layer=self._output_layer)
-      final_output, final_state, _ = seq2seq.dynamic_decode(
+      final_output, final_state, final_lengths = seq2seq.dynamic_decode(
           decoder,
           maximum_iterations=max_length,
           swap_memory=True,
           scope='decoder')
-    return final_output, final_state
+      results = lstm_utils.LstmDecodeResults(
+          rnn_input=final_output.rnn_input[:, :, :self._output_depth],
+          rnn_output=final_output.rnn_output,
+          samples=final_output.sample_id,
+          final_state=final_state,
+          final_sequence_lengths=final_lengths)
+
+    return results
 
   def reconstruction_loss(self, x_input, x_target, x_length, z=None):
     """Reconstruction loss calculation.
@@ -431,7 +287,7 @@ class BaseLstmDecoder(base_model.BaseDecoder):
       metric_map: Map from metric name to tf.metrics return values for logging.
       truths: Ground truth labels.
       predictions: Predicted labels.
-      final_state: The final states of the decoder, or None if using Cudnn.
+      decode_results: The LstmDecodeResults.
     """
     batch_size = x_input.shape[0].value
 
@@ -455,11 +311,10 @@ class BaseLstmDecoder(base_model.BaseDecoder):
           sampling_probability=self._sampling_probability,
           next_inputs_fn=self._sample)
 
-    decoder_outputs, final_state = self._decode(
-        z, helper=helper, x_input=x_input)
+    decode_results = self._decode(z, helper=helper)
     flat_x_target = flatten_maybe_padded_sequences(x_target, x_length)
     flat_rnn_output = flatten_maybe_padded_sequences(
-        decoder_outputs.rnn_output, x_length)
+        decode_results.rnn_output, x_length)
     r_loss, metric_map, truths, predictions = self._flat_reconstruction_loss(
         flat_x_target, flat_rnn_output)
 
@@ -471,7 +326,7 @@ class BaseLstmDecoder(base_model.BaseDecoder):
       r_losses.append(tf.reduce_sum(r_loss[b:e]))
     r_loss = tf.stack(r_losses)
 
-    return r_loss, metric_map, truths, predictions, final_state
+    return r_loss, metric_map, truths, predictions, decode_results
 
   def sample(self, n, max_length=None, z=None, temperature=1.0,
              start_inputs=None, end_fn=None):
@@ -519,10 +374,9 @@ class BaseLstmDecoder(base_model.BaseDecoder):
         sample_fn, sample_shape=[self._output_depth], sample_dtype=tf.float32,
         start_inputs=start_inputs, end_fn=end_fn, next_inputs_fn=next_inputs_fn)
 
-    decoder_outputs, final_state = self._decode(
-        z, helper=sampler, max_length=max_length)
+    decode_results = self._decode(z, helper=sampler, max_length=max_length)
 
-    return decoder_outputs.sample_id, final_state
+    return decode_results.samples, decode_results
 
 
 class CategoricalLstmDecoder(BaseLstmDecoder):
@@ -598,7 +452,7 @@ class CategoricalLstmDecoder(BaseLstmDecoder):
         if start_inputs is not None else
         -1 * tf.ones([n], dtype=tf.int32))
 
-    initial_state = initial_cell_state_from_embedding(
+    initial_state = lstm_utils.initial_cell_state_from_embedding(
         self._dec_cell, z, name='decoder/z_to_initial_state')
     beam_initial_state = seq2seq.tile_batch(
         initial_state, multiplier=beam_width)
@@ -627,15 +481,28 @@ class CategoricalLstmDecoder(BaseLstmDecoder):
         output_layer=self._output_layer,
         length_penalty_weight=0.0)
 
-    final_output, final_state, _ = seq2seq.dynamic_decode(
+    final_output, final_state, final_lengths = seq2seq.dynamic_decode(
         decoder,
         maximum_iterations=max_length,
         swap_memory=True,
         scope='decoder')
 
-    # Returns samples and final states from the best beams.
-    return (tf.one_hot(final_output.predicted_ids[:, :, 0], self._output_depth),
-            nest.map_structure(lambda x: x[:, 0], final_state.cell_state))
+    samples = tf.one_hot(final_output.predicted_ids[:, :, 0],
+                         self._output_depth)
+    # Rebuild the input by combining the inital input with the sampled output.
+    initial_inputs = (
+        tf.zeros([n, 1, self._output_depth]) if start_inputs is None else
+        tf.expand_dims(start_inputs, axis=1))
+    rnn_input = tf.concat([initial_inputs, samples[:, :-1]], axis=1)
+
+    results = lstm_utils.LstmDecodeResults(
+        rnn_input=rnn_input,
+        rnn_output=None,
+        samples=samples,
+        final_state=nest.map_structure(
+            lambda x: x[:, 0], final_state.cell_state),
+        final_sequence_lengths=final_lengths[:, 0])
+    return samples, results
 
 
 class MultiOutCategoricalLstmDecoder(CategoricalLstmDecoder):
@@ -742,19 +609,19 @@ class HierarchicalMultiOutLstmDecoder(base_model.BaseDecoder):
       num_steps = h_size // len(embeddings)
       all_outputs = []
       with tf.variable_scope('hierarchical_layer_%d' % i) as scope:
-        cell = rnn_cell(
+        cell = lstm_utils.rnn_cell(
             hparams.dec_rnn_size, hparams.dropout_keep_prob, self._is_training)
-        cudnn_cell = cudnn_lstm_layer(
+        cudnn_cell = lstm_utils.cudnn_lstm_layer(
             hparams.dec_rnn_size, hparams.dropout_keep_prob, self._is_training)
         for e in embeddings:
           e.set_shape([batch_size] + e.shape[1:].as_list())
-          initial_state = initial_cell_state_from_embedding(
+          initial_state = lstm_utils.initial_cell_state_from_embedding(
               cell, e, name='e_to_initial_state')
           if hparams.use_cudnn:
             input_ = tf.zeros([num_steps, batch_size, 1])
             outputs, _ = cudnn_cell(
                 input_,
-                initial_state=_cudnn_lstm_state(initial_state),
+                initial_state=lstm_utils.cudnn_lstm_state(initial_state),
                 training=self._is_training)
             outputs = tf.unstack(outputs)
           else:
@@ -803,9 +670,9 @@ class HierarchicalMultiOutLstmDecoder(base_model.BaseDecoder):
     all_truth = []
     all_predictions = []
     metric_map = {}
-    all_final_states = []
+    all_decode_results = []
     for j, loss_outputs_j in enumerate(loss_outputs):
-      r_losses, _, truth, predictions, final_states = zip(*loss_outputs_j)
+      r_losses, _, truth, predictions, decode_results = zip(*loss_outputs_j)
       all_r_losses.append(tf.reduce_sum(r_losses, axis=0))
       all_truth.append(tf.concat(truth, axis=-1))
       all_predictions.append(tf.concat(predictions, axis=-1))
@@ -814,13 +681,13 @@ class HierarchicalMultiOutLstmDecoder(base_model.BaseDecoder):
       metric_map['metrics/mean_per_class_accuracy_%d' % j] = (
           tf.metrics.mean_per_class_accuracy(
               all_truth[-1], all_predictions[-1], self._output_depths[j]))
-      all_final_states.append(final_states)
+      all_decode_results.append(decode_results)
 
     return (tf.reduce_sum(all_r_losses, axis=0),
             metric_map,
             tf.stack(all_truth, axis=-1),
             tf.stack(all_predictions, axis=-1),
-            all_final_states)
+            all_decode_results)
 
   def sample(self, n, max_length=None, z=None, temperature=1.0,
              **core_sampler_kwargs):
@@ -838,13 +705,13 @@ class HierarchicalMultiOutLstmDecoder(base_model.BaseDecoder):
     embeddings = self._hierarchical_decode(z)
 
     sample_ids = []
-    final_states = []
+    decode_results = []
     for j, cd in enumerate(self._core_decoders):
       sample_ids_j = []
-      final_states_j = []
+      decode_results_j = []
       with tf.variable_scope('core_decoder_%d' % j) as scope:
         for e in embeddings:
-          sample_ids_j_e, final_states_j_e = cd.sample(
+          sample_ids_j_e, decode_results_j_e = cd.sample(
               n,
               max_length // len(embeddings),
               z=e,
@@ -853,12 +720,12 @@ class HierarchicalMultiOutLstmDecoder(base_model.BaseDecoder):
                   sample_ids_j[-1][:, -1] if sample_ids_j else None),
               **core_sampler_kwargs)
           sample_ids_j.append(sample_ids_j_e)
-          final_states_j.append(final_states_j_e)
+          decode_results_j.append(decode_results_j_e)
           scope.reuse_variables()
         sample_ids.append(tf.concat(sample_ids_j, axis=1))
-        final_states.append(final_states_j)
+        decode_results.append(decode_results_j)
 
-    return tf.concat(sample_ids, axis=-1), final_states
+    return tf.concat(sample_ids, axis=-1), decode_results
 
 
 class MultiLabelRnnNadeDecoder(BaseLstmDecoder):
