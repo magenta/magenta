@@ -216,13 +216,13 @@ class Seq2SeqLstmDecoder(seq2seq.BasicDecoder):
     else:
       raise ValueError('Incompatible `helper` type: %s' % helper.__class__.name)
 
-    self._input_shape = helper.initialize()
     super(Seq2SeqLstmDecoder, self).__init__(
         cell, helper, initial_state, output_layer)
 
+  @property
   def output_size(self):
     return Seq2SeqLstmDecoderOutput(
-        rnn_input=self._helper.input_shape,
+        rnn_input=self._input_shape,
         rnn_output=self._rnn_output_size(),
         sample_id=self._helper.sample_ids_shape)
 
