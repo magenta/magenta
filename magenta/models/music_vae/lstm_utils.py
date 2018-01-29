@@ -216,7 +216,6 @@ class Seq2SeqLstmDecoder(seq2seq.BasicDecoder):
     else:
       raise ValueError('Incompatible `helper` type: %s' % helper.__class__.name)
 
-    self._input_shape = helper.initialize()
     super(Seq2SeqLstmDecoder, self).__init__(
         cell, helper, initial_state, output_layer)
 
