@@ -252,6 +252,14 @@ class BaseConverter(object):
     sampled_results = self._maybe_sample_outputs(zip(inputs, outputs, lengths))
     return tuple(zip(*sampled_results)) if sampled_results else ([], [], [])
 
+  def _combine_to_tensor_results(self, to_tensor_results):
+    """Combines the results of multiple to_tensors calls into one result."""
+    results = []
+    for result in to_tensor_results:
+      results.extend(zip(*result))
+    sampled_results = self._maybe_sample_outputs(results)
+    return tuple(zip(*sampled_results))  if sampled_results else ([], [], [])
+
   def to_items(self, samples):
     """Python method that decodes samples into list of items."""
     return self._to_items(samples)
@@ -286,6 +294,17 @@ class BaseConverter(object):
     outputs.set_shape([None, None, self.output_depth])
     lengths.set_shape([None] + list(self.length_shape))
     return inputs, outputs, lengths
+
+
+def preprocess_notesequence(note_sequence, presplit_on_time_changes):
+  """Preprocesses a single NoteSequence, resulting in multiple sequences."""
+  if presplit_on_time_changes:
+    note_sequences = sequences_lib.split_note_sequence_on_time_changes(
+        note_sequence)
+  else:
+    note_sequences = [note_sequence]
+
+  return note_sequences
 
 
 class BaseNoteSequenceConverter(BaseConverter):
@@ -340,19 +359,13 @@ class BaseNoteSequenceConverter(BaseConverter):
 
   def to_tensors(self, note_sequence):
     """Python method that converts `note_sequence` into list of tensors."""
-    if self._presplit_on_time_changes:
-      note_sequences = sequences_lib.split_note_sequence_on_time_changes(
-          note_sequence)
-    else:
-      note_sequences = [note_sequence]
+    note_sequences = preprocess_notesequence(
+        note_sequence, self._presplit_on_time_changes)
+
     results = []
     for ns in note_sequences:
-      inputs, outputs = self._to_tensors(ns)
-      if inputs:
-        lengths = [len(i) for i in inputs]
-        results.extend(zip(inputs, outputs, lengths))
-    sampled_results = self._maybe_sample_outputs(results)
-    return tuple(zip(*sampled_results)) if sampled_results else ([], [], [])
+      results.append(super(BaseNoteSequenceConverter, self).to_tensors(ns))
+    return self._combine_to_tensor_results(results)
 
   def _to_items(self, samples):
     """Python method that decodes samples into list of NoteSequences."""
