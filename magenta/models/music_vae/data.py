@@ -249,7 +249,8 @@ class BaseConverter(object):
     """Python method that converts `item` into list of tensors."""
     inputs, outputs = self._to_tensors(item)
     lengths = [len(i) for i in inputs]
-    sampled_results = self._maybe_sample_outputs(zip(inputs, outputs, lengths))
+    sampled_results = self._maybe_sample_outputs(
+        list(zip(inputs, outputs, lengths)))
     return tuple(zip(*sampled_results)) if sampled_results else ([], [], [])
 
   def _combine_to_tensor_results(self, to_tensor_results):
