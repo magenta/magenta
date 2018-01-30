@@ -153,7 +153,8 @@ class BaseConverter(object):
   __metaclass__ = abc.ABCMeta
 
   def __init__(self, input_depth, input_dtype, output_depth, output_dtype,
-               end_token, max_tensors_per_item=None,
+               control_depth=0, control_dtype=np.bool, end_token=None,
+               max_tensors_per_item=None,
                str_to_item_fn=lambda s: s, length_shape=()):
     """Initializes BaseConverter.
 
@@ -162,17 +163,22 @@ class BaseConverter(object):
       input_dtype: DType of input (encoder) tensors.
       output_depth: Depth of final dimension of output (decoder) tensors.
       output_dtype: DType of output (decoder) tensors.
+      control_depth: Depth of final dimension of control tensors, or zero if not
+          conditioning on control tensors.
+      control_dtype: DType of control tensors.
       end_token: Optional end token.
       max_tensors_per_item: The maximum number of outputs to return for each
-        input.
+          input.
       str_to_item_fn: Callable to convert raw string input into an item for
-        conversion.
+          conversion.
       length_shape: Shape of length returned by `to_tensor`.
     """
     self._input_depth = input_depth
     self._input_dtype = input_dtype
     self._output_depth = output_depth
     self._output_dtype = output_dtype
+    self._control_depth = control_depth
+    self._control_dtype = control_dtype
     self._end_token = end_token
     self._max_tensors_per_input = max_tensors_per_item
     self._str_to_item_fn = str_to_item_fn
@@ -225,6 +231,16 @@ class BaseConverter(object):
     return self._output_dtype
 
   @property
+  def control_depth(self):
+    """Dimension of control inputs at each timestep of the sequence."""
+    return self._control_depth
+
+  @property
+  def control_dtype(self):
+    """DType of control inputs."""
+    return self._control_dtype
+
+  @property
   def length_shape(self):
     """Shape of length returned by `to_tensor`."""
     return self._length_shape
@@ -239,11 +255,12 @@ class BaseConverter(object):
     Returns:
       input_tensors: Tensors to feed to the encoder.
       output_tensors: Tensors to feed to the decoder.
+      control_tensors: Tensors to use as controls.
     """
     pass
 
   @abc.abstractmethod
-  def _to_items(self, samples):
+  def _to_items(self, samples, controls=None):
     """Implementation that decodes model samples into list of items."""
     pass
 
@@ -261,11 +278,16 @@ class BaseConverter(object):
 
   def to_tensors(self, item):
     """Python method that converts `item` into list of tensors."""
-    inputs, outputs = self._to_tensors(item)
+    tensors = self._to_tensors(item)
+    inputs, outputs = tensors[:2]
     lengths = [len(i) for i in inputs]
+    if len(tensors) > 2:
+      controls = tensors[2]
+    else:
+      controls = [np.zeros([l, 0]) for l in lengths]
     sampled_results = self._maybe_sample_outputs(
-        list(zip(inputs, outputs, lengths)))
-    return tuple(zip(*sampled_results)) if sampled_results else ([], [], [])
+        list(zip(inputs, outputs, controls, lengths)))
+    return tuple(zip(*sampled_results)) if sampled_results else ([], [], [], [])
 
   def _combine_to_tensor_results(self, to_tensor_results):
     """Combines the results of multiple to_tensors calls into one result."""
@@ -273,11 +295,14 @@ class BaseConverter(object):
     for result in to_tensor_results:
       results.extend(zip(*result))
     sampled_results = self._maybe_sample_outputs(results)
-    return tuple(zip(*sampled_results))  if sampled_results else ([], [], [])
+    return tuple(zip(*sampled_results)) if sampled_results else ([], [], [], [])
 
-  def to_items(self, samples):
+  def to_items(self, samples, controls=None):
     """Python method that decodes samples into list of items."""
-    return self._to_items(samples)
+    if controls is None:
+      return self._to_items(samples)
+    else:
+      return self._to_items(samples, controls)
 
   def tf_to_tensors(self, item_scalar):
     """TensorFlow op that converts item into output tensors.
@@ -286,29 +311,36 @@ class BaseConverter(object):
 
     Args:
       item_scalar: A scalar of type tf.String containing the raw item to be
-        converted to tensors.
+          converted to tensors.
 
     Returns:
+      inputs: A Tensor, shaped [num encoded seqs, max(lengths), input_depth],
+          containing the padded input encodings.
       outputs: A Tensor, shaped [num encoded seqs, max(lengths), output_depth],
-        containing the padded output encodings resulting from the input.
+          containing the padded output encodings resulting from the input.
+      controls: A Tensor, shaped
+          [num encoded seqs, max(lengths), control_depth], containing the padded
+          control encodings.
       lengths: A tf.int32 Tensor, shaped [num encoded seqs], containing the
         unpadded lengths of the tensor sequences resulting from the input.
     """
     def _convert_and_pad(item_str):
       item = self.str_to_item_fn(item_str)
-      inputs, outputs, lengths = self.to_tensors(item)
+      inputs, outputs, controls, lengths = self.to_tensors(item)
       inputs = _maybe_pad_seqs(inputs, self.input_dtype)
       outputs = _maybe_pad_seqs(outputs, self.output_dtype)
-      return inputs, outputs, np.array(lengths, np.int32)
-    inputs, outputs, lengths = tf.py_func(
+      controls = _maybe_pad_seqs(controls, self.control_dtype)
+      return inputs, outputs, controls, np.array(lengths, np.int32)
+    inputs, outputs, controls, lengths = tf.py_func(
         _convert_and_pad,
         [item_scalar],
-        [self.input_dtype, self.output_dtype, tf.int32],
+        [self.input_dtype, self.output_dtype, self.control_dtype, tf.int32],
         name='convert_and_pad')
     inputs.set_shape([None, None, self.input_depth])
     outputs.set_shape([None, None, self.output_depth])
+    controls.set_shape([None, None, self.control_depth])
     lengths.set_shape([None] + list(self.length_shape))
-    return inputs, outputs, lengths
+    return inputs, outputs, controls, lengths
 
 
 def preprocess_notesequence(note_sequence, presplit_on_time_changes):
@@ -333,7 +365,8 @@ class BaseNoteSequenceConverter(BaseConverter):
   __metaclass__ = abc.ABCMeta
 
   def __init__(self, input_depth, input_dtype, output_depth, output_dtype,
-               end_token, presplit_on_time_changes=True,
+               control_depth=0, control_dtype=np.bool, end_token=None,
+               presplit_on_time_changes=True,
                max_tensors_per_notesequence=None):
     """Initializes BaseNoteSequenceConverter.
 
@@ -342,6 +375,9 @@ class BaseNoteSequenceConverter(BaseConverter):
       input_dtype: DType of input (encoder) tensors.
       output_depth: Depth of final dimension of output (decoder) tensors.
       output_dtype: DType of output (decoder) tensors.
+      control_depth: Depth of final dimension of control tensors, or zero if not
+          conditioning on control tensors.
+      control_dtype: DType of control tensors.
       end_token: Optional end token.
       presplit_on_time_changes: Whether to split NoteSequence on time changes
         before converting.
@@ -349,7 +385,8 @@ class BaseNoteSequenceConverter(BaseConverter):
         for each NoteSequence.
     """
     super(BaseNoteSequenceConverter, self).__init__(
-        input_depth, input_dtype, output_depth, output_dtype, end_token,
+        input_depth, input_dtype, output_depth, output_dtype,
+        control_depth, control_dtype, end_token,
         max_tensors_per_item=max_tensors_per_notesequence,
         str_to_item_fn=music_pb2.NoteSequence.FromString)
 
@@ -364,13 +401,13 @@ class BaseNoteSequenceConverter(BaseConverter):
     self.max_tensors_per_item = value
 
   @abc.abstractmethod
-  def _to_notesequences(self, samples):
+  def _to_notesequences(self, samples, controls=None):
     """Implementation that decodes model samples into list of NoteSequences."""
-    return
+    pass
 
-  def to_notesequences(self, samples):
+  def to_notesequences(self, samples, controls=None):
     """Python method that decodes samples into list of NoteSequences."""
-    return self._to_items(samples)
+    return self._to_items(samples, controls)
 
   def to_tensors(self, note_sequence):
     """Python method that converts `note_sequence` into list of tensors."""
@@ -382,9 +419,12 @@ class BaseNoteSequenceConverter(BaseConverter):
       results.append(super(BaseNoteSequenceConverter, self).to_tensors(ns))
     return self._combine_to_tensor_results(results)
 
-  def _to_items(self, samples):
+  def _to_items(self, samples, controls=None):
     """Python method that decodes samples into list of NoteSequences."""
-    return self._to_notesequences(samples)
+    if controls is None:
+      return self._to_notesequences(samples)
+    else:
+      return self._to_notesequences(samples, controls)
 
 
 class LegacyEventListOneHotConverter(BaseNoteSequenceConverter):
@@ -878,14 +918,14 @@ class TrioConverter(BaseNoteSequenceConverter):
     encoded_instruments = {}
     for i in (instruments_by_type[self.InstrumentType.MEL] +
               instruments_by_type[self.InstrumentType.BASS]):
-      _, t, _ = self._melody_converter.to_tensors(
+      _, t, _, _ = self._melody_converter.to_tensors(
           _extract_instrument(note_sequence, i))
       if t:
         encoded_instruments[i] = t[0]
       else:
         coverage[:, i] = False
     for i in instruments_by_type[self.InstrumentType.DRUMS]:
-      _, t, _ = self._drums_converter.to_tensors(
+      _, t, _, _ = self._drums_converter.to_tensors(
           _extract_instrument(note_sequence, i))
       if t:
         encoded_instruments[i] = t[0]
@@ -961,7 +1001,7 @@ def count_examples(examples_path, data_converter,
     reader = file_reader(f)
     for item_str in reader:
       item = data_converter.str_to_item_fn(item_str)
-      seqs, _, _ = data_converter.to_tensors(item)
+      seqs, _, _, _ = data_converter.to_tensors(item)
       num_examples += len(seqs)
   tf.logging.info('Total examples: %d', num_examples)
   return num_examples
@@ -984,12 +1024,16 @@ def get_dataset(config, tf_file_reader_class=tf.data.TFRecordDataset,
       tf.contrib.data.parallel_interleave(
           tf_file_reader_class, cycle_length=num_threads))
 
-  def _remove_pad_fn(padded_seq_1, padded_seq_2, length):
+  def _from_tensor_slices_fn(w, x, y, z):
+    return tf.data.Dataset.from_tensor_slices((w, x, y, z))
+
+  def _remove_pad_fn(padded_seq_1, padded_seq_2, padded_seq_3, length):
     if length.shape.ndims == 0:
-      return padded_seq_1[0:length], padded_seq_2[0:length], length
+      return (padded_seq_1[0:length], padded_seq_2[0:length],
+              padded_seq_3[0:length], length)
     else:
       # Don't remove padding for hierarchical examples.
-      return padded_seq_1, padded_seq_2, length
+      return padded_seq_1, padded_seq_2, padded_seq_3, length
 
   dataset = reader
   if note_sequence_augmenter is not None:
@@ -997,8 +1041,7 @@ def get_dataset(config, tf_file_reader_class=tf.data.TFRecordDataset,
   dataset = (dataset
              .map(data_converter.tf_to_tensors,
                   num_parallel_calls=num_threads)
-             .flat_map(
-                 lambda x, y, z: tf.data.Dataset.from_tensor_slices((x, y, z)))
+             .flat_map(_from_tensor_slices_fn)
              .map(_remove_pad_fn))
 
   return dataset
