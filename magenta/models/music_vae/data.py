@@ -29,6 +29,7 @@ import numpy as np
 import tensorflow as tf
 
 import magenta.music as mm
+from magenta.music import chord_symbols_lib
 from magenta.music import drums_encoder_decoder
 from magenta.music import sequences_lib
 from magenta.protobuf import music_pb2
@@ -48,6 +49,8 @@ ELECTRIC_BASS_PROGRAM = 33
 REDUCED_DRUM_PITCH_CLASSES = drums_encoder_decoder.DEFAULT_DRUM_TYPE_PITCHES
 FULL_DRUM_PITCH_CLASSES = [  # 61 classes
     [p] for c in drums_encoder_decoder.DEFAULT_DRUM_TYPE_PITCHES for p in c]
+
+CHORD_SYMBOL = music_pb2.NoteSequence.TextAnnotation.CHORD_SYMBOL
 
 
 def _maybe_pad_seqs(seqs, dtype):
@@ -107,6 +110,15 @@ class NoteSequenceAugmenter(object):
       if MIN_MIDI_PITCH <= aug_pitch <= MAX_MIDI_PITCH:
         augmented_ns.notes.add().CopyFrom(note)
         augmented_ns.notes[-1].pitch = aug_pitch
+
+    for ta in augmented_ns.text_annotations:
+      if ta.annotation_type == CHORD_SYMBOL and ta.text != mm.NO_CHORD:
+        try:
+          figure = chord_symbols_lib.transpose_chord_symbol(ta.text, trans_amt)
+        except chord_symbols_lib.ChordSymbolException:
+          tf.logging.warning('Unable to transpose chord symbol: %s', ta.text)
+          figure = mm.NO_CHORD
+        ta.text = figure
 
     augmented_ns = sequences_lib.stretch_note_sequence(
         augmented_ns, stretch_factor)
