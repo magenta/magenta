@@ -52,6 +52,7 @@ class EventSequence(object):
         beginning of the source sequence.
     end_step: The offset to the beginning of the bar following the last step
         of the sequence relative to the beginning of the source sequence.
+    steps: A Python list containing the time step at each event of the sequence.
   """
   __metaclass__ = abc.ABCMeta
 
@@ -61,6 +62,10 @@ class EventSequence(object):
 
   @abc.abstractproperty
   def end_step(self):
+    pass
+
+  @abc.abstractproperty
+  def steps(self):
     pass
 
   @abc.abstractmethod
@@ -223,6 +228,10 @@ class SimpleEventSequence(EventSequence):
   @property
   def end_step(self):
     return self._end_step
+
+  @property
+  def steps(self):
+    return list(range(self._start_step, self._end_step))
 
   @property
   def steps_per_bar(self):

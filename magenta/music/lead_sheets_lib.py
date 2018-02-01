@@ -139,6 +139,10 @@ class LeadSheet(events_lib.EventSequence):
     return self._melody.end_step
 
   @property
+  def steps(self):
+    return self._melody.steps
+
+  @property
   def steps_per_bar(self):
     return self._melody.steps_per_bar
 

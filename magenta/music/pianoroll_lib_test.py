@@ -136,10 +136,12 @@ class PianorollLibTest(tf.test.TestCase):
     pianoroll_seq.append((0))
 
     self.assertEqual(1, pianoroll_seq.num_steps)
+    self.assertListEqual([0], pianoroll_seq.steps)
 
     pianoroll_seq.set_length(5)
 
     self.assertEqual(5, pianoroll_seq.num_steps)
+    self.assertListEqual([0, 1, 2, 3, 4], pianoroll_seq.steps)
 
     self.assertEqual([(0), (), (), (), ()], list(pianoroll_seq))
 
@@ -147,6 +149,7 @@ class PianorollLibTest(tf.test.TestCase):
     pianoroll_seq.set_length(10)
 
     self.assertEqual(10, pianoroll_seq.num_steps)
+    self.assertListEqual([0, 1, 2, 3, 4, 5, 6, 7, 8, 9], pianoroll_seq.steps)
 
     self.assertEqual([(0)] + [()] * 9, list(pianoroll_seq))
 

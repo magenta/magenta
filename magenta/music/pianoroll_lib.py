@@ -163,6 +163,11 @@ class PianorollSequence(events_lib.EventSequence):
     """
     return len(self)
 
+  @property
+  def steps(self):
+    """Returns a Python list of the time step at each event in this sequence."""
+    return list(range(self.start_step, self.end_step))
+
   @staticmethod
   def _from_quantized_sequence(
       quantized_sequence, start_step, min_pitch, max_pitch, split_repeats):
