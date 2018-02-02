@@ -19,7 +19,6 @@ import tensorflow as tf
 
 import magenta
 
-from magenta.models.performance_rnn import performance_encoder_decoder
 from magenta.models.performance_rnn import performance_model
 from magenta.models.performance_rnn import performance_rnn_create_dataset
 from magenta.protobuf import music_pb2
@@ -34,7 +33,7 @@ class PerformancePipelineTest(tf.test.TestCase):
     self.config = performance_model.PerformanceRnnConfig(
         None,
         magenta.music.OneHotEventSequenceEncoderDecoder(
-            performance_encoder_decoder.PerformanceOneHotEncoding()),
+            magenta.music.PerformanceOneHotEncoding()),
         tf.contrib.training.HParams())
 
   def testPerformanceRnnPipeline(self):
