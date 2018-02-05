@@ -218,6 +218,7 @@ class PerformanceLibTest(tf.test.TestCase):
 
     performance.set_length(50)
     self.assertEqual(50, performance.num_steps)
+    self.assertListEqual([0], performance.steps)
 
     pe = performance_lib.PerformanceEvent
     perf_events = [pe(pe.TIME_SHIFT, 50)]
@@ -225,6 +226,7 @@ class PerformanceLibTest(tf.test.TestCase):
 
     performance.set_length(150)
     self.assertEqual(150, performance.num_steps)
+    self.assertListEqual([0, 100], performance.steps)
 
     pe = performance_lib.PerformanceEvent
     perf_events = [
@@ -235,6 +237,7 @@ class PerformanceLibTest(tf.test.TestCase):
 
     performance.set_length(200)
     self.assertEqual(200, performance.num_steps)
+    self.assertListEqual([0, 100], performance.steps)
 
     pe = performance_lib.PerformanceEvent
     perf_events = [
@@ -295,6 +298,7 @@ class PerformanceLibTest(tf.test.TestCase):
       performance.append(event)
 
     self.assertEqual(100, performance.num_steps)
+    self.assertListEqual([0, 0, 0, 100, 100], performance.steps)
 
   def testPerformanceNoteDensitySequence(self):
     performance = performance_lib.Performance(steps_per_second=100)

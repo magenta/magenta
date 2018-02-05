@@ -236,6 +236,17 @@ class PolyphonicSequence(events_lib.EventSequence):
         steps += 1
     return steps
 
+  @property
+  def steps(self):
+    """Return a Python list of the time step at each event in this sequence."""
+    step = 0
+    result = []
+    for event in self:
+      result.append(step)
+      if event.event_type == PolyphonicEvent.STEP_END:
+        step += 1
+    return result
+
   @staticmethod
   def _from_quantized_sequence(quantized_sequence, start_step=0):
     """Populate self with events from the given quantized NoteSequence object.

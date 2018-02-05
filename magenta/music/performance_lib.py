@@ -269,6 +269,17 @@ class Performance(events_lib.EventSequence):
         steps += event.event_value
     return steps
 
+  @property
+  def steps(self):
+    """Return a Python list of the time step at each event in this sequence."""
+    step = 0
+    result = []
+    for event in self:
+      result.append(step)
+      if event.event_type == PerformanceEvent.TIME_SHIFT:
+        step += event.event_value
+    return result
+
   @staticmethod
   def _from_quantized_sequence(quantized_sequence, start_step=0,
                                num_velocity_bins=0):
