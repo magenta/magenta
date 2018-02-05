@@ -17,8 +17,8 @@
 
 import tensorflow as tf
 
-from magenta.models.performance_rnn import performance_encoder_decoder
-from magenta.models.performance_rnn.performance_lib import PerformanceEvent
+from magenta.music import performance_encoder_decoder
+from magenta.music.performance_lib import PerformanceEvent
 
 
 class PerformanceOneHotEncodingTest(tf.test.TestCase):

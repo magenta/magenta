@@ -28,30 +28,6 @@ py_library(
 )
 
 py_library(
-    name = "performance_lib",
-    srcs = ["performance_lib.py"],
-    srcs_version = "PY2AND3",
-    visibility = [
-        # internal model:discrete_music_gan
-    ],
-    deps = [
-        "//magenta",
-        # tensorflow dep
-    ],
-)
-
-py_test(
-    name = "performance_lib_test",
-    srcs = ["performance_lib_test.py"],
-    srcs_version = "PY2AND3",
-    deps = [
-        ":performance_lib",
-        "//magenta",
-        # tensorflow dep
-    ],
-)
-
-py_library(
     name = "performance_model",
     srcs = ["performance_model.py"],
     srcs_version = "PY2AND3",
@@ -60,8 +36,6 @@ py_library(
         # internal models
     ],
     deps = [
-        ":performance_encoder_decoder",
-        ":performance_lib",
         "//magenta/models/shared:events_rnn_model",
         "//magenta",
         # tensorflow dep
@@ -77,7 +51,6 @@ py_library(
         "//magenta/interfaces:generator_interfaces",
     ],
     deps = [
-        ":performance_lib",
         ":performance_model",
         "//magenta",
         # tensorflow dep
@@ -90,35 +63,8 @@ py_binary(
     srcs_version = "PY2AND3",
     visibility = ["//magenta/tools/pip:__subpackages__"],
     deps = [
-        ":performance_lib",
         ":performance_model",
         ":performance_sequence_generator",
-        "//magenta",
-        # tensorflow dep
-    ],
-)
-
-py_library(
-    name = "performance_encoder_decoder",
-    srcs = ["performance_encoder_decoder.py"],
-    srcs_version = "PY2AND3",
-    visibility = [
-        # internal model:discrete_music_gan
-    ],
-    deps = [
-        ":performance_lib",
-        "//magenta",
-        # tensorflow dep
-    ],
-)
-
-py_test(
-    name = "performance_encoder_decoder_test",
-    srcs = ["performance_encoder_decoder_test.py"],
-    srcs_version = "PY2AND3",
-    deps = [
-        ":performance_encoder_decoder",
-        ":performance_lib",
         "//magenta",
         # tensorflow dep
     ],
@@ -133,7 +79,6 @@ py_binary(
         "//magenta/tools/pip:__subpackages__",
     ],
     deps = [
-        ":performance_lib",
         ":performance_model",
         "//magenta",
         # tensorflow dep
@@ -145,7 +90,6 @@ py_test(
     srcs = ["performance_rnn_create_dataset_test.py"],
     srcs_version = "PY2AND3",
     deps = [
-        ":performance_lib",
         ":performance_model",
         ":performance_rnn_create_dataset",
         "//magenta",

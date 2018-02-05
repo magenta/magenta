@@ -24,8 +24,8 @@ import os
 # internal imports
 
 import tensorflow as tf
+import magenta
 
-from magenta.models.performance_rnn import performance_lib
 from magenta.models.performance_rnn import performance_model
 
 from magenta.pipelines import dag_pipeline
@@ -62,7 +62,7 @@ class EncoderPipeline(pipeline.Pipeline):
       name: A unique pipeline name.
     """
     super(EncoderPipeline, self).__init__(
-        input_type=performance_lib.Performance,
+        input_type=magenta.music.Performance,
         output_type=tf.train.SequenceExample,
         name=name)
     self._encoder_decoder = config.encoder_decoder
@@ -78,11 +78,11 @@ class EncoderPipeline(pipeline.Pipeline):
       control_sequences = []
       if self._density_bin_ranges is not None:
         control_sequences.append(
-            performance_lib.performance_note_density_sequence(
+            magenta.music.performance_note_density_sequence(
                 performance, self._density_window_size))
       if self._pitch_histogram_window_size is not None:
         control_sequences.append(
-            performance_lib.performance_pitch_histogram_sequence(
+            magenta.music.performance_pitch_histogram_sequence(
                 performance, self._pitch_histogram_window_size))
       control_sequence = zip(*control_sequences)
       if self._optional_conditioning:
@@ -107,14 +107,14 @@ class PerformanceExtractor(pipeline.Pipeline):
   def __init__(self, min_events, max_events, num_velocity_bins, name=None):
     super(PerformanceExtractor, self).__init__(
         input_type=music_pb2.NoteSequence,
-        output_type=performance_lib.Performance,
+        output_type=magenta.music.Performance,
         name=name)
     self._min_events = min_events
     self._max_events = max_events
     self._num_velocity_bins = num_velocity_bins
 
   def transform(self, quantized_sequence):
-    performances, stats = performance_lib.extract_performances(
+    performances, stats = magenta.music.extract_performances(
         quantized_sequence,
         min_events_discard=self._min_events,
         max_events_truncate=self._max_events,

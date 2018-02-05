@@ -23,10 +23,10 @@ import math
 
 import tensorflow as tf
 
-from magenta.models.performance_rnn import performance_lib
 from magenta.models.performance_rnn import performance_model
 
 import magenta.music as mm
+from magenta.music import performance_lib
 
 # This model can leave hanging notes. To avoid cacophony we turn off any note
 # after 5 seconds.
@@ -119,7 +119,7 @@ class PerformanceRnnSequenceGenerator(mm.BaseSequenceGenerator):
     quantized_primer_sequence = mm.quantize_note_sequence_absolute(
         primer_sequence, self.steps_per_second)
 
-    extracted_perfs, _ = performance_lib.extract_performances(
+    extracted_perfs, _ = mm.extract_performances(
         quantized_primer_sequence, start_step=input_start_step,
         num_velocity_bins=self.num_velocity_bins)
     assert len(extracted_perfs) <= 1
@@ -137,7 +137,7 @@ class PerformanceRnnSequenceGenerator(mm.BaseSequenceGenerator):
     else:
       # If no track could be extracted, create an empty track that starts at the
       # requested generate_start_step.
-      performance = performance_lib.Performance(
+      performance = mm.Performance(
           steps_per_second=(
               quantized_primer_sequence.quantization_info.steps_per_second),
           start_step=generate_start_step,

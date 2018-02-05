@@ -17,10 +17,10 @@ from __future__ import division
 
 # internal imports
 
-from magenta.models.performance_rnn import performance_lib
-from magenta.models.performance_rnn.performance_lib import PerformanceEvent
 from magenta.music import constants
 from magenta.music import encoder_decoder
+from magenta.music import performance_lib
+from magenta.music.performance_lib import PerformanceEvent
 
 NOTES_PER_OCTAVE = constants.NOTES_PER_OCTAVE
 

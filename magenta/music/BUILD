@@ -44,6 +44,8 @@ py_library(
         ":musicxml_reader",
         ":note_sequence_io",
         ":notebook_utils",
+        ":performance_encoder_decoder",
+        ":performance_lib",
         ":pianoroll_encoder_decoder",
         ":pianoroll_lib",
         ":sequence_generator",
@@ -501,6 +503,57 @@ py_library(
         # IPython dep
         # bokeh dep
         # pandas dep
+    ],
+)
+
+py_library(
+    name = "performance_encoder_decoder",
+    srcs = ["performance_encoder_decoder.py"],
+    srcs_version = "PY2AND3",
+    deps = [
+        ":constants",
+        ":encoder_decoder",
+        ":performance_lib",
+        # tensorflow dep
+    ],
+)
+
+py_test(
+    name = "performance_encoder_decoder_test",
+    srcs = ["performance_encoder_decoder_test.py"],
+    srcs_version = "PY2AND3",
+    deps = [
+        ":performance_encoder_decoder",
+        ":performance_lib",
+        # tensorflow dep
+    ],
+)
+
+
+py_library(
+    name = "performance_lib",
+    srcs = ["performance_lib.py"],
+    srcs_version = "PY2AND3",
+    deps = [
+        ":constants",
+        ":events_lib",
+        ":sequences_lib",
+        "//magenta/pipelines:statistics",
+        "//magenta/protobuf:music_py_pb2",
+        # tensorflow dep
+    ],
+)
+
+py_test(
+    name = "performance_lib_test",
+    srcs = ["performance_lib_test.py"],
+    srcs_version = "PY2AND3",
+    deps = [
+        ":performance_lib",
+        ":sequences_lib",
+        ":testing_lib",
+        "//magenta/protobuf:music_py_pb2",
+        # tensorflow dep
     ],
 )
 
