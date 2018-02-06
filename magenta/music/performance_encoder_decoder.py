@@ -31,19 +31,21 @@ EVENT_RANGES = [
      performance_lib.MIN_MIDI_PITCH, performance_lib.MAX_MIDI_PITCH),
     (PerformanceEvent.NOTE_OFF,
      performance_lib.MIN_MIDI_PITCH, performance_lib.MAX_MIDI_PITCH),
-    (PerformanceEvent.TIME_SHIFT, 1, performance_lib.MAX_SHIFT_STEPS),
 ]
 
 
 class PerformanceOneHotEncoding(encoder_decoder.OneHotEncoding):
   """One-hot encoding for performance events."""
 
-  def __init__(self, num_velocity_bins=0):
+  def __init__(self, num_velocity_bins=0,
+               max_shift_steps=performance_lib.DEFAULT_MAX_SHIFT_STEPS):
+    self._event_ranges = EVENT_RANGES + [
+        (PerformanceEvent.TIME_SHIFT, 1, max_shift_steps)
+    ]
     if num_velocity_bins > 0:
-      self._event_ranges = EVENT_RANGES + [
-          (PerformanceEvent.VELOCITY, 1, num_velocity_bins)]
-    else:
-      self._event_ranges = EVENT_RANGES
+      self._event_ranges.append(
+          (PerformanceEvent.VELOCITY, 1, num_velocity_bins))
+    self._max_shift_steps = max_shift_steps
 
   @property
   def num_classes(self):
@@ -54,7 +56,7 @@ class PerformanceOneHotEncoding(encoder_decoder.OneHotEncoding):
   def default_event(self):
     return PerformanceEvent(
         event_type=PerformanceEvent.TIME_SHIFT,
-        event_value=performance_lib.MAX_SHIFT_STEPS)
+        event_value=self._max_shift_steps)
 
   def encode_event(self, event):
     offset = 0
