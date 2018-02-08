@@ -25,7 +25,7 @@ tf.app.flags.DEFINE_string("source_path", "", "Path to directory with either "
                            ".wav files or precomputed encodings in .npy files."
                            "If .wav files are present, use wav files. If no "
                            ".wav files are present, use .npy files")
-tf.app.flags.DEFINE_string("npy_only", False, "If True, use only .npy files.")
+tf.app.flags.DEFINE_boolean("npy_only", False, "If True, use only .npy files.")
 tf.app.flags.DEFINE_string("save_path", "", "Path to output file dir.")
 tf.app.flags.DEFINE_string("checkpoint_path", "model.ckpt-200000",
                            "Path to checkpoint.")
