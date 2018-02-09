@@ -99,6 +99,12 @@ class Generator(object):
   """Instantiates model and generates according to strategy and midi input."""
 
   def __init__(self, wmodel, strategy_name="complete_midi"):
+    """Inits Generator with a model and strategy.
+
+    Args:
+      wmodel: A lib_graph.CoconetGraph loaded from a model checkpoint.
+      strategy_name: A string key identifying the strategy to initialize.
+    """
     self.wmodel = wmodel
     self.hparams = self.wmodel.hparams
     self.decoder = lib_pianoroll.get_pianoroll_encoder_decoder(self.hparams)
@@ -116,7 +122,21 @@ class Generator(object):
                      gen_batch_size=3,
                      piece_length=16,
                      new_strategy=None):
-    """Generates, conditions on midi_in if given, returns midi."""
+    """Generates, conditions on midi_in if given, returns midi.
+
+    Args:
+      midi_in: An optional PrettyMIDI object containing input data.
+      pianorolls_in: An optional ndarray pianoroll of input data.
+      gen_batch_size: The number of outputs to generate.
+      piece_length: The desired length of the output in the steps unit of the
+          model.
+      new_strategy: A string key identifying the strategy to use. If unset, uses
+          the strategy given at initialization.
+
+    Returns:
+      The model outputs, as an array of PrettyMIDI with a length of
+      gen_batch_size.
+    """
     if new_strategy is not None:
       self.strategy_name = new_strategy
       self.strategy = BaseStrategy.make(self.strategy_name, self.wmodel,
