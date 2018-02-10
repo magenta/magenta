@@ -102,7 +102,7 @@ class Generator(object):
     """Inits Generator with a model and strategy.
 
     Args:
-      wmodel: A lib_graph.CoconetGraph loaded from a model checkpoint.
+      wmodel: A lib_tfutil.WrappedModel loaded from a model checkpoint.
       strategy_name: A string key identifying the strategy to initialize.
     """
     self.wmodel = wmodel
