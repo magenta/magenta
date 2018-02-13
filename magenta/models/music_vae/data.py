@@ -106,7 +106,9 @@ class NoteSequenceAugmenter(object):
     augmented_ns = copy.deepcopy(note_sequence)
     del augmented_ns.notes[:]
     for note in note_sequence.notes:
-      aug_pitch = note.pitch + trans_amt
+      aug_pitch = note.pitch
+      if not note.is_drum:
+        aug_pitch += trans_amt
       if MIN_MIDI_PITCH <= aug_pitch <= MAX_MIDI_PITCH:
         augmented_ns.notes.add().CopyFrom(note)
         augmented_ns.notes[-1].pitch = aug_pitch
