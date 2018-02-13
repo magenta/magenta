@@ -176,18 +176,17 @@ class TrainedModel(object):
     controls = []
     lengths = []
     for note_sequence in note_sequences:
-      extracted_inputs, _, extracted_controls, extracted_lengths = (
-          self._config.data_converter.to_tensors(note_sequence))
-      if not extracted_inputs:
+      extracted_tensors = self._config.data_converter.to_tensors(note_sequence)
+      if not extracted_tensors.inputs:
         raise NoExtractedExamplesException(
             'No examples extracted from NoteSequence: %s' % note_sequence)
-      if len(extracted_inputs) > 1:
+      if len(extracted_tensors.inputs) > 1:
         raise MultipleExtractedExamplesException(
             'Multiple (%d) examples extracted from NoteSequence: %s' %
-            (len(extracted_inputs), note_sequence))
-      inputs.append(extracted_inputs[0])
-      controls.append(extracted_controls[0])
-      lengths.append(extracted_lengths[0])
+            (len(extracted_tensors.inputs), note_sequence))
+      inputs.append(extracted_tensors.inputs[0])
+      controls.append(extracted_tensors.controls[0])
+      lengths.append(extracted_tensors.lengths[0])
       if assert_same_length and len(inputs[0]) != len(inputs[-1]):
         raise AssertionError(
             'Sequences 0 and %d have different lengths: %d vs %d' %
