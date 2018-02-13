@@ -20,13 +20,10 @@ from functools import partial
 import math
 
 # internal imports
-
 import tensorflow as tf
 
 from magenta.models.performance_rnn import performance_model
-
 import magenta.music as mm
-from magenta.music import performance_lib
 
 # This model can leave hanging notes. To avoid cacophony we turn off any note
 # after 5 seconds.
@@ -46,7 +43,7 @@ class PerformanceRnnSequenceGenerator(mm.BaseSequenceGenerator):
   """Performance RNN generation code as a SequenceGenerator interface."""
 
   def __init__(self, model, details,
-               steps_per_second=performance_lib.DEFAULT_STEPS_PER_SECOND,
+               steps_per_second=mm.DEFAULT_STEPS_PER_SECOND,
                num_velocity_bins=0, note_density_conditioning=False,
                pitch_histogram_conditioning=False, optional_conditioning=False,
                max_note_duration=MAX_NOTE_DURATION_SECONDS,
@@ -242,7 +239,7 @@ class PerformanceRnnSequenceGenerator(mm.BaseSequenceGenerator):
 
     if not performance:
       # Primer is empty; let's just start with silence.
-      performance.set_length(min(performance_lib.MAX_SHIFT_STEPS, total_steps))
+      performance.set_length(min(performance.max_shift_steps, total_steps))
 
     while performance.num_steps < total_steps:
       # Assume the average specified (or default) note density and 4 RNN steps
