@@ -30,7 +30,6 @@ from tensorflow.contrib import rnn
 from tensorflow.contrib import seq2seq
 from tensorflow.python.framework import tensor_util
 from tensorflow.python.layers import core as layers_core
-from tensorflow.python.ops import array_ops
 from tensorflow.python.util import nest
 
 
@@ -224,8 +223,8 @@ class BaseLstmDecoder(base_model.BaseDecoder):
         may be 0 for unconditioned decoding.
       helper: A seq2seq.Helper to use. If a TrainingHelper is passed and a
         CudnnLSTM has previously been defined, it will be used instead.
-      input_shape: TODO LSKDJFLKSDJF
-      max_length: (Optinal) The maximum iterations to decode.
+      input_shape: The shape of each model input vector passed to the decoder.
+      max_length: (Optional) The maximum iterations to decode.
 
     Returns:
       results: The LstmDecodeResults.
@@ -285,7 +284,7 @@ class BaseLstmDecoder(base_model.BaseDecoder):
       x_length: Length of input/output sequences, sized `[batch_size]`.
       z: (Optional) Latent vectors. Required if model is conditional. Sized
         `[n, z_size]`.
-      c_input: Batch of control sequences, sized
+      c_input: (Optional) Batch of control sequences, sized
           `[batch_size, max(x_length), control_depth]`. Required if conditioning
           on control sequences.
 
@@ -391,7 +390,7 @@ class BaseLstmDecoder(base_model.BaseDecoder):
     start_inputs = tf.concat([start_inputs, z], axis=-1)
     if c_input is not None:
       start_inputs = tf.concat([start_inputs, c_input[0]], axis=-1)
-    initialize_fn = lambda: (array_ops.tile([False], [n]), start_inputs)
+    initialize_fn = lambda: (tf.zeros([n], tf.bool), start_inputs)
 
     sample_fn = lambda time, outputs, state: self._sample(outputs, temperature)
     end_fn = end_fn or (lambda x: False)

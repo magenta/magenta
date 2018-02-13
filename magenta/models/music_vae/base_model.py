@@ -99,7 +99,7 @@ class BaseDecoder(object):
       x_length: Length of input/output sequences, sized `[batch_size]`.
       z: (Optional) Latent vectors. Required if model is conditional. Sized
           `[n, z_size]`.
-      c_input: Batch of control sequences, sized
+      c_input: (Optional) Batch of control sequences, sized
           `[batch_size, max(x_length), control_depth]`. Required if conditioning
           on control sequences.
 
@@ -173,7 +173,21 @@ class MusicVAE(object):
     return self._hparams
 
   def encode(self, sequence, sequence_length, control_sequence=None):
-    """Encodes input sequences into a MultivariateNormalDiag distribution."""
+    """Encodes input sequences into a MultivariateNormalDiag distribution.
+
+    Args:
+      sequence: A Tensor with shape `[num_sequences, max_length, input_depth]`
+          containing the sequences to encode.
+      sequence_length: The length of each sequence in the `sequence` Tensor.
+      control_sequence: (Optional) A Tensor with shape
+          `[num_sequences, max_length, control_depth]` containing control
+          sequences on which to condition. These will be concatenated depthwise
+          to the input sequences.
+
+    Returns:
+      A tf.distributions.MultivariateNormalDiag representing the posterior
+      distribution for each sequence.
+    """
     hparams = self.hparams
     z_size = hparams.z_size
 
@@ -211,7 +225,7 @@ class MusicVAE(object):
     input_sequence = input_sequence[:, :max_seq_len]
 
     if control_sequence is not None:
-      control_depth = control_sequence.get_shape()[-1]
+      control_depth = control_sequence.shape[-1]
       control_sequence = tf.to_float(control_sequence)
       control_sequence = control_sequence[:, :max_seq_len]
       # Shouldn't be necessary, but the slice loses shape information when
@@ -269,8 +283,10 @@ class MusicVAE(object):
       input_sequence: The sequence to be fed to the encoder.
       output_sequence: The sequence expected from the decoder.
       sequence_length: The length of the given sequences (which must be
-        identical).
-      control_sequence: (Optional) sequence on which to condition the decoder.
+          identical).
+      control_sequence: (Optional) sequence on which to condition. This will be
+          concatenated depthwise to the model inputs for both encoding and
+          decoding.
 
     Returns:
       optimizer: A tf.train.Optimizer.
