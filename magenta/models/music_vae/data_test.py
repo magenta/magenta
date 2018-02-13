@@ -75,7 +75,6 @@ class NoteSequenceAugmenterTest(tf.test.TestCase):
 
     self.assertEqual(expected_sequence, augmented_sequence)
 
-
   def testAugmentStretch(self):
     augmenter = data.NoteSequenceAugmenter(stretch_range=(0.5, 0.5))
     augmented_sequence = augmenter.augment(self.sequence)
