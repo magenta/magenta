@@ -42,6 +42,85 @@ def filter_instrument(sequence, instrument):
   return filtered_sequence
 
 
+class NoteSequenceAugmenterTest(tf.test.TestCase):
+
+  def setUp(self):
+    sequence = music_pb2.NoteSequence()
+    sequence.tempos.add(qpm=60)
+    testing_lib.add_track_to_sequence(
+        sequence, 0,
+        [(32, 100, 2, 4), (33, 100, 6, 11), (34, 100, 11, 13),
+         (35, 100, 17, 18)])
+    testing_lib.add_track_to_sequence(
+        sequence, 1, [(57, 80, 4, 4.1), (58, 80, 12, 12.1)], is_drum=True)
+    testing_lib.add_chords_to_sequence(
+        sequence, [('N.C.', 0), ('C', 8), ('Am', 16)])
+    self.sequence = sequence
+
+  def testAugmentTranspose(self):
+    augmenter = data.NoteSequenceAugmenter(transpose_range=(2, 2))
+    augmented_sequence = augmenter.augment(self.sequence)
+
+    expected_sequence = music_pb2.NoteSequence()
+    expected_sequence.tempos.add(qpm=60)
+    testing_lib.add_track_to_sequence(
+        expected_sequence, 0,
+        [(34, 100, 2, 4), (35, 100, 6, 11), (36, 100, 11, 13),
+         (37, 100, 17, 18)])
+    testing_lib.add_track_to_sequence(
+        expected_sequence, 1, [(57, 80, 4, 4.1), (58, 80, 12, 12.1)],
+        is_drum=True)
+    testing_lib.add_chords_to_sequence(
+        expected_sequence, [('N.C.', 0), ('D', 8), ('Bm', 16)])
+
+    self.assertEqual(expected_sequence, augmented_sequence)
+
+  def testAugmentStretch(self):
+    augmenter = data.NoteSequenceAugmenter(stretch_range=(0.5, 0.5))
+    augmented_sequence = augmenter.augment(self.sequence)
+
+    expected_sequence = music_pb2.NoteSequence()
+    expected_sequence.tempos.add(qpm=120)
+    testing_lib.add_track_to_sequence(
+        expected_sequence, 0,
+        [(32, 100, 1, 2), (33, 100, 3, 5.5), (34, 100, 5.5, 6.5),
+         (35, 100, 8.5, 9)])
+    testing_lib.add_track_to_sequence(
+        expected_sequence, 1, [(57, 80, 2, 2.05), (58, 80, 6, 6.05)],
+        is_drum=True)
+    testing_lib.add_chords_to_sequence(
+        expected_sequence, [('N.C.', 0), ('C', 4), ('Am', 8)])
+
+    self.assertEqual(expected_sequence, augmented_sequence)
+
+  def testTfAugment(self):
+    augmenter = data.NoteSequenceAugmenter(
+        transpose_range=(-3, -3), stretch_range=(2.0, 2.0))
+    augmented_sequence = augmenter.augment(self.sequence)
+    with self.test_session() as sess:
+      sequence_str = tf.placeholder(tf.string)
+      augmented_sequence_str_ = augmenter.tf_augment(sequence_str)
+      augmented_sequence_str = sess.run(
+          [augmented_sequence_str_],
+          feed_dict={sequence_str: self.sequence.SerializeToString()})
+    augmented_sequence = music_pb2.NoteSequence.FromString(
+        augmented_sequence_str[0])
+
+    expected_sequence = music_pb2.NoteSequence()
+    expected_sequence.tempos.add(qpm=30)
+    testing_lib.add_track_to_sequence(
+        expected_sequence, 0,
+        [(29, 100, 4, 8), (30, 100, 12, 22), (31, 100, 22, 26),
+         (32, 100, 34, 36)])
+    testing_lib.add_track_to_sequence(
+        expected_sequence, 1, [(57, 80, 8, 8.2), (58, 80, 24, 24.2)],
+        is_drum=True)
+    testing_lib.add_chords_to_sequence(
+        expected_sequence, [('N.C.', 0), ('A', 16), ('Gbm', 32)])
+
+    self.assertEqual(expected_sequence, augmented_sequence)
+
+
 class BaseDataTest(object):
 
   def labels_to_inputs(self, labels, converter):
