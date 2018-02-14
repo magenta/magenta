@@ -29,7 +29,8 @@ from magenta.music import sequences_lib
 from magenta.protobuf import music_pb2
 
 # MIDI programs that typically sound unpitched.
-_UNPITCHED_PROGRAMS = range(96, 104) + range(112, 120) + range(120, 128)
+_UNPITCHED_PROGRAMS = (
+    list(range(96, 104)) + list(range(112, 120)) + list(range(120, 128)))
 
 # Names of pitch classes to use (mostly ignoring spelling).
 _PITCH_CLASS_NAMES = [
