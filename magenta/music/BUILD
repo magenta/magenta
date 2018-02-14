@@ -29,6 +29,7 @@ py_library(
     deps = [
         ":abc_parser",
         ":audio_io",
+        ":chord_inference",
         ":chords_encoder_decoder",
         ":chords_lib",
         ":constants",
@@ -82,6 +83,32 @@ py_test(
         # librosa dep
         # numpy dep
         # scipy dep
+        # tensorflow dep
+    ],
+)
+
+py_library(
+    name = "chord_inference",
+    srcs = ["chord_inference.py"],
+    srcs_version = "PY2AND3",
+    deps = [
+        ":constants",
+        ":sequences_lib",
+        "//magenta/protobuf:music_py_pb2",
+        # numpy dep
+        # tensorflow dep
+    ],
+)
+
+py_test(
+    name = "chord_inference_test",
+    srcs = ["chord_inference_test.py"],
+    srcs_version = "PY2AND3",
+    deps = [
+        ":chord_inference",
+        ":sequences_lib",
+        ":testing_lib",
+        "//magenta/protobuf:music_py_pb2",
         # tensorflow dep
     ],
 )
