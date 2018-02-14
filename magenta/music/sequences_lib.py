@@ -1090,7 +1090,7 @@ def apply_sustain_control_changes(note_sequence, sustain_control_number=64):
   return sequence
 
 
-def infer_chords_for_sequence(
+def infer_dense_chords_for_sequence(
     sequence, instrument=None, min_notes_per_chord=3):
   """Infers chords for a NoteSequence and adds them as TextAnnotations.
 
@@ -1101,6 +1101,10 @@ def infer_chords_for_sequence(
 
   If `sequence` is quantized, simultaneity will be determined by quantized steps
   instead of time.
+
+  Not to be confused with the chord inference in magenta.music.chord_inference
+  that attempts to infer a more natural chord sequence with changes at regular
+  metric intervals.
 
   Args:
     sequence: The NoteSequence for which chords will be inferred. Will be

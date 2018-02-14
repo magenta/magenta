@@ -996,7 +996,7 @@ class SequencesLibTest(tf.test.TestCase):
     sus_sequence = sequences_lib.apply_sustain_control_changes(sequence)
     self.assertProtoEquals(expected_sequence, sus_sequence)
 
-  def testInferChordsForSequence(self):
+  def testInferDenseChordsForSequence(self):
     # Test non-quantized sequence.
     sequence = copy.copy(self.note_sequence)
     testing_lib.add_track_to_sequence(
@@ -1007,7 +1007,7 @@ class SequencesLibTest(tf.test.TestCase):
     expected_sequence = copy.copy(sequence)
     testing_lib.add_chords_to_sequence(
         expected_sequence, [('C', 1.0), ('F/C', 2.0), ('Dm', 3.0)])
-    sequences_lib.infer_chords_for_sequence(sequence)
+    sequences_lib.infer_dense_chords_for_sequence(sequence)
     self.assertProtoEquals(expected_sequence, sequence)
 
     # Test quantized sequence.
@@ -1026,7 +1026,7 @@ class SequencesLibTest(tf.test.TestCase):
         expected_sequence, [('C', 1.0), ('F/C', 2.0), ('Dm', 3.0)])
     testing_lib.add_quantized_chord_steps_to_sequence(
         expected_sequence, [1, 2, 3])
-    sequences_lib.infer_chords_for_sequence(sequence)
+    sequences_lib.infer_dense_chords_for_sequence(sequence)
     self.assertProtoEquals(expected_sequence, sequence)
 
   def testShiftSequenceTimes(self):
