@@ -87,7 +87,8 @@ class BaseDecoder(object):
     pass
 
   @abc.abstractmethod
-  def reconstruction_loss(self, x_input, x_target, x_length, z=None):
+  def reconstruction_loss(self, x_input, x_target, x_length, z=None,
+                          c_input=None):
     """Reconstruction loss calculation.
 
     Args:
@@ -98,6 +99,9 @@ class BaseDecoder(object):
       x_length: Length of input/output sequences, sized `[batch_size]`.
       z: (Optional) Latent vectors. Required if model is conditional. Sized
           `[n, z_size]`.
+      c_input: (Optional) Batch of control sequences, sized
+          `[batch_size, max(x_length), control_depth]`. Required if conditioning
+          on control sequences.
 
     Returns:
       r_loss: The reconstruction loss for each sequence in the batch.
@@ -106,7 +110,7 @@ class BaseDecoder(object):
     pass
 
   @abc.abstractmethod
-  def sample(self, n, max_length=None, z=None):
+  def sample(self, n, max_length=None, z=None, c_input=None):
     """Sample from decoder with an optional conditional latent vector `z`.
 
     Args:
@@ -115,6 +119,8 @@ class BaseDecoder(object):
         data representation does not include end tokens.
       z: (Optional) Latent vectors to sample from. Required if model is
         conditional. Sized `[n, z_size]`.
+      c_input: (Optional) Control sequence, sized `[max_length, control_depth]`.
+
     Returns:
       samples: Sampled sequences. Sized `[n, max_length, output_depth]`.
     """
@@ -166,12 +172,29 @@ class MusicVAE(object):
   def hparams(self):
     return self._hparams
 
-  def encode(self, sequence, sequence_length):
-    """Encodes input sequences into a MultivariateNormalDiag distribution."""
+  def encode(self, sequence, sequence_length, control_sequence=None):
+    """Encodes input sequences into a MultivariateNormalDiag distribution.
+
+    Args:
+      sequence: A Tensor with shape `[num_sequences, max_length, input_depth]`
+          containing the sequences to encode.
+      sequence_length: The length of each sequence in the `sequence` Tensor.
+      control_sequence: (Optional) A Tensor with shape
+          `[num_sequences, max_length, control_depth]` containing control
+          sequences on which to condition. These will be concatenated depthwise
+          to the input sequences.
+
+    Returns:
+      A tf.distributions.MultivariateNormalDiag representing the posterior
+      distribution for each sequence.
+    """
     hparams = self.hparams
     z_size = hparams.z_size
 
     sequence = tf.to_float(sequence)
+    if control_sequence is not None:
+      control_sequence = tf.to_float(control_sequence)
+      sequence = tf.concat([sequence, control_sequence], axis=-1)
     encoder_output = self.encoder.encode(sequence, sequence_length)
 
     mu = tf.layers.dense(
@@ -189,7 +212,7 @@ class MusicVAE(object):
     return ds.MultivariateNormalDiag(loc=mu, scale_diag=sigma)
 
   def _compute_model_loss(
-      self, input_sequence, output_sequence, sequence_length):
+      self, input_sequence, output_sequence, sequence_length, control_sequence):
     """Builds a model with loss for train/eval."""
     hparams = self.hparams
     batch_size = hparams.batch_size
@@ -201,6 +224,14 @@ class MusicVAE(object):
 
     input_sequence = input_sequence[:, :max_seq_len]
 
+    if control_sequence is not None:
+      control_depth = control_sequence.shape[-1]
+      control_sequence = tf.to_float(control_sequence)
+      control_sequence = control_sequence[:, :max_seq_len]
+      # Shouldn't be necessary, but the slice loses shape information when
+      # control depth is zero.
+      control_sequence.set_shape([batch_size, None, control_depth])
+
     # The target/expected outputs.
     x_target = output_sequence[:, :max_seq_len]
     # Inputs to be fed to decoder, including zero padding for the initial input.
@@ -210,7 +241,7 @@ class MusicVAE(object):
 
     # Either encode to get `z`, or do unconditional, decoder-only.
     if hparams.conditional:  # vae mode:
-      q_z = self.encode(input_sequence, x_length)
+      q_z = self.encode(input_sequence, x_length, control_sequence)
       z = q_z.sample()
 
       # Prior distribution.
@@ -226,7 +257,7 @@ class MusicVAE(object):
       z = None
 
     r_loss, metric_map = self.decoder.reconstruction_loss(
-        x_input, x_target, x_length, z)[0:2]
+        x_input, x_target, x_length, z, control_sequence)[0:2]
 
     free_nats = hparams.free_bits * tf.log(2.0)
     kl_cost = tf.maximum(kl_div - free_nats, 0)
@@ -244,21 +275,25 @@ class MusicVAE(object):
     }
     return metric_map, scalars_to_summarize
 
-  def train(self, input_sequence, output_sequence, sequence_length):
+  def train(self, input_sequence, output_sequence, sequence_length,
+            control_sequence=None):
     """Train on the given sequences, returning an optimizer.
 
     Args:
       input_sequence: The sequence to be fed to the encoder.
       output_sequence: The sequence expected from the decoder.
       sequence_length: The length of the given sequences (which must be
-        identical).
+          identical).
+      control_sequence: (Optional) sequence on which to condition. This will be
+          concatenated depthwise to the model inputs for both encoding and
+          decoding.
 
     Returns:
       optimizer: A tf.train.Optimizer.
     """
 
     _, scalars_to_summarize = self._compute_model_loss(
-        input_sequence, output_sequence, sequence_length)
+        input_sequence, output_sequence, sequence_length, control_sequence)
 
     hparams = self.hparams
     lr = ((hparams.learning_rate - hparams.min_learning_rate) *
@@ -273,7 +308,8 @@ class MusicVAE(object):
 
     return optimizer
 
-  def eval(self, input_sequence, output_sequence, sequence_length):
+  def eval(self, input_sequence, output_sequence, sequence_length,
+           control_sequence=None):
     """Evaluate on the given sequences, returning metric update ops.
 
     Args:
@@ -281,12 +317,13 @@ class MusicVAE(object):
       output_sequence: The sequence expected from the decoder.
       sequence_length: The length of the given sequences (which must be
         identical).
+      control_sequence: (Optional) sequence on which to condition the decoder.
 
     Returns:
       metric_update_ops: tf.metrics update ops.
     """
     metric_map, scalars_to_summarize = self._compute_model_loss(
-        input_sequence, output_sequence, sequence_length)
+        input_sequence, output_sequence, sequence_length, control_sequence)
 
     for n, t in scalars_to_summarize.iteritems():
       metric_map[n] = tf.metrics.mean(t)
@@ -299,7 +336,7 @@ class MusicVAE(object):
 
     return metrics_to_updates.values()
 
-  def sample(self, n, max_length=None, z=None, **kwargs):
+  def sample(self, n, max_length=None, z=None, c_input=None, **kwargs):
     """Sample with an optional conditional embedding `z`."""
     if z is not None and z.shape[0].value != n:
       raise ValueError(
@@ -314,7 +351,7 @@ class MusicVAE(object):
           loc=tf.zeros(normal_shape), scale=tf.ones(normal_shape))
       z = normal_dist.sample()
 
-    return self.decoder.sample(n, max_length, z, **kwargs)
+    return self.decoder.sample(n, max_length, z, c_input, **kwargs)
 
 
 def get_default_hparams():

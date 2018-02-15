@@ -113,15 +113,24 @@ def _trial_summary(hparams, examples_path, output_dir):
 
 
 def _get_input_tensors(dataset, config):
+  """Get input tensors from dataset for training or evaluation."""
   batch_size = config.hparams.batch_size
   iterator = dataset.make_one_shot_iterator()
-  input_sequence, output_sequence, sequence_length = iterator.get_next()
+  (input_sequence, output_sequence, control_sequence,
+   sequence_length) = iterator.get_next()
   input_sequence.set_shape(
       [batch_size, None, config.data_converter.input_depth])
   output_sequence.set_shape(
       [batch_size, None, config.data_converter.output_depth])
+  control_sequence.set_shape(
+      [batch_size, None, config.data_converter.control_depth])
   sequence_length.set_shape([batch_size] + sequence_length.shape[1:].as_list())
-  return input_sequence, output_sequence, sequence_length
+  return {
+      'input_sequence': input_sequence,
+      'output_sequence': output_sequence,
+      'control_sequence': control_sequence,
+      'sequence_length': sequence_length
+  }
 
 
 def train(train_dir,
@@ -155,7 +164,7 @@ def train(train_dir,
                   config.data_converter.output_depth,
                   is_training=True)
 
-      optimizer = model.train(*_get_input_tensors(train_dataset, config))
+      optimizer = model.train(**_get_input_tensors(train_dataset, config))
 
       hooks = []
       if num_sync_workers:
@@ -227,7 +236,7 @@ def evaluate(train_dir,
                 config.data_converter.output_depth,
                 is_training=False)
 
-    eval_op = model.eval(*_get_input_tensors(eval_dataset, config))
+    eval_op = model.eval(**_get_input_tensors(eval_dataset, config))
 
     hooks = [
         tf.contrib.training.StopAfterNEvalsHook(num_batches),

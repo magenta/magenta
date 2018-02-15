@@ -215,7 +215,7 @@ class BaseLstmDecoder(base_model.BaseDecoder):
     """
     pass
 
-  def _decode(self, z, helper, max_length=None):
+  def _decode(self, z, helper, input_shape, max_length=None):
     """Decodes the given batch of latent vectors vectors, which may be 0-length.
 
     Args:
@@ -223,7 +223,8 @@ class BaseLstmDecoder(base_model.BaseDecoder):
         may be 0 for unconditioned decoding.
       helper: A seq2seq.Helper to use. If a TrainingHelper is passed and a
         CudnnLSTM has previously been defined, it will be used instead.
-      max_length: (Optinal) The maximum iterations to decode.
+      input_shape: The shape of each model input vector passed to the decoder.
+      max_length: (Optional) The maximum iterations to decode.
 
     Returns:
       results: The LstmDecodeResults.
@@ -255,6 +256,7 @@ class BaseLstmDecoder(base_model.BaseDecoder):
           self._dec_cell,
           helper,
           initial_state=initial_state,
+          input_shape=input_shape,
           output_layer=self._output_layer)
       final_output, final_state, final_lengths = seq2seq.dynamic_decode(
           decoder,
@@ -270,7 +272,8 @@ class BaseLstmDecoder(base_model.BaseDecoder):
 
     return results
 
-  def reconstruction_loss(self, x_input, x_target, x_length, z=None):
+  def reconstruction_loss(self, x_input, x_target, x_length, z=None,
+                          c_input=None):
     """Reconstruction loss calculation.
 
     Args:
@@ -281,6 +284,9 @@ class BaseLstmDecoder(base_model.BaseDecoder):
       x_length: Length of input/output sequences, sized `[batch_size]`.
       z: (Optional) Latent vectors. Required if model is conditional. Sized
         `[n, z_size]`.
+      c_input: (Optional) Batch of control sequences, sized
+          `[batch_size, max(x_length), control_depth]`. Required if conditioning
+          on control sequences.
 
     Returns:
       r_loss: The reconstruction loss for each sequence in the batch.
@@ -296,22 +302,35 @@ class BaseLstmDecoder(base_model.BaseDecoder):
     repeated_z = tf.tile(
         tf.expand_dims(z, axis=1), [1, tf.shape(x_input)[1], 1])
 
+    has_control = c_input is not None
+    if c_input is None:
+      c_input = tf.zeros([batch_size, tf.shape(x_input)[1], 0])
+
     sampling_probability_static = tensor_util.constant_value(
         self._sampling_probability)
     if sampling_probability_static == 0.0:
       # Use teacher forcing.
-      x_input = tf.concat([x_input, repeated_z], axis=2)
+      x_input = tf.concat([x_input, repeated_z, c_input], axis=2)
       helper = seq2seq.TrainingHelper(x_input, x_length)
     else:
       # Use scheduled sampling.
+      if has_z or has_control:
+        auxiliary_inputs = tf.zeros([batch_size, tf.shape(x_input)[1], 0])
+        if has_z:
+          auxiliary_inputs = tf.concat([auxiliary_inputs, repeated_z], axis=2)
+        if has_control:
+          auxiliary_inputs = tf.concat([auxiliary_inputs, c_input], axis=2)
+      else:
+        auxiliary_inputs = None
       helper = seq2seq.ScheduledOutputTrainingHelper(
           inputs=x_input,
           sequence_length=x_length,
-          auxiliary_inputs=repeated_z if has_z else None,
+          auxiliary_inputs=auxiliary_inputs,
           sampling_probability=self._sampling_probability,
           next_inputs_fn=self._sample)
 
-    decode_results = self._decode(z, helper=helper)
+    decode_results = self._decode(
+        z, helper=helper, input_shape=helper.inputs.shape[2:])
     flat_x_target = flatten_maybe_padded_sequences(x_target, x_length)
     flat_rnn_output = flatten_maybe_padded_sequences(
         decode_results.rnn_output, x_length)
@@ -328,7 +347,7 @@ class BaseLstmDecoder(base_model.BaseDecoder):
 
     return r_loss, metric_map, truths, predictions, decode_results
 
-  def sample(self, n, max_length=None, z=None, temperature=1.0,
+  def sample(self, n, max_length=None, z=None, c_input=None, temperature=1.0,
              start_inputs=None, end_fn=None):
     """Sample from decoder with an optional conditional latent vector `z`.
 
@@ -338,6 +357,7 @@ class BaseLstmDecoder(base_model.BaseDecoder):
         data representation does not include end tokens.
       z: (Optional) Latent vectors to sample from. Required if model is
         conditional. Sized `[n, z_size]`.
+      c_input: (Optional) Control sequence, sized `[max_length, control_depth]`.
       temperature: (Optional) The softmax temperature to use when sampling, if
         applicable.
       start_inputs: (Optional) Initial inputs to use for batch.
@@ -359,22 +379,38 @@ class BaseLstmDecoder(base_model.BaseDecoder):
     # Use a dummy Z in unconditional case.
     z = tf.zeros((n, 0), tf.float32) if z is None else z
 
+    if c_input is not None:
+      # Tile control sequence across samples.
+      c_input = tf.tile(tf.expand_dims(c_input, 1), [1, n, 1])
+
     # If not given, start with zeros.
     start_inputs = start_inputs if start_inputs is not None else tf.zeros(
         [n, self._output_depth], dtype=tf.float32)
     # In the conditional case, also concatenate the Z.
     start_inputs = tf.concat([start_inputs, z], axis=-1)
+    if c_input is not None:
+      start_inputs = tf.concat([start_inputs, c_input[0]], axis=-1)
+    initialize_fn = lambda: (tf.zeros([n], tf.bool), start_inputs)
 
-    sample_fn = lambda x: self._sample(x, temperature)
+    sample_fn = lambda time, outputs, state: self._sample(outputs, temperature)
     end_fn = end_fn or (lambda x: False)
-    # In the conditional case, concatenate Z to the sampled value.
-    next_inputs_fn = lambda x: tf.concat([x, z], axis=-1)
 
-    sampler = seq2seq.InferenceHelper(
-        sample_fn, sample_shape=[self._output_depth], sample_dtype=tf.float32,
-        start_inputs=start_inputs, end_fn=end_fn, next_inputs_fn=next_inputs_fn)
+    def next_inputs_fn(time, outputs, state, sample_ids):
+      del outputs
+      finished = end_fn(sample_ids)
+      next_inputs = tf.concat([sample_ids, z], axis=-1)
+      if c_input is not None:
+        next_inputs = tf.concat([next_inputs, c_input[time]], axis=-1)
+      return (finished, next_inputs, state)
 
-    decode_results = self._decode(z, helper=sampler, max_length=max_length)
+    sampler = seq2seq.CustomHelper(
+        initialize_fn=initialize_fn, sample_fn=sample_fn,
+        next_inputs_fn=next_inputs_fn, sample_ids_shape=[self._output_depth],
+        sample_ids_dtype=tf.float32)
+
+    decode_results = self._decode(
+        z, helper=sampler, input_shape=start_inputs.shape[1:],
+        max_length=max_length)
 
     return decode_results.samples, decode_results
 
@@ -403,7 +439,7 @@ class CategoricalLstmDecoder(BaseLstmDecoder):
         logits=rnn_output / temperature, dtype=tf.float32)
     return sampler.sample()
 
-  def sample(self, n, max_length=None, z=None, temperature=None,
+  def sample(self, n, max_length=None, z=None, c_input=None, temperature=None,
              start_inputs=None, beam_width=None, end_token=None):
     """Overrides BaseLstmDecoder `sample` method to add optional beam search.
 
@@ -413,6 +449,7 @@ class CategoricalLstmDecoder(BaseLstmDecoder):
         data representation does not include end tokens.
       z: (Optional) Latent vectors to sample from. Required if model is
         conditional. Sized `[n, z_size]`.
+      c_input: (Optional) Control sequence, sized `[max_length, control_depth]`.
       temperature: (Optional) The softmax temperature to use when not doing beam
         search. Defaults to 1.0. Ignored when `beam_width` is provided.
       start_inputs: (Optional) Initial inputs to use for batch.
@@ -431,7 +468,7 @@ class CategoricalLstmDecoder(BaseLstmDecoder):
       end_fn = (None if end_token is None else
                 lambda x: tf.equal(tf.argmax(x, axis=-1), end_token))
       return super(CategoricalLstmDecoder, self).sample(
-          n, max_length, z, temperature, start_inputs, end_fn)
+          n, max_length, z, c_input, temperature, start_inputs, end_fn)
 
     # If `end_token` is not given, use an impossible value.
     end_token = self._output_depth if end_token is None else end_token
@@ -634,7 +671,11 @@ class HierarchicalMultiOutLstmDecoder(base_model.BaseDecoder):
       embeddings = all_outputs
     return embeddings
 
-  def reconstruction_loss(self, x_input, x_target, x_length, z=None):
+  def reconstruction_loss(self, x_input, x_target, x_length, z=None,
+                          c_input=None):
+    if c_input is not None:
+      raise ValueError('Control sequence unsupported in hierarchical decoder.')
+
     embeddings = self._hierarchical_decode(z)
     n = len(embeddings)
 
@@ -689,7 +730,7 @@ class HierarchicalMultiOutLstmDecoder(base_model.BaseDecoder):
             tf.stack(all_predictions, axis=-1),
             all_decode_results)
 
-  def sample(self, n, max_length=None, z=None, temperature=1.0,
+  def sample(self, n, max_length=None, z=None, c_input=None, temperature=1.0,
              **core_sampler_kwargs):
     if z is not None and z.shape[0].value != n:
       raise ValueError(
@@ -701,6 +742,9 @@ class HierarchicalMultiOutLstmDecoder(base_model.BaseDecoder):
       raise ValueError(
           'HierarchicalMultiOutLstmDecoder requires `max_length` be provided '
           'during sampling.')
+
+    if c_input is not None:
+      raise ValueError('Control sequence unsupported in hierarchical decoder.')
 
     embeddings = self._hierarchical_decode(z)
 

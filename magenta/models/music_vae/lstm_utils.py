@@ -208,14 +208,9 @@ class Seq2SeqLstmDecoderOutput(
 class Seq2SeqLstmDecoder(seq2seq.BasicDecoder):
   """Overrides BaseDecoder to include rnn inputs in the output."""
 
-  def __init__(self, cell, helper, initial_state, output_layer=None):
-    if isinstance(helper, seq2seq.TrainingHelper):
-      self._input_shape = helper.inputs.shape[2:]
-    elif isinstance(helper, seq2seq.InferenceHelper):
-      self._input_shape = helper._start_inputs.shape[1:]  # pylint:disable=protected-access
-    else:
-      raise ValueError('Incompatible `helper` type: %s' % helper.__class__.name)
-
+  def __init__(self, cell, helper, initial_state, input_shape,
+               output_layer=None):
+    self._input_shape = input_shape
     super(Seq2SeqLstmDecoder, self).__init__(
         cell, helper, initial_state, output_layer)
 
