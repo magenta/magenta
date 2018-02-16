@@ -61,6 +61,7 @@ py_library(
     srcs = ["data.py"],
     srcs_version = "PY2AND3",
     deps = [
+        ":chord_utils",
         "//magenta",
         # numpy dep
         # tensorflow dep

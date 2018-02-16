@@ -63,7 +63,7 @@ def add_chords_to_sequence(note_sequence, chords, chord_times):
     chord_times: A Python list containing the time in seconds at which to add
         each chord. Should be the same length as `chords` and nondecreasing.
   """
-  current_chord = mm.NO_CHORD
+  current_chord = None
   for chord, time in zip(chords, chord_times):
     if chord != current_chord:
       current_chord = chord

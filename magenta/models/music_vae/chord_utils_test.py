@@ -36,7 +36,7 @@ class ChordUtilsTest(tf.test.TestCase):
     self.note_sequence.tempos.add(qpm=60.0)
 
     testing_lib.add_chords_to_sequence(
-        self.note_sequence, [('C', 2), ('G7', 6)])
+        self.note_sequence, [('N.C.', 0), ('C', 2), ('G7', 6)])
     self.note_sequence.total_time = 8.0
 
   def testMelodyChords(self):
