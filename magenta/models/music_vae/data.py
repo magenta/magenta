@@ -1039,11 +1039,17 @@ def get_dataset(config, tf_file_reader_class=tf.data.TFRecordDataset,
 
   tf.logging.info('Reading examples from: %s', examples_path)
 
-  filenames = tf.gfile.Glob(examples_path)
+  num_files = len(tf.gfile.Glob(examples_path))
+  files = tf.data.Dataset.list_files(examples_path)
   if is_training:
-    random.shuffle(filenames)
-  tf.logging.info('Reading examples from: %s', filenames)
-  reader = tf_file_reader_class(filenames)
+    files = files.apply(
+        tf.contrib.data.shuffle_and_repeat(buffer_size=num_files))
+
+  reader = files.apply(
+      tf.contrib.data.parallel_interleave(
+          tf_file_reader_class,
+          cycle_length=num_threads,
+          sloppy=True))
 
   def _from_tensor_slices_fn(w, x, y, z):
     return tf.data.Dataset.from_tensor_slices((w, x, y, z))
