@@ -1068,9 +1068,6 @@ def get_dataset(
           cycle_length=num_threads,
           sloppy=True))
 
-  def _from_tensor_slices_fn(*t):
-    return tf.data.Dataset.from_tensor_slices(t)
-
   def _remove_pad_fn(padded_seq_1, padded_seq_2, padded_seq_3, length):
     if length.shape.ndims == 0:
       return (padded_seq_1[0:length], padded_seq_2[0:length],
@@ -1085,7 +1082,7 @@ def get_dataset(
   dataset = (dataset
              .map(data_converter.tf_to_tensors,
                   num_parallel_calls=num_threads)
-             .flat_map(_from_tensor_slices_fn)
+             .flat_map(lambda *t: tf.data.Dataset.from_tensor_slices(t))
              .map(_remove_pad_fn))
   if is_training:
     dataset = dataset.shuffle(buffer_size=batch_size * 4)
