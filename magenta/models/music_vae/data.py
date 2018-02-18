@@ -1027,9 +1027,26 @@ def count_examples(examples_path, data_converter,
   return num_examples
 
 
-def get_dataset(config, tf_file_reader_class=tf.data.TFRecordDataset,
-                num_threads=1, is_training=False):
-  """Returns a Dataset object that encodes raw serialized NoteSequences."""
+def get_dataset(
+    config,
+    num_threads=1,
+    tf_file_reader=tf.data.TFRecordDataset,
+    prefetch_size=4,
+    is_training=False):
+  """Get input tensors from dataset for training or evaluation.
+
+  Args:
+    config: A Config object containing dataset information.
+    num_threads: The number of threads to use for pre-processing.
+    tf_file_reader: The tf.data.Dataset class to use for reading files.
+    prefetch_size: The number of batches to prefetch. Disabled when 0.
+    is_training: Whether or not the dataset is used in training. Determines
+      whether dataset is shuffled and repeated, etc.
+
+  Returns:
+    A tf.data.Dataset containing input, output, control, and length tensors.
+  """
+  batch_size = config.hparams.batch_size
   examples_path = (
       config.train_examples_path if is_training else config.eval_examples_path)
   note_sequence_augmenter = (
@@ -1047,12 +1064,12 @@ def get_dataset(config, tf_file_reader_class=tf.data.TFRecordDataset,
 
   reader = files.apply(
       tf.contrib.data.parallel_interleave(
-          tf_file_reader_class,
+          tf_file_reader,
           cycle_length=num_threads,
           sloppy=True))
 
-  def _from_tensor_slices_fn(w, x, y, z):
-    return tf.data.Dataset.from_tensor_slices((w, x, y, z))
+  def _from_tensor_slices_fn(*t):
+    return tf.data.Dataset.from_tensor_slices(t)
 
   def _remove_pad_fn(padded_seq_1, padded_seq_2, padded_seq_3, length):
     if length.shape.ndims == 0:
@@ -1070,5 +1087,12 @@ def get_dataset(config, tf_file_reader_class=tf.data.TFRecordDataset,
                   num_parallel_calls=num_threads)
              .flat_map(_from_tensor_slices_fn)
              .map(_remove_pad_fn))
+  if is_training:
+    dataset = dataset.shuffle(buffer_size=batch_size * 4)
+  
+  dataset = dataset.padded_batch(batch_size, dataset.output_shapes)
+
+  if prefetch_size:
+    dataset = dataset.prefetch(prefetch_size)
 
   return dataset
