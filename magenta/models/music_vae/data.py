@@ -1089,7 +1089,7 @@ def get_dataset(
              .map(_remove_pad_fn))
   if is_training:
     dataset = dataset.shuffle(buffer_size=batch_size * 4)
-  
+
   dataset = dataset.padded_batch(batch_size, dataset.output_shapes)
 
   if prefetch_size:
