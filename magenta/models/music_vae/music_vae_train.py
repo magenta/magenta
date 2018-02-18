@@ -122,8 +122,11 @@ def _get_input_tensors(dataset, config):
       [batch_size, None, config.data_converter.input_depth])
   output_sequence.set_shape(
       [batch_size, None, config.data_converter.output_depth])
-  control_sequence.set_shape(
-      [batch_size, None, config.data_converter.control_depth])
+  if not config.data_converter.control_depth:
+    control_sequence = None
+  else:
+    control_sequence.set_shape(
+        [batch_size, None, config.data_converter.control_depth])
   sequence_length.set_shape([batch_size] + sequence_length.shape[1:].as_list())
 
   return {
