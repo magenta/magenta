@@ -433,6 +433,11 @@ class PerformanceLibTest(tf.test.TestCase):
     self.assertEqual(1, len(perfs))
     self.assertEqual(3, len(perfs[0]))
 
+    perfs, _ = performance_lib.extract_performances(
+        quantized_sequence, max_steps_truncate=100)
+    self.assertEqual(1, len(perfs))
+    self.assertEqual(100, perfs[0].num_steps)
+
   def testExtractPerformancesMultiProgram(self):
     testing_lib.add_track_to_sequence(
         self.note_sequence, 0,
@@ -479,6 +484,11 @@ class PerformanceLibTest(tf.test.TestCase):
         quantized_sequence, min_events_discard=1, max_events_truncate=3)
     self.assertEqual(1, len(perfs))
     self.assertEqual(3, len(perfs[0]))
+
+    perfs, _ = performance_lib.extract_performances(
+        quantized_sequence, max_steps_truncate=100)
+    self.assertEqual(1, len(perfs))
+    self.assertEqual(100, perfs[0].num_steps)
 
   def testExtractPerformancesSplitInstruments(self):
     testing_lib.add_track_to_sequence(
