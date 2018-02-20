@@ -480,6 +480,26 @@ class PerformanceLibTest(tf.test.TestCase):
     self.assertEqual(1, len(perfs))
     self.assertEqual(3, len(perfs[0]))
 
+  def testExtractPerformancesSplitInstruments(self):
+    testing_lib.add_track_to_sequence(
+        self.note_sequence, 0, [(60, 100, 0.0, 4.0)])
+    testing_lib.add_track_to_sequence(
+        self.note_sequence, 1, [(62, 100, 0.0, 2.0), (64, 100, 2.0, 4.0)])
+    quantized_sequence = sequences_lib.quantize_note_sequence_absolute(
+        self.note_sequence, steps_per_second=100)
+
+    perfs, _ = performance_lib.extract_performances(
+        quantized_sequence, split_instruments=True)
+    self.assertEqual(2, len(perfs))
+
+    perfs, _ = performance_lib.extract_performances(
+        quantized_sequence, min_events_discard=8, split_instruments=True)
+    self.assertEqual(1, len(perfs))
+
+    perfs, _ = performance_lib.extract_performances(
+        quantized_sequence, min_events_discard=16, split_instruments=True)
+    self.assertEqual(0, len(perfs))
+
 
 if __name__ == '__main__':
   tf.test.main()
