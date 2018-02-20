@@ -113,7 +113,7 @@ def _trial_summary(hparams, examples_path, output_dir):
 
 
 def _get_input_tensors(dataset, config):
-  """Get input tensors from dataset for training or evaluation."""
+  """Get input tensors from dataset."""
   batch_size = config.hparams.batch_size
   iterator = dataset.make_one_shot_iterator()
   (input_sequence, output_sequence, control_sequence,
@@ -122,9 +122,13 @@ def _get_input_tensors(dataset, config):
       [batch_size, None, config.data_converter.input_depth])
   output_sequence.set_shape(
       [batch_size, None, config.data_converter.output_depth])
-  control_sequence.set_shape(
-      [batch_size, None, config.data_converter.control_depth])
+  if not config.data_converter.control_depth:
+    control_sequence = None
+  else:
+    control_sequence.set_shape(
+        [batch_size, None, config.data_converter.control_depth])
   sequence_length.set_shape([batch_size] + sequence_length.shape[1:].as_list())
+
   return {
       'input_sequence': input_sequence,
       'output_sequence': output_sequence,
@@ -151,20 +155,13 @@ def train(train_dir,
   with tf.Graph().as_default():
     with tf.device(tf.train.replica_device_setter(
         num_ps_tasks, merge_devices=True)):
-      batch_size = config.hparams.batch_size
-      config.data_converter.is_training = True
-      train_dataset = dataset.apply(
-          tf.contrib.data.shuffle_and_repeat(buffer_size=batch_size * 4))
-      train_dataset = train_dataset.padded_batch(
-          batch_size, train_dataset.output_shapes)
-      train_dataset = train_dataset.prefetch(FLAGS.prefetch_size)
 
       model = config.model
       model.build(config.hparams,
                   config.data_converter.output_depth,
                   is_training=True)
 
-      optimizer = model.train(**_get_input_tensors(train_dataset, config))
+      optimizer = model.train(**_get_input_tensors(dataset, config))
 
       hooks = []
       if num_sync_workers:
@@ -225,18 +222,13 @@ def evaluate(train_dir,
 
   _trial_summary(config.hparams, config.eval_examples_path, eval_dir)
   with tf.Graph().as_default():
-    eval_dataset = (
-        dataset
-        .padded_batch(config.hparams.batch_size, dataset.output_shapes)
-        .take(num_batches))
-    eval_dataset = eval_dataset.prefetch(FLAGS.prefetch_size)
-
     model = config.model
     model.build(config.hparams,
                 config.data_converter.output_depth,
                 is_training=False)
 
-    eval_op = model.eval(**_get_input_tensors(eval_dataset, config))
+    eval_op = model.eval(
+        **_get_input_tensors(dataset.take(num_batches), config))
 
     hooks = [
         tf.contrib.training.StopAfterNEvalsHook(num_batches),
@@ -250,13 +242,13 @@ def evaluate(train_dir,
 
 
 def run(config_map,
-        tf_file_reader_class=tf.data.TFRecordDataset,
+        tf_file_reader=tf.data.TFRecordDataset,
         file_reader=tf.python_io.tf_record_iterator):
   """Load model params, save config file and start trainer.
 
   Args:
     config_map: Dictionary mapping configuration name to Config object.
-    tf_file_reader_class: The tf.data.Dataset class to use for reading files.
+    tf_file_reader: The tf.data.Dataset class to use for reading files.
     file_reader: The Python reader to use for reading files.
 
   Raises:
@@ -291,8 +283,9 @@ def run(config_map,
 
   dataset = data.get_dataset(
       config,
-      tf_file_reader_class=tf_file_reader_class,
+      tf_file_reader=tf_file_reader,
       num_threads=FLAGS.num_data_threads,
+      prefetch_size=FLAGS.prefetch_size,
       is_training=is_training)
 
   if is_training:
