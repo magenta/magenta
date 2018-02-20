@@ -925,8 +925,10 @@ class HierarchicalLstmDecoder(base_model.BaseDecoder):
     time_axis = 1
     zipped_results = lstm_utils.LstmDecodeResults(*zip(*decode_results))
     return lstm_utils.LstmDecodeResults(
-        rnn_output=tf.concat(zipped_results.rnn_output, axis=time_axis),
-        rnn_input=tf.concat(zipped_results.rnn_input, axis=time_axis),
+        rnn_output=(None if zipped_results.rnn_output[0] is None else
+                    tf.concat(zipped_results.rnn_output, axis=time_axis)),
+        rnn_input=(None if zipped_results.rnn_input[0] is None else
+                   tf.concat(zipped_results.rnn_input, axis=time_axis)),
         samples=tf.concat(zipped_results.samples, axis=time_axis),
         final_state=zipped_results.final_state[-1],
         final_sequence_lengths=tf.stack(
