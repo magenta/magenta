@@ -590,7 +590,7 @@ class SplitMultiOutLstmDecoder(base_model.BaseDecoder):
   """LSTM decoder with (optional) multiple categorical outputs."""
 
   def __init__(self, core_decoders, output_depths):
-    """Initializer for a HierarchicalMultiOutLstmDecoder.
+    """Initializer for a SplitMultiOutLstmDecoder.
 
     Args:
       core_decoders: The BaseDecoder implementation class(es) to use at the
@@ -603,7 +603,7 @@ class SplitMultiOutLstmDecoder(base_model.BaseDecoder):
     if len(core_decoders) != len(output_depths):
       raise ValueError(
           'The number of `core_decoders` and `output_depths` provided to a '
-          'HierarchicalMultiOutLstmDecoder must be equal. Got: %d != %d',
+          'SplitMultiOutLstmDecoder must be equal. Got: %d != %d',
           len(core_decoders), len(output_depths))
     self._core_decoders = core_decoders
     self._output_depths = output_depths
@@ -1072,7 +1072,7 @@ class HierarchicalLstmDecoder(base_model.BaseDecoder):
     for metric_name in metric_maps[0]:
       metric_values = []
       for i, m in enumerate(metric_maps):
-        merged_metric_map['%s/segment_%03d' % (metric_name, i)] = m[metric_name]
+        merged_metric_map['segment/%03d/%s' % (i, metric_name)] = m[metric_name]
         metric_values.append(m[metric_name][0])
       merged_metric_map[metric_name] = (
           tf.reduce_mean(metric_values), tf.no_op())
