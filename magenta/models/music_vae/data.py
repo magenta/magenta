@@ -54,6 +54,8 @@ REDUCED_DRUM_PITCH_CLASSES = drums_encoder_decoder.DEFAULT_DRUM_TYPE_PITCHES
 FULL_DRUM_PITCH_CLASSES = [  # 61 classes
     [p] for c in drums_encoder_decoder.DEFAULT_DRUM_TYPE_PITCHES for p in c]
 
+OUTPUT_VELOCITY = 80
+
 CHORD_SYMBOL = music_pb2.NoteSequence.TextAnnotation.CHORD_SYMBOL
 
 # Mapping from time signature to number of chords to infer per bar.
@@ -635,10 +637,10 @@ class LegacyEventListOneHotConverter(BaseNoteSequenceConverter):
       if self._steps_per_quarter:
         qpm = mm.DEFAULT_QUARTERS_PER_MINUTE
         seconds_per_step = 60.0 / (self._steps_per_quarter * qpm)
-        sequence = event_list.to_sequence(velocity=80, qpm=qpm)
+        sequence = event_list.to_sequence(velocity=OUTPUT_VELOCITY, qpm=qpm)
       else:
         seconds_per_step = 1.0 / self._steps_per_second
-        sequence = event_list.to_sequence(velocity=80)
+        sequence = event_list.to_sequence(velocity=OUTPUT_VELOCITY)
       if self._chord_encoding and controls:
         chords = [self._chord_encoding.decode_event(e)
                   for e in np.argmax(controls[i], axis=-1)[:end_index]]
@@ -896,7 +898,7 @@ class DrumsConverter(BaseNoteSequenceConverter):
       track = mm.DrumTrack(
           events=events_list, steps_per_bar=self._steps_per_bar,
           steps_per_quarter=self._steps_per_quarter)
-      output_sequences.append(track.to_sequence(velocity=80))
+      output_sequences.append(track.to_sequence(velocity=OUTPUT_VELOCITY))
     return output_sequences
 
 
