@@ -37,7 +37,7 @@ REQUIRED_PACKAGES = [
     'bokeh >= 0.12.0',
     'futures',
     'intervaltree >= 2.1.0',
-    'librosa >= 0.5.1',
+    'librosa >= 0.6.0',
     'matplotlib >= 1.5.3',
     'mido == 1.2.6',
     'mir_eval >= 0.4',
