@@ -551,7 +551,7 @@ class LegacyEventListOneHotConverter(BaseNoteSequenceConverter):
     if self._chord_encoding and not any(
         ta.annotation_type == CHORD_SYMBOL
         for ta in quantized_sequence.text_annotations):
-      # We are conditiong on chords but sequence does not have chords. Try to
+      # We are conditioning on chords but sequence does not have chords. Try to
       # infer them.
       time_signature = (quantized_sequence.time_signatures[0].numerator,
                         quantized_sequence.time_signatures[0].denominator)
@@ -983,7 +983,7 @@ class TrioConverter(BaseNoteSequenceConverter):
     if self._chord_encoding and not any(
         ta.annotation_type == CHORD_SYMBOL
         for ta in quantized_sequence.text_annotations):
-      # We are conditiong on chords but sequence does not have chords. Try to
+      # We are conditioning on chords but sequence does not have chords. Try to
       # infer them.
       time_signature = (quantized_sequence.time_signatures[0].numerator,
                         quantized_sequence.time_signatures[0].denominator)
