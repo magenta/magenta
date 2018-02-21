@@ -17,6 +17,7 @@ from __future__ import division
 from __future__ import print_function
 
 import copy
+import re
 
 # internal imports
 import numpy as np
