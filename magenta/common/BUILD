@@ -128,7 +128,7 @@ py_library(
     srcs = ["testing_lib.py"],
     srcs_version = "PY2AND3",
     deps = [
-        "@protobuf//:protobuf_python",
+        "@com_google_protobuf//:protobuf_python",
         # numpy dep
     ],
 )
