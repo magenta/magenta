@@ -17,6 +17,8 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
+import copy
+
 # internal imports
 import tensorflow as tf
 
@@ -217,6 +219,47 @@ class ChordsLibTest(tf.test.TestCase):
         '  text: "N.C." time: 4.0 annotation_type: CHORD_SYMBOL '
         '> ',
         sequence)
+
+  def testEventListChordsWithMelodies(self):
+    note_sequence = music_pb2.NoteSequence(ticks_per_quarter=220)
+    note_sequence.tempos.add(qpm=60.0)
+    testing_lib.add_chords_to_sequence(
+        note_sequence, [('N.C.', 0), ('C', 2), ('G7', 6)])
+    note_sequence.total_time = 8.0
+
+    melodies = [
+        melodies_lib.Melody([60, -2, -2, -1],
+                            start_step=0, steps_per_quarter=1, steps_per_bar=4),
+        melodies_lib.Melody([62, -2, -2, -1],
+                            start_step=4, steps_per_quarter=1, steps_per_bar=4),
+    ]
+
+    quantized_sequence = sequences_lib.quantize_note_sequence(
+        note_sequence, steps_per_quarter=1)
+    chords = chords_lib.event_list_chords(quantized_sequence, melodies)
+
+    expected_chords = [
+        [NO_CHORD, NO_CHORD, 'C', 'C'],
+        ['C', 'C', 'G7', 'G7']
+    ]
+
+    self.assertEqual(expected_chords, chords)
+
+  def testAddChordsToSequence(self):
+    note_sequence = music_pb2.NoteSequence(ticks_per_quarter=220)
+    note_sequence.tempos.add(qpm=60.0)
+    testing_lib.add_chords_to_sequence(
+        note_sequence, [('N.C.', 0), ('C', 2), ('G7', 6)])
+    note_sequence.total_time = 8.0
+
+    expected_sequence = copy.deepcopy(note_sequence)
+    del note_sequence.text_annotations[:]
+
+    chords = [NO_CHORD, 'C', 'C', 'G7']
+    chord_times = [0.0, 2.0, 4.0, 6.0]
+    chords_lib.add_chords_to_sequence(note_sequence, chords, chord_times)
+
+    self.assertEqual(expected_sequence, note_sequence)
 
 
 if __name__ == '__main__':

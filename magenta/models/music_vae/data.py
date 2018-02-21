@@ -28,8 +28,6 @@ import random
 import numpy as np
 import tensorflow as tf
 
-from magenta.models.music_vae import chord_utils
-
 import magenta.music as mm
 from magenta.music import chord_inference
 from magenta.music import chord_symbols_lib
@@ -582,7 +580,7 @@ class LegacyEventListOneHotConverter(BaseNoteSequenceConverter):
 
     if self._chord_encoding:
       try:
-        sliced_chord_lists = chord_utils.event_list_chords(
+        sliced_chord_lists = chords_lib.event_list_chords(
             quantized_sequence, sliced_event_lists)
       except chords_lib.CoincidentChordsException:
         return ConverterTensors()
@@ -645,7 +643,7 @@ class LegacyEventListOneHotConverter(BaseNoteSequenceConverter):
         chords = [self._chord_encoding.decode_event(e)
                   for e in np.argmax(controls[i], axis=-1)[:end_index]]
         chord_times = [step * seconds_per_step for step in event_list.steps]
-        chord_utils.add_chords_to_sequence(sequence, chords, chord_times)
+        chords_lib.add_chords_to_sequence(sequence, chords, chord_times)
       output_sequences.append(sequence)
     return output_sequences
 

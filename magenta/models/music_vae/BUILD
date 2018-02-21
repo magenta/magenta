@@ -27,7 +27,6 @@ py_library(
     ],
     deps = [
         ":base_model",
-        ":chord_utils",
         ":configs",
         ":data",
         ":lstm_models",
@@ -37,31 +36,10 @@ py_library(
 )
 
 py_library(
-    name = "chord_utils",
-    srcs = ["chord_utils.py"],
-    srcs_version = "PY2AND3",
-    deps = [
-        "//magenta",
-    ],
-)
-
-py_test(
-    name = "chord_utils_test",
-    srcs = ["chord_utils_test.py"],
-    srcs_version = "PY2AND3",
-    deps = [
-        ":chord_utils",
-        "//magenta",
-        # tensorflow dep
-    ],
-)
-
-py_library(
     name = "data",
     srcs = ["data.py"],
     srcs_version = "PY2AND3",
     deps = [
-        ":chord_utils",
         "//magenta",
         # numpy dep
         # tensorflow dep
