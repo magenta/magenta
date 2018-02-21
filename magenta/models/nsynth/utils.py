@@ -229,8 +229,8 @@ def specgram(audio,
 
     # Magnitudes, scaled 0-1
     if log_mag:
-      mag = (librosa.logamplitude(
-          mag**2, amin=1e-13, top_db=120., ref_power=np.max) / 120.) + 1
+      mag = (librosa.power_to_db(
+          mag**2, amin=1e-13, top_db=120., ref=np.max) / 120.) + 1
     else:
       mag /= mag.max()
 

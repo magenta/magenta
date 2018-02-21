@@ -131,7 +131,7 @@ def wav_to_spec(wav_audio, hparams):
       raise ValueError('Invalid spec_type: {}'.format(hparams.spec_type))
 
     if hparams.spec_log_amplitude:
-      spec = librosa.logamplitude(spec)
+      spec = librosa.power_to_db(spec)
 
   return spec
 
