@@ -611,7 +611,7 @@ class SplitMultiOutLstmDecoder(base_model.BaseDecoder):
   @property
   def state_size(self):
     return nest.map_structure(
-        sum, *(cd.state_size for cd in self._core_decoders))
+        lambda *x: sum(x), *(cd.state_size for cd in self._core_decoders))
 
   def build(self, hparams, output_depth, is_training):
     if sum(self._output_depths) != output_depth:
