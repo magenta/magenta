@@ -140,6 +140,7 @@ class NoteSequenceAugmenter(object):
         _augment_str,
         [note_sequence_scalar],
         tf.string,
+        stateful=False,
         name='augment')
     augmented_note_sequence_scalar.set_shape(())
     return augmented_note_sequence_scalar
@@ -358,6 +359,7 @@ class BaseConverter(object):
         _convert_and_pad,
         [item_scalar],
         [self.input_dtype, self.output_dtype, self.control_dtype, tf.int32],
+        stateful=False,
         name='convert_and_pad')
     inputs.set_shape([None, None, self.input_depth])
     outputs.set_shape([None, None, self.output_depth])
