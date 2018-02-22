@@ -1,5 +1,5 @@
 {
-  "name": "magenta",
+  "name": "@magenta/core",
   "version": "0.0.1",
   "description": "",
   "main": "dist/index.js",
