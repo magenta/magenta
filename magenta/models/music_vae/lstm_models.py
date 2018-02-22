@@ -36,6 +36,7 @@ from tensorflow.python.util import nest
 
 # ENCODERS
 
+
 class LstmEncoder(base_model.BaseEncoder):
   """Unidirectional LSTM Encoder."""
 
@@ -160,6 +161,7 @@ class BidirectionalLstmEncoder(base_model.BaseEncoder):
 
     return tf.concat([last_h_fw, last_h_bw], 1)
 
+
 class HierarchicalLstmEncoder(base_model.BaseEncoder):
   """Hierarchical LSTM encoder wrapper.
 
@@ -234,6 +236,9 @@ class HierarchicalLstmEncoder(base_model.BaseEncoder):
         each length must either equal `max_seq_len` or 0. In this case, the
         segment lengths are assumed to be constant and the total length will be
         evenly divided amongst the segments.
+
+    Returns:
+      embedding: A batch of embeddings, sized `[batch_size, N]`.
     """
     batch_size = sequence.shape[0].value
     sequence_length = lstm_utils.maybe_split_sequence_lengths(
