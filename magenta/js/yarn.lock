@@ -5,3 +5,7 @@
 google-protobuf@>=3.5.0:
   version "3.5.0"
   resolved "https://registry.yarnpkg.com/google-protobuf/-/google-protobuf-3.5.0.tgz#b8cc63c74d83457bd8a9a904503c8efb26bca339"
+
+typescript@2.7.2:
+  version "2.7.2"
+  resolved "https://registry.yarnpkg.com/typescript/-/typescript-2.7.2.tgz#2d615a1ef4aee4f574425cdff7026edf81919836"

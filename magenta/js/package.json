@@ -2,17 +2,24 @@
   "name": "magenta",
   "version": "0.0.1",
   "description": "",
-  "main": "main.js",
+  "main": "dist/index.js",
   "dependencies": {
     "google-protobuf": ">=3.5.0"
+  },
+  "devDependencies": {
+    "typescript": "2.7.2"
   },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "author": "",
+  "author": "Magenta",
   "license": "Apache-2.0",
   "repository": {
     "type": "git",
     "url": "https://github.com/PAIR-code/deeplearnjs.git"
+  },
+  "scripts": {
+    "prep": "yarn && mkdir -p dist && yarn build",
+    "build": "tsc"
   }
 }
