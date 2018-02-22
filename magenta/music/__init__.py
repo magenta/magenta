@@ -17,6 +17,7 @@
 from magenta.music.abc_parser import parse_abc_tunebook
 from magenta.music.abc_parser import parse_abc_tunebook_file
 
+from magenta.music.chord_inference import ChordInferenceException
 from magenta.music.chord_inference import infer_chords_for_sequence
 
 from magenta.music.chord_symbols_lib import chord_symbol_bass

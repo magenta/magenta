@@ -62,6 +62,15 @@ _KEY_CHORDS = list(itertools.product(range(12), _CHORDS))
 # Maximum length of chord sequence to infer.
 _MAX_NUM_CHORDS = 1000
 
+# Mapping from time signature to number of chords to infer per bar.
+_DEFAULT_TIME_SIGNATURE_CHORDS_PER_BAR = {
+    (2, 2): 1,
+    (2, 4): 1,
+    (3, 4): 1,
+    (4, 4): 2,
+    (6, 8): 2,
+}
+
 
 def _key_chord_distribution(chord_pitch_out_of_key_prob):
   """Probability distribution over chords for each key."""
@@ -225,24 +234,32 @@ def _key_chord_viterbi(chord_frame_loglik,
           for index in path[::-1]]
 
 
-class SequenceAlreadyHasChordsException(Exception):
+class ChordInferenceException(Exception):
   pass
 
 
-class NonIntegerStepsPerChordException(Exception):
+class SequenceAlreadyHasChordsException(ChordInferenceException):
   pass
 
 
-class EmptySequenceException(Exception):
+class UncommonTimeSignatureException(ChordInferenceException):
   pass
 
 
-class SequenceTooLongException(Exception):
+class NonIntegerStepsPerChordException(ChordInferenceException):
+  pass
+
+
+class EmptySequenceException(ChordInferenceException):
+  pass
+
+
+class SequenceTooLongException(ChordInferenceException):
   pass
 
 
 def infer_chords_for_sequence(quantized_sequence,
-                              chords_per_bar,
+                              chords_per_bar=None,
                               key_change_prob=0.001,
                               chord_change_prob=0.5,
                               chord_pitch_out_of_key_prob=0.01,
@@ -256,7 +273,9 @@ def infer_chords_for_sequence(quantized_sequence,
   Args:
     quantized_sequence: The quantized NoteSequence for which to infer chords.
         This NoteSequence will be modified in place.
-    chords_per_bar: The number of chords per bar to infer.
+    chords_per_bar: The number of chords per bar to infer. If None, use a
+        default number of chords based on the time signature of
+        `quantized_sequence`.
     key_change_prob: Probability of a key change between two adjacent frames.
     chord_change_prob: Probability of a chord change between two adjacent
         frames.
@@ -270,6 +289,8 @@ def infer_chords_for_sequence(quantized_sequence,
   Raises:
     SequenceAlreadyHasChordsException: If `quantized_sequence` already has
         chords.
+    UncommonTimeSignatureException: If `chords_per_bar` is not specified and
+        `quantized_sequence` has an uncommon time signature.
     NonIntegerStepsPerChordException: If the number of quantized steps per chord
         is not an integer.
     EmptySequenceException: If `quantized_sequence` is empty.
@@ -281,6 +302,15 @@ def infer_chords_for_sequence(quantized_sequence,
     if ta.annotation_type == music_pb2.NoteSequence.TextAnnotation.CHORD_SYMBOL:
       raise SequenceAlreadyHasChordsException(
           'NoteSequence already has chord(s): %s' % ta.text)
+
+  if chords_per_bar is None:
+    time_signature = (quantized_sequence.time_signatures[0].numerator,
+                      quantized_sequence.time_signatures[0].denominator)
+    if time_signature not in _DEFAULT_TIME_SIGNATURE_CHORDS_PER_BAR:
+      raise UncommonTimeSignatureException(
+          'No default chords per bar for time signature: (%d, %d)' %
+          time_signature)
+    chords_per_bar = _DEFAULT_TIME_SIGNATURE_CHORDS_PER_BAR[time_signature]
 
   # Determine the number of seconds (and steps) each chord is held.
   steps_per_bar_float = sequences_lib.steps_per_bar_in_quantized_sequence(
