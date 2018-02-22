@@ -587,7 +587,7 @@ class MultiOutCategoricalLstmDecoder(CategoricalLstmDecoder):
 
 
 class SplitMultiOutLstmDecoder(base_model.BaseDecoder):
-  """LSTM decoder with (optional) multiple categorical outputs."""
+  """Wrapper that splits multiple outputs to different LSTM decoders."""
 
   def __init__(self, core_decoders, output_depths):
     """Initializer for a SplitMultiOutLstmDecoder.
