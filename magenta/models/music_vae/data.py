@@ -639,7 +639,7 @@ class LegacyEventListOneHotConverter(BaseNoteSequenceConverter):
       else:
         seconds_per_step = 1.0 / self._steps_per_second
         sequence = event_list.to_sequence(velocity=OUTPUT_VELOCITY)
-      if self._chord_encoding and controls:
+      if self._chord_encoding and controls is not None:
         chords = [self._chord_encoding.decode_event(e)
                   for e in np.argmax(controls[i], axis=-1)[:end_index]]
         chord_times = [step * seconds_per_step for step in event_list.steps]
