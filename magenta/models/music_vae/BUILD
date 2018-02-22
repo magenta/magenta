@@ -86,6 +86,15 @@ py_library(
     ],
 )
 
+py_test(
+    name = "lstm_utils_test",
+    srcs = ["lstm_utils_test.py"],
+    srcs_version = "PY2AND3",
+    deps = [
+        ":lstm_utils",
+    ],
+)
+
 py_library(
     name = "lstm_models",
     srcs = ["lstm_models.py"],

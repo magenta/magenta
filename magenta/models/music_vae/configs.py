@@ -173,7 +173,12 @@ CONFIG_MAP['nade-drums_2bar_full'] = Config(
 )
 
 # Trio Models
-CONFIG_MAP['cat-trio_16bar_big'] = Config(
+trio_16bar_converter = data.TrioConverter(
+    steps_per_quarter=4,
+    slice_bars=16,
+    gap_bars=2)
+
+CONFIG_MAP['flat-trio_16bar'] = Config(
     model=MusicVAE(
         lstm_models.BidirectionalLstmEncoder(),
         lstm_models.MultiOutCategoricalLstmDecoder(
@@ -192,27 +197,27 @@ CONFIG_MAP['cat-trio_16bar_big'] = Config(
             dec_rnn_size=[2048, 2048, 2048],
         )),
     note_sequence_augmenter=None,
-    data_converter=data.TrioConverter(
-        steps_per_quarter=4,
-        slice_bars=16,
-        gap_bars=2),
+    data_converter=trio_16bar_converter,
     train_examples_path=None,
     eval_examples_path=None,
 )
 
-CONFIG_MAP['hiercat-trio_16bar_big'] = Config(
+CONFIG_MAP['hierdec-trio_16bar'] = Config(
     model=MusicVAE(
         lstm_models.BidirectionalLstmEncoder(),
-        lstm_models.HierarchicalMultiOutLstmDecoder(
-            core_decoders=[
-                lstm_models.CategoricalLstmDecoder(),
-                lstm_models.CategoricalLstmDecoder(),
-                lstm_models.CategoricalLstmDecoder()],
-            output_depths=[
-                90,  # melody
-                90,  # bass
-                512,  # drums
-            ])),
+        lstm_models.HierarchicalLstmDecoder(
+            lstm_models.SplitMultiOutLstmDecoder(
+                core_decoders=[
+                    lstm_models.CategoricalLstmDecoder(),
+                    lstm_models.CategoricalLstmDecoder(),
+                    lstm_models.CategoricalLstmDecoder()],
+                output_depths=[
+                    90,  # melody
+                    90,  # bass
+                    512,  # drums
+                ]),
+            level_lengths=[16, 16],
+            disable_autoregression=True)),
     hparams=merge_hparams(
         lstm_models.get_default_hparams(),
         HParams(
@@ -221,19 +226,21 @@ CONFIG_MAP['hiercat-trio_16bar_big'] = Config(
             z_size=512,
             enc_rnn_size=[2048, 2048],
             dec_rnn_size=[1024, 1024],
-            hierarchical_output_sizes=[16],
         )),
     note_sequence_augmenter=None,
-    data_converter=data.TrioConverter(
-        steps_per_quarter=4,
-        slice_bars=16,
-        gap_bars=2),
+    data_converter=trio_16bar_converter,
     train_examples_path=None,
     eval_examples_path=None,
 )
 
 # 16-bar Melody Models
-CONFIG_MAP['cat-mel_16bar_big'] = Config(
+mel_16bar_converter = data.OneHotMelodyConverter(
+    skip_polyphony=False,
+    max_bars=100,  # Truncate long melodies before slicing.
+    slice_bars=16,
+    steps_per_quarter=4)
+
+CONFIG_MAP['flat-mel_16bar'] = Config(
     model=MusicVAE(
         lstm_models.BidirectionalLstmEncoder(),
         lstm_models.CategoricalLstmDecoder()),
@@ -247,21 +254,18 @@ CONFIG_MAP['cat-mel_16bar_big'] = Config(
             dec_rnn_size=[2048, 2048, 2048],
         )),
     note_sequence_augmenter=None,
-    data_converter=data.OneHotMelodyConverter(
-        skip_polyphony=False,
-        max_bars=100,  # Truncate long melodies before slicing.
-        slice_bars=16,
-        steps_per_quarter=4),
+    data_converter=mel_16bar_converter,
     train_examples_path=None,
     eval_examples_path=None,
 )
 
-CONFIG_MAP['hiercat-mel_16bar_big'] = Config(
+CONFIG_MAP['hierdec-mel_16bar'] = Config(
     model=MusicVAE(
         lstm_models.BidirectionalLstmEncoder(),
-        lstm_models.HierarchicalMultiOutLstmDecoder(
-            core_decoders=[lstm_models.CategoricalLstmDecoder()],
-            output_depths=[90])),
+        lstm_models.HierarchicalLstmDecoder(
+            lstm_models.CategoricalLstmDecoder(),
+            level_lengths=[16, 16],
+            disable_autoregression=True)),
     hparams=merge_hparams(
         lstm_models.get_default_hparams(),
         HParams(
@@ -270,14 +274,9 @@ CONFIG_MAP['hiercat-mel_16bar_big'] = Config(
             z_size=512,
             enc_rnn_size=[2048, 2048],
             dec_rnn_size=[1024, 1024],
-            hierarchical_output_sizes=[16],
         )),
     note_sequence_augmenter=None,
-    data_converter=data.OneHotMelodyConverter(
-        skip_polyphony=False,
-        max_bars=100,  # Truncate long melodies before slicing.
-        slice_bars=16,
-        steps_per_quarter=4),
+    data_converter=mel_16bar_converter,
     train_examples_path=None,
     eval_examples_path=None,
 )

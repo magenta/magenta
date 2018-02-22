@@ -27,6 +27,6 @@ from .configs import update_config
 from .lstm_models import BaseLstmDecoder
 from .lstm_models import BidirectionalLstmEncoder
 from .lstm_models import CategoricalLstmDecoder
-from .lstm_models import HierarchicalMultiOutLstmDecoder
 from .lstm_models import MultiOutCategoricalLstmDecoder
+from .lstm_models import SplitMultiOutLstmDecoder
 from .trained_model import TrainedModel

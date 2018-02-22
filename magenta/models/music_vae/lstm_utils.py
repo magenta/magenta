@@ -92,20 +92,49 @@ def cudnn_lstm_layer(layer_sizes, dropout_keep_prob, is_training=True,
   return lstm
 
 
-def cudnn_lstm_state(lstm_cell_state):
-  """Convert tuple of LSTMCellStateTuples to CudnnLSTM format."""
-  h = tf.stack([s.h for s in lstm_cell_state])
-  c = tf.stack([s.c for s in lstm_cell_state])
+def state_tuples_to_cudnn_lstm_state(lstm_state_tuples):
+  """Convert tuple of LSTMStateTuples to CudnnLSTM format."""
+  h = tf.stack([s.h for s in lstm_state_tuples])
+  c = tf.stack([s.c for s in lstm_state_tuples])
   return (h, c)
 
 
-def get_final(time_major_sequence, sequence_length):
-  """Get the final item in a time-major sequence."""
-  final_index = tf.stack(
-      [tf.maximum(0, sequence_length - 1),
-       tf.range(sequence_length.shape[0])],
-      axis=1)
-  return tf.gather_nd(time_major_sequence, final_index)
+def cudnn_lstm_state_to_state_tuples(cudnn_lstm_state):
+  """Convert CudnnLSTM format to tuple of LSTMStateTuples."""
+  h, c = cudnn_lstm_state
+  return tuple(
+      rnn.LSTMStateTuple(h=h_i, c=c_i)
+      for h_i, c_i in zip(tf.unstack(h), tf.unstack(c)))
+
+
+def _get_final_index(sequence_length, time_major=True):
+  indices = [tf.maximum(0, sequence_length - 1),
+             tf.range(sequence_length.shape[0])]
+  if not time_major:
+    indices = indices[-1::-1]
+  return tf.stack(indices, axis=1)
+
+
+def get_final(sequence, sequence_length, time_major=True):
+  """Get the final item in a batch of sequences."""
+  final_index = _get_final_index(sequence_length, time_major)
+  return tf.gather_nd(sequence, final_index)
+
+
+def set_final(sequence, sequence_length, values, time_major=False):
+  """Sets the final values in a batch of sequences, and clears those after."""
+  sequence_batch_major = (
+      sequence if not time_major else tf.transpose(sequence, [1, 0, 2]))
+  final_index = _get_final_index(sequence_length, time_major=False)
+  mask = tf.sequence_mask(
+      tf.maximum(0, sequence_length - 1),
+      maxlen=sequence_batch_major.shape[1],
+      dtype=tf.float32)
+  sequence_batch_major = (
+      tf.expand_dims(mask, axis=-1) * sequence_batch_major +
+      tf.scatter_nd(final_index, values, tf.shape(sequence_batch_major)))
+  return (sequence_batch_major if not time_major else
+          tf.transpose(sequence_batch_major, [1, 0, 2]))
 
 
 def initial_cell_state_from_embedding(cell, z, name=None):
@@ -237,3 +266,54 @@ class Seq2SeqLstmDecoder(seq2seq.BasicDecoder):
         sample_id=results[0].sample_id)
     return (outputs,) + results[1:]
 
+
+def maybe_split_sequence_lengths(sequence_length, num_splits, total_length):
+  """Validates and splits `sequence_length`, if necessary.
+
+  Returned value must be used in graph for all validations to be executed.
+
+  Args:
+    sequence_length: A batch of sequence lengths, either sized `[batch_size]`
+      and equal to either 0 or `total_length`, or sized
+      `[batch_size, num_splits]`.
+    num_splits: The scalar number of splits of the full sequences.
+    total_length: The scalar total sequence length (potentially padded).
+
+  Returns:
+    sequence_length: If input shape was `[batch_size, num_splits]`, returns the
+      same Tensor. Otherwise, returns a Tensor of that shape with each input
+      length in the batch divided by `num_splits`.
+  Raises:
+    ValueError: If `sequence_length` is not shaped `[batch_size]` or
+      `[batch_size, num_splits]`.
+    tf.errors.InvalidArgumentError: If `sequence_length` is shaped
+      `[batch_size]` and all values are not either 0 or `total_length`.
+  """
+  if sequence_length.shape.ndims == 1:
+    if total_length % num_splits != 0:
+      raise ValueError(
+          '`total_length` must be evenly divisible by `num_splits`.')
+    with tf.control_dependencies(
+        [tf.Assert(
+            tf.reduce_all(
+                tf.logical_or(tf.equal(sequence_length, 0),
+                              tf.equal(sequence_length, total_length))),
+            data=[sequence_length])]):
+      sequence_length = (
+          tf.tile(tf.expand_dims(sequence_length, axis=1), [1, num_splits]) //
+          num_splits)
+  elif sequence_length.shape.ndims == 2:
+    with tf.control_dependencies([
+        tf.assert_less_equal(
+            sequence_length,
+            tf.constant(total_length // num_splits, tf.int32),
+            message='Segment length cannot be more than '
+                    '`total_length / num_splits`.')]):
+      sequence_length = tf.identity(sequence_length)
+    sequence_length.set_shape([sequence_length.shape[0], num_splits])
+  else:
+    raise ValueError(
+        'Sequence lengths must be given as a vector or a 2D Tensor whose '
+        'second dimension size matches its initial hierarchical split. Got '
+        'shape: %s' % sequence_length.shape.as_list())
+  return sequence_length
