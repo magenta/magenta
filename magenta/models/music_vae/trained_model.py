@@ -17,6 +17,7 @@ from __future__ import division
 from __future__ import print_function
 
 import copy
+import re
 
 # internal imports
 import numpy as np
@@ -40,14 +41,17 @@ class TrainedModel(object):
     checkpoint_dir_or_path: The directory containing checkpoints for the model,
       the most recent of which will be loaded, or a direct path to a specific
       checkpoint.
-    session_target: Optinal execution engine to connect to. Defaults to
+    var_name_substitutions: Optional list of string pairs containing regex
+      patterns and substitution values for renaming model variables to match
+      those in the checkpoint. Useful for backwards compatibility.
+    session_target: Optional execution engine to connect to. Defaults to
       in-process.
     sample_kwargs: Additional, non-tensor keyword arguments to pass to sample
       call.
   """
 
   def __init__(self, config, batch_size, checkpoint_dir_or_path=None,
-               session_target='', **sample_kwargs):
+               var_name_substitutions=None, session_target='', **sample_kwargs):
     checkpoint_path = (tf.train.latest_checkpoint(checkpoint_dir_or_path)
                        if tf.gfile.IsDirectory(checkpoint_dir_or_path) else
                        checkpoint_dir_or_path)
@@ -93,9 +97,21 @@ class TrainedModel(object):
         self._mu = q_z.loc
         self._sigma = q_z.scale.diag
         self._z = q_z.sample()
+
+      var_map = None
+      if var_name_substitutions is not None:
+        var_map = {}
+        for v in tf.global_variables():
+          var_name = v.name[:-2]  # Strip ':0' suffix.
+          for pattern, substitution in var_name_substitutions:
+            var_name = re.sub(pattern, substitution, var_name)
+          if var_name != v.name[:-2]:
+            tf.logging.info('Renaming `%s` to `%s`.', v.name[:-2], var_name)
+          var_map[var_name] = v
+
       # Restore graph
       self._sess = tf.Session(target=session_target)
-      saver = tf.train.Saver()
+      saver = tf.train.Saver(var_map)
       saver.restore(self._sess, checkpoint_path)
 
   def sample(self, n=None, length=None, temperature=1.0, same_z=False,
