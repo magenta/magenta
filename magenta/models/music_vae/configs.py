@@ -178,7 +178,7 @@ trio_16bar_converter = data.TrioConverter(
     slice_bars=16,
     gap_bars=2)
 
-CONFIG_MAP['cat-trio_16bar'] = Config(
+CONFIG_MAP['flat-trio_16bar'] = Config(
     model=MusicVAE(
         lstm_models.BidirectionalLstmEncoder(),
         lstm_models.MultiOutCategoricalLstmDecoder(
