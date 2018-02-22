@@ -24,6 +24,8 @@ import numpy as np
 import tensorflow as tf
 
 from magenta.models.music_vae import data
+
+import magenta.music as mm
 from magenta.music import constants
 from magenta.music import testing_lib
 from magenta.protobuf import music_pb2
@@ -31,6 +33,7 @@ from magenta.protobuf import music_pb2
 NO_EVENT = constants.MELODY_NO_EVENT
 NOTE_OFF = constants.MELODY_NOTE_OFF
 NO_DRUMS = 0
+NO_CHORD = constants.NO_CHORD
 
 
 def filter_instrument(sequence, instrument):
@@ -223,7 +226,91 @@ class BaseOneHotDataTest(BaseDataTest):
     self.assertArraySetsEqual(self.expected_sliced_labels, actual_sliced_labels)
 
 
-class OneHotMelodyConverterTest(BaseOneHotDataTest, tf.test.TestCase):
+class BaseChordConditionedOneHotDataTest(BaseOneHotDataTest):
+
+  def testUnslicedChordConditioned(self):
+    converter = self.converter_class(
+        steps_per_quarter=1, slice_bars=None,
+        chord_encoding=mm.MajorMinorChordOneHotEncoding())
+    tensors = converter.to_tensors(self.sequence)
+    actual_unsliced_labels = [np.argmax(t, axis=-1) for t in tensors.outputs]
+    actual_unsliced_chord_labels = [
+        np.argmax(t, axis=-1) for t in tensors.controls]
+    self.assertArraySetsEqual(
+        self.labels_to_inputs(self.expected_unsliced_labels, converter),
+        tensors.inputs)
+    self.assertArraySetsEqual(
+        self.expected_unsliced_labels, actual_unsliced_labels)
+    self.assertArraySetsEqual(
+        self.expected_unsliced_chord_labels, actual_unsliced_chord_labels)
+
+  def testTfUnslicedChordConditioned(self):
+    converter = self.converter_class(
+        steps_per_quarter=1, slice_bars=None,
+        chord_encoding=mm.MajorMinorChordOneHotEncoding())
+    with self.test_session() as sess:
+      sequence = tf.placeholder(tf.string)
+      input_tensors_, output_tensors_, control_tensors_, lengths_ = (
+          converter.tf_to_tensors(sequence))
+      input_tensors, output_tensors, control_tensors, lengths = sess.run(
+          [input_tensors_, output_tensors_, control_tensors_, lengths_],
+          feed_dict={sequence: self.sequence.SerializeToString()})
+    actual_input_tensors = [t[:l] for t, l in zip(input_tensors, lengths)]
+    actual_unsliced_labels = [
+        np.argmax(t, axis=-1)[:l] for t, l in zip(output_tensors, lengths)]
+    actual_unsliced_chord_labels = [
+        np.argmax(t, axis=-1)[:l] for t, l in zip(control_tensors, lengths)]
+
+    self.assertArraySetsEqual(
+        self.labels_to_inputs(self.expected_unsliced_labels, converter),
+        actual_input_tensors)
+    self.assertArraySetsEqual(
+        self.expected_unsliced_labels, actual_unsliced_labels)
+    self.assertArraySetsEqual(
+        self.expected_unsliced_chord_labels, actual_unsliced_chord_labels)
+
+  def testSlicedChordConditioned(self):
+    converter = self.converter_class(
+        steps_per_quarter=1, slice_bars=2, max_tensors_per_notesequence=None,
+        chord_encoding=mm.MajorMinorChordOneHotEncoding())
+    tensors = converter.to_tensors(self.sequence)
+    actual_sliced_labels = [np.argmax(t, axis=-1) for t in tensors.outputs]
+    actual_sliced_chord_labels = [
+        np.argmax(t, axis=-1) for t in tensors.controls]
+
+    self.assertArraySetsEqual(
+        self.labels_to_inputs(self.expected_sliced_labels, converter),
+        tensors.inputs)
+    self.assertArraySetsEqual(self.expected_sliced_labels, actual_sliced_labels)
+    self.assertArraySetsEqual(
+        self.expected_sliced_chord_labels, actual_sliced_chord_labels)
+
+  def testTfSlicedChordConditioned(self):
+    converter = self.converter_class(
+        steps_per_quarter=1, slice_bars=2, max_tensors_per_notesequence=None,
+        chord_encoding=mm.MajorMinorChordOneHotEncoding())
+    with self.test_session() as sess:
+      sequence = tf.placeholder(tf.string)
+      input_tensors_, output_tensors_, control_tensors_, lengths_ = (
+          converter.tf_to_tensors(sequence))
+      input_tensors, output_tensors, control_tensors, lengths = sess.run(
+          [input_tensors_, output_tensors_, control_tensors_, lengths_],
+          feed_dict={sequence: self.sequence.SerializeToString()})
+    actual_sliced_labels = [
+        np.argmax(t, axis=-1)[:l] for t, l in zip(output_tensors, lengths)]
+    actual_sliced_chord_labels = [
+        np.argmax(t, axis=-1)[:l] for t, l in zip(control_tensors, lengths)]
+
+    self.assertArraySetsEqual(
+        self.labels_to_inputs(self.expected_sliced_labels, converter),
+        input_tensors)
+    self.assertArraySetsEqual(self.expected_sliced_labels, actual_sliced_labels)
+    self.assertArraySetsEqual(
+        self.expected_sliced_chord_labels, actual_sliced_chord_labels)
+
+
+class OneHotMelodyConverterTest(BaseChordConditionedOneHotDataTest,
+                                tf.test.TestCase):
 
   def setUp(self):
     sequence = music_pb2.NoteSequence()
@@ -237,6 +324,10 @@ class OneHotMelodyConverterTest(BaseOneHotDataTest, tf.test.TestCase):
         [(35, 127, 2, 4), (36, 50, 6, 8),
          (71, 100, 33, 37), (73, 100, 34, 37),
          (33, 1, 50, 55), (34, 1, 55, 56)])
+    testing_lib.add_chords_to_sequence(
+        sequence,
+        [('F', 2), ('C', 8), ('Am', 16), ('N.C.', 20),
+         ('Bb7', 32), ('G', 36), ('F', 48), ('C', 52)])
     self.sequence = sequence
 
     # Subtract min pitch (21).
@@ -270,6 +361,41 @@ class OneHotMelodyConverterTest(BaseOneHotDataTest, tf.test.TestCase):
     ]
     self.expected_sliced_labels = [
         np.array(es) + 2 for es in expected_sliced_events]
+
+    chord_encoding = mm.MajorMinorChordOneHotEncoding()
+
+    expected_unsliced_chord_events = [
+        (NO_CHORD, NO_CHORD, 'F', 'F',
+         'F', 'F', 'F', 'F',
+         'C', 'C', 'C', 'C',
+         'C', 'C', 'C', 'C'),
+        ('Am', 'Am', 'Am', 'Am'),
+        (NO_CHORD, NO_CHORD, 'F', 'F',
+         'F', 'F', 'F', 'F'),
+        ('Bb7', 'Bb7', 'Bb7', 'Bb7',
+         'G', 'G', 'G', 'G'),
+        ('F', 'F', 'F', 'F',
+         'C', 'C', 'C', 'C'),
+    ]
+    self.expected_unsliced_chord_labels = [
+        np.array([chord_encoding.encode_event(e) for e in es])
+        for es in expected_unsliced_chord_events]
+
+    expected_sliced_chord_events = [
+        (NO_CHORD, NO_CHORD, 'F', 'F',
+         'F', 'F', 'F', 'F'),
+        ('F', 'F', 'F', 'F',
+         'C', 'C', 'C', 'C'),
+        ('C', 'C', 'C', 'C',
+         'C', 'C', 'C', 'C'),
+        (NO_CHORD, NO_CHORD, 'F', 'F',
+         'F', 'F', 'F', 'F'),
+        ('Bb7', 'Bb7', 'Bb7', 'Bb7',
+         'G', 'G', 'G', 'G'),
+    ]
+    self.expected_sliced_chord_labels = [
+        np.array([chord_encoding.encode_event(e) for e in es])
+        for es in expected_sliced_chord_events]
 
     self.converter_class = data.OneHotMelodyConverter
 
@@ -306,6 +432,24 @@ class OneHotMelodyConverterTest(BaseOneHotDataTest, tf.test.TestCase):
     testing_lib.add_track_to_sequence(
         expected_sequence, 0,
         [(32, 80, 1.0, 2.0), (33, 80, 3.0, 5.5), (34, 80, 5.5, 6.5)])
+    self.assertProtoEquals(expected_sequence, sequences[0])
+
+  def testToNoteSequenceChordConditioned(self):
+    converter = data.OneHotMelodyConverter(
+        steps_per_quarter=1, slice_bars=4, max_tensors_per_notesequence=1,
+        chord_encoding=mm.MajorMinorChordOneHotEncoding())
+    tensors = converter.to_tensors(
+        filter_instrument(self.sequence, 0))
+    sequences = converter.to_notesequences(tensors.outputs, tensors.controls)
+
+    self.assertEqual(1, len(sequences))
+    expected_sequence = music_pb2.NoteSequence(ticks_per_quarter=220)
+    expected_sequence.tempos.add(qpm=120)
+    testing_lib.add_track_to_sequence(
+        expected_sequence, 0,
+        [(32, 80, 1.0, 2.0), (33, 80, 3.0, 5.5), (34, 80, 5.5, 6.5)])
+    testing_lib.add_chords_to_sequence(
+        expected_sequence, [('N.C.', 0), ('F', 1), ('C', 4)])
     self.assertProtoEquals(expected_sequence, sequences[0])
 
 
@@ -534,6 +678,9 @@ class TrioConverterTest(BaseDataTest, tf.test.TestCase):
          (35, 1, 9, 9), (35, 1, 25, 25),
          (40, 1, 29, 29)],
         is_drum=True)
+    # Chords.
+    testing_lib.add_chords_to_sequence(
+        sequence, [('C', 4), ('Am', 16), ('G', 32)])
 
     for n in sequence.notes:
       if n.instrument == 1:
@@ -563,6 +710,16 @@ class TrioConverterTest(BaseDataTest, tf.test.TestCase):
           NO_DRUMS, 2, NO_DRUMS, NO_DRUMS] +
          [NO_DRUMS] * 4)
 
+    c = [NO_CHORD, NO_CHORD, NO_CHORD, NO_CHORD,
+         'C', 'C', 'C', 'C',
+         'C', 'C', 'C', 'C',
+         'C', 'C', 'C', 'C',
+         'Am', 'Am', 'Am', 'Am',
+         'Am', 'Am', 'Am', 'Am',
+         'Am', 'Am', 'Am', 'Am',
+         'Am', 'Am', 'Am', 'Am',
+         'G', 'G', 'G', 'G']
+
     expected_sliced_sets = [
         ((2, 4), (m1, b, d)),
         ((5, 7), (m1, b, d)),
@@ -575,6 +732,13 @@ class TrioConverterTest(BaseDataTest, tf.test.TestCase):
     self.expected_sliced_labels = [
         np.stack([l[i*4:j*4] for l in x]) for (i, j), x in expected_sliced_sets]
 
+    chord_encoding = mm.MajorMinorChordOneHotEncoding()
+    expected_sliced_chord_events = [
+        c[i*4:j*4] for (i, j), _ in expected_sliced_sets]
+    self.expected_sliced_chord_labels = [
+        np.array([chord_encoding.encode_event(e) for e in es])
+        for es in expected_sliced_chord_events]
+
   def testSliced(self):
     converter = data.TrioConverter(
         steps_per_quarter=1, gap_bars=1, slice_bars=2,
@@ -586,6 +750,23 @@ class TrioConverterTest(BaseDataTest, tf.test.TestCase):
         for t in tensors.outputs]
 
     self.assertArraySetsEqual(self.expected_sliced_labels, actual_sliced_labels)
+
+  def testSlicedChordConditioned(self):
+    converter = data.TrioConverter(
+        steps_per_quarter=1, gap_bars=1, slice_bars=2,
+        max_tensors_per_notesequence=None,
+        chord_encoding=mm.MajorMinorChordOneHotEncoding())
+    tensors = converter.to_tensors(self.sequence)
+    self.assertArraySetsEqual(tensors.inputs, tensors.outputs)
+    actual_sliced_labels = [
+        np.stack(np.argmax(s, axis=-1) for s in np.split(t, [90, 180], axis=-1))
+        for t in tensors.outputs]
+    actual_sliced_chord_labels = [
+        np.argmax(t, axis=-1) for t in tensors.controls]
+
+    self.assertArraySetsEqual(self.expected_sliced_labels, actual_sliced_labels)
+    self.assertArraySetsEqual(
+        self.expected_sliced_chord_labels, actual_sliced_chord_labels)
 
   def testToNoteSequence(self):
     converter = data.TrioConverter(
@@ -618,6 +799,51 @@ class TrioConverterTest(BaseDataTest, tf.test.TestCase):
         notes <
           instrument: 9 pitch: 38 start_time: 2.0 end_time: 2.5 velocity: 80
           is_drum: True
+        >
+        total_time: 4.0
+        """,
+        sequences[0])
+
+  def testToNoteSequenceChordConditioned(self):
+    converter = data.TrioConverter(
+        steps_per_quarter=1, slice_bars=2, max_tensors_per_notesequence=1,
+        chord_encoding=mm.MajorMinorChordOneHotEncoding())
+
+    mel_oh = data.np_onehot(self.expected_sliced_labels[3][0], 90)
+    bass_oh = data.np_onehot(self.expected_sliced_labels[3][1], 90)
+    drums_oh = data.np_onehot(self.expected_sliced_labels[3][2], 512)
+    chords_oh = data.np_onehot(self.expected_sliced_chord_labels[3], 25)
+
+    output_tensors = np.concatenate([mel_oh, bass_oh, drums_oh], axis=-1)
+
+    sequences = converter.to_notesequences([output_tensors], [chords_oh])
+    self.assertEqual(1, len(sequences))
+
+    self.assertProtoEquals(
+        """
+        ticks_per_quarter: 220
+        tempos < qpm: 120 >
+        notes <
+          instrument: 0 pitch: 52 start_time: 2.0 end_time: 4.0 program: 0
+          velocity: 80
+        >
+        notes <
+          instrument: 1 pitch: 50 start_time: 1.0 end_time: 2.5 program: 33
+          velocity: 80
+        >
+        notes <
+          instrument: 9 pitch: 36 start_time: 0.0 end_time: 0.5 velocity: 80
+          is_drum: True
+        >
+        notes <
+          instrument: 9 pitch: 38 start_time: 2.0 end_time: 2.5 velocity: 80
+          is_drum: True
+        >
+        text_annotations <
+          text: 'N.C.' annotation_type: CHORD_SYMBOL
+        >
+        text_annotations <
+          time: 2.0 text: 'C' annotation_type: CHORD_SYMBOL
         >
         total_time: 4.0
         """,
