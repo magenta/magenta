@@ -240,7 +240,7 @@ class MusicVAE(object):
     x_length = tf.minimum(sequence_length, max_seq_len)
 
     # Either encode to get `z`, or do unconditional, decoder-only.
-    if hparams.conditional:  # vae mode:
+    if hparams.z_size:  # vae mode:
       q_z = self.encode(input_sequence, x_length, control_sequence)
       z = q_z.sample()
 
@@ -343,7 +343,7 @@ class MusicVAE(object):
           '`z` must have a first dimension that equals `n` when given. '
           'Got: %d vs %d' % (z.shape[0].value, n))
 
-    if self.hparams.conditional and z is None:
+    if self.hparams.z_size and z is None:
       tf.logging.warning(
           'Sampling from conditional model without `z`. Using random `z`.')
       normal_shape = [n, self.hparams.z_size]
@@ -370,5 +370,4 @@ def get_default_hparams():
       learning_rate=0.001,  # Learning rate.
       decay_rate=0.9999,  # Learning rate decay per minibatch.
       min_learning_rate=0.00001,  # Minimum learning rate.
-      conditional=True,  # When False, use unconditional decoder-only model.
   )
