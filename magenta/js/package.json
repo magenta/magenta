@@ -1,6 +1,6 @@
 {
   "name": "@magenta/core",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -19,7 +19,7 @@
   "license": "Apache-2.0",
   "repository": {
     "type": "git",
-    "url": "https://github.com/PAIR-code/deeplearnjs.git"
+    "url": "https://github.com/tensorflow/magenta.git"
   },
   "scripts": {
     "build": "browserify --standalone magenta src/index.ts -p [tsify] > dist/magenta.js"
