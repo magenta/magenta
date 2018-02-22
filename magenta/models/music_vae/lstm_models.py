@@ -261,7 +261,9 @@ class HierarchicalLstmEncoder(base_model.BaseEncoder):
     with tf.control_dependencies([tf.assert_equal(tf.shape(sequence)[1], 1)]):
       return sequence[:, 0]
 
+
 # DECODERS
+
 
 class BaseLstmDecoder(base_model.BaseDecoder):
   """Abstract LSTM Decoder class.
