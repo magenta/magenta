@@ -29,7 +29,6 @@ import numpy as np
 import tensorflow as tf
 
 import magenta.music as mm
-from magenta.music import chord_inference
 from magenta.music import chord_symbols_lib
 from magenta.music import chords_lib
 from magenta.music import drums_encoder_decoder
@@ -55,15 +54,6 @@ FULL_DRUM_PITCH_CLASSES = [  # 61 classes
 OUTPUT_VELOCITY = 80
 
 CHORD_SYMBOL = music_pb2.NoteSequence.TextAnnotation.CHORD_SYMBOL
-
-# Mapping from time signature to number of chords to infer per bar.
-TIME_SIGNATURE_CHORDS_PER_BAR = {
-    (2, 2): 1,
-    (2, 4): 1,
-    (3, 4): 1,
-    (4, 4): 2,
-    (6, 8): 2,
-}
 
 
 def _maybe_pad_seqs(seqs, dtype):
@@ -553,16 +543,9 @@ class LegacyEventListOneHotConverter(BaseNoteSequenceConverter):
         for ta in quantized_sequence.text_annotations):
       # We are conditioning on chords but sequence does not have chords. Try to
       # infer them.
-      time_signature = (quantized_sequence.time_signatures[0].numerator,
-                        quantized_sequence.time_signatures[0].denominator)
-      if time_signature not in TIME_SIGNATURE_CHORDS_PER_BAR:
-        return ConverterTensors()
-      chords_per_bar = TIME_SIGNATURE_CHORDS_PER_BAR[time_signature]
       try:
-        mm.infer_chords_for_sequence(quantized_sequence, chords_per_bar)
-      except (chord_inference.NonIntegerStepsPerChordException,
-              chord_inference.EmptySequenceException,
-              chord_inference.SequenceTooLongException):
+        mm.infer_chords_for_sequence(quantized_sequence)
+      except mm.ChordInferenceException:
         return ConverterTensors()
 
     event_lists, unused_stats = self._event_extractor_fn(quantized_sequence)
@@ -985,16 +968,9 @@ class TrioConverter(BaseNoteSequenceConverter):
         for ta in quantized_sequence.text_annotations):
       # We are conditioning on chords but sequence does not have chords. Try to
       # infer them.
-      time_signature = (quantized_sequence.time_signatures[0].numerator,
-                        quantized_sequence.time_signatures[0].denominator)
-      if time_signature not in TIME_SIGNATURE_CHORDS_PER_BAR:
-        return ConverterTensors()
-      chords_per_bar = TIME_SIGNATURE_CHORDS_PER_BAR[time_signature]
       try:
-        mm.infer_chords_for_sequence(quantized_sequence, chords_per_bar)
-      except (chord_inference.NonIntegerStepsPerChordException,
-              chord_inference.EmptySequenceException,
-              chord_inference.SequenceTooLongException):
+        mm.infer_chords_for_sequence(quantized_sequence)
+      except mm.ChordInferenceException:
         return ConverterTensors()
 
       # The trio parts get extracted from the original NoteSequence, so copy the
