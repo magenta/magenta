@@ -346,7 +346,7 @@ class BaseLstmDecoder(base_model.BaseDecoder):
       rnn_output, _ = self._cudnn_dec_lstm(
           tf.transpose(helper.inputs, [1, 0, 2]),
           initial_state=lstm_utils.state_tuples_to_cudnn_lstm_state(
-            initial_state),
+              initial_state),
           training=self._is_training)
       with tf.variable_scope('decoder'):
         rnn_output = self._output_layer(rnn_output)
