@@ -34,6 +34,8 @@ from tensorflow.python.layers import core as layers_core
 from tensorflow.python.util import nest
 
 
+# ENCODERS
+
 class LstmEncoder(base_model.BaseEncoder):
   """Unidirectional LSTM Encoder."""
 
@@ -158,6 +160,103 @@ class BidirectionalLstmEncoder(base_model.BaseEncoder):
 
     return tf.concat([last_h_fw, last_h_bw], 1)
 
+class HierarchicalLstmEncoder(base_model.BaseEncoder):
+  """Hierarchical LSTM encoder wrapper.
+
+  Input sequences will be split into segments based on the first value of
+  `level_lengths` and encoded. At subsequent levels, the embeddings will be
+  grouped based on `level_lengths` and encoded until a single embedding is
+  produced.
+
+  See the `encode` method for details on the expected arrangement the sequence
+  tensors.
+
+  Args:
+    core_encoder_cls: A single BaseEncoder class to use for each level of the
+      hierarchy.
+    level_lengths: A list of the (maximum) lengths of the segments at each
+      level of the hierarchy. The product must equal `hparams.max_seq_len`.
+  """
+
+  def __init__(self, core_encoder_cls, level_lengths):
+    self._core_encoder_cls = core_encoder_cls
+    self._level_lengths = level_lengths
+
+  @property
+  def output_depth(self):
+    return self._hierarchical_encoders[-1][1].output_depth
+
+  @property
+  def level_lengths(self):
+    return list(self._level_lengths)
+
+  def level(self, l):
+    """Returns the BaseEncoder at level `l`."""
+    return self._hierarchical_encoders[l][1]
+
+  def build(self, hparams, is_training=True):
+    self._total_length = hparams.max_seq_len
+    if self._total_length != np.prod(self._level_lengths):
+      raise ValueError(
+          'The product of the HierarchicalLstmEncoder level lengths (%d) must '
+          'equal the padded input sequence length (%d).' % (
+              np.prod(self._level_lengths), self._total_length))
+    tf.logging.info('\nHierarchical Encoder:\n'
+                    '  input length: %d\n'
+                    '  level lengths: %s\n',
+                    self._total_length,
+                    self._level_lengths)
+    self._hierarchical_encoders = []
+    num_splits = np.prod(self._level_lengths)
+    for i, l in enumerate(self._level_lengths):
+      num_splits //= l
+      tf.logging.info('Level %d splits: %d', i, num_splits)
+      h_encoder = self._core_encoder_cls()
+      h_encoder.build(
+          hparams, is_training,
+          name_or_scope=tf.VariableScope(
+              tf.AUTO_REUSE, 'encoder/hierarchical_level_%d' % i))
+      self._hierarchical_encoders.append((num_splits, h_encoder))
+
+  def encode(self, sequence, sequence_length):
+    """Hierarchically encodes the input sequences, returning a single embedding.
+
+    Each sequence should be padded per-segment. For example, a sequence with
+    three segments [1, 2, 3], [4, 5], [6, 7, 8 ,9] and a `max_seq_len` of 12
+    should be input as `sequence = [1, 2, 3, 0, 4, 5, 0, 0, 6, 7, 8, 9]` with
+    `sequence_length = [3, 2, 4]`.
+
+    Args:
+      sequence: A batch of (padded) sequences, sized
+        `[batch_size, max_seq_len, input_depth]`.
+      sequence_length: A batch of sequence lengths. May be sized
+        `[batch_size, level_lengths[0]]` or `[batch_size]`. If the latter,
+        each length must either equal `max_seq_len` or 0. In this case, the
+        segment lengths are assumed to be constant and the total length will be
+        evenly divided amongst the segments.
+    """
+    batch_size = sequence.shape[0].value
+    sequence_length = lstm_utils.maybe_split_sequence_lengths(
+        sequence_length, np.prod(self._level_lengths[1:]),
+        self._total_length)
+
+    for level, (num_splits, h_encoder) in enumerate(
+        self._hierarchical_encoders):
+      split_seqs = tf.split(sequence, num_splits, axis=1)
+      # In the first level, we use the input `sequence_lengths`. After that,
+      # we use the full embedding sequences.
+      sequence_length = (
+          sequence_length if level == 0 else
+          tf.fill([batch_size, num_splits], split_seqs[0].shape[1]))
+      split_lengths = tf.unstack(sequence_length, axis=1)
+      embeddings = [
+          h_encoder.encode(s, l) for s, l in zip(split_seqs, split_lengths)]
+      sequence = tf.stack(embeddings, axis=1)
+
+    with tf.control_dependencies([tf.assert_equal(tf.shape(sequence)[1], 1)]):
+      return sequence[:, 0]
+
+# DECODERS
 
 class BaseLstmDecoder(base_model.BaseDecoder):
   """Abstract LSTM Decoder class.
@@ -545,7 +644,16 @@ class CategoricalLstmDecoder(BaseLstmDecoder):
 
 
 class MultiOutCategoricalLstmDecoder(CategoricalLstmDecoder):
-  """LSTM decoder with multiple categorical outputs."""
+  """LSTM decoder with multiple categorical outputs.
+
+  The final sequence dimension is split before computing the loss or sampling,
+  based on the `output_depths`. Reconstruction losses are summed across the
+  split and samples are concatenated in the same order as the input.
+
+  Args:
+    output_depths: A list of output depths for the in the same order as the are
+      concatenated in the final sequence dimension.
+  """
 
   def __init__(self, output_depths):
     self._output_depths = output_depths
@@ -587,19 +695,25 @@ class MultiOutCategoricalLstmDecoder(CategoricalLstmDecoder):
 
 
 class SplitMultiOutLstmDecoder(base_model.BaseDecoder):
-  """Wrapper that splits multiple outputs to different LSTM decoders."""
+  """Wrapper that splits multiple outputs to different LSTM decoders.
+
+  The final sequence dimension is split and passed to the `core_decoders` based
+  on the `output_depths`. `z` is passed directly to all core decoders without
+  modification. Reconstruction losses are summed across the split and samples
+  are concatenated in the same order as the input.
+
+  Args:
+    core_decoders: The BaseDecoder implementation class(es) to use at the
+      output layer. Size and order must match `output_depths`.
+    output_depths: A list of output depths for the core decoders in the same
+      order as the are concatenated in the input. Size and order must match
+      `core_decoders`.
+  Raises:
+    ValueError: If the size of `core_decoders` and `output_depths` are not
+      equal.
+  """
 
   def __init__(self, core_decoders, output_depths):
-    """Initializer for a SplitMultiOutLstmDecoder.
-
-    Args:
-      core_decoders: The BaseDecoder implementation class(es) to use at the
-          output layer.
-      output_depths: A list of output depths for the core decoders.
-    Raises:
-      ValueError: If the number of core decoders and output depths are not
-          equal.
-    """
     if len(core_decoders) != len(output_depths):
       raise ValueError(
           'The number of `core_decoders` and `output_depths` provided to a '
@@ -760,81 +874,6 @@ class MultiLabelRnnNadeDecoder(BaseLstmDecoder):
     return sample
 
 
-class HierarchicalLstmEncoder(base_model.BaseEncoder):
-  """Hierarchical LSTM encoder with fixed number of outputs per level."""
-
-  @property
-  def output_depth(self):
-    return self._hierarchical_encoders[-1][1].output_depth
-
-  @property
-  def level_lengths(self):
-    return list(self._level_lengths)
-
-  def level(self, l):
-    """Returns the BaseEncoder at level `l`."""
-    return self._hierarchical_encoders[l][1]
-
-  def __init__(self, core_encoder_cls, level_lengths):
-    """Initializer for HierarchicalLstmEncoder.
-
-    Args:
-      core_encoder_cls: A single BaseEncoder class to use for each level of the
-        hierarchy.
-      level_lengths: A list of the lengths to encode at each level of
-        the hierarchy. The first level is the (padded) maximum length. The
-        product must equal `hparams.max_seq_len`.
-    """
-    self._core_encoder_cls = core_encoder_cls
-    self._level_lengths = level_lengths
-
-  def build(self, hparams, is_training=True):
-    self._total_length = hparams.max_seq_len
-    if self._total_length != np.prod(self._level_lengths):
-      raise ValueError(
-          'The product of the HierarchicalLstmEncoder level lengths (%d) must '
-          'equal the padded input sequence length (%d).' % (
-              np.prod(self._level_lengths), self._total_length))
-    tf.logging.info('\nHierarchical Encoder:\n'
-                    '  input length: %d\n'
-                    '  level lengths: %s\n',
-                    self._total_length,
-                    self._level_lengths)
-    self._hierarchical_encoders = []
-    num_splits = np.prod(self._level_lengths)
-    for i, l in enumerate(self._level_lengths):
-      num_splits //= l
-      tf.logging.info('Level %d splits: %d', i, num_splits)
-      h_encoder = self._core_encoder_cls()
-      h_encoder.build(
-          hparams, is_training,
-          name_or_scope=tf.VariableScope(
-              tf.AUTO_REUSE, 'encoder/hierarchical_level_%d' % i))
-      self._hierarchical_encoders.append((num_splits, h_encoder))
-
-  def encode(self, sequence, sequence_length):
-    batch_size = sequence.shape[0].value
-    sequence_length = lstm_utils.maybe_split_sequence_lengths(
-        sequence_length, np.prod(self._level_lengths[1:]),
-        self._total_length)
-
-    for level, (num_splits, h_encoder) in enumerate(
-        self._hierarchical_encoders):
-      split_seqs = tf.split(sequence, num_splits, axis=1)
-      # In the first level, we use the input `sequence_lengths`. After that,
-      # we use the full embedding sequences.
-      sequence_length = (
-          sequence_length if level == 0 else
-          tf.fill([batch_size, num_splits], split_seqs[0].shape[1]))
-      split_lengths = tf.unstack(sequence_length, axis=1)
-      embeddings = [
-          h_encoder.encode(s, l) for s, l in zip(split_seqs, split_lengths)]
-      sequence = tf.stack(embeddings, axis=1)
-
-    with tf.control_dependencies([tf.assert_equal(tf.shape(sequence)[1], 1)]):
-      return sequence[:, 0]
-
-
 class HierarchicalLstmDecoder(base_model.BaseDecoder):
   """Hierarchical LSTM decoder."""
 
@@ -845,11 +884,20 @@ class HierarchicalLstmDecoder(base_model.BaseDecoder):
                hierarchical_encoder=None):
     """Initializer for HierarchicalLstmDecoder.
 
-    The latent vector initializes the first level and then outputs at each level
-    are used to initialize the state of the LSTMs at subsequent levels. The
-    lowest-level outputs are then passed to the given `core_decoder`.
+    Hierarchicaly decodes a sequence across time.
 
-    This decoder has 3 modes for the LSTM inputs:
+    Each sequence is padded per-segment. For example, a sequence with
+    three segments [1, 2, 3], [4, 5], [6, 7, 8 ,9] and a `max_seq_len` of 12
+    is represented as `sequence = [1, 2, 3, 0, 4, 5, 0, 0, 6, 7, 8, 9]` with
+    `sequence_length = [3, 2, 4]`.
+
+    `z` initializes the first level LSTM to produce embeddings used to
+    initialize the states of LSTMs at subsequent levels. The lowest-level
+    embeddings are then passed to the given `core_decoder` to generate the
+    final outputs.
+
+    This decoder has 3 modes for what is used as the inputs to the LSTMs
+    (excluding those in the core decoder):
       Autoregressive: (default) The inputs to the level `l` decoder are the
         final states of the level `l+1` decoder.
       Non-autoregressive: (`disable_autoregression=True`) The inputs to the
@@ -872,7 +920,7 @@ class HierarchicalLstmDecoder(base_model.BaseDecoder):
         level) should be the reverse of `level_output_lengths`.
 
     Raises:
-      ValueError: If `hierarchihcal_encoder` is given but has incompatible level
+      ValueError: If `hierarchical_encoder` is given but has incompatible level
         lengths.
     """
     if disable_autoregression is True:
@@ -992,7 +1040,35 @@ class HierarchicalLstmDecoder(base_model.BaseDecoder):
     return recursive_decode(z)
 
   def reconstruction_loss(self, x_input, x_target, x_length, z=None,
-                          control_sequence=None):
+                          c_input=None):
+    """Reconstruction loss calculation.
+
+    Args:
+      x_input: Batch of decoder input sequences of concatenated segmeents for
+        teacher forcing, sized `[batch_size, max_seq_len, output_depth]`.
+      x_target: Batch of expected output sequences to compute loss against,
+        sized `[batch_size, max_seq_len, output_depth]`.
+      x_length: Length of input/output sequences, sized
+        `[batch_size, level_lengths[0]]` or `[batch_size]`. If the latter,
+        each length must either equal `max_seq_len` or 0. In this case, the
+        segment lengths are assumed to be constant and the total length will be
+        evenly divided amongst the segments.
+      z: (Optional) Latent vectors. Required if model is conditional. Sized
+        `[n, z_size]`.
+      c_input: Batch of control sequences. Incompatible with this decoder.
+
+    Returns:
+      r_loss: The reconstruction loss for each sequence in the batch.
+      metric_map: Map from metric name to tf.metrics return values for logging.
+      decode_results: The LstmDecodeResults.
+
+    Raises:
+      ValueError: If `c_input` is provided.
+    """
+    if c_input is not None:
+      raise ValueError(
+          'Control sequence unsupported in HierarchicalLstmDecoder.')
+
     batch_size = x_input.shape[0].value
 
     x_length = lstm_utils.maybe_split_sequence_lengths(
@@ -1095,12 +1171,12 @@ class HierarchicalLstmDecoder(base_model.BaseDecoder):
       **core_sampler_kwargs: (Optional) Additional keyword arguments to pass to
         core sampler.
     Returns:
-      samples: Sampled sequences. Sized
-        `[n, level_output_lengths[-1], total_length / level_output_lengths[-1],
-          output_depth]`.
+      samples: Sampled sequences with concenated, possibly padded segments.
+         Sized `[n, max_length, output_depth]`.
       decoder_results: The merged LstmDecodeResults from sampling.
     Raises:
-      ValueError: If `z` is provided and its first dimension does not equal `n`.
+      ValueError: If `z` is provided and its first dimension does not equal `n`,
+        or if `c_input` is provided.
     """
     if z is not None and z.shape[0].value != n:
       raise ValueError(
