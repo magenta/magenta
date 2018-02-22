@@ -373,7 +373,7 @@ def add_chords_to_sequence(note_sequence, chords, chord_times):
   """
   current_chord = None
   for chord, time in zip(chords, chord_times):
-    if chord != current_chord:
+    if chord != current_chord and time < note_sequence.total_time:
       current_chord = chord
       ta = note_sequence.text_annotations.add()
       ta.annotation_type = music_pb2.NoteSequence.TextAnnotation.CHORD_SYMBOL
