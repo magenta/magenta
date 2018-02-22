@@ -3,11 +3,14 @@
   "version": "0.0.1",
   "description": "",
   "main": "dist/index.js",
+  "types": "dist/index.d.ts",
   "dependencies": {
     "google-protobuf": ">=3.5.0"
   },
   "devDependencies": {
-    "typescript": "2.7.2"
+    "typescript": "2.7.2",
+    "tsify": "~3.0.1",
+    "browserify": "~14.4.0"
   },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
@@ -19,7 +22,6 @@
     "url": "https://github.com/PAIR-code/deeplearnjs.git"
   },
   "scripts": {
-    "prep": "yarn && mkdir -p dist && yarn build",
-    "build": "tsc"
+    "build": "browserify --standalone magenta src/index.ts -p [tsify] > dist/magenta.js"
   }
 }
