@@ -234,23 +234,27 @@ def _key_chord_viterbi(chord_frame_loglik,
           for index in path[::-1]]
 
 
-class SequenceAlreadyHasChordsException(Exception):
+class ChordInferenceException(Exception):
   pass
 
 
-class UncommonTimeSignatureException(Exception):
+class SequenceAlreadyHasChordsException(ChordInferenceException):
   pass
 
 
-class NonIntegerStepsPerChordException(Exception):
+class UncommonTimeSignatureException(ChordInferenceException):
   pass
 
 
-class EmptySequenceException(Exception):
+class NonIntegerStepsPerChordException(ChordInferenceException):
   pass
 
 
-class SequenceTooLongException(Exception):
+class EmptySequenceException(ChordInferenceException):
+  pass
+
+
+class SequenceTooLongException(ChordInferenceException):
   pass
 
 
