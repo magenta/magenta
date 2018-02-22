@@ -92,16 +92,16 @@ def cudnn_lstm_layer(layer_sizes, dropout_keep_prob, is_training=True,
   return lstm
 
 
-def cudnn_lstm_state(lstm_cell_state):
+def state_tuples_to_cudnn_lstm_state(lstm_state_tuples):
   """Convert tuple of LSTMStateTuples to CudnnLSTM format."""
-  h = tf.stack([s.h for s in lstm_cell_state])
-  c = tf.stack([s.c for s in lstm_cell_state])
+  h = tf.stack([s.h for s in lstm_state_tuples])
+  c = tf.stack([s.c for s in lstm_state_tuples])
   return (h, c)
 
 
-def reverse_cudnn_lstm_state(lstm_cell_state):
+def cudnn_lstm_state_to_state_tuples(cudnn_lstm_state):
   """Convert CudnnLSTM format to tuple of LSTMStateTuples."""
-  h, c = lstm_cell_state
+  h, c = cudnn_lstm_state
   return tuple(
       rnn.LSTMStateTuple(h=h_i, c=c_i)
       for h_i, c_i in zip(tf.unstack(h), tf.unstack(c)))

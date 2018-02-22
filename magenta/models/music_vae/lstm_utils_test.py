@@ -28,15 +28,15 @@ from tensorflow.python.util import nest
 
 class LstmUtilsTest(tf.test.TestCase):
 
-  def testCudnnLstmState(self):
+  def testStateTupleToCudnnLstmState(self):
     with self.test_session():
-      h, c = lstm_utils.cudnn_lstm_state(
+      h, c = lstm_utils.state_tuples_to_cudnn_lstm_state(
           (rnn.LSTMStateTuple(h=np.arange(10).reshape(5, 2),
                               c=np.arange(10, 20).reshape(5, 2)),))
       self.assertAllEqual(np.arange(10).reshape(1, 5, 2), h.eval())
       self.assertAllEqual(np.arange(10, 20).reshape(1, 5, 2), c.eval())
 
-      h, c = lstm_utils.cudnn_lstm_state(
+      h, c = lstm_utils.state_tuples_to_cudnn_lstm_state(
           (rnn.LSTMStateTuple(h=np.arange(10).reshape(5, 2),
                               c=np.arange(20, 30).reshape(5, 2)),
            rnn.LSTMStateTuple(h=np.arange(10, 20).reshape(5, 2),
@@ -44,9 +44,9 @@ class LstmUtilsTest(tf.test.TestCase):
       self.assertAllEqual(np.arange(20).reshape(2, 5, 2), h.eval())
       self.assertAllEqual(np.arange(20, 40).reshape(2, 5, 2), c.eval())
 
-  def testReverseCudnnLstmState(self):
+  def testCudnnLstmState(self):
     with self.test_session() as sess:
-      lstm_state = lstm_utils.reverse_cudnn_lstm_state(
+      lstm_state = lstm_utils.cudnn_lstm_state_to_state_tuples(
           (np.arange(10).reshape(1, 5, 2), np.arange(10, 20).reshape(1, 5, 2)))
       nest.map_structure(
           self.assertAllEqual,
@@ -54,7 +54,7 @@ class LstmUtilsTest(tf.test.TestCase):
                               c=np.arange(10, 20).reshape(5, 2)),),
           sess.run(lstm_state))
 
-      lstm_state = lstm_utils.reverse_cudnn_lstm_state(
+      lstm_state = lstm_utils.cudnn_lstm_state_to_state_tuples(
           (np.arange(20).reshape(2, 5, 2), np.arange(20, 40).reshape(2, 5, 2)))
       nest.map_structure(
           self.assertAllEqual,
