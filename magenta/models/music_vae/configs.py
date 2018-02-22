@@ -240,7 +240,7 @@ mel_16bar_converter = data.OneHotMelodyConverter(
     slice_bars=16,
     steps_per_quarter=4)
 
-CONFIG_MAP['cat-mel_16bar'] = Config(
+CONFIG_MAP['flat-mel_16bar'] = Config(
     model=MusicVAE(
         lstm_models.BidirectionalLstmEncoder(),
         lstm_models.CategoricalLstmDecoder()),
