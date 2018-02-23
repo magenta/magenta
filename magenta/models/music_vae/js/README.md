@@ -10,4 +10,4 @@ COMING SOON!
 
 `yarn run build-demo` to build the demo.
 
-`npm install http-server && http-server demo/` to see it working.
+`http-server demo/` to see it working.

@@ -5,7 +5,7 @@
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "scripts": {
-    "bundle": "browserify index.ts -p [tsify] --standalone music-vae -o dist/musicvae.js",
+    "bundle": "browserify index.ts -p [tsify] --standalone musicvae -o dist/musicvae.js",
     "build-demo": "browserify demo/index.ts -p [tsify] > demo/bundle.js",
     "build": "tsc",
     "test": "echo \"Error: no test specified\" && exit 1"
@@ -22,11 +22,11 @@
   "homepage": "https://github.com/tensorflow/magenta/tree/master/magenta/models/music_vae/js/#readme",
   "devDependencies": {
     "browserify": "^15.2.0",
-    "deeplearn": "^0.3.16",
+    "http-server": "^0.11.1",
     "tsify": "^3.0.4",
     "typescript": "^2.6.2"
   },
   "dependencies": {
-    "http-server": "^0.11.1"
+    "deeplearn": "^0.3.16"
   }
 }
