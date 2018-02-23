@@ -1,5 +1,5 @@
 {
-  "name": "musicvae",
+  "name": "@magenta/musicvae",
   "version": "0.1.0",
   "description": "",
   "main": "dist/index.js",
