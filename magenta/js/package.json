@@ -1,9 +1,9 @@
 {
   "name": "@magenta/core",
-  "version": "0.0.2",
+  "version": "0.0.5",
   "description": "",
-  "main": "dist/index.js",
-  "types": "dist/index.d.ts",
+  "main": "dist/magenta.js",
+  "types": "dist/magenta.d.ts",
   "dependencies": {
     "google-protobuf": ">=3.5.0"
   },
