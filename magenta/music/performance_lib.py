@@ -745,7 +745,8 @@ def performance_pitch_histogram_sequence(performance, window_size_seconds,
 
 def extract_performances(
     quantized_sequence, start_step=0, min_events_discard=None,
-    max_events_truncate=None, num_velocity_bins=0, split_instruments=False):
+    max_events_truncate=None, max_steps_truncate=None, num_velocity_bins=0,
+    split_instruments=False):
   """Extracts one or more performances from the given quantized NoteSequence.
 
   Args:
@@ -755,6 +756,8 @@ def extract_performances(
         discarded.
     max_events_truncate: Maximum length of tracks in events. Longer tracks are
         truncated.
+    max_steps_truncate: Maximum length of tracks in quantized time steps. Longer
+        tracks are truncated.
     num_velocity_bins: Number of velocity bins to use. If 0, velocity events
         will not be included at all.
     split_instruments: If True, will extract a performance for each instrument.
@@ -769,7 +772,7 @@ def extract_performances(
 
   stats = dict([(stat_name, statistics.Counter(stat_name)) for stat_name in
                 ['performances_discarded_too_short',
-                 'performances_truncated',
+                 'performances_truncated', 'performances_truncated_timewise',
                  'performances_discarded_more_than_1_program']])
 
   if sequences_lib.is_absolute_quantized_sequence(quantized_sequence):
@@ -810,6 +813,11 @@ def extract_performances(
       performance = MetricPerformance(quantized_sequence, start_step=start_step,
                                       num_velocity_bins=num_velocity_bins,
                                       instrument=instrument)
+
+    if (max_steps_truncate is not None and
+        performance.num_steps > max_steps_truncate):
+      performance.set_length(max_steps_truncate)
+      stats['performances_truncated_timewise'].increment()
 
     if (max_events_truncate is not None and
         len(performance) > max_events_truncate):
