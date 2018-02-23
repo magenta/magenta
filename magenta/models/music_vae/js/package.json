@@ -1,0 +1,32 @@
+{
+  "name": "@magenta/musicvae",
+  "version": "0.1.0",
+  "description": "",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "bundle": "browserify index.ts -p [tsify] --standalone musicvae -o dist/musicvae.js",
+    "build-demo": "browserify demo/index.ts -p [tsify] > demo/bundle.js",
+    "build": "tsc",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/tensorflow/magenta.git"
+  },
+  "author": "",
+  "license": "Apache-2.0",
+  "bugs": {
+    "url": "https://github.com/tensorflow/magenta/issues"
+  },
+  "homepage": "https://github.com/tensorflow/magenta/tree/master/magenta/models/music_vae/js/#readme",
+  "devDependencies": {
+    "browserify": "^15.2.0",
+    "http-server": "^0.11.1",
+    "tsify": "^3.0.4",
+    "typescript": "^2.6.2"
+  },
+  "dependencies": {
+    "deeplearn": "^0.3.16"
+  }
+}
