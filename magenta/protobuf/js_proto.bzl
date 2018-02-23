@@ -12,6 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+"""genrule for generating javascript proto library."""
+
 def js_proto(src):
   native.genrule(
       name = src.replace(".proto", "_pb.js") + "-gen",
