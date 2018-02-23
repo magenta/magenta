@@ -34,6 +34,7 @@
     "no-inferrable-types": true,
     "no-namespace": [true, "allow-declarations"],
     "no-reference": true,
+    "no-require-imports": true,
     "no-string-throw": true,
     "no-unused-expression": true,
     "no-unused-variable": true,
