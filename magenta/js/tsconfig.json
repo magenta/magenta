@@ -1,7 +1,7 @@
 {
   "compilerOptions": {
     "module": "commonjs",
-    "noImplicitAny": true,
+    "noImplicitAny": false,
     "sourceMap": true,
     "removeComments": true,
     "preserveConstEnums": true,
@@ -17,8 +17,7 @@
     "pretty": true,
     "noFallthroughCasesInSwitch": true,
     "allowUnreachableCode": false,
-    "experimentalDecorators": true,
-    "declaration": true
+    "experimentalDecorators": true
   },
   "include": [
     "src/"

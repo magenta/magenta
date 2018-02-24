@@ -8,22 +8,23 @@
     "google-protobuf": ">=3.5.0"
   },
   "devDependencies": {
-    "typescript": "2.7.2",
-    "tsify": "~3.0.1",
+    "@types/tape": "^4.2.31",
     "browserify": "~14.4.0",
-    "tslint": "~5.8.0"
+    "tape": "^4.9.0",
+    "ts-node": "^5.0.0",
+    "tsify": "~3.0.1",
+    "tslint": "~5.8.0",
+    "typescript": "2.7.2"
   },
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "build": "browserify --standalone magenta src/index.ts -p [tsify] > dist/magenta.js",
+    "lint": "tslint -p . -t verbose",
+    "test": "ts-node node_modules/tape/bin/tape src/**/*_test.ts"
   },
   "author": "Magenta",
   "license": "Apache-2.0",
   "repository": {
     "type": "git",
     "url": "https://github.com/tensorflow/magenta.git"
-  },
-  "scripts": {
-    "build": "browserify --standalone magenta src/index.ts -p [tsify] > dist/magenta.js",
-    "lint": "tslint -p . -t verbose"
   }
 }
