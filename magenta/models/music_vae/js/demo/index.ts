@@ -14,32 +14,38 @@ async function initializeDrums(){
   const drumsInput: [number[][], number[][], number[][], number[][]] =
     [intsToBits(drums[0], 10), intsToBits(drums[1], 10), intsToBits(drums[2], 10), intsToBits(drums[3], 10)];
 
+  document.getElementById('drums-inputs').innerHTML = drums.map(d => d.toString()).join('<br>');
+
   let start = Date.now();
 
   let interp = await mvae.interpolate(drumsInput, 11);
-  console.log('drums CAT - interpolate: ' + (Date.now() - start) / 1000.);
+  document.getElementById('drums-interp-time').innerHTML = ((Date.now() - start) / 1000.).toString() + 's';
+  let interpResults: number[][] = [];
   for (let i = 0; i < interp.shape[0]; i++) {
-    let bits: Int32Array[] = [];
+    let bits: Uint8Array[] = [];
     for (let j = 0; j < interp.shape[1]; j++) {
       const r: dl.Array3D  = dl.slice3d(interp, [i, j, 0], [1, 1, interp.shape[2]]);
-      console.log(r.toInt().dataSync());
+      bits.push(r.toInt().dataSync() as Uint8Array);
     }
-    console.log(bitsToInts(bits));
+    interpResults.push(bitsToInts(bits));
   }
-  console.log('drums CAT interp - gpu format data: ' + (Date.now() - start) / 1000.);
+  document.getElementById('drums-interp-format-time').innerHTML = ((Date.now() - start) / 1000.).toString() + 's';
+  document.getElementById('drums-interp').innerHTML = interpResults.map(r => r.toString()).join('<br>');
 
   start = Date.now();
   let sample = await mvae.sample(10, 32);
-  console.log('drums CAT - sample: ' + (Date.now() - start) / 1000.);
+  document.getElementById('drums-sample-time').innerHTML = ((Date.now() - start) / 1000.).toString() + 's';
+  let sampleResults: number[][] = [];
   for (let i = 0; i < sample.shape[0]; i++) {
-    let bits: Int32Array[] = [];
+    let bits: Uint8Array[] = [];
     for (let j = 0; j < interp.shape[1]; j++) {
       const r = dl.slice3d(sample, [i, j, 0], [1, 1, sample.shape[2]])
-      console.log(r.toInt().dataSync());
+      bits.push(r.toInt().dataSync() as Uint8Array);
     }
-    console.log(bitsToInts(bits));
+    sampleResults.push(bitsToInts(bits));
   }
-  console.log('drums CAT sample - gpu format data: ' + (Date.now() - start) / 1000.);
+  document.getElementById('drums-sample-format-time').innerHTML = ((Date.now() - start) / 1000.).toString() + 's';
+  document.getElementById('drums-samples').innerHTML = interpResults.map(r => r.toString()).join('<br>');
 }
 
 
@@ -56,32 +62,38 @@ async function initializedDrumsNade(){
   const drumsInput: [number[][], number[][], number[][], number[][]] =
     [intsToBits(drums[0], 10), intsToBits(drums[1], 10), intsToBits(drums[2], 10), intsToBits(drums[3], 10)];
 
+  document.getElementById('nade-inputs').innerHTML = drums.map(d => d.toString()).join('<br>');
+
   let start = Date.now();
 
   let interp = await mvae.interpolate(drumsInput, 11);
-  console.log('drums NADE - interpolate: ' + (Date.now() - start) / 1000.);
+  document.getElementById('nade-interp-time').innerHTML = ((Date.now() - start) / 1000.).toString() + 's';
+  let interpResults: number[][] = [];
   for (let i = 0; i < interp.shape[0]; i++) {
-    let bits: Int32Array[] = [];
+    let bits: Uint8Array[] = [];
     for (let j = 0; j < interp.shape[1]; j++) {
       const r = dl.slice3d(interp, [i, j, 0], [1, 1, interp.shape[2]]);
-      console.log(r.toInt().dataSync());
+      bits.push(r.toBool().dataSync() as Uint8Array);
     }
-    console.log(bitsToInts(bits));
+    interpResults.push(bitsToInts(bits));
   }
-  console.log('drums NADE interp - gpu format data: ' + (Date.now() - start) / 1000.);
+  document.getElementById('nade-interp-format-time').innerHTML = ((Date.now() - start) / 1000.).toString() + 's';
+  document.getElementById('nade-interp').innerHTML = interpResults.map(r => r.toString()).join('<br>');
 
   start = Date.now();
   let sample = await mvae.sample(10, 32);
-  console.log('drum NADE - sample: ' + (Date.now() - start) / 1000.);
+  document.getElementById('nade-sample-time').innerHTML = ((Date.now() - start) / 1000.).toString() + 's';
+  let sampleResults: number[][] = [];
   for (let i = 0; i < sample.shape[0]; i++) {
-    let bits: Int32Array[] = [];
+    let bits: Uint8Array[] = [];
     for (let j = 0; j < interp.shape[1]; j++) {
       const r = dl.slice3d(sample, [i, j, 0], [1, 1, sample.shape[2]])
-      console.log(r.toInt().dataSync());
+      bits.push(r.toBool().dataSync() as Uint8Array);
     }
-    console.log(bitsToInts(bits));
+    sampleResults.push(bitsToInts(bits));
   }
-  console.log('drums NADE sample - gpu format data: ' + (Date.now() - start) / 1000.);
+  document.getElementById('nade-sample-format-time').innerHTML = ((Date.now() - start) / 1000.).toString() + 's';
+  document.getElementById('nade-samples').innerHTML = sampleResults.map(r => r.toString()).join('<br>');
 }
 
 async function initializedMel(){
@@ -92,15 +104,19 @@ async function initializedMel(){
   const teaPots: [number[][], number[][]] = [
       intsToOneHot(teaPot, 90), intsToOneHot(teaPot.slice(0).reverse(), 90)];
 
+  document.getElementById('mel-inputs').innerHTML = [teaPot, teaPot.slice(0).reverse()].map(r => r.toString()).join('<br>');
+
   let start = Date.now();
 
   let data = await mvae.interpolate(teaPots, 11);
-  console.log('mel - interpolate: ' + (Date.now() - start) / 1000.);
+  document.getElementById('mel-interp-time').innerHTML = ((Date.now() - start) / 1000.).toString() + 's';
+  let results: Int32Array[] = [];
   for (let i = 0; i < data.shape[0]; i++) {
     const r = dl.slice3d(data, [i, 0, 0], [1, data.shape[1], 1]);
-    console.log(r.dataSync());
+    results.push(r.toInt().dataSync() as Int32Array);
   }
-  console.log('mel - gpu format data: ' + (Date.now() - start) / 1000.);
+  document.getElementById('mel-interp').innerHTML = results.map(r => r.toString()).join('<br>');
+  document.getElementById('mel-interp-format-time').innerHTML = ((Date.now() - start) / 1000.).toString() + 's';
 }
 
 try {

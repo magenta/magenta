@@ -359,7 +359,7 @@ function intsToBits(ints: number[], depth: number) {
   return bits;
 }
 
-function bitsToInts(bits: Int32Array[]) {
+function bitsToInts(bits: Uint8Array[]) {
   const ints: number[] = [];
   for (let i = 0; i < bits.length; i++) {
     let b = 0;
