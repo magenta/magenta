@@ -1,8 +1,5 @@
 import { MusicVAE, intsToBits, bitsToInts, intsToOneHot } from '../index';
-import { ENV } from 'deeplearn';
-import { NDArrayMath } from 'deeplearn/dist/math/math';
-
-const math:NDArrayMath = ENV.math;
+import * as dl from 'deeplearn'
 
 async function initializeDrums(){
 
@@ -24,7 +21,7 @@ async function initializeDrums(){
   for (let i = 0; i < interp.shape[0]; i++) {
     let bits: Int32Array[] = [];
     for (let j = 0; j < interp.shape[1]; j++) {
-      const r = math.slice3D(interp, [i, j, 0], [1, 1, interp.shape[2]]);
+      const r = dl.slice3d(interp, [i, j, 0], [1, 1, interp.shape[2]]);
       bits.push(r.asType("int32").dataSync());
     }
     console.log(bitsToInts(bits));
@@ -37,7 +34,7 @@ async function initializeDrums(){
   for (let i = 0; i < sample.shape[0]; i++) {
     let bits: Int32Array[] = [];
     for (let j = 0; j < interp.shape[1]; j++) {
-      const r = math.slice3D(sample, [i, j, 0], [1, 1, sample.shape[2]])
+      const r = dl.slice3d(sample, [i, j, 0], [1, 1, sample.shape[2]])
       bits.push(r.asType("int32").dataSync());
     }
     console.log(bitsToInts(bits));
@@ -66,7 +63,7 @@ async function initializedDrumsNade(){
   for (let i = 0; i < interp.shape[0]; i++) {
     let bits: Int32Array[] = [];
     for (let j = 0; j < interp.shape[1]; j++) {
-      const r = math.slice3D(interp, [i, j, 0], [1, 1, interp.shape[2]]);
+      const r = dl.slice3d(interp, [i, j, 0], [1, 1, interp.shape[2]]);
       bits.push(r.asType("int32").dataSync());
     }
     console.log(bitsToInts(bits));
@@ -79,7 +76,7 @@ async function initializedDrumsNade(){
   for (let i = 0; i < sample.shape[0]; i++) {
     let bits: Int32Array[] = [];
     for (let j = 0; j < interp.shape[1]; j++) {
-      const r = math.slice3D(sample, [i, j, 0], [1, 1, sample.shape[2]])
+      const r = dl.slice3d(sample, [i, j, 0], [1, 1, sample.shape[2]])
       bits.push(r.asType("int32").dataSync());
     }
     console.log(bitsToInts(bits));
