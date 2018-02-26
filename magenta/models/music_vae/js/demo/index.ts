@@ -131,9 +131,9 @@ async function initializedMel(){
 }
 
 try {
-	initializeDrums();
-    initializedDrumsNade();
-    initializedMel();
+  initializeDrums();
+  initializedDrumsNade();
+  initializedMel();
 } catch (err){
-    console.error(err);
+  console.error(err);
 }
