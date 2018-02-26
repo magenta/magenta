@@ -57,28 +57,27 @@ export class Nade {
   sample(encBias: dl.Tensor2D, decBias: dl.Tensor2D) {
     const batchSize = encBias.shape[0];
 
-    let samples: dl.Tensor2D;
+    let samples: dl.Tensor1D[] = [];
     let a = dl.clone(encBias);
 
     for (let i = 0; i < this.numDims; i++) {
       let h = dl.sigmoid(a);
       let encWeights_i = dl.slice2d(
-        this.encWeights, [i, 0], [1, this.numHidden]);
+        this.encWeights, [i, 0], [1, this.numHidden]).as1D();
       let decWeightsT_i = dl.slice2d(
         this.decWeightsT, [i, 0], [1, this.numHidden]);
       let decBias_i = dl.slice2d(decBias, [0, i], [batchSize, 1]);
       let condLogits_i = decBias_i.add(dl.matMul(h, decWeightsT_i, false, true));
       let condProbs_i = dl.sigmoid(condLogits_i);
 
-      let samples_i = dl.equal(
-        dl.clipByValue(condProbs_i, 0, 0.5), dl.scalar(0.5)) as dl.Tensor2D;  // >= 0.5
+      let samples_i = dl.greater(condProbs_i, dl.scalar(0.5)).toFloat().as1D();
       if (i < this.numDims - 1) {
-        a = a.add(samples_i.matMul(encWeights_i)) as dl.Tensor2D;
+        a = a.add(dl.outerProduct(samples_i.toFloat(), encWeights_i)) as dl.Tensor2D;
       }
 
-      samples = (i ? dl.concat2d([samples, samples_i], 1) : samples_i.as2D(batchSize, 1));
+      samples.push(samples_i);
     }
-    return samples;
+    return dl.stack(samples, 1) as dl.Tensor2D;
   }
 }
 
@@ -103,15 +102,16 @@ class Encoder {
     const outputSize = inputs.shape[2];
     return dl.tidy(()=> {
       let state: [dl.Tensor2D, dl.Tensor2D] = [
-        dl.zeros([batchSize, lstmVars.bias.shape[0] / 4]), 
+        dl.zeros([batchSize, lstmVars.bias.shape[0] / 4]),
         dl.zeros([batchSize, lstmVars.bias.shape[0] / 4])
       ];
-      let lstm = dl.basicLSTMCell.bind(forgetBias, lstmVars.kernel, lstmVars.bias);
+      let lstm = (data: dl.Tensor2D, state: [dl.Tensor2D, dl.Tensor2D]) =>
+          dl.basicLSTMCell(forgetBias, lstmVars.kernel, lstmVars.bias, data, state[0], state[1]);
       for (let i = 0; i < length; i++) {
         let index = reverse ? length - 1 - i : i;
         state = lstm(
           dl.slice3d(inputs, [0, index, 0], [batchSize, 1, outputSize]).as2D(batchSize, outputSize),
-          state[0], state[1]);
+          state);
       }
       return state;
     });
@@ -159,7 +159,9 @@ class Decoder {
     for (let i = 0; i < this.lstmCellVars.length; ++i) {
       const lv = this.lstmCellVars[i];
       const stateWidth = lv.bias.shape[0] / 4;
-      lstmCells.push(dl.basicLSTMCell.bind(forgetBias, lv.kernel, lv.bias))
+      lstmCells.push(
+       (data: dl.Tensor2D, c: dl.Tensor2D, h: dl.Tensor2D) =>
+            dl.basicLSTMCell(forgetBias, lv.kernel, lv.bias, data, c, h));
       c.push(dl.slice2d(initialStates, [0, stateOffset], [batchSize, stateWidth]));
       stateOffset += stateWidth;
       h.push(dl.slice2d(initialStates, [0, stateOffset], [batchSize, stateWidth]));
@@ -168,35 +170,35 @@ class Decoder {
 
     // Generate samples.
     return dl.tidy(() => {
-      let samples: dl.Tensor3D;
+      let samples: dl.Tensor2D[] = [];
       let nextInput = dl.zeros([batchSize, this.outputDims]) as dl.Tensor2D;
       for (let i = 0; i < length; ++i) {
-        let output = dl.multiRNNCell(lstmCells, dl.concat2d([nextInput, z], 1), c, h);
+        let output = dl.multiRNNCell(
+            lstmCells, dl.concat2d([nextInput, z], 1), c, h);
         c = output[0];
         h = output[1];
         const logits = dense(this.outputProjectVars, h[h.length - 1]);
 
-        let timeSamples: dl.Tensor3D;
+        let timeSamples: dl.Tensor2D;
         if (this.nade == null) {
           let timeLabels = dl.argMax(logits, 1).as1D();
-          nextInput = dl.oneHot(timeLabels, this.outputDims);
-          timeSamples = timeLabels.as3D(batchSize, 1, 1);
+          nextInput = dl.oneHot(timeLabels, this.outputDims).toFloat();
+          timeSamples = timeLabels.as2D(batchSize, 1);
         } else {
           let encBias = dl.slice2d(
             logits, [0, 0], [batchSize, this.nade.numHidden]);
           let decBias = dl.slice2d(
             logits, [0, this.nade.numHidden], [batchSize, this.nade.numDims]);
           nextInput = this.nade.sample(encBias, decBias);
-          timeSamples = nextInput.as3D(batchSize, 1, this.outputDims);
+          timeSamples = nextInput;
         }
-        samples = i ? dl.concat3d([samples, timeSamples], 1) : timeSamples;
+        samples.push(timeSamples);
       }
 
-      nextInput.dispose();
-      return samples;
+      return dl.stack(samples, 1) as dl.Tensor3D;
     });
   }
-  
+
 }
 
 
@@ -285,7 +287,7 @@ class MusicVAE {
 
       let batchedInput: dl.Tensor3D = startSeq3D;
       for (let i = 1; i < noteSequences.length; i++) {
-        const endSeq = dl.tensor2d(noteSequences[i], 
+        const endSeq = dl.tensor2d(noteSequences[i],
           [noteSequences[i].length, noteSequences[i][0].length]);
         const endSeq3D = endSeq.as3D(1, endSeq.shape[0], endSeq.shape[1]);
         batchedInput = dl.concat3d([batchedInput, endSeq3D], 0);
@@ -295,14 +297,8 @@ class MusicVAE {
       return this.encoder.encode(batchedInput);
     });
 
-    // Interpolate.
-    const range: number[] = [];
-    for (let i = 0; i < numSteps; i++) {
-      range.push(i / (numSteps - 1));
-    }
-
     const interpolatedZs: dl.Tensor2D = await dl.tidy(() => {
-      const rangeArray = dl.tensor1d(range);
+      const rangeArray = dl.linspace(0.0, 1.0, numSteps);
 
       const z0 = dl.slice2d(z, [0, 0], [1, z.shape[1]]).as1D();
       const z1 = dl.slice2d(z, [1, 0], [1, z.shape[1]]).as1D();
@@ -314,16 +310,15 @@ class MusicVAE {
         const z2 = dl.slice2d(z, [2, 0], [1, z.shape[1]]).as1D();
         const z3 = dl.slice2d(z, [3, 0], [1, z.shape[1]]).as1D();
 
-        const one = dl.scalar(1.0);
-        const revRangeArray = one.sub(rangeArray) as dl.Tensor1D;
+        const revRangeArray = dl.scalar(1.0).sub(rangeArray) as dl.Tensor1D;
 
-        const r = range.length;
-        let finalZs = z0.mul(dl.outerProduct(revRangeArray, revRangeArray).as3D(r, r, 1)) as dl.Tensor3D; //broadcasting
+        const r = numSteps;
+        let finalZs = z0.mul(dl.outerProduct(revRangeArray, revRangeArray).as3D(r, r, 1)) as dl.Tensor3D;
         finalZs = dl.addStrict(finalZs, z1.mul(dl.outerProduct(rangeArray, revRangeArray).as3D(r, r, 1))) as dl.Tensor3D;
-        finalZs = dl.addStrict(finalZs, z2.mul(dl.outerProduct(rangeArray, revRangeArray).as3D(r, r, 1))) as dl.Tensor3D;
-        finalZs = dl.addStrict(finalZs, z3.mul(dl.outerProduct(rangeArray, revRangeArray).as3D(r, r, 1))) as dl.Tensor3D;
-        
-        return finalZs.as2D(range.length * range.length, z.shape[1]);
+        finalZs = dl.addStrict(finalZs, z2.mul(dl.outerProduct(revRangeArray, rangeArray).as3D(r, r, 1))) as dl.Tensor3D;
+        finalZs = dl.addStrict(finalZs, z3.mul(dl.outerProduct(rangeArray, rangeArray).as3D(r, r, 1))) as dl.Tensor3D;
+
+        return finalZs.as2D(r * r, z.shape[1]);
       } else {
         throw new Error('invalid number of note sequences. Requires length 2, or 4');
       }
@@ -357,7 +352,7 @@ function intsToBits(ints: number[], depth: number) {
   return bits;
 }
 
-function bitsToInts(bits: Int32Array[]) {
+function bitsToInts(bits: Uint8Array[]) {
   const ints: number[] = [];
   for (let i = 0; i < bits.length; i++) {
     let b = 0;
