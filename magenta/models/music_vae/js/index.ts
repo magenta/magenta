@@ -1,28 +1,23 @@
-/* Copyright 2017 Google Inc. All Rights Reserved.
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-    http://www.apache.org/licenses/LICENSE-2.0
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-==============================================================================*/
-
-// tslint:disable-next-line:max-line-length
+/**
+ * @license
+ * Copyright 2018 Google Inc. All Rights Reserved.
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ * =============================================================================
+ */
 import * as dl from 'deeplearn'
-import { CheckpointLoader } from 'deeplearn'
 
 const DECODER_CELL_FORMAT = "decoder/multi_rnn_cell/cell_%d/lstm_cell/"
 
-let console: any = window.console;
-
-const DEBUG = true;
-if (!DEBUG) {
-  console = {};
-  console.log = () => { };
-}
 const forgetBias = dl.scalar(1.0);
 
 class LayerVars {
@@ -136,8 +131,8 @@ class Decoder {
   nade: Nade;
 
   constructor(
-    lstmCellVars: LayerVars[], zToInitStateVars: LayerVars,
-    outputProjectVars: LayerVars, nade: Nade) {
+      lstmCellVars: LayerVars[], zToInitStateVars: LayerVars,
+      outputProjectVars: LayerVars, nade: Nade) {
     this.lstmCellVars = lstmCellVars;
     this.zToInitStateVars = zToInitStateVars;
     this.outputProjectVars = outputProjectVars;
@@ -201,100 +196,77 @@ class Decoder {
 
 }
 
-
-export const isDeviceSupported:boolean = isWebGLSupported() && !isSafari();
-
-
-function initialize(checkpointURL: string) {
-	const reader = new CheckpointLoader(checkpointURL);
-	return reader.getAllVariables().then(
-		(vars: { [varName: string]: dl.Tensor }) => {
-			const encLstmFw = new LayerVars(
-				vars['encoder/cell_0/bidirectional_rnn/fw/multi_rnn_cell/cell_0/lstm_cell/kernel'] as dl.Tensor2D,
-				vars['encoder/cell_0/bidirectional_rnn/fw/multi_rnn_cell/cell_0/lstm_cell/bias'] as dl.Tensor1D);
-			const encLstmBw = new LayerVars(
-				vars['encoder/cell_0/bidirectional_rnn/bw/multi_rnn_cell/cell_0/lstm_cell/kernel'] as dl.Tensor2D,
-				vars['encoder/cell_0/bidirectional_rnn/bw/multi_rnn_cell/cell_0/lstm_cell/bias'] as dl.Tensor1D);
-			const encMu = new LayerVars(
-				vars['encoder/mu/kernel'] as dl.Tensor2D,
-				vars['encoder/mu/bias'] as dl.Tensor1D);
-			const encPresig = new LayerVars(
-				vars['encoder/sigma/kernel'] as dl.Tensor2D,
-				vars['encoder/sigma/bias'] as dl.Tensor1D);
-
-			let decLstmLayers: LayerVars[] = [];
-			let l = 0;
-			while (true) {
-				const cell_prefix = DECODER_CELL_FORMAT.replace('%d', l.toString());
-				if (!(cell_prefix + 'kernel' in vars)) {
-					break;
-				}
-				decLstmLayers.push(new LayerVars(
-					vars[cell_prefix + 'kernel'] as dl.Tensor2D,
-					vars[cell_prefix + 'bias'] as dl.Tensor1D));
-				++l;
-			}
-
-			const decZtoInitState = new LayerVars(
-				vars['decoder/z_to_initial_state/kernel'] as dl.Tensor2D,
-				vars['decoder/z_to_initial_state/bias'] as dl.Tensor1D);
-			const decOutputProjection = new LayerVars(
-				vars['decoder/output_projection/kernel'] as dl.Tensor2D,
-				vars['decoder/output_projection/bias'] as dl.Tensor1D);
-			let nade = (('decoder/nade/w_enc' in vars) ?
-				new Nade(
-					vars['decoder/nade/w_enc'] as dl.Tensor3D,
-					vars['decoder/nade/w_dec_t'] as dl.Tensor3D) : null);
-			return [
-				new Encoder(encLstmFw, encLstmBw, encMu, encPresig),
-				new Decoder(decLstmLayers, decZtoInitState, decOutputProjection, nade)
-			];
-		})
-}
-
 class MusicVAE {
-
-	checkpointURL:string;
+  checkpointURL:string;
   encoder: Encoder;
   decoder: Decoder;
 
   constructor(checkpointURL:string) {
-		this.checkpointURL = checkpointURL;
-	}
+    this.checkpointURL = checkpointURL;
+  }
 
 	async initialize() {
-		return initialize(this.checkpointURL)
-			.then((encoder_decoder:[Encoder, Decoder])=>{
-				this.encoder = encoder_decoder[0];
-				this.decoder = encoder_decoder[1];
-				return this;
-			});
+    const reader = new dl.CheckpointLoader(this.checkpointURL);
+    return reader.getAllVariables().then(
+        (vars: { [varName: string]: dl.Tensor }) => {
+            const encLstmFw = new LayerVars(
+                vars['encoder/cell_0/bidirectional_rnn/fw/multi_rnn_cell/cell_0/lstm_cell/kernel'] as dl.Tensor2D,
+                vars['encoder/cell_0/bidirectional_rnn/fw/multi_rnn_cell/cell_0/lstm_cell/bias'] as dl.Tensor1D);
+            const encLstmBw = new LayerVars(
+                vars['encoder/cell_0/bidirectional_rnn/bw/multi_rnn_cell/cell_0/lstm_cell/kernel'] as dl.Tensor2D,
+                vars['encoder/cell_0/bidirectional_rnn/bw/multi_rnn_cell/cell_0/lstm_cell/bias'] as dl.Tensor1D);
+            const encMu = new LayerVars(
+                vars['encoder/mu/kernel'] as dl.Tensor2D,
+                vars['encoder/mu/bias'] as dl.Tensor1D);
+            const encPresig = new LayerVars(
+                vars['encoder/sigma/kernel'] as dl.Tensor2D,
+                vars['encoder/sigma/bias'] as dl.Tensor1D);
+
+            let decLstmLayers: LayerVars[] = [];
+            let l = 0;
+            while (true) {
+                const cell_prefix = DECODER_CELL_FORMAT.replace('%d', l.toString());
+                if (!(cell_prefix + 'kernel' in vars)) {
+                    break;
+                }
+                decLstmLayers.push(new LayerVars(
+                    vars[cell_prefix + 'kernel'] as dl.Tensor2D,
+                    vars[cell_prefix + 'bias'] as dl.Tensor1D));
+                ++l;
+            }
+
+            const decZtoInitState = new LayerVars(
+                vars['decoder/z_to_initial_state/kernel'] as dl.Tensor2D,
+                vars['decoder/z_to_initial_state/bias'] as dl.Tensor1D);
+            const decOutputProjection = new LayerVars(
+                vars['decoder/output_projection/kernel'] as dl.Tensor2D,
+                vars['decoder/output_projection/bias'] as dl.Tensor1D);
+            let nade = (('decoder/nade/w_enc' in vars) ?
+                new Nade(
+                    vars['decoder/nade/w_enc'] as dl.Tensor3D,
+                    vars['decoder/nade/w_dec_t'] as dl.Tensor3D) : null);
+            return [
+                new Encoder(encLstmFw, encLstmBw, encMu, encPresig),
+                new Decoder(decLstmLayers, decZtoInitState, decOutputProjection, nade)
+            ];
+        }).then((encoder_decoder:[Encoder, Decoder])=>{
+          this.encoder = encoder_decoder[0];
+          this.decoder = encoder_decoder[1];
+          return this;
+        });
 	}
 
 	isInitialized() {
-		return (!!this.encoder && !!this.decoder);
+	  return (!!this.encoder && !!this.decoder);
 	}
 
-
-  async interpolate(noteSequences: number[][][], numSteps: number) {
-    if (noteSequences.length != 2 && noteSequences.length != 4) {
-      throw new Error('invalid number of note sequences. Requires length 2, or 4');
+  async interpolate(sequences: dl.Tensor3D, numSteps: number) {
+    if (sequences.shape[0] != 2 && sequences.shape[0] != 4) {
+      throw new Error('Invalid number of input sequences. Requires length 2, or 4');
     }
 
     const z = dl.tidy(() => {
-      const startSeq = dl.tensor2d(noteSequences[0], [noteSequences[0].length, noteSequences[0][0].length]);
-      const startSeq3D = startSeq.as3D(1, startSeq.shape[0], startSeq.shape[1]);
-
-      let batchedInput: dl.Tensor3D = startSeq3D;
-      for (let i = 1; i < noteSequences.length; i++) {
-        const endSeq = dl.tensor2d(noteSequences[i],
-          [noteSequences[i].length, noteSequences[i][0].length]);
-        const endSeq3D = endSeq.as3D(1, endSeq.shape[0], endSeq.shape[1]);
-        batchedInput = dl.concat3d([batchedInput, endSeq3D], 0);
-      }
-      startSeq3D.dispose();
-      // Compute z values.
-      return this.encoder.encode(batchedInput);
+      return this.encoder.encode(sequences);
     });
 
     const interpolatedZs: dl.Tensor2D = await dl.tidy(() => {
@@ -303,10 +275,10 @@ class MusicVAE {
       const z0 = dl.slice2d(z, [0, 0], [1, z.shape[1]]).as1D();
       const z1 = dl.slice2d(z, [1, 0], [1, z.shape[1]]).as1D();
 
-      if (noteSequences.length == 2) {
+      if (sequences.shape[0] == 2) {
         const zDiff = z1.sub(z0) as dl.Tensor1D;
         return dl.outerProduct(rangeArray, zDiff).add(z0) as dl.Tensor2D;
-      } else if (noteSequences.length == 4) {
+      } else if (sequences.shape[0] == 4) {
         const z2 = dl.slice2d(z, [2, 0], [1, z.shape[1]]).as1D();
         const z3 = dl.slice2d(z, [3, 0], [1, z.shape[1]]).as1D();
 
@@ -325,7 +297,7 @@ class MusicVAE {
     });
 
     return dl.tidy(() => {
-      return this.decoder.decode(interpolatedZs, noteSequences[0].length);
+      return this.decoder.decode(interpolatedZs, sequences.shape[1]);
     });
   }
 
@@ -385,6 +357,9 @@ export {
 	bitsToInts,
 	intsToOneHot
 }
+
+export const isDeviceSupported:boolean = isWebGLSupported() && !isSafari();
+
 ////////////
 // pulled from deeplearnjs/demos/utils.ts
 // ideally could be retrieved from NPM modules or internally from deeplearn via NPM

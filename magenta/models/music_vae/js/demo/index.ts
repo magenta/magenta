@@ -66,7 +66,7 @@ async function initializedDrumsNade(){
 
   let start = Date.now();
 
-  let interp = await mvae.interpolate(drumsInput, 3);
+  let interp = dl.tidy(() => {return await mvae.interpolate(dl.tensor3d(drumsInput), 3)};
   document.getElementById('nade-interp-time').innerHTML = ((Date.now() - start) / 1000.).toString() + 's';
   let interpResults: number[][] = [];
   for (let i = 0; i < interp.shape[0]; i++) {
