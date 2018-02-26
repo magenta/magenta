@@ -386,7 +386,7 @@ py_library(
     deps = [
         ":constants",
         "//magenta/protobuf:music_py_pb2",
-        "@pretty_midi//:pretty_midi",
+        "@pretty_midi",
         # tensorflow dep
     ],
 )
@@ -556,7 +556,6 @@ py_test(
     ],
 )
 
-
 py_library(
     name = "performance_lib",
     srcs = ["performance_lib.py"],
@@ -663,7 +662,7 @@ py_library(
     srcs = ["sequence_generator_bundle.py"],
     srcs_version = "PY2AND3",
     deps = [
-        "@protobuf//:protobuf_python",
+        "@com_google_protobuf//:protobuf_python",
         "//magenta/protobuf:generator_py_pb2",
         # tensorflow dep
     ],

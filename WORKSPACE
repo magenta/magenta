@@ -7,10 +7,10 @@ new_http_archive(
 )
 
 http_archive(
-    name = "protobuf",
-    sha256 = "3f833c1c367f53803f5f849181af4a4edb20f8dd1fbdced19b5a2d52ee43ed54",
-    strip_prefix = "protobuf-3.4.0",
-    url = "https://github.com/google/protobuf/releases/download/v3.4.0/protobuf-python-3.4.0.tar.gz",
+    name = "com_google_protobuf",
+    sha256 = "13d3c15ebfad8c28bee203dd4a0f6e600d2a7d2243bac8b5d0e517466500fcae",
+    strip_prefix = "protobuf-3.5.1",
+    url = "https://github.com/google/protobuf/releases/download/v3.5.1/protobuf-python-3.5.1.tar.gz",
 )
 
 new_http_archive(
