@@ -36,6 +36,26 @@ function addTrackToSequence(ns, instrument, notes) {
     }
 }
 
+function addChordsToSequence(ns, chords) {
+    for (var chordParams of chords) {
+        var ta = new music_pb.NoteSequence.TextAnnotation();
+        ta.setText(chordParams[0]);
+        ta.setTime(chordParams[1]);
+        ns.addTextAnnotations(ta);
+    }
+}
+
+function addControlChangesToSequence(ns, instrument, chords) {
+    for (var ccParams of chords) {
+        var cc = new music_pb.NoteSequence.ControlChange();
+        cc.setTime(ccParams[0]);
+        cc.setControlNumber(ccParams[1]);
+        cc.setControlValue(ccParams[2]);
+        cc.setInstrument(instrument);
+        ns.addControlChanges(cc);
+    }
+}
+
 test("Quantize NoteSequence", (t:test.Test) => {
     var ns = new music_pb.NoteSequence();
 
@@ -43,27 +63,29 @@ test("Quantize NoteSequence", (t:test.Test) => {
         ns, 0,
         [[12, 100, 0.01, 10.0], [11, 55, 0.22, 0.50], [40, 45, 2.50, 3.50],
         [55, 120, 4.0, 4.01], [52, 99, 4.75, 5.0]]);
-    // testing_lib.add_chords_to_sequence(
-    //     self.note_sequence,
-    //     [('B7', 0.22), ('Em9', 4.0)])
-    // testing_lib.add_control_changes_to_sequence(
-    //     self.note_sequence, 0,
-    //     [(2.0, 64, 127), (4.0, 64, 0)])
+    addChordsToSequence(
+        ns,
+        [['B7', 0.22], ['Em9', 4.0]]);
+    addControlChangesToSequence(
+        ns, 0,
+        [[2.0, 64, 127], [4.0, 64, 0]]);
 
     var expectedQuantizedSequence = ns.clone();
-    // expected_quantized_sequence.quantization_info.steps_per_quarter = (
-    //     self.steps_per_quarter)
-    // testing_lib.add_quantized_steps_to_sequence(
-    //     expected_quantized_sequence,
+    expectedQuantizedSequence.setQuantizationInfo(
+        new music_pb.NoteSequence.QuantizationInfo());
+    expectedQuantizedSequence.getQuantizationInfo().setStepsPerQuarter(
+        STEPS_PER_QUARTER);
+    // add_quantized_steps_to_sequence(
+    //     expectedQuantizedSequence,
     //     [(0, 40), (1, 2), (10, 14), (16, 17), (19, 20)])
-    // testing_lib.add_quantized_chord_steps_to_sequence(
-    //     expected_quantized_sequence, [1, 16])
-    // testing_lib.add_quantized_control_steps_to_sequence(
-    //     expected_quantized_sequence, [8, 16])
+    // add_quantized_chord_steps_to_sequence(
+    //     expectedQuantizedSequence, [1, 16])
+    // add_quantized_control_steps_to_sequence(
+    //     expectedQuantizedSequence, [8, 16])
 
     var qns = Sequences.quantizeNoteSequence(ns, STEPS_PER_QUARTER);
     t.true(qns);
 
-    // self.assertProtoEquals(expected_quantized_sequence, quantized_sequence)
+    // self.assertProtoEquals(expectedQuantizedSequence, quantized_sequence)
     t.end();
 });
