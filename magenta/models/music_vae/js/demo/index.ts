@@ -18,7 +18,7 @@ async function initializeDrums(){
 
   let start = Date.now();
 
-  let interp = await mvae.interpolate(drumsInput, 11);
+  let interp = await mvae.interpolate(drumsInput, 3);
   document.getElementById('drums-interp-time').innerHTML = ((Date.now() - start) / 1000.).toString() + 's';
   let interpResults: number[][] = [];
   for (let i = 0; i < interp.shape[0]; i++) {
@@ -33,7 +33,7 @@ async function initializeDrums(){
   document.getElementById('drums-interp').innerHTML = interpResults.map(r => r.toString()).join('<br>');
 
   start = Date.now();
-  let sample = await mvae.sample(10, 32);
+  let sample = await mvae.sample(5, 32);
   document.getElementById('drums-sample-time').innerHTML = ((Date.now() - start) / 1000.).toString() + 's';
   let sampleResults: number[][] = [];
   for (let i = 0; i < sample.shape[0]; i++) {
@@ -45,7 +45,7 @@ async function initializeDrums(){
     sampleResults.push(bitsToInts(bits));
   }
   document.getElementById('drums-sample-format-time').innerHTML = ((Date.now() - start) / 1000.).toString() + 's';
-  document.getElementById('drums-samples').innerHTML = interpResults.map(r => r.toString()).join('<br>');
+  document.getElementById('drums-samples').innerHTML = sampleResults.map(r => r.toString()).join('<br>');
 }
 
 
@@ -66,7 +66,7 @@ async function initializedDrumsNade(){
 
   let start = Date.now();
 
-  let interp = await mvae.interpolate(drumsInput, 11);
+  let interp = await mvae.interpolate(drumsInput, 3);
   document.getElementById('nade-interp-time').innerHTML = ((Date.now() - start) / 1000.).toString() + 's';
   let interpResults: number[][] = [];
   for (let i = 0; i < interp.shape[0]; i++) {
@@ -81,12 +81,12 @@ async function initializedDrumsNade(){
   document.getElementById('nade-interp').innerHTML = interpResults.map(r => r.toString()).join('<br>');
 
   start = Date.now();
-  let sample = await mvae.sample(10, 32);
+  let sample = await mvae.sample(5, 32);
   document.getElementById('nade-sample-time').innerHTML = ((Date.now() - start) / 1000.).toString() + 's';
   let sampleResults: number[][] = [];
   for (let i = 0; i < sample.shape[0]; i++) {
     let bits: Uint8Array[] = [];
-    for (let j = 0; j < interp.shape[1]; j++) {
+    for (let j = 0; j < sample.shape[1]; j++) {
       const r = dl.slice3d(sample, [i, j, 0], [1, 1, sample.shape[2]])
       bits.push(r.toBool().dataSync() as Uint8Array);
     }
@@ -101,22 +101,33 @@ async function initializedMel(){
   const mvae:MusicVAE = await new MusicVAE('https://storage.googleapis.com/download.magenta.tensorflow.org/models/music_vae/dljs/mel_small').initialize();
 
   const teaPot = [71, 0, 73, 0, 75, 0, 76, 0, 78, 0, 1, 0, 83, 0, 0, 0, 80, 0, 0, 0, 83, 0, 0, 0, 78, 0, 0, 0, 0, 0, 0, 0];
-  const teaPots: [number[][], number[][]] = [
-      intsToOneHot(teaPot, 90), intsToOneHot(teaPot.slice(0).reverse(), 90)];
+  const teaPots: number[][][] =
+      [intsToOneHot(teaPot, 90), intsToOneHot(teaPot.slice(0).reverse(), 90)];
 
   document.getElementById('mel-inputs').innerHTML = [teaPot, teaPot.slice(0).reverse()].map(r => r.toString()).join('<br>');
 
   let start = Date.now();
 
-  let data = await mvae.interpolate(teaPots, 11);
+  let interp = await mvae.interpolate(teaPots, 5);
   document.getElementById('mel-interp-time').innerHTML = ((Date.now() - start) / 1000.).toString() + 's';
-  let results: Int32Array[] = [];
-  for (let i = 0; i < data.shape[0]; i++) {
-    const r = dl.slice3d(data, [i, 0, 0], [1, data.shape[1], 1]);
-    results.push(r.toInt().dataSync() as Int32Array);
+  let interpResults: Int32Array[] = [];
+  for (let i = 0; i < interp.shape[0]; i++) {
+    const r = dl.slice3d(interp, [i, 0, 0], [1, interp.shape[1], 1]);
+    interpResults.push(r.toInt().dataSync() as Int32Array);
   }
-  document.getElementById('mel-interp').innerHTML = results.map(r => r.toString()).join('<br>');
+  document.getElementById('mel-interp').innerHTML = interpResults.map(r => r.toString()).join('<br>');
   document.getElementById('mel-interp-format-time').innerHTML = ((Date.now() - start) / 1000.).toString() + 's';
+
+  start = Date.now();
+  let sample = await mvae.sample(5, 32);
+  document.getElementById('mel-sample-time').innerHTML = ((Date.now() - start) / 1000.).toString() + 's';
+  let sampleResults: Int32Array[] = [];
+  for (let i = 0; i < sample.shape[0]; i++) {
+    const r = dl.slice3d(sample, [i, 0, 0], [1, sample.shape[1], 1]);
+    sampleResults.push(r.toInt().dataSync() as Int32Array);
+  }
+  document.getElementById('mel-sample-format-time').innerHTML = ((Date.now() - start) / 1000.).toString() + 's';
+  document.getElementById('mel-samples').innerHTML = sampleResults.map(r => r.toString()).join('<br>');
 }
 
 try {

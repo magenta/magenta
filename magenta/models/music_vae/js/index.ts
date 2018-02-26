@@ -297,14 +297,8 @@ class MusicVAE {
       return this.encoder.encode(batchedInput);
     });
 
-    // Interpolate.
-    const range: number[] = [];
-    for (let i = 0; i < numSteps; i++) {
-      range.push(i / (numSteps - 1));
-    }
-
     const interpolatedZs: dl.Tensor2D = await dl.tidy(() => {
-      const rangeArray = dl.tensor1d(range);
+      const rangeArray = dl.linspace(0.0, 1.0, numSteps);
 
       const z0 = dl.slice2d(z, [0, 0], [1, z.shape[1]]).as1D();
       const z1 = dl.slice2d(z, [1, 0], [1, z.shape[1]]).as1D();
@@ -316,16 +310,15 @@ class MusicVAE {
         const z2 = dl.slice2d(z, [2, 0], [1, z.shape[1]]).as1D();
         const z3 = dl.slice2d(z, [3, 0], [1, z.shape[1]]).as1D();
 
-        const one = dl.scalar(1.0);
-        const revRangeArray = one.sub(rangeArray) as dl.Tensor1D;
+        const revRangeArray = dl.scalar(1.0).sub(rangeArray) as dl.Tensor1D;
 
-        const r = range.length;
-        let finalZs = z0.mul(dl.outerProduct(revRangeArray, revRangeArray).as3D(r, r, 1)) as dl.Tensor3D; //broadcasting
+        const r = numSteps;
+        let finalZs = z0.mul(dl.outerProduct(revRangeArray, revRangeArray).as3D(r, r, 1)) as dl.Tensor3D;
         finalZs = dl.addStrict(finalZs, z1.mul(dl.outerProduct(rangeArray, revRangeArray).as3D(r, r, 1))) as dl.Tensor3D;
-        finalZs = dl.addStrict(finalZs, z2.mul(dl.outerProduct(rangeArray, revRangeArray).as3D(r, r, 1))) as dl.Tensor3D;
-        finalZs = dl.addStrict(finalZs, z3.mul(dl.outerProduct(rangeArray, revRangeArray).as3D(r, r, 1))) as dl.Tensor3D;
+        finalZs = dl.addStrict(finalZs, z2.mul(dl.outerProduct(revRangeArray, rangeArray).as3D(r, r, 1))) as dl.Tensor3D;
+        finalZs = dl.addStrict(finalZs, z3.mul(dl.outerProduct(rangeArray, rangeArray).as3D(r, r, 1))) as dl.Tensor3D;
 
-        return finalZs.as2D(range.length * range.length, z.shape[1]);
+        return finalZs.as2D(r * r, z.shape[1]);
       } else {
         throw new Error('invalid number of note sequences. Requires length 2, or 4');
       }
