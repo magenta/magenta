@@ -20,15 +20,29 @@ import * as test from "tape";
 import music_pb = require('./music_pb');
 import {Sequences} from './sequences';
 
+const STEPS_PER_QUARTER = 4;
+
+function addTrackToSequence(ns, instrument, notes) {
+    for (var noteParams of notes) {
+        var note = new music_pb.NoteSequence.Note();
+        note.setPitch(noteParams[0]);
+        note.setVelocity(noteParams[1]);
+        note.setStartTime(noteParams[2]);
+        note.setEndTime(noteParams[3]);
+        ns.addNotes(note);
+        if(ns.getTotalTime() < note.getEndTime()) {
+            ns.setTotalTime(note.getEndTime());
+        }
+    }
+}
+
 test("Quantize NoteSequence", (t:test.Test) => {
     var ns = new music_pb.NoteSequence();
-    var qns = Sequences.quantizeNoteSequence(ns, 4);
-    t.true(qns);
 
-    // testing_lib.add_track_to_sequence(
-    //     self.note_sequence, 0,
-    //     [(12, 100, 0.01, 10.0), (11, 55, 0.22, 0.50), (40, 45, 2.50, 3.50),
-    //     (55, 120, 4.0, 4.01), (52, 99, 4.75, 5.0)])
+    addTrackToSequence(
+        ns, 0,
+        [[12, 100, 0.01, 10.0], [11, 55, 0.22, 0.50], [40, 45, 2.50, 3.50],
+        [55, 120, 4.0, 4.01], [52, 99, 4.75, 5.0]]);
     // testing_lib.add_chords_to_sequence(
     //     self.note_sequence,
     //     [('B7', 0.22), ('Em9', 4.0)])
@@ -36,7 +50,7 @@ test("Quantize NoteSequence", (t:test.Test) => {
     //     self.note_sequence, 0,
     //     [(2.0, 64, 127), (4.0, 64, 0)])
 
-    // expected_quantized_sequence = copy.deepcopy(self.note_sequence)
+    var expectedQuantizedSequence = ns.clone();
     // expected_quantized_sequence.quantization_info.steps_per_quarter = (
     //     self.steps_per_quarter)
     // testing_lib.add_quantized_steps_to_sequence(
@@ -47,8 +61,8 @@ test("Quantize NoteSequence", (t:test.Test) => {
     // testing_lib.add_quantized_control_steps_to_sequence(
     //     expected_quantized_sequence, [8, 16])
 
-    // quantized_sequence = sequences_lib.quantize_note_sequence(
-    //     self.note_sequence, steps_per_quarter=self.steps_per_quarter)
+    var qns = Sequences.quantizeNoteSequence(ns, STEPS_PER_QUARTER);
+    t.true(qns);
 
     // self.assertProtoEquals(expected_quantized_sequence, quantized_sequence)
     t.end();
