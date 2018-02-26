@@ -207,53 +207,49 @@ class MusicVAE {
 
 	async initialize() {
     const reader = new dl.CheckpointLoader(this.checkpointURL);
-    return reader.getAllVariables().then(
-        (vars: { [varName: string]: dl.Tensor }) => {
-            const encLstmFw = new LayerVars(
-                vars['encoder/cell_0/bidirectional_rnn/fw/multi_rnn_cell/cell_0/lstm_cell/kernel'] as dl.Tensor2D,
-                vars['encoder/cell_0/bidirectional_rnn/fw/multi_rnn_cell/cell_0/lstm_cell/bias'] as dl.Tensor1D);
-            const encLstmBw = new LayerVars(
-                vars['encoder/cell_0/bidirectional_rnn/bw/multi_rnn_cell/cell_0/lstm_cell/kernel'] as dl.Tensor2D,
-                vars['encoder/cell_0/bidirectional_rnn/bw/multi_rnn_cell/cell_0/lstm_cell/bias'] as dl.Tensor1D);
-            const encMu = new LayerVars(
-                vars['encoder/mu/kernel'] as dl.Tensor2D,
-                vars['encoder/mu/bias'] as dl.Tensor1D);
-            const encPresig = new LayerVars(
-                vars['encoder/sigma/kernel'] as dl.Tensor2D,
-                vars['encoder/sigma/bias'] as dl.Tensor1D);
+    const vars = await reader.getAllVariables();
 
-            let decLstmLayers: LayerVars[] = [];
-            let l = 0;
-            while (true) {
-                const cell_prefix = DECODER_CELL_FORMAT.replace('%d', l.toString());
-                if (!(cell_prefix + 'kernel' in vars)) {
-                    break;
-                }
-                decLstmLayers.push(new LayerVars(
-                    vars[cell_prefix + 'kernel'] as dl.Tensor2D,
-                    vars[cell_prefix + 'bias'] as dl.Tensor1D));
-                ++l;
-            }
+    const encLstmFw = new LayerVars(
+        vars['encoder/cell_0/bidirectional_rnn/fw/multi_rnn_cell/cell_0/lstm_cell/kernel'] as dl.Tensor2D,
+        vars['encoder/cell_0/bidirectional_rnn/fw/multi_rnn_cell/cell_0/lstm_cell/bias'] as dl.Tensor1D);
+    const encLstmBw = new LayerVars(
+        vars['encoder/cell_0/bidirectional_rnn/bw/multi_rnn_cell/cell_0/lstm_cell/kernel'] as dl.Tensor2D,
+        vars['encoder/cell_0/bidirectional_rnn/bw/multi_rnn_cell/cell_0/lstm_cell/bias'] as dl.Tensor1D);
+    const encMu = new LayerVars(
+        vars['encoder/mu/kernel'] as dl.Tensor2D,
+        vars['encoder/mu/bias'] as dl.Tensor1D);
+    const encPresig = new LayerVars(
+        vars['encoder/sigma/kernel'] as dl.Tensor2D,
+        vars['encoder/sigma/bias'] as dl.Tensor1D);
 
-            const decZtoInitState = new LayerVars(
-                vars['decoder/z_to_initial_state/kernel'] as dl.Tensor2D,
-                vars['decoder/z_to_initial_state/bias'] as dl.Tensor1D);
-            const decOutputProjection = new LayerVars(
-                vars['decoder/output_projection/kernel'] as dl.Tensor2D,
-                vars['decoder/output_projection/bias'] as dl.Tensor1D);
-            let nade = (('decoder/nade/w_enc' in vars) ?
-                new Nade(
-                    vars['decoder/nade/w_enc'] as dl.Tensor3D,
-                    vars['decoder/nade/w_dec_t'] as dl.Tensor3D) : null);
-            return [
-                new Encoder(encLstmFw, encLstmBw, encMu, encPresig),
-                new Decoder(decLstmLayers, decZtoInitState, decOutputProjection, nade)
-            ];
-        }).then((encoder_decoder:[Encoder, Decoder])=>{
-          this.encoder = encoder_decoder[0];
-          this.decoder = encoder_decoder[1];
-          return this;
-        });
+    let decLstmLayers: LayerVars[] = [];
+    let l = 0;
+    while (true) {
+        const cell_prefix = DECODER_CELL_FORMAT.replace('%d', l.toString());
+        if (!(cell_prefix + 'kernel' in vars)) {
+            break;
+        }
+        decLstmLayers.push(new LayerVars(
+            vars[cell_prefix + 'kernel'] as dl.Tensor2D,
+            vars[cell_prefix + 'bias'] as dl.Tensor1D));
+        ++l;
+    }
+
+    const decZtoInitState = new LayerVars(
+        vars['decoder/z_to_initial_state/kernel'] as dl.Tensor2D,
+        vars['decoder/z_to_initial_state/bias'] as dl.Tensor1D);
+    const decOutputProjection = new LayerVars(
+        vars['decoder/output_projection/kernel'] as dl.Tensor2D,
+        vars['decoder/output_projection/bias'] as dl.Tensor1D);
+    let nade = (('decoder/nade/w_enc' in vars) ?
+        new Nade(
+            vars['decoder/nade/w_enc'] as dl.Tensor3D,
+            vars['decoder/nade/w_dec_t'] as dl.Tensor3D) : null);
+
+    this.encoder = new Encoder(encLstmFw, encLstmBw, encMu, encPresig);
+    this.decoder = new Decoder(
+      decLstmLayers, decZtoInitState, decOutputProjection, nade)
+    return this;
 	}
 
 	isInitialized() {
@@ -269,7 +265,7 @@ class MusicVAE {
       return this.encoder.encode(sequences);
     });
 
-    const interpolatedZs: dl.Tensor2D = await dl.tidy(() => {
+    const interpolatedZs: dl.Tensor2D = dl.tidy(() => {
       const rangeArray = dl.linspace(0.0, 1.0, numSteps);
 
       const z0 = dl.slice2d(z, [0, 0], [1, z.shape[1]]).as1D();
@@ -303,7 +299,7 @@ class MusicVAE {
 
   async sample(numSamples: number, numSteps: number) {
     return dl.tidy(() => {
-      const randZs = dl.randomNormal([numSamples, this.decoder.zDims])  as dl.Tensor2D;
+      const randZs = dl.randomNormal([numSamples, this.decoder.zDims]) as dl.Tensor2D;
       return this.decoder.decode(randZs, numSteps);
     });
   }
