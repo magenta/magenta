@@ -38,9 +38,9 @@ var __generator = (this && this.__generator) || function (thisArg, body) {
 Object.defineProperty(exports, "__esModule", { value: true });
 var index_1 = require("../index");
 var dl = require("deeplearn");
-function initializeDrums() {
+function runDrums() {
     return __awaiter(this, void 0, void 0, function () {
-        var mvae, drums, drumsInput, start, interp, interpResults, i, bits, j, r, sample, sampleResults, i, bits, j, r;
+        var mvae, drums, drumsInput, start;
         return __generator(this, function (_a) {
             switch (_a.label) {
                 case 0: return [4, new index_1.MusicVAE('https://storage.googleapis.com/download.magenta.tensorflow.org/models/music_vae/dljs/drums_small_hikl').initialize()];
@@ -55,45 +55,47 @@ function initializeDrums() {
                     drumsInput = [index_1.intsToBits(drums[0], 10), index_1.intsToBits(drums[1], 10), index_1.intsToBits(drums[2], 10), index_1.intsToBits(drums[3], 10)];
                     document.getElementById('drums-inputs').innerHTML = drums.map(function (d) { return d.toString(); }).join('<br>');
                     start = Date.now();
-                    return [4, mvae.interpolate(drumsInput, 3)];
-                case 2:
-                    interp = _a.sent();
-                    document.getElementById('drums-interp-time').innerHTML = ((Date.now() - start) / 1000.).toString() + 's';
-                    interpResults = [];
-                    for (i = 0; i < interp.shape[0]; i++) {
-                        bits = [];
-                        for (j = 0; j < interp.shape[1]; j++) {
-                            r = dl.slice3d(interp, [i, j, 0], [1, 1, interp.shape[2]]);
-                            bits.push(r.toInt().dataSync());
+                    dl.tidy(function () {
+                        var interp = mvae.interpolate(dl.tensor3d(drumsInput), 3);
+                        document.getElementById('drums-interp-time').innerHTML = ((Date.now() - start) / 1000.).toString() + 's';
+                        var interpResults = [];
+                        for (var i = 0; i < interp.shape[0]; i++) {
+                            var bits = [];
+                            for (var j = 0; j < interp.shape[1]; j++) {
+                                var r = dl.slice3d(interp, [i, j, 0], [1, 1, interp.shape[2]]);
+                                bits.push(r.toInt().dataSync());
+                            }
+                            interpResults.push(index_1.bitsToInts(bits));
                         }
-                        interpResults.push(index_1.bitsToInts(bits));
-                    }
-                    document.getElementById('drums-interp-format-time').innerHTML = ((Date.now() - start) / 1000.).toString() + 's';
-                    document.getElementById('drums-interp').innerHTML = interpResults.map(function (r) { return r.toString(); }).join('<br>');
+                        document.getElementById('drums-interp-format-time').innerHTML = ((Date.now() - start) / 1000.).toString() + 's';
+                        document.getElementById('drums-interp').innerHTML = interpResults.map(function (r) { return r.toString(); }).join('<br>');
+                    });
                     start = Date.now();
-                    return [4, mvae.sample(5, 32)];
-                case 3:
-                    sample = _a.sent();
-                    document.getElementById('drums-sample-time').innerHTML = ((Date.now() - start) / 1000.).toString() + 's';
-                    sampleResults = [];
-                    for (i = 0; i < sample.shape[0]; i++) {
-                        bits = [];
-                        for (j = 0; j < interp.shape[1]; j++) {
-                            r = dl.slice3d(sample, [i, j, 0], [1, 1, sample.shape[2]]);
-                            bits.push(r.toInt().dataSync());
+                    dl.tidy(function () {
+                        var sample = mvae.sample(5, 32);
+                        document.getElementById('drums-sample-time').innerHTML = ((Date.now() - start) / 1000.).toString() + 's';
+                        var sampleResults = [];
+                        for (var i = 0; i < sample.shape[0]; i++) {
+                            var bits = [];
+                            for (var j = 0; j < sample.shape[1]; j++) {
+                                var r = dl.slice3d(sample, [i, j, 0], [1, 1, sample.shape[2]]);
+                                bits.push(r.toInt().dataSync());
+                            }
+                            sampleResults.push(index_1.bitsToInts(bits));
                         }
-                        sampleResults.push(index_1.bitsToInts(bits));
-                    }
-                    document.getElementById('drums-sample-format-time').innerHTML = ((Date.now() - start) / 1000.).toString() + 's';
-                    document.getElementById('drums-samples').innerHTML = sampleResults.map(function (r) { return r.toString(); }).join('<br>');
+                        document.getElementById('drums-sample-format-time').innerHTML = ((Date.now() - start) / 1000.).toString() + 's';
+                        document.getElementById('drums-samples').innerHTML = sampleResults.map(function (r) { return r.toString(); }).join('<br>');
+                    });
+                    mvae.dispose();
+                    console.log(dl.memory());
                     return [2];
             }
         });
     });
 }
-function initializedDrumsNade() {
+function runDrumsNade() {
     return __awaiter(this, void 0, void 0, function () {
-        var mvae, drums, drumsInput, start, interp, interpResults, i, bits, j, r, sample, sampleResults, i, bits, j, r;
+        var mvae, drums, drumsInput, start;
         return __generator(this, function (_a) {
             switch (_a.label) {
                 case 0: return [4, new index_1.MusicVAE('https://storage.googleapis.com/download.magenta.tensorflow.org/models/music_vae/dljs/drums_nade_9').initialize()];
@@ -108,45 +110,47 @@ function initializedDrumsNade() {
                     drumsInput = [index_1.intsToBits(drums[0], 10), index_1.intsToBits(drums[1], 10), index_1.intsToBits(drums[2], 10), index_1.intsToBits(drums[3], 10)];
                     document.getElementById('nade-inputs').innerHTML = drums.map(function (d) { return d.toString(); }).join('<br>');
                     start = Date.now();
-                    return [4, mvae.interpolate(drumsInput, 3)];
-                case 2:
-                    interp = _a.sent();
-                    document.getElementById('nade-interp-time').innerHTML = ((Date.now() - start) / 1000.).toString() + 's';
-                    interpResults = [];
-                    for (i = 0; i < interp.shape[0]; i++) {
-                        bits = [];
-                        for (j = 0; j < interp.shape[1]; j++) {
-                            r = dl.slice3d(interp, [i, j, 0], [1, 1, interp.shape[2]]);
-                            bits.push(r.toBool().dataSync());
+                    dl.tidy(function () {
+                        var interp = mvae.interpolate(dl.tensor3d(drumsInput), 3);
+                        document.getElementById('nade-interp-time').innerHTML = ((Date.now() - start) / 1000.).toString() + 's';
+                        var interpResults = [];
+                        for (var i = 0; i < interp.shape[0]; i++) {
+                            var bits = [];
+                            for (var j = 0; j < interp.shape[1]; j++) {
+                                var r = dl.slice3d(interp, [i, j, 0], [1, 1, interp.shape[2]]);
+                                bits.push(r.toBool().dataSync());
+                            }
+                            interpResults.push(index_1.bitsToInts(bits));
                         }
-                        interpResults.push(index_1.bitsToInts(bits));
-                    }
-                    document.getElementById('nade-interp-format-time').innerHTML = ((Date.now() - start) / 1000.).toString() + 's';
-                    document.getElementById('nade-interp').innerHTML = interpResults.map(function (r) { return r.toString(); }).join('<br>');
+                        document.getElementById('nade-interp-format-time').innerHTML = ((Date.now() - start) / 1000.).toString() + 's';
+                        document.getElementById('nade-interp').innerHTML = interpResults.map(function (r) { return r.toString(); }).join('<br>');
+                    });
                     start = Date.now();
-                    return [4, mvae.sample(5, 32)];
-                case 3:
-                    sample = _a.sent();
-                    document.getElementById('nade-sample-time').innerHTML = ((Date.now() - start) / 1000.).toString() + 's';
-                    sampleResults = [];
-                    for (i = 0; i < sample.shape[0]; i++) {
-                        bits = [];
-                        for (j = 0; j < sample.shape[1]; j++) {
-                            r = dl.slice3d(sample, [i, j, 0], [1, 1, sample.shape[2]]);
-                            bits.push(r.toBool().dataSync());
+                    dl.tidy(function () {
+                        var sample = mvae.sample(5, 32);
+                        document.getElementById('nade-sample-time').innerHTML = ((Date.now() - start) / 1000.).toString() + 's';
+                        var sampleResults = [];
+                        for (var i = 0; i < sample.shape[0]; i++) {
+                            var bits = [];
+                            for (var j = 0; j < sample.shape[1]; j++) {
+                                var r = dl.slice3d(sample, [i, j, 0], [1, 1, sample.shape[2]]);
+                                bits.push(r.toBool().dataSync());
+                            }
+                            sampleResults.push(index_1.bitsToInts(bits));
                         }
-                        sampleResults.push(index_1.bitsToInts(bits));
-                    }
-                    document.getElementById('nade-sample-format-time').innerHTML = ((Date.now() - start) / 1000.).toString() + 's';
-                    document.getElementById('nade-samples').innerHTML = sampleResults.map(function (r) { return r.toString(); }).join('<br>');
+                        document.getElementById('nade-sample-format-time').innerHTML = ((Date.now() - start) / 1000.).toString() + 's';
+                        document.getElementById('nade-samples').innerHTML = sampleResults.map(function (r) { return r.toString(); }).join('<br>');
+                    });
+                    mvae.dispose();
+                    console.log(dl.memory());
                     return [2];
             }
         });
     });
 }
-function initializedMel() {
+function runMel() {
     return __awaiter(this, void 0, void 0, function () {
-        var mvae, teaPot, teaPots, start, interp, interpResults, i, r, sample, sampleResults, i, r;
+        var mvae, teaPot, teaPots, start;
         return __generator(this, function (_a) {
             switch (_a.label) {
                 case 0: return [4, new index_1.MusicVAE('https://storage.googleapis.com/download.magenta.tensorflow.org/models/music_vae/dljs/mel_small').initialize()];
@@ -156,38 +160,40 @@ function initializedMel() {
                     teaPots = [index_1.intsToOneHot(teaPot, 90), index_1.intsToOneHot(teaPot.slice(0).reverse(), 90)];
                     document.getElementById('mel-inputs').innerHTML = [teaPot, teaPot.slice(0).reverse()].map(function (r) { return r.toString(); }).join('<br>');
                     start = Date.now();
-                    return [4, mvae.interpolate(teaPots, 5)];
-                case 2:
-                    interp = _a.sent();
-                    document.getElementById('mel-interp-time').innerHTML = ((Date.now() - start) / 1000.).toString() + 's';
-                    interpResults = [];
-                    for (i = 0; i < interp.shape[0]; i++) {
-                        r = dl.slice3d(interp, [i, 0, 0], [1, interp.shape[1], 1]);
-                        interpResults.push(r.toInt().dataSync());
-                    }
-                    document.getElementById('mel-interp').innerHTML = interpResults.map(function (r) { return r.toString(); }).join('<br>');
-                    document.getElementById('mel-interp-format-time').innerHTML = ((Date.now() - start) / 1000.).toString() + 's';
+                    dl.tidy(function () {
+                        var interp = dl.tidy(function () { return mvae.interpolate(dl.tensor3d(teaPots), 5); });
+                        document.getElementById('mel-interp-time').innerHTML = ((Date.now() - start) / 1000.).toString() + 's';
+                        var interpResults = [];
+                        for (var i = 0; i < interp.shape[0]; i++) {
+                            var r = dl.slice3d(interp, [i, 0, 0], [1, interp.shape[1], 1]);
+                            interpResults.push(r.toInt().dataSync());
+                        }
+                        document.getElementById('mel-interp').innerHTML = interpResults.map(function (r) { return r.toString(); }).join('<br>');
+                        document.getElementById('mel-interp-format-time').innerHTML = ((Date.now() - start) / 1000.).toString() + 's';
+                    });
                     start = Date.now();
-                    return [4, mvae.sample(5, 32)];
-                case 3:
-                    sample = _a.sent();
-                    document.getElementById('mel-sample-time').innerHTML = ((Date.now() - start) / 1000.).toString() + 's';
-                    sampleResults = [];
-                    for (i = 0; i < sample.shape[0]; i++) {
-                        r = dl.slice3d(sample, [i, 0, 0], [1, sample.shape[1], 1]);
-                        sampleResults.push(r.toInt().dataSync());
-                    }
-                    document.getElementById('mel-sample-format-time').innerHTML = ((Date.now() - start) / 1000.).toString() + 's';
-                    document.getElementById('mel-samples').innerHTML = sampleResults.map(function (r) { return r.toString(); }).join('<br>');
+                    dl.tidy(function () {
+                        var sample = mvae.sample(5, 32);
+                        document.getElementById('mel-sample-time').innerHTML = ((Date.now() - start) / 1000.).toString() + 's';
+                        var sampleResults = [];
+                        for (var i = 0; i < sample.shape[0]; i++) {
+                            var r = dl.slice3d(sample, [i, 0, 0], [1, sample.shape[1], 1]);
+                            sampleResults.push(r.toInt().dataSync());
+                        }
+                        document.getElementById('mel-sample-format-time').innerHTML = ((Date.now() - start) / 1000.).toString() + 's';
+                        document.getElementById('mel-samples').innerHTML = sampleResults.map(function (r) { return r.toString(); }).join('<br>');
+                    });
+                    mvae.dispose();
+                    console.log(dl.memory());
                     return [2];
             }
         });
     });
 }
 try {
-    initializeDrums();
-    initializedDrumsNade();
-    initializedMel();
+    runDrums();
+    runDrumsNade();
+    runMel();
 }
 catch (err) {
     console.error(err);
@@ -239,6 +245,12 @@ var LayerVars = (function () {
         this.kernel = kernel;
         this.bias = bias;
     }
+    LayerVars.prototype.dispose = function () {
+        this.kernel.dispose();
+        this.kernel = null;
+        this.bias.dispose();
+        this.bias = null;
+    };
     return LayerVars;
 }());
 exports.LayerVars = LayerVars;
@@ -252,61 +264,73 @@ var Nade = (function () {
         this.encWeights = encWeights.as2D(this.numDims, this.numHidden);
         this.decWeightsT = decWeightsT.as2D(this.numDims, this.numHidden);
     }
+    Nade.prototype.dispose = function () {
+        this.encWeights.dispose();
+        this.decWeightsT.dispose();
+    };
     Nade.prototype.sample = function (encBias, decBias) {
+        var _this = this;
         var batchSize = encBias.shape[0];
-        var samples = [];
-        var a = dl.clone(encBias);
-        for (var i = 0; i < this.numDims; i++) {
-            var h = dl.sigmoid(a);
-            var encWeights_i = dl.slice2d(this.encWeights, [i, 0], [1, this.numHidden]).as1D();
-            var decWeightsT_i = dl.slice2d(this.decWeightsT, [i, 0], [1, this.numHidden]);
-            var decBias_i = dl.slice2d(decBias, [0, i], [batchSize, 1]);
-            var condLogits_i = decBias_i.add(dl.matMul(h, decWeightsT_i, false, true));
-            var condProbs_i = dl.sigmoid(condLogits_i);
-            var samples_i = dl.greater(condProbs_i, dl.scalar(0.5)).toFloat().as1D();
-            if (i < this.numDims - 1) {
-                a = a.add(dl.outerProduct(samples_i.toFloat(), encWeights_i));
+        return dl.tidy(function () {
+            var samples = [];
+            var a = dl.clone(encBias);
+            for (var i = 0; i < _this.numDims; i++) {
+                var h = dl.sigmoid(a);
+                var encWeights_i = dl.slice2d(_this.encWeights, [i, 0], [1, _this.numHidden]).as1D();
+                var decWeightsT_i = dl.slice2d(_this.decWeightsT, [i, 0], [1, _this.numHidden]);
+                var decBias_i = dl.slice2d(decBias, [0, i], [batchSize, 1]);
+                var condLogits_i = decBias_i.add(dl.matMul(h, decWeightsT_i, false, true));
+                var condProbs_i = dl.sigmoid(condLogits_i);
+                var samples_i = dl.greater(condProbs_i, dl.scalar(0.5)).toFloat().as1D();
+                if (i < _this.numDims - 1) {
+                    a = a.add(dl.outerProduct(samples_i.toFloat(), encWeights_i));
+                }
+                samples.push(samples_i);
             }
-            samples.push(samples_i);
-        }
-        return dl.stack(samples, 1);
+            return dl.stack(samples, 1);
+        });
     };
     return Nade;
 }());
 exports.Nade = Nade;
 var Encoder = (function () {
-    function Encoder(lstmFwVars, lstmBwVars, muVars, presigVars) {
+    function Encoder(lstmFwVars, lstmBwVars, muVars) {
         this.lstmFwVars = lstmFwVars;
         this.lstmBwVars = lstmBwVars;
         this.muVars = muVars;
-        this.presigVars = presigVars;
         this.zDims = this.muVars.bias.shape[0];
     }
+    Encoder.prototype.dispose = function () {
+        this.lstmFwVars.dispose();
+        this.lstmBwVars.dispose();
+        this.muVars.dispose();
+    };
     Encoder.prototype.runLstm = function (inputs, lstmVars, reverse) {
         var batchSize = inputs.shape[0];
         var length = inputs.shape[1];
         var outputSize = inputs.shape[2];
-        return dl.tidy(function () {
-            var state = [
-                dl.zeros([batchSize, lstmVars.bias.shape[0] / 4]),
-                dl.zeros([batchSize, lstmVars.bias.shape[0] / 4])
-            ];
-            var lstm = function (data, state) {
-                return dl.basicLSTMCell(forgetBias, lstmVars.kernel, lstmVars.bias, data, state[0], state[1]);
-            };
-            for (var i = 0; i < length; i++) {
-                var index = reverse ? length - 1 - i : i;
-                state = lstm(dl.slice3d(inputs, [0, index, 0], [batchSize, 1, outputSize]).as2D(batchSize, outputSize), state);
-            }
-            return state;
-        });
+        var state = [
+            dl.zeros([batchSize, lstmVars.bias.shape[0] / 4]),
+            dl.zeros([batchSize, lstmVars.bias.shape[0] / 4])
+        ];
+        var lstm = function (data, state) {
+            return dl.basicLSTMCell(forgetBias, lstmVars.kernel, lstmVars.bias, data, state[0], state[1]);
+        };
+        for (var i = 0; i < length; i++) {
+            var index = reverse ? length - 1 - i : i;
+            state = lstm(dl.slice3d(inputs, [0, index, 0], [batchSize, 1, outputSize]).as2D(batchSize, outputSize), state);
+        }
+        return state;
     };
     Encoder.prototype.encode = function (sequence) {
-        var fwState = this.runLstm(sequence, this.lstmFwVars, false);
-        var bwState = this.runLstm(sequence, this.lstmBwVars, true);
-        var finalState = dl.concat2d([fwState[1], bwState[1]], 1);
-        var mu = dense(this.muVars, finalState);
-        return mu;
+        var _this = this;
+        return dl.tidy(function () {
+            var fwState = _this.runLstm(sequence, _this.lstmFwVars, false);
+            var bwState = _this.runLstm(sequence, _this.lstmBwVars, true);
+            var finalState = dl.concat2d([fwState[1], bwState[1]], 1);
+            var mu = dense(_this.muVars, finalState);
+            return mu;
+        });
     };
     return Encoder;
 }());
@@ -317,9 +341,17 @@ var Decoder = (function () {
         this.zToInitStateVars = zToInitStateVars;
         this.outputProjectVars = outputProjectVars;
         this.zDims = this.zToInitStateVars.kernel.shape[0];
-        this.outputDims = ((nade != null) ? nade.numDims : outputProjectVars.bias.shape[0]);
+        this.outputDims = (nade) ? nade.numDims : outputProjectVars.bias.shape[0];
         this.nade = nade;
     }
+    Decoder.prototype.dispose = function () {
+        this.lstmCellVars.forEach(function (v) { return v.dispose(); });
+        this.zToInitStateVars.dispose();
+        this.outputProjectVars.dispose();
+        if (this.nade) {
+            this.nade.dispose();
+        }
+    };
     Decoder.prototype.decode = function (z, length) {
         var _this = this;
         var batchSize = z.shape[0];
@@ -375,109 +407,89 @@ var MusicVAE = (function () {
     function MusicVAE(checkpointURL) {
         this.checkpointURL = checkpointURL;
     }
+    MusicVAE.prototype.dispose = function () {
+        this.encoder.dispose();
+        this.encoder = null;
+        this.decoder.dispose();
+        this.decoder = null;
+    };
     MusicVAE.prototype.initialize = function () {
         return __awaiter(this, void 0, void 0, function () {
-            var _this = this;
-            var reader;
+            var reader, vars, encLstmFw, encLstmBw, encMu, decLstmLayers, l, cell_prefix, decZtoInitState, decOutputProjection, nade;
             return __generator(this, function (_a) {
-                reader = new dl.CheckpointLoader(this.checkpointURL);
-                return [2, reader.getAllVariables().then(function (vars) {
-                        var encLstmFw = new LayerVars(vars['encoder/cell_0/bidirectional_rnn/fw/multi_rnn_cell/cell_0/lstm_cell/kernel'], vars['encoder/cell_0/bidirectional_rnn/fw/multi_rnn_cell/cell_0/lstm_cell/bias']);
-                        var encLstmBw = new LayerVars(vars['encoder/cell_0/bidirectional_rnn/bw/multi_rnn_cell/cell_0/lstm_cell/kernel'], vars['encoder/cell_0/bidirectional_rnn/bw/multi_rnn_cell/cell_0/lstm_cell/bias']);
-                        var encMu = new LayerVars(vars['encoder/mu/kernel'], vars['encoder/mu/bias']);
-                        var encPresig = new LayerVars(vars['encoder/sigma/kernel'], vars['encoder/sigma/bias']);
-                        var decLstmLayers = [];
-                        var l = 0;
+                switch (_a.label) {
+                    case 0:
+                        reader = new dl.CheckpointLoader(this.checkpointURL);
+                        return [4, reader.getAllVariables()];
+                    case 1:
+                        vars = _a.sent();
+                        encLstmFw = new LayerVars(vars['encoder/cell_0/bidirectional_rnn/fw/multi_rnn_cell/cell_0/lstm_cell/kernel'], vars['encoder/cell_0/bidirectional_rnn/fw/multi_rnn_cell/cell_0/lstm_cell/bias']);
+                        encLstmBw = new LayerVars(vars['encoder/cell_0/bidirectional_rnn/bw/multi_rnn_cell/cell_0/lstm_cell/kernel'], vars['encoder/cell_0/bidirectional_rnn/bw/multi_rnn_cell/cell_0/lstm_cell/bias']);
+                        encMu = new LayerVars(vars['encoder/mu/kernel'], vars['encoder/mu/bias']);
+                        decLstmLayers = [];
+                        l = 0;
                         while (true) {
-                            var cell_prefix = DECODER_CELL_FORMAT.replace('%d', l.toString());
+                            cell_prefix = DECODER_CELL_FORMAT.replace('%d', l.toString());
                             if (!(cell_prefix + 'kernel' in vars)) {
                                 break;
                             }
                             decLstmLayers.push(new LayerVars(vars[cell_prefix + 'kernel'], vars[cell_prefix + 'bias']));
                             ++l;
                         }
-                        var decZtoInitState = new LayerVars(vars['decoder/z_to_initial_state/kernel'], vars['decoder/z_to_initial_state/bias']);
-                        var decOutputProjection = new LayerVars(vars['decoder/output_projection/kernel'], vars['decoder/output_projection/bias']);
-                        var nade = (('decoder/nade/w_enc' in vars) ?
+                        decZtoInitState = new LayerVars(vars['decoder/z_to_initial_state/kernel'], vars['decoder/z_to_initial_state/bias']);
+                        decOutputProjection = new LayerVars(vars['decoder/output_projection/kernel'], vars['decoder/output_projection/bias']);
+                        nade = (('decoder/nade/w_enc' in vars) ?
                             new Nade(vars['decoder/nade/w_enc'], vars['decoder/nade/w_dec_t']) : null);
-                        return [
-                            new Encoder(encLstmFw, encLstmBw, encMu, encPresig),
-                            new Decoder(decLstmLayers, decZtoInitState, decOutputProjection, nade)
-                        ];
-                    }).then(function (encoder_decoder) {
-                        _this.encoder = encoder_decoder[0];
-                        _this.decoder = encoder_decoder[1];
-                        return _this;
-                    })];
+                        this.encoder = new Encoder(encLstmFw, encLstmBw, encMu);
+                        this.decoder = new Decoder(decLstmLayers, decZtoInitState, decOutputProjection, nade);
+                        return [2, this];
+                }
             });
         });
     };
     MusicVAE.prototype.isInitialized = function () {
         return (!!this.encoder && !!this.decoder);
     };
-    MusicVAE.prototype.interpolate = function (noteSequences, numSteps) {
-        return __awaiter(this, void 0, void 0, function () {
-            var _this = this;
-            var z, interpolatedZs;
-            return __generator(this, function (_a) {
-                switch (_a.label) {
-                    case 0:
-                        if (noteSequences.length != 2 && noteSequences.length != 4) {
-                            throw new Error('invalid number of note sequences. Requires length 2, or 4');
-                        }
-                        z = dl.tidy(function () {
-                            var startSeq = dl.tensor2d(noteSequences[0], [noteSequences[0].length, noteSequences[0][0].length]);
-                            var startSeq3D = startSeq.as3D(1, startSeq.shape[0], startSeq.shape[1]);
-                            var batchedInput = startSeq3D;
-                            for (var i = 1; i < noteSequences.length; i++) {
-                                var endSeq = dl.tensor2d(noteSequences[i], [noteSequences[i].length, noteSequences[i][0].length]);
-                                var endSeq3D = endSeq.as3D(1, endSeq.shape[0], endSeq.shape[1]);
-                                batchedInput = dl.concat3d([batchedInput, endSeq3D], 0);
-                            }
-                            startSeq3D.dispose();
-                            return _this.encoder.encode(batchedInput);
-                        });
-                        return [4, dl.tidy(function () {
-                                var rangeArray = dl.linspace(0.0, 1.0, numSteps);
-                                var z0 = dl.slice2d(z, [0, 0], [1, z.shape[1]]).as1D();
-                                var z1 = dl.slice2d(z, [1, 0], [1, z.shape[1]]).as1D();
-                                if (noteSequences.length == 2) {
-                                    var zDiff = z1.sub(z0);
-                                    return dl.outerProduct(rangeArray, zDiff).add(z0);
-                                }
-                                else if (noteSequences.length == 4) {
-                                    var z2 = dl.slice2d(z, [2, 0], [1, z.shape[1]]).as1D();
-                                    var z3 = dl.slice2d(z, [3, 0], [1, z.shape[1]]).as1D();
-                                    var revRangeArray = dl.scalar(1.0).sub(rangeArray);
-                                    var r = numSteps;
-                                    var finalZs = z0.mul(dl.outerProduct(revRangeArray, revRangeArray).as3D(r, r, 1));
-                                    finalZs = dl.addStrict(finalZs, z1.mul(dl.outerProduct(rangeArray, revRangeArray).as3D(r, r, 1)));
-                                    finalZs = dl.addStrict(finalZs, z2.mul(dl.outerProduct(revRangeArray, rangeArray).as3D(r, r, 1)));
-                                    finalZs = dl.addStrict(finalZs, z3.mul(dl.outerProduct(rangeArray, rangeArray).as3D(r, r, 1)));
-                                    return finalZs.as2D(r * r, z.shape[1]);
-                                }
-                                else {
-                                    throw new Error('invalid number of note sequences. Requires length 2, or 4');
-                                }
-                            })];
-                    case 1:
-                        interpolatedZs = _a.sent();
-                        return [2, dl.tidy(function () {
-                                return _this.decoder.decode(interpolatedZs, noteSequences[0].length);
-                            })];
-                }
-            });
+    MusicVAE.prototype.interpolate = function (sequences, numSteps) {
+        var _this = this;
+        if (sequences.shape[0] != 2 && sequences.shape[0] != 4) {
+            throw new Error('Invalid number of input sequences. Requires length 2, or 4');
+        }
+        var z = dl.tidy(function () {
+            return _this.encoder.encode(sequences);
+        });
+        var interpolatedZs = dl.tidy(function () {
+            var rangeArray = dl.linspace(0.0, 1.0, numSteps);
+            var z0 = dl.slice2d(z, [0, 0], [1, z.shape[1]]).as1D();
+            var z1 = dl.slice2d(z, [1, 0], [1, z.shape[1]]).as1D();
+            if (sequences.shape[0] == 2) {
+                var zDiff = z1.sub(z0);
+                return dl.outerProduct(rangeArray, zDiff).add(z0);
+            }
+            else if (sequences.shape[0] == 4) {
+                var z2 = dl.slice2d(z, [2, 0], [1, z.shape[1]]).as1D();
+                var z3 = dl.slice2d(z, [3, 0], [1, z.shape[1]]).as1D();
+                var revRangeArray = dl.scalar(1.0).sub(rangeArray);
+                var r = numSteps;
+                var finalZs = z0.mul(dl.outerProduct(revRangeArray, revRangeArray).as3D(r, r, 1));
+                finalZs = dl.addStrict(finalZs, z1.mul(dl.outerProduct(rangeArray, revRangeArray).as3D(r, r, 1)));
+                finalZs = dl.addStrict(finalZs, z2.mul(dl.outerProduct(revRangeArray, rangeArray).as3D(r, r, 1)));
+                finalZs = dl.addStrict(finalZs, z3.mul(dl.outerProduct(rangeArray, rangeArray).as3D(r, r, 1)));
+                return finalZs.as2D(r * r, z.shape[1]);
+            }
+            else {
+                throw new Error('invalid number of note sequences. Requires length 2, or 4');
+            }
+        });
+        return dl.tidy(function () {
+            return _this.decoder.decode(interpolatedZs, sequences.shape[1]);
         });
     };
     MusicVAE.prototype.sample = function (numSamples, numSteps) {
-        return __awaiter(this, void 0, void 0, function () {
-            var _this = this;
-            return __generator(this, function (_a) {
-                return [2, dl.tidy(function () {
-                        var randZs = dl.randomNormal([numSamples, _this.decoder.zDims]);
-                        return _this.decoder.decode(randZs, numSteps);
-                    })];
-            });
+        var _this = this;
+        return dl.tidy(function () {
+            var randZs = dl.randomNormal([numSamples, _this.decoder.zDims]);
+            return _this.decoder.decode(randZs, numSteps);
         });
     };
     return MusicVAE;

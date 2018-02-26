@@ -27,12 +27,17 @@ class LayerVars {
     this.kernel = kernel;
     this.bias = bias;
   }
+
+  dispose() {
+    this.kernel.dispose();
+    this.kernel = null
+    this.bias.dispose();
+    this.bias = null;
+  }
 }
 
 function dense(vars: LayerVars, inputs: dl.Tensor2D) {
   return inputs.matMul(vars.kernel).add(vars.bias) as dl.Tensor2D;
-  // const weightedResult = math.matMul(inputs, vars.kernel);
-  // return math.add(weightedResult, vars.bias) as Array2D;
 }
 
 export class Nade {
@@ -49,30 +54,36 @@ export class Nade {
     this.decWeightsT = decWeightsT.as2D(this.numDims, this.numHidden);
   }
 
+  dispose() {
+    this.encWeights.dispose();
+    this.decWeightsT.dispose();
+  }
+
   sample(encBias: dl.Tensor2D, decBias: dl.Tensor2D) {
     const batchSize = encBias.shape[0];
+    return dl.tidy(()=> {
+      let samples: dl.Tensor1D[] = [];
+      let a = dl.clone(encBias);
 
-    let samples: dl.Tensor1D[] = [];
-    let a = dl.clone(encBias);
+      for (let i = 0; i < this.numDims; i++) {
+        let h = dl.sigmoid(a);
+        let encWeights_i = dl.slice2d(
+          this.encWeights, [i, 0], [1, this.numHidden]).as1D();
+        let decWeightsT_i = dl.slice2d(
+          this.decWeightsT, [i, 0], [1, this.numHidden]);
+        let decBias_i = dl.slice2d(decBias, [0, i], [batchSize, 1]);
+        let condLogits_i = decBias_i.add(dl.matMul(h, decWeightsT_i, false, true));
+        let condProbs_i = dl.sigmoid(condLogits_i);
 
-    for (let i = 0; i < this.numDims; i++) {
-      let h = dl.sigmoid(a);
-      let encWeights_i = dl.slice2d(
-        this.encWeights, [i, 0], [1, this.numHidden]).as1D();
-      let decWeightsT_i = dl.slice2d(
-        this.decWeightsT, [i, 0], [1, this.numHidden]);
-      let decBias_i = dl.slice2d(decBias, [0, i], [batchSize, 1]);
-      let condLogits_i = decBias_i.add(dl.matMul(h, decWeightsT_i, false, true));
-      let condProbs_i = dl.sigmoid(condLogits_i);
+        let samples_i = dl.greater(condProbs_i, dl.scalar(0.5)).toFloat().as1D();
+        if (i < this.numDims - 1) {
+          a = a.add(dl.outerProduct(samples_i.toFloat(), encWeights_i)) as dl.Tensor2D;
+        }
 
-      let samples_i = dl.greater(condProbs_i, dl.scalar(0.5)).toFloat().as1D();
-      if (i < this.numDims - 1) {
-        a = a.add(dl.outerProduct(samples_i.toFloat(), encWeights_i)) as dl.Tensor2D;
+        samples.push(samples_i);
       }
-
-      samples.push(samples_i);
-    }
-    return dl.stack(samples, 1) as dl.Tensor2D;
+     return dl.stack(samples, 1) as dl.Tensor2D;
+    });
   }
 }
 
@@ -80,45 +91,49 @@ class Encoder {
   lstmFwVars: LayerVars;
   lstmBwVars: LayerVars;
   muVars: LayerVars;
-  presigVars: LayerVars;
   zDims: number;
 
-  constructor(lstmFwVars: LayerVars, lstmBwVars: LayerVars, muVars: LayerVars, presigVars: LayerVars) {
+  constructor(lstmFwVars: LayerVars, lstmBwVars: LayerVars, muVars: LayerVars) {
     this.lstmFwVars = lstmFwVars;
     this.lstmBwVars = lstmBwVars;
     this.muVars = muVars;
-    this.presigVars = presigVars;
     this.zDims = this.muVars.bias.shape[0];
+  }
+
+  dispose() {
+    this.lstmFwVars.dispose();
+    this.lstmBwVars.dispose();
+    this.muVars.dispose();
   }
 
   private runLstm(inputs: dl.Tensor3D, lstmVars: LayerVars, reverse: boolean) {
     const batchSize = inputs.shape[0];
     const length = inputs.shape[1];
     const outputSize = inputs.shape[2];
-    return dl.tidy(()=> {
-      let state: [dl.Tensor2D, dl.Tensor2D] = [
-        dl.zeros([batchSize, lstmVars.bias.shape[0] / 4]),
-        dl.zeros([batchSize, lstmVars.bias.shape[0] / 4])
-      ];
-      let lstm = (data: dl.Tensor2D, state: [dl.Tensor2D, dl.Tensor2D]) =>
-          dl.basicLSTMCell(forgetBias, lstmVars.kernel, lstmVars.bias, data, state[0], state[1]);
-      for (let i = 0; i < length; i++) {
-        let index = reverse ? length - 1 - i : i;
-        state = lstm(
-          dl.slice3d(inputs, [0, index, 0], [batchSize, 1, outputSize]).as2D(batchSize, outputSize),
-          state);
-      }
-      return state;
-    });
+
+    let state: [dl.Tensor2D, dl.Tensor2D] = [
+      dl.zeros([batchSize, lstmVars.bias.shape[0] / 4]),
+      dl.zeros([batchSize, lstmVars.bias.shape[0] / 4])
+    ];
+    let lstm = (data: dl.Tensor2D, state: [dl.Tensor2D, dl.Tensor2D]) =>
+        dl.basicLSTMCell(forgetBias, lstmVars.kernel, lstmVars.bias, data, state[0], state[1]);
+    for (let i = 0; i < length; i++) {
+      let index = reverse ? length - 1 - i : i;
+      state = lstm(
+        dl.slice3d(inputs, [0, index, 0], [batchSize, 1, outputSize]).as2D(batchSize, outputSize),
+        state);
+    }
+    return state;
   }
 
   encode(sequence: dl.Tensor3D): dl.Tensor2D {
-    const fwState = this.runLstm(sequence, this.lstmFwVars, false);
-    const bwState = this.runLstm(sequence, this.lstmBwVars, true);
-    // should this be dl.concat2d([fwState.get(1), bwState[], 1)?;
-    const finalState = dl.concat2d([fwState[1], bwState[1]], 1);
-    const mu = dense(this.muVars, finalState);
-    return mu;
+    return dl.tidy(() => {
+      const fwState = this.runLstm(sequence, this.lstmFwVars, false);
+      const bwState = this.runLstm(sequence, this.lstmBwVars, true);
+      const finalState = dl.concat2d([fwState[1], bwState[1]], 1);
+      const mu = dense(this.muVars, finalState);
+      return mu;
+    });
   }
 }
 
@@ -137,9 +152,17 @@ class Decoder {
     this.zToInitStateVars = zToInitStateVars;
     this.outputProjectVars = outputProjectVars;
     this.zDims = this.zToInitStateVars.kernel.shape[0];
-    this.outputDims = (
-      (nade != null) ? nade.numDims : outputProjectVars.bias.shape[0]);
+    this.outputDims = (nade) ? nade.numDims : outputProjectVars.bias.shape[0];
     this.nade = nade;
+  }
+
+  dispose() {
+    this.lstmCellVars.forEach((v)=> v.dispose());
+    this.zToInitStateVars.dispose();
+    this.outputProjectVars.dispose();
+    if (this.nade) {
+      this.nade.dispose();
+    }
   }
 
   decode(z: dl.Tensor2D, length: number) {
@@ -193,7 +216,6 @@ class Decoder {
       return dl.stack(samples, 1) as dl.Tensor3D;
     });
   }
-
 }
 
 class MusicVAE {
@@ -203,6 +225,13 @@ class MusicVAE {
 
   constructor(checkpointURL:string) {
     this.checkpointURL = checkpointURL;
+  }
+
+  dispose() {
+    this.encoder.dispose();
+    this.encoder = null
+    this.decoder.dispose();
+    this.decoder = null;
   }
 
 	async initialize() {
@@ -218,9 +247,6 @@ class MusicVAE {
     const encMu = new LayerVars(
         vars['encoder/mu/kernel'] as dl.Tensor2D,
         vars['encoder/mu/bias'] as dl.Tensor1D);
-    const encPresig = new LayerVars(
-        vars['encoder/sigma/kernel'] as dl.Tensor2D,
-        vars['encoder/sigma/bias'] as dl.Tensor1D);
 
     let decLstmLayers: LayerVars[] = [];
     let l = 0;
@@ -246,7 +272,7 @@ class MusicVAE {
             vars['decoder/nade/w_enc'] as dl.Tensor3D,
             vars['decoder/nade/w_dec_t'] as dl.Tensor3D) : null);
 
-    this.encoder = new Encoder(encLstmFw, encLstmBw, encMu, encPresig);
+    this.encoder = new Encoder(encLstmFw, encLstmBw, encMu);
     this.decoder = new Decoder(
       decLstmLayers, decZtoInitState, decOutputProjection, nade)
     return this;
@@ -256,7 +282,7 @@ class MusicVAE {
 	  return (!!this.encoder && !!this.decoder);
 	}
 
-  async interpolate(sequences: dl.Tensor3D, numSteps: number) {
+  interpolate(sequences: dl.Tensor3D, numSteps: number) {
     if (sequences.shape[0] != 2 && sequences.shape[0] != 4) {
       throw new Error('Invalid number of input sequences. Requires length 2, or 4');
     }
@@ -297,7 +323,7 @@ class MusicVAE {
     });
   }
 
-  async sample(numSamples: number, numSteps: number) {
+  sample(numSamples: number, numSteps: number) {
     return dl.tidy(() => {
       const randZs = dl.randomNormal([numSamples, this.decoder.zDims]) as dl.Tensor2D;
       return this.decoder.decode(randZs, numSteps);
