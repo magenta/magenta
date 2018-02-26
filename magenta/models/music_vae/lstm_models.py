@@ -571,13 +571,19 @@ class CategoricalLstmDecoder(BaseLstmDecoder):
       samples: Sampled sequences. Sized `[n, max_length, output_depth]`.
       final_state: The final states of the decoder.
     Raises:
-      ValueError: If `z` is provided and its first dimension does not equal `n`.
+      ValueError: If `z` is provided and its first dimension does not equal `n`,
+        or if `c_input` is provided under beam search.
     """
     if beam_width is None:
       end_fn = (None if end_token is None else
                 lambda x: tf.equal(tf.argmax(x, axis=-1), end_token))
       return super(CategoricalLstmDecoder, self).sample(
           n, max_length, z, c_input, temperature, start_inputs, end_fn)
+
+    # TODO(iansimon): Support conditioning in beam search decoder, which may be
+    # awkward as there's no helper.
+    if c_input is not None:
+      raise ValueError('Control sequence unsupported in beam search.')
 
     # If `end_token` is not given, use an impossible value.
     end_token = self._output_depth if end_token is None else end_token
@@ -769,9 +775,6 @@ class SplitMultiOutLstmDecoder(base_model.BaseDecoder):
 
   def reconstruction_loss(self, x_input, x_target, x_length, z=None,
                           c_input=None):
-    if c_input is not None:
-      raise ValueError('Control sequence unsupported in hierarchical decoder.')
-
     # Split output for each core model.
     split_x_input = tf.split(x_input, self._output_depths, axis=-1)
     split_x_target = tf.split(x_target, self._output_depths, axis=-1)
@@ -783,7 +786,7 @@ class SplitMultiOutLstmDecoder(base_model.BaseDecoder):
         # TODO(adarob): Sample initial inputs when using scheduled sampling.
         loss_outputs.append(
             cd.reconstruction_loss(
-                split_x_input[i], split_x_target[i], x_length, z))
+                split_x_input[i], split_x_target[i], x_length, z, c_input))
 
     r_losses, metric_maps, decode_results = zip(*loss_outputs)
 
@@ -815,10 +818,6 @@ class SplitMultiOutLstmDecoder(base_model.BaseDecoder):
           'SplitMultiOutLstmDecoder requires `max_length` be provided during '
           'sampling.')
 
-    if c_input is not None:
-      raise ValueError(
-          'Control sequence unsupported in SplitMultiOutLstmDecoder.')
-
     split_start_inputs = (
         tf.split(start_inputs, self._output_depths, axis=-1)
         if start_inputs is not None
@@ -830,6 +829,7 @@ class SplitMultiOutLstmDecoder(base_model.BaseDecoder):
             n,
             max_length,
             z=z,
+            c_input=c_input,
             temperature=temperature,
             start_inputs=split_start_inputs[i],
             **core_sampler_kwargs))
@@ -1047,6 +1047,26 @@ class HierarchicalLstmDecoder(base_model.BaseDecoder):
 
     return recursive_decode(z)
 
+  def _reshape_to_hierarchy(self, t):
+    """Reshapes `t` so that its initial dimensions match the hierarchy."""
+    # Exclude the final, core decoder length.
+    level_lengths = self._level_lengths[:-1]
+    t_shape = t.shape.as_list()
+    t_rank = len(t_shape)
+    batch_size = t_shape[0]
+    hier_shape = [batch_size] + level_lengths
+    if t_rank == 3:
+      hier_shape += [-1] + t_shape[2:]
+    elif t_rank != 2:
+      # We only expect rank-2 for lengths and rank-3 for sequences.
+      raise ValueError('Unexpected shape for tensor: %s' % t)
+    hier_t = tf.reshape(t, hier_shape)
+    # Move the batch dimension to after the hierarchical dimensions.
+    num_levels = len(level_lengths)
+    perm = range(len(hier_shape))
+    perm.insert(num_levels, perm.pop(0))
+    return tf.transpose(hier_t, perm)
+
   def reconstruction_loss(self, x_input, x_target, x_length, z=None,
                           c_input=None):
     """Reconstruction loss calculation.
@@ -1063,7 +1083,9 @@ class HierarchicalLstmDecoder(base_model.BaseDecoder):
         evenly divided amongst the segments.
       z: (Optional) Latent vectors. Required if model is conditional. Sized
         `[n, z_size]`.
-      c_input: Batch of control sequences. Incompatible with this decoder.
+      c_input: (Optional) Batch of control sequences, sized
+        `[batch_size, max_seq_len, control_depth]`. Required if conditioning on
+        control sequences.
 
     Returns:
       r_loss: The reconstruction loss for each sequence in the batch.
@@ -1071,39 +1093,22 @@ class HierarchicalLstmDecoder(base_model.BaseDecoder):
       decode_results: The LstmDecodeResults.
 
     Raises:
-      ValueError: If `c_input` is provided.
+      ValueError: If `c_input` is provided in re-encoder mode.
     """
-    if c_input is not None:
+    if self._hierarchical_encoder and c_input is not None:
       raise ValueError(
-          'Control sequence unsupported in HierarchicalLstmDecoder.')
+          'Re-encoder mode unsupported when conditioning on controls.')
 
     batch_size = x_input.shape[0].value
 
     x_length = lstm_utils.maybe_split_sequence_lengths(
         x_length, np.prod(self._level_lengths[:-1]), self._total_length)
 
-    def _reshape_to_hierarchy(t):
-      """Reshapes `t` so that its initial dimensions match the hierarchy."""
-      # Exclude the final, core decoder length.
-      level_lengths = self._level_lengths[:-1]
-      t_shape = t.shape.as_list()
-      t_rank = len(t_shape)
-      hier_shape = [batch_size] + level_lengths
-      if t_rank == 3:
-        hier_shape += [-1] + t_shape[2:]
-      elif t_rank != 2:
-        # We only expect rank-2 for lengths and rank-3 for sequences.
-        raise ValueError('Unexpected shape for tensor: %s' % t)
-      hier_t = tf.reshape(t, hier_shape)
-      # Move the batch dimension to after the hierarchical dimensions.
-      num_levels = len(level_lengths)
-      perm = range(len(hier_shape))
-      perm.insert(num_levels, perm.pop(0))
-      return tf.transpose(hier_t, perm)
-
-    hier_input = _reshape_to_hierarchy(x_input)
-    hier_target = _reshape_to_hierarchy(x_target)
-    hier_length = _reshape_to_hierarchy(x_length)
+    hier_input = self._reshape_to_hierarchy(x_input)
+    hier_target = self._reshape_to_hierarchy(x_target)
+    hier_length = self._reshape_to_hierarchy(x_length)
+    hier_control = (self._reshape_to_hierarchy(c_input)
+                    if c_input is not None else None)
 
     loss_outputs = []
 
@@ -1113,9 +1118,11 @@ class HierarchicalLstmDecoder(base_model.BaseDecoder):
       split_input = hier_input[hier_index]
       split_target = hier_target[hier_index]
       split_length = hier_length[hier_index]
+      split_control = (hier_control[hier_index]
+                       if hier_control is not None else None)
 
       res = self._core_decoder.reconstruction_loss(
-          split_input, split_target, split_length, embedding)
+          split_input, split_target, split_length, embedding, split_control)
       loss_outputs.append(res)
       decode_results = res[-1]
 
@@ -1175,7 +1182,7 @@ class HierarchicalLstmDecoder(base_model.BaseDecoder):
         match `hparams.max_seq_len`.
       z: (Optional) Latent vectors to sample from. Required if model is
         conditional. Sized `[n, z_size]`.
-      c_input: Batch of control sequences. Incompatible with this decoder.
+      c_input: (Optional) Control sequence, sized `[max_length, control_depth]`.
       **core_sampler_kwargs: (Optional) Additional keyword arguments to pass to
         core sampler.
     Returns:
@@ -1184,13 +1191,17 @@ class HierarchicalLstmDecoder(base_model.BaseDecoder):
       decoder_results: The merged LstmDecodeResults from sampling.
     Raises:
       ValueError: If `z` is provided and its first dimension does not equal `n`,
-        or if `c_input` is provided.
+        or if `c_input` is provided in re-encoder mode.
     """
     if z is not None and z.shape[0].value != n:
       raise ValueError(
           '`z` must have a first dimension that equals `n` when given. '
           'Got: %d vs %d' % (z.shape[0].value, n))
     z = tf.zeros([n, 0]) if z is None else z
+
+    if self._hierarchical_encoder and c_input is not None:
+      raise ValueError(
+          'Re-encoder mode unsupported when conditioning on controls.')
 
     if max_length is not None:
       with tf.control_dependencies([
@@ -1201,20 +1212,22 @@ class HierarchicalLstmDecoder(base_model.BaseDecoder):
         max_length = tf.identity(max_length)
 
     if c_input is not None:
-      raise ValueError(
-          'Control sequence unsupported in HierarchicalLstmDecoder.')
+      # Reshape control sequence to hierarchy.
+      c_input = tf.squeeze(
+          self._reshape_to_hierarchy(tf.expand_dims(c_input, 0)),
+          axis=len(self._level_lengths) - 1)
 
     core_max_length = self._level_lengths[-1]
     all_samples = []
     all_decode_results = []
 
-    def base_sample_fn(embedding, unused_path):
+    def base_sample_fn(embedding, hier_index):
       """Base function for sampling hierarchical decoder."""
       samples, decode_results = self._core_decoder.sample(
           n,
           max_length=core_max_length,
           z=embedding,
-          c_input=c_input,
+          c_input=c_input[hier_index] if c_input is not None else None,
           start_inputs=all_samples[-1][:, -1] if all_samples else None,
           **core_sampler_kwargs)
       all_samples.append(samples)
