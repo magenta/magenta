@@ -362,8 +362,8 @@ class MusicVAE {
 }
 
 export {
-	LayerVars,
-	Encoder,
-	Decoder,
-	MusicVAE,
+  LayerVars,
+  Encoder,
+  Decoder,
+  MusicVAE,
 };
