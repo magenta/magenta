@@ -26,7 +26,7 @@ async function runDrums(){
     for (let i = 0; i < interp.shape[0]; i++) {
       let bits: Uint8Array[] = [];
       for (let j = 0; j < interp.shape[1]; j++) {
-        const r: dl.Array3D  = dl.slice3d(interp, [i, j, 0], [1, 1, interp.shape[2]]);
+        const r: dl.Array3D  = interp.slice([i, j, 0], [1, 1, interp.shape[2]]);
         bits.push(r.toInt().dataSync() as Uint8Array);
       }
       interpResults.push(bitsToInts(bits));
@@ -80,7 +80,7 @@ async function runDrumsNade(){
     for (let i = 0; i < interp.shape[0]; i++) {
       let bits: Uint8Array[] = [];
       for (let j = 0; j < interp.shape[1]; j++) {
-        const r = dl.slice3d(interp, [i, j, 0], [1, 1, interp.shape[2]]);
+        const r = interp.slice([i, j, 0], [1, 1, interp.shape[2]]);
         bits.push(r.toBool().dataSync() as Uint8Array);
       }
       interpResults.push(bitsToInts(bits));
@@ -97,7 +97,7 @@ async function runDrumsNade(){
     for (let i = 0; i < sample.shape[0]; i++) {
       let bits: Uint8Array[] = [];
       for (let j = 0; j < sample.shape[1]; j++) {
-        const r = dl.slice3d(sample, [i, j, 0], [1, 1, sample.shape[2]])
+        const r = sample.slice([i, j, 0], [1, 1, sample.shape[2]])
         bits.push(r.toBool().dataSync() as Uint8Array);
       }
       sampleResults.push(bitsToInts(bits));
@@ -127,7 +127,7 @@ async function runMel(){
     document.getElementById('mel-interp-time').innerHTML = ((performance.now() - start) / 1000.).toString() + 's';
     let interpResults: Int32Array[] = [];
     for (let i = 0; i < interp.shape[0]; i++) {
-      const r = dl.slice3d(interp, [i, 0, 0], [1, interp.shape[1], 1]);
+      const r = interp.slice([i, 0, 0], [1, interp.shape[1], 1]);
       interpResults.push(r.toInt().dataSync() as Int32Array);
     }
     document.getElementById('mel-interp').innerHTML = interpResults.map(r => r.toString()).join('<br>');
@@ -140,7 +140,7 @@ async function runMel(){
     document.getElementById('mel-sample-time').innerHTML = ((performance.now() - start) / 1000.).toString() + 's';
     let sampleResults: Int32Array[] = [];
     for (let i = 0; i < sample.shape[0]; i++) {
-      const r = dl.slice3d(sample, [i, 0, 0], [1, sample.shape[1], 1]);
+      const r = sample.slice([i, 0, 0], [1, sample.shape[1], 1]);
       sampleResults.push(r.toInt().dataSync() as Int32Array);
     }
     document.getElementById('mel-sample-format-time').innerHTML = ((performance.now() - start) / 1000.).toString() + 's';
