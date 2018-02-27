@@ -14,7 +14,8 @@
     "ts-node": "^5.0.0",
     "tsify": "~3.0.1",
     "tslint": "~5.8.0",
-    "typescript": "2.7.2"
+    "typescript": "2.7.2",
+    "protobufjs": "^6.8.6"
   },
   "scripts": {
     "build": "browserify --standalone magenta src/index.ts -p [tsify] > dist/magenta.js",
