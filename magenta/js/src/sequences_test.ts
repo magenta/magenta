@@ -93,14 +93,14 @@ function addQuantizedChordStepsToSequence(ns, quantizedSteps) {
     
     quantizedSteps.forEach(function(qstep, i) {
         var ta = chordAnnotations[i];
-        ta.setQuantizedStep(qstep[0]);
+        ta.setQuantizedStep(qstep);
     });
 }
 
 function addQuantizedControlStepsToSequence(ns, quantizedSteps) {
     quantizedSteps.forEach(function(qstep, i) {
         var cc = ns.getControlChangesList()[i];
-        cc.setQuantizedStep(qstep[0]);
+        cc.setQuantizedStep(qstep);
     });
 }
 
@@ -111,12 +111,12 @@ test("Quantize NoteSequence", (t:test.Test) => {
         ns, 0,
         [[12, 100, 0.01, 10.0], [11, 55, 0.22, 0.50], [40, 45, 2.50, 3.50],
         [55, 120, 4.0, 4.01], [52, 99, 4.75, 5.0]]);
-    // addChordsToSequence(
-    //     ns,
-    //     [['B7', 0.22], ['Em9', 4.0]]);
-    // addControlChangesToSequence(
-    //     ns, 0,
-    //     [[2.0, 64, 127], [4.0, 64, 0]]);
+    addChordsToSequence(
+        ns,
+        [['B7', 0.22], ['Em9', 4.0]]);
+    addControlChangesToSequence(
+        ns, 0,
+        [[2.0, 64, 127], [4.0, 64, 0]]);
 
     var expectedQuantizedSequence = ns.clone();
     expectedQuantizedSequence.setQuantizationInfo(
@@ -126,10 +126,10 @@ test("Quantize NoteSequence", (t:test.Test) => {
     addQuantizedStepsToSequence(
         expectedQuantizedSequence,
         [[0, 40], [1, 2], [10, 14], [16, 17], [19, 20]]);
-    // addQuantizedChordStepsToSequence(
-    //     expectedQuantizedSequence, [1, 16]);
-    // addQuantizedControlStepsToSequence(
-    //     expectedQuantizedSequence, [8, 16]);
+    addQuantizedChordStepsToSequence(
+        expectedQuantizedSequence, [1, 16]);
+    addQuantizedControlStepsToSequence(
+        expectedQuantizedSequence, [8, 16]);
 
     var qns = Sequences.quantizeNoteSequence(ns, STEPS_PER_QUARTER);
 

@@ -21,6 +21,7 @@ import * as constants from './constants';
 class MultipleTimeSignatureException extends Error {}
 class BadTimeSignatureException extends Error {}
 class NegativeTimeException extends Error {}
+class MultipleTempoException extends Error {}
 
 // Set the quantization cutoff.
 // Note events before this cutoff are rounded down to nearest step. Notes
@@ -95,13 +96,14 @@ export class Sequences {
         }
 
         // Also quantize control changes and text annotations.
-        // for event in itertools.chain(
-        //     note_sequence.control_changes, note_sequence.text_annotations):
-        //     // Quantize the event time, disallowing negative time.
-        //     event.quantized_step = quantize_to_step(event.time, steps_per_second)
-        //     if event.quantized_step < 0:
-        //     raise NegativeTimeException(
-        //         'Got negative event time: step = %s' % event.quantized_step)
+        for(var event of ns.getControlChangesList().concat(ns.getTextAnnotationsList())) {
+            // Quantize the event time, disallowing negative time.
+            event.setQuantizedStep(this.quantizeToStep(event.getTime(), stepsPerSecond));
+            if(event.getQuantizedStep() < 0) {
+                throw new NegativeTimeException(
+                    'Got negative event time: step = ' + event.getQuantizedStep());
+            }
+        }
     }
 
     /**
@@ -170,8 +172,8 @@ export class Sequences {
 
             // Make it clear that there is only 1 time signature and it starts at the
             // beginning.
-            qns.getTimeSignaturesList()[0].setTime(0);
-            qns.setTimeSignaturesList([qns.getTimeSignaturesList()[0]]);
+            timeSignatures[0].setTime(0);
+            qns.setTimeSignaturesList([timeSignatures[0]]);
         } else {
             var timeSignature = new music_pb.NoteSequence.TimeSignature();
             timeSignature.setNumerator(4);
@@ -194,27 +196,33 @@ export class Sequences {
         }
 
         if(qns.getTemposList().length > 0) {
-        //     tempos = sorted(qns.tempos, key=lambda t: t.time)
-        //     # There is an implicit 120.0 qpm tempo at 0 time. So if the first tempo is
-        //     # something other that 120.0 and it's at a time other than 0, that's an
-        //     # implicit tempo change.
-        //     if tempos[0].time != 0 and (
-        //         tempos[0].qpm != constants.DEFAULT_QUARTERS_PER_MINUTE):
-        //     raise MultipleTempoException(
-        //         'NoteSequence has an implicit tempo change from initial %.1f qpm to '
-        //         '%.1f qpm at %.2f seconds.' % (
-        //             constants.DEFAULT_QUARTERS_PER_MINUTE, tempos[0].qpm,
-        //             tempos[0].time))
+            var tempos = qns.getTemposList();
+            tempos.sort(function(a, b) {
+                return a.getTime() - b.getTime();
+            });
+            // There is an implicit 120.0 qpm tempo at 0 time. So if the first tempo is
+            // something other that 120.0 and it's at a time other than 0, that's an
+            // implicit tempo change.
+            if(tempos[0].getTime() != 0 && (
+                    tempos[0].getQpm() != constants.DEFAULT_QUARTERS_PER_MINUTE)) {
+                throw new MultipleTempoException(
+                    'NoteSequence has an implicit tempo change from initial ' +
+                    constants.DEFAULT_QUARTERS_PER_MINUTE + ' qpm to ' +
+                    tempos[0].getQpm() + ' qpm at ' + tempos[0].getTime() + ' seconds.');
+            }
 
-        //     for tempo in tempos[1:]:
-        //     if tempo.qpm != qns.tempos[0].qpm:
-        //         raise MultipleTempoException(
-        //             'NoteSequence has at least one tempo change from %.1f qpm to %.1f '
-        //             'qpm at %.2f seconds.' % (tempos[0].qpm, tempo.qpm, tempo.time))
+            for(var i = 1; i < tempos.length; i++) {
+                if(tempos[i].getQpm() != qns.tempos[0].getQpm()) {
+                    throw new MultipleTempoException(
+                        'NoteSequence has at least one tempo change from ' +
+                        tempos[0].getQpm() + ' qpm to ' + tempos[i].getQpm() +
+                        'qpm at ' + tempos[i].getTime() + ' seconds.');
+                }
+            }
 
-        //     # Make it clear that there is only 1 tempo and it starts at the beginning.
-        //     qns.tempos[0].time = 0
-        //     del qns.tempos[1:]
+            // Make it clear that there is only 1 tempo and it starts at the beginning.
+            tempos[0].setTime(0);
+            qns.setTemposList([tempos[0]]);
         } else {
             var tempo = new music_pb.NoteSequence.Tempo();
             tempo.setQpm(constants.DEFAULT_QUARTERS_PER_MINUTE);
