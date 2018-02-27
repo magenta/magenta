@@ -17,7 +17,7 @@
 
 import * as test from "tape";
 // tslint:disable-next-line:no-require-imports Generated protobuf code.
-import music_pb = require('./music_pb');
+const music_pb = require('./music_pb');
 import {Sequences} from './sequences';
 
 const STEPS_PER_QUARTER = 4;

@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import music_pb = require('./music_pb');
+const music_pb = require('./music_pb');
 import * as constants from './constants';
 
 class MultipleTimeSignatureException extends Error {}
