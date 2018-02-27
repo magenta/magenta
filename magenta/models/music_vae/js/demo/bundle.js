@@ -245,12 +245,6 @@ var LayerVars = (function () {
         this.kernel = kernel;
         this.bias = bias;
     }
-    LayerVars.prototype.dispose = function () {
-        this.kernel.dispose();
-        this.kernel = null;
-        this.bias.dispose();
-        this.bias = null;
-    };
     return LayerVars;
 }());
 exports.LayerVars = LayerVars;
@@ -264,16 +258,12 @@ var Nade = (function () {
         this.encWeights = encWeights.as2D(this.numDims, this.numHidden);
         this.decWeightsT = decWeightsT.as2D(this.numDims, this.numHidden);
     }
-    Nade.prototype.dispose = function () {
-        this.encWeights.dispose();
-        this.decWeightsT.dispose();
-    };
     Nade.prototype.sample = function (encBias, decBias) {
         var _this = this;
         var batchSize = encBias.shape[0];
         return dl.tidy(function () {
             var samples = [];
-            var a = dl.clone(encBias);
+            var a = encBias.clone();
             for (var i = 0; i < _this.numDims; i++) {
                 var h = dl.sigmoid(a);
                 var encWeights_i = dl.slice2d(_this.encWeights, [i, 0], [1, _this.numHidden]).as1D();
@@ -300,11 +290,6 @@ var Encoder = (function () {
         this.muVars = muVars;
         this.zDims = this.muVars.bias.shape[0];
     }
-    Encoder.prototype.dispose = function () {
-        this.lstmFwVars.dispose();
-        this.lstmBwVars.dispose();
-        this.muVars.dispose();
-    };
     Encoder.prototype.runLstm = function (inputs, lstmVars, reverse) {
         var batchSize = inputs.shape[0];
         var length = inputs.shape[1];
@@ -344,38 +329,29 @@ var Decoder = (function () {
         this.outputDims = (nade) ? nade.numDims : outputProjectVars.bias.shape[0];
         this.nade = nade;
     }
-    Decoder.prototype.dispose = function () {
-        this.lstmCellVars.forEach(function (v) { return v.dispose(); });
-        this.zToInitStateVars.dispose();
-        this.outputProjectVars.dispose();
-        if (this.nade) {
-            this.nade.dispose();
-        }
-    };
     Decoder.prototype.decode = function (z, length) {
         var _this = this;
         var batchSize = z.shape[0];
-        var lstmCells = [];
-        var c = [];
-        var h = [];
-        var initialStates = dl.tanh(dense(this.zToInitStateVars, z));
-        var stateOffset = 0;
-        var _loop_1 = function (i) {
-            var lv = this_1.lstmCellVars[i];
-            var stateWidth = lv.bias.shape[0] / 4;
-            lstmCells.push(function (data, c, h) {
-                return dl.basicLSTMCell(forgetBias, lv.kernel, lv.bias, data, c, h);
-            });
-            c.push(dl.slice2d(initialStates, [0, stateOffset], [batchSize, stateWidth]));
-            stateOffset += stateWidth;
-            h.push(dl.slice2d(initialStates, [0, stateOffset], [batchSize, stateWidth]));
-            stateOffset += stateWidth;
-        };
-        var this_1 = this;
-        for (var i = 0; i < this.lstmCellVars.length; ++i) {
-            _loop_1(i);
-        }
         return dl.tidy(function () {
+            var lstmCells = [];
+            var c = [];
+            var h = [];
+            var initialStates = dl.tanh(dense(_this.zToInitStateVars, z));
+            var stateOffset = 0;
+            var _loop_1 = function (i) {
+                var lv = _this.lstmCellVars[i];
+                var stateWidth = lv.bias.shape[0] / 4;
+                lstmCells.push(function (data, c, h) {
+                    return dl.basicLSTMCell(forgetBias, lv.kernel, lv.bias, data, c, h);
+                });
+                c.push(dl.slice2d(initialStates, [0, stateOffset], [batchSize, stateWidth]));
+                stateOffset += stateWidth;
+                h.push(dl.slice2d(initialStates, [0, stateOffset], [batchSize, stateWidth]));
+                stateOffset += stateWidth;
+            };
+            for (var i = 0; i < _this.lstmCellVars.length; ++i) {
+                _loop_1(i);
+            }
             var samples = [];
             var nextInput = dl.zeros([batchSize, _this.outputDims]);
             for (var i = 0; i < length; ++i) {
@@ -408,9 +384,9 @@ var MusicVAE = (function () {
         this.checkpointURL = checkpointURL;
     }
     MusicVAE.prototype.dispose = function () {
-        this.encoder.dispose();
+        var _this = this;
+        Object.keys(this.rawVars).forEach(function (name) { return _this.rawVars[name].dispose(); });
         this.encoder = null;
-        this.decoder.dispose();
         this.decoder = null;
     };
     MusicVAE.prototype.initialize = function () {
@@ -442,6 +418,7 @@ var MusicVAE = (function () {
                             new Nade(vars['decoder/nade/w_enc'], vars['decoder/nade/w_dec_t']) : null);
                         this.encoder = new Encoder(encLstmFw, encLstmBw, encMu);
                         this.decoder = new Decoder(decLstmLayers, decZtoInitState, decOutputProjection, nade);
+                        this.rawVars = vars;
                         return [2, this];
                 }
             });
