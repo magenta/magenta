@@ -16,91 +16,93 @@
  */
 
 import * as test from "tape";
-// tslint:disable-next-line:no-require-imports Generated protobuf code.
-const music_pb = require('./music_pb');
+import {tensorflow} from './proto';
 import {Sequences} from './sequences';
 
 const STEPS_PER_QUARTER = 4;
 
+import NoteSequence = tensorflow.magenta.NoteSequence;
+
 function createTestNS() {
-    var ns = new music_pb.NoteSequence();
+    var ns = NoteSequence.create();
 
-    var tempo = new music_pb.NoteSequence.Tempo();
-    tempo.setQpm(60);
-    tempo.setTime(0);
-    ns.addTempos(tempo);
+    ns.tempos.push(NoteSequence.Tempo.create({qpm: 60, time: 0}));
 
-    var ts = new music_pb.NoteSequence.TimeSignature();
-    ts.setTime(0);
-    ts.setNumerator(4);
-    ts.setDenominator(4);
-    ns.addTimeSignatures(ts);
+    ns.timeSignatures.push(NoteSequence.TimeSignature.create({
+        time: 0,
+        numerator: 4,
+        denominator: 4,
+    }));
 
     return ns;
 }
 
-function addTrackToSequence(ns, instrument, notes) {
+function addTrackToSequence(ns: NoteSequence, instrument: number,
+        notes: Array<Array<number>>) {
     for (var noteParams of notes) {
-        var note = new music_pb.NoteSequence.Note();
-        note.setPitch(noteParams[0]);
-        note.setVelocity(noteParams[1]);
-        note.setStartTime(noteParams[2]);
-        note.setEndTime(noteParams[3]);
-        ns.addNotes(note);
-        if(ns.getTotalTime() < note.getEndTime()) {
-            ns.setTotalTime(note.getEndTime());
+        var note = new NoteSequence.Note({
+            pitch: noteParams[0],
+            velocity: noteParams[1],
+            startTime: noteParams[2],
+            endTime: noteParams[3]
+        });
+        ns.notes.push(note);
+        if(ns.totalTime < note.endTime) {
+            ns.totalTime = note.endTime;
         }
     }
 }
 
-function addChordsToSequence(ns, chords) {
+function addChordsToSequence(ns: NoteSequence, chords: Array<Array<number|string>>) {
     for (var chordParams of chords) {
-        var ta = new music_pb.NoteSequence.TextAnnotation();
-        ta.setText(chordParams[0]);
-        ta.setTime(chordParams[1]);
-        ta.setAnnotationType(
-            music_pb.NoteSequence.TextAnnotation.TextAnnotationType.CHORD_SYMBOL);
-        ns.addTextAnnotations(ta);
+        var ta = NoteSequence.TextAnnotation.create({
+            text: chordParams[0] as string,
+            time: chordParams[1] as number,
+            annotationType: 
+                NoteSequence.TextAnnotation.TextAnnotationType.CHORD_SYMBOL
+        });
+        ns.textAnnotations.push(ta);
     }
 }
 
-function addControlChangesToSequence(ns, instrument, chords) {
+function addControlChangesToSequence(ns: NoteSequence, instrument:number, chords:Array<Array<number>>) {
     for (var ccParams of chords) {
-        var cc = new music_pb.NoteSequence.ControlChange();
-        cc.setTime(ccParams[0]);
-        cc.setControlNumber(ccParams[1]);
-        cc.setControlValue(ccParams[2]);
-        cc.setInstrument(instrument);
-        ns.addControlChanges(cc);
+        var cc = NoteSequence.ControlChange.create({
+            time: ccParams[0],
+            controlNumber: ccParams[1],
+            controlValue: ccParams[2],
+            instrument: instrument
+        });
+        ns.controlChanges.push(cc);
     }
 }
 
-function addQuantizedStepsToSequence(ns, quantizedSteps) {
+function addQuantizedStepsToSequence(ns: NoteSequence, quantizedSteps: Array<Array<number>>) {
     quantizedSteps.forEach(function(qstep, i) {
-        var note = ns.getNotesList()[i];
-        note.setQuantizedStartStep(qstep[0]);
-        note.setQuantizedEndStep(qstep[1]);
-        if(note.getQuantizedEndStep() > ns.getTotalQuantizedSteps()) {
-            ns.setTotalQuantizedSteps(note.getQuantizedEndStep());
+        var note = ns.notes[i];
+        note.quantizedStartStep = qstep[0];
+        note.quantizedEndStep = qstep[1];
+        if(note.quantizedEndStep > ns.totalQuantizedSteps) {
+            ns.totalQuantizedSteps = note.quantizedEndStep;
         }
     });
 }
 
-function addQuantizedChordStepsToSequence(ns, quantizedSteps) {
-    var chordAnnotations = ns.getTextAnnotationsList().filter(
-        ta => ta.getAnnotationType() ==
-        music_pb.NoteSequence.TextAnnotation.TextAnnotationType.CHORD_SYMBOL);
+function addQuantizedChordStepsToSequence(ns:NoteSequence, quantizedSteps:Array<number>) {
+    var chordAnnotations = ns.textAnnotations.filter(
+        ta => ta.annotationType ==
+        NoteSequence.TextAnnotation.TextAnnotationType.CHORD_SYMBOL);
     
     quantizedSteps.forEach(function(qstep, i) {
         var ta = chordAnnotations[i];
-        ta.setQuantizedStep(qstep);
+        ta.quantizedStep = qstep;
     });
 }
 
-function addQuantizedControlStepsToSequence(ns, quantizedSteps) {
+function addQuantizedControlStepsToSequence(ns:NoteSequence, quantizedSteps:Array<number>) {
     quantizedSteps.forEach(function(qstep, i) {
-        var cc = ns.getControlChangesList()[i];
-        cc.setQuantizedStep(qstep);
+        var cc = ns.controlChanges[i];
+        cc.quantizedStep = qstep;
     });
 }
 
