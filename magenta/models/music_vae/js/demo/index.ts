@@ -17,11 +17,11 @@ async function runDrums(){
 
   document.getElementById('drums-inputs').innerHTML = drums.map(d => d.toString()).join('<br>');
 
-  let start = Date.now();
+  let start = performance.now();
 
   dl.tidy(() => {
     let interp = mvae.interpolate(dl.tensor3d(drumsInput), 3);
-    document.getElementById('drums-interp-time').innerHTML = ((Date.now() - start) / 1000.).toString() + 's';
+    document.getElementById('drums-interp-time').innerHTML = ((performance.now() - start) / 1000.).toString() + 's';
     let interpResults = [];
     for (let i = 0; i < interp.shape[0]; i++) {
       let bits: Uint8Array[] = [];
@@ -31,14 +31,14 @@ async function runDrums(){
       }
       interpResults.push(bitsToInts(bits));
     }
-    document.getElementById('drums-interp-format-time').innerHTML = ((Date.now() - start) / 1000.).toString() + 's';
+    document.getElementById('drums-interp-format-time').innerHTML = ((performance.now() - start) / 1000.).toString() + 's';
     document.getElementById('drums-interp').innerHTML = interpResults.map(r => r.toString()).join('<br>');
   });
 
-  start = Date.now();
+  start = performance.now();
   dl.tidy(() => {
     let sample = mvae.sample(5, 32);
-    document.getElementById('drums-sample-time').innerHTML = ((Date.now() - start) / 1000.).toString() + 's';
+    document.getElementById('drums-sample-time').innerHTML = ((performance.now() - start) / 1000.).toString() + 's';
     let sampleResults: number[][] = [];
     for (let i = 0; i < sample.shape[0]; i++) {
       let bits: Uint8Array[] = [];
@@ -48,7 +48,7 @@ async function runDrums(){
       }
       sampleResults.push(bitsToInts(bits));
     }
-    document.getElementById('drums-sample-format-time').innerHTML = ((Date.now() - start) / 1000.).toString() + 's';
+    document.getElementById('drums-sample-format-time').innerHTML = ((performance.now() - start) / 1000.).toString() + 's';
     document.getElementById('drums-samples').innerHTML = sampleResults.map(r => r.toString()).join('<br>');
   });
   mvae.dispose();
@@ -72,10 +72,10 @@ async function runDrumsNade(){
 
   document.getElementById('nade-inputs').innerHTML = drums.map(d => d.toString()).join('<br>');
 
-  let start = Date.now();
+  let start = performance.now();
   dl.tidy(() => {
     let interp = mvae.interpolate(dl.tensor3d(drumsInput), 3);
-    document.getElementById('nade-interp-time').innerHTML = ((Date.now() - start) / 1000.).toString() + 's';
+    document.getElementById('nade-interp-time').innerHTML = ((performance.now() - start) / 1000.).toString() + 's';
     let interpResults: number[][] = [];
     for (let i = 0; i < interp.shape[0]; i++) {
       let bits: Uint8Array[] = [];
@@ -85,14 +85,14 @@ async function runDrumsNade(){
       }
       interpResults.push(bitsToInts(bits));
     }
-    document.getElementById('nade-interp-format-time').innerHTML = ((Date.now() - start) / 1000.).toString() + 's';
+    document.getElementById('nade-interp-format-time').innerHTML = ((performance.now() - start) / 1000.).toString() + 's';
     document.getElementById('nade-interp').innerHTML = interpResults.map(r => r.toString()).join('<br>');
   });
 
-  start = Date.now();
+  start = performance.now();
   dl.tidy(() => {
     let sample = mvae.sample(5, 32);
-    document.getElementById('nade-sample-time').innerHTML = ((Date.now() - start) / 1000.).toString() + 's';
+    document.getElementById('nade-sample-time').innerHTML = ((performance.now() - start) / 1000.).toString() + 's';
     let sampleResults: number[][] = [];
     for (let i = 0; i < sample.shape[0]; i++) {
       let bits: Uint8Array[] = [];
@@ -102,7 +102,7 @@ async function runDrumsNade(){
       }
       sampleResults.push(bitsToInts(bits));
     }
-    document.getElementById('nade-sample-format-time').innerHTML = ((Date.now() - start) / 1000.).toString() + 's';
+    document.getElementById('nade-sample-format-time').innerHTML = ((performance.now() - start) / 1000.).toString() + 's';
     document.getElementById('nade-samples').innerHTML = sampleResults.map(r => r.toString()).join('<br>');
   });
   mvae.dispose();
@@ -120,30 +120,30 @@ async function runMel(){
 
   document.getElementById('mel-inputs').innerHTML = [teaPot, teaPot.slice(0).reverse()].map(r => r.toString()).join('<br>');
 
-  let start = Date.now();
+  let start = performance.now();
 
   dl.tidy(()=> {
     let interp =  dl.tidy(() => {return mvae.interpolate(dl.tensor3d(teaPots), 5);});
-    document.getElementById('mel-interp-time').innerHTML = ((Date.now() - start) / 1000.).toString() + 's';
+    document.getElementById('mel-interp-time').innerHTML = ((performance.now() - start) / 1000.).toString() + 's';
     let interpResults: Int32Array[] = [];
     for (let i = 0; i < interp.shape[0]; i++) {
       const r = dl.slice3d(interp, [i, 0, 0], [1, interp.shape[1], 1]);
       interpResults.push(r.toInt().dataSync() as Int32Array);
     }
     document.getElementById('mel-interp').innerHTML = interpResults.map(r => r.toString()).join('<br>');
-    document.getElementById('mel-interp-format-time').innerHTML = ((Date.now() - start) / 1000.).toString() + 's';
+    document.getElementById('mel-interp-format-time').innerHTML = ((performance.now() - start) / 1000.).toString() + 's';
   });
 
-  start = Date.now();
+  start = performance.now();
   dl.tidy(()=> {
     let sample = mvae.sample(5, 32);
-    document.getElementById('mel-sample-time').innerHTML = ((Date.now() - start) / 1000.).toString() + 's';
+    document.getElementById('mel-sample-time').innerHTML = ((performance.now() - start) / 1000.).toString() + 's';
     let sampleResults: Int32Array[] = [];
     for (let i = 0; i < sample.shape[0]; i++) {
       const r = dl.slice3d(sample, [i, 0, 0], [1, sample.shape[1], 1]);
       sampleResults.push(r.toInt().dataSync() as Int32Array);
     }
-    document.getElementById('mel-sample-format-time').innerHTML = ((Date.now() - start) / 1000.).toString() + 's';
+    document.getElementById('mel-sample-format-time').innerHTML = ((performance.now() - start) / 1000.).toString() + 's';
     document.getElementById('mel-samples').innerHTML = sampleResults.map(r => r.toString()).join('<br>');
   });
   mvae.dispose();

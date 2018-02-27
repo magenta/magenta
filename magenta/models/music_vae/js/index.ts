@@ -55,15 +55,13 @@ export class Nade {
 
       for (let i = 0; i < this.numDims; i++) {
         let h = dl.sigmoid(a);
-        let encWeights_i = dl.slice2d(
-          this.encWeights, [i, 0], [1, this.numHidden]).as1D();
-        let decWeightsT_i = dl.slice2d(
-          this.decWeightsT, [i, 0], [1, this.numHidden]);
-        let decBias_i = dl.slice2d(decBias, [0, i], [batchSize, 1]);
+        let encWeights_i = this.encWeights.slice([i, 0], [1, this.numHidden]).as1D();
+        let decWeightsT_i = this.decWeightsT.slice([i, 0], [1, this.numHidden]);
+        let decBias_i = decBias.slice([0, i], [batchSize, 1]);
         let condLogits_i = decBias_i.add(dl.matMul(h, decWeightsT_i, false, true));
-        let condProbs_i = dl.sigmoid(condLogits_i);
+        let condProbs_i = condLogits_i.sigmoid();
 
-        let samples_i = dl.greater(condProbs_i, dl.scalar(0.5)).toFloat().as1D();
+        let samples_i = condProbs_i.greaterEqual(dl.scalar(0.5)).toFloat().as1D();
         if (i < this.numDims - 1) {
           a = a.add(dl.outerProduct(samples_i.toFloat(), encWeights_i)) as dl.Tensor2D;
         }
@@ -102,7 +100,7 @@ class Encoder {
     for (let i = 0; i < length; i++) {
       let index = reverse ? length - 1 - i : i;
       state = lstm(
-        dl.slice3d(inputs, [0, index, 0], [batchSize, 1, outputSize]).as2D(batchSize, outputSize),
+        inputs.slice([0, index, 0], [batchSize, 1, outputSize]).as2D(batchSize, outputSize),
         state);
     }
     return state;
@@ -146,7 +144,7 @@ class Decoder {
       let lstmCells : dl.LSTMCell[] = [];
       let c: dl.Tensor2D[] = [];
       let h: dl.Tensor2D[] = [];
-      const initialStates = dl.tanh(dense(this.zToInitStateVars, z));
+      const initialStates = dense(this.zToInitStateVars, z).tanh();
       let stateOffset = 0;
       for (let i = 0; i < this.lstmCellVars.length; ++i) {
         const lv = this.lstmCellVars[i];
@@ -154,9 +152,9 @@ class Decoder {
         lstmCells.push(
         (data: dl.Tensor2D, c: dl.Tensor2D, h: dl.Tensor2D) =>
               dl.basicLSTMCell(forgetBias, lv.kernel, lv.bias, data, c, h));
-        c.push(dl.slice2d(initialStates, [0, stateOffset], [batchSize, stateWidth]));
+        c.push(initialStates.slice([0, stateOffset], [batchSize, stateWidth]));
         stateOffset += stateWidth;
-        h.push(dl.slice2d(initialStates, [0, stateOffset], [batchSize, stateWidth]));
+        h.push(initialStates.slice([0, stateOffset], [batchSize, stateWidth]));
         stateOffset += stateWidth;
       }
 
@@ -172,14 +170,13 @@ class Decoder {
 
         let timeSamples: dl.Tensor2D;
         if (this.nade == null) {
-          let timeLabels = dl.argMax(logits, 1).as1D();
+          let timeLabels = logits.argMax(1).as1D();
           nextInput = dl.oneHot(timeLabels, this.outputDims).toFloat();
           timeSamples = timeLabels.as2D(batchSize, 1);
         } else {
-          let encBias = dl.slice2d(
-            logits, [0, 0], [batchSize, this.nade.numHidden]);
-          let decBias = dl.slice2d(
-            logits, [0, this.nade.numHidden], [batchSize, this.nade.numDims]);
+          let encBias = logits.slice([0, 0], [batchSize, this.nade.numHidden]);
+          let decBias = logits.slice(
+              [0, this.nade.numHidden], [batchSize, this.nade.numDims]);
           nextInput = this.nade.sample(encBias, decBias);
           timeSamples = nextInput;
         }
@@ -266,15 +263,15 @@ class MusicVAE {
     const interpolatedZs: dl.Tensor2D = dl.tidy(() => {
       const rangeArray = dl.linspace(0.0, 1.0, numSteps);
 
-      const z0 = dl.slice2d(z, [0, 0], [1, z.shape[1]]).as1D();
-      const z1 = dl.slice2d(z, [1, 0], [1, z.shape[1]]).as1D();
+      const z0 = z.slice([0, 0], [1, z.shape[1]]).as1D();
+      const z1 = z.slice([1, 0], [1, z.shape[1]]).as1D();
 
       if (sequences.shape[0] == 2) {
         const zDiff = z1.sub(z0) as dl.Tensor1D;
         return dl.outerProduct(rangeArray, zDiff).add(z0) as dl.Tensor2D;
       } else if (sequences.shape[0] == 4) {
-        const z2 = dl.slice2d(z, [2, 0], [1, z.shape[1]]).as1D();
-        const z3 = dl.slice2d(z, [3, 0], [1, z.shape[1]]).as1D();
+        const z2 = z.slice([2, 0], [1, z.shape[1]]).as1D();
+        const z3 = z.slice([3, 0], [1, z.shape[1]]).as1D();
 
         const revRangeArray = dl.scalar(1.0).sub(rangeArray) as dl.Tensor1D;
 
