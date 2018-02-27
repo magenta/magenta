@@ -215,7 +215,7 @@ class MusicVAE {
     this.decoder = null;
   }
 
-	async initialize() {
+  async initialize() {
     const reader = new dl.CheckpointLoader(this.checkpointURL);
     const vars = await reader.getAllVariables();
 
@@ -260,11 +260,11 @@ class MusicVAE {
       decLstmLayers, decZtoInitState, decOutputProjection, nade);
     this.rawVars= vars;
     return this;
-	}
+  }
 
-	isInitialized() {
-	  return (!!this.encoder && !!this.decoder);
-	}
+  isInitialized() {
+    return (!!this.encoder && !!this.decoder);
+  }
 
   interpolate(inputSequences: Note[][], numInterps: number) {
     const numSteps = this.dataConverter.numSteps;
