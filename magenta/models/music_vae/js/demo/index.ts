@@ -1,4 +1,5 @@
-import { MusicVAE, intsToBits, bitsToInts, intsToOneHot } from '../index';
+// tslint:disable-next-line:max-line-length
+import { MusicVAE, Note, DrumsConverter, DrumRollConverter, MelodyConverter } from '../index';
 import * as dl from 'deeplearn';
 
 // tslint:disable:max-line-length
@@ -7,166 +8,114 @@ const DRUMS_NADE_CKPT = 'https://storage.googleapis.com/download.magenta.tensorf
 const MEL_CKPT = 'https://storage.googleapis.com/download.magenta.tensorflow.org/models/music_vae/dljs/mel_small';
 // tslint:enable:max-line-length
 
+const DRUM_SEQS = [
+  [new Note(36, 0), new Note(42, 2), new Note(36, 4), new Note(42, 6),
+   new Note(36, 8), new Note(42, 10), new Note(36, 12), new Note(42, 14),
+   new Note(36, 16), new Note(36, 24), new Note(36, 28), new Note(42, 30)],
+  [new Note(36, 0), new Note(38, 0), new Note(42, 0), new Note(46, 0),
+   new Note(42, 2), new Note(42, 3), new Note(42, 4), new Note(50, 4),
+   new Note(36, 6), new Note(38, 6), new Note(42, 6), new Note(45, 6),
+   new Note(36, 8), new Note(42, 8), new Note(46, 8), new Note(42, 10),
+   new Note(48, 10), new Note(50, 10), new Note(36, 12), new Note(38, 12),
+   new Note(42, 12), new Note(48, 12), new Note(50, 13), new Note(42, 14),
+   new Note(45, 14), new Note(48, 14), new Note(36, 16), new Note(38, 16),
+   new Note(42, 16), new Note(46, 16), new Note(49, 16), new Note(42, 18),
+   new Note(42, 19), new Note(42, 20), new Note(50, 20), new Note(36, 22),
+   new Note(38, 22), new Note(42, 22), new Note(45, 22), new Note(36, 24),
+   new Note(42, 24), new Note(46, 24), new Note(42, 26), new Note(48, 26),
+   new Note(50, 26), new Note(36, 28), new Note(38, 28), new Note(42, 28),
+   new Note(42, 30), new Note(48, 30)],
+  [new Note(38, 0), new Note(42, 0), new Note(42, 2), new Note(42, 4),
+   new Note(36, 6), new Note(38, 6), new Note(42, 6), new Note(45, 6),
+   new Note(36, 8), new Note(42, 8), new Note(42, 10), new Note(38, 12),
+   new Note(42, 12), new Note(45, 12), new Note(36, 14), new Note(42, 14),
+   new Note(46, 14), new Note(36, 16), new Note(42, 16), new Note(42, 18),
+   new Note(38, 20), new Note(42, 20), new Note(45, 20), new Note(36, 22),
+   new Note(42, 22), new Note(36, 24), new Note(42, 24), new Note(38, 26),
+   new Note(42, 26), new Note(45, 26), new Note(42, 28), new Note(45, 28),
+   new Note(36, 30), new Note(42, 30), new Note(45, 30)],
+   [new Note(50, 4), new Note(50, 20)]];
+
 function writeTimer(elementId: string, startTime: number) {
   document.getElementById(elementId).innerHTML = (
     (performance.now() - startTime) / 1000.).toString() + 's';
 }
 
-function write2dArray(elementId: string, arr: number[][]) {
-  document.getElementById(elementId).innerHTML = arr.map(
-      r => r.toString()).join('<br>');
+function writeNoteSeqs(elementId: string, seqs: Note[][]) {
+  document.getElementById(elementId).innerHTML = seqs.map(
+    seq => '[' + seq.map(n => n.toString()).join(', ') + ']').join('<br>');
 }
 
 async function runDrums(){
-  const mvae: MusicVAE = new MusicVAE(DRUMS_CKPT);
+  const mvae: MusicVAE = new MusicVAE(DRUMS_CKPT, new DrumsConverter(32));
   await mvae.initialize();
 
-  const drums = [
-    [1, 0, 4, 0, 1, 0, 4, 0, 1, 0, 4, 0, 1, 0, 4, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1,
-     0, 0, 0, 1, 0, 4, 0],
-    [15, 0, 4, 4, 68, 0, 23, 0, 13, 0, 100, 0, 39, 64, 52, 0, 143, 0, 4, 4, 68,
-     0, 23, 0, 13, 0, 100, 0, 7, 0, 36, 0],
-    [6, 0, 4, 0, 4, 0, 23, 0, 5, 0, 4, 0, 22, 0, 13, 0, 5, 0, 4, 0, 22, 0, 5, 0,
-     5, 0, 22, 0, 20, 0, 21, 0],
-    [0, 0, 0, 0, 64, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 64, 0, 0, 0,
-     0, 0, 0, 0, 0, 0, 0, 0]];
-
-  const drumsInput: number[][][] =
-      [intsToBits(drums[0], 10), intsToBits(drums[1], 10),
-       intsToBits(drums[2], 10), intsToBits(drums[3], 10)];
-
-  document.getElementById('drums-inputs').innerHTML = drums.map(
-      d => d.toString()).join('<br>');
+  writeNoteSeqs('drums-inputs', DRUM_SEQS);
 
   let start = performance.now();
 
-  dl.tidy(() => {
-    const interp = mvae.interpolate(dl.tensor3d(drumsInput), 3);
-    const interpResults = [];
-    for (let i = 0; i < interp.shape[0]; i++) {
-      const bits: Uint8Array[] = [];
-      for (let j = 0; j < interp.shape[1]; j++) {
-        const r: dl.Array3D  = interp.slice([i, j, 0], [1, 1, interp.shape[2]]);
-        bits.push(r.toInt().dataSync() as Uint8Array);
-      }
-      interpResults.push(bitsToInts(bits));
-    }
-    writeTimer('drums-interp-time', start);
-    write2dArray('drums-interp', interpResults);
-  });
+  const interp = mvae.interpolate(DRUM_SEQS, 3);
+  writeTimer('drums-interp-time', start);
+  writeNoteSeqs('drums-interp', interp);
 
   start = performance.now();
-  dl.tidy(() => {
-    const sample = mvae.sample(5, 32);
-    const sampleResults: number[][] = [];
-    for (let i = 0; i < sample.shape[0]; i++) {
-      const bits: Uint8Array[] = [];
-      for (let j = 0; j < sample.shape[1]; j++) {
-        const r = dl.slice3d(sample, [i, j, 0], [1, 1, sample.shape[2]]);
-        bits.push(r.toInt().dataSync() as Uint8Array);
-      }
-      sampleResults.push(bitsToInts(bits));
-    }
-    writeTimer('drums-sample-time', start);
-    write2dArray('drums-samples', sampleResults);
-  });
+  const sample = mvae.sample(5);
+  writeTimer('drums-sample-time', start);
+  writeNoteSeqs('drums-samples', sample);
+
   mvae.dispose();
   console.log(dl.memory());
 }
 
 async function runDrumsNade(){
-  const mvae: MusicVAE = new MusicVAE(DRUMS_NADE_CKPT);
+  const mvae: MusicVAE = new MusicVAE(
+      DRUMS_NADE_CKPT, new DrumRollConverter(32));
   await mvae.initialize();
 
-  const drums = [
-    [1, 0, 4, 0, 1, 0, 4, 0, 1, 0, 4, 0, 1, 0, 4, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1,
-     0, 0, 0, 1, 0, 4, 0],
-    [15, 0, 4, 4, 68, 0, 23, 0, 13, 0, 100, 0, 39, 64, 52, 0, 143, 0, 4, 4, 68,
-     0, 23, 0, 13, 0, 100, 0, 7, 0, 36, 0],
-    [6, 0, 4, 0, 4, 0, 23, 0, 5, 0, 4, 0, 22, 0, 13, 0, 5, 0, 4, 0, 22, 0, 5, 0,
-     5, 0, 22, 0, 20, 0, 21, 0],
-    [0, 0, 0, 0, 64, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 64, 0, 0, 0,
-     0, 0, 0, 0, 0, 0, 0, 0]];
-
-  const drumsInput: [number[][], number[][], number[][], number[][]] =
-    [intsToBits(drums[0], 10), intsToBits(drums[1], 10),
-     intsToBits(drums[2], 10), intsToBits(drums[3], 10)];
-
-  write2dArray('nade-inputs', drums);
+  writeNoteSeqs('nade-inputs', DRUM_SEQS);
 
   let start = performance.now();
-  dl.tidy(() => {
-    const interp = mvae.interpolate(dl.tensor3d(drumsInput), 3);
-    const interpResults: number[][] = [];
-    for (let i = 0; i < interp.shape[0]; i++) {
-      const bits: Uint8Array[] = [];
-      for (let j = 0; j < interp.shape[1]; j++) {
-        const r = interp.slice([i, j, 0], [1, 1, interp.shape[2]]);
-        bits.push(r.toBool().dataSync() as Uint8Array);
-      }
-      interpResults.push(bitsToInts(bits));
-    }
-    writeTimer('nade-interp-time', start);
-    write2dArray('nade-interp', interpResults);
-  });
+  const interp = mvae.interpolate(DRUM_SEQS, 3);
+  writeTimer('nade-interp-time', start);
+  writeNoteSeqs('nade-interp', interp);
 
   start = performance.now();
-  dl.tidy(() => {
-    const sample = mvae.sample(5, 32);
-    const sampleResults: number[][] = [];
-    for (let i = 0; i < sample.shape[0]; i++) {
-      const bits: Uint8Array[] = [];
-      for (let j = 0; j < sample.shape[1]; j++) {
-        const r = sample.slice([i, j, 0], [1, 1, sample.shape[2]]);
-        bits.push(r.toBool().dataSync() as Uint8Array);
-      }
-      sampleResults.push(bitsToInts(bits));
-    }
-    writeTimer('nade-sample-time', start);
-    write2dArray('nade-samples', sampleResults);
-  });
+  const sample = mvae.sample(5);
+  writeTimer('nade-sample-time', start);
+  writeNoteSeqs('nade-samples', sample);
+
   mvae.dispose();
   console.log(dl.memory());
 }
 
 async function runMel(){
-  const mvae:MusicVAE = new MusicVAE(MEL_CKPT);
+  const mvae:MusicVAE = new MusicVAE(MEL_CKPT, new MelodyConverter(32));
   await mvae.initialize();
 
-  const teaPot = [71, 0, 73, 0, 75, 0, 76, 0, 78, 0, 1, 0, 83, 0, 0, 0, 80, 0,
-                  0, 0, 83, 0, 0, 0, 78, 0, 0, 0, 0, 0, 0, 0];
-  const teaPots: number[][][] =
-      [intsToOneHot(teaPot, 90), intsToOneHot(teaPot.slice(0).reverse(), 90)];
+  const teaPot = [
+      new Note(69, 0, 2), new Note(71, 2, 4), new Note(73, 4, 6),
+      new Note(74, 6, 8), new Note(76, 8, 10), new Note(81, 12, 16),
+      new Note(77, 16, 20), new Note(80, 20, 24), new Note(75, 24, 32)];
 
-  write2dArray('mel-inputs', [teaPot, teaPot.slice(0).reverse()]);
+  const twinkle = [
+      new Note(60, 0, 2), new Note(60, 2, 4), new Note(67, 4, 6),
+      new Note(67, 6, 8), new Note(69, 8, 10), new Note(69, 10, 12),
+      new Note(67, 12, 16), new Note(65, 16, 18), new Note(65, 18, 20),
+      new Note(64, 20, 22), new Note(64, 22, 24), new Note(62, 24, 26),
+      new Note(62, 26, 28), new Note(60, 28, 32)];
+
+  writeNoteSeqs('mel-inputs', [teaPot, twinkle]);
 
   let start = performance.now();
-
-  dl.tidy(()=> {
-    const interp =  dl.tidy(() => mvae.interpolate(dl.tensor3d(teaPots), 5));
-    const interpResults: Int32Array[] = [];
-    for (let i = 0; i < interp.shape[0]; i++) {
-      const r = interp.slice([i, 0, 0], [1, interp.shape[1], 1]);
-      interpResults.push(r.toInt().dataSync() as Int32Array);
-    }
-    document.getElementById('mel-interp').innerHTML = interpResults.map(
-        r => r.toString()).join('<br>');
-    writeTimer('mel-interp-time', start);
-  });
+  const interp = mvae.interpolate([teaPot, twinkle], 5);
+  writeTimer('mel-interp-time', start);
+  writeNoteSeqs('mel-interp', interp);
 
   start = performance.now();
-  dl.tidy(()=> {
-    const sample = mvae.sample(5, 32);
-    const sampleResults: Int32Array[] = [];
-    for (let i = 0; i < sample.shape[0]; i++) {
-      const r = sample.slice([i, 0, 0], [1, sample.shape[1], 1]);
-      sampleResults.push(r.toInt().dataSync() as Int32Array);
-    }
-    document.getElementById('mel-samples').innerHTML = sampleResults.map(
-        r => r.toString()).join('<br>');
-    writeTimer('mel-sample-time', start);
+  const sample = mvae.sample(5);
+  writeTimer('mel-sample-time', start);
+  writeNoteSeqs('mel-samples', sample);
 
-  });
   mvae.dispose();
   console.log(dl.memory());
 }
