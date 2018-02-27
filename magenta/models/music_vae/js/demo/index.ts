@@ -2,8 +2,9 @@ import { MusicVAE, intsToBits, bitsToInts, intsToOneHot } from '../index';
 import * as dl from 'deeplearn'
 
 async function runDrums(){
-  const mvae:MusicVAE = await new MusicVAE(
-      'https://storage.googleapis.com/download.magenta.tensorflow.org/models/music_vae/dljs/drums_small_hikl').initialize();
+  const mvae: MusicVAE = new MusicVAE(
+      'https://storage.googleapis.com/download.magenta.tensorflow.org/models/music_vae/dljs/drums_small_hikl');
+  await mvae.initialize();
 
   const drums = [
     [1, 0, 4, 0, 1, 0, 4, 0, 1, 0, 4, 0, 1, 0, 4, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 4, 0],
@@ -56,8 +57,9 @@ async function runDrums(){
 
 
 async function runDrumsNade(){
-  const mvae:MusicVAE = await new MusicVAE(
-      'https://storage.googleapis.com/download.magenta.tensorflow.org/models/music_vae/dljs/drums_nade_9').initialize();
+  const mvae: MusicVAE = new MusicVAE(
+      'https://storage.googleapis.com/download.magenta.tensorflow.org/models/music_vae/dljs/drums_nade_9');
+  await mvae.initialize()
 
   const drums = [
     [1, 0, 4, 0, 1, 0, 4, 0, 1, 0, 4, 0, 1, 0, 4, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 4, 0],
@@ -108,8 +110,9 @@ async function runDrumsNade(){
 }
 
 async function runMel(){
-  const mvae:MusicVAE = await new MusicVAE(
-      'https://storage.googleapis.com/download.magenta.tensorflow.org/models/music_vae/dljs/mel_small').initialize();
+  const mvae:MusicVAE = new MusicVAE(
+      'https://storage.googleapis.com/download.magenta.tensorflow.org/models/music_vae/dljs/mel_small');
+  await mvae.initialize();
 
   const teaPot = [71, 0, 73, 0, 75, 0, 76, 0, 78, 0, 1, 0, 83, 0, 0, 0, 80, 0, 0, 0, 83, 0, 0, 0, 78, 0, 0, 0, 0, 0, 0, 0];
   const teaPots: number[][][] =
