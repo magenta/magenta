@@ -1,12 +1,10 @@
 {
   "name": "@magenta/core",
-  "version": "0.0.6",
+  "version": "0.0.7",
   "description": "",
   "main": "dist/magenta.js",
   "types": "dist/magenta.d.ts",
-  "dependencies": {
-    "google-protobuf": ">=3.5.0"
-  },
+  "dependencies": {},
   "devDependencies": {
     "@types/tape": "^4.2.31",
     "browserify": "~14.4.0",
