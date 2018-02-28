@@ -16,8 +16,9 @@
  */
 
 // tslint:disable-next-line:no-require-imports Generated protobuf code.
-import music_pb = require('./music_pb');
+import {tensorflow} from './proto';
+import NoteSequence = tensorflow.magenta.NoteSequence;
 import {Sequences} from './sequences';
 
-export {music_pb};
+export {NoteSequence};
 export {Sequences};

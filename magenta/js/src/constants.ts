@@ -17,7 +17,8 @@
 
 // Meter-related constants.
 export const DEFAULT_QUARTERS_PER_MINUTE = 120.0;
-export const DEFAULT_STEPS_PER_BAR = 16;  // 4/4 music sampled at 4 steps per quarter note.
+// 4/4 music sampled at 4 steps per quarter note.
+export const DEFAULT_STEPS_PER_BAR = 16;
 export const DEFAULT_STEPS_PER_QUARTER = 4;
 
 // Default absolute quantization.
