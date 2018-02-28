@@ -18,7 +18,6 @@
 // tslint:disable-next-line:no-require-imports Generated protobuf code.
 import {tensorflow} from './proto';
 import NoteSequence = tensorflow.magenta.NoteSequence;
-import {Sequences} from './sequences';
-
 export {NoteSequence};
-export {Sequences};
+
+export * from './sequences';

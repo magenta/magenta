@@ -18,7 +18,8 @@
 import * as test from "tape";
 import {tensorflow} from './proto';
 import NoteSequence = tensorflow.magenta.NoteSequence;
-import {Sequences} from './sequences';
+import * as sequences from './sequences';
+import Sequences = sequences.Sequences;
 
 const STEPS_PER_QUARTER = 4;
 
@@ -175,7 +176,7 @@ test("Quantize NoteSequence, Time Signature Change", (t:test.Test) => {
     numerator: 2, denominator: 4, time: 2}));
   t.throws(
     () => Sequences.quantizeNoteSequence(ns, STEPS_PER_QUARTER),
-    Sequences.MultipleTimeSignatureException);
+    sequences.MultipleTimeSignatureException);
 
   t.end();
 });
@@ -197,7 +198,7 @@ test("Quantize NoteSequence, Implicit Time Signature Change", (t:test.Test) => {
     numerator: 2, denominator: 4, time: 2}));
   t.throws(
     () => Sequences.quantizeNoteSequence(ns, STEPS_PER_QUARTER),
-    Sequences.MultipleTimeSignatureException);
+    sequences.MultipleTimeSignatureException);
 
   t.end();
 });
@@ -264,7 +265,7 @@ test("Quantize NoteSequence, Tempo Change", (t:test.Test) => {
   ns.tempos.push(NoteSequence.Tempo.create({qpm: 120, time: 2}));
   t.throws(
     () => Sequences.quantizeNoteSequence(ns, STEPS_PER_QUARTER),
-    Sequences.MultipleTempoException);
+    sequences.MultipleTempoException);
 
   t.end();
 });
@@ -285,7 +286,7 @@ test("Quantize NoteSequence, Implicit Tempo Change", (t:test.Test) => {
   ns.tempos.push(NoteSequence.Tempo.create({qpm: 60, time: 2}));
   t.throws(
     () => Sequences.quantizeNoteSequence(ns, STEPS_PER_QUARTER),
-    Sequences.MultipleTempoException);
+    sequences.MultipleTempoException);
 
   t.end();
 });
@@ -374,4 +375,3 @@ test("Quantize NoteSequence, MultiTrack", (t:test.Test) => {
 
   t.end();
 });
-

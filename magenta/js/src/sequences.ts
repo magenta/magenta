@@ -19,11 +19,6 @@ import {tensorflow} from './proto';
 import NoteSequence = tensorflow.magenta.NoteSequence;
 import * as constants from './constants';
 
-class MultipleTimeSignatureException extends Error {}
-class BadTimeSignatureException extends Error {}
-class NegativeTimeException extends Error {}
-class MultipleTempoException extends Error {}
-
 // Set the quantization cutoff.
 // Note events before this cutoff are rounded down to nearest step. Notes
 // above this cutoff are rounded up to nearest step. The cutoff is given as a
@@ -34,6 +29,31 @@ class MultipleTempoException extends Error {}
 // A number close to 1.0 gives less wiggle room for notes that start early,
 // and they will be snapped to the previous step.
 const QUANTIZE_CUTOFF = 0.5;
+
+export class MultipleTimeSignatureException extends Error {
+  constructor(message?: string) {
+    super(message);
+    Object.setPrototypeOf(this, new.target.prototype);
+  }
+}
+export class BadTimeSignatureException extends Error {
+  constructor(message?: string) {
+    super(message);
+    Object.setPrototypeOf(this, new.target.prototype);
+  }
+}
+export class NegativeTimeException extends Error {
+  constructor(message?: string) {
+    super(message);
+    Object.setPrototypeOf(this, new.target.prototype);
+  }
+}
+export class MultipleTempoException extends Error {
+  constructor(message?: string) {
+    super(message);
+    Object.setPrototypeOf(this, new.target.prototype);
+  }
+}
 
 export class Sequences {
   private static isPowerOf2(n:number):boolean {
