@@ -5,6 +5,7 @@
     "sourceMap": true,
     "removeComments": true,
     "preserveConstEnums": true,
+    "declaration": true,
     "target": "es5",
     "allowJs": true,
     "lib": ["es2015", "dom"],
