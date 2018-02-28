@@ -160,8 +160,8 @@ export class Sequences {
   public static quantizeNoteSequence(noteSequence: NoteSequence,
       stepsPerQuarter: number): NoteSequence {
     // Make a copy.
-    const qns = NoteSequence.decode(
-        NoteSequence.encode(noteSequence).finish());
+    const qns = NoteSequence.fromObject(
+        NoteSequence.toObject(noteSequence));
 
     qns.quantizationInfo = NoteSequence.QuantizationInfo.create({
       stepsPerQuarter

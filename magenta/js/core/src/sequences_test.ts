@@ -126,8 +126,8 @@ test("Quantize NoteSequence", (t:test.Test) => {
       [[2.0, 64, 127], [4.0, 64, 0]]);
 
   // Make a copy.
-  const expectedQuantizedSequence = NoteSequence.decode(
-      NoteSequence.encode(ns).finish());
+  const expectedQuantizedSequence = NoteSequence.fromObject(
+      NoteSequence.toObject(ns));
   expectedQuantizedSequence.quantizationInfo =
       NoteSequence.QuantizationInfo.create({
         stepsPerQuarter: STEPS_PER_QUARTER
@@ -322,8 +322,8 @@ test("Quantize NoteSequence, Rounding", (t:test.Test) => {
        [41, 100, 0.689, 1.18], [44, 100, 1.19, 1.69], [55, 100, 4.0, 4.01]]);
 
   // Make a copy.
-  const expectedQuantizedSequence = NoteSequence.decode(
-      NoteSequence.encode(ns).finish());
+  const expectedQuantizedSequence = NoteSequence.fromObject(
+      NoteSequence.toObject(ns));
   expectedQuantizedSequence.quantizationInfo =
       NoteSequence.QuantizationInfo.create({
         stepsPerQuarter: STEPS_PER_QUARTER
@@ -356,8 +356,8 @@ test("Quantize NoteSequence, MultiTrack", (t:test.Test) => {
       [[12, 100, 1.0, 5.0], [19, 100, 2.0, 4.0], [24, 100, 3.0, 3.5]]);
 
   // Make a copy.
-  const expectedQuantizedSequence = NoteSequence.decode(
-      NoteSequence.encode(ns).finish());
+  const expectedQuantizedSequence = NoteSequence.fromObject(
+      NoteSequence.toObject(ns));
   expectedQuantizedSequence.quantizationInfo =
       NoteSequence.QuantizationInfo.create({
         stepsPerQuarter: STEPS_PER_QUARTER

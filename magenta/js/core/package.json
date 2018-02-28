@@ -5,13 +5,12 @@
   "main": "es5/index.js",
   "types": "es5/index.d.ts",
   "dependencies": {
-		"@magenta/protobuff": "^0.0.01"
-	},
+    "@magenta/protobuf": "^0.0.2"
+  },
   "devDependencies": {
     "@types/tape": "^4.2.31",
     "browserify": "~14.4.0",
     "clang-format": "^1.2.2",
-    "protobufjs": "^6.8.6",
     "tape": "^4.9.0",
     "ts-node": "^5.0.0",
     "tsify": "~3.0.1",

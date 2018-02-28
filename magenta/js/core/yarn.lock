@@ -2,6 +2,12 @@
 # yarn lockfile v1
 
 
+"@magenta/protobuf@^0.0.2":
+  version "0.0.2"
+  resolved "https://registry.yarnpkg.com/@magenta/protobuf/-/protobuf-0.0.2.tgz#d499682265d7d0e4bbc8f64984c86bd9371f9f11"
+  dependencies:
+    protobufjs "^6.8.6"
+
 "@protobufjs/aspromise@^1.1.1", "@protobufjs/aspromise@^1.1.2":
   version "1.1.2"
   resolved "https://registry.yarnpkg.com/@protobufjs/aspromise/-/aspromise-1.1.2.tgz#9b8b0cc663d669a7d8f6f5d0893a14d348f30fbf"
