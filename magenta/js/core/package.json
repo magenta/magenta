@@ -2,8 +2,8 @@
   "name": "@magenta/core",
   "version": "0.0.7",
   "description": "",
-  "main": "src/index.js",
-  "types": "src/index.d.ts",
+  "main": "es5/index.js",
+  "types": "es5/index.d.ts",
   "dependencies": {
 		"@magenta/protobuff": "^0.0.01"
 	},

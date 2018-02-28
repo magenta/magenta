@@ -7,9 +7,9 @@
     "preserveConstEnums": true,
     "declaration": true,
     "target": "es5",
-    "allowJs": true,
+    "allowJs": false,
     "lib": ["es2015", "dom"],
-    "outDir": "./dist",
+    "outDir": "./es5",
     "noUnusedLocals": true,
     "noImplicitReturns": true,
     "noImplicitThis": true,
@@ -22,5 +22,8 @@
   },
   "include": [
     "src/"
-  ]
+	],
+	"exclude": [
+		"src/*_test.ts"
+	]
 }
