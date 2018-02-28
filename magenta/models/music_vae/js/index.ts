@@ -29,6 +29,8 @@ export {
   MelodyConverter
 } from './data';
 
+export  { INoteSequence } from '@magenta/core';
+
 export const isDeviceSupported = isWebGLSupported() && !isSafari();
 
 ////////////

@@ -15,6 +15,9 @@
  * =============================================================================
  */
 import * as dl from 'deeplearn';
+import {NoteSequence} from '@magenta/core';
+
+export {NoteSequence};
 
 const DEFAULT_DRUM_PITCH_CLASSES: number[][] = [
   // bass drum
@@ -116,7 +119,7 @@ export class DrumsConverter extends DataConverter{
   }
 
   toNoteSequence(oh: dl.Tensor2D) {
-    const notes: Note[] = [];
+    const notes: INoteSequence = [];
     const labelsTensor = oh.argMax(1);
     const labels: Int32Array = labelsTensor.dataSync() as Int32Array;
     labelsTensor.dispose();
