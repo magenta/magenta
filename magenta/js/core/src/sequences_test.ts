@@ -16,7 +16,7 @@
  */
 
 import * as test from "tape";
-import {tensorflow} from '@magenta/protobuff';
+import {tensorflow} from '@magenta/protobuf';
 import NoteSequence = tensorflow.magenta.NoteSequence;
 import * as sequences from './sequences';
 import Sequences = sequences.Sequences;

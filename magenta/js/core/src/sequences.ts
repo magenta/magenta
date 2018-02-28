@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import {tensorflow} from '@magenta/protobuff';
+import {tensorflow} from '@magenta/protobuf';
 import NoteSequence = tensorflow.magenta.NoteSequence;
 import * as constants from './constants';
 

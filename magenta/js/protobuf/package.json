@@ -1,5 +1,5 @@
 {
-  "name": "@magenta/protobuff",
+  "name": "@magenta/protobuf",
   "version": "0.0.1",
   "description": "",
   "main": "src/proto.js",
