@@ -22,7 +22,6 @@ package(
 
 load("@com_google_protobuf//:protobuf.bzl", "cc_proto_library")
 load("@com_google_protobuf//:protobuf.bzl", "py_proto_library")
-load(":js_proto.bzl", "js_proto")
 
 # Magenta public API.
 py_library(
