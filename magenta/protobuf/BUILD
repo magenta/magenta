@@ -49,11 +49,6 @@ cc_proto_library(
     protoc = "@com_google_protobuf//:protoc",
 )
 
-# Output target is :music_pb.js.
-js_proto(
-    src = "music.proto",
-)
-
 py_proto_library(
     name = "generator_py_pb2",
     srcs = ["generator.proto"],
