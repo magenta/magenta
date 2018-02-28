@@ -15,6 +15,9 @@
  * =============================================================================
  */
 import * as dl from 'deeplearn';
+import {NoteSequence, Note} from '@magenta/core';
+
+export {NoteSequence};
 
 const DEFAULT_DRUM_PITCH_CLASSES: number[][] = [
   // bass drum
@@ -36,23 +39,6 @@ const DEFAULT_DRUM_PITCH_CLASSES: number[][] = [
   // ride cymbal
   [51, 52, 53, 59, 82]
 ];
-
-export class Note {
-  pitch: number;
-  startStep: number;  // inclusive
-  endStep: number;  // exclusive
-
-  constructor(pitch: number, startStep: number, endStep?: number) {
-    this.pitch = pitch;
-    this.startStep = startStep;
-    this.endStep = (endStep) ? endStep : startStep + 1;
-  }
-
-  public toString(): string {
-    return (
-      '{p:' + this.pitch + ' s:' + this.startStep + ' e:' + this.endStep + '}');
-  }
-}
 
 /**
  * Abstract DataConverter class for converting between `Tensor` and
@@ -109,25 +95,29 @@ export class DrumsConverter extends DataConverter{
       drumRoll.set(1, i, -1);
     }
     notes.forEach((note) => {
-      drumRoll.set(1, note.startStep, this.pitchToClass[note.pitch]);
-      drumRoll.set(0, note.startStep, -1);
+      drumRoll.set(1, note.quantizedStartStep, this.pitchToClass[note.pitch]);
+      drumRoll.set(0, note.quantizedStartStep, -1);
     });
     return drumRoll.toTensor() as dl.Tensor2D;
   }
 
   toNoteSequence(oh: dl.Tensor2D) {
-    const notes: Note[] = [];
+    const noteSequence = new NoteSequence();
     const labelsTensor = oh.argMax(1);
     const labels: Int32Array = labelsTensor.dataSync() as Int32Array;
     labelsTensor.dispose();
     for (let s = 0; s < labels.length; ++s) {  // step
       for (let p = 0; p < this.pitchClasses.length; p++) {  // pitch class
         if (labels[s] >> p & 1) {
-          notes.push(new Note(this.pitchClasses[p][0], s));
+          noteSequence.notes.push(
+              new Note({
+                pitch: this.pitchClasses[p][0],
+                quantizedStartStep: s,
+                quantizedEndStep: s + 1}));
         }
       }
     }
-    return notes;
+    return noteSequence;
   }
 }
 
@@ -143,18 +133,22 @@ export class DrumsConverter extends DataConverter{
  */
 export class DrumRollConverter extends DrumsConverter {
   toNoteSequence(roll: dl.Tensor2D) {
-    const notes: Note[] = [];
+    const noteSequence = new NoteSequence();
     for (let s = 0; s < roll.shape[0]; ++s) {  // step
       const rollSlice = roll.slice([s, 0], [1, roll.shape[1]]);
       const pitches = rollSlice.dataSync() as Uint8Array;
       rollSlice.dispose();
       for (let p = 0; p < pitches.length; ++p) {  // pitch class
         if (pitches[p]) {
-          notes.push(new Note(this.pitchClasses[p][0], s, s + 1));
+          noteSequence.notes.push(
+              new Note({
+                pitch: this.pitchClasses[p][0],
+                quantizedStartStep: s,
+                quantizedEndStep: s + 1}));
         }
       }
     }
-    return notes;
+    return noteSequence;
   }
 }
 
@@ -200,27 +194,28 @@ export class MelodyConverter extends DataConverter{
   }
 
   toTensor(notes: Note[]) {
-    notes = notes.sort((n1, n2) => n1.startStep - n2.startStep);
+    notes = notes.sort(
+      (n1, n2) => n1.quantizedStartStep - n2.quantizedStartStep);
     const mel = dl.buffer([this.numSteps]);
     let lastEnd = -1;
     notes.forEach(n => {
-      if  (n.startStep < lastEnd) {
+      if  (n.quantizedStartStep < lastEnd) {
         throw new Error('`NoteSequence` is not monophonic.');
       }
       if (n.pitch < this.minPitch || n.pitch > this.maxPitch) {
         throw Error(
           '`NoteSequence` has a pitch outside of the valid range: ' + n.pitch);
       }
-      mel.set(n.pitch - this.minPitch + this.FIRST_PITCH, n.startStep);
-      mel.set(this.NOTE_OFF, n.endStep);
-      lastEnd = n.endStep;
+      mel.set(n.pitch - this.minPitch + this.FIRST_PITCH, n.quantizedStartStep);
+      mel.set(this.NOTE_OFF, n.quantizedEndStep);
+      lastEnd = n.quantizedEndStep;
     });
     return dl.oneHot(
         mel.toTensor() as dl.Tensor1D, this.depth) as dl.Tensor2D;
   }
 
   toNoteSequence(oh: dl.Tensor2D) {
-    const notes: Note[] = [];
+    const noteSequence = new NoteSequence();
     const labelsTensor = oh.argMax(1);
     const labels: Int32Array = labelsTensor.dataSync() as Int32Array;
     labelsTensor.dispose();
@@ -232,23 +227,25 @@ export class MelodyConverter extends DataConverter{
           break;
         case 1:
           if (currNote) {
-            currNote.endStep = s;
-            notes.push(currNote);
+            currNote.quantizedEndStep = s;
+            noteSequence.notes.push(currNote);
             currNote = null;
           }
           break;
         default:
           if (currNote) {
-            currNote.endStep = s;
-            notes.push(currNote);
+            currNote.quantizedEndStep = s;
+            noteSequence.notes.push(currNote);
           }
-          currNote = new Note(label - this.FIRST_PITCH + this.minPitch, s);
+          currNote = new Note({
+            pitch: label - this.FIRST_PITCH + this.minPitch,
+            quantizedStartStep: s});
       }
     }
     if (currNote) {
-      currNote.endStep = labels.length;
-      notes.push(currNote);
+      currNote.quantizedEndStep = labels.length;
+      noteSequence.notes.push(currNote);
     }
-    return notes;
+    return noteSequence;
   }
 }
