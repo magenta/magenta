@@ -21,6 +21,11 @@ const DECODER_CELL_FORMAT = "decoder/multi_rnn_cell/cell_%d/lstm_cell/";
 
 const forgetBias = dl.scalar(1.0);
 
+/**
+ * A class for keeping track of the parameters of an affine transformation.
+ * @param kernel A 2-dimensional tensor with the kernel parameters.
+ * @param bias A 1-dimensional tensor with the bias parameters.
+ */
 class LayerVars {
   kernel: dl.Tensor2D;
   bias: dl.Tensor1D;
@@ -30,16 +35,33 @@ class LayerVars {
   }
 }
 
+/**
+ * Helper function to compute an affine transformation.
+ * @param vars `LayerVars` containing the `kernel` and `bias` of the
+ * transformation.
+ * @param inputs A batch of input vectors to transform.
+ */
 function dense(vars: LayerVars, inputs: dl.Tensor2D) {
   return inputs.matMul(vars.kernel).add(vars.bias) as dl.Tensor2D;
 }
 
-export class Nade {
+/**
+ * A Neural Autoregressive Distribution Estimator (NADE).
+ */
+class Nade {
   encWeights: dl.Tensor2D;
   decWeightsT: dl.Tensor2D;
   numDims: number;
   numHidden: number;
 
+  /**
+   * `Nade` contructor.
+   *
+   * @param encWeights The encoder weights (kernel), sized
+   * `[numDims, 1, numHidden]`.
+   * @param decWeightsT The transposed decoder weights (kernel), sized
+   * `[numDims, 1, numHidden]`.
+   */
   constructor(encWeights: dl.Tensor3D, decWeightsT: dl.Tensor3D) {
     this.numDims = encWeights.shape[0];
     this.numHidden = encWeights.shape[2];
@@ -48,6 +70,16 @@ export class Nade {
     this.decWeightsT = decWeightsT.as2D(this.numDims, this.numHidden);
   }
 
+  /**
+   * Samples from the NADE given a batch of encoder and decoder biases.
+   *
+   * Selects the MAP (argmax) of each Bernoulli random variable.
+   *
+   * @param encBias A batch of biases to use when encoding, sized
+   * `[batchSize, numHidden]`.
+   * @param decBias A batch of biases to use when decoding, sized
+   * `[batchSize, numDims]`.
+   */
   sample(encBias: dl.Tensor2D, decBias: dl.Tensor2D) {
     const batchSize = encBias.shape[0];
     return dl.tidy(()=> {
@@ -79,17 +111,50 @@ export class Nade {
   }
 }
 
+/**
+ * Bidirectional LSTM encoder for computing the latent variable `z`.
+ */
 class Encoder {
   lstmFwVars: LayerVars;
   lstmBwVars: LayerVars;
   muVars: LayerVars;
   zDims: number;
 
+  /**
+   * `Encoder` contructor.
+   *
+   * @param lstmFwVars The forward LSTM `LayerVars`.
+   * @param lstmBwVars The backward LSTM `LayerVars`.
+   * @param muVars The `LayerVars` for projecting from the final states of the
+   * bidirectional LSTM to the mean `mu` of the random variable, `z`.
+   */
   constructor(lstmFwVars: LayerVars, lstmBwVars: LayerVars, muVars: LayerVars) {
     this.lstmFwVars = lstmFwVars;
     this.lstmBwVars = lstmBwVars;
     this.muVars = muVars;
     this.zDims = this.muVars.bias.shape[0];
+  }
+
+  /**
+   * Encodes a batch of input sequences.
+   *
+   * The final states of the forward and backward LSTMs are concatenated and
+   * passed through a dense layer to compute the mean value of the latent
+   * variable.
+   *
+   * @param sequence A batch of sequences to encode, sized
+   * `[batchSize, length, depth]`.
+   * @returns The means of the latent variables of the encoded sequences, sized
+   * `[batchSize, zDims]`.
+   */
+  encode(sequence: dl.Tensor3D): dl.Tensor2D {
+    return dl.tidy(() => {
+      const fwState = this.runLstm(sequence, this.lstmFwVars, false);
+      const bwState = this.runLstm(sequence, this.lstmBwVars, true);
+      const finalState = dl.concat2d([fwState[1], bwState[1]], 1);
+      const mu = dense(this.muVars, finalState);
+      return mu;
+    });
   }
 
   private runLstm(inputs: dl.Tensor3D, lstmVars: LayerVars, reverse: boolean) {
@@ -113,18 +178,11 @@ class Encoder {
     }
     return state;
   }
-
-  encode(sequence: dl.Tensor3D): dl.Tensor2D {
-    return dl.tidy(() => {
-      const fwState = this.runLstm(sequence, this.lstmFwVars, false);
-      const bwState = this.runLstm(sequence, this.lstmBwVars, true);
-      const finalState = dl.concat2d([fwState[1], bwState[1]], 1);
-      const mu = dense(this.muVars, finalState);
-      return mu;
-    });
-  }
 }
 
+/**
+ * LSTM decoder with optional NADE output.
+ */
 class Decoder {
   lstmCellVars: LayerVars[];
   zToInitStateVars: LayerVars;
@@ -133,9 +191,23 @@ class Decoder {
   outputDims: number;
   nade: Nade;
 
+  /**
+   * `Decoder` contructor.
+   *
+   * @param lstmCellVars The `LayerVars` for each layer of the decoder LSTM.
+   * @param zToInitStateVars The `LayerVars` for projecting from the latent
+   * variable `z` to the initial states of the LSTM layers.
+   * @param outputProjectVars The `LayerVars` for projecting from the output
+   * of the LSTM to the logits of the output categorical distrubtion
+   * (if `nade` is null) or to bias values to use in the NADE (if `nade` is
+   * not null).
+   * @param nade (optional) A `Nade` to use for computing the output vectors at
+   * each step. If not given, the final projection values are used as logits
+   * for a categorical distrubtion.
+   */
   constructor(
       lstmCellVars: LayerVars[], zToInitStateVars: LayerVars,
-      outputProjectVars: LayerVars, nade: Nade) {
+      outputProjectVars: LayerVars, nade?: Nade) {
     this.lstmCellVars = lstmCellVars;
     this.zToInitStateVars = zToInitStateVars;
     this.outputProjectVars = outputProjectVars;
@@ -144,6 +216,22 @@ class Decoder {
     this.nade = nade;
   }
 
+  /**
+   * Decodes a batch of latent vectors, `z`.
+   *
+   * If `nade` is parameterized, samples are generated using the MAP (argmax) of
+   * the Bernoulli random variables from the NADE, and these bit vector makes up
+   *  the final dimension of the output.
+   *
+   * If `nade` is not parameterized, sample labels are generated using the
+   * MAP (argmax) of the logits output by the LSTM, and the onehots of those
+   * labels makes up the final dimension of the output.
+   *
+   * @param z A batch of latent vectors to decode, sized `[batchSize, zDims]`.
+   * @param length The length of decoded sequences.
+   * @returns A boolean tensor containing the decoded sequences, shaped
+   * `[batchSize, length, depth]`.
+   */
   decode(z: dl.Tensor2D, length: number) {
     const batchSize = z.shape[0];
 
@@ -180,7 +268,7 @@ class Decoder {
         if (this.nade == null) {
           const timeLabels = logits.argMax(1).as1D();
           nextInput = dl.oneHot(timeLabels, this.outputDims).toFloat();
-          timeSamples = nextInput.toInt();
+          timeSamples = nextInput.toBool();
         } else {
           const encBias = logits.slice(
               [0, 0], [batchSize, this.nade.numHidden]);
@@ -197,28 +285,49 @@ class Decoder {
   }
 }
 
+/**
+ * Main MusicVAE model class.
+ *
+ * A MusicVAE is a variational autoencoder made up of a
+ * Exposes methods for interpolation and sampling of musical sequences.
+ */
 class MusicVAE {
   checkpointURL: string;
   dataConverter: DataConverter;
   encoder: Encoder;
   decoder: Decoder;
-  rawVars: {[varName: string]: dl.Tensor};
+  rawVars: {[varName: string]: dl.Tensor};  // Store for disposal.
 
+  /**
+   * `MusicVAE` constructor.
+   *
+   * @param checkpointURL Path to the checkpoint directory.
+   * @param dataConverter A `DataConverter` object to use for converting between
+   * `NoteSequences` and `Tensors`.
+   */
   constructor(checkpointURL: string, dataConverter: DataConverter) {
     this.checkpointURL = checkpointURL;
     this.dataConverter = dataConverter;
   }
 
+  /**
+   * Disposes of any untracked `Tensors` to avoid GPU memory leaks.
+   */
   dispose() {
     Object.keys(this.rawVars).forEach(name => this.rawVars[name].dispose());
     this.encoder = null;
     this.decoder = null;
   }
 
+  /**
+   * Loads variables from the checkpoint and instantiates the `Encoder` and
+   * `Decoder`.
+   */
   async initialize() {
     const reader = new dl.CheckpointLoader(this.checkpointURL);
     const vars = await reader.getAllVariables();
 
+    // Encoder variables.
     // tslint:disable:max-line-length
     const encLstmFw = new LayerVars(
         vars['encoder/cell_0/bidirectional_rnn/fw/multi_rnn_cell/cell_0/lstm_cell/kernel'] as dl.Tensor2D,
@@ -231,6 +340,7 @@ class MusicVAE {
         vars['encoder/mu/bias'] as dl.Tensor1D);
     // tslint:enable:max-line-length
 
+    // Decoder LSTM layer variables.
     const decLstmLayers: LayerVars[] = [];
     let l = 0;
     while (true) {
@@ -244,12 +354,14 @@ class MusicVAE {
         ++l;
     }
 
+    // Other Decoder variables.
     const decZtoInitState = new LayerVars(
         vars['decoder/z_to_initial_state/kernel'] as dl.Tensor2D,
         vars['decoder/z_to_initial_state/bias'] as dl.Tensor1D);
     const decOutputProjection = new LayerVars(
         vars['decoder/output_projection/kernel'] as dl.Tensor2D,
         vars['decoder/output_projection/bias'] as dl.Tensor1D);
+    // Optional NADE for the decoder.
     const nade = (('decoder/nade/w_enc' in vars) ?
         new Nade(
             vars['decoder/nade/w_enc'] as dl.Tensor3D,
@@ -262,10 +374,40 @@ class MusicVAE {
     return this;
   }
 
+  /**
+   * @returns true iff an `Encoder` and `Decoder` have been instantiated for the
+   * model.
+   */
   isInitialized() {
     return (!!this.encoder && !!this.decoder);
   }
 
+  /**
+   * Interpolates between the input `NoteSequences` in latent space.
+   *
+   * If 2 sequences are given, a single linear interpolation is computed, with
+   * the first output sequence being a reconstruction of sequence A and the
+   * final output being a reconstruction of sequence B, with `numInterps`
+   * total sequences.
+   *
+   * If 4 sequences are given, bilinear interpolation is used. The results are
+   * returned in row-major order for a matrix with the following layout:
+   *   | A . . C |
+   *   | . . . . |
+   *   | . . . . |
+   *   | B . . D |
+   * where the letters represent the reconstructions of the four inputs, in
+   * alphabetical order, and there are `numInterps` sequences on each
+   * edge for a total of `numInterps`^2 sequences.
+   *
+   * @param inputSequences A list of 2 or 4 `NoteSequences` to interpolate
+   * between.
+   * @param numInterps The number of pair-wise interpolation sequences to
+   * return, including the reconstructions. If 4 inputs are given, the total
+   * number of sequences will be `numInterps`^2.
+   * @returns A list of interpolation `NoteSequence` objects, as described
+   * above.
+   */
   interpolate(inputSequences: Note[][], numInterps: number) {
     const numSteps = this.dataConverter.numSteps;
 
@@ -289,14 +431,16 @@ class MusicVAE {
     return outputSequences;
   }
 
-  interpolateTensors(sequences: dl.Tensor3D, numInterps: number) {
+  private interpolateTensors(sequences: dl.Tensor3D, numInterps: number) {
     if (sequences.shape[0] !== 2 && sequences.shape[0] !== 4) {
       throw new Error(
           'Invalid number of input sequences. Requires length 2, or 4');
     }
 
+    // Use the mean `mu` of the latent variable as the best estimate of `z`.
     const z =this.encoder.encode(sequences);
 
+    // Compute the interpolations of the latent variable.
     const interpolatedZs: dl.Tensor2D = dl.tidy(() => {
       const rangeArray = dl.linspace(0.0, 1.0, numInterps);
 
@@ -332,9 +476,16 @@ class MusicVAE {
       }
     });
 
+    // Decode the interpolated values of `z`.
     return this.decoder.decode(interpolatedZs, sequences.shape[1]);
   }
 
+  /**
+   * Samples sequences from the model prior.
+   *
+   * @param numSamples The number of samples to return.
+   * @returns A list of sampled `NoteSequence` objects.
+   */
   sample(numSamples: number) {
     const numSteps = this.dataConverter.numSteps;
 
@@ -352,7 +503,7 @@ class MusicVAE {
     return outputSequences;
   }
 
-  sampleTensors(numSamples: number, numSteps: number) {
+  private sampleTensors(numSamples: number, numSteps: number) {
     return dl.tidy(() => {
       const randZs: dl.Tensor2D = dl.randomNormal(
           [numSamples, this.decoder.zDims]);
@@ -365,5 +516,6 @@ export {
   LayerVars,
   Encoder,
   Decoder,
+  Nade,
   MusicVAE,
 };
