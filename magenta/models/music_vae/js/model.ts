@@ -23,6 +23,7 @@ const forgetBias = dl.scalar(1.0);
 
 /**
  * A class for keeping track of the parameters of an affine transformation.
+ *
  * @param kernel A 2-dimensional tensor with the kernel parameters.
  * @param bias A 1-dimensional tensor with the bias parameters.
  */
@@ -37,6 +38,7 @@ class LayerVars {
 
 /**
  * Helper function to compute an affine transformation.
+ *
  * @param vars `LayerVars` containing the `kernel` and `bias` of the
  * transformation.
  * @param inputs A batch of input vectors to transform.
@@ -58,9 +60,9 @@ class Nade {
    * `Nade` contructor.
    *
    * @param encWeights The encoder weights (kernel), sized
-   * `[numDims, 1, numHidden]`.
+   * `[numDims, numHidden, 1]`.
    * @param decWeightsT The transposed decoder weights (kernel), sized
-   * `[numDims, 1, numHidden]`.
+   * `[numDims, numHidden, 1]`.
    */
   constructor(encWeights: dl.Tensor3D, decWeightsT: dl.Tensor3D) {
     this.numDims = encWeights.shape[0];
@@ -144,6 +146,7 @@ class Encoder {
    *
    * @param sequence A batch of sequences to encode, sized
    * `[batchSize, length, depth]`.
+   *
    * @returns The means of the latent variables of the encoded sequences, sized
    * `[batchSize, zDims]`.
    */
@@ -221,7 +224,7 @@ class Decoder {
    *
    * If `nade` is parameterized, samples are generated using the MAP (argmax) of
    * the Bernoulli random variables from the NADE, and these bit vector makes up
-   *  the final dimension of the output.
+   * the final dimension of the output.
    *
    * If `nade` is not parameterized, sample labels are generated using the
    * MAP (argmax) of the logits output by the LSTM, and the onehots of those
@@ -229,6 +232,7 @@ class Decoder {
    *
    * @param z A batch of latent vectors to decode, sized `[batchSize, zDims]`.
    * @param length The length of decoded sequences.
+   *
    * @returns A boolean tensor containing the decoded sequences, shaped
    * `[batchSize, length, depth]`.
    */
@@ -288,7 +292,10 @@ class Decoder {
 /**
  * Main MusicVAE model class.
  *
- * A MusicVAE is a variational autoencoder made up of a
+ * A MusicVAE is a variational autoencoder made up of an `Encoder` and
+ * `Decoder`, along with a `DataConverter` for converting between `Tensor`
+ * and `NoteSequence` objects for input and output.
+ *
  * Exposes methods for interpolation and sampling of musical sequences.
  */
 class MusicVAE {
@@ -303,7 +310,7 @@ class MusicVAE {
    *
    * @param checkpointURL Path to the checkpoint directory.
    * @param dataConverter A `DataConverter` object to use for converting between
-   * `NoteSequences` and `Tensors`.
+   * `NoteSequence` and `Tensor` objects.
    */
   constructor(checkpointURL: string, dataConverter: DataConverter) {
     this.checkpointURL = checkpointURL;
@@ -400,12 +407,13 @@ class MusicVAE {
    * alphabetical order, and there are `numInterps` sequences on each
    * edge for a total of `numInterps`^2 sequences.
    *
-   * @param inputSequences A list of 2 or 4 `NoteSequences` to interpolate
+   * @param inputSequences An array of 2 or 4 `NoteSequences` to interpolate
    * between.
-   * @param numInterps The number of pair-wise interpolation sequences to
+   * @param numInterps The number of pairwise interpolation sequences to
    * return, including the reconstructions. If 4 inputs are given, the total
    * number of sequences will be `numInterps`^2.
-   * @returns A list of interpolation `NoteSequence` objects, as described
+   *
+   * @returns An array of interpolation `NoteSequence` objects, as described
    * above.
    */
   interpolate(inputSequences: Note[][], numInterps: number) {
@@ -484,7 +492,8 @@ class MusicVAE {
    * Samples sequences from the model prior.
    *
    * @param numSamples The number of samples to return.
-   * @returns A list of sampled `NoteSequence` objects.
+   *
+   * @returns An array of sampled `NoteSequence` objects.
    */
   sample(numSamples: number) {
     const numSteps = this.dataConverter.numSteps;
