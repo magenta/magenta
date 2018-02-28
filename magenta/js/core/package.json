@@ -2,9 +2,11 @@
   "name": "@magenta/core",
   "version": "0.0.7",
   "description": "",
-  "main": "dist/magenta.js",
-  "types": "dist/magenta.d.ts",
-  "dependencies": {},
+  "main": "src/index.js",
+  "types": "src/index.d.ts",
+  "dependencies": {
+		"@magenta/protobuff": "^0.0.01"
+	},
   "devDependencies": {
     "@types/tape": "^4.2.31",
     "browserify": "~14.4.0",
@@ -17,7 +19,8 @@
     "typescript": "2.7.2"
   },
   "scripts": {
-    "build": "browserify --standalone magenta src/index.ts -p [tsify] > dist/magenta.js",
+    "build": "tsc",
+    "bundle": "browserify --standalone magenta src/index.ts -p [tsify] > dist/magenta.js",
     "lint": "tslint -p . -t verbose",
     "test": "ts-node node_modules/tape/bin/tape src/**/*_test.ts",
     "proto": "pbjs -t static-module -w commonjs -o src/proto.js ../protobuf/music.proto && pbts -o src/proto.d.ts src/proto.js"
