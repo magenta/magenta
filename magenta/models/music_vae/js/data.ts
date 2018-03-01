@@ -105,7 +105,7 @@ export class DrumsConverter extends DataConverter{
   }
 
   toNoteSequence(oh: dl.Tensor2D) {
-    const noteSequence = new NoteSequence();
+    const noteSequence = NoteSequence.create();
     const labelsTensor = oh.argMax(1);
     const labels: Int32Array = labelsTensor.dataSync() as Int32Array;
     labelsTensor.dispose();
@@ -202,7 +202,7 @@ export class MelodyConverter extends DataConverter{
 
   toTensor(noteSequence: INoteSequence) {
     const sortedNotes: NoteSequence.INote[] = noteSequence.notes.sort(
-      (n1, n2) => n1.quantizedEndStep - n2.quantizedStartStep);
+      (n1, n2) => n1.quantizedStartStep - n2.quantizedStartStep);
     const mel = dl.buffer([this.numSteps]);
     let lastEnd = -1;
     sortedNotes.forEach(n => {
