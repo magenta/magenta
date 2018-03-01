@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import {tensorflow} from '@magenta/protobuf';
+import { tensorflow } from '@magenta/protobuf';
 import NoteSequence = tensorflow.magenta.NoteSequence;
 import * as constants from './constants';
 
@@ -56,15 +56,15 @@ export class MultipleTempoException extends Error {
 }
 
 export class Sequences {
-  private static isPowerOf2(n:number):boolean {
-      return n && (n & (n - 1)) === 0;
+  private static isPowerOf2(n: number): boolean {
+    return n && (n & (n - 1)) === 0;
   }
 
   /**
    * Calculates steps per second given stepsPerQuarter and a QPM.
    */
-  public static stepsPerQuarterToStepsPerSecond(stepsPerQuarter:number,
-      qpm:number):number {
+  public static stepsPerQuarterToStepsPerSecond(stepsPerQuarter: number,
+    qpm: number): number {
     return stepsPerQuarter * qpm / 60.0;
   }
 
@@ -77,8 +77,8 @@ export class Sequences {
    * @param quantizeCutoff Value to use for quantizing cutoff.
    * @returns the quantized step.
    */
-  public static quantizeToStep(unquantizedSeconds:number,
-      stepsPerSecond:number, quantizeCutoff=QUANTIZE_CUTOFF):number {
+  public static quantizeToStep(unquantizedSeconds: number,
+    stepsPerSecond: number, quantizeCutoff = QUANTIZE_CUTOFF): number {
     const unquantizedSteps = unquantizedSeconds * stepsPerSecond;
     return Math.floor(unquantizedSteps + (1 - quantizeCutoff));
   }
@@ -94,38 +94,38 @@ export class Sequences {
    * @param stepsPerSecond Each second will be divided into this many
    *    quantized time steps.
    */
-  private static quantizeNotes(ns:NoteSequence, stepsPerSecond:number) {
-    for(const note of ns.notes) {
+  private static quantizeNotes(ns: NoteSequence, stepsPerSecond: number) {
+    for (const note of ns.notes) {
       // Quantize the start and end times of the note.
       note.quantizedStartStep = this.quantizeToStep(
-          note.startTime, stepsPerSecond);
+        note.startTime, stepsPerSecond);
       note.quantizedEndStep = this.quantizeToStep(
-          note.endTime, stepsPerSecond);
-      if(note.quantizedEndStep === note.quantizedStartStep) {
-          note.quantizedEndStep = note.quantizedEndStep + 1;
+        note.endTime, stepsPerSecond);
+      if (note.quantizedEndStep === note.quantizedStartStep) {
+        note.quantizedEndStep += 1;
       }
 
       // Do not allow notes to start or end in negative time.
-      if(note.quantizedStartStep < 0 || note.quantizedEndStep < 0) {
-          throw new NegativeTimeException(
-              `Got negative note time: start_step = ` +
-              `${note.quantizedStartStep}, end_step = ` +
-              `${note.quantizedEndStep}`);
+      if (note.quantizedStartStep < 0 || note.quantizedEndStep < 0) {
+        throw new NegativeTimeException(
+          `Got negative note time: start_step = ` +
+          `${note.quantizedStartStep}, end_step = ` +
+          `${note.quantizedEndStep}`);
       }
 
       // Extend quantized sequence if necessary.
-      if(note.quantizedEndStep > ns.totalQuantizedSteps) {
-          ns.totalQuantizedSteps = note.quantizedEndStep;
+      if (note.quantizedEndStep > ns.totalQuantizedSteps) {
+        ns.totalQuantizedSteps = note.quantizedEndStep;
       }
     }
 
     // Also quantize control changes and text annotations.
-    for(const event of ns.controlChanges.concat(ns.textAnnotations)) {
+    for (const event of ns.controlChanges.concat(ns.textAnnotations)) {
       // Quantize the event time, disallowing negative time.
       event.quantizedStep = this.quantizeToStep(event.time, stepsPerSecond);
-      if(event.quantizedStep < 0) {
+      if (event.quantizedStep < 0) {
         throw new NegativeTimeException(
-            `Got negative event time: step = ${event.quantizedStep}`);
+          `Got negative event time: step = ${event.quantizedStep}`);
       }
     }
   }
@@ -158,36 +158,36 @@ export class Sequences {
    *    time.
    */
   public static quantizeNoteSequence(noteSequence: NoteSequence,
-      stepsPerQuarter: number): NoteSequence {
+    stepsPerQuarter: number): NoteSequence {
     // Make a copy.
     const qns = NoteSequence.fromObject(
-        NoteSequence.toObject(noteSequence));
+      NoteSequence.toObject(noteSequence));
 
     qns.quantizationInfo = NoteSequence.QuantizationInfo.create({
       stepsPerQuarter
     });
 
-    if(qns.timeSignatures.length > 0) {
+    if (qns.timeSignatures.length > 0) {
       qns.timeSignatures.sort((a, b) => {
-          return a.time - b.time;
+        return a.time - b.time;
       });
       // There is an implicit 4/4 time signature at 0 time. So if the first time
       // signature is something other than 4/4 and it's at a time other than 0,
       // that's an implicit time signature change.
-      if(qns.timeSignatures[0].time !== 0 && !(
-              qns.timeSignatures[0].numerator === 4 &&
-              qns.timeSignatures[0].denominator === 4)) {
+      if (qns.timeSignatures[0].time !== 0 && !(
+        qns.timeSignatures[0].numerator === 4 &&
+        qns.timeSignatures[0].denominator === 4)) {
         throw new MultipleTimeSignatureException(
-            'NoteSequence has an implicit change from initial 4/4 time ' +
-            `signature to ${qns.timeSignatures[0].numerator}/` +
-            `${qns.timeSignatures[0].denominator} at ` +
-            `${qns.timeSignatures[0].time} seconds.`);
+          'NoteSequence has an implicit change from initial 4/4 time ' +
+          `signature to ${qns.timeSignatures[0].numerator}/` +
+          `${qns.timeSignatures[0].denominator} at ` +
+          `${qns.timeSignatures[0].time} seconds.`);
       }
 
-      for(let i = 1; i < qns.timeSignatures.length; i++) {
-          const timeSignature = qns.timeSignatures[i];
+      for (let i = 1; i < qns.timeSignatures.length; i++) {
+        const timeSignature = qns.timeSignatures[i];
         if (timeSignature.numerator !== qns.timeSignatures[0].numerator ||
-            timeSignature.denominator !== qns.timeSignatures[0].denominator) {
+          timeSignature.denominator !== qns.timeSignatures[0].denominator) {
           throw new MultipleTimeSignatureException(
             'NoteSequence has at least one time signature change from ' +
             `${qns.timeSignatures[0].numerator}/` +
@@ -211,35 +211,35 @@ export class Sequences {
     }
 
     const firstTS = qns.timeSignatures[0];
-    if(!this.isPowerOf2(firstTS.denominator)) {
+    if (!this.isPowerOf2(firstTS.denominator)) {
       throw new BadTimeSignatureException(
-          'Denominator is not a power of 2. Time signature: ' +
-          `${firstTS.numerator}/${firstTS.denominator}`);
+        'Denominator is not a power of 2. Time signature: ' +
+        `${firstTS.numerator}/${firstTS.denominator}`);
     }
 
-    if(firstTS.numerator === 0) {
+    if (firstTS.numerator === 0) {
       throw new BadTimeSignatureException(
-          'Numerator is 0. Time signature: ' +
-          `${firstTS.numerator}/${firstTS.denominator}`);
+        'Numerator is 0. Time signature: ' +
+        `${firstTS.numerator}/${firstTS.denominator}`);
     }
 
-    if(qns.tempos.length > 0) {
+    if (qns.tempos.length > 0) {
       qns.tempos.sort((a, b) => {
-          return a.time - b.time;
+        return a.time - b.time;
       });
       // There is an implicit 120.0 qpm tempo at 0 time. So if the first tempo
       // is something other that 120.0 and it's at a time other than 0, that's
       // an implicit tempo change.
-      if(qns.tempos[0].time !== 0 &&
-          qns.tempos[0].qpm !== constants.DEFAULT_QUARTERS_PER_MINUTE) {
+      if (qns.tempos[0].time !== 0 &&
+        qns.tempos[0].qpm !== constants.DEFAULT_QUARTERS_PER_MINUTE) {
         throw new MultipleTempoException(
           'NoteSequence has an implicit tempo change from initial ' +
           `${constants.DEFAULT_QUARTERS_PER_MINUTE} qpm to ` +
           `${qns.tempos[0].qpm} qpm at ${qns.tempos[0].time} seconds.`);
       }
 
-      for(let i = 1; i < qns.tempos.length; i++) {
-        if(qns.tempos[i].qpm !== qns.tempos[0].qpm) {
+      for (let i = 1; i < qns.tempos.length; i++) {
+        if (qns.tempos[i].qpm !== qns.tempos[0].qpm) {
           throw new MultipleTempoException(
             'NoteSequence has at least one tempo change from ' +
             `${qns.tempos[0].qpm} qpm to ${qns.tempos[i].qpm}` +
