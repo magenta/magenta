@@ -15,7 +15,7 @@
  * =============================================================================
  */
 import * as dl from 'deeplearn';
-import { NoteSequence, DataConverter } from './data';
+import { INoteSequence, DataConverter } from './data';
 
 const DECODER_CELL_FORMAT = "decoder/multi_rnn_cell/cell_%d/lstm_cell/";
 
@@ -414,10 +414,10 @@ class MusicVAE {
    * @returns An array of interpolation `NoteSequence` objects, as described
    * above.
    */
-  interpolate(inputSequences: NoteSequence[], numInterps: number) {
+  interpolate(inputSequences: INoteSequence[], numInterps: number) {
     const numSteps = this.dataConverter.numSteps;
 
-    const outputSequences: NoteSequence[] = [];
+    const outputSequences: INoteSequence[] = [];
 
     dl.tidy(() => {
       const inputTensors = dl.stack(
@@ -496,7 +496,7 @@ class MusicVAE {
   sample(numSamples: number) {
     const numSteps = this.dataConverter.numSteps;
 
-    const outputSequences: NoteSequence[] = [];
+    const outputSequences: INoteSequence[] = [];
     dl.tidy(() => {
       const outputTensors = this.sampleTensors(numSamples, numSteps);
       for (let i = 0; i < numSamples; ++i) {

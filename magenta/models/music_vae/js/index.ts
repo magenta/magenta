@@ -23,7 +23,6 @@ export {
 } from './model';
 
 export {
-  Note,
   DrumsConverter,
   DrumRollConverter,
   MelodyConverter
