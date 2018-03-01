@@ -1,0 +1,27 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+      {
+        "command": "yarn",
+        "label": "lint",
+        "type": "shell",
+        "args": [
+          "lint"
+        ],
+        "problemMatcher": {
+          "base": "$tslint5",
+          "owner": "tslint-type-checked",
+          "fileLocation": "absolute"
+        }
+      },
+      {
+        "command": "yarn",
+        "label": "build",
+        "type": "shell",
+        "args": ["build", "--pretty", "false"],
+        "problemMatcher": [
+          "$tsc"
+        ]
+      }
+    ]
+  }

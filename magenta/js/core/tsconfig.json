@@ -2,13 +2,13 @@
   "compilerOptions": {
     "module": "commonjs",
     "noImplicitAny": true,
-    "sourceMap": true,
     "removeComments": true,
     "preserveConstEnums": true,
+    "declaration": true,
     "target": "es5",
-    "allowJs": true,
+    "allowJs": false,
     "lib": ["es2015", "dom"],
-    "outDir": "./dist",
+    "outDir": "./es5",
     "noUnusedLocals": true,
     "noImplicitReturns": true,
     "noImplicitThis": true,
@@ -17,10 +17,12 @@
     "pretty": true,
     "noFallthroughCasesInSwitch": true,
     "allowUnreachableCode": false,
-    "experimentalDecorators": true,
-    "declaration": true
+    "experimentalDecorators": true
   },
   "include": [
     "src/"
-  ]
+	],
+	"exclude": [
+		"src/*_test.ts"
+	]
 }

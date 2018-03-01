@@ -22,7 +22,6 @@ package(
 
 load("@com_google_protobuf//:protobuf.bzl", "cc_proto_library")
 load("@com_google_protobuf//:protobuf.bzl", "py_proto_library")
-load(":js_proto.bzl", "js_proto")
 
 # Magenta public API.
 py_library(
@@ -47,11 +46,6 @@ cc_proto_library(
     srcs = ["music.proto"],
     default_runtime = "@com_google_protobuf//:protobuf",
     protoc = "@com_google_protobuf//:protoc",
-)
-
-# Output target is :music_pb.js.
-js_proto(
-    src = "music.proto",
 )
 
 py_proto_library(

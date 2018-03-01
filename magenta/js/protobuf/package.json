@@ -1,0 +1,19 @@
+{
+  "name": "@magenta/protobuf",
+  "version": "0.0.2",
+  "description": "",
+  "main": "src/proto.js",
+  "types": "src/proto.d.ts",
+  "dependencies": {
+    "protobufjs": "^6.8.6"
+  },
+  "scripts": {
+    "proto": "pbjs -t static-module -w commonjs -o src/proto.js ../../protobuf/music.proto && pbts -o src/proto.d.ts src/proto.js"
+  },
+  "author": "Magenta",
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/tensorflow/magenta.git"
+  }
+}

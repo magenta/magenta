@@ -1,0 +1,34 @@
+{
+  "name": "@magenta/core",
+  "version": "0.0.8",
+  "description": "",
+  "main": "es5/index.js",
+  "types": "es5/index.d.ts",
+  "dependencies": {
+    "@magenta/protobuf": "^0.0.2"
+  },
+  "devDependencies": {
+    "@types/tape": "^4.2.31",
+    "browserify": "~14.4.0",
+    "clang-format": "^1.2.2",
+    "tape": "^4.9.0",
+    "ts-node": "^5.0.0",
+    "tsify": "~3.0.1",
+    "tslint": "~5.8.0",
+    "typescript": "2.7.2"
+  },
+  "scripts": {
+    "prepublish": "yarn lint && yarn test && yarn build",
+    "build": "tsc",
+    "bundle": "browserify --standalone magenta src/index.ts -p [tsify] > dist/magenta.js",
+    "lint": "tslint -p . -t verbose",
+    "test": "ts-node node_modules/tape/bin/tape src/**/*_test.ts",
+    "proto": "pbjs -t static-module -w commonjs -o src/proto.js ../protobuf/music.proto && pbts -o src/proto.d.ts src/proto.js"
+  },
+  "author": "Magenta",
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/tensorflow/magenta.git"
+  }
+}
