@@ -7,18 +7,7 @@
   "dependencies": {
     "protobufjs": "^6.8.6"
   },
-  "devDependencies": {
-    "@types/tape": "^4.2.31",
-    "clang-format": "^1.2.2",
-    "protobufjs": "^6.8.6",
-    "tape": "^4.9.0",
-    "ts-node": "^5.0.0",
-    "tslint": "~5.8.0",
-    "typescript": "2.7.2"
-  },
   "scripts": {
-    "lint": "tslint -p . -t verbose",
-    "test": "ts-node node_modules/tape/bin/tape src/**/*_test.ts",
     "proto": "pbjs -t static-module -w commonjs -o src/proto.js ../../protobuf/music.proto && pbts -o src/proto.d.ts src/proto.js"
   },
   "author": "Magenta",
