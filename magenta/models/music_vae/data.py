@@ -511,7 +511,7 @@ class LegacyEventListOneHotConverter(BaseNoteSequenceConverter):
     self._pad_to_total_time = pad_to_total_time
 
     depth = legacy_encoder_decoder.num_classes + add_end_token
-    control_depth = ((chord_encoding.num_classes + add_end_token)
+    control_depth = (chord_encoding.num_classes
                      if chord_encoding is not None else 0)
     super(LegacyEventListOneHotConverter, self).__init__(
         input_depth=depth,
@@ -583,17 +583,21 @@ class LegacyEventListOneHotConverter(BaseNoteSequenceConverter):
 
     control_seqs = []
     if self._chord_encoding:
-      no_chord_token = self._chord_encoding.encode_event(mm.NO_CHORD)
       unique_event_tuples, unique_chord_tuples = zip(
           *[zip(*t) for t in unique_event_tuples if t])
       for t in unique_chord_tuples:
         try:
-          control_seqs.append(np_onehot(
-              [self._chord_encoding.encode_event(e) for e in t] +
-              ([] if self.end_token is None else [no_chord_token]),
-              self.control_depth, self.control_dtype))
+          chord_tokens = [self._chord_encoding.encode_event(e) for e in t]
+          if self.end_token:
+            # Repeat the last chord instead of using a special token; otherwise
+            # the model may learn to rely on the special token to detect
+            # endings.
+            chord_tokens.append(chord_tokens[-1] if chord_tokens else
+                                self._chord_encoding.encode_event(mm.NO_CHORD))
         except (mm.ChordSymbolException, mm.ChordEncodingException):
           return ConverterTensors()
+        control_seqs.append(
+            np_onehot(chord_tokens, self.control_depth, self.control_dtype))
 
     seqs = []
     for t in unique_event_tuples:

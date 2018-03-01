@@ -351,10 +351,11 @@ def event_list_chords(quantized_sequence, event_lists):
     chords.from_quantized_sequence(
         quantized_sequence, 0, quantized_sequence.total_quantized_steps)
 
+  pad_chord = chords[-1] if chords else NO_CHORD
+
   chord_lists = []
   for e in event_lists:
-    chord_lists.append([chords[step] if step < len(chords)
-                        else constants.NO_CHORD
+    chord_lists.append([chords[step] if step < len(chords) else pad_chord
                         for step in e.steps])
 
   return chord_lists
@@ -365,18 +366,28 @@ def add_chords_to_sequence(note_sequence, chords, chord_times):
 
   Args:
     note_sequence: The NoteSequence proto to which chords will be added (in
-        place).
+        place). Should not already have chords.
     chords: A Python list of chord figure strings to add to `note_sequence` as
         text annotations.
     chord_times: A Python list containing the time in seconds at which to add
         each chord. Should be the same length as `chords` and nondecreasing.
+
+  Raises:
+    ValueError: If `note_sequence` already has chords, or if `chord_times` is
+        not sorted in ascending order.
   """
+  if any(ta.annotation_type == CHORD_SYMBOL
+         for ta in note_sequence.text_annotations):
+    raise ValueError('NoteSequence already has chords.')
+  if any(t1 > t2 for t1, t2 in zip(chord_times[:-1], chord_times[1:])):
+    raise ValueError('Chord times not sorted in ascending order.')
+
   current_chord = None
   for chord, time in zip(chords, chord_times):
-    if chord != current_chord and time < note_sequence.total_time:
+    if chord != current_chord:
       current_chord = chord
       ta = note_sequence.text_annotations.add()
-      ta.annotation_type = music_pb2.NoteSequence.TextAnnotation.CHORD_SYMBOL
+      ta.annotation_type = CHORD_SYMBOL
       ta.time = time
       ta.text = chord
 
