@@ -141,6 +141,9 @@ py_binary(
         "testdata/TestData.npz",
     ],
     srcs_version = "PY2AND3",
+    visibility = [
+        # internal notebook binary
+    ],
     deps = [
         ":lib_data",
         ":lib_graph",
@@ -173,6 +176,9 @@ py_binary(
     name = "coconet_sample",
     srcs = ["coconet_sample.py"],
     srcs_version = "PY2AND3",
+    visibility = [
+        # internal notebook binary
+    ],
     deps = [
         ":lib_data",
         ":lib_graph",
