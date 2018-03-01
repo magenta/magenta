@@ -23,11 +23,12 @@ export {
 } from './model';
 
 export {
-  Note,
   DrumsConverter,
   DrumRollConverter,
   MelodyConverter
 } from './data';
+
+export  { INoteSequence, INote } from '@magenta/core';
 
 export const isDeviceSupported = isWebGLSupported() && !isSafari();
 

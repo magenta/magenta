@@ -15,7 +15,7 @@
  * =============================================================================
  */
 import * as dl from 'deeplearn';
-import { Note, DataConverter } from './data';
+import { INoteSequence, DataConverter } from './data';
 
 const DECODER_CELL_FORMAT = "decoder/multi_rnn_cell/cell_%d/lstm_cell/";
 
@@ -304,7 +304,6 @@ class MusicVAE {
   encoder: Encoder;
   decoder: Decoder;
   rawVars: {[varName: string]: dl.Tensor};  // Store for disposal.
-
   /**
    * `MusicVAE` constructor.
    *
@@ -346,7 +345,6 @@ class MusicVAE {
         vars['encoder/mu/kernel'] as dl.Tensor2D,
         vars['encoder/mu/bias'] as dl.Tensor1D);
     // tslint:enable:max-line-length
-
     // Decoder LSTM layer variables.
     const decLstmLayers: LayerVars[] = [];
     let l = 0;
@@ -416,10 +414,10 @@ class MusicVAE {
    * @returns An array of interpolation `NoteSequence` objects, as described
    * above.
    */
-  interpolate(inputSequences: Note[][], numInterps: number) {
+  interpolate(inputSequences: INoteSequence[], numInterps: number) {
     const numSteps = this.dataConverter.numSteps;
 
-    const outputSequences: Note[][] = [];
+    const outputSequences: INoteSequence[] = [];
 
     dl.tidy(() => {
       const inputTensors = dl.stack(
@@ -498,7 +496,7 @@ class MusicVAE {
   sample(numSamples: number) {
     const numSteps = this.dataConverter.numSteps;
 
-    const outputSequences: Note[][] = [];
+    const outputSequences: INoteSequence[] = [];
     dl.tidy(() => {
       const outputTensors = this.sampleTensors(numSamples, numSteps);
       for (let i = 0; i < numSamples; ++i) {
