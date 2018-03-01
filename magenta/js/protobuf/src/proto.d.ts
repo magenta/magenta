@@ -16,7 +16,7 @@ export namespace tensorflow {
             filename?: (string|null);
 
             /** NoteSequence referenceNumber */
-            referenceNumber?: (number|Long|null);
+            referenceNumber?: (number|null);
 
             /** NoteSequence collectionName */
             collectionName?: (string|null);
@@ -40,7 +40,7 @@ export namespace tensorflow {
             totalTime?: (number|null);
 
             /** NoteSequence totalQuantizedSteps */
-            totalQuantizedSteps?: (number|Long|null);
+            totalQuantizedSteps?: (number|null);
 
             /** NoteSequence pitchBends */
             pitchBends?: (tensorflow.magenta.NoteSequence.IPitchBend[]|null);
@@ -89,7 +89,7 @@ export namespace tensorflow {
             public filename: string;
 
             /** NoteSequence referenceNumber. */
-            public referenceNumber: (number|Long);
+            public referenceNumber: number;
 
             /** NoteSequence collectionName. */
             public collectionName: string;
@@ -113,7 +113,7 @@ export namespace tensorflow {
             public totalTime: number;
 
             /** NoteSequence totalQuantizedSteps. */
-            public totalQuantizedSteps: (number|Long);
+            public totalQuantizedSteps: number;
 
             /** NoteSequence pitchBends. */
             public pitchBends: tensorflow.magenta.NoteSequence.IPitchBend[];
@@ -234,13 +234,13 @@ export namespace tensorflow {
                 startTime?: (number|null);
 
                 /** Note quantizedStartStep */
-                quantizedStartStep?: (number|Long|null);
+                quantizedStartStep?: (number|null);
 
                 /** Note endTime */
                 endTime?: (number|null);
 
                 /** Note quantizedEndStep */
-                quantizedEndStep?: (number|Long|null);
+                quantizedEndStep?: (number|null);
 
                 /** Note numerator */
                 numerator?: (number|null);
@@ -286,13 +286,13 @@ export namespace tensorflow {
                 public startTime: number;
 
                 /** Note quantizedStartStep. */
-                public quantizedStartStep: (number|Long);
+                public quantizedStartStep: number;
 
                 /** Note endTime. */
                 public endTime: number;
 
                 /** Note quantizedEndStep. */
-                public quantizedEndStep: (number|Long);
+                public quantizedEndStep: number;
 
                 /** Note numerator. */
                 public numerator: number;
@@ -883,7 +883,7 @@ export namespace tensorflow {
                 time?: (number|null);
 
                 /** ControlChange quantizedStep */
-                quantizedStep?: (number|Long|null);
+                quantizedStep?: (number|null);
 
                 /** ControlChange controlNumber */
                 controlNumber?: (number|null);
@@ -914,7 +914,7 @@ export namespace tensorflow {
                 public time: number;
 
                 /** ControlChange quantizedStep. */
-                public quantizedStep: (number|Long);
+                public quantizedStep: number;
 
                 /** ControlChange controlNumber. */
                 public controlNumber: number;
@@ -1236,7 +1236,7 @@ export namespace tensorflow {
                 time?: (number|null);
 
                 /** TextAnnotation quantizedStep */
-                quantizedStep?: (number|Long|null);
+                quantizedStep?: (number|null);
 
                 /** TextAnnotation text */
                 text?: (string|null);
@@ -1258,7 +1258,7 @@ export namespace tensorflow {
                 public time: number;
 
                 /** TextAnnotation quantizedStep. */
-                public quantizedStep: (number|Long);
+                public quantizedStep: number;
 
                 /** TextAnnotation text. */
                 public text: string;
@@ -1548,7 +1548,7 @@ export namespace tensorflow {
                 time?: (number|null);
 
                 /** SectionAnnotation sectionId */
-                sectionId?: (number|Long|null);
+                sectionId?: (number|null);
             }
 
             /** Represents a SectionAnnotation. */
@@ -1564,7 +1564,7 @@ export namespace tensorflow {
                 public time: number;
 
                 /** SectionAnnotation sectionId. */
-                public sectionId: (number|Long);
+                public sectionId: number;
 
                 /**
                  * Creates a new SectionAnnotation instance using the specified properties.
@@ -1641,7 +1641,7 @@ export namespace tensorflow {
             interface ISection {
 
                 /** Section sectionId */
-                sectionId?: (number|Long|null);
+                sectionId?: (number|null);
 
                 /** Section sectionGroup */
                 sectionGroup?: (tensorflow.magenta.NoteSequence.ISectionGroup|null);
@@ -1657,7 +1657,7 @@ export namespace tensorflow {
                 constructor(properties?: tensorflow.magenta.NoteSequence.ISection);
 
                 /** Section sectionId. */
-                public sectionId: (number|Long);
+                public sectionId: number;
 
                 /** Section sectionGroup. */
                 public sectionGroup?: (tensorflow.magenta.NoteSequence.ISectionGroup|null);

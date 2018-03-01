@@ -35,7 +35,7 @@ $root.tensorflow = (function() {
              * @interface INoteSequence
              * @property {string|null} [id] NoteSequence id
              * @property {string|null} [filename] NoteSequence filename
-             * @property {number|Long|null} [referenceNumber] NoteSequence referenceNumber
+             * @property {number|null} [referenceNumber] NoteSequence referenceNumber
              * @property {string|null} [collectionName] NoteSequence collectionName
              * @property {number|null} [ticksPerQuarter] NoteSequence ticksPerQuarter
              * @property {Array.<tensorflow.magenta.NoteSequence.ITimeSignature>|null} [timeSignatures] NoteSequence timeSignatures
@@ -43,7 +43,7 @@ $root.tensorflow = (function() {
              * @property {Array.<tensorflow.magenta.NoteSequence.ITempo>|null} [tempos] NoteSequence tempos
              * @property {Array.<tensorflow.magenta.NoteSequence.INote>|null} [notes] NoteSequence notes
              * @property {number|null} [totalTime] NoteSequence totalTime
-             * @property {number|Long|null} [totalQuantizedSteps] NoteSequence totalQuantizedSteps
+             * @property {number|null} [totalQuantizedSteps] NoteSequence totalQuantizedSteps
              * @property {Array.<tensorflow.magenta.NoteSequence.IPitchBend>|null} [pitchBends] NoteSequence pitchBends
              * @property {Array.<tensorflow.magenta.NoteSequence.IControlChange>|null} [controlChanges] NoteSequence controlChanges
              * @property {Array.<tensorflow.magenta.NoteSequence.IPartInfo>|null} [partInfos] NoteSequence partInfos
@@ -99,7 +99,7 @@ $root.tensorflow = (function() {
 
             /**
              * NoteSequence referenceNumber.
-             * @member {number|Long} referenceNumber
+             * @member {number} referenceNumber
              * @memberof tensorflow.magenta.NoteSequence
              * @instance
              */
@@ -163,7 +163,7 @@ $root.tensorflow = (function() {
 
             /**
              * NoteSequence totalQuantizedSteps.
-             * @member {number|Long} totalQuantizedSteps
+             * @member {number} totalQuantizedSteps
              * @memberof tensorflow.magenta.NoteSequence
              * @instance
              */
@@ -922,9 +922,9 @@ $root.tensorflow = (function() {
                  * @property {tensorflow.magenta.NoteSequence.PitchName|null} [pitchName] Note pitchName
                  * @property {number|null} [velocity] Note velocity
                  * @property {number|null} [startTime] Note startTime
-                 * @property {number|Long|null} [quantizedStartStep] Note quantizedStartStep
+                 * @property {number|null} [quantizedStartStep] Note quantizedStartStep
                  * @property {number|null} [endTime] Note endTime
-                 * @property {number|Long|null} [quantizedEndStep] Note quantizedEndStep
+                 * @property {number|null} [quantizedEndStep] Note quantizedEndStep
                  * @property {number|null} [numerator] Note numerator
                  * @property {number|null} [denominator] Note denominator
                  * @property {number|null} [instrument] Note instrument
@@ -983,7 +983,7 @@ $root.tensorflow = (function() {
 
                 /**
                  * Note quantizedStartStep.
-                 * @member {number|Long} quantizedStartStep
+                 * @member {number} quantizedStartStep
                  * @memberof tensorflow.magenta.NoteSequence.Note
                  * @instance
                  */
@@ -999,7 +999,7 @@ $root.tensorflow = (function() {
 
                 /**
                  * Note quantizedEndStep.
-                 * @member {number|Long} quantizedEndStep
+                 * @member {number} quantizedEndStep
                  * @memberof tensorflow.magenta.NoteSequence.Note
                  * @instance
                  */
@@ -2837,7 +2837,7 @@ $root.tensorflow = (function() {
                  * @memberof tensorflow.magenta.NoteSequence
                  * @interface IControlChange
                  * @property {number|null} [time] ControlChange time
-                 * @property {number|Long|null} [quantizedStep] ControlChange quantizedStep
+                 * @property {number|null} [quantizedStep] ControlChange quantizedStep
                  * @property {number|null} [controlNumber] ControlChange controlNumber
                  * @property {number|null} [controlValue] ControlChange controlValue
                  * @property {number|null} [instrument] ControlChange instrument
@@ -2870,7 +2870,7 @@ $root.tensorflow = (function() {
 
                 /**
                  * ControlChange quantizedStep.
-                 * @member {number|Long} quantizedStep
+                 * @member {number} quantizedStep
                  * @memberof tensorflow.magenta.NoteSequence.ControlChange
                  * @instance
                  */
@@ -3750,7 +3750,7 @@ $root.tensorflow = (function() {
                  * @memberof tensorflow.magenta.NoteSequence
                  * @interface ITextAnnotation
                  * @property {number|null} [time] TextAnnotation time
-                 * @property {number|Long|null} [quantizedStep] TextAnnotation quantizedStep
+                 * @property {number|null} [quantizedStep] TextAnnotation quantizedStep
                  * @property {string|null} [text] TextAnnotation text
                  * @property {tensorflow.magenta.NoteSequence.TextAnnotation.TextAnnotationType|null} [annotationType] TextAnnotation annotationType
                  */
@@ -3780,7 +3780,7 @@ $root.tensorflow = (function() {
 
                 /**
                  * TextAnnotation quantizedStep.
-                 * @member {number|Long} quantizedStep
+                 * @member {number} quantizedStep
                  * @memberof tensorflow.magenta.NoteSequence.TextAnnotation
                  * @instance
                  */
@@ -4488,7 +4488,7 @@ $root.tensorflow = (function() {
                  * @memberof tensorflow.magenta.NoteSequence
                  * @interface ISectionAnnotation
                  * @property {number|null} [time] SectionAnnotation time
-                 * @property {number|Long|null} [sectionId] SectionAnnotation sectionId
+                 * @property {number|null} [sectionId] SectionAnnotation sectionId
                  */
 
                 /**
@@ -4516,7 +4516,7 @@ $root.tensorflow = (function() {
 
                 /**
                  * SectionAnnotation sectionId.
-                 * @member {number|Long} sectionId
+                 * @member {number} sectionId
                  * @memberof tensorflow.magenta.NoteSequence.SectionAnnotation
                  * @instance
                  */
@@ -4711,7 +4711,7 @@ $root.tensorflow = (function() {
                  * Properties of a Section.
                  * @memberof tensorflow.magenta.NoteSequence
                  * @interface ISection
-                 * @property {number|Long|null} [sectionId] Section sectionId
+                 * @property {number|null} [sectionId] Section sectionId
                  * @property {tensorflow.magenta.NoteSequence.ISectionGroup|null} [sectionGroup] Section sectionGroup
                  */
 
@@ -4732,7 +4732,7 @@ $root.tensorflow = (function() {
 
                 /**
                  * Section sectionId.
-                 * @member {number|Long} sectionId
+                 * @member {number} sectionId
                  * @memberof tensorflow.magenta.NoteSequence.Section
                  * @instance
                  */

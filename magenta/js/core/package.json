@@ -1,11 +1,11 @@
 {
   "name": "@magenta/core",
-  "version": "0.0.8",
+  "version": "0.0.9",
   "description": "",
   "main": "es5/index.js",
   "types": "es5/index.d.ts",
   "dependencies": {
-    "@magenta/protobuf": "^0.0.2"
+    "@magenta/protobuf": "^0.0.3"
   },
   "devDependencies": {
     "@types/tape": "^4.2.31",
