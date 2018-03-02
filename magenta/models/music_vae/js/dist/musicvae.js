@@ -33,8 +33,8 @@ exports.DataConverter = DataConverter;
 var DrumsConverter = (function (_super) {
     __extends(DrumsConverter, _super);
     function DrumsConverter(numSteps, pitchClasses) {
-        if (pitchClasses === void 0) { pitchClasses = DEFAULT_DRUM_PITCH_CLASSES; }
         var _this = _super.call(this) || this;
+        pitchClasses = (pitchClasses) ? pitchClasses : DEFAULT_DRUM_PITCH_CLASSES;
         _this.numSteps = numSteps;
         _this.pitchClasses = pitchClasses;
         _this.pitchToClass = {};
