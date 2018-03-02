@@ -99,6 +99,12 @@ class Generator(object):
   """Instantiates model and generates according to strategy and midi input."""
 
   def __init__(self, wmodel, strategy_name="complete_midi"):
+    """Initializes Generator with a wrapped model and strategy name.
+
+    Args:
+      wmodel: A lib_tfutil.WrappedModel loaded from a model checkpoint.
+      strategy_name: A string specifying the key of the default strategy.
+    """
     self.wmodel = wmodel
     self.hparams = self.wmodel.hparams
     self.decoder = lib_pianoroll.get_pianoroll_encoder_decoder(self.hparams)
@@ -116,7 +122,25 @@ class Generator(object):
                      gen_batch_size=3,
                      piece_length=16,
                      new_strategy=None):
-    """Generates, conditions on midi_in if given, returns midi."""
+    """Generates, conditions on midi_in if given, returns midi.
+
+    Args:
+      midi_in: An optional PrettyMIDI instance containing notes to be
+          conditioned on.
+      pianorolls_in: An optional numpy.ndarray encoding the notes to be
+          conditioned on as pianorolls.
+      gen_batch_size: An integer specifying the number of outputs to generate.
+      piece_length: piece_length: An integer specifying the desired number of
+          time steps to generate for the output, where a time step corresponds
+          to the shortest duration supported by the model.
+      new_strategy: new_strategy: A string specifying the key of the strategy
+          to use. If not set, the most recently set strategy is used. If a
+          strategy was never specified, then the default strategy that was
+          instantiated during initialization is used.
+
+    Returns:
+      A list of PrettyMIDI instances, with length gen_batch_size.
+    """
     if new_strategy is not None:
       self.strategy_name = new_strategy
       self.strategy = BaseStrategy.make(self.strategy_name, self.wmodel,
