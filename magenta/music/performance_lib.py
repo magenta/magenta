@@ -281,7 +281,20 @@ class BasePerformance(events_lib.EventSequence):
 
   @staticmethod
   def _program_and_is_drum_from_sequence(sequence, instrument=None):
-    """Get MIDI program and is_drum from sequence and (optional) instrument."""
+    """Get MIDI program and is_drum from sequence and (optional) instrument.
+
+    Args:
+      sequence: The NoteSequence from which MIDI program and is_drum will be
+          extracted.
+      instrument: The instrument in `sequence` from which MIDI program and
+          is_drum will be extracted, or None to consider all instruments.
+
+    Returns:
+      A tuple containing program and is_drum for the sequence and optional
+      instrument. If multiple programs are found (or if is_drum is True),
+      program will be None. If multiple values of is_drum are found, is_drum
+      will be None.
+    """
     notes = [note for note in sequence.notes
              if instrument is None or note.instrument == instrument]
     # Only set program for non-drum tracks.
