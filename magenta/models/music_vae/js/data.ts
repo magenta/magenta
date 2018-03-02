@@ -81,8 +81,9 @@ export class DrumsConverter extends DataConverter{
    * `NoteSequence` returned by `toNoteSequence`.
    */
   constructor(
-      numSteps: number, pitchClasses: number[][]=DEFAULT_DRUM_PITCH_CLASSES) {
+      numSteps: number, pitchClasses?: number[][]) {
     super();
+    pitchClasses = (pitchClasses) ? pitchClasses : DEFAULT_DRUM_PITCH_CLASSES;
     this.numSteps = numSteps;
     this.pitchClasses = pitchClasses;
     this.pitchToClass = {};
