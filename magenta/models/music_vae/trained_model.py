@@ -157,7 +157,7 @@ class TrainedModel(object):
       feed_dict[self._c_input] = c_input
 
     outputs = []
-    for b in range(int(np.ceil(n / batch_size))):
+    for _ in range(int(np.ceil(n / batch_size))):
       if self._z_input is not None and not same_z:
         feed_dict[self._z_input] = (
             np.random.randn(batch_size, z_size).astype(np.float32))
