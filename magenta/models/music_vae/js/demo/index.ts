@@ -1,11 +1,11 @@
 // tslint:disable-next-line:max-line-length
-import { MusicVAE, DrumsConverter, DrumRollConverter, MelodyConverter, INoteSequence} from '../index';
+import { MusicVAE, INoteSequence} from '../index';
 import * as dl from 'deeplearn';
 
 // tslint:disable:max-line-length
 const DRUMS_CKPT = 'https://storage.googleapis.com/download.magenta.tensorflow.org/models/music_vae/dljs/drums_small_hikl';
 const DRUMS_NADE_CKPT = 'https://storage.googleapis.com/download.magenta.tensorflow.org/models/music_vae/dljs/drums_nade_9';
-const MEL_CKPT = 'https://storage.googleapis.com/download.magenta.tensorflow.org/models/music_vae/dljs/mel_small';
+const MEL_CKPT = 'https://storage.googleapis.com/download.magenta.tensorflow.org/models/music_vae/dljs/mel_small_high';
 // tslint:enable:max-line-length
 const DRUM_SEQS: INoteSequence[] = [
   {notes: [
@@ -91,7 +91,7 @@ function writeNoteSeqs(elementId: string, seqs: INoteSequence[]) {
 }
 
 async function runDrums(){
-  const mvae: MusicVAE = new MusicVAE(DRUMS_CKPT, new DrumsConverter(32));
+  const mvae: MusicVAE = new MusicVAE(DRUMS_CKPT);
   await mvae.initialize();
 
   writeNoteSeqs('drums-inputs', DRUM_SEQS);
@@ -112,8 +112,7 @@ async function runDrums(){
 }
 
 async function runDrumsNade(){
-  const mvae: MusicVAE = new MusicVAE(
-  DRUMS_NADE_CKPT, new DrumRollConverter(32));
+  const mvae: MusicVAE = new MusicVAE(DRUMS_NADE_CKPT);
   await mvae.initialize();
 
   writeNoteSeqs('nade-inputs', DRUM_SEQS);
@@ -133,7 +132,7 @@ async function runDrumsNade(){
 }
 
 async function runMel(){
-  const mvae:MusicVAE = new MusicVAE(MEL_CKPT, new MelodyConverter(32));
+  const mvae:MusicVAE = new MusicVAE(MEL_CKPT);
   await mvae.initialize();
 
   const teaPot: INoteSequence = {notes: [{

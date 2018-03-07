@@ -15,7 +15,7 @@
  * =============================================================================
  */
 import * as dl from 'deeplearn';
-import { INoteSequence, DataConverter } from './data';
+import * as data from './data';
 
 const DECODER_CELL_FORMAT = "decoder/multi_rnn_cell/cell_%d/lstm_cell/";
 
@@ -305,7 +305,7 @@ class Decoder {
  */
 class MusicVAE {
   checkpointURL: string;
-  dataConverter: DataConverter;
+  dataConverter: data.DataConverter;
   encoder: Encoder;
   decoder: Decoder;
   rawVars: {[varName: string]: dl.Tensor};  // Store for disposal.
@@ -314,11 +314,37 @@ class MusicVAE {
    *
    * @param checkpointURL Path to the checkpoint directory.
    * @param dataConverter A `DataConverter` object to use for converting between
-   * `NoteSequence` and `Tensor` objects.
+   * `NoteSequence` and `Tensor` objects. If not provided, a `converter.json`
+   * file must exist within the checkpoint directory specifying the type and
+   * args for the correct `DataConverter`.
    */
-  constructor(checkpointURL: string, dataConverter: DataConverter) {
+  constructor(checkpointURL: string, dataConverter?: data.DataConverter) {
     this.checkpointURL = checkpointURL;
-    this.dataConverter = dataConverter;
+    if (dataConverter) {
+      this.dataConverter = dataConverter;
+    } else {
+      fetch(checkpointURL + '/converter.json')
+        .then((response) => response.json())
+        .then((converterSpec: data.ConverterSpec) => {
+          if (converterSpec.type === 'MelodyConverter') {
+            this.dataConverter = new data.MelodyConverter(
+              converterSpec.args.numSteps,
+              converterSpec.args.minPitch,
+              converterSpec.args.maxPitch);
+          } else if (converterSpec.type === 'DrumsConverter') {
+            this.dataConverter = new data.DrumsConverter(
+              converterSpec.args.numSteps,
+              converterSpec.args.pitchClasses);
+          } else if (converterSpec.type === 'DrumRollConverter') {
+            this.dataConverter = new data.DrumRollConverter(
+              converterSpec.args.numSteps,
+              converterSpec.args.pitchClasses);
+          } else {
+            throw new Error(
+              'Unknown DataConverter type in spec: ' + converterSpec.type);
+          }
+        });
+    }
   }
 
   /**
@@ -419,10 +445,10 @@ class MusicVAE {
    * @returns An array of interpolation `NoteSequence` objects, as described
    * above.
    */
-  interpolate(inputSequences: INoteSequence[], numInterps: number) {
+  interpolate(inputSequences: data.INoteSequence[], numInterps: number) {
     const numSteps = this.dataConverter.numSteps;
 
-    const outputSequences: INoteSequence[] = [];
+    const outputSequences: data.INoteSequence[] = [];
 
     dl.tidy(() => {
       const inputTensors = dl.stack(
@@ -502,7 +528,7 @@ class MusicVAE {
   sample(numSamples: number, temperature=0.5) {
     const numSteps = this.dataConverter.numSteps;
 
-    const outputSequences: INoteSequence[] = [];
+    const outputSequences: data.INoteSequence[] = [];
     dl.tidy(() => {
       const outputTensors = this.sampleTensors(
           numSamples, numSteps, temperature);

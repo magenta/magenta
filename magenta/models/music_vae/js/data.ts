@@ -40,6 +40,11 @@ const DEFAULT_DRUM_PITCH_CLASSES: number[][] = [
   [51, 52, 53, 59, 82]
 ];
 
+export interface ConverterSpec {
+  type: string;
+  args: {[argName: string] : any};   // tslint:disable-line:no-any
+}
+
 /**
  * Abstract DataConverter class for converting between `Tensor` and
  * `NoteSequence` objects.
@@ -193,7 +198,7 @@ export class MelodyConverter extends DataConverter{
    * @param maxPitch The maximum pitch to model. Those above this value will
    * cause an error to be thrown.
    */
-  constructor(numSteps: number, minPitch=21, maxPitch=108) {
+  constructor(numSteps: number, minPitch: number, maxPitch: number) {
     super();
     this.numSteps = numSteps;
     this.minPitch = minPitch;

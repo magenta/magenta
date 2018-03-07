@@ -23,6 +23,7 @@ export {
 } from './model';
 
 export {
+  ConverterSpec,
   DrumsConverter,
   DrumRollConverter,
   MelodyConverter

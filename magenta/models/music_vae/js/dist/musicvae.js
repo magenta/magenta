@@ -108,8 +108,6 @@ exports.DrumRollConverter = DrumRollConverter;
 var MelodyConverter = (function (_super) {
     __extends(MelodyConverter, _super);
     function MelodyConverter(numSteps, minPitch, maxPitch) {
-        if (minPitch === void 0) { minPitch = 21; }
-        if (maxPitch === void 0) { maxPitch = 108; }
         var _this = _super.call(this) || this;
         _this.NOTE_OFF = 1;
         _this.FIRST_PITCH = 2;
@@ -244,6 +242,7 @@ var __generator = (this && this.__generator) || function (thisArg, body) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 var dl = require("deeplearn");
+var data = require("./data");
 var DECODER_CELL_FORMAT = "decoder/multi_rnn_cell/cell_%d/lstm_cell/";
 var forgetBias = dl.scalar(1.0);
 var LayerVars = (function () {
@@ -389,8 +388,29 @@ var Decoder = (function () {
 exports.Decoder = Decoder;
 var MusicVAE = (function () {
     function MusicVAE(checkpointURL, dataConverter) {
+        var _this = this;
         this.checkpointURL = checkpointURL;
-        this.dataConverter = dataConverter;
+        if (dataConverter) {
+            this.dataConverter = dataConverter;
+        }
+        else {
+            fetch(checkpointURL + '/converter.json')
+                .then(function (response) { return response.json(); })
+                .then(function (converterSpec) {
+                if (converterSpec.type === 'MelodyConverter') {
+                    _this.dataConverter = new data.MelodyConverter(converterSpec.args.numSteps, converterSpec.args.minPitch, converterSpec.args.maxPitch);
+                }
+                else if (converterSpec.type === 'DrumsConverter') {
+                    _this.dataConverter = new data.DrumsConverter(converterSpec.args.numSteps, converterSpec.args.pitchClasses);
+                }
+                else if (converterSpec.type === 'DrumRollConverter') {
+                    _this.dataConverter = new data.DrumRollConverter(converterSpec.args.numSteps, converterSpec.args.pitchClasses);
+                }
+                else {
+                    throw new Error('Unknown DataConverter type in spec: ' + converterSpec.type);
+                }
+            });
+        }
     }
     MusicVAE.prototype.dispose = function () {
         var _this = this;
@@ -505,7 +525,7 @@ var MusicVAE = (function () {
 }());
 exports.MusicVAE = MusicVAE;
 
-},{"deeplearn":43}],4:[function(require,module,exports){
+},{"./data":1,"deeplearn":73}],4:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.DEFAULT_QUARTERS_PER_MINUTE = 120.0;
@@ -22652,10 +22672,10 @@ module.exports = sr;
 // to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 // copies of the Software, and to permit persons to whom the Software is
 // furnished to do so, subject to the following conditions:
-// 
+//
 // The above copyright notice and this permission notice shall be included in
 // all copies or substantial portions of the Software.
-// 
+//
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 // IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 // FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
