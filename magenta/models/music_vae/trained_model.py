@@ -126,7 +126,7 @@ class TrainedModel(object):
       temperature: The softmax temperature to use (if applicable).
       same_z: Whether to use the same latent vector for all samples in the
         batch (if applicable).
-      c_input: A sequence of control inputs to use for each sample (if
+      c_input: A sequence of control inputs to use for all samples (if
         applicable).
     Returns:
       A list of samples as NoteSequence objects.
@@ -148,12 +148,9 @@ class TrainedModel(object):
         self._max_length: length
     }
 
-    if self._z_input is not None:
-      if same_z:
-        z = np.random.randn(z_size).astype(np.float32)
-        z = np.tile(z, (batch_size, 1))
-      else:
-        z = np.random.randn(batch_size, z_size).astype(np.float32)
+    if self._z_input is not None and same_z:
+      z = np.random.randn(z_size).astype(np.float32)
+      z = np.tile(z, (batch_size, 1))
       feed_dict[self._z_input] = z
 
     if self._c_input is not None:
@@ -161,6 +158,9 @@ class TrainedModel(object):
 
     outputs = []
     for _ in range(int(np.ceil(n / batch_size))):
+      if self._z_input is not None and not same_z:
+        feed_dict[self._z_input] = (
+            np.random.randn(batch_size, z_size).astype(np.float32))
       outputs.append(self._sess.run(self._outputs, feed_dict))
     samples = np.vstack(outputs)[:n]
     if self._c_input is not None:
