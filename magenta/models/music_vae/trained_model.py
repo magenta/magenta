@@ -126,15 +126,13 @@ class TrainedModel(object):
       temperature: The softmax temperature to use (if applicable).
       same_z: Whether to use the same latent vector for all samples in the
         batch (if applicable).
-      c_input: A sequence of control inputs to use for each sample (if
+      c_input: A sequence of control inputs to use for all samples (if
         applicable).
     Returns:
       A list of samples as NoteSequence objects.
     Raises:
       ValueError: If `length` is not specified and an end token is not being
         used.
-      ValueError: If the model requires a `c_input` and it is not given or its
-        first dimension does not equal `n`.
     """
     batch_size = self._config.hparams.batch_size
     n = n or batch_size
@@ -156,20 +154,13 @@ class TrainedModel(object):
       feed_dict[self._z_input] = z
 
     if self._c_input is not None:
-      if c_input is None:
-        raise ValueError('`c_input` must be provided for this model.')
-      if c_input.shape[0] != n:
-        raise ValueError(
-            '`c_input` must have a first dimension of size `n`, got: %d vs %d' %
-            (c_input.shape[0], n))
+      feed_dict[self._c_input] = c_input
 
     outputs = []
     for b in range(int(np.ceil(n / batch_size))):
       if self._z_input is not None and not same_z:
         feed_dict[self._z_input] = (
             np.random.randn(batch_size, z_size).astype(np.float32))
-      if self._c_input is not None:
-        feed_dict[self._c_input] = c_input[b*n:(b+1)*n]
       outputs.append(self._sess.run(self._outputs, feed_dict))
     samples = np.vstack(outputs)[:n]
     if self._c_input is not None:
