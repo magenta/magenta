@@ -30,7 +30,7 @@ export {
 
 export  { INoteSequence, INote } from '@magenta/core';
 
-export const isDeviceSupported = isWebGLSupported() && !isSafari();
+export const isDeviceSupported = isWebGLSupported();
 
 ////////////
 // pulled from deeplearnjs/demos/utils.ts
@@ -38,16 +38,4 @@ export const isDeviceSupported = isWebGLSupported() && !isSafari();
 // NPM
 function isWebGLSupported(): boolean {
   return dl.ENV.get('WEBGL_VERSION') >= 1;
-}
-
-function isSafari(): boolean {
-  const ua = navigator.userAgent.toLowerCase();
-  if (ua.indexOf('safari') !== -1) {
-    if (ua.indexOf('chrome') > -1) {
-      return false;
-    } else {
-      return true;
-    }
-  }
-  return false;
 }
