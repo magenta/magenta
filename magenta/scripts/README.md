@@ -4,7 +4,7 @@ After [installing Magenta](/README.md), you can build your first MIDI dataset. W
 
 Warnings may be printed by the MIDI parser if it encounters a malformed MIDI file but these can be safely ignored. MIDI files that cannot be parsed will be skipped.
 
-You can also convert MusicXML files to NoteSequences.
+You can also convert [MusicXML](http://www.musicxml.com/) files and [ABC](http://abcnotation.com/) files to NoteSequences.
 ```
 INPUT_DIRECTORY=<folder containing MIDI and/or MusicXML files. can have child folders.>
 
