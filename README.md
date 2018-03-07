@@ -28,8 +28,8 @@ group](https://groups.google.com/a/tensorflow.org/forum/#!forum/magenta-discuss)
 
 Magenta maintains a [pip package](https://pypi.python.org/pypi/magenta) for easy
 installation. We recommend using Anaconda to install it, but it can work in any
-standard Python 2.7 environment. These instructions will assume you are using
-Anaconda.
+standard Python environment. We support both Python 2 (>= 2.7) and Python 3 (>= 3.5).
+These instructions will assume you are using Anaconda.
 
 Note that if you want to enable GPU support, you should follow the [GPU Installation](#gpu-installation) instructions below.
 
@@ -202,8 +202,7 @@ Finally,
 To see what version of TensorFlow the code currently requires, check the
 dependency listed in [setup.py](magenta/tools/pip/setup.py).
 
-Also, verify that your environment uses Python 2.7. We do aim to support
-Python 3 eventually, but it is currently experimental.
+Also, verify that your environment uses a supported Python version: >=2.7 for Python 2 or >=3.5 for Python 3.
 
 After that's done, run the tests with this command:
 
