@@ -75,6 +75,12 @@ Install the Magenta pip package:
 pip install magenta
 ```
 
+Note that in order to install the `rtmidi` package that we depend on, you may need to install headers for some sound libraries. On Linux, this command should install the necessary packages:
+
+```
+sudo apt-get install build-essential libasound2-dev libjack-dev
+```
+
 The Magenta libraries are now available for use within Python programs and
 Jupyter notebooks, and the Magenta scripts are installed in your path!
 
