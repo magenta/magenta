@@ -133,6 +133,8 @@ class TrainedModel(object):
     Raises:
       ValueError: If `length` is not specified and an end token is not being
         used.
+      ValueError: If the model requires a `c_input` and it is not given or its
+        first dimension does not equal `n`.
     """
     batch_size = self._config.hparams.batch_size
     n = n or batch_size
@@ -148,19 +150,26 @@ class TrainedModel(object):
         self._max_length: length
     }
 
-    if self._z_input is not None:
-      if same_z:
-        z = np.random.randn(z_size).astype(np.float32)
-        z = np.tile(z, (batch_size, 1))
-      else:
-        z = np.random.randn(batch_size, z_size).astype(np.float32)
+    if self._z_input is not None and same_z:
+      z = np.random.randn(z_size).astype(np.float32)
+      z = np.tile(z, (batch_size, 1))
       feed_dict[self._z_input] = z
 
     if self._c_input is not None:
-      feed_dict[self._c_input] = c_input
+      if c_input is None:
+        raise ValueError('`c_input` must be provided for this model.')
+      if c_input.shape[0] != n:
+        raise ValueError(
+            '`c_input` must have a first dimension of size `n`, got: %d vs %d' %
+            (c_input.shape[0], n))
 
     outputs = []
-    for _ in range(int(np.ceil(n / batch_size))):
+    for b in range(int(np.ceil(n / batch_size))):
+      if self._z_input is not None and not same_z:
+        feed_dict[self._z_input] = (
+            np.random.randn(batch_size, z_size).astype(np.float32))
+      if self._c_input is not None:
+        feed_dict[self._c_input] = c_input[b*n:(b+1)*n]
       outputs.append(self._sess.run(self._outputs, feed_dict))
     samples = np.vstack(outputs)[:n]
     if self._c_input is not None:
