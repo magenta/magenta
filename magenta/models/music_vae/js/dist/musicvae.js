@@ -24,6 +24,21 @@ var DEFAULT_DRUM_PITCH_CLASSES = [
     [49, 55, 57, 58],
     [51, 52, 53, 59, 82]
 ];
+function converterFromSpec(spec) {
+    if (spec.type === 'MelodyConverter') {
+        return new MelodyConverter(spec.args.numSteps, spec.args.minPitch, spec.args.maxPitch);
+    }
+    else if (spec.type === 'DrumsConverter') {
+        return new DrumsConverter(spec.args.numSteps, spec.args.pitchClasses);
+    }
+    else if (spec.type === 'DrumRollConverter') {
+        return new DrumRollConverter(spec.args.numSteps, spec.args.pitchClasses);
+    }
+    else {
+        throw new Error('Unknown DataConverter type in spec: ' + spec.type);
+    }
+}
+exports.converterFromSpec = converterFromSpec;
 var DataConverter = (function () {
     function DataConverter() {
     }
@@ -397,18 +412,7 @@ var MusicVAE = (function () {
             fetch(checkpointURL + '/converter.json')
                 .then(function (response) { return response.json(); })
                 .then(function (converterSpec) {
-                if (converterSpec.type === 'MelodyConverter') {
-                    _this.dataConverter = new data.MelodyConverter(converterSpec.args.numSteps, converterSpec.args.minPitch, converterSpec.args.maxPitch);
-                }
-                else if (converterSpec.type === 'DrumsConverter') {
-                    _this.dataConverter = new data.DrumsConverter(converterSpec.args.numSteps, converterSpec.args.pitchClasses);
-                }
-                else if (converterSpec.type === 'DrumRollConverter') {
-                    _this.dataConverter = new data.DrumRollConverter(converterSpec.args.numSteps, converterSpec.args.pitchClasses);
-                }
-                else {
-                    throw new Error('Unknown DataConverter type in spec: ' + converterSpec.type);
-                }
+                _this.dataConverter = data.converterFromSpec(converterSpec);
             });
         }
     }

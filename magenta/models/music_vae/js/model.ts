@@ -326,23 +326,7 @@ class MusicVAE {
       fetch(checkpointURL + '/converter.json')
         .then((response) => response.json())
         .then((converterSpec: data.ConverterSpec) => {
-          if (converterSpec.type === 'MelodyConverter') {
-            this.dataConverter = new data.MelodyConverter(
-              converterSpec.args.numSteps,
-              converterSpec.args.minPitch,
-              converterSpec.args.maxPitch);
-          } else if (converterSpec.type === 'DrumsConverter') {
-            this.dataConverter = new data.DrumsConverter(
-              converterSpec.args.numSteps,
-              converterSpec.args.pitchClasses);
-          } else if (converterSpec.type === 'DrumRollConverter') {
-            this.dataConverter = new data.DrumRollConverter(
-              converterSpec.args.numSteps,
-              converterSpec.args.pitchClasses);
-          } else {
-            throw new Error(
-              'Unknown DataConverter type in spec: ' + converterSpec.type);
-          }
+          this.dataConverter = data.converterFromSpec(converterSpec);
         });
     }
   }
