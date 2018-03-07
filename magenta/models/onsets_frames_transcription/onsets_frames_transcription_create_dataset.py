@@ -25,6 +25,7 @@ import bisect
 import glob
 import math
 import os
+import re
 
 # internal imports
 import numpy as np
@@ -45,7 +46,7 @@ tf.app.flags.DEFINE_integer('max_length', 20, 'maximum segment length')
 tf.app.flags.DEFINE_integer('sample_rate', 16000, 'desired sample rate')
 
 test_dirs = ['ENSTDkCl/MUS', 'ENSTDkAm/MUS']
-train_dirs = ['AkPnBcht/MUS', 'AkPnBsdf/MUS', 'AkPnCGdG/MUS', 'AkPnStgb/MUS',
+train_dirs = ['AkPnBcht/MUS', 'AkPnBsdf/MUS', 'AkPnCGdD/MUS', 'AkPnStgb/MUS',
               'SptkBGAm/MUS', 'SptkBGCl/MUS', 'StbgTGd2/MUS']
 
 
@@ -221,7 +222,13 @@ def find_split_points(note_sequence, samples, sample_rate, min_length,
   return split_points
 
 
-def generate_train_set():
+def filename_to_id(filename):
+  """Translate a .wav or .mid path to a MAPS sequence id."""
+  return re.match(r'.*MUS-(.*)_[^_]+\.\w{3}',
+                  os.path.basename(filename)).group(1)
+
+
+def generate_train_set(exclude_ids):
   """Generate the train TFRecord."""
   train_file_pairs = []
   for directory in train_dirs:
@@ -232,7 +239,9 @@ def generate_train_set():
     for wav_file in wav_files:
       base_name_root, _ = os.path.splitext(wav_file)
       mid_file = base_name_root + '.mid'
-      train_file_pairs.append((wav_file, mid_file))
+      if filename_to_id(wav_file) not in exclude_ids:
+        train_file_pairs.append((wav_file, mid_file))
+
 
   train_output_name = os.path.join(FLAGS.output_dir,
                                    'maps_config2_train.tfrecord')
@@ -319,10 +328,12 @@ def generate_test_set():
           }))
       writer.write(example.SerializeToString())
 
+  return [filename_to_id(wav) for wav, mid in test_file_pairs]
+
 
 def main(unused_argv):
-  generate_train_set()
-  generate_test_set()
+  test_ids = generate_test_set()
+  generate_train_set(test_ids)
 
 
 def console_entry_point():
