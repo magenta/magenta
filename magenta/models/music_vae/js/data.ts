@@ -40,6 +40,12 @@ const DEFAULT_DRUM_PITCH_CLASSES: number[][] = [
   [51, 52, 53, 59, 82]
 ];
 
+/**
+ * Interface for JSON specification of a `DataConverter`.
+ * @property type The name of the `DataConverter` class.
+ * @property args Map containing values for argments to the constructor of the
+ * `DataConverter` class specified above.
+ */
 export interface ConverterSpec {
   type: string;
   args: {[argName: string] : any};   // tslint:disable-line:no-any
