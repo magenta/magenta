@@ -2,9 +2,9 @@
 # yarn lockfile v1
 
 
-"@magenta/protobuf@^0.0.2":
-  version "0.0.2"
-  resolved "https://registry.yarnpkg.com/@magenta/protobuf/-/protobuf-0.0.2.tgz#d499682265d7d0e4bbc8f64984c86bd9371f9f11"
+"@magenta/protobuf@^0.0.3":
+  version "0.0.3"
+  resolved "https://registry.yarnpkg.com/@magenta/protobuf/-/protobuf-0.0.3.tgz#f8d624166638c14ee3ca8c75864f75a2ce96e3b7"
   dependencies:
     protobufjs "^6.8.6"
 
@@ -754,6 +754,10 @@ js-tokens@^3.0.2:
   version "3.0.2"
   resolved "https://registry.yarnpkg.com/js-tokens/-/js-tokens-3.0.2.tgz#9866df395102130e38f7f996bceb65443209c25b"
 
+jsmidgen@^0.1.5:
+  version "0.1.5"
+  resolved "https://registry.yarnpkg.com/jsmidgen/-/jsmidgen-0.1.5.tgz#ad0afd6375eb12f51064025393ce3baec380585d"
+
 json-stable-stringify@~0.0.0:
   version "0.0.1"
   resolved "https://registry.yarnpkg.com/json-stable-stringify/-/json-stable-stringify-0.0.1.tgz#611c23e814db375527df851193db59dd2af27f45"
@@ -800,6 +804,17 @@ md5.js@^1.3.4:
   dependencies:
     hash-base "^3.0.0"
     inherits "^2.0.1"
+
+midi-file-parser@^1.0.0:
+  version "1.0.0"
+  resolved "https://registry.yarnpkg.com/midi-file-parser/-/midi-file-parser-1.0.0.tgz#175a013f277e9d26acf94cfe6c03b13abb0a1e9e"
+
+midiconvert@^0.4.3:
+  version "0.4.3"
+  resolved "https://registry.yarnpkg.com/midiconvert/-/midiconvert-0.4.3.tgz#97623b0ddecf39dd9d12499aef96611a83bba585"
+  dependencies:
+    jsmidgen "^0.1.5"
+    midi-file-parser "^1.0.0"
 
 miller-rabin@^4.0.0:
   version "4.0.1"
@@ -1222,9 +1237,9 @@ to-arraybuffer@^1.0.0:
   version "1.0.1"
   resolved "https://registry.yarnpkg.com/to-arraybuffer/-/to-arraybuffer-1.0.1.tgz#7d229b1fcc637e466ca081180836a7aabff83f43"
 
-ts-node@^5.0.0:
-  version "5.0.0"
-  resolved "https://registry.yarnpkg.com/ts-node/-/ts-node-5.0.0.tgz#9aa573889ad7949411f972981c209e064705e36f"
+ts-node@^5.0.1:
+  version "5.0.1"
+  resolved "https://registry.yarnpkg.com/ts-node/-/ts-node-5.0.1.tgz#78e5d1cb3f704de1b641e43b76be2d4094f06f81"
   dependencies:
     arrify "^1.0.0"
     chalk "^2.3.0"

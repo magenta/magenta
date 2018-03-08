@@ -1225,7 +1225,8 @@ export namespace tensorflow {
                     PRETTY_MIDI = 2,
                     MAGENTA_MUSIC_XML = 3,
                     MAGENTA_MUSICNET = 4,
-                    MAGENTA_ABC = 5
+                    MAGENTA_ABC = 5,
+                    TONEJS_MIDI_CONVERT = 6
                 }
             }
 
