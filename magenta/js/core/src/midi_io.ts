@@ -61,13 +61,15 @@ export class MidiIO {
       }
 
       for (const note of track.notes) {
-        const endTime = note.time + note.duration;
+        const startTime:number = note.time;
+        const duration:number = note.duration;
+        const endTime:number = startTime + duration;
 
         ns.notes.push(NoteSequence.Note.create({
           instrument: instrumentNumber,
           program: track.instrumentNumber,
-          startTime: note.time,
-          endTime: endTime,
+          startTime,
+          endTime,
           pitch: note.midi,
           velocity: Math.floor(note.velocity * constants.MIDI_VELOCITIES),
           isDrum: track.isPercussion
