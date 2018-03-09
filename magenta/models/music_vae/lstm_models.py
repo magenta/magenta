@@ -63,8 +63,8 @@ class LstmEncoder(base_model.BaseEncoder):
           name_or_scope=self._name_or_scope)
     else:
       self._cell = lstm_utils.rnn_cell(
-          hparams.enc_rnn_size, hparams.dropout_keep_prob, is_training,
-          hparams.residual_encoder)
+          hparams.enc_rnn_size, hparams.dropout_keep_prob,
+          hparams.residual_encoder, is_training)
 
   def encode(self, sequence, sequence_length):
     # Convert to time-major.
@@ -125,12 +125,12 @@ class BidirectionalLstmEncoder(base_model.BaseEncoder):
       else:
         cells_fw.append(
             lstm_utils.rnn_cell(
-                [layer_size], hparams.dropout_keep_prob, is_training,
-                hparams.residual_encoder))
+                [layer_size], hparams.dropout_keep_prob,
+                hparams.residual_encoder, is_training))
         cells_bw.append(
             lstm_utils.rnn_cell(
-                [layer_size], hparams.dropout_keep_prob, is_training,
-                hparams.residual_encoder))
+                [layer_size], hparams.dropout_keep_prob,
+                hparams.residual_encoder, is_training))
 
     self._cells = (cells_fw, cells_bw)
 
@@ -298,8 +298,8 @@ class BaseLstmDecoder(base_model.BaseDecoder):
     self._output_layer = layers_core.Dense(
         output_depth, name='output_projection')
     self._dec_cell = lstm_utils.rnn_cell(
-        hparams.dec_rnn_size, hparams.dropout_keep_prob, is_training,
-        hparams.residual_decoder)
+        hparams.dec_rnn_size, hparams.dropout_keep_prob,
+        hparams.residual_decoder, is_training)
     self._cudnn_dec_lstm = lstm_utils.cudnn_lstm_layer(
         hparams.dec_rnn_size, hparams.dropout_keep_prob, is_training,
         name_or_scope='decoder') if hparams.use_cudnn else None
