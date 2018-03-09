@@ -28,12 +28,17 @@ from tensorflow.contrib.cudnn_rnn.python.layers import cudnn_rnn
 from tensorflow.python.util import nest
 
 
-def rnn_cell(rnn_cell_size, dropout_keep_prob, is_training=True):
+def rnn_cell(rnn_cell_size, dropout_keep_prob, is_training=True,
+             residual=False):
   """Builds an LSTMBlockCell based on the given parameters."""
   dropout_keep_prob = dropout_keep_prob if is_training else 1.0
   cells = []
-  for layer_size in rnn_cell_size:
-    cell = rnn.LSTMBlockCell(layer_size)
+  for i in range(len(rnn_cell_size)):
+    cell = rnn.LSTMBlockCell(rnn_cell_size[i])
+    if residual:
+      cell = rnn.ResidualWrapper(cell)
+      if i == 0 or rnn_cell_size[i] != rnn_cell_size[i - 1]:
+        cell = rnn.InputProjectionWrapper(cell, rnn_cell_size[i])
     cell = rnn.DropoutWrapper(
         cell,
         input_keep_prob=dropout_keep_prob)

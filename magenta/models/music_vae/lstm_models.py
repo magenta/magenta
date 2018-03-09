@@ -45,6 +45,9 @@ class LstmEncoder(base_model.BaseEncoder):
     return self._cell.output_size
 
   def build(self, hparams, is_training=True, name_or_scope='encoder'):
+    if hparams.use_cudnn and hparams.residual_encoder:
+      raise ValueError('Residual connections not supported in cuDNN.')
+
     self._is_training = is_training
     self._name_or_scope = name_or_scope
     self._use_cudnn = hparams.use_cudnn
@@ -60,7 +63,8 @@ class LstmEncoder(base_model.BaseEncoder):
           name_or_scope=self._name_or_scope)
     else:
       self._cell = lstm_utils.rnn_cell(
-          hparams.enc_rnn_size, hparams.dropout_keep_prob, is_training)
+          hparams.enc_rnn_size, hparams.dropout_keep_prob, is_training,
+          hparams.residual_encoder)
 
   def encode(self, sequence, sequence_length):
     # Convert to time-major.
@@ -86,6 +90,9 @@ class BidirectionalLstmEncoder(base_model.BaseEncoder):
     return self._cells[0][-1].output_size + self._cells[1][-1].output_size
 
   def build(self, hparams, is_training=True, name_or_scope='encoder'):
+    if hparams.use_cudnn and hparams.residual_decoder:
+      raise ValueError('Residual connections not supported in cuDNN.')
+
     self._is_training = is_training
     self._name_or_scope = name_or_scope
     self._use_cudnn = hparams.use_cudnn
@@ -118,10 +125,12 @@ class BidirectionalLstmEncoder(base_model.BaseEncoder):
       else:
         cells_fw.append(
             lstm_utils.rnn_cell(
-                [layer_size], hparams.dropout_keep_prob, is_training))
+                [layer_size], hparams.dropout_keep_prob, is_training,
+                hparams.residual_encoder))
         cells_bw.append(
             lstm_utils.rnn_cell(
-                [layer_size], hparams.dropout_keep_prob, is_training))
+                [layer_size], hparams.dropout_keep_prob, is_training,
+                hparams.residual_encoder))
 
     self._cells = (cells_fw, cells_bw)
 
@@ -274,6 +283,9 @@ class BaseLstmDecoder(base_model.BaseDecoder):
   """
 
   def build(self, hparams, output_depth, is_training=False):
+    if hparams.use_cudnn and hparams.residual_decoder:
+      raise ValueError('Residual connections not supported in cuDNN.')
+
     self._is_training = is_training
 
     tf.logging.info('\nDecoder Cells:\n'
@@ -286,7 +298,8 @@ class BaseLstmDecoder(base_model.BaseDecoder):
     self._output_layer = layers_core.Dense(
         output_depth, name='output_projection')
     self._dec_cell = lstm_utils.rnn_cell(
-        hparams.dec_rnn_size, hparams.dropout_keep_prob, is_training)
+        hparams.dec_rnn_size, hparams.dropout_keep_prob, is_training,
+        hparams.residual_decoder)
     self._cudnn_dec_lstm = lstm_utils.cudnn_lstm_layer(
         hparams.dec_rnn_size, hparams.dropout_keep_prob, is_training,
         name_or_scope='decoder') if hparams.use_cudnn else None
@@ -965,7 +978,8 @@ class HierarchicalLstmDecoder(base_model.BaseDecoder):
     self._hier_cells = [
         lstm_utils.rnn_cell(
             hparams.dec_rnn_size,
-            dropout_keep_prob=hparams.dropout_keep_prob)
+            dropout_keep_prob=hparams.dropout_keep_prob,
+            residual=hparams.residual_decoder)
         for _ in range(len(self._level_lengths))]
 
     with tf.variable_scope('core_decoder', reuse=tf.AUTO_REUSE):
@@ -1260,5 +1274,7 @@ def get_default_hparams():
       'sampling_schedule': 'constant',  # constant, exponential, inverse_sigmoid
       'sampling_rate': 0.0,  # Interpretation is based on `sampling_schedule`.
       'use_cudnn': False,  # Uses faster CudnnLSTM to train. For GPU only.
+      'residual_encoder': False,  # Use residual connections in encoder.
+      'residual_decoder': False,  # Use residual connections in decoder.
   })
   return tf.contrib.training.HParams(**hparams_map)
