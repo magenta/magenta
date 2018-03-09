@@ -35,7 +35,7 @@ def export_saved_model(model, destination):
 
   signature_def_map = {
       tf.saved_model.signature_constants.DEFAULT_SERVING_SIGNATURE_DEF_KEY:
-      signature},
+      signature}
 
   builder.add_meta_graph_and_variables(
       model.sess,

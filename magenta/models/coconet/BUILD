@@ -135,6 +135,19 @@ py_library(
 )
 
 py_binary(
+  name = "export_saved_model",
+  srcs = ["export_saved_model.py"],
+  srcs_version = "PY2AND3",
+  visibility = [
+      # internal notebook binary
+  ],
+  deps = [
+      ":lib_graph",
+      # tensorflow dep
+  ],
+)
+
+py_binary(
     name = "coconet_train",
     srcs = ["coconet_train.py"],
     data = [
