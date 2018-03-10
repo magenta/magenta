@@ -46,6 +46,7 @@ REQUIRED_PACKAGES = [
     'pretty_midi >= 0.2.6',
     'python-rtmidi',
     'scipy >= 0.18.1',
+    'tornado < 5.0',
     'wheel',
 ]
 
