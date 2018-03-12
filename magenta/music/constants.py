@@ -41,6 +41,10 @@ NOTES_PER_OCTAVE = 12
 MIN_MIDI_VELOCITY = 1  # Inclusive.
 MAX_MIDI_VELOCITY = 127  # Inclusive.
 
+# Program-related constants.
+MIN_MIDI_PROGRAM = 0
+MAX_MIDI_PROGRAM = 127
+
 # Chord symbol for "no chord".
 NO_CHORD = 'N.C.'
 
