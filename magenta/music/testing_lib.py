@@ -21,7 +21,8 @@ from magenta.protobuf import music_pb2
 CHORD_SYMBOL = music_pb2.NoteSequence.TextAnnotation.CHORD_SYMBOL
 
 
-def add_track_to_sequence(note_sequence, instrument, notes, is_drum=False):
+def add_track_to_sequence(note_sequence, instrument, notes,
+                          is_drum=False, program=0):
   for pitch, velocity, start_time, end_time in notes:
     note = note_sequence.notes.add()
     note.pitch = pitch
@@ -30,6 +31,7 @@ def add_track_to_sequence(note_sequence, instrument, notes, is_drum=False):
     note.end_time = end_time
     note.instrument = instrument
     note.is_drum = is_drum
+    note.program = program
     if end_time > note_sequence.total_time:
       note_sequence.total_time = end_time
 

@@ -43,6 +43,8 @@ STANDARD_PPQ = constants.STANDARD_PPQ
 DEFAULT_MAX_SHIFT_STEPS = 100
 DEFAULT_MAX_SHIFT_QUARTERS = 4
 
+DEFAULT_PROGRAM = 0
+
 
 class PerformanceEvent(object):
   """Class for storing events in a performance."""
@@ -91,7 +93,8 @@ class BasePerformance(events_lib.EventSequence):
   """
   __metaclass__ = abc.ABCMeta
 
-  def __init__(self, start_step, num_velocity_bins, max_shift_steps):
+  def __init__(self, start_step, num_velocity_bins, max_shift_steps,
+               program=None, is_drum=None):
     """Construct a BasePerformance.
 
     Args:
@@ -99,6 +102,9 @@ class BasePerformance(events_lib.EventSequence):
           source sequence.
       num_velocity_bins: Number of velocity bins to use.
       max_shift_steps: Maximum number of steps for a single time-shift event.
+      program: MIDI program used for this performance, or None if not specified.
+      is_drum: Whether or not this performance consists of drums, or None if not
+          specified.
 
     Raises:
       ValueError: If `num_velocity_bins` is larger than the number of MIDI
@@ -111,6 +117,8 @@ class BasePerformance(events_lib.EventSequence):
     self._start_step = start_step
     self._num_velocity_bins = num_velocity_bins
     self._max_shift_steps = max_shift_steps
+    self._program = program
+    self._is_drum = is_drum
 
   @property
   def start_step(self):
@@ -119,6 +127,14 @@ class BasePerformance(events_lib.EventSequence):
   @property
   def max_shift_steps(self):
     return self._max_shift_steps
+
+  @property
+  def program(self):
+    return self._program
+
+  @property
+  def is_drum(self):
+    return self._is_drum
 
   def _append_steps(self, num_steps):
     """Adds steps to the end of the sequence."""
@@ -264,6 +280,37 @@ class BasePerformance(events_lib.EventSequence):
     return result
 
   @staticmethod
+  def _program_and_is_drum_from_sequence(sequence, instrument=None):
+    """Get MIDI program and is_drum from sequence and (optional) instrument.
+
+    Args:
+      sequence: The NoteSequence from which MIDI program and is_drum will be
+          extracted.
+      instrument: The instrument in `sequence` from which MIDI program and
+          is_drum will be extracted, or None to consider all instruments.
+
+    Returns:
+      A tuple containing program and is_drum for the sequence and optional
+      instrument. If multiple programs are found (or if is_drum is True),
+      program will be None. If multiple values of is_drum are found, is_drum
+      will be None.
+    """
+    notes = [note for note in sequence.notes
+             if instrument is None or note.instrument == instrument]
+    # Only set program for non-drum tracks.
+    if all(note.is_drum for note in notes):
+      is_drum = True
+      program = None
+    elif all(not note.is_drum for note in notes):
+      is_drum = False
+      programs = set(note.program for note in notes)
+      program = programs.pop() if len(programs) == 1 else None
+    else:
+      is_drum = None
+      program = None
+    return program, is_drum
+
+  @staticmethod
   def _from_quantized_sequence(quantized_sequence, start_step,
                                num_velocity_bins, max_shift_steps,
                                instrument=None):
@@ -287,7 +334,7 @@ class BasePerformance(events_lib.EventSequence):
       A list of events.
     """
     notes = [note for note in quantized_sequence.notes
-             if not note.is_drum and note.quantized_start_step >= start_step
+             if note.quantized_start_step >= start_step
              and (instrument is None or note.instrument == instrument)]
     sorted_notes = sorted(notes, key=lambda note: (note.start_time, note.pitch))
 
@@ -350,7 +397,9 @@ class BasePerformance(events_lib.EventSequence):
           If the performance contains velocity events, those will be used
           instead.
       instrument: MIDI instrument to give each note.
-      program: MIDI program to give each note.
+      program: MIDI program to give each note, or None to use the program
+          associated with the Performance (or the default program if none
+          exists).
       max_note_duration: Maximum note duration in seconds to allow. Notes longer
           than this will be truncated. If None, notes can be any length.
 
@@ -367,6 +416,11 @@ class BasePerformance(events_lib.EventSequence):
     sequence.ticks_per_quarter = STANDARD_PPQ
 
     step = 0
+
+    if program is None:
+      # Use program associated with the performance (or default program).
+      program = self.program if self.program is not None else DEFAULT_PROGRAM
+    is_drum = self.is_drum if self.is_drum is not None else False
 
     if self._num_velocity_bins:
       velocity_bin_size = int(math.ceil(
@@ -404,6 +458,7 @@ class BasePerformance(events_lib.EventSequence):
           note.velocity = pitch_velocity
           note.instrument = instrument
           note.program = program
+          note.is_drum = is_drum
           if note.end_time > sequence.total_time:
             sequence.total_time = note.end_time
       elif event.event_type == PerformanceEvent.TIME_SHIFT:
@@ -435,6 +490,7 @@ class BasePerformance(events_lib.EventSequence):
         note.velocity = pitch_velocity
         note.instrument = instrument
         note.program = program
+        note.is_drum = is_drum
         if note.end_time > sequence.total_time:
           sequence.total_time = note.end_time
 
@@ -446,7 +502,8 @@ class Performance(BasePerformance):
 
   def __init__(self, quantized_sequence=None, steps_per_second=None,
                start_step=0, num_velocity_bins=0,
-               max_shift_steps=DEFAULT_MAX_SHIFT_STEPS, instrument=None):
+               max_shift_steps=DEFAULT_MAX_SHIFT_STEPS, instrument=None,
+               program=None, is_drum=None):
     """Construct a Performance.
 
     Either quantized_sequence or steps_per_second should be supplied.
@@ -463,6 +520,10 @@ class Performance(BasePerformance):
       max_shift_steps: Maximum number of steps for a single time-shift event.
       instrument: If not None, extract only the specified instrument from
           `quantized_sequence`. Otherwise, extract all instruments.
+      program: MIDI program used for this performance, or None if not specified.
+          Ignored if `quantized_sequence` is provided.
+      is_drum: Whether or not this performance consists of drums, or None if not
+          specified. Ignored if `quantized_sequence` is provided.
 
     Raises:
       ValueError: If both or neither of `quantized_sequence` or
@@ -479,6 +540,8 @@ class Performance(BasePerformance):
       self._events = self._from_quantized_sequence(
           quantized_sequence, start_step, num_velocity_bins,
           max_shift_steps=max_shift_steps, instrument=instrument)
+      program, is_drum = self._program_and_is_drum_from_sequence(
+          quantized_sequence, instrument)
 
     else:
       self._steps_per_second = steps_per_second
@@ -487,7 +550,9 @@ class Performance(BasePerformance):
     super(Performance, self).__init__(
         start_step=start_step,
         num_velocity_bins=num_velocity_bins,
-        max_shift_steps=max_shift_steps)
+        max_shift_steps=max_shift_steps,
+        program=program,
+        is_drum=is_drum)
 
   @property
   def steps_per_second(self):
@@ -496,7 +561,7 @@ class Performance(BasePerformance):
   def to_sequence(self,
                   velocity=100,
                   instrument=0,
-                  program=0,
+                  program=None,
                   max_note_duration=None):
     """Converts the Performance to NoteSequence proto.
 
@@ -505,7 +570,9 @@ class Performance(BasePerformance):
           If the performance contains velocity events, those will be used
           instead.
       instrument: MIDI instrument to give each note.
-      program: MIDI program to give each note.
+      program: MIDI program to give each note, or None to use the program
+          associated with the Performance (or the default program if none
+          exists).
       max_note_duration: Maximum note duration in seconds to allow. Notes longer
           than this will be truncated. If None, notes can be any length.
 
@@ -526,7 +593,8 @@ class MetricPerformance(BasePerformance):
 
   def __init__(self, quantized_sequence=None, steps_per_quarter=None,
                start_step=0, num_velocity_bins=0,
-               max_shift_quarters=DEFAULT_MAX_SHIFT_QUARTERS, instrument=None):
+               max_shift_quarters=DEFAULT_MAX_SHIFT_QUARTERS, instrument=None,
+               program=None, is_drum=None):
     """Construct a MetricPerformance.
 
     Either quantized_sequence or steps_per_quarter should be supplied.
@@ -544,6 +612,10 @@ class MetricPerformance(BasePerformance):
           shift event.
       instrument: If not None, extract only the specified instrument from
           `quantized_sequence`. Otherwise, extract all instruments.
+      program: MIDI program used for this performance, or None if not specified.
+          Ignored if `quantized_sequence` is provided.
+      is_drum: Whether or not this performance consists of drums, or None if not
+          specified. Ignored if `quantized_sequence` is provided.
 
     Raises:
       ValueError: If both or neither of `quantized_sequence` or
@@ -561,6 +633,8 @@ class MetricPerformance(BasePerformance):
           quantized_sequence, start_step, num_velocity_bins,
           max_shift_steps=self._steps_per_quarter * max_shift_quarters,
           instrument=instrument)
+      program, is_drum = self._program_and_is_drum_from_sequence(
+          quantized_sequence, instrument)
 
     else:
       self._steps_per_quarter = steps_per_quarter
@@ -569,7 +643,9 @@ class MetricPerformance(BasePerformance):
     super(MetricPerformance, self).__init__(
         start_step=start_step,
         num_velocity_bins=num_velocity_bins,
-        max_shift_steps=self._steps_per_quarter * max_shift_quarters)
+        max_shift_steps=self._steps_per_quarter * max_shift_quarters,
+        program=program,
+        is_drum=is_drum)
 
   @property
   def steps_per_quarter(self):
@@ -578,7 +654,7 @@ class MetricPerformance(BasePerformance):
   def to_sequence(self,
                   velocity=100,
                   instrument=0,
-                  program=0,
+                  program=None,
                   max_note_duration=None,
                   qpm=120.0):
     """Converts the Performance to NoteSequence proto.
@@ -588,7 +664,9 @@ class MetricPerformance(BasePerformance):
           If the performance contains velocity events, those will be used
           instead.
       instrument: MIDI instrument to give each note.
-      program: MIDI program to give each note.
+      program: MIDI program to give each note, or None to use the program
+          associated with the Performance (or the default program if none
+          exists).
       max_note_duration: Maximum note duration in seconds to allow. Notes longer
           than this will be truncated. If None, notes can be any length.
       qpm: The tempo to use, in quarter notes per minute.
