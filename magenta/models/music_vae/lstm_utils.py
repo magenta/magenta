@@ -28,8 +28,7 @@ from tensorflow.contrib.cudnn_rnn.python.layers import cudnn_rnn
 from tensorflow.python.util import nest
 
 
-def rnn_cell(rnn_cell_size, dropout_keep_prob, is_training=True,
-             residual=False):
+def rnn_cell(rnn_cell_size, dropout_keep_prob, residual, is_training=True):
   """Builds an LSTMBlockCell based on the given parameters."""
   dropout_keep_prob = dropout_keep_prob if is_training else 1.0
   cells = []
