@@ -242,7 +242,6 @@ def generate_train_set(exclude_ids):
       if filename_to_id(wav_file) not in exclude_ids:
         train_file_pairs.append((wav_file, mid_file))
 
-
   train_output_name = os.path.join(FLAGS.output_dir,
                                    'maps_config2_train.tfrecord')
 
@@ -328,7 +327,7 @@ def generate_test_set():
           }))
       writer.write(example.SerializeToString())
 
-  return [filename_to_id(wav) for wav, mid in test_file_pairs]
+  return [filename_to_id(wav) for wav, _ in test_file_pairs]
 
 
 def main(unused_argv):
