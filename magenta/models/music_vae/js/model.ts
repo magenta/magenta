@@ -232,16 +232,18 @@ class Decoder {
    *
    * @param z A batch of latent vectors to decode, sized `[batchSize, zDims]`.
    * @param length The length of decoded sequences.
+   * @param temperature The softmax temperature to use when sampling from the
+   * logits. Argmax is used if not provided.
    *
    * @returns A boolean tensor containing the decoded sequences, shaped
    * `[batchSize, length, depth]`.
    */
-  decode(z: dl.Tensor2D, length: number) {
+  decode(z: dl.Tensor2D, length: number, temperature?: number) {
     const batchSize = z.shape[0];
 
     return dl.tidy(() => {
       // Initialize LSTMCells.
-      const lstmCells : dl.LSTMCell[] = [];
+      const lstmCells: dl.LSTMCellFunc[] =  [];
       let c: dl.Tensor2D[] = [];
       let h: dl.Tensor2D[] = [];
       const initialStates = dense(this.zToInitStateVars, z).tanh();
@@ -250,8 +252,8 @@ class Decoder {
         const lv = this.lstmCellVars[i];
         const stateWidth = lv.bias.shape[0] / 4;
         lstmCells.push(
-        (data: dl.Tensor2D, c: dl.Tensor2D, h: dl.Tensor2D) =>
-              dl.basicLSTMCell(forgetBias, lv.kernel, lv.bias, data, c, h));
+            (data: dl.Tensor2D, c: dl.Tensor2D, h: dl.Tensor2D) =>
+            dl.basicLSTMCell(forgetBias, lv.kernel, lv.bias, data, c, h));
         c.push(initialStates.slice([0, stateOffset], [batchSize, stateWidth]));
         stateOffset += stateWidth;
         h.push(initialStates.slice([0, stateOffset], [batchSize, stateWidth]));
@@ -270,7 +272,10 @@ class Decoder {
 
         let timeSamples: dl.Tensor2D;
         if (this.nade == null) {
-          const timeLabels = logits.argMax(1).as1D();
+          const timeLabels = (
+            temperature ?
+            dl.multinomial(logits.div(dl.scalar(temperature)), 1).as1D():
+            logits.argMax(1).as1D());
           nextInput = dl.oneHot(timeLabels, this.outputDims).toFloat();
           timeSamples = nextInput.toBool();
         } else {
@@ -490,15 +495,17 @@ class MusicVAE {
    * Samples sequences from the model prior.
    *
    * @param numSamples The number of samples to return.
+   * @param temperature The softmax temperature to use when sampling.
    *
    * @returns An array of sampled `NoteSequence` objects.
    */
-  sample(numSamples: number) {
+  sample(numSamples: number, temperature=0.5) {
     const numSteps = this.dataConverter.numSteps;
 
     const outputSequences: INoteSequence[] = [];
     dl.tidy(() => {
-      const outputTensors = this.sampleTensors(numSamples, numSteps);
+      const outputTensors = this.sampleTensors(
+          numSamples, numSteps, temperature);
       for (let i = 0; i < numSamples; ++i) {
         const t = outputTensors.slice(
             [i, 0, 0],
@@ -510,11 +517,12 @@ class MusicVAE {
     return outputSequences;
   }
 
-  private sampleTensors(numSamples: number, numSteps: number) {
+  private sampleTensors(
+    numSamples: number, numSteps: number, temperature?: number) {
     return dl.tidy(() => {
       const randZs: dl.Tensor2D = dl.randomNormal(
           [numSamples, this.decoder.zDims]);
-      return this.decoder.decode(randZs, numSteps);
+      return this.decoder.decode(randZs, numSteps, temperature);
     });
   }
 }
