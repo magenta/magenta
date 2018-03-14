@@ -24,6 +24,21 @@ var DEFAULT_DRUM_PITCH_CLASSES = [
     [49, 55, 57, 58],
     [51, 52, 53, 59, 82]
 ];
+function converterFromSpec(spec) {
+    if (spec.type === 'MelodyConverter') {
+        return new MelodyConverter(spec.args.numSteps, spec.args.minPitch, spec.args.maxPitch);
+    }
+    else if (spec.type === 'DrumsConverter') {
+        return new DrumsConverter(spec.args.numSteps, spec.args.pitchClasses);
+    }
+    else if (spec.type === 'DrumRollConverter') {
+        return new DrumRollConverter(spec.args.numSteps, spec.args.pitchClasses);
+    }
+    else {
+        throw new Error('Unknown DataConverter type in spec: ' + spec.type);
+    }
+}
+exports.converterFromSpec = converterFromSpec;
 var DataConverter = (function () {
     function DataConverter() {
     }
@@ -108,8 +123,6 @@ exports.DrumRollConverter = DrumRollConverter;
 var MelodyConverter = (function (_super) {
     __extends(MelodyConverter, _super);
     function MelodyConverter(numSteps, minPitch, maxPitch) {
-        if (minPitch === void 0) { minPitch = 21; }
-        if (maxPitch === void 0) { maxPitch = 108; }
         var _this = _super.call(this) || this;
         _this.NOTE_OFF = 1;
         _this.FIRST_PITCH = 2;
@@ -244,6 +257,7 @@ var __generator = (this && this.__generator) || function (thisArg, body) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 var dl = require("deeplearn");
+var data = require("./data");
 var DECODER_CELL_FORMAT = "decoder/multi_rnn_cell/cell_%d/lstm_cell/";
 var forgetBias = dl.scalar(1.0);
 var LayerVars = (function () {
@@ -389,8 +403,18 @@ var Decoder = (function () {
 exports.Decoder = Decoder;
 var MusicVAE = (function () {
     function MusicVAE(checkpointURL, dataConverter) {
+        var _this = this;
         this.checkpointURL = checkpointURL;
-        this.dataConverter = dataConverter;
+        if (dataConverter) {
+            this.dataConverter = dataConverter;
+        }
+        else {
+            fetch(checkpointURL + '/converter.json')
+                .then(function (response) { return response.json(); })
+                .then(function (converterSpec) {
+                _this.dataConverter = data.converterFromSpec(converterSpec);
+            });
+        }
     }
     MusicVAE.prototype.dispose = function () {
         var _this = this;
@@ -505,7 +529,7 @@ var MusicVAE = (function () {
 }());
 exports.MusicVAE = MusicVAE;
 
-},{"deeplearn":43}],4:[function(require,module,exports){
+},{"./data":1,"deeplearn":43}],4:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.DEFAULT_QUARTERS_PER_MINUTE = 120.0;

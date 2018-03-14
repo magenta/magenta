@@ -41,6 +41,45 @@ const DEFAULT_DRUM_PITCH_CLASSES: number[][] = [
 ];
 
 /**
+ * Interface for JSON specification of a `DataConverter`.
+ *
+ * @property type The name of the `DataConverter` class.
+ * @property args Map containing values for argments to the constructor of the
+ * `DataConverter` class specified above.
+ */
+export interface ConverterSpec {
+  type: string;
+  args: {[argName: string] : any};   // tslint:disable-line:no-any
+}
+
+/**
+ * Builds a `DataConverter` based on the given `ConverterSpec`.
+ *
+ * @param spec Specifies the `DataConverter` to build.
+ * @returns A new `DataConverter` object based on `spec`.
+ * @throws Error if the specified type is not recognized.
+ */
+export function converterFromSpec(spec: ConverterSpec) {
+  if (spec.type === 'MelodyConverter') {
+    return new MelodyConverter(
+        spec.args.numSteps,
+        spec.args.minPitch,
+        spec.args.maxPitch);
+  } else if (spec.type === 'DrumsConverter') {
+    return new DrumsConverter(
+        spec.args.numSteps,
+        spec.args.pitchClasses);
+  } else if (spec.type === 'DrumRollConverter') {
+    return new DrumRollConverter(
+        spec.args.numSteps,
+        spec.args.pitchClasses);
+  } else {
+    throw new Error(
+      'Unknown DataConverter type in spec: ' + spec.type);
+  }
+}
+
+/**
  * Abstract DataConverter class for converting between `Tensor` and
  * `NoteSequence` objects.
  */
@@ -193,7 +232,7 @@ export class MelodyConverter extends DataConverter{
    * @param maxPitch The maximum pitch to model. Those above this value will
    * cause an error to be thrown.
    */
-  constructor(numSteps: number, minPitch=21, maxPitch=108) {
+  constructor(numSteps: number, minPitch: number, maxPitch: number) {
     super();
     this.numSteps = numSteps;
     this.minPitch = minPitch;
