@@ -19,6 +19,7 @@ import sys
 # internal imports
 import numpy as np
 import tensorflow as tf
+from six.moves import xrange  # pylint: disable=redefined-builtin
 
 from magenta.models.nsynth import utils
 from magenta.models.nsynth.wavenet.fastgen import encode
