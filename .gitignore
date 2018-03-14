@@ -2,3 +2,5 @@
 /bazel-*
 .ipynb_checkpoints/
 *.swp
+# PNG files are expected to be added under magenta/models/omr/corpus manually.
+magenta/models/omr/corpus

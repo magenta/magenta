@@ -1,0 +1,47 @@
+syntax = "proto2";
+
+package tensorflow.magenta.omr;
+
+// MusicXML ground truth corpus. Each MusicXML file corresponds to one or more
+// music score page images. The output of OMR on the pages is compared against
+// the MusicXML ground truth to evaluate the OMR engine.
+
+message GroundTruth {
+  optional string title = 1;
+
+  optional string ground_truth_filename = 2;
+
+  // Has one or more page images corresponding to the ground truth.
+  repeated PageSpec page_spec = 3;
+
+  enum Tag {
+    // A parsed tag that was unrecognized.
+    UNKNOWN_TAG = 0;
+    // One voice per staff, with chords allowed in each voice. If not present,
+    // all staves are assumed to be polyphonic, which is not supported, and the
+    // score may be excluded from evaluation.
+    MONOPHONIC = 1;
+    // One staff per staff system.
+    SINGLE_STAFF = 2;
+    // Piano/grand staff.
+    PIANO = 3;
+    // One voice (usually connected by a beam) has notes in multiple staves.
+    // This is not supported by evaluation, and the score may be excluded from
+    // evaluation.
+    VOICES_CROSS_STAVES = 4;
+    // The score contains chords in more than one measure (chords are often
+    // present in the last measure, and we want to select scores with more than
+    // one measure).
+    CHORDS = 5;
+  }
+
+  repeated Tag tag = 4;
+}
+
+message PageSpec {
+  optional string filename = 1;
+
+  // TODO(ringwalt): Allow choosing a range of staff systems within one page.
+  // The score may have one movement end and the next movement start on the same
+  // page. The MusicXML ground truth will likely have one file per movement.
+}

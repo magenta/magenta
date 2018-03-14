@@ -1,0 +1,61 @@
+<%def name="cluster_preview(cluster)">
+  ## cluster is a tuple (index, preview, is_content).
+  <div class="cluster_preview">
+    <img src="${ cluster[1] }">
+    <select name="cluster${ cluster[0] }">
+      % for glyph_type in glyph_types:
+      <option value="${ glyph_type }">${ glyph_type }</option>
+      % endfor
+    </select>
+    <br>
+  </div>
+</%def>
+<html>
+  <head>
+    <title>Magenta OMR Patch Labeler</title>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
+    <script>
+      $(document).ready(function(){
+        $("#form").submit(function(e){
+          e.preventDefault();
+          $.ajax({
+            url: "/",
+            type: "post",
+            data: $("#form").serialize(),
+            timeout: 2000
+          }).always(function(data){
+            alert(data);
+          });
+        });
+      });
+    </script>
+    <style>
+      .cluster_preview {
+        width: 200px;
+        margin-bottom: 10px;
+        float: left;
+      }
+    </style>
+  </head>
+  <body>
+    <form id="form" action="javascript:false">
+      <h2>Clusters (likely content)</h2>
+      <div>
+        % for cluster in content_clusters:
+        ${ cluster_preview(cluster) }
+        % endfor
+        <br clear="all"/>
+      </div>
+      <h2>Clusters (likely empty)</h2>
+      <div>
+        % for cluster in empty_clusters:
+        ${ cluster_preview(cluster) }
+        % endfor
+      </div>
+      <br clear="all"/>
+      <center>
+        <input type="submit" name="Save"/>
+      </center>
+    </form>
+  </body>
+</html>
