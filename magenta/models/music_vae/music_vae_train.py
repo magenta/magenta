@@ -29,7 +29,7 @@ flags = tf.app.flags
 FLAGS = flags.FLAGS
 
 flags.DEFINE_string(
-    'master', 'local',
+    'master', '',
     'The TensorFlow master to use.')
 flags.DEFINE_string(
     'examples_path', None,
