@@ -8,7 +8,7 @@ To use in your application, install the npm package [@magenta/music-vae](https:/
 
 You can then instantiate a `MusicVAE` object with:
 
-```
+```js
 let mvae = new MusicVAE('/path/to/checkpoint')
 ```
 
