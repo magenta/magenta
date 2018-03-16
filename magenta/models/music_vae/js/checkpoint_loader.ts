@@ -124,13 +124,13 @@ export class CheckpointLoader {
             if (quantInfo) {
               let quantValues: Float32Array;
               if (quantInfo.bytes === 1) {
-                quantValues =  Float32Array.from(new Uint8Array(xhr.response));
+                quantValues = Float32Array.from(new Uint8Array(xhr.response));
               } else if (quantInfo.bytes === 2) {
-                quantValues =  Float32Array.from(new Uint16Array(xhr.response));
+                quantValues = Float32Array.from(new Uint16Array(xhr.response));
               } else {
                 throw new Error(
-                  'Quantization bytes must be either 1 or 2. Got: ' +
-                  quantInfo.bytes);
+                  'Quantization bytes must be either 1 or 2. ' +
+                  'Got: ${quantInfo.bytes}');
               }
               let quantConstant = 1.0;
               if (quantInfo.max !== quantInfo.min) {
