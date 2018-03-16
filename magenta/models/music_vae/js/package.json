@@ -29,7 +29,7 @@
   "dependencies": {
     "@magenta/core": "^0.0.9",
     "clang-format": "^1.2.2",
-    "deeplearn": "next",
+    "deeplearn": "^0.6.0-alpha6",
     "tslint": "^5.9.1"
   }
 }

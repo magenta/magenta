@@ -16,6 +16,8 @@
  */
 import * as dl from 'deeplearn';
 import * as data from './data';
+// Use custom CheckpointLoader until quantization is added to dl.
+import { CheckpointLoader } from './checkpoint_loader';
 
 const DECODER_CELL_FORMAT = "decoder/multi_rnn_cell/cell_%d/lstm_cell/";
 
@@ -345,7 +347,7 @@ class MusicVAE {
    * `Decoder`.
    */
   async initialize() {
-    const reader = new dl.CheckpointLoader(this.checkpointURL);
+    const reader = new CheckpointLoader(this.checkpointURL);
     const vars = await reader.getAllVariables();
 
     // Encoder variables.
