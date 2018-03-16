@@ -239,7 +239,7 @@ class PolyphonicSequence(events_lib.EventSequence):
   @property
   def steps(self):
     """Return a Python list of the time step at each event in this sequence."""
-    step = 0
+    step = self.start_step
     result = []
     for event in self:
       result.append(step)

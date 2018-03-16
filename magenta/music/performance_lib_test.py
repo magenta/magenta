@@ -374,6 +374,27 @@ class PerformanceLibTest(tf.test.TestCase):
     self.assertEqual(100, performance.num_steps)
     self.assertListEqual([0, 0, 0, 100, 100], performance.steps)
 
+  def testSteps(self):
+    pe = performance_lib.PerformanceEvent
+    perf_events = [
+        pe(pe.NOTE_ON, 60),
+        pe(pe.NOTE_ON, 64),
+        pe(pe.TIME_SHIFT, 100),
+        pe(pe.NOTE_OFF, 60),
+        pe(pe.NOTE_OFF, 64),
+    ]
+
+    performance = performance_lib.Performance(steps_per_second=100)
+    for event in perf_events:
+      performance.append(event)
+    self.assertListEqual([0, 0, 0, 100, 100], performance.steps)
+
+    performance = performance_lib.Performance(
+        steps_per_second=100, start_step=100)
+    for event in perf_events:
+      performance.append(event)
+    self.assertListEqual([100, 100, 100, 200, 200], performance.steps)
+
   def testPerformanceNoteDensitySequence(self):
     performance = performance_lib.Performance(steps_per_second=100)
 

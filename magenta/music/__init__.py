@@ -95,6 +95,7 @@ from magenta.music.performance_encoder_decoder import PerformanceOneHotEncoding
 from magenta.music.performance_encoder_decoder import PitchHistogramEncoder
 
 from magenta.music.performance_lib import extract_performances
+from magenta.music.performance_lib import MetricPerformance
 from magenta.music.performance_lib import Performance
 from magenta.music.performance_lib import performance_note_density_sequence
 from magenta.music.performance_lib import performance_pitch_histogram_sequence

@@ -480,6 +480,32 @@ class PolyphonyLibTest(tf.test.TestCase):
     self.assertEqual(2, poly_seq.num_steps)
     self.assertListEqual([0, 0, 0, 0, 1, 1, 1, 2], poly_seq.steps)
 
+  def testSteps(self):
+    pe = polyphony_lib.PolyphonicEvent
+    poly_events = [
+        # step 0
+        pe(pe.NEW_NOTE, 60),
+        pe(pe.NEW_NOTE, 64),
+        pe(pe.STEP_END, None),
+        # step 1
+        pe(pe.CONTINUED_NOTE, 60),
+        pe(pe.CONTINUED_NOTE, 64),
+        pe(pe.STEP_END, None),
+
+        pe(pe.END, None),
+    ]
+
+    poly_seq = polyphony_lib.PolyphonicSequence(steps_per_quarter=1)
+    for event in poly_events:
+      poly_seq.append(event)
+    self.assertListEqual([0, 0, 0, 0, 1, 1, 1, 2], poly_seq.steps)
+
+    poly_seq = polyphony_lib.PolyphonicSequence(
+        steps_per_quarter=1, start_step=2)
+    for event in poly_events:
+      poly_seq.append(event)
+    self.assertListEqual([2, 2, 2, 2, 3, 3, 3, 4], poly_seq.steps)
+
   def testTrimTrailingEndEvents(self):
     poly_seq = polyphony_lib.PolyphonicSequence(steps_per_quarter=1)
 
