@@ -5,16 +5,17 @@
   "main": "es5/index.js",
   "types": "es5/index.d.ts",
   "dependencies": {
-    "@magenta/protobuf": "^0.0.3"
+    "@magenta/protobuf": "^0.0.3",
+    "midiconvert": "^0.4.3"
   },
   "devDependencies": {
     "@types/tape": "^4.2.31",
     "browserify": "~14.4.0",
     "clang-format": "^1.2.2",
     "tape": "^4.9.0",
-    "ts-node": "^5.0.0",
+    "ts-node": "^5.0.1",
     "tsify": "~3.0.1",
-    "tslint": "~5.8.0",
+    "tslint": "~5.9.1",
     "typescript": "2.7.2"
   },
   "scripts": {

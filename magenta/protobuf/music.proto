@@ -303,6 +303,8 @@ message NoteSequence {
       MAGENTA_MUSICNET = 4;
       // Magenta's parser for ABC files.
       MAGENTA_ABC = 5;
+      // Javascript Tonejs/MidiConvert.
+      TONEJS_MIDI_CONVERT = 6;
     }
   }
 

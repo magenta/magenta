@@ -23,3 +23,5 @@ export const DEFAULT_STEPS_PER_QUARTER = 4;
 
 // Default absolute quantization.
 export const DEFAULT_STEPS_PER_SECOND = 100;
+
+export const MIDI_VELOCITIES = 128;

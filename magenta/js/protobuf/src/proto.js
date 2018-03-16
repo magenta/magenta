@@ -3562,6 +3562,7 @@ $root.tensorflow = (function() {
                         case 3:
                         case 4:
                         case 5:
+                        case 6:
                             break;
                         }
                     return null;
@@ -3639,6 +3640,10 @@ $root.tensorflow = (function() {
                     case "MAGENTA_ABC":
                     case 5:
                         message.parser = 5;
+                        break;
+                    case "TONEJS_MIDI_CONVERT":
+                    case 6:
+                        message.parser = 6;
                         break;
                     }
                     return message;
@@ -3728,6 +3733,7 @@ $root.tensorflow = (function() {
                  * @property {number} MAGENTA_MUSIC_XML=3 MAGENTA_MUSIC_XML value
                  * @property {number} MAGENTA_MUSICNET=4 MAGENTA_MUSICNET value
                  * @property {number} MAGENTA_ABC=5 MAGENTA_ABC value
+                 * @property {number} TONEJS_MIDI_CONVERT=6 TONEJS_MIDI_CONVERT value
                  */
                 SourceInfo.Parser = (function() {
                     var valuesById = {}, values = Object.create(valuesById);
@@ -3737,6 +3743,7 @@ $root.tensorflow = (function() {
                     values[valuesById[3] = "MAGENTA_MUSIC_XML"] = 3;
                     values[valuesById[4] = "MAGENTA_MUSICNET"] = 4;
                     values[valuesById[5] = "MAGENTA_ABC"] = 5;
+                    values[valuesById[6] = "TONEJS_MIDI_CONVERT"] = 6;
                     return values;
                 })();
 
