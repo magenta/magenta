@@ -16,15 +16,18 @@ licenses(["notice"])  # Apache 2.0
 
 py_library(
     name = "onsets_frames_transcription",
-    visibility = ["//magenta/tools/pip:__subpackages__"],
     srcs = ["__init__.py"],
+    visibility = [
+        # internal notebook binary
+        "//magenta/tools/pip:__subpackages__",
+    ],
     deps = [
+        ":constants",
         ":data",
-	":constants",
-	":infer_util",
+        ":infer_util",
+        ":model",
     ],
 )
-
 
 py_library(
     name = "model",
@@ -84,7 +87,7 @@ py_library(
         ":data",
         ":infer_util",
         ":model",
-        "@pretty_midi//:pretty_midi",
+        "@pretty_midi",
         # mir_eval dep
         # tensorflow dep
         # slim dep
@@ -99,7 +102,7 @@ py_library(
         ":constants",
         ":data",
         "//magenta",
-        "@pretty_midi//:pretty_midi",
+        "@pretty_midi",
         # mir_eval dep
         # numpy dep
         # tensorflow dep
