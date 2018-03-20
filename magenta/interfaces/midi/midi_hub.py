@@ -122,7 +122,7 @@ class MidiSignal(object):
                 "Invalid argument for type '%s': %s" % (type_, arg_name))
       else:
         if kwargs:
-          for name, args in self._VALID_ARGS.iteritems():
+          for name, args in self._VALID_ARGS.items():
             if set(kwargs) <= args:
               inferred_types.append(name)
         if not inferred_types:
