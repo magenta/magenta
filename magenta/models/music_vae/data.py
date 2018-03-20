@@ -1150,6 +1150,9 @@ def get_dataset(
 
   Returns:
     A tf.data.Dataset containing input, output, control, and length tensors.
+
+  Raises:
+    ValueError: If no files match examples path.
   """
   batch_size = config.hparams.batch_size
   examples_path = (
@@ -1163,6 +1166,9 @@ def get_dataset(
 
   num_files = len(tf.gfile.Glob(examples_path))
   files = tf.data.Dataset.list_files(examples_path)
+  if not files:
+    raise ValueError(
+      'No files were found matching examples path: %s' %  examples_path)
   if is_training:
     files = files.apply(
         tf.contrib.data.shuffle_and_repeat(buffer_size=num_files))
