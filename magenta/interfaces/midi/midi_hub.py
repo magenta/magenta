@@ -3,8 +3,8 @@
 import abc
 from collections import defaultdict
 from collections import deque
-import Queue
 import re
+from six.moves import queue as Queue
 import threading
 import time
 
