@@ -124,6 +124,30 @@ class BidirectonalLstmEncoder extends Encoder {
   }
 }
 
+function initLstmCells(
+  z: dl.Tensor2D, zToInitStateVars: LayerVars, lstmCellVars: LayerVars[]) {
+  const batchSize = z.shape[0];
+
+  const lstmCells: dl.LSTMCellFunc[] =  [];
+  const c: dl.Tensor2D[] = [];
+  const h: dl.Tensor2D[] = [];
+  const initialStates = dense(zToInitStateVars, z).tanh();
+  let stateOffset = 0;
+  for (let i = 0; i < lstmCellVars.length; ++i) {
+    const lv = lstmCellVars[i];
+    const stateWidth = lv.bias.shape[0] / 4;
+    const forgetBias = dl.scalar(1.0);
+    lstmCells.push(
+        (data: dl.Tensor2D, c: dl.Tensor2D, h: dl.Tensor2D) =>
+        dl.basicLSTMCell(forgetBias, lv.kernel, lv.bias, data, c, h));
+    c.push(initialStates.slice([0, stateOffset], [batchSize, stateWidth]));
+    stateOffset += stateWidth;
+    h.push(initialStates.slice([0, stateOffset], [batchSize, stateWidth]));
+    stateOffset += stateWidth;
+  }
+  return {'cell': lstmCells, 'c': c, 'h': h};
+}
+
 /**
  * A hierarchical encoder that uses the outputs from each level as the inputs
  * to the subsequent level.
@@ -290,7 +314,7 @@ class BaseDecoder extends Decoder {
     return dl.tidy(() => {
       // Initialize LSTMCells.
       const lstmCell = initLstmCells(
-          z, this.lstmCellVars, this.zToInitStateVars);
+          z, this.zToInitStateVars, this.lstmCellVars);
 
       // Generate samples.
       const samples: dl.Tensor2D[] = [];
@@ -323,6 +347,66 @@ class BaseDecoder extends Decoder {
       }
 
       return dl.stack(samples, 1) as dl.Tensor3D;
+    });
+  }
+}
+
+class HierarchicalDecoderWrapper {
+  coreDecoder: Decoder;
+  lstmCellVars: LayerVars[];
+  zToInitStateVars: LayerVars;
+  numSteps: number;
+  zDims: number;
+  outputDims: number;
+
+  /**
+   * `Decoder` contructor.
+   *
+   * @param lstmCellVars The `LayerVars` for each layer of the conductor LSTM.
+   * @param zToInitStateVars The `LayerVars` for projecting from the latent
+   * variable `z` to the initial states of the conductor LSTM layers.
+   */
+  constructor(
+      coreDecoder: Decoder, lstmCellVars: LayerVars[],
+      zToInitStateVars: LayerVars, numSteps: number) {
+    this.coreDecoder = coreDecoder;
+    this.lstmCellVars = lstmCellVars;
+    this.zToInitStateVars = zToInitStateVars;
+    this.numSteps = numSteps;
+    this.zDims = this.zToInitStateVars.kernel.shape[0];
+    this.outputDims = this.coreDecoder.outputDims;
+  }
+
+  /**
+   * Hierarchically decodes a batch of latent vectors, `z`.
+   *
+   * @param z A batch of latent vectors to decode, sized `[batchSize, zDims]`.
+   * @param length The length of decoded sequences.
+   * @param temperature The softmax temperature to use when sampling from the
+   * logits. Argmax is used if not provided.
+   *
+   * @returns A boolean tensor containing the decoded sequences, shaped
+   * `[batchSize, length, depth]`.
+   */
+  decode(z: dl.Tensor2D, length: number, temperature?: number) {
+    const batchSize = z.shape[0];
+
+    return dl.tidy(() => {
+      // Initialize LSTMCells.
+      const lstmCell = initLstmCells(
+        z, this.zToInitStateVars, this.lstmCellVars);
+
+       // Generate embeddings.
+      const samples: dl.Tensor3D[] = [];
+      const dummyInput: dl.Tensor2D = dl.zeros([batchSize, 1]);
+      for (let i = 0; i < this.numSteps; ++i) {
+        [lstmCell.c, lstmCell.h] = dl.multiRNNCell(
+            lstmCell.cell, dummyInput, lstmCell.c, lstmCell.h);
+        samples.push(
+          this.coreDecoder.decode(
+            lstmCell.h[-1], length / this.numSteps, temperature));
+      }
+      return dl.concat(samples, 1);
     });
   }
 }
