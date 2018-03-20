@@ -1165,10 +1165,10 @@ def get_dataset(
   tf.logging.info('Reading examples from: %s', examples_path)
 
   num_files = len(tf.gfile.Glob(examples_path))
-  files = tf.data.Dataset.list_files(examples_path)
-  if not files:
+  if not num_files:
     raise ValueError(
         'No files were found matching examples path: %s' %  examples_path)
+  files = tf.data.Dataset.list_files(examples_path)
   if is_training:
     files = files.apply(
         tf.contrib.data.shuffle_and_repeat(buffer_size=num_files))
