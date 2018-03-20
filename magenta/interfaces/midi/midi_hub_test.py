@@ -14,12 +14,12 @@
 """Tests for midi_hub."""
 
 import collections
-import Queue
 import threading
 import time
 
 # internal imports
 import mido
+from six.moves import queue as Queue
 import tensorflow as tf
 
 from magenta.common import concurrency
@@ -58,7 +58,7 @@ class MidiHubTest(tf.test.TestCase):
         mido.Message(type='note_off', note=3, time=100)]
 
     self.port = MockMidiPort()
-    self.midi_hub = midi_hub.MidiHub(self.port, self.port,
+    self.midi_hub = midi_hub.MidiHub([self.port], [self.port],
                                      midi_hub.TextureType.POLYPHONIC)
 
     # Burn in Sleeper for calibration.
@@ -277,7 +277,7 @@ class MidiHubTest(tf.test.TestCase):
     start_time = 1.0
 
     threading.Timer(0.1, self.send_capture_messages).start()
-    self.midi_hub = midi_hub.MidiHub(self.port, self.port,
+    self.midi_hub = midi_hub.MidiHub([self.port], [self.port],
                                      midi_hub.TextureType.MONOPHONIC)
     captured_seq = self.midi_hub.capture_sequence(
         120, start_time,
@@ -345,7 +345,7 @@ class MidiHubTest(tf.test.TestCase):
     captor = self.midi_hub.start_capture(120, start_time)
 
     # Channels are 0-indexed in mido.
-    self.capture_messages[2].channel = 8
+    self.capture_messages[2].channel = 9
     self.send_capture_messages()
     time.sleep(0.1)
 
@@ -646,11 +646,12 @@ class MidiHubTest(tf.test.TestCase):
 
     passed_messages = []
     while not self.port.message_queue.empty():
-      passed_messages.append(self.port.message_queue.get())
-    self.assertListEqual(passed_messages, self.capture_messages)
+      passed_messages.append(self.port.message_queue.get().bytes())
+    self.assertListEqual(
+        passed_messages, [m.bytes() for m in self.capture_messages])
 
   def testPassThrough_Mono(self):
-    self.midi_hub = midi_hub.MidiHub(self.port, self.port,
+    self.midi_hub = midi_hub.MidiHub([self.port], [self.port],
                                      midi_hub.TextureType.MONOPHONIC)
     self.midi_hub.passthrough = False
     self.send_capture_messages()
@@ -706,7 +707,6 @@ class MidiHubTest(tf.test.TestCase):
         sent_messages,
         [mido.Message(type='control_change', control=0, value=1,
                       time=sent_messages[0].time)])
-
 
 if __name__ == '__main__':
   tf.test.main()
