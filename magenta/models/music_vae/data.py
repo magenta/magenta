@@ -1168,7 +1168,7 @@ def get_dataset(
   files = tf.data.Dataset.list_files(examples_path)
   if not files:
     raise ValueError(
-      'No files were found matching examples path: %s' %  examples_path)
+        'No files were found matching examples path: %s' %  examples_path)
   if is_training:
     files = files.apply(
         tf.contrib.data.shuffle_and_repeat(buffer_size=num_files))
