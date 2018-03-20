@@ -14,12 +14,12 @@
 """Tests for midi_hub."""
 
 import collections
-from six.moves import queue as Queue
 import threading
 import time
 
 # internal imports
 import mido
+from six.moves import queue as Queue
 import tensorflow as tf
 
 from magenta.common import concurrency
@@ -648,7 +648,7 @@ class MidiHubTest(tf.test.TestCase):
     while not self.port.message_queue.empty():
       passed_messages.append(self.port.message_queue.get().bytes())
     self.assertListEqual(
-      passed_messages, [m.bytes() for m in self.capture_messages])
+        passed_messages, [m.bytes() for m in self.capture_messages])
 
   def testPassThrough_Mono(self):
     self.midi_hub = midi_hub.MidiHub([self.port], [self.port],
