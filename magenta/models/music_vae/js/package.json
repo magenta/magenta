@@ -1,6 +1,6 @@
 {
   "name": "@magenta/music-vae",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "",
   "main": "es5/index.js",
   "types": "es5/index.d.ts",
