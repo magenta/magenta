@@ -15,15 +15,4 @@
  * limitations under the License.
  */
 
-import {tensorflow} from '@magenta/protobuf';
-import NoteSequence = tensorflow.magenta.NoteSequence;
-import INoteSequence = tensorflow.magenta.INoteSequence;
-import INote = NoteSequence.INote;
-
-export {NoteSequence, INoteSequence, INote};
-
-import * as data from './data';
-export {data};
-
-export * from './midi_io';
-export * from './sequences';
+export { MelodyRNN } from './model';

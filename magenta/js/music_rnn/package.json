@@ -1,12 +1,12 @@
 {
-  "name": "@magenta/core",
-  "version": "0.0.10",
+  "name": "@magenta/music-rnn",
+  "version": "0.0.1",
   "description": "",
   "main": "es5/index.js",
   "types": "es5/index.d.ts",
   "dependencies": {
     "@magenta/protobuf": "^0.0.4",
-    "midiconvert": "^0.4.3",
+    "@magenta/core": "^0.0.10",
     "deeplearn": "^0.6.0-alpha6"
   },
   "devDependencies": {
