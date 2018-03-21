@@ -82,6 +82,7 @@ class BidirectonalLstmEncoder extends Encoder {
 
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
 >>>>>>> Add documentation.
   /**
@@ -95,6 +96,8 @@ class BidirectonalLstmEncoder extends Encoder {
 >>>>>>> Add hierarchical encoder.
 =======
 >>>>>>> Add documentation.
+=======
+>>>>>>> Add hierarchical encoder.
   encode(sequence: dl.Tensor3D) {
     return dl.tidy(() => {
       const fwState = this.singleDirection(sequence, true);
@@ -133,6 +136,59 @@ class BidirectonalLstmEncoder extends Encoder {
   }
 }
 
+/**
+ * A hierarchical encoder that uses the outputs from each level as the inputs
+ * to the subsequent level.
+ */
+class HierarhicalEncoder extends Encoder {
+  baseEncoders: Encoder[];
+  numSteps: number[];
+  muVars: LayerVars;
+  zDims: number;
+
+  /**
+   * `HierarhicalEncoder` contructor.
+   *
+   * @param baseEncoders An list of `Encoder` objects to use for each.
+   * @param numSteps The number of steps (outputs) for each level of the
+   * hierarchy. This number should evenly divide the inputs for each level.
+   * The final entry must always be `1`.
+   * @param muVars The `LayerVars` for projecting from the final
+   * states of the final level to the mean `mu` of the random variable, `z`.
+   */
+  constructor(baseEncoders: Encoder[], numSteps: number[], muVars: LayerVars) {
+    super();
+    this.baseEncoders = baseEncoders;
+    this.numSteps = numSteps;
+    this.muVars = muVars;
+    this.zDims = this.muVars.bias.shape[0];
+  }
+
+  encode(sequence: dl.Tensor3D) {
+    return dl.tidy(() => {
+      const batchSize = sequence.shape[0];
+      let inputs: dl.Tensor3D = sequence;
+
+      for (let level = 0; level < this.baseEncoders.length; ++level) {
+        const levelSteps = this.numSteps[level];
+        const stepSize = inputs.shape[1] / levelSteps;
+        const depth = inputs.shape[2];
+        const embeddings: dl.Tensor2D[] = [];
+        for (let step = 0; step < levelSteps; ++ step) {
+
+          embeddings.push(this.baseEncoders[level].encode(
+              inputs.slice([0, step * stepSize, 0],
+                           [batchSize, stepSize, depth])));
+        }
+        inputs = (embeddings.length > 1) ?
+            dl.stack(embeddings, 1) as dl.Tensor3D :
+            embeddings[0].expandDims(1);
+      }
+      return dense(this.muVars, inputs.squeeze([1]));
+    });
+  }
+}
+
 function initLstmCells(
   z: dl.Tensor2D, zToInitStateVars: LayerVars, lstmCellVars: LayerVars[]) {
   const batchSize = z.shape[0];
@@ -158,6 +214,7 @@ function initLstmCells(
 }
 
 /**
+<<<<<<< HEAD
  * A hierarchical encoder that uses the outputs from each level as the inputs
  * to the subsequent level.
  */
@@ -340,6 +397,8 @@ function initLstmCells(
 }
 
 /**
+=======
+>>>>>>> Add hierarchical encoder.
  * Abstract Decoder class.
  */
 abstract class Decoder {
@@ -415,10 +474,14 @@ class BaseDecoder extends Decoder {
       // Initialize LSTMCells.
       const lstmCell = initLstmCells(
 <<<<<<< HEAD
+<<<<<<< HEAD
           z, this.lstmCellVars, this.zToInitStateVars);
 =======
         z, this.zToInitStateVars, this.lstmCellVars);
 >>>>>>> Add hierarchical conductor wrapper.
+=======
+          z, this.zToInitStateVars, this.lstmCellVars);
+>>>>>>> Add hierarchical encoder.
 
       // Generate samples.
       const samples: dl.Tensor2D[] = [];
@@ -429,11 +492,16 @@ class BaseDecoder extends Decoder {
             lstmCell.cell, dl.concat2d([nextInput, z], 1), lstmCell.c,
             lstmCell.h);
 <<<<<<< HEAD
+<<<<<<< HEAD
         const logits = dense(
             this.outputProjectVars, lstmCell.h[lstmCell.h.length - 1]);
 =======
         const logits = dense(this.outputProjectVars, lstmCell.h[-1]);
 >>>>>>> Add hierarchical conductor wrapper.
+=======
+        const logits = dense(
+            this.outputProjectVars, lstmCell.h[lstmCell.h.length - 1]);
+>>>>>>> Add hierarchical encoder.
 
         let timeSamples: dl.Tensor2D;
         if (this.nade == null) {
@@ -459,7 +527,7 @@ class BaseDecoder extends Decoder {
   }
 }
 
-class HierarchicalDecoderWrapper {
+class ConductorDecoder extends Decoder {
   coreDecoder: Decoder;
   lstmCellVars: LayerVars[];
   zToInitStateVars: LayerVars;
@@ -477,6 +545,7 @@ class HierarchicalDecoderWrapper {
   constructor(
       coreDecoder: Decoder, lstmCellVars: LayerVars[],
       zToInitStateVars: LayerVars, numSteps: number) {
+    super();
     this.coreDecoder = coreDecoder;
     this.lstmCellVars = lstmCellVars;
     this.zToInitStateVars = zToInitStateVars;
@@ -496,13 +565,14 @@ class HierarchicalDecoderWrapper {
    * @returns A boolean tensor containing the decoded sequences, shaped
    * `[batchSize, length, depth]`.
    */
-  decode(z: dl.Tensor2D, length: number, temperature?: number) {
+  decode(z: dl.Tensor2D, length: number, initialInput?: dl.Tensor2D,
+         temperature?: number) {
     const batchSize = z.shape[0];
 
     return dl.tidy(() => {
       // Initialize LSTMCells.
       const lstmCell = initLstmCells(
-        z, this.zToInitStateVars, this.lstmCellVars);
+          z, this.zToInitStateVars, this.lstmCellVars);
 
        // Generate embeddings.
       const samples: dl.Tensor3D[] = [];
@@ -510,9 +580,15 @@ class HierarchicalDecoderWrapper {
       for (let i = 0; i < this.numSteps; ++i) {
         [lstmCell.c, lstmCell.h] = dl.multiRNNCell(
             lstmCell.cell, dummyInput, lstmCell.c, lstmCell.h);
+        const initialInput = samples.length ?
+           samples[samples.length - 1].slice(
+               [0, -1, 0],
+               [batchSize, 1, this.outputDims]).as2D(batchSize, -1).toFloat() :
+            undefined;
         samples.push(
           this.coreDecoder.decode(
-            lstmCell.h[-1], length / this.numSteps, temperature));
+            lstmCell.h[lstmCell.h.length - 1], length / this.numSteps,
+            initialInput, temperature));
       }
       return dl.concat(samples, 1);
     });
@@ -520,6 +596,7 @@ class HierarchicalDecoderWrapper {
 }
 
 /**
+<<<<<<< HEAD
  * Hierarchical decoder that produces intermediate embeddings to pass to a
  * lower-level `Decoder`, whose results are concatenated.
  */
@@ -595,6 +672,8 @@ class ConductorDecoder extends Decoder {
 }
 
 /**
+=======
+>>>>>>> Add hierarchical encoder.
  * A Neural Autoregressive Distribution Estimator (NADE).
  */
 class Nade {
@@ -715,11 +794,15 @@ class MusicVAE {
       if (!(cellPrefix + 'kernel' in vars)) {
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
         console.log(cellPrefix);
 >>>>>>> Add hierarchical encoder.
 =======
 >>>>>>> Add documentation.
+=======
+        console.log(cellPrefix);
+>>>>>>> Add hierarchical encoder.
         break;
       }
       lstmLayers.push(new LayerVars(
@@ -767,7 +850,11 @@ class MusicVAE {
       const baseEncoders: BidirectonalLstmEncoder[] = [0, 1].map(
           l => new BidirectonalLstmEncoder(fwLayers[l], bwLayers[l]));
 <<<<<<< HEAD
+<<<<<<< HEAD
       this.encoder = new HierarchicalEncoder(
+=======
+      this.encoder = new HierarhicalEncoder(
+>>>>>>> Add hierarchical encoder.
 =======
       this.encoder = new HierarhicalEncoder(
 >>>>>>> Add hierarchical encoder.

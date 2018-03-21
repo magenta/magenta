@@ -184,7 +184,10 @@ async function runMel(){
 }
 
 <<<<<<< HEAD
+<<<<<<< HEAD
 // TODO(adarob): Switch to magenta/core function once implemented.
+=======
+>>>>>>> Add hierarchical encoder.
 =======
 >>>>>>> Add hierarchical encoder.
 function concatNoteSequences(

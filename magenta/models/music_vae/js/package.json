@@ -2,6 +2,9 @@
   "name": "@magenta/music-vae",
   "version": "1.1.0",
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+>>>>>>> Add hierarchical encoder.
   "description": "A machine learning model for exploring latent spaces of musical scores",
 =======
   "description": "",
