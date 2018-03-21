@@ -1,6 +1,6 @@
 {
   "name": "@magenta/protobuf",
-  "version": "0.0.3",
+  "version": "0.0.4",
   "description": "",
   "main": "src/proto.js",
   "types": "src/proto.d.ts",
