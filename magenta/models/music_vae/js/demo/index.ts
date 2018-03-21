@@ -183,7 +183,10 @@ async function runMel(){
   console.log(dl.memory());
 }
 
+<<<<<<< HEAD
 // TODO(adarob): Switch to magenta/core function once implemented.
+=======
+>>>>>>> Add hierarchical encoder.
 function concatNoteSequences(
     seqs: INoteSequence[], individualDuration: number) {
   const concatSeq: INoteSequence = clone(seqs[0]);
