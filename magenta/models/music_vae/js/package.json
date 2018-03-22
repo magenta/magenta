@@ -1,9 +1,11 @@
 {
   "name": "@magenta/music-vae",
-  "version": "1.0.3",
-  "description": "",
+  "version": "1.0.5",
+  "description": "A machine learning model for exploring latent spaces of musical scores",
   "main": "es5/index.js",
   "types": "es5/index.d.ts",
+  "jsdelivr": "dist/musicvae.js",
+  "unpkg": "dist/musicvae.js",
   "scripts": {
     "bundle": "browserify index.ts -p [tsify] --standalone musicvae -o dist/musicvae.js",
     "build-demo": "browserify demo/index.ts -p [tsify] > demo/bundle.js",
