@@ -20,7 +20,8 @@ import * as magenta from '@magenta/core';
 
 const CHECKPOINT_URL = "https://storage.googleapis.com/download.magenta.tensorflow.org/models/music_rnn/dljs/basic_rnn/manifest.json";
 
-const forgetBias = dl.scalar(1.0);
+const DEFAULT_MIN_NOTE = 48;
+const DEFAULT_MAX_NOTE = 84;
 
 /**
  * Main MusicVAE model class.
@@ -33,7 +34,7 @@ const forgetBias = dl.scalar(1.0);
  */
 export class MelodyRnn {
   checkpointURL: string;
-  rawVars: {[varName: string]: dl.Tensor};  // Store for disposal.
+  rawVars: { [varName: string]: dl.Tensor };  // Store for disposal.
 
   lstmKernel1: dl.Tensor2D;
   lstmBias1: dl.Tensor1D;
@@ -81,149 +82,44 @@ export class MelodyRnn {
     this.lstmFcW = vars['fully_connected/weights'] as dl.Tensor2D;
   }
 
-  primeRnn(sequence: INoteSequence) {
-    magenta.Sequences
+  continueSequence(sequence: magenta.INoteSequence) {
+    // TODO(fjord): verify that sequence is already quantized.
+
+    const converter = new magenta.data.MelodyConverter(
+      sequence.totalQuantizedSteps, DEFAULT_MIN_NOTE, DEFAULT_MAX_NOTE);
+    let inputs = converter.toTensor(sequence);
+    this.initLstm(inputs)
   }
 
-  /**
-   * @returns true iff an `Encoder` and `Decoder` have been instantiated for the
-   * model.
-   */
-  isInitialized() {
-    return (!!this.encoder && !!this.decoder);
-  }
+  private initLstm(inputs: dl.Tensor2D) {
+    const forgetBias = dl.scalar(1.0);
 
-  /**
-   * Interpolates between the input `NoteSequences` in latent space.
-   *
-   * If 2 sequences are given, a single linear interpolation is computed, with
-   * the first output sequence being a reconstruction of sequence A and the
-   * final output being a reconstruction of sequence B, with `numInterps`
-   * total sequences.
-   *
-   * If 4 sequences are given, bilinear interpolation is used. The results are
-   * returned in row-major order for a matrix with the following layout:
-   *   | A . . C |
-   *   | . . . . |
-   *   | . . . . |
-   *   | B . . D |
-   * where the letters represent the reconstructions of the four inputs, in
-   * alphabetical order, and there are `numInterps` sequences on each
-   * edge for a total of `numInterps`^2 sequences.
-   *
-   * @param inputSequences An array of 2 or 4 `NoteSequences` to interpolate
-   * between.
-   * @param numInterps The number of pairwise interpolation sequences to
-   * return, including the reconstructions. If 4 inputs are given, the total
-   * number of sequences will be `numInterps`^2.
-   *
-   * @returns An array of interpolation `NoteSequence` objects, as described
-   * above.
-   */
-  interpolate(inputSequences: data.INoteSequence[], numInterps: number) {
-    const numSteps = this.dataConverter.numSteps;
+    const length = inputs.shape[0];
+    const outputSize = inputs.shape[1];
 
-    const outputSequences: data.INoteSequence[] = [];
+    let c = [
+      dl.zeros([1, this.lstmBias1.shape[0] / 4]),
+      dl.zeros([1, this.lstmBias2.shape[0] / 4]),
+    ];
+    let h = [
+      dl.zeros([1, this.lstmBias1.shape[0] / 4]),
+      dl.zeros([1, this.lstmBias2.shape[0] / 4]),
+    ];
 
-    dl.tidy(() => {
-      const inputTensors = dl.stack(
-        inputSequences.map(
-          this.dataConverter.toTensor.bind(this.dataConverter)) as dl.Tensor2D[]
-        ) as dl.Tensor3D;
+    const lstm1 = (data: dl.Tensor2D, c: dl.Tensor2D, h: dl.Tensor2D) =>
+      dl.basicLSTMCell(forgetBias, this.lstmKernel1, this.lstmBias1, data,
+        c, h);
+    const lstm2 = (data: dl.Tensor2D, c: dl.Tensor2D, h: dl.Tensor2D) =>
+      dl.basicLSTMCell(forgetBias, this.lstmKernel2, this.lstmBias2, data,
+        c, h);
 
-      const outputTensors = this.interpolateTensors(inputTensors, numInterps);
-      for (let i = 0; i < outputTensors.shape[0]; ++i) {
-        const t = outputTensors.slice(
-            [i, 0, 0],
-            [1, numSteps, outputTensors.shape[2]]).as2D(
-                numSteps, outputTensors.shape[2]);
-          outputSequences.push(this.dataConverter.toNoteSequence(t));
-      }
-    });
-    return outputSequences;
-  }
-
-  private interpolateTensors(sequences: dl.Tensor3D, numInterps: number) {
-    if (sequences.shape[0] !== 2 && sequences.shape[0] !== 4) {
-      throw new Error(
-          'Invalid number of input sequences. Requires length 2, or 4');
+    for (let i = 0; i < length; i++) {
+      const output = dl.multiRNNCell(
+        [lstm1, lstm2],
+        inputs.slice([i, 0], [1, outputSize]).as2D(1, outputSize),
+        c, h);
+      c = output[0];
+      h = output[1];
     }
-
-    // Use the mean `mu` of the latent variable as the best estimate of `z`.
-    const z =this.encoder.encode(sequences);
-
-    // Compute the interpolations of the latent variable.
-    const interpolatedZs: dl.Tensor2D = dl.tidy(() => {
-      const rangeArray = dl.linspace(0.0, 1.0, numInterps);
-
-      const z0 = z.slice([0, 0], [1, z.shape[1]]).as1D();
-      const z1 = z.slice([1, 0], [1, z.shape[1]]).as1D();
-
-      if (sequences.shape[0] === 2) {
-        const zDiff = z1.sub(z0) as dl.Tensor1D;
-        return dl.outerProduct(rangeArray, zDiff).add(z0) as dl.Tensor2D;
-      } else if (sequences.shape[0] === 4) {
-        const z2 = z.slice([2, 0], [1, z.shape[1]]).as1D();
-        const z3 = z.slice([3, 0], [1, z.shape[1]]).as1D();
-
-        const revRangeArray = dl.scalar(1.0).sub(rangeArray) as dl.Tensor1D;
-
-        const r = numInterps;
-        let finalZs = z0.mul(
-            dl.outerProduct(revRangeArray, revRangeArray).as3D(r, r, 1));
-        finalZs = dl.addStrict(
-            finalZs,
-            z1.mul(dl.outerProduct(rangeArray, revRangeArray).as3D(r, r, 1)));
-        finalZs = dl.addStrict(
-            finalZs,
-            z2.mul(dl.outerProduct(revRangeArray, rangeArray).as3D(r, r, 1)));
-        finalZs = dl.addStrict(
-            finalZs,
-            z3.mul(dl.outerProduct(rangeArray, rangeArray).as3D(r, r, 1)));
-
-        return finalZs.as2D(r * r, z.shape[1]);
-      } else {
-        throw new Error(
-          'Invalid number of note sequences. Requires length 2, or 4');
-      }
-    });
-
-    // Decode the interpolated values of `z`.
-    return this.decoder.decode(interpolatedZs, sequences.shape[1]);
-  }
-
-  /**
-   * Samples sequences from the model prior.
-   *
-   * @param numSamples The number of samples to return.
-   * @param temperature The softmax temperature to use when sampling.
-   *
-   * @returns An array of sampled `NoteSequence` objects.
-   */
-  sample(numSamples: number, temperature=0.5) {
-    const numSteps = this.dataConverter.numSteps;
-
-    const outputSequences: data.INoteSequence[] = [];
-    dl.tidy(() => {
-      const outputTensors = this.sampleTensors(
-          numSamples, numSteps, temperature);
-      for (let i = 0; i < numSamples; ++i) {
-        const t = outputTensors.slice(
-            [i, 0, 0],
-            [1, numSteps, outputTensors.shape[2]]).as2D(
-                numSteps, outputTensors.shape[2]);
-          outputSequences.push(this.dataConverter.toNoteSequence(t));
-      }
-    });
-    return outputSequences;
-  }
-
-  private sampleTensors(
-    numSamples: number, numSteps: number, temperature?: number) {
-    return dl.tidy(() => {
-      const randZs: dl.Tensor2D = dl.randomNormal(
-          [numSamples, this.decoder.zDims]);
-      return this.decoder.decode(randZs, numSteps, temperature);
-    });
   }
 }
