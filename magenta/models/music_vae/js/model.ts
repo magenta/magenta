@@ -21,8 +21,6 @@ import { CheckpointLoader } from './checkpoint_loader';
 
 const DECODER_CELL_FORMAT = "decoder/multi_rnn_cell/cell_%d/lstm_cell/";
 
-const forgetBias = dl.scalar(1.0);
-
 /**
  * A class for keeping track of the parameters of an affine transformation.
  *
@@ -171,6 +169,7 @@ class Encoder {
       dl.zeros([batchSize, lstmVars.bias.shape[0] / 4]),
       dl.zeros([batchSize, lstmVars.bias.shape[0] / 4])
     ];
+    const forgetBias = dl.scalar(1.0);
     const lstm = (data: dl.Tensor2D, state: [dl.Tensor2D, dl.Tensor2D]) =>
         dl.basicLSTMCell(
           forgetBias, lstmVars.kernel, lstmVars.bias, data, state[0], state[1]);
@@ -253,6 +252,7 @@ class Decoder {
       for (let i = 0; i < this.lstmCellVars.length; ++i) {
         const lv = this.lstmCellVars[i];
         const stateWidth = lv.bias.shape[0] / 4;
+        const forgetBias = dl.scalar(1.0);
         lstmCells.push(
             (data: dl.Tensor2D, c: dl.Tensor2D, h: dl.Tensor2D) =>
             dl.basicLSTMCell(forgetBias, lv.kernel, lv.bias, data, c, h));
