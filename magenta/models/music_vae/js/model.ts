@@ -81,14 +81,20 @@ class BidirectonalLstmEncoder extends Encoder {
   }
 
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+>>>>>>> Add documentation.
   /**
    * Encodes a batch of sequences.
    * @param sequence The batch of sequences to be encoded.
    * @returns A batch of concatenated final LSTM states, or the `mu` if `muVars`
    * is known.
    */
+<<<<<<< HEAD
 =======
 >>>>>>> Add hierarchical encoder.
+=======
+>>>>>>> Add documentation.
   encode(sequence: dl.Tensor3D) {
     return dl.tidy(() => {
       const fwState = this.singleDirection(sequence, true);
@@ -141,9 +147,9 @@ class HierarhicalEncoder extends Encoder {
    * `HierarhicalEncoder` contructor.
    *
    * @param baseEncoders An list of `Encoder` objects to use for each.
-   * @param numSteps The number of steps (outputs) for each level of the
-   * hierarchy. This number should evenly divide the inputs for each level.
-   * The final entry must always be `1`.
+   * @param numSteps A list containing the number of steps (outputs) for each
+   * level of the hierarchy. This number should evenly divide the inputs for
+   * each level. The final entry must always be `1`.
    * @param muVars The `LayerVars` for projecting from the final
    * states of the final level to the mean `mu` of the random variable, `z`.
    */
@@ -155,6 +161,11 @@ class HierarhicalEncoder extends Encoder {
     this.zDims = this.muVars.bias.shape[0];
   }
 
+  /**
+   * Encodes a batch of sequences.
+   * @param sequence The batch of sequences to be encoded.
+   * @returns A batch of `mu` values.
+   */
   encode(sequence: dl.Tensor3D) {
     return dl.tidy(() => {
       const batchSize = sequence.shape[0];
@@ -180,8 +191,17 @@ class HierarhicalEncoder extends Encoder {
   }
 }
 
+/**
+ * Helper function to create LSTM cells and initial states for decoders.
+ *
+ * @param z A batch of latent vectors to decode, sized `[batchSize, zDims]`.   *
+ * @param lstmCellVars The `LayerVars` for each layer of the decoder LSTM.
+ * @param zToInitStateVars The `LayerVars` for projecting from the latent
+ * variable `z` to the initial states of the LSTM layers.
+ * @returns An Object containing the LSTM cells and initial states.
+ */
 function initLstmCells(
-  z: dl.Tensor2D, zToInitStateVars: LayerVars, lstmCellVars: LayerVars[]) {
+  z: dl.Tensor2D, lstmCellVars: LayerVars[], zToInitStateVars: LayerVars) {
   const batchSize = z.shape[0];
 
   const lstmCells: dl.LSTMCellFunc[] =  [];
@@ -370,7 +390,7 @@ class BaseDecoder extends Decoder {
     return dl.tidy(() => {
       // Initialize LSTMCells.
       const lstmCell = initLstmCells(
-          z, this.zToInitStateVars, this.lstmCellVars);
+          z, this.lstmCellVars, this.zToInitStateVars);
 
       // Generate samples.
       const samples: dl.Tensor2D[] = [];
@@ -602,9 +622,12 @@ class MusicVAE {
       const cellPrefix = cellFormat.replace('%d', l.toString());
       if (!(cellPrefix + 'kernel' in vars)) {
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
         console.log(cellPrefix);
 >>>>>>> Add hierarchical encoder.
+=======
+>>>>>>> Add documentation.
         break;
       }
       lstmLayers.push(new LayerVars(
