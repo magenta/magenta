@@ -133,7 +133,7 @@ export class DrumsConverter extends DataConverter{
 
   toTensor(noteSequence: INoteSequence) {
     const drumRoll = dl.buffer([this.numSteps, this.pitchClasses.length + 1]);
-    // Set final values to 1 and change to 0 later if the has gets a note.
+    // Set final values to 1 and change to 0 later if the column gets a note.
     for (let i = 0; i < this.numSteps; ++i) {
       drumRoll.set(1, i, -1);
     }
