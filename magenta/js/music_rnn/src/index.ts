@@ -15,4 +15,4 @@
  * limitations under the License.
  */
 
-export { MelodyRNN } from './model';
+export { MelodyRnn } from './model';

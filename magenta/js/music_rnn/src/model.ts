@@ -52,7 +52,7 @@ export class MelodyRnn {
    * file must exist within the checkpoint directory specifying the type and
    * args for the correct `DataConverter`.
    */
-  constructor(checkpointURL: string) {
+  constructor(checkpointURL=CHECKPOINT_URL) {
     this.checkpointURL = checkpointURL;
   }
 
@@ -82,26 +82,24 @@ export class MelodyRnn {
     this.lstmFcW = vars['fully_connected/weights'] as dl.Tensor2D;
   }
 
-  continueSequence(sequence: magenta.INoteSequence) {
+  async continueSequence(sequence: magenta.INoteSequence, steps: number,
+    temperature?: number): Promise<number[]> {
     // TODO(fjord): verify that sequence is already quantized.
 
     const converter = new magenta.data.MelodyConverter(
       sequence.totalQuantizedSteps, DEFAULT_MIN_NOTE, DEFAULT_MAX_NOTE);
     let inputs = converter.toTensor(sequence);
-    this.initLstm(inputs)
-  }
 
-  private initLstm(inputs: dl.Tensor2D) {
     const forgetBias = dl.scalar(1.0);
 
     const length = inputs.shape[0];
     const outputSize = inputs.shape[1];
 
-    let c = [
+    let c: dl.Tensor2D[] = [
       dl.zeros([1, this.lstmBias1.shape[0] / 4]),
       dl.zeros([1, this.lstmBias2.shape[0] / 4]),
     ];
-    let h = [
+    let h: dl.Tensor2D[] = [
       dl.zeros([1, this.lstmBias1.shape[0] / 4]),
       dl.zeros([1, this.lstmBias2.shape[0] / 4]),
     ];
@@ -113,13 +111,32 @@ export class MelodyRnn {
       dl.basicLSTMCell(forgetBias, this.lstmKernel2, this.lstmBias2, data,
         c, h);
 
-    for (let i = 0; i < length; i++) {
-      const output = dl.multiRNNCell(
-        [lstm1, lstm2],
-        inputs.slice([i, 0], [1, outputSize]).as2D(1, outputSize),
-        c, h);
+    // Initialize with input.
+    const samples: dl.Scalar[] = [];
+    for (let i = 0; i < length + steps; i++) {
+      let nextInput: dl.Tensor2D;
+      if (i < length) {
+        nextInput = inputs.slice([
+          i, 0], [1, outputSize]).as2D(1, outputSize);
+      } else {
+        const logits = h[1].matMul(this.lstmFcW).add(this.lstmFcB);
+        const sampledOutput = (
+          temperature ?
+          dl.multinomial(logits.div(dl.scalar(temperature)), 1).as1D():
+          logits.argMax(1).as1D());
+        nextInput = dl.oneHot(sampledOutput, outputSize).toFloat();
+        samples.push(sampledOutput.asScalar());
+      }
+      const output = dl.multiRNNCell([lstm1, lstm2], nextInput, c, h);
       c = output[0];
       h = output[1];
     }
+
+    const outputs:Array<number> = [];
+    for (const sample of samples) {
+      outputs.push((await sample.data())[0]);
+    }
+    return outputs;
   }
+
 }

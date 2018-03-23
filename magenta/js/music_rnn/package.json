@@ -4,8 +4,9 @@
   "description": "",
   "main": "es5/index.js",
   "types": "es5/index.d.ts",
+  "jsdelivr": "dist/musicrnn.js",
+  "unpkg": "dist/musicrnn.js",
   "dependencies": {
-    "@magenta/protobuf": "^0.0.4",
     "@magenta/core": "^0.0.10",
     "deeplearn": "^0.6.0-alpha6"
   },
@@ -20,12 +21,12 @@
     "typescript": "2.7.2"
   },
   "scripts": {
-    "prepublish": "yarn lint && yarn test && yarn build",
+    "prepublish": "yarn lint && yarn test && yarn build && yarn bundle",
     "build": "tsc",
-    "bundle": "browserify --standalone magenta src/index.ts -p [tsify] > dist/magenta.js",
+    "bundle": "browserify --standalone magenta src/index.ts -p [tsify] > dist/musicrnn.js",
     "lint": "tslint -p . -t verbose",
     "test": "ts-node node_modules/tape/bin/tape src/**/*_test.ts",
-    "proto": "pbjs -t static-module -w commonjs -o src/proto.js ../protobuf/music.proto && pbts -o src/proto.d.ts src/proto.js"
+    "build-demo": "browserify demo/index.ts -p [tsify] > demo/bundle.js"
   },
   "author": "Magenta",
   "license": "Apache-2.0",
