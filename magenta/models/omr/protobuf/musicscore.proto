@@ -1,0 +1,120 @@
+syntax = "proto2";
+
+package tensorflow.magenta.omr;
+
+import "magenta/protobuf/music.proto";
+
+// Alpha-stage OMR page model. Most protos (except Glyph.Type) are subject to
+// backwards-incompatible changes (e.g. renumbering or replacing fields).
+
+// A score, containing multiple pages.
+message Score {
+  repeated Page page = 1;
+}
+
+// A page, holding all detected objects.
+message Page {
+  repeated StaffSystem system = 1;
+}
+
+// A staff system, holding one or more staves connected by barline(s).
+// Contains zero or more bars, x coordinates where there is a vertical barline.
+// If there are no bars, the staff contains a single measure spanning the width
+// of the page. If there is a single bar, the staff contains a single measure
+// spanning [bar[0], width). Otherwise, for n bars, there are n - 1 measures
+// bounded by each adjacent pair of bars.
+message StaffSystem {
+  repeated Staff staff = 1;
+  repeated Bar bar = 2;
+
+  message Bar {
+    optional int32 x = 1;
+    optional Type type = 2;
+
+    enum Type {
+      UNKNOWN_BAR = 0;
+      STANDARD_BAR = 1;
+      DOUBLE_BAR = 2;
+      END_BAR = 3;
+      BEGIN_REPEAT_BAR = 4;
+      END_REPEAT_BAR = 5;
+      BEGIN_AND_END_REPEAT_BAR = 6;
+    }
+  }
+}
+
+// A staff is represented by the distance between consecutive horizontal lines,
+// and line segments that make up the center line (3rd out of 5 lines).
+message Staff {
+  // The vertical distance between the horizontal lines that make up the staff.
+  // This is assumed to be constant for printed music scores.
+  optional int64 staffline_distance = 1;
+  // The approximately horizontal staff center line (third line of the staff).
+  // The other lines must be a multiple of staffline_distance above and below.
+  // Currently, the line always starts at x = 0 and ends at x = width - 1.
+  repeated Point center_line = 2;
+  // Glyphs which belong to the staff, sorted by x coordinate.
+  repeated Glyph glyph = 3;
+}
+
+// A musical element which is attached to a staff. The y_position represents the
+// the staffline or staff space that a glyph is placed on. The center line
+// (third staff line) has position 0, and the y_position increases with
+// decreasing y coordinates (towards musically higher notes).
+// For example, in treble clef, position 0 is B4, position -6 is C4, and
+// position 1 is C5. For more details, see ../docs/concepts.md.
+message Glyph {
+  optional Type type = 1;
+  optional int64 x = 2;
+  optional int64 y_position = 3;
+  // Noteheads may be attached to a Stem. The reader joins noteheads with the
+  // same Stem as chords, which makes them all have the same timing.
+  optional LineSegment stem = 4;
+  // The Stem may intersect with Beam(s). A NOTEHEAD_FILLED has a duration of 1
+  // which is halved for each incident Beam.
+  repeated LineSegment beam = 5;
+  // Dots are attached to noteheads and alter their duration. Each dot adds half
+  // of the previous dot's value (or half the original duration, for the first
+  // dot) to the final duration.
+  repeated Point dot = 6;
+
+  // The Glyph may be detected as a Note by ScoreReader. The Note is stored as
+  // part of the Glyph.
+  optional NoteSequence.Note note = 7;
+
+  // Glyph Types are used as labels for the Examples in our corpus. Don't change
+  // or reuse the numbers!
+  enum Type {
+    // Default value.
+    UNKNOWN_TYPE = 0;
+    // No glyph at the given position. This is used for classification, where
+    // we will evaluate every pixel as a possible center point for a glyph.
+    NONE = 1;
+    CLEF_TREBLE = 2;
+    CLEF_BASS = 3;
+    NOTEHEAD_FILLED = 4;
+    NOTEHEAD_EMPTY = 5;
+    NOTEHEAD_WHOLE = 6;
+    REST_QUARTER = 7;
+    REST_EIGHTH = 8;
+    REST_SIXTEENTH = 9;
+    FLAT = 10;
+    SHARP = 11;
+    NATURAL = 12;
+  }
+}
+
+message LineSegment {
+  optional Point start = 1;
+  optional Point end = 2;
+}
+
+message Rect {
+  optional Point top_left = 1;
+  optional Point bottom_right = 2;
+}
+
+message Point {
+  optional int64 x = 1;
+  optional int64 y = 2;
+}
