@@ -104,6 +104,7 @@ async function runMelodyRnn() {
   const continuation = await melodyRnn.continueSequence(qns, 20);
   writeTimer('melody-cont-time', start);
   writeNoteSeqs('melody-cont-results', [continuation]);
+  melodyRnn.dispose();
 
   console.log(dl.getBackend());
   console.log(dl.memory());

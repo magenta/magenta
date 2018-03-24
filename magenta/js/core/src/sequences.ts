@@ -17,8 +17,8 @@
 
 import { tensorflow } from '@magenta/protobuf';
 import NoteSequence = tensorflow.magenta.NoteSequence;
+import INoteSequence = tensorflow.magenta.INoteSequence;
 import * as constants from './constants';
-import { INoteSequence } from '.';
 
 // Set the quantization cutoff.
 // Note events before this cutoff are rounded down to nearest step. Notes

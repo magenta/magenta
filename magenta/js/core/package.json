@@ -1,6 +1,6 @@
 {
   "name": "@magenta/core",
-  "version": "0.0.10",
+  "version": "0.0.9",
   "description": "",
   "main": "es5/index.js",
   "types": "es5/index.d.ts",

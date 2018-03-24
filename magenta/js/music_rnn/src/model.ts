@@ -77,8 +77,20 @@ export class MelodyRnn {
     this.lstmBias2 = vars['RNN/MultiRNNCell/Cell1/BasicLSTMCell/Linear/Bias'] as dl.Tensor1D;
     // tslint:enable:max-line-length
 
-    this.lstmFcB = vars['fully_connected/biases'] as dl.Tensor1D;
     this.lstmFcW = vars['fully_connected/weights'] as dl.Tensor2D;
+    this.lstmFcB = vars['fully_connected/biases'] as dl.Tensor1D;
+
+    this.initialized = true;
+  }
+
+  dispose() {
+    this.lstmKernel1.dispose();
+    this.lstmBias1.dispose();
+    this.lstmKernel2.dispose();
+    this.lstmBias2.dispose();
+    this.lstmFcW.dispose();
+    this.lstmFcB.dispose();
+    this.initialized = false;
   }
 
   async continueSequence(sequence: magenta.INoteSequence, steps: number,
