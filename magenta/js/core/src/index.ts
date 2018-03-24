@@ -22,8 +22,5 @@ import INote = NoteSequence.INote;
 
 export {NoteSequence, INoteSequence, INote};
 
-import * as data from './data';
-export {data};
-
 export * from './midi_io';
 export * from './sequences';

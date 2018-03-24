@@ -18,6 +18,7 @@
 import { tensorflow } from '@magenta/protobuf';
 import NoteSequence = tensorflow.magenta.NoteSequence;
 import * as constants from './constants';
+import { INoteSequence } from '.';
 
 // Set the quantization cutoff.
 // Note events before this cutoff are rounded down to nearest step. Notes
@@ -49,6 +50,19 @@ export class NegativeTimeException extends Error {
   }
 }
 export class MultipleTempoException extends Error {
+  constructor(message?: string) {
+    super(message);
+    Object.setPrototypeOf(this, new.target.prototype);
+  }
+}
+
+/**
+ * Exception for when a sequence was unexpectedly quantized or unquantized.
+ *
+ * Should not happen during normal operation and likely indicates a programming
+ * error.
+ */
+export class QuantizationStatusException extends Error {
   constructor(message?: string) {
     super(message);
     Object.setPrototypeOf(this, new.target.prototype);
@@ -268,5 +282,21 @@ export class Sequences {
 
     // return qns
     return qns;
+  }
+
+  /**
+   * Returns whether or not a NoteSequence proto has been quantized.
+   */
+  public static isQuantizedSequence(ns:INoteSequence) {
+    return ns.quantizationInfo && (
+      ns.quantizationInfo.stepsPerQuarter > 0  ||
+      ns.quantizationInfo.stepsPerSecond > 0);
+  }
+
+  public static assertIsQuantizedSequence(ns:INoteSequence) {
+    if(!this.isQuantizedSequence(ns)) {
+      throw new QuantizationStatusException(
+        `NoteSequence ${ns.id} is not quantized`);
+    }
   }
 }

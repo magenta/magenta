@@ -8,8 +8,7 @@
   "unpkg": "dist/magenta.js",
   "dependencies": {
     "@magenta/protobuf": "^0.0.4",
-    "midiconvert": "^0.4.3",
-    "deeplearn": "^0.6.0-alpha6"
+    "midiconvert": "^0.4.3"
   },
   "devDependencies": {
     "@types/tape": "^4.2.31",

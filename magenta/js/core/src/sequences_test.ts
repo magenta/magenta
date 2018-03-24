@@ -375,3 +375,22 @@ test("Quantize NoteSequence, MultiTrack", (t:test.Test) => {
 
   t.end();
 });
+
+test("Assert isQuantizedNoteSequence", (t:test.Test) => {
+  const ns = createTestNS();
+
+  addTrackToSequence(
+      ns, 0,
+      [[12, 100, 0.01, 10.0], [11, 55, 0.22, 0.50], [40, 45, 2.50, 3.50],
+      [55, 120, 4.0, 4.01], [52, 99, 4.75, 5.0]]);
+
+
+  t.throws(
+    () => Sequences.assertIsQuantizedSequence(ns),
+    sequences.QuantizationStatusException);
+
+  const qns = Sequences.quantizeNoteSequence(ns, STEPS_PER_QUARTER);
+  Sequences.assertIsQuantizedSequence(qns);
+
+  t.end();
+});

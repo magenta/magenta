@@ -15,9 +15,9 @@
  * =============================================================================
  */
 import * as dl from 'deeplearn';
-import {tensorflow} from '@magenta/protobuf';
-import NoteSequence = tensorflow.magenta.NoteSequence;
-import INoteSequence = tensorflow.magenta.INoteSequence;
+import * as magenta from '@magenta/core';
+import NoteSequence = magenta.NoteSequence;
+import INoteSequence = magenta.INoteSequence;
 
 const DEFAULT_DRUM_PITCH_CLASSES: number[][] = [
   // bass drum
@@ -131,7 +131,7 @@ export class DrumsConverter extends DataConverter{
     }
   }
 
-  toTensor(noteSequence: INoteSequence) {
+  toTensor(noteSequence: INoteSequence): dl.Tensor2D {
     const drumRoll = dl.buffer([this.numSteps, this.pitchClasses.length + 1]);
     // Set final values to 1 and change to 0 later if the has gets a note.
     for (let i = 0; i < this.numSteps; ++i) {
@@ -144,7 +144,7 @@ export class DrumsConverter extends DataConverter{
     return drumRoll.toTensor() as dl.Tensor2D;
   }
 
-  toNoteSequence(oh: dl.Tensor2D) {
+  toNoteSequence(oh: dl.Tensor2D): INoteSequence {
     const noteSequence = NoteSequence.create();
     const labelsTensor = oh.argMax(1);
     const labels: Int32Array = labelsTensor.dataSync() as Int32Array;
@@ -240,7 +240,7 @@ export class MelodyConverter extends DataConverter {
     this.depth = maxPitch - minPitch + 3;
   }
 
-  toTensor(noteSequence: INoteSequence) {
+  toTensor(noteSequence: INoteSequence): dl.Tensor2D {
     const sortedNotes: NoteSequence.INote[] = noteSequence.notes.sort(
       (n1, n2) => n1.quantizedStartStep - n2.quantizedStartStep);
     const mel = dl.buffer([this.numSteps]);
@@ -262,7 +262,7 @@ export class MelodyConverter extends DataConverter {
         mel.toTensor() as dl.Tensor1D, this.depth) as dl.Tensor2D;
   }
 
-  toNoteSequence(oh: dl.Tensor2D) {
+  toNoteSequence(oh: dl.Tensor2D): INoteSequence {
     const noteSequence = NoteSequence.create();
     const labelsTensor = oh.argMax(1);
     const labels: Int32Array = labelsTensor.dataSync() as Int32Array;

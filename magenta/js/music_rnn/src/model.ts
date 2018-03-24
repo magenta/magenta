@@ -17,11 +17,14 @@
 
 import * as dl from 'deeplearn';
 import * as magenta from '@magenta/core';
+import * as data from './data';
+import { INoteSequence } from '@magenta/core';
 
-const CHECKPOINT_URL = "https://storage.googleapis.com/download.magenta.tensorflow.org/models/music_rnn/dljs/basic_rnn/manifest.json";
+// tslint:disable-next-line:max-line-length
+const CHECKPOINT_URL = "https://storage.googleapis.com/download.magenta.tensorflow.org/models/music_rnn/dljs/basic_rnn/";
 
 const DEFAULT_MIN_NOTE = 48;
-const DEFAULT_MAX_NOTE = 84;
+const DEFAULT_MAX_NOTE = 83;
 
 /**
  * Main MusicVAE model class.
@@ -34,7 +37,6 @@ const DEFAULT_MAX_NOTE = 84;
  */
 export class MelodyRnn {
   checkpointURL: string;
-  rawVars: { [varName: string]: dl.Tensor };  // Store for disposal.
 
   lstmKernel1: dl.Tensor2D;
   lstmBias1: dl.Tensor1D;
@@ -42,6 +44,8 @@ export class MelodyRnn {
   lstmBias2: dl.Tensor1D;
   lstmFcB: dl.Tensor1D;
   lstmFcW: dl.Tensor2D;
+
+  initialized: boolean;
 
   /**
    * `MusicVAE` constructor.
@@ -54,13 +58,7 @@ export class MelodyRnn {
    */
   constructor(checkpointURL=CHECKPOINT_URL) {
     this.checkpointURL = checkpointURL;
-  }
-
-  /**
-   * Disposes of any untracked `Tensors` to avoid GPU memory leaks.
-   */
-  dispose() {
-    Object.keys(this.rawVars).forEach(name => this.rawVars[name].dispose());
+    this.initialized = false;
   }
 
   /**
@@ -77,66 +75,75 @@ export class MelodyRnn {
     this.lstmBias1 = vars['RNN/MultiRNNCell/Cell0/BasicLSTMCell/Linear/Bias'] as dl.Tensor1D;
     this.lstmKernel2 = vars['RNN/MultiRNNCell/Cell1/BasicLSTMCell/Linear/Matrix'] as dl.Tensor2D;
     this.lstmBias2 = vars['RNN/MultiRNNCell/Cell1/BasicLSTMCell/Linear/Bias'] as dl.Tensor1D;
+    // tslint:enable:max-line-length
 
     this.lstmFcB = vars['fully_connected/biases'] as dl.Tensor1D;
     this.lstmFcW = vars['fully_connected/weights'] as dl.Tensor2D;
   }
 
   async continueSequence(sequence: magenta.INoteSequence, steps: number,
-    temperature?: number): Promise<number[]> {
-    // TODO(fjord): verify that sequence is already quantized.
+    temperature?: number): Promise<magenta.INoteSequence> {
+    magenta.Sequences.assertIsQuantizedSequence(sequence);
 
-    const converter = new magenta.data.MelodyConverter(
-      sequence.totalQuantizedSteps, DEFAULT_MIN_NOTE, DEFAULT_MAX_NOTE);
-    let inputs = converter.toTensor(sequence);
+    let continuation: INoteSequence;
 
-    const forgetBias = dl.scalar(1.0);
+    if(!this.initialized) {
+      await this.initialize();
+    }
 
-    const length = inputs.shape[0];
-    const outputSize = inputs.shape[1];
+    dl.tidy(() => {
+      const converterIn = new data.MelodyConverter(
+        sequence.totalQuantizedSteps, DEFAULT_MIN_NOTE, DEFAULT_MAX_NOTE);
+      const inputs = converterIn.toTensor(sequence);
 
-    let c: dl.Tensor2D[] = [
-      dl.zeros([1, this.lstmBias1.shape[0] / 4]),
-      dl.zeros([1, this.lstmBias2.shape[0] / 4]),
-    ];
-    let h: dl.Tensor2D[] = [
-      dl.zeros([1, this.lstmBias1.shape[0] / 4]),
-      dl.zeros([1, this.lstmBias2.shape[0] / 4]),
-    ];
+      const forgetBias = dl.scalar(1.0);
 
-    const lstm1 = (data: dl.Tensor2D, c: dl.Tensor2D, h: dl.Tensor2D) =>
-      dl.basicLSTMCell(forgetBias, this.lstmKernel1, this.lstmBias1, data,
-        c, h);
-    const lstm2 = (data: dl.Tensor2D, c: dl.Tensor2D, h: dl.Tensor2D) =>
-      dl.basicLSTMCell(forgetBias, this.lstmKernel2, this.lstmBias2, data,
-        c, h);
+      const length:number = inputs.shape[0];
+      const outputSize:number = inputs.shape[1];
 
-    // Initialize with input.
-    const samples: dl.Scalar[] = [];
-    for (let i = 0; i < length + steps; i++) {
-      let nextInput: dl.Tensor2D;
-      if (i < length) {
-        nextInput = inputs.slice([
-          i, 0], [1, outputSize]).as2D(1, outputSize);
-      } else {
-        const logits = h[1].matMul(this.lstmFcW).add(this.lstmFcB);
-        const sampledOutput = (
-          temperature ?
-          dl.multinomial(logits.div(dl.scalar(temperature)), 1).as1D():
-          logits.argMax(1).as1D());
-        nextInput = dl.oneHot(sampledOutput, outputSize).toFloat();
-        samples.push(sampledOutput.asScalar());
+      let c: dl.Tensor2D[] = [
+        dl.zeros([1, this.lstmBias1.shape[0] / 4]),
+        dl.zeros([1, this.lstmBias2.shape[0] / 4]),
+      ];
+      let h: dl.Tensor2D[] = [
+        dl.zeros([1, this.lstmBias1.shape[0] / 4]),
+        dl.zeros([1, this.lstmBias2.shape[0] / 4]),
+      ];
+
+      const lstm1 = (data: dl.Tensor2D, c: dl.Tensor2D, h: dl.Tensor2D) =>
+        dl.basicLSTMCell(forgetBias, this.lstmKernel1, this.lstmBias1, data,
+          c, h);
+      const lstm2 = (data: dl.Tensor2D, c: dl.Tensor2D, h: dl.Tensor2D) =>
+        dl.basicLSTMCell(forgetBias, this.lstmKernel2, this.lstmBias2, data,
+          c, h);
+
+      // Initialize with input.
+      const samples: dl.Tensor1D[] = [];
+      for (let i = 0; i < length + steps; i++) {
+        let nextInput: dl.Tensor2D;
+        if (i < length) {
+          nextInput = inputs.slice([
+            i, 0], [1, outputSize]).as2D(1, outputSize);
+        } else {
+          const logits = h[1].matMul(this.lstmFcW).add(this.lstmFcB);
+          const sampledOutput = (
+            temperature ?
+            dl.multinomial(logits.div(dl.scalar(temperature)), 1).as1D():
+            logits.argMax(1).as1D());
+          nextInput = dl.oneHot(sampledOutput, outputSize).toFloat();
+          samples.push(nextInput.as1D());
+        }
+        const output = dl.multiRNNCell([lstm1, lstm2], nextInput, c, h);
+        c = output[0];
+        h = output[1];
       }
-      const output = dl.multiRNNCell([lstm1, lstm2], nextInput, c, h);
-      c = output[0];
-      h = output[1];
-    }
 
-    const outputs:Array<number> = [];
-    for (const sample of samples) {
-      outputs.push((await sample.data())[0]);
-    }
-    return outputs;
+      const output = dl.stack(samples).as2D(samples.length, outputSize);
+      const converterOut = new data.MelodyConverter(
+        sequence.totalQuantizedSteps, DEFAULT_MIN_NOTE, DEFAULT_MAX_NOTE);
+      continuation = converterOut.toNoteSequence(output);
+    });
+    return continuation;
   }
 
 }

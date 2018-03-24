@@ -17,68 +17,97 @@
 
 import * as magenta from '@magenta/core';
 import NoteSequence = magenta.NoteSequence;
+import INoteSequence = magenta.INoteSequence;
 import { MelodyRnn } from '../src/index';
+import * as dl from 'deeplearn';
+
+const MELODY_NS = NoteSequence.create({
+  ticksPerQuarter: 220,
+  totalTime: 1.5,
+  timeSignatures: [
+    NoteSequence.TimeSignature.create({
+      time: 0,
+      numerator: 4,
+      denominator: 4
+    })
+  ],
+  tempos: [
+    NoteSequence.Tempo.create({
+      time: 0,
+      qpm: 120
+    })
+  ],
+  notes: [
+    NoteSequence.Note.create({
+      instrument: 0,
+      program: 0,
+      startTime: 0,
+      endTime: 0.5,
+      pitch: 60,
+      velocity: 100,
+      isDrum: false
+    }),
+    NoteSequence.Note.create({
+      instrument: 0,
+      program: 0,
+      startTime: 0.5,
+      endTime: 1.0,
+      pitch: 60,
+      velocity: 100,
+      isDrum: false
+    }),
+    NoteSequence.Note.create({
+      instrument: 0,
+      program: 0,
+      startTime: 1.0,
+      endTime: 1.5,
+      pitch: 67,
+      velocity: 100,
+      isDrum: false
+    }),
+    NoteSequence.Note.create({
+      instrument: 0,
+      program: 0,
+      startTime: 1.5,
+      endTime: 2.0,
+      pitch: 67,
+      velocity: 100,
+      isDrum: false
+    }),
+  ]
+});
+
+function writeTimer(elementId: string, startTime: number) {
+  document.getElementById(elementId).innerHTML = (
+  (performance.now() - startTime) / 1000.).toString() + 's';
+}
+
+function writeNoteSeqs(elementId: string, seqs: INoteSequence[]) {
+  document.getElementById(elementId).innerHTML = seqs.map(
+  seq => '[' + seq.notes.map(n => {
+    let s = '{p:' + n.pitch + ' s:' + n.quantizedStartStep;
+    if (n.quantizedEndStep != null) {
+      s += ' e:' +  n.quantizedEndStep;
+    }
+    s += '}';
+    return s;
+  }).join(', ') + ']').join('<br>');
+}
 
 async function runMelodyRnn() {
   const melodyRnn = new MelodyRnn();
   await melodyRnn.initialize();
-  const ns = NoteSequence.create({
-    ticksPerQuarter: 220,
-    totalTime: 1.5,
-    timeSignatures: [
-      NoteSequence.TimeSignature.create({
-        time: 0,
-        numerator: 4,
-        denominator: 4
-      })
-    ],
-    tempos: [
-      NoteSequence.Tempo.create({
-        time: 0,
-        qpm: 120
-      })
-    ],
-    notes: [
-      NoteSequence.Note.create({
-        instrument: 0,
-        program: 0,
-        startTime: 0,
-        endTime: 0.5,
-        pitch: 60,
-        velocity: 100,
-        isDrum: false
-      }),
-      NoteSequence.Note.create({
-        instrument: 0,
-        program: 0,
-        startTime: 0.5,
-        endTime: 1.0,
-        pitch: 60,
-        velocity: 100,
-        isDrum: false
-      }),
-      NoteSequence.Note.create({
-        instrument: 0,
-        program: 0,
-        startTime: 1.0,
-        endTime: 1.5,
-        pitch: 67,
-        velocity: 100,
-        isDrum: false
-      }),
-      NoteSequence.Note.create({
-        instrument: 0,
-        program: 0,
-        startTime: 1.5,
-        endTime: 2.0,
-        pitch: 67,
-        velocity: 100,
-        isDrum: false
-      }),
-    ]
-  });
-  const qns = magenta.Sequences.quantizeNoteSequence(ns, 1);
-  console.log(await melodyRnn.continueSequence(qns, 20));
+
+  const qns = magenta.Sequences.quantizeNoteSequence(MELODY_NS, 1);
+  writeNoteSeqs('melody-cont-inputs', [qns]);
+  const start = performance.now();
+  const continuation = await melodyRnn.continueSequence(qns, 20);
+  writeTimer('melody-cont-time', start);
+  writeNoteSeqs('melody-cont-results', [continuation]);
+
+  console.log(dl.getBackend());
+  console.log(dl.memory());
 }
+
 
 runMelodyRnn();
