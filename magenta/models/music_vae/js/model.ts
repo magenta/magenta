@@ -523,7 +523,7 @@ class MusicVAE {
   }
 
   private getLstmLayers(
-    cellFormat: string,  vars: {[varName: string]: dl.Tensor}) {
+      cellFormat: string,  vars: {[varName: string]: dl.Tensor}) {
     const lstmLayers: LayerVars[] = [];
     let l = 0;
     while (true) {
@@ -537,13 +537,13 @@ class MusicVAE {
       ++l;
     }
     return lstmLayers;
-    }
+  }
 
-   /**
-    * Loads variables from the checkpoint and instantiates the `Encoder` and
-    * `Decoder`.
-    */
-    async initialize() {
+  /**
+   * Loads variables from the checkpoint and instantiates the `Encoder` and
+   * `Decoder`.
+   */
+  async initialize() {
     const LSTM_CELL_FORMAT = 'cell_%d/lstm_cell/';
     const MUTLI_LSTM_CELL_FORMAT = 'multi_rnn_cell/' + LSTM_CELL_FORMAT;
     const CONDUCTOR_PREFIX = 'decoder/hierarchical_level_0/';
@@ -638,8 +638,8 @@ class MusicVAE {
                   baseDecoders.length);
     }
 
- return this;
-}
+    return this;
+  }
 
   /**
    * @returns true iff an `Encoder` and `Decoder` have been instantiated for the
