@@ -204,7 +204,13 @@ dependency listed in [setup.py](magenta/tools/pip/setup.py).
 
 Also, verify that your environment uses a supported Python version: >=2.7 for Python 2 or >=3.5 for Python 3.
 
-After that's done, run the tests with this command:
+After that's done, change directory to `./magenta` or your clone path:
+
+```
+cd ./magenta
+```
+
+And then run the tests with this command:
 
 ```
 bazel test //magenta/...
