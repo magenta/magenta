@@ -181,8 +181,8 @@ class PianorollEncoderDecoder(object):
     max_tt = np.max([roll.shape[0] for roll in instr_rolls])
     if tt < max_tt:
       tf.logging.warning(
-            'WARNING: input midi is a longer sequence then the requested',
-            'size (%d > %d)', max_tt, tt)
+          'WARNING: input midi is a longer sequence then the requested',
+          'size (%d > %d)', max_tt, tt)
     elif max_tt < tt:
       max_tt = tt
     pianorolls = np.zeros((bb, max_tt, pp, ii))
@@ -190,7 +190,7 @@ class PianorollEncoderDecoder(object):
       pianorolls[:, :roll.shape[0], :, i] = np.tile(roll[:, :], (bb, 1, 1))
     tf.logging.debug('Requested roll shape: %s', requested_shape)
     tf.logging.debug('Roll argmax: %s',
-                  np.argmax(pianorolls, axis=2) + self.min_pitch)
+                     np.argmax(pianorolls, axis=2) + self.min_pitch)
     return pianorolls
 
   def get_instr_pianoroll(self, midi_instr, requested_shape):
