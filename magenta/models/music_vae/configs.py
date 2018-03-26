@@ -44,7 +44,7 @@ CONFIG_MAP['cat-mel_2bar_small'] = Config(
             enc_rnn_size=[512],
             dec_rnn_size=[256, 256],
         )),
-    note_sequence_augmenter=None,
+    note_sequence_augmenter=data.NoteSequenceAugmenter(transpose_range=(-5, 5)),
     data_converter=data.OneHotMelodyConverter(
         valid_programs=data.MEL_PROGRAMS,
         skip_polyphony=False,
@@ -67,7 +67,7 @@ CONFIG_MAP['cat-mel_2bar_big'] = Config(
             enc_rnn_size=[2048],
             dec_rnn_size=[2048, 2048, 2048],
         )),
-    note_sequence_augmenter=None,
+    note_sequence_augmenter=data.NoteSequenceAugmenter(transpose_range=(-5, 5)),
     data_converter=data.OneHotMelodyConverter(
         valid_programs=data.MEL_PROGRAMS,
         skip_polyphony=False,
