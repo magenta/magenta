@@ -1,14 +1,7 @@
 {
   "name": "@magenta/music-vae",
   "version": "1.1.0",
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
->>>>>>> Add hierarchical encoder.
   "description": "A machine learning model for exploring latent spaces of musical scores",
-=======
-  "description": "",
->>>>>>> Add hierarchical encoder.
   "main": "es5/index.js",
   "types": "es5/index.d.ts",
   "jsdelivr": "dist/musicvae.js",
