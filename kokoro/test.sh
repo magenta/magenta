@@ -7,9 +7,17 @@ set -x
 
 # TODO(iansimon): Unrestrict tornado version and figure out how to upgrade to
 # python 2.7.9 in kokoro.
-eval "${PIP_COMMAND} install --upgrade absl-py apache-beam backports.tempfile \
-  bokeh enum34 intervaltree IPython librosa lxml matplotlib Mako mir_eval \
-  pandas Pillow protobuf scipy tensorflow 'tornado<5.0'"
+eval "${PIP_COMMAND} install --upgrade \
+  'tornado<5.0' \
+  IPython \
+  bokeh \
+  intervaltree \
+  librosa \
+  matplotlib \
+  mir_eval \
+  scipy \
+  tensorflow \
+  "
 
 bazel test \
   --keep_going \
