@@ -108,7 +108,7 @@ export class Sequences {
    * @param stepsPerSecond Each second will be divided into this many
    *    quantized time steps.
    */
-  private static quantizeNotes(ns: NoteSequence, stepsPerSecond: number) {
+  private static quantizeNotes(ns: INoteSequence, stepsPerSecond: number) {
     for (const note of ns.notes) {
       // Quantize the start and end times of the note.
       note.quantizedStartStep = this.quantizeToStep(
@@ -171,11 +171,10 @@ export class Sequences {
    * @throws {NegativeTimeException} If a note or chord occurs at a negative
    *    time.
    */
-  public static quantizeNoteSequence(noteSequence: NoteSequence,
+  public static quantizeNoteSequence(noteSequence: INoteSequence,
     stepsPerQuarter: number): NoteSequence {
     // Make a copy.
-    const qns = NoteSequence.fromObject(
-      NoteSequence.toObject(noteSequence));
+    const qns = NoteSequence.fromObject(noteSequence);
 
     qns.quantizationInfo = NoteSequence.QuantizationInfo.create({
       stepsPerQuarter

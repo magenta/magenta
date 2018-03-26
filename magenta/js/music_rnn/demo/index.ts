@@ -16,29 +16,28 @@
  */
 
 import * as magenta from '@magenta/core';
-import NoteSequence = magenta.NoteSequence;
 import INoteSequence = magenta.INoteSequence;
 import { MelodyRnn } from '../src/index';
 import * as dl from 'deeplearn';
 
-const MELODY_NS = NoteSequence.create({
+const MELODY_NS:INoteSequence = {
   ticksPerQuarter: 220,
   totalTime: 1.5,
   timeSignatures: [
-    NoteSequence.TimeSignature.create({
+    {
       time: 0,
       numerator: 4,
       denominator: 4
-    })
+    }
   ],
   tempos: [
-    NoteSequence.Tempo.create({
+    {
       time: 0,
       qpm: 120
-    })
+    }
   ],
   notes: [
-    NoteSequence.Note.create({
+    {
       instrument: 0,
       program: 0,
       startTime: 0,
@@ -46,8 +45,8 @@ const MELODY_NS = NoteSequence.create({
       pitch: 60,
       velocity: 100,
       isDrum: false
-    }),
-    NoteSequence.Note.create({
+    },
+    {
       instrument: 0,
       program: 0,
       startTime: 0.5,
@@ -55,8 +54,8 @@ const MELODY_NS = NoteSequence.create({
       pitch: 60,
       velocity: 100,
       isDrum: false
-    }),
-    NoteSequence.Note.create({
+    },
+    {
       instrument: 0,
       program: 0,
       startTime: 1.0,
@@ -64,8 +63,8 @@ const MELODY_NS = NoteSequence.create({
       pitch: 67,
       velocity: 100,
       isDrum: false
-    }),
-    NoteSequence.Note.create({
+    },
+    {
       instrument: 0,
       program: 0,
       startTime: 1.5,
@@ -73,9 +72,9 @@ const MELODY_NS = NoteSequence.create({
       pitch: 67,
       velocity: 100,
       isDrum: false
-    }),
+    },
   ]
-});
+};
 
 function writeTimer(elementId: string, startTime: number) {
   document.getElementById(elementId).innerHTML = (

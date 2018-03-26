@@ -26,6 +26,8 @@ const CHECKPOINT_URL = "https://storage.googleapis.com/download.magenta.tensorfl
 const DEFAULT_MIN_NOTE = 48;
 const DEFAULT_MAX_NOTE = 83;
 
+const CELL_FORMAT = "rnn/multi_rnn_cell/cell_%d/basic_lstm_cell/";
+
 /**
  * Main MusicVAE model class.
  *
@@ -38,12 +40,12 @@ const DEFAULT_MAX_NOTE = 83;
 export class MelodyRnn {
   checkpointURL: string;
 
-  lstmKernel1: dl.Tensor2D;
-  lstmBias1: dl.Tensor1D;
-  lstmKernel2: dl.Tensor2D;
-  lstmBias2: dl.Tensor1D;
+  lstmCells: dl.LSTMCellFunc[];
   lstmFcB: dl.Tensor1D;
   lstmFcW: dl.Tensor2D;
+  forgetBias: dl.Scalar;
+  biasShapes: number[];
+  rawVars: {[varName: string]: dl.Tensor};  // Store for disposal.
 
   initialized: boolean;
 
@@ -59,6 +61,9 @@ export class MelodyRnn {
   constructor(checkpointURL=CHECKPOINT_URL) {
     this.checkpointURL = checkpointURL;
     this.initialized = false;
+    this.rawVars = {};
+    this.biasShapes = [];
+    this.lstmCells = [];
   }
 
   /**
@@ -66,35 +71,57 @@ export class MelodyRnn {
    * `Decoder`.
    */
   async initialize() {
+    this.dispose();
+
     const reader = new dl.CheckpointLoader(this.checkpointURL);
     const vars = await reader.getAllVariables();
 
-    // Model variables.
-    // tslint:disable:max-line-length
-    this.lstmKernel1 = vars['RNN/MultiRNNCell/Cell0/BasicLSTMCell/Linear/Matrix'] as dl.Tensor2D;
-    this.lstmBias1 = vars['RNN/MultiRNNCell/Cell0/BasicLSTMCell/Linear/Bias'] as dl.Tensor1D;
-    this.lstmKernel2 = vars['RNN/MultiRNNCell/Cell1/BasicLSTMCell/Linear/Matrix'] as dl.Tensor2D;
-    this.lstmBias2 = vars['RNN/MultiRNNCell/Cell1/BasicLSTMCell/Linear/Bias'] as dl.Tensor1D;
-    // tslint:enable:max-line-length
+    this.forgetBias = dl.scalar(1.0);
+
+    this.lstmCells.length = 0;
+    this.biasShapes.length = 0;
+    let l = 0;
+    while (true) {
+      const cellPrefix = CELL_FORMAT.replace('%d', l.toString());
+      if (!(cellPrefix + 'kernel' in vars)) {
+          break;
+      }
+      this.lstmCells.push(
+        (data: dl.Tensor2D, c: dl.Tensor2D, h: dl.Tensor2D) =>
+            dl.basicLSTMCell(this.forgetBias,
+              vars[cellPrefix + 'kernel'] as dl.Tensor2D,
+              vars[cellPrefix + 'bias'] as dl.Tensor1D, data, c, h));
+      this.biasShapes.push((vars[cellPrefix + 'bias'] as dl.Tensor2D).shape[0]);
+      ++l;
+    }
 
     this.lstmFcW = vars['fully_connected/weights'] as dl.Tensor2D;
     this.lstmFcB = vars['fully_connected/biases'] as dl.Tensor1D;
 
+    this.rawVars = vars;
     this.initialized = true;
   }
 
   dispose() {
-    this.lstmKernel1.dispose();
-    this.lstmBias1.dispose();
-    this.lstmKernel2.dispose();
-    this.lstmBias2.dispose();
-    this.lstmFcW.dispose();
-    this.lstmFcB.dispose();
+    Object.keys(this.rawVars).forEach(name => this.rawVars[name].dispose());
+    this.rawVars = {};
+    if (this.forgetBias) {
+      this.forgetBias.dispose();
+      this.forgetBias = undefined;
+    }
     this.initialized = false;
   }
 
+  /**
+   * Continues a provided quantized NoteSequence containing a monophonic melody.
+   *
+   * @param sequence The sequence to continue. Must be quantized.
+   * @param steps How many steps to continue.
+   * @param temperature The softmax temperature to use when sampling from the
+   *   logits. Argmax is used if not provided.
+   */
   async continueSequence(sequence: magenta.INoteSequence, steps: number,
-    temperature?: number): Promise<magenta.INoteSequence> {
+      temperature?: number): Promise<magenta.INoteSequence> {
     magenta.Sequences.assertIsQuantizedSequence(sequence);
 
     let continuation: INoteSequence;
@@ -108,26 +135,15 @@ export class MelodyRnn {
         sequence.totalQuantizedSteps, DEFAULT_MIN_NOTE, DEFAULT_MAX_NOTE);
       const inputs = converterIn.toTensor(sequence);
 
-      const forgetBias = dl.scalar(1.0);
-
       const length:number = inputs.shape[0];
       const outputSize:number = inputs.shape[1];
 
-      let c: dl.Tensor2D[] = [
-        dl.zeros([1, this.lstmBias1.shape[0] / 4]),
-        dl.zeros([1, this.lstmBias2.shape[0] / 4]),
-      ];
-      let h: dl.Tensor2D[] = [
-        dl.zeros([1, this.lstmBias1.shape[0] / 4]),
-        dl.zeros([1, this.lstmBias2.shape[0] / 4]),
-      ];
-
-      const lstm1 = (data: dl.Tensor2D, c: dl.Tensor2D, h: dl.Tensor2D) =>
-        dl.basicLSTMCell(forgetBias, this.lstmKernel1, this.lstmBias1, data,
-          c, h);
-      const lstm2 = (data: dl.Tensor2D, c: dl.Tensor2D, h: dl.Tensor2D) =>
-        dl.basicLSTMCell(forgetBias, this.lstmKernel2, this.lstmBias2, data,
-          c, h);
+      let c: dl.Tensor2D[] = [];
+      let h: dl.Tensor2D[] = [];
+      for (let i = 0; i < this.biasShapes.length; i++) {
+        c.push(dl.zeros([1, this.biasShapes[i] / 4]));
+        h.push(dl.zeros([1, this.biasShapes[i] / 4]));
+      }
 
       // Initialize with input.
       const samples: dl.Tensor1D[] = [];
@@ -143,9 +159,10 @@ export class MelodyRnn {
             dl.multinomial(logits.div(dl.scalar(temperature)), 1).as1D():
             logits.argMax(1).as1D());
           nextInput = dl.oneHot(sampledOutput, outputSize).toFloat();
-          samples.push(nextInput.as1D());
+          // Save samples as bool to reduce data sync time.
+          samples.push(nextInput.as1D().toBool());
         }
-        const output = dl.multiRNNCell([lstm1, lstm2], nextInput, c, h);
+        const output = dl.multiRNNCell(this.lstmCells, nextInput, c, h);
         c = output[0];
         h = output[1];
       }
