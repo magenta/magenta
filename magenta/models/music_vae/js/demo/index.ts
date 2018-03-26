@@ -183,6 +183,7 @@ async function runMel(){
   console.log(dl.memory());
 }
 
+// TODO(adarob): Switch to magenta/core function once implemented.
 function concatNoteSequences(
     seqs: INoteSequence[], individualDuration: number) {
   const concatSeq: INoteSequence = clone(seqs[0]);

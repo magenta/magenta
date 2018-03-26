@@ -128,14 +128,14 @@ class BidirectonalLstmEncoder extends Encoder {
  * A hierarchical encoder that uses the outputs from each level as the inputs
  * to the subsequent level.
  */
-class HierarhicalEncoder extends Encoder {
+class HierarchicalEncoder extends Encoder {
   baseEncoders: Encoder[];
   numSteps: number[];
   muVars: LayerVars;
   zDims: number;
 
   /**
-   * `HierarhicalEncoder` contructor.
+   * `HierarchicalEncoder` contructor.
    *
    * @param baseEncoders An list of `Encoder` objects to use for each.
    * @param numSteps A list containing the number of steps (outputs) for each
@@ -567,7 +567,7 @@ class MusicVAE {
       }
       const baseEncoders: BidirectonalLstmEncoder[] = [0, 1].map(
           l => new BidirectonalLstmEncoder(fwLayers[l], bwLayers[l]));
-      this.encoder = new HierarhicalEncoder(
+      this.encoder = new HierarchicalEncoder(
           baseEncoders, [this.dataConverter.numSegments, 1], encMu);
     } else {
       const fwLayers = this.getLstmLayers(
