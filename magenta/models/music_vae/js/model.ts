@@ -290,7 +290,7 @@ class BaseDecoder extends Decoder {
     return dl.tidy(() => {
       // Initialize LSTMCells.
       const lstmCell = initLstmCells(
-          z, this.zToInitStateVars, this.lstmCellVars);
+          z, this.lstmCellVars, this.zToInitStateVars);
 
       // Generate samples.
       const samples: dl.Tensor2D[] = [];
@@ -328,11 +328,13 @@ class BaseDecoder extends Decoder {
 }
 
 /**
- * Hierarchical decoder that produces intermediate embeddings to pass to a
- * lower-level `Decoder`, whose results are concatenated.
+ * Hierarchical decoder that produces intermediate embeddings to pass to
+ * lower-level `Decoder` objects. The outputs from different decoders are
+ * concatenated depth-wise (axis 3), and the outputs from different steps of the
+ * conductor are concatenated across time (axis 1).
  */
 class ConductorDecoder extends Decoder {
-  coreDecoder: Decoder;
+  coreDecoders: Decoder[];
   lstmCellVars: LayerVars[];
   zToInitStateVars: LayerVars;
   numSteps: number;
@@ -341,8 +343,8 @@ class ConductorDecoder extends Decoder {
 
   /**
    * `Decoder` contructor.
-   * @param coreDecoder A lower-level `Decoder` to pass the conductor LSTM
-   * output embeddings to for futher decoder.
+   * @param coreDecoders Lower-level `Decoder` objects to pass the conductor
+   * LSTM output embeddings to for futher decoding.
    * @param lstmCellVars The `LayerVars` for each layer of the conductor LSTM.
    * @param zToInitStateVars The `LayerVars` for projecting from the latent
    * variable `z` to the initial states of the conductor LSTM layers.
@@ -350,15 +352,16 @@ class ConductorDecoder extends Decoder {
    * and pass to the lower-level decoder.
    */
   constructor(
-      coreDecoder: Decoder, lstmCellVars: LayerVars[],
+      coreDecoders: Decoder[], lstmCellVars: LayerVars[],
       zToInitStateVars: LayerVars, numSteps: number) {
     super();
-    this.coreDecoder = coreDecoder;
+    this.coreDecoders = coreDecoders;
     this.lstmCellVars = lstmCellVars;
     this.zToInitStateVars = zToInitStateVars;
     this.numSteps = numSteps;
     this.zDims = this.zToInitStateVars.kernel.shape[0];
-    this.outputDims = this.coreDecoder.outputDims;
+    this.outputDims = this.coreDecoders.reduce(
+        (dims, dec) => dims + dec.outputDims, 0);
   }
 
   /**
@@ -383,19 +386,24 @@ class ConductorDecoder extends Decoder {
 
        // Generate embeddings.
       const samples: dl.Tensor3D[] = [];
+      let initialInput: dl.Tensor2D[] = this.coreDecoders.map(_ => undefined);
       const dummyInput: dl.Tensor2D = dl.zeros([batchSize, 1]);
       for (let i = 0; i < this.numSteps; ++i) {
         [lstmCell.c, lstmCell.h] = dl.multiRNNCell(
             lstmCell.cell, dummyInput, lstmCell.c, lstmCell.h);
-        const initialInput = samples.length ?
-           samples[samples.length - 1].slice(
-               [0, -1, 0],
-               [batchSize, 1, this.outputDims]).as2D(batchSize, -1).toFloat() :
-            undefined;
+        const currSamples: dl.Tensor3D[] = [];
+        for (let j = 0; j < this.coreDecoders.length; ++j) {
+          currSamples.push(
+            this.coreDecoders[j].decode(
+              lstmCell.h[lstmCell.h.length - 1], length / this.numSteps,
+              initialInput[j], temperature));
+        }
         samples.push(
-          this.coreDecoder.decode(
-            lstmCell.h[lstmCell.h.length - 1], length / this.numSteps,
-            initialInput, temperature));
+            (currSamples.length > 1) ?
+            dl.concat(currSamples, -1) : currSamples[0]);
+        initialInput = currSamples.map(s => s.slice(
+            [0, -1, 0],
+            [batchSize, 1, this.outputDims]).as2D(batchSize, -1).toFloat());
       }
       return dl.concat(samples, 1);
     });
@@ -515,62 +523,123 @@ class MusicVAE {
   }
 
   private getLstmLayers(
-       cellFormat: string,  vars: {[varName: string]: dl.Tensor}) {
-    const lstmLayers: LayerVars[] = [];
-    let l = 0;
-    while (true) {
-      const cellPrefix = cellFormat.replace('%d', l.toString());
-      if (!(cellPrefix + 'kernel' in vars)) {
-        break;
-      }
-      lstmLayers.push(new LayerVars(
-          vars[cellPrefix + 'kernel'] as dl.Tensor2D,
-          vars[cellPrefix + 'bias'] as dl.Tensor1D));
-      ++l;
-    }
-    return lstmLayers;
-  }
+    cellFormat: string,  vars: {[varName: string]: dl.Tensor}) {
+ const lstmLayers: LayerVars[] = [];
+ let l = 0;
+ while (true) {
+   const cellPrefix = cellFormat.replace('%d', l.toString());
+   if (!(cellPrefix + 'kernel' in vars)) {
+     break;
+   }
+   lstmLayers.push(new LayerVars(
+       vars[cellPrefix + 'kernel'] as dl.Tensor2D,
+       vars[cellPrefix + 'bias'] as dl.Tensor1D));
+   ++l;
+ }
+ return lstmLayers;
+}
 
-  /**
-   * Loads variables from the checkpoint and instantiates the `Encoder` and
-   * `Decoder`.
-   */
-  async initialize() {
-    const LSTM_CELL_FORMAT = 'cell_%d/lstm_cell/';
-    const MUTLI_LSTM_CELL_FORMAT = 'multi_rnn_cell/' + LSTM_CELL_FORMAT;
-    const CONDUCTOR_PREFIX = 'decoder/hierarchical_level_0/';
-    const BIDI_LSTM_CELL =
-        'cell_%d/bidirectional_rnn/%s/multi_rnn_cell/cell_0/lstm_cell/';
-    const ENCODER_FORMAT = 'encoder/' + BIDI_LSTM_CELL;
-    const HIER_ENCODER_FORMAT =
-        'encoder/hierarchical_level_%d/' + BIDI_LSTM_CELL.replace('%d', '0');
+/**
+* Loads variables from the checkpoint and instantiates the `Encoder` and
+* `Decoder`.
+*/
+async initialize() {
+ const LSTM_CELL_FORMAT = 'cell_%d/lstm_cell/';
+ const MUTLI_LSTM_CELL_FORMAT = 'multi_rnn_cell/' + LSTM_CELL_FORMAT;
+ const CONDUCTOR_PREFIX = 'decoder/hierarchical_level_0/';
+ const BIDI_LSTM_CELL =
+     'cell_%d/bidirectional_rnn/%s/multi_rnn_cell/cell_0/lstm_cell/';
+ const ENCODER_FORMAT = 'encoder/' + BIDI_LSTM_CELL;
+ const HIER_ENCODER_FORMAT =
+     'encoder/hierarchical_level_%d/' + BIDI_LSTM_CELL.replace('%d', '0');
 
-    const reader = new CheckpointLoader(this.checkpointURL);
-    const vars = await reader.getAllVariables();
-    this.rawVars= vars;  // Save for disposal.
+ const reader = new CheckpointLoader(this.checkpointURL);
+ const vars = await reader.getAllVariables();
+ this.rawVars= vars;  // Save for disposal.
+ // Encoder variables.
+ const encMu = new LayerVars(
+   vars['encoder/mu/kernel'] as dl.Tensor2D,
+   vars['encoder/mu/bias'] as dl.Tensor1D);
 
-    // Encoder variables.
-    const encMu = new LayerVars(
-      vars['encoder/mu/kernel'] as dl.Tensor2D,
-      vars['encoder/mu/bias'] as dl.Tensor1D);
+ if (this.dataConverter.numSegments) {
+   const fwLayers = this.getLstmLayers(
+       HIER_ENCODER_FORMAT.replace('%s', 'fw'), vars);
+   const bwLayers = this.getLstmLayers(
+       HIER_ENCODER_FORMAT.replace('%s', 'bw'), vars);
 
-    if (this.dataConverter.numSegments) {
-      const fwLayers = this.getLstmLayers(
-          HIER_ENCODER_FORMAT.replace('%s', 'fw'), vars);
-      const bwLayers = this.getLstmLayers(
-          HIER_ENCODER_FORMAT.replace('%s', 'bw'), vars);
+   if (fwLayers.length !== bwLayers.length || fwLayers.length !== 2) {
+     throw Error('Only 2 hierarchical encoder levels are supported. ' +
+                 'Got ' + fwLayers.length + ' forward and ' +
+                 bwLayers.length + ' backward.');
+   }
+   const baseEncoders: BidirectonalLstmEncoder[] = [0, 1].map(
+       l => new BidirectonalLstmEncoder(fwLayers[l], bwLayers[l]));
+   this.encoder = new HierarchicalEncoder(
+       baseEncoders, [this.dataConverter.numSegments, 1], encMu);
+ } else {
+   const fwLayers = this.getLstmLayers(
+       ENCODER_FORMAT.replace('%s', 'fw'), vars);
+   const bwLayers = this.getLstmLayers(
+       ENCODER_FORMAT.replace('%s', 'bw'), vars);
+   if (fwLayers.length !== bwLayers.length || fwLayers.length !== 1) {
+     throw Error('Only single-layer bidirectional encoders are supported. ' +
+                 'Got ' + fwLayers.length + ' forward and ' +
+                 bwLayers.length + ' backward.');
+   }
+   this.encoder = new BidirectonalLstmEncoder(
+       fwLayers[0], bwLayers[0], encMu);
+ }
 
-      if (fwLayers.length !== bwLayers.length || fwLayers.length !== 2) {
-        throw Error('Only 2 hierarchical encoder levels are supported. ' +
-                    'Got ' + fwLayers.length + ' forward and ' +
-                    bwLayers.length + ' backward.');
-      }
-      const baseEncoders: BidirectonalLstmEncoder[] = [0, 1].map(
-          l => new BidirectonalLstmEncoder(fwLayers[l], bwLayers[l]));
-      this.encoder = new HierarchicalEncoder(
+ // BaseDecoder variables.
+ const decVarPrefix = (this.dataConverter.numSegments) ?
+   'core_decoder/' : '';
 
-    return this;
-  }
+ const decVarPrefixes: string[] = [];
+ if (this.dataConverter.NUM_SPLITS) {
+   for (let i = 0; i < this.dataConverter.NUM_SPLITS; ++i) {
+     decVarPrefixes.push(decVarPrefix + 'core_decoder_' + i + '/decoder/');
+   }
+ } else {
+   decVarPrefixes.push(decVarPrefix + 'decoder/');
+ }
+
+ const baseDecoders = decVarPrefixes.map((varPrefix) => {
+   const decLstmLayers = this.getLstmLayers(
+       varPrefix + MUTLI_LSTM_CELL_FORMAT, vars);
+   const decZtoInitState = new LayerVars(
+       vars[varPrefix + 'z_to_initial_state/kernel'] as dl.Tensor2D,
+       vars[varPrefix + 'z_to_initial_state/bias'] as dl.Tensor1D);
+   const decOutputProjection = new LayerVars(
+       vars[varPrefix + 'output_projection/kernel'] as dl.Tensor2D,
+       vars[varPrefix + 'output_projection/bias'] as dl.Tensor1D);
+   // Optional NADE for the BaseDecoder.
+   const nade = ((varPrefix + 'nade/w_enc' in vars) ?
+       new Nade(
+           vars[varPrefix + 'nade/w_enc'] as dl.Tensor3D,
+           vars[varPrefix + 'nade/w_dec_t'] as dl.Tensor3D) : null);
+   return new BaseDecoder(
+       decLstmLayers, decZtoInitState, decOutputProjection, nade);
+ });
+
+ // ConductorDecoder variables.
+ if (this.dataConverter.numSegments) {
+   const condLstmLayers = this.getLstmLayers(
+       CONDUCTOR_PREFIX + LSTM_CELL_FORMAT, vars);
+   const condZtoInitState = new LayerVars(
+       vars[CONDUCTOR_PREFIX + 'initial_state/kernel'] as dl.Tensor2D,
+       vars[CONDUCTOR_PREFIX + 'initial_state/bias'] as dl.Tensor1D);
+   this.decoder = new ConductorDecoder(
+       baseDecoders, condLstmLayers, condZtoInitState,
+       this.dataConverter.numSegments);
+ } else if (baseDecoders.length === 1) {
+   this.decoder = baseDecoders[0];
+ } else {
+   throw Error('Unexpected number of base decoders without conductor: ' +
+               baseDecoders.length);
+ }
+
+ return this;
+}
 
   /**
    * @returns true iff an `Encoder` and `Decoder` have been instantiated for the
