@@ -19,8 +19,6 @@ import * as data from './data';
 // Use custom CheckpointLoader until quantization is added to dl.
 import { CheckpointLoader } from './checkpoint_loader';
 
-const DECODER_CELL_FORMAT = "decoder/multi_rnn_cell/cell_%d/lstm_cell/";
-
 /**
  * A class for keeping track of the parameters of an affine transformation.
  *
@@ -45,6 +43,363 @@ class LayerVars {
  */
 function dense(vars: LayerVars, inputs: dl.Tensor2D) {
   return inputs.matMul(vars.kernel).add(vars.bias) as dl.Tensor2D;
+}
+
+/**
+ * Abstract Encoder class.
+ */
+abstract class Encoder {
+  abstract zDims: number;
+  abstract encode(sequence: dl.Tensor3D): dl.Tensor2D;
+}
+
+/**
+ * A single-layer bidirectional LSTM encoder.
+ */
+class BidirectonalLstmEncoder extends Encoder {
+  lstmFwVars: LayerVars;
+  lstmBwVars: LayerVars;
+  muVars: LayerVars;
+  zDims: number;
+
+  /**
+   * `BidirectonalLstmEncoder` contructor.
+   *
+   * @param lstmFwVars The forward LSTM `LayerVars`.
+   * @param lstmBwVars The backward LSTM `LayerVars`.
+   * @param muVars (Optional) The `LayerVars` for projecting from the final
+   * states of the bidirectional LSTM to the mean `mu` of the random variable,
+   * `z`. The final states are returned directly if not provided.
+   */
+  constructor(
+      lstmFwVars: LayerVars, lstmBwVars: LayerVars, muVars?: LayerVars) {
+    super();
+    this.lstmFwVars = lstmFwVars;
+    this.lstmBwVars = lstmBwVars;
+    this.muVars = muVars;
+    this.zDims = muVars ? this.muVars.bias.shape[0] : null;
+  }
+
+  /**
+   * Encodes a batch of sequences.
+   * @param sequence The batch of sequences to be encoded.
+   * @returns A batch of concatenated final LSTM states, or the `mu` if `muVars`
+   * is known.
+   */
+  encode(sequence: dl.Tensor3D) {
+    return dl.tidy(() => {
+      const fwState = this.singleDirection(sequence, true);
+      const bwState = this.singleDirection(sequence, false);
+      const finalState = dl.concat2d([fwState[1], bwState[1]], 1);
+      if (this.muVars) {
+        return dense(this.muVars, finalState);
+      } else {
+        return finalState;
+      }
+    });
+  }
+
+  private singleDirection(inputs: dl.Tensor3D, fw: boolean) {
+    const batchSize = inputs.shape[0];
+    const length = inputs.shape[1];
+    const outputSize = inputs.shape[2];
+
+    const lstmVars = fw ? this.lstmFwVars : this.lstmBwVars;
+    let state: [dl.Tensor2D, dl.Tensor2D] = [
+      dl.zeros([batchSize, lstmVars.bias.shape[0] / 4]),
+      dl.zeros([batchSize, lstmVars.bias.shape[0] / 4])
+    ];
+    const forgetBias = dl.scalar(1.0);
+    const lstm = (data: dl.Tensor2D, state: [dl.Tensor2D, dl.Tensor2D]) =>
+        dl.basicLSTMCell(
+          forgetBias, lstmVars.kernel, lstmVars.bias, data, state[0], state[1]);
+    for (let i = 0; i < length; i++) {
+      const index = fw ? i : length - 1 - i;
+      state = lstm(
+          inputs.slice([0, index, 0], [batchSize, 1, outputSize]).as2D(
+              batchSize, outputSize),
+          state);
+    }
+    return state;
+  }
+}
+
+/**
+ * A hierarchical encoder that uses the outputs from each level as the inputs
+ * to the subsequent level.
+ */
+class HierarchicalEncoder extends Encoder {
+  baseEncoders: Encoder[];
+  numSteps: number[];
+  muVars: LayerVars;
+  zDims: number;
+
+  /**
+   * `HierarchicalEncoder` contructor.
+   *
+   * @param baseEncoders An list of `Encoder` objects to use for each.
+   * @param numSteps A list containing the number of steps (outputs) for each
+   * level of the hierarchy. This number should evenly divide the inputs for
+   * each level. The final entry must always be `1`.
+   * @param muVars The `LayerVars` for projecting from the final
+   * states of the final level to the mean `mu` of the random variable, `z`.
+   */
+  constructor(baseEncoders: Encoder[], numSteps: number[], muVars: LayerVars) {
+    super();
+    this.baseEncoders = baseEncoders;
+    this.numSteps = numSteps;
+    this.muVars = muVars;
+    this.zDims = this.muVars.bias.shape[0];
+  }
+
+  /**
+   * Encodes a batch of sequences.
+   * @param sequence The batch of sequences to be encoded.
+   * @returns A batch of `mu` values.
+   */
+  encode(sequence: dl.Tensor3D) {
+    return dl.tidy(() => {
+      const batchSize = sequence.shape[0];
+      let inputs: dl.Tensor3D = sequence;
+
+      for (let level = 0; level < this.baseEncoders.length; ++level) {
+        const levelSteps = this.numSteps[level];
+        const stepSize = inputs.shape[1] / levelSteps;
+        const depth = inputs.shape[2];
+        const embeddings: dl.Tensor2D[] = [];
+        for (let step = 0; step < levelSteps; ++ step) {
+
+          embeddings.push(this.baseEncoders[level].encode(
+              inputs.slice([0, step * stepSize, 0],
+                           [batchSize, stepSize, depth])));
+        }
+        inputs = (embeddings.length > 1) ?
+            dl.stack(embeddings, 1) as dl.Tensor3D :
+            embeddings[0].expandDims(1);
+      }
+      return dense(this.muVars, inputs.squeeze([1]));
+    });
+  }
+}
+
+/**
+ * Helper function to create LSTM cells and initial states for decoders.
+ *
+ * @param z A batch of latent vectors to decode, sized `[batchSize, zDims]`.   *
+ * @param lstmCellVars The `LayerVars` for each layer of the decoder LSTM.
+ * @param zToInitStateVars The `LayerVars` for projecting from the latent
+ * variable `z` to the initial states of the LSTM layers.
+ * @returns An Object containing the LSTM cells and initial states.
+ */
+function initLstmCells(
+  z: dl.Tensor2D, lstmCellVars: LayerVars[], zToInitStateVars: LayerVars) {
+  const batchSize = z.shape[0];
+
+  const lstmCells: dl.LSTMCellFunc[] =  [];
+  const c: dl.Tensor2D[] = [];
+  const h: dl.Tensor2D[] = [];
+  const initialStates = dense(zToInitStateVars, z).tanh();
+  let stateOffset = 0;
+  for (let i = 0; i < lstmCellVars.length; ++i) {
+    const lv = lstmCellVars[i];
+    const stateWidth = lv.bias.shape[0] / 4;
+    const forgetBias = dl.scalar(1.0);
+    lstmCells.push(
+        (data: dl.Tensor2D, c: dl.Tensor2D, h: dl.Tensor2D) =>
+        dl.basicLSTMCell(forgetBias, lv.kernel, lv.bias, data, c, h));
+    c.push(initialStates.slice([0, stateOffset], [batchSize, stateWidth]));
+    stateOffset += stateWidth;
+    h.push(initialStates.slice([0, stateOffset], [batchSize, stateWidth]));
+    stateOffset += stateWidth;
+  }
+  return {'cell': lstmCells, 'c': c, 'h': h};
+}
+
+/**
+ * Abstract Decoder class.
+ */
+abstract class Decoder {
+  abstract outputDims: number;
+  abstract zDims: number;
+
+  abstract decode(
+      z: dl.Tensor2D, length: number, initialInput?: dl.Tensor2D,
+      temperature?: number): dl.Tensor3D;
+}
+
+/**
+ * LSTM decoder with optional NADE output.
+ */
+class BaseDecoder extends Decoder {
+  lstmCellVars: LayerVars[];
+  zToInitStateVars: LayerVars;
+  outputProjectVars: LayerVars;
+  zDims: number;
+  outputDims: number;
+  nade: Nade;
+
+  /**
+   * `BaseDecoder` contructor.
+   *
+   * @param lstmCellVars The `LayerVars` for each layer of the decoder LSTM.
+   * @param zToInitStateVars The `LayerVars` for projecting from the latent
+   * variable `z` to the initial states of the LSTM layers.
+   * @param outputProjectVars The `LayerVars` for projecting from the output
+   * of the LSTM to the logits of the output categorical distrubtion
+   * (if `nade` is null) or to bias values to use in the NADE (if `nade` is
+   * not null).
+   * @param nade (optional) A `Nade` to use for computing the output vectors at
+   * each step. If not given, the final projection values are used as logits
+   * for a categorical distribution.
+   */
+  constructor(
+      lstmCellVars: LayerVars[], zToInitStateVars: LayerVars,
+      outputProjectVars: LayerVars, nade?: Nade) {
+    super();
+    this.lstmCellVars = lstmCellVars;
+    this.zToInitStateVars = zToInitStateVars;
+    this.outputProjectVars = outputProjectVars;
+    this.zDims = this.zToInitStateVars.kernel.shape[0];
+    this.outputDims = (nade) ? nade.numDims : outputProjectVars.bias.shape[0];
+    this.nade = nade;
+  }
+
+  /**
+   * Decodes a batch of latent vectors, `z`.
+   *
+   * If `nade` is parameterized, samples are generated using the MAP (argmax) of
+   * the Bernoulli random variables from the NADE, and these bit vector makes up
+   * the final dimension of the output.
+   *
+   * If `nade` is not parameterized, sample labels are generated using the
+   * MAP (argmax) of the logits output by the LSTM, and the onehots of those
+   * labels makes up the final dimension of the output.
+   *
+   * @param z A batch of latent vectors to decode, sized `[batchSize, zDims]`.
+   * @param length The length of decoded sequences.
+   * @param temperature The softmax temperature to use when sampling from the
+   * logits. Argmax is used if not provided.
+   *
+   * @returns A boolean tensor containing the decoded sequences, shaped
+   * `[batchSize, length, depth]`.
+   */
+  decode(z: dl.Tensor2D, length: number, initialInput?: dl.Tensor2D,
+         temperature?: number) {
+    const batchSize = z.shape[0];
+
+    return dl.tidy(() => {
+      // Initialize LSTMCells.
+      const lstmCell = initLstmCells(
+          z, this.lstmCellVars, this.zToInitStateVars);
+
+      // Generate samples.
+      const samples: dl.Tensor2D[] = [];
+      let nextInput = initialInput ?
+          initialInput : dl.zeros([batchSize, this.outputDims]) as dl.Tensor2D;
+      for (let i = 0; i < length; ++i) {
+        [lstmCell.c, lstmCell.h] = dl.multiRNNCell(
+            lstmCell.cell, dl.concat2d([nextInput, z], 1), lstmCell.c,
+            lstmCell.h);
+        const logits = dense(
+            this.outputProjectVars, lstmCell.h[lstmCell.h.length - 1]);
+
+        let timeSamples: dl.Tensor2D;
+        if (this.nade == null) {
+          const timeLabels = (
+            temperature ?
+            dl.multinomial(logits.div(dl.scalar(temperature)), 1).as1D():
+            logits.argMax(1).as1D());
+          nextInput = dl.oneHot(timeLabels, this.outputDims).toFloat();
+          timeSamples = nextInput.toBool();
+        } else {
+          const encBias = logits.slice(
+              [0, 0], [batchSize, this.nade.numHidden]);
+          const decBias = logits.slice(
+              [0, this.nade.numHidden], [batchSize, this.nade.numDims]);
+          nextInput = this.nade.sample(encBias, decBias);
+          timeSamples = nextInput.toBool();
+        }
+        samples.push(timeSamples);
+      }
+
+      return dl.stack(samples, 1) as dl.Tensor3D;
+    });
+  }
+}
+
+/**
+ * Hierarchical decoder that produces intermediate embeddings to pass to a
+ * lower-level `Decoder`, whose results are concatenated.
+ */
+class ConductorDecoder extends Decoder {
+  coreDecoder: Decoder;
+  lstmCellVars: LayerVars[];
+  zToInitStateVars: LayerVars;
+  numSteps: number;
+  zDims: number;
+  outputDims: number;
+
+  /**
+   * `Decoder` contructor.
+   * @param coreDecoder A lower-level `Decoder` to pass the conductor LSTM
+   * output embeddings to for futher decoder.
+   * @param lstmCellVars The `LayerVars` for each layer of the conductor LSTM.
+   * @param zToInitStateVars The `LayerVars` for projecting from the latent
+   * variable `z` to the initial states of the conductor LSTM layers.
+   * @param numSteps The number of embeddings the conductor LSTM should produce
+   * and pass to the lower-level decoder.
+   */
+  constructor(
+      coreDecoder: Decoder, lstmCellVars: LayerVars[],
+      zToInitStateVars: LayerVars, numSteps: number) {
+    super();
+    this.coreDecoder = coreDecoder;
+    this.lstmCellVars = lstmCellVars;
+    this.zToInitStateVars = zToInitStateVars;
+    this.numSteps = numSteps;
+    this.zDims = this.zToInitStateVars.kernel.shape[0];
+    this.outputDims = this.coreDecoder.outputDims;
+  }
+
+  /**
+   * Hierarchically decodes a batch of latent vectors, `z`.
+   *
+   * @param z A batch of latent vectors to decode, sized `[batchSize, zDims]`.
+   * @param length The length of decoded sequences.
+   * @param temperature The softmax temperature to use when sampling from the
+   * logits. Argmax is used if not provided.
+   *
+   * @returns A boolean tensor containing the decoded sequences, shaped
+   * `[batchSize, length, depth]`.
+   */
+  decode(z: dl.Tensor2D, length: number, initialInput?: dl.Tensor2D,
+         temperature?: number) {
+    const batchSize = z.shape[0];
+
+    return dl.tidy(() => {
+      // Initialize LSTMCells.
+      const lstmCell = initLstmCells(
+          z, this.lstmCellVars, this.zToInitStateVars);
+
+       // Generate embeddings.
+      const samples: dl.Tensor3D[] = [];
+      const dummyInput: dl.Tensor2D = dl.zeros([batchSize, 1]);
+      for (let i = 0; i < this.numSteps; ++i) {
+        [lstmCell.c, lstmCell.h] = dl.multiRNNCell(
+            lstmCell.cell, dummyInput, lstmCell.c, lstmCell.h);
+        const initialInput = samples.length ?
+           samples[samples.length - 1].slice(
+               [0, -1, 0],
+               [batchSize, 1, this.outputDims]).as2D(batchSize, -1).toFloat() :
+            undefined;
+        samples.push(
+          this.coreDecoder.decode(
+            lstmCell.h[lstmCell.h.length - 1], length / this.numSteps,
+            initialInput, temperature));
+      }
+      return dl.concat(samples, 1);
+    });
+  }
 }
 
 /**
@@ -114,189 +469,6 @@ class Nade {
 }
 
 /**
- * Bidirectional LSTM encoder for computing the latent variable `z`.
- */
-class Encoder {
-  lstmFwVars: LayerVars;
-  lstmBwVars: LayerVars;
-  muVars: LayerVars;
-  zDims: number;
-
-  /**
-   * `Encoder` contructor.
-   *
-   * @param lstmFwVars The forward LSTM `LayerVars`.
-   * @param lstmBwVars The backward LSTM `LayerVars`.
-   * @param muVars The `LayerVars` for projecting from the final states of the
-   * bidirectional LSTM to the mean `mu` of the random variable, `z`.
-   */
-  constructor(lstmFwVars: LayerVars, lstmBwVars: LayerVars, muVars: LayerVars) {
-    this.lstmFwVars = lstmFwVars;
-    this.lstmBwVars = lstmBwVars;
-    this.muVars = muVars;
-    this.zDims = this.muVars.bias.shape[0];
-  }
-
-  /**
-   * Encodes a batch of input sequences.
-   *
-   * The final states of the forward and backward LSTMs are concatenated and
-   * passed through a dense layer to compute the mean value of the latent
-   * variable.
-   *
-   * @param sequence A batch of sequences to encode, sized
-   * `[batchSize, length, depth]`.
-   *
-   * @returns The means of the latent variables of the encoded sequences, sized
-   * `[batchSize, zDims]`.
-   */
-  encode(sequence: dl.Tensor3D): dl.Tensor2D {
-    return dl.tidy(() => {
-      const fwState = this.runLstm(sequence, this.lstmFwVars, false);
-      const bwState = this.runLstm(sequence, this.lstmBwVars, true);
-      const finalState = dl.concat2d([fwState[1], bwState[1]], 1);
-      const mu = dense(this.muVars, finalState);
-      return mu;
-    });
-  }
-
-  private runLstm(inputs: dl.Tensor3D, lstmVars: LayerVars, reverse: boolean) {
-    const batchSize = inputs.shape[0];
-    const length = inputs.shape[1];
-    const outputSize = inputs.shape[2];
-
-    let state: [dl.Tensor2D, dl.Tensor2D] = [
-      dl.zeros([batchSize, lstmVars.bias.shape[0] / 4]),
-      dl.zeros([batchSize, lstmVars.bias.shape[0] / 4])
-    ];
-    const forgetBias = dl.scalar(1.0);
-    const lstm = (data: dl.Tensor2D, state: [dl.Tensor2D, dl.Tensor2D]) =>
-        dl.basicLSTMCell(
-          forgetBias, lstmVars.kernel, lstmVars.bias, data, state[0], state[1]);
-    for (let i = 0; i < length; i++) {
-      const index = reverse ? length - 1 - i : i;
-      state = lstm(
-          inputs.slice([0, index, 0], [batchSize, 1, outputSize]).as2D(
-              batchSize, outputSize),
-          state);
-    }
-    return state;
-  }
-}
-
-/**
- * LSTM decoder with optional NADE output.
- */
-class Decoder {
-  lstmCellVars: LayerVars[];
-  zToInitStateVars: LayerVars;
-  outputProjectVars: LayerVars;
-  zDims: number;
-  outputDims: number;
-  nade: Nade;
-
-  /**
-   * `Decoder` contructor.
-   *
-   * @param lstmCellVars The `LayerVars` for each layer of the decoder LSTM.
-   * @param zToInitStateVars The `LayerVars` for projecting from the latent
-   * variable `z` to the initial states of the LSTM layers.
-   * @param outputProjectVars The `LayerVars` for projecting from the output
-   * of the LSTM to the logits of the output categorical distrubtion
-   * (if `nade` is null) or to bias values to use in the NADE (if `nade` is
-   * not null).
-   * @param nade (optional) A `Nade` to use for computing the output vectors at
-   * each step. If not given, the final projection values are used as logits
-   * for a categorical distrubtion.
-   */
-  constructor(
-      lstmCellVars: LayerVars[], zToInitStateVars: LayerVars,
-      outputProjectVars: LayerVars, nade?: Nade) {
-    this.lstmCellVars = lstmCellVars;
-    this.zToInitStateVars = zToInitStateVars;
-    this.outputProjectVars = outputProjectVars;
-    this.zDims = this.zToInitStateVars.kernel.shape[0];
-    this.outputDims = (nade) ? nade.numDims : outputProjectVars.bias.shape[0];
-    this.nade = nade;
-  }
-
-  /**
-   * Decodes a batch of latent vectors, `z`.
-   *
-   * If `nade` is parameterized, samples are generated using the MAP (argmax) of
-   * the Bernoulli random variables from the NADE, and these bit vector makes up
-   * the final dimension of the output.
-   *
-   * If `nade` is not parameterized, sample labels are generated using the
-   * MAP (argmax) of the logits output by the LSTM, and the onehots of those
-   * labels makes up the final dimension of the output.
-   *
-   * @param z A batch of latent vectors to decode, sized `[batchSize, zDims]`.
-   * @param length The length of decoded sequences.
-   * @param temperature The softmax temperature to use when sampling from the
-   * logits. Argmax is used if not provided.
-   *
-   * @returns A boolean tensor containing the decoded sequences, shaped
-   * `[batchSize, length, depth]`.
-   */
-  decode(z: dl.Tensor2D, length: number, temperature?: number) {
-    const batchSize = z.shape[0];
-
-    return dl.tidy(() => {
-      // Initialize LSTMCells.
-      const lstmCells: dl.LSTMCellFunc[] =  [];
-      let c: dl.Tensor2D[] = [];
-      let h: dl.Tensor2D[] = [];
-      const initialStates = dense(this.zToInitStateVars, z).tanh();
-      let stateOffset = 0;
-      for (let i = 0; i < this.lstmCellVars.length; ++i) {
-        const lv = this.lstmCellVars[i];
-        const stateWidth = lv.bias.shape[0] / 4;
-        const forgetBias = dl.scalar(1.0);
-        lstmCells.push(
-            (data: dl.Tensor2D, c: dl.Tensor2D, h: dl.Tensor2D) =>
-            dl.basicLSTMCell(forgetBias, lv.kernel, lv.bias, data, c, h));
-        c.push(initialStates.slice([0, stateOffset], [batchSize, stateWidth]));
-        stateOffset += stateWidth;
-        h.push(initialStates.slice([0, stateOffset], [batchSize, stateWidth]));
-        stateOffset += stateWidth;
-      }
-
-       // Generate samples.
-      const samples: dl.Tensor2D[] = [];
-      let nextInput = dl.zeros([batchSize, this.outputDims]) as dl.Tensor2D;
-      for (let i = 0; i < length; ++i) {
-        const output = dl.multiRNNCell(
-            lstmCells, dl.concat2d([nextInput, z], 1), c, h);
-        c = output[0];
-        h = output[1];
-        const logits = dense(this.outputProjectVars, h[h.length - 1]);
-
-        let timeSamples: dl.Tensor2D;
-        if (this.nade == null) {
-          const timeLabels = (
-            temperature ?
-            dl.multinomial(logits.div(dl.scalar(temperature)), 1).as1D():
-            logits.argMax(1).as1D());
-          nextInput = dl.oneHot(timeLabels, this.outputDims).toFloat();
-          timeSamples = nextInput.toBool();
-        } else {
-          const encBias = logits.slice(
-              [0, 0], [batchSize, this.nade.numHidden]);
-          const decBias = logits.slice(
-              [0, this.nade.numHidden], [batchSize, this.nade.numDims]);
-          nextInput = this.nade.sample(encBias, decBias);
-          timeSamples = nextInput.toBool();
-        }
-        samples.push(timeSamples);
-      }
-
-      return dl.stack(samples, 1) as dl.Tensor3D;
-    });
-  }
-}
-
-/**
  * Main MusicVAE model class.
  *
  * A MusicVAE is a variational autoencoder made up of an `Encoder` and
@@ -306,11 +478,11 @@ class Decoder {
  * Exposes methods for interpolation and sampling of musical sequences.
  */
 class MusicVAE {
-  checkpointURL: string;
-  dataConverter: data.DataConverter;
-  encoder: Encoder;
-  decoder: Decoder;
-  rawVars: {[varName: string]: dl.Tensor};  // Store for disposal.
+  private checkpointURL: string;
+  private dataConverter: data.DataConverter;
+  private encoder: Encoder;
+  private decoder: Decoder;
+  private rawVars: {[varName: string]: dl.Tensor};  // Store for disposal.
   /**
    * `MusicVAE` constructor.
    *
@@ -342,57 +514,107 @@ class MusicVAE {
     this.decoder = null;
   }
 
+  private getLstmLayers(
+       cellFormat: string,  vars: {[varName: string]: dl.Tensor}) {
+    const lstmLayers: LayerVars[] = [];
+    let l = 0;
+    while (true) {
+      const cellPrefix = cellFormat.replace('%d', l.toString());
+      if (!(cellPrefix + 'kernel' in vars)) {
+        break;
+      }
+      lstmLayers.push(new LayerVars(
+          vars[cellPrefix + 'kernel'] as dl.Tensor2D,
+          vars[cellPrefix + 'bias'] as dl.Tensor1D));
+      ++l;
+    }
+    return lstmLayers;
+  }
+
   /**
    * Loads variables from the checkpoint and instantiates the `Encoder` and
    * `Decoder`.
    */
   async initialize() {
+    const LSTM_CELL_FORMAT = 'cell_%d/lstm_cell/';
+    const MUTLI_LSTM_CELL_FORMAT = 'multi_rnn_cell/' + LSTM_CELL_FORMAT;
+    const CONDUCTOR_PREFIX = 'decoder/hierarchical_level_0/';
+    const BIDI_LSTM_CELL =
+        'cell_%d/bidirectional_rnn/%s/multi_rnn_cell/cell_0/lstm_cell/';
+    const ENCODER_FORMAT = 'encoder/' + BIDI_LSTM_CELL;
+    const HIER_ENCODER_FORMAT =
+        'encoder/hierarchical_level_%d/' + BIDI_LSTM_CELL.replace('%d', '0');
+
     const reader = new CheckpointLoader(this.checkpointURL);
     const vars = await reader.getAllVariables();
+    this.rawVars= vars;  // Save for disposal.
 
     // Encoder variables.
-    // tslint:disable:max-line-length
-    const encLstmFw = new LayerVars(
-        vars['encoder/cell_0/bidirectional_rnn/fw/multi_rnn_cell/cell_0/lstm_cell/kernel'] as dl.Tensor2D,
-        vars['encoder/cell_0/bidirectional_rnn/fw/multi_rnn_cell/cell_0/lstm_cell/bias'] as dl.Tensor1D);
-    const encLstmBw = new LayerVars(
-        vars['encoder/cell_0/bidirectional_rnn/bw/multi_rnn_cell/cell_0/lstm_cell/kernel'] as dl.Tensor2D,
-        vars['encoder/cell_0/bidirectional_rnn/bw/multi_rnn_cell/cell_0/lstm_cell/bias'] as dl.Tensor1D);
     const encMu = new LayerVars(
-        vars['encoder/mu/kernel'] as dl.Tensor2D,
-        vars['encoder/mu/bias'] as dl.Tensor1D);
-    // tslint:enable:max-line-length
-    // Decoder LSTM layer variables.
-    const decLstmLayers: LayerVars[] = [];
-    let l = 0;
-    while (true) {
-        const cellPrefix = DECODER_CELL_FORMAT.replace('%d', l.toString());
-        if (!(cellPrefix + 'kernel' in vars)) {
-            break;
-        }
-        decLstmLayers.push(new LayerVars(
-            vars[cellPrefix + 'kernel'] as dl.Tensor2D,
-            vars[cellPrefix + 'bias'] as dl.Tensor1D));
-        ++l;
+      vars['encoder/mu/kernel'] as dl.Tensor2D,
+      vars['encoder/mu/bias'] as dl.Tensor1D);
+
+    if (this.dataConverter.numSegments) {
+      const fwLayers = this.getLstmLayers(
+          HIER_ENCODER_FORMAT.replace('%s', 'fw'), vars);
+      const bwLayers = this.getLstmLayers(
+          HIER_ENCODER_FORMAT.replace('%s', 'bw'), vars);
+
+      if (fwLayers.length !== bwLayers.length || fwLayers.length !== 2) {
+        throw Error('Only 2 hierarchical encoder levels are supported. ' +
+                    'Got ' + fwLayers.length + ' forward and ' +
+                    bwLayers.length + ' backward.');
+      }
+      const baseEncoders: BidirectonalLstmEncoder[] = [0, 1].map(
+          l => new BidirectonalLstmEncoder(fwLayers[l], bwLayers[l]));
+      this.encoder = new HierarchicalEncoder(
+          baseEncoders, [this.dataConverter.numSegments, 1], encMu);
+    } else {
+      const fwLayers = this.getLstmLayers(
+          ENCODER_FORMAT.replace('%s', 'fw'), vars);
+      const bwLayers = this.getLstmLayers(
+          ENCODER_FORMAT.replace('%s', 'bw'), vars);
+      if (fwLayers.length !== bwLayers.length || fwLayers.length !== 1) {
+        throw Error('Only single-layer bidirectional encoders are supported. ' +
+                    'Got ' + fwLayers.length + ' forward and ' +
+                    bwLayers.length + ' backward.');
+      }
+      this.encoder = new BidirectonalLstmEncoder(
+          fwLayers[0], bwLayers[0], encMu);
     }
 
-    // Other Decoder variables.
+    // BaseDecoder variables.
+    const decVarPrefix = (this.dataConverter.numSegments) ?
+        'core_decoder/decoder/' : 'decoder/';
+    const decLstmLayers = this.getLstmLayers(
+        decVarPrefix + MUTLI_LSTM_CELL_FORMAT, vars);
     const decZtoInitState = new LayerVars(
-        vars['decoder/z_to_initial_state/kernel'] as dl.Tensor2D,
-        vars['decoder/z_to_initial_state/bias'] as dl.Tensor1D);
+        vars[decVarPrefix + 'z_to_initial_state/kernel'] as dl.Tensor2D,
+        vars[decVarPrefix + 'z_to_initial_state/bias'] as dl.Tensor1D);
     const decOutputProjection = new LayerVars(
-        vars['decoder/output_projection/kernel'] as dl.Tensor2D,
-        vars['decoder/output_projection/bias'] as dl.Tensor1D);
-    // Optional NADE for the decoder.
-    const nade = (('decoder/nade/w_enc' in vars) ?
+        vars[decVarPrefix + 'output_projection/kernel'] as dl.Tensor2D,
+        vars[decVarPrefix + 'output_projection/bias'] as dl.Tensor1D);
+    // Optional NADE for the BaseDecoder.
+    const nade = ((decVarPrefix + 'nade/w_enc' in vars) ?
         new Nade(
-            vars['decoder/nade/w_enc'] as dl.Tensor3D,
-            vars['decoder/nade/w_dec_t'] as dl.Tensor3D) : null);
+            vars[decVarPrefix + 'nade/w_enc'] as dl.Tensor3D,
+            vars[decVarPrefix + 'nade/w_dec_t'] as dl.Tensor3D) : null);
+    let decoder: Decoder = new BaseDecoder(
+        decLstmLayers, decZtoInitState, decOutputProjection, nade);
 
-    this.encoder = new Encoder(encLstmFw, encLstmBw, encMu);
-    this.decoder = new Decoder(
-      decLstmLayers, decZtoInitState, decOutputProjection, nade);
-    this.rawVars= vars;
+    // ConductorDecoder variables.
+    if (this.dataConverter.numSegments) {
+      const condLstmLayers = this.getLstmLayers(
+          CONDUCTOR_PREFIX + LSTM_CELL_FORMAT, vars);
+      const condZtoInitState = new LayerVars(
+          vars[CONDUCTOR_PREFIX + 'initial_state/kernel'] as dl.Tensor2D,
+          vars[CONDUCTOR_PREFIX + 'initial_state/bias'] as dl.Tensor1D);
+      decoder = new ConductorDecoder(
+          decoder, condLstmLayers, condZtoInitState,
+          this.dataConverter.numSegments);
+    }
+    this.decoder = decoder;
+
     return this;
   }
 
@@ -534,7 +756,7 @@ class MusicVAE {
     return dl.tidy(() => {
       const randZs: dl.Tensor2D = dl.randomNormal(
           [numSamples, this.decoder.zDims]);
-      return this.decoder.decode(randZs, numSteps, temperature);
+      return this.decoder.decode(randZs, numSteps, undefined, temperature);
     });
   }
 }

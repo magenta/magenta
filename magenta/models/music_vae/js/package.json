@@ -1,6 +1,6 @@
 {
   "name": "@magenta/music-vae",
-  "version": "1.0.5",
+  "version": "1.1.0",
   "description": "A machine learning model for exploring latent spaces of musical scores",
   "main": "es5/index.js",
   "types": "es5/index.d.ts",
@@ -10,7 +10,9 @@
     "bundle": "browserify index.ts -p [tsify] --standalone musicvae -o dist/musicvae.js",
     "build-demo": "browserify demo/index.ts -p [tsify] > demo/bundle.js",
     "build": "tsc",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "run-demo": "yarn build && yarn build-demo && http-server ./demo",
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "pub": "yarn build && yarn bundle && yarn publish"
   },
   "repository": {
     "type": "git",
@@ -30,8 +32,11 @@
   },
   "dependencies": {
     "@magenta/core": "^0.0.9",
+    "@types/clone": "^0.1.30",
     "clang-format": "^1.2.2",
+    "clone": "^1.0.4",
     "deeplearn": "^0.6.0-alpha6",
+    "npm": "^5.7.1",
     "tslint": "^5.9.1"
   }
 }

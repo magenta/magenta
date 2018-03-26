@@ -4,7 +4,7 @@ This JavaScript implementation of [MusicVAE](https://g.co/magenta/music-vae) use
 
 ## Usage
 
-To use in your application, install the npm package [@magenta/music-vae](https://www.npmjs.com/package/@magenta/music-vae), or use the [pre-built bundle](/magenta/models/music-vae/js/dist/).
+To use in your application, install the npm package [@magenta/music-vae](https://www.npmjs.com/package/@magenta/music-vae), or use the [pre-built bundle](https://unpkg.com/@magenta/music-vae).
 
 You can then instantiate a `MusicVAE` object with:
 
