@@ -159,5 +159,10 @@ test("Parse Simple MIDI", (t:test.Test) => {
 
   t.deepEqual(ns, expectedNs);
 
+  const nsRoundTrip = MidiIO.midiToSequenceProto(
+    MidiIO.SequenceProtoToMidi(ns));
+
+  t.deepEqual(nsRoundTrip, expectedNs);
+
   t.end();
 });

@@ -17,8 +17,16 @@
 
 import { tensorflow } from '@magenta/protobuf';
 import NoteSequence = tensorflow.magenta.NoteSequence;
+import INoteSequence = tensorflow.magenta.INoteSequence;
 import * as midiconvert from 'midiconvert';
 import * as constants from './constants';
+
+export class MidiConversionError extends Error {
+  constructor(message?: string) {
+    super(message);
+    Object.setPrototypeOf(this, new.target.prototype);
+  }
+}
 
 export class MidiIO {
   public static midiToSequenceProto(midi: string): NoteSequence {
@@ -33,11 +41,20 @@ export class MidiIO {
 
     // TODO(fjord): When MidiConvert supports multiple time signatures, update
     // accordingly.
-    ns.timeSignatures.push(NoteSequence.TimeSignature.create({
-      time: 0,
-      numerator: parsedMidi.header.timeSignature[0],
-      denominator: parsedMidi.header.timeSignature[1],
-    }));
+    if (parsedMidi.header.timeSignature) {
+      ns.timeSignatures.push(NoteSequence.TimeSignature.create({
+        time: 0,
+        numerator: parsedMidi.header.timeSignature[0],
+        denominator: parsedMidi.header.timeSignature[1],
+      }));
+    } else {
+      // Assume a default time signature of 4/4.
+      ns.timeSignatures.push(NoteSequence.TimeSignature.create({
+        time: 0,
+        numerator: 4,
+        denominator: 4,
+      }));
+    }
 
     // TODO(fjord): Add key signatures when MidiConvert supports them.
 
@@ -82,5 +99,62 @@ export class MidiIO {
     }
 
     return ns;
+  }
+
+  public static SequenceProtoToMidi(ns:INoteSequence) {
+    if (!ns.tempos || ns.tempos.length !== 1 || ns.tempos[0].time !== 0) {
+      throw new MidiConversionError(
+        'NoteSequence must have exactly 1 tempo at time 0');
+    }
+    if (!ns.timeSignatures || ns.timeSignatures.length !== 1 ||
+      ns.timeSignatures[0].time !== 0) {
+      throw new MidiConversionError(
+        'NoteSequence must have exactly 1 time signature at time 0');
+    }
+    const json = {
+      header: {
+        bpm: ns.tempos[0].qpm,
+        PPQ: ns.ticksPerQuarter,
+        timeSignature: [
+          ns.timeSignatures[0].numerator, ns.timeSignatures[0].denominator]
+      },
+      tracks: [] as Array<{}>
+    };
+    const tracks:{[instrument: number]: NoteSequence.INote[]} = {};
+    for (const note of ns.notes) {
+      const track = note.instrument;
+      if (!(track in tracks)) {
+        tracks[track] = [];
+      }
+      tracks[track].push(note);
+    }
+    const instruments = Object.keys(tracks).map(x => parseInt(x, 10)).sort();
+    for (let i = 0; i < instruments.length; i++) {
+      if (i !== instruments[i]) {
+        throw new MidiConversionError(
+          'Instrument list must be continuous and start at 0');
+      }
+
+      const track = {
+        id: i,
+        notes: [] as Array<{}>,
+        isPercussion: tracks[i][0].isDrum,
+        channelNumber: i,
+        instrumentNumber: tracks[i][0].program
+      };
+
+      for (const note of tracks[i]) {
+        track.notes.push({
+          midi: note.pitch,
+          time: note.startTime,
+          duration: note.endTime - note.startTime,
+          velocity: (note.velocity as number + 1) / constants.MIDI_VELOCITIES
+        });
+      }
+
+      json['tracks'].push(track);
+    }
+
+    return midiconvert.fromJSON(json).encode();
   }
 }
