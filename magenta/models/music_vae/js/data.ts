@@ -79,7 +79,7 @@ export function converterFromSpec(spec: ConverterSpec) {
 export abstract class DataConverter {
   abstract numSteps: number;  // Total length of sequences.
   abstract numSegments: number;  // Number of steps for conductor.
-  abstract NUM_SPLITS: number;  // Number of splits for conductor.
+  abstract readonly NUM_SPLITS: number;  // Number of conductor splits.
   abstract toTensor(noteSequence: INoteSequence): dl.Tensor2D;
   abstract toNoteSequence(tensor: dl.Tensor2D): Promise<INoteSequence>;
 }
