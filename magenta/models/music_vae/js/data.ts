@@ -79,6 +79,7 @@ export function converterFromSpec(spec: ConverterSpec) {
 export abstract class DataConverter {
   abstract numSteps: number;  // Total length of sequences.
   abstract numSegments: number;  // Number of steps for conductor.
+  abstract readonly NUM_SPLITS: number;  // Number of conductor splits.
   abstract toTensor(noteSequence: INoteSequence): dl.Tensor2D;
   abstract toNoteSequence(tensor: dl.Tensor2D): Promise<INoteSequence>;
 }
@@ -118,6 +119,7 @@ export class DrumsConverter extends DataConverter{
   numSegments: number;
   pitchClasses: number[][];
   pitchToClass: {[pitch: number] : number};
+  NUM_SPLITS = 0;
 
   constructor(args: DrumsConverterArgs) {
     super();
@@ -234,6 +236,7 @@ export class MelodyConverter extends DataConverter{
   minPitch: number;  // inclusive
   maxPitch: number;  // inclusive
   depth: number;
+  NUM_SPLITS = 0;
   NOTE_OFF = 1;
   FIRST_PITCH = 2;
 
