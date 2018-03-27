@@ -653,26 +653,33 @@ class MusicVAE {
    * @returns An array of interpolation `NoteSequence` objects, as described
    * above.
    */
-  interpolate(inputSequences: data.INoteSequence[], numInterps: number) {
+  async interpolate(inputSequences: data.INoteSequence[], numInterps: number) {
     const numSteps = this.dataConverter.numSteps;
 
-    const outputSequences: data.INoteSequence[] = [];
 
-    dl.tidy(() => {
+    const oh = dl.tidy(() => {
       const inputTensors = dl.stack(
         inputSequences.map(
           this.dataConverter.toTensor.bind(this.dataConverter)) as dl.Tensor2D[]
         ) as dl.Tensor3D;
 
       const outputTensors = this.interpolateTensors(inputTensors, numInterps);
+      const result = [];
       for (let i = 0; i < outputTensors.shape[0]; ++i) {
         const t = outputTensors.slice(
             [i, 0, 0],
             [1, numSteps, outputTensors.shape[2]]).as2D(
                 numSteps, outputTensors.shape[2]);
-          outputSequences.push(this.dataConverter.toNoteSequence(t));
+          result.push(t);
       }
+      return result;
     });
+
+    const outputSequences: data.INoteSequence[] = [];
+    for (const tensor of oh) {
+      outputSequences.push(await this.dataConverter.toNoteSequence(tensor));
+      tensor.dispose();
+    }
     return outputSequences;
   }
 
@@ -733,21 +740,28 @@ class MusicVAE {
    *
    * @returns An array of sampled `NoteSequence` objects.
    */
-  sample(numSamples: number, temperature=0.5) {
+  async sample(numSamples: number, temperature=0.5) {
     const numSteps = this.dataConverter.numSteps;
 
-    const outputSequences: data.INoteSequence[] = [];
-    dl.tidy(() => {
+    const oh = dl.tidy(() => {
       const outputTensors = this.sampleTensors(
           numSamples, numSteps, temperature);
+      const result = [];
       for (let i = 0; i < numSamples; ++i) {
         const t = outputTensors.slice(
             [i, 0, 0],
             [1, numSteps, outputTensors.shape[2]]).as2D(
                 numSteps, outputTensors.shape[2]);
-          outputSequences.push(this.dataConverter.toNoteSequence(t));
+          result.push(t);
       }
+      return result;
     });
+
+    const outputSequences: data.INoteSequence[] = [];
+    for (const tensor of oh) {
+      outputSequences.push(await this.dataConverter.toNoteSequence(tensor));
+      tensor.dispose();
+    }
     return outputSequences;
   }
 

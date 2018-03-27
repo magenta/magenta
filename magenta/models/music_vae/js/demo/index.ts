@@ -129,12 +129,12 @@ async function runDrums(){
 
   let start = performance.now();
 
-  const interp = mvae.interpolate(DRUM_SEQS, 3);
+  const interp = await mvae.interpolate(DRUM_SEQS, 3);
   writeTimer('drums-interp-time', start);
   writeNoteSeqs('drums-interp', interp);
 
   start = performance.now();
-  const sample = mvae.sample(5);
+  const sample = await mvae.sample(5);
   writeTimer('drums-sample-time', start);
   writeNoteSeqs('drums-samples', sample);
 
@@ -149,12 +149,12 @@ async function runDrumsNade(){
   writeNoteSeqs('nade-inputs', DRUM_SEQS);
 
   let start = performance.now();
-  const interp = mvae.interpolate(DRUM_SEQS, 3);
+  const interp = await mvae.interpolate(DRUM_SEQS, 3);
   writeTimer('nade-interp-time', start);
   writeNoteSeqs('nade-interp', interp);
 
   start = performance.now();
-  const sample = mvae.sample(5);
+  const sample = await mvae.sample(5);
   writeTimer('nade-sample-time', start);
   writeNoteSeqs('nade-samples', sample);
 
@@ -170,12 +170,12 @@ async function runMel(){
   writeNoteSeqs('mel-inputs', inputs);
 
   let start = performance.now();
-  const interp = mvae.interpolate(inputs, 5);
+  const interp = await mvae.interpolate(inputs, 5);
   writeTimer('mel-interp-time', start);
   writeNoteSeqs('mel-interp', interp);
 
   start = performance.now();
-  const sample = mvae.sample(5);
+  const sample = await mvae.sample(5);
   writeTimer('mel-sample-time', start);
   writeNoteSeqs('mel-samples', sample);
 
@@ -216,12 +216,12 @@ async function runMel16(){
   writeNoteSeqs('mel16-inputs', inputs);
 
   let start = performance.now();
-  const interp = mvae.interpolate(inputs, 5);
+  const interp = await mvae.interpolate(inputs, 5);
   writeTimer('mel16-interp-time', start);
   writeNoteSeqs('mel16-interp', interp);
 
   start = performance.now();
-  const sample = mvae.sample(5);
+  const sample = await mvae.sample(5);
   writeTimer('mel16-sample-time', start);
   writeNoteSeqs('mel16-samples', sample);
 
