@@ -17,6 +17,7 @@
 
 import { tensorflow } from '@magenta/protobuf';
 import NoteSequence = tensorflow.magenta.NoteSequence;
+import INoteSequence = tensorflow.magenta.INoteSequence;
 import * as constants from './constants';
 
 // Set the quantization cutoff.
@@ -49,6 +50,19 @@ export class NegativeTimeException extends Error {
   }
 }
 export class MultipleTempoException extends Error {
+  constructor(message?: string) {
+    super(message);
+    Object.setPrototypeOf(this, new.target.prototype);
+  }
+}
+
+/**
+ * Exception for when a sequence was unexpectedly quantized or unquantized.
+ *
+ * Should not happen during normal operation and likely indicates a programming
+ * error.
+ */
+export class QuantizationStatusException extends Error {
   constructor(message?: string) {
     super(message);
     Object.setPrototypeOf(this, new.target.prototype);
@@ -94,7 +108,7 @@ export class Sequences {
    * @param stepsPerSecond Each second will be divided into this many
    *    quantized time steps.
    */
-  private static quantizeNotes(ns: NoteSequence, stepsPerSecond: number) {
+  private static quantizeNotes(ns: INoteSequence, stepsPerSecond: number) {
     for (const note of ns.notes) {
       // Quantize the start and end times of the note.
       note.quantizedStartStep = this.quantizeToStep(
@@ -157,11 +171,10 @@ export class Sequences {
    * @throws {NegativeTimeException} If a note or chord occurs at a negative
    *    time.
    */
-  public static quantizeNoteSequence(noteSequence: NoteSequence,
-    stepsPerQuarter: number): NoteSequence {
+  public static quantizeNoteSequence(noteSequence: INoteSequence,
+      stepsPerQuarter: number): NoteSequence {
     // Make a copy.
-    const qns = NoteSequence.fromObject(
-      NoteSequence.toObject(noteSequence));
+    const qns = NoteSequence.decode(NoteSequence.encode(noteSequence).finish());
 
     qns.quantizationInfo = NoteSequence.QuantizationInfo.create({
       stepsPerQuarter
@@ -268,5 +281,21 @@ export class Sequences {
 
     // return qns
     return qns;
+  }
+
+  /**
+   * Returns whether or not a NoteSequence proto has been quantized.
+   */
+  public static isQuantizedSequence(ns:INoteSequence) {
+    return ns.quantizationInfo && (
+      ns.quantizationInfo.stepsPerQuarter > 0  ||
+      ns.quantizationInfo.stepsPerSecond > 0);
+  }
+
+  public static assertIsQuantizedSequence(ns:INoteSequence) {
+    if(!this.isQuantizedSequence(ns)) {
+      throw new QuantizationStatusException(
+        `NoteSequence ${ns.id} is not quantized`);
+    }
   }
 }

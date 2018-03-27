@@ -1,19 +1,20 @@
 {
-  "name": "@magenta/core",
-  "version": "0.0.9",
-  "description": "",
+  "name": "@magenta/music-rnn",
+  "version": "0.0.1",
+  "description": "Machine learning model for generating and continuing music.",
   "main": "es5/index.js",
   "types": "es5/index.d.ts",
-  "jsdelivr": "dist/magenta.js",
-  "unpkg": "dist/magenta.js",
+  "jsdelivr": "dist/musicrnn.js",
+  "unpkg": "dist/musicrnn.js",
   "dependencies": {
-    "@magenta/protobuf": "^0.0.4",
-    "midiconvert": "^0.4.3"
+    "@magenta/core": "^0.0.10",
+    "deeplearn": "^0.6.0-alpha6"
   },
   "devDependencies": {
     "@types/tape": "^4.2.31",
     "browserify": "~14.4.0",
     "clang-format": "^1.2.2",
+    "http-server": "^0.11.1",
     "tape": "^4.9.0",
     "ts-node": "^5.0.1",
     "tsify": "~3.0.1",
@@ -23,10 +24,11 @@
   "scripts": {
     "prepublish": "yarn lint && yarn test && yarn build && yarn bundle",
     "build": "tsc",
-    "bundle": "browserify --standalone magenta src/index.ts -p [tsify] > dist/magenta.js",
+    "bundle": "browserify --standalone magenta src/index.ts -p [tsify] > dist/musicrnn.js",
     "lint": "tslint -p . -t verbose",
     "test": "ts-node node_modules/tape/bin/tape src/**/*_test.ts",
-    "proto": "pbjs -t static-module -w commonjs -o src/proto.js ../protobuf/music.proto && pbts -o src/proto.d.ts src/proto.js"
+    "build-demo": "browserify demo/index.ts -p [tsify] > demo/bundle.js",
+    "run-demo": "yarn build && yarn build-demo && http-server ./demo"
   },
   "author": "Magenta",
   "license": "Apache-2.0",
