@@ -80,7 +80,7 @@ export abstract class DataConverter {
   abstract numSteps: number;  // Total length of sequences.
   abstract numSegments: number;  // Number of steps for conductor.
   abstract toTensor(noteSequence: INoteSequence): dl.Tensor2D;
-  abstract toNoteSequence(tensor: dl.Tensor2D): INoteSequence;
+  abstract toNoteSequence(tensor: dl.Tensor2D): Promise<INoteSequence>;
 }
 
 /**
@@ -144,10 +144,10 @@ export class DrumsConverter extends DataConverter{
     return drumRoll.toTensor() as dl.Tensor2D;
   }
 
-  toNoteSequence(oh: dl.Tensor2D) {
+  async toNoteSequence(oh: dl.Tensor2D) {
     const noteSequence = NoteSequence.create();
     const labelsTensor = oh.argMax(1);
-    const labels: Int32Array = labelsTensor.dataSync() as Int32Array;
+    const labels: Int32Array = await labelsTensor.data() as Int32Array;
     labelsTensor.dispose();
     for (let s = 0; s < labels.length; ++s) {  // step
       for (let p = 0; p < this.pitchClasses.length; p++) {  // pitch class
@@ -178,11 +178,11 @@ export class DrumsConverter extends DataConverter{
  * pitch class are used.
  */
 export class DrumRollConverter extends DrumsConverter {
-  toNoteSequence(roll: dl.Tensor2D) {
+  async toNoteSequence(roll: dl.Tensor2D) {
     const noteSequence = NoteSequence.create();
     for (let s = 0; s < roll.shape[0]; ++s) {  // step
       const rollSlice = roll.slice([s, 0], [1, roll.shape[1]]);
-      const pitches = rollSlice.dataSync() as Uint8Array;
+      const pitches = await rollSlice.data() as Uint8Array;
       rollSlice.dispose();
       for (let p = 0; p < pitches.length; ++p) {  // pitch class
         if (pitches[p]) {
@@ -267,10 +267,10 @@ export class MelodyConverter extends DataConverter{
         mel.toTensor() as dl.Tensor1D, this.depth) as dl.Tensor2D;
   }
 
-  toNoteSequence(oh: dl.Tensor2D) {
+  async toNoteSequence(oh: dl.Tensor2D) {
     const noteSequence = NoteSequence.create();
     const labelsTensor = oh.argMax(1);
-    const labels: Int32Array = labelsTensor.dataSync() as Int32Array;
+    const labels: Int32Array = await labelsTensor.data() as Int32Array;
     labelsTensor.dispose();
     let currNote: NoteSequence.Note = null;
     for (let s = 0; s < labels.length; ++s) {  // step
