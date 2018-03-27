@@ -1,11 +1,11 @@
 ## MusicVAE: A hierarchical recurrent variational autoencoder for music.
 
-MusicVAE learns a latent space of musical sequences, providing different modes
+[MusicVAE](https://g.co/magenta/music-vae) learns a latent space of musical sequences, providing different modes
 of interactive musical creation, including:
 
 * random sampling from the prior distribution,
 * interpolation between existing sequences,
-* manipulation of existing sequences via a [latent constraint model](https://goo.gl/STGMGx).
+* manipulation of existing sequences via attribute vectors or a [latent constraint model](https://goo.gl/STGMGx).
 
 For short sequences (e.g., 2-bar "loops"), we use a bidirectional LSTM encoder
 and LSTM decoder. For longer sequences, we use a novel hierarchical LSTM
@@ -18,16 +18,27 @@ Representations of melodies/bass-lines and drums are based on those used
 by [MelodyRNN](/magenta/models/melody_rnn) and
 [DrumsRNN](/magenta/models/drums_rnn).
 
-For additional model details, see our [paper](https://nips2017creativity.github.io/doc/Hierarchical_Variational_Autoencoders_for_Music.pdf).
+For additional details, see our [blog post](https://g.co/magenta/music-vae) and [paper](https://goo.gl/magenta/musicvae-paper).
 
 ### How To Use
 
 #### Colab Notebook w/ Pre-trained Models
 The easiest way to get started using a MusicVAE model is via our
-[Colab Notebook](https://colab.research.google.com/notebook#fileId=/v2/external/notebooks/magenta/music_vae/music_vae.ipynb).
+[Colab Notebook](https://g.co/magenta/musicvae-colab).
 The notebook contains instructions for sampling interpolating, and manipulating
 musical sequences with pre-trained MusicVAEs for melodies, drums, and
 three-piece "trios" (melody, bass, drums) of varying lengths.
+
+#### JavaScript w/ Pre-trained Models
+We have also developed [MusicVAE.js](https://goo.gl/magenta/musicvae-js), a JavaScript API for interacting with
+MusicVAE models in the browser. Existing applications built with this library include:
+
+* [Beat Blender](https://g.co/beatblender) by [Google Creative Lab](https://github.com/googlecreativelab)
+* [Melody Mixer](https://g.co/melodymixer) by [Google Creative Lab](https://github.com/googlecreativelab)
+* [Latent Loops](https://goo.gl/magenta/latent-loops) by [Google Pie Shop](https://github.com/teampieshop)
+* [Neural Drum Machine](https://codepen.io/teropa/pen/RMGxOQ) by [Tero Parviainen](https://github.com/teropa)
+
+Learn more about the API in its [repo](https://goo.gl/magenta/musicvae-js).
 
 #### Training Your Own MusicVAE
 If you'd like to train a model on your own data, you will first need to set up
@@ -61,4 +72,4 @@ heldout dataset) in order to compute metrics such as accuracy and to avoid
 overfitting.
 
 Once your model has trained sufficiently, you can load the checkpoint into the
-[Colab Notebook](https://colab.research.google.com/notebook#fileId=/v2/external/notebooks/magenta/music_vae/music_vae.ipynb) to do inference and produce audio outputs.
+[Colab Notebook](https://goo.gl/magenta/musicvae-paper) to do inference and produce audio outputs.
