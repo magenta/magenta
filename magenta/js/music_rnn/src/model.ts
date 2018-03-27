@@ -86,6 +86,7 @@ export class MelodyRnn {
       if (!(cellPrefix + 'kernel' in vars)) {
           break;
       }
+      // TODO(fjord): Support attention model.
       this.lstmCells.push(
         (data: dl.Tensor2D, c: dl.Tensor2D, h: dl.Tensor2D) =>
             dl.basicLSTMCell(this.forgetBias,
