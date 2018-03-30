@@ -16,7 +16,7 @@
 # Magenta protocol buffers.
 
 package(
-    default_visibility = ["//magenta:__subpackages__"],
+    default_visibility = ["//visibility:public"],
     features = ["-layering_check"],
 )
 
