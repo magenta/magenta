@@ -902,7 +902,8 @@ class HierarchicalLstmDecoder(base_model.BaseDecoder):
                core_decoder,
                level_lengths,
                disable_autoregression=False,
-               hierarchical_encoder=None):
+               hierarchical_encoder=None,
+               pass_embeddings_as_intermediate_inputs=False):
     """Initializer for HierarchicalLstmDecoder.
 
     Hierarchicaly decodes a sequence across time.
@@ -939,6 +940,9 @@ class HierarchicalLstmDecoder(base_model.BaseDecoder):
         the next level up in the hierarchy, instead of the final decoder state.
         The encoder level output lengths (except for the final single-output
         level) should be the reverse of `level_output_lengths`.
+      pass_embeddings_as_intermediate_inputs: If True, pass higher-level
+        embeddings to the next (intermediate) level at all input steps in
+        addition to using it to initialize the decoder state.
 
     Raises:
       ValueError: If `hierarchical_encoder` is given but has incompatible level
@@ -959,6 +963,8 @@ class HierarchicalLstmDecoder(base_model.BaseDecoder):
     self._level_lengths = level_lengths
     self._disable_autoregression = disable_autoregression
     self._hierarchical_encoder = hierarchical_encoder
+    self._pass_embeddings_as_intermediate_inputs = (
+        pass_embeddings_as_intermediate_inputs)
 
   def build(self, hparams, output_depth, is_training):
     self.hparams = hparams
@@ -1041,7 +1047,9 @@ class HierarchicalLstmDecoder(base_model.BaseDecoder):
       lower_level_embeddings = []
       for i in range(num_steps):
         if level in self._disable_autoregression:
-          next_input = tf.zeros([batch_size, 1])
+          next_input = (
+              initial_input if self._pass_embeddings_as_intermediate_inputs
+              else tf.zeros([batch_size, 1]))
         else:
           next_input = tf.concat([next_input, initial_input], axis=1)
         with tf.variable_scope(scope):
