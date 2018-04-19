@@ -15,6 +15,9 @@
 
 from __future__ import division
 
+import math
+from numpy import zeros
+
 # internal imports
 
 from magenta.music import encoder_decoder
@@ -29,6 +32,121 @@ EVENT_RANGES = [
     (PerformanceEvent.NOTE_OFF,
      performance_lib.MIN_MIDI_PITCH, performance_lib.MAX_MIDI_PITCH),
 ]
+
+
+# Number of floats used to encode NOTE_ON and NOTE_OFF events, using modulo-12
+# encoding. 5 floats for: valid, octave_cos, octave_sin, note_cos, note_sin.
+MODULO_PITCH_ENCODER_WIDTH = 5
+
+# Number of floats used to encode TIME_SHIFT and VELOCITY events using
+# module-bins encoding. 3 floats for: valid, event_cos, event_sin.
+MODULO_VELOCITY_ENCODER_WIDTH = 3
+MODULO_TIME_SHIFT_ENCODER_WIDTH = 3
+
+MODULO_EVENT_RANGES = [
+    (PerformanceEvent.NOTE_ON, performance_lib.MIN_MIDI_PITCH,
+     performance_lib.MAX_MIDI_PITCH, MODULO_PITCH_ENCODER_WIDTH),
+    (PerformanceEvent.NOTE_OFF, performance_lib.MIN_MIDI_PITCH,
+     performance_lib.MAX_MIDI_PITCH, MODULO_PITCH_ENCODER_WIDTH),
+]
+
+
+class PerformanceModuloEncoding(encoder_decoder.OneHotEncoding):
+  """Modulo encoding for performance events."""
+
+  def __init__(self, num_velocity_bins=0,
+               max_shift_steps=performance_lib.DEFAULT_MAX_SHIFT_STEPS):
+    """Initiaizer for PerformanceModuloEncoding.
+
+    Args:
+      num_velocity_bins: Number of velocity bins.
+      max_shift_steps: Maximum number of shift steps supported.
+    """
+
+    self._event_ranges = MODULO_EVENT_RANGES + [
+        (PerformanceEvent.TIME_SHIFT, 1, max_shift_steps,
+         MODULO_TIME_SHIFT_ENCODER_WIDTH)
+    ]
+    if num_velocity_bins > 0:
+      self._event_ranges.append(
+          (PerformanceEvent.VELOCITY, 1, num_velocity_bins,
+           MODULO_VELOCITY_ENCODER_WIDTH))
+    self._max_shift_steps = max_shift_steps
+
+    # Create a lookup table for modulo-12 encoding of notes.
+    # Possible values for semitone_steps are 1 and 7. A value of 1 corresponds
+    # to placing notes consecutively on the unit circle. A value of 7
+    # corresponds to following each note with one that is 7 semitones above it.
+    # semitone_steps = 1 seems to produce better results, and is the recommended
+    # value. Moreover, unit tests are provided only for semitone_steps = 1. If
+    # in the future you plan to enable support for semitone_steps = 7, then
+    # please make semitone_steps a parameter of this method, and add unit tests
+    # for it.
+    semitone_steps = 1
+    self._table = zeros((12, 2))
+    for i in range(12):
+      row = (i * semitone_steps) % 12
+      angle = (float(row) * math.pi) / 6.0
+      self._table[row] = [math.cos(angle), math.sin(angle)]
+
+  @property
+  def num_classes(self):
+    return sum(max_value - min_value + 1
+               for _, min_value, max_value, _ in self._event_ranges)
+
+  @property
+  def input_size(self):
+    total = 0
+    for _, _, _, encoder_width in self._event_ranges:
+      total += encoder_width
+    return total
+
+  @property
+  def default_event(self):
+    return PerformanceEvent(
+        event_type=PerformanceEvent.TIME_SHIFT,
+        event_value=self._max_shift_steps)
+
+  def encode_modulo_event(self, event):
+    offset = 0
+    for event_type, min_value, max_value, encoder_width in self._event_ranges:
+      if event.event_type == event_type:
+        value = event.event_value - min_value
+        bins = max_value - min_value + 1
+        return offset, encoder_width, event_type, value, bins
+      offset += encoder_width
+
+    raise ValueError('Unknown event type: %s' % event.event_type)
+
+  def embed_note(self, value):
+    if value < 0 or value > 11:
+      raise ValueError('Unexpected note class number: %s' % value)
+    return self._table[value]
+
+  def encode_event(self, event):
+    offset = 0
+    for event_type, min_value, max_value, _ in self._event_ranges:
+      if event.event_type == event_type:
+        return offset + event.event_value - min_value
+      offset += max_value - min_value + 1
+
+    raise ValueError('Unknown event type: %s' % event.event_type)
+
+  def decode_event(self, index):
+    offset = 0
+    for event_type, min_value, max_value, _ in self._event_ranges:
+      if offset <= index <= offset + max_value - min_value:
+        return PerformanceEvent(
+            event_type=event_type, event_value=min_value + index - offset)
+      offset += max_value - min_value + 1
+
+    raise ValueError('Unknown event index: %s' % index)
+
+  def event_to_num_steps(self, event):
+    if event.event_type == PerformanceEvent.TIME_SHIFT:
+      return event.event_value
+    else:
+      return 0
 
 
 class PerformanceOneHotEncoding(encoder_decoder.OneHotEncoding):
