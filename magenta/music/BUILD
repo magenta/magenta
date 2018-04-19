@@ -245,6 +245,7 @@ py_library(
     srcs_version = "PY2AND3",
     deps = [
         ":constants",
+        ":performance_lib",
         "//magenta/common:sequence_example_lib",
         "//magenta/pipelines",
         # numpy dep
@@ -258,6 +259,8 @@ py_test(
     srcs_version = "PY2AND3",
     deps = [
         ":encoder_decoder",
+        ":melody_encoder_decoder",
+        ":performance_encoder_decoder",
         ":testing_lib",
         "//magenta/common:sequence_example_lib",
         # numpy dep
