@@ -16,9 +16,9 @@
 from __future__ import division
 
 import math
-from numpy import zeros
 
 # internal imports
+from numpy import zeros
 
 from magenta.music import encoder_decoder
 from magenta.music import performance_lib
