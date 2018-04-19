@@ -50,6 +50,8 @@ from magenta.music.encoder_decoder import ConditionalEventSequenceEncoderDecoder
 from magenta.music.encoder_decoder import EncoderPipeline
 from magenta.music.encoder_decoder import EventSequenceEncoderDecoder
 from magenta.music.encoder_decoder import LookbackEventSequenceEncoderDecoder
+from magenta.music.encoder_decoder import ModuloEventSequenceEncoderDecoder
+from magenta.music.encoder_decoder import ModuloPerformanceEventSequenceEncoderDecoder
 from magenta.music.encoder_decoder import MultipleEventSequenceEncoder
 from magenta.music.encoder_decoder import OneHotEncoding
 from magenta.music.encoder_decoder import OneHotEventSequenceEncoderDecoder
@@ -93,7 +95,7 @@ from magenta.music.notebook_utils import plot_sequence
 from magenta.music.performance_controls import all_performance_control_signals
 from magenta.music.performance_controls import NoteDensityPerformanceControlSignal
 from magenta.music.performance_controls import PitchHistogramPerformanceControlSignal
-
+from magenta.music.performance_encoder_decoder import PerformanceModuloEncoding
 from magenta.music.performance_encoder_decoder import PerformanceOneHotEncoding
 
 from magenta.music.performance_lib import extract_performances
