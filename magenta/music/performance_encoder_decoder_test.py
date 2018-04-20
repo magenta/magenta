@@ -80,24 +80,5 @@ class PerformanceOneHotEncodingTest(tf.test.TestCase):
             event_type=PerformanceEvent.TIME_SHIFT, event_value=100)))
 
 
-class NoteDensityOneHotEncodingTest(tf.test.TestCase):
-
-  def setUp(self):
-    self.enc = performance_encoder_decoder.NoteDensityOneHotEncoding(
-        density_bin_ranges=[1.0, 5.0])
-
-  def testEncodeDecode(self):
-    self.assertEqual(0, self.enc.encode_event(0.0))
-    self.assertEqual(0, self.enc.encode_event(0.5))
-    self.assertEqual(1, self.enc.encode_event(1.0))
-    self.assertEqual(1, self.enc.encode_event(2.0))
-    self.assertEqual(2, self.enc.encode_event(5.0))
-    self.assertEqual(2, self.enc.encode_event(10.0))
-
-    self.assertEqual(0.0, self.enc.decode_event(0))
-    self.assertEqual(1.0, self.enc.decode_event(1))
-    self.assertEqual(5.0, self.enc.decode_event(2))
-
-
 if __name__ == '__main__':
   tf.test.main()

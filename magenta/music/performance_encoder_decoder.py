@@ -17,12 +17,9 @@ from __future__ import division
 
 # internal imports
 
-from magenta.music import constants
 from magenta.music import encoder_decoder
 from magenta.music import performance_lib
 from magenta.music.performance_lib import PerformanceEvent
-
-NOTES_PER_OCTAVE = constants.NOTES_PER_OCTAVE
 
 
 # Value ranges for event types, as (event_type, min_value, max_value) tuples.
@@ -82,70 +79,3 @@ class PerformanceOneHotEncoding(encoder_decoder.OneHotEncoding):
       return event.event_value
     else:
       return 0
-
-
-class NoteDensityOneHotEncoding(encoder_decoder.OneHotEncoding):
-  """One-hot encoding for performance note density events.
-
-  Encodes by quantizing note density events. When decoding, always decodes to
-  the minimum value for each bin. The first bin starts at zero note density.
-  """
-
-  def __init__(self, density_bin_ranges):
-    """Initialize a NoteDensityOneHotEncoding.
-
-    Args:
-      density_bin_ranges: List of note density (notes per second) bin boundaries
-          to use when quantizing. The number of bins will be one larger than the
-          list length.
-    """
-    self._density_bin_ranges = density_bin_ranges
-
-  @property
-  def num_classes(self):
-    return len(self._density_bin_ranges) + 1
-
-  @property
-  def default_event(self):
-    return 0.0
-
-  def encode_event(self, event):
-    for idx, density in enumerate(self._density_bin_ranges):
-      if event < density:
-        return idx
-    return len(self._density_bin_ranges)
-
-  def decode_event(self, index):
-    if index == 0:
-      return 0.0
-    else:
-      return self._density_bin_ranges[index - 1]
-
-
-class PitchHistogramEncoder(encoder_decoder.EventSequenceEncoderDecoder):
-  """An encoder for pitch class histogram sequences.
-
-  This class has no label encoding and is only a trivial input encoder that
-  merely uses each histogram as the input vector.
-  """
-
-  @property
-  def input_size(self):
-    return NOTES_PER_OCTAVE
-
-  @property
-  def num_classes(self):
-    raise NotImplementedError
-
-  @property
-  def default_event_label(self):
-    raise NotImplementedError
-
-  def events_to_input(self, events, position):
-    return events[position]
-
-  def events_to_label(self, events, position):
-    raise NotImplementedError
-
-  def class_index_to_event(self, class_index, events):
-    raise NotImplementedError

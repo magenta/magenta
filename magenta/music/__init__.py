@@ -90,15 +90,15 @@ from magenta.music.musicxml_reader import MusicXMLConversionError
 from magenta.music.notebook_utils import play_sequence
 from magenta.music.notebook_utils import plot_sequence
 
-from magenta.music.performance_encoder_decoder import NoteDensityOneHotEncoding
+from magenta.music.performance_controls import all_performance_control_signals
+from magenta.music.performance_controls import NoteDensityPerformanceControlSignal
+from magenta.music.performance_controls import PitchHistogramPerformanceControlSignal
+
 from magenta.music.performance_encoder_decoder import PerformanceOneHotEncoding
-from magenta.music.performance_encoder_decoder import PitchHistogramEncoder
 
 from magenta.music.performance_lib import extract_performances
 from magenta.music.performance_lib import MetricPerformance
 from magenta.music.performance_lib import Performance
-from magenta.music.performance_lib import performance_note_density_sequence
-from magenta.music.performance_lib import performance_pitch_histogram_sequence
 
 from magenta.music.pianoroll_encoder_decoder import PianorollEncoderDecoder
 

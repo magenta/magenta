@@ -45,6 +45,7 @@ py_library(
         ":musicxml_reader",
         ":note_sequence_io",
         ":notebook_utils",
+        ":performance_controls",
         ":performance_encoder_decoder",
         ":performance_lib",
         ":pianoroll_encoder_decoder",
@@ -530,6 +531,28 @@ py_library(
         # IPython dep
         # bokeh dep
         # pandas dep
+    ],
+)
+
+py_library(
+    name = "performance_controls",
+    srcs = ["performance_controls.py"],
+    srcs_version = "PY2AND3",
+    deps = [
+        ":constants",
+        ":encoder_decoder",
+        ":performance_lib",
+    ],
+)
+
+py_test(
+    name = "performance_controls_test",
+    srcs = ["performance_controls_test.py"],
+    srcs_version = "PY2AND3",
+    deps = [
+        ":performance_controls",
+        ":performance_lib",
+        # tensorflow dep
     ],
 )
 

@@ -66,24 +66,15 @@ class EncoderPipeline(pipeline.Pipeline):
         output_type=tf.train.SequenceExample,
         name=name)
     self._encoder_decoder = config.encoder_decoder
-    self._density_bin_ranges = config.density_bin_ranges
-    self._density_window_size = config.density_window_size
-    self._pitch_histogram_window_size = config.pitch_histogram_window_size
+    self._control_signals = config.control_signals
     self._optional_conditioning = config.optional_conditioning
 
   def transform(self, performance):
-    if (self._density_bin_ranges is not None or
-        self._pitch_histogram_window_size is not None):
-      # Encode conditional on note density and/or pitch class histogram.
+    if self._control_signals:
+      # Encode conditional on control signals.
       control_sequences = []
-      if self._density_bin_ranges is not None:
-        control_sequences.append(
-            magenta.music.performance_note_density_sequence(
-                performance, self._density_window_size))
-      if self._pitch_histogram_window_size is not None:
-        control_sequences.append(
-            magenta.music.performance_pitch_histogram_sequence(
-                performance, self._pitch_histogram_window_size))
+      for control in self._control_signals:
+        control_sequences.append(control.extract(performance))
       control_sequence = zip(*control_sequences)
       if self._optional_conditioning:
         # Create two copies, one with and one without conditioning.
