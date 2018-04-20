@@ -81,6 +81,30 @@ CONFIG_MAP['cat-mel_2bar_big'] = Config(
     eval_examples_path=None,
 )
 
+# Chord-Conditioned Melody
+CONFIG_MAP['cat-mel_2bar_med_chords'] = Config(
+    model=MusicVAE(lstm_models.BidirectionalLstmEncoder(),
+                   lstm_models.CategoricalLstmDecoder()),
+    hparams=merge_hparams(
+        lstm_models.get_default_hparams(),
+        HParams(
+            batch_size=512,
+            max_seq_len=32,  # 2 bars w/ 16 steps per bar
+            z_size=256,
+            enc_rnn_size=[1024],
+            dec_rnn_size=[512, 512, 512],
+        )),
+    note_sequence_augmenter=data.NoteSequenceAugmenter(
+        transpose_range=(-3, 3)),
+    data_converter=data.OneHotMelodyConverter(
+        max_bars=100,
+        slice_bars=2,
+        steps_per_quarter=4,
+        chord_encoding=mm.TriadChordOneHotEncoding()),
+    train_examples_path=None,
+    eval_examples_path=None,
+)
+
 # Drums
 CONFIG_MAP['cat-drums_2bar_small'] = Config(
     model=MusicVAE(lstm_models.BidirectionalLstmEncoder(),
