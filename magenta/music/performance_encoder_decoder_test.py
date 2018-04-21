@@ -23,6 +23,7 @@ import tensorflow as tf
 
 from magenta.music import performance_encoder_decoder
 from magenta.music import performance_lib
+from magenta.music.performance_encoder_decoder import PerformanceModuloEncoding
 from magenta.music.performance_lib import PerformanceEvent
 
 
@@ -234,6 +235,128 @@ class PerformanceModuloEncodingTest(tf.test.TestCase):
       actual_encoded_modulo_event = self.enc.encode_modulo_event(event)
       self.assertEqual(actual_encoded_modulo_event,
                        expected_encoded_modulo_event)
+
+
+class ModuloPerformanceEventSequenceEncoderTest(tf.test.TestCase):
+  """Test class for ModuloPerformanceEventSequenceEncoder.
+
+  ModuloPerformanceEventSequenceEncoderDecoder is tightly coupled with the
+  PerformanceModuloEncoding class. As a result, in the test set up, the test
+  object is initialized with a PerformanceModuloEncoding object, and tested
+  accordingly. Since this class mainly modifies the input encoding of events
+  and otherwise acts very similarly to the OneHotEventSequenceEncoderDecoder,
+  the events_to_labels(), and class_index_to_event() methods of the class are
+  not tested.
+  """
+
+  def setUp(self):
+    self._num_velocity_bins = 32
+    self._max_shift_steps = 32
+    self.enc = performance_encoder_decoder.ModuloPerformanceEventSequenceEncoderDecoder(
+        PerformanceModuloEncoding(
+            num_velocity_bins=self._num_velocity_bins,
+            max_shift_steps=self._max_shift_steps))
+
+    self._pitch_encoder_width = 5
+    self._velocity_encoder_width = 3
+    self._time_shift_encoder_width = 3
+    self._expected_input_size = (2 * self._pitch_encoder_width +
+                                 self._velocity_encoder_width +
+                                 self._time_shift_encoder_width)
+
+    self._expected_num_classes = (self._num_velocity_bins +
+                                  self._max_shift_steps +
+                                  2 * (performance_lib.MAX_MIDI_PITCH -
+                                       performance_lib.MIN_MIDI_PITCH + 1))
+
+  def testInputSize(self):
+    self.assertEquals(self._expected_input_size, self.enc.input_size)
+
+  def testNumClasses(self):
+    self.assertEqual(self._expected_num_classes, self.enc.num_classes)
+
+  def testDefaultEventLabel(self):
+    label = self._expected_num_classes - self._num_velocity_bins - 1
+    self.assertEquals(label, self.enc.default_event_label)
+
+  def testEventToNumSteps(self):
+    self.assertEquals(self.enc.event_to_num_steps(1), 1)
+
+  def testEventsToInput(self):
+    num_shift_bins = self._max_shift_steps
+    num_velocity_bins = self._num_velocity_bins
+    slow_base = 2.0 * pi / 144.0
+    fast_base = 2.0 * pi / 12.0
+    shift_base = 2.0 * pi / num_shift_bins
+    velocity_base = 2.0 * pi / num_velocity_bins
+
+    expected_pairs = [
+        (PerformanceEvent(event_type=PerformanceEvent.NOTE_ON, event_value=60),
+         [1.0, cos(60.0 * slow_base), sin(60.0 * slow_base),
+          cos(60.0 * fast_base), sin(60.0 * fast_base),
+          0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]),
+        (PerformanceEvent(event_type=PerformanceEvent.NOTE_ON, event_value=0),
+         [1.0, cos(0.0 * slow_base), sin(0.0 * slow_base),
+          cos(0.0 * fast_base), sin(0.0 * fast_base),
+          0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]),
+        (PerformanceEvent(event_type=PerformanceEvent.NOTE_ON, event_value=127),
+         [1.0, cos(127.0 * slow_base), sin(127.0 * slow_base),
+          cos(127.0 * fast_base), sin(127.0 * fast_base),
+          0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]),
+        (PerformanceEvent(event_type=PerformanceEvent.NOTE_OFF, event_value=72),
+         [0.0, 0.0, 0.0, 0.0, 0.0, 1.0,
+          cos(72.0 * slow_base), sin(72.0 * slow_base),
+          cos(72.0 * fast_base), sin(72.0 * fast_base),
+          0.0, 0.0, 0.0, 0.0, 0.0, 0.0]),
+        (PerformanceEvent(event_type=PerformanceEvent.NOTE_OFF, event_value=0),
+         [0.0, 0.0, 0.0, 0.0, 0.0, 1.0,
+          cos(0.0 * slow_base), sin(0.0 * slow_base),
+          cos(0.0 * fast_base), sin(0.0 * fast_base),
+          0.0, 0.0, 0.0, 0.0, 0.0, 0.0]),
+        (PerformanceEvent(
+            event_type=PerformanceEvent.NOTE_OFF, event_value=127),
+         [0.0, 0.0, 0.0, 0.0, 0.0, 1.0,
+          cos(127.0 * slow_base), sin(127.0 * slow_base),
+          cos(127.0 * fast_base), sin(127.0 * fast_base),
+          0.0, 0.0, 0.0, 0.0, 0.0, 0.0]),
+        (PerformanceEvent(
+            event_type=PerformanceEvent.TIME_SHIFT, event_value=10),
+         [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+          1.0, cos(9.0 * shift_base), sin(9.0 * shift_base),
+          0.0, 0.0, 0.0]),
+        (PerformanceEvent(
+            event_type=PerformanceEvent.TIME_SHIFT, event_value=1),
+         [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+          1.0, cos(0.0 * shift_base), sin(0.0 * shift_base),
+          0.0, 0.0, 0.0]),
+        (PerformanceEvent(
+            event_type=PerformanceEvent.TIME_SHIFT, event_value=100),
+         [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+          1.0, cos(99.0 * shift_base), sin(99.0 * shift_base),
+          0.0, 0.0, 0.0]),
+        (PerformanceEvent(event_type=PerformanceEvent.VELOCITY, event_value=5),
+         [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+          0.0, 0.0, 0.0,
+          1.0, cos(4.0 * velocity_base), sin(4.0 * velocity_base)]),
+        (PerformanceEvent(event_type=PerformanceEvent.VELOCITY, event_value=1),
+         [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+          0.0, 0.0, 0.0,
+          1.0, cos(0.0 * velocity_base), sin(0.0 * velocity_base)]),
+        (PerformanceEvent(event_type=PerformanceEvent.VELOCITY, event_value=16),
+         [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+          0.0, 0.0, 0.0,
+          1.0, cos(15.0 * velocity_base), sin(15.0 * velocity_base)]),
+    ]
+
+    events = []
+    position = 0
+    for event, expected_encoded_modulo_event in expected_pairs:
+      events += [event]
+      actual_encoded_modulo_event = self.enc.events_to_input(events, position)
+      position += 1
+      for i in range(self._expected_input_size):
+        self.assertAlmostEqual(expected_encoded_modulo_event[i],
+                               actual_encoded_modulo_event[i])
 
 
 class NoteDensityOneHotEncodingTest(tf.test.TestCase):
