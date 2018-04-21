@@ -22,6 +22,7 @@ from numpy import zeros
 
 from magenta.music import encoder_decoder
 from magenta.music import performance_lib
+from magenta.music.encoder_decoder import EventSequenceEncoderDecoder
 from magenta.music.performance_lib import PerformanceEvent
 
 
@@ -147,6 +148,132 @@ class PerformanceModuloEncoding(encoder_decoder.OneHotEncoding):
       return event.event_value
     else:
       return 0
+
+
+class ModuloPerformanceEventSequenceEncoderDecoder(EventSequenceEncoderDecoder):
+  """An EventSequenceEncoderDecoder for modulo encoding performance events.
+
+  ModuloPerformanceEventSequenceEncoderDecoder is an EventSequenceEncoderDecoder
+  that uses Modulo Encoding for individual events. This encoding can be used in
+  place of OneHotEventSequenceEncoderDecoder in models that use time-shift
+  and/or velocity events in addition to note-on/note-off events. The input
+  vectors are modulo-12 encodings of the most recent event. The output labels
+  are one-hot encodings of the next event.
+
+  The only method of this class that is different from that of
+  OneHotEventSequenceEncoderDecoder is events_to_inputs().
+  """
+
+  def __init__(self, modulo_encoding):
+    """Initialize a ModuloPerformanceEventSequenceEncoderDecoder object.
+
+    Args:
+      modulo_encoding: A ModuloEncoding object that transforms events to and
+          from integer indices using modulo encoding.
+    """
+    self._modulo_encoding = modulo_encoding
+
+  @property
+  def input_size(self):
+    return self._modulo_encoding.input_size
+
+  @property
+  def num_classes(self):
+    return self._modulo_encoding.num_classes
+
+  @property
+  def default_event_label(self):
+    return self._modulo_encoding.encode_event(
+        self._modulo_encoding.default_event)
+
+  def events_to_input(self, events, position):
+    """Returns the input vector for the given position in the event sequence.
+
+    Returns a modulo encoding for the given position in the performance event
+      sequence, by modulo-encoding the output of the one-hot-encoder applied to
+      that event position.
+
+    Args:
+      events: A list-like sequence of events.
+      position: An integer event position in the event sequence.
+
+    Returns:
+      An input vector, a list of floats.
+    """
+    input_ = [0.0] * self.input_size
+    offset, _, event_type, value, bins = (self._modulo_encoding
+                                          .encode_modulo_event(
+                                              events[position]))
+    input_[offset] = 1.0  # valid bit for the event
+    offset += 1
+    angle = 0.0
+    if (event_type == performance_lib.PerformanceEvent.NOTE_ON or
+        event_type == performance_lib.PerformanceEvent.NOTE_OFF):
+
+      # Encode the octave of the note.
+      angle = (float(value) * math.pi) / 72.0  # 12 octaves, 144 notes
+      input_[offset] = math.cos(angle)
+      input_[offset + 1] = math.sin(angle)
+      offset += 2
+
+      # Encode the note itself, using the encoder's lookup table.
+      value %= 12
+      cosine = self._modulo_encoding.embed_note(value)[0]
+      sine = self._modulo_encoding.embed_note(value)[1]
+      input_[offset] = cosine
+      input_[offset + 1] = sine
+    else:
+      # This must be a velocity, or a time-shift event. Compute its
+      # modulo-bins embedding.
+      angle = (float(value) * 2.0 * math.pi) / float(bins)
+      input_[offset] = math.cos(angle)
+      input_[offset + 1] = math.sin(angle)
+    return input_
+
+  def events_to_label(self, events, position):
+    """Returns the label for the given position in the event sequence.
+
+    Returns the zero-based index value for the given position in the event
+    sequence, as determined by the one hot encoding.
+
+    Args:
+      events: A list-like sequence of events.
+      position: An integer event position in the event sequence.
+
+    Returns:
+      A label, an integer.
+    """
+    return self._modulo_encoding.encode_event(events[position])
+
+  def class_index_to_event(self, class_index, events):
+    """Returns the event for the given class index.
+
+    This is the reverse process of the self.events_to_label method.
+
+    Args:
+      class_index: An integer in the range [0, self.num_classes).
+      events: A list-like sequence of events. This object is not used in this
+          implementation.
+
+    Returns:
+      An event value.
+    """
+    return self._modulo_encoding.decode_event(class_index)
+
+  def event_to_num_steps(self, unused_event):
+    """Returns the number of time steps corresponding to an event value.
+
+    This is used for normalization when computing metrics. Subclasses with
+    variable step size should override this method.
+
+    Args:
+      unused_event: An event value for which to return the number of steps.
+
+    Returns:
+      The number of steps corresponding to the given event value, defaulting to
+      one.
+    """
+    return 1
 
 
 class PerformanceOneHotEncoding(encoder_decoder.OneHotEncoding):
