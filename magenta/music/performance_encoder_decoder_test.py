@@ -23,6 +23,7 @@ import tensorflow as tf
 
 from magenta.music import performance_encoder_decoder
 from magenta.music import performance_lib
+from magenta.music.performance_encoder_decoder import ModuloPerformanceEventSequenceEncoderDecoder
 from magenta.music.performance_encoder_decoder import PerformanceModuloEncoding
 from magenta.music.performance_lib import PerformanceEvent
 
@@ -98,7 +99,7 @@ class PerformanceModuloEncodingTest(tf.test.TestCase):
   def setUp(self):
     self._num_velocity_bins = 16
     self._max_shift_steps = performance_lib.DEFAULT_MAX_SHIFT_STEPS
-    self.enc = performance_encoder_decoder.PerformanceModuloEncoding(
+    self.enc = PerformanceModuloEncoding(
         num_velocity_bins=self._num_velocity_bins,
         max_shift_steps=self._max_shift_steps)
 
@@ -252,7 +253,7 @@ class ModuloPerformanceEventSequenceEncoderTest(tf.test.TestCase):
   def setUp(self):
     self._num_velocity_bins = 32
     self._max_shift_steps = 32
-    self.enc = performance_encoder_decoder.ModuloPerformanceEventSequenceEncoderDecoder(
+    self.enc = ModuloPerformanceEventSequenceEncoderDecoder(
         PerformanceModuloEncoding(
             num_velocity_bins=self._num_velocity_bins,
             max_shift_steps=self._max_shift_steps))
