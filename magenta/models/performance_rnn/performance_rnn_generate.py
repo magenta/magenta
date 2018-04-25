@@ -204,15 +204,15 @@ def run_with_flags(generator):
         generate_section.start_time, generate_end_time)
     return
 
-  for control_signal_cls in magenta.music.all_performance_control_signals:
-    if FLAGS[control_signal_cls.name].value is not None and (
+  for control_cls in magenta.music.all_performance_control_signals:
+    if FLAGS[control_cls.name].value is not None and (
         generator.control_signals is None or not any(
-            control.name == control_signal_cls.name
+            control.name == control_cls.name
             for control in generator.control_signals)):
       tf.logging.warning(
           'Control signal requested via flag, but generator is not set up to '
           'condition on this control signal. Request will be ignored: %s = %s',
-          control_signal_cls.name, FLAGS[control_signal_cls.name].value)
+          control_cls.name, FLAGS[control_cls.name].value)
 
   if (FLAGS.disable_conditioning is not None and
       not generator.optional_conditioning):

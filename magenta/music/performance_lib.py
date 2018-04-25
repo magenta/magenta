@@ -17,7 +17,6 @@ from __future__ import division
 
 import abc
 import collections
-import copy
 import math
 
 # internal imports

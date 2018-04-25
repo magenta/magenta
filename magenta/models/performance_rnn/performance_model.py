@@ -229,9 +229,9 @@ default_configs = {
             learning_rate=0.001),
         num_velocity_bins=32,
         control_signals=[
-          magenta.music.NoteDensityPerformanceControlSignal(
-              window_size_seconds=3.0,
-              density_bin_ranges=[1.0, 2.0, 4.0, 8.0, 16.0, 32.0, 64.0])
+            magenta.music.NoteDensityPerformanceControlSignal(
+                window_size_seconds=3.0,
+                density_bin_ranges=[1.0, 2.0, 4.0, 8.0, 16.0, 32.0, 64.0])
         ]),
 
     'pitch_conditioned_performance_with_dynamics': PerformanceRnnConfig(
@@ -249,8 +249,8 @@ default_configs = {
             learning_rate=0.001),
         num_velocity_bins=32,
         control_signals=[
-          magenta.music.PitchHistogramPerformanceControlSignal(
-              window_size_seconds=5.0)
+            magenta.music.PitchHistogramPerformanceControlSignal(
+                window_size_seconds=5.0)
         ]),
 
     'multiconditioned_performance_with_dynamics': PerformanceRnnConfig(
@@ -268,11 +268,11 @@ default_configs = {
             learning_rate=0.001),
         num_velocity_bins=32,
         control_signals=[
-          magenta.music.NoteDensityPerformanceControlSignal(
-              window_size_seconds=3.0,
-              density_bin_ranges=[1.0, 2.0, 4.0, 8.0, 16.0, 32.0, 64.0]),
-          magenta.music.PitchHistogramPerformanceControlSignal(
-              window_size_seconds=5.0)
+            magenta.music.NoteDensityPerformanceControlSignal(
+                window_size_seconds=3.0,
+                density_bin_ranges=[1.0, 2.0, 4.0, 8.0, 16.0, 32.0, 64.0]),
+            magenta.music.PitchHistogramPerformanceControlSignal(
+                window_size_seconds=5.0)
         ]),
 
     'optional_multiconditioned_performance_with_dynamics': PerformanceRnnConfig(
@@ -290,11 +290,11 @@ default_configs = {
             learning_rate=0.001),
         num_velocity_bins=32,
         control_signals=[
-          magenta.music.NoteDensityPerformanceControlSignal(
-              window_size_seconds=3.0,
-              density_bin_ranges=[1.0, 2.0, 4.0, 8.0, 16.0, 32.0, 64.0]),
-          magenta.music.PitchHistogramPerformanceControlSignal(
-              window_size_seconds=5.0)
+            magenta.music.NoteDensityPerformanceControlSignal(
+                window_size_seconds=3.0,
+                density_bin_ranges=[1.0, 2.0, 4.0, 8.0, 16.0, 32.0, 64.0]),
+            magenta.music.PitchHistogramPerformanceControlSignal(
+                window_size_seconds=5.0)
         ],
         optional_conditioning=True)
 }

@@ -23,7 +23,7 @@ from magenta.music import performance_lib
 class NoteDensityPerformanceControlSignalTest(tf.test.TestCase):
 
   def setUp(self):
-    self.enc = performance_controls.NoteDensityPerformanceControlSignal(
+    self.control = performance_controls.NoteDensityPerformanceControlSignal(
         window_size_seconds=1.0, density_bin_ranges=[1.0, 5.0])
 
   def testExtract(self):
@@ -64,12 +64,18 @@ class NoteDensityPerformanceControlSignalTest(tf.test.TestCase):
         [0.0, 0.0, 1.0],
     ]
 
-    self.assertEqual(0, self.encoder.events_to_input(density_sequence, 0))
-    self.assertEqual(0, self.encoder.events_to_input(density_sequence, 1))
-    self.assertEqual(1, self.encoder.events_to_input(density_sequence, 2))
-    self.assertEqual(1, self.encoder.events_to_input(density_sequence, 3))
-    self.assertEqual(2, self.encoder.events_to_input(density_sequence, 4))
-    self.assertEqual(2, self.encoder.events_to_input(density_sequence, 5))
+    self.assertEqual(expected_inputs[0],
+                     self.control.encoder.events_to_input(density_sequence, 0))
+    self.assertEqual(expected_inputs[1],
+                     self.control.encoder.events_to_input(density_sequence, 1))
+    self.assertEqual(expected_inputs[2],
+                     self.control.encoder.events_to_input(density_sequence, 2))
+    self.assertEqual(expected_inputs[3],
+                     self.control.encoder.events_to_input(density_sequence, 3))
+    self.assertEqual(expected_inputs[4],
+                     self.control.encoder.events_to_input(density_sequence, 4))
+    self.assertEqual(expected_inputs[5],
+                     self.control.encoder.events_to_input(density_sequence, 5))
 
 
 class PitchHistogramPerformanceControlSignalTest(tf.test.TestCase):
@@ -131,10 +137,18 @@ class PitchHistogramPerformanceControlSignalTest(tf.test.TestCase):
     ]
 
     self.assertEqual(
-        expected_inputs[0], self.encoder.events_to_input(density_sequence, 0))
+        expected_inputs[0],
+        self.control.encoder.events_to_input(histogram_sequence, 0))
     self.assertEqual(
-        expected_inputs[1], self.encoder.events_to_input(density_sequence, 1))
+        expected_inputs[1],
+        self.control.encoder.events_to_input(histogram_sequence, 1))
     self.assertEqual(
-        expected_inputs[2], self.encoder.events_to_input(density_sequence, 2))
+        expected_inputs[2],
+        self.control.encoder.events_to_input(histogram_sequence, 2))
     self.assertEqual(
-        expected_inputs[3], self.encoder.events_to_input(density_sequence, 3))
+        expected_inputs[3],
+        self.control.encoder.events_to_input(histogram_sequence, 3))
+
+
+if __name__ == '__main__':
+  tf.test.main()

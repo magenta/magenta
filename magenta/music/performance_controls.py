@@ -16,12 +16,12 @@
 from __future__ import division
 
 import abc
+import copy
 import numbers
 
 # internal imports
 from magenta.music import constants
 from magenta.music import encoder_decoder
-from magenta.music import performance_lib
 from magenta.music.performance_lib import PerformanceEvent
 
 NOTES_PER_OCTAVE = constants.NOTES_PER_OCTAVE
@@ -110,7 +110,7 @@ class NoteDensityPerformanceControlSignal(PerformanceControlSignal):
   def encoder(self):
     return self._encoder
 
-  def extract(performance):
+  def extract(self, performance):
     """Computes note density at every event in a performance.
 
     Args:
@@ -123,7 +123,7 @@ class NoteDensityPerformanceControlSignal(PerformanceControlSignal):
       corresponding performance event time.
     """
     window_size_steps = int(round(
-        window_size_seconds * performance.steps_per_second))
+        self._window_size_seconds * performance.steps_per_second))
 
     prev_event_type = None
     prev_density = 0.0
@@ -238,7 +238,7 @@ class PitchHistogramPerformanceControlSignal(PerformanceControlSignal):
   def encoder(self):
     return self._encoder
 
-  def extract(performance):
+  def extract(self, performance):
     """Computes local pitch class histogram at every event in a performance.
 
     Args:
@@ -251,7 +251,7 @@ class PitchHistogramPerformanceControlSignal(PerformanceControlSignal):
       one.
     """
     window_size_steps = int(round(
-        window_size_seconds * performance.steps_per_second))
+        self._window_size_seconds * performance.steps_per_second))
 
     prev_event_type = None
     prev_histogram = self.default_value
@@ -278,7 +278,7 @@ class PitchHistogramPerformanceControlSignal(PerformanceControlSignal):
       step_offset = 0
 
       active_pitches = copy.deepcopy(base_active_pitches)
-      histogram = [prior_count] * NOTES_PER_OCTAVE
+      histogram = [self._prior_count] * NOTES_PER_OCTAVE
 
       # Count the total duration of each pitch class within the window.
       while step_offset < window_size_steps and j < len(performance):
