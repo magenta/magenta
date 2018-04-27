@@ -379,6 +379,15 @@ class InstrumentMasker(BaseMasker):
     return masks * outer_masks
 
 
+class CompletionMasker(BaseMasker):
+  key = "completion"
+
+  def __call__(self, pianorolls, outer_masks=1.):
+    masks = (pianorolls == 0).all(axis=2, keepdims=True)
+    inner_mask = masks + 0 * pianorolls  # broadcast explicitly
+    return inner_mask * outer_masks
+
+
 #################
 ### Schedules ###
 #################
