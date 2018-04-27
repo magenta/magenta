@@ -16,6 +16,7 @@ from magenta.models.coconet import lib_logging
 from magenta.models.coconet import lib_mask
 from magenta.models.coconet import lib_pianoroll
 from magenta.models.coconet import lib_sampling
+from magenta.models.coconet import lib_tfsampling
 from magenta.models.coconet import lib_util
 
 FLAGS = tf.app.flags.FLAGS
