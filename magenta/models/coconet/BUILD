@@ -195,6 +195,7 @@ py_binary(
         ":lib_mask",
         ":lib_pianoroll",
         ":lib_sampling",
+        ":lib_tfsampling",
         ":lib_util",
         # numpy dep
         "@pretty_midi//:pretty_midi",
