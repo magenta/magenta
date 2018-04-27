@@ -140,9 +140,9 @@ class Generator(object):
       pianorolls_in: An optional numpy.ndarray encoding the notes to be
           conditioned on as pianorolls.
       gen_batch_size: An integer specifying the number of outputs to generate.
-      piece_length: piece_length: An integer specifying the desired number of
-          time steps to generate for the output, where a time step corresponds
-          to the shortest duration supported by the model.
+      piece_length: An integer specifying the desired number of time steps to
+          generate for the output, where a time step corresponds to the
+          shortest duration supported by the model.
       new_strategy: new_strategy: A string specifying the key of the strategy
           to use. If not set, the most recently set strategy is used. If a
           strategy was never specified, then the default strategy that was
@@ -226,9 +226,9 @@ class TFGenerator(object):
           where there are no notes, indicating to the model they should be
           filled in.
       gen_batch_size: An integer specifying the number of outputs to generate.
-      piece_length: piece_length: An integer specifying the desired number of
-          time steps to generate for the output, where a time step corresponds
-          to the shortest duration supported by the model.
+      piece_length: An integer specifying the desired number of time steps to
+          generate for the output, where a time step corresponds to the
+          shortest duration supported by the model.
       See the CoconetSampleGraph class in lib_tfsample.py for more detail.
       sample_steps: an integer indicating the number of steps to sample in this
           call.  If set to 0, then it defaults to total_gibbs_steps.
