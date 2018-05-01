@@ -78,26 +78,12 @@ tf.app.flags.DEFINE_string(
     'The path to a MIDI file containing a polyphonic track that will be used '
     'as a priming track.')
 tf.app.flags.DEFINE_string(
-    'notes_per_second', None,
-    'When conditioning on note density, a string representation of the desired '
-    'density in notes per second. This can also be a string representation of '
-    'a Python list of densities, in which case each output performance will be '
-    'divided into equally-sized segments of constant note density, one per '
-    'specified density. If not conditioning, this value will be ignored.')
-tf.app.flags.DEFINE_string(
-    'pitch_class_histogram', None,
-    'When conditioning on pitch class histogram, a string representation of '
-    'the desired pitch class histogram as a Python list. For example: '
-    '"[2, 0, 1, 0, 1, 1, 0, 1, 0, 1, 0, 1]". The values will be normalized to '
-    'sum to one. Similar to `notes_per_second`, this can also be a list of '
-    'pitch class histograms.')
-tf.app.flags.DEFINE_string(
     'disable_conditioning', None,
     'When optional conditioning is available, a string representation of a '
     'Boolean indicating whether or not to disable conditioning. Similar to '
-    '`notes_per_second` and `pitch_class_histogram`, this can also be a list '
-    'of Booleans; when it is a list, the other conditioning variables will be '
-    'ignored for segments where conditioning is disabled.')
+    'control signals, this can also be a list of Booleans; when it is a list, '
+    'the other conditioning variables will be ignored for segments where '
+    'conditioning is disabled.')
 tf.app.flags.DEFINE_float(
     'temperature', 1.0,
     'The randomness of the generated tracks. 1.0 uses the unaltered '
@@ -121,6 +107,11 @@ tf.app.flags.DEFINE_string(
     'Comma-separated list of `name=value` pairs. For each pair, the value of '
     'the hyperparameter named `name` is set to `value`. This mapping is merged '
     'with the default hyperparameters.')
+
+# Add flags for all performance control signals.
+for control_signal_cls in magenta.music.all_performance_control_signals:
+  tf.app.flags.DEFINE_string(
+      control_signal_cls.name, None, control_signal_cls.description)
 
 
 def get_checkpoint():
@@ -213,19 +204,15 @@ def run_with_flags(generator):
         generate_section.start_time, generate_end_time)
     return
 
-  if (FLAGS.notes_per_second is not None and
-      not generator.note_density_conditioning):
-    tf.logging.warning(
-        'Notes per second requested via flag, but generator is not set up to '
-        'condition on note density. Requested note density will be ignored: %s',
-        FLAGS.notes_per_second)
-
-  if (FLAGS.pitch_class_histogram is not None and
-      not generator.pitch_histogram_conditioning):
-    tf.logging.warning(
-        'Pitch class histogram requested via flag, but generator is not set up '
-        'to condition on pitch class histogram. Requested pitch class '
-        'histogram will be ignored: %s', FLAGS.pitch_class_histogram)
+  for control_cls in magenta.music.all_performance_control_signals:
+    if FLAGS[control_cls.name].value is not None and (
+        generator.control_signals is None or not any(
+            control.name == control_cls.name
+            for control in generator.control_signals)):
+      tf.logging.warning(
+          'Control signal requested via flag, but generator is not set up to '
+          'condition on this control signal. Request will be ignored: %s = %s',
+          control_cls.name, FLAGS[control_cls.name].value)
 
   if (FLAGS.disable_conditioning is not None and
       not generator.optional_conditioning):
@@ -234,11 +221,11 @@ def run_with_flags(generator):
         'optional conditioning. Requested disable conditioning flag will be '
         'ignored: %s', FLAGS.disable_conditioning)
 
-  if FLAGS.notes_per_second is not None:
-    generator_options.args['note_density'].string_value = FLAGS.notes_per_second
-  if FLAGS.pitch_class_histogram is not None:
-    generator_options.args['pitch_histogram'].string_value = (
-        FLAGS.pitch_class_histogram)
+  if generator.control_signals:
+    for control in generator.control_signals:
+      if FLAGS[control.name].value is not None:
+        generator_options.args[control.name].string_value = (
+            FLAGS[control.name].value)
   if FLAGS.disable_conditioning is not None:
     generator_options.args['disable_conditioning'].string_value = (
         FLAGS.disable_conditioning)
@@ -285,9 +272,7 @@ def main(unused_argv):
       details=config.details,
       steps_per_second=config.steps_per_second,
       num_velocity_bins=config.num_velocity_bins,
-      note_density_conditioning=config.density_bin_ranges is not None,
-      pitch_histogram_conditioning=(
-          config.pitch_histogram_window_size is not None),
+      control_signals=config.control_signals,
       optional_conditioning=config.optional_conditioning,
       checkpoint=get_checkpoint(),
       bundle=bundle)

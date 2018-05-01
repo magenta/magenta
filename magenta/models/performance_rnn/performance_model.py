@@ -37,8 +37,8 @@ class PerformanceRnnModel(events_rnn_model.EventSequenceRnnModel):
 
   def generate_performance(
       self, num_steps, primer_sequence, temperature=1.0, beam_size=1,
-      branch_factor=1, steps_per_iteration=1, note_density_fn=None,
-      pitch_histogram_fn=None, disable_conditioning_fn=None):
+      branch_factor=1, steps_per_iteration=1, control_signal_fns=None,
+      disable_conditioning_fn=None):
     """Generate a performance track from a primer performance track.
 
     Args:
@@ -53,10 +53,8 @@ class PerformanceRnnModel(events_rnn_model.EventSequenceRnnModel):
       branch_factor: An integer, beam search branch factor to use.
       steps_per_iteration: An integer, number of steps to take per beam search
           iteration.
-      note_density_fn: A function that maps time step to desired note density,
-          or None if not conditioning on note density.
-      pitch_histogram_fn: A function that maps time step to desired pitch
-          histogram, or None if not conditioning on pitch histogram.
+      control_signal_fns: A list of functions that map time step to desired
+          control value, or None if not using control signals.
       disable_conditioning_fn: A function that maps time step to whether or not
           conditioning should be disabled, or None if there is no conditioning
           or conditioning is not optional.
@@ -65,20 +63,15 @@ class PerformanceRnnModel(events_rnn_model.EventSequenceRnnModel):
       The generated Performance object (which begins with the provided primer
       track).
     """
-    if note_density_fn is not None or pitch_histogram_fn is not None:
-      control_event = ()
-      if note_density_fn is not None:
-        control_event += (note_density_fn(0),)
-      if pitch_histogram_fn is not None:
-        control_event += (pitch_histogram_fn(0),)
+    if control_signal_fns:
+      control_event = tuple(f(0) for f in control_signal_fns)
       if disable_conditioning_fn is not None:
         control_event = (disable_conditioning_fn(0), control_event)
       control_events = [control_event]
       control_state = PerformanceControlState(
           current_perf_index=0, current_perf_step=0)
       extend_control_events_callback = functools.partial(
-          _extend_control_events, note_density_fn, pitch_histogram_fn,
-          disable_conditioning_fn)
+          _extend_control_events, control_signal_fns, disable_conditioning_fn)
     else:
       control_events = None
       control_state = None
@@ -90,17 +83,13 @@ class PerformanceRnnModel(events_rnn_model.EventSequenceRnnModel):
         control_state=control_state,
         extend_control_events_callback=extend_control_events_callback)
 
-  def performance_log_likelihood(self, sequence, note_density=None,
-                                 pitch_histogram=None,
-                                 disable_conditioning=None):
+  def performance_log_likelihood(self, sequence, control_values,
+                                 disable_conditioning):
     """Evaluate the log likelihood of a performance.
 
     Args:
       sequence: The Performance object for which to evaluate the log likelihood.
-      note_density: Control note density on which performance is conditioned. If
-          None, don't condition on note density.
-      pitch_histogram: Control pitch class histogram on which performance is
-          conditioned. If None, don't condition on pitch class histogram.
+      control_values: List of (single) values for all control signal.
       disable_conditioning: Whether or not to disable optional conditioning. If
           True, disable conditioning. If False, do not disable. None when no
           conditioning or it is not optional.
@@ -109,12 +98,8 @@ class PerformanceRnnModel(events_rnn_model.EventSequenceRnnModel):
     Returns:
       The log likelihood of `sequence` under this model.
     """
-    if note_density is not None or pitch_histogram is not None:
-      control_event = ()
-      if note_density is not None:
-        control_event += (note_density,)
-      if pitch_histogram is not None:
-        control_event += (pitch_histogram,)
+    if control_values:
+      control_event = tuple(control_values)
       if disable_conditioning is not None:
         control_event = (disable_conditioning, control_event)
       control_events = [control_event] * len(sequence)
@@ -125,26 +110,23 @@ class PerformanceRnnModel(events_rnn_model.EventSequenceRnnModel):
         [sequence], control_events=control_events)[0]
 
 
-def _extend_control_events(note_density_fn, pitch_histogram_fn,
-                           disable_conditioning_fn, control_events, performance,
-                           control_state):
+def _extend_control_events(control_signal_fns, disable_conditioning_fn,
+                           control_events, performance, control_state):
   """Extend a performance control sequence.
 
-  Extends `control_events` -- a sequence of note densities, pitch class
-  histograms, or both -- to be one event longer than `performance`, so the next
-  event of `performance` can be conditionally generated.
+  Extends `control_events` -- a sequence of control signal value tuples -- to be
+  one event longer than `performance`, so the next event of `performance` can be
+  conditionally generated.
 
   This function is meant to be used as the `extend_control_events_callback`
   in the `_generate_events` method of `EventSequenceRnnModel`.
 
   Args:
-    note_density_fn: A function that maps time step to note density, or None if
-          not conditioning on note density.
-    pitch_histogram_fn: A function that maps time step to pitch histogram, or
-          None if not conditioning on pitch histogram.
+    control_signal_fns: A list of functions that map time step to desired
+        control value, or None if not using control signals.
     disable_conditioning_fn: A function that maps time step to whether or not
-          conditioning should be disabled, or None if there is no conditioning
-          or conditioning is not optional.
+        conditioning should be disabled, or None if there is no conditioning or
+        conditioning is not optional.
     control_events: The control sequence to extend.
     performance: The Performance being generated.
     control_state: A PerformanceControlState tuple containing the current
@@ -164,11 +146,7 @@ def _extend_control_events(note_density_fn, pitch_histogram_fn,
       step += performance[idx].event_value
     idx += 1
 
-    control_event = ()
-    if note_density_fn is not None:
-      control_event += (note_density_fn(step),)
-    if pitch_histogram_fn is not None:
-      control_event += (pitch_histogram_fn(step),)
+    control_event = tuple(f(step) for f in control_signal_fns)
     if disable_conditioning_fn is not None:
       control_event = (disable_conditioning_fn(step), control_event)
     control_events.append(control_event)
@@ -183,26 +161,27 @@ class PerformanceRnnConfig(events_rnn_model.EventSequenceRnnConfig):
   Attributes:
     num_velocity_bins: Number of velocity bins to use. If 0, don't use velocity
         at all.
-    density_bin_ranges: List of note density (notes per second) bin boundaries
-        to use when quantizing note density for conditioning. If None, don't
-        condition on note density.
-    density_window_size: Size of window used to compute note density, in
-        seconds.
-    pitch_histogram_window_size: Size of window used to compute pitch class
-        histograms, in seconds. If None, don't compute pitch class histograms.
+    control_signals: List of PerformanceControlSignal objects to use for
+        conditioning, or None if not conditioning on anything.
     optional_conditioning: If True, conditioning can be disabled by setting a
         flag as part of the conditioning input.
   """
 
   def __init__(self, details, encoder_decoder, hparams, num_velocity_bins=0,
-               density_bin_ranges=None, density_window_size=3.0,
-               pitch_histogram_window_size=None, optional_conditioning=False):
+               control_signals=None, optional_conditioning=False):
+    if control_signals is not None:
+      control_encoder = magenta.music.MultipleEventSequenceEncoder(
+          [control.encoder for control in control_signals])
+      if optional_conditioning:
+        control_encoder = magenta.music.OptionalEventSequenceEncoder(
+            control_encoder)
+      encoder_decoder = magenta.music.ConditionalEventSequenceEncoderDecoder(
+          control_encoder, encoder_decoder)
+
     super(PerformanceRnnConfig, self).__init__(
         details, encoder_decoder, hparams)
     self.num_velocity_bins = num_velocity_bins
-    self.density_bin_ranges = density_bin_ranges
-    self.density_window_size = density_window_size
-    self.pitch_histogram_window_size = pitch_histogram_window_size
+    self.control_signals = control_signals
     self.optional_conditioning = optional_conditioning
 
 
@@ -239,15 +218,9 @@ default_configs = {
         magenta.protobuf.generator_pb2.GeneratorDetails(
             id='density_conditioned_performance_with_dynamics',
             description='Note-density-conditioned Performance RNN + dynamics'),
-        magenta.music.ConditionalEventSequenceEncoderDecoder(
-            magenta.music.MultipleEventSequenceEncoder([
-                magenta.music.OneHotEventSequenceEncoderDecoder(
-                    magenta.music.NoteDensityOneHotEncoding(
-                        density_bin_ranges=[
-                            1.0, 2.0, 4.0, 8.0, 16.0, 32.0, 64.0]))]),
-            magenta.music.OneHotEventSequenceEncoderDecoder(
-                magenta.music.PerformanceOneHotEncoding(
-                    num_velocity_bins=32))),
+        magenta.music.OneHotEventSequenceEncoderDecoder(
+            magenta.music.PerformanceOneHotEncoding(
+                num_velocity_bins=32)),
         tf.contrib.training.HParams(
             batch_size=64,
             rnn_layer_sizes=[512, 512, 512],
@@ -255,19 +228,19 @@ default_configs = {
             clip_norm=3,
             learning_rate=0.001),
         num_velocity_bins=32,
-        density_bin_ranges=[1.0, 2.0, 4.0, 8.0, 16.0, 32.0, 64.0],
-        density_window_size=3.0),
+        control_signals=[
+            magenta.music.NoteDensityPerformanceControlSignal(
+                window_size_seconds=3.0,
+                density_bin_ranges=[1.0, 2.0, 4.0, 8.0, 16.0, 32.0, 64.0])
+        ]),
 
     'pitch_conditioned_performance_with_dynamics': PerformanceRnnConfig(
         magenta.protobuf.generator_pb2.GeneratorDetails(
             id='pitch_conditioned_performance_with_dynamics',
             description='Pitch-histogram-conditioned Performance RNN'),
-        magenta.music.ConditionalEventSequenceEncoderDecoder(
-            magenta.music.MultipleEventSequenceEncoder([
-                magenta.music.PitchHistogramEncoder()]),
-            magenta.music.OneHotEventSequenceEncoderDecoder(
-                magenta.music.PerformanceOneHotEncoding(
-                    num_velocity_bins=32))),
+        magenta.music.OneHotEventSequenceEncoderDecoder(
+            magenta.music.PerformanceOneHotEncoding(
+                num_velocity_bins=32)),
         tf.contrib.training.HParams(
             batch_size=64,
             rnn_layer_sizes=[512, 512, 512],
@@ -275,22 +248,18 @@ default_configs = {
             clip_norm=3,
             learning_rate=0.001),
         num_velocity_bins=32,
-        pitch_histogram_window_size=5.0),
+        control_signals=[
+            magenta.music.PitchHistogramPerformanceControlSignal(
+                window_size_seconds=5.0)
+        ]),
 
     'multiconditioned_performance_with_dynamics': PerformanceRnnConfig(
         magenta.protobuf.generator_pb2.GeneratorDetails(
             id='multiconditioned_performance_with_dynamics',
             description='Density- and pitch-conditioned Performance RNN'),
-        magenta.music.ConditionalEventSequenceEncoderDecoder(
-            magenta.music.MultipleEventSequenceEncoder([
-                magenta.music.OneHotEventSequenceEncoderDecoder(
-                    magenta.music.NoteDensityOneHotEncoding(
-                        density_bin_ranges=[
-                            1.0, 2.0, 4.0, 8.0, 16.0, 32.0, 64.0])),
-                magenta.music.PitchHistogramEncoder()]),
-            magenta.music.OneHotEventSequenceEncoderDecoder(
-                magenta.music.PerformanceOneHotEncoding(
-                    num_velocity_bins=32))),
+        magenta.music.OneHotEventSequenceEncoderDecoder(
+            magenta.music.PerformanceOneHotEncoding(
+                num_velocity_bins=32)),
         tf.contrib.training.HParams(
             batch_size=64,
             rnn_layer_sizes=[512, 512, 512],
@@ -298,25 +267,21 @@ default_configs = {
             clip_norm=3,
             learning_rate=0.001),
         num_velocity_bins=32,
-        density_bin_ranges=[1.0, 2.0, 4.0, 8.0, 16.0, 32.0, 64.0],
-        density_window_size=3.0,
-        pitch_histogram_window_size=5.0),
+        control_signals=[
+            magenta.music.NoteDensityPerformanceControlSignal(
+                window_size_seconds=3.0,
+                density_bin_ranges=[1.0, 2.0, 4.0, 8.0, 16.0, 32.0, 64.0]),
+            magenta.music.PitchHistogramPerformanceControlSignal(
+                window_size_seconds=5.0)
+        ]),
 
     'optional_multiconditioned_performance_with_dynamics': PerformanceRnnConfig(
         magenta.protobuf.generator_pb2.GeneratorDetails(
             id='optional_multiconditioned_performance_with_dynamics',
             description='Optionally multiconditioned Performance RNN'),
-        magenta.music.ConditionalEventSequenceEncoderDecoder(
-            magenta.music.OptionalEventSequenceEncoder(
-                magenta.music.MultipleEventSequenceEncoder([
-                    magenta.music.OneHotEventSequenceEncoderDecoder(
-                        magenta.music.NoteDensityOneHotEncoding(
-                            density_bin_ranges=[
-                                1.0, 2.0, 4.0, 8.0, 16.0, 32.0, 64.0])),
-                    magenta.music.PitchHistogramEncoder()])),
-            magenta.music.OneHotEventSequenceEncoderDecoder(
-                magenta.music.PerformanceOneHotEncoding(
-                    num_velocity_bins=32))),
+        magenta.music.OneHotEventSequenceEncoderDecoder(
+            magenta.music.PerformanceOneHotEncoding(
+                num_velocity_bins=32)),
         tf.contrib.training.HParams(
             batch_size=64,
             rnn_layer_sizes=[512, 512, 512],
@@ -324,8 +289,12 @@ default_configs = {
             clip_norm=3,
             learning_rate=0.001),
         num_velocity_bins=32,
-        density_bin_ranges=[1.0, 2.0, 4.0, 8.0, 16.0, 32.0, 64.0],
-        density_window_size=3.0,
-        pitch_histogram_window_size=5.0,
+        control_signals=[
+            magenta.music.NoteDensityPerformanceControlSignal(
+                window_size_seconds=3.0,
+                density_bin_ranges=[1.0, 2.0, 4.0, 8.0, 16.0, 32.0, 64.0]),
+            magenta.music.PitchHistogramPerformanceControlSignal(
+                window_size_seconds=5.0)
+        ],
         optional_conditioning=True)
 }

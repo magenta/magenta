@@ -24,19 +24,15 @@ import tensorflow as tf
 
 from magenta.models.performance_rnn import performance_model
 import magenta.music as mm
+from magenta.music import performance_controls
 
 # This model can leave hanging notes. To avoid cacophony we turn off any note
 # after 5 seconds.
 MAX_NOTE_DURATION_SECONDS = 5.0
 
-# Default note density to use when conditioning on note density.
-DEFAULT_NOTE_DENSITY = 10.0
-
-# Default pitch class histogram to use when conditioning on pitch class
-# histogram.
-DEFAULT_PITCH_HISTOGRAM = [
-    0.125, 0.025, 0.125, 0.025, 0.125, 0.125,
-    0.025, 0.125, 0.025, 0.125, 0.025, 0.125]
+# Default number of notes per second used to determine number of RNN generation
+# steps.
+DEFAULT_NOTE_DENSITY = performance_controls.DEFAULT_NOTE_DENSITY
 
 
 class PerformanceRnnSequenceGenerator(mm.BaseSequenceGenerator):
@@ -44,8 +40,8 @@ class PerformanceRnnSequenceGenerator(mm.BaseSequenceGenerator):
 
   def __init__(self, model, details,
                steps_per_second=mm.DEFAULT_STEPS_PER_SECOND,
-               num_velocity_bins=0, note_density_conditioning=False,
-               pitch_histogram_conditioning=False, optional_conditioning=False,
+               num_velocity_bins=0,
+               control_signals=None, optional_conditioning=False,
                max_note_duration=MAX_NOTE_DURATION_SECONDS,
                fill_generate_section=True, checkpoint=None, bundle=None):
     """Creates a PerformanceRnnSequenceGenerator.
@@ -56,9 +52,7 @@ class PerformanceRnnSequenceGenerator(mm.BaseSequenceGenerator):
       steps_per_second: Number of quantized steps per second.
       num_velocity_bins: Number of quantized velocity bins. If 0, don't use
           velocity.
-      note_density_conditioning: If True, generate conditional on note density.
-      pitch_histogram_conditioning: If True, generate conditional on pitch class
-          histogram.
+      control_signals: A list of PerformanceControlSignal objects.
       optional_conditioning: If True, conditioning can be disabled dynamically.
       max_note_duration: The maximum note duration in seconds to allow during
           generation. This model often forgets to release notes; specifying a
@@ -76,8 +70,7 @@ class PerformanceRnnSequenceGenerator(mm.BaseSequenceGenerator):
         model, details, checkpoint, bundle)
     self.steps_per_second = steps_per_second
     self.num_velocity_bins = num_velocity_bins
-    self.note_density_conditioning = note_density_conditioning
-    self.pitch_histogram_conditioning = pitch_histogram_conditioning
+    self.control_signals = control_signals
     self.optional_conditioning = optional_conditioning
     self.max_note_duration = max_note_duration
     self.fill_generate_section = fill_generate_section
@@ -145,96 +138,74 @@ class PerformanceRnnSequenceGenerator(mm.BaseSequenceGenerator):
 
     # Extract generation arguments from generator options.
     arg_types = {
-        'note_density': lambda arg: ast.literal_eval(arg.string_value),
-        'pitch_histogram': lambda arg: ast.literal_eval(arg.string_value),
         'disable_conditioning': lambda arg: ast.literal_eval(arg.string_value),
         'temperature': lambda arg: arg.float_value,
         'beam_size': lambda arg: arg.int_value,
         'branch_factor': lambda arg: arg.int_value,
         'steps_per_iteration': lambda arg: arg.int_value
     }
+    if self.control_signals:
+      for control in self.control_signals:
+        arg_types[control.name] = lambda arg: ast.literal_eval(arg.string_value)
+
     args = dict((name, value_fn(generator_options.args[name]))
                 for name, value_fn in arg_types.items()
                 if name in generator_options.args)
 
-    # Make sure note density is present when conditioning on it and not present
-    # otherwise.
-    if not self.note_density_conditioning and 'note_density' in args:
-      tf.logging.warning(
-          'Not conditioning on note density, ignoring requested density.')
-      del args['note_density']
-    if self.note_density_conditioning and 'note_density' not in args:
-      tf.logging.warning(
-          'Conditioning on note density but none requested, using default.')
-      args['note_density'] = [DEFAULT_NOTE_DENSITY]
-
-    # Make sure pitch class histogram is present when conditioning on it and not
-    # present otherwise.
-    if not self.pitch_histogram_conditioning and 'pitch_histogram' in args:
-      tf.logging.warning(
-          'Not conditioning on pitch histogram, ignoring requested histogram.')
-      del args['pitch_histogram']
-    if self.pitch_histogram_conditioning and 'pitch_histogram' not in args:
-      tf.logging.warning(
-          'Conditioning on pitch histogram but none requested, using default.')
-      args['pitch_histogram'] = [DEFAULT_PITCH_HISTOGRAM]
+    # Make sure control signals are present and convert to lists if necessary.
+    if self.control_signals:
+      for control in self.control_signals:
+        if control.name not in args:
+          tf.logging.warning(
+              'Control value not specified, using default: %s = %s',
+              control.name, control.default_value)
+          args[control.name] = [control.default_value]
+        elif control.validate(args[control.name]):
+          args[control.name] = [args[control.name]]
+        else:
+          if not isinstance(args[control.name], list) or not all(
+              control.validate(value) for value in args[control.name]):
+            tf.logging.fatal(
+                'Invalid control value: %s = %s',
+                control.name, args[control.name])
 
     # Make sure disable conditioning flag is present when conditioning is
-    # optional and not present otherwise.
-    if not self.optional_conditioning and 'disable_conditioning' in args:
-      tf.logging.warning(
-          'No optional conditioning, ignoring disable conditioning flag.')
-      del args['disable_conditioning']
-    if self.optional_conditioning and 'disable_conditioning' not in args:
-      args['disable_conditioning'] = [False]
-
-    # If a single note density, pitch class histogram, or disable flag is
-    # present, convert to list to simplify further processing.
-    if (self.note_density_conditioning and
-        not isinstance(args['note_density'], list)):
-      args['note_density'] = [args['note_density']]
-    if (self.pitch_histogram_conditioning and
-        not isinstance(args['pitch_histogram'][0], list)):
-      args['pitch_histogram'] = [args['pitch_histogram']]
-    if (self.optional_conditioning and
-        not isinstance(args['disable_conditioning'], list)):
-      args['disable_conditioning'] = [args['disable_conditioning']]
-
-    # Make sure each pitch class histogram sums to one.
-    if self.pitch_histogram_conditioning:
-      for i in range(len(args['pitch_histogram'])):
-        total = sum(args['pitch_histogram'][i])
-        if total > 0:
-          args['pitch_histogram'][i] = [float(count) / total
-                                        for count in args['pitch_histogram'][i]]
-        else:
-          tf.logging.warning('Pitch histogram is empty, using default.')
-          args['pitch_histogram'][i] = DEFAULT_PITCH_HISTOGRAM
+    # optional and convert to list if necessary.
+    if self.optional_conditioning:
+      if 'disable_conditioning' not in args:
+        args['disable_conditioning'] = [False]
+      elif isinstance(args['disable_conditioning'], bool):
+        args['disable_conditioning'] = [args['disable_conditioning']]
+      else:
+        if not isinstance(args['disable_conditioning'], list) or not all(
+            isinstance(value, bool) for value in args['disable_conditioning']):
+          tf.logging.fatal(
+              'Invalid disable_conditioning value: %s',
+              args['disable_conditioning'])
 
     total_steps = performance.num_steps + (
         generate_end_step - generate_start_step)
 
-    # Set up functions that map generation step to note density, pitch
-    # histogram, and disable conditioning flag.
-    mean_note_density = DEFAULT_NOTE_DENSITY
-    if self.note_density_conditioning:
-      args['note_density_fn'] = partial(
-          _step_to_note_density,
-          num_steps=total_steps,
-          note_densities=args['note_density'])
-      mean_note_density = sum(args['note_density']) / len(args['note_density'])
-      del args['note_density']
-    if self.pitch_histogram_conditioning:
-      args['pitch_histogram_fn'] = partial(
-          _step_to_pitch_histogram,
-          num_steps=total_steps,
-          pitch_histograms=args['pitch_histogram'])
-      del args['pitch_histogram']
+    mean_note_density = (
+        sum(args['notes_per_second']) / len(args['notes_per_second'])
+        if 'notes_per_second' in args else DEFAULT_NOTE_DENSITY)
+
+    # Set up functions that map generation step to control signal values and
+    # disable conditioning flag.
+    if self.control_signals:
+      control_signal_fns = []
+      for control in self.control_signals:
+        control_signal_fns.append(partial(
+            _step_to_value,
+            num_steps=total_steps,
+            values=args[control.name]))
+        del args[control.name]
+      args['control_signal_fns'] = control_signal_fns
     if self.optional_conditioning:
       args['disable_conditioning_fn'] = partial(
-          _step_to_disable_conditioning,
+          _step_to_value,
           num_steps=total_steps,
-          disable_conditioning_flags=args['disable_conditioning'])
+          values=args['disable_conditioning'])
       del args['disable_conditioning']
 
     if not performance:
@@ -269,27 +240,11 @@ class PerformanceRnnSequenceGenerator(mm.BaseSequenceGenerator):
     return generated_sequence
 
 
-def _step_to_index(step, num_steps, num_segments):
-  """Map step in performance to segment index for setting control value."""
-  return min(step * num_segments // num_steps, num_segments - 1)
-
-
-def _step_to_note_density(step, num_steps, note_densities):
-  """Map step in performance to desired control note density."""
-  index = _step_to_index(step, num_steps, len(note_densities))
-  return note_densities[index]
-
-
-def _step_to_pitch_histogram(step, num_steps, pitch_histograms):
-  """Map step in performance to desired pitch class histogram."""
-  index = _step_to_index(step, num_steps, len(pitch_histograms))
-  return pitch_histograms[index]
-
-
-def _step_to_disable_conditioning(step, num_steps, disable_conditioning_flags):
-  """Map step in performance to desired disable conditioning flag."""
-  index = _step_to_index(step, num_steps, len(disable_conditioning_flags))
-  return disable_conditioning_flags[index]
+def _step_to_value(step, num_steps, values):
+  """Map step in performance to desired control signal value."""
+  num_segments = len(values)
+  index = min(step * num_segments // num_steps, num_segments - 1)
+  return values[index]
 
 
 def get_generator_map():
@@ -307,9 +262,7 @@ def get_generator_map():
         performance_model.PerformanceRnnModel(config), config.details,
         steps_per_second=config.steps_per_second,
         num_velocity_bins=config.num_velocity_bins,
-        note_density_conditioning=config.density_bin_ranges is not None,
-        pitch_histogram_conditioning=(
-            config.pitch_histogram_window_size is not None),
+        control_signals=config.control_signals,
         optional_conditioning=config.optional_conditioning,
         fill_generate_section=False,
         **kwargs)
