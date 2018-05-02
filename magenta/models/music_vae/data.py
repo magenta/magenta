@@ -349,7 +349,7 @@ class BaseConverter(object):
         unpadded lengths of the tensor sequences resulting from the input.
     """
     def _convert_and_pad(item_str):
-      item = self.str_to_item_fn(item_str)
+      item = self.str_to_item_fn(item_str)  # pylint:disable=not-callable
       tensors = self.to_tensors(item)
       inputs = _maybe_pad_seqs(tensors.inputs, self.input_dtype)
       outputs = _maybe_pad_seqs(tensors.outputs, self.output_dtype)

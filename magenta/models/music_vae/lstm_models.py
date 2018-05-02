@@ -688,8 +688,8 @@ class MultiOutCategoricalLstmDecoder(CategoricalLstmDecoder):
   def build(self, hparams, output_depth, is_training):
     if sum(self._output_depths) != output_depth:
       raise ValueError(
-          'Decoder output depth does not match sum of sub-decoders: %s vs %d',
-          self._output_depths, output_depth)
+          'Decoder output depth does not match sum of sub-decoders: %s vs %d' %
+          (self._output_depths, output_depth))
     super(MultiOutCategoricalLstmDecoder, self).build(
         hparams, output_depth, is_training)
 
@@ -744,8 +744,8 @@ class SplitMultiOutLstmDecoder(base_model.BaseDecoder):
     if len(core_decoders) != len(output_depths):
       raise ValueError(
           'The number of `core_decoders` and `output_depths` provided to a '
-          'SplitMultiOutLstmDecoder must be equal. Got: %d != %d',
-          len(core_decoders), len(output_depths))
+          'SplitMultiOutLstmDecoder must be equal. Got: %d != %d' %
+          (len(core_decoders), len(output_depths)))
     self._core_decoders = core_decoders
     self._output_depths = output_depths
 
@@ -757,8 +757,8 @@ class SplitMultiOutLstmDecoder(base_model.BaseDecoder):
   def build(self, hparams, output_depth, is_training):
     if sum(self._output_depths) != output_depth:
       raise ValueError(
-          'Decoder output depth does not match sum of sub-decoders: %s vs %d',
-          self._output_depths, output_depth)
+          'Decoder output depth does not match sum of sub-decoders: %s vs %d' %
+          (self._output_depths, output_depth))
     self.hparams = hparams
     self._is_training = is_training
 

@@ -52,7 +52,7 @@ def cudnn_lstm_layer(layer_sizes, dropout_keep_prob, is_training=True,
   for ls in layer_sizes:
     if ls != layer_sizes[0]:
       raise ValueError(
-          'CudnnLSTM does not support layers with differing sizes. Got: %s',
+          'CudnnLSTM does not support layers with differing sizes. Got: %s' %
           layer_sizes)
   lstm = cudnn_rnn.CudnnLSTM(
       num_layers=len(layer_sizes),
