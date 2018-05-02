@@ -36,7 +36,7 @@ py_library(
     srcs_version = "PY2AND3",
     deps = [
         "//magenta",
-        "@mido//:mido",
+        "@mido",
         # tensorflow dep
     ],
 )
@@ -45,10 +45,15 @@ py_test(
     name = "midi_hub_test",
     srcs = ["midi_hub_test.py"],
     srcs_version = "PY2AND3",
+    # TODO(fjord): reenable once test is not flaky
+    tags = [
+        "manual",
+        "notap",
+    ],
     deps = [
         ":midi_hub",
         "//magenta",
-        "@mido//:mido",
+        "@mido",
         # tensorflow dep
     ],
 )
