@@ -8,8 +8,11 @@ import collections
 
 from magenta.common import merge_hparams
 from magenta.models.music_vae import data
+from magenta.models.music_vae import data_hierarchical
 from magenta.models.music_vae import lstm_models
 from magenta.models.music_vae.base_model import MusicVAE
+import magenta.music as mm
+
 from tensorflow.contrib.training import HParams
 
 
@@ -74,6 +77,30 @@ CONFIG_MAP['cat-mel_2bar_big'] = Config(
         max_bars=100,  # Truncate long melodies before slicing.
         slice_bars=2,
         steps_per_quarter=4),
+    train_examples_path=None,
+    eval_examples_path=None,
+)
+
+# Chord-Conditioned Melody
+CONFIG_MAP['cat-mel_2bar_med_chords'] = Config(
+    model=MusicVAE(lstm_models.BidirectionalLstmEncoder(),
+                   lstm_models.CategoricalLstmDecoder()),
+    hparams=merge_hparams(
+        lstm_models.get_default_hparams(),
+        HParams(
+            batch_size=512,
+            max_seq_len=32,  # 2 bars w/ 16 steps per bar
+            z_size=256,
+            enc_rnn_size=[1024],
+            dec_rnn_size=[512, 512, 512],
+        )),
+    note_sequence_augmenter=data.NoteSequenceAugmenter(
+        transpose_range=(-3, 3)),
+    data_converter=data.OneHotMelodyConverter(
+        max_bars=100,
+        slice_bars=2,
+        steps_per_quarter=4,
+        chord_encoding=mm.TriadChordOneHotEncoding()),
     train_examples_path=None,
     eval_examples_path=None,
 )
@@ -277,6 +304,95 @@ CONFIG_MAP['hierdec-mel_16bar'] = Config(
         )),
     note_sequence_augmenter=None,
     data_converter=mel_16bar_converter,
+    train_examples_path=None,
+    eval_examples_path=None,
+)
+
+# Multitrack
+multiperf_encoder = lstm_models.HierarchicalLstmEncoder(
+    lstm_models.BidirectionalLstmEncoder,
+    level_lengths=[64, 8])
+multiperf_decoder = lstm_models.HierarchicalLstmDecoder(
+    lstm_models.CategoricalLstmDecoder(),
+    level_lengths=[8, 64],
+    disable_autoregression=True)
+
+multiperf_hparams_med = merge_hparams(
+    lstm_models.get_default_hparams(),
+    HParams(
+        batch_size=256,
+        max_seq_len=512,
+        z_size=512,
+        enc_rnn_size=[1024],
+        dec_rnn_size=[512, 512, 512]))
+
+multiperf_hparams_big = merge_hparams(
+    lstm_models.get_default_hparams(),
+    HParams(
+        batch_size=256,
+        max_seq_len=512,
+        z_size=512,
+        enc_rnn_size=[2048],
+        dec_rnn_size=[1024, 1024, 1024]))
+
+CONFIG_MAP['hier-multiperf_vel_1bar_med'] = Config(
+    model=MusicVAE(multiperf_encoder, multiperf_decoder),
+    hparams=multiperf_hparams_med,
+    note_sequence_augmenter=data.NoteSequenceAugmenter(
+        transpose_range=(-3, 3)),
+    data_converter=data_hierarchical.MultiInstrumentPerformanceConverter(
+        num_velocity_bins=8,
+        hop_size_bars=1,
+        max_num_instruments=8,
+        max_events_per_instrument=64,
+    ),
+    train_examples_path=None,
+    eval_examples_path=None,
+)
+
+CONFIG_MAP['hier-multiperf_vel_1bar_big'] = Config(
+    model=MusicVAE(multiperf_encoder, multiperf_decoder),
+    hparams=multiperf_hparams_big,
+    note_sequence_augmenter=data.NoteSequenceAugmenter(
+        transpose_range=(-3, 3)),
+    data_converter=data_hierarchical.MultiInstrumentPerformanceConverter(
+        num_velocity_bins=8,
+        hop_size_bars=1,
+        max_num_instruments=8,
+        max_events_per_instrument=64,
+    ),
+    train_examples_path=None,
+    eval_examples_path=None,
+)
+
+CONFIG_MAP['hier-multiperf_vel_1bar_med_chords'] = Config(
+    model=MusicVAE(multiperf_encoder, multiperf_decoder),
+    hparams=multiperf_hparams_med,
+    note_sequence_augmenter=data.NoteSequenceAugmenter(
+        transpose_range=(-3, 3)),
+    data_converter=data_hierarchical.MultiInstrumentPerformanceConverter(
+        num_velocity_bins=8,
+        hop_size_bars=1,
+        max_num_instruments=8,
+        max_events_per_instrument=64,
+        chord_encoding=mm.TriadChordOneHotEncoding(),
+    ),
+    train_examples_path=None,
+    eval_examples_path=None,
+)
+
+CONFIG_MAP['hier-multiperf_vel_1bar_big_chords'] = Config(
+    model=MusicVAE(multiperf_encoder, multiperf_decoder),
+    hparams=multiperf_hparams_big,
+    note_sequence_augmenter=data.NoteSequenceAugmenter(
+        transpose_range=(-3, 3)),
+    data_converter=data_hierarchical.MultiInstrumentPerformanceConverter(
+        num_velocity_bins=8,
+        hop_size_bars=1,
+        max_num_instruments=8,
+        max_events_per_instrument=64,
+        chord_encoding=mm.TriadChordOneHotEncoding(),
+    ),
     train_examples_path=None,
     eval_examples_path=None,
 )

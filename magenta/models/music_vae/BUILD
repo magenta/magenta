@@ -29,6 +29,7 @@ py_library(
         ":base_model",
         ":configs",
         ":data",
+        ":data_hierarchical",
         ":lstm_models",
         ":lstm_utils",
         ":trained_model",
@@ -58,12 +59,33 @@ py_test(
 )
 
 py_library(
+    name = "data_hierarchical",
+    srcs = ["data_hierarchical.py"],
+    deps = [
+        ":data",
+        "//magenta",
+        # numpy dep
+    ],
+)
+
+py_test(
+    name = "data_hierarchical_test",
+    srcs = ["data_hierarchical_test.py"],
+    deps = [
+        ":data_hierarchical",
+        "//magenta",
+        # tensorflow dep
+    ],
+)
+py_library(
     name = "configs",
     srcs = ["configs.py"],
     srcs_version = "PY2AND3",
     deps = [
         ":data",
+        ":data_hierarchical",
         ":lstm_models",
+        "//magenta",
         # tensorflow dep
     ],
 )
