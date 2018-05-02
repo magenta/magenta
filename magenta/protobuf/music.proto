@@ -54,13 +54,17 @@ message NoteSequence {
   // Currently the total time is defined as the end time of the last note in the
   // sequence, and any control changes or rests that occur after the end of the
   // last note are not included in this time.
-  // In the future, this time will be allowed to extend beyond the last note
-  // end time in order to represent padding. Magenta.js already uses this
+  // Note: In the future, this time will be allowed to extend beyond the last
+  // note end time in order to represent padding. Magenta.js already uses this
   // interpretation of the field.
   // TODO(adarob): Update existing code to allow for this new interpretation.
   double total_time = 9;
   // The total time of the sequence in quantized steps.
   // This has the same meaning as the total_time field.
+  // Note: In the future, steps will be allowed to extend beyond the last note
+  // end steps in order to represent padding. Magenta.js already uses this
+  // interpretation of the field.
+  // TODO(adarob): Update existing code to allow for this new interpretation.
   int64 total_quantized_steps = 16;
 
   // MIDI-specific events that are generally relevant for performance, metadata
