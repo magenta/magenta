@@ -16,6 +16,7 @@ from magenta.models.coconet import lib_logging
 from magenta.models.coconet import lib_mask
 from magenta.models.coconet import lib_pianoroll
 from magenta.models.coconet import lib_sampling
+from magenta.models.coconet import lib_tfsampling
 from magenta.models.coconet import lib_util
 
 FLAGS = tf.app.flags.FLAGS
@@ -33,14 +34,19 @@ flags.DEFINE_string("prime_midi_melody_fpath", None,
 flags.DEFINE_string("checkpoint", None, "Path to checkpoint file")
 flags.DEFINE_bool("midi_io", False, "Run in midi in and midi out mode."
                   "Does not write any midi or logs to disk.")
+flags.DEFINE_bool("tfsample", True, "Run sampling in Tensorflow graph.")
 
 
 def main(unused_argv):
   if FLAGS.checkpoint is None or not FLAGS.checkpoint:
     raise ValueError(
         "Need to provide a path to checkpoint directory.")
-  wmodel = instantiate_model(FLAGS.checkpoint)
-  generator = Generator(wmodel, FLAGS.strategy)
+
+  if FLAGS.tfsample:
+    generator = TFGenerator(FLAGS.checkpoint)
+  else:
+    wmodel = instantiate_model(FLAGS.checkpoint)
+    generator = Generator(wmodel, FLAGS.strategy)
   midi_outs = generator.run_generation(
       gen_batch_size=FLAGS.gen_batch_size, piece_length=FLAGS.piece_length)
 
@@ -52,36 +58,40 @@ def main(unused_argv):
                                                FLAGS.piece_length,
                                                generator.time_taken)
   basepath = os.path.join(FLAGS.generation_output_dir, label)
-  print("basepath:", basepath)
+  tf.logging.info("basepath: %s", basepath)
   tf.gfile.MakeDirs(basepath)
-
-  # Stores all the (intermediate) steps.
-  intermediate_steps_path = os.path.join(basepath, "intermediate_steps.npz")
-  with lib_util.timing("writing_out_sample_npz"):
-    print("Writing intermediate steps to", intermediate_steps_path)
-    generator.logger.dump(intermediate_steps_path)
 
   # Saves the results as midi or returns as midi out.
   midi_path = os.path.join(basepath, "midi")
   tf.gfile.MakeDirs(midi_path)
-  print("Made directory %s" % midi_path)
+  tf.logging.info("Made directory %s", midi_path)
   save_midis(midi_outs, midi_path, label)
 
   result_npy_save_path = os.path.join(basepath, "generated_result.npy")
-  print("Writing final result to", result_npy_save_path)
+  tf.logging.info("Writing final result to %s", result_npy_save_path)
   with tf.gfile.Open(result_npy_save_path, "w") as p:
     np.save(p, generator.pianorolls)
 
+  if FLAGS.tfsample:
+    tf.logging.info("Done")
+    return
+
+  # Stores all the (intermediate) steps.
+  intermediate_steps_path = os.path.join(basepath, "intermediate_steps.npz")
+  with lib_util.timing("writing_out_sample_npz"):
+    tf.logging.info("Writing intermediate steps to %s", intermediate_steps_path)
+    generator.logger.dump(intermediate_steps_path)
+
   # Save the prime as midi and npy if in harmonization mode.
   # First, checks the stored npz for the first (context) and last step.
-  print("Reading to check", intermediate_steps_path)
+  tf.logging.info("Reading to check %s", intermediate_steps_path)
   with tf.gfile.Open(intermediate_steps_path, "r") as p:
     foo = np.load(p)
     for key in foo.keys():
       if re.match(r"0_root/.*?_strategy/.*?_context/0_pianorolls", key):
         context_rolls = foo[key]
         context_fpath = os.path.join(basepath, "context.npy")
-        print("Writing context to", context_fpath)
+        tf.logging.info("Writing context to %s", context_fpath)
         with lib_util.atomic_file(context_fpath) as context_p:
           np.save(context_p, context_rolls)
         if "harm" in FLAGS.strategy:
@@ -92,7 +102,7 @@ def main(unused_argv):
           prime_midi_outs = get_midi_from_pianorolls(primes, generator.decoder)
           save_midis(prime_midi_outs, midi_path, label + "_prime")
         break
-  print("Done")
+  tf.logging.info("Done")
 
 
 class Generator(object):
@@ -130,9 +140,9 @@ class Generator(object):
       pianorolls_in: An optional numpy.ndarray encoding the notes to be
           conditioned on as pianorolls.
       gen_batch_size: An integer specifying the number of outputs to generate.
-      piece_length: piece_length: An integer specifying the desired number of
-          time steps to generate for the output, where a time step corresponds
-          to the shortest duration supported by the model.
+      piece_length: An integer specifying the desired number of time steps to
+          generate for the output, where a time step corresponds to the
+          shortest duration supported by the model.
       new_strategy: new_strategy: A string specifying the key of the strategy
           to use. If not set, the most recently set strategy is used. If a
           strategy was never specified, then the default strategy that was
@@ -148,7 +158,7 @@ class Generator(object):
     # Update the length of piece to be generated.
     self.hparams.crop_piece_len = piece_length
     shape = [gen_batch_size] + self.hparams.pianoroll_shape
-    # print("Tentative shape of pianorolls to be generated:", shape)
+    tf.logging.info("Tentative shape of pianorolls to be generated: %r", shape)
 
     # Generates.
     start_time = time.time()
@@ -177,9 +187,93 @@ class Generator(object):
     return self._time_taken
 
 
+class TFGenerator(object):
+  """Instantiates model and generates according to strategy and midi input."""
+
+  def __init__(self, checkpoint_path):
+    """Initializes Generator with a wrapped model and strategy name.
+
+    Args:
+      checkpoint_path: A string that gives the full path to the folder that
+          holds the checkpoint.
+    """
+    self.sampler = lib_tfsampling.CoconetSampleGraph(checkpoint_path)
+    self.hparams = self.sampler.hparams
+    self.endecoder = lib_pianoroll.get_pianoroll_encoder_decoder(self.hparams)
+
+    self._time_taken = None
+    self._pianorolls = None
+
+  def run_generation(self,
+                     midi_in=None,
+                     pianorolls_in=None,
+                     masks=None,
+                     gen_batch_size=3,
+                     piece_length=16,
+                     sample_steps=0,
+                     current_step=0,
+                     total_gibbs_steps=0,
+                     temperature=0.99):
+    """Generates, conditions on midi_in if given, returns midi.
+
+    Args:
+      midi_in: An optional PrettyMIDI instance containing notes to be
+          conditioned on.
+      pianorolls_in: An optional numpy.ndarray encoding the notes to be
+          conditioned on as pianorolls.
+      masks: a 4D numpy array of the same shape as pianorolls, with 1s
+          indicating mask out.  If is None, then the masks will be where have 1s
+          where there are no notes, indicating to the model they should be
+          filled in.
+      gen_batch_size: An integer specifying the number of outputs to generate.
+      piece_length: An integer specifying the desired number of time steps to
+          generate for the output, where a time step corresponds to the
+          shortest duration supported by the model.
+      See the CoconetSampleGraph class in lib_tfsample.py for more detail.
+      sample_steps: an integer indicating the number of steps to sample in this
+          call.  If set to 0, then it defaults to total_gibbs_steps.
+      current_step: an integer indicating how many steps might have already
+          sampled before.
+      total_gibbs_steps: an integer indicating the total number of steps that
+          a complete sampling procedure would take.
+      temperature: a float indicating the temperature for sampling from softmax.
+
+    Returns:
+      A list of PrettyMIDI instances, with length gen_batch_size.
+    """
+    # Update the length of piece to be generated.
+    self.hparams.crop_piece_len = piece_length
+    shape = [gen_batch_size] + self.hparams.pianoroll_shape
+    tf.logging.info("Tentative shape of pianorolls to be generated: r", shape)
+
+    # Generates.
+    if midi_in is not None:
+      pianorolls_in = self.endecoder.encode_midi_to_pianoroll(midi_in, shape)
+    elif pianorolls_in is None:
+      pianorolls_in = np.zeros(shape, dtype=np.float32)
+    results = self.sampler.run(
+        pianorolls_in, masks, sample_steps=sample_steps,
+        current_step=current_step, total_gibbs_steps=total_gibbs_steps,
+        temperature=temperature)
+    self._pianorolls = results["pianorolls"]
+    self._time_taken = results["time_taken"]
+    tf.logging.info("output pianorolls shape: %r", self.pianorolls.shape)
+    midi_outs = get_midi_from_pianorolls(self.pianorolls, self.endecoder)
+    return midi_outs
+
+  @property
+  def pianorolls(self):
+    return self._pianorolls
+
+  @property
+  def time_taken(self):
+    return self._time_taken
+
+
 def get_midi_from_pianorolls(rolls, decoder):
   midi_datas = []
   for pianoroll in rolls:
+    tf.logging.info("pianoroll shape: %r", pianoroll.shape)
     midi_data = decoder.decode_to_midi(pianoroll)
     midi_datas.append(midi_data)
   return midi_datas
@@ -188,16 +282,15 @@ def get_midi_from_pianorolls(rolls, decoder):
 def save_midis(midi_datas, midi_path, label=""):
   for i, midi_data in enumerate(midi_datas):
     midi_fpath = os.path.join(midi_path, "%s_%i.midi" % (label, i))
-    print("Writing midi to", midi_fpath)
+    tf.logging.info("Writing midi to %s", midi_fpath)
     with lib_util.atomic_file(midi_fpath) as p:
       midi_data.write(p)
-    # with tf.gfile.GFile(midi_fpath, 'w') as p:
-    #   midi_data.write(p)
   return midi_fpath
 
 
-def instantiate_model(checkpoint):
-  wmodel = lib_graph.load_checkpoint(checkpoint)
+def instantiate_model(checkpoint, instantiate_sess=True):
+  wmodel = lib_graph.load_checkpoint(
+      checkpoint, instantiate_sess=instantiate_sess)
   return wmodel
 
 
@@ -243,16 +336,17 @@ class HarmonizeMidiMelodyStrategy(BaseStrategy):
     # mroll shape: time, pitch
     # requested_shape: batch, time, pitch, instrument
     bb, tt, pp, ii = requested_shape
-    print("requested_shape", requested_shape)
+    tf.logging.info("requested_shape: %r", requested_shape)
     assert mroll.ndim == 2
     assert mroll.shape[1] == 128
     hparams = self.wmodel.hparams
     assert pp == hparams.num_pitches, "%r != %r" % (pp, hparams.num_pitches)
     if tt != mroll.shape[0]:
-      print("WARNING: requested tt %r != prime tt %r" % (tt, mroll.shape[0]))
+      tf.logging.info("WARNING: requested tt %r != prime tt %r" % (
+          tt, mroll.shape[0]))
     rolls = np.zeros((bb, mroll.shape[0], pp, ii), dtype=np.float32)
     rolls[:, :, :, 0] = mroll[None, :, hparams.min_pitch:hparams.max_pitch + 1]
-    print("resulting shape", rolls.shape)
+    tf.logging.info("resulting shape: %r", rolls.shape)
     return rolls
 
   def run(self, tuple_in):
@@ -463,21 +557,12 @@ class AgibbsStrategy(BaseStrategy):
     return pianorolls
 
 
-class CompletionMasker(lib_mask.MaskoutMethod):
-  key = "completion"
-
-  def __call__(self, pianorolls, outer_masks=1.):
-    masks = (pianorolls == 0).all(axis=2, keepdims=True)
-    inner_mask = masks + 0 * pianorolls  # broadcast explicitly
-    return inner_mask * outer_masks
-
-
 class CompleteManualStrategy(BaseStrategy):
   key = "complete_manual"
 
   def run(self, pianorolls):
     # fill in the silences
-    masks = CompletionMasker()(pianorolls)
+    masks = lib_sampling.CompletionMasker()(pianorolls)
     gibbs = self.make_sampler(
         "gibbs",
         masker=lib_sampling.BernoulliMasker(),
@@ -504,7 +589,7 @@ class CompleteMidiStrategy(BaseStrategy):
     shape, midi_in = tuple_in
     pianorolls = self.decoder.encode_midi_to_pianoroll(midi_in, shape)
     # fill in the silences
-    masks = CompletionMasker()(pianorolls)
+    masks = lib_sampling.CompletionMasker()(pianorolls)
     gibbs = self.make_sampler(
         "gibbs",
         masker=lib_sampling.BernoulliMasker(),

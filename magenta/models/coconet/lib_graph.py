@@ -13,28 +13,60 @@ from magenta.models.coconet import lib_tfutil
 class CoconetGraph(object):
   """Model for predicting autofills given context."""
 
-  def __init__(self, is_training, hparams, placeholders):
+  def __init__(self,
+               is_training,
+               hparams,
+               placeholders=None,
+               direct_inputs=None,
+               use_placeholders=True):
     self.hparams = hparams
     self.batch_size = hparams.batch_size
     self.num_pitches = hparams.num_pitches
     self.num_instruments = hparams.num_instruments
     self.is_training = is_training
     self.placeholders = placeholders
+    self._direct_inputs = direct_inputs
+    self._use_placeholders = use_placeholders
     self.hiddens = []
     self.popstats_by_batchstat = OrderedDict()
     self.build()
 
   @property
+  def use_placeholders(self):
+    return self._use_placeholders
+
+  @use_placeholders.setter
+  def use_placeholders(self, use_placeholders):
+    self._use_placeholders = use_placeholders
+
+  @property
+  def inputs(self):
+    if self.use_placeholders:
+      return self.placeholders
+    else:
+      return self.direct_inputs
+
+  @property
+  def direct_inputs(self):
+    return self._direct_inputs
+
+  @direct_inputs.setter
+  def direct_inputs(self, direct_inputs):
+    if set(direct_inputs.keys()) != set(self.placeholders.keys()):
+      raise AttributeError('Need to have pianorolls, masks, lengths.')
+    self._direct_inputs = direct_inputs
+
+  @property
   def pianorolls(self):
-    return self.placeholders['pianorolls']
+    return self.inputs['pianorolls']
 
   @property
   def masks(self):
-    return self.placeholders['masks']
+    return self.inputs['masks']
 
   @property
   def lengths(self):
-    return self.placeholders['lengths']
+    return self.inputs['lengths']
 
   def build(self):
     """Builds the graph."""
@@ -66,29 +98,30 @@ class CoconetGraph(object):
 
   def get_convnet_input(self):
     """Returns concatenates masked out pianorolls with their masks."""
-    pianorolls, masks = self.placeholders['pianorolls'], self.placeholders[
-        'masks']
-    pianorolls *= 1 - masks
+    # pianorolls, masks = self.inputs['pianorolls'], self.inputs[
+    #     'masks']
+    pianorolls, masks = self.pianorolls, self.masks
+    pianorolls *= 1. - masks
     if self.hparams.mask_indicates_context:
       # flip meaning of mask for convnet purposes: after flipping, mask is hot
       # where values are known. this makes more sense in light of padding done
       # by convolution operations: the padded area will have zero mask,
       # indicating no information to rely on.
-      masks = 1 - masks
+      masks = 1. - masks
     return tf.concat([pianorolls, masks], axis=3)
 
   def setup_optimizer(self):
     """Instantiates learning rate, decay op and train_op among others."""
+    # If not training, don't need to add optimizer to the graph.
+    if not self.is_training:
+      self.train_op = tf.no_op
+      return
+
     self.learning_rate = tf.Variable(
         self.hparams.learning_rate,
         name='learning_rate',
         trainable=False,
         dtype=tf.float32)
-
-    # If not training, don't need to add optimizer to the graph.
-    if not self.is_training:
-      self.train_op = tf.no_op
-      return
 
     # FIXME 0.5 -> hparams.decay_rate
     self.decay_op = tf.assign(self.learning_rate, 0.5 * self.learning_rate)
@@ -124,7 +157,7 @@ class CoconetGraph(object):
 
     # construct mask and its complement, respecting pad mask
     mask = pad_mask * self.masks
-    unmask = pad_mask * (1 - self.masks)
+    unmask = pad_mask * (1. - self.masks)
 
     # Compute numbers of variables
     # #timesteps * #variables per timestep
@@ -301,23 +334,34 @@ def get_placeholders(hparams):
       lengths=tf.placeholder(tf.float32, [None]))
 
 
-def build_graph(is_training, hparams, placeholders=None):
-  if placeholders is None:
+def build_graph(is_training,
+                hparams,
+                placeholders=None,
+                direct_inputs=None,
+                use_placeholders=True):
+  """Builds the model graph."""
+  if placeholders is None and use_placeholders:
     placeholders = get_placeholders(hparams)
   initializer = tf.random_uniform_initializer(-hparams.init_scale,
                                               hparams.init_scale)
   with tf.variable_scope('model', reuse=None, initializer=initializer):
     graph = CoconetGraph(
-        is_training=is_training, hparams=hparams, placeholders=placeholders)
+        is_training=is_training,
+        hparams=hparams,
+        placeholders=placeholders,
+        direct_inputs=direct_inputs,
+        use_placeholders=use_placeholders)
   return graph
 
 
-def load_checkpoint(path):
+def load_checkpoint(path, instantiate_sess=True):
   """Builds graph, loads checkpoint, and returns wrapped model."""
-  print('Loading checkpoint from', path)
+  tf.logging.info('Loading checkpoint from %s', path)
   hparams = lib_hparams.load_hparams(path)
   model = build_graph(is_training=False, hparams=hparams)
   wmodel = lib_tfutil.WrappedModel(model, model.loss.graph, hparams)
+  if not instantiate_sess:
+    return wmodel
   with wmodel.graph.as_default():
     wmodel.sess = tf.Session()
     saver = tf.train.Saver()

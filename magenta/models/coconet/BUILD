@@ -40,7 +40,6 @@ py_library(
     deps = [
         ":lib_util",
         # numpy dep
-        # tensorflow dep
     ],
 )
 
@@ -82,7 +81,6 @@ py_library(
     deps = [
         ":lib_hparams",
         ":lib_tfutil",
-        ":lib_util",
         # tensorflow dep
     ],
 )
@@ -103,6 +101,7 @@ py_library(
     srcs = ["lib_logging.py"],
     srcs_version = "PY2AND3",
     deps = [
+        ":lib_util",
         # numpy dep
     ],
 )
@@ -126,12 +125,10 @@ py_library(
     srcs = ["lib_evaluation.py"],
     srcs_version = "PY2AND3",
     deps = [
-        ":lib_mask",
         ":lib_tfutil",
         ":lib_util",
         # numpy dep
         # scipy dep
-        # tensorflow dep
     ],
 )
 
@@ -165,7 +162,6 @@ py_binary(
         ":lib_util",
         # numpy dep
         # tensorflow dep
-        # yaml dep
     ],
 )
 
@@ -194,15 +190,33 @@ py_binary(
         # internal notebook binary
     ],
     deps = [
-        ":lib_data",
         ":lib_graph",
         ":lib_logging",
         ":lib_mask",
         ":lib_pianoroll",
         ":lib_sampling",
+        ":lib_tfsampling",
         ":lib_util",
         # numpy dep
         "@pretty_midi//:pretty_midi",
+        # tensorflow dep
+    ],
+)
+
+py_binary(
+    name = "lib_tfsampling",
+    srcs = ["lib_tfsampling.py"],
+    srcs_version = "PY2AND3",
+    visibility = [
+        # internal notebook binary
+    ],
+    deps = [
+        ":lib_graph",
+        ":lib_hparams",
+        ":lib_pianoroll",
+        ":lib_sampling",
+        ":lib_util",
+        # numpy dep
         # tensorflow dep
     ],
 )
