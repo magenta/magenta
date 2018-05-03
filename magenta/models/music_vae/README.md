@@ -70,11 +70,11 @@ and learning rate by setting the flag as follows:
 
 These models are particularly sensitive to the `free_bits` and `max_beta`
 hparams. Decreasing the effect of the KL loss (by increasing `free_bits` or
-decreasing `max_beta`) results in a model with better reconstructions, but
-potentially worse samples. Increasing the effect of the KL loss typically
-results in the opposite. The default config settings of these harams are an 
-attempt to reach a a balance between good sampling and reconstruction but are
-dataset-dependent and will likely need to be adjusted.
+decreasing `max_beta`) results in a model that produces better reconstructions,
+but with potentially worse random samples. Increasing the effect of the KL loss
+typically results in the opposite. The default config settings of these hparams
+are an attempt to reach a balance between good sampling and reconstruction,
+but the best settings are dataset-dependent and will likely need to be adjusted.
 
 Finally, you should also launch an evaluation job (using `--mode=eval` with a
 heldout dataset) in order to compute metrics such as accuracy and to avoid
