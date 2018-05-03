@@ -25,6 +25,7 @@ from magenta.music import performance_encoder_decoder
 from magenta.music import performance_lib
 from magenta.music.performance_encoder_decoder import ModuloPerformanceEventSequenceEncoderDecoder
 from magenta.music.performance_encoder_decoder import PerformanceModuloEncoding
+from magenta.music.performance_encoder_decoder import PerformanceOneHotEncoding
 from magenta.music.performance_lib import PerformanceEvent
 
 
@@ -115,9 +116,6 @@ class PerformanceModuloEncodingTest(tf.test.TestCase):
                                   (performance_lib.MAX_MIDI_PITCH -
                                    performance_lib.MIN_MIDI_PITCH + 1) * 2)
 
-  def testNumClasses(self):
-    self.assertEqual(self._expected_num_classes, self.enc.num_classes)
-
   def testInputSize(self):
     self.assertEquals(self._expected_input_size, self.enc.input_size)
 
@@ -141,58 +139,6 @@ class PerformanceModuloEncodingTest(tf.test.TestCase):
       actual_embedding = self.enc.embed_note(note)
       self.assertEqual(actual_embedding[0], expected_embedding[0])
       self.assertEqual(actual_embedding[1], expected_embedding[1])
-
-  def testEncodeDecode(self):
-    expected_pairs = [
-        (PerformanceEvent(
-            event_type=PerformanceEvent.NOTE_ON, event_value=60), 60),
-        (PerformanceEvent(
-            event_type=PerformanceEvent.NOTE_ON, event_value=0), 0),
-        (PerformanceEvent(
-            event_type=PerformanceEvent.NOTE_ON, event_value=127), 127),
-        (PerformanceEvent(
-            event_type=PerformanceEvent.NOTE_OFF, event_value=72), 200),
-        (PerformanceEvent(
-            event_type=PerformanceEvent.NOTE_OFF, event_value=0), 128),
-        (PerformanceEvent(
-            event_type=PerformanceEvent.NOTE_OFF, event_value=127), 255),
-        (PerformanceEvent(
-            event_type=PerformanceEvent.TIME_SHIFT, event_value=10), 265),
-        (PerformanceEvent(
-            event_type=PerformanceEvent.TIME_SHIFT, event_value=1), 256),
-        (PerformanceEvent(
-            event_type=PerformanceEvent.TIME_SHIFT, event_value=100), 355),
-        (PerformanceEvent(
-            event_type=PerformanceEvent.VELOCITY, event_value=5), 360),
-        (PerformanceEvent(
-            event_type=PerformanceEvent.VELOCITY, event_value=1), 356),
-        (PerformanceEvent(
-            event_type=PerformanceEvent.VELOCITY, event_value=16), 371)
-    ]
-
-    for expected_event, expected_index in expected_pairs:
-      index = self.enc.encode_event(expected_event)
-      self.assertEqual(expected_index, index)
-      event = self.enc.decode_event(expected_index)
-      self.assertEqual(expected_event, event)
-
-  def testEventToNumSteps(self):
-    self.assertEqual(0, self.enc.event_to_num_steps(
-        PerformanceEvent(event_type=PerformanceEvent.NOTE_ON, event_value=60)))
-    self.assertEqual(0, self.enc.event_to_num_steps(
-        PerformanceEvent(event_type=PerformanceEvent.NOTE_OFF, event_value=67)))
-    self.assertEqual(0, self.enc.event_to_num_steps(
-        PerformanceEvent(event_type=PerformanceEvent.VELOCITY, event_value=10)))
-
-    self.assertEqual(1, self.enc.event_to_num_steps(
-        PerformanceEvent(
-            event_type=PerformanceEvent.TIME_SHIFT, event_value=1)))
-    self.assertEqual(45, self.enc.event_to_num_steps(
-        PerformanceEvent(
-            event_type=PerformanceEvent.TIME_SHIFT, event_value=45)))
-    self.assertEqual(100, self.enc.event_to_num_steps(
-        PerformanceEvent(
-            event_type=PerformanceEvent.TIME_SHIFT, event_value=100)))
 
   def testEncodeModuloEvent(self):
     num_note_bins = (performance_lib.MAX_MIDI_PITCH -
@@ -242,12 +188,12 @@ class ModuloPerformanceEventSequenceEncoderTest(tf.test.TestCase):
   """Test class for ModuloPerformanceEventSequenceEncoder.
 
   ModuloPerformanceEventSequenceEncoderDecoder is tightly coupled with the
-  PerformanceModuloEncoding class. As a result, in the test set up, the test
-  object is initialized with a PerformanceModuloEncoding object, and tested
-  accordingly. Since this class mainly modifies the input encoding of events
-  and otherwise acts very similarly to the OneHotEventSequenceEncoderDecoder,
-  the events_to_labels(), and class_index_to_event() methods of the class are
-  not tested.
+  PerformanceModuloEncoding, and PerformanceOneHotEncoding classes. As a result,
+  in the test set up, the test object is initialized with one of each objects
+  and tested accordingly. Since this class mainly modifies the input encoding
+  of events, and otherwise its treatment of labels is very similar to the
+  OneHotEventSequenceEncoderDecoder, the events_to_labels(), and
+  class_index_to_event() methods of the class are not tested.
   """
 
   def setUp(self):
@@ -255,6 +201,9 @@ class ModuloPerformanceEventSequenceEncoderTest(tf.test.TestCase):
     self._max_shift_steps = 32
     self.enc = ModuloPerformanceEventSequenceEncoderDecoder(
         PerformanceModuloEncoding(
+            num_velocity_bins=self._num_velocity_bins,
+            max_shift_steps=self._max_shift_steps),
+        PerformanceOneHotEncoding(
             num_velocity_bins=self._num_velocity_bins,
             max_shift_steps=self._max_shift_steps))
 
