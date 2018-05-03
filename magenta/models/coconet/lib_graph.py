@@ -240,10 +240,12 @@ class CoconetGraph(object):
     # Instantiate or retrieve filter weights.
     fanin = tf.to_float(tf.reduce_prod(filter_shape[:-1]))
     stddev = tf.sqrt(tf.div(2.0, fanin))
+    initializer = tf.random_normal_initializer(
+        0.0, stddev)
     weights = tf.get_variable(
         'weights',
         filter_shape,
-        initializer=tf.random_normal_initializer(0.0, stddev))
+        initializer=initializer if self.is_training else None)
     stride = layer.get('conv_stride', 1)
     conv = tf.nn.conv2d(
         x,
@@ -286,10 +288,10 @@ class CoconetGraph(object):
             tf.GraphKeys.MODEL_VARIABLES, tf.GraphKeys.GLOBAL_VARIABLES
         ],
         initializer=tf.constant_initializer(1.0))
-    batchmean, batchvariance = tf.nn.moments(x, [0, 1, 2], keep_dims=True)
 
     decay = 0.01
     if self.is_training:
+      batchmean, batchvariance = tf.nn.moments(x, [0, 1, 2], keep_dims=True)
       mean, variance = batchmean, batchvariance
       updates = [
           popmean.assign_sub(decay * (popmean - mean)),
@@ -298,12 +300,10 @@ class CoconetGraph(object):
       # make update happen when mean/variance are used
       with tf.control_dependencies(updates):
         mean, variance = tf.identity(mean), tf.identity(variance)
+      self.popstats_by_batchstat[batchmean] = popmean
+      self.popstats_by_batchstat[batchvariance] = popvariance
     else:
       mean, variance = popmean, popvariance
-      mean, variance = batchmean, batchvariance
-
-    self.popstats_by_batchstat[batchmean] = popmean
-    self.popstats_by_batchstat[batchvariance] = popvariance
 
     return tf.nn.batch_normalization(x, mean, variance, betas, gammas,
                                      self.hparams.batch_norm_variance_epsilon)
