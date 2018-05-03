@@ -46,6 +46,11 @@ CONFIG_MAP['cat-mel_2bar_small'] = Config(
             z_size=256,
             enc_rnn_size=[512],
             dec_rnn_size=[256, 256],
+            free_bits=0,
+            max_beta=0.2,
+            beta_rate=0.99999,
+            sampling_schedule='inverse_sigmoid',
+            sampling_rate=1000,
         )),
     note_sequence_augmenter=data.NoteSequenceAugmenter(transpose_range=(-5, 5)),
     data_converter=data.OneHotMelodyConverter(
@@ -69,6 +74,11 @@ CONFIG_MAP['cat-mel_2bar_big'] = Config(
             z_size=512,
             enc_rnn_size=[2048],
             dec_rnn_size=[2048, 2048, 2048],
+            free_bits=0,
+            max_beta=0.5,
+            beta_rate=0.99999,
+            sampling_schedule='inverse_sigmoid',
+            sampling_rate=1000,
         )),
     note_sequence_augmenter=data.NoteSequenceAugmenter(transpose_range=(-5, 5)),
     data_converter=data.OneHotMelodyConverter(
@@ -117,6 +127,10 @@ CONFIG_MAP['cat-drums_2bar_small'] = Config(
             z_size=256,
             enc_rnn_size=[512],
             dec_rnn_size=[256, 256],
+            free_bits=48,
+            max_beta=0.2,
+            sampling_schedule='inverse_sigmoid',
+            sampling_rate=1000,
         )),
     note_sequence_augmenter=None,
     data_converter=data.DrumsConverter(
@@ -139,6 +153,10 @@ CONFIG_MAP['cat-drums_2bar_big'] = Config(
             z_size=512,
             enc_rnn_size=[2048],
             dec_rnn_size=[2048, 2048, 2048],
+            free_bits=48,
+            max_beta=0.2,
+            sampling_schedule='inverse_sigmoid',
+            sampling_rate=1000,
         )),
     note_sequence_augmenter=None,
     data_converter=data.DrumsConverter(
@@ -162,6 +180,10 @@ CONFIG_MAP['nade-drums_2bar_reduced'] = Config(
             enc_rnn_size=[1024],
             dec_rnn_size=[512, 512],
             nade_num_hidden=128,
+            free_bits=48,
+            max_beta=0.2,
+            sampling_schedule='inverse_sigmoid',
+            sampling_rate=1000,
         )),
     note_sequence_augmenter=None,
     data_converter=data.DrumsConverter(
@@ -186,6 +208,10 @@ CONFIG_MAP['nade-drums_2bar_full'] = Config(
             enc_rnn_size=[1024],
             dec_rnn_size=[512, 512],
             nade_num_hidden=128,
+            free_bits=48,
+            max_beta=0.2,
+            sampling_schedule='inverse_sigmoid',
+            sampling_rate=1000,
         )),
     note_sequence_augmenter=None,
     data_converter=data.DrumsConverter(
@@ -253,6 +279,42 @@ CONFIG_MAP['hierdec-trio_16bar'] = Config(
             z_size=512,
             enc_rnn_size=[2048, 2048],
             dec_rnn_size=[1024, 1024],
+            free_bits=256,
+            max_beta=0.2,
+        )),
+    note_sequence_augmenter=None,
+    data_converter=trio_16bar_converter,
+    train_examples_path=None,
+    eval_examples_path=None,
+)
+
+CONFIG_MAP['hier-trio_16bar'] = Config(
+    model=MusicVAE(
+        lstm_models.HierarchicalLstmEncoder(
+            lstm_models.BidirectionalLstmEncoder, [16, 16]),
+        lstm_models.HierarchicalLstmDecoder(
+            lstm_models.SplitMultiOutLstmDecoder(
+                core_decoders=[
+                    lstm_models.CategoricalLstmDecoder(),
+                    lstm_models.CategoricalLstmDecoder(),
+                    lstm_models.CategoricalLstmDecoder()],
+                output_depths=[
+                    90,  # melody
+                    90,  # bass
+                    512,  # drums
+                ]),
+            level_lengths=[16, 16],
+            disable_autoregression=True)),
+    hparams=merge_hparams(
+        lstm_models.get_default_hparams(),
+        HParams(
+            batch_size=256,
+            max_seq_len=256,
+            z_size=512,
+            enc_rnn_size=[1024],
+            dec_rnn_size=[1024, 1024],
+            free_bits=256,
+            max_beta=0.2,
         )),
     note_sequence_augmenter=None,
     data_converter=trio_16bar_converter,
@@ -279,6 +341,8 @@ CONFIG_MAP['flat-mel_16bar'] = Config(
             z_size=512,
             enc_rnn_size=[2048, 2048],
             dec_rnn_size=[2048, 2048, 2048],
+            free_bits=256,
+            max_beta=0.2,
         )),
     note_sequence_augmenter=None,
     data_converter=mel_16bar_converter,
@@ -301,6 +365,33 @@ CONFIG_MAP['hierdec-mel_16bar'] = Config(
             z_size=512,
             enc_rnn_size=[2048, 2048],
             dec_rnn_size=[1024, 1024],
+            free_bits=256,
+            max_beta=0.2,
+        )),
+    note_sequence_augmenter=None,
+    data_converter=mel_16bar_converter,
+    train_examples_path=None,
+    eval_examples_path=None,
+)
+
+CONFIG_MAP['hier-mel_16bar'] = Config(
+    model=MusicVAE(
+        lstm_models.HierarchicalLstmEncoder(
+            lstm_models.BidirectionalLstmEncoder, [16, 16]),
+        lstm_models.HierarchicalLstmDecoder(
+            lstm_models.CategoricalLstmDecoder(),
+            level_lengths=[16, 16],
+            disable_autoregression=True)),
+    hparams=merge_hparams(
+        lstm_models.get_default_hparams(),
+        HParams(
+            batch_size=512,
+            max_seq_len=256,
+            z_size=512,
+            enc_rnn_size=[1024],
+            dec_rnn_size=[1024, 1024],
+            free_bits=256,
+            max_beta=0.2,
         )),
     note_sequence_augmenter=None,
     data_converter=mel_16bar_converter,
