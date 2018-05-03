@@ -15,6 +15,8 @@ about Magenta, check out our [blog](https://magenta.tensorflow.org),
 where we post technical details.  You can also join our [discussion
 group](https://groups.google.com/a/tensorflow.org/forum/#!forum/magenta-discuss).
 
+This is the home for our Python TensorFlow library. To use our models in the browser with [TensorFlow.js](https://js.tensorflow.org/), head to the [Magenta.js](https://github.com/magenta-js) repository.
+
 ## Getting Started
 
 * [Installation](#installation)
