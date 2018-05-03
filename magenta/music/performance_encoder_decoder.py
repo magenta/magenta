@@ -263,14 +263,23 @@ class ModuloPerformanceEventSequenceEncoderDecoder(EventSequenceEncoderDecoder):
   OneHotEventSequenceEncoderDecoder is events_to_inputs().
   """
 
-  def __init__(self, modulo_encoding):
+  def __init__(self, modulo_encoding, one_hot_encoding):
     """Initialize a ModuloPerformanceEventSequenceEncoderDecoder object.
 
     Args:
-      modulo_encoding: A ModuloEncoding object that transforms events to and
-          from integer indices using modulo encoding.
+      modulo_encoding: A ModuloEncoding object that encodes input events using
+          modulo encoding.
+      one_hot_encoding: A OneHotEncoding object that encodes and decodes event
+          labels using one-hot encoding.
     """
+
+    # TODO(vidavakil): ideally, we would want to make sure that the two encoders
+    # have compatible event_ranges, since at generation time we would be feeding
+    # the output of the model back to its input. However, to do that we would
+    # need access to private variables of the two objects (e.g., their
+    # _event_ranges).
     self._modulo_encoding = modulo_encoding
+    self._one_hot_encoding = one_hot_encoding
 
   @property
   def input_size(self):
@@ -278,12 +287,12 @@ class ModuloPerformanceEventSequenceEncoderDecoder(EventSequenceEncoderDecoder):
 
   @property
   def num_classes(self):
-    return self._modulo_encoding.num_classes
+    return self._one_hot_encoding.num_classes
 
   @property
   def default_event_label(self):
-    return self._modulo_encoding.encode_event(
-        self._modulo_encoding.default_event)
+    return self._one_hot_encoding.encode_event(
+        self._one_hot_encoding.default_event)
 
   def events_to_input(self, events, position):
     """Returns the input vector for the given position in the event sequence.
@@ -309,13 +318,13 @@ class ModuloPerformanceEventSequenceEncoderDecoder(EventSequenceEncoderDecoder):
     if (event_type == performance_lib.PerformanceEvent.NOTE_ON or
         event_type == performance_lib.PerformanceEvent.NOTE_OFF):
 
-      # Encode the octave of the note.
-      angle = (float(value) * math.pi) / 72.0  # 12 octaves, 144 notes
+      # Encode the note on a circle.
+      angle = (float(value) * math.pi) / 72.0  # 12 octaves, up to 144 notes
       input_[offset] = math.cos(angle)
       input_[offset + 1] = math.sin(angle)
       offset += 2
 
-      # Encode the note itself, using the encoder's lookup table.
+      # Encode the note's pitch class, using the encoder's lookup table.
       value %= 12
       cosine = self._modulo_encoding.embed_note(value)[0]
       sine = self._modulo_encoding.embed_note(value)[1]
@@ -342,7 +351,7 @@ class ModuloPerformanceEventSequenceEncoderDecoder(EventSequenceEncoderDecoder):
     Returns:
       A label, an integer.
     """
-    return self._modulo_encoding.encode_event(events[position])
+    return self._one_hot_encoding.encode_event(events[position])
 
   def class_index_to_event(self, class_index, events):
     """Returns the event for the given class index.
@@ -357,7 +366,7 @@ class ModuloPerformanceEventSequenceEncoderDecoder(EventSequenceEncoderDecoder):
     Returns:
       An event value.
     """
-    return self._modulo_encoding.decode_event(class_index)
+    return self._one_hot_encoding.decode_event(class_index)
 
   def event_to_num_steps(self, unused_event):
     """Returns the number of time steps corresponding to an event value.
