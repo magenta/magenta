@@ -241,7 +241,9 @@ default_configs = {
             description='Performance RNN with dynamics and modulo encoding'),
         magenta.music.ModuloPerformanceEventSequenceEncoderDecoder(
             magenta.music.PerformanceModuloEncoding(
-                num_velocity_bins=32)),
+                num_velocity_bins=32),
+            magenta.music.PerformanceOneHotEncoding(
+                num_velocity_bins=32)),  # Use the same params for both encoders
         tf.contrib.training.HParams(
             batch_size=64,
             rnn_layer_sizes=[512, 512, 512],
@@ -249,7 +251,7 @@ default_configs = {
             clip_norm=3,
             learning_rate=0.001),
         num_velocity_bins=32),
-
+        
     'density_conditioned_performance_with_dynamics': PerformanceRnnConfig(
         magenta.protobuf.generator_pb2.GeneratorDetails(
             id='density_conditioned_performance_with_dynamics',
