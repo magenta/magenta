@@ -251,7 +251,7 @@ default_configs = {
             clip_norm=3,
             learning_rate=0.001),
         num_velocity_bins=32),
-        
+
     'density_conditioned_performance_with_dynamics': PerformanceRnnConfig(
         magenta.protobuf.generator_pb2.GeneratorDetails(
             id='density_conditioned_performance_with_dynamics',
