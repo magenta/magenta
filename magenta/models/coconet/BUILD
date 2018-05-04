@@ -20,10 +20,10 @@ licenses(["notice"])  # Apache 2.0
 py_library(
     name = "lib_data",
     srcs = ["lib_data.py"],
-    srcs_version = "PY2AND3",
     data = [
         "testdata/TestData.npz",
     ],
+    srcs_version = "PY2AND3",
     deps = [
         ":lib_mask",
         ":lib_pianoroll",
@@ -69,7 +69,7 @@ py_library(
     srcs_version = "PY2AND3",
     deps = [
         # numpy dep
-        "@pretty_midi//:pretty_midi",
+        "@pretty_midi",
         # tensorflow dep
     ],
 )
@@ -133,16 +133,16 @@ py_library(
 )
 
 py_binary(
-  name = "export_saved_model",
-  srcs = ["export_saved_model.py"],
-  srcs_version = "PY2AND3",
-  visibility = [
-      # internal notebook binary
-  ],
-  deps = [
-      ":lib_graph",
-      # tensorflow dep
-  ],
+    name = "export_saved_model",
+    srcs = ["export_saved_model.py"],
+    srcs_version = "PY2AND3",
+    visibility = [
+        # internal notebook binary
+    ],
+    deps = [
+        ":lib_graph",
+        # tensorflow dep
+    ],
 )
 
 py_binary(
@@ -154,6 +154,7 @@ py_binary(
     srcs_version = "PY2AND3",
     visibility = [
         # internal notebook binary
+        # internal models
     ],
     deps = [
         ":lib_data",
@@ -198,7 +199,7 @@ py_binary(
         ":lib_tfsampling",
         ":lib_util",
         # numpy dep
-        "@pretty_midi//:pretty_midi",
+        "@pretty_midi",
         # tensorflow dep
     ],
 )
