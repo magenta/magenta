@@ -31,7 +31,7 @@ def evaluate(evaluator, pianorolls):
   unit_losses = []
 
   for pi, pianoroll in enumerate(pianorolls):
-    print("evaluating piece %d" % pi)
+    tf.logging.info("evaluating piece %d", pi)
     start_time = time.time()
 
     unit_loss = -evaluator(pianoroll)
@@ -57,7 +57,7 @@ def evaluate(evaluator, pianorolls):
 
 
 def _report(losses, prefix=""):
-  print("%s loss %s" % (prefix, _statstr(_flatcat(losses))))
+  tf.logging.info("%s loss %s", prefix, _statstr(_flatcat(losses)))
 
 
 def _stats(x):
