@@ -140,15 +140,15 @@ def print_statistics(pianorolls):
   """Prints statistics of given pianorolls, such as max and unique length."""
   if isinstance(pianorolls, np.ndarray):
     tf.logging.info(pianorolls.shape)
-  tf.logging.info('# of total pieces in set:', len(pianorolls))
+  tf.logging.info('# of total pieces in set: %d', len(pianorolls))
   lengths = [len(roll) for roll in pianorolls]
   if len(np.unique(lengths)) > 1:
-    tf.logging.info('lengths', np.sort(lengths))
-  tf.logging.info('max_len', max(lengths))
+    tf.logging.info('lengths %s', np.sort(lengths))
+  tf.logging.info('max_len %d', max(lengths))
   tf.logging.info(
-      'unique lengths',
+      'unique lengths %s',
       np.unique(sorted(pianoroll.shape[0] for pianoroll in pianorolls)))
-  tf.logging.info('shape', pianorolls[0].shape)
+  tf.logging.info('shape %s', pianorolls[0].shape)
 
 
 if __name__ == '__main__':
