@@ -173,6 +173,10 @@ py_binary(
         "samples/generated_result.npy",
     ],
     srcs_version = "PY2AND3",
+    visibility = [
+        # internal notebook binary
+        # internal models
+    ],
     deps = [
         ":lib_data",
         ":lib_evaluation",

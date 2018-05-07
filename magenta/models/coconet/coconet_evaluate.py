@@ -32,16 +32,34 @@ flags.DEFINE_string('checkpoint', None, 'Path to checkpoint directory.')
 flags.DEFINE_string('sample_npy_path', None, 'Path to samples to be evaluated.')
 
 
+EVAL_SUBDIR = 'eval_stats'
+
+
 def main(unused_argv):
-  if FLAGS.checkpoint is None or not FLAGS.checkpoint:
-    raise ValueError(
-        'Need to provide a path to checkpoint directory.')
-  wmodel = lib_graph.load_checkpoint(FLAGS.checkpoint)
+  checkpoint_dir = FLAGS.checkpoint
+  if not checkpoint_dir:
+    # If a checkpoint directory is not specified, see if there is only one
+    # subdir in this folder and use that.
+    possible_checkpoint_dirs = tf.gfile.ListDirectory(FLAGS.eval_logdir)
+    possible_checkpoint_dirs = [
+        i for i in possible_checkpoint_dirs if
+        tf.gfile.IsDirectory(os.path.join(FLAGS.eval_logdir, i))]
+    if EVAL_SUBDIR in possible_checkpoint_dirs:
+      possible_checkpoint_dirs.remove(EVAL_SUBDIR)
+    if len(possible_checkpoint_dirs) == 1:
+      checkpoint_dir = os.path.join(
+          FLAGS.eval_logdir, possible_checkpoint_dirs[0])
+      tf.logging.info('Using checkpoint dir: %s', checkpoint_dir)
+    else:
+      raise ValueError(
+          'Need to provide a path to checkpoint directory or use an '
+          'eval_logdir with only 1 checkpoint subdirectory.')
+  wmodel = lib_graph.load_checkpoint(checkpoint_dir)
   if FLAGS.eval_logdir is None:
     raise ValueError(
         'Set flag eval_logdir to specify a path for saving eval statistics.')
   else:
-    eval_logdir = os.path.join(FLAGS.eval_logdir, 'eval_stats')
+    eval_logdir = os.path.join(FLAGS.eval_logdir, EVAL_SUBDIR)
     tf.gfile.MakeDirs(eval_logdir)
 
   evaluator = lib_evaluation.BaseEvaluator.make(
@@ -53,20 +71,21 @@ def main(unused_argv):
         'Either --fold must be specified, or paths of npy files to load must '
         'be given, but not both.')
   if FLAGS.fold is not None:
-    evaluate_fold(FLAGS.fold, evaluator, wmodel.hparams, eval_logdir)
+    evaluate_fold(
+        FLAGS.fold, evaluator, wmodel.hparams, eval_logdir, checkpoint_dir)
   if FLAGS.sample_npy_path is not None:
     evaluate_paths([FLAGS.sample_npy_path], evaluator, wmodel.hparams,
                    eval_logdir)
   print('Done')
 
 
-def evaluate_fold(fold, evaluator, hparams, eval_logdir):
+def evaluate_fold(fold, evaluator, hparams, eval_logdir, checkpoint_dir):
   """Writes to file the neg. loglikelihood of given fold (train/valid/test)."""
   eval_run_name = 'eval_%s_%s%s_%s_ensemble%s_chrono%s' % (
       lib_util.timestamp(), fold, FLAGS.fold_index
       if FLAGS.fold_index is not None else '', FLAGS.unit, FLAGS.ensemble_size,
       FLAGS.chronological)
-  log_fname = '%s__%s.npz' % (os.path.basename(FLAGS.checkpoint), eval_run_name)
+  log_fname = '%s__%s.npz' % (os.path.basename(checkpoint_dir), eval_run_name)
   log_fpath = os.path.join(eval_logdir, log_fname)
 
   pianorolls = get_fold_pianorolls(fold, hparams)
