@@ -145,8 +145,9 @@ def print_statistics(pianorolls):
   if len(np.unique(lengths)) > 1:
     tf.logging.info('lengths', np.sort(lengths))
   tf.logging.info('max_len', max(lengths))
-  tf.logging.info('unique lengths',
-        np.unique(sorted(pianoroll.shape[0] for pianoroll in pianorolls)))
+  tf.logging.info(
+      'unique lengths',
+      np.unique(sorted(pianoroll.shape[0] for pianoroll in pianorolls)))
   tf.logging.info('shape', pianorolls[0].shape)
 
 
