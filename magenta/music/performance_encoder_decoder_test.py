@@ -200,12 +200,8 @@ class ModuloPerformanceEventSequenceEncoderTest(tf.test.TestCase):
     self._num_velocity_bins = 32
     self._max_shift_steps = 32
     self.enc = ModuloPerformanceEventSequenceEncoderDecoder(
-        PerformanceModuloEncoding(
-            num_velocity_bins=self._num_velocity_bins,
-            max_shift_steps=self._max_shift_steps),
-        PerformanceOneHotEncoding(
-            num_velocity_bins=self._num_velocity_bins,
-            max_shift_steps=self._max_shift_steps))
+        num_velocity_bins=self._num_velocity_bins,
+        max_shift_steps=self._max_shift_steps)
 
     self._pitch_encoder_width = 5
     self._velocity_encoder_width = 3
