@@ -76,7 +76,7 @@ def main(unused_argv):
   if FLAGS.sample_npy_path is not None:
     evaluate_paths([FLAGS.sample_npy_path], evaluator, wmodel.hparams,
                    eval_logdir)
-  print('Done')
+  tf.logging.info('Done')
 
 
 def evaluate_fold(fold, evaluator, hparams, eval_logdir, checkpoint_dir):
@@ -91,7 +91,7 @@ def evaluate_fold(fold, evaluator, hparams, eval_logdir, checkpoint_dir):
   pianorolls = get_fold_pianorolls(fold, hparams)
 
   rval = lib_evaluation.evaluate(evaluator, pianorolls)
-  print('Writing to path: %s' % log_fpath)
+  tf.logging.info('Writing to path: %s' % log_fpath)
   with lib_util.atomic_file(log_fpath) as p:
     np.savez_compressed(p, **rval)
 
@@ -109,7 +109,7 @@ def evaluate_paths(paths, evaluator, unused_hparams, eval_logdir):
 
     pianorolls = get_path_pianorolls(path)
     rval = lib_evaluation.evaluate(evaluator, pianorolls)
-    print('Writing evaluation statistics to', log_fpath)
+    tf.logging.info('Writing evaluation statistics to %s', log_fpath)
     with lib_util.atomic_file(log_fpath) as p:
       np.savez_compressed(p, **rval)
 
@@ -117,8 +117,8 @@ def evaluate_paths(paths, evaluator, unused_hparams, eval_logdir):
 def get_fold_pianorolls(fold, hparams):
   dataset = lib_data.get_dataset(FLAGS.data_dir, hparams, fold)
   pianorolls = dataset.get_pianorolls()
-  print('\nRetrieving pianorolls from %s set of %s dataset.\n' %
-        (fold, hparams.dataset))
+  tf.logging.info('Retrieving pianorolls from %s set of %s dataset.',
+                  fold, hparams.dataset)
   print_statistics(pianorolls)
   if FLAGS.fold_index is not None:
     pianorolls = [pianorolls[int(FLAGS.fold_index)]]
@@ -127,11 +127,11 @@ def get_fold_pianorolls(fold, hparams):
 
 def get_path_pianorolls(path):
   pianoroll_fpath = os.path.join(tf.resource_loader.get_data_files_path(), path)
-  print('Retrieving pianorolls from', pianoroll_fpath)
+  tf.logging.info('Retrieving pianorolls from %s', pianoroll_fpath)
   with tf.gfile.Open(pianoroll_fpath, 'r') as p:
     pianorolls = np.load(p)
   if isinstance(pianorolls, np.ndarray):
-    print(pianorolls.shape)
+    tf.logging.info(pianorolls.shape)
   print_statistics(pianorolls)
   return pianorolls
 
@@ -139,15 +139,16 @@ def get_path_pianorolls(path):
 def print_statistics(pianorolls):
   """Prints statistics of given pianorolls, such as max and unique length."""
   if isinstance(pianorolls, np.ndarray):
-    print(pianorolls.shape)
-  print('# of total pieces in set:', len(pianorolls))
+    tf.logging.info(pianorolls.shape)
+  tf.logging.info('# of total pieces in set: %d', len(pianorolls))
   lengths = [len(roll) for roll in pianorolls]
   if len(np.unique(lengths)) > 1:
-    print('lengths', np.sort(lengths))
-  print('max_len', max(lengths))
-  print('unique lengths',
-        np.unique(sorted(pianoroll.shape[0] for pianoroll in pianorolls)))
-  print('shape', pianorolls[0].shape)
+    tf.logging.info('lengths %s', np.sort(lengths))
+  tf.logging.info('max_len %d', max(lengths))
+  tf.logging.info(
+      'unique lengths %s',
+      np.unique(sorted(pianoroll.shape[0] for pianoroll in pianorolls)))
+  tf.logging.info('shape %s', pianorolls[0].shape)
 
 
 if __name__ == '__main__':
