@@ -6,8 +6,8 @@ from __future__ import print_function
 import tensorflow as tf
 
 from magenta.models.coconet import lib_graph
-from magenta.models.coconet import lib_tfsampling
 from magenta.models.coconet import lib_saved_model
+from magenta.models.coconet import lib_tfsampling
 
 
 FLAGS = tf.app.flags.FLAGS
