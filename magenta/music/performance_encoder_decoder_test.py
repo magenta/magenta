@@ -88,13 +88,7 @@ class PerformanceOneHotEncodingTest(tf.test.TestCase):
 
 
 class PerformanceModuloEncodingTest(tf.test.TestCase):
-  """Test class for ModuloEventSequenceEncoder.
-
-  The PerformanceModuloEncoding class mainly modifies the input encoding
-  of events and otherwise acts very similarly to the PerformanceOneHotEncoding
-  class. The encode_modulo_event() method of PerformanceModuloEncoding is tested
-  through unit tests for class ModuloPerformanceEventSequenceEncoderDecoder.
-  """
+  """Test class for PerformanceModuloEncoding."""
 
   def setUp(self):
     self._num_velocity_bins = 16
@@ -189,8 +183,8 @@ class ModuloPerformanceEventSequenceEncoderTest(tf.test.TestCase):
   ModuloPerformanceEventSequenceEncoderDecoder is tightly coupled with the
   PerformanceModuloEncoding, and PerformanceOneHotEncoding classes. As a result,
   in the test set up, the test object is initialized with one of each objects
-  and tested accordingly. Since this class mainly modifies the input encoding
-  of events, and otherwise its treatment of labels is very similar to the
+  and tested accordingly. Since this class only modifies the input encoding
+  of performance events, and otherwise its treatment of labels is the same as
   OneHotEventSequenceEncoderDecoder, the events_to_labels(), and
   class_index_to_event() methods of the class are not tested.
   """

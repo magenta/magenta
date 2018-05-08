@@ -118,14 +118,8 @@ class ModuloPerformanceEventSequenceEncoderDecoder(EventSequenceEncoderDecoder):
   """An EventSequenceEncoderDecoder for modulo encoding performance events.
 
   ModuloPerformanceEventSequenceEncoderDecoder is an EventSequenceEncoderDecoder
-  that uses Modulo Encoding for individual events. This encoding can be used in
-  place of OneHotEventSequenceEncoderDecoder in models that use time-shift
-  and/or velocity events in addition to note-on/note-off events. The input
-  vectors are modulo-12 encodings of the most recent event. The output labels
-  are one-hot encodings of the next event.
-
-  The only method of this class that is different from that of
-  OneHotEventSequenceEncoderDecoder is events_to_inputs().
+  that uses modulo/circular encoding for encoding performance input events, and
+  otherwise uses one hot encoding for encoding and decoding of labels.
   """
 
   def __init__(self, num_velocity_bins=0,
@@ -195,9 +189,8 @@ class ModuloPerformanceEventSequenceEncoderDecoder(EventSequenceEncoderDecoder):
   def events_to_input(self, events, position):
     """Returns the input vector for the given position in the event sequence.
 
-    Returns a modulo encoding for the given position in the performance event
-      sequence, by modulo-encoding the output of the one-hot-encoder applied to
-      that event position.
+    Returns a modulo/circular encoding for the given position in the performance
+      event sequence.
 
     Args:
       events: A list-like sequence of events.
@@ -216,7 +209,7 @@ class ModuloPerformanceEventSequenceEncoderDecoder(EventSequenceEncoderDecoder):
     if (event_type == performance_lib.PerformanceEvent.NOTE_ON or
         event_type == performance_lib.PerformanceEvent.NOTE_OFF):
 
-      # Encode the note on a circle.
+      # Encode the note on a circle of 144 notes, covering 12 octaves.
       angle = (float(value) * math.pi) / 72.0  # 12 octaves, up to 144 notes
       input_[offset] = math.cos(angle)
       input_[offset + 1] = math.sin(angle)
