@@ -25,7 +25,6 @@ from magenta.music import performance_encoder_decoder
 from magenta.music import performance_lib
 from magenta.music.performance_encoder_decoder import ModuloPerformanceEventSequenceEncoderDecoder
 from magenta.music.performance_encoder_decoder import PerformanceModuloEncoding
-from magenta.music.performance_encoder_decoder import PerformanceOneHotEncoding
 from magenta.music.performance_lib import PerformanceEvent
 
 
