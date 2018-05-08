@@ -157,7 +157,8 @@ def run_epoch(supervisor, sess, m, dataset, hparams, eval_op, experiment_type,
   run_stats['loss_unmask'] = losses_unmask.mean
   run_stats['loss_total'] = losses_total.mean
   run_stats['loss'] = losses.mean
-  run_stats['learning_rate'] = float(learning_rate)
+  if experiment_type == 'train':
+    run_stats['learning_rate'] = float(learning_rate)
 
   # Make summaries.
   if FLAGS.log_progress:
@@ -172,7 +173,8 @@ def run_epoch(supervisor, sess, m, dataset, hparams, eval_op, experiment_type,
                   'loss (total): %.4f, log lr: %.4f, time taken: %.4f',
                   experiment_type, epoch_count, run_stats['loss_mask'],
                   run_stats['loss_unmask'], run_stats['loss_total'],
-                  np.log2(run_stats['learning_rate']),
+                  np.log2(run_stats['learning_rate'])
+                  if 'learning_rate' in run_stats else 0,
                   time.time() - start_time)
 
   return run_stats['loss']

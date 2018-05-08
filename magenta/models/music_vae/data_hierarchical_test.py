@@ -163,3 +163,7 @@ class MultiInstrumentPerformanceConverterTest(tf.test.TestCase):
     sequences = converter.to_notesequences(tensors.outputs, tensors.controls)
     self.assertEquals(1, len(sequences))
     self.assertProtoEquals(sequence, sequences[0])
+
+
+if __name__ == '__main__':
+  tf.test.main()

@@ -244,7 +244,7 @@ class TFGenerator(object):
     # Update the length of piece to be generated.
     self.hparams.crop_piece_len = piece_length
     shape = [gen_batch_size] + self.hparams.pianoroll_shape
-    tf.logging.info("Tentative shape of pianorolls to be generated: r", shape)
+    tf.logging.info("Tentative shape of pianorolls to be generated: %r", shape)
 
     # Generates.
     if midi_in is not None:
