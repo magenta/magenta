@@ -114,7 +114,8 @@ class CoconetGraph(object):
     """Instantiates learning rate, decay op and train_op among others."""
     # If not training, don't need to add optimizer to the graph.
     if not self.is_training:
-      self.train_op = tf.no_op
+      self.train_op = tf.no_op()
+      self.learning_rate = tf.no_op()
       return
 
     self.learning_rate = tf.Variable(

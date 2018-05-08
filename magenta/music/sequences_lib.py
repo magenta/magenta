@@ -105,6 +105,169 @@ def trim_note_sequence(sequence, start_time, end_time):
   return subsequence
 
 
+def _extract_subsequences(sequence, split_times, sustain_control_number=64):
+  """Extracts multiple subsequences from a NoteSequence.
+
+  Args:
+    sequence: The NoteSequence to extract subsequences from.
+    split_times: A Python list of subsequence boundary times. The first
+        subsequence will start at `split_times[0]` and end at `split_times[1]`,
+        the next subsequence will start at `split_times[1]` and end at
+        `split_times[2]`, and so on with the last subsequence ending at
+        `split_times[-1]`.
+    sustain_control_number: The MIDI control number for sustain pedal.
+
+  Returns:
+    A Python list of new NoteSequence containing the subsequences of `sequence`.
+
+  Raises:
+    QuantizationStatusException: If the sequence has already been quantized.
+    ValueError: If there are fewer than 2 split times, or the split times are
+        unsorted, or if any of the subsequences would start past the end of the
+        sequence.
+  """
+  if is_quantized_sequence(sequence):
+    raise QuantizationStatusException(
+        'Can only extract subsequences from unquantized NoteSequence.')
+
+  if len(split_times) < 2:
+    raise ValueError('Must provide at least a start and end time.')
+  if any(t1 > t2 for t1, t2 in zip(split_times[:-1], split_times[1:])):
+    raise ValueError('Split times must be sorted.')
+  if any(time >= sequence.total_time for time in split_times[:-1]):
+    raise ValueError('Cannot extract subsequence past end of sequence.')
+
+  subsequence = music_pb2.NoteSequence()
+  subsequence.CopyFrom(sequence)
+
+  subsequence.total_time = 0.0
+
+  del subsequence.notes[:]
+  del subsequence.time_signatures[:]
+  del subsequence.key_signatures[:]
+  del subsequence.tempos[:]
+  del subsequence.text_annotations[:]
+  del subsequence.control_changes[:]
+  del subsequence.pitch_bends[:]
+
+  subsequences = [copy.deepcopy(subsequence)
+                  for _ in range(len(split_times) - 1)]
+
+  # Extract notes into subsequences.
+  subsequence_index = -1
+  for note in sorted(sequence.notes, key=lambda note: note.start_time):
+    if note.start_time < split_times[0]:
+      continue
+    while (subsequence_index < len(split_times) - 1 and
+           note.start_time >= split_times[subsequence_index + 1]):
+      subsequence_index += 1
+    if subsequence_index == len(split_times) - 1:
+      break
+    subsequences[subsequence_index].notes.extend([note])
+    subsequences[subsequence_index].notes[-1].start_time -= (
+        split_times[subsequence_index])
+    subsequences[subsequence_index].notes[-1].end_time = min(
+        note.end_time,
+        split_times[subsequence_index + 1]) - split_times[subsequence_index]
+    if (subsequences[subsequence_index].notes[-1].end_time >
+        subsequences[subsequence_index].total_time):
+      subsequences[subsequence_index].total_time = (
+          subsequences[subsequence_index].notes[-1].end_time)
+
+  # Extract time signatures, key signatures, tempos, and chord changes (other
+  # text annotations are deleted, as are pitch bends). Additional state events
+  # will be added to the beginning of each subsequence.
+
+  events_by_type = [
+      sequence.time_signatures, sequence.key_signatures, sequence.tempos,
+      [annotation for annotation in sequence.text_annotations
+       if annotation.annotation_type == CHORD_SYMBOL]]
+  new_event_containers = [
+      [s.time_signatures for s in subsequences],
+      [s.key_signatures for s in subsequences],
+      [s.tempos for s in subsequences],
+      [s.text_annotations for s in subsequences]
+  ]
+
+  for events, containers in zip(events_by_type, new_event_containers):
+    previous_event = None
+    subsequence_index = -1
+    for event in sorted(events, key=lambda event: event.time):
+      if event.time <= split_times[0]:
+        previous_event = event
+        continue
+      while (subsequence_index < len(split_times) - 1 and
+             event.time > split_times[subsequence_index + 1]):
+        subsequence_index += 1
+        if subsequence_index == len(split_times) - 1:
+          break
+        if previous_event is not None:
+          # Add state event to the beginning of the subsequence.
+          containers[subsequence_index].extend([previous_event])
+          containers[subsequence_index][-1].time = 0.0
+      if subsequence_index == len(split_times) - 1:
+        break
+      # Only add the event if it's actually inside the subsequence (and not on
+      # the boundary with the next one).
+      if event.time < split_times[subsequence_index + 1]:
+        containers[subsequence_index].extend([event])
+        containers[subsequence_index][-1].time -= split_times[subsequence_index]
+      previous_event = event
+    # Add final state event to the beginning of all remaining subsequences.
+    while subsequence_index < len(split_times) - 2:
+      subsequence_index += 1
+      if previous_event is not None:
+        containers[subsequence_index].extend([previous_event])
+        containers[subsequence_index][-1].time = 0.0
+
+  # Extract sustain pedal events (other control changes are deleted). Sustain
+  # pedal state is maintained per-instrument and added to the beginning of each
+  # subsequence.
+  sustain_events = [cc for cc in sequence.control_changes
+                    if cc.control_number == sustain_control_number]
+  previous_sustain_events = {}
+  subsequence_index = -1
+  for sustain_event in sorted(sustain_events, key=lambda event: event.time):
+    if sustain_event.time <= split_times[0]:
+      previous_sustain_events[sustain_event.instrument] = sustain_event
+      continue
+    while (subsequence_index < len(split_times) - 1 and
+           sustain_event.time > split_times[subsequence_index + 1]):
+      subsequence_index += 1
+      if subsequence_index == len(split_times) - 1:
+        break
+      # Add the current sustain pedal state to the beginning of the subsequence.
+      for previous_sustain_event in previous_sustain_events.values():
+        subsequences[subsequence_index].control_changes.extend(
+            [previous_sustain_event])
+        subsequences[subsequence_index].control_changes[-1].time = 0.0
+    if subsequence_index == len(split_times) - 1:
+      break
+    # Only add the sustain event if it's actually inside the subsequence (and
+    # not on the boundary with the next one).
+    if sustain_event.time < split_times[subsequence_index + 1]:
+      subsequences[subsequence_index].control_changes.extend([sustain_event])
+      subsequences[subsequence_index].control_changes[-1].time -= (
+          split_times[subsequence_index])
+    previous_sustain_events[sustain_event.instrument] = sustain_event
+  # Add final sustain pedal state to the beginning of all remaining
+  # subsequences.
+  while subsequence_index < len(split_times) - 2:
+    subsequence_index += 1
+    for _, previous_sustain_event in previous_sustain_events.items():
+      subsequences[subsequence_index].control_changes.extend(
+          [previous_sustain_event])
+      subsequences[subsequence_index].control_changes[-1].time = 0.0
+
+  # Set subsequence info for all subsequences.
+  for subsequence, start_time in zip(subsequences, split_times[:-1]):
+    subsequence.subsequence_info.start_time_offset = start_time
+    subsequence.subsequence_info.end_time_offset = (
+        sequence.total_time - start_time - subsequence.total_time)
+
+  return subsequences
+
+
 def extract_subsequence(sequence, start_time, end_time,
                         sustain_control_number=64):
   """Extracts a subsequence from a NoteSequence.
@@ -135,97 +298,10 @@ def extract_subsequence(sequence, start_time, end_time,
     QuantizationStatusException: If the sequence has already been quantized.
     ValueError: If `start_time` is past the end of `sequence`.
   """
-  if is_quantized_sequence(sequence):
-    raise QuantizationStatusException(
-        'Can only extract subsequence from unquantized NoteSequence.')
-
-  if start_time >= sequence.total_time:
-    raise ValueError('Cannot extract subsequence past end of sequence.')
-
-  subsequence = music_pb2.NoteSequence()
-  subsequence.CopyFrom(sequence)
-
-  subsequence.total_time = 0.0
-
-  # Extract notes.
-  del subsequence.notes[:]
-  for note in sequence.notes:
-    if note.start_time < start_time or note.start_time >= end_time:
-      continue
-    new_note = subsequence.notes.add()
-    new_note.CopyFrom(note)
-    new_note.start_time -= start_time
-    new_note.end_time = min(note.end_time, end_time) - start_time
-    if new_note.end_time > subsequence.total_time:
-      subsequence.total_time = new_note.end_time
-
-  # Extract time signatures, key signatures, tempos, and chord changes (other
-  # text annotations are deleted).
-
-  del subsequence.time_signatures[:]
-  del subsequence.key_signatures[:]
-  del subsequence.tempos[:]
-  del subsequence.text_annotations[:]
-
-  event_types = [
-      music_pb2.NoteSequence.TimeSignature, music_pb2.NoteSequence.KeySignature,
-      music_pb2.NoteSequence.Tempo, music_pb2.NoteSequence.TextAnnotation]
-  events_by_type = [
-      sequence.time_signatures, sequence.key_signatures, sequence.tempos,
-      [annotation for annotation in sequence.text_annotations
-       if annotation.annotation_type == CHORD_SYMBOL]]
-  new_event_containers = [
-      subsequence.time_signatures, subsequence.key_signatures,
-      subsequence.tempos, subsequence.text_annotations]
-
-  for event_type, events, container in zip(
-      event_types, events_by_type, new_event_containers):
-    initial_event = None
-    for event in sorted(events, key=lambda event: event.time):
-      if event.time <= start_time:
-        initial_event = event_type()
-        initial_event.CopyFrom(event)
-        continue
-      elif event.time >= end_time:
-        break
-      new_event = container.add()
-      new_event.CopyFrom(event)
-      new_event.time -= start_time
-    if initial_event:
-      initial_event.time = 0.0
-      container.extend([initial_event])
-    container.sort(key=lambda event: event.time)
-
-  # Extract sustain pedal events (other control changes are deleted). Sustain
-  # pedal state prior to the extracted subsequence is maintained per-instrument.
-  del subsequence.control_changes[:]
-  sustain_events = [cc for cc in sequence.control_changes
-                    if cc.control_number == sustain_control_number]
-  initial_sustain_events = {}
-  for sustain_event in sorted(sustain_events, key=lambda event: event.time):
-    if sustain_event.time <= start_time:
-      initial_sustain_event = music_pb2.NoteSequence.ControlChange()
-      initial_sustain_event.CopyFrom(sustain_event)
-      initial_sustain_events[sustain_event.instrument] = initial_sustain_event
-      continue
-    elif sustain_event.time >= end_time:
-      break
-    new_sustain_event = subsequence.control_changes.add()
-    new_sustain_event.CopyFrom(sustain_event)
-    new_sustain_event.time -= start_time
-  for _, initial_sustain_event in initial_sustain_events.items():
-    initial_sustain_event.time = 0.0
-    subsequence.control_changes.extend([initial_sustain_event])
-  subsequence.control_changes.sort(key=lambda cc: cc.time)
-
-  # Pitch bends are deleted entirely.
-  del subsequence.pitch_bends[:]
-
-  subsequence.subsequence_info.start_time_offset = start_time
-  subsequence.subsequence_info.end_time_offset = (
-      sequence.total_time - start_time - subsequence.total_time)
-
-  return subsequence
+  return _extract_subsequences(
+      sequence,
+      split_times=[start_time, end_time],
+      sustain_control_number=sustain_control_number)[0]
 
 
 def shift_sequence_times(sequence, shift_seconds):
@@ -568,20 +644,18 @@ def split_note_sequence(note_sequence, hop_size_seconds,
   Returns:
     A Python list of NoteSequences.
   """
-  prev_split_time = 0.0
-
   notes_by_start_time = sorted(list(note_sequence.notes),
                                key=lambda note: note.start_time)
   note_idx = 0
   notes_crossing_split = []
-
-  subsequences = []
 
   if isinstance(hop_size_seconds, list):
     split_times = sorted(hop_size_seconds)
   else:
     split_times = np.arange(
         hop_size_seconds, note_sequence.total_time, hop_size_seconds)
+
+  valid_split_times = [0.0]
 
   for split_time in split_times:
     # Update notes crossing potential split.
@@ -593,20 +667,16 @@ def split_note_sequence(note_sequence, hop_size_seconds,
                             if note.end_time > split_time]
 
     if not (skip_splits_inside_notes and notes_crossing_split):
-      # Extract the subsequence between the previous split time and this split
-      # time.
-      subsequence = extract_subsequence(
-          note_sequence, prev_split_time, split_time)
-      subsequences.append(subsequence)
-      prev_split_time = split_time
+      valid_split_times.append(split_time)
 
   # Handle the final subsequence.
-  if note_sequence.total_time > prev_split_time:
-    subsequence = extract_subsequence(note_sequence, prev_split_time,
-                                      note_sequence.total_time)
-    subsequences.append(subsequence)
+  if note_sequence.total_time > valid_split_times[-1]:
+    valid_split_times.append(note_sequence.total_time)
 
-  return subsequences
+  if len(valid_split_times) > 1:
+    return _extract_subsequences(note_sequence, valid_split_times)
+  else:
+    return []
 
 
 def split_note_sequence_on_time_changes(note_sequence,
@@ -628,8 +698,6 @@ def split_note_sequence_on_time_changes(note_sequence,
   Returns:
     A Python list of NoteSequences.
   """
-  prev_change_time = 0.0
-
   current_numerator = 4
   current_denominator = 4
   current_qpm = constants.DEFAULT_QUARTERS_PER_MINUTE
@@ -645,7 +713,7 @@ def split_note_sequence_on_time_changes(note_sequence,
   note_idx = 0
   notes_crossing_split = []
 
-  subsequences = []
+  valid_split_times = [0.0]
 
   for time_change in time_signatures_and_tempos:
     if isinstance(time_change, music_pb2.NoteSequence.TimeSignature):
@@ -666,14 +734,9 @@ def split_note_sequence_on_time_changes(note_sequence,
     notes_crossing_split = [note for note in notes_crossing_split
                             if note.end_time > time_change.time]
 
-    if time_change.time > prev_change_time:
+    if time_change.time > valid_split_times[-1]:
       if not (skip_splits_inside_notes and notes_crossing_split):
-        # Extract the subsequence between the previous time change and this
-        # time change.
-        subsequence = extract_subsequence(note_sequence, prev_change_time,
-                                          time_change.time)
-        subsequences.append(subsequence)
-        prev_change_time = time_change.time
+        valid_split_times.append(time_change.time)
 
     # Even if we didn't split here, update the current time signature or tempo.
     if isinstance(time_change, music_pb2.NoteSequence.TimeSignature):
@@ -683,12 +746,13 @@ def split_note_sequence_on_time_changes(note_sequence,
       current_qpm = time_change.qpm
 
   # Handle the final subsequence.
-  if note_sequence.total_time > prev_change_time:
-    subsequence = extract_subsequence(note_sequence, prev_change_time,
-                                      note_sequence.total_time)
-    subsequences.append(subsequence)
+  if note_sequence.total_time > valid_split_times[-1]:
+    valid_split_times.append(note_sequence.total_time)
 
-  return subsequences
+  if len(valid_split_times) > 1:
+    return _extract_subsequences(note_sequence, valid_split_times)
+  else:
+    return []
 
 
 def quantize_to_step(unquantized_seconds, steps_per_second,
