@@ -128,23 +128,56 @@ class ModuloPerformanceEventSequenceEncoderDecoder(EventSequenceEncoderDecoder):
   OneHotEventSequenceEncoderDecoder is events_to_inputs().
   """
 
-  def __init__(self, modulo_encoding, one_hot_encoding):
+  def __init__(self, num_velocity_bins=0,
+               max_shift_steps=performance_lib.DEFAULT_MAX_SHIFT_STEPS):
     """Initialize a ModuloPerformanceEventSequenceEncoderDecoder object.
 
     Args:
-      modulo_encoding: A ModuloEncoding object that encodes input events using
-          modulo encoding.
-      one_hot_encoding: A OneHotEncoding object that encodes and decodes event
-          labels using one-hot encoding.
+      num_velocity_bins: Number of velocity bins.
+      max_shift_steps: Maximum number of shift steps supported.
+    Raises:
+      ValueError: if EVENT_RANGES and MODULO_EVENT_RANGES are not compatible.
     """
 
-    # TODO(vidavakil): ideally, we would want to make sure that the two encoders
-    # have compatible event_ranges, since at generation time we would be feeding
-    # the output of the model back to its input. However, to do that we would
-    # need access to private variables of the two objects (e.g., their
-    # _event_ranges).
-    self._modulo_encoding = modulo_encoding
-    self._one_hot_encoding = one_hot_encoding
+    # Check that event ranges used for PerformanceModuloEncoding and
+    # PerformanceOneHotEncoding are compatible (i.e., check the compatibility of
+    # EVENT_RANGES and MODULO_EVENT_RANGES). Only the ranges for
+    # PerformanceEvent.NOTE_ON and PerformanceEvent.NOTE_OFF need to be checked,
+    # as other ranges (i.e., those of TIME_SHIFT and VELOCITY) are set by this
+    # object and are thus compatible by construction.
+    modulo_encoding_pitch_ranges = {}
+    for event_type, min_value, max_value, _ in MODULO_EVENT_RANGES:
+      if event_type == PerformanceEvent.NOTE_ON:
+        modulo_encoding_pitch_ranges['note_on_min_midi_pitch'] = min_value
+        modulo_encoding_pitch_ranges['note_on_max_midi_pitch'] = max_value
+      elif event_type == PerformanceEvent.NOTE_OFF:
+        modulo_encoding_pitch_ranges['note_off_min_midi_pitch'] = min_value
+        modulo_encoding_pitch_ranges['note_off_max_midi_pitch'] = max_value
+
+    one_hot_encoding_pitch_ranges = {}
+    for event_type, min_value, max_value in EVENT_RANGES:
+      if event_type == PerformanceEvent.NOTE_ON:
+        one_hot_encoding_pitch_ranges['note_on_min_midi_pitch'] = min_value
+        one_hot_encoding_pitch_ranges['note_on_max_midi_pitch'] = max_value
+      elif event_type == PerformanceEvent.NOTE_OFF:
+        one_hot_encoding_pitch_ranges['note_off_min_midi_pitch'] = min_value
+        one_hot_encoding_pitch_ranges['note_off_max_midi_pitch'] = max_value
+
+    if ((modulo_encoding_pitch_ranges['note_on_min_midi_pitch'] !=
+         one_hot_encoding_pitch_ranges['note_on_min_midi_pitch']) or
+        (modulo_encoding_pitch_ranges['note_on_max_midi_pitch'] !=
+         one_hot_encoding_pitch_ranges['note_on_max_midi_pitch']) or
+        (modulo_encoding_pitch_ranges['note_off_min_midi_pitch'] !=
+         one_hot_encoding_pitch_ranges['note_off_min_midi_pitch']) or
+        (modulo_encoding_pitch_ranges['note_off_max_midi_pitch'] !=
+         one_hot_encoding_pitch_ranges['note_off_max_midi_pitch'])):
+      raise ValueError('EVENT_RANGES and MODULO_EVENT_RANGES must use ',
+                       'the same ranges for NOTE_ON and NOTE_OFF')
+
+    self._modulo_encoding = PerformanceModuloEncoding(
+        num_velocity_bins=num_velocity_bins, max_shift_steps=max_shift_steps)
+    self._one_hot_encoding = PerformanceOneHotEncoding(
+        num_velocity_bins=num_velocity_bins, max_shift_steps=max_shift_steps)
 
   @property
   def input_size(self):
