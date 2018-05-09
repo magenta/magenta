@@ -18,7 +18,7 @@ from __future__ import division
 import math
 
 # internal imports
-from numpy import zeros
+import numpy as np
 
 from magenta.music import encoder_decoder
 from magenta.music import performance_lib
@@ -84,7 +84,7 @@ class PerformanceModuloEncoding(object):
     # please make semitone_steps a parameter of this method, and add unit tests
     # for it.
     semitone_steps = 1
-    self._table = zeros((12, 2))
+    self._table = np.zeros((12, 2))
     for i in range(12):
       row = (i * semitone_steps) % 12
       angle = (float(row) * math.pi) / 6.0
@@ -259,20 +259,22 @@ class ModuloPerformanceEventSequenceEncoderDecoder(EventSequenceEncoderDecoder):
     """
     return self._one_hot_encoding.decode_event(class_index)
 
-  def event_to_num_steps(self, unused_event):
-    """Returns the number of time steps corresponding to an event value.
-
-    This is used for normalization when computing metrics. Subclasses with
-    variable step size should override this method.
+  def labels_to_num_steps(self, labels):
+    """Returns the total number of time steps for a sequence of class labels.
 
     Args:
-      unused_event: An event value for which to return the number of steps.
+      labels: A list-like sequence of integers in the range
+          [0, self.num_classes).
 
     Returns:
-      The number of steps corresponding to the given event value, defaulting to
-      one.
+      The total number of time steps for the label sequence, as determined by
+      the one-hot encoding.
     """
-    return 1
+    events = []
+    for label in labels:
+      events.append(self.class_index_to_event(label, events))
+    return sum(self._one_hot_encoding.event_to_num_steps(event)
+               for event in events)
 
 
 class PerformanceOneHotEncoding(encoder_decoder.OneHotEncoding):
