@@ -97,12 +97,10 @@ class PerformanceModuloEncodingTest(tf.test.TestCase):
         num_velocity_bins=self._num_velocity_bins,
         max_shift_steps=self._max_shift_steps)
 
-    self._pitch_encoder_width = 5
-    self._velocity_encoder_width = 3
-    self._time_shift_encoder_width = 3
-    self._expected_input_size = (2 * self._pitch_encoder_width +
-                                 self._velocity_encoder_width +
-                                 self._time_shift_encoder_width)
+    self._expected_input_size = (
+        2 * performance_encoder_decoder.MODULO_PITCH_ENCODER_WIDTH +
+        performance_encoder_decoder.MODULO_VELOCITY_ENCODER_WIDTH +
+        performance_encoder_decoder.MODULO_TIME_SHIFT_ENCODER_WIDTH)
 
     self._expected_num_classes = (self._num_velocity_bins +
                                   self._max_shift_steps +
@@ -196,12 +194,10 @@ class ModuloPerformanceEventSequenceEncoderTest(tf.test.TestCase):
         num_velocity_bins=self._num_velocity_bins,
         max_shift_steps=self._max_shift_steps)
 
-    self._pitch_encoder_width = 5
-    self._velocity_encoder_width = 3
-    self._time_shift_encoder_width = 3
-    self._expected_input_size = (2 * self._pitch_encoder_width +
-                                 self._velocity_encoder_width +
-                                 self._time_shift_encoder_width)
+    self._expected_input_size = (
+        2 * performance_encoder_decoder.MODULO_PITCH_ENCODER_WIDTH +
+        performance_encoder_decoder.MODULO_VELOCITY_ENCODER_WIDTH +
+        performance_encoder_decoder.MODULO_TIME_SHIFT_ENCODER_WIDTH)
 
     self._expected_num_classes = (self._num_velocity_bins +
                                   self._max_shift_steps +
@@ -217,9 +213,6 @@ class ModuloPerformanceEventSequenceEncoderTest(tf.test.TestCase):
   def testDefaultEventLabel(self):
     label = self._expected_num_classes - self._num_velocity_bins - 1
     self.assertEquals(label, self.enc.default_event_label)
-
-  def testEventToNumSteps(self):
-    self.assertEquals(self.enc.event_to_num_steps(1), 1)
 
   def testEventsToInput(self):
     num_shift_bins = self._max_shift_steps
