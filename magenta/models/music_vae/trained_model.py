@@ -301,7 +301,7 @@ class TrainedModel(object):
         otherwise it will return only the samples.
     Returns:
       If return_full_results is True, will return the full decoder_results list,
-      otherwise it will return the outputs from decoder as a 2D numpy array.
+      otherwise it will return the samples from the decoder as a 2D numpy array.
     Raises:
       RuntimeError: If called for a non-conditional model.
       ValueError: If `length` is not specified and an end token is not being
