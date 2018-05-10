@@ -80,7 +80,7 @@ class CoconetGraph(object):
         self.residual_counter += 1
         self.residual_save(featuremaps)
 
-        featuremaps = self.apply_convolution(featuremaps, layer)
+        featuremaps = self.apply_convolution(featuremaps, layer, i)
         featuremaps = self.apply_residual(
             featuremaps, is_first=i == 0, is_last=i == n - 1)
         featuremaps = self.apply_activation(featuremaps, layer)
@@ -95,6 +95,9 @@ class CoconetGraph(object):
 
     self.compute_loss(self.cross_entropy)
     self.setup_optimizer()
+
+    for var in tf.trainable_variables():
+      tf.logging.info('%s_%r' % (var.name, var.get_shape().as_list()))
 
   def get_convnet_input(self):
     """Returns concatenates masked out pianorolls with their masks."""
@@ -128,11 +131,6 @@ class CoconetGraph(object):
     self.decay_op = tf.assign(self.learning_rate, 0.5 * self.learning_rate)
     self.optimizer = tf.train.AdamOptimizer(learning_rate=self.learning_rate)
     self.train_op = self.optimizer.minimize(self.loss)
-    self.gradient_norms = [
-        tf.sqrt(tf.reduce_sum(gradient[0]**2))
-        for gradient in self.optimizer.compute_gradients(
-            self.loss, var_list=tf.trainable_variables())
-    ]
 
   def compute_predictions(self, logits):
     return (tf.nn.softmax(logits, dim=2)
@@ -232,7 +230,7 @@ class CoconetGraph(object):
         x += self.output_for_residual
     return x
 
-  def apply_convolution(self, x, layer):
+  def apply_convolution(self, x, layer, layer_idx):
     """Adds convolution and batch norm layers if hparam.batch_norm is True."""
     if 'filters' not in layer:
       return x
@@ -243,17 +241,29 @@ class CoconetGraph(object):
     stddev = tf.sqrt(tf.div(2.0, fanin))
     initializer = tf.random_normal_initializer(
         0.0, stddev)
-    weights = tf.get_variable(
-        'weights',
-        filter_shape,
-        initializer=initializer if self.is_training else None)
-    stride = layer.get('conv_stride', 1)
-    conv = tf.nn.conv2d(
-        x,
-        weights,
-        strides=[1, stride, stride, 1],
-        padding=layer.get('conv_pad', 'SAME'))
-
+    regular_convs = (not self.hparams.use_sep_conv or
+                     layer_idx < self.hparams.num_initial_regular_conv_layers)
+    if regular_convs:
+      weights = tf.get_variable(
+          'weights',
+          filter_shape,
+          initializer=initializer if self.is_training else None)
+      stride = layer.get('conv_stride', 1)
+      conv = tf.nn.conv2d(
+          x,
+          weights,
+          strides=[1, stride, stride, 1],
+          padding=layer.get('conv_pad', 'SAME'))
+    else:
+      conv = tf.contrib.layers.separable_conv2d(
+          x,
+          filter_shape[-1],
+          filter_shape[:2],
+          depth_multiplier=self.hparams.sep_conv_depth_multiplier,
+          stride=layer.get('conv_stride', 1),
+          padding=layer.get('conv_pad', 'SAME'),
+          activation_fn=None,
+          weights_initializer=initializer if self.is_training else None)
     # Compute batch normalization or add biases.
     if self.hparams.batch_norm:
       y = self.apply_batchnorm(conv)
