@@ -47,7 +47,8 @@ flags.DEFINE_integer('crop_piece_len', 64, 'The number of time steps '
 # Model architecture.
 flags.DEFINE_string('architecture', 'straight',
                     'Convnet style. Choices: straight')
-flags.DEFINE_bool('use_sep_conv', False, 'Use depthwise separable convolutions.')
+flags.DEFINE_bool('use_sep_conv', False, 'Use depthwise separable '
+                  'convolutions.')
 flags.DEFINE_integer('sep_conv_depth_multiplier', 1, 'Depth multiplier for'
                      'depthwise separable convs.')
 flags.DEFINE_integer('num_initial_regular_conv_layers', 2, 'The number of'
