@@ -85,7 +85,7 @@ class TrainedModel(object):
           shape=[batch_size] + list(self._config.data_converter.length_shape))
       self._max_length = tf.placeholder(tf.int32, shape=())
       # Outputs
-      self._outputs, _ = model.sample(
+      self._outputs, self._decoder_results = model.sample(
           batch_size,
           max_length=self._max_length,
           z=self._z_input,
@@ -229,7 +229,8 @@ class TrainedModel(object):
     batch_size = self._config.hparams.batch_size
 
     batch_pad_amt = -n % batch_size
-    input_tensors += [np.zeros([0, input_depth])] * batch_pad_amt
+    if batch_pad_amt > 0:
+      input_tensors += [np.zeros([0, input_depth])] * batch_pad_amt
     length_array = np.array(lengths, np.int32)
     length_array = np.pad(
         length_array,
@@ -286,7 +287,8 @@ class TrainedModel(object):
     else:
       return self._config.data_converter.to_items(tensors)
 
-  def decode_to_tensors(self, z, length=None, temperature=1.0, c_input=None):
+  def decode_to_tensors(self, z, length=None, temperature=1.0, c_input=None,
+                        return_full_results=False):
     """Decodes a collection of latent vectors into output tensors.
 
     Args:
@@ -295,8 +297,11 @@ class TrainedModel(object):
         if end tokens are not being used.
       temperature: The softmax temperature to use (if applicable).
       c_input: Control sequence (if applicable).
+      return_full_results: If true will return the full decoder_results,
+        otherwise it will return only the samples.
     Returns:
-      Outputs from decoder as a 2D numpy array.
+      If return_full_results is True, will return the full decoder_results list,
+      otherwise it will return the samples from the decoder as a 2D numpy array.
     Raises:
       RuntimeError: If called for a non-conditional model.
       ValueError: If `length` is not specified and an end token is not being
@@ -324,5 +329,8 @@ class TrainedModel(object):
       }
       if self._c_input is not None:
         feed_dict[self._c_input] = c_input
-      outputs.extend(self._sess.run(self._outputs, feed_dict))
+      if return_full_results:
+        outputs.extend(self._sess.run(self._decoder_results, feed_dict))
+      else:
+        outputs.extend(self._sess.run(self._outputs, feed_dict))
     return outputs[:n]
