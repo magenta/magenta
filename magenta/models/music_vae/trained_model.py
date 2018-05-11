@@ -185,7 +185,7 @@ class TrainedModel(object):
       AssertionError: If `assert_same_length` is True and any extracted
         sequences differ in length.
     """
-    if not self._config.hparams.z_size::
+    if not self._config.hparams.z_size:
       raise RuntimeError('Cannot encode with a non-conditional model.')
 
     inputs = []
