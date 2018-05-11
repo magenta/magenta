@@ -68,7 +68,7 @@ class TrainedModel(object):
       self._z_input = (
           tf.placeholder(tf.float32,
                          shape=[batch_size, self._config.hparams.z_size])
-          if self._config.hparams.conditional else None)
+          if self._config.hparams.z_size else None)
       self._c_input = (
           tf.placeholder(
               tf.float32,
@@ -92,7 +92,7 @@ class TrainedModel(object):
           c_input=self._c_input,
           temperature=self._temperature,
           **sample_kwargs)
-      if self._config.hparams.conditional:
+      if self._config.hparams.z_size:
         q_z = model.encode(self._inputs, self._inputs_length, self._controls)
         self._mu = q_z.loc
         self._sigma = q_z.scale.diag
@@ -185,7 +185,7 @@ class TrainedModel(object):
       AssertionError: If `assert_same_length` is True and any extracted
         sequences differ in length.
     """
-    if not self._config.hparams.conditional:
+    if not self._config.hparams.z_size:
       raise RuntimeError('Cannot encode with a non-conditional model.')
 
     inputs = []
@@ -221,7 +221,7 @@ class TrainedModel(object):
     Raises:
        RuntimeError: If called for a non-conditional model.
     """
-    if not self._config.hparams.conditional:
+    if not self._config.hparams.z_size:
       raise RuntimeError('Cannot encode with a non-conditional model.')
 
     n = len(input_tensors)
@@ -307,7 +307,7 @@ class TrainedModel(object):
       ValueError: If `length` is not specified and an end token is not being
         used.
     """
-    if not self._config.hparams.conditional:
+    if not self._config.hparams.z_size:
       raise RuntimeError('Cannot decode with a non-conditional model.')
 
     if not length and self._config.data_converter.end_token is None:
