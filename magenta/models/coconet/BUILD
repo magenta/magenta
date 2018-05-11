@@ -132,6 +132,18 @@ py_library(
     ],
 )
 
+py_library(
+    name = "lib_saved_model",
+    srcs = ["lib_saved_model.py"],
+    srcs_version = "PY2AND3",
+    visibility = [
+        # internal models
+    ],
+    deps = [
+        # tensorflow dep
+    ],
+)
+
 py_binary(
     name = "export_saved_model",
     srcs = ["export_saved_model.py"],
@@ -141,6 +153,8 @@ py_binary(
     ],
     deps = [
         ":lib_graph",
+        ":lib_saved_model",
+        ":lib_tfsampling",
         # tensorflow dep
     ],
 )
@@ -214,6 +228,7 @@ py_binary(
     srcs_version = "PY2AND3",
     visibility = [
         # internal notebook binary
+        # internal models
     ],
     deps = [
         ":lib_graph",
