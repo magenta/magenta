@@ -110,7 +110,7 @@ class PerformanceModuloEncodingTest(tf.test.TestCase):
   def testInputSize(self):
     self.assertEquals(self._expected_input_size, self.enc.input_size)
 
-  def testEmbedNote(self):
+  def testEmbedPitchClass(self):
     # The following are true only for semitone_steps = 1.
     expected_pairs = [
         (0, (cos(0.0), sin(0.0))),
@@ -127,44 +127,97 @@ class PerformanceModuloEncodingTest(tf.test.TestCase):
         (11, (cos(11.0 * pi / 6.0), sin(11.0 * pi / 6.0)))]
 
     for note, expected_embedding in expected_pairs:
+      actual_embedding = self.enc.embed_pitch_class(note)
+      self.assertEqual(actual_embedding[0], expected_embedding[0])
+      self.assertEqual(actual_embedding[1], expected_embedding[1])
+
+  def testEmbedNote(self):
+    # The following are true only for semitone_steps = 1.
+    base = 72.0
+    expected_pairs = [
+        (0, (cos(0.0), sin(0.0))),
+        (13, (cos(pi * 13.0 / base), sin(pi * 13.0 / base))),
+        (26, (cos(pi * 26.0 / base), sin(pi * 26.0 / base))),
+        (39, (cos(pi * 39.0 / base), sin(pi * 39.0 / base))),
+        (52, (cos(pi * 52.0 / base), sin(pi * 52.0 / base))),
+        (65, (cos(pi * 65.0 / base), sin(pi * 65.0 / base))),
+        (78, (cos(pi * 78.0 / base), sin(pi * 78.0 / base))),
+        (91, (cos(pi * 91.0 / base), sin(pi * 91.0 / base))),
+        (104, (cos(pi * 104.0 / base), sin(pi * 104.0 / base))),
+        (117, (cos(pi * 117.0 / base), sin(pi * 117.0 / base))),
+        (130, (cos(pi * 130.0 / base), sin(pi * 130.0 / base))),
+        (143, (cos(pi * 143.0 / base), sin(pi * 143.0 / base)))]
+
+    for note, expected_embedding in expected_pairs:
       actual_embedding = self.enc.embed_note(note)
       self.assertEqual(actual_embedding[0], expected_embedding[0])
       self.assertEqual(actual_embedding[1], expected_embedding[1])
 
+  def testEmbedTimeShift(self):
+    # The following are true only for semitone_steps = 1.
+    base = self._max_shift_steps  # 100
+    expected_pairs = [
+        (0, (cos(0.0), sin(0.0))),
+        (2, (cos(2.0 * pi * 2.0 / base), sin(2.0 * pi * 2.0 / base))),
+        (5, (cos(2.0 * pi * 5.0 / base), sin(2.0 * pi * 5.0 / base))),
+        (13, (cos(2.0 * pi * 13.0 / base), sin(2.0 * pi * 13.0 / base))),
+        (20, (cos(2.0 * pi * 20.0 / base), sin(2.0 * pi * 20.0 / base))),
+        (45, (cos(2.0 * pi * 45.0 / base), sin(2.0 * pi * 45.0 / base))),
+        (70, (cos(2.0 * pi * 70.0 / base), sin(2.0 * pi * 70.0 / base))),
+        (99, (cos(2.0 * pi * 99.0 / base), sin(2.0 * pi * 99.0 / base)))]
+
+    for time_shift, expected_embedding in expected_pairs:
+      actual_embedding = self.enc.embed_time_shift(time_shift)
+      self.assertEqual(actual_embedding[0], expected_embedding[0])
+      self.assertEqual(actual_embedding[1], expected_embedding[1])
+
+  def testEmbedVelocity(self):
+    # The following are true only for semitone_steps = 1.
+    base = self._num_velocity_bins  # 16
+    expected_pairs = [
+        (0, (cos(0.0), sin(0.0))),
+        (2, (cos(2.0 * pi * 2.0 / base), sin(2.0 * pi * 2.0 / base))),
+        (5, (cos(2.0 * pi * 5.0 / base), sin(2.0 * pi * 5.0 / base))),
+        (7, (cos(2.0 * pi * 7.0 / base), sin(2.0 * pi * 7.0 / base))),
+        (10, (cos(2.0 * pi * 10.0 / base), sin(2.0 * pi * 10.0 / base))),
+        (13, (cos(2.0 * pi * 13.0 / base), sin(2.0 * pi * 13.0 / base))),
+        (15, (cos(2.0 * pi * 15.0 / base), sin(2.0 * pi * 15.0 / base)))]
+
+    for velocity, expected_embedding in expected_pairs:
+      actual_embedding = self.enc.embed_velocity(velocity)
+      self.assertEqual(actual_embedding[0], expected_embedding[0])
+      self.assertEqual(actual_embedding[1], expected_embedding[1])
+
   def testEncodeModuloEvent(self):
-    num_note_bins = (performance_lib.MAX_MIDI_PITCH -
-                     performance_lib.MIN_MIDI_PITCH + 1)
-    num_shift_bins = self._max_shift_steps
-    num_velocity_bins = self._num_velocity_bins
     expected_pairs = [
         (PerformanceEvent(event_type=PerformanceEvent.NOTE_ON, event_value=60),
-         (0, 5, PerformanceEvent.NOTE_ON, 60, num_note_bins)),
+         (0, PerformanceEvent.NOTE_ON, 60)),
         (PerformanceEvent(event_type=PerformanceEvent.NOTE_ON, event_value=0),
-         (0, 5, PerformanceEvent.NOTE_ON, 0, num_note_bins)),
+         (0, PerformanceEvent.NOTE_ON, 0)),
         (PerformanceEvent(event_type=PerformanceEvent.NOTE_ON, event_value=127),
-         (0, 5, PerformanceEvent.NOTE_ON, 127, num_note_bins)),
+         (0, PerformanceEvent.NOTE_ON, 127)),
         (PerformanceEvent(event_type=PerformanceEvent.NOTE_OFF, event_value=72),
-         (5, 5, PerformanceEvent.NOTE_OFF, 72, num_note_bins)),
+         (5, PerformanceEvent.NOTE_OFF, 72)),
         (PerformanceEvent(event_type=PerformanceEvent.NOTE_OFF, event_value=0),
-         (5, 5, PerformanceEvent.NOTE_OFF, 0, num_note_bins)),
+         (5, PerformanceEvent.NOTE_OFF, 0)),
         (PerformanceEvent(
             event_type=PerformanceEvent.NOTE_OFF, event_value=127),
-         (5, 5, PerformanceEvent.NOTE_OFF, 127, num_note_bins)),
+         (5, PerformanceEvent.NOTE_OFF, 127)),
         (PerformanceEvent(
             event_type=PerformanceEvent.TIME_SHIFT, event_value=10),
-         (10, 3, PerformanceEvent.TIME_SHIFT, 9, num_shift_bins)),
+         (10, PerformanceEvent.TIME_SHIFT, 9)),
         (PerformanceEvent(
             event_type=PerformanceEvent.TIME_SHIFT, event_value=1),
-         (10, 3, PerformanceEvent.TIME_SHIFT, 0, num_shift_bins)),
+         (10, PerformanceEvent.TIME_SHIFT, 0)),
         (PerformanceEvent(
             event_type=PerformanceEvent.TIME_SHIFT, event_value=100),
-         (10, 3, PerformanceEvent.TIME_SHIFT, 99, num_shift_bins)),
+         (10, PerformanceEvent.TIME_SHIFT, 99)),
         (PerformanceEvent(event_type=PerformanceEvent.VELOCITY, event_value=5),
-         (13, 3, PerformanceEvent.VELOCITY, 4, num_velocity_bins)),
+         (13, PerformanceEvent.VELOCITY, 4)),
         (PerformanceEvent(event_type=PerformanceEvent.VELOCITY, event_value=1),
-         (13, 3, PerformanceEvent.VELOCITY, 0, num_velocity_bins)),
+         (13, PerformanceEvent.VELOCITY, 0)),
         (PerformanceEvent(event_type=PerformanceEvent.VELOCITY, event_value=16),
-         (13, 3, PerformanceEvent.VELOCITY, 15, num_velocity_bins)),
+         (13, PerformanceEvent.VELOCITY, 15)),
     ]
 
     # expected_encoded_modulo_event is of the following form:
@@ -189,7 +242,7 @@ class ModuloPerformanceEventSequenceEncoderTest(tf.test.TestCase):
 
   def setUp(self):
     self._num_velocity_bins = 32
-    self._max_shift_steps = 32
+    self._max_shift_steps = 100
     self.enc = ModuloPerformanceEventSequenceEncoderDecoder(
         num_velocity_bins=self._num_velocity_bins,
         max_shift_steps=self._max_shift_steps)

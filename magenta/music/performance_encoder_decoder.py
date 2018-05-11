@@ -73,8 +73,9 @@ class PerformanceModuloEncoding(object):
           (PerformanceEvent.VELOCITY, 1, num_velocity_bins,
            MODULO_VELOCITY_ENCODER_WIDTH))
     self._max_shift_steps = max_shift_steps
+    self._num_velocity_bins = num_velocity_bins
 
-    # Create a lookup table for modulo-12 encoding of notes.
+    # Create a lookup table for modulo-12 encoding of pitch classes.
     # Possible values for semitone_steps are 1 and 7. A value of 1 corresponds
     # to placing notes consecutively on the unit circle. A value of 7
     # corresponds to following each note with one that is 7 semitones above it.
@@ -84,11 +85,32 @@ class PerformanceModuloEncoding(object):
     # please make semitone_steps a parameter of this method, and add unit tests
     # for it.
     semitone_steps = 1
-    self._table = np.zeros((12, 2))
+    self._pitch_class_table = np.zeros((12, 2))
     for i in range(12):
       row = (i * semitone_steps) % 12
       angle = (float(row) * math.pi) / 6.0
-      self._table[row] = [math.cos(angle), math.sin(angle)]
+      self._pitch_class_table[row] = [math.cos(angle), math.sin(angle)]
+
+    # Create a lookup table for modulo-144 encoding of notes. Encode each note
+    # on a unit circle of 144 notes, spanning 12 octaves. Since there are only
+    # 128 midi notes, the last 16 positions on the unit circle will not be used.
+    self._note_table = np.zeros((144, 2))
+    for i in range(144):
+      angle = (float(i) * math.pi) / 72.0
+      self._note_table[i] = [math.cos(angle), math.sin(angle)]
+
+    # Create a lookup table for modulo-bins encoding of time_shifts.
+    self._time_shift_table = np.zeros((max_shift_steps, 2))
+    for i in range(max_shift_steps):
+      angle = (float(i) * 2.0 * math.pi) / float(max_shift_steps)
+      self._time_shift_table[i] = [math.cos(angle), math.sin(angle)]
+
+    # Create a lookup table for modulo-bins encoding of velocities.
+    if num_velocity_bins > 0:
+      self._velocity_table = np.zeros((num_velocity_bins, 2))
+      for i in range(num_velocity_bins):
+        angle = (float(i) * 2.0 * math.pi) / float(num_velocity_bins)
+        self._velocity_table[i] = [math.cos(angle), math.sin(angle)]
 
   @property
   def input_size(self):
@@ -99,19 +121,33 @@ class PerformanceModuloEncoding(object):
 
   def encode_modulo_event(self, event):
     offset = 0
-    for event_type, min_value, max_value, encoder_width in self._event_ranges:
+    for event_type, min_value, _, encoder_width in self._event_ranges:
       if event.event_type == event_type:
         value = event.event_value - min_value
-        bins = max_value - min_value + 1
-        return offset, encoder_width, event_type, value, bins
+        return offset, event_type, value
       offset += encoder_width
 
     raise ValueError('Unknown event type: %s' % event.event_type)
 
+  def embed_pitch_class(self, value):
+    if value < 0 or value >= 12:
+      raise ValueError('Unexpected pitch class value: %s' % value)
+    return self._pitch_class_table[value]
+
   def embed_note(self, value):
-    if value < 0 or value > 11:
-      raise ValueError('Unexpected note class number: %s' % value)
-    return self._table[value]
+    if value < 0 or value >= 144:
+      raise ValueError('Unexpected note value: %s' % value)
+    return self._note_table[value]
+
+  def embed_time_shift(self, value):
+    if value < 0 or value >= self._max_shift_steps:
+      raise ValueError('Unexpected time shift value: %s' % value)
+    return self._time_shift_table[value]
+
+  def embed_velocity(self, value):
+    if value < 0 or value >= self._num_velocity_bins:
+      raise ValueError('Unexpected velocity value: %s' % value)
+    return self._velocity_table[value]
 
 
 class ModuloPerformanceEventSequenceEncoderDecoder(EventSequenceEncoderDecoder):
@@ -132,41 +168,6 @@ class ModuloPerformanceEventSequenceEncoderDecoder(EventSequenceEncoderDecoder):
     Raises:
       ValueError: if EVENT_RANGES and MODULO_EVENT_RANGES are not compatible.
     """
-
-    # Check that event ranges used for PerformanceModuloEncoding and
-    # PerformanceOneHotEncoding are compatible (i.e., check the compatibility of
-    # EVENT_RANGES and MODULO_EVENT_RANGES). Only the ranges for
-    # PerformanceEvent.NOTE_ON and PerformanceEvent.NOTE_OFF need to be checked,
-    # as other ranges (i.e., those of TIME_SHIFT and VELOCITY) are set by this
-    # object and are thus compatible by construction.
-    modulo_encoding_pitch_ranges = {}
-    for event_type, min_value, max_value, _ in MODULO_EVENT_RANGES:
-      if event_type == PerformanceEvent.NOTE_ON:
-        modulo_encoding_pitch_ranges['note_on_min_midi_pitch'] = min_value
-        modulo_encoding_pitch_ranges['note_on_max_midi_pitch'] = max_value
-      elif event_type == PerformanceEvent.NOTE_OFF:
-        modulo_encoding_pitch_ranges['note_off_min_midi_pitch'] = min_value
-        modulo_encoding_pitch_ranges['note_off_max_midi_pitch'] = max_value
-
-    one_hot_encoding_pitch_ranges = {}
-    for event_type, min_value, max_value in EVENT_RANGES:
-      if event_type == PerformanceEvent.NOTE_ON:
-        one_hot_encoding_pitch_ranges['note_on_min_midi_pitch'] = min_value
-        one_hot_encoding_pitch_ranges['note_on_max_midi_pitch'] = max_value
-      elif event_type == PerformanceEvent.NOTE_OFF:
-        one_hot_encoding_pitch_ranges['note_off_min_midi_pitch'] = min_value
-        one_hot_encoding_pitch_ranges['note_off_max_midi_pitch'] = max_value
-
-    if ((modulo_encoding_pitch_ranges['note_on_min_midi_pitch'] !=
-         one_hot_encoding_pitch_ranges['note_on_min_midi_pitch']) or
-        (modulo_encoding_pitch_ranges['note_on_max_midi_pitch'] !=
-         one_hot_encoding_pitch_ranges['note_on_max_midi_pitch']) or
-        (modulo_encoding_pitch_ranges['note_off_min_midi_pitch'] !=
-         one_hot_encoding_pitch_ranges['note_off_min_midi_pitch']) or
-        (modulo_encoding_pitch_ranges['note_off_max_midi_pitch'] !=
-         one_hot_encoding_pitch_ranges['note_off_max_midi_pitch'])):
-      raise ValueError('EVENT_RANGES and MODULO_EVENT_RANGES must use ',
-                       'the same ranges for NOTE_ON and NOTE_OFF')
 
     self._modulo_encoding = PerformanceModuloEncoding(
         num_velocity_bins=num_velocity_bins, max_shift_steps=max_shift_steps)
@@ -200,33 +201,33 @@ class ModuloPerformanceEventSequenceEncoderDecoder(EventSequenceEncoderDecoder):
       An input vector, a list of floats.
     """
     input_ = [0.0] * self.input_size
-    offset, _, event_type, value, bins = (self._modulo_encoding
-                                          .encode_modulo_event(
-                                              events[position]))
+    offset, event_type, value = (self._modulo_encoding
+                                 .encode_modulo_event(events[position]))
     input_[offset] = 1.0  # valid bit for the event
     offset += 1
-    angle = 0.0
     if (event_type == performance_lib.PerformanceEvent.NOTE_ON or
         event_type == performance_lib.PerformanceEvent.NOTE_OFF):
 
       # Encode the note on a circle of 144 notes, covering 12 octaves.
-      angle = (float(value) * math.pi) / 72.0  # 12 octaves, up to 144 notes
-      input_[offset] = math.cos(angle)
-      input_[offset + 1] = math.sin(angle)
+      cosine_sine_pair = self._modulo_encoding.embed_note(value)
+      input_[offset] = cosine_sine_pair[0]
+      input_[offset + 1] = cosine_sine_pair[1]
       offset += 2
 
       # Encode the note's pitch class, using the encoder's lookup table.
       value %= 12
-      cosine = self._modulo_encoding.embed_note(value)[0]
-      sine = self._modulo_encoding.embed_note(value)[1]
-      input_[offset] = cosine
-      input_[offset + 1] = sine
+      cosine_sine_pair = self._modulo_encoding.embed_pitch_class(value)
+      input_[offset] = cosine_sine_pair[0]
+      input_[offset + 1] = cosine_sine_pair[1]
     else:
-      # This must be a velocity, or a time-shift event. Compute its
+      # This must be a velocity, or a time-shift event. Encode it using
       # modulo-bins embedding.
-      angle = (float(value) * 2.0 * math.pi) / float(bins)
-      input_[offset] = math.cos(angle)
-      input_[offset + 1] = math.sin(angle)
+      if event_type == performance_lib.PerformanceEvent.TIME_SHIFT:
+        cosine_sine_pair = self._modulo_encoding.embed_time_shift(value)
+      else:
+        cosine_sine_pair = self._modulo_encoding.embed_velocity(value)
+      input_[offset] = cosine_sine_pair[0]
+      input_[offset + 1] = cosine_sine_pair[1]
     return input_
 
   def events_to_label(self, events, position):
