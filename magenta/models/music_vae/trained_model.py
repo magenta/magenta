@@ -221,7 +221,7 @@ class TrainedModel(object):
     Raises:
        RuntimeError: If called for a non-conditional model.
     """
-    if not self._config.hparams.z_size::
+    if not self._config.hparams.z_size:
       raise RuntimeError('Cannot encode with a non-conditional model.')
 
     n = len(input_tensors)
@@ -307,7 +307,7 @@ class TrainedModel(object):
       ValueError: If `length` is not specified and an end token is not being
         used.
     """
-    if not self._config.hparams.z_size::
+    if not self._config.hparams.z_size:
       raise RuntimeError('Cannot decode with a non-conditional model.')
 
     if not length and self._config.data_converter.end_token is None:
