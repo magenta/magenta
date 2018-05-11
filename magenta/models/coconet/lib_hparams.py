@@ -45,6 +45,9 @@ class Hyperparameters(object):
       init_scale=0.1,
       # Model architecture.
       architecture=None,
+      use_sep_conv=False,
+      sep_conv_depth_multiplier=1,
+      num_initial_regular_conv_layers=2,
       num_layers=28,
       num_filters=256,
       use_residual=True,
@@ -142,6 +145,9 @@ class Hyperparameters(object):
         num_pitches='n_pch',
         quantization_level='quant',
         use_residual='res',
+        use_sep_conv='sconv',
+        sep_conv_depth_multiplier='depth_mul',
+        num_initial_regular_conv_layers='nreg_conv',
         separate_instruments='sep',
         rescale_loss='rescale',
         maskout_method='mm')

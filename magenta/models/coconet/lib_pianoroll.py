@@ -181,7 +181,7 @@ class PianorollEncoderDecoder(object):
     max_tt = np.max([roll.shape[0] for roll in instr_rolls])
     if tt < max_tt:
       tf.logging.warning(
-          'WARNING: input midi is a longer sequence then the requested',
+          'WARNING: input midi is a longer sequence then the requested'
           'size (%d > %d)', max_tt, tt)
     elif max_tt < tt:
       max_tt = tt
