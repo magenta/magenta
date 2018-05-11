@@ -47,6 +47,13 @@ flags.DEFINE_integer('crop_piece_len', 64, 'The number of time steps '
 # Model architecture.
 flags.DEFINE_string('architecture', 'straight',
                     'Convnet style. Choices: straight')
+flags.DEFINE_bool('use_sep_conv', False, 'Use depthwise separable '
+                  'convolutions.')
+flags.DEFINE_integer('sep_conv_depth_multiplier', 1, 'Depth multiplier for'
+                     'depthwise separable convs.')
+flags.DEFINE_integer('num_initial_regular_conv_layers', 2, 'The number of'
+                     'regular convolutional layers to start with when using'
+                     'depthwise separable convolutional layers.')
 flags.DEFINE_integer('num_layers', 64, 'The number of convolutional layers.')
 flags.DEFINE_integer('num_filters', 128,
                      'The number of filters for each convolutional '
@@ -321,9 +328,11 @@ def _print_popstat_info(tfpopstats, nppopstats):
 
 
 def _hparams_from_flags():
+  """Instantiate hparams based on flags set in FLAGS."""
   keys = ("""
       dataset quantization_level num_instruments separate_instruments
-      crop_piece_len architecture num_layers num_filters use_residual
+      crop_piece_len architecture use_sep_conv num_initial_regular_conv_layers
+      sep_conv_depth_multiplier num_layers num_filters use_residual
       batch_size maskout_method mask_indicates_context optimize_mask_only
       rescale_loss patience corrupt_ratio eval_freq run_id
       """.split())

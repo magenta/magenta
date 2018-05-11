@@ -2,7 +2,6 @@
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
-import os
 import time
 # internal imports
 import numpy as np
@@ -18,6 +17,16 @@ class CoconetSampleGraph(object):
   """Graph for Gibbs sampling from Coconet."""
 
   def __init__(self, chkpt_path, placeholders=None):
+    """Initializes inputs for the Coconet sampling graph.
+
+    Does not build or restore the graph. That happens lazily if you call run(),
+    or explicitly using instantiate_sess_and_restore_checkpoint.
+
+    Args:
+      chkpt_path: Checkpoint directory for loading the model.
+          Uses the latest checkpoint.
+      placeholders: Optional placeholders.
+    """
     self.chkpt_path = chkpt_path
     self.hparams = lib_hparams.load_hparams(chkpt_path)
     if placeholders is None:
@@ -25,52 +34,52 @@ class CoconetSampleGraph(object):
     else:
       self.placeholders = placeholders
 
-    self.build_sample_graph()
-    self.sess = self.instantiate_sess_and_restore_checkpoint()
+    self.samples = None
+    self.sess = None
 
   def get_placeholders(self):
     hparams = self.hparams
     return dict(
         pianorolls=tf.placeholder(
             tf.float32,
-            [None, None, hparams.num_pitches, hparams.num_instruments]),
+            [None, None, hparams.num_pitches, hparams.num_instruments],
+            "pianorolls"),
         outer_masks=tf.placeholder(
             tf.float32,
-            [None, None, hparams.num_pitches, hparams.num_instruments]),
-        sample_steps=tf.placeholder(tf.float32, None),
-        total_gibbs_steps=tf.placeholder(tf.float32, None),
-        current_step=tf.placeholder(tf.float32, None),
-        temperature=tf.placeholder(tf.float32, None))
+            [None, None, hparams.num_pitches, hparams.num_instruments],
+            "outer_masks"),
+        sample_steps=tf.placeholder_with_default(0, (), "sample_steps"),
+        total_gibbs_steps=tf.placeholder_with_default(
+            0, (), "total_gibbs_steps"),
+        current_step=tf.placeholder_with_default(0, (), "current_step"),
+        temperature=tf.placeholder_with_default(0.99, (), "temperature"))
 
   @property
   def inputs(self):
     return self.placeholders
 
-  @property
-  def outer_masks(self):
-    return self.placeholders["outer_masks"]
-
-  @property
-  def temperature(self):
-    return self.inputs["temperature"]
-
   def build_sample_graph(self):
-    """Builds the tf.while_loop based sample graph."""
+    """Builds the tf.while_loop based sampling graph.
+
+    Returns:
+      The output op of the graph.
+    """
     tt = tf.shape(self.inputs["pianorolls"])[1]
     sample_steps = tf.to_float(self.inputs["sample_steps"])
     total_gibbs_steps = self.inputs["total_gibbs_steps"]
+    temperature = self.inputs["temperature"]
 
+    # Calculate total_gibbs_steps as steps * num_instruments if not given.
     total_gibbs_steps = tf.cond(
         tf.equal(total_gibbs_steps, 0),
         lambda: tf.to_float(tt * self.hparams.num_instruments),
         lambda: tf.to_float(total_gibbs_steps))
 
+    # sample_steps is set to total_gibbs_steps if not given.
     sample_steps = tf.cond(
         tf.equal(sample_steps, 0),
         lambda: total_gibbs_steps,
         lambda: tf.to_float(sample_steps))
-    sample_steps = tf.Print(sample_steps, [total_gibbs_steps, sample_steps],
-                            "total_gibbs_steps, sample_steps")
 
     def infer_step(pianorolls, step_count):
       """Called by tf.while_loop, takes a Gibbs step."""
@@ -78,10 +87,10 @@ class CoconetSampleGraph(object):
                                                       total_gibbs_steps)
       # 1 indicates mask out, 0 is not mask.
       masks = make_bernoulli_masks(tf.shape(pianorolls), mask_prob,
-                                   self.outer_masks)
+                                   self.inputs["outer_masks"])
 
       logits = self.predict(pianorolls, masks)
-      samples = sample_with_temperature(logits, temperature=self.temperature)
+      samples = sample_with_temperature(logits, temperature=temperature)
 
       outputs = pianorolls * (1 - masks) + samples * masks
 
@@ -99,8 +108,9 @@ class CoconetSampleGraph(object):
     current_step = tf.to_float(self.inputs["current_step"])
 
     # Initializes pianorolls by evaluating the model once to fill in all gaps.
-    logits = self.predict(self.inputs["pianorolls"], self.outer_masks)
-    samples = sample_with_temperature(logits, temperature=self.temperature)
+    logits = self.predict(
+        self.inputs["pianorolls"], self.inputs["outer_masks"])
+    samples = sample_with_temperature(logits, temperature=temperature)
     tf.get_variable_scope().reuse_variables()
 
     self.samples, current_step = tf.while_loop(
@@ -111,7 +121,10 @@ class CoconetSampleGraph(object):
             tf.TensorShape(None),
         ],
         back_prop=False,
-        parallel_iterations=1)
+        parallel_iterations=1,
+        name="coco_while")
+    self.samples.set_shape(self.inputs["pianorolls"].shape)
+    return self.samples
 
   def predict(self, pianorolls, masks):
     """Evalutes the model once and returns predictions."""
@@ -128,13 +141,17 @@ class CoconetSampleGraph(object):
     return self.logits
 
   def instantiate_sess_and_restore_checkpoint(self):
+    """Instantiates session and restores from self.chkpt_path."""
+    if self.samples is None:
+      self.build_sample_graph()
     sess = tf.Session()
     saver = tf.train.Saver()
-    tf.logging.info("loading checkpoint %s", self.chkpt_path)
-    chkpt_fpath = os.path.join(self.chkpt_path, "best_model.ckpt")
+    chkpt_fpath = tf.train.latest_checkpoint(self.chkpt_path)
+    tf.logging.info("loading checkpoint %s", chkpt_fpath)
     saver.restore(sess, chkpt_fpath)
     tf.get_variable_scope().reuse_variables()
-    return sess
+    self.sess = sess
+    return self.sess
 
   def run(self,
           pianorolls,
@@ -159,6 +176,8 @@ class CoconetSampleGraph(object):
     number of steps taken, and feed in the intermediate pianorolls.  Again
     leaving total_gibbs_steps as 0.
 
+    Builds the graph and restores checkpoint if necessary.
+
     Args:
       pianorolls: a 4D numpy array of shape (batch, time, pitch, instrument)
       masks: a 4D numpy array of the same shape as pianorolls, with 1s
@@ -177,6 +196,10 @@ class CoconetSampleGraph(object):
       A dictionary, consisting of "pianorolls" which is a 4D numpy array of
       the sampled results and "time_taken" which is the time taken in sampling.
     """
+    if self.sess is None:
+      # Build graph and restore checkpoint.
+      self.instantiate_sess_and_restore_checkpoint()
+
     outer_masks = masks
     if outer_masks is None:
       outer_masks = lib_sampling.CompletionMasker()(pianorolls)
