@@ -558,7 +558,7 @@ class SequencesLibTest(tf.test.TestCase):
     self.assertProtoEquals(expected_subsequence_3, subsequences[2])
 
   def testSplitNoteSequenceWithStatelessEvents(self):
-    # Tests splitting a NoteSequence at specified times, truncating notes.
+    # Tests splitting a NoteSequence at specified times with stateless events.
     sequence = common_testing_lib.parse_test_proto(
         music_pb2.NoteSequence,
         """
