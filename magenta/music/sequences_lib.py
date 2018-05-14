@@ -38,7 +38,8 @@ from magenta.protobuf import music_pb2
 # and they will be snapped to the previous step.
 QUANTIZE_CUTOFF = 0.5
 
-# Shortcut to chord symbol text annotation type.
+# Shortcut to text annotation types.
+BEAT = music_pb2.NoteSequence.TextAnnotation.BEAT
 CHORD_SYMBOL = music_pb2.NoteSequence.TextAnnotation.CHORD_SYMBOL
 
 
@@ -219,6 +220,26 @@ def _extract_subsequences(sequence, split_times, sustain_control_number=64):
       if previous_event is not None:
         containers[subsequence_index].extend([previous_event])
         containers[subsequence_index][-1].time = 0.0
+
+  stateless_events_by_type = [
+      [annotation for annotation in sequence.text_annotations
+       if annotation.annotation_type in (BEAT,)]]
+  new_stateless_event_containers = [
+      [s.text_annotations for s in subsequences]
+  ]
+  for events, containers in zip(stateless_events_by_type,
+                                new_stateless_event_containers):
+    subsequence_index = -1
+    for event in sorted(events, key=lambda event: event.time):
+      if event.time < split_times[0]:
+        continue
+      while (subsequence_index < len(split_times) - 1 and
+             event.time >= split_times[subsequence_index + 1]):
+        subsequence_index += 1
+      if subsequence_index == len(split_times) - 1:
+        break
+      containers[subsequence_index].extend([event])
+      containers[subsequence_index][-1].time -= split_times[subsequence_index]
 
   # Extract sustain pedal events (other control changes are deleted). Sustain
   # pedal state is maintained per-instrument and added to the beginning of each
