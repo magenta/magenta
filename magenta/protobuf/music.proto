@@ -341,6 +341,14 @@ message NoteSequence {
       // Some examples of chord symbol text we consider reasonable: 'C#', 'A7',
       // 'Fm7b5', 'N.C.', 'G(no3)', 'C/Bb', 'D-9(b5)', 'Gadd2', 'Abm(maj7)'.
       CHORD_SYMBOL = 1;
+      // Annotation used to indicate a "beat" within a performance. This is
+      // useful when beat information cannot be derived from the time signature
+      // and tempo, as is the case for live performances.
+      // This annotation does not imply that the beat is a downbeat, and it is
+      // undefined what kind of metrical value the beat has (e.g., quarter
+      // note).
+      // The text content of this annotation can be application-specific.
+      BEAT = 2;
     }
   }
 
