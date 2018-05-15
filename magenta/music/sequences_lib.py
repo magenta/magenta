@@ -175,9 +175,9 @@ def _extract_subsequences(sequence, split_times, sustain_control_number=64):
       subsequences[subsequence_index].total_time = (
           subsequences[subsequence_index].notes[-1].end_time)
 
-  # Extract time signatures, key signatures, tempos, and chord changes (other
-  # text annotations are deleted, as are pitch bends). Additional state events
-  # will be added to the beginning of each subsequence.
+  # Extract time signatures, key signatures, tempos, and chord changes (beats
+  # are handled below, other text annotations and pitch bends are deleted).
+  # Additional state events will be added to the beginning of each subsequence.
 
   events_by_type = [
       sequence.time_signatures, sequence.key_signatures, sequence.tempos,
@@ -221,6 +221,9 @@ def _extract_subsequences(sequence, split_times, sustain_control_number=64):
         containers[subsequence_index].extend([previous_event])
         containers[subsequence_index][-1].time = 0.0
 
+  # Copy stateless events to subsequences. Unlike the stateful events above,
+  # stateless events do not have an effect outside of the subsequence in which
+  # they occur.
   stateless_events_by_type = [
       [annotation for annotation in sequence.text_annotations
        if annotation.annotation_type in (BEAT,)]]
