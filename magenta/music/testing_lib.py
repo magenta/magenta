@@ -17,7 +17,8 @@
 from magenta.music import encoder_decoder
 from magenta.protobuf import music_pb2
 
-# Shortcut to CHORD_SYMBOL annotation type.
+# Shortcut to text annotation types.
+BEAT = music_pb2.NoteSequence.TextAnnotation.BEAT
 CHORD_SYMBOL = music_pb2.NoteSequence.TextAnnotation.CHORD_SYMBOL
 
 
@@ -42,6 +43,13 @@ def add_chords_to_sequence(note_sequence, chords):
     annotation.time = time
     annotation.text = figure
     annotation.annotation_type = CHORD_SYMBOL
+
+
+def add_beats_to_sequence(note_sequence, beats):
+  for time in beats:
+    annotation = note_sequence.text_annotations.add()
+    annotation.time = time
+    annotation.annotation_type = BEAT
 
 
 def add_control_changes_to_sequence(note_sequence, instrument, control_changes):

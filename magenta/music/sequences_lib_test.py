@@ -557,6 +557,72 @@ class SequencesLibTest(tf.test.TestCase):
     self.assertProtoEquals(expected_subsequence_2, subsequences[1])
     self.assertProtoEquals(expected_subsequence_3, subsequences[2])
 
+  def testSplitNoteSequenceWithStatelessEvents(self):
+    # Tests splitting a NoteSequence at specified times with stateless events.
+    sequence = common_testing_lib.parse_test_proto(
+        music_pb2.NoteSequence,
+        """
+        time_signatures: {
+          numerator: 4
+          denominator: 4}
+        tempos: {
+          qpm: 60}""")
+    testing_lib.add_track_to_sequence(
+        sequence, 0,
+        [(12, 100, 0.01, 8.0), (11, 55, 0.22, 0.50), (40, 45, 2.50, 3.50),
+         (55, 120, 4.0, 4.01), (52, 99, 4.75, 5.0)])
+    testing_lib.add_beats_to_sequence(sequence, [1.0, 2.0, 4.0])
+
+    expected_subsequence_1 = common_testing_lib.parse_test_proto(
+        music_pb2.NoteSequence,
+        """
+        time_signatures: {
+          numerator: 4
+          denominator: 4}
+        tempos: {
+          qpm: 60}""")
+    testing_lib.add_track_to_sequence(
+        expected_subsequence_1, 0,
+        [(12, 100, 0.01, 3.0), (11, 55, 0.22, 0.50), (40, 45, 2.50, 3.0)])
+    testing_lib.add_beats_to_sequence(expected_subsequence_1, [1.0, 2.0])
+    expected_subsequence_1.total_time = 3.0
+    expected_subsequence_1.subsequence_info.end_time_offset = 5.0
+
+    expected_subsequence_2 = common_testing_lib.parse_test_proto(
+        music_pb2.NoteSequence,
+        """
+        time_signatures: {
+          numerator: 4
+          denominator: 4}
+        tempos: {
+          qpm: 60}""")
+    expected_subsequence_2.total_time = 0.0
+    expected_subsequence_2.subsequence_info.start_time_offset = 3.0
+    expected_subsequence_2.subsequence_info.end_time_offset = 5.0
+
+    expected_subsequence_3 = common_testing_lib.parse_test_proto(
+        music_pb2.NoteSequence,
+        """
+        time_signatures: {
+          numerator: 4
+          denominator: 4}
+        tempos: {
+          qpm: 60}""")
+    testing_lib.add_track_to_sequence(
+        expected_subsequence_3, 0,
+        [(55, 120, 0.0, 0.01), (52, 99, 0.75, 1.0)])
+    testing_lib.add_beats_to_sequence(expected_subsequence_3, [0.0])
+    expected_subsequence_3.total_time = 1.0
+    expected_subsequence_3.subsequence_info.start_time_offset = 4.0
+    expected_subsequence_3.subsequence_info.end_time_offset = 3.0
+
+    subsequences = sequences_lib.split_note_sequence(
+        sequence, hop_size_seconds=[3.0, 4.0])
+    self.assertEquals(3, len(subsequences))
+    self.assertProtoEquals(expected_subsequence_1, subsequences[0])
+    self.assertProtoEquals(expected_subsequence_2, subsequences[1])
+    self.assertProtoEquals(expected_subsequence_3, subsequences[2])
+
   def testQuantizeNoteSequence(self):
     testing_lib.add_track_to_sequence(
         self.note_sequence, 0,

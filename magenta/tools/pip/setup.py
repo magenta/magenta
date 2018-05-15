@@ -35,7 +35,6 @@ REQUIRED_PACKAGES = [
     'IPython',
     'Pillow >= 3.4.2',
     'bokeh >= 0.12.0',
-    'futures',
     'intervaltree >= 2.1.0',
     'librosa >= 0.6.0',
     'matplotlib >= 1.5.3',
@@ -120,6 +119,7 @@ setup(
 
     packages=find_packages(),
     install_requires=REQUIRED_PACKAGES,
+    extras_require={':python_version == "2.7"': ['futures']},
     entry_points={
         'console_scripts': ['%s = %s:console_entry_point' % (n, p) for n, p in
                             ((s.split('.')[-1], s) for s in CONSOLE_SCRIPTS)],
