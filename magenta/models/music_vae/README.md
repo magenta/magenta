@@ -41,6 +41,7 @@ MusicVAE models in the browser. Existing applications built with this library in
 Learn more about the API in its [repo](https://goo.gl/magenta/musicvae-js).
 
 #### Training Your Own MusicVAE
+
 If you'd like to train a model on your own data, you will first need to set up
 your [Magenta environment](/README.md). Next, convert a collection of MIDI files
 into NoteSequences following the instructions in
@@ -67,9 +68,18 @@ and learning rate by setting the flag as follows:
 --hparams=batch_size=32,learning_rate=0.0005
 ```
 
+These models are particularly sensitive to the `free_bits` and `max_beta`
+hparams. Decreasing the effect of the KL loss (by increasing `free_bits` or
+decreasing `max_beta`) results in a model that produces better reconstructions,
+but with potentially worse random samples. Increasing the effect of the KL loss
+typically results in the opposite. The default config settings of these hparams
+are an attempt to reach a balance between good sampling and reconstruction,
+but the best settings are dataset-dependent and will likely need to be adjusted.
+
 Finally, you should also launch an evaluation job (using `--mode=eval` with a
 heldout dataset) in order to compute metrics such as accuracy and to avoid
 overfitting.
 
 Once your model has trained sufficiently, you can load the checkpoint into the
-[Colab Notebook](https://goo.gl/magenta/musicvae-paper) to do inference and produce audio outputs.
+[Colab Notebook](https://goo.gl/magenta/musicvae-paper) to do inference and
+produce audio outputs.
