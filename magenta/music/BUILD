@@ -564,6 +564,7 @@ py_library(
         ":constants",
         ":encoder_decoder",
         ":performance_lib",
+        # numpy dep
         # tensorflow dep
     ],
 )

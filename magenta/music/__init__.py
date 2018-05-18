@@ -94,6 +94,8 @@ from magenta.music.performance_controls import all_performance_control_signals
 from magenta.music.performance_controls import NoteDensityPerformanceControlSignal
 from magenta.music.performance_controls import PitchHistogramPerformanceControlSignal
 
+from magenta.music.performance_encoder_decoder import ModuloPerformanceEventSequenceEncoderDecoder
+from magenta.music.performance_encoder_decoder import PerformanceModuloEncoding
 from magenta.music.performance_encoder_decoder import PerformanceOneHotEncoding
 
 from magenta.music.performance_lib import extract_performances
