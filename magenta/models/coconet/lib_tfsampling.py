@@ -41,7 +41,7 @@ class CoconetSampleGraph(object):
     hparams = self.hparams
     return dict(
         pianorolls=tf.placeholder(
-            tf.float32,
+            tf.bool,
             [None, None, hparams.num_pitches, hparams.num_instruments],
             "pianorolls"),
         outer_masks=tf.placeholder(
@@ -109,7 +109,7 @@ class CoconetSampleGraph(object):
 
     # Initializes pianorolls by evaluating the model once to fill in all gaps.
     logits = self.predict(
-        self.inputs["pianorolls"], self.inputs["outer_masks"])
+        tf.to_float(self.inputs["pianorolls"]), self.inputs["outer_masks"])
     samples = sample_with_temperature(logits, temperature=temperature)
     tf.get_variable_scope().reuse_variables()
 

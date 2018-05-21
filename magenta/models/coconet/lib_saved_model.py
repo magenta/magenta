@@ -14,7 +14,7 @@ def get_signature_def(model, use_tf_sampling):
             'pianorolls': model.inputs['pianorolls'],
             'outer_masks': model.inputs['outer_masks'],
         }, outputs={
-            'predictions': model.samples
+            'predictions': tf.cast(model.samples, tf.bool),
         })
   return tf.saved_model.signature_def_utils.predict_signature_def(
       inputs={
