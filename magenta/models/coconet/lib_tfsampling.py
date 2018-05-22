@@ -16,7 +16,8 @@ FLAGS = tf.app.flags.FLAGS
 class CoconetSampleGraph(object):
   """Graph for Gibbs sampling from Coconet."""
 
-  def __init__(self, chkpt_path, placeholders=None):
+  def __init__(self, chkpt_path, placeholders=None,
+               use_completion_masker_on_outer_masks_all_zeros=True):
     """Initializes inputs for the Coconet sampling graph.
 
     Does not build or restore the graph. That happens lazily if you call run(),
@@ -26,6 +27,12 @@ class CoconetSampleGraph(object):
       chkpt_path: Checkpoint directory for loading the model.
           Uses the latest checkpoint.
       placeholders: Optional placeholders.
+      use_completion_masker_on_outer_masks_all_zeros: use completion
+          masker to create outer masks if it comes in as all zeros.
+          Remainder, 0 means do not mask out, hence if outer_masks are
+          all zeros that means nothing will be generated. But since
+          sampler is called, overload this case to use completion masker
+          to determine which positions to fill in.
     """
     self.chkpt_path = chkpt_path
     self.hparams = lib_hparams.load_hparams(chkpt_path)
@@ -33,7 +40,8 @@ class CoconetSampleGraph(object):
       self.placeholders = self.get_placeholders()
     else:
       self.placeholders = placeholders
-
+    self.use_completion_masker_on_outer_masks_all_zeros = (
+        use_completion_masker_on_outer_masks_all_zeros)
     self.samples = None
     self.sess = None
 
@@ -69,6 +77,20 @@ class CoconetSampleGraph(object):
     total_gibbs_steps = self.inputs["total_gibbs_steps"]
     temperature = self.inputs["temperature"]
 
+    input_pianorolls = tf.to_float(self.inputs["pianorolls"])
+    outer_masks = tf.to_float(self.inputs["outer_masks"])
+    # If outer_masks come in as all zeros, it means there's no masking,
+    # which also means nothing will be generated.  If flag is set,
+    # then change this by using completion mask to make new outer masks.
+
+    use_completion_masker_criteria = (
+        self.use_completion_masker_on_outer_masks_all_zeros and
+        tf.reduce_all(tf.equal(outer_masks, 0)))
+    outer_masks = tf.cond(
+        use_completion_masker_criteria,
+        lambda: make_completion_masks(outer_masks),
+        lambda: outer_masks)
+
     # Calculate total_gibbs_steps as steps * num_instruments if not given.
     total_gibbs_steps = tf.cond(
         tf.equal(total_gibbs_steps, 0),
@@ -87,7 +109,7 @@ class CoconetSampleGraph(object):
                                                       total_gibbs_steps)
       # 1 indicates mask out, 0 is not mask.
       masks = make_bernoulli_masks(tf.shape(pianorolls), mask_prob,
-                                   self.inputs["outer_masks"])
+                                   outer_masks)
 
       logits = self.predict(pianorolls, masks)
       samples = sample_with_temperature(logits, temperature=temperature)
@@ -108,8 +130,7 @@ class CoconetSampleGraph(object):
     current_step = tf.to_float(self.inputs["current_step"])
 
     # Initializes pianorolls by evaluating the model once to fill in all gaps.
-    logits = self.predict(
-        tf.to_float(self.inputs["pianorolls"]), self.inputs["outer_masks"])
+    logits = self.predict(input_pianorolls, outer_masks)
     samples = sample_with_temperature(logits, temperature=temperature)
     tf.get_variable_scope().reuse_variables()
 
@@ -123,7 +144,7 @@ class CoconetSampleGraph(object):
         back_prop=False,
         parallel_iterations=1,
         name="coco_while")
-    self.samples.set_shape(self.inputs["pianorolls"].shape)
+    self.samples.set_shape(input_pianorolls.shape)
     return self.samples
 
   def predict(self, pianorolls, masks):
@@ -200,16 +221,15 @@ class CoconetSampleGraph(object):
       # Build graph and restore checkpoint.
       self.instantiate_sess_and_restore_checkpoint()
 
-    outer_masks = masks
-    if outer_masks is None:
-      outer_masks = lib_sampling.CompletionMasker()(pianorolls)
+    if masks is None:
+      masks = np.zeros_like(pianorolls)
 
     start_time = time.time()
     new_piece = self.sess.run(
         self.samples,
         feed_dict={
             self.placeholders["pianorolls"]: pianorolls,
-            self.placeholders["outer_masks"]: outer_masks,
+            self.placeholders["outer_masks"]: masks,
             self.placeholders["sample_steps"]: sample_steps,
             self.placeholders["total_gibbs_steps"]: total_gibbs_steps,
             self.placeholders["current_step"]: current_step,
@@ -220,6 +240,12 @@ class CoconetSampleGraph(object):
     time_taken = (time.time() - start_time) / 60.0
     tf.logging.info("exit  %s (%.3fmin)" % (label, time_taken))
     return dict(pianorolls=new_piece, time_taken=time_taken)
+
+
+def make_completion_masks(pianorolls, outer_masks=1.):
+  masks = tf.reduce_all(tf.equal(pianorolls, 0), axis=2, keep_dims=True)
+  inner_masks = tf.to_float(masks) + 0 * pianorolls
+  return inner_masks * outer_masks
 
 
 def make_bernoulli_masks(shape, pm, outer_masks=1.):
