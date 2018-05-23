@@ -18,7 +18,11 @@ from __future__ import division
 from __future__ import print_function
 
 import os
+import scipy
+import six
 import wave
+
+import numpy as np
 import tensorflow as tf
 
 from magenta.music import audio_io
@@ -54,6 +58,14 @@ class AudioIoTest(tf.test.TestCase):
     self.assertGreater(-0.1, y_mono.min())
     self.assertLess(0.1, y.max())
     self.assertLess(0.1, y_mono.max())
+
+  def testFloatWavDataToSamples(self):
+    y = audio_io.wav_data_to_samples(self.wav_data, sample_rate=16000)
+    wav_io = six.BytesIO()
+    wav_data_float = scipy.io.wavfile.write(wav_io, 16000, y)
+    y_from_float = audio_io.wav_data_to_samples(
+        wav_io.getvalue(), sample_rate=16000)
+    np.testing.assert_array_equal(y, y_from_float)
 
 
 if __name__ == '__main__':

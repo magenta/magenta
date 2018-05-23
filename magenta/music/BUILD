@@ -81,7 +81,6 @@ py_test(
     deps = [
         ":audio_io",
         "//magenta/protobuf:music_py_pb2",
-        # librosa dep
         # numpy dep
         # scipy dep
         # tensorflow dep
