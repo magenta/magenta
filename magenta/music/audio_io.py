@@ -73,11 +73,18 @@ def wav_data_to_samples(wav_data, sample_rate):
     native_sr, y = scipy.io.wavfile.read(six.BytesIO(wav_data))
   except Exception as e:  # pylint: disable=broad-except
     raise AudioIOReadException(e)
-  if y.dtype != np.int16:
-    raise AudioIOException('WAV file not 16-bit PCM, unsupported')
-  try:
-    # Convert to float, mono, and the desired sample rate.
+
+  if y.dtype == np.int16:
+    # Convert to float32.
     y = int16_samples_to_float32(y)
+  elif y.dtype == np.float32:
+    # Already float32.
+    pass
+  else:
+    raise AudioIOException(
+        'WAV file not 16-bit or 32-bit float PCM, unsupported')
+  try:
+    # Convert to mono and the desired sample rate.
     if y.ndim == 2 and y.shape[1] == 2:
       y = y.T
       y = librosa.to_mono(y)
