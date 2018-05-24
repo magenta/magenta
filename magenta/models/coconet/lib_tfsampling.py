@@ -15,8 +15,7 @@ FLAGS = tf.app.flags.FLAGS
 class CoconetSampleGraph(object):
   """Graph for Gibbs sampling from Coconet."""
 
-  def __init__(self, chkpt_path, placeholders=None,
-               use_completion_masker_on_outer_masks_all_zeros=True):
+  def __init__(self, chkpt_path, placeholders=None):
     """Initializes inputs for the Coconet sampling graph.
 
     Does not build or restore the graph. That happens lazily if you call run(),
@@ -26,12 +25,6 @@ class CoconetSampleGraph(object):
       chkpt_path: Checkpoint directory for loading the model.
           Uses the latest checkpoint.
       placeholders: Optional placeholders.
-      use_completion_masker_on_outer_masks_all_zeros: use completion
-          masker to create outer masks if it comes in as all zeros.
-          Remainder, 0 means do not mask out, hence if outer_masks are
-          all zeros that means nothing will be generated. But since
-          sampler is called, overload this case to use completion masker
-          to determine which positions to fill in.
     """
     self.chkpt_path = chkpt_path
     self.hparams = lib_hparams.load_hparams(chkpt_path)
@@ -39,8 +32,6 @@ class CoconetSampleGraph(object):
       self.placeholders = self.get_placeholders()
     else:
       self.placeholders = placeholders
-    self.use_completion_masker_on_outer_masks_all_zeros = (
-        use_completion_masker_on_outer_masks_all_zeros)
     self.samples = None
     self.sess = None
 
@@ -51,8 +42,12 @@ class CoconetSampleGraph(object):
             tf.bool,
             [None, None, hparams.num_pitches, hparams.num_instruments],
             "pianorolls"),
-        outer_masks=tf.placeholder(
-            tf.float32,
+        # The default value is only used for checking it completion masker
+        # should be evoked.  It can't be used directly as the batch size
+        # and length of pianorolls are unknown during static time.
+        outer_masks=tf.placeholder_with_default(
+            np.zeros(
+                (1, 1, hparams.num_pitches, hparams.num_instruments)),
             [None, None, hparams.num_pitches, hparams.num_instruments],
             "outer_masks"),
         sample_steps=tf.placeholder_with_default(0, (), "sample_steps"),
@@ -64,6 +59,18 @@ class CoconetSampleGraph(object):
   @property
   def inputs(self):
     return self.placeholders
+
+  @property
+  def outer_masks(self):
+    outer_masks = tf.to_float(self.inputs["outer_masks"])
+    # If outer_masks come in as all zeros, it means there's no masking,
+    # which also means nothing will be generated. In this case, use
+    # completion mask to make new outer masks.
+    outer_masks = tf.cond(
+        tf.reduce_all(tf.equal(outer_masks, 0)),
+        lambda: make_completion_masks(self.inputs["pianorolls"]),
+        lambda: outer_masks)
+    return outer_masks
 
   def build_sample_graph(self):
     """Builds the tf.while_loop based sampling graph.
@@ -77,18 +84,7 @@ class CoconetSampleGraph(object):
     temperature = self.inputs["temperature"]
 
     input_pianorolls = tf.to_float(self.inputs["pianorolls"])
-    outer_masks = tf.to_float(self.inputs["outer_masks"])
-    # If outer_masks come in as all zeros, it means there's no masking,
-    # which also means nothing will be generated.  If flag is set,
-    # then change this by using completion mask to make new outer masks.
-
-    use_completion_masker_criteria = (
-        self.use_completion_masker_on_outer_masks_all_zeros and
-        tf.reduce_all(tf.equal(outer_masks, 0)))
-    outer_masks = tf.cond(
-        use_completion_masker_criteria,
-        lambda: make_completion_masks(outer_masks),
-        lambda: outer_masks)
+    outer_masks = self.outer_masks
 
     # Calculate total_gibbs_steps as steps * num_instruments if not given.
     total_gibbs_steps = tf.cond(
@@ -242,6 +238,7 @@ class CoconetSampleGraph(object):
 
 
 def make_completion_masks(pianorolls, outer_masks=1.):
+  pianorolls = tf.to_float(pianorolls)
   masks = tf.reduce_all(tf.equal(pianorolls, 0), axis=2, keep_dims=True)
   inner_masks = tf.to_float(masks) + 0 * pianorolls
   return inner_masks * outer_masks
