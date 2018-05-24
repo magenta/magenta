@@ -62,6 +62,7 @@ class CoconetSampleGraph(object):
 
   @property
   def outer_masks(self):
+    """Returns outer masks, if all zeros created by completion masking."""
     outer_masks = tf.to_float(self.inputs["outer_masks"])
     # If outer_masks come in as all zeros, it means there's no masking,
     # which also means nothing will be generated. In this case, use
