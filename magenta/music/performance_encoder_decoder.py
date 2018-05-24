@@ -165,8 +165,6 @@ class ModuloPerformanceEventSequenceEncoderDecoder(EventSequenceEncoderDecoder):
     Args:
       num_velocity_bins: Number of velocity bins.
       max_shift_steps: Maximum number of shift steps supported.
-    Raises:
-      ValueError: if EVENT_RANGES and MODULO_EVENT_RANGES are not compatible.
     """
 
     self._modulo_encoding = PerformanceModuloEncoding(
@@ -282,8 +280,12 @@ class PerformanceOneHotEncoding(encoder_decoder.OneHotEncoding):
   """One-hot encoding for performance events."""
 
   def __init__(self, num_velocity_bins=0,
-               max_shift_steps=performance_lib.DEFAULT_MAX_SHIFT_STEPS):
-    self._event_ranges = EVENT_RANGES + [
+               max_shift_steps=performance_lib.DEFAULT_MAX_SHIFT_STEPS,
+               min_pitch=performance_lib.MIN_MIDI_PITCH,
+               max_pitch=performance_lib.MAX_MIDI_PITCH):
+    self._event_ranges = [
+        (PerformanceEvent.NOTE_ON, min_pitch, max_pitch),
+        (PerformanceEvent.NOTE_OFF, min_pitch, max_pitch),
         (PerformanceEvent.TIME_SHIFT, 1, max_shift_steps)
     ]
     if num_velocity_bins > 0:
