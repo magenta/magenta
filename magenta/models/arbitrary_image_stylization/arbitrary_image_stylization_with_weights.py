@@ -179,6 +179,8 @@ def main(unused_argv=None):
                            (content_img_name, style_img_name, interp_i)))
 
 
-if __name__ == '__main__':
+def console_entry_point():
   tf.app.run(main)
 
+if __name__ == '__main__':
+  console_entry_point()
