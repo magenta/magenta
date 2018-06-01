@@ -28,12 +28,14 @@ import os
 import re
 
 # internal imports
+import librosa
 import numpy as np
 import tensorflow as tf
 
 from magenta.music import audio_io
 from magenta.music import midi_io
 from magenta.music import sequences_lib
+from magenta.protobuf import music_pb2
 
 FLAGS = tf.app.flags.FLAGS
 tf.app.flags.DEFINE_string('input_dir', None,
@@ -251,6 +253,7 @@ def generate_train_set(exclude_ids):
       # load the wav data
       wav_data = tf.gfile.Open(pair[0]).read()
       samples = audio_io.wav_data_to_samples(wav_data, FLAGS.sample_rate)
+      samples = librosa.util.normalize(samples, norm=np.inf)
 
       # load the midi data and convert to a notesequence
       midi_data = tf.gfile.Open(pair[1]).read()
@@ -258,6 +261,12 @@ def generate_train_set(exclude_ids):
 
       splits = find_split_points(ns, samples, FLAGS.sample_rate,
                                  FLAGS.min_length, FLAGS.max_length)
+
+      velocities = [note.velocity for note in ns.notes]
+      velocity_max = np.max(velocities)
+      velocity_min = np.min(velocities)
+      new_velocity_tuple = music_pb2.VelocityRange(
+          min=velocity_min, max=velocity_max)
 
       for start, end in zip(splits[:-1], splits[1:]):
         if end - start < FLAGS.min_length:
@@ -278,8 +287,11 @@ def generate_train_set(exclude_ids):
             'audio':
             tf.train.Feature(bytes_list=tf.train.BytesList(
                 value=[new_wav_data]
-                ))
-
+                )),
+            'velocity_range':
+            tf.train.Feature(bytes_list=tf.train.BytesList(
+                value=[new_velocity_tuple.SerializeToString()]
+                )),
             }))
         writer.write(example.SerializeToString())
 
@@ -311,6 +323,12 @@ def generate_test_set():
       midi_data = tf.gfile.Open(pair[1]).read()
       ns = midi_io.midi_to_sequence_proto(midi_data)
 
+      velocities = [note.velocity for note in ns.notes]
+      velocity_max = np.max(velocities)
+      velocity_min = np.min(velocities)
+      new_velocity_tuple = music_pb2.VelocityRange(
+          min=velocity_min, max=velocity_max)
+
       example = tf.train.Example(features=tf.train.Features(feature={
           'id':
           tf.train.Feature(bytes_list=tf.train.BytesList(
@@ -323,6 +341,10 @@ def generate_test_set():
           'audio':
           tf.train.Feature(bytes_list=tf.train.BytesList(
               value=[wav_data]
+              )),
+          'velocity_range':
+          tf.train.Feature(bytes_list=tf.train.BytesList(
+              value=[new_velocity_tuple.SerializeToString()]
               )),
           }))
       writer.write(example.SerializeToString())
