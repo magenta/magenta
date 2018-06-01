@@ -72,7 +72,8 @@ class CoconetSampleGraph(object):
         lambda: outer_masks)
     return outer_masks
 
-  def build_sample_graph(self, input_pianorolls=None, outer_masks=None):
+  def build_sample_graph(self, input_pianorolls=None, outer_masks=None,
+                         total_gibbs_steps=None):
     """Builds the tf.while_loop based sampling graph.
 
     Args:
@@ -80,6 +81,8 @@ class CoconetSampleGraph(object):
           pianorolls placeholder.
       outer_masks: Optional input outer_masks override. If None, uses the
           outer_masks placeholder.
+      total_gibbs_steps: Optional input total_gibbs_steps override. If None,
+          uses the total_gibbs_steps placeholder.
     Returns:
       The output op of the graph.
     """
@@ -90,7 +93,8 @@ class CoconetSampleGraph(object):
 
     tt = tf.shape(input_pianorolls)[1]
     sample_steps = tf.to_float(self.inputs["sample_steps"])
-    total_gibbs_steps = self.inputs["total_gibbs_steps"]
+    if total_gibbs_steps is None:
+      total_gibbs_steps = self.inputs["total_gibbs_steps"]
     temperature = self.inputs["temperature"]
 
     input_pianorolls = tf.to_float(input_pianorolls)
