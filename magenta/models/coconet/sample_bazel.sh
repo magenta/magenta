@@ -18,6 +18,7 @@ generation_output_dir="samples"
 gen_batch_size=2
 piece_length=16
 strategy=igibbs
+tfsample=true
 
 # Run command.
 bazel run :coconet_sample \
@@ -27,6 +28,7 @@ bazel run :coconet_sample \
 --piece_length=$piece_length \
 --temperature=0.99 \
 --strategy=$strategy \
+--tfsample=$tfsample \
 --generation_output_dir=$generation_output_dir \
 --logtostderr
 
