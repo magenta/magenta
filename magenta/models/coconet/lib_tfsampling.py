@@ -60,16 +60,15 @@ class CoconetSampleGraph(object):
   def inputs(self):
     return self.placeholders
 
-  @property
-  def outer_masks(self):
+  def make_outer_masks(self, outer_masks, input_pianorolls):
     """Returns outer masks, if all zeros created by completion masking."""
-    outer_masks = tf.to_float(self.inputs["outer_masks"])
+    outer_masks = tf.to_float(outer_masks)
     # If outer_masks come in as all zeros, it means there's no masking,
     # which also means nothing will be generated. In this case, use
     # completion mask to make new outer masks.
     outer_masks = tf.cond(
         tf.reduce_all(tf.equal(outer_masks, 0)),
-        lambda: make_completion_masks(self.inputs["pianorolls"]),
+        lambda: make_completion_masks(input_pianorolls),
         lambda: outer_masks)
     return outer_masks
 
@@ -87,15 +86,15 @@ class CoconetSampleGraph(object):
     if input_pianorolls is None:
       input_pianorolls = self.inputs["pianorolls"]
     if outer_masks is None:
-      outer_masks = self.outer_masks
+      outer_masks = self.inputs['outer_masks']
 
     tt = tf.shape(input_pianorolls)[1]
     sample_steps = tf.to_float(self.inputs["sample_steps"])
     total_gibbs_steps = self.inputs["total_gibbs_steps"]
     temperature = self.inputs["temperature"]
 
-    input_pianorolls = tf.to_float(self.inputs["pianorolls"])
-    outer_masks = self.outer_masks
+    input_pianorolls = tf.to_float(input_pianorolls)
+    outer_masks = self.make_outer_masks(outer_masks, input_pianorolls)
 
     # Calculate total_gibbs_steps as steps * num_instruments if not given.
     total_gibbs_steps = tf.cond(
