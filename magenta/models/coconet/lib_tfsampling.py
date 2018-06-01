@@ -42,7 +42,7 @@ class CoconetSampleGraph(object):
             tf.bool,
             [None, None, hparams.num_pitches, hparams.num_instruments],
             "pianorolls"),
-        # The default value is only used for checking it completion masker
+        # The default value is only used for checking if completion masker
         # should be evoked.  It can't be used directly as the batch size
         # and length of pianorolls are unknown during static time.
         outer_masks=tf.placeholder_with_default(
