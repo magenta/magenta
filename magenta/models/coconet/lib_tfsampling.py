@@ -86,7 +86,7 @@ class CoconetSampleGraph(object):
     if input_pianorolls is None:
       input_pianorolls = self.inputs["pianorolls"]
     if outer_masks is None:
-      outer_masks = self.inputs['outer_masks']
+      outer_masks = self.inputs["outer_masks"]
 
     tt = tf.shape(input_pianorolls)[1]
     sample_steps = tf.to_float(self.inputs["sample_steps"])
