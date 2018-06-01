@@ -60,32 +60,41 @@ class CoconetSampleGraph(object):
   def inputs(self):
     return self.placeholders
 
-  @property
-  def outer_masks(self):
+  def make_outer_masks(self, outer_masks, input_pianorolls):
     """Returns outer masks, if all zeros created by completion masking."""
-    outer_masks = tf.to_float(self.inputs["outer_masks"])
+    outer_masks = tf.to_float(outer_masks)
     # If outer_masks come in as all zeros, it means there's no masking,
     # which also means nothing will be generated. In this case, use
     # completion mask to make new outer masks.
     outer_masks = tf.cond(
         tf.reduce_all(tf.equal(outer_masks, 0)),
-        lambda: make_completion_masks(self.inputs["pianorolls"]),
+        lambda: make_completion_masks(input_pianorolls),
         lambda: outer_masks)
     return outer_masks
 
-  def build_sample_graph(self):
+  def build_sample_graph(self, input_pianorolls=None, outer_masks=None):
     """Builds the tf.while_loop based sampling graph.
 
+    Args:
+      input_pianorolls: Optional input pianorolls override. If None, uses the
+          pianorolls placeholder.
+      outer_masks: Optional input outer_masks override. If None, uses the
+          outer_masks placeholder.
     Returns:
       The output op of the graph.
     """
-    tt = tf.shape(self.inputs["pianorolls"])[1]
+    if input_pianorolls is None:
+      input_pianorolls = self.inputs["pianorolls"]
+    if outer_masks is None:
+      outer_masks = self.inputs["outer_masks"]
+
+    tt = tf.shape(input_pianorolls)[1]
     sample_steps = tf.to_float(self.inputs["sample_steps"])
     total_gibbs_steps = self.inputs["total_gibbs_steps"]
     temperature = self.inputs["temperature"]
 
-    input_pianorolls = tf.to_float(self.inputs["pianorolls"])
-    outer_masks = self.outer_masks
+    input_pianorolls = tf.to_float(input_pianorolls)
+    outer_masks = self.make_outer_masks(outer_masks, input_pianorolls)
 
     # Calculate total_gibbs_steps as steps * num_instruments if not given.
     total_gibbs_steps = tf.cond(
@@ -126,7 +135,7 @@ class CoconetSampleGraph(object):
     current_step = tf.to_float(self.inputs["current_step"])
 
     # Initializes pianorolls by evaluating the model once to fill in all gaps.
-    logits = self.predict(input_pianorolls, outer_masks)
+    logits = self.predict(tf.to_float(input_pianorolls), outer_masks)
     samples = sample_with_temperature(logits, temperature=temperature)
     tf.get_variable_scope().reuse_variables()
 
