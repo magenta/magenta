@@ -417,3 +417,9 @@ message SequenceMetadata {
   // Composer of the sequece. Some pieces have multiple composers.
   repeated string composers = 4;
 }
+
+// Stores an inclusive range of velocities.
+message VelocityRange {
+  int32 min = 1;
+  int32 max = 2;
+}

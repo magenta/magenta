@@ -46,14 +46,14 @@ tf.app.flags.DEFINE_string(
     'Path to the checkpoint to use in `test` mode. If not provided, latest '
     'in `run_dir` will be used.')
 tf.app.flags.DEFINE_integer(
-    'num_steps', None,
+    'num_steps', 50000,
     'Number of training steps or `None` for infinite.')
 tf.app.flags.DEFINE_integer(
     'eval_num_batches', None,
     'Number of batches to use during evaluation or `None` for all batches '
     'in the data source.')
 tf.app.flags.DEFINE_integer(
-    'checkpoints_to_keep', 0,
+    'checkpoints_to_keep', 100,
     'Maximum number of checkpoints to keep in `train` mode or 0 for infinite.')
 tf.app.flags.DEFINE_string(
     'mode', 'train', 'Which mode to use (train, eval, or test).')

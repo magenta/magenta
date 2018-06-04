@@ -49,9 +49,9 @@ REQUIRED_PACKAGES = [
 ]
 
 if gpu_mode:
-  REQUIRED_PACKAGES.append('tensorflow-gpu >= 1.4.0')
+  REQUIRED_PACKAGES.append('tensorflow-gpu >= 1.8.0')
 else:
-  REQUIRED_PACKAGES.append('tensorflow >= 1.4.0')
+  REQUIRED_PACKAGES.append('tensorflow >= 1.8.0')
 
 # pylint:disable=line-too-long
 CONSOLE_SCRIPTS = [
@@ -80,6 +80,7 @@ CONSOLE_SCRIPTS = [
     'magenta.models.onsets_frames_transcription.onsets_frames_transcription_create_dataset',
     'magenta.models.onsets_frames_transcription.onsets_frames_transcription_infer',
     'magenta.models.onsets_frames_transcription.onsets_frames_transcription_train',
+    'magenta.models.onsets_frames_transcription.onsets_frames_transcription_transcribe',
     'magenta.models.performance_rnn.performance_rnn_create_dataset',
     'magenta.models.performance_rnn.performance_rnn_generate',
     'magenta.models.performance_rnn.performance_rnn_train',

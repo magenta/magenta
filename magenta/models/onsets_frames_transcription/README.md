@@ -82,3 +82,5 @@ During training, you can check on progress using TensorBoard:
 ```bash
 tensorboard --logdir="${RUN_DIR}"
 ```
+
+To get final performance metrics for the model, run the `onsets_frames_transcription_infer` script as described above.

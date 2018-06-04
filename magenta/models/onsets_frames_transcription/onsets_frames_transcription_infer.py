@@ -115,6 +115,8 @@ def model_inference(acoustic_checkpoint, hparams, examples_path, run_dir):
         'acoustic/onsets/onset_probs_flat:0')
     frame_probs_flat = tf.get_default_graph().get_tensor_by_name(
         'acoustic/frame_probs_flat:0')
+    velocity_values_flat = tf.get_default_graph().get_tensor_by_name(
+        'acoustic/velocity/velocity_values_flat:0')
 
     # Define some metrics.
     (metrics_to_updates,
@@ -150,13 +152,14 @@ def model_inference(acoustic_checkpoint, hparams, examples_path, run_dir):
       num_frames = []
       for unused_i in range(acoustic_data_provider.num_batches):
         start_time = time.time()
-        labels, filenames, note_sequences, logits, onset_logits = sess.run([
-            data_labels,
-            acoustic_data_provider.filenames,
-            acoustic_data_provider.note_sequences,
-            frame_probs_flat,
-            onset_probs_flat,
-        ])
+        (labels, filenames, note_sequences, logits, onset_logits,
+         velocity_values) = sess.run([
+             data_labels,
+             acoustic_data_provider.filenames,
+             acoustic_data_provider.note_sequences,
+             frame_probs_flat,
+             onset_probs_flat,
+             velocity_values_flat])
         # We expect these all to be length 1 because batch size is 1.
         assert len(filenames) == len(note_sequences) == 1
         # These should be the same length and have been flattened.
@@ -172,7 +175,8 @@ def model_inference(acoustic_checkpoint, hparams, examples_path, run_dir):
             frame_predictions,
             frames_per_second=data.hparams_frames_per_second(hparams),
             min_duration_ms=FLAGS.min_note_duration_ms,
-            onset_predictions=onset_predictions)
+            onset_predictions=onset_predictions,
+            velocity_values=velocity_values)
 
         end_time = time.time()
         infer_time = end_time - start_time
