@@ -105,7 +105,7 @@ def train(train_dir,
 
     hooks = [tf.train.LoggingTensorHook(logging_dict, every_n_iter=100)]
     if num_steps:
-      hooks.append(tf.StopAtStepHook(num_steps))
+      hooks.append(tf.train.StopAtStepHook(num_steps))
 
     scaffold = tf.train.Scaffold(
         saver=tf.train.Saver(
