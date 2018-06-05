@@ -26,15 +26,6 @@ from magenta.music.encoder_decoder import EventSequenceEncoderDecoder
 from magenta.music.performance_lib import PerformanceEvent
 
 
-# Value ranges for event types, as (event_type, min_value, max_value) tuples.
-EVENT_RANGES = [
-    (PerformanceEvent.NOTE_ON,
-     performance_lib.MIN_MIDI_PITCH, performance_lib.MAX_MIDI_PITCH),
-    (PerformanceEvent.NOTE_OFF,
-     performance_lib.MIN_MIDI_PITCH, performance_lib.MAX_MIDI_PITCH),
-]
-
-
 # Number of floats used to encode NOTE_ON and NOTE_OFF events, using modulo-12
 # encoding. 5 floats for: valid, octave_cos, octave_sin, note_cos, note_sin.
 MODULO_PITCH_ENCODER_WIDTH = 5
