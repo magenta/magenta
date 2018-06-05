@@ -47,7 +47,8 @@ class CoconetSampleGraph(object):
         # and length of pianorolls are unknown during static time.
         outer_masks=tf.placeholder_with_default(
             np.zeros(
-                (1, 1, hparams.num_pitches, hparams.num_instruments)),
+                (1, 1, hparams.num_pitches, hparams.num_instruments),
+                dtype=np.float32),
             [None, None, hparams.num_pitches, hparams.num_instruments],
             "outer_masks"),
         sample_steps=tf.placeholder_with_default(0, (), "sample_steps"),
@@ -69,7 +70,7 @@ class CoconetSampleGraph(object):
     outer_masks = tf.cond(
         tf.reduce_all(tf.equal(outer_masks, 0)),
         lambda: make_completion_masks(input_pianorolls),
-        lambda: outer_masks)
+        lambda: tf.tile(outer_masks, [1, tf.shape(input_pianorolls)[1], 1, 1]))
     return outer_masks
 
   def build_sample_graph(self, input_pianorolls=None, outer_masks=None,
