@@ -70,8 +70,8 @@ class CoconetSampleGraph(object):
     prolls_shape = tf.shape(input_pianorolls)
     outer_masks = tf.cond(
         tf.equal(tf.shape(outer_masks)[1], prolls_shape[1]),
-        lamda: outer_masks,
-        lamda: tf.tile(outer_masks, [1, tf.shape(input_pianorolls)[1], 1, 1])
+        lambda: outer_masks,
+        lambda: tf.tile(outer_masks, [1, prolls_shape[1], 1, 1])
     )
     outer_masks = tf.cond(
         tf.reduce_all(tf.equal(outer_masks, 0)),
