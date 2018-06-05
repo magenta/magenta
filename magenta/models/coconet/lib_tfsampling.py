@@ -47,7 +47,8 @@ class CoconetSampleGraph(object):
         # and length of pianorolls are unknown during static time.
         outer_masks=tf.placeholder_with_default(
             np.zeros(
-                (1, 1, hparams.num_pitches, hparams.num_instruments)),
+                (1, 1, hparams.num_pitches, hparams.num_instruments),
+                dtype=np.float32),
             [None, None, hparams.num_pitches, hparams.num_instruments],
             "outer_masks"),
         sample_steps=tf.placeholder_with_default(0, (), "sample_steps"),
@@ -66,6 +67,12 @@ class CoconetSampleGraph(object):
     # If outer_masks come in as all zeros, it means there's no masking,
     # which also means nothing will be generated. In this case, use
     # completion mask to make new outer masks.
+    prolls_shape = tf.shape(input_pianorolls)
+    outer_masks = tf.cond(
+        tf.equal(tf.shape(outer_masks)[1], prolls_shape[1]),
+        lambda: outer_masks,
+        lambda: tf.tile(outer_masks, [1, prolls_shape[1], 1, 1])
+    )
     outer_masks = tf.cond(
         tf.reduce_all(tf.equal(outer_masks, 0)),
         lambda: make_completion_masks(input_pianorolls),
