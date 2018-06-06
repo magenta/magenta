@@ -40,7 +40,8 @@ def export_saved_model(model, destination, tags, use_tf_sampling):
   builder.add_meta_graph_and_variables(
       model.sess,
       tags,
-      signature_def_map=signature_def_map)
+      signature_def_map=signature_def_map,
+      strip_default_attrs=True)
   builder.save()
 
 
