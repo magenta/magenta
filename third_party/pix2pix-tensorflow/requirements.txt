@@ -1,0 +1,4 @@
+tensorflow-gpu
+numpy
+scipy
+pillow
