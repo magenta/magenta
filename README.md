@@ -7,7 +7,7 @@ algorithms for generating songs, images, drawings, and other materials. But it's
 an exploration in building smart tools and interfaces that allow
 artists and musicians to extend (not replace!) their processes using
 these models.  Magenta was started by some researchers and engineers
-from the [Google Brain team](https://research.google.com/teams/brain/)
+from the [Google Brain team](https://research.google.com/teams/brain/),
 but many others have contributed significantly to the project. We use
 [TensorFlow](https://www.tensorflow.org) and release our models and
 tools in open source on this GitHub.  If you’d like to learn more
@@ -77,7 +77,7 @@ Install the Magenta pip package:
 pip install magenta
 ```
 
-Note that in order to install the `rtmidi` package that we depend on, you may need to install headers for some sound libraries. On Linux, this command should install the necessary packages:
+**NOTE**: In order to install the `rtmidi` package that we depend on, you may need to install headers for some sound libraries. On Linux, this command should install the necessary packages:
 
 ```
 sudo apt-get install build-essential libasound2-dev libjack-dev
@@ -86,7 +86,7 @@ sudo apt-get install build-essential libasound2-dev libjack-dev
 The Magenta libraries are now available for use within Python programs and
 Jupyter notebooks, and the Magenta scripts are installed in your path!
 
-Note that you will need to run `source activate magenta` to use Magenta every
+**NOTE**: You will need to run `source activate magenta` to use Magenta every
 time you open a new terminal window.
 
 #### GPU Installation
@@ -162,7 +162,7 @@ You may find at some point after installation that we have released a new versio
 docker pull tensorflow/magenta
 ```
 
-Note: Our Docker image is also available at `gcr.io/tensorflow/magenta`.
+**NOTE**: Our Docker image is also available at `gcr.io/tensorflow/magenta`.
 
 ## Using Magenta
 
