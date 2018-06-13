@@ -82,6 +82,11 @@ sh_binary(
         "//magenta/models/image_stylization:image_stylization_train",
         "//magenta/models/image_stylization:image_stylization_transform",
 
+        # Arbitrary Image Stylization Scripts
+        "//magenta/models/arbitrary_image_stylization:arbitrary_image_stylization_evaluate",
+        "//magenta/models/arbitrary_image_stylization:arbitrary_image_stylization_train",
+        "//magenta/models/arbitrary_image_stylization:arbitrary_image_stylization_with_weights",
+
         # SketchRNN Model and Scripts
         "//magenta/models/sketch_rnn",
         "//magenta/models/sketch_rnn:sketch_rnn_train",
@@ -93,7 +98,8 @@ sh_binary(
         # Onsets and Frames Transcription
         "//magenta/models/onsets_frames_transcription",
         "//magenta/models/onsets_frames_transcription:onsets_frames_transcription_create_dataset",
-        "//magenta/models/onsets_frames_transcription:onsets_frames_transcription_train",
         "//magenta/models/onsets_frames_transcription:onsets_frames_transcription_infer",
+        "//magenta/models/onsets_frames_transcription:onsets_frames_transcription_train",
+        "//magenta/models/onsets_frames_transcription:onsets_frames_transcription_transcribe",
     ],
 )

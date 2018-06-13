@@ -234,7 +234,6 @@ py_binary(
         ":lib_graph",
         ":lib_hparams",
         ":lib_pianoroll",
-        ":lib_sampling",
         ":lib_util",
         # numpy dep
         # tensorflow dep

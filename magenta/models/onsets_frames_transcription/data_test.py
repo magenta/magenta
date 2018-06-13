@@ -38,6 +38,7 @@ from magenta.protobuf import music_pb2
 class DataTest(tf.test.TestCase):
 
   def _FillExample(self, sequence, audio, filename):
+    velocity_range = music_pb2.VelocityRange(min=0, max=127)
     feature_dict = {
         'id':
             tf.train.Feature(bytes_list=tf.train.BytesList(
@@ -48,6 +49,9 @@ class DataTest(tf.test.TestCase):
         'audio':
             tf.train.Feature(bytes_list=tf.train.BytesList(
                 value=[audio])),
+        'velocity_range':
+            tf.train.Feature(bytes_list=tf.train.BytesList(
+                value=[velocity_range.SerializeToString()])),
     }
     return tf.train.Example(features=tf.train.Features(feature=feature_dict))
 
@@ -92,7 +96,7 @@ class DataTest(tf.test.TestCase):
     wav_data = ex.features.feature['audio'].bytes_list.value[0]
 
     spec = data.wav_to_spec(wav_data, hparams=hparams)
-    labels, weighted_labels, _ = data.sequence_to_pianoroll(
+    labels, weighted_labels, _, _ = data.sequence_to_pianoroll(
         sequence,
         frames_per_second=data.hparams_frames_per_second(hparams),
         min_pitch=constants.MIN_MIDI_PITCH,
@@ -217,7 +221,7 @@ class DataTest(tf.test.TestCase):
                           [1, 0], [1, 0], [1, 0], [1, 0], [1, 1], [0,
                                                                    1], [0, 1]]
 
-    output, _, _ = data.sequence_to_pianoroll(
+    output, _, _, _ = data.sequence_to_pianoroll(
         sequence, frames_per_second=10, min_pitch=1, max_pitch=2)
 
     np.testing.assert_allclose(expected_pianoroll, output)
@@ -245,7 +249,7 @@ class DataTest(tf.test.TestCase):
         [0, 0, 1, 0],
         [0, 0, 0, 0],
     ]
-    _, roll_weights, onsets = data.sequence_to_pianoroll(
+    _, roll_weights, onsets, _ = data.sequence_to_pianoroll(
         sequence,
         frames_per_second=2,
         min_pitch=1,

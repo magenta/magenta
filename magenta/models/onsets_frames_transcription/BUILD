@@ -142,6 +142,22 @@ py_binary(
 )
 
 py_binary(
+    name = "onsets_frames_transcription_transcribe",
+    srcs = ["onsets_frames_transcription_transcribe.py"],
+    srcs_version = "PY2AND3",
+    visibility = ["//magenta/tools/pip:__subpackages__"],
+    deps = [
+        "//magenta",
+        ":constants",
+        ":data",
+        ":infer_util",
+        ":model",
+        # librosa dep
+        # tensorflow dep
+    ],
+)
+
+py_binary(
     name = "onsets_frames_transcription_train",
     srcs = ["onsets_frames_transcription_train.py"],
     srcs_version = "PY2AND3",
@@ -162,6 +178,7 @@ py_binary(
         "//magenta",
         # tensorflow dep
         # librosa dep
+        # numpy dep
     ],
 )
 

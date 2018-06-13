@@ -405,14 +405,16 @@ class MultiInstrumentPerformanceConverter(
                max_num_instruments=8,
                min_total_events=8,
                max_events_per_instrument=64,
+               min_pitch=performance_lib.MIN_MIDI_PITCH,
+               max_pitch=performance_lib.MAX_MIDI_PITCH,
                first_subsequence_only=False,
                chord_encoding=None):
     max_shift_steps = (performance_lib.DEFAULT_MAX_SHIFT_QUARTERS *
                        steps_per_quarter)
 
     self._performance_encoding = mm.PerformanceOneHotEncoding(
-        num_velocity_bins=num_velocity_bins,
-        max_shift_steps=max_shift_steps)
+        num_velocity_bins=num_velocity_bins, max_shift_steps=max_shift_steps,
+        min_pitch=min_pitch, max_pitch=max_pitch)
     self._chord_encoding = chord_encoding
 
     self._num_velocity_bins = num_velocity_bins
@@ -424,6 +426,8 @@ class MultiInstrumentPerformanceConverter(
     self._max_num_instruments = max_num_instruments
     self._min_total_events = min_total_events
     self._max_events_per_instrument = max_events_per_instrument
+    self._min_pitch = min_pitch
+    self._max_pitch = max_pitch
     self._first_subsequence_only = first_subsequence_only
 
     self._max_num_chunks = hop_size_bars // chunk_size_bars
@@ -456,6 +460,11 @@ class MultiInstrumentPerformanceConverter(
         max_tensors_per_notesequence=max_tensors_per_notesequence)
 
   def _quantized_subsequence_to_tensors(self, quantized_subsequence):
+    # Reject sequences with out-of-range pitches.
+    if any(note.pitch < self._min_pitch or note.pitch > self._max_pitch
+           for note in quantized_subsequence.notes):
+      return [], []
+
     # Extract all instruments.
     tracks, _ = mm.extract_performances(
         quantized_subsequence,

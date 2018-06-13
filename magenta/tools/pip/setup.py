@@ -49,13 +49,17 @@ REQUIRED_PACKAGES = [
 ]
 
 if gpu_mode:
-  REQUIRED_PACKAGES.append('tensorflow-gpu >= 1.4.0')
+  REQUIRED_PACKAGES.append('tensorflow-gpu >= 1.8.0')
 else:
-  REQUIRED_PACKAGES.append('tensorflow >= 1.4.0')
+  REQUIRED_PACKAGES.append('tensorflow >= 1.8.0')
 
+# pylint:disable=line-too-long
 CONSOLE_SCRIPTS = [
     'magenta.interfaces.midi.magenta_midi',
     'magenta.interfaces.midi.midi_clock',
+    'magenta.models.arbitrary_image_stylization.arbitrary_image_stylization_evaluate',
+    'magenta.models.arbitrary_image_stylization.arbitrary_image_stylization_train',
+    'magenta.models.arbitrary_image_stylization.arbitrary_image_stylization_with_weights',
     'magenta.models.drums_rnn.drums_rnn_create_dataset',
     'magenta.models.drums_rnn.drums_rnn_generate',
     'magenta.models.drums_rnn.drums_rnn_train',
@@ -73,12 +77,10 @@ CONSOLE_SCRIPTS = [
     'magenta.models.music_vae.music_vae_train',
     'magenta.models.nsynth.wavenet.nsynth_generate',
     'magenta.models.nsynth.wavenet.nsynth_save_embeddings',
-    'magenta.models.onsets_frames_transcription.'
-    'onsets_frames_transcription_create_dataset',
-    'magenta.models.onsets_frames_transcription.'
-    'onsets_frames_transcription_infer',
-    'magenta.models.onsets_frames_transcription.'
-    'onsets_frames_transcription_train',
+    'magenta.models.onsets_frames_transcription.onsets_frames_transcription_create_dataset',
+    'magenta.models.onsets_frames_transcription.onsets_frames_transcription_infer',
+    'magenta.models.onsets_frames_transcription.onsets_frames_transcription_train',
+    'magenta.models.onsets_frames_transcription.onsets_frames_transcription_transcribe',
     'magenta.models.performance_rnn.performance_rnn_create_dataset',
     'magenta.models.performance_rnn.performance_rnn_generate',
     'magenta.models.performance_rnn.performance_rnn_train',
@@ -92,6 +94,7 @@ CONSOLE_SCRIPTS = [
     'magenta.models.sketch_rnn.sketch_rnn_train',
     'magenta.scripts.convert_dir_to_note_sequences',
 ]
+# pylint:enable=line-too-long
 
 setup(
     name='magenta-gpu' if gpu_mode else 'magenta',

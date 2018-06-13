@@ -88,6 +88,7 @@ def acoustic_model(inputs, hparams, lstm_units, lengths):
 def get_model(transcription_data, hparams, is_training=True):
   """Builds the acoustic model."""
   onset_labels = transcription_data.onsets
+  velocity_labels = transcription_data.velocities
   frame_labels = transcription_data.labels
   frame_label_weights = transcription_data.label_weights
   lengths = transcription_data.lengths
@@ -120,6 +121,32 @@ def get_model(transcription_data, hparams, is_training=True):
       onset_losses = tf_utils.log_loss(onset_labels_flat, onset_probs_flat)
       tf.losses.add_loss(tf.reduce_mean(onset_losses))
       losses['onset'] = onset_losses
+
+    with tf.variable_scope('velocity'):
+      # TODO(eriche): this is broken when hparams.velocity_lstm_units > 0
+      velocity_outputs = acoustic_model(
+          spec,
+          hparams,
+          lstm_units=hparams.velocity_lstm_units,
+          lengths=lengths)
+      velocity_values = slim.fully_connected(
+          velocity_outputs,
+          constants.MIDI_PITCHES,
+          activation_fn=None,
+          scope='onset_velocities')
+
+      velocity_values_flat = flatten_maybe_padded_sequences(
+          velocity_values, lengths)
+      tf.identity(velocity_values_flat, name='velocity_values_flat')
+      velocity_labels_flat = flatten_maybe_padded_sequences(
+          velocity_labels, lengths)
+      velocity_loss = tf.reduce_sum(
+          onset_labels_flat *
+          tf.square(velocity_labels_flat - velocity_values_flat),
+          axis=1)
+      tf.losses.add_loss(tf.reduce_mean(velocity_loss))
+      losses['velocity'] = velocity_loss
+
     with tf.variable_scope('frame'):
       if not hparams.share_conv_features:
         # TODO(eriche): this is broken when hparams.frame_lstm_units > 0
@@ -232,6 +259,7 @@ def get_default_hparams():
           onset_delay=0,
           onset_length=32,
           onset_lstm_units=128,
+          velocity_lstm_units=0,
           onset_mode='length_ms',
           sample_rate=constants.DEFAULT_SAMPLE_RATE,
           share_conv_features=False,
@@ -243,4 +271,4 @@ def get_default_hparams():
           stop_activation_gradient=False,
           stop_onset_gradient=False,
           truncated_length=1500,  # 48 seconds
-          weight_frame_and_activation_loss=False))
+          weight_frame_and_activation_loss=True))

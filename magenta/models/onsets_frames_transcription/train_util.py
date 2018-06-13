@@ -75,6 +75,7 @@ def train(train_dir,
           examples_path,
           hparams,
           checkpoints_to_keep=5,
+          keep_checkpoint_every_n_hours=1,
           num_steps=None):
   """Train loop."""
   tf.gfile.MakeDirs(train_dir)
@@ -104,10 +105,12 @@ def train(train_dir,
 
     hooks = [tf.train.LoggingTensorHook(logging_dict, every_n_iter=100)]
     if num_steps:
-      hooks.append(tf.StopAtStepHook(num_steps))
+      hooks.append(tf.train.StopAtStepHook(num_steps))
 
     scaffold = tf.train.Scaffold(
-        saver=tf.train.Saver(max_to_keep=checkpoints_to_keep))
+        saver=tf.train.Saver(
+            max_to_keep=checkpoints_to_keep,
+            keep_checkpoint_every_n_hours=keep_checkpoint_every_n_hours))
 
     tf.contrib.training.train(
         train_op=train_op,
