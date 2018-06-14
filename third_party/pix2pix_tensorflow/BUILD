@@ -17,24 +17,38 @@
 
 licenses(["notice"])  # Apache 2.0
 
-# The Magenta public API.
-py_library(
-    name = "magenta",
-    srcs = ["__init__.py"],
-    srcs_version = "PY2AND3",
+# Tensorflow version of Pix2pix.
+py_binary(
+    name = "main",
+    srcs = ["main.py"],
     visibility = ["//magenta:__subpackages__"],
-    deps = [
-        ":version",
-        "//magenta/common",
-        "//magenta/music",
-        "//magenta/pipelines",
-        "//magenta/protobuf",
+    deps = [ "model",
+             "ops",
+             "utils",
     ],
 )
 
 py_library(
-    name = "version",
-    srcs = ["version.py"],
-    srcs_version = "PY2AND3",
+    name = "model",
+    srcs = ["model.py"],
     visibility = ["//magenta:__subpackages__"],
+    deps = [
+    ],
+)
+
+py_library(
+    name = "ops",
+    srcs = ["ops.py"],
+    visibility = ["//magenta:__subpackages__"],
+    deps = [
+    ],
+)
+
+py_library(
+    name = "utils",
+    srcs = ["utils.py"],
+    srcs_version = "PY2AND3",
+    visibility = [
+        "//magenta/tools/pip:__subpackages__",
+    ],
 )

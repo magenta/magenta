@@ -8,10 +8,10 @@ then
     echo "arg 3 is for the number of recursion"
     echo "arg 4 is for video path/name"
 else
-    python pix2pix/pix2pix-tf/main.py --checkpoint_dir $1/ --phase recursion --recursion $3 --file_name_in $2
+    python ./third_party/pix2pix_tensorflow/main.py --checkpoint_dir $1/ --phase recursion --recursion $3 --file_name_in $2
 
     mkdir $4/
-    python img_tools/convert2jpg.py \
+    python ./magenta/video/tools/convert2jpg.py \
            --path_in $1 \
            --path_out $4/ \
            --strech \

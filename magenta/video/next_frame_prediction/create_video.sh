@@ -1,15 +1,29 @@
 #!/bin/bash
 
+# Copyright 2017 Google Inc. All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#    http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 echo "Train a model and make videos, including steps that generate pre recursive pairs"
 echo "This script need to be launched from the main tf_toolbox directory, not from the directory witch the script is"
 echo "!!! This script contains some rm -rf !!! use with care, check arg1 carfully"
 
 if [ "$#" -ne 4 ]
 then
-    echo "arg 1 is for dataset path"
+    echo "arg 1 is for dataset absolute path"
     echo "arg 2 is for number of cycle"
     echo "arg 3 is for number of frame per video"
-    echo "arg 4 is for backup folder"
+    echo "arg 4 is for backup folder absolute path"
 else
     echo "Train pix2pix to predict the next frame"
 
@@ -19,7 +33,7 @@ else
             echo "creating the 'frames' dir"
             mkdir $1/frames
             rm $1/frames/*.jpg
-            python img_tools/extract_frames.py \
+            python ./magenta/video/tools/extract_frames.py \
                    --video_in $1/video.mp4 \
                    --path_out $1/frames
             ;;
@@ -28,22 +42,11 @@ else
             ;;
     esac
 
-    read -r -p "Do you want to reset the first frame as black? [y/N] " response
-    case "$response" in
-        [yY][eE][sS]|[yY])
-            echo "reset first.jpg"
-            cp img/black.jpg img/first.jpg
-            ;;
-        *)
-            echo "keeping first.jpg"
-            ;;
-    esac
-
-    read -r -p "Do you want to reset the test-frame using a frame from the video? [y/N] " response
+    read -r -p "Do you want to reset the first-frame using a frame from the video? [y/N] " response
     case "$response" in
         [yY][eE][sS]|[yY])
             echo "copying the test frame"
-            cp $1/frames/f0000001.jpg img/test.jpg
+            cp $1/frames/f0000001.jpg $1/img/first.jpg
             ;;
         *)
             echo "keeping test.jpg"
@@ -75,23 +78,12 @@ else
             ;;
     esac
 
-    read -r -p "Do you want to remove the previous generated pre recursive pairs? [y/N] " response
-    case "$response" in
-        [yY][eE][sS]|[yY])
-            echo "removing pre recursive pairs"
-            rm $1/train/pr*.jpg
-            ;;
-        *)
-            echo "keeping pairs"
-            ;;
-    esac
-
     read -r -p "Do you want to remove or recreate the previous logs (to clean tensorboard)? [y/N] " response
     case "$response" in
         [yY][eE][sS]|[yY])
             echo "removing logs"
+            rm -rf $1/logs
             mkdir $1/logs
-            rm $1/logs/*
             ;;
         *)
             echo "keeping logs"
@@ -102,7 +94,7 @@ else
     case "$response" in
         [yY][eE][sS]|[yY])
             echo "removing video"
-            rm $1/v_*.mp4
+            rm $4/video*.mp4
             ;;
         *)
             echo "keeping video"
@@ -121,24 +113,13 @@ else
             ;;
     esac
 
-    read -r -p "Do you want to remove ALL previous model? [y/N] " response
-    case "$response" in
-        [yY][eE][sS]|[yY])
-            echo "removing model_* folders"
-            rm -rf $1/model_*
-            ;;
-        *)
-            echo "keeping model"
-            ;;
-    esac
-
     read -r -p "Do you want to (re)create 'test' and 'val'? [y/N] " response
     case "$response" in
         [yY][eE][sS]|[yY])
             echo "recreate 'test'"
             mkdir $1/test
             rm $1/test/*.jpg
-            python pix2pix/join_pairs.py \
+            python ./magenta/video/next_frame_prediction/join_pairs.py \
                    --path_left $1/frames \
                    --path_right $1/good \
                    --path_out $1/val \
@@ -147,7 +128,7 @@ else
             echo "recreate 'val'"
             mkdir $1/val
             rm $1/val/*.jpg
-            python pix2pix/join_pairs.py \
+            python ./magenta/video/next_frame_prediction/join_pairs.py \
                    --path_left $1/frames \
                    --path_right $1/good \
                    --path_out $1/val \
@@ -165,14 +146,14 @@ else
         n=$(printf %03d $i)
 
         echo "making pairs $i/$2"
-        python pix2pix/join_pairs.py \
+        python ./magenta/video/next_frame_prediction/join_pairs.py \
                    --path_left $1/frames \
                    --path_right $1/good \
                    --path_out $1/train \
                    --limit 1000
 #was 1000
         echo "trainning $i/$2"
-        python pix2pix/pix2pix-tf/main.py \
+        python ./third_party/pix2pix_tensorflow/main.py \
                --dataset_path $1 \
                --checkpoint_dir $1 \
                --epoch 5 \
@@ -188,31 +169,24 @@ else
         cp $1/checkpoint $4/model_$n
         cp $1/pix2pix.model* $4/model_$n
 
-        # this is the mecanism used for making the train video
-        #echo "generate video $i"
-        #./pix2pix/recursion.sh $1 img/first.jpg $3 $2/vc_$n.mp4
-        #cp -f img/first.jpg img/backup.jpg
-
         echo "generate video test $i"
-#        cp -f img/test.jpg img/start.jpg
-        ./pix2pix/recursion_640.sh $4/model_$n img/first.jpg $3 $4/video_$n
-#        cp -f img/backup.jpg img/first.jpg
+        ./magenta/video/next_frame_prediction/recursion_640.sh $4/model_$n $1/img/first.jpg $3 $4/video_$n
 
         echo "select some pairs for recursion"
         rm -rf $1/recur
         mkdir $1/recur
-        python img_tools/random_pick.py --path_in $1/good --path_out $1/recur \
-               --limit 100 #100 for beyon #500 for train; 200 for green
+        python ./magenta/video/tools/random_pick.py --path_in $1/good --path_out $1/recur \
+               --limit 10 #100 for beyon #500 for train; 200 for green
         echo "use pre-recursion"
-        python pix2pix/pix2pix-tf/main.py \
+        python ./third_party/pix2pix_tensorflow/main.py \
                --checkpoint_dir $1 \
                --recursion 15 \
                --phase pre_recursion \
                --dataset_path $1/recur \
                --frames_path $1/frames
-#15 was too good fro green, was great for tokyo
+#15 was too good for green, was great for tokyo
         echo "generate pairs from recursion"
-        python pix2pix/join_pairs.py \
+        python ./magenta/video/next_frame_prediction/join_pairs.py \
                --path_left $1/recur \
                --path_right $1/good \
                --path_out $1/train \
@@ -222,10 +196,10 @@ else
         echo "select some pairs for recursion (long)"
         rm -rf $1/recur
         mkdir $1/recur
-        python img_tools/random_pick.py --path_in $1/good --path_out $1/recur \
+        python ./magenta/video/tools/random_pick.py --path_in $1/good --path_out $1/recur \
                --limit 2 #5 for the first iteration of 19
         echo "use pre-recursion (long)"
-        python pix2pix/pix2pix-tf/main.py \
+        python ./third_party/pix2pix_tensorflow/main.py \
                --checkpoint_dir $1 \
                --recursion 100 \
                --phase pre_recursion \
@@ -233,7 +207,7 @@ else
                --frames_path $1/frames
 #100 was good for DJI
         echo "generate pairs from recursion (long)"
-        python pix2pix/join_pairs.py \
+        python ./magenta/video/next_frame_prediction/join_pairs.py \
                --path_left $1/recur \
                --path_right $1/good \
                --path_out $1/train \

@@ -17,8 +17,8 @@ get_stddev = lambda x, k_h, k_w: 1/math.sqrt(k_w*k_h*x.get_shape()[-1])
 # -----------------------------
 # new added functions for pix2pix
 
-def load_data(image_path, flip=True, is_test=False):
-    img_A, img_B = load_image(image_path)
+def load_data(image_path, flip=False, is_test=False, is_one=False):
+    img_A, img_B = load_image(image_path, is_one)
     img_A, img_B = preprocess_A_and_B(img_A, img_B, flip=flip, is_test=is_test)
 
     img_A = img_A/127.5 - 1.
@@ -28,16 +28,18 @@ def load_data(image_path, flip=True, is_test=False):
     # img_AB shape: (fine_size, fine_size, input_c_dim + output_c_dim)
     return img_AB
 
-def load_image(image_path):
+def load_image(image_path, is_one=False):
     input_img = imread(image_path)
-    w = int(input_img.shape[1])
-    w2 = int(w/2)
-    img_A = input_img[:, 0:w2]
-    img_B = input_img[:, w2:w]
+    if is_one:
+        return input_img, input_img
+    else:
+        w = int(input_img.shape[1])
+        w2 = int(w/2)
+        img_A = input_img[:, 0:w2]
+        img_B = input_img[:, w2:w]
+        return img_A, img_B
 
-    return img_A, img_B
-
-def preprocess_A_and_B(img_A, img_B, load_size=286, fine_size=256, flip=True, is_test=False):
+def preprocess_A_and_B(img_A, img_B, load_size=286, fine_size=256, flip=False, is_test=False):
     if is_test:
         img_A = scipy.misc.imresize(img_A, [fine_size, fine_size])
         img_B = scipy.misc.imresize(img_B, [fine_size, fine_size])
@@ -54,7 +56,7 @@ def preprocess_A_and_B(img_A, img_B, load_size=286, fine_size=256, flip=True, is
             img_A = np.fliplr(img_A)
             img_B = np.fliplr(img_B)
 
-    return img_A, img_B
+    return img_B, img_A
 
 # -----------------------------
 
@@ -96,5 +98,3 @@ def transform(image, npx=64, is_crop=True, resize_w=64):
 
 def inverse_transform(images):
     return (images+1.)/2.
-
-
