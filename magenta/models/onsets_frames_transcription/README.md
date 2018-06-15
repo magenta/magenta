@@ -1,17 +1,36 @@
 ## Onsets and Frames: Dual-Objective Piano Transcription
 
+State of the art piano transcription, including velocity estimation.
+
 For model details, see our paper on arXiv:
-[Onsets and Frames: Dual-Objective Piano Transcription](https://arxiv.org/abs/1710.11153). You can also listen to the [Audio Examples](http://download.magenta.tensorflow.org/models/onsets_frames_transcription/index.html) described in the paper.
+[Onsets and Frames: Dual-Objective Piano Transcription](https://goo.gl/magenta/onsets-frames-paper). You can also listen to the [Audio Examples](https://goo.gl/magenta/onsets-frames-examples) described in the paper.
 
 ## Colab Notebook
 
-The easiest way to use the model is with our [Onsets and Frames Colab Notebook](https://colab.research.google.com/notebook#fileId=/v2/external/notebooks/magenta/onsets_frames_transcription/onsets_frames_transcription.ipynb). You can upload arbitrary audio files and receive a transcription without installing any software.
+The easiest way to use the model is with our [Onsets and Frames Colab Notebook](https://goo.gl/magenta/onsets-frames-colab). You can upload arbitrary audio files and receive a transcription without installing any software.
 
-## How to Use
+## Transcription Script
 
-If you would like to run the model locally, first set up your [Magenta environment](/README.md). Next, you can either use a pre-trained model or train your own.
+If you would like to run transcription locally, you can use the transcribe
+script. First, set up your [Magenta environment](/README.md).
 
-## Dataset creation
+Next, download our pre-trained
+[checkpoint](https://storage.googleapis.com/magentadata/models/onsets_frames_transcription/checkpoint.zip).
+
+After unzipping that checkpoint, you can run the following command:
+
+```bash
+CHECKPOINT_DIR=<path to unzipped checkpoint, should have 'train' subdir>
+onsets_frames_transcription_transcribe \
+  --acoustic_run_dir="${CHECKPOINT_DIR}" \
+  <piano_recording1.wav, piano_recording2.wav, ...>
+```
+
+## Train your own
+
+If you would like to train the model yourself, first set up your [Magenta environment](/README.md).
+
+### Dataset creation
 
 First, you'll need to download a copy of the
 [MAPS Database](http://www.tsi.telecom-paristech.fr/aao/en/2010/07/08/maps-database-a-piano-database-for-multipitch-estimation-and-automatic-transcription-of-music/).
@@ -28,32 +47,9 @@ onsets_frames_transcription_create_dataset \
   --output_dir="${OUTPUT_DIR}"
 ```
 
-## Pre-trained
+### Training
 
-To try inference right away, you can use the checkpoint we used for the results in our paper:
-[checkpoint.zip](http://download.magenta.tensorflow.org/models/onsets_frames_transcription/checkpoint.zip). After unzipping
-that checkpoint, you can run the following command:
-
-```bash
-CHECKPOINT_DIR=<path to unzipped checkpoint>
-TEST_EXAMPLES=<path to maps_config2_test.tfrecord generated during dataset creation>
-RUN_DIR=<path where output should be saved>
-
-onsets_frames_transcription_infer \
-  --acoustic_run_dir="${CHECKPOINT_DIR} \
-  --examples_path="${TEST_EXAMPLES}" \
-  --run_dir="${RUN_DIR}"
-```
-
-You can check on the metrics resulting from inference using TensorBoard:
-
-```bash
-tensorboard --logdir="${RUN_DIR}"
-```
-
-## Train your own
-
-You can train your own transcription model using the training TFRecord file generated during dataset creation.
+Now can train your own transcription model using the training TFRecord file generated during dataset creation.
 
 ```bash
 TRAIN_EXAMPLES=<path to maps_config2_train.tfrecord generated during dataset creation>
@@ -72,7 +68,7 @@ TEST_EXAMPLES=<path to maps_config2_test.tfrecord generated during dataset creat
 RUN_DIR=<path where checkpoints should be loaded and summary events should be saved>
 
 onsets_frames_transcription_train \
-  --examples_path="${TRAIN_EXAMPLES}" \
+  --examples_path="${TEST_EXAMPLES}" \
   --run_dir="${RUN_DIR}" \
   --mode='eval'
 ```
@@ -83,4 +79,26 @@ During training, you can check on progress using TensorBoard:
 tensorboard --logdir="${RUN_DIR}"
 ```
 
-To get final performance metrics for the model, run the `onsets_frames_transcription_infer` script as described above.
+### Inference
+
+To get final performance metrics for the model, run the `onsets_frames_transcription_infer` script.
+
+```bash
+CHECKPOINT_DIR=${RUN_DIR}/train
+TEST_EXAMPLES=<path to maps_config2_test.tfrecord generated during dataset creation>
+RUN_DIR=<path where output should be saved>
+
+onsets_frames_transcription_infer \
+  --acoustic_run_dir="${CHECKPOINT_DIR} \
+  --examples_path="${TEST_EXAMPLES}" \
+  --run_dir="${RUN_DIR}"
+```
+
+You can check on the metrics resulting from inference using TensorBoard:
+
+```bash
+tensorboard --logdir="${RUN_DIR}"
+```
+
+Note that the stats you get may differ slightly from our paper due to small
+differences between our internal and external codebase.
