@@ -146,6 +146,8 @@ def load_batch(files, sample_length=64000):
         padded = np.zeros([max_length])
         padded[:data.shape[0]] = data
       batch_data[i] = padded
+    else:
+      batch_data[i] = data[np.newaxis, :, :]
   # Return arrays
   batch_data = np.vstack(batch_data)
   return batch_data
