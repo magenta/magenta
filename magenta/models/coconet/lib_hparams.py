@@ -5,6 +5,7 @@ from __future__ import print_function
 import itertools as it
 import os
 # internal imports
+import six
 import tensorflow as tf
 import yaml
 from magenta.models.coconet import lib_util
@@ -97,7 +98,7 @@ class Hyperparameters(object):
     self.update(init_hparams)
 
   def update(self, dikt, **kwargs):
-    for key, value in it.chain(dikt.iteritems(), kwargs.iteritems()):
+    for key, value in it.chain(six.iteritems(dikt), six.iteritems(kwargs)):
       setattr(self, key, value)
 
   @property
