@@ -5,6 +5,7 @@ from __future__ import print_function
 import itertools as it
 import os
 # internal imports
+import six
 import tensorflow as tf
 import yaml
 from magenta.models.coconet import lib_util
@@ -37,14 +38,14 @@ class Hyperparameters(object):
       pitch_ranges=[36, 81],
       crop_piece_len=64,
       num_instruments=4,
-      separate_instruments=False,
+      separate_instruments=True,
       # Batch norm parameters.
       batch_norm=True,
       batch_norm_variance_epsilon=1e-7,
       # Initialization.
       init_scale=0.1,
       # Model architecture.
-      architecture=None,
+      architecture='straight',
       use_sep_conv=False,
       sep_conv_depth_multiplier=1,
       num_initial_regular_conv_layers=2,
@@ -92,12 +93,12 @@ class Hyperparameters(object):
     print('Instantiating hparams...')
     unknown_params = set(init_hparams) - set(Hyperparameters._defaults)
     if unknown_params:
-      raise ValueError('Unknown hyperparameters: %s', unknown_params)
+      raise ValueError('Unknown hyperparameters: %s' % unknown_params)
     self.update(Hyperparameters._defaults)
     self.update(init_hparams)
 
   def update(self, dikt, **kwargs):
-    for key, value in it.chain(dikt.iteritems(), kwargs.iteritems()):
+    for key, value in it.chain(six.iteritems(dikt), six.iteritems(kwargs)):
       setattr(self, key, value)
 
   @property
