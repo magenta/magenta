@@ -92,7 +92,7 @@ class Hyperparameters(object):
     print('Instantiating hparams...')
     unknown_params = set(init_hparams) - set(Hyperparameters._defaults)
     if unknown_params:
-      raise ValueError('Unknown hyperparameters: %s', unknown_params)
+      raise ValueError('Unknown hyperparameters: %s' % unknown_params)
     self.update(Hyperparameters._defaults)
     self.update(init_hparams)
 

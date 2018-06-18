@@ -9,12 +9,11 @@ import tempfile
 
 # internal imports
 
-import tensorflow as tf
-
 import export_saved_model
 import lib_graph
 import lib_hparams
 
+import tensorflow as tf
 
 class ExportSavedModelTest(tf.test.TestCase):
 
