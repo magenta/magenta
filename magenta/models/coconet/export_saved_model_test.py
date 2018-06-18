@@ -15,6 +15,7 @@ import lib_hparams
 
 import tensorflow as tf
 
+
 class ExportSavedModelTest(tf.test.TestCase):
 
   def save_checkpoint(self):
