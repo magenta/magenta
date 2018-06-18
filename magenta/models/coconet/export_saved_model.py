@@ -20,6 +20,19 @@ flags.DEFINE_bool('use_tf_sampling', True,
                   'Whether to export with sampling in a TF while loop.')
 
 
+def export(checkpoint, destination, use_tf_sampling):
+  model = None
+  if use_tf_sampling:
+    model = lib_tfsampling.CoconetSampleGraph(checkpoint)
+    model.instantiate_sess_and_restore_checkpoint()
+  else:
+    model = lib_graph.load_checkpoint(checkpoint)
+  tf.logging.info('Loaded graph.')
+  lib_saved_model.export_saved_model(model, destination,
+                                     [tf.saved_model.tag_constants.SERVING],
+                                     use_tf_sampling)
+
+
 def main(unused_argv):
   if FLAGS.checkpoint is None or not FLAGS.checkpoint:
     raise ValueError(
@@ -27,16 +40,7 @@ def main(unused_argv):
   if FLAGS.destination is None or not FLAGS.destination:
     raise ValueError(
         'Need to provide a destination directory for the SavedModel.')
-  model = None
-  if FLAGS.use_tf_sampling:
-    model = lib_tfsampling.CoconetSampleGraph(FLAGS.checkpoint)
-    model.instantiate_sess_and_restore_checkpoint()
-  else:
-    model = lib_graph.load_checkpoint(FLAGS.checkpoint)
-  tf.logging.info('Loaded graph.')
-  lib_saved_model.export_saved_model(model, FLAGS.destination,
-                                     [tf.saved_model.tag_constants.SERVING],
-                                     FLAGS.use_tf_sampling)
+  export(FLAGS.checkpoint, FLAGS.destination, FLAGS.use_tf_sampling)
   tf.logging.info('Exported SavedModel to %s.', FLAGS.destination)
 
 

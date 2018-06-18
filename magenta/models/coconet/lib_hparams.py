@@ -37,14 +37,14 @@ class Hyperparameters(object):
       pitch_ranges=[36, 81],
       crop_piece_len=64,
       num_instruments=4,
-      separate_instruments=False,
+      separate_instruments=True,
       # Batch norm parameters.
       batch_norm=True,
       batch_norm_variance_epsilon=1e-7,
       # Initialization.
       init_scale=0.1,
       # Model architecture.
-      architecture=None,
+      architecture='straight',
       use_sep_conv=False,
       sep_conv_depth_multiplier=1,
       num_initial_regular_conv_layers=2,
