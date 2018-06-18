@@ -9,11 +9,11 @@ import tempfile
 
 # internal imports
 
-import export_saved_model
-import lib_graph
-import lib_hparams
-
 import tensorflow as tf
+
+from magenta.models.coconet import export_saved_model
+from magenta.models.coconet import lib_graph
+from magenta.models.coconet import lib_hparams
 
 
 class ExportSavedModelTest(tf.test.TestCase):
