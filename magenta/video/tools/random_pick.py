@@ -1,8 +1,21 @@
-# Random pick
+# Copyright 2017 Google Inc. All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#    http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 # This tools is able to pick some frames from a folder
 # and to copy or move them to an other folder
 
-# Only usefull if used with the --limit flag
+# Only usefull if used with the --limit flag unless it will copy the whole folder
 
 import argparse
 import glob
@@ -12,18 +25,29 @@ from PIL import Image, ImageDraw
 from random import shuffle
 from shutil import copyfile, move
 
-
 parser = argparse.ArgumentParser(description='')
-parser.add_argument('--path_in', dest='path_in', default='',
-                    help='folder where the pictures are', required=True)
-parser.add_argument('--path_out', dest='path_out', default='./',
-                    help='Destination folder')
-parser.add_argument('--delete', dest='delete', action='store_true',
-                    help='use this flag to delete the orginal file after conversion')
+parser.add_argument(
+    '--path_in',
+    dest='path_in',
+    default='',
+    help='folder where the pictures are',
+    required=True)
+parser.add_argument(
+    '--path_out', dest='path_out', default='./', help='Destination folder')
+parser.add_argument(
+    '--delete',
+    dest='delete',
+    action='store_true',
+    help='use this flag to delete the orginal file after conversion')
 parser.set_defaults(delete=False)
-parser.add_argument('--limit', dest='limit', type=int, default=-1,
-                    help='cap the number of generated pairs')
+parser.add_argument(
+    '--limit',
+    dest='limit',
+    type=int,
+    default=-1,
+    help='cap the number of generated pairs')
 args = parser.parse_args()
+
 
 def random_pick(path_in, path_out, limit):
     if path_in == path_out:
@@ -56,8 +80,6 @@ def random_pick(path_in, path_out, limit):
         except:
             print '''can't pick file''', file, 'to', file_out
 
+
 if __name__ == '__main__':
-    random_pick(
-        args.path_in,
-        args.path_out,
-        args.limit)
+    random_pick(args.path_in, args.path_out, args.limit)
