@@ -17,7 +17,7 @@
 
 licenses(["notice"])  # Apache 2.0
 
-# A scripft to generate videos based on next frame prediction.
+# A script to generate videos based on next frame prediction.
 sh_binary(
     name = "create_video",
     srcs = ["create_video.sh"],
@@ -33,6 +33,7 @@ sh_binary(
     ],
 )
 
+# A script to use pix2pix recursivly, with 640x360 video
 sh_binary(
     name = "recursion_640",
     srcs = ["recursion_640.sh"],
@@ -41,31 +42,12 @@ sh_binary(
     ],
 )
 
-sh_binary(
-    name = "recursion",
-    srcs = ["recursion.sh"],
-    visibility = ["//magenta:__subpackages__"],
-    deps = [
-    ],
-)
-
+# A script to assemble 2 images in 1, to create pairs to be processed by pix2pix
 py_library(
     name = "join_pairs",
     srcs = ["join_pairs.py"],
     srcs_version = "PY2AND3",
     visibility = [
         "//magenta/tools/pip:__subpackages__",
-    ],
-)
-
-py_binary(
-    name = "create_pairs",
-    srcs = ["create_pairs.py"],
-    srcs_version = "PY2AND3",
-    visibility = [
-        "//magenta/tools/pip:__subpackages__",
-    ],
-    deps = [
-        "//magenta:version",
     ],
 )
