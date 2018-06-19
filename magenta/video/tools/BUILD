@@ -51,7 +51,6 @@ py_binary(
     srcs_version = "PY2AND3",
     visibility = [
         "//magenta:__subpackages__",
-        "//magenta/tools/pip:__subpackages__",
     ],
     deps = [
         "//magenta:version",
@@ -65,7 +64,6 @@ py_binary(
     srcs_version = "PY2AND3",
     visibility = [
         "//magenta:__subpackages__",
-        "//magenta/tools/pip:__subpackages__",
     ],
     deps = [
         "//magenta:version",
@@ -79,7 +77,6 @@ py_binary(
     srcs_version = "PY2AND3",
     visibility = [
         "//magenta:__subpackages__",
-        "//magenta/tools/pip:__subpackages__",
     ],
     deps = [
         "//magenta:version",
