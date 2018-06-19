@@ -244,8 +244,7 @@ class Dilated(Architecture):
           layer_dilation_rates = dilation_rate
         tf.logging.info('layer_dilation_rates %r' % layer_dilation_rates)
         _add(filters=[3, 3, num_filters, num_filters],
-            dilation_rate=layer_dilation_rates)
-            #dilation_rate=(1, dilation_rate))
+             dilation_rate=layer_dilation_rates)
     _add(filters=[2, 2, num_filters, num_filters])
     _add(
         filters=[2, 2, num_filters, output_depth], activation=lib_util.identity)
