@@ -49,6 +49,8 @@ class Hyperparameters(object):
       use_sep_conv=False,
       sep_conv_depth_multiplier=1,
       num_initial_regular_conv_layers=2,
+      num_dilation_blocks=3,
+      dilate_time_only=False,
       num_layers=28,
       num_filters=256,
       use_residual=True,
@@ -165,7 +167,9 @@ class Hyperparameters(object):
         self.num_layers,
         self.num_filters,
         self.num_pitches,
-        output_depth=self.output_depth)
+        self.output_depth,
+        num_dilation_blocks=self.num_dilation_blocks,
+        dilate_time_only=self.dilate_time_only)
 
   def dump(self, file_object):
     yaml.dump(self.__dict__, file_object)
@@ -200,6 +204,47 @@ class Straight(Architecture):
     _add(filters=[3, 3, input_depth, num_filters])
     for _ in range(num_layers - 3):
       _add(filters=[3, 3, num_filters, num_filters])
+    _add(filters=[2, 2, num_filters, num_filters])
+    _add(
+        filters=[2, 2, num_filters, output_depth], activation=lib_util.identity)
+
+    print('num_layers=%d, num_filters=%d' % (len(self.layers), num_filters))
+    self.name = '%s-%d-%d' % (self.key, len(self.layers), num_filters)
+
+  def __str__(self):
+    return self.name
+
+
+class Dilated(Architecture):
+  """A dilated convnet where each layer has the same number of filters."""
+  key = 'dilated'
+
+  def __init__(self, input_depth, num_layers, num_filters, num_pitches,
+               output_depth, **kwargs):
+    tf.logging.info('model_type=%s, input_depth=%d, output_depth=%d' %
+                    (self.key, input_depth, output_depth))
+    assert num_layers >= 4
+    # TODO(annahuang): determine the num of dilations based on crop length.
+    dilation_rates = [2**i for i in range(7)]
+    assert 'num_dilation_blocks' in kwargs
+    assert 'dilate_time_only' in kwargs
+    num_dilation_blocks = kwargs['num_dilation_blocks']
+    dilate_time_only = kwargs['dilate_time_only']
+    self.layers = []
+
+    def _add(**kwargs):
+      self.layers.append(kwargs)
+
+    _add(filters=[3, 3, input_depth, num_filters])
+    for _ in range(num_dilation_blocks):
+      for dilation_rate in dilation_rates:
+        if dilate_time_only:
+          layer_dilation_rates = [dilation_rate, 1]
+        else:
+          layer_dilation_rates = dilation_rate
+        tf.logging.info('layer_dilation_rates %r' % layer_dilation_rates)
+        _add(filters=[3, 3, num_filters, num_filters],
+             dilation_rate=layer_dilation_rates)
     _add(filters=[2, 2, num_filters, num_filters])
     _add(
         filters=[2, 2, num_filters, output_depth], activation=lib_util.identity)

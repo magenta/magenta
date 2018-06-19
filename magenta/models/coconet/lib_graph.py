@@ -262,6 +262,7 @@ class CoconetGraph(object):
           depth_multiplier=self.hparams.sep_conv_depth_multiplier,
           stride=layer.get('conv_stride', 1),
           padding=layer.get('conv_pad', 'SAME'),
+          rate=layer.get('dilation_rate', 1),
           activation_fn=None,
           weights_initializer=initializer if self.is_training else None)
     # Compute batch normalization or add biases.

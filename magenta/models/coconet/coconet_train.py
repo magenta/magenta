@@ -54,6 +54,10 @@ flags.DEFINE_integer('sep_conv_depth_multiplier', 1, 'Depth multiplier for'
 flags.DEFINE_integer('num_initial_regular_conv_layers', 2, 'The number of'
                      'regular convolutional layers to start with when using'
                      'depthwise separable convolutional layers.')
+flags.DEFINE_integer('num_dilation_blocks', 3, 'The number dilation blocks'
+                     'that starts from dilation rate=1.')
+flags.DEFINE_bool('dilate_time_only', False, 'If set, only dilates the time'
+                  'dimension and not pitch.')
 flags.DEFINE_integer('num_layers', 64, 'The number of convolutional layers.')
 flags.DEFINE_integer('num_filters', 128,
                      'The number of filters for each convolutional '
@@ -332,7 +336,8 @@ def _hparams_from_flags():
   keys = ("""
       dataset quantization_level num_instruments separate_instruments
       crop_piece_len architecture use_sep_conv num_initial_regular_conv_layers
-      sep_conv_depth_multiplier num_layers num_filters use_residual
+      sep_conv_depth_multiplier num_dilation_blocks dilate_time_only
+      num_layers num_filters use_residual
       batch_size maskout_method mask_indicates_context optimize_mask_only
       rescale_loss patience corrupt_ratio eval_freq run_id
       """.split())
