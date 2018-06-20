@@ -46,6 +46,7 @@ else
     case "$response" in
         [yY][eE][sS]|[yY])
             echo "copying the test frame"
+            mkdir $1/img
             cp $1/frames/f0000001.jpg $1/img/first.jpg
             ;;
         *)
