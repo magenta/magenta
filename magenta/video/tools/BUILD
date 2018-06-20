@@ -82,15 +82,3 @@ py_binary(
         "//magenta:version",
     ],
 )
-# a python script to extract the framerate of a video
-py_binary(
-    name = "test_frame_rate",
-    srcs = ["test_frame_rate.py"],
-    srcs_version = "PY2AND3",
-    visibility = [
-        "//magenta/tools/pip:__subpackages__",
-    ],
-    deps = [
-        "//magenta:version",
-    ],
-)

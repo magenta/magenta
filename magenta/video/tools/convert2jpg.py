@@ -11,54 +11,64 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
-# convert all files in a folder to jpg
+"""convert all files in a folder to jpg"""
 import argparse
 import glob
 import ntpath
 import os
-import sys
-from PIL import Image, ImageDraw
+from PIL import Image
 
-parser = argparse.ArgumentParser(description='')
-parser.add_argument(
+PARSER = argparse.ArgumentParser(description='')
+PARSER.add_argument(
     '--path_in',
     dest='path_in',
     default='',
     help='folder where the pictures are',
     required=True)
-parser.add_argument(
+PARSER.add_argument(
     '--path_out', dest='path_out', default='./', help='Destination folder')
-parser.add_argument(
+PARSER.add_argument(
     '--xsize', dest='xsize', type=int, default=0, help='horizontal size')
-parser.add_argument(
+PARSER.add_argument(
     '--ysize',
     dest='ysize',
     type=int,
     default=0,
     help='vertical size, if crop is true, will use xsize instead')
-parser.add_argument(
+PARSER.add_argument(
     '--delete',
     dest='delete',
     action='store_true',
     help='use this flag to delete the orginal file after conversion')
-parser.set_defaults(delete=False)
-parser.add_argument(
+PARSER.set_defaults(delete=False)
+PARSER.add_argument(
     '--crop',
     dest='crop',
     action='store_true',
     help='by default the video is cropped')
-parser.add_argument(
+PARSER.add_argument(
     '--strech',
     dest='crop',
     action='store_false',
     help='the video can be streched to a square ratio')
-parser.set_defaults(crop=True)
+PARSER.set_defaults(crop=True)
 
-args = parser.parse_args()
+ARGS = PARSER.parse_args()
 
 
-def convert2jpg(path_in, path_out, size):
+def convert2jpg(path_in, path_out, args):
+    """Convert all file in a folder to jpg files.
+
+    Args:
+        path_in: the folder that contains the files to be converted
+        path_out: the folder to export the converted files
+
+    Returns:
+        nothing
+
+    Raises:
+        nothing
+    """
     path = '{}/*'.format(path_in)
     print 'looking for all files in', path
     files = glob.glob(path)
@@ -66,14 +76,16 @@ def convert2jpg(path_in, path_out, size):
     print 'found ', file_count, 'files'
 
     i = 0
-    for file in files:
+    for image_file in files:
         i = i + 1
         try:
-            if ntpath.basename(file).split('.')[-1] in ['jpg', 'jpeg', 'JPG']:
-                print i, '/', file_count, '  not converting file', file
+            if ntpath.basename(image_file).split('.')[-1] in [
+                    'jpg', 'jpeg', 'JPG'
+            ]:
+                print i, '/', file_count, '  not converting file', image_file
                 continue  # no need to convert
-            print i, '/', file_count, '  convert file', file
-            img = Image.open(file)
+            print i, '/', file_count, '  convert file', image_file
+            img = Image.open(image_file)
             #print 'file open'
             if args.xsize > 0:
                 if args.crop:
@@ -88,19 +100,19 @@ def convert2jpg(path_in, path_out, size):
                     args.ysize = args.xsize
                 img = img.resize((args.xsize, args.ysize), Image.ANTIALIAS)
             # save file
-            basename = ntpath.basename(file).split('.')[
+            basename = ntpath.basename(image_file).split('.')[
                 0]  # remove old path & old extension
             filename = basename + '.jpg'
             file_out = os.path.join(path_out, filename)
             print i, '/', file_count, '  save file', file_out
             img.save(file_out, 'JPEG')
             if args.delete:
-                print 'deleting', file
-                os.remove(file)
-        except Exception as e:
-            print '''can't convert file''', file, 'to jpg :', str(e)
+                print 'deleting', image_file
+                os.remove(image_file)
+        except Exception as GenericException:
+            print '''can't convert file''', image_file, 'to jpg :', str(
+                GenericException)
 
 
 if __name__ == '__main__':
-    convert2jpg(args.path_in, args.path_out,
-                args.xsize)  #todo(dh) add ysize etc
+    convert2jpg(ARGS.path_in, ARGS.path_out, ARGS)
