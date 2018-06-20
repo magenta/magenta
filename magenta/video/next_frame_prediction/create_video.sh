@@ -123,7 +123,7 @@ else
                    --path_left $1/frames \
                    --path_right $1/good \
                    --path_out $1/val \
-                   --limit 20
+                   --limit 10
 
             echo "recreate 'val'"
             mkdir $1/val
@@ -132,7 +132,7 @@ else
                    --path_left $1/frames \
                    --path_right $1/good \
                    --path_out $1/val \
-                   --limit 20
+                   --limit 10
             ;;
         *)
             echo "keeping 'test' and 'val'"
@@ -151,7 +151,7 @@ else
                    --path_right $1/good \
                    --path_out $1/train \
                    --limit 1000
-#was 1000
+# 1000 is the default value, you can play with it and will get diferents results
         echo "trainning $i/$2"
         python ./third_party/pix2pix_tensorflow/main.py \
                --dataset_path $1 \
@@ -160,7 +160,7 @@ else
                --max_steps 10000 \
                --phase train \
                --continue_train 1
-#was 10000
+# 10000 is the default value, you can play with it and will get diferents results
         echo "cleaning logs"
         rm $1/logs/*
 
@@ -176,7 +176,8 @@ else
         rm -rf $1/recur
         mkdir $1/recur
         python ./magenta/video/tools/random_pick.py --path_in $1/good --path_out $1/recur \
-               --limit 10 #100 for beyon #500 for train; 200 for green
+               --limit 100
+# 100 is the default value, you can play with it and will get diferents results
         echo "use pre-recursion"
         python ./third_party/pix2pix_tensorflow/main.py \
                --checkpoint_dir $1 \
@@ -184,7 +185,7 @@ else
                --phase pre_recursion \
                --dataset_path $1/recur \
                --frames_path $1/frames
-#15 was too good for green, was great for tokyo
+# 15 is the default value, you can play with it and will get diferents results
         echo "generate pairs from recursion"
         python ./magenta/video/next_frame_prediction/join_pairs.py \
                --path_left $1/recur \
@@ -197,7 +198,8 @@ else
         rm -rf $1/recur
         mkdir $1/recur
         python ./magenta/video/tools/random_pick.py --path_in $1/good --path_out $1/recur \
-               --limit 2 #5 for the first iteration of 19
+               --limit 2
+# 2 is the default value, you can play with it and will get diferents results
         echo "use pre-recursion (long)"
         python ./third_party/pix2pix_tensorflow/main.py \
                --checkpoint_dir $1 \
@@ -205,7 +207,7 @@ else
                --phase pre_recursion \
                --dataset_path $1/recur \
                --frames_path $1/frames
-#100 was good for DJI
+# 100 is the default value, you can play with it and will get diferents results
         echo "generate pairs from recursion (long)"
         python ./magenta/video/next_frame_prediction/join_pairs.py \
                --path_left $1/recur \
