@@ -23,8 +23,6 @@ sh_binary(
     srcs = ["create_video.sh"],
     visibility = ["//magenta:__subpackages__"],
     data = [ "join_pairs",
-             "create_pairs",
-             "recursion",
              "recursion_640",
              "//magenta/video/tools:extract_frames",
              "//magenta/video/tools:random_pick",
