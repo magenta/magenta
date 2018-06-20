@@ -13,11 +13,11 @@ group](https://groups.google.com/a/tensorflow.org/forum/#!forum/magenta-discuss)
 
 ## Installation
 
-### Magenta
+### Magenta working environement
 
-Please setup the Magenta dev environement first, following the main documentation
+Please setup the Magenta environement first, following the main documentation
 
-#### Dependency
+### Additional dependency
 
 This tools need some additional dependency to run.
 
@@ -75,3 +75,5 @@ to decide witch part of the process you want to keep or restart from scratch.
 
 The script will extract frames from the video.
 Then will train pix2pix 20 times and generate a video made of 500 frames at each step.
+
+There are some const that you may want to change by editing the script if the default values don't give the optimal result.
