@@ -57,7 +57,7 @@ ARGS = PARSER.parse_args()
 
 
 def convert2jpg(path_in, path_out, args):
-    """Convert all file in a folder to jpg files.
+  """Convert all file in a folder to jpg files.
 
     Args:
         path_in: the folder that contains the files to be converted
@@ -69,50 +69,48 @@ def convert2jpg(path_in, path_out, args):
     Raises:
         nothing
     """
-    path = '{}/*'.format(path_in)
-    print 'looking for all files in', path
-    files = glob.glob(path)
-    file_count = len(files)
-    print 'found ', file_count, 'files'
+  path = '{}/*'.format(path_in)
+  print 'looking for all files in', path
+  files = glob.glob(path)
+  file_count = len(files)
+  print 'found ', file_count, 'files'
 
-    i = 0
-    for image_file in files:
-        i = i + 1
-        try:
-            if ntpath.basename(image_file).split('.')[-1] in [
-                    'jpg', 'jpeg', 'JPG'
-            ]:
-                print i, '/', file_count, '  not converting file', image_file
-                continue  # no need to convert
-            print i, '/', file_count, '  convert file', image_file
-            img = Image.open(image_file)
-            #print 'file open'
-            if args.xsize > 0:
-                if args.crop:
-                    args.ysize = args.xsize
-                    # resize the images
-                    small_side = min(img.size)
-                    center = img.size[0] / 2
-                    margin_left = center - small_side / 2
-                    margin_right = margin_left + small_side
-                    img = img.crop((margin_left, 0, margin_right, small_side))
-                if args.ysize == 0:
-                    args.ysize = args.xsize
-                img = img.resize((args.xsize, args.ysize), Image.ANTIALIAS)
-            # save file
-            basename = ntpath.basename(image_file).split('.')[
-                0]  # remove old path & old extension
-            filename = basename + '.jpg'
-            file_out = os.path.join(path_out, filename)
-            print i, '/', file_count, '  save file', file_out
-            img.save(file_out, 'JPEG')
-            if args.delete:
-                print 'deleting', image_file
-                os.remove(image_file)
-        except Exception as GenericException:
-            print '''can't convert file''', image_file, 'to jpg :', str(
-                GenericException)
+  i = 0
+  for image_file in files:
+    i = i + 1
+    try:
+      if ntpath.basename(image_file).split('.')[-1] in ['jpg', 'jpeg', 'JPG']:
+        print i, '/', file_count, '  not converting file', image_file
+        continue  # no need to convert
+      print i, '/', file_count, '  convert file', image_file
+      img = Image.open(image_file)
+      #print 'file open'
+      if args.xsize > 0:
+        if args.crop:
+          args.ysize = args.xsize
+          # resize the images
+          small_side = min(img.size)
+          center = img.size[0] / 2
+          margin_left = center - small_side / 2
+          margin_right = margin_left + small_side
+          img = img.crop((margin_left, 0, margin_right, small_side))
+        if args.ysize == 0:
+          args.ysize = args.xsize
+        img = img.resize((args.xsize, args.ysize), Image.ANTIALIAS)
+      # save file
+      basename = ntpath.basename(image_file).split('.')[
+          0]  # remove old path & old extension
+      filename = basename + '.jpg'
+      file_out = os.path.join(path_out, filename)
+      print i, '/', file_count, '  save file', file_out
+      img.save(file_out, 'JPEG')
+      if args.delete:
+        print 'deleting', image_file
+        os.remove(image_file)
+    except Exception as GenericException:
+      print """can't convert file""", image_file, 'to jpg :', str(
+          GenericException)
 
 
 if __name__ == '__main__':
-    convert2jpg(ARGS.path_in, ARGS.path_out, ARGS)
+  convert2jpg(ARGS.path_in, ARGS.path_out, ARGS)

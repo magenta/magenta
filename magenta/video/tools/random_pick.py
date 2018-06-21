@@ -11,11 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
-
-"""
-This tools is able to pick some frames from a folder
-and to copy or move them to an other folder
+"""This tools is able to pick some frames from a folder and to copy or move them to an other folder
 
 Only usefull if used with the --limit flag unless it will copy the whole folder
 """
@@ -52,7 +48,7 @@ ARGS = PARSER.parse_args()
 
 
 def random_pick(path_in, path_out, limit, delete):
-    """Pick a random set of jpg files and copy them to an other folder
+  """Pick a random set of jpg files and copy them to an other folder
 
     Args:
         path_in: the folder that contains the files
@@ -64,36 +60,36 @@ def random_pick(path_in, path_out, limit, delete):
     Raises:
         nothing
     """
-    if path_in == path_out:
-        print 'path in == path out, that is not allowed, quiting'
-        quit()
+  if path_in == path_out:
+    print 'path in == path out, that is not allowed, quiting'
+    quit()
 
-    path = '{}/*'.format(path_in)
-    print 'looking for all files in', path
-    files = glob.glob(path)
-    file_count = len(files)
-    print 'found ', file_count, 'files'
-    if limit > 0:
-        print 'will use limit of', limit, 'files'
-        shuffle(files)
-        files = files[:limit]
+  path = '{}/*'.format(path_in)
+  print 'looking for all files in', path
+  files = glob.glob(path)
+  file_count = len(files)
+  print 'found ', file_count, 'files'
+  if limit > 0:
+    print 'will use limit of', limit, 'files'
+    shuffle(files)
+    files = files[:limit]
 
-    i = 0
-    for image_file in files:
-        i = i + 1
-        basename = ntpath.basename(image_file)
-        file_out = os.path.join(path_out, basename)
+  i = 0
+  for image_file in files:
+    i = i + 1
+    basename = ntpath.basename(image_file)
+    file_out = os.path.join(path_out, basename)
 
-        try:
-            if delete:
-                print i, '/', limit, '  moving', image_file, 'to', file_out
-                move(image_file, file_out)
-            else:
-                print i, '/', limit, '  copying', image_file, 'to', file_out
-                copyfile(image_file, file_out)
-        except:
-            print '''can't pick file''', image_file, 'to', file_out
+    try:
+      if delete:
+        print i, '/', limit, '  moving', image_file, 'to', file_out
+        move(image_file, file_out)
+      else:
+        print i, '/', limit, '  copying', image_file, 'to', file_out
+        copyfile(image_file, file_out)
+    except:
+      print """can't pick file""", image_file, 'to', file_out
 
 
 if __name__ == '__main__':
-    random_pick(ARGS.path_in, ARGS.path_out, ARGS.limit, ARGS.delete)
+  random_pick(ARGS.path_in, ARGS.path_out, ARGS.limit, ARGS.delete)
