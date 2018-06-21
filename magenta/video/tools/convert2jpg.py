@@ -68,7 +68,7 @@ def convert2jpg(path_in, path_out, args):
 
     Raises:
         nothing
-    """
+  """
   path = '{}/*'.format(path_in)
   print 'looking for all files in', path
   files = glob.glob(path)
