@@ -20,6 +20,11 @@ maskout_method=orderless
 num_layers=32
 num_filters=64
 batch_size=10
+use_sep_conv=True
+architecture='dilated'
+num_dilation_blocks=1
+dilate_time_only=False
+
 
 # Run command.
 bazel run :coconet_train \
@@ -36,4 +41,8 @@ bazel run :coconet_train \
   --num_filters=$num_filters \
   --use_residual \
   --batch_size=$batch_size \
+  --use_sep_conv=$use_sep_conv \
+  --architecture=$architecture \
+  --num_dilation_blocks=$num_dilation_blocks \
+  --dilate_time_only=$dilate_time_only \
   --logtostderr
