@@ -80,7 +80,8 @@ PARSER.add_argument(
     type=int,
     default=10000,
     help=
-    'if used with a wildcard (*), "multiple" will be added for each video (10000)'
+    '''if used with a wildcard (*),
+    "multiple" will be added for each video (10000)'''
 )
 PARSER.add_argument(
     '--format', dest='format_ext', default='jpg', help='(jpg) or png')

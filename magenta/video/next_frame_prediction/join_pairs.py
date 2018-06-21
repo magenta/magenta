@@ -63,7 +63,7 @@ def is_match(l_name, r_list):
     l_name: the name of file
     r_list: a list of potential file to be matched
 
-  Returns
+  Returns:
     a match (or False if no match)
     the frame number of the match
   """

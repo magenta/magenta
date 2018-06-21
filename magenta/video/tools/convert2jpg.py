@@ -40,7 +40,7 @@ PARSER.add_argument(
     '--delete',
     dest='delete',
     action='store_true',
-    help='use this flag to delete the orginal file after conversion')
+    help='use this flag to delete the original file after conversion')
 PARSER.set_defaults(delete=False)
 PARSER.add_argument(
     '--crop',
@@ -65,7 +65,7 @@ def convert2jpg(path_in, path_out, args):
     path_out: the folder to export the converted files
     args: the args from the parser
       args.crop: a boolean, true for cropping
-      args.delete: a boolean, true to remove orignal file
+      args.delete: a boolean, true to remove original file
       args.xsize: width size of the new jpg
       args.ysize: height size of the new jpg
 
@@ -115,7 +115,7 @@ def convert2jpg(path_in, path_out, args):
         os.remove(image_file)
     except Exception as generic_exception:
       print """can't convert file""", image_file, 'to jpg :', str(
-          GenericException)
+          generic_exception)
 
 
 if __name__ == '__main__':

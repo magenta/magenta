@@ -13,7 +13,7 @@
 # limitations under the License.
 """This tools pick some frames randomly from a folder to an other.
 
-Only usefull if used with the --limit flag unless it will copy the whole folder
+Only useful if used with the --limit flag unless it will copy the whole folder
 """
 
 import argparse
@@ -21,7 +21,8 @@ import glob
 import ntpath
 import os
 from random import shuffle
-from shutil import copyfile, move
+from shutil import copyfile
+from shutil import move
 
 PARSER = argparse.ArgumentParser(description='')
 PARSER.add_argument(
@@ -36,7 +37,7 @@ PARSER.add_argument(
     '--delete',
     dest='delete',
     action='store_true',
-    help='use this flag to delete the orginal file after conversion')
+    help='use this flag to delete the original file after conversion')
 PARSER.set_defaults(delete=False)
 PARSER.add_argument(
     '--limit',
@@ -53,6 +54,8 @@ def random_pick(path_in, path_out, limit, delete):
   Args:
     path_in: the folder that contains the files
     path_out: the folder to export the picked files
+    limit: number of file to pick
+    delete: if true, will delete the original files
 
   Returns:
     nothing
@@ -76,7 +79,7 @@ def random_pick(path_in, path_out, limit, delete):
 
   i = 0
   for image_file in files:
-    i = i + 1
+    i += 1
     basename = ntpath.basename(image_file)
     file_out = os.path.join(path_out, basename)
 
