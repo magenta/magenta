@@ -18,8 +18,8 @@ files are prefixed by a f followed by the frame number
 import argparse
 import glob
 import os
-import skvideo.io
 from PIL import Image
+import skvideo.io
 
 PARSER = argparse.ArgumentParser(description="""
 Transform one or multiple video in a set of frames
@@ -29,9 +29,9 @@ PARSER.add_argument(
     '--video_in',
     dest='video_in',
     help="""one video or a path and a wildcard,
-                    wildcard need to be inside a quote,
-                    please note that ~ can be expanded only outside quote
-                    for instance ~/test.'*' works, but '~/test.*' won't""",
+            wildcard need to be inside a quote,
+            please note that ~ can be expanded only outside quote
+            for instance ~/test.'*' works, but '~/test.*' won't""",
     required=True)
 PARSER.add_argument(
     '--from',
@@ -53,7 +53,7 @@ PARSER.add_argument(
     type=int,
     default=0,
     help="""skip first frame to offset the output (0)
-                    useful with '--skip' to extract only a subset""")
+            useful with '--skip' to extract only a subset""")
 PARSER.add_argument(
     '--skip',
     dest='skip',
@@ -99,6 +99,13 @@ ARGS = PARSER.parse_args()
 
 def crop(img, size):
   """resize the images
+
+     args
+       img: a pillow image
+       size: the size of the image (both x & y)
+
+     return
+        nothing
   """
   small_side = min(img.size)
   center = img.size[0] / 2
@@ -113,6 +120,9 @@ def main(_):
   """
     The main fonction use skvideo to extract frames as jpg,
     from a part or the totality of the video.
+
+    args
+      nothing
   """
   print 'argument to expand', ARGS.video_in
   print 'argument expanded', glob.glob(ARGS.video_in)
@@ -149,9 +159,9 @@ def main(_):
         else:
           print 'unrecognize format', ARGS.format_ext
           quit()
-        file_count = file_count + 1
-      frame_count = frame_count + 1
-    video_count = video_count + 1
+        file_count += 1
+      frame_count += 1
+    video_count += 1
 
 
 if __name__ == '__main__':

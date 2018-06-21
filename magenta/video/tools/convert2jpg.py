@@ -11,7 +11,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""convert all files in a folder to jpg"""
+"""convert all files in a folder to jpg."""
+
 import argparse
 import glob
 import ntpath
@@ -60,14 +61,19 @@ def convert2jpg(path_in, path_out, args):
   """Convert all file in a folder to jpg files.
 
     Args:
-        path_in: the folder that contains the files to be converted
-        path_out: the folder to export the converted files
+      path_in: the folder that contains the files to be converted
+      path_out: the folder to export the converted files
+      args: the args from the parser
+        args.crop: a boolean, true for cropping
+        args.delete: a boolean, true to remove orignal file
+        args.xsize: width size of the new jpg
+        args.ysize: height size of the new jpg
 
     Returns:
-        nothing
+      nothing
 
     Raises:
-        nothing
+      nothing
   """
   path = '{}/*'.format(path_in)
   print 'looking for all files in', path
@@ -77,14 +83,14 @@ def convert2jpg(path_in, path_out, args):
 
   i = 0
   for image_file in files:
-    i = i + 1
+    i += 1
     try:
       if ntpath.basename(image_file).split('.')[-1] in ['jpg', 'jpeg', 'JPG']:
         print i, '/', file_count, '  not converting file', image_file
         continue  # no need to convert
       print i, '/', file_count, '  convert file', image_file
       img = Image.open(image_file)
-      #print 'file open'
+      # print 'file open'
       if args.xsize > 0:
         if args.crop:
           args.ysize = args.xsize
@@ -98,8 +104,8 @@ def convert2jpg(path_in, path_out, args):
           args.ysize = args.xsize
         img = img.resize((args.xsize, args.ysize), Image.ANTIALIAS)
       # save file
-      basename = ntpath.basename(image_file).split('.')[
-          0]  # remove old path & old extension
+      # remove old path & old extension:
+      basename = ntpath.basename(image_file).split('.')[0]
       filename = basename + '.jpg'
       file_out = os.path.join(path_out, filename)
       print i, '/', file_count, '  save file', file_out
@@ -107,7 +113,7 @@ def convert2jpg(path_in, path_out, args):
       if args.delete:
         print 'deleting', image_file
         os.remove(image_file)
-    except Exception as GenericException:
+    except Exception as generic_exception:
       print """can't convert file""", image_file, 'to jpg :', str(
           GenericException)
 

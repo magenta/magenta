@@ -57,8 +57,8 @@ ARGS = PARSER.parse_args()
 
 
 def is_match(l_name, r_list):
-  """
-    for a given frame, find the next one in a list of frame
+  """for a given frame, find the next one in a list of frame.
+
   """
   basename = ntpath.basename(l_name)
   frame_number = int(basename.split('.')[0][1:])
@@ -70,9 +70,9 @@ def is_match(l_name, r_list):
 
 
 def main(_):
-  """
-    find frames in a folder, try to find a matching frame in an other folder,
-    and build a pair.
+  """find frames in a folder, try to find a matching frame in an other folder,
+     and build a pair.
+
   """
   size = ARGS.size
   path = '{}/*.jpg'.format(ARGS.path_left)
