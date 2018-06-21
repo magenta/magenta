@@ -11,9 +11,9 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Join pairs Finds frames that matches and create pairs
+"""Join pairs Finds frames that matches and create pairs.
 
-goal is to create pairs with a frame to the next frame
+The goal is to create pairs with a frame to the next frame
 it can match a real frame to a recursively generated frame
 for instance (r0001.png) with a real frame (f0002.png)
 """
@@ -59,6 +59,13 @@ ARGS = PARSER.parse_args()
 def is_match(l_name, r_list):
   """for a given frame, find the next one in a list of frame.
 
+  Args:
+    l_name: the name of file
+    r_list: a list of potential file to be matched
+
+  Returns
+    a match (or False if no match)
+    the frame number of the match
   """
   basename = ntpath.basename(l_name)
   frame_number = int(basename.split('.')[0][1:])
@@ -70,8 +77,10 @@ def is_match(l_name, r_list):
 
 
 def main(_):
-  """find frames in a folder, try to find a matching frame in an other folder,
-     and build a pair.
+  """match pairs from two folders.
+
+  it find frames in a folder, try to find a matching frame in an other folder,
+  and build a pair.
 
   """
   size = ARGS.size

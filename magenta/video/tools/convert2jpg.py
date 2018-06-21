@@ -60,20 +60,20 @@ ARGS = PARSER.parse_args()
 def convert2jpg(path_in, path_out, args):
   """Convert all file in a folder to jpg files.
 
-    Args:
-      path_in: the folder that contains the files to be converted
-      path_out: the folder to export the converted files
-      args: the args from the parser
-        args.crop: a boolean, true for cropping
-        args.delete: a boolean, true to remove orignal file
-        args.xsize: width size of the new jpg
-        args.ysize: height size of the new jpg
+  Args:
+    path_in: the folder that contains the files to be converted
+    path_out: the folder to export the converted files
+    args: the args from the parser
+      args.crop: a boolean, true for cropping
+      args.delete: a boolean, true to remove orignal file
+      args.xsize: width size of the new jpg
+      args.ysize: height size of the new jpg
 
-    Returns:
-      nothing
+  Returns:
+    nothing
 
-    Raises:
-      nothing
+  Raises:
+    nothing
   """
   path = '{}/*'.format(path_in)
   print 'looking for all files in', path

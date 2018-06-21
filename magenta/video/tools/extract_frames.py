@@ -11,8 +11,9 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Transform one or multiple video in a set of frames
-files are prefixed by a f followed by the frame number
+"""Transform one or multiple video in a set of frames.
+
+Files are prefixed by a f followed by the frame number.
 """
 
 import argparse
@@ -22,8 +23,9 @@ from PIL import Image
 import skvideo.io
 
 PARSER = argparse.ArgumentParser(description="""
-Transform one or multiple video in a set of frames
-files are prefixed by a f followed by the frame number""")
+Transform one or multiple video in a set of frames.
+
+Files are prefixed by a f followed by the frame number""")
 
 PARSER.add_argument(
     '--video_in',
@@ -98,14 +100,14 @@ ARGS = PARSER.parse_args()
 
 
 def crop(img, size):
-  """resize the images
+  """resize the images.
 
-     args
-       img: a pillow image
-       size: the size of the image (both x & y)
+  Args:
+    img: a pillow image
+    size: the size of the image (both x & y)
 
-     return
-        nothing
+  Returns:
+    nothing
   """
   small_side = min(img.size)
   center = img.size[0] / 2
@@ -117,12 +119,12 @@ def crop(img, size):
 
 
 def main(_):
-  """
-    The main fonction use skvideo to extract frames as jpg,
-    from a part or the totality of the video.
+  """The main fonction use skvideo to extract frames as jpg.
 
-    args
-      nothing
+  It can do it from a part or the totality of the video.
+
+  Args:
+    Nothing
   """
   print 'argument to expand', ARGS.video_in
   print 'argument expanded', glob.glob(ARGS.video_in)

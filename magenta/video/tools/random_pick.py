@@ -11,8 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""This tools is able to pick some frames from a folder
-and to copy or move them to an other folder
+"""This tools pick some frames randomly from a folder to an other.
 
 Only usefull if used with the --limit flag unless it will copy the whole folder
 """
@@ -49,17 +48,17 @@ ARGS = PARSER.parse_args()
 
 
 def random_pick(path_in, path_out, limit, delete):
-  """Pick a random set of jpg files and copy them to an other folder
+  """Pick a random set of jpg files and copy them to an other folder.
 
-    Args:
-        path_in: the folder that contains the files
-        path_out: the folder to export the picked files
+  Args:
+    path_in: the folder that contains the files
+    path_out: the folder to export the picked files
 
-    Returns:
-        nothing
+  Returns:
+    nothing
 
-    Raises:
-        nothing
+  Raises:
+    nothing
   """
   if path_in == path_out:
     print 'path in == path out, that is not allowed, quiting'
