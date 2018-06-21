@@ -5,9 +5,9 @@ from __future__ import print_function
 import itertools as it
 import os
 # internal imports
+import numpy as np
 import six
 import tensorflow as tf
-import numpy as np
 import yaml
 from magenta.models.coconet import lib_util
 
@@ -35,8 +35,8 @@ class Hyperparameters(object):
       corrupt_ratio=0.25,
       # Input dimensions.
       batch_size=20,
-      min_pitch = 36,
-      max_pitch = 81,
+      min_pitch=36,
+      max_pitch=81,
       crop_piece_len=64,
       num_instruments=4,
       separate_instruments=True,
@@ -258,7 +258,7 @@ class Dilated(Architecture):
     if kwargs['repeat_last_dilation_level']:
       tf.logging.info('Increasing max dilation level from %s to %s'
                       % (max_dilation_level, max_dilation_level + 1))
-      max_dilation_level = max_dilation_level + 1
+      max_dilation_level += 1
 
     def determine_dilation_rate(level, max_level):
       dilation_level = level if level <= max_level else max_level
@@ -287,7 +287,8 @@ class Dilated(Architecture):
     _add(
         filters=[2, 2, num_filters, output_depth], activation=lib_util.identity)
 
-    tf.logging.info('num_layers=%d, num_filters=%d' % (len(self.layers), num_filters))
+    tf.logging.info('num_layers=%d, num_filters=%d' % (
+        len(self.layers), num_filters))
     self.name = '%s-%d-%d' % (self.key, len(self.layers), num_filters)
 
   def __str__(self):
