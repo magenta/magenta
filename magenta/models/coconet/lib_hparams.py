@@ -251,17 +251,14 @@ class Dilated(Architecture):
         compute_max_dilation_level(kwargs['crop_piece_len']))
     max_pitch_dilation_level = (
         compute_max_dilation_level(num_pitches))
-    max_dilation_level = (
-        max_time_dilation_level
-        if max_time_dilation_level > max_pitch_dilation_level
-        else max_pitch_dilation_level)
+    max_dilation_level = max(max_time_dilation_level, max_pitch_dilation_level)
     if kwargs['repeat_last_dilation_level']:
       tf.logging.info('Increasing max dilation level from %s to %s'
                       % (max_dilation_level, max_dilation_level + 1))
       max_dilation_level += 1
 
     def determine_dilation_rate(level, max_level):
-      dilation_level = level if level <= max_level else max_level
+      dilation_level = min(level, max_level)
       return 2 ** dilation_level
 
     self.layers = []
