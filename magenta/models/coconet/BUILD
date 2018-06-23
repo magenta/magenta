@@ -97,6 +97,7 @@ py_library(
     ],
     deps = [
         ":lib_util",
+        # numpy dep
         # tensorflow dep
         # yaml dep
     ],

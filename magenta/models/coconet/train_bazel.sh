@@ -11,7 +11,7 @@ data_dir="testdata"
 dataset=TestData
 
 # Data preprocessing.
-crop_piece_len=64
+crop_piece_len=32
 separate_instruments=True
 quantization_level=0.125  # 16th notes
 
@@ -24,6 +24,7 @@ use_sep_conv=True
 architecture='dilated'
 num_dilation_blocks=1
 dilate_time_only=False
+repeat_last_dilation_level=False
 
 
 # Run command.
@@ -45,4 +46,5 @@ bazel run :coconet_train \
   --architecture=$architecture \
   --num_dilation_blocks=$num_dilation_blocks \
   --dilate_time_only=$dilate_time_only \
+  --repeat_last_dilation_level=$repeat_last_dilation_level \
   --logtostderr

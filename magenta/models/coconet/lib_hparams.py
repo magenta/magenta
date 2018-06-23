@@ -5,6 +5,7 @@ from __future__ import print_function
 import itertools as it
 import os
 # internal imports
+import numpy as np
 import six
 import tensorflow as tf
 import yaml
@@ -34,8 +35,8 @@ class Hyperparameters(object):
       corrupt_ratio=0.25,
       # Input dimensions.
       batch_size=20,
-      num_pitches=53,
-      pitch_ranges=[36, 81],
+      min_pitch=36,
+      max_pitch=81,
       crop_piece_len=64,
       num_instruments=4,
       separate_instruments=True,
@@ -46,11 +47,17 @@ class Hyperparameters(object):
       init_scale=0.1,
       # Model architecture.
       architecture='straight',
+      # Hparams for depthwise separable convs.
       use_sep_conv=False,
       sep_conv_depth_multiplier=1,
       num_initial_regular_conv_layers=2,
+      # Hparams for dilated convs.
       num_dilation_blocks=3,
       dilate_time_only=False,
+      repeat_last_dilation_level=False,
+      # num_layers is used only for non dilated convs
+      # as the number of layers in dilated convs is computed based on
+      # num_dilation_blocks.
       num_layers=28,
       num_filters=256,
       use_residual=True,
@@ -102,6 +109,10 @@ class Hyperparameters(object):
   def update(self, dikt, **kwargs):
     for key, value in it.chain(six.iteritems(dikt), six.iteritems(kwargs)):
       setattr(self, key, value)
+
+  @property
+  def num_pitches(self):
+    return self.max_pitch + 1 - self.min_pitch
 
   @property
   def input_depth(self):
@@ -168,8 +179,10 @@ class Hyperparameters(object):
         self.num_filters,
         self.num_pitches,
         self.output_depth,
+        crop_piece_len=self.crop_piece_len,
         num_dilation_blocks=self.num_dilation_blocks,
-        dilate_time_only=self.dilate_time_only)
+        dilate_time_only=self.dilate_time_only,
+        repeat_last_dilation_level=self.repeat_last_dilation_level)
 
   def dump(self, file_object):
     yaml.dump(self.__dict__, file_object)
@@ -223,13 +236,31 @@ class Dilated(Architecture):
                output_depth, **kwargs):
     tf.logging.info('model_type=%s, input_depth=%d, output_depth=%d' %
                     (self.key, input_depth, output_depth))
-    assert num_layers >= 4
-    # TODO(annahuang): determine the num of dilations based on crop length.
-    dilation_rates = [2**i for i in range(7)]
-    assert 'num_dilation_blocks' in kwargs
-    assert 'dilate_time_only' in kwargs
+    kws = """num_dilation_blocks dilate_time_only crop_piece_len
+          repeat_last_dilation_level"""
+    for kw in kws.split():
+      assert kw in kwargs
     num_dilation_blocks = kwargs['num_dilation_blocks']
+    assert num_dilation_blocks >= 1
     dilate_time_only = kwargs['dilate_time_only']
+
+    def compute_max_dilation_level(length):
+      return int(np.ceil(np.log2(length))) - 1
+
+    max_time_dilation_level = (
+        compute_max_dilation_level(kwargs['crop_piece_len']))
+    max_pitch_dilation_level = (
+        compute_max_dilation_level(num_pitches))
+    max_dilation_level = max(max_time_dilation_level, max_pitch_dilation_level)
+    if kwargs['repeat_last_dilation_level']:
+      tf.logging.info('Increasing max dilation level from %s to %s'
+                      % (max_dilation_level, max_dilation_level + 1))
+      max_dilation_level += 1
+
+    def determine_dilation_rate(level, max_level):
+      dilation_level = min(level, max_level)
+      return 2 ** dilation_level
+
     self.layers = []
 
     def _add(**kwargs):
@@ -237,11 +268,15 @@ class Dilated(Architecture):
 
     _add(filters=[3, 3, input_depth, num_filters])
     for _ in range(num_dilation_blocks):
-      for dilation_rate in dilation_rates:
+      for level in range(max_dilation_level + 1):
+        time_dilation_rate = determine_dilation_rate(
+            level, max_time_dilation_level)
+        pitch_dilation_rate = determine_dilation_rate(
+            level, max_pitch_dilation_level)
         if dilate_time_only:
-          layer_dilation_rates = [dilation_rate, 1]
+          layer_dilation_rates = [time_dilation_rate, 1]
         else:
-          layer_dilation_rates = dilation_rate
+          layer_dilation_rates = [time_dilation_rate, pitch_dilation_rate]
         tf.logging.info('layer_dilation_rates %r' % layer_dilation_rates)
         _add(filters=[3, 3, num_filters, num_filters],
              dilation_rate=layer_dilation_rates)
@@ -249,7 +284,8 @@ class Dilated(Architecture):
     _add(
         filters=[2, 2, num_filters, output_depth], activation=lib_util.identity)
 
-    print('num_layers=%d, num_filters=%d' % (len(self.layers), num_filters))
+    tf.logging.info('num_layers=%d, num_filters=%d' % (
+        len(self.layers), num_filters))
     self.name = '%s-%d-%d' % (self.key, len(self.layers), num_filters)
 
   def __str__(self):
