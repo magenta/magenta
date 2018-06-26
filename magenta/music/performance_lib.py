@@ -54,6 +54,9 @@ class PerformanceEvent(object):
   TIME_SHIFT = 3
   # Change current velocity.
   VELOCITY = 4
+  # Duration of preceding NOTE_ON.
+  # For Note-based encoding, used instead of NOTE_OFF events.
+  DURATION = 5
 
   def __init__(self, event_type, event_value):
     if not PerformanceEvent.NOTE_ON <= event_type <= PerformanceEvent.VELOCITY:
