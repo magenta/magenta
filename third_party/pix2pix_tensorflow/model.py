@@ -5,9 +5,6 @@ from glob import glob
 import tensorflow as tf
 import numpy as np
 import ntpath
-import pygame
-import pygame.camera
-from pygame.locals import *
 from six.moves import xrange
 from ops import *
 from utils import *
@@ -515,14 +512,13 @@ class pix2pix(object):
         for instance, to calculate 10 pre recursion frames for frame 100,
         you want to pick frame 90, use recursion 10 times and create a frame 100
         that you can compare to real frame 100 """
-        #maybe this function is useless
 
         basename = ntpath.basename(r_name)
         frame_number = int(basename.split('.')[0][1:])
         matched_name = 'f{:07d}.{}'.format(frame_number - recursion,
                                            self.format_ext)
         matches = [x for x in f_list if matched_name in x]
-        if len(matches)>0: #shouldn't we test len(maches)
+        if matches:
             return matches[0], frame_number - recursion
         else:
             return False, 0
