@@ -486,7 +486,8 @@ class EventSequenceRnnConfig(object):
     details: The GeneratorDetails message describing the config.
     encoder_decoder: The EventSequenceEncoderDecoder or
         ConditionalEventSequenceEncoderDecoder object to use.
-    hparams: The HParams containing hyperparameters to use.
+    hparams: The HParams containing hyperparameters to use. Will be merged with
+        default hyperparameter values.
     steps_per_quarter: The integer number of quantized time steps per quarter
         note to use.
     steps_per_second: The integer number of quantized time steps per second to
@@ -495,8 +496,19 @@ class EventSequenceRnnConfig(object):
 
   def __init__(self, details, encoder_decoder, hparams,
                steps_per_quarter=4, steps_per_second=100):
+    hparams_dict = {
+        'batch_size': 64,
+        'rnn_layer_sizes': [128, 128],
+        'dropout_keep_prob': 1.0,
+        'attn_length': 0,
+        'clip_norm': 3,
+        'learning_rate': 0.001,
+        'residual_connections': False
+    }
+    hparams_dict.update(hparams.values())
+
     self.details = details
     self.encoder_decoder = encoder_decoder
-    self.hparams = hparams
+    self.hparams = tf.contrib.training.HParams(**hparams_dict)
     self.steps_per_quarter = steps_per_quarter
     self.steps_per_second = steps_per_second
