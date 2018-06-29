@@ -244,6 +244,9 @@ class CoconetGraph(object):
     regular_convs = (not self.hparams.use_sep_conv or
                      layer_idx < self.hparams.num_initial_regular_conv_layers)
     if regular_convs:
+      dilation_rates = layer.get('dilation_rate', 1)
+      if isinstance(dilation_rates, int):
+        dilation_rates = [dilation_rates] * 2
       weights = tf.get_variable(
           'weights',
           filter_shape,
@@ -253,10 +256,12 @@ class CoconetGraph(object):
           x,
           weights,
           strides=[1, stride, stride, 1],
-          padding=layer.get('conv_pad', 'SAME'))
+          padding=layer.get('conv_pad', 'SAME'),
+          dilations=[1] + dilation_rates + [1])
     else:
       num_outputs = filter_shape[-1]
-      num_splits = self.hparams.num_pointwise_splits
+      num_splits = layer.get('num_pointwise_splits', 1)
+      tf.logging.info('num_splits %d' % num_splits)
       if num_splits > 1:
         num_outputs = None
       conv = tf.contrib.layers.separable_conv2d(

@@ -53,6 +53,7 @@ class Hyperparameters(object):
       num_initial_regular_conv_layers=2,
       # Hparams for reducing pointwise in separable convs.
       num_pointwise_splits=1,
+      interleave_split_every_n_layers=1,
       # Hparams for dilated convs.
       num_dilation_blocks=3,
       dilate_time_only=False,
@@ -184,7 +185,9 @@ class Hyperparameters(object):
         crop_piece_len=self.crop_piece_len,
         num_dilation_blocks=self.num_dilation_blocks,
         dilate_time_only=self.dilate_time_only,
-        repeat_last_dilation_level=self.repeat_last_dilation_level)
+        repeat_last_dilation_level=self.repeat_last_dilation_level,
+        num_pointwise_splits=self.num_pointwise_splits,
+        interleave_split_every_n_layers=self.interleave_split_every_n_layers)
 
   def dump(self, file_object):
     yaml.dump(self.__dict__, file_object)
@@ -239,12 +242,15 @@ class Dilated(Architecture):
     tf.logging.info('model_type=%s, input_depth=%d, output_depth=%d' %
                     (self.key, input_depth, output_depth))
     kws = """num_dilation_blocks dilate_time_only crop_piece_len
-          repeat_last_dilation_level"""
+          repeat_last_dilation_level num_pointwise_splits
+          interleave_split_every_n_layers"""
     for kw in kws.split():
       assert kw in kwargs
     num_dilation_blocks = kwargs['num_dilation_blocks']
     assert num_dilation_blocks >= 1
     dilate_time_only = kwargs['dilate_time_only']
+    num_pointwise_splits = kwargs['num_pointwise_splits']
+    interleave_split_every_n_layers = kwargs['interleave_split_every_n_layers']
 
     def compute_max_dilation_level(length):
       return int(np.ceil(np.log2(length))) - 1
@@ -280,8 +286,14 @@ class Dilated(Architecture):
         else:
           layer_dilation_rates = [time_dilation_rate, pitch_dilation_rate]
         tf.logging.info('layer_dilation_rates %r' % layer_dilation_rates)
+        if len(self.layers) % (interleave_split_every_n_layers + 1) == 0:
+          current_num_pointwise_splits = num_pointwise_splits
+        else:
+          current_num_pointwise_splits = 1
+        tf.logging.info('num_split %d' % current_num_pointwise_splits)
         _add(filters=[3, 3, num_filters, num_filters],
-             dilation_rate=layer_dilation_rates)
+             dilation_rate=layer_dilation_rates,
+             num_pointwise_splits=current_num_pointwise_splits)
     _add(filters=[2, 2, num_filters, num_filters])
     _add(
         filters=[2, 2, num_filters, output_depth], activation=lib_util.identity)

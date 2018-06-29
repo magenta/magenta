@@ -56,7 +56,12 @@ flags.DEFINE_integer('num_initial_regular_conv_layers', 2, 'The number of'
                      'regular convolutional layers to start with when using'
                      'depthwise separable convolutional layers.')
 #Hparams for reducing pointwise in separable convs.
-flags.DEFINE_integer('num_pointwise_splits', 1, 'Num of splits on the pointwise convolution stage in depthwise separable convolutions.')
+flags.DEFINE_integer('num_pointwise_splits', 1, 'Num of splits on the'
+                     'pointwise convolution stage in depthwise separable'
+                     'convolutions.')
+flags.DEFINE_integer('interleave_split_every_n_layers', 1, 'Num of split'
+                     'pointwise layers to interleave between full pointwise'
+                     'layers.')
 # Hparams for dilated conv.
 flags.DEFINE_integer('num_dilation_blocks', 3, 'The number dilation blocks'
                      'that starts from dilation rate=1.')
@@ -347,7 +352,7 @@ def _hparams_from_flags():
       repeat_last_dilation_level num_layers num_filters use_residual
       batch_size maskout_method mask_indicates_context optimize_mask_only
       rescale_loss patience corrupt_ratio eval_freq run_id
-      num_pointwise_splits
+      num_pointwise_splits interleave_split_every_n_layers
       """.split())
   hparams = lib_hparams.Hyperparameters(**dict(
       (key, getattr(FLAGS, key)) for key in keys))
