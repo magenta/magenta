@@ -27,6 +27,7 @@ def load_hparams(checkpoint_path):
 
 class Hyperparameters(object):
   """Stores hyperparameters for initialization, batch norm and training."""
+  _LEGACY_HPARAM_NAMES = ['num_pitches', 'pitch_ranges']
   _defaults = dict(
       # Data.
       dataset=None,
@@ -110,20 +111,40 @@ class Hyperparameters(object):
     self.update(init_hparams)
 
   def update(self, dikt, **kwargs):
-    for key, value in it.chain(six.iteritems(dikt), six.iteritems(kwargs)):
-      # num_pitches is a legacy flag.
-      if key == 'num_pitches':
-        pitch_range = self.convert_num_pitches_to_min_max_pitch(value)
-        for kind, pitch in pitch_range.iteritems():
-          setattr(self, kind, pitch)
-      else:
-        setattr(self, key, value)
+    all_dikt = dict(it.chain(six.iteritems(dikt), six.iteritems(kwargs)))
+    self.filter_and_check_legacy_hparams(all_dikt)
+    for key, value in all_dikt.iteritems():
+      setattr(self, key, value)
 
-  def convert_num_pitches_to_min_max_pitch(self, num_pitches, min_pitch=36):
-    max_pitch = min_pitch + num_pitches - 1
-    tf.logging.info('Converting num pitches to min_pitch %d, max_pitch %d',
-                    min_pitch, max_pitch)
-    return dict(min_pitch=min_pitch, max_pitch=max_pitch)
+  def filter_and_check_legacy_hparams(self, dikt):
+    legacy_hparams = dict()
+    for l_hparam in Hyperparameters._LEGACY_HPARAM_NAMES:
+      if l_hparam in dikt:
+        legacy_hparams[l_hparam] = dikt[l_hparam]
+        del dikt[l_hparam]
+    if legacy_hparams:
+      self.check_pitch_range_compatibilities(legacy_hparams, dikt)
+
+  def check_pitch_range_compatibilities(self, legacy_hparams, dikt):
+    min_pitch = dikt.get('min_pitch', self.min_pitch)
+    max_pitch = dikt.get('max_pitch', self.max_pitch)
+    if 'pitch_ranges' in legacy_hparams:
+      for legacy_pitch, given_pitch in zip(
+          legacy_hparams['pitch_ranges'], [min_pitch, max_pitch]):
+        if legacy_pitch != given_pitch:
+          raise ValueError(
+              'Legacy pitch range element %d does not match given '
+              'pitch %d.' % (
+                  legacy_pitch, given_pitch))
+    if 'num_pitches' in legacy_hparams:
+      computed_num_pitches = max_pitch - min_pitch + 1
+      legacy_num_pitches = legacy_hparams['num_pitches']
+      if legacy_num_pitches != computed_num_pitches:
+        raise ValueError(
+            'num_pitches %d is not compatible with that computed from '
+            'min_pitch %d and max_pitch %d, which is %d.' % (
+                legacy_num_pitches, min_pitch, max_pitch,
+                computed_num_pitches))
 
   @property
   def num_pitches(self):

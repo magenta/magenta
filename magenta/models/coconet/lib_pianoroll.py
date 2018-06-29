@@ -14,11 +14,10 @@ class PitchOutOfEncodeRangeError(Exception):
 
 
 def get_pianoroll_encoder_decoder(hparams):
-  min_pitch, max_pitch = hparams.pitch_ranges
   encoder_decoder = PianorollEncoderDecoder(
       shortest_duration=hparams.shortest_duration,
-      min_pitch=min_pitch,
-      max_pitch=max_pitch,
+      min_pitch=hparams.min_pitch,
+      max_pitch=hparams.max_pitch,
       separate_instruments=hparams.separate_instruments,
       num_instruments=hparams.num_instruments,
       quantization_level=hparams.quantization_level)
