@@ -126,6 +126,7 @@ class Hyperparameters(object):
       self.check_pitch_range_compatibilities(legacy_hparams, dikt)
 
   def check_pitch_range_compatibilities(self, legacy_hparams, dikt):
+    """Check that all the pitch range related hparams match each other."""
     min_pitch = dikt.get('min_pitch', self.min_pitch)
     max_pitch = dikt.get('max_pitch', self.max_pitch)
     if 'pitch_ranges' in legacy_hparams:
