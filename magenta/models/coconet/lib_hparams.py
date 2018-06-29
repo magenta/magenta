@@ -102,7 +102,7 @@ class Hyperparameters(object):
     Raises:
       ValueError: When incoming hparams are not in class _defaults.
     """
-    print('Instantiating hparams...')
+    tf.logging.info('Instantiating hparams...')
     unknown_params = set(init_hparams) - set(Hyperparameters._defaults)
     if unknown_params:
       raise ValueError('Unknown hyperparameters: %s' % unknown_params)
@@ -111,7 +111,19 @@ class Hyperparameters(object):
 
   def update(self, dikt, **kwargs):
     for key, value in it.chain(six.iteritems(dikt), six.iteritems(kwargs)):
-      setattr(self, key, value)
+      # num_pitches is a legacy flag.
+      if key == 'num_pitches':
+        pitch_range = self.convert_num_pitches_to_min_max_pitch(value)
+        for key, value in pitch_range.iteritems():
+          setattr(self, key, value)
+      else:
+        setattr(self, key, value)
+
+  def convert_num_pitches_to_min_max_pitch(self, num_pitches, min_pitch=36):
+    max_pitch = min_pitch + num_pitches - 1
+    tf.logging.info('Converting num pitches to min_pitch %d, max_pitch %d',
+                    min_pitch, max_pitch)
+    return dict(min_pitch=min_pitch, max_pitch=max_pitch)
 
   @property
   def num_pitches(self):
@@ -210,9 +222,14 @@ class Straight(Architecture):
 
   def __init__(self, input_depth, num_layers, num_filters, num_pitches,
                output_depth, **kwargs):
-    print('model_type=%s, input_depth=%d, output_depth=%d' %
-          (self.key, input_depth, output_depth))
+    tf.logging.info('model_type=%s, input_depth=%d, output_depth=%d',
+                    self.key, input_depth, output_depth)
     assert num_layers >= 4
+    if ('num_pointwise_splits' in kwargs and
+        kwargs['num_pointwise_splits'] > 1):
+      raise ValueError(
+          'Splitting pointwise for non-dilated architectures not yet supported.'
+          'Set num_pointwise_splits to 1.')
 
     self.layers = []
 
@@ -226,7 +243,8 @@ class Straight(Architecture):
     _add(
         filters=[2, 2, num_filters, output_depth], activation=lib_util.identity)
 
-    print('num_layers=%d, num_filters=%d' % (len(self.layers), num_filters))
+    tf.logging.info('num_layers=%d, num_filters=%d',
+                    len(self.layers), num_filters)
     self.name = '%s-%d-%d' % (self.key, len(self.layers), num_filters)
 
   def __str__(self):
@@ -239,8 +257,8 @@ class Dilated(Architecture):
 
   def __init__(self, input_depth, num_layers, num_filters, num_pitches,
                output_depth, **kwargs):
-    tf.logging.info('model_type=%s, input_depth=%d, output_depth=%d' %
-                    (self.key, input_depth, output_depth))
+    tf.logging.info('model_type=%s, input_depth=%d, output_depth=%d',
+                    self.key, input_depth, output_depth)
     kws = """num_dilation_blocks dilate_time_only crop_piece_len
           repeat_last_dilation_level num_pointwise_splits
           interleave_split_every_n_layers"""
@@ -261,8 +279,8 @@ class Dilated(Architecture):
         compute_max_dilation_level(num_pitches))
     max_dilation_level = max(max_time_dilation_level, max_pitch_dilation_level)
     if kwargs['repeat_last_dilation_level']:
-      tf.logging.info('Increasing max dilation level from %s to %s'
-                      % (max_dilation_level, max_dilation_level + 1))
+      tf.logging.info('Increasing max dilation level from %s to %s',
+                      max_dilation_level, max_dilation_level + 1)
       max_dilation_level += 1
 
     def determine_dilation_rate(level, max_level):
@@ -285,12 +303,12 @@ class Dilated(Architecture):
           layer_dilation_rates = [time_dilation_rate, 1]
         else:
           layer_dilation_rates = [time_dilation_rate, pitch_dilation_rate]
-        tf.logging.info('layer_dilation_rates %r' % layer_dilation_rates)
+        tf.logging.info('layer_dilation_rates %r', layer_dilation_rates)
         if len(self.layers) % (interleave_split_every_n_layers + 1) == 0:
           current_num_pointwise_splits = num_pointwise_splits
         else:
           current_num_pointwise_splits = 1
-        tf.logging.info('num_split %d' % current_num_pointwise_splits)
+        tf.logging.info('num_split %d', current_num_pointwise_splits)
         _add(filters=[3, 3, num_filters, num_filters],
              dilation_rate=layer_dilation_rates,
              num_pointwise_splits=current_num_pointwise_splits)
@@ -298,8 +316,8 @@ class Dilated(Architecture):
     _add(
         filters=[2, 2, num_filters, output_depth], activation=lib_util.identity)
 
-    tf.logging.info('num_layers=%d, num_filters=%d' % (
-        len(self.layers), num_filters))
+    tf.logging.info('num_layers=%d, num_filters=%d',
+        len(self.layers), num_filters)
     self.name = '%s-%d-%d' % (self.key, len(self.layers), num_filters)
 
   def __str__(self):

@@ -97,7 +97,7 @@ class CoconetGraph(object):
     self.setup_optimizer()
 
     for var in tf.trainable_variables():
-      tf.logging.info('%s_%r' % (var.name, var.get_shape().as_list()))
+      tf.logging.info('%s_%r', var.name, var.get_shape().as_list())
 
   def get_convnet_input(self):
     """Returns concatenates masked out pianorolls with their masks."""
@@ -261,7 +261,7 @@ class CoconetGraph(object):
     else:
       num_outputs = filter_shape[-1]
       num_splits = layer.get('num_pointwise_splits', 1)
-      tf.logging.info('num_splits %d' % num_splits)
+      tf.logging.info('num_splits %d', num_splits)
       if num_splits > 1:
         num_outputs = None
       conv = tf.contrib.layers.separable_conv2d(
