@@ -114,8 +114,8 @@ class Hyperparameters(object):
       # num_pitches is a legacy flag.
       if key == 'num_pitches':
         pitch_range = self.convert_num_pitches_to_min_max_pitch(value)
-        for key, value in pitch_range.iteritems():
-          setattr(self, key, value)
+        for kind, pitch in pitch_range.iteritems():
+          setattr(self, kind, pitch)
       else:
         setattr(self, key, value)
 
@@ -317,7 +317,7 @@ class Dilated(Architecture):
         filters=[2, 2, num_filters, output_depth], activation=lib_util.identity)
 
     tf.logging.info('num_layers=%d, num_filters=%d',
-        len(self.layers), num_filters)
+                    len(self.layers), num_filters)
     self.name = '%s-%d-%d' % (self.key, len(self.layers), num_filters)
 
   def __str__(self):
