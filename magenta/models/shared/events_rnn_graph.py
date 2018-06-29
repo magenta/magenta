@@ -66,6 +66,130 @@ def make_rnn_cell(rnn_layer_sizes,
   return cell
 
 
+def state_tuples_to_cudnn_lstm_state(lstm_state_tuples):
+  """Convert LSTMStateTuples to CudnnLSTM format."""
+  h = tf.stack([s.h for s in lstm_state_tuples])
+  c = tf.stack([s.c for s in lstm_state_tuples])
+  return (h, c)
+
+
+def cudnn_lstm_state_to_state_tuples(cudnn_lstm_state):
+  """Convert CudnnLSTM format to LSTMStateTuples."""
+  h, c = cudnn_lstm_state
+  return tuple(
+      tf.contrib.rnn.LSTMStateTuple(h=h_i, c=c_i)
+      for h_i, c_i in zip(tf.unstack(h), tf.unstack(c)))
+
+
+def make_cudnn(inputs, rnn_layer_sizes, batch_size, mode,
+               dropout_keep_prob=1.0, residual_connections=False):
+  """Builds a sequence of cuDNN LSTM layers from the given hyperparameters.
+
+  Args:
+    inputs: A tensor of RNN inputs.
+    rnn_layer_sizes: A list of integer sizes (in units) for each layer of the
+        RNN.
+    batch_size: The number of examples per batch.
+    mode: 'train', 'eval', or 'generate'. For 'generate',
+        CudnnCompatibleLSTMCell will be used.
+    dropout_keep_prob: The float probability to keep the output of any given
+        sub-cell.
+    residual_connections: Whether or not to use residual connections.
+
+  Returns:
+    outputs: A tensor of RNN outputs, with shape
+        `[batch_size, inputs.shape[1], rnn_layer_sizes[-1]]`.
+    initial_state: The initial RNN states, a tuple with length
+        `len(rnn_layer_sizes)` of LSTMStateTuples.
+    final_state: The final RNN states, a tuple with length
+        `len(rnn_layer_sizes)` of LSTMStateTuples.
+  """
+  cudnn_inputs = tf.transpose(inputs, [1, 0, 2])
+
+  if len(set(rnn_layer_sizes)) == 1 and not residual_connections:
+    initial_state = tuple(
+        tf.contrib.rnn.LSTMStateTuple(
+            h=tf.zeros([batch_size, num_units], dtype=tf.float32),
+            c=tf.zeros([batch_size, num_units], dtype=tf.float32))
+        for num_units in rnn_layer_sizes)
+
+    if mode != 'generate':
+      # We can make a single call to CudnnLSTM since all layers are the same
+      # size and we aren't using residual connections.
+      cudnn_initial_state = state_tuples_to_cudnn_lstm_state(initial_state)
+      cell = tf.contrib.cudnn_rnn.CudnnLSTM(
+          num_layers=len(rnn_layer_sizes),
+          num_units=rnn_layer_sizes[0],
+          direction='unidirectional',
+          dropout=1.0 - dropout_keep_prob)
+      cudnn_outputs, cudnn_final_state = cell(
+          cudnn_inputs, initial_state=cudnn_initial_state,
+          training=mode == 'train')
+      final_state = cudnn_lstm_state_to_state_tuples(cudnn_final_state)
+
+    else:
+      # At generation time we use CudnnCompatibleLSTMCell.
+      cell = tf.contrib.rnn.MultiRNNCell(
+          [tf.contrib.cudnn_rnn.CudnnCompatibleLSTMCell(num_units)
+           for num_units in rnn_layer_sizes])
+      cudnn_outputs, final_state = tf.nn.dynamic_rnn(
+          cell, cudnn_inputs, initial_state=initial_state, time_major=True,
+          scope='cudnn_lstm/rnn')
+
+  else:
+    # We need to make multiple calls to CudnnLSTM, keeping the initial and final
+    # states at each layer.
+    initial_state = []
+    final_state = []
+
+    for i in range(len(rnn_layer_sizes)):
+      # If we're using residual connections and this layer is not the same size
+      # as the previous layer, we need to project into the new size so the
+      # (projected) input can be added to the output.
+      if residual_connections:
+        if i == 0 or rnn_layer_sizes[i] != rnn_layer_sizes[i - 1]:
+          cudnn_inputs = tf.contrib.layers.linear(
+              cudnn_inputs, rnn_layer_sizes[i])
+
+      layer_initial_state = (tf.contrib.rnn.LSTMStateTuple(
+          h=tf.zeros([batch_size, rnn_layer_sizes[i]], dtype=tf.float32),
+          c=tf.zeros([batch_size, rnn_layer_sizes[i]], dtype=tf.float32)),)
+
+      if mode != 'generate':
+        cudnn_initial_state = state_tuples_to_cudnn_lstm_state(
+            layer_initial_state)
+        cell = tf.contrib.cudnn_rnn.CudnnLSTM(
+            num_layers=1,
+            num_units=rnn_layer_sizes[i],
+            direction='unidirectional',
+            dropout=1.0 - dropout_keep_prob)
+        cudnn_outputs, cudnn_final_state = cell(
+            cudnn_inputs, initial_state=cudnn_initial_state,
+            training=mode == 'train')
+        layer_final_state = cudnn_lstm_state_to_state_tuples(cudnn_final_state)
+
+      else:
+        # At generation time we use CudnnCompatibleLSTMCell.
+        cell = tf.contrib.rnn.MultiRNNCell(
+            [tf.contrib.cudnn_rnn.CudnnCompatibleLSTMCell(rnn_layer_sizes[i])])
+        cudnn_outputs, layer_final_state = tf.nn.dynamic_rnn(
+            cell, cudnn_inputs, initial_state=layer_initial_state,
+            time_major=True,
+            scope='cudnn_lstm/rnn' if i == 0 else 'cudnn_lstm_%d/rnn' % i)
+
+      if residual_connections:
+        cudnn_outputs += cudnn_inputs
+
+      cudnn_inputs = cudnn_outputs
+
+      initial_state += layer_initial_state
+      final_state += layer_final_state
+
+  outputs = tf.transpose(cudnn_outputs, [1, 0, 2])
+
+  return outputs, tuple(initial_state), tuple(final_state)
+
+
 def get_build_graph_fn(mode, config, sequence_example_file_paths=None):
   """Returns a function that builds the TensorFlow graph.
 
@@ -91,6 +215,9 @@ def get_build_graph_fn(mode, config, sequence_example_file_paths=None):
   hparams = config.hparams
   encoder_decoder = config.encoder_decoder
 
+  if hparams.use_cudnn and hparams.attn_length:
+    raise ValueError('Using attention with cuDNN not currently supported.')
+
   tf.logging.info('hparams = %s', hparams.values())
 
   input_size = encoder_decoder.input_size
@@ -110,18 +237,26 @@ def get_build_graph_fn(mode, config, sequence_example_file_paths=None):
       inputs = tf.placeholder(tf.float32, [hparams.batch_size, None,
                                            input_size])
 
-    cell = make_rnn_cell(
-        hparams.rnn_layer_sizes,
-        dropout_keep_prob=(
-            1.0 if mode == 'generate' else hparams.dropout_keep_prob),
-        attn_length=hparams.attn_length,
-        residual_connections=hparams.residual_connections)
+    dropout_keep_prob = 1.0 if mode == 'generate' else hparams.dropout_keep_prob
 
-    initial_state = cell.zero_state(hparams.batch_size, tf.float32)
+    if hparams.use_cudnn:
+      outputs, initial_state, final_state = make_cudnn(
+          inputs, hparams.rnn_layer_sizes, hparams.batch_size, mode,
+          dropout_keep_prob=dropout_keep_prob,
+          residual_connections=hparams.residual_connections)
 
-    outputs, final_state = tf.nn.dynamic_rnn(
-        cell, inputs, sequence_length=lengths, initial_state=initial_state,
-        swap_memory=True)
+    else:
+      cell = make_rnn_cell(
+          hparams.rnn_layer_sizes,
+          dropout_keep_prob=dropout_keep_prob,
+          attn_length=hparams.attn_length,
+          residual_connections=hparams.residual_connections)
+
+      initial_state = cell.zero_state(hparams.batch_size, tf.float32)
+
+      outputs, final_state = tf.nn.dynamic_rnn(
+          cell, inputs, sequence_length=lengths, initial_state=initial_state,
+          swap_memory=True)
 
     outputs_flat = magenta.common.flatten_maybe_padded_sequences(
         outputs, lengths)

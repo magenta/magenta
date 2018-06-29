@@ -503,7 +503,8 @@ class EventSequenceRnnConfig(object):
         'attn_length': 0,
         'clip_norm': 3,
         'learning_rate': 0.001,
-        'residual_connections': False
+        'residual_connections': False,
+        'use_cudnn': False
     }
     hparams_dict.update(hparams.values())
 
