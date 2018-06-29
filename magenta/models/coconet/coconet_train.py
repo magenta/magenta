@@ -55,7 +55,7 @@ flags.DEFINE_integer('sep_conv_depth_multiplier', 1, 'Depth multiplier for'
 flags.DEFINE_integer('num_initial_regular_conv_layers', 2, 'The number of'
                      'regular convolutional layers to start with when using'
                      'depthwise separable convolutional layers.')
-#Hparams for reducing pointwise in separable convs.
+# Hparams for reducing pointwise in separable convs.
 flags.DEFINE_integer('num_pointwise_splits', 1, 'Num of splits on the'
                      'pointwise convolution stage in depthwise separable'
                      'convolutions.')
