@@ -70,6 +70,11 @@ class EventSequenceRNNGraphTest(tf.test.TestCase):
           'train', self.config,
           sequence_example_file_paths=[self._sequence_file.name])()
 
+  def testBuildCudnnGenerateGraph(self):
+    self.config.hparams.use_cudnn = True
+    with tf.Graph().as_default():
+      events_rnn_graph.get_build_graph_fn('generate', self.config)()
+
   def testBuildCudnnGraphWithResidualConnections(self):
     self.config.hparams.use_cudnn = True
     self.config.hparams.residual_connections = True
@@ -77,6 +82,12 @@ class EventSequenceRNNGraphTest(tf.test.TestCase):
       events_rnn_graph.get_build_graph_fn(
           'train', self.config,
           sequence_example_file_paths=[self._sequence_file.name])()
+
+  def testBuildCudnnGenerateGraphWithResidualConnections(self):
+    self.config.hparams.use_cudnn = True
+    self.config.hparams.residual_connections = True
+    with tf.Graph().as_default():
+      events_rnn_graph.get_build_graph_fn('generate', self.config)()
 
 
 if __name__ == '__main__':
