@@ -29,7 +29,8 @@ from tensorflow.python.util import nest as tf_nest
 def make_rnn_cell(rnn_layer_sizes,
                   dropout_keep_prob=1.0,
                   attn_length=0,
-                  base_cell=tf.contrib.rnn.BasicLSTMCell):
+                  base_cell=tf.contrib.rnn.BasicLSTMCell,
+                  residual_connections=False):
   """Makes a RNN cell from the given hyperparameters.
 
   Args:
@@ -39,17 +40,23 @@ def make_rnn_cell(rnn_layer_sizes,
         sub-cell.
     attn_length: The size of the attention vector.
     base_cell: The base tf.contrib.rnn.RNNCell to use for sub-cells.
+    residual_connections: Whether or not to use residual connections (via
+        tf.contrib.rnn.ResidualWrapper).
 
   Returns:
       A tf.contrib.rnn.MultiRNNCell based on the given hyperparameters.
   """
   cells = []
-  for num_units in rnn_layer_sizes:
-    cell = base_cell(num_units)
+  for i in range(len(rnn_layer_sizes)):
+    cell = base_cell(rnn_layer_sizes[i])
     if attn_length and not cells:
       # Add attention wrapper to first layer.
       cell = tf.contrib.rnn.AttentionCellWrapper(
           cell, attn_length, state_is_tuple=True)
+    if residual_connections:
+      cell = tf.contrib.rnn.ResidualWrapper(cell)
+      if i == 0 or rnn_layer_sizes[i] != rnn_layer_sizes[i - 1]:
+        cell = tf.contrib.rnn.InputProjectionWrapper(cell, rnn_layer_sizes[i])
     cell = tf.contrib.rnn.DropoutWrapper(
         cell, output_keep_prob=dropout_keep_prob)
     cells.append(cell)
@@ -107,8 +114,8 @@ def get_build_graph_fn(mode, config, sequence_example_file_paths=None):
         hparams.rnn_layer_sizes,
         dropout_keep_prob=(
             1.0 if mode == 'generate' else hparams.dropout_keep_prob),
-        attn_length=(
-            hparams.attn_length if hasattr(hparams, 'attn_length') else 0))
+        attn_length=hparams.attn_length,
+        residual_connections=hparams.residual_connections)
 
     initial_state = cell.zero_state(hparams.batch_size, tf.float32)
 
