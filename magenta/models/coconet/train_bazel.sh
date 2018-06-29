@@ -25,6 +25,7 @@ architecture='dilated'
 num_dilation_blocks=1
 dilate_time_only=False
 repeat_last_dilation_level=False
+num_pointwise_splits=2
 
 
 # Run command.
@@ -47,4 +48,5 @@ bazel run :coconet_train \
   --num_dilation_blocks=$num_dilation_blocks \
   --dilate_time_only=$dilate_time_only \
   --repeat_last_dilation_level=$repeat_last_dilation_level \
+  --num_pointwise_splits=$num_pointwise_splits \
   --logtostderr

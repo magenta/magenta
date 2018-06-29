@@ -51,6 +51,8 @@ class Hyperparameters(object):
       use_sep_conv=False,
       sep_conv_depth_multiplier=1,
       num_initial_regular_conv_layers=2,
+      # Hparams for reducing pointwise in separable convs.
+      num_pointwise_splits=1,
       # Hparams for dilated convs.
       num_dilation_blocks=3,
       dilate_time_only=False,

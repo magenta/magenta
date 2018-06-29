@@ -255,9 +255,13 @@ class CoconetGraph(object):
           strides=[1, stride, stride, 1],
           padding=layer.get('conv_pad', 'SAME'))
     else:
+      num_outputs = filter_shape[-1]
+      num_splits = self.hparams.num_pointwise_splits
+      if num_splits > 1:
+        num_outputs = None
       conv = tf.contrib.layers.separable_conv2d(
           x,
-          filter_shape[-1],
+          num_outputs,
           filter_shape[:2],
           depth_multiplier=self.hparams.sep_conv_depth_multiplier,
           stride=layer.get('conv_stride', 1),
@@ -265,6 +269,16 @@ class CoconetGraph(object):
           rate=layer.get('dilation_rate', 1),
           activation_fn=None,
           weights_initializer=initializer if self.is_training else None)
+      if num_splits > 1:
+        splits = tf.split(conv, num_splits, -1)
+        print(len(splits), splits[0].shape)
+        # TODO(annahuang): support non equal splits.
+        pointwise_splits = [
+            tf.layers.dense(splits[i], filter_shape[3]/num_splits,
+                            name='split_%d_%d' % (layer_idx, i))
+            for i in range(num_splits)]
+        conv = tf.concat((pointwise_splits), axis=-1)
+
     # Compute batch normalization or add biases.
     if self.hparams.batch_norm:
       y = self.apply_batchnorm(conv)
