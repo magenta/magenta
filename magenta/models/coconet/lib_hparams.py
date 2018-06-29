@@ -112,20 +112,20 @@ class Hyperparameters(object):
 
   def update(self, dikt, **kwargs):
     all_dikt = dict(it.chain(six.iteritems(dikt), six.iteritems(kwargs)))
-    self.filter_and_check_legacy_hparams(all_dikt)
+    self._filter_and_check_legacy_hparams(all_dikt)
     for key, value in all_dikt.iteritems():
       setattr(self, key, value)
 
-  def filter_and_check_legacy_hparams(self, dikt):
+  def _filter_and_check_legacy_hparams(self, dikt):
     legacy_hparams = dict()
     for l_hparam in Hyperparameters._LEGACY_HPARAM_NAMES:
       if l_hparam in dikt:
         legacy_hparams[l_hparam] = dikt[l_hparam]
         del dikt[l_hparam]
     if legacy_hparams:
-      self.check_pitch_range_compatibilities(legacy_hparams, dikt)
+      self._check_pitch_range_compatibilities(legacy_hparams, dikt)
 
-  def check_pitch_range_compatibilities(self, legacy_hparams, dikt):
+  def _check_pitch_range_compatibilities(self, legacy_hparams, dikt):
     """Check that all the pitch range related hparams match each other."""
     min_pitch = dikt.get('min_pitch', self.min_pitch)
     max_pitch = dikt.get('max_pitch', self.max_pitch)
