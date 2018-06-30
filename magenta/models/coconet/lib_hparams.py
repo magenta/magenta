@@ -113,7 +113,7 @@ class Hyperparameters(object):
   def update(self, dikt, **kwargs):
     all_dikt = dict(it.chain(six.iteritems(dikt), six.iteritems(kwargs)))
     self._filter_and_check_legacy_hparams(all_dikt)
-    for key, value in all_dikt.iteritems():
+    for key, value in six.iteritems(all_dikt):
       setattr(self, key, value)
 
   def _filter_and_check_legacy_hparams(self, dikt):
