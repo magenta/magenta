@@ -89,7 +89,7 @@ TEST_EXAMPLES=<path to maps_config2_test.tfrecord generated during dataset creat
 RUN_DIR=<path where output should be saved>
 
 onsets_frames_transcription_infer \
-  --acoustic_run_dir="${CHECKPOINT_DIR} \
+  --acoustic_run_dir="${CHECKPOINT_DIR}" \
   --examples_path="${TEST_EXAMPLES}" \
   --run_dir="${RUN_DIR}"
 ```
