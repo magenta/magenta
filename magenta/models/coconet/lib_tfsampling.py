@@ -67,12 +67,6 @@ class CoconetSampleGraph(object):
     # If outer_masks come in as all zeros, it means there's no masking,
     # which also means nothing will be generated. In this case, use
     # completion mask to make new outer masks.
-    prolls_shape = tf.shape(input_pianorolls)
-    outer_masks = tf.cond(
-        tf.equal(tf.shape(outer_masks)[1], prolls_shape[1]),
-        lambda: outer_masks,
-        lambda: tf.tile(outer_masks, [1, prolls_shape[1], 1, 1])
-    )
     outer_masks = tf.cond(
         tf.reduce_all(tf.equal(outer_masks, 0)),
         lambda: make_completion_masks(input_pianorolls),
