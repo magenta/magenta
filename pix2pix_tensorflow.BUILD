@@ -21,10 +21,7 @@ licenses(["notice"])  # Apache 2.0
 py_binary(
     name = "main",
     srcs = ["main.py"],
-    visibility = [
-        "//learning/brain/research/magenta:__subpackages__",
-        "//third_party/magenta:__subpackages__",
-    ],
+    visibility =  ["//visibility:public"],
     deps = [
         "model",
         "ops",
@@ -35,30 +32,14 @@ py_binary(
 py_library(
     name = "model",
     srcs = ["model.py"],
-    visibility = [
-        "//learning/brain/research/magenta:__subpackages__",
-        "//third_party/magenta:__subpackages__",
-    ],
-    deps = [
-    ],
 )
 
 py_library(
     name = "ops",
     srcs = ["ops.py"],
-    visibility = [
-        "//learning/brain/research/magenta:__subpackages__",
-        "//third_party/magenta:__subpackages__",
-    ],
-    deps = [
-    ],
 )
 
 py_library(
     name = "utils",
     srcs = ["utils.py"],
-    srcs_version = "PY2AND3",
-    visibility = [
-        "//third_party/magenta/tools/pip:__subpackages__",
-    ],
 )

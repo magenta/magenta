@@ -27,7 +27,7 @@ sh_binary(
              "//magenta/video/tools:extract_frames",
              "//magenta/video/tools:random_pick",
              "//magenta/video/tools:convert2jpg",
-             "//third_party/pix2pix_tensorflow:main"
+             "@pix2pix_tensorflow//:main",
     ],
 )
 

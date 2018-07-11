@@ -154,7 +154,8 @@ else
                    --limit 1000
 # 1000 is the default value, you can play with it and will get diferents results
         echo "trainning $i/$2"
-        python ./third_party/pix2pix_tensorflow/main.py \
+        # main.py belong to the pix2ix_tensorflow package
+        python ./external/pix2pix_tensorflow/main.py \
                --dataset_path $1 \
                --checkpoint_dir $1 \
                --epoch 5 \
@@ -180,7 +181,7 @@ else
                --limit 100
 # 100 is the default value, you can play with it and will get diferents results
         echo "use pre-recursion"
-        python ./third_party/pix2pix_tensorflow/main.py \
+        python ./external/pix2pix_tensorflow/main.py \
                --checkpoint_dir $1 \
                --recursion 15 \
                --phase pre_recursion \
@@ -202,7 +203,7 @@ else
                --limit 2
 # 2 is the default value, you can play with it and will get diferents results
         echo "use pre-recursion (long)"
-        python ./third_party/pix2pix_tensorflow/main.py \
+        python ./external/pix2pix_tensorflow/main.py \
                --checkpoint_dir $1 \
                --recursion 100 \
                --phase pre_recursion \
