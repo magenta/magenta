@@ -36,6 +36,7 @@ REQUIRED_PACKAGES = [
     'Pillow >= 3.4.2',
     'bokeh >= 0.12.0',
     'intervaltree >= 2.1.0',
+    'joblib < 0.12',
     'librosa >= 0.6.0',
     'matplotlib >= 1.5.3',
     'mido == 1.2.6',

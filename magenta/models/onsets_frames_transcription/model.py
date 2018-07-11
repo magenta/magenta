@@ -36,14 +36,16 @@ def conv_net_kelz(inputs):
       activation_fn=tf.nn.relu,
       weights_initializer=tf.contrib.layers.variance_scaling_initializer(
           factor=2.0, mode='FAN_AVG', uniform=True)):
-    net = slim.conv2d(inputs, 32, [3, 3], scope='conv1')
+    net = slim.conv2d(
+        inputs, 32, [3, 3], scope='conv1', normalizer_fn=slim.batch_norm)
 
     net = slim.conv2d(
         net, 32, [3, 3], scope='conv2', normalizer_fn=slim.batch_norm)
     net = slim.max_pool2d(net, [1, 2], stride=[1, 2], scope='pool2')
     net = slim.dropout(net, 0.25, scope='dropout2')
 
-    net = slim.conv2d(net, 64, [3, 3], scope='conv3')
+    net = slim.conv2d(
+        net, 64, [3, 3], scope='conv3', normalizer_fn=slim.batch_norm)
     net = slim.max_pool2d(net, [1, 2], stride=[1, 2], scope='pool3')
     net = slim.dropout(net, 0.25, scope='dropout3')
 
@@ -252,6 +254,8 @@ def get_default_hparams():
           frame_bidirectional=True,
           frame_lstm_units=0,
           learning_rate=0.0006,
+          decay_steps=10000,
+          decay_rate=0.98,
           min_duration_ms=0,
           min_frame_occupancy_for_label=0.0,
           normalize_audio=False,
