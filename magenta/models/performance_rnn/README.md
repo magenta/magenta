@@ -34,9 +34,12 @@ If you want to get started right away, you can use a few models that we've pre-t
 
 * [performance](http://download.magenta.tensorflow.org/models/performance.mag)
 * [performance_with_dynamics](http://download.magenta.tensorflow.org/models/performance_with_dynamics.mag)
+* [performance_with_dynamics_and_modulo_encoding](http://download.magenta.tensorflow.org/models/performance_with_dynamics_and_modulo_encoding.mag)
 * [density_conditioned_performance_with_dynamics](http://download.magenta.tensorflow.org/models/density_conditioned_performance_with_dynamics.mag)
 * [pitch_conditioned_performance_with_dynamics](http://download.magenta.tensorflow.org/models/pitch_conditioned_performance_with_dynamics.mag)
 * [multiconditioned_performance_with_dynamics](http://download.magenta.tensorflow.org/models/multiconditioned_performance_with_dynamics.mag)
+
+The bundle filenames correspond to the configs defined in [performance_model.py](/magenta/models/performance_rnn/performance_model.py). The first three models use different performance representations. The first, `performance`, ignores note velocities but models note on/off events with expressive timing. The `performance_with_dynamics` model includes velocity changes quantized into 32 bins. The `performance_with_dynamics_and_modulo_encoding` model uses an alternate encoding designed by [Vida Vakilotojar](https://github.com/vidavakil) where event values are mapped to points on the unit circle.
 
 The latter three models are *conditional* models that can generate performances conditioned on desired note density, desired pitch class distribution, or both, respectively.
 
@@ -44,7 +47,7 @@ The latter three models are *conditional* models that can generate performances 
 
 ```
 BUNDLE_PATH=<absolute path of .mag file>
-CONFIG=<one of 'performance', 'performance_with_dynamics', 'density_conditioned_performance_with_dynamics', 'pitch_conditioned_performance_with_dynamics', or 'multiconditioned_performance_with_dynamics', matching the bundle>
+CONFIG=<one of 'performance', 'performance_with_dynamics', etc., matching the bundle>
 
 performance_rnn_generate \
 --config=${CONFIG} \
@@ -83,7 +86,7 @@ Our first step will be to convert a collection of MIDI or MusicXML files into No
 SequenceExamples are fed into the model during training and evaluation. Each SequenceExample will contain a sequence of inputs and a sequence of labels that represent a performance. Run the command below to extract performances  from your NoteSequences and save them as SequenceExamples. Two collections of SequenceExamples will be generated, one for training, and one for evaluation, where the fraction of SequenceExamples in the evaluation set is determined by `--eval_ratio`. With an eval ratio of 0.10, 10% of the extracted performances will be saved in the eval collection, and 90% will be saved in the training collection.
 
 ```
-CONFIG=<one of 'performance', 'performance_with_dynamics', 'density_conditioned_performance_with_dynamics', 'pitch_conditioned_performance_with_dynamics', or 'multiconditioned_performance_with_dynamics'>
+CONFIG=<one of 'performance', 'performance_with_dynamics', etc.>
 
 performance_rnn_create_dataset \
 --config=${CONFIG} \
