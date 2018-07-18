@@ -93,6 +93,28 @@ class ChordInferenceTest(tf.test.TestCase):
 
     self.assertEqual(expected_chords, chords)
 
+  def testInferChordsForSequenceAddKeySignatures(self):
+    sequence = music_pb2.NoteSequence()
+    testing_lib.add_track_to_sequence(
+        sequence, 0,
+        [(60, 100, 0.0, 1.0), (64, 100, 0.0, 1.0), (67, 100, 0.0, 1.0),   # C
+         (62, 100, 1.0, 2.0), (65, 100, 1.0, 2.0), (69, 100, 1.0, 2.0),   # Dm
+         (60, 100, 2.0, 3.0), (65, 100, 2.0, 3.0), (69, 100, 2.0, 3.0),   # F
+         (59, 100, 3.0, 4.0), (62, 100, 3.0, 4.0), (67, 100, 3.0, 4.0),   # G
+         (66, 100, 4.0, 5.0), (70, 100, 4.0, 5.0), (73, 100, 4.0, 5.0),   # F#
+         (68, 100, 5.0, 6.0), (71, 100, 5.0, 6.0), (75, 100, 5.0, 6.0),   # G#m
+         (66, 100, 6.0, 7.0), (71, 100, 6.0, 7.0), (75, 100, 6.0, 7.0),   # B
+         (65, 100, 7.0, 8.0), (68, 100, 7.0, 8.0), (73, 100, 7.0, 8.0)])  # C#
+    quantized_sequence = sequences_lib.quantize_note_sequence(
+        sequence, steps_per_quarter=4)
+    chord_inference.infer_chords_for_sequence(
+        quantized_sequence, chords_per_bar=2, add_key_signatures=True)
+
+    expected_key_signatures = [(0, 0.0), (6, 4.0)]
+    key_signatures = [(ks.key, ks.time)
+                      for ks in quantized_sequence.key_signatures]
+    self.assertEqual(expected_key_signatures, key_signatures)
+
   def testInferChordsForSequenceWithBeats(self):
     sequence = music_pb2.NoteSequence()
     testing_lib.add_track_to_sequence(
