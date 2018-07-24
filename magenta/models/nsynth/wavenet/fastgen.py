@@ -23,6 +23,9 @@ import os
 import numpy as np
 from scipy.io import wavfile
 import tensorflow as tf
+import time
+from tensorflow.python.platform import gfile
+from tensorflow.python.client import timeline
 
 from magenta.models.nsynth import utils
 from magenta.models.nsynth.wavenet.h512_bo16 import Config
@@ -83,7 +86,7 @@ def load_fastgen_nsynth(batch_size=1):
   return graph
 
 
-def encode(wav_data, checkpoint_path, sample_length=64000):
+def encode(FLAGS, wav_data, checkpoint_path, sample_length=64000):
   """Generate an array of embeddings from an array of audio.
 
   Args:
@@ -102,6 +105,11 @@ def encode(wav_data, checkpoint_path, sample_length=64000):
   # Load up the model for encoding and find the encoding of "wav_data"
   session_config = tf.ConfigProto(allow_soft_placement=True)
   session_config.gpu_options.allow_growth = True
+  #inter and intra parallelism for CPU
+  session_config.inter_op_parallelism_threads = FLAGS.num_inter_threads
+  session_config.intra_op_parallelism_threads = FLAGS.num_intra_threads
+  tf.logging.info("inter threads at encoding: %d " % (session_config.inter_op_parallelism_threads))
+  tf.logging.info("intra threadsa at encoding: %d " % (session_config.intra_op_parallelism_threads))
   with tf.Graph().as_default(), tf.Session(config=session_config) as sess:
     hop_length = Config().ae_hop_length
     wav_data, sample_length = utils.trim_for_encoding(wav_data, sample_length,
@@ -146,8 +154,6 @@ def load_batch(files, sample_length=64000):
         padded = np.zeros([max_length])
         padded[:data.shape[0]] = data
       batch_data[i] = padded
-    else:
-      batch_data[i] = data[np.newaxis, :, :]
   # Return arrays
   batch_data = np.vstack(batch_data)
   return batch_data
@@ -159,10 +165,10 @@ def save_batch(batch_audio, batch_save_paths):
     wavfile.write(name, 16000, audio)
 
 
-def synthesize(encodings,
+def synthesize(FLAGS, encodings,
                save_paths,
                checkpoint_path="model.ckpt-200000",
-               samples_per_save=1000):
+               samples_per_save=10000):
   """Synthesize audio from an array of embeddings.
 
   Args:
@@ -171,6 +177,14 @@ def synthesize(encodings,
     checkpoint_path: Location of the pretrained model. [model.ckpt-200000]
     samples_per_save: Save files after every amount of generated samples.
   """
+  trace_filename = FLAGS.trace_file
+  if trace_filename: 
+    run_options = tf.RunOptions(trace_level=tf.RunOptions.FULL_TRACE)
+    run_metadata = tf.RunMetadata()
+  else:
+    run_options = None 
+    run_metadata = None 
+
   hop_length = Config().ae_hop_length
   # Get lengths
   batch_size = encodings.shape[0]
@@ -178,7 +192,12 @@ def synthesize(encodings,
   total_length = encoding_length * hop_length
 
   session_config = tf.ConfigProto(allow_soft_placement=True)
+  #inter and intra parallelism for CPU
+  session_config.inter_op_parallelism_threads = FLAGS.num_inter_threads
+  session_config.intra_op_parallelism_threads = FLAGS.num_intra_threads
   session_config.gpu_options.allow_growth = True
+  tf.logging.info("inter threads at generation : %d " % (session_config.inter_op_parallelism_threads))
+  tf.logging.info("intra threads at generation: %d " % (session_config.intra_op_parallelism_threads))
   with tf.Graph().as_default(), tf.Session(config=session_config) as sess:
     net = load_fastgen_nsynth(batch_size=batch_size)
     saver = tf.train.Saver()
@@ -194,7 +213,11 @@ def synthesize(encodings,
             total_length,
         ), dtype=np.float32)
     audio = np.zeros([batch_size, 1])
-
+    current_time = time.time()
+    start_time = time.time()
+    builder = tf.profiler.ProfileOptionBuilder
+    opts = builder(builder.time_and_memory()).order_by('micros').build()
+    tf.logging.info("Starting real compute: Speech Generation ")
     for sample_i in range(total_length):
       enc_i = sample_i // hop_length
       pmf = sess.run(
@@ -202,12 +225,27 @@ def synthesize(encodings,
           feed_dict={
               net["X"]: audio,
               net["encoding"]: encodings[:, enc_i, :]
-          })[0]
+          }, options=run_options, run_metadata=run_metadata)[0]
+
+      #trace file generation related
+      if trace_filename:
+        trace = timeline.Timeline(step_stats=run_metadata.step_stats)
+        with gfile.Open(trace_filename, 'w') as trace_file:
+          trace_file.write(trace.generate_chrome_trace_format(show_memory=True))
+
       sample_bin = sample_categorical(pmf)
       audio = utils.inv_mu_law_numpy(sample_bin - 128)
       audio_batch[:, sample_i] = audio[:, 0]
-      if sample_i % 100 == 0:
+      if sample_i % 500 == 0 and sample_i != 0:
+        time_for_500sample = time.time() - current_time
+        tf.logging.info("Time per 500 Samples: %f sec" % (time_for_500sample))
+        tf.logging.info("Samples / sec: %f" % (500/time_for_500sample))
+        tf.logging.info("msec / sample: %f" % (time_for_500sample/500*1000))
         tf.logging.info("Sample: %d" % sample_i)
+        current_time = time.time()
       if sample_i % samples_per_save == 0:
         save_batch(audio_batch, save_paths)
+  total_time = current_time - start_time
+  tf.logging.info("Average Samples / sec: %f" % (sample_i/total_time))
+  tf.logging.info("Average msec / sample: %f" % (total_time/sample_i*1000))
   save_batch(audio_batch, save_paths)

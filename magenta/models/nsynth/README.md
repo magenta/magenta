@@ -52,7 +52,47 @@ nsynth_generate \
 --batch_size=4
 ```
 
+### Getting Good Performance on CPUs (Generate from .wav files):
+Setting the correct number of intra-op threads and inter-op threads can greatly improve performance. For details on intra-op threads and inter-op threads, please see the [Optimize for CPU](https://www.tensorflow.org/performance/performance_guide#optimizing_for_cpu) section of the [TensorFlow Performance Guide](https://www.tensorflow.org/performance/performance_guide). The command is shown below. 
 
+(WaveNet)
+```bash
+nsynth_generate \
+--checkpoint_path=/<path>/wavenet-ckpt/model.ckpt-200000 \
+--source_path=/<path> \
+--save_path=/<path> \
+--num_inter_threads=inter-op-threads \
+--num_intra_threads=intra-op-threads \ 
+--batch_size=4
+```
+A concrete example: on a multi-core CPU, which has at least 8 cores, can provide better runtime performance with the following command: 
+
+(WaveNet)
+```bash
+nsynth_generate \
+--checkpoint_path=/<path>/wavenet-ckpt/model.ckpt-200000 \
+--source_path=/<path> \
+--save_path=/<path> \
+--num_inter_threads=8 \
+--num_intra_threads=4 \ 
+--batch_size=1
+```
+For a CPU with lower number of cores, the users can experiment with the values of num_inter_threads and num_intra_threads.
+
+### Optional: Creating tracefile to produce Tensorflow timeline for profiling
+To create a tracefile which can be used to see the Tensorflow timeline, another runtime argument `--trace_file=file.json` can be added in the above run command. After the run, traces are written in the file.json file.The complete run command for 8 core CPU is shown below.
+
+(WaveNet)
+```bash
+nsynth_generate \
+--checkpoint_path=/<path>/wavenet-ckpt/model.ckpt-200000 \
+--source_path=/<path> \
+--save_path=/<path> \
+--num_inter_threads=8 \
+--num_intra_threads=4 \ 
+--trace_file=file.json \
+--batch_size=1
+```
 # Saving Embeddings
 
 We've included scripts for saving embeddings from your own wave files. This will
