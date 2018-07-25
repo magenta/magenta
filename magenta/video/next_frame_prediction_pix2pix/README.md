@@ -15,7 +15,7 @@ group](https://groups.google.com/a/tensorflow.org/forum/#!forum/magenta-discuss)
 
 ### Magenta working environement
 
-Please setup the Magenta environement first, following the main documentation
+Please setup the Magenta developement environement first, following the main documentation [here](https://github.com/tensorflow/magenta#development-environment).
 
 ### Additional dependency
 
