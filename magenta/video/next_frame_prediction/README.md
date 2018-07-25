@@ -33,12 +33,10 @@ pip install Pillow
 ## Goal
 
 The goal of this tool is to create video frame by frames.
-From a first arbitrary frame, the algorythm will predict a plausible the next one.
-Then from this new frame the algorythm will predict another, and repeat until it created a full video.
+From a first arbitrary frame, the algorythm will predict a plausible next one.
+Then from this new frame, the algorythm will predict another one, and repeat that until it created a full video.
 
-Predicting a plausible next frame for a video is an open problem.
-Several publications tryed to solved it.
-
+Predicting a plausible next frame for a video is an open problem. Several publications tryed to solved it.
 The approach here is less scientific and was inpired by [this tweet](https://twitter.com/quasimondo/status/817382760037945344?lang=fr) from Mario Klingemann:
 It predict the next frame from the previous one only, and it tends to diverge to something unrealistic.
 
@@ -61,19 +59,21 @@ cp your_video working_folder/video.mp4
 
 Then you'll need to use bazel to launch the main script
 ```
-bazel run //magenta/video/next_frame_prediction:create_video  \
+bazel run //magenta/video/next_frame_prediction_pix2pix:create_video  \
   /absolute_path/working_folder/  \
   20  \
   500 \
   /absolute_path/output_folder/
 ```
 
+This script will extract frames from the video.
+Then will train pix2pix 20 times and generate a video made of 500 frames at each step.
+
 The script will ask you questions, and the first time you launch it,
 you should answer yes to all of them.
 If you interupt the script and want to restart it, you can answer yes or no
 to decide witch part of the process you want to keep or restart from scratch.
 
-The script will extract frames from the video.
-Then will train pix2pix 20 times and generate a video made of 500 frames at each step.
-
 There are some const that you may want to change by editing the script if the default values don't give the optimal result.
+
+Feedback welcome.
