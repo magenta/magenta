@@ -120,7 +120,7 @@ else
             echo "recreate 'test'"
             mkdir $1/test
             rm $1/test/*.jpg
-            python ./magenta/video/next_frame_prediction/join_pairs.py \
+            python ./magenta/video/next_frame_prediction_pix2pix/join_pairs.py \
                    --path_left $1/frames \
                    --path_right $1/good \
                    --path_out $1/val \
@@ -129,7 +129,7 @@ else
             echo "recreate 'val'"
             mkdir $1/val
             rm $1/val/*.jpg
-            python ./magenta/video/next_frame_prediction/join_pairs.py \
+            python ./magenta/video/next_frame_prediction_pix2pix/join_pairs.py \
                    --path_left $1/frames \
                    --path_right $1/good \
                    --path_out $1/val \
@@ -147,7 +147,7 @@ else
         n=$(printf %03d $i)
 
         echo "making pairs $i/$2"
-        python ./magenta/video/next_frame_prediction/join_pairs.py \
+        python ./magenta/video/next_frame_prediction_pix2pix/join_pairs.py \
                    --path_left $1/frames \
                    --path_right $1/good \
                    --path_out $1/train \
@@ -172,7 +172,7 @@ else
         cp $1/pix2pix.model* $4/model_$n
 
         echo "generate video test $i"
-        ./magenta/video/next_frame_prediction/recursion_640.sh $4/model_$n $1/img/first.jpg $3 $4/video_$n
+        ./magenta/video/next_frame_prediction_pix2pix/recursion_640.sh $4/model_$n $1/img/first.jpg $3 $4/video_$n
 
         echo "select some pairs for recursion"
         rm -rf $1/recur
@@ -189,7 +189,7 @@ else
                --frames_path $1/frames
 # 15 is the default value, you can play with it and will get diferents results
         echo "generate pairs from recursion"
-        python ./magenta/video/next_frame_prediction/join_pairs.py \
+        python ./magenta/video/next_frame_prediction_pix2pix/join_pairs.py \
                --path_left $1/recur \
                --path_right $1/good \
                --path_out $1/train \
@@ -211,7 +211,7 @@ else
                --frames_path $1/frames
 # 100 is the default value, you can play with it and will get diferents results
         echo "generate pairs from recursion (long)"
-        python ./magenta/video/next_frame_prediction/join_pairs.py \
+        python ./magenta/video/next_frame_prediction_pix2pix/join_pairs.py \
                --path_left $1/recur \
                --path_right $1/good \
                --path_out $1/train \
