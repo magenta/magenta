@@ -67,6 +67,9 @@ py_library(
     name = "lib_pianoroll",
     srcs = ["lib_pianoroll.py"],
     srcs_version = "PY2AND3",
+    visibility = [
+        # internal models
+    ],
     deps = [
         # numpy dep
         "@pretty_midi",
