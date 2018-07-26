@@ -272,7 +272,8 @@ def infer_chords_for_sequence(sequence,
                               key_change_prob=0.001,
                               chord_change_prob=0.5,
                               chord_pitch_out_of_key_prob=0.01,
-                              chord_note_concentration=100.0):
+                              chord_note_concentration=100.0,
+                              add_key_signatures=False):
   """Infer chords for a NoteSequence using the Viterbi algorithm.
 
   This uses some heuristics to infer chords for a quantized NoteSequence. At
@@ -298,6 +299,8 @@ def infer_chords_for_sequence(sequence,
         observed pitches played over a chord. At zero, all pitches are equally
         likely. As concentration increases, observed pitches must match the
         chord pitches more closely.
+    add_key_signatures: If True, also add inferred key signatures to
+        `quantized_sequence` (and remove any existing key signatures).
 
   Raises:
     SequenceAlreadyHasChordsException: If `sequence` already has chords.
@@ -399,7 +402,11 @@ def infer_chords_for_sequence(sequence,
   key_chords = _key_chord_viterbi(
       chord_frame_loglik, key_chord_loglik, key_chord_transition_loglik)
 
-  # Add the inferred chord changes to the sequence, logging any key changes.
+  if add_key_signatures:
+    del sequence.key_signatures[:]
+
+  # Add the inferred chord changes to the sequence, optionally adding key
+  # signature(s) as well.
   current_key_name = None
   current_chord_name = None
   for frame, (key, chord) in enumerate(key_chords):
@@ -409,9 +416,18 @@ def infer_chords_for_sequence(sequence,
       time = 0.0 if frame == 0 else sorted_beat_times[frame - 1]
 
     if _PITCH_CLASS_NAMES[key] != current_key_name:
-      if current_key_name is not None:
-        tf.logging.info('Sequence has key change from %s to %s at %f seconds.',
-                        current_key_name, _PITCH_CLASS_NAMES[key], time)
+      # A key change was inferred.
+      if add_key_signatures:
+        ks = sequence.key_signatures.add()
+        ks.time = time
+        ks.key = key
+      else:
+        if current_key_name is not None:
+          tf.logging.info(
+              'Sequence has key change from %s to %s at %f seconds.',
+              current_key_name, _PITCH_CLASS_NAMES[key],
+              frame * seconds_per_chord)
+
       current_key_name = _PITCH_CLASS_NAMES[key]
 
     if chord == constants.NO_CHORD:
