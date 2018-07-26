@@ -25,6 +25,8 @@ from magenta.music import sequences_lib
 from magenta.music import testing_lib
 from magenta.protobuf import music_pb2
 
+CHORD_SYMBOL = music_pb2.NoteSequence.TextAnnotation.CHORD_SYMBOL
+
 
 class ChordInferenceTest(tf.test.TestCase):
 
@@ -51,6 +53,28 @@ class ChordInferenceTest(tf.test.TestCase):
 
     self.assertEqual(expected_note_pitch_vectors, note_pitch_vectors.tolist())
 
+  def testSequenceNotePitchVectorsVariableLengthFrames(self):
+    sequence = music_pb2.NoteSequence()
+    testing_lib.add_track_to_sequence(
+        sequence, 0,
+        [(60, 100, 0.0, 0.0), (62, 100, 0.0, 0.5),
+         (60, 100, 1.5, 2.5),
+         (64, 100, 2.0, 2.5), (67, 100, 2.25, 2.75), (70, 100, 2.5, 4.5),
+         (60, 100, 6.0, 6.0),
+        ])
+    note_pitch_vectors = chord_inference.sequence_note_pitch_vectors(
+        sequence, seconds_per_frame=[1.5, 2.0, 3.0, 5.0])
+
+    expected_note_pitch_vectors = [
+        [0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+        [1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+        [0.5, 0.0, 0.0, 0.0, 0.5, 0.0, 0.0, 0.5, 0.0, 0.0, 0.5, 0.0],
+        [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0],
+        [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+    ]
+
+    self.assertEqual(expected_note_pitch_vectors, note_pitch_vectors.tolist())
+
   def testInferChordsForSequence(self):
     sequence = music_pb2.NoteSequence()
     testing_lib.add_track_to_sequence(
@@ -66,6 +90,23 @@ class ChordInferenceTest(tf.test.TestCase):
 
     expected_chords = [('C', 0.0), ('Dm', 1.0), ('F', 2.0), ('G', 3.0)]
     chords = [(ta.text, ta.time) for ta in quantized_sequence.text_annotations]
+
+    self.assertEqual(expected_chords, chords)
+
+  def testInferChordsForSequenceWithBeats(self):
+    sequence = music_pb2.NoteSequence()
+    testing_lib.add_track_to_sequence(
+        sequence, 0,
+        [(60, 100, 0.0, 1.1), (64, 100, 0.0, 1.1), (67, 100, 0.0, 1.1),   # C
+         (62, 100, 1.1, 1.9), (65, 100, 1.1, 1.9), (69, 100, 1.1, 1.9),   # Dm
+         (60, 100, 1.9, 3.0), (65, 100, 1.9, 3.0), (69, 100, 1.9, 3.0),   # F
+         (59, 100, 3.0, 4.5), (62, 100, 3.0, 4.5), (67, 100, 3.0, 4.5)])  # G
+    testing_lib.add_beats_to_sequence(sequence, [0.0, 1.1, 1.9, 1.9, 3.0])
+    chord_inference.infer_chords_for_sequence(sequence)
+
+    expected_chords = [('C', 0.0), ('Dm', 1.1), ('F', 1.9), ('G', 3.0)]
+    chords = [(ta.text, ta.time) for ta in sequence.text_annotations
+              if ta.annotation_type == CHORD_SYMBOL]
 
     self.assertEqual(expected_chords, chords)
 

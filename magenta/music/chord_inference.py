@@ -17,8 +17,10 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
+import bisect
 import itertools
 import math
+import numbers
 
 # internal imports
 import numpy as np
@@ -146,18 +148,26 @@ def _chord_pitch_vectors():
 
 
 def sequence_note_pitch_vectors(sequence, seconds_per_frame):
-  """Compute pitch class vectors for fixed-size frames across a sequence.
+  """Compute pitch class vectors for temporal frames across a sequence.
 
   Args:
     sequence: The NoteSequence for which to compute pitch class vectors.
     seconds_per_frame: The size of the frame corresponding to each pitch class
-        vector, in seconds.
+        vector, in seconds. Alternatively, a list of frame boundary times in
+        seconds (not including initial start time and final end time).
 
   Returns:
     A numpy array with shape `[num_frames, 12]` where each row is a unit-
     normalized pitch class vector for the corresponding frame in `sequence`.
   """
-  num_frames = int(math.ceil(sequence.total_time / seconds_per_frame))
+  if isinstance(seconds_per_frame, numbers.Number):
+    # Construct array of frame boundary times.
+    num_frames = int(math.ceil(sequence.total_time / seconds_per_frame))
+    frame_boundaries = seconds_per_frame * np.arange(1, num_frames)
+  else:
+    frame_boundaries = sorted(seconds_per_frame)
+    num_frames = len(frame_boundaries) + 1
+
   x = np.zeros([num_frames, 12])
 
   for note in sequence.notes:
@@ -166,21 +176,20 @@ def sequence_note_pitch_vectors(sequence, seconds_per_frame):
     if note.program in _UNPITCHED_PROGRAMS:
       continue
 
-    start_frame = int(math.floor(note.start_time / seconds_per_frame))
-    end_frame = int(math.ceil(note.end_time / seconds_per_frame)) - 1
+    start_frame = bisect.bisect_right(frame_boundaries, note.start_time)
+    end_frame = bisect.bisect_left(frame_boundaries, note.end_time)
     pitch_class = note.pitch % 12
-
-    start_frame = min(start_frame, num_frames - 1)
-    end_frame = max(end_frame, 0)
 
     if start_frame >= end_frame:
       x[start_frame, pitch_class] += note.end_time - note.start_time
     else:
       x[start_frame, pitch_class] += (
-          (start_frame + 1) * seconds_per_frame - note.start_time)
+          frame_boundaries[start_frame] - note.start_time)
       for frame in range(start_frame + 1, end_frame):
-        x[frame, pitch_class] += seconds_per_frame
-      x[end_frame, pitch_class] += note.end_time - end_frame * seconds_per_frame
+        x[frame, pitch_class] += (
+            frame_boundaries[frame] - frame_boundaries[frame - 1])
+      x[end_frame, pitch_class] += (
+          note.end_time - frame_boundaries[end_frame - 1])
 
   x_norm = np.linalg.norm(x, axis=1)
   nonzero_frames = x_norm > 0
@@ -258,24 +267,28 @@ class SequenceTooLongException(ChordInferenceException):
   pass
 
 
-def infer_chords_for_sequence(quantized_sequence,
+def infer_chords_for_sequence(sequence,
                               chords_per_bar=None,
                               key_change_prob=0.001,
                               chord_change_prob=0.5,
                               chord_pitch_out_of_key_prob=0.01,
                               chord_note_concentration=100.0):
-  """Infer chords for a quantized NoteSequence using the Viterbi algorithm.
+  """Infer chords for a NoteSequence using the Viterbi algorithm.
 
   This uses some heuristics to infer chords for a quantized NoteSequence. At
   each chord position a key and chord will be inferred, and the chords will be
   added (as text annotations) to the sequence.
 
+  If the sequence is quantized relative to meter, a fixed number of chords per
+  bar will be inferred. Otherwise, the sequence is expected to have beat
+  annotations and one chord will be inferred per beat.
+
   Args:
-    quantized_sequence: The quantized NoteSequence for which to infer chords.
-        This NoteSequence will be modified in place.
-    chords_per_bar: The number of chords per bar to infer. If None, use a
-        default number of chords based on the time signature of
-        `quantized_sequence`.
+    sequence: The NoteSequence for which to infer chords. This NoteSequence will
+        be modified in place.
+    chords_per_bar: If `sequence` is quantized, the number of chords per bar to
+        infer. If None, use a default number of chords based on the time
+        signature of `sequence`.
     key_change_prob: Probability of a key change between two adjacent frames.
     chord_change_prob: Probability of a chord change between two adjacent
         frames.
@@ -287,47 +300,79 @@ def infer_chords_for_sequence(quantized_sequence,
         chord pitches more closely.
 
   Raises:
-    SequenceAlreadyHasChordsException: If `quantized_sequence` already has
-        chords.
+    SequenceAlreadyHasChordsException: If `sequence` already has chords.
+    QuantizationStatusException: If `sequence` is not quantized relative to
+        meter but `chords_per_bar` is specified or no beat annotations are
+        present.
     UncommonTimeSignatureException: If `chords_per_bar` is not specified and
-        `quantized_sequence` has an uncommon time signature.
+        `sequence` is quantized and has an uncommon time signature.
     NonIntegerStepsPerChordException: If the number of quantized steps per chord
         is not an integer.
-    EmptySequenceException: If `quantized_sequence` is empty.
+    EmptySequenceException: If `sequence` is empty.
     SequenceTooLongException: If the number of chords to be inferred is too
         large.
   """
-  sequences_lib.assert_is_relative_quantized_sequence(quantized_sequence)
-  for ta in quantized_sequence.text_annotations:
+  for ta in sequence.text_annotations:
     if ta.annotation_type == music_pb2.NoteSequence.TextAnnotation.CHORD_SYMBOL:
       raise SequenceAlreadyHasChordsException(
           'NoteSequence already has chord(s): %s' % ta.text)
 
-  if chords_per_bar is None:
-    time_signature = (quantized_sequence.time_signatures[0].numerator,
-                      quantized_sequence.time_signatures[0].denominator)
-    if time_signature not in _DEFAULT_TIME_SIGNATURE_CHORDS_PER_BAR:
-      raise UncommonTimeSignatureException(
-          'No default chords per bar for time signature: (%d, %d)' %
-          time_signature)
-    chords_per_bar = _DEFAULT_TIME_SIGNATURE_CHORDS_PER_BAR[time_signature]
+  if sequences_lib.is_relative_quantized_sequence(sequence):
+    # Infer a fixed number of chords per bar.
+    if chords_per_bar is None:
+      time_signature = (sequence.time_signatures[0].numerator,
+                        sequence.time_signatures[0].denominator)
+      if time_signature not in _DEFAULT_TIME_SIGNATURE_CHORDS_PER_BAR:
+        raise UncommonTimeSignatureException(
+            'No default chords per bar for time signature: (%d, %d)' %
+            time_signature)
+      chords_per_bar = _DEFAULT_TIME_SIGNATURE_CHORDS_PER_BAR[time_signature]
 
-  # Determine the number of seconds (and steps) each chord is held.
-  steps_per_bar_float = sequences_lib.steps_per_bar_in_quantized_sequence(
-      quantized_sequence)
-  steps_per_chord_float = steps_per_bar_float / chords_per_bar
-  if steps_per_chord_float != round(steps_per_chord_float):
-    raise NonIntegerStepsPerChordException(
-        'Non-integer number of steps per chord: %f' % steps_per_chord_float)
-  steps_per_chord = int(steps_per_chord_float)
-  steps_per_second = sequences_lib.steps_per_quarter_to_steps_per_second(
-      quantized_sequence.quantization_info.steps_per_quarter,
-      quantized_sequence.tempos[0].qpm)
-  seconds_per_chord = steps_per_chord / steps_per_second
+    # Determine the number of seconds (and steps) each chord is held.
+    steps_per_bar_float = sequences_lib.steps_per_bar_in_quantized_sequence(
+        sequence)
+    steps_per_chord_float = steps_per_bar_float / chords_per_bar
+    if steps_per_chord_float != round(steps_per_chord_float):
+      raise NonIntegerStepsPerChordException(
+          'Non-integer number of steps per chord: %f' % steps_per_chord_float)
+    steps_per_chord = int(steps_per_chord_float)
+    steps_per_second = sequences_lib.steps_per_quarter_to_steps_per_second(
+        sequence.quantization_info.steps_per_quarter, sequence.tempos[0].qpm)
+    seconds_per_chord = steps_per_chord / steps_per_second
 
-  num_chords = int(math.ceil(quantized_sequence.total_time / seconds_per_chord))
-  if num_chords == 0:
-    raise EmptySequenceException('NoteSequence is empty.')
+    num_chords = int(math.ceil(sequence.total_time / seconds_per_chord))
+    if num_chords == 0:
+      raise EmptySequenceException('NoteSequence is empty.')
+
+  else:
+    # Sequence is not quantized relative to meter; chord changes will happen at
+    # annotated beat times.
+    if chords_per_bar is not None:
+      raise sequences_lib.QuantizationStatusException(
+          'Sequence must be quantized to infer fixed number of chords per bar.')
+    beats = [
+        ta for ta in sequence.text_annotations
+        if ta.annotation_type == music_pb2.NoteSequence.TextAnnotation.BEAT
+    ]
+    if not beats:
+      raise sequences_lib.QuantizationStatusException(
+          'Sequence must be quantized to infer chords without annotated beats.')
+
+    # Only keep unique beats in the interior of the sequence. The first chord
+    # always starts at time zero, the last chord always ends at
+    # `sequence.total_time`, and we don't want any zero-length chords.
+    sorted_beats = sorted(
+        [beat for beat in beats if 0.0 < beat.time < sequence.total_time],
+        key=lambda beat: beat.time)
+    unique_sorted_beats = [sorted_beats[i] for i in range(len(sorted_beats))
+                           if i == 0
+                           or sorted_beats[i].time > sorted_beats[i - 1].time]
+
+    num_chords = len(unique_sorted_beats) + 1
+    sorted_beat_times = [beat.time for beat in unique_sorted_beats]
+    if sequences_lib.is_quantized_sequence(sequence):
+      sorted_beat_steps = [beat.quantized_step for beat in unique_sorted_beats]
+
   if num_chords > _MAX_NUM_CHORDS:
     raise SequenceTooLongException(
         'NoteSequence too long for chord inference: %d frames' % num_chords)
@@ -335,7 +380,8 @@ def infer_chords_for_sequence(quantized_sequence,
   # Compute pitch vectors for each chord frame, then compute log-likelihood of
   # observing those pitch vectors under each possible chord.
   note_pitch_vectors = sequence_note_pitch_vectors(
-      quantized_sequence, seconds_per_frame=seconds_per_chord)
+      sequence,
+      seconds_per_chord if chords_per_bar is not None else sorted_beat_times)
   chord_frame_loglik = _chord_frame_log_likelihood(
       note_pitch_vectors, chord_note_concentration)
 
@@ -357,11 +403,15 @@ def infer_chords_for_sequence(quantized_sequence,
   current_key_name = None
   current_chord_name = None
   for frame, (key, chord) in enumerate(key_chords):
+    if chords_per_bar is not None:
+      time = frame * seconds_per_chord
+    else:
+      time = 0.0 if frame == 0 else sorted_beat_times[frame - 1]
+
     if _PITCH_CLASS_NAMES[key] != current_key_name:
       if current_key_name is not None:
         tf.logging.info('Sequence has key change from %s to %s at %f seconds.',
-                        current_key_name, _PITCH_CLASS_NAMES[key],
-                        frame * seconds_per_chord)
+                        current_key_name, _PITCH_CLASS_NAMES[key], time)
       current_key_name = _PITCH_CLASS_NAMES[key]
 
     if chord == constants.NO_CHORD:
@@ -371,9 +421,13 @@ def infer_chords_for_sequence(quantized_sequence,
       figure = '%s%s' % (_PITCH_CLASS_NAMES[root], kind)
 
     if figure != current_chord_name:
-      ta = quantized_sequence.text_annotations.add()
-      ta.time = frame * seconds_per_chord
-      ta.quantized_step = frame * steps_per_chord
+      ta = sequence.text_annotations.add()
+      ta.time = time
+      if sequences_lib.is_quantized_sequence(sequence):
+        if chords_per_bar is not None:
+          ta.quantized_step = frame * steps_per_chord
+        else:
+          ta.quantized_step = 0 if frame == 0 else sorted_beat_steps[frame - 1]
       ta.text = figure
       ta.annotation_type = music_pb2.NoteSequence.TextAnnotation.CHORD_SYMBOL
       current_chord_name = figure
