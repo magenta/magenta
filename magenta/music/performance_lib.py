@@ -18,6 +18,7 @@ from __future__ import division
 import abc
 import collections
 import math
+import numbers
 
 # internal imports
 import tensorflow as tf
@@ -64,7 +65,7 @@ class PerformanceEvent(object):
       if not MIN_MIDI_PITCH <= event_value <= MAX_MIDI_PITCH:
         raise ValueError('Invalid pitch value: %s' % event_value)
     elif event_type == PerformanceEvent.TIME_SHIFT:
-      if not 1 <= event_value:
+      if not isinstance(event_type, numbers.Number):
         raise ValueError('Invalid time shift value: %s' % event_value)
     elif event_type == PerformanceEvent.DURATION:
       if not 1 <= event_value:
@@ -703,9 +704,8 @@ class DurationPerformance(events_lib.EventSequence):
   """
   __metaclass__ = abc.ABCMeta
 
-  def __init__(self, quantized_sequence, instrument, start_step,
-               num_velocity_bins, max_shift_steps=1000,
-               max_duration_steps=1000):
+  def __init__(self, quantized_sequence, num_velocity_bins, instrument=0,
+               start_step=0, max_shift_steps=1000, max_duration_steps=1000):
     """Construct a DurationPerformance.
 
     Args:
@@ -751,10 +751,6 @@ class DurationPerformance(events_lib.EventSequence):
   @property
   def start_step(self):
     return self._start_step
-
-  @property
-  def max_shift_steps(self):
-    return self._max_shift_steps
 
   @property
   def program(self):
@@ -857,11 +853,11 @@ class DurationPerformance(events_lib.EventSequence):
       A list of events.
     """
     notes = [note for note in quantized_sequence.notes
-             if note.quantized_start_step >= start_step
+             if note.quantized_start_step >= self.start_step
              and (instrument is None or note.instrument == instrument)]
     sorted_notes = sorted(notes, key=lambda note: (note.start_time, note.pitch))
 
-    current_step = start_step
+    current_step = self.start_step
     performance_events = []
 
     for note in sorted_notes:
@@ -869,7 +865,7 @@ class DurationPerformance(events_lib.EventSequence):
 
       # TIME_SHIFT
       time_shift_steps = note.quantized_start_step - current_step
-      if time_shift_steps > max_shift_steps:
+      if time_shift_steps > self._max_shift_steps:
         raise ValueError('Too many steps for timeshift: %d' % time_shift_steps)
       else:
         sub_events.append(
@@ -878,21 +874,21 @@ class DurationPerformance(events_lib.EventSequence):
       current_step = note.quantized_start_step
 
       # NOTE_ON
-      performance_events.append(
+      sub_events.append(
           PerformanceEvent(event_type=PerformanceEvent.NOTE_ON,
                            event_value=note.pitch))
 
       # VELOCITY
-      velocity_bin = _velocity_to_bin(note.velocity, num_velocity_bins)
+      velocity_bin = _velocity_to_bin(note.velocity, self._num_velocity_bins)
       sub_events.append(
           PerformanceEvent(event_type=PerformanceEvent.VELOCITY,
                            event_value=velocity_bin))
 
       # DURATION
       duration_steps = note.quantized_end_step - note.quantized_start_step
-      if duration_steps > max_duration_steps:
+      if duration_steps > self._max_duration_steps:
         raise ValueError('Too many steps for duration: %s' % note)
-      performance_events.append(
+      sub_events.append(
           PerformanceEvent(event_type=PerformanceEvent.DURATION,
                            event_value=duration_steps))
 
@@ -930,13 +926,17 @@ class DurationPerformance(events_lib.EventSequence):
 
       note = sequence.notes.add()
       note.start_time = step * seconds_per_step + sequence_start_time
-      note.end_time = (step + event[3]) * seconds_per_step + sequence_start_time
+      note.end_time = ((step + event[3].event_value) * seconds_per_step +
+                       sequence_start_time)
       note.pitch = event[1].event_value
       note.velocity = _velocity_bin_to_velocity(
           event[2].event_value, self._num_velocity_bins)
       note.instrument = instrument
       note.program = program
       note.is_drum = is_drum
+
+      if note.end_time > sequence.total_time:
+        sequence.total_time = note.end_time
 
     return sequence
 
