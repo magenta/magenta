@@ -358,13 +358,20 @@ def infer_chords_for_sequence(sequence,
       raise sequences_lib.QuantizationStatusException(
           'Sequence must be quantized to infer chords without annotated beats.')
 
+    # Only keep unique beats in the interior of the sequence. The first chord
+    # always starts at time zero, the last chord always ends at
+    # `sequence.total_time`, and we don't want any zero-length chords.
     sorted_beats = sorted(
         [beat for beat in beats if 0.0 < beat.time < sequence.total_time],
         key=lambda beat: beat.time)
-    num_chords = len(sorted_beats) + 1
-    sorted_beat_times = [beat.time for beat in sorted_beats]
+    unique_sorted_beats = [sorted_beats[i] for i in range(len(sorted_beats))
+                           if i == 0
+                           or sorted_beats[i].time > sorted_beats[i - 1].time]
+
+    num_chords = len(unique_sorted_beats) + 1
+    sorted_beat_times = [beat.time for beat in unique_sorted_beats]
     if sequences_lib.is_quantized_sequence(sequence):
-      sorted_beat_steps = [beat.quantized_step for beat in sorted_beats]
+      sorted_beat_steps = [beat.quantized_step for beat in unique_sorted_beats]
 
   if num_chords > _MAX_NUM_CHORDS:
     raise SequenceTooLongException(

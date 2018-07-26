@@ -101,7 +101,7 @@ class ChordInferenceTest(tf.test.TestCase):
          (62, 100, 1.1, 1.9), (65, 100, 1.1, 1.9), (69, 100, 1.1, 1.9),   # Dm
          (60, 100, 1.9, 3.0), (65, 100, 1.9, 3.0), (69, 100, 1.9, 3.0),   # F
          (59, 100, 3.0, 4.5), (62, 100, 3.0, 4.5), (67, 100, 3.0, 4.5)])  # G
-    testing_lib.add_beats_to_sequence(sequence, [0.0, 1.1, 1.9, 3.0])
+    testing_lib.add_beats_to_sequence(sequence, [0.0, 1.1, 1.9, 1.9, 3.0])
     chord_inference.infer_chords_for_sequence(sequence)
 
     expected_chords = [('C', 0.0), ('Dm', 1.1), ('F', 1.9), ('G', 3.0)]
