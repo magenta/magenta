@@ -321,7 +321,8 @@ class PerformanceOneHotEncoding(encoder_decoder.OneHotEncoding):
       return 0
 
 
-class DurationPerformanceEncoderDecoder(EventSequenceEncoderDecoder):
+class DurationPerformanceEventSequenceEncoderDecoder(
+    EventSequenceEncoderDecoder):
   """Multiple one-hot encoding for event tuples."""
 
   def __init__(self, num_velocity_bins, max_shift_steps=1000,
@@ -380,7 +381,11 @@ class DurationPerformanceEncoderDecoder(EventSequenceEncoderDecoder):
 
   @property
   def default_event_label(self):
-    raise NotImplementedError('not implemented')
+    return self._encode_event(
+        (PerformanceEvent(PerformanceEvent.TIME_SHIFT, 0),
+         PerformanceEvent(PerformanceEvent.NOTE_ON, 60),
+         PerformanceEvent(PerformanceEvent.VELOCITY, 1),
+         PerformanceEvent(PerformanceEvent.DURATION, 1)))
 
   def _encode_event(self, event):
     time_shift_major = event[0].event_value // self._shift_steps_per_segment
@@ -429,4 +434,9 @@ class DurationPerformanceEncoderDecoder(EventSequenceEncoderDecoder):
             PerformanceEvent(PerformanceEvent.DURATION, duration))
 
   def labels_to_num_steps(self, labels):
-    raise NotImplementedError('not implemented')
+    steps = 0
+    for label in labels:
+      event = self.class_index_to_event(label, None)
+      steps += event[0].event_value
+    steps += event[3].event_value
+    return steps

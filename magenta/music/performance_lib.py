@@ -695,14 +695,25 @@ class MetricPerformance(BasePerformance):
     return sequence
 
 
-class DurationPerformance(events_lib.EventSequence):
+class DurationPerformanceException(Exception):
+  pass
+
+
+class DurationPerformanceTooManyTimeShiftSteps(DurationPerformanceException):
+  pass
+
+
+class DurationPerformanceTooManyDurationSteps(DurationPerformanceException):
+  pass
+
+
+class DurationPerformance(BasePerformance):
   """Stores a polyphonic sequence as a stream of performance events.
 
   Events are PerformanceEvent objects that encode event type and value.
   In this version, the performance is encoded in 4-event tuples:
   TIME_SHIFT, NOTE_ON, VELOCITY, DURATION.
   """
-  __metaclass__ = abc.ABCMeta
 
   def __init__(self, quantized_sequence, num_velocity_bins, instrument=0,
                start_step=0, max_shift_steps=1000, max_duration_steps=1000):
@@ -723,20 +734,17 @@ class DurationPerformance(events_lib.EventSequence):
       ValueError: If `num_velocity_bins` is larger than the number of MIDI
           velocity values.
     """
-    if num_velocity_bins > MAX_MIDI_VELOCITY - MIN_MIDI_VELOCITY + 1:
-      raise ValueError(
-          'Number of velocity bins is too large: %d' % num_velocity_bins)
-
-    self._start_step = start_step
-    self._num_velocity_bins = num_velocity_bins
-    self._max_shift_steps = max_shift_steps
-    self._max_duration_steps = max_duration_steps
-
     program, is_drum = _program_and_is_drum_from_sequence(
         quantized_sequence, instrument)
 
-    self._program = program
-    self._is_drum = is_drum
+    super(DurationPerformance, self).__init__(
+        start_step=start_step,
+        num_velocity_bins=num_velocity_bins,
+        max_shift_steps=max_shift_steps,
+        program=program,
+        is_drum=is_drum)
+
+    self._max_duration_steps = max_duration_steps
 
     sequences_lib.assert_is_absolute_quantized_sequence(quantized_sequence)
     self._steps_per_second = (
@@ -744,21 +752,10 @@ class DurationPerformance(events_lib.EventSequence):
     self._events = self._from_quantized_sequence(
         quantized_sequence, instrument)
 
+
   @property
   def steps_per_second(self):
     return self._steps_per_second
-
-  @property
-  def start_step(self):
-    return self._start_step
-
-  @property
-  def program(self):
-    return self._program
-
-  @property
-  def is_drum(self):
-    return self._is_drum
 
   def set_length(self, steps, from_left=False):
     raise NotImplementedError('Not implemented')
@@ -776,31 +773,6 @@ class DurationPerformance(events_lib.EventSequence):
       raise ValueError('Invalid performance event tuple: %s' % event)
     self._events.append(event)
 
-  def truncate(self, num_events):
-    """Truncates this Performance to the specified number of events.
-
-    Args:
-      num_events: The number of events to which this performance will be
-          truncated.
-    """
-    self._events = self._events[:num_events]
-
-  def __len__(self):
-    """How many events are in this sequence.
-
-    Returns:
-      Number of events as an integer.
-    """
-    return len(self._events)
-
-  def __getitem__(self, i):
-    """Returns the event at the given index."""
-    return self._events[i]
-
-  def __iter__(self):
-    """Return an iterator over the events in this sequence."""
-    return iter(self._events)
-
   def __str__(self):
     strs = []
     for event in self:
@@ -808,10 +780,6 @@ class DurationPerformance(events_lib.EventSequence):
           event[0].event_value, event[1].event_value, event[2].event_value,
           event[3].event_value))
     return '\n'.join(strs)
-
-  @property
-  def end_step(self):
-    return self.start_step + self.num_steps
 
   @property
   def num_steps(self):
@@ -866,7 +834,8 @@ class DurationPerformance(events_lib.EventSequence):
       # TIME_SHIFT
       time_shift_steps = note.quantized_start_step - current_step
       if time_shift_steps > self._max_shift_steps:
-        raise ValueError('Too many steps for timeshift: %d' % time_shift_steps)
+        raise DurationPerformanceTooManyTimeShiftSteps(
+            'Too many steps for timeshift: %d' % time_shift_steps)
       else:
         sub_events.append(
             PerformanceEvent(event_type=PerformanceEvent.TIME_SHIFT,
@@ -887,7 +856,8 @@ class DurationPerformance(events_lib.EventSequence):
       # DURATION
       duration_steps = note.quantized_end_step - note.quantized_start_step
       if duration_steps > self._max_duration_steps:
-        raise ValueError('Too many steps for duration: %s' % note)
+        raise DurationPerformanceTooManyDurationSteps(
+            'Too many steps for duration: %s' % note)
       sub_events.append(
           PerformanceEvent(event_type=PerformanceEvent.DURATION,
                            event_value=duration_steps))
@@ -971,7 +941,9 @@ def extract_performances(
   stats = dict([(stat_name, statistics.Counter(stat_name)) for stat_name in
                 ['performances_discarded_too_short',
                  'performances_truncated', 'performances_truncated_timewise',
-                 'performances_discarded_more_than_1_program']])
+                 'performances_discarded_more_than_1_program',
+                 'performance_discarded_too_many_time_shift_steps',
+                 'performance_discarded_too_many_duration_steps']])
 
   if sequences_lib.is_absolute_quantized_sequence(quantized_sequence):
     steps_per_second = quantized_sequence.quantization_info.steps_per_second
@@ -1004,9 +976,16 @@ def extract_performances(
   for instrument in instruments:
     # Translate the quantized sequence into a Performance.
     if duration_performance:
-      performance = DurationPerformance(
-          quantized_sequence, start_step=start_step,
-          num_velocity_bins=num_velocity_bins, instrument=instrument)
+      try:
+        performance = DurationPerformance(
+            quantized_sequence, start_step=start_step,
+            num_velocity_bins=num_velocity_bins, instrument=instrument)
+      except DurationPerformanceTooManyTimeShiftSteps:
+        stats['performance_discarded_too_many_time_shift_steps'].increment()
+        continue
+      except DurationPerformanceTooManyDurationSteps:
+        stats['performance_discarded_too_many_duration_steps'].increment()
+        continue
     elif sequences_lib.is_absolute_quantized_sequence(quantized_sequence):
       performance = Performance(quantized_sequence, start_step=start_step,
                                 num_velocity_bins=num_velocity_bins,

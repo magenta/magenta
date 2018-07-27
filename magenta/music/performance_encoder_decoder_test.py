@@ -25,6 +25,7 @@ from magenta.music import performance_encoder_decoder
 from magenta.music import performance_lib
 from magenta.music.performance_encoder_decoder import ModuloPerformanceEventSequenceEncoderDecoder
 from magenta.music.performance_encoder_decoder import PerformanceModuloEncoding
+from magenta.music.performance_encoder_decoder import DurationPerformanceEventSequenceEncoderDecoder
 from magenta.music.performance_lib import PerformanceEvent
 
 
@@ -344,10 +345,10 @@ class ModuloPerformanceEventSequenceEncoderTest(tf.test.TestCase):
                                actual_encoded_modulo_event[i])
 
 
-class DurationPerformanceEncoderDecoderTest(tf.test.TestCase):
+class DurationPerformanceEventSequenceEncoderDecoderTest(tf.test.TestCase):
 
   def setUp(self):
-    self.enc = performance_encoder_decoder.DurationPerformanceEncoderDecoder(
+    self.enc = DurationPerformanceEventSequenceEncoderDecoder(
         num_velocity_bins=16, max_shift_steps=99, max_duration_steps=500)
 
     self.assertEqual(10, self.enc.shift_steps_segments)
