@@ -22,11 +22,12 @@ Please setup the Magenta developement environement first, following the main doc
 This tools need some additional dependency to run.
 
 In particular you'll need to install:
-* sk_video (tested with 1.1.8)
+* sk-video (tested with 1.1.8)
 * Pillow (tested with 4.0.0)
+* Bazel (tested with 0.14.1 and 0.15.2)
 
 ```
-pip install skvideo
+pip install sk-video
 pip install Pillow
 ```
 
