@@ -21,14 +21,15 @@ licenses(["notice"])  # Apache 2.0
 sh_binary(
     name = "create_video",
     srcs = ["create_video.sh"],
-    visibility = ["//magenta:__subpackages__"],
-    data = [ "join_pairs",
-             "recursion_640",
-             "//magenta/video/tools:extract_frames",
-             "//magenta/video/tools:random_pick",
-             "//magenta/video/tools:convert2jpg",
-             "@pix2pix_tensorflow//:main",
+    data = [
+        "join_pairs",
+        "recursion_640",
+        "//magenta/video/tools:convert2jpg",
+        "//magenta/video/tools:extract_frames",
+        "//magenta/video/tools:random_pick",
+        "@pix2pix_tensorflow//:main",
     ],
+    visibility = ["//magenta:__subpackages__"],
 )
 
 # A script to use pix2pix recursivly, with 640x360 video
@@ -36,8 +37,6 @@ sh_binary(
     name = "recursion_640",
     srcs = ["recursion_640.sh"],
     visibility = ["//magenta:__subpackages__"],
-    deps = [
-    ],
 )
 
 # A script to assemble 2 images in 1, to create pairs to be processed by pix2pix
@@ -45,7 +44,5 @@ py_library(
     name = "join_pairs",
     srcs = ["join_pairs.py"],
     srcs_version = "PY2AND3",
-    visibility = [
-        "//magenta/tools/pip:__subpackages__",
-    ],
+    visibility = ["//magenta:__subpackages__"],
 )

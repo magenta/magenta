@@ -22,8 +22,6 @@ sh_binary(
     name = "concat_mp4",
     srcs = ["concat_mp4.sh"],
     visibility = ["//magenta:__subpackages__"],
-    deps = [
-    ],
 )
 
 # A script to create an mp4 from jpg
@@ -31,8 +29,6 @@ sh_binary(
     name = "create_mp4",
     srcs = ["create_mp4.sh"],
     visibility = ["//magenta:__subpackages__"],
-    deps = [
-    ],
 )
 
 # A script to generate videos based on next frame prediction.
@@ -40,8 +36,6 @@ sh_binary(
     name = "extract_multiple_video",
     srcs = ["extract_multiple_video.sh"],
     visibility = ["//magenta:__subpackages__"],
-    deps = [
-    ],
 )
 
 # a python script to convert jpg files
@@ -49,12 +43,7 @@ py_binary(
     name = "convert2jpg",
     srcs = ["convert2jpg.py"],
     srcs_version = "PY2AND3",
-    visibility = [
-        "//magenta:__subpackages__",
-    ],
-    deps = [
-        "//magenta:version",
-    ],
+    visibility = ["//magenta:__subpackages__"],
 )
 
 # a python script to extract the frames of a video
@@ -62,12 +51,7 @@ py_binary(
     name = "extract_frames",
     srcs = ["extract_frames.py"],
     srcs_version = "PY2AND3",
-    visibility = [
-        "//magenta:__subpackages__",
-    ],
-    deps = [
-        "//magenta:version",
-    ],
+    visibility = ["//magenta:__subpackages__"],
 )
 
 # a python script to randomly pick a file from a given set
@@ -75,10 +59,5 @@ py_binary(
     name = "random_pick",
     srcs = ["random_pick.py"],
     srcs_version = "PY2AND3",
-    visibility = [
-        "//magenta:__subpackages__",
-    ],
-    deps = [
-        "//magenta:version",
-    ],
+    visibility = ["//magenta:__subpackages__"],
 )
