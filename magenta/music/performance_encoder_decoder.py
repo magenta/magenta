@@ -319,3 +319,67 @@ class PerformanceOneHotEncoding(encoder_decoder.OneHotEncoding):
       return event.event_value
     else:
       return 0
+
+
+class DurationPerformanceEncoderDecoder(EventSequenceEncoderDecoder):
+  """Multiple one-hot encoding for event tuples."""
+
+  def __init__(self, num_velocity_bins, max_shift_steps, max_duration_steps,
+               min_pitch=performance_lib.MIN_MIDI_PITCH,
+               max_pitch=performance_lib.MAX_MIDI_PITCH):
+    def optimal_num_segments(steps):
+      segments_indices = [(i, i + steps/i) for i in range(1, steps)
+                      if steps % i == 0]
+      return min(segments_indices, key=lambda v: v[1])[0]
+
+    shift_steps_segments = optimal_num_segments(max_shift_steps)
+    duration_steps_segments = optimal_num_segments(max_duration_steps)
+
+    self._num_classes = [
+        # TIME_SHIFT major
+        shift_steps_segments,
+        # TIME_SHIFT minor
+        max_shift_steps // shift_steps_segments,
+        # NOTE_ON
+        max_pitch - min_pitch + 1,
+        # VELOCITY
+        num_velocity_bins,
+        # DURATION major
+        duration_steps_segments,
+        # DURATION minor
+        max_duration_steps // duration_steps_segments
+    ]
+
+  @property
+  def input_size(self):
+    return sum(self._num_classes)
+
+  @property
+  def num_classes(self):
+    return self._num_classes
+
+  @property
+  def default_event_label(self):
+    raise NotImplementedError('not implemented')
+
+  def events_to_input(self, events, position):
+    event = events[position]
+
+    time_shift_major = [0.0] * self._num_classes[0]
+    time_shift_major[event[0].event_value // self._num_classes[0]] = 1.0
+    time_shift_minor = [0.0] * self._num_classes[1]
+    time_shift_major[event[0].event_value % self._num_classes[0]] = 1.0
+
+    note_on = [0.0] * self._num_classes[2]
+    note_on[event[1]] = 1.0
+
+    velocity = [0.0] * self._num_classes[3]
+    velocity[event[2]] = 1.0
+
+    duration_major = [0.0] * self._num_classes[4]
+    duration_major[event[3].event_value // self._num_classes[4]] = 1.0
+    duration_minor = [0.0] * self._num_classes[5]
+    duration_major[event[3].event_value % self._num_classes[4]] = 1.0
+
+    return (time_shift_major + time_shift_minor + note_on + velocity +
+            duration_major + duration_minor)
