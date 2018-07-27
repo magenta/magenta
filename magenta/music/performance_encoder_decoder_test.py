@@ -344,5 +344,55 @@ class ModuloPerformanceEventSequenceEncoderTest(tf.test.TestCase):
                                actual_encoded_modulo_event[i])
 
 
+class DurationPerformanceEncoderDecoderTest(tf.test.TestCase):
+
+  def setUp(self):
+    self.enc = performance_encoder_decoder.DurationPerformanceEncoderDecoder(
+        num_velocity_bins=16, max_shift_steps=99, max_duration_steps=500)
+
+    self.assertEqual(10, self.enc.shift_steps_segments)
+    self.assertEqual(20, self.enc.duration_steps_segments)
+
+  def testEncodeDecode(self):
+    pe = PerformanceEvent
+    performance = [
+        (pe(pe.TIME_SHIFT, 0), pe(pe.NOTE_ON, 60),
+         pe(pe.VELOCITY, 13), pe(pe.DURATION, 401)),
+        (pe(pe.TIME_SHIFT, 55), pe(pe.NOTE_ON, 64),
+         pe(pe.VELOCITY, 13), pe(pe.DURATION, 310)),
+        (pe(pe.TIME_SHIFT, 99), pe(pe.NOTE_ON, 67),
+         pe(pe.VELOCITY, 16), pe(pe.DURATION, 100)),
+        (pe(pe.TIME_SHIFT, 0), pe(pe.NOTE_ON, 67),
+         pe(pe.VELOCITY, 16), pe(pe.DURATION, 1)),
+        (pe(pe.TIME_SHIFT, 0), pe(pe.NOTE_ON, 67),
+         pe(pe.VELOCITY, 16), pe(pe.DURATION, 500)),
+    ]
+
+    labels = [self.enc.events_to_label(performance, i)
+              for i in range(len(performance))]
+
+    expected_labels = [
+        (0, 0, 60, 12, 16, 0),
+        (5, 5, 64, 12, 12, 9),
+        (9, 9, 67, 15, 3, 24),
+        (0, 0, 67, 15, 0, 0),
+        (0, 0, 67, 15, 19, 24),
+    ]
+
+    self.assertEqual(expected_labels, labels)
+
+    inputs = [self.enc.events_to_input(performance, i)
+              for i in range(len(performance))]
+
+    for input_ in inputs:
+      self.assertEqual(6, input_.nonzero()[0].shape[0])
+
+    decoded_performance = [self.enc.class_index_to_event(label, None)
+                           for label in labels]
+
+    self.assertEqual(performance, decoded_performance)
+
+
+
 if __name__ == '__main__':
   tf.test.main()
