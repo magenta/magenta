@@ -38,3 +38,11 @@ new_http_archive(
     strip_prefix = "mido-1.2.6/mido",
     url = "https://github.com/olemb/mido/archive/1.2.6.tar.gz",
 )
+
+new_http_archive(
+    name = "pix2pix_tensorflow",
+    build_file = "pix2pix_tensorflow.BUILD",
+    sha256 = "d00e0c8d65b4e3b0b61f5655976eaed0ea5b98b4aba1f8dea96809ec995b7b0e",
+    strip_prefix = "pix2pix-tensorflow-0.1/",
+    url = "https://github.com/dh7/pix2pix-tensorflow/archive/0.1.tar.gz",
+)

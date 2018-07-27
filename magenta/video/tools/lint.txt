@@ -1,0 +1,69 @@
+************* Module convert2jpg
+R: 59, 0: Too many local variables (17/15) (too-many-locals)
+W:112,15: Catching too general exception Exception (broad-except)
+C:112,28: Variable name "GenericException" doesn't conform to snake_case naming style (invalid-name)
+************* Module extract_frames
+W:127,21: Use of eval (eval-used)
+************* Module random_pick
+W: 94, 8: No exception type(s) specified (bare-except)
+R:  1, 0: Similar lines in 2 files
+==convert2jpg:43
+==extract_frames:88
+PARSER.add_argument(
+    '--crop',
+    dest='crop',
+    action='store_true',
+    help='by default the video is cropped')
+PARSER.add_argument(
+    '--strech',
+    dest='crop',
+    action='store_false',
+    help='the video can be streched to a square ratio')
+PARSER.set_defaults(crop=True)
+
+ARGS = PARSER.parse_args()
+
+ (duplicate-code)
+R:  1, 0: Similar lines in 2 files
+==convert2jpg:20
+==random_pick:29
+PARSER = argparse.ArgumentParser(description='')
+PARSER.add_argument(
+    '--path_in',
+    dest='path_in',
+    default='',
+    help='folder where the pictures are',
+    required=True)
+PARSER.add_argument(
+    '--path_out', dest='path_out', default='./', help='Destination folder')
+PARSER.add_argument( (duplicate-code)
+R:  1, 0: Similar lines in 2 files
+==convert2jpg:37
+==random_pick:38
+PARSER.add_argument(
+    '--delete',
+    dest='delete',
+    action='store_true',
+    help='use this flag to delete the orginal file after conversion')
+PARSER.set_defaults(delete=False)
+PARSER.add_argument( (duplicate-code)
+R:  1, 0: Similar lines in 2 files
+==convert2jpg:71
+==random_pick:70
+    path = '{}/*'.format(path_in)
+    print 'looking for all files in', path
+    files = glob.glob(path)
+    file_count = len(files)
+    print 'found ', file_count, 'files' (duplicate-code)
+R:  1, 0: Similar lines in 2 files
+==convert2jpg:93
+==extract_frames:106
+    small_side = min(img.size)
+    center = img.size[0] / 2
+    margin_left = center - small_side / 2
+    margin_right = margin_left + small_side
+    img = img.crop((margin_left, 0, margin_right, small_side)) (duplicate-code)
+
+------------------------------------------------------------------
+Your code has been rated at 9.36/10 (previous run: 9.04/10, +0.32)
+
