@@ -867,7 +867,7 @@ class DurationPerformance(BasePerformance):
 
     return performance_events
 
-  def to_sequence(self, instrument, program=None):
+  def to_sequence(self, instrument=0, program=None, max_note_duration=None):
     """Converts the Performance to NoteSequence proto.
 
     Args:

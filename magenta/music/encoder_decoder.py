@@ -296,10 +296,16 @@ class EventSequenceEncoderDecoder(object):
     Returns:
       A Python list of chosen class indices, one for each event sequence.
     """
-    num_classes = len(softmax[0][0])
     chosen_classes = []
     for i in range(len(event_sequences)):
-      chosen_class = np.random.choice(num_classes, p=softmax[i][-1])
+      if isinstance(softmax, list):
+        chosen_class = []
+        for sub_softmax in softmax:
+          num_classes = len(sub_softmax[0][0])
+          chosen_class.append(np.random.choice(num_classes, p=sub_softmax[i][-1]))
+      else:
+        num_classes = len(softmax[0][0])
+        chosen_class = np.random.choice(num_classes, p=softmax[i][-1])
       event = self.class_index_to_event(chosen_class, event_sequences[i])
       event_sequences[i].append(event)
       chosen_classes.append(chosen_class)
