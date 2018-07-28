@@ -90,7 +90,7 @@ def random_pick(path_in, path_out, limit, delete):
       else:
         print i, '/', limit, '  copying', image_file, 'to', file_out
         copyfile(image_file, file_out)
-    except:
+    except:  # pylint: disable=bare-except
       print """can't pick file""", image_file, 'to', file_out
 
 

@@ -133,7 +133,8 @@ def main(_):
   for video_filename in glob.glob(ARGS.video_in):
     print 'start parsing', video_filename
     data = skvideo.io.ffprobe(video_filename)['video']
-    rate = float(eval(data['@r_frame_rate']))
+    rate_str = data['@r_frame_rate'].split('/')
+    rate = float(rate_str[0]) / float(rate_str[1])
     print 'detected frame rate:', rate
 
     print 'load frames:'
