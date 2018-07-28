@@ -438,5 +438,6 @@ class DurationPerformanceEventSequenceEncoderDecoder(
     for label in labels:
       event = self.class_index_to_event(label, None)
       steps += event[0].event_value
-    steps += event[3].event_value
+    if event:
+      steps += event[3].event_value
     return steps

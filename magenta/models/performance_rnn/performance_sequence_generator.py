@@ -43,7 +43,8 @@ class PerformanceRnnSequenceGenerator(mm.BaseSequenceGenerator):
                num_velocity_bins=0,
                control_signals=None, optional_conditioning=False,
                max_note_duration=MAX_NOTE_DURATION_SECONDS,
-               fill_generate_section=True, checkpoint=None, bundle=None):
+               fill_generate_section=True, checkpoint=None, bundle=None,
+               duration_performance=False):
     """Creates a PerformanceRnnSequenceGenerator.
 
     Args:
@@ -74,6 +75,7 @@ class PerformanceRnnSequenceGenerator(mm.BaseSequenceGenerator):
     self.optional_conditioning = optional_conditioning
     self.max_note_duration = max_note_duration
     self.fill_generate_section = fill_generate_section
+    self._duration_performance = duration_performance
 
   def _generate(self, input_sequence, generator_options):
     if len(generator_options.input_sections) > 1:
@@ -111,8 +113,12 @@ class PerformanceRnnSequenceGenerator(mm.BaseSequenceGenerator):
 
     extracted_perfs, _ = mm.extract_performances(
         quantized_primer_sequence, start_step=input_start_step,
-        num_velocity_bins=self.num_velocity_bins)
+        num_velocity_bins=self.num_velocity_bins,
+        duration_performance=self._duration_performance)
     assert len(extracted_perfs) <= 1
+
+
+    # TODO - fails because silence results in no events for duration encoding!
 
     generate_start_step = mm.quantize_to_step(
         generate_section.start_time, self.steps_per_second, quantize_cutoff=0.0)
@@ -265,6 +271,7 @@ def get_generator_map():
         control_signals=config.control_signals,
         optional_conditioning=config.optional_conditioning,
         fill_generate_section=False,
+        duration_performance=config.duration_performance,
         **kwargs)
 
   return {key: partial(create_sequence_generator, config)

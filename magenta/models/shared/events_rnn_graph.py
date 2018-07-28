@@ -372,9 +372,21 @@ def get_build_graph_fn(mode, config, sequence_example_file_paths=None):
 
     elif mode == 'generate':
       temperature = tf.placeholder(tf.float32, [])
-      softmax_flat = tf.nn.softmax(
-          tf.div(logits_flat, tf.fill([num_classes], temperature)))
-      softmax = tf.reshape(softmax_flat, [hparams.batch_size, -1, num_classes])
+      if isinstance(num_classes, numbers.Number):
+        softmax_flat = tf.nn.softmax(
+            tf.div(logits_flat, tf.fill([num_classes], temperature)))
+        softmax = tf.reshape(
+            softmax_flat, [hparams.batch_size, -1, num_classes])
+      else:
+        logits_offsets = np.cumsum([0] + num_classes)
+        softmax = []
+        for i in range(len(num_classes)):
+          sm = tf.nn.softmax(
+              tf.div(
+                  logits_flat[:, logits_offsets[i]:logits_offsets[i + 1]],
+                  tf.fill([num_classes[i]], temperature)))
+          sm = tf.reshape(sm, [hparams.batch_size, -1, num_classes[i]])
+          softmax.append(sm)
 
       tf.add_to_collection('inputs', inputs)
       tf.add_to_collection('temperature', temperature)

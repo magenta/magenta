@@ -791,7 +791,8 @@ class DurationPerformance(BasePerformance):
     steps = 0
     for event in self._events:
       steps += event[0].event_value
-    steps += self._events[-1][3].event_value
+    if self._events:
+      steps += self._events[-1][3].event_value
     return steps
 
   @property
