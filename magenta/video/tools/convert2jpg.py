@@ -113,10 +113,8 @@ def convert2jpg(path_in, path_out, args):
       if args.delete:
         print 'deleting', image_file
         os.remove(image_file)
-    except: # pylint: disable=bare-except
-      print """can't convert file""", image_file, 'to jpg :', str(
-          generic_exception)
-
+    except:  # pylint: disable=bare-except
+      print """can't convert file""", image_file, 'to jpg :'
 
 if __name__ == '__main__':
   convert2jpg(ARGS.path_in, ARGS.path_out, ARGS)
