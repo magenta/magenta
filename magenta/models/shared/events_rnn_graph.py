@@ -279,17 +279,22 @@ def get_build_graph_fn(mode, config, sequence_example_file_paths=None):
       if isinstance(num_classes, numbers.Number):
         softmax_cross_entropy = tf.nn.sparse_softmax_cross_entropy_with_logits(
             labels=labels_flat, logits=logits_flat)
+        predictions_flat = tf.argmax(logits_flat, axis=1)
       else:
         logits_offsets = np.cumsum([0] + num_classes)
         softmax_cross_entropy = []
+        predictions = []
         for i in range(len(num_classes)):
           softmax_cross_entropy.append(
               tf.nn.sparse_softmax_cross_entropy_with_logits(
-                  labels=labels_flat[i],
+                  labels=labels_flat[:, i],
                   logits=logits_flat[
                       :, logits_offsets[i]:logits_offsets[i + 1]]))
+          predictions.append(
+              tf.argmax(logits_flat[
+                  :, logits_offsets[i]:logits_offsets[i + 1]], axis=1))
+        predictions_flat = tf.stack(predictions, 1)
 
-      predictions_flat = tf.argmax(logits_flat, axis=1)
       correct_predictions = tf.to_float(
           tf.equal(labels_flat, predictions_flat))
       event_positions = tf.to_float(tf.not_equal(labels_flat, no_event_label))
