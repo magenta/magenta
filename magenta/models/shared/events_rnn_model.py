@@ -141,7 +141,7 @@ class EventSequenceRnnModel(mm.BaseModel):
         event_sequences, softmax)
     p = softmax[range(len(event_sequences)), -1, indices]
 
-    return final_state, loglik# + np.log(p)
+    return final_state, loglik + np.log(p)
 
   def _generate_step(self, event_sequences, model_states, logliks, temperature,
                      extend_control_events_callback=None,

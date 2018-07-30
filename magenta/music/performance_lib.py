@@ -750,7 +750,6 @@ class DurationPerformance(BasePerformance):
     self._events = self._from_quantized_sequence(
         quantized_sequence, instrument)
 
-
   @property
   def steps_per_second(self):
     return self._steps_per_second
@@ -881,6 +880,7 @@ class DurationPerformance(BasePerformance):
       program: MIDI program to give each note, or None to use the program
           associated with the Performance (or the default program if none
           exists).
+      max_note_duration: Not used in this implementation.
 
     Returns:
       A NoteSequence proto.
@@ -898,7 +898,7 @@ class DurationPerformance(BasePerformance):
       program = self.program if self.program is not None else DEFAULT_PROGRAM
     is_drum = self.is_drum if self.is_drum is not None else False
 
-    for i, event in enumerate(self):
+    for event in self:
       step += event[0].event_value
 
       note = sequence.notes.add()
@@ -937,6 +937,9 @@ def extract_performances(
         will not be included at all.
     split_instruments: If True, will extract a performance for each instrument.
         Otherwise, will extract a single performance.
+    duration_performance: If True, will create a DurationPerformance object. If
+        False, will create either a MetricPerformance or Performance based on
+        how the sequence was quantized.
 
   Returns:
     performances: A python list of Performance or MetricPerformance (if

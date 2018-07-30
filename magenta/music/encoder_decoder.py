@@ -298,7 +298,7 @@ class EventSequenceEncoderDecoder(object):
     """
     chosen_classes = []
     for i in range(len(event_sequences)):
-      if isinstance(softmax, list):
+      if isinstance(softmax[0][0][0], list):
         chosen_class = []
         for sub_softmax in softmax:
           num_classes = len(sub_softmax[0][0])
