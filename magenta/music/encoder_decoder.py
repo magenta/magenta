@@ -302,7 +302,8 @@ class EventSequenceEncoderDecoder(object):
         chosen_class = []
         for sub_softmax in softmax:
           num_classes = len(sub_softmax[0][0])
-          chosen_class.append(np.random.choice(num_classes, p=sub_softmax[i][-1]))
+          chosen_class.append(
+              np.random.choice(num_classes, p=sub_softmax[i][-1]))
       else:
         num_classes = len(softmax[0][0])
         chosen_class = np.random.choice(num_classes, p=softmax[i][-1])

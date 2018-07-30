@@ -23,9 +23,9 @@ import tensorflow as tf
 
 from magenta.music import performance_encoder_decoder
 from magenta.music import performance_lib
+from magenta.music.performance_encoder_decoder import DurationPerformanceEventSequenceEncoderDecoder
 from magenta.music.performance_encoder_decoder import ModuloPerformanceEventSequenceEncoderDecoder
 from magenta.music.performance_encoder_decoder import PerformanceModuloEncoding
-from magenta.music.performance_encoder_decoder import DurationPerformanceEventSequenceEncoderDecoder
 from magenta.music.performance_lib import PerformanceEvent
 
 
@@ -392,7 +392,6 @@ class DurationPerformanceEventSequenceEncoderDecoderTest(tf.test.TestCase):
                            for label in labels]
 
     self.assertEqual(performance, decoded_performance)
-
 
 
 if __name__ == '__main__':

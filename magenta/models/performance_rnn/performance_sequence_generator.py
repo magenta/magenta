@@ -66,6 +66,8 @@ class PerformanceRnnSequenceGenerator(mm.BaseSequenceGenerator):
           exclusive with `bundle`.
       bundle: A GeneratorBundle object that includes both the model checkpoint
           and metagraph. Mutually exclusive with `checkpoint`.
+      duration_performance: If true, a DurationPerformance object will be used
+          for the primer.
     """
     super(PerformanceRnnSequenceGenerator, self).__init__(
         model, details, checkpoint, bundle)
@@ -117,9 +119,6 @@ class PerformanceRnnSequenceGenerator(mm.BaseSequenceGenerator):
         duration_performance=self._duration_performance)
     assert len(extracted_perfs) <= 1
 
-
-    # TODO - fails because silence results in no events for duration encoding!
-
     generate_start_step = mm.quantize_to_step(
         generate_section.start_time, self.steps_per_second, quantize_cutoff=0.0)
     # Note that when quantizing end_step, we set quantize_cutoff to 1.0 so it
@@ -140,7 +139,7 @@ class PerformanceRnnSequenceGenerator(mm.BaseSequenceGenerator):
           num_velocity_bins=self.num_velocity_bins)
 
     # Ensure that the track extends up to the step we want to start generating.
-    #performance.set_length(generate_start_step - performance.start_step)
+    performance.set_length(generate_start_step - performance.start_step)
 
     # Extract generation arguments from generator options.
     arg_types = {
@@ -237,12 +236,12 @@ class PerformanceRnnSequenceGenerator(mm.BaseSequenceGenerator):
         # entirely fill the generate section.
         break
 
-    #performance.set_length(total_steps)
+    performance.set_length(total_steps)
 
     generated_sequence = performance.to_sequence(
         max_note_duration=self.max_note_duration)
 
-    #assert (generated_sequence.total_time - generate_section.end_time) <= 1e-5
+    assert (generated_sequence.total_time - generate_section.end_time) <= 1e-5
     return generated_sequence
 
 

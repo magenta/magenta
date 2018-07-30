@@ -76,6 +76,7 @@ def get_padded_batch(file_list, batch_size, input_size, label_shape=None,
     batch_size: The number of SequenceExamples to include in each batch.
     input_size: The size of each input vector. The returned batch of inputs
         will have a shape [batch_size, num_steps, input_size].
+    label_shape: Shape for labels. If not specified, will use [].
     num_enqueuing_threads: The number of threads to use for enqueuing
         SequenceExamples.
     shuffle: Whether to shuffle the batches.

@@ -76,7 +76,6 @@ class PerformanceEvent(object):
     else:
       raise ValueError('Invalid event type: %s' % event_type)
 
-
     self.event_type = event_type
     self.event_value = event_value
 
@@ -721,14 +720,13 @@ class DurationPerformance(BasePerformance):
 
     Args:
       quantized_sequence: A quantized NoteSequence proto.
+      num_velocity_bins: Number of velocity bins to use.
+      instrument: If not None, extract only the specified instrument from
+          `quantized_sequence`. Otherwise, extract all instruments.
       start_step: The offset of this sequence relative to the beginning of the
           source sequence.
-      num_velocity_bins: Number of velocity bins to use.
       max_shift_steps: Maximum number of steps for a time-shift event.
       max_duration_steps: Maximum number of steps for a duration event.
-      program: MIDI program used for this performance, or None if not specified.
-      is_drum: Whether or not this performance consists of drums, or None if not
-          specified.
 
     Raises:
       ValueError: If `num_velocity_bins` is larger than the number of MIDI
@@ -758,7 +756,9 @@ class DurationPerformance(BasePerformance):
     return self._steps_per_second
 
   def set_length(self, steps, from_left=False):
-    raise NotImplementedError('Not implemented')
+    # This is not actually implemented, but to avoid raising exceptions during
+    # generation just return instead of raising NotImplementedError.
+    return
 
   def append(self, event):
     """Appends the event to the end of the sequence.
@@ -820,6 +820,12 @@ class DurationPerformance(BasePerformance):
 
     Returns:
       A list of events.
+
+    Raises:
+      DurationPerformanceTooManyTimeShiftSteps: If the maximum number of time
+        shift steps is exceeded.
+      DurationPerformanceTooManyDurationSteps: If the maximum number of duration
+        shift steps is exceeded.
     """
     notes = [note for note in quantized_sequence.notes
              if note.quantized_start_step >= self.start_step
