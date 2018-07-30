@@ -757,6 +757,7 @@ class DurationPerformance(BasePerformance):
   def set_length(self, steps, from_left=False):
     # This is not actually implemented, but to avoid raising exceptions during
     # generation just return instead of raising NotImplementedError.
+    # TODO(fjord): Implement this.
     return
 
   def append(self, event):

@@ -317,7 +317,8 @@ class ConditionalEventSequenceEncoderDecoderTest(tf.test.TestCase):
     target_events_2 = [0]
     target_events_3 = [0]
     target_event_sequences = [target_events_1, target_events_2, target_events_3]
-    softmax = [[[0.0, 0.0, 1.0]], [[1.0, 0.0, 0.0]], [[0.0, 1.0, 0.0]]]
+    softmax = np.array(
+        [[[0.0, 0.0, 1.0]], [[1.0, 0.0, 0.0]], [[0.0, 1.0, 0.0]]])
     self.enc.extend_event_sequences(target_event_sequences, softmax)
     self.assertListEqual(list(target_events_1), [0, 2])
     self.assertListEqual(list(target_events_2), [0, 0])

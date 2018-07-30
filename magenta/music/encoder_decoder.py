@@ -48,6 +48,7 @@ from __future__ import division
 from __future__ import print_function
 
 import abc
+import numbers
 
 # internal imports
 
@@ -298,7 +299,7 @@ class EventSequenceEncoderDecoder(object):
     """
     chosen_classes = []
     for i in range(len(event_sequences)):
-      if isinstance(softmax[0][0][0], list):
+      if not isinstance(softmax[0][0][0], numbers.Number):
         chosen_class = []
         for sub_softmax in softmax:
           num_classes = len(sub_softmax[0][0])
@@ -345,7 +346,13 @@ class EventSequenceEncoderDecoder(object):
       loglik = 0.0
       for softmax_pos, position in enumerate(range(start_pos, end_pos)):
         index = self.events_to_label(event_sequences[i], position)
-        loglik += np.log(softmax[i][softmax_pos][index])
+        if isinstance(index, numbers.Number):
+          loglik += np.log(softmax[i][softmax_pos][index])
+        else:
+          p = 1.0
+          for sub_softmax_i in range(len(index)):
+            p *= np.log(
+                softmax[i][softmax_pos][sub_softmax_i][index[sub_softmax_i]])
       all_loglik.append(loglik)
     return all_loglik
 
