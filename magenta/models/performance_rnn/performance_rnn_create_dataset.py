@@ -96,7 +96,7 @@ class PerformanceExtractor(pipeline.Pipeline):
   """Extracts polyphonic tracks from a quantized NoteSequence."""
 
   def __init__(self, min_events, max_events, num_velocity_bins,
-               duration_performance, name=None):
+               note_performance, name=None):
     super(PerformanceExtractor, self).__init__(
         input_type=music_pb2.NoteSequence,
         output_type=magenta.music.performance_lib.BasePerformance,
@@ -104,7 +104,7 @@ class PerformanceExtractor(pipeline.Pipeline):
     self._min_events = min_events
     self._max_events = max_events
     self._num_velocity_bins = num_velocity_bins
-    self._duration_performance = duration_performance
+    self._note_performance = note_performance
 
   def transform(self, quantized_sequence):
     performances, stats = magenta.music.extract_performances(
@@ -112,7 +112,7 @@ class PerformanceExtractor(pipeline.Pipeline):
         min_events_discard=self._min_events,
         max_events_truncate=self._max_events,
         num_velocity_bins=self._num_velocity_bins,
-        duration_performance=self._duration_performance)
+        note_performance=self._note_performance)
     self._set_stats(stats)
     return performances
 
@@ -157,7 +157,7 @@ def get_pipeline(config, min_events, max_events, eval_ratio):
     perf_extractor = PerformanceExtractor(
         min_events=min_events, max_events=max_events,
         num_velocity_bins=config.num_velocity_bins,
-        duration_performance=config.duration_performance,
+        note_performance=config.note_performance,
         name='PerformanceExtractor_' + mode)
     encoder_pipeline = EncoderPipeline(config, name='EncoderPipeline_' + mode)
 

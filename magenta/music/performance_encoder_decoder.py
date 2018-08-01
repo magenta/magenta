@@ -321,7 +321,7 @@ class PerformanceOneHotEncoding(encoder_decoder.OneHotEncoding):
       return 0
 
 
-class DurationPerformanceEventSequenceEncoderDecoder(
+class NotePerformanceEventSequenceEncoderDecoder(
     EventSequenceEncoderDecoder):
   """Multiple one-hot encoding for event tuples."""
 

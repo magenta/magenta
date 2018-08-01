@@ -169,7 +169,7 @@ class PerformanceRnnConfig(events_rnn_model.EventSequenceRnnConfig):
 
   def __init__(self, details, encoder_decoder, hparams, num_velocity_bins=0,
                control_signals=None, optional_conditioning=False,
-               duration_performance=False):
+               note_performance=False):
     if control_signals is not None:
       control_encoder = magenta.music.MultipleEventSequenceEncoder(
           [control.encoder for control in control_signals])
@@ -184,7 +184,7 @@ class PerformanceRnnConfig(events_rnn_model.EventSequenceRnnConfig):
     self.num_velocity_bins = num_velocity_bins
     self.control_signals = control_signals
     self.optional_conditioning = optional_conditioning
-    self.duration_performance = duration_performance
+    self.note_performance = note_performance
 
 
 default_configs = {
@@ -230,11 +230,11 @@ default_configs = {
             learning_rate=0.001),
         num_velocity_bins=32),
 
-    'performance_with_dynamics_and_duration_encoding': PerformanceRnnConfig(
+    'performance_with_dynamics_and_note_encoding': PerformanceRnnConfig(
         magenta.protobuf.generator_pb2.GeneratorDetails(
-            id='performance_with_dynamics_and_duration_encoding',
-            description='Performance RNN with dynamics and duration encoding'),
-        magenta.music.DurationPerformanceEventSequenceEncoderDecoder(
+            id='performance_with_dynamics_and_note_encoding',
+            description='Performance RNN with dynamics and note encoding'),
+        magenta.music.NotePerformanceEventSequenceEncoderDecoder(
             num_velocity_bins=32),
         tf.contrib.training.HParams(
             batch_size=64,
@@ -243,7 +243,7 @@ default_configs = {
             clip_norm=3,
             learning_rate=0.001),
         num_velocity_bins=32,
-        duration_performance=True),
+        note_performance=True),
 
     'density_conditioned_performance_with_dynamics': PerformanceRnnConfig(
         magenta.protobuf.generator_pb2.GeneratorDetails(

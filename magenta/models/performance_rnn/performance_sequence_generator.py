@@ -44,7 +44,7 @@ class PerformanceRnnSequenceGenerator(mm.BaseSequenceGenerator):
                control_signals=None, optional_conditioning=False,
                max_note_duration=MAX_NOTE_DURATION_SECONDS,
                fill_generate_section=True, checkpoint=None, bundle=None,
-               duration_performance=False):
+               note_performance=False):
     """Creates a PerformanceRnnSequenceGenerator.
 
     Args:
@@ -66,7 +66,7 @@ class PerformanceRnnSequenceGenerator(mm.BaseSequenceGenerator):
           exclusive with `bundle`.
       bundle: A GeneratorBundle object that includes both the model checkpoint
           and metagraph. Mutually exclusive with `checkpoint`.
-      duration_performance: If true, a DurationPerformance object will be used
+      note_performance: If true, a NotePerformance object will be used
           for the primer.
     """
     super(PerformanceRnnSequenceGenerator, self).__init__(
@@ -77,7 +77,7 @@ class PerformanceRnnSequenceGenerator(mm.BaseSequenceGenerator):
     self.optional_conditioning = optional_conditioning
     self.max_note_duration = max_note_duration
     self.fill_generate_section = fill_generate_section
-    self._duration_performance = duration_performance
+    self._note_performance = note_performance
 
   def _generate(self, input_sequence, generator_options):
     if len(generator_options.input_sections) > 1:
@@ -116,7 +116,7 @@ class PerformanceRnnSequenceGenerator(mm.BaseSequenceGenerator):
     extracted_perfs, _ = mm.extract_performances(
         quantized_primer_sequence, start_step=input_start_step,
         num_velocity_bins=self.num_velocity_bins,
-        duration_performance=self._duration_performance)
+        note_performance=self._note_performance)
     assert len(extracted_perfs) <= 1
 
     generate_start_step = mm.quantize_to_step(
@@ -270,7 +270,7 @@ def get_generator_map():
         control_signals=config.control_signals,
         optional_conditioning=config.optional_conditioning,
         fill_generate_section=False,
-        duration_performance=config.duration_performance,
+        note_performance=config.note_performance,
         **kwargs)
 
   return {key: partial(create_sequence_generator, config)

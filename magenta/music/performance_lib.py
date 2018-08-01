@@ -65,7 +65,7 @@ class PerformanceEvent(object):
       if not MIN_MIDI_PITCH <= event_value <= MAX_MIDI_PITCH:
         raise ValueError('Invalid pitch value: %s' % event_value)
     elif event_type == PerformanceEvent.TIME_SHIFT:
-      if not isinstance(event_type, numbers.Number):
+      if not 0 <= event_value:
         raise ValueError('Invalid time shift value: %s' % event_value)
     elif event_type == PerformanceEvent.DURATION:
       if not 1 <= event_value:
@@ -694,19 +694,19 @@ class MetricPerformance(BasePerformance):
     return sequence
 
 
-class DurationPerformanceException(Exception):
+class NotePerformanceException(Exception):
   pass
 
 
-class DurationPerformanceTooManyTimeShiftSteps(DurationPerformanceException):
+class NotePerformanceTooManyTimeShiftSteps(NotePerformanceException):
   pass
 
 
-class DurationPerformanceTooManyDurationSteps(DurationPerformanceException):
+class NotePerformanceTooManyDurationSteps(NotePerformanceException):
   pass
 
 
-class DurationPerformance(BasePerformance):
+class NotePerformance(BasePerformance):
   """Stores a polyphonic sequence as a stream of performance events.
 
   Events are PerformanceEvent objects that encode event type and value.
@@ -716,7 +716,7 @@ class DurationPerformance(BasePerformance):
 
   def __init__(self, quantized_sequence, num_velocity_bins, instrument=0,
                start_step=0, max_shift_steps=1000, max_duration_steps=1000):
-    """Construct a DurationPerformance.
+    """Construct a NotePerformance.
 
     Args:
       quantized_sequence: A quantized NoteSequence proto.
@@ -735,7 +735,7 @@ class DurationPerformance(BasePerformance):
     program, is_drum = _program_and_is_drum_from_sequence(
         quantized_sequence, instrument)
 
-    super(DurationPerformance, self).__init__(
+    super(NotePerformance, self).__init__(
         start_step=start_step,
         num_velocity_bins=num_velocity_bins,
         max_shift_steps=max_shift_steps,
@@ -822,9 +822,9 @@ class DurationPerformance(BasePerformance):
       A list of events.
 
     Raises:
-      DurationPerformanceTooManyTimeShiftSteps: If the maximum number of time
+      NotePerformanceTooManyTimeShiftSteps: If the maximum number of time
         shift steps is exceeded.
-      DurationPerformanceTooManyDurationSteps: If the maximum number of duration
+      NotePerformanceTooManyDurationSteps: If the maximum number of duration
         shift steps is exceeded.
     """
     notes = [note for note in quantized_sequence.notes
@@ -841,7 +841,7 @@ class DurationPerformance(BasePerformance):
       # TIME_SHIFT
       time_shift_steps = note.quantized_start_step - current_step
       if time_shift_steps > self._max_shift_steps:
-        raise DurationPerformanceTooManyTimeShiftSteps(
+        raise NotePerformanceTooManyTimeShiftSteps(
             'Too many steps for timeshift: %d' % time_shift_steps)
       else:
         sub_events.append(
@@ -863,7 +863,7 @@ class DurationPerformance(BasePerformance):
       # DURATION
       duration_steps = note.quantized_end_step - note.quantized_start_step
       if duration_steps > self._max_duration_steps:
-        raise DurationPerformanceTooManyDurationSteps(
+        raise NotePerformanceTooManyDurationSteps(
             'Too many steps for duration: %s' % note)
       sub_events.append(
           PerformanceEvent(event_type=PerformanceEvent.DURATION,
@@ -922,7 +922,7 @@ class DurationPerformance(BasePerformance):
 def extract_performances(
     quantized_sequence, start_step=0, min_events_discard=None,
     max_events_truncate=None, max_steps_truncate=None, num_velocity_bins=0,
-    split_instruments=False, duration_performance=False):
+    split_instruments=False, note_performance=False):
   """Extracts one or more performances from the given quantized NoteSequence.
 
   Args:
@@ -938,7 +938,7 @@ def extract_performances(
         will not be included at all.
     split_instruments: If True, will extract a performance for each instrument.
         Otherwise, will extract a single performance.
-    duration_performance: If True, will create a DurationPerformance object. If
+    note_performance: If True, will create a NotePerformance object. If
         False, will create either a MetricPerformance or Performance based on
         how the sequence was quantized.
 
@@ -986,15 +986,15 @@ def extract_performances(
 
   for instrument in instruments:
     # Translate the quantized sequence into a Performance.
-    if duration_performance:
+    if note_performance:
       try:
-        performance = DurationPerformance(
+        performance = NotePerformance(
             quantized_sequence, start_step=start_step,
             num_velocity_bins=num_velocity_bins, instrument=instrument)
-      except DurationPerformanceTooManyTimeShiftSteps:
+      except NotePerformanceTooManyTimeShiftSteps:
         stats['performance_discarded_too_many_time_shift_steps'].increment()
         continue
-      except DurationPerformanceTooManyDurationSteps:
+      except NotePerformanceTooManyDurationSteps:
         stats['performance_discarded_too_many_duration_steps'].increment()
         continue
     elif sequences_lib.is_absolute_quantized_sequence(quantized_sequence):

@@ -276,7 +276,7 @@ def main(unused_argv):
       optional_conditioning=config.optional_conditioning,
       checkpoint=get_checkpoint(),
       bundle=bundle,
-      duration_performance=config.duration_performance)
+      note_performance=config.note_performance)
 
   if FLAGS.save_generator_bundle:
     bundle_filename = os.path.expanduser(FLAGS.bundle_file)
