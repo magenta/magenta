@@ -354,9 +354,8 @@ class EventSequenceEncoderDecoder(object):
         if isinstance(index, numbers.Number):
           loglik += np.log(softmax[i][softmax_pos][index])
         else:
-          p = 1.0
           for sub_softmax_i in range(len(index)):
-            p *= np.log(
+            loglik += np.log(
                 softmax[i][softmax_pos][sub_softmax_i][index[sub_softmax_i]])
       all_loglik.append(loglik)
     return all_loglik
