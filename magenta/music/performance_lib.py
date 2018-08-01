@@ -18,7 +18,6 @@ from __future__ import division
 import abc
 import collections
 import math
-import numbers
 
 # internal imports
 import tensorflow as tf
