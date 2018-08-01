@@ -17,6 +17,8 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
+import numbers
+
 # internal imports
 import numpy as np
 import six
@@ -229,9 +231,13 @@ def get_build_graph_fn(mode, config, sequence_example_file_paths=None):
     inputs, labels, lengths = None, None, None
 
     if mode == 'train' or mode == 'eval':
+      if isinstance(no_event_label, numbers.Number):
+        label_shape = []
+      else:
+        label_shape = [len(no_event_label)]
       inputs, labels, lengths = magenta.common.get_padded_batch(
           sequence_example_file_paths, hparams.batch_size, input_size,
-          shuffle=mode == 'train')
+          label_shape=label_shape, shuffle=mode == 'train')
 
     elif mode == 'generate':
       inputs = tf.placeholder(tf.float32, [hparams.batch_size, None,
@@ -260,16 +266,35 @@ def get_build_graph_fn(mode, config, sequence_example_file_paths=None):
 
     outputs_flat = magenta.common.flatten_maybe_padded_sequences(
         outputs, lengths)
-    logits_flat = tf.contrib.layers.linear(outputs_flat, num_classes)
+    if isinstance(num_classes, numbers.Number):
+      num_logits = num_classes
+    else:
+      num_logits = sum(num_classes)
+    logits_flat = tf.contrib.layers.linear(outputs_flat, num_logits)
 
     if mode == 'train' or mode == 'eval':
       labels_flat = magenta.common.flatten_maybe_padded_sequences(
           labels, lengths)
 
-      softmax_cross_entropy = tf.nn.sparse_softmax_cross_entropy_with_logits(
-          labels=labels_flat, logits=logits_flat)
+      if isinstance(num_classes, numbers.Number):
+        softmax_cross_entropy = tf.nn.sparse_softmax_cross_entropy_with_logits(
+            labels=labels_flat, logits=logits_flat)
+        predictions_flat = tf.argmax(logits_flat, axis=1)
+      else:
+        logits_offsets = np.cumsum([0] + num_classes)
+        softmax_cross_entropy = []
+        predictions = []
+        for i in range(len(num_classes)):
+          softmax_cross_entropy.append(
+              tf.nn.sparse_softmax_cross_entropy_with_logits(
+                  labels=labels_flat[:, i],
+                  logits=logits_flat[
+                      :, logits_offsets[i]:logits_offsets[i + 1]]))
+          predictions.append(
+              tf.argmax(logits_flat[
+                  :, logits_offsets[i]:logits_offsets[i + 1]], axis=1))
+        predictions_flat = tf.stack(predictions, 1)
 
-      predictions_flat = tf.argmax(logits_flat, axis=1)
       correct_predictions = tf.to_float(
           tf.equal(labels_flat, predictions_flat))
       event_positions = tf.to_float(tf.not_equal(labels_flat, no_event_label))
@@ -347,9 +372,21 @@ def get_build_graph_fn(mode, config, sequence_example_file_paths=None):
 
     elif mode == 'generate':
       temperature = tf.placeholder(tf.float32, [])
-      softmax_flat = tf.nn.softmax(
-          tf.div(logits_flat, tf.fill([num_classes], temperature)))
-      softmax = tf.reshape(softmax_flat, [hparams.batch_size, -1, num_classes])
+      if isinstance(num_classes, numbers.Number):
+        softmax_flat = tf.nn.softmax(
+            tf.div(logits_flat, tf.fill([num_classes], temperature)))
+        softmax = tf.reshape(
+            softmax_flat, [hparams.batch_size, -1, num_classes])
+      else:
+        logits_offsets = np.cumsum([0] + num_classes)
+        softmax = []
+        for i in range(len(num_classes)):
+          sm = tf.nn.softmax(
+              tf.div(
+                  logits_flat[:, logits_offsets[i]:logits_offsets[i + 1]],
+                  tf.fill([num_classes[i]], temperature)))
+          sm = tf.reshape(sm, [hparams.batch_size, -1, num_classes[i]])
+          softmax.append(sm)
 
       tf.add_to_collection('inputs', inputs)
       tf.add_to_collection('temperature', temperature)

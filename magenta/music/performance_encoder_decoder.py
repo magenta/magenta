@@ -319,3 +319,125 @@ class PerformanceOneHotEncoding(encoder_decoder.OneHotEncoding):
       return event.event_value
     else:
       return 0
+
+
+class NotePerformanceEventSequenceEncoderDecoder(
+    EventSequenceEncoderDecoder):
+  """Multiple one-hot encoding for event tuples."""
+
+  def __init__(self, num_velocity_bins, max_shift_steps=1000,
+               max_duration_steps=1000,
+               min_pitch=performance_lib.MIN_MIDI_PITCH,
+               max_pitch=performance_lib.MAX_MIDI_PITCH):
+    self._min_pitch = min_pitch
+
+    def optimal_num_segments(steps):
+      segments_indices = [(i, i + steps / i) for i in range(1, steps)
+                          if steps % i == 0]
+      return min(segments_indices, key=lambda v: v[1])[0]
+
+    # Add 1 because we need to represent 0 time shifts.
+    self._shift_steps_segments = optimal_num_segments(max_shift_steps + 1)
+    assert self._shift_steps_segments > 1
+    self._shift_steps_per_segment = (
+        (max_shift_steps + 1) // self._shift_steps_segments)
+
+    self._max_duration_steps = max_duration_steps
+    self._duration_steps_segments = optimal_num_segments(max_duration_steps)
+    assert self._duration_steps_segments > 1
+    self._duration_steps_per_segment = (
+        max_duration_steps // self._duration_steps_segments)
+
+    self._num_classes = [
+        # TIME_SHIFT major
+        self._shift_steps_segments,
+        # TIME_SHIFT minor
+        self._shift_steps_per_segment,
+        # NOTE_ON
+        max_pitch - min_pitch + 1,
+        # VELOCITY
+        num_velocity_bins,
+        # DURATION major
+        self._duration_steps_segments,
+        # DURATION minor
+        self._duration_steps_per_segment,
+    ]
+
+  @property
+  def input_size(self):
+    return sum(self._num_classes)
+
+  @property
+  def num_classes(self):
+    return self._num_classes
+
+  @property
+  def shift_steps_segments(self):
+    return self._shift_steps_segments
+
+  @property
+  def duration_steps_segments(self):
+    return self._duration_steps_segments
+
+  @property
+  def default_event_label(self):
+    return self._encode_event(
+        (PerformanceEvent(PerformanceEvent.TIME_SHIFT, 0),
+         PerformanceEvent(PerformanceEvent.NOTE_ON, 60),
+         PerformanceEvent(PerformanceEvent.VELOCITY, 1),
+         PerformanceEvent(PerformanceEvent.DURATION, 1)))
+
+  def _encode_event(self, event):
+    time_shift_major = event[0].event_value // self._shift_steps_per_segment
+    time_shift_minor = event[0].event_value % self._shift_steps_per_segment
+
+    note_on = event[1].event_value - self._min_pitch
+
+    velocity = event[2].event_value - 1
+
+    # Don't need to represent 0 duration, so subtract 1.
+    duration_value = event[3].event_value - 1
+    duration_major = duration_value // self._duration_steps_per_segment
+    duration_minor = duration_value % self._duration_steps_per_segment
+
+    return (time_shift_major, time_shift_minor, note_on, velocity,
+            duration_major, duration_minor)
+
+  def events_to_input(self, events, position):
+    event = events[position]
+    encoded = self._encode_event(event)
+
+    one_hots = []
+    for i, encoded_sub_event in enumerate(encoded):
+      one_hot = [0.0] * self._num_classes[i]
+      one_hot[encoded_sub_event] = 1.0
+      one_hots.append(one_hot)
+
+    return np.hstack(one_hots)
+
+  def events_to_label(self, events, position):
+    event = events[position]
+
+    return self._encode_event(event)
+
+  def class_index_to_event(self, class_indices, events):
+    time_shift = (class_indices[0] * self._shift_steps_per_segment +
+                  class_indices[1])
+    pitch = class_indices[2] + self._min_pitch
+    velocity = class_indices[3] + 1
+    duration = (class_indices[4] * self._duration_steps_per_segment +
+                class_indices[5]) + 1
+
+    return (PerformanceEvent(PerformanceEvent.TIME_SHIFT, time_shift),
+            PerformanceEvent(PerformanceEvent.NOTE_ON, pitch),
+            PerformanceEvent(PerformanceEvent.VELOCITY, velocity),
+            PerformanceEvent(PerformanceEvent.DURATION, duration))
+
+  def labels_to_num_steps(self, labels):
+    steps = 0
+    for label in labels:
+      event = self.class_index_to_event(label, None)
+      steps += event[0].event_value
+    if event:
+      steps += event[3].event_value
+    return steps

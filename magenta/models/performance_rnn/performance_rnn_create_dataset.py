@@ -62,7 +62,7 @@ class EncoderPipeline(pipeline.Pipeline):
       name: A unique pipeline name.
     """
     super(EncoderPipeline, self).__init__(
-        input_type=magenta.music.Performance,
+        input_type=magenta.music.performance_lib.BasePerformance,
         output_type=tf.train.SequenceExample,
         name=name)
     self._encoder_decoder = config.encoder_decoder
@@ -95,21 +95,24 @@ class EncoderPipeline(pipeline.Pipeline):
 class PerformanceExtractor(pipeline.Pipeline):
   """Extracts polyphonic tracks from a quantized NoteSequence."""
 
-  def __init__(self, min_events, max_events, num_velocity_bins, name=None):
+  def __init__(self, min_events, max_events, num_velocity_bins,
+               note_performance, name=None):
     super(PerformanceExtractor, self).__init__(
         input_type=music_pb2.NoteSequence,
-        output_type=magenta.music.Performance,
+        output_type=magenta.music.performance_lib.BasePerformance,
         name=name)
     self._min_events = min_events
     self._max_events = max_events
     self._num_velocity_bins = num_velocity_bins
+    self._note_performance = note_performance
 
   def transform(self, quantized_sequence):
     performances, stats = magenta.music.extract_performances(
         quantized_sequence,
         min_events_discard=self._min_events,
         max_events_truncate=self._max_events,
-        num_velocity_bins=self._num_velocity_bins)
+        num_velocity_bins=self._num_velocity_bins,
+        note_performance=self._note_performance)
     self._set_stats(stats)
     return performances
 
@@ -154,6 +157,7 @@ def get_pipeline(config, min_events, max_events, eval_ratio):
     perf_extractor = PerformanceExtractor(
         min_events=min_events, max_events=max_events,
         num_velocity_bins=config.num_velocity_bins,
+        note_performance=config.note_performance,
         name='PerformanceExtractor_' + mode)
     encoder_pipeline = EncoderPipeline(config, name='EncoderPipeline_' + mode)
 

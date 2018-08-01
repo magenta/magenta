@@ -54,21 +54,26 @@ class PerformanceEvent(object):
   TIME_SHIFT = 3
   # Change current velocity.
   VELOCITY = 4
+  # Duration of preceding NOTE_ON.
+  # For Note-based encoding, used instead of NOTE_OFF events.
+  DURATION = 5
 
   def __init__(self, event_type, event_value):
-    if not PerformanceEvent.NOTE_ON <= event_type <= PerformanceEvent.VELOCITY:
-      raise ValueError('Invalid event type: %s' % event_type)
-
     if (event_type == PerformanceEvent.NOTE_ON or
         event_type == PerformanceEvent.NOTE_OFF):
       if not MIN_MIDI_PITCH <= event_value <= MAX_MIDI_PITCH:
         raise ValueError('Invalid pitch value: %s' % event_value)
     elif event_type == PerformanceEvent.TIME_SHIFT:
-      if not 1 <= event_value:
+      if not 0 <= event_value:
         raise ValueError('Invalid time shift value: %s' % event_value)
+    elif event_type == PerformanceEvent.DURATION:
+      if not 1 <= event_value:
+        raise ValueError('Invalid duration value: %s' % event_value)
     elif event_type == PerformanceEvent.VELOCITY:
       if not 1 <= event_value <= MAX_NUM_VELOCITY_BINS:
         raise ValueError('Invalid velocity value: %s' % event_value)
+    else:
+      raise ValueError('Invalid event type: %s' % event_type)
 
     self.event_type = event_type
     self.event_value = event_value
@@ -81,6 +86,53 @@ class PerformanceEvent(object):
       return False
     return (self.event_type == other.event_type and
             self.event_value == other.event_value)
+
+
+def _velocity_bin_size(num_velocity_bins):
+  return int(math.ceil(
+      (MAX_MIDI_VELOCITY - MIN_MIDI_VELOCITY + 1) / num_velocity_bins))
+
+
+def _velocity_to_bin(velocity, num_velocity_bins):
+  return ((velocity - MIN_MIDI_VELOCITY) //
+          _velocity_bin_size(num_velocity_bins) + 1)
+
+
+def _velocity_bin_to_velocity(velocity_bin, num_velocity_bins):
+  return (
+      MIN_MIDI_VELOCITY + (velocity_bin - 1) *
+      _velocity_bin_size(num_velocity_bins))
+
+
+def _program_and_is_drum_from_sequence(sequence, instrument=None):
+  """Get MIDI program and is_drum from sequence and (optional) instrument.
+
+  Args:
+    sequence: The NoteSequence from which MIDI program and is_drum will be
+        extracted.
+    instrument: The instrument in `sequence` from which MIDI program and
+        is_drum will be extracted, or None to consider all instruments.
+
+  Returns:
+    A tuple containing program and is_drum for the sequence and optional
+    instrument. If multiple programs are found (or if is_drum is True),
+    program will be None. If multiple values of is_drum are found, is_drum
+    will be None.
+  """
+  notes = [note for note in sequence.notes
+           if instrument is None or note.instrument == instrument]
+  # Only set program for non-drum tracks.
+  if all(note.is_drum for note in notes):
+    is_drum = True
+    program = None
+  elif all(not note.is_drum for note in notes):
+    is_drum = False
+    programs = set(note.program for note in notes)
+    program = programs.pop() if len(programs) == 1 else None
+  else:
+    is_drum = None
+    program = None
+  return program, is_drum
 
 
 class BasePerformance(events_lib.EventSequence):
@@ -277,37 +329,6 @@ class BasePerformance(events_lib.EventSequence):
     return result
 
   @staticmethod
-  def _program_and_is_drum_from_sequence(sequence, instrument=None):
-    """Get MIDI program and is_drum from sequence and (optional) instrument.
-
-    Args:
-      sequence: The NoteSequence from which MIDI program and is_drum will be
-          extracted.
-      instrument: The instrument in `sequence` from which MIDI program and
-          is_drum will be extracted, or None to consider all instruments.
-
-    Returns:
-      A tuple containing program and is_drum for the sequence and optional
-      instrument. If multiple programs are found (or if is_drum is True),
-      program will be None. If multiple values of is_drum are found, is_drum
-      will be None.
-    """
-    notes = [note for note in sequence.notes
-             if instrument is None or note.instrument == instrument]
-    # Only set program for non-drum tracks.
-    if all(note.is_drum for note in notes):
-      is_drum = True
-      program = None
-    elif all(not note.is_drum for note in notes):
-      is_drum = False
-      programs = set(note.program for note in notes)
-      program = programs.pop() if len(programs) == 1 else None
-    else:
-      is_drum = None
-      program = None
-    return program, is_drum
-
-  @staticmethod
   def _from_quantized_sequence(quantized_sequence, start_step,
                                num_velocity_bins, max_shift_steps,
                                instrument=None):
@@ -342,12 +363,6 @@ class BasePerformance(events_lib.EventSequence):
                for idx, note in enumerate(sorted_notes)]
     note_events = sorted(onsets + offsets)
 
-    if num_velocity_bins:
-      velocity_bin_size = int(math.ceil(
-          (MAX_MIDI_VELOCITY - MIN_MIDI_VELOCITY + 1) / num_velocity_bins))
-      velocity_to_bin = (
-          lambda v: (v - MIN_MIDI_VELOCITY) // velocity_bin_size + 1)
-
     current_step = start_step
     current_velocity_bin = 0
     performance_events = []
@@ -369,7 +384,8 @@ class BasePerformance(events_lib.EventSequence):
       # If we're using velocity and this note's velocity is different from the
       # current velocity, change the current velocity.
       if num_velocity_bins:
-        velocity_bin = velocity_to_bin(sorted_notes[idx].velocity)
+        velocity_bin = _velocity_to_bin(
+            sorted_notes[idx].velocity, num_velocity_bins)
         if not is_offset and velocity_bin != current_velocity_bin:
           current_velocity_bin = velocity_bin
           performance_events.append(
@@ -419,11 +435,6 @@ class BasePerformance(events_lib.EventSequence):
       program = self.program if self.program is not None else DEFAULT_PROGRAM
     is_drum = self.is_drum if self.is_drum is not None else False
 
-    if self._num_velocity_bins:
-      velocity_bin_size = int(math.ceil(
-          (MAX_MIDI_VELOCITY - MIN_MIDI_VELOCITY + 1) /
-          self._num_velocity_bins))
-
     # Map pitch to list because one pitch may be active multiple times.
     pitch_start_steps_and_velocities = collections.defaultdict(list)
     for i, event in enumerate(self):
@@ -462,8 +473,8 @@ class BasePerformance(events_lib.EventSequence):
         step += event.event_value
       elif event.event_type == PerformanceEvent.VELOCITY:
         assert self._num_velocity_bins
-        velocity = (
-            MIN_MIDI_VELOCITY + (event.event_value - 1) * velocity_bin_size)
+        velocity = _velocity_bin_to_velocity(
+            event.event_value, self._num_velocity_bins)
       else:
         raise ValueError('Unknown event type: %s' % event.event_type)
 
@@ -537,7 +548,7 @@ class Performance(BasePerformance):
       self._events = self._from_quantized_sequence(
           quantized_sequence, start_step, num_velocity_bins,
           max_shift_steps=max_shift_steps, instrument=instrument)
-      program, is_drum = self._program_and_is_drum_from_sequence(
+      program, is_drum = _program_and_is_drum_from_sequence(
           quantized_sequence, instrument)
 
     else:
@@ -630,7 +641,7 @@ class MetricPerformance(BasePerformance):
           quantized_sequence, start_step, num_velocity_bins,
           max_shift_steps=self._steps_per_quarter * max_shift_quarters,
           instrument=instrument)
-      program, is_drum = self._program_and_is_drum_from_sequence(
+      program, is_drum = _program_and_is_drum_from_sequence(
           quantized_sequence, instrument)
 
     else:
@@ -682,10 +693,235 @@ class MetricPerformance(BasePerformance):
     return sequence
 
 
+class NotePerformanceException(Exception):
+  pass
+
+
+class NotePerformanceTooManyTimeShiftSteps(NotePerformanceException):
+  pass
+
+
+class NotePerformanceTooManyDurationSteps(NotePerformanceException):
+  pass
+
+
+class NotePerformance(BasePerformance):
+  """Stores a polyphonic sequence as a stream of performance events.
+
+  Events are PerformanceEvent objects that encode event type and value.
+  In this version, the performance is encoded in 4-event tuples:
+  TIME_SHIFT, NOTE_ON, VELOCITY, DURATION.
+  """
+
+  def __init__(self, quantized_sequence, num_velocity_bins, instrument=0,
+               start_step=0, max_shift_steps=1000, max_duration_steps=1000):
+    """Construct a NotePerformance.
+
+    Args:
+      quantized_sequence: A quantized NoteSequence proto.
+      num_velocity_bins: Number of velocity bins to use.
+      instrument: If not None, extract only the specified instrument from
+          `quantized_sequence`. Otherwise, extract all instruments.
+      start_step: The offset of this sequence relative to the beginning of the
+          source sequence.
+      max_shift_steps: Maximum number of steps for a time-shift event.
+      max_duration_steps: Maximum number of steps for a duration event.
+
+    Raises:
+      ValueError: If `num_velocity_bins` is larger than the number of MIDI
+          velocity values.
+    """
+    program, is_drum = _program_and_is_drum_from_sequence(
+        quantized_sequence, instrument)
+
+    super(NotePerformance, self).__init__(
+        start_step=start_step,
+        num_velocity_bins=num_velocity_bins,
+        max_shift_steps=max_shift_steps,
+        program=program,
+        is_drum=is_drum)
+
+    self._max_duration_steps = max_duration_steps
+
+    sequences_lib.assert_is_absolute_quantized_sequence(quantized_sequence)
+    self._steps_per_second = (
+        quantized_sequence.quantization_info.steps_per_second)
+    self._events = self._from_quantized_sequence(
+        quantized_sequence, instrument)
+
+  @property
+  def steps_per_second(self):
+    return self._steps_per_second
+
+  def set_length(self, steps, from_left=False):
+    # This is not actually implemented, but to avoid raising exceptions during
+    # generation just return instead of raising NotImplementedError.
+    # TODO(fjord): Implement this.
+    return
+
+  def append(self, event):
+    """Appends the event to the end of the sequence.
+
+    Args:
+      event: The performance event tuple to append to the end.
+
+    Raises:
+      ValueError: If `event` is not a valid performance event tuple.
+    """
+    if not isinstance(event, tuple):
+      raise ValueError('Invalid performance event tuple: %s' % event)
+    self._events.append(event)
+
+  def __str__(self):
+    strs = []
+    for event in self:
+      strs.append('TIME_SHIFT<%s>, NOTE_ON<%s>, VELOCITY<%s>, DURATION<%s>' % (
+          event[0].event_value, event[1].event_value, event[2].event_value,
+          event[3].event_value))
+    return '\n'.join(strs)
+
+  @property
+  def num_steps(self):
+    """Returns how many steps long this sequence is.
+
+    Returns:
+      Length of the sequence in quantized steps.
+    """
+    steps = 0
+    for event in self._events:
+      steps += event[0].event_value
+    if self._events:
+      steps += self._events[-1][3].event_value
+    return steps
+
+  @property
+  def steps(self):
+    """Return a Python list of the time step at each event in this sequence."""
+    step = self.start_step
+    result = []
+    for event in self:
+      step += event[0].event_value
+      result.append(step)
+    return result
+
+  def _from_quantized_sequence(self, quantized_sequence, instrument):
+    """Extract a list of events from the given quantized NoteSequence object.
+
+    Within a step, new pitches are started with NOTE_ON and existing pitches are
+    ended with NOTE_OFF. TIME_SHIFT shifts the current step forward in time.
+    VELOCITY changes the current velocity value that will be applied to all
+    NOTE_ON events.
+
+    Args:
+      quantized_sequence: A quantized NoteSequence instance.
+      instrument: If not None, extract only the specified instrument. Otherwise,
+          extract all instruments into a single event list.
+
+    Returns:
+      A list of events.
+
+    Raises:
+      NotePerformanceTooManyTimeShiftSteps: If the maximum number of time
+        shift steps is exceeded.
+      NotePerformanceTooManyDurationSteps: If the maximum number of duration
+        shift steps is exceeded.
+    """
+    notes = [note for note in quantized_sequence.notes
+             if note.quantized_start_step >= self.start_step
+             and (instrument is None or note.instrument == instrument)]
+    sorted_notes = sorted(notes, key=lambda note: (note.start_time, note.pitch))
+
+    current_step = self.start_step
+    performance_events = []
+
+    for note in sorted_notes:
+      sub_events = []
+
+      # TIME_SHIFT
+      time_shift_steps = note.quantized_start_step - current_step
+      if time_shift_steps > self._max_shift_steps:
+        raise NotePerformanceTooManyTimeShiftSteps(
+            'Too many steps for timeshift: %d' % time_shift_steps)
+      else:
+        sub_events.append(
+            PerformanceEvent(event_type=PerformanceEvent.TIME_SHIFT,
+                             event_value=time_shift_steps))
+      current_step = note.quantized_start_step
+
+      # NOTE_ON
+      sub_events.append(
+          PerformanceEvent(event_type=PerformanceEvent.NOTE_ON,
+                           event_value=note.pitch))
+
+      # VELOCITY
+      velocity_bin = _velocity_to_bin(note.velocity, self._num_velocity_bins)
+      sub_events.append(
+          PerformanceEvent(event_type=PerformanceEvent.VELOCITY,
+                           event_value=velocity_bin))
+
+      # DURATION
+      duration_steps = note.quantized_end_step - note.quantized_start_step
+      if duration_steps > self._max_duration_steps:
+        raise NotePerformanceTooManyDurationSteps(
+            'Too many steps for duration: %s' % note)
+      sub_events.append(
+          PerformanceEvent(event_type=PerformanceEvent.DURATION,
+                           event_value=duration_steps))
+
+      performance_events.append(tuple(sub_events))
+
+    return performance_events
+
+  def to_sequence(self, instrument=0, program=None, max_note_duration=None):
+    """Converts the Performance to NoteSequence proto.
+
+    Args:
+      instrument: MIDI instrument to give each note.
+      program: MIDI program to give each note, or None to use the program
+          associated with the Performance (or the default program if none
+          exists).
+      max_note_duration: Not used in this implementation.
+
+    Returns:
+      A NoteSequence proto.
+    """
+    seconds_per_step = 1.0 / self.steps_per_second
+    sequence_start_time = self.start_step * seconds_per_step
+
+    sequence = music_pb2.NoteSequence()
+    sequence.ticks_per_quarter = STANDARD_PPQ
+
+    step = 0
+
+    if program is None:
+      # Use program associated with the performance (or default program).
+      program = self.program if self.program is not None else DEFAULT_PROGRAM
+    is_drum = self.is_drum if self.is_drum is not None else False
+
+    for event in self:
+      step += event[0].event_value
+
+      note = sequence.notes.add()
+      note.start_time = step * seconds_per_step + sequence_start_time
+      note.end_time = ((step + event[3].event_value) * seconds_per_step +
+                       sequence_start_time)
+      note.pitch = event[1].event_value
+      note.velocity = _velocity_bin_to_velocity(
+          event[2].event_value, self._num_velocity_bins)
+      note.instrument = instrument
+      note.program = program
+      note.is_drum = is_drum
+
+      if note.end_time > sequence.total_time:
+        sequence.total_time = note.end_time
+
+    return sequence
+
+
 def extract_performances(
     quantized_sequence, start_step=0, min_events_discard=None,
     max_events_truncate=None, max_steps_truncate=None, num_velocity_bins=0,
-    split_instruments=False):
+    split_instruments=False, note_performance=False):
   """Extracts one or more performances from the given quantized NoteSequence.
 
   Args:
@@ -701,6 +937,9 @@ def extract_performances(
         will not be included at all.
     split_instruments: If True, will extract a performance for each instrument.
         Otherwise, will extract a single performance.
+    note_performance: If True, will create a NotePerformance object. If
+        False, will create either a MetricPerformance or Performance based on
+        how the sequence was quantized.
 
   Returns:
     performances: A python list of Performance or MetricPerformance (if
@@ -712,7 +951,9 @@ def extract_performances(
   stats = dict([(stat_name, statistics.Counter(stat_name)) for stat_name in
                 ['performances_discarded_too_short',
                  'performances_truncated', 'performances_truncated_timewise',
-                 'performances_discarded_more_than_1_program']])
+                 'performances_discarded_more_than_1_program',
+                 'performance_discarded_too_many_time_shift_steps',
+                 'performance_discarded_too_many_duration_steps']])
 
   if sequences_lib.is_absolute_quantized_sequence(quantized_sequence):
     steps_per_second = quantized_sequence.quantization_info.steps_per_second
@@ -744,7 +985,18 @@ def extract_performances(
 
   for instrument in instruments:
     # Translate the quantized sequence into a Performance.
-    if sequences_lib.is_absolute_quantized_sequence(quantized_sequence):
+    if note_performance:
+      try:
+        performance = NotePerformance(
+            quantized_sequence, start_step=start_step,
+            num_velocity_bins=num_velocity_bins, instrument=instrument)
+      except NotePerformanceTooManyTimeShiftSteps:
+        stats['performance_discarded_too_many_time_shift_steps'].increment()
+        continue
+      except NotePerformanceTooManyDurationSteps:
+        stats['performance_discarded_too_many_duration_steps'].increment()
+        continue
+    elif sequences_lib.is_absolute_quantized_sequence(quantized_sequence):
       performance = Performance(quantized_sequence, start_step=start_step,
                                 num_velocity_bins=num_velocity_bins,
                                 instrument=instrument)

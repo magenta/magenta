@@ -48,6 +48,7 @@ from __future__ import division
 from __future__ import print_function
 
 import abc
+import numbers
 
 # internal imports
 
@@ -296,10 +297,22 @@ class EventSequenceEncoderDecoder(object):
     Returns:
       A Python list of chosen class indices, one for each event sequence.
     """
-    num_classes = len(softmax[0][0])
     chosen_classes = []
     for i in range(len(event_sequences)):
-      chosen_class = np.random.choice(num_classes, p=softmax[i][-1])
+      if not isinstance(softmax[0][0][0], numbers.Number):
+        # In this case, softmax is a list of several sub-softmaxes, each
+        # potentially with a different size.
+        # shape: [[beam_size, event_num, softmax_size]]
+        chosen_class = []
+        for sub_softmax in softmax:
+          num_classes = len(sub_softmax[0][0])
+          chosen_class.append(
+              np.random.choice(num_classes, p=sub_softmax[i][-1]))
+      else:
+        # In this case, softmax is just one softmax.
+        # shape: [beam_size, event_num, softmax_size]
+        num_classes = len(softmax[0][0])
+        chosen_class = np.random.choice(num_classes, p=softmax[i][-1])
       event = self.class_index_to_event(chosen_class, event_sequences[i])
       event_sequences[i].append(event)
       chosen_classes.append(chosen_class)
@@ -338,7 +351,12 @@ class EventSequenceEncoderDecoder(object):
       loglik = 0.0
       for softmax_pos, position in enumerate(range(start_pos, end_pos)):
         index = self.events_to_label(event_sequences[i], position)
-        loglik += np.log(softmax[i][softmax_pos][index])
+        if isinstance(index, numbers.Number):
+          loglik += np.log(softmax[i][softmax_pos][index])
+        else:
+          for sub_softmax_i in range(len(index)):
+            loglik += np.log(
+                softmax[i][softmax_pos][sub_softmax_i][index[sub_softmax_i]])
       all_loglik.append(loglik)
     return all_loglik
 

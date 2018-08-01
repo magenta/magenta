@@ -133,6 +133,29 @@ class PerformanceLibTest(tf.test.TestCase):
     ]
     self.assertEqual(expected_performance, list(performance))
 
+  def testNotePerformanceFromQuantizedNoteSequence(self):
+    testing_lib.add_track_to_sequence(
+        self.note_sequence, 0,
+        [(60, 97, 0.0, 4.0), (64, 97, 0.0, 3.0), (67, 121, 1.0, 2.0)])
+    quantized_sequence = sequences_lib.quantize_note_sequence_absolute(
+        self.note_sequence, steps_per_second=100)
+    performance = performance_lib.NotePerformance(
+        quantized_sequence, num_velocity_bins=16)
+
+    pe = performance_lib.PerformanceEvent
+    expected_performance = [
+        (pe(pe.TIME_SHIFT, 0), pe(pe.NOTE_ON, 60),
+         pe(pe.VELOCITY, 13), pe(pe.DURATION, 400)),
+        (pe(pe.TIME_SHIFT, 0), pe(pe.NOTE_ON, 64),
+         pe(pe.VELOCITY, 13), pe(pe.DURATION, 300)),
+        (pe(pe.TIME_SHIFT, 100), pe(pe.NOTE_ON, 67),
+         pe(pe.VELOCITY, 16), pe(pe.DURATION, 100)),
+    ]
+    self.assertEqual(expected_performance, list(performance))
+
+    ns = performance.to_sequence(instrument=0)
+    self.assertEqual(self.note_sequence, ns)
+
   def testProgramAndIsDrumFromQuantizedNoteSequence(self):
     testing_lib.add_track_to_sequence(
         self.note_sequence, 0,
