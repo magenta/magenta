@@ -45,6 +45,10 @@ MAX_MIDI_VELOCITY = 127  # Inclusive.
 MIN_MIDI_PROGRAM = 0
 MAX_MIDI_PROGRAM = 127
 
+# MIDI programs that typically sound unpitched.
+UNPITCHED_PROGRAMS = (
+    list(range(96, 104)) + list(range(112, 120)) + list(range(120, 128)))
+
 # Chord symbol for "no chord".
 NO_CHORD = 'N.C.'
 
