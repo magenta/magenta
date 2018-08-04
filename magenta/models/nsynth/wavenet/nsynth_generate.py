@@ -44,6 +44,8 @@ tf.app.flags.DEFINE_integer("num_intra_threads", 0,
                             "Number of the intra_op_parallelism_threads.")
 tf.app.flags.DEFINE_string("trace_file", '',
                             "Enable TensorFlow tracing and write trace to this file.")
+tf.app.flags.DEFINE_boolean("mkl", False,
+                            "if true, optimize for CPU performance and report performance data.")
 
 
 def main(unused_argv=None):
@@ -91,24 +93,29 @@ def main(unused_argv=None):
     ]
     batch_data = fastgen.load_batch(batch_files, sample_length=sample_length)
     # Encode waveforms
-    start_time = time.time()
-    current_time = time.time()
+    if FLAGS.mkl:
+      start_time = time.time()
+      current_time = time.time()
+
     encodings = batch_data if postfix == ".npy" else fastgen.encode(
-        FLAGS, batch_data, checkpoint_path, sample_length=sample_length)
-    time_for_encoding = time.time() - current_time
-    current_time = time.time()
+        batch_data, checkpoint_path, FLAGS=FLAGS, sample_length=sample_length)
+    if FLAGS.mkl:
+      time_for_encoding = time.time() - current_time
+      current_time = time.time()
  
     if FLAGS.gpu_number != 0:
       with tf.device("/device:GPU:%d" % FLAGS.gpu_number):
         fastgen.synthesize(
-            FLAGS, encodings, save_names, checkpoint_path=checkpoint_path)
+            encodings, save_names, checkpoint_path=checkpoint_path)
     else:
-      fastgen.synthesize(FLAGS, encodings, save_names, checkpoint_path=checkpoint_path)
-    time_for_generate = time.time() - current_time
-    time_total = time.time() - start_time
-    tf.logging.info("Time for encoding: %f sec" % (time_for_encoding))
-    tf.logging.info("Time for generate: %f sec" % (time_for_generate))
-    tf.logging.info("Time TOTAL : %f sec" % (time_total))
+      fastgen.synthesize(encodings, save_names,FLAGS=FLAGS, checkpoint_path=checkpoint_path)
+
+    if FLAGS.mkl:
+      time_for_generate = time.time() - current_time
+      time_total = time.time() - start_time
+      tf.logging.info("Time for encoding: %f sec" % (time_for_encoding))
+      tf.logging.info("Time for generate: %f sec" % (time_for_generate))
+      tf.logging.info("Time TOTAL : %f sec" % (time_total))
 
 
 def console_entry_point():
