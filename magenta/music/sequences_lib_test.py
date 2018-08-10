@@ -23,6 +23,8 @@ from magenta.music import sequences_lib
 from magenta.music import testing_lib
 from magenta.protobuf import music_pb2
 
+CHORD_SYMBOL = music_pb2.NoteSequence.TextAnnotation.CHORD_SYMBOL
+
 
 class SequencesLibTest(tf.test.TestCase):
 
@@ -38,6 +40,170 @@ class SequencesLibTest(tf.test.TestCase):
           denominator: 4}
         tempos: {
           qpm: 60}""")
+
+  def testTransposeNoteSequence(self):
+    sequence = copy.copy(self.note_sequence)
+    testing_lib.add_track_to_sequence(
+        sequence, 0,
+        [(12, 100, 0.01, 10.0), (11, 55, 0.22, 0.50), (40, 45, 2.50, 3.50),
+         (55, 120, 4.0, 4.01), (52, 99, 4.75, 5.0)])
+    sequence.text_annotations.add(
+        time=1, annotation_type=CHORD_SYMBOL, text='N.C.')
+    sequence.text_annotations.add(
+        time=2, annotation_type=CHORD_SYMBOL, text='E7')
+
+    expected_subsequence = copy.copy(self.note_sequence)
+    testing_lib.add_track_to_sequence(
+        expected_subsequence, 0,
+        [(13, 100, 0.01, 10.0), (12, 55, 0.22, 0.50), (41, 45, 2.50, 3.50),
+         (56, 120, 4.0, 4.01), (53, 99, 4.75, 5.0)])
+    expected_subsequence.text_annotations.add(
+        time=1, annotation_type=CHORD_SYMBOL, text='N.C.')
+    expected_subsequence.text_annotations.add(
+        time=2, annotation_type=CHORD_SYMBOL, text='F7')
+
+    subsequence = sequences_lib.transpose_note_sequence(sequence, 1)
+    self.assertProtoEquals(expected_subsequence, subsequence)
+
+  def testTransposeNoteSequenceOutOfRange(self):
+    sequence = copy.copy(self.note_sequence)
+    testing_lib.add_track_to_sequence(
+        sequence, 0,
+        [(35, 100, 0.01, 10.0), (36, 55, 0.22, 0.50), (37, 45, 2.50, 3.50),
+         (38, 120, 4.0, 4.01), (39, 99, 4.75, 5.0)])
+
+    expected_subsequence_1 = copy.copy(self.note_sequence)
+    testing_lib.add_track_to_sequence(
+        expected_subsequence_1, 0,
+        [(39, 100, 0.01, 10.0), (40, 55, 0.22, 0.50)])
+
+    expected_subsequence_2 = copy.copy(self.note_sequence)
+    testing_lib.add_track_to_sequence(
+        expected_subsequence_2, 0,
+        [(30, 120, 4.0, 4.01), (31, 99, 4.75, 5.0)])
+
+    sequence_copy = copy.copy(sequence)
+    subsequence = sequences_lib.transpose_note_sequence(
+        sequence_copy, 4, 30, 40)
+    self.assertProtoEquals(expected_subsequence_1, subsequence)
+
+    sequence_copy = copy.copy(sequence)
+    subsequence = sequences_lib.transpose_note_sequence(sequence, -8, 30, 40)
+    self.assertProtoEquals(expected_subsequence_2, subsequence)
+
+  def testClampTranspose(self):
+    clamped = sequences_lib._clamp_transpose(
+        5, 20, 60, 10, 70)
+    self.assertEquals(clamped, 5)
+
+    clamped = sequences_lib._clamp_transpose(
+        15, 20, 60, 10, 65)
+    self.assertEquals(clamped, 5)
+
+    clamped = sequences_lib._clamp_transpose(
+        -16, 20, 60, 10, 70)
+    self.assertEquals(clamped, -10)
+
+  def testAugmentNoteSequenceDeleteFalse(self):
+    sequence = copy.copy(self.note_sequence)
+    testing_lib.add_track_to_sequence(
+        sequence, 0, [(12, 100, 0.01, 10.0), (13, 55, 0.22, 0.50),
+                      (40, 45, 2.50, 3.50), (55, 120, 4.0, 4.01),
+                      (52, 99, 4.75, 5.0)])
+
+    augmented_sequence = sequences_lib.augment_note_sequence(
+        sequence,
+        min_stretch_factor=2,
+        max_stretch_factor=2,
+        min_transpose=-15,
+        max_transpose=-10,
+        min_allowed_pitch=10,
+        max_allowed_pitch=127,
+        delete_out_of_range_notes=False)
+
+    expected_sequence = copy.copy(self.note_sequence)
+    testing_lib.add_track_to_sequence(
+        expected_sequence, 0, [(10, 100, 0.02, 20.0), (11, 55, 0.44, 1.0),
+                               (38, 45, 5., 7.), (53, 120, 8.0, 8.02),
+                               (50, 99, 9.5, 10.0)])
+    expected_sequence.tempos[0].qpm = 30.
+
+    self.assertProtoEquals(augmented_sequence, expected_sequence)
+
+  def testAugmentNoteSequenceDeleteTrue(self):
+    sequence = copy.copy(self.note_sequence)
+    testing_lib.add_track_to_sequence(
+        sequence, 0, [(12, 100, 0.01, 10.0), (13, 55, 0.22, 0.50),
+                      (40, 45, 2.50, 3.50), (55, 120, 4.0, 4.01),
+                      (52, 99, 4.75, 5.0)])
+
+    augmented_sequence = sequences_lib.augment_note_sequence(
+        sequence,
+        min_stretch_factor=2,
+        max_stretch_factor=2,
+        min_transpose=-15,
+        max_transpose=-15,
+        min_allowed_pitch=10,
+        max_allowed_pitch=127,
+        delete_out_of_range_notes=True)
+
+    expected_sequence = copy.copy(self.note_sequence)
+    testing_lib.add_track_to_sequence(
+        expected_sequence, 0, [(25, 45, 5., 7.), (40, 120, 8.0, 8.02),
+                               (37, 99, 9.5, 10.0)])
+    expected_sequence.tempos[0].qpm = 30.
+
+    self.assertProtoEquals(augmented_sequence, expected_sequence)
+
+  def testAugmentNoteSequenceNoStretch(self):
+    sequence = copy.copy(self.note_sequence)
+    testing_lib.add_track_to_sequence(
+        sequence, 0, [(12, 100, 0.01, 10.0), (13, 55, 0.22, 0.50),
+                      (40, 45, 2.50, 3.50), (55, 120, 4.0, 4.01),
+                      (52, 99, 4.75, 5.0)])
+
+    augmented_sequence = sequences_lib.augment_note_sequence(
+        sequence,
+        min_stretch_factor=1,
+        max_stretch_factor=1.,
+        min_transpose=-15,
+        max_transpose=-15,
+        min_allowed_pitch=10,
+        max_allowed_pitch=127,
+        delete_out_of_range_notes=True)
+
+    expected_sequence = copy.copy(self.note_sequence)
+    testing_lib.add_track_to_sequence(
+        expected_sequence, 0, [(25, 45, 2.5, 3.50), (40, 120, 4.0, 4.01),
+                               (37, 99, 4.75, 5.0)])
+
+    self.assertProtoEquals(augmented_sequence, expected_sequence)
+
+  def testAugmentNoteSequenceNoTranspose(self):
+    sequence = copy.copy(self.note_sequence)
+    testing_lib.add_track_to_sequence(
+        sequence, 0, [(12, 100, 0.01, 10.0), (13, 55, 0.22, 0.50),
+                      (40, 45, 2.50, 3.50), (55, 120, 4.0, 4.01),
+                      (52, 99, 4.75, 5.0)])
+
+    augmented_sequence = sequences_lib.augment_note_sequence(
+        sequence,
+        min_stretch_factor=2,
+        max_stretch_factor=2.,
+        min_transpose=0,
+        max_transpose=0,
+        min_allowed_pitch=10,
+        max_allowed_pitch=127,
+        delete_out_of_range_notes=True)
+
+    expected_sequence = copy.copy(self.note_sequence)
+    testing_lib.add_track_to_sequence(
+        expected_sequence, 0, [(12, 100, 0.02, 20.0), (13, 55, 0.44, 1.0),
+                               (40, 45, 5., 7.), (55, 120, 8.0, 8.02),
+                               (52, 99, 9.5, 10.0)])
+    expected_sequence.tempos[0].qpm = 30.
+
+    self.assertProtoEquals(augmented_sequence, expected_sequence)
 
   def testTrimNoteSequence(self):
     sequence = copy.copy(self.note_sequence)
@@ -911,9 +1077,18 @@ class SequencesLibTest(tf.test.TestCase):
     testing_lib.add_chords_to_sequence(
         expected_stretched_sequence, [('B7', 0.75), ('Em9', 3.0)])
 
+    prestretched_sequence = copy.deepcopy(self.note_sequence)
+
     stretched_sequence = sequences_lib.stretch_note_sequence(
-        self.note_sequence, stretch_factor=1.5)
+        self.note_sequence, stretch_factor=1.5, in_place=False)
     self.assertProtoEquals(expected_stretched_sequence, stretched_sequence)
+
+    # Make sure the proto was not modified
+    self.assertProtoEquals(prestretched_sequence, self.note_sequence)
+
+    sequences_lib.stretch_note_sequence(
+        self.note_sequence, stretch_factor=1.5, in_place=True)
+    self.assertProtoEquals(stretched_sequence, self.note_sequence)
 
   def testApplySustainControlChanges(self):
     """Verify sustain controls extend notes until the end of the control."""
@@ -1282,3 +1457,4 @@ class SequencesLibTest(tf.test.TestCase):
 
 if __name__ == '__main__':
   tf.test.main()
+
