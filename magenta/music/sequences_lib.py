@@ -1010,8 +1010,8 @@ def transpose_note_sequence(ns, amount,
 
   new_note_list = []
   deleted_note_count = 0
+  end_time = 0
 
-  end_time = -1
   for note in ns.notes:
     new_pitch = note.pitch + amount
     if (min_allowed_pitch <= new_pitch <= max_allowed_pitch) or note.is_drum:
