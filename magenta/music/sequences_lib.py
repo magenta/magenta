@@ -17,6 +17,7 @@ import collections
 import copy
 import itertools
 from operator import itemgetter
+import random
 
 # internal imports
 import numpy as np
@@ -41,6 +42,7 @@ QUANTIZE_CUTOFF = 0.5
 # Shortcut to text annotation types.
 BEAT = music_pb2.NoteSequence.TextAnnotation.BEAT
 CHORD_SYMBOL = music_pb2.NoteSequence.TextAnnotation.CHORD_SYMBOL
+UNKNOWN_PITCH_NAME = music_pb2.NoteSequence.UNKNOWN_PITCH_NAME
 
 
 class BadTimeSignatureException(Exception):
@@ -996,7 +998,174 @@ def quantize_note_sequence_absolute(note_sequence, steps_per_second):
   return qns
 
 
-def stretch_note_sequence(note_sequence, stretch_factor):
+def transpose_note_sequence(ns, amount,
+                            min_allowed_pitch=constants.MIN_MIDI_PITCH,
+                            max_allowed_pitch=constants.MAX_MIDI_PITCH,
+                            in_place=False):
+  """Transposes note sequence specified amount, deleting out-of-bound notes."""
+  if not in_place:
+    new_ns = music_pb2.NoteSequence()
+    new_ns.CopyFrom(ns)
+    ns = new_ns
+
+  new_note_list = []
+  deleted_note_count = 0
+  end_time = 0
+
+  for note in ns.notes:
+    new_pitch = note.pitch + amount
+    if (min_allowed_pitch <= new_pitch <= max_allowed_pitch) or note.is_drum:
+      end_time = max(end_time, note.end_time)
+
+      if not note.is_drum:
+        note.pitch += amount
+
+        # The pitch name, if present, will no longer be valid.
+        note.pitch_name = UNKNOWN_PITCH_NAME
+
+      new_note_list.append(note)
+    else:
+      deleted_note_count += 1
+
+  if deleted_note_count > 0:
+    tf.logging.info(
+        'Transposing removed %d notes from NoteSequence' % (deleted_note_count))
+    del ns.notes[:]
+    ns.notes.extend(new_note_list)
+
+  # Since notes were deleted, we may need to update the total time.
+  ns.total_time = end_time
+
+  # Also update the text annotations
+  for ta in ns.text_annotations:
+    if ta.annotation_type == CHORD_SYMBOL and ta.text != constants.NO_CHORD:
+      try:
+        figure = chord_symbols_lib.transpose_chord_symbol(
+            ta.text, amount)
+      except chord_symbols_lib.ChordSymbolException:
+        tf.logging.warn('Unable to transpose chord symbol: %s', ta.text)
+        figure = constants.NO_CHORD
+      ta.text = figure
+
+  # Remove key signature information because it will now be wrong.
+  del ns.key_signatures[:]
+
+  return ns
+
+
+def _clamp_transpose(transpose_amount, ns_min_pitch, ns_max_pitch,
+                     min_allowed_pitch, max_allowed_pitch):
+  """Clamps the specified transpose amount to keep a ns in the desired bounds.
+
+  Args:
+    transpose_amount: Number of steps to transpose up or down.
+    ns_min_pitch: The lowest pitch in the target note sequence.
+    ns_max_pitch: The highest pitch in the target note sequence.
+    min_allowed_pitch: The lowest pitch that should be allowed in the transposed
+        note sequence.
+    max_allowed_pitch: The highest pitch that should be allowed in the
+        transposed note sequence.
+
+  Returns:
+    A new transpose amount that, if applied to the target note sequence, will
+    keep all notes within the range [MIN_PITCH, MAX_PITCH]
+  """
+  if transpose_amount < 0:
+    transpose_amount = -min(ns_min_pitch - min_allowed_pitch,
+                            abs(transpose_amount))
+  else:
+    transpose_amount = min(max_allowed_pitch - ns_max_pitch, transpose_amount)
+  return transpose_amount
+
+
+def augment_note_sequence(
+    ns,
+    min_stretch_factor,
+    max_stretch_factor,
+    min_transpose,
+    max_transpose,
+    min_allowed_pitch=constants.MIN_MIDI_PITCH,
+    max_allowed_pitch=constants.MAX_MIDI_PITCH,
+    delete_out_of_range_notes=False):
+  """Modifed a NoteSequence with random stretching and transposition.
+
+  This method can be used to augment a dataset for training neural nets.
+  Note that the provided ns is modified in place.
+
+  Args:
+    ns: A NoteSequence proto to be augmented.
+    min_stretch_factor: Minimum amount to stretch/compress the NoteSequence.
+    max_stretch_factor: Maximum amount to stretch/compress the NoteSequence.
+    min_transpose: Minimum number of steps to transpose the NoteSequence.
+    max_transpose: Maximum number of steps to transpose the NoteSequence.
+    min_allowed_pitch: The lowest pitch permitted (ie, for regular piano this
+      should be set to 21.)
+    max_allowed_pitch: The highest pitch permitted (ie, for regular piano this
+      should be set to 108.)
+    delete_out_of_range_notes: If true, a transposition amount will be chosen on
+      the interval [min_transpose, max_transpose], and any out-of-bounds notes
+      will be deleted. If false, the interval [min_transpose, max_transpose]
+      will be truncated such that no out-of-bounds notes will ever be created.
+
+  TODO(dei): Add support for specifying custom distributions over possible
+      values of note stretch and transposition amount.
+
+  Returns:
+    The randomly augmented NoteSequence.
+
+  Raises:
+    ValueError: If mins in ranges are larger than maxes.
+  """
+  if min_stretch_factor > max_stretch_factor:
+    raise ValueError('min_stretch_factor should be <= max_stretch_factor')
+  if min_allowed_pitch > max_allowed_pitch:
+    raise ValueError('min_allowed_pitch should be <= max_allowed_pitch')
+  if min_transpose > max_transpose:
+    raise ValueError('min_transpose should be <= max_transpose')
+
+  if ns.notes:
+    # Choose random factor by which to stretch or compress note sequence.
+    stretch_factor = random.uniform(min_stretch_factor, max_stretch_factor)
+    ns = stretch_note_sequence(ns, stretch_factor, in_place=True)
+
+    # Choose amount by which to translate the note sequence.
+    if delete_out_of_range_notes:
+      # If transposition takes a note outside of the allowed note bounds,
+      # we will just delete it.
+      transposition_amount = random.randint(min_transpose, max_transpose)
+    else:
+      # Prevent transposition from taking a note outside of the allowed note
+      # bounds by clamping the range we sample from.
+      ns_min_pitch = min(ns.notes, key=lambda note: note.pitch).pitch
+      ns_max_pitch = max(ns.notes, key=lambda note: note.pitch).pitch
+
+      if ns_min_pitch < min_allowed_pitch:
+        tf.logging.warn(
+            'A note sequence has some pitch=%d, which is less '
+            'than min_allowed_pitch=%d' % (ns_min_pitch, min_allowed_pitch))
+      if ns_max_pitch > max_allowed_pitch:
+        tf.logging.warn(
+            'A note sequence has some pitch=%d, which is greater '
+            'than max_allowed_pitch=%d' % (ns_max_pitch, max_allowed_pitch))
+
+      min_transpose = _clamp_transpose(min_transpose, ns_min_pitch,
+                                       ns_max_pitch, min_allowed_pitch,
+                                       max_allowed_pitch)
+      max_transpose = _clamp_transpose(max_transpose, ns_min_pitch,
+                                       ns_max_pitch, min_allowed_pitch,
+                                       max_allowed_pitch)
+      transposition_amount = random.randint(min_transpose, max_transpose)
+
+    ns = transpose_note_sequence(
+        ns,
+        transposition_amount,
+        min_allowed_pitch, max_allowed_pitch,
+        in_place=True)
+
+  return ns
+
+
+def stretch_note_sequence(note_sequence, stretch_factor, in_place=False):
   """Apply a constant temporal stretch to a NoteSequence proto.
 
   Args:
@@ -1005,6 +1174,7 @@ def stretch_note_sequence(note_sequence, stretch_factor):
         one increase the length of the NoteSequence (making it "slower"). Values
         less than one decrease the length of the NoteSequence (making it
         "faster").
+    in_place: If True, the input note_sequence is edited directly.
 
   Returns:
     A stretched copy of the original NoteSequence.
@@ -1017,8 +1187,11 @@ def stretch_note_sequence(note_sequence, stretch_factor):
     raise QuantizationStatusException(
         'Can only stretch unquantized NoteSequence.')
 
-  stretched_sequence = music_pb2.NoteSequence()
-  stretched_sequence.CopyFrom(note_sequence)
+  if in_place:
+    stretched_sequence = note_sequence
+  else:
+    stretched_sequence = music_pb2.NoteSequence()
+    stretched_sequence.CopyFrom(note_sequence)
 
   if stretch_factor == 1.0:
     return stretched_sequence
@@ -1258,3 +1431,4 @@ def infer_dense_chords_for_sequence(
       active_notes.add(idx)
 
   assert not active_notes
+
