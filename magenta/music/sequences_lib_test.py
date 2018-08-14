@@ -52,18 +52,20 @@ class SequencesLibTest(tf.test.TestCase):
     sequence.text_annotations.add(
         time=2, annotation_type=CHORD_SYMBOL, text='E7')
 
-    expected_subsequence = copy.copy(self.note_sequence)
+    expected_sequence = copy.copy(self.note_sequence)
     testing_lib.add_track_to_sequence(
-        expected_subsequence, 0,
+        expected_sequence, 0,
         [(13, 100, 0.01, 10.0), (12, 55, 0.22, 0.50), (41, 45, 2.50, 3.50),
          (56, 120, 4.0, 4.01), (53, 99, 4.75, 5.0)])
-    expected_subsequence.text_annotations.add(
+    expected_sequence.text_annotations.add(
         time=1, annotation_type=CHORD_SYMBOL, text='N.C.')
-    expected_subsequence.text_annotations.add(
+    expected_sequence.text_annotations.add(
         time=2, annotation_type=CHORD_SYMBOL, text='F7')
 
-    subsequence = sequences_lib.transpose_note_sequence(sequence, 1)
-    self.assertProtoEquals(expected_subsequence, subsequence)
+    transposed_sequence, delete_count = sequences_lib.transpose_note_sequence(
+        sequence, 1)
+    self.assertProtoEquals(expected_sequence, transposed_sequence)
+    self.assertEquals(delete_count, 0)
 
   def testTransposeNoteSequenceOutOfRange(self):
     sequence = copy.copy(self.note_sequence)
@@ -72,24 +74,27 @@ class SequencesLibTest(tf.test.TestCase):
         [(35, 100, 0.01, 10.0), (36, 55, 0.22, 0.50), (37, 45, 2.50, 3.50),
          (38, 120, 4.0, 4.01), (39, 99, 4.75, 5.0)])
 
-    expected_subsequence_1 = copy.copy(self.note_sequence)
+    expected_sequence_1 = copy.copy(self.note_sequence)
     testing_lib.add_track_to_sequence(
-        expected_subsequence_1, 0,
+        expected_sequence_1, 0,
         [(39, 100, 0.01, 10.0), (40, 55, 0.22, 0.50)])
 
-    expected_subsequence_2 = copy.copy(self.note_sequence)
+    expected_sequence_2 = copy.copy(self.note_sequence)
     testing_lib.add_track_to_sequence(
-        expected_subsequence_2, 0,
+        expected_sequence_2, 0,
         [(30, 120, 4.0, 4.01), (31, 99, 4.75, 5.0)])
 
     sequence_copy = copy.copy(sequence)
-    subsequence = sequences_lib.transpose_note_sequence(
+    transposed_sequence, delete_count = sequences_lib.transpose_note_sequence(
         sequence_copy, 4, 30, 40)
-    self.assertProtoEquals(expected_subsequence_1, subsequence)
+    self.assertProtoEquals(expected_sequence_1, transposed_sequence)
+    self.assertEqual(delete_count, 3)
 
     sequence_copy = copy.copy(sequence)
-    subsequence = sequences_lib.transpose_note_sequence(sequence, -8, 30, 40)
-    self.assertProtoEquals(expected_subsequence_2, subsequence)
+    transposed_sequence, delete_count = sequences_lib.transpose_note_sequence(
+        sequence_copy, -8, 30, 40)
+    self.assertProtoEquals(expected_sequence_2, transposed_sequence)
+    self.assertEqual(delete_count, 3)
 
   def testClampTranspose(self):
     clamped = sequences_lib._clamp_transpose(

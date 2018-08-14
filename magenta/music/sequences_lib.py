@@ -998,11 +998,25 @@ def quantize_note_sequence_absolute(note_sequence, steps_per_second):
   return qns
 
 
-def transpose_note_sequence(ns, amount,
+def transpose_note_sequence(ns,
+                            amount,
                             min_allowed_pitch=constants.MIN_MIDI_PITCH,
                             max_allowed_pitch=constants.MAX_MIDI_PITCH,
                             in_place=False):
-  """Transposes note sequence specified amount, deleting out-of-bound notes."""
+  """Transposes note sequence specified amount, deleting out-of-bound notes.
+
+  Args:
+    ns: The NoteSequence proto to be transposed.
+    amount: Number of half-steps to transpose up or down.
+    min_allowed_pitch: Minimum pitch allowed in transposed NoteSequence.
+        Notes assigned lower pitches will be deleted.
+    max_allowed_pitch: Maximum pitch allowed in transposed NoteSequence.
+        Notes assigned higher pitches will be deleted.
+    in_place: If True, the input note_sequence is edited directly.
+
+  Returns:
+    The transposed NoteSequence and a count of how many notes were deleted.
+  """
   if not in_place:
     new_ns = music_pb2.NoteSequence()
     new_ns.CopyFrom(ns)
@@ -1028,8 +1042,6 @@ def transpose_note_sequence(ns, amount,
       deleted_note_count += 1
 
   if deleted_note_count > 0:
-    tf.logging.info(
-        'Transposing removed %d notes from NoteSequence' % (deleted_note_count))
     del ns.notes[:]
     ns.notes.extend(new_note_list)
 
@@ -1050,7 +1062,7 @@ def transpose_note_sequence(ns, amount,
   # Remove key signature information because it will now be wrong.
   del ns.key_signatures[:]
 
-  return ns
+  return ns, deleted_note_count
 
 
 def _clamp_transpose(transpose_amount, ns_min_pitch, ns_max_pitch,
@@ -1156,7 +1168,7 @@ def augment_note_sequence(
                                        max_allowed_pitch)
       transposition_amount = random.randint(min_transpose, max_transpose)
 
-    ns = transpose_note_sequence(
+    ns, _ = transpose_note_sequence(
         ns,
         transposition_amount,
         min_allowed_pitch, max_allowed_pitch,
