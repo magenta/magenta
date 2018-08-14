@@ -88,13 +88,13 @@ class SequencesLibTest(tf.test.TestCase):
     transposed_sequence, delete_count = sequences_lib.transpose_note_sequence(
         sequence_copy, 4, 30, 40)
     self.assertProtoEquals(expected_sequence_1, transposed_sequence)
-    self.assertEqual(3, delete_count)
+    self.assertEqual(delete_count, 3)
 
     sequence_copy = copy.copy(sequence)
     transposed_sequence, delete_count = sequences_lib.transpose_note_sequence(
         sequence_copy, -8, 30, 40)
     self.assertProtoEquals(expected_sequence_2, transposed_sequence)
-    self.assertEqual(3, delete_count)
+    self.assertEqual(delete_count, 3)
 
   def testClampTranspose(self):
     clamped = sequences_lib._clamp_transpose(

@@ -1009,9 +1009,9 @@ def transpose_note_sequence(ns,
     ns: The NoteSequence proto to be transposed.
     amount: Number of half-steps to transpose up or down.
     min_allowed_pitch: Minimum pitch allowed in transposed NoteSequence.
-        Notes assigned lower pitched will be deleted.
+        Notes assigned lower pitches will be deleted.
     max_allowed_pitch: Maximum pitch allowed in transposed NoteSequence.
-        Notes assigned higher pitched will be deleted.
+        Notes assigned higher pitches will be deleted.
     in_place: If True, the input note_sequence is edited directly.
 
   Returns:
