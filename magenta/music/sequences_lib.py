@@ -998,21 +998,23 @@ def quantize_note_sequence_absolute(note_sequence, steps_per_second):
   return qns
 
 
-def transpose_note_sequence(ns, amount,
+def transpose_note_sequence(ns,
+                            amount,
                             min_allowed_pitch=constants.MIN_MIDI_PITCH,
                             max_allowed_pitch=constants.MAX_MIDI_PITCH,
                             in_place=False):
   """Transposes note sequence specified amount, deleting out-of-bound notes.
-  
-  Args: 
+
+  Args:
     ns: The NoteSequence proto to be transposed.
+    amount: Number of half-steps to transpose up or down.
     min_allowed_pitch: Minimum pitch allowed in transposed NoteSequence.
         Notes assigned lower pitched will be deleted.
     max_allowed_pitch: Maximum pitch allowed in transposed NoteSequence.
         Notes assigned higher pitched will be deleted.
     in_place: If True, the input note_sequence is edited directly.
 
-  Returns: 
+  Returns:
     The transposed NoteSequence and a count of how many notes were deleted.
   """
   if not in_place:
@@ -1060,7 +1062,7 @@ def transpose_note_sequence(ns, amount,
   # Remove key signature information because it will now be wrong.
   del ns.key_signatures[:]
 
-  return ns, delete_count
+  return ns, deleted_note_count
 
 
 def _clamp_transpose(transpose_amount, ns_min_pitch, ns_max_pitch,

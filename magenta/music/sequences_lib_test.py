@@ -62,7 +62,8 @@ class SequencesLibTest(tf.test.TestCase):
     expected_sequence.text_annotations.add(
         time=2, annotation_type=CHORD_SYMBOL, text='F7')
 
-    transposed_sequence, delete_count = sequences_lib.transpose_note_sequence(sequence, 1)
+    transposed_sequence, delete_count = sequences_lib.transpose_note_sequence(
+        sequence, 1)
     self.assertProtoEquals(expected_sequence, transposed_sequence)
     self.assertEquals(delete_count, 0)
 
