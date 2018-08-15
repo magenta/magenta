@@ -19,7 +19,10 @@ licenses(["notice"])  # Apache 2.0
 py_library(
     name = "sketch_rnn",
     srcs_version = "PY2AND3",
-    visibility = ["//magenta/tools/pip:__subpackages__"],
+    visibility = [
+        # internal selene
+        "//magenta/tools/pip:__subpackages__",
+    ],
     deps = [
         ":model",
         ":rnn",
@@ -62,12 +65,14 @@ py_binary(
     srcs = ["sketch_rnn_train.py"],
     srcs_version = "PY2AND3",
     visibility = [
+        # internal selene
         "//magenta/tools/pip:__subpackages__",
     ],
     deps = [
         ":model",
         ":utils",
         # numpy dep
+        # requests dep
         # tensorflow dep
     ],
 )
