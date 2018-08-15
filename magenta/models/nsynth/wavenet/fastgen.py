@@ -86,7 +86,7 @@ def load_fastgen_nsynth(batch_size=1):
   return graph
 
 
-def encode(wav_data, checkpoint_path, FLAGS=None, sample_length=64000):
+def encode(wav_data, checkpoint_path, flags=None, sample_length=64000):
   """Generate an array of embeddings from an array of audio.
 
   Args:
@@ -107,11 +107,11 @@ def encode(wav_data, checkpoint_path, FLAGS=None, sample_length=64000):
   session_config.gpu_options.allow_growth = True
 
   #inter and intra parallelism for CPU
-  if (FLAGS.mkl):
-    session_config.inter_op_parallelism_threads = FLAGS.num_inter_threads
-    session_config.intra_op_parallelism_threads = FLAGS.num_intra_threads
+  if (flags.mkl):
+    session_config.inter_op_parallelism_threads = flags.num_inter_threads
+    session_config.intra_op_parallelism_threads = flags.num_intra_threads
     tf.logging.info("inter threads at encoding: %d " % (session_config.inter_op_parallelism_threads))
-    tf.logging.info("intra threadsa at encoding: %d " % (session_config.intra_op_parallelism_threads))
+    tf.logging.info("intra threads at encoding: %d " % (session_config.intra_op_parallelism_threads))
 
   with tf.Graph().as_default(), tf.Session(config=session_config) as sess:
     hop_length = Config().ae_hop_length
@@ -170,7 +170,7 @@ def save_batch(batch_audio, batch_save_paths):
 
 def synthesize(encodings,
                save_paths,
-               FLAGS=None,
+               flags=None,
                checkpoint_path="model.ckpt-200000",
                samples_per_save=10000):
   """Synthesize audio from an array of embeddings.
@@ -181,8 +181,8 @@ def synthesize(encodings,
     checkpoint_path: Location of the pretrained model. [model.ckpt-200000]
     samples_per_save: Save files after every amount of generated samples.
   """
-  if FLAGS:
-    trace_filename = FLAGS.trace_file
+  if flags:
+    trace_filename = flags.trace_file
   else:
     trace_filename = None
   if trace_filename: 
@@ -201,9 +201,9 @@ def synthesize(encodings,
   session_config = tf.ConfigProto(allow_soft_placement=True)
 
   #inter and intra parallelism for CPU
-  if (FLAGS.mkl):
-    session_config.inter_op_parallelism_threads = FLAGS.num_inter_threads
-    session_config.intra_op_parallelism_threads = FLAGS.num_intra_threads
+  if (flags.mkl):
+    session_config.inter_op_parallelism_threads = flags.num_inter_threads
+    session_config.intra_op_parallelism_threads = flags.num_intra_threads
     session_config.gpu_options.allow_growth = True
     tf.logging.info("inter threads at generation : %d " % (session_config.inter_op_parallelism_threads))
     tf.logging.info("intra threads at generation: %d " % (session_config.intra_op_parallelism_threads))
@@ -223,11 +223,9 @@ def synthesize(encodings,
             total_length,
         ), dtype=np.float32)
     audio = np.zeros([batch_size, 1])
-    if (FLAGS.mkl):
+    if (flags.mkl):
       current_time = time.time()
       start_time = time.time()
-      #builder = tf.profiler.ProfileOptionBuilder
-      #opts = builder(builder.time_and_memory()).order_by('micros').build()
       tf.logging.info("Starting real compute: Speech Generation ")
     for sample_i in range(total_length):
       enc_i = sample_i // hop_length
@@ -248,7 +246,7 @@ def synthesize(encodings,
       audio = utils.inv_mu_law_numpy(sample_bin - 128)
       audio_batch[:, sample_i] = audio[:, 0]
 
-      if (FLAGS.mkl):
+      if (flags.mkl):
         if sample_i % 500 == 0 and sample_i != 0:
           time_for_500sample = time.time() - current_time
           tf.logging.info("Time per 500 Samples: %f sec" % (time_for_500sample))
@@ -263,7 +261,7 @@ def synthesize(encodings,
       if sample_i % samples_per_save == 0:
         save_batch(audio_batch, save_paths)
 
-  if (FLAGS.mkl):
+  if (flags.mkl):
     total_time = current_time - start_time
     tf.logging.info("Average Samples / sec: %f" % (sample_i/total_time))
     tf.logging.info("Average msec / sample: %f" % (total_time/sample_i*1000))

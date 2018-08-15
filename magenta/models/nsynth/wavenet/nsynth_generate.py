@@ -39,13 +39,13 @@ tf.app.flags.DEFINE_string("log", "INFO",
 tf.app.flags.DEFINE_integer("gpu_number", 0,
                             "Number of the gpu to use for multigpu generation.")
 tf.app.flags.DEFINE_integer("num_inter_threads", 0,
-                            "Number of the inter_op_parallelism_threads.")
+                            "Number of the inter_op_parallelism_threads. Only for CPUs")
 tf.app.flags.DEFINE_integer("num_intra_threads", 0,
-                            "Number of the intra_op_parallelism_threads.")
+                            "Number of the intra_op_parallelism_threads. Only for CPUs")
 tf.app.flags.DEFINE_string("trace_file", '',
                             "Enable TensorFlow tracing and write trace to this file.")
 tf.app.flags.DEFINE_boolean("mkl", False,
-                            "if true, optimize for CPU performance and report performance data.")
+                            "if true, optimize for CPU performance and report performance data. Only for CPUs")
 
 
 def main(unused_argv=None):
@@ -98,7 +98,7 @@ def main(unused_argv=None):
       current_time = time.time()
 
     encodings = batch_data if postfix == ".npy" else fastgen.encode(
-        batch_data, checkpoint_path, FLAGS=FLAGS, sample_length=sample_length)
+        batch_data, checkpoint_path, flags=FLAGS, sample_length=sample_length)
     if FLAGS.mkl:
       time_for_encoding = time.time() - current_time
       current_time = time.time()
@@ -108,7 +108,7 @@ def main(unused_argv=None):
         fastgen.synthesize(
             encodings, save_names, checkpoint_path=checkpoint_path)
     else:
-      fastgen.synthesize(encodings, save_names,FLAGS=FLAGS, checkpoint_path=checkpoint_path)
+      fastgen.synthesize(encodings, save_names,flags=FLAGS, checkpoint_path=checkpoint_path)
 
     if FLAGS.mkl:
       time_for_generate = time.time() - current_time
