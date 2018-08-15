@@ -65,7 +65,7 @@ py_binary(
     srcs = ["sketch_rnn_train.py"],
     srcs_version = "PY2AND3",
     visibility = [
-        # internal derpdream
+        # internal selene
         "//magenta/tools/pip:__subpackages__",
     ],
     deps = [
