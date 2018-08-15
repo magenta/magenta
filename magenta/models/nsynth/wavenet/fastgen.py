@@ -172,7 +172,7 @@ def synthesize(encodings,
                save_paths,
                flags=None,
                checkpoint_path="model.ckpt-200000",
-               samples_per_save=10000):
+               samples_per_save=1000):
   """Synthesize audio from an array of embeddings.
 
   Args:
