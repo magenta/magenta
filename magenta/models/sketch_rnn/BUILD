@@ -20,7 +20,7 @@ py_library(
     name = "sketch_rnn",
     srcs_version = "PY2AND3",
     visibility = [
-        # internal derpdream
+        # internal selene
         "//magenta/tools/pip:__subpackages__",
     ],
     deps = [
