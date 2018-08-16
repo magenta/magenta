@@ -421,8 +421,7 @@ def infer_chords_for_sequence(sequence,
         if current_key_name is not None:
           tf.logging.info(
               'Sequence has key change from %s to %s at %f seconds.',
-              current_key_name, _PITCH_CLASS_NAMES[key],
-              frame * seconds_per_chord)
+              current_key_name, _PITCH_CLASS_NAMES[key], time)
 
       current_key_name = _PITCH_CLASS_NAMES[key]
 
