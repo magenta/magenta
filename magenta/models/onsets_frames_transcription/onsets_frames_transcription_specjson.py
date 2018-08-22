@@ -12,7 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Write a spectrogram to JSON."""
+"""Write spectrograms of wav files to JSON.
+
+Usage: onsets_frames_transcription_specjson file1.wav [file2.wav file3.wav]
+"""
 
 from __future__ import absolute_import
 from __future__ import division
@@ -41,7 +44,7 @@ tf.app.flags.DEFINE_string(
 
 
 def create_spec(filename, hparams):
-  """Processes an audio file into an Example proto."""
+  """Processes an audio file into a spectrogram."""
   wav_data = tf.gfile.Open(filename).read()
   spec = data.wav_to_spec(wav_data, hparams)
   return spec
