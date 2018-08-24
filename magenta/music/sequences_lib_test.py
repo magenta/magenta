@@ -51,6 +51,9 @@ class SequencesLibTest(tf.test.TestCase):
         time=1, annotation_type=CHORD_SYMBOL, text='N.C.')
     sequence.text_annotations.add(
         time=2, annotation_type=CHORD_SYMBOL, text='E7')
+    sequence.key_signatures.add(
+        time=0, key=music_pb2.NoteSequence.KeySignature.E,
+        mode=music_pb2.NoteSequence.KeySignature.MIXOLYDIAN)
 
     expected_sequence = copy.copy(self.note_sequence)
     testing_lib.add_track_to_sequence(
@@ -61,6 +64,9 @@ class SequencesLibTest(tf.test.TestCase):
         time=1, annotation_type=CHORD_SYMBOL, text='N.C.')
     expected_sequence.text_annotations.add(
         time=2, annotation_type=CHORD_SYMBOL, text='F7')
+    expected_sequence.key_signatures.add(
+        time=0, key=music_pb2.NoteSequence.KeySignature.F,
+        mode=music_pb2.NoteSequence.KeySignature.MIXOLYDIAN)
 
     transposed_sequence, delete_count = sequences_lib.transpose_note_sequence(
         sequence, 1)

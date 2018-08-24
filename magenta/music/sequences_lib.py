@@ -1002,6 +1002,7 @@ def transpose_note_sequence(ns,
                             amount,
                             min_allowed_pitch=constants.MIN_MIDI_PITCH,
                             max_allowed_pitch=constants.MAX_MIDI_PITCH,
+                            transpose_chords=True,
                             in_place=False):
   """Transposes note sequence specified amount, deleting out-of-bound notes.
 
@@ -1012,10 +1013,15 @@ def transpose_note_sequence(ns,
         Notes assigned lower pitches will be deleted.
     max_allowed_pitch: Maximum pitch allowed in transposed NoteSequence.
         Notes assigned higher pitches will be deleted.
+    transpose_chords: If True, also transpose chord symbol text annotations. If
+        False, chord symbols will be removed.
     in_place: If True, the input note_sequence is edited directly.
 
   Returns:
     The transposed NoteSequence and a count of how many notes were deleted.
+
+  Raises:
+    ChordSymbolException: If a chord symbol is unable to be transposed.
   """
   if not in_place:
     new_ns = music_pb2.NoteSequence()
@@ -1048,19 +1054,25 @@ def transpose_note_sequence(ns,
   # Since notes were deleted, we may need to update the total time.
   ns.total_time = end_time
 
-  # Also update the text annotations
-  for ta in ns.text_annotations:
-    if ta.annotation_type == CHORD_SYMBOL and ta.text != constants.NO_CHORD:
-      try:
-        figure = chord_symbols_lib.transpose_chord_symbol(
-            ta.text, amount)
-      except chord_symbols_lib.ChordSymbolException:
-        tf.logging.warn('Unable to transpose chord symbol: %s', ta.text)
-        figure = constants.NO_CHORD
-      ta.text = figure
+  if transpose_chords:
+    # Also update the chord symbol text annotations. This can raise a
+    # ChordSymbolException if a chord symbol cannot be interpreted.
+    for ta in ns.text_annotations:
+      if ta.annotation_type == CHORD_SYMBOL and ta.text != constants.NO_CHORD:
+        ta.text = chord_symbols_lib.transpose_chord_symbol(ta.text, amount)
+  else:
+    # Remove chord symbol text annotations.
+    text_annotations_to_keep = []
+    for ta in ns.text_annotations:
+      if ta.annotation_type != CHORD_SYMBOL:
+        text_annotations_to_keep.append(ta)
+    if len(text_annotations_to_keep) < len(ns.text_annotations):
+      del ns.text_annotations[:]
+      ns.text_annotations.extend(text_annotations_to_keep)
 
-  # Remove key signature information because it will now be wrong.
-  del ns.key_signatures[:]
+  # Also transpose key signatures.
+  for ks in ns.key_signatures:
+    ks.key = (ks.key + amount) % 12
 
   return ns, deleted_note_count
 
