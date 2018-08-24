@@ -18,9 +18,9 @@ from tensorflow import app
 from tensorflow import flags
 from tqdm import tqdm
 
-import common
-import common_joint
-import model_joint
+from magenta.models.latent_transfer import common
+from magenta.models.latent_transfer import common_joint
+from magenta.models.latent_transfer import model_joint
 
 FLAGS = flags.FLAGS
 

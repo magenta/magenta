@@ -19,10 +19,10 @@ from tensorflow import app
 from tensorflow import flags
 from tensorflow import logging
 
-import common
-import model_dataspace
-import nn
-configs_module_prefix = 'configs'
+from magenta.models.latent_transfer import common
+from magenta.models.latent_transfer import model_dataspace
+from magenta.models.latent_transfer import nn
+configs_module_prefix = 'magenta.models.latent_transfer.configs'
 
 FLAGS = flags.FLAGS
 

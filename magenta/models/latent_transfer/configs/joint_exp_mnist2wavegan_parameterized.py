@@ -6,7 +6,7 @@
 from functools import partial
 from tensorflow import flags
 
-import model_joint
+from magenta.models.latent_transfer import model_joint
 
 FLAGS = flags.FLAGS
 

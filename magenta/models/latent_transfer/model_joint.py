@@ -13,7 +13,7 @@ from six import iteritems
 import sonnet as snt
 import tensorflow as tf
 
-import nn
+from magenta.models.latent_transfer import nn
 
 ds = tf.contrib.distributions
 

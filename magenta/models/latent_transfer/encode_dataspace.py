@@ -17,8 +17,8 @@ import tensorflow as tf
 from tensorflow import app
 from tensorflow import flags
 
-import common
-import model_dataspace
+from magenta.models.latent_transfer import common
+from magenta.models.latent_transfer import model_dataspace
 
 FLAGS = flags.FLAGS
 

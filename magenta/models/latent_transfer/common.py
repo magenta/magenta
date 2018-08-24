@@ -31,7 +31,7 @@ from PIL import Image
 import tensorflow as tf
 from tensorflow import flags
 
-import local_mnist
+from magenta.models.latent_transfer import local_mnist
 
 FLAGS = flags.FLAGS
 

@@ -3,8 +3,8 @@
 
 # pylint:disable=invalid-name
 
-import nn
-from configs import fashion_mnist_0_nlatent64
+from magenta.models.latent_transfer import nn
+from magenta.models.latent_transfer.configs import fashion_mnist_0_nlatent64
 
 config = fashion_mnist_0_nlatent64.config
 

@@ -15,7 +15,7 @@ from six import iteritems
 import sonnet as snt
 import tensorflow as tf
 
-from common import dataset_is_mnist_family
+from magenta.models.latent_transfer.common import dataset_is_mnist_family
 
 ds = tf.contrib.distributions
 

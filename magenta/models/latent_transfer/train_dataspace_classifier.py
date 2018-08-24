@@ -19,9 +19,9 @@ import tensorflow as tf
 from tensorflow import app
 from tensorflow import flags
 
-import common
-import model_dataspace
-configs_module_prefix = 'configs'
+from magenta.models.latent_transfer import common
+from magenta.models.latent_transfer import model_dataspace
+configs_module_prefix = 'magenta.models.latent_transfer.configs'
 
 FLAGS = flags.FLAGS
 flags.DEFINE_string('config', 'mnist_0', 'The name of the model config to use.')

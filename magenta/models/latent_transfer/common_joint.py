@@ -38,8 +38,8 @@ from scipy.io import wavfile
 import tensorflow as tf
 from tensorflow import flags
 
-import common
-import model_dataspace
+from magenta.models.latent_transfer import common
+from magenta.models.latent_transfer import model_dataspace
 
 FLAGS = flags.FLAGS
 flags.DEFINE_string(
