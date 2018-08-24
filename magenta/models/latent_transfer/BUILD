@@ -25,7 +25,6 @@ py_library(
         "configs/*/*/*/*.py",
     ]),
     srcs_version = "PY2AND3",
-    visibility = ["//magenta/tools/pip:__subpackages__"],
     deps = [
         ":nn",
         # numpy dep
@@ -37,7 +36,6 @@ py_library(
     name = "common",
     srcs = ["common.py"],
     srcs_version = "PY2AND3",
-    visibility = ["//magenta/tools/pip:__subpackages__"],
     deps = [
         ":local_mnist",
         # PIL dep
@@ -53,7 +51,6 @@ py_library(
     name = "common_joint",
     srcs = ["common_joint.py"],
     srcs_version = "PY2AND3",
-    visibility = ["//magenta/tools/pip:__subpackages__"],
     deps = [
         ":local_mnist",
         # numpy dep
@@ -68,7 +65,6 @@ py_binary(
     name = "encode_dataspace",
     srcs = ["encode_dataspace.py"],
     srcs_version = "PY2AND3",
-    visibility = ["//magenta/tools/pip:__subpackages__"],
     deps = [
         ":common",
         ":configs",
@@ -80,7 +76,6 @@ py_library(
     name = "local_mnist",
     srcs = ["local_mnist.py"],
     srcs_version = "PY2AND3",
-    visibility = ["//magenta/tools/pip:__subpackages__"],
     deps = [
         # numpy dep
         # tensorflow dep
@@ -91,7 +86,6 @@ py_library(
     name = "nn",
     srcs = ["nn.py"],
     srcs_version = "PY2AND3",
-    visibility = ["//magenta/tools/pip:__subpackages__"],
     deps = [
         # numpy dep
         # sonnet dep
@@ -116,7 +110,6 @@ py_library(
     name = "model_joint",
     srcs = ["model_joint.py"],
     srcs_version = "PY2AND3",
-    visibility = ["//magenta/tools/pip:__subpackages__"],
     deps = [
         ":nn",
         # numpy dep
@@ -129,7 +122,6 @@ py_binary(
     name = "sample_dataspace",
     srcs = ["sample_dataspace.py"],
     srcs_version = "PY2AND3",
-    visibility = ["//magenta/tools/pip:__subpackages__"],
     deps = [
         ":common",
         ":configs",
@@ -141,7 +133,6 @@ py_binary(
     name = "sample_wavegan",
     srcs = ["sample_wavegan.py"],
     srcs_version = "PY2AND3",
-    visibility = ["//magenta/tools/pip:__subpackages__"],
     deps = [
         ":common",
         ":configs",
@@ -152,7 +143,6 @@ py_binary(
     name = "train_dataspace",
     srcs = ["train_dataspace.py"],
     srcs_version = "PY2AND3",
-    visibility = ["//magenta/tools/pip:__subpackages__"],
     deps = [
         ":common",
         ":configs",
@@ -164,7 +154,6 @@ py_binary(
     name = "train_dataspace_classifier",
     srcs = ["train_dataspace_classifier.py"],
     srcs_version = "PY2AND3",
-    visibility = ["//magenta/tools/pip:__subpackages__"],
     deps = [
         ":common",
         ":configs",
@@ -176,7 +165,6 @@ py_binary(
     name = "train_joint",
     srcs = ["train_joint.py"],
     srcs_version = "PY2AND3",
-    visibility = ["//magenta/tools/pip:__subpackages__"],
     deps = [
         ":common",
         ":common_joint",
