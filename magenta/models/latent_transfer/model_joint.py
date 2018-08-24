@@ -282,6 +282,8 @@ class Model(snt.AbstractModule):
     x_from_prior_B = vae_B.x_from_prior
     x_A_to_B = vae_B.decoder(q_z_sample_A)
     x_B_to_A = vae_A.decoder(q_z_sample_B)
+    x_A_to_B_direct = vae_B.decoder(mu_A)
+    x_B_to_A_direct = vae_A.decoder(mu_B)
     z_hat = tf.placeholder(tf.float32, shape=(None, n_latent_shared))
     x_joint_A = vae_A.decoder(z_hat)
     x_joint_B = vae_B.decoder(z_hat)

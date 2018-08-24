@@ -1,4 +1,8 @@
-"""Nerual network components."""
+"""Nerual network components.
+
+This library containts nerual network components in either raw TF or sonnet
+Module.
+"""
 
 import numpy as np
 import sonnet as snt

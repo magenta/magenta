@@ -10,7 +10,7 @@ import model_joint
 
 FLAGS = flags.FLAGS
 
-n_latent = 64
+n_latent = FLAGS.n_latent
 n_latent_shared = FLAGS.n_latent_shared
 layers = (128,) * 4
 batch_size = 128

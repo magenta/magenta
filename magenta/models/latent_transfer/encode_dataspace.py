@@ -109,15 +109,15 @@ def main(unused_argv):
   # Save encoded as npz file
   encoded_save_path = os.path.join(basepath, 'encoded', model_uid)
   tf.gfile.MakeDirs(encoded_save_path)
-  tf.logging.info('encoded train_data saved to %s' % os.path.join(
-      encoded_save_path, 'encoded_train_data.npz'))
+  tf.logging.info('encoded train_data saved to %s',
+                  os.path.join(encoded_save_path, 'encoded_train_data.npz'))
   np.savez(
       os.path.join(encoded_save_path, 'encoded_train_data.npz'),
       mu=encoded_train_data.mu,
       sigma=encoded_train_data.sigma,
   )
-  tf.logging.info('encoded eval_data saved to %s' % os.path.join(
-      encoded_save_path, 'encoded_eval_data.npz'))
+  tf.logging.info('encoded eval_data saved to %s',
+                  os.path.join(encoded_save_path, 'encoded_eval_data.npz'))
   np.savez(
       os.path.join(encoded_save_path, 'encoded_eval_data.npz'),
       mu=encoded_eval_data.mu,

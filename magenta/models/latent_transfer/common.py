@@ -1,4 +1,21 @@
-"""Common functions/helpers.
+"""Common functions/helpers for dataspace model.
+
+This library contains many common functions and helpers used to for the
+dataspace model (defined in `train_dataspace.py`) that is used in training
+(`train_dataspace.py` and `train_dataspace_classifier.py`), sampling
+(`sample_dataspace.py`) and encoding (`encode_dataspace.py`).
+These components are classified in the following categories:
+
+  - Loading helper that makes dealing with config / dataset easier. This
+    includes:
+        `get_model_uid`, `load_config`, `dataset_is_mnist_family`,
+        `load_dataset`, `get_index_grouped_by_label`.
+
+  - Helper making dumping dataspace data easier. This includes:
+        `batch_image`, `save_image`, `make_grid`, `post_proc`
+
+  - Miscellaneous Helpers, including
+        `get_default_scratch`, `ObjectBlob`,
 
 """
 from __future__ import absolute_import

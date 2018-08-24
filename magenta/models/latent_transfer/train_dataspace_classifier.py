@@ -1,4 +1,8 @@
 """Train classifier on dataspace.
+
+This script trains the data space classifier as defined in
+`model_dataspace.py`. The best checkpoint (as evaluated on valid set)
+would be used to classifier instances in the data space (x).
 """
 
 # pylint:disable=invalid-name

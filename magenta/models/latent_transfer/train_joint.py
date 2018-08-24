@@ -37,6 +37,7 @@ flags.DEFINE_integer('random_seed', 19260817, 'Random seed')
 flags.DEFINE_string('exp_uid_classifier', '_exp_0', 'exp_uid for classifier')
 
 # For Overriding configs
+flags.DEFINE_integer('n_latent', 64, '')
 flags.DEFINE_integer('n_latent_shared', 2, '')
 flags.DEFINE_float('prior_loss_beta_A', 0.01, '')
 flags.DEFINE_float('prior_loss_beta_B', 0.01, '')
