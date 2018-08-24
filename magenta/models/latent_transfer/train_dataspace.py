@@ -15,25 +15,23 @@ import os
 
 import numpy as np
 import tensorflow as tf
-from tensorflow import app
-from tensorflow import flags
-from tensorflow import logging
 
 from magenta.models.latent_transfer import common
 from magenta.models.latent_transfer import model_dataspace
 from magenta.models.latent_transfer import nn
 configs_module_prefix = 'magenta.models.latent_transfer.configs'
 
-FLAGS = flags.FLAGS
+FLAGS = tf.flags.FLAGS
 
-flags.DEFINE_string('config', 'mnist_0', 'The name of the model config to use.')
-flags.DEFINE_integer('n_iters', 200000, 'Number of iterations.')
-flags.DEFINE_integer('n_iters_per_save', 1000, 'Iterations per saving.')
-flags.DEFINE_integer('n_iters_per_eval', 50, 'Iterations per evaluate.')
-flags.DEFINE_float('lr', 3e-4, 'learning_rate.')
-flags.DEFINE_string('exp_uid', '_exp_0',
-                    'String to append to config for filenames/directories.')
-flags.DEFINE_integer('random_seed', 10003, 'Random seed.')
+tf.flags.DEFINE_string('config', 'mnist_0',
+                       'The name of the model config to use.')
+tf.flags.DEFINE_integer('n_iters', 200000, 'Number of iterations.')
+tf.flags.DEFINE_integer('n_iters_per_save', 1000, 'Iterations per saving.')
+tf.flags.DEFINE_integer('n_iters_per_eval', 50, 'Iterations per evaluate.')
+tf.flags.DEFINE_float('lr', 3e-4, 'learning_rate.')
+tf.flags.DEFINE_string('exp_uid', '_exp_0',
+                       'String to append to config for filenames/directories.')
+tf.flags.DEFINE_integer('random_seed', 10003, 'Random seed.')
 
 MNIST_SIZE = 28
 
@@ -62,7 +60,7 @@ def main(unused_argv):
   best_dir = os.path.join(save_dir, 'best')
   tf.gfile.MakeDirs(save_dir)
   tf.gfile.MakeDirs(best_dir)
-  logging.info('Save Dir: %s', save_dir)
+  tf.logging.info('Save Dir: %s', save_dir)
 
   np.random.seed(FLAGS.random_seed)
   # We use `N` in variable name to emphasis its being the Number of something.
@@ -125,7 +123,7 @@ def main(unused_argv):
             m.vae_lr: vae_lr_[i],
             m.labels: labels,
         })
-    logging.info('Iter: %d, Loss: %d', i, res[1])
+    tf.logging.info('Iter: %d, Loss: %d', i, res[1])
     train_writer.add_summary(res[-1], i)
 
     if i % FLAGS.n_iters_per_eval == 0:
@@ -170,7 +168,7 @@ def main(unused_argv):
         # Save the best model
         best_eval_loss = smoothed_eval_loss
         save_name = os.path.join(best_dir, 'vae_best_%s.ckpt' % model_uid)
-        logging.info('SAVING BEST! %s Iter: %d', save_name, i)
+        tf.logging.info('SAVING BEST! %s Iter: %d', save_name, i)
         m.vae_saver.save(sess, save_name)
         with tf.gfile.Open(os.path.join(best_dir, 'best_ckpt_iters.txt'),
                            'w') as f:
@@ -178,4 +176,4 @@ def main(unused_argv):
 
 
 if __name__ == '__main__':
-  app.run(main)
+  tf.app.run(main)

@@ -14,20 +14,20 @@ from os.path import join
 import numpy as np
 from scipy.io import wavfile
 import tensorflow as tf
-from tensorflow import app
-from tensorflow import flags
 from tqdm import tqdm
 
-FLAGS = flags.FLAGS
+FLAGS = tf.flags.FLAGS
 
-flags.DEFINE_integer('total_per_label', '7000', 'Minimal # samples per label')
-flags.DEFINE_integer('top_per_label', '1700', '# of top samples per label')
-flags.DEFINE_string('gen_ckpt_dir', '',
-                    'The directory to WaveGAN generator\'s ckpt.')
-flags.DEFINE_string('inception_ckpt_dir', '',
-                    'The directory to WaveGAN inception (classifier)\'s ckpt.')
-flags.DEFINE_string('latent_dir', '',
-                    'The directory to WaveGAN\'s latent space.')
+tf.flags.DEFINE_integer('total_per_label', '7000',
+                        'Minimal # samples per label')
+tf.flags.DEFINE_integer('top_per_label', '1700', '# of top samples per label')
+tf.flags.DEFINE_string('gen_ckpt_dir', '',
+                       'The directory to WaveGAN generator\'s ckpt.')
+tf.flags.DEFINE_string(
+    'inception_ckpt_dir', '',
+    'The directory to WaveGAN inception (classifier)\'s ckpt.')
+tf.flags.DEFINE_string('latent_dir', '',
+                       'The directory to WaveGAN\'s latent space.')
 
 
 def main(unused_argv):
@@ -164,4 +164,4 @@ def main(unused_argv):
 
 
 if __name__ == '__main__':
-  app.run(main)
+  tf.app.run(main)

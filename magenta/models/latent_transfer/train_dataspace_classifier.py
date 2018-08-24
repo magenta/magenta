@@ -16,21 +16,20 @@ import os
 
 import numpy as np
 import tensorflow as tf
-from tensorflow import app
-from tensorflow import flags
 
 from magenta.models.latent_transfer import common
 from magenta.models.latent_transfer import model_dataspace
 configs_module_prefix = 'magenta.models.latent_transfer.configs'
 
-FLAGS = flags.FLAGS
-flags.DEFINE_string('config', 'mnist_0', 'The name of the model config to use.')
-flags.DEFINE_bool('local', False, 'Run job locally.')
-flags.DEFINE_integer('n_iters', 200000, 'Number of iterations.')
-flags.DEFINE_integer('n_iters_per_save', 10000, 'Iterations per a save.')
-flags.DEFINE_float('lr', 3e-4, 'learning_rate.')
-flags.DEFINE_string('exp_uid', '_exp_0',
-                    'String to append to config for filenames/directories.')
+FLAGS = tf.flags.FLAGS
+tf.flags.DEFINE_string('config', 'mnist_0',
+                       'The name of the model config to use.')
+tf.flags.DEFINE_bool('local', False, 'Run job locally.')
+tf.flags.DEFINE_integer('n_iters', 200000, 'Number of iterations.')
+tf.flags.DEFINE_integer('n_iters_per_save', 10000, 'Iterations per a save.')
+tf.flags.DEFINE_float('lr', 3e-4, 'learning_rate.')
+tf.flags.DEFINE_string('exp_uid', '_exp_0',
+                       'String to append to config for filenames/directories.')
 
 
 def main(unused_argv):
@@ -147,4 +146,4 @@ def main(unused_argv):
 
 
 if __name__ == '__main__':
-  app.run(main)
+  tf.app.run(main)

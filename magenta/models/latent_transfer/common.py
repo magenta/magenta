@@ -29,13 +29,12 @@ import os
 import numpy as np
 from PIL import Image
 import tensorflow as tf
-from tensorflow import flags
 
 from magenta.models.latent_transfer import local_mnist
 
-FLAGS = flags.FLAGS
+FLAGS = tf.flags.FLAGS
 
-flags.DEFINE_string(
+tf.flags.DEFINE_string(
     'default_scratch', '/tmp/', 'The default root directory for scratching. '
     'It can contain \'~\' which would be handled correctly.')
 

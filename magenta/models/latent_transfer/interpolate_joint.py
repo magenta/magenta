@@ -14,44 +14,43 @@ from os.path import join
 
 import numpy as np
 import tensorflow as tf
-from tensorflow import app
-from tensorflow import flags
 
 from magenta.models.latent_transfer import common
 from magenta.models.latent_transfer import common_joint
 from magenta.models.latent_transfer import model_joint
 
-FLAGS = flags.FLAGS
+FLAGS = tf.flags.FLAGS
 
-flags.DEFINE_string('config', 'transfer_A_unconditional_mnist_to_mnist',
-                    'The name of the model config to use.')
-flags.DEFINE_string('exp_uid_A', '_exp_0', 'exp_uid for data_A')
-flags.DEFINE_string('exp_uid_B', '_exp_1', 'exp_uid for data_B')
-flags.DEFINE_string('exp_uid', '_exp_0',
-                    'String to append to config for filenames/directories.')
-flags.DEFINE_integer('n_iters', 100000, 'Number of iterations.')
-flags.DEFINE_integer('n_iters_per_save', 5000, 'Iterations per a save.')
-flags.DEFINE_integer('n_iters_per_eval', 5000, 'Iterations per a evaluation.')
-flags.DEFINE_integer('random_seed', 19260817, 'Random seed')
-flags.DEFINE_string('exp_uid_classifier', '_exp_0', 'exp_uid for classifier')
+tf.flags.DEFINE_string('config', 'transfer_A_unconditional_mnist_to_mnist',
+                       'The name of the model config to use.')
+tf.flags.DEFINE_string('exp_uid_A', '_exp_0', 'exp_uid for data_A')
+tf.flags.DEFINE_string('exp_uid_B', '_exp_1', 'exp_uid for data_B')
+tf.flags.DEFINE_string('exp_uid', '_exp_0',
+                       'String to append to config for filenames/directories.')
+tf.flags.DEFINE_integer('n_iters', 100000, 'Number of iterations.')
+tf.flags.DEFINE_integer('n_iters_per_save', 5000, 'Iterations per a save.')
+tf.flags.DEFINE_integer('n_iters_per_eval', 5000,
+                        'Iterations per a evaluation.')
+tf.flags.DEFINE_integer('random_seed', 19260817, 'Random seed')
+tf.flags.DEFINE_string('exp_uid_classifier', '_exp_0', 'exp_uid for classifier')
 
 # For Overriding configs
-flags.DEFINE_integer('n_latent', 64, '')
-flags.DEFINE_integer('n_latent_shared', 2, '')
-flags.DEFINE_float('prior_loss_beta_A', 0.01, '')
-flags.DEFINE_float('prior_loss_beta_B', 0.01, '')
-flags.DEFINE_float('prior_loss_align_beta', 0.0, '')
-flags.DEFINE_float('mean_recons_A_align_beta', 0.0, '')
-flags.DEFINE_float('mean_recons_B_align_beta', 0.0, '')
-flags.DEFINE_float('mean_recons_A_to_B_align_beta', 0.0, '')
-flags.DEFINE_float('mean_recons_B_to_A_align_beta', 0.0, '')
-flags.DEFINE_integer('pairing_number', 1024, '')
+tf.flags.DEFINE_integer('n_latent', 64, '')
+tf.flags.DEFINE_integer('n_latent_shared', 2, '')
+tf.flags.DEFINE_float('prior_loss_beta_A', 0.01, '')
+tf.flags.DEFINE_float('prior_loss_beta_B', 0.01, '')
+tf.flags.DEFINE_float('prior_loss_align_beta', 0.0, '')
+tf.flags.DEFINE_float('mean_recons_A_align_beta', 0.0, '')
+tf.flags.DEFINE_float('mean_recons_B_align_beta', 0.0, '')
+tf.flags.DEFINE_float('mean_recons_A_to_B_align_beta', 0.0, '')
+tf.flags.DEFINE_float('mean_recons_B_to_A_align_beta', 0.0, '')
+tf.flags.DEFINE_integer('pairing_number', 1024, '')
 
 # For controling interpolation
-flags.DEFINE_integer('load_ckpt_iter', 0, '')
-flags.DEFINE_string('interpolate_labels', '',
-                    'a `,` separated list of 0-indexed labels.')
-flags.DEFINE_integer('nb_images_between_labels', 1, '')
+tf.flags.DEFINE_integer('load_ckpt_iter', 0, '')
+tf.flags.DEFINE_string('interpolate_labels', '',
+                       'a `,` separated list of 0-indexed labels.')
+tf.flags.DEFINE_integer('nb_images_between_labels', 1, '')
 
 
 def load_config(config_name):
@@ -202,4 +201,4 @@ def main(unused_argv):
 
 
 if __name__ == '__main__':
-  app.run(main)
+  tf.app.run(main)

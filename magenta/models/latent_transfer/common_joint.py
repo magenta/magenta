@@ -36,20 +36,19 @@ from os.path import join
 import numpy as np
 from scipy.io import wavfile
 import tensorflow as tf
-from tensorflow import flags
 
 from magenta.models.latent_transfer import common
 from magenta.models.latent_transfer import model_dataspace
 
-FLAGS = flags.FLAGS
-flags.DEFINE_string(
+FLAGS = tf.flags.FLAGS
+tf.flags.DEFINE_string(
     'wavegan_gen_ckpt_dir', '', 'The directory to WaveGAN generator\'s ckpt. '
     'If WaveGAN is involved, this argument must be set.')
-flags.DEFINE_string(
+tf.flags.DEFINE_string(
     'wavegan_inception_ckpt_dir', '',
     'The directory to WaveGAN inception (classifier)\'s ckpt. '
     'If WaveGAN is involved, this argument must be set.')
-flags.DEFINE_string(
+tf.flags.DEFINE_string(
     'wavegan_latent_dir', '', 'The directory to WaveGAN\'s latent space.'
     'If WaveGAN is involved, this argument must be set.')
 

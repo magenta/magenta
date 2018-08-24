@@ -4,11 +4,12 @@
 # pylint:disable=invalid-name
 
 from functools import partial
-from tensorflow import flags
+
+import temsorflow as tf
 
 from magenta.models.latent_transfer import model_joint
 
-FLAGS = flags.FLAGS
+FLAGS = tf.flags.FLAGS
 
 n_latent_A = 100
 n_latent_B = 100

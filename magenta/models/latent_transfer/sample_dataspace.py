@@ -14,18 +14,17 @@ import os
 
 import numpy as np
 import tensorflow as tf
-from tensorflow import app
-from tensorflow import flags
 
 from magenta.models.latent_transfer import common
 from magenta.models.latent_transfer import model_dataspace
 
-FLAGS = flags.FLAGS
+FLAGS = tf.flags.FLAGS
 
-flags.DEFINE_string('config', 'mnist_0', 'The name of the model config to use.')
-flags.DEFINE_string('exp_uid', '_exp_0',
-                    'String to append to config for filenames/directories.')
-flags.DEFINE_integer('random_seed', 19260817, 'Random seed.')
+tf.flags.DEFINE_string('config', 'mnist_0',
+                       'The name of the model config to use.')
+tf.flags.DEFINE_string('exp_uid', '_exp_0',
+                       'String to append to config for filenames/directories.')
+tf.flags.DEFINE_integer('random_seed', 19260817, 'Random seed.')
 
 
 def main(unused_argv):
@@ -109,4 +108,4 @@ def main(unused_argv):
 
 
 if __name__ == '__main__':
-  app.run(main)
+  tf.app.run(main)
