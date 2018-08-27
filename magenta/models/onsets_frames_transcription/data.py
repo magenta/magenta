@@ -94,7 +94,8 @@ def _wav_to_mel(wav_audio, hparams):
       hparams.sample_rate,
       hop_length=hparams.spec_hop_length,
       fmin=hparams.spec_fmin,
-      n_mels=hparams.spec_n_bins).astype(np.float32)
+      n_mels=hparams.spec_n_bins,
+      htk=hparams.spec_mel_htk).astype(np.float32)
 
   # Transpose so that the data is in [frame, bins] format.
   mel = mel.T
