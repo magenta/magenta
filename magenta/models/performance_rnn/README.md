@@ -15,7 +15,7 @@ At generation time, a few undesired behaviors can occur: note-off events with no
 
 ## Web Interface
 
-You can run Performance RNN live in your browser at the [Performance RNN browser demo](https://deeplearnjs.org/demos/performance_rnn), made with [deeplearn.js](https://deeplearnjs.org). More details about the web port can be found at our blog post: [Real-time Performance RNN in the Browser](https://magenta.tensorflow.org/performance-rnn-browser).
+You can run Performance RNN live in your browser at the [Performance RNN browser demo](https://goo.gl/magenta/performancernn-demo), made with [TensorFlow.js](https://js.tensorflow.org). More details about the web port can be found at our blog post: [Real-time Performance RNN in the Browser](https://magenta.tensorflow.org/performance-rnn-browser).
 
 ## Colab and Jupyter notebooks
 
