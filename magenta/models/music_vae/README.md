@@ -32,8 +32,8 @@ three-piece "trios" (melody, bass, drums) of varying lengths.
 
 ### Generate script w/ Pre-trained Models
 
-We provide a script in our pip package to generate outputs from the
-command-line.
+We provide a script in our [pip package](/README.md#installation) to generate
+outputs from the command-line.
 
 #### Pre-trained Checkpoints
 Before you can generate outputs, you must either
