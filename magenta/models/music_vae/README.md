@@ -166,6 +166,6 @@ heldout dataset) in order to compute metrics such as accuracy and to avoid
 overfitting.
 
 Once your model has trained sufficiently, you can load the checkpoint into the
-[Colab Notebook](https://g.col/magenta/musicvae-colab) or use the
+[Colab Notebook](https://g.co/magenta/musicvae-colab) or use the
 [command-line script](#pre-trained-checkpoints) to do inference and generate
 MIDI outputs.
