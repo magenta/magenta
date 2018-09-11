@@ -74,7 +74,7 @@ def _slerp(p0, p1, t):
   """Spherical linear interpolation."""
   omega = np.arccos(
       np.dot(np.squeeze(p0/np.linalg.norm(p0)),
-      np.squeeze(p1/np.linalg.norm(p1))))
+             np.squeeze(p1/np.linalg.norm(p1))))
   so = np.sin(omega)
   return np.sin((1.0-t)*omega) / so * p0 + np.sin(t*omega)/so * p1
 
@@ -118,8 +118,8 @@ def run(config_map):
     input_1 = mm.midi_to_sequence_proto(tf.gfile.GFile(input_midi_1).read())
     input_2 = mm.midi_to_sequence_proto(tf.gfile.GFile(input_midi_2).read())
 
-    # Make sure each input gives us exactly one example from the data converter.
     def _check_extract_examples(input_ns, path, input_number):
+      """Make sure each input returns exactly one example from the converter."""
       tensors = config.data_converter.to_tensors(input_ns).outputs
       if not tensors:
         print(
@@ -169,9 +169,9 @@ def run(config_map):
         temperature=FLAGS.temperature)
 
   basename = os.path.join(
-    FLAGS.output_dir,
-    '%s_%s_%s-*-of-%03d.mid' %
-    (FLAGS.config, FLAGS.mode, date_and_time, FLAGS.num_outputs))
+      FLAGS.output_dir,
+      '%s_%s_%s-*-of-%03d.mid' %
+      (FLAGS.config, FLAGS.mode, date_and_time, FLAGS.num_outputs))
   logging.info('Outputting %d files as `%s`...', FLAGS.num_outputs, basename)
   for i, ns in enumerate(results):
     mm.sequence_proto_to_midi_file(ns, basename.replace('*', '%03d' % i))
