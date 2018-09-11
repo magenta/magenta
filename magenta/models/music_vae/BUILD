@@ -132,6 +132,7 @@ py_library(
     srcs = ["trained_model.py"],
     srcs_version = "PY2AND3",
     deps = [
+        "@backports",
         # numpy dep
         # tensorflow dep
     ],
