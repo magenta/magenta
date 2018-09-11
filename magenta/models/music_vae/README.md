@@ -71,12 +71,12 @@ music_vae_generate \
 #### Interpolate
 
 To interpolate, you need to have two MIDI files to inerpolate between. Each
-model has ceratin constraints<sup>[*](#f1)</sup> for these files. For example,
-the mel_2bar models only work if the input files are exactly 2-bars long and
-contain monophonic non-drum sequences. The trio_16bar models require 16-bars
-with 3 instruments (based on program numbers): drums, piano or guitar, and bass.
-`num_outputs` specifies how many points along the path connecting the two inputs
-in latent space to decode, including the endpoints.
+model has ceratin constraints<sup id="a1">[*](#f1)</sup> for these files. For
+example, the mel_2bar models only work if the input files are exactly 2-bars
+long and contain monophonic non-drum sequences. The trio_16bar models require
+16-bars with 3 instruments (based on program numbers): drums, piano or guitar,
+and bass. `num_outputs` specifies how many points along the path connecting the
+two inputs in latent space to decode, including the endpoints.
 
 Try setting the inputs to be two of the samples you generated previously.
 
@@ -91,12 +91,12 @@ music_vae_generate \
 --output_dir=/tmp/music_vae/generated
 ```
 
-<sup id="f1">*</sup>Note: If you call the generate script with MIDI files that does not
-does not match the model's constraints, the script will try to extract any
-subsequences from the MIDI file that would be valid inputs, and write them to
-the output directory You can then listen to the extracted subsequences, decide
+<sup id="f1">*</sup>**Note**: If you call the generate script with MIDI files
+that do not match the model's constraints, the script will try to extract any
+subsequences from the MIDI files that would be valid inputs, and write them to
+the output directory. You can then listen to the extracted subsequences, decide
 which two you wish to use as the ends of your interpolation, and then call the
-generate script again using these valid inputs.
+generate script again using these valid inputs. [↩](#a1)
 
 ### JavaScript w/ Pre-trained Models
 
