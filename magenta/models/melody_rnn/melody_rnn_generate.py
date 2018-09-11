@@ -13,6 +13,8 @@
 # limitations under the License.
 """Generate melodies from a trained checkpoint of a melody RNN model."""
 
+# TODO(adarob): Add support for models with conditioning.
+
 import ast
 import os
 import time
