@@ -32,6 +32,14 @@ three-piece "trios" (melody, bass, drums) of varying lengths.
 
 ### Generate script w/ Pre-trained Models
 
+We provide a script in our pip package to generate outputs from the
+command-line.
+
+#### Pre-trained Checkpoints
+Before you can generate outputs, you must either
+[train your own model](#training-your-own-musicvae) or download pre-trained
+checkpoints from the table below.
+
 http://download.magenta.tensorflow.org/models/music_vae/checkpoints.tar.gz
 
 Once you have selected a model, there are two operations you can perform with
@@ -110,7 +118,7 @@ MusicVAE models in the browser. Existing applications built with this library in
 
 Learn more about the API in its [repo](https://goo.gl/magenta/musicvae-js).
 
-#### Training Your Own MusicVAE
+### Training Your Own MusicVAE
 
 If you'd like to train a model on your own data, you will first need to set up
 your [Magenta environment](/README.md). Next, convert a collection of MIDI files
@@ -151,5 +159,6 @@ heldout dataset) in order to compute metrics such as accuracy and to avoid
 overfitting.
 
 Once your model has trained sufficiently, you can load the checkpoint into the
-[Colab Notebook](https://goo.gl/magenta/musicvae-paper) to do inference and
-produce audio outputs.
+[Colab Notebook](https://g.col/magenta/musicvae-colab) or use the
+[command-line script](#pre-trained-checkpoints) to do inference and generate
+MIDI outputs.
