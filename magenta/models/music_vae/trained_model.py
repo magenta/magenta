@@ -16,8 +16,12 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
+from backports import tempfile
+
 import copy
+import os
 import re
+import tarfile
 
 # internal imports
 import numpy as np
@@ -112,7 +116,19 @@ class TrainedModel(object):
       # Restore graph
       self._sess = tf.Session(target=session_target)
       saver = tf.train.Saver(var_map)
-      saver.restore(self._sess, checkpoint_path)
+      if tarfile.is_tarfile(checkpoint_path):
+        tf.logging.info('Unbundling checkpoint.')
+        with tempfile.TemporaryDirectory() as temp_dir:
+          tar = tarfile.open(checkpoint_path)
+          tar.extractall(temp_dir)
+          # Assume only a single checkpoint is in the directory.
+          for name in tar.getnames():
+            if name.endswith('.ckpt.index'):
+              checkpoint_path = os.path.join(temp_dir, name[0:-6])
+              break
+          saver.restore(self._sess, checkpoint_path)
+      else:
+        saver.restore(self._sess, checkpoint_path)
 
   def sample(self, n=None, length=None, temperature=1.0, same_z=False,
              c_input=None):
