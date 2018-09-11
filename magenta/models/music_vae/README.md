@@ -37,7 +37,7 @@ http://download.magenta.tensorflow.org/models/music_vae/checkpoints.tar.gz
 Once you have selected a model, there are two operations you can perform with
 the generate script: `sample` and `interpolate`.
 
-### Sample
+#### Sample
 
 Sampling decodes random points in the latent space of the chosen model and
 outputs the resulting sequences in `output_dir`. Make sure you specify the
