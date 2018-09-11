@@ -69,13 +69,15 @@ flags.DEFINE_string(
     'The threshold for what messages will be logged: '
     'DEBUG, INFO, WARN, ERROR, or FATAL.')
 
+
 def _slerp(p0, p1, t):
   """Spherical linear interpolation."""
   omega = np.arccos(
-    np.dot(np.squeeze(p0/np.linalg.norm(p0)),
-    np.squeeze(p1/np.linalg.norm(p1))))
+      np.dot(np.squeeze(p0/np.linalg.norm(p0)),
+      np.squeeze(p1/np.linalg.norm(p1))))
   so = np.sin(omega)
   return np.sin((1.0-t)*omega) / so * p0 + np.sin(t*omega)/so * p1
+
 
 def run(config_map):
   """Load model params, save config file and start trainer.
@@ -95,7 +97,7 @@ def run(config_map):
     raise ValueError('`--output_dir` is required.')
   tf.gfile.MakeDirs(FLAGS.output_dir)
   if FLAGS.mode != 'sample' and FLAGS.mode != 'interpolate':
-    raise ValueError('Invalid value for `--mode`: %s', FLAGS.mode)
+    raise ValueError('Invalid value for `--mode`: %s' % FLAGS.mode)
 
   if FLAGS.config not in config_map:
     raise ValueError('Invalid config name: %s' % FLAGS.config)
@@ -121,21 +123,20 @@ def run(config_map):
       tensors = config.data_converter.to_tensors(input_ns).outputs
       if not tensors:
         print(
-          'MusicVAE configs have very specific input requirements. Could not '
-          'extract any valid inputs from `%s`. Try another MIDI file.' %
-          (path, FLAGS.config))
+            'MusicVAE configs have very specific input requirements. Could not '
+            'extract any valid inputs from `%s`. Try another MIDI file.' % path)
         sys.exit()
       elif len(tensors) > 1:
         basename = os.path.join(
-          FLAGS.output_dir,
-          '%s_input%d-extractions_%s-*-of-%03d.mid' %
-          (FLAGS.config, input_number, date_and_time, len(tensors)))
+            FLAGS.output_dir,
+            '%s_input%d-extractions_%s-*-of-%03d.mid' %
+            (FLAGS.config, input_number, date_and_time, len(tensors)))
         for i, ns in enumerate(config.data_converter.to_notesequences(tensors)):
           mm.sequence_proto_to_midi_file(ns, basename.replace('*', '%03d' % i))
         print(
-          '%d valid inputs extracted from `%s`. Outputting these potential '
-          'inputs as `%s`. Call script again with one of these instead.' %
-          (len(tensors), path, basename))
+            '%d valid inputs extracted from `%s`. Outputting these potential '
+            'inputs as `%s`. Call script again with one of these instead.' %
+            (len(tensors), path, basename))
         sys.exit()
     logging.info(
         'Attempting to extract examples from input MIDIs using config `%s`...',
