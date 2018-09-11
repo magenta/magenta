@@ -151,3 +151,16 @@ py_binary(
         ":lstm_models",
     ],
 )
+
+py_binary(
+    name = "music_vae_generate",
+    srcs = ["music_vae_generate.py"],
+    srcs_version = "PY2AND3",
+    visibility = [
+        # internal model:music_vae
+        "//magenta/tools/pip:__subpackages__",
+    ],
+    deps = [
+        ":music_vae",
+    ],
+)
