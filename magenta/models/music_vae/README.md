@@ -40,6 +40,16 @@ Before you can generate outputs, you must either
 [train your own model](#training-your-own-musicvae) or download pre-trained
 checkpoints from the table below.
 
+| ID | Config | Description | Link |
+| -- | ------ | ----------- | ---- |
+| mel_2bar | `cat-mel_2bar_big` | 2-bar melodies. | |
+| mel_16bar | `hierdec-mel_16bar` | 16-bar melodies | |
+| trio_16bar | `hierdec-trio_16bar` | 16-bar "trios" (drums, melody, and bass) | |
+| drums_2bar_oh_lokl |`cat-drums_2bar_small` | 2-bar drums w/ 9 classes trained for more *realistic* sampling.| |
+| drums_2bar_oh_hikl | `cat-drums_2bar_small` | 2-bar drums w/ 9 classes trained for *better reconstruction and interpolation*. | |
+| drums_2bar_nade_full | `nade-drums_2bar_full` | 2-bar drums w/ 61 classes. ||
+
+
 http://download.magenta.tensorflow.org/models/music_vae/checkpoints.tar.gz
 
 Once you have selected a model, there are two operations you can perform with
