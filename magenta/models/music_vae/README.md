@@ -42,12 +42,12 @@ checkpoints from the table below.
 
 | ID | Config | Description | Link |
 | -- | ------ | ----------- | ---- |
-| mel_2bar | `cat-mel_2bar_big` | 2-bar melodies. | [download](http://download.magenta.tensorflow.org/models/music_vae/checkpoints_bundled/mel_2bar_big.ckpt.tar)|
+| mel_2bar | `cat-mel_2bar_big` | 2-bar melodies | [download](http://download.magenta.tensorflow.org/models/music_vae/checkpoints_bundled/mel_2bar_big.ckpt.tar)|
 | mel_16bar | `hierdec-mel_16bar` | 16-bar melodies | [download](http://download.magenta.tensorflow.org/models/music_vae/checkpoints_bundled/mel_16bar_hierdec.ckpt.tar)|
 | trio_16bar | `hierdec-trio_16bar` | 16-bar "trios" (drums, melody, and bass) | [download](http://download.magenta.tensorflow.org/models/music_vae/checkpoints_bundled/trio_16bar_hierdec.ckpt.tar)|
-| drums_2bar_oh_lokl |`cat-drums_2bar_small` | 2-bar drums w/ 9 classes trained for more *realistic* sampling.| [download](http://download.magenta.tensorflow.org/models/music_vae/checkpoints_bundled/drums_2bar_small.lokl.ckpt.tar)|
-| drums_2bar_oh_hikl | `cat-drums_2bar_small` | 2-bar drums w/ 9 classes trained for *better reconstruction and interpolation*. | [download](http://download.magenta.tensorflow.org/models/music_vae/checkpoints_bundled/drums_2bar_small.hikl.ckpt.tar)|
-| drums_2bar_nade_full | `nade-drums_2bar_full` | 2-bar drums w/ 61 classes. | [download](http://download.magenta.tensorflow.org/models/music_vae/checkpoints_bundled/drums_2bar_nade.full.ckpt.tar)|
+| drums_2bar_oh_lokl |`cat-drums_2bar_small` | 2-bar drums w/ 9 classes trained for more *realistic* sampling| [download](http://download.magenta.tensorflow.org/models/music_vae/checkpoints_bundled/drums_2bar_small.lokl.ckpt.tar)|
+| drums_2bar_oh_hikl | `cat-drums_2bar_small` | 2-bar drums w/ 9 classes trained for *better reconstruction and interpolation* | [download](http://download.magenta.tensorflow.org/models/music_vae/checkpoints_bundled/drums_2bar_small.hikl.ckpt.tar)|
+| drums_2bar_nade_full | `nade-drums_2bar_full` | 2-bar drums w/ 61 classes | [download](http://download.magenta.tensorflow.org/models/music_vae/checkpoints_bundled/drums_2bar_nade.full.ckpt.tar)|
 
 Once you have selected a model, there are two operations you can perform with
 the generate script: `sample` and `interpolate`.
