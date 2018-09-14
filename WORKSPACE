@@ -46,3 +46,11 @@ new_http_archive(
     strip_prefix = "pix2pix-tensorflow-0.1/",
     url = "https://github.com/dh7/pix2pix-tensorflow/archive/0.1.tar.gz",
 )
+
+new_http_archive(
+    name = "backports",
+    build_file = "backports-tempfile.BUILD",
+    sha256 = "597de6793dd1abcf2aea80ae81e8cbf0af4afb117cd48fa1dc3862f85f48c389",
+    strip_prefix = "backports.tempfile-1.0/src/backports",
+    url = "https://github.com/pjdelport/backports.tempfile/archive/v1.0.tar.gz",
+)
