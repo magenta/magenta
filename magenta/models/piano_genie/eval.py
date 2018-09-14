@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Piano Hero continuous eval script."""
+"""Piano Genie continuous eval script."""
 
 from __future__ import absolute_import
 from __future__ import division
@@ -24,10 +24,10 @@ import time
 import numpy as np
 import tensorflow as tf
 
-from magenta.models.piano_hero import gold
-from magenta.models.piano_hero.configs import get_named_config
-from magenta.models.piano_hero.loader import load_noteseqs
-from magenta.models.piano_hero.model import build_phero_model
+from magenta.models.piano_genie import gold
+from magenta.models.piano_genie.configs import get_named_config
+from magenta.models.piano_genie.loader import load_noteseqs
+from magenta.models.piano_genie.model import build_genie_model
 
 flags = tf.app.flags
 FLAGS = flags.FLAGS
@@ -64,13 +64,13 @@ def main(unused_argv):
 
   # Build model
   with tf.variable_scope("phero_model"):
-    model_dict = build_phero_model(
+    model_dict = build_genie_model(
         feat_dict,
         cfg,
         cfg.eval_batch_size,
         cfg.eval_seq_len,
         is_training=False)
-  phero_vars = tf.get_collection(
+  genie_vars = tf.get_collection(
       tf.GraphKeys.GLOBAL_VARIABLES, scope="phero_model")
 
   # Build gold model
@@ -86,7 +86,7 @@ def main(unused_argv):
       gold_seq_maxlen = gold.gold_longest()
       gold_seq_varlens = tf.placeholder(tf.int32, [1])
       gold_buttons = tf.placeholder(tf.int32, [1, None])
-      gold_model_dict = build_phero_model(
+      gold_model_dict = build_genie_model(
           gold_feat_dict,
           cfg,
           1,
@@ -175,7 +175,7 @@ def main(unused_argv):
 
   # Create saver
   step = tf.train.get_or_create_global_step()
-  saver = tf.train.Saver(phero_vars + [step], max_to_keep=None)
+  saver = tf.train.Saver(genie_vars + [step], max_to_keep=None)
 
   def _eval_all(sess):
     """Gathers all metrics for a ckpt."""

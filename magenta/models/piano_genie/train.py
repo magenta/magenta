@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Piano Hero training script."""
+"""Piano Genie training script."""
 
 from __future__ import absolute_import
 from __future__ import division
@@ -21,10 +21,10 @@ import os
 
 import tensorflow as tf
 
-from magenta.models.piano_hero import util
-from magenta.models.piano_hero.configs import get_named_config
-from magenta.models.piano_hero.loader import load_noteseqs
-from magenta.models.piano_hero.model import build_phero_model
+from magenta.models.piano_genie import util
+from magenta.models.piano_genie.configs import get_named_config
+from magenta.models.piano_genie.loader import load_noteseqs
+from magenta.models.piano_genie.model import build_genie_model
 
 flags = tf.app.flags
 FLAGS = flags.FLAGS
@@ -68,7 +68,7 @@ def main(unused_argv):
 
   # Build model
   with tf.variable_scope("phero_model"):
-    model_dict = build_phero_model(
+    model_dict = build_genie_model(
         feat_dict,
         cfg,
         cfg.train_batch_size,
@@ -80,7 +80,7 @@ def main(unused_argv):
     tf.summary.scalar("codebook_perplexity",
                       model_dict["stp_emb_vq_codebook_ppl"])
     tf.summary.image(
-        "hero",
+        "genie",
         util.discrete_to_piano_roll(
             model_dict["stp_emb_vq_discrete"],
             cfg.stp_emb_vq_codebook_size,
@@ -93,7 +93,7 @@ def main(unused_argv):
                       model_dict["stp_emb_iq_discrete_ppl"])
     tf.summary.scalar("iq_valid_p", model_dict["stp_emb_iq_valid_p"])
     tf.summary.image(
-        "hero",
+        "genie",
         util.discrete_to_piano_roll(
             model_dict["stp_emb_iq_discrete"],
             cfg.stp_emb_iq_nbins,
