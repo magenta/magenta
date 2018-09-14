@@ -11,14 +11,14 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Hyperparameter configurations for Piano Hero."""
+"""Hyperparameter configurations for Piano Genie."""
 
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
 
-class BasePheroConfig(object):
+class BasePianoGenieConfig(object):
   """Base class for model configurations."""
 
   def __init__(self):
@@ -96,7 +96,7 @@ class BasePheroConfig(object):
     self.eval_seq_len = 128
 
 
-class StpFree(BasePheroConfig):
+class StpFree(BasePianoGenieConfig):
 
   def __init__(self):
     super(StpFree, self).__init__()
@@ -104,7 +104,7 @@ class StpFree(BasePheroConfig):
     self.stp_emb_unconstrained = True
 
 
-class StpVq(BasePheroConfig):
+class StpVq(BasePianoGenieConfig):
 
   def __init__(self):
     super(StpVq, self).__init__()
@@ -112,7 +112,7 @@ class StpVq(BasePheroConfig):
     self.stp_emb_vq = True
 
 
-class StpIq(BasePheroConfig):
+class StpIq(BasePianoGenieConfig):
 
   def __init__(self):
     super(StpIq, self).__init__()
@@ -120,7 +120,7 @@ class StpIq(BasePheroConfig):
     self.stp_emb_iq = True
 
 
-class SeqFree(BasePheroConfig):
+class SeqFree(BasePianoGenieConfig):
 
   def __init__(self):
     super(SeqFree, self).__init__()
@@ -128,7 +128,7 @@ class SeqFree(BasePheroConfig):
     self.seq_emb_unconstrained = True
 
 
-class SeqVae(BasePheroConfig):
+class SeqVae(BasePianoGenieConfig):
 
   def __init__(self):
     super(SeqVae, self).__init__()
@@ -136,7 +136,7 @@ class SeqVae(BasePheroConfig):
     self.seq_emb_vae = True
 
 
-class LorFree(BasePheroConfig):
+class LorFree(BasePianoGenieConfig):
 
   def __init__(self):
     super(LorFree, self).__init__()
@@ -144,7 +144,7 @@ class LorFree(BasePheroConfig):
     self.lor_emb_unconstrained = True
 
 
-class StpVqSeqVae(BasePheroConfig):
+class StpVqSeqVae(BasePianoGenieConfig):
 
   def __init__(self):
     super(StpVqSeqVae, self).__init__()
@@ -153,7 +153,7 @@ class StpVqSeqVae(BasePheroConfig):
     self.seq_emb_vae = True
 
 
-class StpVqSeqFree(BasePheroConfig):
+class StpVqSeqFree(BasePianoGenieConfig):
 
   def __init__(self):
     super(StpVqSeqFree, self).__init__()
@@ -162,7 +162,7 @@ class StpVqSeqFree(BasePheroConfig):
     self.seq_emb_unconstrained = True
 
 
-class StpVqLorFree(BasePheroConfig):
+class StpVqLorFree(BasePianoGenieConfig):
 
   def __init__(self):
     super(StpVqLorFree, self).__init__()
@@ -171,7 +171,7 @@ class StpVqLorFree(BasePheroConfig):
     self.lor_emb_unconstrained = True
 
 
-class StpVqSeqFreeRand(BasePheroConfig):
+class StpVqSeqFreeRand(BasePianoGenieConfig):
 
   def __init__(self):
     super(StpVqSeqFreeRand, self).__init__()
@@ -181,7 +181,7 @@ class StpVqSeqFreeRand(BasePheroConfig):
     self.seq_emb_unconstrained = True
 
 
-class StpVqSeqFreePredvelo(BasePheroConfig):
+class StpVqSeqFreePredvelo(BasePianoGenieConfig):
 
   def __init__(self):
     super(StpVqSeqFreePredvelo, self).__init__()
@@ -191,7 +191,7 @@ class StpVqSeqFreePredvelo(BasePheroConfig):
     self.dec_pred_velocity = True
 
 
-class Auto(BasePheroConfig):
+class Auto(BasePianoGenieConfig):
 
   def __init__(self):
     super(Auto, self).__init__()
@@ -199,7 +199,7 @@ class Auto(BasePheroConfig):
     self.dec_autoregressive = True
 
 
-class StpVqAuto(BasePheroConfig):
+class StpVqAuto(BasePianoGenieConfig):
 
   def __init__(self):
     super(StpVqAuto, self).__init__()
@@ -208,7 +208,7 @@ class StpVqAuto(BasePheroConfig):
     self.dec_autoregressive = True
 
 
-class StpIqAuto(BasePheroConfig):
+class StpIqAuto(BasePianoGenieConfig):
 
   def __init__(self):
     super(StpIqAuto, self).__init__()
@@ -217,7 +217,7 @@ class StpIqAuto(BasePheroConfig):
     self.dec_autoregressive = True
 
 
-class SeqVaeAuto(BasePheroConfig):
+class SeqVaeAuto(BasePianoGenieConfig):
 
   def __init__(self):
     super(SeqVaeAuto, self).__init__()
@@ -226,7 +226,7 @@ class SeqVaeAuto(BasePheroConfig):
     self.dec_autoregressive = True
 
 
-class LorFreeAuto(BasePheroConfig):
+class LorFreeAuto(BasePianoGenieConfig):
 
   def __init__(self):
     super(LorFreeAuto, self).__init__()
@@ -235,7 +235,7 @@ class LorFreeAuto(BasePheroConfig):
     self.dec_autoregressive = True
 
 
-class StpVqSeqVaeAuto(BasePheroConfig):
+class StpVqSeqVaeAuto(BasePianoGenieConfig):
 
   def __init__(self):
     super(StpVqSeqVaeAuto, self).__init__()
@@ -245,7 +245,7 @@ class StpVqSeqVaeAuto(BasePheroConfig):
     self.dec_autoregressive = True
 
 
-class StpVqSeqFreeAuto(BasePheroConfig):
+class StpVqSeqFreeAuto(BasePianoGenieConfig):
 
   def __init__(self):
     super(StpVqSeqFreeAuto, self).__init__()
@@ -255,7 +255,7 @@ class StpVqSeqFreeAuto(BasePheroConfig):
     self.dec_autoregressive = True
 
 
-class StpVqLorFreeAuto(BasePheroConfig):
+class StpVqLorFreeAuto(BasePianoGenieConfig):
 
   def __init__(self):
     super(StpVqLorFreeAuto, self).__init__()
@@ -265,7 +265,7 @@ class StpVqLorFreeAuto(BasePheroConfig):
     self.dec_autoregressive = True
 
 
-class StpVqSeqFreeAutoRand(BasePheroConfig):
+class StpVqSeqFreeAutoRand(BasePianoGenieConfig):
 
   def __init__(self):
     super(StpVqSeqFreeAutoRand, self).__init__()
@@ -276,7 +276,7 @@ class StpVqSeqFreeAutoRand(BasePheroConfig):
     self.dec_autoregressive = True
 
 
-class StpVqSeqFreeAutoVarlen(BasePheroConfig):
+class StpVqSeqFreeAutoVarlen(BasePianoGenieConfig):
 
   def __init__(self):
     super(StpVqSeqFreeAutoVarlen, self).__init__()
@@ -288,7 +288,7 @@ class StpVqSeqFreeAutoVarlen(BasePheroConfig):
     self.train_randomize_seq_len = True
 
 
-class StpVqSeqFreeAutoPredvelo(BasePheroConfig):
+class StpVqSeqFreeAutoPredvelo(BasePianoGenieConfig):
 
   def __init__(self):
     super(StpVqSeqFreeAutoPredvelo, self).__init__()
@@ -299,7 +299,7 @@ class StpVqSeqFreeAutoPredvelo(BasePheroConfig):
     self.dec_pred_velocity = True
 
 
-class StpVqSeqVaeAutoDt(BasePheroConfig):
+class StpVqSeqVaeAutoDt(BasePianoGenieConfig):
 
   def __init__(self):
     super(StpVqSeqVaeAutoDt, self).__init__()
@@ -311,7 +311,7 @@ class StpVqSeqVaeAutoDt(BasePheroConfig):
     self.dec_aux_feats = ["delta_times_int"]
 
 
-class StpVqSeqFreeAutoDt(BasePheroConfig):
+class StpVqSeqFreeAutoDt(BasePianoGenieConfig):
 
   def __init__(self):
     super(StpVqSeqFreeAutoDt, self).__init__()
@@ -323,7 +323,7 @@ class StpVqSeqFreeAutoDt(BasePheroConfig):
     self.dec_aux_feats = ["delta_times_int"]
 
 
-class StpVqSeqVaeAutoVs(BasePheroConfig):
+class StpVqSeqVaeAutoVs(BasePianoGenieConfig):
 
   def __init__(self):
     super(StpVqSeqVaeAutoVs, self).__init__()
@@ -335,7 +335,7 @@ class StpVqSeqVaeAutoVs(BasePheroConfig):
     self.dec_aux_feats = ["velocities"]
 
 
-class StpVqSeqFreeAutoVs(BasePheroConfig):
+class StpVqSeqFreeAutoVs(BasePianoGenieConfig):
 
   def __init__(self):
     super(StpVqSeqFreeAutoVs, self).__init__()
@@ -347,7 +347,7 @@ class StpVqSeqFreeAutoVs(BasePheroConfig):
     self.dec_aux_feats = ["velocities"]
 
 
-class StpVqSeqVaeAutoDtVs(BasePheroConfig):
+class StpVqSeqVaeAutoDtVs(BasePianoGenieConfig):
 
   def __init__(self):
     super(StpVqSeqVaeAutoDtVs, self).__init__()
@@ -359,7 +359,7 @@ class StpVqSeqVaeAutoDtVs(BasePheroConfig):
     self.dec_aux_feats = ["delta_times_int", "velocities"]
 
 
-class StpVqSeqFreeAutoDtVs(BasePheroConfig):
+class StpVqSeqFreeAutoDtVs(BasePianoGenieConfig):
 
   def __init__(self):
     super(StpVqSeqFreeAutoDtVs, self).__init__()

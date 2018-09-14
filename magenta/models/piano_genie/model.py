@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Constructs a Piano Hero model."""
+"""Constructs a Piano Genie model."""
 
 from __future__ import absolute_import
 from __future__ import division
@@ -20,7 +20,7 @@ from __future__ import print_function
 import sonnet as snt
 import tensorflow as tf
 
-from magenta.models.piano_hero import util
+from magenta.models.piano_genie import util
 
 
 def simple_lstm_encoder(features,
@@ -108,14 +108,14 @@ def weighted_avg(t, mask=None, axis=None, expand_mask=False):
             mask, axis=axis)
 
 
-def build_phero_model(feat_dict,
+def build_genie_model(feat_dict,
                       cfg,
                       batch_size,
                       seq_len,
                       is_training=True,
                       seq_varlens=None,
                       dtype=tf.float32):
-  """Builds a Piano Hero model.
+  """Builds a Piano Genie model.
 
   Args:
     feat_dict: Dictionary containing input tensors.
