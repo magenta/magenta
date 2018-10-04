@@ -64,8 +64,8 @@ class MultiDrumOneHotEncoding(encoder_decoder.OneHotEncoding):
   bit has value 0 if the drum type is not present, and 1 if it is present.
 
   If multiple "pitches" corresponding to the same drum type (e.g. two different
-  ride cymbals) are present, the encoding is the same as if only one of them were
-  present.
+  ride cymbals) are present, the encoding is the same as if only one of them
+  were present.
   """
 
   def __init__(self, drum_type_pitches=None, ignore_unknown_drums=True):
