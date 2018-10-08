@@ -23,12 +23,12 @@ import google3
 import numpy as np
 import tensorflow as tf
 
-from magenta.models.music_vae import data
+from google3.third_party.magenta.models.music_vae import data
 
-import magenta.music as mm
-from magenta.music import constants
-from magenta.music import testing_lib
-from magenta.protobuf import music_pb2
+import google3.third_party.magenta.music as mm
+from google3.third_party.magenta.music import constants
+from google3.third_party.magenta.music import testing_lib
+from google3.third_party.magenta.protobuf import music_pb2
 
 NO_EVENT = constants.MELODY_NO_EVENT
 NOTE_OFF = constants.MELODY_NOTE_OFF
