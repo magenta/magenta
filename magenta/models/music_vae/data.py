@@ -27,11 +27,11 @@ import google3
 import numpy as np
 import tensorflow as tf
 
-import google3.third_party.magenta.music as mm
-from google3.third_party.magenta.music import chords_lib
-from google3.third_party.magenta.music import drums_encoder_decoder
-from google3.third_party.magenta.music import sequences_lib
-from google3.third_party.magenta.protobuf import music_pb2
+import magenta.music as mm
+from magenta.music import chords_lib
+from magenta.music import drums_encoder_decoder
+from magenta.music import sequences_lib
+from magenta.protobuf import music_pb2
 
 PIANO_MIN_MIDI_PITCH = 21
 PIANO_MAX_MIDI_PITCH = 108
