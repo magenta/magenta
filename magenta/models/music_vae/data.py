@@ -28,7 +28,6 @@ import numpy as np
 import tensorflow as tf
 
 import google3.third_party.magenta.music as mm
-from google3.third_party.magenta.music import chord_symbols_lib
 from google3.third_party.magenta.music import chords_lib
 from google3.third_party.magenta.music import drums_encoder_decoder
 from google3.third_party.magenta.music import sequences_lib
