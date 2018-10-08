@@ -36,6 +36,7 @@ from magenta.models.onsets_frames_transcription import data
 from magenta.models.onsets_frames_transcription import infer_util
 from magenta.models.onsets_frames_transcription import model
 from magenta.music import midi_io
+from magenta.music import sequences_lib
 
 
 FLAGS = tf.app.flags.FLAGS
@@ -171,7 +172,7 @@ def model_inference(acoustic_checkpoint, hparams, examples_path, run_dir):
         else:
           onset_predictions = None
 
-        sequence_prediction = infer_util.pianoroll_to_note_sequence(
+        sequence_prediction = sequences_lib.pianoroll_to_note_sequence(
             frame_predictions,
             frames_per_second=data.hparams_frames_per_second(hparams),
             min_duration_ms=FLAGS.min_note_duration_ms,
@@ -220,7 +221,7 @@ def model_inference(acoustic_checkpoint, hparams, examples_path, run_dir):
             run_dir, filename + '_label_from_frames.mid')
         tf.logging.info('Writing label from frames midi file to %s',
                         label_from_frames_output_file)
-        sequence_label_from_frames = infer_util.pianoroll_to_note_sequence(
+        sequence_label_from_frames = sequences_lib.pianoroll_to_note_sequence(
             labels,
             frames_per_second=data.hparams_frames_per_second(hparams),
             min_duration_ms=FLAGS.min_note_duration_ms)

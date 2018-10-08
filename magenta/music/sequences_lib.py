@@ -16,6 +16,7 @@
 import collections
 import copy
 import itertools
+import math
 from operator import itemgetter
 import random
 
@@ -43,6 +44,14 @@ QUANTIZE_CUTOFF = 0.5
 BEAT = music_pb2.NoteSequence.TextAnnotation.BEAT
 CHORD_SYMBOL = music_pb2.NoteSequence.TextAnnotation.CHORD_SYMBOL
 UNKNOWN_PITCH_NAME = music_pb2.NoteSequence.UNKNOWN_PITCH_NAME
+
+# The amount to upweight note-on events vs note-off events.
+ONSET_UPWEIGHT = 5.0
+
+# The size of the frame extension for onset event.
+# Frames in [onset_frame-ONSET_WINDOW, onset_frame+ONSET_WINDOW]
+# are considered to contain onset events.
+ONSET_WINDOW = 1
 
 
 class BadTimeSignatureException(Exception):
@@ -1456,3 +1465,238 @@ def infer_dense_chords_for_sequence(
 
   assert not active_notes
 
+
+def sequence_to_pianoroll(
+    sequence,
+    frames_per_second,
+    min_pitch,
+    max_pitch,
+    # pylint: disable=unused-argument
+    min_velocity=constants.MIN_MIDI_PITCH,
+    # pylint: enable=unused-argument
+    max_velocity=constants.MAX_MIDI_PITCH,
+    add_blank_frame_before_onset=False,
+    onset_upweight=ONSET_UPWEIGHT,
+    onset_window=ONSET_WINDOW,
+    onset_length_ms=0,
+    onset_mode='window',
+    onset_delay_ms=0.0,
+    min_frame_occupancy_for_label=0.0):
+  """Transforms a NoteSequence to a pianoroll assuming a single instrument.
+
+  This function uses floating point internally and may return different results
+  on different platforms or with different compiler settings or with
+  different compilers.
+
+  Args:
+    sequence: The NoteSequence to convert.
+    frames_per_second: How many frames per second.
+    min_pitch: pitches in the sequence below this will be ignored.
+    max_pitch: pitches in the sequence above this will be ignored.
+    min_velocity: minimum velocity for the track, currently unused.
+    max_velocity: maximum velocity for the track, not just the local sequence,
+                  used to globally normalize the velocities between [0, 1].
+    add_blank_frame_before_onset: Always have a blank frame before onsets.
+    onset_upweight: Factor by which to increase the weight assigned to onsets.
+    onset_window: Fixed window size for labeling offsets. Used only if
+        onset_mode is 'window'.
+    onset_length_ms: Length in milliseconds for the onset. Used only if
+        onset_mode is 'length_ms'.
+    onset_mode: Either 'window', to use onset_window, or 'length_ms' to use
+        onset_length_ms.
+    onset_delay_ms: Number of milliseconds to delay the onset. Can be negative.
+    min_frame_occupancy_for_label: floating point value in range [0, 1] a note
+        must occupy at least this percentage of a frame, for the frame to be
+        given a label with the note.
+
+  Raises:
+    ValueError: When an unknown onset_mode is supplied.
+
+  Returns:
+    roll: A pianoroll as a 2D array.
+    roll_weights: Weights to be used when calculating loss against roll.
+    onsets: An onset-only pianoroll as a 2D array.
+    velocities: Velocities of onsets scaled from [0, 1]
+    control_changes: Control change onsets as a 2D array (time, control number)
+      with 0 when there is no onset and (control_value + 1) when there is.
+  """
+  roll = np.zeros(
+      (int(sequence.total_time * frames_per_second + 1),
+       max_pitch - min_pitch + 1),
+      dtype=np.float32)
+
+  roll_weights = np.ones_like(roll)
+
+  onsets = np.zeros_like(roll)
+
+  control_changes = np.zeros(
+      (int(sequence.total_time * frames_per_second + 1), 128),
+      dtype=np.int32)
+
+  def frames_from_times(start_time, end_time):
+    """Converts start/end times to start/end frames."""
+    # Will round down because note may start or end in the middle of the frame.
+    start_frame = int(start_time * frames_per_second)
+    start_frame_occupancy = (
+        start_frame + 1 - start_time * frames_per_second)
+    # check for > 0.0 to avoid possible numerical issues
+    if (min_frame_occupancy_for_label > 0.0 and
+        start_frame_occupancy < min_frame_occupancy_for_label):
+      start_frame += 1
+
+    end_frame = int(math.ceil(end_time * frames_per_second))
+    end_frame_occupancy = end_time * frames_per_second - start_frame - 1
+    if (min_frame_occupancy_for_label > 0.0 and
+        end_frame_occupancy < min_frame_occupancy_for_label):
+      end_frame -= 1
+      # can be a problem for very short notes
+      end_frame = max(start_frame, end_frame)
+
+    return start_frame, end_frame
+
+  velocities = np.zeros_like(roll, dtype=np.float32)
+
+  for note in sorted(sequence.notes, key=lambda n: n.start_time):
+    if note.pitch < min_pitch or note.pitch > max_pitch:
+      tf.logging.warn('Skipping out of range pitch: %d', note.pitch)
+      continue
+    start_frame, end_frame = frames_from_times(note.start_time, note.end_time)
+
+    roll[start_frame:end_frame, note.pitch - min_pitch] = 1.0
+
+    # label onset events. Use a window size of onset_window to account of
+    # rounding issue in the start_frame computation.
+    onset_start_time = note.start_time + onset_delay_ms / 1000.
+    onset_end_time = note.end_time + onset_delay_ms / 1000.
+    if onset_mode == 'window':
+      onset_start_frame_without_window, _ = frames_from_times(
+          onset_start_time, onset_end_time)
+
+      onset_start_frame = max(
+          0, onset_start_frame_without_window - onset_window)
+      onset_end_frame = min(onsets.shape[0],
+                            onset_start_frame_without_window + onset_window + 1)
+    elif onset_mode == 'length_ms':
+      onset_end_time = min(onset_end_time,
+                           onset_start_time + onset_length_ms / 1000.)
+      onset_start_frame, onset_end_frame = frames_from_times(
+          onset_start_time, onset_end_time)
+    else:
+      raise ValueError('Unknown onset mode: {}'.format(onset_mode))
+    onsets[onset_start_frame:onset_end_frame, note.pitch - min_pitch] = 1.0
+
+    if note.velocity > max_velocity:
+      raise ValueError('Note velocity exceeds max velocity: %d > %d' %
+                       (note.velocity, max_velocity))
+    velocities[onset_start_frame:onset_end_frame,
+               note.pitch - min_pitch] = float(note.velocity) / max_velocity
+    roll_weights[onset_start_frame:onset_end_frame, note.pitch - min_pitch] = (
+        onset_upweight)
+    roll_weights[onset_end_frame:end_frame, note.pitch - min_pitch] = [
+        onset_upweight / x for x in range(1, end_frame - onset_end_frame + 1)
+    ]
+
+    if add_blank_frame_before_onset:
+      if start_frame > 0:
+        roll[start_frame - 1, note.pitch - min_pitch] = 0.0
+        roll_weights[start_frame - 1, note.pitch - min_pitch] = 1.0
+
+  for cc in sequence.control_changes:
+    frame, _ = frames_from_times(cc.time, 0)
+    if frame < len(control_changes):
+      control_changes[frame, cc.control_number] = cc.control_value + 1
+
+  return roll, roll_weights, onsets, velocities, control_changes
+
+
+def pianoroll_to_note_sequence(
+    frames,
+    frames_per_second,
+    min_duration_ms,
+    velocity=70,
+    instrument=0,
+    program=0,
+    qpm=constants.DEFAULT_QUARTERS_PER_MINUTE,
+    min_midi_pitch=constants.MIN_MIDI_PITCH,
+    onset_predictions=None,
+    velocity_values=None):
+  """Convert frames to a NoteSequence."""
+  frame_length_seconds = 1 / frames_per_second
+
+  sequence = music_pb2.NoteSequence()
+  sequence.tempos.add().qpm = qpm
+  sequence.ticks_per_quarter = constants.STANDARD_PPQ
+
+  pitch_start_step = {}
+  onset_velocities = velocity * np.ones(
+      constants.MAX_MIDI_PITCH, dtype=np.int32)
+
+  # Add silent frame at the end so we can do a final loop and terminate any
+  # notes that are still active.
+  frames = np.append(frames, [np.zeros(frames[0].shape)], 0)
+  if velocity_values is None:
+    velocity_values = velocity * np.ones_like(frames, dtype=np.int32)
+
+  if onset_predictions is not None:
+    onset_predictions = np.append(
+        onset_predictions, [np.zeros(onset_predictions[0].shape)], 0)
+    # Ensure that any frame with an onset prediction is considered active.
+    frames = np.logical_or(frames, onset_predictions)
+
+  def end_pitch(pitch, end_frame):
+    """End an active pitch."""
+    start_time = pitch_start_step[pitch] * frame_length_seconds
+    end_time = end_frame * frame_length_seconds
+
+    if (end_time - start_time) * 1000 >= min_duration_ms:
+      note = sequence.notes.add()
+      note.start_time = start_time
+      note.end_time = end_time
+      note.pitch = pitch + min_midi_pitch
+      note.velocity = onset_velocities[pitch]
+      note.instrument = instrument
+      note.program = program
+
+    del pitch_start_step[pitch]
+
+  def unscale_velocity(velocity):
+    """Translates a velocity estimate to a MIDI velocity value."""
+    return int(max(min(velocity, 1.), 0) * 80. + 10.)
+
+  def process_active_pitch(pitch, i):
+    """Process a pitch being active in a given frame."""
+    if pitch not in pitch_start_step:
+      if onset_predictions is not None:
+        # If onset predictions were supplied, only allow a new note to start
+        # if we've predicted an onset.
+        if onset_predictions[i, pitch]:
+          pitch_start_step[pitch] = i
+          onset_velocities[pitch] = unscale_velocity(velocity_values[i, pitch])
+        else:
+          # Even though the frame is active, the onset predictor doesn't
+          # say there should be an onset, so ignore it.
+          pass
+      else:
+        pitch_start_step[pitch] = i
+    else:
+      if onset_predictions is not None:
+        # pitch is already active, but if this is a new onset, we should end
+        # the note and start a new one.
+        if (onset_predictions[i, pitch] and
+            not onset_predictions[i - 1, pitch]):
+          end_pitch(pitch, i)
+          pitch_start_step[pitch] = i
+          onset_velocities[pitch] = unscale_velocity(velocity_values[i, pitch])
+
+  for i, frame in enumerate(frames):
+    for pitch, active in enumerate(frame):
+      if active:
+        process_active_pitch(pitch, i)
+      elif pitch in pitch_start_step:
+        end_pitch(pitch, i)
+
+  sequence.total_time = len(frames) * frame_length_seconds
+  if sequence.notes:
+    assert sequence.total_time >= sequence.notes[-1].end_time
+
+  return sequence
