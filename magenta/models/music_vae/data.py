@@ -113,28 +113,13 @@ class NoteSequenceAugmenter(object):
     stretch_min, stretch_max = (
         self._stretch_range if self._stretch_range else (1.0, 1.0))
 
-    augmented_ns = sequences_lib.augment_note_sequence(
+    return sequences_lib.augment_note_sequence(
         note_sequence,
         stretch_min,
         stretch_max,
         transpose_min,
         transpose_max,
         delete_out_of_range_notes=True)
-
-    if note_sequence.notes:
-      trans_amt = augmented_ns.notes[0].pitch - note_sequence.notes[0].pitch
-
-      for ta in augmented_ns.text_annotations:
-        if ta.annotation_type == CHORD_SYMBOL and ta.text != mm.NO_CHORD:
-          try:
-            figure = chord_symbols_lib.transpose_chord_symbol(
-                ta.text, trans_amt)
-          except chord_symbols_lib.ChordSymbolException:
-            tf.logging.warning('Unable to transpose chord symbol: %s', ta.text)
-            figure = mm.NO_CHORD
-          ta.text = figure
-
-    return augmented_ns
 
   def tf_augment(self, note_sequence_scalar):
     """TF op that augments the NoteSequence."""
