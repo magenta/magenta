@@ -16,17 +16,20 @@
 import collections
 import copy
 import itertools
+import math
 from operator import itemgetter
 import random
 
-# internal imports
+import google3
 import numpy as np
 from six.moves import range  # pylint: disable=redefined-builtin
 import tensorflow as tf
 
-from magenta.music import chord_symbols_lib
-from magenta.music import constants
-from magenta.protobuf import music_pb2
+from google3.pyglib import logging
+
+from google3.third_party.magenta.music import chord_symbols_lib
+from google3.third_party.magenta.music import constants
+from google3.third_party.magenta.protobuf import music_pb2
 
 # Set the quantization cutoff.
 # Note events before this cutoff are rounded down to nearest step. Notes
@@ -43,6 +46,14 @@ QUANTIZE_CUTOFF = 0.5
 BEAT = music_pb2.NoteSequence.TextAnnotation.BEAT
 CHORD_SYMBOL = music_pb2.NoteSequence.TextAnnotation.CHORD_SYMBOL
 UNKNOWN_PITCH_NAME = music_pb2.NoteSequence.UNKNOWN_PITCH_NAME
+
+# The amount to upweight note-on events vs note-off events.
+ONSET_UPWEIGHT = 5.0
+
+# The size of the frame extension for onset event.
+# Frames in [onset_frame-ONSET_WINDOW, onset_frame+ONSET_WINDOW]
+# are considered to contain onset events.
+ONSET_WINDOW = 1
 
 
 class BadTimeSignatureException(Exception):
@@ -1455,4 +1466,147 @@ def infer_dense_chords_for_sequence(
       active_notes.add(idx)
 
   assert not active_notes
+
+
+def sequence_to_pianoroll(
+    sequence,
+    frames_per_second,
+    min_pitch,
+    max_pitch,
+    # pylint: disable=unused-argument
+    min_velocity=0,
+    # pylint: enable=unused-argument
+    max_velocity=127,
+    add_blank_frame_before_onset=False,
+    onset_upweight=ONSET_UPWEIGHT,
+    onset_window=ONSET_WINDOW,
+    onset_length_ms=0,
+    onset_mode='window',
+    onset_delay_ms=0.0,
+    min_frame_occupancy_for_label=0.0):
+  """Transforms a NoteSequence to a pianoroll assuming a single instrument.
+
+  This function uses floating point internally and may return different results
+  on different platforms or with different compiler settings or with
+  different compilers.
+
+  Args:
+    sequence: The NoteSequence to convert.
+    frames_per_second: How many frames per second.
+    min_pitch: pitches in the sequence below this will be ignored.
+    max_pitch: pitches in the sequence above this will be ignored.
+    min_velocity: minimum velocity for the track, currently unused.
+    max_velocity: maximum velocity for the track, not just the local sequence,
+                  used to globally normalize the velocities between [0, 1].
+    add_blank_frame_before_onset: Always have a blank frame before onsets.
+    onset_upweight: Factor by which to increase the weight assigned to onsets.
+    onset_window: Fixed window size for labeling offsets. Used only if
+        onset_mode is 'window'.
+    onset_length_ms: Length in milliseconds for the onset. Used only if
+        onset_mode is 'length_ms'.
+    onset_mode: Either 'window', to use onset_window, or 'length_ms' to use
+        onset_length_ms.
+    onset_delay_ms: Number of milliseconds to delay the onset. Can be negative.
+    min_frame_occupancy_for_label: floating point value in range [0, 1] a note
+        must occupy at least this percentage of a frame, for the frame to be
+        given a label with the note.
+
+  Raises:
+    ValueError: When an unknown onset_mode is supplied.
+
+  Returns:
+    roll: A pianoroll as a 2D array.
+    roll_weights: Weights to be used when calculating loss against roll.
+    onsets: An onset-only pianoroll as a 2D array.
+    velocities: Velocities of onsets scaled from [0, 1]
+    control_changes: Control change onsets as a 2D array (time, control number)
+      with 0 when there is no onset and (control_value + 1) when there is.
+  """
+  roll = np.zeros(
+      (int(sequence.total_time * frames_per_second + 1),
+       max_pitch - min_pitch + 1),
+      dtype=np.float32)
+
+  roll_weights = np.ones_like(roll)
+
+  onsets = np.zeros_like(roll)
+
+  control_changes = np.zeros(
+      (int(sequence.total_time * frames_per_second + 1), 128),
+      dtype=np.int32)
+
+  def frames_from_times(start_time, end_time):
+    """Converts start/end times to start/end frames."""
+    # Will round down because note may start or end in the middle of the frame.
+    start_frame = int(start_time * frames_per_second)
+    start_frame_occupancy = (
+        start_frame + 1 - start_time * frames_per_second)
+    # check for > 0.0 to avoid possible numerical issues
+    if (min_frame_occupancy_for_label > 0.0 and
+        start_frame_occupancy < min_frame_occupancy_for_label):
+      start_frame += 1
+
+    end_frame = int(math.ceil(end_time * frames_per_second))
+    end_frame_occupancy = end_time * frames_per_second - start_frame - 1
+    if (min_frame_occupancy_for_label > 0.0 and
+        end_frame_occupancy < min_frame_occupancy_for_label):
+      end_frame -= 1
+      # can be a problem for very short notes
+      end_frame = max(start_frame, end_frame)
+
+    return start_frame, end_frame
+
+  velocities = np.zeros_like(roll, dtype=np.float32)
+
+  for note in sorted(sequence.notes, key=lambda n: n.start_time):
+    if note.pitch < min_pitch or note.pitch > max_pitch:
+      logging.warning('Skipping out of range pitch: %d', note.pitch)
+      continue
+    start_frame, end_frame = frames_from_times(note.start_time, note.end_time)
+
+    roll[start_frame:end_frame, note.pitch - min_pitch] = 1.0
+
+    # label onset events. Use a window size of onset_window to account of
+    # rounding issue in the start_frame computation.
+    onset_start_time = note.start_time + onset_delay_ms / 1000.
+    onset_end_time = note.end_time + onset_delay_ms / 1000.
+    if onset_mode == 'window':
+      onset_start_frame_without_window, _ = frames_from_times(
+          onset_start_time, onset_end_time)
+
+      onset_start_frame = max(
+          0, onset_start_frame_without_window - onset_window)
+      onset_end_frame = min(onsets.shape[0],
+                            onset_start_frame_without_window + onset_window + 1)
+    elif onset_mode == 'length_ms':
+      onset_end_time = min(onset_end_time,
+                           onset_start_time + onset_length_ms / 1000.)
+      onset_start_frame, onset_end_frame = frames_from_times(
+          onset_start_time, onset_end_time)
+    else:
+      raise ValueError('Unknown onset mode: {}'.format(onset_mode))
+    onsets[onset_start_frame:onset_end_frame, note.pitch - min_pitch] = 1.0
+
+    if note.velocity > max_velocity:
+      raise ValueError('Note velocity exceeds max velocity: %d > %d' %
+                       (note.velocity, max_velocity))
+    velocities[onset_start_frame:onset_end_frame,
+               note.pitch - min_pitch] = float(note.velocity) / max_velocity
+    roll_weights[onset_start_frame:onset_end_frame, note.pitch - min_pitch] = (
+        onset_upweight)
+    roll_weights[onset_end_frame:end_frame, note.pitch - min_pitch] = [
+        onset_upweight / x for x in range(1, end_frame - onset_end_frame + 1)
+    ]
+
+    if add_blank_frame_before_onset:
+      if start_frame > 0:
+        roll[start_frame - 1, note.pitch - min_pitch] = 0.0
+        roll_weights[start_frame - 1, note.pitch - min_pitch] = 1.0
+
+  for cc in sequence.control_changes:
+    frame, _ = frames_from_times(cc.time, 0)
+    if frame < len(control_changes):
+      control_changes[frame, cc.control_number] = cc.control_value + 1
+
+  return roll, roll_weights, onsets, velocities, control_changes
 
