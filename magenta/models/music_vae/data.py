@@ -22,14 +22,12 @@ import collections
 import copy
 import functools
 import itertools
-import random
 
 # internal imports
 import numpy as np
 import tensorflow as tf
 
 import magenta.music as mm
-from magenta.music import chord_symbols_lib
 from magenta.music import chords_lib
 from magenta.music import drums_encoder_decoder
 from magenta.music import sequences_lib
@@ -101,33 +99,26 @@ class NoteSequenceAugmenter(object):
     self._stretch_range = stretch_range
 
   def augment(self, note_sequence):
-    """Python implementation that augments the NoteSequence."""
-    trans_amt = (random.randint(*self._transpose_range)
-                 if self._transpose_range else 0)
-    stretch_factor = (random.uniform(*self._stretch_range)
-                      if self._stretch_range else 1.0)
-    augmented_ns = copy.deepcopy(note_sequence)
-    del augmented_ns.notes[:]
-    for note in note_sequence.notes:
-      aug_pitch = note.pitch
-      if not note.is_drum:
-        aug_pitch += trans_amt
-      if MIN_MIDI_PITCH <= aug_pitch <= MAX_MIDI_PITCH:
-        augmented_ns.notes.add().CopyFrom(note)
-        augmented_ns.notes[-1].pitch = aug_pitch
+    """Python implementation that augments the NoteSequence.
 
-    for ta in augmented_ns.text_annotations:
-      if ta.annotation_type == CHORD_SYMBOL and ta.text != mm.NO_CHORD:
-        try:
-          figure = chord_symbols_lib.transpose_chord_symbol(ta.text, trans_amt)
-        except chord_symbols_lib.ChordSymbolException:
-          tf.logging.warning('Unable to transpose chord symbol: %s', ta.text)
-          figure = mm.NO_CHORD
-        ta.text = figure
+    Args:
+      note_sequence: A NoteSequence proto to be augmented.
 
-    augmented_ns = sequences_lib.stretch_note_sequence(
-        augmented_ns, stretch_factor)
-    return augmented_ns
+    Returns:
+      The randomly augmented NoteSequence.
+    """
+    transpose_min, transpose_max = (
+        self._transpose_range if self._transpose_range else (0, 0))
+    stretch_min, stretch_max = (
+        self._stretch_range if self._stretch_range else (1.0, 1.0))
+
+    return sequences_lib.augment_note_sequence(
+        note_sequence,
+        stretch_min,
+        stretch_max,
+        transpose_min,
+        transpose_max,
+        delete_out_of_range_notes=True)
 
   def tf_augment(self, note_sequence_scalar):
     """TF op that augments the NoteSequence."""
@@ -1204,3 +1195,4 @@ def get_dataset(
     dataset = dataset.prefetch(prefetch_size)
 
   return dataset
+

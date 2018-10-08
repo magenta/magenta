@@ -99,7 +99,7 @@ class NoteSequenceAugmenterTest(tf.test.TestCase):
   def testTfAugment(self):
     augmenter = data.NoteSequenceAugmenter(
         transpose_range=(-3, -3), stretch_range=(2.0, 2.0))
-    augmented_sequence = augmenter.augment(self.sequence)
+
     with self.test_session() as sess:
       sequence_str = tf.placeholder(tf.string)
       augmented_sequence_str_ = augmenter.tf_augment(sequence_str)
@@ -852,3 +852,4 @@ class TrioConverterTest(BaseDataTest, tf.test.TestCase):
 
 if __name__ == '__main__':
   tf.test.main()
+
