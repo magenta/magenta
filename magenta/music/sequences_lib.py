@@ -16,6 +16,7 @@
 import collections
 import copy
 import itertools
+import math
 from operator import itemgetter
 import random
 
@@ -43,6 +44,14 @@ QUANTIZE_CUTOFF = 0.5
 BEAT = music_pb2.NoteSequence.TextAnnotation.BEAT
 CHORD_SYMBOL = music_pb2.NoteSequence.TextAnnotation.CHORD_SYMBOL
 UNKNOWN_PITCH_NAME = music_pb2.NoteSequence.UNKNOWN_PITCH_NAME
+
+# The amount to upweight note-on events vs note-off events.
+ONSET_UPWEIGHT = 5.0
+
+# The size of the frame extension for onset event.
+# Frames in [onset_frame-ONSET_WINDOW, onset_frame+ONSET_WINDOW]
+# are considered to contain onset events.
+ONSET_WINDOW = 1
 
 
 class BadTimeSignatureException(Exception):
@@ -114,10 +123,10 @@ def _extract_subsequences(sequence, split_times, sustain_control_number=64):
   Args:
     sequence: The NoteSequence to extract subsequences from.
     split_times: A Python list of subsequence boundary times. The first
-        subsequence will start at `split_times[0]` and end at `split_times[1]`,
-        the next subsequence will start at `split_times[1]` and end at
-        `split_times[2]`, and so on with the last subsequence ending at
-        `split_times[-1]`.
+      subsequence will start at `split_times[0]` and end at `split_times[1]`,
+      the next subsequence will start at `split_times[1]` and end at
+      `split_times[2]`, and so on with the last subsequence ending at
+      `split_times[-1]`.
     sustain_control_number: The MIDI control number for sustain pedal.
 
   Returns:
@@ -153,8 +162,9 @@ def _extract_subsequences(sequence, split_times, sustain_control_number=64):
   del subsequence.control_changes[:]
   del subsequence.pitch_bends[:]
 
-  subsequences = [copy.deepcopy(subsequence)
-                  for _ in range(len(split_times) - 1)]
+  subsequences = [
+      copy.deepcopy(subsequence) for _ in range(len(split_times) - 1)
+  ]
 
   # Extract notes into subsequences.
   subsequence_index = -1
@@ -183,14 +193,15 @@ def _extract_subsequences(sequence, split_times, sustain_control_number=64):
 
   events_by_type = [
       sequence.time_signatures, sequence.key_signatures, sequence.tempos,
-      [annotation for annotation in sequence.text_annotations
-       if annotation.annotation_type == CHORD_SYMBOL]]
-  new_event_containers = [
-      [s.time_signatures for s in subsequences],
-      [s.key_signatures for s in subsequences],
-      [s.tempos for s in subsequences],
-      [s.text_annotations for s in subsequences]
+      [
+          annotation for annotation in sequence.text_annotations
+          if annotation.annotation_type == CHORD_SYMBOL
+      ]
   ]
+  new_event_containers = [[s.time_signatures for s in subsequences],
+                          [s.key_signatures for s in subsequences],
+                          [s.tempos for s in subsequences],
+                          [s.text_annotations for s in subsequences]]
 
   for events, containers in zip(events_by_type, new_event_containers):
     previous_event = None
@@ -226,12 +237,11 @@ def _extract_subsequences(sequence, split_times, sustain_control_number=64):
   # Copy stateless events to subsequences. Unlike the stateful events above,
   # stateless events do not have an effect outside of the subsequence in which
   # they occur.
-  stateless_events_by_type = [
-      [annotation for annotation in sequence.text_annotations
-       if annotation.annotation_type in (BEAT,)]]
-  new_stateless_event_containers = [
-      [s.text_annotations for s in subsequences]
-  ]
+  stateless_events_by_type = [[
+      annotation for annotation in sequence.text_annotations
+      if annotation.annotation_type in (BEAT,)
+  ]]
+  new_stateless_event_containers = [[s.text_annotations for s in subsequences]]
   for events, containers in zip(stateless_events_by_type,
                                 new_stateless_event_containers):
     subsequence_index = -1
@@ -249,8 +259,10 @@ def _extract_subsequences(sequence, split_times, sustain_control_number=64):
   # Extract sustain pedal events (other control changes are deleted). Sustain
   # pedal state is maintained per-instrument and added to the beginning of each
   # subsequence.
-  sustain_events = [cc for cc in sequence.control_changes
-                    if cc.control_number == sustain_control_number]
+  sustain_events = [
+      cc for cc in sequence.control_changes
+      if cc.control_number == sustain_control_number
+  ]
   previous_sustain_events = {}
   subsequence_index = -1
   for sustain_event in sorted(sustain_events, key=lambda event: event.time):
@@ -294,7 +306,9 @@ def _extract_subsequences(sequence, split_times, sustain_control_number=64):
   return subsequences
 
 
-def extract_subsequence(sequence, start_time, end_time,
+def extract_subsequence(sequence,
+                        start_time,
+                        end_time,
                         sustain_control_number=64):
   """Extracts a subsequence from a NoteSequence.
 
@@ -366,7 +380,8 @@ def shift_sequence_times(sequence, shift_seconds):
   events_to_shift = [
       shifted.time_signatures, shifted.key_signatures, shifted.tempos,
       shifted.pitch_bends, shifted.control_changes, shifted.text_annotations,
-      shifted.section_annotations]
+      shifted.section_annotations
+  ]
 
   for event in itertools.chain(*events_to_shift):
     event.time += shift_seconds
@@ -396,7 +411,8 @@ def remove_redundant_data(sequence):
   fixed_sequence = copy.deepcopy(sequence)
   for events in [
       fixed_sequence.time_signatures, fixed_sequence.key_signatures,
-      fixed_sequence.tempos]:
+      fixed_sequence.tempos
+  ]:
     events.sort(key=lambda e: e.time)
     for i in range(len(events) - 1, 0, -1):
       tmp_ts = copy.deepcopy(events[i])
@@ -458,8 +474,8 @@ def concatenate_sequences(sequences, sequence_durations=None):
     if sequence_durations and sequence_durations[i] < sequence.total_time:
       raise ValueError(
           'Specified sequence duration ({}) must not be less than the '
-          'total_time of the sequence ({})'.format(
-              sequence_durations[i], sequence.total_time))
+          'total_time of the sequence ({})'.format(sequence_durations[i],
+                                                   sequence.total_time))
     if current_total_time > 0:
       cat_seq.MergeFrom(shift_sequence_times(sequence, current_total_time))
     else:
@@ -588,8 +604,8 @@ def assert_is_quantized_sequence(note_sequence):
     QuantizationStatusException: If the sequence is not quantized.
   """
   if not is_quantized_sequence(note_sequence):
-    raise QuantizationStatusException('NoteSequence %s is not quantized.' %
-                                      note_sequence.id)
+    raise QuantizationStatusException(
+        'NoteSequence %s is not quantized.' % note_sequence.id)
 
 
 def assert_is_relative_quantized_sequence(note_sequence):
@@ -603,9 +619,9 @@ def assert_is_relative_quantized_sequence(note_sequence):
         tempo.
   """
   if not is_relative_quantized_sequence(note_sequence):
-    raise QuantizationStatusException('NoteSequence %s is not quantized or is '
-                                      'quantized based on absolute timing.' %
-                                      note_sequence.id)
+    raise QuantizationStatusException(
+        'NoteSequence %s is not quantized or is '
+        'quantized based on absolute timing.' % note_sequence.id)
 
 
 def assert_is_absolute_quantized_sequence(note_sequence):
@@ -619,9 +635,9 @@ def assert_is_absolute_quantized_sequence(note_sequence):
     time.
   """
   if not is_absolute_quantized_sequence(note_sequence):
-    raise QuantizationStatusException('NoteSequence %s is not quantized or is '
-                                      'quantized based on relative timing.' %
-                                      note_sequence.id)
+    raise QuantizationStatusException(
+        'NoteSequence %s is not quantized or is '
+        'quantized based on relative timing.' % note_sequence.id)
 
 
 def steps_per_bar_in_quantized_sequence(note_sequence):
@@ -636,14 +652,15 @@ def steps_per_bar_in_quantized_sequence(note_sequence):
   assert_is_relative_quantized_sequence(note_sequence)
 
   quarters_per_beat = 4.0 / note_sequence.time_signatures[0].denominator
-  quarters_per_bar = (quarters_per_beat *
-                      note_sequence.time_signatures[0].numerator)
-  steps_per_bar_float = (note_sequence.quantization_info.steps_per_quarter *
-                         quarters_per_bar)
+  quarters_per_bar = (
+      quarters_per_beat * note_sequence.time_signatures[0].numerator)
+  steps_per_bar_float = (
+      note_sequence.quantization_info.steps_per_quarter * quarters_per_bar)
   return steps_per_bar_float
 
 
-def split_note_sequence(note_sequence, hop_size_seconds,
+def split_note_sequence(note_sequence,
+                        hop_size_seconds,
                         skip_splits_inside_notes=False):
   """Split one NoteSequence into many at specified time intervals.
 
@@ -659,27 +676,27 @@ def split_note_sequence(note_sequence, hop_size_seconds,
   Args:
     note_sequence: The NoteSequence to split.
     hop_size_seconds: The hop size, in seconds, at which the NoteSequence will
-        be split. Alternatively, this can be a Python list of times in seconds
-        at which to split the NoteSequence.
+      be split. Alternatively, this can be a Python list of times in seconds at
+      which to split the NoteSequence.
     skip_splits_inside_notes: If False, the NoteSequence will be split at all
-        hop positions, regardless of whether or not any notes are sustained
-        across the potential split time, thus sustained notes will be truncated.
-        If True, the NoteSequence will not be split at positions that occur
-        within sustained notes.
+      hop positions, regardless of whether or not any notes are sustained across
+      the potential split time, thus sustained notes will be truncated. If True,
+      the NoteSequence will not be split at positions that occur within
+      sustained notes.
 
   Returns:
     A Python list of NoteSequences.
   """
-  notes_by_start_time = sorted(list(note_sequence.notes),
-                               key=lambda note: note.start_time)
+  notes_by_start_time = sorted(
+      list(note_sequence.notes), key=lambda note: note.start_time)
   note_idx = 0
   notes_crossing_split = []
 
   if isinstance(hop_size_seconds, list):
     split_times = sorted(hop_size_seconds)
   else:
-    split_times = np.arange(
-        hop_size_seconds, note_sequence.total_time, hop_size_seconds)
+    split_times = np.arange(hop_size_seconds, note_sequence.total_time,
+                            hop_size_seconds)
 
   valid_split_times = [0.0]
 
@@ -689,8 +706,9 @@ def split_note_sequence(note_sequence, hop_size_seconds,
            notes_by_start_time[note_idx].start_time < split_time):
       notes_crossing_split.append(notes_by_start_time[note_idx])
       note_idx += 1
-    notes_crossing_split = [note for note in notes_crossing_split
-                            if note.end_time > split_time]
+    notes_crossing_split = [
+        note for note in notes_crossing_split if note.end_time > split_time
+    ]
 
     if not (skip_splits_inside_notes and notes_crossing_split):
       valid_split_times.append(split_time)
@@ -717,9 +735,9 @@ def split_note_sequence_on_time_changes(note_sequence,
   Args:
     note_sequence: The NoteSequence to split.
     skip_splits_inside_notes: If False, the NoteSequence will be split at all
-        time changes, regardless of whether or not any notes are sustained
-        across the time change. If True, the NoteSequence will not be split at
-        time changes that occur within sustained notes.
+      time changes, regardless of whether or not any notes are sustained across
+      the time change. If True, the NoteSequence will not be split at time
+      changes that occur within sustained notes.
 
   Returns:
     A Python list of NoteSequences.
@@ -731,11 +749,12 @@ def split_note_sequence_on_time_changes(note_sequence,
   time_signatures_and_tempos = sorted(
       list(note_sequence.time_signatures) + list(note_sequence.tempos),
       key=lambda t: t.time)
-  time_signatures_and_tempos = [t for t in time_signatures_and_tempos
-                                if t.time < note_sequence.total_time]
+  time_signatures_and_tempos = [
+      t for t in time_signatures_and_tempos if t.time < note_sequence.total_time
+  ]
 
-  notes_by_start_time = sorted(list(note_sequence.notes),
-                               key=lambda note: note.start_time)
+  notes_by_start_time = sorted(
+      list(note_sequence.notes), key=lambda note: note.start_time)
   note_idx = 0
   notes_crossing_split = []
 
@@ -757,8 +776,10 @@ def split_note_sequence_on_time_changes(note_sequence,
            notes_by_start_time[note_idx].start_time < time_change.time):
       notes_crossing_split.append(notes_by_start_time[note_idx])
       note_idx += 1
-    notes_crossing_split = [note for note in notes_crossing_split
-                            if note.end_time > time_change.time]
+    notes_crossing_split = [
+        note for note in notes_crossing_split
+        if note.end_time > time_change.time
+    ]
 
     if time_change.time > valid_split_times[-1]:
       if not (skip_splits_inside_notes and notes_crossing_split):
@@ -781,7 +802,8 @@ def split_note_sequence_on_time_changes(note_sequence,
     return []
 
 
-def quantize_to_step(unquantized_seconds, steps_per_second,
+def quantize_to_step(unquantized_seconds,
+                     steps_per_second,
                      quantize_cutoff=QUANTIZE_CUTOFF):
   """Quantizes seconds to the nearest step, given steps_per_second.
 
@@ -815,19 +837,18 @@ def _quantize_notes(note_sequence, steps_per_second):
 
   Args:
     note_sequence: A music_pb2.NoteSequence protocol buffer. Will be modified in
-        place.
+      place.
     steps_per_second: Each second will be divided into this many quantized time
-        steps.
+      steps.
 
   Raises:
     NegativeTimeException: If a note or chord occurs at a negative time.
   """
   for note in note_sequence.notes:
     # Quantize the start and end times of the note.
-    note.quantized_start_step = quantize_to_step(
-        note.start_time, steps_per_second)
-    note.quantized_end_step = quantize_to_step(
-        note.end_time, steps_per_second)
+    note.quantized_start_step = quantize_to_step(note.start_time,
+                                                 steps_per_second)
+    note.quantized_end_step = quantize_to_step(note.end_time, steps_per_second)
     if note.quantized_end_step == note.quantized_start_step:
       note.quantized_end_step += 1
 
@@ -842,8 +863,8 @@ def _quantize_notes(note_sequence, steps_per_second):
       note_sequence.total_quantized_steps = note.quantized_end_step
 
   # Also quantize control changes and text annotations.
-  for event in itertools.chain(
-      note_sequence.control_changes, note_sequence.text_annotations):
+  for event in itertools.chain(note_sequence.control_changes,
+                               note_sequence.text_annotations):
     # Quantize the event time, disallowing negative time.
     event.quantized_step = quantize_to_step(event.time, steps_per_second)
     if event.quantized_step < 0:
@@ -865,8 +886,8 @@ def quantize_note_sequence(note_sequence, steps_per_quarter):
 
   Args:
     note_sequence: A music_pb2.NoteSequence protocol buffer.
-    steps_per_quarter: Each quarter note of music will be divided into this
-        many quantized time steps.
+    steps_per_quarter: Each quarter note of music will be divided into this many
+      quantized time steps.
 
   Returns:
     A copy of the original NoteSequence, with quantized times added.
@@ -893,19 +914,19 @@ def quantize_note_sequence(note_sequence, steps_per_quarter):
         time_signatures[0].denominator == 4):
       raise MultipleTimeSignatureException(
           'NoteSequence has an implicit change from initial 4/4 time '
-          'signature to %d/%d at %.2f seconds.' % (
-              time_signatures[0].numerator, time_signatures[0].denominator,
-              time_signatures[0].time))
+          'signature to %d/%d at %.2f seconds.' %
+          (time_signatures[0].numerator, time_signatures[0].denominator,
+           time_signatures[0].time))
 
     for time_signature in time_signatures[1:]:
       if (time_signature.numerator != qns.time_signatures[0].numerator or
           time_signature.denominator != qns.time_signatures[0].denominator):
         raise MultipleTimeSignatureException(
             'NoteSequence has at least one time signature change from %d/%d to '
-            '%d/%d at %.2f seconds.' % (
-                time_signatures[0].numerator, time_signatures[0].denominator,
-                time_signature.numerator, time_signature.denominator,
-                time_signature.time))
+            '%d/%d at %.2f seconds.' %
+            (time_signatures[0].numerator, time_signatures[0].denominator,
+             time_signature.numerator, time_signature.denominator,
+             time_signature.time))
 
     # Make it clear that there is only 1 time signature and it starts at the
     # beginning.
@@ -932,13 +953,12 @@ def quantize_note_sequence(note_sequence, steps_per_quarter):
     # There is an implicit 120.0 qpm tempo at 0 time. So if the first tempo is
     # something other that 120.0 and it's at a time other than 0, that's an
     # implicit tempo change.
-    if tempos[0].time != 0 and (
-        tempos[0].qpm != constants.DEFAULT_QUARTERS_PER_MINUTE):
+    if tempos[0].time != 0 and (tempos[0].qpm !=
+                                constants.DEFAULT_QUARTERS_PER_MINUTE):
       raise MultipleTempoException(
           'NoteSequence has an implicit tempo change from initial %.1f qpm to '
-          '%.1f qpm at %.2f seconds.' % (
-              constants.DEFAULT_QUARTERS_PER_MINUTE, tempos[0].qpm,
-              tempos[0].time))
+          '%.1f qpm at %.2f seconds.' % (constants.DEFAULT_QUARTERS_PER_MINUTE,
+                                         tempos[0].qpm, tempos[0].time))
 
     for tempo in tempos[1:]:
       if tempo.qpm != qns.tempos[0].qpm:
@@ -981,7 +1001,7 @@ def quantize_note_sequence_absolute(note_sequence, steps_per_second):
   Args:
     note_sequence: A music_pb2.NoteSequence protocol buffer.
     steps_per_second: Each second will be divided into this many quantized time
-        steps.
+      steps.
 
   Returns:
     A copy of the original NoteSequence, with quantized times added.
@@ -1009,12 +1029,12 @@ def transpose_note_sequence(ns,
   Args:
     ns: The NoteSequence proto to be transposed.
     amount: Number of half-steps to transpose up or down.
-    min_allowed_pitch: Minimum pitch allowed in transposed NoteSequence.
-        Notes assigned lower pitches will be deleted.
-    max_allowed_pitch: Maximum pitch allowed in transposed NoteSequence.
-        Notes assigned higher pitches will be deleted.
+    min_allowed_pitch: Minimum pitch allowed in transposed NoteSequence. Notes
+      assigned lower pitches will be deleted.
+    max_allowed_pitch: Maximum pitch allowed in transposed NoteSequence. Notes
+      assigned higher pitches will be deleted.
     transpose_chords: If True, also transpose chord symbol text annotations. If
-        False, chord symbols will be removed.
+      False, chord symbols will be removed.
     in_place: If True, the input note_sequence is edited directly.
 
   Returns:
@@ -1086,9 +1106,9 @@ def _clamp_transpose(transpose_amount, ns_min_pitch, ns_max_pitch,
     ns_min_pitch: The lowest pitch in the target note sequence.
     ns_max_pitch: The highest pitch in the target note sequence.
     min_allowed_pitch: The lowest pitch that should be allowed in the transposed
-        note sequence.
+      note sequence.
     max_allowed_pitch: The highest pitch that should be allowed in the
-        transposed note sequence.
+      transposed note sequence.
 
   Returns:
     A new transpose amount that, if applied to the target note sequence, will
@@ -1102,15 +1122,14 @@ def _clamp_transpose(transpose_amount, ns_min_pitch, ns_max_pitch,
   return transpose_amount
 
 
-def augment_note_sequence(
-    ns,
-    min_stretch_factor,
-    max_stretch_factor,
-    min_transpose,
-    max_transpose,
-    min_allowed_pitch=constants.MIN_MIDI_PITCH,
-    max_allowed_pitch=constants.MAX_MIDI_PITCH,
-    delete_out_of_range_notes=False):
+def augment_note_sequence(ns,
+                          min_stretch_factor,
+                          max_stretch_factor,
+                          min_transpose,
+                          max_transpose,
+                          min_allowed_pitch=constants.MIN_MIDI_PITCH,
+                          max_allowed_pitch=constants.MAX_MIDI_PITCH,
+                          delete_out_of_range_notes=False):
   """Modifed a NoteSequence with random stretching and transposition.
 
   This method can be used to augment a dataset for training neural nets.
@@ -1130,9 +1149,8 @@ def augment_note_sequence(
       the interval [min_transpose, max_transpose], and any out-of-bounds notes
       will be deleted. If false, the interval [min_transpose, max_transpose]
       will be truncated such that no out-of-bounds notes will ever be created.
-
   TODO(dei): Add support for specifying custom distributions over possible
-      values of note stretch and transposition amount.
+    values of note stretch and transposition amount.
 
   Returns:
     The randomly augmented NoteSequence.
@@ -1183,7 +1201,8 @@ def augment_note_sequence(
     ns, _ = transpose_note_sequence(
         ns,
         transposition_amount,
-        min_allowed_pitch, max_allowed_pitch,
+        min_allowed_pitch,
+        max_allowed_pitch,
         in_place=True)
 
   return ns
@@ -1195,9 +1214,9 @@ def stretch_note_sequence(note_sequence, stretch_factor, in_place=False):
   Args:
     note_sequence: The NoteSequence to stretch.
     stretch_factor: How much to stretch the NoteSequence. Values greater than
-        one increase the length of the NoteSequence (making it "slower"). Values
-        less than one decrease the length of the NoteSequence (making it
-        "faster").
+      one increase the length of the NoteSequence (making it "slower"). Values
+      less than one decrease the length of the NoteSequence (making it
+      "faster").
     in_place: If True, the input note_sequence is edited directly.
 
   Returns:
@@ -1228,12 +1247,9 @@ def stretch_note_sequence(note_sequence, stretch_factor, in_place=False):
 
   # Stretch all other event times.
   events = itertools.chain(
-      stretched_sequence.time_signatures,
-      stretched_sequence.key_signatures,
-      stretched_sequence.tempos,
-      stretched_sequence.pitch_bends,
-      stretched_sequence.control_changes,
-      stretched_sequence.text_annotations)
+      stretched_sequence.time_signatures, stretched_sequence.key_signatures,
+      stretched_sequence.tempos, stretched_sequence.pitch_bends,
+      stretched_sequence.control_changes, stretched_sequence.text_annotations)
   for event in events:
     event.time *= stretch_factor
 
@@ -1264,11 +1280,11 @@ def apply_sustain_control_changes(note_sequence, sustain_control_number=64):
 
   Args:
     note_sequence: The NoteSequence for which to apply sustain. This object will
-        not be modified.
+      not be modified.
     sustain_control_number: The MIDI control number for sustain pedal. Control
-        events with this number and value 0-63 will be treated as sustain pedal
-        OFF events, and control events with this number and value 64-127 will be
-        treated as sustain pedal ON events.
+      events with this number and value 0-63 will be treated as sustain pedal
+      OFF events, and control events with this number and value 64-127 will be
+      treated as sustain pedal ON events.
 
   Returns:
     A copy of `note_sequence` but with note end times extended to account for
@@ -1286,18 +1302,16 @@ def apply_sustain_control_changes(note_sequence, sustain_control_number=64):
 
   # Sort all note on/off and sustain on/off events.
   events = []
-  events.extend([(note.start_time, _NOTE_ON, note)
-                 for note in sequence.notes])
-  events.extend([(note.end_time, _NOTE_OFF, note)
-                 for note in sequence.notes])
+  events.extend([(note.start_time, _NOTE_ON, note) for note in sequence.notes])
+  events.extend([(note.end_time, _NOTE_OFF, note) for note in sequence.notes])
 
   for cc in sequence.control_changes:
     if cc.control_number != sustain_control_number:
       continue
     value = cc.control_value
     if value < 0 or value > 127:
-      tf.logging.warn(
-          'Sustain control change has out of range value: %d', value)
+      tf.logging.warn('Sustain control change has out of range value: %d',
+                      value)
     if value >= 64:
       events.append((cc.time, _SUSTAIN_ON, cc))
     elif value < 64:
@@ -1375,8 +1389,9 @@ def apply_sustain_control_changes(note_sequence, sustain_control_number=64):
   return sequence
 
 
-def infer_dense_chords_for_sequence(
-    sequence, instrument=None, min_notes_per_chord=3):
+def infer_dense_chords_for_sequence(sequence,
+                                    instrument=None,
+                                    min_notes_per_chord=3):
   """Infers chords for a NoteSequence and adds them as TextAnnotations.
 
   For each set of simultaneously-active notes in a NoteSequence (optionally for
@@ -1393,19 +1408,20 @@ def infer_dense_chords_for_sequence(
 
   Args:
     sequence: The NoteSequence for which chords will be inferred. Will be
-        modified in place.
+      modified in place.
     instrument: The instrument number whose notes will be used for chord
-        inference. If None, all instruments will be used.
+      inference. If None, all instruments will be used.
     min_notes_per_chord: The minimum number of simultaneous notes for which to
-        infer a chord.
+      infer a chord.
 
   Raises:
     ChordSymbolException: If a chord cannot be determined for a set of
     simultaneous notes in `sequence`.
   """
-  notes = [note for note in sequence.notes
-           if not note.is_drum and (instrument is None or
-                                    note.instrument == instrument)]
+  notes = [
+      note for note in sequence.notes if not note.is_drum and
+      (instrument is None or note.instrument == instrument)
+  ]
   sorted_notes = sorted(notes, key=lambda note: note.start_time)
 
   # If the sequence is quantized, use quantized steps instead of time.
@@ -1417,10 +1433,12 @@ def infer_dense_chords_for_sequence(
     note_end = lambda note: note.end_time
 
   # Sort all note start and end events.
-  onsets = [(note_start(note), idx, False)
-            for idx, note in enumerate(sorted_notes)]
-  offsets = [(note_end(note), idx, True)
-             for idx, note in enumerate(sorted_notes)]
+  onsets = [
+      (note_start(note), idx, False) for idx, note in enumerate(sorted_notes)
+  ]
+  offsets = [
+      (note_end(note), idx, True) for idx, note in enumerate(sorted_notes)
+  ]
   events = sorted(onsets + offsets)
 
   current_time = 0
@@ -1456,3 +1474,234 @@ def infer_dense_chords_for_sequence(
 
   assert not active_notes
 
+
+def sequence_to_pianoroll(
+    sequence,
+    frames_per_second,
+    min_pitch,
+    max_pitch,
+    # pylint: disable=unused-argument
+    min_velocity=constants.MIN_MIDI_PITCH,
+    # pylint: enable=unused-argument
+    max_velocity=constants.MAX_MIDI_PITCH,
+    add_blank_frame_before_onset=False,
+    onset_upweight=ONSET_UPWEIGHT,
+    onset_window=ONSET_WINDOW,
+    onset_length_ms=0,
+    onset_mode='window',
+    onset_delay_ms=0.0,
+    min_frame_occupancy_for_label=0.0):
+  """Transforms a NoteSequence to a pianoroll assuming a single instrument.
+
+  This function uses floating point internally and may return different results
+  on different platforms or with different compiler settings or with
+  different compilers.
+
+  Args:
+    sequence: The NoteSequence to convert.
+    frames_per_second: How many frames per second.
+    min_pitch: pitches in the sequence below this will be ignored.
+    max_pitch: pitches in the sequence above this will be ignored.
+    min_velocity: minimum velocity for the track, currently unused.
+    max_velocity: maximum velocity for the track, not just the local sequence,
+      used to globally normalize the velocities between [0, 1].
+    add_blank_frame_before_onset: Always have a blank frame before onsets.
+    onset_upweight: Factor by which to increase the weight assigned to onsets.
+    onset_window: Fixed window size for labeling offsets. Used only if
+      onset_mode is 'window'.
+    onset_length_ms: Length in milliseconds for the onset. Used only if
+      onset_mode is 'length_ms'.
+    onset_mode: Either 'window', to use onset_window, or 'length_ms' to use
+      onset_length_ms.
+    onset_delay_ms: Number of milliseconds to delay the onset. Can be negative.
+    min_frame_occupancy_for_label: floating point value in range [0, 1] a note
+      must occupy at least this percentage of a frame, for the frame to be given
+      a label with the note.
+
+  Raises:
+    ValueError: When an unknown onset_mode is supplied.
+
+  Returns:
+    roll: A pianoroll as a 2D array.
+    roll_weights: Weights to be used when calculating loss against roll.
+    onsets: An onset-only pianoroll as a 2D array.
+    velocities: Velocities of onsets scaled from [0, 1]
+    control_changes: Control change onsets as a 2D array (time, control number)
+      with 0 when there is no onset and (control_value + 1) when there is.
+  """
+  roll = np.zeros((int(sequence.total_time * frames_per_second + 1),
+                   max_pitch - min_pitch + 1),
+                  dtype=np.float32)
+
+  roll_weights = np.ones_like(roll)
+
+  onsets = np.zeros_like(roll)
+
+  control_changes = np.zeros(
+      (int(sequence.total_time * frames_per_second + 1), 128), dtype=np.int32)
+
+  def frames_from_times(start_time, end_time):
+    """Converts start/end times to start/end frames."""
+    # Will round down because note may start or end in the middle of the frame.
+    start_frame = int(start_time * frames_per_second)
+    start_frame_occupancy = (start_frame + 1 - start_time * frames_per_second)
+    # check for > 0.0 to avoid possible numerical issues
+    if (min_frame_occupancy_for_label > 0.0 and
+        start_frame_occupancy < min_frame_occupancy_for_label):
+      start_frame += 1
+
+    end_frame = int(math.ceil(end_time * frames_per_second))
+    end_frame_occupancy = end_time * frames_per_second - start_frame - 1
+    if (min_frame_occupancy_for_label > 0.0 and
+        end_frame_occupancy < min_frame_occupancy_for_label):
+      end_frame -= 1
+      # can be a problem for very short notes
+      end_frame = max(start_frame, end_frame)
+
+    return start_frame, end_frame
+
+  velocities = np.zeros_like(roll, dtype=np.float32)
+
+  for note in sorted(sequence.notes, key=lambda n: n.start_time):
+    if note.pitch < min_pitch or note.pitch > max_pitch:
+      tf.logging.warn('Skipping out of range pitch: %d', note.pitch)
+      continue
+    start_frame, end_frame = frames_from_times(note.start_time, note.end_time)
+
+    roll[start_frame:end_frame, note.pitch - min_pitch] = 1.0
+
+    # label onset events. Use a window size of onset_window to account of
+    # rounding issue in the start_frame computation.
+    onset_start_time = note.start_time + onset_delay_ms / 1000.
+    onset_end_time = note.end_time + onset_delay_ms / 1000.
+    if onset_mode == 'window':
+      onset_start_frame_without_window, _ = frames_from_times(
+          onset_start_time, onset_end_time)
+
+      onset_start_frame = max(0,
+                              onset_start_frame_without_window - onset_window)
+      onset_end_frame = min(onsets.shape[0],
+                            onset_start_frame_without_window + onset_window + 1)
+    elif onset_mode == 'length_ms':
+      onset_end_time = min(onset_end_time,
+                           onset_start_time + onset_length_ms / 1000.)
+      onset_start_frame, onset_end_frame = frames_from_times(
+          onset_start_time, onset_end_time)
+    else:
+      raise ValueError('Unknown onset mode: {}'.format(onset_mode))
+    onsets[onset_start_frame:onset_end_frame, note.pitch - min_pitch] = 1.0
+
+    if note.velocity > max_velocity:
+      raise ValueError('Note velocity exceeds max velocity: %d > %d' %
+                       (note.velocity, max_velocity))
+    velocities[onset_start_frame:onset_end_frame, note.pitch -
+               min_pitch] = float(note.velocity) / max_velocity
+    roll_weights[onset_start_frame:onset_end_frame, note.pitch - min_pitch] = (
+        onset_upweight)
+    roll_weights[onset_end_frame:end_frame, note.pitch - min_pitch] = [
+        onset_upweight / x for x in range(1, end_frame - onset_end_frame + 1)
+    ]
+
+    if add_blank_frame_before_onset:
+      if start_frame > 0:
+        roll[start_frame - 1, note.pitch - min_pitch] = 0.0
+        roll_weights[start_frame - 1, note.pitch - min_pitch] = 1.0
+
+  for cc in sequence.control_changes:
+    frame, _ = frames_from_times(cc.time, 0)
+    if frame < len(control_changes):
+      control_changes[frame, cc.control_number] = cc.control_value + 1
+
+  return roll, roll_weights, onsets, velocities, control_changes
+
+
+def pianoroll_to_note_sequence(frames,
+                               frames_per_second,
+                               min_duration_ms,
+                               velocity=70,
+                               instrument=0,
+                               program=0,
+                               qpm=constants.DEFAULT_QUARTERS_PER_MINUTE,
+                               min_midi_pitch=constants.MIN_MIDI_PITCH,
+                               onset_predictions=None,
+                               velocity_values=None):
+  """Convert frames to a NoteSequence."""
+  frame_length_seconds = 1 / frames_per_second
+
+  sequence = music_pb2.NoteSequence()
+  sequence.tempos.add().qpm = qpm
+  sequence.ticks_per_quarter = constants.STANDARD_PPQ
+
+  pitch_start_step = {}
+  onset_velocities = velocity * np.ones(
+      constants.MAX_MIDI_PITCH, dtype=np.int32)
+
+  # Add silent frame at the end so we can do a final loop and terminate any
+  # notes that are still active.
+  frames = np.append(frames, [np.zeros(frames[0].shape)], 0)
+  if velocity_values is None:
+    velocity_values = velocity * np.ones_like(frames, dtype=np.int32)
+
+  if onset_predictions is not None:
+    onset_predictions = np.append(onset_predictions,
+                                  [np.zeros(onset_predictions[0].shape)], 0)
+    # Ensure that any frame with an onset prediction is considered active.
+    frames = np.logical_or(frames, onset_predictions)
+
+  def end_pitch(pitch, end_frame):
+    """End an active pitch."""
+    start_time = pitch_start_step[pitch] * frame_length_seconds
+    end_time = end_frame * frame_length_seconds
+
+    if (end_time - start_time) * 1000 >= min_duration_ms:
+      note = sequence.notes.add()
+      note.start_time = start_time
+      note.end_time = end_time
+      note.pitch = pitch + min_midi_pitch
+      note.velocity = onset_velocities[pitch]
+      note.instrument = instrument
+      note.program = program
+
+    del pitch_start_step[pitch]
+
+  def unscale_velocity(velocity):
+    """Translates a velocity estimate to a MIDI velocity value."""
+    return int(max(min(velocity, 1.), 0) * 80. + 10.)
+
+  def process_active_pitch(pitch, i):
+    """Process a pitch being active in a given frame."""
+    if pitch not in pitch_start_step:
+      if onset_predictions is not None:
+        # If onset predictions were supplied, only allow a new note to start
+        # if we've predicted an onset.
+        if onset_predictions[i, pitch]:
+          pitch_start_step[pitch] = i
+          onset_velocities[pitch] = unscale_velocity(velocity_values[i, pitch])
+        else:
+          # Even though the frame is active, the onset predictor doesn't
+          # say there should be an onset, so ignore it.
+          pass
+      else:
+        pitch_start_step[pitch] = i
+    else:
+      if onset_predictions is not None:
+        # pitch is already active, but if this is a new onset, we should end
+        # the note and start a new one.
+        if (onset_predictions[i, pitch] and
+            not onset_predictions[i - 1, pitch]):
+          end_pitch(pitch, i)
+          pitch_start_step[pitch] = i
+          onset_velocities[pitch] = unscale_velocity(velocity_values[i, pitch])
+
+  for i, frame in enumerate(frames):
+    for pitch, active in enumerate(frame):
+      if active:
+        process_active_pitch(pitch, i)
+      elif pitch in pitch_start_step:
+        end_pitch(pitch, i)
+
+  sequence.total_time = len(frames) * frame_length_seconds
+  if sequence.notes:
+    assert sequence.total_time >= sequence.notes[-1].end_time
+
+  return sequence

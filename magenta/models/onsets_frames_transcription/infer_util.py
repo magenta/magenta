@@ -21,7 +21,6 @@ from __future__ import print_function
 # internal imports
 
 from . import constants
-from . import data
 
 import mir_eval
 import numpy as np
@@ -29,6 +28,7 @@ import pretty_midi
 import tensorflow as tf
 
 from magenta.music import constants as mm_constants
+from magenta.music import sequences_lib
 from magenta.protobuf import music_pb2
 
 
@@ -91,7 +91,6 @@ def pianoroll_to_note_sequence(
     """End an active pitch."""
     start_time = pitch_start_step[pitch] * frame_length_seconds
     end_time = end_frame * frame_length_seconds
-
     if (end_time - start_time) * 1000 >= min_duration_ms:
       note = sequence.notes.add()
       note.start_time = start_time
@@ -320,7 +319,7 @@ def score_sequence(session, global_step_increment, summary_op, summary_writer,
            est_intervals,
            pretty_midi.note_number_to_hz(est_pitches)))
 
-  frame_predictions, _, _, _ = data.sequence_to_pianoroll(
+  frame_predictions, _, _, _, _ = sequences_lib.sequence_to_pianoroll(
       sequence_prediction,
       frames_per_second=frames_per_second,
       min_pitch=constants.MIN_MIDI_PITCH,
@@ -361,7 +360,7 @@ def score_sequence(session, global_step_increment, summary_op, summary_writer,
 def posterior_pianoroll_image(frame_probs, sequence_prediction,
                               frame_labels, frames_per_second, overlap=False):
   """Create a pianoroll image showing frame posteriors, predictions & labels."""
-  frame_predictions, _, _, _ = data.sequence_to_pianoroll(
+  frame_predictions, _, _, _, _ = sequences_lib.sequence_to_pianoroll(
       sequence_prediction,
       frames_per_second=frames_per_second,
       min_pitch=constants.MIN_MIDI_PITCH,

@@ -31,6 +31,7 @@ from magenta.models.onsets_frames_transcription import constants
 from magenta.models.onsets_frames_transcription import data
 
 from magenta.music import audio_io
+from magenta.music import sequences_lib
 from magenta.music import testing_lib
 from magenta.protobuf import music_pb2
 
@@ -96,13 +97,15 @@ class DataTest(tf.test.TestCase):
     wav_data = ex.features.feature['audio'].bytes_list.value[0]
 
     spec = data.wav_to_spec(wav_data, hparams=hparams)
-    labels, weighted_labels, _, _ = data.sequence_to_pianoroll(
+    labels, weighted_labels, _, _, _ = sequences_lib.sequence_to_pianoroll(
         sequence,
         frames_per_second=data.hparams_frames_per_second(hparams),
         min_pitch=constants.MIN_MIDI_PITCH,
         max_pitch=constants.MAX_MIDI_PITCH,
         min_frame_occupancy_for_label=0.0,
-        onset_mode='length_ms', onset_length_ms=32., onset_delay_ms=0.)
+        onset_mode='length_ms',
+        onset_length_ms=32.,
+        onset_delay_ms=0.)
     length = data.wav_to_num_frames(
         wav_data, frames_per_second=data.hparams_frames_per_second(hparams))
 
@@ -209,55 +212,6 @@ class DataTest(tf.test.TestCase):
         batch_size=2,
         lengths=[10, 50, 100, 10, 50, 80],
         expected_num_inputs=6)
-
-  def testSequenceToPianoroll(self):
-    sequence = music_pb2.NoteSequence(total_time=1.21)
-    testing_lib.add_track_to_sequence(
-        sequence, 0,
-        [(1, 100, 0.11, 1.01), (2, 55, 0.22, 0.50), (3, 100, 0.3, 0.8),
-         (2, 45, 1.0, 1.21)])
-
-    expected_pianoroll = [[0, 0], [1, 0], [1, 1], [1, 1], [1, 1], [1, 0],
-                          [1, 0], [1, 0], [1, 0], [1, 0], [1, 1], [0,
-                                                                   1], [0, 1]]
-
-    output, _, _, _ = data.sequence_to_pianoroll(
-        sequence, frames_per_second=10, min_pitch=1, max_pitch=2)
-
-    np.testing.assert_allclose(expected_pianoroll, output)
-
-  def testSequenceToPianorollWeightedRoll(self):
-    sequence = music_pb2.NoteSequence(total_time=2.0)
-    testing_lib.add_track_to_sequence(
-        sequence, 0, [(1, 100, 0.00, 1.00), (2, 100, 0.20, 0.50),
-                      (3, 100, 1.20, 1.50), (4, 100, 0.40, 2.00), (6, 100, 0.10,
-                                                                   0.60)])
-
-    onset_upweight = 5.0
-    expected_roll_weights = [
-        [onset_upweight, onset_upweight, 1, onset_upweight],
-        [onset_upweight, onset_upweight, onset_upweight, onset_upweight],
-        [1, 1, onset_upweight, onset_upweight / 1],
-        [1, 1, onset_upweight, onset_upweight / 2],
-        [1, 1, 1, 1],
-    ]
-
-    expected_onsets = [
-        [1, 1, 0, 1],
-        [1, 1, 1, 1],
-        [0, 0, 1, 0],
-        [0, 0, 1, 0],
-        [0, 0, 0, 0],
-    ]
-    _, roll_weights, onsets, _ = data.sequence_to_pianoroll(
-        sequence,
-        frames_per_second=2,
-        min_pitch=1,
-        max_pitch=4,
-        onset_upweight=onset_upweight)
-
-    np.testing.assert_allclose(expected_roll_weights, roll_weights)
-    np.testing.assert_allclose(expected_onsets, onsets)
 
 
 if __name__ == '__main__':
