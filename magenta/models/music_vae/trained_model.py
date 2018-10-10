@@ -352,12 +352,12 @@ class TrainedModel(object):
 
   def interpolate(self, start_sequence, end_sequence, num_steps, 
                   length=None, temperature=1.0, assert_same_length=True):
-    """Interpolates between a start and end sequence.
+    """Interpolates between a start and an end NoteSequence.
     
     Args:
       start_sequence: The NoteSequence to interpolate from.
       end_sequence: The NoteSequence to interpolate to.
-      num_steps: Number of NoteSequences in the interpolation.
+      num_steps: Number of NoteSequences to be generated.
       length: The maximum length of a sample in decoder iterations. Required
         if end tokens are not being used.
       temperature: The softmax temperature to use (if applicable).
