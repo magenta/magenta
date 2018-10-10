@@ -22,14 +22,12 @@ import collections
 import copy
 import functools
 import itertools
-import random
 
 # internal imports
 import numpy as np
 import tensorflow as tf
 
 import magenta.music as mm
-from magenta.music import chord_symbols_lib
 from magenta.music import chords_lib
 from magenta.music import drums_encoder_decoder
 from magenta.music import sequences_lib
