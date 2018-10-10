@@ -349,3 +349,25 @@ class TrainedModel(object):
       else:
         outputs.extend(self._sess.run(self._outputs, feed_dict))
     return outputs[:n]
+
+  def slerp(p0, p1, t):
+    """Spherical linear interpolation."""
+    omega = np.arccos(np.dot(np.squeeze(p0/np.linalg.norm(p0)), np.squeeze(p1/np.linalg.norm(p1))))
+    so = np.sin(omega)
+    return np.sin((1.0-t)*omega) / so * p0 + np.sin(t*omega)/so * p1
+
+  def interpolate(model, start_seq, end_seq, num_steps, max_length=32,
+                  assert_same_length=True, 
+                  temperature=0.5, individual_duration=4.0, interp_fn=slerp):
+    """Interpolates between a start and end sequence."""
+    _, mu, _ = model.encode([start_seq, end_seq], assert_same_length=True)
+    z = np.array([interp_fn(mu[0], mu[1], t) for t in np.linspace(0, 1, num_steps)])
+    note_sequences = model.decode(
+        length=max_length, 
+        z=z,
+        temperature=temperature)
+    
+    note_sequences = [mm.extract_subsequence(ns, 0, individual_duration)
+                      for ns in note_sequences]
+    interp_seq = concatenate_sequences(note_sequences, [individual_duration] * len(note_sequences))
+    return interp_seq
