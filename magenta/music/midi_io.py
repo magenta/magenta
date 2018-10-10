@@ -47,8 +47,7 @@ _PRETTY_MIDI_MAJOR_TO_MINOR_OFFSET = 12
 class MIDIConversionError(Exception):
   pass
 
-
-def midi_to_sequence_proto(midi_data):
+def midi_to_note_sequence(midi_data):
   """Convert MIDI file contents to a tensorflow.magenta.NoteSequence proto.
 
   Converts a MIDI file encoded as a string into a
@@ -66,6 +65,28 @@ def midi_to_sequence_proto(midi_data):
   Raises:
     MIDIConversionError: An improper MIDI mode was supplied.
   """
+  return midi_to_sequence_proto(midi_data)
+
+def note_sequence_to_midi_file(sequence, output_file,
+                               drop_events_n_seconds_after_last_note=None):
+  """Convert tensorflow.magenta.NoteSequence proto to a MIDI file on disk.
+
+  Time is stored in the NoteSequence in absolute values (seconds) as opposed to
+  relative values (MIDI ticks). When the NoteSequence is translated back to
+  MIDI the absolute time is retained. The tempo map is also recreated.
+
+  Args:
+    sequence: A tensorfow.magenta.NoteSequence proto.
+    output_file: String path to MIDI file that will be written.
+    drop_events_n_seconds_after_last_note: Events (e.g., time signature changes)
+        that occur this many seconds after the last note will be dropped. If
+        None, then no events will be dropped.
+  """
+  return sequence_proto_to_midi_file(sequence, output_file, 
+                                     drop_events_n_seconds_after_last_note)
+
+def midi_to_sequence_proto(midi_data):
+  """Implementation for midi_to_note_sequence."""
 
   # In practice many MIDI files cannot be decoded with pretty_midi. Catch all
   # errors here and try to log a meaningful message. So many different
@@ -311,19 +332,7 @@ def midi_file_to_sequence_proto(midi_file):
 
 def sequence_proto_to_midi_file(sequence, output_file,
                                 drop_events_n_seconds_after_last_note=None):
-  """Convert tensorflow.magenta.NoteSequence proto to a MIDI file on disk.
-
-  Time is stored in the NoteSequence in absolute values (seconds) as opposed to
-  relative values (MIDI ticks). When the NoteSequence is translated back to
-  MIDI the absolute time is retained. The tempo map is also recreated.
-
-  Args:
-    sequence: A tensorfow.magenta.NoteSequence proto.
-    output_file: String path to MIDI file that will be written.
-    drop_events_n_seconds_after_last_note: Events (e.g., time signature changes)
-        that occur this many seconds after the last note will be dropped. If
-        None, then no events will be dropped.
-  """
+  """Implementation for note_sequence_to_midi_file."""
   pretty_midi_object = sequence_proto_to_pretty_midi(
       sequence, drop_events_n_seconds_after_last_note)
   with tempfile.NamedTemporaryFile() as temp_file:
