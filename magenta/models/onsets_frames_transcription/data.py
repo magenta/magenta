@@ -534,4 +534,3 @@ def provide_batch(batch_size,
       data['num_batches'] = num_batches
 
     return data, iterator
-

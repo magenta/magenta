@@ -26,8 +26,6 @@ import tensorflow as tf
 from magenta.models.onsets_frames_transcription import infer_util
 from magenta.protobuf import music_pb2
 
-DEFAULT_FRAMES_PER_SECOND = 16000 / 512
-
 
 class InferUtilTest(tf.test.TestCase):
 
@@ -45,4 +43,3 @@ class InferUtilTest(tf.test.TestCase):
 
 if __name__ == '__main__':
   tf.test.main()
-
