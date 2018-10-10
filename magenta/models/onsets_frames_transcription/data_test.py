@@ -103,7 +103,9 @@ class DataTest(tf.test.TestCase):
         min_pitch=constants.MIN_MIDI_PITCH,
         max_pitch=constants.MAX_MIDI_PITCH,
         min_frame_occupancy_for_label=0.0,
-        onset_mode='length_ms', onset_length_ms=32., onset_delay_ms=0.)
+        onset_mode='length_ms',
+        onset_length_ms=32.,
+        onset_delay_ms=0.)
     length = data.wav_to_num_frames(
         wav_data, frames_per_second=data.hparams_frames_per_second(hparams))
 

@@ -215,7 +215,8 @@ def sequence_to_pianoroll_op(sequence_tensor, velocity_range_tensor, hparams):
         min_pitch=constants.MIN_MIDI_PITCH,
         max_pitch=constants.MAX_MIDI_PITCH,
         min_frame_occupancy_for_label=hparams.min_frame_occupancy_for_label,
-        onset_mode=hparams.onset_mode, onset_length_ms=hparams.onset_length,
+        onset_mode=hparams.onset_mode,
+        onset_length_ms=hparams.onset_length,
         onset_delay_ms=hparams.onset_delay,
         min_velocity=velocity_range.min,
         max_velocity=velocity_range.max)

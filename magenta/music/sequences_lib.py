@@ -1495,19 +1495,19 @@ def sequence_to_pianoroll(
     max_pitch: pitches in the sequence above this will be ignored.
     min_velocity: minimum velocity for the track, currently unused.
     max_velocity: maximum velocity for the track, not just the local sequence,
-                  used to globally normalize the velocities between [0, 1].
+      used to globally normalize the velocities between [0, 1].
     add_blank_frame_before_onset: Always have a blank frame before onsets.
     onset_upweight: Factor by which to increase the weight assigned to onsets.
     onset_window: Fixed window size for labeling offsets. Used only if
-        onset_mode is 'window'.
+      onset_mode is 'window'.
     onset_length_ms: Length in milliseconds for the onset. Used only if
-        onset_mode is 'length_ms'.
+      onset_mode is 'length_ms'.
     onset_mode: Either 'window', to use onset_window, or 'length_ms' to use
-        onset_length_ms.
+      onset_length_ms.
     onset_delay_ms: Number of milliseconds to delay the onset. Can be negative.
     min_frame_occupancy_for_label: floating point value in range [0, 1] a note
-        must occupy at least this percentage of a frame, for the frame to be
-        given a label with the note.
+      must occupy at least this percentage of a frame, for the frame to be given
+      a label with the note.
 
   Raises:
     ValueError: When an unknown onset_mode is supplied.
@@ -1520,25 +1520,22 @@ def sequence_to_pianoroll(
     control_changes: Control change onsets as a 2D array (time, control number)
       with 0 when there is no onset and (control_value + 1) when there is.
   """
-  roll = np.zeros(
-      (int(sequence.total_time * frames_per_second + 1),
-       max_pitch - min_pitch + 1),
-      dtype=np.float32)
+  roll = np.zeros((int(sequence.total_time * frames_per_second + 1),
+                   max_pitch - min_pitch + 1),
+                  dtype=np.float32)
 
   roll_weights = np.ones_like(roll)
 
   onsets = np.zeros_like(roll)
 
   control_changes = np.zeros(
-      (int(sequence.total_time * frames_per_second + 1), 128),
-      dtype=np.int32)
+      (int(sequence.total_time * frames_per_second + 1), 128), dtype=np.int32)
 
   def frames_from_times(start_time, end_time):
     """Converts start/end times to start/end frames."""
     # Will round down because note may start or end in the middle of the frame.
     start_frame = int(start_time * frames_per_second)
-    start_frame_occupancy = (
-        start_frame + 1 - start_time * frames_per_second)
+    start_frame_occupancy = (start_frame + 1 - start_time * frames_per_second)
     # check for > 0.0 to avoid possible numerical issues
     if (min_frame_occupancy_for_label > 0.0 and
         start_frame_occupancy < min_frame_occupancy_for_label):
@@ -1572,8 +1569,8 @@ def sequence_to_pianoroll(
       onset_start_frame_without_window, _ = frames_from_times(
           onset_start_time, onset_end_time)
 
-      onset_start_frame = max(
-          0, onset_start_frame_without_window - onset_window)
+      onset_start_frame = max(0,
+                              onset_start_frame_without_window - onset_window)
       onset_end_frame = min(onsets.shape[0],
                             onset_start_frame_without_window + onset_window + 1)
     elif onset_mode == 'length_ms':
@@ -1588,8 +1585,8 @@ def sequence_to_pianoroll(
     if note.velocity > max_velocity:
       raise ValueError('Note velocity exceeds max velocity: %d > %d' %
                        (note.velocity, max_velocity))
-    velocities[onset_start_frame:onset_end_frame,
-               note.pitch - min_pitch] = float(note.velocity) / max_velocity
+    velocities[onset_start_frame:onset_end_frame, note.pitch -
+               min_pitch] = float(note.velocity) / max_velocity
     roll_weights[onset_start_frame:onset_end_frame, note.pitch - min_pitch] = (
         onset_upweight)
     roll_weights[onset_end_frame:end_frame, note.pitch - min_pitch] = [
@@ -1609,17 +1606,16 @@ def sequence_to_pianoroll(
   return roll, roll_weights, onsets, velocities, control_changes
 
 
-def pianoroll_to_note_sequence(
-    frames,
-    frames_per_second,
-    min_duration_ms,
-    velocity=70,
-    instrument=0,
-    program=0,
-    qpm=constants.DEFAULT_QUARTERS_PER_MINUTE,
-    min_midi_pitch=constants.MIN_MIDI_PITCH,
-    onset_predictions=None,
-    velocity_values=None):
+def pianoroll_to_note_sequence(frames,
+                               frames_per_second,
+                               min_duration_ms,
+                               velocity=70,
+                               instrument=0,
+                               program=0,
+                               qpm=constants.DEFAULT_QUARTERS_PER_MINUTE,
+                               min_midi_pitch=constants.MIN_MIDI_PITCH,
+                               onset_predictions=None,
+                               velocity_values=None):
   """Convert frames to a NoteSequence."""
   frame_length_seconds = 1 / frames_per_second
 
@@ -1638,8 +1634,8 @@ def pianoroll_to_note_sequence(
     velocity_values = velocity * np.ones_like(frames, dtype=np.int32)
 
   if onset_predictions is not None:
-    onset_predictions = np.append(
-        onset_predictions, [np.zeros(onset_predictions[0].shape)], 0)
+    onset_predictions = np.append(onset_predictions,
+                                  [np.zeros(onset_predictions[0].shape)], 0)
     # Ensure that any frame with an onset prediction is considered active.
     frames = np.logical_or(frames, onset_predictions)
 

@@ -91,7 +91,6 @@ def pianoroll_to_note_sequence(
     """End an active pitch."""
     start_time = pitch_start_step[pitch] * frame_length_seconds
     end_time = end_frame * frame_length_seconds
-
     if (end_time - start_time) * 1000 >= min_duration_ms:
       note = sequence.notes.add()
       note.start_time = start_time
@@ -414,4 +413,3 @@ def posterior_pianoroll_image(frame_probs, sequence_prediction,
         axis=1)
 
   return np.flipud(np.transpose(pianoroll_img, [1, 0, 2]))
-
