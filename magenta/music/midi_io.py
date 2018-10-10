@@ -67,6 +67,20 @@ def midi_to_note_sequence(midi_data):
   """
   return midi_to_sequence_proto(midi_data)
 
+def midi_file_to_note_sequence(midi_file):
+  """Converts MIDI file to a tensorflow.magenta.NoteSequence proto.
+
+  Args:
+    midi_file: A string path to a MIDI file.
+
+  Returns:
+    A tensorflow.magenta.Sequence proto.
+
+  Raises:
+    MIDIConversionError: Invalid midi_file.
+  """
+  return midi_file_to_sequence_proto(midi_file)
+
 def note_sequence_to_midi_file(sequence, output_file,
                                drop_events_n_seconds_after_last_note=None):
   """Convert tensorflow.magenta.NoteSequence proto to a MIDI file on disk.
@@ -85,8 +99,28 @@ def note_sequence_to_midi_file(sequence, output_file,
   return sequence_proto_to_midi_file(sequence, output_file, 
                                      drop_events_n_seconds_after_last_note)
 
+def note_sequence_to_pretty_midi(
+    sequence, drop_events_n_seconds_after_last_note=None):
+  """Convert tensorflow.magenta.NoteSequence proto to a PrettyMIDI.
+
+  Time is stored in the NoteSequence in absolute values (seconds) as opposed to
+  relative values (MIDI ticks). When the NoteSequence is translated back to
+  PrettyMIDI the absolute time is retained. The tempo map is also recreated.
+
+  Args:
+    sequence: A tensorfow.magenta.NoteSequence proto.
+    drop_events_n_seconds_after_last_note: Events (e.g., time signature changes)
+        that occur this many seconds after the last note will be dropped. If
+        None, then no events will be dropped.
+
+  Returns:
+    A pretty_midi.PrettyMIDI object or None if sequence could not be decoded.
+  """
+  return sequence_proto_to_pretty_midi(sequence, 
+                                       drop_events_n_seconds_after_last_note)
+
 def midi_to_sequence_proto(midi_data):
-  """Implementation for midi_to_note_sequence."""
+  """Renamed to midi_to_note_sequence; here for backwards compatibility."""
 
   # In practice many MIDI files cannot be decoded with pretty_midi. Catch all
   # errors here and try to log a meaningful message. So many different
@@ -198,20 +232,7 @@ def midi_to_sequence_proto(midi_data):
 
 def sequence_proto_to_pretty_midi(
     sequence, drop_events_n_seconds_after_last_note=None):
-  """Convert tensorflow.magenta.NoteSequence proto to a PrettyMIDI.
-
-  Time is stored in the NoteSequence in absolute values (seconds) as opposed to
-  relative values (MIDI ticks). When the NoteSequence is translated back to
-  PrettyMIDI the absolute time is retained. The tempo map is also recreated.
-
-  Args:
-    sequence: A tensorfow.magenta.NoteSequence proto.
-    drop_events_n_seconds_after_last_note: Events (e.g., time signature changes)
-        that occur this many seconds after the last note will be dropped. If
-        None, then no events will be dropped.
-
-  Returns:
-    A pretty_midi.PrettyMIDI object or None if sequence could not be decoded.
+  """Renamed to note_sequence_to_pretty_midi; here for backwards compatibility.
   """
 
   ticks_per_quarter = (sequence.ticks_per_quarter if sequence.ticks_per_quarter
@@ -314,17 +335,7 @@ def sequence_proto_to_pretty_midi(
 
 
 def midi_file_to_sequence_proto(midi_file):
-  """Converts MIDI file to a tensorflow.magenta.NoteSequence proto.
-
-  Args:
-    midi_file: A string path to a MIDI file.
-
-  Returns:
-    A tensorflow.magenta.Sequence proto.
-
-  Raises:
-    MIDIConversionError: Invalid midi_file.
-  """
+  """Renamed to midi_file_to_note_sequence; here for backwards compatibility."""
   with tf.gfile.Open(midi_file, 'rb') as f:
     midi_as_string = f.read()
     return midi_to_sequence_proto(midi_as_string)
@@ -332,7 +343,7 @@ def midi_file_to_sequence_proto(midi_file):
 
 def sequence_proto_to_midi_file(sequence, output_file,
                                 drop_events_n_seconds_after_last_note=None):
-  """Implementation for note_sequence_to_midi_file."""
+  """Renamed to note_sequence_to_midi_file; here for backwards compatibility."""
   pretty_midi_object = sequence_proto_to_pretty_midi(
       sequence, drop_events_n_seconds_after_last_note)
   with tempfile.NamedTemporaryFile() as temp_file:
