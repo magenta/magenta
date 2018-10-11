@@ -333,24 +333,24 @@ def note_sequence_to_pretty_midi(
 
 
 def midi_to_sequence_proto(midi_data):
-  """Renamed to midi_to_note_sequence; here for backwards compatibility."""
+  """Renamed to midi_to_note_sequence."""
   return midi_to_note_sequence(midi_data)
 
 
 def sequence_proto_to_pretty_midi(sequence,
                                   drop_events_n_seconds_after_last_note=None):
-  """Renamed to note_sequence_to_pretty_midi; here for backwards compatibility."""
+  """Renamed to note_sequence_to_pretty_midi."""
   return note_sequence_to_pretty_midi(sequence,
                                       drop_events_n_seconds_after_last_note)
 
 
 def midi_file_to_sequence_proto(midi_file):
-  """Renamed to midi_file_to_note_sequence; here for backwards compatibility."""
+  """Renamed to midi_file_to_note_sequence."""
   return midi_file_to_note_sequence(midi_file)
 
 
 def sequence_proto_to_midi_file(sequence, output_file,
                                 drop_events_n_seconds_after_last_note=None):
-  """Renamed to note_sequence_to_midi_file; here for backwards compatibility."""
+  """Renamed to note_sequence_to_midi_file."""
   return note_sequence_to_midi_file(sequence, output_file,
                                     drop_events_n_seconds_after_last_note)
