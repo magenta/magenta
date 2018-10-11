@@ -358,14 +358,14 @@ class TrainedModel(object):
       start_sequence: The NoteSequence to interpolate from.
       end_sequence: The NoteSequence to interpolate to.
       num_steps: Number of NoteSequences to be generated, including the
-        reconstructions of the start and end sequences
+        reconstructions of the start and end sequences.
       length: The maximum length of a sample in decoder iterations. Required
         if end tokens are not being used.
       temperature: The softmax temperature to use (if applicable).
       assert_same_length: Whether to raise an AssertionError if all of the
         extracted sequences are not the same length.
     Returns:
-      A list of interpolated NoteSequences
+      A list of interpolated NoteSequences.
     Raises:
       AssertionError: If `assert_same_length` is True and any extracted
         sequences differ in length.
