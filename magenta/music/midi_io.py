@@ -47,11 +47,12 @@ _PRETTY_MIDI_MAJOR_TO_MINOR_OFFSET = 12
 class MIDIConversionError(Exception):
   pass
 
+
 def midi_to_note_sequence(midi_data):
   """Convert MIDI file contents to a NoteSequence.
 
-  Converts a MIDI file encoded as a string into a NoteSequence. Decoding errors 
-  are very common when working with large sets of MIDI files, so be sure to 
+  Converts a MIDI file encoded as a string into a NoteSequence. Decoding errors
+  are very common when working with large sets of MIDI files, so be sure to
   handle MIDIConversionError exceptions.
 
   Args:
@@ -186,7 +187,6 @@ def midi_file_to_note_sequence(midi_file):
   with tf.gfile.Open(midi_file, 'rb') as f:
     midi_as_string = f.read()
     return midi_to_note_sequence(midi_as_string)
-  
 
 def note_sequence_to_midi_file(sequence, output_file,
                                drop_events_n_seconds_after_last_note=None):
@@ -334,7 +334,8 @@ def midi_to_sequence_proto(midi_data):
 
 def sequence_proto_to_pretty_midi(
     sequence, drop_events_n_seconds_after_last_note=None):
-  """Renamed to note_sequence_to_pretty_midi; here for backwards compatibility.
+  """
+  Renamed to note_sequence_to_pretty_midi; here for backwards compatibility.
   """
   return note_sequence_to_pretty_midi(sequence, 
                                        drop_events_n_seconds_after_last_note)
