@@ -357,7 +357,8 @@ class TrainedModel(object):
     Args:
       start_sequence: The NoteSequence to interpolate from.
       end_sequence: The NoteSequence to interpolate to.
-      num_steps: Number of NoteSequences to be generated.
+      num_steps: Number of NoteSequences to be generated, including the 
+        reconstructions of the start and end sequences
       length: The maximum length of a sample in decoder iterations. Required
         if end tokens are not being used.
       temperature: The softmax temperature to use (if applicable).
@@ -369,7 +370,6 @@ class TrainedModel(object):
       AssertionError: If `assert_same_length` is True and any extracted
         sequences differ in length.
     """
-
     def _slerp(p0, p1, t):
       """Spherical linear interpolation."""
       omega = np.arccos(np.dot(np.squeeze(p0/np.linalg.norm(p0)), 
@@ -378,7 +378,8 @@ class TrainedModel(object):
       return np.sin((1.0-t)*omega) / so * p0 + np.sin(t*omega)/so * p1
     
     _, mu, _ = self.encode([start_sequence, end_sequence], assert_same_length)
-    z = np.array([_slerp(mu[0], mu[1], t) for t in np.linspace(0, 1, num_steps)])
+    z = np.array([_slerp(mu[0], mu[1], t) 
+        for t in np.linspace(0, 1, num_steps)])
     return self.decode(
         length=length, 
         z=z,
