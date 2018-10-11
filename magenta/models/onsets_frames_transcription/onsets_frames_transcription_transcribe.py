@@ -29,10 +29,10 @@ import tensorflow as tf
 from magenta.common import tf_utils
 from magenta.models.onsets_frames_transcription import constants
 from magenta.models.onsets_frames_transcription import data
-from magenta.models.onsets_frames_transcription import infer_util
 from magenta.models.onsets_frames_transcription import model
 from magenta.music import audio_io
 from magenta.music import midi_io
+from magenta.music import sequences_lib
 from magenta.protobuf import music_pb2
 
 
@@ -149,7 +149,7 @@ def transcribe_audio(transcription_session, filename, frame_threshold,
 
   onset_predictions = onset_logits > onset_threshold
 
-  sequence_prediction = infer_util.pianoroll_to_note_sequence(
+  sequence_prediction = sequences_lib.pianoroll_to_note_sequence(
       frame_predictions,
       frames_per_second=data.hparams_frames_per_second(
           transcription_session.hparams),

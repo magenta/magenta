@@ -16,14 +16,18 @@
 import copy
 
 # internal imports
+import numpy as np
 import tensorflow as tf
 
 from magenta.common import testing_lib as common_testing_lib
+from magenta.music import constants
 from magenta.music import sequences_lib
 from magenta.music import testing_lib
 from magenta.protobuf import music_pb2
 
 CHORD_SYMBOL = music_pb2.NoteSequence.TextAnnotation.CHORD_SYMBOL
+DEFAULT_FRAMES_PER_SECOND = 16000.0 / 512
+MIDI_PITCHES = constants.MAX_MIDI_PITCH - constants.MIN_MIDI_PITCH + 1
 
 
 class SequencesLibTest(tf.test.TestCase):
@@ -1466,6 +1470,235 @@ class SequencesLibTest(tf.test.TestCase):
 
     self.assertEqual(sequence, expanded)
 
+  def testSequenceToPianoroll(self):
+    sequence = music_pb2.NoteSequence(total_time=1.21)
+    testing_lib.add_track_to_sequence(sequence, 0, [(1, 100, 0.11, 1.01),
+                                                    (2, 55, 0.22, 0.50),
+                                                    (3, 100, 0.3, 0.8),
+                                                    (2, 45, 1.0, 1.21)])
+
+    expected_pianoroll = [[0, 0], [1, 0], [1, 1], [1, 1], [1, 1], [1,
+                                                                   0], [1, 0],
+                          [1, 0], [1, 0], [1, 0], [1, 1], [0, 1], [0, 1]]
+
+    output, _, _, _, _ = sequences_lib.sequence_to_pianoroll(
+        sequence, frames_per_second=10, min_pitch=1, max_pitch=2)
+
+    np.testing.assert_allclose(expected_pianoroll, output)
+
+  def testSequenceToPianorollWithBlankFrameBeforeOffset(self):
+    sequence = music_pb2.NoteSequence(total_time=1.5)
+    testing_lib.add_track_to_sequence(sequence, 0, [(1, 100, 0.00, 1.00),
+                                                    (2, 100, 0.20, 0.50),
+                                                    (1, 100, 1.20, 1.50),
+                                                    (2, 100, 0.50, 1.50)])
+
+    expected_pianoroll = [
+        [1, 0],
+        [1, 0],
+        [1, 1],
+        [1, 1],
+        [1, 1],
+        [1, 1],
+        [1, 1],
+        [1, 1],
+        [1, 1],
+        [1, 1],
+        [0, 1],
+        [0, 1],
+        [1, 1],
+        [1, 1],
+        [1, 1],
+        [0, 0],
+    ]
+
+    output, _, _, _, _ = sequences_lib.sequence_to_pianoroll(
+        sequence, frames_per_second=10, min_pitch=1, max_pitch=2)
+
+    np.testing.assert_allclose(expected_pianoroll, output)
+
+    expected_pianoroll_with_blank_frame = [
+        [1, 0],
+        [1, 0],
+        [1, 1],
+        [1, 1],
+        [1, 0],
+        [1, 1],
+        [1, 1],
+        [1, 1],
+        [1, 1],
+        [1, 1],
+        [0, 1],
+        [0, 1],
+        [1, 1],
+        [1, 1],
+        [1, 1],
+        [0, 0],
+    ]
+
+    (output_with_blank_frame, _, _, _, _) = sequences_lib.sequence_to_pianoroll(
+        sequence,
+        frames_per_second=10,
+        min_pitch=1,
+        max_pitch=2,
+        add_blank_frame_before_onset=True)
+
+    np.testing.assert_allclose(expected_pianoroll_with_blank_frame,
+                               output_with_blank_frame)
+
+  def testSequenceToPianorollWithBlankFrameBeforeOffsetOutOfOrder(self):
+    sequence = music_pb2.NoteSequence(total_time=.5)
+    testing_lib.add_track_to_sequence(sequence, 0, [(1, 100, 0.20, 0.50),
+                                                    (1, 100, 0.00, 0.20)])
+
+    expected_pianoroll = [
+        [1],
+        [0],
+        [1],
+        [1],
+        [1],
+        [0],
+    ]
+
+    output, _, _, _, _ = sequences_lib.sequence_to_pianoroll(
+        sequence,
+        frames_per_second=10,
+        min_pitch=1,
+        max_pitch=1,
+        add_blank_frame_before_onset=True)
+
+    np.testing.assert_allclose(expected_pianoroll, output)
+
+  def testSequenceToPianorollWeightedRoll(self):
+    sequence = music_pb2.NoteSequence(total_time=2.0)
+    testing_lib.add_track_to_sequence(sequence, 0, [(1, 100, 0.00, 1.00),
+                                                    (2, 100, 0.20, 0.50),
+                                                    (3, 100, 1.20, 1.50),
+                                                    (4, 100, 0.40, 2.00),
+                                                    (6, 100, 0.10, 0.60)])
+
+    onset_upweight = 5.0
+    expected_roll_weights = [
+        [onset_upweight, onset_upweight, 1, onset_upweight],
+        [onset_upweight, onset_upweight, onset_upweight, onset_upweight],
+        [1, 1, onset_upweight, onset_upweight / 1],
+        [1, 1, onset_upweight, onset_upweight / 2],
+        [1, 1, 1, 1],
+    ]
+
+    expected_onsets = [
+        [1, 1, 0, 1],
+        [1, 1, 1, 1],
+        [0, 0, 1, 0],
+        [0, 0, 1, 0],
+        [0, 0, 0, 0],
+    ]
+    _, roll_weights, onsets, _, _ = sequences_lib.sequence_to_pianoroll(
+        sequence,
+        frames_per_second=2,
+        min_pitch=1,
+        max_pitch=4,
+        onset_upweight=onset_upweight)
+
+    np.testing.assert_allclose(expected_roll_weights, roll_weights)
+    np.testing.assert_allclose(expected_onsets, onsets)
+
+  def testPianorollToNoteSequence(self):
+    # 100 frames of notes.
+    frames = np.zeros((100, MIDI_PITCHES), np.bool)
+    # Activate key 39 for the middle 50 frames.
+    frames[25:75, 39] = True
+    sequence = sequences_lib.pianoroll_to_note_sequence(
+        frames, frames_per_second=DEFAULT_FRAMES_PER_SECOND, min_duration_ms=0)
+
+    self.assertEqual(1, len(sequence.notes))
+    self.assertEqual(39, sequence.notes[0].pitch)
+    self.assertEqual(25 / DEFAULT_FRAMES_PER_SECOND,
+                     sequence.notes[0].start_time)
+    self.assertEqual(75 / DEFAULT_FRAMES_PER_SECOND, sequence.notes[0].end_time)
+
+  def testPianorollToNoteSequenceWithOnsets(self):
+    # 100 frames of notes and onsets.
+    frames = np.zeros((100, MIDI_PITCHES), np.bool)
+    onsets = np.zeros((100, MIDI_PITCHES), np.bool)
+    # Activate key 39 for the middle 50 frames and last 10 frames.
+    frames[25:75, 39] = True
+    frames[90:100, 39] = True
+    # Add an onset for the first occurrence.
+    onsets[25, 39] = True
+    # Add an onset for a note that doesn't have an active frame.
+    onsets[80, 49] = True
+    sequence = sequences_lib.pianoroll_to_note_sequence(
+        frames,
+        frames_per_second=DEFAULT_FRAMES_PER_SECOND,
+        min_duration_ms=0,
+        onset_predictions=onsets)
+    self.assertEqual(2, len(sequence.notes))
+
+    self.assertEqual(39, sequence.notes[0].pitch)
+    self.assertEqual(25 / DEFAULT_FRAMES_PER_SECOND,
+                     sequence.notes[0].start_time)
+    self.assertEqual(75 / DEFAULT_FRAMES_PER_SECOND, sequence.notes[0].end_time)
+
+    self.assertEqual(49, sequence.notes[1].pitch)
+    self.assertEqual(80 / DEFAULT_FRAMES_PER_SECOND,
+                     sequence.notes[1].start_time)
+    self.assertEqual(81 / DEFAULT_FRAMES_PER_SECOND, sequence.notes[1].end_time)
+
+  def testPianorollToNoteSequenceWithOnsetsOverlappingFrames(self):
+    # 100 frames of notes and onsets.
+    frames = np.zeros((100, MIDI_PITCHES), np.bool)
+    onsets = np.zeros((100, MIDI_PITCHES), np.bool)
+    # Activate key 39 for the middle 50 frames.
+    frames[25:75, 39] = True
+    # Add multiple onsets within those frames.
+    onsets[25, 39] = True
+    onsets[30, 39] = True
+    # If an onset lasts for multiple frames, it should create only 1 note.
+    onsets[35, 39] = True
+    onsets[36, 39] = True
+    sequence = sequences_lib.pianoroll_to_note_sequence(
+        frames,
+        frames_per_second=DEFAULT_FRAMES_PER_SECOND,
+        min_duration_ms=0,
+        onset_predictions=onsets)
+    self.assertEqual(3, len(sequence.notes))
+
+    self.assertEqual(39, sequence.notes[0].pitch)
+    self.assertEqual(25 / DEFAULT_FRAMES_PER_SECOND,
+                     sequence.notes[0].start_time)
+    self.assertEqual(30 / DEFAULT_FRAMES_PER_SECOND, sequence.notes[0].end_time)
+
+    self.assertEqual(39, sequence.notes[1].pitch)
+    self.assertEqual(30 / DEFAULT_FRAMES_PER_SECOND,
+                     sequence.notes[1].start_time)
+    self.assertEqual(35 / DEFAULT_FRAMES_PER_SECOND, sequence.notes[1].end_time)
+
+    self.assertEqual(39, sequence.notes[2].pitch)
+    self.assertEqual(35 / DEFAULT_FRAMES_PER_SECOND,
+                     sequence.notes[2].start_time)
+    self.assertEqual(75 / DEFAULT_FRAMES_PER_SECOND, sequence.notes[2].end_time)
+
+  def testSequenceToPianorollControlChanges(self):
+    sequence = music_pb2.NoteSequence(total_time=2.0)
+    cc = music_pb2.NoteSequence.ControlChange
+    sequence.control_changes.extend([
+        cc(time=0.7, control_number=3, control_value=16),
+        cc(time=0.0, control_number=4, control_value=32),
+        cc(time=0.5, control_number=4, control_value=32),
+        cc(time=1.6, control_number=3, control_value=64),
+    ])
+
+    expected_cc_roll = np.zeros((5, 128), dtype=np.int32)
+    expected_cc_roll[0:2, 4] = 33
+    expected_cc_roll[1, 3] = 17
+    expected_cc_roll[3, 3] = 65
+
+    _, _, _, _, cc_roll = sequences_lib.sequence_to_pianoroll(
+        sequence, frames_per_second=2, min_pitch=1, max_pitch=4)
+
+    np.testing.assert_allclose(expected_cc_roll, cc_roll)
+
+
 if __name__ == '__main__':
   tf.test.main()
-
