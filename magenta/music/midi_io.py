@@ -339,8 +339,7 @@ def midi_to_sequence_proto(midi_data):
 
 def sequence_proto_to_pretty_midi(sequence,
                                   drop_events_n_seconds_after_last_note=None):
-  """Renamed to note_sequence_to_pretty_midi; here for backwards compatibility.
-  """
+  """Renamed to note_sequence_to_pretty_midi; here for backwards compatibility."""
   return note_sequence_to_pretty_midi(sequence,
                                       drop_events_n_seconds_after_last_note)
 
