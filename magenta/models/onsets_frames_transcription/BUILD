@@ -100,7 +100,6 @@ py_library(
     srcs_version = "PY2AND3",
     deps = [
         ":constants",
-        ":data",
         "//magenta",
         "@pretty_midi",
         # mir_eval dep
