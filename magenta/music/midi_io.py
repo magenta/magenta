@@ -172,6 +172,7 @@ def midi_to_note_sequence(midi_data):
 
   return sequence
 
+
 def midi_file_to_note_sequence(midi_file):
   """Converts MIDI file to a NoteSequence.
 
@@ -187,6 +188,7 @@ def midi_file_to_note_sequence(midi_file):
   with tf.gfile.Open(midi_file, 'rb') as f:
     midi_as_string = f.read()
     return midi_to_note_sequence(midi_as_string)
+
 
 def note_sequence_to_midi_file(sequence, output_file,
                                drop_events_n_seconds_after_last_note=None):
@@ -212,6 +214,7 @@ def note_sequence_to_midi_file(sequence, output_file,
     # And back the file position to top (not need for Copy but for certainty)
     temp_file.seek(0)
     tf.gfile.Copy(temp_file.name, output_file, overwrite=True)
+
 
 def note_sequence_to_pretty_midi(
     sequence, drop_events_n_seconds_after_last_note=None):
@@ -328,24 +331,27 @@ def note_sequence_to_pretty_midi(
 
   return pm
 
+
 def midi_to_sequence_proto(midi_data):
   """Renamed to midi_to_note_sequence; here for backwards compatibility."""
   return midi_to_note_sequence(midi_data)
 
-def sequence_proto_to_pretty_midi(
-    sequence, drop_events_n_seconds_after_last_note=None):
+
+def sequence_proto_to_pretty_midi(sequence,
+                                  drop_events_n_seconds_after_last_note=None):
+  """Renamed to note_sequence_to_pretty_midi; here for backwards compatibility.
   """
-  Renamed to note_sequence_to_pretty_midi; here for backwards compatibility.
-  """
-  return note_sequence_to_pretty_midi(sequence, 
+  return note_sequence_to_pretty_midi(sequence,
                                       drop_events_n_seconds_after_last_note)
-  
+
+
 def midi_file_to_sequence_proto(midi_file):
   """Renamed to midi_file_to_note_sequence; here for backwards compatibility."""
   return midi_file_to_note_sequence(midi_file)
 
+
 def sequence_proto_to_midi_file(sequence, output_file,
                                 drop_events_n_seconds_after_last_note=None):
   """Renamed to note_sequence_to_midi_file; here for backwards compatibility."""
-  return note_sequence_to_midi_file(sequence, output_file, 
+  return note_sequence_to_midi_file(sequence, output_file,
                                     drop_events_n_seconds_after_last_note)
