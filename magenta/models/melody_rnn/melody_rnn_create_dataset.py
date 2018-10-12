@@ -22,27 +22,27 @@ import os
 # internal imports
 import tensorflow as tf
 
-from models.melody_rnn import melody_rnn_config_flags
-from models.melody_rnn import melody_rnn_pipeline
+from magenta.models.melody_rnn import melody_rnn_config_flags
+from magenta.models.melody_rnn import melody_rnn_pipeline
 from magenta.pipelines import pipeline
 
 flags = tf.app.flags
 FLAGS = tf.app.flags.FLAGS
 flags.DEFINE_string(
-  'input', None,
-  'TFRecord to read NoteSequence protos from.')
+    'input', None,
+    'TFRecord to read NoteSequence protos from.')
 flags.DEFINE_string(
-  'output_dir', None,
-  'Directory to write training and eval TFRecord files. The TFRecord files are '
-  'populated with  SequenceExample protos.')
+    'output_dir', None,
+    'Directory to write training and eval TFRecord files. The TFRecord files '
+    'are populated with  SequenceExample protos.')
 flags.DEFINE_float(
-  'eval_ratio', 0.1,
-  'Fraction of input to set aside for eval set. Partition is randomly '
-  'selected.')
+    'eval_ratio', 0.1,
+    'Fraction of input to set aside for eval set. Partition is randomly '
+    'selected.')
 flags.DEFINE_string(
-  'log', 'INFO',
-  'The threshold for what messages will be logged DEBUG, INFO, WARN, ERROR, or '
-  'FATAL.')
+    'log', 'INFO',
+    'The threshold for what messages will be logged DEBUG, INFO, WARN, ERROR, '
+    'or FATAL.')
 
 
 def main(unused_argv):
