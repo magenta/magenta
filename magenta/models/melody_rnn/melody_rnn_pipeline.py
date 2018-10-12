@@ -54,18 +54,17 @@ class EncoderPipeline(pipeline.Pipeline):
     return [encoded]
 
 
-def get_pipeline(config, eval_ratio):
+def get_pipeline(config, transposition_range=(0,), eval_ratio=0.0):
   """Returns the Pipeline instance which creates the RNN dataset.
 
   Args:
     config: A MelodyRnnConfig object.
+    transposition_range: Collection of integer pitch steps to transpose.
     eval_ratio: Fraction of input to set aside for evaluation set.
 
   Returns:
     A pipeline.Pipeline instance.
   """
-  transposition_range = range(-4, 5)
-
   partitioner = pipelines_common.RandomPartition(
       music_pb2.NoteSequence,
       ['eval_melodies', 'training_melodies'],
