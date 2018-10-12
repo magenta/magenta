@@ -6,7 +6,7 @@ Piano Genie uses an encoder RNN to compress piano sequences (88 keys) into many 
 
 ### Usage
 
-First, [set up your development environment](/magenta#development-environment). Then, [convert some MIDI files into `NoteSequence` records]((/magenta/scripts/README.md) to build a dataset for Piano Genie.
+First, [set up your development environment](/magenta#development-environment). Then, [convert some MIDI files into `NoteSequence` records](/magenta/scripts/README.md) to build a dataset for Piano Genie.
 
 To train a Piano Genie model, run the following:
 
