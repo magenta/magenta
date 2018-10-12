@@ -44,7 +44,7 @@ py_library(
     srcs_version = "PY2AND3",
     visibility = [
         # internal notebook binary
-        # internal model:pianoroll_rnn_nade
+        # internal model:music_rnn
     ],
     deps = [
         ":pianoroll_rnn_nade_graph",
@@ -84,10 +84,13 @@ py_binary(
 
 py_binary(
     name = "pianoroll_rnn_nade_create_dataset",
-    srcs = ["pianoroll_rnn_nade_create_dataset.py"],
+    srcs = [
+        "pianoroll_rnn_nade_create_dataset.py",
+        "pianoroll_rnn_nade_pipeline.py"
+    ],
     srcs_version = "PY2AND3",
     visibility = [
-        # internal model:pianoroll_rnn_nade
+        # internal model:music_rnn
         "//magenta/tools/pip:__subpackages__",
     ],
     deps = [
