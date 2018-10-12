@@ -34,7 +34,7 @@ py_library(
     srcs = ["melody_rnn_config_flags.py"],
     srcs_version = "PY2AND3",
     visibility = [
-        # internal model:melody_rnn
+        # internal model:music_rnn
     ],
     deps = [
         ":melody_rnn_model",
@@ -73,10 +73,13 @@ py_library(
 
 py_binary(
     name = "melody_rnn_create_dataset",
-    srcs = ["melody_rnn_create_dataset.py"],
+    srcs = [
+        "melody_rnn_create_dataset.py",
+        "melody_rnn_pipeline.py",
+    ],
     srcs_version = "PY2AND3",
     visibility = [
-        # internal model:melody_rnn
+        # internal model:music_rnn
         "//magenta/tools/pip:__subpackages__",
     ],
     deps = [
