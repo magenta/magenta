@@ -79,6 +79,7 @@ py_binary(
     srcs_version = "PY2AND3",
     visibility = [
         # internal model:music_rnn
+        # internal model:performance_rnn
         "//magenta/tools/pip:__subpackages__",
     ],
     deps = [
