@@ -349,3 +349,38 @@ class TrainedModel(object):
       else:
         outputs.extend(self._sess.run(self._outputs, feed_dict))
     return outputs[:n]
+
+  def interpolate(self, start_sequence, end_sequence, num_steps,
+                  length=None, temperature=1.0, assert_same_length=True):
+    """Interpolates between a start and an end NoteSequence.
+
+    Args:
+      start_sequence: The NoteSequence to interpolate from.
+      end_sequence: The NoteSequence to interpolate to.
+      num_steps: Number of NoteSequences to be generated, including the
+        reconstructions of the start and end sequences.
+      length: The maximum length of a sample in decoder iterations. Required
+        if end tokens are not being used.
+      temperature: The softmax temperature to use (if applicable).
+      assert_same_length: Whether to raise an AssertionError if all of the
+        extracted sequences are not the same length.
+    Returns:
+      A list of interpolated NoteSequences.
+    Raises:
+      AssertionError: If `assert_same_length` is True and any extracted
+        sequences differ in length.
+    """
+    def _slerp(p0, p1, t):
+      """Spherical linear interpolation."""
+      omega = np.arccos(np.dot(np.squeeze(p0/np.linalg.norm(p0)),
+                               np.squeeze(p1/np.linalg.norm(p1))))
+      so = np.sin(omega)
+      return np.sin((1.0-t)*omega) / so * p0 + np.sin(t*omega)/so * p1
+
+    _, mu, _ = self.encode([start_sequence, end_sequence], assert_same_length)
+    z = np.array([_slerp(mu[0], mu[1], t)
+                  for t in np.linspace(0, 1, num_steps)])
+    return self.decode(
+        length=length,
+        z=z,
+        temperature=temperature)
