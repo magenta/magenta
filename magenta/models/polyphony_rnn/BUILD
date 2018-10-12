@@ -118,10 +118,13 @@ py_test(
 
 py_binary(
     name = "polyphony_rnn_create_dataset",
-    srcs = ["polyphony_rnn_create_dataset.py"],
+    srcs = [
+        "polyphony_rnn_create_dataset.py",
+        "polyphony_rnn_pipeline.py",
+    ],
     srcs_version = "PY2AND3",
     visibility = [
-        # internal model:polyphony_rnn
+        # internal model:music_rnn
         "//magenta/tools/pip:__subpackages__",
     ],
     deps = [

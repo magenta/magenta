@@ -20,7 +20,7 @@ import tensorflow as tf
 import magenta
 
 from magenta.models.polyphony_rnn import polyphony_encoder_decoder
-from magenta.models.polyphony_rnn import polyphony_rnn_create_dataset
+from magenta.models.polyphony_rnn import polyphony_rnn_pipeline
 from magenta.models.shared import events_rnn_model
 from magenta.protobuf import music_pb2
 
@@ -53,7 +53,7 @@ class PolySeqPipelineTest(tf.test.TestCase):
          (39, 110, 9.6, 9.7), (53, 99, 11.1, 14.1), (51, 40, 12.6, 13.0),
          (55, 100, 14.1, 15.0), (54, 90, 15.6, 17.0), (60, 100, 17.1, 18.0)])
 
-    pipeline_inst = polyphony_rnn_create_dataset.get_pipeline(
+    pipeline_inst = polyphony_rnn_pipeline.get_pipeline(
         min_steps=80,  # 5 measures
         max_steps=512,
         eval_ratio=0,

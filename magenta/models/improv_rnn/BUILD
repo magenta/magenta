@@ -62,10 +62,13 @@ py_library(
 
 py_binary(
     name = "improv_rnn_create_dataset",
-    srcs = ["improv_rnn_create_dataset.py"],
+    srcs = [
+        "improv_rnn_create_dataset.py",
+        "improv_rnn_pipeline.py"
+    ],
     srcs_version = "PY2AND3",
     visibility = [
-        # internal model:improv_rnn
+        # internal model:music_rnn
         "//magenta/tools/pip:__subpackages__",
     ],
     deps = [

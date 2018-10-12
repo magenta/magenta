@@ -17,7 +17,7 @@
 import tensorflow as tf
 import magenta
 
-from magenta.models.drums_rnn import drums_rnn_create_dataset
+from magenta.models.drums_rnn import drums_rnn_pipeline
 from magenta.models.shared import events_rnn_model
 from magenta.pipelines import drum_pipelines
 from magenta.pipelines import note_sequence_pipelines
@@ -63,8 +63,8 @@ class DrumsRNNPipelineTest(tf.test.TestCase):
     expected_result = {'training_drum_tracks': [one_hot],
                        'eval_drum_tracks': []}
 
-    pipeline_inst = drums_rnn_create_dataset.get_pipeline(self.config,
-                                                          eval_ratio=0.0)
+    pipeline_inst = drums_rnn_pipeline.get_pipeline(
+        self.config, eval_ratio=0.0)
     result = pipeline_inst.transform(note_sequence)
     self.assertEqual(expected_result, result)
 
