@@ -27,7 +27,6 @@ import numpy as np
 import pretty_midi
 import tensorflow as tf
 
-from magenta.music import constants as mm_constants
 from magenta.music import sequences_lib
 from magenta.protobuf import music_pb2
 
@@ -51,98 +50,6 @@ def sequence_to_valued_intervals(note_sequence,
       pitches.append(note.pitch)
 
   return np.array(intervals), np.array(pitches)
-
-
-def pianoroll_to_note_sequence(
-    frames,
-    frames_per_second,
-    min_duration_ms,
-    velocity=70,
-    instrument=0,
-    program=0,
-    qpm=mm_constants.DEFAULT_QUARTERS_PER_MINUTE,
-    min_midi_pitch=constants.MIN_MIDI_PITCH,
-    onset_predictions=None,
-    velocity_values=None):
-  """Convert frames to a NoteSequence."""
-  frame_length_seconds = 1 / frames_per_second
-
-  sequence = music_pb2.NoteSequence()
-  sequence.tempos.add().qpm = qpm
-  sequence.ticks_per_quarter = mm_constants.STANDARD_PPQ
-
-  pitch_start_step = {}
-  onset_velocities = velocity * np.ones(
-      constants.MAX_MIDI_PITCH, dtype=np.int32)
-
-  # Add silent frame at the end so we can do a final loop and terminate any
-  # notes that are still active.
-  frames = np.append(frames, [np.zeros(frames[0].shape)], 0)
-  if velocity_values is None:
-    velocity_values = velocity * np.ones_like(frames, dtype=np.int32)
-
-  if onset_predictions is not None:
-    onset_predictions = np.append(
-        onset_predictions, [np.zeros(onset_predictions[0].shape)], 0)
-    # Ensure that any frame with an onset prediction is considered active.
-    frames = np.logical_or(frames, onset_predictions)
-
-  def end_pitch(pitch, end_frame):
-    """End an active pitch."""
-    start_time = pitch_start_step[pitch] * frame_length_seconds
-    end_time = end_frame * frame_length_seconds
-    if (end_time - start_time) * 1000 >= min_duration_ms:
-      note = sequence.notes.add()
-      note.start_time = start_time
-      note.end_time = end_time
-      note.pitch = pitch + min_midi_pitch
-      note.velocity = onset_velocities[pitch]
-      note.instrument = instrument
-      note.program = program
-
-    del pitch_start_step[pitch]
-
-  def unscale_velocity(velocity):
-    """Translates a velocity estimate to a MIDI velocity value."""
-    return int(max(min(velocity, 1.), 0) * 80. + 10.)
-
-  def process_active_pitch(pitch, i):
-    """Process a pitch being active in a given frame."""
-    if pitch not in pitch_start_step:
-      if onset_predictions is not None:
-        # If onset predictions were supplied, only allow a new note to start
-        # if we've predicted an onset.
-        if onset_predictions[i, pitch]:
-          pitch_start_step[pitch] = i
-          onset_velocities[pitch] = unscale_velocity(velocity_values[i, pitch])
-        else:
-          # Even though the frame is active, the onset predictor doesn't
-          # say there should be an onset, so ignore it.
-          pass
-      else:
-        pitch_start_step[pitch] = i
-    else:
-      if onset_predictions is not None:
-        # pitch is already active, but if this is a new onset, we should end
-        # the note and start a new one.
-        if (onset_predictions[i, pitch] and
-            not onset_predictions[i - 1, pitch]):
-          end_pitch(pitch, i)
-          pitch_start_step[pitch] = i
-          onset_velocities[pitch] = unscale_velocity(velocity_values[i, pitch])
-
-  for i, frame in enumerate(frames):
-    for pitch, active in enumerate(frame):
-      if active:
-        process_active_pitch(pitch, i)
-      elif pitch in pitch_start_step:
-        end_pitch(pitch, i)
-
-  sequence.total_time = len(frames) * frame_length_seconds
-  if sequence.notes:
-    assert sequence.total_time >= sequence.notes[-1].end_time
-
-  return sequence
 
 
 def safe_log(value):

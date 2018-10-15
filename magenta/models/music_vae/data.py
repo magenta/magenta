@@ -1195,4 +1195,3 @@ def get_dataset(
     dataset = dataset.prefetch(prefetch_size)
 
   return dataset
-
