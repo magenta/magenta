@@ -51,6 +51,7 @@ sh_binary(
 
         # Music VAE  Model and Scripts
         "//magenta/models/music_vae",
+        "//magenta/models/music_vae:music_vae_generate",
         "//magenta/models/music_vae:music_vae_train",
 
         # Performance RNN Model and Scripts

@@ -42,6 +42,7 @@ DEFAULT_SPEC_HOP_LENGTH = 512
 DEFAULT_SPEC_LOG_AMPLITUDE = True
 DEFAULT_SPEC_N_BINS = 229
 DEFAULT_SPEC_TYPE = 'mel'
+DEFAULT_SPEC_MEL_HTK = False
 
 
 DEFAULT_HPARAMS = tf.contrib.training.HParams(
@@ -59,4 +60,5 @@ DEFAULT_HPARAMS = tf.contrib.training.HParams(
     spec_log_amplitude=DEFAULT_SPEC_LOG_AMPLITUDE,
     spec_n_bins=DEFAULT_SPEC_N_BINS,
     spec_type=DEFAULT_SPEC_TYPE,
+    spec_mel_htk=DEFAULT_SPEC_MEL_HTK,
 )

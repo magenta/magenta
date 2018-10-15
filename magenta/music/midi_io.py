@@ -48,25 +48,23 @@ class MIDIConversionError(Exception):
   pass
 
 
-def midi_to_sequence_proto(midi_data):
-  """Convert MIDI file contents to a tensorflow.magenta.NoteSequence proto.
+def midi_to_note_sequence(midi_data):
+  """Convert MIDI file contents to a NoteSequence.
 
-  Converts a MIDI file encoded as a string into a
-  tensorflow.magenta.NoteSequence proto. Decoding errors are very common when
-  working with large sets of MIDI files, so be sure to handle
-  MIDIConversionError exceptions.
+  Converts a MIDI file encoded as a string into a NoteSequence. Decoding errors
+  are very common when working with large sets of MIDI files, so be sure to
+  handle MIDIConversionError exceptions.
 
   Args:
     midi_data: A string containing the contents of a MIDI file or populated
         pretty_midi.PrettyMIDI object.
 
   Returns:
-    A tensorflow.magenta.NoteSequence proto.
+    A NoteSequence.
 
   Raises:
     MIDIConversionError: An improper MIDI mode was supplied.
   """
-
   # In practice many MIDI files cannot be decoded with pretty_midi. Catch all
   # errors here and try to log a meaningful message. So many different
   # exceptions are raised in pretty_midi.PrettyMidi that it is cumbersome to
@@ -175,16 +173,59 @@ def midi_to_sequence_proto(midi_data):
   return sequence
 
 
-def sequence_proto_to_pretty_midi(
+def midi_file_to_note_sequence(midi_file):
+  """Converts MIDI file to a NoteSequence.
+
+  Args:
+    midi_file: A string path to a MIDI file.
+
+  Returns:
+    A NoteSequence.
+
+  Raises:
+    MIDIConversionError: Invalid midi_file.
+  """
+  with tf.gfile.Open(midi_file, 'rb') as f:
+    midi_as_string = f.read()
+    return midi_to_note_sequence(midi_as_string)
+
+
+def note_sequence_to_midi_file(sequence, output_file,
+                               drop_events_n_seconds_after_last_note=None):
+  """Convert NoteSequence to a MIDI file on disk.
+
+  Time is stored in the NoteSequence in absolute values (seconds) as opposed to
+  relative values (MIDI ticks). When the NoteSequence is translated back to
+  MIDI the absolute time is retained. The tempo map is also recreated.
+
+  Args:
+    sequence: A NoteSequence.
+    output_file: String path to MIDI file that will be written.
+    drop_events_n_seconds_after_last_note: Events (e.g., time signature changes)
+        that occur this many seconds after the last note will be dropped. If
+        None, then no events will be dropped.
+  """
+  pretty_midi_object = note_sequence_to_pretty_midi(
+      sequence, drop_events_n_seconds_after_last_note)
+  with tempfile.NamedTemporaryFile() as temp_file:
+    pretty_midi_object.write(temp_file)
+    # Before copying the file, flush any contents
+    temp_file.flush()
+    # And back the file position to top (not need for Copy but for certainty)
+    temp_file.seek(0)
+    tf.gfile.Copy(temp_file.name, output_file, overwrite=True)
+
+
+def note_sequence_to_pretty_midi(
     sequence, drop_events_n_seconds_after_last_note=None):
-  """Convert tensorflow.magenta.NoteSequence proto to a PrettyMIDI.
+  """Convert NoteSequence to a PrettyMIDI.
 
   Time is stored in the NoteSequence in absolute values (seconds) as opposed to
   relative values (MIDI ticks). When the NoteSequence is translated back to
   PrettyMIDI the absolute time is retained. The tempo map is also recreated.
 
   Args:
-    sequence: A tensorfow.magenta.NoteSequence proto.
+    sequence: A NoteSequence.
     drop_events_n_seconds_after_last_note: Events (e.g., time signature changes)
         that occur this many seconds after the last note will be dropped. If
         None, then no events will be dropped.
@@ -192,7 +233,6 @@ def sequence_proto_to_pretty_midi(
   Returns:
     A pretty_midi.PrettyMIDI object or None if sequence could not be decoded.
   """
-
   ticks_per_quarter = (sequence.ticks_per_quarter if sequence.ticks_per_quarter
                        else constants.STANDARD_PPQ)
 
@@ -292,44 +332,25 @@ def sequence_proto_to_pretty_midi(
   return pm
 
 
+def midi_to_sequence_proto(midi_data):
+  """Renamed to midi_to_note_sequence."""
+  return midi_to_note_sequence(midi_data)
+
+
+def sequence_proto_to_pretty_midi(sequence,
+                                  drop_events_n_seconds_after_last_note=None):
+  """Renamed to note_sequence_to_pretty_midi."""
+  return note_sequence_to_pretty_midi(sequence,
+                                      drop_events_n_seconds_after_last_note)
+
+
 def midi_file_to_sequence_proto(midi_file):
-  """Converts MIDI file to a tensorflow.magenta.NoteSequence proto.
-
-  Args:
-    midi_file: A string path to a MIDI file.
-
-  Returns:
-    A tensorflow.magenta.Sequence proto.
-
-  Raises:
-    MIDIConversionError: Invalid midi_file.
-  """
-  with tf.gfile.Open(midi_file, 'rb') as f:
-    midi_as_string = f.read()
-    return midi_to_sequence_proto(midi_as_string)
+  """Renamed to midi_file_to_note_sequence."""
+  return midi_file_to_note_sequence(midi_file)
 
 
 def sequence_proto_to_midi_file(sequence, output_file,
                                 drop_events_n_seconds_after_last_note=None):
-  """Convert tensorflow.magenta.NoteSequence proto to a MIDI file on disk.
-
-  Time is stored in the NoteSequence in absolute values (seconds) as opposed to
-  relative values (MIDI ticks). When the NoteSequence is translated back to
-  MIDI the absolute time is retained. The tempo map is also recreated.
-
-  Args:
-    sequence: A tensorfow.magenta.NoteSequence proto.
-    output_file: String path to MIDI file that will be written.
-    drop_events_n_seconds_after_last_note: Events (e.g., time signature changes)
-        that occur this many seconds after the last note will be dropped. If
-        None, then no events will be dropped.
-  """
-  pretty_midi_object = sequence_proto_to_pretty_midi(
-      sequence, drop_events_n_seconds_after_last_note)
-  with tempfile.NamedTemporaryFile() as temp_file:
-    pretty_midi_object.write(temp_file)
-    # Before copying the file, flush any contents
-    temp_file.flush()
-    # And back the file position to top (not need for Copy but for certainty)
-    temp_file.seek(0)
-    tf.gfile.Copy(temp_file.name, output_file, overwrite=True)
+  """Renamed to note_sequence_to_midi_file."""
+  return note_sequence_to_midi_file(sequence, output_file,
+                                    drop_events_n_seconds_after_last_note)

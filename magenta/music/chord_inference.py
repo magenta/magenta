@@ -30,10 +30,6 @@ from magenta.music import constants
 from magenta.music import sequences_lib
 from magenta.protobuf import music_pb2
 
-# MIDI programs that typically sound unpitched.
-_UNPITCHED_PROGRAMS = (
-    list(range(96, 104)) + list(range(112, 120)) + list(range(120, 128)))
-
 # Names of pitch classes to use (mostly ignoring spelling).
 _PITCH_CLASS_NAMES = [
     'C', 'C#', 'D', 'Eb', 'E', 'F', 'F#', 'G', 'Ab', 'A', 'Bb', 'B']
@@ -173,7 +169,7 @@ def sequence_note_pitch_vectors(sequence, seconds_per_frame):
   for note in sequence.notes:
     if note.is_drum:
       continue
-    if note.program in _UNPITCHED_PROGRAMS:
+    if note.program in constants.UNPITCHED_PROGRAMS:
       continue
 
     start_frame = bisect.bisect_right(frame_boundaries, note.start_time)
@@ -425,8 +421,7 @@ def infer_chords_for_sequence(sequence,
         if current_key_name is not None:
           tf.logging.info(
               'Sequence has key change from %s to %s at %f seconds.',
-              current_key_name, _PITCH_CLASS_NAMES[key],
-              frame * seconds_per_chord)
+              current_key_name, _PITCH_CLASS_NAMES[key], time)
 
       current_key_name = _PITCH_CLASS_NAMES[key]
 

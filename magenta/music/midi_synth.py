@@ -33,7 +33,7 @@ def synthesize(sequence, sample_rate, wave=np.sin):
   Returns:
     A 1-D numpy float array containing the synthesized waveform.
   """
-  midi = midi_io.sequence_proto_to_pretty_midi(sequence)
+  midi = midi_io.note_sequence_to_pretty_midi(sequence)
   return midi.synthesize(fs=sample_rate, wave=wave)
 
 
@@ -52,5 +52,5 @@ def fluidsynth(sequence, sample_rate, sf2_path=None):
   Returns:
     A 1-D numpy float array containing the synthesized waveform.
   """
-  midi = midi_io.sequence_proto_to_pretty_midi(sequence)
+  midi = midi_io.note_sequence_to_pretty_midi(sequence)
   return midi.fluidsynth(fs=sample_rate, sf2_path=sf2_path)

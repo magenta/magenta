@@ -100,7 +100,6 @@ py_library(
     srcs_version = "PY2AND3",
     deps = [
         ":constants",
-        ":data",
         "//magenta",
         "@pretty_midi",
         # mir_eval dep
@@ -153,6 +152,20 @@ py_binary(
         ":infer_util",
         ":model",
         # librosa dep
+        # tensorflow dep
+    ],
+)
+
+py_binary(
+    name = "onsets_frames_transcription_specjson",
+    srcs = ["onsets_frames_transcription_specjson.py"],
+    srcs_version = "PY2AND3",
+    visibility = ["//magenta/tools/pip:__subpackages__"],
+    deps = [
+        "//magenta",
+        ":constants",
+        ":data",
+	":model",
         # tensorflow dep
     ],
 )
