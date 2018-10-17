@@ -93,12 +93,12 @@ def _velocity_bin_size(num_velocity_bins):
       (MAX_MIDI_VELOCITY - MIN_MIDI_VELOCITY + 1) / num_velocity_bins))
 
 
-def _velocity_to_bin(velocity, num_velocity_bins):
+def velocity_to_bin(velocity, num_velocity_bins):
   return ((velocity - MIN_MIDI_VELOCITY) //
           _velocity_bin_size(num_velocity_bins) + 1)
 
 
-def _velocity_bin_to_velocity(velocity_bin, num_velocity_bins):
+def velocity_bin_to_velocity(velocity_bin, num_velocity_bins):
   return (
       MIN_MIDI_VELOCITY + (velocity_bin - 1) *
       _velocity_bin_size(num_velocity_bins))
@@ -384,7 +384,7 @@ class BasePerformance(events_lib.EventSequence):
       # If we're using velocity and this note's velocity is different from the
       # current velocity, change the current velocity.
       if num_velocity_bins:
-        velocity_bin = _velocity_to_bin(
+        velocity_bin = velocity_to_bin(
             sorted_notes[idx].velocity, num_velocity_bins)
         if not is_offset and velocity_bin != current_velocity_bin:
           current_velocity_bin = velocity_bin
@@ -473,7 +473,7 @@ class BasePerformance(events_lib.EventSequence):
         step += event.event_value
       elif event.event_type == PerformanceEvent.VELOCITY:
         assert self._num_velocity_bins
-        velocity = _velocity_bin_to_velocity(
+        velocity = velocity_bin_to_velocity(
             event.event_value, self._num_velocity_bins)
       else:
         raise ValueError('Unknown event type: %s' % event.event_type)
@@ -854,7 +854,7 @@ class NotePerformance(BasePerformance):
                            event_value=note.pitch))
 
       # VELOCITY
-      velocity_bin = _velocity_to_bin(note.velocity, self._num_velocity_bins)
+      velocity_bin = velocity_to_bin(note.velocity, self._num_velocity_bins)
       sub_events.append(
           PerformanceEvent(event_type=PerformanceEvent.VELOCITY,
                            event_value=velocity_bin))
@@ -906,7 +906,7 @@ class NotePerformance(BasePerformance):
       note.end_time = ((step + event[3].event_value) * seconds_per_step +
                        sequence_start_time)
       note.pitch = event[1].event_value
-      note.velocity = _velocity_bin_to_velocity(
+      note.velocity = velocity_bin_to_velocity(
           event[2].event_value, self._num_velocity_bins)
       note.instrument = instrument
       note.program = program
