@@ -77,6 +77,7 @@ py_test(
         # tensorflow dep
     ],
 )
+
 py_library(
     name = "configs",
     srcs = ["configs.py"],
@@ -96,6 +97,7 @@ py_library(
     srcs_version = "PY2AND3",
     deps = [
         # tensorflow dep
+        # tensorflow_probability dep
     ],
 )
 
