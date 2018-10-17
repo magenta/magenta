@@ -31,7 +31,7 @@ py_library(
     srcs = ["drums_rnn_config_flags.py"],
     srcs_version = "PY2AND3",
     visibility = [
-        # internal model:drums_rnn
+        # internal model:music_rnn
     ],
     deps = [
         ":drums_rnn_model",
@@ -62,10 +62,13 @@ py_library(
 
 py_binary(
     name = "drums_rnn_create_dataset",
-    srcs = ["drums_rnn_create_dataset.py"],
+    srcs = [
+        "drums_rnn_create_dataset.py",
+        "drums_rnn_pipeline.py"
+    ],
     srcs_version = "PY2AND3",
     visibility = [
-        # internal model:drums_rnn
+        # internal model:music_rnn
         "//magenta/tools/pip:__subpackages__",
     ],
     deps = [

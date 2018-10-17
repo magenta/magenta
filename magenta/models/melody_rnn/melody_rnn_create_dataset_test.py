@@ -17,8 +17,8 @@
 import tensorflow as tf
 import magenta
 
-from magenta.models.melody_rnn import melody_rnn_create_dataset
 from magenta.models.melody_rnn import melody_rnn_model
+from magenta.models.melody_rnn import melody_rnn_pipeline
 from magenta.pipelines import melody_pipelines
 from magenta.pipelines import note_sequence_pipelines
 from magenta.protobuf import music_pb2
@@ -69,8 +69,8 @@ class MelodyRNNPipelineTest(tf.test.TestCase):
     one_hot = one_hot_encoding.encode(melody)
     expected_result = {'training_melodies': [one_hot], 'eval_melodies': []}
 
-    pipeline_inst = melody_rnn_create_dataset.get_pipeline(self.config,
-                                                           eval_ratio=0.0)
+    pipeline_inst = melody_rnn_pipeline.get_pipeline(
+        self.config, eval_ratio=0.0)
     result = pipeline_inst.transform(note_sequence)
     self.assertEqual(expected_result, result)
 

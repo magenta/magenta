@@ -147,6 +147,24 @@ default_configs = {
             clip_norm=5,
             learning_rate=0.001)),
 
+    'mono_rnn': MelodyRnnConfig(
+        magenta.protobuf.generator_pb2.GeneratorDetails(
+            id='mono_rnn',
+            description='Monophonic RNN with one-hot encoding.'),
+        magenta.music.OneHotEventSequenceEncoderDecoder(
+            magenta.music.MelodyOneHotEncoding(
+                min_note=0,
+                max_note=128)),
+        tf.contrib.training.HParams(
+            batch_size=128,
+            rnn_layer_sizes=[128, 128],
+            dropout_keep_prob=0.5,
+            clip_norm=5,
+            learning_rate=0.001),
+        min_note=0,
+        max_note=128,
+        transpose_to_key=None),
+
     'lookback_rnn': MelodyRnnConfig(
         magenta.protobuf.generator_pb2.GeneratorDetails(
             id='lookback_rnn',

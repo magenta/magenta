@@ -72,9 +72,13 @@ py_binary(
 
 py_binary(
     name = "performance_rnn_create_dataset",
-    srcs = ["performance_rnn_create_dataset.py"],
+    srcs = [
+        "performance_rnn_create_dataset.py",
+        "performance_rnn_pipeline.py",
+    ],
     srcs_version = "PY2AND3",
     visibility = [
+        # internal model:music_rnn
         # internal model:performance_rnn
         "//magenta/tools/pip:__subpackages__",
     ],
