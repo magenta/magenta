@@ -25,10 +25,11 @@ from six import iteritems
 
 import sonnet as snt
 import tensorflow as tf
+import tensorflow_probability as tfp
 
 from magenta.models.latent_transfer import nn
 
-ds = tf.contrib.distributions
+ds = tfp.distributions
 
 
 def affine(x, output_size, z=None, residual=False, softplus=False):

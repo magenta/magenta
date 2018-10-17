@@ -103,6 +103,7 @@ py_library(
         # numpy dep
         # sonnet dep
         # tensorflow dep
+        # tensorflow_probability dep
     ],
 )
 
@@ -115,6 +116,7 @@ py_library(
         # numpy dep
         # sonnet dep
         # tensorflow dep
+        # tensorflow_probability dep
     ],
 )
 
