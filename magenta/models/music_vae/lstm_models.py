@@ -22,6 +22,7 @@ import abc
 # internal imports
 import numpy as np
 import tensorflow as tf
+import tensorflow_probability as tfp
 
 from magenta.common import flatten_maybe_padded_sequences
 from magenta.common import Nade
