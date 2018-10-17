@@ -228,7 +228,7 @@ class Hyperparameters(object):
 
   @staticmethod
   def load(file_object):
-    params_dict = yaml.load(file_object)
+    params_dict = yaml.safe_load(file_object)
     hparams = Hyperparameters()
     hparams.update(params_dict)
     return hparams
