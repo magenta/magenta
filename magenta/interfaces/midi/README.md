@@ -146,8 +146,8 @@ You may now start the interface with this command:
 
 ```bash
 magenta_midi \
-  --input_port=${CONTROLLER_PORT} \
-  --output_port=${SYNTH_PORT} \
+  --input_ports=${CONTROLLER_PORT} \
+  --output_ports=${SYNTH_PORT} \
   --bundle_files=${BUNDLE_PATHS}
 ```
 
@@ -196,7 +196,7 @@ and are using VPMK and FluidSynth, your command might look like this:
 
 ```bash
 magenta_midi \
-  --input_port="VMPK Output" \
-  --output_port="FluidSynth virtual port" \
+  --input_ports="VMPK Output" \
+  --output_ports="FluidSynth virtual port" \
   --bundle_files=/tmp/attention_rnn.mag
 ```
