@@ -25,6 +25,7 @@ from __future__ import print_function
 
 import io
 import os
+import ast
 
 
 import scipy
@@ -97,7 +98,11 @@ def main(unused_argv):
   tf.logging.info('Output TFRecord file is saved at %s' % os.path.expanduser(
       FLAGS.output_file))
 
+def console_entry_point():
+  tf.app.run(main)      
+
 
 if __name__ == '__main__':
-  tf.app.run(main)
+
+  console_entry_point()
 
