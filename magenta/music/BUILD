@@ -415,14 +415,7 @@ py_test(
 py_library(
     name = "musicnet_io",
     srcs = ["musicnet_io.py"],
-    srcs_version = "PY2ONLY",
-    tags = [
-        # Include this tag in order to filter this target out of the suite when
-        # using py3 with --build_tag_filters=-py2only. Necessary because the
-        # musicnet dataset was pickled using py2 and is therefore incompatible
-        # with py3.
-        "py2only",
-    ],
+    srcs_version = "PY2AND3",
     deps = [
         "//magenta/protobuf:music_py_pb2",
         # intervaltree dep
@@ -435,14 +428,7 @@ py_test(
     name = "musicnet_io_test",
     srcs = ["musicnet_io_test.py"],
     data = ["//magenta/testdata"],
-    srcs_version = "PY2ONLY",
-    tags = [
-        # Include this tag in order to filter this test out of the suite when
-        # using py3 with --test_tag_filters=-py2only. Necessary because the
-        # musicnet dataset was pickled using py2 and is therefore incompatible
-        # with py3.
-        "py2only",
-    ],
+    srcs_version = "PY2AND3",
     deps = [
         ":musicnet_io",
         # numpy dep
