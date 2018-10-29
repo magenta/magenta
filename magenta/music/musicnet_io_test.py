@@ -22,9 +22,6 @@ import tensorflow as tf
 from magenta.music import musicnet_io
 
 
-# When running the test suite in py3, filter this test out using
-# --test_tag_filters=-py2only. We do this because the musicnet dataset was
-# pickled using py2 and therefore cannot be deserialized with py3.
 class MusicNetIoTest(tf.test.TestCase):
 
   def setUp(self):
@@ -35,7 +32,7 @@ class MusicNetIoTest(tf.test.TestCase):
         '../testdata/musicnet_example.npz')
 
   def testNoteIntervalTreeToSequenceProto(self):
-    example = np.load(self.musicnet_example_filename)
+    example = np.load(self.musicnet_example_filename, encoding='latin1')
     note_interval_tree = example['test'][1]
     sequence = musicnet_io.note_interval_tree_to_sequence_proto(
         note_interval_tree, 44100)
