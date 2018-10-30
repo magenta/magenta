@@ -380,6 +380,14 @@ class NotePerformanceEventSequenceEncoderDecoder(
     return self._duration_steps_segments
 
   @property
+  def shift_steps_per_segment(self):
+    return self._shift_steps_per_segment
+
+  @property
+  def duration_steps_per_segment(self):
+    return self._duration_steps_per_segment
+
+  @property
   def default_event_label(self):
     return self._encode_event(
         (PerformanceEvent(PerformanceEvent.TIME_SHIFT, 0),
