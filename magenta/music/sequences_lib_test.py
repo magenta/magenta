@@ -1481,8 +1481,8 @@ class SequencesLibTest(tf.test.TestCase):
                                                                    0], [1, 0],
                           [1, 0], [1, 0], [1, 0], [1, 1], [0, 1], [0, 1]]
 
-    output, _, _, _, _ = sequences_lib.sequence_to_pianoroll(
-        sequence, frames_per_second=10, min_pitch=1, max_pitch=2)
+    output = sequences_lib.sequence_to_pianoroll(
+        sequence, frames_per_second=10, min_pitch=1, max_pitch=2).active
 
     np.testing.assert_allclose(expected_pianoroll, output)
 
@@ -1512,8 +1512,8 @@ class SequencesLibTest(tf.test.TestCase):
         [0, 0],
     ]
 
-    output, _, _, _, _ = sequences_lib.sequence_to_pianoroll(
-        sequence, frames_per_second=10, min_pitch=1, max_pitch=2)
+    output = sequences_lib.sequence_to_pianoroll(
+        sequence, frames_per_second=10, min_pitch=1, max_pitch=2).active
 
     np.testing.assert_allclose(expected_pianoroll, output)
 
@@ -1536,12 +1536,12 @@ class SequencesLibTest(tf.test.TestCase):
         [0, 0],
     ]
 
-    (output_with_blank_frame, _, _, _, _) = sequences_lib.sequence_to_pianoroll(
+    output_with_blank_frame = sequences_lib.sequence_to_pianoroll(
         sequence,
         frames_per_second=10,
         min_pitch=1,
         max_pitch=2,
-        add_blank_frame_before_onset=True)
+        add_blank_frame_before_onset=True).active
 
     np.testing.assert_allclose(expected_pianoroll_with_blank_frame,
                                output_with_blank_frame)
@@ -1560,12 +1560,12 @@ class SequencesLibTest(tf.test.TestCase):
         [0],
     ]
 
-    output, _, _, _, _ = sequences_lib.sequence_to_pianoroll(
+    output = sequences_lib.sequence_to_pianoroll(
         sequence,
         frames_per_second=10,
         min_pitch=1,
         max_pitch=1,
-        add_blank_frame_before_onset=True)
+        add_blank_frame_before_onset=True).active
 
     np.testing.assert_allclose(expected_pianoroll, output)
 
@@ -1593,15 +1593,88 @@ class SequencesLibTest(tf.test.TestCase):
         [0, 0, 1, 0],
         [0, 0, 0, 0],
     ]
-    _, roll_weights, onsets, _, _ = sequences_lib.sequence_to_pianoroll(
+    roll = sequences_lib.sequence_to_pianoroll(
         sequence,
         frames_per_second=2,
         min_pitch=1,
         max_pitch=4,
         onset_upweight=onset_upweight)
 
-    np.testing.assert_allclose(expected_roll_weights, roll_weights)
-    np.testing.assert_allclose(expected_onsets, onsets)
+    np.testing.assert_allclose(expected_roll_weights, roll.weights)
+    np.testing.assert_allclose(expected_onsets, roll.onsets)
+
+  def testSequenceToPianorollOnsets(self):
+    sequence = music_pb2.NoteSequence()
+    sequence.notes.add(pitch=60, start_time=2.0, end_time=5.0)
+    sequence.notes.add(pitch=61, start_time=6.0, end_time=7.0)
+    sequence.notes.add(pitch=62, start_time=7.0, end_time=8.0)
+    sequence.total_time = 8.0
+
+    onsets = sequences_lib.sequence_to_pianoroll(
+        sequence,
+        100,
+        60,
+        62,
+        onset_mode='length_ms',
+        onset_length_ms=100.0,
+        onset_delay_ms=10.0,
+        min_frame_occupancy_for_label=.999).onsets
+
+    expected_roll = np.zeros([801, 3])
+    expected_roll[201:211, 0] = 1.
+    expected_roll[601:611, 1] = 1.
+    expected_roll[701:711, 2] = 1.
+
+    np.testing.assert_equal(expected_roll, onsets)
+
+  def testSequenceToPianorollFrameOccupancy(self):
+    sequence = music_pb2.NoteSequence()
+    sequence.notes.add(pitch=60, start_time=1.0, end_time=1.7)
+    sequence.notes.add(pitch=61, start_time=6.2, end_time=6.55)
+    sequence.notes.add(pitch=62, start_time=3.4, end_time=4.3)
+    sequence.total_time = 6.55
+
+    active = sequences_lib.sequence_to_pianoroll(
+        sequence, 2, 60, 62, min_frame_occupancy_for_label=0.5).active
+
+    expected_roll = np.zeros([14, 3])
+    expected_roll[2:3, 0] = 1.
+    expected_roll[12:13, 1] = 1.
+    expected_roll[7:9, 2] = 1.
+
+    np.testing.assert_equal(expected_roll, active)
+
+  def testSequenceToPianorollOnsetVelocities(self):
+    sequence = music_pb2.NoteSequence()
+    sequence.notes.add(pitch=60, start_time=0.0, end_time=2.0, velocity=16)
+    sequence.notes.add(pitch=61, start_time=0.0, end_time=2.0, velocity=32)
+    sequence.notes.add(pitch=62, start_time=0.0, end_time=2.0, velocity=64)
+    sequence.total_time = 2.0
+
+    roll = sequences_lib.sequence_to_pianoroll(
+        sequence, 1, 60, 62, max_velocity=64, onset_window=0)
+    onset_velocities = roll.onset_velocities
+
+    self.assertEqual(onset_velocities[0, 0], 0.25)
+    self.assertEqual(onset_velocities[0, 1], 0.5)
+    self.assertEqual(onset_velocities[0, 2], 1.)
+    self.assertEqual(np.all(onset_velocities[1:] == 0), True)
+
+  def testSequenceToPianorollActiveVelocities(self):
+    sequence = music_pb2.NoteSequence()
+    sequence.notes.add(pitch=60, start_time=0.0, end_time=2.0, velocity=16)
+    sequence.notes.add(pitch=61, start_time=0.0, end_time=2.0, velocity=32)
+    sequence.notes.add(pitch=62, start_time=0.0, end_time=2.0, velocity=64)
+    sequence.total_time = 2.0
+
+    roll = sequences_lib.sequence_to_pianoroll(
+        sequence, 1, 60, 62, max_velocity=64)
+    active_velocities = roll.active_velocities
+
+    self.assertEqual(np.all(active_velocities[0:2, 0] == 0.25), True)
+    self.assertEqual(np.all(active_velocities[0:2, 1] == 0.5), True)
+    self.assertEqual(np.all(active_velocities[0:2, 2] == 1.), True)
+    self.assertEqual(np.all(active_velocities[2:] == 0), True)
 
   def testPianorollToNoteSequence(self):
     # 100 frames of notes.
@@ -1694,8 +1767,8 @@ class SequencesLibTest(tf.test.TestCase):
     expected_cc_roll[1, 3] = 17
     expected_cc_roll[3, 3] = 65
 
-    _, _, _, _, cc_roll = sequences_lib.sequence_to_pianoroll(
-        sequence, frames_per_second=2, min_pitch=1, max_pitch=4)
+    cc_roll = sequences_lib.sequence_to_pianoroll(
+        sequence, frames_per_second=2, min_pitch=1, max_pitch=4).control_changes
 
     np.testing.assert_allclose(expected_cc_roll, cc_roll)
 

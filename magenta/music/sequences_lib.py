@@ -1475,6 +1475,12 @@ def infer_dense_chords_for_sequence(sequence,
   assert not active_notes
 
 
+Pianoroll = collections.namedtuple(  # pylint:disable=invalid-name
+    'Pianoroll',
+    ['active', 'weights', 'onsets', 'onset_velocities', 'active_velocities',
+     'control_changes'])
+
+
 def sequence_to_pianoroll(
     sequence,
     frames_per_second,
@@ -1507,8 +1513,8 @@ def sequence_to_pianoroll(
       used to globally normalize the velocities between [0, 1].
     add_blank_frame_before_onset: Always have a blank frame before onsets.
     onset_upweight: Factor by which to increase the weight assigned to onsets.
-    onset_window: Fixed window size for labeling offsets. Used only if
-      onset_mode is 'window'.
+    onset_window: Fixed window size to activate around onsets in `onsets` and
+      `onset_velocities`. Used only if `onset_mode` is 'window'.
     onset_length_ms: Length in milliseconds for the onset. Used only if
       onset_mode is 'length_ms'.
     onset_mode: Either 'window', to use onset_window, or 'length_ms' to use
@@ -1522,10 +1528,11 @@ def sequence_to_pianoroll(
     ValueError: When an unknown onset_mode is supplied.
 
   Returns:
-    roll: A pianoroll as a 2D array.
-    roll_weights: Weights to be used when calculating loss against roll.
+    active: Active note pianoroll as a 2D array..
+    weights: Weights to be used when calculating loss against roll.
     onsets: An onset-only pianoroll as a 2D array.
-    velocities: Velocities of onsets scaled from [0, 1]
+    onset_velocities: Velocities of onsets scaled from [0, 1].
+    active_velocities: Velocities of active notes scaled from [0, 1].
     control_changes: Control change onsets as a 2D array (time, control number)
       with 0 when there is no onset and (control_value + 1) when there is.
   """
@@ -1560,7 +1567,7 @@ def sequence_to_pianoroll(
 
     return start_frame, end_frame
 
-  velocities = np.zeros_like(roll, dtype=np.float32)
+  velocities_roll = np.zeros_like(roll, dtype=np.float32)
 
   for note in sorted(sequence.notes, key=lambda n: n.start_time):
     if note.pitch < min_pitch or note.pitch > max_pitch:
@@ -1594,8 +1601,8 @@ def sequence_to_pianoroll(
     if note.velocity > max_velocity:
       raise ValueError('Note velocity exceeds max velocity: %d > %d' %
                        (note.velocity, max_velocity))
-    velocities[onset_start_frame:onset_end_frame, note.pitch -
-               min_pitch] = float(note.velocity) / max_velocity
+    velocities_roll[start_frame:end_frame, note.pitch -
+                    min_pitch] = float(note.velocity) / max_velocity
     roll_weights[onset_start_frame:onset_end_frame, note.pitch - min_pitch] = (
         onset_upweight)
     roll_weights[onset_end_frame:end_frame, note.pitch - min_pitch] = [
@@ -1612,7 +1619,13 @@ def sequence_to_pianoroll(
     if frame < len(control_changes):
       control_changes[frame, cc.control_number] = cc.control_value + 1
 
-  return roll, roll_weights, onsets, velocities, control_changes
+  return Pianoroll(
+      active=roll,
+      weights=roll_weights,
+      onsets=onsets,
+      onset_velocities=velocities_roll * onsets,
+      active_velocities=velocities_roll,
+      control_changes=control_changes)
 
 
 def pianoroll_to_note_sequence(frames,

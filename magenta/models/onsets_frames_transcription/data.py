@@ -207,9 +207,10 @@ def transform_wav_data_op(wav_data_tensor, hparams, is_training,
 def sequence_to_pianoroll_op(sequence_tensor, velocity_range_tensor, hparams):
   """Transforms a serialized NoteSequence to a pianoroll."""
   def sequence_to_pianoroll_fn(sequence_tensor, velocity_range_tensor):
+    """Converts sequence to pianorolls."""
     velocity_range = music_pb2.VelocityRange.FromString(velocity_range_tensor)
     sequence = preprocess_sequence(sequence_tensor)
-    return sequences_lib.sequence_to_pianoroll(
+    roll = sequences_lib.sequence_to_pianoroll(
         sequence,
         frames_per_second=hparams_frames_per_second(hparams),
         min_pitch=constants.MIN_MIDI_PITCH,
@@ -220,10 +221,11 @@ def sequence_to_pianoroll_op(sequence_tensor, velocity_range_tensor, hparams):
         onset_delay_ms=hparams.onset_delay,
         min_velocity=velocity_range.min,
         max_velocity=velocity_range.max)
+    return roll.active, roll.weights, roll.onsets, roll.onset_velocities
 
-  res, weighted_res, onsets, velocities, _ = tf.py_func(
+  res, weighted_res, onsets, velocities = tf.py_func(
       sequence_to_pianoroll_fn, [sequence_tensor, velocity_range_tensor],
-      [tf.float32, tf.float32, tf.float32, tf.float32, tf.int32],
+      [tf.float32, tf.float32, tf.float32, tf.float32],
       name='sequence_to_pianoroll_op')
   res.set_shape([None, constants.MIDI_PITCHES])
   weighted_res.set_shape([None, constants.MIDI_PITCHES])

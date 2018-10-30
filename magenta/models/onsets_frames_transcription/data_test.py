@@ -97,7 +97,7 @@ class DataTest(tf.test.TestCase):
     wav_data = ex.features.feature['audio'].bytes_list.value[0]
 
     spec = data.wav_to_spec(wav_data, hparams=hparams)
-    labels, weighted_labels, _, _, _ = sequences_lib.sequence_to_pianoroll(
+    roll = sequences_lib.sequence_to_pianoroll(
         sequence,
         frames_per_second=data.hparams_frames_per_second(hparams),
         min_pitch=constants.MIN_MIDI_PITCH,
@@ -109,7 +109,7 @@ class DataTest(tf.test.TestCase):
     length = data.wav_to_num_frames(
         wav_data, frames_per_second=data.hparams_frames_per_second(hparams))
 
-    return self._DataToInputs(spec, labels, weighted_labels, length, filename,
+    return self._DataToInputs(spec, roll.active, roll.weights, length, filename,
                               truncated_length)
 
   def validateProvideBatch(self,
