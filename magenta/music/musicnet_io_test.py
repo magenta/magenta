@@ -40,7 +40,7 @@ class MusicNetIoTest(tf.test.TestCase):
     self.assertEqual(72, min(note.pitch for note in sequence.notes))
     self.assertEqual(79, max(note.pitch for note in sequence.notes))
     self.assertTrue(all(note.instrument == 0 for note in sequence.notes))
-    self.assertTrue(all(note.program == 42 for note in sequence.notes))
+    self.assertTrue(all(note.program == 41 for note in sequence.notes))
     self.assertEqual(0.5, sequence.total_time)
 
   def testMusicNetIterator(self):
