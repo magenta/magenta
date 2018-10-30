@@ -15,15 +15,15 @@
 
 import copy
 
-# internal imports
+import google3
 import numpy as np
 import tensorflow as tf
 
-from magenta.common import testing_lib as common_testing_lib
-from magenta.music import constants
-from magenta.music import sequences_lib
-from magenta.music import testing_lib
-from magenta.protobuf import music_pb2
+from google3.third_party.magenta.common import testing_lib as common_testing_lib
+from google3.third_party.magenta.music import constants
+from google3.third_party.magenta.music import sequences_lib
+from google3.third_party.magenta.music import testing_lib
+from google3.third_party.magenta.protobuf import music_pb2
 
 CHORD_SYMBOL = music_pb2.NoteSequence.TextAnnotation.CHORD_SYMBOL
 DEFAULT_FRAMES_PER_SECOND = 16000.0 / 512
@@ -1477,14 +1477,39 @@ class SequencesLibTest(tf.test.TestCase):
                                                     (3, 100, 0.3, 0.8),
                                                     (2, 45, 1.0, 1.21)])
 
-    expected_pianoroll = [[0, 0], [1, 0], [1, 1], [1, 1], [1, 1], [1,
-                                                                   0], [1, 0],
-                          [1, 0], [1, 0], [1, 0], [1, 1], [0, 1], [0, 1]]
+    expected_pianoroll = [[0, 0],
+                          [1, 0],
+                          [1, 1],
+                          [1, 1],
+                          [1, 1],
+                          [1, 0],
+                          [1, 0],
+                          [1, 0],
+                          [1, 0],
+                          [1, 0],
+                          [1, 1],
+                          [0, 1],
+                          [0, 1]]
 
-    output, _, _, _, _ = sequences_lib.sequence_to_pianoroll(
+    expected_offsets = [[0, 0],
+                        [0, 0],
+                        [0, 0],
+                        [0, 0],
+                        [0, 0],
+                        [0, 1],
+                        [0, 0],
+                        [0, 0],
+                        [0, 0],
+                        [0, 0],
+                        [1, 0],
+                        [0, 0],
+                        [0, 1]]
+
+    output, _, _, offset, _, _ = sequences_lib.sequence_to_pianoroll(
         sequence, frames_per_second=10, min_pitch=1, max_pitch=2)
 
     np.testing.assert_allclose(expected_pianoroll, output)
+    np.testing.assert_allclose(expected_offsets, offset)
 
   def testSequenceToPianorollWithBlankFrameBeforeOffset(self):
     sequence = music_pb2.NoteSequence(total_time=1.5)
@@ -1512,7 +1537,7 @@ class SequencesLibTest(tf.test.TestCase):
         [0, 0],
     ]
 
-    output, _, _, _, _ = sequences_lib.sequence_to_pianoroll(
+    output, _, _, _, _, _ = sequences_lib.sequence_to_pianoroll(
         sequence, frames_per_second=10, min_pitch=1, max_pitch=2)
 
     np.testing.assert_allclose(expected_pianoroll, output)
@@ -1536,12 +1561,13 @@ class SequencesLibTest(tf.test.TestCase):
         [0, 0],
     ]
 
-    (output_with_blank_frame, _, _, _, _) = sequences_lib.sequence_to_pianoroll(
-        sequence,
-        frames_per_second=10,
-        min_pitch=1,
-        max_pitch=2,
-        add_blank_frame_before_onset=True)
+    (output_with_blank_frame, _, _,
+     _, _, _) = sequences_lib.sequence_to_pianoroll(
+         sequence,
+         frames_per_second=10,
+         min_pitch=1,
+         max_pitch=2,
+         add_blank_frame_before_onset=True)
 
     np.testing.assert_allclose(expected_pianoroll_with_blank_frame,
                                output_with_blank_frame)
@@ -1560,7 +1586,7 @@ class SequencesLibTest(tf.test.TestCase):
         [0],
     ]
 
-    output, _, _, _, _ = sequences_lib.sequence_to_pianoroll(
+    output, _, _, _, _, _ = sequences_lib.sequence_to_pianoroll(
         sequence,
         frames_per_second=10,
         min_pitch=1,
@@ -1593,7 +1619,7 @@ class SequencesLibTest(tf.test.TestCase):
         [0, 0, 1, 0],
         [0, 0, 0, 0],
     ]
-    _, roll_weights, onsets, _, _ = sequences_lib.sequence_to_pianoroll(
+    _, roll_weights, onsets, _, _, _ = sequences_lib.sequence_to_pianoroll(
         sequence,
         frames_per_second=2,
         min_pitch=1,
@@ -1694,7 +1720,7 @@ class SequencesLibTest(tf.test.TestCase):
     expected_cc_roll[1, 3] = 17
     expected_cc_roll[3, 3] = 65
 
-    _, _, _, _, cc_roll = sequences_lib.sequence_to_pianoroll(
+    _, _, _, _, _, cc_roll = sequences_lib.sequence_to_pianoroll(
         sequence, frames_per_second=2, min_pitch=1, max_pitch=4)
 
     np.testing.assert_allclose(expected_cc_roll, cc_roll)
