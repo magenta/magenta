@@ -226,11 +226,11 @@ def score_sequence(session, global_step_increment, summary_op, summary_writer,
            est_intervals,
            pretty_midi.note_number_to_hz(est_pitches)))
 
-  frame_predictions, _, _, _, _ = sequences_lib.sequence_to_pianoroll(
+  frame_predictions = sequences_lib.sequence_to_pianoroll(
       sequence_prediction,
       frames_per_second=frames_per_second,
       min_pitch=constants.MIN_MIDI_PITCH,
-      max_pitch=constants.MAX_MIDI_PITCH)
+      max_pitch=constants.MAX_MIDI_PITCH).active
 
   if frame_predictions.shape[0] < frame_labels.shape[0]:
     # Pad transcribed frames with silence.
@@ -267,11 +267,11 @@ def score_sequence(session, global_step_increment, summary_op, summary_writer,
 def posterior_pianoroll_image(frame_probs, sequence_prediction,
                               frame_labels, frames_per_second, overlap=False):
   """Create a pianoroll image showing frame posteriors, predictions & labels."""
-  frame_predictions, _, _, _, _ = sequences_lib.sequence_to_pianoroll(
+  frame_predictions = sequences_lib.sequence_to_pianoroll(
       sequence_prediction,
       frames_per_second=frames_per_second,
       min_pitch=constants.MIN_MIDI_PITCH,
-      max_pitch=constants.MAX_MIDI_PITCH)
+      max_pitch=constants.MAX_MIDI_PITCH).active
 
   if frame_predictions.shape[0] < frame_labels.shape[0]:
     # Pad transcribed frames with silence.
