@@ -1477,6 +1477,11 @@ class SequencesLibTest(tf.test.TestCase):
                                                     (3, 100, 0.3, 0.8),
                                                     (2, 45, 1.0, 1.21)])
 
+    pianoroll_tuple = sequences_lib.sequence_to_pianoroll(
+        sequence, frames_per_second=10, min_pitch=1, max_pitch=2)
+    output = pianoroll_tuple.active
+    offset = pianoroll_tuple.offset
+
     expected_pianoroll = [[0, 0],
                           [1, 0],
                           [1, 1],
@@ -1504,11 +1509,6 @@ class SequencesLibTest(tf.test.TestCase):
                         [1, 0],
                         [0, 0],
                         [0, 1]]
-
-    pianoroll_tuple = sequences_lib.sequence_to_pianoroll(
-        sequence, frames_per_second=10, min_pitch=1, max_pitch=2)
-    output = pianoroll_tuple.active
-    offset = pianoroll_tuple.offset
 
     np.testing.assert_allclose(expected_pianoroll, output)
     np.testing.assert_allclose(expected_offsets, offset)
