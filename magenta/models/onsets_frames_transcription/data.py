@@ -218,10 +218,11 @@ def sequence_to_pianoroll_op(sequence_tensor, velocity_range_tensor, hparams):
         min_frame_occupancy_for_label=hparams.min_frame_occupancy_for_label,
         onset_mode=hparams.onset_mode,
         onset_length_ms=hparams.onset_length,
+        offset_length_ms=hparams.offset_length,
         onset_delay_ms=hparams.onset_delay,
         min_velocity=velocity_range.min,
         max_velocity=velocity_range.max)
-    return roll.active, roll.weights, roll.onsets, roll.onset_velocities
+    return roll.active, roll.weights, roll.onsets, roll.offsets, roll.onset_velocities
 
   res, weighted_res, onsets, offsets, velocities = tf.py_func(
       sequence_to_pianoroll_fn, [sequence_tensor, velocity_range_tensor],
@@ -231,6 +232,7 @@ def sequence_to_pianoroll_op(sequence_tensor, velocity_range_tensor, hparams):
   res.set_shape([None, constants.MIDI_PITCHES])
   weighted_res.set_shape([None, constants.MIDI_PITCHES])
   onsets.set_shape([None, constants.MIDI_PITCHES])
+  offsets.set_shape([None, constants.MIDI_PITCHES])
   velocities.set_shape([None, constants.MIDI_PITCHES])
 
   return res, weighted_res, onsets, offsets, velocities
