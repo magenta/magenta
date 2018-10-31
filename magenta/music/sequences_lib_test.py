@@ -1480,7 +1480,7 @@ class SequencesLibTest(tf.test.TestCase):
     pianoroll_tuple = sequences_lib.sequence_to_pianoroll(
         sequence, frames_per_second=10, min_pitch=1, max_pitch=2)
     output = pianoroll_tuple.active
-    offset = pianoroll_tuple.offset
+    offset = pianoroll_tuple.offsets
 
     expected_pianoroll = [[0, 0],
                           [1, 0],
