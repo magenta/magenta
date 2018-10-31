@@ -218,21 +218,24 @@ def sequence_to_pianoroll_op(sequence_tensor, velocity_range_tensor, hparams):
         min_frame_occupancy_for_label=hparams.min_frame_occupancy_for_label,
         onset_mode=hparams.onset_mode,
         onset_length_ms=hparams.onset_length,
+        offset_length_ms=hparams.offset_length,
         onset_delay_ms=hparams.onset_delay,
         min_velocity=velocity_range.min,
         max_velocity=velocity_range.max)
-    return roll.active, roll.weights, roll.onsets, roll.onset_velocities
+    return (roll.active, roll.weights, roll.onsets,
+            roll.offsets, roll.onset_velocities)
 
-  res, weighted_res, onsets, velocities = tf.py_func(
+  res, weighted_res, onsets, offsets, velocities = tf.py_func(
       sequence_to_pianoroll_fn, [sequence_tensor, velocity_range_tensor],
-      [tf.float32, tf.float32, tf.float32, tf.float32],
+      [tf.float32, tf.float32, tf.float32, tf.float32, tf.float32],
       name='sequence_to_pianoroll_op')
   res.set_shape([None, constants.MIDI_PITCHES])
   weighted_res.set_shape([None, constants.MIDI_PITCHES])
   onsets.set_shape([None, constants.MIDI_PITCHES])
+  offsets.set_shape([None, constants.MIDI_PITCHES])
   velocities.set_shape([None, constants.MIDI_PITCHES])
 
-  return res, weighted_res, onsets, velocities
+  return res, weighted_res, onsets, offsets, velocities
 
 
 def jitter_label_op(sequence_tensor, jitter_amount_sec):
@@ -288,8 +291,8 @@ def truncate_note_sequence_op(sequence_tensor, truncated_length_frames,
 
 InputTensors = collections.namedtuple(
     'InputTensors',
-    ('spec', 'labels', 'label_weights', 'length', 'onsets', 'velocities',
-     'velocity_range', 'filename', 'note_sequence'))
+    ('spec', 'labels', 'label_weights', 'length', 'onsets', 'offsets',
+     'velocities', 'velocity_range', 'filename', 'note_sequence'))
 
 
 def _preprocess_data(sequence, audio, velocity_range, hparams, is_training):
@@ -333,13 +336,14 @@ def _preprocess_data(sequence, audio, velocity_range, hparams, is_training):
 
   spec = wav_to_spec_op(transformed_wav, hparams=hparams)
 
-  labels, label_weights, onsets, velocities = sequence_to_pianoroll_op(
+  labels, label_weights, onsets, offsets, velocities = sequence_to_pianoroll_op(
       sequence, velocity_range, hparams=hparams)
 
   length = wav_to_num_frames_op(
       transformed_wav, hparams_frames_per_second(hparams))
 
-  return spec, labels, label_weights, length, onsets, velocities, velocity_range
+  return (spec, labels, label_weights, length, onsets,
+          offsets, velocities, velocity_range)
 
 
 def _get_input_tensors_from_examples_list(examples_list, is_training):
@@ -376,13 +380,14 @@ class TranscriptionData(dict):
 
 def _provide_data(input_tensors, truncated_length, hparams):
   """Returns tensors for reading batches from provider."""
-  (spec, labels, label_weights, length, onsets, velocities,
+  (spec, labels, label_weights, length, onsets, offsets, velocities,
    unused_velocity_range, filename, note_sequence) = input_tensors
 
   length = tf.to_int32(length)
   labels = tf.reshape(labels, (-1, constants.MIDI_PITCHES))
   label_weights = tf.reshape(label_weights, (-1, constants.MIDI_PITCHES))
   onsets = tf.reshape(onsets, (-1, constants.MIDI_PITCHES))
+  offsets = tf.reshape(offsets, (-1, constants.MIDI_PITCHES))
   velocities = tf.reshape(velocities, (-1, constants.MIDI_PITCHES))
   spec = tf.reshape(spec, (-1, hparams_frame_size(hparams)))
 
@@ -413,6 +418,11 @@ def _provide_data(input_tensors, truncated_length, hparams):
         lambda: tf.pad(onsets, tf.stack([(0, -labels_delta), (0, 0)]))),
        (labels_delta > 0, lambda: onsets[0:-labels_delta])],
       default=lambda: onsets)
+  offsets = tf.case(
+      [(labels_delta < 0,
+        lambda: tf.pad(offsets, tf.stack([(0, -labels_delta), (0, 0)]))),
+       (labels_delta > 0, lambda: offsets[0:-labels_delta])],
+      default=lambda: offsets)
   velocities = tf.case(
       [(labels_delta < 0,
         lambda: tf.pad(velocities, tf.stack([(0, -labels_delta), (0, 0)]))),
@@ -430,6 +440,8 @@ def _provide_data(input_tensors, truncated_length, hparams):
           label_weights, (truncated_length, constants.MIDI_PITCHES)),
       'lengths': truncated_length,
       'onsets': tf.reshape(onsets, (truncated_length, constants.MIDI_PITCHES)),
+      'offsets': tf.reshape(offsets, (truncated_length,
+                                      constants.MIDI_PITCHES)),
       'velocities':
           tf.reshape(velocities, (truncated_length, constants.MIDI_PITCHES)),
       'filenames': filename,
@@ -480,7 +492,7 @@ def provide_batch(batch_size,
       return tf.parse_single_example(example_proto, features)
 
     def _preprocess(record):
-      (spec, labels, label_weights, length, onsets, velocities,
+      (spec, labels, label_weights, length, onsets, offsets, velocities,
        velocity_range) = _preprocess_data(
            record['sequence'], record['audio'], record['velocity_range'],
            hparams, is_training)
@@ -490,6 +502,7 @@ def provide_batch(batch_size,
           label_weights=label_weights,
           length=length,
           onsets=onsets,
+          offsets=offsets,
           velocities=velocities,
           velocity_range=velocity_range,
           filename=record['id'],

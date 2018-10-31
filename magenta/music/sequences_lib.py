@@ -1478,7 +1478,7 @@ def infer_dense_chords_for_sequence(sequence,
 Pianoroll = collections.namedtuple(  # pylint:disable=invalid-name
     'Pianoroll',
     ['active', 'weights', 'onsets', 'onset_velocities', 'active_velocities',
-     'control_changes'])
+     'offsets', 'control_changes'])
 
 
 def sequence_to_pianoroll(
@@ -1494,9 +1494,11 @@ def sequence_to_pianoroll(
     onset_upweight=ONSET_UPWEIGHT,
     onset_window=ONSET_WINDOW,
     onset_length_ms=0,
+    offset_length_ms=0,
     onset_mode='window',
     onset_delay_ms=0.0,
-    min_frame_occupancy_for_label=0.0):
+    min_frame_occupancy_for_label=0.0,
+    onset_overlap=True):
   """Transforms a NoteSequence to a pianoroll assuming a single instrument.
 
   This function uses floating point internally and may return different results
@@ -1517,12 +1519,15 @@ def sequence_to_pianoroll(
       `onset_velocities`. Used only if `onset_mode` is 'window'.
     onset_length_ms: Length in milliseconds for the onset. Used only if
       onset_mode is 'length_ms'.
+    offset_length_ms: Length in milliseconds for the offset. Used only if
+      offset_mode is 'length_ms'.
     onset_mode: Either 'window', to use onset_window, or 'length_ms' to use
       onset_length_ms.
     onset_delay_ms: Number of milliseconds to delay the onset. Can be negative.
     min_frame_occupancy_for_label: floating point value in range [0, 1] a note
       must occupy at least this percentage of a frame, for the frame to be given
       a label with the note.
+    onset_overlap: Whether or not the onsets overlap with the frames.
 
   Raises:
     ValueError: When an unknown onset_mode is supplied.
@@ -1533,6 +1538,7 @@ def sequence_to_pianoroll(
     onsets: An onset-only pianoroll as a 2D array.
     onset_velocities: Velocities of onsets scaled from [0, 1].
     active_velocities: Velocities of active notes scaled from [0, 1].
+    offsets: An offset-only pianoroll as a 2D array.
     control_changes: Control change onsets as a 2D array (time, control number)
       with 0 when there is no onset and (control_value + 1) when there is.
   """
@@ -1543,6 +1549,7 @@ def sequence_to_pianoroll(
   roll_weights = np.ones_like(roll)
 
   onsets = np.zeros_like(roll)
+  offsets = np.zeros_like(roll)
 
   control_changes = np.zeros(
       (int(sequence.total_time * frames_per_second + 1), 128), dtype=np.int32)
@@ -1575,8 +1582,6 @@ def sequence_to_pianoroll(
       continue
     start_frame, end_frame = frames_from_times(note.start_time, note.end_time)
 
-    roll[start_frame:end_frame, note.pitch - min_pitch] = 1.0
-
     # label onset events. Use a window size of onset_window to account of
     # rounding issue in the start_frame computation.
     onset_start_time = note.start_time + onset_delay_ms / 1000.
@@ -1596,11 +1601,27 @@ def sequence_to_pianoroll(
           onset_start_time, onset_end_time)
     else:
       raise ValueError('Unknown onset mode: {}'.format(onset_mode))
+
+    # label offset events.
+    offset_start_time = min(note.end_time,
+                            sequence.total_time - offset_length_ms / 1000.)
+    offset_end_time = offset_start_time + offset_length_ms / 1000.
+    offset_start_frame, offset_end_frame = frames_from_times(
+        offset_start_time, offset_end_time)
+    offset_end_frame = max(offset_end_frame, offset_start_frame + 1)
+
+    if not onset_overlap:
+      start_frame = onset_end_frame
+      end_frame = max(start_frame + 1, end_frame)
+
+    offsets[offset_start_frame:offset_end_frame, note.pitch - min_pitch] = 1.0
     onsets[onset_start_frame:onset_end_frame, note.pitch - min_pitch] = 1.0
+    roll[start_frame:end_frame, note.pitch - min_pitch] = 1.0
 
     if note.velocity > max_velocity:
       raise ValueError('Note velocity exceeds max velocity: %d > %d' %
                        (note.velocity, max_velocity))
+
     velocities_roll[start_frame:end_frame, note.pitch -
                     min_pitch] = float(note.velocity) / max_velocity
     roll_weights[onset_start_frame:onset_end_frame, note.pitch - min_pitch] = (
@@ -1625,6 +1646,7 @@ def sequence_to_pianoroll(
       onsets=onsets,
       onset_velocities=velocities_roll * onsets,
       active_velocities=velocities_roll,
+      offsets=offsets,
       control_changes=control_changes)
 
 
@@ -1637,6 +1659,7 @@ def pianoroll_to_note_sequence(frames,
                                qpm=constants.DEFAULT_QUARTERS_PER_MINUTE,
                                min_midi_pitch=constants.MIN_MIDI_PITCH,
                                onset_predictions=None,
+                               offset_predictions=None,
                                velocity_values=None):
   """Convert frames to a NoteSequence."""
   frame_length_seconds = 1 / frames_per_second
@@ -1660,6 +1683,12 @@ def pianoroll_to_note_sequence(frames,
                                   [np.zeros(onset_predictions[0].shape)], 0)
     # Ensure that any frame with an onset prediction is considered active.
     frames = np.logical_or(frames, onset_predictions)
+
+  if offset_predictions is not None:
+    offset_predictions = np.append(offset_predictions,
+                                   [np.zeros(offset_predictions[0].shape)], 0)
+    # If the frame and offset are both on, then turn it off
+    frames[np.where(np.logical_and(frames > 0, offset_predictions > 0))] = 0
 
   def end_pitch(pitch, end_frame):
     """End an active pitch."""
