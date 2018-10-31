@@ -1478,7 +1478,7 @@ def infer_dense_chords_for_sequence(sequence,
 Pianoroll = collections.namedtuple(  # pylint:disable=invalid-name
     'Pianoroll',
     ['active', 'weights', 'onsets', 'onset_velocities', 'active_velocities',
-     'control_changes'])
+     'offsets', 'control_changes'])
 
 
 def sequence_to_pianoroll(
