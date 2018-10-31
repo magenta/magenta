@@ -54,7 +54,8 @@ def note_interval_tree_to_sequence_proto(note_interval_tree, sample_rate):
     note.velocity = MUSICNET_NOTE_VELOCITY
     note.start_time = float(note_interval.begin) / sample_rate
     note.end_time = float(note_interval.end) / sample_rate
-    note.program = note_data[0]
+    # MusicNet "instrument" numbers use 1-based indexing, so we subtract 1 here.
+    note.program = note_data[0] - 1
     note.is_drum = False
 
     if note.program not in instruments:
