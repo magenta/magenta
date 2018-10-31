@@ -1542,7 +1542,6 @@ class SequencesLibTest(tf.test.TestCase):
     output = sequences_lib.sequence_to_pianoroll(
         sequence, frames_per_second=10, min_pitch=1, max_pitch=2).active
 
-
     np.testing.assert_allclose(expected_pianoroll, output)
 
     expected_pianoroll_with_blank_frame = [
@@ -1563,7 +1562,6 @@ class SequencesLibTest(tf.test.TestCase):
         [1, 1],
         [0, 0],
     ]
-
 
     output_with_blank_frame = sequences_lib.sequence_to_pianoroll(
         sequence,
@@ -1622,7 +1620,6 @@ class SequencesLibTest(tf.test.TestCase):
         [0, 0, 1, 0],
         [0, 0, 0, 0],
     ]
-
     roll = sequences_lib.sequence_to_pianoroll(
         sequence,
         frames_per_second=2,
@@ -1799,7 +1796,6 @@ class SequencesLibTest(tf.test.TestCase):
 
     cc_roll = sequences_lib.sequence_to_pianoroll(
         sequence, frames_per_second=2, min_pitch=1, max_pitch=4).control_changes
-
 
     np.testing.assert_allclose(expected_cc_roll, cc_roll)
 

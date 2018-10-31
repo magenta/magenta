@@ -228,7 +228,6 @@ def sequence_to_pianoroll_op(sequence_tensor, velocity_range_tensor, hparams):
   res, weighted_res, onsets, offsets, velocities = tf.py_func(
       sequence_to_pianoroll_fn, [sequence_tensor, velocity_range_tensor],
       [tf.float32, tf.float32, tf.float32, tf.float32, tf.float32],
-
       name='sequence_to_pianoroll_op')
   res.set_shape([None, constants.MIDI_PITCHES])
   weighted_res.set_shape([None, constants.MIDI_PITCHES])

@@ -1536,9 +1536,9 @@ def sequence_to_pianoroll(
     active: Active note pianoroll as a 2D array..
     weights: Weights to be used when calculating loss against roll.
     onsets: An onset-only pianoroll as a 2D array.
-    offsets: An offset-only pianoroll as a 2D array.
     onset_velocities: Velocities of onsets scaled from [0, 1].
     active_velocities: Velocities of active notes scaled from [0, 1].
+    offsets: An offset-only pianoroll as a 2D array.
     control_changes: Control change onsets as a 2D array (time, control number)
       with 0 when there is no onset and (control_value + 1) when there is.
   """
@@ -1590,8 +1590,8 @@ def sequence_to_pianoroll(
       onset_start_frame_without_window, _ = frames_from_times(
           onset_start_time, onset_end_time)
 
-      onset_start_frame = max(
-          0, onset_start_frame_without_window - onset_window)
+      onset_start_frame = max(0,
+                              onset_start_frame_without_window - onset_window)
       onset_end_frame = min(onsets.shape[0],
                             onset_start_frame_without_window + onset_window + 1)
     elif onset_mode == 'length_ms':
@@ -1624,7 +1624,6 @@ def sequence_to_pianoroll(
 
     velocities_roll[start_frame:end_frame, note.pitch -
                     min_pitch] = float(note.velocity) / max_velocity
-
     roll_weights[onset_start_frame:onset_end_frame, note.pitch - min_pitch] = (
         onset_upweight)
     roll_weights[onset_end_frame:end_frame, note.pitch - min_pitch] = [
@@ -1645,9 +1644,9 @@ def sequence_to_pianoroll(
       active=roll,
       weights=roll_weights,
       onsets=onsets,
-      offsets=offsets,
       onset_velocities=velocities_roll * onsets,
       active_velocities=velocities_roll,
+      offsets=offsets,
       control_changes=control_changes)
 
 
