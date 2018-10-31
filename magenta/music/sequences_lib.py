@@ -1621,7 +1621,7 @@ def sequence_to_pianoroll(
     if note.velocity > max_velocity:
       raise ValueError('Note velocity exceeds max velocity: %d > %d' %
                        (note.velocity, max_velocity))
-    
+
     velocities_roll[start_frame:end_frame, note.pitch -
                     min_pitch] = float(note.velocity) / max_velocity
 
@@ -1641,7 +1641,7 @@ def sequence_to_pianoroll(
     if frame < len(control_changes):
       control_changes[frame, cc.control_number] = cc.control_value + 1
 
-  return PianoRoll(
+  return Pianoroll(
       active=roll,
       weights=roll_weights,
       onsets=onsets,
