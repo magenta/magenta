@@ -66,6 +66,9 @@ py_binary(
     srcs = [
         "eval.py",
     ],
+    visibility = [
+        # internal model:piano_genie
+    ],
     deps = [
         ":configs",
         ":gold",
@@ -80,6 +83,9 @@ py_binary(
     name = "train",
     srcs = [
         "train.py",
+    ],
+    visibility = [
+        # internal model:piano_genie
     ],
     deps = [
         ":configs",
