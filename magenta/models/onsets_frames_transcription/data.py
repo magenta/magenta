@@ -337,7 +337,8 @@ def _preprocess_data(sequence, audio, velocity_range, hparams, is_training):
   length = wav_to_num_frames_op(
       transformed_wav, hparams_frames_per_second(hparams))
 
-  return spec, labels, label_weights, length, onsets, offsets, velocities, velocity_range
+  return (spec, labels, label_weights, length, onsets,
+          offsets, velocities, velocity_range)
 
 
 def _get_input_tensors_from_examples_list(examples_list, is_training):
