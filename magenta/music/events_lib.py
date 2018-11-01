@@ -21,7 +21,6 @@ interface.
 import abc
 import copy
 
-# internal imports
 from magenta.music import constants
 
 

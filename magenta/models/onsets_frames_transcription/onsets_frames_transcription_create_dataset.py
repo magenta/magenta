@@ -27,7 +27,6 @@ import math
 import os
 import re
 
-# internal imports
 import librosa
 import numpy as np
 import tensorflow as tf

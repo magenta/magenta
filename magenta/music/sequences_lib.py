@@ -20,7 +20,6 @@ import math
 from operator import itemgetter
 import random
 
-# internal imports
 import numpy as np
 from six.moves import range  # pylint: disable=redefined-builtin
 import tensorflow as tf

@@ -18,8 +18,6 @@ from __future__ import division
 import collections
 import copy
 
-# internal imports
-
 from six.moves import range  # pylint: disable=redefined-builtin
 import tensorflow as tf
 

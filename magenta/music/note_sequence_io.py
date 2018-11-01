@@ -15,7 +15,6 @@
 
 import hashlib
 
-# internal imports
 import tensorflow as tf
 
 from magenta.protobuf import music_pb2

@@ -18,8 +18,6 @@ Provides a uniform interface for interacting with any model.
 
 import abc
 
-# internal imports
-
 import tensorflow as tf
 
 

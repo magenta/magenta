@@ -28,7 +28,6 @@ from __future__ import print_function
 
 import collections
 
-# internal imports
 from magenta.music import constants
 from magenta.music import encoder_decoder
 from magenta.music import melodies_lib

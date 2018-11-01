@@ -27,7 +27,6 @@ Example usage:
 
 import os
 
-# internal imports
 import tensorflow as tf
 
 from magenta.music import abc_parser

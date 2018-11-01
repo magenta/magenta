@@ -19,7 +19,6 @@ import ast
 from functools import partial
 import math
 
-# internal imports
 import tensorflow as tf
 
 from magenta.models.performance_rnn import performance_model

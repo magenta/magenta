@@ -19,7 +19,6 @@ them to TensorFlow's SequenceExample protos for input to the RNN-NADE models.
 
 import os
 
-# internal imports
 import tensorflow as tf
 
 from magenta.models.pianoroll_rnn_nade import pianoroll_rnn_nade_model

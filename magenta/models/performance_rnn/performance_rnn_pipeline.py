@@ -13,7 +13,6 @@
 # limitations under the License.
 """Pipeline to create PerformanceRNN dataset."""
 
-# internal imports
 import tensorflow as tf
 
 import magenta

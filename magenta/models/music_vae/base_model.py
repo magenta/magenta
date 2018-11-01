@@ -19,7 +19,6 @@ from __future__ import print_function
 
 import abc
 
-# internal imports
 import tensorflow as tf
 import tensorflow_probability as tfp
 

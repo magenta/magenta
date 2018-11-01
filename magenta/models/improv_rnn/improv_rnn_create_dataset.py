@@ -19,7 +19,6 @@ them to TensorFlow's SequenceExample protos for input to the improv RNN models.
 
 import os
 
-# internal imports
 import tensorflow as tf
 
 from magenta.models.improv_rnn import improv_rnn_config_flags

@@ -13,7 +13,6 @@
 # limitations under the License.
 """Tests for beam search."""
 
-# internal imports
 import tensorflow as tf
 
 from magenta.common import beam_search

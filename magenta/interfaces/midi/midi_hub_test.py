@@ -17,7 +17,6 @@ import collections
 import threading
 import time
 
-# internal imports
 import mido
 from six.moves import queue as Queue
 import tensorflow as tf

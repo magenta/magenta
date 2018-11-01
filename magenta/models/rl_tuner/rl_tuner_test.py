@@ -22,8 +22,6 @@ import os
 import os.path
 import tempfile
 
-# internal imports
-
 import matplotlib
 # Need to use 'Agg' option for plotting and saving files from command line.
 # Can't use 'Agg' in RL Tuner because it breaks plotting in notebooks.

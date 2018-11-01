@@ -13,7 +13,6 @@
 # limitations under the License.
 """MIDI audio synthesis."""
 
-# internal imports
 import numpy as np
 
 from magenta.music import midi_io

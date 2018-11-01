@@ -13,7 +13,6 @@
 # limitations under the License.
 """Provides a class, defaults, and utils for improv RNN model configuration."""
 
-# internal imports
 import tensorflow as tf
 
 from magenta.models.improv_rnn import improv_rnn_model

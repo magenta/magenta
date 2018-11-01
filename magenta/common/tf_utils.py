@@ -14,8 +14,6 @@
 
 """Tensorflow-related utilities."""
 
-# internal imports
-
 import tensorflow as tf
 
 

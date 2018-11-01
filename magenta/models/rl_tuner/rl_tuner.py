@@ -35,8 +35,6 @@ from os.path import exists
 import random
 import urllib
 
-# internal imports
-
 import matplotlib.pyplot as plt
 import numpy as np
 from scipy.misc import logsumexp

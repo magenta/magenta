@@ -30,8 +30,6 @@ import functools
 import os
 import wave
 
-# internal imports
-
 from . import constants
 
 import librosa

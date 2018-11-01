@@ -28,7 +28,6 @@ import os
 import pdb
 import re
 
-# internal imports
 import tensorflow as tf
 from magenta.music import abc_parser
 from magenta.music import midi_io

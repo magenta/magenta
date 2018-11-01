@@ -13,7 +13,6 @@
 # limitations under the License.
 """Tests for statistics."""
 
-# internal imports
 import tensorflow as tf
 
 from magenta.pipelines import statistics

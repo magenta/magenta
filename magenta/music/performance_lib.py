@@ -19,7 +19,6 @@ import abc
 import collections
 import math
 
-# internal imports
 import tensorflow as tf
 
 from magenta.music import constants

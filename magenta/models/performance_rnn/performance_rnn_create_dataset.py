@@ -21,7 +21,6 @@ NoteSequence within a limited range.
 
 import os
 
-# internal imports
 import tensorflow as tf
 
 from magenta.models.performance_rnn import performance_model

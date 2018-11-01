@@ -24,7 +24,6 @@ from __future__ import print_function
 import ast
 import os
 
-# internal imports
 import tensorflow as tf
 
 from magenta.models.image_stylization import image_utils

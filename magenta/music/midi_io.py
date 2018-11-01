@@ -24,8 +24,6 @@ from collections import defaultdict
 import sys
 import tempfile
 
-
-# internal imports
 import pretty_midi
 import six
 import tensorflow as tf

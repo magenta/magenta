@@ -15,7 +15,6 @@
 
 import copy
 
-# internal imports
 import tensorflow as tf
 
 from magenta.music import events_lib

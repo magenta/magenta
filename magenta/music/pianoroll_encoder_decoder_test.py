@@ -13,8 +13,6 @@
 # limitations under the License.
 """Tests for pianoroll_encoder_decoder."""
 
-# internal imports
-
 import numpy as np
 import tensorflow as tf
 

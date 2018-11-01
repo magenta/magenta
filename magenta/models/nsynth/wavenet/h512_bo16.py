@@ -17,7 +17,6 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-# internal imports
 from six.moves import range  # pylint: disable=redefined-builtin
 import tensorflow as tf
 from magenta.models.nsynth import reader

@@ -16,7 +16,6 @@
 import os
 import sys
 
-# internal imports
 import numpy as np
 from six.moves import xrange  # pylint: disable=redefined-builtin
 import tensorflow as tf

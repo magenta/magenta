@@ -13,8 +13,6 @@
 # limitations under the License.
 """Tests for polyphony_encoder_decoder."""
 
-# internal imports
-
 import tensorflow as tf
 
 from magenta.models.polyphony_rnn import polyphony_encoder_decoder

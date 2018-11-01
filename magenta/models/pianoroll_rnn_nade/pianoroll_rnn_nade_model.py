@@ -13,7 +13,6 @@
 # limitations under the License.
 """RNN-NADE model."""
 
-# internal imports
 import tensorflow as tf
 
 import magenta

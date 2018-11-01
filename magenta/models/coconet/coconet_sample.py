@@ -7,7 +7,6 @@ import itertools as it
 import os
 import re
 import time
-# internal imports
 import numpy as np
 import pretty_midi
 import tensorflow as tf

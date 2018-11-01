@@ -21,7 +21,6 @@ import abc
 import inspect
 import os.path
 
-# internal imports
 import six
 import tensorflow as tf
 

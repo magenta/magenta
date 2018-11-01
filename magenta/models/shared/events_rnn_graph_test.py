@@ -15,7 +15,6 @@
 
 import tempfile
 
-# internal imports
 import tensorflow as tf
 import magenta
 

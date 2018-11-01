@@ -13,7 +13,6 @@
 # limitations under the License.
 """Tests for performance_lib."""
 
-# internal imports
 import tensorflow as tf
 
 from magenta.music import performance_lib

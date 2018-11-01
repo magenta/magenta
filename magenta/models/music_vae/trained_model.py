@@ -21,7 +21,6 @@ import os
 import re
 import tarfile
 
-# internal imports
 from backports import tempfile
 import numpy as np
 import tensorflow as tf

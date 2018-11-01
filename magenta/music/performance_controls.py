@@ -19,7 +19,6 @@ import abc
 import copy
 import numbers
 
-# internal imports
 from magenta.music import constants
 from magenta.music import encoder_decoder
 from magenta.music.performance_lib import PerformanceEvent

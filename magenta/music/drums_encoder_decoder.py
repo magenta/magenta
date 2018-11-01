@@ -13,7 +13,6 @@
 # limitations under the License.
 """Classes for converting between drum tracks and models inputs/outputs."""
 
-# internal imports
 from magenta.music import encoder_decoder
 
 

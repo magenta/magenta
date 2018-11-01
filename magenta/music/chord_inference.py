@@ -22,7 +22,6 @@ import itertools
 import math
 import numbers
 
-# internal imports
 import numpy as np
 import tensorflow as tf
 

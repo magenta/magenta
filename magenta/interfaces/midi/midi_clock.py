@@ -18,7 +18,6 @@ from __future__ import print_function
 
 import time
 
-# internal imports
 import tensorflow as tf
 
 from magenta.interfaces.midi import midi_hub

@@ -19,7 +19,6 @@ from __future__ import print_function
 
 import math
 
-# internal imports
 import tensorflow as tf
 
 
