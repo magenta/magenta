@@ -19,7 +19,6 @@ TensorFlow's SequenceExample protos for input to the drums RNN models.
 
 import os
 
-# internal imports
 import tensorflow as tf
 
 from magenta.models.drums_rnn import drums_rnn_config_flags

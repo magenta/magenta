@@ -7,8 +7,6 @@ from __future__ import print_function
 import os
 import tempfile
 
-# internal imports
-
 import tensorflow as tf
 
 from magenta.models.coconet import export_saved_model

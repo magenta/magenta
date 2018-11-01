@@ -13,8 +13,6 @@
 # limitations under the License.
 """Pipeline to create DrumsRNN dataset."""
 
-# internal imports
-
 import magenta
 from magenta.music import encoder_decoder
 from magenta.pipelines import dag_pipeline

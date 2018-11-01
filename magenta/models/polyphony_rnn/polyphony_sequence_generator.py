@@ -16,8 +16,6 @@
 import copy
 from functools import partial
 
-# internal imports
-
 import tensorflow as tf
 
 from magenta.models.polyphony_rnn import polyphony_lib

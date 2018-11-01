@@ -16,8 +16,6 @@
 import collections
 import functools
 
-# internal imports
-
 import tensorflow as tf
 import magenta
 

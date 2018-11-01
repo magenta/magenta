@@ -15,7 +15,6 @@
 
 import os
 
-# internal imports
 import tensorflow as tf
 
 from magenta.common import testing_lib as common_testing_lib

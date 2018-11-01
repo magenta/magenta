@@ -20,7 +20,6 @@ from __future__ import print_function
 import os
 import tempfile
 
-# internal imports
 import tensorflow as tf
 
 from magenta.common import testing_lib

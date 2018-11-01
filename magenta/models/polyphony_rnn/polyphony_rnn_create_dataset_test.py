@@ -13,8 +13,6 @@
 # limitations under the License.
 """Tests for polyphony_rnn_create_dataset."""
 
-# internal imports
-
 import tensorflow as tf
 
 import magenta

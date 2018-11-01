@@ -20,7 +20,6 @@ Use Melody.to_sequence to write a melody to a NoteSequence proto. Then use
 midi_io.sequence_proto_to_midi_file to write that NoteSequence to a midi file.
 """
 
-# internal imports
 import numpy as np
 from six.moves import range  # pylint: disable=redefined-builtin
 

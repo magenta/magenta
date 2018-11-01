@@ -15,8 +15,6 @@
 
 from __future__ import division
 
-# internal imports
-
 import numpy as np
 
 from magenta.music import encoder_decoder

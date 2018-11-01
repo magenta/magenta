@@ -4,7 +4,6 @@ from __future__ import division
 from __future__ import print_function
 from collections import OrderedDict
 import os
-# internal imports
 import tensorflow as tf
 from magenta.models.coconet import lib_hparams
 from magenta.models.coconet import lib_tfutil

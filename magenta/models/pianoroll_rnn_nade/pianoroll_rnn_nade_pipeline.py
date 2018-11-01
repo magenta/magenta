@@ -13,8 +13,6 @@
 # limitations under the License.
 """Pipeline to create Pianoroll RNN-NADE dataset."""
 
-# internal imports
-
 import magenta.music as mm
 from magenta.pipelines import dag_pipeline
 from magenta.pipelines import note_sequence_pipelines

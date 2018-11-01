@@ -50,8 +50,6 @@ from __future__ import print_function
 import abc
 import numbers
 
-# internal imports
-
 import numpy as np
 from six.moves import range  # pylint: disable=redefined-builtin
 import tensorflow as tf

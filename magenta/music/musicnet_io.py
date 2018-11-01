@@ -13,7 +13,6 @@
 # limitations under the License.
 """Import NoteSequences from MusicNet."""
 
-# internal imports
 import numpy as np
 from six import BytesIO
 import tensorflow as tf

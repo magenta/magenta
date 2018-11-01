@@ -13,7 +13,6 @@
 # limitations under the License.
 """Testing support code."""
 
-# internal imports
 from magenta.music import encoder_decoder
 from magenta.protobuf import music_pb2
 

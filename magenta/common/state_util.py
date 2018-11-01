@@ -13,8 +13,6 @@
 # limitations under the License.
 """Utility functions for working with nested state structures."""
 
-# internal imports
-
 import numpy as np
 
 from tensorflow.python.util import nest as tf_nest

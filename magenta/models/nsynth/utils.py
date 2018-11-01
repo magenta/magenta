@@ -20,7 +20,6 @@ from __future__ import print_function
 import importlib
 import os
 
-# internal imports
 import librosa
 import numpy as np
 from six.moves import range  # pylint: disable=redefined-builtin

@@ -23,8 +23,6 @@ file.
 import collections
 import operator
 
-# internal imports
-
 from magenta.music import constants
 from magenta.music import events_lib
 from magenta.music import midi_io

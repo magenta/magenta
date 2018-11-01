@@ -17,8 +17,6 @@ from math import cos
 from math import pi
 from math import sin
 
-# internal imports
-
 import tensorflow as tf
 
 from magenta.music import performance_encoder_decoder

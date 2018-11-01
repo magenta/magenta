@@ -16,7 +16,6 @@
 import copy
 import itertools
 
-# internal imports
 from magenta.music import chords_lib
 from magenta.music import constants
 from magenta.music import events_lib

@@ -22,8 +22,6 @@ import copy
 import tempfile
 import time
 
-# internal imports
-
 import numpy as np
 import tensorflow as tf
 

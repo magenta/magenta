@@ -13,8 +13,6 @@
 # limitations under the License.
 """Utility functions for handling bundle files."""
 
-# internal imports
-
 import tensorflow as tf
 
 from google.protobuf import message

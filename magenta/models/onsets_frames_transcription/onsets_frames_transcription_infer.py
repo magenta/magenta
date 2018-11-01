@@ -23,8 +23,6 @@ import os
 import re
 import time
 
-# internal imports
-
 import numpy as np
 import scipy
 import tensorflow as tf

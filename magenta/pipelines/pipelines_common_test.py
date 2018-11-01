@@ -15,7 +15,6 @@
 
 import functools
 
-# internal imports
 import six
 import tensorflow as tf
 

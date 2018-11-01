@@ -3,7 +3,6 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 import os
-# internal imports
 import numpy as np
 import tensorflow as tf
 from magenta.models.coconet import lib_data

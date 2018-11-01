@@ -19,7 +19,6 @@ from __future__ import print_function
 
 import copy
 
-# internal imports
 import tensorflow as tf
 
 from magenta.common import testing_lib as common_testing_lib

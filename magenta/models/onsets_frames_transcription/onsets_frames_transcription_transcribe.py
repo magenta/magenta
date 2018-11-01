@@ -21,8 +21,6 @@ from __future__ import print_function
 import collections
 import os
 
-# internal imports
-
 import librosa
 import tensorflow as tf
 

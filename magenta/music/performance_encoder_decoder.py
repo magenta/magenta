@@ -17,7 +17,6 @@ from __future__ import division
 
 import math
 
-# internal imports
 import numpy as np
 
 from magenta.music import encoder_decoder

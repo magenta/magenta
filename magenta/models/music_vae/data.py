@@ -23,7 +23,6 @@ import copy
 import functools
 import itertools
 
-# internal imports
 import numpy as np
 import tensorflow as tf
 

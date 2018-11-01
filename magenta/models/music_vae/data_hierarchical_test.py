@@ -19,7 +19,6 @@ from __future__ import print_function
 
 import copy
 
-# internal imports
 import tensorflow as tf
 
 from magenta.models.music_vae import data_hierarchical

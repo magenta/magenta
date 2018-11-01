@@ -13,7 +13,6 @@
 # limitations under the License.
 """Provides a class, defaults, and utils for Melody RNN model configuration."""
 
-# internal imports
 import tensorflow as tf
 
 import magenta

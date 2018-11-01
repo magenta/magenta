@@ -4,7 +4,6 @@ import abc
 import threading
 import time
 
-# internal imports
 import tensorflow as tf
 
 import magenta

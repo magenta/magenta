@@ -13,7 +13,6 @@
 # limitations under the License.
 """Data processing pipelines for lead sheets."""
 
-# internal imports
 import tensorflow as tf
 
 from magenta.music import chord_symbols_lib

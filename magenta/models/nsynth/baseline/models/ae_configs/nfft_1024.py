@@ -16,7 +16,6 @@
 All configs should have encode() and decode().
 """
 
-# internal imports
 import tensorflow as tf
 from magenta.models.nsynth import utils
 

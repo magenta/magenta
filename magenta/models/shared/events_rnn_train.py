@@ -13,7 +13,6 @@
 # limitations under the License.
 """Train and evaluate an event sequence RNN model."""
 
-# internal imports
 import tensorflow as tf
 
 

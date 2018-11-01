@@ -4,7 +4,6 @@ from __future__ import division
 from __future__ import print_function
 import itertools as it
 import os
-# internal imports
 import numpy as np
 import six
 import tensorflow as tf

@@ -13,8 +13,6 @@
 # limitations under the License.
 """Tests for nade."""
 
-# internal imports
-
 import tensorflow as tf
 
 from magenta.common.nade import Nade
