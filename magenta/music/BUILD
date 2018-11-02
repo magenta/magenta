@@ -379,6 +379,29 @@ py_test(
     ],
 )
 
+
+py_library(
+    name = "melody_inference",
+    srcs = ["melody_inference.py"],
+    deps = [
+        ":constants",
+        ":sequences_lib",
+        # numpy dep
+        # scipy dep
+    ],
+)
+
+py_test(
+    name = "melody_inference_test",
+    srcs = ["melody_inference_test.py"],
+    deps = [
+        ":melody_inference",
+        ":testing_lib",
+        "//magenta/protobuf:music_py_pb2",
+        # tensorflow dep
+    ],
+)
+
 py_library(
     name = "midi_io",
     srcs = ["midi_io.py"],
