@@ -449,6 +449,40 @@ class OneHotEventSequenceEncoderDecoder(EventSequenceEncoderDecoder):
                for event in events)
 
 
+class OneHotIndexEventSequenceEncoderDecoder(OneHotEventSequenceEncoderDecoder):
+  """An EventSequenceEncoderDecoder that produces one-hot indices."""
+
+  def __init__(self, one_hot_encoding):
+    """Initialize a OneHotIndexEventSequenceEncoderDecoder object.
+
+    Args:
+      one_hot_encoding: A OneHotEncoding object that transforms events to and
+          from integer indices.
+    """
+    super(OneHotIndexEventSequenceEncoderDecoder, self).__init__(
+        one_hot_encoding)
+
+  @property
+  def input_size(self):
+    return 1
+
+  @property
+  def input_depth(self):
+    return self._one_hot_encoding.num_classes
+
+  def events_to_input(self, events, position):
+    """Returns the one-hot index for the event at the given position.
+
+    Args:
+      events: A list-like sequence of events.
+      position: An integer event position in the event sequence.
+
+    Returns:
+      An integer input event index.
+    """
+    return [self._one_hot_encoding.encode_event(events[position])]
+
+
 class LookbackEventSequenceEncoderDecoder(EventSequenceEncoderDecoder):
   """An EventSequenceEncoderDecoder that encodes repeated events and meter."""
 
