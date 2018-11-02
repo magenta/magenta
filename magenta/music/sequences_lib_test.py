@@ -1104,6 +1104,139 @@ class SequencesLibTest(tf.test.TestCase):
         self.note_sequence, stretch_factor=1.5, in_place=True)
     self.assertProtoEquals(stretched_sequence, self.note_sequence)
 
+  def testAdjustNoteSequenceTimes(self):
+    sequence = music_pb2.NoteSequence()
+    sequence.notes.add(pitch=60, start_time=1.0, end_time=5.0)
+    sequence.notes.add(pitch=61, start_time=6.0, end_time=7.0)
+    sequence.control_changes.add(control_number=1, time=2.0)
+    sequence.pitch_bends.add(bend=5, time=2.0)
+    sequence.total_time = 7.0
+
+    adjusted_ns, skipped_notes = sequences_lib.adjust_notesequence_times(
+        sequence, lambda t: t - 1)
+
+    expected_sequence = music_pb2.NoteSequence()
+    expected_sequence.notes.add(pitch=60, start_time=0.0, end_time=4.0)
+    expected_sequence.notes.add(pitch=61, start_time=5.0, end_time=6.0)
+    expected_sequence.control_changes.add(control_number=1, time=1.0)
+    expected_sequence.pitch_bends.add(bend=5, time=1.0)
+    expected_sequence.total_time = 6.0
+
+    self.assertEqual(expected_sequence, adjusted_ns)
+    self.assertEqual(0, skipped_notes)
+
+  def testAdjustNoteSequenceTimesWithSkippedNotes(self):
+    sequence = music_pb2.NoteSequence()
+    sequence.notes.add(pitch=60, start_time=1.0, end_time=5.0)
+    sequence.notes.add(pitch=61, start_time=6.0, end_time=7.0)
+    sequence.notes.add(pitch=62, start_time=7.0, end_time=8.0)
+    sequence.total_time = 8.0
+
+    def time_func(time):
+      if time > 5:
+        return 5
+      else:
+        return time
+
+    adjusted_ns, skipped_notes = sequences_lib.adjust_notesequence_times(
+        sequence, time_func)
+
+    expected_sequence = music_pb2.NoteSequence()
+    expected_sequence.notes.add(pitch=60, start_time=1.0, end_time=5.0)
+    expected_sequence.total_time = 5.0
+
+    self.assertEqual(expected_sequence, adjusted_ns)
+    self.assertEqual(2, skipped_notes)
+
+  def testAdjustNoteSequenceTimesWithNotesBeforeTimeZero(self):
+    sequence = music_pb2.NoteSequence()
+    sequence.notes.add(pitch=60, start_time=1.0, end_time=5.0)
+    sequence.notes.add(pitch=61, start_time=6.0, end_time=7.0)
+    sequence.notes.add(pitch=62, start_time=7.0, end_time=8.0)
+    sequence.total_time = 8.0
+
+    def time_func(time):
+      return time - 5
+
+    with self.assertRaises(sequences_lib.InvalidTimeAdjustmentException):
+      sequences_lib.adjust_notesequence_times(sequence, time_func)
+
+  def testAdjustNoteSequenceTimesWithZeroDurations(self):
+    sequence = music_pb2.NoteSequence()
+    sequence.notes.add(pitch=60, start_time=1.0, end_time=2.0)
+    sequence.notes.add(pitch=61, start_time=3.0, end_time=4.0)
+    sequence.notes.add(pitch=62, start_time=5.0, end_time=6.0)
+    sequence.total_time = 8.0
+
+    def time_func(time):
+      if time % 2 == 0:
+        return time - 1
+      else:
+        return time
+
+    adjusted_ns, skipped_notes = sequences_lib.adjust_notesequence_times(
+        sequence, time_func)
+
+    expected_sequence = music_pb2.NoteSequence()
+
+    self.assertEqual(expected_sequence, adjusted_ns)
+    self.assertEqual(3, skipped_notes)
+
+    adjusted_ns, skipped_notes = sequences_lib.adjust_notesequence_times(
+        sequence, time_func, minimum_duration=.1)
+
+    expected_sequence = music_pb2.NoteSequence()
+    expected_sequence.notes.add(pitch=60, start_time=1.0, end_time=1.1)
+    expected_sequence.notes.add(pitch=61, start_time=3.0, end_time=3.1)
+    expected_sequence.notes.add(pitch=62, start_time=5.0, end_time=5.1)
+    expected_sequence.total_time = 5.1
+
+    self.assertEqual(expected_sequence, adjusted_ns)
+    self.assertEqual(0, skipped_notes)
+
+  def testAdjustNoteSequenceTimesEndBeforeStart(self):
+    sequence = music_pb2.NoteSequence()
+    sequence.notes.add(pitch=60, start_time=1.0, end_time=2.0)
+    sequence.notes.add(pitch=61, start_time=3.0, end_time=4.0)
+    sequence.notes.add(pitch=62, start_time=5.0, end_time=6.0)
+    sequence.total_time = 8.0
+
+    def time_func(time):
+      if time % 2 == 0:
+        return time - 2
+      else:
+        return time
+
+    with self.assertRaises(sequences_lib.InvalidTimeAdjustmentException):
+      sequences_lib.adjust_notesequence_times(sequence, time_func)
+
+  def testRectifyBeats(self):
+    sequence = music_pb2.NoteSequence()
+    testing_lib.add_track_to_sequence(
+        sequence, 0,
+        [(60, 100, 0.25, 0.5), (62, 100, 0.5, 0.75), (64, 100, 0.75, 2.5),
+         (65, 100, 1.0, 1.5), (67, 100, 1.5, 2.0)])
+    testing_lib.add_beats_to_sequence(sequence, [0.5, 1.0, 2.0])
+
+    rectified_sequence, alignment = sequences_lib.rectify_beats(
+        sequence, 120)
+
+    expected_sequence = music_pb2.NoteSequence()
+    expected_sequence.tempos.add(qpm=120)
+    testing_lib.add_track_to_sequence(
+        expected_sequence, 0,
+        [(60, 100, 0.25, 0.5), (62, 100, 0.5, 0.75), (64, 100, 0.75, 2.0),
+         (65, 100, 1.0, 1.25), (67, 100, 1.25, 1.5)])
+    testing_lib.add_beats_to_sequence(expected_sequence, [0.5, 1.0, 1.5])
+
+    self.assertEqual(expected_sequence, rectified_sequence)
+
+    expected_alignment = [
+        [0.0, 0.5, 1.0, 2.0, 2.5],
+        [0.0, 0.5, 1.0, 1.5, 2.0]
+    ]
+    self.assertEqual(expected_alignment, alignment.T.tolist())
+
   def testApplySustainControlChanges(self):
     """Verify sustain controls extend notes until the end of the control."""
     sequence = copy.copy(self.note_sequence)
