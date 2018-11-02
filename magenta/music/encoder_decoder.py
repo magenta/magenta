@@ -452,16 +452,6 @@ class OneHotEventSequenceEncoderDecoder(EventSequenceEncoderDecoder):
 class OneHotIndexEventSequenceEncoderDecoder(OneHotEventSequenceEncoderDecoder):
   """An EventSequenceEncoderDecoder that produces one-hot indices."""
 
-  def __init__(self, one_hot_encoding):
-    """Initialize a OneHotIndexEventSequenceEncoderDecoder object.
-
-    Args:
-      one_hot_encoding: A OneHotEncoding object that transforms events to and
-          from integer indices.
-    """
-    super(OneHotIndexEventSequenceEncoderDecoder, self).__init__(
-        one_hot_encoding)
-
   @property
   def input_size(self):
     return 1
