@@ -85,6 +85,8 @@ Our first step will be to convert a collection of MIDI or MusicXML files into No
 
 SequenceExamples are fed into the model during training and evaluation. Each SequenceExample will contain a sequence of inputs and a sequence of labels that represent a performance. Run the command below to extract performances  from your NoteSequences and save them as SequenceExamples. Two collections of SequenceExamples will be generated, one for training, and one for evaluation, where the fraction of SequenceExamples in the evaluation set is determined by `--eval_ratio`. With an eval ratio of 0.10, 10% of the extracted performances will be saved in the eval collection, and 90% will be saved in the training collection.
 
+If you are training an unconditioned model with note velocities, we recommend using the `performance_with_dynamics_compact` config, as the size of your TFRecord file will be *much* smaller.
+
 ```
 CONFIG=<one of 'performance', 'performance_with_dynamics', etc.>
 

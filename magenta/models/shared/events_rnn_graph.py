@@ -242,11 +242,19 @@ def get_build_graph_fn(mode, config, sequence_example_file_paths=None):
       inputs = tf.placeholder(tf.float32, [hparams.batch_size, None,
                                            input_size])
 
+    if isinstance(encoder_decoder,
+                  magenta.music.OneHotIndexEventSequenceEncoderDecoder):
+      expanded_inputs = tf.one_hot(
+          tf.cast(tf.squeeze(inputs, axis=-1), tf.int64),
+          encoder_decoder.input_depth)
+    else:
+      expanded_inputs = inputs
+
     dropout_keep_prob = 1.0 if mode == 'generate' else hparams.dropout_keep_prob
 
     if hparams.use_cudnn:
       outputs, initial_state, final_state = make_cudnn(
-          inputs, hparams.rnn_layer_sizes, hparams.batch_size, mode,
+          expanded_inputs, hparams.rnn_layer_sizes, hparams.batch_size, mode,
           dropout_keep_prob=dropout_keep_prob,
           residual_connections=hparams.residual_connections)
 

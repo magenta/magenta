@@ -24,7 +24,7 @@ import os
 import tensorflow as tf
 
 from magenta.models.performance_rnn import performance_model
-from magenta.models.performance_rnn import performance_rnn_pieline
+from magenta.models.performance_rnn import performance_rnn_pipeline
 from magenta.pipelines import pipeline
 
 flags = tf.app.flags
@@ -50,7 +50,7 @@ flags.DEFINE_string(
 def main(unused_argv):
   tf.logging.set_verbosity(FLAGS.log)
 
-  pipeline_instance = performance_rnn_pieline.get_pipeline(
+  pipeline_instance = performance_rnn_pipeline.get_pipeline(
       min_events=32,
       max_events=512,
       eval_ratio=FLAGS.eval_ratio,

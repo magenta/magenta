@@ -117,6 +117,50 @@ class OneHotEventSequenceEncoderDecoderTest(tf.test.TestCase):
                           np.log(0.4) + np.log(0.6)], p)
 
 
+class OneHotIndexEventSequenceEncoderDecoderTest(tf.test.TestCase):
+
+  def setUp(self):
+    self.enc = encoder_decoder.OneHotIndexEventSequenceEncoderDecoder(
+        testing_lib.TrivialOneHotEncoding(3, num_steps=range(3)))
+
+  def testInputSize(self):
+    self.assertEquals(1, self.enc.input_size)
+
+  def testInputDepth(self):
+    self.assertEquals(3, self.enc.input_depth)
+
+  def testEventsToInput(self):
+    events = [0, 1, 0, 2, 0]
+    self.assertEqual([0], self.enc.events_to_input(events, 0))
+    self.assertEqual([1], self.enc.events_to_input(events, 1))
+    self.assertEqual([0], self.enc.events_to_input(events, 2))
+    self.assertEqual([2], self.enc.events_to_input(events, 3))
+    self.assertEqual([0], self.enc.events_to_input(events, 4))
+
+  def testEncode(self):
+    events = [0, 1, 0, 2, 0]
+    sequence_example = self.enc.encode(events)
+    expected_inputs = [[0], [1], [0], [2]]
+    expected_labels = [1, 0, 2, 0]
+    expected_sequence_example = sequence_example_lib.make_sequence_example(
+        expected_inputs, expected_labels)
+    self.assertEqual(sequence_example, expected_sequence_example)
+
+  def testGetInputsBatch(self):
+    event_sequences = [[0, 1, 0, 2, 0], [0, 1, 2]]
+    expected_inputs_1 = [[0], [1], [0], [2], [0]]
+    expected_inputs_2 = [[0], [1], [2]]
+    expected_full_length_inputs_batch = [expected_inputs_1, expected_inputs_2]
+    expected_last_event_inputs_batch = [expected_inputs_1[-1:],
+                                        expected_inputs_2[-1:]]
+    self.assertListEqual(
+        expected_full_length_inputs_batch,
+        self.enc.get_inputs_batch(event_sequences, True))
+    self.assertListEqual(
+        expected_last_event_inputs_batch,
+        self.enc.get_inputs_batch(event_sequences))
+
+
 class LookbackEventSequenceEncoderDecoderTest(tf.test.TestCase):
 
   def setUp(self):
