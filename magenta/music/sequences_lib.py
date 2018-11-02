@@ -78,6 +78,14 @@ class QuantizationStatusException(Exception):
   pass
 
 
+class InvalidTimeAdjustmentException(Exception):
+  pass
+
+
+class RectifyBeatsException(Exception):
+  pass
+
+
 def trim_note_sequence(sequence, start_time, end_time):
   """Trim notes from a NoteSequence to lie within a specified time range.
 
@@ -1257,6 +1265,166 @@ def stretch_note_sequence(note_sequence, stretch_factor, in_place=False):
     tempo.qpm /= stretch_factor
 
   return stretched_sequence
+
+
+def adjust_notesequence_times(ns, time_func, minimum_duration=None):
+  """Adjusts notesequence timings given an adjustment function.
+
+  Note that only notes, control changes, and pitch bends are adjusted. All other
+  events are ignored.
+
+  If the adjusted version of a note ends before or at the same time it begins,
+  it will be skipped.
+
+  Args:
+    ns: The NoteSequence to adjust.
+    time_func: A function that takes a time (in seconds) and returns an adjusted
+        version of that time. This function is expected to be monotonic, i.e. if
+        `t1 <= t2` then `time_func(t1) <= time_func(t2)`. In addition, if
+        `t >= 0` then it should also be true that `time_func(t) >= 0`. The
+        monotonicity property is not checked for all pairs of event times, only
+        the start and end times of each note, but you may get strange results if
+        `time_func` is non-monotonic.
+    minimum_duration: If time_func results in a duration of 0, instead
+        substitute this duration and do not increment the skipped_notes counter.
+        If None, the note will be skipped.
+
+  Raises:
+    InvalidTimeAdjustmentException: If a note has an adjusted end time that is
+        before its start time, or if any event times are shifted before zero.
+
+  Returns:
+    adjusted_ns: A new NoteSequence with adjusted times.
+    skipped_notes: A count of how many notes were skipped.
+  """
+  adjusted_ns = copy.deepcopy(ns)
+
+  # Iterate through the original NoteSequence notes to make it easier to drop
+  # skipped notes from the adjusted NoteSequence.
+  adjusted_ns.total_time = 0
+  skipped_notes = 0
+  del adjusted_ns.notes[:]
+  for note in ns.notes:
+    start_time = time_func(note.start_time)
+    end_time = time_func(note.end_time)
+
+    if start_time == end_time:
+      if minimum_duration:
+        tf.logging.warn(
+            'Adjusting note duration of 0 to new minimum duration of %f. '
+            'Original start: %f, end %f. New start %f, end %f.',
+            minimum_duration, note.start_time, note.end_time, start_time,
+            end_time)
+        end_time += minimum_duration
+      else:
+        tf.logging.warn(
+            'Skipping note that ends before or at the same time it begins. '
+            'Original start: %f, end %f. New start %f, end %f.',
+            note.start_time, note.end_time, start_time, end_time)
+        skipped_notes += 1
+        continue
+
+    if end_time < start_time:
+      raise InvalidTimeAdjustmentException(
+          'Tried to adjust end time to before start time. '
+          'Original start: %f, end %f. New start %f, end %f.' %
+          (note.start_time, note.end_time, start_time, end_time))
+
+    if start_time < 0:
+      raise InvalidTimeAdjustmentException(
+          'Tried to adjust note start time to before 0 '
+          '(original: %f, adjusted: %f)' % (note.start_time, start_time))
+
+    if end_time < 0:
+      raise InvalidTimeAdjustmentException(
+          'Tried to adjust note end time to before 0 '
+          '(original: %f, adjusted: %f)' % (note.end_time, end_time))
+
+    if end_time > adjusted_ns.total_time:
+      adjusted_ns.total_time = end_time
+
+    adjusted_note = adjusted_ns.notes.add()
+    adjusted_note.MergeFrom(note)
+    adjusted_note.start_time = start_time
+    adjusted_note.end_time = end_time
+
+  events = itertools.chain(
+      adjusted_ns.control_changes,
+      adjusted_ns.pitch_bends,
+      adjusted_ns.time_signatures,
+      adjusted_ns.key_signatures,
+      adjusted_ns.text_annotations
+  )
+
+  for event in events:
+    time = time_func(event.time)
+    if time < 0:
+      raise InvalidTimeAdjustmentException(
+          'Tried to adjust event time to before 0 '
+          '(original: %f, adjusted: %f)' % (event.time, time))
+    event.time = time
+
+  # Adjusting tempos to accommodate arbitrary time adjustments is too
+  # complicated. Just delete them.
+  del adjusted_ns.tempos[:]
+
+  return adjusted_ns, skipped_notes
+
+
+def rectify_beats(sequence, beats_per_minute):
+  """Warps a NoteSequence so that beats happen at regular intervals.
+
+  Args:
+    sequence: The source NoteSequence. Will not be modified.
+    beats_per_minute: Desired BPM of the rectified sequence.
+
+  Returns:
+    rectified_sequence: A copy of `sequence` with times adjusted so that beats
+        occur at regular intervals with BPM `beats_per_minute`.
+    alignment: An N-by-2 array where each row contains the original and
+        rectified times for a beat.
+
+  Raises:
+    QuantizationStatusException: If `sequence` is quantized.
+    RectifyBeatsException: If `sequence` has no beat annotations.
+  """
+  if is_quantized_sequence(sequence):
+    raise QuantizationStatusException(
+        'Cannot rectify beat times for quantized NoteSequence.')
+
+  beat_times = [
+      ta.time for ta in sequence.text_annotations
+      if ta.annotation_type == music_pb2.NoteSequence.TextAnnotation.BEAT
+      and ta.time <= sequence.total_time
+  ]
+
+  if not beat_times:
+    raise RectifyBeatsException('No beats in NoteSequence.')
+
+  # Add a beat at the very beginning and end of the sequence and dedupe.
+  sorted_beat_times = [0.0] + sorted(beat_times) + [sequence.total_time]
+  unique_beat_times = np.array([
+      sorted_beat_times[i] for i in range(len(sorted_beat_times))
+      if i == 0 or sorted_beat_times[i] > sorted_beat_times[i - 1]
+  ])
+  num_beats = len(unique_beat_times)
+
+  # Use linear interpolation to map original times to rectified times.
+  seconds_per_beat = 60.0 / beats_per_minute
+  rectified_beat_times = seconds_per_beat * np.arange(num_beats)
+  def time_func(t):
+    return np.interp(t, unique_beat_times, rectified_beat_times,
+                     left=0.0, right=sequence.total_time)
+
+  rectified_sequence, _ = adjust_notesequence_times(sequence, time_func)
+
+  # Sequence probably shouldn't have time signatures but delete them just to be
+  # sure, and add a single tempo.
+  del rectified_sequence.time_signatures[:]
+  rectified_sequence.tempos.add(qpm=beats_per_minute)
+
+  return rectified_sequence, np.array([unique_beat_times,
+                                       rectified_beat_times]).T
 
 
 # Constants for processing the note/sustain stream.
