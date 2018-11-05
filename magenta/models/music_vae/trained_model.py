@@ -114,7 +114,8 @@ class TrainedModel(object):
       # Restore graph
       self._sess = tf.Session(target=session_target)
       saver = tf.train.Saver(var_map)
-      if tarfile.is_tarfile(checkpoint_path):
+      if (os.path.exists(checkpoint_path) and
+          tarfile.is_tarfile(checkpoint_path)):
         tf.logging.info('Unbundling checkpoint.')
         with tempfile.TemporaryDirectory() as temp_dir:
           tar = tarfile.open(checkpoint_path)
