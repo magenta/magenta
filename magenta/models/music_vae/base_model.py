@@ -303,7 +303,7 @@ class MusicVAE(object):
     optimizer = tf.train.AdamOptimizer(lr)
 
     tf.summary.scalar('learning_rate', lr)
-    for n, t in scalars_to_summarize.iteritems():
+    for n, t in scalars_to_summarize.items():
       tf.summary.scalar(n, tf.reduce_mean(t))
 
     return optimizer

@@ -1077,7 +1077,7 @@ class HierarchicalLstmDecoder(base_model.BaseDecoder):
     hier_t = tf.reshape(t, hier_shape)
     # Move the batch dimension to after the hierarchical dimensions.
     num_levels = len(level_lengths)
-    perm = range(len(hier_shape))
+    perm = list(range(len(hier_shape)))
     perm.insert(num_levels, perm.pop(0))
     return tf.transpose(hier_t, perm)
 
