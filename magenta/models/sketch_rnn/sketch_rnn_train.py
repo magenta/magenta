@@ -20,13 +20,14 @@ from __future__ import print_function
 import json
 import os
 import time
-import urllib
+import urllib.request
 import zipfile
 
 import numpy as np
 import requests
 import six
-from six.moves import cStringIO as StringIO
+#from six.moves import cStringIO as StringIO
+from io import BytesIO
 import tensorflow as tf
 
 from magenta.models.sketch_rnn import model as sketch_rnn_model
@@ -103,7 +104,7 @@ def download_pretrained_models(
   else:
     tf.logging.info('Downloading pretrained models from %s...',
                     pretrained_models_url)
-    urllib.urlretrieve(pretrained_models_url, zip_path)
+    urllib.request.urlretrieve(pretrained_models_url, zip_path)
     tf.logging.info('Download complete.')
   tf.logging.info('Unzipping %s...', zip_path)
   with zipfile.ZipFile(zip_path) as models_zip:
@@ -132,7 +133,7 @@ def load_dataset(data_dir, model_params, inference_mode=False):
     if data_dir.startswith('http://') or data_dir.startswith('https://'):
       tf.logging.info('Downloading %s', data_filepath)
       response = requests.get(data_filepath)
-      data = np.load(StringIO(response.content))
+      data = np.load(BytesIO(response.content), encoding='latin1')
     else:
       if six.PY3:
         data = np.load(data_filepath, encoding='latin1')
