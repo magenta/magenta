@@ -42,7 +42,7 @@ checkpoints from the table below.
 
 | ID | Config | Description | Link |
 | -- | ------ | ----------- | ---- |
-| cat-mel_2bar | `cat-mel_2bar_big` | 2-bar melodies | [download](https://storage.googleapis.com/magentadata/models/music_vae/checkpoints/cat-mel_2bar_big.tar)|
+| cat-mel_2bar_big | `cat-mel_2bar_big` | 2-bar melodies | [download](https://storage.googleapis.com/magentadata/models/music_vae/checkpoints/cat-mel_2bar_big.tar)|
 | hierdec-mel_16bar | `hierdec-mel_16bar` | 16-bar melodies | [download](https://storage.googleapis.com/magentadata/models/music_vae/checkpoints/hierdec-mel_16bar.tar)|
 | hierdec-trio_16bar | `hierdec-trio_16bar` | 16-bar "trios" (drums, melody, and bass) | [download](https://storage.googleapis.com/magentadata/models/music_vae/checkpoints/hierdec-mel_16bar.tar)|
 | cat-drums_2bar_small.lokl |`cat-drums_2bar_small` | 2-bar drums w/ 9 classes trained for more *realistic* sampling| [download](https://storage.googleapis.com/magentadata/models/music_vae/checkpoints/cat-drums_2bar_small.lokl.tar)|
@@ -64,7 +64,7 @@ generate 5 2-bar melody samples.
 ```sh
 music_vae_generate \
 --config=cat-mel_2bar_big \
---checkpoint_file=/path/to/music_vae/checkpoints/cat-mel_2bar.tar \
+--checkpoint_file=/path/to/music_vae/checkpoints/cat-mel_2bar_big.tar \
 --mode=sample \
 --num_outputs=5 \
 --output_dir=/tmp/music_vae/generated
