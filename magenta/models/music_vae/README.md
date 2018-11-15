@@ -42,12 +42,12 @@ checkpoints from the table below.
 
 | ID | Config | Description | Link |
 | -- | ------ | ----------- | ---- |
-| mel_2bar | `cat-mel_2bar_big` | 2-bar melodies | [download](http://download.magenta.tensorflow.org/models/music_vae/checkpoints_bundled/mel_2bar_big.ckpt.tar)|
-| mel_16bar | `hierdec-mel_16bar` | 16-bar melodies | [download](http://download.magenta.tensorflow.org/models/music_vae/checkpoints_bundled/mel_16bar_hierdec.ckpt.tar)|
-| trio_16bar | `hierdec-trio_16bar` | 16-bar "trios" (drums, melody, and bass) | [download](http://download.magenta.tensorflow.org/models/music_vae/checkpoints_bundled/trio_16bar_hierdec.ckpt.tar)|
-| drums_2bar_oh_lokl |`cat-drums_2bar_small` | 2-bar drums w/ 9 classes trained for more *realistic* sampling| [download](http://download.magenta.tensorflow.org/models/music_vae/checkpoints_bundled/drums_2bar_small.lokl.ckpt.tar)|
-| drums_2bar_oh_hikl | `cat-drums_2bar_small` | 2-bar drums w/ 9 classes trained for *better reconstruction and interpolation* | [download](http://download.magenta.tensorflow.org/models/music_vae/checkpoints_bundled/drums_2bar_small.hikl.ckpt.tar)|
-| drums_2bar_nade_full | `nade-drums_2bar_full` | 2-bar drums w/ 61 classes | [download](http://download.magenta.tensorflow.org/models/music_vae/checkpoints_bundled/drums_2bar_nade.full.ckpt.tar)|
+| cat-mel_2bar_big | `cat-mel_2bar_big` | 2-bar melodies | [download](https://storage.googleapis.com/magentadata/models/music_vae/checkpoints/cat-mel_2bar_big.tar)|
+| hierdec-mel_16bar | `hierdec-mel_16bar` | 16-bar melodies | [download](https://storage.googleapis.com/magentadata/models/music_vae/checkpoints/hierdec-mel_16bar.tar)|
+| hierdec-trio_16bar | `hierdec-trio_16bar` | 16-bar "trios" (drums, melody, and bass) | [download](https://storage.googleapis.com/magentadata/models/music_vae/checkpoints/hierdec-mel_16bar.tar)|
+| cat-drums_2bar_small.lokl |`cat-drums_2bar_small` | 2-bar drums w/ 9 classes trained for more *realistic* sampling| [download](https://storage.googleapis.com/magentadata/models/music_vae/checkpoints/cat-drums_2bar_small.lokl.tar)|
+| cat-drums_2bar_small.hikl | `cat-drums_2bar_small` | 2-bar drums w/ 9 classes trained for *better reconstruction and interpolation* | [download](https://storage.googleapis.com/magentadata/models/music_vae/checkpoints/cat-drums_2bar_small.hikl.tar)|
+| nade-drums_2bar_full | `nade-drums_2bar_full` | 2-bar drums w/ 61 classes | [download](https://storage.googleapis.com/magentadata/models/music_vae/checkpoints/nade-drums_2bar_full.tar)|
 
 Once you have selected a model, there are two operations you can perform with
 the generate script: `sample` and `interpolate`.
@@ -58,26 +58,26 @@ Sampling decodes random points in the latent space of the chosen model and
 outputs the resulting sequences in `output_dir`. Make sure you specify the
 matching `config` for the model (see the table above).
 
-Download the `mel_2bar_big` checkpoint above and run the following command to
+Download the `cat-mel_2bar` checkpoint above and run the following command to
 generate 5 2-bar melody samples.
 
 ```sh
 music_vae_generate \
 --config=cat-mel_2bar_big \
---checkpoint_file=/path/to/music_vae/checkpoints/mel_2bar_big.ckpt \
+--checkpoint_file=/path/to/music_vae/checkpoints/cat-mel_2bar_big.tar \
 --mode=sample \
 --num_outputs=5 \
 --output_dir=/tmp/music_vae/generated
 ```
 
 Perhaps the most impressive samples come from the 16-bar trio model. Download
-the `trio_16bar_hierdec` checkpoint above (warning: 2 GB) and run the following
+the `hierdec-trio_16bar` checkpoint above (warning: 2 GB) and run the following
 command to generate 5 samples.
 
 ```sh
 music_vae_generate \
 --config=hierdec-trio_16bar \
---checkpoint_file=/path/to/music_vae/checkpoints/trio_16bar_hierdec.ckpt \
+--checkpoint_file=/path/to/music_vae/checkpoints/hierdec-trio_16bar.tar \
 --mode=sample \
 --num_outputs=5 \
 --output_dir=/tmp/music_vae/generated
@@ -98,7 +98,7 @@ Try setting the inputs to be two of the samples you generated previously.
 ```sh
 music_vae_generate \
 --config=cat-mel_2bar_big \
---checkpoint_file=/path/to/music_vae/checkpoints/mel_2bar_big.ckpt \
+--checkpoint_file=/path/to/music_vae/checkpoints/cat-mel_2bar.ckpt \
 --mode=interpolate \
 --num_outputs=5 \
 --input_midi_1=/path/to/input/1.mid
