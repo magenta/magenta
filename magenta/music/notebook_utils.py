@@ -22,8 +22,6 @@ import collections
 from io import BytesIO
 import os
 
-# internal imports
-
 import bokeh
 import bokeh.plotting
 from IPython import display

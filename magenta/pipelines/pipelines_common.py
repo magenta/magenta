@@ -15,7 +15,6 @@
 
 import random
 
-# internal imports
 import numpy as np
 
 from magenta.pipelines import pipeline

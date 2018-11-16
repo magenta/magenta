@@ -53,6 +53,7 @@ from magenta.music.encoder_decoder import LookbackEventSequenceEncoderDecoder
 from magenta.music.encoder_decoder import MultipleEventSequenceEncoder
 from magenta.music.encoder_decoder import OneHotEncoding
 from magenta.music.encoder_decoder import OneHotEventSequenceEncoderDecoder
+from magenta.music.encoder_decoder import OneHotIndexEventSequenceEncoderDecoder
 from magenta.music.encoder_decoder import OptionalEventSequenceEncoder
 
 from magenta.music.events_lib import NonIntegerStepsPerBarException
@@ -95,6 +96,7 @@ from magenta.music.performance_controls import NoteDensityPerformanceControlSign
 from magenta.music.performance_controls import PitchHistogramPerformanceControlSignal
 
 from magenta.music.performance_encoder_decoder import ModuloPerformanceEventSequenceEncoderDecoder
+from magenta.music.performance_encoder_decoder import NotePerformanceEventSequenceEncoderDecoder
 from magenta.music.performance_encoder_decoder import PerformanceModuloEncoding
 from magenta.music.performance_encoder_decoder import PerformanceOneHotEncoding
 

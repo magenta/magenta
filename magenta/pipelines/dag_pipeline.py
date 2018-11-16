@@ -35,7 +35,6 @@ from __future__ import print_function
 
 import itertools
 
-# internal imports
 import six
 from magenta.pipelines import pipeline
 

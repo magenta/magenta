@@ -19,7 +19,6 @@ from __future__ import print_function
 
 import functools
 
-# internal imports
 import numpy as np
 import tensorflow as tf
 
@@ -99,7 +98,7 @@ class NoteSequenceAugmenterTest(tf.test.TestCase):
   def testTfAugment(self):
     augmenter = data.NoteSequenceAugmenter(
         transpose_range=(-3, -3), stretch_range=(2.0, 2.0))
-    augmented_sequence = augmenter.augment(self.sequence)
+
     with self.test_session() as sess:
       sequence_str = tf.placeholder(tf.string)
       augmented_sequence_str_ = augmenter.tf_augment(sequence_str)

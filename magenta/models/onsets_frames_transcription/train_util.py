@@ -18,8 +18,6 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-# internal imports
-
 from . import data
 from . import model
 from .infer_util import pianoroll_to_note_sequence
@@ -93,7 +91,16 @@ def train(train_dir,
       tf.summary.scalar(loss_label, tf.reduce_mean(loss_collection))
     for name, image in images.iteritems():
       tf.summary.image(name, image)
-    optimizer = tf.train.AdamOptimizer(learning_rate=hparams.learning_rate)
+
+    global_step = tf.train.get_or_create_global_step()
+    learning_rate = tf.train.exponential_decay(
+        hparams.learning_rate,
+        global_step,
+        hparams.decay_steps,
+        hparams.decay_rate,
+        staircase=True)
+    tf.summary.scalar('learning_rate', learning_rate)
+    optimizer = tf.train.AdamOptimizer(learning_rate=learning_rate)
 
     train_op = slim.learning.create_train_op(
         loss,

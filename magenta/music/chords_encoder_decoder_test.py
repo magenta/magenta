@@ -13,7 +13,6 @@
 # limitations under the License.
 """Tests for chords_encoder_decoder."""
 
-# internal imports
 import tensorflow as tf
 
 from magenta.music import chords_encoder_decoder

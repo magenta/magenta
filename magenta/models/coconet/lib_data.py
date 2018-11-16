@@ -3,7 +3,6 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 import os
-# internal imports
 import numpy as np
 import tensorflow as tf
 
@@ -116,7 +115,7 @@ class Dataset(lib_util.Factory):
 
   def update_hparams(self, hparams):
     """Update subset of Hyperparameters pertaining to data."""
-    for key in "num_instruments num_pitches min_pitch max_pitch qpm".split():
+    for key in "num_instruments min_pitch max_pitch qpm".split():
       setattr(hparams, key, getattr(self, key))
 
 

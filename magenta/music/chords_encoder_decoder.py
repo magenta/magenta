@@ -23,7 +23,6 @@ encoding has 49 classes, all 12 major/minor/augmented/diminished triads plus
 "no chord".
 """
 
-# internal imports
 from magenta.music import chord_symbols_lib
 from magenta.music import constants
 from magenta.music import encoder_decoder

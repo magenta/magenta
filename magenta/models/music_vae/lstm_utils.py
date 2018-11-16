@@ -19,7 +19,6 @@ from __future__ import print_function
 
 import collections
 
-# internal imports
 import tensorflow as tf
 
 from tensorflow.contrib import rnn
@@ -205,19 +204,19 @@ def get_sampling_probability(hparams, is_training):
       raise ValueError(
           '`constant` sampling rate must be in the interval [0, 1]. Got %f.'
           % rate)
-    sampling_probability = tf.constant(rate)
+    sampling_probability = tf.to_float(rate)
   elif schedule == 'inverse_sigmoid':
     if rate < 1:
       raise ValueError(
           '`inverse_sigmoid` sampling rate must be at least 1. Got %f.' % rate)
-    k = tf.constant(rate)
+    k = tf.to_float(rate)
     sampling_probability = 1.0 - k / (k + tf.exp(step / k))
   elif schedule == 'exponential':
     if not 0 < rate < 1:
       raise ValueError(
           '`exponential` sampling rate must be in the interval (0, 1). Got %f.'
           % hparams.sampling_rate)
-    k = tf.constant(rate)
+    k = tf.to_float(rate)
     sampling_probability = 1.0 - tf.pow(k, step)
   else:
     raise ValueError('Invalid `sampling_schedule`: %s' % schedule)

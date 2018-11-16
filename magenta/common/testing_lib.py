@@ -13,7 +13,6 @@
 # limitations under the License.
 """Testing support code."""
 
-# internal imports
 import numpy as np
 import six
 

@@ -20,8 +20,6 @@ import abc
 import os
 import tempfile
 
-# internal imports
-
 import tensorflow as tf
 
 from magenta.protobuf import generator_pb2

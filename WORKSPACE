@@ -8,9 +8,9 @@ new_http_archive(
 
 http_archive(
     name = "com_google_protobuf",
-    sha256 = "13d3c15ebfad8c28bee203dd4a0f6e600d2a7d2243bac8b5d0e517466500fcae",
-    strip_prefix = "protobuf-3.5.1",
-    url = "https://github.com/google/protobuf/releases/download/v3.5.1/protobuf-python-3.5.1.tar.gz",
+    sha256 = "40f009cb0c190816a52fc21d45c26558ee7d63c3bd511b326bd85739b2fd99a6",
+    strip_prefix = "protobuf-3.6.1",
+    url = "https://github.com/google/protobuf/releases/download/v3.6.1/protobuf-python-3.6.1.tar.gz",
 )
 
 new_http_archive(
@@ -37,4 +37,20 @@ new_http_archive(
     sha256 = "870d2f470ce1123324f9ef9676b6c9f2580293dd2a07fdfe00e20a47740e8b8e",
     strip_prefix = "mido-1.2.6/mido",
     url = "https://github.com/olemb/mido/archive/1.2.6.tar.gz",
+)
+
+new_http_archive(
+    name = "pix2pix_tensorflow",
+    build_file = "pix2pix_tensorflow.BUILD",
+    sha256 = "d00e0c8d65b4e3b0b61f5655976eaed0ea5b98b4aba1f8dea96809ec995b7b0e",
+    strip_prefix = "pix2pix-tensorflow-0.1/",
+    url = "https://github.com/dh7/pix2pix-tensorflow/archive/0.1.tar.gz",
+)
+
+new_http_archive(
+    name = "backports",
+    build_file = "backports-tempfile.BUILD",
+    sha256 = "597de6793dd1abcf2aea80ae81e8cbf0af4afb117cd48fa1dc3862f85f48c389",
+    strip_prefix = "backports.tempfile-1.0/src/backports",
+    url = "https://github.com/pjdelport/backports.tempfile/archive/v1.0.tar.gz",
 )

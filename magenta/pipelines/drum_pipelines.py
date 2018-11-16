@@ -13,7 +13,6 @@
 # limitations under the License.
 """Data processing pipelines for drum tracks."""
 
-# internal imports
 import tensorflow as tf
 
 from magenta.music import drums_lib

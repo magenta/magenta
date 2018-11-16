@@ -18,8 +18,6 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-# internal imports
-
 import librosa
 
 import tensorflow as tf
@@ -35,6 +33,8 @@ DEFAULT_MIN_FRAME_OCCUPANCY_FOR_LABEL = 0.0
 DEFAULT_NORMALIZE_AUDIO = False
 DEFAULT_ONSET_DELAY = 0
 DEFAULT_ONSET_LENGTH = 100
+DEFAULT_OFFSET_LENGTH = 100
+DEFAULT_ONSET_OVERLAP = True
 DEFAULT_ONSET_MODE = 'window'
 DEFAULT_SAMPLE_RATE = 16000
 DEFAULT_SPEC_FMIN = 30.0
@@ -42,6 +42,7 @@ DEFAULT_SPEC_HOP_LENGTH = 512
 DEFAULT_SPEC_LOG_AMPLITUDE = True
 DEFAULT_SPEC_N_BINS = 229
 DEFAULT_SPEC_TYPE = 'mel'
+DEFAULT_SPEC_MEL_HTK = False
 
 
 DEFAULT_HPARAMS = tf.contrib.training.HParams(
@@ -52,6 +53,8 @@ DEFAULT_HPARAMS = tf.contrib.training.HParams(
     normalize_audio=DEFAULT_NORMALIZE_AUDIO,
     onset_delay=DEFAULT_ONSET_DELAY,
     onset_length=DEFAULT_ONSET_LENGTH,
+    offset_length=DEFAULT_OFFSET_LENGTH,
+    onset_overlap=DEFAULT_ONSET_OVERLAP,
     onset_mode=DEFAULT_ONSET_MODE,
     sample_rate=DEFAULT_SAMPLE_RATE,
     spec_fmin=DEFAULT_SPEC_FMIN,
@@ -59,4 +62,5 @@ DEFAULT_HPARAMS = tf.contrib.training.HParams(
     spec_log_amplitude=DEFAULT_SPEC_LOG_AMPLITUDE,
     spec_n_bins=DEFAULT_SPEC_N_BINS,
     spec_type=DEFAULT_SPEC_TYPE,
+    spec_mel_htk=DEFAULT_SPEC_MEL_HTK,
 )

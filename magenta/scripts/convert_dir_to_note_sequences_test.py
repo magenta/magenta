@@ -16,7 +16,6 @@
 import os
 import tempfile
 
-# internal imports
 import tensorflow as tf
 
 from magenta.music import note_sequence_io

@@ -27,11 +27,8 @@ from __future__ import print_function
 
 import collections
 import functools
-import math
 import os
 import wave
-
-# internal imports
 
 from . import constants
 
@@ -43,7 +40,7 @@ import tensorflow.contrib.slim as slim
 
 import magenta.music as mm
 from magenta.music import audio_io
-from magenta.music import constants as mm_constants
+from magenta.music import sequences_lib
 from magenta.protobuf import music_pb2
 
 BATCH_QUEUE_CAPACITY_SEQUENCES = 50
@@ -94,7 +91,8 @@ def _wav_to_mel(wav_audio, hparams):
       hparams.sample_rate,
       hop_length=hparams.spec_hop_length,
       fmin=hparams.spec_fmin,
-      n_mels=hparams.spec_n_bins).astype(np.float32)
+      n_mels=hparams.spec_n_bins,
+      htk=hparams.spec_mel_htk).astype(np.float32)
 
   # Transpose so that the data is in [frame, bins] format.
   mel = mel.T
@@ -204,157 +202,38 @@ def transform_wav_data_op(wav_data_tensor, hparams, is_training,
       name='transform_wav_data_op')
 
 
-def sequence_to_pianoroll(sequence,
-                          frames_per_second,
-                          min_pitch,
-                          max_pitch,
-                          onset_upweight=5.0,
-                          onset_window=1,
-                          onset_length_ms=0,
-                          onset_mode='window',
-                          onset_delay_ms=0.0,
-                          min_frame_occupancy_for_label=0.0,
-                          # pylint: disable=unused-argument
-                          min_velocity=mm_constants.MIN_MIDI_VELOCITY,
-                          # pylint: enable=unused-argument
-                          max_velocity=mm_constants.MAX_MIDI_VELOCITY):
-  """Transforms a NoteSequence to a pianoroll assuming a single instrument.
-
-  This function uses floating point internally and may return different results
-  on different platforms or with different compiler settings or with
-  different compilers.
-
-  Args:
-    sequence: The NoteSequence to convert.
-    frames_per_second: How many frames per second.
-    min_pitch: pitches in the sequence below this will be ignored.
-    max_pitch: pitches in the sequence above this will be ignored.
-    onset_upweight: Factor by which to increase the weight assigned to onsets.
-    onset_window: Fixed window size for labeling offsets. Used only if
-        onset_mode is 'window'.
-    onset_length_ms: Length in milliseconds for the onset. Used only if
-        onset_mode is 'length_ms'.
-    onset_mode: Either 'window', to use onset_window, or 'length_ms' to use
-        onset_length_ms.
-    onset_delay_ms: Number of milliseconds to delay the onset. Can be negative.
-    min_frame_occupancy_for_label: floating point value in range [0, 1] a note
-        must occupy at least this percentage of a frame, for the frame to be
-        given a label with the note.
-    min_velocity: minimum velocity for the track, currently unused.
-    max_velocity: maximum velocity for the track, not just the local sequence,
-        used to globally normalize the velocities between [0, 1].
-
-  Raises:
-    ValueError: When an unknown onset_mode is supplied.
-
-  Returns:
-    roll: A pianoroll as a 2D array.
-    roll_weights: Weights to be used when calculating loss against roll.
-    onsets: An onset-only pianoroll as a 2D array.
-    velocities: Velocities of onsets scaled from [0, 1].
-  """
-  roll = np.zeros(
-      (int(sequence.total_time * frames_per_second + 1),
-       max_pitch - min_pitch + 1),
-      dtype=np.float32)
-
-  roll_weights = np.ones_like(roll)
-
-  onsets = np.zeros_like(roll)
-
-  def frames_from_times(start_time, end_time):
-    """Converts start/end times to start/end frames."""
-    # Will round down because note may start or end in the middle of the frame.
-    start_frame = int(start_time * frames_per_second)
-    start_frame_occupancy = (
-        start_frame + 1 - start_time * frames_per_second)
-    # check for > 0.0 to avoid possible numerical issues
-    if (min_frame_occupancy_for_label > 0.0 and
-        start_frame_occupancy < min_frame_occupancy_for_label):
-      start_frame += 1
-
-    end_frame = int(math.ceil(end_time * frames_per_second))
-    end_frame_occupancy = end_time * frames_per_second - start_frame - 1
-    if (min_frame_occupancy_for_label > 0.0 and
-        end_frame_occupancy < min_frame_occupancy_for_label):
-      end_frame -= 1
-      # can be a problem for very short notes
-      end_frame = max(start_frame, end_frame)
-
-    return start_frame, end_frame
-
-  velocities = np.zeros_like(roll, dtype=np.float32)
-
-  for note in sorted(sequence.notes, key=lambda n: n.start_time):
-    if note.pitch < min_pitch or note.pitch > max_pitch:
-      tf.logging.warning('Skipping out of range pitch: %d', note.pitch)
-      continue
-    start_frame, end_frame = frames_from_times(note.start_time, note.end_time)
-
-    roll[start_frame:end_frame, note.pitch - min_pitch] = 1.0
-
-    # label onset events. Use a window size of onset_window to account of
-    # rounding issue in the start_frame computation.
-    onset_start_time = note.start_time + onset_delay_ms / 1000.
-    onset_end_time = note.end_time + onset_delay_ms / 1000.
-    if onset_mode == 'window':
-      onset_start_frame_without_window, _ = frames_from_times(
-          onset_start_time, onset_end_time)
-
-      onset_start_frame = max(
-          0, onset_start_frame_without_window - onset_window)
-      onset_end_frame = min(onsets.shape[0],
-                            onset_start_frame_without_window + onset_window + 1)
-    elif onset_mode == 'length_ms':
-      onset_end_time = min(onset_end_time,
-                           onset_start_time + onset_length_ms / 1000.)
-      onset_start_frame, onset_end_frame = frames_from_times(
-          onset_start_time, onset_end_time)
-    else:
-      raise ValueError('Unknown onset mode: {}'.format(onset_mode))
-    onsets[onset_start_frame:onset_end_frame, note.pitch - min_pitch] = 1.0
-
-    if note.velocity > max_velocity:
-      raise ValueError('Note velocity exceeds max velocity: %d > %d' %
-                       (note.velocity, max_velocity))
-    velocities[onset_start_frame:onset_end_frame,
-               note.pitch - min_pitch] = float(note.velocity) / max_velocity
-
-    roll_weights[onset_start_frame:onset_end_frame, note.pitch - min_pitch] = (
-        onset_upweight)
-    roll_weights[onset_end_frame:end_frame, note.pitch - min_pitch] = [
-        onset_upweight / x for x in range(1, end_frame - onset_end_frame + 1)
-    ]
-
-  return roll, roll_weights, onsets, velocities
-
-
 def sequence_to_pianoroll_op(sequence_tensor, velocity_range_tensor, hparams):
   """Transforms a serialized NoteSequence to a pianoroll."""
   def sequence_to_pianoroll_fn(sequence_tensor, velocity_range_tensor):
+    """Converts sequence to pianorolls."""
     velocity_range = music_pb2.VelocityRange.FromString(velocity_range_tensor)
     sequence = preprocess_sequence(sequence_tensor)
-    return sequence_to_pianoroll(
+    roll = sequences_lib.sequence_to_pianoroll(
         sequence,
         frames_per_second=hparams_frames_per_second(hparams),
         min_pitch=constants.MIN_MIDI_PITCH,
         max_pitch=constants.MAX_MIDI_PITCH,
         min_frame_occupancy_for_label=hparams.min_frame_occupancy_for_label,
-        onset_mode=hparams.onset_mode, onset_length_ms=hparams.onset_length,
+        onset_mode=hparams.onset_mode,
+        onset_length_ms=hparams.onset_length,
+        offset_length_ms=hparams.offset_length,
         onset_delay_ms=hparams.onset_delay,
         min_velocity=velocity_range.min,
         max_velocity=velocity_range.max)
+    return (roll.active, roll.weights, roll.onsets,
+            roll.offsets, roll.onset_velocities)
 
-  res, weighted_res, onsets, velocities = tf.py_func(
+  res, weighted_res, onsets, offsets, velocities = tf.py_func(
       sequence_to_pianoroll_fn, [sequence_tensor, velocity_range_tensor],
-      [tf.float32, tf.float32, tf.float32, tf.float32],
+      [tf.float32, tf.float32, tf.float32, tf.float32, tf.float32],
       name='sequence_to_pianoroll_op')
   res.set_shape([None, constants.MIDI_PITCHES])
   weighted_res.set_shape([None, constants.MIDI_PITCHES])
   onsets.set_shape([None, constants.MIDI_PITCHES])
+  offsets.set_shape([None, constants.MIDI_PITCHES])
   velocities.set_shape([None, constants.MIDI_PITCHES])
 
-  return res, weighted_res, onsets, velocities
+  return res, weighted_res, onsets, offsets, velocities
 
 
 def jitter_label_op(sequence_tensor, jitter_amount_sec):
@@ -410,8 +289,8 @@ def truncate_note_sequence_op(sequence_tensor, truncated_length_frames,
 
 InputTensors = collections.namedtuple(
     'InputTensors',
-    ('spec', 'labels', 'label_weights', 'length', 'onsets', 'velocities',
-     'velocity_range', 'filename', 'note_sequence'))
+    ('spec', 'labels', 'label_weights', 'length', 'onsets', 'offsets',
+     'velocities', 'velocity_range', 'filename', 'note_sequence'))
 
 
 def _preprocess_data(sequence, audio, velocity_range, hparams, is_training):
@@ -455,13 +334,14 @@ def _preprocess_data(sequence, audio, velocity_range, hparams, is_training):
 
   spec = wav_to_spec_op(transformed_wav, hparams=hparams)
 
-  labels, label_weights, onsets, velocities = sequence_to_pianoroll_op(
+  labels, label_weights, onsets, offsets, velocities = sequence_to_pianoroll_op(
       sequence, velocity_range, hparams=hparams)
 
   length = wav_to_num_frames_op(
       transformed_wav, hparams_frames_per_second(hparams))
 
-  return spec, labels, label_weights, length, onsets, velocities, velocity_range
+  return (spec, labels, label_weights, length, onsets,
+          offsets, velocities, velocity_range)
 
 
 def _get_input_tensors_from_examples_list(examples_list, is_training):
@@ -498,13 +378,14 @@ class TranscriptionData(dict):
 
 def _provide_data(input_tensors, truncated_length, hparams):
   """Returns tensors for reading batches from provider."""
-  (spec, labels, label_weights, length, onsets, velocities,
+  (spec, labels, label_weights, length, onsets, offsets, velocities,
    unused_velocity_range, filename, note_sequence) = input_tensors
 
   length = tf.to_int32(length)
   labels = tf.reshape(labels, (-1, constants.MIDI_PITCHES))
   label_weights = tf.reshape(label_weights, (-1, constants.MIDI_PITCHES))
   onsets = tf.reshape(onsets, (-1, constants.MIDI_PITCHES))
+  offsets = tf.reshape(offsets, (-1, constants.MIDI_PITCHES))
   velocities = tf.reshape(velocities, (-1, constants.MIDI_PITCHES))
   spec = tf.reshape(spec, (-1, hparams_frame_size(hparams)))
 
@@ -535,6 +416,11 @@ def _provide_data(input_tensors, truncated_length, hparams):
         lambda: tf.pad(onsets, tf.stack([(0, -labels_delta), (0, 0)]))),
        (labels_delta > 0, lambda: onsets[0:-labels_delta])],
       default=lambda: onsets)
+  offsets = tf.case(
+      [(labels_delta < 0,
+        lambda: tf.pad(offsets, tf.stack([(0, -labels_delta), (0, 0)]))),
+       (labels_delta > 0, lambda: offsets[0:-labels_delta])],
+      default=lambda: offsets)
   velocities = tf.case(
       [(labels_delta < 0,
         lambda: tf.pad(velocities, tf.stack([(0, -labels_delta), (0, 0)]))),
@@ -552,6 +438,8 @@ def _provide_data(input_tensors, truncated_length, hparams):
           label_weights, (truncated_length, constants.MIDI_PITCHES)),
       'lengths': truncated_length,
       'onsets': tf.reshape(onsets, (truncated_length, constants.MIDI_PITCHES)),
+      'offsets': tf.reshape(offsets, (truncated_length,
+                                      constants.MIDI_PITCHES)),
       'velocities':
           tf.reshape(velocities, (truncated_length, constants.MIDI_PITCHES)),
       'filenames': filename,
@@ -602,7 +490,7 @@ def provide_batch(batch_size,
       return tf.parse_single_example(example_proto, features)
 
     def _preprocess(record):
-      (spec, labels, label_weights, length, onsets, velocities,
+      (spec, labels, label_weights, length, onsets, offsets, velocities,
        velocity_range) = _preprocess_data(
            record['sequence'], record['audio'], record['velocity_range'],
            hparams, is_training)
@@ -612,6 +500,7 @@ def provide_batch(batch_size,
           label_weights=label_weights,
           length=length,
           onsets=onsets,
+          offsets=offsets,
           velocities=velocities,
           velocity_range=velocity_range,
           filename=record['id'],

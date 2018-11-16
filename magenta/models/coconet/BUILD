@@ -67,6 +67,9 @@ py_library(
     name = "lib_pianoroll",
     srcs = ["lib_pianoroll.py"],
     srcs_version = "PY2AND3",
+    visibility = [
+        # internal models
+    ],
     deps = [
         # numpy dep
         "@pretty_midi",
@@ -78,6 +81,9 @@ py_library(
     name = "lib_graph",
     srcs = ["lib_graph.py"],
     srcs_version = "PY2AND3",
+    visibility = [
+        # internal models
+    ],
     deps = [
         ":lib_hparams",
         ":lib_tfutil",
@@ -89,8 +95,12 @@ py_library(
     name = "lib_hparams",
     srcs = ["lib_hparams.py"],
     srcs_version = "PY2AND3",
+    visibility = [
+        # internal models
+    ],
     deps = [
         ":lib_util",
+        # numpy dep
         # tensorflow dep
         # yaml dep
     ],
@@ -236,6 +246,18 @@ py_binary(
         ":lib_pianoroll",
         ":lib_util",
         # numpy dep
+        # tensorflow dep
+    ],
+)
+
+py_test(
+    name = "export_saved_model_test",
+    srcs = ["export_saved_model_test.py"],
+    srcs_version = "PY2AND3",
+    deps = [
+        ":export_saved_model",
+        ":lib_hparams",
+        ":lib_graph",
         # tensorflow dep
     ],
 )

@@ -17,7 +17,6 @@ from __future__ import division
 
 import copy
 
-# internal imports
 import numpy as np
 
 from magenta.music import constants

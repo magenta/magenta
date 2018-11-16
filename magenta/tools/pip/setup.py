@@ -34,9 +34,11 @@ else:
 REQUIRED_PACKAGES = [
     'IPython',
     'Pillow >= 3.4.2',
+    'backports.tempfile',
     'bokeh >= 0.12.0',
     'intervaltree >= 2.1.0',
-    'librosa >= 0.6.0',
+    'joblib >= 0.12',
+    'librosa >= 0.6.2',
     'matplotlib >= 1.5.3',
     'mido == 1.2.6',
     'mir_eval >= 0.4',
@@ -50,8 +52,10 @@ REQUIRED_PACKAGES = [
 
 if gpu_mode:
   REQUIRED_PACKAGES.append('tensorflow-gpu >= 1.8.0')
+  REQUIRED_PACKAGES.append('tensorflow-probability-gpu >= 0.3.0')
 else:
   REQUIRED_PACKAGES.append('tensorflow >= 1.8.0')
+  REQUIRED_PACKAGES.append('tensorflow-probability >= 0.3.0')
 
 # pylint:disable=line-too-long
 CONSOLE_SCRIPTS = [
@@ -74,6 +78,7 @@ CONSOLE_SCRIPTS = [
     'magenta.models.melody_rnn.melody_rnn_create_dataset',
     'magenta.models.melody_rnn.melody_rnn_generate',
     'magenta.models.melody_rnn.melody_rnn_train',
+    'magenta.models.music_vae.music_vae_generate',
     'magenta.models.music_vae.music_vae_train',
     'magenta.models.nsynth.wavenet.nsynth_generate',
     'magenta.models.nsynth.wavenet.nsynth_save_embeddings',

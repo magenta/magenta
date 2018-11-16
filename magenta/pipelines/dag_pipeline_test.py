@@ -19,7 +19,6 @@ from __future__ import print_function
 
 import collections
 
-# internal imports
 import tensorflow as tf
 
 from magenta.pipelines import dag_pipeline

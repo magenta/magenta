@@ -3,7 +3,6 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 import time
-# internal imports
 import numpy as np
 import tensorflow as tf
 from magenta.models.coconet import lib_graph
@@ -67,12 +66,6 @@ class CoconetSampleGraph(object):
     # If outer_masks come in as all zeros, it means there's no masking,
     # which also means nothing will be generated. In this case, use
     # completion mask to make new outer masks.
-    prolls_shape = tf.shape(input_pianorolls)
-    outer_masks = tf.cond(
-        tf.equal(tf.shape(outer_masks)[1], prolls_shape[1]),
-        lambda: outer_masks,
-        lambda: tf.tile(outer_masks, [1, prolls_shape[1], 1, 1])
-    )
     outer_masks = tf.cond(
         tf.reduce_all(tf.equal(outer_masks, 0)),
         lambda: make_completion_masks(input_pianorolls),
@@ -196,7 +189,8 @@ class CoconetSampleGraph(object):
           sample_steps=0,
           current_step=0,
           total_gibbs_steps=0,
-          temperature=0.99):
+          temperature=0.99,
+          timeout_ms=0):
     """Given input pianorolls, runs Gibbs sampling to fill in the rest.
 
     When total_gibbs_steps is 0, total_gibbs_steps is set to
@@ -228,6 +222,7 @@ class CoconetSampleGraph(object):
       total_gibbs_steps: an integer indicating the total number of steps that
           a complete sampling procedure would take.
       temperature: a float indicating the temperature for sampling from softmax.
+      timeout_ms: Timeout for session.Run. Set to zero for no timeout.
 
     Returns:
       A dictionary, consisting of "pianorolls" which is a 4D numpy array of
@@ -241,6 +236,9 @@ class CoconetSampleGraph(object):
       masks = np.zeros_like(pianorolls)
 
     start_time = time.time()
+    run_options = None
+    if timeout_ms:
+      run_options = tf.RunOptions(timeout_in_ms=timeout_ms)
     new_piece = self.sess.run(
         self.samples,
         feed_dict={
@@ -250,7 +248,7 @@ class CoconetSampleGraph(object):
             self.placeholders["total_gibbs_steps"]: total_gibbs_steps,
             self.placeholders["current_step"]: current_step,
             self.placeholders["temperature"]: temperature
-        })
+        }, options=run_options)
 
     label = "independent blocked gibbs"
     time_taken = (time.time() - start_time) / 60.0

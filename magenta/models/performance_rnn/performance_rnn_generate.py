@@ -20,8 +20,6 @@ import ast
 import os
 import time
 
-# internal imports
-
 import tensorflow as tf
 import magenta
 
@@ -275,7 +273,8 @@ def main(unused_argv):
       control_signals=config.control_signals,
       optional_conditioning=config.optional_conditioning,
       checkpoint=get_checkpoint(),
-      bundle=bundle)
+      bundle=bundle,
+      note_performance=config.note_performance)
 
   if FLAGS.save_generator_bundle:
     bundle_filename = os.path.expanduser(FLAGS.bundle_file)

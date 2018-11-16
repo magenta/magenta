@@ -19,10 +19,10 @@ from __future__ import print_function
 
 import abc
 
-# internal imports
 import tensorflow as tf
+import tensorflow_probability as tfp
 
-ds = tf.contrib.distributions
+ds = tfp.distributions
 
 
 class BaseEncoder(object):
@@ -303,7 +303,7 @@ class MusicVAE(object):
     optimizer = tf.train.AdamOptimizer(lr)
 
     tf.summary.scalar('learning_rate', lr)
-    for n, t in scalars_to_summarize.iteritems():
+    for n, t in scalars_to_summarize.items():
       tf.summary.scalar(n, tf.reduce_mean(t))
 
     return optimizer
@@ -347,7 +347,7 @@ class MusicVAE(object):
       tf.logging.warning(
           'Sampling from conditional model without `z`. Using random `z`.')
       normal_shape = [n, self.hparams.z_size]
-      normal_dist = tf.contrib.distributions.Normal(
+      normal_dist = tfp.distributions.Normal(
           loc=tf.zeros(normal_shape), scale=tf.ones(normal_shape))
       z = normal_dist.sample()
 

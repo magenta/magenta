@@ -19,9 +19,9 @@ from __future__ import print_function
 
 import abc
 
-# internal imports
 import numpy as np
 import tensorflow as tf
+import tensorflow_probability as tfp
 
 from magenta.common import flatten_maybe_padded_sequences
 from magenta.common import Nade
@@ -557,7 +557,7 @@ class CategoricalLstmDecoder(BaseLstmDecoder):
     return r_loss, metric_map
 
   def _sample(self, rnn_output, temperature=1.0):
-    sampler = tf.contrib.distributions.OneHotCategorical(
+    sampler = tfp.distributions.OneHotCategorical(
         logits=rnn_output / temperature, dtype=tf.float32)
     return sampler.sample()
 
@@ -714,7 +714,7 @@ class MultiOutCategoricalLstmDecoder(CategoricalLstmDecoder):
     split_logits = tf.split(rnn_output, self._output_depths, axis=-1)
     samples = []
     for logits, output_depth in zip(split_logits, self._output_depths):
-      sampler = tf.contrib.distributions.Categorical(
+      sampler = tfp.distributions.Categorical(
           logits=logits / temperature)
       sample_label = sampler.sample()
       samples.append(tf.one_hot(sample_label, output_depth, dtype=tf.float32))
@@ -1077,7 +1077,7 @@ class HierarchicalLstmDecoder(base_model.BaseDecoder):
     hier_t = tf.reshape(t, hier_shape)
     # Move the batch dimension to after the hierarchical dimensions.
     num_levels = len(level_lengths)
-    perm = range(len(hier_shape))
+    perm = list(range(len(hier_shape)))
     perm.insert(num_levels, perm.pop(0))
     return tf.transpose(hier_t, perm)
 

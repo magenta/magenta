@@ -28,8 +28,6 @@ from fractions import Fraction
 import xml.etree.ElementTree as ET
 import zipfile
 
-# internal imports
-
 import six
 from magenta.music import constants
 

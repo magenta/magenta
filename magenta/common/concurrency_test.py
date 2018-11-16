@@ -16,7 +16,6 @@
 import threading
 import time
 
-# internal imports
 import tensorflow as tf
 
 from magenta.common import concurrency

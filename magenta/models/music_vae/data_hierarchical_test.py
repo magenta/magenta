@@ -19,7 +19,6 @@ from __future__ import print_function
 
 import copy
 
-# internal imports
 import tensorflow as tf
 
 from magenta.models.music_vae import data_hierarchical
@@ -52,9 +51,9 @@ class MultiInstrumentPerformanceConverterTest(tf.test.TestCase):
     converter = data_hierarchical.MultiInstrumentPerformanceConverter(
         hop_size_bars=2, chunk_size_bars=2)
     tensors = converter.to_tensors(sequence)
-    self.assertEquals(2, len(tensors.outputs))
+    self.assertEqual(2, len(tensors.outputs))
     sequences = converter.to_notesequences(tensors.outputs)
-    self.assertEquals(2, len(sequences))
+    self.assertEqual(2, len(sequences))
 
     sequence1 = copy.deepcopy(self.sequence)
     testing_lib.add_track_to_sequence(
@@ -93,9 +92,9 @@ class MultiInstrumentPerformanceConverterTest(tf.test.TestCase):
         hop_size_bars=2, chunk_size_bars=2,
         chord_encoding=mm.MajorMinorChordOneHotEncoding())
     tensors = converter.to_tensors(sequence)
-    self.assertEquals(2, len(tensors.outputs))
+    self.assertEqual(2, len(tensors.outputs))
     sequences = converter.to_notesequences(tensors.outputs, tensors.controls)
-    self.assertEquals(2, len(sequences))
+    self.assertEqual(2, len(sequences))
 
     sequence1 = copy.deepcopy(self.sequence)
     testing_lib.add_track_to_sequence(
@@ -135,9 +134,9 @@ class MultiInstrumentPerformanceConverterTest(tf.test.TestCase):
     converter = data_hierarchical.MultiInstrumentPerformanceConverter(
         hop_size_bars=4, chunk_size_bars=2)
     tensors = converter.to_tensors(sequence)
-    self.assertEquals(1, len(tensors.outputs))
+    self.assertEqual(1, len(tensors.outputs))
     sequences = converter.to_notesequences(tensors.outputs)
-    self.assertEquals(1, len(sequences))
+    self.assertEqual(1, len(sequences))
     self.assertProtoEquals(sequence, sequences[0])
 
   def testToNoteSequenceMultipleChunksWithChords(self):
@@ -159,9 +158,9 @@ class MultiInstrumentPerformanceConverterTest(tf.test.TestCase):
         hop_size_bars=4, chunk_size_bars=2,
         chord_encoding=mm.MajorMinorChordOneHotEncoding())
     tensors = converter.to_tensors(sequence)
-    self.assertEquals(1, len(tensors.outputs))
+    self.assertEqual(1, len(tensors.outputs))
     sequences = converter.to_notesequences(tensors.outputs, tensors.controls)
-    self.assertEquals(1, len(sequences))
+    self.assertEqual(1, len(sequences))
     self.assertProtoEquals(sequence, sequences[0])
 
 

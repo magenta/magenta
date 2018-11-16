@@ -33,8 +33,6 @@ These functions are necessary for use with the RL Tuner class.
 
 import os
 
-# internal imports
-
 import numpy as np
 import tensorflow as tf
 

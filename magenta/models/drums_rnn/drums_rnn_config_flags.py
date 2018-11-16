@@ -13,7 +13,6 @@
 # limitations under the License.
 """Provides a class, defaults, and utils for Drums RNN model configuration."""
 
-# internal imports
 import tensorflow as tf
 
 from magenta.models.drums_rnn import drums_rnn_model
