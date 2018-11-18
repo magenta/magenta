@@ -60,6 +60,23 @@ py_library(
     ],
 )
 
+py_test(
+    name = "fastgen_test",
+    srcs = ["fastgen_test.py"],
+#    data = [
+#        "testdata/example.wav",
+#        "testdata/example_mono.wav",
+#    ],
+    srcs_version = "PY2AND3",
+    deps = [
+        ":fastgen",
+        # absl dep
+        # numpy dep
+        # scipy dep
+        # tensorflow dep
+    ],
+)
+
 py_library(
     name = "config_library",
     srcs_version = "PY2AND3",
