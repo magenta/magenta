@@ -71,6 +71,7 @@ py_test(
     deps = [
         ":fastgen",
         # absl dep
+        # librosa dep
         # numpy dep
         # scipy dep
         # tensorflow dep

@@ -4,8 +4,12 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
+import os
+
 from absl.testing import parameterized
+import librosa
 import numpy as np
+from scipy.io import wavfile
 import tensorflow as tf
 
 import fastgen
@@ -37,6 +41,20 @@ class FastegenTest(parameterized.TestCase, tf.test.TestCase):
       self.assertEqual(net['encoding'].shape, (batch_size, encodings_length, 16))
       self.assertEqual(net['predictions'].shape, (batch_size * sample_length, 256))
 
+  def testLoadBatch(self):
+    test_audio = np.random.randn(64000)
+    # Make temp dir
+    test_dir = tf.test.get_temp_dir()
+    tf.gfile.MakeDirs(test_dir)
+    # Make wav files
+    fname = os.path.join(test_dir, 'test_audio.wav')
+    librosa.output.write_wav(fname, test_audio, sr=16000, norm=True)
+    fname_2 = os.path.join(test_dir, 'test_audio_2.wav')
+    librosa.output.write_wav(fname_2, test_audio, sr=16000, norm=True)
+    # Load the files
+    files = [fname, fname_2]
+    batch_data = fastgen.load_batch(files, sample_length=64000)
+    print(batch_data.shape)
 
 if __name__ == '__main__':
   tf.test.main()
