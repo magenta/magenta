@@ -17,6 +17,7 @@ eval "${PIP_COMMAND} install --upgrade \
   mir_eval \
   scipy \
   tensorflow \
+  tensorflow_probability \
   joblib \
   "
 
