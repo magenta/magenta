@@ -20,6 +20,7 @@ from __future__ import print_function
 import math
 
 import tensorflow as tf
+import tensorflow_probability as tfp
 
 
 def _safe_log(tensor):
@@ -207,7 +208,7 @@ class Nade(object):
       if temperature is None:
         v_i = tf.to_float(tf.greater_equal(cond_p_i, 0.5))
       else:
-        bernoulli = tf.distributions.Bernoulli(
+        bernoulli = tfp.distributions.Bernoulli(
             logits=cond_l_i / temperature, dtype=tf.float32)
         v_i = bernoulli.sample()
 

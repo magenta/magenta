@@ -185,7 +185,7 @@ class MusicVAE(object):
           to the input sequences.
 
     Returns:
-      A tf.distributions.MultivariateNormalDiag representing the posterior
+      A tfp.distributions.MultivariateNormalDiag representing the posterior
       distribution for each sequence.
     """
     hparams = self.hparams
