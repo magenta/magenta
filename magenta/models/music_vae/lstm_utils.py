@@ -60,15 +60,15 @@ def cudnn_lstm_layer(layer_sizes, dropout_keep_prob, is_training=True,
       dropout=1.0 - dropout_keep_prob,
       name=name_or_scope)
 
-  class BackwardCompatibleCudnnParamsFormatConverterLSTM(
-      tf.contrib.cudnn_rnn.CudnnParamsFormatConverterLSTM):
-    """Overrides CudnnParamsFormatConverterLSTM for backward-compatibility."""
+  class BackwardCompatibleCudnnLSTMSaveable(
+      tf.contrib.cudnn_rnn.CudnnLSTMSaveable):
+    """Overrides CudnnLSTMSaveable for backward-compatibility."""
 
     def _cudnn_to_tf_biases(self, *cu_biases):
       """Overrides to subtract 1.0 from `forget_bias` (see BasicLSTMCell)."""
       (tf_bias,) = (
-          super(BackwardCompatibleCudnnParamsFormatConverterLSTM,
-                self)._cudnn_to_tf_biases(*cu_biases))
+          super(BackwardCompatibleCudnnLSTMSaveable, self)._cudnn_to_tf_biases(
+              *cu_biases))
       i, c, f, o = tf.split(tf_bias, 4)
       # Non-Cudnn LSTM cells add 1.0 to the forget bias variable.
       return (tf.concat([i, c, f - 1.0, o], axis=0),)
@@ -78,17 +78,11 @@ def cudnn_lstm_layer(layer_sizes, dropout_keep_prob, is_training=True,
       (tf_bias,) = tf_biases
       i, c, f, o = tf.split(tf_bias, 4)
       # Non-Cudnn LSTM cells add 1.0 to the forget bias variable.
-      return (super(BackwardCompatibleCudnnParamsFormatConverterLSTM,
-                    self)._tf_to_cudnn_biases(
-                        tf.concat([i, c, f + 1.0, o], axis=0)))
+      return (
+          super(BackwardCompatibleCudnnLSTMSaveable, self)._tf_to_cudnn_biases(
+              tf.concat([i, c, f + 1.0, o], axis=0)))
 
-  class BackwardCompatibleCudnnLSTMSaveable(
-      tf.contrib.cudnn_rnn.CudnnLSTMSaveable):
-    """Overrides CudnnLSTMSaveable for backward-compatibility."""
-
-    _format_converter_cls = BackwardCompatibleCudnnParamsFormatConverterLSTM
-
-    def _tf_canonical_name_prefix(self, layer, is_fwd=True):
+    def _TFCanonicalNamePrefix(self, layer, is_fwd=True):
       """Overrides for backward-compatible variable names."""
       if self._direction == 'unidirectional':
         return 'multi_rnn_cell/cell_%d/lstm_cell' % layer
