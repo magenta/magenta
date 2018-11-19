@@ -113,44 +113,65 @@ def encode(wav_data, checkpoint_path, sample_length=64000):
   return encodings
 
 
-def load_batch(files, sample_length=64000):
-  """Load a batch of data from either .wav or .npy files.
+def load_batch_audio(files, sample_length=64000):
+  """Load a batch of audio from either .wav files..
 
   Args:
-    files: A list of filepaths to .wav or .npy files
+    files: A list of filepaths to .wav files.s
     sample_length: Maximum sample length
 
   Returns:
-    batch_data: A padded array of audio or embeddings [batch, length, (dims)]
+    batch: A padded array of audio [n_files, sample_length]
   """
-  batch_data = []
-  max_length = 0
-  is_npy = (os.path.splitext(files[0])[1] == ".npy")
+  batch = []
   # Load the data
   for f in files:
-    if is_npy:
-      data = np.load(f)
-      batch_data.append(data)
+    data = utils.load_audio(f, sample_length, sr=16000)
+    length = data.shape[0]
+    # Add padding if less than sample length
+    if length < sample_length:
+      padded = np.zeros([sample_length])
+      padded[:length] = data
+      batch.append(padded)
     else:
-      data = utils.load_audio(f, sample_length, sr=16000)
-      batch_data.append(data)
-    if data.shape[0] > max_length:
-      max_length = data.shape[0]
-  # Add padding
-  for i, data in enumerate(batch_data):
-    if data.shape[0] < max_length:
-      if is_npy:
-        padded = np.zeros([max_length, +data.shape[1]])
-        padded[:data.shape[0], :] = data
-      else:
-        padded = np.zeros([max_length])
-        padded[:data.shape[0]] = data
-      batch_data[i] = padded
+      batch.append(data)
+  # Return as an numpy array
+  batch= np.array(batch)
+  return batch
+
+
+def load_batch_embeddings(files, sample_length=125):
+  """Load a batch of embeddings from .npy files.
+
+  Args:
+    files: A list of filepaths to .npy files
+    sample_length: Maximum sample length
+
+  Raises:
+    ValueError: .npy array has wrong dimensions.
+
+  Returns:
+    batch: A padded array embeddings [batch, length, dims]
+  """
+  batch = []
+  # is_npy = (os.path.splitext(files[0])[1] == ".npy")
+  # Load the data
+  for f in files:
+    data = np.load(f)
+    if (data.ndim != 2):
+      raise ValueError(
+          "Embeddings should have 2 dims [time, channels], not {}".format(data.ndim))
+    length, ch = data.shape
+    # Add padding or crop if not equal to sample length
+    if length < sample_length:
+      padded = np.zeros([sample_length, ch])
+      padded[:length, :] = data
+      batch.append(padded)
     else:
-      batch_data[i] = data[np.newaxis, :, :]
-  # Return arrays
-  batch_data = np.vstack(batch_data)
-  return batch_data
+      batch.append(data[:sample_length])
+  # Return as an numpy array
+  batch= np.array(batch)
+  return batch
 
 
 def save_batch(batch_audio, batch_save_paths):
