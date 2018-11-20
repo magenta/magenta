@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""A binary for generating samples given a folder of .wav files or embeddings."""
+"""A binary for generating samples given a folder of .wav files or encodings."""
 
 import os
 import tensorflow as tf
@@ -22,7 +22,7 @@ from magenta.models.nsynth.wavenet import fastgen
 FLAGS = tf.app.flags.FLAGS
 
 tf.app.flags.DEFINE_string("source_path", "", "Path to directory with either "
-                           ".wav files or precomputed embeddings in .npy files."
+                           ".wav files or precomputed encodings in .npy files."
                            "If .wav files are present, use wav files. If no "
                            ".wav files are present, use .npy files")
 tf.app.flags.DEFINE_boolean("npy_only", False, "If True, use only .npy files.")
@@ -48,7 +48,7 @@ def main(unused_argv=None):
     raise ValueError("Must specify a save_path.")
   tf.logging.set_verbosity(FLAGS.log)
 
-  # Generate from wav files
+  # Use directory of files
   if tf.gfile.IsDirectory(source_path):
     files = tf.gfile.ListDirectory(source_path)
     exts = [os.path.splitext(f)[1] for f in files]
@@ -64,7 +64,7 @@ def main(unused_argv=None):
         for fname in files
         if fname.lower().endswith(postfix)
     ])
-
+  # Use a single file
   elif source_path.lower().endswith((".wav", ".npy")):
     postfix = os.path.splitext(source_path.lower())[1]
     files = [source_path]
@@ -87,18 +87,22 @@ def main(unused_argv=None):
     if postfix == ".wav":
       batch_data = fastgen.load_batch_audio(
           batch_files, sample_length=sample_length)
-      embeddings = fastgen.encode(
+      encodings = fastgen.encode(
             batch_data, checkpoint_path, sample_length=sample_length)
+    # Or load encodings
     else:
-      embeddings = fastgen.load_batch_embeddings(
+      encodings = fastgen.load_batch_encodings(
           batch_files, sample_length=sample_length)
+    # Synthesize
+    # Multi-gpu
     if FLAGS.gpu_number != 0:
       with tf.device("/device:GPU:%d" % FLAGS.gpu_number):
         fastgen.synthesize(
-            embeddings, save_names, checkpoint_path=checkpoint_path)
+            encodings, save_names, checkpoint_path=checkpoint_path)
+    # Single gpu
     else:
       fastgen.synthesize(
-          embeddings, save_names, checkpoint_path=checkpoint_path)
+          encodings, save_names, checkpoint_path=checkpoint_path)
 
 
 def console_entry_point():
