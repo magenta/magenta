@@ -154,7 +154,6 @@ def load_batch_embeddings(files, sample_length=125):
     batch: A padded array embeddings [batch, length, dims]
   """
   batch = []
-  # is_npy = (os.path.splitext(files[0])[1] == ".npy")
   # Load the data
   for f in files:
     data = np.load(f)

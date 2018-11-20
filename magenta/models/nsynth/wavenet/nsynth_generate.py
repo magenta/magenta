@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""A binary for generating samples given a folder of .wav files or encodings."""
+"""A binary for generating samples given a folder of .wav files or embeddings."""
 
 import os
 import tensorflow as tf
@@ -22,7 +22,7 @@ from magenta.models.nsynth.wavenet import fastgen
 FLAGS = tf.app.flags.FLAGS
 
 tf.app.flags.DEFINE_string("source_path", "", "Path to directory with either "
-                           ".wav files or precomputed encodings in .npy files."
+                           ".wav files or precomputed embeddings in .npy files."
                            "If .wav files are present, use wav files. If no "
                            ".wav files are present, use .npy files")
 tf.app.flags.DEFINE_boolean("npy_only", False, "If True, use only .npy files.")
@@ -45,7 +45,7 @@ def main(unused_argv=None):
   checkpoint_path = utils.shell_path(FLAGS.checkpoint_path)
   save_path = utils.shell_path(FLAGS.save_path)
   if not save_path:
-    raise RuntimeError("Must specify a save_path.")
+    raise ValueError("Must specify a save_path.")
   tf.logging.set_verbosity(FLAGS.log)
 
   # Generate from wav files
@@ -66,9 +66,10 @@ def main(unused_argv=None):
     ])
 
   elif source_path.lower().endswith((".wav", ".npy")):
+    postfix = os.path.splitext(source_path.lower())[1]
     files = [source_path]
   else:
-    files = []
+    raise ValueError("source_path must be a folder or (.wav/.npy) file.")
 
   # Now synthesize from files one batch at a time
   batch_size = FLAGS.batch_size
@@ -82,16 +83,22 @@ def main(unused_argv=None):
                      "gen_" + os.path.splitext(os.path.basename(f))[0] + ".wav")
         for f in batch_files
     ]
-    batch_data = fastgen.load_batch(batch_files, sample_length=sample_length)
     # Encode waveforms
-    encodings = batch_data if postfix == ".npy" else fastgen.encode(
-        batch_data, checkpoint_path, sample_length=sample_length)
+    if postfix == ".wav":
+      batch_data = fastgen.load_batch_audio(
+          batch_files, sample_length=sample_length)
+      embeddings = fastgen.encode(
+            batch_data, checkpoint_path, sample_length=sample_length)
+    else:
+      embeddings = fastgen.load_batch_embeddings(
+          batch_files, sample_length=sample_length)
     if FLAGS.gpu_number != 0:
       with tf.device("/device:GPU:%d" % FLAGS.gpu_number):
         fastgen.synthesize(
-            encodings, save_names, checkpoint_path=checkpoint_path)
+            embeddings, save_names, checkpoint_path=checkpoint_path)
     else:
-      fastgen.synthesize(encodings, save_names, checkpoint_path=checkpoint_path)
+      fastgen.synthesize(
+          embeddings, save_names, checkpoint_path=checkpoint_path)
 
 
 def console_entry_point():
