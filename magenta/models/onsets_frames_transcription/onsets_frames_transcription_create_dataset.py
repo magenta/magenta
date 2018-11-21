@@ -250,13 +250,12 @@ def generate_train_set(exclude_ids):
     for pair in train_file_pairs:
       print(pair)
       # load the wav data
-      wav_data = tf.gfile.Open(pair[0]).read()
+      wav_data = tf.gfile.Open(pair[0], 'rb').read()
       samples = audio_io.wav_data_to_samples(wav_data, FLAGS.sample_rate)
       samples = librosa.util.normalize(samples, norm=np.inf)
 
       # load the midi data and convert to a notesequence
-      midi_data = tf.gfile.Open(pair[1]).read()
-      ns = midi_io.midi_to_sequence_proto(midi_data)
+      ns = midi_io.midi_file_to_note_sequence(pair[1])
 
       splits = find_split_points(ns, samples, FLAGS.sample_rate,
                                  FLAGS.min_length, FLAGS.max_length)
@@ -319,8 +318,7 @@ def generate_test_set():
       wav_data = audio_io.samples_to_wav_data(samples, FLAGS.sample_rate)
 
       # load the midi data and convert to a notesequence
-      midi_data = tf.gfile.Open(pair[1]).read()
-      ns = midi_io.midi_to_sequence_proto(midi_data)
+      ns = midi_io.midi_file_to_note_sequence(pair[1])
 
       velocities = [note.velocity for note in ns.notes]
       velocity_max = np.max(velocities)
