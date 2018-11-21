@@ -20,6 +20,7 @@ from __future__ import print_function
 import os
 from absl.testing import parameterized
 import fastgen
+from h512_bo16 import Config
 import librosa
 import numpy as np
 import tensorflow as tf
@@ -31,9 +32,8 @@ class FastegenTest(parameterized.TestCase, tf.test.TestCase):
       {'batch_size': 1},
       {'batch_size': 10})
   def testLoadFastgenNsynth(self, batch_size):
-    net = fastgen.load_fastgen_nsynth(batch_size=batch_size)
-    with self.test_session() as sess:
-      sess.run(net['init_ops'])
+    with tf.Graph().as_default():
+      net = fastgen.load_fastgen_nsynth(batch_size=batch_size)
       self.assertEqual(net['X'].shape, (batch_size, 1))
       self.assertEqual(net['encoding'].shape, (batch_size, 16))
       self.assertEqual(net['predictions'].shape, (batch_size, 256))
@@ -44,14 +44,15 @@ class FastegenTest(parameterized.TestCase, tf.test.TestCase):
       {'batch_size': 10, 'sample_length': 1024 * 20},
   )
   def testLoadNsynth(self, batch_size, sample_length):
-    net = fastgen.load_nsynth(batch_size=batch_size,
-                              sample_length=sample_length)
-    encodings_length = int(sample_length/512)
-    self.assertEqual(net['X'].shape, (batch_size, sample_length))
-    self.assertEqual(net['encoding'].shape,
-                     (batch_size, encodings_length, 16))
-    self.assertEqual(net['predictions'].shape,
-                     (batch_size * sample_length, 256))
+    with tf.Graph().as_default():
+      net = fastgen.load_nsynth(batch_size=batch_size,
+                                sample_length=sample_length)
+      encodings_length = int(sample_length/512)
+      self.assertEqual(net['X'].shape, (batch_size, sample_length))
+      self.assertEqual(net['encoding'].shape,
+                      (batch_size, encodings_length, 16))
+      self.assertEqual(net['predictions'].shape,
+                      (batch_size * sample_length, 256))
 
   @parameterized.parameters(
       {'n_files': 1, 'start_length': 1600, 'end_length': 1600},
@@ -95,11 +96,19 @@ class FastegenTest(parameterized.TestCase, tf.test.TestCase):
     batch_data = fastgen.load_batch_encodings(files, sample_length=end_length)
     self.assertEqual(batch_data.shape, (n_files, end_length, ch))
 
-#  def testGenerateAudio(self):
-#   with tf.Graph().as_defalut(), self.test_session() as sess:
-#      net = load_fastgen_nsynth(batch_size=encodings.shape[0])
-#      audio_batch = generate_audio(sess, net, encodings, save_paths)
-#      save_batch(audio_batch, save_paths)
+  @parameterized.parameters(
+      {'batch_size': 1, 'encoding_length': 1},
+      {'batch_size': 2, 'encoding_length': 2},
+  )
+  def testGenerateAudio(self, batch_size, encoding_length, ch=16):
+    encodings = np.random.randn(batch_size, encoding_length, ch)
+    hop_length = Config().ae_hop_length
+    total_length = encoding_length * hop_length
+    with tf.Graph().as_default(), self.test_session() as sess:
+      net = fastgen.load_fastgen_nsynth(batch_size=encodings.shape[0])
+      sess.run(tf.global_variables_initializer())
+      audio_batch = fastgen.generate_audio(sess, net, encodings)
+      self.assertEqual(audio_batch.shape, (batch_size, total_length))
 
 if __name__ == '__main__':
   tf.test.main()

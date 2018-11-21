@@ -69,6 +69,7 @@ py_test(
 #    ],
     srcs_version = "PY2AND3",
     deps = [
+        ":configs",
         ":fastgen",
         # absl dep
         # librosa dep
