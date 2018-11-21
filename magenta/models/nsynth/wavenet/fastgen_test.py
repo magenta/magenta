@@ -18,13 +18,14 @@ from __future__ import division
 from __future__ import print_function
 
 import os
+
 from absl.testing import parameterized
-import fastgen
-from h512_bo16 import Config
 import librosa
 import numpy as np
 import tensorflow as tf
 
+from h512_bo16 import Config
+import fastgen
 
 class FastegenTest(parameterized.TestCase, tf.test.TestCase):
 
