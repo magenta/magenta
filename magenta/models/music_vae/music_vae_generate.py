@@ -116,8 +116,10 @@ def run(config_map):
       raise ValueError('Input MIDI 1 not found: %s' % FLAGS.input_midi_1)
     if not os.path.exists(input_midi_2):
       raise ValueError('Input MIDI 2 not found: %s' % FLAGS.input_midi_2)
-    input_1 = mm.midi_to_sequence_proto(tf.gfile.GFile(input_midi_1).read())
-    input_2 = mm.midi_to_sequence_proto(tf.gfile.GFile(input_midi_2).read())
+    input_1 = mm.midi_to_sequence_proto(
+        tf.gfile.GFile(input_midi_1, 'rb').read())
+    input_2 = mm.midi_to_sequence_proto(
+        tf.gfile.GFile(input_midi_2, 'rb').read())
 
     def _check_extract_examples(input_ns, path, input_number):
       """Make sure each input returns exactly one example from the converter."""
