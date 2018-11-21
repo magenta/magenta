@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""With a trained model, compute the encodings on a directory of WAV files."""
+"""With a trained model, compute the embeddings on a directory of WAV files."""
 
 import os
 import sys
@@ -26,9 +26,9 @@ from magenta.models.nsynth.wavenet.fastgen import encode
 FLAGS = tf.app.flags.FLAGS
 
 tf.app.flags.DEFINE_string("source_path", "",
-                           "The directory of WAVs to yield encodings from.")
+                           "The directory of WAVs to yield embeddings from.")
 tf.app.flags.DEFINE_string("save_path", "", "The directory to save "
-                           "the encodings.")
+                           "the embeddings.")
 tf.app.flags.DEFINE_string("checkpoint_path", "",
                            "A path to the checkpoint. If not given, the latest "
                            "checkpoint in `expdir` will be used.")
@@ -70,7 +70,7 @@ def main(unused_argv=None):
   tf.logging.info("Will load Wavs from %s." % source_path)
 
   save_path = utils.shell_path(FLAGS.save_path)
-  tf.logging.info("Will save encodings to %s." % save_path)
+  tf.logging.info("Will save embeddings to %s." % save_path)
   if not tf.gfile.Exists(save_path):
     tf.logging.info("Creating save directory...")
     tf.gfile.MakeDirs(save_path)
@@ -109,7 +109,7 @@ def main(unused_argv=None):
       tf.logging.info("Sample length: %d" % sample_length)
 
       for num, (wavfile, enc) in enumerate(zip(wavefiles_batch, encoding)):
-        filename = "%s_encodings.npy" % wavfile.split("/")[-1].strip(".wav")
+        filename = "%s_embeddings.npy" % wavfile.split("/")[-1].strip(".wav")
         with tf.gfile.Open(os.path.join(save_path, filename), "w") as f:
           np.save(f, enc)
 

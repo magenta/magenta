@@ -98,11 +98,7 @@ class FastegenTest(parameterized.TestCase, tf.test.TestCase):
     batch_data = fastgen.load_batch_encodings(files, sample_length=end_length)
     self.assertEqual(batch_data.shape, (n_files, end_length, ch))
 
-  @parameterized.parameters(
-      {'batch_size': 2, 'encoding_length': 1},
-      {'batch_size': 1, 'encoding_length': 2},
-  )
-  def testGenerateAudio(self, batch_size, encoding_length, ch=16):
+  def testGenerateAudio(self, batch_size=1, encoding_length=1, ch=16):
     encodings = np.random.randn(batch_size, encoding_length, ch)
     hop_length = Config().ae_hop_length
     total_length = encoding_length * hop_length

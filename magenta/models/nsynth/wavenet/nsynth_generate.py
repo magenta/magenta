@@ -54,20 +54,20 @@ def main(unused_argv=None):
     files = tf.gfile.ListDirectory(source_path)
     exts = [os.path.splitext(f)[1] for f in files]
     if ".wav" in exts:
-      postfix = ".wav"
+      ext = ".wav"
     elif ".npy" in exts:
-      postfix = ".npy"
+      ext = ".npy"
     else:
       raise RuntimeError("Folder must contain .wav or .npy files.")
-    postfix = ".npy" if FLAGS.npy_only else postfix
+    ext = ".npy" if FLAGS.npy_only else ext
     files = sorted([
         os.path.join(source_path, fname)
         for fname in files
-        if fname.lower().endswith(postfix)
+        if fname.lower().endswith(ext)
     ])
   # Use a single file
   elif source_path.lower().endswith((".wav", ".npy")):
-    postfix = os.path.splitext(source_path.lower())[1]
+    ext = os.path.splitext(source_path.lower())[1]
     files = [source_path]
   else:
     raise ValueError("source_path must be a folder or (.wav/.npy) file.")
@@ -85,7 +85,7 @@ def main(unused_argv=None):
         for f in batch_files
     ]
     # Encode waveforms
-    if postfix == ".wav":
+    if ext == ".wav":
       batch_data = fastgen.load_batch_audio(
           batch_files, sample_length=sample_length)
       encodings = fastgen.encode(
@@ -94,8 +94,7 @@ def main(unused_argv=None):
     else:
       encodings = fastgen.load_batch_encodings(
           batch_files, sample_length=sample_length)
-    # Synthesize
-    # Multi-gpu
+    # Synthesize multi-gpu
     if FLAGS.gpu_number != 0:
       with tf.device("/device:GPU:%d" % FLAGS.gpu_number):
         fastgen.synthesize(

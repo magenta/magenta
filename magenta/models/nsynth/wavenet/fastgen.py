@@ -111,10 +111,10 @@ def encode(wav_data, checkpoint_path, sample_length=64000):
 
 
 def load_batch_audio(files, sample_length=64000):
-  """Load a batch of audio from either .wav files..
+  """Load a batch of audio from either .wav files.
 
   Args:
-    files: A list of filepaths to .wav files.s
+    files: A list of filepaths to .wav files.
     sample_length: Maximum sample length
 
   Returns:
@@ -244,6 +244,4 @@ def synthesize(encodings,
     audio_batch = generate_audio(sess, net, encodings,
                                  save_paths, samples_per_save)
     save_batch(audio_batch, save_paths)
-
-
 
