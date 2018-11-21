@@ -63,10 +63,6 @@ py_library(
 py_test(
     name = "fastgen_test",
     srcs = ["fastgen_test.py"],
-#    data = [
-#        "testdata/example.wav",
-#        "testdata/example_mono.wav",
-#    ],
     srcs_version = "PY2AND3",
     deps = [
         ":configs",
