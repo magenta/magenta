@@ -71,7 +71,7 @@ py_test(
     deps = [
         ":configs",
         ":fastgen",
-        # absl_testing_parameterized dep
+        # absl dep
         # librosa dep
         # numpy dep
         # scipy dep
