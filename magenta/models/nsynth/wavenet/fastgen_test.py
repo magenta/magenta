@@ -50,9 +50,9 @@ class FastegenTest(parameterized.TestCase, tf.test.TestCase):
       encodings_length = int(sample_length/512)
       self.assertEqual(net['X'].shape, (batch_size, sample_length))
       self.assertEqual(net['encoding'].shape,
-                      (batch_size, encodings_length, 16))
+                       (batch_size, encodings_length, 16))
       self.assertEqual(net['predictions'].shape,
-                      (batch_size * sample_length, 256))
+                       (batch_size * sample_length, 256))
 
   @parameterized.parameters(
       {'n_files': 1, 'start_length': 1600, 'end_length': 1600},
@@ -97,8 +97,8 @@ class FastegenTest(parameterized.TestCase, tf.test.TestCase):
     self.assertEqual(batch_data.shape, (n_files, end_length, ch))
 
   @parameterized.parameters(
-      {'batch_size': 1, 'encoding_length': 1},
-      {'batch_size': 2, 'encoding_length': 2},
+      {'batch_size': 2, 'encoding_length': 1},
+      {'batch_size': 1, 'encoding_length': 2},
   )
   def testGenerateAudio(self, batch_size, encoding_length, ch=16):
     encodings = np.random.randn(batch_size, encoding_length, ch)

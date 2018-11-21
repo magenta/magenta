@@ -14,10 +14,9 @@
 """A binary for generating samples given a folder of .wav files or encodings."""
 
 import os
-import tensorflow as tf
-
 from magenta.models.nsynth import utils
 from magenta.models.nsynth.wavenet import fastgen
+import tensorflow as tf
 
 FLAGS = tf.app.flags.FLAGS
 
@@ -88,7 +87,7 @@ def main(unused_argv=None):
       batch_data = fastgen.load_batch_audio(
           batch_files, sample_length=sample_length)
       encodings = fastgen.encode(
-            batch_data, checkpoint_path, sample_length=sample_length)
+          batch_data, checkpoint_path, sample_length=sample_length)
     # Or load encodings
     else:
       encodings = fastgen.load_batch_encodings(
