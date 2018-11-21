@@ -24,8 +24,9 @@ import librosa
 import numpy as np
 import tensorflow as tf
 
-from h512_bo16 import Config
-import fastgen
+from magenta.models.nsynth.wavenet import fastgen
+from magenta.models.nsynth.wavenet.h512_bo16 import Config
+
 
 class FastegenTest(parameterized.TestCase, tf.test.TestCase):
 

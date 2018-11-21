@@ -27,6 +27,7 @@ from magenta.models.nsynth import utils
 from magenta.models.nsynth.wavenet.h512_bo16 import Config
 from magenta.models.nsynth.wavenet.h512_bo16 import FastGenerationConfig
 
+
 def sample_categorical(pmf):
   """Sample from a categorical distribution.
 
