@@ -102,7 +102,7 @@ py_library(
     name = "image_utils",
     srcs = ["image_utils.py"],
     data = [
-        "evaluation_images",
+        "//magenta/models/image_stylization/evaluation_images:evaluation_images",
     ],
     srcs_version = "PY2AND3",
     visibility = [
