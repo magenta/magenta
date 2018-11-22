@@ -31,6 +31,11 @@ sh_binary(
         "//magenta/interfaces/midi:midi_clock",
         "//magenta/scripts:convert_dir_to_note_sequences",
 
+        # Tensor2Tensor Scripts
+        "//third_party/magenta/tensor2tensor:t2t_datagen",
+        "//third_party/magenta/tensor2tensor:t2t_decoder",
+        "//third_party/magenta/tensor2tensor:t2t_trainer",
+
         # Drums RNN Model and Scripts
         "//magenta/models/drums_rnn",
         "//magenta/models/drums_rnn:drums_rnn_create_dataset",
