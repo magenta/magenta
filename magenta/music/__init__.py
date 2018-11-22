@@ -70,7 +70,9 @@ from magenta.music.melodies_lib import PolyphonicMelodyException
 from magenta.music.melody_encoder_decoder import KeyMelodyEncoderDecoder
 from magenta.music.melody_encoder_decoder import MelodyOneHotEncoding
 
+from magenta.music.midi_io import midi_file_to_note_sequence
 from magenta.music.midi_io import midi_file_to_sequence_proto
+from magenta.music.midi_io import midi_to_note_sequence
 from magenta.music.midi_io import midi_to_sequence_proto
 from magenta.music.midi_io import MIDIConversionError
 from magenta.music.midi_io import sequence_proto_to_midi_file
