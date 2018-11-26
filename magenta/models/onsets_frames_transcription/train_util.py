@@ -20,8 +20,8 @@ from __future__ import print_function
 
 from . import data
 from . import model
-from magenta.music.sequences_lib import pianoroll_to_note_sequence
 from .infer_util import sequence_to_valued_intervals
+from magenta.music.sequences_lib import pianoroll_to_note_sequence
 
 from mir_eval.transcription import precision_recall_f1_overlap
 
