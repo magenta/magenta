@@ -34,8 +34,6 @@ from magenta.music import sequences_lib
 from magenta.protobuf import music_pb2
 
 
-LOWEST_PIANO_KEY_MIDI_NOTE = 21
-
 FLAGS = tf.app.flags.FLAGS
 
 tf.app.flags.DEFINE_string(
@@ -158,7 +156,7 @@ def transcribe_audio(transcription_session, filename, frame_threshold,
       velocity_values=velocity_values)
 
   for note in sequence_prediction.notes:
-    note.pitch += LOWEST_PIANO_KEY_MIDI_NOTE
+    note.pitch += constants.MIN_MIDI_PITCH
 
   return sequence_prediction
 
