@@ -155,6 +155,9 @@ def transcribe_audio(transcription_session, filename, frame_threshold,
       onset_predictions=onset_predictions,
       velocity_values=velocity_values)
 
+  for note in sequence_prediction.notes:
+    note.pitch += constants.MIN_MIDI_PITCH
+
   return sequence_prediction
 
 
