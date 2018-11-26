@@ -35,15 +35,15 @@ def conv_net_kelz(inputs):
       weights_initializer=tf.contrib.layers.variance_scaling_initializer(
           factor=2.0, mode='FAN_AVG', uniform=True)):
     net = slim.conv2d(
-        inputs, 32, [3, 3], scope='conv1', normalizer_fn=slim.batch_norm)
+        inputs, 48, [3, 3], scope='conv0', normalizer_fn=slim.batch_norm)
 
     net = slim.conv2d(
-        net, 32, [3, 3], scope='conv2', normalizer_fn=slim.batch_norm)
+        net, 48, [3, 3], scope='conv1', normalizer_fn=slim.batch_norm)
     net = slim.max_pool2d(net, [1, 2], stride=[1, 2], scope='pool2')
     net = slim.dropout(net, 0.25, scope='dropout2')
 
     net = slim.conv2d(
-        net, 64, [3, 3], scope='conv3', normalizer_fn=slim.batch_norm)
+        net, 96, [3, 3], scope='conv2', normalizer_fn=slim.batch_norm)
     net = slim.max_pool2d(net, [1, 2], stride=[1, 2], scope='pool3')
     net = slim.dropout(net, 0.25, scope='dropout3')
 
@@ -52,7 +52,7 @@ def conv_net_kelz(inputs):
     net = tf.reshape(net, (dims[0], dims[1],
                            net.shape[2].value * net.shape[3].value), 'flatten4')
 
-    net = slim.fully_connected(net, 512, scope='fc5')
+    net = slim.fully_connected(net, 768, scope='fc_end')
     net = slim.dropout(net, 0.5, scope='dropout5')
 
     return net
@@ -248,8 +248,8 @@ def get_default_hparams():
           activation_loss=False,
           batch_size=8,
           clip_norm=3,
-          combined_lstm_units=128,
-          frame_bidirectional=True,
+          combined_lstm_units=384,
+          frame_bidirectional=False,
           frame_lstm_units=0,
           learning_rate=0.0006,
           decay_steps=10000,
@@ -257,10 +257,10 @@ def get_default_hparams():
           min_duration_ms=0,
           min_frame_occupancy_for_label=0.0,
           normalize_audio=False,
-          onset_bidirectional=True,
+          onset_bidirectional=False,
           onset_delay=0,
           onset_length=32,
-          onset_lstm_units=128,
+          onset_lstm_units=384,
           velocity_lstm_units=0,
           onset_mode='length_ms',
           sample_rate=constants.DEFAULT_SAMPLE_RATE,
@@ -268,6 +268,7 @@ def get_default_hparams():
           spec_fmin=30.0,
           spec_hop_length=512,
           spec_log_amplitude=True,
+          spec_mel_htk=True,
           spec_n_bins=229,
           spec_type='mel',
           stop_activation_gradient=False,
