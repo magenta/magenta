@@ -52,7 +52,7 @@ REQUIRED_PACKAGES = [
 
 if gpu_mode:
   REQUIRED_PACKAGES.append('tensorflow-gpu >= 1.12.0')
-  REQUIRED_PACKAGES.append('tensorflow-probability-gpu >= 0.4.0')
+  REQUIRED_PACKAGES.append('tensorflow-probability-gpu >= 0.5.0rc0')
 else:
   REQUIRED_PACKAGES.append('tensorflow >= 1.12.0')
   REQUIRED_PACKAGES.append('tensorflow-probability >= 0.5.0')
