@@ -28,6 +28,10 @@ def main(argv):
   t2t_decoder.main(argv)
 
 
-if __name__ == "__main__":
+def console_entry_point():
   tf.logging.set_verbosity(tf.logging.INFO)
-  tf.app.run()
+  tf.app.run(main)
+
+
+if __name__ == '__main__':
+  console_entry_point()
