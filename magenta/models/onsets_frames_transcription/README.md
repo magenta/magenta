@@ -15,7 +15,8 @@ If you would like to run transcription locally, you can use the transcribe
 script. First, set up your [Magenta environment](/README.md).
 
 Next, download our pre-trained
-[checkpoint](https://storage.googleapis.com/magentadata/models/onsets_frames_transcription/checkpoint.zip).
+[checkpoint](https://storage.googleapis.com/magentadata/models/onsets_frames_transcription/maestro_checkpoint.zip),
+which is trained on the [MAESTRO dataset](g.co/magenta/maestro).
 
 After unzipping that checkpoint, you can run the following command:
 

@@ -20,7 +20,6 @@ from __future__ import print_function
 
 from . import data
 from . import model
-from magenta.music.sequences_lib import pianoroll_to_note_sequence
 from .infer_util import sequence_to_valued_intervals
 
 from mir_eval.transcription import precision_recall_f1_overlap
@@ -28,6 +27,8 @@ from mir_eval.transcription import precision_recall_f1_overlap
 import pretty_midi
 import tensorflow as tf
 import tensorflow.contrib.slim as slim
+
+from magenta.music.sequences_lib import pianoroll_to_note_sequence
 
 
 def _get_data(examples_path, hparams, is_training):
