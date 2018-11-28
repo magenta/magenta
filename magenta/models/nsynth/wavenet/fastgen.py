@@ -188,10 +188,10 @@ def generate_audio_sample(sess, net, audio, encoding):
   Returns:
     audio_gen: Generated audio [batch_size, 1]
   """
-  pmf = sess.run(
+  probability_mass_function = sess.run(
       [net["predictions"], net["push_ops"]],
       feed_dict={net["X"]: audio, net["encoding"]: encoding})[0]
-  sample_bin = sample_categorical(pmf)
+  sample_bin = sample_categorical(probability_mass_function)
   audio_gen = utils.inv_mu_law_numpy(sample_bin - 128)
   return audio_gen
 
