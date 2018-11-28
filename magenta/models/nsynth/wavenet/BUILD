@@ -69,7 +69,6 @@ py_test(
         "nopresubmit",
     ],
     deps = [
-        ":configs",
         ":fastgen",
         # parameterized dep
         # librosa dep
