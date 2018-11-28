@@ -28,24 +28,24 @@ from magenta.models.nsynth.wavenet.h512_bo16 import Config
 from magenta.models.nsynth.wavenet.h512_bo16 import FastGenerationConfig
 
 
-def sample_categorical(pmf):
+def sample_categorical(probability_mass_function):
   """Sample from a categorical distribution.
 
   Args:
-    pmf: Probablity mass function. Output of a softmax over categories.
+    probability_mass_function: Output of a softmax over categories.
       Array of shape [batch_size, number of categories]. Rows sum to 1.
 
   Returns:
     idxs: Array of size [batch_size, 1]. Integer of category sampled.
   """
-  if pmf.ndim == 1:
-    pmf = np.expand_dims(pmf, 0)
-  batch_size = pmf.shape[0]
-  cdf = np.cumsum(pmf, axis=1)
+  if probability_mass_function.ndim == 1:
+    probability_mass_function = np.expand_dims(probability_mass_function, 0)
+  batch_size = probability_mass_function.shape[0]
+  cumulative_density_function = np.cumsum(probability_mass_function, axis=1)
   rand_vals = np.random.rand(batch_size)
   idxs = np.zeros([batch_size, 1])
   for i in range(batch_size):
-    idxs[i] = cdf[i].searchsorted(rand_vals[i])
+    idxs[i] = cumulative_density_function[i].searchsorted(rand_vals[i])
   return idxs
 
 
@@ -157,10 +157,10 @@ def load_batch_encodings(files, sample_length=125):
     if data.ndim != 2:
       raise ValueError("Encoding file should have 2 dims "
                        "[time, channels], not {}".format(data.ndim))
-    length, ch = data.shape
+    length, channels = data.shape
     # Add padding or crop if not equal to sample length
     if length < sample_length:
-      padded = np.zeros([sample_length, ch])
+      padded = np.zeros([sample_length, channels])
       padded[:length, :] = data
       batch.append(padded)
     else:
@@ -176,51 +176,24 @@ def save_batch(batch_audio, batch_save_paths):
     wavfile.write(name, 16000, audio)
 
 
-def generate_audio(sess, net, encodings,
-                   save_paths=None, samples_per_save=10000):
-  """Implementation of actually generating audio from encodings.
-
-  Separate function to allow for testing without requiring loading model.
+def generate_audio_sample(sess, net, audio, encoding):
+  """Generate a single sample of audio from an encoding.
 
   Args:
     sess: tf.Session to use.
     net: Loaded wavenet network (dictionary of endpoint tensors).
-    encodings: Numpy array with shape [batch_size, time, dim].
-    save_paths: Iterable of output file names.
-    samples_per_save: Save files after every amount of generated samples.
+    audio: Previously generated audio [batch_size, 1].
+    encoding: Encoding at current time index [batch_size, dim].
 
   Returns:
-    audio_batch: Generated audio [batch_size, total_length]
+    audio_gen: Generated audio [batch_size, 1]
   """
-  # Get lengths
-  batch_size, encoding_length, _ = encodings.shape
-  hop_length = Config().ae_hop_length
-  total_length = encoding_length * hop_length
-
-  # initialize queues w/ 0s
-  sess.run(net["init_ops"])
-
-  # Regenerate the audio file sample by sample
-  audio_batch = np.zeros(
-      (batch_size, total_length), dtype=np.float32)
-  audio = np.zeros([batch_size, 1])
-
-  for sample_i in range(total_length):
-    enc_i = sample_i // hop_length
-    pmf = sess.run(
-        [net["predictions"], net["push_ops"]],
-        feed_dict={
-            net["X"]: audio,
-            net["encoding"]: encodings[:, enc_i, :]
-        })[0]
-    sample_bin = sample_categorical(pmf)
-    audio = utils.inv_mu_law_numpy(sample_bin - 128)
-    audio_batch[:, sample_i] = audio[:, 0]
-    if sample_i % 100 == 0:
-      tf.logging.info("Sample: %d" % sample_i)
-    if sample_i % samples_per_save == 0 and save_paths:
-      save_batch(audio_batch, save_paths)
-  return audio_batch
+  pmf = sess.run(
+      [net["predictions"], net["push_ops"]],
+      feed_dict={net["X"]: audio, net["encoding"]: encoding})[0]
+  sample_bin = sample_categorical(pmf)
+  audio_gen = utils.inv_mu_law_numpy(sample_bin - 128)
+  return audio_gen
 
 
 def synthesize(encodings,
@@ -241,7 +214,29 @@ def synthesize(encodings,
     net = load_fastgen_nsynth(batch_size=encodings.shape[0])
     saver = tf.train.Saver()
     saver.restore(sess, checkpoint_path)
-    audio_batch = generate_audio(sess, net, encodings,
-                                 save_paths, samples_per_save)
+
+    # Get lengths
+    batch_size, encoding_length, _ = encodings.shape
+    hop_length = Config().ae_hop_length
+    total_length = encoding_length * hop_length
+
+    # initialize queues w/ 0s
+    sess.run(net["init_ops"])
+
+    # Regenerate the audio file sample by sample
+    audio_batch = np.zeros(
+        (batch_size, total_length), dtype=np.float32)
+    audio = np.zeros([batch_size, 1])
+
+    for sample_i in range(total_length):
+      encoding_i = sample_i // hop_length
+      audio = generate_audio_sample(sess, net,
+                                    audio, encodings[:, encoding_i, :])
+      audio_batch[:, sample_i] = audio[:, 0]
+      if sample_i % 100 == 0:
+        tf.logging.info("Sample: %d" % sample_i)
+      if sample_i % samples_per_save == 0 and save_paths:
+        save_batch(audio_batch, save_paths)
+
     save_batch(audio_batch, save_paths)
 

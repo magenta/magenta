@@ -52,25 +52,26 @@ def main(unused_argv=None):
   # Use directory of files
   if tf.gfile.IsDirectory(source_path):
     files = tf.gfile.ListDirectory(source_path)
-    exts = [os.path.splitext(f)[1] for f in files]
-    if ".wav" in exts:
-      ext = ".wav"
-    elif ".npy" in exts:
-      ext = ".npy"
+    file_extensions = [os.path.splitext(f)[1] for f in files]
+    if ".wav" in file_extensions:
+      file_extension = ".wav"
+    elif ".npy" in file_extensions:
+      file_extension = ".npy"
     else:
       raise RuntimeError("Folder must contain .wav or .npy files.")
-    ext = ".npy" if FLAGS.npy_only else ext
+    file_extension = ".npy" if FLAGS.npy_only else file_extension
     files = sorted([
         os.path.join(source_path, fname)
         for fname in files
-        if fname.lower().endswith(ext)
+        if fname.lower().endswith(file_extension)
     ])
   # Use a single file
   elif source_path.lower().endswith((".wav", ".npy")):
-    ext = os.path.splitext(source_path.lower())[1]
+    file_extension = os.path.splitext(source_path.lower())[1]
     files = [source_path]
   else:
-    raise ValueError("source_path must be a folder or (.wav/.npy) file.")
+    raise ValueError(
+        "source_path {} must be a folder or file.".format(source_path))
 
   # Now synthesize from files one batch at a time
   batch_size = FLAGS.batch_size
@@ -85,7 +86,7 @@ def main(unused_argv=None):
         for f in batch_files
     ]
     # Encode waveforms
-    if ext == ".wav":
+    if file_extension == ".wav":
       batch_data = fastgen.load_batch_audio(
           batch_files, sample_length=sample_length)
       encodings = fastgen.encode(

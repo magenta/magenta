@@ -64,6 +64,10 @@ py_test(
     name = "fastgen_test",
     srcs = ["fastgen_test.py"],
     srcs_version = "PY2AND3",
+    tags = [
+        "notap",
+        "nopresubmit",
+    ],
     deps = [
         ":configs",
         ":fastgen",
