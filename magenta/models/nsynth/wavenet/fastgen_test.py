@@ -83,8 +83,9 @@ class FastegenTest(parameterized.TestCase, tf.test.TestCase):
       {'n_files': 1, 'start_length': 64, 'end_length': 16},
       {'n_files': 1, 'start_length': 16, 'end_length': 64},
   )
-  def testLoadBatchEncodings(self, n_files, start_length, end_length, ch=16):
-    test_encoding = np.random.randn(start_length, ch)
+  def testLoadBatchEncodings(self, n_files, start_length,
+                             end_length, channels=16):
+    test_encoding = np.random.randn(start_length, channels)
     # Make temp dir
     test_dir = tf.test.get_temp_dir()
     tf.gfile.MakeDirs(test_dir)
@@ -96,17 +97,20 @@ class FastegenTest(parameterized.TestCase, tf.test.TestCase):
       np.save(fname, test_encoding)
     # Load the files
     batch_data = fastgen.load_batch_encodings(files, sample_length=end_length)
-    self.assertEqual(batch_data.shape, (n_files, end_length, ch))
+    self.assertEqual(batch_data.shape, (n_files, end_length, channels))
 
-  def testGenerateAudio(self, batch_size=1, encoding_length=1, ch=16):
-    encodings = np.random.randn(batch_size, encoding_length, ch)
-    hop_length = Config().ae_hop_length
-    total_length = encoding_length * hop_length
+  @parameterized.parameters(
+      {'batch_size': 1},
+      {'batch_size': 10},
+  )
+  def testGenerateAudioSample(self, batch_size, channels=16):
+    audio = np.random.randn(batch_size, 1)
+    encoding = np.random.randn(batch_size, channels)
     with tf.Graph().as_default(), self.test_session() as sess:
-      net = fastgen.load_fastgen_nsynth(batch_size=encodings.shape[0])
+      net = fastgen.load_fastgen_nsynth(batch_size=batch_size)
       sess.run(tf.global_variables_initializer())
-      audio_batch = fastgen.generate_audio(sess, net, encodings)
-      self.assertEqual(audio_batch.shape, (batch_size, total_length))
+      audio_gen = fastgen.generate_audio_sample(sess, net, audio, encoding)
+      self.assertEqual(audio_gen.shape, audio.shape)
 
 if __name__ == '__main__':
   tf.test.main()
