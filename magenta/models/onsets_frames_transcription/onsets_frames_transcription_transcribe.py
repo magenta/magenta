@@ -61,9 +61,10 @@ tf.app.flags.DEFINE_string(
 
 def create_example(filename, hparams):
   """Processes an audio file into an Example proto."""
-  wav_data = audio_io.samples_to_wav_data(
-      librosa.util.normalize(librosa.core.load(
-          filename, sr=hparams.sample_rate)[0]), hparams.sample_rate)
+  wav_data = librosa.core.load(filename, sr=hparams.sample_rate)[0]
+  if hparams.normalize_audio:
+    audio_io.normalize_wav_data(wav_data, hparams.sample_rate)
+  wav_data = audio_io.samples_to_wav_data(wav_data, hparams.sample_rate)
 
   example = tf.train.Example(features=tf.train.Features(feature={
       'id':
@@ -154,6 +155,9 @@ def transcribe_audio(transcription_session, filename, frame_threshold,
       min_duration_ms=0,
       onset_predictions=onset_predictions,
       velocity_values=velocity_values)
+
+  for note in sequence_prediction.notes:
+    note.pitch += constants.MIN_MIDI_PITCH
 
   return sequence_prediction
 
