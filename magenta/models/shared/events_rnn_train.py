@@ -102,9 +102,9 @@ def run_eval(build_graph_fn, train_dir, eval_dir, num_batches,
     ValueError: If `num_batches` is less than or equal to 0.
   """
   if num_batches <= 0:
-      raise ValueError(
-          '`num_batches` must be greater than 0. Check that the batch size is '
-          'no larger than the number of records in the eval set.')
+    raise ValueError(
+        '`num_batches` must be greater than 0. Check that the batch size is '
+        'no larger than the number of records in the eval set.')
   with tf.Graph().as_default():
     build_graph_fn()
 
