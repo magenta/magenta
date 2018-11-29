@@ -65,6 +65,7 @@ py_test(
     srcs = ["fastgen_test.py"],
     srcs_version = "PY2AND3",
     tags = [
+        "manual",
         "notap",
         "nopresubmit",
     ],
