@@ -11,8 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Imports Magenta problems so that they register with Tensor2Tensor."""
+"""Import of Score2Perf problem module."""
 
-# pylint: disable=unused-import
-from magenta.models import score2perf
-# pylint: enable=unused-import
+from magenta.models.score2perf import score2perf
