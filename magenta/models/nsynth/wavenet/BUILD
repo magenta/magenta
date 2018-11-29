@@ -60,6 +60,25 @@ py_library(
     ],
 )
 
+py_test(
+    name = "fastgen_test",
+    srcs = ["fastgen_test.py"],
+    srcs_version = "PY2AND3",
+    tags = [
+        "manual",
+        "notap",
+        "nopresubmit",
+    ],
+    deps = [
+        ":fastgen",
+        # parameterized dep
+        # librosa dep
+        # numpy dep
+        # scipy dep
+        # tensorflow dep
+    ],
+)
+
 py_library(
     name = "config_library",
     srcs_version = "PY2AND3",

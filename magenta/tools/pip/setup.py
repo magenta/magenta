@@ -33,6 +33,7 @@ else:
 
 REQUIRED_PACKAGES = [
     'IPython',
+    'absl >= 0.1.12',
     'Pillow >= 3.4.2',
     'backports.tempfile',
     'bokeh >= 0.12.0',
