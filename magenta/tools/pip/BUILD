@@ -32,9 +32,9 @@ sh_binary(
         "//magenta/scripts:convert_dir_to_note_sequences",
 
         # Tensor2Tensor Scripts
-        "//third_party/magenta/tensor2tensor:t2t_datagen",
-        "//third_party/magenta/tensor2tensor:t2t_decoder",
-        "//third_party/magenta/tensor2tensor:t2t_trainer",
+        "//magenta/tensor2tensor:t2t_datagen",
+        "//magenta/tensor2tensor:t2t_decoder",
+        "//magenta/tensor2tensor:t2t_trainer",
 
         # Drums RNN Model and Scripts
         "//magenta/models/drums_rnn",
