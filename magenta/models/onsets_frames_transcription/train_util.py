@@ -152,7 +152,7 @@ def evaluate(train_dir,
         tf.contrib.training.SummaryAtEndHook(eval_dir)]
     tf.contrib.training.evaluate_repeatedly(
         train_dir,
-        eval_ops=metrics_to_updates.values(),
+        eval_ops=list(metrics_to_updates.values()),
         hooks=hooks,
         eval_interval_secs=60,
         timeout=None)
@@ -178,10 +178,10 @@ def test(checkpoint_path, test_dir, examples_path, hparams,
         checkpoint_path=checkpoint_path,
         logdir=test_dir,
         num_evals=num_batches or transcription_data.num_batches,
-        eval_op=metrics_to_updates.values(),
-        final_op=metrics_to_values.values())
+        eval_op=list(metrics_to_updates.values()),
+        final_op=list(metrics_to_values.values()))
 
-    metrics_to_values = dict(zip(metrics_to_values.keys(), metric_values))
+    metrics_to_values = dict(zip(list(metrics_to_values.keys()), metric_values))
     for metric in metrics_to_values:
       value = metrics_to_values[metric]
       if np.isscalar(value):
