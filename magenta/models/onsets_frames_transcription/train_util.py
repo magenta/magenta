@@ -24,6 +24,7 @@ from .infer_util import sequence_to_valued_intervals
 
 from mir_eval.transcription import precision_recall_f1_overlap
 
+import numpy as np
 import pretty_midi
 import tensorflow as tf
 import tensorflow.contrib.slim as slim
@@ -173,6 +174,7 @@ def test(checkpoint_path, test_dir, examples_path, hparams,
         losses, labels, predictions, images, hparams)
 
     metric_values = slim.evaluation.evaluate_once(
+        master='',
         checkpoint_path=checkpoint_path,
         logdir=test_dir,
         num_evals=num_batches or transcription_data.num_batches,
@@ -181,7 +183,9 @@ def test(checkpoint_path, test_dir, examples_path, hparams,
 
     metrics_to_values = dict(zip(metrics_to_values.keys(), metric_values))
     for metric in metrics_to_values:
-      print('%s: %f' % (metric, metrics_to_values[metric]))
+      value = metrics_to_values[metric]
+      if np.isscalar(value):
+        print('%s: %f' % (metric, value))
 
 
 def _note_metrics_op(labels, predictions, hparams, offset_ratio=None):
