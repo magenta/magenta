@@ -329,28 +329,28 @@ class MelodiesLibTest(tf.test.TestCase):
     melody.set_length(5)
     self.assertListEqual([60, NOTE_OFF, NO_EVENT, NO_EVENT, NO_EVENT],
                          list(melody))
-    self.assertEquals(9, melody.start_step)
-    self.assertEquals(14, melody.end_step)
+    self.assertEqual(9, melody.start_step)
+    self.assertEqual(14, melody.end_step)
 
     melody = melodies_lib.Melody(events, start_step=9)
     melody.set_length(5, from_left=True)
     self.assertListEqual([NO_EVENT, NO_EVENT, NO_EVENT, NO_EVENT, 60],
                          list(melody))
-    self.assertEquals(5, melody.start_step)
-    self.assertEquals(10, melody.end_step)
+    self.assertEqual(5, melody.start_step)
+    self.assertEqual(10, melody.end_step)
 
     events = [60, NO_EVENT, NO_EVENT, NOTE_OFF]
     melody = melodies_lib.Melody(events)
     melody.set_length(3)
     self.assertListEqual([60, NO_EVENT, NO_EVENT], list(melody))
-    self.assertEquals(0, melody.start_step)
-    self.assertEquals(3, melody.end_step)
+    self.assertEqual(0, melody.start_step)
+    self.assertEqual(3, melody.end_step)
 
     melody = melodies_lib.Melody(events)
     melody.set_length(3, from_left=True)
     self.assertListEqual([NO_EVENT, NO_EVENT, NOTE_OFF], list(melody))
-    self.assertEquals(1, melody.start_step)
-    self.assertEquals(4, melody.end_step)
+    self.assertEqual(1, melody.start_step)
+    self.assertEqual(4, melody.end_step)
 
   def testToSequenceSimple(self):
     melody = melodies_lib.Melody(

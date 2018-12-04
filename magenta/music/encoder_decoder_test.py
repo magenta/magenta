@@ -32,7 +32,7 @@ class OneHotEventSequenceEncoderDecoderTest(tf.test.TestCase):
         testing_lib.TrivialOneHotEncoding(3, num_steps=range(3)))
 
   def testInputSize(self):
-    self.assertEquals(3, self.enc.input_size)
+    self.assertEqual(3, self.enc.input_size)
 
   def testNumClasses(self):
     self.assertEqual(3, self.enc.num_classes)
@@ -124,10 +124,10 @@ class OneHotIndexEventSequenceEncoderDecoderTest(tf.test.TestCase):
         testing_lib.TrivialOneHotEncoding(3, num_steps=range(3)))
 
   def testInputSize(self):
-    self.assertEquals(1, self.enc.input_size)
+    self.assertEqual(1, self.enc.input_size)
 
   def testInputDepth(self):
-    self.assertEquals(3, self.enc.input_depth)
+    self.assertEqual(3, self.enc.input_depth)
 
   def testEventsToInput(self):
     events = [0, 1, 0, 2, 0]
@@ -286,7 +286,7 @@ class ConditionalEventSequenceEncoderDecoderTest(tf.test.TestCase):
             testing_lib.TrivialOneHotEncoding(3)))
 
   def testInputSize(self):
-    self.assertEquals(5, self.enc.input_size)
+    self.assertEqual(5, self.enc.input_size)
 
   def testNumClasses(self):
     self.assertEqual(3, self.enc.num_classes)
@@ -386,7 +386,7 @@ class OptionalEventSequenceEncoderTest(tf.test.TestCase):
             testing_lib.TrivialOneHotEncoding(3)))
 
   def testInputSize(self):
-    self.assertEquals(4, self.enc.input_size)
+    self.assertEqual(4, self.enc.input_size)
 
   def testEventsToInput(self):
     events = [(False, 0), (False, 1), (False, 0), (True, 2), (True, 0)]
@@ -417,7 +417,7 @@ class MultipleEventSequenceEncoderTest(tf.test.TestCase):
             testing_lib.TrivialOneHotEncoding(3))])
 
   def testInputSize(self):
-    self.assertEquals(5, self.enc.input_size)
+    self.assertEqual(5, self.enc.input_size)
 
   def testEventsToInput(self):
     events = [(1, 0), (1, 1), (1, 0), (0, 2), (0, 0)]

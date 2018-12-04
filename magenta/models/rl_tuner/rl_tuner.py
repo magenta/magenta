@@ -37,7 +37,7 @@ import urllib
 
 import matplotlib.pyplot as plt
 import numpy as np
-from scipy.misc import logsumexp
+import scipy.special
 from six.moves import range          # pylint: disable=redefined-builtin
 from six.moves import reload_module  # pylint: disable=redefined-builtin
 from six.moves import urllib         # pylint: disable=redefined-builtin
@@ -978,7 +978,7 @@ class RLTuner(object):
       Float reward value.
     """
     action_note = np.argmax(action)
-    normalization_constant = logsumexp(reward_scores)
+    normalization_constant = scipy.special.logsumexp(reward_scores)
     return reward_scores[action_note] - normalization_constant
 
   def get_reward_rnn_scores(self, observation, state):

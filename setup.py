@@ -33,7 +33,11 @@ else:
 
 REQUIRED_PACKAGES = [
     'IPython',
+<<<<<<< HEAD:magenta/tools/pip/setup.py
     'absl >= 0.1.12',
+=======
+    'absl-py',
+>>>>>>> 6cb6221eb048312be0a2b7fd2477fba6c8ffd3dc:setup.py
     'Pillow >= 3.4.2',
     'backports.tempfile',
     'bokeh >= 0.12.0',
@@ -141,4 +145,6 @@ setup(
     package_data={
         'magenta': ['models/image_stylization/evaluation_images/*.jpg'],
     },
+    setup_requires=["pytest-runner"],
+    tests_require=["pytest"],
 )
