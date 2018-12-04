@@ -36,7 +36,6 @@ from magenta.music import note_sequence_io
 FLAGS = tf.app.flags.FLAGS
 
 
-
 def convert_files(root_dir, sub_dir, writer, recursive=False):
   """Converts files.
 
