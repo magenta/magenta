@@ -58,7 +58,7 @@ def log_loss(labels, predictions, epsilon=1e-7, scope=None, weights=None):
   Raises:
     ValueError: If the shape of `predictions` doesn't match that of `labels`.
   """
-  with tf.name_scope(scope, "log_loss", (predictions, labels)) as scope:
+  with tf.name_scope(scope, "log_loss", (predictions, labels)):
     predictions = tf.to_float(predictions)
     labels = tf.to_float(labels)
     predictions.get_shape().assert_is_compatible_with(labels.get_shape())

@@ -18,6 +18,7 @@ import tensorflow as tf
 
 from magenta.pipelines import statistics
 
+
 class StatisticsTest(tf.test.TestCase):
 
   def testCounter(self):

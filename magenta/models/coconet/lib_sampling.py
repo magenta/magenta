@@ -381,7 +381,7 @@ class InstrumentMasker(BaseMasker):
 class CompletionMasker(BaseMasker):
   key = "completion"
 
-  def __call__(self, pianorolls, outer_masks=1.):
+  def __call__(self, pianorolls, outer_masks=1., separate_instruments=False):
     masks = (pianorolls == 0).all(axis=2, keepdims=True)
     inner_mask = masks + 0 * pianorolls  # broadcast explicitly
     return inner_mask * outer_masks
@@ -444,7 +444,7 @@ class BaseSelector(lib_util.Factory):
       predictions: model outputs
       masks: masks within which to sample
       separate_instruments: whether instruments are separated
-      kwargs: Additional args.
+      **kwargs: Additional args.
 
     Returns:
       mask indicating which variable to sample next

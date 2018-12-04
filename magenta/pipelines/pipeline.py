@@ -27,13 +27,13 @@ import tensorflow as tf
 from magenta.pipelines import statistics
 
 
-class InvalidTypeSignatureException(Exception):
+class InvalidTypeSignatureError(Exception):
   """Thrown when `Pipeline.input_type` or `Pipeline.output_type` is not valid.
   """
   pass
 
 
-class InvalidStatisticsException(Exception):
+class InvalidStatisticsError(Exception):
   """Thrown when stats produced by a `Pipeline` are not valid."""
   pass
 
@@ -91,19 +91,19 @@ def _assert_valid_type_signature(type_sig, type_sig_name):
         exception descriptions.
 
   Raises:
-    InvalidTypeSignatureException: If `type_sig` is not valid.
+    InvalidTypeSignatureError: If `type_sig` is not valid.
   """
   if isinstance(type_sig, dict):
     for k, val in type_sig.items():
       if not isinstance(k, six.string_types):
-        raise InvalidTypeSignatureException(
+        raise InvalidTypeSignatureError(
             '%s key %s must be a string.' % (type_sig_name, k))
       if not inspect.isclass(val):
-        raise InvalidTypeSignatureException(
+        raise InvalidTypeSignatureError(
             '%s %s at key %s must be a Python class.' % (type_sig_name, val, k))
   else:
     if not inspect.isclass(type_sig):
-      raise InvalidTypeSignatureException(
+      raise InvalidTypeSignatureError(
           '%s %s must be a Python class.' % (type_sig_name, type_sig))
 
 
@@ -230,18 +230,18 @@ class Pipeline(object):
       stats: An iterable of Statistic objects.
 
     Raises:
-      InvalidStatisticsException: If `stats` is not iterable, or if any
+      InvalidStatisticsError: If `stats` is not iterable, or if any
           object in the list is not a `Statistic` instance.
     """
     if not hasattr(stats, '__iter__'):
-      raise InvalidStatisticsException(
+      raise InvalidStatisticsError(
           'Expecting iterable, got type %s' % type(stats))
     self._stats = [self._prepend_name(stat) for stat in stats]
 
   def _prepend_name(self, stat):
     """Returns a copy of `stat` with `self.name` prepended to `stat.name`."""
     if not isinstance(stat, statistics.Statistic):
-      raise InvalidStatisticsException(
+      raise InvalidStatisticsError(
           'Expecting Statistic object, got %s' % stat)
     stat_copy = stat.copy()
     stat_copy.name = self._name + '_' + stat_copy.name
@@ -317,7 +317,7 @@ def run_pipeline_serial(pipeline,
                         output_file_base=None):
   """Runs the a pipeline on a data source and writes to a directory.
 
-  Run the the pipeline on each input from the iterator one at a time.
+  Run the pipeline on each input from the iterator one at a time.
   A file will be written to `output_dir` for each dataset name specified
   by the pipeline. pipeline.transform is called on each input and the
   results are aggregated into their correct datasets.
@@ -375,7 +375,7 @@ def run_pipeline_serial(pipeline,
     total_inputs += 1
     for name, outputs in _guarantee_dict(pipeline.transform(input_),
                                          list(output_names)[0]).items():
-      for output in outputs:
+      for output in outputs:  # pylint:disable=not-an-iterable
         writers[name].write(output.SerializeToString())
       total_outputs += len(outputs)
     stats = statistics.merge_statistics(stats + pipeline.get_stats())
