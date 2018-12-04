@@ -437,13 +437,14 @@ class ConstantSchedule(BaseSchedule):
 class BaseSelector(lib_util.Factory):
   """Base class for next variable selection in AncestralSampler."""
 
-  def __call__(self, predictions, masks, separate_instruments=True):
+  def __call__(self, predictions, masks, separate_instruments=True, **kwargs):
     """Select the next variable to sample.
 
     Args:
       predictions: model outputs
       masks: masks within which to sample
       separate_instruments: whether instruments are separated
+      kwargs: Additional args.
 
     Returns:
       mask indicating which variable to sample next

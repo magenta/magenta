@@ -282,7 +282,7 @@ class BaseLstmDecoder(base_model.BaseDecoder):
       -`_flat_reconstruction_loss`
   """
 
-  def build(self, hparams, output_depth, is_training=False):
+  def build(self, hparams, output_depth, is_training=True):
     if hparams.use_cudnn and hparams.residual_decoder:
       raise ValueError('Residual connections not supported in cuDNN.')
 
@@ -685,7 +685,7 @@ class MultiOutCategoricalLstmDecoder(CategoricalLstmDecoder):
   def __init__(self, output_depths):
     self._output_depths = output_depths
 
-  def build(self, hparams, output_depth, is_training):
+  def build(self, hparams, output_depth, is_training=True):
     if sum(self._output_depths) != output_depth:
       raise ValueError(
           'Decoder output depth does not match sum of sub-decoders: %s vs %d' %
@@ -754,7 +754,7 @@ class SplitMultiOutLstmDecoder(base_model.BaseDecoder):
     return nest.map_structure(
         lambda *x: sum(x), *(cd.state_size for cd in self._core_decoders))
 
-  def build(self, hparams, output_depth, is_training):
+  def build(self, hparams, output_depth, is_training=True):
     if sum(self._output_depths) != output_depth:
       raise ValueError(
           'Decoder output depth does not match sum of sub-decoders: %s vs %d' %
@@ -960,7 +960,7 @@ class HierarchicalLstmDecoder(base_model.BaseDecoder):
     self._disable_autoregression = disable_autoregression
     self._hierarchical_encoder = hierarchical_encoder
 
-  def build(self, hparams, output_depth, is_training):
+  def build(self, hparams, output_depth, is_training=True):
     self.hparams = hparams
     self._output_depth = output_depth
     self._total_length = hparams.max_seq_len

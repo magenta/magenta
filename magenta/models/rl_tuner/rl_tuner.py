@@ -1558,10 +1558,7 @@ class RLTuner(object):
       True if the lowest note was unique, False otherwise.
     """
     max_note = max(composition)
-    if list(composition).count(max_note) == 1:
-      return True
-    else:
-      return False
+    return list(composition).count(max_note) == 1:
 
   def detect_low_unique(self, composition):
     """Checks a composition to see if the lowest note within it is repeated.
