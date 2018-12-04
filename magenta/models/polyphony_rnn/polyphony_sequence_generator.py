@@ -14,7 +14,7 @@
 """Polyphonic RNN generation code as a SequenceGenerator interface."""
 
 import copy
-from functools import partial
+import functools
 
 import tensorflow as tf
 
@@ -143,7 +143,7 @@ class PolyphonyRnnSequenceGenerator(mm.BaseSequenceGenerator):
         # 0 steps because we'll overwrite poly_seq with a blank sequence below.
         inject_start_step = 0
 
-      args['modify_events_callback'] = partial(
+      args['modify_events_callback'] = functools.partial(
           _inject_melody, melody_to_inject, inject_start_step)
 
     # If we don't want to condition on the priming sequence, then overwrite
@@ -250,5 +250,5 @@ def get_generator_map():
         polyphony_model.PolyphonyRnnModel(config), config.details,
         steps_per_quarter=config.steps_per_quarter, **kwargs)
 
-  return {key: partial(create_sequence_generator, config)
+  return {key: functools.partial(create_sequence_generator, config)
           for (key, config) in polyphony_model.default_configs.items()}

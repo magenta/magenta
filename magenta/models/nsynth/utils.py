@@ -260,7 +260,7 @@ def inv_magphase(mag, phase_angle):
 
 
 def griffin_lim(mag, phase_angle, n_fft, hop, num_iters):
-  """Iterative algorithm for phase retrival from a magnitude spectrogram.
+  """Iterative algorithm for phase retrieval from a magnitude spectrogram.
 
   Args:
     mag: Magnitude spectrogram.

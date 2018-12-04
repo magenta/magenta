@@ -19,7 +19,7 @@ from __future__ import print_function
 
 import base64
 import collections
-from io import BytesIO
+import io
 import os
 
 import bokeh
@@ -55,7 +55,7 @@ def colab_play(array_of_floats, sample_rate, ephemeral=True, autoplay=False):
   normalizer = float(np.iinfo(np.int16).max)
   array_of_ints = np.array(
       np.asarray(array_of_floats) * normalizer, dtype=np.int16)
-  memfile = BytesIO()
+  memfile = io.BytesIO()
   wavfile.write(memfile, sample_rate, array_of_ints)
   html = """<audio controls {autoplay}>
               <source controls src="data:audio/wav;base64,{base64_wavfile}"
