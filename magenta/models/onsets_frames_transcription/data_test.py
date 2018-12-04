@@ -111,11 +111,11 @@ class DataTest(tf.test.TestCase):
     return self._DataToInputs(spec, roll.active, roll.weights, length, filename,
                               truncated_length)
 
-  def validate_provide_patch(self,
-                             examples_path,
-                             truncated_length,
-                             batch_size,
-                             expected_inputs):
+  def _ValidateProvideBatch(self,
+                            examples_path,
+                            truncated_length,
+                            batch_size,
+                            expected_inputs):
     """Tests for correctness of batches."""
     hparams = copy.deepcopy(constants.DEFAULT_HPARAMS)
 
@@ -158,11 +158,11 @@ class DataTest(tf.test.TestCase):
     testing_lib.add_track_to_sequence(seq, 0, [(note, 100, 0, duration)])
     return seq
 
-  def validate_provide_batch_tfrecord(self,
-                                      truncated_length,
-                                      batch_size,
-                                      lengths,
-                                      expected_num_inputs):
+  def _ValidateProvideBatchTFRecord(self,
+                                    truncated_length,
+                                    batch_size,
+                                    lengths,
+                                    expected_num_inputs):
     hparams = copy.deepcopy(constants.DEFAULT_HPARAMS)
     examples = []
     expected_inputs = []
@@ -192,21 +192,21 @@ class DataTest(tf.test.TestCase):
         for ex in examples:
           writer.write(ex.SerializeToString())
 
-      self.validate_provide_batch(
+      self._ValidateProvideBatch(
           temp_rio.name,
           truncated_length,
           batch_size,
           expected_inputs)
 
   def testProvideBatch_TFRecord_FullSeqs(self):
-    self.validate_provide_batch_tfrecord(
+    self._ValidateProvideBatchTFRecord(
         truncated_length=0,
         batch_size=2,
         lengths=[10, 50, 100, 10, 50, 80],
         expected_num_inputs=6)
 
   def testProvideBatch_TFRecord_Truncated(self):
-    self.validate_provide_batch_tfrecord(
+    self._ValidateProvideBatchTFRecord(
         truncated_length=15,
         batch_size=2,
         lengths=[10, 50, 100, 10, 50, 80],
