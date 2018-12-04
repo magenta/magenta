@@ -110,11 +110,11 @@ class SequencesLibTest(tf.test.TestCase):
         5, 20, 60, 10, 70)
     self.assertEqual(clamped, 5)
 
-    clamped = sequences_lib._clamp_transpose( # pylint:disable=protected-access
+    clamped = sequences_lib._clamp_transpose(  # pylint:disable=protected-access
         15, 20, 60, 10, 65)
     self.assertEqual(clamped, 5)
 
-    clamped = sequences_lib._clamp_transpose( # pylint:disable=protected-access
+    clamped = sequences_lib._clamp_transpose(  # pylint:disable=protected-access
         -16, 20, 60, 10, 70)
     self.assertEqual(clamped, -10)
 
