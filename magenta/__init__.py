@@ -19,6 +19,7 @@ bazel query 'kind(py_library, deps(//magenta))' | \
   sed -e 's/\/\//import /' -e 's/\//./' -e 's/:/./' -e  's/py_pb2/pb2/' | \
   LANG=C sort
 """
+
 # TODO(adarob): Remove these imports once moved to /py internally.
 
 import magenta.common.beam_search

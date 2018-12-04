@@ -13,9 +13,7 @@
 # limitations under the License.
 """Tests for performance_encoder_decoder."""
 
-from math import cos
-from math import pi
-from math import sin
+import math
 
 import tensorflow as tf
 
@@ -25,6 +23,11 @@ from magenta.music.performance_encoder_decoder import ModuloPerformanceEventSequ
 from magenta.music.performance_encoder_decoder import NotePerformanceEventSequenceEncoderDecoder
 from magenta.music.performance_encoder_decoder import PerformanceModuloEncoding
 from magenta.music.performance_lib import PerformanceEvent
+
+
+cos = math.cos
+sin = math.sin
+pi = math.pi
 
 
 class PerformanceOneHotEncodingTest(tf.test.TestCase):

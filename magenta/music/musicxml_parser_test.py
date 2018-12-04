@@ -17,7 +17,7 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-from collections import defaultdict
+import collections
 import operator
 import os.path
 import tempfile
@@ -190,7 +190,7 @@ class MusicXMLParserTest(tf.test.TestCase):
                              sequence_tempo.time)
 
     # Test parts/instruments.
-    seq_parts = defaultdict(list)
+    seq_parts = collections.defaultdict(list)
     for seq_note in sequence_proto.notes:
       seq_parts[seq_note.part].append(seq_note)
 

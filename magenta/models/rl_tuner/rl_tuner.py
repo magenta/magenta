@@ -28,10 +28,8 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-from collections import deque
+import collections
 import os
-from os import makedirs
-from os.path import exists
 import random
 import urllib
 
@@ -207,7 +205,8 @@ class RLTuner(object):
 
       # DQN state.
       self.actions_executed_so_far = 0
-      self.experience = deque(maxlen=self.dqn_hparams.max_experience)
+      self.experience = collections.deque(
+          maxlen=self.dqn_hparams.max_experience)
       self.iteration = 0
       self.summary_writer = summary_writer
       self.num_times_store_called = 0
@@ -234,8 +233,8 @@ class RLTuner(object):
     self.leapt_from = None  # stores the note at which composition leapt
     self.steps_since_last_leap = 0
 
-    if not exists(self.output_dir):
-      makedirs(self.output_dir)
+    if not os.path.exists(self.output_dir):
+      os.makedirs(self.output_dir)
 
     if initialize_immediately:
       self.initialize_internal_models_graph_session()
