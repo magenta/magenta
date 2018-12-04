@@ -222,7 +222,7 @@ class MelodiesLibTest(tf.test.TestCase):
         self.note_sequence, self.steps_per_quarter)
 
     melody = melodies_lib.Melody()
-    with self.assertRaises(melodies_lib.PolyphonicMelodyException):
+    with self.assertRaises(melodies_lib.PolyphonicMelodyError):
       melody.from_quantized_sequence(quantized_sequence,
                                      search_start_step=0, instrument=0,
                                      ignore_polyphonic_notes=False)
@@ -254,7 +254,7 @@ class MelodiesLibTest(tf.test.TestCase):
         self.note_sequence, self.steps_per_quarter)
 
     melody = melodies_lib.Melody()
-    with self.assertRaises(melodies_lib.PolyphonicMelodyException):
+    with self.assertRaises(melodies_lib.PolyphonicMelodyError):
       melody.from_quantized_sequence(quantized_sequence,
                                      search_start_step=0, instrument=0,
                                      ignore_polyphonic_notes=False)

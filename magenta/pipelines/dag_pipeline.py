@@ -376,7 +376,7 @@ class DAGPipeline(pipeline.Pipeline):
     if set(call_list) != set(
         list(all_subordinates) + self.outputs + [self.input]):
       raise BadTopologyError('Not all pipelines feed into an output or '
-                                 'there is a dependency loop.')
+                             'there is a dependency loop.')
 
     call_list.reverse()
     assert call_list[0] == self.input

@@ -44,11 +44,11 @@ STANDARD_PPQ = constants.STANDARD_PPQ
 NOTE_KEYS = constants.NOTE_KEYS
 
 
-class PolyphonicMelodyException(Exception):
+class PolyphonicMelodyError(Exception):
   pass
 
 
-class BadNoteException(Exception):
+class BadNoteError(Exception):
   pass
 
 
@@ -144,10 +144,10 @@ class Melody(events_lib.SimpleEventSequence):
           `start_step`.
 
     Raises:
-      BadNoteException: If `start_step` does not precede `end_step`.
+      BadNoteError: If `start_step` does not precede `end_step`.
     """
     if start_step >= end_step:
-      raise BadNoteException(
+      raise BadNoteError(
           'Start step does not precede end step: start=%d, end=%d' %
           (start_step, end_step))
 
@@ -266,7 +266,7 @@ class Melody(events_lib.SimpleEventSequence):
           is ended.
       ignore_polyphonic_notes: If True, the highest pitch is used in the melody
           when multiple notes start at the same time. If False,
-          PolyphonicMelodyException will be raised if multiple notes start at
+          PolyphonicMelodyError will be raised if multiple notes start at
           the same time.
       pad_end: If True, the end of the melody will be padded with NO_EVENTs so
           that it will end at a bar boundary.
@@ -276,7 +276,7 @@ class Melody(events_lib.SimpleEventSequence):
       NonIntegerStepsPerBarException: If `quantized_sequence`'s bar length
           (derived from its time signature) is not an integer number of time
           steps.
-      PolyphonicMelodyException: If any of the notes start on the same step
+      PolyphonicMelodyError: If any of the notes start on the same step
           and `ignore_polyphonic_notes` is False.
     """
     sequences_lib.assert_is_relative_quantized_sequence(quantized_sequence)
@@ -336,9 +336,9 @@ class Melody(events_lib.SimpleEventSequence):
           continue
         else:
           self._reset()
-          raise PolyphonicMelodyException()
+          raise PolyphonicMelodyError()
       elif on_distance < 0:
-        raise PolyphonicMelodyException(
+        raise PolyphonicMelodyError(
             'Unexpected note. Not in ascending order.')
 
       # If a gap of `gap` or more steps is found, end the melody.
@@ -623,7 +623,7 @@ def extract_melodies(quantized_sequence,
             ignore_polyphonic_notes=ignore_polyphonic_notes,
             pad_end=pad_end,
             filter_drums=filter_drums)
-      except PolyphonicMelodyException:
+      except PolyphonicMelodyError:
         stats['polyphonic_tracks_discarded'].increment()
         break  # Look for monophonic melodies in other tracks.
       except events_lib.NonIntegerStepsPerBarException:

@@ -353,6 +353,7 @@ def batch_specgram(audio,
                    re_im=False,
                    dphase=True,
                    mag_only=False):
+  """Computes specgram in a batch."""
   assert len(audio.shape) == 2
   batch_size = audio.shape[0]
   res = []
@@ -372,6 +373,7 @@ def batch_ispecgram(spec,
                     dphase=True,
                     mag_only=False,
                     num_iters=1000):
+  """Computes inverse specgram in a batch."""
   assert len(spec.shape) == 4
   batch_size = spec.shape[0]
   res = []
@@ -390,6 +392,7 @@ def tf_specgram(audio,
                 re_im=False,
                 dphase=True,
                 mag_only=False):
+  """Specgram tensorflow op (uses pyfunc)."""
   return tf.py_func(batch_specgram, [
       audio, n_fft, hop_length, mask, log_mag, re_im, dphase, mag_only
   ], tf.float32)
@@ -405,6 +408,7 @@ def tf_ispecgram(spec,
                  dphase=True,
                  mag_only=False,
                  num_iters=1000):
+  """Inverted Specgram tensorflow op (uses pyfunc)."""
   dims = spec.get_shape().as_list()
   # Add back in nyquist frequency
   x = spec if not pad else tf.concat(
