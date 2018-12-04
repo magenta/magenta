@@ -50,7 +50,7 @@ def colab_play(array_of_floats, sample_rate, ephemeral=True, autoplay=False):
     autoplay: If True, automatically start playing the sound when the
       widget is rendered.
   """
-  from google.colab.output import _js_builder as js  # pylint: disable=g-import-not-at-top,protected-access
+  from google.colab.output import _js_builder as js  # pylint:disable=g-import-not-at-top,protected-accessk,import-error
 
   normalizer = float(np.iinfo(np.int16).max)
   array_of_ints = np.array(
@@ -64,7 +64,7 @@ def colab_play(array_of_floats, sample_rate, ephemeral=True, autoplay=False):
             </audio>"""
   html = html.format(
       autoplay='autoplay' if autoplay else '',
-      base64_wavfile=base64.encodestring(memfile.getvalue()))
+      base64_wavfile=base64.b64encode(memfile.getvalue()))
   memfile.close()
   global _play_id
   _play_id += 1

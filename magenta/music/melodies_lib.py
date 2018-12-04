@@ -342,7 +342,7 @@ class Melody(events_lib.SimpleEventSequence):
             'Unexpected note. Not in ascending order.')
 
       # If a gap of `gap` or more steps is found, end the melody.
-      if len(self) and off_distance >= gap_bars * steps_per_bar:
+      if len(self) and off_distance >= gap_bars * steps_per_bar:  # pylint:disable=len-as-condition
         break
 
       # Add the note-on and off events to the melody.

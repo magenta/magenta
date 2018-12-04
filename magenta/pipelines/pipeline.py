@@ -73,7 +73,7 @@ class PipelineKey(object):
 
 def _guarantee_dict(given, default_name):
   if not isinstance(given, dict):
-    return {default_name: dict}
+    return {default_name: list}
   return given
 
 

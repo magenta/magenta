@@ -13,10 +13,10 @@
 # limitations under the License.
 """Tests for statistics."""
 
+import six
 import tensorflow as tf
 
 from magenta.pipelines import statistics
-
 
 class StatisticsTest(tf.test.TestCase):
 
@@ -68,7 +68,7 @@ class StatisticsTest(tf.test.TestCase):
     self.assertEqual(histo.counters, {float('-inf'): 6, 1: 1, 2: 13, 10: 3})
 
     histo_3 = statistics.Histogram('name_123', [1, 2, 7])
-    with self.assertRaisesRegexp(
+    with six.assertRaisesRegex(
         statistics.MergeStatisticsException,
         r'Histogram buckets do not match. '
         r'Expected \[-inf, 1, 2, 10\], got \[-inf, 1, 2, 7\]'):

@@ -254,8 +254,7 @@ class DAGPipeline(pipeline.Pipeline):
       for subordinate in values:
         if not (isinstance(subordinate, pipeline.Pipeline) or
                 (isinstance(subordinate, pipeline.PipelineKey) and
-                 isinstance(subordinate.unit, pipeline.Pipeline)) or
-                isinstance(subordinate, DagInput)):
+                 isinstance(subordinate.unit, (DagInput, pipeline.Pipeline)))):
           raise InvalidDAGException(
               'Dependency {%s: %s} is invalid. Right hand side subordinate %s '
               'must be either a Pipeline, PipelineKey, or DagInput object'

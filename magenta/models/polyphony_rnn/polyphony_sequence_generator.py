@@ -222,11 +222,11 @@ def _inject_melody(melody, start_step, encoder_decoder, event_sequences,
 
     # Find the corresponding event in the input melody.
     melody_step_count = start_step
-    for i, event in enumerate(melody):
+    for j, event in enumerate(melody):
       if event.event_type == PolyphonicEvent.STEP_END:
         melody_step_count += 1
       if melody_step_count == event_step_count:
-        melody_pos = i + 1
+        melody_pos = j + 1
         while melody_pos < len(melody) and (
             melody[melody_pos].event_type != PolyphonicEvent.STEP_END):
           event_sequence.append(melody[melody_pos])

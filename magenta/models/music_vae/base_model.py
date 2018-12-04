@@ -76,7 +76,7 @@ class BaseDecoder(object):
   __metaclass__ = abc.ABCMeta
 
   @abc.abstractmethod
-  def build(self, hparams, output_depth, is_training=True):
+  def build(self, hparams, output_depth, is_training=True, **kwargs):
     """Builder method for BaseDecoder.
 
     Args:
