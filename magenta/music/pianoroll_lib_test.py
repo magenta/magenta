@@ -29,7 +29,7 @@ from magenta.protobuf import music_pb2
 class PianorollLibTest(tf.test.TestCase):
 
   def setUp(self):
-    self.maxDiff = None
+    self.maxDiff = None  # pylint:disable=invalid-name
 
     self.note_sequence = common_testing_lib.parse_test_proto(
         music_pb2.NoteSequence,

@@ -606,15 +606,13 @@ def calculate_l2_and_summaries(predicted_vectors, true_vectors, name):
       between true and predicted.
   """
   loss = tf.reduce_mean((predicted_vectors - true_vectors)**2)
-  tf.summary.scalar(name + "_loss", loss, name="loss")
+  tf.summary.scalar(name + "_loss", loss)
   tf.summary.scalar(
       name + "_prediction_mean_squared_norm",
-      tf.reduce_mean(tf.nn.l2_loss(predicted_vectors)),
-      name=name + "_prediction_mean_squared_norm")
+      tf.reduce_mean(tf.nn.l2_loss(predicted_vectors)))
   tf.summary.scalar(
       name + "_label_mean_squared_norm",
-      tf.reduce_mean(tf.nn.l2_loss(true_vectors)),
-      name=name + "_label_mean_squared_norm")
+      tf.reduce_mean(tf.nn.l2_loss(true_vectors)))
   return loss
 
 

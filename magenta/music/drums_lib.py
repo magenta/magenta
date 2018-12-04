@@ -189,7 +189,7 @@ class DrumTrack(events_lib.SimpleEventSequence):
 
       # If a gap of `gap` or more steps is found, end the drum track.
       note_distance = start_index - gap_start_index
-      if len(self) and note_distance >= gap_bars * steps_per_bar:
+      if self.__len__() and note_distance >= gap_bars * steps_per_bar:
         break
 
       # Add a drum event, a set of drum "pitches".
