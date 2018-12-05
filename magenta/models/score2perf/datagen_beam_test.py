@@ -17,31 +17,15 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-import os
 import tempfile
 
 import apache_beam as beam
-from apache_beam.testing.util import assert_that
-from apache_beam.testing.util import equal_to
-
 import tensorflow as tf
 
 from magenta.models.score2perf import datagen_beam
 from magenta.models.score2perf import music_encoders
-from magenta.music import midi_io
 from magenta.music import testing_lib
 from magenta.protobuf import music_pb2
-
-
-class ReadMidiFilesTest(tf.test.TestCase):
-
-  def testTransform(self):
-    midi_filename = os.path.join(
-        tf.resource_loader.get_data_files_path(), '../../testdata/example.mid')
-    expected_ns = midi_io.midi_file_to_sequence_proto(midi_filename)
-    with beam.Pipeline(runner=beam.runners.DirectRunner()) as p:
-      c = p | datagen_beam.ReadMidiFiles([midi_filename])
-      assert_that(c, equal_to([('example.mid', expected_ns)]))
 
 
 class GenerateExamplesTest(tf.test.TestCase):
