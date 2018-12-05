@@ -228,7 +228,7 @@ class Histogram(Statistic):
     i = bisect.bisect_right(self.buckets, x)
     if i:
       return self.buckets[i-1]
-    raise ValueError
+    raise ValueException
 
   def increment(self, value, inc=1):
     """Increment the bucket containing the given value.

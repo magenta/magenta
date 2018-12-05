@@ -141,6 +141,6 @@ setup(
     package_data={
         'magenta': ['models/image_stylization/evaluation_images/*.jpg'],
     },
-    setup_requires=['pytest-runner', 'pytest-pylint'],
-    tests_require=['pytest', 'pylint'],
+    setup_requires=['pytest-runner'],
+    tests_require=['pytest'],
 )

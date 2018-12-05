@@ -27,13 +27,13 @@ import tensorflow as tf
 from magenta.pipelines import statistics
 
 
-class InvalidTypeSignatureError(Exception):
+class InvalidTypeSignatureException(Exception):
   """Thrown when `Pipeline.input_type` or `Pipeline.output_type` is not valid.
   """
   pass
 
 
-class InvalidStatisticsError(Exception):
+class InvalidStatisticsException(Exception):
   """Thrown when stats produced by a `Pipeline` are not valid."""
   pass
 
@@ -55,13 +55,13 @@ class PipelineKey(object):
 
   def __init__(self, unit, key):
     if not isinstance(unit, Pipeline):
-      raise ValueError('Cannot take key of non Pipeline %s' % unit)
+      raise ValueException('Cannot take key of non Pipeline %s' % unit)
     if not isinstance(unit.output_type, dict):
-      raise KeyError(
+      raise KeyException(
           'Cannot take key %s of %s because output type %s is not a dictionary'
           % (key, unit, unit.output_type))
     if key not in unit.output_type:
-      raise KeyError('PipelineKey %s is not valid for %s with output type %s'
+      raise KeyException('PipelineKey %s is not valid for %s with output type %s'
                      % (key, unit, unit.output_type))
     self.key = key
     self.unit = unit
@@ -91,19 +91,19 @@ def _assert_valid_type_signature(type_sig, type_sig_name):
         exception descriptions.
 
   Raises:
-    InvalidTypeSignatureError: If `type_sig` is not valid.
+    InvalidTypeSignatureException: If `type_sig` is not valid.
   """
   if isinstance(type_sig, dict):
     for k, val in type_sig.items():
       if not isinstance(k, six.string_types):
-        raise InvalidTypeSignatureError(
+        raise InvalidTypeSignatureException(
             '%s key %s must be a string.' % (type_sig_name, k))
       if not inspect.isclass(val):
-        raise InvalidTypeSignatureError(
+        raise InvalidTypeSignatureException(
             '%s %s at key %s must be a Python class.' % (type_sig_name, val, k))
   else:
     if not inspect.isclass(type_sig):
-      raise InvalidTypeSignatureError(
+      raise InvalidTypeSignatureException(
           '%s %s must be a Python class.' % (type_sig_name, type_sig))
 
 
@@ -230,18 +230,18 @@ class Pipeline(object):
       stats: An iterable of Statistic objects.
 
     Raises:
-      InvalidStatisticsError: If `stats` is not iterable, or if any
+      InvalidStatisticsException: If `stats` is not iterable, or if any
           object in the list is not a `Statistic` instance.
     """
     if not hasattr(stats, '__iter__'):
-      raise InvalidStatisticsError(
+      raise InvalidStatisticsException(
           'Expecting iterable, got type %s' % type(stats))
     self._stats = [self._prepend_name(stat) for stat in stats]
 
   def _prepend_name(self, stat):
     """Returns a copy of `stat` with `self.name` prepended to `stat.name`."""
     if not isinstance(stat, statistics.Statistic):
-      raise InvalidStatisticsError(
+      raise InvalidStatisticsException(
           'Expecting Statistic object, got %s' % stat)
     stat_copy = stat.copy()
     stat_copy.name = self._name + '_' + stat_copy.name
@@ -274,11 +274,11 @@ def file_iterator(root_dir, extension=None, recurse=True):
     Raw bytes (as a string) of each file opened.
 
   Raises:
-    ValueError: When extension is an empty string. Leave as None to omit.
+    ValueException: When extension is an empty string. Leave as None to omit.
   """
   if extension is not None:
     if not extension:
-      raise ValueError('File extension cannot be an empty string.')
+      raise ValueException('File extension cannot be an empty string.')
     extension = extension.lower()
     if extension[0] != '.':
       extension = '.' + extension
@@ -337,18 +337,18 @@ def run_pipeline_serial(pipeline,
         run. The prefix will also be followed by an underscore.
 
   Raises:
-    ValueError: If any of `pipeline`'s output types do not have a
+    ValueException: If any of `pipeline`'s output types do not have a
         SerializeToString method.
   """
   if isinstance(pipeline.output_type, dict):
     for name, type_ in pipeline.output_type.items():
       if not hasattr(type_, 'SerializeToString'):
-        raise ValueError(
+        raise ValueException(
             'Pipeline output "%s" does not have method SerializeToString. '
             'Output type = %s' % (name, pipeline.output_type))
   else:
     if not hasattr(pipeline.output_type, 'SerializeToString'):
-      raise ValueError(
+      raise ValueException(
           'Pipeline output type %s does not have method SerializeToString.'
           % pipeline.output_type)
 

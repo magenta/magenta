@@ -174,17 +174,35 @@ git clone https://github.com/tensorflow/magenta.git
 Next, install the dependencies by changing to the base directory and executing the setup command:
 
 ```bash
-python setup.py
-```
-
-And then run the tests with this command:
-
-```bash
-python setup.py test
+python setup.py develop
 ```
 
 You can now edit the files and run scripts by calling Python as usual. For example, this is how you would run the `melody_rnn_generate` script from the base directory:
 
 ```bash
 python magenta/models/melody_rnn/melody_rnn_generate --config=...
+```
+
+You can also install the (potentially modified) package with:
+
+```bash
+python setup.py install
+```
+
+Before creating a pull request, please also test your changes with:
+
+```bash
+python setup.py test
+```
+
+## PIP Release
+
+To build a new version for pip, bump the version and then run:
+
+```bash
+python setup.py test
+python setup.py bdist_wheel --universal
+python setup.py bdist_wheel --universal --gpu
+twine upload dist/magenta-N.N.N-py2.py3-none-any.whl
+twine upload dist/magenta_gpu-N.N.N-py2.py3-none-any.whl
 ```
