@@ -672,8 +672,9 @@ class ModelWaveGANHelper(object):
     sess_sc09_class = self.sess_sc09_class
 
     with graph_sc09_gan.as_default():
-      saver_gan.restore(sess_sc09_gan,
-      os.path.join(gen_ckpt_dir, 'bridge', 'model.ckpt'))
+      saver_gan.restore(
+          sess_sc09_gan,
+          os.path.join(gen_ckpt_dir, 'bridge', 'model.ckpt'))
 
     with graph_sc09_class.as_default():
       saver_class.restore(sess_sc09_class,
