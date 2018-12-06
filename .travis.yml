@@ -1,11 +1,11 @@
 language: python
 python:
-  - "2.7"
   - "3.5"
 # command to install dependencies
 install:
-  - sudo apt-get -y install build-essential libasound2-dev libjack-dev
+  - sudo apt-get -y install build-essential libasound2-dev libjack-dev libav-tools
   - python setup.py install
 # command to run tests
 script:
   - pytest
+  - pylint
