@@ -7,5 +7,5 @@ set -x
 
 cd github/magenta
 
-sudo apt-get install build-essential libasound2-dev libjack-dev
+sudo apt-get -y install build-essential libasound2-dev libjack-dev
 python2 setup.py test
