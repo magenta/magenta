@@ -23,10 +23,11 @@ from __future__ import print_function
 
 import bisect
 import math
+import numpy as np
 
 from magenta.music import sequences_lib
 
-import numpy as np
+
 
 def _find_inactive_ranges(note_sequence):
   """Returns ranges where no notes are active in the note_sequence."""

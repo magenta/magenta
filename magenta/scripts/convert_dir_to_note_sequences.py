@@ -16,7 +16,7 @@ r""""Converts music files to NoteSequence protos and writes TFRecord file.
 Currently supports MIDI (.mid, .midi) and MusicXML (.xml, .mxl) files.
 
 Example usage:
-  $ python convert_dir_to_note_sequences.py \
+  $ python magenta/scripts/convert_dir_to_note_sequences.py \
     --input_dir=/path/to/input/dir \
     --output_file=/path/to/tfrecord/file \
     --log=INFO
@@ -43,6 +43,7 @@ tf.app.flags.DEFINE_bool('recursive', False,
 tf.app.flags.DEFINE_string('log', 'INFO',
                            'The threshold for what messages will be logged '
                            'DEBUG, INFO, WARN, ERROR, or FATAL.')
+
 
 def convert_files(root_dir, sub_dir, writer, recursive=False):
   """Converts files.

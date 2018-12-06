@@ -29,12 +29,12 @@ import librosa
 import numpy as np
 import tensorflow as tf
 
+from magenta.models.onsets_frames_transcription import create_dataset_util
 from magenta.music import audio_io
 from magenta.music import midi_io
 from magenta.music import sequences_lib
 from magenta.protobuf import music_pb2
 
-from magenta.models.onsets_frames_transcription import create_dataset_util
 
 FLAGS = tf.app.flags.FLAGS
 tf.app.flags.DEFINE_string('input_dir', None,
@@ -85,7 +85,7 @@ def generate_train_set(exclude_ids):
       # load the midi data and convert to a notesequence
       ns = midi_io.midi_file_to_note_sequence(pair[1])
 
-      splits = create_dataset_lib.find_split_points(
+      splits = create_dataset_util.find_split_points(
           ns, samples, FLAGS.sample_rate, FLAGS.min_length, FLAGS.max_length)
 
       velocities = [note.velocity for note in ns.notes]
