@@ -175,7 +175,7 @@ class BadInputOrOutputException(Exception):
   pass
 
 
-class InvalidDictionaryOutputException(Exception):
+class InvalidDictionaryOutput(Exception):
   """Thrown when `DagOutput` and dictionaries are not used correctly.
 
   Specifically when `DagOutput()` is used without a dictionary dependency, or
@@ -222,7 +222,7 @@ class DAGPipeline(pipeline.Pipeline):
           same string name.
       BadInputOrOutputException: If there are no `DagOutput` instaces in `dag`
           or not exactly one `DagInput` plus type combination in `dag`.
-      InvalidDictionaryOutputException: If `DagOutput()` is not connected to a
+      InvalidDictionaryOutput: If `DagOutput()` is not connected to a
           dictionary, or `DagOutput(name)` is not connected to a Pipeline,
           PipelineKey, or DagInput instance.
       NotConnectedException: If a `Pipeline` used in a dependency has nothing
@@ -401,7 +401,7 @@ class DAGPipeline(pipeline.Pipeline):
       Key, value pairs for a new dag dictionary.
 
     Raises:
-      InvalidDictionaryOutputException: If `DagOutput` is not used correctly.
+      InvalidDictionaryOutput: If `DagOutput` is not used correctly.
     """
     for key, val in dag.items():
       # Direct connection.
@@ -417,7 +417,7 @@ class DAGPipeline(pipeline.Pipeline):
         elif isinstance(val, dict):
           dependency = val.items()
         else:
-          raise InvalidDictionaryOutputException(
+          raise InvalidDictionaryOutput(
               'DagOutput() with no name can only be connected to a dictionary '
               'or a Pipeline whose output_type is a dictionary. Found '
               'DagOutput() connected to %s' % val)
@@ -425,13 +425,13 @@ class DAGPipeline(pipeline.Pipeline):
           yield DagOutput(name), subordinate
       elif isinstance(key, DagOutput):
         if isinstance(val, dict):
-          raise InvalidDictionaryOutputException(
+          raise InvalidDictionaryOutput(
               'DagOutput("%s") which has name "%s" can only be connected to a '
               'single input, not dictionary %s. Use DagOutput() without name '
               'instead.' % (key.name, key.name, val))
         if (isinstance(val, pipeline.Pipeline) and
             isinstance(val.output_type, dict)):
-          raise InvalidDictionaryOutputException(
+          raise InvalidDictionaryOutput(
               'DagOutput("%s") which has name "%s" can only be connected to a '
               'single input, not pipeline %s which has dictionary '
               'output_type %s. Use DagOutput() without name instead.'
