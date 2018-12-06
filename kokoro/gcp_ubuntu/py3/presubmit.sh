@@ -11,4 +11,4 @@ PY3_PATH="$(which python3.5)"
 cd github/magenta
 
 sudo apt-get -y install build-essential libasound2-dev libjack-dev
-$PY3_PATH setup.py test --addopts="--pylint --disable-warnings"
+$PY3_PATH setup.py test
