@@ -15,7 +15,7 @@
 r"""Code to train a MelodyQ model.
 
 To run this code on your local machine:
-$ bazel run magenta/models/rl_tuner:rl_tuner_train -- \
+python magenta/models/rl_tuner/rl_tuner_train.py \
 --note_rnn_checkpoint_dir 'path' --midi_primer 'primer.mid' \
 --training_data_path 'path.tfrecord'
 """

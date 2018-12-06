@@ -38,7 +38,7 @@ generate sounds directly from .wav files without altering the embeddings. You
 can do this for sounds of any length as long as you set the `sample_length` high
 enough. Keep in mind the wavenet decoder works at 16kHz. The script below will
 take all .wav files in the `source_path` directory and create generated samples in the
-`save_path` directory. If you've installed with the pip package you can call the scripts directly without calling `bazel run`
+`save_path` directory. If you've installed with the pip package you can call the scripts directly without calling `python`
 
 Example Usage (Generate from .wav files):
 -------
@@ -64,7 +64,7 @@ Example Usage (Save Embeddings):
 
 (Baseline)
 ```bash
-bazel run //magenta/models/nsynth/baseline:save_embeddings -- \
+python magenta/models/nsynth/baseline/save_embeddings.py \
 --tfrecord_path=/<path>/nsynth-test.tfrecord \
 --checkpoint_path=/<path>/baseline-ckpt/model.ckpt-200000 \
 --savedir=/<path>
@@ -107,14 +107,14 @@ Example Usage:
 
 (Baseline)
 ```bash
-bazel run //magenta/models/nsynth/baseline:train -- \
+python magenta/models/nsynth/baseline/train.py \
 --train_path=/<path>/nsynth-train.tfrecord \
 ---logdir=/<path>
 ```
 
 (WaveNet)
 ```bash
-bazel run //magenta/models/nsynth/wavenet/train -- \
+python magenta/models/nsynth/wavenet/train.py \
 --train_path=/<path>/nsynth-train.tfrecord \
 --logdir=/<path>
 ```

@@ -24,8 +24,7 @@ chronological=false
 ensemble_size=5  # Number of different orderings to average.
 
 # Run command.
-bazel run :coconet_evaluate \
--- \
+python coconet_evaluate.py \
 --data_dir=$data_dir \
 --eval_logdir=$eval_logdir \
 --checkpoint=$checkpoint \

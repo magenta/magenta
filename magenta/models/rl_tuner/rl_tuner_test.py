@@ -15,7 +15,7 @@
 """Tests for RLTuner and by proxy NoteRNNLoader.
 
 To run this code:
-$ bazel test rl_tuner:rl_tuner_test
+$ python magenta/models/rl_tuner/rl_tuner_test.py
 """
 
 import os
