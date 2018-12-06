@@ -746,24 +746,24 @@ class DAGPipelineTest(tf.test.TestCase):
     with self.assertRaises(dag_pipeline.DuplicateNameException):
       dag_pipeline.DAGPipeline(dag)
 
-  def testInvalidDictionaryOutputException(self):
+  def testInvalidDictionaryOutput(self):
     b = UnitB()
     dag = {b: dag_pipeline.DagInput(b.input_type),
            dag_pipeline.DagOutput(): b}
-    with self.assertRaises(dag_pipeline.InvalidDictionaryOutputException):
+    with self.assertRaises(dag_pipeline.InvalidDictionaryOutput):
       dag_pipeline.DAGPipeline(dag)
 
     a = UnitA()
     dag = {a: dag_pipeline.DagInput(b.input_type),
            dag_pipeline.DagOutput('output'): a}
-    with self.assertRaises(dag_pipeline.InvalidDictionaryOutputException):
+    with self.assertRaises(dag_pipeline.InvalidDictionaryOutput):
       dag_pipeline.DAGPipeline(dag)
 
     a2 = UnitA()
     dag = {a: dag_pipeline.DagInput(a.input_type),
            a2: dag_pipeline.DagInput(a2.input_type),
            dag_pipeline.DagOutput('output'): {'t1': a['t1'], 't2': a2['t2']}}
-    with self.assertRaises(dag_pipeline.InvalidDictionaryOutputException):
+    with self.assertRaises(dag_pipeline.InvalidDictionaryOutput):
       dag_pipeline.DAGPipeline(dag)
 
   def testInvalidTransformOutputException(self):
