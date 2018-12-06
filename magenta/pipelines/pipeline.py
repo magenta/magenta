@@ -55,13 +55,13 @@ class PipelineKey(object):
 
   def __init__(self, unit, key):
     if not isinstance(unit, Pipeline):
-      raise ValueException('Cannot take key of non Pipeline %s' % unit)
+      raise ValueError('Cannot take key of non Pipeline %s' % unit)
     if not isinstance(unit.output_type, dict):
-      raise KeyException(
+      raise KeyError(
           'Cannot take key %s of %s because output type %s is not a dictionary'
           % (key, unit, unit.output_type))
     if key not in unit.output_type:
-      raise KeyException('PipelineKey %s is not valid for %s with output type %s'
+      raise KeyError('PipelineKey %s is not valid for %s with output type %s'
                      % (key, unit, unit.output_type))
     self.key = key
     self.unit = unit
@@ -274,11 +274,11 @@ def file_iterator(root_dir, extension=None, recurse=True):
     Raw bytes (as a string) of each file opened.
 
   Raises:
-    ValueException: When extension is an empty string. Leave as None to omit.
+    ValueError: When extension is an empty string. Leave as None to omit.
   """
   if extension is not None:
     if not extension:
-      raise ValueException('File extension cannot be an empty string.')
+      raise ValueError('File extension cannot be an empty string.')
     extension = extension.lower()
     if extension[0] != '.':
       extension = '.' + extension
@@ -337,18 +337,18 @@ def run_pipeline_serial(pipeline,
         run. The prefix will also be followed by an underscore.
 
   Raises:
-    ValueException: If any of `pipeline`'s output types do not have a
+    ValueError: If any of `pipeline`'s output types do not have a
         SerializeToString method.
   """
   if isinstance(pipeline.output_type, dict):
     for name, type_ in pipeline.output_type.items():
       if not hasattr(type_, 'SerializeToString'):
-        raise ValueException(
+        raise ValueError(
             'Pipeline output "%s" does not have method SerializeToString. '
             'Output type = %s' % (name, pipeline.output_type))
   else:
     if not hasattr(pipeline.output_type, 'SerializeToString'):
-      raise ValueException(
+      raise ValueError(
           'Pipeline output type %s does not have method SerializeToString.'
           % pipeline.output_type)
 

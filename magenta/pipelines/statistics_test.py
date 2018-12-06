@@ -37,7 +37,7 @@ class StatisticsTest(tf.test.TestCase):
     class ABC(object):
       pass
 
-    with self.assertRaises(statistics.MergeStatisticsError):
+    with self.assertRaises(statistics.MergeStatisticsException):
       counter.merge_from(ABC())
 
     self.assertEqual(str(counter), 'name_123: 16')
@@ -70,7 +70,7 @@ class StatisticsTest(tf.test.TestCase):
     histo_3 = statistics.Histogram('name_123', [1, 2, 7])
     with six.assertRaisesRegex(
         self,
-        statistics.MergeStatisticsError,
+        statistics.MergeStatisticsException,
         r'Histogram buckets do not match. '
         r'Expected \[-inf, 1, 2, 10\], got \[-inf, 1, 2, 7\]'):
       histo.merge_from(histo_3)
@@ -78,7 +78,7 @@ class StatisticsTest(tf.test.TestCase):
     class ABC(object):
       pass
 
-    with self.assertRaises(statistics.MergeStatisticsError):
+    with self.assertRaises(statistics.MergeStatisticsException):
       histo.merge_from(ABC())
 
     self.assertEqual(
@@ -93,7 +93,7 @@ class StatisticsTest(tf.test.TestCase):
   def testMergeDifferentNames(self):
     counter_1 = statistics.Counter('counter_1')
     counter_2 = statistics.Counter('counter_2')
-    with self.assertRaises(statistics.MergeStatisticsError):
+    with self.assertRaises(statistics.MergeStatisticsException):
       counter_1.merge_from(counter_2)
 
 

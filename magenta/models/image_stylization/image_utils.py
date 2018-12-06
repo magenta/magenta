@@ -77,7 +77,7 @@ def imagenet_inputs(batch_size, image_size, num_readers=1,
 
     if num_preprocess_threads % 4:
       raise ValueError('Please make num_preprocess_threads a multiple '
-                       'of 4 (%d % 4 != 0).', num_preprocess_threads)
+                       'of 4 (%d %% 4 != 0).' % num_preprocess_threads)
 
     if num_readers < 1:
       raise ValueError('Please make num_readers at least 1')

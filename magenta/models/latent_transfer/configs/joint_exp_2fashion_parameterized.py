@@ -18,7 +18,7 @@
 
 from functools import partial
 
-import temsorflow as tf
+import tensorflow as tf
 
 from magenta.models.latent_transfer import model_joint
 

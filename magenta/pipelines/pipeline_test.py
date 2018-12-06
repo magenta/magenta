@@ -167,7 +167,7 @@ class PipelineTest(tf.test.TestCase):
     with self.assertRaises(ValueError):
       _ = pipeline.PipelineKey(1234, 'abc')
 
-  def testInvalidTypeSignatureError(self):
+  def testInvalidTypeSignatureException(self):
 
     class PipelineShell(pipeline.Pipeline):
 
@@ -183,9 +183,9 @@ class PipelineTest(tf.test.TestCase):
     good_type = str
     for bad_type in [123, {1: str}, {'name': 123},
                      {'name': str, 'name2': 123}, [str, int]]:
-      with self.assertRaises(pipeline.InvalidTypeSignatureError):
+      with self.assertRaises(pipeline.InvalidTypeSignatureException):
         PipelineShell(bad_type, good_type)
-      with self.assertRaises(pipeline.InvalidTypeSignatureError):
+      with self.assertRaises(pipeline.InvalidTypeSignatureException):
         PipelineShell(good_type, bad_type)
 
   def testPipelineGivenName(self):
@@ -231,7 +231,7 @@ class PipelineTest(tf.test.TestCase):
         set([('TestPipeline123_counter_1', 5),
              ('TestPipeline123_counter_2', 10)]))
 
-  def testInvalidStatisticsError(self):
+  def testInvalidStatisticsException(self):
 
     class TestPipeline1(pipeline.Pipeline):
 
@@ -254,11 +254,11 @@ class PipelineTest(tf.test.TestCase):
         return [input_object]
 
     tp1 = TestPipeline1()
-    with self.assertRaises(pipeline.InvalidStatisticsError):
+    with self.assertRaises(pipeline.InvalidStatisticsException):
       tp1.transform('hello')
 
     tp2 = TestPipeline2()
-    with self.assertRaises(pipeline.InvalidStatisticsError):
+    with self.assertRaises(pipeline.InvalidStatisticsException):
       tp2.transform('hello')
 
 

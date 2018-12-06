@@ -453,7 +453,7 @@ class DAGPipelineTest(tf.test.TestCase):
         else:
           self.assertEqual(stat.count, 1)
 
-  def testInvalidDAGError(self):
+  def testInvalidDAGException(self):
     class UnitQ(pipeline.Pipeline):
 
       def __init__(self):
@@ -475,50 +475,50 @@ class DAGPipelineTest(tf.test.TestCase):
     dag = {q: dag_pipeline.DagInput(Type0),
            UnitR: q,
            dag_pipeline.DagOutput('output'): r}
-    with self.assertRaises(dag_pipeline.InvalidDAGError):
+    with self.assertRaises(dag_pipeline.InvalidDAGException):
       dag_pipeline.DAGPipeline(dag)
 
     dag = {q: dag_pipeline.DagInput(Type0),
            'r': q,
            dag_pipeline.DagOutput('output'): r}
-    with self.assertRaises(dag_pipeline.InvalidDAGError):
+    with self.assertRaises(dag_pipeline.InvalidDAGException):
       dag_pipeline.DAGPipeline(dag)
 
     dag = {q: dag_pipeline.DagInput(Type0),
            r: UnitQ,
            dag_pipeline.DagOutput('output'): r}
-    with self.assertRaises(dag_pipeline.InvalidDAGError):
+    with self.assertRaises(dag_pipeline.InvalidDAGException):
       dag_pipeline.DAGPipeline(dag)
 
     dag = {q: dag_pipeline.DagInput(Type0),
            r: 123,
            dag_pipeline.DagOutput('output'): r}
-    with self.assertRaises(dag_pipeline.InvalidDAGError):
+    with self.assertRaises(dag_pipeline.InvalidDAGException):
       dag_pipeline.DAGPipeline(dag)
 
     dag = {dag_pipeline.DagInput(Type0): q,
            dag_pipeline.DagOutput(): q}
-    with self.assertRaises(dag_pipeline.InvalidDAGError):
+    with self.assertRaises(dag_pipeline.InvalidDAGException):
       dag_pipeline.DAGPipeline(dag)
 
     dag = {q: dag_pipeline.DagInput(Type0),
            q: dag_pipeline.DagOutput('output')}
-    with self.assertRaises(dag_pipeline.InvalidDAGError):
+    with self.assertRaises(dag_pipeline.InvalidDAGException):
       dag_pipeline.DAGPipeline(dag)
 
     dag = {q: dag_pipeline.DagInput(Type0),
            r: {'abc': q['a'], 'def': 123},
            dag_pipeline.DagOutput('output'): r}
-    with self.assertRaises(dag_pipeline.InvalidDAGError):
+    with self.assertRaises(dag_pipeline.InvalidDAGException):
       dag_pipeline.DAGPipeline(dag)
 
     dag = {q: dag_pipeline.DagInput(Type0),
            r: {123: q['a']},
            dag_pipeline.DagOutput('output'): r}
-    with self.assertRaises(dag_pipeline.InvalidDAGError):
+    with self.assertRaises(dag_pipeline.InvalidDAGException):
       dag_pipeline.DAGPipeline(dag)
 
-  def testTypeMismatchError(self):
+  def testTypeMismatchException(self):
     class UnitQ(pipeline.Pipeline):
 
       def __init__(self):
@@ -556,28 +556,28 @@ class DAGPipelineTest(tf.test.TestCase):
            r: q,
            s: r,
            dag_pipeline.DagOutput('output'): s}
-    with self.assertRaises(dag_pipeline.TypeMismatchError):
+    with self.assertRaises(dag_pipeline.TypeMismatchException):
       dag_pipeline.DAGPipeline(dag)
 
     q2 = UnitQ()
     dag = {q: dag_pipeline.DagInput(Type0),
            q2: q,
            dag_pipeline.DagOutput('output'): q2}
-    with self.assertRaises(dag_pipeline.TypeMismatchError):
+    with self.assertRaises(dag_pipeline.TypeMismatchException):
       dag_pipeline.DAGPipeline(dag)
 
     dag = {q: dag_pipeline.DagInput(Type0),
            r: q,
            s: {'x': r['b'], 'y': r['a']},
            dag_pipeline.DagOutput('output'): s}
-    with self.assertRaises(dag_pipeline.TypeMismatchError):
+    with self.assertRaises(dag_pipeline.TypeMismatchException):
       dag_pipeline.DAGPipeline(dag)
 
     dag = {q: dag_pipeline.DagInput(Type0),
            r: q,
            t: r,
            dag_pipeline.DagOutput('output'): t}
-    with self.assertRaises(dag_pipeline.TypeMismatchError):
+    with self.assertRaises(dag_pipeline.TypeMismatchException):
       dag_pipeline.DAGPipeline(dag)
 
   def testDependencyLoops(self):
@@ -619,25 +619,25 @@ class DAGPipelineTest(tf.test.TestCase):
            r: s,
            dag_pipeline.DagOutput('output'): r,
            dag_pipeline.DagOutput('output_2'): s}
-    with self.assertRaises(dag_pipeline.BadTopologyError):
+    with self.assertRaises(dag_pipeline.BadTopologyException):
       dag_pipeline.DAGPipeline(dag)
 
     dag = {s: {'a': dag_pipeline.DagInput(Type1), 'b': r},
            r: s,
            dag_pipeline.DagOutput('output'): r}
-    with self.assertRaises(dag_pipeline.BadTopologyError):
+    with self.assertRaises(dag_pipeline.BadTopologyException):
       dag_pipeline.DAGPipeline(dag)
 
     dag = {dag_pipeline.DagOutput('output'): dag_pipeline.DagInput(Type0),
            t: t}
-    with self.assertRaises(dag_pipeline.BadTopologyError):
+    with self.assertRaises(dag_pipeline.BadTopologyException):
       dag_pipeline.DAGPipeline(dag)
 
     t2 = UnitT('UnitT2')
     dag = {dag_pipeline.DagOutput('output'): dag_pipeline.DagInput(Type0),
            t2: t,
            t: t2}
-    with self.assertRaises(dag_pipeline.BadTopologyError):
+    with self.assertRaises(dag_pipeline.BadTopologyException):
       dag_pipeline.DAGPipeline(dag)
 
   def testDisjointGraph(self):
@@ -660,13 +660,13 @@ class DAGPipelineTest(tf.test.TestCase):
     q, r = UnitQ(), UnitR()
     dag = {q: dag_pipeline.DagInput(q.input_type),
            dag_pipeline.DagOutput(): r}
-    with self.assertRaises(dag_pipeline.NotConnectedError):
+    with self.assertRaises(dag_pipeline.NotConnectedException):
       dag_pipeline.DAGPipeline(dag)
 
     q, r = UnitQ(), UnitR()
     dag = {q: dag_pipeline.DagInput(q.input_type),
            dag_pipeline.DagOutput(): {'a': q, 'b': r['b']}}
-    with self.assertRaises(dag_pipeline.NotConnectedError):
+    with self.assertRaises(dag_pipeline.NotConnectedException):
       dag_pipeline.DAGPipeline(dag)
 
     # Pipelines that do not output to anywhere are not allowed.
@@ -674,7 +674,7 @@ class DAGPipelineTest(tf.test.TestCase):
                dag_pipeline.DagInput(q.input_type),
            q: dag_pipeline.DagInput(q.input_type),
            r: q}
-    with self.assertRaises(dag_pipeline.NotConnectedError):
+    with self.assertRaises(dag_pipeline.NotConnectedException):
       dag_pipeline.DAGPipeline(dag)
 
     # Pipelines which need to be executed but don't have inputs are not allowed.
@@ -682,10 +682,10 @@ class DAGPipelineTest(tf.test.TestCase):
                dag_pipeline.DagInput(q.input_type),
            r: q,
            dag_pipeline.DagOutput(): r}
-    with self.assertRaises(dag_pipeline.NotConnectedError):
+    with self.assertRaises(dag_pipeline.NotConnectedException):
       dag_pipeline.DAGPipeline(dag)
 
-  def testBadInputOrOutputError(self):
+  def testBadInputOrOutputException(self):
     class UnitQ(pipeline.Pipeline):
 
       def __init__(self, name='UnitQ'):
@@ -706,13 +706,13 @@ class DAGPipelineTest(tf.test.TestCase):
     q, r = UnitQ(), UnitR()
     dag = {r: q,
            dag_pipeline.DagOutput('output'): r}
-    with self.assertRaises(dag_pipeline.BadInputOrOutputError):
+    with self.assertRaises(dag_pipeline.BadInputOrOutputException):
       dag_pipeline.DAGPipeline(dag)
 
     # Missing Output.
     dag = {q: dag_pipeline.DagInput(Type0),
            r: q}
-    with self.assertRaises(dag_pipeline.BadInputOrOutputError):
+    with self.assertRaises(dag_pipeline.BadInputOrOutputException):
       dag_pipeline.DAGPipeline(dag)
 
     # Multiple instances of Input with the same type IS allowed.
@@ -726,10 +726,10 @@ class DAGPipelineTest(tf.test.TestCase):
     dag = {q: dag_pipeline.DagInput(Type0),
            r: dag_pipeline.DagInput(Type1),
            dag_pipeline.DagOutput(): {'q': q, 'r': r}}
-    with self.assertRaises(dag_pipeline.BadInputOrOutputError):
+    with self.assertRaises(dag_pipeline.BadInputOrOutputException):
       dag_pipeline.DAGPipeline(dag)
 
-  def testDuplicateNameError(self):
+  def testDuplicateNameException(self):
 
     class UnitQ(pipeline.Pipeline):
 
@@ -743,30 +743,30 @@ class DAGPipelineTest(tf.test.TestCase):
     dag = {q: dag_pipeline.DagInput(Type0),
            q2: dag_pipeline.DagInput(Type0),
            dag_pipeline.DagOutput(): {'q': q, 'q2': q2}}
-    with self.assertRaises(dag_pipeline.DuplicateNameError):
+    with self.assertRaises(dag_pipeline.DuplicateNameException):
       dag_pipeline.DAGPipeline(dag)
 
-  def testInvalidDictionaryOutputError(self):
+  def testInvalidDictionaryOutputException(self):
     b = UnitB()
     dag = {b: dag_pipeline.DagInput(b.input_type),
            dag_pipeline.DagOutput(): b}
-    with self.assertRaises(dag_pipeline.InvalidDictionaryOutputError):
+    with self.assertRaises(dag_pipeline.InvalidDictionaryOutputException):
       dag_pipeline.DAGPipeline(dag)
 
     a = UnitA()
     dag = {a: dag_pipeline.DagInput(b.input_type),
            dag_pipeline.DagOutput('output'): a}
-    with self.assertRaises(dag_pipeline.InvalidDictionaryOutputError):
+    with self.assertRaises(dag_pipeline.InvalidDictionaryOutputException):
       dag_pipeline.DAGPipeline(dag)
 
     a2 = UnitA()
     dag = {a: dag_pipeline.DagInput(a.input_type),
            a2: dag_pipeline.DagInput(a2.input_type),
            dag_pipeline.DagOutput('output'): {'t1': a['t1'], 't2': a2['t2']}}
-    with self.assertRaises(dag_pipeline.InvalidDictionaryOutputError):
+    with self.assertRaises(dag_pipeline.InvalidDictionaryOutputException):
       dag_pipeline.DAGPipeline(dag)
 
-  def testInvalidTransformOutputError(self):
+  def testInvalidTransformOutputException(self):
     # This happens when the output of a pipeline's `transform` method does not
     # match the type signature given by the pipeline's `output_type`.
 
@@ -844,10 +844,10 @@ class DAGPipelineTest(tf.test.TestCase):
       dag = {pipe: dag_pipeline.DagInput(pipe.input_type),
              output: pipe}
       dag_pipe_obj = dag_pipeline.DAGPipeline(dag)
-      with self.assertRaises(dag_pipeline.InvalidTransformOutputError):
+      with self.assertRaises(dag_pipeline.InvalidTransformOutputException):
         dag_pipe_obj.transform(Type0(1, 2, 3))
 
-  def testInvalidStatisticsError(self):
+  def testInvalidStatisticsException(self):
     class UnitQ(pipeline.Pipeline):
 
       def __init__(self):
@@ -870,14 +870,14 @@ class DAGPipelineTest(tf.test.TestCase):
     dag = {q: dag_pipeline.DagInput(q.input_type),
            dag_pipeline.DagOutput('output'): q}
     dag_pipe_obj = dag_pipeline.DAGPipeline(dag)
-    with self.assertRaises(pipeline.InvalidStatisticsError):
+    with self.assertRaises(pipeline.InvalidStatisticsException):
       dag_pipe_obj.transform('hello world')
 
     r = UnitR()
     dag = {r: dag_pipeline.DagInput(q.input_type),
            dag_pipeline.DagOutput('output'): r}
     dag_pipe_obj = dag_pipeline.DAGPipeline(dag)
-    with self.assertRaises(pipeline.InvalidStatisticsError):
+    with self.assertRaises(pipeline.InvalidStatisticsException):
       dag_pipe_obj.transform('hello world')
 
 

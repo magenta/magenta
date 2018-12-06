@@ -46,8 +46,11 @@ REQUIRED_PACKAGES = [
     'numpy >= 1.11.0',
     'pandas >= 0.18.1',
     'pretty_midi >= 0.2.6',
+    'protobuf',
     'python-rtmidi',
     'scipy >= 0.18.1',
+    'sk-video',
+    'sonnet',
     'tensorflow-probability >= 0.5.0',
     'tensor2tensor >= 1.10.0',
     'wheel',
@@ -141,6 +144,6 @@ setup(
     package_data={
         'magenta': ['models/image_stylization/evaluation_images/*.jpg'],
     },
-    setup_requires=['pytest-runner'],
-    tests_require=['pytest'],
+    setup_requires=['pytest-runner', 'pytest-pylint'],
+    tests_require=['pytest', 'pylint'],
 )
