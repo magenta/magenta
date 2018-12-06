@@ -193,8 +193,8 @@ class ModuloPerformanceEventSequenceEncoderDecoder(EventSequenceEncoderDecoder):
                                  .encode_modulo_event(events[position]))
     input_[offset] = 1.0  # valid bit for the event
     offset += 1
-    if (event_type == performance_lib.PerformanceEvent.NOTE_ON or
-        event_type == performance_lib.PerformanceEvent.NOTE_OFF):
+    if event_type in (performance_lib.PerformanceEvent.NOTE_ON,
+                      performance_lib.PerformanceEvent.NOTE_OFF):
 
       # Encode the note on a circle of 144 notes, covering 12 octaves.
       cosine_sine_pair = self._modulo_encoding.embed_note(value)

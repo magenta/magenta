@@ -155,7 +155,7 @@ class LeadSheetsLibTest(tf.test.TestCase):
         ignore_polyphonic_notes=True)
     chord_progressions, _ = chords_lib.extract_chords_for_melodies(
         quantized_sequence, melodies)
-    stats_dict = dict([(stat.name, stat) for stat in stats])
+    stats_dict = dict((stat.name, stat) for stat in stats)
     # Last lead sheet should be rejected for having no chords.
     self.assertEqual(list(melodies[:2]),
                      list(lead_sheet.melody for lead_sheet in lead_sheets))

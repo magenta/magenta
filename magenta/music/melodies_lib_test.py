@@ -629,7 +629,7 @@ class MelodiesLibTest(tf.test.TestCase):
         quantized_sequence, min_bars=1, gap_bars=1, min_unique_pitches=2,
         ignore_polyphonic_notes=False)
 
-    stats_dict = dict([(stat.name, stat) for stat in stats])
+    stats_dict = dict((stat.name, stat) for stat in stats)
     self.assertEqual(stats_dict['polyphonic_tracks_discarded'].count, 1)
     self.assertEqual(stats_dict['melodies_discarded_too_short'].count, 1)
     self.assertEqual(stats_dict['melodies_discarded_too_few_pitches'].count, 1)

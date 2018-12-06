@@ -191,7 +191,7 @@ class ChordsLibTest(tf.test.TestCase):
         quantized_sequence, melodies)
     expected = [[NO_CHORD, NO_CHORD, 'C', 'C', 'C', 'C', 'G7', 'G7'],
                 ['Cmaj7', 'Cmaj7', 'Cmaj7', 'Cmaj7', 'Cmaj7']]
-    stats_dict = dict([(stat.name, stat) for stat in stats])
+    stats_dict = dict((stat.name, stat) for stat in stats)
     self.assertIsNone(chord_progressions[0])
     self.assertEqual(expected,
                      [list(chords) for chords in chord_progressions[1:]])

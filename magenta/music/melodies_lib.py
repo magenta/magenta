@@ -591,12 +591,12 @@ def extract_melodies(quantized_sequence,
   # TODO(danabo): Convert `ignore_polyphonic_notes` into a float which controls
   # the degree of polyphony that is acceptable.
   melodies = []
-  stats = dict([(stat_name, statistics.Counter(stat_name)) for stat_name in
-                ['polyphonic_tracks_discarded',
-                 'melodies_discarded_too_short',
-                 'melodies_discarded_too_few_pitches',
-                 'melodies_discarded_too_long',
-                 'melodies_truncated']])
+  stats = dict((stat_name, statistics.Counter(stat_name)) for stat_name in
+               ['polyphonic_tracks_discarded',
+                'melodies_discarded_too_short',
+                'melodies_discarded_too_few_pitches',
+                'melodies_discarded_too_long',
+                'melodies_truncated'])
   # Create a histogram measuring melody lengths (in bars not steps).
   # Capture melodies that are very small, in the range of the filter lower
   # bound `min_bars`, and large. The bucket intervals grow approximately
@@ -605,7 +605,7 @@ def extract_melodies(quantized_sequence,
       'melody_lengths_in_bars',
       [0, 1, 10, 20, 30, 40, 50, 100, 200, 500, min_bars // 2, min_bars,
        min_bars + 1, min_bars - 1])
-  instruments = set([n.instrument for n in quantized_sequence.notes])
+  instruments = set(n.instrument for n in quantized_sequence.notes)
   steps_per_bar = int(
       sequences_lib.steps_per_bar_in_quantized_sequence(quantized_sequence))
   for instrument in instruments:
@@ -626,8 +626,6 @@ def extract_melodies(quantized_sequence,
       except PolyphonicMelodyError:
         stats['polyphonic_tracks_discarded'].increment()
         break  # Look for monophonic melodies in other tracks.
-      except events_lib.NonIntegerStepsPerBarException:
-        raise
       # Start search for next melody on next bar boundary (inclusive).
       instrument_search_start_step = (
           melody.end_step +

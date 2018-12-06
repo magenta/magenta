@@ -321,10 +321,10 @@ def extract_drum_tracks(quantized_sequence,
         steps.
   """
   drum_tracks = []
-  stats = dict([(stat_name, statistics.Counter(stat_name)) for stat_name in
-                ['drum_tracks_discarded_too_short',
-                 'drum_tracks_discarded_too_long',
-                 'drum_tracks_truncated']])
+  stats = dict((stat_name, statistics.Counter(stat_name)) for stat_name in
+               ['drum_tracks_discarded_too_short',
+                'drum_tracks_discarded_too_long',
+                'drum_tracks_truncated'])
   # Create a histogram measuring drum track lengths (in bars not steps).
   # Capture drum tracks that are very small, in the range of the filter lower
   # bound `min_bars`, and large. The bucket intervals grow approximately
@@ -341,15 +341,12 @@ def extract_drum_tracks(quantized_sequence,
   # If any notes start at the same time, only one is kept.
   while 1:
     drum_track = DrumTrack()
-    try:
-      drum_track.from_quantized_sequence(
-          quantized_sequence,
-          search_start_step=search_start_step,
-          gap_bars=gap_bars,
-          pad_end=pad_end,
-          ignore_is_drum=ignore_is_drum)
-    except events_lib.NonIntegerStepsPerBarException:
-      raise
+    drum_track.from_quantized_sequence(
+        quantized_sequence,
+        search_start_step=search_start_step,
+        gap_bars=gap_bars,
+        pad_end=pad_end,
+        ignore_is_drum=ignore_is_drum)
     search_start_step = (
         drum_track.end_step +
         (search_start_step - drum_track.end_step) % steps_per_bar)
