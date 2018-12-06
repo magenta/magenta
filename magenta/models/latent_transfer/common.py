@@ -35,7 +35,7 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-from functools import partial
+import functools
 import importlib
 import os
 
@@ -236,14 +236,14 @@ def make_batch_image_grid(dim_grid, number_grid):
   """Returns a patched `make_grid` function for grid."""
   assert dim_grid in (1, 2)
   if dim_grid == 1:
-    batch_image_grid = partial(
+    batch_image_grid = functools.partial(
         batch_image,
         max_images=number_grid,
         rows=1,
         cols=number_grid,
     )
   else:
-    batch_image_grid = partial(
+    batch_image_grid = functools.partial(
         batch_image,
         max_images=number_grid * number_grid,
         rows=number_grid,

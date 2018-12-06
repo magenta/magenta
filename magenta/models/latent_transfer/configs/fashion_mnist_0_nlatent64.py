@@ -16,13 +16,13 @@
 
 # pylint:disable=invalid-name
 
-from functools import partial
+import functools
 
 from magenta.models.latent_transfer import nn
 
 n_latent = 64
 
-Encoder = partial(nn.EncoderMNIST, n_latent=n_latent)
+Encoder = functools.partial(nn.EncoderMNIST, n_latent=n_latent)
 Decoder = nn.DecoderMNIST
 Classifier = nn.DFull
 
