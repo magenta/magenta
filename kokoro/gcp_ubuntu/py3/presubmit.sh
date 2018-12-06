@@ -10,6 +10,6 @@ PY3_PATH="$(which python3.5)"
 
 cd github/magenta
 
-sudo apt-get install build-essential libasound2-dev libjack-dev
+sudo apt-get -y install build-essential libasound2-dev libjack-dev
 $PY3_PATH setup.py test --adopts="--pylint -m pylint"
 $PY3_PATH setup.py test
