@@ -4,6 +4,7 @@ python:
 # command to install dependencies
 install:
   - sudo apt-get -y install build-essential libasound2-dev libjack-dev libav-tools
+  - pip install pylint
   - python setup.py install
 # command to run tests
 script:
