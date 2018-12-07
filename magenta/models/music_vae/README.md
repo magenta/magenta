@@ -44,7 +44,7 @@ checkpoints from the table below.
 | -- | ------ | ----------- | ---- |
 | cat-mel_2bar_big | `cat-mel_2bar_big` | 2-bar melodies | [download](https://storage.googleapis.com/magentadata/models/music_vae/checkpoints/cat-mel_2bar_big.tar)|
 | hierdec-mel_16bar | `hierdec-mel_16bar` | 16-bar melodies | [download](https://storage.googleapis.com/magentadata/models/music_vae/checkpoints/hierdec-mel_16bar.tar)|
-| hierdec-trio_16bar | `hierdec-trio_16bar` | 16-bar "trios" (drums, melody, and bass) | [download](https://storage.googleapis.com/magentadata/models/music_vae/checkpoints/hierdec-mel_16bar.tar)|
+| hierdec-trio_16bar | `hierdec-trio_16bar` | 16-bar "trios" (drums, melody, and bass) | [download](https://storage.googleapis.com/magentadata/models/music_vae/checkpoints/hierdec-trio_16bar.tar)|
 | cat-drums_2bar_small.lokl |`cat-drums_2bar_small` | 2-bar drums w/ 9 classes trained for more *realistic* sampling| [download](https://storage.googleapis.com/magentadata/models/music_vae/checkpoints/cat-drums_2bar_small.lokl.tar)|
 | cat-drums_2bar_small.hikl | `cat-drums_2bar_small` | 2-bar drums w/ 9 classes trained for *better reconstruction and interpolation* | [download](https://storage.googleapis.com/magentadata/models/music_vae/checkpoints/cat-drums_2bar_small.hikl.tar)|
 | nade-drums_2bar_full | `nade-drums_2bar_full` | 2-bar drums w/ 61 classes | [download](https://storage.googleapis.com/magentadata/models/music_vae/checkpoints/nade-drums_2bar_full.tar)|
