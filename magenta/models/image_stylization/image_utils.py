@@ -230,9 +230,9 @@ def style_image_inputs(style_dataset_file, batch_size=None, image_size=None,
       image, label = image_label_gram_matrices[:2]
       gram_matrices = image_label_gram_matrices[2:]
 
-    gram_matrices = dict([(vgg_layer, gram_matrix)
-                          for vgg_layer, gram_matrix
-                          in zip(vgg_layers, gram_matrices)])
+    gram_matrices = dict((vgg_layer, gram_matrix)
+                         for vgg_layer, gram_matrix
+                         in zip(vgg_layers, gram_matrices))
     return image, label, gram_matrices
 
 

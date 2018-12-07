@@ -619,7 +619,7 @@ class ModelWaveGANHelper(object):
     classification respectively.
     """
 
-    # pylint:disable=unused-variable
+    # pylint:disable=unused-variable,possibly-unused-variable
     # Reason:
     #   All endpoints are stored as attribute at the end of `_build`.
     #   Pylint cannot infer this case so it emits false alarm of
@@ -680,7 +680,7 @@ class ModelWaveGANHelper(object):
       saver_class.restore(sess_sc09_class,
                           os.path.join(inception_ckpt_dir, 'best_acc-103005'))
 
-    # pylint:enable=unused-variable
+    # pylint:enable=unused-variable,possibly-unused-variable
     # pylint:enable=invalid-name
 
   def decode(self, z, batch_size=None):

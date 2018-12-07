@@ -42,7 +42,7 @@ class Model(snt.AbstractModule):
     self.config = config
 
   def _build(self, unused_input=None):
-    # pylint:disable=unused-variable
+    # pylint:disable=unused-variable,possibly-unused-variable
     # Reason:
     #   All endpoints are stored as attribute at the end of `_build`.
     #   Pylint cannot infer this case so it emits false alarm of
@@ -182,4 +182,4 @@ class Model(snt.AbstractModule):
     for k, v in iteritems(locals()):
       self.__dict__[k] = v
 
-    # pylint:enable=unused-variable
+    # pylint:enable=unused-variable,possibly-unused-variable
