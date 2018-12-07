@@ -365,8 +365,8 @@ def run_pipeline_serial(pipeline,
                                  '%s_%s.tfrecord' % (output_file_base, name))
                     for name in output_names]
 
-  writers = dict([(name, tf.python_io.TFRecordWriter(path))
-                  for name, path in zip(output_names, output_paths)])
+  writers = dict((name, tf.python_io.TFRecordWriter(path))
+                 for name, path in zip(output_names, output_paths))
 
   total_inputs = 0
   total_outputs = 0
@@ -405,8 +405,7 @@ def load_pipeline(pipeline, input_iterator):
     dictionary mapping dataset names to lists of objects. Each name acts
     as a bucket where outputs are aggregated.
   """
-  aggregated_outputs = dict(
-      [(name, []) for name in pipeline.output_type_as_dict])
+  aggregated_outputs = dict((name, []) for name in pipeline.output_type_as_dict)
   total_inputs = 0
   total_outputs = 0
   stats = []

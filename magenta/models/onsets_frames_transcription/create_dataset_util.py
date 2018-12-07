@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Create the recordio files necessary for training onsets and frames.
+"""Create the tfrecord files necessary for training onsets and frames.
 
 The training files are split in ~20 second chunks by default, the test files
 are not split.

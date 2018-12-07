@@ -1107,7 +1107,7 @@ class RLTuner(object):
     reward = 0
     if action == 1:
       reward += .1
-    if action > obs and action < obs + 3:
+    if obs < action < obs + 3:
       reward += .05
 
     if action in scale:
@@ -1197,7 +1197,7 @@ class RLTuner(object):
       if action_note == NO_EVENT:
         return reward_amount
     elif self.beat > first_note_of_final_bar + 1:
-      if action_note == NO_EVENT or action_note == NOTE_OFF:
+      if action_note in (NO_EVENT, NOTE_OFF):
         return reward_amount
     return 0.0
 
@@ -1324,7 +1324,7 @@ class RLTuner(object):
 
     last_bar = composition[-bar_length:]
 
-    actual_notes = [a for a in last_bar if a != NO_EVENT and a != NOTE_OFF]
+    actual_notes = [a for a in last_bar if a not in (NO_EVENT, NOTE_OFF)]
     num_unique_notes = len(set(actual_notes))
     if num_unique_notes >= 3:
       return last_bar, num_unique_notes
@@ -1406,7 +1406,7 @@ class RLTuner(object):
     """
     is_repeated, motif = self.detect_repeated_motif(action, bar_length)
     if is_repeated:
-      actual_notes = [a for a in motif if a != NO_EVENT and a != NOTE_OFF]
+      actual_notes = [a for a in motif if a not in (NO_EVENT, NOTE_OFF)]
       num_notes_in_motif = len(set(actual_notes))
       motif_complexity_bonus = max(num_notes_in_motif - 3, 0)
       return reward_amount + motif_complexity_bonus
@@ -1444,11 +1444,10 @@ class RLTuner(object):
 
     # get rid of non-notes in prev_note
     prev_note_index = len(self.composition) - 1
-    while (prev_note == NO_EVENT or
-           prev_note == NOTE_OFF) and prev_note_index >= 0:
+    while prev_note in (NO_EVENT, NOTE_OFF) and prev_note_index >= 0:
       prev_note = self.composition[prev_note_index]
       prev_note_index -= 1
-    if prev_note == NOTE_OFF or prev_note == NO_EVENT:
+    if prev_note in (NOTE_OFF, NO_EVENT):
       tf.logging.debug('Action_note: %s, prev_note: %s', action_note, prev_note)
       return 0, action_note, prev_note
 
@@ -1569,7 +1568,7 @@ class RLTuner(object):
       True if the lowest note was unique, False otherwise.
     """
     no_special_events = [x for x in composition
-                         if x != NO_EVENT and x != NOTE_OFF]
+                         if x not in (NO_EVENT, NOTE_OFF)]
     if no_special_events:
       min_note = min(no_special_events)
       if list(composition).count(min_note) == 1:
@@ -1626,7 +1625,7 @@ class RLTuner(object):
 
     interval, action_note, prev_note = self.detect_sequential_interval(action)
 
-    if action_note == NOTE_OFF or action_note == NO_EVENT:
+    if action_note in (NOTE_OFF, NO_EVENT):
       self.steps_since_last_leap += 1
       tf.logging.debug('Rest, adding to steps since last leap. It is'
                        'now: %s', self.steps_since_last_leap)
