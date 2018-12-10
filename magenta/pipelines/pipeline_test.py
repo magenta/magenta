@@ -207,7 +207,7 @@ class PipelineTest(tf.test.TestCase):
     stats = pipe.get_stats()
     self.assertEqual(
         set((stat.name, stat.count) for stat in stats),
-        set(('TestName_counter_1', 5), ('TestName_counter_2', 10)))
+        set([('TestName_counter_1', 5), ('TestName_counter_2', 10)]))
 
   def testPipelineDefaultName(self):
 
