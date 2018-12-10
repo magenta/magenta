@@ -228,8 +228,8 @@ class PipelineTest(tf.test.TestCase):
     stats = pipe.get_stats()
     self.assertEqual(
         set((stat.name, stat.count) for stat in stats),
-        set(('TestPipeline123_counter_1', 5),
-            ('TestPipeline123_counter_2', 10)))
+        set([('TestPipeline123_counter_1', 5),
+             ('TestPipeline123_counter_2', 10)]))
 
   def testInvalidStatisticsException(self):
 
