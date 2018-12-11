@@ -7,6 +7,9 @@ musical score.
 This is your main access point for the Music Transformer model described in
 [this paper](https://arxiv.org/abs/1809.04281).
 
+To run any of the below commands, you first need to install Magenta as described
+[here](/README.md#installation)
+
 ## Sample from a pretrained model
 
 Coming soon!

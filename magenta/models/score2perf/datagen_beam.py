@@ -65,7 +65,7 @@ class ReadNoteSequencesFromTFRecord(beam.PTransform):
 
 
 def select_split(cumulative_splits, kv, unused_num_partitions):
-  """Select split for a NoteSequence based on a hash of its SSTable key."""
+  """Select split for an `(id, NoteSequence)` tuple using a hash of `id`."""
   key, _ = kv
   m = hashlib.md5(key)
   r = int(m.hexdigest(), 16) / (2 ** (8 * m.digest_size))
@@ -325,6 +325,7 @@ def generate_examples(input_transform, output_dir, problem_name, splits,
   Args:
     input_transform: The input PTransform object that reads input NoteSequence
         protos, or dictionary mapping split names to such PTransform objects.
+        Should produce `(id, NoteSequence)` tuples.
     output_dir: The directory to write the resulting TFRecord file containing
         examples.
     problem_name: Name of the Tensor2Tensor problem, used as a base filename
