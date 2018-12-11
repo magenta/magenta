@@ -406,15 +406,20 @@ def generate_examples(input_transform, output_dir, problem_name, splits,
 
     for split_name, output_filename, s in zip(
         split_names, output_filenames, split_partitions):
+      if isinstance(min_hop_size_seconds, dict):
+        min_hop = min_hop_size_seconds[split_name]
+      else:
+        min_hop = min_hop_size_seconds
+      if isinstance(max_hop_size_seconds, dict):
+        max_hop = max_hop_size_seconds[split_name]
+      else:
+        max_hop = max_hop_size_seconds
       s |= 'preshuffle_%s' % split_name >> beam.Reshuffle()
       s |= 'filter_invalid_notes_%s' % split_name >> beam.Map(
           functools.partial(filter_invalid_notes, min_pitch, max_pitch))
       s |= 'extract_examples_%s' % split_name >> beam.ParDo(
           ExtractExamplesDoFn(
-              min_hop_size_seconds[split_name] if isinstance(
-                  min_hop_size_seconds, dict) else min_hop_size_seconds,
-              max_hop_size_seconds[split_name] if isinstance(
-                  max_hop_size_seconds, dict) else max_hop_size_seconds,
+              min_hop, max_hop,
               num_replications if split_name == 'train' else 1,
               encode_performance_fn, encode_score_fns,
               augment_fns if split_name == 'train' else None, absolute_timing))
