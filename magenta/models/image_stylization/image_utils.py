@@ -77,7 +77,7 @@ def imagenet_inputs(batch_size, image_size, num_readers=1,
 
     if num_preprocess_threads % 4:
       raise ValueError('Please make num_preprocess_threads a multiple '
-                       'of 4 (%d % 4 != 0).', num_preprocess_threads)
+                       'of 4 (%d %% 4 != 0).' % num_preprocess_threads)
 
     if num_readers < 1:
       raise ValueError('Please make num_readers at least 1')
@@ -230,9 +230,9 @@ def style_image_inputs(style_dataset_file, batch_size=None, image_size=None,
       image, label = image_label_gram_matrices[:2]
       gram_matrices = image_label_gram_matrices[2:]
 
-    gram_matrices = dict([(vgg_layer, gram_matrix)
-                          for vgg_layer, gram_matrix
-                          in zip(vgg_layers, gram_matrices)])
+    gram_matrices = dict((vgg_layer, gram_matrix)
+                         for vgg_layer, gram_matrix
+                         in zip(vgg_layers, gram_matrices))
     return image, label, gram_matrices
 
 

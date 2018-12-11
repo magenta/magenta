@@ -1,3 +1,5 @@
+# pylint: skip-file
+# TODO(adarob): Remove skip-file with https://github.com/PyCQA/astroid/issues/627
 # Copyright 2018 Google Inc. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");

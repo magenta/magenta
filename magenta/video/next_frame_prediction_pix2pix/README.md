@@ -17,18 +17,17 @@ group](https://groups.google.com/a/tensorflow.org/forum/#!forum/magenta-discuss)
 
 Please setup the Magenta developement environement first, following the main documentation [here](https://github.com/tensorflow/magenta#development-environment).
 
-### Additional dependency
+### Additional dependencies
 
 This tools need some additional dependencies to run.
 
-In particular, you'll need to install:
-* sk-video (tested with 1.1.8)
-* Pillow (tested with 4.0.0)
-* Bazel (tested with 0.14.1 and 0.15.2)
+You'll need to first install [`ffmpeg`](https://www.ffmpeg.org/download.html).
 
-```
-pip install sk-video
-pip install Pillow
+You will also need to copy a modified version of the [`pix2pix-tensorflow`](https://github.com/affinelayer/pix2pix-tensorflow) library using the following commands:
+
+```bash
+curl -LO https://github.com/dh7/pix2pix-tensorflow/archive/0.1.tar.gz
+tar -xvf 0.1.tar.gz
 ```
 
 ## Goal
@@ -52,19 +51,19 @@ The algorithm then refines the prediction by asking pix2pix to learn to predict 
 
 To try you'll need a video.mp4 file as the source and two folders:
 
-```
+```bash
 mkdir working_folder
 mkdir output_folder
-cp your_video working_folder/video.mp4
+cp <your_video> working_folder/video.mp4
 ```
 
-Then you'll need to use bazel to launch the main script:
-```
-bazel run //magenta/video/next_frame_prediction_pix2pix:create_video  \
-  /absolute_path/working_folder/  \
+Then you'll need to launch the main script from this directory:
+```bash
+./create_video.sh  \
+  $(pwd)/working_folder  \
   20  \
   500 \
-  /absolute_path/output_folder/
+  $(pwd)/output_folder
 ```
 
 This script will extract frames from the video.

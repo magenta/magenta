@@ -35,7 +35,7 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-from functools import partial
+import functools
 import importlib
 import os
 
@@ -170,20 +170,20 @@ def load_dataset(config):
   )
 
 
-def get_index_grouped_by_label(label):
+def get_index_grouped_by_label(labels):
   """Get (an array of) index grouped by label.
 
   This array is used for label-level sampling.
   It aims at MNIST and CelebA (in Jesse et al. 2018) with 10 labels.
 
   Args:
-    label: a list of labels in integer.
+    labels: a list of labels in integer.
 
   Returns:
     A (# label - sized) list of lists contatining indices of that label.
   """
   index_grouped_by_label = [[] for _ in range(10)]
-  for i, label in enumerate(label):
+  for i, label in enumerate(labels):
     index_grouped_by_label[label].append(i)
   return index_grouped_by_label
 
@@ -236,14 +236,14 @@ def make_batch_image_grid(dim_grid, number_grid):
   """Returns a patched `make_grid` function for grid."""
   assert dim_grid in (1, 2)
   if dim_grid == 1:
-    batch_image_grid = partial(
+    batch_image_grid = functools.partial(
         batch_image,
         max_images=number_grid,
         rows=1,
         cols=number_grid,
     )
   else:
-    batch_image_grid = partial(
+    batch_image_grid = functools.partial(
         batch_image,
         max_images=number_grid * number_grid,
         rows=number_grid,

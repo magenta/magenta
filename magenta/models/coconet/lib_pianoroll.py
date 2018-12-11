@@ -52,7 +52,7 @@ class PianorollEncoderDecoder(object):
     # Sequence can either be a 2D numpy array or a list of lists.
     if (isinstance(sequence, np.ndarray) and sequence.ndim == 2) or (
         isinstance(sequence, list) and
-        (isinstance(sequence[0], list) or isinstance(sequence[0], tuple))):
+        isinstance(sequence[0], (list, tuple))):
       # If sequence is an numpy array should have shape (time, num_instruments).
       if (isinstance(sequence, np.ndarray) and
           sequence.shape[-1] != self.num_instruments):

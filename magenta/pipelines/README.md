@@ -409,7 +409,7 @@ for stat in dag_pipe.get_stats():
 > DAGPipeline_Pipe2_foobar: 7
 ```
 
-## DAGPipeline Exceptions
+## DAGPipeline Exception
 
 ### InvalidDAGException
 
@@ -419,7 +419,7 @@ Thrown when the DAG dictionary is not well formatted. This can be because a `des
 
 Thrown when two `Pipeline` instances in the DAG have the same name. Pipeline names will be used as name spaces for the statistics they produce and we don't want any conflicts.
 
-No exception:
+No Exception:
 ```python
 print pipeline_1.name
 > 'my_name'
@@ -561,7 +561,7 @@ DAGPipeline(dag)
 
 Having multiple `DagInput` instances with the same type is allowed.
 
-This example will not throw an exception:
+This example will not throw an Exception:
 ```python
 pipeA = MyPipelineA()
 pipeB = MyPipelineB()

@@ -41,8 +41,8 @@ def precompute_gram_matrices(image, final_endpoint='fc8'):
     end_points = vgg.vgg_16(image, final_endpoint=final_endpoint)
     tf.train.Saver(slim.get_variables('vgg_16')).restore(
         session, vgg.checkpoint_file())
-    return dict([(key, gram_matrix(value).eval())
-                 for key, value in end_points.iteritems()])
+    return dict((key, gram_matrix(value).eval())
+                for key, value in end_points.items())
 
 
 def total_loss(inputs, stylized_inputs, style_gram_matrices, content_weights,

@@ -21,8 +21,7 @@ strategy=igibbs
 tfsample=true
 
 # Run command.
-bazel run :coconet_sample \
--- \
+python coconet_sample.py \
 --checkpoint="$checkpoint" \
 --gen_batch_size=$gen_batch_size \
 --piece_length=$piece_length \

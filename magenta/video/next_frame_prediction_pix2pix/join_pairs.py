@@ -17,6 +17,7 @@ The goal is to create pairs with a frame to the next frame
 it can match a real frame to a recursively generated frame
 for instance (r0001.png) with a real frame (f0002.png)
 """
+from __future__ import print_function
 
 import argparse
 import glob
@@ -85,20 +86,20 @@ def main(_):
   """
   size = ARGS.size
   path = '{}/*.jpg'.format(ARGS.path_left)
-  print 'looking for recursive img in', path
+  print('looking for recursive img in', path)
   l_list = glob.glob(path)
-  print 'found ', len(l_list), 'for left list'
+  print('found ', len(l_list), 'for left list')
   path = '{}/*.jpg'.format(ARGS.path_right)
-  print 'looking for frames img in', path
+  print('looking for frames img in', path)
   r_list = glob.glob(path)
-  print 'found ', len(r_list), 'for right list'
+  print('found ', len(r_list), 'for right list')
   if ARGS.limit > 0:
     shuffle(l_list)
     l_list = l_list[:ARGS.limit]
   for left in l_list:
     match, i = is_match(left, r_list)
     if match:
-      print 'load left', left, ' and right', match
+      print('load left', left, ' and right', match)
       img_left = Image.open(left)
       img_right = Image.open(match)
 

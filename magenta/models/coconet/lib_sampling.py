@@ -381,7 +381,7 @@ class InstrumentMasker(BaseMasker):
 class CompletionMasker(BaseMasker):
   key = "completion"
 
-  def __call__(self, pianorolls, outer_masks=1.):
+  def __call__(self, pianorolls, outer_masks=1., separate_instruments=False):
     masks = (pianorolls == 0).all(axis=2, keepdims=True)
     inner_mask = masks + 0 * pianorolls  # broadcast explicitly
     return inner_mask * outer_masks
@@ -437,13 +437,14 @@ class ConstantSchedule(BaseSchedule):
 class BaseSelector(lib_util.Factory):
   """Base class for next variable selection in AncestralSampler."""
 
-  def __call__(self, predictions, masks, separate_instruments=True):
+  def __call__(self, predictions, masks, separate_instruments=True, **kwargs):
     """Select the next variable to sample.
 
     Args:
       predictions: model outputs
       masks: masks within which to sample
       separate_instruments: whether instruments are separated
+      **kwargs: Additional args.
 
     Returns:
       mask indicating which variable to sample next
