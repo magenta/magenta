@@ -47,9 +47,9 @@ flags.DEFINE_string(
     'pipeline_options', '',
     'Command line flags to use in constructing the Beam pipeline options.')
 
-
 # TODO(iansimon): Figure out how to avoid explicitly serializing and
 # deserializing NoteSequence protos.
+
 
 @typehints.with_output_types(typehints.KV[str, str])
 class ReadNoteSequencesFromTFRecord(beam.PTransform):
