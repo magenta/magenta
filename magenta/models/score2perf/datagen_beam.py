@@ -48,24 +48,26 @@ flags.DEFINE_string(
     'Command line flags to use in constructing the Beam pipeline options.')
 
 
-@typehints.with_output_types(typehints.KV[str, music_pb2.NoteSequence])
+# TODO(iansimon): Figure out how to avoid explicitly serializing and
+# deserializing NoteSequence protos.
+
+@typehints.with_output_types(typehints.KV[str, str])
 class ReadNoteSequencesFromTFRecord(beam.PTransform):
-  """Beam PTransform that reads MIDI files as NoteSequence protos."""
+  """Beam PTransform that reads NoteSequence protos from TFRecord."""
 
   def __init__(self, tfrecord_path):
     super(ReadNoteSequencesFromTFRecord, self).__init__()
     self._tfrecord_path = tfrecord_path
 
   def expand(self, pcoll):
-    pcoll |= beam.io.tfrecordio.ReadFromTFRecord(
-        self._tfrecord_path,
-        coder=beam.coders.ProtoCoder(music_pb2.NoteSequence))
-    pcoll |= beam.Map(lambda ns: (ns.id, ns))
+    pcoll |= beam.io.tfrecordio.ReadFromTFRecord(self._tfrecord_path)
+    pcoll |= beam.Map(
+        lambda ns_str: (music_pb2.NoteSequence.FromString(ns_str).id, ns_str))
     return pcoll
 
 
 def select_split(cumulative_splits, kv, unused_num_partitions):
-  """Select split for an `(id, NoteSequence)` tuple using a hash of `id`."""
+  """Select split for an `(id, _)` tuple using a hash of `id`."""
   key, _ = kv
   m = hashlib.md5(key)
   r = int(m.hexdigest(), 16) / (2 ** (8 * m.digest_size))
@@ -78,14 +80,15 @@ def select_split(cumulative_splits, kv, unused_num_partitions):
 
 def filter_invalid_notes(min_pitch, max_pitch, kv):
   """Filter notes with out-of-range pitch from NoteSequence protos."""
-  key, ns = kv
+  key, ns_str = kv
+  ns = music_pb2.NoteSequence.FromString(ns_str)
   valid_notes = [note for note in ns.notes
                  if min_pitch <= note.pitch <= max_pitch]
   if len(valid_notes) < len(ns.notes):
     del ns.notes[:]
     ns.notes.extend(valid_notes)
     Metrics.counter('filter_invalid_notes', 'out_of_range_pitch').inc()
-  return key, ns
+  return key, ns.SerializeToString()
 
 
 class DataAugmentationError(Exception):
@@ -148,9 +151,12 @@ class ExtractExamplesDoFn(beam.DoFn):
   def process(self, kv):
     # Seed random number generator based on key so that hop times are
     # deterministic.
-    key, ns = kv
+    key, ns_str = kv
     m = hashlib.md5(key)
     random.seed(int(m.hexdigest(), 16))
+
+    # Deserialize NoteSequence proto.
+    ns = music_pb2.NoteSequence.FromString(ns_str)
 
     # Apply sustain pedal.
     ns = sequences_lib.apply_sustain_control_changes(ns)
