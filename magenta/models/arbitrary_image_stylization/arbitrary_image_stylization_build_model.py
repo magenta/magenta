@@ -113,7 +113,8 @@ def style_prediction(style_input_,
                      trainable=True,
                      inception_end_point='Mixed_6e',
                      style_prediction_bottleneck=100,
-                     reuse=None):
+                     reuse=None,
+                     inception_only=False):
   """Maps style images to the style embeddings (beta and gamma parameters).
 
   Args:
@@ -130,6 +131,8 @@ def style_prediction(style_input_,
     style_prediction_bottleneck: int. Specifies the bottleneck size in the
         number of parameters of the style embedding.
     reuse: bool. Whether to reuse model parameters. Defaults to False.
+    inception_only: bool. If true, does not build the mapping from bottleneck
+        to style parameters
 
   Returns:
     Tensor for the output of the style prediction network, Tensor for the
@@ -168,30 +171,31 @@ def style_prediction(style_input_,
                                       style_prediction_bottleneck, [1, 1])
 
     style_params = {}
-    with tf.variable_scope('style_params'):
-      for i in range(len(activation_depths)):
-        with tf.variable_scope(activation_names[i], reuse=reuse):
-          with slim.arg_scope(
-              [slim.conv2d],
-              activation_fn=None,
-              normalizer_fn=None,
-              trainable=trainable):
+    if not inception_only:
+      with tf.variable_scope('style_params'):
+        for i in range(len(activation_depths)):
+          with tf.variable_scope(activation_names[i], reuse=reuse):
+            with slim.arg_scope(
+                [slim.conv2d],
+                activation_fn=None,
+                normalizer_fn=None,
+                trainable=trainable):
 
-            # Computing beta parameter of the style normalization for the
-            # activation_names[i] layer of the style transformer network.
-            # (batch_size, 1, 1, activation_depths[i])
-            beta = slim.conv2d(bottleneck_feat, activation_depths[i], [1, 1])
-            # (batch_size, activation_depths[i])
-            beta = tf.squeeze(beta, [1, 2], name='SpatialSqueeze')
-            style_params['{}/beta'.format(activation_names[i])] = beta
+              # Computing beta parameter of the style normalization for the
+              # activation_names[i] layer of the style transformer network.
+              # (batch_size, 1, 1, activation_depths[i])
+              beta = slim.conv2d(bottleneck_feat, activation_depths[i], [1, 1])
+              # (batch_size, activation_depths[i])
+              beta = tf.squeeze(beta, [1, 2], name='SpatialSqueeze')
+              style_params['{}/beta'.format(activation_names[i])] = beta
 
-            # Computing gamma parameter of the style normalization for the
-            # activation_names[i] layer of the style transformer network.
-            # (batch_size, 1, 1, activation_depths[i])
-            gamma = slim.conv2d(bottleneck_feat, activation_depths[i], [1, 1])
-            # (batch_size, activation_depths[i])
-            gamma = tf.squeeze(gamma, [1, 2], name='SpatialSqueeze')
-            style_params['{}/gamma'.format(activation_names[i])] = gamma
+              # Computing gamma parameter of the style normalization for the
+              # activation_names[i] layer of the style transformer network.
+              # (batch_size, 1, 1, activation_depths[i])
+              gamma = slim.conv2d(bottleneck_feat, activation_depths[i], [1, 1])
+              # (batch_size, activation_depths[i])
+              gamma = tf.squeeze(gamma, [1, 2], name='SpatialSqueeze')
+              style_params['{}/gamma'.format(activation_names[i])] = gamma
 
   return style_params, bottleneck_feat
 

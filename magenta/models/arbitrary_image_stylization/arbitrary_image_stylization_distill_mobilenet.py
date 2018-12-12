@@ -61,10 +61,10 @@ flags.DEFINE_string('master', '', 'BNS name of the TensorFlow master to use.')
 flags.DEFINE_string('style_dataset_file', None, 'Style dataset file.')
 flags.DEFINE_string('train_dir', None,
                     'Directory for checkpoints and summaries.')
-flags.DEFINE_string('inception_v3_checkpoint', None,
-                    'Path to the pre-trained inception_v3 checkpoint.')
 flags.DEFINE_string('initial_checkpoint', None,
                     'Path to the pre-trained arbitrary_image_stylization checkpoint')
+flags.DEFINE_string('mobilenet_checkpoint', 'mobilenet_v2_1.0_224.ckpt',
+                    'Path to the pre-trained mobilenet checkpoint')
 flags.DEFINE_boolean('use_true_loss', False,
                      'Add true style loss term based on VGG.')
 flags.DEFINE_float('true_loss_weight', 1e-9,
@@ -114,13 +114,16 @@ def main(unused_argv=None):
                 total_variation_weight=FLAGS.total_variation_weight,
             )
 
-            inception_bottleneck_feat = build_model.style_prediction_inception_only(
+            _, inception_bottleneck_feat = build_model.style_prediction(
                 style_inputs_,
+                None,
+                None,
                 is_training=False,
                 trainable=False,
                 inception_end_point='Mixed_6e',
                 style_prediction_bottleneck=100,
                 reuse=None,
+                inception_only=True,
             )
 
             print("PRINTING TRAINABLE VARIABLES")
