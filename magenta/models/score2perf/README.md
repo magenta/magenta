@@ -8,7 +8,7 @@ This is your main access point for the Music Transformer model described in
 [this paper](https://arxiv.org/abs/1809.04281).
 
 To run any of the below commands, you first need to install Magenta as described
-[here](/README.md#installation)
+[here](/README.md#development-environment)
 
 ## Sample from a pretrained model
 
@@ -38,20 +38,18 @@ will be very slow due to the NoteSequence preprocessing.
 Anyway, to prepare the dataset, do the following:
 
 1. Set up Google Cloud Dataflow. The quickest way to do this is described in [this guide](https://cloud.google.com/dataflow/docs/quickstarts/quickstart-python).
-1. Build the Magenta pip package as described [here](/magenta/tools/pip).
 1. Run the following command:
 
 ```
 PROBLEM=score2perf_maestro_language_uncropped_aug
 BUCKET=bucket_name
 PROJECT=project_name
-MAGENTA_PACKAGE=/tmp/magenta_pkg/magenta-N.N.N-none-any.whl
 
 PIPELINE_OPTIONS=\
 "--runner=DataflowRunner,"\
 "--project=${PROJECT},"\
 "--temp_location=gs://${BUCKET}/tmp,"\
-"--extra_package=MAGENTA_PACKAGE"
+"--setup_file=/path/to/setup.py"
 
 t2t_datagen \
   --data_dir=gs://${BUCKET}/datagen \
@@ -60,8 +58,8 @@ t2t_datagen \
   --alsologtostderr
 ```
 
-This should take ~30 minutes to run and cost you maybe $0.25 in compute. After
-it completes, you should see a bunch of files like `score2perf_maestro_language_uncropped_aug-{train|dev|test}.tfrecord-?????-of-?????` in the `data_dir` in your bucket you specified. Download these files to
+This should take ~20 minutes to run and cost you maybe $0.25 in compute. After
+it completes, you should see a bunch of files like `score2perf_maestro_language_uncropped_aug-{train|dev|test}.tfrecord-?????-of-?????` in the `data_dir` in the bucket you specified. Download these files to
 your machine; all together they should be a little over 1 GB.
 
 You could also train using Google Cloud. As this will be a little more expensive
