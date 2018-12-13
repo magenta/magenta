@@ -23,6 +23,7 @@ import os
 import tensorflow as tf
 
 from magenta.models.arbitrary_image_stylization import arbitrary_image_stylization_build_model as build_model
+from magenta.models.arbitrary_image_stylization import arbitrary_image_stylization_build_mobilenet_model as build_mobilenet_model
 from magenta.models.image_stylization import image_utils
 
 slim = tf.contrib.slim
@@ -102,7 +103,7 @@ def main(unused_argv=None):
             style_weights = ast.literal_eval(FLAGS.style_weights)
 
             # Define the model
-            stylized_images, true_loss, loss_dict, bottleneck_feat = build_model.build_model_w_mobilenet(
+            stylized_images, true_loss, loss_dict, bottleneck_feat = build_mobilenet_model.build_mobilenet_model(
                 content_inputs_,
                 style_inputs_,
                 mobilenet_trainable=True,
