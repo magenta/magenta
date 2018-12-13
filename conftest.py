@@ -11,8 +11,10 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Imports Magenta problems so that they register with Tensor2Tensor."""
+"""Test configuration for pytest."""
 
-# pylint: disable=unused-import
-from magenta.models import score2perf
-# pylint: enable=unused-import
+import sys
+
+collect_ignore = []
+if sys.version_info.major != 2:
+  collect_ignore.append('magenta/models/score2perf/datagen_beam_test.py')

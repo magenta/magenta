@@ -54,6 +54,8 @@ REQUIRED_PACKAGES = [
     'tensorflow-probability >= 0.5.0',
     'tensor2tensor >= 1.10.0',
     'wheel',
+    'futures;python_version=="2.7"',
+    'apache-beam >= 2.8.0;python_version=="2.7"',
 ]
 
 if gpu_mode:
@@ -134,7 +136,6 @@ setup(
 
     packages=find_packages(),
     install_requires=REQUIRED_PACKAGES,
-    extras_require={':python_version == "2.7"': ['futures']},
     entry_points={
         'console_scripts': ['%s = %s:console_entry_point' % (n, p) for n, p in
                             ((s.split('.')[-1], s) for s in CONSOLE_SCRIPTS)],
