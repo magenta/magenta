@@ -11,7 +11,10 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Methods for building real-time arbitrary image stylization model using MobileNetV2"""
+"""
+Methods for building real-time arbitrary image stylization model
+using MobileNetV2
+"""
 
 from __future__ import absolute_import
 from __future__ import division
@@ -26,7 +29,8 @@ from magenta.models.image_stylization import ops
 try:
   from nets.mobilenet import mobilenet_v2, mobilenet
 except ImportError:
-  print("Cannot import MobileNet model. Make sure to install slim models library described "
+  print("Cannot import MobileNet model. Make sure to install slim "
+        "models library described "
         "in https://github.com/tensorflow/models/tree/master/research/slim")
   raise
 
@@ -96,7 +100,8 @@ def style_prediction_mobilenet(style_input_,
                                reuse=None):
   with tf.name_scope('style_prediction_mobilenet') and tf.variable_scope(
       tf.get_variable_scope(), reuse=reuse):
-    with slim.arg_scope(mobilenet_v2.training_scope(is_training=mobilenet_trainable)):
+    with slim.arg_scope(mobilenet_v2.training_scope(
+        is_training=mobilenet_trainable)):
       _, end_points = mobilenet.mobilenet_base(
           style_input_,
           conv_defs=mobilenet_v2.V2_DEF,
