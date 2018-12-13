@@ -42,7 +42,7 @@ def simple_lstm_encoder(features,
     raise NotImplementedError()
 
   cell = tf.contrib.rnn.MultiRNNCell(
-      [celltype(rnn_nunits) for _ in xrange(rnn_nlayers)])
+      [celltype(rnn_nunits) for _ in range(rnn_nlayers)])
 
   with tf.variable_scope("rnn"):
     if rnn_bidirectional:
@@ -84,7 +84,7 @@ def simple_lstm_decoder(features,
     raise NotImplementedError()
 
   cell = tf.contrib.rnn.MultiRNNCell(
-      [celltype(rnn_nunits) for _ in xrange(rnn_nlayers)])
+      [celltype(rnn_nunits) for _ in range(rnn_nlayers)])
 
   with tf.variable_scope("rnn"):
     initial_state = cell.zero_state(batch_size, dtype)

@@ -28,24 +28,24 @@ class MajorMinorChordOneHotEncodingTest(tf.test.TestCase):
 
   def testEncodeNoChord(self):
     index = self.enc.encode_event(NO_CHORD)
-    self.assertEquals(0, index)
+    self.assertEqual(0, index)
 
   def testEncodeChord(self):
     # major triad
     index = self.enc.encode_event('C')
-    self.assertEquals(1, index)
+    self.assertEqual(1, index)
 
     # minor triad
     index = self.enc.encode_event('Cm')
-    self.assertEquals(13, index)
+    self.assertEqual(13, index)
 
     # dominant 7th
     index = self.enc.encode_event('F7')
-    self.assertEquals(6, index)
+    self.assertEqual(6, index)
 
     # minor 9th
     index = self.enc.encode_event('Abm9')
-    self.assertEquals(21, index)
+    self.assertEqual(21, index)
 
   def testEncodeThirdlessChord(self):
     # suspended chord
@@ -58,16 +58,16 @@ class MajorMinorChordOneHotEncodingTest(tf.test.TestCase):
 
   def testDecodeNoChord(self):
     figure = self.enc.decode_event(0)
-    self.assertEquals(NO_CHORD, figure)
+    self.assertEqual(NO_CHORD, figure)
 
   def testDecodeChord(self):
     # major chord
     figure = self.enc.decode_event(3)
-    self.assertEquals('D', figure)
+    self.assertEqual('D', figure)
 
     # minor chord
     figure = self.enc.decode_event(17)
-    self.assertEquals('Em', figure)
+    self.assertEqual('Em', figure)
 
 
 class TriadChordOneHotEncodingTest(tf.test.TestCase):
@@ -77,24 +77,24 @@ class TriadChordOneHotEncodingTest(tf.test.TestCase):
 
   def testEncodeNoChord(self):
     index = self.enc.encode_event(NO_CHORD)
-    self.assertEquals(0, index)
+    self.assertEqual(0, index)
 
   def testEncodeChord(self):
     # major triad
     index = self.enc.encode_event('C13')
-    self.assertEquals(1, index)
+    self.assertEqual(1, index)
 
     # minor triad
     index = self.enc.encode_event('Cm(maj7)')
-    self.assertEquals(13, index)
+    self.assertEqual(13, index)
 
     # augmented triad
     index = self.enc.encode_event('Faug7')
-    self.assertEquals(30, index)
+    self.assertEqual(30, index)
 
     # diminished triad
     index = self.enc.encode_event('Abm7b5')
-    self.assertEquals(45, index)
+    self.assertEqual(45, index)
 
   def testEncodeThirdlessChord(self):
     # suspended chord
@@ -107,24 +107,24 @@ class TriadChordOneHotEncodingTest(tf.test.TestCase):
 
   def testDecodeNoChord(self):
     figure = self.enc.decode_event(0)
-    self.assertEquals(NO_CHORD, figure)
+    self.assertEqual(NO_CHORD, figure)
 
   def testDecodeChord(self):
     # major chord
     figure = self.enc.decode_event(3)
-    self.assertEquals('D', figure)
+    self.assertEqual('D', figure)
 
     # minor chord
     figure = self.enc.decode_event(17)
-    self.assertEquals('Em', figure)
+    self.assertEqual('Em', figure)
 
     # augmented chord
     figure = self.enc.decode_event(33)
-    self.assertEquals('Abaug', figure)
+    self.assertEqual('Abaug', figure)
 
     # diminished chord
     figure = self.enc.decode_event(42)
-    self.assertEquals('Fdim', figure)
+    self.assertEqual('Fdim', figure)
 
 
 class PitchChordsEncoderDecoderTest(tf.test.TestCase):
@@ -133,11 +133,11 @@ class PitchChordsEncoderDecoderTest(tf.test.TestCase):
     self.enc = chords_encoder_decoder.PitchChordsEncoderDecoder()
 
   def testInputSize(self):
-    self.assertEquals(37, self.enc.input_size)
+    self.assertEqual(37, self.enc.input_size)
 
   def testEncodeNoChord(self):
     input_ = self.enc.events_to_input([NO_CHORD], 0)
-    self.assertEquals([1.0] + [0.0] * 36, input_)
+    self.assertEqual([1.0] + [0.0] * 36, input_)
 
   def testEncodeChord(self):
     # major triad
@@ -146,7 +146,7 @@ class PitchChordsEncoderDecoderTest(tf.test.TestCase):
                 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
                 1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0,
                 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
-    self.assertEquals(expected, input_)
+    self.assertEqual(expected, input_)
 
     # minor triad
     input_ = self.enc.events_to_input(['F#m'], 0)
@@ -154,7 +154,7 @@ class PitchChordsEncoderDecoderTest(tf.test.TestCase):
                 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0,
                 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0,
                 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0]
-    self.assertEquals(expected, input_)
+    self.assertEqual(expected, input_)
 
     # major triad with dominant 7th in bass
     input_ = self.enc.events_to_input(['G/F'], 0)
@@ -162,7 +162,7 @@ class PitchChordsEncoderDecoderTest(tf.test.TestCase):
                 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0,
                 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0,
                 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
-    self.assertEquals(expected, input_)
+    self.assertEqual(expected, input_)
 
     # 13th chord
     input_ = self.enc.events_to_input(['E13'], 0)
@@ -170,7 +170,7 @@ class PitchChordsEncoderDecoderTest(tf.test.TestCase):
                 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
                 0.0, 1.0, 1.0, 0.0, 1.0, 0.0, 1.0, 0.0, 1.0, 1.0, 0.0, 1.0,
                 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
-    self.assertEquals(expected, input_)
+    self.assertEqual(expected, input_)
 
     # minor triad with major 7th
     input_ = self.enc.events_to_input(['Fm(maj7)'], 0)
@@ -178,7 +178,7 @@ class PitchChordsEncoderDecoderTest(tf.test.TestCase):
                 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
                 1.0, 0.0, 0.0, 0.0, 1.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0,
                 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
-    self.assertEquals(expected, input_)
+    self.assertEqual(expected, input_)
 
 
 if __name__ == '__main__':

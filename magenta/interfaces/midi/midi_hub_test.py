@@ -43,7 +43,7 @@ class MockMidiPort(mido.ports.BaseIOPort):
 class MidiHubTest(tf.test.TestCase):
 
   def setUp(self):
-    self.maxDiff = None
+    self.maxDiff = None  # pylint:disable=invalid-name
     self.capture_messages = [
         mido.Message(type='note_on', note=0, time=0.01),
         mido.Message(type='control_change', control=1, value=1, time=0.02),
@@ -94,39 +94,39 @@ class MidiHubTest(tf.test.TestCase):
 
   def testMidiSignal_Message(self):
     sig = midi_hub.MidiSignal(msg=mido.Message(type='note_on', note=1))
-    self.assertEquals(r'^note_on channel=0 note=1 velocity=64 time=\d+.\d+$',
-                      str(sig))
+    self.assertEqual(
+        r'^note_on channel=0 note=1 velocity=64 time=\d+.\d+$', str(sig))
 
     sig = midi_hub.MidiSignal(msg=mido.Message(type='note_off', velocity=127))
-    self.assertEquals(r'^note_off channel=0 note=0 velocity=127 time=\d+.\d+$',
-                      str(sig))
+    self.assertEqual(r'^note_off channel=0 note=0 velocity=127 time=\d+.\d+$',
+                     str(sig))
 
     sig = midi_hub.MidiSignal(
         msg=mido.Message(type='control_change', control=1, value=2))
-    self.assertEquals(
+    self.assertEqual(
         r'^control_change channel=0 control=1 value=2 time=\d+.\d+$', str(sig))
 
   def testMidiSignal_Args(self):
     sig = midi_hub.MidiSignal(type='note_on', note=1)
-    self.assertEquals(r'^note_on channel=\d+ note=1 velocity=\d+ time=\d+.\d+$',
-                      str(sig))
+    self.assertEqual(
+        r'^note_on channel=\d+ note=1 velocity=\d+ time=\d+.\d+$', str(sig))
 
     sig = midi_hub.MidiSignal(type='note_off', velocity=127)
-    self.assertEquals(
+    self.assertEqual(
         r'^note_off channel=\d+ note=\d+ velocity=127 time=\d+.\d+$', str(sig))
 
     sig = midi_hub.MidiSignal(type='control_change', value=2)
-    self.assertEquals(
+    self.assertEqual(
         r'^control_change channel=\d+ control=\d+ value=2 time=\d+.\d+$',
         str(sig))
 
   def testMidiSignal_Args_InferredType(self):
     sig = midi_hub.MidiSignal(note=1)
-    self.assertEquals(r'^.* channel=\d+ note=1 velocity=\d+ time=\d+.\d+$',
-                      str(sig))
+    self.assertEqual(
+        r'^.* channel=\d+ note=1 velocity=\d+ time=\d+.\d+$', str(sig))
 
     sig = midi_hub.MidiSignal(value=2)
-    self.assertEquals(
+    self.assertEqual(
         r'^control_change channel=\d+ control=\d+ value=2 time=\d+.\d+$',
         str(sig))
 
@@ -176,8 +176,8 @@ class MidiHubTest(tf.test.TestCase):
     while not self.port.message_queue.empty():
       msg = self.port.message_queue.get()
       note_event = note_events.popleft()
-      self.assertEquals(msg.type, note_event[1])
-      self.assertEquals(msg.note, note_event[2])
+      self.assertEqual(msg.type, note_event[1])
+      self.assertEqual(msg.note, note_event[2])
       self.assertAlmostEqual(msg.time, note_event[0], delta=0.01)
 
     self.assertTrue(not note_events)
@@ -230,8 +230,8 @@ class MidiHubTest(tf.test.TestCase):
     while not self.port.message_queue.empty():
       msg = self.port.message_queue.get()
       note_event = note_events.popleft()
-      self.assertEquals(msg.type, note_event[1])
-      self.assertEquals(msg.note, note_event[2])
+      self.assertEqual(msg.type, note_event[1])
+      self.assertEqual(msg.note, note_event[2])
       self.assertAlmostEqual(msg.time, note_event[0], delta=0.01)
 
     self.assertTrue(not note_events)
@@ -430,7 +430,7 @@ class MidiHubTest(tf.test.TestCase):
         signal=midi_hub.MidiSignal(type='note_off')):
       captured_seqs.append(captured_seq)
 
-    self.assertEquals(4, len(captured_seqs))
+    self.assertEqual(4, len(captured_seqs))
 
     expected_seq = music_pb2.NoteSequence()
     expected_seq.tempos.add(qpm=120)
@@ -480,7 +480,7 @@ class MidiHubTest(tf.test.TestCase):
       time.sleep(0.1)
       captured_seqs.append(captured_seq)
 
-    self.assertEquals(3, len(captured_seqs))
+    self.assertEqual(3, len(captured_seqs))
 
     expected_seq = music_pb2.NoteSequence()
     expected_seq.tempos.add(qpm=120)
@@ -525,7 +525,7 @@ class MidiHubTest(tf.test.TestCase):
       time.sleep(0.5)
       captured_seqs.append(captured_seq)
 
-    self.assertEquals(2, len(captured_seqs))
+    self.assertEqual(2, len(captured_seqs))
 
     expected_seq = music_pb2.NoteSequence()
     expected_seq.tempos.add(qpm=120)
@@ -564,7 +564,7 @@ class MidiHubTest(tf.test.TestCase):
     time.sleep(1.0)
     captor.cancel_callback(name)
 
-    self.assertEquals(3, len(captured_seqs))
+    self.assertEqual(3, len(captured_seqs))
 
     expected_seq = music_pb2.NoteSequence()
     expected_seq.tempos.add(qpm=120)
@@ -615,7 +615,7 @@ class MidiHubTest(tf.test.TestCase):
     time.sleep(1.3)
     captor.cancel_callback(name)
 
-    self.assertEquals(2, len(captured_seqs))
+    self.assertEqual(2, len(captured_seqs))
 
     expected_seq = music_pb2.NoteSequence()
     expected_seq.tempos.add(qpm=120)

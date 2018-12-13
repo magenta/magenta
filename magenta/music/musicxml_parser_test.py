@@ -17,7 +17,7 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-from collections import defaultdict
+import collections
 import operator
 import os.path
 import tempfile
@@ -80,7 +80,7 @@ class MusicXMLParserTest(tf.test.TestCase):
   """
 
   def setUp(self):
-    self.maxDiff = None
+    self.maxDiff = None   # pylint:disable=invalid-name
 
     self.steps_per_quarter = 4
 
@@ -144,7 +144,7 @@ class MusicXMLParserTest(tf.test.TestCase):
         tf.resource_loader.get_data_files_path(),
         'testdata/meter_test.xml')
 
-  def checkmusicxmlandsequence(self, musicxml, sequence_proto):
+  def check_musicxml_and_sequence(self, musicxml, sequence_proto):
     """Compares MusicXMLDocument object against a sequence proto.
 
     Args:
@@ -190,7 +190,7 @@ class MusicXMLParserTest(tf.test.TestCase):
                              sequence_tempo.time)
 
     # Test parts/instruments.
-    seq_parts = defaultdict(list)
+    seq_parts = collections.defaultdict(list)
     for seq_note in sequence_proto.notes:
       seq_parts[seq_note.part].append(seq_note)
 
@@ -229,13 +229,13 @@ class MusicXMLParserTest(tf.test.TestCase):
             * musicxml_note.note_duration.duration_float(),
             delta=1)
 
-  def checkmusicxmltosequence(self, filename):
+  def check_musicxml_to_sequence(self, filename):
     """Test the translation from MusicXML to Sequence proto."""
     source_musicxml = musicxml_parser.MusicXMLDocument(filename)
     sequence_proto = musicxml_reader.musicxml_to_sequence_proto(source_musicxml)
-    self.checkmusicxmlandsequence(source_musicxml, sequence_proto)
+    self.check_musicxml_and_sequence(source_musicxml, sequence_proto)
 
-  def checkFMajorScale(self, filename, part_name):
+  def check_fmajor_scale(self, filename, part_name):
     """Verify MusicXML scale file.
 
     Verify that it contains the correct pitches (sounding pitch) and durations.
@@ -294,12 +294,12 @@ class MusicXMLParserTest(tf.test.TestCase):
 
   def testsimplemusicxmltosequence(self):
     """Test the simple flute scale MusicXML file."""
-    self.checkmusicxmltosequence(self.flute_scale_filename)
-    self.checkFMajorScale(self.flute_scale_filename, 'Flute')
+    self.check_musicxml_to_sequence(self.flute_scale_filename)
+    self.check_fmajor_scale(self.flute_scale_filename, 'Flute')
 
   def testcomplexmusicxmltosequence(self):
     """Test the complex band score MusicXML file."""
-    self.checkmusicxmltosequence(self.band_score_filename)
+    self.check_musicxml_to_sequence(self.band_score_filename)
 
   def testtransposedxmltosequence(self):
     """Test the translation from transposed MusicXML to Sequence proto.
@@ -313,8 +313,8 @@ class MusicXMLParserTest(tf.test.TestCase):
         self.clarinet_scale_filename)
     untransposed_proto = musicxml_reader.musicxml_to_sequence_proto(
         untransposed_musicxml)
-    self.checkmusicxmlandsequence(transposed_musicxml, untransposed_proto)
-    self.checkFMajorScale(self.clarinet_scale_filename, 'Clarinet in Bb')
+    self.check_musicxml_and_sequence(transposed_musicxml, untransposed_proto)
+    self.check_fmajor_scale(self.clarinet_scale_filename, 'Clarinet in Bb')
 
   def testcompressedmxlunicodefilename(self):
     """Test an MXL file containing a unicode filename within its zip archive."""
@@ -336,8 +336,8 @@ class MusicXMLParserTest(tf.test.TestCase):
         self.compressed_filename)
     uncompressed_proto = musicxml_reader.musicxml_to_sequence_proto(
         uncompressed_musicxml)
-    self.checkmusicxmlandsequence(compressed_musicxml, uncompressed_proto)
-    self.checkFMajorScale(self.flute_scale_filename, 'Flute')
+    self.check_musicxml_and_sequence(compressed_musicxml, uncompressed_proto)
+    self.check_fmajor_scale(self.flute_scale_filename, 'Flute')
 
   def testmultiplecompressedxmltosequence(self):
     """Test the translation from compressed MusicXML with multiple rootfiles.
@@ -352,12 +352,12 @@ class MusicXMLParserTest(tf.test.TestCase):
         self.multiple_rootfile_compressed_filename)
     uncompressed_proto = musicxml_reader.musicxml_to_sequence_proto(
         uncompressed_musicxml)
-    self.checkmusicxmlandsequence(compressed_musicxml, uncompressed_proto)
-    self.checkFMajorScale(self.flute_scale_filename, 'Flute')
+    self.check_musicxml_and_sequence(compressed_musicxml, uncompressed_proto)
+    self.check_fmajor_scale(self.flute_scale_filename, 'Flute')
 
   def testrhythmdurationsxmltosequence(self):
     """Test the rhythm durations MusicXML file."""
-    self.checkmusicxmltosequence(self.rhythm_durations_filename)
+    self.check_musicxml_to_sequence(self.rhythm_durations_filename)
 
   def testFluteScale(self):
     """Verify properties of the flute scale."""

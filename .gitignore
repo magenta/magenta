@@ -1,4 +1,5 @@
 *.pyc
-/bazel-*
+*.egg
+.eggs/
 .ipynb_checkpoints/
 *.swp

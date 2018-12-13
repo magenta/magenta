@@ -73,8 +73,7 @@ def _wav_to_cqt(wav_audio, hparams):
           hop_length=hparams.spec_hop_length,
           fmin=hparams.spec_fmin,
           n_bins=hparams.spec_n_bins,
-          bins_per_octave=hparams.cqt_bins_per_octave,
-          real=False),
+          bins_per_octave=hparams.cqt_bins_per_octave),
       dtype=np.float32)
 
   # Transpose so that the data is in [frame, bins] format.
@@ -240,7 +239,7 @@ def jitter_label_op(sequence_tensor, jitter_amount_sec):
 
   def jitter_label(sequence_tensor):
     sequence = music_pb2.NoteSequence.FromString(sequence_tensor)
-    sequence, _ = mm.sequences_lib.shift_sequence_times(
+    sequence = mm.sequences_lib.shift_sequence_times(
         sequence, jitter_amount_sec)
     return sequence.SerializeToString()
 

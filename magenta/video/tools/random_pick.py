@@ -15,6 +15,7 @@
 
 Only useful if used with the --limit flag unless it will copy the whole folder
 """
+from __future__ import print_function
 
 import argparse
 import glob
@@ -64,16 +65,16 @@ def random_pick(path_in, path_out, limit, delete):
     nothing
   """
   if path_in == path_out:
-    print 'path in == path out, that is not allowed, quiting'
+    print('path in == path out, that is not allowed, quiting')
     quit()
 
   path = '{}/*'.format(path_in)
-  print 'looking for all files in', path
+  print('looking for all files in', path)
   files = glob.glob(path)
   file_count = len(files)
-  print 'found ', file_count, 'files'
+  print('found ', file_count, 'files')
   if limit > 0:
-    print 'will use limit of', limit, 'files'
+    print('will use limit of', limit, 'files')
     shuffle(files)
     files = files[:limit]
 
@@ -85,13 +86,13 @@ def random_pick(path_in, path_out, limit, delete):
 
     try:
       if delete:
-        print i, '/', limit, '  moving', image_file, 'to', file_out
+        print(i, '/', limit, '  moving', image_file, 'to', file_out)
         move(image_file, file_out)
       else:
-        print i, '/', limit, '  copying', image_file, 'to', file_out
+        print(i, '/', limit, '  copying', image_file, 'to', file_out)
         copyfile(image_file, file_out)
     except:  # pylint: disable=bare-except
-      print """can't pick file""", image_file, 'to', file_out
+      print("""can't pick file""", image_file, 'to', file_out)
 
 
 if __name__ == '__main__':

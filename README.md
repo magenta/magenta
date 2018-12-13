@@ -35,12 +35,12 @@ These instructions will assume you are using Anaconda.
 
 Note that if you want to enable GPU support, you should follow the [GPU Installation](#gpu-installation) instructions below.
 
-#### Automated Install
+#### Automated Install (w/ Anaconda)
 
 If you are running Mac OS X or Ubuntu, you can try using our automated
 installation script. Just paste the following command into your terminal.
 
-```
+```bash
 curl https://raw.githubusercontent.com/tensorflow/magenta/master/magenta/tools/magenta-install.sh > /tmp/magenta-install.sh
 bash /tmp/magenta-install.sh
 ```
@@ -54,40 +54,25 @@ Jupyter notebooks, and the Magenta scripts are installed in your path!
 Note that you will need to run `source activate magenta` to use Magenta every
 time you open a new terminal window.
 
-#### Manual Install
+#### Manual Install (w/o Anaconda)
 
 If the automated script fails for any reason, or you'd prefer to install by
 hand, do the following steps.
 
-First, download the
-[Python 2.7 Miniconda installer](http://conda.pydata.org/miniconda.html) (you
-can skip this step if you already have any variant of conda installed).
-
-Next, create and activate a Magenta conda environment using Python 2.7 with
-Jupyter notebook support:
-
-```
-conda create -n magenta python=2.7 jupyter
-source activate magenta
-```
-
 Install the Magenta pip package:
 
-```
+```bash
 pip install magenta
 ```
 
 **NOTE**: In order to install the `rtmidi` package that we depend on, you may need to install headers for some sound libraries. On Linux, this command should install the necessary packages:
 
-```
+```bash
 sudo apt-get install build-essential libasound2-dev libjack-dev
 ```
 
 The Magenta libraries are now available for use within Python programs and
 Jupyter notebooks, and the Magenta scripts are installed in your path!
-
-**NOTE**: You will need to run `source activate magenta` to use Magenta every
-time you open a new terminal window.
 
 #### GPU Installation
 
@@ -101,7 +86,7 @@ https://www.tensorflow.org/install/install_linux#nvidia_requirements_to_run_tens
 Next, follow the [Manual Install](#manual-install) instructions, but install the
 `magenta-gpu` package instead of the `magenta` package:
 
-```
+```bash
 pip install magenta-gpu
 ```
 
@@ -115,7 +100,7 @@ Another way to try out Magenta is to use our Docker container.
 First, [install Docker](https://docs.docker.com/engine/installation/). Next, run
 this command:
 
-```
+```bash
 docker run -it -p 6006:6006 -v /tmp/magenta:/magenta-data tensorflow/magenta
 ```
 
@@ -134,7 +119,7 @@ The Docker image also includes several pre-trained models in
 `/magenta/models`. For example, to generate some MIDI files using the
 [Lookback Melody RNN](magenta/models/melody_rnn#lookback), run this command:
 
-```
+```bash
 melody_rnn_generate \
   --config=lookback_rnn \
   --bundle_file=/magenta-models/lookback_rnn.mag \
@@ -158,7 +143,7 @@ full Development Environment.
 
 You may find at some point after installation that we have released a new version of Magenta and your Docker image is out of date. To update the image to the latest version, run:
 
-```
+```bash
 docker pull tensorflow/magenta
 ```
 
@@ -178,61 +163,46 @@ After you've trained one of the models above, you can use our [MIDI interface](m
 We also have created several [demos](https://github.com/tensorflow/magenta-demos) that provide a UI for this interface, making it easier to use (e.g., the browser-based [AI Jam](https://github.com/tensorflow/magenta-demos/tree/master/ai-jam-js)).
 
 ## Development Environment
-If you want to develop on Magenta, you'll need to set up the full Development
-Environment.
-
-The installation has three components. You are going to need Bazel to build packages, TensorFlow to run models, and an up-to-date version of this repository.
+If you want to develop on Magenta, you'll need to set up the full Development Environment.
 
 First, clone this repository:
 
-```
+```bash
 git clone https://github.com/tensorflow/magenta.git
 ```
 
-Next, [install Bazel](https://bazel.build/docs/install.html). We require the latest version, currently 0.13.1.
+Next, install the dependencies by changing to the base directory and executing the setup command:
 
-You will also need to install some required python dependencies. We recommend
-using a conda environment and installing with pip. See [setup.py](magenta/tools/pip/setup.py) for the current list of required dependencies.
-
-Finally, [install TensorFlow](https://www.tensorflow.org/get_started/os_setup.html).  To see what version of TensorFlow the code currently requires, check the dependency listed in [setup.py](magenta/tools/pip/setup.py).
-
-Also, verify that your environment uses a supported Python version: >=2.7 for Python 2 or >=3.5 for Python 3.
-
-After that's done, change directory to `./magenta` or your clone path:
-
-```
-cd ./magenta
+```bash
+python setup.py develop
 ```
 
-And then run the tests with this command:
+You can now edit the files and run scripts by calling Python as usual. For example, this is how you would run the `melody_rnn_generate` script from the base directory:
 
-```
-bazel test //magenta/...
-```
-
-To build and install the pip package from source, follow the
-[pip build instructions](magenta/tools/pip#building-the-package). You can also
-use our [build script](magenta/tools/build.sh).
-
-If you want to build and run commands with Bazel, you'll need to run the package
-that the build step generates. There are two ways to do this. The first option is
-to look at the output of the build command to find the path to the generated file.
-For example, if you want to build the melody_rnn_generate script:
-
-```
-$ bazel build //magenta/models/melody_rnn:melody_rnn_generate
-INFO: Found 1 target...
-Target //magenta/models/melody_rnn:melody_rnn_generate up-to-date:
-  bazel-bin/magenta/models/melody_rnn/melody_rnn_generate
-
-$ bazel-bin/magenta/models/melody_rnn/melody_rnn_generate --config=...
+```bash
+python magenta/models/melody_rnn/melody_rnn_generate --config=...
 ```
 
-The other option is to use the `bazel run` command, which combines the two steps
-above. Note that if you use `bazel run`, you'll need to add an extra `--` before
-the command line arguments to differentiate between Bazel arguments and arguments
-to the command.
+You can also install the (potentially modified) package with:
 
+```bash
+python setup.py install
 ```
-$ bazel run //magenta/models/melody_rnn:melody_rnn_generate -- --config=...
+
+Before creating a pull request, please also test your changes with:
+
+```bash
+python setup.py test
+```
+
+## PIP Release
+
+To build a new version for pip, bump the version and then run:
+
+```bash
+python setup.py test
+python setup.py bdist_wheel --universal
+python setup.py bdist_wheel --universal --gpu
+twine upload dist/magenta-N.N.N-py2.py3-none-any.whl
+twine upload dist/magenta_gpu-N.N.N-py2.py3-none-any.whl
 ```

@@ -416,7 +416,7 @@ def get_named_config(name, overrides=None):
   """
   cfg = _named_configs[name]
 
-  if overrides is not None and len(overrides.strip()):
+  if overrides is not None and overrides.strip():
     overrides = [p.split("=") for p in overrides.split(",")]
     for key, val in overrides:
       val_type = type(getattr(cfg, key))

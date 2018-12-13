@@ -101,7 +101,7 @@ class MelodyOneHotEncoding(encoder_decoder.OneHotEncoding):
     """
     if event < -NUM_SPECIAL_MELODY_EVENTS:
       raise ValueError('invalid melody event value: %d' % event)
-    if (event >= 0) and (event < self._min_note):
+    if 0 <= event < self._min_note:
       raise ValueError('melody event less than min note: %d < %d' % (
           event, self._min_note))
     if event >= self._max_note:

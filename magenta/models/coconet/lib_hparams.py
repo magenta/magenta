@@ -241,7 +241,7 @@ class Straight(Architecture):
   """A convolutional net where each layer has the same number of filters."""
   key = 'straight'
 
-  def __init__(self, input_depth, num_layers, num_filters, num_pitches,
+  def __init__(self, input_depth, num_layers, num_filters, num_pitches,  # pylint:disable=unused-argument
                output_depth, **kwargs):
     tf.logging.info('model_type=%s, input_depth=%d, output_depth=%d',
                     self.key, input_depth, output_depth)
@@ -276,7 +276,7 @@ class Dilated(Architecture):
   """A dilated convnet where each layer has the same number of filters."""
   key = 'dilated'
 
-  def __init__(self, input_depth, num_layers, num_filters, num_pitches,
+  def __init__(self, input_depth, num_layers, num_filters, num_pitches,  # pylint:disable=unused-argument
                output_depth, **kwargs):
     tf.logging.info('model_type=%s, input_depth=%d, output_depth=%d',
                     self.key, input_depth, output_depth)

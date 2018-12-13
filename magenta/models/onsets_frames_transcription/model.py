@@ -29,7 +29,7 @@ from magenta.common import tf_utils
 
 def conv_net_kelz(inputs):
   """Builds the ConvNet from Kelz 2016."""
-  with slim.arg_scope(
+  with slim.arg_scope(  # pylint:disable=not-context-manager
       [slim.conv2d, slim.fully_connected],
       activation_fn=tf.nn.relu,
       weights_initializer=tf.contrib.layers.variance_scaling_initializer(
@@ -99,7 +99,7 @@ def get_model(transcription_data, hparams, is_training=True):
         'If stop_activation_gradient is true, activation_loss must be true.')
 
   losses = {}
-  with slim.arg_scope([slim.batch_norm, slim.dropout], is_training=is_training):
+  with slim.arg_scope([slim.batch_norm, slim.dropout], is_training=is_training):  # pylint:disable=not-context-manager
     with tf.variable_scope('onsets'):
       onset_outputs = acoustic_model(
           spec, hparams, lstm_units=hparams.onset_lstm_units, lengths=lengths)

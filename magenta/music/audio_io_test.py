@@ -45,9 +45,9 @@ class AudioIoTest(tf.test.TestCase):
     # Check content size.
     y = audio_io.wav_data_to_samples(self.wav_data, sample_rate=16000)
     y_mono = audio_io.wav_data_to_samples(self.wav_data_mono, sample_rate=22050)
-    self.assertEquals(
+    self.assertEqual(
         round(16000.0 * w.getnframes() / w.getframerate()), y.shape[0])
-    self.assertEquals(
+    self.assertEqual(
         round(22050.0 * w_mono.getnframes() / w_mono.getframerate()),
         y_mono.shape[0])
 

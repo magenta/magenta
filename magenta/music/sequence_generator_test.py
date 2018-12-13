@@ -24,24 +24,21 @@ from magenta.music import sequence_generator
 from magenta.protobuf import generator_pb2
 
 
-class TestModel(model.BaseModel):
-
-  def __init__(self):
-    super(TestModel, self).__init__()
+class Model(model.BaseModel):
 
   def _build_graph_for_generation(self):
     pass
 
 
-class TestSequenceGenerator(sequence_generator.BaseSequenceGenerator):
+class SeuenceGenerator(sequence_generator.BaseSequenceGenerator):
 
   def __init__(self, checkpoint=None, bundle=None):
     details = generator_pb2.GeneratorDetails(
         id='test_generator',
         description='Test Generator')
 
-    super(TestSequenceGenerator, self).__init__(
-        TestModel(), details, checkpoint=checkpoint,
+    super(SeuenceGenerator, self).__init__(
+        Model(), details, checkpoint=checkpoint,
         bundle=bundle)
 
   def _generate(self):
@@ -58,12 +55,12 @@ class SequenceGeneratorTest(tf.test.TestCase):
         metagraph_file=b'foo.ckpt.meta')
 
     with self.assertRaises(sequence_generator.SequenceGeneratorException):
-      TestSequenceGenerator(checkpoint='foo.ckpt', bundle=bundle)
+      SeuenceGenerator(checkpoint='foo.ckpt', bundle=bundle)
     with self.assertRaises(sequence_generator.SequenceGeneratorException):
-      TestSequenceGenerator(checkpoint=None, bundle=None)
+      SeuenceGenerator(checkpoint=None, bundle=None)
 
-    TestSequenceGenerator(checkpoint='foo.ckpt')
-    TestSequenceGenerator(bundle=bundle)
+    SeuenceGenerator(checkpoint='foo.ckpt')
+    SeuenceGenerator(bundle=bundle)
 
   def testUseMatchingGeneratorId(self):
     bundle = generator_pb2.GeneratorBundle(
@@ -72,17 +69,17 @@ class SequenceGeneratorTest(tf.test.TestCase):
         checkpoint_file=[b'foo.ckpt'],
         metagraph_file=b'foo.ckpt.meta')
 
-    TestSequenceGenerator(bundle=bundle)
+    SeuenceGenerator(bundle=bundle)
 
     bundle.generator_details.id = 'blarg'
 
     with self.assertRaises(sequence_generator.SequenceGeneratorException):
-      TestSequenceGenerator(bundle=bundle)
+      SeuenceGenerator(bundle=bundle)
 
   def testGetBundleDetails(self):
     # Test with non-bundle generator.
-    seq_gen = TestSequenceGenerator(checkpoint='foo.ckpt')
-    self.assertEquals(None, seq_gen.bundle_details)
+    seq_gen = SeuenceGenerator(checkpoint='foo.ckpt')
+    self.assertEqual(None, seq_gen.bundle_details)
 
     # Test with bundle-based generator.
     bundle_details = generator_pb2.GeneratorBundle.BundleDetails(
@@ -93,8 +90,8 @@ class SequenceGeneratorTest(tf.test.TestCase):
         bundle_details=bundle_details,
         checkpoint_file=[b'foo.ckpt'],
         metagraph_file=b'foo.ckpt.meta')
-    seq_gen = TestSequenceGenerator(bundle=bundle)
-    self.assertEquals(bundle_details, seq_gen.bundle_details)
+    seq_gen = SeuenceGenerator(bundle=bundle)
+    self.assertEqual(bundle_details, seq_gen.bundle_details)
 
 
 if __name__ == '__main__':

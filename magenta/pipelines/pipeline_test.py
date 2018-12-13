@@ -70,7 +70,7 @@ class PipelineTest(tf.test.TestCase):
 
     file_iterator = pipeline.file_iterator(root_dir, 'ext', recurse=True)
 
-    self.assertEqual(set([contents for _, contents in target_files]),
+    self.assertEqual(set(contents for _, contents in target_files),
                      set(file_iterator))
 
   def testFileIteratorNotRecursive(self):
@@ -94,7 +94,7 @@ class PipelineTest(tf.test.TestCase):
 
     file_iterator = pipeline.file_iterator(root_dir, 'ext', recurse=False)
 
-    self.assertEqual(set([contents for _, contents in target_files]),
+    self.assertEqual(set(contents for _, contents in target_files),
                      set(file_iterator))
 
   def testTFRecordIterator(self):
@@ -125,7 +125,7 @@ class PipelineTest(tf.test.TestCase):
 
     dataset_2_reader = tf.python_io.tf_record_iterator(dataset_2_dir)
     self.assertEqual(
-        set([('serialized:%s_C' % s).encode('utf-8') for s in strings]),
+        set(('serialized:%s_C' % s).encode('utf-8') for s in strings),
         set(dataset_2_reader))
 
   def testPipelineIterator(self):
@@ -137,7 +137,7 @@ class PipelineTest(tf.test.TestCase):
             [MockStringProto(s + '_B') for s in strings]),
         set(result['dataset_1']))
     self.assertEqual(
-        set([MockStringProto(s + '_C') for s in strings]),
+        set(MockStringProto(s + '_C') for s in strings),
         set(result['dataset_2']))
 
   def testPipelineKey(self):
@@ -206,7 +206,7 @@ class PipelineTest(tf.test.TestCase):
     pipe.transform('hello')
     stats = pipe.get_stats()
     self.assertEqual(
-        set([(stat.name, stat.count) for stat in stats]),
+        set((stat.name, stat.count) for stat in stats),
         set([('TestName_counter_1', 5), ('TestName_counter_2', 10)]))
 
   def testPipelineDefaultName(self):
@@ -227,7 +227,7 @@ class PipelineTest(tf.test.TestCase):
     pipe.transform('hello')
     stats = pipe.get_stats()
     self.assertEqual(
-        set([(stat.name, stat.count) for stat in stats]),
+        set((stat.name, stat.count) for stat in stats),
         set([('TestPipeline123_counter_1', 5),
              ('TestPipeline123_counter_2', 10)]))
 

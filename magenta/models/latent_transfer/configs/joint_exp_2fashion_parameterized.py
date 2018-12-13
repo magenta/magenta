@@ -16,9 +16,8 @@
 
 # pylint:disable=invalid-name
 
-from functools import partial
-
-import temsorflow as tf
+import functools
+import tensorflow as tf
 
 from magenta.models.latent_transfer import model_joint
 
@@ -29,13 +28,13 @@ n_latent_shared = FLAGS.n_latent_shared
 layers = (128,) * 4
 batch_size = 128
 
-Encoder = partial(
+Encoder = functools.partial(
     model_joint.EncoderLatentFull,
     input_size=n_latent,
     output_size=n_latent_shared,
     layers=layers)
 
-Decoder = partial(
+Decoder = functools.partial(
     model_joint.DecoderLatentFull,
     input_size=n_latent_shared,
     output_size=n_latent,
