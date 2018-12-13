@@ -33,6 +33,7 @@ class SymbolTupleModality(modality.Modality):
 
   def __init__(self, model_hparams, vocab_size=None):
     """Override to support tuple vocabulary."""
+    # pylint: disable=super-init-not-called
     self._model_hparams = model_hparams
     if vocab_size is not None and hasattr(model_hparams, 'vocab_divisor'):
       # Extend the vocabulary of the last tuple element.
