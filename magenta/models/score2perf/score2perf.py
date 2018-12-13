@@ -34,7 +34,7 @@ from magenta.music import chord_symbols_lib
 from magenta.music import sequences_lib
 
 if sys.version_info.major == 2:
-  from magenta.models.score2perf import datagen_beam
+  from magenta.models.score2perf import datagen_beam  # pylint:disable=g-import-not-at-top
 
 # TODO(iansimon): figure out the best way not to hard-code these constants
 
