@@ -35,7 +35,6 @@ REQUIRED_PACKAGES = [
     'IPython',
     'absl-py',
     'Pillow >= 3.4.2',
-    'apache-beam >= 2.8.0',
     'backports.tempfile',
     'bokeh >= 0.12.0',
     'intervaltree >= 2.1.0',
@@ -61,6 +60,9 @@ if gpu_mode:
   REQUIRED_PACKAGES.append('tensorflow-gpu >= 1.12.0')
 else:
   REQUIRED_PACKAGES.append('tensorflow >= 1.12.0')
+
+if sys.version_info.major == 2:
+  REQUIRED_PACKAGES.append('apache-beam >= 2.8.0')
 
 # pylint:disable=line-too-long
 CONSOLE_SCRIPTS = [
