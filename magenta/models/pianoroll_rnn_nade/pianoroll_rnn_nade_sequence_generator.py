@@ -15,8 +15,6 @@
 
 from functools import partial
 
-# internal imports
-
 from magenta.models.pianoroll_rnn_nade import pianoroll_rnn_nade_model
 import magenta.music as mm
 

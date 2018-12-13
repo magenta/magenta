@@ -23,12 +23,15 @@ package tensorflow.magenta;
 // For details see https://www.midi.org/specifications.
 // Note that repeated fields in this proto are not guaranteed to be sorted
 // by time.
-// Next tag: 18
+// Next tag: 22
 message NoteSequence {
   // Unique id.
   string id = 1;
   // The path of the file relative to the root of the collection.
   string filename = 2;
+  // A unique id to differentiate multiple pieces taken from the same input
+  // file.
+  int64 reference_number = 18;
   // The collection from which the file comes. This can be shorthand e.g.
   // "bach". One purpose is to allow for easy selection of all or some files
   // from a particular source.
@@ -48,8 +51,20 @@ message NoteSequence {
   // A Note combines a MIDI NoteOn and NoteOff into one event with duration.
   repeated Note notes = 8;
   // The total time of the Sequence in seconds.
+  // Currently the total time is defined as the end time of the last note in the
+  // sequence, and any control changes or rests that occur after the end of the
+  // last note are not included in this time.
+  // Note: In the future, this time will be allowed to extend beyond the last
+  // note end time in order to represent padding. Magenta.js already uses this
+  // interpretation of the field.
+  // TODO(adarob): Update existing code to allow for this new interpretation.
   double total_time = 9;
   // The total time of the sequence in quantized steps.
+  // This has the same meaning as the total_time field.
+  // Note: In the future, steps will be allowed to extend beyond the last note
+  // end steps in order to represent padding. Magenta.js already uses this
+  // interpretation of the field.
+  // TODO(adarob): Update existing code to allow for this new interpretation.
   int64 total_quantized_steps = 16;
 
   // MIDI-specific events that are generally relevant for performance, metadata
@@ -66,12 +81,21 @@ message NoteSequence {
   // Arbitrary textual annotations.
   repeated TextAnnotation text_annotations = 14;
 
+  // Annotations indicating sections within a piece.
+  repeated SectionAnnotation section_annotations = 20;
+
+  // Instructions on how to play back the sections within a piece.
+  repeated SectionGroup section_groups = 21;
+
   // Information about how/if this sequence was quantized.
   QuantizationInfo quantization_info = 15;
 
   // Information about how this sequence was extracted from a larger source
   // sequence (if that was the case).
   SubsequenceInfo subsequence_info = 17;
+
+  // Sequence metadata.
+  SequenceMetadata sequence_metadata = 19;
 
   // Next tag: 15
   message Note {
@@ -197,6 +221,11 @@ message NoteSequence {
       MAJOR = 0;
       MINOR = 1;
       NOT_SPECIFIED = 2;
+      MIXOLYDIAN = 3;
+      DORIAN = 4;
+      PHRYGIAN = 5;
+      LYDIAN = 6;
+      LOCRIAN = 7;
     }
   }
 
@@ -222,6 +251,8 @@ message NoteSequence {
   message ControlChange {
     // Time in seconds.
     double time = 1;
+    // Quantized time in steps.
+    int64 quantized_step = 7;
     // Control (or "controller") number e.g. 0x4 = Foot Controller.
     int32 control_number = 2;
     // The value for that controller in the range (0, 127).
@@ -278,6 +309,10 @@ message NoteSequence {
       MAGENTA_MUSIC_XML = 3;
       // Magenta's parser for MusicNet data.
       MAGENTA_MUSICNET = 4;
+      // Magenta's parser for ABC files.
+      MAGENTA_ABC = 5;
+      // Javascript Tonejs/MidiConvert.
+      TONEJS_MIDI_CONVERT = 6;
     }
   }
 
@@ -306,6 +341,14 @@ message NoteSequence {
       // Some examples of chord symbol text we consider reasonable: 'C#', 'A7',
       // 'Fm7b5', 'N.C.', 'G(no3)', 'C/Bb', 'D-9(b5)', 'Gadd2', 'Abm(maj7)'.
       CHORD_SYMBOL = 1;
+      // Annotation used to indicate a "beat" within a performance. This is
+      // useful when beat information cannot be derived from the time signature
+      // and tempo, as is the case for live performances.
+      // This annotation does not imply that the beat is a downbeat, and it is
+      // undefined what kind of metrical value the beat has (e.g., quarter
+      // note).
+      // The text content of this annotation can be application-specific.
+      BEAT = 2;
     }
   }
 
@@ -328,4 +371,55 @@ message NoteSequence {
     // sequence.
     double end_time_offset = 2;
   }
+
+  // Information about a section within a piece.
+  // A section is considered to be active from its indicated time until either a
+  // new section is defined or the end of the piece is reached.
+  message SectionAnnotation {
+    // Time in seconds.
+    double time = 1;
+    // The id of the section.
+    // Section ids must be unique within a piece.
+    int64 section_id = 4;
+  }
+
+  // A section.
+  // Either a section_id, which references a SectionAnnotation or a nested
+  // SectionGroup.
+  message Section {
+    oneof section_type {
+      int64 section_id = 1;
+      SectionGroup section_group = 2;
+    }
+  }
+
+  // A group of sections and an indication of how many times to play them.
+  // Note that a SectionGroup may contain nested SectionGroups. This is to
+  // capture some of the more complex structure in ABC files with part
+  // directives like P:((AB)3(CD)3)2.
+  message SectionGroup {
+    repeated Section sections = 1;
+    int32 num_times = 2;
+  }
+}
+
+// Stores metadata associated with a sequence.
+message SequenceMetadata {
+  // Title of the piece.
+  string title = 1;
+
+  // Primary artist of the sequence.
+  string artist = 2;
+
+  // Genre(s) of the sequence.
+  repeated string genre = 3;
+
+  // Composer of the sequece. Some pieces have multiple composers.
+  repeated string composers = 4;
+}
+
+// Stores an inclusive range of velocities.
+message VelocityRange {
+  int32 min = 1;
+  int32 max = 2;
 }

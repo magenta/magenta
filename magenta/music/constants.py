@@ -18,6 +18,9 @@ DEFAULT_QUARTERS_PER_MINUTE = 120.0
 DEFAULT_STEPS_PER_BAR = 16  # 4/4 music sampled at 4 steps per quarter note.
 DEFAULT_STEPS_PER_QUARTER = 4
 
+# Default absolute quantization.
+DEFAULT_STEPS_PER_SECOND = 100
+
 # Standard pulses per quarter.
 # https://en.wikipedia.org/wiki/Pulses_per_quarter_note
 STANDARD_PPQ = 220
@@ -37,6 +40,14 @@ NOTES_PER_OCTAVE = 12
 # Velocity-related constants.
 MIN_MIDI_VELOCITY = 1  # Inclusive.
 MAX_MIDI_VELOCITY = 127  # Inclusive.
+
+# Program-related constants.
+MIN_MIDI_PROGRAM = 0
+MAX_MIDI_PROGRAM = 127
+
+# MIDI programs that typically sound unpitched.
+UNPITCHED_PROGRAMS = (
+    list(range(96, 104)) + list(range(112, 120)) + list(range(120, 128)))
 
 # Chord symbol for "no chord".
 NO_CHORD = 'N.C.'

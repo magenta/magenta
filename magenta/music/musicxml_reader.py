@@ -16,8 +16,6 @@
 Input wrappers for converting MusicXML into tensorflow.magenta.NoteSequence.
 """
 
-# internal imports
-
 from magenta.music import musicxml_parser
 from magenta.protobuf import music_pb2
 

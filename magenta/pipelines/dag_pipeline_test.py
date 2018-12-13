@@ -19,7 +19,6 @@ from __future__ import print_function
 
 import collections
 
-# internal imports
 import tensorflow as tf
 
 from magenta.pipelines import dag_pipeline
@@ -370,7 +369,7 @@ class DAGPipelineTest(tf.test.TestCase):
       def __init__(self):
         pipeline.Pipeline.__init__(self, Type0, Type1)
 
-      def transform(self, input_dict):
+      def transform(self, unused_input_dict):
         return []
 
     q, r, s = UnitQ(), UnitR(), UnitS()

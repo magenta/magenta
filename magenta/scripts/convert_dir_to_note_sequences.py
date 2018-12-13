@@ -16,21 +16,17 @@ r""""Converts music files to NoteSequence protos and writes TFRecord file.
 Currently supports MIDI (.mid, .midi) and MusicXML (.xml, .mxl) files.
 
 Example usage:
-  $ bazel build magenta/scripts:convert_dir_to_note_sequences
-
-  $ ./bazel-bin/magenta/scripts/convert_dir_to_note_sequences \
+  $ python magenta/scripts/convert_dir_to_note_sequences.py \
     --input_dir=/path/to/input/dir \
     --output_file=/path/to/tfrecord/file \
-    --num_threads=4 \
     --log=INFO
 """
 
 import os
 
-# internal imports
-from concurrent import futures
 import tensorflow as tf
 
+from magenta.music import abc_parser
 from magenta.music import midi_io
 from magenta.music import musicxml_reader
 from magenta.music import note_sequence_io
@@ -44,21 +40,19 @@ tf.app.flags.DEFINE_string('output_file', None,
                            'if it already exists.')
 tf.app.flags.DEFINE_bool('recursive', False,
                          'Whether or not to recurse into subdirectories.')
-tf.app.flags.DEFINE_integer('num_threads', 1,
-                            'Number of worker threads to run in parallel.')
 tf.app.flags.DEFINE_string('log', 'INFO',
                            'The threshold for what messages will be logged '
                            'DEBUG, INFO, WARN, ERROR, or FATAL.')
 
 
-def queue_conversions(root_dir, sub_dir, pool, recursive=False):
-  """Queues callables for converting files to NoteSequences via threadpool.
+def convert_files(root_dir, sub_dir, writer, recursive=False):
+  """Converts files.
 
   Args:
     root_dir: A string specifying a root directory.
     sub_dir: A string specifying a path to a directory under `root_dir` in which
         to convert contents.
-    pool: A ThreadPoolExecutor submit the conversion callables to.
+    writer: A TFRecord writer
     recursive: A boolean specifying whether or not recursively convert files
         contained in subdirectories of the specified directory.
 
@@ -68,20 +62,39 @@ def queue_conversions(root_dir, sub_dir, pool, recursive=False):
   dir_to_convert = os.path.join(root_dir, sub_dir)
   tf.logging.info("Converting files in '%s'.", dir_to_convert)
   files_in_dir = tf.gfile.ListDirectory(os.path.join(dir_to_convert))
-  future_to_path = {}
   recurse_sub_dirs = []
+  written_count = 0
   for file_in_dir in files_in_dir:
-    tf.logging.log_every_n(tf.logging.INFO, 'Queued %d files for conversion.',
-                           1000, len(future_to_path))
+    tf.logging.log_every_n(tf.logging.INFO, '%d files converted.',
+                           1000, written_count)
     full_file_path = os.path.join(dir_to_convert, file_in_dir)
     if (full_file_path.lower().endswith('.mid') or
         full_file_path.lower().endswith('.midi')):
-      future_to_path[pool.submit(
-          convert_midi, root_dir, sub_dir, full_file_path)] = full_file_path
+      try:
+        sequence = convert_midi(root_dir, sub_dir, full_file_path)
+      except Exception as exc:  # pylint: disable=broad-except
+        tf.logging.fatal('%r generated an exception: %s', full_file_path, exc)
+        continue
+      if sequence:
+        writer.write(sequence)
     elif (full_file_path.lower().endswith('.xml') or
           full_file_path.lower().endswith('.mxl')):
-      future_to_path[pool.submit(
-          convert_musicxml, root_dir, sub_dir, full_file_path)] = full_file_path
+      try:
+        sequence = convert_musicxml(root_dir, sub_dir, full_file_path)
+      except Exception as exc:  # pylint: disable=broad-except
+        tf.logging.fatal('%r generated an exception: %s', full_file_path, exc)
+        continue
+      if sequence:
+        writer.write(sequence)
+    elif full_file_path.lower().endswith('.abc'):
+      try:
+        sequences = convert_abc(root_dir, sub_dir, full_file_path)
+      except Exception as exc:  # pylint: disable=broad-except
+        tf.logging.fatal('%r generated an exception: %s', full_file_path, exc)
+        continue
+      if sequences:
+        for sequence in sequences:
+          writer.write(sequence)
     else:
       if recursive and tf.gfile.IsDirectory(full_file_path):
         recurse_sub_dirs.append(os.path.join(sub_dir, file_in_dir))
@@ -90,9 +103,7 @@ def queue_conversions(root_dir, sub_dir, pool, recursive=False):
             'Unable to find a converter for file %s', full_file_path)
 
   for recurse_sub_dir in recurse_sub_dirs:
-    future_to_path.update(queue_conversions(
-        root_dir, recurse_sub_dir, pool, recursive))
-  return future_to_path
+    convert_files(root_dir, recurse_sub_dir, writer, recursive)
 
 
 def convert_midi(root_dir, sub_dir, full_file_path):
@@ -150,8 +161,44 @@ def convert_musicxml(root_dir, sub_dir, full_file_path):
   return sequence
 
 
-def convert_directory(root_dir, output_file, num_threads,
-                      recursive=False):
+def convert_abc(root_dir, sub_dir, full_file_path):
+  """Converts an abc file to a sequence proto.
+
+  Args:
+    root_dir: A string specifying the root directory for the files being
+        converted.
+    sub_dir: The directory being converted currently.
+    full_file_path: the full path to the file to convert.
+
+  Returns:
+    Either a NoteSequence proto or None if the file could not be converted.
+  """
+  try:
+    tunes, exceptions = abc_parser.parse_abc_tunebook(
+        tf.gfile.FastGFile(full_file_path, 'rb').read())
+  except abc_parser.ABCParseException as e:
+    tf.logging.warning(
+        'Could not parse ABC file %s. It will be skipped. Error was: %s',
+        full_file_path, e)
+    return None
+
+  for exception in exceptions:
+    tf.logging.warning(
+        'Could not parse tune in ABC file %s. It will be skipped. Error was: '
+        '%s', full_file_path, exception)
+
+  sequences = []
+  for idx, tune in tunes.iteritems():
+    tune.collection_name = os.path.basename(root_dir)
+    tune.filename = os.path.join(sub_dir, os.path.basename(full_file_path))
+    tune.id = note_sequence_io.generate_note_sequence_id(
+        '{}_{}'.format(tune.filename, idx), tune.collection_name, 'abc')
+    sequences.append(tune)
+    tf.logging.info('Converted ABC file %s.', full_file_path)
+  return sequences
+
+
+def convert_directory(root_dir, output_file, recursive=False):
   """Converts files to NoteSequences and writes to `output_file`.
 
   Input files found in `root_dir` are converted to NoteSequence protos with the
@@ -162,31 +209,11 @@ def convert_directory(root_dir, output_file, num_threads,
   Args:
     root_dir: A string specifying a root directory.
     output_file: Path to TFRecord file to write results to.
-    num_threads: The number of threads to use for conversions.
     recursive: A boolean specifying whether or not recursively convert files
         contained in subdirectories of the specified directory.
   """
-  with futures.ThreadPoolExecutor(max_workers=num_threads) as pool:
-    future_to_path = queue_conversions(root_dir, '', pool, recursive)
-
-    with note_sequence_io.NoteSequenceRecordWriter(output_file) as writer:
-      sequences_written = 0
-      for future in futures.as_completed(future_to_path):
-        path = future_to_path[future]
-        try:
-          sequence = future.result()
-        except Exception as exc:  # pylint: disable=broad-except
-          tf.logging.fatal('%r generated an exception: %s', path, exc)
-
-        if sequence:
-          writer.write(sequence)
-          sequences_written += 1
-        tf.logging.log_every_n(
-            tf.logging.INFO, "Wrote %d of %d NoteSequence protos to '%s'", 100,
-            sequences_written, len(future_to_path), output_file)
-
-    tf.logging.info("Wrote %d NoteSequence protos to '%s'", sequences_written,
-                    output_file)
+  with note_sequence_io.NoteSequenceRecordWriter(output_file) as writer:
+    convert_files(root_dir, '', writer, recursive)
 
 
 def main(unused_argv):
@@ -206,7 +233,7 @@ def main(unused_argv):
   if output_dir:
     tf.gfile.MakeDirs(output_dir)
 
-  convert_directory(input_dir, output_file, FLAGS.num_threads, FLAGS.recursive)
+  convert_directory(input_dir, output_file, FLAGS.recursive)
 
 
 def console_entry_point():

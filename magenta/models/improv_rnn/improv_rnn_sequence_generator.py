@@ -15,8 +15,6 @@
 
 from functools import partial
 
-# internal imports
-
 from magenta.models.improv_rnn import improv_rnn_model
 import magenta.music as mm
 

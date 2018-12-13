@@ -15,7 +15,6 @@
 
 import copy
 
-# internal imports
 import tensorflow as tf
 
 from magenta.music import constants
@@ -150,47 +149,54 @@ class StretchPipeline(NoteSequencePipeline):
 class TranspositionPipeline(NoteSequencePipeline):
   """Creates transposed versions of the input NoteSequence."""
 
-  def __init__(self, transposition_range, name=None):
+  def __init__(self, transposition_range, min_pitch=constants.MIN_MIDI_PITCH,
+               max_pitch=constants.MAX_MIDI_PITCH, name=None):
     """Creates a TranspositionPipeline.
 
     Args:
       transposition_range: Collection of integer pitch steps to transpose.
+      min_pitch: Integer pitch value below which notes will be considered
+          invalid.
+      max_pitch: Integer pitch value above which notes will be considered
+          invalid.
       name: Pipeline name.
     """
     super(TranspositionPipeline, self).__init__(name=name)
     self._transposition_range = transposition_range
+    self._min_pitch = min_pitch
+    self._max_pitch = max_pitch
 
   def transform(self, sequence):
-    stats = dict([(state_name, statistics.Counter(state_name)) for state_name in
-                  ['skipped_due_to_range_exceeded',
-                   'transpositions_generated']])
+    stats = dict((state_name, statistics.Counter(state_name)) for state_name in
+                 ['skipped_due_to_range_exceeded', 'transpositions_generated'])
 
-    for text_annotation in sequence.text_annotations:
-      if text_annotation.annotation_type == CHORD_SYMBOL:
-        tf.logging.warn('Chord symbols ignored by TranspositionPipeline.')
-        break
+    if sequence.key_signatures:
+      tf.logging.warn('Key signatures ignored by TranspositionPipeline.')
+    if any(note.pitch_name for note in sequence.notes):
+      tf.logging.warn('Pitch names ignored by TranspositionPipeline.')
+    if any(ta.annotation_type == CHORD_SYMBOL
+           for ta in sequence.text_annotations):
+      tf.logging.warn('Chord symbols ignored by TranspositionPipeline.')
 
     transposed = []
     for amount in self._transposition_range:
-      if amount == 0:
-        transposed.append(sequence)
-      else:
-        ts = self._transpose(sequence, amount, stats)
-        if ts is not None:
-          transposed.append(ts)
+      # Note that transpose is called even with a transpose amount of zero, to
+      # ensure that out-of-range pitches are handled correctly.
+      ts = self._transpose(sequence, amount, stats)
+      if ts is not None:
+        transposed.append(ts)
 
     stats['transpositions_generated'].increment(len(transposed))
     self._set_stats(stats.values())
     return transposed
 
-  @staticmethod
-  def _transpose(ns, amount, stats):
+  def _transpose(self, ns, amount, stats):
     """Transposes a note sequence by the specified amount."""
     ts = copy.deepcopy(ns)
     for note in ts.notes:
-      note.pitch += amount
-      if (note.pitch < constants.MIN_MIDI_PITCH or
-          note.pitch > constants.MAX_MIDI_PITCH):
-        stats['skipped_due_to_range_exceeded'].increment()
-        return None
+      if not note.is_drum:
+        note.pitch += amount
+        if note.pitch < self._min_pitch or note.pitch > self._max_pitch:
+          stats['skipped_due_to_range_exceeded'].increment()
+          return None
     return ts

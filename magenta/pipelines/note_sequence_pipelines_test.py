@@ -13,7 +13,6 @@
 # limitations under the License.
 """Tests for note_sequence_pipelines."""
 
-# internal imports
 import tensorflow as tf
 
 from magenta.common import testing_lib as common_testing_lib
@@ -152,10 +151,39 @@ class PipelineUnitsCommonTest(tf.test.TestCase):
     testing_lib.add_track_to_sequence(
         note_sequence, 0,
         [(12, 100, 1.0, 4.0)])
+    testing_lib.add_track_to_sequence(
+        note_sequence, 1,
+        [(36, 100, 2.0, 2.01)],
+        is_drum=True)
     transposed = tp.transform(note_sequence)
     self.assertEqual(2, len(transposed))
+    self.assertEqual(2, len(transposed[0].notes))
+    self.assertEqual(2, len(transposed[1].notes))
     self.assertEqual(12, transposed[0].notes[0].pitch)
     self.assertEqual(13, transposed[1].notes[0].pitch)
+    self.assertEqual(36, transposed[0].notes[1].pitch)
+    self.assertEqual(36, transposed[1].notes[1].pitch)
+
+  def testTranspositionPipelineOutOfRangeNotes(self):
+    note_sequence = common_testing_lib.parse_test_proto(
+        music_pb2.NoteSequence,
+        """
+        time_signatures: {
+          numerator: 4
+          denominator: 4}
+        tempos: {
+          qpm: 60}""")
+    tp = note_sequence_pipelines.TranspositionPipeline(
+        range(-1, 2), min_pitch=0, max_pitch=12)
+    testing_lib.add_track_to_sequence(
+        note_sequence, 0,
+        [(10, 100, 1.0, 2.0), (12, 100, 2.0, 4.0), (13, 100, 4.0, 5.0)])
+    transposed = tp.transform(note_sequence)
+    self.assertEqual(1, len(transposed))
+    self.assertEqual(3, len(transposed[0].notes))
+    self.assertEqual(9, transposed[0].notes[0].pitch)
+    self.assertEqual(11, transposed[0].notes[1].pitch)
+    self.assertEqual(12, transposed[0].notes[2].pitch)
 
 
 if __name__ == '__main__':

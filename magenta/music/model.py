@@ -18,8 +18,6 @@ Provides a uniform interface for interacting with any model.
 
 import abc
 
-# internal imports
-
 import tensorflow as tf
 
 
@@ -37,12 +35,9 @@ class BaseModel(object):
 
   @abc.abstractmethod
   def _build_graph_for_generation(self):
-    """Builds and returns the model graph for generation.
+    """Builds the model graph for generation.
 
     Will be called before restoring a checkpoint file.
-
-    Returns:
-      The tf.Graph object.
     """
     pass
 
@@ -55,8 +50,8 @@ class BaseModel(object):
     Args:
       checkpoint_file: The path to the checkpoint file that should be used.
     """
-    graph = self._build_graph_for_generation()
-    with graph.as_default():
+    with tf.Graph().as_default():
+      self._build_graph_for_generation()
       saver = tf.train.Saver()
       self._session = tf.Session()
       tf.logging.info('Checkpoint used: %s', checkpoint_file)

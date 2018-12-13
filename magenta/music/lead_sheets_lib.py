@@ -16,7 +16,6 @@
 import copy
 import itertools
 
-# internal imports
 from magenta.music import chords_lib
 from magenta.music import constants
 from magenta.music import events_lib
@@ -137,6 +136,10 @@ class LeadSheet(events_lib.EventSequence):
   @property
   def end_step(self):
     return self._melody.end_step
+
+  @property
+  def steps(self):
+    return self._melody.steps
 
   @property
   def steps_per_bar(self):

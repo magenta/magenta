@@ -17,7 +17,6 @@ from __future__ import division
 
 import copy
 
-# internal imports
 import numpy as np
 
 from magenta.music import constants
@@ -163,6 +162,11 @@ class PianorollSequence(events_lib.EventSequence):
     """
     return len(self)
 
+  @property
+  def steps(self):
+    """Returns a Python list of the time step at each event in this sequence."""
+    return list(range(self.start_step, self.end_step))
+
   @staticmethod
   def _from_quantized_sequence(
       quantized_sequence, start_step, min_pitch, max_pitch, split_repeats):
@@ -304,11 +308,11 @@ def extract_pianoroll_sequences(
         'specified.')
   sequences_lib.assert_is_relative_quantized_sequence(quantized_sequence)
 
-  stats = dict([(stat_name, statistics.Counter(stat_name)) for stat_name in
-                ['pianoroll_tracks_truncated_too_long',
-                 'pianoroll_tracks_discarded_too_short',
-                 'pianoroll_tracks_discarded_too_long',
-                 'pianoroll_tracks_discarded_more_than_1_program']])
+  stats = dict((stat_name, statistics.Counter(stat_name)) for stat_name in
+               ['pianoroll_tracks_truncated_too_long',
+                'pianoroll_tracks_discarded_too_short',
+                'pianoroll_tracks_discarded_too_long',
+                'pianoroll_tracks_discarded_more_than_1_program'])
 
   steps_per_bar = sequences_lib.steps_per_bar_in_quantized_sequence(
       quantized_sequence)

@@ -21,7 +21,6 @@ import abc
 import bisect
 import copy
 
-# internal imports
 import tensorflow as tf
 
 
@@ -219,8 +218,7 @@ class Histogram(Statistic):
 
     # List of inclusive lowest values in each bucket.
     self.buckets = [float('-inf')] + sorted(set(buckets))
-    self.counters = dict([(bucket_lower, 0)
-                          for bucket_lower in self.buckets])
+    self.counters = dict((bucket_lower, 0) for bucket_lower in self.buckets)
     self.verbose_pretty_print = verbose_pretty_print
 
   # https://docs.python.org/2/library/bisect.html#searching-sorted-lists

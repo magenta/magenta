@@ -14,8 +14,6 @@
 
 """Code to evaluate how well an RL Tuner conforms to music theory rules."""
 
-# internal imports
-
 import numpy as np
 import tensorflow as tf
 

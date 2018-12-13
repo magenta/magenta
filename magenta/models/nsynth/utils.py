@@ -20,7 +20,6 @@ from __future__ import print_function
 import importlib
 import os
 
-# internal imports
 import librosa
 import numpy as np
 from six.moves import range  # pylint: disable=redefined-builtin
@@ -229,8 +228,8 @@ def specgram(audio,
 
     # Magnitudes, scaled 0-1
     if log_mag:
-      mag = (librosa.logamplitude(
-          mag**2, amin=1e-13, top_db=120., ref_power=np.max) / 120.) + 1
+      mag = (librosa.power_to_db(
+          mag**2, amin=1e-13, top_db=120., ref=np.max) / 120.) + 1
     else:
       mag /= mag.max()
 
@@ -261,7 +260,7 @@ def inv_magphase(mag, phase_angle):
 
 
 def griffin_lim(mag, phase_angle, n_fft, hop, num_iters):
-  """Iterative algorithm for phase retrival from a magnitude spectrogram.
+  """Iterative algorithm for phase retrieval from a magnitude spectrogram.
 
   Args:
     mag: Magnitude spectrogram.
@@ -354,6 +353,7 @@ def batch_specgram(audio,
                    re_im=False,
                    dphase=True,
                    mag_only=False):
+  """Computes specgram in a batch."""
   assert len(audio.shape) == 2
   batch_size = audio.shape[0]
   res = []
@@ -373,6 +373,7 @@ def batch_ispecgram(spec,
                     dphase=True,
                     mag_only=False,
                     num_iters=1000):
+  """Computes inverse specgram in a batch."""
   assert len(spec.shape) == 4
   batch_size = spec.shape[0]
   res = []
@@ -391,6 +392,7 @@ def tf_specgram(audio,
                 re_im=False,
                 dphase=True,
                 mag_only=False):
+  """Specgram tensorflow op (uses pyfunc)."""
   return tf.py_func(batch_specgram, [
       audio, n_fft, hop_length, mask, log_mag, re_im, dphase, mag_only
   ], tf.float32)
@@ -406,6 +408,7 @@ def tf_ispecgram(spec,
                  dphase=True,
                  mag_only=False,
                  num_iters=1000):
+  """Inverted Specgram tensorflow op (uses pyfunc)."""
   dims = spec.get_shape().as_list()
   # Add back in nyquist frequency
   x = spec if not pad else tf.concat(
@@ -607,15 +610,13 @@ def calculate_l2_and_summaries(predicted_vectors, true_vectors, name):
       between true and predicted.
   """
   loss = tf.reduce_mean((predicted_vectors - true_vectors)**2)
-  tf.summary.scalar(name + "_loss", loss, name="loss")
+  tf.summary.scalar(name + "_loss", loss)
   tf.summary.scalar(
       name + "_prediction_mean_squared_norm",
-      tf.reduce_mean(tf.nn.l2_loss(predicted_vectors)),
-      name=name + "_prediction_mean_squared_norm")
+      tf.reduce_mean(tf.nn.l2_loss(predicted_vectors)))
   tf.summary.scalar(
       name + "_label_mean_squared_norm",
-      tf.reduce_mean(tf.nn.l2_loss(true_vectors)),
-      name=name + "_label_mean_squared_norm")
+      tf.reduce_mean(tf.nn.l2_loss(true_vectors)))
   return loss
 
 

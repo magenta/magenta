@@ -16,7 +16,6 @@
 import threading
 import time
 
-# internal imports
 import tensorflow as tf
 
 from magenta.common import concurrency
@@ -31,7 +30,7 @@ class ConcurrencyTest(tf.test.TestCase):
 
     future_time = time.time() + 0.5
     concurrency.Sleeper().sleep_until(future_time)
-    self.assertAlmostEquals(time.time(), future_time, delta=0.005)
+    self.assertAlmostEqual(time.time(), future_time, delta=0.005)
 
   def testSleeper_Sleep(self):
     # Burn in.
@@ -41,7 +40,7 @@ class ConcurrencyTest(tf.test.TestCase):
     def sleep_test_thread(duration):
       start_time = time.time()
       concurrency.Sleeper().sleep(duration)
-      self.assertAlmostEquals(time.time(), start_time + duration, delta=0.005)
+      self.assertAlmostEqual(time.time(), start_time + duration, delta=0.005)
 
     threads = [threading.Thread(target=sleep_test_thread, args=[i * 0.1])
                for i in range(10)]

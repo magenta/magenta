@@ -42,12 +42,15 @@ message GeneratorOptions {
   // Map of argument name to argument value for additional arguments.
   // Generators should ignore unsupported arguments.
   message ArgValue {
-    // Each argument value can be exactly one kind.
+    // Each argument value can be exactly one kind. The "bytes" kind is intended
+    // for arbitrary serialized data, while the "string" kind is intended for
+    // text strings.
     oneof kind {
       bytes byte_value = 1;
       int32 int_value = 2;
       double float_value = 3;
       bool bool_value = 4;
+      string string_value = 5;
     }
   }
   map<string, ArgValue> args = 3;

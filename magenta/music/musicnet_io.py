@@ -11,17 +11,10 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Import NoteSequences from MusicNet.
+"""Import NoteSequences from MusicNet."""
 
-This file is py2only compatible because the original musicnet dataset
-was pickled using py2 and therefore cannot be deserialized with py3.
-
-"""
-
-import StringIO
-
-# internal imports
 import numpy as np
+from six import BytesIO
 import tensorflow as tf
 
 from magenta.protobuf import music_pb2
@@ -60,7 +53,8 @@ def note_interval_tree_to_sequence_proto(note_interval_tree, sample_rate):
     note.velocity = MUSICNET_NOTE_VELOCITY
     note.start_time = float(note_interval.begin) / sample_rate
     note.end_time = float(note_interval.end) / sample_rate
-    note.program = note_data[0]
+    # MusicNet "instrument" numbers use 1-based indexing, so we subtract 1 here.
+    note.program = note_data[0] - 1
     note.is_drum = False
 
     if note.program not in instruments:
@@ -90,10 +84,10 @@ def musicnet_iterator(musicnet_file):
   """
   with tf.gfile.FastGFile(musicnet_file, 'rb') as f:
     # Unfortunately the gfile seek function breaks the reading of NumPy
-    # archives, so we read the archive first then load as StringIO.
-    musicnet_string = f.read()
-    musicnet_stringio = StringIO.StringIO(musicnet_string)
-    musicnet = np.load(musicnet_stringio)
+    # archives, so we read the archive first then load as BytesIO.
+    musicnet_bytes = f.read()
+    musicnet_bytesio = BytesIO(musicnet_bytes)
+    musicnet = np.load(musicnet_bytesio, encoding='latin1')
 
   for file_id in musicnet.files:
     audio, note_interval_tree = musicnet[file_id]

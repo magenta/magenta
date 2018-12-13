@@ -15,8 +15,6 @@
 
 from __future__ import division
 
-# internal imports
-
 from magenta.models.polyphony_rnn import polyphony_lib
 from magenta.models.polyphony_rnn.polyphony_lib import PolyphonicEvent
 from magenta.music import encoder_decoder
@@ -72,3 +70,9 @@ class PolyphonyOneHotEncoding(encoder_decoder.OneHotEncoding):
           event_type=event_type, pitch=pitch)
 
     raise ValueError('Unknown event index: %s' % index)
+
+  def event_to_num_steps(self, event):
+    if event.event_type == PolyphonicEvent.STEP_END:
+      return 1
+    else:
+      return 0

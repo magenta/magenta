@@ -1,6 +1,6 @@
 ## Polyphony RNN
 
-This model applies language modeling to polyphonic music generation using an LSTM. Unlike melodies, this model needs to be capable of modeling multiple simultaneous notes. Taking inspiration from [BachBot](http://bachbot.com/), we model polyphony as a single stream of note events with special START, STEP_END, and END symbols. Within a step, notes are sorted by pitch in descending order.
+This model applies language modeling to polyphonic music generation using an LSTM. Unlike melodies, this model needs to be capable of modeling multiple simultaneous notes. Taking inspiration from [BachBot](http://bachbot.com/) (described in [*Automatic Stylistic Composition of Bach Choralies with Deep LSTM*](https://ismir2017.smcnus.org/wp-content/uploads/2017/10/156_Paper.pdf)), we model polyphony as a single stream of note events with special START, STEP_END, and END symbols. Within a step, notes are sorted by pitch in descending order.
 
 For example, using the default quantizing resolution of 4 steps per quarte note, a sequence containing only a C Major chord with a duration of one quarter note would look like this:
 
@@ -146,6 +146,7 @@ See above for more information on other command line options.
 ```
 polyphony_rnn_generate \
 --run_dir=/tmp/polyphony_rnn/logdir/run1 \
+--hparams="batch_size=64,rnn_layer_sizes=[64,64]" \
 --output_dir=/tmp/polyphony_rnn/generated \
 --num_outputs=10 \
 --num_steps=128 \
@@ -160,14 +161,14 @@ The [bundle format](/magenta/protobuf/generator.proto)
 is a convenient way of combining the model checkpoint, metagraph, and
 some metadata about the model into a single file.
 
-To generate a bundle, use the
-[create_bundle_file](/magenta/music/sequence_generator.py)
-method within SequenceGenerator. Our generator script
-supports a ```--save_generator_bundle``` flag that calls this method. Example:
+To generate a bundle, use the [create_bundle_file](/magenta/music/sequence_generator.py) method within SequenceGenerator. Our generator script supports a `--save_generator_bundle` flag that calls this method. When using the `--save_generator_bundle` mode, you need to supply the `--hparams` flag with the same values used during training.
+
+Example:
 
 ```
 polyphony_rnn_generate \
 --run_dir=/tmp/polyphony_rnn/logdir/run1 \
+--hparams="batch_size=64,rnn_layer_sizes=[64,64]" \
 --bundle_file=/tmp/polyphony_rnn.mag \
 --save_generator_bundle
 ```

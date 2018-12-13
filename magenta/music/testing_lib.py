@@ -13,15 +13,16 @@
 # limitations under the License.
 """Testing support code."""
 
-# internal imports
 from magenta.music import encoder_decoder
 from magenta.protobuf import music_pb2
 
-# Shortcut to CHORD_SYMBOL annotation type.
+# Shortcut to text annotation types.
+BEAT = music_pb2.NoteSequence.TextAnnotation.BEAT
 CHORD_SYMBOL = music_pb2.NoteSequence.TextAnnotation.CHORD_SYMBOL
 
 
-def add_track_to_sequence(note_sequence, instrument, notes, is_drum=False):
+def add_track_to_sequence(note_sequence, instrument, notes,
+                          is_drum=False, program=0):
   for pitch, velocity, start_time, end_time in notes:
     note = note_sequence.notes.add()
     note.pitch = pitch
@@ -30,6 +31,7 @@ def add_track_to_sequence(note_sequence, instrument, notes, is_drum=False):
     note.end_time = end_time
     note.instrument = instrument
     note.is_drum = is_drum
+    note.program = program
     if end_time > note_sequence.total_time:
       note_sequence.total_time = end_time
 
@@ -42,6 +44,13 @@ def add_chords_to_sequence(note_sequence, chords):
     annotation.annotation_type = CHORD_SYMBOL
 
 
+def add_beats_to_sequence(note_sequence, beats):
+  for time in beats:
+    annotation = note_sequence.text_annotations.add()
+    annotation.time = time
+    annotation.annotation_type = BEAT
+
+
 def add_control_changes_to_sequence(note_sequence, instrument, control_changes):
   for time, control_number, control_value in control_changes:
     control_change = note_sequence.control_changes.add()
@@ -49,6 +58,17 @@ def add_control_changes_to_sequence(note_sequence, instrument, control_changes):
     control_change.control_number = control_number
     control_change.control_value = control_value
     control_change.instrument = instrument
+
+
+def add_pitch_bends_to_sequence(
+    note_sequence, instrument, program, pitch_bends):
+  for time, bend in pitch_bends:
+    pitch_bend = note_sequence.pitch_bends.add()
+    pitch_bend.time = time
+    pitch_bend.bend = bend
+    pitch_bend.program = program
+    pitch_bend.instrument = instrument
+    pitch_bend.is_drum = False  # Assume false for this test method.
 
 
 def add_quantized_steps_to_sequence(sequence, quantized_steps):
@@ -70,11 +90,21 @@ def add_quantized_chord_steps_to_sequence(sequence, quantized_steps):
     chord.quantized_step = quantized_step
 
 
+def add_quantized_control_steps_to_sequence(sequence, quantized_steps):
+  assert len(sequence.control_changes) == len(quantized_steps)
+
+  for cc, quantized_step in zip(sequence.control_changes, quantized_steps):
+    cc.quantized_step = quantized_step
+
+
 class TrivialOneHotEncoding(encoder_decoder.OneHotEncoding):
   """One-hot encoding that uses the identity encoding."""
 
-  def __init__(self, num_classes):
+  def __init__(self, num_classes, num_steps=None):
+    if num_steps is not None and len(num_steps) != num_classes:
+      raise ValueError('num_steps must have length num_classes')
     self._num_classes = num_classes
+    self._num_steps = num_steps
 
   @property
   def num_classes(self):
@@ -89,3 +119,9 @@ class TrivialOneHotEncoding(encoder_decoder.OneHotEncoding):
 
   def decode_event(self, event):
     return event
+
+  def event_to_num_steps(self, event):
+    if self._num_steps is not None:
+      return self._num_steps[event]
+    else:
+      return 1

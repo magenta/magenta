@@ -59,7 +59,7 @@ To train your own model, you'll need three things:
 
 1. A directory of images to use as styles.
 2. A [trained VGG model checkpoint](http://download.tensorflow.org/models/vgg_16_2016_08_28.tar.gz).
-3. The ImageNet dataset. Instructions for downloading the dataset can be found [here](https://github.com/tensorflow/models/tree/master/inception#getting-started).
+3. The ImageNet dataset. Instructions for downloading the dataset can be found [here](https://github.com/tensorflow/models/tree/master/research/inception#getting-started).
 
 First, you need to prepare your style images:
 

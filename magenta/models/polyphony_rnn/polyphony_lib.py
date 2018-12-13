@@ -18,8 +18,6 @@ from __future__ import division
 import collections
 import copy
 
-# internal imports
-
 from six.moves import range  # pylint: disable=redefined-builtin
 import tensorflow as tf
 
@@ -236,6 +234,17 @@ class PolyphonicSequence(events_lib.EventSequence):
         steps += 1
     return steps
 
+  @property
+  def steps(self):
+    """Return a Python list of the time step at each event in this sequence."""
+    step = self.start_step
+    result = []
+    for event in self:
+      result.append(step)
+      if event.event_type == PolyphonicEvent.STEP_END:
+        step += 1
+    return result
+
   @staticmethod
   def _from_quantized_sequence(quantized_sequence, start_step=0):
     """Populate self with events from the given quantized NoteSequence object.
@@ -422,10 +431,10 @@ def extract_polyphonic_sequences(
   """
   sequences_lib.assert_is_relative_quantized_sequence(quantized_sequence)
 
-  stats = dict([(stat_name, statistics.Counter(stat_name)) for stat_name in
-                ['polyphonic_tracks_discarded_too_short',
-                 'polyphonic_tracks_discarded_too_long',
-                 'polyphonic_tracks_discarded_more_than_1_program']])
+  stats = dict((stat_name, statistics.Counter(stat_name)) for stat_name in
+               ['polyphonic_tracks_discarded_too_short',
+                'polyphonic_tracks_discarded_too_long',
+                'polyphonic_tracks_discarded_more_than_1_program'])
 
   steps_per_bar = sequences_lib.steps_per_bar_in_quantized_sequence(
       quantized_sequence)

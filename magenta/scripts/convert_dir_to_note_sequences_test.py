@@ -16,7 +16,6 @@
 import os
 import tempfile
 
-# internal imports
 import tensorflow as tf
 
 from magenta.music import note_sequence_io
@@ -76,19 +75,19 @@ class ConvertMidiDirToSequencesTest(tf.test.TestCase):
     with tempfile.NamedTemporaryFile(
         prefix='ConvertMidiDirToSequencesTest') as output_file:
       convert_dir_to_note_sequences.convert_directory(
-          root_dir, output_file.name, 1, recursive)
+          root_dir, output_file.name, recursive)
       actual_filenames = set()
       for sequence in note_sequence_io.note_sequence_record_iterator(
           output_file.name):
-        self.assertEquals(
+        self.assertEqual(
             note_sequence_io.generate_note_sequence_id(
                 sequence.filename, os.path.basename(relative_root), 'midi'),
             sequence.id)
-        self.assertEquals(os.path.basename(root_dir), sequence.collection_name)
-        self.assertNotEquals(0, len(sequence.notes))
+        self.assertEqual(os.path.basename(root_dir), sequence.collection_name)
+        self.assertNotEqual(0, len(sequence.notes))
         actual_filenames.add(sequence.filename)
 
-    self.assertEquals(expected_filenames, actual_filenames)
+    self.assertEqual(expected_filenames, actual_filenames)
 
   def testConvertMidiDirToSequences_NoRecurse(self):
     self.runTest('', recursive=False)

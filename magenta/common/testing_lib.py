@@ -13,8 +13,8 @@
 # limitations under the License.
 """Testing support code."""
 
-# internal imports
 import numpy as np
+import six
 
 from google.protobuf import text_format
 
@@ -74,7 +74,11 @@ class MockStringProto(object):
     return MockStringProto(string)
 
   def SerializeToString(self):  # pylint: disable=invalid-name
-    return 'serialized:' + self.string
+    # protobuf's SerializeToString returns binary string
+    if six.PY3:
+      return ('serialized:' + self.string).encode('utf-8')
+    else:
+      return 'serialized:' + self.string
 
   def __eq__(self, other):
     return isinstance(other, MockStringProto) and self.string == other.string

@@ -17,8 +17,6 @@ import collections
 import copy
 import functools
 
-# internal imports
-
 import numpy as np
 from six.moves import range  # pylint: disable=redefined-builtin
 import tensorflow as tf
@@ -80,7 +78,7 @@ class EventSequenceRnnModel(mm.BaseModel):
     self._config = config
 
   def _build_graph_for_generation(self):
-    return events_rnn_graph.build_graph('generate', self._config)
+    events_rnn_graph.get_build_graph_fn('generate', self._config)()
 
   def _batch_size(self):
     """Extracts the batch size from the graph."""
@@ -128,18 +126,37 @@ class EventSequenceRnnModel(mm.BaseModel):
     final_state, softmax = self._session.run(
         [graph_final_state, graph_softmax], feed_dict)
 
-    if softmax.shape[1] > 1:
-      # The inputs batch is longer than a single step, so we also want to
-      # compute the log-likelihood of the event sequences up until the step
-      # we're generating.
-      loglik = self._config.encoder_decoder.evaluate_log_likelihood(
-          event_sequences, softmax[:, :-1, :])
+    if isinstance(softmax, list):
+      if softmax[0].shape[1] > 1:
+        softmaxes = []
+        for beam in range(softmax[0].shape[0]):
+          beam_softmaxes = []
+          for event in range(softmax[0].shape[1] - 1):
+            beam_softmaxes.append(
+                [softmax[s][beam, event] for s in range(len(softmax))])
+          softmaxes.append(beam_softmaxes)
+        loglik = self._config.encoder_decoder.evaluate_log_likelihood(
+            event_sequences, softmaxes)
+      else:
+        loglik = np.zeros(len(event_sequences))
     else:
-      loglik = np.zeros(len(event_sequences))
+      if softmax.shape[1] > 1:
+        # The inputs batch is longer than a single step, so we also want to
+        # compute the log-likelihood of the event sequences up until the step
+        # we're generating.
+        loglik = self._config.encoder_decoder.evaluate_log_likelihood(
+            event_sequences, softmax[:, :-1, :])
+      else:
+        loglik = np.zeros(len(event_sequences))
 
-    indices = self._config.encoder_decoder.extend_event_sequences(
-        event_sequences, softmax)
-    p = softmax[range(len(event_sequences)), -1, indices]
+    indices = np.array(self._config.encoder_decoder.extend_event_sequences(
+        event_sequences, softmax))
+    if isinstance(softmax, list):
+      p = 1.0
+      for i in range(len(softmax)):
+        p *= softmax[i][range(len(event_sequences)), -1, indices[:, i]]
+    else:
+      p = softmax[range(len(event_sequences)), -1, indices]
 
     return final_state, loglik + np.log(p)
 
@@ -486,7 +503,8 @@ class EventSequenceRnnConfig(object):
     details: The GeneratorDetails message describing the config.
     encoder_decoder: The EventSequenceEncoderDecoder or
         ConditionalEventSequenceEncoderDecoder object to use.
-    hparams: The HParams containing hyperparameters to use.
+    hparams: The HParams containing hyperparameters to use. Will be merged with
+        default hyperparameter values.
     steps_per_quarter: The integer number of quantized time steps per quarter
         note to use.
     steps_per_second: The integer number of quantized time steps per second to
@@ -495,8 +513,20 @@ class EventSequenceRnnConfig(object):
 
   def __init__(self, details, encoder_decoder, hparams,
                steps_per_quarter=4, steps_per_second=100):
+    hparams_dict = {
+        'batch_size': 64,
+        'rnn_layer_sizes': [128, 128],
+        'dropout_keep_prob': 1.0,
+        'attn_length': 0,
+        'clip_norm': 3,
+        'learning_rate': 0.001,
+        'residual_connections': False,
+        'use_cudnn': False
+    }
+    hparams_dict.update(hparams.values())
+
     self.details = details
     self.encoder_decoder = encoder_decoder
-    self.hparams = hparams
+    self.hparams = tf.contrib.training.HParams(**hparams_dict)
     self.steps_per_quarter = steps_per_quarter
     self.steps_per_second = steps_per_second

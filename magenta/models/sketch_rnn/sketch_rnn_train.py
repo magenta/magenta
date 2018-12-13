@@ -23,8 +23,6 @@ import time
 import urllib
 import zipfile
 
-# internal imports
-
 import numpy as np
 import requests
 import six

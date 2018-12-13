@@ -13,8 +13,6 @@
 # limitations under the License.
 """Tests for state_util."""
 
-# internal imports
-
 import numpy as np
 import tensorflow as tf
 

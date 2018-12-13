@@ -15,8 +15,6 @@
 
 import copy
 
-# internal imports
-
 import tensorflow as tf
 
 from magenta.common import testing_lib as common_testing_lib
@@ -31,7 +29,7 @@ from magenta.protobuf import music_pb2
 class PolyphonyLibTest(tf.test.TestCase):
 
   def setUp(self):
-    self.maxDiff = None
+    self.maxDiff = None  # pylint:disable=invalid-name
 
     self.note_sequence = common_testing_lib.parse_test_proto(
         music_pb2.NoteSequence,
@@ -267,6 +265,7 @@ class PolyphonyLibTest(tf.test.TestCase):
     poly_seq.set_length(5)
 
     self.assertEqual(5, poly_seq.num_steps)
+    self.assertListEqual([0, 0, 1, 2, 3, 4, 5], poly_seq.steps)
 
     pe = polyphony_lib.PolyphonicEvent
     poly_events = [
@@ -286,6 +285,7 @@ class PolyphonyLibTest(tf.test.TestCase):
     poly_seq.set_length(10)
 
     self.assertEqual(10, poly_seq.num_steps)
+    self.assertListEqual([0, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10], poly_seq.steps)
 
     pe = polyphony_lib.PolyphonicEvent
     poly_events = [
@@ -438,7 +438,6 @@ class PolyphonyLibTest(tf.test.TestCase):
 
     pe = polyphony_lib.PolyphonicEvent
     poly_events = [
-        pe(pe.START, None),
         # step 0
         pe(pe.NEW_NOTE, 60),
         pe(pe.NEW_NOTE, 64),
@@ -454,13 +453,13 @@ class PolyphonyLibTest(tf.test.TestCase):
       poly_seq.append(event)
 
     self.assertEqual(2, poly_seq.num_steps)
+    self.assertListEqual([0, 0, 0, 0, 1, 1, 1, 2], poly_seq.steps)
 
   def testNumStepsIncompleteStep(self):
     poly_seq = polyphony_lib.PolyphonicSequence(steps_per_quarter=1)
 
     pe = polyphony_lib.PolyphonicEvent
     poly_events = [
-        pe(pe.START, None),
         # step 0
         pe(pe.NEW_NOTE, 60),
         pe(pe.NEW_NOTE, 64),
@@ -477,6 +476,33 @@ class PolyphonyLibTest(tf.test.TestCase):
       poly_seq.append(event)
 
     self.assertEqual(2, poly_seq.num_steps)
+    self.assertListEqual([0, 0, 0, 0, 1, 1, 1, 2], poly_seq.steps)
+
+  def testSteps(self):
+    pe = polyphony_lib.PolyphonicEvent
+    poly_events = [
+        # step 0
+        pe(pe.NEW_NOTE, 60),
+        pe(pe.NEW_NOTE, 64),
+        pe(pe.STEP_END, None),
+        # step 1
+        pe(pe.CONTINUED_NOTE, 60),
+        pe(pe.CONTINUED_NOTE, 64),
+        pe(pe.STEP_END, None),
+
+        pe(pe.END, None),
+    ]
+
+    poly_seq = polyphony_lib.PolyphonicSequence(steps_per_quarter=1)
+    for event in poly_events:
+      poly_seq.append(event)
+    self.assertListEqual([0, 0, 0, 0, 1, 1, 1, 2], poly_seq.steps)
+
+    poly_seq = polyphony_lib.PolyphonicSequence(
+        steps_per_quarter=1, start_step=2)
+    for event in poly_events:
+      poly_seq.append(event)
+    self.assertListEqual([2, 2, 2, 2, 3, 3, 3, 4], poly_seq.steps)
 
   def testTrimTrailingEndEvents(self):
     poly_seq = polyphony_lib.PolyphonicSequence(steps_per_quarter=1)

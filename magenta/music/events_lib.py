@@ -21,7 +21,6 @@ interface.
 import abc
 import copy
 
-# internal imports
 from magenta.music import constants
 
 
@@ -52,6 +51,7 @@ class EventSequence(object):
         beginning of the source sequence.
     end_step: The offset to the beginning of the bar following the last step
         of the sequence relative to the beginning of the source sequence.
+    steps: A Python list containing the time step at each event of the sequence.
   """
   __metaclass__ = abc.ABCMeta
 
@@ -61,6 +61,10 @@ class EventSequence(object):
 
   @abc.abstractproperty
   def end_step(self):
+    pass
+
+  @abc.abstractproperty
+  def steps(self):
     pass
 
   @abc.abstractmethod
@@ -180,18 +184,17 @@ class SimpleEventSequence(EventSequence):
     """
     return iter(self._events)
 
-  def __getitem__(self, i):
-    """Returns the event at the given index."""
-    return self._events[i]
-
-  def __getslice__(self, i, j):
-    """Returns this sequence restricted to events in the given slice range."""
-    i = min(max(i, 0), len(self))
-    return type(self)(pad_event=self._pad_event,
-                      events=self._events[i:j],
-                      start_step=self.start_step + i,
-                      steps_per_bar=self.steps_per_bar,
-                      steps_per_quarter=self.steps_per_quarter)
+  def __getitem__(self, key):
+    """Returns the slice or individual item."""
+    if isinstance(key, int):
+      return self._events[key]
+    elif isinstance(key, slice):
+      events = self._events.__getitem__(key)
+      return type(self)(pad_event=self._pad_event,
+                        events=events,
+                        start_step=self.start_step + (key.start or 0),
+                        steps_per_bar=self.steps_per_bar,
+                        steps_per_quarter=self.steps_per_quarter)
 
   def __len__(self):
     """How many events are in this SimpleEventSequence.
@@ -224,6 +227,10 @@ class SimpleEventSequence(EventSequence):
   @property
   def end_step(self):
     return self._end_step
+
+  @property
+  def steps(self):
+    return list(range(self._start_step, self._end_step))
 
   @property
   def steps_per_bar(self):

@@ -13,8 +13,6 @@
 # limitations under the License.
 """Tests for polyphony_encoder_decoder."""
 
-# internal imports
-
 import tensorflow as tf
 
 from magenta.models.polyphony_rnn import polyphony_encoder_decoder
@@ -62,6 +60,18 @@ class PolyphonyOneHotEncodingTest(tf.test.TestCase):
     self.assertEqual(258, index)
     event = self.enc.decode_event(index)
     self.assertEqual(continued_max_note, event)
+
+  def testEventToNumSteps(self):
+    self.assertEqual(0, self.enc.event_to_num_steps(
+        PolyphonicEvent(event_type=PolyphonicEvent.START, pitch=0)))
+    self.assertEqual(0, self.enc.event_to_num_steps(
+        PolyphonicEvent(event_type=PolyphonicEvent.END, pitch=0)))
+    self.assertEqual(1, self.enc.event_to_num_steps(
+        PolyphonicEvent(event_type=PolyphonicEvent.STEP_END, pitch=0)))
+    self.assertEqual(0, self.enc.event_to_num_steps(
+        PolyphonicEvent(event_type=PolyphonicEvent.NEW_NOTE, pitch=60)))
+    self.assertEqual(0, self.enc.event_to_num_steps(
+        PolyphonicEvent(event_type=PolyphonicEvent.CONTINUED_NOTE, pitch=72)))
 
 
 if __name__ == '__main__':

@@ -13,17 +13,17 @@
 # limitations under the License.
 """Train and evaluate an event sequence RNN model."""
 
-# internal imports
 import tensorflow as tf
 
 
-def run_training(graph, train_dir, num_training_steps=None,
+def run_training(build_graph_fn, train_dir, num_training_steps=None,
                  summary_frequency=10, save_checkpoint_secs=60,
-                 checkpoints_to_keep=10):
+                 checkpoints_to_keep=10, keep_checkpoint_every_n_hours=1,
+                 master='', task=0, num_ps_tasks=0):
   """Runs the training loop.
 
   Args:
-    graph: A tf.Graph object containing the model.
+    build_graph_fn: A function that builds the graph ops.
     train_dir: The path to the directory where checkpoints and summary events
         will be written to.
     num_training_steps: The number of steps to train for before exiting.
@@ -34,50 +34,63 @@ def run_training(graph, train_dir, num_training_steps=None,
         seconds.
     checkpoints_to_keep: The number of most recent checkpoints to keep in
        `train_dir`. Keeps all if set to 0.
+    keep_checkpoint_every_n_hours: Keep a checkpoint every N hours, even if it
+        results in more checkpoints than checkpoints_to_keep.
+    master: URL of the Tensorflow master.
+    task: Task number for this worker.
+    num_ps_tasks: Number of parameter server tasks.
   """
-  with graph.as_default():
-    global_step = tf.train.get_or_create_global_step()
-    loss = tf.get_collection('loss')[0]
-    perplexity = tf.get_collection('metrics/perplexity')[0]
-    accuracy = tf.get_collection('metrics/accuracy')[0]
-    train_op = tf.get_collection('train_op')[0]
+  with tf.Graph().as_default():
+    with tf.device(tf.train.replica_device_setter(num_ps_tasks)):
+      build_graph_fn()
 
-    logging_dict = {
-        'Global Step': global_step,
-        'Loss': loss,
-        'Perplexity': perplexity,
-        'Accuracy': accuracy
-    }
-    hooks = [
-        tf.train.NanTensorHook(loss),
-        tf.train.LoggingTensorHook(
-            logging_dict, every_n_iter=summary_frequency),
-        tf.train.StepCounterHook(
-            output_dir=train_dir, every_n_steps=summary_frequency)
-    ]
-    if num_training_steps:
-      hooks.append(tf.train.StopAtStepHook(num_training_steps))
+      global_step = tf.train.get_or_create_global_step()
+      loss = tf.get_collection('loss')[0]
+      perplexity = tf.get_collection('metrics/perplexity')[0]
+      accuracy = tf.get_collection('metrics/accuracy')[0]
+      train_op = tf.get_collection('train_op')[0]
 
-    scaffold = tf.train.Scaffold(
-        saver=tf.train.Saver(max_to_keep=checkpoints_to_keep))
+      logging_dict = {
+          'Global Step': global_step,
+          'Loss': loss,
+          'Perplexity': perplexity,
+          'Accuracy': accuracy
+      }
+      hooks = [
+          tf.train.NanTensorHook(loss),
+          tf.train.LoggingTensorHook(
+              logging_dict, every_n_iter=summary_frequency),
+          tf.train.StepCounterHook(
+              output_dir=train_dir, every_n_steps=summary_frequency)
+      ]
+      if num_training_steps:
+        hooks.append(tf.train.StopAtStepHook(num_training_steps))
 
-    tf.logging.info('Starting training loop...')
-    tf.contrib.training.train(
-        train_op=train_op,
-        logdir=train_dir,
-        scaffold=scaffold,
-        hooks=hooks,
-        save_checkpoint_secs=save_checkpoint_secs,
-        save_summaries_steps=summary_frequency)
-    tf.logging.info('Training complete.')
+      scaffold = tf.train.Scaffold(
+          saver=tf.train.Saver(
+              max_to_keep=checkpoints_to_keep,
+              keep_checkpoint_every_n_hours=keep_checkpoint_every_n_hours))
+
+      tf.logging.info('Starting training loop...')
+      tf.contrib.training.train(
+          train_op=train_op,
+          logdir=train_dir,
+          scaffold=scaffold,
+          hooks=hooks,
+          save_checkpoint_secs=save_checkpoint_secs,
+          save_summaries_steps=summary_frequency,
+          master=master,
+          is_chief=task == 0)
+      tf.logging.info('Training complete.')
 
 
 # TODO(adarob): Limit to a single epoch each evaluation step.
-def run_eval(graph, train_dir, eval_dir, num_batches, timeout_secs=300):
+def run_eval(build_graph_fn, train_dir, eval_dir, num_batches,
+             timeout_secs=300):
   """Runs the training loop.
 
   Args:
-    graph: A tf.Graph object containing the model.
+    build_graph_fn: A function that builds the graph ops.
     train_dir: The path to the directory where checkpoints will be loaded
         from for evaluation.
     eval_dir: The path to the directory where the evaluation summary events
@@ -85,8 +98,16 @@ def run_eval(graph, train_dir, eval_dir, num_batches, timeout_secs=300):
     num_batches: The number of full batches to use for each evaluation step.
     timeout_secs: The number of seconds after which to stop waiting for a new
         checkpoint.
+  Raises:
+    ValueError: If `num_batches` is less than or equal to 0.
   """
-  with graph.as_default():
+  if num_batches <= 0:
+    raise ValueError(
+        '`num_batches` must be greater than 0. Check that the batch size is '
+        'no larger than the number of records in the eval set.')
+  with tf.Graph().as_default():
+    build_graph_fn()
+
     global_step = tf.train.get_or_create_global_step()
     loss = tf.get_collection('loss')[0]
     perplexity = tf.get_collection('metrics/perplexity')[0]
