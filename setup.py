@@ -61,9 +61,6 @@ if gpu_mode:
 else:
   REQUIRED_PACKAGES.append('tensorflow >= 1.12.0')
 
-if sys.version_info.major == 2:
-  REQUIRED_PACKAGES.append('apache-beam >= 2.8.0')
-
 # pylint:disable=line-too-long
 CONSOLE_SCRIPTS = [
     'magenta.interfaces.midi.magenta_midi',
@@ -108,6 +105,8 @@ CONSOLE_SCRIPTS = [
     'magenta.tensor2tensor.t2t_datagen',
     'magenta.tensor2tensor.t2t_decoder',
     'magenta.tensor2tensor.t2t_trainer',
+    'futures;python_version=="2.7"',
+    'apache-beam >= 2.8.0;python_version=="2.7"',
 ]
 # pylint:enable=line-too-long
 
@@ -137,7 +136,6 @@ setup(
 
     packages=find_packages(),
     install_requires=REQUIRED_PACKAGES,
-    extras_require={':python_version == "2.7"': ['futures']},
     entry_points={
         'console_scripts': ['%s = %s:console_entry_point' % (n, p) for n, p in
                             ((s.split('.')[-1], s) for s in CONSOLE_SCRIPTS)],
