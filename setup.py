@@ -35,6 +35,7 @@ REQUIRED_PACKAGES = [
     'IPython',
     'absl-py',
     'Pillow >= 3.4.2',
+    'apache-beam >= 2.8.0',
     'backports.tempfile',
     'bokeh >= 0.12.0',
     'intervaltree >= 2.1.0',
