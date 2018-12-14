@@ -149,8 +149,8 @@ def main(_):
       metrics = {}
       for i, label in enumerate(labels):
         gram_matrices = dict(
-            [(key, value[i: i + 1])
-             for key, value in style_gram_matrices.iteritems()])
+            (key, value[i: i + 1])
+            for key, value in style_gram_matrices.items())
         stylized_inputs = model.transform(
             inputs,
             reuse=True,
@@ -158,12 +158,12 @@ def main(_):
         _, loss_dict = learning.total_loss(
             inputs, stylized_inputs, gram_matrices, content_weights,
             style_weights, reuse=i > 0)
-        for key, value in loss_dict.iteritems():
+        for key, value in loss_dict.items():
           metrics['{}_style_{}'.format(key, i)] = slim.metrics.streaming_mean(
               value)
 
       names_values, names_updates = slim.metrics.aggregate_metric_map(metrics)
-      for name, value in names_values.iteritems():
+      for name, value in names_values.items():
         summary_op = tf.summary.scalar(name, value, [])
         print_op = tf.Print(summary_op, [value], name)
         tf.add_to_collection(tf.GraphKeys.SUMMARIES, print_op)

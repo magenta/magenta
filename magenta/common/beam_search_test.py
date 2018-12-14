@@ -25,19 +25,19 @@ class BeamSearchTest(tf.test.TestCase):
     # accumulate value exponentially in the state, ones "cash in". The highest-
     # scoring sequence would be all zeros followed by a single one.
     value = 0
-    for i in range(len(sequences)):
-      sequences[i].append(value)
+    for i, seq in enumerate(sequences):
+      seq.append(value)
       if value == 0:
         states[i] *= 2
       else:
         scores[i] += states[i]
         states[i] = 1
-      if (i - 1) % (2 ** len(sequences[i])) == 0:
+      if (i - 1) % (2 ** len(seq)) == 0:
         value = 1 - value
     return sequences, states, scores
 
   def testNoBranchingSingleStepPerIteration(self):
-    sequence, state, score = beam_search.beam_search(
+    sequence, state, score = beam_search(
         initial_sequence=[], initial_state=1,
         generate_step_fn=self._generate_step_fn, num_steps=5, beam_size=1,
         branch_factor=1, steps_per_iteration=1)
@@ -49,7 +49,7 @@ class BeamSearchTest(tf.test.TestCase):
     self.assertEqual(score, 0)
 
   def testNoBranchingMultipleStepsPerIteration(self):
-    sequence, state, score = beam_search.beam_search(
+    sequence, state, score = beam_search(
         initial_sequence=[], initial_state=1,
         generate_step_fn=self._generate_step_fn, num_steps=5, beam_size=1,
         branch_factor=1, steps_per_iteration=2)
@@ -61,7 +61,7 @@ class BeamSearchTest(tf.test.TestCase):
     self.assertEqual(score, 0)
 
   def testBranchingSingleBeamEntry(self):
-    sequence, state, score = beam_search.beam_search(
+    sequence, state, score = beam_search(
         initial_sequence=[], initial_state=1,
         generate_step_fn=self._generate_step_fn, num_steps=5, beam_size=1,
         branch_factor=32, steps_per_iteration=1)
@@ -72,7 +72,7 @@ class BeamSearchTest(tf.test.TestCase):
     self.assertEqual(score, 5)
 
   def testNoBranchingMultipleBeamEntries(self):
-    sequence, state, score = beam_search.beam_search(
+    sequence, state, score = beam_search(
         initial_sequence=[], initial_state=1,
         generate_step_fn=self._generate_step_fn, num_steps=5, beam_size=32,
         branch_factor=1, steps_per_iteration=1)

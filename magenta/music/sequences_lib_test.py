@@ -32,7 +32,7 @@ MIDI_PITCHES = constants.MAX_MIDI_PITCH - constants.MIN_MIDI_PITCH + 1
 class SequencesLibTest(tf.test.TestCase):
 
   def setUp(self):
-    self.maxDiff = None
+    self.maxDiff = None  # pylint:disable=invalid-name
 
     self.steps_per_quarter = 4
     self.note_sequence = common_testing_lib.parse_test_proto(
@@ -74,7 +74,7 @@ class SequencesLibTest(tf.test.TestCase):
     transposed_sequence, delete_count = sequences_lib.transpose_note_sequence(
         sequence, 1)
     self.assertProtoEquals(expected_sequence, transposed_sequence)
-    self.assertEquals(delete_count, 0)
+    self.assertEqual(delete_count, 0)
 
   def testTransposeNoteSequenceOutOfRange(self):
     sequence = copy.copy(self.note_sequence)
@@ -106,17 +106,17 @@ class SequencesLibTest(tf.test.TestCase):
     self.assertEqual(delete_count, 3)
 
   def testClampTranspose(self):
-    clamped = sequences_lib._clamp_transpose(
+    clamped = sequences_lib._clamp_transpose(  # pylint:disable=protected-access
         5, 20, 60, 10, 70)
-    self.assertEquals(clamped, 5)
+    self.assertEqual(clamped, 5)
 
-    clamped = sequences_lib._clamp_transpose(
+    clamped = sequences_lib._clamp_transpose(  # pylint:disable=protected-access
         15, 20, 60, 10, 65)
-    self.assertEquals(clamped, 5)
+    self.assertEqual(clamped, 5)
 
-    clamped = sequences_lib._clamp_transpose(
+    clamped = sequences_lib._clamp_transpose(  # pylint:disable=protected-access
         -16, 20, 60, 10, 70)
-    self.assertEquals(clamped, -10)
+    self.assertEqual(clamped, -10)
 
   def testAugmentNoteSequenceDeleteFalse(self):
     sequence = copy.copy(self.note_sequence)
@@ -343,7 +343,7 @@ class SequencesLibTest(tf.test.TestCase):
 
     subsequences = sequences_lib.split_note_sequence(
         sequence, hop_size_seconds=3.0)
-    self.assertEquals(3, len(subsequences))
+    self.assertEqual(3, len(subsequences))
     self.assertProtoEquals(expected_subsequence_1, subsequences[0])
     self.assertProtoEquals(expected_subsequence_2, subsequences[1])
     self.assertProtoEquals(expected_subsequence_3, subsequences[2])
@@ -414,7 +414,7 @@ class SequencesLibTest(tf.test.TestCase):
 
     subsequences = sequences_lib.split_note_sequence(
         sequence, hop_size_seconds=[3.0, 4.0])
-    self.assertEquals(3, len(subsequences))
+    self.assertEqual(3, len(subsequences))
     self.assertProtoEquals(expected_subsequence_1, subsequences[0])
     self.assertProtoEquals(expected_subsequence_2, subsequences[1])
     self.assertProtoEquals(expected_subsequence_3, subsequences[2])
@@ -471,7 +471,7 @@ class SequencesLibTest(tf.test.TestCase):
 
     subsequences = sequences_lib.split_note_sequence(
         sequence, hop_size_seconds=2.0, skip_splits_inside_notes=True)
-    self.assertEquals(2, len(subsequences))
+    self.assertEqual(2, len(subsequences))
     self.assertProtoEquals(expected_subsequence_1, subsequences[0])
     self.assertProtoEquals(expected_subsequence_2, subsequences[1])
 
@@ -492,7 +492,7 @@ class SequencesLibTest(tf.test.TestCase):
     expected_subsequence.subsequence_info.end_time_offset = 0.0
 
     subsequences = sequences_lib.split_note_sequence_on_time_changes(sequence)
-    self.assertEquals(1, len(subsequences))
+    self.assertEqual(1, len(subsequences))
     self.assertProtoEquals(expected_subsequence, subsequences[0])
 
   def testSplitNoteSequenceDuplicateTimeChanges(self):
@@ -523,7 +523,7 @@ class SequencesLibTest(tf.test.TestCase):
     expected_subsequence.subsequence_info.end_time_offset = 0.0
 
     subsequences = sequences_lib.split_note_sequence_on_time_changes(sequence)
-    self.assertEquals(1, len(subsequences))
+    self.assertEqual(1, len(subsequences))
     self.assertProtoEquals(expected_subsequence, subsequences[0])
 
   def testSplitNoteSequenceCoincidentTimeChanges(self):
@@ -585,7 +585,7 @@ class SequencesLibTest(tf.test.TestCase):
     expected_subsequence_2.subsequence_info.end_time_offset = 5.0
 
     subsequences = sequences_lib.split_note_sequence_on_time_changes(sequence)
-    self.assertEquals(2, len(subsequences))
+    self.assertEqual(2, len(subsequences))
     self.assertProtoEquals(expected_subsequence_1, subsequences[0])
     self.assertProtoEquals(expected_subsequence_2, subsequences[1])
 
@@ -652,7 +652,7 @@ class SequencesLibTest(tf.test.TestCase):
 
     subsequences = sequences_lib.split_note_sequence_on_time_changes(
         sequence, skip_splits_inside_notes=True)
-    self.assertEquals(2, len(subsequences))
+    self.assertEqual(2, len(subsequences))
     self.assertProtoEquals(expected_subsequence_1, subsequences[0])
     self.assertProtoEquals(expected_subsequence_2, subsequences[1])
 
@@ -732,7 +732,7 @@ class SequencesLibTest(tf.test.TestCase):
     expected_subsequence_3.subsequence_info.end_time_offset = 5.0
 
     subsequences = sequences_lib.split_note_sequence_on_time_changes(sequence)
-    self.assertEquals(3, len(subsequences))
+    self.assertEqual(3, len(subsequences))
     self.assertProtoEquals(expected_subsequence_1, subsequences[0])
     self.assertProtoEquals(expected_subsequence_2, subsequences[1])
     self.assertProtoEquals(expected_subsequence_3, subsequences[2])
@@ -798,7 +798,7 @@ class SequencesLibTest(tf.test.TestCase):
 
     subsequences = sequences_lib.split_note_sequence(
         sequence, hop_size_seconds=[3.0, 4.0])
-    self.assertEquals(3, len(subsequences))
+    self.assertEqual(3, len(subsequences))
     self.assertProtoEquals(expected_subsequence_1, subsequences[0])
     self.assertProtoEquals(expected_subsequence_2, subsequences[1])
     self.assertProtoEquals(expected_subsequence_3, subsequences[2])

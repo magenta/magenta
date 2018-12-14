@@ -15,7 +15,7 @@
 r"""Code to extract a tensorflow checkpoint from a bundle file.
 
 To run this code on your local machine:
-$ bazel run magenta/scripts:unpack_bundle -- \
+$ python magenta/scripts/unpack_bundle.py \
 --bundle_path 'path' --checkpoint_path 'path'
 """
 

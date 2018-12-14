@@ -229,7 +229,7 @@ def get_build_graph_fn(mode, config, sequence_example_file_paths=None):
     """Builds the Tensorflow graph."""
     inputs, labels, lengths = None, None, None
 
-    if mode == 'train' or mode == 'eval':
+    if mode in ('train', 'eval'):
       if isinstance(no_event_label, numbers.Number):
         label_shape = []
       else:
@@ -279,7 +279,7 @@ def get_build_graph_fn(mode, config, sequence_example_file_paths=None):
       num_logits = sum(num_classes)
     logits_flat = tf.contrib.layers.linear(outputs_flat, num_logits)
 
-    if mode == 'train' or mode == 'eval':
+    if mode in ('train', 'eval'):
       labels_flat = magenta.common.flatten_maybe_padded_sequences(
           labels, lengths)
 

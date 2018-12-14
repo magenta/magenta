@@ -155,7 +155,7 @@ class LeadSheetsLibTest(tf.test.TestCase):
         ignore_polyphonic_notes=True)
     chord_progressions, _ = chords_lib.extract_chords_for_melodies(
         quantized_sequence, melodies)
-    stats_dict = dict([(stat.name, stat) for stat in stats])
+    stats_dict = dict((stat.name, stat) for stat in stats)
     # Last lead sheet should be rejected for having no chords.
     self.assertEqual(list(melodies[:2]),
                      list(lead_sheet.melody for lead_sheet in lead_sheets))
@@ -176,10 +176,10 @@ class LeadSheetsLibTest(tf.test.TestCase):
     lead_sheet.set_length(5)
     expected_melody.set_length(5)
     expected_chords.set_length(5)
-    self.assertEquals(expected_melody, lead_sheet.melody)
-    self.assertEquals(expected_chords, lead_sheet.chords)
-    self.assertEquals(9, lead_sheet.start_step)
-    self.assertEquals(14, lead_sheet.end_step)
+    self.assertEqual(expected_melody, lead_sheet.melody)
+    self.assertEqual(expected_chords, lead_sheet.chords)
+    self.assertEqual(9, lead_sheet.start_step)
+    self.assertEqual(14, lead_sheet.end_step)
     self.assertListEqual([9, 10, 11, 12, 13], lead_sheet.steps)
 
   def testToSequence(self):
@@ -205,10 +205,10 @@ class LeadSheetsLibTest(tf.test.TestCase):
         sequence_start_time=2,
         qpm=60.0)
 
-    self.assertEquals(melody_sequence.ticks_per_quarter,
-                      sequence.ticks_per_quarter)
+    self.assertEqual(melody_sequence.ticks_per_quarter,
+                     sequence.ticks_per_quarter)
     self.assertProtoEquals(melody_sequence.tempos, sequence.tempos)
-    self.assertEquals(melody_sequence.total_time, sequence.total_time)
+    self.assertEqual(melody_sequence.total_time, sequence.total_time)
     self.assertProtoEquals(melody_sequence.notes, sequence.notes)
     self.assertProtoEquals(chords_sequence.text_annotations,
                            sequence.text_annotations)

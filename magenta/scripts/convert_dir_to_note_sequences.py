@@ -16,12 +16,9 @@ r""""Converts music files to NoteSequence protos and writes TFRecord file.
 Currently supports MIDI (.mid, .midi) and MusicXML (.xml, .mxl) files.
 
 Example usage:
-  $ bazel build magenta/scripts:convert_dir_to_note_sequences
-
-  $ ./bazel-bin/magenta/scripts/convert_dir_to_note_sequences \
+  $ python magenta/scripts/convert_dir_to_note_sequences.py \
     --input_dir=/path/to/input/dir \
     --output_file=/path/to/tfrecord/file \
-    --num_threads=4 \
     --log=INFO
 """
 
@@ -43,8 +40,6 @@ tf.app.flags.DEFINE_string('output_file', None,
                            'if it already exists.')
 tf.app.flags.DEFINE_bool('recursive', False,
                          'Whether or not to recurse into subdirectories.')
-tf.app.flags.DEFINE_integer('num_threads', 1,
-                            'Number of worker threads to run in parallel.')
 tf.app.flags.DEFINE_string('log', 'INFO',
                            'The threshold for what messages will be logged '
                            'DEBUG, INFO, WARN, ERROR, or FATAL.')

@@ -1,0 +1,12 @@
+language: python
+python:
+  - "3.5"
+# command to install dependencies
+install:
+  - sudo apt-get -y install build-essential libasound2-dev libjack-dev libav-tools
+  - pip install pylint
+  - python setup.py install
+# command to run tests
+script:
+  - pytest
+  - pylint magenta

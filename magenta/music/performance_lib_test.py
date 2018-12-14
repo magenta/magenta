@@ -24,7 +24,7 @@ from magenta.protobuf import music_pb2
 class PerformanceLibTest(tf.test.TestCase):
 
   def setUp(self):
-    self.maxDiff = None
+    self.maxDiff = None  # pylint:disable=invalid-name
 
     self.note_sequence = music_pb2.NoteSequence()
     self.note_sequence.ticks_per_quarter = 220

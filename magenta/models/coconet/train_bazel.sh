@@ -31,8 +31,7 @@ interleave_split_every_n_layers=2
 
 
 # Run command.
-bazel run :coconet_train \
-  -- \
+python coconet_train.py \
   --logdir=$logdir \
   --log_process=True \
   --data_dir=$data_dir \

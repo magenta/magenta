@@ -13,9 +13,7 @@
 # limitations under the License.
 """Tests for performance_encoder_decoder."""
 
-from math import cos
-from math import pi
-from math import sin
+import math
 
 import tensorflow as tf
 
@@ -25,6 +23,11 @@ from magenta.music.performance_encoder_decoder import ModuloPerformanceEventSequ
 from magenta.music.performance_encoder_decoder import NotePerformanceEventSequenceEncoderDecoder
 from magenta.music.performance_encoder_decoder import PerformanceModuloEncoding
 from magenta.music.performance_lib import PerformanceEvent
+
+
+cos = math.cos
+sin = math.sin
+pi = math.pi
 
 
 class PerformanceOneHotEncodingTest(tf.test.TestCase):
@@ -107,7 +110,7 @@ class PerformanceModuloEncodingTest(tf.test.TestCase):
                                    performance_lib.MIN_MIDI_PITCH + 1) * 2)
 
   def testInputSize(self):
-    self.assertEquals(self._expected_input_size, self.enc.input_size)
+    self.assertEqual(self._expected_input_size, self.enc.input_size)
 
   def testEmbedPitchClass(self):
     # The following are true only for semitone_steps = 1.
@@ -257,14 +260,14 @@ class ModuloPerformanceEventSequenceEncoderTest(tf.test.TestCase):
                                        performance_lib.MIN_MIDI_PITCH + 1))
 
   def testInputSize(self):
-    self.assertEquals(self._expected_input_size, self.enc.input_size)
+    self.assertEqual(self._expected_input_size, self.enc.input_size)
 
   def testNumClasses(self):
     self.assertEqual(self._expected_num_classes, self.enc.num_classes)
 
   def testDefaultEventLabel(self):
     label = self._expected_num_classes - self._num_velocity_bins - 1
-    self.assertEquals(label, self.enc.default_event_label)
+    self.assertEqual(label, self.enc.default_event_label)
 
   def testEventsToInput(self):
     num_shift_bins = self._max_shift_steps

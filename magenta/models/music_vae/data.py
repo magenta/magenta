@@ -55,7 +55,7 @@ CHORD_SYMBOL = music_pb2.NoteSequence.TextAnnotation.CHORD_SYMBOL
 
 def _maybe_pad_seqs(seqs, dtype):
   """Pads sequences to match the longest and returns as a numpy array."""
-  if not len(seqs):  # pylint:disable=g-explicit-length-test
+  if not len(seqs):  # pylint:disable=g-explicit-length-test,len-as-condition
     return np.zeros((0, 0, 0), dtype)
   lengths = [len(s) for s in seqs]
   if len(set(lengths)) == 1:
@@ -861,7 +861,7 @@ class DrumsConverter(BaseNoteSequenceConverter):
       if self._roll_output:
         if self.end_token is not None:
           end_i = np.where(s[:, self.end_token])
-          if len(end_i):  # pylint: disable=g-explicit-length-test
+          if len(end_i):  # pylint: disable=g-explicit-length-test,len-as-condition
             s = s[:end_i[0]]
         events_list = [frozenset(np.where(e)[0]) for e in s]
       else:

@@ -58,8 +58,7 @@ class PerformanceEvent(object):
   DURATION = 5
 
   def __init__(self, event_type, event_value):
-    if (event_type == PerformanceEvent.NOTE_ON or
-        event_type == PerformanceEvent.NOTE_OFF):
+    if event_type in (PerformanceEvent.NOTE_ON, PerformanceEvent.NOTE_OFF):
       if not MIN_MIDI_PITCH <= event_value <= MAX_MIDI_PITCH:
         raise ValueError('Invalid pitch value: %s' % event_value)
     elif event_type == PerformanceEvent.TIME_SHIFT:
@@ -947,12 +946,12 @@ def extract_performances(
   """
   sequences_lib.assert_is_quantized_sequence(quantized_sequence)
 
-  stats = dict([(stat_name, statistics.Counter(stat_name)) for stat_name in
-                ['performances_discarded_too_short',
-                 'performances_truncated', 'performances_truncated_timewise',
-                 'performances_discarded_more_than_1_program',
-                 'performance_discarded_too_many_time_shift_steps',
-                 'performance_discarded_too_many_duration_steps']])
+  stats = dict((stat_name, statistics.Counter(stat_name)) for stat_name in
+               ['performances_discarded_too_short',
+                'performances_truncated', 'performances_truncated_timewise',
+                'performances_discarded_more_than_1_program',
+                'performance_discarded_too_many_time_shift_steps',
+                'performance_discarded_too_many_duration_steps'])
 
   if sequences_lib.is_absolute_quantized_sequence(quantized_sequence):
     steps_per_second = quantized_sequence.quantization_info.steps_per_second

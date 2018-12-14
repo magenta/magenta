@@ -15,6 +15,7 @@
 
 Files are prefixed by a f followed by the frame number.
 """
+from __future__ import print_function
 
 import argparse
 import glob
@@ -127,17 +128,17 @@ def main(_):
   Args:
     Nothing
   """
-  print 'argument to expand', ARGS.video_in
-  print 'argument expanded', glob.glob(ARGS.video_in)
+  print('argument to expand', ARGS.video_in)
+  print('argument expanded', glob.glob(ARGS.video_in))
   video_count = 0
   for video_filename in glob.glob(ARGS.video_in):
-    print 'start parsing', video_filename
+    print('start parsing', video_filename)
     data = skvideo.io.ffprobe(video_filename)['video']
     rate_str = data['@r_frame_rate'].split('/')
     rate = float(rate_str[0]) / float(rate_str[1])
-    print 'detected frame rate:', rate
+    print('detected frame rate:', rate)
 
-    print 'load frames:'
+    print('load frames:')
     video = skvideo.io.vreader(video_filename)
     frame_count = 0
     file_count = 0
@@ -146,7 +147,7 @@ def main(_):
          ((frame_count-ARGS.offset)%ARGS.skip == 0) and \
          (frame_count/rate >= ARGS.from_s) and \
          (frame_count/rate <= ARGS.to_s or ARGS.to_s == -1):
-        print frame_count,
+        print(frame_count,)
         img = Image.fromarray(frame)
         if ARGS.crop:
           img = crop(img, ARGS.size)
@@ -161,7 +162,7 @@ def main(_):
                                   'f{:07d}.png'.format(file_number))
           img.save(file_out, 'PNG')
         else:
-          print 'unrecognize format', ARGS.format_ext
+          print('unrecognize format', ARGS.format_ext)
           quit()
         file_count += 1
       frame_count += 1

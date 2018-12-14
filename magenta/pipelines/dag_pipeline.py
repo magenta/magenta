@@ -252,10 +252,9 @@ class DAGPipeline(pipeline.Pipeline):
       else:
         values = [dependency]
       for subordinate in values:
-        if not (isinstance(subordinate, pipeline.Pipeline) or
+        if not (isinstance(subordinate, (pipeline.Pipeline, DagInput)) or
                 (isinstance(subordinate, pipeline.PipelineKey) and
-                 isinstance(subordinate.unit, pipeline.Pipeline)) or
-                isinstance(subordinate, DagInput)):
+                 isinstance(subordinate.unit, pipeline.Pipeline))):
           raise InvalidDAGException(
               'Dependency {%s: %s} is invalid. Right hand side subordinate %s '
               'must be either a Pipeline, PipelineKey, or DagInput object'
@@ -287,7 +286,7 @@ class DAGPipeline(pipeline.Pipeline):
     # Find DagInput and DagOutput objects and make sure they are being used
     # correctly.
     self.outputs = [unit for unit in self.dag if isinstance(unit, DagOutput)]
-    self.output_names = dict([(output.name, output) for output in self.outputs])
+    self.output_names = dict((output.name, output) for output in self.outputs)
     for output in self.outputs:
       output.input_type = output.output_type = (
           self._get_type_signature_for_dependency(self.dag[output]))
@@ -310,8 +309,8 @@ class DAGPipeline(pipeline.Pipeline):
     self.input = inputs.pop()
 
     # Compute output_type for self and call super constructor.
-    output_signature = dict([(output.name, output.output_type)
-                             for output in self.outputs])
+    output_signature = dict((output.name, output.output_type)
+                            for output in self.outputs)
     super(DAGPipeline, self).__init__(
         input_type=self.input.output_type,
         output_type=output_signature,
@@ -320,8 +319,8 @@ class DAGPipeline(pipeline.Pipeline):
     # Make sure all Pipeline objects have DAG vertices that feed into them,
     # and feed their output into other DAG vertices.
     all_subordinates = (
-        set([dep_unit for unit in self.dag
-             for dep_unit in self._get_units(self.dag[unit])])
+        set(dep_unit for unit in self.dag
+            for dep_unit in self._get_units(self.dag[unit]))
         .difference(set([self.input])))
     all_destinations = set(self.dag.keys()).difference(set(self.outputs))
     if all_subordinates != all_destinations:
@@ -345,8 +344,8 @@ class DAGPipeline(pipeline.Pipeline):
     # is a list with the dependency pipelines in the 0th position, and a count
     # of forward connections to the key pipeline (how many pipelines use this
     # pipeline as a dependency).
-    graph = dict([(unit, [self._get_units(self.dag[unit]), 0])
-                  for unit in self.dag])
+    graph = dict((unit, [self._get_units(self.dag[unit]), 0])
+                 for unit in self.dag)
     graph[self.input] = [[], 0]
     for unit, (forward_connections, _) in graph.items():
       for to_unit in forward_connections:
@@ -410,7 +409,7 @@ class DAGPipeline(pipeline.Pipeline):
           isinstance(val, pipeline.Pipeline) and
           isinstance(key.input_type, dict) and
           key.input_type == val.output_type):
-        yield key, dict([(name, val[name]) for name in val.output_type])
+        yield key, dict((name, val[name]) for name in val.output_type)
       elif key == DagOutput():
         if (isinstance(val, pipeline.Pipeline) and
             isinstance(val.output_type, dict)):
@@ -471,8 +470,8 @@ class DAGPipeline(pipeline.Pipeline):
     if isinstance(dependency,
                   (pipeline.Pipeline, pipeline.PipelineKey, DagInput)):
       return dependency.output_type
-    return dict([(name, sub_dep.output_type)
-                 for name, sub_dep in dependency.items()])
+    return dict((name, sub_dep.output_type)
+                for name, sub_dep in dependency.items())
 
   def transform(self, input_object):
     """Runs the DAG on the given input.
@@ -514,7 +513,7 @@ class DAGPipeline(pipeline.Pipeline):
       results[unit] = unit_outputs
 
     self._set_stats(stats)
-    return dict([(output.name, results[output]) for output in self.outputs])
+    return dict((output.name, results[output]) for output in self.outputs)
 
   def _get_outputs_as_signature(self, dependency, outputs):
     """Returns a list or dict which matches the type signature of dependency.
@@ -539,8 +538,8 @@ class DAGPipeline(pipeline.Pipeline):
       assert isinstance(unit_or_key, (pipeline.Pipeline, DagInput))
       return outputs[unit_or_key]
     if isinstance(dependency, dict):
-      return dict([(name, _get_outputs_for_key(unit_or_key, outputs))
-                   for name, unit_or_key in dependency.items()])
+      return dict((name, _get_outputs_for_key(unit_or_key, outputs))
+                  for name, unit_or_key in dependency.items())
     return _get_outputs_for_key(dependency, outputs)
 
   def _get_inputs_for_unit(self, unit, results,
@@ -605,7 +604,7 @@ class DAGPipeline(pipeline.Pipeline):
     if not outputs:
       return []
     if isinstance(unit.output_type, dict):
-      concated = dict([(key, list()) for key in unit.output_type.keys()])
+      concated = dict((key, list()) for key in unit.output_type.keys())
       for d in outputs:
         if not isinstance(d, dict):
           raise InvalidTransformOutputException(

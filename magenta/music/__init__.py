@@ -61,16 +61,18 @@ from magenta.music.events_lib import NonIntegerStepsPerBarException
 from magenta.music.lead_sheets_lib import extract_lead_sheet_fragments
 from magenta.music.lead_sheets_lib import LeadSheet
 
-from magenta.music.melodies_lib import BadNoteException
+from magenta.music.melodies_lib import BadNoteError
 from magenta.music.melodies_lib import extract_melodies
 from magenta.music.melodies_lib import Melody
 from magenta.music.melodies_lib import midi_file_to_melody
-from magenta.music.melodies_lib import PolyphonicMelodyException
+from magenta.music.melodies_lib import PolyphonicMelodyError
 
 from magenta.music.melody_encoder_decoder import KeyMelodyEncoderDecoder
 from magenta.music.melody_encoder_decoder import MelodyOneHotEncoding
 
+from magenta.music.midi_io import midi_file_to_note_sequence
 from magenta.music.midi_io import midi_file_to_sequence_proto
+from magenta.music.midi_io import midi_to_note_sequence
 from magenta.music.midi_io import midi_to_sequence_proto
 from magenta.music.midi_io import MIDIConversionError
 from magenta.music.midi_io import sequence_proto_to_midi_file

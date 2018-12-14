@@ -19,7 +19,7 @@ from __future__ import print_function
 
 import base64
 import collections
-from io import BytesIO
+import io
 import os
 
 import bokeh
@@ -29,6 +29,7 @@ import numpy as np
 import pandas as pd
 from scipy.io import wavfile
 from six.moves import urllib
+import tensorflow as tf
 
 from magenta.music import midi_synth
 
@@ -50,12 +51,12 @@ def colab_play(array_of_floats, sample_rate, ephemeral=True, autoplay=False):
     autoplay: If True, automatically start playing the sound when the
       widget is rendered.
   """
-  from google.colab.output import _js_builder as js  # pylint: disable=g-import-not-at-top,protected-access
+  from google.colab.output import _js_builder as js  # pylint:disable=g-import-not-at-top,protected-accessk,import-error
 
   normalizer = float(np.iinfo(np.int16).max)
   array_of_ints = np.array(
       np.asarray(array_of_floats) * normalizer, dtype=np.int16)
-  memfile = BytesIO()
+  memfile = io.BytesIO()
   wavfile.write(memfile, sample_rate, array_of_ints)
   html = """<audio controls {autoplay}>
               <source controls src="data:audio/wav;base64,{base64_wavfile}"
@@ -64,7 +65,7 @@ def colab_play(array_of_floats, sample_rate, ephemeral=True, autoplay=False):
             </audio>"""
   html = html.format(
       autoplay='autoplay' if autoplay else '',
-      base64_wavfile=base64.encodestring(memfile.getvalue()))
+      base64_wavfile=base64.b64encode(memfile.getvalue()))
   memfile.close()
   global _play_id
   _play_id += 1
@@ -185,11 +186,14 @@ def plot_sequence(sequence,
 def download_bundle(bundle_name, target_dir, force_reload=False):
   """Downloads a Magenta bundle to target directory.
 
+  Target directory target_dir will be created if it does not already exist.
+
   Args:
      bundle_name: A string Magenta bundle name to download.
      target_dir: A string local directory in which to write the bundle.
      force_reload: A boolean that when True, reloads the bundle even if present.
   """
+  tf.gfile.MakeDirs(target_dir)
   bundle_target = os.path.join(target_dir, bundle_name)
   if not os.path.exists(bundle_target) or force_reload:
     response = urllib.request.urlopen(

@@ -33,7 +33,7 @@ class RandomPartition(pipeline.Pipeline):
 
   def __init__(self, type_, partition_names, partition_probabilities):
     super(RandomPartition, self).__init__(
-        type_, dict([(name, type_) for name in partition_names]))
+        type_, dict((name, type_) for name in partition_names))
     if len(partition_probabilities) != len(partition_names) - 1:
       raise ValueError('len(partition_probabilities) != '
                        'len(partition_names) - 1. '
@@ -52,8 +52,8 @@ class RandomPartition(pipeline.Pipeline):
           bucket = i
           break
     self._set_stats(self._make_stats(self.partition_names[bucket]))
-    return dict([(name, [] if i != bucket else [input_object])
-                 for i, name in enumerate(self.partition_names)])
+    return dict((name, [] if i != bucket else [input_object])
+                for i, name in enumerate(self.partition_names))
 
   def _make_stats(self, increment_partition=None):
     return [statistics.Counter(increment_partition + '_count', 1)]

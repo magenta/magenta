@@ -49,7 +49,7 @@ def main(unused_argv):
 
   config = melody_rnn_config_flags.config_from_flags()
   pipeline_instance = melody_rnn_pipeline.get_pipeline(
-      config, FLAGS.eval_ratio)
+      config, eval_ratio=FLAGS.eval_ratio)
 
   FLAGS.input = os.path.expanduser(FLAGS.input)
   FLAGS.output_dir = os.path.expanduser(FLAGS.output_dir)
