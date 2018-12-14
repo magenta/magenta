@@ -252,3 +252,24 @@ $ CUDA_VISIBLE_DEVICES= arbitrary_image_stylization_evaluate \
       --logtostderr
 ```
 
+## Distill style prediction network using MobileNetV2
+
+To distill the InceptionV3 style prediction network using a MobileNetV2 model,
+you will need the MobilenetV2 pre-trained checkpoint from 
+https://storage.googleapis.com/mobilenet_v2/checkpoints/mobilenet_v2_1.0_224.tgz.
+You will also need the checkpoint from a trained arbitrary image stylization model
+(You can use the one available here).
+For the datasets, you will want to use the same datasets used to train the original 
+arbitrary image stylization model (If using the pre-trained one available here,
+use ImageNet for the content images dataset and a combination of PBN and DTD for 
+the style images dataset).
+
+```bash
+$ arbitrary_image_stylization_distill_mobilenet \
+      --imagenet_data_dir=/path/to/imagenet-2012-tfrecord \
+      --style_dataset_file=/path/to/style_images.tfrecord \
+      --train_dir=/path/to/logdir \
+      --mobilenet_checkpoint=/path/to/mobilenet_v2_1.0_224/checkpoint//mobilenet_v2_1.0_224.ckpt \
+      --initial_checkpoint=/path/to/arbitrary_style_transfer/checkpoint/model.ckpt \
+      --use_true_loss=False
+```
