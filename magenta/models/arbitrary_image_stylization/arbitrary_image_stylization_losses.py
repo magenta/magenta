@@ -101,7 +101,7 @@ def content_loss(end_points, stylized_end_points, content_weights):
   total_content_loss = np.float32(0.0)
   content_loss_dict = {}
 
-  for name, weight in content_weights.iteritems():
+  for name, weight in content_weights.items():
     loss = tf.reduce_mean(
         (end_points[name] - stylized_end_points[name]) ** 2)
     weighted_loss = weight * loss
@@ -133,7 +133,7 @@ def style_loss(style_end_points, stylized_end_points, style_weights):
   total_style_loss = np.float32(0.0)
   style_loss_dict = {}
 
-  for name, weight in style_weights.iteritems():
+  for name, weight in style_weights.items():
     loss = tf.reduce_mean(
         (learning_utils.gram_matrix(stylized_end_points[name]) -
          learning_utils.gram_matrix(style_end_points[name])) ** 2)

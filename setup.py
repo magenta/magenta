@@ -70,6 +70,7 @@ CONSOLE_SCRIPTS = [
     'magenta.models.arbitrary_image_stylization.arbitrary_image_stylization_evaluate',
     'magenta.models.arbitrary_image_stylization.arbitrary_image_stylization_train',
     'magenta.models.arbitrary_image_stylization.arbitrary_image_stylization_with_weights',
+    'magenta.models.arbitrary_image_stylization.arbitrary_image_stylization_distill_mobilenet',
     'magenta.models.drums_rnn.drums_rnn_create_dataset',
     'magenta.models.drums_rnn.drums_rnn_generate',
     'magenta.models.drums_rnn.drums_rnn_train',
