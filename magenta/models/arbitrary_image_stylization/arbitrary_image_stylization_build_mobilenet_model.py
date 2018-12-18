@@ -49,6 +49,35 @@ def build_mobilenet_model(content_input_,
                           content_weights=None,
                           style_weights=None,
                           total_variation_weight=None):
+  """The image stylize function using a MobileNetV2 instead of InceptionV3.
+
+  Args:
+    content_input_: Tensor. Batch of content input images.
+    style_input_: Tensor. Batch of style input images.
+    mobilenet_trainable: bool. Should the MobileNet parameters be trainable?
+    style_params_trainable: bool. Should the style parameters be trainable?
+    transformer_trainable: bool. Should the style transfer network be
+        trainable?
+    reuse: bool. Whether to reuse model parameters. Defaults to False.
+    mobilenet_end_point: string. Specifies the endpoint to construct the
+        MobileNetV2 network up to. This network is used for style prediction.
+    style_prediction_bottleneck: int. Specifies the bottleneck size in the
+        number of parameters of the style embedding.
+    adds_losses: wheather or not to add objectives to the model.
+    content_weights: dict mapping layer names to their associated content loss
+        weight. Keys that are missing from the dict won't have their content
+        loss computed.
+    style_weights: dict mapping layer names to their associated style loss
+        weight. Keys that are missing from the dict won't have their style
+        loss computed.
+    total_variation_weight: float. Coefficient for the total variation part of
+        the loss.
+
+  Returns:
+    Tensor for the output of the transformer network, Tensor for the total loss,
+    dict mapping loss names to losses, Tensor for the bottleneck activations of
+    the style prediction network.
+  """
   [activation_names,
    activation_depths] = transformer_model.style_normalization_activations()
 
@@ -98,6 +127,30 @@ def style_prediction_mobilenet(style_input_,
                                style_params_trainable=False,
                                style_prediction_bottleneck=100,
                                reuse=None):
+  """Maps style images to the style embeddings using MobileNetV2
+  (beta and gamma parameters).
+
+  Args:
+    style_input_: Tensor. Batch of style input images.
+    activation_names: string. Scope names of the activations of the transformer
+        network which are used to apply style normalization.
+    activation_depths: Shapes of the activations of the transformer network
+        which are used to apply style normalization.
+    mobilenet_end_point: string. Specifies the endpoint to construct the
+        MobileNetV2 network up to. This network is part of the style prediction
+        network.
+    mobilenet_trainable: bool. Should the MobileNetV2 parameters be marked
+        as trainable?
+    style_params_trainable: bool. Should the mapping from bottleneck to
+        beta and gamma parameters be marked as trainable?
+    style_prediction_bottleneck: int. Specifies the bottleneck size in the
+        number of parameters of the style embedding.
+    reuse: bool. Whether to reuse model parameters. Defaults to False.
+
+  Returns:
+    Tensor for the output of the style prediction network, Tensor for the
+        bottleneck of style parameters of the style prediction network.
+  """
   with tf.name_scope('style_prediction_mobilenet') and tf.variable_scope(
       tf.get_variable_scope(), reuse=reuse):
     with slim.arg_scope(mobilenet_v2.training_scope(

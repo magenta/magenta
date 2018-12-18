@@ -258,9 +258,9 @@ To distill the InceptionV3 style prediction network using a MobileNetV2 model,
 you will need the MobilenetV2 pre-trained checkpoint from 
 https://storage.googleapis.com/mobilenet_v2/checkpoints/mobilenet_v2_1.0_224.tgz.
 You will also need the checkpoint from a trained arbitrary image stylization model
-(You can use the one available here).
+(You can use [this](https://storage.googleapis.com/download.magenta.tensorflow.org/models/arbitrary_style_transfer.tar.gz)).
 For best results, use the same datasets used to train the original 
-arbitrary image stylization model (If using the pre-trained one available here,
+arbitrary image stylization model (If using the pre-trained model available here,
 use ImageNet for the content images dataset and a combination of PBN and DTD for 
 the style images dataset).
 
