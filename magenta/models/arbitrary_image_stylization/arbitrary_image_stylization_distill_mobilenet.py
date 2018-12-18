@@ -122,14 +122,13 @@ def main(unused_argv=None):
 
       _, inception_bottleneck_feat = build_model.style_prediction(
           style_inputs_,
-          None,
-          None,
+          [],
+          [],
           is_training=False,
           trainable=False,
           inception_end_point='Mixed_6e',
           style_prediction_bottleneck=100,
           reuse=None,
-          inception_only=True,
       )
 
       print("PRINTING TRAINABLE VARIABLES")
