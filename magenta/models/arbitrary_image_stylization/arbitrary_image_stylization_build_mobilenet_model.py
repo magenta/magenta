@@ -24,7 +24,7 @@ from magenta.models.arbitrary_image_stylization import nza_model as transformer_
 from magenta.models.image_stylization import ops
 
 try:
-  from nets.mobilenet import mobilenet_v2, mobilenet  # pylint:disable=g-import-not-at-top
+  from nets.mobilenet import mobilenet_v2, mobilenet  # pylint:disable=g-import-not-at-top,g-multiple-import
 except ImportError:
   print('Cannot import MobileNet model. Make sure to install slim '
         'models library described '
