@@ -52,7 +52,7 @@ checkpoints from the table below.
 | groovae_2bar_humanize | `groovae_2bar_humanize` | 2-bar model that converts a quantized, constant-velocity drum pattern into a "humanized" groove. | [download](https://storage.googleapis.com/magentadata/models/music_vae/checkpoints/groovae_2bar_humanize.tar)|
 | groovae_2bar_tap_fixed_velocity | `groovae_2bar_tap_fixed_velocity` | 2-bar model that converts a constant-velocity single-drum "tap" pattern into a groove. | [download](https://storage.googleapis.com/magentadata/models/music_vae/checkpoints/groovae_2bar_tap_fixed_velocity.tar)|
 | groovae_2bar_add_closed_hh | `groovae_2bar_add_closed_hh` | 2-bar model that adds (or replaces) closed hi-hat for an existing groove. | [download](https://storage.googleapis.com/magentadata/models/music_vae/checkpoints/groovae_2bar_add_closed_hh.tar)|
-| groovae_2bar_hits_control | `groovae_2bar_hits_control` | 2-bar groove autoender, with the input hits provided to the decoder as a conditioning signal. | [download](https://storage.googleapis.com/magentadata/models/music_vae/checkpoints/groovae_2bar_hits_control.tar)|
+| groovae_2bar_hits_control | `groovae_2bar_hits_control` | 2-bar groove autoencoder, with the input hits provided to the decoder as a conditioning signal. | [download](https://storage.googleapis.com/magentadata/models/music_vae/checkpoints/groovae_2bar_hits_control.tar)|
 
 Once you have selected a model, there are two operations you can perform with
 the generate script: `sample` and `interpolate`.
