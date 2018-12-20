@@ -1272,9 +1272,18 @@ class GrooveConverterTest(tf.test.TestCase):
     # Convert one or two measures to a tensor and back
     # This example should yield basically a perfect reconstruction
 
+    small_drum_set = [
+        data.REDUCED_DRUM_PITCH_CLASSES[0],
+        data.REDUCED_DRUM_PITCH_CLASSES[1] +
+        data.REDUCED_DRUM_PITCH_CLASSES[4] +
+        data.REDUCED_DRUM_PITCH_CLASSES[5] +
+        data.REDUCED_DRUM_PITCH_CLASSES[6],
+        data.REDUCED_DRUM_PITCH_CLASSES[2] + data.REDUCED_DRUM_PITCH_CLASSES[8],
+        data.REDUCED_DRUM_PITCH_CLASSES[3] + data.REDUCED_DRUM_PITCH_CLASSES[7]
+    ]
     converter = data.GrooveConverter(
         split_bars=None, steps_per_quarter=4, quarters_per_bar=4,
-        max_tensors_per_notesequence=5, small_drum_set=True)
+        max_tensors_per_notesequence=5, pitch_classes=small_drum_set)
 
     # Test one bar sequence
     tensors = converter.to_tensors(self.one_bar_sequence)

@@ -44,8 +44,11 @@ MEL_PROGRAMS = range(0, 32)  # piano, chromatic percussion, organ, guitar
 BASS_PROGRAMS = range(32, 40)
 ELECTRIC_BASS_PROGRAM = 33
 
+# 9 classes: kick, snare, closed_hh, open_hh, low_tom, mid_tom, hi_tom, crash,
+# ride
 REDUCED_DRUM_PITCH_CLASSES = drums_encoder_decoder.DEFAULT_DRUM_TYPE_PITCHES
-FULL_DRUM_PITCH_CLASSES = [  # 61 classes
+# 61 classes: full General MIDI set
+FULL_DRUM_PITCH_CLASSES = [
     [p] for c in drums_encoder_decoder.DEFAULT_DRUM_TYPE_PITCHES for p in c]
 
 OUTPUT_VELOCITY = 80
