@@ -66,7 +66,7 @@ flags.DEFINE_float(
     'temperature', 0.5,
     'The randomness of the decoding process.')
 flags.DEFINE_string(
-    'log', 'ERROR',
+    'log', 'INFO',
     'The threshold for what messages will be logged: '
     'DEBUG, INFO, WARN, ERROR, or FATAL.')
 
