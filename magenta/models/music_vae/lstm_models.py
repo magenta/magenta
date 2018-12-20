@@ -27,11 +27,13 @@ from magenta.common import flatten_maybe_padded_sequences
 from magenta.common import Nade
 from magenta.models.music_vae import base_model
 from magenta.models.music_vae import lstm_utils
+from tensor2tensor.layers.common_layers import smoothing_cross_entropy
 from tensorflow.contrib import rnn
 from tensorflow.contrib import seq2seq
 from tensorflow.python.framework import tensor_util
 from tensorflow.python.layers import core as layers_core
 from tensorflow.python.util import nest
+
 
 
 # ENCODERS
@@ -1278,3 +1280,139 @@ def get_default_hparams():
       'residual_decoder': False,  # Use residual connections in decoder.
   })
   return tf.contrib.training.HParams(**hparams_map)
+
+
+class GrooveLstmCategoricalDecoder(BaseLstmDecoder):
+  """Groove LSTM Categorical decoder
+
+  At each timestep, this decoder outputs a vector of length
+  num_instruments * (1 + _velocity_bins + _offset_bins),
+  The default number of drum instruments is 9, with drum categories defined in
+  drums_encoder_decoder.py
+
+  For each instrument, the model outputs a triple of (on/off, velocity, offset),
+  with a binary representation for on/off and one-hot representations for
+  velocity and offset.
+
+  Args:
+    velocity_bins: Granularity of one-hot representation for velocity.
+    offset_bins: Granularity of one-hot representation for offset.
+    num_instruments: The number of instruments input per timestep. If using
+      the split_instruments option in the converter, set this to 1.
+    velocities_weight: Weight coefficient for velocies in the loss function.
+    offsets_weight: Weight coefficient for offsets in the loss function.
+    label_smoothing: Confidence of Guassian smoothing on the labels.
+  """
+
+  def __init__(self, velocity_bins=32, offset_bins=32,
+               num_instruments=9, velocities_weight=1., offsets_weight=1.,
+               label_smoothing=None):
+    self._velocity_bins = velocity_bins
+    self._offset_bins = offset_bins
+    self._num_instruments = num_instruments
+    self._velocities_weight = velocities_weight
+    self._offsets_weight = offsets_weight
+    self._label_smoothing = label_smoothing
+
+  def _flat_reconstruction_loss(self, flat_x_target, flat_rnn_output):
+    # Target is length num_instruments * (1+velocity_bins+offset_bins)
+    # Ordered as [on/offs... vels...offsets...]
+    split_sizes = [self._num_instruments,
+                   self._num_instruments * self._velocity_bins,
+                   self._num_instruments * self._offset_bins]
+
+    target_hits, target_velocities, target_offsets = tf.split(
+        flat_x_target, split_sizes, axis=1)
+
+    output_hits, output_velocities, output_offsets = tf.split(
+        flat_rnn_output, split_sizes, axis=1)
+
+    output_hits = tf.nn.sigmoid(output_hits)
+
+    hits_loss = tf.reduce_sum(tf.losses.log_loss(
+        labels=target_hits, predictions=output_hits,
+        reduction=tf.losses.Reduction.NONE), axis=1)
+
+    if self._label_smoothing is not None:
+      # Only use smoothing for velocities and offsets
+      # Split out velocities and offsets by instrument into a list of size
+      # num_instruments, with each entry a vector of size num_bins
+      output_velocities_split = tf.split(
+          output_velocities, self._num_instruments, axis=1)
+      target_velocities_split = tf.split(
+          target_velocities, self._num_instruments, axis=1)
+      output_offsets_split = tf.split(
+          output_offsets, self._num_instruments, axis=1)
+      target_offsets_split = tf.split(
+          target_offsets, self._num_instruments, axis=1)
+
+      # Convert targets from one-hot to argmax to use smoothing from t2t
+      argmax_target_velocities = [tf.argmax(
+          t, axis=1) for t in target_velocities_split]
+      argmax_target_offsets = [tf.argmax(
+          t, axis=1) for t in target_offsets_split]
+
+      velocities_loss = tf.reduce_sum([smoothing_cross_entropy(
+          output_velocities_split[i], argmax_target_velocities[i],
+          vocab_size=self._velocity_bins, confidence=self._label_smoothing,
+          gaussian=True) for i in range(self._num_instruments)], axis=0)
+
+      offsets_loss = tf.reduce_sum([smoothing_cross_entropy(
+          output_offsets_split[i], argmax_target_offsets[i],
+          vocab_size=self._offset_bins, confidence=self._label_smoothing,
+          gaussian=True) for i in range(self._num_instruments)], axis=0)
+
+    else:
+      output_velocities = tf.nn.sigmoid(output_velocities)
+      output_offsets = tf.nn.sigmoid(output_offsets)
+
+      velocities_loss = tf.reduce_sum(tf.losses.log_loss(
+          target_velocities, output_velocities,
+          reduction=tf.losses.Reduction.NONE)*self._velocities_weight, axis=1)
+
+      offsets_loss = tf.reduce_sum(tf.losses.log_loss(
+          target_offsets, output_offsets,
+          reduction=tf.losses.Reduction.NONE)*self._offsets_weight, axis=1)
+
+    loss = hits_loss + velocities_loss + offsets_loss
+
+    metric_map = {
+        'metrics/hits_loss':
+            tf.metrics.mean(hits_loss),
+        'metrics/velocities_loss':
+            tf.metrics.mean(velocities_loss),
+        'metrics/offsets_loss':
+            tf.metrics.mean(offsets_loss)
+    }
+
+    return loss, metric_map
+
+  def _sample(self, rnn_output, temperature=1.):
+    split_sizes = [self._num_instruments,
+                   self._num_instruments * self._velocity_bins,
+                   self._num_instruments * self._offset_bins]
+
+    output_hits, output_velocities, output_offsets = tf.split(
+        rnn_output, split_sizes, axis=1)
+
+    hits_sampler = tfp.Bernoulli(
+        logits=output_hits / temperature, dtype=tf.float32)
+
+    output_velocities = tf.split(output_velocities, self._num_instruments,
+                                 axis=1)
+    output_offsets = tf.split(output_offsets, self._num_instruments, axis=1)
+
+    velocities_samplers = [tfp.OneHotCategorical(
+        logits=v / temperature, dtype=tf.float32) for v in output_velocities]
+
+    offsets_samplers = [tfp.OneHotCategorical(
+        logits=o / temperature, dtype=tf.float32) for o in output_offsets]
+
+    output_velocities = [s.sample() for s in velocities_samplers]
+    output_offsets = [s.sample() for s in offsets_samplers]
+
+    output_hits = hits_sampler.sample()
+
+    outputs = [output_hits] + output_velocities + output_offsets
+
+    return tf.concat(outputs, axis=1)
