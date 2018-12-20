@@ -1239,17 +1239,14 @@ class GrooveConverter(BaseNoteSequenceConverter):
     hop_size: Number of steps to slide window.
     hits_as_controls: If True, pass in hits with the conditioning controls
       to force model to learn velocities and offsets.
-    small_drum_set: If True, use MIDI pitch mappings for 4 instruments only
-      (kick, snare, closed hi-hat, open hi-hat) instead of the default 9.
     fixed_velocities: If True, flatten all input velocities.
   """
 
   def __init__(self, split_bars=None, steps_per_quarter=4, quarters_per_bar=4,
-               max_tensors_per_notesequence=8, is_training=True, pitch_classes=None, humanize=False,
+               max_tensors_per_notesequence=8, pitch_classes=None, humanize=False,
                tapify=False, add_instruments=None, num_velocity_bins=None,
                num_offset_bins=None, split_instruments=False, hop_size=None,
-               hits_as_controls=False,
-               fixed_velocities=False):
+               hits_as_controls=False, fixed_velocities=False):
 
     self._split_bars = split_bars
     self._steps_per_quarter = steps_per_quarter
@@ -1272,7 +1269,7 @@ class GrooveConverter(BaseNoteSequenceConverter):
     self._pitch_classes = pitch_classes or REDUCED_DRUM_PITCH_CLASSES
     self._pitch_class_map = {
         p: i for i, pitches in enumerate(self._pitch_classes) for p in pitches}
-    self._n_drums = len(self._pitch_classes)
+    self._num_drums = len(self._pitch_classes)
 
     if bool(num_velocity_bins) ^ bool(num_offset_bins):
       raise ValueError(
@@ -1282,7 +1279,7 @@ class GrooveConverter(BaseNoteSequenceConverter):
       raise ValueError(
           'Cannot set hop_size without setting split_bars')
 
-    drums_per_output = 1 if self._split_instruments else self._n_drums
+    drums_per_output = 1 if self._split_instruments else self._num_drums
     # Each drum hit is represented by 3 numbers - on/off, velocity, and offset
     if self._categorical_outputs:
       output_depth = (
@@ -1296,10 +1293,10 @@ class GrooveConverter(BaseNoteSequenceConverter):
       if self._split_instruments:
         control_depth += 1
       else:
-        control_depth += self._n_drums
+        control_depth += self._num_drums
     # Set up controls for cycling through instrument outputs.
     if self._split_instruments:
-      control_depth += self._n_drums
+      control_depth += self._num_drums
 
     super(GrooveConverter, self).__init__(
         input_depth=output_depth,
@@ -1381,7 +1378,7 @@ class GrooveConverter(BaseNoteSequenceConverter):
       if not mm.sequences_lib.is_quantized_sequence(note_sequence):
         raise ValueError('NoteSequence must be quantized')
 
-      h = collections.defaultdict(collections.defaultdict(list))
+      h = collections.defaultdict(lambda: collections.defaultdict(list))
 
       for note in note_sequence.notes:
         step = int(note.quantized_start_step)
@@ -1392,9 +1389,8 @@ class GrooveConverter(BaseNoteSequenceConverter):
 
     def _remove_drums_from_tensors(to_remove, tensors):
       """Drop hits in drum_list and set velocities and offsets to 0."""
-      drum_indices = [self._pitch_class_map[d] for d in to_remove]
       for t in tensors:
-        t[:, drum_indices] = 0.
+        t[:, to_remove] = 0.
       return tensors
 
     def _convert_vector_to_categorical(vectors, min_value, max_value, num_bins):
@@ -1436,16 +1432,16 @@ class GrooveConverter(BaseNoteSequenceConverter):
     max_step = self._steps_per_bar * total_bars
 
     # Each of these stores a (total_beats, num_drums) matrix.
-    hit_vectors = np.zeros((max_step, self._n_drums))
-    velocity_vectors = np.zeros((max_step, self._n_drums))
-    offset_vectors = np.zeros((max_step, self._n_drums))
+    hit_vectors = np.zeros((max_step, self._num_drums))
+    velocity_vectors = np.zeros((max_step, self._num_drums))
+    offset_vectors = np.zeros((max_step, self._num_drums))
 
     # Loop through timesteps.
     for step in range(max_step):
       notes = steps_hash[step]
 
       # Loop through each drum instrument.
-      for drum in range(self._n_drums):
+      for drum in range(self._num_drums):
         drum_notes = notes[drum]
         if len(drum_notes) > 1:
           note = max(drum_notes, key=lambda n: n.velocity)
@@ -1459,20 +1455,19 @@ class GrooveConverter(BaseNoteSequenceConverter):
         offset_vectors[step, drum] = self._get_feature(
             note, 'offset', step_length)
 
+    # These are the input tensors for the encoder.
     in_hits = copy.deepcopy(hit_vectors)
     in_velocities = copy.deepcopy(velocity_vectors)
     in_offsets = copy.deepcopy(offset_vectors)
 
     if self._tapify:
       argmaxes = np.argmax(in_velocities, axis=1)
-
-      in_hits = np.zeros(in_hits.shape)
-      in_velocities = np.zeros(in_velocities.shape)
-      in_offsets = np.zeros(in_offsets.shape)
-      # This doesn't work because we've zeroed out. Instead, mask other values.
-      in_hits[:, 3] = in_hits[np.arange(max_step), argmaxes]
-      in_velocities[:, 3] = in_velocities[np.arange(max_step), argmaxes]
-      in_offsets[:, 3] = in_offsets[np.arange(max_step), argmaxes]
+      in_hits[:] = 0
+      in_velocities[:] = 0
+      in_offsets[:] = 0
+      in_hits[:, 3] = hit_vectors[np.arange(max_step), argmaxes]
+      in_velocities[:, 3] = velocity_vectors[np.arange(max_step), argmaxes]
+      in_offsets[:, 3] = offset_vectors[np.arange(max_step), argmaxes]
 
     if self._humanize:
       in_velocities[:] = 0
@@ -1500,7 +1495,7 @@ class GrooveConverter(BaseNoteSequenceConverter):
 
     if self._split_instruments:
       # Split the outputs for each drum into separate steps.
-      total_length = max_step * self._n_drums
+      total_length = max_step * self._num_drums
       hit_vectors = hit_vectors.reshape([total_length, -1])
       velocity_vectors = velocity_vectors.reshape([total_length, -1])
       offset_vectors = offset_vectors.reshape([total_length, -1])
@@ -1525,7 +1520,7 @@ class GrooveConverter(BaseNoteSequenceConverter):
       # Cycle through instrument numbers.
       controls.append(np.tile(
           np_onehot(
-              np.arange(self._n_drums), self._n_drums, np.bool),
+              np.arange(self._num_drums), self._num_drums, np.bool),
           (max_step, 1)))
     controls = np.concatenate(controls, axis=-1) if controls else None
 
@@ -1533,8 +1528,8 @@ class GrooveConverter(BaseNoteSequenceConverter):
       window_size = self._steps_per_bar * self._split_bars
       hop_size = self._hop_size or window_size
       if self._split_instruments:
-        window_size *= self._n_drums
-        hop_size *= self._n_drums
+        window_size *= self._num_drums
+        hop_size *= self._num_drums
       seqs = _extract_windows(seqs, window_size, hop_size)
       input_seqs = _extract_windows(input_seqs, window_size, hop_size)
       if controls is not None:
@@ -1546,8 +1541,7 @@ class GrooveConverter(BaseNoteSequenceConverter):
       if controls is not None:
         controls = [controls]
 
-    return data_external.ConverterTensors(
-        inputs=input_seqs, outputs=seqs, controls=controls)
+    return ConverterTensors(inputs=input_seqs, outputs=seqs, controls=controls)
 
   def _to_notesequences(self, samples, controls=None):
 
@@ -1569,7 +1563,7 @@ class GrooveConverter(BaseNoteSequenceConverter):
 
     for sample in samples:
       n_timesteps = (sample.shape[0] // (
-          self._n_drums if self._categorical_outputs else 1))
+          self._num_drums if self._categorical_outputs else 1))
 
       note_sequence = music_pb2.NoteSequence()
       note_sequence.tempos.add(qpm=120)
@@ -1584,33 +1578,31 @@ class GrooveConverter(BaseNoteSequenceConverter):
           # Split out the categories from the flat output.
           if self._split_instruments:
             hits, velocities, offsets = np.split(
-                sample[i*self._n_drums: (i+1)*self._n_drums],
+                sample[i*self._num_drums: (i+1)*self._num_drums],
                 [1, self._num_velocity_bins+1],
                 axis=1)
           else:
             hits, velocities, offsets = np.split(
                 sample[i],
-                [self._n_drums, self._n_drums*(self._num_velocity_bins+1)])
+                [self._num_drums, self._num_drums*(self._num_velocity_bins+1)])
             # Split out the instruments.
-            velocities = np.split(velocities, self._n_drums)
-            offsets = np.split(offsets, self._n_drums)
+            velocities = np.split(velocities, self._num_drums)
+            offsets = np.split(offsets, self._num_drums)
         else:
           if self._split_instruments:
             hits, velocities, offsets = sample[
-                i*self._n_drums: (i+1)*self._n_drums].T
+                i*self._num_drums: (i+1)*self._num_drums].T
           else:
             hits, velocities, offsets = np.split(sample[i], 3)
 
         # Loop through the drum instruments: kick, snare, etc.
         for j in range(len(hits)):
-
-          # create a new note
+          # Create a new note
           if hits[j] > 0.5:
             note = note_sequence.notes.add()
             note.instrument = 9  # All drums are instrument 9
             note.is_drum = True
-            drum = self._drum_list[j]
-            pitch = self._default_drum_pitches[drum]
+            pitch = self._pitch_classes[j][0]
             note.pitch = pitch
             if self._categorical_outputs:
               note.velocity = _one_hot_to_velocity(velocities[j])
