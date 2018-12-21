@@ -15,12 +15,12 @@
 
 import os
 
-import tensorflow as tf
-
-import magenta
 from magenta.models.drums_rnn import drums_rnn_config_flags
 from magenta.models.shared import events_rnn_graph
 from magenta.models.shared import events_rnn_train
+import tensorflow as tf
+
+import magenta
 
 FLAGS = tf.app.flags.FLAGS
 tf.app.flags.DEFINE_string('run_dir', '/tmp/drums_rnn/logdir/run1',

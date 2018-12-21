@@ -20,12 +20,11 @@ from __future__ import print_function
 import os
 import wave
 
+from magenta.music import audio_io
 import numpy as np
 import scipy
 import six
 import tensorflow as tf
-
-from magenta.music import audio_io
 
 
 class AudioIoTest(tf.test.TestCase):

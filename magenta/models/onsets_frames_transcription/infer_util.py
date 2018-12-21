@@ -18,13 +18,12 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
+from magenta.music import sequences_lib
+from magenta.protobuf import music_pb2
 import mir_eval
 import numpy as np
 import pretty_midi
 import tensorflow as tf
-
-from magenta.music import sequences_lib
-from magenta.protobuf import music_pb2
 
 from . import constants
 

@@ -13,11 +13,11 @@
 # limitations under the License.
 """Drums RNN model."""
 
+from magenta.models.shared import events_rnn_model
+import magenta.music as mm
 import tensorflow as tf
 
 import magenta
-from magenta.models.shared import events_rnn_model
-import magenta.music as mm
 
 
 class DrumsRnnModel(events_rnn_model.EventSequenceRnnModel):

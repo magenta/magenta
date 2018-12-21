@@ -6,14 +6,13 @@ from __future__ import print_function
 
 import collections
 
-from tensorflow.contrib.training import HParams
-
 from magenta.common import merge_hparams
 from magenta.models.music_vae import data
 from magenta.models.music_vae import data_hierarchical
 from magenta.models.music_vae import lstm_models
 from magenta.models.music_vae.base_model import MusicVAE
 import magenta.music as mm
+from tensorflow.contrib.training import HParams
 
 
 class Config(collections.namedtuple(

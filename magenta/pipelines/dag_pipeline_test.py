@@ -19,11 +19,10 @@ from __future__ import print_function
 
 import collections
 
-import tensorflow as tf
-
 from magenta.pipelines import dag_pipeline
 from magenta.pipelines import pipeline
 from magenta.pipelines import statistics
+import tensorflow as tf
 
 Type0 = collections.namedtuple('Type0', ['x', 'y', 'z'])
 Type1 = collections.namedtuple('Type1', ['x', 'y'])

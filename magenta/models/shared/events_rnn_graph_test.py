@@ -15,11 +15,11 @@
 
 import tempfile
 
+from magenta.models.shared import events_rnn_graph
+from magenta.models.shared import events_rnn_model
 import tensorflow as tf
 
 import magenta
-from magenta.models.shared import events_rnn_graph
-from magenta.models.shared import events_rnn_model
 
 
 class EventSequenceRNNGraphTest(tf.test.TestCase):

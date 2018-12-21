@@ -22,12 +22,11 @@ from __future__ import print_function
 import tempfile
 
 import apache_beam as beam
-import tensorflow as tf
-
 from magenta.models.score2perf import datagen_beam
 from magenta.models.score2perf import music_encoders
 from magenta.music import testing_lib
 from magenta.protobuf import music_pb2
+import tensorflow as tf
 
 
 class GenerateExamplesTest(tf.test.TestCase):

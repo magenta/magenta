@@ -23,12 +23,11 @@ from __future__ import print_function
 from fractions import Fraction
 import re
 
+from magenta.music import constants
+from magenta.protobuf import music_pb2
 import six
 from six.moves import range  # pylint: disable=redefined-builtin
 import tensorflow as tf
-
-from magenta.music import constants
-from magenta.protobuf import music_pb2
 
 
 class ABCParseException(Exception):

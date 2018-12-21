@@ -17,13 +17,12 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-import tensorflow as tf
-
 from magenta.common import sequence_example_lib
 from magenta.music import constants
 from magenta.music import encoder_decoder
 from magenta.music import melodies_lib
 from magenta.music import melody_encoder_decoder
+import tensorflow as tf
 
 NOTE_OFF = constants.MELODY_NOTE_OFF
 NO_EVENT = constants.MELODY_NO_EVENT

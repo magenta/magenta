@@ -17,11 +17,10 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-import tensorflow as tf
-
 from magenta.music import model
 from magenta.music import sequence_generator
 from magenta.protobuf import generator_pb2
+import tensorflow as tf
 
 
 class Model(model.BaseModel):

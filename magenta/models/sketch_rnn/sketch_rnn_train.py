@@ -23,14 +23,13 @@ import time
 import urllib
 import zipfile
 
+from magenta.models.sketch_rnn import model as sketch_rnn_model
+from magenta.models.sketch_rnn import utils
 import numpy as np
 import requests
 import six
 from six.moves import cStringIO as StringIO
 import tensorflow as tf
-
-from magenta.models.sketch_rnn import model as sketch_rnn_model
-from magenta.models.sketch_rnn import utils
 
 tf.logging.set_verbosity(tf.logging.INFO)
 

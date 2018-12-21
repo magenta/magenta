@@ -15,12 +15,12 @@
 
 import os
 
-import tensorflow as tf
-
-import magenta
 from magenta.models.pianoroll_rnn_nade import pianoroll_rnn_nade_graph
 from magenta.models.pianoroll_rnn_nade import pianoroll_rnn_nade_model
 from magenta.models.shared import events_rnn_train
+import tensorflow as tf
+
+import magenta
 
 FLAGS = tf.app.flags.FLAGS
 tf.app.flags.DEFINE_string('run_dir', '/tmp/rnn_nade/logdir/run1',

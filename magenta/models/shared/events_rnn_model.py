@@ -17,14 +17,13 @@ import collections
 import copy
 import functools
 
-import numpy as np
-from six.moves import range  # pylint: disable=redefined-builtin
-import tensorflow as tf
-
 from magenta.common import beam_search
 from magenta.common import state_util
 from magenta.models.shared import events_rnn_graph
 import magenta.music as mm
+import numpy as np
+from six.moves import range  # pylint: disable=redefined-builtin
+import tensorflow as tf
 
 # Model state when generating event sequences, consisting of the next inputs to
 # feed the model, the current RNN state, the current control sequence (if

@@ -18,13 +18,12 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
+from magenta.music.sequences_lib import pianoroll_to_note_sequence
 from mir_eval.transcription import precision_recall_f1_overlap
 import numpy as np
 import pretty_midi
 import tensorflow as tf
 import tensorflow.contrib.slim as slim
-
-from magenta.music.sequences_lib import pianoroll_to_note_sequence
 
 from . import data
 from . import model

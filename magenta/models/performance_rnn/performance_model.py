@@ -16,11 +16,11 @@
 import collections
 import functools
 
+from magenta.models.shared import events_rnn_model
+from magenta.music.performance_lib import PerformanceEvent
 import tensorflow as tf
 
 import magenta
-from magenta.models.shared import events_rnn_model
-from magenta.music.performance_lib import PerformanceEvent
 
 # State for constructing a time-varying control sequence. Keeps track of the
 # current event position and time step in the generated performance, to allow

@@ -24,12 +24,11 @@ from collections import defaultdict
 import sys
 import tempfile
 
+from magenta.music import constants
+from magenta.protobuf import music_pb2
 import pretty_midi
 import six
 import tensorflow as tf
-
-from magenta.music import constants
-from magenta.protobuf import music_pb2
 
 # pylint: enable=g-import-not-at-top
 

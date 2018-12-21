@@ -31,15 +31,14 @@ import os
 import wave
 
 import librosa
-import numpy as np
-import six
-import tensorflow as tf
-import tensorflow.contrib.slim as slim
-
 import magenta.music as mm
 from magenta.music import audio_io
 from magenta.music import sequences_lib
 from magenta.protobuf import music_pb2
+import numpy as np
+import six
+import tensorflow as tf
+import tensorflow.contrib.slim as slim
 
 from . import constants
 

@@ -15,13 +15,12 @@
 
 import copy
 
-import tensorflow as tf
-
 from magenta.music import constants
 from magenta.music import sequences_lib
 from magenta.pipelines import pipeline
 from magenta.pipelines import statistics
 from magenta.protobuf import music_pb2
+import tensorflow as tf
 
 # Shortcut to chord symbol text annotation type.
 CHORD_SYMBOL = music_pb2.NoteSequence.TextAnnotation.CHORD_SYMBOL

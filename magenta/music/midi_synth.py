@@ -13,9 +13,8 @@
 # limitations under the License.
 """MIDI audio synthesis."""
 
-import numpy as np
-
 from magenta.music import midi_io
+import numpy as np
 
 
 def synthesize(sequence, sample_rate, wave=np.sin):

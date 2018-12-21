@@ -19,12 +19,12 @@ from __future__ import print_function
 
 import tempfile
 
-import tensorflow as tf
-
-import magenta
 from magenta.models.score2perf import music_encoders
 from magenta.music import testing_lib
 from magenta.protobuf import music_pb2
+import tensorflow as tf
+
+import magenta
 
 
 class MidiPerformanceEncoderTest(tf.test.TestCase):

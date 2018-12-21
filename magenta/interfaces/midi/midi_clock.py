@@ -18,9 +18,8 @@ from __future__ import print_function
 
 import time
 
-import tensorflow as tf
-
 from magenta.interfaces.midi import midi_hub
+import tensorflow as tf
 
 FLAGS = tf.app.flags.FLAGS
 

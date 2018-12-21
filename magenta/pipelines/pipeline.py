@@ -21,10 +21,9 @@ import abc
 import inspect
 import os.path
 
+from magenta.pipelines import statistics
 import six
 import tensorflow as tf
-
-from magenta.pipelines import statistics
 
 
 class InvalidTypeSignatureException(Exception):
