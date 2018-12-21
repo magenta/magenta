@@ -13,8 +13,9 @@
 # limitations under the License.
 """Provides a class, defaults, and utils for Drums RNN model configuration."""
 
-from magenta.models.drums_rnn import drums_rnn_model
 import tensorflow as tf
+
+from magenta.models.drums_rnn import drums_rnn_model
 
 FLAGS = tf.app.flags.FLAGS
 tf.app.flags.DEFINE_string(

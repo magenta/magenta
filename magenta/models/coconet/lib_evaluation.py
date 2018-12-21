@@ -5,11 +5,12 @@ from __future__ import print_function
 
 import time
 
-from magenta.models.coconet import lib_tfutil
-from magenta.models.coconet import lib_util
 import numpy as np
 from scipy.misc import logsumexp
 import tensorflow as tf
+
+from magenta.models.coconet import lib_tfutil
+from magenta.models.coconet import lib_util
 
 
 def evaluate(evaluator, pianorolls):

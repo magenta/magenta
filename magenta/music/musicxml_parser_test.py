@@ -23,11 +23,12 @@ import os.path
 import tempfile
 import zipfile
 
+import tensorflow as tf
+
 from magenta.common import testing_lib as common_testing_lib
 from magenta.music import musicxml_parser
 from magenta.music import musicxml_reader
 from magenta.protobuf import music_pb2
-import tensorflow as tf
 
 # Shortcut to CHORD_SYMBOL annotation type.
 CHORD_SYMBOL = music_pb2.NoteSequence.TextAnnotation.CHORD_SYMBOL

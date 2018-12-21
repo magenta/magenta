@@ -15,8 +15,9 @@
 
 import hashlib
 
-from magenta.protobuf import music_pb2
 import tensorflow as tf
+
+from magenta.protobuf import music_pb2
 
 
 def generate_note_sequence_id(filename, collection_name, source_type):

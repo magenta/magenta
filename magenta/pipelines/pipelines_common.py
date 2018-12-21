@@ -15,9 +15,10 @@
 
 import random
 
+import numpy as np
+
 from magenta.pipelines import pipeline
 from magenta.pipelines import statistics
-import numpy as np
 
 
 class RandomPartition(pipeline.Pipeline):

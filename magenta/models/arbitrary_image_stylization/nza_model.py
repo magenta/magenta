@@ -21,8 +21,9 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-from magenta.models.image_stylization import model as model_util
 import tensorflow as tf
+
+from magenta.models.image_stylization import model as model_util
 
 slim = tf.contrib.slim
 

@@ -20,14 +20,15 @@ Use Melody.to_sequence to write a melody to a NoteSequence proto. Then use
 midi_io.sequence_proto_to_midi_file to write that NoteSequence to a midi file.
 """
 
+import numpy as np
+from six.moves import range  # pylint: disable=redefined-builtin
+
 from magenta.music import constants
 from magenta.music import events_lib
 from magenta.music import midi_io
 from magenta.music import sequences_lib
 from magenta.pipelines import statistics
 from magenta.protobuf import music_pb2
-import numpy as np
-from six.moves import range  # pylint: disable=redefined-builtin
 
 MELODY_NOTE_OFF = constants.MELODY_NOTE_OFF
 MELODY_NO_EVENT = constants.MELODY_NO_EVENT

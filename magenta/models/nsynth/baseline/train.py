@@ -17,9 +17,10 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
+import tensorflow as tf
+
 from magenta.models.nsynth import reader
 from magenta.models.nsynth import utils
-import tensorflow as tf
 
 slim = tf.contrib.slim
 FLAGS = tf.app.flags.FLAGS

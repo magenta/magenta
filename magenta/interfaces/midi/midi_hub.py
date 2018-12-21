@@ -1,5 +1,7 @@
 """A module for interfacing with the MIDI environment."""
 
+# TODO(adarob): Use flattened imports.
+
 import abc
 from collections import defaultdict
 from collections import deque
@@ -7,12 +9,12 @@ import re
 import threading
 import time
 
-# TODO(adarob): Use flattened imports.
-from magenta.common import concurrency
-from magenta.protobuf import music_pb2
 import mido
 from six.moves import queue as Queue
 import tensorflow as tf
+
+from magenta.common import concurrency
+from magenta.protobuf import music_pb2
 
 _DEFAULT_METRONOME_TICK_DURATION = 0.05
 _DEFAULT_METRONOME_PROGRAM = 117  # Melodic Tom

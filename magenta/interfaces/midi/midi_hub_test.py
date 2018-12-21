@@ -17,13 +17,14 @@ import collections
 import threading
 import time
 
+import mido
+from six.moves import queue as Queue
+import tensorflow as tf
+
 from magenta.common import concurrency
 from magenta.interfaces.midi import midi_hub
 from magenta.music import testing_lib
 from magenta.protobuf import music_pb2
-import mido
-from six.moves import queue as Queue
-import tensorflow as tf
 
 Note = collections.namedtuple('Note', ['pitch', 'velocity', 'start', 'end'])
 

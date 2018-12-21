@@ -22,11 +22,12 @@ import itertools
 import math
 import numbers
 
+import numpy as np
+import tensorflow as tf
+
 from magenta.music import constants
 from magenta.music import sequences_lib
 from magenta.protobuf import music_pb2
-import numpy as np
-import tensorflow as tf
 
 # Names of pitch classes to use (mostly ignoring spelling).
 _PITCH_CLASS_NAMES = [

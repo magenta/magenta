@@ -13,14 +13,13 @@
 # limitations under the License.
 """Pipeline to create DrumsRNN dataset."""
 
+import magenta
 from magenta.music import encoder_decoder
 from magenta.pipelines import dag_pipeline
 from magenta.pipelines import drum_pipelines
 from magenta.pipelines import note_sequence_pipelines
 from magenta.pipelines import pipelines_common
 from magenta.protobuf import music_pb2
-
-import magenta
 
 
 def get_pipeline(config, eval_ratio):

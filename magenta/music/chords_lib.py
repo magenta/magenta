@@ -27,13 +27,14 @@ from __future__ import print_function
 import abc
 import copy
 
+from six.moves import range  # pylint: disable=redefined-builtin
+
 from magenta.music import chord_symbols_lib
 from magenta.music import constants
 from magenta.music import events_lib
 from magenta.music import sequences_lib
 from magenta.pipelines import statistics
 from magenta.protobuf import music_pb2
-from six.moves import range  # pylint: disable=redefined-builtin
 
 STANDARD_PPQ = constants.STANDARD_PPQ
 NOTES_PER_OCTAVE = constants.NOTES_PER_OCTAVE

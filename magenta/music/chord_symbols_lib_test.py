@@ -13,8 +13,9 @@
 # limitations under the License.
 """Tests for chord_symbols_lib."""
 
-from magenta.music import chord_symbols_lib
 import tensorflow as tf
+
+from magenta.music import chord_symbols_lib
 
 CHORD_QUALITY_MAJOR = chord_symbols_lib.CHORD_QUALITY_MAJOR
 CHORD_QUALITY_MINOR = chord_symbols_lib.CHORD_QUALITY_MINOR

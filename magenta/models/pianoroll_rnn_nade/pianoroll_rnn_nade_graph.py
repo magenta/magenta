@@ -15,14 +15,14 @@
 
 import collections
 
-from magenta.common import Nade
-from magenta.models.shared import events_rnn_graph
 import tensorflow as tf
 from tensorflow.python.layers import base as tf_layers_base
 from tensorflow.python.layers import core as tf_layers_core
 from tensorflow.python.util import nest as tf_nest
 
 import magenta
+from magenta.common import Nade
+from magenta.models.shared import events_rnn_graph
 
 _RnnNadeStateTuple = collections.namedtuple(
     'RnnNadeStateTuple', ('b_enc', 'b_dec', 'rnn_state'))

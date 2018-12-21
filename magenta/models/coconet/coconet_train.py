@@ -6,12 +6,13 @@ from __future__ import print_function
 import os
 import time
 
+import numpy as np
+import tensorflow as tf
+
 from magenta.models.coconet import lib_data
 from magenta.models.coconet import lib_graph
 from magenta.models.coconet import lib_hparams
 from magenta.models.coconet import lib_util
-import numpy as np
-import tensorflow as tf
 
 FLAGS = tf.app.flags.FLAGS
 flags = tf.app.flags

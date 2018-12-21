@@ -19,10 +19,11 @@ from __future__ import print_function
 
 import tempfile
 
-from magenta.music import note_sequence_io
-from magenta.protobuf import music_pb2
 from six.moves import range  # pylint: disable=redefined-builtin
 import tensorflow as tf
+
+from magenta.music import note_sequence_io
+from magenta.protobuf import music_pb2
 
 
 class NoteSequenceIoTest(tf.test.TestCase):

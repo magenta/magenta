@@ -15,10 +15,11 @@
 
 import functools
 
-from magenta.common import testing_lib as common_testing_lib
-from magenta.pipelines import pipelines_common
 import six
 import tensorflow as tf
+
+from magenta.common import testing_lib as common_testing_lib
+from magenta.pipelines import pipelines_common
 
 
 class PipelineUnitsCommonTest(tf.test.TestCase):

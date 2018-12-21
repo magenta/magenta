@@ -22,6 +22,8 @@ import collections
 import os
 
 import librosa
+import tensorflow as tf
+
 from magenta.common import tf_utils
 from magenta.models.onsets_frames_transcription import constants
 from magenta.models.onsets_frames_transcription import data
@@ -30,7 +32,6 @@ from magenta.music import audio_io
 from magenta.music import midi_io
 from magenta.music import sequences_lib
 from magenta.protobuf import music_pb2
-import tensorflow as tf
 
 FLAGS = tf.app.flags.FLAGS
 

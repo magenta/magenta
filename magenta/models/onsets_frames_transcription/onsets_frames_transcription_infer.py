@@ -23,6 +23,11 @@ import os
 import re
 import time
 
+import numpy as np
+import scipy
+import tensorflow as tf
+import tensorflow.contrib.slim as slim
+
 from magenta.common import tf_utils
 from magenta.models.onsets_frames_transcription import constants
 from magenta.models.onsets_frames_transcription import data
@@ -30,10 +35,6 @@ from magenta.models.onsets_frames_transcription import infer_util
 from magenta.models.onsets_frames_transcription import model
 from magenta.music import midi_io
 from magenta.music import sequences_lib
-import numpy as np
-import scipy
-import tensorflow as tf
-import tensorflow.contrib.slim as slim
 
 FLAGS = tf.app.flags.FLAGS
 

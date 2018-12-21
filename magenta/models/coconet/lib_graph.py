@@ -6,9 +6,10 @@ from __future__ import print_function
 from collections import OrderedDict
 import os
 
+import tensorflow as tf
+
 from magenta.models.coconet import lib_hparams
 from magenta.models.coconet import lib_tfutil
-import tensorflow as tf
 
 
 class CoconetGraph(object):

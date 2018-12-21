@@ -23,12 +23,12 @@ import os
 import sys
 import time
 
-from magenta.models.music_vae import TrainedModel
-from magenta.models.music_vae import configs
 import numpy as np
 import tensorflow as tf
 
 from magenta import music as mm
+from magenta.models.music_vae import TrainedModel
+from magenta.models.music_vae import configs
 
 flags = tf.app.flags
 logging = tf.logging

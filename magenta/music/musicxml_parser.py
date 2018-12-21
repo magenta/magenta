@@ -24,8 +24,9 @@ from fractions import Fraction
 import xml.etree.ElementTree as ET
 import zipfile
 
-from magenta.music import constants
 import six
+
+from magenta.music import constants
 
 DEFAULT_MIDI_PROGRAM = 0    # Default MIDI Program (0 = grand piano)
 DEFAULT_MIDI_CHANNEL = 0    # Default MIDI Channel (0 = first channel)
