@@ -1246,9 +1246,10 @@ class GrooveConverter(BaseNoteSequenceConverter):
   """
 
   def __init__(self, split_bars=None, steps_per_quarter=4, quarters_per_bar=4,
-               max_tensors_per_notesequence=8, pitch_classes=None, humanize=False,
-               tapify=False, add_instruments=None, num_velocity_bins=None,
-               num_offset_bins=None, split_instruments=False, hop_size=None,
+               max_tensors_per_notesequence=8, pitch_classes=None,
+               humanize=False, tapify=False, add_instruments=None,
+               num_velocity_bins=None, num_offset_bins=None,
+               split_instruments=False, hop_size=None,
                hits_as_controls=False, fixed_velocities=False):
 
     self._split_bars = split_bars

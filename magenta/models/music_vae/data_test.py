@@ -1007,7 +1007,7 @@ class GrooveConverterTest(tf.test.TestCase):
           assert np.abs(n1.velocity-n2.velocity) <= 4
         else:
           self.assertEqual((n1.pitch, n1.start_time, n1.velocity),
-                            (n2.pitch, n2.start_time, n2.velocity))
+                           (n2.pitch, n2.start_time, n2.velocity))
 
   def testToTensorAndNoteSequence(self):
     # Convert one or two measures to a tensor and back
