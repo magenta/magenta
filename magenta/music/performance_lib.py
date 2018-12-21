@@ -390,8 +390,8 @@ class BasePerformance(events_lib.EventSequence):
                                event_value=current_velocity_bin))
 
       # Add a performance event for this note on/off.
-      event_type = (PerformanceEvent.NOTE_OFF if is_offset
-                    else PerformanceEvent.NOTE_ON)
+      event_type = (
+          PerformanceEvent.NOTE_OFF if is_offset else PerformanceEvent.NOTE_ON)
       performance_events.append(
           PerformanceEvent(event_type=event_type,
                            event_value=sorted_notes[idx].pitch))

@@ -298,8 +298,10 @@ class BaseConverter(object):
     """Python method that converts `item` into list of tensors."""
     tensors = self._to_tensors(item)
     sampled_results = self._maybe_sample_outputs(list(zip(*tensors)))
-    return (ConverterTensors(*zip(*sampled_results))
-            if sampled_results else ConverterTensors())
+    if sampled_results:
+      return ConverterTensors(*zip(*sampled_results))
+    else:
+      return ConverterTensors()
 
   def _combine_to_tensor_results(self, to_tensor_results):
     """Combines the results of multiple to_tensors calls into one result."""
@@ -307,8 +309,10 @@ class BaseConverter(object):
     for result in to_tensor_results:
       results.extend(zip(*result))
     sampled_results = self._maybe_sample_outputs(results)
-    return (ConverterTensors(*zip(*sampled_results))
-            if sampled_results else ConverterTensors())
+    if sampled_results:
+      return ConverterTensors(*zip(*sampled_results))
+    else:
+      return ConverterTensors()
 
   def to_items(self, samples, controls=None):
     """Python method that decodes samples into list of items."""
@@ -500,8 +504,8 @@ class LegacyEventListOneHotConverter(BaseNoteSequenceConverter):
     self._pad_to_total_time = pad_to_total_time
 
     depth = legacy_encoder_decoder.num_classes + add_end_token
-    control_depth = (chord_encoding.num_classes
-                     if chord_encoding is not None else 0)
+    control_depth = (
+        chord_encoding.num_classes if chord_encoding is not None else 0)
     super(LegacyEventListOneHotConverter, self).__init__(
         input_depth=depth,
         input_dtype=np.bool,
@@ -581,8 +585,11 @@ class LegacyEventListOneHotConverter(BaseNoteSequenceConverter):
             # Repeat the last chord instead of using a special token; otherwise
             # the model may learn to rely on the special token to detect
             # endings.
-            chord_tokens.append(chord_tokens[-1] if chord_tokens else
-                                self._chord_encoding.encode_event(mm.NO_CHORD))
+            if chord_tokens:
+              chord_tokens.append(chord_tokens[-1])
+            else:
+              chord_tokens.append(
+                  self._chord_encoding.encode_event(mm.NO_CHORD))
         except (mm.ChordSymbolException, mm.ChordEncodingException):
           return ConverterTensors()
         control_seqs.append(
@@ -770,8 +777,11 @@ class DrumsConverter(BaseNoteSequenceConverter):
     self._oh_encoder_decoder = mm.MultiDrumOneHotEncoding(
         drum_type_pitches=[(i,) for i in range(num_classes)])
 
-    output_depth = (num_classes if self._roll_output else
-                    self._oh_encoder_decoder.num_classes) + add_end_token
+    if self._roll_output:
+      output_depth = num_classes + add_end_token
+    else:
+      output_depth = self._oh_encoder_decoder.num_classes + add_end_token
+
     super(DrumsConverter, self).__init__(
         input_depth=(
             num_classes + 1 if self._roll_input else
@@ -990,9 +1000,11 @@ class TrioConverter(BaseNoteSequenceConverter):
       if i > MAX_INSTRUMENT_NUMBER:
         tf.logging.warning('Skipping invalid instrument number: %d', i)
         continue
-      inferred_type = (
-          self.InstrumentType.DRUMS if note.is_drum else
-          self._program_map.get(note.program, self.InstrumentType.INVALID))
+      if note.is_drum:
+        inferred_type = self.InstrumentType.DRUMS
+      else:
+        inferred_type = self._program_map.get(
+            note.program, self.InstrumentType.INVALID)
       if not instrument_type[i]:
         instrument_type[i] = inferred_type
       elif instrument_type[i] != inferred_type:

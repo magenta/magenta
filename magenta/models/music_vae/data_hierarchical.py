@@ -262,8 +262,9 @@ class BaseHierarchicalConverter(data.BaseConverter):
         continue
 
     if padded_results:
-      return data.ConverterTensors(*zip(*padded_results)
-    return data.ConverterTensors()
+      return data.ConverterTensors(*zip(*padded_results))
+    else:
+      return data.ConverterTensors()
 
   def to_items(self, samples, controls=None):
     """Removes hierarchical padding and then converts samples into items."""

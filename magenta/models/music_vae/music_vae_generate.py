@@ -145,9 +145,11 @@ def run(config_map):
     _check_extract_examples(input_2, FLAGS.input_midi_2, 2)
 
   logging.info('Loading model...')
-  checkpoint_dir_or_path = os.path.expanduser(
-      os.path.join(FLAGS.run_dir, 'train')
-      if FLAGS.run_dir else FLAGS.checkpoint_file)
+  if FLAGS.run_dir:
+    checkpoint_dir_or_path = os.path.expanduser(
+        os.path.join(FLAGS.run_dir, 'train'))
+  else:
+    checkpoint_dir_or_path = os.path.expanduser(FLAGS.checkpoint_file)
   model = TrainedModel(
       config, batch_size=min(FLAGS.max_batch_size, FLAGS.num_outputs),
       checkpoint_dir_or_path=checkpoint_dir_or_path)

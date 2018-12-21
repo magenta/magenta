@@ -369,7 +369,7 @@ class EventSequenceRnnModel(mm.BaseModel):
     events, _, loglik = beam_search(
         initial_sequence=event_sequences[0],
         initial_state=initial_state,
-        generate_step_fn=,generate_step_fn
+        generate_step_fn=generate_step_fn,
         num_steps=num_steps - len(primer_events),
         beam_size=beam_size,
         branch_factor=branch_factor,
