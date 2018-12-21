@@ -16,7 +16,7 @@
 from __future__ import division
 
 import ast
-from functools import partial
+import functools
 import math
 
 from magenta.models.performance_rnn import performance_model
@@ -189,23 +189,25 @@ class PerformanceRnnSequenceGenerator(mm.BaseSequenceGenerator):
     total_steps = performance.num_steps + (
         generate_end_step - generate_start_step)
 
-    mean_note_density = (
-        sum(args['notes_per_second']) / len(args['notes_per_second'])
-        if 'notes_per_second' in args else DEFAULT_NOTE_DENSITY)
+    if 'notes_per_second' in args:
+      mean_note_density = (
+          sum(args['notes_per_second']) / len(args['notes_per_second']))
+    else:
+      mean_note_density = DEFAULT_NOTE_DENSITY
 
     # Set up functions that map generation step to control signal values and
     # disable conditioning flag.
     if self.control_signals:
       control_signal_fns = []
       for control in self.control_signals:
-        control_signal_fns.append(partial(
+        control_signal_fns.append(functools.partial(
             _step_to_value,
             num_steps=total_steps,
             values=args[control.name]))
         del args[control.name]
       args['control_signal_fns'] = control_signal_fns
     if self.optional_conditioning:
-      args['disable_conditioning_fn'] = partial(
+      args['disable_conditioning_fn'] = functools.partial(
           _step_to_value,
           num_steps=total_steps,
           values=args['disable_conditioning'])
@@ -271,5 +273,5 @@ def get_generator_map():
         note_performance=config.note_performance,
         **kwargs)
 
-  return {key: partial(create_sequence_generator, config)
+  return {key: functools.partial(create_sequence_generator, config)
           for (key, config) in performance_model.default_configs.items()}

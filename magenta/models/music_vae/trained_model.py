@@ -54,9 +54,10 @@ class TrainedModel(object):
 
   def __init__(self, config, batch_size, checkpoint_dir_or_path=None,
                var_name_substitutions=None, session_target='', **sample_kwargs):
-    checkpoint_path = (tf.train.latest_checkpoint(checkpoint_dir_or_path)
-                       if tf.gfile.IsDirectory(checkpoint_dir_or_path) else
-                       checkpoint_dir_or_path)
+    if tf.gfile.IsDirectory(checkpoint_dir_or_path):
+      checkpoint_path = tf.train.latest_checkpoint(checkpoint_dir_or_path)
+    else:
+      checkpoint_path = checkpoint_dir_or_path
     self._config = copy.deepcopy(config)
     self._config.hparams.batch_size = batch_size
     with tf.Graph().as_default():

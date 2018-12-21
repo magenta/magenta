@@ -13,7 +13,7 @@
 # limitations under the License.
 """RNN-NADE generation code as a SequenceGenerator interface."""
 
-from functools import partial
+import functools
 
 from magenta.models.pianoroll_rnn_nade import pianoroll_rnn_nade_model
 import magenta.music as mm
@@ -70,8 +70,11 @@ class PianorollRnnNadeSequenceGenerator(mm.BaseSequenceGenerator):
       primer_sequence = input_sequence
       input_start_step = 0
 
-    last_end_time = (max(n.end_time for n in primer_sequence.notes)
-                     if primer_sequence.notes else 0)
+    if primer_sequence.notes:
+      last_end_time = max(n.end_time for n in primer_sequence.notes)
+    else:
+      last_end_time = 0
+
     if last_end_time > generate_section.start_time:
       raise mm.SequenceGeneratorException(
           'Got GenerateSection request for section that is before or equal to '
@@ -139,5 +142,5 @@ def get_generator_map():
         pianoroll_rnn_nade_model.PianorollRnnNadeModel(config), config.details,
         steps_per_quarter=config.steps_per_quarter, **kwargs)
 
-  return {key: partial(create_sequence_generator, config)
+  return {key: functools.partial(create_sequence_generator, config)
           for (key, config) in pianoroll_rnn_nade_model.default_configs.items()}

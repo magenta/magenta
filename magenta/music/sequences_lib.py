@@ -17,7 +17,7 @@ import collections
 import copy
 import itertools
 import math
-from operator import itemgetter
+import operator
 import random
 
 from magenta.music import chord_symbols_lib
@@ -1485,7 +1485,7 @@ def apply_sustain_control_changes(note_sequence, sustain_control_number=64):
 
   # Sort, using the event type constants to ensure the order events are
   # processed.
-  events.sort(key=itemgetter(0))
+  events.sort(key=operator.itemgetter(0))
 
   # Lists of active notes, keyed by instrument.
   active_notes = collections.defaultdict(list)

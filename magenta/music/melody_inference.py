@@ -279,7 +279,7 @@ def infer_melody_for_sequence(sequence,
 
   pitches, has_onsets, has_notes, event_times = sequence_note_frames(sequence)
 
-  if sequences.notes:
+  if sequence.notes:
     melody_instrument = max(note.instrument for note in sequence.notes) + 1
   else:
     melody_instrument = 0

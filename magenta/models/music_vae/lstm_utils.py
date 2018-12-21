@@ -135,8 +135,9 @@ def set_final(sequence, sequence_length, values, time_major=False):
   sequence_batch_major = (
       tf.expand_dims(mask, axis=-1) * sequence_batch_major +
       tf.scatter_nd(final_index, values, tf.shape(sequence_batch_major)))
-  return (sequence_batch_major if not time_major else
-          tf.transpose(sequence_batch_major, [1, 0, 2]))
+  if time_major:
+    return tf.transpose(sequence_batch_major, [1, 0, 2])
+  return sequence_batch_major
 
 
 def initial_cell_state_from_embedding(cell, z, name=None):

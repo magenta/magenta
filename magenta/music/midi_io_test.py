@@ -17,7 +17,7 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-from collections import defaultdict
+import collections
 import os.path
 import tempfile
 
@@ -107,7 +107,8 @@ class MidiIoTest(tf.test.TestCase):
       self.assertAlmostEqual(midi_time, sequence_tempo.time)
 
     # Test instruments.
-    seq_instruments = defaultdict(lambda: defaultdict(list))
+    seq_instruments = collections.defaultdict(
+        lambda: collections.defaultdict(list))
     for seq_note in sequence_proto.notes:
       seq_instruments[
           (seq_note.instrument, seq_note.program, seq_note.is_drum)][

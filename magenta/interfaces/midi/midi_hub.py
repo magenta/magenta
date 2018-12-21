@@ -3,8 +3,7 @@
 # TODO(adarob): Use flattened imports.
 
 import abc
-from collections import defaultdict
-from collections import deque
+import collections
 import re
 import threading
 import time
@@ -217,8 +216,10 @@ class Metronome(threading.Thread):
     self._period = 60. / qpm
     self._start_time = start_time
     self._stop_time = stop_time
-    self._messages = (_DEFAULT_METRONOME_MESSAGES if signals is None else
-                      [s.to_message() if s else None for s in signals])
+    if signals is None:
+      self._messages = _DEFAULT_METRONOME_MESSAGES
+    else:
+      self._messages = [s.to_message() if s else None for s in signals]
     self._duration = duration
 
   def run(self):
@@ -296,7 +297,7 @@ class MidiPlayer(threading.Thread):
     # A control variable to signal when the sequence has been updated.
     self._update_cv = threading.Condition(self._lock)
     # The queue of mido.Message objects to send, sorted by ascending time.
-    self._message_queue = deque()
+    self._message_queue = collections.deque()
     # An event that is set when `stop` has been called.
     self._stop_signal = threading.Event()
 
@@ -361,7 +362,7 @@ class MidiPlayer(threading.Thread):
       msg.channel = self._channel
       msg.time += self._offset
 
-    self._message_queue = deque(
+    self._message_queue = collections.deque(
         sorted(new_message_list, key=lambda msg: (msg.time, msg.note)))
     self._update_cv.notify()
 
@@ -874,7 +875,7 @@ class MidiHub(object):
     # A dictionary mapping a compiled MidiSignal regex to a list of functions
     # that will be called with the triggering message in individual threads when
     # a matching message is received.
-    self._callbacks = defaultdict(list)
+    self._callbacks = collections.defaultdict(list)
     # A dictionary mapping integer control numbers to most recently-received
     # integer value.
     self._control_values = {}
@@ -1034,9 +1035,10 @@ class MidiHub(object):
     Returns:
       The MidiCaptor thread.
     """
-    captor_class = (MonophonicMidiCaptor if
-                    self._texture_type == TextureType.MONOPHONIC else
-                    PolyphonicMidiCaptor)
+    if self._texture_type == TextureType.MONOPHONIC:
+      captor_class = MonophonicMidiCaptor
+    else:
+      captor_class = PolyphonicMidiCaptor
     captor = captor_class(qpm, start_time, stop_time, stop_signal)
     with self._lock:
       self._captors.append(captor)

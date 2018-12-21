@@ -21,9 +21,8 @@ import argparse
 import glob
 import ntpath
 import os
-from random import shuffle
-from shutil import copyfile
-from shutil import move
+import random
+import shutil
 
 PARSER = argparse.ArgumentParser(description='')
 PARSER.add_argument(
@@ -75,7 +74,7 @@ def random_pick(path_in, path_out, limit, delete):
   print('found ', file_count, 'files')
   if limit > 0:
     print('will use limit of', limit, 'files')
-    shuffle(files)
+    random.shuffle(files)
     files = files[:limit]
 
   i = 0
@@ -87,10 +86,10 @@ def random_pick(path_in, path_out, limit, delete):
     try:
       if delete:
         print(i, '/', limit, '  moving', image_file, 'to', file_out)
-        move(image_file, file_out)
+        shutil.move(image_file, file_out)
       else:
         print(i, '/', limit, '  copying', image_file, 'to', file_out)
-        copyfile(image_file, file_out)
+        shutil.copyfile(image_file, file_out)
     except:  # pylint: disable=bare-except
       print("""can't pick file""", image_file, 'to', file_out)
 

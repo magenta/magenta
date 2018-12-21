@@ -29,7 +29,6 @@ from scipy.io import wavfile
 import tensorflow as tf
 from tqdm import tqdm
 
-itemgetter = operator.itemgetter
 join = os.path.join
 FLAGS = tf.flags.FLAGS
 
@@ -128,14 +127,14 @@ def main(unused_argv):
 
         if len(group_by_label[label]) >= top_per_label * 2:
           # remove unneeded tails
-          group_by_label[label].sort(key=itemgetter(0), reverse=True)
+          group_by_label[label].sort(key=operator.itemgetter(0), reverse=True)
           group_by_label[label] = group_by_label[label][:top_per_label]
 
       if last_min_label_count >= total_per_label:
         break
 
   for label in range(10):
-    group_by_label[label].sort(key=itemgetter(0), reverse=True)
+    group_by_label[label].sort(key=operator.itemgetter(0), reverse=True)
     group_by_label[label] = group_by_label[label][:top_per_label]
 
   # output a few samples as image
@@ -143,7 +142,7 @@ def main(unused_argv):
   tf.gfile.MakeDirs(image_output_dir)
 
   for label in range(10):
-    group_by_label[label].sort(key=itemgetter(0), reverse=True)
+    group_by_label[label].sort(key=operator.itemgetter(0), reverse=True)
     index = 0
     for confidence, (
         _,

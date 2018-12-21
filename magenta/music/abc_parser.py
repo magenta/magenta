@@ -20,7 +20,7 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-from fractions import Fraction
+import fractions
 import re
 
 from magenta.music import constants
@@ -28,6 +28,9 @@ from magenta.protobuf import music_pb2
 import six
 from six.moves import range  # pylint: disable=redefined-builtin
 import tensorflow as tf
+
+
+Fraction = fractions.Fraction
 
 
 class ABCParseException(Exception):
@@ -806,6 +809,7 @@ class ABCTune(object):
   TEMPO_PATTERN_STRING_ONLY = re.compile(r'"([^"]*)"$')
 
   def _parse_information_field(self, field_name, field_content):
+    """Parses information field."""
     # http://abcnotation.com/wiki/abc:standard:v2.1#information_fields
     if field_name == 'A':
       pass

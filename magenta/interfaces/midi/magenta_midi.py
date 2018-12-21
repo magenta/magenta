@@ -20,7 +20,7 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-from functools import partial
+import functools
 import re
 import threading
 import time
@@ -237,7 +237,7 @@ class CCMapper(object):
         continue
       self._update_event.clear()
       self._midi_hub.register_callback(
-          partial(self._update_signal, signal),
+          functools.partial(self._update_signal, signal),
           midi_hub.MidiSignal(type='control_change'))
       print('Send a control signal using the control number you wish to '
             'associate with `%s`.' % signal)
@@ -343,15 +343,15 @@ def main(unused_argv):
         control=control_map['clock'], value=127)
     tick_duration = None
 
-  end_call_signal = (
-      None if control_map['end_call'] is None else
-      midi_hub.MidiSignal(control=control_map['end_call'], value=127))
-  panic_signal = (
-      None if control_map['panic'] is None else
-      midi_hub.MidiSignal(control=control_map['panic'], value=127))
-  mutate_signal = (
-      None if control_map['mutate'] is None else
-      midi_hub.MidiSignal(control=control_map['mutate'], value=127))
+  def _signal_from_control_map(name):
+    if control_map[name] is None:
+      return None
+    return midi_hub.MidiSignal(control=control_map[name], value=127)
+
+  end_call_signal = _signal_from_control_map('end_call')
+  panic_signal = _signal_from_control_map('panic')
+  mutate_signal = _signal_from_control_map('mutate')
+
   metronome_channel = (
       FLAGS.metronome_channel if FLAGS.enable_metronome else None)
   interaction = midi_interaction.CallAndResponseMidiInteraction(
