@@ -40,6 +40,7 @@ tf.app.flags.DEFINE_string('input_dir', None,
 
 
 class CompareDirectory(tf.test.TestCase):
+  """Fake test used to compare directories of abc and midi files."""
 
   def runTest(self):
     pass

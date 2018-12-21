@@ -67,15 +67,19 @@ class TrainedModel(object):
           is_training=False)
       # Input placeholders
       self._temperature = tf.placeholder(tf.float32, shape=())
-      self._z_input = (
-          tf.placeholder(tf.float32,
-                         shape=[batch_size, self._config.hparams.z_size])
-          if self._config.hparams.z_size else None)
-      self._c_input = (
-          tf.placeholder(
-              tf.float32,
-              shape=[None, self._config.data_converter.control_depth])
-          if self._config.data_converter.control_depth > 0 else None)
+
+      if self._config.hparams.z_size:
+        self._z_input = tf.placeholder(
+            tf.float32, hape=[batch_size, self._config.hparams.z_size])
+      else:
+        self._z_input = None
+
+      if self._config.data_converter.control_depth > 0:
+        self._c_input = tf.placeholder(
+            tf.float32, shape=[None, self._config.data_converter.control_depth])
+      else:
+        self._c_input = None
+
       self._inputs = tf.placeholder(
           tf.float32,
           shape=[batch_size, None, self._config.data_converter.input_depth])

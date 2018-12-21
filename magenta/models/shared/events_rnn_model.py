@@ -359,17 +359,17 @@ class EventSequenceRnnModel(mm.BaseModel):
         inputs=inputs[0], rnn_state=initial_states[0],
         control_events=control_events, control_state=control_state)
 
+    generate_step_fn = functools.partial(
+        self._generate_step,
+        temperature=temperature,
+        extend_control_events_callback=
+        extend_control_events_callback if control_events is not None else None,
+        modify_events_callback=modify_events_callback)
+
     events, _, loglik = beam_search(
         initial_sequence=event_sequences[0],
         initial_state=initial_state,
-        generate_step_fn=functools.partial(
-            self._generate_step,
-            temperature=temperature,
-            extend_control_events_callback=(
-                extend_control_events_callback
-                if control_events is not None
-                else None),
-            modify_events_callback=modify_events_callback),
+        generate_step_fn=,generate_step_fn
         num_steps=num_steps - len(primer_events),
         beam_size=beam_size,
         branch_factor=branch_factor,

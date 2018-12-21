@@ -21,14 +21,16 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-from operator import itemgetter
-from os.path import join
+import operator
+import os
 
 import numpy as np
 from scipy.io import wavfile
 import tensorflow as tf
 from tqdm import tqdm
 
+itemgetter = operator.itemgetter
+join = os.path.join
 FLAGS = tf.flags.FLAGS
 
 tf.flags.DEFINE_integer('total_per_label', '7000',

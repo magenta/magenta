@@ -88,7 +88,7 @@ def main(unused_argv):
     tf.gfile.MakeDirs(eval_dir)
     tf.logging.info('Eval dir: %s', eval_dir)
     num_batches = (
-        (FLAGS.num_eval_examples if FLAGS.num_eval_examples else
+        (FLAGS.num_eval_examples or
          magenta.common.count_records(sequence_example_file_paths)) //
         config.hparams.batch_size)
     events_rnn_train.run_eval(build_graph_fn, train_dir, eval_dir, num_batches)

@@ -20,12 +20,14 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-from fractions import Fraction
+import fractions
 import xml.etree.ElementTree as ET
 import zipfile
 
 from magenta.music import constants
 import six
+
+Fraction = fractions.Fraction
 
 DEFAULT_MIDI_PROGRAM = 0    # Default MIDI Program (0 = grand piano)
 DEFAULT_MIDI_CHANNEL = 0    # Default MIDI Channel (0 = first channel)
@@ -669,8 +671,7 @@ class Measure(object):
         new_time_signature.numerator = numerator
         new_time_signature.denominator = denominator
 
-        new_time_sig_fraction = Fraction(numerator,
-                                         denominator)
+        new_time_sig_fraction = Fraction(numerator, denominator)
 
         if new_time_sig_fraction == fractional_time_signature:
           new_time_signature.numerator = fractional_time_signature.numerator

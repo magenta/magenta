@@ -72,8 +72,10 @@ def main(unused_argv):
     hparams = model.get_hparams(FLAGS.config)
 
     # Run the Reader on the CPU
-    cpu_device = ("/job:worker/cpu:0" if FLAGS.ps_tasks else
-                  "/job:localhost/replica:0/task:0/cpu:0")
+    if FLAGS.ps_tasks:
+      cpu_device = "/job:worker/cpu:0"
+    else:
+      cpu_device = "/job:localhost/replica:0/task:0/cpu:0"
 
     with tf.device(cpu_device):
       with tf.name_scope("Reader"):

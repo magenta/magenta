@@ -185,8 +185,10 @@ def run_with_flags(generator):
   if primer_sequence:
     input_sequence = primer_sequence
     # Set the start time to begin on the next step after the last note ends.
-    last_end_time = (max(n.end_time for n in primer_sequence.notes)
-                     if primer_sequence.notes else 0)
+    if primer_sequence.notes:
+      last_end_time = max(n.end_time for n in primer_sequence.notes)
+    else:
+      last_end_time = 0
     generate_section = generator_options.generate_sections.add(
         start_time=last_end_time + seconds_per_step,
         end_time=total_seconds)

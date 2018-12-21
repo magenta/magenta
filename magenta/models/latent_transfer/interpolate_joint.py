@@ -23,7 +23,7 @@ from __future__ import division
 from __future__ import print_function
 
 import importlib
-from os.path import join
+import os
 
 from magenta.models.latent_transfer import common
 from magenta.models.latent_transfer import common_joint
@@ -31,6 +31,7 @@ from magenta.models.latent_transfer import model_joint
 import numpy as np
 import tensorflow as tf
 
+join = os.path.join
 FLAGS = tf.flags.FLAGS
 
 tf.flags.DEFINE_string('config', 'transfer_A_unconditional_mnist_to_mnist',

@@ -312,10 +312,12 @@ class PairedDataIterator(object):
     batch_label_B = self.label_B[batch_index_B]
     assert np.array_equal(batch_label_A, batch_label_B)
 
-    batch_train_data_A = self.train_data_A[
-        batch_index_A] if self.train_data_A is not None else None
-    batch_train_data_B = self.train_data_B[
-        batch_index_B] if self.train_data_B is not None else None
+    batch_train_data_A = (
+        None if self._train_data_A is None else self.train_data_A[batch_index_A]
+    )
+    batch_train_data_B = (
+        None if self._train_data_B is None else self.train_data_B[batch_index_B]
+    )
     debug_info = (batch_train_data_A, batch_train_data_B)
 
     return batch_A, batch_B, debug_info
@@ -733,7 +735,7 @@ class ModelWaveGANHelper(object):
 class OneSideHelper(object):
   """The helper that manages model and classifier in dataspace for joint model.
 
-  Attributes:
+  Args:
     config_name: A string representing the name of config for model in
         dataspace.
     exp_uid: A string representing the unique id of experiment used in

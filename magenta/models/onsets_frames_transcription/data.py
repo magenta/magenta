@@ -386,8 +386,8 @@ def _provide_data(input_tensors, truncated_length, hparams):
   velocities = tf.reshape(velocities, (-1, constants.MIDI_PITCHES))
   spec = tf.reshape(spec, (-1, hparams_frame_size(hparams)))
 
-  truncated_length = (tf.reduce_min([truncated_length, length])
-                      if truncated_length else length)
+  truncated_length = (
+      tf.reduce_min([truncated_length, length]) if truncated_length else length)
 
   # Pad or slice specs and labels tensors to have the same lengths,
   # truncating after truncated_length.

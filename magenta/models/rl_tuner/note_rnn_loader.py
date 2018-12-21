@@ -233,9 +233,10 @@ class NoteRNNLoader(object):
 
             outputs_flat = tf.reshape(outputs,
                                       [-1, self.hparams.rnn_layer_sizes[-1]])
-            linear_layer = (tf.contrib.layers.linear
-                            if self.note_rnn_type == 'basic_rnn'
-                            else tf.contrib.layers.legacy_linear)
+            if self.note_rnn_type == 'basic_rnn':
+              linear_layer = tf.contrib.layers.linear
+            else:
+              linear_layer = tf.contrib.layers.legacy_linear
             logits_flat = linear_layer(
                 outputs_flat, self.hparams.one_hot_length)
             return logits_flat, final_state

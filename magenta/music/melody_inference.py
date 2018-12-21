@@ -279,8 +279,11 @@ def infer_melody_for_sequence(sequence,
 
   pitches, has_onsets, has_notes, event_times = sequence_note_frames(sequence)
 
-  melody_instrument = (0 if not sequence.notes else
-                       max(note.instrument for note in sequence.notes) + 1)
+  if sequences.notes:
+    melody_instrument = max(note.instrument for note in sequence.notes) + 1
+  else:
+    melody_instrument = 0
+
   if melody_instrument == 9:
     # Avoid any confusion around drum channel.
     melody_instrument = 10
@@ -294,11 +297,13 @@ def infer_melody_for_sequence(sequence,
         'Too many frames for melody inference: %d' % (len(event_times) + 1))
 
   # Compute frame durations (times between consecutive note events).
-  durations = np.array(
-      [event_times[0]] +
-      [t2 - t1 for (t1, t2) in zip(event_times[:-1], event_times[1:])] +
-      [sequence.total_time - event_times[-1]]
-  ) if event_times else np.array([sequence.total_time])
+  if event_times:
+    durations = np.array(
+        [event_times[0]] +
+        [t2 - t1 for (t1, t2) in zip(event_times[:-1], event_times[1:])] +
+        [sequence.total_time - event_times[-1]])
+  else:
+    durations = np.array([sequence.total_time])
 
   # Interval distribution is Cauchy-like.
   interval_prob_fn = lambda d: 1 / (1 + (d / melody_interval_scale) ** 2)

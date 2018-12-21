@@ -13,7 +13,7 @@
 # limitations under the License.
 """Melody-over-chords RNN generation code as a SequenceGenerator interface."""
 
-from functools import partial
+import functools
 
 from magenta.models.improv_rnn import improv_rnn_model
 import magenta.music as mm
@@ -50,9 +50,10 @@ class ImprovRnnSequenceGenerator(mm.BaseSequenceGenerator):
           'This model supports only 1 generate_sections message, but got %s' %
           len(generator_options.generate_sections))
 
-    qpm = (input_sequence.tempos[0].qpm
-           if input_sequence and input_sequence.tempos
-           else mm.DEFAULT_QUARTERS_PER_MINUTE)
+    if input_sequence and input_sequence.tempos:
+      qpm = input_sequence.tempos[0].qpm
+    else:
+      qpm = mm.DEFAULT_QUARTERS_PER_MINUTE
     steps_per_second = mm.steps_per_quarter_to_steps_per_second(
         self.steps_per_quarter, qpm)
 
@@ -164,5 +165,5 @@ def get_generator_map():
         improv_rnn_model.ImprovRnnModel(config), config.details,
         steps_per_quarter=config.steps_per_quarter, **kwargs)
 
-  return {key: partial(create_sequence_generator, config)
+  return {key: functools.partial(create_sequence_generator, config)
           for (key, config) in improv_rnn_model.default_configs.items()}

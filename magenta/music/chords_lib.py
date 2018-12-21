@@ -434,6 +434,7 @@ class BasicChordRenderer(ChordRenderer):
     self._bass_octave = bass_octave
 
   def _render_notes(self, sequence, pitches, bass_pitch, start_time, end_time):
+    """Renders notes."""
     all_pitches = []
     for pitch in pitches:
       all_pitches.append(12 * self._octave + pitch % 12)

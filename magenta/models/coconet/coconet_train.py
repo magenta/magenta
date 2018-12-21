@@ -193,13 +193,13 @@ def run_epoch(supervisor, sess, m, dataset, hparams, eval_op, experiment_type,
       value.simple_value = stat
     supervisor.summary_computed(sess, summaries, epoch_count)
 
-  tf.logging.info('%s, epoch %d: loss (mask): %.4f, loss (unmask): %.4f, '
-                  'loss (total): %.4f, log lr: %.4f, time taken: %.4f',
-                  experiment_type, epoch_count, run_stats['loss_mask'],
-                  run_stats['loss_unmask'], run_stats['loss_total'],
-                  np.log2(run_stats['learning_rate'])
-                  if 'learning_rate' in run_stats else 0,
-                  time.time() - start_time)
+  tf.logging.info(
+      '%s, epoch %d: loss (mask): %.4f, loss (unmask): %.4f, '
+      'loss (total): %.4f, log lr: %.4f, time taken: %.4f',
+      experiment_type, epoch_count, run_stats['loss_mask'],
+      run_stats['loss_unmask'], run_stats['loss_total'],
+      np.log(run_stats['learning_rate']) if 'learning_rate' in run_stats else 0,
+      time.time() - start_time)
 
   return run_stats['loss']
 

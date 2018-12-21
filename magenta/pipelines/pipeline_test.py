@@ -169,9 +169,6 @@ class PipelineTest(tf.test.TestCase):
 
     class PipelineShell(pipeline.Pipeline):
 
-      def __init__(self, input_type, output_type):
-        super(PipelineShell, self).__init__(input_type, output_type)
-
       def transform(self, input_object):
         pass
 
