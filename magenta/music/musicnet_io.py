@@ -15,9 +15,9 @@
 
 import numpy as np
 from six import BytesIO
+import tensorflow as tf
 
 from magenta.protobuf import music_pb2
-import tensorflow as tf
 
 MUSICNET_SAMPLE_RATE = 44100
 MUSICNET_NOTE_VELOCITY = 100

@@ -23,9 +23,9 @@ import wave
 import numpy as np
 import scipy
 import six
+import tensorflow as tf
 
 from magenta.music import audio_io
-import tensorflow as tf
 
 
 class AudioIoTest(tf.test.TestCase):

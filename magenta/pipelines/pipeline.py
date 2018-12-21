@@ -22,9 +22,9 @@ import inspect
 import os.path
 
 import six
+import tensorflow as tf
 
 from magenta.pipelines import statistics
-import tensorflow as tf
 
 
 class InvalidTypeSignatureException(Exception):

@@ -7,10 +7,10 @@ import time
 
 import numpy as np
 from scipy.misc import logsumexp
+import tensorflow as tf
 
 from magenta.models.coconet import lib_tfutil
 from magenta.models.coconet import lib_util
-import tensorflow as tf
 
 
 def evaluate(evaluator, pianorolls):

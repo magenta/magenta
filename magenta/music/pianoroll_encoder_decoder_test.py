@@ -14,9 +14,9 @@
 """Tests for pianoroll_encoder_decoder."""
 
 import numpy as np
+import tensorflow as tf
 
 from magenta.music import pianoroll_encoder_decoder
-import tensorflow as tf
 
 
 class PianorollEncodingTest(tf.test.TestCase):

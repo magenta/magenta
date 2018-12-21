@@ -21,10 +21,10 @@ import numbers
 
 import numpy as np
 import six
-
-import magenta
 import tensorflow as tf
 from tensorflow.python.util import nest as tf_nest
+
+import magenta
 
 
 def make_rnn_cell(rnn_layer_sizes,

@@ -13,11 +13,12 @@
 # limitations under the License.
 """Tests for performance_rnn_create_dataset."""
 
+import tensorflow as tf
+
 import magenta
 from magenta.models.performance_rnn import performance_model
 from magenta.models.performance_rnn import performance_rnn_pipeline
 from magenta.protobuf import music_pb2
-import tensorflow as tf
 
 FLAGS = tf.app.flags.FLAGS
 

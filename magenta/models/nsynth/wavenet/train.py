@@ -21,8 +21,9 @@ So that it works locally, the default worker_replicas and total_batch_size are
 set to 1. For training in 200k iterations, they both should be 32.
 """
 
-from magenta.models.nsynth import utils
 import tensorflow as tf
+
+from magenta.models.nsynth import utils
 
 slim = tf.contrib.slim
 FLAGS = tf.app.flags.FLAGS

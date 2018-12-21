@@ -16,8 +16,9 @@
 All configs should have encode() and decode().
 """
 
-from magenta.models.nsynth import utils
 import tensorflow as tf
+
+from magenta.models.nsynth import utils
 
 slim = tf.contrib.slim
 

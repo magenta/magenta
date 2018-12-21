@@ -8,10 +8,10 @@ import os
 
 import numpy as np
 import six
+import tensorflow as tf
 import yaml
 
 from magenta.models.coconet import lib_util
-import tensorflow as tf
 
 
 class ModelMisspecificationError(Exception):

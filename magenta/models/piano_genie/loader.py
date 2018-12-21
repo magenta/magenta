@@ -20,9 +20,9 @@ from __future__ import print_function
 import random
 
 import numpy as np
+import tensorflow as tf
 
 from magenta.protobuf import music_pb2
-import tensorflow as tf
 
 
 def load_noteseqs(fp,

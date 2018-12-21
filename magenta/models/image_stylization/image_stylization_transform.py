@@ -21,11 +21,11 @@ import ast
 import os
 
 import numpy as np
+import tensorflow as tf
 
 from magenta.models.image_stylization import image_utils
 from magenta.models.image_stylization import model
 from magenta.models.image_stylization import ops
-import tensorflow as tf
 
 flags = tf.flags
 flags.DEFINE_integer('num_styles', 1,

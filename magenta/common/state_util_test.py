@@ -14,10 +14,10 @@
 """Tests for state_util."""
 
 import numpy as np
-
-from magenta.common import state_util
 import tensorflow as tf
 from tensorflow.python.util import nest as tf_nest
+
+from magenta.common import state_util
 
 
 class StateUtilTest(tf.test.TestCase):

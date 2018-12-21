@@ -18,9 +18,9 @@ from __future__ import division
 from __future__ import print_function
 
 import numpy as np
+import tensorflow as tf
 
 from magenta.models.nsynth import utils
-import tensorflow as tf
 
 # FFT Specgram Shapes
 SPECGRAM_REGISTRY = {

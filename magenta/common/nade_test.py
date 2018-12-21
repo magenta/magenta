@@ -13,8 +13,9 @@
 # limitations under the License.
 """Tests for nade."""
 
-from magenta.common.nade import Nade
 import tensorflow as tf
+
+from magenta.common.nade import Nade
 
 
 class NadeTest(tf.test.TestCase):

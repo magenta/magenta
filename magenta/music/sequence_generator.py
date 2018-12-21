@@ -20,8 +20,9 @@ import abc
 import os
 import tempfile
 
-from magenta.protobuf import generator_pb2
 import tensorflow as tf
+
+from magenta.protobuf import generator_pb2
 
 
 class SequenceGeneratorException(Exception):

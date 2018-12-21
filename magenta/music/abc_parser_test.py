@@ -21,13 +21,13 @@ import copy
 import os.path
 
 import six
+import tensorflow as tf
 
 from magenta.common import testing_lib as common_testing_lib
 from magenta.music import abc_parser
 from magenta.music import midi_io
 from magenta.music import sequences_lib
 from magenta.protobuf import music_pb2
-import tensorflow as tf
 
 
 class AbcParserTest(tf.test.TestCase):

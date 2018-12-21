@@ -20,10 +20,11 @@ models.
 
 import os
 
+import tensorflow as tf
+
 from magenta.models.polyphony_rnn import polyphony_model
 from magenta.models.polyphony_rnn import polyphony_rnn_pipeline
 from magenta.pipelines import pipeline
-import tensorflow as tf
 
 flags = tf.app.flags
 FLAGS = tf.app.flags.FLAGS

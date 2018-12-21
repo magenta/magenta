@@ -25,15 +25,15 @@ import glob
 import os
 import re
 
-import numpy as np
-
 import librosa
+import numpy as np
+import tensorflow as tf
+
 from magenta.models.onsets_frames_transcription import create_dataset_util
 from magenta.music import audio_io
 from magenta.music import midi_io
 from magenta.music import sequences_lib
 from magenta.protobuf import music_pb2
-import tensorflow as tf
 
 FLAGS = tf.app.flags.FLAGS
 tf.app.flags.DEFINE_string('input_dir', None,

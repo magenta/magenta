@@ -13,9 +13,10 @@
 # limitations under the License.
 """Tests for performance controls."""
 
+import tensorflow as tf
+
 from magenta.music import performance_controls
 from magenta.music import performance_lib
-import tensorflow as tf
 
 
 class NoteDensityPerformanceControlSignalTest(tf.test.TestCase):

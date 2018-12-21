@@ -13,9 +13,10 @@
 # limitations under the License.
 """Provides a class, defaults, and utils for Melody RNN model configuration."""
 
+import tensorflow as tf
+
 import magenta
 from magenta.models.melody_rnn import melody_rnn_model
-import tensorflow as tf
 
 FLAGS = tf.app.flags.FLAGS
 tf.app.flags.DEFINE_string(

@@ -16,13 +16,13 @@
 import copy
 
 import numpy as np
+import tensorflow as tf
 
 from magenta.common import testing_lib as common_testing_lib
 from magenta.music import constants
 from magenta.music import sequences_lib
 from magenta.music import testing_lib
 from magenta.protobuf import music_pb2
-import tensorflow as tf
 
 CHORD_SYMBOL = music_pb2.NoteSequence.TextAnnotation.CHORD_SYMBOL
 DEFAULT_FRAMES_PER_SECOND = 16000.0 / 512

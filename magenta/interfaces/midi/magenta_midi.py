@@ -26,6 +26,7 @@ import threading
 import time
 
 from six.moves import input  # pylint: disable=redefined-builtin
+import tensorflow as tf
 
 import magenta
 from magenta.interfaces.midi import midi_hub
@@ -35,7 +36,6 @@ from magenta.models.melody_rnn import melody_rnn_sequence_generator
 from magenta.models.performance_rnn import performance_sequence_generator
 from magenta.models.pianoroll_rnn_nade import pianoroll_rnn_nade_sequence_generator
 from magenta.models.polyphony_rnn import polyphony_sequence_generator
-import tensorflow as tf
 
 FLAGS = tf.app.flags.FLAGS
 

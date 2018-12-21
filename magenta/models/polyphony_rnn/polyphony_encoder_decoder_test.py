@@ -13,9 +13,10 @@
 # limitations under the License.
 """Tests for polyphony_encoder_decoder."""
 
+import tensorflow as tf
+
 from magenta.models.polyphony_rnn import polyphony_encoder_decoder
 from magenta.models.polyphony_rnn.polyphony_lib import PolyphonicEvent
-import tensorflow as tf
 
 
 class PolyphonyOneHotEncodingTest(tf.test.TestCase):

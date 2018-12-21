@@ -25,11 +25,11 @@ from __future__ import print_function
 
 import numpy as np
 from six import iteritems
-
-from magenta.models.latent_transfer.common import dataset_is_mnist_family
 import sonnet as snt
 import tensorflow as tf
 import tensorflow_probability as tfp
+
+from magenta.models.latent_transfer.common import dataset_is_mnist_family
 
 ds = tfp.distributions
 

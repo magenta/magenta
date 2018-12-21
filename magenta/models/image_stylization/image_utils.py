@@ -24,11 +24,11 @@ import tempfile
 import numpy as np
 import scipy
 import scipy.misc
-
-from magenta.models.image_stylization import imagenet_data
 import tensorflow as tf
 from tensorflow.python.framework import dtypes
 from tensorflow.python.ops import random_ops
+
+from magenta.models.image_stylization import imagenet_data
 
 slim = tf.contrib.slim
 

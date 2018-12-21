@@ -27,7 +27,6 @@ import gzip
 import os
 
 import numpy as np
-
 import tensorflow as tf
 
 gfile = tf.gfile

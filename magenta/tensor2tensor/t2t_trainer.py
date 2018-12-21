@@ -17,10 +17,11 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-# Registers all Magenta problems with Tensor2Tensor.
-from magenta.tensor2tensor import problems  # pylint: disable=unused-import
 from tensor2tensor.bin import t2t_trainer
 import tensorflow as tf
+
+# Registers all Magenta problems with Tensor2Tensor.
+from magenta.tensor2tensor import problems  # pylint: disable=unused-import
 
 
 def main(argv):

@@ -19,10 +19,11 @@ import ast
 from functools import partial
 import math
 
+import tensorflow as tf
+
 from magenta.models.performance_rnn import performance_model
 import magenta.music as mm
 from magenta.music import performance_controls
-import tensorflow as tf
 
 # This model can leave hanging notes. To avoid cacophony we turn off any note
 # after 5 seconds.

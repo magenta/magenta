@@ -52,11 +52,11 @@ import numbers
 
 import numpy as np
 from six.moves import range  # pylint: disable=redefined-builtin
+import tensorflow as tf
 
 from magenta.common import sequence_example_lib
 from magenta.music import constants
 from magenta.pipelines import pipeline
-import tensorflow as tf
 
 DEFAULT_STEPS_PER_BAR = constants.DEFAULT_STEPS_PER_BAR
 DEFAULT_LOOKBACK_DISTANCES = [DEFAULT_STEPS_PER_BAR, DEFAULT_STEPS_PER_BAR * 2]

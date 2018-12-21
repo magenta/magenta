@@ -28,12 +28,12 @@ import importlib
 from os.path import join
 
 import numpy as np
+import tensorflow as tf
+from tqdm import tqdm
 
 from magenta.models.latent_transfer import common
 from magenta.models.latent_transfer import common_joint
 from magenta.models.latent_transfer import model_joint
-import tensorflow as tf
-from tqdm import tqdm
 
 FLAGS = tf.flags.FLAGS
 
