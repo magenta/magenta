@@ -4,7 +4,7 @@ from __future__ import division
 from __future__ import print_function
 
 import contextlib
-from datetime import datetime
+import datetime
 import numbers
 import pdb
 import tempfile
@@ -225,7 +225,7 @@ class AggregateMean(object):
 
 
 def timestamp():
-  return datetime.now().strftime("%Y%m%d%H%M%S")
+  return datetime.datetime.now().strftime("%Y%m%d%H%M%S")
 
 
 def get_rng(rng=None):

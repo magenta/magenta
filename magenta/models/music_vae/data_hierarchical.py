@@ -261,8 +261,9 @@ class BaseHierarchicalConverter(data.BaseConverter):
       except TooLongError:
         continue
 
-    return (data.ConverterTensors(*zip(*padded_results))
-            if padded_results else data.ConverterTensors())
+    if padded_results:
+      return data.ConverterTensors(*zip(*padded_results)
+    return data.ConverterTensors()
 
   def to_items(self, samples, controls=None):
     """Removes hierarchical padding and then converts samples into items."""
@@ -438,10 +439,12 @@ class MultiInstrumentPerformanceConverter(
 
     max_lengths = [
         self._max_num_chunks, max_num_instruments, max_events_per_instrument]
-    control_depth = (chord_encoding.num_classes
-                     if chord_encoding is not None else 0)
-    control_pad_token = (chord_encoding.encode_event(mm.NO_CHORD)
-                         if chord_encoding is not None else None)
+    if chord_encoding is None:
+      control_depth = 0
+      control_pad_token = None
+    else:
+      conrol_depth = chord_encoding.num_classes
+      control_pad_token =chord_encoding.encode_event(mm.NO_CHORD)
 
     super(MultiInstrumentPerformanceConverter, self).__init__(
         input_depth=depth,
@@ -487,10 +490,11 @@ class MultiInstrumentPerformanceConverter(
 
       # Split this track into chunks.
       def new_performance(quantized_sequence, start_step, track=track):
+        steps_per_quarter = (
+            self._steps_per_quarter if quantized_sequence is None else None)
         return performance_lib.MetricPerformance(
             quantized_sequence=quantized_sequence,
-            steps_per_quarter=(self._steps_per_quarter
-                               if quantized_sequence is None else None),
+            steps_per_quarter=steps_per_quarter,
             start_step=start_step,
             num_velocity_bins=self._num_velocity_bins,
             program=track.program, is_drum=track.is_drum)
@@ -611,9 +615,10 @@ class MultiInstrumentPerformanceConverter(
           ta.time = qta.time
           ta.text = qta.text
 
-    quarters_per_minute = (
-        note_sequence.tempos[0].qpm if note_sequence.tempos
-        else mm.DEFAULT_QUARTERS_PER_MINUTE)
+    if note_sequence.tempos:
+      quarters_per_minute = note_sequence.tempos[0].qpm
+    else:
+      quarters_per_minute = mm.DEFAULT_QUARTERS_PER_MINUTE
     quarters_per_bar = self._steps_per_bar / self._steps_per_quarter
     hop_size_quarters = quarters_per_bar * self._hop_size_bars
     hop_size_seconds = 60.0 * hop_size_quarters / quarters_per_minute

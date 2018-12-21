@@ -305,7 +305,6 @@ class BaseLstmDecoder(base_model.BaseDecoder):
     else:
       self._cudnn_dec_lstm = None
 
-
   @property
   def state_size(self):
     return self._dec_cell.state_size
@@ -509,7 +508,7 @@ class BaseLstmDecoder(base_model.BaseDecoder):
 
     # If not given, start with zeros.
     if start_inputs is None:
-      start_inputs =  tf.zeros([n, self._output_depth], dtype=tf.float32)
+      start_inputs = tf.zeros([n, self._output_depth], dtype=tf.float32)
     # In the conditional case, also concatenate the Z.
     start_inputs = tf.concat([start_inputs, z], axis=-1)
     if c_input is not None:

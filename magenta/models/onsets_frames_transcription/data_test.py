@@ -62,8 +62,8 @@ class DataTest(tf.test.TestCase):
     # complexity of the pipeline is due to the TensorFlow implementation,
     # so comparing it against simpler numpy code still provides effective
     # coverage.
-    truncated_length = (min(truncated_length, length)
-                        if truncated_length else length)
+    truncated_length = (
+        min(truncated_length, length) if truncated_length else length)
 
     # Pad or slice spec if differs from truncated_length.
     if len(spec) < truncated_length:

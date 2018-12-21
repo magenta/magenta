@@ -144,9 +144,9 @@ class BaseEvaluator(lib_util.Factory):
     # where(x, log(px), 0).
     assert np.array_equal(x, x.astype(bool))
     if self.separate_instruments:
-      index = np.arange(x.shape[0]), t, slice(None), d)
+      index = (np.arange(x.shape[0]), t, slice(None), d)
     else:
-      index = np.arange(x.shape[0]), t, d, slice(None))
+      index = (np.arange(x.shape[0]), t, d, slice(None))
     lls[t, d] = np.log(np.where(x[index], pxhat[index], 1)).sum(axis=1)
 
 
