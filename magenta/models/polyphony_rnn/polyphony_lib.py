@@ -18,14 +18,13 @@ from __future__ import division
 import collections
 import copy
 
-from six.moves import range  # pylint: disable=redefined-builtin
-import tensorflow as tf
-
 from magenta.music import constants
 from magenta.music import events_lib
 from magenta.music import sequences_lib
 from magenta.pipelines import statistics
 from magenta.protobuf import music_pb2
+from six.moves import range  # pylint: disable=redefined-builtin
+import tensorflow as tf
 
 DEFAULT_STEPS_PER_QUARTER = constants.DEFAULT_STEPS_PER_QUARTER
 MAX_MIDI_PITCH = constants.MAX_MIDI_PITCH

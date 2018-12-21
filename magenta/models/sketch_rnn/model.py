@@ -19,10 +19,9 @@ from __future__ import print_function
 
 import random
 
+from magenta.models.sketch_rnn import rnn
 import numpy as np
 import tensorflow as tf
-
-from magenta.models.sketch_rnn import rnn
 
 
 def copy_hparams(hparams):

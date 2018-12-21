@@ -20,13 +20,12 @@ import math
 from operator import itemgetter
 import random
 
-import numpy as np
-from six.moves import range  # pylint: disable=redefined-builtin
-import tensorflow as tf
-
 from magenta.music import chord_symbols_lib
 from magenta.music import constants
 from magenta.protobuf import music_pb2
+import numpy as np
+from six.moves import range  # pylint: disable=redefined-builtin
+import tensorflow as tf
 
 # Set the quantization cutoff.
 # Note events before this cutoff are rounded down to nearest step. Notes

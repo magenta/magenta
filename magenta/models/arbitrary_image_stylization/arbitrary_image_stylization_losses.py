@@ -17,11 +17,10 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-import numpy as np
-import tensorflow as tf
-
 from magenta.models.image_stylization import learning as learning_utils
 from magenta.models.image_stylization import vgg
+import numpy as np
+import tensorflow as tf
 
 
 def total_loss(content_inputs, style_inputs, stylized_inputs, content_weights,

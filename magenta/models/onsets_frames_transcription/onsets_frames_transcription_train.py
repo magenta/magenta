@@ -20,10 +20,9 @@ from __future__ import print_function
 
 import os
 
-import tensorflow as tf
-
 from magenta.models.onsets_frames_transcription import model
 from magenta.models.onsets_frames_transcription import train_util
+import tensorflow as tf
 
 FLAGS = tf.app.flags.FLAGS
 

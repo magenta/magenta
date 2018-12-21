@@ -20,11 +20,10 @@ from __future__ import print_function
 import os
 import tempfile
 
-import tensorflow as tf
-
 from magenta.common import testing_lib
 from magenta.pipelines import pipeline
 from magenta.pipelines import statistics
+import tensorflow as tf
 
 MockStringProto = testing_lib.MockStringProto  # pylint: disable=invalid-name
 

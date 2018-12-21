@@ -14,9 +14,8 @@
 """Utility functions for handling bundle files."""
 
 from google.protobuf import message
-import tensorflow as tf
-
 from magenta.protobuf import generator_pb2
+import tensorflow as tf
 
 
 class GeneratorBundleParseException(Exception):

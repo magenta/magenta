@@ -4,11 +4,10 @@ import abc
 import threading
 import time
 
-import tensorflow as tf
-
 import magenta
 from magenta.protobuf import generator_pb2
 from magenta.protobuf import music_pb2
+import tensorflow as tf
 
 
 class MidiInteractionException(Exception):

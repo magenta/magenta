@@ -16,12 +16,11 @@
 import copy
 import functools
 
-import tensorflow as tf
-
 from magenta.models.polyphony_rnn import polyphony_lib
 from magenta.models.polyphony_rnn import polyphony_model
 from magenta.models.polyphony_rnn.polyphony_lib import PolyphonicEvent
 import magenta.music as mm
+import tensorflow as tf
 
 
 class PolyphonyRnnSequenceGenerator(mm.BaseSequenceGenerator):

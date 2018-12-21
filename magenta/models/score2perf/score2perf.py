@@ -21,15 +21,14 @@ import functools
 import itertools
 import sys
 
-from tensor2tensor.data_generators import problem
-from tensor2tensor.layers import modalities as t2t_modalities
-from tensor2tensor.utils import registry
-import tensorflow as tf
-
 from magenta.models.score2perf import modalities
 from magenta.models.score2perf import music_encoders
 from magenta.music import chord_symbols_lib
 from magenta.music import sequences_lib
+from tensor2tensor.data_generators import problem
+from tensor2tensor.layers import modalities as t2t_modalities
+from tensor2tensor.utils import registry
+import tensorflow as tf
 
 if sys.version_info.major == 2:
   from magenta.models.score2perf import datagen_beam  # pylint:disable=g-import-not-at-top,ungrouped-imports

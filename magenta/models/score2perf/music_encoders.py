@@ -19,11 +19,10 @@ from __future__ import print_function
 
 import tempfile
 
-from tensor2tensor.data_generators import text_encoder
-
 import magenta
 from magenta.music import performance_lib
 from magenta.protobuf import music_pb2
+from tensor2tensor.data_generators import text_encoder
 
 CHORD_SYMBOL = music_pb2.NoteSequence.TextAnnotation.CHORD_SYMBOL
 

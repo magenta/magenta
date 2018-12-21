@@ -19,12 +19,11 @@ from __future__ import print_function
 
 import os
 
-import tensorflow as tf
-
 from magenta.models.piano_genie import util
 from magenta.models.piano_genie.configs import get_named_config
 from magenta.models.piano_genie.loader import load_noteseqs
 from magenta.models.piano_genie.model import build_genie_model
+import tensorflow as tf
 
 flags = tf.app.flags
 FLAGS = flags.FLAGS

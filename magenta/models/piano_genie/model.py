@@ -17,10 +17,9 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
+from magenta.models.piano_genie import util
 import sonnet as snt
 import tensorflow as tf
-
-from magenta.models.piano_genie import util
 
 
 def simple_lstm_encoder(features,

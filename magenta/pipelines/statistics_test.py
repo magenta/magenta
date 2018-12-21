@@ -13,10 +13,9 @@
 # limitations under the License.
 """Tests for statistics."""
 
+from magenta.pipelines import statistics
 import six
 import tensorflow as tf
-
-from magenta.pipelines import statistics
 
 
 class StatisticsTest(tf.test.TestCase):

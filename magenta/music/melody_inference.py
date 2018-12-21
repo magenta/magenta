@@ -19,11 +19,10 @@ from __future__ import print_function
 
 import bisect
 
-import numpy as np
-import scipy
-
 from magenta.music import constants
 from magenta.music import sequences_lib
+import numpy as np
+import scipy
 
 REST = -1
 MELODY_VELOCITY = 127

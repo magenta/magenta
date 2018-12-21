@@ -17,13 +17,12 @@ from __future__ import division
 
 import copy
 
-import numpy as np
-
 from magenta.music import constants
 from magenta.music import events_lib
 from magenta.music import sequences_lib
 from magenta.pipelines import statistics
 from magenta.protobuf import music_pb2
+import numpy as np
 
 DEFAULT_STEPS_PER_QUARTER = constants.DEFAULT_STEPS_PER_QUARTER
 MAX_MIDI_PITCH = 108  # Max piano pitch.

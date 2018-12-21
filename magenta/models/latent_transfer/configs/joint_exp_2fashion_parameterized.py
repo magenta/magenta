@@ -18,9 +18,8 @@
 
 import functools
 
-import tensorflow as tf
-
 from magenta.models.latent_transfer import model_joint
+import tensorflow as tf
 
 FLAGS = tf.flags.FLAGS
 

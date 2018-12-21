@@ -19,11 +19,10 @@ TensorFlow's SequenceExample protos for input to the melody RNN models.
 
 import os
 
-import tensorflow as tf
-
 from magenta.models.melody_rnn import melody_rnn_config_flags
 from magenta.models.melody_rnn import melody_rnn_pipeline
 from magenta.pipelines import pipeline
+import tensorflow as tf
 
 flags = tf.app.flags
 FLAGS = tf.app.flags.FLAGS

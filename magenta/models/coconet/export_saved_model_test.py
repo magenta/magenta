@@ -7,11 +7,10 @@ from __future__ import print_function
 import os
 import tempfile
 
-import tensorflow as tf
-
 from magenta.models.coconet import export_saved_model
 from magenta.models.coconet import lib_graph
 from magenta.models.coconet import lib_hparams
+import tensorflow as tf
 
 
 class ExportSavedModelTest(tf.test.TestCase):

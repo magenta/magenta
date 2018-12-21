@@ -15,11 +15,10 @@
 
 import copy
 
-import tensorflow as tf
-
 import magenta
 from magenta.models.shared import events_rnn_model
 import magenta.music as mm
+import tensorflow as tf
 
 DEFAULT_MIN_NOTE = 48
 DEFAULT_MAX_NOTE = 84

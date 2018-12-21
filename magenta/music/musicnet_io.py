@@ -13,11 +13,10 @@
 # limitations under the License.
 """Import NoteSequences from MusicNet."""
 
+from magenta.protobuf import music_pb2
 import numpy as np
 from six import BytesIO
 import tensorflow as tf
-
-from magenta.protobuf import music_pb2
 
 MUSICNET_SAMPLE_RATE = 44100
 MUSICNET_NOTE_VELOCITY = 100

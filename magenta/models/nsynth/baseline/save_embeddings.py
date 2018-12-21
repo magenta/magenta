@@ -16,11 +16,10 @@
 import os
 import sys
 
-import numpy as np
-import tensorflow as tf
-
 from magenta.models.nsynth import reader
 from magenta.models.nsynth import utils
+import numpy as np
+import tensorflow as tf
 
 slim = tf.contrib.slim
 FLAGS = tf.app.flags.FLAGS

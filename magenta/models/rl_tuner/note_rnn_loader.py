@@ -33,9 +33,6 @@ These functions are necessary for use with the RL Tuner class.
 
 import os
 
-import numpy as np
-import tensorflow as tf
-
 import magenta
 from magenta.common import sequence_example_lib
 from magenta.models.rl_tuner import rl_tuner_ops
@@ -43,6 +40,8 @@ from magenta.models.shared import events_rnn_graph
 from magenta.music import melodies_lib
 from magenta.music import midi_io
 from magenta.music import sequences_lib
+import numpy as np
+import tensorflow as tf
 
 
 class NoteRNNLoader(object):

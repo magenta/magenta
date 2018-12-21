@@ -19,11 +19,10 @@ TensorFlow's SequenceExample protos for input to the drums RNN models.
 
 import os
 
-import tensorflow as tf
-
 from magenta.models.drums_rnn import drums_rnn_config_flags
 from magenta.models.drums_rnn import drums_rnn_pipeline
 from magenta.pipelines import pipeline
+import tensorflow as tf
 
 flags = tf.app.flags
 FLAGS = tf.app.flags.FLAGS
