@@ -21,8 +21,9 @@ import os
 import re
 import tarfile
 
-from backports import tempfile
 import numpy as np
+
+from backports import tempfile
 import tensorflow as tf
 
 

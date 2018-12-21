@@ -40,10 +40,10 @@ import importlib
 import os
 
 import numpy as np
-from PIL import Image
-import tensorflow as tf
 
+from PIL import Image
 from magenta.models.latent_transfer import local_mnist
+import tensorflow as tf
 
 FLAGS = tf.flags.FLAGS
 

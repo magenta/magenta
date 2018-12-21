@@ -22,16 +22,16 @@ import collections
 import io
 import os
 
-import bokeh
-import bokeh.plotting
-from IPython import display
 import numpy as np
-import pandas as pd
 from scipy.io import wavfile
 from six.moves import urllib
-import tensorflow as tf
 
+from IPython import display
+import bokeh
+import bokeh.plotting
 from magenta.music import midi_synth
+import pandas as pd
+import tensorflow as tf
 
 _DEFAULT_SAMPLE_RATE = 44100
 _play_id = 0  # Used for ephemeral colab_play.

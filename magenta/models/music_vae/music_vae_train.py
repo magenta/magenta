@@ -19,10 +19,9 @@ from __future__ import print_function
 
 import os
 
-import tensorflow as tf
-
 from magenta.models.music_vae import configs
 from magenta.models.music_vae import data
+import tensorflow as tf
 
 flags = tf.app.flags
 FLAGS = flags.FLAGS

@@ -3,13 +3,14 @@
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
+
 import itertools as it
 import os
 import re
 import time
+
 import numpy as np
-import pretty_midi
-import tensorflow as tf
+
 from magenta.models.coconet import lib_graph
 from magenta.models.coconet import lib_logging
 from magenta.models.coconet import lib_mask
@@ -17,6 +18,8 @@ from magenta.models.coconet import lib_pianoroll
 from magenta.models.coconet import lib_sampling
 from magenta.models.coconet import lib_tfsampling
 from magenta.models.coconet import lib_util
+import pretty_midi
+import tensorflow as tf
 
 FLAGS = tf.app.flags.FLAGS
 flags = tf.app.flags

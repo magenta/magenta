@@ -13,10 +13,9 @@
 # limitations under the License.
 """Utility functions for handling bundle files."""
 
-import tensorflow as tf
-
 from google.protobuf import message
 from magenta.protobuf import generator_pb2
+import tensorflow as tf
 
 
 class GeneratorBundleParseException(Exception):

@@ -17,6 +17,7 @@
 # pylint:disable=invalid-name
 
 import functools
+
 from magenta.models.latent_transfer import nn
 
 n_latent = 100

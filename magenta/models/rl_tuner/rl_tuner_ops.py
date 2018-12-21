@@ -23,8 +23,8 @@ import random
 
 import numpy as np
 from six.moves import range  # pylint: disable=redefined-builtin
-import tensorflow as tf
 
+import tensorflow as tf
 
 LSTM_STATE_NAME = 'lstm'
 

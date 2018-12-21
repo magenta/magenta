@@ -19,7 +19,6 @@ from __future__ import division
 from __future__ import print_function
 
 import librosa
-
 import tensorflow as tf
 
 MIN_MIDI_PITCH = librosa.note_to_midi('A0')

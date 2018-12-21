@@ -26,20 +26,18 @@ import logging
 import os
 import random
 
-from absl import flags
+import numpy as np
 
+from absl import flags
 import apache_beam as beam
 from apache_beam import typehints
 from apache_beam.metrics import Metrics
-
-import numpy as np
-from tensor2tensor.data_generators import generator_utils
-import tensorflow as tf
-
 from magenta.music import chord_inference
 from magenta.music import melody_inference
 from magenta.music import sequences_lib
 from magenta.protobuf import music_pb2
+from tensor2tensor.data_generators import generator_utils
+import tensorflow as tf
 
 # TODO(iansimon): this should probably be defined in the problem
 SCORE_BPM = 120.0

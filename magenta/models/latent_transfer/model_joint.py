@@ -21,13 +21,13 @@ that models the transfer between latent spaces (z1, z2) of models on dataspace.
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
+
 from six import iteritems
 
+from magenta.models.latent_transfer import nn
 import sonnet as snt
 import tensorflow as tf
 import tensorflow_probability as tfp
-
-from magenta.models.latent_transfer import nn
 
 ds = tfp.distributions
 

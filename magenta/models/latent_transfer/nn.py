@@ -18,6 +18,7 @@ Module.
 """
 
 import numpy as np
+
 import sonnet as snt
 import tensorflow as tf
 

@@ -17,10 +17,8 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-
-import tensorflow as tf
-
 from magenta.models.image_stylization import ops
+import tensorflow as tf
 
 slim = tf.contrib.slim
 
@@ -174,4 +172,3 @@ def residual_block(input_, kernel_size, scope, activation_fn=tf.nn.relu):
     h_1 = conv2d(input_, kernel_size, 1, num_outputs, 'conv1', activation_fn)
     h_2 = conv2d(h_1, kernel_size, 1, num_outputs, 'conv2', None)
     return input_ + h_2
-

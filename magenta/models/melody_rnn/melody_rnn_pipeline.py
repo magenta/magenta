@@ -13,8 +13,6 @@
 # limitations under the License.
 """Pipeline to create MelodyRNN dataset."""
 
-import tensorflow as tf
-
 import magenta
 from magenta.pipelines import dag_pipeline
 from magenta.pipelines import melody_pipelines
@@ -22,6 +20,7 @@ from magenta.pipelines import note_sequence_pipelines
 from magenta.pipelines import pipeline
 from magenta.pipelines import pipelines_common
 from magenta.protobuf import music_pb2
+import tensorflow as tf
 
 
 class EncoderPipeline(pipeline.Pipeline):

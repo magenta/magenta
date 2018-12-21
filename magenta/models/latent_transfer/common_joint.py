@@ -47,10 +47,10 @@ import os
 
 import numpy as np
 from scipy.io import wavfile
-import tensorflow as tf
 
 from magenta.models.latent_transfer import common
 from magenta.models.latent_transfer import model_dataspace
+import tensorflow as tf
 
 FLAGS = tf.flags.FLAGS
 tf.flags.DEFINE_string(

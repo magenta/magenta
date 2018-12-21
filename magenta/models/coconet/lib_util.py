@@ -2,13 +2,16 @@
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
+
 import contextlib
 from datetime import datetime
 import numbers
 import pdb
 import tempfile
 import time
+
 import numpy as np
+
 import tensorflow as tf
 
 

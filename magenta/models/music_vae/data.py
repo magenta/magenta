@@ -24,13 +24,13 @@ import functools
 import itertools
 
 import numpy as np
-import tensorflow as tf
 
 import magenta.music as mm
 from magenta.music import chords_lib
 from magenta.music import drums_encoder_decoder
 from magenta.music import sequences_lib
 from magenta.protobuf import music_pb2
+import tensorflow as tf
 
 PIANO_MIN_MIDI_PITCH = 21
 PIANO_MAX_MIDI_PITCH = 108

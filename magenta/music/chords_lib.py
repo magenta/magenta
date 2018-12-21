@@ -36,7 +36,6 @@ from magenta.music import sequences_lib
 from magenta.pipelines import statistics
 from magenta.protobuf import music_pb2
 
-
 STANDARD_PPQ = constants.STANDARD_PPQ
 NOTES_PER_OCTAVE = constants.NOTES_PER_OCTAVE
 NO_CHORD = constants.NO_CHORD

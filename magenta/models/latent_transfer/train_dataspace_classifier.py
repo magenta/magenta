@@ -28,10 +28,11 @@ import importlib
 import os
 
 import numpy as np
-import tensorflow as tf
 
 from magenta.models.latent_transfer import common
 from magenta.models.latent_transfer import model_dataspace
+import tensorflow as tf
+
 configs_module_prefix = 'magenta.models.latent_transfer.configs'
 
 FLAGS = tf.flags.FLAGS

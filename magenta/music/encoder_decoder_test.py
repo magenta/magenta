@@ -18,11 +18,11 @@ from __future__ import division
 from __future__ import print_function
 
 import numpy as np
-import tensorflow as tf
 
 from magenta.common import sequence_example_lib
 from magenta.music import encoder_decoder
 from magenta.music import testing_lib
+import tensorflow as tf
 
 
 class OneHotEventSequenceEncoderDecoderTest(tf.test.TestCase):

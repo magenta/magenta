@@ -24,12 +24,13 @@ from collections import defaultdict
 import sys
 import tempfile
 
-import pretty_midi
 import six
-import tensorflow as tf
 
 from magenta.music import constants
 from magenta.protobuf import music_pb2
+import pretty_midi
+import tensorflow as tf
+
 # pylint: enable=g-import-not-at-top
 
 # Allow pretty_midi to read MIDI files with absurdly high tick rates.

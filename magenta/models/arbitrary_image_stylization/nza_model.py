@@ -21,9 +21,8 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-import tensorflow as tf
-
 from magenta.models.image_stylization import model as model_util
+import tensorflow as tf
 
 slim = tf.contrib.slim
 
@@ -108,4 +107,3 @@ def style_normalization_activations(pre_name='transformer',
   depths = [128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 64, 32, 3]
 
   return scope_names, depths
-

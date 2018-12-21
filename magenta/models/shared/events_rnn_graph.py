@@ -21,9 +21,9 @@ import numbers
 
 import numpy as np
 import six
-import tensorflow as tf
-import magenta
 
+import magenta
+import tensorflow as tf
 from tensorflow.python.util import nest as tf_nest
 
 

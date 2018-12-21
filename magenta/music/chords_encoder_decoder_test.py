@@ -13,10 +13,9 @@
 # limitations under the License.
 """Tests for chords_encoder_decoder."""
 
-import tensorflow as tf
-
 from magenta.music import chords_encoder_decoder
 from magenta.music import constants
+import tensorflow as tf
 
 NO_CHORD = constants.NO_CHORD
 

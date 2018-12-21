@@ -7,13 +7,13 @@ import re
 import threading
 import time
 
-import mido
 from six.moves import queue as Queue
-import tensorflow as tf
 
 # TODO(adarob): Use flattened imports.
 from magenta.common import concurrency
 from magenta.protobuf import music_pb2
+import mido
+import tensorflow as tf
 
 _DEFAULT_METRONOME_TICK_DURATION = 0.05
 _DEFAULT_METRONOME_PROGRAM = 117  # Melodic Tom

@@ -16,10 +16,9 @@
 import os
 import tempfile
 
-import tensorflow as tf
-
 from magenta.music import note_sequence_io
 from magenta.scripts import convert_dir_to_note_sequences
+import tensorflow as tf
 
 
 class ConvertMidiDirToSequencesTest(tf.test.TestCase):

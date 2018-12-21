@@ -14,9 +14,9 @@
 """Tests for statistics."""
 
 import six
-import tensorflow as tf
 
 from magenta.pipelines import statistics
+import tensorflow as tf
 
 
 class StatisticsTest(tf.test.TestCase):

@@ -18,6 +18,7 @@ import argparse
 import glob
 import ntpath
 import os
+
 from PIL import Image
 
 PARSER = argparse.ArgumentParser(description='')

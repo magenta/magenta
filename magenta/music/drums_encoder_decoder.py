@@ -15,7 +15,6 @@
 
 from magenta.music import encoder_decoder
 
-
 # Default list of 9 drum types, where each type is represented by a list of
 # MIDI pitches for drum sounds belonging to that type. This default list
 # attempts to map all GM1 and GM2 drums onto a much smaller standard drum kit

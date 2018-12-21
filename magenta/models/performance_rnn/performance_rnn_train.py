@@ -15,12 +15,11 @@
 
 import os
 
-import tensorflow as tf
-
 import magenta
 from magenta.models.performance_rnn import performance_model
 from magenta.models.shared import events_rnn_graph
 from magenta.models.shared import events_rnn_train
+import tensorflow as tf
 
 FLAGS = tf.app.flags.FLAGS
 tf.app.flags.DEFINE_string('run_dir', '/tmp/performance_rnn/logdir/run1',

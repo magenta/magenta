@@ -19,12 +19,12 @@ from __future__ import print_function
 
 import os
 
+import numpy as np
+
 from absl.testing import parameterized
 import librosa
-import numpy as np
-import tensorflow as tf
-
 from magenta.models.nsynth.wavenet import fastgen
+import tensorflow as tf
 
 
 class FastegenTest(parameterized.TestCase, tf.test.TestCase):

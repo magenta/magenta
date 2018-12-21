@@ -24,13 +24,13 @@ import urllib
 import zipfile
 
 import numpy as np
-import requests
 import six
 from six.moves import cStringIO as StringIO
-import tensorflow as tf
 
 from magenta.models.sketch_rnn import model as sketch_rnn_model
 from magenta.models.sketch_rnn import utils
+import requests
+import tensorflow as tf
 
 tf.logging.set_verbosity(tf.logging.INFO)
 

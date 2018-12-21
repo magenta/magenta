@@ -13,11 +13,10 @@
 # limitations under the License.
 """Polyphonic RNN model."""
 
-import tensorflow as tf
-
 import magenta
 from magenta.models.polyphony_rnn import polyphony_encoder_decoder
 from magenta.models.shared import events_rnn_model
+import tensorflow as tf
 
 
 class PolyphonyRnnModel(events_rnn_model.EventSequenceRnnModel):

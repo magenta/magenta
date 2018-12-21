@@ -24,7 +24,6 @@ from magenta.music import performance_lib
 from magenta.music.encoder_decoder import EventSequenceEncoderDecoder
 from magenta.music.performance_lib import PerformanceEvent
 
-
 # Number of floats used to encode NOTE_ON and NOTE_OFF events, using modulo-12
 # encoding. 5 floats for: valid, octave_cos, octave_sin, note_cos, note_sin.
 MODULO_PITCH_ENCODER_WIDTH = 5

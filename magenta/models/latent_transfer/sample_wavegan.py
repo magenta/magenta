@@ -26,6 +26,7 @@ from os.path import join
 
 import numpy as np
 from scipy.io import wavfile
+
 import tensorflow as tf
 from tqdm import tqdm
 

@@ -17,6 +17,10 @@ Simple MusicXML parser used to convert MusicXML
 into tensorflow.magenta.NoteSequence.
 """
 
+
+
+
+
 # Imports
 # Python 2 uses integer division for integers. Using this gives the Python 3
 # behavior of producing a float when dividing integers
@@ -29,6 +33,7 @@ import xml.etree.ElementTree as ET
 import zipfile
 
 import six
+
 from magenta.music import constants
 
 DEFAULT_MIDI_PROGRAM = 0    # Default MIDI Program (0 = grand piano)

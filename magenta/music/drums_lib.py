@@ -30,7 +30,6 @@ from magenta.music import sequences_lib
 from magenta.pipelines import statistics
 from magenta.protobuf import music_pb2
 
-
 MIN_MIDI_PITCH = constants.MIN_MIDI_PITCH
 MAX_MIDI_PITCH = constants.MAX_MIDI_PITCH
 DEFAULT_STEPS_PER_BAR = constants.DEFAULT_STEPS_PER_BAR

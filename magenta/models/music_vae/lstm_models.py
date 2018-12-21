@@ -20,19 +20,18 @@ from __future__ import print_function
 import abc
 
 import numpy as np
-import tensorflow as tf
-import tensorflow_probability as tfp
 
-from magenta.common import flatten_maybe_padded_sequences
 from magenta.common import Nade
+from magenta.common import flatten_maybe_padded_sequences
 from magenta.models.music_vae import base_model
 from magenta.models.music_vae import lstm_utils
+import tensorflow as tf
 from tensorflow.contrib import rnn
 from tensorflow.contrib import seq2seq
 from tensorflow.python.framework import tensor_util
 from tensorflow.python.layers import core as layers_core
 from tensorflow.python.util import nest
-
+import tensorflow_probability as tfp
 
 # ENCODERS
 

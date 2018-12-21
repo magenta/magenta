@@ -30,7 +30,6 @@ from magenta.music import sequences_lib
 from magenta.pipelines import statistics
 from magenta.protobuf import music_pb2
 
-
 MELODY_NOTE_OFF = constants.MELODY_NOTE_OFF
 MELODY_NO_EVENT = constants.MELODY_NO_EVENT
 MIN_MELODY_EVENT = constants.MIN_MELODY_EVENT
