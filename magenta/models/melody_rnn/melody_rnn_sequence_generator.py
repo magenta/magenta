@@ -146,5 +146,5 @@ def get_generator_map():
         melody_rnn_model.MelodyRnnModel(config), config.details,
         steps_per_quarter=config.steps_per_quarter, **kwargs)
 
-  return {key: functoolspartial(create_sequence_generator, config)
+  return {key: functools.partial(create_sequence_generator, config)
           for (key, config) in melody_rnn_model.default_configs.items()}

@@ -13,9 +13,9 @@
 # limitations under the License.
 """Testing support code."""
 
-from google.protobuf import text_format
 import numpy as np
 import six
+from google.protobuf import text_format
 
 
 def assert_set_equality(test_case, expected, actual):

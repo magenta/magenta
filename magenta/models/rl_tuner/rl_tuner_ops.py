@@ -200,10 +200,12 @@ def decoder(event_list, transpose_amount):
   Returns:
     Integer list of MIDI values.
   """
-  if e < NUM_SPECIAL_EVENTS:
-    return [e - NUM_SPECIAL_EVENTS for e in event_list]
-  else:
-    return [e + INITIAL_MIDI_VALUE - transpose_amount for e in event_list]
+  def _decode_event(e):
+    if e < NUM_SPECIAL_EVENTS:
+      return e - NUM_SPECIAL_EVENTS
+    else:
+      return e + INITIAL_MIDI_VALUE - transpose_amount
+  return [_decode_event(e) for e in event_list]
 
 
 def make_onehot(int_list, one_hot_length):

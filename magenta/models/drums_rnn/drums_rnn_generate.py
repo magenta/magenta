@@ -176,7 +176,7 @@ def run_with_flags(generator):
   if primer_sequence:
     input_sequence = primer_sequence
     # Set the start time to begin on the next step after the last note ends.
-    if primer_sequenes.notes:
+    if primer_sequences.notes:
       last_end_time = max(n.end_time for n in primer_sequence.notes)
     else:
       last_end_time = 0

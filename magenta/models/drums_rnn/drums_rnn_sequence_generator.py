@@ -53,7 +53,7 @@ class DrumsRnnSequenceGenerator(mm.BaseSequenceGenerator):
     if input_sequence and input_sequence.tempos:
       qpm = input_sequence.tempos[0].qpm
     else:
-      qpm = mm.DEFAULT_QUARTERS_PER_MINUTE)
+      qpm = mm.DEFAULT_QUARTERS_PER_MINUTE
     steps_per_second = mm.steps_per_quarter_to_steps_per_second(
         self.steps_per_quarter, qpm)
 
