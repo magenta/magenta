@@ -1581,14 +1581,15 @@ class GrooveConverter(BaseNoteSequenceConverter):
         if self._categorical_outputs:
           # Split out the categories from the flat output.
           if self._split_instruments:
-            hits, velocities, offsets = np.split(
+            hits, velocities, offsets = np.split(  # pylint: disable=unbalanced-tuple-unpacking
                 sample[i*self._num_drums: (i+1)*self._num_drums],
                 [1, self._num_velocity_bins+1],
                 axis=1)
           else:
-            hits, velocities, offsets = np.split(
+            hits, velocities, offsets = np.split(  # pylint: disable=unbalanced-tuple-unpacking
                 sample[i],
-                [self._num_drums, self._num_drums*(self._num_velocity_bins+1)])
+                [self._num_drums, self._num_drums*(self._num_velocity_bins+1)]
+                )
             # Split out the instruments.
             velocities = np.split(velocities, self._num_drums)
             offsets = np.split(offsets, self._num_drums)
@@ -1597,7 +1598,8 @@ class GrooveConverter(BaseNoteSequenceConverter):
             hits, velocities, offsets = sample[
                 i*self._num_drums: (i+1)*self._num_drums].T
           else:
-            hits, velocities, offsets = np.split(sample[i], 3)
+            hits, velocities, offsets = np.split(  # pylint: disable=unbalanced-tuple-unpacking
+                sample[i], 3)
 
         # Loop through the drum instruments: kick, snare, etc.
         for j in range(len(hits)):
