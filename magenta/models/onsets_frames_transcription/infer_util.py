@@ -129,6 +129,7 @@ def _frame_metrics(frame_labels, frame_predictions):
 
 
 def define_metrics(num_dims):
+  """Define metrics."""
   with tf.variable_scope('metrics'):
     metric_frame_labels = tf.placeholder(
         tf.int32, (None, num_dims), name='metric_frame_labels')

@@ -372,6 +372,7 @@ class HarmonizeMidiMelodyStrategy(BaseStrategy):
     return pianorolls
 
 
+# pylint:disable=missing-docstring
 class ScratchUpsamplingStrategy(BaseStrategy):
   key = "scratch_upsampling"
 
@@ -608,6 +609,8 @@ class CompleteMidiStrategy(BaseStrategy):
       self.logger.log(
           pianorolls=pianorolls, masks=masks, predictions=pianorolls)
     return pianorolls
+
+# pylint:enable=missing-docstring
 
 
 # ok something else entirely.

@@ -130,16 +130,21 @@ def main(_):
             [style_row, stylized_training_example, stylized_noise] +
             stylized_evaluation_images,
             0)
+      if FLAGS.style_crossover:
+        grid_shape = [
+            3 + evaluation_images.get_shape().as_list()[0] + FLAGS.num_styles,
+            1 + FLAGS.num_styles]
+      else:
+        grid_shape = [
+            3 + evaluation_images.get_shape().as_list()[0],
+            1 + FLAGS.num_styles]
+
       tf.summary.image(
           'Style Grid',
           tf.cast(
               image_utils.form_image_grid(
                   grid,
-                  ([3 + evaluation_images.get_shape().as_list()[0] +
-                    FLAGS.num_styles, 1 + FLAGS.num_styles]
-                   if FLAGS.style_crossover
-                   else [3 + evaluation_images.get_shape().as_list()[0],
-                         1 + FLAGS.num_styles]),
+                  grid_shape,
                   [FLAGS.image_size, FLAGS.image_size],
                   3) * 255.0,
               tf.uint8))

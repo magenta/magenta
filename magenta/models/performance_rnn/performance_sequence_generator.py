@@ -97,9 +97,10 @@ class PerformanceRnnSequenceGenerator(mm.BaseSequenceGenerator):
     else:
       primer_sequence = input_sequence
       input_start_step = 0
-
-    last_end_time = (max(n.end_time for n in primer_sequence.notes)
-                     if primer_sequence.notes else 0)
+    if primer_sequence.notes:
+      last_end_time = max(n.end_time for n in primer_sequence.notes)
+    else:
+      last_end_time = 0
     if last_end_time > generate_section.start_time:
       raise mm.SequenceGeneratorException(
           'Got GenerateSection request for section that is before or equal to '

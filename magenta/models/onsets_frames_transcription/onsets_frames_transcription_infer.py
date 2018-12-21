@@ -76,6 +76,7 @@ tf.app.flags.DEFINE_string(
 
 
 def model_inference(acoustic_checkpoint, hparams, examples_path, run_dir):
+  """Runs inference."""
   tf.logging.info('acoustic_checkpoint=%s', acoustic_checkpoint)
   tf.logging.info('examples_path=%s', examples_path)
   tf.logging.info('run_dir=%s', run_dir)

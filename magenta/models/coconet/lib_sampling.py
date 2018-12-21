@@ -213,9 +213,10 @@ class GibbsSampler(BaseSampler):
 
   def _run(self, pianorolls, masks):
     print("shape", pianorolls.shape)
-    num_steps = (
-        np.max(_numbers_of_masked_variables(masks))
-        if self.num_steps is None else self.num_steps)
+    if self.num_steps is None:
+      num_steps = np.max(_numbers_of_masked_variables(masks))
+    else:
+      num_steps = self.num_steps
     print("num_steps", num_steps)
 
     with self.logger.section("sequence", subsample_factor=10):

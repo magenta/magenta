@@ -17,7 +17,7 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-from collections import defaultdict
+import collections
 import os
 import time
 
@@ -94,8 +94,7 @@ def main(unused_argv):
           seq_varlens=gold_seq_varlens)
 
     gold_encodings = gold_model_dict[
-        "stp_emb_vq_discrete"] if cfg.stp_emb_vq else gold_model_dict[
-            "stp_emb_iq_discrete"]
+        "stp_emb_vq_discrete" if cfg.stp_emb_vq else "stp_emb_iq_discrete"]
     gold_mask = tf.sequence_mask(
         gold_seq_varlens, maxlen=gold_seq_maxlen, dtype=tf.float32)
     gold_diff = tf.cast(gold_buttons, tf.float32) - tf.cast(
@@ -178,7 +177,7 @@ def main(unused_argv):
 
   def _eval_all(sess):
     """Gathers all metrics for a ckpt."""
-    summaries = defaultdict(list)
+    summaries = collections.defaultdict(list)
 
     if eval_gold:
       for midi_notes, buttons, seq_varlen in gold.gold_iterator([-6, 6]):

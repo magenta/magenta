@@ -488,9 +488,10 @@ class LookbackEventSequenceEncoderDecoder(EventSequenceEncoderDecoder):
          metric position of the next event.
     """
     self._one_hot_encoding = one_hot_encoding
-    self._lookback_distances = (lookback_distances
-                                if lookback_distances is not None
-                                else DEFAULT_LOOKBACK_DISTANCES)
+    if lookback_distances is None:
+      self._lookback_distances = DEFAULT_LOOKBACK_DISTANCES
+    else:
+      self._lookback_distances = lookback_distances
     self._binary_counter_bits = binary_counter_bits
 
   @property

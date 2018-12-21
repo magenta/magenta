@@ -23,6 +23,7 @@ CHORD_SYMBOL = music_pb2.NoteSequence.TextAnnotation.CHORD_SYMBOL
 
 def add_track_to_sequence(note_sequence, instrument, notes,
                           is_drum=False, program=0):
+  """Adds instrument track to NoteSequence."""
   for pitch, velocity, start_time, end_time in notes:
     note = note_sequence.notes.add()
     note.pitch = pitch

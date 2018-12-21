@@ -22,9 +22,9 @@ import collections
 import io
 import os
 
-from IPython import display
 import bokeh
 import bokeh.plotting
+from IPython import display
 from magenta.music import midi_synth
 import numpy as np
 import pandas as pd

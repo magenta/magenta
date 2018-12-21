@@ -13,7 +13,7 @@
 # limitations under the License.
 """Drums RNN generation code as a SequenceGenerator interface."""
 
-from functools import partial
+import functools
 
 from magenta.models.drums_rnn import drums_rnn_model
 import magenta.music as mm
@@ -50,9 +50,10 @@ class DrumsRnnSequenceGenerator(mm.BaseSequenceGenerator):
           'This model supports only 1 generate_sections message, but got %s' %
           len(generator_options.generate_sections))
 
-    qpm = (input_sequence.tempos[0].qpm
-           if input_sequence and input_sequence.tempos
-           else mm.DEFAULT_QUARTERS_PER_MINUTE)
+    if input_sequence and input_sequence.tempos:
+      qpm = input_sequence.tempos[0].qpm
+    else:
+      qpm = mm.DEFAULT_QUARTERS_PER_MINUTE)
     steps_per_second = mm.steps_per_quarter_to_steps_per_second(
         self.steps_per_quarter, qpm)
 
@@ -67,8 +68,10 @@ class DrumsRnnSequenceGenerator(mm.BaseSequenceGenerator):
       primer_sequence = input_sequence
       input_start_step = 0
 
-    last_end_time = (max(n.end_time for n in primer_sequence.notes)
-                     if primer_sequence.notes else 0)
+    if primer_sequence.notes:
+      last_end_time = max(n.end_time for n in primer_sequence.notes)
+    else:
+      last_end_time = 0
     if last_end_time > generate_section.start_time:
       raise mm.SequenceGeneratorException(
           'Got GenerateSection request for section that is before the end of '
@@ -143,5 +146,5 @@ def get_generator_map():
         drums_rnn_model.DrumsRnnModel(config), config.details,
         steps_per_quarter=config.steps_per_quarter, **kwargs)
 
-  return {key: partial(create_sequence_generator, config)
+  return {key: functools.partial(create_sequence_generator, config)
           for (key, config) in drums_rnn_model.default_configs.items()}

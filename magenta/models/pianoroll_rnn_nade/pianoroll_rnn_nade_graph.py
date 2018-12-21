@@ -102,12 +102,12 @@ class RnnNade(object):
     """
     batch_size = inputs.shape[0].value
 
-    lengths = (
-        tf.tile(tf.shape(inputs)[1:2], [batch_size]) if lengths is None else
-        lengths)
-    initial_rnn_state = (
-        self._get_rnn_zero_state(batch_size) if initial_state is None else
-        initial_state.rnn_state)
+    if lengths is None:
+      lengths = tf.tile(tf.shape(inputs)[1:2], [batch_size])
+    if initial_state is None:
+      initial_rnn_state = self._get_rnn_zero_state(batch_size)
+    else:
+      initial_rnn_state = initial_state.rnn_state
 
     helper = tf.contrib.seq2seq.TrainingHelper(
         inputs=inputs,

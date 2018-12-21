@@ -782,10 +782,13 @@ class DrumsConverter(BaseNoteSequenceConverter):
     else:
       output_depth = self._oh_encoder_decoder.num_classes + add_end_token
 
+    if self._roll_input:
+      input_depth = num_classes + 1 + add_end_token
+    else:
+      input_depth = self._oh_encoder_decoder.num_classes + add_end_token
+
     super(DrumsConverter, self).__init__(
-        input_depth=(
-            num_classes + 1 if self._roll_input else
-            self._oh_encoder_decoder.num_classes) + add_end_token,
+        input_depth=input_depth
         input_dtype=np.bool,
         output_depth=output_depth,
         output_dtype=np.bool,

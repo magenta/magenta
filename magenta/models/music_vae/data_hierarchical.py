@@ -444,8 +444,8 @@ class MultiInstrumentPerformanceConverter(
       control_depth = 0
       control_pad_token = None
     else:
-      conrol_depth = chord_encoding.num_classes
-      control_pad_token =chord_encoding.encode_event(mm.NO_CHORD)
+      control_depth = chord_encoding.num_classes
+      control_pad_token = chord_encoding.encode_event(mm.NO_CHORD)
 
     super(MultiInstrumentPerformanceConverter, self).__init__(
         input_depth=depth,
