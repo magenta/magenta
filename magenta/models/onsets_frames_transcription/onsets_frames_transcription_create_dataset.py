@@ -75,18 +75,19 @@ def generate_train_set(exclude_ids):
                                    'maps_config2_train.tfrecord')
 
   with tf.python_io.TFRecordWriter(train_output_name) as writer:
-    for pair in train_file_pairs:
-      print(pair)
+    for idx, pair in enumerate(train_file_pairs):
+      print("{} of {}: {}".format(idx, len(train_file_pairs), pair[0]))
       # load the wav data
       wav_data = tf.gfile.Open(pair[0], 'rb').read()
       samples = audio_io.wav_data_to_samples(wav_data, FLAGS.sample_rate)
-      samples = librosa.util.normalize(samples, norm=np.inf)
+      norm_samples = librosa.util.normalize(samples, norm=np.inf)
 
       # load the midi data and convert to a notesequence
       ns = midi_io.midi_file_to_note_sequence(pair[1])
 
       splits = create_dataset_util.find_split_points(
-          ns, samples, FLAGS.sample_rate, FLAGS.min_length, FLAGS.max_length)
+          ns, norm_samples, FLAGS.sample_rate, FLAGS.min_length,
+          FLAGS.max_length)
 
       velocities = [note.velocity for note in ns.notes]
       velocity_max = np.max(velocities)
@@ -99,12 +100,16 @@ def generate_train_set(exclude_ids):
           continue
 
         new_ns = sequences_lib.extract_subsequence(ns, start, end)
-        new_wav_data = audio_io.crop_wav_data(wav_data, FLAGS.sample_rate,
-                                              start, end - start)
+        samples_start = int(start * FLAGS.sample_rate)
+        samples_end = samples_start + int((end-start) * FLAGS.sample_rate)
+        new_samples = samples[samples_start:samples_end]
+        new_wav_data = audio_io.samples_to_wav_data(new_samples,
+                                                    FLAGS.sample_rate)
+
         example = tf.train.Example(features=tf.train.Features(feature={
             'id':
             tf.train.Feature(bytes_list=tf.train.BytesList(
-                value=[pair[0]]
+                value=[pair[0].encode()]
                 )),
             'sequence':
             tf.train.Feature(bytes_list=tf.train.BytesList(
@@ -120,7 +125,6 @@ def generate_train_set(exclude_ids):
                 )),
             }))
         writer.write(example.SerializeToString())
-
 
 def generate_test_set():
   """Generate the test TFRecord."""
@@ -139,8 +143,8 @@ def generate_test_set():
                                   'maps_config2_test.tfrecord')
 
   with tf.python_io.TFRecordWriter(test_output_name) as writer:
-    for pair in test_file_pairs:
-      print(pair)
+    for idx, pair in enumerate(test_file_pairs):
+      print("{} of {}: {}".format(idx, len(test_file_pairs), pair[0]))
       # load the wav data and resample it.
       samples = audio_io.load_audio(pair[0], FLAGS.sample_rate)
       wav_data = audio_io.samples_to_wav_data(samples, FLAGS.sample_rate)
@@ -157,7 +161,7 @@ def generate_test_set():
       example = tf.train.Example(features=tf.train.Features(feature={
           'id':
           tf.train.Feature(bytes_list=tf.train.BytesList(
-              value=[pair[0]]
+              value=[pair[0].encode()]
               )),
           'sequence':
           tf.train.Feature(bytes_list=tf.train.BytesList(
