@@ -48,6 +48,11 @@ checkpoints from the table below.
 | cat-drums_2bar_small.lokl |`cat-drums_2bar_small` | 2-bar drums w/ 9 classes trained for more *realistic* sampling| [download](https://storage.googleapis.com/magentadata/models/music_vae/checkpoints/cat-drums_2bar_small.lokl.tar)|
 | cat-drums_2bar_small.hikl | `cat-drums_2bar_small` | 2-bar drums w/ 9 classes trained for *better reconstruction and interpolation* | [download](https://storage.googleapis.com/magentadata/models/music_vae/checkpoints/cat-drums_2bar_small.hikl.tar)|
 | nade-drums_2bar_full | `nade-drums_2bar_full` | 2-bar drums w/ 61 classes | [download](https://storage.googleapis.com/magentadata/models/music_vae/checkpoints/nade-drums_2bar_full.tar)|
+| groovae_4bar | `groovae_4bar` | 4-bar groove autoencoder. | [download](https://storage.googleapis.com/magentadata/models/music_vae/checkpoints/groove_4bar.tar)|
+| groovae_2bar_humanize | `groovae_2bar_humanize` | 2-bar model that converts a quantized, constant-velocity drum pattern into a "humanized" groove. | [download](https://storage.googleapis.com/magentadata/models/music_vae/checkpoints/groovae_2bar_humanize.tar)|
+| groovae_2bar_tap_fixed_velocity | `groovae_2bar_tap_fixed_velocity` | 2-bar model that converts a constant-velocity single-drum "tap" pattern into a groove. | [download](https://storage.googleapis.com/magentadata/models/music_vae/checkpoints/groovae_2bar_tap_fixed_velocity.tar)|
+| groovae_2bar_add_closed_hh | `groovae_2bar_add_closed_hh` | 2-bar model that adds (or replaces) closed hi-hat for an existing groove. | [download](https://storage.googleapis.com/magentadata/models/music_vae/checkpoints/groovae_2bar_add_closed_hh.tar)|
+| groovae_2bar_hits_control | `groovae_2bar_hits_control` | 2-bar groove autoencoder, with the input hits provided to the decoder as a conditioning signal. | [download](https://storage.googleapis.com/magentadata/models/music_vae/checkpoints/groovae_2bar_hits_control.tar)|
 
 Once you have selected a model, there are two operations you can perform with
 the generate script: `sample` and `interpolate`.

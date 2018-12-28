@@ -849,5 +849,453 @@ class TrioConverterTest(BaseDataTest, tf.test.TestCase):
         sequences[0])
 
 
+
+class GrooveConverterTest(tf.test.TestCase):
+
+  def initialize_sequence(self):
+    sequence = music_pb2.NoteSequence()
+    sequence.ticks_per_quarter = 240
+    sequence.tempos.add(qpm=120)
+    sequence.time_signatures.add(numerator=4, denominator=4)
+    return sequence
+
+  def setUp(self):
+    self.one_bar_sequence = self.initialize_sequence()
+    self.one_bar_sequence.sequence_metadata.genre.extend(['Rock'])
+    self.two_bar_sequence = self.initialize_sequence()
+    self.tap_sequence = self.initialize_sequence()
+    self.quantized_sequence = self.initialize_sequence()
+    self.no_closed_hh_sequence = self.initialize_sequence()
+    self.no_snare_sequence = self.initialize_sequence()
+
+    kick_pitch = data.REDUCED_DRUM_PITCH_CLASSES[0][0]
+    snare_pitch = data.REDUCED_DRUM_PITCH_CLASSES[1][0]
+    closed_hh_pitch = data.REDUCED_DRUM_PITCH_CLASSES[2][0]
+    tap_pitch = data.REDUCED_DRUM_PITCH_CLASSES[3][0]
+
+    testing_lib.add_track_to_sequence(
+        self.tap_sequence,
+        9,
+        [
+            # 0.125 is a sixteenth note at 120bpm
+            (tap_pitch, 80, 0, 0.125),
+            (tap_pitch, 127, 0.26125, 0.375),  # Not on the beat
+            (tap_pitch, 107, 0.5, 0.625),
+            (tap_pitch, 80, 0.75, 0.825),
+            (tap_pitch, 80, 1, 1.125),
+            (tap_pitch, 80, 1.25, 1.375),
+            (tap_pitch, 82, 1.523, 1.625),  # Not on the beat
+            (tap_pitch, 80, 1.75, 1.825)
+        ])
+
+    testing_lib.add_track_to_sequence(
+        self.quantized_sequence,
+        9,
+        [
+            # 0.125 is a sixteenth note at 120bpm
+            (kick_pitch, 0, 0, 0.125),
+            (closed_hh_pitch, 0, 0, 0.125),
+            (closed_hh_pitch, 0, 0.25, 0.375),
+            (snare_pitch, 0, 0.5, 0.625),
+            (closed_hh_pitch, 0, 0.5, 0.625),
+            (closed_hh_pitch, 0, 0.75, 0.825),
+            (kick_pitch, 0, 1, 1.125),
+            (closed_hh_pitch, 0, 1, 1.125),
+            (closed_hh_pitch, 0, 1.25, 1.375),
+            (snare_pitch, 0, 1.5, 1.625),
+            (closed_hh_pitch, 0, 1.5, 1.625),
+            (closed_hh_pitch, 0, 1.75, 1.825)
+        ])
+
+    testing_lib.add_track_to_sequence(
+        self.no_closed_hh_sequence,
+        9,
+        [
+            # 0.125 is a sixteenth note at 120bpm
+            (kick_pitch, 80, 0, 0.125),
+            (snare_pitch, 103, 0.5, 0.625),
+            (kick_pitch, 80, 1, 1.125),
+            (snare_pitch, 82, 1.523, 1.625),  # Not on the beat
+        ])
+
+    testing_lib.add_track_to_sequence(
+        self.no_snare_sequence,
+        9,
+        [
+            # 0.125 is a sixteenth note at 120bpm
+            (kick_pitch, 80, 0, 0.125),
+            (closed_hh_pitch, 72, 0, 0.125),
+            (closed_hh_pitch, 127, 0.26125, 0.375),  # Not on the beat
+            (closed_hh_pitch, 107, 0.5, 0.625),
+            (closed_hh_pitch, 80, 0.75, 0.825),
+            (kick_pitch, 80, 1, 1.125),
+            (closed_hh_pitch, 80, 1, 1.125),
+            (closed_hh_pitch, 80, 1.25, 1.375),
+            (closed_hh_pitch, 80, 1.5, 1.625),
+            (closed_hh_pitch, 80, 1.75, 1.825)
+        ])
+
+    testing_lib.add_track_to_sequence(
+        self.one_bar_sequence,
+        9,
+        [
+            # 0.125 is a sixteenth note at 120bpm
+            (kick_pitch, 80, 0, 0.125),
+            (closed_hh_pitch, 72, 0, 0.125),
+            (closed_hh_pitch, 127, 0.26125, 0.375),  # Not on the beat
+            (snare_pitch, 103, 0.5, 0.625),
+            (closed_hh_pitch, 107, 0.5, 0.625),
+            (closed_hh_pitch, 80, 0.75, 0.825),
+            (kick_pitch, 80, 1, 1.125),
+            (closed_hh_pitch, 80, 1, 1.125),
+            (closed_hh_pitch, 80, 1.25, 1.375),
+            (snare_pitch, 82, 1.523, 1.625),  # Not on the beat
+            (closed_hh_pitch, 80, 1.5, 1.625),
+            (closed_hh_pitch, 80, 1.75, 1.825)
+        ])
+
+    testing_lib.add_track_to_sequence(
+        self.two_bar_sequence,
+        9,
+        [
+            # 0.125 is a sixteenth note at 120bpm
+            (kick_pitch, 80, 0, 0.125),
+            (closed_hh_pitch, 72, 0, 0.125),
+            (closed_hh_pitch, 127, 0.26, 0.375),  # Not on the beat
+            (snare_pitch, 103, 0.5, 0.625),
+            (closed_hh_pitch, 107, 0.5, 0.625),
+            (closed_hh_pitch, 80, 0.75, 0.825),
+            (kick_pitch, 80, 1, 1.125),
+            (closed_hh_pitch, 80, 1, 1.125),
+            (closed_hh_pitch, 80, 1.25, 1.375),
+            (snare_pitch, 80, 1.5, 1.625),
+            (closed_hh_pitch, 80, 1.5, 1.625),
+            (closed_hh_pitch, 80, 1.75, 1.825),
+            (kick_pitch, 80, 2, 2.125),
+            (closed_hh_pitch, 72, 2, 2.125),
+            (closed_hh_pitch, 127, 2.25, 2.375),
+            (snare_pitch, 103, 2.5, 2.625),
+            (closed_hh_pitch, 107, 2.5, 2.625),
+            (closed_hh_pitch, 80, 2.75, 2.825),
+            (kick_pitch, 80, 3.06, 3.125),  # Not on the beat
+            (closed_hh_pitch, 109, 3, 3.125),
+            (closed_hh_pitch, 80, 3.25, 3.375),
+            (snare_pitch, 80, 3.5, 3.625),
+            (closed_hh_pitch, 80, 3.50, 3.625),
+            (closed_hh_pitch, 90, 3.75, 3.825)
+        ])
+
+    for seq in [self.one_bar_sequence, self.two_bar_sequence]:
+      for n in seq.notes:
+        n.is_drum = True
+
+  def compare_seqs(self, seq1, seq2, verbose=False, categorical=False):
+    self.compare_notes(seq1.notes, seq2.notes, verbose=verbose,
+                       categorical=categorical)
+
+  def compare_notes(self, note_list1, note_list2, verbose=False,
+                    categorical=False):
+    for n1, n2 in zip(note_list1, note_list2):
+      if verbose:
+        tf.logging.info((n1.pitch, n1.start_time, n1.velocity))
+        tf.logging.info((n2.pitch, n2.start_time, n2.velocity))
+        print()
+      else:
+        if categorical:
+          self.assertEqual(n1.pitch, n2.pitch)
+          assert np.abs(n1.start_time-n2.start_time) < 0.005
+          assert np.abs(n1.velocity-n2.velocity) <= 4
+        else:
+          self.assertEqual((n1.pitch, n1.start_time, n1.velocity),
+                           (n2.pitch, n2.start_time, n2.velocity))
+
+  def testToTensorAndNoteSequence(self):
+    # Convert one or two measures to a tensor and back
+    # This example should yield basically a perfect reconstruction
+
+    converter = data.GrooveConverter(
+        split_bars=None, steps_per_quarter=4, quarters_per_bar=4,
+        max_tensors_per_notesequence=5)
+
+    # Test one bar sequence
+    tensors = converter.to_tensors(self.one_bar_sequence)
+
+    # Should output a tuple containing a tensor of shape (16,27)
+    self.assertEqual((16, 27), tensors.outputs[0].shape)
+
+    sequences = converter.to_items(tensors.outputs)
+    self.assertEqual(1, len(sequences))
+
+    self.compare_seqs(self.one_bar_sequence, sequences[0])
+
+    # Test two bar sequence
+    tensors = converter.to_tensors(self.two_bar_sequence)
+
+    # Should output a tuple containing a tensor of shape (32,27)
+    self.assertEqual((32, 27), tensors.outputs[0].shape)
+
+    sequences = converter.to_items(tensors.outputs)
+    self.assertEqual(1, len(sequences))
+
+    self.compare_seqs(self.two_bar_sequence, sequences[0])
+
+  def testToTensorAndNoteSequenceWithSlicing(self):
+    converter = data.GrooveConverter(
+        split_bars=1, steps_per_quarter=4, quarters_per_bar=4,
+        max_tensors_per_notesequence=5)
+
+    # Test one bar sequence
+    tensors = converter.to_tensors(self.one_bar_sequence)
+
+    # Should output a tuple containing a tensor of shape (16,27)
+    self.assertEqual(1, len(tensors.outputs))
+    self.assertEqual((16, 27), tensors.outputs[0].shape)
+
+    sequences = converter.to_items(tensors.outputs)
+    self.assertEqual(1, len(sequences))
+
+    self.compare_seqs(self.one_bar_sequence, sequences[0])
+
+    # Test two bar sequence
+    tensors = converter.to_tensors(self.two_bar_sequence)
+
+    # Should output a tuple containing 2 tensors of shape (16,27)
+    self.assertEqual((16, 27), tensors.outputs[0].shape)
+    self.assertEqual((16, 27), tensors.outputs[1].shape)
+
+    sequences = converter.to_items(tensors.outputs)
+    self.assertEqual(2, len(sequences))
+
+    # Get notes in first bar
+    sequence0 = sequences[0]
+    notes0 = [n for n in self.two_bar_sequence.notes if n.start_time < 2]
+    reconstructed_notes0 = [n for n in sequence0.notes]
+
+    # Get notes in second bar, back them up by 2 secs for comparison
+    sequence1 = sequences[1]
+    notes1 = [n for n in self.two_bar_sequence.notes if n.start_time >= 2]
+    for n in notes1:
+      n.start_time = n.start_time-2
+      n.end_time = n.end_time-2
+    reconstructed_notes1 = [n for n in sequence1.notes]
+
+    self.compare_notes(notes0, reconstructed_notes0)
+    self.compare_notes(notes1, reconstructed_notes1)
+
+  def testTapify(self):
+    converter = data.GrooveConverter(
+        split_bars=None, steps_per_quarter=4, quarters_per_bar=4,
+        max_tensors_per_notesequence=5, tapify=True)
+
+    tensors = converter.to_tensors(self.one_bar_sequence)
+    output_sequences = converter.to_items(tensors.outputs)
+
+    # Output sequence should match the initial input.
+    self.compare_seqs(self.one_bar_sequence, output_sequences[0])
+
+    # Input sequence should match the pre-defined tap_sequence.
+    input_sequences = converter.to_items(tensors.inputs)
+    self.compare_seqs(self.tap_sequence, input_sequences[0])
+
+  def testTapWithFixedVelocity(self):
+    converter = data.GrooveConverter(
+        split_bars=None, steps_per_quarter=4, quarters_per_bar=4,
+        max_tensors_per_notesequence=5, tapify=True, fixed_velocities=True)
+
+    tensors = converter.to_tensors(self.one_bar_sequence)
+    output_sequences = converter.to_items(tensors.outputs)
+
+    # Output sequence should match the initial input.
+    self.compare_seqs(self.one_bar_sequence, output_sequences[0])
+
+    # Input sequence should match the pre-defined tap_sequence but with 0 vels.
+    input_sequences = converter.to_items(tensors.inputs)
+
+    tap_notes = self.tap_sequence.notes
+    for note in tap_notes:
+      note.velocity = 0
+
+    self.compare_notes(tap_notes, input_sequences[0].notes)
+
+  def testHumanize(self):
+    converter = data.GrooveConverter(
+        split_bars=None, steps_per_quarter=4, quarters_per_bar=4,
+        max_tensors_per_notesequence=5, humanize=True)
+
+    tensors = converter.to_tensors(self.one_bar_sequence)
+    output_sequences = converter.to_items(tensors.outputs)
+
+    # Output sequence should match the initial input.
+    self.compare_seqs(self.one_bar_sequence, output_sequences[0])
+
+    # Input sequence should match the pre-defined quantized_sequence.
+    input_sequences = converter.to_items(tensors.inputs)
+    self.compare_seqs(self.quantized_sequence, input_sequences[0])
+
+  def testAddInstruments(self):
+    # Remove closed hi-hat from inputs.
+    converter = data.GrooveConverter(
+        split_bars=None, steps_per_quarter=4, quarters_per_bar=4,
+        max_tensors_per_notesequence=5, add_instruments=[2])
+
+    tensors = converter.to_tensors(self.one_bar_sequence)
+    output_sequences = converter.to_items(tensors.outputs)
+
+    # Output sequence should match the initial input.
+    self.compare_seqs(self.one_bar_sequence, output_sequences[0])
+
+    # Input sequence should match the pre-defined sequence.
+    input_sequences = converter.to_items(tensors.inputs)
+    self.compare_seqs(self.no_closed_hh_sequence, input_sequences[0])
+
+    # Remove snare from inputs.
+    converter = data.GrooveConverter(
+        split_bars=None, steps_per_quarter=4, quarters_per_bar=4,
+        max_tensors_per_notesequence=5, add_instruments=[1])
+
+    tensors = converter.to_tensors(self.one_bar_sequence)
+    output_sequences = converter.to_items(tensors.outputs)
+
+    # Output sequence should match the initial input.
+    self.compare_seqs(self.one_bar_sequence, output_sequences[0])
+
+    # Input sequence should match the pre-defined sequence.
+    input_sequences = converter.to_items(tensors.inputs)
+    self.compare_seqs(self.no_snare_sequence, input_sequences[0])
+
+  def testCategorical(self):
+    # Removes closed hi-hat from inputs.
+    converter = data.GrooveConverter(
+        split_bars=None, steps_per_quarter=4, quarters_per_bar=4,
+        max_tensors_per_notesequence=5, add_instruments=[3],
+        num_velocity_bins=32, num_offset_bins=32)
+
+    tensors = converter.to_tensors(self.one_bar_sequence)
+
+    self.assertEqual((16, 585), tensors.outputs[0].shape)
+
+    output_sequences = converter.to_items(tensors.outputs)
+    self.compare_seqs(self.one_bar_sequence, output_sequences[0],
+                      categorical=True)
+
+  def testContinuousSplitInstruments(self):
+    converter = data.GrooveConverter(
+        split_bars=None, steps_per_quarter=4, quarters_per_bar=4,
+        max_tensors_per_notesequence=5, split_instruments=True)
+
+    tensors = converter.to_tensors(self.one_bar_sequence)
+    self.assertEqual((16 * 9, 3), tensors.outputs[0].shape)
+    self.assertEqual((16 * 9, 9), tensors.controls[0].shape)
+
+    for i, v in enumerate(np.argmax(tensors.controls[0], axis=-1)):
+      self.assertEqual(i % 9, v)
+
+    output_sequences = converter.to_items(tensors.outputs)
+    self.compare_seqs(self.one_bar_sequence, output_sequences[0],
+                      categorical=True)
+
+  def testCategoricalSplitInstruments(self):
+    converter = data.GrooveConverter(
+        split_bars=None, steps_per_quarter=4, quarters_per_bar=4,
+        max_tensors_per_notesequence=5, num_velocity_bins=32,
+        num_offset_bins=32, split_instruments=True)
+
+    tensors = converter.to_tensors(self.one_bar_sequence)
+
+    self.assertEqual((16 * 9, 585 // 9), tensors.outputs[0].shape)
+    self.assertEqual((16 * 9, 9), tensors.controls[0].shape)
+
+    for i, v in enumerate(np.argmax(tensors.controls[0], axis=-1)):
+      self.assertEqual(i % 9, v)
+
+    output_sequences = converter.to_items(tensors.outputs)
+    self.compare_seqs(self.one_bar_sequence, output_sequences[0],
+                      categorical=True)
+
+  def testCycleData(self):
+    converter = data.GrooveConverter(
+        split_bars=1, steps_per_quarter=4, quarters_per_bar=4,
+        max_tensors_per_notesequence=5, hop_size=4)
+
+    tensors = converter.to_tensors(self.two_bar_sequence)
+    outputs = tensors.outputs
+    for output in outputs:
+      self.assertEqual(output.shape, (16, 27))
+
+    output_sequences = converter.to_items(tensors.outputs)
+    self.assertEqual(len(output_sequences), 5)
+
+  def testCycleDataSplitInstruments(self):
+    converter = data.GrooveConverter(
+        split_bars=1, steps_per_quarter=4, quarters_per_bar=4,
+        max_tensors_per_notesequence=10, hop_size=4,
+        split_instruments=True)
+
+    tensors = converter.to_tensors(self.two_bar_sequence)
+    outputs = tensors.outputs
+    controls = tensors.controls
+    output_sequences = converter.to_items(outputs)
+
+    self.assertEqual(len(outputs), 5)
+    self.assertEqual(len(controls), 5)
+
+    for output in outputs:
+      self.assertEqual(output.shape, (16*9, 3))
+    for control in controls:
+      self.assertEqual(control.shape, (16*9, 9))
+
+    # This compares output_sequences[0] to the first bar of two_bar_sequence
+    # since they are not actually the same length.
+    self.compare_seqs(self.two_bar_sequence, output_sequences[0])
+    self.assertEqual(output_sequences[0].notes[-1].start_time, 1.75)
+
+  def testHitsAsControls(self):
+    converter = data.GrooveConverter(
+        split_bars=None, steps_per_quarter=4, quarters_per_bar=4,
+        max_tensors_per_notesequence=5, hits_as_controls=True)
+
+    tensors = converter.to_tensors(self.one_bar_sequence)
+    self.assertEqual((16, 9), tensors.controls[0].shape)
+
+  def testHitsAsControlsSplitInstruments(self):
+    converter = data.GrooveConverter(
+        split_bars=None, steps_per_quarter=4, quarters_per_bar=4,
+        max_tensors_per_notesequence=5, split_instruments=True,
+        hits_as_controls=True)
+
+    tensors = converter.to_tensors(self.two_bar_sequence)
+    controls = tensors.controls
+
+    self.assertEqual((32*9, 10), controls[0].shape)
+
+  def testSmallDrumSet(self):
+    # Convert one or two measures to a tensor and back
+    # This example should yield basically a perfect reconstruction
+
+    small_drum_set = [
+        data.REDUCED_DRUM_PITCH_CLASSES[0],
+        data.REDUCED_DRUM_PITCH_CLASSES[1] +
+        data.REDUCED_DRUM_PITCH_CLASSES[4] +
+        data.REDUCED_DRUM_PITCH_CLASSES[5] +
+        data.REDUCED_DRUM_PITCH_CLASSES[6],
+        data.REDUCED_DRUM_PITCH_CLASSES[2] + data.REDUCED_DRUM_PITCH_CLASSES[8],
+        data.REDUCED_DRUM_PITCH_CLASSES[3] + data.REDUCED_DRUM_PITCH_CLASSES[7]
+    ]
+    converter = data.GrooveConverter(
+        split_bars=None, steps_per_quarter=4, quarters_per_bar=4,
+        max_tensors_per_notesequence=5, pitch_classes=small_drum_set)
+
+    # Test one bar sequence
+    tensors = converter.to_tensors(self.one_bar_sequence)
+
+    # Should output a tuple containing a tensor of shape (16, 12)
+    self.assertEqual((16, 12), tensors.outputs[0].shape)
+
+    sequences = converter.to_items(tensors.outputs)
+    self.assertEqual(1, len(sequences))
+
+    self.compare_seqs(self.one_bar_sequence, sequences[0])
+
+
 if __name__ == '__main__':
   tf.test.main()

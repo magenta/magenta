@@ -122,7 +122,7 @@ class TrainedModel(object):
           tar.extractall(temp_dir)
           # Assume only a single checkpoint is in the directory.
           for name in tar.getnames():
-            if name.endswith('.ckpt.index'):
+            if name.endswith('.index'):
               checkpoint_path = os.path.join(temp_dir, name[0:-6])
               break
           saver.restore(self._sess, checkpoint_path)

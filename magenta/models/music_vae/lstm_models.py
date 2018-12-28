@@ -34,6 +34,7 @@ from tensorflow.python.layers import core as layers_core
 from tensorflow.python.util import nest
 
 
+
 # ENCODERS
 
 
@@ -1278,3 +1279,74 @@ def get_default_hparams():
       'residual_decoder': False,  # Use residual connections in decoder.
   })
   return tf.contrib.training.HParams(**hparams_map)
+
+
+class GrooveLstmDecoder(BaseLstmDecoder):
+  """Groove LSTM decoder with MSE loss for continuous values.
+
+  At each timestep, this decoder outputs a vector of length (N_INSTRUMENTS*3).
+  The default number of drum instruments is 9, with drum categories defined in
+  drums_encoder_decoder.py
+
+  For each instrument, the model outputs a triple of (on/off, velocity, offset),
+  with a binary representation for on/off, continuous values between 0 and 1
+  for velocity, and continuous values between -0.5 and 0.5 for offset.
+  """
+
+  def _activate_outputs(self, flat_rnn_output):
+    output_hits, output_velocities, output_offsets = tf.split(
+        flat_rnn_output, 3, axis=1)
+
+    output_hits = tf.nn.sigmoid(output_hits)
+    output_velocities = tf.nn.sigmoid(output_velocities)
+    output_offsets = tf.nn.tanh(output_offsets)
+
+    return output_hits, output_velocities, output_offsets
+
+  def _flat_reconstruction_loss(self, flat_x_target, flat_rnn_output):
+    # flat_x_target is by default shape (1,27), [on/offs... vels...offsets...]
+    # split into 3 equal length vectors
+    target_hits, target_velocities, target_offsets = tf.split(
+        flat_x_target, 3, axis=1)
+
+    output_hits, output_velocities, output_offsets = self._activate_outputs(
+        flat_rnn_output)
+
+    hits_loss = tf.reduce_sum(tf.losses.log_loss(
+        labels=target_hits, predictions=output_hits,
+        reduction=tf.losses.Reduction.NONE), axis=1)
+
+    velocities_loss = tf.reduce_sum(tf.losses.mean_squared_error(
+        target_velocities, output_velocities,
+        reduction=tf.losses.Reduction.NONE), axis=1)
+
+    offsets_loss = tf.reduce_sum(tf.losses.mean_squared_error(
+        target_offsets, output_offsets,
+        reduction=tf.losses.Reduction.NONE), axis=1)
+
+    loss = hits_loss + velocities_loss + offsets_loss
+
+    metric_map = {
+        'metrics/hits_loss':
+            tf.metrics.mean(hits_loss),
+        'metrics/velocities_loss':
+            tf.metrics.mean(velocities_loss),
+        'metrics/offsets_loss':
+            tf.metrics.mean(offsets_loss)
+    }
+
+    return loss, metric_map
+
+  def _sample(self, rnn_output, temperature=1.0):
+    output_hits, output_velocities, output_offsets = tf.split(
+        rnn_output, 3, axis=1)
+
+    output_velocities = tf.nn.sigmoid(output_velocities)
+    output_offsets = tf.nn.tanh(output_offsets)
+
+    hits_sampler = tfp.distributions.Bernoulli(
+        logits=output_hits / temperature, dtype=tf.float32)
+
+    output_hits = hits_sampler.sample()
+    return tf.concat([output_hits, output_velocities, output_offsets], axis=1)
+
