@@ -309,7 +309,7 @@ class Model(object):
       z_pen_logits = z[:, 0:3]  # pen states
       z_pi, z_mu1, z_mu2, z_sigma1, z_sigma2, z_corr = tf.split(z[:, 3:], 6, 1)
 
-      # process output z's into MDN paramters
+      # process output z's into MDN parameters
 
       # softmax all the pi's and pen states:
       z_pi = tf.nn.softmax(z_pi)
