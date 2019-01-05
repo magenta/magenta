@@ -406,8 +406,9 @@ def sample(sess, model, seq_len=250, temperature=1.0, greedy_mode=False,
 
   strokes = np.zeros((seq_len, 5), dtype=np.float32)
   mixture_params = []
-  greedy = False
-  temp = 1.0
+
+  greedy = greedy_mode
+  temp = temperature
 
   for i in range(seq_len):
     if not model.hps.conditional:
@@ -430,13 +431,6 @@ def sample(sess, model, seq_len=250, temperature=1.0, greedy_mode=False,
     ], feed)
 
     [o_pi, o_mu1, o_mu2, o_sigma1, o_sigma2, o_corr, o_pen, next_state] = params
-
-    if i < 0:
-      greedy = False
-      temp = 1.0
-    else:
-      greedy = greedy_mode
-      temp = temperature
 
     idx = get_pi_idx(random.random(), o_pi[0], temp, greedy)
 
