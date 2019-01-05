@@ -34,7 +34,7 @@ def get_default_hparams():
   """Return default HParams for sketch-rnn."""
   hparams = tf.contrib.training.HParams(
       data_set=['aaron_sheep.npz'],  # Our dataset.
-      num_steps=10000000,  # Total number of steps of training. Keep large.
+      num_steps=1e7,  # Total number of steps of training. Keep large.
       save_every=500,  # Number of batches per checkpoint creation.
       max_seq_len=250,  # Not used. Will be changed by model. [Eliminate?]
       dec_rnn_size=512,  # Size of decoder.
@@ -51,7 +51,7 @@ def get_default_hparams():
       learning_rate=0.001,  # Learning rate.
       decay_rate=0.9999,  # Learning rate decay per minibatch.
       kl_decay_rate=0.99995,  # KL annealing decay rate per minibatch.
-      min_learning_rate=0.00001,  # Minimum learning rate.
+      min_learning_rate=1e-5,  # Minimum learning rate.
       use_recurrent_dropout=True,  # Dropout with memory loss. Recomended
       recurrent_dropout_prob=0.90,  # Probability of recurrent dropout keep.
       use_input_dropout=False,  # Input dropout. Recommend leaving False.

@@ -108,7 +108,7 @@ filename = os.path.join('datasets/your_dataset_directory', 'your_dataset_name.np
 np.savez_compressed(filename, train=train_data, valid=validation_data, test=test_data)
 ```
 
-We also performed simple stroke simplification to preprocess the data, called [Ramer-Douglas-Peucker](https://en.wikipedia.org/wiki/Ramer%E2%80%93Douglas%E2%80%93Peucker_algorithm).  There is some easy-to-use open source code for applying this algorithm [here](https://github.com/fhirschmann/rdp).  In practice, we can set the `epsilon` parameter to a value between 0.2 to 3.0, depending on how aggressively we want to simply the lines.  In the paper we used an `epsilon` parameter of 2.0. We suggest you build a dataset where the maximum sequence length is less than 250.
+We also performed simple stroke simplification to preprocess the data, called [Ramer-Douglas-Peucker](https://en.wikipedia.org/wiki/Ramer%E2%80%93Douglas%E2%80%93Peucker_algorithm).  There is some easy-to-use open source code for applying this algorithm [here](https://github.com/fhirschmann/rdp).  In practice, we can set the `epsilon` parameter to a value between 0.2 to 3.0, depending on how aggressively we want to simplify the lines.  In the paper we used an `epsilon` parameter of 2.0. We suggest you build a dataset where the maximum sequence length is less than 250.
 
 If you have a large set of simple SVG images, there are some available [libraries](https://pypi.python.org/pypi/svg.path) to convert subsets of SVGs into line segments, and you can then apply RDP on the line segments before converting the data to *stroke-3* format.
 
