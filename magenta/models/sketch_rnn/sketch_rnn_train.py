@@ -114,7 +114,7 @@ def download_pretrained_models(
 def load_dataset(data_dir, model_params, inference_mode=False):
   """Loads the .npz file, and splits the set into train/valid/test."""
 
-  # normalizes the x and y columns usint the training set.
+  # normalizes the x and y columns using the training set.
   # applies same scaling factor to valid and test set.
 
   if isinstance(model_params.data_set, list):
