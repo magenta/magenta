@@ -117,7 +117,6 @@ def load_dataset(data_dir, model_params, inference_mode=False):
   # normalizes the x and y columns usint the training set.
   # applies same scaling factor to valid and test set.
 
-  datasets = []
   if isinstance(model_params.data_set, list):
     datasets = model_params.data_set
   else:
