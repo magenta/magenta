@@ -51,13 +51,13 @@ def get_default_hparams():
       decay_rate=0.9999,  # Learning rate decay per minibatch.
       kl_decay_rate=0.99995,  # KL annealing decay rate per minibatch.
       min_learning_rate=0.00001,  # Minimum learning rate.
-      use_recurrent_dropout=True,  # Dropout with memory loss. Recomended
+      use_recurrent_dropout=True,  # Dropout with memory loss. Recommended
       recurrent_dropout_prob=0.90,  # Probability of recurrent dropout keep.
       use_input_dropout=False,  # Input dropout. Recommend leaving False.
       input_dropout_prob=0.90,  # Probability of input dropout keep.
-      use_output_dropout=False,  # Output droput. Recommend leaving False.
+      use_output_dropout=False,  # Output dropout. Recommend leaving False.
       output_dropout_prob=0.90,  # Probability of output dropout keep.
-      random_scale_factor=0.15,  # Random scaling data augmention proportion.
+      random_scale_factor=0.15,  # Random scaling data augmentation proportion.
       augment_stroke_prob=0.10,  # Point dropping augmentation proportion.
       conditional=True,  # When False, use unconditional decoder-only model.
       is_training=True  # Is model training? Recommend keeping true.
@@ -308,7 +308,7 @@ class Model(object):
       z_pen_logits = z[:, 0:3]  # pen states
       z_pi, z_mu1, z_mu2, z_sigma1, z_sigma2, z_corr = tf.split(z[:, 3:], 6, 1)
 
-      # process output z's into MDN paramters
+      # process output z's into MDN parameters
 
       # softmax all the pi's and pen states:
       z_pi = tf.nn.softmax(z_pi)
@@ -405,8 +405,9 @@ def sample(sess, model, seq_len=250, temperature=1.0, greedy_mode=False,
 
   strokes = np.zeros((seq_len, 5), dtype=np.float32)
   mixture_params = []
-  greedy = False
-  temp = 1.0
+
+  greedy = greedy_mode
+  temp = temperature
 
   for i in range(seq_len):
     if not model.hps.conditional:
@@ -429,13 +430,6 @@ def sample(sess, model, seq_len=250, temperature=1.0, greedy_mode=False,
     ], feed)
 
     [o_pi, o_mu1, o_mu2, o_sigma1, o_sigma2, o_corr, o_pen, next_state] = params
-
-    if i < 0:
-      greedy = False
-      temp = 1.0
-    else:
-      greedy = greedy_mode
-      temp = temperature
 
     idx = get_pi_idx(random.random(), o_pi[0], temp, greedy)
 

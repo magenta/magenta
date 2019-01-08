@@ -118,7 +118,7 @@ setup(
     long_description='',
     url='https://magenta.tensorflow.org/',
     author='Google Inc.',
-    author_email='opensource@google.com',
+    author_email='magenta-discuss@gmail.com',
     license='Apache 2',
     # PyPI package information.
     classifiers=[
