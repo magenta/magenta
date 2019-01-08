@@ -954,8 +954,11 @@ class HierarchicalLstmDecoder(base_model.BaseDecoder):
       ValueError: If `hierarchical_encoder` is given but has incompatible level
         lengths.
     """
-    disable_autoregression = (
-        range(len(level_lengths)) if disable_autoregression else [])
+    # Check for explicit True/False since lists may be given.
+    if disable_autoregression is True:
+      disable_autoregression = range(len(level_lengths))
+    elif disable_autoregression is False:
+      disable_autoregression = []
     if (hierarchical_encoder and
         (tuple(hierarchical_encoder.level_lengths[-1::-1]) !=
          tuple(level_lengths))):
