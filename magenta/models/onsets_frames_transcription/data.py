@@ -30,8 +30,8 @@ import functools
 import os
 import wave
 
-from . import constants
 import librosa
+from magenta.models.onsets_frames_transcription import constants
 import magenta.music as mm
 from magenta.music import audio_io
 from magenta.music import sequences_lib

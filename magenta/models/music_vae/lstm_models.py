@@ -26,11 +26,12 @@ from magenta.models.music_vae import lstm_utils
 import numpy as np
 import tensorflow as tf
 import tensorflow_probability as tfp
-from tensorflow.contrib import rnn
-from tensorflow.contrib import seq2seq
 from tensorflow.python.framework import tensor_util
 from tensorflow.python.layers import core as layers_core
 from tensorflow.python.util import nest
+
+rnn = tf.contrib.rnn
+seq2seq = tf.contrib.seq2seq
 
 # ENCODERS
 

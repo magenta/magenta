@@ -18,9 +18,9 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-from . import constants
 from magenta.common import flatten_maybe_padded_sequences
 from magenta.common import tf_utils
+from magenta.models.onsets_frames_transcription import constants
 import tensorflow as tf
 import tensorflow.contrib.slim as slim
 
