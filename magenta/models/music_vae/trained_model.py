@@ -71,7 +71,7 @@ class TrainedModel(object):
 
       if self._config.hparams.z_size:
         self._z_input = tf.placeholder(
-            tf.float32, hape=[batch_size, self._config.hparams.z_size])
+            tf.float32, shape=[batch_size, self._config.hparams.z_size])
       else:
         self._z_input = None
 
