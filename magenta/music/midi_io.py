@@ -247,9 +247,9 @@ def note_sequence_to_pretty_midi(
 
   kwargs = {}
   if initial_seq_tempo:
-    kwargs['initial_temp'] = initial_seq_tempo.qpm
+    kwargs['initial_tempo'] = initial_seq_tempo.qpm
   else:
-    kwargs['initial_temp'] = constants.DEFAULT_QUARTERS_PER_MINUTE
+    kwargs['initial_tempo'] = constants.DEFAULT_QUARTERS_PER_MINUTE
 
   pm = pretty_midi.PrettyMIDI(resolution=ticks_per_quarter, **kwargs)
 
