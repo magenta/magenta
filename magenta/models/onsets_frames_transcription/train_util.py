@@ -18,9 +18,9 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-from . import data
-from . import model
-from .infer_util import sequence_to_valued_intervals
+from magenta.models.onsets_frames_transcription.infer_util import sequence_to_valued_intervals
+from magenta.models.onsets_frames_transcription import data
+from magenta.models.onsets_frames_transcription import model
 from magenta.music.sequences_lib import pianoroll_to_note_sequence
 from mir_eval.transcription import precision_recall_f1_overlap
 import numpy as np

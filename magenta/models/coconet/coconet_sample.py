@@ -324,6 +324,7 @@ class BaseStrategy(lib_util.Factory):
     return lib_sampling.BaseSampler.make(key, **kwargs)
 
 
+# pylint:disable=missing-docstring
 class HarmonizeMidiMelodyStrategy(BaseStrategy):
   """Harmonizes a midi melody (fname given by FLAGS.prime_midi_melody_fpath)."""
   key = "harmonize_midi_melody"
@@ -372,7 +373,6 @@ class HarmonizeMidiMelodyStrategy(BaseStrategy):
     return pianorolls
 
 
-# pylint:disable=missing-docstring
 class ScratchUpsamplingStrategy(BaseStrategy):
   key = "scratch_upsampling"
 
