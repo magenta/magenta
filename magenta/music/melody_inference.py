@@ -232,7 +232,7 @@ def _melody_viterbi(pitches, melody_frame_loglik, melody_transition_loglik):
   return [index_to_event(index) for index in path[::-1]]
 
 
-class MelodyInferenceException(Exception):
+class MelodyInferenceError(Exception):
   pass
 
 
@@ -270,11 +270,11 @@ def infer_melody_for_sequence(sequence,
     The instrument number used for the added melody.
 
   Raises:
-    MelodyInferenceException: If `sequence` is quantized, or if the number of
+    MelodyInferenceError: If `sequence` is quantized, or if the number of
         frames is too large.
   """
   if sequences_lib.is_quantized_sequence(sequence):
-    raise MelodyInferenceException(
+    raise MelodyInferenceError(
         'Melody inference on quantized NoteSequence not supported.')
 
   pitches, has_onsets, has_notes, event_times = sequence_note_frames(sequence)
@@ -293,7 +293,7 @@ def infer_melody_for_sequence(sequence,
     return melody_instrument
 
   if len(event_times) + 1 > MAX_NUM_FRAMES:
-    raise MelodyInferenceException(
+    raise MelodyInferenceError(
         'Too many frames for melody inference: %d' % (len(event_times) + 1))
 
   # Compute frame durations (times between consecutive note events).

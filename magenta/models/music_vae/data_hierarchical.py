@@ -553,7 +553,7 @@ class MultiInstrumentPerformanceConverter(
         try:
           track_chords = chords_lib.event_list_chords(
               quantized_subsequence, chunk_tracks)
-        except chords_lib.CoincidentChordsException:
+        except chords_lib.CoincidentChordsError:
           return [], []
 
         track_chord_tensors = []
@@ -576,7 +576,7 @@ class MultiInstrumentPerformanceConverter(
                 track_chord_tokens, self.control_depth, self.control_dtype)
             track_chord_tensors.append(encoded_track_chords)
 
-        except (mm.ChordSymbolException, mm.ChordEncodingException):
+        except (mm.ChordSymbolError, mm.ChordEncodingError):
           return [], []
 
         chunk_chord_tensors.append(track_chord_tensors)
@@ -604,8 +604,8 @@ class MultiInstrumentPerformanceConverter(
         # Infer chords in quantized sequence.
         mm.infer_chords_for_sequence(quantized_sequence)
 
-      except (mm.BadTimeSignatureException, mm.NonIntegerStepsPerBarException,
-              mm.NegativeTimeException, mm.ChordInferenceException):
+      except (mm.BadTimeSignatureError, mm.NonIntegerStepsPerBarError,
+              mm.NegativeTimeError, mm.ChordInferenceError):
         return data.ConverterTensors()
 
       # Copy inferred chords back to original sequence.
@@ -642,8 +642,8 @@ class MultiInstrumentPerformanceConverter(
         if (mm.steps_per_bar_in_quantized_sequence(quantized_subsequence) !=
             self._steps_per_bar):
           return data.ConverterTensors()
-      except (mm.BadTimeSignatureException, mm.NonIntegerStepsPerBarException,
-              mm.NegativeTimeException):
+      except (mm.BadTimeSignatureError, mm.NonIntegerStepsPerBarError,
+              mm.NegativeTimeError):
         return data.ConverterTensors()
 
       # Convert the quantized subsequence to tensors.

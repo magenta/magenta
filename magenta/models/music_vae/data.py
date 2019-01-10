@@ -532,8 +532,8 @@ class LegacyEventListOneHotConverter(BaseNoteSequenceConverter):
       else:
         quantized_sequence = mm.quantize_note_sequence_absolute(
             note_sequence, self._steps_per_second)
-    except (mm.BadTimeSignatureException, mm.NonIntegerStepsPerBarException,
-            mm.NegativeTimeException) as e:
+    except (mm.BadTimeSignatureError, mm.NonIntegerStepsPerBarError,
+            mm.NegativeTimeError) as e:
       return ConverterTensors()
 
     if self._chord_encoding and not any(
@@ -543,7 +543,7 @@ class LegacyEventListOneHotConverter(BaseNoteSequenceConverter):
       # infer them.
       try:
         mm.infer_chords_for_sequence(quantized_sequence)
-      except mm.ChordInferenceException:
+      except mm.ChordInferenceError:
         return ConverterTensors()
 
     event_lists, unused_stats = self._event_extractor_fn(quantized_sequence)
@@ -563,7 +563,7 @@ class LegacyEventListOneHotConverter(BaseNoteSequenceConverter):
       try:
         sliced_chord_lists = chords_lib.event_list_chords(
             quantized_sequence, sliced_event_lists)
-      except chords_lib.CoincidentChordsException:
+      except chords_lib.CoincidentChordsError:
         return ConverterTensors()
       sliced_event_lists = [zip(el, cl) for el, cl in zip(sliced_event_lists,
                                                           sliced_chord_lists)]
@@ -593,7 +593,7 @@ class LegacyEventListOneHotConverter(BaseNoteSequenceConverter):
             else:
               chord_tokens.append(
                   self._chord_encoding.encode_event(mm.NO_CHORD))
-        except (mm.ChordSymbolException, mm.ChordEncodingException):
+        except (mm.ChordSymbolError, mm.ChordEncodingError):
           return ConverterTensors()
         control_seqs.append(
             np_onehot(chord_tokens, self.control_depth, self.control_dtype))
@@ -807,8 +807,8 @@ class DrumsConverter(BaseNoteSequenceConverter):
       if (mm.steps_per_bar_in_quantized_sequence(quantized_sequence) !=
           self._steps_per_bar):
         return ConverterTensors()
-    except (mm.BadTimeSignatureException, mm.NonIntegerStepsPerBarException,
-            mm.NegativeTimeException) as e:
+    except (mm.BadTimeSignatureError, mm.NonIntegerStepsPerBarError,
+            mm.NegativeTimeError) as e:
       return ConverterTensors()
 
     new_notes = []
@@ -970,8 +970,8 @@ class TrioConverter(BaseNoteSequenceConverter):
       if (mm.steps_per_bar_in_quantized_sequence(quantized_sequence) !=
           self._steps_per_bar):
         return ConverterTensors()
-    except (mm.BadTimeSignatureException, mm.NonIntegerStepsPerBarException,
-            mm.NegativeTimeException):
+    except (mm.BadTimeSignatureError, mm.NonIntegerStepsPerBarError,
+            mm.NegativeTimeError):
       return ConverterTensors()
 
     if self._chord_encoding and not any(
@@ -981,7 +981,7 @@ class TrioConverter(BaseNoteSequenceConverter):
       # infer them.
       try:
         mm.infer_chords_for_sequence(quantized_sequence)
-      except mm.ChordInferenceException:
+      except mm.ChordInferenceError:
         return ConverterTensors()
 
       # The trio parts get extracted from the original NoteSequence, so copy the
@@ -1431,9 +1431,9 @@ class GrooveConverter(BaseNoteSequenceConverter):
         return ConverterTensors()
       if not quantized_sequence.time_signatures:
         quantized_sequence.time_signatures.add(numerator=4, denominator=4)
-    except (mm.BadTimeSignatureException, mm.NonIntegerStepsPerBarException,
-            mm.NegativeTimeException, mm.MultipleTimeSignatureException,
-            mm.MultipleTempoException):
+    except (mm.BadTimeSignatureError, mm.NonIntegerStepsPerBarError,
+            mm.NegativeTimeError, mm.MultipleTimeSignatureError,
+            mm.MultipleTempoError):
       return ConverterTensors()
 
     beat_length = 60. / quantized_sequence.tempos[0].qpm

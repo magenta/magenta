@@ -10,7 +10,7 @@ from magenta.protobuf import music_pb2
 import tensorflow as tf
 
 
-class MidiInteractionException(Exception):
+class MidiInteractionError(Exception):
   """Base class for exceptions in this module."""
   pass
 

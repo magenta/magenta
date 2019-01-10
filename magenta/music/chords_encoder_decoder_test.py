@@ -48,11 +48,11 @@ class MajorMinorChordOneHotEncodingTest(tf.test.TestCase):
 
   def testEncodeThirdlessChord(self):
     # suspended chord
-    with self.assertRaises(chords_encoder_decoder.ChordEncodingException):
+    with self.assertRaises(chords_encoder_decoder.ChordEncodingError):
       self.enc.encode_event('Gsus4')
 
     # power chord
-    with self.assertRaises(chords_encoder_decoder.ChordEncodingException):
+    with self.assertRaises(chords_encoder_decoder.ChordEncodingError):
       self.enc.encode_event('Bb5')
 
   def testDecodeNoChord(self):
@@ -97,11 +97,11 @@ class TriadChordOneHotEncodingTest(tf.test.TestCase):
 
   def testEncodeThirdlessChord(self):
     # suspended chord
-    with self.assertRaises(chords_encoder_decoder.ChordEncodingException):
+    with self.assertRaises(chords_encoder_decoder.ChordEncodingError):
       self.enc.encode_event('Gsus4')
 
     # power chord
-    with self.assertRaises(chords_encoder_decoder.ChordEncodingException):
+    with self.assertRaises(chords_encoder_decoder.ChordEncodingError):
       self.enc.encode_event('Bb5')
 
   def testDecodeNoChord(self):

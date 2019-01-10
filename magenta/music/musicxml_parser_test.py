@@ -953,15 +953,15 @@ class MusicXMLParserTest(tf.test.TestCase):
     self.assertEqual(expected_times_and_chords, chord_symbols)
 
   def test_alternating_meter(self):
-    with self.assertRaises(musicxml_parser.AlternatingTimeSignatureException):
+    with self.assertRaises(musicxml_parser.AlternatingTimeSignatureError):
       musicxml_parser.MusicXMLDocument(self.alternating_meter_filename)
 
   def test_mid_measure_meter_change(self):
-    with self.assertRaises(musicxml_parser.MultipleTimeSignatureException):
+    with self.assertRaises(musicxml_parser.MultipleTimeSignatureError):
       musicxml_parser.MusicXMLDocument(self.mid_measure_meter_filename)
 
   def test_unpitched_notes(self):
-    with self.assertRaises(musicxml_parser.UnpitchedNoteException):
+    with self.assertRaises(musicxml_parser.UnpitchedNoteError):
       musicxml_parser.MusicXMLDocument(os.path.join(
           tf.resource_loader.get_data_files_path(),
           'testdata/unpitched.xml'))
@@ -1657,7 +1657,7 @@ class MusicXMLParserTest(tf.test.TestCase):
     with tempfile.NamedTemporaryFile() as temp_file:
       temp_file.write(xml)
       temp_file.flush()
-      with self.assertRaises(musicxml_parser.KeyParseException):
+      with self.assertRaises(musicxml_parser.KeyParseError):
         musicxml_parser.MusicXMLDocument(temp_file.name)
 
   def test_harmony_missing_degree(self):
@@ -1702,7 +1702,7 @@ class MusicXMLParserTest(tf.test.TestCase):
     with tempfile.NamedTemporaryFile() as temp_file:
       temp_file.write(xml)
       temp_file.flush()
-      with self.assertRaises(musicxml_parser.ChordSymbolParseException):
+      with self.assertRaises(musicxml_parser.ChordSymbolParseError):
         musicxml_parser.MusicXMLDocument(temp_file.name)
 
   def test_transposed_keysig(self):
@@ -1795,7 +1795,7 @@ class MusicXMLParserTest(tf.test.TestCase):
     with tempfile.NamedTemporaryFile() as temp_file:
       temp_file.write(xml)
       temp_file.flush()
-      with self.assertRaises(musicxml_parser.TimeSignatureParseException):
+      with self.assertRaises(musicxml_parser.TimeSignatureParseError):
         musicxml_parser.MusicXMLDocument(temp_file.name)
 
   def test_invalid_note_type(self):
@@ -1834,7 +1834,7 @@ class MusicXMLParserTest(tf.test.TestCase):
     with tempfile.NamedTemporaryFile() as temp_file:
       temp_file.write(xml)
       temp_file.flush()
-      with self.assertRaises(musicxml_parser.InvalidNoteDurationTypeException):
+      with self.assertRaises(musicxml_parser.InvalidNoteDurationTypeError):
         musicxml_parser.MusicXMLDocument(temp_file.name)
 
 

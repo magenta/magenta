@@ -122,7 +122,7 @@ class Score2PerfProblem(problem.Problem):
             augmented_ns, transpose_amount,
             min_allowed_pitch=MIN_PITCH, max_allowed_pitch=MAX_PITCH,
             in_place=True)
-      except chord_symbols_lib.ChordSymbolException:
+      except chord_symbols_lib.ChordSymbolError:
         raise datagen_beam.DataAugmentationError(
             'Transposition of chord symbol(s) failed.')
       if num_deleted_notes:

@@ -27,11 +27,11 @@ class AudioIOException(BaseException):
   pass
 
 
-class AudioIOReadException(AudioIOException):
+class AudioIOReadError(AudioIOException):
   pass
 
 
-class AudioIODataTypeException(AudioIOException):
+class AudioIODataTypeError(AudioIOException):
   pass
 
 
@@ -65,14 +65,14 @@ def wav_data_to_samples(wav_data, sample_rate):
     specified rate, in float32 format.
 
   Raises:
-    AudioIOReadException: If scipy is unable to read the WAV data.
+    AudioIOReadError: If scipy is unable to read the WAV data.
     AudioIOException: If audio processing fails.
   """
   try:
     # Read the wav file, converting sample rate & number of channels.
     native_sr, y = scipy.io.wavfile.read(six.BytesIO(wav_data))
   except Exception as e:  # pylint: disable=broad-except
-    raise AudioIOReadException(e)
+    raise AudioIOReadError(e)
 
   if y.dtype == np.int16:
     # Convert to float32.
@@ -178,12 +178,12 @@ def load_audio(audio_filename, sample_rate):
     specified rate, in float32 format.
 
   Raises:
-    AudioIOReadException: If librosa is unable to load the audio data.
+    AudioIOReadError: If librosa is unable to load the audio data.
   """
   try:
     y, unused_sr = librosa.load(audio_filename, sr=sample_rate, mono=True)
   except Exception as e:  # pylint: disable=broad-except
-    raise AudioIOReadException(e)
+    raise AudioIOReadError(e)
   return y
 
 
@@ -201,10 +201,10 @@ def make_stereo(left, right):
     The two channels combined into a stereo signal.
 
   Raises:
-    AudioIODataTypeException: if the two signals have different data types.
+    AudioIODataTypeError: if the two signals have different data types.
   """
   if left.dtype != right.dtype:
-    raise AudioIODataTypeException(
+    raise AudioIODataTypeError(
         'left channel is of type {}, but right channel is {}'.format(
             left.dtype, right.dtype))
 

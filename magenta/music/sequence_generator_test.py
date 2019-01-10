@@ -53,9 +53,9 @@ class SequenceGeneratorTest(tf.test.TestCase):
         checkpoint_file=[b'foo.ckpt'],
         metagraph_file=b'foo.ckpt.meta')
 
-    with self.assertRaises(sequence_generator.SequenceGeneratorException):
+    with self.assertRaises(sequence_generator.SequenceGeneratorError):
       SeuenceGenerator(checkpoint='foo.ckpt', bundle=bundle)
-    with self.assertRaises(sequence_generator.SequenceGeneratorException):
+    with self.assertRaises(sequence_generator.SequenceGeneratorError):
       SeuenceGenerator(checkpoint=None, bundle=None)
 
     SeuenceGenerator(checkpoint='foo.ckpt')
@@ -72,7 +72,7 @@ class SequenceGeneratorTest(tf.test.TestCase):
 
     bundle.generator_details.id = 'blarg'
 
-    with self.assertRaises(sequence_generator.SequenceGeneratorException):
+    with self.assertRaises(sequence_generator.SequenceGeneratorError):
       SeuenceGenerator(bundle=bundle)
 
   def testGetBundleDetails(self):

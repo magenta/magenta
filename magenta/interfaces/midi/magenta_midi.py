@@ -273,7 +273,7 @@ def _load_generator_from_bundle_file(bundle_file):
   try:
     bundle = magenta.music.sequence_generator_bundle.read_bundle_file(
         bundle_file)
-  except magenta.music.sequence_generator_bundle.GeneratorBundleParseException:
+  except magenta.music.sequence_generator_bundle.GeneratorBundleParseError:
     print('Failed to parse bundle file: %s' % FLAGS.bundle_file)
     return None
 

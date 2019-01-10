@@ -53,11 +53,11 @@ class EncoderPipeline(pipeline.Pipeline):
       encoded = [self._conditional_encoder_decoder.encode(
           lead_sheet.chords, lead_sheet.melody)]
       stats = []
-    except magenta.music.ChordEncodingException as e:
+    except magenta.music.ChordEncodingError as e:
       tf.logging.warning('Skipped lead sheet: %s', e)
       encoded = []
       stats = [statistics.Counter('chord_encoding_exception', 1)]
-    except magenta.music.ChordSymbolException as e:
+    except magenta.music.ChordSymbolError as e:
       tf.logging.warning('Skipped lead sheet: %s', e)
       encoded = []
       stats = [statistics.Counter('chord_symbol_exception', 1)]

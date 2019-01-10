@@ -228,7 +228,7 @@ class ExtractExamplesDoFn(beam.DoFn):
                 chord_change_prob=0.25,
                 chord_note_concentration=50.0,
                 add_key_signatures=True)
-          except chord_inference.ChordInferenceException:
+          except chord_inference.ChordInferenceError:
             Metrics.counter('extract_examples', 'chord_inference_failed').inc()
             continue
 
@@ -241,7 +241,7 @@ class ExtractExamplesDoFn(beam.DoFn):
               instantaneous_non_max_pitch_prob=1e-15,
               instantaneous_non_empty_rest_prob=0.0,
               instantaneous_missing_pitch_prob=1e-15)
-        except melody_inference.MelodyInferenceException:
+        except melody_inference.MelodyInferenceError:
           Metrics.counter('extract_examples', 'melody_inference_failed').inc()
           continue
 

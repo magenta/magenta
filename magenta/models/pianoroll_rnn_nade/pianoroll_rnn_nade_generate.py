@@ -98,7 +98,7 @@ tf.app.flags.DEFINE_string(
 def get_checkpoint():
   """Get the training dir or checkpoint path to be used by the model."""
   if FLAGS.run_dir and FLAGS.bundle_file and not FLAGS.save_generator_bundle:
-    raise magenta.music.SequenceGeneratorException(
+    raise magenta.music.SequenceGeneratorError(
         'Cannot specify both bundle_file and run_dir')
   if FLAGS.run_dir:
     train_dir = os.path.join(os.path.expanduser(FLAGS.run_dir), 'train')

@@ -690,15 +690,15 @@ class MetricPerformance(BasePerformance):
     return sequence
 
 
-class NotePerformanceException(Exception):
+class NotePerformanceError(Exception):
   pass
 
 
-class NotePerformanceTooManyTimeShiftSteps(NotePerformanceException):
+class NotePerformanceTooManyTimeShiftSteps(NotePerformanceError):
   pass
 
 
-class NotePerformanceTooManyDurationSteps(NotePerformanceException):
+class NotePerformanceTooManyDurationSteps(NotePerformanceError):
   pass
 
 

@@ -135,7 +135,7 @@ class InvalidDAGException(Exception):
   pass
 
 
-class DuplicateNameException(Exception):
+class DuplicateNameError(Exception):
   """Thrown when two `Pipeline` instances in the DAG have the same name.
 
   Pipeline names will be used as name spaces for the statistics they produce
@@ -144,12 +144,12 @@ class DuplicateNameException(Exception):
   pass
 
 
-class BadTopologyException(Exception):
+class BadTopologyError(Exception):
   """Thrown when there is a directed cycle."""
   pass
 
 
-class NotConnectedException(Exception):
+class NotConnectedError(Exception):
   """Thrown when the DAG is disconnected somewhere.
 
   Either because a `Pipeline` used in a dependency has nothing feeding into it,
@@ -158,7 +158,7 @@ class NotConnectedException(Exception):
   pass
 
 
-class TypeMismatchException(Exception):
+class TypeMismatchError(Exception):
   """Thrown when type signatures in a connection don't match.
 
   In the DAG's `destination: dependency` pairs, type signatures must match.
@@ -166,7 +166,7 @@ class TypeMismatchException(Exception):
   pass
 
 
-class BadInputOrOutputException(Exception):
+class BadInputOrOutputError(Exception):
   """Thrown when `DagInput` or `DagOutput` are not used in the graph correctly.
 
   Specifically when there are no `DagInput` objects, more than one `DagInput`
@@ -184,7 +184,7 @@ class InvalidDictionaryOutput(Exception):
   pass
 
 
-class InvalidTransformOutputException(Exception):
+class InvalidTransformOutputError(Exception):
   """Thrown when a Pipeline does not output types matching its `output_type`.
   """
   pass
@@ -216,19 +216,19 @@ class DAGPipeline(pipeline.Pipeline):
       InvalidDAGException: If each key value pair in the `dag` dictionary is
           not of the form
           (Pipeline or DagOutput): (Pipeline, PipelineKey, or DagInput).
-      TypeMismatchException: The type signature of each key and value in `dag`
+      TypeMismatchError: The type signature of each key and value in `dag`
           must match, otherwise this will be thrown.
-      DuplicateNameException: If two `Pipeline` instances in `dag` have the
+      DuplicateNameError: If two `Pipeline` instances in `dag` have the
           same string name.
-      BadInputOrOutputException: If there are no `DagOutput` instaces in `dag`
+      BadInputOrOutputError: If there are no `DagOutput` instaces in `dag`
           or not exactly one `DagInput` plus type combination in `dag`.
       InvalidDictionaryOutput: If `DagOutput()` is not connected to a
           dictionary, or `DagOutput(name)` is not connected to a Pipeline,
           PipelineKey, or DagInput instance.
-      NotConnectedException: If a `Pipeline` used in a dependency has nothing
+      NotConnectedError: If a `Pipeline` used in a dependency has nothing
           feeding into it, or a `Pipeline` used as a destination does not feed
           anywhere.
-      BadTopologyException: If there there is a directed cycle in `dag`.
+      BadTopologyError: If there there is a directed cycle in `dag`.
       Exception: Misc. exceptions.
     """
     # Expand DAG shorthand.
@@ -265,7 +265,7 @@ class DAGPipeline(pipeline.Pipeline):
         # DagOutput objects don't know their types.
         continue
       if unit.input_type != self._get_type_signature_for_dependency(dependency):
-        raise TypeMismatchException(
+        raise TypeMismatchError(
             'Invalid dependency {%s: %s}. Required `input_type` of left hand '
             'side is %s. DagOutput type of right hand side is %s.'
             % (unit, dependency, unit.input_type,
@@ -279,7 +279,7 @@ class DAGPipeline(pipeline.Pipeline):
     for index, (unit, name) in enumerate(sorted_unit_names[:-1]):
       if name == sorted_unit_names[index + 1][1]:
         other_unit = sorted_unit_names[index + 1][0]
-        raise DuplicateNameException(
+        raise DuplicateNameError(
             'Pipelines %s and %s both have name "%s". Each Pipeline must have '
             'a unique name.' % (unit, other_unit, name))
 
@@ -298,13 +298,13 @@ class DAGPipeline(pipeline.Pipeline):
           inputs.add(unit)
     if len(inputs) != 1:
       if not inputs:
-        raise BadInputOrOutputException(
+        raise BadInputOrOutputError(
             'No DagInput object found. DagInput is the start of the pipeline.')
       else:
-        raise BadInputOrOutputException(
+        raise BadInputOrOutputError(
             'Multiple DagInput objects found. Only one input is supported.')
     if not self.outputs:
-      raise BadInputOrOutputException(
+      raise BadInputOrOutputError(
           'No DagOutput objects found. DagOutput is the end of the pipeline.')
     self.input = inputs.pop()
 
@@ -327,12 +327,12 @@ class DAGPipeline(pipeline.Pipeline):
       units_with_no_input = all_subordinates.difference(all_destinations)
       units_with_no_output = all_destinations.difference(all_subordinates)
       if units_with_no_input:
-        raise NotConnectedException(
+        raise NotConnectedError(
             '%s is given as a dependency in the DAG but has nothing connected '
             'to it. Nothing in the DAG feeds into it.'
             % units_with_no_input.pop())
       else:
-        raise NotConnectedException(
+        raise NotConnectedError(
             '%s is given as a destination in the DAG but does not output '
             'anywhere. It is a deadend.' % units_with_no_output.pop())
 
@@ -368,15 +368,15 @@ class DAGPipeline(pipeline.Pipeline):
     # Check for cycles by checking if any edges remain.
     for unit in graph:
       if graph[unit][1] != 0:
-        raise BadTopologyException('Dependency loop found on %s' % unit)
+        raise BadTopologyError('Dependency loop found on %s' % unit)
 
     # Note: this exception should never be raised. Disconnected graphs will be
-    # caught where NotConnectedException is raised. If this exception goes off
+    # caught where NotConnectedError is raised. If this exception goes off
     # there is likely a bug.
     if set(call_list) != set(
         list(all_subordinates) + self.outputs + [self.input]):
-      raise BadTopologyException('Not all pipelines feed into an output or '
-                                 'there is a dependency loop.')
+      raise BadTopologyError('Not all pipelines feed into an output or '
+                             'there is a dependency loop.')
 
     call_list.reverse()
     assert call_list[0] == self.input
@@ -598,7 +598,7 @@ class DAGPipeline(pipeline.Pipeline):
       to lists of outputs.
 
     Raises:
-      InvalidTransformOutputException: If anything in `outputs` does not match
+      InvalidTransformOutputError: If anything in `outputs` does not match
       the type signature given by `unit.output_type`.
     """
     if not outputs:
@@ -607,19 +607,19 @@ class DAGPipeline(pipeline.Pipeline):
       concated = dict((key, list()) for key in unit.output_type.keys())
       for d in outputs:
         if not isinstance(d, dict):
-          raise InvalidTransformOutputException(
+          raise InvalidTransformOutputError(
               'Expected dictionary output for %s with output type %s but '
               'instead got type %s' % (unit, unit.output_type, type(d)))
         if set(d.keys()) != set(unit.output_type.keys()):
-          raise InvalidTransformOutputException(
+          raise InvalidTransformOutputError(
               'Got dictionary output with incorrect keys for %s. Got %s. '
               'Expected %s' % (unit, d.keys(), unit.output_type.keys()))
         for k, val in d.items():
           if not isinstance(val, list):
-            raise InvalidTransformOutputException(
+            raise InvalidTransformOutputError(
                 'DagOutput from %s for key %s is not a list.' % (unit, k))
           if not _all_are_type(val, unit.output_type[k]):
-            raise InvalidTransformOutputException(
+            raise InvalidTransformOutputError(
                 'Some outputs from %s for key %s are not of expected type %s. '
                 'Got types %s' % (unit, k, unit.output_type[k],
                                   [type(inst) for inst in val]))
@@ -628,11 +628,11 @@ class DAGPipeline(pipeline.Pipeline):
       concated = []
       for l in outputs:
         if not isinstance(l, list):
-          raise InvalidTransformOutputException(
+          raise InvalidTransformOutputError(
               'Expected list output for %s with outpu type %s but instead got '
               'type %s' % (unit, unit.output_type, type(l)))
         if not _all_are_type(l, unit.output_type):
-          raise InvalidTransformOutputException(
+          raise InvalidTransformOutputError(
               'Some outputs from %s are not of expected type %s. Got types %s'
               % (unit, unit.output_type, [type(inst) for inst in l]))
         concated += l

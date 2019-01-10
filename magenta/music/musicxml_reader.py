@@ -140,6 +140,6 @@ def musicxml_file_to_sequence_proto(musicxml_file):
   """
   try:
     musicxml_document = musicxml_parser.MusicXMLDocument(musicxml_file)
-  except musicxml_parser.MusicXMLParseException as e:
+  except musicxml_parser.MusicXMLParseError as e:
     raise MusicXMLConversionError(e)
   return musicxml_to_sequence_proto(musicxml_document)

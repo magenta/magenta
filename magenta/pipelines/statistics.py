@@ -24,7 +24,7 @@ import copy
 import tensorflow as tf
 
 
-class MergeStatisticsException(Exception):
+class MergeStatisticsError(Exception):
   pass
 
 
@@ -96,10 +96,10 @@ class Statistic(object):
 
   def merge_from(self, other):
     if not isinstance(other, Statistic):
-      raise MergeStatisticsException(
+      raise MergeStatisticsError(
           'Cannot merge with non-Statistic of type %s' % type(other))
     if self.name != other.name:
-      raise MergeStatisticsException(
+      raise MergeStatisticsError(
           'Name "%s" does not match this name "%s"' % (other.name, self.name))
     self._merge_from(other)
 
@@ -169,7 +169,7 @@ class Counter(Statistic):
   def _merge_from(self, other):
     """Adds the count of another Counter into this instance."""
     if not isinstance(other, Counter):
-      raise MergeStatisticsException(
+      raise MergeStatisticsError(
           'Cannot merge %s into Counter' % other.__class__.__name__)
     self.count += other.count
 
@@ -251,14 +251,14 @@ class Histogram(Statistic):
       other: Another Histogram instance with the same buckets as this instance.
 
     Raises:
-      MergeStatisticsException: If `other` is not a Histogram or the buckets
+      MergeStatisticsError: If `other` is not a Histogram or the buckets
           are not the same.
     """
     if not isinstance(other, Histogram):
-      raise MergeStatisticsException(
+      raise MergeStatisticsError(
           'Cannot merge %s into Histogram' % other.__class__.__name__)
     if self.buckets != other.buckets:
-      raise MergeStatisticsException(
+      raise MergeStatisticsError(
           'Histogram buckets do not match. Expected %s, got %s'
           % (self.buckets, other.buckets))
     for bucket_lower, count in other.counters.items():

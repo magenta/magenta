@@ -48,7 +48,7 @@ class MelodyExtractor(pipeline.Pipeline):
           gap_bars=self._gap_bars,
           ignore_polyphonic_notes=self._ignore_polyphonic_notes,
           filter_drums=self._filter_drums)
-    except events_lib.NonIntegerStepsPerBarException as detail:
+    except events_lib.NonIntegerStepsPerBarError as detail:
       tf.logging.warning('Skipped sequence: %s', detail)
       melodies = []
       stats = [statistics.Counter('non_integer_steps_per_bar', 1)]

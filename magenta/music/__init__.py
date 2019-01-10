@@ -17,18 +17,18 @@
 from magenta.music.abc_parser import parse_abc_tunebook
 from magenta.music.abc_parser import parse_abc_tunebook_file
 
-from magenta.music.chord_inference import ChordInferenceException
+from magenta.music.chord_inference import ChordInferenceError
 from magenta.music.chord_inference import infer_chords_for_sequence
 
 from magenta.music.chord_symbols_lib import chord_symbol_bass
 from magenta.music.chord_symbols_lib import chord_symbol_pitches
 from magenta.music.chord_symbols_lib import chord_symbol_quality
 from magenta.music.chord_symbols_lib import chord_symbol_root
-from magenta.music.chord_symbols_lib import ChordSymbolException
+from magenta.music.chord_symbols_lib import ChordSymbolError
 from magenta.music.chord_symbols_lib import pitches_to_chord_symbol
 from magenta.music.chord_symbols_lib import transpose_chord_symbol
 
-from magenta.music.chords_encoder_decoder import ChordEncodingException
+from magenta.music.chords_encoder_decoder import ChordEncodingError
 from magenta.music.chords_encoder_decoder import MajorMinorChordOneHotEncoding
 from magenta.music.chords_encoder_decoder import PitchChordsEncoderDecoder
 from magenta.music.chords_encoder_decoder import TriadChordOneHotEncoding
@@ -56,7 +56,7 @@ from magenta.music.encoder_decoder import OneHotEventSequenceEncoderDecoder
 from magenta.music.encoder_decoder import OneHotIndexEventSequenceEncoderDecoder
 from magenta.music.encoder_decoder import OptionalEventSequenceEncoder
 
-from magenta.music.events_lib import NonIntegerStepsPerBarException
+from magenta.music.events_lib import NonIntegerStepsPerBarError
 
 from magenta.music.lead_sheets_lib import extract_lead_sheet_fragments
 from magenta.music.lead_sheets_lib import LeadSheet
@@ -84,7 +84,7 @@ from magenta.music.midi_synth import synthesize
 from magenta.music.model import BaseModel
 
 from magenta.music.musicxml_parser import MusicXMLDocument
-from magenta.music.musicxml_parser import MusicXMLParseException
+from magenta.music.musicxml_parser import MusicXMLParseError
 
 from magenta.music.musicxml_reader import musicxml_file_to_sequence_proto
 from magenta.music.musicxml_reader import musicxml_to_sequence_proto
@@ -113,18 +113,18 @@ from magenta.music.pianoroll_lib import PianorollSequence
 
 
 from magenta.music.sequence_generator import BaseSequenceGenerator
-from magenta.music.sequence_generator import SequenceGeneratorException
+from magenta.music.sequence_generator import SequenceGeneratorError
 
-from magenta.music.sequence_generator_bundle import GeneratorBundleParseException
+from magenta.music.sequence_generator_bundle import GeneratorBundleParseError
 from magenta.music.sequence_generator_bundle import read_bundle_file
 
 from magenta.music.sequences_lib import apply_sustain_control_changes
-from magenta.music.sequences_lib import BadTimeSignatureException
+from magenta.music.sequences_lib import BadTimeSignatureError
 from magenta.music.sequences_lib import extract_subsequence
 from magenta.music.sequences_lib import infer_dense_chords_for_sequence
-from magenta.music.sequences_lib import MultipleTempoException
-from magenta.music.sequences_lib import MultipleTimeSignatureException
-from magenta.music.sequences_lib import NegativeTimeException
+from magenta.music.sequences_lib import MultipleTempoError
+from magenta.music.sequences_lib import MultipleTimeSignatureError
+from magenta.music.sequences_lib import NegativeTimeError
 from magenta.music.sequences_lib import quantize_note_sequence
 from magenta.music.sequences_lib import quantize_note_sequence_absolute
 from magenta.music.sequences_lib import quantize_to_step

@@ -42,11 +42,11 @@ class ImprovRnnSequenceGenerator(mm.BaseSequenceGenerator):
 
   def _generate(self, input_sequence, generator_options):
     if len(generator_options.input_sections) > 1:
-      raise mm.SequenceGeneratorException(
+      raise mm.SequenceGeneratorError(
           'This model supports at most one input_sections message, but got %s' %
           len(generator_options.input_sections))
     if len(generator_options.generate_sections) != 1:
-      raise mm.SequenceGeneratorException(
+      raise mm.SequenceGeneratorError(
           'This model supports only 1 generate_sections message, but got %s' %
           len(generator_options.generate_sections))
 
@@ -82,7 +82,7 @@ class ImprovRnnSequenceGenerator(mm.BaseSequenceGenerator):
     else:
       last_end_time = 0
     if last_end_time >= generate_section.start_time:
-      raise mm.SequenceGeneratorException(
+      raise mm.SequenceGeneratorError(
           'Got GenerateSection request for section that is before or equal to '
           'the end of the input section. This model can only extend melodies. '
           'Requested start time: %s, Final note end time: %s' %

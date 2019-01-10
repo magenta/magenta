@@ -143,7 +143,7 @@ class DrumTrack(events_lib.SimpleEventSequence):
       ignore_is_drum: Whether accept notes where `is_drum` is False.
 
     Raises:
-      NonIntegerStepsPerBarException: If `quantized_sequence`'s bar length
+      NonIntegerStepsPerBarError: If `quantized_sequence`'s bar length
           (derived from its time signature) is not an integer number of time
           steps.
     """
@@ -153,7 +153,7 @@ class DrumTrack(events_lib.SimpleEventSequence):
     steps_per_bar_float = sequences_lib.steps_per_bar_in_quantized_sequence(
         quantized_sequence)
     if steps_per_bar_float % 1 != 0:
-      raise events_lib.NonIntegerStepsPerBarException(
+      raise events_lib.NonIntegerStepsPerBarError(
           'There are %f timesteps per bar. Time signature: %d/%d' %
           (steps_per_bar_float, quantized_sequence.time_signatures[0].numerator,
            quantized_sequence.time_signatures[0].denominator))
@@ -315,7 +315,7 @@ def extract_drum_tracks(quantized_sequence,
     stats: A dictionary mapping string names to `statistics.Statistic` objects.
 
   Raises:
-    NonIntegerStepsPerBarException: If `quantized_sequence`'s bar length
+    NonIntegerStepsPerBarError: If `quantized_sequence`'s bar length
         (derived from its time signature) is not an integer number of time
         steps.
   """

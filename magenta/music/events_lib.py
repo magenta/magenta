@@ -28,7 +28,7 @@ DEFAULT_STEPS_PER_QUARTER = constants.DEFAULT_STEPS_PER_QUARTER
 STANDARD_PPQ = constants.STANDARD_PPQ
 
 
-class NonIntegerStepsPerBarException(Exception):
+class NonIntegerStepsPerBarError(Exception):
   pass
 
 

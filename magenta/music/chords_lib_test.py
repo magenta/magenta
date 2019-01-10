@@ -74,7 +74,7 @@ class ChordsLibTest(tf.test.TestCase):
     # Attempt to transpose ChordProgression with unknown chord symbol.
     events = ['Cm', 'G7', 'P#13', 'F']
     chords = chords_lib.ChordProgression(events)
-    with self.assertRaises(chord_symbols_lib.ChordSymbolException):
+    with self.assertRaises(chord_symbols_lib.ChordSymbolError):
       chords.transpose(transpose_amount=-4)
 
   def testFromQuantizedNoteSequence(self):
@@ -118,7 +118,7 @@ class ChordsLibTest(tf.test.TestCase):
     quantized_sequence = sequences_lib.quantize_note_sequence(
         self.note_sequence, self.steps_per_quarter)
     chords = chords_lib.ChordProgression()
-    with self.assertRaises(chords_lib.CoincidentChordsException):
+    with self.assertRaises(chords_lib.CoincidentChordsError):
       chords.from_quantized_sequence(
           quantized_sequence, start_step=0, end_step=16)
 

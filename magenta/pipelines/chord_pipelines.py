@@ -38,15 +38,15 @@ class ChordsExtractor(pipeline.Pipeline):
       chord_progressions, stats = chords_lib.extract_chords(
           quantized_sequence, max_steps=self._max_steps,
           all_transpositions=self._all_transpositions)
-    except events_lib.NonIntegerStepsPerBarException as detail:
+    except events_lib.NonIntegerStepsPerBarError as detail:
       tf.logging.warning('Skipped sequence: %s', detail)
       chord_progressions = []
       stats = [statistics.Counter('non_integer_steps_per_bar', 1)]
-    except chords_lib.CoincidentChordsException as detail:
+    except chords_lib.CoincidentChordsError as detail:
       tf.logging.warning('Skipped sequence: %s', detail)
       chord_progressions = []
       stats = [statistics.Counter('coincident_chords', 1)]
-    except chord_symbols_lib.ChordSymbolException as detail:
+    except chord_symbols_lib.ChordSymbolError as detail:
       tf.logging.warning('Skipped sequence: %s', detail)
       chord_progressions = []
       stats = [statistics.Counter('chord_symbol_exception', 1)]

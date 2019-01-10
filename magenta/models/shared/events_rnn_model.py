@@ -32,7 +32,7 @@ ModelState = collections.namedtuple(
     'ModelState', ['inputs', 'rnn_state', 'control_events', 'control_state'])
 
 
-class EventSequenceRnnModelException(Exception):
+class EventSequenceRnnModelError(Exception):
   pass
 
 
@@ -305,25 +305,25 @@ class EventSequenceRnnModel(mm.BaseModel):
       The generated event sequence (which begins with the provided primer).
 
     Raises:
-      EventSequenceRnnModelException: If the primer sequence has zero length or
+      EventSequenceRnnModelError: If the primer sequence has zero length or
           is not shorter than num_steps.
     """
     if (control_events is not None and
         not isinstance(self._config.encoder_decoder,
                        mm.ConditionalEventSequenceEncoderDecoder)):
-      raise EventSequenceRnnModelException(
+      raise EventSequenceRnnModelError(
           'control sequence provided but encoder/decoder is not a '
           'ConditionalEventSequenceEncoderDecoder')
     if control_events is not None and extend_control_events_callback is None:
-      raise EventSequenceRnnModelException(
+      raise EventSequenceRnnModelError(
           'must provide callback for extending control sequence (or use'
           'default)')
 
     if not primer_events:
-      raise EventSequenceRnnModelException(
+      raise EventSequenceRnnModelError(
           'primer sequence must have non-zero length')
     if len(primer_events) >= num_steps:
-      raise EventSequenceRnnModelException(
+      raise EventSequenceRnnModelError(
           'primer sequence must be shorter than `num_steps`')
 
     if len(primer_events) >= num_steps:
@@ -428,18 +428,18 @@ class EventSequenceRnnModel(mm.BaseModel):
       The log likelihood of each sequence in `event_sequences`.
 
     Raises:
-      EventSequenceRnnModelException: If the event sequences are not all the
+      EventSequenceRnnModelError: If the event sequences are not all the
           same length, or if the control sequence is shorter than the event
           sequences.
     """
     num_steps = len(event_sequences[0])
     for events in event_sequences[1:]:
       if len(events) != num_steps:
-        raise EventSequenceRnnModelException(
+        raise EventSequenceRnnModelError(
             'log likelihood evaluation requires all event sequences to have '
             'the same length')
     if control_events is not None and len(control_events) < num_steps:
-      raise EventSequenceRnnModelException(
+      raise EventSequenceRnnModelError(
           'control sequence must be at least as long as the event sequences')
 
     batch_size = self._batch_size()

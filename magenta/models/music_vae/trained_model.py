@@ -26,11 +26,11 @@ import numpy as np
 import tensorflow as tf
 
 
-class NoExtractedExamplesException(Exception):
+class NoExtractedExamplesError(Exception):
   pass
 
 
-class MultipleExtractedExamplesException(Exception):
+class MultipleExtractedExamplesError(Exception):
   pass
 
 
@@ -200,8 +200,8 @@ class TrainedModel(object):
       The encoded `z`, `mu`, and `sigma` values.
     Raises:
       RuntimeError: If called for a non-conditional model.
-      NoExtractedExamplesException: If no examples were extracted.
-      MultipleExtractedExamplesException: If multiple examples were extracted.
+      NoExtractedExamplesError: If no examples were extracted.
+      MultipleExtractedExamplesError: If multiple examples were extracted.
       AssertionError: If `assert_same_length` is True and any extracted
         sequences differ in length.
     """
@@ -214,10 +214,10 @@ class TrainedModel(object):
     for note_sequence in note_sequences:
       extracted_tensors = self._config.data_converter.to_tensors(note_sequence)
       if not extracted_tensors.inputs:
-        raise NoExtractedExamplesException(
+        raise NoExtractedExamplesError(
             'No examples extracted from NoteSequence: %s' % note_sequence)
       if len(extracted_tensors.inputs) > 1:
-        raise MultipleExtractedExamplesException(
+        raise MultipleExtractedExamplesError(
             'Multiple (%d) examples extracted from NoteSequence: %s' %
             (len(extracted_tensors.inputs), note_sequence))
       inputs.append(extracted_tensors.inputs[0])
