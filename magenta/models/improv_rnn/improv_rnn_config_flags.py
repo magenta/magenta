@@ -37,7 +37,7 @@ tf.app.flags.DEFINE_string(
     'with the default hyperparameters.')
 
 
-class ImprovRnnConfigFlagsError(Exception):
+class ImprovRnnConfigError(Exception):
   pass
 
 
@@ -48,10 +48,10 @@ def config_from_flags():
     The appropriate ImprovRnnConfig based on the supplied flags.
 
   Raises:
-     ImprovRnnConfigFlagsError: When an invalid config is supplied.
+     ImprovRnnConfigError: When an invalid config is supplied.
   """
   if FLAGS.config not in improv_rnn_model.default_configs:
-    raise ImprovRnnConfigFlagsError(
+    raise ImprovRnnConfigError(
         '`--config` must be one of %s. Got %s.' % (
             improv_rnn_model.default_configs.keys(), FLAGS.config))
   config = improv_rnn_model.default_configs[FLAGS.config]

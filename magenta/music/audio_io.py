@@ -23,15 +23,15 @@ import scipy
 import six
 
 
-class AudioIOException(BaseException):
+class AudioIOError(BaseException):
   pass
 
 
-class AudioIOReadError(AudioIOException):
+class AudioIOReadError(AudioIOError):
   pass
 
 
-class AudioIODataTypeError(AudioIOException):
+class AudioIODataTypeError(AudioIOError):
   pass
 
 
@@ -66,7 +66,7 @@ def wav_data_to_samples(wav_data, sample_rate):
 
   Raises:
     AudioIOReadError: If scipy is unable to read the WAV data.
-    AudioIOException: If audio processing fails.
+    AudioIOError: If audio processing fails.
   """
   try:
     # Read the wav file, converting sample rate & number of channels.
@@ -81,7 +81,7 @@ def wav_data_to_samples(wav_data, sample_rate):
     # Already float32.
     pass
   else:
-    raise AudioIOException(
+    raise AudioIOError(
         'WAV file not 16-bit or 32-bit float PCM, unsupported')
   try:
     # Convert to mono and the desired sample rate.
@@ -91,7 +91,7 @@ def wav_data_to_samples(wav_data, sample_rate):
     if native_sr != sample_rate:
       y = librosa.resample(y, native_sr, sample_rate)
   except Exception as e:  # pylint: disable=broad-except
-    raise AudioIOException(e)
+    raise AudioIOError(e)
   return y
 
 

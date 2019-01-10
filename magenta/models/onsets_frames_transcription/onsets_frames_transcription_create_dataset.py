@@ -74,7 +74,7 @@ def generate_train_set(exclude_ids):
 
   with tf.python_io.TFRecordWriter(train_output_name) as writer:
     for idx, pair in enumerate(train_file_pairs):
-      print("{} of {}: {}".format(idx, len(train_file_pairs), pair[0]))
+      print('{} of {}: {}'.format(idx, len(train_file_pairs), pair[0]))
       # load the wav data
       wav_data = tf.gfile.Open(pair[0], 'rb').read()
       samples = audio_io.wav_data_to_samples(wav_data, FLAGS.sample_rate)
@@ -124,6 +124,7 @@ def generate_train_set(exclude_ids):
             }))
         writer.write(example.SerializeToString())
 
+
 def generate_test_set():
   """Generate the test TFRecord."""
   test_file_pairs = []
@@ -142,7 +143,7 @@ def generate_test_set():
 
   with tf.python_io.TFRecordWriter(test_output_name) as writer:
     for idx, pair in enumerate(test_file_pairs):
-      print("{} of {}: {}".format(idx, len(test_file_pairs), pair[0]))
+      print('{} of {}: {}'.format(idx, len(test_file_pairs), pair[0]))
       # load the wav data and resample it.
       samples = audio_io.load_audio(pair[0], FLAGS.sample_rate)
       wav_data = audio_io.samples_to_wav_data(samples, FLAGS.sample_rate)

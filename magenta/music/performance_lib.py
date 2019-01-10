@@ -694,11 +694,11 @@ class NotePerformanceError(Exception):
   pass
 
 
-class NotePerformanceTooManyTimeShiftSteps(NotePerformanceError):
+class TooManyTimeShiftStepsError(NotePerformanceError):
   pass
 
 
-class NotePerformanceTooManyDurationSteps(NotePerformanceError):
+class TooManyDurationStepsError(NotePerformanceError):
   pass
 
 
@@ -818,9 +818,9 @@ class NotePerformance(BasePerformance):
       A list of events.
 
     Raises:
-      NotePerformanceTooManyTimeShiftSteps: If the maximum number of time
+      TooManyTimeShiftStepsError: If the maximum number of time
         shift steps is exceeded.
-      NotePerformanceTooManyDurationSteps: If the maximum number of duration
+      TooManyDurationStepsError: If the maximum number of duration
         shift steps is exceeded.
     """
     notes = [note for note in quantized_sequence.notes
@@ -837,7 +837,7 @@ class NotePerformance(BasePerformance):
       # TIME_SHIFT
       time_shift_steps = note.quantized_start_step - current_step
       if time_shift_steps > self._max_shift_steps:
-        raise NotePerformanceTooManyTimeShiftSteps(
+        raise TooManyTimeShiftStepsError(
             'Too many steps for timeshift: %d' % time_shift_steps)
       else:
         sub_events.append(
@@ -859,7 +859,7 @@ class NotePerformance(BasePerformance):
       # DURATION
       duration_steps = note.quantized_end_step - note.quantized_start_step
       if duration_steps > self._max_duration_steps:
-        raise NotePerformanceTooManyDurationSteps(
+        raise TooManyDurationStepsError(
             'Too many steps for duration: %s' % note)
       sub_events.append(
           PerformanceEvent(event_type=PerformanceEvent.DURATION,
@@ -987,10 +987,10 @@ def extract_performances(
         performance = NotePerformance(
             quantized_sequence, start_step=start_step,
             num_velocity_bins=num_velocity_bins, instrument=instrument)
-      except NotePerformanceTooManyTimeShiftSteps:
+      except TooManyTimeShiftStepsError:
         stats['performance_discarded_too_many_time_shift_steps'].increment()
         continue
-      except NotePerformanceTooManyDurationSteps:
+      except TooManyDurationStepsError:
         stats['performance_discarded_too_many_duration_steps'].increment()
         continue
     elif sequences_lib.is_absolute_quantized_sequence(quantized_sequence):
