@@ -17,14 +17,11 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
+from magenta.models.score2perf import modalities
 import numpy as np
-
 from tensor2tensor.layers import common_hparams
 from tensor2tensor.utils import expert_utils
-
 import tensorflow as tf
-
-from magenta.models.score2perf import modalities
 
 
 class ModalitiesTest(tf.test.TestCase):

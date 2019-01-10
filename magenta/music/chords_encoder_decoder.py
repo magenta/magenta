@@ -35,7 +35,7 @@ _PITCH_CLASS_MAPPING = ['C', 'C#', 'D', 'Eb', 'E', 'F',
                         'F#', 'G', 'Ab', 'A', 'Bb', 'B']
 
 
-class ChordEncodingException(Exception):
+class ChordEncodingError(Exception):
   pass
 
 
@@ -68,8 +68,7 @@ class MajorMinorChordOneHotEncoding(encoder_decoder.OneHotEncoding):
     elif quality == chord_symbols_lib.CHORD_QUALITY_MINOR:
       return root + NOTES_PER_OCTAVE + 1
     else:
-      raise ChordEncodingException('chord is neither major nor minor: %s'
-                                   % event)
+      raise ChordEncodingError('chord is neither major nor minor: %s' % event)
 
   def decode_event(self, index):
     if index == 0:
@@ -117,7 +116,7 @@ class TriadChordOneHotEncoding(encoder_decoder.OneHotEncoding):
     elif quality == chord_symbols_lib.CHORD_QUALITY_DIMINISHED:
       return root + 3 * NOTES_PER_OCTAVE + 1
     else:
-      raise ChordEncodingException('chord is not a standard triad: %s' % event)
+      raise ChordEncodingError('chord is not a standard triad: %s' % event)
 
   def decode_event(self, index):
     if index == 0:

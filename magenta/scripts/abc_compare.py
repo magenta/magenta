@@ -28,10 +28,10 @@ import os
 import pdb
 import re
 
-import tensorflow as tf
 from magenta.music import abc_parser
 from magenta.music import midi_io
 from magenta.music import sequences_lib
+import tensorflow as tf
 
 FLAGS = tf.app.flags.FLAGS
 
@@ -40,6 +40,7 @@ tf.app.flags.DEFINE_string('input_dir', None,
 
 
 class CompareDirectory(tf.test.TestCase):
+  """Fake test used to compare directories of abc and midi files."""
 
   def runTest(self):
     pass

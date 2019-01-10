@@ -13,9 +13,8 @@
 # limitations under the License.
 """Provides a class, defaults, and utils for Drums RNN model configuration."""
 
-import tensorflow as tf
-
 from magenta.models.drums_rnn import drums_rnn_model
+import tensorflow as tf
 
 FLAGS = tf.app.flags.FLAGS
 tf.app.flags.DEFINE_string(
@@ -37,7 +36,7 @@ tf.app.flags.DEFINE_string(
     'with the default hyperparameters.')
 
 
-class DrumsRnnConfigFlagsException(Exception):
+class DrumsRnnConfigError(Exception):
   pass
 
 
@@ -48,10 +47,10 @@ def config_from_flags():
     The appropriate DrumsRnnConfig based on the supplied flags.
 
   Raises:
-     DrumsRnnConfigFlagsException: When an invalid config is supplied.
+     DrumsRnnConfigError: When an invalid config is supplied.
   """
   if FLAGS.config not in drums_rnn_model.default_configs:
-    raise DrumsRnnConfigFlagsException(
+    raise DrumsRnnConfigError(
         '`--config` must be one of %s. Got %s.' % (
             drums_rnn_model.default_configs.keys(), FLAGS.config))
   config = drums_rnn_model.default_configs[FLAGS.config]

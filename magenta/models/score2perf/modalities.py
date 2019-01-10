@@ -19,7 +19,6 @@ from __future__ import print_function
 
 from tensor2tensor.layers import common_layers
 from tensor2tensor.utils import modality
-
 import tensorflow as tf
 
 

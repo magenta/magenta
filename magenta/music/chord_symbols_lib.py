@@ -33,7 +33,7 @@ components:
 
 Before doing any other operations, the functions in this file attempt to
 split the chord symbol figure string into these four components; if that
-attempt fails a ChordSymbolException is raised.
+attempt fails a ChordSymbolError is raised.
 
 After that, some operations leave some of the components unexamined, e.g.
 transposition only modifies the root and bass, leaving the chord kind and scale
@@ -53,7 +53,7 @@ CHORD_QUALITY_DIMINISHED = 3
 CHORD_QUALITY_OTHER = 4
 
 
-class ChordSymbolException(Exception):
+class ChordSymbolError(Exception):
   pass
 
 
@@ -215,7 +215,7 @@ _CHORD_KINDS_BY_ABBREV = dict((abbrev, degrees)
 # Function to add a scale degree.
 def _add_scale_degree(degrees, degree, alter):
   if degree in degrees:
-    raise ChordSymbolException('Scale degree already in chord: %d' % degree)
+    raise ChordSymbolError('Scale degree already in chord: %d' % degree)
   if degree == 7:
     alter -= 1
   degrees[degree] = alter
@@ -224,7 +224,7 @@ def _add_scale_degree(degrees, degree, alter):
 # Function to remove a scale degree.
 def _subtract_scale_degree(degrees, degree, unused_alter):
   if degree not in degrees:
-    raise ChordSymbolException('Scale degree not in chord: %d' % degree)
+    raise ChordSymbolError('Scale degree not in chord: %d' % degree)
   del degrees[degree]
 
 
@@ -375,7 +375,7 @@ def _split_chord_symbol(figure):
   """Split a chord symbol into root, kind, degree modifications, and bass."""
   match = _CHORD_SYMBOL_REGEX.match(figure)
   if not match:
-    raise ChordSymbolException('Unable to parse chord symbol: %s' % figure)
+    raise ChordSymbolError('Unable to parse chord symbol: %s' % figure)
   root_str, kind_str, modifications_str, bass_str = match.groups()
   return root_str, kind_str, modifications_str, bass_str
 
@@ -519,7 +519,7 @@ def transpose_chord_symbol(figure, transpose_amount):
     The transposed chord symbol figure string.
 
   Raises:
-    ChordSymbolException: If the given chord symbol cannot be interpreted.
+    ChordSymbolError: If the given chord symbol cannot be interpreted.
   """
   # Split chord symbol into root, kind, modifications, and bass.
   root_str, kind_str, modifications_str, bass_str = _split_chord_symbol(figure)
@@ -574,7 +574,7 @@ def pitches_to_chord_symbol(pitches):
     pitches.
 
   Raises:
-    ChordSymbolException: If no known chord symbol corresponds to the provided
+    ChordSymbolError: If no known chord symbol corresponds to the provided
         pitches.
   """
   if not pitches:
@@ -604,7 +604,7 @@ def pitches_to_chord_symbol(pitches):
         best_degrees = degrees
 
   if best_root is None:
-    raise ChordSymbolException(
+    raise ChordSymbolError(
         'Unable to determine chord symbol from pitches: %s' % str(pitches))
 
   root_str = _pitch_class_to_string(*_transpose_pitch_class('C', 0, best_root))
@@ -642,7 +642,7 @@ def chord_symbol_pitches(figure):
     A python list of integer pitch class values.
 
   Raises:
-    ChordSymbolException: If the given chord symbol cannot be interpreted.
+    ChordSymbolError: If the given chord symbol cannot be interpreted.
   """
   root, degrees, _ = _parse_chord_symbol(figure)
   root_step, root_alter = root
@@ -663,7 +663,7 @@ def chord_symbol_root(figure):
     The pitch class of the chord root, an integer between 0 and 11 inclusive.
 
   Raises:
-    ChordSymbolException: If the given chord symbol cannot be interpreted.
+    ChordSymbolError: If the given chord symbol cannot be interpreted.
   """
   root_str, _, _, _ = _split_chord_symbol(figure)
   root_step, root_alter = _parse_root(root_str)
@@ -680,7 +680,7 @@ def chord_symbol_bass(figure):
     The pitch class of the chord bass, an integer between 0 and 11 inclusive.
 
   Raises:
-    ChordSymbolException: If the given chord symbol cannot be interpreted.
+    ChordSymbolError: If the given chord symbol cannot be interpreted.
   """
   root_str, _, _, bass_str = _split_chord_symbol(figure)
   bass = _parse_bass(bass_str)
@@ -703,7 +703,7 @@ def chord_symbol_quality(figure):
     CHORD_QUALITY_DIMINISHED, or CHORD_QUALITY_OTHER.
 
   Raises:
-    ChordSymbolException: If the given chord symbol cannot be interpreted.
+    ChordSymbolError: If the given chord symbol cannot be interpreted.
   """
   _, degrees, _ = _parse_chord_symbol(figure)
   if 1 not in degrees or 3 not in degrees or 5 not in degrees:

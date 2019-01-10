@@ -33,9 +33,6 @@ These functions are necessary for use with the RL Tuner class.
 
 import os
 
-import numpy as np
-import tensorflow as tf
-
 import magenta
 from magenta.common import sequence_example_lib
 from magenta.models.rl_tuner import rl_tuner_ops
@@ -43,6 +40,8 @@ from magenta.models.shared import events_rnn_graph
 from magenta.music import melodies_lib
 from magenta.music import midi_io
 from magenta.music import sequences_lib
+import numpy as np
+import tensorflow as tf
 
 
 class NoteRNNLoader(object):
@@ -234,9 +233,10 @@ class NoteRNNLoader(object):
 
             outputs_flat = tf.reshape(outputs,
                                       [-1, self.hparams.rnn_layer_sizes[-1]])
-            linear_layer = (tf.contrib.layers.linear
-                            if self.note_rnn_type == 'basic_rnn'
-                            else tf.contrib.layers.legacy_linear)
+            if self.note_rnn_type == 'basic_rnn':
+              linear_layer = tf.contrib.layers.linear
+            else:
+              linear_layer = tf.contrib.layers.legacy_linear
             logits_flat = linear_layer(
                 outputs_flat, self.hparams.one_hot_length)
             return logits_flat, final_state

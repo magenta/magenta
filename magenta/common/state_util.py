@@ -14,7 +14,6 @@
 """Utility functions for working with nested state structures."""
 
 import numpy as np
-
 from tensorflow.python.util import nest as tf_nest
 
 

@@ -13,9 +13,8 @@
 # limitations under the License.
 """Tests for beam search."""
 
-import tensorflow as tf
-
 from magenta.common import beam_search
+import tensorflow as tf
 
 
 class BeamSearchTest(tf.test.TestCase):

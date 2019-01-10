@@ -20,10 +20,9 @@ from __future__ import print_function
 
 import os
 
-import tensorflow as tf
-
 from magenta.models.onsets_frames_transcription import model
 from magenta.models.onsets_frames_transcription import train_util
+import tensorflow as tf
 
 FLAGS = tf.app.flags.FLAGS
 
@@ -79,9 +78,10 @@ def run(hparams, run_dir):
         num_batches=FLAGS.eval_num_batches,
         hparams=hparams)
   elif FLAGS.mode == 'test':
-    checkpoint_path = (os.path.expanduser(FLAGS.checkpoint_path)
-                       if FLAGS.checkpoint_path else
-                       tf.train.latest_checkpoint(train_dir))
+    if FLAGS.checkpoint_path:
+      checkpoint_path = os.path.expanduser(FLAGS.checkpoint_path)
+    else:
+      checkpoint_path = tf.train.latest_checkpoint(train_dir)
     tf.logging.info('Testing with checkpoint: %s', checkpoint_path)
     test_dir = os.path.join(run_dir, 'test')
     train_util.test(

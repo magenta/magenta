@@ -17,11 +17,9 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-
+from magenta.models.image_stylization import vgg
 import numpy as np
 import tensorflow as tf
-
-from magenta.models.image_stylization import vgg
 
 slim = tf.contrib.slim
 
@@ -202,4 +200,3 @@ def gram_matrix(feature_maps):
       feature_maps, tf.stack([batch_size, height * width, channels]))
   matrix = tf.matmul(feature_maps, feature_maps, adjoint_a=True)
   return matrix / denominator
-

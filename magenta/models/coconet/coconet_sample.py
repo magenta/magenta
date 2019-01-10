@@ -3,13 +3,12 @@
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
+
 import itertools as it
 import os
 import re
 import time
-import numpy as np
-import pretty_midi
-import tensorflow as tf
+
 from magenta.models.coconet import lib_graph
 from magenta.models.coconet import lib_logging
 from magenta.models.coconet import lib_mask
@@ -17,6 +16,9 @@ from magenta.models.coconet import lib_pianoroll
 from magenta.models.coconet import lib_sampling
 from magenta.models.coconet import lib_tfsampling
 from magenta.models.coconet import lib_util
+import numpy as np
+import pretty_midi
+import tensorflow as tf
 
 FLAGS = tf.app.flags.FLAGS
 flags = tf.app.flags
@@ -322,6 +324,7 @@ class BaseStrategy(lib_util.Factory):
     return lib_sampling.BaseSampler.make(key, **kwargs)
 
 
+# pylint:disable=missing-docstring
 class HarmonizeMidiMelodyStrategy(BaseStrategy):
   """Harmonizes a midi melody (fname given by FLAGS.prime_midi_melody_fpath)."""
   key = "harmonize_midi_melody"
@@ -606,6 +609,8 @@ class CompleteMidiStrategy(BaseStrategy):
       self.logger.log(
           pianorolls=pianorolls, masks=masks, predictions=pianorolls)
     return pianorolls
+
+# pylint:enable=missing-docstring
 
 
 # ok something else entirely.

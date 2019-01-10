@@ -13,10 +13,9 @@
 # limitations under the License.
 """Tests for pianoroll_encoder_decoder."""
 
+from magenta.music import pianoroll_encoder_decoder
 import numpy as np
 import tensorflow as tf
-
-from magenta.music import pianoroll_encoder_decoder
 
 
 class PianorollEncodingTest(tf.test.TestCase):

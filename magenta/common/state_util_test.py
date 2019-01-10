@@ -13,10 +13,9 @@
 # limitations under the License.
 """Tests for state_util."""
 
+from magenta.common import state_util
 import numpy as np
 import tensorflow as tf
-
-from magenta.common import state_util
 from tensorflow.python.util import nest as tf_nest
 
 

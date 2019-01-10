@@ -13,9 +13,8 @@
 # limitations under the License.
 """Tests for chord_symbols_lib."""
 
-import tensorflow as tf
-
 from magenta.music import chord_symbols_lib
+import tensorflow as tf
 
 CHORD_QUALITY_MAJOR = chord_symbols_lib.CHORD_QUALITY_MAJOR
 CHORD_QUALITY_MINOR = chord_symbols_lib.CHORD_QUALITY_MINOR
@@ -111,7 +110,7 @@ class ChordSymbolFunctionsTest(tf.test.TestCase):
     self.assertEqual('C+7(#9)', figure)
 
     # Test invalid chord.
-    with self.assertRaises(chord_symbols_lib.ChordSymbolException):
+    with self.assertRaises(chord_symbols_lib.ChordSymbolError):
       chord_symbols_lib.pitches_to_chord_symbol(
           [60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71])
 

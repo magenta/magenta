@@ -21,8 +21,8 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-from operator import itemgetter
-from os.path import join
+import operator
+import os
 
 import numpy as np
 from scipy.io import wavfile
@@ -66,18 +66,20 @@ def main(unused_argv):
     sess_gan = tf.Session(graph=graph_gan)
     if use_gaussian_pretrained_model:
       saver_gan = tf.train.import_meta_graph(
-          join(gen_ckpt_dir, '..', 'infer', 'infer.meta'))
-      saver_gan.restore(sess_gan, join(gen_ckpt_dir, 'model.ckpt'))
+          os.path.join(gen_ckpt_dir, '..', 'infer', 'infer.meta'))
+      saver_gan.restore(sess_gan, os.path.join(gen_ckpt_dir, 'model.ckpt'))
     else:
-      saver_gan = tf.train.import_meta_graph(join(gen_ckpt_dir, 'infer.meta'))
-      saver_gan.restore(sess_gan, join(gen_ckpt_dir, 'model.ckpt'))
+      saver_gan = tf.train.import_meta_graph(
+          os.path.join(gen_ckpt_dir, 'infer.meta'))
+      saver_gan.restore(sess_gan, os.path.join(gen_ckpt_dir, 'model.ckpt'))
   # - classifier (inception)
   graph_class = tf.Graph()
   with graph_class.as_default():
     sess_class = tf.Session(graph=graph_class)
     saver_class = tf.train.import_meta_graph(
-        join(inception_ckpt_dir, 'infer.meta'))
-    saver_class.restore(sess_class, join(inception_ckpt_dir, 'best_acc-103005'))
+        os.path.join(inception_ckpt_dir, 'infer.meta'))
+    saver_class.restore(
+        sess_class, os.path.join(inception_ckpt_dir, 'best_acc-103005'))
 
   # Generate: Tensor symbols
   z = graph_gan.get_tensor_by_name('z:0')
@@ -126,22 +128,22 @@ def main(unused_argv):
 
         if len(group_by_label[label]) >= top_per_label * 2:
           # remove unneeded tails
-          group_by_label[label].sort(key=itemgetter(0), reverse=True)
+          group_by_label[label].sort(key=operator.itemgetter(0), reverse=True)
           group_by_label[label] = group_by_label[label][:top_per_label]
 
       if last_min_label_count >= total_per_label:
         break
 
   for label in range(10):
-    group_by_label[label].sort(key=itemgetter(0), reverse=True)
+    group_by_label[label].sort(key=operator.itemgetter(0), reverse=True)
     group_by_label[label] = group_by_label[label][:top_per_label]
 
   # output a few samples as image
-  image_output_dir = join(output_dir, 'sample_iamge')
+  image_output_dir = os.path.join(output_dir, 'sample_iamge')
   tf.gfile.MakeDirs(image_output_dir)
 
   for label in range(10):
-    group_by_label[label].sort(key=itemgetter(0), reverse=True)
+    group_by_label[label].sort(key=operator.itemgetter(0), reverse=True)
     index = 0
     for confidence, (
         _,
@@ -150,7 +152,8 @@ def main(unused_argv):
       output_basename = 'predlabel=%d_index=%02d_confidence=%.6f' % (
           label, index, confidence)
       wavfile.write(
-          filename=join(image_output_dir, output_basename + '_sound.wav'),
+          filename=os.path.join(
+              image_output_dir, output_basename + '_sound.wav'),
           rate=16000,
           data=this_G_z)
 
@@ -167,7 +170,7 @@ def main(unused_argv):
   array_G_z = np.array(array_G_z)
 
   np.savez(
-      join(output_dir, 'data_train.npz'),
+      os.path.join(output_dir, 'data_train.npz'),
       label=array_label,
       z=array_z,
       G_z=array_G_z,

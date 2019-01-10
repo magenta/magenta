@@ -26,15 +26,13 @@ import os
 import re
 
 import librosa
-import numpy as np
-import tensorflow as tf
-
 from magenta.models.onsets_frames_transcription import create_dataset_util
 from magenta.music import audio_io
 from magenta.music import midi_io
 from magenta.music import sequences_lib
 from magenta.protobuf import music_pb2
-
+import numpy as np
+import tensorflow as tf
 
 FLAGS = tf.app.flags.FLAGS
 tf.app.flags.DEFINE_string('input_dir', None,
@@ -76,7 +74,7 @@ def generate_train_set(exclude_ids):
 
   with tf.python_io.TFRecordWriter(train_output_name) as writer:
     for idx, pair in enumerate(train_file_pairs):
-      print("{} of {}: {}".format(idx, len(train_file_pairs), pair[0]))
+      print('{} of {}: {}'.format(idx, len(train_file_pairs), pair[0]))
       # load the wav data
       wav_data = tf.gfile.Open(pair[0], 'rb').read()
       samples = audio_io.wav_data_to_samples(wav_data, FLAGS.sample_rate)
@@ -126,6 +124,7 @@ def generate_train_set(exclude_ids):
             }))
         writer.write(example.SerializeToString())
 
+
 def generate_test_set():
   """Generate the test TFRecord."""
   test_file_pairs = []
@@ -144,7 +143,7 @@ def generate_test_set():
 
   with tf.python_io.TFRecordWriter(test_output_name) as writer:
     for idx, pair in enumerate(test_file_pairs):
-      print("{} of {}: {}".format(idx, len(test_file_pairs), pair[0]))
+      print('{} of {}: {}'.format(idx, len(test_file_pairs), pair[0]))
       # load the wav data and resample it.
       samples = audio_io.load_audio(pair[0], FLAGS.sample_rate)
       wav_data = audio_io.samples_to_wav_data(samples, FLAGS.sample_rate)

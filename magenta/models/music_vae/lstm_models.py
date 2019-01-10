@@ -19,21 +19,19 @@ from __future__ import print_function
 
 import abc
 
-import numpy as np
-import tensorflow as tf
-import tensorflow_probability as tfp
-
 from magenta.common import flatten_maybe_padded_sequences
 from magenta.common import Nade
 from magenta.models.music_vae import base_model
 from magenta.models.music_vae import lstm_utils
-from tensorflow.contrib import rnn
-from tensorflow.contrib import seq2seq
+import numpy as np
+import tensorflow as tf
+import tensorflow_probability as tfp
 from tensorflow.python.framework import tensor_util
 from tensorflow.python.layers import core as layers_core
 from tensorflow.python.util import nest
 
-
+rnn = tf.contrib.rnn
+seq2seq = tf.contrib.seq2seq
 
 # ENCODERS
 
@@ -258,11 +256,11 @@ class HierarchicalLstmEncoder(base_model.BaseEncoder):
     for level, (num_splits, h_encoder) in enumerate(
         self._hierarchical_encoders):
       split_seqs = tf.split(sequence, num_splits, axis=1)
-      # In the first level, we use the input `sequence_lengths`. After that,
+      # In the first level, we use the input `sequence_length`. After that,
       # we use the full embedding sequences.
-      sequence_length = (
-          sequence_length if level == 0 else
-          tf.fill([batch_size, num_splits], split_seqs[0].shape[1]))
+      if level:
+        sequence_length = tf.fill(
+            [batch_size, num_splits], split_seqs[0].shape[1])
       split_lengths = tf.unstack(sequence_length, axis=1)
       embeddings = [
           h_encoder.encode(s, l) for s, l in zip(split_seqs, split_lengths)]
@@ -301,9 +299,12 @@ class BaseLstmDecoder(base_model.BaseDecoder):
     self._dec_cell = lstm_utils.rnn_cell(
         hparams.dec_rnn_size, hparams.dropout_keep_prob,
         hparams.residual_decoder, is_training)
-    self._cudnn_dec_lstm = lstm_utils.cudnn_lstm_layer(
-        hparams.dec_rnn_size, hparams.dropout_keep_prob, is_training,
-        name_or_scope='decoder') if hparams.use_cudnn else None
+    if hparams.use_cudnn:
+      self._cudnn_dec_lstm = lstm_utils.cudnn_lstm_layer(
+          hparams.dec_rnn_size, hparams.dropout_keep_prob, is_training,
+          name_or_scope='decoder')
+    else:
+      self._cudnn_dec_lstm = None
 
   @property
   def state_size(self):
@@ -507,8 +508,8 @@ class BaseLstmDecoder(base_model.BaseDecoder):
       c_input = tf.tile(tf.expand_dims(c_input, 1), [1, n, 1])
 
     # If not given, start with zeros.
-    start_inputs = start_inputs if start_inputs is not None else tf.zeros(
-        [n, self._output_depth], dtype=tf.float32)
+    if start_inputs is None:
+      start_inputs = tf.zeros([n, self._output_depth], dtype=tf.float32)
     # In the conditional case, also concatenate the Z.
     start_inputs = tf.concat([start_inputs, z], axis=-1)
     if c_input is not None:
@@ -589,8 +590,10 @@ class CategoricalLstmDecoder(BaseLstmDecoder):
         or if `c_input` is provided under beam search.
     """
     if beam_width is None:
-      end_fn = (None if end_token is None else
-                lambda x: tf.equal(tf.argmax(x, axis=-1), end_token))
+      if end_token is None:
+        end_fn = None
+      else:
+        end_fn = lambda x: tf.equal(tf.argmax(x, axis=-1), end_token)
       return super(CategoricalLstmDecoder, self).sample(
           n, max_length, z, c_input, temperature, start_inputs, end_fn)
 
@@ -613,10 +616,10 @@ class CategoricalLstmDecoder(BaseLstmDecoder):
 
     # If not given, start with dummy `-1` token and replace with zero vectors in
     # `embedding_fn`.
-    start_tokens = (
-        tf.argmax(start_inputs, axis=-1, output_type=tf.int32)
-        if start_inputs is not None else
-        -1 * tf.ones([n], dtype=tf.int32))
+    if start_inputs is None:
+      start_tokens = -1 * tf.ones([n], dtype=tf.int32)
+    else:
+      start_tokens = tf.argmax(start_inputs, axis=-1, output_type=tf.int32)
 
     initial_state = lstm_utils.initial_cell_state_from_embedding(
         self._dec_cell, z, name='decoder/z_to_initial_state')
@@ -656,9 +659,11 @@ class CategoricalLstmDecoder(BaseLstmDecoder):
     samples = tf.one_hot(final_output.predicted_ids[:, :, 0],
                          self._output_depth)
     # Rebuild the input by combining the inital input with the sampled output.
-    initial_inputs = (
-        tf.zeros([n, 1, self._output_depth]) if start_inputs is None else
-        tf.expand_dims(start_inputs, axis=1))
+    if start_inputs is None:
+      initial_inputs = tf.zeros([n, 1, self._output_depth])
+    else:
+      initial_inputs = tf.expand_dims(start_inputs, axis=1)
+
     rnn_input = tf.concat([initial_inputs, samples[:, :-1]], axis=1)
 
     results = lstm_utils.LstmDecodeResults(
@@ -777,14 +782,18 @@ class SplitMultiOutLstmDecoder(base_model.BaseDecoder):
             zipped_results.final_sequence_lengths, self.hparams.max_seq_len,
             message='Variable length not supported by '
                     'MultiOutCategoricalLstmDecoder.')]):
+      if zipped_results.final_state[0] is None:
+        final_state = None
+      else:
+        final_state = nest.map_structure(
+            lambda x: tf.concat(x, axis=output_axis),
+            zipped_results.final_state)
+
       return lstm_utils.LstmDecodeResults(
           rnn_output=tf.concat(zipped_results.rnn_output, axis=output_axis),
           rnn_input=tf.concat(zipped_results.rnn_input, axis=output_axis),
           samples=tf.concat(zipped_results.samples, axis=output_axis),
-          final_state=(
-              None if zipped_results.final_state[0] is None else
-              nest.map_structure(lambda x: tf.concat(x, axis=output_axis),
-                                 zipped_results.final_state)),
+          final_state=final_state,
           final_sequence_lengths=zipped_results.final_sequence_lengths[0])
 
   def reconstruction_loss(self, x_input, x_target, x_length, z=None,
@@ -832,10 +841,11 @@ class SplitMultiOutLstmDecoder(base_model.BaseDecoder):
           'SplitMultiOutLstmDecoder requires `max_length` be provided during '
           'sampling.')
 
-    split_start_inputs = (
-        tf.split(start_inputs, self._output_depths, axis=-1)
-        if start_inputs is not None
-        else [None] * len(self._output_depths))
+    if start_inputs is None:
+      split_start_inputs = [None] * len(self._output_depths)
+    else:
+      split_start_inputs = tf.split(start_inputs, self._output_depths, axis=-1)
+
     sample_results = []
     for i, cd in enumerate(self._core_decoders):
       with tf.variable_scope('core_decoder_%d' % i):
@@ -945,9 +955,10 @@ class HierarchicalLstmDecoder(base_model.BaseDecoder):
       ValueError: If `hierarchical_encoder` is given but has incompatible level
         lengths.
     """
-    if disable_autoregression is True:
+    # Check for explicit True/False since lists may be given.
+    if disable_autoregression is True:  # pylint:disable=g-bool-id-comparison
       disable_autoregression = range(len(level_lengths))
-    elif disable_autoregression is False:
+    elif disable_autoregression is False:  # pylint:disable=g-bool-id-comparison
       disable_autoregression = []
     if (hierarchical_encoder and
         (tuple(hierarchical_encoder.level_lengths[-1::-1]) !=
@@ -995,11 +1006,15 @@ class HierarchicalLstmDecoder(base_model.BaseDecoder):
     assert decode_results
     time_axis = 1
     zipped_results = lstm_utils.LstmDecodeResults(*zip(*decode_results))
+    if zipped_results.rnn_output[0] is None:
+      rnn_output = None
+      rnn_input = None
+    else:
+      rnn_output = tf.concat(zipped_results.rnn_output, axis=time_axis)
+      rnn_input = tf.concat(zipped_results.rnn_input, axis=time_axis)
     return lstm_utils.LstmDecodeResults(
-        rnn_output=(None if zipped_results.rnn_output[0] is None else
-                    tf.concat(zipped_results.rnn_output, axis=time_axis)),
-        rnn_input=(None if zipped_results.rnn_input[0] is None else
-                   tf.concat(zipped_results.rnn_input, axis=time_axis)),
+        rnn_output=rnn_output,
+        rnn_input=rnn_input,
         samples=tf.concat(zipped_results.samples, axis=time_axis),
         final_state=zipped_results.final_state[-1],
         final_sequence_lengths=tf.stack(
@@ -1122,8 +1137,8 @@ class HierarchicalLstmDecoder(base_model.BaseDecoder):
     hier_input = self._reshape_to_hierarchy(x_input)
     hier_target = self._reshape_to_hierarchy(x_target)
     hier_length = self._reshape_to_hierarchy(x_length)
-    hier_control = (self._reshape_to_hierarchy(c_input)
-                    if c_input is not None else None)
+    hier_control = (
+        self._reshape_to_hierarchy(c_input) if c_input is not None else None)
 
     loss_outputs = []
 
@@ -1133,8 +1148,8 @@ class HierarchicalLstmDecoder(base_model.BaseDecoder):
       split_input = hier_input[hier_index]
       split_target = hier_target[hier_index]
       split_length = hier_length[hier_index]
-      split_control = (hier_control[hier_index]
-                       if hier_control is not None else None)
+      split_control = (
+          hier_control[hier_index] if hier_control is not None else None)
 
       res = self._core_decoder.reconstruction_loss(
           split_input, split_target, split_length, embedding, split_control)

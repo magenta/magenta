@@ -2,12 +2,14 @@
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
+
 import time
+
+from magenta.models.coconet import lib_tfutil
+from magenta.models.coconet import lib_util
 import numpy as np
 from scipy.misc import logsumexp
 import tensorflow as tf
-from magenta.models.coconet import lib_tfutil
-from magenta.models.coconet import lib_util
 
 
 def evaluate(evaluator, pianorolls):
@@ -141,9 +143,10 @@ class BaseEvaluator(lib_util.Factory):
     # inconveniently NaN if both x and log(px) are zero, we can use
     # where(x, log(px), 0).
     assert np.array_equal(x, x.astype(bool))
-    index = ((np.arange(x.shape[0]), t, slice(None), d)
-             if self.separate_instruments else (np.arange(x.shape[0]), t, d,
-                                                slice(None)))
+    if self.separate_instruments:
+      index = (np.arange(x.shape[0]), t, slice(None), d)
+    else:
+      index = (np.arange(x.shape[0]), t, d, slice(None))
     lls[t, d] = np.log(np.where(x[index], pxhat[index], 1)).sum(axis=1)
 
 

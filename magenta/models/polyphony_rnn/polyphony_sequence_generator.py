@@ -16,13 +16,11 @@
 import copy
 import functools
 
-import tensorflow as tf
-
 from magenta.models.polyphony_rnn import polyphony_lib
 from magenta.models.polyphony_rnn import polyphony_model
 from magenta.models.polyphony_rnn.polyphony_lib import PolyphonicEvent
-
 import magenta.music as mm
+import tensorflow as tf
 
 
 class PolyphonyRnnSequenceGenerator(mm.BaseSequenceGenerator):
@@ -48,11 +46,11 @@ class PolyphonyRnnSequenceGenerator(mm.BaseSequenceGenerator):
 
   def _generate(self, input_sequence, generator_options):
     if len(generator_options.input_sections) > 1:
-      raise mm.SequenceGeneratorException(
+      raise mm.SequenceGeneratorError(
           'This model supports at most one input_sections message, but got %s' %
           len(generator_options.input_sections))
     if len(generator_options.generate_sections) != 1:
-      raise mm.SequenceGeneratorException(
+      raise mm.SequenceGeneratorError(
           'This model supports only 1 generate_sections message, but got %s' %
           len(generator_options.generate_sections))
 
@@ -76,10 +74,13 @@ class PolyphonyRnnSequenceGenerator(mm.BaseSequenceGenerator):
       primer_sequence = input_sequence
       input_start_step = 0
 
-    last_end_time = (max(n.end_time for n in primer_sequence.notes)
-                     if primer_sequence.notes else 0)
+    if primer_sequence.notes:
+      last_end_time = max(n.end_time for n in primer_sequence.notes)
+    else:
+      last_end_time = 0
+
     if last_end_time > generate_section.start_time:
-      raise mm.SequenceGeneratorException(
+      raise mm.SequenceGeneratorError(
           'Got GenerateSection request for section that is before or equal to '
           'the end of the NoteSequence. This model can only extend sequences. '
           'Requested start time: %s, Final note end time: %s' %

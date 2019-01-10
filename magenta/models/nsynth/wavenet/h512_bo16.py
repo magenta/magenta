@@ -17,11 +17,11 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-from six.moves import range  # pylint: disable=redefined-builtin
-import tensorflow as tf
 from magenta.models.nsynth import reader
 from magenta.models.nsynth import utils
 from magenta.models.nsynth.wavenet import masked
+from six.moves import range  # pylint: disable=redefined-builtin
+import tensorflow as tf
 
 
 class FastGenerationConfig(object):

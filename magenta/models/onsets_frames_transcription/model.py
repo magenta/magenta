@@ -18,13 +18,11 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-from . import constants
-
-import tensorflow as tf
-import tensorflow.contrib.slim as slim
-
 from magenta.common import flatten_maybe_padded_sequences
 from magenta.common import tf_utils
+from magenta.models.onsets_frames_transcription import constants
+import tensorflow as tf
+import tensorflow.contrib.slim as slim
 
 
 def conv_net_kelz(inputs):
@@ -164,12 +162,11 @@ def get_model(transcription_data, hparams, is_training=True):
             activation_fn=tf.sigmoid,
             scope='activation_probs')
 
-      combined_probs = tf.concat([
-          tf.stop_gradient(onset_probs)
-          if hparams.stop_onset_gradient else onset_probs,
-          tf.stop_gradient(activation_probs)
-          if hparams.stop_activation_gradient else activation_probs
-      ], 2)
+      if hparams.stop_onset_gradient:
+        onset_probs = tf.stop_gradient(onset_probs)
+      if hparams.stop_activation_gradient:
+        activation_probs = tf.stop_gradient(activation_probs)
+      combined_probs = tf.concat([onset_probs, activation_probs], 2)
 
       if hparams.combined_lstm_units > 0:
         rnn_cell_fw = tf.contrib.rnn.LSTMBlockCell(hparams.combined_lstm_units)
@@ -196,11 +193,15 @@ def get_model(transcription_data, hparams, is_training=True):
     tf.identity(frame_probs_flat, name='frame_probs_flat')
     frame_label_weights_flat = flatten_maybe_padded_sequences(
         frame_label_weights, lengths)
+    if hparams.weight_frame_and_activation_loss:
+      weights = frame_label_weights_flat
+    else:
+      weights = None
+
     frame_losses = tf_utils.log_loss(
         frame_labels_flat,
         frame_probs_flat,
-        weights=frame_label_weights_flat
-        if hparams.weight_frame_and_activation_loss else None)
+        weights=weights)
     tf.losses.add_loss(tf.reduce_mean(frame_losses))
     losses['frame'] = frame_losses
 
@@ -208,8 +209,7 @@ def get_model(transcription_data, hparams, is_training=True):
       activation_losses = tf_utils.log_loss(
           frame_labels_flat,
           flatten_maybe_padded_sequences(activation_probs, lengths),
-          weights=frame_label_weights_flat
-          if hparams.weight_frame_and_activation_loss else None)
+          weights=weights)
       tf.losses.add_loss(tf.reduce_mean(activation_losses))
       losses['activation'] = activation_losses
 

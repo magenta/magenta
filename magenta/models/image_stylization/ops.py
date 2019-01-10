@@ -301,4 +301,3 @@ def conditional_style_norm(inputs,
       outputs = activation_fn(outputs)
     return slim.utils.collect_named_outputs(outputs_collections,
                                             sc.original_name_scope, outputs)
-

@@ -18,11 +18,10 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-import numpy as np
-import tensorflow as tf
-
 from magenta.models.onsets_frames_transcription import create_dataset_util
 from magenta.protobuf import music_pb2
+import numpy as np
+import tensorflow as tf
 
 
 class CreateDatasetTest(tf.test.TestCase):

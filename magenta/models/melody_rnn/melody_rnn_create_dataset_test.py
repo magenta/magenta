@@ -13,15 +13,13 @@
 # limitations under the License.
 """Tests for melody_rnn_create_dataset."""
 
-import tensorflow as tf
 import magenta
-
 from magenta.models.melody_rnn import melody_rnn_model
 from magenta.models.melody_rnn import melody_rnn_pipeline
 from magenta.pipelines import melody_pipelines
 from magenta.pipelines import note_sequence_pipelines
 from magenta.protobuf import music_pb2
-
+import tensorflow as tf
 
 FLAGS = tf.app.flags.FLAGS
 

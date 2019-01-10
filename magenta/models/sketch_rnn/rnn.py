@@ -168,7 +168,7 @@ def layer_norm(x,
   var = tf.reduce_mean(tf.square(x_shifted), axes, keep_dims=True)
   inv_std = tf.rsqrt(var + epsilon)
   with tf.variable_scope(scope):
-    if reuse is True:
+    if reuse:
       tf.get_variable_scope().reuse_variables()
     gamma = tf.get_variable(
         'ln_gamma', [num_units],
@@ -203,7 +203,7 @@ def super_linear(x,
   """Performs linear operation. Uses ortho init defined earlier."""
   shape = x.get_shape().as_list()
   with tf.variable_scope(scope or 'linear'):
-    if reuse is True:
+    if reuse:
       tf.get_variable_scope().reuse_variables()
 
     w_init = None  # uniform

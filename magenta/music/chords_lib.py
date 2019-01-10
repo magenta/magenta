@@ -27,15 +27,13 @@ from __future__ import print_function
 import abc
 import copy
 
-from six.moves import range  # pylint: disable=redefined-builtin
-
 from magenta.music import chord_symbols_lib
 from magenta.music import constants
 from magenta.music import events_lib
 from magenta.music import sequences_lib
 from magenta.pipelines import statistics
 from magenta.protobuf import music_pb2
-
+from six.moves import range  # pylint: disable=redefined-builtin
 
 STANDARD_PPQ = constants.STANDARD_PPQ
 NOTES_PER_OCTAVE = constants.NOTES_PER_OCTAVE
@@ -45,11 +43,11 @@ NO_CHORD = constants.NO_CHORD
 CHORD_SYMBOL = music_pb2.NoteSequence.TextAnnotation.CHORD_SYMBOL
 
 
-class CoincidentChordsException(Exception):
+class CoincidentChordsError(Exception):
   pass
 
 
-class BadChordException(Exception):
+class BadChordError(Exception):
   pass
 
 
@@ -104,10 +102,10 @@ class ChordProgression(events_lib.SimpleEventSequence):
           `start_step`.
 
     Raises:
-      BadChordException: If `start_step` does not precede `end_step`.
+      BadChordError: If `start_step` does not precede `end_step`.
     """
     if start_step >= end_step:
-      raise BadChordException(
+      raise BadChordError(
           'Start step does not precede end step: start=%d, end=%d' %
           (start_step, end_step))
 
@@ -131,10 +129,10 @@ class ChordProgression(events_lib.SimpleEventSequence):
       end_step: Stop populating chords at this time step.
 
     Raises:
-      NonIntegerStepsPerBarException: If `quantized_sequence`'s bar length
+      NonIntegerStepsPerBarError: If `quantized_sequence`'s bar length
           (derived from its time signature) is not an integer number of time
           steps.
-      CoincidentChordsException: If any of the chords start on the same step.
+      CoincidentChordsError: If any of the chords start on the same step.
     """
     sequences_lib.assert_is_relative_quantized_sequence(quantized_sequence)
     self._reset()
@@ -142,7 +140,7 @@ class ChordProgression(events_lib.SimpleEventSequence):
     steps_per_bar_float = sequences_lib.steps_per_bar_in_quantized_sequence(
         quantized_sequence)
     if steps_per_bar_float % 1 != 0:
-      raise events_lib.NonIntegerStepsPerBarException(
+      raise events_lib.NonIntegerStepsPerBarError(
           'There are %f timesteps per bar. Time signature: %d/%d' %
           (steps_per_bar_float, quantized_sequence.time_signature.numerator,
            quantized_sequence.time_signature.denominator))
@@ -176,8 +174,8 @@ class ChordProgression(events_lib.SimpleEventSequence):
         else:
           # Two different chords start at the same time step.
           self._reset()
-          raise CoincidentChordsException('chords %s and %s are coincident' %
-                                          (prev_figure, chord.text))
+          raise CoincidentChordsError(
+              'chords %s and %s are coincident' % (prev_figure, chord.text))
 
       if chord.quantized_step > start_step:
         # Add the previous chord.
@@ -245,7 +243,7 @@ class ChordProgression(events_lib.SimpleEventSequence):
           transpose down.
 
     Raises:
-      ChordSymbolException: If a chord (other than "no chord") fails to be
+      ChordSymbolError: If a chord (other than "no chord") fails to be
           interpreted by the `chord_symbols_lib` module.
     """
     for i in range(len(self._events)):
@@ -322,7 +320,7 @@ def extract_chords_for_melodies(quantized_sequence, melodies):
       chords = ChordProgression()
       chords.from_quantized_sequence(
           quantized_sequence, melody.start_step, melody.end_step)
-    except CoincidentChordsException:
+    except CoincidentChordsError:
       stats['coincident_chords'].increment()
       chords = None
     chord_progressions.append(chords)
@@ -436,6 +434,7 @@ class BasicChordRenderer(ChordRenderer):
     self._bass_octave = bass_octave
 
   def _render_notes(self, sequence, pitches, bass_pitch, start_time, end_time):
+    """Renders notes."""
     all_pitches = []
     for pitch in pitches:
       all_pitches.append(12 * self._octave + pitch % 12)

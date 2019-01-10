@@ -21,7 +21,6 @@ import collections
 import copy
 import heapq
 
-
 # A beam entry containing a) the current sequence, b) a "state" containing any
 # information needed to extend the sequence, and c) a score for the current
 # sequence e.g. log-likelihood.

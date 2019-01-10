@@ -13,12 +13,11 @@
 # limitations under the License.
 """RNN-NADE model."""
 
-import tensorflow as tf
-
 import magenta
 from magenta.models.pianoroll_rnn_nade import pianoroll_rnn_nade_graph
 from magenta.models.shared import events_rnn_model
 import magenta.music as mm
+import tensorflow as tf
 
 
 class PianorollRnnNadeModel(events_rnn_model.EventSequenceRnnModel):

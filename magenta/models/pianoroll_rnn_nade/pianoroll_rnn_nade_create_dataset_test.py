@@ -13,15 +13,12 @@
 # limitations under the License.
 """Tests for pianoroll_rnn_nade_create_dataset."""
 
-import tensorflow as tf
-
 import magenta
-
 from magenta.models.pianoroll_rnn_nade import pianoroll_rnn_nade_pipeline
 from magenta.models.shared import events_rnn_model
 import magenta.music as mm
 from magenta.protobuf import music_pb2
-
+import tensorflow as tf
 
 FLAGS = tf.app.flags.FLAGS
 

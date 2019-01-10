@@ -16,14 +16,13 @@
 from __future__ import division
 
 import ast
-from functools import partial
+import functools
 import math
-
-import tensorflow as tf
 
 from magenta.models.performance_rnn import performance_model
 import magenta.music as mm
 from magenta.music import performance_controls
+import tensorflow as tf
 
 # This model can leave hanging notes. To avoid cacophony we turn off any note
 # after 5 seconds.
@@ -80,11 +79,11 @@ class PerformanceRnnSequenceGenerator(mm.BaseSequenceGenerator):
 
   def _generate(self, input_sequence, generator_options):
     if len(generator_options.input_sections) > 1:
-      raise mm.SequenceGeneratorException(
+      raise mm.SequenceGeneratorError(
           'This model supports at most one input_sections message, but got %s' %
           len(generator_options.input_sections))
     if len(generator_options.generate_sections) != 1:
-      raise mm.SequenceGeneratorException(
+      raise mm.SequenceGeneratorError(
           'This model supports only 1 generate_sections message, but got %s' %
           len(generator_options.generate_sections))
 
@@ -98,11 +97,12 @@ class PerformanceRnnSequenceGenerator(mm.BaseSequenceGenerator):
     else:
       primer_sequence = input_sequence
       input_start_step = 0
-
-    last_end_time = (max(n.end_time for n in primer_sequence.notes)
-                     if primer_sequence.notes else 0)
+    if primer_sequence.notes:
+      last_end_time = max(n.end_time for n in primer_sequence.notes)
+    else:
+      last_end_time = 0
     if last_end_time > generate_section.start_time:
-      raise mm.SequenceGeneratorException(
+      raise mm.SequenceGeneratorError(
           'Got GenerateSection request for section that is before or equal to '
           'the end of the NoteSequence. This model can only extend sequences. '
           'Requested start time: %s, Final note end time: %s' %
@@ -190,23 +190,25 @@ class PerformanceRnnSequenceGenerator(mm.BaseSequenceGenerator):
     total_steps = performance.num_steps + (
         generate_end_step - generate_start_step)
 
-    mean_note_density = (
-        sum(args['notes_per_second']) / len(args['notes_per_second'])
-        if 'notes_per_second' in args else DEFAULT_NOTE_DENSITY)
+    if 'notes_per_second' in args:
+      mean_note_density = (
+          sum(args['notes_per_second']) / len(args['notes_per_second']))
+    else:
+      mean_note_density = DEFAULT_NOTE_DENSITY
 
     # Set up functions that map generation step to control signal values and
     # disable conditioning flag.
     if self.control_signals:
       control_signal_fns = []
       for control in self.control_signals:
-        control_signal_fns.append(partial(
+        control_signal_fns.append(functools.partial(
             _step_to_value,
             num_steps=total_steps,
             values=args[control.name]))
         del args[control.name]
       args['control_signal_fns'] = control_signal_fns
     if self.optional_conditioning:
-      args['disable_conditioning_fn'] = partial(
+      args['disable_conditioning_fn'] = functools.partial(
           _step_to_value,
           num_steps=total_steps,
           values=args['disable_conditioning'])
@@ -272,5 +274,5 @@ def get_generator_map():
         note_performance=config.note_performance,
         **kwargs)
 
-  return {key: partial(create_sequence_generator, config)
+  return {key: functools.partial(create_sequence_generator, config)
           for (key, config) in performance_model.default_configs.items()}

@@ -1,19 +1,18 @@
 """A module for interfacing with the MIDI environment."""
 
+# TODO(adarob): Use flattened imports.
+
 import abc
-from collections import defaultdict
-from collections import deque
+import collections
 import re
 import threading
 import time
 
+from magenta.common import concurrency
+from magenta.protobuf import music_pb2
 import mido
 from six.moves import queue as Queue
 import tensorflow as tf
-
-# TODO(adarob): Use flattened imports.
-from magenta.common import concurrency
-from magenta.protobuf import music_pb2
 
 _DEFAULT_METRONOME_TICK_DURATION = 0.05
 _DEFAULT_METRONOME_PROGRAM = 117  # Melodic Tom
@@ -37,7 +36,7 @@ except ImportError:
   tf.logging.warn('Could not import RtMidi. Virtual ports are disabled.')
 
 
-class MidiHubException(Exception):
+class MidiHubError(Exception):  # pylint:disable=g-bad-exception-name
   """Base class for exceptions in this module."""
   pass
 
@@ -84,7 +83,7 @@ class MidiSignal(object):
         treated as wildcards.
 
   Raises:
-    MidiHubException: If the message type is unsupported or the arguments are
+    MidiHubError: If the message type is unsupported or the arguments are
         not in the valid set for the given or inferred type.
   """
   _NOTE_ARGS = set(['type', 'note', 'program_number', 'velocity'])
@@ -97,7 +96,7 @@ class MidiSignal(object):
 
   def __init__(self, msg=None, **kwargs):
     if msg is not None and kwargs:
-      raise MidiHubException(
+      raise MidiHubError(
           'Either a mido.Message should be provided or arguments. Not both.')
 
     type_ = msg.type if msg is not None else kwargs.get('type')
@@ -105,7 +104,7 @@ class MidiSignal(object):
       del kwargs['type']
 
     if type_ is not None and type_ not in self._VALID_ARGS:
-      raise MidiHubException(
+      raise MidiHubError(
           "The type of a MidiSignal must be either 'note_on', 'note_off', "
           "'control_change' or None for wildcard matching. Got '%s'." % type_)
 
@@ -117,7 +116,7 @@ class MidiSignal(object):
       if type_ is not None:
         for arg_name in kwargs:
           if arg_name not in self._VALID_ARGS[type_]:
-            raise MidiHubException(
+            raise MidiHubError(
                 "Invalid argument for type '%s': %s" % (type_, arg_name))
       else:
         if kwargs:
@@ -125,7 +124,7 @@ class MidiSignal(object):
             if set(kwargs) <= args:
               inferred_types.append(name)
         if not inferred_types:
-          raise MidiHubException(
+          raise MidiHubError(
               'Could not infer a message type for set of given arguments: %s'
               % ', '.join(kwargs))
         # If there is only a single valid inferred type, use it.
@@ -142,7 +141,7 @@ class MidiSignal(object):
     if self._msg:
       return self._msg
     if not self._type:
-      raise MidiHubException('Cannot build message if type is not inferrable.')
+      raise MidiHubError('Cannot build message if type is not inferrable.')
     return mido.Message(self._type, **self._kwargs)
 
   def __str__(self):
@@ -217,8 +216,10 @@ class Metronome(threading.Thread):
     self._period = 60. / qpm
     self._start_time = start_time
     self._stop_time = stop_time
-    self._messages = (_DEFAULT_METRONOME_MESSAGES if signals is None else
-                      [s.to_message() if s else None for s in signals])
+    if signals is None:
+      self._messages = _DEFAULT_METRONOME_MESSAGES
+    else:
+      self._messages = [s.to_message() if s else None for s in signals]
     self._duration = duration
 
   def run(self):
@@ -296,7 +297,7 @@ class MidiPlayer(threading.Thread):
     # A control variable to signal when the sequence has been updated.
     self._update_cv = threading.Condition(self._lock)
     # The queue of mido.Message objects to send, sorted by ascending time.
-    self._message_queue = deque()
+    self._message_queue = collections.deque()
     # An event that is set when `stop` has been called.
     self._stop_signal = threading.Event()
 
@@ -322,13 +323,13 @@ class MidiPlayer(threading.Thread):
       start_time: The float time before which to strip events. Defaults to call
           time.
     Raises:
-      MidiHubException: If called when _allow_updates is False.
+      MidiHubError: If called when _allow_updates is False.
     """
     if start_time is None:
       start_time = time.time()
 
     if not self._allow_updates:
-      raise MidiHubException(
+      raise MidiHubError(
           'Attempted to update a MidiPlayer sequence with updates disabled.')
 
     new_message_list = []
@@ -361,7 +362,7 @@ class MidiPlayer(threading.Thread):
       msg.channel = self._channel
       msg.time += self._offset
 
-    self._message_queue = deque(
+    self._message_queue = collections.deque(
         sorted(new_message_list, key=lambda msg: (msg.time, msg.note)))
     self._update_cv.notify()
 
@@ -485,10 +486,10 @@ class MidiCaptor(threading.Thread):
            time attribute is assumed to be pre-set with the wall time when the
            message was received.
     Raises:
-      MidiHubException: When the received message has an empty time attribute.
+      MidiHubError: When the received message has an empty time attribute.
     """
     if not msg.time:
-      raise MidiHubException(
+      raise MidiHubError(
           'MidiCaptor received message with empty time attribute: %s' % msg)
     self._receive_queue.put(msg)
 
@@ -565,12 +566,12 @@ class MidiCaptor(threading.Thread):
          sequence will be truncated appropriately.
       block: If True, blocks until the thread terminates.
     Raises:
-      MidiHubException: When called multiple times with a `stop_time`.
+      MidiHubError: When called multiple times with a `stop_time`.
     """
     with self._lock:
       if self._stop_signal.is_set():
         if stop_time is not None:
-          raise MidiHubException(
+          raise MidiHubError(
               '`stop` must not be called multiple times with a `stop_time` on '
               'MidiCaptor.')
       else:
@@ -599,7 +600,7 @@ class MidiCaptor(threading.Thread):
       at and later notes removed or truncated to `end_time`.
 
     Raises:
-      MidiHubException: When the thread is alive and `end_time` is None or the
+      MidiHubError: When the thread is alive and `end_time` is None or the
          thread is terminated and `end_time` is not None.
     """
     # Make a copy of the sequence currently being captured.
@@ -609,7 +610,7 @@ class MidiCaptor(threading.Thread):
 
     if self.is_alive():
       if end_time is None:
-        raise MidiHubException(
+        raise MidiHubError(
             '`end_time` must be provided when capture thread is still running.')
       for i, note in enumerate(current_captured_sequence.notes):
         if note.start_time >= end_time:
@@ -619,7 +620,7 @@ class MidiCaptor(threading.Thread):
           note.end_time = end_time
       current_captured_sequence.total_time = end_time
     elif end_time is not None:
-      raise MidiHubException(
+      raise MidiHubError(
           '`end_time` must not be provided when capture is complete.')
 
     return current_captured_sequence
@@ -642,10 +643,10 @@ class MidiCaptor(threading.Thread):
       The captured NoteSequence at event time.
 
     Raises:
-      MidiHubException: If neither `signal` nor `period` or both are specified.
+      MidiHubError: If neither `signal` nor `period` or both are specified.
     """
     if (signal, period).count(None) != 1:
-      raise MidiHubException(
+      raise MidiHubError(
           'Exactly one of `signal` or `period` must be provided to `iterate` '
           'call.')
 
@@ -712,7 +713,7 @@ class MidiCaptor(threading.Thread):
       The unqiue name of the callback thread to enable cancellation.
 
     Raises:
-      MidiHubException: If neither `signal` nor `period` or both are specified.
+      MidiHubError: If neither `signal` nor `period` or both are specified.
     """
 
     class IteratorCallback(threading.Thread):
@@ -874,7 +875,7 @@ class MidiHub(object):
     # A dictionary mapping a compiled MidiSignal regex to a list of functions
     # that will be called with the triggering message in individual threads when
     # a matching message is received.
-    self._callbacks = defaultdict(list)
+    self._callbacks = collections.defaultdict(list)
     # A dictionary mapping integer control numbers to most recently-received
     # integer value.
     self._control_values = {}
@@ -1034,9 +1035,10 @@ class MidiHub(object):
     Returns:
       The MidiCaptor thread.
     """
-    captor_class = (MonophonicMidiCaptor if
-                    self._texture_type == TextureType.MONOPHONIC else
-                    PolyphonicMidiCaptor)
+    if self._texture_type == TextureType.MONOPHONIC:
+      captor_class = MonophonicMidiCaptor
+    else:
+      captor_class = PolyphonicMidiCaptor
     captor = captor_class(qpm, start_time, stop_time, stop_signal)
     with self._lock:
       self._captors.append(captor)
@@ -1061,10 +1063,10 @@ class MidiHub(object):
     Returns:
       The captured NoteSequence proto.
     Raises:
-      MidiHubException: When neither `stop_time` nor `stop_signal` are provided.
+      MidiHubError: When neither `stop_time` nor `stop_signal` are provided.
     """
     if stop_time is None and stop_signal is None:
-      raise MidiHubException(
+      raise MidiHubError(
           'At least one of `stop_time` and `stop_signal` must be provided to '
           '`capture_sequence` call.')
     captor = self.start_capture(qpm, start_time, stop_time, stop_signal)
@@ -1083,10 +1085,10 @@ class MidiHub(object):
       timeout: A float timeout in seconds, or None.
 
     Raises:
-      MidiHubException: If neither `signal` nor `timeout` or both are specified.
+      MidiHubError: If neither `signal` nor `timeout` or both are specified.
     """
     if (signal, timeout).count(None) != 1:
-      raise MidiHubException(
+      raise MidiHubError(
           'Exactly one of `signal` or `timeout` must be provided to '
           '`wait_for_event` call.')
 

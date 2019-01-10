@@ -19,13 +19,11 @@ from __future__ import print_function
 
 import copy
 
-import tensorflow as tf
-
 from magenta.models.music_vae import data_hierarchical
-
 import magenta.music as mm
 from magenta.music import testing_lib
 from magenta.protobuf import music_pb2
+import tensorflow as tf
 
 
 class MultiInstrumentPerformanceConverterTest(tf.test.TestCase):

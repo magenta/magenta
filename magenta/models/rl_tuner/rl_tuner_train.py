@@ -21,16 +21,17 @@ python magenta/models/rl_tuner/rl_tuner_train.py \
 """
 import os
 
+from magenta.models.rl_tuner import rl_tuner
+from magenta.models.rl_tuner import rl_tuner_ops
 import matplotlib
+import matplotlib.pyplot as plt  # pylint: disable=unused-import
+import tensorflow as tf
+
 # Need to use 'Agg' option for plotting and saving files from command line.
 # Can't use 'Agg' in RL Tuner because it breaks plotting in notebooks.
 # pylint: disable=g-import-not-at-top,wrong-import-position
 matplotlib.use('Agg')
-import matplotlib.pyplot as plt  # pylint: disable=unused-import
-import tensorflow as tf
 
-from magenta.models.rl_tuner import rl_tuner
-from magenta.models.rl_tuner import rl_tuner_ops
 # pylint: enable=g-import-not-at-top,wrong-import-position
 
 
@@ -80,9 +81,10 @@ tf.app.flags.DEFINE_string('algorithm', 'q',
 
 
 def main(_):
-  hparams = (rl_tuner_ops.basic_rnn_hparams()
-             if FLAGS.note_rnn_type == 'basic_rnn'
-             else rl_tuner_ops.default_hparams())
+  if FLAGS.note_rnn_type == 'basic_rnn':
+    hparams = rl_tuner_ops.basic_rnn_hparams()
+  else:
+    hparams = rl_tuner_ops.default_hparams()
 
   dqn_hparams = tf.contrib.training.HParams(random_action_probability=0.1,
                                             store_every_nth=1,

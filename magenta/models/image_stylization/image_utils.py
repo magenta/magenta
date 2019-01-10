@@ -21,16 +21,13 @@ import io
 import os
 import tempfile
 
-
+from magenta.models.image_stylization import imagenet_data
 import numpy as np
 import scipy
 import scipy.misc
 import tensorflow as tf
-
-from magenta.models.image_stylization import imagenet_data
 from tensorflow.python.framework import dtypes
 from tensorflow.python.ops import random_ops
-
 
 slim = tf.contrib.slim
 
@@ -765,4 +762,3 @@ def resize_image(image, image_size):
   image = tf.to_float(image) / 255.0
 
   return tf.expand_dims(image, 0)
-

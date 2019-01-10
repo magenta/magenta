@@ -13,8 +13,6 @@
 # limitations under the License.
 """Tests for melody_pipelines."""
 
-import tensorflow as tf
-
 from magenta.common import testing_lib as common_testing_lib
 from magenta.music import constants
 from magenta.music import melodies_lib
@@ -22,7 +20,7 @@ from magenta.music import sequences_lib
 from magenta.music import testing_lib
 from magenta.pipelines import melody_pipelines
 from magenta.protobuf import music_pb2
-
+import tensorflow as tf
 
 NOTE_OFF = constants.MELODY_NOTE_OFF
 NO_EVENT = constants.MELODY_NO_EVENT

@@ -30,18 +30,16 @@ import functools
 import os
 import wave
 
-from . import constants
-
 import librosa
-import numpy as np
-import six
-import tensorflow as tf
-import tensorflow.contrib.slim as slim
-
+from magenta.models.onsets_frames_transcription import constants
 import magenta.music as mm
 from magenta.music import audio_io
 from magenta.music import sequences_lib
 from magenta.protobuf import music_pb2
+import numpy as np
+import six
+import tensorflow as tf
+import tensorflow.contrib.slim as slim
 
 BATCH_QUEUE_CAPACITY_SEQUENCES = 50
 
@@ -388,8 +386,8 @@ def _provide_data(input_tensors, truncated_length, hparams):
   velocities = tf.reshape(velocities, (-1, constants.MIDI_PITCHES))
   spec = tf.reshape(spec, (-1, hparams_frame_size(hparams)))
 
-  truncated_length = (tf.reduce_min([truncated_length, length])
-                      if truncated_length else length)
+  truncated_length = (
+      tf.reduce_min([truncated_length, length]) if truncated_length else length)
 
   # Pad or slice specs and labels tensors to have the same lengths,
   # truncating after truncated_length.

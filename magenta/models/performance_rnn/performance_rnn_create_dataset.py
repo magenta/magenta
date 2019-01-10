@@ -21,11 +21,10 @@ NoteSequence within a limited range.
 
 import os
 
-import tensorflow as tf
-
 from magenta.models.performance_rnn import performance_model
 from magenta.models.performance_rnn import performance_rnn_pipeline
 from magenta.pipelines import pipeline
+import tensorflow as tf
 
 flags = tf.app.flags
 FLAGS = tf.app.flags.FLAGS

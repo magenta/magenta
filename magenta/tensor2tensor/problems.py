@@ -15,4 +15,5 @@
 
 # pylint: disable=unused-import
 from magenta.models import score2perf
+
 # pylint: enable=unused-import

@@ -17,17 +17,16 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-from collections import defaultdict
+import collections
 import os.path
 import tempfile
-
-import mido
-import pretty_midi
-import tensorflow as tf
 
 from magenta.music import constants
 from magenta.music import midi_io
 from magenta.protobuf import music_pb2
+import mido
+import pretty_midi
+import tensorflow as tf
 
 # self.midi_simple_filename contains a c-major scale of 8 quarter notes each
 # with a sustain of .95 of the entire note. Here are the first two notes dumped
@@ -108,7 +107,8 @@ class MidiIoTest(tf.test.TestCase):
       self.assertAlmostEqual(midi_time, sequence_tempo.time)
 
     # Test instruments.
-    seq_instruments = defaultdict(lambda: defaultdict(list))
+    seq_instruments = collections.defaultdict(
+        lambda: collections.defaultdict(list))
     for seq_note in sequence_proto.notes:
       seq_instruments[
           (seq_note.instrument, seq_note.program, seq_note.is_drum)][

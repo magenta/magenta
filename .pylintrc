@@ -35,8 +35,7 @@ msg-template={msg_id}:{line:3} {obj}: {msg} [{symbol}]
 enable=indexing-exception,old-raise-syntax
 
 # List of checkers and warnings to disable.
-# TODO(adarob): Remove wrong-import-order,ungrouped-imports after moving to /py internally.
-disable=design,similarities,no-self-use,attribute-defined-outside-init,locally-disabled,star-args,pointless-except,bad-option-value,global-statement,fixme,suppressed-message,useless-suppression,locally-enabled,file-ignored,multiple-imports,c-extension-no-member,trailing-newlines,unsubscriptable-object,misplaced-comparison-constant,no-member,abstract-method,no-else-return,inconsistent-return-statements,invalid-unary-operand-type,no-name-in-module,arguments-differ,consider-using-enumerate,missing-docstring,too-many-nested-blocks,wrong-import-order,ungrouped-imports,unnecessary-pass,useless-object-inheritance,not-context-manager
+disable=design,similarities,no-self-use,attribute-defined-outside-init,locally-disabled,star-args,pointless-except,bad-option-value,global-statement,fixme,suppressed-message,useless-suppression,locally-enabled,file-ignored,c-extension-no-member,trailing-newlines,unsubscriptable-object,misplaced-comparison-constant,no-member,abstract-method,no-else-return,inconsistent-return-statements,invalid-unary-operand-type,no-name-in-module,arguments-differ,consider-using-enumerate,too-many-nested-blocks,unnecessary-pass,useless-object-inheritance,not-context-manager,import-error,ungrouped-imports,missing-docstring
 
 [BASIC]
 

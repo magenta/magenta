@@ -13,13 +13,12 @@
 # limitations under the License.
 """Utility functions for handling bundle files."""
 
-import tensorflow as tf
-
-from google.protobuf import message
 from magenta.protobuf import generator_pb2
+import tensorflow as tf
+from google.protobuf import message
 
 
-class GeneratorBundleParseException(Exception):
+class GeneratorBundleParseError(Exception):
   """Exception thrown when a bundle file cannot be parsed."""
   pass
 
@@ -31,5 +30,5 @@ def read_bundle_file(bundle_file):
     try:
       bundle.ParseFromString(f.read())
     except message.DecodeError as e:
-      raise GeneratorBundleParseException(e)
+      raise GeneratorBundleParseError(e)
   return bundle
