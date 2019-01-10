@@ -20,15 +20,12 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-from functools import partial
+import functools
 import re
 import threading
 import time
 
-from six.moves import input  # pylint: disable=redefined-builtin
-import tensorflow as tf
 import magenta
-
 from magenta.interfaces.midi import midi_hub
 from magenta.interfaces.midi import midi_interaction
 from magenta.models.drums_rnn import drums_rnn_sequence_generator
@@ -36,6 +33,8 @@ from magenta.models.melody_rnn import melody_rnn_sequence_generator
 from magenta.models.performance_rnn import performance_sequence_generator
 from magenta.models.pianoroll_rnn_nade import pianoroll_rnn_nade_sequence_generator
 from magenta.models.polyphony_rnn import polyphony_sequence_generator
+from six.moves import input  # pylint: disable=redefined-builtin
+import tensorflow as tf
 
 FLAGS = tf.app.flags.FLAGS
 
@@ -238,7 +237,7 @@ class CCMapper(object):
         continue
       self._update_event.clear()
       self._midi_hub.register_callback(
-          partial(self._update_signal, signal),
+          functools.partial(self._update_signal, signal),
           midi_hub.MidiSignal(type='control_change'))
       print('Send a control signal using the control number you wish to '
             'associate with `%s`.' % signal)
@@ -274,7 +273,7 @@ def _load_generator_from_bundle_file(bundle_file):
   try:
     bundle = magenta.music.sequence_generator_bundle.read_bundle_file(
         bundle_file)
-  except magenta.music.sequence_generator_bundle.GeneratorBundleParseException:
+  except magenta.music.sequence_generator_bundle.GeneratorBundleParseError:
     print('Failed to parse bundle file: %s' % FLAGS.bundle_file)
     return None
 
@@ -344,15 +343,15 @@ def main(unused_argv):
         control=control_map['clock'], value=127)
     tick_duration = None
 
-  end_call_signal = (
-      None if control_map['end_call'] is None else
-      midi_hub.MidiSignal(control=control_map['end_call'], value=127))
-  panic_signal = (
-      None if control_map['panic'] is None else
-      midi_hub.MidiSignal(control=control_map['panic'], value=127))
-  mutate_signal = (
-      None if control_map['mutate'] is None else
-      midi_hub.MidiSignal(control=control_map['mutate'], value=127))
+  def _signal_from_control_map(name):
+    if control_map[name] is None:
+      return None
+    return midi_hub.MidiSignal(control=control_map[name], value=127)
+
+  end_call_signal = _signal_from_control_map('end_call')
+  panic_signal = _signal_from_control_map('panic')
+  mutate_signal = _signal_from_control_map('mutate')
+
   metronome_channel = (
       FLAGS.metronome_channel if FLAGS.enable_metronome else None)
   interaction = midi_interaction.CallAndResponseMidiInteraction(

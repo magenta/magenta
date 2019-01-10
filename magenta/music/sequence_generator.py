@@ -20,12 +20,11 @@ import abc
 import os
 import tempfile
 
+from magenta.protobuf import generator_pb2
 import tensorflow as tf
 
-from magenta.protobuf import generator_pb2
 
-
-class SequenceGeneratorException(Exception):
+class SequenceGeneratorError(Exception):  # pylint:disable=g-bad-exception-name
   """Generic exception for sequence generation errors."""
   pass
 
@@ -55,7 +54,7 @@ class BaseSequenceGenerator(object):
           checkpoint and a metagraph. Or None if a checkpoint should be used.
 
     Raises:
-      SequenceGeneratorException: if neither checkpoint nor bundle is set.
+      SequenceGeneratorError: if neither checkpoint nor bundle is set.
     """
     self._model = model
     self._details = details
@@ -63,15 +62,15 @@ class BaseSequenceGenerator(object):
     self._bundle = bundle
 
     if self._checkpoint is None and self._bundle is None:
-      raise SequenceGeneratorException(
+      raise SequenceGeneratorError(
           'Either checkpoint or bundle must be set')
     if self._checkpoint is not None and self._bundle is not None:
-      raise SequenceGeneratorException(
+      raise SequenceGeneratorError(
           'Checkpoint and bundle cannot both be set')
 
     if self._bundle:
       if self._bundle.generator_details.id != self._details.id:
-        raise SequenceGeneratorException(
+        raise SequenceGeneratorError(
             'Generator id in bundle (%s) does not match this generator\'s id '
             '(%s)' % (self._bundle.generator_details.id,
                       self._details.id))
@@ -112,7 +111,7 @@ class BaseSequenceGenerator(object):
     If the graph has already been initialized, this is a no-op.
 
     Raises:
-      SequenceGeneratorException: If the checkpoint cannot be found.
+      SequenceGeneratorError: If the checkpoint cannot be found.
     """
     if self._initialized:
       return
@@ -122,18 +121,18 @@ class BaseSequenceGenerator(object):
     if self._checkpoint is not None:
       # Check if the checkpoint file exists.
       if not _checkpoint_file_exists(self._checkpoint):
-        raise SequenceGeneratorException(
+        raise SequenceGeneratorError(
             'Checkpoint path does not exist: %s' % (self._checkpoint))
       checkpoint_file = self._checkpoint
       # If this is a directory, try to determine the latest checkpoint in it.
       if tf.gfile.IsDirectory(checkpoint_file):
         checkpoint_file = tf.train.latest_checkpoint(checkpoint_file)
       if checkpoint_file is None:
-        raise SequenceGeneratorException(
+        raise SequenceGeneratorError(
             'No checkpoint file found in directory: %s' % self._checkpoint)
       if (not _checkpoint_file_exists(self._checkpoint) or
           tf.gfile.IsDirectory(checkpoint_file)):
-        raise SequenceGeneratorException(
+        raise SequenceGeneratorError(
             'Checkpoint path is not a file: %s (supplied path: %s)' % (
                 checkpoint_file, self._checkpoint))
       self._model.initialize_with_checkpoint(checkpoint_file)
@@ -204,12 +203,12 @@ class BaseSequenceGenerator(object):
           bundle.
 
     Raises:
-      SequenceGeneratorException: if there is an error creating the bundle file.
+      SequenceGeneratorError: if there is an error creating the bundle file.
     """
     if not bundle_file:
-      raise SequenceGeneratorException('Bundle file location not specified.')
+      raise SequenceGeneratorError('Bundle file location not specified.')
     if not self.details.id:
-      raise SequenceGeneratorException(
+      raise SequenceGeneratorError(
           'Generator id must be included in GeneratorDetails when creating '
           'a bundle file.')
 
@@ -228,11 +227,11 @@ class BaseSequenceGenerator(object):
       self._model.write_checkpoint_with_metagraph(checkpoint_filename)
 
       if not os.path.isfile(checkpoint_filename):
-        raise SequenceGeneratorException(
+        raise SequenceGeneratorError(
             'Could not read checkpoint file: %s' % (checkpoint_filename))
       metagraph_filename = checkpoint_filename + '.meta'
       if not os.path.isfile(metagraph_filename):
-        raise SequenceGeneratorException(
+        raise SequenceGeneratorError(
             'Could not read metagraph file: %s' % (metagraph_filename))
 
       bundle = generator_pb2.GeneratorBundle()

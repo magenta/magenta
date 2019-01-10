@@ -26,11 +26,11 @@ import numpy as np
 import tensorflow as tf
 
 
-class NoExtractedExamplesException(Exception):
+class NoExtractedExamplesError(Exception):
   pass
 
 
-class MultipleExtractedExamplesException(Exception):
+class MultipleExtractedExamplesError(Exception):
   pass
 
 
@@ -54,9 +54,10 @@ class TrainedModel(object):
 
   def __init__(self, config, batch_size, checkpoint_dir_or_path=None,
                var_name_substitutions=None, session_target='', **sample_kwargs):
-    checkpoint_path = (tf.train.latest_checkpoint(checkpoint_dir_or_path)
-                       if tf.gfile.IsDirectory(checkpoint_dir_or_path) else
-                       checkpoint_dir_or_path)
+    if tf.gfile.IsDirectory(checkpoint_dir_or_path):
+      checkpoint_path = tf.train.latest_checkpoint(checkpoint_dir_or_path)
+    else:
+      checkpoint_path = checkpoint_dir_or_path
     self._config = copy.deepcopy(config)
     self._config.hparams.batch_size = batch_size
     with tf.Graph().as_default():
@@ -67,15 +68,19 @@ class TrainedModel(object):
           is_training=False)
       # Input placeholders
       self._temperature = tf.placeholder(tf.float32, shape=())
-      self._z_input = (
-          tf.placeholder(tf.float32,
-                         shape=[batch_size, self._config.hparams.z_size])
-          if self._config.hparams.z_size else None)
-      self._c_input = (
-          tf.placeholder(
-              tf.float32,
-              shape=[None, self._config.data_converter.control_depth])
-          if self._config.data_converter.control_depth > 0 else None)
+
+      if self._config.hparams.z_size:
+        self._z_input = tf.placeholder(
+            tf.float32, shape=[batch_size, self._config.hparams.z_size])
+      else:
+        self._z_input = None
+
+      if self._config.data_converter.control_depth > 0:
+        self._c_input = tf.placeholder(
+            tf.float32, shape=[None, self._config.data_converter.control_depth])
+      else:
+        self._c_input = None
+
       self._inputs = tf.placeholder(
           tf.float32,
           shape=[batch_size, None, self._config.data_converter.input_depth])
@@ -195,8 +200,8 @@ class TrainedModel(object):
       The encoded `z`, `mu`, and `sigma` values.
     Raises:
       RuntimeError: If called for a non-conditional model.
-      NoExtractedExamplesException: If no examples were extracted.
-      MultipleExtractedExamplesException: If multiple examples were extracted.
+      NoExtractedExamplesError: If no examples were extracted.
+      MultipleExtractedExamplesError: If multiple examples were extracted.
       AssertionError: If `assert_same_length` is True and any extracted
         sequences differ in length.
     """
@@ -209,10 +214,10 @@ class TrainedModel(object):
     for note_sequence in note_sequences:
       extracted_tensors = self._config.data_converter.to_tensors(note_sequence)
       if not extracted_tensors.inputs:
-        raise NoExtractedExamplesException(
+        raise NoExtractedExamplesError(
             'No examples extracted from NoteSequence: %s' % note_sequence)
       if len(extracted_tensors.inputs) > 1:
-        raise MultipleExtractedExamplesException(
+        raise MultipleExtractedExamplesError(
             'Multiple (%d) examples extracted from NoteSequence: %s' %
             (len(extracted_tensors.inputs), note_sequence))
       inputs.append(extracted_tensors.inputs[0])

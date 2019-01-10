@@ -60,16 +60,22 @@ class Nade(object):
           initializer=initializer)
       # Internal encoder bias term (`b` in [1]). Will be used if external biases
       # are not provided.
-      self.b_enc = None if not internal_bias else tf.get_variable(
-          'b_enc',
-          shape=[1, self._num_hidden],
-          initializer=initializer)
+      if internal_bias:
+        self.b_enc = tf.get_variable(
+            'b_enc',
+            shape=[1, self._num_hidden],
+            initializer=initializer)
+      else:
+        self.b_enc = None
       # Internal decoder bias term (`c` in [1]). Will be used if external biases
       # are not provided.
-      self.b_dec = None if not internal_bias else tf.get_variable(
-          'b_dec',
-          shape=[1, self._num_dims],
-          initializer=initializer)
+      if internal_bias:
+        self.b_dec = tf.get_variable(
+            'b_dec',
+            shape=[1, self._num_dims],
+            initializer=initializer)
+      else:
+        self.b_dec = None
 
   @property
   def num_hidden(self):

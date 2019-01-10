@@ -33,19 +33,18 @@ import os
 import random
 import urllib
 
-import matplotlib.pyplot as plt
-import numpy as np
-import scipy.special
-from six.moves import range          # pylint: disable=redefined-builtin
-from six.moves import reload_module  # pylint: disable=redefined-builtin
-from six.moves import urllib         # pylint: disable=redefined-builtin
-import tensorflow as tf
-
 from magenta.models.rl_tuner import note_rnn_loader
 from magenta.models.rl_tuner import rl_tuner_eval_metrics
 from magenta.models.rl_tuner import rl_tuner_ops
 from magenta.music import melodies_lib as mlib
 from magenta.music import midi_io
+import matplotlib.pyplot as plt
+import numpy as np
+import scipy.special
+from six.moves import range  # pylint: disable=redefined-builtin
+from six.moves import reload_module  # pylint: disable=redefined-builtin
+from six.moves import urllib  # pylint: disable=redefined-builtin
+import tensorflow as tf
 
 # Note values of special actions.
 NOTE_OFF = 0

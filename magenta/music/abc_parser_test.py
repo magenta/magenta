@@ -20,14 +20,13 @@ from __future__ import print_function
 import copy
 import os.path
 
-import six
-import tensorflow as tf
-
 from magenta.common import testing_lib as common_testing_lib
 from magenta.music import abc_parser
 from magenta.music import midi_io
 from magenta.music import sequences_lib
 from magenta.protobuf import music_pb2
+import six
+import tensorflow as tf
 
 
 class AbcParserTest(tf.test.TestCase):
@@ -208,8 +207,8 @@ class AbcParserTest(tf.test.TestCase):
     self.assertEqual(1, len(tunes))
     self.assertEqual(2, len(exceptions))
     self.assertTrue(isinstance(exceptions[0],
-                               abc_parser.VariantEndingException))
-    self.assertTrue(isinstance(exceptions[1], abc_parser.PartException))
+                               abc_parser.VariantEndingError))
+    self.assertTrue(isinstance(exceptions[1], abc_parser.PartError))
 
     expected_metadata1 = common_testing_lib.parse_test_proto(
         music_pb2.NoteSequence,
@@ -625,7 +624,7 @@ class AbcParserTest(tf.test.TestCase):
                      'testdata/zocharti_loch.abc'))
     self.assertEqual(0, len(tunes))
     self.assertEqual(1, len(exceptions))
-    self.assertTrue(isinstance(exceptions[0], abc_parser.MultiVoiceException))
+    self.assertTrue(isinstance(exceptions[0], abc_parser.MultiVoiceError))
 
   def testRepeats(self):
     # Several equivalent versions of the same tune.
@@ -699,9 +698,9 @@ class AbcParserTest(tf.test.TestCase):
         """)
     self.assertEqual(7, len(tunes))
     self.assertEqual(3, len(exceptions))
-    self.assertTrue(isinstance(exceptions[0], abc_parser.RepeatParseException))
-    self.assertTrue(isinstance(exceptions[1], abc_parser.RepeatParseException))
-    self.assertTrue(isinstance(exceptions[2], abc_parser.RepeatParseException))
+    self.assertTrue(isinstance(exceptions[0], abc_parser.RepeatParseError))
+    self.assertTrue(isinstance(exceptions[1], abc_parser.RepeatParseError))
+    self.assertTrue(isinstance(exceptions[2], abc_parser.RepeatParseError))
     expected_ns1 = common_testing_lib.parse_test_proto(
         music_pb2.NoteSequence,
         """
@@ -915,7 +914,7 @@ class AbcParserTest(tf.test.TestCase):
     self.assertEqual(0, len(tunes))
     self.assertEqual(1, len(exceptions))
     self.assertTrue(isinstance(exceptions[0],
-                               abc_parser.InvalidCharacterException))
+                               abc_parser.InvalidCharacterError))
 
   def testOneSidedRepeat(self):
     tunes, exceptions = abc_parser.parse_abc_tunebook("""
@@ -1013,7 +1012,7 @@ class AbcParserTest(tf.test.TestCase):
     self.assertEqual(0, len(tunes))
     self.assertEqual(1, len(exceptions))
     self.assertTrue(isinstance(exceptions[0],
-                               abc_parser.ChordException))
+                               abc_parser.ChordError))
 
   def testChordAnnotations(self):
     tunes, exceptions = abc_parser.parse_abc_tunebook("""
@@ -1183,7 +1182,7 @@ class AbcParserTest(tf.test.TestCase):
         """)
     self.assertEqual(0, len(tunes))
     self.assertEqual(1, len(exceptions))
-    self.assertTrue(isinstance(exceptions[0], abc_parser.TupletException))
+    self.assertTrue(isinstance(exceptions[0], abc_parser.TupletError))
 
   def testLineContinuation(self):
     tunes, exceptions = abc_parser.parse_abc_tunebook(r"""

@@ -21,20 +21,17 @@ import functools
 import itertools
 import sys
 
+from magenta.models.score2perf import modalities
+from magenta.models.score2perf import music_encoders
+from magenta.music import chord_symbols_lib
+from magenta.music import sequences_lib
 from tensor2tensor.data_generators import problem
 from tensor2tensor.layers import modalities as t2t_modalities
 from tensor2tensor.utils import registry
-
 import tensorflow as tf
 
-from magenta.models.score2perf import modalities
-from magenta.models.score2perf import music_encoders
-
-from magenta.music import chord_symbols_lib
-from magenta.music import sequences_lib
-
 if sys.version_info.major == 2:
-  from magenta.models.score2perf import datagen_beam  # pylint:disable=g-import-not-at-top
+  from magenta.models.score2perf import datagen_beam  # pylint:disable=g-import-not-at-top,ungrouped-imports
 
 # TODO(iansimon): figure out the best way not to hard-code these constants
 
@@ -125,7 +122,7 @@ class Score2PerfProblem(problem.Problem):
             augmented_ns, transpose_amount,
             min_allowed_pitch=MIN_PITCH, max_allowed_pitch=MAX_PITCH,
             in_place=True)
-      except chord_symbols_lib.ChordSymbolException:
+      except chord_symbols_lib.ChordSymbolError:
         raise datagen_beam.DataAugmentationError(
             'Transposition of chord symbol(s) failed.')
       if num_deleted_notes:
@@ -159,6 +156,7 @@ class Score2PerfProblem(problem.Problem):
         absolute_timing=self.absolute_timing)
 
   def hparams(self, defaults, model_hparams):
+    del model_hparams   # unused
     perf_encoder = self.get_feature_encoders()['targets']
     defaults.modality = {'targets': t2t_modalities.SymbolModality}
     defaults.vocab_size = {'targets': perf_encoder.vocab_size}

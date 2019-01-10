@@ -15,9 +15,8 @@
 
 from __future__ import division
 
-import numpy as np
-
 from magenta.music import encoder_decoder
+import numpy as np
 
 
 class PianorollEncoderDecoder(encoder_decoder.EventSequenceEncoderDecoder):

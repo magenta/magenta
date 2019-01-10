@@ -17,16 +17,15 @@ import collections
 import copy
 import itertools
 import math
-from operator import itemgetter
+import operator
 import random
-
-import numpy as np
-from six.moves import range  # pylint: disable=redefined-builtin
-import tensorflow as tf
 
 from magenta.music import chord_symbols_lib
 from magenta.music import constants
 from magenta.protobuf import music_pb2
+import numpy as np
+from six.moves import range  # pylint: disable=redefined-builtin
+import tensorflow as tf
 
 # Set the quantization cutoff.
 # Note events before this cutoff are rounded down to nearest step. Notes
@@ -53,23 +52,23 @@ ONSET_UPWEIGHT = 5.0
 ONSET_WINDOW = 1
 
 
-class BadTimeSignatureException(Exception):
+class BadTimeSignatureError(Exception):
   pass
 
 
-class MultipleTimeSignatureException(Exception):
+class MultipleTimeSignatureError(Exception):
   pass
 
 
-class MultipleTempoException(Exception):
+class MultipleTempoError(Exception):
   pass
 
 
-class NegativeTimeException(Exception):
+class NegativeTimeError(Exception):
   pass
 
 
-class QuantizationStatusException(Exception):
+class QuantizationStatusError(Exception):
   """Exception for when a sequence was unexpectedly quantized or unquantized.
 
   Should not happen during normal operation and likely indicates a programming
@@ -78,11 +77,11 @@ class QuantizationStatusException(Exception):
   pass
 
 
-class InvalidTimeAdjustmentException(Exception):
+class InvalidTimeAdjustmentError(Exception):
   pass
 
 
-class RectifyBeatsException(Exception):
+class RectifyBeatsError(Exception):
   pass
 
 
@@ -102,10 +101,10 @@ def trim_note_sequence(sequence, start_time, end_time):
     `end_time`.
 
   Raises:
-    QuantizationStatusException: If the sequence has already been quantized.
+    QuantizationStatusError: If the sequence has already been quantized.
   """
   if is_quantized_sequence(sequence):
-    raise QuantizationStatusException(
+    raise QuantizationStatusError(
         'Can only trim notes and chords for unquantized NoteSequence.')
 
   subsequence = music_pb2.NoteSequence()
@@ -140,13 +139,13 @@ def _extract_subsequences(sequence, split_times, sustain_control_number=64):
     A Python list of new NoteSequence containing the subsequences of `sequence`.
 
   Raises:
-    QuantizationStatusException: If the sequence has already been quantized.
+    QuantizationStatusError: If the sequence has already been quantized.
     ValueError: If there are fewer than 2 split times, or the split times are
         unsorted, or if any of the subsequences would start past the end of the
         sequence.
   """
   if is_quantized_sequence(sequence):
-    raise QuantizationStatusException(
+    raise QuantizationStatusError(
         'Can only extract subsequences from unquantized NoteSequence.')
 
   if len(split_times) < 2:
@@ -342,7 +341,7 @@ def extract_subsequence(sequence,
     specified time range.
 
   Raises:
-    QuantizationStatusException: If the sequence has already been quantized.
+    QuantizationStatusError: If the sequence has already been quantized.
     ValueError: If `start_time` is past the end of `sequence`.
   """
   return _extract_subsequences(
@@ -365,12 +364,12 @@ def shift_sequence_times(sequence, shift_seconds):
 
   Raises:
     ValueError: If the shift amount is invalid.
-    QuantizationStatusException: If the sequence has already been quantized.
+    QuantizationStatusError: If the sequence has already been quantized.
   """
   if shift_seconds <= 0:
     raise ValueError('Invalid shift amount: {}'.format(shift_seconds))
   if is_quantized_sequence(sequence):
-    raise QuantizationStatusException(
+    raise QuantizationStatusError(
         'Can shift only unquantized NoteSequences.')
 
   shifted = music_pb2.NoteSequence()
@@ -608,10 +607,10 @@ def assert_is_quantized_sequence(note_sequence):
     note_sequence: A music_pb2.NoteSequence proto.
 
   Raises:
-    QuantizationStatusException: If the sequence is not quantized.
+    QuantizationStatusError: If the sequence is not quantized.
   """
   if not is_quantized_sequence(note_sequence):
-    raise QuantizationStatusException(
+    raise QuantizationStatusError(
         'NoteSequence %s is not quantized.' % note_sequence.id)
 
 
@@ -622,11 +621,11 @@ def assert_is_relative_quantized_sequence(note_sequence):
     note_sequence: A music_pb2.NoteSequence proto.
 
   Raises:
-    QuantizationStatusException: If the sequence is not quantized relative to
+    QuantizationStatusError: If the sequence is not quantized relative to
         tempo.
   """
   if not is_relative_quantized_sequence(note_sequence):
-    raise QuantizationStatusException(
+    raise QuantizationStatusError(
         'NoteSequence %s is not quantized or is '
         'quantized based on absolute timing.' % note_sequence.id)
 
@@ -638,11 +637,11 @@ def assert_is_absolute_quantized_sequence(note_sequence):
     note_sequence: A music_pb2.NoteSequence proto.
 
   Raises:
-    QuantizationStatusException: If the sequence is not quantized by absolute
+    QuantizationStatusError: If the sequence is not quantized by absolute
     time.
   """
   if not is_absolute_quantized_sequence(note_sequence):
-    raise QuantizationStatusException(
+    raise QuantizationStatusError(
         'NoteSequence %s is not quantized or is '
         'quantized based on relative timing.' % note_sequence.id)
 
@@ -849,7 +848,7 @@ def _quantize_notes(note_sequence, steps_per_second):
       steps.
 
   Raises:
-    NegativeTimeException: If a note or chord occurs at a negative time.
+    NegativeTimeError: If a note or chord occurs at a negative time.
   """
   for note in note_sequence.notes:
     # Quantize the start and end times of the note.
@@ -861,7 +860,7 @@ def _quantize_notes(note_sequence, steps_per_second):
 
     # Do not allow notes to start or end in negative time.
     if note.quantized_start_step < 0 or note.quantized_end_step < 0:
-      raise NegativeTimeException(
+      raise NegativeTimeError(
           'Got negative note time: start_step = %s, end_step = %s' %
           (note.quantized_start_step, note.quantized_end_step))
 
@@ -875,7 +874,7 @@ def _quantize_notes(note_sequence, steps_per_second):
     # Quantize the event time, disallowing negative time.
     event.quantized_step = quantize_to_step(event.time, steps_per_second)
     if event.quantized_step < 0:
-      raise NegativeTimeException(
+      raise NegativeTimeError(
           'Got negative event time: step = %s' % event.quantized_step)
 
 
@@ -900,12 +899,12 @@ def quantize_note_sequence(note_sequence, steps_per_quarter):
     A copy of the original NoteSequence, with quantized times added.
 
   Raises:
-    MultipleTimeSignatureException: If there is a change in time signature
+    MultipleTimeSignatureError: If there is a change in time signature
         in `note_sequence`.
-    MultipleTempoException: If there is a change in tempo in `note_sequence`.
-    BadTimeSignatureException: If the time signature found in `note_sequence`
+    MultipleTempoError: If there is a change in tempo in `note_sequence`.
+    BadTimeSignatureError: If the time signature found in `note_sequence`
         has a 0 numerator or a denominator which is not a power of 2.
-    NegativeTimeException: If a note or chord occurs at a negative time.
+    NegativeTimeError: If a note or chord occurs at a negative time.
   """
   qns = copy.deepcopy(note_sequence)
 
@@ -919,7 +918,7 @@ def quantize_note_sequence(note_sequence, steps_per_quarter):
     if time_signatures[0].time != 0 and not (
         time_signatures[0].numerator == 4 and
         time_signatures[0].denominator == 4):
-      raise MultipleTimeSignatureException(
+      raise MultipleTimeSignatureError(
           'NoteSequence has an implicit change from initial 4/4 time '
           'signature to %d/%d at %.2f seconds.' %
           (time_signatures[0].numerator, time_signatures[0].denominator,
@@ -928,7 +927,7 @@ def quantize_note_sequence(note_sequence, steps_per_quarter):
     for time_signature in time_signatures[1:]:
       if (time_signature.numerator != qns.time_signatures[0].numerator or
           time_signature.denominator != qns.time_signatures[0].denominator):
-        raise MultipleTimeSignatureException(
+        raise MultipleTimeSignatureError(
             'NoteSequence has at least one time signature change from %d/%d to '
             '%d/%d at %.2f seconds.' %
             (time_signatures[0].numerator, time_signatures[0].denominator,
@@ -946,12 +945,12 @@ def quantize_note_sequence(note_sequence, steps_per_quarter):
     time_signature.time = 0
 
   if not _is_power_of_2(qns.time_signatures[0].denominator):
-    raise BadTimeSignatureException(
+    raise BadTimeSignatureError(
         'Denominator is not a power of 2. Time signature: %d/%d' %
         (qns.time_signatures[0].numerator, qns.time_signatures[0].denominator))
 
   if qns.time_signatures[0].numerator == 0:
-    raise BadTimeSignatureException(
+    raise BadTimeSignatureError(
         'Numerator is 0. Time signature: %d/%d' %
         (qns.time_signatures[0].numerator, qns.time_signatures[0].denominator))
 
@@ -962,14 +961,14 @@ def quantize_note_sequence(note_sequence, steps_per_quarter):
     # implicit tempo change.
     if tempos[0].time != 0 and (tempos[0].qpm !=
                                 constants.DEFAULT_QUARTERS_PER_MINUTE):
-      raise MultipleTempoException(
+      raise MultipleTempoError(
           'NoteSequence has an implicit tempo change from initial %.1f qpm to '
           '%.1f qpm at %.2f seconds.' % (constants.DEFAULT_QUARTERS_PER_MINUTE,
                                          tempos[0].qpm, tempos[0].time))
 
     for tempo in tempos[1:]:
       if tempo.qpm != qns.tempos[0].qpm:
-        raise MultipleTempoException(
+        raise MultipleTempoError(
             'NoteSequence has at least one tempo change from %.1f qpm to %.1f '
             'qpm at %.2f seconds.' % (tempos[0].qpm, tempo.qpm, tempo.time))
 
@@ -1014,7 +1013,7 @@ def quantize_note_sequence_absolute(note_sequence, steps_per_second):
     A copy of the original NoteSequence, with quantized times added.
 
   Raises:
-    NegativeTimeException: If a note or chord occurs at a negative time.
+    NegativeTimeError: If a note or chord occurs at a negative time.
   """
   qns = copy.deepcopy(note_sequence)
   qns.quantization_info.steps_per_second = steps_per_second
@@ -1048,7 +1047,7 @@ def transpose_note_sequence(ns,
     The transposed NoteSequence and a count of how many notes were deleted.
 
   Raises:
-    ChordSymbolException: If a chord symbol is unable to be transposed.
+    ChordSymbolError: If a chord symbol is unable to be transposed.
   """
   if not in_place:
     new_ns = music_pb2.NoteSequence()
@@ -1083,7 +1082,7 @@ def transpose_note_sequence(ns,
 
   if transpose_chords:
     # Also update the chord symbol text annotations. This can raise a
-    # ChordSymbolException if a chord symbol cannot be interpreted.
+    # ChordSymbolError if a chord symbol cannot be interpreted.
     for ta in ns.text_annotations:
       if ta.annotation_type == CHORD_SYMBOL and ta.text != constants.NO_CHORD:
         ta.text = chord_symbols_lib.transpose_chord_symbol(ta.text, amount)
@@ -1230,11 +1229,11 @@ def stretch_note_sequence(note_sequence, stretch_factor, in_place=False):
     A stretched copy of the original NoteSequence.
 
   Raises:
-    QuantizationStatusException: If the `note_sequence` is quantized. Only
+    QuantizationStatusError: If the `note_sequence` is quantized. Only
         unquantized NoteSequences can be stretched.
   """
   if is_quantized_sequence(note_sequence):
-    raise QuantizationStatusException(
+    raise QuantizationStatusError(
         'Can only stretch unquantized NoteSequence.')
 
   if in_place:
@@ -1290,7 +1289,7 @@ def adjust_notesequence_times(ns, time_func, minimum_duration=None):
         If None, the note will be skipped.
 
   Raises:
-    InvalidTimeAdjustmentException: If a note has an adjusted end time that is
+    InvalidTimeAdjustmentError: If a note has an adjusted end time that is
         before its start time, or if any event times are shifted before zero.
 
   Returns:
@@ -1325,18 +1324,18 @@ def adjust_notesequence_times(ns, time_func, minimum_duration=None):
         continue
 
     if end_time < start_time:
-      raise InvalidTimeAdjustmentException(
+      raise InvalidTimeAdjustmentError(
           'Tried to adjust end time to before start time. '
           'Original start: %f, end %f. New start %f, end %f.' %
           (note.start_time, note.end_time, start_time, end_time))
 
     if start_time < 0:
-      raise InvalidTimeAdjustmentException(
+      raise InvalidTimeAdjustmentError(
           'Tried to adjust note start time to before 0 '
           '(original: %f, adjusted: %f)' % (note.start_time, start_time))
 
     if end_time < 0:
-      raise InvalidTimeAdjustmentException(
+      raise InvalidTimeAdjustmentError(
           'Tried to adjust note end time to before 0 '
           '(original: %f, adjusted: %f)' % (note.end_time, end_time))
 
@@ -1359,7 +1358,7 @@ def adjust_notesequence_times(ns, time_func, minimum_duration=None):
   for event in events:
     time = time_func(event.time)
     if time < 0:
-      raise InvalidTimeAdjustmentException(
+      raise InvalidTimeAdjustmentError(
           'Tried to adjust event time to before 0 '
           '(original: %f, adjusted: %f)' % (event.time, time))
     event.time = time
@@ -1385,11 +1384,11 @@ def rectify_beats(sequence, beats_per_minute):
         rectified times for a beat.
 
   Raises:
-    QuantizationStatusException: If `sequence` is quantized.
-    RectifyBeatsException: If `sequence` has no beat annotations.
+    QuantizationStatusError: If `sequence` is quantized.
+    RectifyBeatsError: If `sequence` has no beat annotations.
   """
   if is_quantized_sequence(sequence):
-    raise QuantizationStatusException(
+    raise QuantizationStatusError(
         'Cannot rectify beat times for quantized NoteSequence.')
 
   beat_times = [
@@ -1399,7 +1398,7 @@ def rectify_beats(sequence, beats_per_minute):
   ]
 
   if not beat_times:
-    raise RectifyBeatsException('No beats in NoteSequence.')
+    raise RectifyBeatsError('No beats in NoteSequence.')
 
   # Add a beat at the very beginning and end of the sequence and dedupe.
   sorted_beat_times = [0.0] + sorted(beat_times) + [sequence.total_time]
@@ -1458,11 +1457,11 @@ def apply_sustain_control_changes(note_sequence, sustain_control_number=64):
     sustain.
 
   Raises:
-    QuantizationStatusException: If `note_sequence` is quantized. Sustain can
+    QuantizationStatusError: If `note_sequence` is quantized. Sustain can
         only be applied to unquantized note sequences.
   """
   if is_quantized_sequence(note_sequence):
-    raise QuantizationStatusException(
+    raise QuantizationStatusError(
         'Can only apply sustain to unquantized NoteSequence.')
 
   sequence = copy.deepcopy(note_sequence)
@@ -1486,7 +1485,7 @@ def apply_sustain_control_changes(note_sequence, sustain_control_number=64):
 
   # Sort, using the event type constants to ensure the order events are
   # processed.
-  events.sort(key=itemgetter(0))
+  events.sort(key=operator.itemgetter(0))
 
   # Lists of active notes, keyed by instrument.
   active_notes = collections.defaultdict(list)
@@ -1582,7 +1581,7 @@ def infer_dense_chords_for_sequence(sequence,
       infer a chord.
 
   Raises:
-    ChordSymbolException: If a chord cannot be determined for a set of
+    ChordSymbolError: If a chord cannot be determined for a set of
     simultaneous notes in `sequence`.
   """
   notes = [

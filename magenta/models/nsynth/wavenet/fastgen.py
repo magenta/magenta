@@ -19,13 +19,12 @@ Ramachandran, P., Le Paine, T., Khorrami, P., Babaeizadeh, M.,
 Chang, S., Zhang, Y., ... Huang, T. (2017).
 Fast Generation For Convolutional Autoregressive Models, 1-5.
 """
-import numpy as np
-from scipy.io import wavfile
-import tensorflow as tf
-
 from magenta.models.nsynth import utils
 from magenta.models.nsynth.wavenet.h512_bo16 import Config
 from magenta.models.nsynth.wavenet.h512_bo16 import FastGenerationConfig
+import numpy as np
+from scipy.io import wavfile
+import tensorflow as tf
 
 
 def sample_categorical(probability_mass_function):
@@ -239,4 +238,3 @@ def synthesize(encodings,
         save_batch(audio_batch, save_paths)
 
     save_batch(audio_batch, save_paths)
-

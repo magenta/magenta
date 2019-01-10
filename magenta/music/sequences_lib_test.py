@@ -15,14 +15,13 @@
 
 import copy
 
-import numpy as np
-import tensorflow as tf
-
 from magenta.common import testing_lib as common_testing_lib
 from magenta.music import constants
 from magenta.music import sequences_lib
 from magenta.music import testing_lib
 from magenta.protobuf import music_pb2
+import numpy as np
+import tensorflow as tf
 
 CHORD_SYMBOL = music_pb2.NoteSequence.TextAnnotation.CHORD_SYMBOL
 DEFAULT_FRAMES_PER_SECOND = 16000.0 / 512
@@ -871,7 +870,7 @@ class SequencesLibTest(tf.test.TestCase):
 
     sequences_lib.assert_is_quantized_sequence(relative_quantized_sequence)
     sequences_lib.assert_is_quantized_sequence(absolute_quantized_sequence)
-    with self.assertRaises(sequences_lib.QuantizationStatusException):
+    with self.assertRaises(sequences_lib.QuantizationStatusError):
       sequences_lib.assert_is_quantized_sequence(self.note_sequence)
 
   def testAssertIsRelativeQuantizedNoteSequence(self):
@@ -887,10 +886,10 @@ class SequencesLibTest(tf.test.TestCase):
 
     sequences_lib.assert_is_relative_quantized_sequence(
         relative_quantized_sequence)
-    with self.assertRaises(sequences_lib.QuantizationStatusException):
+    with self.assertRaises(sequences_lib.QuantizationStatusError):
       sequences_lib.assert_is_relative_quantized_sequence(
           absolute_quantized_sequence)
-    with self.assertRaises(sequences_lib.QuantizationStatusException):
+    with self.assertRaises(sequences_lib.QuantizationStatusError):
       sequences_lib.assert_is_relative_quantized_sequence(self.note_sequence)
 
   def testQuantizeNoteSequence_TimeSignatureChange(self):
@@ -914,7 +913,7 @@ class SequencesLibTest(tf.test.TestCase):
 
     # Time signature change.
     self.note_sequence.time_signatures.add(numerator=2, denominator=4, time=2)
-    with self.assertRaises(sequences_lib.MultipleTimeSignatureException):
+    with self.assertRaises(sequences_lib.MultipleTimeSignatureError):
       sequences_lib.quantize_note_sequence(
           self.note_sequence, self.steps_per_quarter)
 
@@ -931,7 +930,7 @@ class SequencesLibTest(tf.test.TestCase):
 
     # Implicit time signature change.
     self.note_sequence.time_signatures.add(numerator=2, denominator=4, time=2)
-    with self.assertRaises(sequences_lib.MultipleTimeSignatureException):
+    with self.assertRaises(sequences_lib.MultipleTimeSignatureError):
       sequences_lib.quantize_note_sequence(
           self.note_sequence, self.steps_per_quarter)
 
@@ -988,7 +987,7 @@ class SequencesLibTest(tf.test.TestCase):
 
     # Tempo change.
     self.note_sequence.tempos.add(qpm=120, time=2)
-    with self.assertRaises(sequences_lib.MultipleTempoException):
+    with self.assertRaises(sequences_lib.MultipleTempoError):
       sequences_lib.quantize_note_sequence(
           self.note_sequence, self.steps_per_quarter)
 
@@ -1005,7 +1004,7 @@ class SequencesLibTest(tf.test.TestCase):
 
     # Implicit tempo change.
     self.note_sequence.tempos.add(qpm=60, time=2)
-    with self.assertRaises(sequences_lib.MultipleTempoException):
+    with self.assertRaises(sequences_lib.MultipleTempoError):
       sequences_lib.quantize_note_sequence(
           self.note_sequence, self.steps_per_quarter)
 
@@ -1158,7 +1157,7 @@ class SequencesLibTest(tf.test.TestCase):
     def time_func(time):
       return time - 5
 
-    with self.assertRaises(sequences_lib.InvalidTimeAdjustmentException):
+    with self.assertRaises(sequences_lib.InvalidTimeAdjustmentError):
       sequences_lib.adjust_notesequence_times(sequence, time_func)
 
   def testAdjustNoteSequenceTimesWithZeroDurations(self):
@@ -1207,7 +1206,7 @@ class SequencesLibTest(tf.test.TestCase):
       else:
         return time
 
-    with self.assertRaises(sequences_lib.InvalidTimeAdjustmentException):
+    with self.assertRaises(sequences_lib.InvalidTimeAdjustmentError):
       sequences_lib.adjust_notesequence_times(sequence, time_func)
 
   def testRectifyBeats(self):

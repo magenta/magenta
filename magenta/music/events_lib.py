@@ -23,13 +23,12 @@ import copy
 
 from magenta.music import constants
 
-
 DEFAULT_STEPS_PER_BAR = constants.DEFAULT_STEPS_PER_BAR
 DEFAULT_STEPS_PER_QUARTER = constants.DEFAULT_STEPS_PER_QUARTER
 STANDARD_PPQ = constants.STANDARD_PPQ
 
 
-class NonIntegerStepsPerBarException(Exception):
+class NonIntegerStepsPerBarError(Exception):
   pass
 
 

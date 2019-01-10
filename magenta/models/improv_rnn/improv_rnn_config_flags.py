@@ -13,9 +13,8 @@
 # limitations under the License.
 """Provides a class, defaults, and utils for improv RNN model configuration."""
 
-import tensorflow as tf
-
 from magenta.models.improv_rnn import improv_rnn_model
+import tensorflow as tf
 
 FLAGS = tf.app.flags.FLAGS
 tf.app.flags.DEFINE_string(
@@ -38,7 +37,7 @@ tf.app.flags.DEFINE_string(
     'with the default hyperparameters.')
 
 
-class ImprovRnnConfigFlagsException(Exception):
+class ImprovRnnConfigError(Exception):
   pass
 
 
@@ -49,10 +48,10 @@ def config_from_flags():
     The appropriate ImprovRnnConfig based on the supplied flags.
 
   Raises:
-     ImprovRnnConfigFlagsException: When an invalid config is supplied.
+     ImprovRnnConfigError: When an invalid config is supplied.
   """
   if FLAGS.config not in improv_rnn_model.default_configs:
-    raise ImprovRnnConfigFlagsException(
+    raise ImprovRnnConfigError(
         '`--config` must be one of %s. Got %s.' % (
             improv_rnn_model.default_configs.keys(), FLAGS.config))
   config = improv_rnn_model.default_configs[FLAGS.config]

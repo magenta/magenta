@@ -20,16 +20,16 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-from collections import defaultdict
+import collections
 import sys
 import tempfile
 
+from magenta.music import constants
+from magenta.protobuf import music_pb2
 import pretty_midi
 import six
 import tensorflow as tf
 
-from magenta.music import constants
-from magenta.protobuf import music_pb2
 # pylint: enable=g-import-not-at-top
 
 # Allow pretty_midi to read MIDI files with absurdly high tick rates.
@@ -231,8 +231,7 @@ def note_sequence_to_pretty_midi(
   Returns:
     A pretty_midi.PrettyMIDI object or None if sequence could not be decoded.
   """
-  ticks_per_quarter = (sequence.ticks_per_quarter if sequence.ticks_per_quarter
-                       else constants.STANDARD_PPQ)
+  ticks_per_quarter = sequence.ticks_per_quarter or constants.STANDARD_PPQ
 
   max_event_time = None
   if drop_events_n_seconds_after_last_note is not None:
@@ -247,8 +246,11 @@ def note_sequence_to_pretty_midi(
       break
 
   kwargs = {}
-  kwargs['initial_tempo'] = (initial_seq_tempo.qpm if initial_seq_tempo
-                             else constants.DEFAULT_QUARTERS_PER_MINUTE)
+  if initial_seq_tempo:
+    kwargs['initial_tempo'] = initial_seq_tempo.qpm
+  else:
+    kwargs['initial_tempo'] = constants.DEFAULT_QUARTERS_PER_MINUTE
+
   pm = pretty_midi.PrettyMIDI(resolution=ticks_per_quarter, **kwargs)
 
   # Create an empty instrument to contain time and key signatures.
@@ -292,7 +294,8 @@ def note_sequence_to_pretty_midi(
 
   # Populate instrument events by first gathering notes and other event types
   # in lists then write them sorted to the PrettyMidi object.
-  instrument_events = defaultdict(lambda: defaultdict(list))
+  instrument_events = collections.defaultdict(
+      lambda: collections.defaultdict(list))
   for seq_note in sequence.notes:
     instrument_events[(seq_note.instrument, seq_note.program,
                        seq_note.is_drum)]['notes'].append(

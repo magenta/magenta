@@ -13,14 +13,13 @@
 # limitations under the License.
 """Data processing pipelines for lead sheets."""
 
-import tensorflow as tf
-
 from magenta.music import chord_symbols_lib
 from magenta.music import events_lib
 from magenta.music import lead_sheets_lib
 from magenta.pipelines import pipeline
 from magenta.pipelines import statistics
 from magenta.protobuf import music_pb2
+import tensorflow as tf
 
 
 class LeadSheetExtractor(pipeline.Pipeline):
@@ -54,11 +53,11 @@ class LeadSheetExtractor(pipeline.Pipeline):
           filter_drums=self._filter_drums,
           require_chords=self._require_chords,
           all_transpositions=self._all_transpositions)
-    except events_lib.NonIntegerStepsPerBarException as detail:
+    except events_lib.NonIntegerStepsPerBarError as detail:
       tf.logging.warning('Skipped sequence: %s', detail)
       lead_sheets = []
       stats = [statistics.Counter('non_integer_steps_per_bar', 1)]
-    except chord_symbols_lib.ChordSymbolException as detail:
+    except chord_symbols_lib.ChordSymbolError as detail:
       tf.logging.warning('Skipped sequence: %s', detail)
       lead_sheets = []
       stats = [statistics.Counter('chord_symbol_exception', 1)]

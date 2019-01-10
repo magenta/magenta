@@ -15,6 +15,7 @@
 
 import math
 import numbers
+
 import tensorflow as tf
 
 QUEUE_CAPACITY = 500

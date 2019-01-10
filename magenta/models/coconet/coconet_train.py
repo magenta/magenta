@@ -2,14 +2,16 @@
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
+
 import os
 import time
-import numpy as np
-import tensorflow as tf
+
 from magenta.models.coconet import lib_data
 from magenta.models.coconet import lib_graph
 from magenta.models.coconet import lib_hparams
 from magenta.models.coconet import lib_util
+import numpy as np
+import tensorflow as tf
 
 FLAGS = tf.app.flags.FLAGS
 flags = tf.app.flags
@@ -191,13 +193,13 @@ def run_epoch(supervisor, sess, m, dataset, hparams, eval_op, experiment_type,
       value.simple_value = stat
     supervisor.summary_computed(sess, summaries, epoch_count)
 
-  tf.logging.info('%s, epoch %d: loss (mask): %.4f, loss (unmask): %.4f, '
-                  'loss (total): %.4f, log lr: %.4f, time taken: %.4f',
-                  experiment_type, epoch_count, run_stats['loss_mask'],
-                  run_stats['loss_unmask'], run_stats['loss_total'],
-                  np.log2(run_stats['learning_rate'])
-                  if 'learning_rate' in run_stats else 0,
-                  time.time() - start_time)
+  tf.logging.info(
+      '%s, epoch %d: loss (mask): %.4f, loss (unmask): %.4f, '
+      'loss (total): %.4f, log lr: %.4f, time taken: %.4f',
+      experiment_type, epoch_count, run_stats['loss_mask'],
+      run_stats['loss_unmask'], run_stats['loss_total'],
+      np.log(run_stats['learning_rate']) if 'learning_rate' in run_stats else 0,
+      time.time() - start_time)
 
   return run_stats['loss']
 

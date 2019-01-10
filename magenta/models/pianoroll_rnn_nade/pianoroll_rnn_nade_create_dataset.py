@@ -19,11 +19,10 @@ them to TensorFlow's SequenceExample protos for input to the RNN-NADE models.
 
 import os
 
-import tensorflow as tf
-
 from magenta.models.pianoroll_rnn_nade import pianoroll_rnn_nade_model
 from magenta.models.pianoroll_rnn_nade import pianoroll_rnn_nade_pipeline
 from magenta.pipelines import pipeline
+import tensorflow as tf
 
 flags = tf.app.flags
 FLAGS = tf.app.flags.FLAGS

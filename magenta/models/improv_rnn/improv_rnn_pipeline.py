@@ -13,8 +13,6 @@
 # limitations under the License.
 """Pipeline to create ImprovRNN dataset."""
 
-import tensorflow as tf
-
 import magenta
 from magenta.pipelines import dag_pipeline
 from magenta.pipelines import lead_sheet_pipelines
@@ -23,6 +21,7 @@ from magenta.pipelines import pipeline
 from magenta.pipelines import pipelines_common
 from magenta.pipelines import statistics
 from magenta.protobuf import music_pb2
+import tensorflow as tf
 
 
 class EncoderPipeline(pipeline.Pipeline):
@@ -54,11 +53,11 @@ class EncoderPipeline(pipeline.Pipeline):
       encoded = [self._conditional_encoder_decoder.encode(
           lead_sheet.chords, lead_sheet.melody)]
       stats = []
-    except magenta.music.ChordEncodingException as e:
+    except magenta.music.ChordEncodingError as e:
       tf.logging.warning('Skipped lead sheet: %s', e)
       encoded = []
       stats = [statistics.Counter('chord_encoding_exception', 1)]
-    except magenta.music.ChordSymbolException as e:
+    except magenta.music.ChordSymbolError as e:
       tf.logging.warning('Skipped lead sheet: %s', e)
       encoded = []
       stats = [statistics.Counter('chord_symbol_exception', 1)]

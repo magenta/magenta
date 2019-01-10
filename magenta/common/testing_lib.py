@@ -15,7 +15,6 @@
 
 import numpy as np
 import six
-
 from google.protobuf import text_format
 
 

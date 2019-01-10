@@ -13,13 +13,12 @@
 # limitations under the License.
 """Data processing pipelines for drum tracks."""
 
-import tensorflow as tf
-
 from magenta.music import drums_lib
 from magenta.music import events_lib
 from magenta.pipelines import pipeline
 from magenta.pipelines import statistics
 from magenta.protobuf import music_pb2
+import tensorflow as tf
 
 
 class DrumsExtractor(pipeline.Pipeline):
@@ -41,7 +40,7 @@ class DrumsExtractor(pipeline.Pipeline):
           min_bars=self._min_bars,
           max_steps_truncate=self._max_steps,
           gap_bars=self._gap_bars)
-    except events_lib.NonIntegerStepsPerBarException as detail:
+    except events_lib.NonIntegerStepsPerBarError as detail:
       tf.logging.warning('Skipped sequence: %s', detail)
       drum_tracks = []
       stats = [statistics.Counter('non_integer_steps_per_bar', 1)]

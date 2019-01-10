@@ -15,15 +15,13 @@
 
 import collections
 
-import tensorflow as tf
-
 import magenta
 from magenta.common import Nade
 from magenta.models.shared import events_rnn_graph
+import tensorflow as tf
 from tensorflow.python.layers import base as tf_layers_base
 from tensorflow.python.layers import core as tf_layers_core
 from tensorflow.python.util import nest as tf_nest
-
 
 _RnnNadeStateTuple = collections.namedtuple(
     'RnnNadeStateTuple', ('b_enc', 'b_dec', 'rnn_state'))
@@ -104,12 +102,12 @@ class RnnNade(object):
     """
     batch_size = inputs.shape[0].value
 
-    lengths = (
-        tf.tile(tf.shape(inputs)[1:2], [batch_size]) if lengths is None else
-        lengths)
-    initial_rnn_state = (
-        self._get_rnn_zero_state(batch_size) if initial_state is None else
-        initial_state.rnn_state)
+    if lengths is None:
+      lengths = tf.tile(tf.shape(inputs)[1:2], [batch_size])
+    if initial_state is None:
+      initial_rnn_state = self._get_rnn_zero_state(batch_size)
+    else:
+      initial_rnn_state = initial_state.rnn_state
 
     helper = tf.contrib.seq2seq.TrainingHelper(
         inputs=inputs,

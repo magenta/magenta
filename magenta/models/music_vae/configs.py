@@ -12,7 +12,6 @@ from magenta.models.music_vae import data_hierarchical
 from magenta.models.music_vae import lstm_models
 from magenta.models.music_vae.base_model import MusicVAE
 import magenta.music as mm
-
 from tensorflow.contrib.training import HParams
 
 

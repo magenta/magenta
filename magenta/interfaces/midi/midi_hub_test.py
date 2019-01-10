@@ -17,14 +17,13 @@ import collections
 import threading
 import time
 
-import mido
-from six.moves import queue as Queue
-import tensorflow as tf
-
 from magenta.common import concurrency
 from magenta.interfaces.midi import midi_hub
 from magenta.music import testing_lib
 from magenta.protobuf import music_pb2
+import mido
+from six.moves import queue as Queue
+import tensorflow as tf
 
 Note = collections.namedtuple('Note', ['pitch', 'velocity', 'start', 'end'])
 
@@ -73,23 +72,23 @@ class MidiHubTest(tf.test.TestCase):
 
   def testMidiSignal_ValidityChecks(self):
     # Unsupported type.
-    with self.assertRaises(midi_hub.MidiHubException):
+    with self.assertRaises(midi_hub.MidiHubError):
       midi_hub.MidiSignal(type='sysex')
-    with self.assertRaises(midi_hub.MidiHubException):
+    with self.assertRaises(midi_hub.MidiHubError):
       midi_hub.MidiSignal(msg=mido.Message(type='sysex'))
 
     # Invalid arguments.
-    with self.assertRaises(midi_hub.MidiHubException):
+    with self.assertRaises(midi_hub.MidiHubError):
       midi_hub.MidiSignal()
-    with self.assertRaises(midi_hub.MidiHubException):
+    with self.assertRaises(midi_hub.MidiHubError):
       midi_hub.MidiSignal(type='note_on', value=1)
-    with self.assertRaises(midi_hub.MidiHubException):
+    with self.assertRaises(midi_hub.MidiHubError):
       midi_hub.MidiSignal(type='control', note=1)
-    with self.assertRaises(midi_hub.MidiHubException):
+    with self.assertRaises(midi_hub.MidiHubError):
       midi_hub.MidiSignal(msg=mido.Message(type='control_change'), value=1)
 
     # Non-inferrale type.
-    with self.assertRaises(midi_hub.MidiHubException):
+    with self.assertRaises(midi_hub.MidiHubError):
       midi_hub.MidiSignal(note=1, value=1)
 
   def testMidiSignal_Message(self):
@@ -182,7 +181,7 @@ class MidiHubTest(tf.test.TestCase):
 
     self.assertTrue(not note_events)
 
-  def testStartPlayback_NoUpdates_UpdateException(self):
+  def testStartPlayback_NoUpdates_UpdateError(self):
     # Use a time in the past to test handling of past notes.
     start_time = time.time()
     seq = music_pb2.NoteSequence()
@@ -190,7 +189,7 @@ class MidiHubTest(tf.test.TestCase):
     testing_lib.add_track_to_sequence(seq, 0, notes)
     player = self.midi_hub.start_playback(seq, allow_updates=False)
 
-    with self.assertRaises(midi_hub.MidiHubException):
+    with self.assertRaises(midi_hub.MidiHubError):
       player.update_sequence(seq)
 
     player.stop()

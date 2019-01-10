@@ -50,14 +50,12 @@ from __future__ import print_function
 import abc
 import numbers
 
-import numpy as np
-from six.moves import range  # pylint: disable=redefined-builtin
-import tensorflow as tf
-
 from magenta.common import sequence_example_lib
 from magenta.music import constants
 from magenta.pipelines import pipeline
-
+import numpy as np
+from six.moves import range  # pylint: disable=redefined-builtin
+import tensorflow as tf
 
 DEFAULT_STEPS_PER_BAR = constants.DEFAULT_STEPS_PER_BAR
 DEFAULT_LOOKBACK_DISTANCES = [DEFAULT_STEPS_PER_BAR, DEFAULT_STEPS_PER_BAR * 2]
@@ -490,9 +488,10 @@ class LookbackEventSequenceEncoderDecoder(EventSequenceEncoderDecoder):
          metric position of the next event.
     """
     self._one_hot_encoding = one_hot_encoding
-    self._lookback_distances = (lookback_distances
-                                if lookback_distances is not None
-                                else DEFAULT_LOOKBACK_DISTANCES)
+    if lookback_distances is None:
+      self._lookback_distances = DEFAULT_LOOKBACK_DISTANCES
+    else:
+      self._lookback_distances = lookback_distances
     self._binary_counter_bits = binary_counter_bits
 
   @property

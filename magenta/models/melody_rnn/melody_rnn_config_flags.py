@@ -13,10 +13,9 @@
 # limitations under the License.
 """Provides a class, defaults, and utils for Melody RNN model configuration."""
 
-import tensorflow as tf
-
 import magenta
 from magenta.models.melody_rnn import melody_rnn_model
+import tensorflow as tf
 
 FLAGS = tf.app.flags.FLAGS
 tf.app.flags.DEFINE_string(
@@ -46,7 +45,7 @@ tf.app.flags.DEFINE_string(
     'with the default hyperparameters.')
 
 
-class MelodyRnnConfigFlagsException(Exception):
+class MelodyRnnConfigError(Exception):
   pass
 
 
@@ -102,17 +101,17 @@ def config_from_flags():
     The appropriate MelodyRnnConfig based on the supplied flags.
 
   Raises:
-     MelodyRnnConfigFlagsException: When not exactly one of `--config` or
+     MelodyRnnConfigError: When not exactly one of `--config` or
          `melody_encoder_decoder` is supplied.
   """
   if (FLAGS.melody_encoder_decoder, FLAGS.config).count(None) != 1:
-    raise MelodyRnnConfigFlagsException(
+    raise MelodyRnnConfigError(
         'Exactly one of `--config` or `--melody_encoder_decoder` must be '
         'supplied.')
 
   if FLAGS.melody_encoder_decoder is not None:
     if FLAGS.melody_encoder_decoder not in melody_encoder_decoders:
-      raise MelodyRnnConfigFlagsException(
+      raise MelodyRnnConfigError(
           '`--melody_encoder_decoder` must be one of %s. Got %s.' % (
               melody_encoder_decoders.keys(), FLAGS.melody_encoder_decoder))
     if FLAGS.generator_id is not None:
@@ -130,7 +129,7 @@ def config_from_flags():
         generator_details, encoder_decoder, hparams)
   else:
     if FLAGS.config not in melody_rnn_model.default_configs:
-      raise MelodyRnnConfigFlagsException(
+      raise MelodyRnnConfigError(
           '`--config` must be one of %s. Got %s.' % (
               melody_rnn_model.default_configs.keys(), FLAGS.config))
     config = melody_rnn_model.default_configs[FLAGS.config]

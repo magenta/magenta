@@ -17,10 +17,9 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
+from magenta.models.piano_genie import util
 import sonnet as snt
 import tensorflow as tf
-
-from magenta.models.piano_genie import util
 
 
 def simple_lstm_encoder(features,
@@ -283,12 +282,13 @@ def build_genie_model(feat_dict,
           comp_func = lambda x, y: tf.divide(x, y + 1e-6)
         else:
           raise NotImplementedError()
+
         stp_emb_iq_contour_penalty = weighted_avg(
             power_func(
                 tf.maximum(
                     cfg.stp_emb_iq_contour_margin - comp_func(
-                        stp_emb_iq_dnotes, stp_emb_iq_dlatents), 0)), None
-            if stp_varlen_mask is None else stp_varlen_mask[:, 1:])
+                        stp_emb_iq_dnotes, stp_emb_iq_dlatents), 0)),
+            None if stp_varlen_mask is None else stp_varlen_mask[:, 1:])
 
         # Regularize to maintain note consistency
         stp_emb_iq_note_held = tf.cast(
@@ -297,18 +297,24 @@ def build_genie_model(feat_dict,
           power_func = tf.abs
         elif cfg.stp_emb_iq_deviate_exp == 2:
           power_func = tf.square
+
+        if stp_varlen_mask is None:
+          mask = stp_emb_iq_note_held
+        else:
+          mask = stp_varlen_mask[:, 1:] * stp_emb_iq_note_held
         stp_emb_iq_deviate_penalty = weighted_avg(
-            power_func(stp_emb_iq_dlatents), stp_emb_iq_note_held
-            if stp_varlen_mask is None else
-            stp_varlen_mask[:, 1:] * stp_emb_iq_note_held)
+            power_func(stp_emb_iq_dlatents), mask)
 
         # Calculate perplexity of discrete encoder posterior
+        if stp_varlen_mask is None:
+          mask = stp_emb_iq_inrange_mask
+        else:
+          mask = stp_varlen_mask * stp_emb_iq_inrange_mask
         stp_emb_iq_discrete_oh = tf.one_hot(stp_emb_iq_discrete,
                                             cfg.stp_emb_iq_nbins)
         stp_emb_iq_avg_probs = weighted_avg(
             stp_emb_iq_discrete_oh,
-            stp_emb_iq_inrange_mask if stp_varlen_mask is None else
-            stp_varlen_mask * stp_emb_iq_inrange_mask,
+            mask,
             axis=[0, 1],
             expand_mask=True)
         stp_emb_iq_discrete_ppl = tf.exp(-tf.reduce_sum(
@@ -462,8 +468,8 @@ def build_genie_model(feat_dict,
 
   # Stats
   if cfg.stp_emb_vq or cfg.stp_emb_iq:
-    discrete = out_dict["stp_emb_vq_discrete"] if cfg.stp_emb_vq else out_dict[
-        "stp_emb_iq_discrete"]
+    discrete = out_dict[
+        "stp_emb_vq_discrete" if cfg.stp_emb_vq else "stp_emb_iq_discrete"]
     dx = pitches[:, 1:] - pitches[:, :-1]
     dy = discrete[:, 1:] - discrete[:, :-1]
     contour_violation = tf.reduce_mean(tf.cast(tf.less(dx * dy, 0), tf.float32))

@@ -18,15 +18,13 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-from . import constants
-
+from magenta.models.onsets_frames_transcription import constants
+from magenta.music import sequences_lib
+from magenta.protobuf import music_pb2
 import mir_eval
 import numpy as np
 import pretty_midi
 import tensorflow as tf
-
-from magenta.music import sequences_lib
-from magenta.protobuf import music_pb2
 
 
 def sequence_to_valued_intervals(note_sequence,
@@ -131,6 +129,7 @@ def _frame_metrics(frame_labels, frame_predictions):
 
 
 def define_metrics(num_dims):
+  """Define metrics."""
   with tf.variable_scope('metrics'):
     metric_frame_labels = tf.placeholder(
         tf.int32, (None, num_dims), name='metric_frame_labels')

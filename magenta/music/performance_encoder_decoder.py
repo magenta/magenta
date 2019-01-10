@@ -17,13 +17,11 @@ from __future__ import division
 
 import math
 
-import numpy as np
-
 from magenta.music import encoder_decoder
 from magenta.music import performance_lib
 from magenta.music.encoder_decoder import EventSequenceEncoderDecoder
 from magenta.music.performance_lib import PerformanceEvent
-
+import numpy as np
 
 # Number of floats used to encode NOTE_ON and NOTE_OFF events, using modulo-12
 # encoding. 5 floats for: valid, octave_cos, octave_sin, note_cos, note_sin.

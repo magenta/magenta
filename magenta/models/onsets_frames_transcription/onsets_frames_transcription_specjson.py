@@ -23,13 +23,11 @@ from __future__ import print_function
 
 import json
 
-import tensorflow as tf
-
 from magenta.common import tf_utils
 from magenta.models.onsets_frames_transcription import constants
 from magenta.models.onsets_frames_transcription import data
 from magenta.models.onsets_frames_transcription import model
-
+import tensorflow as tf
 
 FLAGS = tf.app.flags.FLAGS
 

@@ -22,16 +22,14 @@ import copy
 import tempfile
 import time
 
-import numpy as np
-import tensorflow as tf
-
 from magenta.models.onsets_frames_transcription import constants
 from magenta.models.onsets_frames_transcription import data
-
 from magenta.music import audio_io
 from magenta.music import sequences_lib
 from magenta.music import testing_lib
 from magenta.protobuf import music_pb2
+import numpy as np
+import tensorflow as tf
 
 
 class DataTest(tf.test.TestCase):
@@ -64,8 +62,8 @@ class DataTest(tf.test.TestCase):
     # complexity of the pipeline is due to the TensorFlow implementation,
     # so comparing it against simpler numpy code still provides effective
     # coverage.
-    truncated_length = (min(truncated_length, length)
-                        if truncated_length else length)
+    truncated_length = (
+        min(truncated_length, length) if truncated_length else length)
 
     # Pad or slice spec if differs from truncated_length.
     if len(spec) < truncated_length:

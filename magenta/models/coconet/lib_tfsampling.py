@@ -2,11 +2,13 @@
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
+
 import time
-import numpy as np
-import tensorflow as tf
+
 from magenta.models.coconet import lib_graph
 from magenta.models.coconet import lib_hparams
+import numpy as np
+import tensorflow as tf
 
 FLAGS = tf.app.flags.FLAGS
 

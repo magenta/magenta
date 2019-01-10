@@ -2,11 +2,13 @@
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
-from collections import OrderedDict
+
+import collections
 import os
-import tensorflow as tf
+
 from magenta.models.coconet import lib_hparams
 from magenta.models.coconet import lib_tfutil
+import tensorflow as tf
 
 
 class CoconetGraph(object):
@@ -27,7 +29,7 @@ class CoconetGraph(object):
     self._direct_inputs = direct_inputs
     self._use_placeholders = use_placeholders
     self.hiddens = []
-    self.popstats_by_batchstat = OrderedDict()
+    self.popstats_by_batchstat = collections.OrderedDict()
     self.build()
 
   @property
@@ -132,8 +134,9 @@ class CoconetGraph(object):
     self.train_op = self.optimizer.minimize(self.loss)
 
   def compute_predictions(self, logits):
-    return (tf.nn.softmax(logits, dim=2)
-            if self.hparams.use_softmax_loss else tf.nn.sigmoid(logits))
+    if self.hparams.use_softmax_loss:
+      return tf.nn.softmax(logits, dim=2)
+    return tf.nn.sigmoid(logits)
 
   def compute_cross_entropy(self, logits, labels):
     if self.hparams.use_softmax_loss:

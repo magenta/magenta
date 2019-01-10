@@ -2,13 +2,15 @@
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
+
 import itertools as it
 import os
+
+from magenta.models.coconet import lib_util
 import numpy as np
 import six
 import tensorflow as tf
 import yaml
-from magenta.models.coconet import lib_util
 
 
 class ModelMisspecificationError(Exception):

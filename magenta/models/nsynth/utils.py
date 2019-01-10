@@ -411,8 +411,10 @@ def tf_ispecgram(spec,
   """Inverted Specgram tensorflow op (uses pyfunc)."""
   dims = spec.get_shape().as_list()
   # Add back in nyquist frequency
-  x = spec if not pad else tf.concat(
-      [spec, tf.zeros([dims[0], 1, dims[2], dims[3]])], 1)
+  if pad:
+    x = tf.concat([spec, tf.zeros([dims[0], 1, dims[2], dims[3]])], 1)
+  else:
+    x = spec
   audio = tf.py_func(batch_ispecgram, [
       x, n_fft, hop_length, mask, log_mag, re_im, dphase, mag_only, num_iters
   ], tf.float32)

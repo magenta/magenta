@@ -3,12 +3,13 @@
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
-import numpy as np
+
 from magenta.models.coconet import lib_data
 from magenta.models.coconet import lib_logging
 from magenta.models.coconet import lib_mask
 from magenta.models.coconet import lib_tfutil
 from magenta.models.coconet import lib_util
+import numpy as np
 
 ################
 ### Samplers ###
@@ -212,9 +213,10 @@ class GibbsSampler(BaseSampler):
 
   def _run(self, pianorolls, masks):
     print("shape", pianorolls.shape)
-    num_steps = (
-        np.max(_numbers_of_masked_variables(masks))
-        if self.num_steps is None else self.num_steps)
+    if self.num_steps is None:
+      num_steps = np.max(_numbers_of_masked_variables(masks))
+    else:
+      num_steps = self.num_steps
     print("num_steps", num_steps)
 
     with self.logger.section("sequence", subsample_factor=10):

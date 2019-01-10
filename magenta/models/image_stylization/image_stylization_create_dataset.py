@@ -26,13 +26,10 @@ from __future__ import print_function
 import io
 import os
 
-
-import scipy
-import tensorflow as tf
-
 from magenta.models.image_stylization import image_utils
 from magenta.models.image_stylization import learning
-
+import scipy
+import tensorflow as tf
 
 flags = tf.app.flags
 flags.DEFINE_string('style_files', None, 'Style image files.')

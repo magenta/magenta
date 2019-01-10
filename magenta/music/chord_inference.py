@@ -22,12 +22,11 @@ import itertools
 import math
 import numbers
 
-import numpy as np
-import tensorflow as tf
-
 from magenta.music import constants
 from magenta.music import sequences_lib
 from magenta.protobuf import music_pb2
+import numpy as np
+import tensorflow as tf
 
 # Names of pitch classes to use (mostly ignoring spelling).
 _PITCH_CLASS_NAMES = [
@@ -238,27 +237,27 @@ def _key_chord_viterbi(chord_frame_loglik,
           for index in path[::-1]]
 
 
-class ChordInferenceException(Exception):
+class ChordInferenceError(Exception):  # pylint:disable=g-bad-exception-name
   pass
 
 
-class SequenceAlreadyHasChordsException(ChordInferenceException):
+class SequenceAlreadyHasChordsError(ChordInferenceError):
   pass
 
 
-class UncommonTimeSignatureException(ChordInferenceException):
+class UncommonTimeSignatureError(ChordInferenceError):
   pass
 
 
-class NonIntegerStepsPerChordException(ChordInferenceException):
+class NonIntegerStepsPerChordError(ChordInferenceError):
   pass
 
 
-class EmptySequenceException(ChordInferenceException):
+class EmptySequenceError(ChordInferenceError):
   pass
 
 
-class SequenceTooLongException(ChordInferenceException):
+class SequenceTooLongError(ChordInferenceError):
   pass
 
 
@@ -298,21 +297,21 @@ def infer_chords_for_sequence(sequence,
         `quantized_sequence` (and remove any existing key signatures).
 
   Raises:
-    SequenceAlreadyHasChordsException: If `sequence` already has chords.
-    QuantizationStatusException: If `sequence` is not quantized relative to
+    SequenceAlreadyHasChordsError: If `sequence` already has chords.
+    QuantizationStatusError: If `sequence` is not quantized relative to
         meter but `chords_per_bar` is specified or no beat annotations are
         present.
-    UncommonTimeSignatureException: If `chords_per_bar` is not specified and
+    UncommonTimeSignatureError: If `chords_per_bar` is not specified and
         `sequence` is quantized and has an uncommon time signature.
-    NonIntegerStepsPerChordException: If the number of quantized steps per chord
+    NonIntegerStepsPerChordError: If the number of quantized steps per chord
         is not an integer.
-    EmptySequenceException: If `sequence` is empty.
-    SequenceTooLongException: If the number of chords to be inferred is too
+    EmptySequenceError: If `sequence` is empty.
+    SequenceTooLongError: If the number of chords to be inferred is too
         large.
   """
   for ta in sequence.text_annotations:
     if ta.annotation_type == music_pb2.NoteSequence.TextAnnotation.CHORD_SYMBOL:
-      raise SequenceAlreadyHasChordsException(
+      raise SequenceAlreadyHasChordsError(
           'NoteSequence already has chord(s): %s' % ta.text)
 
   if sequences_lib.is_relative_quantized_sequence(sequence):
@@ -321,7 +320,7 @@ def infer_chords_for_sequence(sequence,
       time_signature = (sequence.time_signatures[0].numerator,
                         sequence.time_signatures[0].denominator)
       if time_signature not in _DEFAULT_TIME_SIGNATURE_CHORDS_PER_BAR:
-        raise UncommonTimeSignatureException(
+        raise UncommonTimeSignatureError(
             'No default chords per bar for time signature: (%d, %d)' %
             time_signature)
       chords_per_bar = _DEFAULT_TIME_SIGNATURE_CHORDS_PER_BAR[time_signature]
@@ -331,7 +330,7 @@ def infer_chords_for_sequence(sequence,
         sequence)
     steps_per_chord_float = steps_per_bar_float / chords_per_bar
     if steps_per_chord_float != round(steps_per_chord_float):
-      raise NonIntegerStepsPerChordException(
+      raise NonIntegerStepsPerChordError(
           'Non-integer number of steps per chord: %f' % steps_per_chord_float)
     steps_per_chord = int(steps_per_chord_float)
     steps_per_second = sequences_lib.steps_per_quarter_to_steps_per_second(
@@ -340,20 +339,20 @@ def infer_chords_for_sequence(sequence,
 
     num_chords = int(math.ceil(sequence.total_time / seconds_per_chord))
     if num_chords == 0:
-      raise EmptySequenceException('NoteSequence is empty.')
+      raise EmptySequenceError('NoteSequence is empty.')
 
   else:
     # Sequence is not quantized relative to meter; chord changes will happen at
     # annotated beat times.
     if chords_per_bar is not None:
-      raise sequences_lib.QuantizationStatusException(
+      raise sequences_lib.QuantizationStatusError(
           'Sequence must be quantized to infer fixed number of chords per bar.')
     beats = [
         ta for ta in sequence.text_annotations
         if ta.annotation_type == music_pb2.NoteSequence.TextAnnotation.BEAT
     ]
     if not beats:
-      raise sequences_lib.QuantizationStatusException(
+      raise sequences_lib.QuantizationStatusError(
           'Sequence must be quantized to infer chords without annotated beats.')
 
     # Only keep unique beats in the interior of the sequence. The first chord
@@ -372,7 +371,7 @@ def infer_chords_for_sequence(sequence,
       sorted_beat_steps = [beat.quantized_step for beat in unique_sorted_beats]
 
   if num_chords > _MAX_NUM_CHORDS:
-    raise SequenceTooLongException(
+    raise SequenceTooLongError(
         'NoteSequence too long for chord inference: %d frames' % num_chords)
 
   # Compute pitch vectors for each chord frame, then compute log-likelihood of

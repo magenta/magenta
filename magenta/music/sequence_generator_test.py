@@ -17,11 +17,10 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-import tensorflow as tf
-
 from magenta.music import model
 from magenta.music import sequence_generator
 from magenta.protobuf import generator_pb2
+import tensorflow as tf
 
 
 class Model(model.BaseModel):
@@ -54,9 +53,9 @@ class SequenceGeneratorTest(tf.test.TestCase):
         checkpoint_file=[b'foo.ckpt'],
         metagraph_file=b'foo.ckpt.meta')
 
-    with self.assertRaises(sequence_generator.SequenceGeneratorException):
+    with self.assertRaises(sequence_generator.SequenceGeneratorError):
       SeuenceGenerator(checkpoint='foo.ckpt', bundle=bundle)
-    with self.assertRaises(sequence_generator.SequenceGeneratorException):
+    with self.assertRaises(sequence_generator.SequenceGeneratorError):
       SeuenceGenerator(checkpoint=None, bundle=None)
 
     SeuenceGenerator(checkpoint='foo.ckpt')
@@ -73,7 +72,7 @@ class SequenceGeneratorTest(tf.test.TestCase):
 
     bundle.generator_details.id = 'blarg'
 
-    with self.assertRaises(sequence_generator.SequenceGeneratorException):
+    with self.assertRaises(sequence_generator.SequenceGeneratorError):
       SeuenceGenerator(bundle=bundle)
 
   def testGetBundleDetails(self):

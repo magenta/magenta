@@ -15,15 +15,12 @@
 
 import copy
 
-import tensorflow as tf
-
 from magenta.common import testing_lib as common_testing_lib
-
 from magenta.models.polyphony_rnn import polyphony_lib
-
 from magenta.music import sequences_lib
 from magenta.music import testing_lib
 from magenta.protobuf import music_pb2
+import tensorflow as tf
 
 
 class PolyphonyLibTest(tf.test.TestCase):

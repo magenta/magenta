@@ -114,4 +114,3 @@ def vgg_16(inputs, reuse=False, pooling='avg', final_endpoint='fc8'):
       if add_and_check_is_final('fc8', net): return end_points
 
     raise ValueError('final_endpoint (%s) not recognized' % final_endpoint)
-

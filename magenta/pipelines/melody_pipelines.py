@@ -13,13 +13,12 @@
 # limitations under the License.
 """Data processing pipelines for melodies."""
 
-import tensorflow as tf
-
 from magenta.music import events_lib
 from magenta.music import melodies_lib
 from magenta.pipelines import pipeline
 from magenta.pipelines import statistics
 from magenta.protobuf import music_pb2
+import tensorflow as tf
 
 
 class MelodyExtractor(pipeline.Pipeline):
@@ -49,7 +48,7 @@ class MelodyExtractor(pipeline.Pipeline):
           gap_bars=self._gap_bars,
           ignore_polyphonic_notes=self._ignore_polyphonic_notes,
           filter_drums=self._filter_drums)
-    except events_lib.NonIntegerStepsPerBarException as detail:
+    except events_lib.NonIntegerStepsPerBarError as detail:
       tf.logging.warning('Skipped sequence: %s', detail)
       melodies = []
       stats = [statistics.Counter('non_integer_steps_per_bar', 1)]

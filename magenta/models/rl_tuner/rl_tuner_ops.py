@@ -25,7 +25,6 @@ import numpy as np
 from six.moves import range  # pylint: disable=redefined-builtin
 import tensorflow as tf
 
-
 LSTM_STATE_NAME = 'lstm'
 
 # Number of output note classes. This is a property of the dataset.
@@ -201,8 +200,12 @@ def decoder(event_list, transpose_amount):
   Returns:
     Integer list of MIDI values.
   """
-  return [e - NUM_SPECIAL_EVENTS if e < NUM_SPECIAL_EVENTS else
-          e + INITIAL_MIDI_VALUE - transpose_amount for e in event_list]
+  def _decode_event(e):
+    if e < NUM_SPECIAL_EVENTS:
+      return e - NUM_SPECIAL_EVENTS
+    else:
+      return e + INITIAL_MIDI_VALUE - transpose_amount
+  return [_decode_event(e) for e in event_list]
 
 
 def make_onehot(int_list, one_hot_length):

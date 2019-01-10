@@ -16,32 +16,30 @@
 Simple MusicXML parser used to convert MusicXML
 into tensorflow.magenta.NoteSequence.
 """
-
-# Imports
-# Python 2 uses integer division for integers. Using this gives the Python 3
-# behavior of producing a float when dividing integers
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-from fractions import Fraction
+import fractions
 import xml.etree.ElementTree as ET
 import zipfile
 
-import six
 from magenta.music import constants
+import six
+
+Fraction = fractions.Fraction
 
 DEFAULT_MIDI_PROGRAM = 0    # Default MIDI Program (0 = grand piano)
 DEFAULT_MIDI_CHANNEL = 0    # Default MIDI Channel (0 = first channel)
 MUSICXML_MIME_TYPE = 'application/vnd.recordare.musicxml+xml'
 
 
-class MusicXMLParseException(Exception):
+class MusicXMLParseError(Exception):
   """Exception thrown when the MusicXML contents cannot be parsed."""
   pass
 
 
-class PitchStepParseException(MusicXMLParseException):
+class PitchStepParseError(MusicXMLParseError):
   """Exception thrown when a pitch step cannot be parsed.
 
   Will happen if pitch step is not one of A, B, C, D, E, F, or G
@@ -49,27 +47,27 @@ class PitchStepParseException(MusicXMLParseException):
   pass
 
 
-class ChordSymbolParseException(MusicXMLParseException):
+class ChordSymbolParseError(MusicXMLParseError):
   """Exception thrown when a chord symbol cannot be parsed."""
   pass
 
 
-class MultipleTimeSignatureException(MusicXMLParseException):
+class MultipleTimeSignatureError(MusicXMLParseError):
   """Exception thrown when multiple time signatures found in a measure."""
   pass
 
 
-class AlternatingTimeSignatureException(MusicXMLParseException):
+class AlternatingTimeSignatureError(MusicXMLParseError):
   """Exception thrown when an alternating time signature is encountered."""
   pass
 
 
-class TimeSignatureParseException(MusicXMLParseException):
+class TimeSignatureParseError(MusicXMLParseError):
   """Exception thrown when the time signature could not be parsed."""
   pass
 
 
-class UnpitchedNoteException(MusicXMLParseException):
+class UnpitchedNoteError(MusicXMLParseError):
   """Exception thrown when an unpitched note is encountered.
 
   We do not currently support parsing files with unpitched notes (e.g.,
@@ -80,12 +78,12 @@ class UnpitchedNoteException(MusicXMLParseException):
   pass
 
 
-class KeyParseException(MusicXMLParseException):
+class KeyParseError(MusicXMLParseError):
   """Exception thrown when a key signature cannot be parsed."""
   pass
 
 
-class InvalidNoteDurationTypeException(MusicXMLParseException):
+class InvalidNoteDurationTypeError(MusicXMLParseError):
   """Exception thrown when a note's duration type is invalid."""
   pass
 
@@ -172,7 +170,7 @@ class MusicXMLDocument(object):
       The score as an xml.etree.ElementTree.
 
     Raises:
-      MusicXMLParseException: if the file cannot be parsed.
+      MusicXMLParseError: if the file cannot be parsed.
     """
     score = None
     if filename.endswith('.mxl'):
@@ -180,14 +178,14 @@ class MusicXMLDocument(object):
       try:
         mxlzip = zipfile.ZipFile(filename)
       except zipfile.BadZipfile as exception:
-        raise MusicXMLParseException(exception)
+        raise MusicXMLParseError(exception)
 
       # A compressed MXL file may contain multiple files, but only one
       # MusicXML file. Read the META-INF/container.xml file inside of the
       # MXL file to locate the MusicXML file within the MXL file
       # http://www.musicxml.com/tutorial/compressed-mxl-files/zip-archive-structure/
 
-      # Raise a MusicXMLParseException if multiple MusicXML files found
+      # Raise a MusicXMLParseError if multiple MusicXML files found
 
       infolist = mxlzip.infolist()
       if six.PY3:
@@ -218,20 +216,20 @@ class MusicXMLDocument(object):
                 if not compressed_file_name:
                   compressed_file_name = rootfile_tag.attrib['full-path']
                 else:
-                  raise MusicXMLParseException(
+                  raise MusicXMLParseError(
                       'Multiple MusicXML files found in compressed archive')
             else:
               # No media-type attribute, so assume this is the MusicXML file
               if not compressed_file_name:
                 compressed_file_name = rootfile_tag.attrib['full-path']
               else:
-                raise MusicXMLParseException(
+                raise MusicXMLParseError(
                     'Multiple MusicXML files found in compressed archive')
         except ET.ParseError as exception:
-          raise MusicXMLParseException(exception)
+          raise MusicXMLParseError(exception)
 
       if not compressed_file_name:
-        raise MusicXMLParseException(
+        raise MusicXMLParseError(
             'Unable to locate main .xml file in compressed archive.')
       if six.PY2:
         # In py2, the filenames in infolist are utf-8 encoded, so
@@ -242,20 +240,20 @@ class MusicXMLDocument(object):
         compressed_file_info = [x for x in infolist
                                 if x.filename == compressed_file_name][0]
       except IndexError:
-        raise MusicXMLParseException(
+        raise MusicXMLParseError(
             'Score file %s not found in zip archive' % compressed_file_name)
       score_string = mxlzip.read(compressed_file_info)
       try:
         score = ET.fromstring(score_string)
       except ET.ParseError as exception:
-        raise MusicXMLParseException(exception)
+        raise MusicXMLParseError(exception)
     else:
       # Uncompressed XML file.
       try:
         tree = ET.parse(filename)
         score = tree.getroot()
       except ET.ParseError as exception:
-        raise MusicXMLParseException(exception)
+        raise MusicXMLParseError(exception)
 
     return score
 
@@ -559,7 +557,7 @@ class Measure(object):
           self.time_signature = TimeSignature(self.state, child)
           self.state.time_signature = self.time_signature
         else:
-          raise MultipleTimeSignatureException('Multiple time signatures')
+          raise MultipleTimeSignatureError('Multiple time signatures')
       elif child.tag == 'transpose':
         transpose = int(child.find('chromatic').text)
         self.state.transpose = transpose
@@ -673,8 +671,7 @@ class Measure(object):
         new_time_signature.numerator = numerator
         new_time_signature.denominator = denominator
 
-        new_time_sig_fraction = Fraction(numerator,
-                                         denominator)
+        new_time_sig_fraction = Fraction(numerator, denominator)
 
         if new_time_sig_fraction == fractional_time_signature:
           new_time_signature.numerator = fractional_time_signature.numerator
@@ -731,7 +728,7 @@ class Note(object):
         # A time-modification element represents a tuplet_ratio
         self._parse_tuplet(child)
       elif child.tag == 'unpitched':
-        raise UnpitchedNoteException('Unpitched notes are not supported')
+        raise UnpitchedNoteError('Unpitched notes are not supported')
       else:
         # Ignore other tag types because they are not relevant to Magenta.
         pass
@@ -808,7 +805,7 @@ class Note(object):
       pitch_class = 11
     else:
       # Raise exception for unknown step (ex: 'Q')
-      raise PitchStepParseException('Unable to parse pitch step ' + step)
+      raise PitchStepParseError('Unable to parse pitch step ' + step)
 
     pitch_class = (pitch_class + int(alter)) % 12
     midi_pitch = (12 + pitch_class) + (int(octave) * 12)
@@ -944,7 +941,7 @@ class NoteDuration(object):
   @type.setter
   def type(self, new_type):
     if new_type not in self.TYPE_RATIO_MAP:
-      raise InvalidNoteDurationTypeException(
+      raise InvalidNoteDurationTypeError(
           'Note duration type "{}" is not valid'.format(new_type))
     self._type = new_type
 
@@ -1060,7 +1057,7 @@ class ChordSymbol(object):
       A string, one of 'bb', 'b', '#', '##', or the empty string.
 
     Raises:
-      ChordSymbolParseException: If `alter_text` cannot be parsed to an integer,
+      ChordSymbolParseError: If `alter_text` cannot be parsed to an integer,
           or if the integer is not a valid number of semitones between -2 and 2
           inclusive.
     """
@@ -1068,7 +1065,7 @@ class ChordSymbol(object):
     try:
       alter_semitones = int(alter_text)
     except ValueError:
-      raise ChordSymbolParseException('Non-integer alter: ' + str(alter_text))
+      raise ChordSymbolParseError('Non-integer alter: ' + str(alter_text))
 
     # Visual alter representation
     if alter_semitones == -2:
@@ -1082,7 +1079,7 @@ class ChordSymbol(object):
     elif alter_semitones == 2:
       alter_string = '##'
     else:
-      raise ChordSymbolParseException('Invalid alter: ' + str(alter_semitones))
+      raise ChordSymbolParseError('Invalid alter: ' + str(alter_semitones))
 
     return alter_string
 
@@ -1099,7 +1096,7 @@ class ChordSymbol(object):
           continue
         kind_text = str(child.text).strip()
         if kind_text not in self.CHORD_KIND_ABBREVIATIONS:
-          raise ChordSymbolParseException('Unknown chord kind: ' + kind_text)
+          raise ChordSymbolParseError('Unknown chord kind: ' + kind_text)
         self.kind = self.CHORD_KIND_ABBREVIATIONS[kind_text]
       elif child.tag == 'degree':
         self.degrees.append(self._parse_degree(child))
@@ -1110,8 +1107,7 @@ class ChordSymbol(object):
         try:
           offset = int(child.text)
         except ValueError:
-          raise ChordSymbolParseException('Non-integer offset: ' +
-                                          str(child.text))
+          raise ChordSymbolParseError('Non-integer offset: ' + str(child.text))
         midi_ticks = offset * constants.STANDARD_PPQ / self.state.divisions
         seconds = (midi_ticks / constants.STANDARD_PPQ *
                    self.state.seconds_per_quarter)
@@ -1121,12 +1117,12 @@ class ChordSymbol(object):
         pass
 
     if self.root is None and self.kind != 'N.C.':
-      raise ChordSymbolParseException('Chord symbol must have a root')
+      raise ChordSymbolParseError('Chord symbol must have a root')
 
   def _parse_pitch(self, xml_pitch, step_tag, alter_tag):
     """Parse and return the pitch-like <root> or <bass> element."""
     if xml_pitch.find(step_tag) is None:
-      raise ChordSymbolParseException('Missing pitch step')
+      raise ChordSymbolParseError('Missing pitch step')
     step = xml_pitch.find(step_tag).text
 
     alter_string = ''
@@ -1135,7 +1131,7 @@ class ChordSymbol(object):
       alter_string = self._alter_to_string(alter_text)
 
     if self.state.transpose:
-      raise ChordSymbolParseException(
+      raise ChordSymbolParseError(
           'Transposition of chord symbols currently unsupported')
 
     return step + alter_string
@@ -1153,15 +1149,15 @@ class ChordSymbol(object):
   def _parse_degree(self, xml_degree):
     """Parse and return the <degree> scale degree modification element."""
     if xml_degree.find('degree-value') is None:
-      raise ChordSymbolParseException('Missing scale degree value in harmony')
+      raise ChordSymbolParseError('Missing scale degree value in harmony')
     value_text = xml_degree.find('degree-value').text
     if value_text is None:
-      raise ChordSymbolParseException('Missing scale degree')
+      raise ChordSymbolParseError('Missing scale degree')
     try:
       value = int(value_text)
     except ValueError:
-      raise ChordSymbolParseException('Non-integer scale degree: ' +
-                                      str(value_text))
+      raise ChordSymbolParseError(
+          'Non-integer scale degree: ' + str(value_text))
 
     alter_string = ''
     if xml_degree.find('degree-alter') is not None:
@@ -1169,7 +1165,7 @@ class ChordSymbol(object):
       alter_string = self._alter_to_string(alter_text)
 
     if xml_degree.find('degree-type') is None:
-      raise ChordSymbolParseException('Missing degree modification type')
+      raise ChordSymbolParseError('Missing degree modification type')
     type_text = xml_degree.find('degree-type').text
 
     if type_text == 'add':
@@ -1185,12 +1181,12 @@ class ChordSymbol(object):
       alter_string = ''
     elif type_text == 'alter':
       if not alter_string:
-        raise ChordSymbolParseException('Degree alteration by zero semitones')
+        raise ChordSymbolParseError('Degree alteration by zero semitones')
       # No type string necessary as merely appending e.g. "#9" suffices.
       type_string = ''
     else:
-      raise ChordSymbolParseException('Invalid degree modification type: ' +
-                                      str(type_text))
+      raise ChordSymbolParseError(
+          'Invalid degree modification type: ' + str(type_text))
 
     # Return a scale degree modification string that can be appended to a chord
     # symbol figure string.
@@ -1244,7 +1240,7 @@ class TimeSignature(object):
         len(self.xml_time.findall('beat-type')) > 1):
       # If more than 1 beats or beat-type found, this time signature is
       # not supported (ex: alternating meter)
-      raise AlternatingTimeSignatureException('Alternating Time Signature')
+      raise AlternatingTimeSignatureError('Alternating Time Signature')
 
     beats = self.xml_time.find('beats').text
     beat_type = self.xml_time.find('beat-type').text
@@ -1252,7 +1248,7 @@ class TimeSignature(object):
       self.numerator = int(beats)
       self.denominator = int(beat_type)
     except ValueError:
-      raise TimeSignatureParseException(
+      raise TimeSignatureParseError(
           'Could not parse time signature: {}/{}'.format(beats, beat_type))
     self.time_position = self.state.time_position
 
@@ -1294,11 +1290,11 @@ class KeySignature(object):
 
 
     Raises:
-      KeyParseException: If the fifths element is missing.
+      KeyParseError: If the fifths element is missing.
     """
     fifths = self.xml_key.find('fifths')
     if fifths is None:
-      raise KeyParseException(
+      raise KeyParseError(
           'Could not find fifths attribute in key signature.')
     self.key = int(self.xml_key.find('fifths').text)
     mode = self.xml_key.find('mode')

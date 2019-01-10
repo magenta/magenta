@@ -35,7 +35,7 @@ DEFAULT_STEPS_PER_QUARTER = constants.DEFAULT_STEPS_PER_QUARTER
 CHORD_SYMBOL = music_pb2.NoteSequence.TextAnnotation.CHORD_SYMBOL
 
 
-class MelodyChordsMismatchException(Exception):
+class MelodyChordsMismatchError(Exception):
   pass
 
 
@@ -58,12 +58,12 @@ class LeadSheet(events_lib.EventSequence):
       chords: A ChordProgression object.
 
     Raises:
-      MelodyChordsMismatchException: If the melody and chord progression differ
+      MelodyChordsMismatchError: If the melody and chord progression differ
           in temporal resolution or position in the source sequence, or if only
           one of melody or chords is specified.
     """
     if (melody is None) != (chords is None):
-      raise MelodyChordsMismatchException(
+      raise MelodyChordsMismatchError(
           'melody and chords must be both specified or both unspecified')
     if melody is not None:
       self._from_melody_and_chords(melody, chords)
@@ -83,7 +83,7 @@ class LeadSheet(events_lib.EventSequence):
       chords: A ChordProgression object.
 
     Raises:
-      MelodyChordsMismatchException: If the melody and chord progression differ
+      MelodyChordsMismatchError: If the melody and chord progression differ
           in temporal resolution or position in the source sequence.
     """
     if (len(melody) != len(chords) or
@@ -91,7 +91,7 @@ class LeadSheet(events_lib.EventSequence):
         melody.steps_per_quarter != chords.steps_per_quarter or
         melody.start_step != chords.start_step or
         melody.end_step != chords.end_step):
-      raise MelodyChordsMismatchException()
+      raise MelodyChordsMismatchError()
     self._melody = melody
     self._chords = chords
 
@@ -314,7 +314,7 @@ def extract_lead_sheet_fragments(quantized_sequence,
     A python list of LeadSheet instances.
 
   Raises:
-    NonIntegerStepsPerBarException: If `quantized_sequence`'s bar length
+    NonIntegerStepsPerBarError: If `quantized_sequence`'s bar length
         (derived from its time signature) is not an integer number of time
         steps.
   """
