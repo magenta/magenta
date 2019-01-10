@@ -835,10 +835,10 @@ class DAGPipelineTest(tf.test.TestCase):
     for pipeline_class in [UnitQ1, UnitQ2, UnitQ3,
                            UnitR1, UnitR2, UnitR3, UnitR4, UnitR5]:
       pipe = pipeline_class()
-      output = (
-          dag_pipeline.DagOutput()
-          if pipeline_class.__name__.startswith('UnitR')
-          else dag_pipeline.DagOutput('output'))
+      if pipeline_class.__name__.startswith('UnitR'):
+        output = dag_pipeline.DagOutput()
+      else:
+        output = dag_pipeline.DagOutput('output')
       dag = {pipe: dag_pipeline.DagInput(pipe.input_type),
              output: pipe}
       dag_pipe_obj = dag_pipeline.DAGPipeline(dag)
