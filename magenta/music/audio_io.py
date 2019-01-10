@@ -23,7 +23,7 @@ import scipy
 import six
 
 
-class AudioIOError(BaseException):
+class AudioIOError(BaseException):  # pylint:disable=g-bad-exception-name
   pass
 
 

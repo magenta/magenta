@@ -232,7 +232,7 @@ def _melody_viterbi(pitches, melody_frame_loglik, melody_transition_loglik):
   return [index_to_event(index) for index in path[::-1]]
 
 
-class MelodyInferenceError(Exception):
+class MelodyInferenceError(Exception):  # pylint:disable=g-bad-exception-name
   pass
 
 

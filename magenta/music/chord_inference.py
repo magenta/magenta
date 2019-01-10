@@ -237,7 +237,7 @@ def _key_chord_viterbi(chord_frame_loglik,
           for index in path[::-1]]
 
 
-class ChordInferenceError(Exception):
+class ChordInferenceError(Exception):  # pylint:disable=g-bad-exception-name
   pass
 
 

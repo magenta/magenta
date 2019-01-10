@@ -10,11 +10,6 @@ from magenta.protobuf import music_pb2
 import tensorflow as tf
 
 
-class MidiInteractionError(Exception):
-  """Base class for exceptions in this module."""
-  pass
-
-
 def adjust_sequence_times(sequence, delta_time):
   """Adjusts note and total NoteSequence times by `delta_time`."""
   retimed_sequence = music_pb2.NoteSequence()

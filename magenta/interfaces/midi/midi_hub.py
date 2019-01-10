@@ -36,7 +36,7 @@ except ImportError:
   tf.logging.warn('Could not import RtMidi. Virtual ports are disabled.')
 
 
-class MidiHubError(Exception):
+class MidiHubError(Exception):  # pylint:disable=g-bad-exception-name
   """Base class for exceptions in this module."""
   pass
 

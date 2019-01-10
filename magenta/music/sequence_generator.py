@@ -24,7 +24,7 @@ from magenta.protobuf import generator_pb2
 import tensorflow as tf
 
 
-class SequenceGeneratorError(Exception):
+class SequenceGeneratorError(Exception):  # pylint:disable=g-bad-exception-name
   """Generic exception for sequence generation errors."""
   pass
 
