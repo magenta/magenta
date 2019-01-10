@@ -25,10 +25,10 @@ from magenta.models.music_vae import base_model
 from magenta.models.music_vae import lstm_utils
 import numpy as np
 import tensorflow as tf
+import tensorflow_probability as tfp
 from tensorflow.python.framework import tensor_util
 from tensorflow.python.layers import core as layers_core
 from tensorflow.python.util import nest
-import tensorflow_probability as tfp
 
 rnn = tf.contrib.rnn
 seq2seq = tf.contrib.seq2seq
@@ -956,9 +956,9 @@ class HierarchicalLstmDecoder(base_model.BaseDecoder):
         lengths.
     """
     # Check for explicit True/False since lists may be given.
-    if disable_autoregression is True:
+    if disable_autoregression is True:  # pylint:disable=g-bool-id-comparison
       disable_autoregression = range(len(level_lengths))
-    elif disable_autoregression is False:
+    elif disable_autoregression is False:  # pylint:disable=g-bool-id-comparison
       disable_autoregression = []
     if (hierarchical_encoder and
         (tuple(hierarchical_encoder.level_lengths[-1::-1]) !=

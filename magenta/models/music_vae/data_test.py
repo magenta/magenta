@@ -847,7 +847,6 @@ class TrioConverterTest(BaseDataTest, tf.test.TestCase):
         sequences[0])
 
 
-
 class GrooveConverterTest(tf.test.TestCase):
 
   def initialize_sequence(self):
