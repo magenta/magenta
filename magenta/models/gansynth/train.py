@@ -24,11 +24,7 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-import sys
-print('!!!!!!!!')
-print(sys.path)
-
-
+import importlib
 import time
 
 from absl import logging
@@ -43,6 +39,7 @@ from magenta.models.gansynth.lib import train_util
 
 
 absl.flags.DEFINE_string('hparams', '{}', 'Flags dict as JSON string.')
+absl.flags.DEFINE_string('config', 'mel_prog_hires', 'Name of config module.')
 FLAGS = absl.flags.FLAGS
 tfgan = tf.contrib.gan
 tf.logging.set_verbosity(tf.logging.INFO)
@@ -103,6 +100,12 @@ def main(unused_argv):
   absl.flags.FLAGS.alsologtostderr = True
   # Set hyperparams from json args and defaults
   flags = lib_flags.Flags()
+  # Config hparams
+  if FLAGS.config:
+    config_module = importlib.import_module(
+        'magenta.models.gansynth.configs.{}'.format(FLAGS.config))
+    flags.load(config_module.hparams)
+  # Command line hparams
   flags.load_json(FLAGS.hparams)
   # Set default flags
   lib_model.set_flags(flags)
