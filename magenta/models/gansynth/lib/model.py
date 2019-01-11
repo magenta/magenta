@@ -43,11 +43,12 @@ tfgan = tf.contrib.gan
 def set_flags(flags):
   """Set default hyperparameters."""
   # Must be specified externally
-  flags.set_if_empty('train_root_dir', '/tmp/gansynth')
+  flags.set_if_empty('train_root_dir', '/tmp/gansynth/train')
+  flags.set_if_empty('train_data_path', '/tmp/gansynth/nsynth-test.tfrecord')
 
   ### Dataset ###
-  flags.set_if_empty('dataset_name', 'nsynth_acoustic_resharded')
-  flags.set_if_empty('data_type', 'linear')  # linear, phase, mel
+  flags.set_if_empty('dataset_name', 'nsynth_tfrecord')
+  flags.set_if_empty('data_type', 'mel')  # linear, phase, mel
   flags.set_if_empty('audio_length', 64000)
   flags.set_if_empty('sample_rate', 16000)
   # specgrams_simple_normalizer, specgrams_freq_normalizer
@@ -89,39 +90,6 @@ def set_flags(flags):
 
   ### Debugging ###
   flags.set_if_empty('debug_hook', False)
-
-#   ### ----------------- HPARAM settings for actual training ###
-#   ### Progressive Training ###
-#   # A list of batch sizes for each resolution, if len(batch_size_schedule)
-#   # < num_resolutions, pad the schedule in the beginning with first batch size
-#   flags.set_if_empty('batch_size_schedule', [8])
-#   flags.set_if_empty('stable_stage_num_images', 800000)
-#   flags.set_if_empty('transition_stage_num_images', 800000)
-#   flags.set_if_empty('total_num_images', 11000000)
-#   flags.set_if_empty('save_summaries_num_images', 10000)
-#   flags.set_if_empty('train_progressive', True)
-#   # For fixed-wall-clock-time training, total training time limit in sec.
-#   # If specified, overrides the iteration limits.
-#   flags.set_if_empty('train_time_limit', None)
-#   flags.set_if_empty('train_time_stage_multiplier', 1.)
-#
-#   ### Architecture ###
-#   # Choose an architecture function
-#   flags.set_if_empty('g_fn', 'specgram')  # 'specgram'
-#   flags.set_if_empty('d_fn', 'specgram')
-#   flags.set_if_empty('latent_vector_size', 256)
-#   flags.set_if_empty('kernel_size', 3)
-#   flags.set_if_empty('start_height', 2)  # Start specgram height
-#   flags.set_if_empty('start_width', 16)  # Start specgram width
-#   flags.set_if_empty('scale_mode', 'ALL')  # Scale mode ALL|H
-#   flags.set_if_empty('scale_base', 2)  # Resolution multiplier
-#   flags.set_if_empty('num_resolutions', 7)  # N progressive resolutions
-#   flags.set_if_empty('simple_arch', False)
-#   flags.set_if_empty('to_rgb_activation', 'tanh')
-#   # Number of filters
-#   flags.set_if_empty('fmap_base', 4096)  # Base number of filters
-#   flags.set_if_empty('fmap_decay', 1.0)
-#   flags.set_if_empty('fmap_max', 256)
 
   ### -----------  HPARAM Settings for testing eval ###
   ### Progressive Training ###

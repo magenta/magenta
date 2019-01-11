@@ -25,7 +25,7 @@ import numpy as np
 import scipy.io.wavfile
 import tensorflow as tf
 
-from magenta.models.gansynth.lib.datasets import dataset_eval
+from magenta.models.gansynth.lib.datasets import dataset_nsynth_tfrecord
 
 Counter = collections.Counter
 
@@ -49,7 +49,7 @@ def generate_samples_from_file(samples_path,
 
   if samples_path is None:
     raise ValueError('Needs directory with samples.')
-  pitch_counts = dataset_eval.get_pitch_counts(dataset_name=dataset_name)
+  pitch_counts = dataset_nsynth_tfrecord.get_pitch_counts(dataset_name=dataset_name)
   pitch_to_files = {}
   for pitch in pitch_counts:
     samples_dir = os.path.join(samples_path, 'pitch_{}/*'.format(pitch))
@@ -66,7 +66,7 @@ def generate_samples_from_file(samples_path,
       pitch_to_files[pitch] = pitch_to_files[pitch][num_samples:]
     else:
       all_pitches = []
-      pitch_counts = dataset_eval.get_pitch_counts(dataset_name=dataset_name)
+      pitch_counts = dataset_nsynth_tfrecord.get_pitch_counts(dataset_name=dataset_name)
       for k, v in pitch_counts.items():
         all_pitches.extend([k]*v)
       sample_pitches = np.random.choice(all_pitches, num_samples)
@@ -83,7 +83,7 @@ def generate_samples_from_file(samples_path,
       sample_files = np.random.choice(pitch_to_files[pitch], num_samples)
     else:
       all_pitches = []
-      pitch_counts = dataset_eval.get_pitch_counts(dataset_name=dataset_name)
+      pitch_counts = dataset_nsynth_tfrecord.get_pitch_counts(dataset_name=dataset_name)
       for k, v in pitch_counts.items():
         all_pitches.extend([k]*v)
       sample_pitches = np.random.choice(all_pitches, num_samples)

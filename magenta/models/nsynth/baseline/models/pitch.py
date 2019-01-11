@@ -18,7 +18,7 @@ from __future__ import print_function
 
 import tensorflow as tf
 
-from magenta.models.nsynth.baseline import utils
+from magenta.models.nsynth import utils
 
 slim = tf.contrib.slim
 

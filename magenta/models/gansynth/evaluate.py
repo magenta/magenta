@@ -48,7 +48,7 @@ import tensorflow as tf
 from magenta.models.gansynth.lib import flags as lib_flags
 from magenta.models.gansynth.lib import logger as lib_logger
 from magenta.models.gansynth.lib import model as lib_model
-from magenta.models.gansynth.lib.datasets import dataset_eval
+from magenta.models.gansynth.lib.datasets import dataset_nsynth_tfrecord
 from magenta.models.gansynth.lib.eval import eval_util
 from magenta.models.gansynth.lib.eval import evaluate
 
@@ -94,7 +94,7 @@ def main(_):
     fake_generate_samples = model.generate_samples
 
     # Generate and save samples.
-    pitch_counts = dataset_eval.get_pitch_counts(
+    pitch_counts = dataset_nsynth_tfrecord.get_pitch_counts(
         dataset_name=flags.dataset_name)
     for pitch in pitch_counts.keys():
       samples = fake_generate_samples(flags.num_samples_per_pitch, pitch)

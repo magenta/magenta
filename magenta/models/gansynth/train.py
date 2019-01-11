@@ -14,16 +14,20 @@
 """Train a progressive GAN model.
 
 Example usage:
->>> blaze run train
+>>> python train.py
 
 See https://arxiv.org/abs/1710.10196 for details about the model.
 See https://github.com/tkarras/progressive_growing_of_gans for the original
 theano implementation.
 """
-
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
+
+import sys
+print('!!!!!!!!')
+print(sys.path)
+
 
 import time
 
@@ -38,7 +42,7 @@ from magenta.models.gansynth.lib import model as lib_model
 from magenta.models.gansynth.lib import train_util
 
 
-absl.flags.DEFINE_string('hparams', None, 'Flags dict as b64-encoded JSON')
+absl.flags.DEFINE_string('hparams', '{}', 'Flags dict as JSON string.')
 FLAGS = absl.flags.FLAGS
 tfgan = tf.contrib.gan
 tf.logging.set_verbosity(tf.logging.INFO)
@@ -99,7 +103,7 @@ def main(unused_argv):
   absl.flags.FLAGS.alsologtostderr = True
   # Set hyperparams from json args and defaults
   flags = lib_flags.Flags()
-  flags.load_b64json(FLAGS.hparams)
+  flags.load_json(FLAGS.hparams)
   # Set default flags
   lib_model.set_flags(flags)
 

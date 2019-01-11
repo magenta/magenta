@@ -17,8 +17,8 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-
 from magenta.models.gansynth.lib.datasets import dataset_nsynth_tfrecord_impl
+
 
 PITCH_COUNTS = {
     24: 711,
@@ -92,7 +92,7 @@ def provide_one_hot_labels(batch_size):
 
 
 AUDIO_FILE_PATTERN = (
-    '/tmp/path-to/nsynth-train.tfrecord')
+    '/tmp/gansynth/nsynth-test.tfrecord')
 
 
 def provide_audio_dataset(length=64000, channels=1):

@@ -22,7 +22,7 @@ import numpy as np
 import tensorflow as tf
 
 from magenta.models.gansynth.lib.eval import pitch_classifier_utils
-from magenta.models.nsynth.baseline import utils
+from magenta.models.nsynth import utils
 
 
 def energy_kernel(x, y):

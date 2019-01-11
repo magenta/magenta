@@ -20,7 +20,7 @@ from __future__ import print_function
 import numpy as np
 import tensorflow as tf
 from magenta.models.gansynth.lib.eval import pitch_classifier_utils
-from magenta.models.nsynth.baseline import utils
+from magenta.models.nsynth import utils
 
 tfgan_eval = tf.contrib.gan.eval
 

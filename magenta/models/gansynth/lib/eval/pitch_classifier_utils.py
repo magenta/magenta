@@ -20,8 +20,8 @@ import numpy as np
 import scipy
 import tensorflow as tf
 
-from magenta.models.nsynth.baseline import datasets
-from magenta.models.nsynth.baseline import utils
+from magenta.models.nsynth import reader
+from magenta.models.nsynth import utils
 
 slim = tf.contrib.slim
 namedtuple = collections.namedtuple
@@ -275,14 +275,13 @@ def _get_spectrogram(audio,
         hop_length=hop_length,
         mask=mask,
         log_mag=log_mag,
-        use_cqt=use_cqt,
         re_im=re_im,
         dphase=dphase,
         mag_only=mag_only)
     if use_cqt:
       shape = [batch_size] + [252, 1001, 2]
     else:
-      shape = [batch_size] + datasets.SPECGRAM_REGISTRY[(
+      shape = [batch_size] +  reader.SPECGRAM_REGISTRY[(
           n_fft, hop_length)]
       if mag_only:
         shape[-1] = 1
