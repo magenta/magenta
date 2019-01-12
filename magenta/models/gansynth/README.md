@@ -1,7 +1,11 @@
 # GANSynth
 
 GANSynth is an algorithm for synthesizing audio with generative adversarial networks.
-The details can be found in the [ICLR 2019 Paper](https://openreview.net/forum?id=H1xQVn09FX). It achieves better audio quality than a standard WaveNet baselines on the [NSynth Dataset](https://magenta.tensorflow.org/datasets/nsynth), and synthesizes audio ~54,000x faster.
+The details can be found in the [ICLR 2019 Paper](https://openreview.net/forum?id=H1xQVn09FX). It achieves better audio quality than a standard WaveNet baselines on the [NSynth Dataset](https://magenta.tensorflow.org/datasets/nsynth), and synthesizes audio tens of thousands of times faster.
+
+## Generation
+
+WIP
 
 ## Training
 
@@ -20,10 +24,6 @@ python magenta/models/gansynth/train.py --config=mel_prog_hires --hparams='{"tra
 ```
 
 You can also alter it or make other configs to explore the other representations. As a reminder, the full list of hyperparameters can be found in `model.py`.
-
-## Generation
-
-WIP
 
 ## Evaluation
 

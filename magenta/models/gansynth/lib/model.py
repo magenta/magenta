@@ -158,13 +158,15 @@ class Model(object):
       # Read json to dict
       with tf.gfile.GFile(experiment_json_path, 'r') as f:
         experiment_json = json.load(f)
+      is_internal = experiment_json.has_key('jobs')
       # Load dict as a Flags() object
-      if experiment_json.has_key('jobs'):
-        # Compatability with internal version (hparam sweeps)
+      # Compatability with internal version (hparam sweeps)
+      if is_internal:
         experiment_name = path.split('/')[-1]
         flags.load(experiment_json['jobs'][experiment_name])
       else:
         flags.load(experiment_json)
+        path = one_folder_above
     except Exception as e:  # pylint: disable=broad-except
       print("Warning! Couldn't load model flags from experiment.json")
       print(e)
