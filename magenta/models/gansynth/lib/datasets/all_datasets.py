@@ -17,24 +17,13 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
+import collections
 import functools
-
-import tensorflow as tf
+import numpy as np
 
 from magenta.models.gansynth.lib.datasets import dataset_nsynth_tfrecord
 
-
-def _provide_test_one_hot_labels(batch_size):
-  return tf.random_normal([batch_size, 10])
-
-
-def _provide_test_audio_dataset(length=16000, channels=1):
-  """Provides test dataset of audios."""
-  waves = tf.random_normal([1000, length, channels])
-  one_hot_labels = tf.random_normal([1000, 10])
-  dataset = tf.data.Dataset.from_tensor_slices((waves, one_hot_labels))
-  dataset = dataset.apply(tf.contrib.data.shuffle_and_repeat(buffer_size=100))
-  return dataset
+Counter = collections.Counter
 
 
 def provide_one_hot_labels(name, **kwargs):
@@ -63,11 +52,22 @@ def provide_dataset(name, **kwargs):
   return fn()
 
 
-def get_pitch_counts(name):
+def get_pitch_counts(dataset_name):
   """Gets dictionary of pitch counts."""
   registry = {
       'nsynth_tfrecord': dataset_nsynth_tfrecord.PITCH_COUNTS,
   }
-  if name not in registry.keys():
-    raise ValueError('Unsupported dataset: {}'.format(name))
-  return registry[name]
+  if dataset_name not in registry.keys():
+    raise ValueError('Unsupported dataset: {}'.format(dataset_name))
+  return registry[dataset_name]
+
+
+def get_pitches(num_samples, dataset_name):
+  """Returns pitch_counter for num_samples for given dataset."""
+  all_pitches = []
+  pitch_counts = get_pitch_counts(dataset_name=dataset_name)
+  for k, v in pitch_counts.items():
+    all_pitches.extend([k]*v)
+  sample_pitches = np.random.choice(all_pitches, num_samples)
+  pitch_counter = Counter(sample_pitches)
+  return pitch_counter

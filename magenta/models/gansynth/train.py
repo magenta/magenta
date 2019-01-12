@@ -39,7 +39,7 @@ from magenta.models.gansynth.lib import train_util
 
 
 absl.flags.DEFINE_string('hparams', '{}', 'Flags dict as JSON string.')
-absl.flags.DEFINE_string('config', 'mel_prog_hires', 'Name of config module.')
+absl.flags.DEFINE_string('config', '', 'Name of config module.')
 FLAGS = absl.flags.FLAGS
 tfgan = tf.contrib.gan
 tf.logging.set_verbosity(tf.logging.INFO)
