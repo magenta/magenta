@@ -93,7 +93,8 @@ def run(config):
       train_util.train(model, **config)
 
   # Evaluate model at end of training
-  model.evaluate()
+  # TODO (agrawalk): Fix open source evaluation pipeline.
+  # model.evaluate()
 
 
 def main(unused_argv):
