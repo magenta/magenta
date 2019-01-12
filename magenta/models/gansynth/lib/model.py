@@ -146,18 +146,25 @@ class Model(object):
       model: Instantiated model with saved weights.
     """
     # Read the flags from the experiment.json file
-    # Experiment.json is in the folder above
+    # experiment.json is in the folder above
     # Remove last '/' if present
     path = path[:-1] if path.endswith('/') else path
     if flags is None:
       flags = lib_flags.Flags()
     flags['train_root_dir'] = path
-    experiment_json_path = '/'.join(path.split('/')[:-1])+'/experiment.json'
+    one_folder_above = '/'.join(path.split('/')[:-1])
+    experiment_json_path = os.path.join(one_folder_above, 'experiment.json')
     try:
+      # Read json to dict
       with tf.gfile.GFile(experiment_json_path, 'r') as f:
         experiment_json = json.load(f)
-      experiment_name = path.split('/')[-1]
-      flags.load(experiment_json['jobs'][experiment_name])
+      # Load dict as a Flags() object
+      if experiment_json.has_key('jobs'):
+        # Compatability with internal version (hparam sweeps)
+        experiment_name = path.split('/')[-1]
+        flags.load(experiment_json['jobs'][experiment_name])
+      else:
+        flags.load(experiment_json)
     except Exception as e:  # pylint: disable=broad-except
       print("Warning! Couldn't load model flags from experiment.json")
       print(e)
@@ -478,15 +485,17 @@ class Model(object):
       _add_specgrams_summary('real_data', real_images, real_batch_size)
     tfgan.eval.add_gan_model_summaries(self.gan_model)
 
+  def _pitches_to_labels(self, pitches):
+    return [self.pitch_to_label_dict[pitch] for pitch in pitches]
+
+  def generate_z(self, n):
+    return np.random.normal(size=[n, self.config['latent_vector_size']])
+
   def generate_samples(self, n_samples, pitch=None, max_audio_length=64000):
-    """Generates fake samples."""
-    # Helper functions
-    def _pitches_to_labels(pitches):
-      return [self.pitch_to_label_dict[pitch] for pitch in pitches]
+    """Generate random latent fake samples.
 
-    def _make_noises_np(n):
-      return np.random.normal(size=[n, self.config['latent_vector_size']])
-
+    If pitch is not specified, pitches will be sampled randomly.
+    """
     # Create list of pitches to generate
     if pitch is not None:
       pitches = [pitch]*n_samples
@@ -495,31 +504,47 @@ class Model(object):
       for k, v in self.pitch_counts.items():
         all_pitches.extend([k]*v)
       pitches = np.random.choice(all_pitches, n_samples)
+    z = self.generate_z(len(pitches))
+    return self.generate_samples_from_z(z, pitches, max_audio_length)
 
-    labels = _pitches_to_labels(pitches)
-    n = len(labels)
-    num_batches = int(np.ceil(float(n) / self.batch_size))
-    # Pads zeros to batch size.
-    labels = labels + [0] * (num_batches * self.batch_size - n)
+  def generate_samples_from_z(self, z, pitches, max_audio_length=64000):
+    """Generate fake samples for given latents and pitches.
 
-    start_time = time.time()
+    Args:
+      z: A numpy array of latent vectors [n_samples, n_latent dims].
+      pitches: An iterable list of integer MIDI pitches [n_samples].
+      max_audio_length: Integer, trim to this many samples.
+
+    Returns:
+      audio: Generated audio waveforms [n_samples, max_audio_length]
+    """
+    labels = self._pitches_to_labels(pitches)
+    n_samples = len(labels)
+    num_batches = int(np.ceil(float(n_samples) / self.batch_size))
+    n_tot = num_batches * self.batch_size
+    padding = n_tot - n_samples
+    # Pads zeros to make batches even batch size.
+    labels = labels + [0] * padding
+    z = np.concatenate([z, np.zeros([padding, z.shape[1]])], axis=0)
+
     # Generate waves
+    start_time = time.time()
     waves_list = []
-    for batch_idx in range(num_batches):
-      batch_labels = labels[
-          (batch_idx * self.batch_size):((batch_idx + 1) * self.batch_size)]
-      waves = self.sess.run(
-          self.fake_waves_ph,
-          feed_dict={self.labels_ph: batch_labels,
-                     self.noises_ph: _make_noises_np(len(batch_labels))}
-          )
+    for i in range(num_batches):
+      start = i * self.batch_size
+      end = (i + 1) * self.batch_size
+
+      waves = self.sess.run(self.fake_waves_ph,
+                            feed_dict={self.labels_ph: labels[start:end],
+                                       self.noises_ph: z[start:end]})
       # Trim waves
       for wave in waves:
-        waves_list.append(wave[:min(wave.shape[0], max_audio_length), 0])
+        waves_list.append(wave[:max_audio_length, 0])
+
+    # Remove waves corresponding to the padded zeros.
+    result = np.stack(waves_list[:n_samples], axis=0)
     print('generate_samples: generated {} samples in {}s'.format(
         n_samples, time.time() - start_time))
-    # Remove waves corresponding to the padded zeros.
-    result = np.stack(waves_list[:n], axis=0)
     return result
 
   def evaluate(self):

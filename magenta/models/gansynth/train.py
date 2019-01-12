@@ -36,6 +36,8 @@ from __future__ import division
 from __future__ import print_function
 
 import importlib
+import json
+import os
 import time
 
 from absl import logging
@@ -80,7 +82,7 @@ def run(config):
   """Entry point to run training."""
   if not tf.gfile.Exists(config['train_root_dir']):
     tf.gfile.MakeDirs(config['train_root_dir'])
-  
+
   config_str = '\n'.join(['{}={}'.format(k, v) for k, v in config.items()])
   logging.info('config = \n%s', config_str)
 
@@ -124,6 +126,12 @@ def main(unused_argv):
 
   print('Flags:')
   flags.print_values()
+
+  # Save the flags to help with loading the model latter
+  fname = os.path.join(flags['train_root_dir'], 'experiment.json')
+  with tf.gfile.Open(fname, 'w') as f:
+    json.dump(flags, f)
+
   # Run training
   run(flags)
 
