@@ -32,7 +32,7 @@ import absl.flags
 import tensorflow as tf
 
 from magenta.models.gansynth.lib import data_normalizer
-from magenta.models.gansynth.lib import data_util
+from magenta.models.gansynth.lib import data_helpers
 from magenta.models.gansynth.lib import flags as lib_flags
 from magenta.models.gansynth.lib import model as lib_model
 from magenta.models.gansynth.lib import train_util
@@ -53,7 +53,7 @@ def init_data_normalizer(config):
 
   if config['task'] == 0:
     tf.reset_default_graph()
-    data_helper = data_util.registry[config['data_type']](config)
+    data_helper = data_helpers.registry[config['data_type']](config)
     real_images, _ = data_helper.provide_data(batch_size=10)
 
     # Save normalizer.

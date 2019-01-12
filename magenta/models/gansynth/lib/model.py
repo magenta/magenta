@@ -28,7 +28,7 @@ import time
 import numpy as np
 import tensorflow as tf
 
-from magenta.models.gansynth.lib import data_util
+from magenta.models.gansynth.lib import data_helpers
 from magenta.models.gansynth.lib import flags as lib_flags
 from magenta.models.gansynth.lib import logger as lib_logger
 from magenta.models.gansynth.lib import network_functions as net_fns
@@ -193,7 +193,7 @@ class Model(object):
       batch_size: (int) Build graph with fixed batch size.
       config: (dict) All the global state.
     """
-    data_helper = data_util.registry[config['data_type']](config)
+    data_helper = data_helpers.registry[config['data_type']](config)
     real_images, real_one_hot_labels = data_helper.provide_data(batch_size)
 
     # gen_one_hot_labels = real_one_hot_labels
@@ -278,7 +278,7 @@ class Model(object):
     def _compute_gl_consistency_loss(data):
       """G&L consistency loss."""
       sh = data_helper.specgrams_helper
-      is_mel = isinstance(data_helper, data_util.DataMelHelper)
+      is_mel = isinstance(data_helper, data_helpers.DataMelHelper)
       if is_mel:
         stfts = sh.melspecgrams_to_stfts(data)
       else:
@@ -309,10 +309,10 @@ class Model(object):
       real_ac_loss = _compute_ac_loss(gan_model.real_data, real_one_hot_labels)
 
       # GL losses.
-      is_fourier = isinstance(data_helper, (data_util.DataSTFTHelper,
-                                            data_util.DataSTFTNoIFreqHelper,
-                                            data_util.DataMelHelper))
-      if isinstance(data_helper, data_util.DataWaveHelper):
+      is_fourier = isinstance(data_helper, (data_helpers.DataSTFTHelper,
+                                            data_helpers.DataSTFTNoIFreqHelper,
+                                            data_helpers.DataMelHelper))
+      if isinstance(data_helper, data_helpers.DataWaveHelper):
         is_fourier = False
 
       if is_fourier:
@@ -466,7 +466,7 @@ class Model(object):
     _add_waves_summary('fake_waves', fake_waves, fake_batch_size)
     _add_waves_summary('real_waves', real_waves, real_batch_size)
     # Spectrogram summaries
-    if isinstance(data_helper, data_util.DataWaveHelper):
+    if isinstance(data_helper, data_helpers.DataWaveHelper):
       fake_images_spec = data_helper.specgrams_helper.waves_to_specgrams(
           fake_waves)
       real_images_spec = data_helper.specgrams_helper.waves_to_specgrams(

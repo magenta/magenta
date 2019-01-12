@@ -11,17 +11,16 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Data utility.
-"""
+"""Data utility."""
+
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-
 import tensorflow as tf
 
 from magenta.models.gansynth.lib import train_util
-from magenta.models.gansynth.lib.datasets import all_datasets as datasets
+from magenta.models.gansynth.lib import datasets
 from magenta.models.gansynth.lib.specgrams_helper import SpecgramsHelper
 
 
@@ -31,6 +30,7 @@ class DataHelper(object):
   def __init__(self, config):
     self._config = config
     self._dataset_name = config['dataset_name']
+    self.dataset = datasets.registry[self._dataset_name](config)
     self.specgrams_helper = self.make_specgrams_helper()
 
   def _map_fn(self):
@@ -51,20 +51,19 @@ class DataHelper(object):
 
   def get_pitch_counts(self):
     """Returns a dictionary {pitch value (int): count (int)}."""
-    return datasets.get_pitch_counts(dataset_name=self._dataset_name)
+    return self.dataset.get_pitch_counts()
 
   def provide_one_hot_labels(self, batch_size):
     """Returns a batch of one-hot labels."""
     with tf.name_scope('inputs'):
       with tf.device('/cpu:0'):
-        return datasets.provide_one_hot_labels(name=self._dataset_name,
-                                               batch_size=batch_size)
+        return self.dataset.provide_one_hot_labels(batch_size=batch_size)
 
   def provide_data(self, batch_size):
     """Returns a batch of data and one-hot labels."""
     with tf.name_scope('inputs'):
       with tf.device('/cpu:0'):
-        dataset = datasets.provide_dataset(self._dataset_name)
+        dataset = self.dataset.provide_dataset()
         dataset = dataset.shuffle(buffer_size=1000)
         dataset = dataset.map(self._map_fn, num_parallel_calls=4)
         dataset = dataset.batch(batch_size)

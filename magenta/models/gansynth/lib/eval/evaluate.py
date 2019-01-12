@@ -20,7 +20,7 @@ from __future__ import print_function
 import numpy as np
 
 from magenta.models.gansynth.lib import flags as lib_flags
-from magenta.models.gansynth.lib.datasets import all_datasets
+from magenta.models.gansynth.lib import datasets
 from magenta.models.gansynth.lib.eval import classifier_score
 from magenta.models.gansynth.lib.eval import eval_util
 from magenta.models.gansynth.lib.eval import fid
@@ -77,8 +77,8 @@ def _get_tensors(num_samples, generate_samples, flags,
     pitch_counter(optional): pitch_counter for this sampling step.
   """
   if pitch_counter is None:
-    pitch_counter = all_datasets.get_pitches(num_samples,
-                                             dataset_name=flags.dataset_name)
+    pitch_counter = datasets.get_pitches(num_samples,
+                                         dataset_name=flags.dataset_name)
   idx = 0
   pitches = np.zeros(num_samples)
   data_samples = np.zeros((1, 64000), dtype='float32')
