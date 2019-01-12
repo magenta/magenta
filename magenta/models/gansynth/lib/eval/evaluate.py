@@ -92,36 +92,6 @@ def _get_tensors(num_samples, generate_samples, flags,
   return data_samples[1:, :], pitches
 
 
-def _run_nn_divergence(flags, generate_samples,
-                       real_generate_samples=None):
-  """Evaluates NN-Divergence.
-
-  Args:
-    flags: (dict) Evaluation specific flags.
-    generate_samples: (function) generator_fn for fake samples.
-    real_generate_samples: (function) generator_fn for real samples.
-
-  Returns:
-    results: {`nn_divergence`, `nn_divergence_std`}
-  """
-
-  if real_generate_samples is None:
-    real_generate_samples = eval_util.generate_samples_from_file(
-        flags.real_samples_path,
-        flags.dataset_name,
-        flags.with_replacement)
-
-  print('Evaluating NN-Divergence!')
-  real_samples = _get_tensors(10*1000, real_generate_samples, flags)[0]
-  results = []
-  for _ in xrange(5):
-    fake_samples = _get_tensors(10*1000, generate_samples, flags)[0]
-    results.append(nn_divergence.run(flags.nn_divergence,
-                                     real_samples, fake_samples))
-    return {'nn_divergence': np.mean(results),
-            'nn_divergence_std': np.std(results)}
-
-
 def _run_pitch_classifier(flags, generate_samples):
   """Evaluates pitch acuuracy / mean entropy distribution.
 
@@ -137,32 +107,6 @@ def _run_pitch_classifier(flags, generate_samples):
   samples, pitches = _get_tensors(num_samples, generate_samples, flags)
   pitches = np.squeeze(pitches)
   results = pitch_classifier.run(flags, samples, pitches)
-  return results
-
-
-def _run_mmd(flags, generate_samples, real_generate_samples=None):
-  """Evaluate MMD.
-
-  Args:
-    flags: (dict) Evaluation specific flags.
-    generate_samples: (function) generator_fn for fake samples.
-    real_generate_samples: (function) generator_fn for real samples.
-
-  Returns:
-    results: MMD estimate.
-  """
-
-  if real_generate_samples is None:
-    real_generate_samples = eval_util.generate_samples_from_file(
-        flags.real_samples_path,
-        flags.dataset_name,
-        flags.with_replacement)
-
-  print('Evaluating MMD!')
-  num_samples = flags['mmd_num_samples']
-  real_samples = _get_tensors(num_samples, real_generate_samples, flags)[0]
-  fake_samples = _get_tensors(num_samples, generate_samples, flags)[0]
-  results = mmd.run(flags, real_samples, fake_samples)
   return results
 
 
@@ -228,12 +172,7 @@ def run_everything(flags, generate_samples,
 
   print('Running model evaluation on %s dataset!' % flags.dataset_name)
   results = {}
-  if not flags.skip_nn_div:
-    results.update(_run_nn_divergence(flags, generate_samples,
-                                      real_generate_samples=None))
   results.update(_run_pitch_classifier(flags, generate_samples))
-  results.update(_run_mmd(flags, generate_samples,
-                          real_generate_samples=None))
   results.update(_run_fid(flags, generate_samples,
                           real_generate_samples=None))
   results.update(_run_classifier_score(flags, generate_samples))
