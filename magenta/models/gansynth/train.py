@@ -11,11 +11,22 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Train a progressive GAN model.
+"""Train a progressive GANSynth model.
 
-Example usage:
->>> python train.py
+Example usage: (From base directory)
+>>> python magenta/models/gansynth/train.py
 
+To use a config of hyperparameters:
+>>> python magenta/models/gansynth/train.py --config=mel_prog_hires
+
+To use a config of hyperparameters and manual hparams:
+>>> python magenta/models/gansynth/train.py --config=mel_prog_hires \
+>>> --hparams='{"train_data_path":"/path/to/data.tfrecord"}'
+
+List of hyperparameters can be found in model.py.
+Trains in a couple days on a single V100 GPU.
+
+Adapted from the original Progressive GAN paper for images.
 See https://arxiv.org/abs/1710.10196 for details about the model.
 See https://github.com/tkarras/progressive_growing_of_gans for the original
 theano implementation.
