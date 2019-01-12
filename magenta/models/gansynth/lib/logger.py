@@ -17,7 +17,10 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-import StringIO
+try:
+  from StringIO import StringIO
+except ImportError:
+  from io import StringIO
 
 import numpy as np
 import scipy.io.wavfile

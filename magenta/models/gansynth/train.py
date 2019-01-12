@@ -80,8 +80,8 @@ def run(config):
   """Entry point to run training."""
   if not tf.gfile.Exists(config['train_root_dir']):
     tf.gfile.MakeDirs(config['train_root_dir'])
-
-  config_str = '\n'.join(['{}={}'.format(k, v) for k, v in config.iteritems()])
+  
+  config_str = '\n'.join(['{}={}'.format(k, v) for k, v in config.items()])
   logging.info('config = \n%s', config_str)
 
   init_data_normalizer(config)
