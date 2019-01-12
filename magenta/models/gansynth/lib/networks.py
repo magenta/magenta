@@ -24,6 +24,7 @@ from __future__ import division
 from __future__ import print_function
 
 import math
+import six
 
 import tensorflow as tf
 
@@ -511,7 +512,7 @@ def discriminator(x,
       lods.append((lod, alpha))
 
     lods_iter = iter(lods)
-    x, _ = lods_iter.next()
+    x, _ = six.next(lods_iter)
     for block_id in range(num_blocks, 1, -1):
       with tf.variable_scope(block_name(block_id)):
         if simple_arch:
@@ -528,7 +529,7 @@ def discriminator(x,
           x = _conv2d('conv0', x, kernel_size, num_filters_fn(block_id))
           x = _conv2d('conv1', x, kernel_size, num_filters_fn(block_id - 1))
           x = resolution_schedule.downscale(x, resolution_schedule.scale_base)
-        lod, alpha = lods_iter.next()
+        lod, alpha = six.next(lods_iter)
         x = alpha * lod + (1.0 - alpha) * x
 
     with tf.variable_scope(block_name(1)):
