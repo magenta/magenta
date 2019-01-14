@@ -5,7 +5,14 @@ The details can be found in the [ICLR 2019 Paper](https://openreview.net/forum?i
 
 ## Generation
 
-WIP
+To generate some sounds, first download a pretrained checkpoint, or train your own. We have several available for download:
+
+* [acoustic_only](https://storage.googleapis.com/magentadata/models/gansynth/acoustic_only.zip): As shown in the paper, trained on only acoustic instruments pitch 24-84 (Mel-IF, Progressive, High Frequency Resolution).
+
+You can start by generating some random sounds (random pitch and latent vector) by unzipping the checkpoint and running the generate script from the root of the Magenta directory.
+```bash
+python magenta/models/gansynth/generate.py --ckpt_dir=/path/to/acoustic_only --output_dir=/path/to/output/dir
+```
 
 ## Training
 

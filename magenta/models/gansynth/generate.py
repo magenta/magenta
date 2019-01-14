@@ -14,7 +14,7 @@
 """Generate samples with a pretrained GANSynth model.
 
 To use a config of hyperparameters and manual hparams:
->>> python magenta/models/gansynth/train.py \
+>>> python magenta/models/gansynth/generate.py \
 >>> --ckpt_dir=/path/to/ckpt/dir --output_dir=/path/to/output/dir
 """
 from __future__ import absolute_import
@@ -32,8 +32,9 @@ from magenta.models.gansynth.lib import model as lib_model
 
 absl.flags.DEFINE_string('ckpt_dir',
                          '/path/to/ckpt/dir',
-                         'Path to directory with pretrained checkpoint.'
-                         'Should be the last stage of training.')
+                         'Path to the base directory of pretrained checkpoints.'
+                         'The base directory should contain many '
+                         '"stage_000*" subdirectories.')
 absl.flags.DEFINE_string('output_dir',
                          '/path/to/output/dir',
                          'Path to directory to save wave files.')
