@@ -152,21 +152,13 @@ class Model(object):
     if flags is None:
       flags = lib_flags.Flags()
     flags['train_root_dir'] = path
-    one_folder_above = '/'.join(path.split('/')[:-1])
-    experiment_json_path = os.path.join(one_folder_above, 'experiment.json')
+    experiment_json_path = os.path.join(path, 'experiment.json')
     try:
       # Read json to dict
       with tf.gfile.GFile(experiment_json_path, 'r') as f:
         experiment_json = json.load(f)
-      is_internal = experiment_json.has_key('jobs')
       # Load dict as a Flags() object
-      # Compatability with internal version (hparam sweeps)
-      if is_internal:
-        experiment_name = path.split('/')[-1]
-        flags.load(experiment_json['jobs'][experiment_name])
-      else:
-        flags.load(experiment_json)
-        path = one_folder_above
+      flags.load(experiment_json)
     except Exception as e:  # pylint: disable=broad-except
       print("Warning! Couldn't load model flags from experiment.json")
       print(e)
@@ -176,18 +168,19 @@ class Model(object):
     # Get list_of_directories
     train_sub_dirs = sorted([sub_dir for sub_dir in tf.gfile.ListDirectory(path)
                              if sub_dir.startswith('stage_')])
-    stage_id = max([int(s.split('_')[-1]) for s in train_sub_dirs])
-    # Load the model, use eval_batch_size if present
-    if stage_id < 0:
+    if len(train_sub_dirs) <= 0:
       raise ValueError('No stage folders found, is %s the correct model path?'
                        % path)
+    # Get last checkpoint
+    last_stage_dir = train_sub_dirs[-1]
+    stage_id = int(last_stage_dir.split('_')[-1])
+    weights_dir = os.path.join(path, last_stage_dir)
+    ckpt = tf.train.latest_checkpoint(weights_dir)
+    print('Load model from {}'.format(ckpt))
+    # Load the model, use eval_batch_size if present
     batch_size = flags.get('eval_batch_size',
                            train_util.get_batch_size(stage_id, **flags))
     model = cls(stage_id, batch_size, flags)
-    # Get last checkpoint
-    weights_dir = os.path.join(path, train_sub_dirs[-1])
-    ckpt = tf.train.latest_checkpoint(weights_dir)
-    print('Load model from {}'.format(ckpt))
     model.saver.restore(model.sess, ckpt)
     return model
 

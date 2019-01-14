@@ -24,30 +24,22 @@ from magenta.models.gansynth.lib import datasets
 from magenta.models.gansynth.lib.eval import classifier_score
 from magenta.models.gansynth.lib.eval import eval_util
 from magenta.models.gansynth.lib.eval import fid
-from magenta.models.gansynth.lib.eval import mmd
-from magenta.models.gansynth.lib.eval import nn_divergence
 from magenta.models.gansynth.lib.eval import pitch_classifier
 
 
 def set_flags(flags):
   """Set default flags for evaluation."""
 
-  flags.set_if_empty('nn_divergence', lib_flags.Flags())
-  flags.set_if_empty('skip_nn_div', False)
-  nn_divergence.set_flags(flags.nn_divergence)
-
   ## For now num_samples should be multiple of batch_size
   flags.set_if_empty('eval_batch_size', 128)
   flags.set_if_empty('cs_num_samples', 12800)
   flags.set_if_empty('fid_num_samples', 12800)
-  flags.set_if_empty('mmd_num_samples', 12800)
   flags.set_if_empty('pitch_accuracy_num_samples', 12800)
   flags.set_if_empty('dataset_name', 'acoustic_eval')  # 'full', 'acoustic_only'
 
   flags.set_if_empty('classifier_layer', 'preact_layer_7_1')
   flags.set_if_empty('max_pitch', 84)  # full is 120
   flags.set_if_empty('min_pitch', 24)  # full is 9
-  flags.set_if_empty('mmd_kernel', 'polynomial')
   flags.set_if_empty('threshold', 1)
 
   ## Set default paths
