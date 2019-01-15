@@ -5,18 +5,19 @@ The details can be found in the [ICLR 2019 Paper](https://openreview.net/forum?i
 
 ## Generation
 
-To generate some sounds, first download a pretrained checkpoint, or train your own. We have several available for download:
+To generate some sounds, first [follow the setup instructions for Magenta](https://github.com/tensorflow/magenta/blob/master/README.md), then download a pretrained checkpoint, or train your own. We have several available for download:
 
 * [acoustic_only](https://storage.googleapis.com/magentadata/models/gansynth/acoustic_only.zip): As shown in the paper, trained on only acoustic instruments pitch 24-84 (Mel-IF, Progressive, High Frequency Resolution).
 
 You can start by generating some random sounds (random pitch and latent vector) by unzipping the checkpoint and running the generate script from the root of the Magenta directory.
+
 ```bash
 python magenta/models/gansynth/generate.py --ckpt_dir=/path/to/acoustic_only --output_dir=/path/to/output/dir
 ```
 
 ## Training
 
-GANSynth can train on the NSynth dataset in ~3-4 days on a single V100 GPU. To train, first follow the setup instructions for the Magenta installation or development environment. Then download the [NSynth Datasets](https://magenta.tensorflow.org/datasets/nsynth) as TFRecords.
+GANSynth can train on the NSynth dataset in ~3-4 days on a single V100 GPU. To train, first [follow the setup instructions for Magenta](https://github.com/tensorflow/magenta/blob/master/README.md), using the install or develop environment. Then download the [NSynth Datasets](https://magenta.tensorflow.org/datasets/nsynth) as TFRecords.
 
 To test that training works, run from the root of the Magenta repo directory:
 
