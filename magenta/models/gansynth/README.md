@@ -12,8 +12,10 @@ To generate some sounds, first [follow the setup instructions for Magenta](https
 You can start by generating some random sounds (random pitch and latent vector) by unzipping the checkpoint and running the generate script from the root of the Magenta directory.
 
 ```bash
-python magenta/models/gansynth/generate.py --ckpt_dir=/path/to/acoustic_only --output_dir=/path/to/output/dir
+python magenta/models/gansynth/generate.py --ckpt_dir=/path/to/acoustic_only --output_dir=/path/to/output/dir --midi_file=/path/to/file.mid
 ```
+
+If a MIDI file is specified, notes are synthesized with interpolation between latent vectors in time. If no MIDI file is given, a random batch of notes is synthesized.
 
 ## Training
 

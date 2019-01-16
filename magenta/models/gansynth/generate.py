@@ -15,7 +15,12 @@
 
 To use a config of hyperparameters and manual hparams:
 >>> python magenta/models/gansynth/generate.py \
->>> --ckpt_dir=/path/to/ckpt/dir --output_dir=/path/to/output/dir
+>>> --ckpt_dir=/path/to/ckpt/dir --output_dir=/path/to/output/dir \
+>>> --midi_file=/path/to/file.mid
+
+If a MIDI file is specified, notes are synthesized with interpolation between
+latent vectors in time. If no MIDI file is given, a random batch of notes is
+synthesized.
 """
 from __future__ import absolute_import
 from __future__ import division
@@ -27,6 +32,7 @@ import absl.flags
 import tensorflow as tf
 
 from magenta.models.gansynth.lib import model as lib_model
+from magenta.models.gansynth.lib import flags as lib_flags
 from magenta.models.gansynth.lib import generate_util as gu
 from magenta.models.gansynth.lib import util
 
@@ -51,7 +57,8 @@ def main(unused_argv):
   absl.flags.FLAGS.alsologtostderr = True
 
   # Load the model
-  model = lib_model.Model.load_from_path(FLAGS.ckpt_dir)
+  flags = lib_flags.Flags({'batch_size_schedule': [FLAGS.batch_size]})
+  model = lib_model.Model.load_from_path(FLAGS.ckpt_dir, flags)
 
   # Make an output directory if it doesn't exist
   output_dir = util.expand_path(FLAGS.output_dir)
@@ -72,16 +79,16 @@ def main(unused_argv):
     audio_clip = gu.combine_notes(audio_notes,
                                   notes['start_times'],
                                   notes['end_times'])
-    waves = [audio_clip]
+    # Write the wave files
+    fname = os.path.join(output_dir, 'generated_clip.wav')
+    gu.save_wav(audio_clip, fname)
   else:
     # Otherwise, just generate a batch of random sounds
     waves = model.generate_samples(FLAGS.batch_size)
-
-  # Write the wave files
-  for i in range(len(waves)):
-    fname = os.path.join(output_dir, 'generated_{}.wav'.format(i))
-    gu.save_wav(waves[i], fname)
-
+    # Write the wave files
+    for i in range(len(waves)):
+      fname = os.path.join(output_dir, 'generated_{}.wav'.format(i))
+      gu.save_wav(waves[i], fname)
 
 
 if __name__ == '__main__':
