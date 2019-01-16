@@ -72,7 +72,7 @@ def main(unused_argv):
     z_instruments, t_instruments = gu.get_random_instruments(
         model, notes['end_times'][-1])
     # Get latent vectors for each note
-    z_notes = gu.get_z_notes(notes, z_instruments, t_instruments)
+    z_notes = gu.get_z_notes(notes['start_times'], z_instruments, t_instruments)
     # Generate audio for each note
     audio_notes = model.generate_samples_from_z(z_notes, notes['pitches'])
     # Make a single audio clip

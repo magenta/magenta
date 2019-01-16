@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Train a progressive GANSynth model.
+r"""Train a progressive GANSynth model.
 
 Example usage: (From base directory)
 >>> python magenta/models/gansynth/train.py

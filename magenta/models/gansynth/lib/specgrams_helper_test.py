@@ -25,13 +25,13 @@ from magenta.models.gansynth.lib import specgrams_helper
 import numpy as np
 import tensorflow as tf
 
-
 FLAGS = flags.FLAGS
 
 
 class SpecgramsHelperTest(parameterized.TestCase, tf.test.TestCase):
 
   def setUp(self):
+    super(SpecgramsHelperTest, self).setUp()
     self.data_filename = os.path.join(
         FLAGS.test_srcdir,
         'magenta/testing/data/example_nsynth_audio.npy')

@@ -24,13 +24,13 @@ import json
 import os
 import time
 
-import numpy as np
 from magenta.models.gansynth.lib import data_helpers
 from magenta.models.gansynth.lib import flags as lib_flags
 from magenta.models.gansynth.lib import network_functions as net_fns
 from magenta.models.gansynth.lib import networks
 from magenta.models.gansynth.lib import train_util
 from magenta.models.gansynth.lib import util
+import numpy as np
 import tensorflow as tf
 
 tfgan = tf.contrib.gan
