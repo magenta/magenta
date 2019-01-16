@@ -18,11 +18,10 @@ from __future__ import division
 from __future__ import print_function
 
 import collections
-import numpy as np
-import tensorflow as tf
-
 from magenta.models.gansynth.lib import spectral_ops
 from magenta.models.gansynth.lib import util
+import numpy as np
+import tensorflow as tf
 
 Counter = collections.Counter
 

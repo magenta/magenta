@@ -24,16 +24,14 @@ import json
 import os
 import time
 
-
 import numpy as np
-import tensorflow as tf
-
 from magenta.models.gansynth.lib import data_helpers
 from magenta.models.gansynth.lib import flags as lib_flags
 from magenta.models.gansynth.lib import network_functions as net_fns
 from magenta.models.gansynth.lib import networks
 from magenta.models.gansynth.lib import train_util
 from magenta.models.gansynth.lib import util
+import tensorflow as tf
 
 tfgan = tf.contrib.gan
 
@@ -489,12 +487,12 @@ class Model(object):
     """Generate random latent fake samples.
 
     If pitch is not specified, pitches will be sampled randomly.
-    
+
     Args:
       n_samples: Number of samples to generate.
       pitch: List of pitches to generate.
       max_audio_length: Trim generation to <= this length.
-    
+
     Returns:
       An array of audio for the notes [n_notes, n_audio_samples].
     """

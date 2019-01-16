@@ -21,10 +21,9 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
+from magenta.models.gansynth.lib import spectral_ops
 import numpy as np
 import tensorflow as tf
-
-from magenta.models.gansynth.lib import spectral_ops
 
 
 class SpecgramsHelper(object):

@@ -18,12 +18,10 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-
-import tensorflow as tf
-
 from magenta.models.gansynth.lib import data_normalizer
 from magenta.models.gansynth.lib import layers
 from magenta.models.gansynth.lib import networks
+import tensorflow as tf
 
 
 def _num_filters_fn(block_id, **kwargs):

@@ -27,10 +27,9 @@ import os
 import time
 
 from absl import logging
+from magenta.models.gansynth.lib import networks
 import numpy as np
 import tensorflow as tf
-
-from magenta.models.gansynth.lib import networks
 
 tfgan = tf.contrib.gan
 

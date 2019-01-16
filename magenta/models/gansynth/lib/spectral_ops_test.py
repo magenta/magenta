@@ -21,10 +21,9 @@ from __future__ import division
 from __future__ import print_function
 
 from absl.testing import parameterized
+from magenta.models.gansynth.lib import spectral_ops
 import numpy as np
 import tensorflow as tf
-
-from magenta.models.gansynth.lib import spectral_ops
 
 
 class SpectralOpsTest(parameterized.TestCase, tf.test.TestCase):

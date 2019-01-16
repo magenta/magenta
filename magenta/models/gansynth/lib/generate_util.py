@@ -17,11 +17,10 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-import numpy as np
-import scipy.io.wavfile as wavfile
-
 from magenta import music as mm
 from magenta.models.gansynth.lib import util
+import numpy as np
+import scipy.io.wavfile as wavfile
 
 
 def slerp(p0, p1, t):

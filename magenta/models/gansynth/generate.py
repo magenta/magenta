@@ -29,12 +29,12 @@ from __future__ import print_function
 import os
 
 import absl.flags
-import tensorflow as tf
-
 from magenta.models.gansynth.lib import flags as lib_flags
 from magenta.models.gansynth.lib import generate_util as gu
 from magenta.models.gansynth.lib import model as lib_model
 from magenta.models.gansynth.lib import util
+import tensorflow as tf
+
 
 absl.flags.DEFINE_string('ckpt_dir',
                          '/tmp/gansynth/acoustic_only',

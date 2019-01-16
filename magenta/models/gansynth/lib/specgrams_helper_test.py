@@ -21,10 +21,10 @@ import os
 
 from absl import flags
 from absl.testing import parameterized
+from magenta.models.gansynth.lib import specgrams_helper
 import numpy as np
 import tensorflow as tf
 
-from magenta.models.gansynth.lib import specgrams_helper
 
 FLAGS = flags.FLAGS
 

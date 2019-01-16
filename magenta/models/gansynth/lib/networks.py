@@ -26,9 +26,8 @@ from __future__ import print_function
 import math
 import six
 
-import tensorflow as tf
-
 from magenta.models.gansynth.lib import layers
+import tensorflow as tf
 
 
 class ResolutionSchedule(object):

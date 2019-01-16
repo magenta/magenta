@@ -42,14 +42,13 @@ import time
 
 from absl import logging
 import absl.flags
-import tensorflow as tf
-
 from magenta.models.gansynth.lib import data_helpers
 from magenta.models.gansynth.lib import data_normalizer
 from magenta.models.gansynth.lib import flags as lib_flags
 from magenta.models.gansynth.lib import model as lib_model
 from magenta.models.gansynth.lib import train_util
 from magenta.models.gansynth.lib import util
+import tensorflow as tf
 
 
 absl.flags.DEFINE_string('hparams', '{}', 'Flags dict as JSON string.')
