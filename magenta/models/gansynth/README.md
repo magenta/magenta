@@ -9,6 +9,8 @@ To generate some sounds, first [follow the setup instructions for Magenta](https
 
 * [acoustic_only](https://storage.googleapis.com/magentadata/models/gansynth/acoustic_only.zip): As shown in the paper, trained on only acoustic instruments pitch 24-84 (Mel-IF, Progressive, High Frequency Resolution).
 
+* [all_instruments](https://storage.googleapis.com/magentadata/models/gansynth/all_instruments.zip): Trained on all instruments pitch 24-84 (Mel-IF, Progressive, High Frequency Resolution).
+
 You can start by generating some random sounds (random pitch and latent vector) by unzipping the checkpoint and running the generate script from the root of the Magenta directory.
 
 ```bash
@@ -33,4 +35,4 @@ This will run the model with suitable hyperparmeters for quickly testing trainin
 python magenta/models/gansynth/train.py --config=mel_prog_hires --hparams='{"train_data_path":"/path/to/nsynth-train.tfrecord", "train_root_dir":"/tmp/gansynth/train"}'
 ```
 
-You can also alter it or make other configs to explore the other representations. As a reminder, the full list of hyperparameters can be found in `model.py`.
+You can also alter it or make other configs to explore the other representations. As a reminder, the full list of hyperparameters can be found in `model.py`. By default, the model trains only on acoustic instruments pitch 24-84 as in the paper. This can be changed in `datasets.py`.
