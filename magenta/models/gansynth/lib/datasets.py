@@ -22,6 +22,7 @@ import numpy as np
 import tensorflow as tf
 
 from magenta.models.gansynth.lib import spectral_ops
+from magenta.models.gansynth.lib import util
 
 Counter = collections.Counter
 
@@ -30,7 +31,7 @@ class BaseDataset(object):
   """A base class for reading data from disk."""
 
   def __init__(self, config):
-    self._train_data_path = config['train_data_path']
+    self._train_data_path = util.expand_path(config['train_data_path'])
 
   def provide_one_hot_labels(self, batch_size):
     """Provides one-hot labels."""

@@ -22,13 +22,13 @@ GANSynth can train on the NSynth dataset in ~3-4 days on a single V100 GPU. To t
 To test that training works, run from the root of the Magenta repo directory:
 
 ```bash
-python magenta/models/gansynth/train.py --hparams='{"train_data_path":"/path/to/nsynth-train.tfrecord"}'
+python magenta/models/gansynth/train.py --hparams='{"train_data_path":"/path/to/nsynth-train.tfrecord", "train_root_dir":"/tmp/gansynth/train"}'
 ```
 
 This will run the model with suitable hyperparmeters for quickly testing training (which you can find in `model.py`). The best performing hyperparmeter configuration from the paper _(Mel-Spectrograms, Progressive Training, High Frequency Resolution)_, can be found in `configs/mel_prog_hires.py`. You can train with this config by adding it as a flag:
 
 ```bash
-python magenta/models/gansynth/train.py --config=mel_prog_hires --hparams='{"train_data_path":"/path/to/nsynth-train.tfrecord"}'
+python magenta/models/gansynth/train.py --config=mel_prog_hires --hparams='{"train_data_path":"/path/to/nsynth-train.tfrecord", "train_root_dir":"/tmp/gansynth/train"}'
 ```
 
 You can also alter it or make other configs to explore the other representations. As a reminder, the full list of hyperparameters can be found in `model.py`.

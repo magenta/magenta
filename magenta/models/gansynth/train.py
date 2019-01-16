@@ -49,6 +49,7 @@ from magenta.models.gansynth.lib import data_helpers
 from magenta.models.gansynth.lib import flags as lib_flags
 from magenta.models.gansynth.lib import model as lib_model
 from magenta.models.gansynth.lib import train_util
+from magenta.models.gansynth.lib import util
 
 
 absl.flags.DEFINE_string('hparams', '{}', 'Flags dict as JSON string.')
@@ -80,12 +81,6 @@ def init_data_normalizer(config):
 
 def run(config):
   """Entry point to run training."""
-  if not tf.gfile.Exists(config['train_root_dir']):
-    tf.gfile.MakeDirs(config['train_root_dir'])
-
-  config_str = '\n'.join(['{}={}'.format(k, v) for k, v in config.items()])
-  logging.info('config = \n%s', config_str)
-
   init_data_normalizer(config)
 
   stage_ids = train_util.get_stage_ids(**config)
@@ -126,6 +121,11 @@ def main(unused_argv):
 
   print('Flags:')
   flags.print_values()
+
+  # Create training directory
+  flags['train_root_dir'] = util.expand_path(flags['train_root_dir'])
+  if not tf.gfile.Exists(flags['train_root_dir']):
+    tf.gfile.MakeDirs(flags['train_root_dir'])
 
   # Save the flags to help with loading the model latter
   fname = os.path.join(flags['train_root_dir'], 'experiment.json')

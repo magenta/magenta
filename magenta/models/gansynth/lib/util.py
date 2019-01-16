@@ -11,10 +11,10 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Utility."""
+"""Useful functions."""
 
 import io
-
+import os
 
 from absl import logging
 import numpy as np
@@ -111,3 +111,7 @@ def parse_config_str(config_str):
           v = v[1:-1]  # remove quotes for string argument.
       ans[k] = v
   return ans
+
+
+def expand_path(path):
+  return os.path.abspath(os.path.expandvars(os.path.expanduser(path)))

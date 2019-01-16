@@ -44,7 +44,7 @@ def set_flags(flags):
   """Set default hyperparameters."""
   # Must be specified externally
   flags.set_if_empty('train_root_dir', '/tmp/gansynth/train')
-  flags.set_if_empty('train_data_path', '/tmp/gansynth/nsynth-test.tfrecord')
+  flags.set_if_empty('train_data_path', '/tmp/gansynth/nsynth-train.tfrecord')
 
   ### Dataset ###
   flags.set_if_empty('dataset_name', 'nsynth_tfrecord')
@@ -149,6 +149,7 @@ class Model(object):
     # experiment.json is in the folder above
     # Remove last '/' if present
     path = path[:-1] if path.endswith('/') else path
+    path = util.expand_path(path)
     if flags is None:
       flags = lib_flags.Flags()
     flags['train_root_dir'] = path

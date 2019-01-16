@@ -24,22 +24,26 @@ from __future__ import print_function
 import os
 
 import absl.flags
-import scipy.io.wavfile as wavfile
 import tensorflow as tf
 
 from magenta.models.gansynth.lib import model as lib_model
-
+from magenta.models.gansynth.lib import generate_util as gu
+from magenta.models.gansynth.lib import util
 
 absl.flags.DEFINE_string('ckpt_dir',
-                         '/path/to/ckpt/dir',
+                         '/tmp/gansynth/acoustic_only',
                          'Path to the base directory of pretrained checkpoints.'
                          'The base directory should contain many '
                          '"stage_000*" subdirectories.')
 absl.flags.DEFINE_string('output_dir',
-                         '/path/to/output/dir',
+                         '/tmp/gansynth/samples',
                          'Path to directory to save wave files.')
+absl.flags.DEFINE_string('midi_file',
+                         '',
+                         'Path to a MIDI file (.mid) to synthesize.')
+absl.flags.DEFINE_integer('batch_size', 8, 'Batch size for generation.')
+
 FLAGS = absl.flags.FLAGS
-tfgan = tf.contrib.gan
 tf.logging.set_verbosity(tf.logging.INFO)
 
 
@@ -50,16 +54,33 @@ def main(unused_argv):
   model = lib_model.Model.load_from_path(FLAGS.ckpt_dir)
 
   # Make an output directory if it doesn't exist
-  if not tf.gfile.Exists(FLAGS.output_dir):
-    tf.gfile.MakeDirs(FLAGS.output_dir)
+  output_dir = util.expand_path(FLAGS.output_dir)
+  if not tf.gfile.Exists(output_dir):
+    tf.gfile.MakeDirs(output_dir)
 
-  # Generate the sounds
-  waves = model.generate_samples(12)
+  if FLAGS.midi_file:
+    # If a MIDI file is provided, synthesize interpolations across the clip
+    _, notes = gu.load_midi(FLAGS.midi_file)
+    # Distribute latent vectors linearly in time
+    z_instruments, t_instruments = gu.get_random_instruments(
+        model, notes['end_times'][-1])
+    # Get latent vectors for each note
+    z_notes = gu.get_z_notes(notes, z_instruments, t_instruments)
+    # Generate audio for each note
+    audio_notes = model.generate_samples_from_z(z_notes, notes['pitches'])
+    # Make a single audio clip
+    audio_clip = gu.combine_notes(audio_notes,
+                                  notes['start_times'],
+                                  notes['end_times'])
+    waves = [audio_clip]
+  else:
+    # Otherwise, just generate a batch of random sounds
+    waves = model.generate_samples(FLAGS.batch_size)
 
   # Write the wave files
   for i in range(len(waves)):
-    fname = os.path.join(FLAGS.output_dir, 'generated_{}.wav'.format(i))
-    wavfile.write(fname, 16000, waves[i].astype('float32'))
+    fname = os.path.join(output_dir, 'generated_{}.wav'.format(i))
+    gu.save_wav(waves[i], fname)
 
 
 
