@@ -30,7 +30,6 @@ import tensorflow as tf
 
 from magenta.models.gansynth.lib import data_helpers
 from magenta.models.gansynth.lib import flags as lib_flags
-from magenta.models.gansynth.lib import logger as lib_logger
 from magenta.models.gansynth.lib import network_functions as net_fns
 from magenta.models.gansynth.lib import networks
 from magenta.models.gansynth.lib import train_util
