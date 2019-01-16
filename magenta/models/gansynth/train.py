@@ -100,10 +100,6 @@ def run(config):
       logging.info('Calling train.train')
       train_util.train(model, **config)
 
-  # Evaluate model at end of training
-  # TODO (agrawalk): Fix open source evaluation pipeline.
-  # model.evaluate()
-
 
 def main(unused_argv):
   absl.flags.FLAGS.alsologtostderr = True

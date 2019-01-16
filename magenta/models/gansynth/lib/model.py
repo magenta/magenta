@@ -35,7 +35,6 @@ from magenta.models.gansynth.lib import network_functions as net_fns
 from magenta.models.gansynth.lib import networks
 from magenta.models.gansynth.lib import train_util
 from magenta.models.gansynth.lib import util
-from magenta.models.gansynth.lib.eval import evaluate
 
 tfgan = tf.contrib.gan
 
@@ -542,28 +541,3 @@ class Model(object):
     print('generate_samples: generated {} samples in {}s'.format(
         n_samples, time.time() - start_time))
     return result
-
-  def evaluate(self):
-    """Create a directory of samples and run all eval metrics."""
-    # Define the eval flags
-    eval_flags = lib_flags.Flags(self.config)
-    # To make sure the graph is defined in the session, reload from disk
-    tf.reset_default_graph()
-    eval_model = self.load_from_path(self.config['train_root_dir'], eval_flags)
-    # Set default flags
-    evaluate.set_flags(eval_flags)
-    # Eval specific flags
-    eval_flags.dataset_name = 'acoustic_only'
-    eval_flags.min_pitch = min(self.pitch_counts.keys())
-    eval_flags.max_pitch = max(self.pitch_counts.keys())
-    # Run evaluations
-    eval_results = evaluate.run_everything(eval_flags,
-                                           eval_model.generate_samples)
-    # Output results
-    print(eval_results)
-    logger = lib_logger.Logger(self.config['output_dir'])
-    for k, v in eval_results.items():
-      logger.add_scalar(k, v, 0)
-    logger.print(0)
-    logger.flush()
-    print('done!')
