@@ -22,7 +22,6 @@ from __future__ import print_function
 import io
 import os
 
-
 from absl import logging
 import numpy as np
 import tensorflow as tf

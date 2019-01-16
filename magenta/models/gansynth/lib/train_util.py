@@ -26,7 +26,6 @@ from __future__ import print_function
 import os
 import time
 
-
 from absl import logging
 import numpy as np
 import tensorflow as tf

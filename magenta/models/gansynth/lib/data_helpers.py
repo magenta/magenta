@@ -19,8 +19,8 @@ from __future__ import print_function
 
 import tensorflow as tf
 
-from magenta.models.gansynth.lib import train_util
 from magenta.models.gansynth.lib import datasets
+from magenta.models.gansynth.lib import train_util
 from magenta.models.gansynth.lib.specgrams_helper import SpecgramsHelper
 
 

@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Generate samples with a pretrained GANSynth model.
+r"""Generate samples with a pretrained GANSynth model.
 
 To use a config of hyperparameters and manual hparams:
 >>> python magenta/models/gansynth/generate.py \
@@ -31,9 +31,9 @@ import os
 import absl.flags
 import tensorflow as tf
 
-from magenta.models.gansynth.lib import model as lib_model
 from magenta.models.gansynth.lib import flags as lib_flags
 from magenta.models.gansynth.lib import generate_util as gu
+from magenta.models.gansynth.lib import model as lib_model
 from magenta.models.gansynth.lib import util
 
 absl.flags.DEFINE_string('ckpt_dir',

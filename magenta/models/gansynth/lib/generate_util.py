@@ -17,15 +17,15 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-import scipy.io.wavfile as wavfile
 import numpy as np
+import scipy.io.wavfile as wavfile
 
 from magenta import music as mm
 from magenta.models.gansynth.lib import util
 
 
 def slerp(p0, p1, t):
-  '''Spherical linear interpolation.'''
+  """Spherical linear interpolation."""
   omega = np.arccos(np.dot(
       np.squeeze(p0/np.linalg.norm(p0)), np.squeeze(p1/np.linalg.norm(p1))))
   so = np.sin(omega)
@@ -33,7 +33,7 @@ def slerp(p0, p1, t):
 
 
 def load_midi(midi_path):
-  '''Load midi as a notesequence.'''
+  """Load midi as a notesequence."""
   midi_path = util.expand_path(midi_path)
   ns = mm.midi_file_to_sequence_proto(midi_path)
   pitches = np.array([n.pitch for n in ns.notes])
@@ -48,7 +48,7 @@ def load_midi(midi_path):
 
 
 def get_random_instruments(model, total_time, secs_per_instrument=2.0):
-  '''Get random latent vectors evenly spaced in time.'''
+  """Get random latent vectors evenly spaced in time."""
   n_instruments = int(total_time / secs_per_instrument)
   z_instruments = model.generate_z(n_instruments)
   t_instruments = np.linspace(-.0001, total_time, n_instruments)
@@ -56,7 +56,7 @@ def get_random_instruments(model, total_time, secs_per_instrument=2.0):
 
 
 def get_z_notes(notes, z_instruments, t_instruments):
-  '''Get interpolated latent vectors for each note.'''
+  """Get interpolated latent vectors for each note."""
   z_notes = []
   for t in notes['start_times']:
     idx = np.searchsorted(t_instruments, t, side="left") - 1
@@ -69,7 +69,7 @@ def get_z_notes(notes, z_instruments, t_instruments):
 
 
 def get_envelope(t_note_length, t_attack=0.010, t_release=0.3, sr=16000):
-  '''Create an attack sustain release amplitude envelope.'''
+  """Create an attack sustain release amplitude envelope."""
   i_attack = int(sr * t_attack)
   i_sustain = int(sr * t_note_length)
   i_release = int(sr * t_release)
@@ -83,16 +83,17 @@ def get_envelope(t_note_length, t_attack=0.010, t_release=0.3, sr=16000):
 
 
 def combine_notes(audio_notes, start_times, end_times, sr=16000):
-  '''Combine audio from multiple notes into a single audio clip.
+  """Combine audio from multiple notes into a single audio clip.
 
   Args:
     audio_notes: Array of audio [n_notes, audio_samples].
     start_times: Array of note starts in seconds [n_notes].
     end_times: Array of note ends in seconds [n_notes].
+    sr: Integer, sample rate.
 
   Returns:
     audio_clip: Array of combined audio clip [audio_samples]
-  '''
+  """
   n_notes = len(audio_notes)
   clip_length = end_times.max() + 1.0
   audio_clip = np.zeros(int(clip_length) * sr)

@@ -489,6 +489,14 @@ class Model(object):
     """Generate random latent fake samples.
 
     If pitch is not specified, pitches will be sampled randomly.
+    
+    Args:
+      n_samples: Number of samples to generate.
+      pitch: List of pitches to generate.
+      max_audio_length: Trim generation to <= this length.
+    
+    Returns:
+      An array of audio for the notes [n_notes, n_audio_samples].
     """
     # Create list of pitches to generate
     if pitch is not None:
