@@ -17,9 +17,6 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-import json
-import subprocess
-
 # Hyperparameters
 hifreqres = True
 data_type = 'mel'  # 'linear', 'phase'
