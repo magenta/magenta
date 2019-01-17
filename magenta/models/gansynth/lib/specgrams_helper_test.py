@@ -32,9 +32,9 @@ class SpecgramsHelperTest(parameterized.TestCase, tf.test.TestCase):
 
   def setUp(self):
     super(SpecgramsHelperTest, self).setUp()
-    self.data_filename= os.path.join(
+    self.data_filename = os.path.join(
         tf.resource_loader.get_data_files_path(),
-        '../testdata/example_nsynth_audio.npy')
+        '../../../testdata/example_nsynth_audio.npy')
     audio = np.load(self.data_filename)
     # Reduce batch size and audio length to speed up test
     self.batch_size = 2
