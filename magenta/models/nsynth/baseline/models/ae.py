@@ -169,7 +169,7 @@ def eval_op(batch, hparams, config_name):
   Returns:
     eval_op: A complete evaluation op with summaries.
   """
-  phase = False if hparams.mag_only or hparams.raw_audio else True
+  phase = not (hparams.mag_only or hparams.raw_audio)
 
   config = utils.get_module("baseline.models.ae_configs.%s" % config_name)
   if hparams.raw_audio:
