@@ -165,7 +165,7 @@ class Model(object):
     # Get list_of_directories
     train_sub_dirs = sorted([sub_dir for sub_dir in tf.gfile.ListDirectory(path)
                              if sub_dir.startswith('stage_')])
-    if train_sub_dirs:
+    if not train_sub_dirs:
       raise ValueError('No stage folders found, is %s the correct model path?'
                        % path)
     # Get last checkpoint
