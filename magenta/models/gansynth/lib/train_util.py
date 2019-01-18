@@ -124,7 +124,7 @@ def get_stage_info(stage_id, **kwargs):
     ValueError: If `stage_id` is not in [0, total number of stages).
   """
   total_num_stages = get_total_num_stages(**kwargs)
-  valid_stage_id = stage_id >= 0 and stage_id < total_num_stages
+  valid_stage_id = (0 <= stage_id < total_num_stages)
   if not valid_stage_id:
     raise ValueError(
         '`stage_id` must be in [0, {0}), but instead was {1}'.format(
