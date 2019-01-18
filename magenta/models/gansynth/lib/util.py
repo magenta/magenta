@@ -93,7 +93,7 @@ def parse_config_str(config_str):
   {'a': 1, 'b': 'hello'}.
 
   Args:
-    config_str: A config string copied from, e.g. borg.
+    config_str: A config string.
   Returns:
     A dictionary.
   """
