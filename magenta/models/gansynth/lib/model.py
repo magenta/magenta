@@ -165,7 +165,7 @@ class Model(object):
     # Get list_of_directories
     train_sub_dirs = sorted([sub_dir for sub_dir in tf.gfile.ListDirectory(path)
                              if sub_dir.startswith('stage_')])
-    if len(train_sub_dirs) <= 0:
+    if train_sub_dirs:
       raise ValueError('No stage folders found, is %s the correct model path?'
                        % path)
     # Get last checkpoint
@@ -213,7 +213,7 @@ class Model(object):
     if config['train_time_limit'] is not None:
       stage_times = np.zeros(num_stages, dtype='float32')
       stage_times[0] = 1.
-      for i in xrange(1, num_stages):
+      for i in range(1, num_stages):
         stage_times[i] = (stage_times[i-1] *
                           config['train_time_stage_multiplier'])
       stage_times *= config['train_time_limit'] / np.sum(stage_times)
@@ -233,8 +233,8 @@ class Model(object):
     else:
       progress = num_blocks - 1.  # Maximum value, must be float.
       num_images = 0
-      for stage_id in train_util.get_stage_ids(**config):
-        _, n = train_util.get_stage_info(stage_id, **config)
+      for stage_id_idx in train_util.get_stage_ids(**config):
+        _, n = train_util.get_stage_info(stage_id_idx, **config)
         num_images += n
 
     # Add to config

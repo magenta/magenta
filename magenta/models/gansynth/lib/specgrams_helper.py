@@ -116,7 +116,7 @@ class SpecgramsHelper(object):
         window_fn=tf.contrib.signal.inverse_stft_window_fn(
             frame_step=self._nhop))[:, :, tf.newaxis]
     # Python does not allow rslice of -0
-    if self._pad_r is 0:
+    if self._pad_r == 0:
       return waves_resyn[:, self._pad_l:]
     else:
       return waves_resyn[:, self._pad_l:-self._pad_r]

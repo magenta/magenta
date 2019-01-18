@@ -195,7 +195,7 @@ def compute_progress_from_time(train_time, num_resolutions,
   max_progress = num_blocks - 1
 
   progress = 0.
-  for i in xrange(1, num_stages, 2):
+  for i in range(1, num_stages, 2):
     this_stage_progress = ((train_time-stage_times[i-1])
                            / (stage_times[i] - stage_times[i-1]))
     this_stage_progress = tf.clip_by_value(this_stage_progress, 0., 1.)
