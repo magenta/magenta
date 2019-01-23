@@ -3,7 +3,7 @@ python:
   - "3.6"
 # command to install dependencies
 install:
-  - ci-install.sh
+  - ./ci-install.sh
 # command to run tests
 script:
-  - ci-script.sh
+  - ./ci-script.sh
