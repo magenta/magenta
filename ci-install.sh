@@ -21,6 +21,7 @@
 set -e
 set -x
 
+sudo apt-get update
 sudo apt-get -y install build-essential libasound2-dev libjack-dev libav-tools
 pip install pylint
 python setup.py install
