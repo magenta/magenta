@@ -23,6 +23,9 @@ import tempfile
 import magenta
 from magenta.music import performance_lib
 from magenta.protobuf import music_pb2
+
+import pygtrie
+
 from tensor2tensor.data_generators import text_encoder
 
 CHORD_SYMBOL = music_pb2.NoteSequence.TextAnnotation.CHORD_SYMBOL
@@ -32,12 +35,17 @@ class MidiPerformanceEncoder(object):
   """Convert between performance event indices and (filenames of) MIDI files."""
 
   def __init__(self, steps_per_second, num_velocity_bins, min_pitch, max_pitch,
-               add_eos=False):
+               add_eos=False, ngrams=None):
     """Initialize a MidiPerformanceEncoder object.
 
     Encodes MIDI using a performance event encoding. Index 0 is unused as it is
     reserved for padding. Index 1 is unused unless `add_eos` is True, in which
     case it is appended to all encoded performances.
+
+    If `ngrams` is specified, vocabulary is augmented with a set of n-grams over
+    the original performance event vocabulary. When encoding, these n-grams will
+    be replaced with new event indices. When decoding, the new indices will be
+    expanded back into the original n-grams.
 
     No actual encoder interface is defined in Tensor2Tensor, but this class
     contains the same functions as TextEncoder, ImageEncoder, and AudioEncoder.
@@ -50,16 +58,39 @@ class MidiPerformanceEncoder(object):
       max_pitch: Maximum MIDI pitch to encode (inclusive).
       add_eos: Whether or not to add an EOS event to the end of encoded
           performances.
+      ngrams: Optional list of performance event n-grams (tuples) to be
+          represented by new indices. N-grams must have length at least 2 and
+          should be pre-offset by the number of reserved IDs.
+
+    Raises:
+      ValueError: If any n-gram has length less than 2, or contains one of the
+          reserved IDs.
     """
     self._steps_per_second = steps_per_second
     self._num_velocity_bins = num_velocity_bins
     self._add_eos = add_eos
+    self._ngrams = ngrams or []
+
+    for ngram in self._ngrams:
+      if len(ngram) < 2:
+        raise ValueError('All n-grams must have length at least 2.')
+      if any(i < self.num_reserved_ids for i in ngram):
+        raise ValueError('N-grams cannot contain reserved IDs.')
 
     self._encoding = magenta.music.PerformanceOneHotEncoding(
         num_velocity_bins=num_velocity_bins,
         max_shift_steps=steps_per_second,
         min_pitch=min_pitch,
         max_pitch=max_pitch)
+
+    # Create a trie mapping n-grams to new indices.
+    ngram_ids = range(self.unigram_vocab_size,
+                      self.unigram_vocab_size + len(self._ngrams))
+    self._ngrams_trie = pygtrie.Trie(zip(self._ngrams, ngram_ids))
+
+    # Also add all unigrams to the trie.
+    self._ngrams_trie.update(zip([(i,) for i in range(self.unigram_vocab_size)],
+                                 range(self.unigram_vocab_size)))
 
   @property
   def num_reserved_ids(self):
@@ -79,8 +110,23 @@ class MidiPerformanceEncoder(object):
             ns, self._steps_per_second),
         num_velocity_bins=self._num_velocity_bins)
 
-    ids = [self._encoding.encode_event(event) + self.num_reserved_ids
-           for event in performance]
+    event_ids = [self._encoding.encode_event(event) + self.num_reserved_ids
+                 for event in performance]
+
+    # Greedily encode performance event n-grams as new indices.
+    ids = []
+    j = 0
+    while j < len(event_ids):
+      ngram = ()
+      for i in event_ids[j:]:
+        ngram += (i,)
+        if self._ngrams_trie.has_key(ngram):
+          best_ngram = ngram
+        if not self._ngrams_trie.has_subtrie(ngram):
+          break
+      ids.append(self._ngrams_trie[best_ngram])
+      j += len(best_ngram)
+
     if self._add_eos:
       ids.append(text_encoder.EOS_ID)
 
@@ -114,11 +160,19 @@ class MidiPerformanceEncoder(object):
     if strip_extraneous:
       ids = text_encoder.strip_ids(ids, list(range(self.num_reserved_ids)))
 
+    # Decode indices corresponding to event n-grams back into the n-grams.
+    event_ids = []
+    for i in ids:
+      if i >= self.unigram_vocab_size:
+        event_ids += self._ngrams[i - self.unigram_vocab_size]
+      else:
+        event_ids.append(i)
+
     performance = magenta.music.Performance(
         quantized_sequence=None,
         steps_per_second=self._steps_per_second,
         num_velocity_bins=self._num_velocity_bins)
-    for i in ids:
+    for i in event_ids:
       performance.append(self._encoding.decode_event(i - self.num_reserved_ids))
 
     ns = performance.to_sequence()
@@ -141,8 +195,12 @@ class MidiPerformanceEncoder(object):
     return [self.decode(ids)]
 
   @property
-  def vocab_size(self):
+  def unigram_vocab_size(self):
     return self._encoding.num_classes + self.num_reserved_ids
+
+  @property
+  def vocab_size(self):
+    return self.unigram_vocab_size + len(self._ngrams)
 
 
 class TextChordsEncoder(object):
