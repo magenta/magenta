@@ -30,13 +30,18 @@ from magenta.models.onsets_frames_transcription import infer_util
 from magenta.models.onsets_frames_transcription import model
 from magenta.music import midi_io
 from magenta.music import sequences_lib
+from magenta.protobuf import music_pb2
+
 import numpy as np
 import scipy
 import tensorflow as tf
 import tensorflow.contrib.slim as slim
 
+
 FLAGS = tf.app.flags.FLAGS
 
+tf.app.flags.DEFINE_string('master', '',
+                           'Name of the TensorFlow runtime to use.')
 tf.app.flags.DEFINE_string(
     'acoustic_run_dir', None,
     'Path to look for acoustic checkpoints. Should contain subdir `train`.')
@@ -44,15 +49,13 @@ tf.app.flags.DEFINE_string(
     'acoustic_checkpoint_filename', None,
     'Filename of the checkpoint to use. If not specified, will use the latest '
     'checkpoint')
-tf.app.flags.DEFINE_string(
-    'examples_path', None,
-    'Path to TFRecord of test examples.')
+tf.app.flags.DEFINE_string('examples_path', None,
+                           'Path to test examples TFRecord.')
 tf.app.flags.DEFINE_string(
     'run_dir', '~/tmp/onsets_frames/infer',
     'Path to store output midi files and summary events.')
 tf.app.flags.DEFINE_string(
-    'hparams',
-    'onset_mode=length_ms,onset_length=32',
+    'hparams', '',
     'A comma-separated list of `name=value` hyperparameter values.')
 tf.app.flags.DEFINE_float(
     'frame_threshold', 0.5,
@@ -60,15 +63,18 @@ tf.app.flags.DEFINE_float(
 tf.app.flags.DEFINE_float(
     'onset_threshold', 0.5,
     'Threshold to use when sampling from the acoustic model.')
+tf.app.flags.DEFINE_float(
+    'offset_threshold', 0.5,
+    'Threshold to use when sampling from the acoustic model.')
 tf.app.flags.DEFINE_integer(
-    'max_seconds_per_sequence', 0,
+    'max_seconds_per_sequence', None,
     'If set, will truncate sequences to be at most this many seconds long.')
-tf.app.flags.DEFINE_integer(
-    'min_note_duration_ms', 0,
-    'Notes shorter than this duration will be ignored when computing metrics.')
 tf.app.flags.DEFINE_boolean(
     'require_onset', True,
     'If set, require an onset prediction for a new note to start.')
+tf.app.flags.DEFINE_boolean(
+    'use_offset', False,
+    'If set, use the offset predictions to force notes to end.')
 tf.app.flags.DEFINE_string(
     'log', 'INFO',
     'The threshold for what messages will be logged: '
@@ -76,7 +82,7 @@ tf.app.flags.DEFINE_string(
 
 
 def model_inference(acoustic_checkpoint, hparams, examples_path, run_dir):
-  """Runs inference."""
+  """Runs inference for the given examples."""
   tf.logging.info('acoustic_checkpoint=%s', acoustic_checkpoint)
   tf.logging.info('examples_path=%s', examples_path)
   tf.logging.info('run_dir=%s', run_dir)
@@ -97,7 +103,8 @@ def model_inference(acoustic_checkpoint, hparams, examples_path, run_dir):
           examples=examples_path,
           hparams=hparams,
           is_training=False,
-          truncated_length=truncated_length)
+          truncated_length=truncated_length,
+          include_note_sequences=True)
 
       _, _, data_labels, _, _ = model.get_model(
           acoustic_data_provider, hparams, is_training=False)
@@ -113,18 +120,18 @@ def model_inference(acoustic_checkpoint, hparams, examples_path, run_dir):
         'acoustic/onsets/onset_probs_flat:0')
     frame_probs_flat = tf.get_default_graph().get_tensor_by_name(
         'acoustic/frame_probs_flat:0')
+    offset_probs_flat = tf.get_default_graph().get_tensor_by_name(
+        'acoustic/offsets/offset_probs_flat:0')
     velocity_values_flat = tf.get_default_graph().get_tensor_by_name(
         'acoustic/velocity/velocity_values_flat:0')
 
     # Define some metrics.
-    (metrics_to_updates,
-     metric_note_precision,
-     metric_note_recall,
-     metric_note_f1,
-     metric_note_precision_with_offsets,
-     metric_note_recall_with_offsets,
-     metric_note_f1_with_offsets,
-     metric_frame_labels,
+    (metrics_to_updates, metric_note_precision, metric_note_recall,
+     metric_note_f1, metric_note_precision_with_offsets,
+     metric_note_recall_with_offsets, metric_note_f1_with_offsets,
+     metric_note_precision_with_offsets_velocity,
+     metric_note_recall_with_offsets_velocity,
+     metric_note_f1_with_offsets_velocity, metric_frame_labels,
      metric_frame_predictions) = infer_util.define_metrics(num_dims)
 
     summary_op = tf.summary.merge_all()
@@ -138,7 +145,7 @@ def model_inference(acoustic_checkpoint, hparams, examples_path, run_dir):
 
     scaffold = tf.train.Scaffold(init_fn=init_fn)
     session_creator = tf.train.ChiefSessionCreator(
-        scaffold=scaffold)
+        scaffold=scaffold, master=FLAGS.master)
     with tf.train.MonitoredSession(session_creator=session_creator) as sess:
       tf.logging.info('running session')
       summary_writer = tf.summary.FileWriter(
@@ -150,43 +157,55 @@ def model_inference(acoustic_checkpoint, hparams, examples_path, run_dir):
       num_frames = []
       for unused_i in range(acoustic_data_provider.num_batches):
         start_time = time.time()
-        (labels, filenames, note_sequences, logits, onset_logits,
-         velocity_values) = sess.run([
+        (labels, filenames, note_sequences, frame_probs, onset_probs,
+         offset_probs, velocity_values) = sess.run([
              data_labels,
              acoustic_data_provider.filenames,
              acoustic_data_provider.note_sequences,
              frame_probs_flat,
              onset_probs_flat,
-             velocity_values_flat])
+             offset_probs_flat,
+             velocity_values_flat,
+         ])
         # We expect these all to be length 1 because batch size is 1.
         assert len(filenames) == len(note_sequences) == 1
         # These should be the same length and have been flattened.
-        assert len(labels) == len(logits) == len(onset_logits)
+        assert len(labels) == len(frame_probs) == len(onset_probs)
 
-        frame_predictions = logits > FLAGS.frame_threshold
+        frame_predictions = frame_probs > FLAGS.frame_threshold
         if FLAGS.require_onset:
-          onset_predictions = onset_logits > FLAGS.onset_threshold
+          onset_predictions = onset_probs > FLAGS.onset_threshold
         else:
           onset_predictions = None
+
+        if FLAGS.use_offset:
+          offset_predictions = offset_probs > FLAGS.offset_threshold
+        else:
+          offset_predictions = None
 
         sequence_prediction = sequences_lib.pianoroll_to_note_sequence(
             frame_predictions,
             frames_per_second=data.hparams_frames_per_second(hparams),
-            min_duration_ms=FLAGS.min_note_duration_ms,
+            min_duration_ms=0,
+            min_midi_pitch=constants.MIN_MIDI_PITCH,
             onset_predictions=onset_predictions,
+            offset_predictions=offset_predictions,
             velocity_values=velocity_values)
 
         end_time = time.time()
         infer_time = end_time - start_time
         infer_times.append(infer_time)
-        num_frames.append(logits.shape[0])
+        num_frames.append(frame_probs.shape[0])
         tf.logging.info(
             'Infer time %f, frames %d, frames/sec %f, running average %f',
-            infer_time, logits.shape[0],
-            logits.shape[0] / infer_time,
+            infer_time, frame_probs.shape[0], frame_probs.shape[0] / infer_time,
             np.sum(num_frames) / np.sum(infer_times))
 
         tf.logging.info('Scoring sequence %s', filenames[0])
+
+        def shift_notesequence(ns_time):
+          return ns_time + hparams.backward_shift_amount_ms / 1000.
+
         sequence_label = infer_util.score_sequence(
             sess,
             global_step_increment,
@@ -199,13 +218,17 @@ def model_inference(acoustic_checkpoint, hparams, examples_path, run_dir):
             metric_note_precision_with_offsets,
             metric_note_recall_with_offsets,
             metric_note_f1_with_offsets,
+            metric_note_precision_with_offsets_velocity,
+            metric_note_recall_with_offsets_velocity,
+            metric_note_f1_with_offsets_velocity,
             metric_frame_labels,
             metric_frame_predictions,
             frame_labels=labels,
             sequence_prediction=sequence_prediction,
             frames_per_second=data.hparams_frames_per_second(hparams),
-            note_sequence_str_label=note_sequences[0],
-            min_duration_ms=FLAGS.min_note_duration_ms,
+            sequence_label=sequences_lib.adjust_notesequence_times(
+                music_pb2.NoteSequence.FromString(note_sequences[0]),
+                shift_notesequence)[0],
             sequence_id=filenames[0])
 
         # Make filenames UNIX-friendly.
@@ -220,8 +243,9 @@ def model_inference(acoustic_checkpoint, hparams, examples_path, run_dir):
                         label_from_frames_output_file)
         sequence_label_from_frames = sequences_lib.pianoroll_to_note_sequence(
             labels,
-            frames_per_second=data.hparams_frames_per_second(hparams),
-            min_duration_ms=FLAGS.min_note_duration_ms)
+            min_duration_ms=0,
+            min_midi_pitch=constants.MIN_MIDI_PITCH,
+            frames_per_second=data.hparams_frames_per_second(hparams))
         midi_io.sequence_proto_to_midi_file(sequence_label_from_frames,
                                             label_from_frames_output_file)
 
@@ -236,17 +260,18 @@ def model_inference(acoustic_checkpoint, hparams, examples_path, run_dir):
                         pianoroll_output_file)
         with tf.gfile.GFile(pianoroll_output_file, mode='w') as f:
           scipy.misc.imsave(
-              f, infer_util.posterior_pianoroll_image(
-                  logits, sequence_prediction, labels, overlap=True,
-                  frames_per_second=data.hparams_frames_per_second(
-                      hparams)))
+              f,
+              infer_util.posterior_pianoroll_image(
+                  frame_probs,
+                  sequence_prediction,
+                  labels,
+                  overlap=True,
+                  frames_per_second=data.hparams_frames_per_second(hparams)))
 
         summary_writer.flush()
 
 
 def main(unused_argv):
-  tf.logging.set_verbosity(FLAGS.log)
-
   if FLAGS.acoustic_checkpoint_filename:
     acoustic_checkpoint = os.path.join(
         os.path.expanduser(FLAGS.acoustic_run_dir), 'train',
@@ -261,7 +286,17 @@ def main(unused_argv):
       constants.DEFAULT_HPARAMS, model.get_default_hparams())
   hparams.parse(FLAGS.hparams)
 
+  # Batch size should always be 1 for inference.
+  hparams.batch_size = 1
+
+  tf.logging.info(hparams)
+
   tf.gfile.MakeDirs(run_dir)
+
+  with tf.gfile.Open(os.path.join(run_dir, 'run_config.txt'), 'w') as f:
+    f.write(acoustic_checkpoint + '\n')
+    f.write(FLAGS.examples_path + '\n')
+    f.write(str(hparams) + '\n')
 
   model_inference(
       acoustic_checkpoint=acoustic_checkpoint,
@@ -271,6 +306,8 @@ def main(unused_argv):
 
 
 def console_entry_point():
+  tf.app.flags.mark_flags_as_required(['acoustic_run_dir', 'examples_path'])
+
   tf.app.run(main)
 
 if __name__ == '__main__':

@@ -12,11 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Create the tfrecord files necessary for training onsets and frames.
-
-The training files are split in ~20 second chunks by default, the test files
-are not split.
-"""
+r"""Utilities for splitting wav files and labels into smaller chunks."""
 
 from __future__ import absolute_import
 from __future__ import division
@@ -25,11 +21,17 @@ from __future__ import print_function
 import bisect
 import math
 
+import librosa
+
+from magenta.music import audio_io
 from magenta.music import sequences_lib
+from magenta.protobuf import music_pb2
+
 import numpy as np
+import tensorflow as tf
 
 
-def _find_inactive_ranges(note_sequence):
+def find_inactive_ranges(note_sequence):
   """Returns ranges where no notes are active in the note_sequence."""
   start_sequence = sorted(
       note_sequence.notes, key=lambda note: note.start_time, reverse=True)
@@ -129,8 +131,8 @@ def find_split_points(note_sequence, samples, sample_rate, min_length,
   note_sequence_sustain = sequences_lib.apply_sustain_control_changes(
       note_sequence)
 
-  ranges_nosustain = _find_inactive_ranges(note_sequence)
-  ranges_sustain = _find_inactive_ranges(note_sequence_sustain)
+  ranges_nosustain = find_inactive_ranges(note_sequence)
+  ranges_sustain = find_inactive_ranges(note_sequence_sustain)
 
   nosustain_starts = [x[0] for x in ranges_nosustain]
   sustain_starts = [x[0] for x in ranges_sustain]
@@ -158,8 +160,7 @@ def find_split_points(note_sequence, samples, sample_rate, min_length,
         zxc_start = nosustain_starts[pos]
         zxc_end = max_advance
         last_zero_xing = _last_zero_crossing(
-            samples,
-            int(math.floor(zxc_start * sample_rate)),
+            samples, int(math.floor(zxc_start * sample_rate)),
             int(math.ceil(zxc_end * sample_rate)))
         if last_zero_xing:
           last_zero_xing = float(last_zero_xing) / sample_rate
@@ -199,3 +200,93 @@ def find_split_points(note_sequence, samples, sample_rate, min_length,
   assert end_time - split_points[-1] < max_length
 
   return split_points
+
+
+def create_example(example_id, ns, wav_data, velocity_range=None):
+  """Creates a tf.train.Example proto for training or testing."""
+  if velocity_range is None:
+    velocities = [note.velocity for note in ns.notes]
+    velocity_max = np.max(velocities)
+    velocity_min = np.min(velocities)
+    velocity_range = music_pb2.VelocityRange(min=velocity_min, max=velocity_max)
+
+  example = tf.train.Example(
+      features=tf.train.Features(
+          feature={
+              'id':
+                  tf.train.Feature(
+                      bytes_list=tf.train.BytesList(
+                          value=[example_id.encode('utf-8')])),
+              'sequence':
+                  tf.train.Feature(
+                      bytes_list=tf.train.BytesList(
+                          value=[ns.SerializeToString()])),
+              'audio':
+                  tf.train.Feature(
+                      bytes_list=tf.train.BytesList(value=[wav_data])),
+              'velocity_range':
+                  tf.train.Feature(
+                      bytes_list=tf.train.BytesList(
+                          value=[velocity_range.SerializeToString()])),
+          }))
+  return example
+
+
+def process_record(wav_data,
+                   ns,
+                   example_id,
+                   min_length=5,
+                   max_length=20,
+                   sample_rate=16000):
+  """Split a record into chunks and create an example proto.
+
+  To use the full length audio and notesequence, set min_length=0 and
+  max_length=-1.
+
+  Args:
+    wav_data: audio data in WAV format.
+    ns: corresponding NoteSequence.
+    example_id: id for the example proto
+    min_length: minimum length in seconds for audio chunks.
+    max_length: maximum length in seconds for audio chunks.
+    sample_rate: desired audio sample rate.
+
+  Yields:
+    Example protos.
+  """
+  samples = audio_io.wav_data_to_samples(wav_data, sample_rate)
+  samples = librosa.util.normalize(samples, norm=np.inf)
+  if max_length == min_length:
+    splits = np.arange(0, ns.total_time, max_length)
+  elif max_length > 0:
+    splits = find_split_points(ns, samples, sample_rate, min_length, max_length)
+  else:
+    splits = [0, ns.total_time]
+  velocities = [note.velocity for note in ns.notes]
+  velocity_max = np.max(velocities)
+  velocity_min = np.min(velocities)
+  velocity_range = music_pb2.VelocityRange(min=velocity_min, max=velocity_max)
+
+  for start, end in zip(splits[:-1], splits[1:]):
+    if end - start < min_length:
+      continue
+
+    if start == 0 and end == ns.total_time:
+      new_ns = ns
+    else:
+      new_ns = sequences_lib.extract_subsequence(ns, start, end)
+
+    if not new_ns.notes:
+      tf.logging.warning('skipping empty sequence')
+      continue
+
+    if start == 0 and end == ns.total_time:
+      new_samples = samples
+    else:
+      # the resampling that happen in crop_wav_data is really slow
+      # and we've already done it once, avoid doing it twice
+      new_samples = audio_io.crop_samples(samples, sample_rate, start,
+                                          end - start)
+    new_wav_data = audio_io.samples_to_wav_data(new_samples, sample_rate)
+    yield create_example(
+        example_id, new_ns, new_wav_data, velocity_range=velocity_range)

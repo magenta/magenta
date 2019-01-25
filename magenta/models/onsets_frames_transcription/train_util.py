@@ -19,24 +19,29 @@ from __future__ import division
 from __future__ import print_function
 
 from magenta.models.onsets_frames_transcription import data
+from magenta.models.onsets_frames_transcription import infer_util
 from magenta.models.onsets_frames_transcription import model
-from magenta.models.onsets_frames_transcription.infer_util import sequence_to_valued_intervals
-from magenta.music.sequences_lib import pianoroll_to_note_sequence
+from magenta.music import sequences_lib
+
 from mir_eval.transcription import precision_recall_f1_overlap
+
 import numpy as np
 import pretty_midi
 import tensorflow as tf
+
 import tensorflow.contrib.slim as slim
 
 
 def _get_data(examples_path, hparams, is_training):
+  """Gets transcription data."""
   hparams_dict = hparams.values()
   batch, _ = data.provide_batch(
       hparams.batch_size,
       examples=examples_path,
       hparams=hparams,
       truncated_length=hparams_dict.get('truncated_length', None),
-      is_training=is_training)
+      is_training=is_training,
+      include_note_sequences=hparams_dict.get('include_events', False))
   return batch
 
 
@@ -73,64 +78,79 @@ def train(train_dir,
           hparams,
           checkpoints_to_keep=5,
           keep_checkpoint_every_n_hours=1,
-          num_steps=None):
+          num_steps=None,
+          master='',
+          task=0,
+          num_ps_tasks=0):
   """Train loop."""
   tf.gfile.MakeDirs(train_dir)
+  is_chief = task == 0
 
-  _trial_summary(hparams, examples_path, train_dir)
+  if is_chief:
+    _trial_summary(hparams, examples_path, train_dir)
+
   with tf.Graph().as_default():
-    transcription_data = _get_data(examples_path, hparams, is_training=True)
+    with tf.device(
+        tf.train.replica_device_setter(num_ps_tasks, merge_devices=True)):
 
-    loss, losses, unused_labels, unused_predictions, images = model.get_model(
-        transcription_data, hparams, is_training=True)
+      transcription_data = _get_data(examples_path, hparams, is_training=True)
 
-    tf.summary.scalar('loss', loss)
-    for label, loss_collection in losses.iteritems():
-      loss_label = 'losses/' + label
-      tf.summary.scalar(loss_label, tf.reduce_mean(loss_collection))
-    for name, image in images.iteritems():
-      tf.summary.image(name, image)
+      loss, losses, unused_labels, unused_predictions, images = model.get_model(
+          transcription_data, hparams, is_training=True)
 
-    global_step = tf.train.get_or_create_global_step()
-    learning_rate = tf.train.exponential_decay(
-        hparams.learning_rate,
-        global_step,
-        hparams.decay_steps,
-        hparams.decay_rate,
-        staircase=True)
-    tf.summary.scalar('learning_rate', learning_rate)
-    optimizer = tf.train.AdamOptimizer(learning_rate=learning_rate)
+      tf.summary.scalar('loss', loss)
+      for label, loss_collection in losses.iteritems():
+        loss_label = 'losses/' + label
+        tf.summary.scalar(loss_label, tf.reduce_mean(loss_collection))
+      for name, image in images.iteritems():
+        tf.summary.image(name, image)
 
-    train_op = slim.learning.create_train_op(
-        loss,
-        optimizer,
-        clip_gradient_norm=hparams.clip_norm,
-        summarize_gradients=True)
+      global_step = tf.train.get_or_create_global_step()
+      learning_rate = tf.train.exponential_decay(
+          hparams.learning_rate,
+          global_step,
+          hparams.decay_steps,
+          hparams.decay_rate,
+          staircase=True)
+      tf.summary.scalar('learning_rate', learning_rate)
+      frame_optimizer = tf.train.AdamOptimizer(learning_rate=learning_rate)
 
-    logging_dict = {'global_step': tf.train.get_global_step(), 'loss': loss}
+      frame_train_op = slim.learning.create_train_op(
+          loss,
+          frame_optimizer,
+          clip_gradient_norm=hparams.clip_norm,
+          summarize_gradients=True,
+          variables_to_train=None)
 
-    hooks = [tf.train.LoggingTensorHook(logging_dict, every_n_iter=100)]
-    if num_steps:
-      hooks.append(tf.train.StopAtStepHook(num_steps))
+      logging_dict = {'global_step': tf.train.get_global_step(), 'loss': loss}
+      if hasattr(hparams, 'sampling_probability'):
+        logging_dict['sampling_probability'] = hparams.sampling_probability
 
-    scaffold = tf.train.Scaffold(
-        saver=tf.train.Saver(
-            max_to_keep=checkpoints_to_keep,
-            keep_checkpoint_every_n_hours=keep_checkpoint_every_n_hours))
+      frame_hooks = [tf.train.LoggingTensorHook(logging_dict, every_n_iter=100)]
+      if num_steps:
+        frame_hooks.append(tf.train.StopAtStepHook(num_steps))
 
-    tf.contrib.training.train(
-        train_op=train_op,
-        logdir=train_dir,
-        scaffold=scaffold,
-        hooks=hooks,
-        save_checkpoint_secs=300)
+      scaffold = tf.train.Scaffold(
+          saver=tf.train.Saver(
+              max_to_keep=checkpoints_to_keep,
+              keep_checkpoint_every_n_hours=keep_checkpoint_every_n_hours))
+
+      tf.contrib.training.train(
+          train_op=frame_train_op,
+          logdir=train_dir,
+          scaffold=scaffold,
+          hooks=frame_hooks,
+          save_checkpoint_secs=300,
+          master=master,
+          is_chief=is_chief)
 
 
 def evaluate(train_dir,
              eval_dir,
              examples_path,
              hparams,
-             num_batches=None):
+             num_batches=None,
+             master=''):
   """Evaluate the model repeatedly."""
   tf.gfile.MakeDirs(eval_dir)
 
@@ -152,11 +172,16 @@ def evaluate(train_dir,
         eval_ops=list(metrics_to_updates.values()),
         hooks=hooks,
         eval_interval_secs=60,
-        timeout=None)
+        timeout=None,
+        master=master)
 
 
-def test(checkpoint_path, test_dir, examples_path, hparams,
-         num_batches=None):
+def test(checkpoint_path,
+         test_dir,
+         examples_path,
+         hparams,
+         num_batches=None,
+         master=''):
   """Evaluate the model at a single checkpoint."""
   tf.gfile.MakeDirs(test_dir)
 
@@ -171,12 +196,12 @@ def test(checkpoint_path, test_dir, examples_path, hparams,
         losses, labels, predictions, images, hparams)
 
     metric_values = slim.evaluation.evaluate_once(
-        master='',
         checkpoint_path=checkpoint_path,
         logdir=test_dir,
         num_evals=num_batches or transcription_data.num_batches,
         eval_op=list(metrics_to_updates.values()),
-        final_op=list(metrics_to_values.values()))
+        final_op=list(metrics_to_values.values()),
+        master=master)
 
     metrics_to_values = dict(zip(list(metrics_to_values.keys()), metric_values))
     for metric in metrics_to_values:
@@ -190,19 +215,19 @@ def _note_metrics_op(labels, predictions, hparams, offset_ratio=None):
 
   def _note_metrics(labels, predictions):
     """A pyfunc that wraps a call to precision_recall_f1_overlap."""
-    est_sequence = pianoroll_to_note_sequence(
+    est_sequence = sequences_lib.pianoroll_to_note_sequence(
         predictions,
         frames_per_second=data.hparams_frames_per_second(hparams),
         min_duration_ms=hparams.min_duration_ms)
 
-    ref_sequence = pianoroll_to_note_sequence(
+    ref_sequence = sequences_lib.pianoroll_to_note_sequence(
         labels,
         frames_per_second=data.hparams_frames_per_second(hparams),
         min_duration_ms=hparams.min_duration_ms)
 
-    est_intervals, est_pitches = sequence_to_valued_intervals(
+    est_intervals, est_pitches, _ = infer_util.sequence_to_valued_intervals(
         est_sequence, hparams.min_duration_ms)
-    ref_intervals, ref_pitches = sequence_to_valued_intervals(
+    ref_intervals, ref_pitches, _ = infer_util.sequence_to_valued_intervals(
         ref_sequence, hparams.min_duration_ms)
 
     if est_intervals.size == 0 or ref_intervals.size == 0:

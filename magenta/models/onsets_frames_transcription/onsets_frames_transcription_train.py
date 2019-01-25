@@ -20,12 +20,17 @@ from __future__ import print_function
 
 import os
 
+from magenta.common import tf_utils
+from magenta.models.onsets_frames_transcription import constants
 from magenta.models.onsets_frames_transcription import model
 from magenta.models.onsets_frames_transcription import train_util
+
 import tensorflow as tf
 
 FLAGS = tf.app.flags.FLAGS
 
+tf.app.flags.DEFINE_string('master', 'local',
+                           'Name of the TensorFlow runtime to use.')
 tf.app.flags.DEFINE_string(
     'examples_path', None,
     'Path to a TFRecord file of train/eval examples.')
@@ -42,9 +47,8 @@ tf.app.flags.DEFINE_string(
     'checkpoint_path', None,
     'Path to the checkpoint to use in `test` mode. If not provided, latest '
     'in `run_dir` will be used.')
-tf.app.flags.DEFINE_integer(
-    'num_steps', 50000,
-    'Number of training steps or `None` for infinite.')
+tf.app.flags.DEFINE_integer('num_steps', 1000000,
+                            'Number of training steps or `None` for infinite.')
 tf.app.flags.DEFINE_integer(
     'eval_num_batches', None,
     'Number of batches to use during evaluation or `None` for all batches '
@@ -52,11 +56,14 @@ tf.app.flags.DEFINE_integer(
 tf.app.flags.DEFINE_integer(
     'checkpoints_to_keep', 100,
     'Maximum number of checkpoints to keep in `train` mode or 0 for infinite.')
-tf.app.flags.DEFINE_string(
-    'mode', 'train', 'Which mode to use (train, eval, or test).')
+tf.app.flags.DEFINE_enum('mode', 'train', ['train', 'eval', 'test'],
+                         'Which mode to use.')
 tf.app.flags.DEFINE_string(
     'hparams', '',
     'A comma-separated list of `name=value` hyperparameter values.')
+tf.app.flags.DEFINE_integer('ps_task', 0, 'The task number for this worker.')
+tf.app.flags.DEFINE_integer('num_ps_tasks', 0,
+                            'The number of parameter server tasks')
 tf.app.flags.DEFINE_string(
     'log', 'INFO',
     'The threshold for what messages will be logged: '
@@ -76,12 +83,13 @@ def run(hparams, run_dir):
         eval_dir=eval_dir,
         examples_path=FLAGS.examples_path,
         num_batches=FLAGS.eval_num_batches,
-        hparams=hparams)
+        hparams=hparams,
+        master=FLAGS.master)
   elif FLAGS.mode == 'test':
+    checkpoint_path = tf.train.latest_checkpoint(train_dir)
     if FLAGS.checkpoint_path:
       checkpoint_path = os.path.expanduser(FLAGS.checkpoint_path)
-    else:
-      checkpoint_path = tf.train.latest_checkpoint(train_dir)
+
     tf.logging.info('Testing with checkpoint: %s', checkpoint_path)
     test_dir = os.path.join(run_dir, 'test')
     train_util.test(
@@ -89,24 +97,28 @@ def run(hparams, run_dir):
         test_dir=test_dir,
         examples_path=FLAGS.examples_path,
         num_batches=FLAGS.eval_num_batches,
-        hparams=hparams)
+        hparams=hparams,
+        master=FLAGS.master)
   elif FLAGS.mode == 'train':
     train_util.train(
         train_dir=train_dir,
         examples_path=FLAGS.examples_path,
         hparams=hparams,
         checkpoints_to_keep=FLAGS.checkpoints_to_keep,
-        num_steps=FLAGS.num_steps)
-  else:
-    raise ValueError('Invalid mode: {}'.format(FLAGS.mode))
+        num_steps=FLAGS.num_steps,
+        master=FLAGS.master,
+        task=FLAGS.ps_task,
+        num_ps_tasks=FLAGS.num_ps_tasks)
 
 
 def main(unused_argv):
   tf.logging.set_verbosity(FLAGS.log)
+  tf.app.flags.mark_flags_as_required(['examples_path'])
 
   run_dir = os.path.expanduser(FLAGS.run_dir)
 
-  hparams = model.get_default_hparams()
+  hparams = tf_utils.merge_hparams(constants.DEFAULT_HPARAMS,
+                                   model.get_default_hparams())
 
   # Command line flags override any of the preceding hyperparameter values.
   hparams.parse(FLAGS.hparams)

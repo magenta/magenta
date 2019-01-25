@@ -24,31 +24,35 @@ import time
 
 from magenta.models.onsets_frames_transcription import constants
 from magenta.models.onsets_frames_transcription import data
+
 from magenta.music import audio_io
 from magenta.music import sequences_lib
 from magenta.music import testing_lib
 from magenta.protobuf import music_pb2
+
 import numpy as np
 import tensorflow as tf
 
 
 class DataTest(tf.test.TestCase):
 
-  def _FillExample(self, sequence, audio, filename):
+  def _FillExample(self, sequence, wav_data, filename):
     velocity_range = music_pb2.VelocityRange(min=0, max=127)
     feature_dict = {
         'id':
-            tf.train.Feature(bytes_list=tf.train.BytesList(
-                value=[filename.encode('utf-8')])),
+            tf.train.Feature(
+                bytes_list=tf.train.BytesList(value=[filename.encode('utf-8')])
+            ),
         'sequence':
-            tf.train.Feature(bytes_list=tf.train.BytesList(
-                value=[sequence.SerializeToString()])),
+            tf.train.Feature(
+                bytes_list=tf.train.BytesList(
+                    value=[sequence.SerializeToString()])),
         'audio':
-            tf.train.Feature(bytes_list=tf.train.BytesList(
-                value=[audio])),
+            tf.train.Feature(bytes_list=tf.train.BytesList(value=[wav_data])),
         'velocity_range':
-            tf.train.Feature(bytes_list=tf.train.BytesList(
-                value=[velocity_range.SerializeToString()])),
+            tf.train.Feature(
+                bytes_list=tf.train.BytesList(
+                    value=[velocity_range.SerializeToString()])),
     }
     return tf.train.Example(features=tf.train.Features(feature=feature_dict))
 
@@ -79,20 +83,26 @@ class DataTest(tf.test.TestCase):
     else:
       labels = labels[0:truncated_length]
 
-    inputs = [[spec, labels, truncated_length, filename]]
+    inputs = [(spec, labels, truncated_length, filename)]
 
     return inputs
 
   def _ExampleToInputs(self,
                        ex,
-                       truncated_length=0):
+                       truncated_length=0,
+                       crop_training_sequence_to_notes=False):
     hparams = copy.deepcopy(constants.DEFAULT_HPARAMS)
+    hparams.crop_training_sequence_to_notes = crop_training_sequence_to_notes
 
     filename = ex.features.feature['id'].bytes_list.value[0]
-    sequence = data.preprocess_sequence(
-        ex.features.feature['sequence'].bytes_list.value[0])
+    sequence, crop_beginning_seconds = data.preprocess_sequence(
+        ex.features.feature['sequence'].bytes_list.value[0], hparams)
     wav_data = ex.features.feature['audio'].bytes_list.value[0]
 
+    if crop_training_sequence_to_notes:
+      wav_data = audio_io.crop_wav_data(wav_data, hparams.sample_rate,
+                                        crop_beginning_seconds,
+                                        sequence.total_time)
     spec = data.wav_to_spec(wav_data, hparams=hparams)
     roll = sequences_lib.sequence_to_pianoroll(
         sequence,
@@ -110,29 +120,35 @@ class DataTest(tf.test.TestCase):
                               truncated_length)
 
   def _ValidateProvideBatch(self,
-                            examples_path,
+                            examples,
                             truncated_length,
                             batch_size,
-                            expected_inputs):
+                            expected_inputs,
+                            crop_training_sequence_to_notes=False):
     """Tests for correctness of batches."""
     hparams = copy.deepcopy(constants.DEFAULT_HPARAMS)
+    hparams.crop_training_sequence_to_notes = crop_training_sequence_to_notes
 
     with self.test_session() as sess:
       batch, _ = data.provide_batch(
           batch_size=batch_size,
-          examples=examples_path,
+          examples=examples,
           hparams=hparams,
           truncated_length=truncated_length,
           is_training=False)
       sess.run(tf.local_variables_initializer())
       input_tensors = [
-          batch.spec, batch.labels, batch.lengths, batch.filenames]
+          batch.spec, batch.labels, batch.lengths, batch.filenames,
+          batch.max_length
+      ]
       self.assertEqual(len(expected_inputs) // batch_size, batch.num_batches)
       for i in range(0, batch.num_batches * batch_size, batch_size):
         # Wait to ensure example is pre-processed.
         time.sleep(0.1)
         inputs = sess.run(input_tensors)
         max_length = np.max(inputs[2])
+        self.assertEqual(inputs[4], max_length)
+        inputs = inputs[0:-1]
         for j in range(batch_size):
           # Add batch padding if needed.
           input_length = expected_inputs[i + j][2]
@@ -140,8 +156,7 @@ class DataTest(tf.test.TestCase):
             expected_inputs[i + j] = list(expected_inputs[i + j])
             pad_amt = max_length - input_length
             expected_inputs[i + j][0] = np.pad(
-                expected_inputs[i + j][0],
-                [(0, pad_amt), (0, 0)], 'constant')
+                expected_inputs[i + j][0], [(0, pad_amt), (0, 0)], 'constant')
             expected_inputs[i + j][1] = np.pad(
                 expected_inputs[i + j][1],
                 [(0, pad_amt), (0, 0)], 'constant')
@@ -151,16 +166,18 @@ class DataTest(tf.test.TestCase):
       with self.assertRaisesOpError('End of sequence'):
         _ = sess.run(input_tensors)
 
-  def _SyntheticSequence(self, duration, note):
-    seq = music_pb2.NoteSequence(total_time=duration)
-    testing_lib.add_track_to_sequence(seq, 0, [(note, 100, 0, duration)])
+  def _SyntheticSequence(self, duration, note, start_time=0):
+    seq = music_pb2.NoteSequence(total_time=start_time + duration)
+    testing_lib.add_track_to_sequence(
+        seq, 0, [(note, 100, start_time, start_time + duration)])
     return seq
 
   def _ValidateProvideBatchTFRecord(self,
                                     truncated_length,
                                     batch_size,
                                     lengths,
-                                    expected_num_inputs):
+                                    expected_num_inputs,
+                                    crop_sequence_secs=0):
     hparams = copy.deepcopy(constants.DEFAULT_HPARAMS)
     examples = []
     expected_inputs = []
@@ -168,47 +185,116 @@ class DataTest(tf.test.TestCase):
     for i, length in enumerate(lengths):
       wav_samples = np.zeros(
           (np.int((length / data.hparams_frames_per_second(hparams)) *
-                  constants.DEFAULT_SAMPLE_RATE), 1), np.float32)
-      wav_data = audio_io.samples_to_wav_data(wav_samples,
-                                              constants.DEFAULT_SAMPLE_RATE)
+                  hparams.sample_rate), 1), np.float32)
+      wav_data = audio_io.samples_to_wav_data(wav_samples, hparams.sample_rate)
 
       num_frames = data.wav_to_num_frames(
           wav_data, frames_per_second=data.hparams_frames_per_second(hparams))
 
       seq = self._SyntheticSequence(
-          num_frames / data.hparams_frames_per_second(hparams),
-          i + constants.MIN_MIDI_PITCH)
+          num_frames / data.hparams_frames_per_second(hparams) -
+          crop_sequence_secs * 2,  # crop from both ends.
+          i + constants.MIN_MIDI_PITCH,
+          start_time=crop_sequence_secs)
 
       examples.append(self._FillExample(seq, wav_data, 'ex%d' % i))
       expected_inputs += self._ExampleToInputs(
           examples[-1],
-          truncated_length)
+          truncated_length,
+          crop_training_sequence_to_notes=crop_sequence_secs > 0)
     self.assertEqual(expected_num_inputs, len(expected_inputs))
 
-    with tempfile.NamedTemporaryFile() as temp_rio:
-      with tf.python_io.TFRecordWriter(temp_rio.name) as writer:
+    with tempfile.NamedTemporaryFile() as temp_tfr:
+      with tf.python_io.TFRecordWriter(temp_tfr.name) as writer:
         for ex in examples:
           writer.write(ex.SerializeToString())
 
       self._ValidateProvideBatch(
-          temp_rio.name,
+          temp_tfr.name,
           truncated_length,
           batch_size,
-          expected_inputs)
+          expected_inputs,
+          crop_training_sequence_to_notes=crop_sequence_secs > 0)
 
-  def testProvideBatch_TFRecord_FullSeqs(self):
+  def _ValidateProvideBatchMemory(self,
+                                  truncated_length,
+                                  batch_size,
+                                  lengths,
+                                  expected_num_inputs,
+                                  crop_sequence_secs=0):
+    hparams = copy.deepcopy(constants.DEFAULT_HPARAMS)
+    examples = []
+    expected_inputs = []
+
+    for i, length in enumerate(lengths):
+      wav_samples = np.zeros(
+          (np.int((length / data.hparams_frames_per_second(hparams)) *
+                  hparams.sample_rate), 1), np.float32)
+      wav_data = audio_io.samples_to_wav_data(wav_samples, hparams.sample_rate)
+
+      num_frames = data.wav_to_num_frames(
+          wav_data, frames_per_second=data.hparams_frames_per_second(hparams))
+
+      seq = self._SyntheticSequence(
+          num_frames / data.hparams_frames_per_second(hparams) -
+          crop_sequence_secs * 2,  # crop from both ends.
+          i + constants.MIN_MIDI_PITCH,
+          start_time=crop_sequence_secs)
+
+      examples.append(self._FillExample(seq, wav_data, 'ex%d' % i))
+      expected_inputs += self._ExampleToInputs(
+          examples[-1],
+          truncated_length,
+          crop_training_sequence_to_notes=crop_sequence_secs > 0)
+    self.assertEqual(expected_num_inputs, len(expected_inputs))
+
+    self._ValidateProvideBatch(
+        [e.SerializeToString() for e in examples],
+        truncated_length,
+        batch_size,
+        expected_inputs,
+        crop_training_sequence_to_notes=crop_sequence_secs > 0)
+
+  def _ValidateProvideBatchBoth(self,
+                                truncated_length,
+                                batch_size,
+                                lengths,
+                                expected_num_inputs,
+                                crop_sequence_secs=0):
     self._ValidateProvideBatchTFRecord(
+        truncated_length=truncated_length,
+        batch_size=batch_size,
+        lengths=lengths,
+        expected_num_inputs=expected_num_inputs,
+        crop_sequence_secs=crop_sequence_secs)
+    self._ValidateProvideBatchMemory(
+        truncated_length=truncated_length,
+        batch_size=batch_size,
+        lengths=lengths,
+        expected_num_inputs=expected_num_inputs,
+        crop_sequence_secs=crop_sequence_secs)
+
+  def testProvideBatchFullSeqs(self):
+    self._ValidateProvideBatchBoth(
         truncated_length=0,
         batch_size=2,
         lengths=[10, 50, 100, 10, 50, 80],
         expected_num_inputs=6)
 
-  def testProvideBatch_TFRecord_Truncated(self):
-    self._ValidateProvideBatchTFRecord(
+  def testProvideBatchTruncated(self):
+    self._ValidateProvideBatchBoth(
         truncated_length=15,
         batch_size=2,
         lengths=[10, 50, 100, 10, 50, 80],
         expected_num_inputs=6)
+
+  def testProvideBatchCropped(self):
+    self._ValidateProvideBatchBoth(
+        truncated_length=0,
+        batch_size=2,
+        lengths=[200, 200],
+        expected_num_inputs=2,
+        crop_sequence_secs=1)
 
 
 if __name__ == '__main__':

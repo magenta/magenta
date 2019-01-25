@@ -12,33 +12,25 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Tests for infer_util."""
+r"""Beam job for creating transcription dataset from MAESTRO."""
 
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-from magenta.models.onsets_frames_transcription import infer_util
-from magenta.protobuf import music_pb2
-
-import numpy as np
+from magenta.models.onsets_frames_transcription import create_dataset_maestro
 import tensorflow as tf
 
 
-class InferUtilTest(tf.test.TestCase):
+def main(argv):
+  del argv
 
-  def testSequenceToValuedIntervals(self):
-    sequence = music_pb2.NoteSequence()
-    sequence.notes.add(pitch=60, start_time=1.0, end_time=2.0, velocity=80)
-    # Should be dropped because it is 0 duration.
-    sequence.notes.add(pitch=60, start_time=3.0, end_time=3.0, velocity=90)
+  create_dataset_maestro.pipeline()
 
-    intervals, pitches, velocities = infer_util.sequence_to_valued_intervals(
-        sequence)
-    np.testing.assert_array_equal([[1., 2.]], intervals)
-    np.testing.assert_array_equal([60], pitches)
-    np.testing.assert_array_equal([80], velocities)
+
+def console_entry_point():
+  tf.app.run(main)
 
 
 if __name__ == '__main__':
-  tf.test.main()
+  console_entry_point()

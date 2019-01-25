@@ -53,6 +53,7 @@ REQUIRED_PACKAGES = [
     'scipy >= 0.18.1',
     'sk-video',
     'sonnet',
+    'sox >= 1.3.7',
     'tensorflow-probability >= 0.5.0',
     'tensor2tensor >= 1.10.0',
     'wheel',
