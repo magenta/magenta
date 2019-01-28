@@ -95,7 +95,8 @@ def generate_train_set(exclude_ids):
       # load the midi data and convert to a notesequence
       ns = midi_io.midi_file_to_note_sequence(pair[1])
       for example in split_audio_and_label_data.process_record(
-          wav_data, ns, FLAGS.min_length, FLAGS.max_length, FLAGS.sample_rate):
+          wav_data, ns, pair[0], FLAGS.min_length, FLAGS.max_length,
+          FLAGS.sample_rate):
         writer.write(example.SerializeToString())
 
 

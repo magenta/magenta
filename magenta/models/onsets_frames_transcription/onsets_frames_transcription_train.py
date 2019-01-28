@@ -29,7 +29,7 @@ import tensorflow as tf
 
 FLAGS = tf.app.flags.FLAGS
 
-tf.app.flags.DEFINE_string('master', 'local',
+tf.app.flags.DEFINE_string('master', '',
                            'Name of the TensorFlow runtime to use.')
 tf.app.flags.DEFINE_string(
     'examples_path', None,
