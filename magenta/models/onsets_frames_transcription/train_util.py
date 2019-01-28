@@ -92,17 +92,16 @@ def train(train_dir,
   with tf.Graph().as_default():
     with tf.device(
         tf.train.replica_device_setter(num_ps_tasks, merge_devices=True)):
-
       transcription_data = _get_data(examples_path, hparams, is_training=True)
 
       loss, losses, unused_labels, unused_predictions, images = model.get_model(
           transcription_data, hparams, is_training=True)
 
       tf.summary.scalar('loss', loss)
-      for label, loss_collection in losses.iteritems():
+      for label, loss_collection in losses.items():
         loss_label = 'losses/' + label
         tf.summary.scalar(loss_label, tf.reduce_mean(loss_collection))
-      for name, image in images.iteritems():
+      for name, image in images.items():
         tf.summary.image(name, image)
 
       global_step = tf.train.get_or_create_global_step()
@@ -336,7 +335,7 @@ def _get_eval_metrics(losses, labels, predictions, images, hparams):
       pass
 
   # Create a local variable to store the last batch of images.
-  for image_name, image in images.iteritems():
+  for image_name, image in images.items():
     var_name = image_prefix + image_name
     with tf.variable_scope(image_name, values=[image]):
       local_image = tf.Variable(
@@ -352,7 +351,7 @@ def _get_eval_metrics(losses, labels, predictions, images, hparams):
 
   # Calculate streaming means for each of the losses.
   loss_labels = []
-  for label, loss_collection in losses.iteritems():
+  for label, loss_collection in losses.items():
     loss_label = 'losses/' + label
     loss_labels.append(loss_label)
     metric_map[loss_label] = tf.metrics.mean(loss_collection)
@@ -360,7 +359,7 @@ def _get_eval_metrics(losses, labels, predictions, images, hparams):
   metrics_to_values, metrics_to_updates = (
       tf.contrib.metrics.aggregate_metric_map(metric_map))
 
-  for metric_name, metric_value in metrics_to_values.iteritems():
+  for metric_name, metric_value in metrics_to_values.items():
     if metric_name.startswith(image_prefix):
       tf.summary.image(metric_name[len(image_prefix):], metric_value)
     else:

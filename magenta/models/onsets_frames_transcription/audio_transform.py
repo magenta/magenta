@@ -203,8 +203,8 @@ def add_noise(input_filename, output_filename, noise_vol, noise_type):
   if noise_type not in ('whitenoise', 'pinknoise', 'brownnoise'):
     raise ValueError('invalid noise type: %s' % noise_type)
 
-  args = [sox.SOX_BINARY, input_filename, '-p', 'synth', noise_type, 'vol',
-          str(noise_vol), '|', sox.SOX_BINARY, '-m', input_filename, '-',
+  args = ['sox', input_filename, '-p', 'synth', noise_type, 'vol',
+          str(noise_vol), '|', 'sox', '-m', input_filename, '-',
           output_filename]
   command = ' '.join(args)
   tf.logging.info('Executing: %s', command)
