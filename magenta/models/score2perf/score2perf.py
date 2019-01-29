@@ -159,14 +159,14 @@ class Score2PerfProblem(problem.Problem):
   def hparams(self, defaults, model_hparams):
     del model_hparams   # unused
     perf_encoder = self.get_feature_encoders()['targets']
-    defaults.modality = {'targets': t2t_modalities.SymbolModality}
+    defaults.modality = {'targets': t2t_modalities.ModalityType.SYMBOL}
     defaults.vocab_size = {'targets': perf_encoder.vocab_size}
     if self.has_inputs:
       score_encoder = self.get_feature_encoders()['inputs']
       if isinstance(score_encoder.vocab_size, list):
         modality_cls = modalities.SymbolTupleModality
       else:
-        modality_cls = t2t_modalities.SymbolModality
+        modality_cls = t2t_modalities.ModalityType.SYMBOL
       defaults.modality['inputs'] = modality_cls
       defaults.vocab_size['inputs'] = score_encoder.vocab_size
 
