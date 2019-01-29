@@ -98,7 +98,7 @@ Now can train your own transcription model using the training TFRecord file gene
 
 Note that if you have the `audio_transform` hparam set to true (which it is by default), you will need to have the [sox](http://sox.sourceforge.net/) binary installed on your system.
 
-If you are training on an NVIDIA GPU, training will go much faster if you also add the argument `--hparams=use_cudnn=true`.
+Note that if you run a training or an eval job on a platform other than an NVIDIA GPU, you will need to add the argument `--hparams=use_cudnn=false` when running that job. This will use a cuDNN-compatible ops that can run on the CPU.
 
 ```bash
 TRAIN_EXAMPLES=<path to training tfrecord(s) generated during dataset creation>
@@ -133,7 +133,7 @@ tensorboard --logdir="${RUN_DIR}"
 To get final performance metrics for the model, run the `onsets_frames_transcription_infer` script.
 
 ```bash
-CHECKPOINT_DIR=${RUN_DIR}/train
+CHECKPOINT_DIR=${RUN_DIR}
 TEST_EXAMPLES=<path to eval tfrecord(s) generated during dataset creation>
 RUN_DIR=<path where output should be saved>
 
