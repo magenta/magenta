@@ -233,7 +233,7 @@ def model_inference(acoustic_checkpoint, hparams, examples_path, run_dir):
 
         # Make filenames UNIX-friendly.
         filename = filenames[0].decode('utf-8').replace('/', '_').replace(
-                ':', '.')
+            ':', '.')
         output_file = os.path.join(run_dir, filename + '.mid')
         tf.logging.info('Writing inferred midi file to %s', output_file)
         midi_io.sequence_proto_to_midi_file(sequence_prediction, output_file)
