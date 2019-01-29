@@ -188,7 +188,7 @@ def define_metrics(num_dims):
                 tf.metrics.mean(frame['accuracy_without_true_negatives']),
         }))
 
-    for metric_name, metric_value in metrics_to_values.iteritems():
+    for metric_name, metric_value in metrics_to_values.items():
       tf.summary.scalar(metric_name, metric_value)
 
     return (metrics_to_updates, metric_note_precision, metric_note_recall,

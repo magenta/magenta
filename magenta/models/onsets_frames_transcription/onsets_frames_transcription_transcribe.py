@@ -97,6 +97,8 @@ def initialize_session(acoustic_checkpoint, hparams):
   with tf.Graph().as_default():
     examples = tf.placeholder(tf.string, [None])
 
+    hparams.batch_size = 1
+
     batch, iterator = data.provide_batch(
         batch_size=1,
         examples=examples,
