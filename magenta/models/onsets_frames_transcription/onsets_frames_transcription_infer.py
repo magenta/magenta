@@ -238,18 +238,6 @@ def model_inference(acoustic_checkpoint, hparams, examples_path, run_dir):
         tf.logging.info('Writing inferred midi file to %s', output_file)
         midi_io.sequence_proto_to_midi_file(sequence_prediction, output_file)
 
-        label_from_frames_output_file = os.path.join(
-            run_dir, filename + '_label_from_frames.mid')
-        tf.logging.info('Writing label from frames midi file to %s',
-                        label_from_frames_output_file)
-        sequence_label_from_frames = sequences_lib.pianoroll_to_note_sequence(
-            labels,
-            min_duration_ms=0,
-            min_midi_pitch=constants.MIN_MIDI_PITCH,
-            frames_per_second=data.hparams_frames_per_second(hparams))
-        midi_io.sequence_proto_to_midi_file(sequence_label_from_frames,
-                                            label_from_frames_output_file)
-
         label_output_file = os.path.join(run_dir, filename + '_label.mid')
         tf.logging.info('Writing label midi file to %s', label_output_file)
         midi_io.sequence_proto_to_midi_file(sequence_label, label_output_file)
