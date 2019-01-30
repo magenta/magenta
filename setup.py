@@ -49,6 +49,7 @@ REQUIRED_PACKAGES = [
     'pretty_midi >= 0.2.6',
     'protobuf',
     'pygtrie >= 2.3',
+    'pylint < 2.0.0;python_version=="2.7"',
     'python-rtmidi >= 1.1, < 1.2',  # 1.2 breaks us
     'scipy >= 0.18.1',
     'sk-video',
