@@ -131,5 +131,10 @@ def main(unused_argv):
   # Run training
   run(flags)
 
+
+def console_entry_point():
+  tf.app.run(main)
+
+
 if __name__ == '__main__':
-  tf.app.run()
+  console_entry_point()
