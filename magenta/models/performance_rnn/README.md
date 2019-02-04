@@ -163,7 +163,7 @@ supports a ```--save_generator_bundle``` flag that calls this method. Example:
 
 ```
 performance_rnn_generate \
-  --config=${CONFIG}
+  --config=${CONFIG} \
   --run_dir=/tmp/performance_rnn/logdir/run1 \
   --bundle_file=/tmp/performance_rnn.mag \
   --save_generator_bundle
