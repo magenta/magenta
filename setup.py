@@ -44,10 +44,10 @@ REQUIRED_PACKAGES = [
     'matplotlib >= 1.5.3',
     'mido == 1.2.6',
     'mir_eval >= 0.4',
-    'numpy == 1.13.3',  # higher versions confuse pylint.
+    'numpy >= 1.14.6, <= 1.15.4',  # higher versions confuse pylint.
     'pandas >= 0.18.1',
     'pretty_midi >= 0.2.6',
-    'protobuf',
+    'protobuf >= 3.6.1',
     'pygtrie >= 2.3',
     'python-rtmidi >= 1.1, < 1.2',  # 1.2 breaks us
     'scipy >= 0.18.1',
