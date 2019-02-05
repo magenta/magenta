@@ -138,7 +138,7 @@ def _get_input_tensors(dataset, config):
 
 def train(train_dir,
           config,
-          dataset,
+          dataset_fn,
           checkpoints_to_keep=5,
           keep_checkpoint_every_n_hours=1,
           num_steps=None,
@@ -160,7 +160,7 @@ def train(train_dir,
                   config.data_converter.output_depth,
                   is_training=True)
 
-      optimizer = model.train(**_get_input_tensors(dataset, config))
+      optimizer = model.train(**_get_input_tensors(dataset_fn(), config))
 
       hooks = []
       if num_sync_workers:
@@ -213,7 +213,7 @@ def train(train_dir,
 def evaluate(train_dir,
              eval_dir,
              config,
-             dataset,
+             dataset_fn,
              num_batches,
              master=''):
   """Evaluate the model repeatedly."""
@@ -227,7 +227,7 @@ def evaluate(train_dir,
                 is_training=False)
 
     eval_op = model.eval(
-        **_get_input_tensors(dataset.take(num_batches), config))
+        **_get_input_tensors(dataset_fn().take(num_batches), config))
 
     hooks = [
         tf.contrib.training.StopAfterNEvalsHook(num_batches),
@@ -281,18 +281,19 @@ def run(config_map,
   else:
     raise ValueError('Invalid mode: {}'.format(FLAGS.mode))
 
-  dataset = data.get_dataset(
-      config,
-      tf_file_reader=tf_file_reader,
-      num_threads=FLAGS.num_data_threads,
-      prefetch_size=FLAGS.prefetch_size,
-      is_training=is_training)
+  def dataset_fn():
+    return data.get_dataset(
+        config,
+        tf_file_reader=tf_file_reader,
+        num_threads=FLAGS.num_data_threads,
+        prefetch_size=FLAGS.prefetch_size,
+        is_training=is_training)
 
   if is_training:
     train(
         train_dir,
         config=config,
-        dataset=dataset,
+        dataset_fn=dataset_fn,
         checkpoints_to_keep=FLAGS.checkpoints_to_keep,
         keep_checkpoint_every_n_hours=FLAGS.keep_checkpoint_every_n_hours,
         num_steps=FLAGS.num_steps,
@@ -310,7 +311,7 @@ def run(config_map,
         train_dir,
         eval_dir,
         config=config,
-        dataset=dataset,
+        dataset_fn=dataset_fn,
         num_batches=num_batches,
         master=FLAGS.master)
 
