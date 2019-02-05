@@ -1258,6 +1258,7 @@ class GrooveConverter(BaseNoteSequenceConverter):
     hits_as_controls: If True, pass in hits with the conditioning controls
       to force model to learn velocities and offsets.
     fixed_velocities: If True, flatten all input velocities.
+    note_dropout: If True, randomly drop notes from the input sequences.
   """
 
   def __init__(self, split_bars=None, steps_per_quarter=4, quarters_per_bar=4,
@@ -1265,7 +1266,8 @@ class GrooveConverter(BaseNoteSequenceConverter):
                humanize=False, tapify=False, add_instruments=None,
                num_velocity_bins=None, num_offset_bins=None,
                split_instruments=False, hop_size=None,
-               hits_as_controls=False, fixed_velocities=False):
+               hits_as_controls=False, fixed_velocities=False,
+               note_dropout=False):
 
     self._split_bars = split_bars
     self._steps_per_quarter = steps_per_quarter
@@ -1289,6 +1291,8 @@ class GrooveConverter(BaseNoteSequenceConverter):
     self._pitch_class_map = {
         p: i for i, pitches in enumerate(self._pitch_classes) for p in pitches}
     self._num_drums = len(self._pitch_classes)
+
+    self._note_dropout = note_dropout
 
     if bool(num_velocity_bins) ^ bool(num_offset_bins):
       raise ValueError(
@@ -1478,6 +1482,17 @@ class GrooveConverter(BaseNoteSequenceConverter):
     in_hits = copy.deepcopy(hit_vectors)
     in_velocities = copy.deepcopy(velocity_vectors)
     in_offsets = copy.deepcopy(offset_vectors)
+
+    if self._note_dropout:
+      # Choose a uniform dropout probability for notes per sequence
+      note_dropout_probability = np.random.uniform(0.0, 0.8)
+      # Weight dropout probability by velocity
+      velocity_dropout_weights = np.maximum(0.2, (1 - in_velocities))
+      note_dropout_keep_mask = 1 - np.random.binomial(
+          1, velocity_dropout_weights * note_dropout_probability)
+      in_hits *= note_dropout_keep_mask
+      in_velocities *= note_dropout_keep_mask
+      in_offsets *= note_dropout_keep_mask
 
     if self._tapify:
       argmaxes = np.argmax(in_velocities, axis=1)
