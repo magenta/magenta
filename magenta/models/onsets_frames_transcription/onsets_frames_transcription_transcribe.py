@@ -43,7 +43,7 @@ tf.app.flags.DEFINE_string(
     'checkpoint')
 tf.app.flags.DEFINE_string(
     'hparams',
-    'onset_mode=length_ms,onset_length=32',
+    '',
     'A comma-separated list of `name=value` hyperparameter values.')
 tf.app.flags.DEFINE_float(
     'frame_threshold', 0.5,
@@ -153,11 +153,9 @@ def transcribe_audio(transcription_session, filename, frame_threshold,
       frames_per_second=data.hparams_frames_per_second(
           transcription_session.hparams),
       min_duration_ms=0,
+      min_midi_pitch=constants.MIN_MIDI_PITCH,
       onset_predictions=onset_predictions,
       velocity_values=velocity_values)
-
-  for note in sequence_prediction.notes:
-    note.pitch += constants.MIN_MIDI_PITCH
 
   return sequence_prediction
 
@@ -175,6 +173,8 @@ def main(argv):
 
   hparams = tf_utils.merge_hparams(
       constants.DEFAULT_HPARAMS, model.get_default_hparams())
+  # For this script, default to not using cudnn.
+  hparams.use_cudnn = False
   hparams.parse(FLAGS.hparams)
 
   transcription_session = initialize_session(acoustic_checkpoint, hparams)
