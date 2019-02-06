@@ -47,7 +47,7 @@ class ModalitiesTest(tf.test.TestCase):
         ['/device:CPU:0'] * num_datashards)
     with self.test_session() as session:
       xs = tf.split(x, num_datashards)
-      sharded_output = m.bottom_sharded(xs, data_parallelism)
+      sharded_output = data_parallelism(m.bottom, xs)
       output = tf.concat(sharded_output, 0)
       session.run(tf.global_variables_initializer())
       res = session.run(output)
