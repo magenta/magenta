@@ -126,12 +126,13 @@ def load_dataset(data_dir, model_params, inference_mode=False):
   test_strokes = None
 
   for dataset in datasets:
-    data_filepath = os.path.join(data_dir, dataset)
     if data_dir.startswith('http://') or data_dir.startswith('https://'):
+      data_filepath = '/'.join([data_dir, dataset])
       tf.logging.info('Downloading %s', data_filepath)
       response = requests.get(data_filepath)
       data = np.load(six.BytesIO(response.content), encoding='latin')
     else:
+      data_filepath = os.path.join(data_dir, dataset)
       if six.PY3:
         data = np.load(data_filepath, encoding='latin1')
       else:
