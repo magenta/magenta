@@ -52,12 +52,13 @@ class SymbolTupleModality(modality.Modality):
   @property
   def name(self):
     return 'symbol_tuple_modality_%s_%d' % (
-        '_'.join('%d' % s for s in self._vocab_size), self._body_input_depth)
+        '_'.join('%d' % s for s in self._vocab_size),
+        self._model_hparams.hidden_size)
 
   def _get_weights(self, hidden_dim=None):
     """Copied from tensor2tensor/layers/modalities.py but uses total vocab."""
     if hidden_dim is None:
-      hidden_dim = self._body_input_depth
+      hidden_dim = self._model_hparams.hidden_size
     num_shards = self._model_hparams.symbol_modality_num_shards
     shards = []
     for i in range(num_shards):
@@ -89,7 +90,7 @@ class SymbolTupleModality(modality.Modality):
           for i in range(len(self._vocab_size))
       ])
       if self._model_hparams.multiply_embedding_mode == 'sqrt_depth':
-        ret *= self._body_input_depth**0.5
+        ret *= self._model_hparams.hidden_size**0.5
       return ret
 
   def bottom(self, x):
