@@ -60,7 +60,10 @@ class ReadNoteSequencesFromTFRecord(beam.PTransform):
     self._tfrecord_path = tfrecord_path
 
   def expand(self, pcoll):
-    pcoll |= beam.io.tfrecordio.ReadFromTFRecord(self._tfrecord_path)
+    # Awkward to use ReadAllFromTFRecord instead of ReadFromTFRecord here,
+    # but for some reason ReadFromTFRecord doesn't work with gs:// URLs.
+    pcoll |= beam.Create([self._tfrecord_path])
+    pcoll |= beam.io.tfrecordio.ReadAllFromTFRecord()
     pcoll |= beam.Map(
         lambda ns_str: (music_pb2.NoteSequence.FromString(ns_str).id, ns_str))
     return pcoll
