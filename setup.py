@@ -50,7 +50,7 @@ REQUIRED_PACKAGES = [
     'protobuf >= 3.6.1',
     'pygtrie >= 2.3',
     'python-rtmidi >= 1.1, < 1.2',  # 1.2 breaks us
-    'scipy >= 0.18.1',
+    'scipy >= 0.18.1, <= 1.2.0',  # 1.2.1 causes segfaults in pytest.
     'sk-video',
     'sonnet',
     'sox >= 1.3.7',
