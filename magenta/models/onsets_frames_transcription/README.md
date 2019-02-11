@@ -11,6 +11,8 @@ We have since made improvements to the model and released a new [training datase
 
 The code in this directory corresponds to the latest version from the MAESTRO paper. For code corresponding to the Onsets and Frames paper, please browse the repository at commit [9885adef](https://github.com/tensorflow/magenta/tree/9885adef56d134763a89de5584f7aa18ca7d53b6). Note that we can only provide support for the code at HEAD.
 
+You may also be interested in a [PyTorch Onsets and Frames](https://github.com/jongwook/onsets-and-frames) implementation by [Jong Wook Kim](https://github.com/jongwook) (not supported by the Magenta team).
+
 ## JavaScript App
 
 The easiest way to try out the model is with our web app: [Piano Scribe](https://goo.gl/magenta/piano-scribe). You can try transcribing audio files right in your browser without installing any software. You can read more about it on our blog post, [Piano Transcription in the Browser with Onsets and Frames](http://g.co/magenta/oaf-js).
