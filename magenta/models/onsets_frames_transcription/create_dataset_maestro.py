@@ -18,6 +18,7 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
+import hashlib
 import os
 import re
 
@@ -53,11 +54,13 @@ tf.app.flags.DEFINE_string(
 class SplitWavDoFn(beam.DoFn):
   """Splits wav and midi files for the dataset."""
 
-  def __init__(self, min_length, max_length, sample_rate, split):
+  def __init__(self, min_length, max_length, sample_rate, split,
+               output_directory):
     self._min_length = min_length
     self._max_length = max_length
     self._sample_rate = sample_rate
     self._split = split
+    self._output_directory = output_directory
 
   def process(self, input_example):
     tf.logging.info('Splitting %s',
@@ -70,8 +73,9 @@ class SplitWavDoFn(beam.DoFn):
 
     Metrics.counter('split_wav', 'read_midi_wav_to_split').inc()
 
-    if self._split == 'test':
-      # For the 'test' split, use the full length audio and midi.
+    if self._split == 'test' or self._split == 'validation':
+      # For the 'test' and 'validation' splits, use the full length audio and
+      # midi.
       split_examples = split_audio_and_label_data.process_record(
           wav_data,
           ns,
@@ -84,13 +88,22 @@ class SplitWavDoFn(beam.DoFn):
         Metrics.counter('split_wav', 'full_example').inc()
         yield example
     else:
-      split_examples = split_audio_and_label_data.process_record(
-          wav_data, ns, ns.id, self._min_length, self._max_length,
-          self._sample_rate)
+      try:
+        split_examples = split_audio_and_label_data.process_record(
+            wav_data, ns, ns.id, self._min_length, self._max_length,
+            self._sample_rate)
 
-      for example in split_examples:
-        Metrics.counter('split_wav', 'split_example').inc()
-        yield example
+        for example in split_examples:
+          Metrics.counter('split_wav', 'split_example').inc()
+          yield example
+      except AssertionError:
+        output_file = 'badexample-' + hashlib.md5(ns.id).hexdigest() + '.proto'
+        output_path = os.path.join(self._output_directory, output_file)
+        tf.logging.error('Exception processing %s. Writing file to %s',
+                         ns.id, output_path)
+        with tf.gfile.Open(output_path, 'w') as f:
+          f.write(input_example.SerializeToString())
+        raise
 
 
 def generate_sharded_filenames(filename):
@@ -124,10 +137,11 @@ def pipeline():
       split_p |= 'read_tfrecord_%s' % split_name >> (
           beam.io.tfrecordio.ReadAllFromTFRecord(
               coder=beam.coders.ProtoCoder(tf.train.Example)))
+      split_p |= 'shuffle_input_%s' % split_name >> beam.Reshuffle()
       split_p |= 'split_wav_%s' % split_name >> beam.ParDo(
           SplitWavDoFn(FLAGS.min_length, FLAGS.max_length, FLAGS.sample_rate,
-                       split_name))
-      split_p |= 'shuffle_%s' % split_name >> beam.Reshuffle()
+                       split_name, FLAGS.output_directory))
+      split_p |= 'shuffle_output_%s' % split_name >> beam.Reshuffle()
       split_p |= 'write_%s' % split_name >> beam.io.WriteToTFRecord(
           os.path.join(FLAGS.output_directory, '%s.tfrecord' % split_name),
           coder=beam.coders.ProtoCoder(tf.train.Example))
