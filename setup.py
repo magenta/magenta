@@ -150,5 +150,9 @@ setup(
         'magenta': ['models/image_stylization/evaluation_images/*.jpg'],
     },
     setup_requires=['pytest-runner', 'pytest-pylint'],
-    tests_require=['pytest', 'pylint < 2.0.0;python_version=="2.7"'],
+    tests_require=[
+        'pytest',
+        'pylint < 2.0.0;python_version<"3"',
+        'pylint >= 2.0.0;python_version>="3"',
+    ],
 )
