@@ -58,7 +58,7 @@ REQUIRED_PACKAGES = [
     'tensor2tensor >= 1.10.0',
     'wheel',
     'futures;python_version=="2.7"',
-    'apache-beam >= 2.8.0;python_version=="2.7"',
+    'apache-beam[gcp] >= 2.8.0;python_version=="2.7"',
 ]
 
 if gpu_mode:
