@@ -12,7 +12,17 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Inference for onset conditioned model."""
+"""Inference for onset conditioned model.
+
+Can be used to get a final inference score for a trained model with
+--eval_loop=False. In this case, a summary will be written for every example
+processed, and the resulting MIDI and pianoroll images will also be written
+for every example. The final summary value is the mean score for all examples.
+
+Or, with --eval_loop=True, the script will watch for new checkpoints and re-run
+the same scoring code over every example, but only the final mean scores will be
+written for every checkpoint.
+"""
 
 from __future__ import absolute_import
 from __future__ import division
@@ -20,7 +30,6 @@ from __future__ import print_function
 
 import math
 import os
-import re
 import time
 
 from magenta.common import tf_utils
@@ -28,6 +37,7 @@ from magenta.models.onsets_frames_transcription import constants
 from magenta.models.onsets_frames_transcription import data
 from magenta.models.onsets_frames_transcription import infer_util
 from magenta.models.onsets_frames_transcription import model
+from magenta.models.onsets_frames_transcription import train_util
 from magenta.music import midi_io
 from magenta.music import sequences_lib
 from magenta.protobuf import music_pb2
@@ -35,24 +45,19 @@ from magenta.protobuf import music_pb2
 import numpy as np
 import scipy
 import tensorflow as tf
-import tensorflow.contrib.slim as slim
 
 
 FLAGS = tf.app.flags.FLAGS
 
-tf.app.flags.DEFINE_string('master', '',
-                           'Name of the TensorFlow runtime to use.')
+tf.app.flags.DEFINE_string('model_dir', None, 'Path to look for checkpoints.')
 tf.app.flags.DEFINE_string(
-    'acoustic_run_dir', None,
-    'Path to look for acoustic checkpoints. Should contain subdir `train`.')
-tf.app.flags.DEFINE_string(
-    'acoustic_checkpoint_filename', None,
+    'checkpoint_path', None,
     'Filename of the checkpoint to use. If not specified, will use the latest '
     'checkpoint')
 tf.app.flags.DEFINE_string('examples_path', None,
                            'Path to test examples TFRecord.')
 tf.app.flags.DEFINE_string(
-    'run_dir', '~/tmp/onsets_frames/infer',
+    'output_dir', '~/tmp/onsets_frames/infer',
     'Path to store output midi files and summary events.')
 tf.app.flags.DEFINE_string(
     'hparams', '',
@@ -75,55 +80,47 @@ tf.app.flags.DEFINE_boolean(
 tf.app.flags.DEFINE_boolean(
     'use_offset', False,
     'If set, use the offset predictions to force notes to end.')
+tf.app.flags.DEFINE_boolean(
+    'eval_loop', False,
+    'If set, will re-run inference every time a new checkpoint is written. '
+    'And will only output the final results.')
 tf.app.flags.DEFINE_string(
     'log', 'INFO',
     'The threshold for what messages will be logged: '
     'DEBUG, INFO, WARN, ERROR, or FATAL.')
 
 
-def model_inference(acoustic_checkpoint, hparams, examples_path, run_dir):
+def model_inference(model_dir,
+                    checkpoint_path,
+                    hparams,
+                    examples_path,
+                    output_dir,
+                    summary_writer,
+                    write_summary_every_step=True):
   """Runs inference for the given examples."""
-  tf.logging.info('acoustic_checkpoint=%s', acoustic_checkpoint)
+  tf.logging.info('model_dir=%s', model_dir)
+  tf.logging.info('checkpoint_path=%s', checkpoint_path)
   tf.logging.info('examples_path=%s', examples_path)
-  tf.logging.info('run_dir=%s', run_dir)
+  tf.logging.info('output_dir=%s', output_dir)
+
+  estimator = train_util.create_estimator(model_dir, hparams)
 
   with tf.Graph().as_default():
     num_dims = constants.MIDI_PITCHES
 
-    # Build the acoustic model within an 'acoustic' scope to isolate its
-    # variables from the other models.
-    with tf.variable_scope('acoustic'):
+    if FLAGS.max_seconds_per_sequence:
+      truncated_length = int(
+          math.ceil((FLAGS.max_seconds_per_sequence *
+                     data.hparams_frames_per_second(hparams))))
+    else:
       truncated_length = 0
-      if FLAGS.max_seconds_per_sequence:
-        truncated_length = int(
-            math.ceil((FLAGS.max_seconds_per_sequence *
-                       data.hparams_frames_per_second(hparams))))
-      acoustic_data_provider, _ = data.provide_batch(
-          batch_size=1,
-          examples=examples_path,
-          hparams=hparams,
-          is_training=False,
-          truncated_length=truncated_length,
-          include_note_sequences=True)
 
-      _, _, data_labels, _, _ = model.get_model(
-          acoustic_data_provider, hparams, is_training=False)
-
-    # The checkpoints won't have the new scopes.
-    acoustic_variables = {
-        re.sub(r'^acoustic/', '', var.op.name): var
-        for var in slim.get_variables(scope='acoustic/')
-    }
-    acoustic_restore = tf.train.Saver(acoustic_variables)
-
-    onset_probs_flat = tf.get_default_graph().get_tensor_by_name(
-        'acoustic/onsets/onset_probs_flat:0')
-    frame_probs_flat = tf.get_default_graph().get_tensor_by_name(
-        'acoustic/frame_probs_flat:0')
-    offset_probs_flat = tf.get_default_graph().get_tensor_by_name(
-        'acoustic/offsets/offset_probs_flat:0')
-    velocity_values_flat = tf.get_default_graph().get_tensor_by_name(
-        'acoustic/velocity/velocity_values_flat:0')
+    dataset = data.provide_batch(
+        batch_size=1,
+        examples=examples_path,
+        hparams=hparams,
+        is_training=False,
+        truncated_length=truncated_length)
 
     # Define some metrics.
     (metrics_to_updates, metric_note_precision, metric_note_recall,
@@ -135,42 +132,61 @@ def model_inference(acoustic_checkpoint, hparams, examples_path, run_dir):
      metric_frame_predictions) = infer_util.define_metrics(num_dims)
 
     summary_op = tf.summary.merge_all()
-    global_step = tf.contrib.framework.get_or_create_global_step()
-    global_step_increment = global_step.assign_add(1)
 
-    # Use a custom init function to restore the acoustic and language models
-    # from their separate checkpoints.
-    def init_fn(unused_self, sess):
-      acoustic_restore.restore(sess, acoustic_checkpoint)
+    if write_summary_every_step:
+      global_step = tf.train.get_or_create_global_step()
+      global_step_increment = global_step.assign_add(1)
+    else:
+      global_step = tf.constant(
+          estimator.get_variable_value(tf.GraphKeys.GLOBAL_STEP))
+      global_step_increment = global_step
 
-    scaffold = tf.train.Scaffold(init_fn=init_fn)
-    session_creator = tf.train.ChiefSessionCreator(
-        scaffold=scaffold, master=FLAGS.master)
-    with tf.train.MonitoredSession(session_creator=session_creator) as sess:
-      tf.logging.info('running session')
-      summary_writer = tf.summary.FileWriter(
-          logdir=run_dir, graph=sess.graph)
+    iterator = dataset.make_initializable_iterator()
+    next_record = iterator.get_next()
+    with tf.Session() as sess:
+      sess.run([
+          tf.initializers.global_variables(),
+          tf.initializers.local_variables()
+      ])
 
-      tf.logging.info('Inferring for %d batches',
-                      acoustic_data_provider.num_batches)
       infer_times = []
       num_frames = []
-      for unused_i in range(acoustic_data_provider.num_batches):
+
+      sess.run(iterator.initializer)
+      while True:
+        try:
+          record = sess.run(next_record)
+        except tf.errors.OutOfRangeError:
+          break
+
+        def input_fn():
+          return tf.data.Dataset.from_tensors(record)
+
         start_time = time.time()
-        (labels, filenames, note_sequences, frame_probs, onset_probs,
-         offset_probs, velocity_values) = sess.run([
-             data_labels,
-             acoustic_data_provider.filenames,
-             acoustic_data_provider.note_sequences,
-             frame_probs_flat,
-             onset_probs_flat,
-             offset_probs_flat,
-             velocity_values_flat,
-         ])
-        # We expect these all to be length 1 because batch size is 1.
-        assert len(filenames) == len(note_sequences) == 1
-        # These should be the same length and have been flattened.
-        assert len(labels) == len(frame_probs) == len(onset_probs)
+
+        # TODO(fjord): This is a hack that allows us to keep using our existing
+        # infer/scoring code with a tf.Estimator model. Ideally, we should
+        # move things around so that we can use estimator.evaluate, which will
+        # also be more efficient because it won't have to restore the checkpoint
+        # for every example.
+        prediction_list = list(
+            estimator.predict(
+                input_fn,
+                checkpoint_path=checkpoint_path,
+                yield_single_examples=False))
+        assert len(prediction_list) == 1
+
+        input_features = record[0]
+        input_labels = record[1]
+
+        filename = input_features.sequence_id[0]
+        note_sequence = music_pb2.NoteSequence.FromString(
+            input_labels.note_sequence[0])
+        labels = input_labels.labels[0]
+        frame_probs = prediction_list[0]['frame_probs_flat']
+        onset_probs = prediction_list[0]['onset_probs_flat']
+        velocity_values = prediction_list[0]['velocity_values_flat']
+        offset_probs = prediction_list[0]['offset_probs_flat']
 
         frame_predictions = frame_probs > FLAGS.frame_threshold
         if FLAGS.require_onset:
@@ -201,16 +217,16 @@ def model_inference(acoustic_checkpoint, hparams, examples_path, run_dir):
             infer_time, frame_probs.shape[0], frame_probs.shape[0] / infer_time,
             np.sum(num_frames) / np.sum(infer_times))
 
-        tf.logging.info('Scoring sequence %s', filenames[0])
+        tf.logging.info('Scoring sequence %s', filename)
 
         def shift_notesequence(ns_time):
           return ns_time + hparams.backward_shift_amount_ms / 1000.
 
-        sequence_label = infer_util.score_sequence(
+        sequence_label = sequences_lib.adjust_notesequence_times(
+            note_sequence, shift_notesequence)[0]
+        infer_util.score_sequence(
             sess,
             global_step_increment,
-            summary_op,
-            summary_writer,
             metrics_to_updates,
             metric_note_precision,
             metric_note_recall,
@@ -226,50 +242,50 @@ def model_inference(acoustic_checkpoint, hparams, examples_path, run_dir):
             frame_labels=labels,
             sequence_prediction=sequence_prediction,
             frames_per_second=data.hparams_frames_per_second(hparams),
-            sequence_label=sequences_lib.adjust_notesequence_times(
-                music_pb2.NoteSequence.FromString(note_sequences[0]),
-                shift_notesequence)[0],
-            sequence_id=filenames[0])
+            sequence_label=sequence_label,
+            sequence_id=filename)
 
-        # Make filenames UNIX-friendly.
-        filename = filenames[0].decode('utf-8').replace('/', '_').replace(
-            ':', '.')
-        output_file = os.path.join(run_dir, filename + '.mid')
-        tf.logging.info('Writing inferred midi file to %s', output_file)
-        midi_io.sequence_proto_to_midi_file(sequence_prediction, output_file)
+        if write_summary_every_step:
+          # Make filenames UNIX-friendly.
+          filename_safe = filename.decode('utf-8').replace('/', '_').replace(
+              ':', '.')
+          output_file = os.path.join(output_dir, filename_safe + '.mid')
+          tf.logging.info('Writing inferred midi file to %s', output_file)
+          midi_io.sequence_proto_to_midi_file(sequence_prediction, output_file)
 
-        label_output_file = os.path.join(run_dir, filename + '_label.mid')
-        tf.logging.info('Writing label midi file to %s', label_output_file)
-        midi_io.sequence_proto_to_midi_file(sequence_label, label_output_file)
+          label_output_file = os.path.join(output_dir,
+                                           filename_safe + '_label.mid')
+          tf.logging.info('Writing label midi file to %s', label_output_file)
+          midi_io.sequence_proto_to_midi_file(sequence_label, label_output_file)
 
-        # Also write a pianoroll showing acoustic model output vs labels.
-        pianoroll_output_file = os.path.join(run_dir,
-                                             filename + '_pianoroll.png')
-        tf.logging.info('Writing acoustic logit/label file to %s',
-                        pianoroll_output_file)
-        with tf.gfile.GFile(pianoroll_output_file, mode='w') as f:
-          scipy.misc.imsave(
-              f,
-              infer_util.posterior_pianoroll_image(
-                  frame_probs,
-                  sequence_prediction,
-                  labels,
-                  overlap=True,
-                  frames_per_second=data.hparams_frames_per_second(hparams)))
+          # Also write a pianoroll showing acoustic model output vs labels.
+          pianoroll_output_file = os.path.join(output_dir,
+                                               filename_safe + '_pianoroll.png')
+          tf.logging.info('Writing acoustic logit/label file to %s',
+                          pianoroll_output_file)
+          with tf.gfile.GFile(pianoroll_output_file, mode='w') as f:
+            scipy.misc.imsave(
+                f,
+                infer_util.posterior_pianoroll_image(
+                    frame_probs,
+                    sequence_prediction,
+                    labels,
+                    overlap=True,
+                    frames_per_second=data.hparams_frames_per_second(hparams)))
 
+          summary = sess.run(summary_op)
+          summary_writer.add_summary(summary, sess.run(global_step))
+          summary_writer.flush()
+
+      if not write_summary_every_step:
+        # Only write the summary variables for the final step.
+        summary = sess.run(summary_op)
+        summary_writer.add_summary(summary, sess.run(global_step))
         summary_writer.flush()
 
 
 def main(unused_argv):
-  if FLAGS.acoustic_checkpoint_filename:
-    acoustic_checkpoint = os.path.join(
-        os.path.expanduser(FLAGS.acoustic_run_dir), 'train',
-        FLAGS.acoustic_checkpoint_filename)
-  else:
-    acoustic_checkpoint = tf.train.latest_checkpoint(
-        os.path.join(os.path.expanduser(FLAGS.acoustic_run_dir), 'train'))
-
-  run_dir = os.path.expanduser(FLAGS.run_dir)
+  output_dir = os.path.expanduser(FLAGS.output_dir)
 
   hparams = tf_utils.merge_hparams(
       constants.DEFAULT_HPARAMS, model.get_default_hparams())
@@ -280,22 +296,50 @@ def main(unused_argv):
 
   tf.logging.info(hparams)
 
-  tf.gfile.MakeDirs(run_dir)
+  tf.gfile.MakeDirs(output_dir)
 
-  with tf.gfile.Open(os.path.join(run_dir, 'run_config.txt'), 'w') as f:
-    f.write(acoustic_checkpoint + '\n')
-    f.write(FLAGS.examples_path + '\n')
-    f.write(str(hparams) + '\n')
+  summary_writer = tf.summary.FileWriter(logdir=output_dir)
 
-  model_inference(
-      acoustic_checkpoint=acoustic_checkpoint,
-      hparams=hparams,
-      examples_path=FLAGS.examples_path,
-      run_dir=run_dir)
+  with tf.Session():
+    run_config = '\n\n'.join([
+        'model_dir: ' + FLAGS.model_dir,
+        'checkpoint_path: ' + str(FLAGS.checkpoint_path),
+        'examples_path: ' + FLAGS.examples_path,
+        str(hparams),
+    ])
+    run_config_summary = tf.summary.text(
+        'run_config',
+        tf.constant(run_config, name='run_config'),
+        collections=[])
+    summary_writer.add_summary(run_config_summary.eval())
+
+  if FLAGS.eval_loop:
+    assert not FLAGS.checkpoint_path
+
+    checkpoint_path = None
+    while True:
+      checkpoint_path = tf.contrib.training.wait_for_new_checkpoint(
+          FLAGS.model_dir, last_checkpoint=checkpoint_path)
+      model_inference(
+          model_dir=FLAGS.model_dir,
+          checkpoint_path=checkpoint_path,
+          hparams=hparams,
+          examples_path=FLAGS.examples_path,
+          output_dir=output_dir,
+          summary_writer=summary_writer,
+          write_summary_every_step=False)
+  else:
+    model_inference(
+        model_dir=FLAGS.model_dir,
+        checkpoint_path=FLAGS.checkpoint_path,
+        hparams=hparams,
+        examples_path=FLAGS.examples_path,
+        output_dir=output_dir,
+        summary_writer=summary_writer)
 
 
 def console_entry_point():
-  tf.app.flags.mark_flags_as_required(['acoustic_run_dir', 'examples_path'])
+  tf.app.flags.mark_flags_as_required(['model_dir', 'examples_path'])
 
   tf.app.run(main)
 

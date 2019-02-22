@@ -18,6 +18,8 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
+import functools
+
 from magenta.common import flatten_maybe_padded_sequences
 from magenta.common import tf_utils
 from magenta.models.onsets_frames_transcription import constants
@@ -206,15 +208,22 @@ def acoustic_model(inputs, hparams, lstm_units, lengths, is_training=True):
     return conv_output
 
 
-def get_model(transcription_data, hparams, is_training=True):
+def model_fn(features, labels, mode, params, config):
   """Builds the acoustic model."""
-  onset_labels = transcription_data.onsets
-  offset_labels = transcription_data.offsets
-  velocity_labels = transcription_data.velocities
-  frame_labels = transcription_data.labels
-  frame_label_weights = transcription_data.label_weights
-  lengths = transcription_data.lengths
-  spec = transcription_data.spec
+  del config
+  hparams = params
+
+  length = features.length
+  spec = features.spec
+
+  is_training = mode == tf.estimator.ModeKeys.TRAIN
+
+  if is_training:
+    onset_labels = labels.onsets
+    offset_labels = labels.offsets
+    velocity_labels = labels.velocities
+    frame_labels = labels.labels
+    frame_label_weights = labels.label_weights
 
   if hparams.stop_activation_gradient and not hparams.activation_loss:
     raise ValueError(
@@ -227,7 +236,7 @@ def get_model(transcription_data, hparams, is_training=True):
           spec,
           hparams,
           lstm_units=hparams.onset_lstm_units,
-          lengths=lengths,
+          lengths=length,
           is_training=is_training)
       onset_probs = slim.fully_connected(
           onset_outputs,
@@ -236,23 +245,18 @@ def get_model(transcription_data, hparams, is_training=True):
           scope='onset_probs')
 
       # onset_probs_flat is used during inference.
-      onset_probs_flat = flatten_maybe_padded_sequences(onset_probs, lengths)
-      onset_labels_flat = flatten_maybe_padded_sequences(onset_labels, lengths)
-      tf.identity(onset_probs_flat, name='onset_probs_flat')
-      tf.identity(onset_labels_flat, name='onset_labels_flat')
-      tf.identity(
-          tf.cast(tf.greater_equal(onset_probs_flat, .5), tf.float32),
-          name='onset_predictions_flat')
-
-      onset_losses = tf_utils.log_loss(onset_labels_flat, onset_probs_flat)
-      tf.losses.add_loss(tf.reduce_mean(onset_losses))
-      losses['onset'] = onset_losses
+      onset_probs_flat = flatten_maybe_padded_sequences(onset_probs, length)
+      if is_training:
+        onset_labels_flat = flatten_maybe_padded_sequences(onset_labels, length)
+        onset_losses = tf_utils.log_loss(onset_labels_flat, onset_probs_flat)
+        tf.losses.add_loss(tf.reduce_mean(onset_losses))
+        losses['onset'] = onset_losses
     with tf.variable_scope('offsets'):
       offset_outputs = acoustic_model(
           spec,
           hparams,
           lstm_units=hparams.offset_lstm_units,
-          lengths=lengths,
+          lengths=length,
           is_training=is_training)
       offset_probs = slim.fully_connected(
           offset_outputs,
@@ -261,24 +265,19 @@ def get_model(transcription_data, hparams, is_training=True):
           scope='offset_probs')
 
       # offset_probs_flat is used during inference.
-      offset_probs_flat = flatten_maybe_padded_sequences(offset_probs, lengths)
-      offset_labels_flat = flatten_maybe_padded_sequences(
-          offset_labels, lengths)
-      tf.identity(offset_probs_flat, name='offset_probs_flat')
-      tf.identity(offset_labels_flat, name='offset_labels_flat')
-      tf.identity(
-          tf.cast(tf.greater_equal(offset_probs_flat, .5), tf.float32),
-          name='offset_predictions_flat')
-
-      offset_losses = tf_utils.log_loss(offset_labels_flat, offset_probs_flat)
-      tf.losses.add_loss(tf.reduce_mean(offset_losses))
-      losses['offset'] = offset_losses
+      offset_probs_flat = flatten_maybe_padded_sequences(offset_probs, length)
+      if is_training:
+        offset_labels_flat = flatten_maybe_padded_sequences(
+            offset_labels, length)
+        offset_losses = tf_utils.log_loss(offset_labels_flat, offset_probs_flat)
+        tf.losses.add_loss(tf.reduce_mean(offset_losses))
+        losses['offset'] = offset_losses
     with tf.variable_scope('velocity'):
       velocity_outputs = acoustic_model(
           spec,
           hparams,
           lstm_units=hparams.velocity_lstm_units,
-          lengths=lengths,
+          lengths=length,
           is_training=is_training)
       velocity_values = slim.fully_connected(
           velocity_outputs,
@@ -287,16 +286,16 @@ def get_model(transcription_data, hparams, is_training=True):
           scope='onset_velocities')
 
       velocity_values_flat = flatten_maybe_padded_sequences(
-          velocity_values, lengths)
-      tf.identity(velocity_values_flat, name='velocity_values_flat')
-      velocity_labels_flat = flatten_maybe_padded_sequences(
-          velocity_labels, lengths)
-      velocity_loss = tf.reduce_sum(
-          onset_labels_flat *
-          tf.square(velocity_labels_flat - velocity_values_flat),
-          axis=1)
-      tf.losses.add_loss(tf.reduce_mean(velocity_loss))
-      losses['velocity'] = velocity_loss
+          velocity_values, length)
+      if is_training:
+        velocity_labels_flat = flatten_maybe_padded_sequences(
+            velocity_labels, length)
+        velocity_loss = tf.reduce_sum(
+            onset_labels_flat *
+            tf.square(velocity_labels_flat - velocity_values_flat),
+            axis=1)
+        tf.losses.add_loss(tf.reduce_mean(velocity_loss))
+        losses['velocity'] = velocity_loss
 
     with tf.variable_scope('frame'):
       if not hparams.share_conv_features:
@@ -305,7 +304,7 @@ def get_model(transcription_data, hparams, is_training=True):
             spec,
             hparams,
             lstm_units=hparams.frame_lstm_units,
-            lengths=lengths,
+            lengths=length,
             is_training=is_training)
         activation_probs = slim.fully_connected(
             activation_outputs,
@@ -342,7 +341,7 @@ def get_model(transcription_data, hparams, is_training=True):
             combined_probs,
             hparams.batch_size,
             hparams.combined_lstm_units,
-            lengths=lengths if hparams.use_lengths else None,
+            lengths=length if hparams.use_lengths else None,
             stack_size=hparams.combined_rnn_stack_size,
             use_cudnn=hparams.use_cudnn,
             is_training=is_training,
@@ -356,61 +355,87 @@ def get_model(transcription_data, hparams, is_training=True):
           activation_fn=tf.sigmoid,
           scope='frame_probs')
 
-    frame_labels_flat = flatten_maybe_padded_sequences(frame_labels, lengths)
-    frame_probs_flat = flatten_maybe_padded_sequences(frame_probs, lengths)
-    tf.identity(frame_probs_flat, name='frame_probs_flat')
-    frame_label_weights_flat = flatten_maybe_padded_sequences(
-        frame_label_weights, lengths)
-    if hparams.weight_frame_and_activation_loss:
-      frame_loss_weights = frame_label_weights_flat
-    else:
-      frame_loss_weights = None
-    frame_losses = tf_utils.log_loss(
-        frame_labels_flat,
-        frame_probs_flat,
-        weights=frame_loss_weights)
-    tf.losses.add_loss(tf.reduce_mean(frame_losses))
-    losses['frame'] = frame_losses
+    frame_probs_flat = flatten_maybe_padded_sequences(frame_probs, length)
 
-    if hparams.activation_loss:
+    if is_training:
+      frame_labels_flat = flatten_maybe_padded_sequences(frame_labels, length)
+      frame_label_weights_flat = flatten_maybe_padded_sequences(
+          frame_label_weights, length)
       if hparams.weight_frame_and_activation_loss:
-        activation_loss_weights = frame_label_weights
+        frame_loss_weights = frame_label_weights_flat
       else:
-        activation_loss_weights = None
-      activation_losses = tf_utils.log_loss(
-          frame_labels_flat,
-          flatten_maybe_padded_sequences(activation_probs, lengths),
-          weights=activation_loss_weights)
-      tf.losses.add_loss(tf.reduce_mean(activation_losses))
-      losses['activation'] = activation_losses
+        frame_loss_weights = None
+      frame_losses = tf_utils.log_loss(
+          frame_labels_flat, frame_probs_flat, weights=frame_loss_weights)
+      tf.losses.add_loss(tf.reduce_mean(frame_losses))
+      losses['frame'] = frame_losses
 
-  predictions_flat = tf.cast(tf.greater_equal(frame_probs_flat, .5), tf.float32)
+      if hparams.activation_loss:
+        if hparams.weight_frame_and_activation_loss:
+          activation_loss_weights = frame_label_weights
+        else:
+          activation_loss_weights = None
+        activation_losses = tf_utils.log_loss(
+            frame_labels_flat,
+            flatten_maybe_padded_sequences(activation_probs, length),
+            weights=activation_loss_weights)
+        tf.losses.add_loss(tf.reduce_mean(activation_losses))
+        losses['activation'] = activation_losses
 
-  # Creates a pianoroll labels in red and probs in green [minibatch, 88]
-  images = {}
-  onset_pianorolls = tf.concat(
-      [
-          onset_labels[:, :, :, tf.newaxis], onset_probs[:, :, :, tf.newaxis],
-          tf.zeros(tf.shape(onset_labels))[:, :, :, tf.newaxis]
-      ],
-      axis=3)
-  images['OnsetPianorolls'] = onset_pianorolls
-  offset_pianorolls = tf.concat([
-      offset_labels[:, :, :, tf.newaxis], offset_probs[:, :, :, tf.newaxis],
-      tf.zeros(tf.shape(offset_labels))[:, :, :, tf.newaxis]
-  ],
-                                axis=3)
-  images['OffsetPianorolls'] = offset_pianorolls
-  activation_pianorolls = tf.concat(
-      [
-          frame_labels[:, :, :, tf.newaxis], frame_probs[:, :, :, tf.newaxis],
-          tf.zeros(tf.shape(frame_labels))[:, :, :, tf.newaxis]
-      ],
-      axis=3)
-  images['ActivationPianorolls'] = activation_pianorolls
+  predictions = {
+      'frame_probs_flat': frame_probs_flat,
+      'onset_probs_flat': onset_probs_flat,
+      'offset_probs_flat': offset_probs_flat,
+      'velocity_values_flat': velocity_values_flat,
+  }
 
-  return (tf.losses.get_total_loss(), losses, frame_labels_flat,
-          predictions_flat, images)
+  train_op = None
+  loss = None
+  if is_training:
+    # Creates a pianoroll labels in red and probs in green [minibatch, 88]
+    images = {}
+    onset_pianorolls = tf.concat([
+        onset_labels[:, :, :, tf.newaxis], onset_probs[:, :, :, tf.newaxis],
+        tf.zeros(tf.shape(onset_labels))[:, :, :, tf.newaxis]
+    ],
+                                 axis=3)
+    images['OnsetPianorolls'] = onset_pianorolls
+    offset_pianorolls = tf.concat([
+        offset_labels[:, :, :, tf.newaxis], offset_probs[:, :, :, tf.newaxis],
+        tf.zeros(tf.shape(offset_labels))[:, :, :, tf.newaxis]
+    ],
+                                  axis=3)
+    images['OffsetPianorolls'] = offset_pianorolls
+    activation_pianorolls = tf.concat([
+        frame_labels[:, :, :, tf.newaxis], frame_probs[:, :, :, tf.newaxis],
+        tf.zeros(tf.shape(frame_labels))[:, :, :, tf.newaxis]
+    ],
+                                      axis=3)
+    images['ActivationPianorolls'] = activation_pianorolls
+    for name, image in images.items():
+      tf.summary.image(name, image)
+
+    loss = tf.losses.get_total_loss()
+    tf.summary.scalar('loss', loss)
+    for label, loss_collection in losses.items():
+      loss_label = 'losses/' + label
+      tf.summary.scalar(loss_label, tf.reduce_mean(loss_collection))
+
+    train_op = tf.contrib.layers.optimize_loss(
+        name='training',
+        loss=loss,
+        global_step=tf.train.get_or_create_global_step(),
+        learning_rate=hparams.learning_rate,
+        learning_rate_decay_fn=functools.partial(
+            tf.train.exponential_decay,
+            decay_steps=hparams.decay_steps,
+            decay_rate=hparams.decay_rate,
+            staircase=True),
+        clip_gradients=hparams.clip_norm,
+        optimizer='Adam')
+
+  return tf.estimator.EstimatorSpec(
+      mode=mode, predictions=predictions, loss=loss, train_op=train_op)
 
 
 def get_default_hparams():
@@ -429,7 +454,7 @@ def get_default_hparams():
       spec_log_amplitude=True,
       transform_audio=True,
       learning_rate=0.0006,
-      clip_norm=3,
+      clip_norm=3.0,
       truncated_length=1500,  # 48 seconds
       onset_lstm_units=256,
       offset_lstm_units=256,

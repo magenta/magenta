@@ -130,25 +130,26 @@ class DataTest(tf.test.TestCase):
     hparams.crop_training_sequence_to_notes = crop_training_sequence_to_notes
 
     with self.test_session() as sess:
-      batch, _ = data.provide_batch(
+      dataset = data.provide_batch(
           batch_size=batch_size,
           examples=examples,
           hparams=hparams,
           truncated_length=truncated_length,
           is_training=False)
-      sess.run(tf.local_variables_initializer())
-      input_tensors = [
-          batch.spec, batch.labels, batch.lengths, batch.filenames,
-          batch.max_length
-      ]
-      self.assertEqual(len(expected_inputs) // batch_size, batch.num_batches)
-      for i in range(0, batch.num_batches * batch_size, batch_size):
+      iterator = dataset.make_initializable_iterator()
+      next_record = iterator.get_next()
+      sess.run([
+          tf.initializers.local_variables(),
+          tf.initializers.global_variables(),
+          iterator.initializer
+      ])
+      for i in range(0, len(expected_inputs), batch_size):
         # Wait to ensure example is pre-processed.
         time.sleep(0.1)
-        inputs = sess.run(input_tensors)
+        features, labels = sess.run(next_record)
+        inputs = [
+            features.spec, labels.labels, features.length, features.sequence_id]
         max_length = np.max(inputs[2])
-        self.assertEqual(inputs[4], max_length)
-        inputs = inputs[0:-1]
         for j in range(batch_size):
           # Add batch padding if needed.
           input_length = expected_inputs[i + j][2]
@@ -164,7 +165,7 @@ class DataTest(tf.test.TestCase):
             self.assertAllEqual(np.squeeze(exp_input), np.squeeze(input_[j]))
 
       with self.assertRaisesOpError('End of sequence'):
-        _ = sess.run(input_tensors)
+        _ = sess.run(next_record)
 
   def _SyntheticSequence(self, duration, note, start_time=0):
     seq = music_pb2.NoteSequence(total_time=start_time + duration)

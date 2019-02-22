@@ -18,15 +18,14 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-import collections
 import os
 
-import librosa
 from magenta.common import tf_utils
 from magenta.models.onsets_frames_transcription import constants
 from magenta.models.onsets_frames_transcription import data
 from magenta.models.onsets_frames_transcription import model
-from magenta.music import audio_io
+from magenta.models.onsets_frames_transcription import split_audio_and_label_data
+from magenta.models.onsets_frames_transcription import train_util
 from magenta.music import midi_io
 from magenta.music import sequences_lib
 from magenta.protobuf import music_pb2
@@ -34,11 +33,10 @@ import tensorflow as tf
 
 FLAGS = tf.app.flags.FLAGS
 
+tf.app.flags.DEFINE_string('model_dir', None,
+                           'Path to look for acoustic checkpoints.')
 tf.app.flags.DEFINE_string(
-    'acoustic_run_dir', None,
-    'Path to look for acoustic checkpoints. Should contain subdir `train`.')
-tf.app.flags.DEFINE_string(
-    'acoustic_checkpoint_filename', None,
+    'checkpoint_path', None,
     'Filename of the checkpoint to use. If not specified, will use the latest '
     'checkpoint')
 tf.app.flags.DEFINE_string(
@@ -57,101 +55,30 @@ tf.app.flags.DEFINE_string(
     'DEBUG, INFO, WARN, ERROR, or FATAL.')
 
 
-def create_example(filename, hparams):
+def create_example(filename):
   """Processes an audio file into an Example proto."""
-  wav_data = librosa.core.load(filename, sr=hparams.sample_rate)[0]
-  if hparams.normalize_audio:
-    audio_io.normalize_wav_data(wav_data, hparams.sample_rate)
-  wav_data = audio_io.samples_to_wav_data(wav_data, hparams.sample_rate)
-
-  example = tf.train.Example(features=tf.train.Features(feature={
-      'id':
-          tf.train.Feature(bytes_list=tf.train.BytesList(
-              value=[filename.encode('utf-8')]
-          )),
-      'sequence':
-          tf.train.Feature(bytes_list=tf.train.BytesList(
-              value=[music_pb2.NoteSequence().SerializeToString()]
-          )),
-      'audio':
-          tf.train.Feature(bytes_list=tf.train.BytesList(
-              value=[wav_data]
-          )),
-      'velocity_range':
-          tf.train.Feature(bytes_list=tf.train.BytesList(
-              value=[music_pb2.VelocityRange().SerializeToString()]
-          )),
-  }))
-
-  return example.SerializeToString()
+  wav_data = tf.gfile.Open(filename).read()
+  example_list = list(
+      split_audio_and_label_data.process_record(
+          wav_data=wav_data,
+          ns=music_pb2.NoteSequence(),
+          example_id=filename,
+          min_length=0,
+          max_length=-1,
+          allow_empty_notesequence=True))
+  assert len(example_list) == 1
+  return example_list[0].SerializeToString()
 
 
-TranscriptionSession = collections.namedtuple(
-    'TranscriptionSession',
-    ('session', 'examples', 'iterator', 'onset_probs_flat', 'frame_probs_flat',
-     'velocity_values_flat', 'hparams'))
-
-
-def initialize_session(acoustic_checkpoint, hparams):
-  """Initializes a transcription session."""
-  with tf.Graph().as_default():
-    examples = tf.placeholder(tf.string, [None])
-
-    hparams.batch_size = 1
-
-    batch, iterator = data.provide_batch(
-        batch_size=1,
-        examples=examples,
-        hparams=hparams,
-        is_training=False,
-        truncated_length=0)
-
-    model.get_model(batch, hparams, is_training=False)
-
-    session = tf.Session()
-    saver = tf.train.Saver()
-    saver.restore(session, acoustic_checkpoint)
-
-    onset_probs_flat = tf.get_default_graph().get_tensor_by_name(
-        'onsets/onset_probs_flat:0')
-    frame_probs_flat = tf.get_default_graph().get_tensor_by_name(
-        'frame_probs_flat:0')
-    velocity_values_flat = tf.get_default_graph().get_tensor_by_name(
-        'velocity/velocity_values_flat:0')
-
-    return TranscriptionSession(
-        session=session,
-        examples=examples,
-        iterator=iterator,
-        onset_probs_flat=onset_probs_flat,
-        frame_probs_flat=frame_probs_flat,
-        velocity_values_flat=velocity_values_flat,
-        hparams=hparams)
-
-
-def transcribe_audio(transcription_session, filename, frame_threshold,
-                     onset_threshold):
+def transcribe_audio(prediction, hparams, frame_threshold, onset_threshold):
   """Transcribes an audio file."""
-  tf.logging.info('Processing file...')
-  transcription_session.session.run(
-      transcription_session.iterator.initializer,
-      {transcription_session.examples: [
-          create_example(filename, transcription_session.hparams)]})
-  tf.logging.info('Running inference...')
-  frame_logits, onset_logits, velocity_values = (
-      transcription_session.session.run([
-          transcription_session.frame_probs_flat,
-          transcription_session.onset_probs_flat,
-          transcription_session.velocity_values_flat]))
-
-  frame_predictions = frame_logits > frame_threshold
-
-  onset_predictions = onset_logits > onset_threshold
+  frame_predictions = prediction['frame_probs_flat'] > frame_threshold
+  onset_predictions = prediction['onset_probs_flat'] > onset_threshold
+  velocity_values = prediction['velocity_values_flat']
 
   sequence_prediction = sequences_lib.pianoroll_to_note_sequence(
       frame_predictions,
-      frames_per_second=data.hparams_frames_per_second(
-          transcription_session.hparams),
+      frames_per_second=data.hparams_frames_per_second(hparams),
       min_duration_ms=0,
       min_midi_pitch=constants.MIN_MIDI_PITCH,
       onset_predictions=onset_predictions,
@@ -163,33 +90,67 @@ def transcribe_audio(transcription_session, filename, frame_threshold,
 def main(argv):
   tf.logging.set_verbosity(FLAGS.log)
 
-  if FLAGS.acoustic_checkpoint_filename:
-    acoustic_checkpoint = os.path.join(
-        os.path.expanduser(FLAGS.acoustic_run_dir), 'train',
-        FLAGS.acoustic_checkpoint_filename)
-  else:
-    acoustic_checkpoint = tf.train.latest_checkpoint(
-        os.path.join(os.path.expanduser(FLAGS.acoustic_run_dir), 'train'))
-
   hparams = tf_utils.merge_hparams(
       constants.DEFAULT_HPARAMS, model.get_default_hparams())
   # For this script, default to not using cudnn.
   hparams.use_cudnn = False
   hparams.parse(FLAGS.hparams)
+  hparams.batch_size = 1
 
-  transcription_session = initialize_session(acoustic_checkpoint, hparams)
+  with tf.Graph().as_default():
+    examples = tf.placeholder(tf.string, [None])
 
-  for filename in argv[1:]:
-    tf.logging.info('Starting transcription for %s...', filename)
+    dataset = data.provide_batch(
+        batch_size=1,
+        examples=examples,
+        hparams=hparams,
+        is_training=False,
+        truncated_length=0)
 
-    sequence_prediction = transcribe_audio(
-        transcription_session, filename, FLAGS.frame_threshold,
-        FLAGS.onset_threshold)
+    estimator = train_util.create_estimator(
+        os.path.expanduser(FLAGS.model_dir), hparams)
 
-    midi_filename = filename + '.midi'
-    midi_io.sequence_proto_to_midi_file(sequence_prediction, midi_filename)
+    iterator = dataset.make_initializable_iterator()
+    next_record = iterator.get_next()
 
-    tf.logging.info('Transcription written to %s.', midi_filename)
+    with tf.Session() as sess:
+      sess.run([
+          tf.initializers.global_variables(),
+          tf.initializers.local_variables()
+      ])
+
+      for filename in argv[1:]:
+        tf.logging.info('Starting transcription for %s...', filename)
+
+        # The reason we bounce between two Dataset objects is so we can use
+        # the data processing functionality in data.py without having to
+        # construct all the Example protos in memory ahead of time or create
+        # a temporary tfrecord file.
+        tf.logging.info('Processing file...')
+        sess.run(iterator.initializer, {examples: [create_example(filename)]})
+
+        def input_fn():
+          return tf.data.Dataset.from_tensors(sess.run(next_record))
+
+        tf.logging.info('Running inference...')
+        checkpoint_path = None
+        if FLAGS.checkpoint_path:
+          checkpoint_path = os.path.expanduser(FLAGS.checkpoint_path)
+        prediction_list = list(
+            estimator.predict(
+                input_fn,
+                checkpoint_path=checkpoint_path,
+                yield_single_examples=False))
+        assert len(prediction_list) == 1
+
+        sequence_prediction = transcribe_audio(prediction_list[0], hparams,
+                                               FLAGS.frame_threshold,
+                                               FLAGS.onset_threshold)
+
+        midi_filename = filename + '.midi'
+        midi_io.sequence_proto_to_midi_file(sequence_prediction, midi_filename)
+
+        tf.logging.info('Transcription written to %s.', midi_filename)
 
 
 def console_entry_point():
