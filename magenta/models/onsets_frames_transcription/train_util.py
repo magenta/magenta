@@ -67,10 +67,20 @@ def _trial_summary(hparams, examples_path, output_dir):
 
 def create_estimator(model_dir,
                      hparams,
+                     master='',
                      keep_checkpoint_max=None,
                      warm_start_from=None):
   """Creates an estimator."""
-  config = tf.estimator.RunConfig(
+
+  class MasterRunConfig(tf.estimator.RunConfig):
+    """Hack to allow setting master in RunConfig via a flag."""
+
+    def __init__(self, master, *unused_args, **unused_kwargs):
+      super(MasterRunConfig, self).__init__(*unused_args, **unused_kwargs)
+      self._master = master
+
+  config = MasterRunConfig(
+      master=master,
       train_distribute=tf.distribute.MirroredStrategy(),
       save_summary_steps=100,
       save_checkpoints_steps=300,
@@ -85,13 +95,16 @@ def create_estimator(model_dir,
       warm_start_from=warm_start_from)
 
 
-def train(model_dir,
+def train(master,
+          model_dir,
           examples_path,
           hparams,
           keep_checkpoint_max,
           num_steps=None):
   """Train loop."""
-  estimator = create_estimator(model_dir, hparams, keep_checkpoint_max)
+  estimator = create_estimator(
+      model_dir=model_dir, master=master, hparams=hparams,
+      keep_checkpoint_max=keep_checkpoint_max)
 
   if estimator.config.is_chief:
     _trial_summary(hparams, examples_path, model_dir)

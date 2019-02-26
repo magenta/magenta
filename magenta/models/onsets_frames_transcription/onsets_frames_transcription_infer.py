@@ -49,6 +49,8 @@ import tensorflow as tf
 
 FLAGS = tf.app.flags.FLAGS
 
+tf.app.flags.DEFINE_string('master', '',
+                           'Name of the TensorFlow runtime to use.')
 tf.app.flags.DEFINE_string('model_dir', None, 'Path to look for checkpoints.')
 tf.app.flags.DEFINE_string(
     'checkpoint_path', None,
@@ -96,6 +98,7 @@ def model_inference(model_dir,
                     examples_path,
                     output_dir,
                     summary_writer,
+                    master,
                     write_summary_every_step=True):
   """Runs inference for the given examples."""
   tf.logging.info('model_dir=%s', model_dir)
@@ -103,7 +106,7 @@ def model_inference(model_dir,
   tf.logging.info('examples_path=%s', examples_path)
   tf.logging.info('output_dir=%s', output_dir)
 
-  estimator = train_util.create_estimator(model_dir, hparams)
+  estimator = train_util.create_estimator(model_dir, hparams, master=master)
 
   with tf.Graph().as_default():
     num_dims = constants.MIDI_PITCHES
@@ -327,6 +330,7 @@ def main(unused_argv):
           examples_path=FLAGS.examples_path,
           output_dir=output_dir,
           summary_writer=summary_writer,
+          master=FLAGS.master,
           write_summary_every_step=False)
   else:
     model_inference(
@@ -335,7 +339,8 @@ def main(unused_argv):
         hparams=hparams,
         examples_path=FLAGS.examples_path,
         output_dir=output_dir,
-        summary_writer=summary_writer)
+        summary_writer=summary_writer,
+        master=FLAGS.master)
 
 
 def console_entry_point():

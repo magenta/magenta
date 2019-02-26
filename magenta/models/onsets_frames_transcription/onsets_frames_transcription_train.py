@@ -56,6 +56,7 @@ tf.app.flags.DEFINE_string(
 def run(hparams, model_dir):
   """Run train/eval/test."""
   train_util.train(
+      master=FLAGS.master,
       model_dir=model_dir,
       examples_path=FLAGS.examples_path,
       hparams=hparams,
