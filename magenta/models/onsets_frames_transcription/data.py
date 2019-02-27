@@ -151,66 +151,20 @@ def wav_to_num_frames_op(wav_audio, frames_per_second):
   return res
 
 
-def _find_first_note_start(sequence):
-  first_note = sorted(sequence.notes, key=lambda n: n.start_time)[0]
-  return first_note.start_time
+def transform_wav_data_op(wav_data_tensor, hparams, jitter_amount_sec):
+  """Transforms with audio for data augmentation. Only for training."""
 
-
-def preprocess_sequence(sequence_tensor, hparams):
-  """Preprocess a NoteSequence for training.
-
-  Deserialize, apply sustain control changes, and crop the sequence to the
-  beginning of the first note and end of the last note (if requested).
-
-  Args:
-    sequence_tensor: The NoteSequence in serialized form.
-    hparams: Current hyperparameters.
-
-  Returns:
-    sequence: The preprocessed NoteSequence object.
-    cropped_beginning_seconds: How many seconds were cropped from the beginning
-        of the NoteSequence.
-  """
-  sequence = music_pb2.NoteSequence.FromString(sequence_tensor)
-  sequence = sequences_lib.apply_sustain_control_changes(sequence)
-  crop_beginning_seconds = 0
-  if hparams.crop_training_sequence_to_notes and sequence.notes:
-    crop_beginning_seconds = _find_first_note_start(sequence)
-    sequence = sequences_lib.extract_subsequence(
-        sequence, crop_beginning_seconds, sequence.total_time)
-
-  return sequence, crop_beginning_seconds
-
-
-def transform_wav_data_op(wav_data_tensor, sequence_tensor, hparams,
-                          is_training, jitter_amount_sec):
-  """Transforms with sox."""
-
-  def transform_wav_data(wav_data, sequence_tensor):
+  def transform_wav_data(wav_data):
     """Transforms with sox."""
-    sequence, cropped_beginning_seconds = preprocess_sequence(
-        sequence_tensor, hparams)
-
-    # Only do audio transformations during training.
-    if is_training:
+    if jitter_amount_sec:
       wav_data = audio_io.jitter_wav_data(wav_data, hparams.sample_rate,
                                           jitter_amount_sec)
-      wav_data = audio_transform.transform_wav_audio(wav_data, hparams)
-
-    # If requested, crop wav.
-    if hparams.crop_training_sequence_to_notes:
-      wav_data = audio_io.crop_wav_data(wav_data, hparams.sample_rate,
-                                        cropped_beginning_seconds,
-                                        sequence.total_time)
-
-    # Normalize.
-    if hparams.normalize_audio:
-      wav_data = audio_io.normalize_wav_data(wav_data, hparams.sample_rate)
+    wav_data = audio_transform.transform_wav_audio(wav_data, hparams)
 
     return [wav_data]
 
   return tf.py_func(
-      transform_wav_data, [wav_data_tensor, sequence_tensor],
+      transform_wav_data, [wav_data_tensor],
       tf.string,
       name='transform_wav_data_op')
 
@@ -221,8 +175,8 @@ def sequence_to_pianoroll_op(sequence_tensor, velocity_range_tensor, hparams):
   def sequence_to_pianoroll_fn(sequence_tensor, velocity_range_tensor):
     """Converts sequence to pianorolls."""
     velocity_range = music_pb2.VelocityRange.FromString(velocity_range_tensor)
-    sequence, unused_cropped_beginning_seconds = preprocess_sequence(
-        sequence_tensor, hparams)
+    sequence = music_pb2.NoteSequence.FromString(sequence_tensor)
+    sequence = sequences_lib.apply_sustain_control_changes(sequence)
     roll = sequences_lib.sequence_to_pianoroll(
         sequence,
         frames_per_second=hparams_frames_per_second(hparams),
@@ -341,20 +295,18 @@ def _preprocess_data(sequence_id, sequence, audio, velocity_range, hparams,
     sequence = jitter_label_op(sequence,
                                hparams.backward_shift_amount_ms / 1000.)
 
-  transformed_wav = transform_wav_data_op(
-      audio,
-      sequence,
-      hparams=hparams,
-      is_training=is_training,
-      jitter_amount_sec=wav_jitter_amount_ms / 1000.)
+  if is_training:
+    audio = transform_wav_data_op(
+        audio,
+        hparams=hparams,
+        jitter_amount_sec=wav_jitter_amount_ms / 1000.)
 
-  spec = wav_to_spec_op(transformed_wav, hparams=hparams)
+  spec = wav_to_spec_op(audio, hparams=hparams)
 
   labels, label_weights, onsets, offsets, velocities = sequence_to_pianoroll_op(
       sequence, velocity_range, hparams=hparams)
 
-  length = wav_to_num_frames_op(
-      transformed_wav, hparams_frames_per_second(hparams))
+  length = wav_to_num_frames_op(audio, hparams_frames_per_second(hparams))
 
   return InputTensors(
       spec=spec,
