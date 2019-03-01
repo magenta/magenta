@@ -55,12 +55,13 @@ class SplitWavDoFn(beam.DoFn):
   """Splits wav and midi files for the dataset."""
 
   def __init__(self, min_length, max_length, sample_rate, split,
-               output_directory):
+               output_directory, chunk_files):
     self._min_length = min_length
     self._max_length = max_length
     self._sample_rate = sample_rate
     self._split = split
     self._output_directory = output_directory
+    self._chunk_files = chunk_files
 
   def process(self, input_example):
     tf.logging.info('Splitting %s',
@@ -73,9 +74,7 @@ class SplitWavDoFn(beam.DoFn):
 
     Metrics.counter('split_wav', 'read_midi_wav_to_split').inc()
 
-    if self._split == 'test' or self._split == 'validation':
-      # For the 'test' and 'validation' splits, use the full length audio and
-      # midi.
+    if not self._chunk_files:
       split_examples = split_audio_and_label_data.process_record(
           wav_data,
           ns,
@@ -106,15 +105,16 @@ class SplitWavDoFn(beam.DoFn):
         raise
 
 
-def generate_sharded_filenames(filename):
-  match = re.match(r'^([^@]+)@(\d+)$', filename)
-  if not match:
-    yield filename
-  else:
-    num_shards = int(match.group(2))
-    base = match.group(1)
-    for i in range(num_shards):
-      yield '{}-{:0=5d}-of-{:0=5d}'.format(base, i, num_shards)
+def generate_sharded_filenames(filenames):
+  for filename in filenames.split(','):
+    match = re.match(r'^([^@]+)@(\d+)$', filename)
+    if not match:
+      yield filename
+    else:
+      num_shards = int(match.group(2))
+      base = match.group(1)
+      for i in range(num_shards):
+        yield '{}-{:0=5d}-of-{:0=5d}'.format(base, i, num_shards)
 
 
 def pipeline():
@@ -126,12 +126,15 @@ def pipeline():
     tf.flags.mark_flags_as_required(['output_directory'])
 
     splits = [
-        ('train', generate_sharded_filenames(FLAGS.train_tfrecord)),
-        ('validation', generate_sharded_filenames(FLAGS.validation_tfrecord)),
-        ('test', generate_sharded_filenames(FLAGS.test_tfrecord)),
+        ('train', generate_sharded_filenames(FLAGS.train_tfrecord), True),
+        ('train-nosplit', generate_sharded_filenames(FLAGS.train_tfrecord),
+         False),
+        ('validation', generate_sharded_filenames(FLAGS.validation_tfrecord),
+         False),
+        ('test', generate_sharded_filenames(FLAGS.test_tfrecord), False),
     ]
 
-    for split_name, split_tfrecord in splits:
+    for split_name, split_tfrecord, chunk_files in splits:
       split_p = p | 'tfrecord_list_%s' % split_name >> beam.Create(
           split_tfrecord)
       split_p |= 'read_tfrecord_%s' % split_name >> (
@@ -140,7 +143,8 @@ def pipeline():
       split_p |= 'shuffle_input_%s' % split_name >> beam.Reshuffle()
       split_p |= 'split_wav_%s' % split_name >> beam.ParDo(
           SplitWavDoFn(FLAGS.min_length, FLAGS.max_length, FLAGS.sample_rate,
-                       split_name, FLAGS.output_directory))
+                       split_name, FLAGS.output_directory,
+                       chunk_files=chunk_files))
       split_p |= 'shuffle_output_%s' % split_name >> beam.Reshuffle()
       split_p |= 'write_%s' % split_name >> beam.io.WriteToTFRecord(
           os.path.join(FLAGS.output_directory, '%s.tfrecord' % split_name),
