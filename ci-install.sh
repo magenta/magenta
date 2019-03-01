@@ -31,6 +31,5 @@ source /tmp/magenta-env/bin/activate
 echo $(which python)
 python --version
 
-pip install pylint pytest
 python setup.py bdist_wheel --universal
 pip install --upgrade --ignore-installed dist/magenta*.whl

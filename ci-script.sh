@@ -23,5 +23,4 @@ set -x
 
 source /tmp/magenta-env/bin/activate
 
-pytest
-pylint magenta
+python setup.py test
