@@ -28,6 +28,7 @@ from magenta.music import chord_symbols_lib
 from magenta.music import sequences_lib
 from tensor2tensor.data_generators import problem
 from tensor2tensor.layers import modalities as t2t_modalities
+from tensor2tensor.models import transformer
 from tensor2tensor.utils import registry
 import tensorflow as tf
 
@@ -164,7 +165,12 @@ class Score2PerfProblem(problem.Problem):
     if self.has_inputs:
       score_encoder = self.get_feature_encoders()['inputs']
       if isinstance(score_encoder.vocab_size, list):
-        modality_cls = modalities.SymbolTupleModality
+        # TODO(trandustin): We default to not applying any transformation; to
+        # apply one, pass modalities.bottom to the model's hparams.bottom. In
+        # future, refactor the tuple of the "inputs" feature to be part of the
+        # features dict itself, i.e., have multiple inputs each with its own
+        # modality and vocab size.
+        modality_cls = modalities.ModalityType.IDENTITY
       else:
         modality_cls = t2t_modalities.ModalityType.SYMBOL
       defaults.modality['inputs'] = modality_cls
@@ -385,3 +391,10 @@ class Score2PerfMaestroAbsMel2Perf5sTo30sAug10x(AbsoluteMelody2PerfProblem):
   def transpose_amounts(self):
     # Transpose no more than a minor third.
     return [-3, -2, -1, 0, 1, 2, 3]
+
+
+@registry.register_hparams
+def score2perf_transformer_base():
+  hparams = transformer.transformer_base()
+  hparams.bottom['inputs'] = modalities.bottom
+  return hparams

@@ -18,6 +18,7 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
+import functools
 from magenta.models.score2perf import modalities
 import numpy as np
 from tensor2tensor.layers import common_hparams
@@ -27,7 +28,7 @@ import tensorflow as tf
 
 class ModalitiesTest(tf.test.TestCase):
 
-  def testSymbolTupleModalityInputs(self):
+  def testBottomInputs(self):
     """Adapted from tensor2tensor/layers/modalities_test.py."""
     batch_size = 10
     num_datashards = 5
@@ -42,12 +43,14 @@ class ModalitiesTest(tf.test.TestCase):
             vocab_size[i], size=(batch_size, length, 1))
         for i in range(len(vocab_size))
     ], axis=3)
-    m = modalities.SymbolTupleModality(model_hparams, vocab_size)
     data_parallelism = expert_utils.Parallelism(
         ['/device:CPU:0'] * num_datashards)
+    bottom = functools.partial(modalities.bottom,
+                               model_hparams=model_hparams,
+                               vocab_size=vocab_size)
     with self.test_session() as session:
       xs = tf.split(x, num_datashards)
-      sharded_output = data_parallelism(m.bottom, xs)
+      sharded_output = data_parallelism(bottom, xs)
       output = tf.concat(sharded_output, 0)
       session.run(tf.global_variables_initializer())
       res = session.run(output)
