@@ -6,7 +6,11 @@ This model applies language modeling to melody generation using an LSTM.
 
 ### Basic
 
-This configuration acts as a baseline for melody generation with an LSTM model. It uses basic one-hot encoding to represent extracted melodies as input to the LSTM.
+This configuration acts as a baseline for melody generation with an LSTM model. It uses basic one-hot encoding to represent extracted melodies as input to the LSTM. For training, all examples are transposed to the MIDI pitch range \[48, 84\] and outputs will also be in this range.
+
+### Mono
+
+This configuration acts as a baseline for melody generation with an LSTM model. It uses basic one-hot encoding to represent extracted melodies as input to the LSTM. While `basic_rnn` is trained by transposing all inputs to a narrow range, `mono_rnn` is able to use the full 128 MIDI pitches.
 
 ### Lookback
 
@@ -25,9 +29,10 @@ First, set up your [Magenta environment](/README.md). Next, you can either use a
 If you want to get started right away, you can use a model that we've pre-trained on thousands of MIDI files.
 We host .mag bundle files for each of the configurations described above at these links:
 
-* [basic_rnn](http://download.magenta.tensorflow.org/models/basic_rnn.mag).
-* [lookback_rnn](http://download.magenta.tensorflow.org/models/lookback_rnn.mag).
-* [attention_rnn](http://download.magenta.tensorflow.org/models/attention_rnn.mag).
+* [basic_rnn](http://download.magenta.tensorflow.org/models/basic_rnn.mag)
+* [mono_rnn](http://download.magenta.tensorflow.org/models/mono_rnn.mag)
+* [lookback_rnn](http://download.magenta.tensorflow.org/models/lookback_rnn.mag)
+* [attention_rnn](http://download.magenta.tensorflow.org/models/attention_rnn.mag)
 
 If you're using the Magenta Docker Container, the same .mag files are located in the ```/magenta-models```
 directory.
@@ -61,7 +66,7 @@ SequenceExamples are fed into the model during training and evaluation. Each Seq
 
 ```
 melody_rnn_create_dataset \
---config=<one of 'basic_rnn', 'lookback_rnn', or 'attention_rnn'> \
+--config=<one of 'basic_rnn', 'mono_rnn', lookback_rnn', or 'attention_rnn'> \
 --input=/tmp/notesequences.tfrecord \
 --output_dir=/tmp/melody_rnn/sequence_examples \
 --eval_ratio=0.10
