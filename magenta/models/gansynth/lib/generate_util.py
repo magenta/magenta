@@ -23,6 +23,9 @@ from magenta.models.gansynth.lib import util
 import numpy as np
 import scipy.io.wavfile as wavfile
 
+MAX_NOTE_LENGTH = 3.0
+MAX_VELOCITY = 127.0
+
 
 def slerp(p0, p1, t):
   """Spherical linear interpolation."""
@@ -32,18 +35,19 @@ def slerp(p0, p1, t):
   return np.sin((1.0-t)*omega) / so * p0 + np.sin(t*omega)/so * p1
 
 
-def load_midi(midi_path):
+def load_midi(midi_path, min_pitch=36, max_pitch=84):
   """Load midi as a notesequence."""
   midi_path = util.expand_path(midi_path)
   ns = mm.midi_file_to_sequence_proto(midi_path)
   pitches = np.array([n.pitch for n in ns.notes])
+  velocities = np.array([n.velocity for n in ns.notes])
   start_times = np.array([n.start_time for n in ns.notes])
   end_times = np.array([n.end_time for n in ns.notes])
-  notes = {'pitches': pitches,
-           'start_times': start_times,
-           'end_times': end_times}
-  # print(ns)
-  # print(notes)
+  valid = np.logical_and(pitches >= min_pitch, pitches <= max_pitch)
+  notes = {'pitches': pitches[valid],
+           'velocities': velocities[valid],
+           'start_times': start_times[valid],
+           'end_times': end_times[valid]}
   return ns, notes
 
 
@@ -70,6 +74,7 @@ def get_z_notes(start_times, z_instruments, t_instruments):
 
 def get_envelope(t_note_length, t_attack=0.010, t_release=0.3, sr=16000):
   """Create an attack sustain release amplitude envelope."""
+  t_note_length = min(t_note_length, MAX_NOTE_LENGTH)
   i_attack = int(sr * t_attack)
   i_sustain = int(sr * t_note_length)
   i_release = int(sr * t_release)
@@ -82,23 +87,25 @@ def get_envelope(t_note_length, t_attack=0.010, t_release=0.3, sr=16000):
   return envelope
 
 
-def combine_notes(audio_notes, start_times, end_times, sr=16000):
+def combine_notes(audio_notes, start_times, end_times, velocities, sr=16000):
   """Combine audio from multiple notes into a single audio clip.
 
   Args:
     audio_notes: Array of audio [n_notes, audio_samples].
     start_times: Array of note starts in seconds [n_notes].
     end_times: Array of note ends in seconds [n_notes].
+    velocities: Array of velocity values [n_notes].
     sr: Integer, sample rate.
 
   Returns:
     audio_clip: Array of combined audio clip [audio_samples]
   """
   n_notes = len(audio_notes)
-  clip_length = end_times.max() + 1.0
+  clip_length = end_times.max() + MAX_NOTE_LENGTH
   audio_clip = np.zeros(int(clip_length) * sr)
 
-  for t_start, t_end, i in zip(start_times, end_times, range(n_notes)):
+  for t_start, t_end, vel, i in zip(
+      start_times, end_times, velocities, range(n_notes)):
     # Generate an amplitude envelope
     t_note_length = t_end - t_start
     envelope = get_envelope(t_note_length)
@@ -106,6 +113,7 @@ def combine_notes(audio_notes, start_times, end_times, sr=16000):
     audio_note = audio_notes[i, :length] * envelope
     # Normalize
     audio_note /= audio_note.max()
+    audio_note *= (vel / MAX_VELOCITY)
     # Add to clip buffer
     clip_start = int(t_start * sr)
     clip_end = clip_start + length

@@ -49,6 +49,9 @@ absl.flags.DEFINE_string('midi_file',
                          '',
                          'Path to a MIDI file (.mid) to synthesize.')
 absl.flags.DEFINE_integer('batch_size', 8, 'Batch size for generation.')
+absl.flags.DEFINE_float('secs_per_instrument', 6.0,
+                        'In random interpolations, the seconds it takes to '
+                        'interpolate from one instrument to another.')
 
 FLAGS = absl.flags.FLAGS
 tf.logging.set_verbosity(tf.logging.INFO)
@@ -68,18 +71,27 @@ def main(unused_argv):
 
   if FLAGS.midi_file:
     # If a MIDI file is provided, synthesize interpolations across the clip
-    _, notes = gu.load_midi(FLAGS.midi_file)
+    unused_ns, notes = gu.load_midi(FLAGS.midi_file)
+
     # Distribute latent vectors linearly in time
     z_instruments, t_instruments = gu.get_random_instruments(
-        model, notes['end_times'][-1])
+        model,
+        notes['end_times'][-1],
+        secs_per_instrument=FLAGS.secs_per_instrument)
+
     # Get latent vectors for each note
     z_notes = gu.get_z_notes(notes['start_times'], z_instruments, t_instruments)
+
     # Generate audio for each note
+    print('Generating {} samples...'.format(len(z_notes)))
     audio_notes = model.generate_samples_from_z(z_notes, notes['pitches'])
+
     # Make a single audio clip
     audio_clip = gu.combine_notes(audio_notes,
                                   notes['start_times'],
-                                  notes['end_times'])
+                                  notes['end_times'],
+                                  notes['velocities'])
+
     # Write the wave files
     fname = os.path.join(output_dir, 'generated_clip.wav')
     gu.save_wav(audio_clip, fname)
