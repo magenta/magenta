@@ -28,15 +28,13 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-import math
 import os
 import time
 
-from magenta.common import tf_utils
+from magenta.models.onsets_frames_transcription import configs
 from magenta.models.onsets_frames_transcription import constants
 from magenta.models.onsets_frames_transcription import data
 from magenta.models.onsets_frames_transcription import infer_util
-from magenta.models.onsets_frames_transcription import model
 from magenta.models.onsets_frames_transcription import train_util
 from magenta.music import midi_io
 from magenta.music import sequences_lib
@@ -51,6 +49,8 @@ FLAGS = tf.app.flags.FLAGS
 
 tf.app.flags.DEFINE_string('master', '',
                            'Name of the TensorFlow runtime to use.')
+tf.app.flags.DEFINE_string('config', 'onsets_frames',
+                           'Name of the config to use.')
 tf.app.flags.DEFINE_string('model_dir', None, 'Path to look for checkpoints.')
 tf.app.flags.DEFINE_string(
     'checkpoint_path', None,
@@ -92,7 +92,8 @@ tf.app.flags.DEFINE_string(
     'DEBUG, INFO, WARN, ERROR, or FATAL.')
 
 
-def model_inference(model_dir,
+def model_inference(model_fn,
+                    model_dir,
                     checkpoint_path,
                     hparams,
                     examples_path,
@@ -106,24 +107,17 @@ def model_inference(model_dir,
   tf.logging.info('examples_path=%s', examples_path)
   tf.logging.info('output_dir=%s', output_dir)
 
-  estimator = train_util.create_estimator(model_dir, hparams, master=master)
+  estimator = train_util.create_estimator(
+      model_fn, model_dir, hparams, master=master)
 
   with tf.Graph().as_default():
     num_dims = constants.MIDI_PITCHES
 
-    if FLAGS.max_seconds_per_sequence:
-      truncated_length = int(
-          math.ceil((FLAGS.max_seconds_per_sequence *
-                     data.hparams_frames_per_second(hparams))))
-    else:
-      truncated_length = 0
-
     dataset = data.provide_batch(
-        batch_size=1,
         examples=examples_path,
+        preprocess_examples=True,
         hparams=hparams,
-        is_training=False,
-        truncated_length=truncated_length)
+        is_training=False)
 
     # Define some metrics.
     (metrics_to_updates, metric_note_precision, metric_note_recall,
@@ -162,7 +156,8 @@ def model_inference(model_dir,
         except tf.errors.OutOfRangeError:
           break
 
-        def input_fn():
+        def input_fn(params):
+          del params
           return tf.data.Dataset.from_tensors(record)
 
         start_time = time.time()
@@ -290,12 +285,17 @@ def model_inference(model_dir,
 def main(unused_argv):
   output_dir = os.path.expanduser(FLAGS.output_dir)
 
-  hparams = tf_utils.merge_hparams(
-      constants.DEFAULT_HPARAMS, model.get_default_hparams())
+  config = configs.CONFIG_MAP[FLAGS.config]
+  hparams = config.hparams
   hparams.parse(FLAGS.hparams)
 
   # Batch size should always be 1 for inference.
   hparams.batch_size = 1
+
+  if FLAGS.max_seconds_per_sequence:
+    hparams.truncated_length_secs = FLAGS.max_seconds_per_sequence
+  else:
+    hparams.truncated_length_secs = 0
 
   tf.logging.info(hparams)
 
@@ -324,6 +324,7 @@ def main(unused_argv):
       checkpoint_path = tf.contrib.training.wait_for_new_checkpoint(
           FLAGS.model_dir, last_checkpoint=checkpoint_path)
       model_inference(
+          model_fn=config.model_fn,
           model_dir=FLAGS.model_dir,
           checkpoint_path=checkpoint_path,
           hparams=hparams,
@@ -334,6 +335,7 @@ def main(unused_argv):
           write_summary_every_step=False)
   else:
     model_inference(
+        model_fn=config.model_fn,
         model_dir=FLAGS.model_dir,
         checkpoint_path=FLAGS.checkpoint_path,
         hparams=hparams,

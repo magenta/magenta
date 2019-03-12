@@ -23,14 +23,14 @@ from __future__ import print_function
 
 import json
 
-from magenta.common import tf_utils
-from magenta.models.onsets_frames_transcription import constants
+from magenta.models.onsets_frames_transcription import configs
 from magenta.models.onsets_frames_transcription import data
-from magenta.models.onsets_frames_transcription import model
 import tensorflow as tf
 
 FLAGS = tf.app.flags.FLAGS
 
+tf.app.flags.DEFINE_string('config', 'onsets_frames',
+                           'Name of the config to use.')
 tf.app.flags.DEFINE_string(
     'hparams',
     'onset_mode=length_ms,onset_length=32',
@@ -51,9 +51,8 @@ def create_spec(filename, hparams):
 def main(argv):
   tf.logging.set_verbosity(FLAGS.log)
 
-  hparams = tf_utils.merge_hparams(
-      constants.DEFAULT_HPARAMS, model.get_default_hparams())
-  hparams.parse(FLAGS.hparams)
+  config = configs.CONFIG_MAP[FLAGS.config]
+  hparams = config.hparams
 
   for filename in argv[1:]:
     tf.logging.info('Generating spectrogram for %s...', filename)

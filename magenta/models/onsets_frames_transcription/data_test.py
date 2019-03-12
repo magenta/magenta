@@ -22,6 +22,7 @@ import copy
 import tempfile
 import time
 
+from magenta.models.onsets_frames_transcription import configs
 from magenta.models.onsets_frames_transcription import constants
 from magenta.models.onsets_frames_transcription import data
 
@@ -90,7 +91,7 @@ class DataTest(tf.test.TestCase):
   def _ExampleToInputs(self,
                        ex,
                        truncated_length=0):
-    hparams = copy.deepcopy(constants.DEFAULT_HPARAMS)
+    hparams = copy.deepcopy(configs.DEFAULT_HPARAMS)
 
     filename = ex.features.feature['id'].bytes_list.value[0]
     sequence = music_pb2.NoteSequence.FromString(
@@ -119,14 +120,16 @@ class DataTest(tf.test.TestCase):
                             batch_size,
                             expected_inputs):
     """Tests for correctness of batches."""
-    hparams = copy.deepcopy(constants.DEFAULT_HPARAMS)
+    hparams = copy.deepcopy(configs.DEFAULT_HPARAMS)
+    hparams.batch_size = batch_size
+    hparams.truncated_length_secs = (
+        truncated_length / data.hparams_frames_per_second(hparams))
 
     with self.test_session() as sess:
       dataset = data.provide_batch(
-          batch_size=batch_size,
           examples=examples,
+          preprocess_examples=True,
           hparams=hparams,
-          truncated_length=truncated_length,
           is_training=False)
       iterator = dataset.make_initializable_iterator()
       next_record = iterator.get_next()
@@ -170,7 +173,7 @@ class DataTest(tf.test.TestCase):
                                     batch_size,
                                     lengths,
                                     expected_num_inputs):
-    hparams = copy.deepcopy(constants.DEFAULT_HPARAMS)
+    hparams = copy.deepcopy(configs.DEFAULT_HPARAMS)
     examples = []
     expected_inputs = []
 
@@ -209,7 +212,7 @@ class DataTest(tf.test.TestCase):
                                   batch_size,
                                   lengths,
                                   expected_num_inputs):
-    hparams = copy.deepcopy(constants.DEFAULT_HPARAMS)
+    hparams = copy.deepcopy(configs.DEFAULT_HPARAMS)
     examples = []
     expected_inputs = []
 

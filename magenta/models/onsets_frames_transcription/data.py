@@ -256,21 +256,20 @@ def truncate_note_sequence_op(sequence_tensor, truncated_length_frames,
 
 
 InputTensors = collections.namedtuple(
-    'InputTensors',
-    ('spec', 'labels', 'label_weights', 'length', 'onsets', 'offsets',
-     'velocities', 'velocity_range', 'sequence_id', 'note_sequence'))
+    'InputTensors', ('spec', 'labels', 'label_weights', 'length', 'onsets',
+                     'offsets', 'velocities', 'sequence_id', 'note_sequence'))
 
 
-def _preprocess_data(sequence_id, sequence, audio, velocity_range, hparams,
-                     is_training):
+def preprocess_data(sequence_id, sequence, audio, velocity_range, hparams,
+                    is_training):
   """Compute spectral representation, labels, and length from sequence/audio.
 
   Args:
     sequence_id: id of the sequence.
     sequence: String tensor containing serialized NoteSequence proto.
     audio: String tensor containing containing WAV data.
-    velocity_range: String tensor containing max and min velocities of file as
-        a serialized VelocityRange.
+    velocity_range: String tensor containing max and min velocities of file as a
+      serialized VelocityRange.
     hparams: HParams object specifying hyperparameters.
     is_training: Whether or not this is a training run.
 
@@ -308,17 +307,22 @@ def _preprocess_data(sequence_id, sequence, audio, velocity_range, hparams,
 
   length = wav_to_num_frames_op(audio, hparams_frames_per_second(hparams))
 
-  return InputTensors(
-      spec=spec,
-      labels=labels,
-      label_weights=label_weights,
-      length=length,
-      onsets=onsets,
-      offsets=offsets,
-      velocities=velocities,
-      velocity_range=velocity_range,
-      sequence_id=sequence_id,
-      note_sequence=sequence)
+  asserts = []
+  if hparams.max_expected_train_example_len and is_training:
+    asserts.append(
+        tf.assert_less_equal(length, hparams.max_expected_train_example_len))
+
+  with tf.control_dependencies(asserts):
+    return InputTensors(
+        spec=spec,
+        labels=labels,
+        label_weights=label_weights,
+        length=length,
+        onsets=onsets,
+        offsets=offsets,
+        velocities=velocities,
+        sequence_id=sequence_id,
+        note_sequence=sequence)
 
 
 FeatureTensors = collections.namedtuple('FeatureTensors',
@@ -328,7 +332,7 @@ LabelTensors = collections.namedtuple(
                      'velocities', 'note_sequence'))
 
 
-def _provide_data(input_tensors, truncated_length, hparams):
+def _provide_data(input_tensors, hparams, is_training):
   """Returns tensors for reading batches from provider."""
   length = tf.to_int32(input_tensors.length)
   labels = tf.reshape(input_tensors.labels, (-1, constants.MIDI_PITCHES))
@@ -340,18 +344,39 @@ def _provide_data(input_tensors, truncated_length, hparams):
                           (-1, constants.MIDI_PITCHES))
   spec = tf.reshape(input_tensors.spec, (-1, hparams_frame_size(hparams)))
 
-  truncated_length = (
-      tf.reduce_min([truncated_length, length]) if truncated_length else length)
+  # Slice specs and labels tensors so they are no longer than truncated_length.
+  hparams_truncated_length = tf.cast(
+      hparams.truncated_length_secs * hparams_frames_per_second(hparams),
+      tf.int32)
+  if hparams.truncated_length_secs:
+    truncated_length = tf.reduce_min([hparams_truncated_length, length])
+  else:
+    truncated_length = length
 
-  # Pad or slice specs and labels tensors to have the same lengths,
-  # truncating after truncated_length.
-  spec_delta = tf.shape(spec)[0] - truncated_length
+  if is_training:
+    truncated_note_sequence = tf.constant(0)
+  else:
+    truncated_note_sequence = truncate_note_sequence_op(
+        input_tensors.note_sequence, truncated_length, hparams)
+
+  # If max_expected_train_example_len is set, ensure that all examples are
+  # padded to this length. This results in a fixed shape that can work on TPUs.
+  if hparams.max_expected_train_example_len and is_training:
+    # In this case, final_length is a constant.
+    if hparams.truncated_length_secs:
+      assert hparams.max_expected_train_example_len == hparams_truncated_length
+    final_length = hparams.max_expected_train_example_len
+  else:
+    # In this case, it is min(hparams.truncated_length, length)
+    final_length = truncated_length
+
+  spec_delta = tf.shape(spec)[0] - final_length
   spec = tf.case(
       [(spec_delta < 0,
         lambda: tf.pad(spec, tf.stack([(0, -spec_delta), (0, 0)]))),
        (spec_delta > 0, lambda: spec[0:-spec_delta])],
       default=lambda: spec)
-  labels_delta = tf.shape(labels)[0] - truncated_length
+  labels_delta = tf.shape(labels)[0] - final_length
   labels = tf.case(
       [(labels_delta < 0,
         lambda: tf.pad(labels, tf.stack([(0, -labels_delta), (0, 0)]))),
@@ -378,42 +403,35 @@ def _provide_data(input_tensors, truncated_length, hparams):
        (labels_delta > 0, lambda: velocities[0:-labels_delta])],
       default=lambda: velocities)
 
-  truncated_note_sequence = truncate_note_sequence_op(
-      input_tensors.note_sequence, truncated_length, hparams)
-
-  return (FeatureTensors(
-      spec=tf.reshape(spec, (truncated_length, hparams_frame_size(hparams), 1)),
+  features = FeatureTensors(
+      spec=tf.reshape(spec, (final_length, hparams_frame_size(hparams), 1)),
       length=truncated_length,
-      sequence_id=input_tensors.sequence_id),
-          LabelTensors(
-              labels=tf.reshape(labels,
-                                (truncated_length, constants.MIDI_PITCHES)),
-              label_weights=tf.reshape(
-                  label_weights, (truncated_length, constants.MIDI_PITCHES)),
-              onsets=tf.reshape(onsets,
-                                (truncated_length, constants.MIDI_PITCHES)),
-              offsets=tf.reshape(offsets,
-                                 (truncated_length, constants.MIDI_PITCHES)),
-              velocities=tf.reshape(velocities,
-                                    (truncated_length, constants.MIDI_PITCHES)),
-              note_sequence=truncated_note_sequence))
+      sequence_id=tf.constant(0) if is_training else input_tensors.sequence_id)
+  labels = LabelTensors(
+      labels=tf.reshape(labels, (final_length, constants.MIDI_PITCHES)),
+      label_weights=tf.reshape(label_weights,
+                               (final_length, constants.MIDI_PITCHES)),
+      onsets=tf.reshape(onsets, (final_length, constants.MIDI_PITCHES)),
+      offsets=tf.reshape(offsets, (final_length, constants.MIDI_PITCHES)),
+      velocities=tf.reshape(velocities, (final_length, constants.MIDI_PITCHES)),
+      note_sequence=truncated_note_sequence)
+
+  return features, labels
 
 
-def provide_batch(batch_size,
-                  examples,
+def provide_batch(examples,
+                  preprocess_examples,
                   hparams,
-                  truncated_length=0,
                   is_training=True,
                   shuffle_buffer_size=64):
   """Returns batches of tensors read from TFRecord files.
 
   Args:
-    batch_size: The integer number of records per batch.
     examples: A string path to a TFRecord file of examples, a python list of
       serialized examples, or a Tensor placeholder for serialized examples.
+    preprocess_examples: Whether to preprocess examples. If False, assume they
+      have already been preprocessed.
     hparams: HParams object specifying hyperparameters.
-    truncated_length: An optional integer specifying whether sequences should be
-      truncated this length.
     is_training: Whether this is a training run.
     shuffle_buffer_size: Buffer size used to shuffle records.
 
@@ -423,41 +441,70 @@ def provide_batch(batch_size,
   if isinstance(examples, str):
     # Read examples from a TFRecord file containing serialized NoteSequence
     # and audio.
-    filenames = tf.data.Dataset.list_files(examples)
-    input_dataset = filenames.apply(
-        tf.data.experimental.parallel_interleave(
-            tf.data.TFRecordDataset, sloppy=True, cycle_length=8))
+    filenames = tf.data.Dataset.list_files(examples, shuffle=is_training)
+    if is_training:
+      input_dataset = filenames.apply(
+          tf.data.experimental.parallel_interleave(
+              tf.data.TFRecordDataset, sloppy=True, cycle_length=8))
+    else:
+      input_dataset = tf.data.TFRecordDataset(filenames)
   else:
     input_dataset = tf.data.Dataset.from_tensor_slices(examples)
 
-  def _parse(example_proto):
+  if is_training:
+    input_dataset = input_dataset.apply(
+        tf.data.experimental.shuffle_and_repeat(shuffle_buffer_size))
+
+  def _preprocess(example_proto):
+    """Process an Example proto into a model input."""
     features = {
         'id': tf.FixedLenFeature(shape=(), dtype=tf.string),
         'sequence': tf.FixedLenFeature(shape=(), dtype=tf.string),
         'audio': tf.FixedLenFeature(shape=(), dtype=tf.string),
         'velocity_range': tf.FixedLenFeature(shape=(), dtype=tf.string),
     }
-    return tf.parse_single_example(example_proto, features)
-
-  def _preprocess(record):
-    input_tensors = _preprocess_data(record['id'], record['sequence'],
-                                     record['audio'], record['velocity_range'],
-                                     hparams, is_training)
+    record = tf.parse_single_example(example_proto, features)
+    input_tensors = preprocess_data(record['id'], record['sequence'],
+                                    record['audio'], record['velocity_range'],
+                                    hparams, is_training)
     return _provide_data(
-        input_tensors, truncated_length=truncated_length, hparams=hparams)
+        input_tensors, hparams=hparams, is_training=is_training)
 
-  input_dataset = input_dataset.map(_parse).map(
-      _preprocess, num_parallel_calls=tf.contrib.data.AUTOTUNE)
+  def _parse(example_proto):
+    """Process an Example proto into a model input."""
+    features = {
+        'spec': tf.VarLenFeature(dtype=tf.float32),
+        'labels': tf.VarLenFeature(dtype=tf.float32),
+        'label_weights': tf.VarLenFeature(dtype=tf.float32),
+        'length': tf.FixedLenFeature(shape=(), dtype=tf.int64),
+        'onsets': tf.VarLenFeature(dtype=tf.float32),
+        'offsets': tf.VarLenFeature(dtype=tf.float32),
+        'velocities': tf.VarLenFeature(dtype=tf.float32),
+        'sequence_id': tf.FixedLenFeature(shape=(), dtype=tf.string),
+        'note_sequence': tf.FixedLenFeature(shape=(), dtype=tf.string),
+    }
+    record = tf.parse_single_example(example_proto, features)
+    input_tensors = InputTensors(
+        spec=tf.sparse.to_dense(record['spec']),
+        labels=tf.sparse.to_dense(record['labels']),
+        label_weights=tf.sparse.to_dense(record['label_weights']),
+        length=record['length'],
+        onsets=tf.sparse.to_dense(record['onsets']),
+        offsets=tf.sparse.to_dense(record['offsets']),
+        velocities=tf.sparse.to_dense(record['velocities']),
+        sequence_id=record['sequence_id'],
+        note_sequence=record['note_sequence'])
+    return _provide_data(
+        input_tensors, hparams=hparams, is_training=is_training)
 
-  if is_training:
-    input_dataset = input_dataset.apply(
-        tf.data.experimental.shuffle_and_repeat(shuffle_buffer_size))
+  dataset = input_dataset.map(_preprocess if preprocess_examples else _parse)
+  if hparams.max_expected_train_example_len:
+    dataset = dataset.batch(hparams.batch_size, drop_remainder=is_training)
+  else:
+    dataset = dataset.padded_batch(
+        hparams.batch_size, padded_shapes=dataset.output_shapes)
 
-  # batching/padding
-  dataset = input_dataset.padded_batch(
-      batch_size, padded_shapes=input_dataset.output_shapes)
-
-  dataset = dataset.prefetch(buffer_size=tf.contrib.data.AUTOTUNE)
+  dataset = dataset.prefetch(buffer_size=tf.data.experimental.AUTOTUNE)
 
   dataset_options = tf.data.Options()
   dataset_options.experimental_autotune = True

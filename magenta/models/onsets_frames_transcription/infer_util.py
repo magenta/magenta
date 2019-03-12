@@ -97,8 +97,10 @@ def frame_metrics(frame_labels, frame_predictions):
   frame_false_negatives = tf.reduce_sum(tf.to_float(tf.logical_and(
       tf.equal(frame_labels_bool, True),
       tf.equal(frame_predictions_bool, False))))
-  frame_accuracy = tf.reduce_sum(tf.to_float(
-      tf.equal(frame_labels_bool, frame_predictions_bool)))
+  frame_accuracy = (
+      tf.reduce_sum(
+          tf.to_float(tf.equal(frame_labels_bool, frame_predictions_bool))) /
+      tf.cast(tf.size(frame_labels), tf.float32))
 
   frame_precision = tf.where(
       tf.greater(frame_true_positives + frame_false_positives, 0),

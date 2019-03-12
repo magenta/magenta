@@ -20,10 +20,9 @@ from __future__ import print_function
 
 import os
 
-from magenta.common import tf_utils
+from magenta.models.onsets_frames_transcription import configs
 from magenta.models.onsets_frames_transcription import constants
 from magenta.models.onsets_frames_transcription import data
-from magenta.models.onsets_frames_transcription import model
 from magenta.models.onsets_frames_transcription import split_audio_and_label_data
 from magenta.models.onsets_frames_transcription import train_util
 from magenta.music import midi_io
@@ -33,6 +32,8 @@ import tensorflow as tf
 
 FLAGS = tf.app.flags.FLAGS
 
+tf.app.flags.DEFINE_string('config', 'onsets_frames',
+                           'Name of the config to use.')
 tf.app.flags.DEFINE_string('model_dir', None,
                            'Path to look for acoustic checkpoints.')
 tf.app.flags.DEFINE_string(
@@ -90,25 +91,26 @@ def transcribe_audio(prediction, hparams, frame_threshold, onset_threshold):
 def main(argv):
   tf.logging.set_verbosity(FLAGS.log)
 
-  hparams = tf_utils.merge_hparams(
-      constants.DEFAULT_HPARAMS, model.get_default_hparams())
+  config = configs.CONFIG_MAP[FLAGS.config]
+  hparams = config.hparams
   # For this script, default to not using cudnn.
   hparams.use_cudnn = False
   hparams.parse(FLAGS.hparams)
   hparams.batch_size = 1
+  hparams.truncated_length_secs = 0
 
   with tf.Graph().as_default():
     examples = tf.placeholder(tf.string, [None])
 
     dataset = data.provide_batch(
-        batch_size=1,
         examples=examples,
+        preprocess_examples=True,
         hparams=hparams,
-        is_training=False,
-        truncated_length=0)
+        is_training=False)
 
-    estimator = train_util.create_estimator(
-        os.path.expanduser(FLAGS.model_dir), hparams)
+    estimator = train_util.create_estimator(config.model_fn,
+                                            os.path.expanduser(FLAGS.model_dir),
+                                            hparams)
 
     iterator = dataset.make_initializable_iterator()
     next_record = iterator.get_next()
@@ -129,7 +131,8 @@ def main(argv):
         tf.logging.info('Processing file...')
         sess.run(iterator.initializer, {examples: [create_example(filename)]})
 
-        def input_fn():
+        def input_fn(params):
+          del params
           return tf.data.Dataset.from_tensors(sess.run(next_record))
 
         tf.logging.info('Running inference...')
