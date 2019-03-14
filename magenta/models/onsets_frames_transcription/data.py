@@ -506,8 +506,4 @@ def provide_batch(examples,
 
   dataset = dataset.prefetch(buffer_size=tf.data.experimental.AUTOTUNE)
 
-  dataset_options = tf.data.Options()
-  dataset_options.experimental_autotune = True
-  dataset = dataset.with_options(dataset_options)
-
   return dataset
