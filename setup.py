@@ -44,7 +44,7 @@ REQUIRED_PACKAGES = [
     'matplotlib >= 1.5.3',
     'mido == 1.2.6',
     'mir_eval >= 0.4',
-    'numpy >= 1.14.6, <= 1.15.4',  # higher versions confuse pylint.
+    'numpy >= 1.14.6',  # 1.14.6 is required for colab compatibility.
     'pandas >= 0.18.1',
     'pretty_midi >= 0.2.6',
     'protobuf >= 3.6.1',

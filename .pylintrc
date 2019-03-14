@@ -35,7 +35,7 @@ msg-template={msg_id}:{line:3} {obj}: {msg} [{symbol}]
 enable=indexing-exception,old-raise-syntax
 
 # List of checkers and warnings to disable.
-disable=design,similarities,no-self-use,attribute-defined-outside-init,locally-disabled,star-args,pointless-except,bad-option-value,global-statement,fixme,suppressed-message,useless-suppression,locally-enabled,file-ignored,c-extension-no-member,trailing-newlines,unsubscriptable-object,misplaced-comparison-constant,no-member,abstract-method,no-else-return,inconsistent-return-statements,invalid-unary-operand-type,no-name-in-module,arguments-differ,consider-using-enumerate,too-many-nested-blocks,unnecessary-pass,useless-object-inheritance,not-context-manager,import-error,ungrouped-imports,missing-docstring,unsupported-assignment-operation
+disable=design,similarities,no-self-use,attribute-defined-outside-init,locally-disabled,star-args,pointless-except,bad-option-value,global-statement,fixme,suppressed-message,useless-suppression,locally-enabled,file-ignored,c-extension-no-member,trailing-newlines,unsubscriptable-object,misplaced-comparison-constant,no-member,abstract-method,no-else-return,inconsistent-return-statements,invalid-unary-operand-type,no-name-in-module,arguments-differ,consider-using-enumerate,too-many-nested-blocks,unnecessary-pass,useless-object-inheritance,not-context-manager,import-error,ungrouped-imports,missing-docstring,unsupported-assignment-operation,unbalanced-tuple-unpacking,assignment-from-no-return,invalid-sequence-index
 
 [BASIC]
 
