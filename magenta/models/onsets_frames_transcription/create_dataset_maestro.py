@@ -33,15 +33,6 @@ import tensorflow as tf
 
 FLAGS = tf.app.flags.FLAGS
 
-tf.app.flags.DEFINE_string(
-    'train_tfrecord', 'gs://magentadata/datasets/maestro/v1.0.0/'
-    'maestro-v1.0.0_ns_wav_train.tfrecord@10', 'Path to training tfrecord')
-tf.app.flags.DEFINE_string(
-    'test_tfrecord', 'gs://magentadata/datasets/maestro/v1.0.0/'
-    'maestro-v1.0.0_ns_wav_test.tfrecord@10', 'Path to training tfrecord')
-tf.app.flags.DEFINE_string(
-    'validation_tfrecord', 'gs://magentadata/datasets/maestro/v1.0.0/'
-    'maestro-v1.0.0_ns_wav_validation.tfrecord@10', 'Path to training tfrecord')
 tf.app.flags.DEFINE_string('output_directory', None, 'Path to output_directory')
 tf.app.flags.DEFINE_integer('min_length', 5, 'minimum length for a segment')
 tf.app.flags.DEFINE_integer('max_length', 20, 'maximum length for a segment')
@@ -49,8 +40,15 @@ tf.app.flags.DEFINE_integer('sample_rate', 16000,
                             'sample_rate of the output files')
 tf.app.flags.DEFINE_boolean('preprocess_examples', False,
                             'Whether to preprocess examples.')
+tf.app.flags.DEFINE_integer(
+    'preprocess_train_example_multiplier', 1,
+    'How many times to run data preprocessing on each training example. '
+    'Useful if preprocessing involves a stochastic process that is useful to '
+    'sample multiple times.')
 tf.app.flags.DEFINE_string('config', 'onsets_frames',
                            'Name of the config to use.')
+tf.app.flags.DEFINE_string('dataset_config', 'maestro',
+                           'Name of the dataset config to use.')
 tf.app.flags.DEFINE_string(
     'hparams', '',
     'A comma-separated list of `name=value` hyperparameter values.')
@@ -60,7 +58,7 @@ tf.app.flags.DEFINE_string(
 
 
 def split_wav(input_example, min_length, max_length, sample_rate,
-              output_directory, chunk_files):
+              output_directory, process_for_training):
   """Splits wav and midi files for the dataset."""
   tf.logging.info('Splitting %s',
                   input_example.features.feature['id'].bytes_list.value[0])
@@ -72,7 +70,7 @@ def split_wav(input_example, min_length, max_length, sample_rate,
 
   Metrics.counter('split_wav', 'read_midi_wav_to_split').inc()
 
-  if not chunk_files:
+  if not process_for_training:
     split_examples = split_audio_and_label_data.process_record(
         wav_data,
         ns,
@@ -102,7 +100,11 @@ def split_wav(input_example, min_length, max_length, sample_rate,
       raise
 
 
-def preprocess_data(input_example, hparams):
+def multiply_example(ex, num_times):
+  return [ex] * num_times
+
+
+def preprocess_data(input_example, hparams, process_for_training):
   """Preprocess example using data.preprocess_data."""
   with tf.Graph().as_default():
     audio = tf.constant(
@@ -116,7 +118,8 @@ def preprocess_data(input_example, hparams):
         input_example.features.feature['velocity_range'].bytes_list.value[0])
 
     input_tensors = data.preprocess_data(
-        sequence_id, sequence, audio, velocity_range, hparams, is_training=True)
+        sequence_id, sequence, audio, velocity_range, hparams,
+        is_training=process_for_training)
 
     with tf.Session() as sess:
       preprocessed = sess.run(input_tensors)
@@ -128,6 +131,10 @@ def preprocess_data(input_example, hparams):
                   tf.train.Feature(
                       float_list=tf.train.FloatList(
                           value=preprocessed.spec.flatten())),
+              'spectrogram_hash':
+                  tf.train.Feature(
+                      int64_list=tf.train.Int64List(
+                          value=[preprocessed.spectrogram_hash])),
               'labels':
                   tf.train.Feature(
                       float_list=tf.train.FloatList(
@@ -177,8 +184,10 @@ def generate_sharded_filenames(filenames):
         yield '{}-{:0=5d}-of-{:0=5d}'.format(base, i, num_shards)
 
 
-def pipeline(config_map):
+def pipeline(config_map, dataset_config_map):
   """Pipeline for dataset creation."""
+  tf.flags.mark_flags_as_required(['output_directory'])
+
   pipeline_options = beam.options.pipeline_options.PipelineOptions(
       FLAGS.pipeline_options.split(','))
 
@@ -186,32 +195,47 @@ def pipeline(config_map):
   hparams = config.hparams
   hparams.parse(FLAGS.hparams)
 
+  datasets = dataset_config_map[FLAGS.dataset_config]
+
+  if tf.gfile.Exists(FLAGS.output_directory):
+    raise ValueError(
+        'Output directory %s already exists!' % FLAGS.output_directory)
+  tf.gfile.MakeDirs(FLAGS.output_directory)
+  with tf.gfile.Open(
+      os.path.join(FLAGS.output_directory, 'config.txt'), 'w') as f:
+    f.write('\n\n'.join([
+        'min_length: {}'.format(FLAGS.min_length),
+        'max_length: {}'.format(FLAGS.max_length),
+        'sample_rate: {}'.format(FLAGS.sample_rate),
+        'preprocess_examples: {}'.format(FLAGS.preprocess_examples),
+        'preprocess_train_example_multiplier: {}'.format(
+            FLAGS.preprocess_train_example_multiplier),
+        'config: {}'.format(FLAGS.config),
+        'hparams: {}'.format(hparams),
+        'dataset_config: {}'.format(FLAGS.dataset_config),
+        'datasets: {}'.format(datasets),
+    ]))
+
   with beam.Pipeline(options=pipeline_options) as p:
-    tf.flags.mark_flags_as_required(['output_directory'])
-
-    splits = [
-        ('train', generate_sharded_filenames(FLAGS.train_tfrecord), True),
-        ('train-nosplit', generate_sharded_filenames(FLAGS.train_tfrecord),
-         False),
-        ('validation', generate_sharded_filenames(FLAGS.validation_tfrecord),
-         False),
-        ('test', generate_sharded_filenames(FLAGS.test_tfrecord), False),
-    ]
-
-    for split_name, split_tfrecord, chunk_files in splits:
-      split_p = p | 'tfrecord_list_%s' % split_name >> beam.Create(
-          split_tfrecord)
-      split_p |= 'read_tfrecord_%s' % split_name >> (
+    for dataset in datasets:
+      split_p = p | 'tfrecord_list_%s' % dataset.name >> beam.Create(
+          generate_sharded_filenames(dataset.path))
+      split_p |= 'read_tfrecord_%s' % dataset.name >> (
           beam.io.tfrecordio.ReadAllFromTFRecord(
               coder=beam.coders.ProtoCoder(tf.train.Example)))
-      split_p |= 'shuffle_input_%s' % split_name >> beam.Reshuffle()
-      split_p |= 'split_wav_%s' % split_name >> beam.FlatMap(
+      split_p |= 'shuffle_input_%s' % dataset.name >> beam.Reshuffle()
+      split_p |= 'split_wav_%s' % dataset.name >> beam.FlatMap(
           split_wav, FLAGS.min_length, FLAGS.max_length, FLAGS.sample_rate,
-          FLAGS.output_directory, chunk_files)
+          FLAGS.output_directory, dataset.process_for_training)
       if FLAGS.preprocess_examples:
-        split_p |= 'preprocess_%s' % split_name >> beam.Map(
-            preprocess_data, hparams)
-      split_p |= 'shuffle_output_%s' % split_name >> beam.Reshuffle()
-      split_p |= 'write_%s' % split_name >> beam.io.WriteToTFRecord(
-          os.path.join(FLAGS.output_directory, '%s.tfrecord' % split_name),
+        if dataset.process_for_training:
+          mul_name = 'preprocess_multiply_%dx_%s' % (
+              FLAGS.preprocess_train_example_multiplier, dataset.name)
+          split_p |= mul_name >> beam.FlatMap(
+              multiply_example, FLAGS.preprocess_train_example_multiplier)
+        split_p |= 'preprocess_%s' % dataset.name >> beam.Map(
+            preprocess_data, hparams, dataset.process_for_training)
+      split_p |= 'shuffle_output_%s' % dataset.name >> beam.Reshuffle()
+      split_p |= 'write_%s' % dataset.name >> beam.io.WriteToTFRecord(
+          os.path.join(FLAGS.output_directory, '%s.tfrecord' % dataset.name),
           coder=beam.coders.ProtoCoder(tf.train.Example))

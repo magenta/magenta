@@ -26,7 +26,8 @@ import tensorflow as tf
 def main(argv):
   del argv
 
-  create_dataset_maestro.pipeline(configs.CONFIG_MAP)
+  create_dataset_maestro.pipeline(
+      configs.CONFIG_MAP, configs.DATASET_CONFIG_MAP)
 
 
 def console_entry_point():

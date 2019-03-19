@@ -28,6 +28,7 @@ from __future__ import print_function
 import collections
 import functools
 import wave
+import zlib
 
 import librosa
 from magenta.models.onsets_frames_transcription import audio_transform
@@ -132,6 +133,21 @@ def wav_to_spec_op(wav_audio, hparams):
       name='wav_to_spec')
   spec.set_shape([None, hparams_frame_size(hparams)])
   return spec
+
+
+def get_spectrogram_hash_op(spectrogram):
+  """Calculate hash of the spectrogram."""
+  def get_spectrogram_hash(spectrogram):
+    # Compute a hash of the spectrogram, save it as an int64.
+    # Uses adler because it's fast and will fit into an int (md5 is too large).
+    spectrogram_serialized = six.BytesIO()
+    np.save(spectrogram_serialized, spectrogram)
+    spectrogram_hash = np.int64(zlib.adler32(spectrogram_serialized.getvalue()))
+    return spectrogram_hash
+  spectrogram_hash = tf.py_func(get_spectrogram_hash, [spectrogram], tf.int64,
+                                name='get_spectrogram_hash')
+  spectrogram_hash.set_shape([])
+  return spectrogram_hash
 
 
 def wav_to_num_frames(wav_audio, frames_per_second):
@@ -256,8 +272,9 @@ def truncate_note_sequence_op(sequence_tensor, truncated_length_frames,
 
 
 InputTensors = collections.namedtuple(
-    'InputTensors', ('spec', 'labels', 'label_weights', 'length', 'onsets',
-                     'offsets', 'velocities', 'sequence_id', 'note_sequence'))
+    'InputTensors', ('spec', 'spectrogram_hash', 'labels', 'label_weights',
+                     'length', 'onsets', 'offsets', 'velocities', 'sequence_id',
+                     'note_sequence'))
 
 
 def preprocess_data(sequence_id, sequence, audio, velocity_range, hparams,
@@ -301,6 +318,7 @@ def preprocess_data(sequence_id, sequence, audio, velocity_range, hparams,
         jitter_amount_sec=wav_jitter_amount_ms / 1000.)
 
   spec = wav_to_spec_op(audio, hparams=hparams)
+  spectrogram_hash = get_spectrogram_hash_op(spec)
 
   labels, label_weights, onsets, offsets, velocities = sequence_to_pianoroll_op(
       sequence, velocity_range, hparams=hparams)
@@ -315,6 +333,7 @@ def preprocess_data(sequence_id, sequence, audio, velocity_range, hparams,
   with tf.control_dependencies(asserts):
     return InputTensors(
         spec=spec,
+        spectrogram_hash=spectrogram_hash,
         labels=labels,
         label_weights=label_weights,
         length=length,
@@ -325,8 +344,8 @@ def preprocess_data(sequence_id, sequence, audio, velocity_range, hparams,
         note_sequence=sequence)
 
 
-FeatureTensors = collections.namedtuple('FeatureTensors',
-                                        ('spec', 'length', 'sequence_id'))
+FeatureTensors = collections.namedtuple(
+    'FeatureTensors', ('spec', 'length', 'sequence_id', 'spectrogram_hash'))
 LabelTensors = collections.namedtuple(
     'LabelTensors', ('labels', 'label_weights', 'onsets', 'offsets',
                      'velocities', 'note_sequence'))
@@ -334,7 +353,8 @@ LabelTensors = collections.namedtuple(
 
 def _provide_data(input_tensors, hparams, is_training):
   """Returns tensors for reading batches from provider."""
-  length = tf.to_int32(input_tensors.length)
+  length = tf.cast(input_tensors.length, tf.int32)
+  spectrogram_hash = tf.cast(input_tensors.spectrogram_hash, tf.int64)
   labels = tf.reshape(input_tensors.labels, (-1, constants.MIDI_PITCHES))
   label_weights = tf.reshape(input_tensors.label_weights,
                              (-1, constants.MIDI_PITCHES))
@@ -406,7 +426,8 @@ def _provide_data(input_tensors, hparams, is_training):
   features = FeatureTensors(
       spec=tf.reshape(spec, (final_length, hparams_frame_size(hparams), 1)),
       length=truncated_length,
-      sequence_id=tf.constant(0) if is_training else input_tensors.sequence_id)
+      sequence_id=tf.constant(0) if is_training else input_tensors.sequence_id,
+      spectrogram_hash=spectrogram_hash)
   labels = LabelTensors(
       labels=tf.reshape(labels, (final_length, constants.MIDI_PITCHES)),
       label_weights=tf.reshape(label_weights,
@@ -474,6 +495,7 @@ def provide_batch(examples,
     """Process an Example proto into a model input."""
     features = {
         'spec': tf.VarLenFeature(dtype=tf.float32),
+        'spectrogram_hash': tf.FixedLenFeature(shape=(), dtype=tf.int64),
         'labels': tf.VarLenFeature(dtype=tf.float32),
         'label_weights': tf.VarLenFeature(dtype=tf.float32),
         'length': tf.FixedLenFeature(shape=(), dtype=tf.int64),
@@ -486,6 +508,7 @@ def provide_batch(examples,
     record = tf.parse_single_example(example_proto, features)
     input_tensors = InputTensors(
         spec=tf.sparse.to_dense(record['spec']),
+        spectrogram_hash=record['spectrogram_hash'],
         labels=tf.sparse.to_dense(record['labels']),
         label_weights=tf.sparse.to_dense(record['label_weights']),
         length=record['length'],
