@@ -1875,7 +1875,10 @@ def pianoroll_to_note_sequence(frames,
 
   def unscale_velocity(velocity):
     """Translates a velocity estimate to a MIDI velocity value."""
-    return int(max(min(velocity, 1.), 0) * 80. + 10.)
+    unscaled = max(min(velocity, 1.), 0) * 80. + 10.
+    if math.isnan(unscaled):
+      return 0
+    return int(unscaled)
 
   def process_active_pitch(pitch, i):
     """Process a pitch being active in a given frame."""

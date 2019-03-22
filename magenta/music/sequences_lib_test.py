@@ -1877,6 +1877,33 @@ class SequencesLibTest(tf.test.TestCase):
                      sequence.notes[1].start_time)
     self.assertEqual(81 / DEFAULT_FRAMES_PER_SECOND, sequence.notes[1].end_time)
 
+  def testPianorollToNoteSequenceWithOnsetsAndVelocity(self):
+    # 100 frames of notes and onsets.
+    frames = np.zeros((100, MIDI_PITCHES), np.bool)
+    onsets = np.zeros((100, MIDI_PITCHES), np.bool)
+    velocity_values = np.zeros((100, MIDI_PITCHES), np.float32)
+    # Activate key 39 for the middle 50 frames and last 10 frames.
+    frames[25:75, 39] = True
+    frames[90:100, 39] = True
+    # Add an onset for the first occurrence with a valid velocity.
+    onsets[25, 39] = True
+    velocity_values[25, 39] = 0.5
+    # Add an onset for the second occurrence with a NaN velocity.
+    onsets[90, 39] = True
+    velocity_values[90, 39] = float('nan')
+    sequence = sequences_lib.pianoroll_to_note_sequence(
+        frames,
+        frames_per_second=DEFAULT_FRAMES_PER_SECOND,
+        min_duration_ms=0,
+        onset_predictions=onsets,
+        velocity_values=velocity_values)
+    self.assertEqual(2, len(sequence.notes))
+
+    self.assertEqual(39, sequence.notes[0].pitch)
+    self.assertEqual(50, sequence.notes[0].velocity)
+    self.assertEqual(39, sequence.notes[1].pitch)
+    self.assertEqual(0, sequence.notes[1].velocity)
+
   def testPianorollToNoteSequenceWithOnsetsOverlappingFrames(self):
     # 100 frames of notes and onsets.
     frames = np.zeros((100, MIDI_PITCHES), np.bool)
