@@ -65,7 +65,7 @@ class PipelineTest(tf.test.TestCase):
     for path, contents in target_files + extra_files:
       abs_path = os.path.join(root_dir, path)
       tf.gfile.MakeDirs(os.path.dirname(abs_path))
-      tf.gfile.FastGFile(abs_path, mode='w').write(contents)
+      tf.gfile.GFile(abs_path, mode='w').write(contents)
 
     file_iterator = pipeline.file_iterator(root_dir, 'ext', recurse=True)
 
@@ -89,7 +89,7 @@ class PipelineTest(tf.test.TestCase):
     for path, contents in target_files + extra_files:
       abs_path = os.path.join(root_dir, path)
       tf.gfile.MakeDirs(os.path.dirname(abs_path))
-      tf.gfile.FastGFile(abs_path, mode='w').write(contents)
+      tf.gfile.GFile(abs_path, mode='w').write(contents)
 
     file_iterator = pipeline.file_iterator(root_dir, 'ext', recurse=False)
 

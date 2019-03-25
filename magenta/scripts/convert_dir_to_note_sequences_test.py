@@ -44,7 +44,7 @@ class ConvertMidiDirToSequencesTest(tf.test.TestCase):
     tf.gfile.Copy(midi_filename, os.path.join(sub_2_dir, 'midi_4.mid'))
     tf.gfile.Copy(midi_filename, os.path.join(sub_1_sub_dir, 'midi_5.mid'))
 
-    tf.gfile.FastGFile(
+    tf.gfile.GFile(
         os.path.join(root_dir, 'non_midi_file'),
         mode='w').write('non-midi data')
 
