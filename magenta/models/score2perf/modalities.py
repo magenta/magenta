@@ -71,7 +71,7 @@ def bottom(x, model_hparams, vocab_size):
 
   Args:
     x: Tensor with shape [batch, ...].
-    model_hparams: tf.HParams, model hyperparmeters.
+    model_hparams: tf.contrib.training.HParams, model hyperparmeters.
     vocab_size: list of int, vocabulary sizes.
 
   Returns:

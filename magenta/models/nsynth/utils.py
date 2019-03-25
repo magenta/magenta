@@ -163,7 +163,8 @@ def get_optimizer(learning_rate, hparams):
 
   Args:
     learning_rate: The learning_rate tensor.
-      hparams: TF.HParams object with the optimizer and momentum values.
+    hparams: tf.contrib.training.HParams object with the optimizer and
+        momentum values.
 
   Returns:
     optimizer: The tf.train.Optimizer based on the optimizer string.

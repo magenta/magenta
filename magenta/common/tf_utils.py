@@ -18,18 +18,18 @@ import tensorflow as tf
 
 
 def merge_hparams(hparams_1, hparams_2):
-  """Merge hyperparameters from two tf.HParams objects.
+  """Merge hyperparameters from two tf.contrib.training.HParams objects.
 
   If the same key is present in both HParams objects, the value from `hparams_2`
   will be used.
 
   Args:
-    hparams_1: The first tf.HParams object to merge.
-    hparams_2: The second tf.HParams object to merge.
+    hparams_1: The first tf.contrib.training.HParams object to merge.
+    hparams_2: The second tf.contrib.training.HParams object to merge.
 
   Returns:
-    A merged tf.HParams object with the hyperparameters from both `hparams_1`
-    and `hparams_2`.
+    A merged tf.contrib.training.HParams object with the hyperparameters from
+    both `hparams_1` and `hparams_2`.
   """
   hparams_map = hparams_1.values()
   hparams_map.update(hparams_2.values())
