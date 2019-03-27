@@ -55,10 +55,13 @@ tf.app.flags.DEFINE_string(
 tf.app.flags.DEFINE_string(
     'pipeline_options', '--runner=DirectRunner',
     'Command line flags to use in constructing the Beam pipeline options.')
+tf.app.flags.DEFINE_boolean(
+    'load_audio_with_librosa', False,
+    'Whether to use librosa for sampling audio')
 
 
 def split_wav(input_example, min_length, max_length, sample_rate,
-              output_directory, process_for_training):
+              output_directory, process_for_training, load_audio_with_librosa):
   """Splits wav and midi files for the dataset."""
   tf.logging.info('Splitting %s',
                   input_example.features.feature['id'].bytes_list.value[0])
@@ -77,7 +80,8 @@ def split_wav(input_example, min_length, max_length, sample_rate,
         ns.id,
         min_length=0,
         max_length=-1,
-        sample_rate=sample_rate)
+        sample_rate=sample_rate,
+        load_audio_with_librosa=load_audio_with_librosa)
 
     for example in split_examples:
       Metrics.counter('split_wav', 'full_example').inc()
@@ -85,7 +89,13 @@ def split_wav(input_example, min_length, max_length, sample_rate,
   else:
     try:
       split_examples = split_audio_and_label_data.process_record(
-          wav_data, ns, ns.id, min_length, max_length, sample_rate)
+          wav_data,
+          ns,
+          ns.id,
+          min_length=min_length,
+          max_length=max_length,
+          sample_rate=sample_rate,
+          load_audio_with_librosa=load_audio_with_librosa)
 
       for example in split_examples:
         Metrics.counter('split_wav', 'split_example').inc()
@@ -226,7 +236,8 @@ def pipeline(config_map, dataset_config_map):
       split_p |= 'shuffle_input_%s' % dataset.name >> beam.Reshuffle()
       split_p |= 'split_wav_%s' % dataset.name >> beam.FlatMap(
           split_wav, FLAGS.min_length, FLAGS.max_length, FLAGS.sample_rate,
-          FLAGS.output_directory, dataset.process_for_training)
+          FLAGS.output_directory, dataset.process_for_training,
+          FLAGS.load_audio_with_librosa)
       if FLAGS.preprocess_examples:
         if dataset.process_for_training:
           mul_name = 'preprocess_multiply_%dx_%s' % (

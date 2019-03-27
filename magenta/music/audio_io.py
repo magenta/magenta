@@ -18,6 +18,7 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
+import tempfile
 import librosa
 import numpy as np
 import scipy
@@ -94,6 +95,38 @@ def wav_data_to_samples(wav_data, sample_rate):
   except Exception as e:  # pylint: disable=broad-except
     raise AudioIOError(e)
   return y
+
+
+def wav_data_to_samples_librosa(audio_file, sample_rate):
+  """Loads an in-memory audio file with librosa.
+
+  Use this instead of wav_data_to_samples if the wav is 24-bit, as that's
+  incompatible with wav_data_to_samples internal scipy call.
+
+  Will copy to a local temp file before loading so that librosa can read a file
+  path. Librosa does not currently read in-memory files.
+
+  It will be treated as a .wav file.
+
+  Args:
+    audio_file: Wav file to load.
+    sample_rate: The number of samples per second at which the audio will be
+        returned. Resampling will be performed if necessary.
+
+  Returns:
+    A numpy array of audio samples, single-channel (mono) and sampled at the
+    specified rate, in float32 format.
+
+  Raises:
+    AudioIOReadException: If librosa is unable to load the audio data.
+  """
+  with tempfile.NamedTemporaryFile(suffix='.wav') as wav_input_file:
+    wav_input_file.write(audio_file)
+    # Before copying the file, flush any contents
+    wav_input_file.flush()
+    # And back the file position to top (not need for Copy but for certainty)
+    wav_input_file.seek(0)
+    return load_audio(wav_input_file.name, sample_rate)
 
 
 def samples_to_wav_data(samples, sample_rate):
