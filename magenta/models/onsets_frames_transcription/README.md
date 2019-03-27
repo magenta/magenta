@@ -13,6 +13,8 @@ The code in this directory corresponds to the latest version from the MAESTRO pa
 
 You may also be interested in a [PyTorch Onsets and Frames](https://github.com/jongwook/onsets-and-frames) implementation by [Jong Wook Kim](https://github.com/jongwook) (not supported by the Magenta team).
 
+Finally, we have also open sourced the [align_fine](/magenta/music/alignment) tool for high performance fine alignment of sequences that are already coarsely aligned, as described in the "Fine Alignment" section of the Appendix in the [MAESTRO paper](https://goo.gl/magenta/maestro-paper).
+
 ## JavaScript App
 
 The easiest way to try out the model is with our web app: [Piano Scribe](https://goo.gl/magenta/piano-scribe). You can try transcribing audio files right in your browser without installing any software. You can read more about it on our blog post, [Piano Transcription in the Browser with Onsets and Frames](http://g.co/magenta/oaf-js).
