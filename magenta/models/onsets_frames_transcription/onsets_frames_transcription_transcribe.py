@@ -58,7 +58,7 @@ tf.app.flags.DEFINE_string(
 
 def create_example(filename):
   """Processes an audio file into an Example proto."""
-  wav_data = tf.gfile.Open(filename).read()
+  wav_data = tf.gfile.Open(filename, 'rb').read()
   example_list = list(
       split_audio_and_label_data.process_record(
           wav_data=wav_data,
