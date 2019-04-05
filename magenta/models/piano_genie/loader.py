@@ -143,7 +143,7 @@ def load_noteseqs(fp,
 
     # Find chord at each note
     if len(chord_changes) == 0:
-      chord_changes = np.ones_like(pitches) * -1
+      chords = np.ones_like(pitches) * -1
     else:
       chord_times = np.array([k[0] for k in chord_changes])
       chord_ids = np.array([k[1] for k in chord_changes])
@@ -153,6 +153,7 @@ def load_noteseqs(fp,
       assert chord_times[0] == 0
 
       # Find key signature corresponding to each note
+      # TODO(chrisdonahue): Handle situation where note within eps of chord
       chords_idxs = np.searchsorted(
           chord_times, start_times, side='right') - 1
       chords = chord_ids[chords_idxs]
