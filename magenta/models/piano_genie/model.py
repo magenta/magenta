@@ -19,7 +19,6 @@ from __future__ import division
 from __future__ import print_function
 
 from magenta.models.piano_genie import util
-import sonnet as snt
 import tensorflow as tf
 
 
@@ -195,6 +194,7 @@ def build_genie_model(feat_dict,
 
   # Quantized step embeddings with VQ-VAE
   if cfg.stp_emb_vq:
+    import sonnet as snt  # pylint:disable=g-import-not-at-top
     with tf.variable_scope("stp_emb_vq"):
       with tf.variable_scope("pre_vq"):
         # pre_vq_encoding is tf.float32 of [batch_size, seq_len, embedding_dim]
