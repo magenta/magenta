@@ -21,6 +21,20 @@ from __future__ import print_function
 import numpy as np
 import tensorflow as tf
 
+_ID_TO_PITCHCLASS = [
+    'C', 'C#', 'D', 'Eb', 'E', 'F',
+    'F#', 'G', 'Ab', 'A', 'Bb', 'B']
+_PITCHCLASS_TO_ID = {k:i for i, k in enumerate(_ID_TO_PITCHCLASS)}
+
+NO_CHORD_SYMBOL = 'N.C.'
+_CHORDFAMILIES = ['', 'm', '+', 'dim', '7', 'maj7', 'm7', 'm7b5']
+_CHORDFAMILIES_SET = set(_CHORDFAMILIES)
+_ID_TO_CHORD = [NO_CHORD_SYMBOL]
+for pc in _ID_TO_PITCHCLASS:
+  for cf in _CHORDFAMILIES:
+    _ID_TO_CHORD.append(pc + cf)
+_CHORD_TO_ID = {c:i for i, c in enumerate(_ID_TO_CHORD)}
+
 
 def demidify(pitches):
   """Transforms MIDI pitches [21,108] to [0, 88)."""
@@ -40,6 +54,59 @@ def remidify(pitches):
   ]
   with tf.control_dependencies(assertions):
     return pitches + 21
+
+
+def id_to_pitchclass(i):
+  """Translates integer to pitchclass e.g. 1->'C#'"""
+  if i < 0 or i >= len(_ID_TO_PITCHCLASS):
+    raise ValueError('Invalid pitchclass ID specified')
+  return _ID_TO_PITCHCLASS[i]
+
+
+def pitchclass_to_id(k):
+  """Translates pitchclass to integer e.g. 'C#'->1"""
+  if k not in _PITCHCLASS_TO_ID:
+    raise ValueError('Invalid pitchclass specified')
+  return _PITCHCLASS_TO_ID[k]
+
+
+def id_to_chord(i):
+  """Translates integer to chord e.g. 1->'Cm'"""
+  if i < 0 or i >= len(_ID_TO_CHORD):
+    raise ValueError('Invalid chord ID specified')
+  return _ID_TO_CHORD[i]
+
+
+def chord_to_id(c):
+  """Translates chord to integer e.g. 'Cm'->1"""
+  if c not in _CHORD_TO_ID:
+    raise ValueError('Invalid chord specified')
+  return _CHORD_TO_ID[c]
+
+
+def chord_split(c):
+  """Splits chord into pitch class and family e.g. 'Cm7b5'->'C','m7b5'"""
+  if c not in _CHORD_TO_ID:
+    raise ValueError('Invalid chord specified')
+
+  if c == 'N.C.':
+    return None, None
+
+  if len(c) == 1:
+    pc = c[0]
+    cf = ''
+  else:
+    if c[1] == 'b' or c[1] == '#':
+      pc = c[:2]
+      cf = c[2:]
+    else:
+      pc = c[0]
+      cf = c[1:]
+
+  assert pc in _PITCHCLASS_TO_ID
+  assert cf in _CHORDFAMILIES_SET
+
+  return pc, cf
 
 
 def discrete_to_piano_roll(categorical, dim, dilation=1, colorize=True):

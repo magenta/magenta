@@ -20,6 +20,7 @@ from __future__ import print_function
 
 import random
 
+from magenta.models.piano_genie import util
 from magenta.protobuf import music_pb2
 import numpy as np
 import tensorflow as tf
@@ -73,12 +74,47 @@ def load_noteseqs(fp,
       note_sequence_ordered = sorted(
           note_sequence_ordered, key=lambda n: (n.start_time, n.pitch))
 
+    # Parse key signature change list
+    keysig_changes = sorted(
+        list(note_sequence.key_signatures),
+        key=lambda ks: ks.time)
+    keysig_changes = [(k.time, k.key) for k in keysig_changes]
+
+    # Parse chord change list
+    text_annotations = list(note_sequence.text_annotations)
+    chord_changes = sorted(
+        [ta for ta in text_annotations if ta.annotation_type == 1],
+        key=lambda ta: ta.time)
+    chord_changes = [
+        (cc.time, util.chord_to_id(cc.text)) for cc in chord_changes]
+
     # Transposition data augmentation
     if augment_transpose_bounds is not None:
       transpose_factor = np.random.randint(*augment_transpose_bounds)
 
+      # Transpose notes
       for note in note_sequence_ordered:
         note.pitch += transpose_factor
+
+      # Transpose key signatures
+      keysig_changes_transposed = []
+      for t, k in keysig_changes:
+        keysig_changes_transposed.append((t, (k + transpose_factor) % 12))
+      keysig_changes = keysig_changes_transposed
+
+      # Transpose chords
+      chord_changes_transposed = []
+      for t, c in chord_changes:
+        pc, cf = util.chord_split(util.id_to_chord(c))
+        if pc is not None:
+          pc = util.pitchclass_to_id(pc)
+          pc = (pc + transpose_factor) % 12
+          pc = util.id_to_pitchclass(pc)
+          chord = pc + cf
+        else:
+          chord = util.NO_CHORD_SYMBOL
+        chord_changes_transposed.append((t, util.chord_to_id(chord)))
+      chord_changes = chord_changes_transposed
 
     note_sequence_ordered = [
         n for n in note_sequence_ordered if (n.pitch >= 21) and (n.pitch <= 108)
@@ -88,6 +124,38 @@ def load_noteseqs(fp,
     velocities = np.array([note.velocity for note in note_sequence_ordered])
     start_times = np.array([note.start_time for note in note_sequence_ordered])
     end_times = np.array([note.end_time for note in note_sequence_ordered])
+
+    # Find key signature at each note
+    if len(keysig_changes) == 0:
+      keysigs = np.ones_like(pitches) * -1
+    else:
+      keysig_times = np.array([k[0] for k in keysig_changes])
+      keysig_ids = np.array([k[1] for k in keysig_changes])
+
+      # Make sure this is strictly increasing and starts at 0
+      assert np.all(np.diff(keysig_times) > 0)
+      assert keysig_times[0] == 0
+
+      # Find key signature corresponding to each note
+      keysigs_idxs = np.searchsorted(
+          keysig_times, start_times, side='right') - 1
+      keysigs = keysig_ids[keysigs_idxs]
+
+    # Find chord at each note
+    if len(chord_changes) == 0:
+      chord_changes = np.ones_like(pitches) * -1
+    else:
+      chord_times = np.array([k[0] for k in chord_changes])
+      chord_ids = np.array([k[1] for k in chord_changes])
+
+      # Make sure this is strictly increasing and starts at 0
+      assert np.all(np.diff(chord_times) > 0)
+      assert chord_times[0] == 0
+
+      # Find key signature corresponding to each note
+      chords_idxs = np.searchsorted(
+          chord_times, start_times, side='right') - 1
+      chords = chord_ids[chords_idxs]
 
     # Tempo data augmentation
     if augment_stretch_bounds is not None:
@@ -103,7 +171,8 @@ def load_noteseqs(fp,
       delta_times = np.zeros_like(start_times)
 
     return note_sequence_str, np.stack(
-        [pitches, velocities, delta_times, start_times, end_times],
+        [pitches, velocities, delta_times,
+          start_times, end_times, keysigs, chords],
         axis=1).astype(np.float32)
 
   # Filter out excessively short examples
@@ -160,7 +229,7 @@ def load_noteseqs(fp,
 
   # Set shapes
   note_sequence_strs.set_shape([batch_size])
-  note_sequence_tensors.set_shape([batch_size, seq_len, 5])
+  note_sequence_tensors.set_shape([batch_size, seq_len, 7])
 
   # Retrieve tensors
   note_pitches = tf.cast(note_sequence_tensors[:, :, 0] + 1e-4, tf.int32)
@@ -168,6 +237,8 @@ def load_noteseqs(fp,
   note_delta_times = note_sequence_tensors[:, :, 2]
   note_start_times = note_sequence_tensors[:, :, 3]
   note_end_times = note_sequence_tensors[:, :, 4]
+  note_keysigs = tf.cast(note_sequence_tensors[:, :, 5] + 1e-4, tf.int32)
+  note_chords = tf.cast(note_sequence_tensors[:, :, 6] + 1e-4, tf.int32)
 
   # Onsets and frames model samples at 31.25Hz
   note_delta_times_int = tf.cast(
@@ -191,7 +262,9 @@ def load_noteseqs(fp,
       "delta_times": note_delta_times,
       "delta_times_int": note_delta_times_int,
       "start_times": note_start_times,
-      "end_times": note_end_times
+      "end_times": note_end_times,
+      "keysigs": note_keysigs,
+      "chords": note_chords,
   }
 
   return note_tensors
