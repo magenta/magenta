@@ -372,19 +372,6 @@ class StpVqSeqFreeAutoDtVs(BasePianoGenieConfig):
     self.dec_aux_feats = ["delta_times_int", "velocities"]
 
 
-class PianoGeniePaper(BasePianoGenieConfig):
-
-  def __init__(self):
-    super(PianoGeniePaper, self).__init__()
-
-    self.enc_aux_feats = ["delta_times_int"]
-    self.dec_autoregressive = True
-    self.dec_aux_feats = ["delta_times_int"]
-    self.stp_emb_iq = True
-    self.stp_emb_iq_contour_margin = 1.
-    self.stp_emb_iq_deviate_exp = 1
-
-
 _named_configs = {
     "stp_free": StpFree(),
     "stp_vq": StpVq(),
@@ -414,7 +401,6 @@ _named_configs = {
     "stp_vq_seq_free_auto_vs": StpVqSeqFreeAutoVs(),
     "stp_vq_seq_vae_auto_dt_vs": StpVqSeqVaeAutoDtVs(),
     "stp_vq_seq_vae_free_dt_vs": StpVqSeqFreeAutoDtVs(),
-    "piano_genie_paper": PianoGeniePaper(),
 }
 
 
