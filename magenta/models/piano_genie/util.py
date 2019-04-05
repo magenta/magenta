@@ -25,6 +25,7 @@ _ID_TO_PITCHCLASS = [
     'C', 'C#', 'D', 'Eb', 'E', 'F',
     'F#', 'G', 'Ab', 'A', 'Bb', 'B']
 _PITCHCLASS_TO_ID = {k:i for i, k in enumerate(_ID_TO_PITCHCLASS)}
+NUM_KEYSIGS = len(_ID_TO_PITCHCLASS)
 
 NO_CHORD_SYMBOL = 'N.C.'
 _CHORDFAMILIES = ['', 'm', '+', 'dim', '7', 'maj7', 'm7', 'm7b5']
@@ -34,6 +35,7 @@ for pc in _ID_TO_PITCHCLASS:
   for cf in _CHORDFAMILIES:
     _ID_TO_CHORD.append(pc + cf)
 _CHORD_TO_ID = {c:i for i, c in enumerate(_ID_TO_CHORD)}
+NUM_CHORDS = len(_ID_TO_CHORD)
 
 
 def demidify(pitches):

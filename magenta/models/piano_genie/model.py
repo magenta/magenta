@@ -169,6 +169,10 @@ def build_genie_model(feat_dict,
     if "velocities" in cfg.enc_aux_feats:
       enc_feats.append(
           tf.one_hot(velocities, cfg.data_max_discrete_velocities + 1))
+    if "keysigs" in cfg.enc_aux_feats:
+      enc_feats.append(tf.one_hot(feat_dict["keysigs"], util.NUM_KEYSIGS))
+    if "chords" in cfg.enc_aux_feats:
+      enc_feats.append(tf.one_hot(feat_dict["chords"], util.NUM_CHORDS))
     enc_feats = tf.concat(enc_feats, axis=2)
 
     with tf.variable_scope("encoder"):
@@ -423,6 +427,10 @@ def build_genie_model(feat_dict,
     dec_feats.append(
         tf.one_hot(feat_dict["velocities"],
                    cfg.data_max_discrete_velocities + 1))
+  if "keysigs" in cfg.dec_aux_feats:
+    dec_feats.append(tf.one_hot(feat_dict["keysigs"], util.NUM_KEYSIGS))
+  if "chords" in cfg.dec_aux_feats:
+    dec_feats.append(tf.one_hot(feat_dict["chords"], util.NUM_CHORDS))
 
   assert dec_feats
   dec_feats = tf.concat(dec_feats, axis=2)
