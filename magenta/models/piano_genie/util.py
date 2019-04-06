@@ -111,6 +111,21 @@ def chord_split(c):
   return pc, cf
 
 
+def align_note_times_to_change_times(note_times, change_times, tol=0.020):
+  """Finds relevant chord change indices for a list of timestamps"""
+  # Tolerance handles notes that start imperceptibly before the next chord
+  if not np.all(np.diff(change_times) > 0):
+    raise ValueError('Change times must be strictly increasing')
+  if change_times[0] != 0:
+    raise ValueError('First change must at time 0.')
+  if tol < 0:
+    raise ValueError('Tolerance must be >= 0.')
+  if type(change_times) == list:
+    change_times = np.array(change_times)
+  idxs = np.searchsorted(change_times - tol, note_times, side='right') - 1
+  return idxs
+
+
 def discrete_to_piano_roll(categorical, dim, dilation=1, colorize=True):
   """Visualizes discrete sequences as a colorful piano roll."""
   # Create piano roll

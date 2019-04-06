@@ -131,15 +131,9 @@ def load_noteseqs(fp,
     else:
       keysig_times = np.array([k[0] for k in keysig_changes])
       keysig_ids = np.array([k[1] for k in keysig_changes])
-
-      # Make sure this is strictly increasing and starts at 0
-      assert np.all(np.diff(keysig_times) > 0)
-      assert keysig_times[0] == 0
-
-      # Find key signature corresponding to each note
-      keysigs_idxs = np.searchsorted(
-          keysig_times, start_times, side='right') - 1
-      keysigs = keysig_ids[keysigs_idxs]
+      keysig_idxs = util.align_note_times_to_change_times(
+          start_times, keysig_times)
+      keysigs = keysig_ids[keysig_idxs]
 
     # Find chord at each note
     if len(chord_changes) == 0:
@@ -147,16 +141,9 @@ def load_noteseqs(fp,
     else:
       chord_times = np.array([k[0] for k in chord_changes])
       chord_ids = np.array([k[1] for k in chord_changes])
-
-      # Make sure this is strictly increasing and starts at 0
-      assert np.all(np.diff(chord_times) > 0)
-      assert chord_times[0] == 0
-
-      # Find key signature corresponding to each note
-      # TODO(chrisdonahue): Handle situation where note within eps of chord
-      chords_idxs = np.searchsorted(
-          chord_times, start_times, side='right') - 1
-      chords = chord_ids[chords_idxs]
+      chord_idxs = util.align_note_times_to_change_times(
+          start_times, chord_times)
+      chords = chord_ids[chord_idxs]
 
     # Tempo data augmentation
     if augment_stretch_bounds is not None:
