@@ -60,6 +60,7 @@ def main(unused_argv):
         augment_stretch_bounds=cfg.train_augment_stretch_bounds,
         augment_transpose_bounds=cfg.train_augment_transpose_bounds,
         randomize_chord_order=cfg.data_randomize_chord_order,
+        align_tol=cfg.data_align_tol,
         repeat=True)
 
   # Summarize data

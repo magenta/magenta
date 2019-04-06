@@ -111,7 +111,7 @@ def chord_split(c):
   return pc, cf
 
 
-def align_note_times_to_change_times(note_times, change_times, tol=0.020):
+def align_note_times_to_change_times(note_times, change_times, tol=0.):
   """Finds relevant chord change indices for a list of timestamps"""
   # Tolerance handles notes that start imperceptibly before the next chord
   if not np.all(np.diff(change_times) > 0):

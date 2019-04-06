@@ -27,6 +27,7 @@ class BasePianoGenieConfig(object):
     self.data_max_discrete_times = 32
     self.data_max_discrete_velocities = 16
     self.data_randomize_chord_order = False
+    self.data_align_tol = 0.020
 
     # RNN parameters (encoder and decoder)
     self.rnn_celltype = "lstm"

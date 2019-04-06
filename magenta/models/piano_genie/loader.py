@@ -35,6 +35,7 @@ def load_noteseqs(fp,
                   augment_transpose_bounds=None,
                   randomize_chord_order=False,
                   repeat=False,
+                  align_tol=0.020,
                   buffer_size=512):
   """Loads random subsequences from NoteSequences in TFRecords.
 
@@ -48,6 +49,7 @@ def load_noteseqs(fp,
     augment_transpose_bounds: Tuple containing semitone augmentation range.
     randomize_chord_order: If True, list notes of chord in random order.
     repeat: If True, continuously loop through records.
+    align_tol: Tolerance for aligning notes to chords/keysigs.
     buffer_size: Size of random queue.
 
   Returns:
@@ -132,7 +134,7 @@ def load_noteseqs(fp,
       keysig_times = np.array([k[0] for k in keysig_changes])
       keysig_ids = np.array([k[1] for k in keysig_changes])
       keysig_idxs = util.align_note_times_to_change_times(
-          start_times, keysig_times)
+          start_times, keysig_times, tol=align_tol)
       keysigs = keysig_ids[keysig_idxs]
 
     # Find chord at each note
@@ -142,7 +144,7 @@ def load_noteseqs(fp,
       chord_times = np.array([k[0] for k in chord_changes])
       chord_ids = np.array([k[1] for k in chord_changes])
       chord_idxs = util.align_note_times_to_change_times(
-          start_times, chord_times)
+          start_times, chord_times, tol=align_tol)
       chords = chord_ids[chord_idxs]
 
     # Tempo data augmentation

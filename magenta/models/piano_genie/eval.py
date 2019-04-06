@@ -61,6 +61,7 @@ def main(unused_argv):
         augment_stretch_bounds=None,
         augment_transpose_bounds=None,
         randomize_chord_order=cfg.data_randomize_chord_order,
+        align_tol=cfg.data_align_tol,
         repeat=False)
 
   # Build model
