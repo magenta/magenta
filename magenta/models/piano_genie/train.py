@@ -38,6 +38,8 @@ flags.DEFINE_string("model_cfg_overrides", "",
                     "E.g. rnn_nlayers=4,rnn_nunits=256")
 flags.DEFINE_integer("summary_every_nsecs", 60,
                      "Summarize to Tensorboard every n seconds.")
+flags.DEFINE_boolean("summarize_audio", False,
+                     "If True, summarize audio (requires fluidsynth)")
 
 
 def main(unused_argv):
@@ -66,6 +68,12 @@ def main(unused_argv):
   tf.summary.image(
       "piano_roll",
       util.discrete_to_piano_roll(util.demidify(feat_dict["midi_pitches"]), 88))
+  if FLAGS.summarize_audio:
+    tf.summary.audio("piano", util.prev_audio_tf_wrapper(
+      util.notes_to_prev_audio,
+      feat_dict["midi_pitches"],
+      feat_dict["start_times"],
+      feat_dict["end_times"], n=3), 44100)
 
   # Build model
   with tf.variable_scope("phero_model"):
