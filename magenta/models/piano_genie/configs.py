@@ -86,6 +86,7 @@ class BasePianoGenieConfig(object):
     self.train_randomize_seq_len = False
     self.train_augment_stretch_bounds = (0.95, 1.05)
     self.train_augment_transpose_bounds = (-6, 6)
+    self.train_augment_context_keep_prob = 1.
     self.train_loss_vq_err_scalar = 1.
     self.train_loss_iq_range_scalar = 1.
     self.train_loss_iq_contour_scalar = 1.

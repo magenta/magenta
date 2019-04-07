@@ -33,6 +33,7 @@ def load_noteseqs(fp,
                   max_discrete_velocities=None,
                   augment_stretch_bounds=None,
                   augment_transpose_bounds=None,
+                  augment_context_keep_prob=1.,
                   randomize_chord_order=False,
                   repeat=False,
                   align_tol=0.020,
@@ -47,6 +48,7 @@ def load_noteseqs(fp,
     max_discrete_velocities: Maximum number of velocity buckets.
     augment_stretch_bounds: Tuple containing speed ratio range.
     augment_transpose_bounds: Tuple containing semitone augmentation range.
+    augment_context_keep_prob: Likelihood that a keysig/chord is kept.
     randomize_chord_order: If True, list notes of chord in random order.
     repeat: If True, continuously loop through records.
     align_tol: Tolerance for aligning notes to chords/keysigs.
@@ -148,6 +150,10 @@ def load_noteseqs(fp,
           start_times, keysig_times, tol=align_tol)
       keysigs = keysig_ids[keysig_idxs]
 
+      if augment_context_keep_prob < 1:
+        mask = np.random.rand(len(keysigs)) < augment_context_keep_prob
+        keysigs *= mask.astype(np.int64)
+
     # Find chord at each note
     if len(chord_changes) == 0:
       chords = np.ones_like(pitches) * -1
@@ -157,6 +163,10 @@ def load_noteseqs(fp,
       chord_idxs = util.align_note_times_to_change_times(
           start_times, chord_times, tol=align_tol)
       chords = chord_ids[chord_idxs]
+
+      if augment_context_keep_prob < 1:
+        mask = np.random.rand(len(chords)) < augment_context_keep_prob
+        chords *= mask.astype(np.int64)
 
     # Tempo data augmentation
     if augment_stretch_bounds is not None:

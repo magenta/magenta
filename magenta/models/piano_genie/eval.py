@@ -60,6 +60,7 @@ def main(unused_argv):
         max_discrete_velocities=cfg.data_max_discrete_velocities,
         augment_stretch_bounds=None,
         augment_transpose_bounds=None,
+        augment_context_keep_prob=1.,
         randomize_chord_order=cfg.data_randomize_chord_order,
         align_tol=cfg.data_align_tol,
         repeat=False)
