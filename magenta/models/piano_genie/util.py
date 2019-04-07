@@ -49,7 +49,7 @@ def notes_to_prev_audio(
     end_times,
     prevlen=10.,
     fs=44100):
-  """Creates a preview waveform from piano notes."""
+  """Creates a preview waveform from piano notes. Requires pyfluidsynth."""
   midi = pretty_midi.PrettyMIDI()
 
   piano_program = pretty_midi.instrument_name_to_program('Acoustic Grand Piano')
@@ -82,6 +82,7 @@ def prev_audio_tf_wrapper(
     n=None,
     prevlen=10.,
     fs=44100):
+  """Wraps calls to audio preview functions for use in tf.summary.audio."""
   if n is not None:
     args = [a[:n] for a in args]
 
