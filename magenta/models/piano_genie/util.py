@@ -28,6 +28,16 @@ _PITCHCLASSES = [
 _PITCHCLASSES_SET = set(_PITCHCLASSES)
 _CHORDFAMILIES = ['', 'm', '+', 'dim', '7', 'maj7', 'm7', 'm7b5']
 _CHORDFAMILIES_SET = set(_CHORDFAMILIES)
+_CHORDFAMILY_TO_INTERVALS = {
+    '': [0, 4, 7],
+    'm': [0, 3, 7],
+    '+': [0, 4, 8],
+    'dim': [0, 3, 6],
+    '7': [0, 4, 7, 10],
+    'maj7': [0, 4, 7, 11],
+    'm7': [0, 3, 7, 10],
+    'm7b5': [0, 3, 6, 10],
+}
 
 _ID_TO_PITCHCLASS = _PITCHCLASSES
 _PITCHCLASS_TO_ID = {p:i for i, p in enumerate(_ID_TO_PITCHCLASS)}
@@ -209,6 +219,43 @@ def notes_to_prev_audio(
     piano.notes.append(note)
 
   midi.instruments.append(piano)
+
+  wav = midi.fluidsynth(fs=fs)
+  slen = int(prevlen * fs)
+  if prevlen is not None:
+    wav = wav[:slen]
+    wav = np.pad(wav, [[0, slen - wav.shape[0]]], 'constant')
+
+  return wav.astype(np.float32)
+
+
+def chords_to_prev_audio(
+    start_times,
+    chords,
+    base_pitch=48,
+    prevlen=10.,
+    fs=44100):
+  """Creates a preview waveform from chords. Requires pyfluidsynth."""
+  midi = pretty_midi.PrettyMIDI()
+
+  cello_program = pretty_midi.instrument_name_to_program('Cello')
+  cello = pretty_midi.Instrument(program=cello_program)
+
+  offset = start_times[0]
+  start_times = np.copy(start_times) - offset
+
+  chords = [chord_split(id_to_chord(i)) for i in chords]
+  for i in range(len(chords) - 1):
+    s = start_times[i]
+    e = start_times[i+1]
+    cr, cf = chords[i]
+    chord_base_pitch = base_pitch + pitchclass_to_id(cr)
+    pitches = [chord_base_pitch + p for p in _CHORDFAMILY_TO_INTERVALS[cf]]
+    for p in pitches:
+      note = pretty_midi.Note(velocity=80, pitch=p, start=s, end=e)
+      cello.notes.append(note)
+
+  midi.instruments.append(cello)
 
   wav = midi.fluidsynth(fs=fs)
   slen = int(prevlen * fs)

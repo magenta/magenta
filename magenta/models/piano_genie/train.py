@@ -76,6 +76,10 @@ def main(unused_argv):
       feat_dict["midi_pitches"],
       feat_dict["start_times"],
       feat_dict["end_times"], n=3), 44100)
+    tf.summary.audio("chords", util.prev_audio_tf_wrapper(
+      util.chords_to_prev_audio,
+      feat_dict["start_times"],
+      feat_dict["chords"], n=3), 44100)
 
   # Build model
   with tf.variable_scope("phero_model"):
