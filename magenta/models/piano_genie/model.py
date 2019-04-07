@@ -154,6 +154,13 @@ def build_genie_model(feat_dict,
 
   # One hot function which handles null dimension preference
   def _one_hot(idxs, ndims, null_is_dim):
+    deps = [
+        tf.assert_greater_equal(idxs, 0),
+        tf.assert_less(idxs, ndims)
+    ]
+    with tf.control_dependencies(deps):
+      idxs = tf.identity(idxs)
+
     if null_is_dim:
       return tf.one_hot(idxs, ndims)
     else:
