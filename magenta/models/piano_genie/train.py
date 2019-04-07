@@ -39,7 +39,7 @@ flags.DEFINE_string("model_cfg_overrides", "",
 flags.DEFINE_integer("summary_every_nsecs", 60,
                      "Summarize to Tensorboard every n seconds.")
 flags.DEFINE_boolean("summarize_audio", False,
-                     "If True, summarize audio (requires fluidsynth)")
+                     "If True, summarize audio (requires pyfluidsynth)")
 
 
 def main(unused_argv):
