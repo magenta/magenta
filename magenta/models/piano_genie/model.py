@@ -156,7 +156,7 @@ def build_genie_model(feat_dict,
   def _one_hot(idxs, ndims, null_is_dim):
     deps = [
         tf.assert_greater_equal(idxs, 0),
-        tf.assert_less(idxs, ndims)
+        tf.assert_less(idxs, ndims),
     ]
     with tf.control_dependencies(deps):
       idxs = tf.identity(idxs)
@@ -190,6 +190,14 @@ def build_genie_model(feat_dict,
     if "chords" in cfg.enc_aux_feats:
       enc_feats.append(
           _one_hot(feat_dict["chords"], util.NUM_CHORDS,
+            cfg.enc_context_null_is_dim))
+    if "chordroots" in cfg.enc_aux_feats:
+      enc_feats.append(
+          _one_hot(feat_dict["chordroots"], util.NUM_CHORDROOTS,
+            cfg.enc_context_null_is_dim))
+    if "chordfamilies" in cfg.enc_aux_feats:
+      enc_feats.append(
+          _one_hot(feat_dict["chordfamilies"], util.NUM_CHORDFAMILIES,
             cfg.enc_context_null_is_dim))
     enc_feats = tf.concat(enc_feats, axis=2)
 
@@ -452,6 +460,14 @@ def build_genie_model(feat_dict,
   if "chords" in cfg.dec_aux_feats:
     dec_feats.append(
         _one_hot(feat_dict["chords"], util.NUM_CHORDS,
+          cfg.dec_context_null_is_dim))
+  if "chordroots" in cfg.dec_aux_feats:
+    dec_feats.append(
+        _one_hot(feat_dict["chordroots"], util.NUM_CHORDROOTS,
+          cfg.dec_context_null_is_dim))
+  if "chordfamilies" in cfg.dec_aux_feats:
+    dec_feats.append(
+        _one_hot(feat_dict["chordfamilies"], util.NUM_CHORDFAMILIES,
           cfg.dec_context_null_is_dim))
 
   assert dec_feats

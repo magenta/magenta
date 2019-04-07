@@ -91,8 +91,8 @@ def load_noteseqs(fp,
     chord_changes = sorted(
         [ta for ta in text_annotations if ta.annotation_type == 1],
         key=lambda ta: ta.time)
-    chord_changes = [
-        (cc.time, cc.text) for cc in chord_changes]
+    split_chord_changes = [
+        (cc.time,) + util.chord_split(cc.text) for cc in chord_changes]
 
     # Transposition data augmentation
     if augment_transpose_bounds is not None:
@@ -114,22 +114,35 @@ def load_noteseqs(fp,
       keysig_changes = keysig_changes_transposed
 
       # Transpose chords
-      chord_changes_transposed = []
-      for t, c in chord_changes:
-        pc, cf = util.chord_split(c)
-        if pc is not None:
-          pc = util.pitchclass_to_id(pc)
-          pc = (pc + transpose_factor) % 12
-          pc = util.id_to_pitchclass(pc)
-          chord = pc + cf
+      split_chord_changes_transposed = []
+      for t, cr, cf in split_chord_changes:
+        if cr is not None:
+          cr = util.pitchclass_to_id(cr)
+          cr = (cr + transpose_factor) % 12
+          cr = util.id_to_pitchclass(cr)
         else:
-          chord = util.NO_CHORD_SYMBOL
-        chord_changes_transposed.append((t, chord))
-      chord_changes = chord_changes_transposed
+          assert cf is None
+        split_chord_changes_transposed.append((t, cr, cf))
+      split_chord_changes = split_chord_changes_transposed
 
     # Convert keysigs and chords from text to IDs
     keysig_changes = [(t, util.keysig_to_id(k)) for t, k in keysig_changes]
-    chord_changes = [(t, util.chord_to_id(c)) for t, c in chord_changes]
+    chord_changes = []
+    chordroot_changes = []
+    chordfamily_changes = []
+    for t, cr, cf in split_chord_changes:
+      if cr is None:
+        assert cf is None
+        chord_changes.append(
+            (t, util.chord_to_id(util.NO_CHORD_SYMBOL)))
+        chordroot_changes.append(
+            (t, util.chordroot_to_id(util.NO_CHORDROOT_SYMBOL)))
+        chordfamily_changes.append(
+            (t, util.chordfamily_to_id(util.NO_CHORDFAMILY_SYMBOL)))
+      else:
+        chord_changes.append((t, util.chord_to_id(cr + cf)))
+        chordroot_changes.append((t, util.chordroot_to_id(cr)))
+        chordfamily_changes.append((t, util.chordfamily_to_id(cf)))
 
     note_sequence_ordered = [
         n for n in note_sequence_ordered if (n.pitch >= 21) and (n.pitch <= 108)
@@ -142,7 +155,8 @@ def load_noteseqs(fp,
 
     # Find key signature at each note
     if len(keysig_changes) == 0:
-      keysigs = np.ones_like(pitches) * -1
+      # -2 so that subsequent casting will cast to negative number
+      keysigs = np.ones_like(pitches) * -2
     else:
       keysig_times = np.array([k[0] for k in keysig_changes])
       keysig_ids = np.array([k[1] for k in keysig_changes])
@@ -156,17 +170,29 @@ def load_noteseqs(fp,
 
     # Find chord at each note
     if len(chord_changes) == 0:
-      chords = np.ones_like(pitches) * -1
+      chords = np.ones_like(pitches) * -2
+      chordroots = np.ones_like(pitches) * -2
+      chordfamilies = np.ones_like(pitches) * -2
     else:
-      chord_times = np.array([k[0] for k in chord_changes])
-      chord_ids = np.array([k[1] for k in chord_changes])
+      chord_times = np.array([c[0] for c in chord_changes])
+      chord_ids = np.array([c[1] for c in chord_changes])
+      chordroot_ids = np.array([c[1] for c in chordroot_changes])
+      chordfamily_ids = np.array([c[1] for c in chordfamily_changes])
       chord_idxs = util.align_note_times_to_change_times(
           start_times, chord_times, tol=align_tol)
       chords = chord_ids[chord_idxs]
+      chordroots = chordroot_ids[chord_idxs]
+      chordfamilies = chordfamily_ids[chord_idxs]
 
       if augment_context_keep_prob < 1:
         mask = np.random.rand(len(chords)) < augment_context_keep_prob
         chords *= mask.astype(np.int64)
+
+        mask = np.random.rand(len(chordroots)) < augment_context_keep_prob
+        chordroots *= mask.astype(np.int64)
+
+        mask = np.random.rand(len(chordfamilies)) < augment_context_keep_prob
+        chordfamilies *= mask.astype(np.int64)
 
     # Tempo data augmentation
     if augment_stretch_bounds is not None:
@@ -182,8 +208,8 @@ def load_noteseqs(fp,
       delta_times = np.zeros_like(start_times)
 
     return note_sequence_str, np.stack(
-        [pitches, velocities, delta_times,
-          start_times, end_times, keysigs, chords],
+        [pitches, velocities, delta_times, start_times, end_times,
+          keysigs, chords, chordroots, chordfamilies],
         axis=1).astype(np.float32)
 
   # Filter out excessively short examples
@@ -240,7 +266,7 @@ def load_noteseqs(fp,
 
   # Set shapes
   note_sequence_strs.set_shape([batch_size])
-  note_sequence_tensors.set_shape([batch_size, seq_len, 7])
+  note_sequence_tensors.set_shape([batch_size, seq_len, 9])
 
   # Retrieve tensors
   note_pitches = tf.cast(note_sequence_tensors[:, :, 0] + 1e-4, tf.int32)
@@ -250,6 +276,8 @@ def load_noteseqs(fp,
   note_end_times = note_sequence_tensors[:, :, 4]
   note_keysigs = tf.cast(note_sequence_tensors[:, :, 5] + 1e-4, tf.int32)
   note_chords = tf.cast(note_sequence_tensors[:, :, 6] + 1e-4, tf.int32)
+  note_chordroots = tf.cast(note_sequence_tensors[:, :, 7] + 1e-4, tf.int32)
+  note_chordfamilies = tf.cast(note_sequence_tensors[:, :, 8] + 1e-4, tf.int32)
 
   # Onsets and frames model samples at 31.25Hz
   note_delta_times_int = tf.cast(
@@ -276,6 +304,8 @@ def load_noteseqs(fp,
       "end_times": note_end_times,
       "keysigs": note_keysigs,
       "chords": note_chords,
+      "chordroots": note_chordroots,
+      "chordfamilies": note_chordfamilies,
   }
 
   return note_tensors

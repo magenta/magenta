@@ -21,25 +21,38 @@ from __future__ import print_function
 import numpy as np
 import tensorflow as tf
 
-_ID_TO_PITCHCLASS = [
+_PITCHCLASSES = [
     'C', 'C#', 'D', 'Eb', 'E', 'F',
     'F#', 'G', 'Ab', 'A', 'Bb', 'B']
+_PITCHCLASSES_SET = set(_PITCHCLASSES)
+_CHORDFAMILIES = ['', 'm', '+', 'dim', '7', 'maj7', 'm7', 'm7b5']
+_CHORDFAMILIES_SET = set(_CHORDFAMILIES)
+
+_ID_TO_PITCHCLASS = _PITCHCLASSES
 _PITCHCLASS_TO_ID = {p:i for i, p in enumerate(_ID_TO_PITCHCLASS)}
 
 NO_KEYSIG_SYMBOL = 'N.K.'
-_ID_TO_KEYSIG = [NO_KEYSIG_SYMBOL] + _ID_TO_PITCHCLASS
+_ID_TO_KEYSIG = [NO_KEYSIG_SYMBOL] + _PITCHCLASSES
 _KEYSIG_TO_ID = {k:i for i, k in enumerate(_ID_TO_KEYSIG)}
 NUM_KEYSIGS = len(_ID_TO_KEYSIG)
 
-_CHORDFAMILIES = ['', 'm', '+', 'dim', '7', 'maj7', 'm7', 'm7b5']
-_CHORDFAMILIES_SET = set(_CHORDFAMILIES)
 NO_CHORD_SYMBOL = 'N.C.'
 _ID_TO_CHORD = [NO_CHORD_SYMBOL]
-for pc in _ID_TO_PITCHCLASS:
+for pc in _PITCHCLASSES:
   for cf in _CHORDFAMILIES:
     _ID_TO_CHORD.append(pc + cf)
 _CHORD_TO_ID = {c:i for i, c in enumerate(_ID_TO_CHORD)}
 NUM_CHORDS = len(_ID_TO_CHORD)
+
+NO_CHORDROOT_SYMBOL = 'N.CR.'
+_ID_TO_CHORDROOT = [NO_CHORDROOT_SYMBOL] + _PITCHCLASSES
+_CHORDROOT_TO_ID = {c:i for i, c in enumerate(_ID_TO_CHORDROOT)}
+NUM_CHORDROOTS = len(_ID_TO_CHORDROOT)
+
+NO_CHORDFAMILY_SYMBOL = 'N.CF.'
+_ID_TO_CHORDFAMILY = [NO_CHORDFAMILY_SYMBOL] + _CHORDFAMILIES
+_CHORDFAMILY_TO_ID = {c:i for i, c in enumerate(_ID_TO_CHORDFAMILY)}
+NUM_CHORDFAMILIES = len(_ID_TO_CHORDFAMILY)
 
 
 def demidify(pitches):
@@ -104,8 +117,36 @@ def chord_to_id(c):
   return _CHORD_TO_ID[c]
 
 
+def id_to_chordroot(i):
+  """Translates integer to chordroot e.g. 1->'C'"""
+  if i < 0 or i >= len(_ID_TO_CHORDROOT):
+    raise ValueError('Invalid chordroot ID specified')
+  return _ID_TO_CHORDROOT[i]
+
+
+def chordroot_to_id(c):
+  """Translates chordroot to integer e.g. 'C'->1"""
+  if c not in _CHORDROOT_TO_ID:
+    raise ValueError('Invalid chordroot specified')
+  return _CHORDROOT_TO_ID[c]
+
+
+def id_to_chordfamily(i):
+  """Translates integer to chordfamily e.g. 2->'m'"""
+  if i < 0 or i >= len(_ID_TO_CHORDFAMILY):
+    raise ValueError('Invalid chordfamily ID specified')
+  return _ID_TO_CHORDFAMILY[i]
+
+
+def chordfamily_to_id(c):
+  """Translates chordfamily to integer e.g. 'm'->2"""
+  if c not in _CHORDFAMILY_TO_ID:
+    raise ValueError('Invalid chordfamily specified')
+  return _CHORDFAMILY_TO_ID[c]
+
+
 def chord_split(c):
-  """Splits chord into pitch class and family e.g. 'Cm7b5'->'C','m7b5'"""
+  """Splits chord into root and family e.g. 'Cm7b5'->'C','m7b5'"""
   if c not in _CHORD_TO_ID:
     raise ValueError('Invalid chord specified')
 
@@ -113,20 +154,20 @@ def chord_split(c):
     return None, None
 
   if len(c) == 1:
-    pc = c[0]
+    cr = c[0]
     cf = ''
   else:
     if c[1] == 'b' or c[1] == '#':
-      pc = c[:2]
+      cr = c[:2]
       cf = c[2:]
     else:
-      pc = c[0]
+      cr = c[0]
       cf = c[1:]
 
-  assert pc in _PITCHCLASS_TO_ID
+  assert cr in _PITCHCLASSES_SET
   assert cf in _CHORDFAMILIES_SET
 
-  return pc, cf
+  return cr, cf
 
 
 def align_note_times_to_change_times(note_times, change_times, tol=0.):
