@@ -292,7 +292,7 @@ def load_noteseqs(fp,
   # Quantize velocities
   if max_discrete_velocities is not None:
     note_velocities = tf.minimum(
-        note_velocities / (128 // max_discrete_velocities),
+        note_velocities // (128 // max_discrete_velocities),
         max_discrete_velocities)
 
   # Build return dict
