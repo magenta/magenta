@@ -64,7 +64,8 @@ def load_noteseqs(fp,
   # Deserializes NoteSequences and extracts numeric tensors
   def _str_to_tensor(note_sequence_str,
                      augment_stretch_bounds=None,
-                     augment_transpose_bounds=None):
+                     augment_transpose_bounds=None,
+                     augment_context_keep_prob=1.):
     """Converts a NoteSequence serialized proto to arrays."""
     note_sequence = music_pb2.NoteSequence.FromString(note_sequence_str)
 
@@ -239,7 +240,8 @@ def load_noteseqs(fp,
   dataset = dataset.map(
       lambda data: tf.py_func(
           lambda x: _str_to_tensor(
-              x, augment_stretch_bounds, augment_transpose_bounds),
+              x, augment_stretch_bounds, augment_transpose_bounds,
+              augment_context_keep_prob),
           [data], (tf.string, tf.float32), stateful=False))
   # pylint: enable=g-long-lambda
 
