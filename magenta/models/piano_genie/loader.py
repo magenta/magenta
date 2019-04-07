@@ -80,7 +80,9 @@ def load_noteseqs(fp,
     keysig_changes = sorted(
         list(note_sequence.key_signatures),
         key=lambda ks: ks.time)
-    keysig_changes = [(k.time, k.key) for k in keysig_changes]
+    # Interpret k as a pitchclass here since we don't have N.K. in dataset
+    keysig_changes = [
+        (k.time, util.id_to_pitchclass(k.key)) for k in keysig_changes]
 
     # Parse chord change list
     text_annotations = list(note_sequence.text_annotations)
@@ -88,7 +90,7 @@ def load_noteseqs(fp,
         [ta for ta in text_annotations if ta.annotation_type == 1],
         key=lambda ta: ta.time)
     chord_changes = [
-        (cc.time, util.chord_to_id(cc.text)) for cc in chord_changes]
+        (cc.time, cc.text) for cc in chord_changes]
 
     # Transposition data augmentation
     if augment_transpose_bounds is not None:
@@ -101,13 +103,18 @@ def load_noteseqs(fp,
       # Transpose key signatures
       keysig_changes_transposed = []
       for t, k in keysig_changes:
-        keysig_changes_transposed.append((t, (k + transpose_factor) % 12))
+        assert k != util.NO_KEYSIG_SYMBOL
+        k = util.pitchclass_to_id(k)
+        assert k < 12
+        k = (k + transpose_factor) % 12
+        keysig = util.id_to_pitchclass(k)
+        keysig_changes_transposed.append((t, keysig))
       keysig_changes = keysig_changes_transposed
 
       # Transpose chords
       chord_changes_transposed = []
       for t, c in chord_changes:
-        pc, cf = util.chord_split(util.id_to_chord(c))
+        pc, cf = util.chord_split(c)
         if pc is not None:
           pc = util.pitchclass_to_id(pc)
           pc = (pc + transpose_factor) % 12
@@ -115,8 +122,12 @@ def load_noteseqs(fp,
           chord = pc + cf
         else:
           chord = util.NO_CHORD_SYMBOL
-        chord_changes_transposed.append((t, util.chord_to_id(chord)))
+        chord_changes_transposed.append((t, chord))
       chord_changes = chord_changes_transposed
+
+    # Convert keysigs and chords from text to IDs
+    keysig_changes = [(t, util.keysig_to_id(k)) for t, k in keysig_changes]
+    chord_changes = [(t, util.chord_to_id(c)) for t, c in chord_changes]
 
     note_sequence_ordered = [
         n for n in note_sequence_ordered if (n.pitch >= 21) and (n.pitch <= 108)

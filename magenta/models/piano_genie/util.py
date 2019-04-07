@@ -24,12 +24,16 @@ import tensorflow as tf
 _ID_TO_PITCHCLASS = [
     'C', 'C#', 'D', 'Eb', 'E', 'F',
     'F#', 'G', 'Ab', 'A', 'Bb', 'B']
-_PITCHCLASS_TO_ID = {k:i for i, k in enumerate(_ID_TO_PITCHCLASS)}
-NUM_KEYSIGS = len(_ID_TO_PITCHCLASS)
+_PITCHCLASS_TO_ID = {p:i for i, p in enumerate(_ID_TO_PITCHCLASS)}
 
-NO_CHORD_SYMBOL = 'N.C.'
+NO_KEYSIG_SYMBOL = 'N.K.'
+_ID_TO_KEYSIG = [NO_KEYSIG_SYMBOL] + _ID_TO_PITCHCLASS
+_KEYSIG_TO_ID = {k:i for i, k in enumerate(_ID_TO_KEYSIG)}
+NUM_KEYSIGS = len(_ID_TO_KEYSIG)
+
 _CHORDFAMILIES = ['', 'm', '+', 'dim', '7', 'maj7', 'm7', 'm7b5']
 _CHORDFAMILIES_SET = set(_CHORDFAMILIES)
+NO_CHORD_SYMBOL = 'N.C.'
 _ID_TO_CHORD = [NO_CHORD_SYMBOL]
 for pc in _ID_TO_PITCHCLASS:
   for cf in _CHORDFAMILIES:
@@ -72,15 +76,29 @@ def pitchclass_to_id(k):
   return _PITCHCLASS_TO_ID[k]
 
 
+def id_to_keysig(i):
+  """Translates integer to keysig e.g. 1->'C'"""
+  if i < 0 or i >= len(_ID_TO_KEYSIG):
+    raise ValueError('Invalid keysig ID specified')
+  return _ID_TO_KEYSIG[i]
+
+
+def keysig_to_id(k):
+  """Translates keysig to integer e.g. 'C'->1"""
+  if k not in _KEYSIG_TO_ID:
+    raise ValueError('Invalid keysig specified')
+  return _KEYSIG_TO_ID[k]
+
+
 def id_to_chord(i):
-  """Translates integer to chord e.g. 1->'Cm'"""
+  """Translates integer to chord e.g. 2->'Cm'"""
   if i < 0 or i >= len(_ID_TO_CHORD):
     raise ValueError('Invalid chord ID specified')
   return _ID_TO_CHORD[i]
 
 
 def chord_to_id(c):
-  """Translates chord to integer e.g. 'Cm'->1"""
+  """Translates chord to integer e.g. 'Cm'->2"""
   if c not in _CHORD_TO_ID:
     raise ValueError('Invalid chord specified')
   return _CHORD_TO_ID[c]
