@@ -84,11 +84,11 @@ def main(unused_argv):
       gold_feat_dict = {
           "midi_pitches": tf.placeholder(tf.int32, [1, None]),
           "velocities": tf.placeholder(tf.int32, [1, None]),
-          "delta_times_int": tf.placeholder(tf.int32, [1, None])
-          "keysigs": tf.placeholder(tf.int32, [1, None])
-          "chordroots": tf.placeholder(tf.int32, [1, None])
-          "chordfamilies": tf.placeholder(tf.int32, [1, None])
-          "chords": tf.placeholder(tf.int32, [1, None])
+          "delta_times_int": tf.placeholder(tf.int32, [1, None]),
+          "keysigs": tf.placeholder(tf.int32, [1, None]),
+          "chordroots": tf.placeholder(tf.int32, [1, None]),
+          "chordfamilies": tf.placeholder(tf.int32, [1, None]),
+          "chords": tf.placeholder(tf.int32, [1, None]),
       }
       gold_seq_maxlen = gold.gold_longest()
       gold_seq_varlens = tf.placeholder(tf.int32, [1])
