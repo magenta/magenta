@@ -26,24 +26,39 @@ from magenta.models.onsets_frames_transcription import data
 import tensorflow as tf
 
 
-def _get_data(examples, preprocess_examples, params, is_training):
+def _get_data(examples, preprocess_examples, params,
+              is_training, semisupervised_configs=None):
   """Gets transcription data."""
   return data.provide_batch(
       examples=examples,
       preprocess_examples=preprocess_examples,
       hparams=params,
-      is_training=is_training)
+      is_training=is_training,
+      semisupervised_configs=semisupervised_configs)
 
 
 # Should not be called from within the graph to avoid redundant summaries.
-def _trial_summary(hparams, model_dir, examples_path, output_dir):
+def _trial_summary(hparams, model_dir, examples_path,
+                   output_dir, semisupervised_configs=None):
   """Writes a tensorboard text summary of the trial."""
   model_dir_summary = tf.summary.text(
       'model_dir', tf.constant(model_dir, name='model_dir'), collections=[])
 
-  examples_path_summary = tf.summary.text(
-      'examples_path', tf.constant(examples_path, name='examples_path'),
-      collections=[])
+  data_summaries = []
+  if semisupervised_configs:
+    for i, ex in enumerate(semisupervised_configs):
+      header = '| Path | Batch Ratio | Label Ratio |\n| :--- | :--- | :--- |\n'
+      line = '| %s | %s | %s |' % (ex.examples_path,
+                                   ex.batch_ratio,
+                                   ex.label_ratio)
+      table = header + line + '\n'
+      name = 'semisupervised_data_%d' % i
+      data_summaries.append(
+          tf.summary.text(name, tf.constant(table, name=name), collections=[]))
+  else:
+    data_summaries.append(tf.summary.text(
+        'examples_path', tf.constant(examples_path, name='examples_path'),
+        collections=[]))
 
   tf.logging.info('Writing hparams summary: %s', hparams)
 
@@ -60,8 +75,9 @@ def _trial_summary(hparams, model_dir, examples_path, output_dir):
 
   with tf.Session() as sess:
     writer = tf.summary.FileWriter(output_dir, graph=sess.graph)
+    for data_summary in data_summaries:
+      writer.add_summary(data_summary.eval())
     writer.add_summary(model_dir_summary.eval())
-    writer.add_summary(examples_path_summary.eval())
     writer.add_summary(hparam_summary.eval())
     writer.close()
 
@@ -108,7 +124,8 @@ def train(master,
           hparams,
           keep_checkpoint_max,
           use_tpu,
-          num_steps=None):
+          num_steps=None,
+          semisupervised_configs=None):
   """Train loop."""
   estimator = create_estimator(
       model_fn=model_fn,
@@ -123,13 +140,15 @@ def train(master,
         hparams=hparams,
         examples_path=examples_path,
         model_dir=model_dir,
-        output_dir=model_dir)
+        output_dir=model_dir,
+        semisupervised_configs=semisupervised_configs)
 
   transcription_data = functools.partial(
       _get_data,
       examples=examples_path,
       preprocess_examples=preprocess_examples,
-      is_training=True)
+      is_training=True,
+      semisupervised_configs=semisupervised_configs)
 
   estimator.train(input_fn=transcription_data, max_steps=num_steps)
 

@@ -84,3 +84,8 @@ DATASET_CONFIG_MAP['maestro'] = [
         'maestro-v1.0.0_ns_wav_validation.tfrecord@10',
         process_for_training=False),
 ]
+
+SemisupervisedExamplesConfig = collections.namedtuple(
+    'SemisupervisedExamplesConfig', ('examples_path',
+                                     'batch_ratio',
+                                     'label_ratio'))
