@@ -128,7 +128,7 @@ def midi_to_note_sequence(midi_data):
     # Populate instrument name from the midi's instruments
     instrument_info = sequence.instrument_infos.add()
     instrument_info.name = midi_instrument.name
-    instrument_info.inst_channel = num_instrument
+    instrument_info.instrument = num_instrument
     for midi_note in midi_instrument.notes:
       if not sequence.total_time or midi_note.end > sequence.total_time:
         sequence.total_time = midi_note.end
@@ -299,9 +299,9 @@ def note_sequence_to_pretty_midi(
 
   # Populate instrument names by first creating an instrument map between instrument index and name
   # Then going over this map in the instrument event for loop
-  instrument_names = {}
-  for inst_name in sequence.instrument_infos:
-    instrument_names[inst_name.inst_channel] = inst_name.name
+  inst_infos = {}
+  for inst_info in sequence.instrument_infos:
+    inst_infos[inst_info.instrument] = inst_info.name
 
   # Populate instrument events by first gathering notes and other event types
   # in lists then write them sorted to the PrettyMidi object.
@@ -335,12 +335,8 @@ def note_sequence_to_pretty_midi(
       pm.instruments.append(instrument)
     # propagate instrument name to the midi file
     instrument.program = prog_id
-    for (program_id, name) in instrument_names.items():
-      if program_id == instr_id:
-        instrument.name = name
-        break
-      else:
-        instrument.name = ''
+    if instr_id in inst_infos:
+      instrument.name = inst_infos[instr_id]
     instrument.notes = instrument_events[
         (instr_id, prog_id, is_drum)]['notes']
     instrument.pitch_bends = instrument_events[
