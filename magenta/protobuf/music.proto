@@ -278,7 +278,7 @@ message NoteSequence {
   // See usage within Note for more details.
   message InstrumentInfo {
     // The instrument index.
-    int32 inst_channel = 1;
+    int32 instrument = 1;
     // The name of the instrument. Examples: "Piano" or "bass".
     string name = 2;
   }
