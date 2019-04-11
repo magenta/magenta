@@ -85,7 +85,7 @@ echo "setting up magenta environment"
 echo "=============================="
 echo ""
 
-conda create -n magenta python=2.7
+conda create -n magenta python=3.6
 
 # Need to deactivate set -e because the conda activate script was not written
 # with set -e in mind, and because we source it here, the -e stays active.
