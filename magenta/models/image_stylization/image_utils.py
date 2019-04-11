@@ -1,16 +1,17 @@
-# Copyright 2016 Google Inc. All Rights Reserved.
+# Copyright 2019 The Magenta Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
 #
-#    http://www.apache.org/licenses/LICENSE-2.0
+#     http://www.apache.org/licenses/LICENSE-2.0
 #
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
 """Image-related functions for style transfer."""
 
 from __future__ import absolute_import
@@ -21,16 +22,13 @@ import io
 import os
 import tempfile
 
-
+from magenta.models.image_stylization import imagenet_data
 import numpy as np
 import scipy
 import scipy.misc
 import tensorflow as tf
-
-from magenta.models.image_stylization import imagenet_data
 from tensorflow.python.framework import dtypes
 from tensorflow.python.ops import random_ops
-
 
 slim = tf.contrib.slim
 
@@ -77,7 +75,7 @@ def imagenet_inputs(batch_size, image_size, num_readers=1,
 
     if num_preprocess_threads % 4:
       raise ValueError('Please make num_preprocess_threads a multiple '
-                       'of 4 (%d % 4 != 0).', num_preprocess_threads)
+                       'of 4 (%d %% 4 != 0).' % num_preprocess_threads)
 
     if num_readers < 1:
       raise ValueError('Please make num_readers at least 1')
@@ -230,9 +228,9 @@ def style_image_inputs(style_dataset_file, batch_size=None, image_size=None,
       image, label = image_label_gram_matrices[:2]
       gram_matrices = image_label_gram_matrices[2:]
 
-    gram_matrices = dict([(vgg_layer, gram_matrix)
-                          for vgg_layer, gram_matrix
-                          in zip(vgg_layers, gram_matrices)])
+    gram_matrices = dict((vgg_layer, gram_matrix)
+                         for vgg_layer, gram_matrix
+                         in zip(vgg_layers, gram_matrices))
     return image, label, gram_matrices
 
 
@@ -765,4 +763,3 @@ def resize_image(image, image_size):
   image = tf.to_float(image) / 255.0
 
   return tf.expand_dims(image, 0)
-

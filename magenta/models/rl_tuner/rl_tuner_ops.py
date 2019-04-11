@@ -1,10 +1,10 @@
-# Copyright 2016 Google Inc. All Rights Reserved.
+# Copyright 2019 The Magenta Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
 #
-#    http://www.apache.org/licenses/LICENSE-2.0
+#     http://www.apache.org/licenses/LICENSE-2.0
 #
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
@@ -21,12 +21,9 @@ from __future__ import print_function
 import os
 import random
 
-# internal imports
-
 import numpy as np
 from six.moves import range  # pylint: disable=redefined-builtin
 import tensorflow as tf
-
 
 LSTM_STATE_NAME = 'lstm'
 
@@ -203,8 +200,12 @@ def decoder(event_list, transpose_amount):
   Returns:
     Integer list of MIDI values.
   """
-  return [e - NUM_SPECIAL_EVENTS if e < NUM_SPECIAL_EVENTS else
-          e + INITIAL_MIDI_VALUE - transpose_amount for e in event_list]
+  def _decode_event(e):
+    if e < NUM_SPECIAL_EVENTS:
+      return e - NUM_SPECIAL_EVENTS
+    else:
+      return e + INITIAL_MIDI_VALUE - transpose_amount
+  return [_decode_event(e) for e in event_list]
 
 
 def make_onehot(int_list, one_hot_length):

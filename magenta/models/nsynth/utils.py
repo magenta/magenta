@@ -1,16 +1,17 @@
-# Copyright 2017 Google Inc. All Rights Reserved.
+# Copyright 2019 The Magenta Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
 #
-#    http://www.apache.org/licenses/LICENSE-2.0
+#     http://www.apache.org/licenses/LICENSE-2.0
 #
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
 """Utility functions for NSynth."""
 
 from __future__ import absolute_import
@@ -20,7 +21,6 @@ from __future__ import print_function
 import importlib
 import os
 
-# internal imports
 import librosa
 import numpy as np
 from six.moves import range  # pylint: disable=redefined-builtin
@@ -163,7 +163,8 @@ def get_optimizer(learning_rate, hparams):
 
   Args:
     learning_rate: The learning_rate tensor.
-      hparams: TF.HParams object with the optimizer and momentum values.
+    hparams: tf.contrib.training.HParams object with the optimizer and
+        momentum values.
 
   Returns:
     optimizer: The tf.train.Optimizer based on the optimizer string.
@@ -261,7 +262,7 @@ def inv_magphase(mag, phase_angle):
 
 
 def griffin_lim(mag, phase_angle, n_fft, hop, num_iters):
-  """Iterative algorithm for phase retrival from a magnitude spectrogram.
+  """Iterative algorithm for phase retrieval from a magnitude spectrogram.
 
   Args:
     mag: Magnitude spectrogram.
@@ -354,6 +355,7 @@ def batch_specgram(audio,
                    re_im=False,
                    dphase=True,
                    mag_only=False):
+  """Computes specgram in a batch."""
   assert len(audio.shape) == 2
   batch_size = audio.shape[0]
   res = []
@@ -373,6 +375,7 @@ def batch_ispecgram(spec,
                     dphase=True,
                     mag_only=False,
                     num_iters=1000):
+  """Computes inverse specgram in a batch."""
   assert len(spec.shape) == 4
   batch_size = spec.shape[0]
   res = []
@@ -391,6 +394,7 @@ def tf_specgram(audio,
                 re_im=False,
                 dphase=True,
                 mag_only=False):
+  """Specgram tensorflow op (uses pyfunc)."""
   return tf.py_func(batch_specgram, [
       audio, n_fft, hop_length, mask, log_mag, re_im, dphase, mag_only
   ], tf.float32)
@@ -406,10 +410,13 @@ def tf_ispecgram(spec,
                  dphase=True,
                  mag_only=False,
                  num_iters=1000):
+  """Inverted Specgram tensorflow op (uses pyfunc)."""
   dims = spec.get_shape().as_list()
   # Add back in nyquist frequency
-  x = spec if not pad else tf.concat(
-      [spec, tf.zeros([dims[0], 1, dims[2], dims[3]])], 1)
+  if pad:
+    x = tf.concat([spec, tf.zeros([dims[0], 1, dims[2], dims[3]])], 1)
+  else:
+    x = spec
   audio = tf.py_func(batch_ispecgram, [
       x, n_fft, hop_length, mask, log_mag, re_im, dphase, mag_only, num_iters
   ], tf.float32)
@@ -607,15 +614,13 @@ def calculate_l2_and_summaries(predicted_vectors, true_vectors, name):
       between true and predicted.
   """
   loss = tf.reduce_mean((predicted_vectors - true_vectors)**2)
-  tf.summary.scalar(name + "_loss", loss, name="loss")
+  tf.summary.scalar(name + "_loss", loss)
   tf.summary.scalar(
       name + "_prediction_mean_squared_norm",
-      tf.reduce_mean(tf.nn.l2_loss(predicted_vectors)),
-      name=name + "_prediction_mean_squared_norm")
+      tf.reduce_mean(tf.nn.l2_loss(predicted_vectors)))
   tf.summary.scalar(
       name + "_label_mean_squared_norm",
-      tf.reduce_mean(tf.nn.l2_loss(true_vectors)),
-      name=name + "_label_mean_squared_norm")
+      tf.reduce_mean(tf.nn.l2_loss(true_vectors)))
   return loss
 
 

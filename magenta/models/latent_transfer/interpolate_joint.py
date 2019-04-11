@@ -1,16 +1,17 @@
-# Copyright 2018 Google Inc. All Rights Reserved.
+# Copyright 2019 The Magenta Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
 #
-#    http://www.apache.org/licenses/LICENSE-2.0
+#     http://www.apache.org/licenses/LICENSE-2.0
 #
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
 """Produce interpolation in the joint model trained by `train_joint.py`.
 
 This script produces interpolation on one side of the joint model as a series of
@@ -23,14 +24,13 @@ from __future__ import division
 from __future__ import print_function
 
 import importlib
-from os.path import join
-
-import numpy as np
-import tensorflow as tf
+import os
 
 from magenta.models.latent_transfer import common
 from magenta.models.latent_transfer import common_joint
 from magenta.models.latent_transfer import model_joint
+import numpy as np
+import tensorflow as tf
 
 FLAGS = tf.flags.FLAGS
 
@@ -132,13 +132,13 @@ def main(unused_argv):
   # Restore from ckpt
   config_name = FLAGS.config
   model_uid = common.get_model_uid(config_name, FLAGS.exp_uid)
-  save_name = join(save_dir,
-                   'transfer_%s_%d.ckpt' % (model_uid, FLAGS.load_ckpt_iter))
+  save_name = os.path.join(
+      save_dir, 'transfer_%s_%d.ckpt' % (model_uid, FLAGS.load_ckpt_iter))
   m.vae_saver.restore(sess, save_name)
 
   # prepare intepolate dir
-  intepolate_dir = join(sample_dir, 'interpolate_sample',
-                        '%010d' % FLAGS.load_ckpt_iter)
+  intepolate_dir = os.path.join(
+      sample_dir, 'interpolate_sample', '%010d' % FLAGS.load_ckpt_iter)
   tf.gfile.MakeDirs(intepolate_dir)
 
   # things
@@ -188,7 +188,7 @@ def main(unused_argv):
       rows=len(x_A),
       cols=1,
   )
-  common.save_image(batched_x_A, join(intepolate_dir, 'x_A.png'))
+  common.save_image(batched_x_A, os.path.join(intepolate_dir, 'x_A.png'))
 
   z_B = np.array(z_B)
   x_B = one_side_helper_B.m_helper.decode(z_B)
@@ -199,7 +199,7 @@ def main(unused_argv):
       rows=len(x_B),
       cols=1,
   )
-  common.save_image(batched_x_B, join(intepolate_dir, 'x_B.png'))
+  common.save_image(batched_x_B, os.path.join(intepolate_dir, 'x_B.png'))
 
   z_B_tr = np.array(z_B_tr)
   x_B_tr = one_side_helper_B.m_helper.decode(z_B_tr)
@@ -210,7 +210,7 @@ def main(unused_argv):
       rows=len(x_B_tr),
       cols=1,
   )
-  common.save_image(batched_x_B_tr, join(intepolate_dir, 'x_B_tr.png'))
+  common.save_image(batched_x_B_tr, os.path.join(intepolate_dir, 'x_B_tr.png'))
 
 
 if __name__ == '__main__':

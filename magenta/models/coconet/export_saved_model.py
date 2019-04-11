@@ -1,14 +1,26 @@
+# Copyright 2019 The Magenta Authors.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 """Command line utility for exporting Coconet to SavedModel."""
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
-# internal imports
-import tensorflow as tf
 
 from magenta.models.coconet import lib_graph
 from magenta.models.coconet import lib_saved_model
 from magenta.models.coconet import lib_tfsampling
-
+import tensorflow as tf
 
 FLAGS = tf.app.flags.FLAGS
 flags = tf.app.flags

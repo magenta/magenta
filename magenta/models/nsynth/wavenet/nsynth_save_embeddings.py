@@ -1,28 +1,27 @@
-# Copyright 2017 Google Inc. All Rights Reserved.
+# Copyright 2019 The Magenta Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
 #
-#    http://www.apache.org/licenses/LICENSE-2.0
+#     http://www.apache.org/licenses/LICENSE-2.0
 #
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
 """With a trained model, compute the embeddings on a directory of WAV files."""
 
 import os
 import sys
 
-# internal imports
+from magenta.models.nsynth import utils
+from magenta.models.nsynth.wavenet.fastgen import encode
 import numpy as np
 from six.moves import xrange  # pylint: disable=redefined-builtin
 import tensorflow as tf
-
-from magenta.models.nsynth import utils
-from magenta.models.nsynth.wavenet.fastgen import encode
 
 FLAGS = tf.app.flags.FLAGS
 

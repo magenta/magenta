@@ -1,16 +1,17 @@
-# Copyright 2016 Google Inc. All Rights Reserved.
+# Copyright 2019 The Magenta Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
 #
-#    http://www.apache.org/licenses/LICENSE-2.0
+#     http://www.apache.org/licenses/LICENSE-2.0
 #
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
 """Classes for converting between event sequences and models inputs/outputs.
 
 OneHotEncoding is an abstract class for specifying a one-hot encoding, i.e.
@@ -50,16 +51,12 @@ from __future__ import print_function
 import abc
 import numbers
 
-# internal imports
-
-import numpy as np
-from six.moves import range  # pylint: disable=redefined-builtin
-import tensorflow as tf
-
 from magenta.common import sequence_example_lib
 from magenta.music import constants
 from magenta.pipelines import pipeline
-
+import numpy as np
+from six.moves import range  # pylint: disable=redefined-builtin
+import tensorflow as tf
 
 DEFAULT_STEPS_PER_BAR = constants.DEFAULT_STEPS_PER_BAR
 DEFAULT_LOOKBACK_DISTANCES = [DEFAULT_STEPS_PER_BAR, DEFAULT_STEPS_PER_BAR * 2]
@@ -451,6 +448,30 @@ class OneHotEventSequenceEncoderDecoder(EventSequenceEncoderDecoder):
                for event in events)
 
 
+class OneHotIndexEventSequenceEncoderDecoder(OneHotEventSequenceEncoderDecoder):
+  """An EventSequenceEncoderDecoder that produces one-hot indices."""
+
+  @property
+  def input_size(self):
+    return 1
+
+  @property
+  def input_depth(self):
+    return self._one_hot_encoding.num_classes
+
+  def events_to_input(self, events, position):
+    """Returns the one-hot index for the event at the given position.
+
+    Args:
+      events: A list-like sequence of events.
+      position: An integer event position in the event sequence.
+
+    Returns:
+      An integer input event index.
+    """
+    return [self._one_hot_encoding.encode_event(events[position])]
+
+
 class LookbackEventSequenceEncoderDecoder(EventSequenceEncoderDecoder):
   """An EventSequenceEncoderDecoder that encodes repeated events and meter."""
 
@@ -468,9 +489,10 @@ class LookbackEventSequenceEncoderDecoder(EventSequenceEncoderDecoder):
          metric position of the next event.
     """
     self._one_hot_encoding = one_hot_encoding
-    self._lookback_distances = (lookback_distances
-                                if lookback_distances is not None
-                                else DEFAULT_LOOKBACK_DISTANCES)
+    if lookback_distances is None:
+      self._lookback_distances = DEFAULT_LOOKBACK_DISTANCES
+    else:
+      self._lookback_distances = lookback_distances
     self._binary_counter_bits = binary_counter_bits
 
   @property

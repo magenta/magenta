@@ -1,22 +1,21 @@
-# Copyright 2016 Google Inc. All Rights Reserved.
+# Copyright 2019 The Magenta Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
 #
-#    http://www.apache.org/licenses/LICENSE-2.0
+#     http://www.apache.org/licenses/LICENSE-2.0
 #
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
 """Tests for chord_symbols_lib."""
 
-# internal imports
-import tensorflow as tf
-
 from magenta.music import chord_symbols_lib
+import tensorflow as tf
 
 CHORD_QUALITY_MAJOR = chord_symbols_lib.CHORD_QUALITY_MAJOR
 CHORD_QUALITY_MINOR = chord_symbols_lib.CHORD_QUALITY_MINOR
@@ -112,7 +111,7 @@ class ChordSymbolFunctionsTest(tf.test.TestCase):
     self.assertEqual('C+7(#9)', figure)
 
     # Test invalid chord.
-    with self.assertRaises(chord_symbols_lib.ChordSymbolException):
+    with self.assertRaises(chord_symbols_lib.ChordSymbolError):
       chord_symbols_lib.pitches_to_chord_symbol(
           [60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71])
 

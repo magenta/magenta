@@ -1,16 +1,17 @@
-# Copyright 2016 Google Inc. All Rights Reserved.
+# Copyright 2019 The Magenta Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
 #
-#    http://www.apache.org/licenses/LICENSE-2.0
+#     http://www.apache.org/licenses/LICENSE-2.0
 #
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
 """Utility functions for working with drums.
 
 Use extract_drum_tracks to extract drum tracks from a quantized NoteSequence.
@@ -23,15 +24,12 @@ file.
 import collections
 import operator
 
-# internal imports
-
 from magenta.music import constants
 from magenta.music import events_lib
 from magenta.music import midi_io
 from magenta.music import sequences_lib
 from magenta.pipelines import statistics
 from magenta.protobuf import music_pb2
-
 
 MIN_MIDI_PITCH = constants.MIN_MIDI_PITCH
 MAX_MIDI_PITCH = constants.MAX_MIDI_PITCH
@@ -146,7 +144,7 @@ class DrumTrack(events_lib.SimpleEventSequence):
       ignore_is_drum: Whether accept notes where `is_drum` is False.
 
     Raises:
-      NonIntegerStepsPerBarException: If `quantized_sequence`'s bar length
+      NonIntegerStepsPerBarError: If `quantized_sequence`'s bar length
           (derived from its time signature) is not an integer number of time
           steps.
     """
@@ -156,7 +154,7 @@ class DrumTrack(events_lib.SimpleEventSequence):
     steps_per_bar_float = sequences_lib.steps_per_bar_in_quantized_sequence(
         quantized_sequence)
     if steps_per_bar_float % 1 != 0:
-      raise events_lib.NonIntegerStepsPerBarException(
+      raise events_lib.NonIntegerStepsPerBarError(
           'There are %f timesteps per bar. Time signature: %d/%d' %
           (steps_per_bar_float, quantized_sequence.time_signatures[0].numerator,
            quantized_sequence.time_signatures[0].denominator))
@@ -191,7 +189,7 @@ class DrumTrack(events_lib.SimpleEventSequence):
 
       # If a gap of `gap` or more steps is found, end the drum track.
       note_distance = start_index - gap_start_index
-      if len(self) and note_distance >= gap_bars * steps_per_bar:
+      if len(self) and note_distance >= gap_bars * steps_per_bar:  # pylint:disable=len-as-condition
         break
 
       # Add a drum event, a set of drum "pitches".
@@ -318,15 +316,15 @@ def extract_drum_tracks(quantized_sequence,
     stats: A dictionary mapping string names to `statistics.Statistic` objects.
 
   Raises:
-    NonIntegerStepsPerBarException: If `quantized_sequence`'s bar length
+    NonIntegerStepsPerBarError: If `quantized_sequence`'s bar length
         (derived from its time signature) is not an integer number of time
         steps.
   """
   drum_tracks = []
-  stats = dict([(stat_name, statistics.Counter(stat_name)) for stat_name in
-                ['drum_tracks_discarded_too_short',
-                 'drum_tracks_discarded_too_long',
-                 'drum_tracks_truncated']])
+  stats = dict((stat_name, statistics.Counter(stat_name)) for stat_name in
+               ['drum_tracks_discarded_too_short',
+                'drum_tracks_discarded_too_long',
+                'drum_tracks_truncated'])
   # Create a histogram measuring drum track lengths (in bars not steps).
   # Capture drum tracks that are very small, in the range of the filter lower
   # bound `min_bars`, and large. The bucket intervals grow approximately
@@ -343,15 +341,12 @@ def extract_drum_tracks(quantized_sequence,
   # If any notes start at the same time, only one is kept.
   while 1:
     drum_track = DrumTrack()
-    try:
-      drum_track.from_quantized_sequence(
-          quantized_sequence,
-          search_start_step=search_start_step,
-          gap_bars=gap_bars,
-          pad_end=pad_end,
-          ignore_is_drum=ignore_is_drum)
-    except events_lib.NonIntegerStepsPerBarException:
-      raise
+    drum_track.from_quantized_sequence(
+        quantized_sequence,
+        search_start_step=search_start_step,
+        gap_bars=gap_bars,
+        pad_end=pad_end,
+        ignore_is_drum=ignore_is_drum)
     search_start_step = (
         drum_track.end_step +
         (search_start_step - drum_track.end_step) % steps_per_bar)

@@ -1,16 +1,17 @@
-# Copyright 2016 Google Inc. All Rights Reserved.
+# Copyright 2019 The Magenta Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
 #
-#    http://www.apache.org/licenses/LICENSE-2.0
+#     http://www.apache.org/licenses/LICENSE-2.0
 #
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
 """Evaluates the N-styles style transfer model."""
 
 from __future__ import absolute_import
@@ -20,12 +21,10 @@ from __future__ import print_function
 import ast
 import os
 
-# internal imports
-import tensorflow as tf
-
 from magenta.models.image_stylization import image_utils
 from magenta.models.image_stylization import learning
 from magenta.models.image_stylization import model
+import tensorflow as tf
 
 slim = tf.contrib.slim
 
@@ -132,16 +131,21 @@ def main(_):
             [style_row, stylized_training_example, stylized_noise] +
             stylized_evaluation_images,
             0)
+      if FLAGS.style_crossover:
+        grid_shape = [
+            3 + evaluation_images.get_shape().as_list()[0] + FLAGS.num_styles,
+            1 + FLAGS.num_styles]
+      else:
+        grid_shape = [
+            3 + evaluation_images.get_shape().as_list()[0],
+            1 + FLAGS.num_styles]
+
       tf.summary.image(
           'Style Grid',
           tf.cast(
               image_utils.form_image_grid(
                   grid,
-                  ([3 + evaluation_images.get_shape().as_list()[0] +
-                    FLAGS.num_styles, 1 + FLAGS.num_styles]
-                   if FLAGS.style_crossover
-                   else [3 + evaluation_images.get_shape().as_list()[0],
-                         1 + FLAGS.num_styles]),
+                  grid_shape,
                   [FLAGS.image_size, FLAGS.image_size],
                   3) * 255.0,
               tf.uint8))
@@ -150,8 +154,8 @@ def main(_):
       metrics = {}
       for i, label in enumerate(labels):
         gram_matrices = dict(
-            [(key, value[i: i + 1])
-             for key, value in style_gram_matrices.iteritems()])
+            (key, value[i: i + 1])
+            for key, value in style_gram_matrices.items())
         stylized_inputs = model.transform(
             inputs,
             reuse=True,
@@ -159,12 +163,12 @@ def main(_):
         _, loss_dict = learning.total_loss(
             inputs, stylized_inputs, gram_matrices, content_weights,
             style_weights, reuse=i > 0)
-        for key, value in loss_dict.iteritems():
+        for key, value in loss_dict.items():
           metrics['{}_style_{}'.format(key, i)] = slim.metrics.streaming_mean(
               value)
 
       names_values, names_updates = slim.metrics.aggregate_metric_map(metrics)
-      for name, value in names_values.iteritems():
+      for name, value in names_values.items():
         summary_op = tf.summary.scalar(name, value, [])
         print_op = tf.Print(summary_op, [value], name)
         tf.add_to_collection(tf.GraphKeys.SUMMARIES, print_op)

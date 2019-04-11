@@ -1,16 +1,17 @@
-# Copyright 2017 Google Inc. All Rights Reserved.
+# Copyright 2019 The Magenta Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
 #
-#    http://www.apache.org/licenses/LICENSE-2.0
+#     http://www.apache.org/licenses/LICENSE-2.0
 #
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
 """Implementation of a NADE (Neural Autoreressive Distribution Estimator)."""
 
 from __future__ import absolute_import
@@ -19,8 +20,8 @@ from __future__ import print_function
 
 import math
 
-# internal imports
 import tensorflow as tf
+import tensorflow_probability as tfp
 
 
 def _safe_log(tensor):
@@ -60,16 +61,22 @@ class Nade(object):
           initializer=initializer)
       # Internal encoder bias term (`b` in [1]). Will be used if external biases
       # are not provided.
-      self.b_enc = None if not internal_bias else tf.get_variable(
-          'b_enc',
-          shape=[1, self._num_hidden],
-          initializer=initializer)
+      if internal_bias:
+        self.b_enc = tf.get_variable(
+            'b_enc',
+            shape=[1, self._num_hidden],
+            initializer=initializer)
+      else:
+        self.b_enc = None
       # Internal decoder bias term (`c` in [1]). Will be used if external biases
       # are not provided.
-      self.b_dec = None if not internal_bias else tf.get_variable(
-          'b_dec',
-          shape=[1, self._num_dims],
-          initializer=initializer)
+      if internal_bias:
+        self.b_dec = tf.get_variable(
+            'b_dec',
+            shape=[1, self._num_dims],
+            initializer=initializer)
+      else:
+        self.b_dec = None
 
   @property
   def num_hidden(self):
@@ -208,7 +215,7 @@ class Nade(object):
       if temperature is None:
         v_i = tf.to_float(tf.greater_equal(cond_p_i, 0.5))
       else:
-        bernoulli = tf.distributions.Bernoulli(
+        bernoulli = tfp.distributions.Bernoulli(
             logits=cond_l_i / temperature, dtype=tf.float32)
         v_i = bernoulli.sample()
 

@@ -1,15 +1,30 @@
+# Copyright 2019 The Magenta Authors.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 """Classes for defining hypermaters and model architectures."""
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
+
 import itertools as it
 import os
-# internal imports
+
+from magenta.models.coconet import lib_util
 import numpy as np
 import six
 import tensorflow as tf
 import yaml
-from magenta.models.coconet import lib_util
 
 
 class ModelMisspecificationError(Exception):
@@ -228,7 +243,7 @@ class Hyperparameters(object):
 
   @staticmethod
   def load(file_object):
-    params_dict = yaml.load(file_object)
+    params_dict = yaml.safe_load(file_object)
     hparams = Hyperparameters()
     hparams.update(params_dict)
     return hparams
@@ -242,7 +257,7 @@ class Straight(Architecture):
   """A convolutional net where each layer has the same number of filters."""
   key = 'straight'
 
-  def __init__(self, input_depth, num_layers, num_filters, num_pitches,
+  def __init__(self, input_depth, num_layers, num_filters, num_pitches,  # pylint:disable=unused-argument
                output_depth, **kwargs):
     tf.logging.info('model_type=%s, input_depth=%d, output_depth=%d',
                     self.key, input_depth, output_depth)
@@ -277,7 +292,7 @@ class Dilated(Architecture):
   """A dilated convnet where each layer has the same number of filters."""
   key = 'dilated'
 
-  def __init__(self, input_depth, num_layers, num_filters, num_pitches,
+  def __init__(self, input_depth, num_layers, num_filters, num_pitches,  # pylint:disable=unused-argument
                output_depth, **kwargs):
     tf.logging.info('model_type=%s, input_depth=%d, output_depth=%d',
                     self.key, input_depth, output_depth)

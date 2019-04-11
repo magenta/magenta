@@ -1,16 +1,17 @@
-# Copyright 2018 Google Inc. All Rights Reserved.
+# Copyright 2019 The Magenta Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
 #
-#    http://www.apache.org/licenses/LICENSE-2.0
+#     http://www.apache.org/licenses/LICENSE-2.0
 #
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
 """Common functions/helpers for the joint model.
 
 This library contains many comman functions and helpers used to train (using
@@ -44,14 +45,12 @@ from __future__ import print_function
 
 import importlib
 import os
-from os.path import join
-
-import numpy as np
-from scipy.io import wavfile
-import tensorflow as tf
 
 from magenta.models.latent_transfer import common
 from magenta.models.latent_transfer import model_dataspace
+import numpy as np
+from scipy.io import wavfile
+import tensorflow as tf
 
 FLAGS = tf.flags.FLAGS
 tf.flags.DEFINE_string(
@@ -314,10 +313,12 @@ class PairedDataIterator(object):
     batch_label_B = self.label_B[batch_index_B]
     assert np.array_equal(batch_label_A, batch_label_B)
 
-    batch_train_data_A = self.train_data_A[
-        batch_index_A] if self.train_data_A is not None else None
-    batch_train_data_B = self.train_data_B[
-        batch_index_B] if self.train_data_B is not None else None
+    batch_train_data_A = (
+        None if self._train_data_A is None else self.train_data_A[batch_index_A]
+    )
+    batch_train_data_B = (
+        None if self._train_data_B is None else self.train_data_B[batch_index_B]
+    )
     debug_info = (batch_train_data_A, batch_train_data_B)
 
     return batch_A, batch_B, debug_info
@@ -386,8 +387,8 @@ def load_dataset(config_name, exp_uid):
   dataset = common.load_dataset(config)
   train_data = dataset.train_data
   attr_train = dataset.attr_train
-  path_train = join(dataset.basepath, 'encoded', model_uid,
-                    'encoded_train_data.npz')
+  path_train = os.path.join(dataset.basepath, 'encoded', model_uid,
+                            'encoded_train_data.npz')
   train = np.load(path_train)
   train_mu = train['mu']
   train_sigma = train['sigma']
@@ -465,7 +466,8 @@ def restore_model(saver, config_name, exp_uid, sess, save_path,
   model_uid = common.get_model_uid(config_name, exp_uid)
   saver.restore(
       sess,
-      join(save_path, model_uid, 'best', ckpt_filename_template % model_uid))
+      os.path.join(
+          save_path, model_uid, 'best', ckpt_filename_template % model_uid))
 
 
 def prepare_dirs(
@@ -491,9 +493,9 @@ def prepare_dirs(
 
   local_base_path = os.path.join(common.get_default_scratch(), signature)
 
-  save_dir = join(local_base_path, 'ckpts', model_uid)
+  save_dir = os.path.join(local_base_path, 'ckpts', model_uid)
   tf.gfile.MakeDirs(save_dir)
-  sample_dir = join(local_base_path, 'sample', model_uid)
+  sample_dir = os.path.join(local_base_path, 'sample', model_uid)
   tf.gfile.MakeDirs(sample_dir)
 
   return save_dir, sample_dir
@@ -600,7 +602,7 @@ class ModelHelper(object):
     real_x = x if x_is_real_x else self.decode(x)
     real_x = common.post_proc(real_x, self.config)
     batched_real_x = common.batch_image(real_x)
-    sample_file = join(save_dir, '%s.png' % name)
+    sample_file = os.path.join(save_dir, '%s.png' % name)
     common.save_image(batched_real_x, sample_file)
 
 
@@ -619,7 +621,7 @@ class ModelWaveGANHelper(object):
     classification respectively.
     """
 
-    # pylint:disable=unused-variable
+    # pylint:disable=unused-variable,possibly-unused-variable
     # Reason:
     #   All endpoints are stored as attribute at the end of `_build`.
     #   Pylint cannot infer this case so it emits false alarm of
@@ -637,7 +639,7 @@ class ModelWaveGANHelper(object):
       gen_ckpt_dir = os.path.expanduser(FLAGS.wavegan_gen_ckpt_dir)
       sess_sc09_gan = tf.Session(graph=graph_sc09_gan)
       saver_gan = tf.train.import_meta_graph(
-          join(gen_ckpt_dir, 'infer', 'infer.meta'))
+          os.path.join(gen_ckpt_dir, 'infer', 'infer.meta'))
 
     # Dataset (SC09, WaveGAN)'s  classifier (inception)
     graph_sc09_class = tf.Graph()
@@ -645,7 +647,7 @@ class ModelWaveGANHelper(object):
       inception_ckpt_dir = os.path.expanduser(FLAGS.wavegan_inception_ckpt_dir)
       sess_sc09_class = tf.Session(graph=graph_sc09_class)
       saver_class = tf.train.import_meta_graph(
-          join(inception_ckpt_dir, 'infer.meta'))
+          os.path.join(inception_ckpt_dir, 'infer.meta'))
 
     # Dataset B (SC09, WaveGAN)'s Tensor symbols
     sc09_gan_z = graph_sc09_gan.get_tensor_by_name('z:0')
@@ -672,14 +674,15 @@ class ModelWaveGANHelper(object):
     sess_sc09_class = self.sess_sc09_class
 
     with graph_sc09_gan.as_default():
-      saver_gan.restore(sess_sc09_gan, join(gen_ckpt_dir, 'bridge',
-                                            'model.ckpt'))
+      saver_gan.restore(
+          sess_sc09_gan,
+          os.path.join(gen_ckpt_dir, 'bridge', 'model.ckpt'))
 
     with graph_sc09_class.as_default():
       saver_class.restore(sess_sc09_class,
-                          join(inception_ckpt_dir, 'best_acc-103005'))
+                          os.path.join(inception_ckpt_dir, 'best_acc-103005'))
 
-    # pylint:enable=unused-variable
+    # pylint:enable=unused-variable,possibly-unused-variable
     # pylint:enable=invalid-name
 
   def decode(self, z, batch_size=None):
@@ -726,14 +729,14 @@ class ModelWaveGANHelper(object):
     """
     real_x = x if x_is_real_x else self.decode(x)
     real_x = real_x.reshape(-1)
-    sample_file = join(save_dir, '%s.wav' % name)
+    sample_file = os.path.join(save_dir, '%s.wav' % name)
     wavfile.write(sample_file, rate=16000, data=real_x)
 
 
 class OneSideHelper(object):
   """The helper that manages model and classifier in dataspace for joint model.
 
-  Attributes:
+  Args:
     config_name: A string representing the name of config for model in
         dataspace.
     exp_uid: A string representing the unique id of experiment used in

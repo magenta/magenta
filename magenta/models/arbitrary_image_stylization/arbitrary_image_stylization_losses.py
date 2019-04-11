@@ -1,27 +1,27 @@
-# Copyright 2017 Google Inc. All Rights Reserved.
+# Copyright 2019 The Magenta Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
 #
-#    http://www.apache.org/licenses/LICENSE-2.0
+#     http://www.apache.org/licenses/LICENSE-2.0
 #
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
 """Loss methods for real-time arbitrary image stylization model."""
 
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-import numpy as np
-import tensorflow as tf
-
 from magenta.models.image_stylization import learning as learning_utils
 from magenta.models.image_stylization import vgg
+import numpy as np
+import tensorflow as tf
 
 
 def total_loss(content_inputs, style_inputs, stylized_inputs, content_weights,
@@ -101,7 +101,7 @@ def content_loss(end_points, stylized_end_points, content_weights):
   total_content_loss = np.float32(0.0)
   content_loss_dict = {}
 
-  for name, weight in content_weights.iteritems():
+  for name, weight in content_weights.items():
     loss = tf.reduce_mean(
         (end_points[name] - stylized_end_points[name]) ** 2)
     weighted_loss = weight * loss
@@ -133,7 +133,7 @@ def style_loss(style_end_points, stylized_end_points, style_weights):
   total_style_loss = np.float32(0.0)
   style_loss_dict = {}
 
-  for name, weight in style_weights.iteritems():
+  for name, weight in style_weights.items():
     loss = tf.reduce_mean(
         (learning_utils.gram_matrix(stylized_end_points[name]) -
          learning_utils.gram_matrix(style_end_points[name])) ** 2)
@@ -146,4 +146,3 @@ def style_loss(style_end_points, stylized_end_points, style_weights):
   style_loss_dict['total_style_loss'] = total_style_loss
 
   return total_style_loss, style_loss_dict
-

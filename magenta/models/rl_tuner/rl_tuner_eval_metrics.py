@@ -1,10 +1,10 @@
-# Copyright 2016 Google Inc. All Rights Reserved.
+# Copyright 2019 The Magenta Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
 #
-#    http://www.apache.org/licenses/LICENSE-2.0
+#     http://www.apache.org/licenses/LICENSE-2.0
 #
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
@@ -14,12 +14,9 @@
 
 """Code to evaluate how well an RL Tuner conforms to music theory rules."""
 
-# internal imports
-
+from magenta.models.rl_tuner import rl_tuner_ops
 import numpy as np
 import tensorflow as tf
-
-from magenta.models.rl_tuner import rl_tuner_ops
 
 
 def compute_composition_stats(rl_tuner,

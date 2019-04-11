@@ -1,16 +1,17 @@
-# Copyright 2017 Google Inc. All Rights Reserved.
+# Copyright 2019 The Magenta Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
 #
-#    http://www.apache.org/licenses/LICENSE-2.0
+#     http://www.apache.org/licenses/LICENSE-2.0
 #
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
 """SketchRNN training."""
 
 from __future__ import absolute_import
@@ -20,19 +21,15 @@ from __future__ import print_function
 import json
 import os
 import time
-import urllib
 import zipfile
-
-# internal imports
-
-import numpy as np
-import requests
-import six
-from six.moves import cStringIO as StringIO
-import tensorflow as tf
 
 from magenta.models.sketch_rnn import model as sketch_rnn_model
 from magenta.models.sketch_rnn import utils
+import numpy as np
+import requests
+import six
+from six.moves.urllib.request import urlretrieve
+import tensorflow as tf
 
 tf.logging.set_verbosity(tf.logging.INFO)
 
@@ -105,7 +102,7 @@ def download_pretrained_models(
   else:
     tf.logging.info('Downloading pretrained models from %s...',
                     pretrained_models_url)
-    urllib.urlretrieve(pretrained_models_url, zip_path)
+    urlretrieve(pretrained_models_url, zip_path)
     tf.logging.info('Download complete.')
   tf.logging.info('Unzipping %s...', zip_path)
   with zipfile.ZipFile(zip_path) as models_zip:
@@ -116,10 +113,9 @@ def download_pretrained_models(
 def load_dataset(data_dir, model_params, inference_mode=False):
   """Loads the .npz file, and splits the set into train/valid/test."""
 
-  # normalizes the x and y columns usint the training set.
+  # normalizes the x and y columns using the training set.
   # applies same scaling factor to valid and test set.
 
-  datasets = []
   if isinstance(model_params.data_set, list):
     datasets = model_params.data_set
   else:
@@ -130,12 +126,13 @@ def load_dataset(data_dir, model_params, inference_mode=False):
   test_strokes = None
 
   for dataset in datasets:
-    data_filepath = os.path.join(data_dir, dataset)
     if data_dir.startswith('http://') or data_dir.startswith('https://'):
+      data_filepath = '/'.join([data_dir, dataset])
       tf.logging.info('Downloading %s', data_filepath)
       response = requests.get(data_filepath)
-      data = np.load(StringIO(response.content))
+      data = np.load(six.BytesIO(response.content), encoding='latin1')
     else:
+      data_filepath = os.path.join(data_dir, dataset)
       if six.PY3:
         data = np.load(data_filepath, encoding='latin1')
       else:

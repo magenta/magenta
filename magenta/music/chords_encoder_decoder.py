@@ -1,16 +1,17 @@
-# Copyright 2016 Google Inc. All Rights Reserved.
+# Copyright 2019 The Magenta Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
 #
-#    http://www.apache.org/licenses/LICENSE-2.0
+#     http://www.apache.org/licenses/LICENSE-2.0
 #
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
 """Classes for converting between chord progressions and models inputs/outputs.
 
 MajorMinorChordOneHotEncoding is an encoding.OneHotEncoding that specifies a
@@ -23,7 +24,6 @@ encoding has 49 classes, all 12 major/minor/augmented/diminished triads plus
 "no chord".
 """
 
-# internal imports
 from magenta.music import chord_symbols_lib
 from magenta.music import constants
 from magenta.music import encoder_decoder
@@ -36,7 +36,7 @@ _PITCH_CLASS_MAPPING = ['C', 'C#', 'D', 'Eb', 'E', 'F',
                         'F#', 'G', 'Ab', 'A', 'Bb', 'B']
 
 
-class ChordEncodingException(Exception):
+class ChordEncodingError(Exception):
   pass
 
 
@@ -69,8 +69,7 @@ class MajorMinorChordOneHotEncoding(encoder_decoder.OneHotEncoding):
     elif quality == chord_symbols_lib.CHORD_QUALITY_MINOR:
       return root + NOTES_PER_OCTAVE + 1
     else:
-      raise ChordEncodingException('chord is neither major nor minor: %s'
-                                   % event)
+      raise ChordEncodingError('chord is neither major nor minor: %s' % event)
 
   def decode_event(self, index):
     if index == 0:
@@ -118,7 +117,7 @@ class TriadChordOneHotEncoding(encoder_decoder.OneHotEncoding):
     elif quality == chord_symbols_lib.CHORD_QUALITY_DIMINISHED:
       return root + 3 * NOTES_PER_OCTAVE + 1
     else:
-      raise ChordEncodingException('chord is not a standard triad: %s' % event)
+      raise ChordEncodingError('chord is not a standard triad: %s' % event)
 
   def decode_event(self, index):
     if index == 0:

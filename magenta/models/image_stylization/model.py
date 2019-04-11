@@ -1,26 +1,25 @@
-# Copyright 2016 Google Inc. All Rights Reserved.
+# Copyright 2019 The Magenta Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
 #
-#    http://www.apache.org/licenses/LICENSE-2.0
+#     http://www.apache.org/licenses/LICENSE-2.0
 #
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
 """Style transfer network code."""
 
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-
-import tensorflow as tf
-
 from magenta.models.image_stylization import ops
+import tensorflow as tf
 
 slim = tf.contrib.slim
 
@@ -174,4 +173,3 @@ def residual_block(input_, kernel_size, scope, activation_fn=tf.nn.relu):
     h_1 = conv2d(input_, kernel_size, 1, num_outputs, 'conv1', activation_fn)
     h_2 = conv2d(h_1, kernel_size, 1, num_outputs, 'conv2', None)
     return input_ + h_2
-

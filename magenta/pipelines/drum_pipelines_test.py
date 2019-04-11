@@ -1,20 +1,18 @@
-# Copyright 2016 Google Inc. All Rights Reserved.
+# Copyright 2019 The Magenta Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
 #
-#    http://www.apache.org/licenses/LICENSE-2.0
+#     http://www.apache.org/licenses/LICENSE-2.0
 #
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Tests for drum_pipelines."""
 
-# internal imports
-import tensorflow as tf
+"""Tests for drum_pipelines."""
 
 from magenta.common import testing_lib as common_testing_lib
 from magenta.music import drums_lib
@@ -22,6 +20,7 @@ from magenta.music import sequences_lib
 from magenta.music import testing_lib
 from magenta.pipelines import drum_pipelines
 from magenta.protobuf import music_pb2
+import tensorflow as tf
 
 DRUMS = lambda *args: frozenset(args)
 NO_DRUMS = frozenset()

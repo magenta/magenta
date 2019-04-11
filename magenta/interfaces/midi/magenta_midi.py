@@ -1,16 +1,17 @@
-# Copyright 2016 Google Inc. All Rights Reserved.
+# Copyright 2019 The Magenta Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
 #
-#    http://www.apache.org/licenses/LICENSE-2.0
+#     http://www.apache.org/licenses/LICENSE-2.0
 #
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
 """A MIDI interface to the sequence generators.
 
 Captures monophonic input MIDI sequences and plays back responses from the
@@ -20,16 +21,12 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-from functools import partial
+import functools
 import re
 import threading
 import time
 
-# internal imports
-from six.moves import input  # pylint: disable=redefined-builtin
-import tensorflow as tf
 import magenta
-
 from magenta.interfaces.midi import midi_hub
 from magenta.interfaces.midi import midi_interaction
 from magenta.models.drums_rnn import drums_rnn_sequence_generator
@@ -37,6 +34,8 @@ from magenta.models.melody_rnn import melody_rnn_sequence_generator
 from magenta.models.performance_rnn import performance_sequence_generator
 from magenta.models.pianoroll_rnn_nade import pianoroll_rnn_nade_sequence_generator
 from magenta.models.polyphony_rnn import polyphony_sequence_generator
+from six.moves import input  # pylint: disable=redefined-builtin
+import tensorflow as tf
 
 FLAGS = tf.app.flags.FLAGS
 
@@ -239,7 +238,7 @@ class CCMapper(object):
         continue
       self._update_event.clear()
       self._midi_hub.register_callback(
-          partial(self._update_signal, signal),
+          functools.partial(self._update_signal, signal),
           midi_hub.MidiSignal(type='control_change'))
       print('Send a control signal using the control number you wish to '
             'associate with `%s`.' % signal)
@@ -275,7 +274,7 @@ def _load_generator_from_bundle_file(bundle_file):
   try:
     bundle = magenta.music.sequence_generator_bundle.read_bundle_file(
         bundle_file)
-  except magenta.music.sequence_generator_bundle.GeneratorBundleParseException:
+  except magenta.music.sequence_generator_bundle.GeneratorBundleParseError:
     print('Failed to parse bundle file: %s' % FLAGS.bundle_file)
     return None
 
@@ -345,15 +344,15 @@ def main(unused_argv):
         control=control_map['clock'], value=127)
     tick_duration = None
 
-  end_call_signal = (
-      None if control_map['end_call'] is None else
-      midi_hub.MidiSignal(control=control_map['end_call'], value=127))
-  panic_signal = (
-      None if control_map['panic'] is None else
-      midi_hub.MidiSignal(control=control_map['panic'], value=127))
-  mutate_signal = (
-      None if control_map['mutate'] is None else
-      midi_hub.MidiSignal(control=control_map['mutate'], value=127))
+  def _signal_from_control_map(name):
+    if control_map[name] is None:
+      return None
+    return midi_hub.MidiSignal(control=control_map[name], value=127)
+
+  end_call_signal = _signal_from_control_map('end_call')
+  panic_signal = _signal_from_control_map('panic')
+  mutate_signal = _signal_from_control_map('mutate')
+
   metronome_channel = (
       FLAGS.metronome_channel if FLAGS.enable_metronome else None)
   interaction = midi_interaction.CallAndResponseMidiInteraction(

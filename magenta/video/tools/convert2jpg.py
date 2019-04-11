@@ -1,22 +1,25 @@
-# Copyright 2017 Google Inc. All Rights Reserved.
+# Copyright 2019 The Magenta Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
 #
-#    http://www.apache.org/licenses/LICENSE-2.0
+#     http://www.apache.org/licenses/LICENSE-2.0
 #
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
 """convert all files in a folder to jpg."""
+from __future__ import print_function
 
 import argparse
 import glob
 import ntpath
 import os
+
 from PIL import Image
 
 PARSER = argparse.ArgumentParser(description='')
@@ -76,21 +79,21 @@ def convert2jpg(path_in, path_out, args):
     nothing
   """
   path = '{}/*'.format(path_in)
-  print 'looking for all files in', path
+  print('looking for all files in', path)
   files = glob.glob(path)
   file_count = len(files)
-  print 'found ', file_count, 'files'
+  print('found ', file_count, 'files')
 
   i = 0
   for image_file in files:
     i += 1
     try:
       if ntpath.basename(image_file).split('.')[-1] in ['jpg', 'jpeg', 'JPG']:
-        print i, '/', file_count, '  not converting file', image_file
+        print(i, '/', file_count, '  not converting file', image_file)
         continue  # no need to convert
-      print i, '/', file_count, '  convert file', image_file
+      print(i, '/', file_count, '  convert file', image_file)
       img = Image.open(image_file)
-      # print 'file open'
+      # print('file open')
       if args.xsize > 0:
         if args.crop:
           args.ysize = args.xsize
@@ -108,13 +111,13 @@ def convert2jpg(path_in, path_out, args):
       basename = ntpath.basename(image_file).split('.')[0]
       filename = basename + '.jpg'
       file_out = os.path.join(path_out, filename)
-      print i, '/', file_count, '  save file', file_out
+      print(i, '/', file_count, '  save file', file_out)
       img.save(file_out, 'JPEG')
       if args.delete:
-        print 'deleting', image_file
+        print('deleting', image_file)
         os.remove(image_file)
     except:  # pylint: disable=bare-except
-      print """can't convert file""", image_file, 'to jpg :'
+      print("""can't convert file""", image_file, 'to jpg :')
 
 if __name__ == '__main__':
   convert2jpg(ARGS.path_in, ARGS.path_out, ARGS)

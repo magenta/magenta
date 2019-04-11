@@ -1,20 +1,27 @@
+# Copyright 2019 The Magenta Authors.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 """A module for implementing interaction between MIDI and SequenceGenerators."""
 
 import abc
 import threading
 import time
 
-# internal imports
-import tensorflow as tf
-
 import magenta
 from magenta.protobuf import generator_pb2
 from magenta.protobuf import music_pb2
-
-
-class MidiInteractionException(Exception):
-  """Base class for exceptions in this module."""
-  pass
+import tensorflow as tf
 
 
 def adjust_sequence_times(sequence, delta_time):
@@ -393,8 +400,10 @@ class CallAndResponseMidiInteraction(MidiInteraction):
       captured_sequence.tempos[0].qpm = self._qpm
 
       tick_duration = tick_time - last_tick_time
-      last_end_time = (max(note.end_time for note in captured_sequence.notes)
-                       if captured_sequence.notes else 0.0)
+      if captured_sequence.notes:
+        last_end_time = max(note.end_time for note in captured_sequence.notes)
+      else:
+        last_end_time = 0.0
 
       # True iff there was no input captured during the last tick.
       silent_tick = last_end_time <= last_tick_time

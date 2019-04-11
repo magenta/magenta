@@ -1,22 +1,22 @@
-# Copyright 2016 Google Inc. All Rights Reserved.
+# Copyright 2019 The Magenta Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
 #
-#    http://www.apache.org/licenses/LICENSE-2.0
+#     http://www.apache.org/licenses/LICENSE-2.0
 #
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
 """Utility functions for working with lead sheets."""
 
 import copy
 import itertools
 
-# internal imports
 from magenta.music import chords_lib
 from magenta.music import constants
 from magenta.music import events_lib
@@ -36,7 +36,7 @@ DEFAULT_STEPS_PER_QUARTER = constants.DEFAULT_STEPS_PER_QUARTER
 CHORD_SYMBOL = music_pb2.NoteSequence.TextAnnotation.CHORD_SYMBOL
 
 
-class MelodyChordsMismatchException(Exception):
+class MelodyChordsMismatchError(Exception):
   pass
 
 
@@ -59,12 +59,12 @@ class LeadSheet(events_lib.EventSequence):
       chords: A ChordProgression object.
 
     Raises:
-      MelodyChordsMismatchException: If the melody and chord progression differ
+      MelodyChordsMismatchError: If the melody and chord progression differ
           in temporal resolution or position in the source sequence, or if only
           one of melody or chords is specified.
     """
     if (melody is None) != (chords is None):
-      raise MelodyChordsMismatchException(
+      raise MelodyChordsMismatchError(
           'melody and chords must be both specified or both unspecified')
     if melody is not None:
       self._from_melody_and_chords(melody, chords)
@@ -84,7 +84,7 @@ class LeadSheet(events_lib.EventSequence):
       chords: A ChordProgression object.
 
     Raises:
-      MelodyChordsMismatchException: If the melody and chord progression differ
+      MelodyChordsMismatchError: If the melody and chord progression differ
           in temporal resolution or position in the source sequence.
     """
     if (len(melody) != len(chords) or
@@ -92,7 +92,7 @@ class LeadSheet(events_lib.EventSequence):
         melody.steps_per_quarter != chords.steps_per_quarter or
         melody.start_step != chords.start_step or
         melody.end_step != chords.end_step):
-      raise MelodyChordsMismatchException()
+      raise MelodyChordsMismatchError()
     self._melody = melody
     self._chords = chords
 
@@ -315,7 +315,7 @@ def extract_lead_sheet_fragments(quantized_sequence,
     A python list of LeadSheet instances.
 
   Raises:
-    NonIntegerStepsPerBarException: If `quantized_sequence`'s bar length
+    NonIntegerStepsPerBarError: If `quantized_sequence`'s bar length
         (derived from its time signature) is not an integer number of time
         steps.
   """

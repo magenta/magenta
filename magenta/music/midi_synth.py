@@ -1,22 +1,21 @@
-# Copyright 2016 Google Inc. All Rights Reserved.
+# Copyright 2019 The Magenta Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
 #
-#    http://www.apache.org/licenses/LICENSE-2.0
+#     http://www.apache.org/licenses/LICENSE-2.0
 #
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
 """MIDI audio synthesis."""
 
-# internal imports
-import numpy as np
-
 from magenta.music import midi_io
+import numpy as np
 
 
 def synthesize(sequence, sample_rate, wave=np.sin):
@@ -33,7 +32,7 @@ def synthesize(sequence, sample_rate, wave=np.sin):
   Returns:
     A 1-D numpy float array containing the synthesized waveform.
   """
-  midi = midi_io.sequence_proto_to_pretty_midi(sequence)
+  midi = midi_io.note_sequence_to_pretty_midi(sequence)
   return midi.synthesize(fs=sample_rate, wave=wave)
 
 
@@ -52,5 +51,5 @@ def fluidsynth(sequence, sample_rate, sf2_path=None):
   Returns:
     A 1-D numpy float array containing the synthesized waveform.
   """
-  midi = midi_io.sequence_proto_to_pretty_midi(sequence)
+  midi = midi_io.note_sequence_to_pretty_midi(sequence)
   return midi.fluidsynth(fs=sample_rate, sf2_path=sf2_path)

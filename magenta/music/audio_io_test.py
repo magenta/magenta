@@ -1,16 +1,17 @@
-# Copyright 2016 Google Inc. All Rights Reserved.
+# Copyright 2019 The Magenta Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
 #
-#    http://www.apache.org/licenses/LICENSE-2.0
+#     http://www.apache.org/licenses/LICENSE-2.0
 #
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
 """Tests for audio_io.py."""
 
 from __future__ import absolute_import
@@ -20,12 +21,11 @@ from __future__ import print_function
 import os
 import wave
 
+from magenta.music import audio_io
 import numpy as np
 import scipy
 import six
 import tensorflow as tf
-
-from magenta.music import audio_io
 
 
 class AudioIoTest(tf.test.TestCase):
@@ -45,9 +45,9 @@ class AudioIoTest(tf.test.TestCase):
     # Check content size.
     y = audio_io.wav_data_to_samples(self.wav_data, sample_rate=16000)
     y_mono = audio_io.wav_data_to_samples(self.wav_data_mono, sample_rate=22050)
-    self.assertEquals(
+    self.assertEqual(
         round(16000.0 * w.getnframes() / w.getframerate()), y.shape[0])
-    self.assertEquals(
+    self.assertEqual(
         round(22050.0 * w_mono.getnframes() / w_mono.getframerate()),
         y_mono.shape[0])
 

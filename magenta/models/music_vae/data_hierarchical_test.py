@@ -1,16 +1,17 @@
-# Copyright 2018 Google Inc. All Rights Reserved.
+# Copyright 2019 The Magenta Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
 #
-#    http://www.apache.org/licenses/LICENSE-2.0
+#     http://www.apache.org/licenses/LICENSE-2.0
 #
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
 """Tests for hierarchical data converters."""
 
 from __future__ import absolute_import
@@ -19,14 +20,11 @@ from __future__ import print_function
 
 import copy
 
-# internal imports
-import tensorflow as tf
-
 from magenta.models.music_vae import data_hierarchical
-
 import magenta.music as mm
 from magenta.music import testing_lib
 from magenta.protobuf import music_pb2
+import tensorflow as tf
 
 
 class MultiInstrumentPerformanceConverterTest(tf.test.TestCase):
@@ -52,9 +50,9 @@ class MultiInstrumentPerformanceConverterTest(tf.test.TestCase):
     converter = data_hierarchical.MultiInstrumentPerformanceConverter(
         hop_size_bars=2, chunk_size_bars=2)
     tensors = converter.to_tensors(sequence)
-    self.assertEquals(2, len(tensors.outputs))
+    self.assertEqual(2, len(tensors.outputs))
     sequences = converter.to_notesequences(tensors.outputs)
-    self.assertEquals(2, len(sequences))
+    self.assertEqual(2, len(sequences))
 
     sequence1 = copy.deepcopy(self.sequence)
     testing_lib.add_track_to_sequence(
@@ -93,9 +91,9 @@ class MultiInstrumentPerformanceConverterTest(tf.test.TestCase):
         hop_size_bars=2, chunk_size_bars=2,
         chord_encoding=mm.MajorMinorChordOneHotEncoding())
     tensors = converter.to_tensors(sequence)
-    self.assertEquals(2, len(tensors.outputs))
+    self.assertEqual(2, len(tensors.outputs))
     sequences = converter.to_notesequences(tensors.outputs, tensors.controls)
-    self.assertEquals(2, len(sequences))
+    self.assertEqual(2, len(sequences))
 
     sequence1 = copy.deepcopy(self.sequence)
     testing_lib.add_track_to_sequence(
@@ -135,9 +133,9 @@ class MultiInstrumentPerformanceConverterTest(tf.test.TestCase):
     converter = data_hierarchical.MultiInstrumentPerformanceConverter(
         hop_size_bars=4, chunk_size_bars=2)
     tensors = converter.to_tensors(sequence)
-    self.assertEquals(1, len(tensors.outputs))
+    self.assertEqual(1, len(tensors.outputs))
     sequences = converter.to_notesequences(tensors.outputs)
-    self.assertEquals(1, len(sequences))
+    self.assertEqual(1, len(sequences))
     self.assertProtoEquals(sequence, sequences[0])
 
   def testToNoteSequenceMultipleChunksWithChords(self):
@@ -159,9 +157,9 @@ class MultiInstrumentPerformanceConverterTest(tf.test.TestCase):
         hop_size_bars=4, chunk_size_bars=2,
         chord_encoding=mm.MajorMinorChordOneHotEncoding())
     tensors = converter.to_tensors(sequence)
-    self.assertEquals(1, len(tensors.outputs))
+    self.assertEqual(1, len(tensors.outputs))
     sequences = converter.to_notesequences(tensors.outputs, tensors.controls)
-    self.assertEquals(1, len(sequences))
+    self.assertEqual(1, len(sequences))
     self.assertProtoEquals(sequence, sequences[0])
 
 

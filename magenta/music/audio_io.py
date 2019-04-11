@@ -1,37 +1,39 @@
-# Copyright 2016 Google Inc. All Rights Reserved.
+# Copyright 2019 The Magenta Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
 #
-#    http://www.apache.org/licenses/LICENSE-2.0
+#     http://www.apache.org/licenses/LICENSE-2.0
 #
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
 """Audio file helper functions."""
 
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
+import tempfile
 import librosa
 import numpy as np
 import scipy
 import six
 
 
-class AudioIOException(BaseException):
+class AudioIOError(BaseException):  # pylint:disable=g-bad-exception-name
   pass
 
 
-class AudioIOReadException(AudioIOException):
+class AudioIOReadError(AudioIOError):
   pass
 
 
-class AudioIODataTypeException(AudioIOException):
+class AudioIODataTypeError(AudioIOError):
   pass
 
 
@@ -65,14 +67,14 @@ def wav_data_to_samples(wav_data, sample_rate):
     specified rate, in float32 format.
 
   Raises:
-    AudioIOReadException: If scipy is unable to read the WAV data.
-    AudioIOException: If audio processing fails.
+    AudioIOReadError: If scipy is unable to read the WAV data.
+    AudioIOError: If audio processing fails.
   """
   try:
     # Read the wav file, converting sample rate & number of channels.
     native_sr, y = scipy.io.wavfile.read(six.BytesIO(wav_data))
   except Exception as e:  # pylint: disable=broad-except
-    raise AudioIOReadException(e)
+    raise AudioIOReadError(e)
 
   if y.dtype == np.int16:
     # Convert to float32.
@@ -81,7 +83,7 @@ def wav_data_to_samples(wav_data, sample_rate):
     # Already float32.
     pass
   else:
-    raise AudioIOException(
+    raise AudioIOError(
         'WAV file not 16-bit or 32-bit float PCM, unsupported')
   try:
     # Convert to mono and the desired sample rate.
@@ -91,8 +93,40 @@ def wav_data_to_samples(wav_data, sample_rate):
     if native_sr != sample_rate:
       y = librosa.resample(y, native_sr, sample_rate)
   except Exception as e:  # pylint: disable=broad-except
-    raise AudioIOException(e)
+    raise AudioIOError(e)
   return y
+
+
+def wav_data_to_samples_librosa(audio_file, sample_rate):
+  """Loads an in-memory audio file with librosa.
+
+  Use this instead of wav_data_to_samples if the wav is 24-bit, as that's
+  incompatible with wav_data_to_samples internal scipy call.
+
+  Will copy to a local temp file before loading so that librosa can read a file
+  path. Librosa does not currently read in-memory files.
+
+  It will be treated as a .wav file.
+
+  Args:
+    audio_file: Wav file to load.
+    sample_rate: The number of samples per second at which the audio will be
+        returned. Resampling will be performed if necessary.
+
+  Returns:
+    A numpy array of audio samples, single-channel (mono) and sampled at the
+    specified rate, in float32 format.
+
+  Raises:
+    AudioIOReadException: If librosa is unable to load the audio data.
+  """
+  with tempfile.NamedTemporaryFile(suffix='.wav') as wav_input_file:
+    wav_input_file.write(audio_file)
+    # Before copying the file, flush any contents
+    wav_input_file.flush()
+    # And back the file position to top (not need for Copy but for certainty)
+    wav_input_file.seek(0)
+    return load_audio(wav_input_file.name, sample_rate)
 
 
 def samples_to_wav_data(samples, sample_rate):
@@ -178,12 +212,12 @@ def load_audio(audio_filename, sample_rate):
     specified rate, in float32 format.
 
   Raises:
-    AudioIOReadException: If librosa is unable to load the audio data.
+    AudioIOReadError: If librosa is unable to load the audio data.
   """
   try:
     y, unused_sr = librosa.load(audio_filename, sr=sample_rate, mono=True)
   except Exception as e:  # pylint: disable=broad-except
-    raise AudioIOReadException(e)
+    raise AudioIOReadError(e)
   return y
 
 
@@ -201,10 +235,10 @@ def make_stereo(left, right):
     The two channels combined into a stereo signal.
 
   Raises:
-    AudioIODataTypeException: if the two signals have different data types.
+    AudioIODataTypeError: if the two signals have different data types.
   """
   if left.dtype != right.dtype:
-    raise AudioIODataTypeException(
+    raise AudioIODataTypeError(
         'left channel is of type {}, but right channel is {}'.format(
             left.dtype, right.dtype))
 

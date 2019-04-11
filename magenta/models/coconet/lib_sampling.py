@@ -1,15 +1,29 @@
+# Copyright 2019 The Magenta Authors.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 """Classes and subroutines for generating pianorolls from coconet."""
 
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
-# internal imports
-import numpy as np
+
 from magenta.models.coconet import lib_data
 from magenta.models.coconet import lib_logging
 from magenta.models.coconet import lib_mask
 from magenta.models.coconet import lib_tfutil
 from magenta.models.coconet import lib_util
+import numpy as np
 
 ################
 ### Samplers ###
@@ -213,9 +227,10 @@ class GibbsSampler(BaseSampler):
 
   def _run(self, pianorolls, masks):
     print("shape", pianorolls.shape)
-    num_steps = (
-        np.max(_numbers_of_masked_variables(masks))
-        if self.num_steps is None else self.num_steps)
+    if self.num_steps is None:
+      num_steps = np.max(_numbers_of_masked_variables(masks))
+    else:
+      num_steps = self.num_steps
     print("num_steps", num_steps)
 
     with self.logger.section("sequence", subsample_factor=10):
@@ -382,7 +397,7 @@ class InstrumentMasker(BaseMasker):
 class CompletionMasker(BaseMasker):
   key = "completion"
 
-  def __call__(self, pianorolls, outer_masks=1.):
+  def __call__(self, pianorolls, outer_masks=1., separate_instruments=False):
     masks = (pianorolls == 0).all(axis=2, keepdims=True)
     inner_mask = masks + 0 * pianorolls  # broadcast explicitly
     return inner_mask * outer_masks
@@ -438,13 +453,14 @@ class ConstantSchedule(BaseSchedule):
 class BaseSelector(lib_util.Factory):
   """Base class for next variable selection in AncestralSampler."""
 
-  def __call__(self, predictions, masks, separate_instruments=True):
+  def __call__(self, predictions, masks, separate_instruments=True, **kwargs):
     """Select the next variable to sample.
 
     Args:
       predictions: model outputs
       masks: masks within which to sample
       separate_instruments: whether instruments are separated
+      **kwargs: Additional args.
 
     Returns:
       mask indicating which variable to sample next

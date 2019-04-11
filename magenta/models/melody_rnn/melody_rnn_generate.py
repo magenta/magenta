@@ -1,32 +1,30 @@
-# Copyright 2016 Google Inc. All Rights Reserved.
+# Copyright 2019 The Magenta Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
 #
-#    http://www.apache.org/licenses/LICENSE-2.0
+#     http://www.apache.org/licenses/LICENSE-2.0
 #
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
 """Generate melodies from a trained checkpoint of a melody RNN model."""
 
 import ast
 import os
 import time
 
-# internal imports
-
-import tensorflow as tf
 import magenta
-
 from magenta.models.melody_rnn import melody_rnn_config_flags
 from magenta.models.melody_rnn import melody_rnn_model
 from magenta.models.melody_rnn import melody_rnn_sequence_generator
 from magenta.protobuf import generator_pb2
 from magenta.protobuf import music_pb2
+import tensorflow as tf
 
 FLAGS = tf.app.flags.FLAGS
 tf.app.flags.DEFINE_string(
@@ -101,7 +99,7 @@ def get_checkpoint():
   """Get the training dir or checkpoint path to be used by the model."""
   if ((FLAGS.run_dir or FLAGS.checkpoint_file) and
       FLAGS.bundle_file and not FLAGS.save_generator_bundle):
-    raise magenta.music.SequenceGeneratorException(
+    raise magenta.music.SequenceGeneratorError(
         'Cannot specify both bundle_file and run_dir or checkpoint_file')
   if FLAGS.run_dir:
     train_dir = os.path.join(os.path.expanduser(FLAGS.run_dir), 'train')
@@ -174,8 +172,10 @@ def run_with_flags(generator):
   if primer_sequence:
     input_sequence = primer_sequence
     # Set the start time to begin on the next step after the last note ends.
-    last_end_time = (max(n.end_time for n in primer_sequence.notes)
-                     if primer_sequence.notes else 0)
+    if primer_sequence.notes:
+      last_end_time = max(n.end_time for n in primer_sequence.notes)
+    else:
+      last_end_time = 0
     generate_section = generator_options.generate_sections.add(
         start_time=last_end_time + seconds_per_step,
         end_time=total_seconds)

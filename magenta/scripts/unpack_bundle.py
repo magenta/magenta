@@ -1,10 +1,10 @@
-# Copyright 2016 Google Inc. All Rights Reserved.
+# Copyright 2019 The Magenta Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
 #
-#    http://www.apache.org/licenses/LICENSE-2.0
+#     http://www.apache.org/licenses/LICENSE-2.0
 #
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
@@ -15,14 +15,12 @@
 r"""Code to extract a tensorflow checkpoint from a bundle file.
 
 To run this code on your local machine:
-$ bazel run magenta/scripts:unpack_bundle -- \
+$ python magenta/scripts/unpack_bundle.py \
 --bundle_path 'path' --checkpoint_path 'path'
 """
 
-# internal imports
-import tensorflow as tf
-
 from magenta.music import sequence_generator_bundle
+import tensorflow as tf
 
 FLAGS = tf.app.flags.FLAGS
 tf.app.flags.DEFINE_string('bundle_path', '',

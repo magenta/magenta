@@ -1,22 +1,22 @@
-# Copyright 2016 Google Inc. All Rights Reserved.
+# Copyright 2019 The Magenta Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
 #
-#    http://www.apache.org/licenses/LICENSE-2.0
+#     http://www.apache.org/licenses/LICENSE-2.0
 #
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
 """Tests for statistics."""
 
-# internal imports
-import tensorflow as tf
-
 from magenta.pipelines import statistics
+import six
+import tensorflow as tf
 
 
 class StatisticsTest(tf.test.TestCase):
@@ -37,8 +37,7 @@ class StatisticsTest(tf.test.TestCase):
     class ABC(object):
       pass
 
-    with self.assertRaises(
-        statistics.MergeStatisticsException):
+    with self.assertRaises(statistics.MergeStatisticsError):
       counter.merge_from(ABC())
 
     self.assertEqual(str(counter), 'name_123: 16')
@@ -69,8 +68,9 @@ class StatisticsTest(tf.test.TestCase):
     self.assertEqual(histo.counters, {float('-inf'): 6, 1: 1, 2: 13, 10: 3})
 
     histo_3 = statistics.Histogram('name_123', [1, 2, 7])
-    with self.assertRaisesRegexp(
-        statistics.MergeStatisticsException,
+    with six.assertRaisesRegex(
+        self,
+        statistics.MergeStatisticsError,
         r'Histogram buckets do not match. '
         r'Expected \[-inf, 1, 2, 10\], got \[-inf, 1, 2, 7\]'):
       histo.merge_from(histo_3)
@@ -78,8 +78,7 @@ class StatisticsTest(tf.test.TestCase):
     class ABC(object):
       pass
 
-    with self.assertRaises(
-        statistics.MergeStatisticsException):
+    with self.assertRaises(statistics.MergeStatisticsError):
       histo.merge_from(ABC())
 
     self.assertEqual(
@@ -94,8 +93,7 @@ class StatisticsTest(tf.test.TestCase):
   def testMergeDifferentNames(self):
     counter_1 = statistics.Counter('counter_1')
     counter_2 = statistics.Counter('counter_2')
-    with self.assertRaises(
-        statistics.MergeStatisticsException):
+    with self.assertRaises(statistics.MergeStatisticsError):
       counter_1.merge_from(counter_2)
 
 

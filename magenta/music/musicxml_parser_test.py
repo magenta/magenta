@@ -1,36 +1,34 @@
-# Copyright 2016 Google Inc. All Rights Reserved.
+# Copyright 2019 The Magenta Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
 #
-#    http://www.apache.org/licenses/LICENSE-2.0
+#     http://www.apache.org/licenses/LICENSE-2.0
 #
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
 """Test to ensure correct import of MusicXML."""
 
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-from collections import defaultdict
+import collections
 import operator
 import os.path
 import tempfile
 import zipfile
 
-# internal imports
-
-import tensorflow as tf
-
 from magenta.common import testing_lib as common_testing_lib
 from magenta.music import musicxml_parser
 from magenta.music import musicxml_reader
 from magenta.protobuf import music_pb2
+import tensorflow as tf
 
 # Shortcut to CHORD_SYMBOL annotation type.
 CHORD_SYMBOL = music_pb2.NoteSequence.TextAnnotation.CHORD_SYMBOL
@@ -82,7 +80,7 @@ class MusicXMLParserTest(tf.test.TestCase):
   """
 
   def setUp(self):
-    self.maxDiff = None
+    self.maxDiff = None   # pylint:disable=invalid-name
 
     self.steps_per_quarter = 4
 
@@ -146,7 +144,7 @@ class MusicXMLParserTest(tf.test.TestCase):
         tf.resource_loader.get_data_files_path(),
         'testdata/meter_test.xml')
 
-  def checkmusicxmlandsequence(self, musicxml, sequence_proto):
+  def check_musicxml_and_sequence(self, musicxml, sequence_proto):
     """Compares MusicXMLDocument object against a sequence proto.
 
     Args:
@@ -192,7 +190,7 @@ class MusicXMLParserTest(tf.test.TestCase):
                              sequence_tempo.time)
 
     # Test parts/instruments.
-    seq_parts = defaultdict(list)
+    seq_parts = collections.defaultdict(list)
     for seq_note in sequence_proto.notes:
       seq_parts[seq_note.part].append(seq_note)
 
@@ -231,13 +229,13 @@ class MusicXMLParserTest(tf.test.TestCase):
             * musicxml_note.note_duration.duration_float(),
             delta=1)
 
-  def checkmusicxmltosequence(self, filename):
+  def check_musicxml_to_sequence(self, filename):
     """Test the translation from MusicXML to Sequence proto."""
     source_musicxml = musicxml_parser.MusicXMLDocument(filename)
     sequence_proto = musicxml_reader.musicxml_to_sequence_proto(source_musicxml)
-    self.checkmusicxmlandsequence(source_musicxml, sequence_proto)
+    self.check_musicxml_and_sequence(source_musicxml, sequence_proto)
 
-  def checkFMajorScale(self, filename, part_name):
+  def check_fmajor_scale(self, filename, part_name):
     """Verify MusicXML scale file.
 
     Verify that it contains the correct pitches (sounding pitch) and durations.
@@ -296,12 +294,12 @@ class MusicXMLParserTest(tf.test.TestCase):
 
   def testsimplemusicxmltosequence(self):
     """Test the simple flute scale MusicXML file."""
-    self.checkmusicxmltosequence(self.flute_scale_filename)
-    self.checkFMajorScale(self.flute_scale_filename, 'Flute')
+    self.check_musicxml_to_sequence(self.flute_scale_filename)
+    self.check_fmajor_scale(self.flute_scale_filename, 'Flute')
 
   def testcomplexmusicxmltosequence(self):
     """Test the complex band score MusicXML file."""
-    self.checkmusicxmltosequence(self.band_score_filename)
+    self.check_musicxml_to_sequence(self.band_score_filename)
 
   def testtransposedxmltosequence(self):
     """Test the translation from transposed MusicXML to Sequence proto.
@@ -315,8 +313,8 @@ class MusicXMLParserTest(tf.test.TestCase):
         self.clarinet_scale_filename)
     untransposed_proto = musicxml_reader.musicxml_to_sequence_proto(
         untransposed_musicxml)
-    self.checkmusicxmlandsequence(transposed_musicxml, untransposed_proto)
-    self.checkFMajorScale(self.clarinet_scale_filename, 'Clarinet in Bb')
+    self.check_musicxml_and_sequence(transposed_musicxml, untransposed_proto)
+    self.check_fmajor_scale(self.clarinet_scale_filename, 'Clarinet in Bb')
 
   def testcompressedmxlunicodefilename(self):
     """Test an MXL file containing a unicode filename within its zip archive."""
@@ -338,8 +336,8 @@ class MusicXMLParserTest(tf.test.TestCase):
         self.compressed_filename)
     uncompressed_proto = musicxml_reader.musicxml_to_sequence_proto(
         uncompressed_musicxml)
-    self.checkmusicxmlandsequence(compressed_musicxml, uncompressed_proto)
-    self.checkFMajorScale(self.flute_scale_filename, 'Flute')
+    self.check_musicxml_and_sequence(compressed_musicxml, uncompressed_proto)
+    self.check_fmajor_scale(self.flute_scale_filename, 'Flute')
 
   def testmultiplecompressedxmltosequence(self):
     """Test the translation from compressed MusicXML with multiple rootfiles.
@@ -354,12 +352,12 @@ class MusicXMLParserTest(tf.test.TestCase):
         self.multiple_rootfile_compressed_filename)
     uncompressed_proto = musicxml_reader.musicxml_to_sequence_proto(
         uncompressed_musicxml)
-    self.checkmusicxmlandsequence(compressed_musicxml, uncompressed_proto)
-    self.checkFMajorScale(self.flute_scale_filename, 'Flute')
+    self.check_musicxml_and_sequence(compressed_musicxml, uncompressed_proto)
+    self.check_fmajor_scale(self.flute_scale_filename, 'Flute')
 
   def testrhythmdurationsxmltosequence(self):
     """Test the rhythm durations MusicXML file."""
-    self.checkmusicxmltosequence(self.rhythm_durations_filename)
+    self.check_musicxml_to_sequence(self.rhythm_durations_filename)
 
   def testFluteScale(self):
     """Verify properties of the flute scale."""
@@ -956,15 +954,15 @@ class MusicXMLParserTest(tf.test.TestCase):
     self.assertEqual(expected_times_and_chords, chord_symbols)
 
   def test_alternating_meter(self):
-    with self.assertRaises(musicxml_parser.AlternatingTimeSignatureException):
+    with self.assertRaises(musicxml_parser.AlternatingTimeSignatureError):
       musicxml_parser.MusicXMLDocument(self.alternating_meter_filename)
 
   def test_mid_measure_meter_change(self):
-    with self.assertRaises(musicxml_parser.MultipleTimeSignatureException):
+    with self.assertRaises(musicxml_parser.MultipleTimeSignatureError):
       musicxml_parser.MusicXMLDocument(self.mid_measure_meter_filename)
 
   def test_unpitched_notes(self):
-    with self.assertRaises(musicxml_parser.UnpitchedNoteException):
+    with self.assertRaises(musicxml_parser.UnpitchedNoteError):
       musicxml_parser.MusicXMLDocument(os.path.join(
           tf.resource_loader.get_data_files_path(),
           'testdata/unpitched.xml'))
@@ -1660,7 +1658,7 @@ class MusicXMLParserTest(tf.test.TestCase):
     with tempfile.NamedTemporaryFile() as temp_file:
       temp_file.write(xml)
       temp_file.flush()
-      with self.assertRaises(musicxml_parser.KeyParseException):
+      with self.assertRaises(musicxml_parser.KeyParseError):
         musicxml_parser.MusicXMLDocument(temp_file.name)
 
   def test_harmony_missing_degree(self):
@@ -1705,7 +1703,7 @@ class MusicXMLParserTest(tf.test.TestCase):
     with tempfile.NamedTemporaryFile() as temp_file:
       temp_file.write(xml)
       temp_file.flush()
-      with self.assertRaises(musicxml_parser.ChordSymbolParseException):
+      with self.assertRaises(musicxml_parser.ChordSymbolParseError):
         musicxml_parser.MusicXMLDocument(temp_file.name)
 
   def test_transposed_keysig(self):
@@ -1798,7 +1796,7 @@ class MusicXMLParserTest(tf.test.TestCase):
     with tempfile.NamedTemporaryFile() as temp_file:
       temp_file.write(xml)
       temp_file.flush()
-      with self.assertRaises(musicxml_parser.TimeSignatureParseException):
+      with self.assertRaises(musicxml_parser.TimeSignatureParseError):
         musicxml_parser.MusicXMLDocument(temp_file.name)
 
   def test_invalid_note_type(self):
@@ -1837,7 +1835,7 @@ class MusicXMLParserTest(tf.test.TestCase):
     with tempfile.NamedTemporaryFile() as temp_file:
       temp_file.write(xml)
       temp_file.flush()
-      with self.assertRaises(musicxml_parser.InvalidNoteDurationTypeException):
+      with self.assertRaises(musicxml_parser.InvalidNoteDurationTypeError):
         musicxml_parser.MusicXMLDocument(temp_file.name)
 
 

@@ -1,16 +1,17 @@
-# Copyright 2017 Google Inc. All Rights Reserved.
+# Copyright 2019 The Magenta Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
 #
-#    http://www.apache.org/licenses/LICENSE-2.0
+#     http://www.apache.org/licenses/LICENSE-2.0
 #
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
 """Base Music Variational Autoencoder (MusicVAE) model."""
 
 from __future__ import absolute_import
@@ -19,10 +20,10 @@ from __future__ import print_function
 
 import abc
 
-# internal imports
 import tensorflow as tf
+import tensorflow_probability as tfp
 
-ds = tf.contrib.distributions
+ds = tfp.distributions
 
 
 class BaseEncoder(object):
@@ -185,7 +186,7 @@ class MusicVAE(object):
           to the input sequences.
 
     Returns:
-      A tf.distributions.MultivariateNormalDiag representing the posterior
+      A tfp.distributions.MultivariateNormalDiag representing the posterior
       distribution for each sequence.
     """
     hparams = self.hparams
@@ -303,7 +304,7 @@ class MusicVAE(object):
     optimizer = tf.train.AdamOptimizer(lr)
 
     tf.summary.scalar('learning_rate', lr)
-    for n, t in scalars_to_summarize.iteritems():
+    for n, t in scalars_to_summarize.items():
       tf.summary.scalar(n, tf.reduce_mean(t))
 
     return optimizer
@@ -347,7 +348,7 @@ class MusicVAE(object):
       tf.logging.warning(
           'Sampling from conditional model without `z`. Using random `z`.')
       normal_shape = [n, self.hparams.z_size]
-      normal_dist = tf.contrib.distributions.Normal(
+      normal_dist = tfp.distributions.Normal(
           loc=tf.zeros(normal_shape), scale=tf.ones(normal_shape))
       z = normal_dist.sample()
 

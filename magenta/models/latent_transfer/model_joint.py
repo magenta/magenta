@@ -1,16 +1,17 @@
-# Copyright 2018 Google Inc. All Rights Reserved.
+# Copyright 2019 The Magenta Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
 #
-#    http://www.apache.org/licenses/LICENSE-2.0
+#     http://www.apache.org/licenses/LICENSE-2.0
 #
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
 """The joint transfer model that bridges latent spaces of dataspace models.
 
 The whole experiment handles transfer between latent space
@@ -21,14 +22,14 @@ that models the transfer between latent spaces (z1, z2) of models on dataspace.
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
-from six import iteritems
-
-import sonnet as snt
-import tensorflow as tf
 
 from magenta.models.latent_transfer import nn
+from six import iteritems
+import sonnet as snt
+import tensorflow as tf
+import tensorflow_probability as tfp
 
-ds = tf.contrib.distributions
+ds = tfp.distributions
 
 
 def affine(x, output_size, z=None, residual=False, softplus=False):
@@ -117,7 +118,7 @@ class VAE(snt.AbstractModule):
     self.config = config
 
   def _build(self, unused_input=None):
-    # pylint:disable=unused-variable
+    # pylint:disable=unused-variable,possibly-unused-variable
     # Reason:
     #   All endpoints are stored as attribute at the end of `_build`.
     #   Pylint cannot infer this case so it emits false alarm of
@@ -220,7 +221,7 @@ class VAE(snt.AbstractModule):
     for k, v in iteritems(locals()):
       self.__dict__[k] = v
 
-    # pylint:enable=unused-variable
+    # pylint:enable=unused-variable,possibly-unused-variable
 
 
 class Model(snt.AbstractModule):
@@ -235,7 +236,7 @@ class Model(snt.AbstractModule):
     self.config = config
 
   def _build(self, unused_input=None):
-    # pylint:disable=unused-variable
+    # pylint:disable=unused-variable,possibly-unused-variable
     # Reason:
     #   All endpoints are stored as attribute at the end of `_build`.
     #   Pylint cannot infer this case so it emits false alarm of
@@ -373,7 +374,7 @@ class Model(snt.AbstractModule):
     for k, v in iteritems(locals()):
       self.__dict__[k] = v
 
-    # pylint:enable=unused-variable
+    # pylint:enable=unused-variable,possibly-unused-variable
     # pylint:enable=invalid-name
 
   def get_summary_kv_dict(self):

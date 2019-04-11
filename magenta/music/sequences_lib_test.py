@@ -1,35 +1,38 @@
-# Copyright 2016 Google Inc. All Rights Reserved.
+# Copyright 2019 The Magenta Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
 #
-#    http://www.apache.org/licenses/LICENSE-2.0
+#     http://www.apache.org/licenses/LICENSE-2.0
 #
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
 """Tests for sequences_lib."""
 
 import copy
 
-# internal imports
-import tensorflow as tf
-
 from magenta.common import testing_lib as common_testing_lib
+from magenta.music import constants
 from magenta.music import sequences_lib
 from magenta.music import testing_lib
 from magenta.protobuf import music_pb2
+import numpy as np
+import tensorflow as tf
 
 CHORD_SYMBOL = music_pb2.NoteSequence.TextAnnotation.CHORD_SYMBOL
+DEFAULT_FRAMES_PER_SECOND = 16000.0 / 512
+MIDI_PITCHES = constants.MAX_MIDI_PITCH - constants.MIN_MIDI_PITCH + 1
 
 
 class SequencesLibTest(tf.test.TestCase):
 
   def setUp(self):
-    self.maxDiff = None
+    self.maxDiff = None  # pylint:disable=invalid-name
 
     self.steps_per_quarter = 4
     self.note_sequence = common_testing_lib.parse_test_proto(
@@ -71,7 +74,7 @@ class SequencesLibTest(tf.test.TestCase):
     transposed_sequence, delete_count = sequences_lib.transpose_note_sequence(
         sequence, 1)
     self.assertProtoEquals(expected_sequence, transposed_sequence)
-    self.assertEquals(delete_count, 0)
+    self.assertEqual(delete_count, 0)
 
   def testTransposeNoteSequenceOutOfRange(self):
     sequence = copy.copy(self.note_sequence)
@@ -103,17 +106,17 @@ class SequencesLibTest(tf.test.TestCase):
     self.assertEqual(delete_count, 3)
 
   def testClampTranspose(self):
-    clamped = sequences_lib._clamp_transpose(
+    clamped = sequences_lib._clamp_transpose(  # pylint:disable=protected-access
         5, 20, 60, 10, 70)
-    self.assertEquals(clamped, 5)
+    self.assertEqual(clamped, 5)
 
-    clamped = sequences_lib._clamp_transpose(
+    clamped = sequences_lib._clamp_transpose(  # pylint:disable=protected-access
         15, 20, 60, 10, 65)
-    self.assertEquals(clamped, 5)
+    self.assertEqual(clamped, 5)
 
-    clamped = sequences_lib._clamp_transpose(
+    clamped = sequences_lib._clamp_transpose(  # pylint:disable=protected-access
         -16, 20, 60, 10, 70)
-    self.assertEquals(clamped, -10)
+    self.assertEqual(clamped, -10)
 
   def testAugmentNoteSequenceDeleteFalse(self):
     sequence = copy.copy(self.note_sequence)
@@ -340,7 +343,7 @@ class SequencesLibTest(tf.test.TestCase):
 
     subsequences = sequences_lib.split_note_sequence(
         sequence, hop_size_seconds=3.0)
-    self.assertEquals(3, len(subsequences))
+    self.assertEqual(3, len(subsequences))
     self.assertProtoEquals(expected_subsequence_1, subsequences[0])
     self.assertProtoEquals(expected_subsequence_2, subsequences[1])
     self.assertProtoEquals(expected_subsequence_3, subsequences[2])
@@ -411,7 +414,7 @@ class SequencesLibTest(tf.test.TestCase):
 
     subsequences = sequences_lib.split_note_sequence(
         sequence, hop_size_seconds=[3.0, 4.0])
-    self.assertEquals(3, len(subsequences))
+    self.assertEqual(3, len(subsequences))
     self.assertProtoEquals(expected_subsequence_1, subsequences[0])
     self.assertProtoEquals(expected_subsequence_2, subsequences[1])
     self.assertProtoEquals(expected_subsequence_3, subsequences[2])
@@ -468,7 +471,7 @@ class SequencesLibTest(tf.test.TestCase):
 
     subsequences = sequences_lib.split_note_sequence(
         sequence, hop_size_seconds=2.0, skip_splits_inside_notes=True)
-    self.assertEquals(2, len(subsequences))
+    self.assertEqual(2, len(subsequences))
     self.assertProtoEquals(expected_subsequence_1, subsequences[0])
     self.assertProtoEquals(expected_subsequence_2, subsequences[1])
 
@@ -489,7 +492,7 @@ class SequencesLibTest(tf.test.TestCase):
     expected_subsequence.subsequence_info.end_time_offset = 0.0
 
     subsequences = sequences_lib.split_note_sequence_on_time_changes(sequence)
-    self.assertEquals(1, len(subsequences))
+    self.assertEqual(1, len(subsequences))
     self.assertProtoEquals(expected_subsequence, subsequences[0])
 
   def testSplitNoteSequenceDuplicateTimeChanges(self):
@@ -520,7 +523,7 @@ class SequencesLibTest(tf.test.TestCase):
     expected_subsequence.subsequence_info.end_time_offset = 0.0
 
     subsequences = sequences_lib.split_note_sequence_on_time_changes(sequence)
-    self.assertEquals(1, len(subsequences))
+    self.assertEqual(1, len(subsequences))
     self.assertProtoEquals(expected_subsequence, subsequences[0])
 
   def testSplitNoteSequenceCoincidentTimeChanges(self):
@@ -582,7 +585,7 @@ class SequencesLibTest(tf.test.TestCase):
     expected_subsequence_2.subsequence_info.end_time_offset = 5.0
 
     subsequences = sequences_lib.split_note_sequence_on_time_changes(sequence)
-    self.assertEquals(2, len(subsequences))
+    self.assertEqual(2, len(subsequences))
     self.assertProtoEquals(expected_subsequence_1, subsequences[0])
     self.assertProtoEquals(expected_subsequence_2, subsequences[1])
 
@@ -649,7 +652,7 @@ class SequencesLibTest(tf.test.TestCase):
 
     subsequences = sequences_lib.split_note_sequence_on_time_changes(
         sequence, skip_splits_inside_notes=True)
-    self.assertEquals(2, len(subsequences))
+    self.assertEqual(2, len(subsequences))
     self.assertProtoEquals(expected_subsequence_1, subsequences[0])
     self.assertProtoEquals(expected_subsequence_2, subsequences[1])
 
@@ -729,7 +732,7 @@ class SequencesLibTest(tf.test.TestCase):
     expected_subsequence_3.subsequence_info.end_time_offset = 5.0
 
     subsequences = sequences_lib.split_note_sequence_on_time_changes(sequence)
-    self.assertEquals(3, len(subsequences))
+    self.assertEqual(3, len(subsequences))
     self.assertProtoEquals(expected_subsequence_1, subsequences[0])
     self.assertProtoEquals(expected_subsequence_2, subsequences[1])
     self.assertProtoEquals(expected_subsequence_3, subsequences[2])
@@ -795,7 +798,7 @@ class SequencesLibTest(tf.test.TestCase):
 
     subsequences = sequences_lib.split_note_sequence(
         sequence, hop_size_seconds=[3.0, 4.0])
-    self.assertEquals(3, len(subsequences))
+    self.assertEqual(3, len(subsequences))
     self.assertProtoEquals(expected_subsequence_1, subsequences[0])
     self.assertProtoEquals(expected_subsequence_2, subsequences[1])
     self.assertProtoEquals(expected_subsequence_3, subsequences[2])
@@ -868,7 +871,7 @@ class SequencesLibTest(tf.test.TestCase):
 
     sequences_lib.assert_is_quantized_sequence(relative_quantized_sequence)
     sequences_lib.assert_is_quantized_sequence(absolute_quantized_sequence)
-    with self.assertRaises(sequences_lib.QuantizationStatusException):
+    with self.assertRaises(sequences_lib.QuantizationStatusError):
       sequences_lib.assert_is_quantized_sequence(self.note_sequence)
 
   def testAssertIsRelativeQuantizedNoteSequence(self):
@@ -884,10 +887,10 @@ class SequencesLibTest(tf.test.TestCase):
 
     sequences_lib.assert_is_relative_quantized_sequence(
         relative_quantized_sequence)
-    with self.assertRaises(sequences_lib.QuantizationStatusException):
+    with self.assertRaises(sequences_lib.QuantizationStatusError):
       sequences_lib.assert_is_relative_quantized_sequence(
           absolute_quantized_sequence)
-    with self.assertRaises(sequences_lib.QuantizationStatusException):
+    with self.assertRaises(sequences_lib.QuantizationStatusError):
       sequences_lib.assert_is_relative_quantized_sequence(self.note_sequence)
 
   def testQuantizeNoteSequence_TimeSignatureChange(self):
@@ -911,7 +914,7 @@ class SequencesLibTest(tf.test.TestCase):
 
     # Time signature change.
     self.note_sequence.time_signatures.add(numerator=2, denominator=4, time=2)
-    with self.assertRaises(sequences_lib.MultipleTimeSignatureException):
+    with self.assertRaises(sequences_lib.MultipleTimeSignatureError):
       sequences_lib.quantize_note_sequence(
           self.note_sequence, self.steps_per_quarter)
 
@@ -928,7 +931,7 @@ class SequencesLibTest(tf.test.TestCase):
 
     # Implicit time signature change.
     self.note_sequence.time_signatures.add(numerator=2, denominator=4, time=2)
-    with self.assertRaises(sequences_lib.MultipleTimeSignatureException):
+    with self.assertRaises(sequences_lib.MultipleTimeSignatureError):
       sequences_lib.quantize_note_sequence(
           self.note_sequence, self.steps_per_quarter)
 
@@ -985,7 +988,7 @@ class SequencesLibTest(tf.test.TestCase):
 
     # Tempo change.
     self.note_sequence.tempos.add(qpm=120, time=2)
-    with self.assertRaises(sequences_lib.MultipleTempoException):
+    with self.assertRaises(sequences_lib.MultipleTempoError):
       sequences_lib.quantize_note_sequence(
           self.note_sequence, self.steps_per_quarter)
 
@@ -1002,7 +1005,7 @@ class SequencesLibTest(tf.test.TestCase):
 
     # Implicit tempo change.
     self.note_sequence.tempos.add(qpm=60, time=2)
-    with self.assertRaises(sequences_lib.MultipleTempoException):
+    with self.assertRaises(sequences_lib.MultipleTempoError):
       sequences_lib.quantize_note_sequence(
           self.note_sequence, self.steps_per_quarter)
 
@@ -1100,6 +1103,139 @@ class SequencesLibTest(tf.test.TestCase):
     sequences_lib.stretch_note_sequence(
         self.note_sequence, stretch_factor=1.5, in_place=True)
     self.assertProtoEquals(stretched_sequence, self.note_sequence)
+
+  def testAdjustNoteSequenceTimes(self):
+    sequence = music_pb2.NoteSequence()
+    sequence.notes.add(pitch=60, start_time=1.0, end_time=5.0)
+    sequence.notes.add(pitch=61, start_time=6.0, end_time=7.0)
+    sequence.control_changes.add(control_number=1, time=2.0)
+    sequence.pitch_bends.add(bend=5, time=2.0)
+    sequence.total_time = 7.0
+
+    adjusted_ns, skipped_notes = sequences_lib.adjust_notesequence_times(
+        sequence, lambda t: t - 1)
+
+    expected_sequence = music_pb2.NoteSequence()
+    expected_sequence.notes.add(pitch=60, start_time=0.0, end_time=4.0)
+    expected_sequence.notes.add(pitch=61, start_time=5.0, end_time=6.0)
+    expected_sequence.control_changes.add(control_number=1, time=1.0)
+    expected_sequence.pitch_bends.add(bend=5, time=1.0)
+    expected_sequence.total_time = 6.0
+
+    self.assertEqual(expected_sequence, adjusted_ns)
+    self.assertEqual(0, skipped_notes)
+
+  def testAdjustNoteSequenceTimesWithSkippedNotes(self):
+    sequence = music_pb2.NoteSequence()
+    sequence.notes.add(pitch=60, start_time=1.0, end_time=5.0)
+    sequence.notes.add(pitch=61, start_time=6.0, end_time=7.0)
+    sequence.notes.add(pitch=62, start_time=7.0, end_time=8.0)
+    sequence.total_time = 8.0
+
+    def time_func(time):
+      if time > 5:
+        return 5
+      else:
+        return time
+
+    adjusted_ns, skipped_notes = sequences_lib.adjust_notesequence_times(
+        sequence, time_func)
+
+    expected_sequence = music_pb2.NoteSequence()
+    expected_sequence.notes.add(pitch=60, start_time=1.0, end_time=5.0)
+    expected_sequence.total_time = 5.0
+
+    self.assertEqual(expected_sequence, adjusted_ns)
+    self.assertEqual(2, skipped_notes)
+
+  def testAdjustNoteSequenceTimesWithNotesBeforeTimeZero(self):
+    sequence = music_pb2.NoteSequence()
+    sequence.notes.add(pitch=60, start_time=1.0, end_time=5.0)
+    sequence.notes.add(pitch=61, start_time=6.0, end_time=7.0)
+    sequence.notes.add(pitch=62, start_time=7.0, end_time=8.0)
+    sequence.total_time = 8.0
+
+    def time_func(time):
+      return time - 5
+
+    with self.assertRaises(sequences_lib.InvalidTimeAdjustmentError):
+      sequences_lib.adjust_notesequence_times(sequence, time_func)
+
+  def testAdjustNoteSequenceTimesWithZeroDurations(self):
+    sequence = music_pb2.NoteSequence()
+    sequence.notes.add(pitch=60, start_time=1.0, end_time=2.0)
+    sequence.notes.add(pitch=61, start_time=3.0, end_time=4.0)
+    sequence.notes.add(pitch=62, start_time=5.0, end_time=6.0)
+    sequence.total_time = 8.0
+
+    def time_func(time):
+      if time % 2 == 0:
+        return time - 1
+      else:
+        return time
+
+    adjusted_ns, skipped_notes = sequences_lib.adjust_notesequence_times(
+        sequence, time_func)
+
+    expected_sequence = music_pb2.NoteSequence()
+
+    self.assertEqual(expected_sequence, adjusted_ns)
+    self.assertEqual(3, skipped_notes)
+
+    adjusted_ns, skipped_notes = sequences_lib.adjust_notesequence_times(
+        sequence, time_func, minimum_duration=.1)
+
+    expected_sequence = music_pb2.NoteSequence()
+    expected_sequence.notes.add(pitch=60, start_time=1.0, end_time=1.1)
+    expected_sequence.notes.add(pitch=61, start_time=3.0, end_time=3.1)
+    expected_sequence.notes.add(pitch=62, start_time=5.0, end_time=5.1)
+    expected_sequence.total_time = 5.1
+
+    self.assertEqual(expected_sequence, adjusted_ns)
+    self.assertEqual(0, skipped_notes)
+
+  def testAdjustNoteSequenceTimesEndBeforeStart(self):
+    sequence = music_pb2.NoteSequence()
+    sequence.notes.add(pitch=60, start_time=1.0, end_time=2.0)
+    sequence.notes.add(pitch=61, start_time=3.0, end_time=4.0)
+    sequence.notes.add(pitch=62, start_time=5.0, end_time=6.0)
+    sequence.total_time = 8.0
+
+    def time_func(time):
+      if time % 2 == 0:
+        return time - 2
+      else:
+        return time
+
+    with self.assertRaises(sequences_lib.InvalidTimeAdjustmentError):
+      sequences_lib.adjust_notesequence_times(sequence, time_func)
+
+  def testRectifyBeats(self):
+    sequence = music_pb2.NoteSequence()
+    testing_lib.add_track_to_sequence(
+        sequence, 0,
+        [(60, 100, 0.25, 0.5), (62, 100, 0.5, 0.75), (64, 100, 0.75, 2.5),
+         (65, 100, 1.0, 1.5), (67, 100, 1.5, 2.0)])
+    testing_lib.add_beats_to_sequence(sequence, [0.5, 1.0, 2.0])
+
+    rectified_sequence, alignment = sequences_lib.rectify_beats(
+        sequence, 120)
+
+    expected_sequence = music_pb2.NoteSequence()
+    expected_sequence.tempos.add(qpm=120)
+    testing_lib.add_track_to_sequence(
+        expected_sequence, 0,
+        [(60, 100, 0.25, 0.5), (62, 100, 0.5, 0.75), (64, 100, 0.75, 2.0),
+         (65, 100, 1.0, 1.25), (67, 100, 1.25, 1.5)])
+    testing_lib.add_beats_to_sequence(expected_sequence, [0.5, 1.0, 1.5])
+
+    self.assertEqual(expected_sequence, rectified_sequence)
+
+    expected_alignment = [
+        [0.0, 0.5, 1.0, 2.0, 2.5],
+        [0.0, 0.5, 1.0, 1.5, 2.0]
+    ]
+    self.assertEqual(expected_alignment, alignment.T.tolist())
 
   def testApplySustainControlChanges(self):
     """Verify sustain controls extend notes until the end of the control."""
@@ -1466,6 +1602,362 @@ class SequencesLibTest(tf.test.TestCase):
 
     self.assertEqual(sequence, expanded)
 
+  def testSequenceToPianoroll(self):
+    sequence = music_pb2.NoteSequence(total_time=1.21)
+    testing_lib.add_track_to_sequence(sequence, 0, [(1, 100, 0.11, 1.01),
+                                                    (2, 55, 0.22, 0.50),
+                                                    (3, 100, 0.3, 0.8),
+                                                    (2, 45, 1.0, 1.21)])
+
+    pianoroll_tuple = sequences_lib.sequence_to_pianoroll(
+        sequence, frames_per_second=10, min_pitch=1, max_pitch=2)
+    output = pianoroll_tuple.active
+    offset = pianoroll_tuple.offsets
+
+    expected_pianoroll = [[0, 0],
+                          [1, 0],
+                          [1, 1],
+                          [1, 1],
+                          [1, 1],
+                          [1, 0],
+                          [1, 0],
+                          [1, 0],
+                          [1, 0],
+                          [1, 0],
+                          [1, 1],
+                          [0, 1],
+                          [0, 1]]
+
+    expected_offsets = [[0, 0],
+                        [0, 0],
+                        [0, 0],
+                        [0, 0],
+                        [0, 0],
+                        [0, 1],
+                        [0, 0],
+                        [0, 0],
+                        [0, 0],
+                        [0, 0],
+                        [1, 0],
+                        [0, 0],
+                        [0, 1]]
+
+    np.testing.assert_allclose(expected_pianoroll, output)
+    np.testing.assert_allclose(expected_offsets, offset)
+
+  def testSequenceToPianorollWithBlankFrameBeforeOffset(self):
+    sequence = music_pb2.NoteSequence(total_time=1.5)
+    testing_lib.add_track_to_sequence(sequence, 0, [(1, 100, 0.00, 1.00),
+                                                    (2, 100, 0.20, 0.50),
+                                                    (1, 100, 1.20, 1.50),
+                                                    (2, 100, 0.50, 1.50)])
+
+    expected_pianoroll = [
+        [1, 0],
+        [1, 0],
+        [1, 1],
+        [1, 1],
+        [1, 1],
+        [1, 1],
+        [1, 1],
+        [1, 1],
+        [1, 1],
+        [1, 1],
+        [0, 1],
+        [0, 1],
+        [1, 1],
+        [1, 1],
+        [1, 1],
+        [0, 0],
+    ]
+
+    output = sequences_lib.sequence_to_pianoroll(
+        sequence, frames_per_second=10, min_pitch=1, max_pitch=2).active
+
+    np.testing.assert_allclose(expected_pianoroll, output)
+
+    expected_pianoroll_with_blank_frame = [
+        [1, 0],
+        [1, 0],
+        [1, 1],
+        [1, 1],
+        [1, 0],
+        [1, 1],
+        [1, 1],
+        [1, 1],
+        [1, 1],
+        [1, 1],
+        [0, 1],
+        [0, 1],
+        [1, 1],
+        [1, 1],
+        [1, 1],
+        [0, 0],
+    ]
+
+    output_with_blank_frame = sequences_lib.sequence_to_pianoroll(
+        sequence,
+        frames_per_second=10,
+        min_pitch=1,
+        max_pitch=2,
+        add_blank_frame_before_onset=True).active
+
+    np.testing.assert_allclose(expected_pianoroll_with_blank_frame,
+                               output_with_blank_frame)
+
+  def testSequenceToPianorollWithBlankFrameBeforeOffsetOutOfOrder(self):
+    sequence = music_pb2.NoteSequence(total_time=.5)
+    testing_lib.add_track_to_sequence(sequence, 0, [(1, 100, 0.20, 0.50),
+                                                    (1, 100, 0.00, 0.20)])
+
+    expected_pianoroll = [
+        [1],
+        [0],
+        [1],
+        [1],
+        [1],
+        [0],
+    ]
+
+    output = sequences_lib.sequence_to_pianoroll(
+        sequence,
+        frames_per_second=10,
+        min_pitch=1,
+        max_pitch=1,
+        add_blank_frame_before_onset=True).active
+
+    np.testing.assert_allclose(expected_pianoroll, output)
+
+  def testSequenceToPianorollWeightedRoll(self):
+    sequence = music_pb2.NoteSequence(total_time=2.0)
+    testing_lib.add_track_to_sequence(sequence, 0, [(1, 100, 0.00, 1.00),
+                                                    (2, 100, 0.20, 0.50),
+                                                    (3, 100, 1.20, 1.50),
+                                                    (4, 100, 0.40, 2.00),
+                                                    (6, 100, 0.10, 0.60)])
+
+    onset_upweight = 5.0
+    expected_roll_weights = [
+        [onset_upweight, onset_upweight, 1, onset_upweight],
+        [onset_upweight, onset_upweight, onset_upweight, onset_upweight],
+        [1, 1, onset_upweight, onset_upweight / 1],
+        [1, 1, onset_upweight, onset_upweight / 2],
+        [1, 1, 1, 1],
+    ]
+
+    expected_onsets = [
+        [1, 1, 0, 1],
+        [1, 1, 1, 1],
+        [0, 0, 1, 0],
+        [0, 0, 1, 0],
+        [0, 0, 0, 0],
+    ]
+    roll = sequences_lib.sequence_to_pianoroll(
+        sequence,
+        frames_per_second=2,
+        min_pitch=1,
+        max_pitch=4,
+        onset_upweight=onset_upweight)
+
+    np.testing.assert_allclose(expected_roll_weights, roll.weights)
+    np.testing.assert_allclose(expected_onsets, roll.onsets)
+
+  def testSequenceToPianorollOnsets(self):
+    sequence = music_pb2.NoteSequence()
+    sequence.notes.add(pitch=60, start_time=2.0, end_time=5.0)
+    sequence.notes.add(pitch=61, start_time=6.0, end_time=7.0)
+    sequence.notes.add(pitch=62, start_time=7.0, end_time=8.0)
+    sequence.total_time = 8.0
+
+    onsets = sequences_lib.sequence_to_pianoroll(
+        sequence,
+        100,
+        60,
+        62,
+        onset_mode='length_ms',
+        onset_length_ms=100.0,
+        onset_delay_ms=10.0,
+        min_frame_occupancy_for_label=.999).onsets
+
+    expected_roll = np.zeros([801, 3])
+    expected_roll[201:211, 0] = 1.
+    expected_roll[601:611, 1] = 1.
+    expected_roll[701:711, 2] = 1.
+
+    np.testing.assert_equal(expected_roll, onsets)
+
+  def testSequenceToPianorollFrameOccupancy(self):
+    sequence = music_pb2.NoteSequence()
+    sequence.notes.add(pitch=60, start_time=1.0, end_time=1.7)
+    sequence.notes.add(pitch=61, start_time=6.2, end_time=6.55)
+    sequence.notes.add(pitch=62, start_time=3.4, end_time=4.3)
+    sequence.total_time = 6.55
+
+    active = sequences_lib.sequence_to_pianoroll(
+        sequence, 2, 60, 62, min_frame_occupancy_for_label=0.5).active
+
+    expected_roll = np.zeros([14, 3])
+    expected_roll[2:3, 0] = 1.
+    expected_roll[12:13, 1] = 1.
+    expected_roll[7:9, 2] = 1.
+
+    np.testing.assert_equal(expected_roll, active)
+
+  def testSequenceToPianorollOnsetVelocities(self):
+    sequence = music_pb2.NoteSequence()
+    sequence.notes.add(pitch=60, start_time=0.0, end_time=2.0, velocity=16)
+    sequence.notes.add(pitch=61, start_time=0.0, end_time=2.0, velocity=32)
+    sequence.notes.add(pitch=62, start_time=0.0, end_time=2.0, velocity=64)
+    sequence.total_time = 2.0
+
+    roll = sequences_lib.sequence_to_pianoroll(
+        sequence, 1, 60, 62, max_velocity=64, onset_window=0)
+    onset_velocities = roll.onset_velocities
+
+    self.assertEqual(onset_velocities[0, 0], 0.25)
+    self.assertEqual(onset_velocities[0, 1], 0.5)
+    self.assertEqual(onset_velocities[0, 2], 1.)
+    self.assertEqual(np.all(onset_velocities[1:] == 0), True)
+
+  def testSequenceToPianorollActiveVelocities(self):
+    sequence = music_pb2.NoteSequence()
+    sequence.notes.add(pitch=60, start_time=0.0, end_time=2.0, velocity=16)
+    sequence.notes.add(pitch=61, start_time=0.0, end_time=2.0, velocity=32)
+    sequence.notes.add(pitch=62, start_time=0.0, end_time=2.0, velocity=64)
+    sequence.total_time = 2.0
+
+    roll = sequences_lib.sequence_to_pianoroll(
+        sequence, 1, 60, 62, max_velocity=64)
+    active_velocities = roll.active_velocities
+
+    self.assertEqual(np.all(active_velocities[0:2, 0] == 0.25), True)
+    self.assertEqual(np.all(active_velocities[0:2, 1] == 0.5), True)
+    self.assertEqual(np.all(active_velocities[0:2, 2] == 1.), True)
+    self.assertEqual(np.all(active_velocities[2:] == 0), True)
+
+  def testPianorollToNoteSequence(self):
+    # 100 frames of notes.
+    frames = np.zeros((100, MIDI_PITCHES), np.bool)
+    # Activate key 39 for the middle 50 frames.
+    frames[25:75, 39] = True
+    sequence = sequences_lib.pianoroll_to_note_sequence(
+        frames, frames_per_second=DEFAULT_FRAMES_PER_SECOND, min_duration_ms=0)
+
+    self.assertEqual(1, len(sequence.notes))
+    self.assertEqual(39, sequence.notes[0].pitch)
+    self.assertEqual(25 / DEFAULT_FRAMES_PER_SECOND,
+                     sequence.notes[0].start_time)
+    self.assertEqual(75 / DEFAULT_FRAMES_PER_SECOND, sequence.notes[0].end_time)
+
+  def testPianorollToNoteSequenceWithOnsets(self):
+    # 100 frames of notes and onsets.
+    frames = np.zeros((100, MIDI_PITCHES), np.bool)
+    onsets = np.zeros((100, MIDI_PITCHES), np.bool)
+    # Activate key 39 for the middle 50 frames and last 10 frames.
+    frames[25:75, 39] = True
+    frames[90:100, 39] = True
+    # Add an onset for the first occurrence.
+    onsets[25, 39] = True
+    # Add an onset for a note that doesn't have an active frame.
+    onsets[80, 49] = True
+    sequence = sequences_lib.pianoroll_to_note_sequence(
+        frames,
+        frames_per_second=DEFAULT_FRAMES_PER_SECOND,
+        min_duration_ms=0,
+        onset_predictions=onsets)
+    self.assertEqual(2, len(sequence.notes))
+
+    self.assertEqual(39, sequence.notes[0].pitch)
+    self.assertEqual(25 / DEFAULT_FRAMES_PER_SECOND,
+                     sequence.notes[0].start_time)
+    self.assertEqual(75 / DEFAULT_FRAMES_PER_SECOND, sequence.notes[0].end_time)
+
+    self.assertEqual(49, sequence.notes[1].pitch)
+    self.assertEqual(80 / DEFAULT_FRAMES_PER_SECOND,
+                     sequence.notes[1].start_time)
+    self.assertEqual(81 / DEFAULT_FRAMES_PER_SECOND, sequence.notes[1].end_time)
+
+  def testPianorollToNoteSequenceWithOnsetsAndVelocity(self):
+    # 100 frames of notes and onsets.
+    frames = np.zeros((100, MIDI_PITCHES), np.bool)
+    onsets = np.zeros((100, MIDI_PITCHES), np.bool)
+    velocity_values = np.zeros((100, MIDI_PITCHES), np.float32)
+    # Activate key 39 for the middle 50 frames and last 10 frames.
+    frames[25:75, 39] = True
+    frames[90:100, 39] = True
+    # Add an onset for the first occurrence with a valid velocity.
+    onsets[25, 39] = True
+    velocity_values[25, 39] = 0.5
+    # Add an onset for the second occurrence with a NaN velocity.
+    onsets[90, 39] = True
+    velocity_values[90, 39] = float('nan')
+    sequence = sequences_lib.pianoroll_to_note_sequence(
+        frames,
+        frames_per_second=DEFAULT_FRAMES_PER_SECOND,
+        min_duration_ms=0,
+        onset_predictions=onsets,
+        velocity_values=velocity_values)
+    self.assertEqual(2, len(sequence.notes))
+
+    self.assertEqual(39, sequence.notes[0].pitch)
+    self.assertEqual(50, sequence.notes[0].velocity)
+    self.assertEqual(39, sequence.notes[1].pitch)
+    self.assertEqual(0, sequence.notes[1].velocity)
+
+  def testPianorollToNoteSequenceWithOnsetsOverlappingFrames(self):
+    # 100 frames of notes and onsets.
+    frames = np.zeros((100, MIDI_PITCHES), np.bool)
+    onsets = np.zeros((100, MIDI_PITCHES), np.bool)
+    # Activate key 39 for the middle 50 frames.
+    frames[25:75, 39] = True
+    # Add multiple onsets within those frames.
+    onsets[25, 39] = True
+    onsets[30, 39] = True
+    # If an onset lasts for multiple frames, it should create only 1 note.
+    onsets[35, 39] = True
+    onsets[36, 39] = True
+    sequence = sequences_lib.pianoroll_to_note_sequence(
+        frames,
+        frames_per_second=DEFAULT_FRAMES_PER_SECOND,
+        min_duration_ms=0,
+        onset_predictions=onsets)
+    self.assertEqual(3, len(sequence.notes))
+
+    self.assertEqual(39, sequence.notes[0].pitch)
+    self.assertEqual(25 / DEFAULT_FRAMES_PER_SECOND,
+                     sequence.notes[0].start_time)
+    self.assertEqual(30 / DEFAULT_FRAMES_PER_SECOND, sequence.notes[0].end_time)
+
+    self.assertEqual(39, sequence.notes[1].pitch)
+    self.assertEqual(30 / DEFAULT_FRAMES_PER_SECOND,
+                     sequence.notes[1].start_time)
+    self.assertEqual(35 / DEFAULT_FRAMES_PER_SECOND, sequence.notes[1].end_time)
+
+    self.assertEqual(39, sequence.notes[2].pitch)
+    self.assertEqual(35 / DEFAULT_FRAMES_PER_SECOND,
+                     sequence.notes[2].start_time)
+    self.assertEqual(75 / DEFAULT_FRAMES_PER_SECOND, sequence.notes[2].end_time)
+
+  def testSequenceToPianorollControlChanges(self):
+    sequence = music_pb2.NoteSequence(total_time=2.0)
+    cc = music_pb2.NoteSequence.ControlChange
+    sequence.control_changes.extend([
+        cc(time=0.7, control_number=3, control_value=16),
+        cc(time=0.0, control_number=4, control_value=32),
+        cc(time=0.5, control_number=4, control_value=32),
+        cc(time=1.6, control_number=3, control_value=64),
+    ])
+
+    expected_cc_roll = np.zeros((5, 128), dtype=np.int32)
+    expected_cc_roll[0:2, 4] = 33
+    expected_cc_roll[1, 3] = 17
+    expected_cc_roll[3, 3] = 65
+
+    cc_roll = sequences_lib.sequence_to_pianoroll(
+        sequence, frames_per_second=2, min_pitch=1, max_pitch=4).control_changes
+
+    np.testing.assert_allclose(expected_cc_roll, cc_roll)
+
+
 if __name__ == '__main__':
   tf.test.main()
-

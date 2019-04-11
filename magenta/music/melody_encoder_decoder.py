@@ -1,16 +1,17 @@
-# Copyright 2016 Google Inc. All Rights Reserved.
+# Copyright 2019 The Magenta Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
 #
-#    http://www.apache.org/licenses/LICENSE-2.0
+#     http://www.apache.org/licenses/LICENSE-2.0
 #
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
 """Classes for converting between Melody objects and models inputs/outputs.
 
 MelodyOneHotEncoding is an encoder_decoder.OneHotEncoding that specifies a one-
@@ -28,7 +29,6 @@ from __future__ import print_function
 
 import collections
 
-# internal imports
 from magenta.music import constants
 from magenta.music import encoder_decoder
 from magenta.music import melodies_lib
@@ -102,7 +102,7 @@ class MelodyOneHotEncoding(encoder_decoder.OneHotEncoding):
     """
     if event < -NUM_SPECIAL_MELODY_EVENTS:
       raise ValueError('invalid melody event value: %d' % event)
-    if (event >= 0) and (event < self._min_note):
+    if 0 <= event < self._min_note:
       raise ValueError('melody event less than min note: %d < %d' % (
           event, self._min_note))
     if event >= self._max_note:
@@ -148,9 +148,10 @@ class KeyMelodyEncoderDecoder(encoder_decoder.EventSequenceEncoderDecoder):
       binary_counter_bits: The number of input bits to use as a counter for the
           metric position of the next note.
     """
-    self._lookback_distances = (lookback_distances
-                                if lookback_distances is not None
-                                else DEFAULT_LOOKBACK_DISTANCES)
+    if lookback_distances is None:
+      self._lookback_distances = DEFAULT_LOOKBACK_DISTANCES
+    else:
+      self._lookback_distances = lookback_distances
     self._binary_counter_bits = binary_counter_bits
     self._min_note = min_note
     self._note_range = max_note - min_note

@@ -1,16 +1,17 @@
-# Copyright 2016 Google Inc. All Rights Reserved.
+# Copyright 2019 The Magenta Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
 #
-#    http://www.apache.org/licenses/LICENSE-2.0
+#     http://www.apache.org/licenses/LICENSE-2.0
 #
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
 """Utility functions for working with melodies.
 
 Use extract_melodies to extract monophonic melodies from a quantized
@@ -20,17 +21,14 @@ Use Melody.to_sequence to write a melody to a NoteSequence proto. Then use
 midi_io.sequence_proto_to_midi_file to write that NoteSequence to a midi file.
 """
 
-# internal imports
-import numpy as np
-from six.moves import range  # pylint: disable=redefined-builtin
-
 from magenta.music import constants
 from magenta.music import events_lib
 from magenta.music import midi_io
 from magenta.music import sequences_lib
 from magenta.pipelines import statistics
 from magenta.protobuf import music_pb2
-
+import numpy as np
+from six.moves import range  # pylint: disable=redefined-builtin
 
 MELODY_NOTE_OFF = constants.MELODY_NOTE_OFF
 MELODY_NO_EVENT = constants.MELODY_NO_EVENT
@@ -45,11 +43,11 @@ STANDARD_PPQ = constants.STANDARD_PPQ
 NOTE_KEYS = constants.NOTE_KEYS
 
 
-class PolyphonicMelodyException(Exception):
+class PolyphonicMelodyError(Exception):
   pass
 
 
-class BadNoteException(Exception):
+class BadNoteError(Exception):
   pass
 
 
@@ -145,10 +143,10 @@ class Melody(events_lib.SimpleEventSequence):
           `start_step`.
 
     Raises:
-      BadNoteException: If `start_step` does not precede `end_step`.
+      BadNoteError: If `start_step` does not precede `end_step`.
     """
     if start_step >= end_step:
-      raise BadNoteException(
+      raise BadNoteError(
           'Start step does not precede end step: start=%d, end=%d' %
           (start_step, end_step))
 
@@ -267,17 +265,17 @@ class Melody(events_lib.SimpleEventSequence):
           is ended.
       ignore_polyphonic_notes: If True, the highest pitch is used in the melody
           when multiple notes start at the same time. If False,
-          PolyphonicMelodyException will be raised if multiple notes start at
+          PolyphonicMelodyError will be raised if multiple notes start at
           the same time.
       pad_end: If True, the end of the melody will be padded with NO_EVENTs so
           that it will end at a bar boundary.
       filter_drums: If True, notes for which `is_drum` is True will be ignored.
 
     Raises:
-      NonIntegerStepsPerBarException: If `quantized_sequence`'s bar length
+      NonIntegerStepsPerBarError: If `quantized_sequence`'s bar length
           (derived from its time signature) is not an integer number of time
           steps.
-      PolyphonicMelodyException: If any of the notes start on the same step
+      PolyphonicMelodyError: If any of the notes start on the same step
           and `ignore_polyphonic_notes` is False.
     """
     sequences_lib.assert_is_relative_quantized_sequence(quantized_sequence)
@@ -286,7 +284,7 @@ class Melody(events_lib.SimpleEventSequence):
     steps_per_bar_float = sequences_lib.steps_per_bar_in_quantized_sequence(
         quantized_sequence)
     if steps_per_bar_float % 1 != 0:
-      raise events_lib.NonIntegerStepsPerBarException(
+      raise events_lib.NonIntegerStepsPerBarError(
           'There are %f timesteps per bar. Time signature: %d/%d' %
           (steps_per_bar_float, quantized_sequence.time_signatures[0].numerator,
            quantized_sequence.time_signatures[0].denominator))
@@ -337,13 +335,13 @@ class Melody(events_lib.SimpleEventSequence):
           continue
         else:
           self._reset()
-          raise PolyphonicMelodyException()
+          raise PolyphonicMelodyError()
       elif on_distance < 0:
-        raise PolyphonicMelodyException(
+        raise PolyphonicMelodyError(
             'Unexpected note. Not in ascending order.')
 
       # If a gap of `gap` or more steps is found, end the melody.
-      if len(self) and off_distance >= gap_bars * steps_per_bar:
+      if len(self) and off_distance >= gap_bars * steps_per_bar:  # pylint:disable=len-as-condition
         break
 
       # Add the note-on and off events to the melody.
@@ -583,7 +581,7 @@ def extract_melodies(quantized_sequence,
     stats: A dictionary mapping string names to `statistics.Statistic` objects.
 
   Raises:
-    NonIntegerStepsPerBarException: If `quantized_sequence`'s bar length
+    NonIntegerStepsPerBarError: If `quantized_sequence`'s bar length
         (derived from its time signature) is not an integer number of time
         steps.
   """
@@ -592,12 +590,12 @@ def extract_melodies(quantized_sequence,
   # TODO(danabo): Convert `ignore_polyphonic_notes` into a float which controls
   # the degree of polyphony that is acceptable.
   melodies = []
-  stats = dict([(stat_name, statistics.Counter(stat_name)) for stat_name in
-                ['polyphonic_tracks_discarded',
-                 'melodies_discarded_too_short',
-                 'melodies_discarded_too_few_pitches',
-                 'melodies_discarded_too_long',
-                 'melodies_truncated']])
+  stats = dict((stat_name, statistics.Counter(stat_name)) for stat_name in
+               ['polyphonic_tracks_discarded',
+                'melodies_discarded_too_short',
+                'melodies_discarded_too_few_pitches',
+                'melodies_discarded_too_long',
+                'melodies_truncated'])
   # Create a histogram measuring melody lengths (in bars not steps).
   # Capture melodies that are very small, in the range of the filter lower
   # bound `min_bars`, and large. The bucket intervals grow approximately
@@ -606,7 +604,7 @@ def extract_melodies(quantized_sequence,
       'melody_lengths_in_bars',
       [0, 1, 10, 20, 30, 40, 50, 100, 200, 500, min_bars // 2, min_bars,
        min_bars + 1, min_bars - 1])
-  instruments = set([n.instrument for n in quantized_sequence.notes])
+  instruments = set(n.instrument for n in quantized_sequence.notes)
   steps_per_bar = int(
       sequences_lib.steps_per_bar_in_quantized_sequence(quantized_sequence))
   for instrument in instruments:
@@ -624,11 +622,9 @@ def extract_melodies(quantized_sequence,
             ignore_polyphonic_notes=ignore_polyphonic_notes,
             pad_end=pad_end,
             filter_drums=filter_drums)
-      except PolyphonicMelodyException:
+      except PolyphonicMelodyError:
         stats['polyphonic_tracks_discarded'].increment()
         break  # Look for monophonic melodies in other tracks.
-      except events_lib.NonIntegerStepsPerBarException:
-        raise
       # Start search for next melody on next bar boundary (inclusive).
       instrument_search_start_step = (
           melody.end_step +

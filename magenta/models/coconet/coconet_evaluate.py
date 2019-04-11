@@ -1,15 +1,30 @@
+# Copyright 2019 The Magenta Authors.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 """Script to evaluate a dataset fold under a model."""
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
+
 import os
-# internal imports
-import numpy as np
-import tensorflow as tf
+
 from magenta.models.coconet import lib_data
 from magenta.models.coconet import lib_evaluation
 from magenta.models.coconet import lib_graph
 from magenta.models.coconet import lib_util
+import numpy as np
+import tensorflow as tf
 
 FLAGS = tf.app.flags.FLAGS
 flags = tf.app.flags
@@ -82,9 +97,9 @@ def main(unused_argv):
 def evaluate_fold(fold, evaluator, hparams, eval_logdir, checkpoint_dir):
   """Writes to file the neg. loglikelihood of given fold (train/valid/test)."""
   eval_run_name = 'eval_%s_%s%s_%s_ensemble%s_chrono%s' % (
-      lib_util.timestamp(), fold, FLAGS.fold_index
-      if FLAGS.fold_index is not None else '', FLAGS.unit, FLAGS.ensemble_size,
-      FLAGS.chronological)
+      lib_util.timestamp(), fold,
+      '' if FLAGS.fold_index is None else FLAGS.fold_index, FLAGS.unit,
+      FLAGS.ensemble_size, FLAGS.chronological)
   log_fname = '%s__%s.npz' % (os.path.basename(checkpoint_dir), eval_run_name)
   log_fpath = os.path.join(eval_logdir, log_fname)
 

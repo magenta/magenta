@@ -1,0 +1,72 @@
+# Alignment tools.
+
+licenses(["notice"])  # Apache 2.0
+
+load("@com_google_protobuf//:protobuf.bzl", "cc_proto_library")
+load("@com_google_protobuf//:protobuf.bzl", "py_proto_library")
+
+
+cc_library(
+    name = "align_utils",
+    srcs = ["align_utils.cc"],
+    hdrs = ["align_utils.h"],
+    deps = [
+        "@absl//absl/base",
+        "@absl//absl/container:flat_hash_map",
+        "@eigen_repo//:eigen",
+    ],
+)
+
+cc_test(
+    name = "align_utils_test",
+    srcs = ["align_utils_test.cc"],
+    deps = [
+        ":align_utils",
+        "@gtest//:gtest_main",
+    ],
+)
+
+py_library(
+    name = "align_fine_lib",
+    srcs = ["align_fine_lib.py"],
+    data = [
+        ":align",
+    ],
+    deps = [
+        ":alignment_py_pb2",
+    ],
+)
+
+cc_proto_library(
+    name = "alignment_proto",
+    srcs = ["alignment.proto"],
+    default_runtime = "@com_google_protobuf//:protobuf",
+    protoc = "@com_google_protobuf//:protoc",
+)
+
+py_proto_library(
+    name = "alignment_py_pb2",
+    srcs = ["alignment.proto"],
+    default_runtime = "@com_google_protobuf//:protobuf_python",
+    protoc = "@com_google_protobuf//:protoc",
+)
+
+cc_binary(
+    name = "align",
+    srcs = ["align.cc"],
+    deps = [
+        ":alignment_proto",
+        ":align_utils",
+        "@eigen_repo//:eigen",
+        "@com_google_protobuf//:protobuf",
+    ],
+)
+
+py_binary(
+    name = "align_fine",
+    srcs = ["align_fine.py"],
+    deps = [
+        ":align_fine_lib",
+        ":alignment_py_pb2",
+    ],
+)

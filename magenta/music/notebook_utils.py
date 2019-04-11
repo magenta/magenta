@@ -1,16 +1,17 @@
-# Copyright 2016 Google Inc. All Rights Reserved.
+# Copyright 2019 The Magenta Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
 #
-#    http://www.apache.org/licenses/LICENSE-2.0
+#     http://www.apache.org/licenses/LICENSE-2.0
 #
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
 """Python functions which run only within a Jupyter or Colab notebook."""
 
 from __future__ import absolute_import
@@ -19,20 +20,18 @@ from __future__ import print_function
 
 import base64
 import collections
-from io import BytesIO
+import io
 import os
-
-# internal imports
 
 import bokeh
 import bokeh.plotting
 from IPython import display
+from magenta.music import midi_synth
 import numpy as np
 import pandas as pd
 from scipy.io import wavfile
 from six.moves import urllib
-
-from magenta.music import midi_synth
+import tensorflow as tf
 
 _DEFAULT_SAMPLE_RATE = 44100
 _play_id = 0  # Used for ephemeral colab_play.
@@ -52,12 +51,12 @@ def colab_play(array_of_floats, sample_rate, ephemeral=True, autoplay=False):
     autoplay: If True, automatically start playing the sound when the
       widget is rendered.
   """
-  from google.colab.output import _js_builder as js  # pylint: disable=g-import-not-at-top,protected-access
+  from google.colab.output import _js_builder as js  # pylint:disable=g-import-not-at-top,protected-accessk,import-error
 
   normalizer = float(np.iinfo(np.int16).max)
   array_of_ints = np.array(
       np.asarray(array_of_floats) * normalizer, dtype=np.int16)
-  memfile = BytesIO()
+  memfile = io.BytesIO()
   wavfile.write(memfile, sample_rate, array_of_ints)
   html = """<audio controls {autoplay}>
               <source controls src="data:audio/wav;base64,{base64_wavfile}"
@@ -66,7 +65,7 @@ def colab_play(array_of_floats, sample_rate, ephemeral=True, autoplay=False):
             </audio>"""
   html = html.format(
       autoplay='autoplay' if autoplay else '',
-      base64_wavfile=base64.encodestring(memfile.getvalue()))
+      base64_wavfile=base64.b64encode(memfile.getvalue()))
   memfile.close()
   global _play_id
   _play_id += 1
@@ -187,11 +186,14 @@ def plot_sequence(sequence,
 def download_bundle(bundle_name, target_dir, force_reload=False):
   """Downloads a Magenta bundle to target directory.
 
+  Target directory target_dir will be created if it does not already exist.
+
   Args:
      bundle_name: A string Magenta bundle name to download.
      target_dir: A string local directory in which to write the bundle.
      force_reload: A boolean that when True, reloads the bundle even if present.
   """
+  tf.gfile.MakeDirs(target_dir)
   bundle_target = os.path.join(target_dir, bundle_name)
   if not os.path.exists(bundle_target) or force_reload:
     response = urllib.request.urlopen(

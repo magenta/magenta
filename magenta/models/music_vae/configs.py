@@ -1,3 +1,17 @@
+# Copyright 2019 The Magenta Authors.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 """Configurations for MusicVAE models."""
 
 from __future__ import absolute_import
@@ -12,7 +26,6 @@ from magenta.models.music_vae import data_hierarchical
 from magenta.models.music_vae import lstm_models
 from magenta.models.music_vae.base_model import MusicVAE
 import magenta.music as mm
-
 from tensorflow.contrib.training import HParams
 
 
@@ -484,6 +497,107 @@ CONFIG_MAP['hier-multiperf_vel_1bar_big_chords'] = Config(
         max_events_per_instrument=64,
         chord_encoding=mm.TriadChordOneHotEncoding(),
     ),
+    train_examples_path=None,
+    eval_examples_path=None,
+)
+
+# GrooVAE configs
+CONFIG_MAP['groovae_4bar'] = Config(
+    model=MusicVAE(lstm_models.BidirectionalLstmEncoder(),
+                   lstm_models.GrooveLstmDecoder()),
+    hparams=merge_hparams(
+        lstm_models.get_default_hparams(),
+        HParams(
+            batch_size=512,
+            max_seq_len=16 * 4,  # 4 bars w/ 16 steps per bar
+            z_size=256,
+            enc_rnn_size=[512],
+            dec_rnn_size=[256, 256],
+        )),
+    note_sequence_augmenter=None,
+    data_converter=data.GrooveConverter(
+        split_bars=4, steps_per_quarter=4, quarters_per_bar=4,
+        max_tensors_per_notesequence=20),
+    train_examples_path=None,
+    eval_examples_path=None,
+)
+
+CONFIG_MAP['groovae_2bar_humanize'] = Config(
+    model=MusicVAE(lstm_models.BidirectionalLstmEncoder(),
+                   lstm_models.GrooveLstmDecoder()),
+    hparams=merge_hparams(
+        lstm_models.get_default_hparams(),
+        HParams(
+            batch_size=512,
+            max_seq_len=16 * 2,  # 2 bars w/ 16 steps per bar
+            z_size=256,
+            enc_rnn_size=[512],
+            dec_rnn_size=[256, 256],
+        )),
+    note_sequence_augmenter=None,
+    data_converter=data.GrooveConverter(
+        split_bars=2, steps_per_quarter=4, quarters_per_bar=4,
+        max_tensors_per_notesequence=20, humanize=True),
+    train_examples_path=None,
+    eval_examples_path=None,
+)
+
+CONFIG_MAP['groovae_2bar_tap_fixed_velocity'] = Config(
+    model=MusicVAE(lstm_models.BidirectionalLstmEncoder(),
+                   lstm_models.GrooveLstmDecoder()),
+    hparams=merge_hparams(
+        lstm_models.get_default_hparams(),
+        HParams(
+            batch_size=512,
+            max_seq_len=16 * 2,  # 2 bars w/ 16 steps per bar
+            z_size=256,
+            enc_rnn_size=[512],
+            dec_rnn_size=[256, 256],
+        )),
+    note_sequence_augmenter=None,
+    data_converter=data.GrooveConverter(
+        split_bars=2, steps_per_quarter=4, quarters_per_bar=4,
+        max_tensors_per_notesequence=20, tapify=True, fixed_velocities=True),
+    train_examples_path=None,
+    eval_examples_path=None,
+)
+
+CONFIG_MAP['groovae_2bar_add_closed_hh'] = Config(
+    model=MusicVAE(lstm_models.BidirectionalLstmEncoder(),
+                   lstm_models.GrooveLstmDecoder()),
+    hparams=merge_hparams(
+        lstm_models.get_default_hparams(),
+        HParams(
+            batch_size=512,
+            max_seq_len=16 * 2,  # 2 bars w/ 16 steps per bar
+            z_size=256,
+            enc_rnn_size=[512],
+            dec_rnn_size=[256, 256],
+        )),
+    note_sequence_augmenter=None,
+    data_converter=data.GrooveConverter(
+        split_bars=2, steps_per_quarter=4, quarters_per_bar=4,
+        max_tensors_per_notesequence=20, add_instruments=[2]),
+    train_examples_path=None,
+    eval_examples_path=None,
+)
+
+CONFIG_MAP['groovae_2bar_hits_control'] = Config(
+    model=MusicVAE(lstm_models.BidirectionalLstmEncoder(),
+                   lstm_models.GrooveLstmDecoder()),
+    hparams=merge_hparams(
+        lstm_models.get_default_hparams(),
+        HParams(
+            batch_size=512,
+            max_seq_len=16*2,  # 2 bars w/ 16 steps per bar * 9 instruments
+            z_size=256,
+            enc_rnn_size=[512],
+            dec_rnn_size=[256, 256],
+        )),
+    note_sequence_augmenter=None,
+    data_converter=data.GrooveConverter(
+        split_bars=2, steps_per_quarter=4, quarters_per_bar=4,
+        max_tensors_per_notesequence=20, hits_as_controls=True),
     train_examples_path=None,
     eval_examples_path=None,
 )

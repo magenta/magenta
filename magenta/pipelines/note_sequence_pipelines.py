@@ -1,28 +1,27 @@
-# Copyright 2017 Google Inc. All Rights Reserved.
+# Copyright 2019 The Magenta Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
 #
-#    http://www.apache.org/licenses/LICENSE-2.0
+#     http://www.apache.org/licenses/LICENSE-2.0
 #
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
 """NoteSequence processing pipelines."""
 
 import copy
-
-# internal imports
-import tensorflow as tf
 
 from magenta.music import constants
 from magenta.music import sequences_lib
 from magenta.pipelines import pipeline
 from magenta.pipelines import statistics
 from magenta.protobuf import music_pb2
+import tensorflow as tf
 
 # Shortcut to chord symbol text annotation type.
 CHORD_SYMBOL = music_pb2.NoteSequence.TextAnnotation.CHORD_SYMBOL
@@ -102,19 +101,19 @@ class Quantizer(NoteSequencePipeline):
         quantized_sequence = sequences_lib.quantize_note_sequence_absolute(
             note_sequence, self._steps_per_second)
       return [quantized_sequence]
-    except sequences_lib.MultipleTimeSignatureException as e:
+    except sequences_lib.MultipleTimeSignatureError as e:
       tf.logging.warning('Multiple time signatures in NoteSequence %s: %s',
                          note_sequence.filename, e)
       self._set_stats([statistics.Counter(
           'sequences_discarded_because_multiple_time_signatures', 1)])
       return []
-    except sequences_lib.MultipleTempoException as e:
+    except sequences_lib.MultipleTempoError as e:
       tf.logging.warning('Multiple tempos found in NoteSequence %s: %s',
                          note_sequence.filename, e)
       self._set_stats([statistics.Counter(
           'sequences_discarded_because_multiple_tempos', 1)])
       return []
-    except sequences_lib.BadTimeSignatureException as e:
+    except sequences_lib.BadTimeSignatureError as e:
       tf.logging.warning('Bad time signature in NoteSequence %s: %s',
                          note_sequence.filename, e)
       self._set_stats([statistics.Counter(
@@ -168,9 +167,8 @@ class TranspositionPipeline(NoteSequencePipeline):
     self._max_pitch = max_pitch
 
   def transform(self, sequence):
-    stats = dict([(state_name, statistics.Counter(state_name)) for state_name in
-                  ['skipped_due_to_range_exceeded',
-                   'transpositions_generated']])
+    stats = dict((state_name, statistics.Counter(state_name)) for state_name in
+                 ['skipped_due_to_range_exceeded', 'transpositions_generated'])
 
     if sequence.key_signatures:
       tf.logging.warn('Key signatures ignored by TranspositionPipeline.')

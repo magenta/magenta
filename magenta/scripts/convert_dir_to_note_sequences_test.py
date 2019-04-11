@@ -1,26 +1,25 @@
-# Copyright 2016 Google Inc. All Rights Reserved.
+# Copyright 2019 The Magenta Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
 #
-#    http://www.apache.org/licenses/LICENSE-2.0
+#     http://www.apache.org/licenses/LICENSE-2.0
 #
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
 """Tests for converting a directory of MIDIs to a NoteSequence TFRecord file."""
 
 import os
 import tempfile
 
-# internal imports
-import tensorflow as tf
-
 from magenta.music import note_sequence_io
 from magenta.scripts import convert_dir_to_note_sequences
+import tensorflow as tf
 
 
 class ConvertMidiDirToSequencesTest(tf.test.TestCase):
@@ -45,7 +44,7 @@ class ConvertMidiDirToSequencesTest(tf.test.TestCase):
     tf.gfile.Copy(midi_filename, os.path.join(sub_2_dir, 'midi_4.mid'))
     tf.gfile.Copy(midi_filename, os.path.join(sub_1_sub_dir, 'midi_5.mid'))
 
-    tf.gfile.FastGFile(
+    tf.gfile.GFile(
         os.path.join(root_dir, 'non_midi_file'),
         mode='w').write('non-midi data')
 
@@ -80,15 +79,15 @@ class ConvertMidiDirToSequencesTest(tf.test.TestCase):
       actual_filenames = set()
       for sequence in note_sequence_io.note_sequence_record_iterator(
           output_file.name):
-        self.assertEquals(
+        self.assertEqual(
             note_sequence_io.generate_note_sequence_id(
                 sequence.filename, os.path.basename(relative_root), 'midi'),
             sequence.id)
-        self.assertEquals(os.path.basename(root_dir), sequence.collection_name)
-        self.assertNotEquals(0, len(sequence.notes))
+        self.assertEqual(os.path.basename(root_dir), sequence.collection_name)
+        self.assertNotEqual(0, len(sequence.notes))
         actual_filenames.add(sequence.filename)
 
-    self.assertEquals(expected_filenames, actual_filenames)
+    self.assertEqual(expected_filenames, actual_filenames)
 
   def testConvertMidiDirToSequences_NoRecurse(self):
     self.runTest('', recursive=False)

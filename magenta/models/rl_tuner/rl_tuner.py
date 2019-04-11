@@ -1,10 +1,10 @@
-# Copyright 2016 Google Inc. All Rights Reserved.
+# Copyright 2019 The Magenta Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
 #
-#    http://www.apache.org/licenses/LICENSE-2.0
+#     http://www.apache.org/licenses/LICENSE-2.0
 #
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
@@ -28,28 +28,23 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-from collections import deque
+import collections
 import os
-from os import makedirs
-from os.path import exists
 import random
 import urllib
-
-# internal imports
-
-import matplotlib.pyplot as plt
-import numpy as np
-from scipy.misc import logsumexp
-from six.moves import range          # pylint: disable=redefined-builtin
-from six.moves import reload_module  # pylint: disable=redefined-builtin
-from six.moves import urllib         # pylint: disable=redefined-builtin
-import tensorflow as tf
 
 from magenta.models.rl_tuner import note_rnn_loader
 from magenta.models.rl_tuner import rl_tuner_eval_metrics
 from magenta.models.rl_tuner import rl_tuner_ops
 from magenta.music import melodies_lib as mlib
 from magenta.music import midi_io
+import matplotlib.pyplot as plt
+import numpy as np
+import scipy.special
+from six.moves import range  # pylint: disable=redefined-builtin
+from six.moves import reload_module  # pylint: disable=redefined-builtin
+from six.moves import urllib  # pylint: disable=redefined-builtin
+import tensorflow as tf
 
 # Note values of special actions.
 NOTE_OFF = 0
@@ -209,7 +204,8 @@ class RLTuner(object):
 
       # DQN state.
       self.actions_executed_so_far = 0
-      self.experience = deque(maxlen=self.dqn_hparams.max_experience)
+      self.experience = collections.deque(
+          maxlen=self.dqn_hparams.max_experience)
       self.iteration = 0
       self.summary_writer = summary_writer
       self.num_times_store_called = 0
@@ -236,8 +232,8 @@ class RLTuner(object):
     self.leapt_from = None  # stores the note at which composition leapt
     self.steps_since_last_leap = 0
 
-    if not exists(self.output_dir):
-      makedirs(self.output_dir)
+    if not os.path.exists(self.output_dir):
+      os.makedirs(self.output_dir)
 
     if initialize_immediately:
       self.initialize_internal_models_graph_session()
@@ -980,7 +976,7 @@ class RLTuner(object):
       Float reward value.
     """
     action_note = np.argmax(action)
-    normalization_constant = logsumexp(reward_scores)
+    normalization_constant = scipy.special.logsumexp(reward_scores)
     return reward_scores[action_note] - normalization_constant
 
   def get_reward_rnn_scores(self, observation, state):
@@ -1110,7 +1106,7 @@ class RLTuner(object):
     reward = 0
     if action == 1:
       reward += .1
-    if action > obs and action < obs + 3:
+    if obs < action < obs + 3:
       reward += .05
 
     if action in scale:
@@ -1200,7 +1196,7 @@ class RLTuner(object):
       if action_note == NO_EVENT:
         return reward_amount
     elif self.beat > first_note_of_final_bar + 1:
-      if action_note == NO_EVENT or action_note == NOTE_OFF:
+      if action_note in (NO_EVENT, NOTE_OFF):
         return reward_amount
     return 0.0
 
@@ -1327,7 +1323,7 @@ class RLTuner(object):
 
     last_bar = composition[-bar_length:]
 
-    actual_notes = [a for a in last_bar if a != NO_EVENT and a != NOTE_OFF]
+    actual_notes = [a for a in last_bar if a not in (NO_EVENT, NOTE_OFF)]
     num_unique_notes = len(set(actual_notes))
     if num_unique_notes >= 3:
       return last_bar, num_unique_notes
@@ -1409,7 +1405,7 @@ class RLTuner(object):
     """
     is_repeated, motif = self.detect_repeated_motif(action, bar_length)
     if is_repeated:
-      actual_notes = [a for a in motif if a != NO_EVENT and a != NOTE_OFF]
+      actual_notes = [a for a in motif if a not in (NO_EVENT, NOTE_OFF)]
       num_notes_in_motif = len(set(actual_notes))
       motif_complexity_bonus = max(num_notes_in_motif - 3, 0)
       return reward_amount + motif_complexity_bonus
@@ -1447,11 +1443,10 @@ class RLTuner(object):
 
     # get rid of non-notes in prev_note
     prev_note_index = len(self.composition) - 1
-    while (prev_note == NO_EVENT or
-           prev_note == NOTE_OFF) and prev_note_index >= 0:
+    while prev_note in (NO_EVENT, NOTE_OFF) and prev_note_index >= 0:
       prev_note = self.composition[prev_note_index]
       prev_note_index -= 1
-    if prev_note == NOTE_OFF or prev_note == NO_EVENT:
+    if prev_note in (NOTE_OFF, NO_EVENT):
       tf.logging.debug('Action_note: %s, prev_note: %s', action_note, prev_note)
       return 0, action_note, prev_note
 
@@ -1561,10 +1556,7 @@ class RLTuner(object):
       True if the lowest note was unique, False otherwise.
     """
     max_note = max(composition)
-    if list(composition).count(max_note) == 1:
-      return True
-    else:
-      return False
+    return list(composition).count(max_note) == 1
 
   def detect_low_unique(self, composition):
     """Checks a composition to see if the lowest note within it is repeated.
@@ -1575,7 +1567,7 @@ class RLTuner(object):
       True if the lowest note was unique, False otherwise.
     """
     no_special_events = [x for x in composition
-                         if x != NO_EVENT and x != NOTE_OFF]
+                         if x not in (NO_EVENT, NOTE_OFF)]
     if no_special_events:
       min_note = min(no_special_events)
       if list(composition).count(min_note) == 1:
@@ -1632,7 +1624,7 @@ class RLTuner(object):
 
     interval, action_note, prev_note = self.detect_sequential_interval(action)
 
-    if action_note == NOTE_OFF or action_note == NO_EVENT:
+    if action_note in (NOTE_OFF, NO_EVENT):
       self.steps_since_last_leap += 1
       tf.logging.debug('Rest, adding to steps since last leap. It is'
                        'now: %s', self.steps_since_last_leap)

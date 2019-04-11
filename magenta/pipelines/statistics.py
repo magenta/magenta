@@ -1,16 +1,17 @@
-# Copyright 2016 Google Inc. All Rights Reserved.
+# Copyright 2019 The Magenta Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
 #
-#    http://www.apache.org/licenses/LICENSE-2.0
+#     http://www.apache.org/licenses/LICENSE-2.0
 #
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
 """Defines statistics objects for pipelines."""
 
 from __future__ import absolute_import
@@ -21,11 +22,10 @@ import abc
 import bisect
 import copy
 
-# internal imports
 import tensorflow as tf
 
 
-class MergeStatisticsException(Exception):
+class MergeStatisticsError(Exception):
   pass
 
 
@@ -97,10 +97,10 @@ class Statistic(object):
 
   def merge_from(self, other):
     if not isinstance(other, Statistic):
-      raise MergeStatisticsException(
+      raise MergeStatisticsError(
           'Cannot merge with non-Statistic of type %s' % type(other))
     if self.name != other.name:
-      raise MergeStatisticsException(
+      raise MergeStatisticsError(
           'Name "%s" does not match this name "%s"' % (other.name, self.name))
     self._merge_from(other)
 
@@ -170,7 +170,7 @@ class Counter(Statistic):
   def _merge_from(self, other):
     """Adds the count of another Counter into this instance."""
     if not isinstance(other, Counter):
-      raise MergeStatisticsException(
+      raise MergeStatisticsError(
           'Cannot merge %s into Counter' % other.__class__.__name__)
     self.count += other.count
 
@@ -219,8 +219,7 @@ class Histogram(Statistic):
 
     # List of inclusive lowest values in each bucket.
     self.buckets = [float('-inf')] + sorted(set(buckets))
-    self.counters = dict([(bucket_lower, 0)
-                          for bucket_lower in self.buckets])
+    self.counters = dict((bucket_lower, 0) for bucket_lower in self.buckets)
     self.verbose_pretty_print = verbose_pretty_print
 
   # https://docs.python.org/2/library/bisect.html#searching-sorted-lists
@@ -253,14 +252,14 @@ class Histogram(Statistic):
       other: Another Histogram instance with the same buckets as this instance.
 
     Raises:
-      MergeStatisticsException: If `other` is not a Histogram or the buckets
+      MergeStatisticsError: If `other` is not a Histogram or the buckets
           are not the same.
     """
     if not isinstance(other, Histogram):
-      raise MergeStatisticsException(
+      raise MergeStatisticsError(
           'Cannot merge %s into Histogram' % other.__class__.__name__)
     if self.buckets != other.buckets:
-      raise MergeStatisticsException(
+      raise MergeStatisticsError(
           'Histogram buckets do not match. Expected %s, got %s'
           % (self.buckets, other.buckets))
     for bucket_lower, count in other.counters.items():

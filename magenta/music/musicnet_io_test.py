@@ -1,30 +1,26 @@
-# Copyright 2016 Google Inc. All Rights Reserved.
+# Copyright 2019 The Magenta Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
 #
-#    http://www.apache.org/licenses/LICENSE-2.0
+#     http://www.apache.org/licenses/LICENSE-2.0
 #
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
 """Tests for MusicNet data parsing."""
 
 import os
 
-# internal imports
+from magenta.music import musicnet_io
 import numpy as np
 import tensorflow as tf
 
-from magenta.music import musicnet_io
 
-
-# When running the test suite in py3, filter this test out using
-# --test_tag_filters=-py2only. We do this because the musicnet dataset was
-# pickled using py2 and therefore cannot be deserialized with py3.
 class MusicNetIoTest(tf.test.TestCase):
 
   def setUp(self):
@@ -35,7 +31,7 @@ class MusicNetIoTest(tf.test.TestCase):
         '../testdata/musicnet_example.npz')
 
   def testNoteIntervalTreeToSequenceProto(self):
-    example = np.load(self.musicnet_example_filename)
+    example = np.load(self.musicnet_example_filename, encoding='latin1')
     note_interval_tree = example['test'][1]
     sequence = musicnet_io.note_interval_tree_to_sequence_proto(
         note_interval_tree, 44100)
@@ -43,7 +39,7 @@ class MusicNetIoTest(tf.test.TestCase):
     self.assertEqual(72, min(note.pitch for note in sequence.notes))
     self.assertEqual(79, max(note.pitch for note in sequence.notes))
     self.assertTrue(all(note.instrument == 0 for note in sequence.notes))
-    self.assertTrue(all(note.program == 42 for note in sequence.notes))
+    self.assertTrue(all(note.program == 41 for note in sequence.notes))
     self.assertEqual(0.5, sequence.total_time)
 
   def testMusicNetIterator(self):

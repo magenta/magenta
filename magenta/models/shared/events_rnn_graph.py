@@ -1,16 +1,17 @@
-# Copyright 2016 Google Inc. All Rights Reserved.
+# Copyright 2019 The Magenta Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
 #
-#    http://www.apache.org/licenses/LICENSE-2.0
+#     http://www.apache.org/licenses/LICENSE-2.0
 #
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
 """Provides function to build an event sequence RNN model's graph."""
 
 from __future__ import absolute_import
@@ -19,12 +20,10 @@ from __future__ import print_function
 
 import numbers
 
-# internal imports
+import magenta
 import numpy as np
 import six
 import tensorflow as tf
-import magenta
-
 from tensorflow.python.util import nest as tf_nest
 
 
@@ -230,7 +229,7 @@ def get_build_graph_fn(mode, config, sequence_example_file_paths=None):
     """Builds the Tensorflow graph."""
     inputs, labels, lengths = None, None, None
 
-    if mode == 'train' or mode == 'eval':
+    if mode in ('train', 'eval'):
       if isinstance(no_event_label, numbers.Number):
         label_shape = []
       else:
@@ -243,11 +242,19 @@ def get_build_graph_fn(mode, config, sequence_example_file_paths=None):
       inputs = tf.placeholder(tf.float32, [hparams.batch_size, None,
                                            input_size])
 
+    if isinstance(encoder_decoder,
+                  magenta.music.OneHotIndexEventSequenceEncoderDecoder):
+      expanded_inputs = tf.one_hot(
+          tf.cast(tf.squeeze(inputs, axis=-1), tf.int64),
+          encoder_decoder.input_depth)
+    else:
+      expanded_inputs = inputs
+
     dropout_keep_prob = 1.0 if mode == 'generate' else hparams.dropout_keep_prob
 
     if hparams.use_cudnn:
       outputs, initial_state, final_state = make_cudnn(
-          inputs, hparams.rnn_layer_sizes, hparams.batch_size, mode,
+          expanded_inputs, hparams.rnn_layer_sizes, hparams.batch_size, mode,
           dropout_keep_prob=dropout_keep_prob,
           residual_connections=hparams.residual_connections)
 
@@ -272,7 +279,7 @@ def get_build_graph_fn(mode, config, sequence_example_file_paths=None):
       num_logits = sum(num_classes)
     logits_flat = tf.contrib.layers.linear(outputs_flat, num_logits)
 
-    if mode == 'train' or mode == 'eval':
+    if mode in ('train', 'eval'):
       labels_flat = magenta.common.flatten_maybe_padded_sequences(
           labels, lengths)
 

@@ -1,13 +1,28 @@
+# Copyright 2019 The Magenta Authors.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 """Defines the graph for a convolutional net designed for music autofill."""
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
-from collections import OrderedDict
+
+import collections
 import os
-# internal imports
-import tensorflow as tf
+
 from magenta.models.coconet import lib_hparams
 from magenta.models.coconet import lib_tfutil
+import tensorflow as tf
 
 
 class CoconetGraph(object):
@@ -28,7 +43,7 @@ class CoconetGraph(object):
     self._direct_inputs = direct_inputs
     self._use_placeholders = use_placeholders
     self.hiddens = []
-    self.popstats_by_batchstat = OrderedDict()
+    self.popstats_by_batchstat = collections.OrderedDict()
     self.build()
 
   @property
@@ -133,8 +148,9 @@ class CoconetGraph(object):
     self.train_op = self.optimizer.minimize(self.loss)
 
   def compute_predictions(self, logits):
-    return (tf.nn.softmax(logits, dim=2)
-            if self.hparams.use_softmax_loss else tf.nn.sigmoid(logits))
+    if self.hparams.use_softmax_loss:
+      return tf.nn.softmax(logits, dim=2)
+    return tf.nn.sigmoid(logits)
 
   def compute_cross_entropy(self, logits, labels):
     if self.hparams.use_softmax_loss:

@@ -1,26 +1,25 @@
-# Copyright 2016 Google Inc. All Rights Reserved.
+# Copyright 2019 The Magenta Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
 #
-#    http://www.apache.org/licenses/LICENSE-2.0
+#     http://www.apache.org/licenses/LICENSE-2.0
 #
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Data processing pipelines for melodies."""
 
-# internal imports
-import tensorflow as tf
+"""Data processing pipelines for melodies."""
 
 from magenta.music import events_lib
 from magenta.music import melodies_lib
 from magenta.pipelines import pipeline
 from magenta.pipelines import statistics
 from magenta.protobuf import music_pb2
+import tensorflow as tf
 
 
 class MelodyExtractor(pipeline.Pipeline):
@@ -50,7 +49,7 @@ class MelodyExtractor(pipeline.Pipeline):
           gap_bars=self._gap_bars,
           ignore_polyphonic_notes=self._ignore_polyphonic_notes,
           filter_drums=self._filter_drums)
-    except events_lib.NonIntegerStepsPerBarException as detail:
+    except events_lib.NonIntegerStepsPerBarError as detail:
       tf.logging.warning('Skipped sequence: %s', detail)
       melodies = []
       stats = [statistics.Counter('non_integer_steps_per_bar', 1)]

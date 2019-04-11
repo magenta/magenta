@@ -1,22 +1,21 @@
-# Copyright 2017 Google Inc. All Rights Reserved.
+# Copyright 2019 The Magenta Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
 #
-#    http://www.apache.org/licenses/LICENSE-2.0
+#     http://www.apache.org/licenses/LICENSE-2.0
 #
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
 """Tests for beam search."""
 
-# internal imports
-import tensorflow as tf
-
 from magenta.common import beam_search
+import tensorflow as tf
 
 
 class BeamSearchTest(tf.test.TestCase):
@@ -26,19 +25,19 @@ class BeamSearchTest(tf.test.TestCase):
     # accumulate value exponentially in the state, ones "cash in". The highest-
     # scoring sequence would be all zeros followed by a single one.
     value = 0
-    for i in range(len(sequences)):
-      sequences[i].append(value)
+    for i, seq in enumerate(sequences):
+      seq.append(value)
       if value == 0:
         states[i] *= 2
       else:
         scores[i] += states[i]
         states[i] = 1
-      if (i - 1) % (2 ** len(sequences[i])) == 0:
+      if (i - 1) % (2 ** len(seq)) == 0:
         value = 1 - value
     return sequences, states, scores
 
   def testNoBranchingSingleStepPerIteration(self):
-    sequence, state, score = beam_search.beam_search(
+    sequence, state, score = beam_search(
         initial_sequence=[], initial_state=1,
         generate_step_fn=self._generate_step_fn, num_steps=5, beam_size=1,
         branch_factor=1, steps_per_iteration=1)
@@ -50,7 +49,7 @@ class BeamSearchTest(tf.test.TestCase):
     self.assertEqual(score, 0)
 
   def testNoBranchingMultipleStepsPerIteration(self):
-    sequence, state, score = beam_search.beam_search(
+    sequence, state, score = beam_search(
         initial_sequence=[], initial_state=1,
         generate_step_fn=self._generate_step_fn, num_steps=5, beam_size=1,
         branch_factor=1, steps_per_iteration=2)
@@ -62,7 +61,7 @@ class BeamSearchTest(tf.test.TestCase):
     self.assertEqual(score, 0)
 
   def testBranchingSingleBeamEntry(self):
-    sequence, state, score = beam_search.beam_search(
+    sequence, state, score = beam_search(
         initial_sequence=[], initial_state=1,
         generate_step_fn=self._generate_step_fn, num_steps=5, beam_size=1,
         branch_factor=32, steps_per_iteration=1)
@@ -73,7 +72,7 @@ class BeamSearchTest(tf.test.TestCase):
     self.assertEqual(score, 5)
 
   def testNoBranchingMultipleBeamEntries(self):
-    sequence, state, score = beam_search.beam_search(
+    sequence, state, score = beam_search(
         initial_sequence=[], initial_state=1,
         generate_step_fn=self._generate_step_fn, num_steps=5, beam_size=32,
         branch_factor=1, steps_per_iteration=1)

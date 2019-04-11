@@ -1,16 +1,28 @@
+# Copyright 2019 The Magenta Authors.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 """Generate from trained model from scratch or condition on a partial score."""
 
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
+
 import itertools as it
 import os
 import re
 import time
-# internal imports
-import numpy as np
-import pretty_midi
-import tensorflow as tf
+
 from magenta.models.coconet import lib_graph
 from magenta.models.coconet import lib_logging
 from magenta.models.coconet import lib_mask
@@ -18,6 +30,9 @@ from magenta.models.coconet import lib_pianoroll
 from magenta.models.coconet import lib_sampling
 from magenta.models.coconet import lib_tfsampling
 from magenta.models.coconet import lib_util
+import numpy as np
+import pretty_midi
+import tensorflow as tf
 
 FLAGS = tf.app.flags.FLAGS
 flags = tf.app.flags
@@ -323,6 +338,7 @@ class BaseStrategy(lib_util.Factory):
     return lib_sampling.BaseSampler.make(key, **kwargs)
 
 
+# pylint:disable=missing-docstring
 class HarmonizeMidiMelodyStrategy(BaseStrategy):
   """Harmonizes a midi melody (fname given by FLAGS.prime_midi_melody_fpath)."""
   key = "harmonize_midi_melody"
@@ -607,6 +623,8 @@ class CompleteMidiStrategy(BaseStrategy):
       self.logger.log(
           pianorolls=pianorolls, masks=masks, predictions=pianorolls)
     return pianorolls
+
+# pylint:enable=missing-docstring
 
 
 # ok something else entirely.

@@ -1,27 +1,26 @@
-# Copyright 2017 Google Inc. All Rights Reserved.
+# Copyright 2019 The Magenta Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
 #
-#    http://www.apache.org/licenses/LICENSE-2.0
+#     http://www.apache.org/licenses/LICENSE-2.0
 #
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
 """Trains model using tf.slim."""
 
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-# internal imports
-import tensorflow as tf
-
 from magenta.models.nsynth import reader
 from magenta.models.nsynth import utils
+import tensorflow as tf
 
 slim = tf.contrib.slim
 FLAGS = tf.app.flags.FLAGS
@@ -74,8 +73,10 @@ def main(unused_argv):
     hparams = model.get_hparams(FLAGS.config)
 
     # Run the Reader on the CPU
-    cpu_device = ("/job:worker/cpu:0" if FLAGS.ps_tasks else
-                  "/job:localhost/replica:0/task:0/cpu:0")
+    if FLAGS.ps_tasks:
+      cpu_device = "/job:worker/cpu:0"
+    else:
+      cpu_device = "/job:localhost/replica:0/task:0/cpu:0"
 
     with tf.device(cpu_device):
       with tf.name_scope("Reader"):

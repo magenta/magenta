@@ -1,34 +1,37 @@
-# Copyright 2017 Google Inc. All Rights Reserved.
+# Copyright 2019 The Magenta Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
 #
-#    http://www.apache.org/licenses/LICENSE-2.0
+#     http://www.apache.org/licenses/LICENSE-2.0
 #
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
 """A class for sampling, encoding, and decoding from trained MusicVAE models."""
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
 import copy
+import os
 import re
+import tarfile
 
-# internal imports
+from backports import tempfile
 import numpy as np
 import tensorflow as tf
 
 
-class NoExtractedExamplesException(Exception):
+class NoExtractedExamplesError(Exception):
   pass
 
 
-class MultipleExtractedExamplesException(Exception):
+class MultipleExtractedExamplesError(Exception):
   pass
 
 
@@ -52,9 +55,10 @@ class TrainedModel(object):
 
   def __init__(self, config, batch_size, checkpoint_dir_or_path=None,
                var_name_substitutions=None, session_target='', **sample_kwargs):
-    checkpoint_path = (tf.train.latest_checkpoint(checkpoint_dir_or_path)
-                       if tf.gfile.IsDirectory(checkpoint_dir_or_path) else
-                       checkpoint_dir_or_path)
+    if tf.gfile.IsDirectory(checkpoint_dir_or_path):
+      checkpoint_path = tf.train.latest_checkpoint(checkpoint_dir_or_path)
+    else:
+      checkpoint_path = checkpoint_dir_or_path
     self._config = copy.deepcopy(config)
     self._config.hparams.batch_size = batch_size
     with tf.Graph().as_default():
@@ -65,15 +69,19 @@ class TrainedModel(object):
           is_training=False)
       # Input placeholders
       self._temperature = tf.placeholder(tf.float32, shape=())
-      self._z_input = (
-          tf.placeholder(tf.float32,
-                         shape=[batch_size, self._config.hparams.z_size])
-          if self._config.hparams.z_size else None)
-      self._c_input = (
-          tf.placeholder(
-              tf.float32,
-              shape=[None, self._config.data_converter.control_depth])
-          if self._config.data_converter.control_depth > 0 else None)
+
+      if self._config.hparams.z_size:
+        self._z_input = tf.placeholder(
+            tf.float32, shape=[batch_size, self._config.hparams.z_size])
+      else:
+        self._z_input = None
+
+      if self._config.data_converter.control_depth > 0:
+        self._c_input = tf.placeholder(
+            tf.float32, shape=[None, self._config.data_converter.control_depth])
+      else:
+        self._c_input = None
+
       self._inputs = tf.placeholder(
           tf.float32,
           shape=[batch_size, None, self._config.data_converter.input_depth])
@@ -112,7 +120,20 @@ class TrainedModel(object):
       # Restore graph
       self._sess = tf.Session(target=session_target)
       saver = tf.train.Saver(var_map)
-      saver.restore(self._sess, checkpoint_path)
+      if (os.path.exists(checkpoint_path) and
+          tarfile.is_tarfile(checkpoint_path)):
+        tf.logging.info('Unbundling checkpoint.')
+        with tempfile.TemporaryDirectory() as temp_dir:
+          tar = tarfile.open(checkpoint_path)
+          tar.extractall(temp_dir)
+          # Assume only a single checkpoint is in the directory.
+          for name in tar.getnames():
+            if name.endswith('.index'):
+              checkpoint_path = os.path.join(temp_dir, name[0:-6])
+              break
+          saver.restore(self._sess, checkpoint_path)
+      else:
+        saver.restore(self._sess, checkpoint_path)
 
   def sample(self, n=None, length=None, temperature=1.0, same_z=False,
              c_input=None):
@@ -180,8 +201,8 @@ class TrainedModel(object):
       The encoded `z`, `mu`, and `sigma` values.
     Raises:
       RuntimeError: If called for a non-conditional model.
-      NoExtractedExamplesException: If no examples were extracted.
-      MultipleExtractedExamplesException: If multiple examples were extracted.
+      NoExtractedExamplesError: If no examples were extracted.
+      MultipleExtractedExamplesError: If multiple examples were extracted.
       AssertionError: If `assert_same_length` is True and any extracted
         sequences differ in length.
     """
@@ -194,10 +215,10 @@ class TrainedModel(object):
     for note_sequence in note_sequences:
       extracted_tensors = self._config.data_converter.to_tensors(note_sequence)
       if not extracted_tensors.inputs:
-        raise NoExtractedExamplesException(
+        raise NoExtractedExamplesError(
             'No examples extracted from NoteSequence: %s' % note_sequence)
       if len(extracted_tensors.inputs) > 1:
-        raise MultipleExtractedExamplesException(
+        raise MultipleExtractedExamplesError(
             'Multiple (%d) examples extracted from NoteSequence: %s' %
             (len(extracted_tensors.inputs), note_sequence))
       inputs.append(extracted_tensors.inputs[0])
@@ -334,3 +355,38 @@ class TrainedModel(object):
       else:
         outputs.extend(self._sess.run(self._outputs, feed_dict))
     return outputs[:n]
+
+  def interpolate(self, start_sequence, end_sequence, num_steps,
+                  length=None, temperature=1.0, assert_same_length=True):
+    """Interpolates between a start and an end NoteSequence.
+
+    Args:
+      start_sequence: The NoteSequence to interpolate from.
+      end_sequence: The NoteSequence to interpolate to.
+      num_steps: Number of NoteSequences to be generated, including the
+        reconstructions of the start and end sequences.
+      length: The maximum length of a sample in decoder iterations. Required
+        if end tokens are not being used.
+      temperature: The softmax temperature to use (if applicable).
+      assert_same_length: Whether to raise an AssertionError if all of the
+        extracted sequences are not the same length.
+    Returns:
+      A list of interpolated NoteSequences.
+    Raises:
+      AssertionError: If `assert_same_length` is True and any extracted
+        sequences differ in length.
+    """
+    def _slerp(p0, p1, t):
+      """Spherical linear interpolation."""
+      omega = np.arccos(np.dot(np.squeeze(p0/np.linalg.norm(p0)),
+                               np.squeeze(p1/np.linalg.norm(p1))))
+      so = np.sin(omega)
+      return np.sin((1.0-t)*omega) / so * p0 + np.sin(t*omega)/so * p1
+
+    _, mu, _ = self.encode([start_sequence, end_sequence], assert_same_length)
+    z = np.array([_slerp(mu[0], mu[1], t)
+                  for t in np.linspace(0, 1, num_steps)])
+    return self.decode(
+        length=length,
+        z=z,
+        temperature=temperature)

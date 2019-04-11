@@ -1,28 +1,26 @@
-# Copyright 2016 Google Inc. All Rights Reserved.
+# Copyright 2019 The Magenta Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
 #
-#    http://www.apache.org/licenses/LICENSE-2.0
+#     http://www.apache.org/licenses/LICENSE-2.0
 #
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
 """Tests for improv_rnn_create_dataset."""
 
-# internal imports
-import tensorflow as tf
 import magenta
-
-from magenta.models.improv_rnn import improv_rnn_create_dataset
 from magenta.models.improv_rnn import improv_rnn_model
+from magenta.models.improv_rnn import improv_rnn_pipeline
 from magenta.pipelines import lead_sheet_pipelines
 from magenta.pipelines import note_sequence_pipelines
 from magenta.protobuf import music_pb2
-
+import tensorflow as tf
 
 FLAGS = tf.app.flags.FLAGS
 
@@ -79,8 +77,8 @@ class ImprovRNNPipelineTest(tf.test.TestCase):
     expected_result = {'training_lead_sheets': [encoded],
                        'eval_lead_sheets': []}
 
-    pipeline_inst = improv_rnn_create_dataset.get_pipeline(self.config,
-                                                           eval_ratio=0.0)
+    pipeline_inst = improv_rnn_pipeline.get_pipeline(
+        self.config, eval_ratio=0.0)
     result = pipeline_inst.transform(note_sequence)
     self.assertEqual(expected_result, result)
 

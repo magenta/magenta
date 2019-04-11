@@ -1,13 +1,28 @@
+# Copyright 2019 The Magenta Authors.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 """Defines the graph for sampling from Coconet."""
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
+
 import time
-# internal imports
-import numpy as np
-import tensorflow as tf
+
 from magenta.models.coconet import lib_graph
 from magenta.models.coconet import lib_hparams
+import numpy as np
+import tensorflow as tf
 
 FLAGS = tf.app.flags.FLAGS
 
@@ -190,7 +205,8 @@ class CoconetSampleGraph(object):
           sample_steps=0,
           current_step=0,
           total_gibbs_steps=0,
-          temperature=0.99):
+          temperature=0.99,
+          timeout_ms=0):
     """Given input pianorolls, runs Gibbs sampling to fill in the rest.
 
     When total_gibbs_steps is 0, total_gibbs_steps is set to
@@ -222,6 +238,7 @@ class CoconetSampleGraph(object):
       total_gibbs_steps: an integer indicating the total number of steps that
           a complete sampling procedure would take.
       temperature: a float indicating the temperature for sampling from softmax.
+      timeout_ms: Timeout for session.Run. Set to zero for no timeout.
 
     Returns:
       A dictionary, consisting of "pianorolls" which is a 4D numpy array of
@@ -235,6 +252,9 @@ class CoconetSampleGraph(object):
       masks = np.zeros_like(pianorolls)
 
     start_time = time.time()
+    run_options = None
+    if timeout_ms:
+      run_options = tf.RunOptions(timeout_in_ms=timeout_ms)
     new_piece = self.sess.run(
         self.samples,
         feed_dict={
@@ -244,7 +264,7 @@ class CoconetSampleGraph(object):
             self.placeholders["total_gibbs_steps"]: total_gibbs_steps,
             self.placeholders["current_step"]: current_step,
             self.placeholders["temperature"]: temperature
-        })
+        }, options=run_options)
 
     label = "independent blocked gibbs"
     time_taken = (time.time() - start_time) / 60.0

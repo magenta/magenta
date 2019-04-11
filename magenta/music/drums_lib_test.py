@@ -1,26 +1,25 @@
-# Copyright 2016 Google Inc. All Rights Reserved.
+# Copyright 2019 The Magenta Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
 #
-#    http://www.apache.org/licenses/LICENSE-2.0
+#     http://www.apache.org/licenses/LICENSE-2.0
 #
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Tests for drums_lib."""
 
-# internal imports
-import tensorflow as tf
+"""Tests for drums_lib."""
 
 from magenta.common import testing_lib as common_testing_lib
 from magenta.music import drums_lib
 from magenta.music import sequences_lib
 from magenta.music import testing_lib
 from magenta.protobuf import music_pb2
+import tensorflow as tf
 
 DRUMS = lambda *args: frozenset(args)
 NO_DRUMS = frozenset()
@@ -149,28 +148,28 @@ class DrumsLibTest(tf.test.TestCase):
     drums.set_length(5)
     self.assertListEqual([DRUMS(60), NO_DRUMS, NO_DRUMS, NO_DRUMS, NO_DRUMS],
                          list(drums))
-    self.assertEquals(9, drums.start_step)
-    self.assertEquals(14, drums.end_step)
+    self.assertEqual(9, drums.start_step)
+    self.assertEqual(14, drums.end_step)
 
     drums = drums_lib.DrumTrack(events, start_step=9)
     drums.set_length(5, from_left=True)
     self.assertListEqual([NO_DRUMS, NO_DRUMS, NO_DRUMS, NO_DRUMS, DRUMS(60)],
                          list(drums))
-    self.assertEquals(5, drums.start_step)
-    self.assertEquals(10, drums.end_step)
+    self.assertEqual(5, drums.start_step)
+    self.assertEqual(10, drums.end_step)
 
     events = [DRUMS(60), NO_DRUMS, NO_DRUMS, NO_DRUMS]
     drums = drums_lib.DrumTrack(events)
     drums.set_length(3)
     self.assertListEqual([DRUMS(60), NO_DRUMS, NO_DRUMS], list(drums))
-    self.assertEquals(0, drums.start_step)
-    self.assertEquals(3, drums.end_step)
+    self.assertEqual(0, drums.start_step)
+    self.assertEqual(3, drums.end_step)
 
     drums = drums_lib.DrumTrack(events)
     drums.set_length(3, from_left=True)
     self.assertListEqual([NO_DRUMS, NO_DRUMS, NO_DRUMS], list(drums))
-    self.assertEquals(1, drums.start_step)
-    self.assertEquals(4, drums.end_step)
+    self.assertEqual(1, drums.start_step)
+    self.assertEqual(4, drums.end_step)
 
   def testToSequenceSimple(self):
     drums = drums_lib.DrumTrack(

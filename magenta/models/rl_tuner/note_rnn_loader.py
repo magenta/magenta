@@ -1,10 +1,10 @@
-# Copyright 2016 Google Inc. All Rights Reserved.
+# Copyright 2019 The Magenta Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
 #
-#    http://www.apache.org/licenses/LICENSE-2.0
+#     http://www.apache.org/licenses/LICENSE-2.0
 #
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
@@ -33,11 +33,6 @@ These functions are necessary for use with the RL Tuner class.
 
 import os
 
-# internal imports
-
-import numpy as np
-import tensorflow as tf
-
 import magenta
 from magenta.common import sequence_example_lib
 from magenta.models.rl_tuner import rl_tuner_ops
@@ -45,6 +40,8 @@ from magenta.models.shared import events_rnn_graph
 from magenta.music import melodies_lib
 from magenta.music import midi_io
 from magenta.music import sequences_lib
+import numpy as np
+import tensorflow as tf
 
 
 class NoteRNNLoader(object):
@@ -236,9 +233,10 @@ class NoteRNNLoader(object):
 
             outputs_flat = tf.reshape(outputs,
                                       [-1, self.hparams.rnn_layer_sizes[-1]])
-            linear_layer = (tf.contrib.layers.linear
-                            if self.note_rnn_type == 'basic_rnn'
-                            else tf.contrib.layers.legacy_linear)
+            if self.note_rnn_type == 'basic_rnn':
+              linear_layer = tf.contrib.layers.linear
+            else:
+              linear_layer = tf.contrib.layers.legacy_linear
             logits_flat = linear_layer(
                 outputs_flat, self.hparams.one_hot_length)
             return logits_flat, final_state

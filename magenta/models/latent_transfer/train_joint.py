@@ -1,16 +1,19 @@
-# Copyright 2018 Google Inc. All Rights Reserved.
+# Copyright 2019 The Magenta Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
 #
-#    http://www.apache.org/licenses/LICENSE-2.0
+#     http://www.apache.org/licenses/LICENSE-2.0
 #
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
+# pylint: skip-file
+# TODO(adarob): Remove skip-file with https://github.com/PyCQA/astroid/issues/627
 """Train joint model on two latent spaces.
 
 This script train the joint model defined in `model_joint.py` that transfers
@@ -23,15 +26,14 @@ from __future__ import print_function
 
 from functools import partial
 import importlib
-from os.path import join
-
-import numpy as np
-import tensorflow as tf
-from tqdm import tqdm
+import os
 
 from magenta.models.latent_transfer import common
 from magenta.models.latent_transfer import common_joint
 from magenta.models.latent_transfer import model_joint
+import numpy as np
+import tensorflow as tf
+from tqdm import tqdm
 
 FLAGS = tf.flags.FLAGS
 
@@ -179,9 +181,9 @@ def main(unused_argv):
       config_name = FLAGS.config
       model_uid = common.get_model_uid(config_name, FLAGS.exp_uid)
 
-      save_name = join(save_dir, 'transfer_%s_%d.ckpt' % (model_uid, i))
+      save_name = os.path.join(save_dir, 'transfer_%s_%d.ckpt' % (model_uid, i))
       m.vae_saver.save(sess, save_name)
-      with tf.gfile.Open(join(save_dir, 'ckpt_iters.txt'), 'w') as f:
+      with tf.gfile.Open(os.path.join(save_dir, 'ckpt_iters.txt'), 'w') as f:
         f.write('%d' % i)
 
     # Evaluate if instructed
@@ -299,8 +301,8 @@ def main(unused_argv):
       x_align_B_to_A = transfer_B_to_A(x_align_B)
       x_joint_A, x_joint_B = joint_sample(sample_size=batch_size)
 
-      this_iter_sample_dir = join(sample_dir, 'transfer_train_sample',
-                                  '%010d' % i)
+      this_iter_sample_dir = os.path.join(
+          sample_dir, 'transfer_train_sample', '%010d' % i)
       tf.gfile.MakeDirs(this_iter_sample_dir)
 
       for helper, var_names, x_is_real_x in [

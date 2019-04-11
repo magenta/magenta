@@ -1,31 +1,28 @@
-# Copyright 2017 Google Inc. All Rights Reserved.
+# Copyright 2019 The Magenta Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
 #
-#    http://www.apache.org/licenses/LICENSE-2.0
+#     http://www.apache.org/licenses/LICENSE-2.0
 #
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
 """Provides function to build an RNN-NADE model's graph."""
 
 import collections
 
-# internal imports
-
-import tensorflow as tf
-
 import magenta
 from magenta.common import Nade
 from magenta.models.shared import events_rnn_graph
+import tensorflow as tf
 from tensorflow.python.layers import base as tf_layers_base
 from tensorflow.python.layers import core as tf_layers_core
 from tensorflow.python.util import nest as tf_nest
-
 
 _RnnNadeStateTuple = collections.namedtuple(
     'RnnNadeStateTuple', ('b_enc', 'b_dec', 'rnn_state'))
@@ -106,12 +103,12 @@ class RnnNade(object):
     """
     batch_size = inputs.shape[0].value
 
-    lengths = (
-        tf.tile(tf.shape(inputs)[1:2], [batch_size]) if lengths is None else
-        lengths)
-    initial_rnn_state = (
-        self._get_rnn_zero_state(batch_size) if initial_state is None else
-        initial_state.rnn_state)
+    if lengths is None:
+      lengths = tf.tile(tf.shape(inputs)[1:2], [batch_size])
+    if initial_state is None:
+      initial_rnn_state = self._get_rnn_zero_state(batch_size)
+    else:
+      initial_rnn_state = initial_state.rnn_state
 
     helper = tf.contrib.seq2seq.TrainingHelper(
         inputs=inputs,
@@ -251,7 +248,7 @@ def get_build_graph_fn(mode, config, sequence_example_file_paths=None):
     """Builds the Tensorflow graph."""
     inputs, lengths = None, None
 
-    if mode == 'train' or mode == 'eval':
+    if mode in ('train', 'eval'):
       inputs, _, lengths = magenta.common.get_padded_batch(
           sequence_example_file_paths, hparams.batch_size, input_size,
           shuffle=mode == 'train')
@@ -271,7 +268,7 @@ def get_build_graph_fn(mode, config, sequence_example_file_paths=None):
         num_dims=input_size,
         num_hidden=hparams.nade_hidden_units)
 
-    if mode == 'train' or mode == 'eval':
+    if mode in ('train', 'eval'):
       log_probs, cond_probs = rnn_nade.log_prob(inputs, lengths)
 
       inputs_flat = tf.to_float(

@@ -1,22 +1,21 @@
-# Copyright 2016 Google Inc. All Rights Reserved.
+# Copyright 2019 The Magenta Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
 #
-#    http://www.apache.org/licenses/LICENSE-2.0
+#     http://www.apache.org/licenses/LICENSE-2.0
 #
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
 """MusicXML import.
 
 Input wrappers for converting MusicXML into tensorflow.magenta.NoteSequence.
 """
-
-# internal imports
 
 from magenta.music import musicxml_parser
 from magenta.protobuf import music_pb2
@@ -142,6 +141,6 @@ def musicxml_file_to_sequence_proto(musicxml_file):
   """
   try:
     musicxml_document = musicxml_parser.MusicXMLDocument(musicxml_file)
-  except musicxml_parser.MusicXMLParseException as e:
+  except musicxml_parser.MusicXMLParseError as e:
     raise MusicXMLConversionError(e)
   return musicxml_to_sequence_proto(musicxml_document)

@@ -1,16 +1,17 @@
-# Copyright 2017 Google Inc. All Rights Reserved.
+# Copyright 2019 The Magenta Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
 #
-#    http://www.apache.org/licenses/LICENSE-2.0
+#     http://www.apache.org/licenses/LICENSE-2.0
 #
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
 """Compare a directory of abc and midi files.
 
 Assumes a directory of abc files converted with something like:
@@ -28,11 +29,10 @@ import os
 import pdb
 import re
 
-# internal imports
-import tensorflow as tf
 from magenta.music import abc_parser
 from magenta.music import midi_io
 from magenta.music import sequences_lib
+import tensorflow as tf
 
 FLAGS = tf.app.flags.FLAGS
 
@@ -41,6 +41,7 @@ tf.app.flags.DEFINE_string('input_dir', None,
 
 
 class CompareDirectory(tf.test.TestCase):
+  """Fake test used to compare directories of abc and midi files."""
 
   def runTest(self):
     pass

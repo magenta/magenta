@@ -1,16 +1,17 @@
-# Copyright 2017 Google Inc. All Rights Reserved.
+# Copyright 2019 The Magenta Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
 #
-#    http://www.apache.org/licenses/LICENSE-2.0
+#     http://www.apache.org/licenses/LICENSE-2.0
 #
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
 """MusicVAE LSTM model utilities."""
 
 from __future__ import absolute_import
@@ -19,9 +20,7 @@ from __future__ import print_function
 
 import collections
 
-# internal imports
 import tensorflow as tf
-
 from tensorflow.contrib import rnn
 from tensorflow.contrib import seq2seq
 from tensorflow.contrib.cudnn_rnn.python.layers import cudnn_rnn
@@ -61,15 +60,15 @@ def cudnn_lstm_layer(layer_sizes, dropout_keep_prob, is_training=True,
       dropout=1.0 - dropout_keep_prob,
       name=name_or_scope)
 
-  class BackwardCompatibleCudnnLSTMSaveable(
-      tf.contrib.cudnn_rnn.CudnnLSTMSaveable):
-    """Overrides CudnnLSTMSaveable for backward-compatibility."""
+  class BackwardCompatibleCudnnParamsFormatConverterLSTM(
+      tf.contrib.cudnn_rnn.CudnnParamsFormatConverterLSTM):
+    """Overrides CudnnParamsFormatConverterLSTM for backward-compatibility."""
 
     def _cudnn_to_tf_biases(self, *cu_biases):
       """Overrides to subtract 1.0 from `forget_bias` (see BasicLSTMCell)."""
       (tf_bias,) = (
-          super(BackwardCompatibleCudnnLSTMSaveable, self)._cudnn_to_tf_biases(
-              *cu_biases))
+          super(BackwardCompatibleCudnnParamsFormatConverterLSTM,
+                self)._cudnn_to_tf_biases(*cu_biases))
       i, c, f, o = tf.split(tf_bias, 4)
       # Non-Cudnn LSTM cells add 1.0 to the forget bias variable.
       return (tf.concat([i, c, f - 1.0, o], axis=0),)
@@ -79,11 +78,17 @@ def cudnn_lstm_layer(layer_sizes, dropout_keep_prob, is_training=True,
       (tf_bias,) = tf_biases
       i, c, f, o = tf.split(tf_bias, 4)
       # Non-Cudnn LSTM cells add 1.0 to the forget bias variable.
-      return (
-          super(BackwardCompatibleCudnnLSTMSaveable, self)._tf_to_cudnn_biases(
-              tf.concat([i, c, f + 1.0, o], axis=0)))
+      return (super(BackwardCompatibleCudnnParamsFormatConverterLSTM,
+                    self)._tf_to_cudnn_biases(
+                        tf.concat([i, c, f + 1.0, o], axis=0)))
 
-    def _TFCanonicalNamePrefix(self, layer, is_fwd=True):
+  class BackwardCompatibleCudnnLSTMSaveable(
+      tf.contrib.cudnn_rnn.CudnnLSTMSaveable):
+    """Overrides CudnnLSTMSaveable for backward-compatibility."""
+
+    _format_converter_cls = BackwardCompatibleCudnnParamsFormatConverterLSTM
+
+    def _tf_canonical_name_prefix(self, layer, is_fwd=True):
       """Overrides for backward-compatible variable names."""
       if self._direction == 'unidirectional':
         return 'multi_rnn_cell/cell_%d/lstm_cell' % layer
@@ -137,8 +142,9 @@ def set_final(sequence, sequence_length, values, time_major=False):
   sequence_batch_major = (
       tf.expand_dims(mask, axis=-1) * sequence_batch_major +
       tf.scatter_nd(final_index, values, tf.shape(sequence_batch_major)))
-  return (sequence_batch_major if not time_major else
-          tf.transpose(sequence_batch_major, [1, 0, 2]))
+  if time_major:
+    return tf.transpose(sequence_batch_major, [1, 0, 2])
+  return sequence_batch_major
 
 
 def initial_cell_state_from_embedding(cell, z, name=None):

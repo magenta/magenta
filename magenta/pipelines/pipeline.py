@@ -1,16 +1,17 @@
-# Copyright 2016 Google Inc. All Rights Reserved.
+# Copyright 2019 The Magenta Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
 #
-#    http://www.apache.org/licenses/LICENSE-2.0
+#     http://www.apache.org/licenses/LICENSE-2.0
 #
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
 """For running data processing pipelines."""
 
 from __future__ import absolute_import
@@ -21,20 +22,18 @@ import abc
 import inspect
 import os.path
 
-# internal imports
+from magenta.pipelines import statistics
 import six
 import tensorflow as tf
 
-from magenta.pipelines import statistics
 
-
-class InvalidTypeSignatureException(Exception):
+class InvalidTypeSignatureError(Exception):
   """Thrown when `Pipeline.input_type` or `Pipeline.output_type` is not valid.
   """
   pass
 
 
-class InvalidStatisticsException(Exception):
+class InvalidStatisticsError(Exception):
   """Thrown when stats produced by a `Pipeline` are not valid."""
   pass
 
@@ -74,7 +73,7 @@ class PipelineKey(object):
 
 def _guarantee_dict(given, default_name):
   if not isinstance(given, dict):
-    return {default_name: dict}
+    return {default_name: list}
   return given
 
 
@@ -92,19 +91,19 @@ def _assert_valid_type_signature(type_sig, type_sig_name):
         exception descriptions.
 
   Raises:
-    InvalidTypeSignatureException: If `type_sig` is not valid.
+    InvalidTypeSignatureError: If `type_sig` is not valid.
   """
   if isinstance(type_sig, dict):
     for k, val in type_sig.items():
       if not isinstance(k, six.string_types):
-        raise InvalidTypeSignatureException(
+        raise InvalidTypeSignatureError(
             '%s key %s must be a string.' % (type_sig_name, k))
       if not inspect.isclass(val):
-        raise InvalidTypeSignatureException(
+        raise InvalidTypeSignatureError(
             '%s %s at key %s must be a Python class.' % (type_sig_name, val, k))
   else:
     if not inspect.isclass(type_sig):
-      raise InvalidTypeSignatureException(
+      raise InvalidTypeSignatureError(
           '%s %s must be a Python class.' % (type_sig_name, type_sig))
 
 
@@ -231,18 +230,18 @@ class Pipeline(object):
       stats: An iterable of Statistic objects.
 
     Raises:
-      InvalidStatisticsException: If `stats` is not iterable, or if any
+      InvalidStatisticsError: If `stats` is not iterable, or if any
           object in the list is not a `Statistic` instance.
     """
     if not hasattr(stats, '__iter__'):
-      raise InvalidStatisticsException(
+      raise InvalidStatisticsError(
           'Expecting iterable, got type %s' % type(stats))
     self._stats = [self._prepend_name(stat) for stat in stats]
 
   def _prepend_name(self, stat):
     """Returns a copy of `stat` with `self.name` prepended to `stat.name`."""
     if not isinstance(stat, statistics.Statistic):
-      raise InvalidStatisticsException(
+      raise InvalidStatisticsError(
           'Expecting Statistic object, got %s' % stat)
     stat_copy = stat.copy()
     stat_copy.name = self._name + '_' + stat_copy.name
@@ -318,7 +317,7 @@ def run_pipeline_serial(pipeline,
                         output_file_base=None):
   """Runs the a pipeline on a data source and writes to a directory.
 
-  Run the the pipeline on each input from the iterator one at a time.
+  Run the pipeline on each input from the iterator one at a time.
   A file will be written to `output_dir` for each dataset name specified
   by the pipeline. pipeline.transform is called on each input and the
   results are aggregated into their correct datasets.
@@ -366,8 +365,8 @@ def run_pipeline_serial(pipeline,
                                  '%s_%s.tfrecord' % (output_file_base, name))
                     for name in output_names]
 
-  writers = dict([(name, tf.python_io.TFRecordWriter(path))
-                  for name, path in zip(output_names, output_paths)])
+  writers = dict((name, tf.python_io.TFRecordWriter(path))
+                 for name, path in zip(output_names, output_paths))
 
   total_inputs = 0
   total_outputs = 0
@@ -376,7 +375,7 @@ def run_pipeline_serial(pipeline,
     total_inputs += 1
     for name, outputs in _guarantee_dict(pipeline.transform(input_),
                                          list(output_names)[0]).items():
-      for output in outputs:
+      for output in outputs:  # pylint:disable=not-an-iterable
         writers[name].write(output.SerializeToString())
       total_outputs += len(outputs)
     stats = statistics.merge_statistics(stats + pipeline.get_stats())
@@ -406,8 +405,7 @@ def load_pipeline(pipeline, input_iterator):
     dictionary mapping dataset names to lists of objects. Each name acts
     as a bucket where outputs are aggregated.
   """
-  aggregated_outputs = dict(
-      [(name, []) for name in pipeline.output_type_as_dict])
+  aggregated_outputs = dict((name, []) for name in pipeline.output_type_as_dict)
   total_inputs = 0
   total_outputs = 0
   stats = []
