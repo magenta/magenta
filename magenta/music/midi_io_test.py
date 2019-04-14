@@ -346,8 +346,10 @@ class MidiIoTest(tf.test.TestCase):
 
   def testInstrumentInfo_NoteSequenceToPrettyMidi(self):
     source_sequence = music_pb2.NoteSequence()
-    source_sequence.notes.add(pitch=60, start_time=0.0, end_time=0.5, velocity=80, instrument=0)
-    source_sequence.notes.add(pitch=60, start_time=0.5, end_time=1.0, velocity=80, instrument=1)
+    source_sequence.notes.add(pitch=60, start_time=0.0,
+                              end_time=0.5, velocity=80, instrument=0)
+    source_sequence.notes.add(pitch=60, start_time=0.5,
+                              end_time=1.0, velocity=80, instrument=1)
     instrument_info1 = source_sequence.instrument_infos.add()
     instrument_info1.name = 'inst_0'
     instrument_info1.instrument = 0
@@ -358,9 +360,12 @@ class MidiIoTest(tf.test.TestCase):
     translated_sequence = midi_io.midi_to_note_sequence(translated_midi)
 
     if translated_sequence.instrument_infos:
-      self.assertEqual(len(source_sequence.instrument_infos), len(translated_sequence.instrument_infos))
-      self.assertEqual(source_sequence.instrument_infos[0].name, translated_sequence.instrument_infos[0].name)
-      self.assertEqual(source_sequence.instrument_infos[1].name, translated_sequence.instrument_infos[1].name)
+      self.assertEqual(len(source_sequence.instrument_infos),
+                       len(translated_sequence.instrument_infos))
+      self.assertEqual(source_sequence.instrument_infos[0].name,
+                       translated_sequence.instrument_infos[0].name)
+      self.assertEqual(source_sequence.instrument_infos[1].name,
+                       translated_sequence.instrument_infos[1].name)
 
 
   def testComplexReadWriteMidi(self):

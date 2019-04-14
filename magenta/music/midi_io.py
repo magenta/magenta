@@ -298,8 +298,9 @@ def note_sequence_to_pretty_midi(
     pm._update_tick_to_time(0)
     # pylint: enable=protected-access
 
-  # Populate instrument names by first creating an instrument map between instrument index and name
-  # Then going over this map in the instrument event for loop
+  # Populate instrument names by first creating an instrument map between
+  # instrument index and name.
+  # Then, going over this map in the instrument event for loop
   inst_infos = {}
   for inst_info in sequence.instrument_infos:
     inst_infos[inst_info.instrument] = inst_info.name
