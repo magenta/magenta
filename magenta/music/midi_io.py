@@ -126,9 +126,10 @@ def midi_to_note_sequence(midi_data):
   midi_control_changes = []
   for num_instrument, midi_instrument in enumerate(midi.instruments):
     # Populate instrument name from the midi's instruments
-    instrument_info = sequence.instrument_infos.add()
-    instrument_info.name = midi_instrument.name
-    instrument_info.instrument = num_instrument
+    if midi_instrument.name:
+      instrument_info = sequence.instrument_infos.add()
+      instrument_info.name = midi_instrument.name
+      instrument_info.instrument = num_instrument
     for midi_note in midi_instrument.notes:
       if not sequence.total_time or midi_note.end > sequence.total_time:
         sequence.total_time = midi_note.end
