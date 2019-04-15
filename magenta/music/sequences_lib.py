@@ -124,7 +124,15 @@ def trim_note_sequence(sequence, start_time, end_time):
   return subsequence
 
 
-def _extract_subsequences(sequence, split_times, sustain_control_number=64):
+DEFAULT_SUBSEQUENCE_PRESERVE_CONTROL_NUMBERS = (
+    64,  # sustain
+    66,  # sostenuto
+    67,  # una corda
+)
+
+
+def _extract_subsequences(sequence, split_times,
+                          preserve_control_numbers=None):
   """Extracts multiple subsequences from a NoteSequence.
 
   Args:
@@ -134,7 +142,10 @@ def _extract_subsequences(sequence, split_times, sustain_control_number=64):
       the next subsequence will start at `split_times[1]` and end at
       `split_times[2]`, and so on with the last subsequence ending at
       `split_times[-1]`.
-    sustain_control_number: The MIDI control number for sustain pedal.
+    preserve_control_numbers: List of control change numbers to preserve as
+      pedal events. The most recent event before the beginning of the
+      subsequence will be inserted at the beginning of the subsequence.
+      If None, will use DEFAULT_SUBSEQUENCE_PRESERVE_CONTROL_NUMBERS.
 
   Returns:
     A Python list of new NoteSequence containing the subsequences of `sequence`.
@@ -155,6 +166,9 @@ def _extract_subsequences(sequence, split_times, sustain_control_number=64):
     raise ValueError('Split times must be sorted.')
   if any(time >= sequence.total_time for time in split_times[:-1]):
     raise ValueError('Cannot extract subsequence past end of sequence.')
+
+  if preserve_control_numbers is None:
+    preserve_control_numbers = DEFAULT_SUBSEQUENCE_PRESERVE_CONTROL_NUMBERS
 
   subsequence = music_pb2.NoteSequence()
   subsequence.CopyFrom(sequence)
@@ -263,45 +277,47 @@ def _extract_subsequences(sequence, split_times, sustain_control_number=64):
       containers[subsequence_index].extend([event])
       containers[subsequence_index][-1].time -= split_times[subsequence_index]
 
-  # Extract sustain pedal events (other control changes are deleted). Sustain
-  # pedal state is maintained per-instrument and added to the beginning of each
+  # Extract piano pedal events (other control changes are deleted). Pedal state
+  # is maintained per-instrument and added to the beginning of each
   # subsequence.
-  sustain_events = [
+  pedal_events = [
       cc for cc in sequence.control_changes
-      if cc.control_number == sustain_control_number
+      if cc.control_number in preserve_control_numbers
   ]
-  previous_sustain_events = {}
+  previous_pedal_events = {}
   subsequence_index = -1
-  for sustain_event in sorted(sustain_events, key=lambda event: event.time):
-    if sustain_event.time <= split_times[0]:
-      previous_sustain_events[sustain_event.instrument] = sustain_event
+  for pedal_event in sorted(pedal_events, key=lambda event: event.time):
+    if pedal_event.time <= split_times[0]:
+      previous_pedal_events[
+          (pedal_event.instrument, pedal_event.control_number)] = pedal_event
       continue
     while (subsequence_index < len(split_times) - 1 and
-           sustain_event.time > split_times[subsequence_index + 1]):
+           pedal_event.time > split_times[subsequence_index + 1]):
       subsequence_index += 1
       if subsequence_index == len(split_times) - 1:
         break
-      # Add the current sustain pedal state to the beginning of the subsequence.
-      for previous_sustain_event in previous_sustain_events.values():
+      # Add the current pedal pedal state to the beginning of the subsequence.
+      for previous_pedal_event in previous_pedal_events.values():
         subsequences[subsequence_index].control_changes.extend(
-            [previous_sustain_event])
+            [previous_pedal_event])
         subsequences[subsequence_index].control_changes[-1].time = 0.0
     if subsequence_index == len(split_times) - 1:
       break
-    # Only add the sustain event if it's actually inside the subsequence (and
+    # Only add the pedal event if it's actually inside the subsequence (and
     # not on the boundary with the next one).
-    if sustain_event.time < split_times[subsequence_index + 1]:
-      subsequences[subsequence_index].control_changes.extend([sustain_event])
+    if pedal_event.time < split_times[subsequence_index + 1]:
+      subsequences[subsequence_index].control_changes.extend([pedal_event])
       subsequences[subsequence_index].control_changes[-1].time -= (
           split_times[subsequence_index])
-    previous_sustain_events[sustain_event.instrument] = sustain_event
-  # Add final sustain pedal state to the beginning of all remaining
+    previous_pedal_events[
+        (pedal_event.instrument, pedal_event.control_number)] = pedal_event
+  # Add final pedal pedal state to the beginning of all remaining
   # subsequences.
   while subsequence_index < len(split_times) - 2:
     subsequence_index += 1
-    for _, previous_sustain_event in previous_sustain_events.items():
+    for previous_pedal_event in previous_pedal_events.values():
       subsequences[subsequence_index].control_changes.extend(
-          [previous_sustain_event])
+          [previous_pedal_event])
       subsequences[subsequence_index].control_changes[-1].time = 0.0
 
   # Set subsequence info for all subsequences.
@@ -316,7 +332,7 @@ def _extract_subsequences(sequence, split_times, sustain_control_number=64):
 def extract_subsequence(sequence,
                         start_time,
                         end_time,
-                        sustain_control_number=64):
+                        preserve_control_numbers=None):
   """Extracts a subsequence from a NoteSequence.
 
   Notes starting before `start_time` are not included. Notes ending after
@@ -335,7 +351,11 @@ def extract_subsequence(sequence,
     sequence: The NoteSequence to extract a subsequence from.
     start_time: The float time in seconds to start the subsequence.
     end_time: The float time in seconds to end the subsequence.
-    sustain_control_number: The MIDI control number for sustain pedal.
+    preserve_control_numbers: List of control change numbers to preserve as
+      pedal events. The most recent event before the beginning of the
+      subsequence will be inserted at the beginning of the subsequence.
+      If None, will use DEFAULT_SUBSEQUENCE_PRESERVE_CONTROL_NUMBERS.
+
 
   Returns:
     A new NoteSequence containing the subsequence of `sequence` from the
@@ -348,7 +368,7 @@ def extract_subsequence(sequence,
   return _extract_subsequences(
       sequence,
       split_times=[start_time, end_time],
-      sustain_control_number=sustain_control_number)[0]
+      preserve_control_numbers=preserve_control_numbers)[0]
 
 
 def shift_sequence_times(sequence, shift_seconds):
