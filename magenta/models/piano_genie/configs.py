@@ -38,13 +38,13 @@ class BasePianoGenieConfig(object):
     self.enc_rnn_bidirectional = True
     self.enc_pitch_scalar = False
     self.enc_aux_feats = []
-    self.enc_context_null_is_dim = True
+    self.enc_context_null_is_dim = False
 
     # Decoder parameters
     self.dec_autoregressive = False
     self.dec_aux_feats = []
     self.dec_pred_velocity = False
-    self.dec_context_null_is_dim = True
+    self.dec_context_null_is_dim = False
 
     # Unconstrained "discretization" parameters
     # Passes sequence of continuous embeddings directly to decoder (which we
