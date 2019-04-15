@@ -113,8 +113,8 @@ def create_estimator(model_fn,
       model_dir=model_dir,
       params=params,
       train_batch_size=hparams.batch_size,
-      eval_batch_size=hparams.batch_size,
-      predict_batch_size=hparams.batch_size,
+      eval_batch_size=hparams.eval_batch_size,
+      predict_batch_size=hparams.predict_batch_size,
       config=config,
       warm_start_from=warm_start_from,
       eval_on_tpu=False)
@@ -166,8 +166,6 @@ def evaluate(master,
              name,
              num_steps=None):
   """Train loop."""
-  hparams.batch_size = 1
-
   estimator = create_estimator(
       model_fn=model_fn, model_dir=model_dir, master=master, hparams=hparams)
 

@@ -18,6 +18,7 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
+import collections
 import functools
 
 from magenta.models.onsets_frames_transcription import constants
@@ -179,14 +180,17 @@ def define_metrics(frame_predictions, onset_predictions, offset_predictions,
                    velocity_values, length, sequence_label, frame_labels,
                    sequence_id, hparams):
   """Create a metric name to tf.metric pair dict for transcription metrics."""
-  # For now, support only batch size 1.
-  # TODO(fjord): support larger batches for more efficient eval.
-  assert hparams.batch_size == 1
-  del length
-
   with tf.device('/device:CPU:*'):
-    metrics = calculate_metrics(frame_predictions[0], onset_predictions[0],
-                                offset_predictions[0], velocity_values[0],
-                                sequence_label[0], frame_labels[0],
-                                sequence_id[0], hparams)
+    metrics = collections.defaultdict(list)
+    for i in range(hparams.eval_batch_size):
+      for k, v in calculate_metrics(
+          frame_predictions=frame_predictions[i][:length[i]],
+          onset_predictions=onset_predictions[i][:length[i]],
+          offset_predictions=offset_predictions[i][:length[i]],
+          velocity_values=velocity_values[i][:length[i]],
+          sequence_label=sequence_label[i],
+          frame_labels=frame_labels[i][:length[i]],
+          sequence_id=sequence_id[i],
+          hparams=hparams).items():
+        metrics[k].append(v)
     return {'metrics/' + k: tf.metrics.mean(v) for k, v in metrics.items()}

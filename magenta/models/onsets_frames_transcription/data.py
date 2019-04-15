@@ -596,11 +596,13 @@ def provide_batch(examples,
         shuffle_buffer_size=shuffle_buffer_size,
         skip_n_initial_records=skip_n_initial_records)
 
-  if hparams.max_expected_train_example_len:
-    dataset = dataset.batch(hparams.batch_size, drop_remainder=is_training)
+  if hparams.max_expected_train_example_len and is_training:
+    dataset = dataset.batch(hparams.batch_size, drop_remainder=True)
   else:
     dataset = dataset.padded_batch(
-        hparams.batch_size, padded_shapes=dataset.output_shapes)
+        hparams.batch_size,
+        padded_shapes=dataset.output_shapes,
+        drop_remainder=True)
 
   dataset = dataset.prefetch(buffer_size=tf.data.experimental.AUTOTUNE)
 
