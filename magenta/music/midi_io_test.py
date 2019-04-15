@@ -359,13 +359,12 @@ class MidiIoTest(tf.test.TestCase):
     translated_midi = midi_io.sequence_proto_to_pretty_midi(source_sequence)
     translated_sequence = midi_io.midi_to_note_sequence(translated_midi)
 
-    if translated_sequence.instrument_infos:
-      self.assertEqual(len(source_sequence.instrument_infos),
-                       len(translated_sequence.instrument_infos))
-      self.assertEqual(source_sequence.instrument_infos[0].name,
-                       translated_sequence.instrument_infos[0].name)
-      self.assertEqual(source_sequence.instrument_infos[1].name,
-                       translated_sequence.instrument_infos[1].name)
+    self.assertEqual(len(source_sequence.instrument_infos),
+                     len(translated_sequence.instrument_infos))
+    self.assertEqual(source_sequence.instrument_infos[0].name,
+                     translated_sequence.instrument_infos[0].name)
+    self.assertEqual(source_sequence.instrument_infos[1].name,
+                     translated_sequence.instrument_infos[1].name)
 
 
   def testComplexReadWriteMidi(self):
