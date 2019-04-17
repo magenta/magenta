@@ -44,11 +44,11 @@ err() {
 if [[ "$(uname)" == "Darwin" ]]; then
     echo 'Mac OS Detected'
     readonly OS='MAC'
-    readonly MINICONDA_SCRIPT='Miniconda2-latest-MacOSX-x86_64.sh'
+    readonly MINICONDA_SCRIPT='Miniconda3-latest-MacOSX-x86_64.sh'
 elif [[ "$(uname)" == "Linux" ]]; then
     echo 'Linux OS Detected'
     readonly OS='LINUX'
-    readonly MINICONDA_SCRIPT='Miniconda2-latest-Linux-x86_64.sh'
+    readonly MINICONDA_SCRIPT='Miniconda3-latest-Linux-x86_64.sh'
 else
     err 'Detected neither OSX or Linux Operating System'
 fi
@@ -99,7 +99,7 @@ if [[ $(conda info --envs | grep "*" | awk '{print $1}') != "magenta" ]]; then
 fi
 
 # Install other dependencies
-pip install jupyter magenta
+pip3 install jupyter magenta
 
 # Install rtmidi for realtime midi IO
 if [[ $(which apt-get) ]]; then
@@ -111,7 +111,7 @@ if [[ $(which apt-get) ]]; then
     echo ""
     sudo apt-get install build-essential libasound2-dev libjack-dev
 fi
-pip install --pre python-rtmidi
+pip3 install --pre python-rtmidi
 
 echo ""
 echo "=============================="
