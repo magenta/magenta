@@ -97,6 +97,9 @@ message NoteSequence {
   // Sequence metadata.
   SequenceMetadata sequence_metadata = 19;
 
+  // information about instrument type.
+  repeated InstrumentInfo instrument_infos = 23;
+
   // Next tag: 15
   message Note {
     // MIDI pitch; see en.wikipedia.org/wiki/MIDI_Tuning_Standard for details.
@@ -198,6 +201,7 @@ message NoteSequence {
 
     enum Key {
       option allow_alias = true;
+
       C = 0;
       C_SHARP = 1;
       D_FLAT = 1;
@@ -268,6 +272,15 @@ message NoteSequence {
     // The part index.
     int32 part = 1;
     // The name of the part. Examples: "Piano" or "Voice".
+    string name = 2;
+  }
+
+  // Stores information about an instrument name
+  // See usage within Note for more details.
+  message InstrumentInfo {
+    // The instrument index.
+    int32 instrument = 1;
+    // The name of the instrument. Examples: "Piano" or "bass".
     string name = 2;
   }
 
