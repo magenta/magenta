@@ -345,16 +345,15 @@ def preprocess_data(sequence_id, sequence, audio, velocity_range, hparams,
 
 
 FeatureTensors = collections.namedtuple(
-    'FeatureTensors', ('spec', 'length', 'sequence_id', 'spectrogram_hash'))
+    'FeatureTensors', ('spec', 'length', 'sequence_id'))
 LabelTensors = collections.namedtuple(
     'LabelTensors', ('labels', 'label_weights', 'onsets', 'offsets',
-                     'velocities', 'note_sequence'))
+                     'velocities', 'note_sequence', 'use_labels'))
 
 
-def _provide_data(input_tensors, hparams, is_training):
+def _provide_data(input_tensors, hparams, is_training, label_ratio=1.0):
   """Returns tensors for reading batches from provider."""
   length = tf.cast(input_tensors.length, tf.int32)
-  spectrogram_hash = tf.cast(input_tensors.spectrogram_hash, tf.int64)
   labels = tf.reshape(input_tensors.labels, (-1, constants.MIDI_PITCHES))
   label_weights = tf.reshape(input_tensors.label_weights,
                              (-1, constants.MIDI_PITCHES))
@@ -363,6 +362,11 @@ def _provide_data(input_tensors, hparams, is_training):
   velocities = tf.reshape(input_tensors.velocities,
                           (-1, constants.MIDI_PITCHES))
   spec = tf.reshape(input_tensors.spec, (-1, hparams_frame_size(hparams)))
+
+  # Determine whether to use datapoint labels from spectrogram hash.
+  spectrogram_hash = tf.cast(input_tensors.spectrogram_hash, tf.int64)
+  label_mod = int(1.0 // label_ratio)
+  use_labels = tf.logical_not(tf.cast(spectrogram_hash % label_mod, tf.bool))
 
   # Slice specs and labels tensors so they are no longer than truncated_length.
   hparams_truncated_length = tf.cast(
@@ -426,8 +430,7 @@ def _provide_data(input_tensors, hparams, is_training):
   features = FeatureTensors(
       spec=tf.reshape(spec, (final_length, hparams_frame_size(hparams), 1)),
       length=truncated_length,
-      sequence_id=tf.constant(0) if is_training else input_tensors.sequence_id,
-      spectrogram_hash=spectrogram_hash)
+      sequence_id=tf.constant(0) if is_training else input_tensors.sequence_id)
   labels = LabelTensors(
       labels=tf.reshape(labels, (final_length, constants.MIDI_PITCHES)),
       label_weights=tf.reshape(label_weights,
@@ -435,17 +438,16 @@ def _provide_data(input_tensors, hparams, is_training):
       onsets=tf.reshape(onsets, (final_length, constants.MIDI_PITCHES)),
       offsets=tf.reshape(offsets, (final_length, constants.MIDI_PITCHES)),
       velocities=tf.reshape(velocities, (final_length, constants.MIDI_PITCHES)),
-      note_sequence=truncated_note_sequence)
+      note_sequence=truncated_note_sequence,
+      use_labels=use_labels)
 
   return features, labels
 
 
-def provide_batch(examples,
-                  preprocess_examples,
-                  hparams,
-                  is_training=True,
-                  shuffle_buffer_size=64):
-  """Returns batches of tensors read from TFRecord files.
+def _get_dataset(examples, preprocess_examples, hparams, is_training,
+                 shuffle_examples, shuffle_buffer_size, skip_n_initial_records,
+                 label_ratio=1.0):
+  """Returns a tf.data.Dataset from TFRecord files.
 
   Args:
     examples: A string path to a TFRecord file of examples, a python list of
@@ -454,16 +456,23 @@ def provide_batch(examples,
       have already been preprocessed.
     hparams: HParams object specifying hyperparameters.
     is_training: Whether this is a training run.
+    shuffle_examples: Whether examples should be shuffled.
     shuffle_buffer_size: Buffer size used to shuffle records.
+    skip_n_initial_records: Skip this many records at first.
+    label_ratio: A float representing the proportion of data that should have
+      labels. For example, 1.0 would be fully supervised training.
 
   Returns:
-    Batched tensors in a TranscriptionData NamedTuple.
+    A tf.data.Dataset.
   """
+  if is_training and not shuffle_examples:
+    raise ValueError('shuffle_examples must be True if is_training is True')
+
   if isinstance(examples, str):
     # Read examples from a TFRecord file containing serialized NoteSequence
     # and audio.
-    filenames = tf.data.Dataset.list_files(examples, shuffle=is_training)
-    if is_training:
+    filenames = tf.data.Dataset.list_files(examples, shuffle=shuffle_examples)
+    if shuffle_examples:
       input_dataset = filenames.apply(
           tf.data.experimental.parallel_interleave(
               tf.data.TFRecordDataset, sloppy=True, cycle_length=8))
@@ -472,9 +481,12 @@ def provide_batch(examples,
   else:
     input_dataset = tf.data.Dataset.from_tensor_slices(examples)
 
+  if shuffle_examples:
+    input_dataset = input_dataset.shuffle(shuffle_buffer_size)
   if is_training:
-    input_dataset = input_dataset.apply(
-        tf.data.experimental.shuffle_and_repeat(shuffle_buffer_size))
+    input_dataset = input_dataset.repeat()
+  if skip_n_initial_records:
+    input_dataset = input_dataset.skip(skip_n_initial_records)
 
   def _preprocess(example_proto):
     """Process an Example proto into a model input."""
@@ -488,8 +500,8 @@ def provide_batch(examples,
     input_tensors = preprocess_data(record['id'], record['sequence'],
                                     record['audio'], record['velocity_range'],
                                     hparams, is_training)
-    return _provide_data(
-        input_tensors, hparams=hparams, is_training=is_training)
+    return _provide_data(input_tensors, hparams=hparams,
+                         is_training=is_training, label_ratio=label_ratio)
 
   def _parse(example_proto):
     """Process an Example proto into a model input."""
@@ -521,11 +533,76 @@ def provide_batch(examples,
         input_tensors, hparams=hparams, is_training=is_training)
 
   dataset = input_dataset.map(_preprocess if preprocess_examples else _parse)
-  if hparams.max_expected_train_example_len:
-    dataset = dataset.batch(hparams.batch_size, drop_remainder=is_training)
+  return dataset
+
+
+def provide_batch(examples,
+                  preprocess_examples,
+                  hparams,
+                  is_training=True,
+                  shuffle_examples=None,
+                  shuffle_buffer_size=64,
+                  skip_n_initial_records=0,
+                  semisupervised_configs=None):
+  """Returns batches of tensors read from TFRecord files.
+
+  Args:
+    examples: A string path to a TFRecord file of examples, a python list of
+      serialized examples, or a Tensor placeholder for serialized examples.
+    preprocess_examples: Whether to preprocess examples. If False, assume they
+      have already been preprocessed.
+    hparams: HParams object specifying hyperparameters.
+      is_training: Whether this is a training run.
+    shuffle_examples: Whether examples should be shuffled. If not set, will
+      default to the value of is_training.
+    shuffle_buffer_size: Buffer size used to shuffle records.
+    skip_n_initial_records: Skip this many records at first.
+    semisupervised_configs: A list of SemisupervisedExamplesConfig that gives
+      datasets for semisupervised training. Overrides examples.
+
+  Returns:
+    Batched tensors in a TranscriptionData NamedTuple.
+  """
+  if not examples and not semisupervised_configs:
+    raise ValueError('You must provide `examples` or `semisupervised_configs`.')
+  if examples and semisupervised_configs:
+    raise ValueError(
+        'You must provide either `examples` or `semisupervised_configs`.')
+
+  if shuffle_examples is None:
+    shuffle_examples = is_training
+
+  if semisupervised_configs:
+    # Collect all datasets in the config.
+    datasets = []
+    batch_ratios = []
+    for ex in semisupervised_configs:
+      dataset = _get_dataset(
+          ex.examples_path, preprocess_examples=preprocess_examples,
+          hparams=hparams, is_training=is_training,
+          shuffle_examples=shuffle_examples,
+          shuffle_buffer_size=shuffle_buffer_size,
+          skip_n_initial_records=skip_n_initial_records,
+          label_ratio=ex.label_ratio)
+      datasets.append(dataset)
+      batch_ratios.append(ex.batch_ratio)
+    # Create a mixed batch from the datasets.
+    dataset = tf.data.experimental.sample_from_datasets(datasets,
+                                                        weights=batch_ratios)
+  else:
+    dataset = _get_dataset(
+        examples, preprocess_examples=preprocess_examples, hparams=hparams,
+        is_training=is_training, shuffle_examples=shuffle_examples,
+        shuffle_buffer_size=shuffle_buffer_size,
+        skip_n_initial_records=skip_n_initial_records)
+
+  if hparams.max_expected_train_example_len and is_training:
+    dataset = dataset.batch(hparams.batch_size, drop_remainder=True)
   else:
     dataset = dataset.padded_batch(
-        hparams.batch_size, padded_shapes=dataset.output_shapes)
+        hparams.batch_size,
+        padded_shapes=dataset.output_shapes,
+        drop_remainder=True)
 
   dataset = dataset.prefetch(buffer_size=tf.data.experimental.AUTOTUNE)
 

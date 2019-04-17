@@ -31,6 +31,9 @@ tf.app.flags.DEFINE_string('master', '',
                            'Name of the TensorFlow runtime to use.')
 tf.app.flags.DEFINE_string('config', 'onsets_frames',
                            'Name of the config to use.')
+tf.app.flags.DEFINE_string('semisupervised_examples_config', None,
+                           'Name of training examples config for semisupervised'
+                           'learning.')
 tf.app.flags.DEFINE_string(
     'examples_path', None,
     'Path to a TFRecord file of train/eval examples.')
@@ -64,10 +67,24 @@ tf.app.flags.DEFINE_string(
     'DEBUG, INFO, WARN, ERROR, or FATAL.')
 
 
-def run(config_map):
+def run(config_map, semisupervised_examples_map=None):
   """Run training or evaluation."""
   tf.logging.set_verbosity(FLAGS.log)
-  tf.app.flags.mark_flags_as_required(['examples_path'])
+
+  # Validate data path flags.
+  if not FLAGS.examples_path and not FLAGS.semisupervised_examples_config:
+    raise ValueError('You must set flags for either `examples_path` or '
+                     '`semisupervised_examples_config`.')
+  if FLAGS.examples_path and FLAGS.semisupervised_examples_config:
+    raise ValueError('You must only set one of either `examples_path` or '
+                     '`semisupervised_examples_config`.')
+  if not FLAGS.examples_path and FLAGS.mode == 'eval':
+    raise ValueError('You must set flags for `examples_path` if in eval mode.')
+
+  semisupervised_configs = (
+      semisupervised_examples_map[FLAGS.semisupervised_examples_config]
+      if FLAGS.semisupervised_examples_config and semisupervised_examples_map
+      else None)
 
   config = config_map[FLAGS.config]
   model_dir = os.path.expanduser(FLAGS.model_dir)
@@ -87,7 +104,8 @@ def run(config_map):
         preprocess_examples=FLAGS.preprocess_examples,
         hparams=hparams,
         keep_checkpoint_max=FLAGS.keep_checkpoint_max,
-        num_steps=FLAGS.num_steps)
+        num_steps=FLAGS.num_steps,
+        semisupervised_configs=semisupervised_configs)
   elif FLAGS.mode == 'eval':
     train_util.evaluate(
         model_fn=config.model_fn,

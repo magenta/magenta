@@ -30,6 +30,8 @@ Config = collections.namedtuple('Config', ('model_fn', 'hparams'))
 DEFAULT_HPARAMS = tf_utils.merge_hparams(
     audio_transform.DEFAULT_AUDIO_TRANSFORM_HPARAMS,
     tf.contrib.training.HParams(
+        eval_batch_size=1,
+        predict_batch_size=1,
         sample_rate=16000,
         spec_type='mel',
         spec_mel_htk=True,
@@ -84,3 +86,8 @@ DATASET_CONFIG_MAP['maestro'] = [
         'maestro-v1.0.0_ns_wav_validation.tfrecord@10',
         process_for_training=False),
 ]
+
+SemisupervisedExamplesConfig = collections.namedtuple(
+    'SemisupervisedExamplesConfig', ('examples_path',
+                                     'batch_ratio',
+                                     'label_ratio'))

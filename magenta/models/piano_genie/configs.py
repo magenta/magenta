@@ -377,6 +377,7 @@ class StpVqSeqFreeAutoDtVs(BasePianoGenieConfig):
 
 
 class PianoGeniePaper(BasePianoGenieConfig):
+  """Config matching Piano Genie paper."""
 
   def __init__(self):
     super(PianoGeniePaper, self).__init__()

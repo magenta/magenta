@@ -320,7 +320,7 @@ def get_build_graph_fn(mode, config, sequence_example_file_paths=None):
           tf.greater(precision + recall, 0), 2 * (
               (precision * recall) / (precision + recall)), 0)
       vars_to_summarize['metrics/f1_score'] = f1_score
-      for var_name, var_value in vars_to_summarize.iteritems():
+      for var_name, var_value in vars_to_summarize.items():
         tf.summary.scalar(var_name, var_value)
         tf.add_to_collection(var_name, var_value)
 
