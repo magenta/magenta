@@ -44,12 +44,6 @@ tf.app.flags.DEFINE_string(
     'hparams',
     '',
     'A comma-separated list of `name=value` hyperparameter values.')
-tf.app.flags.DEFINE_float(
-    'frame_threshold', 0.5,
-    'Threshold to use when sampling from the acoustic model.')
-tf.app.flags.DEFINE_float(
-    'onset_threshold', 0.5,
-    'Threshold to use when sampling from the acoustic model.')
 tf.app.flags.DEFINE_string(
     'log', 'INFO',
     'The threshold for what messages will be logged: '
@@ -71,11 +65,11 @@ def create_example(filename):
   return example_list[0].SerializeToString()
 
 
-def transcribe_audio(prediction, hparams, frame_threshold, onset_threshold):
+def transcribe_audio(prediction, hparams):
   """Transcribes an audio file."""
-  frame_predictions = prediction['frame_probs_flat'] > frame_threshold
-  onset_predictions = prediction['onset_probs_flat'] > onset_threshold
-  velocity_values = prediction['velocity_values_flat']
+  frame_predictions = prediction['frame_predictions']
+  onset_predictions = prediction['onset_predictions']
+  velocity_values = prediction['velocity_values']
 
   sequence_prediction = sequences_lib.pianoroll_to_note_sequence(
       frame_predictions,
@@ -146,9 +140,7 @@ def main(argv):
                 yield_single_examples=False))
         assert len(prediction_list) == 1
 
-        sequence_prediction = transcribe_audio(prediction_list[0], hparams,
-                                               FLAGS.frame_threshold,
-                                               FLAGS.onset_threshold)
+        sequence_prediction = transcribe_audio(prediction_list[0], hparams)
 
         midi_filename = filename + '.midi'
         midi_io.sequence_proto_to_midi_file(sequence_prediction, midi_filename)
