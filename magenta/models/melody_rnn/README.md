@@ -34,9 +34,6 @@ We host .mag bundle files for each of the configurations described above at thes
 * [lookback_rnn](http://download.magenta.tensorflow.org/models/lookback_rnn.mag)
 * [attention_rnn](http://download.magenta.tensorflow.org/models/attention_rnn.mag)
 
-If you're using the Magenta Docker Container, the same .mag files are located in the ```/magenta-models```
-directory.
-
 ### Generate a melody
 
 ```
