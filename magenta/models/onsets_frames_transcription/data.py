@@ -563,9 +563,11 @@ def provide_batch(examples,
   Returns:
     Batched tensors in a TranscriptionData NamedTuple.
   """
-  if not examples and not semisupervised_configs:
+  def _examples_is_valid():
+    return isinstance(examples, tf.Tensor) or examples
+  if not _examples_is_valid() and not semisupervised_configs:
     raise ValueError('You must provide `examples` or `semisupervised_configs`.')
-  if examples and semisupervised_configs:
+  if _examples_is_valid() and semisupervised_configs:
     raise ValueError(
         'You must provide either `examples` or `semisupervised_configs`.')
 
