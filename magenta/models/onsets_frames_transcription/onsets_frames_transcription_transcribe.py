@@ -57,7 +57,8 @@ def create_example(filename):
       split_audio_and_label_data.process_record(
           wav_data=wav_data,
           ns=music_pb2.NoteSequence(),
-          example_id=filename,
+          # decode to handle filenames with extended characters.
+          example_id=filename.decode('utf-8'),
           min_length=0,
           max_length=-1,
           allow_empty_notesequence=True))
