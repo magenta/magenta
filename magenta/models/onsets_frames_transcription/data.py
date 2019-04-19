@@ -365,8 +365,11 @@ def _provide_data(input_tensors, hparams, is_training, label_ratio=1.0):
 
   # Determine whether to use datapoint labels from spectrogram hash.
   spectrogram_hash = tf.cast(input_tensors.spectrogram_hash, tf.int64)
-  label_mod = int(1.0 // label_ratio)
-  use_labels = tf.logical_not(tf.cast(spectrogram_hash % label_mod, tf.bool))
+  if label_ratio == 0:
+    use_labels = tf.cast(False, tf.bool)
+  else:
+    label_mod = int(1.0 / label_ratio)
+    use_labels = tf.logical_not(tf.cast(spectrogram_hash % label_mod, tf.bool))
 
   # Slice specs and labels tensors so they are no longer than truncated_length.
   hparams_truncated_length = tf.cast(
@@ -500,8 +503,11 @@ def _get_dataset(examples, preprocess_examples, hparams, is_training,
     input_tensors = preprocess_data(record['id'], record['sequence'],
                                     record['audio'], record['velocity_range'],
                                     hparams, is_training)
-    return _provide_data(input_tensors, hparams=hparams,
-                         is_training=is_training, label_ratio=label_ratio)
+    return _provide_data(
+        input_tensors,
+        hparams=hparams,
+        is_training=is_training,
+        label_ratio=label_ratio)
 
   def _parse(example_proto):
     """Process an Example proto into a model input."""
@@ -530,7 +536,10 @@ def _get_dataset(examples, preprocess_examples, hparams, is_training,
         sequence_id=record['sequence_id'],
         note_sequence=record['note_sequence'])
     return _provide_data(
-        input_tensors, hparams=hparams, is_training=is_training)
+        input_tensors,
+        hparams=hparams,
+        is_training=is_training,
+        label_ratio=label_ratio)
 
   dataset = input_dataset.map(_preprocess if preprocess_examples else _parse)
   return dataset
