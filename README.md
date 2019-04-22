@@ -122,7 +122,7 @@ git clone https://github.com/tensorflow/magenta.git
 Next, install the dependencies by changing to the base directory and executing the setup command:
 
 ```bash
-python setup.py develop
+pip install -e .
 ```
 
 You can now edit the files and run scripts by calling Python as usual. For example, this is how you would run the `melody_rnn_generate` script from the base directory:
@@ -134,13 +134,14 @@ python magenta/models/melody_rnn/melody_rnn_generate --config=...
 You can also install the (potentially modified) package with:
 
 ```bash
-python setup.py install
+pip install .
 ```
 
 Before creating a pull request, please also test your changes with:
 
 ```bash
-python setup.py test
+pip install pytest-pylint
+pytest
 ```
 
 ## PIP Release
