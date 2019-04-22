@@ -365,8 +365,11 @@ def _provide_data(input_tensors, hparams, is_training, label_ratio=1.0):
 
   # Determine whether to use datapoint labels from spectrogram hash.
   spectrogram_hash = tf.cast(input_tensors.spectrogram_hash, tf.int64)
-  label_mod = int(1.0 // label_ratio)
-  use_labels = tf.logical_not(tf.cast(spectrogram_hash % label_mod, tf.bool))
+  if label_ratio == 0:
+    use_labels = tf.cast(False, tf.bool)
+  else:
+    label_mod = int(1.0 / label_ratio)
+    use_labels = tf.logical_not(tf.cast(spectrogram_hash % label_mod, tf.bool))
 
   # Slice specs and labels tensors so they are no longer than truncated_length.
   hparams_truncated_length = tf.cast(
@@ -500,8 +503,11 @@ def _get_dataset(examples, preprocess_examples, hparams, is_training,
     input_tensors = preprocess_data(record['id'], record['sequence'],
                                     record['audio'], record['velocity_range'],
                                     hparams, is_training)
-    return _provide_data(input_tensors, hparams=hparams,
-                         is_training=is_training, label_ratio=label_ratio)
+    return _provide_data(
+        input_tensors,
+        hparams=hparams,
+        is_training=is_training,
+        label_ratio=label_ratio)
 
   def _parse(example_proto):
     """Process an Example proto into a model input."""
@@ -530,7 +536,10 @@ def _get_dataset(examples, preprocess_examples, hparams, is_training,
         sequence_id=record['sequence_id'],
         note_sequence=record['note_sequence'])
     return _provide_data(
-        input_tensors, hparams=hparams, is_training=is_training)
+        input_tensors,
+        hparams=hparams,
+        is_training=is_training,
+        label_ratio=label_ratio)
 
   dataset = input_dataset.map(_preprocess if preprocess_examples else _parse)
   return dataset
@@ -563,9 +572,11 @@ def provide_batch(examples,
   Returns:
     Batched tensors in a TranscriptionData NamedTuple.
   """
-  if not examples and not semisupervised_configs:
+  def _examples_is_valid():
+    return isinstance(examples, tf.Tensor) or examples
+  if not _examples_is_valid() and not semisupervised_configs:
     raise ValueError('You must provide `examples` or `semisupervised_configs`.')
-  if examples and semisupervised_configs:
+  if _examples_is_valid() and semisupervised_configs:
     raise ValueError(
         'You must provide either `examples` or `semisupervised_configs`.')
 
@@ -596,11 +607,13 @@ def provide_batch(examples,
         shuffle_buffer_size=shuffle_buffer_size,
         skip_n_initial_records=skip_n_initial_records)
 
-  if hparams.max_expected_train_example_len:
-    dataset = dataset.batch(hparams.batch_size, drop_remainder=is_training)
+  if hparams.max_expected_train_example_len and is_training:
+    dataset = dataset.batch(hparams.batch_size, drop_remainder=True)
   else:
     dataset = dataset.padded_batch(
-        hparams.batch_size, padded_shapes=dataset.output_shapes)
+        hparams.batch_size,
+        padded_shapes=dataset.output_shapes,
+        drop_remainder=True)
 
   dataset = dataset.prefetch(buffer_size=tf.data.experimental.AUTOTUNE)
 

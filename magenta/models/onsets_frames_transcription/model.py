@@ -382,11 +382,17 @@ def model_fn(features, labels, mode, params, config):
         tf.losses.add_loss(tf.reduce_mean(activation_losses))
         losses['activation'] = activation_losses
 
+  frame_predictions = frame_probs_flat > hparams.predict_frame_threshold
+  onset_predictions = onset_probs_flat > hparams.predict_onset_threshold
+  offset_predictions = offset_probs_flat > hparams.predict_offset_threshold
+
   predictions = {
-      'frame_probs_flat': frame_probs_flat,
-      'onset_probs_flat': onset_probs_flat,
-      'offset_probs_flat': offset_probs_flat,
-      'velocity_values_flat': velocity_values_flat,
+      # frame_probs is exported for writing out piano roll during inference.
+      'frame_probs': frame_probs_flat,
+      'frame_predictions': frame_predictions,
+      'onset_predictions': onset_predictions,
+      'offset_predictions': offset_predictions,
+      'velocity_values': velocity_values_flat,
   }
 
   train_op = None
@@ -476,4 +482,7 @@ def get_default_hparams():
       use_cudnn=True,
       rnn_dropout_drop_amt=0.0,
       bidirectional=True,
+      predict_frame_threshold=0.5,
+      predict_onset_threshold=0.5,
+      predict_offset_threshold=0,
   )

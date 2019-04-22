@@ -257,12 +257,13 @@ class SequencesLibTest(tf.test.TestCase):
         expected_subsequence, 0, [(0.0, 64, 0), (1.5, 64, 127)])
     testing_lib.add_control_changes_to_sequence(
         expected_subsequence, 1, [(0.0, 64, 127)])
-    expected_subsequence.control_changes.sort(key=lambda cc: cc.time)
     expected_subsequence.total_time = 1.51
     expected_subsequence.subsequence_info.start_time_offset = 2.5
     expected_subsequence.subsequence_info.end_time_offset = 5.99
 
     subsequence = sequences_lib.extract_subsequence(sequence, 2.5, 4.75)
+    subsequence.control_changes.sort(
+        key=lambda cc: (cc.instrument, cc.time))
     self.assertProtoEquals(expected_subsequence, subsequence)
 
   def testExtractSubsequencePastEnd(self):
@@ -276,6 +277,43 @@ class SequencesLibTest(tf.test.TestCase):
 
     with self.assertRaises(ValueError):
       sequences_lib.extract_subsequence(sequence, 15.0, 16.0)
+
+  def testExtractSubsequencePedalEvents(self):
+    sequence = copy.copy(self.note_sequence)
+    testing_lib.add_track_to_sequence(
+        sequence, 0, [(60, 80, 2.5, 5.0)])
+    testing_lib.add_control_changes_to_sequence(
+        sequence, 0,
+        [(0.0, 64, 127), (2.0, 64, 0), (4.0, 64, 127), (5.0, 64, 0)])
+    testing_lib.add_control_changes_to_sequence(
+        sequence, 1, [(2.0, 64, 127)])
+    testing_lib.add_control_changes_to_sequence(
+        sequence, 0,
+        [(0.0, 66, 0), (2.0, 66, 127), (4.0, 66, 0), (5.0, 66, 127)])
+    testing_lib.add_control_changes_to_sequence(
+        sequence, 0,
+        [(0.0, 67, 10), (2.0, 67, 20), (4.0, 67, 30), (5.0, 67, 40)])
+    expected_subsequence = copy.copy(self.note_sequence)
+    testing_lib.add_track_to_sequence(
+        expected_subsequence, 0, [(60, 80, 0, 2.25)])
+    testing_lib.add_control_changes_to_sequence(
+        expected_subsequence, 0, [(0.0, 64, 0), (1.5, 64, 127)])
+    testing_lib.add_control_changes_to_sequence(
+        expected_subsequence, 1, [(0.0, 64, 127)])
+    testing_lib.add_control_changes_to_sequence(
+        expected_subsequence, 0, [(0.0, 66, 127), (1.5, 66, 0)])
+    testing_lib.add_control_changes_to_sequence(
+        expected_subsequence, 0, [(0.0, 67, 20), (1.5, 67, 30)])
+    expected_subsequence.control_changes.sort(
+        key=lambda cc: (cc.instrument, cc.control_number, cc.time))
+    expected_subsequence.total_time = 2.25
+    expected_subsequence.subsequence_info.start_time_offset = 2.5
+    expected_subsequence.subsequence_info.end_time_offset = .25
+
+    subsequence = sequences_lib.extract_subsequence(sequence, 2.5, 4.75)
+    subsequence.control_changes.sort(
+        key=lambda cc: (cc.instrument, cc.control_number, cc.time))
+    self.assertProtoEquals(expected_subsequence, subsequence)
 
   def testSplitNoteSequenceWithHopSize(self):
     # Tests splitting a NoteSequence at regular hop size, truncating notes.

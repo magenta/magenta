@@ -30,7 +30,7 @@ tf.app.flags.DEFINE_boolean("npy_only", False, "If True, use only .npy files.")
 tf.app.flags.DEFINE_string("save_path", "", "Path to output file dir.")
 tf.app.flags.DEFINE_string("checkpoint_path", "model.ckpt-200000",
                            "Path to checkpoint.")
-tf.app.flags.DEFINE_integer("sample_length", 100000000,
+tf.app.flags.DEFINE_integer("sample_length", 64000,
                             "Max output file size in samples.")
 tf.app.flags.DEFINE_integer("batch_size", 1, "Number of samples per a batch.")
 tf.app.flags.DEFINE_string("log", "INFO",

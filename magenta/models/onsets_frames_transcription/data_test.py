@@ -118,7 +118,8 @@ class DataTest(tf.test.TestCase):
                             examples,
                             truncated_length,
                             batch_size,
-                            expected_inputs):
+                            expected_inputs,
+                            feed_dict=None):
     """Tests for correctness of batches."""
     hparams = copy.deepcopy(configs.DEFAULT_HPARAMS)
     hparams.batch_size = batch_size
@@ -137,7 +138,7 @@ class DataTest(tf.test.TestCase):
           tf.initializers.local_variables(),
           tf.initializers.global_variables(),
           iterator.initializer
-      ])
+      ], feed_dict=feed_dict)
       for i in range(0, len(expected_inputs), batch_size):
         # Wait to ensure example is pre-processed.
         time.sleep(0.1)
@@ -168,11 +169,10 @@ class DataTest(tf.test.TestCase):
         seq, 0, [(note, 100, 0, duration)])
     return seq
 
-  def _ValidateProvideBatchTFRecord(self,
-                                    truncated_length,
-                                    batch_size,
-                                    lengths,
-                                    expected_num_inputs):
+  def _CreateExamplesAndExpectedInputs(self,
+                                       truncated_length,
+                                       lengths,
+                                       expected_num_inputs):
     hparams = copy.deepcopy(configs.DEFAULT_HPARAMS)
     examples = []
     expected_inputs = []
@@ -195,6 +195,15 @@ class DataTest(tf.test.TestCase):
           examples[-1],
           truncated_length)
     self.assertEqual(expected_num_inputs, len(expected_inputs))
+    return examples, expected_inputs
+
+  def _ValidateProvideBatchTFRecord(self,
+                                    truncated_length,
+                                    batch_size,
+                                    lengths,
+                                    expected_num_inputs):
+    examples, expected_inputs = self._CreateExamplesAndExpectedInputs(
+        truncated_length, lengths, expected_num_inputs)
 
     with tempfile.NamedTemporaryFile() as temp_tfr:
       with tf.python_io.TFRecordWriter(temp_tfr.name) as writer:
@@ -212,34 +221,31 @@ class DataTest(tf.test.TestCase):
                                   batch_size,
                                   lengths,
                                   expected_num_inputs):
-    hparams = copy.deepcopy(configs.DEFAULT_HPARAMS)
-    examples = []
-    expected_inputs = []
-
-    for i, length in enumerate(lengths):
-      wav_samples = np.zeros(
-          (np.int((length / data.hparams_frames_per_second(hparams)) *
-                  hparams.sample_rate), 1), np.float32)
-      wav_data = audio_io.samples_to_wav_data(wav_samples, hparams.sample_rate)
-
-      num_frames = data.wav_to_num_frames(
-          wav_data, frames_per_second=data.hparams_frames_per_second(hparams))
-
-      seq = self._SyntheticSequence(
-          num_frames / data.hparams_frames_per_second(hparams),
-          i + constants.MIN_MIDI_PITCH)
-
-      examples.append(self._FillExample(seq, wav_data, 'ex%d' % i))
-      expected_inputs += self._ExampleToInputs(
-          examples[-1],
-          truncated_length)
-    self.assertEqual(expected_num_inputs, len(expected_inputs))
+    examples, expected_inputs = self._CreateExamplesAndExpectedInputs(
+        truncated_length, lengths, expected_num_inputs)
 
     self._ValidateProvideBatch(
         [e.SerializeToString() for e in examples],
         truncated_length,
         batch_size,
         expected_inputs)
+
+  def _ValidateProvideBatchPlaceholder(self,
+                                       truncated_length,
+                                       batch_size,
+                                       lengths,
+                                       expected_num_inputs):
+    examples, expected_inputs = self._CreateExamplesAndExpectedInputs(
+        truncated_length, lengths, expected_num_inputs)
+    examples_ph = tf.placeholder(tf.string, [None])
+    feed_dict = {examples_ph: [e.SerializeToString() for e in examples]}
+
+    self._ValidateProvideBatch(
+        examples_ph,
+        truncated_length,
+        batch_size,
+        expected_inputs,
+        feed_dict=feed_dict)
 
   def _ValidateProvideBatchBoth(self,
                                 truncated_length,
@@ -252,6 +258,11 @@ class DataTest(tf.test.TestCase):
         lengths=lengths,
         expected_num_inputs=expected_num_inputs)
     self._ValidateProvideBatchMemory(
+        truncated_length=truncated_length,
+        batch_size=batch_size,
+        lengths=lengths,
+        expected_num_inputs=expected_num_inputs)
+    self._ValidateProvideBatchPlaceholder(
         truncated_length=truncated_length,
         batch_size=batch_size,
         lengths=lengths,

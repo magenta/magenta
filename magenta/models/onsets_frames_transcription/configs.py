@@ -30,6 +30,8 @@ Config = collections.namedtuple('Config', ('model_fn', 'hparams'))
 DEFAULT_HPARAMS = tf_utils.merge_hparams(
     audio_transform.DEFAULT_AUDIO_TRANSFORM_HPARAMS,
     tf.contrib.training.HParams(
+        eval_batch_size=1,
+        predict_batch_size=1,
         sample_rate=16000,
         spec_type='mel',
         spec_mel_htk=True,
