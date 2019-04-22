@@ -31,7 +31,9 @@ class MusicNetIoTest(tf.test.TestCase):
         '../testdata/musicnet_example.npz')
 
   def testNoteIntervalTreeToSequenceProto(self):
-    example = np.load(self.musicnet_example_filename, encoding='latin1')
+    # allow_pickle is required because the npz files contain intervaltrees.
+    example = np.load(
+        self.musicnet_example_filename, encoding='latin1', allow_pickle=True)
     note_interval_tree = example['test'][1]
     sequence = musicnet_io.note_interval_tree_to_sequence_proto(
         note_interval_tree, 44100)
