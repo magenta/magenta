@@ -517,7 +517,9 @@ CONFIG_MAP['groovae_4bar'] = Config(
     note_sequence_augmenter=None,
     data_converter=data.GrooveConverter(
         split_bars=4, steps_per_quarter=4, quarters_per_bar=4,
-        max_tensors_per_notesequence=20),
+        max_tensors_per_notesequence=20,
+        pitch_classes=data.ROLAND_DRUM_PITCH_CLASSES,
+        inference_pitch_classes=data.REDUCED_DRUM_PITCH_CLASSES),
     train_examples_path=None,
     eval_examples_path=None,
 )
@@ -537,7 +539,9 @@ CONFIG_MAP['groovae_2bar_humanize'] = Config(
     note_sequence_augmenter=None,
     data_converter=data.GrooveConverter(
         split_bars=2, steps_per_quarter=4, quarters_per_bar=4,
-        max_tensors_per_notesequence=20, humanize=True),
+        max_tensors_per_notesequence=20, humanize=True,
+        pitch_classes=data.ROLAND_DRUM_PITCH_CLASSES,
+        inference_pitch_classes=data.REDUCED_DRUM_PITCH_CLASSES),
     train_examples_path=None,
     eval_examples_path=None,
 )
@@ -557,7 +561,9 @@ CONFIG_MAP['groovae_2bar_tap_fixed_velocity'] = Config(
     note_sequence_augmenter=None,
     data_converter=data.GrooveConverter(
         split_bars=2, steps_per_quarter=4, quarters_per_bar=4,
-        max_tensors_per_notesequence=20, tapify=True, fixed_velocities=True),
+        max_tensors_per_notesequence=20, tapify=True, fixed_velocities=True,
+        pitch_classes=data.ROLAND_DRUM_PITCH_CLASSES,
+        inference_pitch_classes=data.REDUCED_DRUM_PITCH_CLASSES),
     train_examples_path=None,
     eval_examples_path=None,
 )
@@ -577,7 +583,9 @@ CONFIG_MAP['groovae_2bar_add_closed_hh'] = Config(
     note_sequence_augmenter=None,
     data_converter=data.GrooveConverter(
         split_bars=2, steps_per_quarter=4, quarters_per_bar=4,
-        max_tensors_per_notesequence=20, add_instruments=[2]),
+        max_tensors_per_notesequence=20, add_instruments=[2],
+        pitch_classes=data.ROLAND_DRUM_PITCH_CLASSES,
+        inference_pitch_classes=data.REDUCED_DRUM_PITCH_CLASSES),
     train_examples_path=None,
     eval_examples_path=None,
 )
@@ -597,7 +605,9 @@ CONFIG_MAP['groovae_2bar_hits_control'] = Config(
     note_sequence_augmenter=None,
     data_converter=data.GrooveConverter(
         split_bars=2, steps_per_quarter=4, quarters_per_bar=4,
-        max_tensors_per_notesequence=20, hits_as_controls=True),
+        max_tensors_per_notesequence=20, hits_as_controls=True,
+        pitch_classes=data.ROLAND_DRUM_PITCH_CLASSES,
+        inference_pitch_classes=data.REDUCED_DRUM_PITCH_CLASSES),
     train_examples_path=None,
     eval_examples_path=None,
 )

@@ -50,6 +50,26 @@ REDUCED_DRUM_PITCH_CLASSES = drums_encoder_decoder.DEFAULT_DRUM_TYPE_PITCHES
 # 61 classes: full General MIDI set
 FULL_DRUM_PITCH_CLASSES = [
     [p] for c in drums_encoder_decoder.DEFAULT_DRUM_TYPE_PITCHES for p in c]
+ROLAND_DRUM_PITCH_CLASSES = [
+    # kick drum
+    [36],
+    # snare drum
+    [38, 37, 40],
+    # closed hi-hat
+    [42, 22, 44],
+    # open hi-hat
+    [46, 26],
+    # low tom
+    [43, 58],
+    # mid tom
+    [47, 45],
+    # high tom
+    [50, 48],
+    # crash cymbal
+    [49, 52, 55, 57],
+    # ride cymbal
+    [51, 53, 59]
+]
 
 OUTPUT_VELOCITY = 80
 
@@ -204,20 +224,25 @@ class BaseConverter(object):
     self._end_token = end_token
     self._max_tensors_per_input = max_tensors_per_item
     self._str_to_item_fn = str_to_item_fn
-    self._is_training = False
+    self._mode = None
     self._length_shape = length_shape
+
+  def set_mode(self, mode):
+    if mode not in ['train', 'eval', 'infer']:
+      raise ValueError('Invalid mode: %s' % mode)
+    self._mode = mode
 
   @property
   def is_training(self):
-    return self._is_training
+    return self._mode == 'train'
+
+  @property
+  def is_inferring(self):
+    return self._mode == 'infer'
 
   @property
   def str_to_item_fn(self):
     return self._str_to_item_fn
-
-  @is_training.setter
-  def is_training(self, value):
-    self._is_training = value
 
   @property
   def max_tensors_per_item(self):
@@ -1168,7 +1193,7 @@ def get_dataset(
   note_sequence_augmenter = (
       config.note_sequence_augmenter if is_training else None)
   data_converter = config.data_converter
-  data_converter.is_training = is_training
+  data_converter.set_mode('train' if is_training else 'eval')
 
   tf.logging.info('Reading examples from: %s', examples_path)
 
@@ -1239,7 +1264,9 @@ class GrooveConverter(BaseNoteSequenceConverter):
     quarters_per_bar: The number of quarter notes per bar.
     pitch_classes: A collection of collections, with each sub-collection
       containing the set of pitches representing a single class to group by. By
-      default, groups valid drum pitches into 9 different classes.
+      default, groups Roland V-Drum pitches into 9 different classes.
+    inference_pitch_classes: Pitch classes to use during inference. By default,
+      uses same as `pitch_classes`.
     humanize: If True, flatten all input velocities and microtiming. The model
       then learns to map from a flattened input to the original sequence.
     tapify: If True, squash all drums at each timestep to the open hi-hat
@@ -1262,9 +1289,9 @@ class GrooveConverter(BaseNoteSequenceConverter):
 
   def __init__(self, split_bars=None, steps_per_quarter=4, quarters_per_bar=4,
                max_tensors_per_notesequence=8, pitch_classes=None,
-               humanize=False, tapify=False, add_instruments=None,
-               num_velocity_bins=None, num_offset_bins=None,
-               split_instruments=False, hop_size=None,
+               inference_pitch_classes=None, humanize=False, tapify=False,
+               add_instruments=None, num_velocity_bins=None,
+               num_offset_bins=None, split_instruments=False, hop_size=None,
                hits_as_controls=False, fixed_velocities=False):
 
     self._split_bars = split_bars
@@ -1285,9 +1312,22 @@ class GrooveConverter(BaseNoteSequenceConverter):
     self._hop_size = hop_size
     self._hits_as_controls = hits_as_controls
 
-    self._pitch_classes = pitch_classes or REDUCED_DRUM_PITCH_CLASSES
-    self._pitch_class_map = {
-        p: i for i, pitches in enumerate(self._pitch_classes) for p in pitches}
+    def _classes_to_map(classes):
+      class_map = {}
+      for cls, pitches in enumerate(classes):
+        for pitch in pitches:
+          class_map[pitch] = cls
+      return class_map
+
+    self._pitch_classes = pitch_classes or ROLAND_DRUM_PITCH_CLASSES
+    self._pitch_class_map = _classes_to_map(self._pitch_classes)
+    self._infer_pitch_classes = inference_pitch_classes or self._pitch_classes
+    self._infer_pitch_class_map = _classes_to_map(self._infer_pitch_classes)
+    if len(self._pitch_classes) != len(self._infer_pitch_classes):
+      raise ValueError(
+          'Training and inference must have the same number of pitch classes. '
+          'Got: %d vs %d.' % (
+              len(self._pitch_classes), len(self._infer_pitch_classes)))
     self._num_drums = len(self._pitch_classes)
 
     if bool(num_velocity_bins) ^ bool(num_offset_bins):
@@ -1327,6 +1367,18 @@ class GrooveConverter(BaseNoteSequenceConverter):
         end_token=False,
         presplit_on_time_changes=False,
         max_tensors_per_notesequence=max_tensors_per_notesequence)
+
+  @property
+  def pitch_classes(self):
+    if self.is_inferring:
+      return self._infer_pitch_classes
+    return self._pitch_classes
+
+  @property
+  def pitch_class_map(self):
+    if self.is_inferring:
+      return self._infer_pitch_class_map
+    return self._pitch_class_map
 
   def _get_feature(self, note, feature, step_length=None):
     """Compute numeric value of hit/velocity/offset for a note.
@@ -1401,7 +1453,7 @@ class GrooveConverter(BaseNoteSequenceConverter):
 
       for note in note_sequence.notes:
         step = int(note.quantized_start_step)
-        drum = self._pitch_class_map[note.pitch]
+        drum = self.pitch_class_map[note.pitch]
         h[step][drum].append(note)
 
       return h
@@ -1623,7 +1675,7 @@ class GrooveConverter(BaseNoteSequenceConverter):
             note = note_sequence.notes.add()
             note.instrument = 9  # All drums are instrument 9
             note.is_drum = True
-            pitch = self._pitch_classes[j][0]
+            pitch = self.pitch_classes[j][0]
             note.pitch = pitch
             if self._categorical_outputs:
               note.velocity = _one_hot_to_velocity(velocities[j])
