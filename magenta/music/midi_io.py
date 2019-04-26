@@ -335,6 +335,8 @@ def note_sequence_to_pretty_midi(
     if instr_id > 0:
       instrument = pretty_midi.Instrument(prog_id, is_drum)
       pm.instruments.append(instrument)
+    else:
+      instrument.is_drum = is_drum
     # propagate instrument name to the midi file
     instrument.program = prog_id
     if instr_id in inst_infos:
