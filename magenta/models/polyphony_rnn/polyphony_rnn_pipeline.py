@@ -15,7 +15,7 @@
 """Pipeline to create PolyphonyRNN dataset."""
 
 from magenta.models.polyphony_rnn import polyphony_lib
-from magenta.music import encoder_decoder
+from magenta.pipelines import event_sequence_pipeline
 from magenta.pipelines import dag_pipeline
 from magenta.pipelines import note_sequence_pipelines
 from magenta.pipelines import pipeline
@@ -76,7 +76,7 @@ def get_pipeline(config, min_steps, max_steps, eval_ratio):
         transposition_range, name='TranspositionPipeline_' + mode)
     poly_extractor = PolyphonicSequenceExtractor(
         min_steps=min_steps, max_steps=max_steps, name='PolyExtractor_' + mode)
-    encoder_pipeline = encoder_decoder.EncoderPipeline(
+    encoder_pipeline = event_sequence_pipeline.EncoderPipeline(
         polyphony_lib.PolyphonicSequence, config.encoder_decoder,
         name='EncoderPipeline_' + mode)
 

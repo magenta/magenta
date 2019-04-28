@@ -15,6 +15,7 @@
 """Pipeline to create Pianoroll RNN-NADE dataset."""
 
 import magenta.music as mm
+from magenta.pipelines import event_sequence_pipeline
 from magenta.pipelines import dag_pipeline
 from magenta.pipelines import note_sequence_pipelines
 from magenta.pipelines import pipeline
@@ -73,7 +74,7 @@ def get_pipeline(config, min_steps, max_steps, eval_ratio):
     pianoroll_extractor = PianorollSequenceExtractor(
         min_steps=min_steps, max_steps=max_steps,
         name='PianorollExtractor_' + mode)
-    encoder_pipeline = mm.EncoderPipeline(
+    encoder_pipeline = event_sequence_pipeline.EncoderPipeline(
         mm.PianorollSequence, config.encoder_decoder,
         name='EncoderPipeline_' + mode)
 
