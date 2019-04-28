@@ -14,6 +14,8 @@
 
 """Testing support code."""
 
+from google.protobuf import text_format
+
 from magenta.music import encoder_decoder
 from magenta.protobuf import music_pb2
 
@@ -127,3 +129,9 @@ class TrivialOneHotEncoding(encoder_decoder.OneHotEncoding):
       return self._num_steps[event]
     else:
       return 1
+
+
+def parse_test_proto(proto_type, proto_string):
+  instance = proto_type()
+  text_format.Merge(proto_string, instance)
+  return instance
