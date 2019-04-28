@@ -51,7 +51,6 @@ from __future__ import print_function
 import abc
 import numbers
 
-from magenta.common import sequence_example_lib
 from magenta.music import constants
 from magenta.pipelines import pipeline
 import numpy as np
@@ -252,7 +251,7 @@ class EventSequenceEncoderDecoder(object):
     for i in range(len(events) - 1):
       inputs.append(self.events_to_input(events, i))
       labels.append(self.events_to_label(events, i + 1))
-    return sequence_example_lib.make_sequence_example(inputs, labels)
+    return make_sequence_example(inputs, labels)
 
   def get_inputs_batch(self, event_sequences, full_length=False):
     """Returns an inputs batch for the given event sequences.
@@ -820,7 +819,7 @@ class ConditionalEventSequenceEncoderDecoder(object):
     for i in range(len(target_events) - 1):
       inputs.append(self.events_to_input(control_events, target_events, i))
       labels.append(self.events_to_label(target_events, i + 1))
-    return sequence_example_lib.make_sequence_example(inputs, labels)
+    return make_sequence_example(inputs, labels)
 
   def get_inputs_batch(self, control_event_sequences, target_event_sequences,
                        full_length=False):
@@ -1032,3 +1031,30 @@ class EncoderPipeline(pipeline.Pipeline):
   def transform(self, seq):
     encoded = self._encoder_decoder.encode(seq)
     return [encoded]
+
+
+def make_sequence_example(inputs, labels):
+  """Returns a SequenceExample for the given inputs and labels.
+
+  Args:
+    inputs: A list of input vectors. Each input vector is a list of floats.
+    labels: A list of ints.
+
+  Returns:
+    A tf.train.SequenceExample containing inputs and labels.
+  """
+  input_features = [
+      tf.train.Feature(float_list=tf.train.FloatList(value=input_))
+      for input_ in inputs]
+  label_features = []
+  for label in labels:
+    if isinstance(label, numbers.Number):
+      label = [label]
+    label_features.append(
+        tf.train.Feature(int64_list=tf.train.Int64List(value=label)))
+  feature_list = {
+      'inputs': tf.train.FeatureList(feature=input_features),
+      'labels': tf.train.FeatureList(feature=label_features)
+  }
+  feature_lists = tf.train.FeatureLists(feature_list=feature_list)
+  return tf.train.SequenceExample(feature_lists=feature_lists)
