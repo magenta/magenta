@@ -56,6 +56,7 @@ REQUIRED_PACKAGES = [
     'sox >= 1.3.7',
     'tensorflow-probability >= 0.5.0',
     'tensor2tensor >= 1.10.0',
+    'tfds-nightly',
     'wheel',
     'futures;python_version=="2.7"',
     'apache-beam[gcp] >= 2.8.0;python_version=="2.7"',

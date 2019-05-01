@@ -260,7 +260,7 @@ class MusicVAE(object):
     r_loss, metric_map = self.decoder.reconstruction_loss(
         x_input, x_target, x_length, z, control_sequence)[0:2]
 
-    free_nats = hparams.free_bits * tf.log(2.0)
+    free_nats = hparams.free_bits * tf.math.log(2.0)
     kl_cost = tf.maximum(kl_div - free_nats, 0)
 
     beta = ((1.0 - tf.pow(hparams.beta_rate, tf.to_float(self.global_step)))
@@ -271,7 +271,7 @@ class MusicVAE(object):
         'loss': self.loss,
         'losses/r_loss': r_loss,
         'losses/kl_loss': kl_cost,
-        'losses/kl_bits': kl_div / tf.log(2.0),
+        'losses/kl_bits': kl_div / tf.math.log(2.0),
         'losses/kl_beta': beta,
     }
     return metric_map, scalars_to_summarize

@@ -34,6 +34,9 @@ flags.DEFINE_string(
     'examples_path', None,
     'Path to a TFRecord file of NoteSequence examples. Overrides the config.')
 flags.DEFINE_string(
+    'tfds_name', None,
+    'TensorFlow Datasets dataset name to use. Overrides the config.')
+flags.DEFINE_string(
     'run_dir', None,
     'Path where checkpoints and summary events will be located during '
     'training and evaluation. Separate subdirectories `train` and `eval` '
@@ -61,6 +64,10 @@ flags.DEFINE_string(
     'hparams', '',
     'A comma-separated list of `name=value` hyperparameter values to merge '
     'with those in the config.')
+flags.DEFINE_bool(
+    'cache_dataset', True,
+    'Whether to cache the dataset in memory for improved training speed. May '
+    'cause memory errors for very large datasets.')
 flags.DEFINE_integer(
     'task', 0,
     'The task number for this worker.')
@@ -73,9 +80,6 @@ flags.DEFINE_integer(
 flags.DEFINE_integer(
     'num_data_threads', 4,
     'The number of data preprocessing threads.')
-flags.DEFINE_integer(
-    'prefetch_size', 4,
-    'How many batches to prefetch at the end of the data pipeline.')
 flags.DEFINE_string(
     'eval_dir_suffix', '',
     'Suffix to add to eval output directory.')
@@ -150,7 +154,9 @@ def train(train_dir,
   tf.gfile.MakeDirs(train_dir)
   is_chief = (task == 0)
   if is_chief:
-    _trial_summary(config.hparams, config.train_examples_path, train_dir)
+    _trial_summary(
+        config.hparams, config.train_examples_path or config.tfds_name,
+        train_dir)
   with tf.Graph().as_default():
     with tf.device(tf.train.replica_device_setter(
         num_ps_tasks, merge_devices=True)):
@@ -219,7 +225,8 @@ def evaluate(train_dir,
   """Evaluate the model repeatedly."""
   tf.gfile.MakeDirs(eval_dir)
 
-  _trial_summary(config.hparams, config.eval_examples_path, eval_dir)
+  _trial_summary(
+      config.hparams, config.eval_examples_path or config.tfds_name, eval_dir)
   with tf.Graph().as_default():
     model = config.model
     model.build(config.hparams,
@@ -270,6 +277,13 @@ def run(config_map,
   if FLAGS.examples_path:
     config_update_map['%s_examples_path' % FLAGS.mode] = os.path.expanduser(
         FLAGS.examples_path)
+  if FLAGS.tfds_name:
+    if FLAGS.examples_path:
+      raise ValueError(
+          'At most one of --examples_path and --tfds_name can be set.')
+    config_update_map['tfds_name'] = FLAGS.tfds_name
+    config_update_map['eval_examples_path'] = None
+    config_update_map['train_examples_path'] = None
   config = configs.update_config(config, config_update_map)
   if FLAGS.num_sync_workers:
     config.hparams.batch_size //= FLAGS.num_sync_workers
@@ -286,8 +300,8 @@ def run(config_map,
         config,
         tf_file_reader=tf_file_reader,
         num_threads=FLAGS.num_data_threads,
-        prefetch_size=FLAGS.prefetch_size,
-        is_training=is_training)
+        is_training=is_training,
+        cache_dataset=FLAGS.cache_dataset)
 
   if is_training:
     train(
@@ -304,6 +318,7 @@ def run(config_map,
   else:
     num_batches = FLAGS.eval_num_batches or data.count_examples(
         config.eval_examples_path,
+        config.tfds_name,
         config.data_converter,
         file_reader) // config.hparams.batch_size
     eval_dir = os.path.join(run_dir, 'eval' + FLAGS.eval_dir_suffix)

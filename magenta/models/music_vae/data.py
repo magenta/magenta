@@ -31,6 +31,7 @@ from magenta.music import sequences_lib
 from magenta.protobuf import music_pb2
 import numpy as np
 import tensorflow as tf
+import tensorflow_datasets as tfds
 
 PIANO_MIN_MIDI_PITCH = 21
 PIANO_MAX_MIDI_PITCH = 108
@@ -76,10 +77,10 @@ OUTPUT_VELOCITY = 80
 CHORD_SYMBOL = music_pb2.NoteSequence.TextAnnotation.CHORD_SYMBOL
 
 
-def _maybe_pad_seqs(seqs, dtype):
+def _maybe_pad_seqs(seqs, dtype, depth):
   """Pads sequences to match the longest and returns as a numpy array."""
   if not len(seqs):  # pylint:disable=g-explicit-length-test,len-as-condition
-    return np.zeros((0, 0, 0), dtype)
+    return np.zeros((0, 0, depth), dtype)
   lengths = [len(s) for s in seqs]
   if len(set(lengths)) == 1:
     return np.array(seqs, dtype)
@@ -145,15 +146,15 @@ class NoteSequenceAugmenter(object):
   def tf_augment(self, note_sequence_scalar):
     """TF op that augments the NoteSequence."""
     def _augment_str(note_sequence_str):
-      note_sequence = music_pb2.NoteSequence.FromString(note_sequence_str)
+      note_sequence = music_pb2.NoteSequence.FromString(
+          note_sequence_str.numpy())
       augmented_ns = self.augment(note_sequence)
       return [augmented_ns.SerializeToString()]
 
-    augmented_note_sequence_scalar = tf.py_func(
+    augmented_note_sequence_scalar = tf.py_function(
         _augment_str,
-        [note_sequence_scalar],
-        tf.string,
-        stateful=False,
+        inp=[note_sequence_scalar],
+        Tout=tf.string,
         name='augment')
     augmented_note_sequence_scalar.set_shape(())
     return augmented_note_sequence_scalar
@@ -371,17 +372,20 @@ class BaseConverter(object):
         unpadded lengths of the tensor sequences resulting from the input.
     """
     def _convert_and_pad(item_str):
-      item = self.str_to_item_fn(item_str)  # pylint:disable=not-callable
+      item = self.str_to_item_fn(item_str.numpy())  # pylint:disable=not-callable
       tensors = self.to_tensors(item)
-      inputs = _maybe_pad_seqs(tensors.inputs, self.input_dtype)
-      outputs = _maybe_pad_seqs(tensors.outputs, self.output_dtype)
-      controls = _maybe_pad_seqs(tensors.controls, self.control_dtype)
+      inputs = _maybe_pad_seqs(
+          tensors.inputs, self.input_dtype, self.input_depth)
+      outputs = _maybe_pad_seqs(
+          tensors.outputs, self.output_dtype, self.output_depth)
+      controls = _maybe_pad_seqs(
+          tensors.controls, self.control_dtype, self.control_depth)
       return inputs, outputs, controls, np.array(tensors.lengths, np.int32)
-    inputs, outputs, controls, lengths = tf.py_func(
+    inputs, outputs, controls, lengths = tf.py_function(
         _convert_and_pad,
-        [item_scalar],
-        [self.input_dtype, self.output_dtype, self.control_dtype, tf.int32],
-        stateful=False,
+        inp=[item_scalar],
+        Tout=[
+            self.input_dtype, self.output_dtype, self.control_dtype, tf.int32],
         name='convert_and_pad')
     inputs.set_shape([None, None, self.input_depth])
     outputs.set_shape([None, None, self.output_depth])
@@ -1147,20 +1151,30 @@ class TrioConverter(BaseNoteSequenceConverter):
     return output_sequences
 
 
-def count_examples(examples_path, data_converter,
+def count_examples(examples_path, tfds_name, data_converter,
                    file_reader=tf.python_io.tf_record_iterator):
   """Counts the number of examples produced by the converter from files."""
-  filenames = tf.gfile.Glob(examples_path)
+  def _file_generator():
+    filenames = tf.gfile.Glob(examples_path)
+    for f in filenames:
+      tf.logging.info('Counting examples in %s.', f)
+      reader = file_reader(f)
+      for item_str in reader:
+        yield data_converter.str_to_item_fn(item_str)
+
+  def _tfds_generator():
+    ds = tfds.as_numpy(
+        tfds.load(tfds_name, split=tfds.Split.VALIDATION, try_gcs=True))
+    # TODO(adarob): Generalize to other data types if needed.
+    for ex in ds:
+      yield mm.midi_to_note_sequence(ex['midi'])
 
   num_examples = 0
 
-  for f in filenames:
-    tf.logging.info('Counting examples in %s.', f)
-    reader = file_reader(f)
-    for item_str in reader:
-      item = data_converter.str_to_item_fn(item_str)
-      tensors = data_converter.to_tensors(item)
-      num_examples += len(tensors.inputs)
+  generator = _tfds_generator if tfds_name else _file_generator
+  for item in generator():
+    tensors = data_converter.to_tensors(item)
+    num_examples += len(tensors.inputs)
   tf.logging.info('Total examples: %d', num_examples)
   return num_examples
 
@@ -1169,17 +1183,18 @@ def get_dataset(
     config,
     num_threads=1,
     tf_file_reader=tf.data.TFRecordDataset,
-    prefetch_size=4,
-    is_training=False):
+    is_training=False,
+    cache_dataset=True):
   """Get input tensors from dataset for training or evaluation.
 
   Args:
     config: A Config object containing dataset information.
     num_threads: The number of threads to use for pre-processing.
     tf_file_reader: The tf.data.Dataset class to use for reading files.
-    prefetch_size: The number of batches to prefetch. Disabled when 0.
     is_training: Whether or not the dataset is used in training. Determines
       whether dataset is shuffled and repeated, etc.
+    cache_dataset: Whether to cache the dataset in memory for improved
+      performance.
 
   Returns:
     A tf.data.Dataset containing input, output, control, and length tensors.
@@ -1195,22 +1210,36 @@ def get_dataset(
   data_converter = config.data_converter
   data_converter.set_mode('train' if is_training else 'eval')
 
-  tf.logging.info('Reading examples from: %s', examples_path)
-
-  num_files = len(tf.gfile.Glob(examples_path))
-  if not num_files:
+  if examples_path:
+    tf.logging.info('Reading examples from file: %s', examples_path)
+    num_files = len(tf.gfile.Glob(examples_path))
+    if not num_files:
+      raise ValueError(
+          'No files were found matching examples path: %s' %  examples_path)
+    files = tf.data.Dataset.list_files(examples_path)
+    dataset = files.apply(
+        tf.contrib.data.parallel_interleave(
+            tf_file_reader,
+            cycle_length=num_threads,
+            sloppy=is_training))
+  elif config.tfds_name:
+    tf.logging.info('Reading examples from TFDS: %s', config.tfds_name)
+    dataset = tfds.load(
+        config.tfds_name,
+        split=tfds.Split.TRAIN if is_training else tfds.Split.VALIDATION,
+        try_gcs=True)
+    def _tf_midi_to_note_sequence(ex):
+      return tf.py_function(
+          lambda x: [mm.midi_to_note_sequence(x.numpy()).SerializeToString()],
+          inp=[ex['midi']],
+          Tout=tf.string,
+          name='midi_to_note_sequence')
+    dataset = dataset.map(
+        _tf_midi_to_note_sequence,
+        num_parallel_calls=tf.data.experimental.AUTOTUNE)
+  else:
     raise ValueError(
-        'No files were found matching examples path: %s' %  examples_path)
-  files = tf.data.Dataset.list_files(examples_path)
-  if is_training:
-    files = files.apply(
-        tf.contrib.data.shuffle_and_repeat(buffer_size=num_files))
-
-  reader = files.apply(
-      tf.contrib.data.parallel_interleave(
-          tf_file_reader,
-          cycle_length=num_threads,
-          sloppy=True))
+        'One of `config.examples_path` or `config.tfds_name` must be defined.')
 
   def _remove_pad_fn(padded_seq_1, padded_seq_2, padded_seq_3, length):
     if length.shape.ndims == 0:
@@ -1220,21 +1249,23 @@ def get_dataset(
       # Don't remove padding for hierarchical examples.
       return padded_seq_1, padded_seq_2, padded_seq_3, length
 
-  dataset = reader
   if note_sequence_augmenter is not None:
     dataset = dataset.map(note_sequence_augmenter.tf_augment)
   dataset = (dataset
              .map(data_converter.tf_to_tensors,
-                  num_parallel_calls=num_threads)
+                  num_parallel_calls=tf.data.experimental.AUTOTUNE)
              .flat_map(lambda *t: tf.data.Dataset.from_tensor_slices(t))
-             .map(_remove_pad_fn))
+             .map(_remove_pad_fn,
+                  num_parallel_calls=tf.data.experimental.AUTOTUNE))
+  if cache_dataset:
+    dataset = dataset.cache()
   if is_training:
-    dataset = dataset.shuffle(buffer_size=batch_size * 4)
+    dataset = dataset.shuffle(buffer_size=10 * batch_size).repeat()
 
-  dataset = dataset.padded_batch(batch_size, dataset.output_shapes)
-
-  if prefetch_size:
-    dataset = dataset.prefetch(prefetch_size)
+  dataset = dataset.padded_batch(
+      batch_size,
+      dataset.output_shapes,
+      drop_remainder=True).prefetch(tf.data.experimental.AUTOTUNE)
 
   return dataset
 
@@ -1494,6 +1525,9 @@ class GrooveConverter(BaseNoteSequenceConverter):
         quantized_sequence.quantization_info.steps_per_quarter)
 
     steps_hash = _get_steps_hash(quantized_sequence)
+
+    if not quantized_sequence.notes:
+      return ConverterTensors()
 
     max_start_step = np.max(
         [note.quantized_start_step for note in quantized_sequence.notes])
