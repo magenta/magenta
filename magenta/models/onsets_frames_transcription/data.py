@@ -391,8 +391,12 @@ def _provide_data(input_tensors, hparams, is_training, label_ratio=1.0):
   if hparams.max_expected_train_example_len and is_training:
     # In this case, final_length is a constant.
     if hparams.truncated_length_secs:
-      assert hparams.max_expected_train_example_len == hparams_truncated_length
-    final_length = hparams.max_expected_train_example_len
+      assert_op = tf.assert_equal(hparams.max_expected_train_example_len,
+                                  hparams_truncated_length)
+      with tf.control_dependencies([assert_op]):
+        final_length = hparams.max_expected_train_example_len
+    else:
+      final_length = hparams.max_expected_train_example_len
   else:
     # In this case, it is min(hparams.truncated_length, length)
     final_length = truncated_length
