@@ -60,7 +60,7 @@ class TrainedModel(object):
     else:
       checkpoint_path = checkpoint_dir_or_path
     self._config = copy.deepcopy(config)
-    self._config.set_mode('infer')
+    self._config.data_converter.set_mode('infer')
     self._config.hparams.batch_size = batch_size
     with tf.Graph().as_default():
       model = self._config.model
