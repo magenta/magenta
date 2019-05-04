@@ -549,6 +549,20 @@ def _get_dataset(examples, preprocess_examples, hparams, is_training,
   return dataset
 
 
+def _batch(dataset, hparams, is_training, batch_size=None):
+  """Batch a dataset, optional batch_size override."""
+  if not batch_size:
+    batch_size = hparams.batch_size
+  if hparams.max_expected_train_example_len and is_training:
+    dataset = dataset.batch(batch_size, drop_remainder=True)
+  else:
+    dataset = dataset.padded_batch(
+        batch_size,
+        padded_shapes=dataset.output_shapes,
+        drop_remainder=True)
+  return dataset
+
+
 def provide_batch(examples,
                   preprocess_examples,
                   hparams,
@@ -587,8 +601,16 @@ def provide_batch(examples,
   if shuffle_examples is None:
     shuffle_examples = is_training
 
-  if semisupervised_configs:
-    # Collect all datasets in the config.
+  if not semisupervised_configs:
+    # Just a single dataset.
+    dataset = _get_dataset(
+        examples, preprocess_examples=preprocess_examples, hparams=hparams,
+        is_training=is_training, shuffle_examples=shuffle_examples,
+        shuffle_buffer_size=shuffle_buffer_size,
+        skip_n_initial_records=skip_n_initial_records)
+    dataset = _batch(dataset, hparams, is_training)
+  else:
+    # Multiple datasets.
     datasets = []
     batch_ratios = []
     for ex in semisupervised_configs:
@@ -601,24 +623,36 @@ def provide_batch(examples,
           label_ratio=ex.label_ratio)
       datasets.append(dataset)
       batch_ratios.append(ex.batch_ratio)
-    # Create a mixed batch from the datasets.
-    dataset = tf.data.experimental.sample_from_datasets(datasets,
-                                                        weights=batch_ratios)
-  else:
-    dataset = _get_dataset(
-        examples, preprocess_examples=preprocess_examples, hparams=hparams,
-        is_training=is_training, shuffle_examples=shuffle_examples,
-        shuffle_buffer_size=shuffle_buffer_size,
-        skip_n_initial_records=skip_n_initial_records)
 
-  if hparams.max_expected_train_example_len and is_training:
-    dataset = dataset.batch(hparams.batch_size, drop_remainder=True)
-  else:
-    dataset = dataset.padded_batch(
-        hparams.batch_size,
-        padded_shapes=dataset.output_shapes,
-        drop_remainder=True)
+    if hparams.semisupervised_concat:
+      # Create a single batch by concatentating dataset batches.
+      n_datasets = len(datasets)
+      batch_size = hparams.batch_size // n_datasets
+      # First create small batches.
+      datasets = [_batch(d, hparams, is_training, batch_size) for d in datasets]
+      dataset = tf.data.Dataset.zip(tuple(datasets))
+
+      def _merge_datasets(*dataset_tuples):
+        """Unzip and repack."""
+        # Access __dict__ because can't convert namedtuple directly to a dict.
+        features = [f.__dict__ for (f, _) in dataset_tuples]
+        labels = [l.__dict__ for (_, l) in dataset_tuples]
+        merged_features = {}
+        for key in features[0].keys():
+          merged_features[key] = tf.concat([f[key] for f in features], axis=0)
+        merged_labels = {}
+        for key in labels[0].keys():
+          merged_labels[key] = tf.concat([f[key] for f in labels], axis=0)
+        return FeatureTensors(**merged_features), LabelTensors(**merged_labels)
+
+      # Then combine them.
+      dataset = dataset.map(_merge_datasets)
+
+    else:
+      # Create a single batch by randomly sampling from the datasets.
+      dataset = tf.data.experimental.sample_from_datasets(datasets,
+                                                          weights=batch_ratios)
+      dataset = _batch(dataset, hparams, is_training)
 
   dataset = dataset.prefetch(buffer_size=tf.data.experimental.AUTOTUNE)
-
   return dataset
