@@ -859,7 +859,6 @@ class GrooveConverterTest(tf.test.TestCase):
 
   def setUp(self):
     self.one_bar_sequence = self.initialize_sequence()
-    self.one_bar_sequence.sequence_metadata.genre.extend(['Rock'])
     self.two_bar_sequence = self.initialize_sequence()
     self.tap_sequence = self.initialize_sequence()
     self.quantized_sequence = self.initialize_sequence()

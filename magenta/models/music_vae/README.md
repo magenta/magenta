@@ -20,6 +20,13 @@ by [MelodyRNN](/magenta/models/melody_rnn) and
 
 For additional details, see our [blog post](https://g.co/magenta/music-vae) and [paper](https://goo.gl/magenta/musicvae-paper).
 
+## GrooVAE
+
+GrooVAE is a variant of MusicVAE for generating and controlling expressive drum performances. It uses a new representation implemented by the `GrooveConverter` in data.py, and can be trained with our new [Groove MIDI Dataset](https://g.co/magenta/groove-dataset) of drum performances.
+
+For additional details, see our [blog post](https://g.co/magenta/groovae) and [paper](https://goo.gl/magenta/groovae-paper).
+
+
 ## How To Use
 
 ### Colab Notebook w/ Pre-trained Models
@@ -127,6 +134,8 @@ MusicVAE models in the browser. Existing applications built with this library in
 * [Melody Mixer](https://g.co/melodymixer) by [Google Creative Lab](https://github.com/googlecreativelab)
 * [Latent Loops](https://goo.gl/magenta/latent-loops) by [Google Pie Shop](https://github.com/teampieshop)
 * [Neural Drum Machine](https://codepen.io/teropa/pen/RMGxOQ) by [Tero Parviainen](https://github.com/teropa)
+* [Groove](https://groove-drums.glitch.me) by [Monica Dinculescu](https://github.com/notwaldorf)
+* [Endless Trios](https://goo.gl/magenta/endlesstrios) by [Adam Roberts](https://github.com/adarob)
 
 Learn more about the API in its [repo](https://goo.gl/magenta/musicvae-js).
 
@@ -149,7 +158,18 @@ music_vae_train \
 --examples_path=/tmp/music_vae/mel_train_examples.tfrecord
 ```
 
-You will likely need to adjust some of the hyperparamters with the `--hparams`
+You could also train with an existing dataset hosted in [TensorFlow Datasets](https://tensorflow.org/datasets). For example,
+you can train a 2-bar humanize GrooVAE using the [Groove MIDI Dataset](https://g.co/magenta/groove-dataset) with this command:
+
+```sh
+music_vae_train \
+--config=groovae_2bar_humanize \
+--run_dir=/tmp/groovae_2bar_humanize/ \
+--mode=train \
+--tfds_name=groove/2bar-midionly
+```
+
+With any of these models, you will likely need to adjust some of the hyperparameters with the `--hparams`
 flag for your particular train set and hardware. For example, if the default
 batch size of a config is too large for your GPU, you can reduce the batch size
 and learning rate by setting the flag as follows:

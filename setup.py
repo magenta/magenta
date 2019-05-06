@@ -54,6 +54,7 @@ REQUIRED_PACKAGES = [
     'sk-video',
     'sonnet',
     'sox >= 1.3.7',
+    'tensorflow-datasets >= 1.0.2',
     'tensorflow-probability >= 0.5.0',
     'tensor2tensor >= 1.10.0',
     'wheel',

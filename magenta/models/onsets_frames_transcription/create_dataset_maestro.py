@@ -221,7 +221,7 @@ def pipeline(config_map, dataset_config_map):
         'preprocess_train_example_multiplier: {}'.format(
             FLAGS.preprocess_train_example_multiplier),
         'config: {}'.format(FLAGS.config),
-        'hparams: {}'.format(hparams),
+        'hparams: {}'.format(hparams.to_json(sort_keys=True)),
         'dataset_config: {}'.format(FLAGS.dataset_config),
         'datasets: {}'.format(datasets),
     ]))
