@@ -904,11 +904,14 @@ class MidiHub(object):
     inports = []
     if input_midi_ports:
       for port in input_midi_ports:
-        virtual = port not in get_available_input_ports()
-        if virtual:
-          tf.logging.info(
-              "Opening '%s' as a virtual MIDI port for input.", port)
-        inport = mido.open_input(port, virtual=virtual)
+        if isinstance(port, mido.ports.BaseInput):
+          inport = port
+        else:
+          virtual = port not in get_available_input_ports()
+          if virtual:
+            tf.logging.info(
+                "Opening '%s' as a virtual MIDI port for input.", port)
+          inport = mido.open_input(port, virtual=virtual)
         # Start processing incoming messages.
         inport.callback = self._timestamp_and_handle_message
         inports.append(inport)
@@ -920,11 +923,14 @@ class MidiHub(object):
 
     outports = []
     for port in output_midi_ports:
-      virtual = port not in get_available_output_ports()
-      if virtual:
-        tf.logging.info(
-            "Opening '%s' as a virtual MIDI port for output.", port)
-      outports.append(mido.open_output(port, virtual=virtual))
+      if isinstance(port, mido.ports.BaseOutput):
+        outports.append(port)
+      else:
+        virtual = port not in get_available_output_ports()
+        if virtual:
+          tf.logging.info(
+              "Opening '%s' as a virtual MIDI port for output.", port)
+        outports.append(mido.open_output(port, virtual=virtual))
     self._outport = mido.ports.MultiPort(outports)
 
   def __del__(self):
