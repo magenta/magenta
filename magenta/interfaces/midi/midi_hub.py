@@ -901,32 +901,30 @@ class MidiHub(object):
 
     # Open MIDI ports.
 
+    inports = []
     if input_midi_ports:
       for port in input_midi_ports:
-        if isinstance(port, mido.ports.BaseInput):
-          inport = port
-        else:
-          virtual = port not in get_available_input_ports()
-          if virtual:
-            tf.logging.info(
+        virtual = port not in get_available_input_ports()
+        if virtual:
+          tf.logging.info(
                 "Opening '%s' as a virtual MIDI port for input.", port)
-          inport = mido.open_input(port, virtual=virtual)
+        inport = mido.open_input(port, virtual=virtual)
         # Start processing incoming messages.
         inport.callback = self._timestamp_and_handle_message
+        inports.append(inport)
+      # Keep references to input ports to prevent deletion.
+      self._inports = inports
     else:
       tf.logging.warn('No input port specified. Capture disabled.')
-      self._inport = None
+      self._inports = None
 
     outports = []
     for port in output_midi_ports:
-      if isinstance(port, mido.ports.BaseInput):
-        outports.append(port)
-      else:
-        virtual = port not in get_available_output_ports()
-        if virtual:
-          tf.logging.info(
+      virtual = port not in get_available_output_ports()
+      if virtual:
+        tf.logging.info(
               "Opening '%s' as a virtual MIDI port for output.", port)
-        outports.append(mido.open_output(port, virtual=virtual))
+      outports.append(mido.open_output(port, virtual=virtual))
     self._outport = mido.ports.MultiPort(outports)
 
   def __del__(self):
