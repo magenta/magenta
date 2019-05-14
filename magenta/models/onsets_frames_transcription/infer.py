@@ -235,8 +235,9 @@ def model_inference(model_fn,
 
         if write_summary_every_step:
           # Make filenames UNIX-friendly.
-          filename_safe = filename.decode('utf-8').replace('/', '_').replace(
-              ':', '.')
+          chars = filename.decode('utf-8')
+          chars = [c if c.isalnum() else '_' for c in chars]
+          filename_safe = ''.join(chars).rstrip()
           output_file = os.path.join(output_dir, filename_safe + '.mid')
           tf.logging.info('Writing inferred midi file to %s', output_file)
           midi_io.sequence_proto_to_midi_file(sequence_prediction, output_file)
