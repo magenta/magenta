@@ -126,7 +126,7 @@ def main(unused_argv):
   # Save the flags to help with loading the model latter
   fname = os.path.join(flags['train_root_dir'], 'experiment.json')
   with tf.gfile.Open(fname, 'w') as f:
-    json.dump(flags, f)
+    json.dump(flags, f)  # pytype: disable=wrong-arg-types
 
   # Run training
   run(flags)
