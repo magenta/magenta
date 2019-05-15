@@ -30,7 +30,7 @@ generation_output_dir=$HOME/dev/bach-generator/samples
 # Generation parameters.
 # Number of samples to generate in a batch.
 gen_batch_size=2
-piece_length=1
+piece_length=16
 strategy=igibbs
 tfsample=true
 

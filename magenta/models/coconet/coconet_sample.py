@@ -218,7 +218,6 @@ class TFGenerator(object):
 
     self._time_taken = None
     self._pianorolls = None
-    print("------- checkpoint_path is: ", checkpoint_path)
 
   def run_generation(self,
                      midi_in=None,
@@ -267,12 +266,10 @@ class TFGenerator(object):
       pianorolls_in = self.endecoder.encode_midi_to_pianoroll(midi_in, shape)
     elif pianorolls_in is None:
       pianorolls_in = np.zeros(shape, dtype=np.float32)
-    print("Here before running sampler.")
     results = self.sampler.run(
         pianorolls_in, masks, sample_steps=sample_steps,
         current_step=current_step, total_gibbs_steps=total_gibbs_steps,
         temperature=temperature)
-    print("Here after running sampler.")
     self._pianorolls = results["pianorolls"]
     self._time_taken = results["time_taken"]
     tf.logging.info("output pianorolls shape: %r", self.pianorolls.shape)

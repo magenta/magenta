@@ -20,8 +20,7 @@ from __future__ import print_function
 import os
 import time
 
-import lib_data
-#from magenta.models.coconet import lib_data
+from magenta.models.coconet import lib_data
 from magenta.models.coconet import lib_graph
 from magenta.models.coconet import lib_hparams
 from magenta.models.coconet import lib_util

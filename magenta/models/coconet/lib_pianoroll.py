@@ -110,8 +110,6 @@ class PianorollEncoderDecoder(object):
             raise ValueError(
                 'If instruments are separated must have all encoded.')
           continue
-        print("chord: ", chord)
-        print("i: ", i)
         pitch = chord[i]
         # Silences are sometimes encoded as NaN when instruments are separated.
         if np.isnan(pitch):
