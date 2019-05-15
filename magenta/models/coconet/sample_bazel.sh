@@ -25,7 +25,7 @@ set -e
 checkpoint=$1
 
 # Change this to path for saving samples.
-generation_output_dir=$HOME/dev/bach-generator/samples
+generation_output_dir=$HOME/samples
 
 # Generation parameters.
 # Number of samples to generate in a batch.

@@ -18,9 +18,9 @@ set -x
 set -e
 
 # Change this to directory where you want to save experiment logs:
-logdir=$HOME/dev/bach-generator/coconet-logs
+logdir=$HOME/logs
 # Change this to directory where data is loaded from:
-data_dir="$HOME/dev/bach-generator/magenta/magenta/models/coconet/traindata"
+data_dir=$HOME/data/
 # Change this to your dataset class, which can be defined in lib_data.py.
 dataset=Jsb16thSeparated
 
