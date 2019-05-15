@@ -25,12 +25,12 @@ set -e
 checkpoint=$1
 
 # Change this to path for saving samples.
-generation_output_dir=$HOME/samples
+generation_output_dir=$HOME/dev/bach-generator/samples
 
 # Generation parameters.
 # Number of samples to generate in a batch.
 gen_batch_size=2
-piece_length=16
+piece_length=1
 strategy=igibbs
 tfsample=true
 

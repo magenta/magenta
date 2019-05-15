@@ -24,12 +24,14 @@ from magenta.models.coconet import lib_pianoroll
 from magenta.models.coconet import lib_util
 import numpy as np
 import tensorflow as tf
+import pickle
 
 
 class Dataset(lib_util.Factory):
   """Class for retrieving different datasets."""
 
   def __init__(self, basepath, hparams, fold):
+    print("----- Dataset __init__ fold: ", fold)
     """Initialize a `Dataset` instance.
 
     Args:
@@ -57,9 +59,15 @@ class Dataset(lib_util.Factory):
     self.encoder = lib_pianoroll.get_pianoroll_encoder_decoder(hparams)
     data_path = os.path.join(tf.resource_loader.get_data_files_path(),
                              self.basepath, "%s.npz" % self.name)
-    print("Loading data from", data_path)
-    with tf.gfile.Open(data_path, "r") as p:
-      self.data = np.load(p)[fold]
+    print("----- Loading data from", data_path)
+    with tf.gfile.Open(data_path, "rb") as p:
+      #self.data = pickle.load(p)[fold]
+      self.data = np.load(p, allow_pickle=True, encoding='latin1')[fold]
+
+    # with open('/Users/keverett/dev/bach-generator/magenta/magenta/models/coconet/traindata/jsb-chorales-16th.pkl', 'rb') as f:
+    #   u = pickle._Unpickler(f)
+    #   u.encoding = 'latin1'
+    #   self.data = u.load()[fold]
 
   @property
   def name(self):
@@ -136,6 +144,7 @@ class Dataset(lib_util.Factory):
 
 def get_dataset(basepath, hparams, fold):
   """Factory for Datasets."""
+  print("----- get_dataset, fold = ", fold, flush = True)
   return Dataset.make(hparams.dataset, basepath, hparams, fold)
 
 
@@ -172,7 +181,7 @@ class Batch(object):
     """
     assert set(kwargs.keys()) == self.keys
     assert all(
-        len(value) == len(kwargs.values()[0]) for value in kwargs.values())
+        len(value) == len(list(kwargs.values())[0]) for value in list(kwargs.values()))
     self.features = kwargs
 
   def get_feed_dict(self, placeholders):
