@@ -14,6 +14,10 @@
 
 """Defines sequence of notes objects for creating datasets."""
 
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import print_function
+
 import collections
 import copy
 import itertools
@@ -1810,7 +1814,7 @@ def sequence_to_pianoroll(
                        (note.velocity, max_velocity))
 
     velocities_roll[start_frame:end_frame, note.pitch -
-                    min_pitch] = float(note.velocity) / max_velocity
+                    min_pitch] = note.velocity / max_velocity
     roll_weights[onset_start_frame:onset_end_frame, note.pitch - min_pitch] = (
         onset_upweight)
     roll_weights[onset_end_frame:end_frame, note.pitch - min_pitch] = [
