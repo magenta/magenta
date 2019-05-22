@@ -34,6 +34,7 @@ import librosa
 from magenta.models.onsets_frames_transcription import audio_transform
 from magenta.models.onsets_frames_transcription import constants
 from magenta.music import audio_io
+from magenta.music import melspec_input
 from magenta.music import sequences_lib
 from magenta.protobuf import music_pb2
 import numpy as np
@@ -133,6 +134,30 @@ def wav_to_spec_op(wav_audio, hparams):
       name='wav_to_spec')
   spec.set_shape([None, hparams_frame_size(hparams)])
   return spec
+
+
+MELSPEC_SAMPLE_RATE = 16000
+
+
+def tflite_compat_mel(wav_audio, hparams):
+  """EXPERIMENTAL: Log mel spec with ops that can be made TFLite compatible."""
+  samples, decoded_sample_rate = tf.audio.decode_wav(
+      wav_audio, desired_channels=1)
+  samples = tf.squeeze(samples, axis=1)
+  with tf.control_dependencies(
+      [tf.assert_equal(decoded_sample_rate, MELSPEC_SAMPLE_RATE)]):
+    features = melspec_input.build_mel_calculation_graph(
+        samples, MELSPEC_SAMPLE_RATE,
+        window_length_seconds=2048 / MELSPEC_SAMPLE_RATE,  # 0.128
+        hop_length_seconds=(
+            hparams.spec_hop_length / MELSPEC_SAMPLE_RATE),  # 0.032
+        num_mel_bins=hparams.spec_n_bins,
+        lower_edge_hz=hparams.spec_fmin,
+        upper_edge_hz=MELSPEC_SAMPLE_RATE / 2.0,
+        frame_width=1,
+        frame_hop=1,
+        tflite_compatible=False)  # False here, but would be True on device.
+    return tf.squeeze(features, 1)
 
 
 def get_spectrogram_hash_op(spectrogram):
@@ -317,7 +342,11 @@ def preprocess_data(sequence_id, sequence, audio, velocity_range, hparams,
         hparams=hparams,
         jitter_amount_sec=wav_jitter_amount_ms / 1000.)
 
-  spec = wav_to_spec_op(audio, hparams=hparams)
+  if hparams.spec_type == 'tflite_compat_mel':
+    assert hparams.spec_log_amplitude
+    spec = tflite_compat_mel(audio, hparams=hparams)
+  else:
+    spec = wav_to_spec_op(audio, hparams=hparams)
   spectrogram_hash = get_spectrogram_hash_op(spec)
 
   labels, label_weights, onsets, offsets, velocities = sequence_to_pianoroll_op(
