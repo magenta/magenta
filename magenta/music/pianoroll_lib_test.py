@@ -16,7 +16,6 @@
 
 import copy
 
-from magenta.common import testing_lib as common_testing_lib
 from magenta.music import pianoroll_lib
 from magenta.music import sequences_lib
 from magenta.music import testing_lib
@@ -29,7 +28,7 @@ class PianorollLibTest(tf.test.TestCase):
   def setUp(self):
     self.maxDiff = None  # pylint:disable=invalid-name
 
-    self.note_sequence = common_testing_lib.parse_test_proto(
+    self.note_sequence = testing_lib.parse_test_proto(
         music_pb2.NoteSequence,
         """
         tempos: {

@@ -16,7 +16,6 @@
 
 import copy
 
-from magenta.common import testing_lib as common_testing_lib
 from magenta.music import chords_lib
 from magenta.music import constants
 from magenta.music import lead_sheets_lib
@@ -35,7 +34,7 @@ class LeadSheetsLibTest(tf.test.TestCase):
 
   def setUp(self):
     self.steps_per_quarter = 4
-    self.note_sequence = common_testing_lib.parse_test_proto(
+    self.note_sequence = testing_lib.parse_test_proto(
         music_pb2.NoteSequence,
         """
         time_signatures: {
