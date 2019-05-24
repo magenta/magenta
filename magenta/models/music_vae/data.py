@@ -1316,6 +1316,12 @@ class GrooveConverter(BaseNoteSequenceConverter):
     hits_as_controls: If True, pass in hits with the conditioning controls
       to force model to learn velocities and offsets.
     fixed_velocities: If True, flatten all input velocities.
+    max_note_dropout_probability: If a value is provided, randomly drop out
+      notes from the input sequences but not the output sequences.  On a per
+      sequence basis, a dropout probability will be chosen uniformly between 0
+      and this value such that some sequences will have fewer notes dropped
+      out and some will have have more.  On a per note basis, lower velocity
+      notes will be dropped out more often.
   """
 
   def __init__(self, split_bars=None, steps_per_quarter=4, quarters_per_bar=4,
@@ -1323,7 +1329,8 @@ class GrooveConverter(BaseNoteSequenceConverter):
                inference_pitch_classes=None, humanize=False, tapify=False,
                add_instruments=None, num_velocity_bins=None,
                num_offset_bins=None, split_instruments=False, hop_size=None,
-               hits_as_controls=False, fixed_velocities=False):
+               hits_as_controls=False, fixed_velocities=False,
+               max_note_dropout_probability=None):
 
     self._split_bars = split_bars
     self._steps_per_quarter = steps_per_quarter
@@ -1387,6 +1394,9 @@ class GrooveConverter(BaseNoteSequenceConverter):
     # Set up controls for cycling through instrument outputs.
     if self._split_instruments:
       control_depth += self._num_drums
+
+    self._max_note_dropout_probability = max_note_dropout_probability
+    self._note_dropout = max_note_dropout_probability is not None
 
     super(GrooveConverter, self).__init__(
         input_depth=output_depth,
@@ -1564,6 +1574,18 @@ class GrooveConverter(BaseNoteSequenceConverter):
     in_hits = copy.deepcopy(hit_vectors)
     in_velocities = copy.deepcopy(velocity_vectors)
     in_offsets = copy.deepcopy(offset_vectors)
+
+    if self._note_dropout:
+      # Choose a uniform dropout probability for notes per sequence.
+      note_dropout_probability = np.random.uniform(
+          0.0, self._max_note_dropout_probability)
+      # Drop out lower velocity notes with higher probability.
+      velocity_dropout_weights = np.maximum(0.2, (1 - in_velocities))
+      note_dropout_keep_mask = 1 - np.random.binomial(
+          1, velocity_dropout_weights * note_dropout_probability)
+      in_hits *= note_dropout_keep_mask
+      in_velocities *= note_dropout_keep_mask
+      in_offsets *= note_dropout_keep_mask
 
     if self._tapify:
       argmaxes = np.argmax(in_velocities, axis=1)
