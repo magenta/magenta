@@ -1324,7 +1324,7 @@ class GrooveConverter(BaseNoteSequenceConverter):
                inference_pitch_classes=None, humanize=False, tapify=False,
                add_instruments=None, num_velocity_bins=None,
                num_offset_bins=None, split_instruments=False, hop_size=None,
-               hits_as_controls=False, fixed_velocities=False),
+               hits_as_controls=False, fixed_velocities=False,
                note_dropout=False):
 
     self._split_bars = split_bars

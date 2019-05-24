@@ -597,6 +597,27 @@ CONFIG_MAP['groovae_2bar_tap_fixed_velocity_note_dropout'] = Config(
     eval_examples_path=None,
 )
 
+CONFIG_MAP['groovae_2bar_tap_fixed_velocity_note_dropout'] = Config(
+    model=MusicVAE(lstm_models.BidirectionalLstmEncoder(),
+                   lstm_models.GrooveLstmDecoder()),
+    hparams=merge_hparams(
+        lstm_models.get_default_hparams(),
+        HParams(
+            batch_size=512,
+            max_seq_len=16 * 2,  #  2 bar w/ 16 steps per bar
+            z_size=256,
+            enc_rnn_size=[512],
+            dec_rnn_size=[256, 256],
+        )),
+    note_sequence_augmenter=None,
+    data_converter=data.GrooveConverter(
+        split_bars=2, steps_per_quarter=4, quarters_per_bar=4,
+        max_tensors_per_notesequence=20, tapify=True, fixed_velocities=True,
+        note_dropout=True),
+    train_examples_path=None,
+    eval_examples_path=None,
+)
+
 CONFIG_MAP['groovae_2bar_add_closed_hh'] = Config(
     model=MusicVAE(lstm_models.BidirectionalLstmEncoder(),
                    lstm_models.GrooveLstmDecoder()),
