@@ -40,6 +40,7 @@ from magenta.protobuf import music_pb2
 import numpy as np
 import six
 import tensorflow as tf
+import tensorflow_probability as tfp
 
 
 def hparams_frame_size(hparams):
@@ -377,7 +378,7 @@ FeatureTensors = collections.namedtuple(
     'FeatureTensors', ('spec', 'length', 'sequence_id'))
 LabelTensors = collections.namedtuple(
     'LabelTensors', ('labels', 'label_weights', 'onsets', 'offsets',
-                     'velocities', 'note_sequence', 'supervised'))
+                     'velocities', 'note_sequence', 'supervised', 'mix_ratios'))
 
 
 def _provide_data(input_tensors, hparams, is_training, label_ratio=1.0):
@@ -463,6 +464,9 @@ def _provide_data(input_tensors, hparams, is_training, label_ratio=1.0):
        (labels_delta > 0, lambda: velocities[0:-labels_delta])],
       default=lambda: velocities)
 
+  mix_ratios = tfp.distributions.Beta(hparams.mix_beta,
+                                      hparams.mix_beta).sample(1)
+
   features = FeatureTensors(
       spec=tf.reshape(spec, (final_length, hparams_frame_size(hparams), 1)),
       length=truncated_length,
@@ -475,7 +479,8 @@ def _provide_data(input_tensors, hparams, is_training, label_ratio=1.0):
       offsets=tf.reshape(offsets, (final_length, constants.MIDI_PITCHES)),
       velocities=tf.reshape(velocities, (final_length, constants.MIDI_PITCHES)),
       note_sequence=truncated_note_sequence,
-      supervised=supervised)
+      supervised=supervised,
+      mix_ratios=mix_ratios)
 
   return features, labels
 
