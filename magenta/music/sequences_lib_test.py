@@ -16,7 +16,6 @@
 
 import copy
 
-from magenta.common import testing_lib as common_testing_lib
 from magenta.music import constants
 from magenta.music import sequences_lib
 from magenta.music import testing_lib
@@ -35,7 +34,7 @@ class SequencesLibTest(tf.test.TestCase):
     self.maxDiff = None  # pylint:disable=invalid-name
 
     self.steps_per_quarter = 4
-    self.note_sequence = common_testing_lib.parse_test_proto(
+    self.note_sequence = testing_lib.parse_test_proto(
         music_pb2.NoteSequence,
         """
         time_signatures: {
@@ -317,7 +316,7 @@ class SequencesLibTest(tf.test.TestCase):
 
   def testSplitNoteSequenceWithHopSize(self):
     # Tests splitting a NoteSequence at regular hop size, truncating notes.
-    sequence = common_testing_lib.parse_test_proto(
+    sequence = testing_lib.parse_test_proto(
         music_pb2.NoteSequence,
         """
         time_signatures: {
@@ -332,7 +331,7 @@ class SequencesLibTest(tf.test.TestCase):
     testing_lib.add_chords_to_sequence(
         sequence, [('C', 1.0), ('G7', 2.0), ('F', 4.0)])
 
-    expected_subsequence_1 = common_testing_lib.parse_test_proto(
+    expected_subsequence_1 = testing_lib.parse_test_proto(
         music_pb2.NoteSequence,
         """
         time_signatures: {
@@ -348,7 +347,7 @@ class SequencesLibTest(tf.test.TestCase):
     expected_subsequence_1.total_time = 3.0
     expected_subsequence_1.subsequence_info.end_time_offset = 5.0
 
-    expected_subsequence_2 = common_testing_lib.parse_test_proto(
+    expected_subsequence_2 = testing_lib.parse_test_proto(
         music_pb2.NoteSequence,
         """
         time_signatures: {
@@ -365,7 +364,7 @@ class SequencesLibTest(tf.test.TestCase):
     expected_subsequence_2.subsequence_info.start_time_offset = 3.0
     expected_subsequence_2.subsequence_info.end_time_offset = 3.0
 
-    expected_subsequence_3 = common_testing_lib.parse_test_proto(
+    expected_subsequence_3 = testing_lib.parse_test_proto(
         music_pb2.NoteSequence,
         """
         time_signatures: {
@@ -388,7 +387,7 @@ class SequencesLibTest(tf.test.TestCase):
 
   def testSplitNoteSequenceAtTimes(self):
     # Tests splitting a NoteSequence at specified times, truncating notes.
-    sequence = common_testing_lib.parse_test_proto(
+    sequence = testing_lib.parse_test_proto(
         music_pb2.NoteSequence,
         """
         time_signatures: {
@@ -403,7 +402,7 @@ class SequencesLibTest(tf.test.TestCase):
     testing_lib.add_chords_to_sequence(
         sequence, [('C', 1.0), ('G7', 2.0), ('F', 4.0)])
 
-    expected_subsequence_1 = common_testing_lib.parse_test_proto(
+    expected_subsequence_1 = testing_lib.parse_test_proto(
         music_pb2.NoteSequence,
         """
         time_signatures: {
@@ -419,7 +418,7 @@ class SequencesLibTest(tf.test.TestCase):
     expected_subsequence_1.total_time = 3.0
     expected_subsequence_1.subsequence_info.end_time_offset = 5.0
 
-    expected_subsequence_2 = common_testing_lib.parse_test_proto(
+    expected_subsequence_2 = testing_lib.parse_test_proto(
         music_pb2.NoteSequence,
         """
         time_signatures: {
@@ -433,7 +432,7 @@ class SequencesLibTest(tf.test.TestCase):
     expected_subsequence_2.subsequence_info.start_time_offset = 3.0
     expected_subsequence_2.subsequence_info.end_time_offset = 5.0
 
-    expected_subsequence_3 = common_testing_lib.parse_test_proto(
+    expected_subsequence_3 = testing_lib.parse_test_proto(
         music_pb2.NoteSequence,
         """
         time_signatures: {
@@ -460,7 +459,7 @@ class SequencesLibTest(tf.test.TestCase):
   def testSplitNoteSequenceSkipSplitsInsideNotes(self):
     # Tests splitting a NoteSequence at regular hop size, skipping splits that
     # would have occurred inside a note.
-    sequence = common_testing_lib.parse_test_proto(
+    sequence = testing_lib.parse_test_proto(
         music_pb2.NoteSequence,
         """
         time_signatures: {
@@ -475,7 +474,7 @@ class SequencesLibTest(tf.test.TestCase):
     testing_lib.add_chords_to_sequence(
         sequence, [('C', 0.0), ('G7', 3.0), ('F', 4.5)])
 
-    expected_subsequence_1 = common_testing_lib.parse_test_proto(
+    expected_subsequence_1 = testing_lib.parse_test_proto(
         music_pb2.NoteSequence,
         """
         time_signatures: {
@@ -491,7 +490,7 @@ class SequencesLibTest(tf.test.TestCase):
     expected_subsequence_1.total_time = 3.50
     expected_subsequence_1.subsequence_info.end_time_offset = 1.5
 
-    expected_subsequence_2 = common_testing_lib.parse_test_proto(
+    expected_subsequence_2 = testing_lib.parse_test_proto(
         music_pb2.NoteSequence,
         """
         time_signatures: {
@@ -536,7 +535,7 @@ class SequencesLibTest(tf.test.TestCase):
   def testSplitNoteSequenceDuplicateTimeChanges(self):
     # Tests splitting a NoteSequence on time changes for a NoteSequence that has
     # duplicate time changes.
-    sequence = common_testing_lib.parse_test_proto(
+    sequence = testing_lib.parse_test_proto(
         music_pb2.NoteSequence,
         """
         time_signatures: {
@@ -567,7 +566,7 @@ class SequencesLibTest(tf.test.TestCase):
   def testSplitNoteSequenceCoincidentTimeChanges(self):
     # Tests splitting a NoteSequence on time changes for a NoteSequence that has
     # two time changes occurring simultaneously.
-    sequence = common_testing_lib.parse_test_proto(
+    sequence = testing_lib.parse_test_proto(
         music_pb2.NoteSequence,
         """
         time_signatures: {
@@ -589,7 +588,7 @@ class SequencesLibTest(tf.test.TestCase):
     testing_lib.add_chords_to_sequence(
         sequence, [('C', 1.5), ('G7', 3.0), ('F', 4.8)])
 
-    expected_subsequence_1 = common_testing_lib.parse_test_proto(
+    expected_subsequence_1 = testing_lib.parse_test_proto(
         music_pb2.NoteSequence,
         """
         time_signatures: {
@@ -605,7 +604,7 @@ class SequencesLibTest(tf.test.TestCase):
     expected_subsequence_1.total_time = 2.0
     expected_subsequence_1.subsequence_info.end_time_offset = 8.0
 
-    expected_subsequence_2 = common_testing_lib.parse_test_proto(
+    expected_subsequence_2 = testing_lib.parse_test_proto(
         music_pb2.NoteSequence,
         """
         time_signatures: {
@@ -630,7 +629,7 @@ class SequencesLibTest(tf.test.TestCase):
   def testSplitNoteSequenceMultipleTimeChangesSkipSplitsInsideNotes(self):
     # Tests splitting a NoteSequence on time changes skipping splits that occur
     # inside notes.
-    sequence = common_testing_lib.parse_test_proto(
+    sequence = testing_lib.parse_test_proto(
         music_pb2.NoteSequence,
         """
         time_signatures: {
@@ -652,7 +651,7 @@ class SequencesLibTest(tf.test.TestCase):
     testing_lib.add_chords_to_sequence(
         sequence, [('C', 1.5), ('G7', 3.0), ('F', 4.8)])
 
-    expected_subsequence_1 = common_testing_lib.parse_test_proto(
+    expected_subsequence_1 = testing_lib.parse_test_proto(
         music_pb2.NoteSequence,
         """
         time_signatures: {
@@ -673,7 +672,7 @@ class SequencesLibTest(tf.test.TestCase):
     expected_subsequence_1.total_time = 4.01
     expected_subsequence_1.subsequence_info.end_time_offset = 0.99
 
-    expected_subsequence_2 = common_testing_lib.parse_test_proto(
+    expected_subsequence_2 = testing_lib.parse_test_proto(
         music_pb2.NoteSequence,
         """
         time_signatures: {
@@ -697,7 +696,7 @@ class SequencesLibTest(tf.test.TestCase):
   def testSplitNoteSequenceMultipleTimeChanges(self):
     # Tests splitting a NoteSequence on time changes, truncating notes on splits
     # that occur inside notes.
-    sequence = common_testing_lib.parse_test_proto(
+    sequence = testing_lib.parse_test_proto(
         music_pb2.NoteSequence,
         """
         time_signatures: {
@@ -719,7 +718,7 @@ class SequencesLibTest(tf.test.TestCase):
     testing_lib.add_chords_to_sequence(
         sequence, [('C', 1.5), ('G7', 3.0), ('F', 4.8)])
 
-    expected_subsequence_1 = common_testing_lib.parse_test_proto(
+    expected_subsequence_1 = testing_lib.parse_test_proto(
         music_pb2.NoteSequence,
         """
         time_signatures: {
@@ -735,7 +734,7 @@ class SequencesLibTest(tf.test.TestCase):
     expected_subsequence_1.total_time = 2.0
     expected_subsequence_1.subsequence_info.end_time_offset = 8.0
 
-    expected_subsequence_2 = common_testing_lib.parse_test_proto(
+    expected_subsequence_2 = testing_lib.parse_test_proto(
         music_pb2.NoteSequence,
         """
         time_signatures: {
@@ -752,7 +751,7 @@ class SequencesLibTest(tf.test.TestCase):
     expected_subsequence_2.subsequence_info.start_time_offset = 2.0
     expected_subsequence_2.subsequence_info.end_time_offset = 5.99
 
-    expected_subsequence_3 = common_testing_lib.parse_test_proto(
+    expected_subsequence_3 = testing_lib.parse_test_proto(
         music_pb2.NoteSequence,
         """
         time_signatures: {
@@ -777,7 +776,7 @@ class SequencesLibTest(tf.test.TestCase):
 
   def testSplitNoteSequenceWithStatelessEvents(self):
     # Tests splitting a NoteSequence at specified times with stateless events.
-    sequence = common_testing_lib.parse_test_proto(
+    sequence = testing_lib.parse_test_proto(
         music_pb2.NoteSequence,
         """
         time_signatures: {
@@ -791,7 +790,7 @@ class SequencesLibTest(tf.test.TestCase):
          (55, 120, 4.0, 4.01), (52, 99, 4.75, 5.0)])
     testing_lib.add_beats_to_sequence(sequence, [1.0, 2.0, 4.0])
 
-    expected_subsequence_1 = common_testing_lib.parse_test_proto(
+    expected_subsequence_1 = testing_lib.parse_test_proto(
         music_pb2.NoteSequence,
         """
         time_signatures: {
@@ -806,7 +805,7 @@ class SequencesLibTest(tf.test.TestCase):
     expected_subsequence_1.total_time = 3.0
     expected_subsequence_1.subsequence_info.end_time_offset = 5.0
 
-    expected_subsequence_2 = common_testing_lib.parse_test_proto(
+    expected_subsequence_2 = testing_lib.parse_test_proto(
         music_pb2.NoteSequence,
         """
         time_signatures: {
@@ -818,7 +817,7 @@ class SequencesLibTest(tf.test.TestCase):
     expected_subsequence_2.subsequence_info.start_time_offset = 3.0
     expected_subsequence_2.subsequence_info.end_time_offset = 5.0
 
-    expected_subsequence_3 = common_testing_lib.parse_test_proto(
+    expected_subsequence_3 = testing_lib.parse_test_proto(
         music_pb2.NoteSequence,
         """
         time_signatures: {

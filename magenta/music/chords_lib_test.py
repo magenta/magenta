@@ -20,7 +20,6 @@ from __future__ import print_function
 
 import copy
 
-from magenta.common import testing_lib as common_testing_lib
 from magenta.music import chord_symbols_lib
 from magenta.music import chords_lib
 from magenta.music import constants
@@ -37,7 +36,7 @@ class ChordsLibTest(tf.test.TestCase):
 
   def setUp(self):
     self.steps_per_quarter = 1
-    self.note_sequence = common_testing_lib.parse_test_proto(
+    self.note_sequence = testing_lib.parse_test_proto(
         music_pb2.NoteSequence,
         """
         time_signatures: {

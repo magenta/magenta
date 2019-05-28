@@ -43,6 +43,7 @@ DEFAULT_HPARAMS = tf_utils.merge_hparams(
         truncated_length_secs=0.0,
         max_expected_train_example_len=0,
         semisupervised_concat=False,
+        mix_beta=1.0,
         onset_length=32,
         offset_length=32,
         onset_mode='length_ms',

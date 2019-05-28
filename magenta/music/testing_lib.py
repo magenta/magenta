@@ -17,6 +17,8 @@
 from magenta.music import encoder_decoder
 from magenta.protobuf import music_pb2
 
+from google.protobuf import text_format
+
 # Shortcut to text annotation types.
 BEAT = music_pb2.NoteSequence.TextAnnotation.BEAT
 CHORD_SYMBOL = music_pb2.NoteSequence.TextAnnotation.CHORD_SYMBOL
@@ -127,3 +129,9 @@ class TrivialOneHotEncoding(encoder_decoder.OneHotEncoding):
       return self._num_steps[event]
     else:
       return 1
+
+
+def parse_test_proto(proto_type, proto_string):
+  instance = proto_type()
+  text_format.Merge(proto_string, instance)
+  return instance

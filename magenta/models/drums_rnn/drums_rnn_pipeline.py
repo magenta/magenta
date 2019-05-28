@@ -15,9 +15,9 @@
 """Pipeline to create DrumsRNN dataset."""
 
 import magenta
-from magenta.music import encoder_decoder
 from magenta.pipelines import dag_pipeline
 from magenta.pipelines import drum_pipelines
+from magenta.pipelines import event_sequence_pipeline
 from magenta.pipelines import note_sequence_pipelines
 from magenta.pipelines import pipelines_common
 from magenta.protobuf import music_pb2
@@ -46,7 +46,7 @@ def get_pipeline(config, eval_ratio):
         steps_per_quarter=config.steps_per_quarter, name='Quantizer_' + mode)
     drums_extractor = drum_pipelines.DrumsExtractor(
         min_bars=7, max_steps=512, gap_bars=1.0, name='DrumsExtractor_' + mode)
-    encoder_pipeline = encoder_decoder.EncoderPipeline(
+    encoder_pipeline = event_sequence_pipeline.EncoderPipeline(
         magenta.music.DrumTrack, config.encoder_decoder,
         name='EncoderPipeline_' + mode)
 
