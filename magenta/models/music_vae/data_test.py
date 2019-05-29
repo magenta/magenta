@@ -1114,6 +1114,30 @@ class GrooveConverterTest(tf.test.TestCase):
 
     self.compare_notes(tap_notes, input_sequences[0].notes)
 
+  def testTapWithNoteDropout(self):
+    tap_converter = data.GrooveConverter(
+        split_bars=None, steps_per_quarter=4, quarters_per_bar=4,
+        max_tensors_per_notesequence=5, tapify=True, fixed_velocities=True)
+
+    dropout_converter = data.GrooveConverter(
+        split_bars=None, steps_per_quarter=4, quarters_per_bar=4,
+        max_tensors_per_notesequence=5, tapify=True, fixed_velocities=True,
+        max_note_dropout_probability=0.8)
+
+    tap_tensors = tap_converter.to_tensors(self.one_bar_sequence)
+    tap_input_sequences = tap_converter.to_items(tap_tensors.inputs)
+
+    dropout_tensors = dropout_converter.to_tensors(self.one_bar_sequence)
+    dropout_input_sequences = dropout_converter.to_items(dropout_tensors.inputs)
+    output_sequences = dropout_converter.to_items(dropout_tensors.outputs)
+
+    # Output sequence should match the initial input.
+    self.compare_seqs(self.one_bar_sequence, output_sequences[0])
+
+    # Input sequence should have <= the number of notes as regular tap.
+    self.assertEqual(len(tap_input_sequences[0].notes), max(len(
+        tap_input_sequences[0].notes), len(dropout_input_sequences[0].notes)))
+
   def testHumanize(self):
     converter = data.GrooveConverter(
         split_bars=None, steps_per_quarter=4, quarters_per_bar=4,
