@@ -563,7 +563,7 @@ def examples_to_input_tensors(
     map_fn = functools.partial(
         preprocess_example, hparams=hparams, is_training=is_training)
   else:
-    map_fn = input_dataset.map(parse_example)
+    map_fn = parse_example
   return input_dataset.map(map_fn)
 
 
