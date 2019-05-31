@@ -100,8 +100,10 @@ def main(argv):
     dataset = data.provide_batch(
         examples=examples,
         preprocess_examples=True,
-        hparams=hparams,
-        is_training=False)
+        params=hparams,
+        is_training=False,
+        shuffle_examples=False,
+        skip_n_initial_records=0)
 
     estimator = train_util.create_estimator(config.model_fn,
                                             os.path.expanduser(FLAGS.model_dir),

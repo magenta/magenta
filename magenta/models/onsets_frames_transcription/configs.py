@@ -23,15 +23,16 @@ import collections
 from magenta.common import tf_utils
 from magenta.models.onsets_frames_transcription import audio_transform
 from magenta.models.onsets_frames_transcription import model
-import tensorflow as tf
+import tensorflow as tf_head
 
 Config = collections.namedtuple('Config', ('model_fn', 'hparams'))
 
 DEFAULT_HPARAMS = tf_utils.merge_hparams(
     audio_transform.DEFAULT_AUDIO_TRANSFORM_HPARAMS,
-    tf.contrib.training.HParams(
+    tf_head.contrib.training.HParams(
         eval_batch_size=1,
         predict_batch_size=1,
+        shuffle_buffer_size=64,
         sample_rate=16000,
         spec_type='mel',
         spec_mel_htk=True,
@@ -88,8 +89,3 @@ DATASET_CONFIG_MAP['maestro'] = [
         'maestro-v1.0.0_ns_wav_validation.tfrecord@10',
         process_for_training=False),
 ]
-
-SemisupervisedExamplesConfig = collections.namedtuple(
-    'SemisupervisedExamplesConfig', ('examples_path',
-                                     'batch_ratio',
-                                     'label_ratio'))

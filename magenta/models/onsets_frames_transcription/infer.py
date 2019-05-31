@@ -109,8 +109,10 @@ def model_inference(model_fn,
     dataset = data.provide_batch(
         examples=examples_path,
         preprocess_examples=preprocess_examples,
-        hparams=hparams,
-        is_training=False)
+        params=hparams,
+        is_training=False,
+        shuffle_examples=False,
+        skip_n_initial_records=0)
 
     # Define some metrics.
     (metrics_to_updates, metric_note_precision, metric_note_recall,
