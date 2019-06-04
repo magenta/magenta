@@ -523,6 +523,29 @@ def concatenate_sequences(sequences, sequence_durations=None):
   return remove_redundant_data(cat_seq)
 
 
+def repeat_sequence_to_duration(sequence, duration, sequence_duration=None):
+  """Repeat a sequence until it is a given duration, trimming any extra.
+
+  Args:
+    sequence: the sequence to repeat
+    duration: the desired duration
+    sequence_duration: If provided, will be used instead of sequence.total_time
+
+  Returns:
+    The repeated and possibly trimmed sequence.
+  """
+  if not sequence_duration:
+    sequence_duration = sequence.total_time
+  num_repeats = int(math.ceil(duration / sequence_duration))
+  repeated_ns = concatenate_sequences(
+      [sequence] * num_repeats,
+      sequence_durations=[sequence_duration] * num_repeats)
+
+  trimmed = extract_subsequence(repeated_ns, start_time=0, end_time=duration)
+  trimmed.ClearField('subsequence_info')  # Not relevant in this case.
+  return trimmed
+
+
 def expand_section_groups(sequence):
   """Expands a NoteSequence based on its section_groups.
 

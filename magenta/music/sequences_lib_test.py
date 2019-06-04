@@ -1535,6 +1535,38 @@ class SequencesLibTest(tf.test.TestCase):
         sequence_durations=[2, 1.5, 2])
     self.assertProtoEquals(expected_sequence, cat_seq)
 
+  def testRepeatSequenceToDuration(self):
+    sequence = copy.copy(self.note_sequence)
+    testing_lib.add_track_to_sequence(
+        sequence, 0,
+        [(60, 100, 0.0, 1.0), (72, 100, 0.5, 1.5)])
+
+    expected_sequence = copy.copy(self.note_sequence)
+    testing_lib.add_track_to_sequence(
+        expected_sequence, 0,
+        [(60, 100, 0.0, 1.0), (72, 100, 0.5, 1.5),
+         (60, 100, 1.5, 2.5), (72, 100, 2.0, 3.0)])
+
+    repeated_seq = sequences_lib.repeat_sequence_to_duration(
+        sequence, duration=3)
+    self.assertProtoEquals(expected_sequence, repeated_seq)
+
+  def testRepeatSequenceToDurationProvidedDuration(self):
+    sequence = copy.copy(self.note_sequence)
+    testing_lib.add_track_to_sequence(
+        sequence, 0,
+        [(60, 100, 0.0, 1.0), (72, 100, 0.5, 1.5)])
+
+    expected_sequence = copy.copy(self.note_sequence)
+    testing_lib.add_track_to_sequence(
+        expected_sequence, 0,
+        [(60, 100, 0.0, 1.0), (72, 100, 0.5, 1.5),
+         (60, 100, 2.0, 3.0), (72, 100, 2.5, 3.0)])
+
+    repeated_seq = sequences_lib.repeat_sequence_to_duration(
+        sequence, duration=3, sequence_duration=2)
+    self.assertProtoEquals(expected_sequence, repeated_seq)
+
   def testRemoveRedundantData(self):
     sequence = copy.copy(self.note_sequence)
     redundant_tempo = sequence.tempos.add()

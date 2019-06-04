@@ -67,6 +67,13 @@ class AudioIoTest(tf.test.TestCase):
         wav_io.getvalue(), sample_rate=16000)
     np.testing.assert_array_equal(y, y_from_float)
 
+  def testRepeatSamplesToDuration(self):
+    samples = np.arange(5)
+    repeated = audio_io.repeat_samples_to_duration(
+        samples, sample_rate=5, duration=1.8)
+    expected_samples = [0, 1, 2, 3, 4, 0, 1, 2, 3]
+    self.assertAllEqual(expected_samples, repeated)
+
 
 if __name__ == '__main__':
   tf.test.main()
