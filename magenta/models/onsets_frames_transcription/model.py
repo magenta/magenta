@@ -388,11 +388,11 @@ def model_fn(features, labels, mode, params, config):
 
   predictions = {
       # frame_probs is exported for writing out piano roll during inference.
-      'frame_probs': frame_probs_flat,
-      'frame_predictions': frame_predictions,
-      'onset_predictions': onset_predictions,
-      'offset_predictions': offset_predictions,
-      'velocity_values': velocity_values_flat,
+      'frame_probs': [frame_probs_flat],
+      'frame_predictions': [frame_predictions],
+      'onset_predictions': [onset_predictions],
+      'offset_predictions': [offset_predictions],
+      'velocity_values': [velocity_values_flat],
   }
 
   train_op = None

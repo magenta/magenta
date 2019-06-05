@@ -68,9 +68,9 @@ def create_example(filename):
 
 def transcribe_audio(prediction, hparams):
   """Transcribes an audio file."""
-  frame_predictions = prediction['frame_predictions']
-  onset_predictions = prediction['onset_predictions']
-  velocity_values = prediction['velocity_values']
+  frame_predictions = prediction['frame_predictions'][0]
+  onset_predictions = prediction['onset_predictions'][0]
+  velocity_values = prediction['velocity_values'][0]
 
   sequence_prediction = sequences_lib.pianoroll_to_note_sequence(
       frame_predictions,
