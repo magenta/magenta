@@ -64,9 +64,9 @@ REQUIRED_PACKAGES = [
 ]
 
 if gpu_mode:
-  REQUIRED_PACKAGES.append('tensorflow-gpu >= 1.12.0')
+  REQUIRED_PACKAGES.append('tensorflow-gpu >= 1.13.0')
 else:
-  REQUIRED_PACKAGES.append('tensorflow >= 1.12.0')
+  REQUIRED_PACKAGES.append('tensorflow >= 1.13.0')
 
 # pylint:disable=line-too-long
 CONSOLE_SCRIPTS = [
