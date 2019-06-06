@@ -2027,6 +2027,31 @@ class SequencesLibTest(tf.test.TestCase):
 
     np.testing.assert_allclose(expected_cc_roll, cc_roll)
 
+  def testSequenceToPianorollOverlappingNotes(self):
+    sequence = music_pb2.NoteSequence()
+    sequence.notes.add(pitch=60, start_time=1.0, end_time=2.0)
+    sequence.notes.add(pitch=60, start_time=1.2, end_time=2.0)
+    sequence.notes.add(pitch=60, start_time=1.0, end_time=2.5)
+    sequence.total_time = 2.5
+
+    rolls = sequences_lib.sequence_to_pianoroll(
+        sequence, frames_per_second=10, min_pitch=60, max_pitch=60,
+        onset_mode='length_ms', onset_length_ms=10)
+
+    expected_onsets = np.zeros([26, 1])
+    expected_onsets[10, 0] = 1
+    expected_onsets[12, 0] = 1
+    np.testing.assert_equal(expected_onsets, rolls.onsets)
+
+    expected_offsets = np.zeros([26, 1])
+    expected_offsets[20, 0] = 1
+    expected_offsets[25, 0] = 1
+    np.testing.assert_equal(expected_offsets, rolls.offsets)
+
+    expected_active = np.zeros([26, 1])
+    expected_active[10:25, 0] = 1
+    np.testing.assert_equal(expected_active, rolls.active)
+
 
 if __name__ == '__main__':
   tf.test.main()
