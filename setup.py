@@ -51,6 +51,7 @@ REQUIRED_PACKAGES = [
     'pygtrie >= 2.3',
     'python-rtmidi >= 1.1, < 1.2',  # 1.2 breaks us
     'scipy >= 0.18.1, <= 1.2.0',  # 1.2.1 causes segfaults in pytest.
+    'six >= 1.12.0',
     'sk-video',
     'sonnet',
     'sox >= 1.3.7',

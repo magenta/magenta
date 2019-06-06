@@ -28,7 +28,8 @@ from magenta.models.onsets_frames_transcription import train_util
 from magenta.music import midi_io
 from magenta.music import sequences_lib
 from magenta.protobuf import music_pb2
-import tensorflow as tf
+import six
+import tensorflow.compat.v1 as tf
 
 FLAGS = tf.app.flags.FLAGS
 
@@ -58,7 +59,7 @@ def create_example(filename):
           wav_data=wav_data,
           ns=music_pb2.NoteSequence(),
           # decode to handle filenames with extended characters.
-          example_id=filename.decode('utf-8'),
+          example_id=six.ensure_text(filename, 'utf-8'),
           min_length=0,
           max_length=-1,
           allow_empty_notesequence=True))
