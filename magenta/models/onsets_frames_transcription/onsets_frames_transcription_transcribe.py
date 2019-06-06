@@ -20,10 +20,10 @@ from __future__ import print_function
 
 import os
 
+from magenta.models.onsets_frames_transcription import audio_label_data_utils
 from magenta.models.onsets_frames_transcription import configs
 from magenta.models.onsets_frames_transcription import constants
 from magenta.models.onsets_frames_transcription import data
-from magenta.models.onsets_frames_transcription import split_audio_and_label_data
 from magenta.models.onsets_frames_transcription import train_util
 from magenta.music import midi_io
 from magenta.music import sequences_lib
@@ -54,7 +54,7 @@ def create_example(filename):
   """Processes an audio file into an Example proto."""
   wav_data = tf.gfile.Open(filename, 'rb').read()
   example_list = list(
-      split_audio_and_label_data.process_record(
+      audio_label_data_utils.process_record(
           wav_data=wav_data,
           ns=music_pb2.NoteSequence(),
           # decode to handle filenames with extended characters.

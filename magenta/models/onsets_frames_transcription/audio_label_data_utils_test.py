@@ -12,13 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Split the wav files in an existing TFRecord file into smaller chunks."""
+"""Test for audio_label_data_utils."""
 
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-from magenta.models.onsets_frames_transcription import split_audio_and_label_data
+from magenta.models.onsets_frames_transcription import audio_label_data_utils
 
 from magenta.music import audio_io
 from magenta.music import testing_lib
@@ -46,7 +46,7 @@ class SplitAudioTest(tf.test.TestCase):
 
   def testSplitAudioLabelData(self):
     wav_data, sequence = self._CreateSyntheticExample()
-    records = split_audio_and_label_data.process_record(
+    records = audio_label_data_utils.process_record(
         wav_data, sequence, 'test', sample_rate=SAMPLE_RATE)
 
     for record in records:
@@ -77,14 +77,14 @@ class SplitAudioTest(tf.test.TestCase):
 
     sample_rate = 160
     samples = np.zeros(sample_rate * int(sequence.total_time))
-    splits = split_audio_and_label_data.find_split_points(
+    splits = audio_label_data_utils.find_split_points(
         sequence, samples, sample_rate, 0, 3)
 
     self.assertEqual(splits, [0., 3., 6., 9., 12., 15., 18., 21., 24., 25.])
 
     samples[int(8.5 * sample_rate)] = 1
     samples[int(8.5 * sample_rate) + 1] = -1
-    splits = split_audio_and_label_data.find_split_points(
+    splits = audio_label_data_utils.find_split_points(
         sequence, samples, sample_rate, 0, 3)
 
     self.assertEqual(splits, [

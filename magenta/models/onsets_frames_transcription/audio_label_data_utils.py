@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-r"""Utilities for splitting wav files and labels into smaller chunks."""
+r"""Utilities for managing wav files and labels for transcription."""
 
 from __future__ import absolute_import
 from __future__ import division
