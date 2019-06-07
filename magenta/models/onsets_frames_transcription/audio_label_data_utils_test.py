@@ -93,5 +93,83 @@ class SplitAudioTest(tf.test.TestCase):
     ])
 
 
+class MixSequencesTest(tf.test.TestCase):
+
+  def testMixSequences(self):
+    sample_rate = 10
+
+    sequence1 = music_pb2.NoteSequence()
+    sequence1.notes.add(pitch=60, start_time=0.5, end_time=1.0, velocity=90)
+    sequence1.notes.add(pitch=62, start_time=1.0, end_time=2.0, velocity=90)
+    sequence1.total_time = 2.0
+
+    samples1 = np.linspace(0, 1, sample_rate * sequence1.total_time)
+
+    sequence2 = music_pb2.NoteSequence()
+    sequence2.notes.add(pitch=64, start_time=0.5, end_time=1.0, velocity=90)
+    sequence2.total_time = 1.0
+
+    samples2 = np.linspace(0, 1, sample_rate * sequence2.total_time)
+
+    mixed_samples, mixed_sequence = audio_label_data_utils.mix_sequences(
+        [samples1, samples2], sample_rate, [sequence1, sequence2])
+
+    expected_sequence = music_pb2.NoteSequence()
+    expected_sequence.notes.add(
+        pitch=60, start_time=0.5, end_time=1.0, velocity=90)
+    expected_sequence.notes.add(
+        pitch=62, start_time=1.0, end_time=2.0, velocity=90)
+    expected_sequence.notes.add(
+        pitch=64, start_time=0.5, end_time=1.0, velocity=90)
+    expected_sequence.notes.add(
+        pitch=64, start_time=1.5, end_time=2.0, velocity=90)
+    expected_sequence.total_time = 2.0
+
+    self.assertProtoEquals(expected_sequence, mixed_sequence)
+
+    expected_samples = np.concatenate([samples2, samples2]) * .5 + samples1 * .5
+    np.testing.assert_array_equal(expected_samples, mixed_samples)
+
+  def testMixSequencesLongerNoteSequence(self):
+    sample_rate = 10
+
+    sequence1 = music_pb2.NoteSequence()
+    sequence1.notes.add(pitch=60, start_time=0.5, end_time=1.0, velocity=90)
+    sequence1.notes.add(pitch=62, start_time=1.0, end_time=2.0, velocity=90)
+    sequence1.total_time = 2.0
+
+    # samples1 will be .1 seconds shorter than sequence1
+    samples1 = np.linspace(0, 1, sample_rate * (sequence1.total_time - .1))
+
+    sequence2 = music_pb2.NoteSequence()
+    sequence2.notes.add(pitch=64, start_time=0.5, end_time=1.0, velocity=90)
+    sequence2.total_time = 1.0
+
+    samples2 = np.linspace(0, 1, sample_rate * sequence2.total_time)
+
+    mixed_samples, mixed_sequence = audio_label_data_utils.mix_sequences(
+        [samples1, samples2], sample_rate, [sequence1, sequence2])
+
+    expected_sequence = music_pb2.NoteSequence()
+    expected_sequence.notes.add(
+        pitch=60, start_time=0.5, end_time=1.0, velocity=90)
+    expected_sequence.notes.add(
+        pitch=62, start_time=1.0, end_time=2.0, velocity=90)
+    expected_sequence.notes.add(
+        pitch=64, start_time=0.5, end_time=1.0, velocity=90)
+    expected_sequence.notes.add(
+        pitch=64, start_time=1.5, end_time=2.0, velocity=90)
+    expected_sequence.total_time = 2.0
+
+    self.assertProtoEquals(expected_sequence, mixed_sequence)
+
+    # We expect samples1 to have 2 samples of padding and samples2 to be
+    # repeated 1 time fully and once with a single sample.
+    expected_samples = (
+        np.concatenate([samples2, samples2, [samples2[0]]]) * .5 +
+        np.concatenate([samples1, [0, 0]]) * .5)
+    np.testing.assert_array_equal(expected_samples, mixed_samples)
+
+
 if __name__ == '__main__':
   tf.test.main()

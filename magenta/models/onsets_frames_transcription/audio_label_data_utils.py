@@ -19,6 +19,7 @@ from __future__ import division
 from __future__ import print_function
 
 import bisect
+import copy
 import math
 
 import librosa
@@ -301,3 +302,52 @@ def process_record(wav_data,
     new_wav_data = audio_io.samples_to_wav_data(new_samples, sample_rate)
     yield create_example(
         example_id, new_ns, new_wav_data, velocity_range=velocity_range)
+
+
+def mix_sequences(individual_samples, sample_rate, individual_sequences):
+  """Mix multiple audio/notesequence pairs together.
+
+  All sequences will be repeated until they are as long as the longest sequence.
+
+  Args:
+    individual_samples: A list of audio samples to mix.
+    sample_rate: Rate at which to interpret the samples
+    individual_sequences: A list of NoteSequences to mix.
+
+  Returns:
+    mixed_samples: The mixed audio.
+    mixed_sequence: The mixed NoteSequence.
+  """
+  # Ensure that samples are always at least as long as their paired sequences.
+  for i, (samples, sequence) in enumerate(
+      zip(individual_samples, individual_sequences)):
+    if len(samples) / sample_rate < sequence.total_time:
+      padding = int(math.ceil(
+          (sequence.total_time - len(samples) / sample_rate) * sample_rate))
+      individual_samples[i] = np.pad(samples, [0, padding], 'constant')
+
+  # Repeat each ns/wav pair to be as long as the longest wav.
+  max_duration = np.max([len(s) for s in individual_samples]) / sample_rate
+
+  extended_samples = []
+  extended_sequences = []
+  for samples, sequence in zip(individual_samples, individual_sequences):
+    extended_samples.append(
+        audio_io.repeat_samples_to_duration(samples, sample_rate, max_duration))
+    extended_sequences.append(
+        sequences_lib.repeat_sequence_to_duration(
+            sequence, max_duration,
+            sequence_duration=len(samples) / sample_rate))
+
+  # Mix samples and sequences together
+  mixed_samples = np.zeros_like(extended_samples[0])
+  for samples in extended_samples:
+    mixed_samples += samples / len(extended_samples)
+
+  mixed_sequence = copy.deepcopy(extended_sequences[0])
+  del mixed_sequence.notes[:]
+  for sequence in extended_sequences:
+    # TODO(fjord): Manage instrument/program numbers.
+    mixed_sequence.notes.extend(sequence.notes)
+
+  return mixed_samples, mixed_sequence
