@@ -25,8 +25,8 @@ import re
 import apache_beam as beam
 from apache_beam.metrics import Metrics
 
+from magenta.models.onsets_frames_transcription import audio_label_data_utils
 from magenta.models.onsets_frames_transcription import data
-from magenta.models.onsets_frames_transcription import split_audio_and_label_data
 from magenta.protobuf import music_pb2
 
 import tensorflow as tf
@@ -74,7 +74,7 @@ def split_wav(input_example, min_length, max_length, sample_rate,
   Metrics.counter('split_wav', 'read_midi_wav_to_split').inc()
 
   if not process_for_training:
-    split_examples = split_audio_and_label_data.process_record(
+    split_examples = audio_label_data_utils.process_record(
         wav_data,
         ns,
         ns.id,
@@ -88,7 +88,7 @@ def split_wav(input_example, min_length, max_length, sample_rate,
       yield example
   else:
     try:
-      split_examples = split_audio_and_label_data.process_record(
+      split_examples = audio_label_data_utils.process_record(
           wav_data,
           ns,
           ns.id,

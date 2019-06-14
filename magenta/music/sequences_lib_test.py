@@ -1535,6 +1535,38 @@ class SequencesLibTest(tf.test.TestCase):
         sequence_durations=[2, 1.5, 2])
     self.assertProtoEquals(expected_sequence, cat_seq)
 
+  def testRepeatSequenceToDuration(self):
+    sequence = copy.copy(self.note_sequence)
+    testing_lib.add_track_to_sequence(
+        sequence, 0,
+        [(60, 100, 0.0, 1.0), (72, 100, 0.5, 1.5)])
+
+    expected_sequence = copy.copy(self.note_sequence)
+    testing_lib.add_track_to_sequence(
+        expected_sequence, 0,
+        [(60, 100, 0.0, 1.0), (72, 100, 0.5, 1.5),
+         (60, 100, 1.5, 2.5), (72, 100, 2.0, 3.0)])
+
+    repeated_seq = sequences_lib.repeat_sequence_to_duration(
+        sequence, duration=3)
+    self.assertProtoEquals(expected_sequence, repeated_seq)
+
+  def testRepeatSequenceToDurationProvidedDuration(self):
+    sequence = copy.copy(self.note_sequence)
+    testing_lib.add_track_to_sequence(
+        sequence, 0,
+        [(60, 100, 0.0, 1.0), (72, 100, 0.5, 1.5)])
+
+    expected_sequence = copy.copy(self.note_sequence)
+    testing_lib.add_track_to_sequence(
+        expected_sequence, 0,
+        [(60, 100, 0.0, 1.0), (72, 100, 0.5, 1.5),
+         (60, 100, 2.0, 3.0), (72, 100, 2.5, 3.0)])
+
+    repeated_seq = sequences_lib.repeat_sequence_to_duration(
+        sequence, duration=3, sequence_duration=2)
+    self.assertProtoEquals(expected_sequence, repeated_seq)
+
   def testRemoveRedundantData(self):
     sequence = copy.copy(self.note_sequence)
     redundant_tempo = sequence.tempos.add()
@@ -1994,6 +2026,31 @@ class SequencesLibTest(tf.test.TestCase):
         sequence, frames_per_second=2, min_pitch=1, max_pitch=4).control_changes
 
     np.testing.assert_allclose(expected_cc_roll, cc_roll)
+
+  def testSequenceToPianorollOverlappingNotes(self):
+    sequence = music_pb2.NoteSequence()
+    sequence.notes.add(pitch=60, start_time=1.0, end_time=2.0)
+    sequence.notes.add(pitch=60, start_time=1.2, end_time=2.0)
+    sequence.notes.add(pitch=60, start_time=1.0, end_time=2.5)
+    sequence.total_time = 2.5
+
+    rolls = sequences_lib.sequence_to_pianoroll(
+        sequence, frames_per_second=10, min_pitch=60, max_pitch=60,
+        onset_mode='length_ms', onset_length_ms=10)
+
+    expected_onsets = np.zeros([26, 1])
+    expected_onsets[10, 0] = 1
+    expected_onsets[12, 0] = 1
+    np.testing.assert_equal(expected_onsets, rolls.onsets)
+
+    expected_offsets = np.zeros([26, 1])
+    expected_offsets[20, 0] = 1
+    expected_offsets[25, 0] = 1
+    np.testing.assert_equal(expected_offsets, rolls.offsets)
+
+    expected_active = np.zeros([26, 1])
+    expected_active[10:25, 0] = 1
+    np.testing.assert_equal(expected_active, rolls.active)
 
 
 if __name__ == '__main__':

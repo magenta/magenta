@@ -130,8 +130,10 @@ class DataTest(tf.test.TestCase):
       dataset = data.provide_batch(
           examples=examples,
           preprocess_examples=True,
-          hparams=hparams,
-          is_training=False)
+          params=hparams,
+          is_training=False,
+          shuffle_examples=False,
+          skip_n_initial_records=0)
       iterator = dataset.make_initializable_iterator()
       next_record = iterator.get_next()
       sess.run([

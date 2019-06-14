@@ -20,15 +20,16 @@ from __future__ import print_function
 
 import os
 
+from magenta.models.onsets_frames_transcription import audio_label_data_utils
 from magenta.models.onsets_frames_transcription import configs
 from magenta.models.onsets_frames_transcription import constants
 from magenta.models.onsets_frames_transcription import data
-from magenta.models.onsets_frames_transcription import split_audio_and_label_data
 from magenta.models.onsets_frames_transcription import train_util
 from magenta.music import midi_io
 from magenta.music import sequences_lib
 from magenta.protobuf import music_pb2
-import tensorflow as tf
+import six
+import tensorflow.compat.v1 as tf
 
 FLAGS = tf.app.flags.FLAGS
 
@@ -54,11 +55,11 @@ def create_example(filename):
   """Processes an audio file into an Example proto."""
   wav_data = tf.gfile.Open(filename, 'rb').read()
   example_list = list(
-      split_audio_and_label_data.process_record(
+      audio_label_data_utils.process_record(
           wav_data=wav_data,
           ns=music_pb2.NoteSequence(),
           # decode to handle filenames with extended characters.
-          example_id=filename.decode('utf-8'),
+          example_id=six.ensure_text(filename, 'utf-8'),
           min_length=0,
           max_length=-1,
           allow_empty_notesequence=True))
@@ -68,9 +69,9 @@ def create_example(filename):
 
 def transcribe_audio(prediction, hparams):
   """Transcribes an audio file."""
-  frame_predictions = prediction['frame_predictions']
-  onset_predictions = prediction['onset_predictions']
-  velocity_values = prediction['velocity_values']
+  frame_predictions = prediction['frame_predictions'][0]
+  onset_predictions = prediction['onset_predictions'][0]
+  velocity_values = prediction['velocity_values'][0]
 
   sequence_prediction = sequences_lib.pianoroll_to_note_sequence(
       frame_predictions,
@@ -100,8 +101,10 @@ def main(argv):
     dataset = data.provide_batch(
         examples=examples,
         preprocess_examples=True,
-        hparams=hparams,
-        is_training=False)
+        params=hparams,
+        is_training=False,
+        shuffle_examples=False,
+        skip_n_initial_records=0)
 
     estimator = train_util.create_estimator(config.model_fn,
                                             os.path.expanduser(FLAGS.model_dir),
