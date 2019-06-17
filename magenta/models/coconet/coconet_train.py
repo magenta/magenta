@@ -257,14 +257,14 @@ def main(unused_argv):
     no_op = tf.no_op()
 
     # Build placeholders and training graph, and validation graph with reuse.
-    m = lib_graph.build_graph(is_training=True, hparams=hparams)
+    training_graph = lib_graph.build_graph(is_training=True, hparams=hparams)
     tf.get_variable_scope().reuse_variables()
-    mvalid = lib_graph.build_graph(is_training=False, hparams=hparams)
+    validation_graph = lib_graph.build_graph(is_training=False, hparams=hparams)
 
     tracker = Tracker(
         label='validation loss',
         patience=FLAGS.patience,
-        decay_op=m.decay_op,
+        decay_op=training_graph.decay_op,
         save_path=os.path.join(FLAGS.logdir, hparams.log_subdir_str,
                                'best_model.ckpt'))
 
@@ -281,13 +281,13 @@ def main(unused_argv):
           break
 
         # Run training.
-        run_epoch(sv, sess, m, train_data, hparams, m.train_op, 'train',
+        run_epoch(sv, sess, training_graph, train_data, hparams, training_graph.train_op, 'train',
                   epoch_count)
 
         # Run validation.
         if epoch_count % hparams.eval_freq == 0:
-          estimate_popstats(sv, sess, m, train_data, hparams)
-          loss = run_epoch(sv, sess, mvalid, valid_data, hparams, no_op,
+          estimate_popstats(sv, sess, training_graph, train_data, hparams)
+          loss = run_epoch(sv, sess, validation_graph, valid_data, hparams, no_op,
                            'valid', epoch_count)
           tracker(loss, sess)
           if tracker.should_stop():
