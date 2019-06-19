@@ -19,12 +19,12 @@ from __future__ import division
 from __future__ import print_function
 
 import bisect
-import copy
 import math
 
 import librosa
 
 from magenta.music import audio_io
+from magenta.music import constants
 from magenta.music import sequences_lib
 from magenta.protobuf import music_pb2
 
@@ -309,6 +309,10 @@ def mix_sequences(individual_samples, sample_rate, individual_sequences):
 
   All sequences will be repeated until they are as long as the longest sequence.
 
+  Note that the mixed sequence will contain only the (sustain-processed) notes
+  from the individual sequences. All other control changes and metadata will not
+  be preserved.
+
   Args:
     individual_samples: A list of audio samples to mix.
     sample_rate: Rate at which to interpret the samples
@@ -344,10 +348,15 @@ def mix_sequences(individual_samples, sample_rate, individual_sequences):
   for samples in extended_samples:
     mixed_samples += samples / len(extended_samples)
 
-  mixed_sequence = copy.deepcopy(extended_sequences[0])
+  mixed_sequence = music_pb2.NoteSequence()
+  mixed_sequence.ticks_per_quarter = constants.STANDARD_PPQ
   del mixed_sequence.notes[:]
   for sequence in extended_sequences:
+    # Process sustain changes before copying notes.
+    sus_sequence = sequences_lib.apply_sustain_control_changes(sequence)
+    if sus_sequence.total_time > mixed_sequence.total_time:
+      mixed_sequence.total_time = sus_sequence.total_time
     # TODO(fjord): Manage instrument/program numbers.
-    mixed_sequence.notes.extend(sequence.notes)
+    mixed_sequence.notes.extend(sus_sequence.notes)
 
   return mixed_samples, mixed_sequence

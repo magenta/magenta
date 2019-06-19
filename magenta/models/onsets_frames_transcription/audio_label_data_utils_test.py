@@ -21,6 +21,7 @@ from __future__ import print_function
 from magenta.models.onsets_frames_transcription import audio_label_data_utils
 
 from magenta.music import audio_io
+from magenta.music import constants
 from magenta.music import testing_lib
 from magenta.protobuf import music_pb2
 
@@ -115,6 +116,7 @@ class MixSequencesTest(tf.test.TestCase):
         [samples1, samples2], sample_rate, [sequence1, sequence2])
 
     expected_sequence = music_pb2.NoteSequence()
+    expected_sequence.ticks_per_quarter = constants.STANDARD_PPQ
     expected_sequence.notes.add(
         pitch=60, start_time=0.5, end_time=1.0, velocity=90)
     expected_sequence.notes.add(
@@ -151,6 +153,7 @@ class MixSequencesTest(tf.test.TestCase):
         [samples1, samples2], sample_rate, [sequence1, sequence2])
 
     expected_sequence = music_pb2.NoteSequence()
+    expected_sequence.ticks_per_quarter = constants.STANDARD_PPQ
     expected_sequence.notes.add(
         pitch=60, start_time=0.5, end_time=1.0, velocity=90)
     expected_sequence.notes.add(
@@ -170,6 +173,87 @@ class MixSequencesTest(tf.test.TestCase):
         np.concatenate([samples1, [0, 0]]) * .5)
     np.testing.assert_array_equal(expected_samples, mixed_samples)
 
+  def testMixSequencesWithSustain(self):
+    sample_rate = 10
+
+    sequence1 = music_pb2.NoteSequence()
+    sequence1.notes.add(pitch=60, start_time=0.5, end_time=0.6, velocity=90)
+    sequence1.notes.add(pitch=62, start_time=1.0, end_time=2.0, velocity=90)
+    sequence1.total_time = 2.0
+    testing_lib.add_control_changes_to_sequence(
+        sequence1, 0, [(0.0, 64, 127), (1.0, 64, 0)])
+
+    samples1 = np.linspace(0, 1, sample_rate * sequence1.total_time)
+
+    sequence2 = music_pb2.NoteSequence()
+    sequence2.notes.add(pitch=64, start_time=0.5, end_time=0.6, velocity=90)
+    sequence2.total_time = 1.0
+    testing_lib.add_control_changes_to_sequence(
+        sequence2, 0, [(0.0, 64, 127), (0.9, 64, 0)])
+
+    samples2 = np.linspace(0, 1, sample_rate * sequence2.total_time)
+
+    mixed_samples, mixed_sequence = audio_label_data_utils.mix_sequences(
+        [samples1, samples2], sample_rate, [sequence1, sequence2])
+
+    expected_sequence = music_pb2.NoteSequence()
+    expected_sequence.ticks_per_quarter = constants.STANDARD_PPQ
+    expected_sequence.notes.add(
+        pitch=60, start_time=0.5, end_time=1.0, velocity=90)
+    expected_sequence.notes.add(
+        pitch=62, start_time=1.0, end_time=2.0, velocity=90)
+    expected_sequence.notes.add(
+        pitch=64, start_time=0.5, end_time=0.9, velocity=90)
+    expected_sequence.notes.add(
+        pitch=64, start_time=1.5, end_time=1.9, velocity=90)
+    expected_sequence.total_time = 2.0
+
+    self.assertProtoEquals(expected_sequence, mixed_sequence)
+
+    expected_samples = np.concatenate([samples2, samples2]) * .5 + samples1 * .5
+    np.testing.assert_array_equal(expected_samples, mixed_samples)
+
+  def testMixSequencesTotalTime(self):
+    sample_rate = 10
+
+    sequence1 = music_pb2.NoteSequence()
+    sequence1.notes.add(pitch=60, start_time=0.5, end_time=1.0, velocity=90)
+    sequence1.notes.add(pitch=62, start_time=1.0, end_time=1.5, velocity=90)
+    sequence1.total_time = 1.5
+
+    samples1 = np.linspace(0, 1, sample_rate * 2)
+
+    sequence2 = music_pb2.NoteSequence()
+    sequence2.notes.add(pitch=64, start_time=0.5, end_time=0.9, velocity=90)
+    sequence2.total_time = 0.9
+
+    samples2 = np.linspace(0, 1, sample_rate * 1)
+
+    mixed_samples, mixed_sequence = audio_label_data_utils.mix_sequences(
+        [samples1, samples2], sample_rate, [sequence1, sequence2])
+
+    expected_sequence = music_pb2.NoteSequence()
+    expected_sequence.ticks_per_quarter = constants.STANDARD_PPQ
+    expected_sequence.notes.add(
+        pitch=60, start_time=0.5, end_time=1.0, velocity=90)
+    expected_sequence.notes.add(
+        pitch=62, start_time=1.0, end_time=1.5, velocity=90)
+    expected_sequence.notes.add(
+        pitch=64, start_time=0.5, end_time=0.9, velocity=90)
+    expected_sequence.notes.add(
+        pitch=64, start_time=1.5, end_time=1.9, velocity=90)
+
+    # Expected time is 1.9 because the sequences are repeated according to the
+    # length of their associated audio. So sequence1 is not repeated at all
+    # (audio is 2 seconds) and sequence2 is repeated once after shifting all the
+    # notes by the audio length of 1 second. The final total_time is left as is
+    # after the last repeat, so it ends up being 1 + .9 seconds.
+    expected_sequence.total_time = 1.9
+
+    self.assertProtoEquals(expected_sequence, mixed_sequence)
+
+    expected_samples = np.concatenate([samples2, samples2]) * .5 + samples1 * .5
+    np.testing.assert_array_equal(expected_samples, mixed_samples)
 
 if __name__ == '__main__':
   tf.test.main()
