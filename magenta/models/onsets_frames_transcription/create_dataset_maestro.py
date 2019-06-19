@@ -18,6 +18,7 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
+import collections
 import hashlib
 import os
 import re
@@ -27,7 +28,9 @@ from apache_beam.metrics import Metrics
 
 from magenta.models.onsets_frames_transcription import audio_label_data_utils
 from magenta.models.onsets_frames_transcription import data
+from magenta.music import audio_io
 from magenta.protobuf import music_pb2
+import numpy as np
 
 import tensorflow as tf
 
@@ -182,6 +185,66 @@ def preprocess_data(input_example, hparams, process_for_training):
   return example
 
 
+def generate_mixes(val, num_mixes, sourceid_to_exids):
+  """Generate lists of Example IDs to be mixed."""
+  del val
+  rs = np.random.RandomState(seed=0)  # Make the selection deterministic
+  sourceid_to_exids_dict = collections.defaultdict(list)
+  for sourceid, exid in sourceid_to_exids:
+    sourceid_to_exids_dict[sourceid].append(exid)
+  mixes = zip(
+      *[rs.choice(k, num_mixes, replace=True).tolist()
+        for k in sourceid_to_exids_dict.values()])
+  keyed_mixes = dict(enumerate(mixes))
+  exid_to_mixids = collections.defaultdict(list)
+  for mixid, exids in keyed_mixes.items():
+    for exid in exids:
+      exid_to_mixids[exid].append(mixid)
+  return exid_to_mixids
+
+
+def mix_examples(mixid_exs, sample_rate, load_audio_with_librosa):
+  """Mix several Examples together to create a new example."""
+  mixid, exs = mixid_exs
+  del mixid
+
+  example_samples = []
+  example_sequences = []
+
+  for ex in exs:
+    wav_data = ex.features.feature['audio'].bytes_list.value[0]
+    if load_audio_with_librosa:
+      samples = audio_io.wav_data_to_samples_librosa(wav_data, sample_rate)
+    else:
+      samples = audio_io.wav_data_to_samples(wav_data, sample_rate)
+    example_samples.append(samples)
+    ns = music_pb2.NoteSequence.FromString(
+        ex.features.feature['sequence'].bytes_list.value[0])
+    example_sequences.append(ns)
+
+  mixed_samples, mixed_sequence = audio_label_data_utils.mix_sequences(
+      individual_samples=example_samples, sample_rate=sample_rate,
+      individual_sequences=example_sequences)
+
+  mixed_wav_data = audio_io.samples_to_wav_data(mixed_samples, sample_rate)
+
+  mixed_id = '::'.join(['mixed'] + [ns.id for ns in example_sequences])
+  mixed_sequence.id = mixed_id
+  mixed_filename = '::'.join(
+      ['mixed'] + [ns.filename for ns in example_sequences])
+  mixed_sequence.filename = mixed_filename
+
+  examples = list(audio_label_data_utils.process_record(
+      mixed_wav_data,
+      mixed_sequence,
+      mixed_id,
+      min_length=0,
+      max_length=-1,
+      sample_rate=sample_rate))
+  assert len(examples) == 1
+  return examples[0]
+
+
 def generate_sharded_filenames(filenames):
   for filename in filenames.split(','):
     match = re.match(r'^([^@]+)@(\d+)$', filename)
@@ -228,11 +291,75 @@ def pipeline(config_map, dataset_config_map):
 
   with beam.Pipeline(options=pipeline_options) as p:
     for dataset in datasets:
-      split_p = p | 'tfrecord_list_%s' % dataset.name >> beam.Create(
-          generate_sharded_filenames(dataset.path))
-      split_p |= 'read_tfrecord_%s' % dataset.name >> (
-          beam.io.tfrecordio.ReadAllFromTFRecord(
-              coder=beam.coders.ProtoCoder(tf.train.Example)))
+      if isinstance(dataset.path, (list, tuple)):
+        # If dataset.path is a list, then it's a list of sources to mix together
+        # to form new examples. First, do the mixing, then pass the results to
+        # the rest of the pipeline.
+        id_exs = []
+        sourceid_to_exids = []
+        for source_id, stem_path in enumerate(dataset.path):
+          stem_p = p | 'tfrecord_list_%s_%d' % (dataset.name, source_id) >> (
+              beam.Create(generate_sharded_filenames(stem_path)))
+          stem_p |= 'read_tfrecord_%s_%d' % (dataset.name, source_id) >> (
+              beam.io.tfrecordio.ReadAllFromTFRecord(
+                  coder=beam.coders.ProtoCoder(tf.train.Example)))
+          # Key all examples with a hash.
+          def key_example(ex, source_id):
+            # prefixing the hash with the source_id is critical because the same
+            # dataset may be present multiple times and we want unique ids for
+            # each entry.
+            return (
+                '{}-{}'.format(
+                    source_id,
+                    hashlib.sha256(ex.SerializeToString()).hexdigest()),
+                ex)
+          stem_p |= 'add_id_key_%s_%d' % (dataset.name, source_id) >> (
+              beam.Map(key_example, source_id=source_id))
+          id_exs.append(stem_p)
+
+          # Create a list of source_id to example id.
+          def sourceid_to_exid(id_ex, source_id):
+            return (source_id, id_ex[0])
+          sourceid_to_exids.append(
+              stem_p | 'key_%s_%d' % (dataset.name, source_id) >> (
+                  beam.Map(sourceid_to_exid, source_id=source_id)))
+        id_exs = id_exs | 'id_exs_flatten' >> beam.Flatten()
+        sourceid_to_exids = (
+            sourceid_to_exids | 'sourceid_to_exids_flatten' >>
+            beam.Flatten())
+        # Pass the list of source id to example IDs to generate_mixes,
+        # which will create mixes by selecting random IDs from each source
+        # (with replacement). This is represented as a list of example IDs
+        # to Mix IDs.
+        # Note: beam.Create([0]) is just a single dummy value to allow the
+        # sourceid_to_exids to be passed in as a python list so we can do the
+        # sampling with numpy.
+        # TODO(fjord): Allow the number of mixes to be configured, probably in
+        # the dataset config.
+        exid_to_mixids = p | beam.Create([0]) | beam.Map(
+            generate_mixes, num_mixes=100,
+            sourceid_to_exids=beam.pvalue.AsList(sourceid_to_exids))
+        # Create a list of (Mix ID, Full Example proto). Note: Examples may be
+        # present in more than one mix. Then, group by Mix ID.
+        def mixid_to_exs(id_ex, exid_to_mixids):
+          exid, ex = id_ex
+          for mixid in exid_to_mixids[exid]:
+            yield mixid, ex
+        mixid_exs = (id_exs | beam.FlatMap(
+            mixid_to_exs,
+            exid_to_mixids=beam.pvalue.AsSingleton(exid_to_mixids)) |
+                     beam.GroupByKey())
+        # Take these groups of Examples, mix their audio and sequences to return
+        # a single new Example. Then, carry on with the rest of the pipeline
+        # like normal.
+        split_p = mixid_exs | beam.Map(
+            mix_examples, FLAGS.sample_rate, FLAGS.load_audio_with_librosa)
+      else:
+        split_p = p | 'tfrecord_list_%s' % dataset.name >> beam.Create(
+            generate_sharded_filenames(dataset.path))
+        split_p |= 'read_tfrecord_%s' % dataset.name >> (
+            beam.io.tfrecordio.ReadAllFromTFRecord(
+                coder=beam.coders.ProtoCoder(tf.train.Example)))
       split_p |= 'shuffle_input_%s' % dataset.name >> beam.Reshuffle()
       split_p |= 'split_wav_%s' % dataset.name >> beam.FlatMap(
           split_wav, FLAGS.min_length, FLAGS.max_length, FLAGS.sample_rate,
