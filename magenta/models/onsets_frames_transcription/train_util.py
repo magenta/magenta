@@ -149,7 +149,8 @@ def evaluate(master,
       is_training=False)
 
   if num_steps is None:
-    transcription_data = transcription_data_base(
+    transcription_data = functools.partial(
+        transcription_data_base,
         shuffle_examples=False, skip_n_initial_records=0)
   else:
     # If num_steps is specified, we will evaluate only a subset of the data.
