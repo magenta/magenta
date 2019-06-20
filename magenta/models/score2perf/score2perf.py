@@ -99,6 +99,11 @@ class Score2PerfProblem(problem.Problem):
     return [0]
 
   @property
+  def random_crop_length_in_datagen(self):
+    """Randomly crop targets to this length in datagen."""
+    return None
+
+  @property
   def random_crop_in_train(self):
     """Whether to randomly crop each training example when preprocessing."""
     return False
@@ -132,13 +137,12 @@ class Score2PerfProblem(problem.Problem):
             'Transposition caused out-of-range pitch(es).')
       return augmented_ns
 
+    augment_params = itertools.product(
+        self.stretch_factors, self.transpose_amounts)
     augment_fns = [
-        functools.partial(
-            augment_note_sequence,
-            stretch_factor=stretch_factor,
-            transpose_amount=transpose_amount)
-        for stretch_factor, transpose_amount in itertools.product(
-            self.stretch_factors, self.transpose_amounts)
+        functools.partial(augment_note_sequence,
+                          stretch_factor=s, transpose_amount=t)
+        for s, t in augment_params
     ]
 
     datagen_beam.generate_examples(
@@ -155,7 +159,8 @@ class Score2PerfProblem(problem.Problem):
         encode_score_fns=dict((name, encoder.encode_note_sequence)
                               for name, encoder in self.score_encoders()),
         augment_fns=augment_fns,
-        absolute_timing=self.absolute_timing)
+        absolute_timing=self.absolute_timing,
+        random_crop_length=self.random_crop_length_in_datagen)
 
   def hparams(self, defaults, model_hparams):
     del model_hparams   # unused

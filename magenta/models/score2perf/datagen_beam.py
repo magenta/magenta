@@ -104,7 +104,8 @@ class ExtractExamplesDoFn(beam.DoFn):
 
   def __init__(self, min_hop_size_seconds, max_hop_size_seconds,
                num_replications, encode_performance_fn, encode_score_fns,
-               augment_fns, absolute_timing, *unused_args, **unused_kwargs):
+               augment_fns, absolute_timing, random_crop_length,
+               *unused_args, **unused_kwargs):
     """Initialize an ExtractExamplesDoFn.
 
     If any of the `encode_score_fns` or `encode_performance_fn` returns an empty
@@ -131,16 +132,22 @@ class ExtractExamplesDoFn(beam.DoFn):
       absolute_timing: If True, each score will use absolute instead of tempo-
           relative timing. Since chord inference depends on having beats, the
           score will only contain melody.
+      random_crop_length: If specified, crop each encoded performance
+          ('targets') to this length.
 
     Raises:
       ValueError: If the maximum hop size is less than twice the minimum hop
-          size.
+          size, or if `encode_score_fns` and `random_crop_length` are both
+          specified.
     """
     if (max_hop_size_seconds and
         max_hop_size_seconds != min_hop_size_seconds and
         max_hop_size_seconds < 2 * min_hop_size_seconds):
       raise ValueError(
           'Maximum hop size must be at least twice minimum hop size.')
+
+    if encode_score_fns and random_crop_length:
+      raise ValueError('Cannot perform random crop when scores are used.')
 
     super(ExtractExamplesDoFn, self).__init__(*unused_args, **unused_kwargs)
     self._min_hop_size_seconds = min_hop_size_seconds
@@ -150,6 +157,7 @@ class ExtractExamplesDoFn(beam.DoFn):
     self._encode_score_fns = encode_score_fns
     self._augment_fns = augment_fns if augment_fns else [lambda ns: ns]
     self._absolute_timing = absolute_timing
+    self._random_crop_length = random_crop_length
 
   def process(self, kv):
     # Seed random number generator based on key so that hop times are
@@ -296,6 +304,14 @@ class ExtractExamplesDoFn(beam.DoFn):
           Metrics.counter('extract_examples', 'skipped_empty_targets').inc()
           continue
 
+        if (self._random_crop_length and
+            len(example_dict['targets']) > self._random_crop_length):
+          # Take a random crop of the encoded performance.
+          max_offset = len(example_dict['targets']) - self._random_crop_length
+          offset = random.randrange(max_offset + 1)
+          example_dict['targets'] = example_dict['targets'][
+              offset:offset + self._random_crop_length]
+
         if self._encode_score_fns:
           # Augment the extracted score.
           try:
@@ -328,7 +344,8 @@ def generate_examples(input_transform, output_dir, problem_name, splits,
                       min_hop_size_seconds, max_hop_size_seconds,
                       num_replications, min_pitch, max_pitch,
                       encode_performance_fn, encode_score_fns=None,
-                      augment_fns=None, absolute_timing=False):
+                      augment_fns=None, absolute_timing=False,
+                      random_crop_length=None):
   """Generate data for a Score2Perf problem.
 
   Args:
@@ -360,6 +377,8 @@ def generate_examples(input_transform, output_dir, problem_name, splits,
     absolute_timing: If True, each score will use absolute instead of tempo-
         relative timing. Since chord inference depends on having beats, the
         score will only contain melody.
+    random_crop_length: If specified, crop each encoded performance to this
+        length. Cannot be specified if using scores.
 
   Raises:
     ValueError: If split probabilities do not add up to 1, or if splits are not
@@ -431,7 +450,9 @@ def generate_examples(input_transform, output_dir, problem_name, splits,
               min_hop, max_hop,
               num_replications if split_name == 'train' else 1,
               encode_performance_fn, encode_score_fns,
-              augment_fns if split_name == 'train' else None, absolute_timing))
+              augment_fns if split_name == 'train' else None,
+              absolute_timing,
+              random_crop_length))
       s |= 'shuffle_%s' % split_name >> beam.Reshuffle()
       s |= 'write_%s' % split_name >> beam.io.WriteToTFRecord(
           output_filename, coder=beam.coders.ProtoCoder(tf.train.Example))
