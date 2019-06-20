@@ -298,6 +298,10 @@ def pipeline(config_map, dataset_config_map):
         id_exs = []
         sourceid_to_exids = []
         for source_id, stem_path in enumerate(dataset.path):
+          if dataset.num_mixes is None:
+            raise ValueError(
+                'If path is not a list, num_mixes must not be None: {}'.format(
+                    dataset))
           stem_p = p | 'tfrecord_list_%s_%d' % (dataset.name, source_id) >> (
               beam.Create(generate_sharded_filenames(stem_path)))
           stem_p |= 'read_tfrecord_%s_%d' % (dataset.name, source_id) >> (
@@ -323,9 +327,9 @@ def pipeline(config_map, dataset_config_map):
           sourceid_to_exids.append(
               stem_p | 'key_%s_%d' % (dataset.name, source_id) >> (
                   beam.Map(sourceid_to_exid, source_id=source_id)))
-        id_exs = id_exs | 'id_exs_flatten' >> beam.Flatten()
+        id_exs = id_exs | 'id_exs_flatten_%s' % dataset.name >> beam.Flatten()
         sourceid_to_exids = (
-            sourceid_to_exids | 'sourceid_to_exids_flatten' >>
+            sourceid_to_exids | 'sourceid_to_exids_flatten_%s' % dataset.name >>
             beam.Flatten())
         # Pass the list of source id to example IDs to generate_mixes,
         # which will create mixes by selecting random IDs from each source
@@ -334,27 +338,36 @@ def pipeline(config_map, dataset_config_map):
         # Note: beam.Create([0]) is just a single dummy value to allow the
         # sourceid_to_exids to be passed in as a python list so we can do the
         # sampling with numpy.
-        # TODO(fjord): Allow the number of mixes to be configured, probably in
-        # the dataset config.
-        exid_to_mixids = p | beam.Create([0]) | beam.Map(
-            generate_mixes, num_mixes=100,
-            sourceid_to_exids=beam.pvalue.AsList(sourceid_to_exids))
+        exid_to_mixids = (
+            p
+            | 'create_dummy_%s' % dataset.name >> beam.Create([0])
+            | 'generate_mixes_%s' % dataset.name >> beam.Map(
+                generate_mixes, num_mixes=dataset.num_mixes,
+                sourceid_to_exids=beam.pvalue.AsList(sourceid_to_exids)))
         # Create a list of (Mix ID, Full Example proto). Note: Examples may be
         # present in more than one mix. Then, group by Mix ID.
         def mixid_to_exs(id_ex, exid_to_mixids):
           exid, ex = id_ex
           for mixid in exid_to_mixids[exid]:
             yield mixid, ex
-        mixid_exs = (id_exs | beam.FlatMap(
-            mixid_to_exs,
-            exid_to_mixids=beam.pvalue.AsSingleton(exid_to_mixids)) |
-                     beam.GroupByKey())
+        mixid_exs = (
+            id_exs
+            | 'mixid_to_exs_%s' % dataset.name >> beam.FlatMap(
+                mixid_to_exs,
+                exid_to_mixids=beam.pvalue.AsSingleton(exid_to_mixids))
+            | 'group_by_key_%s' % dataset.name >> beam.GroupByKey())
         # Take these groups of Examples, mix their audio and sequences to return
         # a single new Example. Then, carry on with the rest of the pipeline
         # like normal.
-        split_p = mixid_exs | beam.Map(
-            mix_examples, FLAGS.sample_rate, FLAGS.load_audio_with_librosa)
+        split_p = (
+            mixid_exs
+            | 'mix_examples_%s' % dataset.name >> beam.Map(
+                mix_examples, FLAGS.sample_rate, FLAGS.load_audio_with_librosa))
       else:
+        if dataset.num_mixes is not None:
+          raise ValueError(
+              'If path is not a list, num_mixes must be None: {}'.format(
+                  dataset))
         split_p = p | 'tfrecord_list_%s' % dataset.name >> beam.Create(
             generate_sharded_filenames(dataset.path))
         split_p |= 'read_tfrecord_%s' % dataset.name >> (

@@ -61,7 +61,7 @@ CONFIG_MAP['onsets_frames'] = Config(
 )
 
 DatasetConfig = collections.namedtuple(
-    'DatasetConfig', ('name', 'path', 'process_for_training'))
+    'DatasetConfig', ('name', 'path', 'num_mixes', 'process_for_training'))
 
 DATASET_CONFIG_MAP = {}
 
@@ -70,20 +70,24 @@ DATASET_CONFIG_MAP['maestro'] = [
         'train',
         'gs://magentadata/datasets/maestro/v1.0.0/'
         'maestro-v1.0.0_ns_wav_train.tfrecord@10',
+        num_mixes=None,
         process_for_training=True),
     DatasetConfig(
         'eval_train',
         'gs://magentadata/datasets/maestro/v1.0.0/'
         'maestro-v1.0.0_ns_wav_train.tfrecord@10',
+        num_mixes=None,
         process_for_training=False),
     DatasetConfig(
         'test',
         'gs://magentadata/datasets/maestro/v1.0.0/'
         'maestro-v1.0.0_ns_wav_test.tfrecord@10',
+        num_mixes=None,
         process_for_training=False),
     DatasetConfig(
         'validation',
         'gs://magentadata/datasets/maestro/v1.0.0/'
         'maestro-v1.0.0_ns_wav_validation.tfrecord@10',
+        num_mixes=None,
         process_for_training=False),
 ]
