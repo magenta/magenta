@@ -35,15 +35,27 @@ class DrumsExtractor(pipeline.Pipeline):
     self._gap_bars = gap_bars
 
   def transform(self, quantized_sequence):
+    stats = [statistics.Counter('drum_tracks_discarded_too_short'),
+             statistics.Counter('drum_tracks_discarded_too_long'),
+             statistics.Counter('drum_tracks_truncated'),
+             # Create a histogram measuring drum track lengths (in bars not
+             # steps). Capture drum tracks that are very small, in the range of
+             # the filter lower bound `min_bars`, and large. The bucket
+             # intervals grow approximately exponentially.
+             statistics.Histogram(
+                 'drum_track_lengths_in_bars',
+                 [0, 1, 10, 20, 30, 40, 50, 100, 200, 500, self._min_bars // 2,
+                  self._min_bars, self._min_bars + 1, self._min_bars - 1])]
     try:
-      drum_tracks, stats = drums_lib.extract_drum_tracks(
+      drum_tracks = drums_lib.extract_drum_tracks(
           quantized_sequence,
           min_bars=self._min_bars,
           max_steps_truncate=self._max_steps,
-          gap_bars=self._gap_bars)
+          gap_bars=self._gap_bars,
+          callbacks={stat.name: stat.increment for stat in stats})
     except events_lib.NonIntegerStepsPerBarError as detail:
       tf.logging.warning('Skipped sequence: %s', detail)
       drum_tracks = []
-      stats = [statistics.Counter('non_integer_steps_per_bar', 1)]
+      stats.append(statistics.Counter('non_integer_steps_per_bar', 1))
     self._set_stats(stats)
     return drum_tracks

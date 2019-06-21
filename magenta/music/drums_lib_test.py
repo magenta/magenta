@@ -243,7 +243,7 @@ class DrumsLibTest(tf.test.TestCase):
         self.note_sequence, steps_per_quarter=1)
     expected = [[NO_DRUMS, NO_DRUMS, DRUMS(12), NO_DRUMS, NO_DRUMS, NO_DRUMS,
                  DRUMS(11, 14)]]
-    drum_tracks, _ = drums_lib.extract_drum_tracks(
+    drum_tracks = drums_lib.extract_drum_tracks(
         quantized_sequence, min_bars=1, gap_bars=1)
 
     self.assertEqual(1, len(drum_tracks))
@@ -267,7 +267,7 @@ class DrumsLibTest(tf.test.TestCase):
     expected = [[NO_DRUMS, NO_DRUMS, DRUMS(12), NO_DRUMS, NO_DRUMS, NO_DRUMS,
                  DRUMS(11, 14)],
                 [NO_DRUMS, DRUMS(50), NO_DRUMS, NO_DRUMS, NO_DRUMS, DRUMS(52)]]
-    drum_tracks, _ = drums_lib.extract_drum_tracks(
+    drum_tracks = drums_lib.extract_drum_tracks(
         quantized_sequence, min_bars=1, gap_bars=2)
     drum_tracks = sorted([list(drums) for drums in drum_tracks])
     self.assertEqual(expected, drum_tracks)
@@ -279,7 +279,7 @@ class DrumsLibTest(tf.test.TestCase):
         is_drum=True)
     quantized_sequence = sequences_lib.quantize_note_sequence(
         self.note_sequence, steps_per_quarter=1)
-    drum_tracks, _ = drums_lib.extract_drum_tracks(
+    drum_tracks = drums_lib.extract_drum_tracks(
         quantized_sequence, min_bars=2, gap_bars=1)
     drum_tracks = [list(drums) for drums in drum_tracks]
     self.assertEqual([], drum_tracks)
@@ -291,7 +291,7 @@ class DrumsLibTest(tf.test.TestCase):
         is_drum=True)
     quantized_sequence = sequences_lib.quantize_note_sequence(
         self.note_sequence, steps_per_quarter=1)
-    drum_tracks, _ = drums_lib.extract_drum_tracks(
+    drum_tracks = drums_lib.extract_drum_tracks(
         quantized_sequence, min_bars=2, gap_bars=1)
     drum_tracks = [list(drums) for drums in drum_tracks]
     self.assertEqual(
@@ -317,7 +317,7 @@ class DrumsLibTest(tf.test.TestCase):
     expected = [[NO_DRUMS, NO_DRUMS, DRUMS(12), NO_DRUMS, NO_DRUMS, NO_DRUMS,
                  DRUMS(14, 15), NO_DRUMS, DRUMS(16), NO_DRUMS, NO_DRUMS,
                  NO_DRUMS]]
-    drum_tracks, _ = drums_lib.extract_drum_tracks(
+    drum_tracks = drums_lib.extract_drum_tracks(
         quantized_sequence, min_bars=1, gap_bars=1, pad_end=True)
     drum_tracks = [list(drums) for drums in drum_tracks]
     self.assertEqual(expected, drum_tracks)
@@ -332,7 +332,7 @@ class DrumsLibTest(tf.test.TestCase):
     expected = [[NO_DRUMS, NO_DRUMS, DRUMS(12), NO_DRUMS, NO_DRUMS, NO_DRUMS,
                  DRUMS(14), NO_DRUMS, NO_DRUMS, NO_DRUMS, DRUMS(14), NO_DRUMS,
                  NO_DRUMS, NO_DRUMS]]
-    drum_tracks, _ = drums_lib.extract_drum_tracks(
+    drum_tracks = drums_lib.extract_drum_tracks(
         quantized_sequence, min_bars=1, max_steps_truncate=14, gap_bars=1)
     drum_tracks = [list(drums) for drums in drum_tracks]
     self.assertEqual(expected, drum_tracks)
@@ -345,7 +345,7 @@ class DrumsLibTest(tf.test.TestCase):
         is_drum=True)
     quantized_sequence = sequences_lib.quantize_note_sequence(
         self.note_sequence, steps_per_quarter=1)
-    drum_tracks, _ = drums_lib.extract_drum_tracks(
+    drum_tracks = drums_lib.extract_drum_tracks(
         quantized_sequence, min_bars=1, max_steps_discard=18, gap_bars=1)
     drum_tracks = [list(drums) for drums in drum_tracks]
     self.assertEqual([], drum_tracks)
@@ -358,7 +358,7 @@ class DrumsLibTest(tf.test.TestCase):
     quantized_sequence = sequences_lib.quantize_note_sequence(
         self.note_sequence, steps_per_quarter=1)
     expected = [[NO_DRUMS, NO_DRUMS, DRUMS(12), NO_DRUMS, DRUMS(13)]]
-    drum_tracks, _ = drums_lib.extract_drum_tracks(
+    drum_tracks = drums_lib.extract_drum_tracks(
         quantized_sequence, min_bars=1, gap_bars=1)
     drum_tracks = sorted([list(drums) for drums in drum_tracks])
     self.assertEqual(expected, drum_tracks)

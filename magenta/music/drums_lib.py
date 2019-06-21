@@ -24,11 +24,11 @@ file.
 import collections
 import operator
 
+from magenta.music import common
 from magenta.music import constants
 from magenta.music import events_lib
 from magenta.music import midi_io
 from magenta.music import sequences_lib
-from magenta.pipelines import statistics
 from magenta.protobuf import music_pb2
 
 MIN_MIDI_PITCH = constants.MIN_MIDI_PITCH
@@ -274,7 +274,8 @@ def extract_drum_tracks(quantized_sequence,
                         max_steps_discard=None,
                         gap_bars=1.0,
                         pad_end=False,
-                        ignore_is_drum=False):
+                        ignore_is_drum=False,
+                        callbacks=None):
   """Extracts a list of drum tracks from the given quantized NoteSequence.
 
   This function will search through `quantized_sequence` for drum tracks. A drum
@@ -310,10 +311,14 @@ def extract_drum_tracks(quantized_sequence,
     pad_end: If True, the end of the drum track will be padded with empty events
         so that it will end at a bar boundary.
     ignore_is_drum: Whether accept notes where `is_drum` is False.
+    callbacks: A dict mapping event names to callback functions that are called
+      every time a given event occurs. The following callbacks are supported:
+      `drum_tracks_discarded_too_short`, `drum_tracks_discarded_too_long`,
+      `drum_tracks_truncated` (with no arguments); `drum_track_length_in_bars`
+      (with one argument, the track length).
 
   Returns:
     drum_tracks: A python list of DrumTrack instances.
-    stats: A dictionary mapping string names to `statistics.Statistic` objects.
 
   Raises:
     NonIntegerStepsPerBarError: If `quantized_sequence`'s bar length
@@ -321,18 +326,7 @@ def extract_drum_tracks(quantized_sequence,
         steps.
   """
   drum_tracks = []
-  stats = dict((stat_name, statistics.Counter(stat_name)) for stat_name in
-               ['drum_tracks_discarded_too_short',
-                'drum_tracks_discarded_too_long',
-                'drum_tracks_truncated'])
-  # Create a histogram measuring drum track lengths (in bars not steps).
-  # Capture drum tracks that are very small, in the range of the filter lower
-  # bound `min_bars`, and large. The bucket intervals grow approximately
-  # exponentially.
-  stats['drum_track_lengths_in_bars'] = statistics.Histogram(
-      'drum_track_lengths_in_bars',
-      [0, 1, 10, 20, 30, 40, 50, 100, 200, 500, min_bars // 2, min_bars,
-       min_bars + 1, min_bars - 1])
+  callbacks = common.make_callback_dict(callbacks)
 
   steps_per_bar = int(
       sequences_lib.steps_per_bar_in_quantized_sequence(quantized_sequence))
@@ -355,12 +349,12 @@ def extract_drum_tracks(quantized_sequence,
 
     # Require a certain drum track length.
     if len(drum_track) < drum_track.steps_per_bar * min_bars:
-      stats['drum_tracks_discarded_too_short'].increment()
+      callbacks['drum_tracks_discarded_too_short']()
       continue
 
     # Discard drum tracks that are too long.
     if max_steps_discard is not None and len(drum_track) > max_steps_discard:
-      stats['drum_tracks_discarded_too_long'].increment()
+      callbacks['drum_tracks_discarded_too_long']()
       continue
 
     # Truncate drum tracks that are too long.
@@ -369,14 +363,14 @@ def extract_drum_tracks(quantized_sequence,
       if pad_end:
         truncated_length -= max_steps_truncate % drum_track.steps_per_bar
       drum_track.set_length(truncated_length)
-      stats['drum_tracks_truncated'].increment()
+      callbacks['drum_tracks_truncated']()
 
-    stats['drum_track_lengths_in_bars'].increment(
+    callbacks['drum_track_lengths_in_bars'](
         len(drum_track) // drum_track.steps_per_bar)
 
     drum_tracks.append(drum_track)
 
-  return drum_tracks, stats.values()
+  return drum_tracks
 
 
 def midi_file_to_drum_track(midi_file, steps_per_quarter=4):

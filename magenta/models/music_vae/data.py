@@ -852,7 +852,7 @@ class DrumsConverter(BaseNoteSequenceConverter):
     del quantized_sequence.notes[:]
     quantized_sequence.notes.extend(new_notes)
 
-    event_lists, unused_stats = self._drums_extractor_fn(quantized_sequence)
+    event_lists = self._drums_extractor_fn(quantized_sequence)
 
     if self._pad_to_total_time:
       for e in event_lists:
