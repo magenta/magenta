@@ -16,6 +16,8 @@
 
 import functools
 
+import magenta.pipelines.chord_pipelines
+import magenta.pipelines.melody_pipelines
 from magenta.models.improv_rnn import improv_rnn_model
 import magenta.music as mm
 
@@ -96,7 +98,7 @@ class ImprovRnnSequenceGenerator(mm.BaseSequenceGenerator):
         backing_sequence, self.steps_per_quarter)
 
     # Setting gap_bars to infinite ensures that the entire input will be used.
-    extracted_melodies, _ = mm.extract_melodies(
+    extracted_melodies, _ = magenta.pipelines.melody_pipelines.extract_melodies(
         quantized_primer_sequence, search_start_step=input_start_step,
         min_bars=0, min_unique_pitches=1, gap_bars=float('inf'),
         ignore_polyphonic_notes=True)
@@ -123,7 +125,8 @@ class ImprovRnnSequenceGenerator(mm.BaseSequenceGenerator):
                          steps_per_bar=steps_per_bar,
                          steps_per_quarter=self.steps_per_quarter)
 
-    extracted_chords, _ = mm.extract_chords(quantized_backing_sequence)
+    extracted_chords, _ = magenta.pipelines.chord_pipelines.extract_chords(
+        quantized_backing_sequence)
     chords = extracted_chords[0]
 
     # Make sure that chords and melody start on the same step.

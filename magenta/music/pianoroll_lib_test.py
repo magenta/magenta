@@ -165,59 +165,6 @@ class PianorollLibTest(tf.test.TestCase):
     pianoroll_seq.set_length(0)
     self.assertEqual([], list(pianoroll_seq))
 
-  def testExtractPianorollSequences(self):
-    testing_lib.add_track_to_sequence(
-        self.note_sequence, 0, [(60, 100, 0.0, 4.0)])
-    quantized_sequence = sequences_lib.quantize_note_sequence(
-        self.note_sequence, steps_per_quarter=1)
-
-    seqs, _ = pianoroll_lib.extract_pianoroll_sequences(quantized_sequence)
-    self.assertEqual(1, len(seqs))
-
-    seqs, _ = pianoroll_lib.extract_pianoroll_sequences(
-        quantized_sequence, min_steps_discard=2, max_steps_discard=5)
-    self.assertEqual(1, len(seqs))
-
-    self.note_sequence.notes[0].end_time = 1.0
-    self.note_sequence.total_time = 1.0
-    quantized_sequence = sequences_lib.quantize_note_sequence(
-        self.note_sequence, steps_per_quarter=1)
-    seqs, _ = pianoroll_lib.extract_pianoroll_sequences(
-        quantized_sequence, min_steps_discard=3, max_steps_discard=5)
-    self.assertEqual(0, len(seqs))
-
-    self.note_sequence.notes[0].end_time = 10.0
-    self.note_sequence.total_time = 10.0
-    quantized_sequence = sequences_lib.quantize_note_sequence(
-        self.note_sequence, steps_per_quarter=1)
-    seqs, _ = pianoroll_lib.extract_pianoroll_sequences(
-        quantized_sequence, min_steps_discard=3, max_steps_discard=5)
-    self.assertEqual(0, len(seqs))
-
-  def testExtractPianorollMultiProgram(self):
-    testing_lib.add_track_to_sequence(
-        self.note_sequence, 0,
-        [(60, 100, 0.0, 4.0), (64, 100, 0.0, 3.0), (67, 100, 1.0, 2.0)])
-    self.note_sequence.notes[0].program = 2
-    quantized_sequence = sequences_lib.quantize_note_sequence(
-        self.note_sequence, steps_per_quarter=1)
-
-    seqs, _ = pianoroll_lib.extract_pianoroll_sequences(quantized_sequence)
-    self.assertEqual(0, len(seqs))
-
-  def testExtractNonZeroStart(self):
-    testing_lib.add_track_to_sequence(
-        self.note_sequence, 0, [(60, 100, 0.0, 4.0)])
-    quantized_sequence = sequences_lib.quantize_note_sequence(
-        self.note_sequence, steps_per_quarter=1)
-
-    seqs, _ = pianoroll_lib.extract_pianoroll_sequences(
-        quantized_sequence, start_step=4, min_steps_discard=1)
-    self.assertEqual(0, len(seqs))
-    seqs, _ = pianoroll_lib.extract_pianoroll_sequences(
-        quantized_sequence, start_step=0, min_steps_discard=1)
-    self.assertEqual(1, len(seqs))
-
 
 if __name__ == '__main__':
   tf.test.main()

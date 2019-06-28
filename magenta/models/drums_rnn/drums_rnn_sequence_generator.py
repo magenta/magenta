@@ -16,6 +16,7 @@
 
 import functools
 
+from magenta.pipelines import drum_pipelines
 from magenta.models.drums_rnn import drums_rnn_model
 import magenta.music as mm
 
@@ -84,7 +85,7 @@ class DrumsRnnSequenceGenerator(mm.BaseSequenceGenerator):
     quantized_sequence = mm.quantize_note_sequence(
         primer_sequence, self.steps_per_quarter)
     # Setting gap_bars to infinite ensures that the entire input will be used.
-    extracted_drum_tracks, _ = mm.extract_drum_tracks(
+    extracted_drum_tracks, _ = drum_pipelines.extract_drum_tracks(
         quantized_sequence, search_start_step=input_start_step, min_bars=0,
         gap_bars=float('inf'), ignore_is_drum=True)
     assert len(extracted_drum_tracks) <= 1
