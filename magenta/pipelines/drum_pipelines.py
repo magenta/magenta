@@ -14,8 +14,10 @@
 
 """Data processing pipelines for drum tracks."""
 
-from magenta.music import drums_lib, sequences_lib, DrumTrack
+from magenta.music import drums_lib
 from magenta.music import events_lib
+from magenta.music import sequences_lib
+from magenta.music import DrumTrack
 from magenta.pipelines import pipeline
 from magenta.pipelines import statistics
 from magenta.protobuf import music_pb2

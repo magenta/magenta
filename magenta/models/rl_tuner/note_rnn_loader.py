@@ -34,12 +34,12 @@ These functions are necessary for use with the RL Tuner class.
 import os
 
 import magenta
-import magenta.pipelines.melody_pipelines
 from magenta.common import sequence_example_lib
 from magenta.models.rl_tuner import rl_tuner_ops
 from magenta.models.shared import events_rnn_graph
 from magenta.music import midi_io
 from magenta.music import sequences_lib
+from magenta.pipelines import melody_pipelines
 import numpy as np
 import tensorflow as tf
 
@@ -294,7 +294,7 @@ class NoteRNNLoader(object):
     self.primer_sequence = midi_io.midi_file_to_sequence_proto(self.midi_primer)
     quantized_seq = sequences_lib.quantize_note_sequence(
         self.primer_sequence, steps_per_quarter=4)
-    extracted_melodies, _ = magenta.pipelines.melody_pipelines.extract_melodies(
+    extracted_melodies, _ = melody_pipelines.extract_melodies(
         quantized_seq, min_bars=0, min_unique_pitches=1)
     self.primer = extracted_melodies[0]
     self.steps_per_bar = self.primer.steps_per_bar

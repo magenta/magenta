@@ -16,8 +16,8 @@
 
 import functools
 
-import magenta.pipelines.melody_pipelines
 from magenta.models.melody_rnn import melody_rnn_model
+from magenta.pipelines import melody_pipelines
 import magenta.music as mm
 
 
@@ -85,7 +85,7 @@ class MelodyRnnSequenceGenerator(mm.BaseSequenceGenerator):
     quantized_sequence = mm.quantize_note_sequence(
         primer_sequence, self.steps_per_quarter)
     # Setting gap_bars to infinite ensures that the entire input will be used.
-    extracted_melodies, _ = magenta.pipelines.melody_pipelines.extract_melodies(
+    extracted_melodies, _ = melody_pipelines.extract_melodies(
         quantized_sequence, search_start_step=input_start_step, min_bars=0,
         min_unique_pitches=1, gap_bars=float('inf'),
         ignore_polyphonic_notes=True)

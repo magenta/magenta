@@ -17,9 +17,12 @@ import copy
 
 from magenta.pipelines import chord_pipelines
 from magenta.pipelines import melody_pipelines
-from magenta.music import chord_symbols_lib, sequences_lib, chords_lib, LeadSheet
+from magenta.music import chord_symbols_lib
+from magenta.music import chords_lib
 from magenta.music import events_lib
 from magenta.music import lead_sheets_lib
+from magenta.music import sequences_lib
+from magenta.music import LeadSheet
 from magenta.pipelines import pipeline
 from magenta.pipelines import statistics
 from magenta.protobuf import music_pb2

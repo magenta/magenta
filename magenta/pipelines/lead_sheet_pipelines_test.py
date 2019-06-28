@@ -13,7 +13,6 @@
 # limitations under the License.
 
 """Tests for lead_sheet_pipelines."""
-import magenta.pipelines.melody_pipelines
 from magenta.common import testing_lib as common_testing_lib
 from magenta.music import chords_lib
 from magenta.music import constants
@@ -23,6 +22,7 @@ from magenta.music import sequences_lib
 from magenta.music import testing_lib as music_testing_lib
 from magenta.pipelines import chord_pipelines
 from magenta.pipelines import lead_sheet_pipelines
+from magenta.pipelines import melody_pipelines
 from magenta.protobuf import music_pb2
 import tensorflow as tf
 
@@ -111,7 +111,7 @@ class LeadSheetPipelinesTest(tf.test.TestCase):
     lead_sheets, _ = lead_sheet_pipelines.extract_lead_sheet_fragments(
         quantized_sequence, min_bars=1, gap_bars=2, min_unique_pitches=2,
         ignore_polyphonic_notes=True, require_chords=True)
-    melodies, _ = magenta.pipelines.melody_pipelines.extract_melodies(
+    melodies, _ = melody_pipelines.extract_melodies(
         quantized_sequence, min_bars=1, gap_bars=2, min_unique_pitches=2,
         ignore_polyphonic_notes=True)
     chord_progressions, _ = chord_pipelines.extract_chords_for_melodies(
@@ -137,7 +137,7 @@ class LeadSheetPipelinesTest(tf.test.TestCase):
     lead_sheets, _ = lead_sheet_pipelines.extract_lead_sheet_fragments(
         quantized_sequence, min_bars=1, gap_bars=2, min_unique_pitches=2,
         ignore_polyphonic_notes=True, require_chords=True)
-    melodies, _ = magenta.pipelines.melody_pipelines.extract_melodies(
+    melodies, _ = melody_pipelines.extract_melodies(
         quantized_sequence, min_bars=1, gap_bars=2, min_unique_pitches=2,
         ignore_polyphonic_notes=True)
     chord_progressions, _ = chord_pipelines.extract_chords_for_melodies(
@@ -164,7 +164,7 @@ class LeadSheetPipelinesTest(tf.test.TestCase):
     lead_sheets, stats = lead_sheet_pipelines.extract_lead_sheet_fragments(
         quantized_sequence, min_bars=1, gap_bars=2, min_unique_pitches=2,
         ignore_polyphonic_notes=True, require_chords=True)
-    melodies, _ = magenta.pipelines.melody_pipelines.extract_melodies(
+    melodies, _ = melody_pipelines.extract_melodies(
         quantized_sequence, min_bars=1, gap_bars=2, min_unique_pitches=2,
         ignore_polyphonic_notes=True)
     chord_progressions, _ = chord_pipelines.extract_chords_for_melodies(
