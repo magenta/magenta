@@ -99,7 +99,7 @@ Magenta should now have access to your GPU.
 
 ## Using Magenta
 
-You can now train our various models and use them to generate music, audio, and images. You can
+You can now train your various models and use them to generate music, audio, and images. You can
 find instructions for each of the models by exploring the [models directory](magenta/models).
 
 To get started, create your own melodies with TensorFlow using one of the various configurations of our [Melody RNN](magenta/models/melody_rnn) model; a recurrent neural network for predicting melodies.
