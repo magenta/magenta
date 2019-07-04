@@ -21,7 +21,7 @@ from magenta.protobuf import music_pb2
 import tensorflow as tf
 
 
-class PianorollLibTest(tf.test.TestCase):
+class PianorollRnnNadePipelineTest(tf.test.TestCase):
 
   def setUp(self):
     self.note_sequence = music_testing_lib.parse_test_proto(

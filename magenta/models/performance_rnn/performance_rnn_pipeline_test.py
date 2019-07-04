@@ -24,7 +24,7 @@ from magenta.protobuf import music_pb2
 FLAGS = tf.app.flags.FLAGS
 
 
-class PerformancePipelineTest(tf.test.TestCase):
+class PerformanceRnnPipelineTest(tf.test.TestCase):
 
   def setUp(self):
     self.note_sequence = music_pb2.NoteSequence()
