@@ -301,9 +301,8 @@ class DAGPipeline(pipeline.Pipeline):
       if not inputs:
         raise BadInputOrOutputError(
             'No DagInput object found. DagInput is the start of the pipeline.')
-      else:
-        raise BadInputOrOutputError(
-            'Multiple DagInput objects found. Only one input is supported.')
+      raise BadInputOrOutputError(
+          'Multiple DagInput objects found. Only one input is supported.')
     if not self.outputs:
       raise BadInputOrOutputError(
           'No DagOutput objects found. DagOutput is the end of the pipeline.')
@@ -332,10 +331,9 @@ class DAGPipeline(pipeline.Pipeline):
             '%s is given as a dependency in the DAG but has nothing connected '
             'to it. Nothing in the DAG feeds into it.'
             % units_with_no_input.pop())
-      else:
-        raise NotConnectedError(
-            '%s is given as a destination in the DAG but does not output '
-            'anywhere. It is a deadend.' % units_with_no_output.pop())
+      raise NotConnectedError(
+          '%s is given as a destination in the DAG but does not output '
+          'anywhere. It is a deadend.' % units_with_no_output.pop())
 
     # Construct topological ordering to determine the execution order of the
     # pipelines.

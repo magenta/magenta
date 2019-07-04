@@ -840,10 +840,10 @@ class NotePerformance(BasePerformance):
       if time_shift_steps > self._max_shift_steps:
         raise TooManyTimeShiftStepsError(
             'Too many steps for timeshift: %d' % time_shift_steps)
-      else:
-        sub_events.append(
-            PerformanceEvent(event_type=PerformanceEvent.TIME_SHIFT,
-                             event_value=time_shift_steps))
+
+      sub_events.append(
+          PerformanceEvent(event_type=PerformanceEvent.TIME_SHIFT,
+                           event_value=time_shift_steps))
       current_step = note.quantized_start_step
 
       # NOTE_ON

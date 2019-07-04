@@ -21,9 +21,9 @@ from __future__ import print_function
 
 import argparse
 import glob
-import ntpath
 import os
 from random import shuffle
+import ntpath
 
 from PIL import Image
 
