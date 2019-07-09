@@ -38,11 +38,9 @@ from magenta.models.onsets_frames_transcription import train_util
 from magenta.music import midi_io
 from magenta.music import sequences_lib
 from magenta.protobuf import music_pb2
-
 import numpy as np
 import scipy
 import tensorflow as tf
-
 
 FLAGS = tf.app.flags.FLAGS
 

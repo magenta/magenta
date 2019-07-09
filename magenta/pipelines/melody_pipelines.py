@@ -14,10 +14,10 @@
 
 """Data processing pipelines for melodies."""
 
-from magenta.music import events_lib
-from magenta.music import melodies_lib
 from magenta.music import Melody
 from magenta.music import PolyphonicMelodyError
+from magenta.music import events_lib
+from magenta.music import melodies_lib
 from magenta.music import sequences_lib
 from magenta.pipelines import pipeline
 from magenta.pipelines import statistics

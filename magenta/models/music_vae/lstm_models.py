@@ -20,16 +20,16 @@ from __future__ import print_function
 
 import abc
 
-from magenta.common import flatten_maybe_padded_sequences
 from magenta.common import Nade
+from magenta.common import flatten_maybe_padded_sequences
 from magenta.models.music_vae import base_model
 from magenta.models.music_vae import lstm_utils
 import numpy as np
 import tensorflow as tf
-import tensorflow_probability as tfp
 from tensorflow.python.framework import tensor_util
 from tensorflow.python.layers import core as layers_core
 from tensorflow.python.util import nest
+import tensorflow_probability as tfp
 
 rnn = tf.contrib.rnn
 seq2seq = tf.contrib.seq2seq
@@ -1365,4 +1365,3 @@ class GrooveLstmDecoder(BaseLstmDecoder):
 
     output_hits = hits_sampler.sample()
     return tf.concat([output_hits, output_velocities, output_offsets], axis=1)
-

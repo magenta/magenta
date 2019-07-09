@@ -15,8 +15,8 @@
 """Data processing pipelines for chord progressions."""
 import copy
 
-from magenta.music import chord_symbols_lib
 from magenta.music import ChordProgression
+from magenta.music import chord_symbols_lib
 from magenta.music import chords_lib
 from magenta.music import events_lib
 from magenta.music import sequences_lib

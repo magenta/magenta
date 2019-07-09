@@ -25,8 +25,8 @@ import sys
 import time
 
 from magenta import music as mm
-from magenta.models.music_vae import configs
 from magenta.models.music_vae import TrainedModel
+from magenta.models.music_vae import configs
 import numpy as np
 import tensorflow as tf
 

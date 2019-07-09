@@ -25,6 +25,7 @@ from __future__ import division
 from __future__ import print_function
 
 import math
+
 from magenta.models.gansynth.lib import layers
 import six
 import tensorflow as tf

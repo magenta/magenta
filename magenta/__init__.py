@@ -69,5 +69,4 @@ import magenta.pipelines.statistics
 import magenta.protobuf.generator_pb2
 import magenta.protobuf.music_pb2
 import magenta.version
-
 from magenta.version import __version__

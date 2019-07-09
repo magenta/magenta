@@ -19,6 +19,7 @@ from __future__ import division
 from __future__ import print_function
 
 import functools
+
 from magenta.models.score2perf import modalities
 import numpy as np
 from tensor2tensor.layers import common_hparams
