@@ -17,8 +17,8 @@
 import functools
 
 from magenta.models.pianoroll_rnn_nade import pianoroll_rnn_nade_model
-from magenta.models.pianoroll_rnn_nade import pianoroll_rnn_nade_pipeline
 import magenta.music as mm
+from magenta.pipelines import pianoroll_rnn_nade_pipeline
 
 
 class PianorollRnnNadeSequenceGenerator(mm.BaseSequenceGenerator):

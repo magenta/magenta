@@ -14,9 +14,9 @@
 
 """Tests for performance_rnn_pipeline."""
 
-from magenta.models.performance_rnn import performance_rnn_pipeline
 from magenta.music import sequences_lib
 from magenta.music import testing_lib as music_testing_lib
+from magenta.pipelines import performance_rnn_pipeline
 from magenta.protobuf import music_pb2
 
 import tensorflow as tf

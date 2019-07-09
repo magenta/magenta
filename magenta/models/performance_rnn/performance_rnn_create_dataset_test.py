@@ -16,7 +16,7 @@
 
 import magenta
 from magenta.models.performance_rnn import performance_model
-from magenta.models.performance_rnn import performance_rnn_pipeline
+from magenta.pipelines import performance_rnn_pipeline
 from magenta.protobuf import music_pb2
 import tensorflow as tf
 

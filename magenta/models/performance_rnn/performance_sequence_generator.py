@@ -21,9 +21,9 @@ import functools
 import math
 
 from magenta.models.performance_rnn import performance_model
-from magenta.models.performance_rnn import performance_rnn_pipeline
 import magenta.music as mm
 from magenta.music import performance_controls
+from magenta.pipelines import performance_rnn_pipeline
 import tensorflow as tf
 
 # This model can leave hanging notes. To avoid cacophony we turn off any note
