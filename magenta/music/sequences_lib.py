@@ -1492,6 +1492,8 @@ def apply_sustain_control_changes(note_sequence, sustain_control_number=64):
   is done on a per instrument basis, so notes are only affected by sustain
   events for the same instrument.
 
+  Drum notes will not be modified.
+
   Args:
     note_sequence: The NoteSequence for which to apply sustain. This object will
       not be modified.
@@ -1516,8 +1518,10 @@ def apply_sustain_control_changes(note_sequence, sustain_control_number=64):
 
   # Sort all note on/off and sustain on/off events.
   events = []
-  events.extend([(note.start_time, _NOTE_ON, note) for note in sequence.notes])
-  events.extend([(note.end_time, _NOTE_OFF, note) for note in sequence.notes])
+  events.extend([(note.start_time, _NOTE_ON, note) for note in sequence.notes
+                 if not note.is_drum])
+  events.extend([(note.end_time, _NOTE_OFF, note) for note in sequence.notes
+                 if not note.is_drum])
 
   for cc in sequence.control_changes:
     if cc.control_number != sustain_control_number:

@@ -1421,6 +1421,29 @@ class SequencesLibTest(tf.test.TestCase):
     sus_sequence = sequences_lib.apply_sustain_control_changes(sequence)
     self.assertProtoEquals(expected_sequence, sus_sequence)
 
+  def testApplySustainControlChangesWithDrumNotes(self):
+    """Drum notes should not be modified when applying sustain changes."""
+    sequence = copy.copy(self.note_sequence)
+    testing_lib.add_control_changes_to_sequence(
+        sequence, 0,
+        [(1.0, 64, 127), (4.0, 64, 0)])
+    expected_sequence = copy.copy(sequence)
+    testing_lib.add_track_to_sequence(
+        sequence, 0,
+        [(60, 100, 2.00, 2.50)])
+    testing_lib.add_track_to_sequence(
+        sequence, 0,
+        [(38, 100, 2.00, 2.50)], is_drum=True)
+    testing_lib.add_track_to_sequence(
+        expected_sequence, 0,
+        [(60, 100, 2.00, 4.00)])
+    testing_lib.add_track_to_sequence(
+        expected_sequence, 0,
+        [(38, 100, 2.0, 2.5)], is_drum=True)
+
+    sus_sequence = sequences_lib.apply_sustain_control_changes(sequence)
+    self.assertProtoEquals(expected_sequence, sus_sequence)
+
   def testInferDenseChordsForSequence(self):
     # Test non-quantized sequence.
     sequence = copy.copy(self.note_sequence)
