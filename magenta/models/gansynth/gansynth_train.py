@@ -51,7 +51,6 @@ from magenta.models.gansynth.lib import train_util
 from magenta.models.gansynth.lib import util
 import tensorflow as tf
 
-
 absl.flags.DEFINE_string('hparams', '{}', 'Flags dict as JSON string.')
 absl.flags.DEFINE_string('config', '', 'Name of config module.')
 FLAGS = absl.flags.FLAGS

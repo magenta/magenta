@@ -20,7 +20,6 @@ from __future__ import print_function
 
 from magenta.models.onsets_frames_transcription import infer_util
 from magenta.protobuf import music_pb2
-
 import numpy as np
 import tensorflow as tf
 

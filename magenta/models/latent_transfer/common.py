@@ -40,9 +40,9 @@ import functools
 import importlib
 import os
 
+from PIL import Image
 from magenta.models.latent_transfer import local_mnist
 import numpy as np
-from PIL import Image
 import tensorflow as tf
 
 FLAGS = tf.flags.FLAGS

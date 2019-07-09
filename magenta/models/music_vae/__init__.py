@@ -21,10 +21,8 @@ from __future__ import print_function
 from .base_model import BaseDecoder
 from .base_model import BaseEncoder
 from .base_model import MusicVAE
-
 from .configs import Config
 from .configs import update_config
-
 from .lstm_models import BaseLstmDecoder
 from .lstm_models import BidirectionalLstmEncoder
 from .lstm_models import CategoricalLstmDecoder

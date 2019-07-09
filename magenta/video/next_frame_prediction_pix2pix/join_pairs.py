@@ -23,9 +23,9 @@ import argparse
 import glob
 import os
 from random import shuffle
-import ntpath
 
 from PIL import Image
+import ntpath
 
 PARSER = argparse.ArgumentParser(description='')
 PARSER.add_argument(

@@ -20,9 +20,10 @@ from __future__ import print_function
 
 import argparse
 import glob
+import os
 import random
 import shutil
-import os
+
 import ntpath
 
 PARSER = argparse.ArgumentParser(description='')

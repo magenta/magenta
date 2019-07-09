@@ -33,7 +33,6 @@ must have an explicit size at graph-building time.
 """
 
 import fractions
-
 import math
 
 from magenta.music import mfcc_mel

@@ -14,10 +14,9 @@
 
 """Testing support code."""
 
+from google.protobuf import text_format
 from magenta.music import encoder_decoder
 from magenta.protobuf import music_pb2
-
-from google.protobuf import text_format
 
 # Shortcut to text annotation types.
 BEAT = music_pb2.NoteSequence.TextAnnotation.BEAT

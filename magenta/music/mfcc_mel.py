@@ -20,7 +20,6 @@ from __future__ import print_function
 
 import numpy as np
 
-
 # Mel spectrum constants and functions.
 _MEL_BREAK_FREQUENCY_HERTZ = 700.0
 _MEL_HIGH_FREQUENCY_Q = 1127.0
