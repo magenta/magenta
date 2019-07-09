@@ -21,6 +21,7 @@ import functools
 import math
 
 from magenta.models.performance_rnn import performance_model
+from magenta.models.performance_rnn import performance_rnn_pipeline
 import magenta.music as mm
 from magenta.music import performance_controls
 import tensorflow as tf
@@ -113,7 +114,7 @@ class PerformanceRnnSequenceGenerator(mm.BaseSequenceGenerator):
     quantized_primer_sequence = mm.quantize_note_sequence_absolute(
         primer_sequence, self.steps_per_second)
 
-    extracted_perfs, _ = mm.extract_performances(
+    extracted_perfs, _ = performance_rnn_pipeline.extract_performances(
         quantized_primer_sequence, start_step=input_start_step,
         num_velocity_bins=self.num_velocity_bins,
         note_performance=self._note_performance)

@@ -28,6 +28,8 @@ import magenta.music as mm
 from magenta.music import chords_lib
 from magenta.music import drums_encoder_decoder
 from magenta.music import sequences_lib
+from magenta.pipelines import drum_pipelines
+from magenta.pipelines import melody_pipelines
 from magenta.protobuf import music_pb2
 import numpy as np
 import tensorflow as tf
@@ -711,7 +713,7 @@ class OneHotMelodyConverter(LegacyEventListOneHotConverter):
       return mm.Melody(
           steps_per_bar=steps_per_bar, steps_per_quarter=steps_per_quarter)
     melody_extractor_fn = functools.partial(
-        mm.extract_melodies,
+        melody_pipelines.extract_melodies,
         min_bars=1,
         gap_bars=gap_bars or float('inf'),
         max_steps_truncate=max_steps_truncate,
@@ -795,7 +797,7 @@ class DrumsConverter(BaseNoteSequenceConverter):
     self._roll_output = roll_output
 
     self._drums_extractor_fn = functools.partial(
-        mm.extract_drum_tracks,
+        drum_pipelines.extract_drum_tracks,
         min_bars=1,
         gap_bars=gap_bars or float('inf'),
         max_steps_truncate=self._steps_per_bar * max_bars if max_bars else None,

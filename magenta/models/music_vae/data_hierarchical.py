@@ -21,6 +21,7 @@ from __future__ import print_function
 import abc
 
 from magenta.models.music_vae import data
+from magenta.models.performance_rnn import performance_rnn_pipeline
 import magenta.music as mm
 from magenta.music import chords_lib
 from magenta.music import performance_lib
@@ -467,7 +468,7 @@ class MultiInstrumentPerformanceConverter(
       return [], []
 
     # Extract all instruments.
-    tracks, _ = mm.extract_performances(
+    tracks, _ = performance_rnn_pipeline.extract_performances(
         quantized_subsequence,
         max_steps_truncate=self._max_steps_truncate,
         num_velocity_bins=self._num_velocity_bins,
