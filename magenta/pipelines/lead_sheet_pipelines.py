@@ -15,11 +15,11 @@
 """Data processing pipelines for lead sheets."""
 import copy
 
+from magenta.music import LeadSheet
 from magenta.music import chord_symbols_lib
 from magenta.music import chords_lib
 from magenta.music import events_lib
 from magenta.music import lead_sheets_lib
-from magenta.music import LeadSheet
 from magenta.music import sequences_lib
 from magenta.pipelines import chord_pipelines
 from magenta.pipelines import melody_pipelines
