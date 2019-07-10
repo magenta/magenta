@@ -21,8 +21,8 @@ them to TensorFlow's SequenceExample protos for input to the RNN-NADE models.
 import os
 
 from magenta.models.pianoroll_rnn_nade import pianoroll_rnn_nade_model
-from magenta.pipelines import pipeline
 from magenta.pipelines import pianoroll_rnn_nade_pipeline
+from magenta.pipelines import pipeline
 import tensorflow as tf
 
 flags = tf.app.flags
