@@ -30,7 +30,6 @@ import six
 from six.moves import range  # pylint: disable=redefined-builtin
 import tensorflow as tf
 
-
 Fraction = fractions.Fraction
 
 

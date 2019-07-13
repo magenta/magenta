@@ -35,7 +35,6 @@ from magenta.music import midi_synth
 from magenta.music import sequences_lib
 import numpy as np
 
-
 # Constants based on craffel's example alignment script:
 # https://github.com/craffel/pretty-midi/blob/master/examples/align_midi.py
 

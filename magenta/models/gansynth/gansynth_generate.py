@@ -36,7 +36,6 @@ from magenta.models.gansynth.lib import model as lib_model
 from magenta.models.gansynth.lib import util
 import tensorflow as tf
 
-
 absl.flags.DEFINE_string('ckpt_dir',
                          '/tmp/gansynth/acoustic_only',
                          'Path to the base directory of pretrained checkpoints.'

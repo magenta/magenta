@@ -73,9 +73,8 @@ def main(unused_argv):
   if FLAGS.eval_logdir is None:
     raise ValueError(
         'Set flag eval_logdir to specify a path for saving eval statistics.')
-  else:
-    eval_logdir = os.path.join(FLAGS.eval_logdir, EVAL_SUBDIR)
-    tf.gfile.MakeDirs(eval_logdir)
+  eval_logdir = os.path.join(FLAGS.eval_logdir, EVAL_SUBDIR)
+  tf.gfile.MakeDirs(eval_logdir)
 
   evaluator = lib_evaluation.BaseEvaluator.make(
       FLAGS.unit, wmodel=wmodel, chronological=FLAGS.chronological)

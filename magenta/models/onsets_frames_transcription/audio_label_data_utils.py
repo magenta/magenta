@@ -22,12 +22,10 @@ import bisect
 import math
 
 import librosa
-
 from magenta.music import audio_io
 from magenta.music import constants
 from magenta.music import sequences_lib
 from magenta.protobuf import music_pb2
-
 import numpy as np
 import tensorflow as tf
 
