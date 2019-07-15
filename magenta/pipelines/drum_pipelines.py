@@ -36,10 +36,10 @@ class DrumsExtractor(pipeline.Pipeline):
     self._max_steps = max_steps
     self._gap_bars = gap_bars
 
-  def transform(self, quantized_sequence):
+  def transform(self, qs):
     try:
       drum_tracks, stats = extract_drum_tracks(
-          quantized_sequence,
+          qs,
           min_bars=self._min_bars,
           max_steps_truncate=self._max_steps,
           gap_bars=self._gap_bars)
