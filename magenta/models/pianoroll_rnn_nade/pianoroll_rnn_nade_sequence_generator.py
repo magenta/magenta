@@ -17,8 +17,8 @@
 import functools
 
 from magenta.models.pianoroll_rnn_nade import pianoroll_rnn_nade_model
-from magenta.models.pianoroll_rnn_nade import pianoroll_rnn_nade_pipeline
 import magenta.music as mm
+from magenta.pipelines import pianoroll_pipeline
 
 
 class PianorollRnnNadeSequenceGenerator(mm.BaseSequenceGenerator):
@@ -88,7 +88,7 @@ class PianorollRnnNadeSequenceGenerator(mm.BaseSequenceGenerator):
     quantized_primer_sequence = mm.quantize_note_sequence(
         primer_sequence, self.steps_per_quarter)
 
-    extracted_seqs, _ = pianoroll_rnn_nade_pipeline.extract_pianoroll_sequences(
+    extracted_seqs, _ = pianoroll_pipeline.extract_pianoroll_sequences(
         quantized_primer_sequence, start_step=input_start_step)
     assert len(extracted_seqs) <= 1
 

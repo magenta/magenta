@@ -21,7 +21,7 @@ them to TensorFlow's SequenceExample protos for input to the RNN-NADE models.
 import os
 
 from magenta.models.pianoroll_rnn_nade import pianoroll_rnn_nade_model
-from magenta.models.pianoroll_rnn_nade import pianoroll_rnn_nade_pipeline
+from magenta.pipelines import pianoroll_pipeline
 from magenta.pipelines import pipeline
 import tensorflow as tf
 
@@ -48,7 +48,7 @@ flags.DEFINE_string(
 def main(unused_argv):
   tf.logging.set_verbosity(FLAGS.log)
 
-  pipeline_instance = pianoroll_rnn_nade_pipeline.get_pipeline(
+  pipeline_instance = pianoroll_pipeline.get_pipeline(
       min_steps=80,  # 5 measures
       max_steps=2048,
       eval_ratio=FLAGS.eval_ratio,

@@ -12,18 +12,19 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Tests for pianoroll_lib."""
+"""Tests for pianoroll_pipeline."""
 
-from magenta.models.pianoroll_rnn_nade import pianoroll_rnn_nade_pipeline
 from magenta.music import sequences_lib
 from magenta.music import testing_lib as music_testing_lib
+from magenta.pipelines import pianoroll_pipeline
 from magenta.protobuf import music_pb2
 import tensorflow as tf
 
 
-class PianorollRnnNadePipelineTest(tf.test.TestCase):
+class PianorollPipelineTest(tf.test.TestCase):
 
   def setUp(self):
+    super(PianorollPipelineTest, self).setUp()
     self.note_sequence = music_testing_lib.parse_test_proto(
         music_pb2.NoteSequence,
         """
@@ -39,11 +40,11 @@ class PianorollRnnNadePipelineTest(tf.test.TestCase):
     quantized_sequence = sequences_lib.quantize_note_sequence(
         self.note_sequence, steps_per_quarter=1)
 
-    seqs, _ = pianoroll_rnn_nade_pipeline.extract_pianoroll_sequences(
+    seqs, _ = pianoroll_pipeline.extract_pianoroll_sequences(
         quantized_sequence)
     self.assertEqual(1, len(seqs))
 
-    seqs, _ = pianoroll_rnn_nade_pipeline.extract_pianoroll_sequences(
+    seqs, _ = pianoroll_pipeline.extract_pianoroll_sequences(
         quantized_sequence, min_steps_discard=2, max_steps_discard=5)
     self.assertEqual(1, len(seqs))
 
@@ -51,7 +52,7 @@ class PianorollRnnNadePipelineTest(tf.test.TestCase):
     self.note_sequence.total_time = 1.0
     quantized_sequence = sequences_lib.quantize_note_sequence(
         self.note_sequence, steps_per_quarter=1)
-    seqs, _ = pianoroll_rnn_nade_pipeline.extract_pianoroll_sequences(
+    seqs, _ = pianoroll_pipeline.extract_pianoroll_sequences(
         quantized_sequence, min_steps_discard=3, max_steps_discard=5)
     self.assertEqual(0, len(seqs))
 
@@ -59,7 +60,7 @@ class PianorollRnnNadePipelineTest(tf.test.TestCase):
     self.note_sequence.total_time = 10.0
     quantized_sequence = sequences_lib.quantize_note_sequence(
         self.note_sequence, steps_per_quarter=1)
-    seqs, _ = pianoroll_rnn_nade_pipeline.extract_pianoroll_sequences(
+    seqs, _ = pianoroll_pipeline.extract_pianoroll_sequences(
         quantized_sequence, min_steps_discard=3, max_steps_discard=5)
     self.assertEqual(0, len(seqs))
 
@@ -71,7 +72,7 @@ class PianorollRnnNadePipelineTest(tf.test.TestCase):
     quantized_sequence = sequences_lib.quantize_note_sequence(
         self.note_sequence, steps_per_quarter=1)
 
-    seqs, _ = pianoroll_rnn_nade_pipeline.extract_pianoroll_sequences(
+    seqs, _ = pianoroll_pipeline.extract_pianoroll_sequences(
         quantized_sequence)
     self.assertEqual(0, len(seqs))
 
@@ -81,10 +82,10 @@ class PianorollRnnNadePipelineTest(tf.test.TestCase):
     quantized_sequence = sequences_lib.quantize_note_sequence(
         self.note_sequence, steps_per_quarter=1)
 
-    seqs, _ = pianoroll_rnn_nade_pipeline.extract_pianoroll_sequences(
+    seqs, _ = pianoroll_pipeline.extract_pianoroll_sequences(
         quantized_sequence, start_step=4, min_steps_discard=1)
     self.assertEqual(0, len(seqs))
-    seqs, _ = pianoroll_rnn_nade_pipeline.extract_pianoroll_sequences(
+    seqs, _ = pianoroll_pipeline.extract_pianoroll_sequences(
         quantized_sequence, start_step=0, min_steps_discard=1)
     self.assertEqual(1, len(seqs))
 

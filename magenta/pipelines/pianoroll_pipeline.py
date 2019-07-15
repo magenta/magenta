@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Pipeline to create Pianoroll RNN-NADE dataset."""
+"""Pipeline to create Pianoroll dataset."""
 
 import magenta.music as mm
 from magenta.music import PianorollSequence

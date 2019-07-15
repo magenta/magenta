@@ -16,7 +16,7 @@
 
 import magenta
 from magenta.models.performance_rnn import performance_model
-from magenta.models.performance_rnn import performance_rnn_pipeline
+from magenta.pipelines import performance_pipeline
 from magenta.protobuf import music_pb2
 import tensorflow as tf
 
@@ -26,6 +26,7 @@ FLAGS = tf.app.flags.FLAGS
 class PerformancePipelineTest(tf.test.TestCase):
 
   def setUp(self):
+    super(PerformancePipelineTest, self).setUp()
     self.config = performance_model.PerformanceRnnConfig(
         None,
         magenta.music.OneHotEventSequenceEncoderDecoder(
@@ -41,7 +42,7 @@ class PerformancePipelineTest(tf.test.TestCase):
          (39, 110, 9.6, 9.7), (53, 99, 11.1, 14.1), (51, 40, 12.6, 13.0),
          (55, 100, 14.1, 15.0), (54, 90, 15.6, 17.0), (60, 100, 17.1, 18.0)])
 
-    pipeline_inst = performance_rnn_pipeline.get_pipeline(
+    pipeline_inst = performance_pipeline.get_pipeline(
         min_events=32,
         max_events=512,
         eval_ratio=0,

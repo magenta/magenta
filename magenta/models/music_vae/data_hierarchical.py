@@ -21,14 +21,14 @@ from __future__ import print_function
 import abc
 
 from magenta.models.music_vae import data
-from magenta.models.performance_rnn import performance_rnn_pipeline
 import magenta.music as mm
 from magenta.music import chords_lib
 from magenta.music import performance_lib
 from magenta.music import sequences_lib
+from magenta.pipelines import performance_pipeline
 from magenta.protobuf import music_pb2
 import numpy as np
-from tensorflow.python.util import nest
+from tensorflow.python.util import nest  # pylint:disable=g-direct-tensorflow-import
 
 CHORD_SYMBOL = music_pb2.NoteSequence.TextAnnotation.CHORD_SYMBOL
 
@@ -468,7 +468,7 @@ class MultiInstrumentPerformanceConverter(
       return [], []
 
     # Extract all instruments.
-    tracks, _ = performance_rnn_pipeline.extract_performances(
+    tracks, _ = performance_pipeline.extract_performances(
         quantized_subsequence,
         max_steps_truncate=self._max_steps_truncate,
         num_velocity_bins=self._num_velocity_bins,

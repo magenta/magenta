@@ -23,7 +23,7 @@ NoteSequence within a limited range.
 import os
 
 from magenta.models.performance_rnn import performance_model
-from magenta.models.performance_rnn import performance_rnn_pipeline
+from magenta.pipelines import performance_pipeline
 from magenta.pipelines import pipeline
 import tensorflow as tf
 
@@ -50,7 +50,7 @@ flags.DEFINE_string(
 def main(unused_argv):
   tf.logging.set_verbosity(FLAGS.log)
 
-  pipeline_instance = performance_rnn_pipeline.get_pipeline(
+  pipeline_instance = performance_pipeline.get_pipeline(
       min_events=32,
       max_events=512,
       eval_ratio=FLAGS.eval_ratio,

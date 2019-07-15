@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Pipeline to create PerformanceRNN dataset."""
+"""Pipeline to create Performance dataset."""
 
 import magenta
 from magenta.music import MetricPerformance
