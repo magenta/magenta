@@ -19,6 +19,7 @@ import copy
 import magenta
 from magenta.models.shared import events_rnn_model
 import magenta.music as mm
+from magenta.music.protobuf import generator_pb2
 import tensorflow as tf
 
 DEFAULT_MIN_NOTE = 48
@@ -132,7 +133,7 @@ class MelodyRnnConfig(events_rnn_model.EventSequenceRnnConfig):
 # Default configurations.
 default_configs = {
     'basic_rnn': MelodyRnnConfig(
-        magenta.protobuf.generator_pb2.GeneratorDetails(
+        generator_pb2.GeneratorDetails(
             id='basic_rnn',
             description='Melody RNN with one-hot encoding.'),
         magenta.music.OneHotEventSequenceEncoderDecoder(
@@ -147,7 +148,7 @@ default_configs = {
             learning_rate=0.001)),
 
     'mono_rnn': MelodyRnnConfig(
-        magenta.protobuf.generator_pb2.GeneratorDetails(
+        generator_pb2.GeneratorDetails(
             id='mono_rnn',
             description='Monophonic RNN with one-hot encoding.'),
         magenta.music.OneHotEventSequenceEncoderDecoder(
@@ -165,7 +166,7 @@ default_configs = {
         transpose_to_key=None),
 
     'lookback_rnn': MelodyRnnConfig(
-        magenta.protobuf.generator_pb2.GeneratorDetails(
+        generator_pb2.GeneratorDetails(
             id='lookback_rnn',
             description='Melody RNN with lookback encoding.'),
         magenta.music.LookbackEventSequenceEncoderDecoder(
@@ -180,7 +181,7 @@ default_configs = {
             learning_rate=0.001)),
 
     'attention_rnn': MelodyRnnConfig(
-        magenta.protobuf.generator_pb2.GeneratorDetails(
+        generator_pb2.GeneratorDetails(
             id='attention_rnn',
             description='Melody RNN with lookback encoding and attention.'),
         magenta.music.KeyMelodyEncoderDecoder(

@@ -68,10 +68,14 @@ REQUIRED_PACKAGES = [
     'apache-beam[gcp] >= 2.8.0;python_version=="2.7"',
 ]
 
+# pylint: disable=undefined-variable
 if gpu_mode:
-  REQUIRED_PACKAGES.append('tensorflow-gpu >= 1.14.0')
+  REQUIRED_PACKAGES.append('tensorflow-gpu >= 1.13.0')
+  REQUIRED_PACKAGES.append('magenta.music-gpu == ' + __version__)
 else:
-  REQUIRED_PACKAGES.append('tensorflow >= 1.14.0')
+  REQUIRED_PACKAGES.append('tensorflow >= 1.13.0')
+  REQUIRED_PACKAGES.append('magenta.music == ' + __version__)
+# pylint: enable=undefined-variable
 
 # pylint:disable=line-too-long
 CONSOLE_SCRIPTS = [

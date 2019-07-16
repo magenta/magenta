@@ -17,6 +17,7 @@
 import magenta
 from magenta.models.polyphony_rnn import polyphony_encoder_decoder
 from magenta.models.shared import events_rnn_model
+from magenta.music.protobuf import generator_pb2
 import tensorflow as tf
 
 
@@ -68,7 +69,7 @@ class PolyphonyRnnModel(events_rnn_model.EventSequenceRnnModel):
 
 default_configs = {
     'polyphony': events_rnn_model.EventSequenceRnnConfig(
-        magenta.protobuf.generator_pb2.GeneratorDetails(
+        generator_pb2.GeneratorDetails(
             id='polyphony',
             description='Polyphonic RNN'),
         magenta.music.OneHotEventSequenceEncoderDecoder(

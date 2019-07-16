@@ -22,7 +22,7 @@ import tempfile
 
 import magenta
 from magenta.music import performance_lib
-from magenta.protobuf import music_pb2
+from magenta.music.protobuf import music_pb2
 
 import pygtrie
 

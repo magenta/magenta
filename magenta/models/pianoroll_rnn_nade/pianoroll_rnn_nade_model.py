@@ -14,10 +14,10 @@
 
 """RNN-NADE model."""
 
-import magenta
 from magenta.models.pianoroll_rnn_nade import pianoroll_rnn_nade_graph
 from magenta.models.shared import events_rnn_model
 import magenta.music as mm
+from magenta.music.protobuf import generator_pb2
 import tensorflow as tf
 
 
@@ -99,7 +99,7 @@ class PianorollRnnNadeModel(events_rnn_model.EventSequenceRnnModel):
 
 default_configs = {
     'rnn-nade': events_rnn_model.EventSequenceRnnConfig(
-        magenta.protobuf.generator_pb2.GeneratorDetails(
+        generator_pb2.GeneratorDetails(
             id='rnn-nade',
             description='RNN-NADE'),
         mm.PianorollEncoderDecoder(),
@@ -111,7 +111,7 @@ default_configs = {
             clip_norm=5,
             learning_rate=0.001)),
     'rnn-nade_attn': events_rnn_model.EventSequenceRnnConfig(
-        magenta.protobuf.generator_pb2.GeneratorDetails(
+        generator_pb2.GeneratorDetails(
             id='rnn-nade_attn',
             description='RNN-NADE with attention.'),
         mm.PianorollEncoderDecoder(),

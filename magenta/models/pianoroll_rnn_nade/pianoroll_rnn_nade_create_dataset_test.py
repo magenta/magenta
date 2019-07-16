@@ -18,7 +18,7 @@ import magenta
 from magenta.models.shared import events_rnn_model
 import magenta.music as mm
 from magenta.pipelines import pianoroll_pipeline
-from magenta.protobuf import music_pb2
+from magenta.music.protobuf import music_pb2
 import tensorflow as tf
 
 FLAGS = tf.app.flags.FLAGS

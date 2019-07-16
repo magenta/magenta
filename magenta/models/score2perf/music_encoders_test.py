@@ -23,7 +23,7 @@ import tempfile
 import magenta
 from magenta.models.score2perf import music_encoders
 from magenta.music import testing_lib
-from magenta.protobuf import music_pb2
+from magenta.music.protobuf import music_pb2
 import tensorflow as tf
 
 

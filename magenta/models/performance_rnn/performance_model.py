@@ -20,6 +20,7 @@ import functools
 import magenta
 from magenta.models.shared import events_rnn_model
 from magenta.music.performance_lib import PerformanceEvent
+from magenta.music.protobuf import generator_pb2
 import tensorflow as tf
 
 # State for constructing a time-varying control sequence. Keeps track of the
@@ -186,7 +187,7 @@ class PerformanceRnnConfig(events_rnn_model.EventSequenceRnnConfig):
 
 default_configs = {
     'performance': PerformanceRnnConfig(
-        magenta.protobuf.generator_pb2.GeneratorDetails(
+        generator_pb2.GeneratorDetails(
             id='performance',
             description='Performance RNN'),
         magenta.music.OneHotEventSequenceEncoderDecoder(
@@ -199,7 +200,7 @@ default_configs = {
             learning_rate=0.001)),
 
     'performance_with_dynamics': PerformanceRnnConfig(
-        magenta.protobuf.generator_pb2.GeneratorDetails(
+        generator_pb2.GeneratorDetails(
             id='performance_with_dynamics',
             description='Performance RNN with dynamics'),
         magenta.music.OneHotEventSequenceEncoderDecoder(
@@ -214,7 +215,7 @@ default_configs = {
         num_velocity_bins=32),
 
     'performance_with_dynamics_compact': PerformanceRnnConfig(
-        magenta.protobuf.generator_pb2.GeneratorDetails(
+        generator_pb2.GeneratorDetails(
             id='performance_with_dynamics',
             description='Performance RNN with dynamics (compact input)'),
         magenta.music.OneHotIndexEventSequenceEncoderDecoder(
@@ -229,7 +230,7 @@ default_configs = {
         num_velocity_bins=32),
 
     'performance_with_dynamics_and_modulo_encoding': PerformanceRnnConfig(
-        magenta.protobuf.generator_pb2.GeneratorDetails(
+        generator_pb2.GeneratorDetails(
             id='performance_with_dynamics_and_modulo_encoding',
             description='Performance RNN with dynamics and modulo encoding'),
         magenta.music.ModuloPerformanceEventSequenceEncoderDecoder(
@@ -243,7 +244,7 @@ default_configs = {
         num_velocity_bins=32),
 
     'performance_with_dynamics_and_note_encoding': PerformanceRnnConfig(
-        magenta.protobuf.generator_pb2.GeneratorDetails(
+        generator_pb2.GeneratorDetails(
             id='performance_with_dynamics_and_note_encoding',
             description='Performance RNN with dynamics and note encoding'),
         magenta.music.NotePerformanceEventSequenceEncoderDecoder(
@@ -258,7 +259,7 @@ default_configs = {
         note_performance=True),
 
     'density_conditioned_performance_with_dynamics': PerformanceRnnConfig(
-        magenta.protobuf.generator_pb2.GeneratorDetails(
+        generator_pb2.GeneratorDetails(
             id='density_conditioned_performance_with_dynamics',
             description='Note-density-conditioned Performance RNN + dynamics'),
         magenta.music.OneHotEventSequenceEncoderDecoder(
@@ -278,7 +279,7 @@ default_configs = {
         ]),
 
     'pitch_conditioned_performance_with_dynamics': PerformanceRnnConfig(
-        magenta.protobuf.generator_pb2.GeneratorDetails(
+        generator_pb2.GeneratorDetails(
             id='pitch_conditioned_performance_with_dynamics',
             description='Pitch-histogram-conditioned Performance RNN'),
         magenta.music.OneHotEventSequenceEncoderDecoder(
@@ -297,7 +298,7 @@ default_configs = {
         ]),
 
     'multiconditioned_performance_with_dynamics': PerformanceRnnConfig(
-        magenta.protobuf.generator_pb2.GeneratorDetails(
+        generator_pb2.GeneratorDetails(
             id='multiconditioned_performance_with_dynamics',
             description='Density- and pitch-conditioned Performance RNN'),
         magenta.music.OneHotEventSequenceEncoderDecoder(
@@ -319,7 +320,7 @@ default_configs = {
         ]),
 
     'optional_multiconditioned_performance_with_dynamics': PerformanceRnnConfig(
-        magenta.protobuf.generator_pb2.GeneratorDetails(
+        generator_pb2.GeneratorDetails(
             id='optional_multiconditioned_performance_with_dynamics',
             description='Optionally multiconditioned Performance RNN'),
         magenta.music.OneHotEventSequenceEncoderDecoder(

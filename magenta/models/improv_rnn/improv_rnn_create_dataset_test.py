@@ -19,7 +19,7 @@ from magenta.models.improv_rnn import improv_rnn_model
 from magenta.models.improv_rnn import improv_rnn_pipeline
 from magenta.pipelines import lead_sheet_pipelines
 from magenta.pipelines import note_sequence_pipelines
-from magenta.protobuf import music_pb2
+from magenta.music.protobuf import music_pb2
 import tensorflow as tf
 
 FLAGS = tf.app.flags.FLAGS

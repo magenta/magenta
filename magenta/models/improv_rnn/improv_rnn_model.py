@@ -19,6 +19,7 @@ import copy
 import magenta
 from magenta.models.shared import events_rnn_model
 import magenta.music as mm
+from magenta.music.protobuf import generator_pb2
 import tensorflow as tf
 
 DEFAULT_MIN_NOTE = 48
@@ -146,7 +147,7 @@ class ImprovRnnConfig(events_rnn_model.EventSequenceRnnConfig):
 # Default configurations.
 default_configs = {
     'basic_improv': ImprovRnnConfig(
-        magenta.protobuf.generator_pb2.GeneratorDetails(
+        generator_pb2.GeneratorDetails(
             id='basic_improv',
             description='Basic melody-given-chords RNN with one-hot triad '
                         'encoding for chords.'),
@@ -165,7 +166,7 @@ default_configs = {
             learning_rate=0.001)),
 
     'attention_improv': ImprovRnnConfig(
-        magenta.protobuf.generator_pb2.GeneratorDetails(
+        generator_pb2.GeneratorDetails(
             id='attention_improv',
             description='Melody-given-chords RNN with one-hot triad encoding '
                         'for chords, attention, and binary counters.'),
@@ -184,7 +185,7 @@ default_configs = {
             learning_rate=0.001)),
 
     'chord_pitches_improv': ImprovRnnConfig(
-        magenta.protobuf.generator_pb2.GeneratorDetails(
+        generator_pb2.GeneratorDetails(
             id='chord_pitches_improv',
             description='Melody-given-chords RNN with chord pitches encoding.'),
         magenta.music.ConditionalEventSequenceEncoderDecoder(

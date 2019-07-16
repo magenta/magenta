@@ -2,9 +2,18 @@ language: python
 dist: xenial
 python:
   - "3.7"
-# command to install dependencies
-install:
-  - ./ci-install.sh
-# command to run tests
-script:
-  - ./ci-script.sh
+
+jobs:
+  include:
+    - name: 'magenta'
+      install:
+        - ./ci-install.sh
+      script:
+        - ./ci-script.sh
+    - name: 'magenta-music'
+      before_install:
+        - cd magenta-music
+      install:
+        - ./ci-install.sh
+      script:
+        - ./ci-script.sh

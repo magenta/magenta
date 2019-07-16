@@ -17,6 +17,7 @@
 import magenta
 from magenta.models.shared import events_rnn_model
 import magenta.music as mm
+from magenta.music.protobuf import generator_pb2
 import tensorflow as tf
 
 
@@ -62,7 +63,7 @@ class DrumsRnnModel(events_rnn_model.EventSequenceRnnModel):
 # Default configurations.
 default_configs = {
     'one_drum': events_rnn_model.EventSequenceRnnConfig(
-        magenta.protobuf.generator_pb2.GeneratorDetails(
+        generator_pb2.GeneratorDetails(
             id='one_drum',
             description='Drums RNN with 2-state encoding.'),
         magenta.music.OneHotEventSequenceEncoderDecoder(
@@ -79,7 +80,7 @@ default_configs = {
         steps_per_quarter=2),
 
     'drum_kit': events_rnn_model.EventSequenceRnnConfig(
-        magenta.protobuf.generator_pb2.GeneratorDetails(
+        generator_pb2.GeneratorDetails(
             id='drum_kit',
             description='Drums RNN with multiple drums and binary counters.'),
         magenta.music.LookbackEventSequenceEncoderDecoder(

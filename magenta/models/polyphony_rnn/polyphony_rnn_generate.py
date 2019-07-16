@@ -25,8 +25,8 @@ import magenta
 from magenta.models.polyphony_rnn import polyphony_model
 from magenta.models.polyphony_rnn import polyphony_sequence_generator
 from magenta.music import constants
-from magenta.protobuf import generator_pb2
-from magenta.protobuf import music_pb2
+from magenta.music.protobuf import generator_pb2
+from magenta.music.protobuf import music_pb2
 import tensorflow as tf
 
 FLAGS = tf.app.flags.FLAGS

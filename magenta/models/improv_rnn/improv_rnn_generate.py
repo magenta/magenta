@@ -22,8 +22,8 @@ import magenta
 from magenta.models.improv_rnn import improv_rnn_config_flags
 from magenta.models.improv_rnn import improv_rnn_model
 from magenta.models.improv_rnn import improv_rnn_sequence_generator
-from magenta.protobuf import generator_pb2
-from magenta.protobuf import music_pb2
+from magenta.music.protobuf import generator_pb2
+from magenta.music.protobuf import music_pb2
 import tensorflow as tf
 
 CHORD_SYMBOL = music_pb2.NoteSequence.TextAnnotation.CHORD_SYMBOL
