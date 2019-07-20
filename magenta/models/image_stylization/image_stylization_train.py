@@ -42,6 +42,7 @@ flags.DEFINE_integer('ps_tasks', 0,
                      'Number of parameter servers. If 0, parameters '
                      'are handled locally by the worker.')
 flags.DEFINE_integer('num_styles', None, 'Number of styles.')
+flags.DEFINE_float('alpha', 1.0, 'Number of Filters Multiplier')
 flags.DEFINE_integer('save_summaries_secs', 15,
                      'Frequency at which summaries are saved, in seconds.')
 flags.DEFINE_integer('save_interval_secs', 15,
@@ -95,12 +96,13 @@ def main(unused_argv=None):
       # Rescale style weights dynamically based on the current style image
       style_coefficient = tf.gather(
           tf.constant(style_coefficients), style_labels)
-      style_weights = dict((key, style_coefficient * value)
-                           for key, value in style_weights.iteritems())
+      style_weights = dict((key, style_coefficient * style_weights[key])
+                           for key in style_weights)
 
       # Define the model
       stylized_inputs = model.transform(
           inputs,
+          alpha=FLAGS.alpha,
           normalizer_params={
               'labels': style_labels,
               'num_categories': num_styles,
@@ -111,8 +113,8 @@ def main(unused_argv=None):
       total_loss, loss_dict = learning.total_loss(
           inputs, stylized_inputs, style_gram_matrices, content_weights,
           style_weights)
-      for key, value in loss_dict.iteritems():
-        tf.summary.scalar(key, value)
+      for key in loss_dict:
+        tf.summary.scalar(key, loss_dict[key])
 
       # Set up training
       optimizer = tf.train.AdamOptimizer(FLAGS.learning_rate)

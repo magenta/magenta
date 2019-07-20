@@ -43,6 +43,7 @@ flags.DEFINE_float('learning_rate', 1e-3, 'Learning rate')
 flags.DEFINE_integer('batch_size', 16, 'Batch size.')
 flags.DEFINE_integer('image_size', 256, 'Image size.')
 flags.DEFINE_integer('num_styles', None, 'Number of styles.')
+flags.DEFINE_float('alpha', 1.0, 'Number of Filters Multiplier')
 flags.DEFINE_integer('ps_tasks', 0,
                      'Number of parameter servers. If 0, parameters '
                      'are handled locally by the worker.')
@@ -107,6 +108,7 @@ def main(unused_argv=None):
       # Define the model
       stylized_inputs = model.transform(
           inputs,
+          alpha=FLAGS.alpha,
           normalizer_params={
               'labels': style_labels,
               'num_categories': num_styles,
