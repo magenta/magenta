@@ -75,7 +75,7 @@ def main(unused_argv=None):
                                               FLAGS.image_size)
       # Load style images and select one at random (for each graph execution, a
       # new random selection occurs)
-      _, style_labels, style_gram_matrices = image_utils.style_image_inputs(
+      style_images, style_labels, style_gram_matrices = image_utils.style_image_inputs(
           os.path.expanduser(FLAGS.style_dataset_file),
           batch_size=FLAGS.batch_size, image_size=FLAGS.image_size,
           square_crop=True, shuffle=True)
@@ -116,18 +116,20 @@ def main(unused_argv=None):
       for key in loss_dict:
         tf.summary.scalar(key, loss_dict[key])
 
+      # Adding Image summaries to the tensorboard.
+      tf.summary.image('image/0_inputs', inputs, 3)
+      tf.summary.image('image/1_styles', style_images, 3)
+      tf.summary.image('image/2_styled_inputs', stylized_inputs, 3)
+
       # Set up training
       optimizer = tf.train.AdamOptimizer(FLAGS.learning_rate)
       train_op = slim.learning.create_train_op(
           total_loss, optimizer, clip_gradient_norm=FLAGS.clip_gradient_norm,
           summarize_gradients=False)
 
-      # Function to restore VGG16 parameters
-      # TODO(iansimon): This is ugly, but assign_from_checkpoint_fn doesn't
-      # exist yet.
-      saver = tf.train.Saver(slim.get_variables('vgg_16'))
-      def init_fn(session):
-        saver.restore(session, vgg.checkpoint_file())
+      # Function to restore VGG16 parameters.
+      init_fn_vgg = slim.assign_from_checkpoint_fn(vgg.checkpoint_file(),
+                                                   slim.get_variables('vgg_16'))
 
       # Run training
       slim.learning.train(
@@ -136,7 +138,7 @@ def main(unused_argv=None):
           master=FLAGS.master,
           is_chief=FLAGS.task == 0,
           number_of_steps=FLAGS.train_steps,
-          init_fn=init_fn,
+          init_fn=init_fn_vgg,
           save_summaries_secs=FLAGS.save_summaries_secs,
           save_interval_secs=FLAGS.save_interval_secs)
 
