@@ -18,6 +18,7 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
+import functools
 import os
 
 from magenta.models.onsets_frames_transcription import audio_label_data_utils
@@ -84,10 +85,11 @@ def transcribe_audio(prediction, hparams):
   return sequence_prediction
 
 
-def main(argv):
+def run(argv, config_map, data_fn):
+  """Create transcriptions."""
   tf.logging.set_verbosity(FLAGS.log)
 
-  config = configs.CONFIG_MAP[FLAGS.config]
+  config = config_map[FLAGS.config]
   hparams = config.hparams
   # For this script, default to not using cudnn.
   hparams.use_cudnn = False
@@ -98,7 +100,7 @@ def main(argv):
   with tf.Graph().as_default():
     examples = tf.placeholder(tf.string, [None])
 
-    dataset = data.provide_batch(
+    dataset = data_fn(
         examples=examples,
         preprocess_examples=True,
         params=hparams,
@@ -150,6 +152,11 @@ def main(argv):
         midi_io.sequence_proto_to_midi_file(sequence_prediction, midi_filename)
 
         tf.logging.info('Transcription written to %s.', midi_filename)
+
+
+def main(argv):
+  data_fn = functools.partial(data.provide_batch)
+  run(argv, config_map=configs.CONFIG_MAP, data_fn=data_fn)
 
 
 def console_entry_point():
