@@ -20,6 +20,7 @@ from __future__ import print_function
 
 from magenta.models.onsets_frames_transcription import configs
 from magenta.models.onsets_frames_transcription import create_dataset_maestro
+from magenta.models.onsets_frames_transcription import data
 import tensorflow as tf
 
 
@@ -27,7 +28,7 @@ def main(argv):
   del argv
 
   create_dataset_maestro.pipeline(
-      configs.CONFIG_MAP, configs.DATASET_CONFIG_MAP)
+      configs.CONFIG_MAP, configs.DATASET_CONFIG_MAP, data.preprocess_example)
 
 
 def console_entry_point():

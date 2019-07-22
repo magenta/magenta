@@ -27,7 +27,6 @@ import apache_beam as beam
 from apache_beam.metrics import Metrics
 
 from magenta.models.onsets_frames_transcription import audio_label_data_utils
-from magenta.models.onsets_frames_transcription import data
 from magenta.music import audio_io
 from magenta.protobuf import music_pb2
 import numpy as np
@@ -117,21 +116,14 @@ def multiply_example(ex, num_times):
   return [ex] * num_times
 
 
-def preprocess_data(input_example, hparams, process_for_training):
+def preprocess_data(
+    input_example, preprocess_example_fn, hparams, process_for_training):
   """Preprocess example using data.preprocess_data."""
   with tf.Graph().as_default():
-    audio = tf.constant(
-        input_example.features.feature['audio'].bytes_list.value[0])
+    example_proto = tf.constant(input_example.SerializeToString())
 
-    sequence = tf.constant(
-        input_example.features.feature['sequence'].bytes_list.value[0])
-    sequence_id = tf.constant(
-        input_example.features.feature['id'].bytes_list.value[0])
-    velocity_range = tf.constant(
-        input_example.features.feature['velocity_range'].bytes_list.value[0])
-
-    input_tensors = data.preprocess_data(
-        sequence_id, sequence, audio, velocity_range, hparams,
+    input_tensors = preprocess_example_fn(
+        example_proto=example_proto, hparams=hparams,
         is_training=process_for_training)
 
     with tf.Session() as sess:
@@ -257,7 +249,7 @@ def generate_sharded_filenames(filenames):
         yield '{}-{:0=5d}-of-{:0=5d}'.format(base, i, num_shards)
 
 
-def pipeline(config_map, dataset_config_map):
+def pipeline(config_map, dataset_config_map, preprocess_example_fn):
   """Pipeline for dataset creation."""
   tf.flags.mark_flags_as_required(['output_directory'])
 
@@ -385,7 +377,8 @@ def pipeline(config_map, dataset_config_map):
           split_p |= mul_name >> beam.FlatMap(
               multiply_example, FLAGS.preprocess_train_example_multiplier)
         split_p |= 'preprocess_%s' % dataset.name >> beam.Map(
-            preprocess_data, hparams, dataset.process_for_training)
+            preprocess_data, preprocess_example_fn, hparams,
+            dataset.process_for_training)
       split_p |= 'shuffle_output_%s' % dataset.name >> beam.Reshuffle()
       split_p |= 'write_%s' % dataset.name >> beam.io.WriteToTFRecord(
           os.path.join(FLAGS.output_directory, '%s.tfrecord' % dataset.name),
