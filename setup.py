@@ -50,7 +50,7 @@ REQUIRED_PACKAGES = [
     'protobuf >= 3.6.1',
     'pygtrie >= 2.3',
     'python-rtmidi >= 1.1, < 1.2',  # 1.2 breaks us
-    'scipy >= 0.18.1, <= 1.2.0',  # 1.2.1 causes segfaults in pytest.
+    'scipy >= 0.18.1',
     'six >= 1.12.0',
     'sk-video',
     'sonnet',
@@ -157,6 +157,7 @@ setup(
     setup_requires=['pytest-runner', 'pytest-pylint'],
     tests_require=[
         'pytest',
+        'pytest-xdist',
         'pylint < 2.0.0;python_version<"3"',
         # pylint 2.3.0 and astroid 2.2.0 caused spurious errors,
         # so lock them down to known good versions.

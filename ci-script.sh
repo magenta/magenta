@@ -23,4 +23,4 @@ set -x
 
 source /tmp/magenta-env/bin/activate
 
-python setup.py test
+python setup.py test --addopts=-nauto
