@@ -149,11 +149,14 @@ class DrumsExtractor(pipeline.Pipeline):
 
   def transform(self, quantized_sequence):
     try:
+      # pylint has a false positive error on this method call for some reason.
+      # pylint:disable=redundant-keyword-arg
       drum_tracks, stats = extract_drum_tracks(
           quantized_sequence,
           min_bars=self._min_bars,
           max_steps_truncate=self._max_steps,
           gap_bars=self._gap_bars)
+      # pylint:enable=redundant-keyword-arg
     except events_lib.NonIntegerStepsPerBarError as detail:
       tf.logging.warning('Skipped sequence: %s', detail)
       drum_tracks = []

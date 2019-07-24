@@ -37,7 +37,8 @@ import tensorflow as tf
 
 def _calculate_metrics_py(
     frame_predictions, onset_predictions, offset_predictions, velocity_values,
-    sequence_label_str, frame_labels, sequence_id, hparams):
+    sequence_label_str, frame_labels, sequence_id, hparams, min_pitch,
+    max_pitch):
   """Python logic for calculating metrics on a single example."""
   tf.logging.info('Calculating metrics for %s with length %d', sequence_id,
                   frame_labels.shape[0])
@@ -50,7 +51,7 @@ def _calculate_metrics_py(
       frames=frame_predictions,
       frames_per_second=data.hparams_frames_per_second(hparams),
       min_duration_ms=0,
-      min_midi_pitch=constants.MIN_MIDI_PITCH,
+      min_midi_pitch=min_pitch,
       onset_predictions=onset_predictions,
       offset_predictions=offset_predictions,
       velocity_values=velocity_values)
@@ -101,8 +102,7 @@ def _calculate_metrics_py(
   processed_frame_predictions = sequences_lib.sequence_to_pianoroll(
       sequence_prediction,
       frames_per_second=data.hparams_frames_per_second(hparams),
-      min_pitch=constants.MIN_MIDI_PITCH,
-      max_pitch=constants.MAX_MIDI_PITCH).active
+      min_pitch=min_pitch, max_pitch=max_pitch).active
 
   if processed_frame_predictions.shape[0] < frame_labels.shape[0]:
     # Pad transcribed frames with silence.
@@ -127,13 +127,14 @@ def _calculate_metrics_py(
 
 def calculate_metrics(frame_predictions, onset_predictions, offset_predictions,
                       velocity_values, sequence_label, frame_labels,
-                      sequence_id, hparams):
+                      sequence_id, hparams, min_pitch, max_pitch):
   """Calculate metrics for a single example."""
   (note_precision, note_recall, note_f1, note_with_offsets_precision,
    note_with_offsets_recall, note_with_offsets_f1,
    note_with_offsets_velocity_precision, note_with_offsets_velocity_recall,
    note_with_offsets_velocity_f1, processed_frame_predictions) = tf.py_func(
-       functools.partial(_calculate_metrics_py, hparams=hparams),
+       functools.partial(_calculate_metrics_py, hparams=hparams,
+                         min_pitch=min_pitch, max_pitch=max_pitch),
        inp=[
            frame_predictions, onset_predictions, offset_predictions,
            velocity_values, sequence_label, frame_labels, sequence_id
@@ -178,7 +179,8 @@ def calculate_metrics(frame_predictions, onset_predictions, offset_predictions,
 
 def define_metrics(frame_predictions, onset_predictions, offset_predictions,
                    velocity_values, length, sequence_label, frame_labels,
-                   sequence_id, hparams):
+                   sequence_id, hparams, min_pitch=constants.MIN_MIDI_PITCH,
+                   max_pitch=constants.MAX_MIDI_PITCH, prefix=''):
   """Create a metric name to tf.metric pair dict for transcription metrics."""
   with tf.device('/device:CPU:*'):
     metrics = collections.defaultdict(list)
@@ -191,6 +193,7 @@ def define_metrics(frame_predictions, onset_predictions, offset_predictions,
           sequence_label=sequence_label[i],
           frame_labels=frame_labels[i][:length[i]],
           sequence_id=sequence_id[i],
-          hparams=hparams).items():
+          hparams=hparams, min_pitch=min_pitch, max_pitch=max_pitch).items():
         metrics[k].append(v)
-    return {'metrics/' + k: tf.metrics.mean(v) for k, v in metrics.items()}
+    return {'metrics/' + prefix + k: tf.metrics.mean(v)
+            for k, v in metrics.items()}

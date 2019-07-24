@@ -26,7 +26,6 @@ import hashlib
 import logging
 import os
 import random
-
 from absl import flags
 import apache_beam as beam
 from apache_beam import typehints
@@ -38,6 +37,7 @@ from magenta.protobuf import music_pb2
 import numpy as np
 from tensor2tensor.data_generators import generator_utils
 import tensorflow as tf
+import typing
 
 # TODO(iansimon): this should probably be defined in the problem
 SCORE_BPM = 120.0
@@ -51,7 +51,7 @@ flags.DEFINE_string(
 # deserializing NoteSequence protos.
 
 
-@typehints.with_output_types(typehints.KV[str, str])
+@typehints.with_output_types(typing.Tuple[str, str])
 class ReadNoteSequencesFromTFRecord(beam.PTransform):
   """Beam PTransform that reads NoteSequence protos from TFRecord."""
 
