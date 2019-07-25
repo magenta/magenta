@@ -70,6 +70,16 @@ def create_estimator(model_fn,
                      keep_checkpoint_max=None,
                      warm_start_from=None):
   """Creates an estimator."""
+  def wrapped_model_fn(features, labels, mode, params, config):
+    """Wrap model_fn to restore labels value if present in features."""
+    # Workaround for Estimator API that forces 'labels' to be None when in
+    # predict mode.
+    # https://github.com/tensorflow/tensorflow/issues/17824
+    # See also infer_util.labels_to_features_wrapper
+    if labels is None and hasattr(features, 'labels'):
+      labels = features.labels
+    return model_fn(features, labels, mode, params, config)
+
   config = tf_head.contrib.tpu.RunConfig(
       tpu_config=tf_head.contrib.tpu.TPUConfig(
           iterations_per_loop=save_checkpoint_steps),
@@ -83,7 +93,7 @@ def create_estimator(model_fn,
   params.del_hparam('batch_size')
   return tf_head.contrib.tpu.TPUEstimator(
       use_tpu=use_tpu,
-      model_fn=model_fn,
+      model_fn=wrapped_model_fn,
       model_dir=model_dir,
       params=params,
       train_batch_size=hparams.batch_size,
@@ -139,7 +149,7 @@ def evaluate(master,
              hparams,
              name,
              num_steps=None):
-  """Train loop."""
+  """Evaluation loop."""
   estimator = create_estimator(
       model_fn=model_fn, model_dir=model_dir, master=master, hparams=hparams)
 
@@ -227,4 +237,5 @@ def evaluate(master,
   while True:
     checkpoint_path = tf_head.contrib.training.wait_for_new_checkpoint(
         model_dir, last_checkpoint=checkpoint_path)
-    estimator.evaluate(input_fn=transcription_data, steps=num_steps, name=name)
+    estimator.evaluate(input_fn=transcription_data, steps=num_steps,
+                       checkpoint_path=checkpoint_path, name=name)

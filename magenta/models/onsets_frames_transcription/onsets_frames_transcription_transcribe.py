@@ -18,16 +18,14 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-import functools
 import os
 
 from magenta.models.onsets_frames_transcription import audio_label_data_utils
 from magenta.models.onsets_frames_transcription import configs
-from magenta.models.onsets_frames_transcription import constants
 from magenta.models.onsets_frames_transcription import data
+from magenta.models.onsets_frames_transcription import infer_util
 from magenta.models.onsets_frames_transcription import train_util
 from magenta.music import midi_io
-from magenta.music import sequences_lib
 from magenta.protobuf import music_pb2
 import six
 import tensorflow.compat.v1 as tf
@@ -66,23 +64,6 @@ def create_example(filename):
           allow_empty_notesequence=True))
   assert len(example_list) == 1
   return example_list[0].SerializeToString()
-
-
-def transcribe_audio(prediction, hparams):
-  """Transcribes an audio file."""
-  frame_predictions = prediction['frame_predictions'][0]
-  onset_predictions = prediction['onset_predictions'][0]
-  velocity_values = prediction['velocity_values'][0]
-
-  sequence_prediction = sequences_lib.pianoroll_to_note_sequence(
-      frame_predictions,
-      frames_per_second=data.hparams_frames_per_second(hparams),
-      min_duration_ms=0,
-      min_midi_pitch=constants.MIN_MIDI_PITCH,
-      onset_predictions=onset_predictions,
-      velocity_values=velocity_values)
-
-  return sequence_prediction
 
 
 def run(argv, config_map, data_fn):
@@ -131,9 +112,10 @@ def run(argv, config_map, data_fn):
         tf.logging.info('Processing file...')
         sess.run(iterator.initializer, {examples: [create_example(filename)]})
 
-        def input_fn(params):
+        def transcription_data(params):
           del params
           return tf.data.Dataset.from_tensors(sess.run(next_record))
+        input_fn = infer_util.labels_to_features_wrapper(transcription_data)
 
         tf.logging.info('Running inference...')
         checkpoint_path = None
@@ -146,7 +128,8 @@ def run(argv, config_map, data_fn):
                 yield_single_examples=False))
         assert len(prediction_list) == 1
 
-        sequence_prediction = transcribe_audio(prediction_list[0], hparams)
+        sequence_prediction = music_pb2.NoteSequence.FromString(
+            prediction_list[0]['sequence_predictions'][0])
 
         midi_filename = filename + '.midi'
         midi_io.sequence_proto_to_midi_file(sequence_prediction, midi_filename)
@@ -155,8 +138,7 @@ def run(argv, config_map, data_fn):
 
 
 def main(argv):
-  data_fn = functools.partial(data.provide_batch)
-  run(argv, config_map=configs.CONFIG_MAP, data_fn=data_fn)
+  run(argv, config_map=configs.CONFIG_MAP, data_fn=data.provide_batch)
 
 
 def console_entry_point():
