@@ -65,7 +65,7 @@ def colab_play(array_of_floats, sample_rate, ephemeral=True, autoplay=False):
             </audio>"""
   html = html.format(
       autoplay='autoplay' if autoplay else '',
-      base64_wavfile=base64.b64encode(memfile.getvalue()))
+      base64_wavfile=base64.b64encode(memfile.getvalue()).decode('ascii'))
   memfile.close()
   global _play_id
   _play_id += 1
