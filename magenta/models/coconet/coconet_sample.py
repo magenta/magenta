@@ -244,7 +244,7 @@ class TFGenerator(object):
       piece_length: An integer specifying the desired number of time steps to
           generate for the output, where a time step corresponds to the
           shortest duration supported by the model.
-      See the CoconetSampleGraph class in lib_tfsample.py for more detail.
+      See the CoconetSampleGraph class in lib_tfsampling.py for more detail.
       sample_steps: an integer indicating the number of steps to sample in this
           call.  If set to 0, then it defaults to total_gibbs_steps.
       current_step: an integer indicating how many steps might have already
