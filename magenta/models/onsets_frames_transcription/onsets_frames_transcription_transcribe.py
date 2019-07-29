@@ -44,13 +44,16 @@ tf.app.flags.DEFINE_string(
     'hparams',
     '',
     'A comma-separated list of `name=value` hyperparameter values.')
+tf.app.flags.DEFINE_boolean(
+    'load_audio_with_librosa', False,
+    'Whether to use librosa for sampling audio (required for 24-bit audio)')
 tf.app.flags.DEFINE_string(
     'log', 'INFO',
     'The threshold for what messages will be logged: '
     'DEBUG, INFO, WARN, ERROR, or FATAL.')
 
 
-def create_example(filename):
+def create_example(filename, load_audio_with_librosa):
   """Processes an audio file into an Example proto."""
   wav_data = tf.gfile.Open(filename, 'rb').read()
   example_list = list(
@@ -61,7 +64,8 @@ def create_example(filename):
           example_id=six.ensure_text(filename, 'utf-8'),
           min_length=0,
           max_length=-1,
-          allow_empty_notesequence=True))
+          allow_empty_notesequence=True,
+          load_audio_with_librosa=load_audio_with_librosa))
   assert len(example_list) == 1
   return example_list[0].SerializeToString()
 
@@ -110,7 +114,9 @@ def run(argv, config_map, data_fn):
         # construct all the Example protos in memory ahead of time or create
         # a temporary tfrecord file.
         tf.logging.info('Processing file...')
-        sess.run(iterator.initializer, {examples: [create_example(filename)]})
+        sess.run(iterator.initializer,
+                 {examples: [
+                     create_example(filename, FLAGS.load_audio_with_librosa)]})
 
         def transcription_data(params):
           del params
