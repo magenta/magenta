@@ -48,6 +48,9 @@ tf.app.flags.DEFINE_boolean(
     'load_audio_with_librosa', False,
     'Whether to use librosa for sampling audio (required for 24-bit audio)')
 tf.app.flags.DEFINE_string(
+    'transcribed_file_suffix', '',
+    'Optional suffix to add to transcribed files.')
+tf.app.flags.DEFINE_string(
     'log', 'INFO',
     'The threshold for what messages will be logged: '
     'DEBUG, INFO, WARN, ERROR, or FATAL.')
@@ -137,7 +140,7 @@ def run(argv, config_map, data_fn):
         sequence_prediction = music_pb2.NoteSequence.FromString(
             prediction_list[0]['sequence_predictions'][0])
 
-        midi_filename = filename + '.midi'
+        midi_filename = filename + FLAGS.transcribed_file_suffix + '.midi'
         midi_io.sequence_proto_to_midi_file(sequence_prediction, midi_filename)
 
         tf.logging.info('Transcription written to %s.', midi_filename)
