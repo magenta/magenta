@@ -64,6 +64,9 @@ from magenta.music.melodies_lib import PolyphonicMelodyError
 from magenta.music.melody_encoder_decoder import KeyMelodyEncoderDecoder
 from magenta.music.melody_encoder_decoder import MelodyOneHotEncoding
 
+from magenta.music.melody_inference import infer_melody_for_sequence
+from magenta.music.melody_inference import MelodyInferenceError
+
 from magenta.music.midi_io import midi_file_to_note_sequence
 from magenta.music.midi_io import midi_file_to_sequence_proto
 from magenta.music.midi_io import midi_to_note_sequence
@@ -112,6 +115,7 @@ from magenta.music.sequence_generator_bundle import read_bundle_file
 
 from magenta.music.sequences_lib import apply_sustain_control_changes
 from magenta.music.sequences_lib import BadTimeSignatureError
+from magenta.music.sequences_lib import concatenate_sequences
 from magenta.music.sequences_lib import extract_subsequence
 from magenta.music.sequences_lib import infer_dense_chords_for_sequence
 from magenta.music.sequences_lib import MultipleTempoError
