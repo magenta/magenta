@@ -128,18 +128,13 @@ def main(unused_argv=None):
                     if 'InstanceNorm' not in var.name]
 
       # Function to restore VGG16 parameters.
-      # TODO(iansimon): This is ugly, but assign_from_checkpoint_fn doesn't
-      # exist yet.
-      saver_vgg = tf.train.Saver(slim.get_variables('vgg_16'))
-      def init_fn_vgg(session):
-        saver_vgg.restore(session, vgg.checkpoint_file())
+      init_fn_vgg = slim.assign_from_checkpoint_fn(vgg.checkpoint_file(),
+                                     slim.get_variables('vgg_16'))
+
 
       # Function to restore N-styles parameters.
-      # TODO(iansimon): This is ugly, but assign_from_checkpoint_fn doesn't
-      # exist yet.
-      saver_n_styles = tf.train.Saver(other_vars)
-      def init_fn_n_styles(session):
-        saver_n_styles.restore(session, os.path.expanduser(FLAGS.checkpoint))
+      init_fn_n_styles = slim.assign_from_checkpoint_fn(os.path.expanduser(FLAGS.checkpoint),
+                                     other_vars)
 
       def init_fn(session):
         init_fn_vgg(session)

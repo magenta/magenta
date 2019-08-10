@@ -30,6 +30,8 @@ def transform(input_, alpha=1.0, normalizer_fn=ops.conditional_instance_norm,
 
   Args:
     input_: Tensor. Batch of input images.
+    alpha: Float. Number of Filters' multiplier. Defaults to 1.0,
+        which results in the hyper-parameters used in the published paper.
     normalizer_fn: normalization layer function.  Defaults to
         ops.conditional_instance_norm.
     normalizer_params: dict of parameters to pass to the conditional instance
