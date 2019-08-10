@@ -19,6 +19,7 @@ from __future__ import division
 from __future__ import print_function
 
 from magenta.models.onsets_frames_transcription import configs
+from magenta.models.onsets_frames_transcription import data
 from magenta.models.onsets_frames_transcription import infer
 import tensorflow as tf
 
@@ -26,7 +27,7 @@ import tensorflow as tf
 def main(argv):
   del argv
 
-  infer.run(configs.CONFIG_MAP)
+  infer.run(config_map=configs.CONFIG_MAP, data_fn=data.provide_batch)
 
 
 def console_entry_point():
