@@ -129,12 +129,12 @@ def main(unused_argv=None):
 
       # Function to restore VGG16 parameters.
       init_fn_vgg = slim.assign_from_checkpoint_fn(vgg.checkpoint_file(),
-                                     slim.get_variables('vgg_16'))
+                                                   slim.get_variables('vgg_16'))
 
 
       # Function to restore N-styles parameters.
       init_fn_n_styles = slim.assign_from_checkpoint_fn(os.path.expanduser(FLAGS.checkpoint),
-                                     other_vars)
+                                                        other_vars)
 
       def init_fn(session):
         init_fn_vgg(session)
