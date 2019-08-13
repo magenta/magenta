@@ -55,7 +55,6 @@ import tensorflow as tf
 absl.flags.DEFINE_string('hparams', '{}', 'Flags dict as JSON string.')
 absl.flags.DEFINE_string('config', '', 'Name of config module.')
 FLAGS = absl.flags.FLAGS
-tfgan = tf.contrib.gan
 tf.logging.set_verbosity(tf.logging.INFO)
 
 
