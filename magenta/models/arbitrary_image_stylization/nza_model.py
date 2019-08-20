@@ -29,7 +29,7 @@ slim = tf.contrib.slim
 
 
 def transform(input_, normalizer_fn=None, normalizer_params=None,
-              reuse=False, trainable=True, is_training=True):
+              reuse=False, trainable=True, is_training=True, alpha=1.0):
   """Maps content images to stylized images.
 
   Args:
@@ -37,6 +37,8 @@ def transform(input_, normalizer_fn=None, normalizer_params=None,
     normalizer_fn: normalization layer function for applying style
         normalization.
     normalizer_params: dict of parameters to pass to the style normalization op.
+    alpha: float. Number of Filters' multiplier. Defaults to 1.0,
+        which results in the hyper-parameters used in the published paper.
     reuse: bool. Whether to reuse model parameters. Defaults to False.
     trainable: bool. Should the parameters be marked as trainable?
     is_training: bool. Is it training phase or not?
@@ -59,9 +61,9 @@ def transform(input_, normalizer_fn=None, normalizer_params=None,
         with slim.arg_scope([slim.batch_norm], is_training=is_training,
                             trainable=trainable):
           with tf.variable_scope('contract'):
-            h = model_util.conv2d(input_, 9, 1, 32, 'conv1')
-            h = model_util.conv2d(h, 3, 2, 64, 'conv2')
-            h = model_util.conv2d(h, 3, 2, 128, 'conv3')
+            h = model_util.conv2d(input_, 9, 1, int(alpha * 32), 'conv1')
+            h = model_util.conv2d(h, 3, 2, int(alpha * 64), 'conv2')
+            h = model_util.conv2d(h, 3, 2, int(alpha * 128), 'conv3')
       with tf.variable_scope('residual'):
         h = model_util.residual_block(h, 3, 'residual1')
         h = model_util.residual_block(h, 3, 'residual2')
@@ -69,19 +71,22 @@ def transform(input_, normalizer_fn=None, normalizer_params=None,
         h = model_util.residual_block(h, 3, 'residual4')
         h = model_util.residual_block(h, 3, 'residual5')
       with tf.variable_scope('expand'):
-        h = model_util.upsampling(h, 3, 2, 64, 'conv1')
-        h = model_util.upsampling(h, 3, 2, 32, 'conv2')
+        h = model_util.upsampling(h, 3, 2, int(alpha * 64), 'conv1')
+        h = model_util.upsampling(h, 3, 2, int(alpha * 32), 'conv2')
         return model_util.upsampling(
             h, 9, 1, 3, 'conv3', activation_fn=tf.nn.sigmoid)
 
 
 def style_normalization_activations(pre_name='transformer',
-                                    post_name='StyleNorm'):
+                                    post_name='StyleNorm',
+                                    alpha=1.0):
   """Returns scope name and depths of the style normalization activations.
 
   Args:
     pre_name: string. Prepends this name to the scope names.
     post_name: string. Appends this name to the scope names.
+    alpha: float. Number of Filters' multiplier. Defaults to 1.0,
+        which results in the hyper-parameters used in the published paper.
 
   Returns:
     string. Scope names of the activations of the transformer network which are
@@ -105,6 +110,8 @@ def style_normalization_activations(pre_name='transformer',
                  'expand/conv3/conv']
   scope_names = ['{}/{}/{}'.format(pre_name, name, post_name)
                  for name in scope_names]
-  depths = [128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 64, 32, 3]
+  residual_depth = int(alpha * 128)
+  depths = [residual_depth, residual_depth, residual_depth, residual_depth, residual_depth, residual_depth, residual_depth, residual_depth, residual_depth, residual_depth,
+            int(alpha * 64), int(alpha * 32), 3]
 
   return scope_names, depths
