@@ -31,8 +31,7 @@ from absl import logging
 from magenta.models.gansynth.lib import networks
 import numpy as np
 import tensorflow as tf
-
-tfgan = tf.contrib.gan
+import tensorflow_gan as tfgan
 
 
 def make_train_sub_dir(stage_id, **kwargs):

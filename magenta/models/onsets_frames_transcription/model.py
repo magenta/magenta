@@ -23,6 +23,8 @@ import functools
 from magenta.common import flatten_maybe_padded_sequences
 from magenta.common import tf_utils
 from magenta.models.onsets_frames_transcription import constants
+from magenta.models.onsets_frames_transcription import infer_util
+from magenta.models.onsets_frames_transcription import metrics
 
 import tensorflow as tf
 
@@ -386,14 +388,65 @@ def model_fn(features, labels, mode, params, config):
   onset_predictions = onset_probs_flat > hparams.predict_onset_threshold
   offset_predictions = offset_probs_flat > hparams.predict_offset_threshold
 
+  frame_probs = tf.expand_dims(frame_probs_flat, axis=0)
+  frame_predictions = tf.expand_dims(frame_predictions, axis=0)
+  onset_predictions = tf.expand_dims(onset_predictions, axis=0)
+  offset_predictions = tf.expand_dims(offset_predictions, axis=0)
+  velocity_values = tf.expand_dims(velocity_values_flat, axis=0)
+
+  metrics_values = metrics.define_metrics(
+      frame_predictions=frame_predictions,
+      onset_predictions=onset_predictions,
+      offset_predictions=offset_predictions,
+      velocity_values=velocity_values,
+      length=features.length,
+      sequence_label=labels.note_sequence,
+      frame_labels=labels.labels,
+      sequence_id=features.sequence_id,
+      hparams=hparams)
+
+  for label, loss_collection in losses.items():
+    loss_label = 'losses/' + label
+    metrics_values[loss_label] = loss_collection
+
+  def predict_sequence():
+    """Convert frame predictions into a sequence."""
+    def _predict(frame_predictions, onset_predictions, offset_predictions,
+                 velocity_values):
+      sequence = infer_util.predict_sequence(
+          frame_predictions=frame_predictions,
+          onset_predictions=onset_predictions,
+          offset_predictions=offset_predictions,
+          velocity_values=velocity_values,
+          hparams=hparams, min_pitch=constants.MIN_MIDI_PITCH)
+      return sequence.SerializeToString()
+
+    sequence = tf.py_func(
+        _predict,
+        inp=[
+            frame_predictions[0], onset_predictions[0], offset_predictions[0],
+            velocity_values[0],
+        ], Tout=tf.string, stateful=False)
+    sequence.set_shape([])
+    return tf.expand_dims(sequence, axis=0)
+
   predictions = {
-      # frame_probs is exported for writing out piano roll during inference.
-      'frame_probs': tf.expand_dims(frame_probs_flat, axis=0),
-      'frame_predictions': tf.expand_dims(frame_predictions, axis=0),
-      'onset_predictions': tf.expand_dims(onset_predictions, axis=0),
-      'offset_predictions': tf.expand_dims(offset_predictions, axis=0),
-      'velocity_values': tf.expand_dims(velocity_values_flat, axis=0),
+      'frame_probs': frame_probs,
+      'frame_predictions': frame_predictions,
+      'onset_predictions': onset_predictions,
+      'offset_predictions': offset_predictions,
+      'velocity_values': velocity_values,
+      'sequence_predictions': predict_sequence(),
+      # Include some features and labels in output because Estimator 'predict'
+      # API does not give access to them.
+      'sequence_ids': features.sequence_id,
+      'sequence_labels': labels.note_sequence,
+      'frame_labels': labels.labels,
   }
+  for k, v in metrics_values.iteritems():
+    predictions[k] = tf.stack(v)
+
+  metric_ops = {k: tf.metrics.mean(v) for k, v in metrics_values.iteritems()}
 
   train_op = None
   loss = None
@@ -441,7 +494,8 @@ def model_fn(features, labels, mode, params, config):
         optimizer='Adam')
 
   return tf.estimator.EstimatorSpec(
-      mode=mode, predictions=predictions, loss=loss, train_op=train_op)
+      mode=mode, predictions=predictions, loss=loss, train_op=train_op,
+      eval_metric_ops=metric_ops)
 
 
 def get_default_hparams():

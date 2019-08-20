@@ -57,7 +57,7 @@ REQUIRED_PACKAGES = [
     'sox >= 1.3.7',
     'tensorflow-datasets >= 1.0.2',
     'tensorflow-probability >= 0.7.0rc0',
-    'tensor2tensor >= 1.10.0',
+    'tensor2tensor >= 1.13.4',
     'wheel',
     'futures;python_version=="2.7"',
     'apache-beam[gcp] >= 2.8.0;python_version=="2.7"',

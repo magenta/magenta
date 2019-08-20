@@ -33,8 +33,7 @@ from magenta.models.gansynth.lib import train_util
 from magenta.models.gansynth.lib import util
 import numpy as np
 import tensorflow as tf
-
-tfgan = tf.contrib.gan
+import tensorflow_gan as tfgan
 
 
 def set_flags(flags):
