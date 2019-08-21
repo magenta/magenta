@@ -42,7 +42,6 @@ flags.DEFINE_integer('ps_tasks', 0,
                      'Number of parameter servers. If 0, parameters '
                      'are handled locally by the worker.')
 flags.DEFINE_integer('num_styles', None, 'Number of styles.')
-flags.DEFINE_float('alpha', 1.0, 'Number of Filters Multiplier')
 flags.DEFINE_integer('save_summaries_secs', 15,
                      'Frequency at which summaries are saved, in seconds.')
 flags.DEFINE_integer('save_interval_secs', 15,
@@ -75,7 +74,7 @@ def main(unused_argv=None):
                                               FLAGS.image_size)
       # Load style images and select one at random (for each graph execution, a
       # new random selection occurs)
-      style_images, style_labels, style_gram_matrices = image_utils.style_image_inputs(
+      _, style_labels, style_gram_matrices = image_utils.style_image_inputs(
           os.path.expanduser(FLAGS.style_dataset_file),
           batch_size=FLAGS.batch_size, image_size=FLAGS.image_size,
           square_crop=True, shuffle=True)
@@ -96,13 +95,12 @@ def main(unused_argv=None):
       # Rescale style weights dynamically based on the current style image
       style_coefficient = tf.gather(
           tf.constant(style_coefficients), style_labels)
-      style_weights = dict((key, style_coefficient * style_weights[key])
-                           for key in style_weights)
+      style_weights = dict((key, style_coefficient * value)
+                           for key, value in style_weights.iteritems())
 
       # Define the model
       stylized_inputs = model.transform(
           inputs,
-          alpha=FLAGS.alpha,
           normalizer_params={
               'labels': style_labels,
               'num_categories': num_styles,
@@ -113,13 +111,8 @@ def main(unused_argv=None):
       total_loss, loss_dict = learning.total_loss(
           inputs, stylized_inputs, style_gram_matrices, content_weights,
           style_weights)
-      for key in loss_dict:
-        tf.summary.scalar(key, loss_dict[key])
-
-      # Adding Image summaries to the tensorboard.
-      tf.summary.image('image/0_inputs', inputs, 3)
-      tf.summary.image('image/1_styles', style_images, 3)
-      tf.summary.image('image/2_styled_inputs', stylized_inputs, 3)
+      for key, value in loss_dict.iteritems():
+        tf.summary.scalar(key, value)
 
       # Set up training
       optimizer = tf.train.AdamOptimizer(FLAGS.learning_rate)
@@ -127,9 +120,12 @@ def main(unused_argv=None):
           total_loss, optimizer, clip_gradient_norm=FLAGS.clip_gradient_norm,
           summarize_gradients=False)
 
-      # Function to restore VGG16 parameters.
-      init_fn_vgg = slim.assign_from_checkpoint_fn(vgg.checkpoint_file(),
-                                                   slim.get_variables('vgg_16'))
+      # Function to restore VGG16 parameters
+      # TODO(iansimon): This is ugly, but assign_from_checkpoint_fn doesn't
+      # exist yet.
+      saver = tf.train.Saver(slim.get_variables('vgg_16'))
+      def init_fn(session):
+        saver.restore(session, vgg.checkpoint_file())
 
       # Run training
       slim.learning.train(
@@ -138,7 +134,7 @@ def main(unused_argv=None):
           master=FLAGS.master,
           is_chief=FLAGS.task == 0,
           number_of_steps=FLAGS.train_steps,
-          init_fn=init_fn_vgg,
+          init_fn=init_fn,
           save_summaries_secs=FLAGS.save_summaries_secs,
           save_interval_secs=FLAGS.save_interval_secs)
 

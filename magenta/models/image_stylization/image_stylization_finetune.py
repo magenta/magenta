@@ -43,7 +43,6 @@ flags.DEFINE_float('learning_rate', 1e-3, 'Learning rate')
 flags.DEFINE_integer('batch_size', 16, 'Batch size.')
 flags.DEFINE_integer('image_size', 256, 'Image size.')
 flags.DEFINE_integer('num_styles', None, 'Number of styles.')
-flags.DEFINE_float('alpha', 1.0, 'Number of Filters Multiplier')
 flags.DEFINE_integer('ps_tasks', 0,
                      'Number of parameter servers. If 0, parameters '
                      'are handled locally by the worker.')
@@ -108,7 +107,6 @@ def main(unused_argv=None):
       # Define the model
       stylized_inputs = model.transform(
           inputs,
-          alpha=FLAGS.alpha,
           normalizer_params={
               'labels': style_labels,
               'num_categories': num_styles,
@@ -128,13 +126,18 @@ def main(unused_argv=None):
                     if 'InstanceNorm' not in var.name]
 
       # Function to restore VGG16 parameters.
-      init_fn_vgg = slim.assign_from_checkpoint_fn(vgg.checkpoint_file(),
-                                                   slim.get_variables('vgg_16'))
-
+      # TODO(iansimon): This is ugly, but assign_from_checkpoint_fn doesn't
+      # exist yet.
+      saver_vgg = tf.train.Saver(slim.get_variables('vgg_16'))
+      def init_fn_vgg(session):
+        saver_vgg.restore(session, vgg.checkpoint_file())
 
       # Function to restore N-styles parameters.
-      init_fn_n_styles = slim.assign_from_checkpoint_fn(os.path.expanduser(FLAGS.checkpoint),
-                                                        other_vars)
+      # TODO(iansimon): This is ugly, but assign_from_checkpoint_fn doesn't
+      # exist yet.
+      saver_n_styles = tf.train.Saver(other_vars)
+      def init_fn_n_styles(session):
+        saver_n_styles.restore(session, os.path.expanduser(FLAGS.checkpoint))
 
       def init_fn(session):
         init_fn_vgg(session)
