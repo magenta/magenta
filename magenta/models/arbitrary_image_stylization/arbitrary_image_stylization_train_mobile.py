@@ -48,7 +48,7 @@ flags.DEFINE_boolean(
     'augment_style_images', True,
     'Whether to resize the style images to a random size or not.')
 flags.DEFINE_boolean('center_crop', False,
-                     'Wheather to center crop the style images.')
+                     'Whether to center crop the style images.')
 flags.DEFINE_integer('ps_tasks', 0,
                      'Number of parameter servers. If 0, parameters '
                      'are handled locally by the worker.')

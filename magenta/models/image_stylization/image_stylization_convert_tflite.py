@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Generates a stylized image given an unstylized image."""
+"""Convert trained mobile style transfer model to TF Lite."""
 
 from __future__ import absolute_import
 from __future__ import division
