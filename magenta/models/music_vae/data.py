@@ -1234,6 +1234,7 @@ def get_dataset(
     dataset = tfds.load(
         config.tfds_name,
         split=tfds.Split.TRAIN if is_training else tfds.Split.VALIDATION,
+        shuffle_files=is_training,
         try_gcs=True)
     def _tf_midi_to_note_sequence(ex):
       return tf.py_function(
