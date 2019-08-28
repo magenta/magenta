@@ -41,7 +41,6 @@ def build_mobilenet_model(content_input_,
                           transformer_trainable=False,
                           reuse=None,
                           mobilenet_end_point='layer_19',
-                          transformer_alpha=0.25,
                           style_prediction_bottleneck=100,
                           adds_losses=True,
                           content_weights=None,
@@ -59,8 +58,6 @@ def build_mobilenet_model(content_input_,
     reuse: bool. Whether to reuse model parameters. Defaults to False.
     mobilenet_end_point: string. Specifies the endpoint to construct the
         MobileNetV2 network up to. This network is used for style prediction.
-    transformer_alpha: bool. Number of Filter multiplier to slim down the
-        transformer model.
     style_prediction_bottleneck: int. Specifies the bottleneck size in the
         number of parameters of the style embedding.
     adds_losses: wheather or not to add objectives to the model.
@@ -78,9 +75,8 @@ def build_mobilenet_model(content_input_,
     dict mapping loss names to losses, Tensor for the bottleneck activations of
     the style prediction network.
   """
-
   [activation_names,
-   activation_depths] = transformer_model.style_normalization_activations(alpha=transformer_alpha)
+   activation_depths] = transformer_model.style_normalization_activations()
 
   # Defines the style prediction network.
   style_params, bottleneck_feat = style_prediction_mobilenet(
@@ -97,7 +93,6 @@ def build_mobilenet_model(content_input_,
   # Defines the style transformer network
   stylized_images = transformer_model.transform(
       content_input_,
-      alpha=transformer_alpha,
       normalizer_fn=ops.conditional_style_norm,
       reuse=reuse,
       trainable=transformer_trainable,
