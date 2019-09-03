@@ -183,7 +183,8 @@ class Config(object):
     x.set_shape([mb, length, channels])
     return x
 
-  def build(self, inputs, is_training, rescale_inputs=True):
+  def build(self, inputs, is_training, rescale_inputs=True,
+            include_decoder=True, use_reduce_mean_to_pool=False):
     """Build the graph for this configuration.
 
     Args:
@@ -191,6 +192,9 @@ class Config(object):
       is_training: Whether we are training or not. Not used in this config.
       rescale_inputs: Whether to convert inputs to mu-law and back to unit
         scaling before passing through the model (loses gradients).
+      include_decoder: bool, whether to include the decoder in the build().
+      use_reduce_mean_to_pool: whether to use reduce_mean (instead of pool1d)
+        for pooling.
     Returns:
       A dict of outputs that includes the 'predictions', 'loss', the 'encoding',
       the 'quantized_input', and whatever metrics we want to track for eval.
@@ -248,8 +252,21 @@ class Config(object):
         filter_length=1,
         name='ae_bottleneck',
         is_training=is_training)
-    en = masked.pool1d(en, self.ae_hop_length, name='ae_pool', mode='avg')
+
+    if use_reduce_mean_to_pool:
+      # Depending on the accelerator used for training, masked.pool1d may
+      # lead to out of memory error.
+      # reduce_mean is equivalent to masked.pool1d when the stride is the same
+      # as the window length (which is the case here).
+      batch_size, unused_length, depth = en.shape.as_list()
+      en = tf.reshape(en, [batch_size, -1, self.ae_hop_length, depth])
+      en = tf.reduce_mean(en, axis=2)
+    else:
+      en = masked.pool1d(en, self.ae_hop_length, name='ae_pool', mode='avg')
     encoding = en
+
+    if not include_decoder:
+      return {'encoding': encoding}
 
     ###
     # The WaveNet Decoder.
