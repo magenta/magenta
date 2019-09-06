@@ -429,5 +429,4 @@ class FlattenedTextMelodyEncoderAbsolute(TextMelodyEncoderAbsolute):
       ids: List of encoded melody event indices.
     """
     ns = magenta.music.midi_file_to_sequence_proto(s)
-    encoded = self.encode_note_sequence(ns)
-    return encoded
+    return self.encode_note_sequence(ns)
