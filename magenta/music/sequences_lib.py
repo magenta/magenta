@@ -1535,9 +1535,9 @@ def apply_sustain_control_changes(note_sequence, sustain_control_number=64):
     elif value < 64:
       events.append((cc.time, _SUSTAIN_OFF, cc))
 
-  # Sort, using the event type constants to ensure the order events are
+  # Sort, using the time and event type constants to ensure the order events are
   # processed.
-  events.sort(key=operator.itemgetter(0))
+  events.sort(key=operator.itemgetter(0, 1))
 
   # Lists of active notes, keyed by instrument.
   active_notes = collections.defaultdict(list)
