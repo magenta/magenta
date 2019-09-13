@@ -38,6 +38,11 @@ REQUIRED_PACKAGES = [
     'Pillow >= 3.4.2',
     'backports.tempfile',
     'bokeh >= 0.12.0',
+    # Temporary fix for gast issue with TF.
+    # Details:
+    # https://github.com/tensorflow/tensorflow/issues/32319
+    # https://github.com/tensorflow/tensorflow/commit/c72125bd59858ec82a9238b232bbd77c45889c5a
+    'gast == 0.2.2',
     'intervaltree >= 2.1.0',
     'joblib >= 0.12',
     'librosa >= 0.6.2',
