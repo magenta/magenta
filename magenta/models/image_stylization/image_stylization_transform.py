@@ -30,6 +30,8 @@ import tensorflow as tf
 flags = tf.flags
 flags.DEFINE_integer('num_styles', 1,
                      'Number of styles the model was trained on.')
+flags.DEFINE_float('alpha', 1.0,
+                   'Width multiplier the model was trained on.')
 flags.DEFINE_string('checkpoint', None, 'Checkpoint to load the model from')
 flags.DEFINE_string('input_image', None, 'Input image file')
 flags.DEFINE_string('output_dir', None, 'Output directory.')
@@ -83,11 +85,13 @@ def _multiple_images(input_image, which_styles, output_dir):
   with tf.Graph().as_default(), tf.Session() as sess:
     stylized_images = model.transform(
         tf.concat([input_image for _ in range(len(which_styles))], 0),
+        alpha=FLAGS.alpha,
         normalizer_params={
             'labels': tf.constant(which_styles),
             'num_categories': FLAGS.num_styles,
             'center': True,
-            'scale': True})
+            'scale': True
+        })
     _load_checkpoint(sess, FLAGS.checkpoint)
 
     stylized_images = stylized_images.eval()
@@ -103,12 +107,14 @@ def _multiple_styles(input_image, which_styles, output_dir):
     mixture = _style_mixture(which_styles, FLAGS.num_styles)
     stylized_images = model.transform(
         input_image,
+        alpha=FLAGS.alpha,
         normalizer_fn=ops.weighted_instance_norm,
         normalizer_params={
             'weights': tf.constant(mixture),
             'num_categories': FLAGS.num_styles,
             'center': True,
-            'scale': True})
+            'scale': True
+        })
     _load_checkpoint(sess, FLAGS.checkpoint)
 
     stylized_image = stylized_images.eval()

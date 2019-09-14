@@ -47,6 +47,7 @@ flags.DEFINE_integer('eval_interval_secs', 60,
                      'Frequency, in seconds, at which evaluation is run.')
 flags.DEFINE_integer('num_evals', 32, 'Number of evaluations of the losses.')
 flags.DEFINE_integer('num_styles', None, 'Number of styles.')
+flags.DEFINE_float('alpha', 1.0, 'Width multiplier')
 flags.DEFINE_string('content_weights', DEFAULT_CONTENT_WEIGHTS,
                     'Content weights')
 flags.DEFINE_string('eval_dir', None,
@@ -96,18 +97,25 @@ def main(_):
               'scale': True}
 
     # Dummy call to simplify the reuse logic
-    model.transform(inputs, reuse=False,
-                    normalizer_params=_create_normalizer_params(labels[0]))
+    model.transform(
+        inputs,
+        alpha=FLAGS.alpha,
+        reuse=False,
+        normalizer_params=_create_normalizer_params(labels[0]))
 
     def _style_sweep(inputs):
       """Transfers all styles onto the input one at a time."""
       inputs = tf.expand_dims(inputs, 0)
-      stylized_inputs = [
-          model.transform(
-              inputs,
-              reuse=True,
-              normalizer_params=_create_normalizer_params(style_label))
-          for _, style_label in enumerate(labels)]
+
+      stylized_inputs = []
+      for _, style_label in enumerate(labels):
+        stylized_input = model.transform(
+            inputs,
+            alpha=FLAGS.alpha,
+            reuse=True,
+            normalizer_params=_create_normalizer_params(style_label))
+        stylized_inputs.append(stylized_input)
+
       return tf.concat([inputs] + stylized_inputs, 0)
 
     if FLAGS.style_grid:
@@ -158,6 +166,7 @@ def main(_):
             for key, value in style_gram_matrices.items())
         stylized_inputs = model.transform(
             inputs,
+            alpha=FLAGS.alpha,
             reuse=True,
             normalizer_params=_create_normalizer_params(label))
         _, loss_dict = learning.total_loss(

@@ -87,8 +87,9 @@ def main(unused_argv):
               # layers are already too deep in the network to be useful for
               # style and b) they're quite expensive to store.
               final_endpoint='pool5')
-          for name, matrix in style_end_points.iteritems():
-            feature[name] = _float_feature(matrix.flatten().tolist())
+          for name in style_end_points:
+            feature[name] = _float_feature(
+                style_end_points[name].flatten().tolist())
 
       example = tf.train.Example(features=tf.train.Features(feature=feature))
       writer.write(example.SerializeToString())
