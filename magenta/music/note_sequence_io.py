@@ -74,4 +74,4 @@ class NoteSequenceRecordWriter(tf.python_io.TFRecordWriter):
     Args:
       note_sequence: A NoteSequence proto to write.
     """
-    tf.python_io.TFRecordWriter.write(self, note_sequence.SerializeToString())
+    tf.io.TFRecordWriter.write(self, note_sequence.SerializeToString())
