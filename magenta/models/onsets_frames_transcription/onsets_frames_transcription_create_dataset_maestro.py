@@ -28,7 +28,8 @@ def main(argv):
   del argv
 
   create_dataset_maestro.pipeline(
-      configs.CONFIG_MAP, configs.DATASET_CONFIG_MAP, data.preprocess_example)
+      configs.CONFIG_MAP, configs.DATASET_CONFIG_MAP, data.preprocess_example,
+      data.input_tensors_to_example)
 
 
 def console_entry_point():
