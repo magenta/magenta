@@ -12,10 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Imports Magenta problems so that they register with Tensor2Tensor."""
+"""Imports SVG VAE."""
 
-# pylint: disable=unused-import
-from magenta.models import score2perf
-from magenta.models import svg_vae
-
-# pylint: enable=unused-import
+from magenta.models.svg_vae import glyphazzn
+from magenta.models.svg_vae import image_vae
+from magenta.models.svg_vae import svg_decoder
