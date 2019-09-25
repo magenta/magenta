@@ -388,7 +388,6 @@ def model_fn(features, labels, mode, params, config):
   onset_predictions = onset_probs_flat > hparams.predict_onset_threshold
   offset_predictions = offset_probs_flat > hparams.predict_offset_threshold
 
-  frame_probs = tf.expand_dims(frame_probs_flat, axis=0)
   frame_predictions = tf.expand_dims(frame_predictions, axis=0)
   onset_predictions = tf.expand_dims(onset_predictions, axis=0)
   offset_predictions = tf.expand_dims(offset_predictions, axis=0)
@@ -431,7 +430,7 @@ def model_fn(features, labels, mode, params, config):
     return tf.expand_dims(sequence, axis=0)
 
   predictions = {
-      'frame_probs': frame_probs,
+      'frame_probs': tf.expand_dims(frame_probs_flat, axis=0),
       'frame_predictions': frame_predictions,
       'onset_predictions': onset_predictions,
       'offset_predictions': offset_predictions,
