@@ -158,8 +158,7 @@ def train(train_dir,
         config.hparams, config.train_examples_path or config.tfds_name,
         train_dir)
   with tf.Graph().as_default():
-    with tf.device(tf.train.replica_device_setter(
-        num_ps_tasks, merge_devices=True)):
+    with tf.device(tf.train.replica_device_setter(num_ps_tasks, merge_devices=True)):
 
       model = config.model
       model.build(config.hparams,
@@ -206,6 +205,7 @@ def train(train_dir,
           saver=tf.train.Saver(
               max_to_keep=checkpoints_to_keep,
               keep_checkpoint_every_n_hours=keep_checkpoint_every_n_hours))
+
       tf.contrib.training.train(
           train_op=train_op,
           logdir=train_dir,

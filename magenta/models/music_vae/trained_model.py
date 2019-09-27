@@ -68,6 +68,7 @@ class TrainedModel(object):
           self._config.hparams,
           self._config.data_converter.output_depth,
           is_training=False)
+
       # Input placeholders
       self._temperature = tf.placeholder(tf.float32, shape=())
 
@@ -93,6 +94,7 @@ class TrainedModel(object):
           tf.int32,
           shape=[batch_size] + list(self._config.data_converter.length_shape))
       self._max_length = tf.placeholder(tf.int32, shape=())
+
       # Outputs
       self._outputs, self._decoder_results = model.sample(
           batch_size,
