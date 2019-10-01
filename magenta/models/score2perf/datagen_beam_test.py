@@ -12,8 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# pylint: skip-file
-# TODO(iansimon): Enable when Apache Beam supports Python 3.
 """Tests for Score2Perf datagen using beam."""
 
 from __future__ import absolute_import

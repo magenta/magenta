@@ -24,6 +24,7 @@ import sys
 
 from magenta.models.score2perf import modalities
 from magenta.models.score2perf import music_encoders
+from magenta.models.score2perf import datagen_beam
 from magenta.music import chord_symbols_lib
 from magenta.music import sequences_lib
 from tensor2tensor.data_generators import problem
@@ -32,8 +33,6 @@ from tensor2tensor.models import transformer
 from tensor2tensor.utils import registry
 import tensorflow as tf
 
-if sys.version_info.major == 2:
-  from magenta.models.score2perf import datagen_beam  # pylint:disable=g-import-not-at-top,ungrouped-imports
 
 # TODO(iansimon): figure out the best way not to hard-code these constants
 
