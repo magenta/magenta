@@ -68,10 +68,11 @@ REQUIRED_PACKAGES = [
     'apache-beam[gcp] >= 2.8.0;python_version=="2.7"',
 ]
 
+# Magenta library is not yet TF2 compatible.
 if gpu_mode:
-  REQUIRED_PACKAGES.append('tensorflow-gpu >= 1.14.0')
+  REQUIRED_PACKAGES.append('tensorflow-gpu >= 1.14.0, < 2.0.0')
 else:
-  REQUIRED_PACKAGES.append('tensorflow >= 1.14.0')
+  REQUIRED_PACKAGES.append('tensorflow >= 1.14.0, < 2.0.0')
 
 # pylint:disable=line-too-long
 CONSOLE_SCRIPTS = [
