@@ -49,7 +49,7 @@ def linear_to_mel_weight_matrix(num_mel_bins=20,
                                 upper_edge_hertz=3800.0):
   """Returns a matrix to warp linear scale spectrograms to the mel scale.
 
-  Adapted from tf.contrib.signal.linear_to_mel_weight_matrix with a minimum
+  Adapted from tf.signal.linear_to_mel_weight_matrix with a minimum
   band width (in Hz scale) of 1.5 * freq_bin. To preserve accuracy,
   we compute the matrix at float64 precision and then cast to `dtype`
   at the end. This function can be constant folded by graph optimization
