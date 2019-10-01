@@ -23,9 +23,7 @@ import functools
 import hashlib
 import logging
 import os
-import sys
 import random
-from absl import flags
 import apache_beam as beam
 from apache_beam import typehints
 from apache_beam.metrics import Metrics
@@ -41,11 +39,11 @@ import typing
 # TODO(iansimon): this should probably be defined in the problem
 SCORE_BPM = 120.0
 
+FLAGS = tf.app.flags.FLAGS
+flags = tf.app.flags
 flags.DEFINE_string(
     'pipeline_options', '',
     'Command line flags to use in constructing the Beam pipeline options.')
-FLAGS = flags.FLAGS
-FLAGS(sys.argv)
 
 # TODO(iansimon): Figure out how to avoid explicitly serializing and
 # deserializing NoteSequence protos.
