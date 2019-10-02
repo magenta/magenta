@@ -162,12 +162,9 @@ setup(
     },
     setup_requires=['pytest-runner', 'pytest-pylint'],
     tests_require=[
-        'pytest',
-        'pytest-xdist',
+        'pytest >= 5.2.0',
+        'pytest-xdist < 1.30.0',  # 1.30 has problems working with pylint plugin
         'pylint < 2.0.0;python_version<"3"',
-        # pylint 2.3.0 and astroid 2.2.0 caused spurious errors,
-        # so lock them down to known good versions.
-        'pylint == 2.2.2;python_version>="3"',
-        'astroid == 2.0.4;python_version>="3"',
+        'pylint >= 2.4.2;python_version>="3"',
     ],
 )
