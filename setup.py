@@ -58,7 +58,7 @@ REQUIRED_PACKAGES = [
     'scipy >= 0.18.1',
     'six >= 1.12.0',
     'sk-video',
-    'sonnet',
+    'dm-sonnet < 2.0.0',  # Sonnet 2 requires TF2.
     'sox >= 1.3.7',
     'tensorflow-datasets >= 1.0.2',
     'tensorflow-probability == 0.7.0',
