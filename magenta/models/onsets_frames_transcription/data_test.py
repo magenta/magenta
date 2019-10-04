@@ -284,6 +284,27 @@ class DataTest(tf.test.TestCase):
         lengths=[10, 50, 100, 10, 50, 80],
         expected_num_inputs=6)
 
+  def testGeneratedShardedFilenamesCommaWithShard(self):
+    filenames = data.generate_sharded_filenames('/foo/bar@3,/baz/qux@2')
+    self.assertEqual(
+        [
+            '/foo/bar-00000-of-00003',
+            '/foo/bar-00001-of-00003',
+            '/foo/bar-00002-of-00003',
+            '/baz/qux-00000-of-00002',
+            '/baz/qux-00001-of-00002',
+        ],
+        filenames)
+
+  def testGeneratedShardedFilenamesCommaWithoutShard(self):
+    filenames = data.generate_sharded_filenames('/foo/bar,/baz/qux')
+    self.assertEqual(
+        [
+            '/foo/bar',
+            '/baz/qux',
+        ],
+        filenames)
+
 
 if __name__ == '__main__':
   tf.test.main()

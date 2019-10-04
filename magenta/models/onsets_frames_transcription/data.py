@@ -522,19 +522,19 @@ def input_tensors_to_model_input(
   return features, labels
 
 
-def generate_sharded_filenames(filenames):
+def generate_sharded_filenames(sharded_filenames):
   """Generate a list of filenames from a filename with an @shards suffix."""
-  for filename in filenames.split(','):
+  filenames = []
+  for filename in sharded_filenames.split(','):
     match = re.match(r'^([^@]+)@(\d+)$', filename)
     if not match:
-      return [filename]
+      filenames.append(filename)
     else:
       num_shards = int(match.group(2))
       base = match.group(1)
-      filenames = []
       for i in range(num_shards):
         filenames.append('{}-{:0=5d}-of-{:0=5d}'.format(base, i, num_shards))
-      return filenames
+  return filenames
 
 
 def read_examples(examples, is_training, shuffle_examples,
