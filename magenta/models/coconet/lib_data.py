@@ -150,8 +150,8 @@ class Jsb16thSeparated(Dataset):
 
 class TestData(Dataset):
   key = "TestData"
-  min_pitch = 0
-  max_pitch = 127
+  min_pitch = 36
+  max_pitch = 81
   shortest_duration = 0.125
   num_instruments = 4
   qpm = 60
