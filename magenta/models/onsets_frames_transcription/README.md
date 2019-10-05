@@ -127,7 +127,7 @@ onsets_frames_transcription_infer \
   --examples_path="${TEST_EXAMPLES}" \
   --model_dir="${MODEL_DIR}" \
   --output_dir="${OUTPUT_DIR}" \
-  --hparams="use_cudnn=false" \
+  --hparams=use_cudnn=false \
   --eval_loop
 ```
 
@@ -149,11 +149,11 @@ OUTPUT_DIR=<path where output should be saved>
 onsets_frames_transcription_infer \
   --model_dir="${CHECKPOINT_DIR}" \
   --examples_path="${TEST_EXAMPLES}" \
-  --output_dir="${RUN_DIR}"
+  --output_dir="${OUTPUT_DIR}"
 ```
 
 You can check on the metrics resulting from inference using TensorBoard:
 
 ```bash
-tensorboard --logdir="${RUN_DIR}"
+tensorboard --logdir="${OUTPUT_DIR}"
 ```
