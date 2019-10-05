@@ -61,7 +61,7 @@ if [[ ! $(which conda) ]]; then
     echo "==========================================="
     echo ""
     readonly CONDA_INSTALL="/tmp/${MINICONDA_SCRIPT}"
-    readonly CONDA_PREFIX="${HOME}/miniconda2"
+    readonly CONDA_PREFIX="${HOME}/miniconda3"
     curl "https://repo.continuum.io/miniconda/${MINICONDA_SCRIPT}" > "${CONDA_INSTALL}"
     bash "${CONDA_INSTALL}" -p "${CONDA_PREFIX}"
     # Modify the path manually rather than sourcing .bashrc because some .bashrc
