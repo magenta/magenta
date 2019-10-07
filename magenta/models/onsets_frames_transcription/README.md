@@ -127,7 +127,7 @@ onsets_frames_transcription_infer \
   --examples_path="${TEST_EXAMPLES}" \
   --model_dir="${MODEL_DIR}" \
   --output_dir="${OUTPUT_DIR}" \
-  --hparams=use_cudnn=false \
+  --hparams="use_cudnn=false" \
   --eval_loop
 ```
 
