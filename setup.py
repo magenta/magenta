@@ -65,7 +65,7 @@ REQUIRED_PACKAGES = [
     'tensor2tensor >= 1.13.4',
     'wheel',
     'futures;python_version=="2.7"',
-    'apache-beam[gcp] >= 2.8.0;python_version=="2.7"',
+    'apache-beam[gcp] >= 2.14.0',
 ]
 
 # Magenta library is not yet TF2 compatible.

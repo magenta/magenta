@@ -12,8 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# pylint: skip-file
-# TODO(iansimon): Enable when Apache Beam supports Python 3.
 """Beam pipeline to generate examples for a Score2Perf dataset."""
 
 from __future__ import absolute_import
@@ -26,7 +24,6 @@ import hashlib
 import logging
 import os
 import random
-from absl import flags
 import apache_beam as beam
 from apache_beam import typehints
 from apache_beam.metrics import Metrics
@@ -42,7 +39,11 @@ import typing
 # TODO(iansimon): this should probably be defined in the problem
 SCORE_BPM = 120.0
 
-FLAGS = flags.FLAGS
+# Shortcut to beat annotation.
+BEAT = music_pb2.NoteSequence.TextAnnotation.BEAT
+
+FLAGS = tf.app.flags.FLAGS
+flags = tf.app.flags
 flags.DEFINE_string(
     'pipeline_options', '',
     'Command line flags to use in constructing the Beam pipeline options.')
@@ -72,7 +73,7 @@ class ReadNoteSequencesFromTFRecord(beam.PTransform):
 def select_split(cumulative_splits, kv, unused_num_partitions):
   """Select split for an `(id, _)` tuple using a hash of `id`."""
   key, _ = kv
-  m = hashlib.md5(key)
+  m = hashlib.md5(key.encode('utf-8'))
   r = int(m.hexdigest(), 16) / (2 ** (8 * m.digest_size))
   for i, (name, p) in enumerate(cumulative_splits):
     if r < p:
@@ -163,7 +164,7 @@ class ExtractExamplesDoFn(beam.DoFn):
     # Seed random number generator based on key so that hop times are
     # deterministic.
     key, ns_str = kv
-    m = hashlib.md5(key)
+    m = hashlib.md5(key.encode('utf-8'))
     random.seed(int(m.hexdigest(), 16))
 
     # Deserialize NoteSequence proto.
@@ -218,8 +219,7 @@ class ExtractExamplesDoFn(beam.DoFn):
           # Beats are required to extract a score with metric timing.
           beats = [
               ta for ta in performance_sequence.text_annotations
-              if (ta.annotation_type ==
-                  music_pb2.NoteSequence.TextAnnotation.BEAT)
+              if ta.annotation_type == BEAT
               and ta.time <= performance_sequence.total_time
           ]
           if len(beats) < 2:
@@ -394,7 +394,7 @@ def generate_examples(input_transform, output_dir, problem_name, splits,
       raise ValueError(
           'Split probabilities must be provided if input is not presplit.')
     split_names, split_probabilities = zip(*splits.items())
-    cumulative_splits = zip(split_names, np.cumsum(split_probabilities))
+    cumulative_splits = list(zip(split_names, np.cumsum(split_probabilities)))
     if cumulative_splits[-1][1] != 1.0:
       raise ValueError('Split probabilities must sum to 1; got %f' %
                        cumulative_splits[-1][1])
