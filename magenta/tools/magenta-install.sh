@@ -44,11 +44,11 @@ err() {
 if [[ "$(uname)" == "Darwin" ]]; then
     echo 'Mac OS Detected'
     readonly OS='MAC'
-    readonly MINICONDA_SCRIPT='Miniconda2-latest-MacOSX-x86_64.sh'
+    readonly MINICONDA_SCRIPT='Miniconda3-latest-MacOSX-x86_64.sh'
 elif [[ "$(uname)" == "Linux" ]]; then
     echo 'Linux OS Detected'
     readonly OS='LINUX'
-    readonly MINICONDA_SCRIPT='Miniconda2-latest-Linux-x86_64.sh'
+    readonly MINICONDA_SCRIPT='Miniconda3-latest-Linux-x86_64.sh'
 else
     err 'Detected neither OSX or Linux Operating System'
 fi
@@ -61,7 +61,7 @@ if [[ ! $(which conda) ]]; then
     echo "==========================================="
     echo ""
     readonly CONDA_INSTALL="/tmp/${MINICONDA_SCRIPT}"
-    readonly CONDA_PREFIX="${HOME}/miniconda2"
+    readonly CONDA_PREFIX="${HOME}/miniconda3"
     curl "https://repo.continuum.io/miniconda/${MINICONDA_SCRIPT}" > "${CONDA_INSTALL}"
     bash "${CONDA_INSTALL}" -p "${CONDA_PREFIX}"
     # Modify the path manually rather than sourcing .bashrc because some .bashrc
@@ -85,7 +85,7 @@ echo "setting up magenta environment"
 echo "=============================="
 echo ""
 
-conda create -n magenta python=2.7
+conda create -n magenta python=3.7
 
 # Need to deactivate set -e because the conda activate script was not written
 # with set -e in mind, and because we source it here, the -e stays active.
@@ -99,7 +99,7 @@ if [[ $(conda info --envs | grep "*" | awk '{print $1}') != "magenta" ]]; then
 fi
 
 # Install other dependencies
-pip install jupyter magenta
+pip3 install jupyter magenta
 
 # Install rtmidi for realtime midi IO
 if [[ $(which apt-get) ]]; then
@@ -111,7 +111,7 @@ if [[ $(which apt-get) ]]; then
     echo ""
     sudo apt-get install build-essential libasound2-dev libjack-dev
 fi
-pip install --pre python-rtmidi
+pip3 install --pre python-rtmidi
 
 echo ""
 echo "=============================="
