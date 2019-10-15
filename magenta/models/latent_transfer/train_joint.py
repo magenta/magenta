@@ -32,6 +32,8 @@ from magenta.models.latent_transfer import common
 from magenta.models.latent_transfer import common_joint
 from magenta.models.latent_transfer import model_joint
 import numpy as np
+import six
+from six.moves import range
 import tensorflow as tf
 from tqdm import tqdm
 
@@ -158,7 +160,7 @@ def main(unused_argv):
 
   # Training loop
   n_iters = FLAGS.n_iters
-  for i in tqdm(range(i_start, n_iters), desc='training', unit=' batch'):
+  for i in tqdm(list(range(i_start, n_iters)), desc='training', unit=' batch'):
     # Prepare data for this batch
     # - Unsupervised (A)
     x_A, _ = next(single_data_iterator_A)
@@ -229,7 +231,7 @@ def main(unused_argv):
       sample_batch_size = 100
 
       def pred(one_side_helper, x):
-        real_x = one_side_helper.m_helper.decode(x)
+        real_x = six.ensure_text(one_side_helper.m_helper, x)
         return one_side_helper.m_classifier_helper.classify(real_x, batch_size)
 
       def accuarcy(x_1, x_2, type_1, type_2):
