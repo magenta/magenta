@@ -43,10 +43,10 @@ flags.DEFINE_string('content_images_paths', None, 'Paths to the content images'
                     'for evaluation.')
 flags.DEFINE_string('output_dir', None, 'Output directory.')
 flags.DEFINE_integer('image_size', 256, 'Image size.')
-flags.DEFINE_boolean('content_square_crop', False, 'Wheather to center crop'
+flags.DEFINE_boolean('content_square_crop', False, 'Whether to center crop'
                      'the content image to be a square or not.')
 flags.DEFINE_integer('style_image_size', 256, 'Style image size.')
-flags.DEFINE_boolean('style_square_crop', False, 'Wheather to center crop'
+flags.DEFINE_boolean('style_square_crop', False, 'Whether to center crop'
                      'the style image to be a square or not.')
 flags.DEFINE_integer('maximum_styles_to_evaluate', 1024, 'Maximum number of'
                      'styles to evaluate.')
