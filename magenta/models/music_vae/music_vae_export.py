@@ -2,12 +2,21 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-import argparse
 import json
+import os
 import tensorflow as tf
 from collections import namedtuple
 from tensorflow.python import saved_model
 from magenta.models.music_vae import configs
+
+flags = tf.app.flags
+logging = tf.logging
+FLAGS = flags.FLAGS
+
+flags.DEFINE_string("checkpoint", None, "Path to the checkpoint file")
+flags.DEFINE_string("output_dir", None, "output directory for the saved model")
+flags.DEFINE_string("config", None, "name of the VAE config to use")
+flags.DEFINE_integer("batch_size", 10, "batch size the model is trained with")
 
 
 # Function builds the VAE graph from a configuration object for exporting as a saved model
@@ -78,56 +87,28 @@ def build_vae_graph(vae_config, batch_size, **sample_kwargs):
 
 # This function has too many arguments, pass a data structure later
 def build_signature_defs(input_tensors, output_tensors):
-    sample_signature_def = build_sample_signature(input_tensors, output_tensors)
     encode_signature_def = build_encode_signature(input_tensors, output_tensors)
     decode_signature_def = build_decode_signature(input_tensors, output_tensors)
 
     signature_def_map = {
-        'sample': sample_signature_def,
-        'encode': encode_signature_def,
-        'decode': decode_signature_def
+        "encode": encode_signature_def,
+        "decode": decode_signature_def
     }
 
     return signature_def_map
 
 
-# TODO create a named registry of signature def builders keyed by name for better type safety
-# Sample seems almost exactly like decode from the trained model code, possibly redundant
-def build_sample_signature(input_tensors, output_tensors):
-    sample_inputs = {
-        'temperature': saved_model.utils.build_tensor_info(input_tensors.temperature),
-        'max_length': saved_model.utils.build_tensor_info(input_tensors.max_length)
-    }
-    if input_tensors.c_input is not None:
-        sample_inputs['c_input'] = saved_model.utils.build_tensor_info(input_tensors.c_input)
-    if input_tensors.z_input is not None:
-        sample_inputs['z_input'] = saved_model.utils.build_tensor_info(input_tensors.z_input)
-
-    sample_outputs = {
-        'outputs': saved_model.utils.build_tensor_info(output_tensors.outputs)
-
-    }
-
-    sample_signature_def = saved_model.signature_def_utils.build_signature_def(
-        inputs=sample_inputs,
-        outputs=sample_outputs,
-        method_name="sample"
-    )
-
-    return sample_signature_def
-
-
 def build_encode_signature(input_tensors, output_tensors):
     # define the signature for the encoding operation
     encode_inputs = {
-        'inputs': saved_model.utils.build_tensor_info(input_tensors.inputs),
-        'controls': saved_model.utils.build_tensor_info(input_tensors.controls),
-        'inputs_length': saved_model.utils.build_tensor_info(input_tensors.inputs_length)
+        "inputs": saved_model.utils.build_tensor_info(input_tensors.inputs),
+        "controls": saved_model.utils.build_tensor_info(input_tensors.controls),
+        "inputs_length": saved_model.utils.build_tensor_info(input_tensors.inputs_length)
     }
     encode_outputs = {
-        'mu': saved_model.utils.build_tensor_info(output_tensors.mu),
-        'sigma': saved_model.utils.build_tensor_info(output_tensors.sigma),
-        'z': saved_model.utils.build_tensor_info(output_tensors.z)
+        "mu": saved_model.utils.build_tensor_info(output_tensors.mu),
+        "sigma": saved_model.utils.build_tensor_info(output_tensors.sigma),
+        "z": saved_model.utils.build_tensor_info(output_tensors.z)
     }
 
     encode_signature_def = saved_model.signature_def_utils.build_signature_def(
@@ -141,25 +122,21 @@ def build_encode_signature(input_tensors, output_tensors):
 
 def build_decode_signature(input_tensors, output_tensors):
     decode_inputs = {
-        'temperature': saved_model.utils.build_tensor_info(input_tensors.temperature),
-        'max_length': saved_model.utils.build_tensor_info(input_tensors.max_length),
-        'z_input': saved_model.utils.build_tensor_info(input_tensors.z_input)
+        "temperature": saved_model.utils.build_tensor_info(input_tensors.temperature),
+        "max_length": saved_model.utils.build_tensor_info(input_tensors.max_length),
+        "z_input": saved_model.utils.build_tensor_info(input_tensors.z_input)
     }
     if input_tensors.c_input:
         decode_inputs["c_input"] = saved_model.utils.build_tensor_info(input_tensors.c_input)
 
-    # Question for magenta team about this, appears in trained model as a return value from decode,
-    # but is not actually a tensor or operation
     decode_outputs = {
-        'outputs': saved_model.utils.build_tensor_info(output_tensors.outputs),
-        # 'decoder_results': saved_model.utils.build_tensor_info(decoder_results)
-
+        "outputs": saved_model.utils.build_tensor_info(output_tensors.outputs),
     }
 
     decode_signature_def = saved_model.signature_def_utils.build_signature_def(
         inputs=decode_inputs,
         outputs=decode_outputs,
-        method_name='decode'
+        method_name="decode"
     )
 
     return decode_signature_def
@@ -170,11 +147,12 @@ def export_saved_model(checkpoint_path, output_dir, config, batch_size, **sample
 
     if tf.io.gfile.isdir(checkpoint_path):
         checkpoint_path = tf.train.latest_checkpoint(checkpoint_path)
-        tf.logging.info('loading VAE checkpoint at: {}'.format(checkpoint_path))
+        tf.logging.info("loading VAE checkpoint at: {}".format(checkpoint_path))
     elif not tf.io.gfile.exists(checkpoint_path + ".index"):
-        raise ValueError('Invalid checkpoint path specified: {}'.format(checkpoint_path))
+        raise ValueError("Invalid checkpoint path specified: {}".format(checkpoint_path))
 
     builder = saved_model.builder.SavedModelBuilder(output_dir)
+    export_config_metadata(config, output_dir)
 
     with tf.Session(graph=graph) as session:
         saver = tf.train.Saver()
@@ -189,31 +167,14 @@ def export_saved_model(checkpoint_path, output_dir, config, batch_size, **sample
     builder.save()
 
 
+def export_config_metadata(config, output_dir):
+    output_path = os.path.join(output_dir, "servable.metadata")
+    with open(output_path, 'w') as outf:
+        json.dump(config.serving_values(), outf)
+
+
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser()
-    parser.add_argument(
-        '--checkpoint',
-        required=True,
-        help='Path to the checkpoint file'
-    )
-    parser.add_argument(
-        '--output-dir',
-        required=True,
-        help='output directory for the saved model'
-    )
-    parser.add_argument(
-        '--config',
-        required=True,
-        default=None,
-        help="""name of the VAE config to use """
-    )
-    parser.add_argument(
-        '--batch-size',
-        type=json.loads,
-        help="""batch size the model was trained with"""
-    )
-    args = parser.parse_args()
-    if args.config not in configs.CONFIG_MAP:
-        raise ValueError('Invalid config name: %s' % args.config)
-    config = configs.CONFIG_MAP[args.config]
-    export_saved_model(args.checkpoint, args.output_dir, config, args.batch_size)
+    if FLAGS.config not in configs.CONFIG_MAP:
+        raise ValueError('Invalid config name: %s' % FLAGS.config)
+    config = configs.CONFIG_MAP[FLAGS.config]
+    export_saved_model(FLAGS.checkpoint, FLAGS.output_dir, config, FLAGS.batch_size)

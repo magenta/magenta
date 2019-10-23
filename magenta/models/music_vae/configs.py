@@ -32,10 +32,30 @@ from tensorflow.contrib.training import HParams
 class Config(collections.namedtuple(
     'Config',
     ['model', 'hparams', 'note_sequence_augmenter', 'data_converter',
-     'train_examples_path', 'eval_examples_path', 'tfds_name'])):
+     'train_examples_path', 'eval_examples_path', 'tfds_name',
+     'signatures', 'ns_converter_name', 'architecture_name'])):
 
   def values(self):
     return self._asdict()
+
+  def serving_values(self):
+    """
+    Method to fetch the configuration values which are necessary for serving a savedmodel exported vae
+    :return: A json-serializable dictionary of Hparams required for serving re-instantiation
+    """
+    config_dict = self.values()
+    hparams = config_dict['hparams']
+    return {
+        'architecture_name': config_dict['architecture_name'],
+        'signatures': config_dict['signatures'],
+        'ns_converter_name': config_dict['ns_converter_name'],
+        'serving_hparams': {
+            'batch_size': hparams.get('batch_size'),
+            'max_seq_length': hparams.get('max_seq_len'),
+            'z_size': hparams.get('z_size')
+        },
+    }
+
 
 Config.__new__.__defaults__ = (None,) * len(Config._fields)
 
@@ -273,6 +293,7 @@ CONFIG_MAP['flat-trio_16bar'] = Config(
     data_converter=trio_16bar_converter,
     train_examples_path=None,
     eval_examples_path=None,
+    signatures=['sample', 'interpolate']
 )
 
 CONFIG_MAP['hierdec-trio_16bar'] = Config(
@@ -306,6 +327,9 @@ CONFIG_MAP['hierdec-trio_16bar'] = Config(
     data_converter=trio_16bar_converter,
     train_examples_path=None,
     eval_examples_path=None,
+    signatures=['sample', 'interpolate'],
+    architecture_name='music_vae',
+    ns_converter_name='trio_16bar_converter'
 )
 
 CONFIG_MAP['hier-trio_16bar'] = Config(
@@ -340,6 +364,9 @@ CONFIG_MAP['hier-trio_16bar'] = Config(
     data_converter=trio_16bar_converter,
     train_examples_path=None,
     eval_examples_path=None,
+    signatures=['sample', 'interpolate'],
+    architecture_name='music_vae',
+    ns_converter_name='trio_16bar_converter'
 )
 
 # 16-bar Melody Models
@@ -450,6 +477,9 @@ CONFIG_MAP['hierdec-trio_4bar'] = Config(
     data_converter=trio_4bar_converter,
     train_examples_path=None,
     eval_examples_path=None,
+    signatures=['sample', 'interpolate'],
+    architecture_name='music_vae',
+    ns_converter_name='trio_4bar_converter'
 )
 
 
