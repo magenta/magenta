@@ -15,3 +15,4 @@
 """Import of Score2Perf problem module."""
 
 from magenta.models.score2perf import score2perf
+from magenta.models.score2perf import score2perf_hparams
