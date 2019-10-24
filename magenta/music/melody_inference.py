@@ -23,7 +23,7 @@ import bisect
 from magenta.music import constants
 from magenta.music import sequences_lib
 import numpy as np
-import scipy
+import scipy.linalg
 
 REST = -1
 MELODY_VELOCITY = 127
