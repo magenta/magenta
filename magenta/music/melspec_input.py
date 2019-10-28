@@ -49,7 +49,8 @@ def _stft_magnitude_full_tf(waveform_input, window_length_samples,
           waveform_input,
           frame_length=window_length_samples,
           frame_step=hop_length_samples,
-          fft_length=fft_length))
+          fft_length=fft_length),
+      name='magnitude_spectrogram')
   return stft_magnitude
 
 
@@ -211,7 +212,9 @@ def _stft_magnitude_tflite(waveform_input, window_length_samples,
       frame_length=window_length_samples,
       frame_step=hop_length_samples,
       fft_length=fft_length)
-  stft_magnitude = tf.sqrt(tf.add(real_stft * real_stft, imag_stft * imag_stft))
+  stft_magnitude = tf.sqrt(
+      tf.add(real_stft * real_stft, imag_stft * imag_stft),
+      name='magnitude_spectrogram')
   return stft_magnitude
 
 
@@ -275,10 +278,13 @@ def build_mel_calculation_graph(waveform_input,
         num_mel_bins, num_spectrogram_bins, sample_rate, lower_edge_hz,
         upper_edge_hz)
 
-  mel_spectrogram = tf.matmul(magnitude_spectrogram,
-                              linear_to_mel_weight_matrix)
+  mel_spectrogram = tf.matmul(
+      magnitude_spectrogram,
+      linear_to_mel_weight_matrix,
+      name='mel_spectrogram')
   log_offset = 0.001
-  log_mel_spectrogram = tf.log(mel_spectrogram + log_offset)
+  log_mel_spectrogram = tf.log(
+      mel_spectrogram + log_offset, name='log_mel_spectrogram')
   # log_mel_spectrogram is a [?, num_mel_bins] gram.
   if tflite_compatible:
     features = _fixed_frame(
