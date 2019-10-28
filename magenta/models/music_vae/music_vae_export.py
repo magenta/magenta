@@ -114,7 +114,7 @@ def build_encode_signature(input_tensors, output_tensors):
     encode_signature_def = saved_model.signature_def_utils.build_signature_def(
         inputs=encode_inputs,
         outputs=encode_outputs,
-        method_name="encode"
+        method_name=tf.saved_model.signature_constants.PREDICT_METHOD_NAME
     )
 
     return encode_signature_def
@@ -136,7 +136,7 @@ def build_decode_signature(input_tensors, output_tensors):
     decode_signature_def = saved_model.signature_def_utils.build_signature_def(
         inputs=decode_inputs,
         outputs=decode_outputs,
-        method_name="decode"
+        method_name=tf.saved_model.signature_constants.PREDICT_METHOD_NAME
     )
 
     return decode_signature_def
