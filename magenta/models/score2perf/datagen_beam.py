@@ -456,3 +456,173 @@ def generate_examples(input_transform, output_dir, problem_name, splits,
       s |= 'shuffle_%s' % split_name >> beam.Reshuffle()
       s |= 'write_%s' % split_name >> beam.io.WriteToTFRecord(
           output_filename, coder=beam.coders.ProtoCoder(tf.train.Example))
+
+
+class ConditionalExtractExamplesDoFn(beam.DoFn):
+  """Extracts Score2Perf examples from NoteSequence protos for conditioning."""
+
+  def __init__(self, encode_performance_fn, encode_score_fns,
+               augment_fns, num_replications, *unused_args, **unused_kwargs):
+    """Initialize a ConditionalExtractExamplesDoFn.
+
+    If any of the `encode_score_fns` or `encode_performance_fn` returns an empty
+    encoding for a particular example, the example will be discarded.
+
+    Args:
+      encode_performance_fn: Performance encoding function. Will be applied to
+          the performance NoteSequence and the resulting encoding will be stored
+          as 'targets' in each example.
+      encode_score_fns: Optional dictionary of named score encoding functions.
+          If provided, each function will be applied to the score NoteSequence
+          and the resulting encodings will be stored in each example.
+      augment_fns: Optional list of data augmentation functions. If provided,
+          each function will be applied to each performance NoteSequence (and
+          score, when using scores), creating a separate example per
+          augmentation function. Should not modify the NoteSequence.
+      num_replications: Number of times input NoteSequence protos will be
+          replicated prior to splitting.
+
+    Raises:
+      ValueError: If the maximum hop size is less than twice the minimum hop
+          size, or if `encode_score_fns` and `random_crop_length` are both
+          specified.
+    """
+    super(ConditionalExtractExamplesDoFn, self).__init__(
+        *unused_args, **unused_kwargs)
+    self._encode_performance_fn = encode_performance_fn
+    self._encode_score_fns = encode_score_fns
+    self._num_replications = num_replications
+    self._augment_fns = augment_fns if augment_fns else [lambda ns: ns]
+
+  def process(self, kv):
+    # Seed random number generator based on key so that hop times are
+    # deterministic.
+    key, ns_str = kv
+    m = hashlib.md5(key)
+    random.seed(int(m.hexdigest(), 16))
+
+    # Deserialize NoteSequence proto.
+    ns = music_pb2.NoteSequence.FromString(ns_str)
+
+    # Apply sustain pedal.
+    ns = sequences_lib.apply_sustain_control_changes(ns)
+
+    # Remove control changes as there are potentially a lot of them and they are
+    # no longer needed.
+    del ns.control_changes[:]
+
+    for _ in range(self._num_replications):
+      for augment_fn in self._augment_fns:
+        # Augment and encode the performance.
+        try:
+          augmented_performance_sequence = augment_fn(ns)
+        except DataAugmentationError:
+          Metrics.counter(
+              'extract_examples', 'augment_performance_failed').inc()
+          continue
+        seq = self._encode_performance_fn(augmented_performance_sequence)
+        # feed in performance as both input/output to music transformer
+        # chopping sequence into length 2048 (throw out shorter sequences)
+        if len(seq) >= 2048:
+          max_offset = len(seq) - 2048
+          offset = random.randrange(max_offset + 1)
+          cropped_seq = seq[offset:offset + 2048]
+
+          example_dict = {
+              'inputs': cropped_seq,
+              'targets': cropped_seq
+          }
+          yield generator_utils.to_example(example_dict)
+
+
+def generate_perf_examples(input_transform, output_dir, problem_name, splits,
+                           min_pitch, max_pitch,
+                           encode_performance_fn, encode_score_fns=None,
+                           augment_fns=None, num_replications=None):
+  """Generate data for a ConditionalScore2Perf problem.
+
+  Args:
+    input_transform: The input PTransform object that reads input NoteSequence
+        protos, or dictionary mapping split names to such PTransform objects.
+        Should produce `(id, NoteSequence)` tuples.
+    output_dir: The directory to write the resulting TFRecord file containing
+        examples.
+    problem_name: Name of the Tensor2Tensor problem, used as a base filename
+        for generated data.
+    splits: A dictionary of split names and their probabilities. Probabilites
+        should add up to 1. If `input_filename` is a dictionary, this argument
+        will be ignored.
+    min_pitch: Minimum MIDI pitch value; notes with lower pitch will be dropped.
+    max_pitch: Maximum MIDI pitch value; notes with greater pitch will be
+        dropped.
+    encode_performance_fn: Required performance encoding function.
+    encode_score_fns: Optional dictionary of named score encoding functions.
+    augment_fns: Optional list of data augmentation functions. Only applied in
+        the 'train' split.
+    num_replications: Number of times input NoteSequence protos will be
+        replicated prior to splitting.
+  Raises:
+    ValueError: If split probabilities do not add up to 1, or if splits are not
+        provided but `input_filename` is not a dictionary.
+  """
+  # Make sure Beam's log messages are not filtered.
+  logging.getLogger().setLevel(logging.INFO)
+
+  if isinstance(input_transform, dict):
+    split_names = input_transform.keys()
+  else:
+    if not splits:
+      raise ValueError(
+          'Split probabilities must be provided if input is not presplit.')
+    split_names, split_probabilities = zip(*splits.items())
+    cumulative_splits = zip(split_names, np.cumsum(split_probabilities))
+    if cumulative_splits[-1][1] != 1.0:
+      raise ValueError('Split probabilities must sum to 1; got %f' %
+                       cumulative_splits[-1][1])
+
+  # Check for existence of prior outputs. Since the number of shards may be
+  # different, the prior outputs will not necessarily be overwritten and must
+  # be deleted explicitly.
+  output_filenames = [
+      os.path.join(output_dir, '%s-%s.tfrecord' % (problem_name, split_name))
+      for split_name in split_names
+  ]
+  for split_name, output_filename in zip(split_names, output_filenames):
+    existing_output_filenames = tf.gfile.Glob(output_filename + '*')
+    if existing_output_filenames:
+      tf.logging.info(
+          'Data files already exist for split %s in problem %s, deleting.',
+          split_name, problem_name)
+      for filename in existing_output_filenames:
+        tf.gfile.Remove(filename)
+
+  pipeline_options = beam.options.pipeline_options.PipelineOptions(
+      FLAGS.pipeline_options.split(','))
+
+  with beam.Pipeline(options=pipeline_options) as p:
+    if isinstance(input_transform, dict):
+      # Input data is already partitioned into splits.
+      split_partitions = [
+          p | 'input_transform_%s' % split_name >> input_transform[split_name]
+          for split_name in split_names
+      ]
+    else:
+      # Read using a single PTransform.
+      p |= 'input_transform' >> input_transform
+      split_partitions = p | 'partition' >> beam.Partition(
+          functools.partial(select_split, cumulative_splits),
+          len(cumulative_splits))
+
+    for split_name, output_filename, s in zip(
+        split_names, output_filenames, split_partitions):
+      s |= 'preshuffle_%s' % split_name >> beam.Reshuffle()
+      s |= 'filter_invalid_notes_%s' % split_name >> beam.Map(
+          functools.partial(filter_invalid_notes, min_pitch, max_pitch))
+      s |= 'extract_examples_%s' % split_name >> beam.ParDo(
+          ConditionalExtractExamplesDoFn(
+              encode_performance_fn, encode_score_fns,
+              augment_fns if split_name == 'train' else None,
+              num_replications if split_name == 'train' else 1))
+      s |= 'shuffle_%s' % split_name >> beam.Reshuffle()
+      s |= 'write_%s' % split_name >> beam.io.WriteToTFRecord(
+          output_filename, coder=beam.coders.ProtoCoder(tf.train.Example))
