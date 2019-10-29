@@ -18,3 +18,19 @@ Google 브레인 [team](https://research.google.com/teams/brain/),에서
 Magenta에 대해서, 우리 웹사이트 [blog](https://magenta.tensorflow.org),를 확인해봐.
 기술적 세부사항을 게시할 수 있는 곳. 당신은 또한 우리의 [토론]에 참여할 수 있다.
 [group](https://groups.google.com/a/tensorflow.org/forum/#!forum/magenta-discuss).
+
+## Getting Started
+
+* [Installation](#installation)
+* [Using Magenta](#using-magenta)
+* [Playing a MIDI Instrument](#playing-a-midi-instrument)
+* [Development Environment (Advanced)](#development-environment)
+
+## Installation
+
+Magenta는 쉽게 [pip package](https://pypi.python.org/pypi/magenta)을 유지한다.
+설치 아나콘다를 사용하여 설치할 것을 권장하지만, 아무데서나 사용할 수 있다.
+표준 파이썬 환경 우리는 Python 2 (>= 2.7)와 Python 3 (>= 3.5) 모두를 지원한다.
+이 지침들은 당신이 아나콘다를 사용하고 있다고 가정할 것이다.
+
+GPU 지원을 사용하려면 아래의 [GPU 설치](#gpu-installation) 지침을 따르십시오.
