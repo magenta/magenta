@@ -17,4 +17,4 @@ Google 브레인 [team](https://research.google.com/teams/brain/),에서
 이 GitHub의 오픈 소스에 있는 공구 더 배우고 싶다면
 Magenta에 대해서, 우리 웹사이트 [blog](https://magenta.tensorflow.org),를 확인해봐.
 기술적 세부사항을 게시할 수 있는 곳. 당신은 또한 우리의 [토론]에 참여할 수 있다.
-group](https://groups.google.com/a/tensorflow.org/forum/#!forum/magenta-discuss).
+[group](https://groups.google.com/a/tensorflow.org/forum/#!forum/magenta-discuss).
