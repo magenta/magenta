@@ -96,18 +96,17 @@ pip install magenta-gpu
 
 ## Using Magenta
 
-You can now train our various models and use them to generate music, audio, and images. You can
-find instructions for each of the models by exploring the [models directory](magenta/models).
-
-To get started, create your own melodies with TensorFlow using one of the various configurations of our [Melody RNN](magenta/models/melody_rnn) model; a recurrent neural network for predicting melodies.
+당신은 이제 우리의 다양한 모델들을 훈련하고 그것들을 음악, 오디오, 이미지를 생성하는데 사용할 수 있습니다.
+[models directory](magenta/models)를 탐색하여 각 모델에 대한 지침을 찾을 수 있습니다.
+시작하려면 [Melody RNN](magenta/models/melody_rnn) 모델의 다양한 구성 중 하나인 멜로디를 예측하기 위한 반복적인 신경 네트워크를 사용하여 TensorFlow로 자신만의 멜로디를 만드십시오.
 
 ## Playing a MIDI Instrument
 
-After you've trained one of the models above, you can use our [MIDI interface](magenta/interfaces/midi) to play with it interactively.
-
-We also have created several [demos](https://github.com/tensorflow/magenta-demos) that provide a UI for this interface, making it easier to use (e.g., the browser-based [AI Jam](https://github.com/tensorflow/magenta-demos/tree/master/ai-jam-js)).
+위의 모델 중 하나를 훈련한 후에는 [MIDI interface](magenta/interface/midi)를 사용하여 대화식으로 재생할 수 있습니다.
+또한 이 인터페이스에 대한 UI를 제공하는 [demos](https://github.com/tensorflow/magenta-demos)를 여러 개 만들어 사용하기도 했습니다(예: 브라우저 기반 [AI Jam](https://github.com/tensorflow/magenta-demos/tree/master/ai-jam-js)).
 
 ## Development Environment
+
 Magenta를 발전시키기를 원하면, 모든 개발 환경을 설정해야 합니다.
 
 먼저, 이 repository를 clone하십시오:
