@@ -11,7 +11,7 @@
 스마트 도구와 인터페이스의 구축에 관한 연구
 아티스트와 뮤지션들은 그들의 프로세스를 확장한다(교체하지 않는다!)
 이 모델들 마젠타는 몇몇 연구원들과 엔지니어들에 의해 시작되었다.
-Google 브레인 team](https://research.google.com/teams/brain/),에서
+Google 브레인 [team](https://research.google.com/teams/brain/),에서
 그러나 다른 많은 사람들이 이 프로젝트에 크게 기여했다. 우리는 사용한다
 [TensorFlow](https://www.tensorflow.org)을 방문하여 모델을 출시하십시오.
 이 GitHub의 오픈 소스에 있는 공구 더 배우고 싶다면
