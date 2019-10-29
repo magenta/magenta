@@ -181,6 +181,17 @@ def _calculate_metrics_py(
            ref_intervals, pretty_midi.note_number_to_hz(ref_pitches),
            est_intervals, pretty_midi.note_number_to_hz(est_pitches)))
 
+  (note_with_velocity_precision, note_with_velocity_recall,
+   note_with_velocity_f1, _) = (
+       mir_eval.transcription_velocity.precision_recall_f1_overlap(
+           ref_intervals=ref_intervals,
+           ref_pitches=pretty_midi.note_number_to_hz(ref_pitches),
+           ref_velocities=ref_velocities,
+           est_intervals=est_intervals,
+           est_pitches=pretty_midi.note_number_to_hz(est_pitches),
+           est_velocities=est_velocities,
+           offset_ratio=None))
+
   (note_with_offsets_velocity_precision, note_with_offsets_velocity_recall,
    note_with_offsets_velocity_f1, _) = (
        mir_eval.transcription_velocity.precision_recall_f1_overlap(
@@ -210,9 +221,10 @@ def _calculate_metrics_py(
       'Metrics for %s: Note F1 %f, Note w/ offsets F1 %f, '
       'Note w/ offsets & velocity: %f', sequence_id, note_f1,
       note_with_offsets_f1, note_with_offsets_velocity_f1)
-  return (note_precision, note_recall, note_f1, note_with_offsets_precision,
-          note_with_offsets_recall, note_with_offsets_f1,
-          note_with_offsets_velocity_precision,
+  return (note_precision, note_recall, note_f1, note_with_velocity_precision,
+          note_with_velocity_recall, note_with_velocity_f1,
+          note_with_offsets_precision, note_with_offsets_recall,
+          note_with_offsets_f1, note_with_offsets_velocity_precision,
           note_with_offsets_velocity_recall, note_with_offsets_velocity_f1,
           processed_frame_predictions)
 
@@ -221,17 +233,21 @@ def calculate_metrics(frame_predictions, onset_predictions, offset_predictions,
                       velocity_values, sequence_label, frame_labels,
                       sequence_id, hparams, min_pitch, max_pitch):
   """Calculate metrics for a single example."""
-  (note_precision, note_recall, note_f1, note_with_offsets_precision,
-   note_with_offsets_recall, note_with_offsets_f1,
+  (note_precision, note_recall, note_f1, note_with_velocity_precision,
+   note_with_velocity_recall, note_with_velocity_f1,
+   note_with_offsets_precision, note_with_offsets_recall, note_with_offsets_f1,
    note_with_offsets_velocity_precision, note_with_offsets_velocity_recall,
    note_with_offsets_velocity_f1, processed_frame_predictions) = tf.py_func(
-       functools.partial(_calculate_metrics_py, hparams=hparams,
-                         min_pitch=min_pitch, max_pitch=max_pitch),
+       functools.partial(
+           _calculate_metrics_py,
+           hparams=hparams,
+           min_pitch=min_pitch,
+           max_pitch=max_pitch),
        inp=[
            frame_predictions, onset_predictions, offset_predictions,
            velocity_values, sequence_label, frame_labels, sequence_id
        ],
-       Tout=([tf.float64] * 9) + [tf.float32],
+       Tout=([tf.float64] * 12) + [tf.float32],
        stateful=False)
 
   frame_metrics = calculate_frame_metrics(
@@ -244,6 +260,12 @@ def calculate_metrics(frame_predictions, onset_predictions, offset_predictions,
           note_recall,
       'note_f1_score':
           note_f1,
+      'note_with_velocity_precision':
+          note_with_velocity_precision,
+      'note_with_velocity_recall':
+          note_with_velocity_recall,
+      'note_with_velocity_f1_score':
+          note_with_velocity_f1,
       'note_with_offsets_precision':
           note_with_offsets_precision,
       'note_with_offsets_recall':
