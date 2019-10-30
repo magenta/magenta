@@ -196,10 +196,10 @@ def unwrap(p, discont=np.pi, axis=-1):
   return unwrapped
 
 
-def instantaneous_frequency(phase_angle, time_axis=-2, use_unwrap=False):
+def instantaneous_frequency(phase_angle, time_axis=-2, use_unwrap=True):
   """Transform a fft tensor from phase angle to instantaneous frequency.
 
-  Take the finite difference of the phase. Pad with initial phase to
+  (Unwrap and) Take the finite difference of the phase. Pad with initial phase to
   keep the tensor the same size.
   Args:
     phase_angle: Tensor of angles in radians. [Batch, Time, Freqs]
@@ -207,6 +207,9 @@ def instantaneous_frequency(phase_angle, time_axis=-2, use_unwrap=False):
 
   Returns:
     dphase: Instantaneous frequency (derivative of phase). Same size as input.
+    
+  use_unwrap=True preserves original GANSynth behavior, whereas
+  use_unwrap=False will guard against loss of precision.
   """
   if use_unwrap:  # can lead to loss of precision
     phase_unwrapped = unwrap(phase_angle, axis=time_axis)
