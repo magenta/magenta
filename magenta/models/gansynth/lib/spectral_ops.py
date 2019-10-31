@@ -196,26 +196,35 @@ def unwrap(p, discont=np.pi, axis=-1):
   return unwrapped
 
 
-def instantaneous_frequency(phase_angle, time_axis=-2):
+def instantaneous_frequency(phase_angle, time_axis=-2, use_unwrap=True):
   """Transform a fft tensor from phase angle to instantaneous frequency.
 
-  Unwrap and take the finite difference of the phase. Pad with initial phase to
-  keep the tensor the same size.
+  Take the finite difference of the phase. Pad with initial phase to keep the
+  tensor the same size.
   Args:
     phase_angle: Tensor of angles in radians. [Batch, Time, Freqs]
     time_axis: Axis over which to unwrap and take finite difference.
+    use_unwrap: True preserves original GANSynth behavior, whereas False will
+        guard against loss of precision.
 
   Returns:
     dphase: Instantaneous frequency (derivative of phase). Same size as input.
   """
-  phase_unwrapped = unwrap(phase_angle, axis=time_axis)
-  dphase = diff(phase_unwrapped, axis=time_axis)
+  if use_unwrap:
+    # Can lead to loss of precision.
+    phase_unwrapped = unwrap(phase_angle, axis=time_axis)
+    dphase = diff(phase_unwrapped, axis=time_axis)
+  else:
+    # Keep dphase bounded. N.B. runs faster than a single mod-2pi expression.
+    dphase = diff(phase_angle, axis=time_axis)
+    dphase = tf.where(dphase > np.pi, dphase - 2 * np.pi, dphase)
+    dphase = tf.where(dphase < -np.pi, dphase + 2 * np.pi, dphase)
 
-  # Add an initial phase to dphase
-  size = phase_unwrapped.get_shape().as_list()
+  # Add an initial phase to dphase.
+  size = phase_angle.get_shape().as_list()
   size[time_axis] = 1
   begin = [0 for unused_s in size]
-  phase_slice = tf.slice(phase_unwrapped, begin, size)
+  phase_slice = tf.slice(phase_angle, begin, size)
   dphase = tf.concat([phase_slice, dphase], axis=time_axis) / np.pi
   return dphase
 
