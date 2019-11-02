@@ -129,7 +129,7 @@ def merge_statistics(stats_list):
   return list(name_map.values())
 
 
-def log_statistics_list(stats_list, logger_fn=tf.logging.info):
+def log_statistics_list(stats_list, logger_fn=tf.compat.v1.logging.info):
   """Calls the given logger function on each `Statistic` in the list.
 
   Args:
