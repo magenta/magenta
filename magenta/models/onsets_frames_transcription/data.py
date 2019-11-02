@@ -181,9 +181,9 @@ def get_spectrogram_hash_op(spectrogram):
   def get_spectrogram_hash(spectrogram):
     # Compute a hash of the spectrogram, save it as an int64.
     # Uses adler because it's fast and will fit into an int (md5 is too large).
-    spectrogram_serialized = six.BytesIO()
-    np.save(spectrogram_serialized, spectrogram)
-    spectrogram_hash = np.int64(zlib.adler32(spectrogram_serialized.getvalue()))
+    with six.BytesIO() as spectrogram_serialized:
+      np.save(spectrogram_serialized, spectrogram)
+      spectrogram_hash = np.int64(zlib.adler32(spectrogram_serialized.getvalue()))
     return spectrogram_hash
   spectrogram_hash = tf.py_func(get_spectrogram_hash, [spectrogram], tf.int64,
                                 name='get_spectrogram_hash')
