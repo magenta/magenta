@@ -442,10 +442,10 @@ def model_fn(features, labels, mode, params, config):
       'sequence_labels': labels.note_sequence,
       'frame_labels': labels.labels,
   }
-  for k, v in metrics_values.iteritems():
+  for k, v in metrics_values.items():
     predictions[k] = tf.stack(v)
 
-  metric_ops = {k: tf.metrics.mean(v) for k, v in metrics_values.iteritems()}
+  metric_ops = {k: tf.metrics.mean(v) for k, v in metrics_values.items()}
 
   train_op = None
   loss = None
