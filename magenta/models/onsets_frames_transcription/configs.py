@@ -32,6 +32,7 @@ DEFAULT_HPARAMS = tf_utils.merge_hparams(
     tf_head.contrib.training.HParams(
         eval_batch_size=1,
         predict_batch_size=1,
+        onset_only_sequence_prediction=False,
         shuffle_buffer_size=64,
         sample_rate=16000,
         spec_type='mel',
