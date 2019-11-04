@@ -215,7 +215,7 @@ default_configs = {
 
     'performance_with_dynamics_compact': PerformanceRnnConfig(
         magenta.protobuf.generator_pb2.GeneratorDetails(
-            id='performance_with_dynamics',
+            id='performance_with_dynamics_compact',
             description='Performance RNN with dynamics (compact input)'),
         magenta.music.OneHotIndexEventSequenceEncoderDecoder(
             magenta.music.PerformanceOneHotEncoding(
