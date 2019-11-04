@@ -2047,6 +2047,34 @@ class SequencesLibTest(tf.test.TestCase):
                      sequence.notes[2].start_time)
     self.assertEqual(75 / DEFAULT_FRAMES_PER_SECOND, sequence.notes[2].end_time)
 
+  def testPianorollOnsetsToNoteSequence(self):
+    onsets = np.zeros((10, 2), np.bool)
+    velocity_values = np.zeros_like(onsets, np.float32)
+    onsets[0:2, 0] = True
+    velocity_values[0:2, 0] = .5
+    onsets[1:2, 1] = True
+    velocity_values[1:2, 1] = 1
+    sequence = sequences_lib.pianoroll_onsets_to_note_sequence(
+        onsets, frames_per_second=10, note_duration_seconds=0.05,
+        min_midi_pitch=60, velocity_values=velocity_values)
+
+    self.assertEqual(3, len(sequence.notes))
+
+    self.assertEqual(60, sequence.notes[0].pitch)
+    self.assertEqual(0, sequence.notes[0].start_time)
+    self.assertAlmostEqual(0.05, sequence.notes[0].end_time)
+    self.assertEqual(50, sequence.notes[0].velocity)
+
+    self.assertEqual(60, sequence.notes[1].pitch)
+    self.assertEqual(0.1, sequence.notes[1].start_time)
+    self.assertAlmostEqual(0.15, sequence.notes[1].end_time)
+    self.assertEqual(50, sequence.notes[1].velocity)
+
+    self.assertEqual(61, sequence.notes[2].pitch)
+    self.assertEqual(0.1, sequence.notes[2].start_time)
+    self.assertAlmostEqual(0.15, sequence.notes[2].end_time)
+    self.assertEqual(90, sequence.notes[2].velocity)
+
   def testSequenceToPianorollControlChanges(self):
     sequence = music_pb2.NoteSequence(total_time=2.0)
     cc = music_pb2.NoteSequence.ControlChange
@@ -2090,6 +2118,31 @@ class SequencesLibTest(tf.test.TestCase):
 
     expected_active = np.zeros([26, 1])
     expected_active[10:25, 0] = 1
+    np.testing.assert_equal(expected_active, rolls.active)
+
+  def testSequenceToPianorollShortNotes(self):
+    sequence = music_pb2.NoteSequence()
+    sequence.notes.add(pitch=60, start_time=1.0, end_time=1.0001)
+    sequence.notes.add(pitch=60, start_time=1.2, end_time=1.2001)
+    sequence.total_time = 2.5
+
+    rolls = sequences_lib.sequence_to_pianoroll(
+        sequence, frames_per_second=10, min_pitch=60, max_pitch=60,
+        onset_mode='length_ms', onset_length_ms=0)
+
+    expected_onsets = np.zeros([26, 1])
+    expected_onsets[10, 0] = 1
+    expected_onsets[12, 0] = 1
+    np.testing.assert_equal(expected_onsets, rolls.onsets)
+
+    expected_offsets = np.zeros([26, 1])
+    expected_offsets[10, 0] = 1
+    expected_offsets[12, 0] = 1
+    np.testing.assert_equal(expected_offsets, rolls.offsets)
+
+    expected_active = np.zeros([26, 1])
+    expected_active[10:11, 0] = 1
+    expected_active[12:13, 0] = 1
     np.testing.assert_equal(expected_active, rolls.active)
 
 
