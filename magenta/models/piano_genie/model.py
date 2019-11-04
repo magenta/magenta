@@ -152,6 +152,20 @@ def build_genie_model(feat_dict,
     seq_lens = tf.ones([batch_size], dtype=tf.int32) * seq_len
     stp_varlen_mask = None
 
+  # One hot function which handles null dimension preference
+  def _one_hot(idxs, ndims, null_is_dim):
+    deps = [
+        tf.assert_greater_equal(idxs, 0),
+        tf.assert_less(idxs, ndims),
+    ]
+    with tf.control_dependencies(deps):
+      idxs = tf.identity(idxs)
+
+    if null_is_dim:
+      return tf.one_hot(idxs, ndims)
+    else:
+      return tf.one_hot(idxs - 1, ndims - 1)
+
   # Encode
   if (cfg.stp_emb_unconstrained or cfg.stp_emb_vq or cfg.stp_emb_iq or
       cfg.seq_emb_unconstrained or cfg.seq_emb_vae or
@@ -169,6 +183,22 @@ def build_genie_model(feat_dict,
     if "velocities" in cfg.enc_aux_feats:
       enc_feats.append(
           tf.one_hot(velocities, cfg.data_max_discrete_velocities + 1))
+    if "keysigs" in cfg.enc_aux_feats:
+      enc_feats.append(
+          _one_hot(feat_dict["keysigs"], util.NUM_KEYSIGS,
+            cfg.enc_context_null_is_dim))
+    if "chords" in cfg.enc_aux_feats:
+      enc_feats.append(
+          _one_hot(feat_dict["chords"], util.NUM_CHORDS,
+            cfg.enc_context_null_is_dim))
+    if "chordroots" in cfg.enc_aux_feats:
+      enc_feats.append(
+          _one_hot(feat_dict["chordroots"], util.NUM_CHORDROOTS,
+            cfg.enc_context_null_is_dim))
+    if "chordfamilies" in cfg.enc_aux_feats:
+      enc_feats.append(
+          _one_hot(feat_dict["chordfamilies"], util.NUM_CHORDFAMILIES,
+            cfg.enc_context_null_is_dim))
     enc_feats = tf.concat(enc_feats, axis=2)
 
     with tf.variable_scope("encoder"):
@@ -423,6 +453,22 @@ def build_genie_model(feat_dict,
     dec_feats.append(
         tf.one_hot(feat_dict["velocities"],
                    cfg.data_max_discrete_velocities + 1))
+  if "keysigs" in cfg.dec_aux_feats:
+    dec_feats.append(
+        _one_hot(feat_dict["keysigs"], util.NUM_KEYSIGS,
+          cfg.dec_context_null_is_dim))
+  if "chords" in cfg.dec_aux_feats:
+    dec_feats.append(
+        _one_hot(feat_dict["chords"], util.NUM_CHORDS,
+          cfg.dec_context_null_is_dim))
+  if "chordroots" in cfg.dec_aux_feats:
+    dec_feats.append(
+        _one_hot(feat_dict["chordroots"], util.NUM_CHORDROOTS,
+          cfg.dec_context_null_is_dim))
+  if "chordfamilies" in cfg.dec_aux_feats:
+    dec_feats.append(
+        _one_hot(feat_dict["chordfamilies"], util.NUM_CHORDFAMILIES,
+          cfg.dec_context_null_is_dim))
 
   assert dec_feats
   dec_feats = tf.concat(dec_feats, axis=2)

@@ -27,6 +27,7 @@ class BasePianoGenieConfig(object):
     self.data_max_discrete_times = 32
     self.data_max_discrete_velocities = 16
     self.data_randomize_chord_order = False
+    self.data_align_tol = 0.020
 
     # RNN parameters (encoder and decoder)
     self.rnn_celltype = "lstm"
@@ -37,11 +38,13 @@ class BasePianoGenieConfig(object):
     self.enc_rnn_bidirectional = True
     self.enc_pitch_scalar = False
     self.enc_aux_feats = []
+    self.enc_context_null_is_dim = False
 
     # Decoder parameters
     self.dec_autoregressive = False
     self.dec_aux_feats = []
     self.dec_pred_velocity = False
+    self.dec_context_null_is_dim = False
 
     # Unconstrained "discretization" parameters
     # Passes sequence of continuous embeddings directly to decoder (which we
@@ -85,6 +88,7 @@ class BasePianoGenieConfig(object):
     self.train_randomize_seq_len = False
     self.train_augment_stretch_bounds = (0.95, 1.05)
     self.train_augment_transpose_bounds = (-6, 6)
+    self.train_augment_context_keep_prob = 1.
     self.train_loss_vq_err_scalar = 1.
     self.train_loss_iq_range_scalar = 1.
     self.train_loss_iq_contour_scalar = 1.

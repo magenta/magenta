@@ -60,7 +60,9 @@ def main(unused_argv):
         max_discrete_velocities=cfg.data_max_discrete_velocities,
         augment_stretch_bounds=None,
         augment_transpose_bounds=None,
+        augment_context_keep_prob=1.,
         randomize_chord_order=cfg.data_randomize_chord_order,
+        align_tol=cfg.data_align_tol,
         repeat=False)
 
   # Build model
@@ -82,7 +84,11 @@ def main(unused_argv):
       gold_feat_dict = {
           "midi_pitches": tf.placeholder(tf.int32, [1, None]),
           "velocities": tf.placeholder(tf.int32, [1, None]),
-          "delta_times_int": tf.placeholder(tf.int32, [1, None])
+          "delta_times_int": tf.placeholder(tf.int32, [1, None]),
+          "keysigs": tf.placeholder(tf.int32, [1, None]),
+          "chordroots": tf.placeholder(tf.int32, [1, None]),
+          "chordfamilies": tf.placeholder(tf.int32, [1, None]),
+          "chords": tf.placeholder(tf.int32, [1, None]),
       }
       gold_seq_maxlen = gold.gold_longest()
       gold_seq_varlens = tf.placeholder(tf.int32, [1])
@@ -187,8 +193,18 @@ def main(unused_argv):
             [gold_diff_l1, gold_diff_l2], {
                 gold_feat_dict["midi_pitches"]:
                     midi_notes,
+                gold_feat_dict["velocities"]:
+                    np.ones_like(midi_notes) * 8,
                 gold_feat_dict["delta_times_int"]:
                     np.ones_like(midi_notes) * 8,
+                gold_feat_dict["keysigs"]:
+                    np.zeros_like(midi_notes),
+                gold_feat_dict["chordroots"]:
+                    np.zeros_like(midi_notes),
+                gold_feat_dict["chordfamilies"]:
+                    np.zeros_like(midi_notes),
+                gold_feat_dict["chords"]:
+                    np.zeros_like(midi_notes),
                 gold_seq_varlens: [seq_varlen],
                 gold_buttons: buttons
             })
