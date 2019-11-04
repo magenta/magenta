@@ -175,12 +175,6 @@ def _calculate_metrics_py(
           pretty_midi.note_number_to_hz(est_pitches),
           offset_ratio=None))
 
-  (note_with_offsets_precision, note_with_offsets_recall, note_with_offsets_f1,
-   _) = (
-       mir_eval.transcription.precision_recall_f1_overlap(
-           ref_intervals, pretty_midi.note_number_to_hz(ref_pitches),
-           est_intervals, pretty_midi.note_number_to_hz(est_pitches)))
-
   (note_with_velocity_precision, note_with_velocity_recall,
    note_with_velocity_f1, _) = (
        mir_eval.transcription_velocity.precision_recall_f1_overlap(
@@ -191,6 +185,12 @@ def _calculate_metrics_py(
            est_pitches=pretty_midi.note_number_to_hz(est_pitches),
            est_velocities=est_velocities,
            offset_ratio=None))
+
+  (note_with_offsets_precision, note_with_offsets_recall, note_with_offsets_f1,
+   _) = (
+       mir_eval.transcription.precision_recall_f1_overlap(
+           ref_intervals, pretty_midi.note_number_to_hz(ref_pitches),
+           est_intervals, pretty_midi.note_number_to_hz(est_pitches)))
 
   (note_with_offsets_velocity_precision, note_with_offsets_velocity_recall,
    note_with_offsets_velocity_f1, _) = (
@@ -229,9 +229,17 @@ def _calculate_metrics_py(
           processed_frame_predictions)
 
 
-def calculate_metrics(frame_predictions, onset_predictions, offset_predictions,
-                      velocity_values, sequence_label, frame_labels,
-                      sequence_id, hparams, min_pitch, max_pitch):
+def calculate_metrics(frame_predictions,
+                      onset_predictions,
+                      offset_predictions,
+                      velocity_values,
+                      sequence_label,
+                      frame_labels,
+                      sequence_id,
+                      hparams,
+                      min_pitch,
+                      max_pitch,
+                      onsets_only=False):
   """Calculate metrics for a single example."""
   (note_precision, note_recall, note_f1, note_with_velocity_precision,
    note_with_velocity_recall, note_with_velocity_f1,
@@ -250,51 +258,52 @@ def calculate_metrics(frame_predictions, onset_predictions, offset_predictions,
        Tout=([tf.float64] * 12) + [tf.float32],
        stateful=False)
 
-  frame_metrics = calculate_frame_metrics(
-      frame_labels=frame_labels, frame_predictions=processed_frame_predictions)
-
-  return {
-      'note_precision':
-          note_precision,
-      'note_recall':
-          note_recall,
-      'note_f1_score':
-          note_f1,
-      'note_with_velocity_precision':
-          note_with_velocity_precision,
-      'note_with_velocity_recall':
-          note_with_velocity_recall,
-      'note_with_velocity_f1_score':
-          note_with_velocity_f1,
-      'note_with_offsets_precision':
-          note_with_offsets_precision,
-      'note_with_offsets_recall':
-          note_with_offsets_recall,
-      'note_with_offsets_f1_score':
-          note_with_offsets_f1,
-      'note_with_offsets_velocity_precision':
-          note_with_offsets_velocity_precision,
-      'note_with_offsets_velocity_recall':
-          note_with_offsets_velocity_recall,
-      'note_with_offsets_velocity_f1_score':
-          note_with_offsets_velocity_f1,
-      'frame_precision':
-          frame_metrics['precision'],
-      'frame_recall':
-          frame_metrics['recall'],
-      'frame_f1_score':
-          frame_metrics['f1_score'],
-      'frame_accuracy':
-          frame_metrics['accuracy'],
-      'frame_accuracy_without_true_negatives':
-          frame_metrics['accuracy_without_true_negatives'],
+  metrics = {
+      'note_precision': note_precision,
+      'note_recall': note_recall,
+      'note_f1_score': note_f1,
+      'note_with_velocity_precision': note_with_velocity_precision,
+      'note_with_velocity_recall': note_with_velocity_recall,
+      'note_with_velocity_f1_score': note_with_velocity_f1,
   }
 
+  if not onsets_only:
+    metrics['note_with_offsets_precision'] = note_with_offsets_precision
+    metrics['note_with_offsets_recall'] = note_with_offsets_recall
+    metrics['note_with_offsets_f1_score'] = note_with_offsets_f1
+    metrics[
+        'note_with_offsets_velocity_precision'] = note_with_offsets_velocity_precision
+    metrics[
+        'note_with_offsets_velocity_recall'] = note_with_offsets_velocity_recall
+    metrics[
+        'note_with_offsets_velocity_f1_score'] = note_with_offsets_velocity_f1
 
-def define_metrics(frame_predictions, onset_predictions, offset_predictions,
-                   velocity_values, length, sequence_label, frame_labels,
-                   sequence_id, hparams, min_pitch=constants.MIN_MIDI_PITCH,
-                   max_pitch=constants.MAX_MIDI_PITCH, prefix=''):
+    frame_metrics = calculate_frame_metrics(
+        frame_labels=frame_labels,
+        frame_predictions=processed_frame_predictions)
+    metrics['frame_precision'] = frame_metrics['precision']
+    metrics['frame_recall'] = frame_metrics['recall']
+    metrics['frame_f1_score'] = frame_metrics['f1_score']
+    metrics['frame_accuracy'] = frame_metrics['accuracy']
+    metrics['frame_accuracy_without_true_negatives'] = frame_metrics[
+        'accuracy_without_true_negatives']
+
+  return metrics
+
+
+def define_metrics(frame_predictions,
+                   onset_predictions,
+                   offset_predictions,
+                   velocity_values,
+                   length,
+                   sequence_label,
+                   frame_labels,
+                   sequence_id,
+                   hparams,
+                   min_pitch=constants.MIN_MIDI_PITCH,
+                   max_pitch=constants.MAX_MIDI_PITCH,
+                   prefix='',
+                   onsets_only=False):
   """Create a metric name to tf.metric pair dict for transcription metrics."""
   with tf.device('/device:CPU:*'):
     metrics = collections.defaultdict(list)
@@ -307,6 +316,9 @@ def define_metrics(frame_predictions, onset_predictions, offset_predictions,
           sequence_label=sequence_label[i],
           frame_labels=frame_labels[i][:length[i]],
           sequence_id=sequence_id[i],
-          hparams=hparams, min_pitch=min_pitch, max_pitch=max_pitch).items():
+          hparams=hparams,
+          min_pitch=min_pitch,
+          max_pitch=max_pitch,
+          onsets_only=onsets_only).items():
         metrics[k].append(v)
     return {'metrics/' + prefix + k: v for k, v in metrics.items()}
