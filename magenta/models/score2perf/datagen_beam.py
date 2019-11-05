@@ -27,6 +27,8 @@ import random
 import apache_beam as beam
 from apache_beam import typehints
 from apache_beam.metrics import Metrics
+from magenta.models.score2perf import music_encoders
+import magenta.music as mm
 from magenta.music import chord_inference
 from magenta.music import melody_inference
 from magenta.music import sequences_lib
@@ -461,7 +463,7 @@ def generate_examples(input_transform, output_dir, problem_name, splits,
 class ConditionalExtractExamplesDoFn(beam.DoFn):
   """Extracts Score2Perf examples from NoteSequence protos for conditioning."""
 
-  def __init__(self, encode_performance_fn, encode_score_fns,
+  def __init__(self, melody, noisy, encode_performance_fn, encode_score_fns,
                augment_fns, num_replications, *unused_args, **unused_kwargs):
     """Initialize a ConditionalExtractExamplesDoFn.
 
@@ -469,6 +471,9 @@ class ConditionalExtractExamplesDoFn(beam.DoFn):
     encoding for a particular example, the example will be discarded.
 
     Args:
+      melody: If True, uses both melody and performance conditioning.
+      noisy: If True, uses a perturbed version of the performance for
+             conditioning. Currently only supported for mel & perf autoencoder.
       encode_performance_fn: Performance encoding function. Will be applied to
           the performance NoteSequence and the resulting encoding will be stored
           as 'targets' in each example.
@@ -489,10 +494,15 @@ class ConditionalExtractExamplesDoFn(beam.DoFn):
     """
     super(ConditionalExtractExamplesDoFn, self).__init__(
         *unused_args, **unused_kwargs)
+    self._melody = melody
+    self._noisy = noisy
     self._encode_performance_fn = encode_performance_fn
     self._encode_score_fns = encode_score_fns
     self._num_replications = num_replications
     self._augment_fns = augment_fns if augment_fns else [lambda ns: ns]
+    self._decode_performance_fn = music_encoders.MidiPerformanceEncoder(
+        steps_per_second=100, num_velocity_bins=32, min_pitch=21, max_pitch=108,
+        add_eos=False).decode
 
   def process(self, kv):
     # Seed random number generator based on key so that hop times are
@@ -532,13 +542,68 @@ class ConditionalExtractExamplesDoFn(beam.DoFn):
               'inputs': cropped_seq,
               'targets': cropped_seq
           }
+
+          if self._melody:
+            # decode truncated performance sequence for melody inference
+            decoded_midi = self._decode_performance_fn(cropped_seq)
+            decoded_ns = mm.midi_io.midi_file_to_note_sequence(decoded_midi)
+
+            # extract melody from cropped performance sequence
+            melody_instrument = melody_inference.infer_melody_for_sequence(
+                decoded_ns,
+                melody_interval_scale=2.0,
+                rest_prob=0.1,
+                instantaneous_non_max_pitch_prob=1e-15,
+                instantaneous_non_empty_rest_prob=0.0,
+                instantaneous_missing_pitch_prob=1e-15)
+
+            # remove non-melody notes from score
+            score_sequence = copy.deepcopy(decoded_ns)
+            score_notes = []
+            for note in score_sequence.notes:
+              if note.instrument == melody_instrument:
+                score_notes.append(note)
+            del score_sequence.notes[:]
+            score_sequence.notes.extend(score_notes)
+
+            # encode melody
+            encode_score_fn = self._encode_score_fns['melody']
+            example_dict['melody'] = encode_score_fn(score_sequence)
+            # make sure performance input also matches targets; needed for
+            # compatibility of both perf and (mel & perf) autoencoders
+
+            if self._noisy:
+              # randomly sample a pitch shift to construct noisy performance
+              all_pitches = [x.pitch for x in decoded_ns.notes]
+              min_val = min(all_pitches)
+              max_val = max(all_pitches)
+              transpose_range = range(-(min_val - 21), 108 - max_val + 1)
+              try:
+                transpose_range.remove(0)  # make sure you transpose
+              except ValueError:
+                pass
+              transpose_amount = random.choice(transpose_range)
+              augmented_ns, _ = sequences_lib.transpose_note_sequence(
+                  decoded_ns, transpose_amount, min_allowed_pitch=21,
+                  max_allowed_pitch=108, in_place=False)
+              aug_seq = self._encode_performance_fn(augmented_ns)
+              example_dict['performance'] = aug_seq
+            else:
+              example_dict['performance'] = example_dict['targets']
+            del example_dict['inputs']
+
+          Metrics.counter('extract_examples', 'encoded_example').inc()
+          Metrics.distribution(
+              'extract_examples', 'performance_length_in_seconds').update(
+                  int(augmented_performance_sequence.total_time))
+
           yield generator_utils.to_example(example_dict)
 
 
-def generate_perf_examples(input_transform, output_dir, problem_name, splits,
-                           min_pitch, max_pitch,
-                           encode_performance_fn, encode_score_fns=None,
-                           augment_fns=None, num_replications=None):
+def generate_conditional_examples(input_transform, output_dir, problem_name,
+                                  splits, min_pitch, max_pitch, melody, noisy,
+                                  encode_performance_fn, encode_score_fns=None,
+                                  augment_fns=None, num_replications=None):
   """Generate data for a ConditionalScore2Perf problem.
 
   Args:
@@ -555,6 +620,9 @@ def generate_perf_examples(input_transform, output_dir, problem_name, splits,
     min_pitch: Minimum MIDI pitch value; notes with lower pitch will be dropped.
     max_pitch: Maximum MIDI pitch value; notes with greater pitch will be
         dropped.
+    melody: If True, uses both melody and performance conditioning.
+    noisy: If True, uses a perturbed version of the performance for
+           conditioning. Currently only supported for mel & perf autoencoder.
     encode_performance_fn: Required performance encoding function.
     encode_score_fns: Optional dictionary of named score encoding functions.
     augment_fns: Optional list of data augmentation functions. Only applied in
@@ -620,7 +688,7 @@ def generate_perf_examples(input_transform, output_dir, problem_name, splits,
           functools.partial(filter_invalid_notes, min_pitch, max_pitch))
       s |= 'extract_examples_%s' % split_name >> beam.ParDo(
           ConditionalExtractExamplesDoFn(
-              encode_performance_fn, encode_score_fns,
+              melody, noisy, encode_performance_fn, encode_score_fns,
               augment_fns if split_name == 'train' else None,
               num_replications if split_name == 'train' else 1))
       s |= 'shuffle_%s' % split_name >> beam.Reshuffle()
