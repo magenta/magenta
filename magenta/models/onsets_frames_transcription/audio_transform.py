@@ -25,6 +25,7 @@ import tempfile
 
 import sox
 import tensorflow as tf
+from tensorflow.contrib import training as contrib_training
 
 # The base pipeline is a list of stages, each of which consists of a name
 # (corresponding to a SoX function) and a dictionary of parameters with name
@@ -63,7 +64,7 @@ AUDIO_TRANSFORM_PIPELINE = [
 # Default hyperparameter values from the above pipeline. Note the additional
 # `transform_audio` hparam that defaults to False, i.e. by default no audio
 # transformation will be performed.
-DEFAULT_AUDIO_TRANSFORM_HPARAMS = tf.contrib.training.HParams(
+DEFAULT_AUDIO_TRANSFORM_HPARAMS = contrib_training.HParams(
     transform_audio=False,
     audio_transform_noise_type='pinknoise',
     audio_transform_min_noise_vol=0.0,

@@ -23,6 +23,8 @@ from magenta.models.gansynth.lib import spectral_ops
 from magenta.models.gansynth.lib import util
 import numpy as np
 import tensorflow as tf
+from tensorflow.contrib import data as contrib_data
+from tensorflow.contrib import lookup as contrib_lookup
 
 Counter = collections.Counter
 
@@ -61,10 +63,9 @@ class NSynthTFRecordDataset(BaseDataset):
 
   def _get_dataset_from_path(self):
     dataset = tf.data.Dataset.list_files(self._train_data_path)
+    dataset = dataset.apply(contrib_data.shuffle_and_repeat(buffer_size=1000))
     dataset = dataset.apply(
-        tf.contrib.data.shuffle_and_repeat(buffer_size=1000))
-    dataset = dataset.apply(
-        tf.contrib.data.parallel_interleave(
+        contrib_data.parallel_interleave(
             tf.data.TFRecordDataset, cycle_length=20, sloppy=True))
     return dataset
 
@@ -85,7 +86,7 @@ class NSynthTFRecordDataset(BaseDataset):
 
     pitch_counts = self.get_pitch_counts()
     pitches = sorted(pitch_counts.keys())
-    label_index_table = tf.contrib.lookup.index_table_from_tensor(
+    label_index_table = contrib_lookup.index_table_from_tensor(
         sorted(pitches), dtype=tf.int64)
 
     def _parse_nsynth(record):

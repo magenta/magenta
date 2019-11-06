@@ -23,9 +23,9 @@ import copy
 import functools
 import random
 import sys
-
-import tensorflow as tf_head
 import tensorflow.compat.v1 as tf
+from tensorflow.contrib import tpu as contrib_tpu
+from tensorflow.contrib import training as contrib_training
 
 
 # Should not be called from within the graph to avoid redundant summaries.
@@ -80,8 +80,8 @@ def create_estimator(model_fn,
       labels = features.labels
     return model_fn(features, labels, mode, params, config)
 
-  config = tf_head.contrib.tpu.RunConfig(
-      tpu_config=tf_head.contrib.tpu.TPUConfig(
+  config = contrib_tpu.RunConfig(
+      tpu_config=contrib_tpu.TPUConfig(
           iterations_per_loop=save_checkpoint_steps),
       master=master,
       save_summary_steps=save_summary_steps,
@@ -91,7 +91,7 @@ def create_estimator(model_fn,
 
   params = copy.deepcopy(hparams)
   params.del_hparam('batch_size')
-  return tf_head.contrib.tpu.TPUEstimator(
+  return contrib_tpu.TPUEstimator(
       use_tpu=use_tpu,
       model_fn=wrapped_model_fn,
       model_dir=model_dir,
@@ -235,7 +235,7 @@ def evaluate(master,
 
   checkpoint_path = None
   while True:
-    checkpoint_path = tf_head.contrib.training.wait_for_new_checkpoint(
+    checkpoint_path = contrib_training.wait_for_new_checkpoint(
         model_dir, last_checkpoint=checkpoint_path)
     estimator.evaluate(input_fn=transcription_data, steps=num_steps,
                        checkpoint_path=checkpoint_path, name=name)

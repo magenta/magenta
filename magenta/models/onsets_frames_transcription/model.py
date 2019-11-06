@@ -29,6 +29,10 @@ from magenta.models.onsets_frames_transcription import metrics
 import tensorflow as tf
 
 import tensorflow.contrib.slim as slim
+from tensorflow.contrib import cudnn_rnn as contrib_cudnn_rnn
+from tensorflow.contrib import layers as contrib_layers
+from tensorflow.contrib import rnn as contrib_rnn
+from tensorflow.contrib import training as contrib_training
 
 
 def conv_net(inputs, hparams):
@@ -36,7 +40,7 @@ def conv_net(inputs, hparams):
   with slim.arg_scope(
       [slim.conv2d, slim.fully_connected],
       activation_fn=tf.nn.relu,
-      weights_initializer=tf.contrib.layers.variance_scaling_initializer(
+      weights_initializer=contrib_layers.variance_scaling_initializer(
           factor=2.0, mode='FAN_AVG', uniform=True)):
 
     net = inputs
@@ -86,13 +90,12 @@ def cudnn_lstm_layer(inputs,
     for i in range(stack_size):
       with tf.variable_scope('stack_' + str(i)):
         with tf.variable_scope('forward'):
-          lstm_fw = tf.contrib.cudnn_rnn.CudnnLSTM(
+          lstm_fw = contrib_cudnn_rnn.CudnnLSTM(
               num_layers=1,
               num_units=num_units,
               direction='unidirectional',
               dropout=rnn_dropout_drop_amt,
-              kernel_initializer=tf.contrib.layers.variance_scaling_initializer(
-              ),
+              kernel_initializer=contrib_layers.variance_scaling_initializer(),
               bias_initializer=tf.zeros_initializer(),
           )
 
@@ -106,13 +109,13 @@ def cudnn_lstm_layer(inputs,
 
         if bidirectional:
           with tf.variable_scope('backward'):
-            lstm_bw = tf.contrib.cudnn_rnn.CudnnLSTM(
+            lstm_bw = contrib_cudnn_rnn.CudnnLSTM(
                 num_layers=1,
                 num_units=num_units,
                 direction='unidirectional',
                 dropout=rnn_dropout_drop_amt,
-                kernel_initializer=tf.contrib.layers
-                .variance_scaling_initializer(),
+                kernel_initializer=contrib_layers.variance_scaling_initializer(
+                ),
                 bias_initializer=tf.zeros_initializer(),
             )
 
@@ -136,12 +139,12 @@ def cudnn_lstm_layer(inputs,
     # more resnet like
     return tf.transpose(all_outputs[-1], [1, 0, 2])
   else:
-    lstm = tf.contrib.cudnn_rnn.CudnnLSTM(
+    lstm = contrib_cudnn_rnn.CudnnLSTM(
         num_layers=stack_size,
         num_units=num_units,
         direction='bidirectional' if bidirectional else 'unidirectional',
         dropout=rnn_dropout_drop_amt,
-        kernel_initializer=tf.contrib.layers.variance_scaling_initializer(),
+        kernel_initializer=contrib_layers.variance_scaling_initializer(),
         bias_initializer=tf.zeros_initializer(),
     )
     stack_multiplier = 2 if bidirectional else 1
@@ -171,16 +174,16 @@ def lstm_layer(inputs,
   else:
     assert rnn_dropout_drop_amt == 0
     cells_fw = [
-        tf.contrib.cudnn_rnn.CudnnCompatibleLSTMCell(num_units)
+        contrib_cudnn_rnn.CudnnCompatibleLSTMCell(num_units)
         for _ in range(stack_size)
     ]
     cells_bw = [
-        tf.contrib.cudnn_rnn.CudnnCompatibleLSTMCell(num_units)
+        contrib_cudnn_rnn.CudnnCompatibleLSTMCell(num_units)
         for _ in range(stack_size)
     ]
     with tf.variable_scope('cudnn_lstm'):
       (outputs, unused_state_f,
-       unused_state_b) = tf.contrib.rnn.stack_bidirectional_dynamic_rnn(
+       unused_state_b) = contrib_rnn.stack_bidirectional_dynamic_rnn(
            cells_fw,
            cells_bw,
            inputs,
@@ -479,7 +482,7 @@ def model_fn(features, labels, mode, params, config):
       loss_label = 'losses/' + label
       tf.summary.scalar(loss_label, tf.reduce_mean(loss_collection))
 
-    train_op = tf.contrib.layers.optimize_loss(
+    train_op = contrib_layers.optimize_loss(
         name='training',
         loss=loss,
         global_step=tf.train.get_or_create_global_step(),
@@ -504,7 +507,7 @@ def get_default_hparams():
     A tf.contrib.training.HParams object representing the default
     hyperparameters for the model.
   """
-  return tf.contrib.training.HParams(
+  return contrib_training.HParams(
       batch_size=8,
       learning_rate=0.0006,
       decay_steps=10000,

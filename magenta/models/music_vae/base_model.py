@@ -22,6 +22,8 @@ import abc
 
 import tensorflow as tf
 import tensorflow_probability as tfp
+from tensorflow.contrib import metrics as contrib_metrics
+from tensorflow.contrib import training as contrib_training
 
 ds = tfp.distributions
 
@@ -330,7 +332,7 @@ class MusicVAE(object):
       metric_map[n] = tf.metrics.mean(t)
 
     metrics_to_values, metrics_to_updates = (
-        tf.contrib.metrics.aggregate_metric_map(metric_map))
+        contrib_metrics.aggregate_metric_map(metric_map))
 
     for metric_name, metric_value in metrics_to_values.iteritems():
       tf.summary.scalar(metric_name, metric_value)
@@ -356,7 +358,7 @@ class MusicVAE(object):
 
 
 def get_default_hparams():
-  return tf.contrib.training.HParams(
+  return contrib_training.HParams(
       max_seq_len=32,  # Maximum sequence length. Others will be truncated.
       z_size=32,  # Size of latent vector z.
       free_bits=0.0,  # Bits to exclude from KL loss per dimension.

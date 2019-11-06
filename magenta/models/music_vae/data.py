@@ -34,6 +34,7 @@ from magenta.protobuf import music_pb2
 import numpy as np
 import tensorflow as tf
 import tensorflow_datasets as tfds
+from tensorflow.contrib import data as contrib_data
 
 PIANO_MIN_MIDI_PITCH = 21
 PIANO_MAX_MIDI_PITCH = 108
@@ -1225,10 +1226,8 @@ def get_dataset(
           'No files were found matching examples path: %s' %  examples_path)
     files = tf.data.Dataset.list_files(examples_path)
     dataset = files.apply(
-        tf.contrib.data.parallel_interleave(
-            tf_file_reader,
-            cycle_length=num_threads,
-            sloppy=is_training))
+        contrib_data.parallel_interleave(
+            tf_file_reader, cycle_length=num_threads, sloppy=is_training))
   elif config.tfds_name:
     tf.logging.info('Reading examples from TFDS: %s', config.tfds_name)
     dataset = tfds.load(

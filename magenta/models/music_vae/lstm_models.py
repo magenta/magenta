@@ -27,12 +27,15 @@ from magenta.models.music_vae import lstm_utils
 import numpy as np
 import tensorflow as tf
 import tensorflow_probability as tfp
+from tensorflow.contrib import rnn as contrib_rnn
+from tensorflow.contrib import seq2seq as contrib_seq2seq
+from tensorflow.contrib import training as contrib_training
 from tensorflow.python.framework import tensor_util
 from tensorflow.python.layers import core as layers_core
 from tensorflow.python.util import nest
 
-rnn = tf.contrib.rnn
-seq2seq = tf.contrib.seq2seq
+rnn = contrib_rnn
+seq2seq = contrib_seq2seq
 
 # ENCODERS
 
@@ -1294,7 +1297,7 @@ def get_default_hparams():
       'residual_encoder': False,  # Use residual connections in encoder.
       'residual_decoder': False,  # Use residual connections in decoder.
   })
-  return tf.contrib.training.HParams(**hparams_map)
+  return contrib_training.HParams(**hparams_map)
 
 
 class GrooveLstmDecoder(BaseLstmDecoder):
@@ -1365,4 +1368,3 @@ class GrooveLstmDecoder(BaseLstmDecoder):
 
     output_hits = hits_sampler.sample()
     return tf.concat([output_hits, output_velocities, output_offsets], axis=1)
-
