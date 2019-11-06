@@ -112,7 +112,7 @@ RUN_DIR=<path where checkpoints and summary events should be saved>
 
 onsets_frames_transcription_train \
   --examples_path="${TRAIN_EXAMPLES}" \
-  --run_dir="${RUN_DIR}" \
+  --model_dir="${RUN_DIR}" \
   --mode='train'
 ```
 
