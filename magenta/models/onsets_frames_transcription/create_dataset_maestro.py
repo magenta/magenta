@@ -18,7 +18,6 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-import collections
 import hashlib
 import os
 
@@ -26,10 +25,10 @@ import apache_beam as beam
 from apache_beam.metrics import Metrics
 
 from magenta.models.onsets_frames_transcription import audio_label_data_utils
+from magenta.models.onsets_frames_transcription import create_dataset_lib
 from magenta.models.onsets_frames_transcription import data
 from magenta.music import audio_io
 from magenta.protobuf import music_pb2
-import numpy as np
 
 import tensorflow as tf
 
@@ -135,24 +134,6 @@ def preprocess_data(
   return example
 
 
-def generate_mixes(val, num_mixes, sourceid_to_exids):
-  """Generate lists of Example IDs to be mixed."""
-  del val
-  rs = np.random.RandomState(seed=0)  # Make the selection deterministic
-  sourceid_to_exids_dict = collections.defaultdict(list)
-  for sourceid, exid in sourceid_to_exids:
-    sourceid_to_exids_dict[sourceid].append(exid)
-  mixes = zip(
-      *[rs.choice(k, num_mixes, replace=True).tolist()
-        for k in sourceid_to_exids_dict.values()])
-  keyed_mixes = dict(enumerate(mixes))
-  exid_to_mixids = collections.defaultdict(list)
-  for mixid, exids in keyed_mixes.items():
-    for exid in exids:
-      exid_to_mixids[exid].append(mixid)
-  return exid_to_mixids
-
-
 def mix_examples(mixid_exs, sample_rate, load_audio_with_librosa):
   """Mix several Examples together to create a new example."""
   mixid, exs = mixid_exs
@@ -161,7 +142,8 @@ def mix_examples(mixid_exs, sample_rate, load_audio_with_librosa):
   example_samples = []
   example_sequences = []
 
-  for ex in exs:
+  for ex_str in exs:
+    ex = tf.train.Example.FromString(ex_str)
     wav_data = ex.features.feature['audio'].bytes_list.value[0]
     if load_audio_with_librosa:
       samples = audio_io.wav_data_to_samples_librosa(wav_data, sample_rate)
@@ -243,21 +225,24 @@ def pipeline(config_map, dataset_config_map, preprocess_example_fn,
                     dataset))
           stem_p = p | 'tfrecord_list_%s_%d' % (dataset.name, source_id) >> (
               beam.Create(data.generate_sharded_filenames(stem_path)))
+
+          # Note that we do not specify a coder when reading here.
+          # This is so that the hashing in key_example below can work directly
+          # on the serialized version instead of having to re-serialize it.
+          # Also, deserializing with a coder and then re-serializing does not
+          # always generate the same hash for the same example (likely due to
+          # the map fields in tf.train.Example). This is important when reading
+          # the same dataset multiple times to mix it with itself.
           stem_p |= 'read_tfrecord_%s_%d' % (dataset.name, source_id) >> (
-              beam.io.tfrecordio.ReadAllFromTFRecord(
-                  coder=beam.coders.ProtoCoder(tf.train.Example)))
+              beam.io.tfrecordio.ReadAllFromTFRecord())
+          stem_p |= 'shuffle_stems_%s_%d' % (dataset.name, source_id) >> (
+              beam.Reshuffle())
+
           # Key all examples with a hash.
-          def key_example(ex, source_id):
-            # prefixing the hash with the source_id is critical because the same
-            # dataset may be present multiple times and we want unique ids for
-            # each entry.
-            return (
-                '{}-{}'.format(
-                    source_id,
-                    hashlib.sha256(ex.SerializeToString()).hexdigest()),
-                ex)
+          def key_example(ex):
+            return (hashlib.sha256(ex).hexdigest(), ex)
           stem_p |= 'add_id_key_%s_%d' % (dataset.name, source_id) >> (
-              beam.Map(key_example, source_id=source_id))
+              beam.Map(key_example))
           id_exs.append(stem_p)
 
           # Create a list of source_id to example id.
@@ -266,10 +251,17 @@ def pipeline(config_map, dataset_config_map, preprocess_example_fn,
           sourceid_to_exids.append(
               stem_p | 'key_%s_%d' % (dataset.name, source_id) >> (
                   beam.Map(sourceid_to_exid, source_id=source_id)))
-        id_exs = id_exs | 'id_exs_flatten_%s' % dataset.name >> beam.Flatten()
+
+        # ('example_hash', serialized_example)
+        id_exs = (id_exs
+                  | 'id_exs_flatten_%s' % dataset.name >> beam.Flatten()
+                  | 'id_exs_distinct_%s' % dataset.name >>  beam.Distinct())
+
+        # ('source_id, 'example_hash')
         sourceid_to_exids = (
             sourceid_to_exids | 'sourceid_to_exids_flatten_%s' % dataset.name >>
             beam.Flatten())
+
         # Pass the list of source id to example IDs to generate_mixes,
         # which will create mixes by selecting random IDs from each source
         # (with replacement). This is represented as a list of example IDs
@@ -281,7 +273,7 @@ def pipeline(config_map, dataset_config_map, preprocess_example_fn,
             p
             | 'create_dummy_%s' % dataset.name >> beam.Create([0])
             | 'generate_mixes_%s' % dataset.name >> beam.Map(
-                generate_mixes, num_mixes=dataset.num_mixes,
+                create_dataset_lib.generate_mixes, num_mixes=dataset.num_mixes,
                 sourceid_to_exids=beam.pvalue.AsList(sourceid_to_exids)))
         # Create a list of (Mix ID, Full Example proto). Note: Examples may be
         # present in more than one mix. Then, group by Mix ID.
