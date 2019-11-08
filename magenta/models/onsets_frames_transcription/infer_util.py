@@ -26,15 +26,16 @@ import numpy as np
 
 
 def predict_sequence(frame_predictions, onset_predictions, offset_predictions,
-                     velocity_values, min_pitch, hparams):
+                     velocity_values, min_pitch, hparams,
+                     onsets_only=False):
   """Predict sequence given model output."""
   if not hparams.predict_onset_threshold:
     onset_predictions = None
   if not hparams.predict_offset_threshold:
     offset_predictions = None
 
-  if hparams.onset_only_sequence_prediction:
-    if not onset_predictions:
+  if onsets_only:
+    if onset_predictions is None:
       raise ValueError(
           'Cannot do onset only prediction if onsets are not defined.')
     sequence_prediction = sequences_lib.pianoroll_onsets_to_note_sequence(

@@ -138,7 +138,7 @@ def calculate_frame_metrics(frame_labels, frame_predictions):
 def _calculate_metrics_py(
     frame_predictions, onset_predictions, offset_predictions, velocity_values,
     sequence_label_str, frame_labels, sequence_id, hparams, min_pitch,
-    max_pitch):
+    max_pitch, onsets_only):
   """Python logic for calculating metrics on a single example."""
   tf.logging.info('Calculating metrics for %s with length %d', sequence_id,
                   frame_labels.shape[0])
@@ -146,7 +146,8 @@ def _calculate_metrics_py(
   sequence_prediction = infer_util.predict_sequence(
       frame_predictions=frame_predictions, onset_predictions=onset_predictions,
       offset_predictions=offset_predictions, velocity_values=velocity_values,
-      min_pitch=min_pitch, hparams=hparams)
+      min_pitch=min_pitch, hparams=hparams,
+      onsets_only=onsets_only)
 
   sequence_label = music_pb2.NoteSequence.FromString(sequence_label_str)
 
@@ -250,7 +251,8 @@ def calculate_metrics(frame_predictions,
            _calculate_metrics_py,
            hparams=hparams,
            min_pitch=min_pitch,
-           max_pitch=max_pitch),
+           max_pitch=max_pitch,
+           onsets_only=onsets_only),
        inp=[
            frame_predictions, onset_predictions, offset_predictions,
            velocity_values, sequence_label, frame_labels, sequence_id
