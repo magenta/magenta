@@ -24,8 +24,9 @@ set to 1. For training in 200k iterations, they both should be 32.
 
 from magenta.models.nsynth import utils
 import tensorflow as tf
+from tensorflow.contrib import slim as contrib_slim
 
-slim = tf.contrib.slim
+slim = contrib_slim
 FLAGS = tf.app.flags.FLAGS
 
 tf.app.flags.DEFINE_string("master", "",

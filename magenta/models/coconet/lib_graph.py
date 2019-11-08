@@ -23,6 +23,7 @@ import os
 from magenta.models.coconet import lib_hparams
 from magenta.models.coconet import lib_tfutil
 import tensorflow as tf
+from tensorflow.contrib import layers as contrib_layers
 
 
 class CoconetGraph(object):
@@ -280,7 +281,7 @@ class CoconetGraph(object):
       tf.logging.info('num_splits %d', num_splits)
       if num_splits > 1:
         num_outputs = None
-      conv = tf.contrib.layers.separable_conv2d(
+      conv = contrib_layers.separable_conv2d(
           x,
           num_outputs,
           filter_shape[:2],

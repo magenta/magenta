@@ -21,6 +21,7 @@ from magenta.pipelines import drum_pipelines
 from magenta.pipelines import note_sequence_pipelines
 from magenta.protobuf import music_pb2
 import tensorflow as tf
+from tensorflow.contrib import training as contrib_training
 
 FLAGS = tf.app.flags.FLAGS
 
@@ -32,7 +33,7 @@ class DrumsRNNPipelineTest(tf.test.TestCase):
         None,
         magenta.music.OneHotEventSequenceEncoderDecoder(
             magenta.music.MultiDrumOneHotEncoding()),
-        tf.contrib.training.HParams())
+        contrib_training.HParams())
 
   def testDrumsRNNPipeline(self):
     note_sequence = magenta.common.testing_lib.parse_test_proto(

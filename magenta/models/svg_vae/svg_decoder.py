@@ -27,6 +27,7 @@ from tensor2tensor.utils import registry
 from tensor2tensor.utils import t2t_model
 from tensor2tensor.utils import trainer_lib
 import tensorflow as tf
+from tensorflow.contrib import rnn as contrib_rnn
 
 
 @registry.register_model
@@ -136,9 +137,9 @@ class SVGDecoder(t2t_model.T2TModel):
     batch_size = common_layers.shape_list(inputs)[0]
     zero_pad, logits_so_far = self.create_initial_input_for_decode(batch_size)
 
-    layers = tf.contrib.rnn.MultiRNNCell(
-        [self.lstm_cell(hparams, train)
-         for _ in range(hparams.num_hidden_layers)])
+    layers = contrib_rnn.MultiRNNCell([
+        self.lstm_cell(hparams, train) for _ in range(hparams.num_hidden_layers)
+    ])
 
     if initial_state is None:
       raise Exception('initial state should be init from bottleneck!')
@@ -242,9 +243,9 @@ class SVGDecoder(t2t_model.T2TModel):
   def lstm_decoder(self, inputs, sequence_length, hparams, clss, train,
                    initial_state=None, bottleneck=None):
     # NOT IN PREDICT MODE. JUST RUN TEACHER-FORCED RNN:
-    layers = tf.contrib.rnn.MultiRNNCell(
-        [self.lstm_cell(hparams, train)
-         for _ in range(hparams.num_hidden_layers)])
+    layers = contrib_rnn.MultiRNNCell([
+        self.lstm_cell(hparams, train) for _ in range(hparams.num_hidden_layers)
+    ])
 
     # append one-hot class to bottleneck, which will be given per step
     clss = tf.reshape(clss, [-1])
@@ -282,12 +283,13 @@ class SVGDecoder(t2t_model.T2TModel):
   def lstm_cell(self, hparams, train):
     keep_prob = 1.0 - hparams.rec_dropout * tf.to_float(train)
 
-    recurrent_dropout_cell = tf.contrib.rnn.LayerNormBasicLSTMCell(
-        hparams.hidden_size, layer_norm=hparams.layer_norm,
+    recurrent_dropout_cell = contrib_rnn.LayerNormBasicLSTMCell(
+        hparams.hidden_size,
+        layer_norm=hparams.layer_norm,
         dropout_keep_prob=keep_prob)
 
     if hparams.ff_dropout:
-      return tf.contrib.rnn.DropoutWrapper(
+      return contrib_rnn.DropoutWrapper(
           recurrent_dropout_cell, input_keep_prob=keep_prob)
     return recurrent_dropout_cell
 

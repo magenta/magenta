@@ -21,6 +21,7 @@ from magenta.pipelines import lead_sheet_pipelines
 from magenta.pipelines import note_sequence_pipelines
 from magenta.protobuf import music_pb2
 import tensorflow as tf
+from tensorflow.contrib import training as contrib_training
 
 FLAGS = tf.app.flags.FLAGS
 
@@ -35,7 +36,7 @@ class ImprovRNNPipelineTest(tf.test.TestCase):
                 magenta.music.MajorMinorChordOneHotEncoding()),
             magenta.music.OneHotEventSequenceEncoderDecoder(
                 magenta.music.MelodyOneHotEncoding(0, 127))),
-        tf.contrib.training.HParams(),
+        contrib_training.HParams(),
         min_note=0,
         max_note=127,
         transpose_to_key=0)
