@@ -10,10 +10,3 @@ jobs:
         - ./ci-install.sh
       script:
         - ./ci-script.sh
-    - name: 'magenta-music'
-      before_install:
-        - cd magenta-music
-      install:
-        - ./ci-install.sh
-      script:
-        - ./ci-script.sh
