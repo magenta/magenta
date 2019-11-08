@@ -184,6 +184,7 @@ def get_spectrogram_hash_op(spectrogram):
     spectrogram_serialized = six.BytesIO()
     np.save(spectrogram_serialized, spectrogram)
     spectrogram_hash = np.int64(zlib.adler32(spectrogram_serialized.getvalue()))
+    spectrogram_serialized.close()
     return spectrogram_hash
   spectrogram_hash = tf.py_func(get_spectrogram_hash, [spectrogram], tf.int64,
                                 name='get_spectrogram_hash')
