@@ -112,7 +112,7 @@ RUN_DIR=<path where checkpoints and summary events should be saved>
 
 onsets_frames_transcription_train \
   --examples_path="${TRAIN_EXAMPLES}" \
-  --run_dir="${RUN_DIR}" \
+  --model_dir="${RUN_DIR}" \
   --mode='train'
 ```
 
@@ -149,11 +149,11 @@ OUTPUT_DIR=<path where output should be saved>
 onsets_frames_transcription_infer \
   --model_dir="${CHECKPOINT_DIR}" \
   --examples_path="${TEST_EXAMPLES}" \
-  --output_dir="${RUN_DIR}"
+  --output_dir="${OUTPUT_DIR}"
 ```
 
 You can check on the metrics resulting from inference using TensorBoard:
 
 ```bash
-tensorboard --logdir="${RUN_DIR}"
+tensorboard --logdir="${OUTPUT_DIR}"
 ```

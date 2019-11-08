@@ -26,21 +26,33 @@ import numpy as np
 
 
 def predict_sequence(frame_predictions, onset_predictions, offset_predictions,
-                     velocity_values, min_pitch, hparams):
+                     velocity_values, min_pitch, hparams,
+                     onsets_only=False):
   """Predict sequence given model output."""
   if not hparams.predict_onset_threshold:
     onset_predictions = None
   if not hparams.predict_offset_threshold:
     offset_predictions = None
 
-  sequence_prediction = sequences_lib.pianoroll_to_note_sequence(
-      frames=frame_predictions,
-      frames_per_second=data.hparams_frames_per_second(hparams),
-      min_duration_ms=0,
-      min_midi_pitch=min_pitch,
-      onset_predictions=onset_predictions,
-      offset_predictions=offset_predictions,
-      velocity_values=velocity_values)
+  if onsets_only:
+    if onset_predictions is None:
+      raise ValueError(
+          'Cannot do onset only prediction if onsets are not defined.')
+    sequence_prediction = sequences_lib.pianoroll_onsets_to_note_sequence(
+        onsets=onset_predictions,
+        frames_per_second=data.hparams_frames_per_second(hparams),
+        note_duration_seconds=0.05,
+        min_midi_pitch=min_pitch,
+        velocity_values=velocity_values)
+  else:
+    sequence_prediction = sequences_lib.pianoroll_to_note_sequence(
+        frames=frame_predictions,
+        frames_per_second=data.hparams_frames_per_second(hparams),
+        min_duration_ms=0,
+        min_midi_pitch=min_pitch,
+        onset_predictions=onset_predictions,
+        offset_predictions=offset_predictions,
+        velocity_values=velocity_values)
 
   return sequence_prediction
 

@@ -49,7 +49,8 @@ def _stft_magnitude_full_tf(waveform_input, window_length_samples,
           waveform_input,
           frame_length=window_length_samples,
           frame_step=hop_length_samples,
-          fft_length=fft_length))
+          fft_length=fft_length),
+      name='magnitude_spectrogram')
   return stft_magnitude
 
 
@@ -71,9 +72,11 @@ def _naive_rdft(signal_tensor, fft_length):
   complex_dft_matrix_kept_values = _dft_matrix(fft_length)[:(
       fft_length // 2 + 1), :].transpose()
   real_dft_tensor = tf.constant(
-      np.real(complex_dft_matrix_kept_values).astype(np.float32))
+      np.real(complex_dft_matrix_kept_values).astype(np.float32),
+      name='real_dft_matrix')
   imag_dft_tensor = tf.constant(
-      np.imag(complex_dft_matrix_kept_values).astype(np.float32))
+      np.imag(complex_dft_matrix_kept_values).astype(np.float32),
+      name='imaginary_dft_matrix')
   signal_frame_length = signal_tensor.shape[-1].value
   half_pad = (fft_length - signal_frame_length) // 2
   pad_values = tf.concat([
@@ -192,7 +195,8 @@ def _stft_tflite(signal, frame_length, frame_step, fft_length):
   window = tf.reshape(
       tf.constant(
           (0.5 - 0.5 * np.cos(2 * np.pi * np.arange(0, 1.0, 1.0 / frame_length))
-          ).astype(np.float32)), [1, frame_length])
+          ).astype(np.float32),
+          name='window'), [1, frame_length])
   framed_signal = _fixed_frame(
       signal, frame_length, frame_step, first_axis=False)
   framed_signal *= window
@@ -208,7 +212,9 @@ def _stft_magnitude_tflite(waveform_input, window_length_samples,
       frame_length=window_length_samples,
       frame_step=hop_length_samples,
       fft_length=fft_length)
-  stft_magnitude = tf.sqrt(tf.add(real_stft * real_stft, imag_stft * imag_stft))
+  stft_magnitude = tf.sqrt(
+      tf.add(real_stft * real_stft, imag_stft * imag_stft),
+      name='magnitude_spectrogram')
   return stft_magnitude
 
 
@@ -262,7 +268,8 @@ def build_mel_calculation_graph(waveform_input,
     linear_to_mel_weight_matrix = tf.constant(
         mfcc_mel.SpectrogramToMelMatrix(num_mel_bins, num_spectrogram_bins,
                                         sample_rate, lower_edge_hz,
-                                        upper_edge_hz).astype(np.float32))
+                                        upper_edge_hz).astype(np.float32),
+        name='linear_to_mel_matrix')
   else:
     # In full tf, the mel weight matrix is calculated at run time within the
     # TF graph.  This avoids including a matrix of 64 x 256 float values (i.e.,
@@ -271,10 +278,13 @@ def build_mel_calculation_graph(waveform_input,
         num_mel_bins, num_spectrogram_bins, sample_rate, lower_edge_hz,
         upper_edge_hz)
 
-  mel_spectrogram = tf.matmul(magnitude_spectrogram,
-                              linear_to_mel_weight_matrix)
+  mel_spectrogram = tf.matmul(
+      magnitude_spectrogram,
+      linear_to_mel_weight_matrix,
+      name='mel_spectrogram')
   log_offset = 0.001
-  log_mel_spectrogram = tf.log(mel_spectrogram + log_offset)
+  log_mel_spectrogram = tf.log(
+      mel_spectrogram + log_offset, name='log_mel_spectrogram')
   # log_mel_spectrogram is a [?, num_mel_bins] gram.
   if tflite_compatible:
     features = _fixed_frame(

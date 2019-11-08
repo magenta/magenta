@@ -35,9 +35,6 @@ music transformer, you'll probably want to use Cloud Dataflow or some other
 platform that supports Apache Beam. You can also run datagen locally, but it
 will be very slow due to the NoteSequence preprocessing.
 
-Unfortunately, as Apache Beam does not currently support Python 3, you'll need
-to use Python 2 here.
-
 Anyway, to prepare the dataset, do the following:
 
 1. Set up Google Cloud Dataflow. The quickest way to do this is described in [this guide](https://cloud.google.com/dataflow/docs/quickstarts/quickstart-python).

@@ -58,22 +58,21 @@ REQUIRED_PACKAGES = [
     'scipy >= 0.18.1',
     'six >= 1.12.0',
     'sk-video',
-    'sonnet',
+    'dm-sonnet < 2.0.0',  # Sonnet 2 requires TF2.
     'sox >= 1.3.7',
     'tensorflow-datasets >= 1.0.2',
-    'tensorflow-probability == 0.7.0rc0',
+    'tensorflow-probability == 0.7.0',
     'tensor2tensor >= 1.13.4',
     'wheel',
     'futures;python_version=="2.7"',
-    'apache-beam[gcp] >= 2.8.0;python_version=="2.7"',
+    'apache-beam[gcp] >= 2.14.0',
 ]
 
-# pylint: disable=undefined-variable
+# Magenta library is not yet TF2 compatible.
 if gpu_mode:
-  REQUIRED_PACKAGES.append('tensorflow-gpu >= 1.14.0')
+  REQUIRED_PACKAGES.append('tensorflow-gpu >= 1.14.0, < 2.0.0')
 else:
-  REQUIRED_PACKAGES.append('tensorflow >= 1.14.0')
-# pylint: enable=undefined-variable
+  REQUIRED_PACKAGES.append('tensorflow >= 1.14.0, < 2.0.0')
 
 # pylint:disable=line-too-long
 CONSOLE_SCRIPTS = [
@@ -163,12 +162,9 @@ setup(
     },
     setup_requires=['pytest-runner', 'pytest-pylint'],
     tests_require=[
-        'pytest',
-        'pytest-xdist',
+        'pytest >= 5.2.0',
+        'pytest-xdist < 1.30.0',  # 1.30 has problems working with pylint plugin
         'pylint < 2.0.0;python_version<"3"',
-        # pylint 2.3.0 and astroid 2.2.0 caused spurious errors,
-        # so lock them down to known good versions.
-        'pylint == 2.2.2;python_version>="3"',
-        'astroid == 2.0.4;python_version>="3"',
+        'pylint >= 2.4.2;python_version>="3"',
     ],
 )

@@ -211,6 +211,10 @@ def create_example(example_id, ns, wav_data, velocity_range=None):
     velocity_min = np.min(velocities)
     velocity_range = music_pb2.VelocityRange(min=velocity_min, max=velocity_max)
 
+  # Ensure that all sequences for training and evaluation have gone through
+  # sustain processing.
+  sus_ns = sequences_lib.apply_sustain_control_changes(ns)
+
   example = tf.train.Example(
       features=tf.train.Features(
           feature={
@@ -221,7 +225,7 @@ def create_example(example_id, ns, wav_data, velocity_range=None):
               'sequence':
                   tf.train.Feature(
                       bytes_list=tf.train.BytesList(
-                          value=[ns.SerializeToString()])),
+                          value=[sus_ns.SerializeToString()])),
               'audio':
                   tf.train.Feature(
                       bytes_list=tf.train.BytesList(value=[wav_data])),

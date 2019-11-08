@@ -1787,8 +1787,9 @@ def sequence_to_pianoroll(
     if (min_frame_occupancy_for_label > 0.0 and
         end_frame_occupancy < min_frame_occupancy_for_label):
       end_frame -= 1
-      # can be a problem for very short notes
-      end_frame = max(start_frame, end_frame)
+
+    # Ensure that every note fills at least one frame.
+    end_frame = max(start_frame + 1, end_frame)
 
     return start_frame, end_frame
 
@@ -1868,6 +1869,24 @@ def sequence_to_pianoroll(
       control_changes=control_changes)
 
 
+def _unscale_velocity(velocity):
+  """Translates a velocity estimate to a MIDI velocity value.
+
+  Note that this scaling is totally arbitrary and was chosen only because it
+  sounded decent when synthesized.
+
+  Args:
+    velocity: Velocity estimate.
+
+  Returns:
+    MIDI velocity value.
+  """
+  unscaled = max(min(velocity, 1.), 0) * 80. + 10.
+  if math.isnan(unscaled):
+    return 0
+  return int(unscaled)
+
+
 def pianoroll_to_note_sequence(frames,
                                frames_per_second,
                                min_duration_ms,
@@ -1924,13 +1943,6 @@ def pianoroll_to_note_sequence(frames,
 
     del pitch_start_step[pitch]
 
-  def unscale_velocity(velocity):
-    """Translates a velocity estimate to a MIDI velocity value."""
-    unscaled = max(min(velocity, 1.), 0) * 80. + 10.
-    if math.isnan(unscaled):
-      return 0
-    return int(unscaled)
-
   def process_active_pitch(pitch, i):
     """Process a pitch being active in a given frame."""
     if pitch not in pitch_start_step:
@@ -1939,7 +1951,7 @@ def pianoroll_to_note_sequence(frames,
         # if we've predicted an onset.
         if onset_predictions[i, pitch]:
           pitch_start_step[pitch] = i
-          onset_velocities[pitch] = unscale_velocity(velocity_values[i, pitch])
+          onset_velocities[pitch] = _unscale_velocity(velocity_values[i, pitch])
         else:
           # Even though the frame is active, the onset predictor doesn't
           # say there should be an onset, so ignore it.
@@ -1954,7 +1966,7 @@ def pianoroll_to_note_sequence(frames,
             not onset_predictions[i - 1, pitch]):
           end_pitch(pitch, i)
           pitch_start_step[pitch] = i
-          onset_velocities[pitch] = unscale_velocity(velocity_values[i, pitch])
+          onset_velocities[pitch] = _unscale_velocity(velocity_values[i, pitch])
 
   for i, frame in enumerate(frames):
     for pitch, active in enumerate(frame):
@@ -1964,6 +1976,66 @@ def pianoroll_to_note_sequence(frames,
         end_pitch(pitch, i)
 
   sequence.total_time = len(frames) * frame_length_seconds
+  if sequence.notes:
+    assert sequence.total_time >= sequence.notes[-1].end_time
+
+  return sequence
+
+
+def pianoroll_onsets_to_note_sequence(onsets,
+                                      frames_per_second,
+                                      note_duration_seconds=0.05,
+                                      velocity=70,
+                                      instrument=0,
+                                      program=0,
+                                      qpm=constants.DEFAULT_QUARTERS_PER_MINUTE,
+                                      min_midi_pitch=constants.MIN_MIDI_PITCH,
+                                      velocity_values=None):
+  """Convert onsets to a NoteSequence.
+
+  This converts an matrix of onsets into a NoteSequence. Every active onset
+  is considered to be a new note with a fixed duration of note_duration_seconds.
+  This is different from pianoroll_to_note_sequence, which considers onsets in
+  consecutive frames to represent a single new note.
+
+
+  Args:
+    onsets: Numpy array of onsets.
+    frames_per_second: Frames per second.
+    note_duration_seconds: Fixed length of every note.
+    velocity: Default note velocity if velocity_values is not provided.
+    instrument: Instrument for the note sequence.
+    program: Program for the note sequence.
+    qpm: QPM for the note sequence.
+    min_midi_pitch: MIDI pitch offset.
+    velocity_values: Numpy array of floats representing velocities.
+
+  Returns:
+    Generated NoteSequence proto.
+  """
+  frame_length_seconds = 1 / frames_per_second
+
+  sequence = music_pb2.NoteSequence()
+  sequence.tempos.add().qpm = qpm
+  sequence.ticks_per_quarter = constants.STANDARD_PPQ
+
+  if velocity_values is None:
+    velocity_values = velocity * np.ones_like(onsets, dtype=np.int32)
+
+  for frame, pitch in zip(*np.nonzero(onsets)):
+    start_time = frame * frame_length_seconds
+    end_time = start_time + note_duration_seconds
+
+    note = sequence.notes.add()
+    note.start_time = start_time
+    note.end_time = end_time
+    note.pitch = pitch + min_midi_pitch
+    note.velocity = _unscale_velocity(velocity_values[frame, pitch])
+    note.instrument = instrument
+    note.program = program
+
+  sequence.total_time = (
+      len(onsets) * frame_length_seconds + note_duration_seconds)
   if sequence.notes:
     assert sequence.total_time >= sequence.notes[-1].end_time
 

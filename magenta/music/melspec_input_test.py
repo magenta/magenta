@@ -20,6 +20,8 @@ from magenta.music import melspec_input
 import numpy as np
 import tensorflow as tf
 
+from tensorflow.lite.python import convert  # pylint: disable=g-direct-tensorflow-import
+
 
 def _TmpFilePath(suffix):
   """Returns the path to a new temporary file."""
@@ -131,12 +133,10 @@ class MelspecInputTest(tf.test.TestCase):
     self.BuildTfGraph(tflite_compatible=True)
     self.RunTfliteCompiler()
 
-  # I wanted to test that tflite_compatible=False doesn't work, but the
-  # tococonverter exits with FATAL, which I can't trap.
-  # def testRegularTfGraphIsntTfLiteCompatible(self):
-  #   self.BuildTfGraph(tflite_compatible=False)
-  #   self.assertRaises(tf.lite.FatalException,  # I made this up.
-  #                     self.RunTfliteCompiler())
+  def testRegularTfGraphIsntTfLiteCompatible(self):
+    self.BuildTfGraph(tflite_compatible=False)
+    with self.assertRaises(convert.ConverterError):
+      self.RunTfliteCompiler()
 
   def RunTfliteModel(self, tflite_model_path):
     """Load and run TFLite model under the interpreter."""
@@ -152,23 +152,16 @@ class MelspecInputTest(tf.test.TestCase):
 
   def testTfLiteGraphUnderTfLite(self):
     """Verify output of tflite interpreter matches plain TF output."""
-    # TODO(dpwe): Understand this better and file a bug.
     self.BuildTfGraph(tflite_compatible=True)
     tf_output = self.RunTfGraph()
     # Graph is now built in the current session, ready for tflite conversion.
     tflite_filename = self.RunTfliteCompiler()
-    # This test runs OK in -c opt mode, but not in -c opt --copt=-UNDEBUG.
-    tf.logging.info('This test is disabled as it seems to be triggering a bug'
-                    ' in the toco interpreter Gather Op.')
-    return
-    # pylint: disable=unreachable
     # Run the tflite model with the tflite interpreter.
     tflite_output = self.RunTfliteModel(tflite_filename)
     # Be satisfied with 1 d.p. (i.e., 2 sf) agreement.
     # At 2 d.p., we got 0.07% disagreement, probably just 1 value.)
     np.testing.assert_array_almost_equal(
         tflite_output[0], tf_output[0], decimal=1)
-    # pylint: enable=unreachable
 
 
 if __name__ == '__main__':

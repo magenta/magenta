@@ -33,6 +33,8 @@ source /tmp/magenta-env/bin/activate
 echo $(which python)
 python --version
 
-# Install magenta and magenta.music
+pip install --upgrade pip setuptools
+pip install six==1.12.0  # temporary fix for astroid compatibility.
+
 python setup.py bdist_wheel --universal
 pip install --upgrade --ignore-installed dist/magenta*.whl

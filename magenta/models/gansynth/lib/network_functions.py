@@ -23,6 +23,7 @@ from magenta.models.gansynth.lib import data_normalizer
 from magenta.models.gansynth.lib import layers
 from magenta.models.gansynth.lib import networks
 import tensorflow as tf
+from tensorflow.contrib import layers as contrib_layers
 
 
 def _num_filters_fn(block_id, **kwargs):
@@ -72,7 +73,7 @@ def discriminator_fn_specgram(images, **kwargs):
       kernel_size=kwargs['kernel_size'],
       simple_arch=kwargs['simple_arch'])
   with tf.variable_scope('discriminator_cond'):
-    x = tf.contrib.layers.flatten(end_points['last_conv'])
+    x = contrib_layers.flatten(end_points['last_conv'])
     end_points['classification_logits'] = layers.custom_dense(
         x=x, units=kwargs['num_tokens'], scope='classification_logits')
   return logits, end_points

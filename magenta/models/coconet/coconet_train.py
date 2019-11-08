@@ -25,6 +25,9 @@ from magenta.models.coconet import lib_graph
 from magenta.models.coconet import lib_hparams
 from magenta.models.coconet import lib_util
 import numpy as np
+import six
+from six.moves import range
+from six.moves import zip
 import tensorflow as tf
 
 FLAGS = tf.app.flags.FLAGS
@@ -128,7 +131,7 @@ flags.DEFINE_string(
 def estimate_popstats(unused_sv, sess, m, dataset, unused_hparams):
   """Averages over mini batches for population statistics for batch norm."""
   print('Estimating population statistics...')
-  tfbatchstats, tfpopstats = list(zip(*m.popstats_by_batchstat.items()))
+  tfbatchstats, tfpopstats = list(zip(*list(m.popstats_by_batchstat.items())))
 
   nepochs = 3
   nppopstats = [lib_util.AggregateMean('') for _ in tfpopstats]
@@ -201,7 +204,7 @@ def run_epoch(supervisor, sess, m, dataset, hparams, eval_op, experiment_type,
   # Make summaries.
   if FLAGS.log_progress:
     summaries = tf.Summary()
-    for stat_name, stat in run_stats.iteritems():
+    for stat_name, stat in six.iteritems(run_stats):
       value = summaries.value.add()
       value.tag = '%s_%s' % (stat_name, experiment_type)
       value.simple_value = stat

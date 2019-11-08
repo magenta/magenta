@@ -20,6 +20,7 @@ import os
 from absl import logging
 import numpy as np
 import tensorflow as tf
+from tensorflow.contrib import slim as contrib_slim
 
 
 def get_default_embedding_size(num_features):
@@ -78,7 +79,7 @@ def compute_data_mean_and_std(data, axis, num_samples):
         tf.local_variables_initializer(),
         tf.tables_initializer()
     ])
-    with tf.contrib.slim.queues.QueueRunners(sess):
+    with contrib_slim.queues.QueueRunners(sess):
       data_value = np.concatenate(
           [sess.run(data) for _ in range(num_samples)], axis=0)
   mean = np.mean(data_value, axis=tuple(axis), keepdims=True)

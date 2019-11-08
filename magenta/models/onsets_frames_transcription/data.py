@@ -27,6 +27,7 @@ from __future__ import print_function
 
 import collections
 import functools
+import re
 import wave
 import zlib
 
@@ -141,16 +142,26 @@ def wav_to_spec_op(wav_audio, hparams):
   return spec
 
 
-MELSPEC_SAMPLE_RATE = 16000
-
-
 def tflite_compat_mel(wav_audio, hparams):
   """EXPERIMENTAL: Log mel spec with ops that can be made TFLite compatible."""
   samples, decoded_sample_rate = tf.audio.decode_wav(
       wav_audio, desired_channels=1)
   samples = tf.squeeze(samples, axis=1)
+  # Ensure that we decoded the samples at the expected sample rate.
   with tf.control_dependencies(
-      [tf.assert_equal(decoded_sample_rate, MELSPEC_SAMPLE_RATE)]):
+      [tf.assert_equal(decoded_sample_rate, hparams.sample_rate)]):
+    return tflite_compat_mel_from_samples(samples, hparams)
+
+
+MELSPEC_SAMPLE_RATE = 16000
+
+
+def tflite_compat_mel_from_samples(samples, hparams):
+  """EXPERIMENTAL: Log mel spec with ops that can be made TFLite compatible."""
+  # Ensure hparams.sample_rate is MELSPEC_SAMPLE_RATE because that is what these
+  # parameters are hard coded to expect.
+  with tf.control_dependencies(
+      [tf.assert_equal(hparams.sample_rate, MELSPEC_SAMPLE_RATE)]):
     features = melspec_input.build_mel_calculation_graph(
         samples, MELSPEC_SAMPLE_RATE,
         window_length_seconds=2048 / MELSPEC_SAMPLE_RATE,  # 0.128
@@ -173,6 +184,7 @@ def get_spectrogram_hash_op(spectrogram):
     spectrogram_serialized = six.BytesIO()
     np.save(spectrogram_serialized, spectrogram)
     spectrogram_hash = np.int64(zlib.adler32(spectrogram_serialized.getvalue()))
+    spectrogram_serialized.close()
     return spectrogram_hash
   spectrogram_hash = tf.py_func(get_spectrogram_hash, [spectrogram], tf.int64,
                                 name='get_spectrogram_hash')
@@ -385,6 +397,36 @@ def preprocess_example(example_proto, hparams, is_training):
         note_sequence=sequence)
 
 
+def input_tensors_to_example(inputs, hparams):
+  """Convert InputTensors to Example proto ready for serialization."""
+  del hparams
+
+  feature = {
+      'spec': tf.train.Feature(
+          float_list=tf.train.FloatList(value=inputs.spec.flatten())),
+      'spectrogram_hash': tf.train.Feature(
+          int64_list=tf.train.Int64List(value=[inputs.spectrogram_hash])),
+      'labels': tf.train.Feature(
+          float_list=tf.train.FloatList(value=inputs.labels.flatten())),
+      'label_weights': tf.train.Feature(
+          float_list=tf.train.FloatList(value=inputs.label_weights.flatten())),
+      'length': tf.train.Feature(
+          int64_list=tf.train.Int64List(value=[inputs.length])),
+      'onsets': tf.train.Feature(
+          float_list=tf.train.FloatList(value=inputs.onsets.flatten())),
+      'offsets': tf.train.Feature(
+          float_list=tf.train.FloatList(value=inputs.offsets.flatten())),
+      'velocities': tf.train.Feature(
+          float_list=tf.train.FloatList(value=inputs.velocities.flatten())),
+      'sequence_id': tf.train.Feature(
+          bytes_list=tf.train.BytesList(value=[inputs.sequence_id])),
+      'note_sequence': tf.train.Feature(
+          bytes_list=tf.train.BytesList(value=[inputs.note_sequence])),
+  }
+
+  return tf.train.Example(features=tf.train.Features(feature=feature))
+
+
 FeatureTensors = collections.namedtuple(
     'FeatureTensors', ('spec', 'length', 'sequence_id'))
 LabelTensors = collections.namedtuple(
@@ -481,6 +523,21 @@ def input_tensors_to_model_input(
   return features, labels
 
 
+def generate_sharded_filenames(sharded_filenames):
+  """Generate a list of filenames from a filename with an @shards suffix."""
+  filenames = []
+  for filename in sharded_filenames.split(','):
+    match = re.match(r'^([^@]+)@(\d+)$', filename)
+    if not match:
+      filenames.append(filename)
+    else:
+      num_shards = int(match.group(2))
+      base = match.group(1)
+      for i in range(num_shards):
+        filenames.append('{}-{:0=5d}-of-{:0=5d}'.format(base, i, num_shards))
+  return filenames
+
+
 def read_examples(examples, is_training, shuffle_examples,
                   skip_n_initial_records, hparams):
   """Returns a tf.data.Dataset from TFRecord files.
@@ -502,7 +559,20 @@ def read_examples(examples, is_training, shuffle_examples,
   if isinstance(examples, str):
     # Read examples from a TFRecord file containing serialized NoteSequence
     # and audio.
-    filenames = tf.data.Dataset.list_files(examples, shuffle=shuffle_examples)
+    sharded_filenames = generate_sharded_filenames(examples)
+    if len(sharded_filenames) == 1:
+      # Could be a glob pattern.
+      filenames = tf.data.Dataset.list_files(
+          generate_sharded_filenames(examples), shuffle=shuffle_examples)
+    else:
+      # If we've already expanded the list of sharded filenames, don't send to
+      # Dataset.list_files because that will attempt to execute a potentially
+      # slow (especially for network filesystems) glob expansion on each entry
+      # in the already expanded list.
+      if shuffle_examples:
+        np.random.shuffle(sharded_filenames)
+      filenames = tf.data.Dataset.from_tensor_slices(sharded_filenames)
+
     if shuffle_examples:
       input_dataset = filenames.apply(
           tf.data.experimental.parallel_interleave(

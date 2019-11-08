@@ -23,6 +23,7 @@ import os
 from magenta.models.music_vae import configs
 from magenta.models.music_vae import data
 import tensorflow as tf
+from tensorflow.contrib import training as contrib_training
 
 flags = tf.app.flags
 FLAGS = flags.FLAGS
@@ -206,7 +207,7 @@ def train(train_dir,
           saver=tf.train.Saver(
               max_to_keep=checkpoints_to_keep,
               keep_checkpoint_every_n_hours=keep_checkpoint_every_n_hours))
-      tf.contrib.training.train(
+      contrib_training.train(
           train_op=train_op,
           logdir=train_dir,
           scaffold=scaffold,
@@ -237,9 +238,10 @@ def evaluate(train_dir,
         **_get_input_tensors(dataset_fn().take(num_batches), config))
 
     hooks = [
-        tf.contrib.training.StopAfterNEvalsHook(num_batches),
-        tf.contrib.training.SummaryAtEndHook(eval_dir)]
-    tf.contrib.training.evaluate_repeatedly(
+        contrib_training.StopAfterNEvalsHook(num_batches),
+        contrib_training.SummaryAtEndHook(eval_dir)
+    ]
+    contrib_training.evaluate_repeatedly(
         train_dir,
         eval_ops=eval_op,
         hooks=hooks,

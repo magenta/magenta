@@ -12,10 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Imports Magenta problems so that they register with Tensor2Tensor."""
+"""Imports Magenta models so that they register with Tensor2Tensor."""
 
 # pylint: disable=unused-import
-from magenta.models import svg_vae
-from magenta.models.score2perf import score2perf
+from magenta.models.score2perf import score2perf_hparams
 
 # pylint: enable=unused-import

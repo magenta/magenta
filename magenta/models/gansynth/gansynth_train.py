@@ -84,7 +84,7 @@ def run(config):
 
   stage_ids = train_util.get_stage_ids(**config)
   if not config['train_progressive']:
-    stage_ids = stage_ids[-1:]
+    stage_ids = list(stage_ids)[-1:]
 
   # Train one stage at a time
   for stage_id in stage_ids:

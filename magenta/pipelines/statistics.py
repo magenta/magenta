@@ -22,7 +22,7 @@ import abc
 import bisect
 import copy
 
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 
 
 class MergeStatisticsError(Exception):

@@ -12,10 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Test configuration for pytest."""
+"""Imports SVG VAE."""
 
-import sys
-
-collect_ignore = []
-if sys.version_info.major != 2:
-  collect_ignore.append('magenta/models/score2perf/datagen_beam_test.py')
+from magenta.models.svg_vae import glyphazzn
+from magenta.models.svg_vae import image_vae
+from magenta.models.svg_vae import svg_decoder
