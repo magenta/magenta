@@ -2022,19 +2022,17 @@ def pianoroll_onsets_to_note_sequence(onsets,
   if velocity_values is None:
     velocity_values = velocity * np.ones_like(onsets, dtype=np.int32)
 
-  for i, frame in enumerate(onsets):
-    for pitch, active in enumerate(frame):
-      if active:
-        start_time = i * frame_length_seconds
-        end_time = start_time + note_duration_seconds
+  for frame, pitch in zip(*np.nonzero(onsets)):
+    start_time = frame * frame_length_seconds
+    end_time = start_time + note_duration_seconds
 
-        note = sequence.notes.add()
-        note.start_time = start_time
-        note.end_time = end_time
-        note.pitch = pitch + min_midi_pitch
-        note.velocity = _unscale_velocity(velocity_values[i, pitch])
-        note.instrument = instrument
-        note.program = program
+    note = sequence.notes.add()
+    note.start_time = start_time
+    note.end_time = end_time
+    note.pitch = pitch + min_midi_pitch
+    note.velocity = _unscale_velocity(velocity_values[frame, pitch])
+    note.instrument = instrument
+    note.program = program
 
   sequence.total_time = (
       len(onsets) * frame_length_seconds + note_duration_seconds)
