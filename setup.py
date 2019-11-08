@@ -71,10 +71,8 @@ REQUIRED_PACKAGES = [
 # pylint: disable=undefined-variable
 if gpu_mode:
   REQUIRED_PACKAGES.append('tensorflow-gpu >= 1.14.0')
-  REQUIRED_PACKAGES.append('magenta.music-gpu == ' + __version__)
 else:
   REQUIRED_PACKAGES.append('tensorflow >= 1.14.0')
-  REQUIRED_PACKAGES.append('magenta.music == ' + __version__)
 # pylint: enable=undefined-variable
 
 # pylint:disable=line-too-long

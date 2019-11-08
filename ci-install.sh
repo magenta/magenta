@@ -33,11 +33,6 @@ source /tmp/magenta-env/bin/activate
 echo $(which python)
 python --version
 
-# Build magenta.music wheel
-cd magenta-music
-python setup.py bdist_wheel --universal --dist-dir ../dist
-cd ..
-
 # Install magenta and magenta.music
 python setup.py bdist_wheel --universal
 pip install --upgrade --ignore-installed dist/magenta*.whl
