@@ -57,7 +57,7 @@ def note_sequence_record_iterator(path):
     yield music_pb2.NoteSequence.FromString(serialized_sequence)
 
 
-class NoteSequenceRecordWriter(tf.python_io.TFRecordWriter):
+class NoteSequenceRecordWriter(tf.io.TFRecordWriter):
   """A class to write serialized NoteSequence protos to a TFRecord file.
 
   This class implements `__enter__` and `__exit__`, and can be used in `with`
@@ -74,4 +74,4 @@ class NoteSequenceRecordWriter(tf.python_io.TFRecordWriter):
     Args:
       note_sequence: A NoteSequence proto to write.
     """
-    tf.python_io.TFRecordWriter.write(self, note_sequence.SerializeToString())
+    tf.io.TFRecordWriter.write(self, note_sequence.SerializeToString())
