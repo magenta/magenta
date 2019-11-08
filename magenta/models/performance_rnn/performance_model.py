@@ -199,7 +199,7 @@ default_configs = {
                 learning_rate=0.001)),
     'performance_with_dynamics':
         PerformanceRnnConfig(
-            magenta.protobuf.generator_pb2.GeneratorDetails(
+            magenta.music.protobuf.generator_pb2.GeneratorDetails(
                 id='performance_with_dynamics',
                 description='Performance RNN with dynamics'),
             magenta.music.OneHotEventSequenceEncoderDecoder(
