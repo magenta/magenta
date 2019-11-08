@@ -22,7 +22,7 @@ import abc
 import bisect
 import copy
 
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 
 
 class MergeStatisticsError(Exception):
@@ -129,7 +129,7 @@ def merge_statistics(stats_list):
   return list(name_map.values())
 
 
-def log_statistics_list(stats_list, logger_fn=tf.compat.v1.logging.info):
+def log_statistics_list(stats_list, logger_fn=tf.logging.info):
   """Calls the given logger function on each `Statistic` in the list.
 
   Args:
