@@ -156,7 +156,7 @@ def model_inference(model_fn,
       for k, v in predictions.iteritems():
         if not k.startswith('metrics/'):
           continue
-        all_metrics[k].append(v)
+        all_metrics[k].extend(v)
         metric_summary = tf.summary.histogram(
             k,
             tf.constant(all_metrics[k], name=k),
