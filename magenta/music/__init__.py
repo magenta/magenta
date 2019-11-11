@@ -14,8 +14,6 @@
 
 """Imports objects from music modules into the top-level music namespace."""
 
-from magenta.music.version import __version__
-
 from magenta.music.abc_parser import parse_abc_tunebook
 from magenta.music.abc_parser import parse_abc_tunebook_file
 

@@ -2,11 +2,9 @@ language: python
 dist: xenial
 python:
   - "3.7"
-
-jobs:
-  include:
-    - name: 'magenta'
-      install:
-        - ./ci-install.sh
-      script:
-        - ./ci-script.sh
+# command to install dependencies
+install:
+  - ./ci-install.sh
+# command to run tests
+script:
+  - ./ci-script.sh
