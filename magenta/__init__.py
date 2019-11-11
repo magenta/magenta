@@ -12,4 +12,62 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-__path__ = __import__('pkgutil').extend_path(__path__, __name__)
+r"""Pulls in all magenta libraries that are in the public API.
+
+To regenerate this list based on the py_library dependencies of //magenta:
+bazel query 'kind(py_library, deps(//magenta))' | \
+  grep '//magenta' | \
+  egrep  -v "/([^:/]+):\1$" | \
+  sed -e 's/\/\//import /' -e 's/\//./' -e 's/:/./' -e  's/py_pb2/pb2/' | \
+  LANG=C sort
+"""
+# TODO(adarob): Remove these imports once moved to /py internally.
+
+import magenta.common.beam_search
+import magenta.common.concurrency
+import magenta.common.nade
+import magenta.common.sequence_example_lib
+import magenta.common.state_util
+import magenta.common.testing_lib
+import magenta.common.tf_utils
+import magenta.models.shared.sequence_generator
+import magenta.models.shared.sequence_generator_bundle
+import magenta.music.abc_parser
+import magenta.music.audio_io
+import magenta.music.chord_symbols_lib
+import magenta.music.chords_encoder_decoder
+import magenta.music.chords_lib
+import magenta.music.constants
+import magenta.music.drums_encoder_decoder
+import magenta.music.drums_lib
+import magenta.music.encoder_decoder
+import magenta.music.events_lib
+import magenta.music.lead_sheets_lib
+import magenta.music.melodies_lib
+import magenta.music.melody_encoder_decoder
+import magenta.music.midi_io
+import magenta.music.midi_synth
+import magenta.music.model
+import magenta.music.musicxml_parser
+import magenta.music.musicxml_reader
+import magenta.music.note_sequence_io
+import magenta.music.notebook_utils
+import magenta.music.performance_encoder_decoder
+import magenta.music.performance_lib
+import magenta.music.pianoroll_encoder_decoder
+import magenta.music.pianoroll_lib
+import magenta.music.protobuf.music_pb2
+import magenta.music.sequences_lib
+import magenta.music.testing_lib
+import magenta.pipelines.dag_pipeline
+import magenta.pipelines.drum_pipelines
+import magenta.pipelines.lead_sheet_pipelines
+import magenta.pipelines.melody_pipelines
+import magenta.pipelines.note_sequence_pipelines
+import magenta.pipelines.pipeline
+import magenta.pipelines.pipelines_common
+import magenta.pipelines.statistics
+import magenta.protobuf.generator_pb2
+import magenta.version
+
+from magenta.version import __version__
