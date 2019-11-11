@@ -108,13 +108,6 @@ from magenta.music.pianoroll_encoder_decoder import PianorollEncoderDecoder
 
 from magenta.music.pianoroll_lib import PianorollSequence
 
-
-from magenta.music.sequence_generator import BaseSequenceGenerator
-from magenta.music.sequence_generator import SequenceGeneratorError
-
-from magenta.music.sequence_generator_bundle import GeneratorBundleParseError
-from magenta.music.sequence_generator_bundle import read_bundle_file
-
 from magenta.music.sequences_lib import apply_sustain_control_changes
 from magenta.music.sequences_lib import BadTimeSignatureError
 from magenta.music.sequences_lib import concatenate_sequences

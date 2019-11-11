@@ -5,7 +5,7 @@ This interface allows you to connect to a model
 and synthesizer. These can be either "hard" or "soft" components.
 
 Note that you can only interface with a trained models that have a
-[SequenceGenerator](/magenta/music/sequence_generator.py)
+[SequenceGenerator](/magenta/models/shared/sequence_generator.py)
  defined for them.
 
 <p align="center">

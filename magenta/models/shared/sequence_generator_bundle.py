@@ -14,7 +14,7 @@
 
 """Utility functions for handling bundle files."""
 
-from magenta.music.protobuf import generator_pb2
+from magenta.protobuf import generator_pb2
 import tensorflow as tf
 from google.protobuf import message
 

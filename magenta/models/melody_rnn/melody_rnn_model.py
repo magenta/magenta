@@ -19,7 +19,7 @@ import copy
 import magenta
 from magenta.models.shared import events_rnn_model
 import magenta.music as mm
-from magenta.music.protobuf import generator_pb2
+from magenta.protobuf import generator_pb2
 import tensorflow as tf
 
 DEFAULT_MIN_NOTE = 48

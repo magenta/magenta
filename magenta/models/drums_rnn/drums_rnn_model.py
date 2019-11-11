@@ -63,7 +63,7 @@ class DrumsRnnModel(events_rnn_model.EventSequenceRnnModel):
 default_configs = {
     'one_drum':
         events_rnn_model.EventSequenceRnnConfig(
-            magenta.music.protobuf.generator_pb2.GeneratorDetails(
+            magenta.protobuf.generator_pb2.GeneratorDetails(
                 id='one_drum', description='Drums RNN with 2-state encoding.'),
             magenta.music.OneHotEventSequenceEncoderDecoder(
                 magenta.music.MultiDrumOneHotEncoding(
@@ -79,7 +79,7 @@ default_configs = {
             steps_per_quarter=2),
     'drum_kit':
         events_rnn_model.EventSequenceRnnConfig(
-            magenta.music.protobuf.generator_pb2.GeneratorDetails(
+            magenta.protobuf.generator_pb2.GeneratorDetails(
                 id='drum_kit',
                 description='Drums RNN with multiple drums and binary counters.'
             ),

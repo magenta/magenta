@@ -19,8 +19,8 @@ from __future__ import division
 from __future__ import print_function
 
 from magenta.music import model
-from magenta.music import sequence_generator
-from magenta.music.protobuf import generator_pb2
+from magenta.models.shared import sequence_generator
+from magenta.protobuf import generator_pb2
 import tensorflow as tf
 
 

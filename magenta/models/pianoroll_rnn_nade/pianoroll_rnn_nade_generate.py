@@ -25,7 +25,7 @@ import magenta
 from magenta.models.pianoroll_rnn_nade import pianoroll_rnn_nade_model
 from magenta.models.pianoroll_rnn_nade.pianoroll_rnn_nade_sequence_generator import PianorollRnnNadeSequenceGenerator
 from magenta.music import constants
-from magenta.music.protobuf import generator_pb2
+from magenta.protobuf import generator_pb2
 from magenta.music.protobuf import music_pb2
 import tensorflow as tf
 

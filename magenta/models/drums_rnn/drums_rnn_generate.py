@@ -25,7 +25,7 @@ import magenta
 from magenta.models.drums_rnn import drums_rnn_config_flags
 from magenta.models.drums_rnn import drums_rnn_model
 from magenta.models.drums_rnn import drums_rnn_sequence_generator
-from magenta.music.protobuf import generator_pb2
+from magenta.protobuf import generator_pb2
 from magenta.music.protobuf import music_pb2
 import tensorflow as tf
 

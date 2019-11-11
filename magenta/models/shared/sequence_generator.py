@@ -21,7 +21,7 @@ import abc
 import os
 import tempfile
 
-from magenta.music.protobuf import generator_pb2
+from magenta.protobuf import generator_pb2
 import tensorflow as tf
 
 
