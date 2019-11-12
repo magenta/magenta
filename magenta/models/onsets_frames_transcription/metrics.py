@@ -372,7 +372,7 @@ def calculate_metrics(frame_predictions,
                min_pitch=min_pitch,
                max_pitch=max_pitch,
                onsets_only=onsets_only,
-               pitch=pitch),
+               restrict_to_pitch=pitch),
            inp=[
                frame_predictions, onset_predictions, offset_predictions,
                velocity_values, sequence_label, frame_labels, sequence_id + name
