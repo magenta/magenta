@@ -531,7 +531,7 @@ def get_default_hparams():
       freq_sizes=[3, 3, 3],
       num_filters=[48, 48, 96],
       pool_sizes=[1, 2, 2],
-      dropout_keep_amts=[1.0, 0.25, 0.25],
+      dropout_keep_amts=[1.0, 0.75, 0.75],
       fc_size=768,
       fc_dropout_keep_amt=0.5,
       use_lengths=False,
