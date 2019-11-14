@@ -32,8 +32,9 @@ from magenta.models.arbitrary_image_stylization import arbitrary_image_stylizati
 from magenta.models.image_stylization import image_utils
 import numpy as np
 import tensorflow as tf
+from tensorflow.contrib import slim as contrib_slim
 
-slim = tf.contrib.slim
+slim = contrib_slim
 
 flags = tf.flags
 flags.DEFINE_string('checkpoint', None, 'Path to the model checkpoint.')

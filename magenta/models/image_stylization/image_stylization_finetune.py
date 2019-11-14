@@ -30,8 +30,9 @@ from magenta.models.image_stylization import learning
 from magenta.models.image_stylization import model
 from magenta.models.image_stylization import vgg
 import tensorflow as tf
+from tensorflow.contrib import slim as contrib_slim
 
-slim = tf.contrib.slim
+slim = contrib_slim
 
 DEFAULT_CONTENT_WEIGHTS = '{"vgg_16/conv3": 1.0}'
 DEFAULT_STYLE_WEIGHTS = ('{"vgg_16/conv1": 1e-4, "vgg_16/conv2": 1e-4,'

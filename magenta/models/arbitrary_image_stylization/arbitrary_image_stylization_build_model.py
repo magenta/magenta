@@ -22,9 +22,10 @@ from magenta.models.arbitrary_image_stylization import arbitrary_image_stylizati
 from magenta.models.arbitrary_image_stylization import nza_model as transformer_model
 from magenta.models.image_stylization import ops
 import tensorflow as tf
+from tensorflow.contrib import slim as contrib_slim
 from tensorflow.contrib.slim.python.slim.nets import inception_v3
 
-slim = tf.contrib.slim
+slim = contrib_slim
 
 
 def build_model(content_input_,

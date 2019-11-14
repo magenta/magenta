@@ -19,10 +19,11 @@ from __future__ import division
 from __future__ import print_function
 
 import tensorflow as tf
+from tensorflow.contrib import slim as contrib_slim
 from tensorflow.python.framework import ops as framework_ops
 from tensorflow.python.ops import variable_scope
 
-slim = tf.contrib.slim
+slim = contrib_slim
 
 
 @slim.add_arg_scope

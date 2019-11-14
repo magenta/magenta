@@ -20,8 +20,9 @@ from __future__ import print_function
 
 from magenta.models.image_stylization import ops
 import tensorflow as tf
+from tensorflow.contrib import slim as contrib_slim
 
-slim = tf.contrib.slim
+slim = contrib_slim
 
 
 def transform(input_,

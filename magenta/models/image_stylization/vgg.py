@@ -25,8 +25,9 @@ from __future__ import print_function
 import os
 
 import tensorflow as tf
+from tensorflow.contrib import slim as contrib_slim
 
-slim = tf.contrib.slim
+slim = contrib_slim
 
 flags = tf.app.flags
 flags.DEFINE_string('vgg_checkpoint', None, 'Path to VGG16 checkpoint file.')

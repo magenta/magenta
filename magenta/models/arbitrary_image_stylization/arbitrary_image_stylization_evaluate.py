@@ -25,8 +25,9 @@ import ast
 from magenta.models.arbitrary_image_stylization import arbitrary_image_stylization_build_model as build_model
 from magenta.models.image_stylization import image_utils
 import tensorflow as tf
+from tensorflow.contrib import slim as contrib_slim
 
-slim = tf.contrib.slim
+slim = contrib_slim
 
 DEFAULT_CONTENT_WEIGHTS = '{"vgg_16/conv3": 1.0}'
 DEFAULT_STYLE_WEIGHTS = ('{"vgg_16/conv1": 1e-3, "vgg_16/conv2": 1e-3,'

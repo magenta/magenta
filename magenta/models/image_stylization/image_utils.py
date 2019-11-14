@@ -27,10 +27,11 @@ import numpy as np
 import scipy
 import scipy.misc
 import tensorflow as tf
+from tensorflow.contrib import slim as contrib_slim
 from tensorflow.python.framework import dtypes
 from tensorflow.python.ops import random_ops
 
-slim = tf.contrib.slim
+slim = contrib_slim
 
 
 _EVALUATION_IMAGES_GLOB = 'evaluation_images/*.jpg'
