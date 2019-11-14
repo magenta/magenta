@@ -20,6 +20,9 @@ import magenta
 from magenta.common import Nade
 from magenta.models.shared import events_rnn_graph
 import tensorflow as tf
+from tensorflow.contrib import metrics as contrib_metrics
+from tensorflow.contrib import seq2seq as contrib_seq2seq
+from tensorflow.contrib import slim as contrib_slim
 from tensorflow.python.layers import base as tf_layers_base
 from tensorflow.python.layers import core as tf_layers_core
 from tensorflow.python.util import nest as tf_nest
@@ -110,17 +113,16 @@ class RnnNade(object):
     else:
       initial_rnn_state = initial_state.rnn_state
 
-    helper = tf.contrib.seq2seq.TrainingHelper(
-        inputs=inputs,
-        sequence_length=lengths)
+    helper = contrib_seq2seq.TrainingHelper(
+        inputs=inputs, sequence_length=lengths)
 
-    decoder = tf.contrib.seq2seq.BasicDecoder(
+    decoder = contrib_seq2seq.BasicDecoder(
         cell=self._rnn_cell,
         helper=helper,
         initial_state=initial_rnn_state,
         output_layer=self._fc_layer)
 
-    final_outputs, final_rnn_state = tf.contrib.seq2seq.dynamic_decode(
+    final_outputs, final_rnn_state = contrib_seq2seq.dynamic_decode(
         decoder)[0:2]
 
     # Flatten time dimension.
@@ -288,7 +290,7 @@ def get_build_graph_fn(mode, config, sequence_example_file_paths=None):
 
         optimizer = tf.train.AdamOptimizer(learning_rate=hparams.learning_rate)
 
-        train_op = tf.contrib.slim.learning.create_train_op(
+        train_op = contrib_slim.learning.create_train_op(
             loss, optimizer, clip_gradient_norm=hparams.clip_norm)
         tf.add_to_collection('train_op', train_op)
 
@@ -300,17 +302,18 @@ def get_build_graph_fn(mode, config, sequence_example_file_paths=None):
             'metrics/recall': recall,
         }
       elif mode == 'eval':
-        vars_to_summarize, update_ops = tf.contrib.metrics.aggregate_metric_map(
-            {
-                'loss': tf.metrics.mean(-log_probs),
-                'metrics/perplexity': tf.metrics.mean(tf.exp(log_probs)),
-                'metrics/accuracy': tf.metrics.accuracy(
-                    inputs_flat, predictions_flat),
-                'metrics/precision': tf.metrics.precision(
-                    inputs_flat, predictions_flat),
-                'metrics/recall': tf.metrics.recall(
-                    inputs_flat, predictions_flat),
-            })
+        vars_to_summarize, update_ops = contrib_metrics.aggregate_metric_map({
+            'loss':
+                tf.metrics.mean(-log_probs),
+            'metrics/perplexity':
+                tf.metrics.mean(tf.exp(log_probs)),
+            'metrics/accuracy':
+                tf.metrics.accuracy(inputs_flat, predictions_flat),
+            'metrics/precision':
+                tf.metrics.precision(inputs_flat, predictions_flat),
+            'metrics/recall':
+                tf.metrics.recall(inputs_flat, predictions_flat),
+        })
         for updates_op in update_ops.values():
           tf.add_to_collection('eval_ops', updates_op)
 

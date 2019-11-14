@@ -19,8 +19,9 @@ All configs should have encode() and decode().
 
 from magenta.models.nsynth import utils
 import tensorflow as tf
+from tensorflow.contrib import slim as contrib_slim
 
-slim = tf.contrib.slim
+slim = contrib_slim
 
 config_hparams = dict(
     num_latent=1984,

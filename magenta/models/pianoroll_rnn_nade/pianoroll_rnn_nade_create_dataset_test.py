@@ -20,6 +20,7 @@ import magenta.music as mm
 from magenta.pipelines import pianoroll_pipeline
 from magenta.protobuf import music_pb2
 import tensorflow as tf
+from tensorflow.contrib import training as contrib_training
 
 FLAGS = tf.app.flags.FLAGS
 
@@ -29,9 +30,7 @@ class PianorollPipelineTest(tf.test.TestCase):
   def setUp(self):
     super(PianorollPipelineTest, self).setUp()
     self.config = events_rnn_model.EventSequenceRnnConfig(
-        None,
-        mm.PianorollEncoderDecoder(88),
-        tf.contrib.training.HParams())
+        None, mm.PianorollEncoderDecoder(88), contrib_training.HParams())
 
   def testPianorollPipeline(self):
     note_sequence = magenta.common.testing_lib.parse_test_proto(

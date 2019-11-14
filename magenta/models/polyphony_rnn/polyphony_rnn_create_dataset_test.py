@@ -20,6 +20,7 @@ from magenta.models.polyphony_rnn import polyphony_rnn_pipeline
 from magenta.models.shared import events_rnn_model
 from magenta.protobuf import music_pb2
 import tensorflow as tf
+from tensorflow.contrib import training as contrib_training
 
 FLAGS = tf.app.flags.FLAGS
 
@@ -31,7 +32,7 @@ class PolySeqPipelineTest(tf.test.TestCase):
         None,
         magenta.music.OneHotEventSequenceEncoderDecoder(
             polyphony_encoder_decoder.PolyphonyOneHotEncoding()),
-        tf.contrib.training.HParams())
+        contrib_training.HParams())
 
   def testPolyRNNPipeline(self):
     note_sequence = magenta.common.testing_lib.parse_test_proto(
