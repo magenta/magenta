@@ -153,27 +153,20 @@ def tflite_compat_mel(wav_audio, hparams):
     return tflite_compat_mel_from_samples(samples, hparams)
 
 
-MELSPEC_SAMPLE_RATE = 16000
-
-
 def tflite_compat_mel_from_samples(samples, hparams):
   """EXPERIMENTAL: Log mel spec with ops that can be made TFLite compatible."""
-  # Ensure hparams.sample_rate is MELSPEC_SAMPLE_RATE because that is what these
-  # parameters are hard coded to expect.
-  with tf.control_dependencies(
-      [tf.assert_equal(hparams.sample_rate, MELSPEC_SAMPLE_RATE)]):
-    features = melspec_input.build_mel_calculation_graph(
-        samples, MELSPEC_SAMPLE_RATE,
-        window_length_seconds=2048 / MELSPEC_SAMPLE_RATE,  # 0.128
-        hop_length_seconds=(
-            hparams.spec_hop_length / MELSPEC_SAMPLE_RATE),  # 0.032
-        num_mel_bins=hparams.spec_n_bins,
-        lower_edge_hz=hparams.spec_fmin,
-        upper_edge_hz=MELSPEC_SAMPLE_RATE / 2.0,
-        frame_width=1,
-        frame_hop=1,
-        tflite_compatible=False)  # False here, but would be True on device.
-    return tf.squeeze(features, 1)
+  features = melspec_input.build_mel_calculation_graph(
+      samples, hparams.sample_rate,
+      window_length_seconds=2048 / hparams.sample_rate,
+      hop_length_seconds=(
+          hparams.spec_hop_length / hparams.sample_rate),
+      num_mel_bins=hparams.spec_n_bins,
+      lower_edge_hz=hparams.spec_fmin,
+      upper_edge_hz=hparams.sample_rate / 2.0,
+      frame_width=1,
+      frame_hop=1,
+      tflite_compatible=False)  # False here, but would be True on device.
+  return tf.squeeze(features, 1)
 
 
 def get_spectrogram_hash_op(spectrogram):
