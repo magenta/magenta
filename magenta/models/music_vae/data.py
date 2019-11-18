@@ -359,6 +359,8 @@ class BaseConverter(object):
     else:
       return self._to_items(samples, controls)
 
+  # TODO(b/144556490): Remove `do_not_convert` when fixed.
+  @tf.autograph.experimental.do_not_convert
   def tf_to_tensors(self, item_scalar):
     """TensorFlow op that converts item into output tensors.
 
