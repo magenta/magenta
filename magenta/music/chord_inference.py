@@ -25,7 +25,7 @@ import numbers
 
 from magenta.music import constants
 from magenta.music import sequences_lib
-from magenta.protobuf import music_pb2
+from magenta.music.protobuf import music_pb2
 import numpy as np
 import tensorflow as tf
 

@@ -25,7 +25,7 @@ from magenta.music import abc_parser
 from magenta.music import midi_io
 from magenta.music import sequences_lib
 from magenta.music import testing_lib
-from magenta.protobuf import music_pb2
+from magenta.music.protobuf import music_pb2
 import six
 import tensorflow as tf
 

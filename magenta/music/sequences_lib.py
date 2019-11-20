@@ -27,7 +27,7 @@ import random
 
 from magenta.music import chord_symbols_lib
 from magenta.music import constants
-from magenta.protobuf import music_pb2
+from magenta.music.protobuf import music_pb2
 import numpy as np
 from six.moves import range  # pylint: disable=redefined-builtin
 import tensorflow as tf

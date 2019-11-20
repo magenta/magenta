@@ -14,7 +14,7 @@
 
 """Import NoteSequences from MusicNet."""
 
-from magenta.protobuf import music_pb2
+from magenta.music.protobuf import music_pb2
 import numpy as np
 from six import BytesIO
 import tensorflow as tf

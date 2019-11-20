@@ -28,9 +28,9 @@ import magenta.music as mm
 from magenta.music import chords_lib
 from magenta.music import drums_encoder_decoder
 from magenta.music import sequences_lib
+from magenta.music.protobuf import music_pb2
 from magenta.pipelines import drum_pipelines
 from magenta.pipelines import melody_pipelines
-from magenta.protobuf import music_pb2
 import numpy as np
 import tensorflow as tf
 import tensorflow_datasets as tfds

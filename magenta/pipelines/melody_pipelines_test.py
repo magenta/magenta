@@ -19,8 +19,8 @@ from magenta.music import constants
 from magenta.music import melodies_lib
 from magenta.music import sequences_lib
 from magenta.music import testing_lib as music_testing_lib
+from magenta.music.protobuf import music_pb2
 from magenta.pipelines import melody_pipelines
-from magenta.protobuf import music_pb2
 import tensorflow as tf
 
 NOTE_OFF = constants.MELODY_NOTE_OFF

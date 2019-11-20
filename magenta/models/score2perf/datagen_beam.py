@@ -32,7 +32,7 @@ import magenta.music as mm
 from magenta.music import chord_inference
 from magenta.music import melody_inference
 from magenta.music import sequences_lib
-from magenta.protobuf import music_pb2
+from magenta.music.protobuf import music_pb2
 import numpy as np
 from tensor2tensor.data_generators import generator_utils
 import tensorflow as tf

@@ -19,7 +19,7 @@ $ python magenta/scripts/unpack_bundle.py \
 --bundle_path 'path' --checkpoint_path 'path'
 """
 
-from magenta.music import sequence_generator_bundle
+from magenta.models.shared import sequence_generator_bundle
 import tensorflow as tf
 
 FLAGS = tf.app.flags.FLAGS

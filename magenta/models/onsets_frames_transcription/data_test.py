@@ -29,7 +29,7 @@ from magenta.models.onsets_frames_transcription import data
 from magenta.music import audio_io
 from magenta.music import sequences_lib
 from magenta.music import testing_lib
-from magenta.protobuf import music_pb2
+from magenta.music.protobuf import music_pb2
 
 import numpy as np
 import tensorflow as tf

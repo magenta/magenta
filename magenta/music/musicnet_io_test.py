@@ -28,7 +28,7 @@ class MusicNetIoTest(tf.test.TestCase):
     # chord.
     self.musicnet_example_filename = os.path.join(
         tf.resource_loader.get_data_files_path(),
-        '../testdata/musicnet_example.npz')
+        'testdata/musicnet_example.npz')
 
   def testNoteIntervalTreeToSequenceProto(self):
     # allow_pickle is required because the npz files contain intervaltrees.

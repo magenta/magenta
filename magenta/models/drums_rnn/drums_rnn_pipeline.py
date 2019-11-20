@@ -15,12 +15,12 @@
 """Pipeline to create DrumsRNN dataset."""
 
 import magenta
+from magenta.music.protobuf import music_pb2
 from magenta.pipelines import dag_pipeline
 from magenta.pipelines import drum_pipelines
 from magenta.pipelines import event_sequence_pipeline
 from magenta.pipelines import note_sequence_pipelines
 from magenta.pipelines import pipelines_common
-from magenta.protobuf import music_pb2
 
 
 def get_pipeline(config, eval_ratio):

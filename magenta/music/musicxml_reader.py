@@ -18,7 +18,7 @@ Input wrappers for converting MusicXML into tensorflow.magenta.NoteSequence.
 """
 
 from magenta.music import musicxml_parser
-from magenta.protobuf import music_pb2
+from magenta.music.protobuf import music_pb2
 
 # Shortcut to CHORD_SYMBOL annotation type.
 CHORD_SYMBOL = music_pb2.NoteSequence.TextAnnotation.CHORD_SYMBOL

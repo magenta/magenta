@@ -24,7 +24,7 @@ import tempfile
 
 from magenta.music import constants
 from magenta.music import midi_io
-from magenta.protobuf import music_pb2
+from magenta.music.protobuf import music_pb2
 import mido
 import pretty_midi
 import tensorflow as tf
@@ -60,16 +60,16 @@ class MidiIoTest(tf.test.TestCase):
 
   def setUp(self):
     self.midi_simple_filename = os.path.join(
-        tf.resource_loader.get_data_files_path(), '../testdata/example.mid')
+        tf.resource_loader.get_data_files_path(), 'testdata/example.mid')
     self.midi_complex_filename = os.path.join(
         tf.resource_loader.get_data_files_path(),
-        '../testdata/example_complex.mid')
+        'testdata/example_complex.mid')
     self.midi_is_drum_filename = os.path.join(
         tf.resource_loader.get_data_files_path(),
-        '../testdata/example_is_drum.mid')
+        'testdata/example_is_drum.mid')
     self.midi_event_order_filename = os.path.join(
         tf.resource_loader.get_data_files_path(),
-        '../testdata/example_event_order.mid')
+        'testdata/example_event_order.mid')
 
   def CheckPrettyMidiAndSequence(self, midi, sequence_proto):
     """Compares PrettyMIDI object against a sequence proto.

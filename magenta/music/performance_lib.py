@@ -23,7 +23,7 @@ import math
 from magenta.music import constants
 from magenta.music import events_lib
 from magenta.music import sequences_lib
-from magenta.protobuf import music_pb2
+from magenta.music.protobuf import music_pb2
 import tensorflow as tf
 
 MAX_MIDI_PITCH = constants.MAX_MIDI_PITCH

@@ -21,7 +21,7 @@ import time
 from magenta.common import concurrency
 from magenta.interfaces.midi import midi_hub
 from magenta.music import testing_lib
-from magenta.protobuf import music_pb2
+from magenta.music.protobuf import music_pb2
 import mido
 from six.moves import queue as Queue
 import tensorflow as tf

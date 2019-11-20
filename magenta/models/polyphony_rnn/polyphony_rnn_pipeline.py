@@ -15,12 +15,12 @@
 """Pipeline to create PolyphonyRNN dataset."""
 
 from magenta.models.polyphony_rnn import polyphony_lib
+from magenta.music.protobuf import music_pb2
 from magenta.pipelines import dag_pipeline
 from magenta.pipelines import event_sequence_pipeline
 from magenta.pipelines import note_sequence_pipelines
 from magenta.pipelines import pipeline
 from magenta.pipelines import pipelines_common
-from magenta.protobuf import music_pb2
 
 
 class PolyphonicSequenceExtractor(pipeline.Pipeline):

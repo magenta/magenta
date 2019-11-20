@@ -21,7 +21,7 @@ from magenta.music import chords_lib
 from magenta.music import constants
 from magenta.music import events_lib
 from magenta.music import melodies_lib
-from magenta.protobuf import music_pb2
+from magenta.music.protobuf import music_pb2
 
 # Constants.
 DEFAULT_STEPS_PER_BAR = constants.DEFAULT_STEPS_PER_BAR

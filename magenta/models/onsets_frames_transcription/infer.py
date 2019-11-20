@@ -31,7 +31,7 @@ import time
 from magenta.models.onsets_frames_transcription import infer_util
 from magenta.models.onsets_frames_transcription import train_util
 from magenta.music import midi_io
-from magenta.protobuf import music_pb2
+from magenta.music.protobuf import music_pb2
 
 import numpy as np
 import scipy

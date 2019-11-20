@@ -21,6 +21,7 @@ import functools
 import math
 
 from magenta.models.performance_rnn import performance_model
+from magenta.models.shared import sequence_generator
 import magenta.music as mm
 from magenta.music import performance_controls
 from magenta.pipelines import performance_pipeline
@@ -35,7 +36,7 @@ MAX_NOTE_DURATION_SECONDS = 5.0
 DEFAULT_NOTE_DENSITY = performance_controls.DEFAULT_NOTE_DENSITY
 
 
-class PerformanceRnnSequenceGenerator(mm.BaseSequenceGenerator):
+class PerformanceRnnSequenceGenerator(sequence_generator.BaseSequenceGenerator):
   """Performance RNN generation code as a SequenceGenerator interface."""
 
   def __init__(self, model, details,
@@ -81,11 +82,11 @@ class PerformanceRnnSequenceGenerator(mm.BaseSequenceGenerator):
 
   def _generate(self, input_sequence, generator_options):
     if len(generator_options.input_sections) > 1:
-      raise mm.SequenceGeneratorError(
+      raise sequence_generator.SequenceGeneratorError(
           'This model supports at most one input_sections message, but got %s' %
           len(generator_options.input_sections))
     if len(generator_options.generate_sections) != 1:
-      raise mm.SequenceGeneratorError(
+      raise sequence_generator.SequenceGeneratorError(
           'This model supports only 1 generate_sections message, but got %s' %
           len(generator_options.generate_sections))
 
@@ -104,7 +105,7 @@ class PerformanceRnnSequenceGenerator(mm.BaseSequenceGenerator):
     else:
       last_end_time = 0
     if last_end_time > generate_section.start_time:
-      raise mm.SequenceGeneratorError(
+      raise sequence_generator.SequenceGeneratorError(
           'Got GenerateSection request for section that is before or equal to '
           'the end of the NoteSequence. This model can only extend sequences. '
           'Requested start time: %s, Final note end time: %s' %

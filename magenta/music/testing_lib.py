@@ -15,7 +15,7 @@
 """Testing support code."""
 
 from magenta.music import encoder_decoder
-from magenta.protobuf import music_pb2
+from magenta.music.protobuf import music_pb2
 
 from google.protobuf import text_format
 

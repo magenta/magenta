@@ -20,7 +20,7 @@ from __future__ import print_function
 
 from magenta.music import melody_inference
 from magenta.music import testing_lib
-from magenta.protobuf import music_pb2
+from magenta.music.protobuf import music_pb2
 import tensorflow as tf
 
 

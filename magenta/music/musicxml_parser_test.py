@@ -27,7 +27,7 @@ import zipfile
 from magenta.music import musicxml_parser
 from magenta.music import musicxml_reader
 from magenta.music import testing_lib
-from magenta.protobuf import music_pb2
+from magenta.music.protobuf import music_pb2
 import tensorflow as tf
 
 # Shortcut to CHORD_SYMBOL annotation type.

@@ -117,7 +117,7 @@ def config_from_flags():
           '`--melody_encoder_decoder` must be one of %s. Got %s.' % (
               melody_encoder_decoders.keys(), FLAGS.melody_encoder_decoder))
     if FLAGS.generator_id is not None:
-      generator_details = magenta.protobuf.generator_pb2.GeneratorDetails(
+      generator_details = magenta.music.protobuf.generator_pb2.GeneratorDetails(
           id=FLAGS.generator_id)
       if FLAGS.generator_description is not None:
         generator_details.description = FLAGS.generator_description

@@ -17,13 +17,13 @@
 import magenta.music as mm
 from magenta.music import PianorollSequence
 from magenta.music import sequences_lib
+from magenta.music.protobuf import music_pb2
 from magenta.pipelines import dag_pipeline
 from magenta.pipelines import event_sequence_pipeline
 from magenta.pipelines import note_sequence_pipelines
 from magenta.pipelines import pipeline
 from magenta.pipelines import pipelines_common
 from magenta.pipelines import statistics
-from magenta.protobuf import music_pb2
 
 
 class PianorollSequenceExtractor(pipeline.Pipeline):

@@ -54,8 +54,8 @@ import magenta.music.performance_encoder_decoder
 import magenta.music.performance_lib
 import magenta.music.pianoroll_encoder_decoder
 import magenta.music.pianoroll_lib
-import magenta.music.sequence_generator
-import magenta.music.sequence_generator_bundle
+import magenta.music.protobuf.generator_pb2
+import magenta.music.protobuf.music_pb2
 import magenta.music.sequences_lib
 import magenta.music.testing_lib
 import magenta.pipelines.dag_pipeline
@@ -66,8 +66,6 @@ import magenta.pipelines.note_sequence_pipelines
 import magenta.pipelines.pipeline
 import magenta.pipelines.pipelines_common
 import magenta.pipelines.statistics
-import magenta.protobuf.generator_pb2
-import magenta.protobuf.music_pb2
 import magenta.version
 
 from magenta.version import __version__
