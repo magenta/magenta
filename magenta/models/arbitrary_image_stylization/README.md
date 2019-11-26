@@ -306,7 +306,7 @@ To convert the trained Model to TensorFlow Lite format, use the following comman
 
 ```bash
 logdir=/path/to/logdir
-$ arbitrary_image_stylization_train_mobile \
+$ arbitrary_image_stylization_convert_tflite \
       --checkpoint="$logdir"/train_dir \
       --imagenet_data_dir=/path/to/imagenet-2012-tfrecord \
       --style_dataset_file=/path/to/style_images.tfrecord \
