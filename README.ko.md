@@ -75,25 +75,6 @@ sudo apt-get install build-essential libasound2-dev libjack-dev
 Magenta 라이브러리는 이제 Python 프로그램, Jupyter notebooks 내에서 사용할 수 있으며,
 마젠타 스크립트가 당신의 path에 설치되었습니다.
 
-### GPU Installation
-
-GPU가 설치되어 있고 Magenta를 사용하기 원하는 경우
-[수동 설치](#수동 설치) 지침을 따르되, 몇 가지 수정 지침을 따르십시오.
-
-먼저, 당신의 시스템이[requirements to run tensorflow with GPU support](
-https://www.tensorflow.org/install/install_linux#nvidia_requirements_to_run_tensorflow_with_gpu_support)충족하는지 보십시오.
-
-그런다음, [Manual Install](#manual-install)지침을 따르시고, 
-`magenta` 패키지 대신 `magenta-gpu` 패키지를 설치하십시오:
-
-```bash
-pip install magenta-gpu
-```
-
-유일한 두 패키지의 차이점은 `magenta-gpu` 가 `tensorflow` 대신 `tensorflow-gpu`에 의존한다는 것입니다.
-
-이제 Magenta가 GPU에 액세스할 수 있어야 합니다.
-
 ## Using Magenta
 
 당신은 이제 우리의 다양한 모델들을 훈련하고 그것들을 음악, 오디오, 이미지를 생성하는데 사용할 수 있습니다.
