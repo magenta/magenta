@@ -328,16 +328,16 @@ class MusicVAE(object):
     metric_map, scalars_to_summarize = self._compute_model_loss(
         input_sequence, output_sequence, sequence_length, control_sequence)
 
-    for n, t in scalars_to_summarize.iteritems():
+    for n, t in scalars_to_summarize.items():
       metric_map[n] = tf.metrics.mean(t)
 
     metrics_to_values, metrics_to_updates = (
         contrib_metrics.aggregate_metric_map(metric_map))
 
-    for metric_name, metric_value in metrics_to_values.iteritems():
+    for metric_name, metric_value in metrics_to_values.items():
       tf.summary.scalar(metric_name, metric_value)
 
-    return metrics_to_updates.values()
+    return list(metrics_to_updates.values())
 
   def sample(self, n, max_length=None, z=None, c_input=None, **kwargs):
     """Sample with an optional conditional embedding `z`."""
