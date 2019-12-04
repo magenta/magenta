@@ -34,6 +34,7 @@ from magenta.models.melody_rnn import melody_rnn_sequence_generator
 from magenta.models.performance_rnn import performance_sequence_generator
 from magenta.models.pianoroll_rnn_nade import pianoroll_rnn_nade_sequence_generator
 from magenta.models.polyphony_rnn import polyphony_sequence_generator
+from magenta.models.shared import sequence_generator_bundle
 from six.moves import input  # pylint: disable=redefined-builtin
 import tensorflow as tf
 
@@ -272,9 +273,8 @@ def _validate_flags():
 def _load_generator_from_bundle_file(bundle_file):
   """Returns initialized generator from bundle file path or None if fails."""
   try:
-    bundle = magenta.music.sequence_generator_bundle.read_bundle_file(
-        bundle_file)
-  except magenta.music.sequence_generator_bundle.GeneratorBundleParseError:
+    bundle = sequence_generator_bundle.read_bundle_file(bundle_file)
+  except sequence_generator_bundle.GeneratorBundleParseError:
     print('Failed to parse bundle file: %s' % FLAGS.bundle_file)
     return None
 
