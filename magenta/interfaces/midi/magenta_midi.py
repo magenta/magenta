@@ -26,7 +26,6 @@ import re
 import threading
 import time
 
-import magenta
 from magenta.interfaces.midi import midi_hub
 from magenta.interfaces.midi import midi_interaction
 from magenta.models.drums_rnn import drums_rnn_sequence_generator
@@ -273,8 +272,7 @@ def _validate_flags():
 def _load_generator_from_bundle_file(bundle_file):
   """Returns initialized generator from bundle file path or None if fails."""
   try:
-    bundle = sequence_generator_bundle.read_bundle_file(
-        bundle_file)
+    bundle = sequence_generator_bundle.read_bundle_file(bundle_file)
   except sequence_generator_bundle.GeneratorBundleParseError:
     print('Failed to parse bundle file: %s' % FLAGS.bundle_file)
     return None
