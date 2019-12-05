@@ -17,11 +17,13 @@
 import functools
 
 from magenta.models.pianoroll_rnn_nade import pianoroll_rnn_nade_model
+from magenta.models.shared import sequence_generator
 import magenta.music as mm
 from magenta.pipelines import pianoroll_pipeline
 
 
-class PianorollRnnNadeSequenceGenerator(mm.BaseSequenceGenerator):
+class PianorollRnnNadeSequenceGenerator(
+    sequence_generator.BaseSequenceGenerator):
   """RNN-NADE generation code as a SequenceGenerator interface."""
 
   def __init__(self, model, details, steps_per_quarter=4, checkpoint=None,
@@ -44,11 +46,11 @@ class PianorollRnnNadeSequenceGenerator(mm.BaseSequenceGenerator):
 
   def _generate(self, input_sequence, generator_options):
     if len(generator_options.input_sections) > 1:
-      raise mm.SequenceGeneratorError(
+      raise sequence_generator.SequenceGeneratorError(
           'This model supports at most one input_sections message, but got %s' %
           len(generator_options.input_sections))
     if len(generator_options.generate_sections) != 1:
-      raise mm.SequenceGeneratorError(
+      raise sequence_generator.SequenceGeneratorError(
           'This model supports only 1 generate_sections message, but got %s' %
           len(generator_options.generate_sections))
 
@@ -78,7 +80,7 @@ class PianorollRnnNadeSequenceGenerator(mm.BaseSequenceGenerator):
       last_end_time = 0
 
     if last_end_time > generate_section.start_time:
-      raise mm.SequenceGeneratorError(
+      raise sequence_generator.SequenceGeneratorError(
           'Got GenerateSection request for section that is before or equal to '
           'the end of the NoteSequence. This model can only extend sequences. '
           'Requested start time: %s, Final note end time: %s' %
