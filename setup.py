@@ -26,10 +26,12 @@ with open('magenta/version.py') as in_file:
 
 REQUIRED_PACKAGES = [
     'IPython',
-    'absl-py',
     'Pillow >= 3.4.2',
+    'absl-py',
+    'attrs',
     'backports.tempfile',
     'bokeh >= 0.12.0',
+    'colorama',
     # Temporary fix for gast issue with TF.
     # Details:
     # https://github.com/tensorflow/tensorflow/issues/32319
@@ -45,6 +47,7 @@ REQUIRED_PACKAGES = [
     'pandas >= 0.18.1',
     'pretty_midi >= 0.2.6',
     'protobuf >= 3.6.1',
+    'pyaudio',
     'pygtrie >= 2.3',
     'python-rtmidi >= 1.1, < 1.2',  # 1.2 breaks us
     'scikit-image',
@@ -57,6 +60,7 @@ REQUIRED_PACKAGES = [
     'tensorflow-datasets >= 1.0.2',
     'tensorflow-probability == 0.7.0',
     'tensor2tensor >= 1.13.4',
+    'tflite',
     'wheel',
     'futures;python_version=="2.7"',
     'apache-beam[gcp] >= 2.14.0',
@@ -95,6 +99,7 @@ CONSOLE_SCRIPTS = [
     'magenta.models.onsets_frames_transcription.onsets_frames_transcription_infer',
     'magenta.models.onsets_frames_transcription.onsets_frames_transcription_train',
     'magenta.models.onsets_frames_transcription.onsets_frames_transcription_transcribe',
+    'magenta.models.onsets_frames_transcription.realtime.onsets_frames_transcription_realtime',
     'magenta.models.performance_rnn.performance_rnn_create_dataset',
     'magenta.models.performance_rnn.performance_rnn_generate',
     'magenta.models.performance_rnn.performance_rnn_train',
