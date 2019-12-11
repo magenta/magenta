@@ -65,7 +65,7 @@ Install the Magenta pip package:
 pip install magenta
 ```
 
-**NOTE**: In order to install the `rtmidi` and `pyaudio` packages that we depend on, you may need to install headers for some sound libraries. On Linux, this command should install the necessary packages:
+**NOTE**: In order to install the `rtmidi` package that we depend on, you may need to install headers for some sound libraries. On Linux, this command should install the necessary packages:
 
 ```bash
 sudo apt-get install build-essential libasound2-dev libjack-dev portaudio19-dev

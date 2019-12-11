@@ -31,7 +31,6 @@ REQUIRED_PACKAGES = [
     'attrs',
     'backports.tempfile',
     'bokeh >= 0.12.0',
-    'colorama',
     # Temporary fix for gast issue with TF.
     # Details:
     # https://github.com/tensorflow/tensorflow/issues/32319
@@ -47,7 +46,6 @@ REQUIRED_PACKAGES = [
     'pandas >= 0.18.1',
     'pretty_midi >= 0.2.6',
     'protobuf >= 3.6.1',
-    'pyaudio',
     'pygtrie >= 2.3',
     'python-rtmidi >= 1.1, < 1.2',  # 1.2 breaks us
     'scikit-image',
@@ -60,11 +58,18 @@ REQUIRED_PACKAGES = [
     'tensorflow-datasets >= 1.0.2',
     'tensorflow-probability == 0.7.0',
     'tensor2tensor >= 1.13.4',
-    'tflite',
     'wheel',
     'futures;python_version=="2.7"',
     'apache-beam[gcp] >= 2.14.0',
 ]
+
+EXTRAS_REQUIRE = {
+    'onsets_frames_realtime': [
+        'pyaudio',
+        'colorama',
+        'tflite',
+    ],
+}
 
 # pylint:disable=line-too-long
 CONSOLE_SCRIPTS = [
@@ -144,6 +149,7 @@ setup(
 
     packages=find_packages(),
     install_requires=REQUIRED_PACKAGES,
+    extras_require=EXTRAS_REQUIRE,
     entry_points={
         'console_scripts': ['%s = %s:console_entry_point' % (n, p) for n, p in
                             ((s.split('.')[-1], s) for s in CONSOLE_SCRIPTS)],

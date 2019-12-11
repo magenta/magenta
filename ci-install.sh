@@ -23,7 +23,7 @@ set -x
 
 sudo apt-get update
 sudo apt-get -y install build-essential libasound2-dev libjack-dev libav-tools \
-  sox portaudio19-dev
+  sox
 
 # Ensure python 3.7 used, set up an isolated virtualenv.
 PY3_PATH="$(which python3.7)"

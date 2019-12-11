@@ -4,6 +4,9 @@ This is an experimental demo of an Onsets and Frames model running under
 [TensorFlow Lite](https://www.tensorflow.org/lite). You can run it as a fun
 demo or use it as a starting point for embedded applications.
 
+This demo has some dependencies that the regular Magneta package does not.
+To include them, use `pip install magenta[onsets_frames_realtime]`.
+
 ### Model
 
 First, download one of the pre-trained models:
