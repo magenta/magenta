@@ -201,9 +201,9 @@ def _calculate_metrics_py(frame_predictions,
     processed_frame_predictions = (
         processed_frame_predictions[:frame_labels.shape[0], :])
 
-  if len(est_pitches) == 0 or len(ref_pitches) == 0:
+  if len(ref_pitches) == 0:
     tf.logging.info(
-        'Estimated or References pitches were length 0, returning empty metrics for %s:',
+        'Reference pitches were length 0, returning empty metrics for %s:',
         sequence_id)
     return tuple([[]] * 12 + [processed_frame_predictions])
 
