@@ -23,9 +23,14 @@ This is the home for our Python TensorFlow library. To use our models in the bro
 
 ## Getting Started
 
+Take a look at our [colab notebooks](https://magenta.tensorflow.org/demos/colab/) for various models, including one on [getting started](https://colab.research.google.com/notebooks/magenta/hello_magenta/hello_magenta.ipynb).
+[Magenta.js](https://github.com/tensorflow/magenta-js) is a also a good resource for models and [demos](https://magenta.tensorflow.org/demos/web/) that run in the browser.
+This and more, including [blog posts](https://magenta.tensorflow.org/blog) and [Ableton Live plugins](https://magenta.tensorflow.org/demos/native/), can be found at [https://magenta.tensorflow.org](https://magenta.tensorflow.org).
+
+## Magenta Repo
+
 * [Installation](#installation)
 * [Using Magenta](#using-magenta)
-* [Playing a MIDI Instrument](#playing-a-midi-instrument)
 * [Development Environment (Advanced)](#development-environment)
 
 ## Installation
@@ -78,14 +83,6 @@ Jupyter notebooks, and the Magenta scripts are installed in your path!
 
 You can now train our various models and use them to generate music, audio, and images. You can
 find instructions for each of the models by exploring the [models directory](magenta/models).
-
-To get started, create your own melodies with TensorFlow using one of the various configurations of our [Melody RNN](magenta/models/melody_rnn) model; a recurrent neural network for predicting melodies.
-
-## Playing a MIDI Instrument
-
-After you've trained one of the models above, you can use our [MIDI interface](magenta/interfaces/midi) to play with it interactively.
-
-We also have created several [demos](https://github.com/tensorflow/magenta-demos) that provide a UI for this interface, making it easier to use (e.g., the browser-based [AI Jam](https://github.com/tensorflow/magenta-demos/tree/master/ai-jam-js)).
 
 ## Development Environment
 If you want to develop on Magenta, you'll need to set up the full Development Environment.
