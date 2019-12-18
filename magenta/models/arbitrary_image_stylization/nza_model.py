@@ -23,7 +23,7 @@ from __future__ import division
 from __future__ import print_function
 
 from magenta.models.image_stylization import model as model_util
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 from tensorflow.contrib import slim as contrib_slim
 
 slim = contrib_slim

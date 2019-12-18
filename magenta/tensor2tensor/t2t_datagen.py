@@ -23,7 +23,7 @@ from __future__ import print_function
 from magenta.tensor2tensor import models  # pylint: disable=unused-import
 from magenta.tensor2tensor import problems  # pylint: disable=unused-import
 from tensor2tensor.bin import t2t_datagen
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 
 
 def main(argv):

@@ -25,7 +25,7 @@ from magenta.models.shared import sequence_generator
 import magenta.music as mm
 from magenta.music import performance_controls
 from magenta.pipelines import performance_pipeline
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 
 # This model can leave hanging notes. To avoid cacophony we turn off any note
 # after 5 seconds.

@@ -26,7 +26,7 @@ from magenta.models.image_stylization import imagenet_data
 import numpy as np
 import scipy
 import scipy.misc
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 from tensorflow.contrib import slim as contrib_slim
 from tensorflow.python.framework import dtypes
 from tensorflow.python.ops import random_ops

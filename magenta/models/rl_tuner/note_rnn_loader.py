@@ -41,7 +41,7 @@ from magenta.music import midi_io
 from magenta.music import sequences_lib
 from magenta.pipelines import melody_pipelines
 import numpy as np
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 from tensorflow.contrib import layers as contrib_layers
 
 

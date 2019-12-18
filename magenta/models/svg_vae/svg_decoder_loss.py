@@ -21,7 +21,7 @@ import numpy as np
 
 from tensor2tensor.layers import common_layers
 from tensor2tensor.layers import modalities
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 
 
 # pylint: disable=redefined-outer-name

@@ -19,7 +19,7 @@ from __future__ import division
 from __future__ import print_function
 
 from magenta.models.piano_genie import util
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 from tensorflow.contrib import rnn as contrib_rnn
 
 

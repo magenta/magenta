@@ -16,7 +16,7 @@
 
 from magenta.models.rl_tuner import rl_tuner_ops
 import numpy as np
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 
 
 def compute_composition_stats(rl_tuner,

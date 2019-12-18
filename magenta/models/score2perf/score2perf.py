@@ -30,7 +30,7 @@ from tensor2tensor.data_generators import problem
 from tensor2tensor.layers import modalities as t2t_modalities
 from tensor2tensor.models import transformer
 from tensor2tensor.utils import registry
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 
 
 # TODO(iansimon): figure out the best way not to hard-code these constants

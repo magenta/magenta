@@ -31,7 +31,7 @@ from magenta.models.onsets_frames_transcription.realtime import audio_recorder
 from magenta.models.onsets_frames_transcription.realtime import tflite_model
 from magenta.music import audio_io
 import numpy as np
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 
 flags.DEFINE_string('model_path', 'onsets_frames_wavinput.tflite',
                     'File path of TFlite model.')

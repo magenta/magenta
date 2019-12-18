@@ -28,7 +28,7 @@ from magenta.models.latent_transfer.common import dataset_is_mnist_family
 import numpy as np
 from six import iteritems
 import sonnet as snt
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 import tensorflow_probability as tfp
 
 ds = tfp.distributions

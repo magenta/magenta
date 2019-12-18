@@ -22,7 +22,7 @@ import random
 
 from magenta.models.sketch_rnn import rnn
 import numpy as np
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 from tensorflow.contrib import rnn as contrib_rnn
 from tensorflow.contrib import training as contrib_training
 

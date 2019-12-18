@@ -39,7 +39,7 @@ from tensor2tensor.models.transformer import (
 from tensor2tensor.utils import mlperf_log
 from tensor2tensor.utils import registry
 
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 
 # pylint: disable=g-direct-tensorflow-import
 

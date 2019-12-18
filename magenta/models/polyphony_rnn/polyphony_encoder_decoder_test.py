@@ -16,7 +16,7 @@
 
 from magenta.models.polyphony_rnn import polyphony_encoder_decoder
 from magenta.models.polyphony_rnn.polyphony_lib import PolyphonicEvent
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 
 
 class PolyphonyOneHotEncodingTest(tf.test.TestCase):

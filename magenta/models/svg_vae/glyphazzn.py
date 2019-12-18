@@ -27,7 +27,7 @@ from tensor2tensor.data_generators import problem
 from tensor2tensor.layers import common_layers
 from tensor2tensor.layers import modalities
 from tensor2tensor.utils import registry
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 
 # Raw dataset paths (from datagen_beam.py)
 # (Run t2t datagen on GlyphAzznProblem to convert these into a t2t dataset)

@@ -24,7 +24,7 @@ from absl.testing import parameterized
 import librosa
 from magenta.models.nsynth.wavenet import fastgen
 import numpy as np
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 
 
 class FastegenTest(parameterized.TestCase, tf.test.TestCase):

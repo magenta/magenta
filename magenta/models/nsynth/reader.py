@@ -20,7 +20,7 @@ from __future__ import print_function
 
 from magenta.models.nsynth import utils
 import numpy as np
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 
 # FFT Specgram Shapes
 SPECGRAM_REGISTRY = {
