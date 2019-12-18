@@ -18,7 +18,7 @@ import os
 
 from magenta.music import musicnet_io
 import numpy as np
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 
 
 class MusicNetIoTest(tf.test.TestCase):

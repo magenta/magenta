@@ -16,7 +16,7 @@
 
 from magenta.music import performance_controls
 from magenta.music import performance_lib
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 
 
 class NoteDensityPerformanceControlSignalTest(tf.test.TestCase):

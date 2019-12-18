@@ -23,7 +23,7 @@ import tempfile
 from magenta.music import note_sequence_io
 from magenta.music.protobuf import music_pb2
 from six.moves import range  # pylint: disable=redefined-builtin
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 
 
 class NoteSequenceIoTest(tf.test.TestCase):

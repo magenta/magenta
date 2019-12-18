@@ -17,7 +17,7 @@
 import hashlib
 
 from magenta.music.protobuf import music_pb2
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 
 
 def generate_note_sequence_id(filename, collection_name, source_type):

@@ -17,7 +17,7 @@
 import copy
 
 from magenta.music import events_lib
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 
 
 class EventsLibTest(tf.test.TestCase):

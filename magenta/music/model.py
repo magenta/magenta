@@ -19,7 +19,7 @@ Provides a uniform interface for interacting with any model.
 
 import abc
 
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 
 
 class BaseModel(object):

@@ -25,7 +25,7 @@ from magenta.music import audio_io
 import numpy as np
 import scipy
 import six
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 
 
 class AudioIoTest(tf.test.TestCase):

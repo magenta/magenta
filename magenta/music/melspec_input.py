@@ -38,7 +38,7 @@ import math
 
 from magenta.music import mfcc_mel
 import numpy as np
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 
 
 def _stft_magnitude_full_tf(waveform_input, window_length_samples,

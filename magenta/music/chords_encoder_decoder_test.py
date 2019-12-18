@@ -16,7 +16,7 @@
 
 from magenta.music import chords_encoder_decoder
 from magenta.music import constants
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 
 NO_CHORD = constants.NO_CHORD
 

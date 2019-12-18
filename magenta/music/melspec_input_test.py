@@ -18,7 +18,7 @@ import tempfile
 
 from magenta.music import melspec_input
 import numpy as np
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 
 from tensorflow.lite.python import convert  # pylint: disable=g-direct-tensorflow-import
 
