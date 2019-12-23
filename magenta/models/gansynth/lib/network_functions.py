@@ -22,7 +22,7 @@ from __future__ import print_function
 from magenta.models.gansynth.lib import data_normalizer
 from magenta.models.gansynth.lib import layers
 from magenta.models.gansynth.lib import networks
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 from tensorflow.contrib import layers as contrib_layers
 
 

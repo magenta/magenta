@@ -15,7 +15,7 @@
 """Tests for nade."""
 
 from magenta.common.nade import Nade
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 
 
 class NadeTest(tf.test.TestCase):

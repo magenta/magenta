@@ -30,7 +30,7 @@ import time
 from absl import logging
 from magenta.models.gansynth.lib import networks
 import numpy as np
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 import tensorflow_gan as tfgan
 
 

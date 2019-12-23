@@ -22,7 +22,7 @@ import os
 
 from magenta.models.coconet import lib_hparams
 from magenta.models.coconet import lib_tfutil
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 from tensorflow.contrib import layers as contrib_layers
 
 

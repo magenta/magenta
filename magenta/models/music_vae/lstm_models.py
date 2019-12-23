@@ -25,7 +25,7 @@ from magenta.common import Nade
 from magenta.models.music_vae import base_model
 from magenta.models.music_vae import lstm_utils
 import numpy as np
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 import tensorflow_probability as tfp
 from tensorflow.contrib import rnn as contrib_rnn
 from tensorflow.contrib import seq2seq as contrib_seq2seq

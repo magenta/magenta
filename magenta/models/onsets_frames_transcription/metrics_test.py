@@ -22,7 +22,7 @@ from magenta.models.onsets_frames_transcription import metrics
 from magenta.music.protobuf import music_pb2
 
 import numpy as np
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 
 
 class MetricsTest(tf.test.TestCase):

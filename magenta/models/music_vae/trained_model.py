@@ -24,7 +24,7 @@ import tarfile
 
 from backports import tempfile
 import numpy as np
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 
 
 class NoExtractedExamplesError(Exception):

@@ -15,7 +15,7 @@
 """Tests for beam search."""
 
 from magenta.common import beam_search
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 
 
 class BeamSearchTest(tf.test.TestCase):

@@ -23,7 +23,7 @@ import os
 from magenta.models.coconet import lib_util
 import numpy as np
 import six
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 import yaml
 
 

@@ -16,7 +16,7 @@
 
 import math
 
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 
 QUEUE_CAPACITY = 500
 SHUFFLE_MIN_AFTER_DEQUEUE = QUEUE_CAPACITY // 5

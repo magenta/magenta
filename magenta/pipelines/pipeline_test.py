@@ -24,7 +24,7 @@ import tempfile
 from magenta.common import testing_lib
 from magenta.pipelines import pipeline
 from magenta.pipelines import statistics
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 
 MockStringProto = testing_lib.MockStringProto  # pylint: disable=invalid-name
 

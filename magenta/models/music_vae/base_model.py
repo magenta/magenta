@@ -20,7 +20,7 @@ from __future__ import print_function
 
 import abc
 
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 import tensorflow_probability as tfp
 from tensorflow.contrib import metrics as contrib_metrics
 from tensorflow.contrib import training as contrib_training

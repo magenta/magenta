@@ -22,7 +22,7 @@ import os
 import tempfile
 
 from magenta.music.protobuf import generator_pb2
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 
 
 class SequenceGeneratorError(Exception):  # pylint:disable=g-bad-exception-name

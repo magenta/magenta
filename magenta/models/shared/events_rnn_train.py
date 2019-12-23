@@ -14,7 +14,7 @@
 
 """Train and evaluate an event sequence RNN model."""
 
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 from tensorflow.contrib import training as contrib_training
 
 

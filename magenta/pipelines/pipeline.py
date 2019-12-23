@@ -24,7 +24,7 @@ import os.path
 
 from magenta.pipelines import statistics
 import six
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 
 
 class InvalidTypeSignatureError(Exception):

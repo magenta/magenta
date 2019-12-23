@@ -19,7 +19,7 @@ import tempfile
 import magenta
 from magenta.models.shared import events_rnn_graph
 from magenta.models.shared import events_rnn_model
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 from tensorflow.contrib import training as contrib_training
 
 

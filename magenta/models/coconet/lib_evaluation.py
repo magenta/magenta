@@ -23,7 +23,7 @@ from magenta.models.coconet import lib_tfutil
 from magenta.models.coconet import lib_util
 import numpy as np
 from scipy.misc import logsumexp
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 
 
 def evaluate(evaluator, pianorolls):

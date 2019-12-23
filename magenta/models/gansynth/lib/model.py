@@ -32,7 +32,7 @@ from magenta.models.gansynth.lib import networks
 from magenta.models.gansynth.lib import train_util
 from magenta.models.gansynth.lib import util
 import numpy as np
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 import tensorflow_gan as tfgan
 
 

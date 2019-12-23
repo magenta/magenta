@@ -16,7 +16,7 @@
 
 from magenta.pipelines import statistics
 import six
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 
 
 class StatisticsTest(tf.test.TestCase):

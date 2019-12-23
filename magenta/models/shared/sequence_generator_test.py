@@ -21,7 +21,7 @@ from __future__ import print_function
 from magenta.models.shared import sequence_generator
 from magenta.music import model
 from magenta.music.protobuf import generator_pb2
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 
 
 class Model(model.BaseModel):

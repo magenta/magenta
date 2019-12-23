@@ -26,7 +26,7 @@ from magenta.pipelines import chord_pipelines
 from magenta.pipelines import melody_pipelines
 from magenta.pipelines import pipeline
 from magenta.pipelines import statistics
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 
 
 class LeadSheetExtractor(pipeline.Pipeline):

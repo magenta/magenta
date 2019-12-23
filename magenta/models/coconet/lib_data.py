@@ -23,7 +23,7 @@ from magenta.models.coconet import lib_mask
 from magenta.models.coconet import lib_pianoroll
 from magenta.models.coconet import lib_util
 import numpy as np
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 
 
 class Dataset(lib_util.Factory):

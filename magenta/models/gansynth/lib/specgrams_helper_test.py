@@ -24,7 +24,7 @@ from absl import flags
 from absl.testing import parameterized
 from magenta.models.gansynth.lib import specgrams_helper
 import numpy as np
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 
 FLAGS = flags.FLAGS
 

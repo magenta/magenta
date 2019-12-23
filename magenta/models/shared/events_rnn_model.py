@@ -24,7 +24,7 @@ from magenta.models.shared import events_rnn_graph
 import magenta.music as mm
 import numpy as np
 from six.moves import range  # pylint: disable=redefined-builtin
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 from tensorflow.contrib import training as contrib_training
 
 # Model state when generating event sequences, consisting of the next inputs to

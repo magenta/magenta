@@ -32,7 +32,7 @@ from magenta.music.protobuf import music_pb2
 from magenta.pipelines import drum_pipelines
 from magenta.pipelines import melody_pipelines
 import numpy as np
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 import tensorflow_datasets as tfds
 from tensorflow.contrib import data as contrib_data
 

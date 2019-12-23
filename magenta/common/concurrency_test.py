@@ -18,7 +18,7 @@ import threading
 import time
 
 from magenta.common import concurrency
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 
 
 class ConcurrencyTest(tf.test.TestCase):

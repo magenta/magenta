@@ -16,7 +16,7 @@
 
 from magenta.common import state_util
 import numpy as np
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 from tensorflow.python.util import nest as tf_nest
 
 

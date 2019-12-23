@@ -19,7 +19,7 @@ from __future__ import print_function
 
 import numpy as np
 import pretty_midi
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 
 
 class PitchOutOfEncodeRangeError(Exception):

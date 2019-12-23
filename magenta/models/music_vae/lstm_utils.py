@@ -20,7 +20,7 @@ from __future__ import print_function
 
 import collections
 
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 from tensorflow.contrib import cudnn_rnn as contrib_cudnn_rnn
 from tensorflow.contrib import rnn
 from tensorflow.contrib import seq2seq

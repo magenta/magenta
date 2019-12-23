@@ -23,7 +23,7 @@ from __future__ import division
 from __future__ import print_function
 
 import numpy as np
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 
 # mel spectrum constants.
 _MEL_BREAK_FREQUENCY_HERTZ = 700.0

@@ -30,7 +30,7 @@ from magenta.music.protobuf import music_pb2
 import mir_eval
 import numpy as np
 import pretty_midi
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 
 # Disable for Numpy and Pandas containers.
 # pylint: disable=g-explicit-length-test

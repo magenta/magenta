@@ -22,7 +22,7 @@ import collections
 from magenta.models.gansynth.lib import spectral_ops
 from magenta.models.gansynth.lib import util
 import numpy as np
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 from tensorflow.contrib import data as contrib_data
 from tensorflow.contrib import lookup as contrib_lookup
 

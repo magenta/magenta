@@ -15,7 +15,7 @@
 """Pipeline for event sequences."""
 
 from magenta.pipelines import pipeline
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 
 
 class EncoderPipeline(pipeline.Pipeline):
