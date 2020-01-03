@@ -1,6 +1,6 @@
 ## Polyphony RNN
 
-This model applies language modeling to polyphonic music generation using an LSTM. Unlike melodies, this model needs to be capable of modeling multiple simultaneous notes. Taking inspiration from [BachBot](http://bachbot.com/) (described in [*Automatic Stylistic Composition of Bach Choralies with Deep LSTM*](https://ismir2017.smcnus.org/wp-content/uploads/2017/10/156_Paper.pdf)), we model polyphony as a single stream of note events with special START, STEP_END, and END symbols. Within a step, notes are sorted by pitch in descending order.
+This model applies language modeling to polyphonic music generation using an LSTM. Unlike melodies, this model needs to be capable of modeling multiple simultaneous notes. Taking inspiration from [BachBot](http://bachbot.com/) (described in [*Automatic Stylistic Composition of Bach Chorales with Deep LSTM*](https://ismir2017.smcnus.org/wp-content/uploads/2017/10/156_Paper.pdf)), we model polyphony as a single stream of note events with special START, STEP_END, and END symbols. Within a step, notes are sorted by pitch in descending order.
 
 For example, using the default quantizing resolution of 4 steps per quarte note, a sequence containing only a C Major chord with a duration of one quarter note would look like this:
 
