@@ -104,13 +104,13 @@ class MixSequencesTest(tf.test.TestCase):
     sequence1.notes.add(pitch=62, start_time=1.0, end_time=2.0, velocity=90)
     sequence1.total_time = 2.0
 
-    samples1 = np.linspace(0, 1, sample_rate * sequence1.total_time)
+    samples1 = np.linspace(0, 1, int(sample_rate * sequence1.total_time))
 
     sequence2 = music_pb2.NoteSequence()
     sequence2.notes.add(pitch=64, start_time=0.5, end_time=1.0, velocity=90)
     sequence2.total_time = 1.0
 
-    samples2 = np.linspace(0, 1, sample_rate * sequence2.total_time)
+    samples2 = np.linspace(0, 1, int(sample_rate * sequence2.total_time))
 
     mixed_samples, mixed_sequence = audio_label_data_utils.mix_sequences(
         [samples1, samples2], sample_rate, [sequence1, sequence2])
@@ -141,13 +141,13 @@ class MixSequencesTest(tf.test.TestCase):
     sequence1.total_time = 2.0
 
     # samples1 will be .1 seconds shorter than sequence1
-    samples1 = np.linspace(0, 1, sample_rate * (sequence1.total_time - .1))
+    samples1 = np.linspace(0, 1, int(sample_rate * (sequence1.total_time - .1)))
 
     sequence2 = music_pb2.NoteSequence()
     sequence2.notes.add(pitch=64, start_time=0.5, end_time=1.0, velocity=90)
     sequence2.total_time = 1.0
 
-    samples2 = np.linspace(0, 1, sample_rate * sequence2.total_time)
+    samples2 = np.linspace(0, 1, int(sample_rate * sequence2.total_time))
 
     mixed_samples, mixed_sequence = audio_label_data_utils.mix_sequences(
         [samples1, samples2], sample_rate, [sequence1, sequence2])
@@ -183,7 +183,7 @@ class MixSequencesTest(tf.test.TestCase):
     testing_lib.add_control_changes_to_sequence(
         sequence1, 0, [(0.0, 64, 127), (1.0, 64, 0)])
 
-    samples1 = np.linspace(0, 1, sample_rate * sequence1.total_time)
+    samples1 = np.linspace(0, 1, int(sample_rate * sequence1.total_time))
 
     sequence2 = music_pb2.NoteSequence()
     sequence2.notes.add(pitch=64, start_time=0.5, end_time=0.6, velocity=90)
@@ -191,7 +191,7 @@ class MixSequencesTest(tf.test.TestCase):
     testing_lib.add_control_changes_to_sequence(
         sequence2, 0, [(0.0, 64, 127), (0.9, 64, 0)])
 
-    samples2 = np.linspace(0, 1, sample_rate * sequence2.total_time)
+    samples2 = np.linspace(0, 1, int(sample_rate * sequence2.total_time))
 
     mixed_samples, mixed_sequence = audio_label_data_utils.mix_sequences(
         [samples1, samples2], sample_rate, [sequence1, sequence2])
@@ -221,13 +221,13 @@ class MixSequencesTest(tf.test.TestCase):
     sequence1.notes.add(pitch=62, start_time=1.0, end_time=1.5, velocity=90)
     sequence1.total_time = 1.5
 
-    samples1 = np.linspace(0, 1, sample_rate * 2)
+    samples1 = np.linspace(0, 1, int(sample_rate * 2))
 
     sequence2 = music_pb2.NoteSequence()
     sequence2.notes.add(pitch=64, start_time=0.5, end_time=0.9, velocity=90)
     sequence2.total_time = 0.9
 
-    samples2 = np.linspace(0, 1, sample_rate * 1)
+    samples2 = np.linspace(0, 1, int(sample_rate * 1))
 
     mixed_samples, mixed_sequence = audio_label_data_utils.mix_sequences(
         [samples1, samples2], sample_rate, [sequence1, sequence2])
