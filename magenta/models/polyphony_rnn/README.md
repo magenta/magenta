@@ -119,7 +119,7 @@ polyphony_rnn_train \
 --run_dir=/tmp/polyphony_rnn/logdir/run1 \
 --sequence_example_file=/tmp/polyphony_rnn/sequence_examples/eval_poly_tracks.tfrecord \
 --hparams="batch_size=64,rnn_layer_sizes=[64,64]" \
---num_training_steps=20000 \
+----num_eval_examples=20000 \
 --eval
 ```
 
