@@ -11,7 +11,7 @@ First, [set up your development environment](/magenta#development-environment). 
 To train a Piano Genie model, run the following:
 
 ```bash
-python //magenta/models/piano_genie/train.py \
+python ./agenta/models/piano_genie/train.py \
   --dataset_fp=/tmp/piano_genie/chopin_train.tfrecord \
   --train_dir=/tmp/piano_genie/training_run
 ```
@@ -19,7 +19,7 @@ python //magenta/models/piano_genie/train.py \
 To evaluate a model while it is training, run the following:
 
 ```bash
-python magenta/models/piano_genie/eval.py \
+python ./magenta/models/piano_genie/eval.py \
   --dataset_fp=/tmp/piano_genie/chopin_validation.tfrecord \
   --train_dir=/tmp/piano_genie/training_run \
   --eval_dir==/tmp/piano_genie/training_run/eval_validation
