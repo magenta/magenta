@@ -272,6 +272,20 @@ def process_record(wav_data,
     print('Exception %s', e)
     return
   samples = librosa.util.normalize(samples, norm=np.inf)
+
+  # Add padding to samples if notesequence is longer.
+  pad_to_samples = int(math.ceil(ns.total_time * sample_rate))
+  padding_needed = pad_to_samples - samples.shape[0]
+  if padding_needed > 5 * sample_rate:
+    raise ValueError(
+        'Would have padded {} more than 5 seconds to match note sequence total '
+        'time. ({} original samples, {} sample rate, {} sample seconds, '
+        '{} sequence seconds) This likely indicates a problem with the source '
+        'data.'.format(
+            example_id, samples.shape[0], sample_rate,
+            samples.shape[0] / sample_rate, ns.total_time))
+  samples = np.pad(samples, (0, max(0, padding_needed)), 'constant')
+
   if max_length == min_length:
     splits = np.arange(0, ns.total_time, max_length)
   elif max_length > 0:

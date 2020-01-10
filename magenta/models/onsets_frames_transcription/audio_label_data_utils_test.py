@@ -41,7 +41,7 @@ class SplitAudioTest(tf.test.TestCase):
 
   def _CreateSyntheticExample(self):
     sequence = self._CreateSyntheticSequence()
-    wav_samples = np.zeros(2 * SAMPLE_RATE, np.float32)
+    wav_samples = np.zeros(9 * SAMPLE_RATE, np.float32)
     wav_data = audio_io.samples_to_wav_data(wav_samples, SAMPLE_RATE)
     return wav_data, sequence
 
@@ -57,10 +57,10 @@ class SplitAudioTest(tf.test.TestCase):
       note_sequence = music_pb2.NoteSequence.FromString(
           record.features.feature['sequence'].bytes_list.value[0])
 
-      self.assertEqual(
-          np.all(
-              audio_io.wav_data_to_samples(audio, sample_rate=SAMPLE_RATE) ==
-              np.zeros(2 * SAMPLE_RATE)), True)
+      expected_samples = np.zeros(10 * SAMPLE_RATE)
+      np.testing.assert_array_equal(
+          expected_samples,
+          audio_io.wav_data_to_samples(audio, sample_rate=SAMPLE_RATE))
       self.assertEqual(velocity_range.min, 20)
       self.assertEqual(velocity_range.max, 80)
       self.assertEqual(note_sequence.notes[0].velocity, 20)
