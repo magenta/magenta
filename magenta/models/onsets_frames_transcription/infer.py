@@ -153,7 +153,7 @@ def model_inference(model_fn,
 
     # Update histogram for metrics.
     with tf.Graph().as_default(), tf.Session().as_default():
-      for k, v in predictions.iteritems():
+      for k, v in predictions.items():
         if not k.startswith('metrics/'):
           continue
         all_metrics[k].extend(v)
@@ -168,7 +168,7 @@ def model_inference(model_fn,
 
   # Write final mean values for all metrics.
   with tf.Graph().as_default(), tf.Session().as_default():
-    for k, v in all_metrics.iteritems():
+    for k, v in all_metrics.items():
       name = 'final/' + k
       metric_summary = tf.summary.scalar(
           name,
