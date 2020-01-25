@@ -95,8 +95,9 @@ def main(unused_argv=None):
     # Ensure that files has batch_size elements.
     batch_filler = batch_size - len(wavefiles_batch)
     wavefiles_batch.extend(batch_filler * [wavefiles_batch[-1]])
-    wav_data = np.array(
-        [utils.load_audio(f, sample_length) for f in wavefiles_batch])
+    wav_data = [utils.load_audio(f, sample_length) for f in wavefiles_batch]
+    min_len = min([x.shape[0] for x in wav_data])
+    wav_data = np.array([x[:min_len] for x in wav_data])
     try:
       tf.reset_default_graph()
       # Load up the model for encoding and find the encoding
