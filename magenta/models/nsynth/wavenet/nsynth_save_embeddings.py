@@ -21,7 +21,7 @@ from magenta.models.nsynth import utils
 from magenta.models.nsynth.wavenet.fastgen import encode
 import numpy as np
 from six.moves import xrange  # pylint: disable=redefined-builtin
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 
 FLAGS = tf.app.flags.FLAGS
 

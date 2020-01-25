@@ -23,7 +23,7 @@ set to 1. For training in 200k iterations, they both should be 32.
 """
 
 from magenta.models.nsynth import utils
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 from tensorflow.contrib import slim as contrib_slim
 
 slim = contrib_slim

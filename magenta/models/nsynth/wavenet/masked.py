@@ -51,7 +51,7 @@ def mul_or_none(a, b):
   """
   if a is None or b is None:
     return None
-  return a * b
+  return int(a * b)
 
 
 def time_to_batch(x, block_size):
