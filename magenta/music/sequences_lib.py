@@ -856,6 +856,41 @@ def split_note_sequence_on_time_changes(note_sequence,
     return []
 
 
+def split_note_sequence_on_silence(note_sequence, gap_seconds=3.0):
+  """Split one NoteSequence into many around gaps of silence.
+
+  This function splits a NoteSequence into multiple NoteSequences, each of which
+  contains no gaps of silence longer than `gap_seconds`. Each of the resulting
+  NoteSequences is shifted such that the first note starts at time zero.
+
+  Args:
+    note_sequence: The NoteSequence to split.
+    gap_seconds: The maximum amount of contiguous silence to allow within a
+        NoteSequence, in seconds.
+
+  Returns:
+    A Python list of NoteSequences.
+  """
+  notes_by_start_time = sorted(
+      list(note_sequence.notes), key=lambda note: note.start_time)
+
+  split_times = [0.0]
+  last_active_time = 0.0
+
+  for note in notes_by_start_time:
+    if note.start_time > last_active_time + gap_seconds:
+      split_times.append(note.start_time)
+    last_active_time = max(last_active_time, note.end_time)
+
+  if note_sequence.total_time > split_times[-1]:
+    split_times.append(note_sequence.total_time)
+
+  if len(split_times) > 1:
+    return _extract_subsequences(note_sequence, split_times)
+  else:
+    return []
+
+
 def quantize_to_step(unquantized_seconds,
                      steps_per_second,
                      quantize_cutoff=QUANTIZE_CUTOFF):

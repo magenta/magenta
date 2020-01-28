@@ -840,6 +840,65 @@ class SequencesLibTest(tf.test.TestCase):
     self.assertProtoEquals(expected_subsequence_2, subsequences[1])
     self.assertProtoEquals(expected_subsequence_3, subsequences[2])
 
+  def testSplitNoteSequenceOnSilence(self):
+    sequence = music_pb2.NoteSequence()
+    testing_lib.add_track_to_sequence(
+        sequence, 0,
+        [(12, 100, 0.01, 1.0), (11, 55, 0.22, 0.50), (40, 45, 2.50, 3.50),
+         (55, 120, 4.0, 4.01), (52, 99, 4.75, 5.0)])
+
+    expected_subsequence_1 = music_pb2.NoteSequence()
+    testing_lib.add_track_to_sequence(
+        expected_subsequence_1, 0,
+        [(12, 100, 0.01, 1.0), (11, 55, 0.22, 0.50)])
+    expected_subsequence_1.total_time = 1.0
+    expected_subsequence_1.subsequence_info.end_time_offset = 4.0
+
+    expected_subsequence_2 = music_pb2.NoteSequence()
+    testing_lib.add_track_to_sequence(
+        expected_subsequence_2, 0,
+        [(40, 45, 0.0, 1.0), (55, 120, 1.50, 1.51)])
+    expected_subsequence_2.total_time = 1.51
+    expected_subsequence_2.subsequence_info.start_time_offset = 2.50
+    expected_subsequence_2.subsequence_info.end_time_offset = 0.99
+
+    expected_subsequence_3 = music_pb2.NoteSequence()
+    testing_lib.add_track_to_sequence(
+        expected_subsequence_3, 0,
+        [(52, 99, 0.0, 0.25)])
+    expected_subsequence_3.total_time = 0.25
+    expected_subsequence_3.subsequence_info.start_time_offset = 4.75
+
+    subsequences = sequences_lib.split_note_sequence_on_silence(
+        sequence, gap_seconds=0.5)
+    self.assertEqual(3, len(subsequences))
+    self.assertProtoEquals(expected_subsequence_1, subsequences[0])
+    self.assertProtoEquals(expected_subsequence_2, subsequences[1])
+    self.assertProtoEquals(expected_subsequence_3, subsequences[2])
+
+  def testSplitNoteSequenceOnSilenceInitialGap(self):
+    sequence = music_pb2.NoteSequence()
+    testing_lib.add_track_to_sequence(
+        sequence, 0,
+        [(12, 100, 1.5, 2.0), (11, 55, 1.5, 3.0), (40, 45, 2.5, 3.5)])
+
+    expected_subsequence_1 = music_pb2.NoteSequence()
+    expected_subsequence_1.total_time = 0.0
+    expected_subsequence_1.subsequence_info.end_time_offset = 3.5
+
+    expected_subsequence_2 = music_pb2.NoteSequence()
+    testing_lib.add_track_to_sequence(
+        expected_subsequence_2, 0,
+        [(12, 100, 0.0, 0.5), (11, 55, 0.0, 1.5), (40, 45, 1.0, 2.0)])
+    expected_subsequence_2.total_time = 2.0
+    expected_subsequence_2.subsequence_info.start_time_offset = 1.5
+
+    subsequences = sequences_lib.split_note_sequence_on_silence(
+        sequence, gap_seconds=1.0)
+    self.assertEqual(2, len(subsequences))
+    self.assertProtoEquals(expected_subsequence_1, subsequences[0])
+    self.assertProtoEquals(expected_subsequence_2, subsequences[1])
+
   def testQuantizeNoteSequence(self):
     testing_lib.add_track_to_sequence(
         self.note_sequence, 0,
