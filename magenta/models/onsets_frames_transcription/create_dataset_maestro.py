@@ -82,6 +82,7 @@ def split_wav(input_example, min_length, max_length, sample_rate,
         min_length=0,
         max_length=-1,
         sample_rate=sample_rate,
+        allow_empty_notesequence=True,
         load_audio_with_librosa=load_audio_with_librosa)
 
     for example in split_examples:
