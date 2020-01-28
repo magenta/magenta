@@ -56,12 +56,13 @@ tf.app.flags.DEFINE_string(
     'DEBUG, INFO, WARN, ERROR, or FATAL.')
 
 
-def create_example(filename, load_audio_with_librosa):
+def create_example(filename, sample_rate, load_audio_with_librosa):
   """Processes an audio file into an Example proto."""
   wav_data = tf.gfile.Open(filename, 'rb').read()
   example_list = list(
       audio_label_data_utils.process_record(
           wav_data=wav_data,
+          sample_rate=sample_rate,
           ns=music_pb2.NoteSequence(),
           # decode to handle filenames with extended characters.
           example_id=six.ensure_text(filename, 'utf-8'),
@@ -119,7 +120,8 @@ def run(argv, config_map, data_fn):
         tf.logging.info('Processing file...')
         sess.run(iterator.initializer,
                  {examples: [
-                     create_example(filename, FLAGS.load_audio_with_librosa)]})
+                     create_example(filename, hparams.sample_rate,
+                                    FLAGS.load_audio_with_librosa)]})
 
         def transcription_data(params):
           del params
