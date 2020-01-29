@@ -122,8 +122,6 @@ class MelspecInputTest(tf.test.TestCase):
     # Attempt to run the tflite-style conversion to the current graph.
     converter = tf.lite.TFLiteConverter.from_session(
         self._session, [self._input], [self._output])
-    # TODO(b/145611882): Fix this failure with the new converter.
-    converter.experimental_new_converter = False
     converter.inference_type = tf.lite.constants.FLOAT
     tflite_model = converter.convert()
     output_filename = _TmpFilePath(suffix='.tflite')
