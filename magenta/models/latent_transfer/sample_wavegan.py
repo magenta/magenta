@@ -27,7 +27,7 @@ import os
 
 import numpy as np
 from scipy.io import wavfile
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 from tqdm import tqdm
 
 FLAGS = tf.flags.FLAGS

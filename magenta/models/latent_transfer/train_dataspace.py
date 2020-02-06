@@ -31,7 +31,7 @@ from magenta.models.latent_transfer import common
 from magenta.models.latent_transfer import model_dataspace
 from magenta.models.latent_transfer import nn
 import numpy as np
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 
 configs_module_prefix = 'magenta.models.latent_transfer.configs'
 

@@ -43,7 +43,7 @@ import os
 from magenta.models.latent_transfer import local_mnist
 import numpy as np
 from PIL import Image
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 
 FLAGS = tf.flags.FLAGS
 

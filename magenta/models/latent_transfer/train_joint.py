@@ -34,7 +34,7 @@ from magenta.models.latent_transfer import model_joint
 import numpy as np
 import six
 from six.moves import range
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 from tqdm import tqdm
 
 FLAGS = tf.flags.FLAGS

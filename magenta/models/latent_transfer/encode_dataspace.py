@@ -29,7 +29,7 @@ import os
 from magenta.models.latent_transfer import common
 from magenta.models.latent_transfer import model_dataspace
 import numpy as np
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 
 FLAGS = tf.flags.FLAGS
 
