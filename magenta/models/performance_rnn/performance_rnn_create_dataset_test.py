@@ -18,7 +18,7 @@ import magenta
 from magenta.models.performance_rnn import performance_model
 from magenta.music.protobuf import music_pb2
 from magenta.pipelines import performance_pipeline
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 from tensorflow.contrib import training as contrib_training
 
 FLAGS = tf.app.flags.FLAGS

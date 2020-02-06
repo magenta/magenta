@@ -22,7 +22,7 @@ import os
 
 from magenta.models.music_vae import configs
 from magenta.models.music_vae import data
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 from tensorflow.contrib import training as contrib_training
 
 flags = tf.app.flags

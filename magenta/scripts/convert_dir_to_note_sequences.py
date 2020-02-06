@@ -29,7 +29,7 @@ from magenta.music import abc_parser
 from magenta.music import midi_io
 from magenta.music import musicxml_reader
 from magenta.music import note_sequence_io
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 
 FLAGS = tf.app.flags.FLAGS
 

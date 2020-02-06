@@ -25,7 +25,7 @@ import os
 from magenta.models.performance_rnn import performance_model
 from magenta.pipelines import performance_pipeline
 from magenta.pipelines import pipeline
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 
 flags = tf.app.flags
 FLAGS = tf.app.flags.FLAGS

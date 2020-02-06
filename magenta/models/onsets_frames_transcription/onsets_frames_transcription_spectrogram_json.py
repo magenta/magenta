@@ -25,7 +25,7 @@ import json
 
 from magenta.models.onsets_frames_transcription import configs
 from magenta.models.onsets_frames_transcription import data
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 
 FLAGS = tf.app.flags.FLAGS
 

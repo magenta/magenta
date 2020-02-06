@@ -25,7 +25,7 @@ from magenta.models.rl_tuner import rl_tuner
 from magenta.models.rl_tuner import rl_tuner_ops
 import matplotlib
 import matplotlib.pyplot as plt  # pylint: disable=unused-import
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 from tensorflow.contrib import training as contrib_training
 
 # Need to use 'Agg' option for plotting and saving files from command line.

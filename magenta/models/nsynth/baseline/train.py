@@ -20,7 +20,7 @@ from __future__ import print_function
 
 from magenta.models.nsynth import reader
 from magenta.models.nsynth import utils
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 from tensorflow.contrib import slim as contrib_slim
 
 slim = contrib_slim

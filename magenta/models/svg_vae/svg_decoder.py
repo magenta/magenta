@@ -26,7 +26,7 @@ from tensor2tensor.layers import common_layers
 from tensor2tensor.utils import registry
 from tensor2tensor.utils import t2t_model
 from tensor2tensor.utils import trainer_lib
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 from tensorflow.contrib import rnn as contrib_rnn
 
 

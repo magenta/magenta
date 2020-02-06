@@ -29,7 +29,7 @@ import numpy as np
 import requests
 import six
 from six.moves.urllib.request import urlretrieve
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 
 tf.logging.set_verbosity(tf.logging.INFO)
 

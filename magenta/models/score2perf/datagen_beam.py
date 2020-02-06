@@ -35,7 +35,7 @@ from magenta.music import sequences_lib
 from magenta.music.protobuf import music_pb2
 import numpy as np
 from tensor2tensor.data_generators import generator_utils
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 import typing
 
 # TODO(iansimon): this should probably be defined in the problem
