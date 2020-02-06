@@ -23,7 +23,7 @@ import os
 from magenta.models.pianoroll_rnn_nade import pianoroll_rnn_nade_model
 from magenta.pipelines import pianoroll_pipeline
 from magenta.pipelines import pipeline
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 
 flags = tf.app.flags
 FLAGS = tf.app.flags.FLAGS

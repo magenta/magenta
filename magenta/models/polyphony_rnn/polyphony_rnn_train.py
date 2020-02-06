@@ -20,7 +20,7 @@ import magenta
 from magenta.models.polyphony_rnn import polyphony_model
 from magenta.models.shared import events_rnn_graph
 from magenta.models.shared import events_rnn_train
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 
 FLAGS = tf.app.flags.FLAGS
 tf.app.flags.DEFINE_string('run_dir', '/tmp/polyphony_rnn/logdir/run1',

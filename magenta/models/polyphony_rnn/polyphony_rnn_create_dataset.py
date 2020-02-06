@@ -24,7 +24,7 @@ import os
 from magenta.models.polyphony_rnn import polyphony_model
 from magenta.models.polyphony_rnn import polyphony_rnn_pipeline
 from magenta.pipelines import pipeline
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 
 flags = tf.app.flags
 FLAGS = tf.app.flags.FLAGS

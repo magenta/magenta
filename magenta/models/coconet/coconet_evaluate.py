@@ -24,7 +24,7 @@ from magenta.models.coconet import lib_evaluation
 from magenta.models.coconet import lib_graph
 from magenta.models.coconet import lib_util
 import numpy as np
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 
 FLAGS = tf.app.flags.FLAGS
 flags = tf.app.flags

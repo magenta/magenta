@@ -15,7 +15,7 @@
 """Provides a class, defaults, and utils for Drums RNN model configuration."""
 
 from magenta.models.drums_rnn import drums_rnn_model
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 
 FLAGS = tf.app.flags.FLAGS
 tf.app.flags.DEFINE_string(

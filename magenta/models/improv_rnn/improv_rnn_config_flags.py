@@ -15,7 +15,7 @@
 """Provides a class, defaults, and utils for improv RNN model configuration."""
 
 from magenta.models.improv_rnn import improv_rnn_model
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 
 FLAGS = tf.app.flags.FLAGS
 tf.app.flags.DEFINE_string(

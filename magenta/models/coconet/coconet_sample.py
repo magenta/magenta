@@ -32,7 +32,7 @@ from magenta.models.coconet import lib_tfsampling
 from magenta.models.coconet import lib_util
 import numpy as np
 import pretty_midi
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 
 FLAGS = tf.app.flags.FLAGS
 flags = tf.app.flags

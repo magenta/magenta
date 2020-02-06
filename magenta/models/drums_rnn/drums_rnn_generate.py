@@ -29,7 +29,7 @@ from magenta.models.shared import sequence_generator
 from magenta.models.shared import sequence_generator_bundle
 from magenta.music.protobuf import generator_pb2
 from magenta.music.protobuf import music_pb2
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 
 FLAGS = tf.app.flags.FLAGS
 tf.app.flags.DEFINE_string(

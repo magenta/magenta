@@ -20,7 +20,7 @@ from magenta.models.shared import events_rnn_model
 from magenta.music.protobuf import music_pb2
 from magenta.pipelines import drum_pipelines
 from magenta.pipelines import note_sequence_pipelines
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 from tensorflow.contrib import training as contrib_training
 
 FLAGS = tf.app.flags.FLAGS

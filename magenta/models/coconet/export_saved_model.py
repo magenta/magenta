@@ -20,7 +20,7 @@ from __future__ import print_function
 from magenta.models.coconet import lib_graph
 from magenta.models.coconet import lib_saved_model
 from magenta.models.coconet import lib_tfsampling
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 
 FLAGS = tf.app.flags.FLAGS
 flags = tf.app.flags
