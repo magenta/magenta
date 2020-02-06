@@ -20,7 +20,7 @@
 import functools
 
 from magenta.models.latent_transfer import model_joint
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 
 FLAGS = tf.flags.FLAGS
 

@@ -23,7 +23,7 @@ import tempfile
 
 from magenta.models.image_stylization import model
 from magenta.models.image_stylization import ops
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 
 flags = tf.flags
 flags.DEFINE_integer('num_styles', 1,

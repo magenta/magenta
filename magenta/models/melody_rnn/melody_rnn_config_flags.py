@@ -16,7 +16,7 @@
 
 import magenta
 from magenta.models.melody_rnn import melody_rnn_model
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 from tensorflow.contrib import training as contrib_training
 
 FLAGS = tf.app.flags.FLAGS
