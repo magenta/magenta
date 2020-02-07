@@ -60,7 +60,7 @@ REQUIRED_PACKAGES = [
     'tensor2tensor >= 1.13.4',
     'wheel',
     'futures;python_version=="2.7"',
-    'apache-beam[gcp] >= 2.14.0',
+    'apache-beam[gcp] >= 2.14.0, < 2.19.0',  # Temporary fix for 'typing' issue
 ]
 
 EXTRAS_REQUIRE = {
