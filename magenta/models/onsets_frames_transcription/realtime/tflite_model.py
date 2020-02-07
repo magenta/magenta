@@ -19,21 +19,61 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
+import importlib
 import numpy as np
-import tensorflow.compat.v1 as tf
+
+try:
+  tflite = importlib.import_module('tensorflow.compat.v1').lite
+except ModuleNotFoundError:
+  try:
+    tflite = importlib.import_module('tflite_runtime.interpreter')
+  except ModuleNotFoundError:
+    print('Either Tensorflow or tflite_runtime must be installed.')
+    raise
 
 
 def get_model_detail(model_path):
-  interpreter = tf.lite.Interpreter(model_path=model_path)
+  interpreter = tflite.Interpreter(model_path=model_path)
   return (interpreter.get_input_details(), interpreter.get_output_details())
 
 
 class Model(object):
   """Manage Onsets and Frames TFLite model."""
+  # Model specific constants.
+  MODEL_SAMPLE_RATE = 16000
+  MODEL_WINDOW_LENGTH = 2048
 
   def __init__(self, model_path):
-    self._interpreter = tf.lite.Interpreter(model_path=model_path)
+    self._interpreter = tflite.Interpreter(model_path=model_path)
     self._interpreter.allocate_tensors()
+    self._input_details = self._interpreter.get_input_details()
+    self._output_details = self._interpreter.get_output_details()
+    self._output_index = dict([
+        (detail['name'], detail['index']) for detail in self._output_details
+    ])
+    self._input_wav_length = self._input_details[0]['shape'][0]
+    self._output_roll_length = self._output_details[0]['shape'][1]
+    assert (self._input_wav_length -
+            Model.MODEL_WINDOW_LENGTH) % (self._output_roll_length - 1) == 0
+    self._hop_size = (self._input_wav_length - Model.MODEL_WINDOW_LENGTH) // (
+        self._output_roll_length - 1)
+    self._timestep = float(self._hop_size) / Model.MODEL_SAMPLE_RATE
+
+  def get_sample_rate(self):
+    return Model.MODEL_SAMPLE_RATE
+
+  def get_window_length(self):
+    return Model.MODEL_WINDOW_LENGTH
+
+  def get_timestep(self):
+    """Returns the amount of clock time represented by each output slice in ms."""
+    return int(1000 * self._timestep)
+
+  def get_input_wav_length(self):
+    return self._input_wav_length
+
+  def get_hop_size(self):
+    return self._hop_size
 
   def infer(self, samples):
     """Do inference over the provided samples."""
@@ -43,8 +83,10 @@ class Model(object):
 
     self._interpreter.invoke()
     predictions = [
-        self._interpreter.get_tensor(detail['index'])
-        for detail in self._interpreter.get_output_details()
+        self._interpreter.get_tensor(self._output_index['frame_logits']),
+        self._interpreter.get_tensor(self._output_index['onset_logits']),
+        self._interpreter.get_tensor(self._output_index['offset_logits']),
+        self._interpreter.get_tensor(self._output_index['velocity_values']),
     ]
     # Use axis 0 to stack but then shove the axis to the end so its
     # [time, midinote (0-88), {frame,onset, offset, velocity}]

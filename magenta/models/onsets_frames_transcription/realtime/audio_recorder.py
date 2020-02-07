@@ -23,13 +23,36 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
+import importlib
 import math
 import queue
 import time
+
 from absl import logging
-import librosa
 import numpy as np
 import pyaudio
+import scipy
+import six
+
+try:
+  librosa = importlib.import_module('librosa')
+  samplerate = None
+except ModuleNotFoundError:
+  try:
+    samplerate = importlib.import_module('samplerate')
+    librosa = None
+  except ModuleNotFoundError:
+    print('Either librosa or samplerate must be installed.')
+    raise
+
+
+def resample(audio, source_rate, target_rate):
+  if librosa:
+    return librosa.core.resample(
+        audio, orig_sr=source_rate, target_sr=target_rate)
+  if samplerate:
+    ratio = float(target_rate) / source_rate
+    return samplerate.resample(audio, ratio, 'sinc_best')
 
 
 class AudioTimeoutError(Exception):
@@ -210,11 +233,50 @@ class AudioRecorder(object):
 
     audio = np.concatenate(chunks)
     if self._downsample_factor != 1:
-      audio = librosa.core.resample(
-          audio,
-          orig_sr=self._raw_audio_sample_rate_hz,
-          target_sr=self.audio_sample_rate_hz)
+      audio = resample(audio, self._raw_audio_sample_rate_hz,
+                       self.audio_sample_rate_hz)
 
     logging.debug('Audio array has shape %s and dtype %s.', audio.shape,
                   audio.dtype)
     return audio, timestamps[0], timestamps[-1]
+
+
+def wav_data_to_samples(wav_data, sample_rate):
+  """Read PCM-formatted WAV data and return a NumPy array of samples.
+
+  Uses scipy to read and librosa/samplerate to process WAV data. Audio will
+  be converted to mono if necessary.
+
+  Args:
+    wav_data: WAV audio data to read.
+    sample_rate: The number of samples per second at which the audio will be
+      returned. Resampling will be performed if necessary.
+
+  Returns:
+    A numpy array of audio samples, single-channel (mono) and sampled at the
+    specified rate, in float32 format.
+
+  Raises:
+    IOError: If scipy is unable to read the WAV data.
+    IOError: If audio processing fails.
+  """
+  try:
+    # Read the wav file, converting sample rate & number of channels.
+    native_sr, y = scipy.io.wavfile.read(six.BytesIO(wav_data))
+  except Exception as e:  # pylint: disable=broad-except
+    raise IOError(e)
+
+  if y.dtype == np.int16:  # Convert to float32.
+    y = y.astype(np.float32) / np.iinfo(np.int16).max
+  elif y.dtype == np.float32:  # Already float32.
+    pass
+  else:
+    raise IOError('WAV file not 16-bit or 32-bit float PCM, unsupported')
+  try:  # Convert to mono and the desired sample rate.
+    if y.ndim == 2 and y.shape[1] == 2:
+      y = np.mean(y, axis=1)
+    if native_sr != sample_rate:
+      y = resample(y, native_sr, sample_rate)
+  except Exception as e:  # pylint: disable=broad-except
+    raise IOError(e)
+  return y

@@ -29,13 +29,12 @@ from colorama import Fore
 from colorama import Style
 from magenta.models.onsets_frames_transcription.realtime import audio_recorder
 from magenta.models.onsets_frames_transcription.realtime import tflite_model
-from magenta.music import audio_io
 import numpy as np
-import tensorflow.compat.v1 as tf
 
 flags.DEFINE_string('model_path', 'onsets_frames_wavinput.tflite',
                     'File path of TFlite model.')
 flags.DEFINE_string('mic', None, 'Optional: Input source microphone ID.')
+flags.DEFINE_float('mic_amplify', 30.0, 'Multiply raw audio mic input')
 flags.DEFINE_string(
     'wav_file', None,
     'If specified, will decode the first 10 seconds of this wav file.')
@@ -44,10 +43,7 @@ flags.DEFINE_integer(
     'Sample Rate. The model expects 16000. However, some microphones do not '
     'support sampling at this rate. In that case use --sample_rate_hz 48000 and'
     'the code will automatically downsample to 16000')
-
 FLAGS = flags.FLAGS
-
-MODEL_SAMPLE_RATE = 16000
 
 
 class TfLiteWorker(multiprocessing.Process):
@@ -87,10 +83,10 @@ class AudioChunk(object):
 class AudioQueue(object):
   """Audio queue."""
 
-  def __init__(self, callback, audio_device_index, sample_rate_hz, frame_length,
-               overlap):
+  def __init__(self, callback, audio_device_index, sample_rate_hz,
+               model_sample_rate, frame_length, overlap):
     # Initialize recorder.
-    downsample_factor = sample_rate_hz / MODEL_SAMPLE_RATE
+    downsample_factor = sample_rate_hz / model_sample_rate
     self._recorder = audio_recorder.AudioRecorder(
         sample_rate_hz,
         downsample_factor=downsample_factor,
@@ -111,7 +107,8 @@ class AudioQueue(object):
         assert self._recorder.is_active
         new_audio = self._recorder.get_audio(self._frame_length -
                                              len(self._audio_buffer))
-        audio_samples = np.concatenate((self._audio_buffer, new_audio[0]))
+        audio_samples = np.concatenate(
+            (self._audio_buffer, new_audio[0] * FLAGS.mic_amplify))
 
         # Extract overlapping
         first_unused_byte = 0
@@ -138,6 +135,7 @@ class OnsetsTask(object):
   def __call__(self, model):
     samples = self.audio_chunk.samples[:, 0]
     self.result = model.infer(samples)
+    self.timestep = model.get_timestep()
 
 
 def result_collector(result_queue):
@@ -174,7 +172,6 @@ def result_collector(result_queue):
     for notes in result_roll:
       for i in range(6, len(notes) - 6):
         note = notes[i]
-
         is_frame = note[0] > 0.0
         notestr = notename(i, not is_frame)
         print(notestr, end='')
@@ -185,37 +182,30 @@ def main(argv):
   if len(argv) > 1:
     raise app.UsageError('Too many command-line arguments.')
 
-  window_length = 2048  # Model specific constant.
-
-  input_details, output_details = tflite_model.get_model_detail(
-      FLAGS.model_path)
-  input_wav_length = input_details[0]['shape'][0]
-  output_roll_length = output_details[0]['shape'][1]
-  assert (input_wav_length - window_length) % (output_roll_length - 1) == 0
-  hop_size = (input_wav_length - window_length) // (output_roll_length - 1)
-
-  overlap_timesteps = 4
-  overlap_wav = hop_size * overlap_timesteps + window_length
-
   results = multiprocessing.Queue()
-
   results_thread = threading.Thread(target=result_collector, args=(results,))
   results_thread.start()
 
-  if FLAGS.wav_file:
-    model = tflite_model.Model(model_path=FLAGS.model_path)
+  model = tflite_model.Model(model_path=FLAGS.model_path)
+  overlap_timesteps = 4
+  overlap_wav = model.get_hop_size(
+  ) * overlap_timesteps + model.get_window_length()
 
-    wav_data = tf.gfile.Open(FLAGS.wav_file, 'rb').read()
-    samples = audio_io.wav_data_to_samples(wav_data, MODEL_SAMPLE_RATE)
-    samples = samples[:MODEL_SAMPLE_RATE*10]  # Only the first 10 seconds
+  if FLAGS.wav_file:
+    wav_data = open(FLAGS.wav_file, 'rb').read()
+    samples = audio_recorder.wav_data_to_samples(wav_data,
+                                                 model.get_sample_rate())
+    samples = samples[:model.get_sample_rate() *
+                      10]  # Only the first 10 seconds
     samples = samples.reshape((-1, 1))
     samples_length = samples.shape[0]
     # Extend samples with zeros
-    samples = np.pad(samples, (0, input_wav_length), mode='constant')
+    samples = np.pad(
+        samples, (0, model.get_input_wav_length()), mode='constant')
     for i, pos in enumerate(
-        range(0, samples_length - input_wav_length + overlap_wav,
-              input_wav_length - overlap_wav)):
-      chunk = samples[pos:pos+input_wav_length]
+        range(0, samples_length - model.get_input_wav_length() + overlap_wav,
+              model.get_input_wav_length() - overlap_wav)):
+      chunk = samples[pos:pos + model.get_input_wav_length()]
       task = OnsetsTask(AudioChunk(i, chunk))
       task(model)
       results.put(task)
@@ -235,7 +225,8 @@ def main(argv):
         callback=lambda audio_chunk: tasks.put(OnsetsTask(audio_chunk)),
         audio_device_index=FLAGS.mic if FLAGS.mic is None else int(FLAGS.mic),
         sample_rate_hz=int(FLAGS.sample_rate_hz),
-        frame_length=input_wav_length,
+        model_sample_rate=model.get_sample_rate(),
+        frame_length=model.get_input_wav_length(),
         overlap=overlap_wav)
 
     audio_feeder.start()
