@@ -531,6 +531,13 @@ def generate_sharded_filenames(sharded_filenames):
   return filenames
 
 
+def sharded_tfrecord_reader(fname):
+  """Generator for reading TFRecord entries across multiple shards."""
+  for sfname in generate_sharded_filenames(fname):
+    for r in tf.python_io.tf_record_iterator(sfname):
+      yield  r
+
+
 def read_examples(examples, is_training, shuffle_examples,
                   skip_n_initial_records, hparams):
   """Returns a tf.data.Dataset from TFRecord files.
