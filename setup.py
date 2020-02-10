@@ -36,6 +36,10 @@ REQUIRED_PACKAGES = [
     # https://github.com/tensorflow/tensorflow/issues/32319
     # https://github.com/tensorflow/tensorflow/commit/c72125bd59858ec82a9238b232bbd77c45889c5a
     'gast == 0.2.2',
+    # tensor2tensor requires gym, but the newest version of gym depends on a
+    # a version of cloudpickle that is incompatible with tensorflow-probability
+    # 0.7.0.
+    'gym < 0.16.0',
     'intervaltree >= 2.1.0',
     'joblib >= 0.12',
     'librosa >= 0.6.2',
@@ -52,10 +56,14 @@ REQUIRED_PACKAGES = [
     'scipy >= 0.18.1',
     'six >= 1.12.0',
     'sk-video',
-    'dm-sonnet < 2.0.0',  # Sonnet 2 requires TF2.
+    # Keep Sonnet < 2.0.0 because that requires TF2.
+    # For now, restrict to < 1.36 because that requires tensorflow-probability
+    # 0.8.0, which causes problems with tensor2tensor.
+    'dm-sonnet < 1.36.0',  # Sonnet 2 requires TF2.
     'sox >= 1.3.7',
     'tensorflow >= 1.15.0, < 2.0.0',  # Magenta is not yet TF2 compatible.
     'tensorflow-datasets >= 1.0.2',
+    # Pinned to be compatible with tensor2tensor requirements.
     'tensorflow-probability == 0.7.0',
     'tensor2tensor >= 1.13.4',
     'wheel',
