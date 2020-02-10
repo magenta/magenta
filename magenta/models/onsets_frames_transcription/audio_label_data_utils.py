@@ -207,8 +207,8 @@ def create_example(example_id, ns, wav_data, velocity_range=None):
   """Creates a tf.train.Example proto for training or testing."""
   if velocity_range is None:
     velocities = [note.velocity for note in ns.notes]
-    velocity_max = np.max(velocities)
-    velocity_min = np.min(velocities)
+    velocity_max = np.max(velocities) if velocities else 0
+    velocity_min = np.min(velocities) if velocities else 0
     velocity_range = music_pb2.VelocityRange(min=velocity_min, max=velocity_max)
 
   # Ensure that all sequences for training and evaluation have gone through
@@ -340,6 +340,18 @@ def mix_sequences(individual_samples, sample_rate, individual_sequences):
     mixed_samples: The mixed audio.
     mixed_sequence: The mixed NoteSequence.
   """
+  # Normalize samples and sequence velocities before mixing.
+  # This ensures that the velocities/loudness of the individual samples
+  # are treated equally.
+  for i, samples in enumerate(individual_samples):
+    individual_samples[i] = librosa.util.normalize(samples, norm=np.inf)
+  for sequence in individual_sequences:
+    velocities = [note.velocity for note in sequence.notes]
+    velocity_max = np.max(velocities)
+    for note in sequence.notes:
+      note.velocity = int(
+          (note.velocity / velocity_max) * constants.MAX_MIDI_VELOCITY)
+
   # Ensure that samples are always at least as long as their paired sequences.
   for i, (samples, sequence) in enumerate(
       zip(individual_samples, individual_sequences)):
