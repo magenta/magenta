@@ -43,7 +43,9 @@ def predict_sequence(frame_predictions, onset_predictions, offset_predictions,
         frames_per_second=data.hparams_frames_per_second(hparams),
         note_duration_seconds=0.05,
         min_midi_pitch=min_pitch,
-        velocity_values=velocity_values)
+        velocity_values=velocity_values,
+        velocity_scale=hparams.velocity_scale,
+        velocity_bias=hparams.velocity_bias)
   else:
     sequence_prediction = sequences_lib.pianoroll_to_note_sequence(
         frames=frame_predictions,
@@ -52,7 +54,9 @@ def predict_sequence(frame_predictions, onset_predictions, offset_predictions,
         min_midi_pitch=min_pitch,
         onset_predictions=onset_predictions,
         offset_predictions=offset_predictions,
-        velocity_values=velocity_values)
+        velocity_values=velocity_values,
+        velocity_scale=hparams.velocity_scale,
+        velocity_bias=hparams.velocity_bias)
 
   return sequence_prediction
 

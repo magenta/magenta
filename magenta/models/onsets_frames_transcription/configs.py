@@ -50,7 +50,9 @@ DEFAULT_HPARAMS = tf_utils.merge_hparams(
         min_frame_occupancy_for_label=0.0,
         jitter_amount_ms=0,
         min_duration_ms=0,
-        backward_shift_amount_ms=0))
+        backward_shift_amount_ms=0,
+        velocity_scale=80.0,
+        velocity_bias=10.0))
 
 CONFIG_MAP = {}
 
