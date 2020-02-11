@@ -2072,6 +2072,55 @@ class SequencesLibTest(tf.test.TestCase):
     self.assertEqual(39, sequence.notes[1].pitch)
     self.assertEqual(0, sequence.notes[1].velocity)
 
+  def testPianorollToNoteSequenceWithOnsetsAndFullScaleVelocity(self):
+    # 100 frames of notes and onsets.
+    frames = np.zeros((100, MIDI_PITCHES), np.bool)
+    onsets = np.zeros((100, MIDI_PITCHES), np.bool)
+    velocity_values = np.zeros((100, MIDI_PITCHES), np.float32)
+    # Activate key 39 for the middle 50 frames and last 10 frames.
+    frames[25:75, 39] = True
+    frames[90:100, 39] = True
+    onsets[25, 39] = True
+    velocity_values[25, 39] = 0.5
+    onsets[90, 39] = True
+    velocity_values[90, 39] = 1.0
+    sequence = sequences_lib.pianoroll_to_note_sequence(
+        frames,
+        frames_per_second=DEFAULT_FRAMES_PER_SECOND,
+        min_duration_ms=0,
+        onset_predictions=onsets,
+        velocity_values=velocity_values,
+        velocity_scale=127,
+        velocity_bias=0)
+    self.assertEqual(2, len(sequence.notes))
+
+    self.assertEqual(39, sequence.notes[0].pitch)
+    self.assertEqual(63, sequence.notes[0].velocity)
+    self.assertEqual(39, sequence.notes[1].pitch)
+    self.assertEqual(127, sequence.notes[1].velocity)
+
+  def testPianorollToNoteSequenceWithOnsetsDefaultVelocity(self):
+    # 100 frames of notes and onsets.
+    frames = np.zeros((100, MIDI_PITCHES), np.bool)
+    onsets = np.zeros((100, MIDI_PITCHES), np.bool)
+    # Activate key 39 for the middle 50 frames and last 10 frames.
+    frames[25:75, 39] = True
+    frames[90:100, 39] = True
+    onsets[25, 39] = True
+    onsets[90, 39] = True
+    sequence = sequences_lib.pianoroll_to_note_sequence(
+        frames,
+        frames_per_second=DEFAULT_FRAMES_PER_SECOND,
+        min_duration_ms=0,
+        onset_predictions=onsets,
+        velocity=100)
+    self.assertEqual(2, len(sequence.notes))
+
+    self.assertEqual(39, sequence.notes[0].pitch)
+    self.assertEqual(100, sequence.notes[0].velocity)
+    self.assertEqual(39, sequence.notes[1].pitch)
+    self.assertEqual(100, sequence.notes[1].velocity)
+
   def testPianorollToNoteSequenceWithOnsetsOverlappingFrames(self):
     # 100 frames of notes and onsets.
     frames = np.zeros((100, MIDI_PITCHES), np.bool)
@@ -2133,6 +2182,35 @@ class SequencesLibTest(tf.test.TestCase):
     self.assertEqual(0.1, sequence.notes[2].start_time)
     self.assertAlmostEqual(0.15, sequence.notes[2].end_time)
     self.assertEqual(90, sequence.notes[2].velocity)
+
+  def testPianorollOnsetsToNoteSequenceFullVelocityScale(self):
+    onsets = np.zeros((10, 2), np.bool)
+    velocity_values = np.zeros_like(onsets, np.float32)
+    onsets[0:2, 0] = True
+    velocity_values[0:2, 0] = .5
+    onsets[1:2, 1] = True
+    velocity_values[1:2, 1] = 1
+    sequence = sequences_lib.pianoroll_onsets_to_note_sequence(
+        onsets, frames_per_second=10, note_duration_seconds=0.05,
+        min_midi_pitch=60, velocity_values=velocity_values,
+        velocity_scale=127, velocity_bias=0)
+
+    self.assertEqual(3, len(sequence.notes))
+
+    self.assertEqual(60, sequence.notes[0].pitch)
+    self.assertEqual(0, sequence.notes[0].start_time)
+    self.assertAlmostEqual(0.05, sequence.notes[0].end_time)
+    self.assertEqual(63, sequence.notes[0].velocity)
+
+    self.assertEqual(60, sequence.notes[1].pitch)
+    self.assertEqual(0.1, sequence.notes[1].start_time)
+    self.assertAlmostEqual(0.15, sequence.notes[1].end_time)
+    self.assertEqual(63, sequence.notes[1].velocity)
+
+    self.assertEqual(61, sequence.notes[2].pitch)
+    self.assertEqual(0.1, sequence.notes[2].start_time)
+    self.assertAlmostEqual(0.15, sequence.notes[2].end_time)
+    self.assertEqual(127, sequence.notes[2].velocity)
 
   def testSequenceToPianorollControlChanges(self):
     sequence = music_pb2.NoteSequence(total_time=2.0)

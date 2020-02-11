@@ -1904,19 +1904,21 @@ def sequence_to_pianoroll(
       control_changes=control_changes)
 
 
-def _unscale_velocity(velocity):
+def _unscale_velocity(velocity, scale, bias):
   """Translates a velocity estimate to a MIDI velocity value.
 
   Note that this scaling is totally arbitrary and was chosen only because it
   sounded decent when synthesized.
 
   Args:
-    velocity: Velocity estimate.
+    velocity: Velocity estimate. Should be in [0, 1].
+    scale: Scale to use for conversion to MIDI velocity.
+    bias: Bias to use for conversion to MIDI velocity.
 
   Returns:
     MIDI velocity value.
   """
-  unscaled = max(min(velocity, 1.), 0) * 80. + 10.
+  unscaled = max(min(velocity, 1.), 0) * scale + bias
   if math.isnan(unscaled):
     return 0
   return int(unscaled)
@@ -1932,8 +1934,31 @@ def pianoroll_to_note_sequence(frames,
                                min_midi_pitch=constants.MIN_MIDI_PITCH,
                                onset_predictions=None,
                                offset_predictions=None,
-                               velocity_values=None):
-  """Convert frames to a NoteSequence."""
+                               velocity_values=None,
+                               velocity_scale=80,
+                               velocity_bias=10):
+  """Convert frames (with optional onsets, offsets, velocities) to NoteSequence.
+
+  Args:
+    frames: Numpy array of active frames.
+    frames_per_second: Frames per second.
+    min_duration_ms: Notes active for less than this duration will be ignored.
+    velocity: Default note velocity if velocity_values is not provided.
+    instrument: Instrument for the note sequence.
+    program: Program for the note sequence.
+    qpm: QPM for the note sequence.
+    min_midi_pitch: MIDI pitch offset.
+    onset_predictions: Numpy array of onset predictions. If specified, a new
+      note will not start unless it is active in this array.
+    offset_predictions: Numpy array of onset predictions. If specified, notes
+      will end no later than when these offsets are predicted.
+    velocity_values: Numpy array of floats representing velocities.
+    velocity_scale: Scale to use for conversion to MIDI velocity.
+    velocity_bias: Bias to use for conversion to MIDI velocity.
+
+  Returns:
+    Generated NoteSequence proto.
+  """
   frame_length_seconds = 1 / frames_per_second
 
   sequence = music_pb2.NoteSequence()
@@ -1941,14 +1966,11 @@ def pianoroll_to_note_sequence(frames,
   sequence.ticks_per_quarter = constants.STANDARD_PPQ
 
   pitch_start_step = {}
-  onset_velocities = velocity * np.ones(
-      constants.MAX_MIDI_PITCH, dtype=np.int32)
+  onset_velocities = np.zeros(constants.MAX_MIDI_PITCH, dtype=np.int32)
 
   # Add silent frame at the end so we can do a final loop and terminate any
   # notes that are still active.
   frames = np.append(frames, [np.zeros(frames[0].shape)], 0)
-  if velocity_values is None:
-    velocity_values = velocity * np.ones_like(frames, dtype=np.int32)
 
   if onset_predictions is not None:
     onset_predictions = np.append(onset_predictions,
@@ -1986,7 +2008,13 @@ def pianoroll_to_note_sequence(frames,
         # if we've predicted an onset.
         if onset_predictions[i, pitch]:
           pitch_start_step[pitch] = i
-          onset_velocities[pitch] = _unscale_velocity(velocity_values[i, pitch])
+          if velocity_values is not None:
+            onset_velocities[pitch] = _unscale_velocity(
+                velocity_values[i, pitch],
+                scale=velocity_scale,
+                bias=velocity_bias)
+          else:
+            onset_velocities[pitch] = velocity
         else:
           # Even though the frame is active, the onset predictor doesn't
           # say there should be an onset, so ignore it.
@@ -2001,7 +2029,13 @@ def pianoroll_to_note_sequence(frames,
             not onset_predictions[i - 1, pitch]):
           end_pitch(pitch, i)
           pitch_start_step[pitch] = i
-          onset_velocities[pitch] = _unscale_velocity(velocity_values[i, pitch])
+          if velocity_values is not None:
+            onset_velocities[pitch] = _unscale_velocity(
+                velocity_values[i, pitch],
+                scale=velocity_scale,
+                bias=velocity_bias)
+          else:
+            onset_velocities[pitch] = velocity
 
   for i, frame in enumerate(frames):
     for pitch, active in enumerate(frame):
@@ -2025,7 +2059,9 @@ def pianoroll_onsets_to_note_sequence(onsets,
                                       program=0,
                                       qpm=constants.DEFAULT_QUARTERS_PER_MINUTE,
                                       min_midi_pitch=constants.MIN_MIDI_PITCH,
-                                      velocity_values=None):
+                                      velocity_values=None,
+                                      velocity_scale=80,
+                                      velocity_bias=10):
   """Convert onsets to a NoteSequence.
 
   This converts an matrix of onsets into a NoteSequence. Every active onset
@@ -2044,6 +2080,8 @@ def pianoroll_onsets_to_note_sequence(onsets,
     qpm: QPM for the note sequence.
     min_midi_pitch: MIDI pitch offset.
     velocity_values: Numpy array of floats representing velocities.
+    velocity_scale: Scale to use for conversion to MIDI velocity.
+    velocity_bias: Bias to use for conversion to MIDI velocity.
 
   Returns:
     Generated NoteSequence proto.
@@ -2065,7 +2103,10 @@ def pianoroll_onsets_to_note_sequence(onsets,
     note.start_time = start_time
     note.end_time = end_time
     note.pitch = pitch + min_midi_pitch
-    note.velocity = _unscale_velocity(velocity_values[frame, pitch])
+    note.velocity = _unscale_velocity(
+        velocity_values[frame, pitch],
+        scale=velocity_scale,
+        bias=velocity_bias)
     note.instrument = instrument
     note.program = program
 
