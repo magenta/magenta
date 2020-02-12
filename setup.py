@@ -69,6 +69,9 @@ REQUIRED_PACKAGES = [
     'wheel',
     'futures;python_version=="2.7"',
     'apache-beam[gcp] >= 2.14.0, < 2.19.0',  # Temporary fix for 'typing' issue
+    # Temporary fix for:
+    # https://issues.apache.org/jira/projects/AVRO/issues/AVRO-2737?filter=allopenissues
+    'avro-python3 !=1.9.2',
 ]
 
 EXTRAS_REQUIRE = {
