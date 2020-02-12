@@ -34,6 +34,7 @@ import zlib
 import librosa
 from magenta.models.onsets_frames_transcription import audio_transform
 from magenta.models.onsets_frames_transcription import constants
+from magenta.models.onsets_frames_transcription import drum_mappings
 from magenta.music import audio_io
 from magenta.music import melspec_input
 from magenta.music import sequences_lib
@@ -513,6 +514,31 @@ def input_tensors_to_model_input(
       velocities=tf.reshape(velocities, (final_length, num_classes)),
       note_sequence=truncated_note_sequence)
 
+  if hparams.drum_data_map:
+    labels_dict = labels._asdict()
+    for k in ('labels', 'onsets', 'offsets'):
+      labels_dict[k] = drum_mappings.map_pianoroll(
+          labels_dict[k],
+          mapping_name=hparams.drum_data_map,
+          reduce_mode='any',
+          min_pitch=constants.MIN_MIDI_PITCH)
+    for k in ('label_weights', 'velocities'):
+      labels_dict[k] = drum_mappings.map_pianoroll(
+          labels_dict[k],
+          mapping_name=hparams.drum_data_map,
+          reduce_mode='max',
+          min_pitch=constants.MIN_MIDI_PITCH)
+    if labels_dict['note_sequence'].dtype == tf.string:
+      labels_dict['note_sequence'] = tf.py_func(
+          functools.partial(
+              drum_mappings.map_sequences, mapping_name=hparams.drum_data_map),
+          [labels_dict['note_sequence']],
+          tf.string,
+          name='get_drum_sequences',
+          stateful=False)
+      labels_dict['note_sequence'].set_shape(())
+    labels = LabelTensors(**labels_dict)
+
   return features, labels
 
 
@@ -635,6 +661,51 @@ def create_batch(dataset, hparams, is_training, batch_size=None):
   return dataset
 
 
+def combine_tensor_batch(tensor, lengths, max_length, batch_size):
+  """Combine a batch of variable-length tensors into a single tensor."""
+  combined = tf.concat([tensor[i, :lengths[i]] for i in range(batch_size)],
+                       axis=0)
+  final_length = max_length * batch_size
+  combined_padded = tf.pad(combined,
+                           [(0, final_length - tf.shape(combined)[0])] +
+                           [(0, 0)] * (combined.shape.rank - 1))
+  combined_padded.set_shape([final_length] + combined_padded.shape[1:])
+  return combined_padded
+
+
+def splice_examples(dataset, hparams, is_training):
+  """Splice together several examples into a single example."""
+  if (not is_training) or hparams.splice_n_examples == 0:
+    return dataset
+  else:
+    dataset = dataset.padded_batch(
+        hparams.splice_n_examples, padded_shapes=dataset.output_shapes)
+
+    def _splice(features, labels):
+      """Splice together a batch of examples into a single example."""
+      combine = functools.partial(
+          combine_tensor_batch,
+          lengths=features.length,
+          max_length=hparams.max_expected_train_example_len,
+          batch_size=hparams.splice_n_examples)
+
+      combined_features = FeatureTensors(
+          spec=combine(features.spec),
+          length=tf.reduce_sum(features.length),
+          sequence_id=tf.constant(0))
+      combined_labels = LabelTensors(
+          labels=combine(labels.labels),
+          label_weights=combine(labels.label_weights),
+          onsets=combine(labels.onsets),
+          offsets=combine(labels.offsets),
+          velocities=combine(labels.velocities),
+          note_sequence=tf.constant(0))
+      return combined_features, combined_labels
+
+    combined_dataset = dataset.map(_splice)
+    return combined_dataset
+
+
 def provide_batch(examples,
                   preprocess_examples,
                   params,
@@ -674,5 +745,6 @@ def provide_batch(examples,
           input_tensors_to_model_input,
           hparams=hparams, is_training=is_training))
 
+  model_input = splice_examples(model_input, hparams, is_training)
   dataset = create_batch(model_input, hparams=hparams, is_training=is_training)
   return dataset.prefetch(buffer_size=tf.data.experimental.AUTOTUNE)

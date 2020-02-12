@@ -80,8 +80,6 @@ def run(argv, config_map, data_fn):
 
   config = config_map[FLAGS.config]
   hparams = config.hparams
-  # For this script, default to not using cudnn.
-  hparams.use_cudnn = False
   hparams.parse(FLAGS.hparams)
   hparams.batch_size = 1
   hparams.truncated_length_secs = 0

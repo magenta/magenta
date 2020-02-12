@@ -305,6 +305,16 @@ class DataTest(tf.test.TestCase):
         ],
         filenames)
 
+  def testCombineTensorBatch(self):
+    with tf.Graph().as_default():
+      tensor = tf.constant([[1, 2, 3, 0, 0], [4, 5, 0, 0, 0]])
+      lengths = tf.constant([3, 2])
+      combined = data.combine_tensor_batch(
+          tensor, lengths, max_length=5, batch_size=2)
+      sess = tf.Session()
+      np.testing.assert_equal([1, 2, 3, 4, 5, 0, 0, 0, 0, 0],
+                              sess.run(combined))
+
 
 if __name__ == '__main__':
   tf.test.main()
