@@ -32,6 +32,8 @@ FLAGS = tf.app.flags.FLAGS
 
 tf.app.flags.DEFINE_string('master', '',
                            'Name of the TensorFlow runtime to use.')
+tf.app.flags.DEFINE_string('tpu_cluster', None,
+                           'Name of the TPU Cluster to use.')
 tf.app.flags.DEFINE_string('config', 'onsets_frames',
                            'Name of the config to use.')
 tf.app.flags.DEFINE_string(
@@ -85,6 +87,7 @@ def run(config_map, data_fn, additional_trial_info):
         data_fn=data_fn,
         additional_trial_info=additional_trial_info,
         master=FLAGS.master,
+        tpu_cluster=FLAGS.tpu_cluster,
         model_dir=model_dir,
         use_tpu=FLAGS.use_tpu,
         preprocess_examples=FLAGS.preprocess_examples,

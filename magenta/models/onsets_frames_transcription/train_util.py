@@ -24,6 +24,7 @@ import functools
 import random
 import sys
 import tensorflow.compat.v1 as tf
+from tensorflow.contrib import cluster_resolver as contrib_cluster_resolver
 from tensorflow.contrib import tpu as contrib_tpu
 from tensorflow.contrib import training as contrib_training
 
@@ -65,6 +66,7 @@ def create_estimator(model_fn,
                      hparams,
                      use_tpu=False,
                      master='',
+                     tpu_cluster=None,
                      save_checkpoint_steps=300,
                      save_summary_steps=300,
                      keep_checkpoint_max=None,
@@ -80,10 +82,18 @@ def create_estimator(model_fn,
       labels = features.labels
     return model_fn(features, labels, mode, params, config)
 
+  if tpu_cluster:
+    tpu_cluster_resolver = contrib_cluster_resolver.TPUClusterResolver(
+        tpu_cluster)
+    master = None
+  else:
+    tpu_cluster_resolver = None
+
   config = contrib_tpu.RunConfig(
       tpu_config=contrib_tpu.TPUConfig(
           iterations_per_loop=save_checkpoint_steps),
       master=master,
+      cluster=tpu_cluster_resolver,
       save_summary_steps=save_summary_steps,
       save_checkpoints_steps=save_checkpoint_steps,
       keep_checkpoint_max=keep_checkpoint_max,
@@ -105,6 +115,7 @@ def create_estimator(model_fn,
 
 
 def train(master,
+          tpu_cluster,
           model_fn,
           data_fn,
           additional_trial_info,
@@ -119,6 +130,7 @@ def train(master,
       model_fn=model_fn,
       model_dir=model_dir,
       master=master,
+      tpu_cluster=tpu_cluster,
       hparams=hparams,
       keep_checkpoint_max=keep_checkpoint_max,
       use_tpu=use_tpu)
