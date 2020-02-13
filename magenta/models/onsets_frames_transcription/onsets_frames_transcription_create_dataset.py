@@ -12,14 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-r"""Beam job for creating transcription dataset from MAESTRO."""
+r"""Beam job for creating transcription dataset."""
 
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
 from magenta.models.onsets_frames_transcription import configs
-from magenta.models.onsets_frames_transcription import create_dataset_maestro
+from magenta.models.onsets_frames_transcription import create_dataset
 from magenta.models.onsets_frames_transcription import data
 import tensorflow.compat.v1 as tf
 
@@ -27,7 +27,8 @@ import tensorflow.compat.v1 as tf
 def main(argv):
   del argv
 
-  create_dataset_maestro.pipeline(
+
+  create_dataset.pipeline(
       configs.CONFIG_MAP, configs.DATASET_CONFIG_MAP, data.preprocess_example,
       data.input_tensors_to_example)
 

@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Beam pipeline for MAESTRO dataset."""
+"""Beam pipeline for dataset creation."""
 
 from __future__ import absolute_import
 from __future__ import division

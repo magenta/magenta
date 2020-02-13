@@ -51,7 +51,7 @@ If you plan on using the default dataset creation setup, you can also just downl
 
 For training and evaluation, we will use the [MAESTRO](https://g.co/magenta/maestro-dataset) dataset. These steps will process the raw dataset into training examples containing 20-second chunks of audio/MIDI and validation/test examples containing full pieces.
 
-Our dataset creation tool is written using Apache Beam. These instructions will cover how to run it using Google Cloud Dataflow, but you could run it with any platform that supports Beam. Unfortunately, Apache Beam does not currently support Python 3, so you'll need to use Python 2 here.
+Our dataset creation tool is written using Apache Beam. These instructions will cover how to run it using Google Cloud Dataflow, but you could run it with any platform that supports Beam.
 
 To prepare the dataset, do the following:
 
@@ -69,7 +69,7 @@ PIPELINE_OPTIONS=\
 "--temp_location=gs://${BUCKET}/tmp,"\
 "--setup_file=${MAGENTA_SETUP_PATH}"
 
-onsets_frames_transcription_create_dataset_maestro \
+onsets_frames_transcription_create_dataset \
   --output_directory=gs://${BUCKET}/datagen \
   --pipeline_options="${PIPELINE_OPTIONS}" \
   --alsologtostderr
@@ -97,6 +97,10 @@ onsets_frames_transcription_create_dataset_maps \
   --input_dir="${MAPS_DIR}" \
   --output_dir="${OUTPUT_DIR}"
 ```
+
+### Custom Dataset
+
+To use your own dataset, see the instructions `onsets_frames_transcription_create_tfrecords`. You'll then need to register the new dataset in `configs.py` and process it with `onsets_frames_transcription_create_dataset`.
 
 ### Training
 
