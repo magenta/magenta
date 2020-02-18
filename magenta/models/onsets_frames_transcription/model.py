@@ -26,7 +26,7 @@ from magenta.models.onsets_frames_transcription import constants
 from magenta.models.onsets_frames_transcription import infer_util
 from magenta.models.onsets_frames_transcription import metrics
 
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 
 import tensorflow.contrib.slim as slim
 from tensorflow.contrib import cudnn_rnn as contrib_cudnn_rnn

@@ -19,7 +19,7 @@ import collections
 import magenta
 from magenta.common import Nade
 from magenta.models.shared import events_rnn_graph
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 from tensorflow.contrib import metrics as contrib_metrics
 from tensorflow.contrib import seq2seq as contrib_seq2seq
 from tensorflow.contrib import slim as contrib_slim

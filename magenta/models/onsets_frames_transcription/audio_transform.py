@@ -24,7 +24,7 @@ import subprocess
 import tempfile
 
 import sox
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 from tensorflow.contrib import training as contrib_training
 
 # The base pipeline is a list of stages, each of which consists of a name

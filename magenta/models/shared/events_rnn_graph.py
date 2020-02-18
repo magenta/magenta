@@ -23,7 +23,7 @@ import numbers
 import magenta
 import numpy as np
 import six
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 from tensorflow.contrib import cudnn_rnn as contrib_cudnn_rnn
 from tensorflow.contrib import layers as contrib_layers
 from tensorflow.contrib import metrics as contrib_metrics

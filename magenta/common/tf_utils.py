@@ -14,7 +14,7 @@
 
 """Tensorflow-related utilities."""
 
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 from tensorflow.contrib import training as contrib_training
 
 
