@@ -23,12 +23,13 @@ import copy
 import functools
 import random
 import sys
-import tensorflow.compat.v1 as tf
-from tensorflow.contrib import tpu as contrib_tpu
-from tensorflow.contrib import training as contrib_training
+import tensorflow as tf
 
 
 # Should not be called from within the graph to avoid redundant summaries.
+from magenta.models.onsets_frames_transcription.model_util import ModelWrapper, ModelType
+
+
 def _trial_summary(hparams, model_dir, output_dir, additional_trial_info):
   """Writes a tensorboard text summary of the trial."""
 
@@ -36,7 +37,7 @@ def _trial_summary(hparams, model_dir, output_dir, additional_trial_info):
   summaries_to_write['model_dir'] = model_dir
   summaries_to_write['command_line_args'] = ' \\'.join(sys.argv)
 
-  tf.logging.info('Writing hparams summary: %s', hparams)
+  tf.compat.v1.logging.info('Writing hparams summary: %s', hparams)
 
   hparams_dict = hparams.values()
 
@@ -53,59 +54,14 @@ def _trial_summary(hparams, model_dir, output_dir, additional_trial_info):
   with tf.Session() as sess:
     writer = tf.summary.FileWriter(output_dir, graph=sess.graph)
     for name, summary in summaries_to_write.items():
-      tf.logging.info('Writing summary for %s: %s', name, summary)
+      tf.compat.v1.logging.info('Writing summary for %s: %s', name, summary)
       writer.add_summary(
           tf.summary.text(name, tf.constant(summary, name=name),
                           collections=[]).eval())
     writer.close()
 
 
-def create_estimator(model_fn,
-                     model_dir,
-                     hparams,
-                     use_tpu=False,
-                     master='',
-                     save_checkpoint_steps=300,
-                     save_summary_steps=300,
-                     keep_checkpoint_max=None,
-                     warm_start_from=None):
-  """Creates an estimator."""
-  def wrapped_model_fn(features, labels, mode, params, config):
-    """Wrap model_fn to restore labels value if present in features."""
-    # Workaround for Estimator API that forces 'labels' to be None when in
-    # predict mode.
-    # https://github.com/tensorflow/tensorflow/issues/17824
-    # See also infer_util.labels_to_features_wrapper
-    if labels is None and hasattr(features, 'labels'):
-      labels = features.labels
-    return model_fn(features, labels, mode, params, config)
-
-  config = contrib_tpu.RunConfig(
-      tpu_config=contrib_tpu.TPUConfig(
-          iterations_per_loop=save_checkpoint_steps),
-      master=master,
-      save_summary_steps=save_summary_steps,
-      save_checkpoints_steps=save_checkpoint_steps,
-      keep_checkpoint_max=keep_checkpoint_max,
-      keep_checkpoint_every_n_hours=1)
-
-  params = copy.deepcopy(hparams)
-  params.del_hparam('batch_size')
-  return contrib_tpu.TPUEstimator(
-      use_tpu=use_tpu,
-      model_fn=wrapped_model_fn,
-      model_dir=model_dir,
-      params=params,
-      train_batch_size=hparams.batch_size,
-      eval_batch_size=hparams.eval_batch_size,
-      predict_batch_size=hparams.predict_batch_size,
-      config=config,
-      warm_start_from=warm_start_from,
-      eval_on_tpu=False)
-
-
 def train(master,
-          model_fn,
           data_fn,
           additional_trial_info,
           model_dir,
@@ -113,22 +69,10 @@ def train(master,
           hparams,
           keep_checkpoint_max,
           use_tpu,
-          num_steps=None):
+          num_steps=50):
   """Train loop."""
-  estimator = create_estimator(
-      model_fn=model_fn,
-      model_dir=model_dir,
-      master=master,
-      hparams=hparams,
-      keep_checkpoint_max=keep_checkpoint_max,
-      use_tpu=use_tpu)
 
-  if estimator.config.is_chief:
-    _trial_summary(
-        hparams=hparams,
-        model_dir=model_dir,
-        output_dir=model_dir,
-        additional_trial_info=additional_trial_info)
+
 
   transcription_data = functools.partial(
       data_fn,
@@ -136,8 +80,12 @@ def train(master,
       is_training=True,
       shuffle_examples=True,
       skip_n_initial_records=0)
+  midi_model = ModelWrapper('./models', ModelType.MIDI, hparams=hparams)
 
-  estimator.train(input_fn=transcription_data, max_steps=num_steps)
+  for i in range(num_steps):
+      midi_model.train_and_save(transcription_data(params=hparams), val_dataset=None, epochs=50)
+
+  #estimator.train(input_fn=transcription_data, max_steps=num_steps)
 
 
 def evaluate(master,
@@ -184,7 +132,7 @@ def evaluate(master,
     # if there are up to num_steps * 5 records available, which would allow
     # a maximum skip range of [0, num_steps*4].
     records_to_check = num_steps * 5
-    tf.logging.info('Checking for at least %d records...', records_to_check)
+    tf.compat.v1.logging.info('Checking for at least %d records...', records_to_check)
     records_available = 0
     with tf.Graph().as_default():
       record_check_params = copy.deepcopy(hparams)
@@ -203,13 +151,13 @@ def evaluate(master,
             sess.run(next_record)
             records_available += 1
             if records_available % 10 == 0:
-              tf.logging.info('Found %d records...', records_available)
+              tf.compat.v1.logging.info('Found %d records...', records_available)
         except tf.errors.OutOfRangeError:
           pass
     # Determine max number of records we could skip and still have num_steps
     # records remaining.
     max_records_to_skip = max(0, records_available - num_steps)
-    tf.logging.info('Found at least %d records. '
+    tf.compat.v1.logging.info('Found at least %d records. '
                     'Will skip a maximum of %d records during eval runs '
                     'in order to support %d evaluation steps.',
                     records_available, max_records_to_skip, num_steps)
@@ -220,7 +168,7 @@ def evaluate(master,
     def transcription_data(params, *args, **kwargs):
       assert not args
       skip_n_initial_records = random.randint(0, max_records_to_skip)
-      tf.logging.info('Skipping %d initial record(s)', skip_n_initial_records)
+      tf.compat.v1.logging.info('Skipping %d initial record(s)', skip_n_initial_records)
       return transcription_data_base(
           params=params,
           shuffle_examples=True,

@@ -49,19 +49,19 @@ def create_spec(filename, hparams):
 
 
 def main(argv):
-  tf.logging.set_verbosity(FLAGS.log)
+  tf.compat.v1.logging.set_verbosity(FLAGS.log)
 
   config = configs.CONFIG_MAP[FLAGS.config]
   hparams = config.hparams
 
   for filename in argv[1:]:
-    tf.logging.info('Generating spectrogram for %s...', filename)
+    tf.compat.v1.logging.info('Generating spectrogram for %s...', filename)
 
     spec = create_spec(filename, hparams)
     spec_filename = filename + '.json'
     with tf.gfile.Open(spec_filename, 'w') as f:
       f.write(json.dumps(spec.tolist()))
-      tf.logging.info('Wrote spectrogram json to %s.', spec_filename)
+      tf.compat.v1.logging.info('Wrote spectrogram json to %s.', spec_filename)
 
 
 def console_entry_point():

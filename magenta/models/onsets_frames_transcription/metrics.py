@@ -155,7 +155,7 @@ def _calculate_metrics_py(frame_predictions,
                           onsets_only,
                           restrict_to_pitch=None):
   """Python logic for calculating metrics on a single example."""
-  tf.logging.info('Calculating metrics for %s with length %d', sequence_id,
+  tf.compat.v1.logging.info('Calculating metrics for %s with length %d', sequence_id,
                   frame_labels.shape[0])
 
   sequence_prediction = infer_util.predict_sequence(
@@ -202,7 +202,7 @@ def _calculate_metrics_py(frame_predictions,
         processed_frame_predictions[:frame_labels.shape[0], :])
 
   if len(ref_pitches) == 0:
-    tf.logging.info(
+    tf.compat.v1.logging.info(
         'Reference pitches were length 0, returning empty metrics for %s:',
         sequence_id)
     return tuple([[]] * 12 + [processed_frame_predictions])
@@ -242,7 +242,7 @@ def _calculate_metrics_py(frame_predictions,
            est_pitches=pretty_midi.note_number_to_hz(est_pitches),
            est_velocities=est_velocities))
 
-  tf.logging.info(
+  tf.compat.v1.logging.info(
       'Metrics for %s: Note F1 %f, Note w/ velocity F1 %f, Note w/ offsets F1 %f, '
       'Note w/ offsets & velocity: %f', sequence_id, note_f1,
       note_with_velocity_f1, note_with_offsets_f1,

@@ -21,12 +21,15 @@ from __future__ import print_function
 import functools
 import os
 
-from magenta.models.onsets_frames_transcription import configs
-from magenta.models.onsets_frames_transcription import data
-from magenta.models.onsets_frames_transcription import train_util
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
+
+
+from magenta.models.onsets_frames_transcription import data, train_util, configs
+from dotmap import DotMap
 
 import tensorflow.compat.v1 as tf
-
+tf.enable_v2_behavior()
+tf.enable_eager_execution()
 
 FLAGS = tf.app.flags.FLAGS
 
@@ -62,14 +65,14 @@ tf.app.flags.DEFINE_boolean('use_tpu', False,
 tf.app.flags.DEFINE_enum('mode', 'train', ['train', 'eval'],
                          'Which mode to use.')
 tf.app.flags.DEFINE_string(
-    'log', 'INFO',
+    'log', 'ERROR',
     'The threshold for what messages will be logged: '
     'DEBUG, INFO, WARN, ERROR, or FATAL.')
 
 
 def run(config_map, data_fn, additional_trial_info):
   """Run training or evaluation."""
-  tf.compat.v1.logging.set_verbosity(FLAGS.log)
+  #tf.compat.v1.logging.set_verbosity(FLAGS.log)
 
   config = config_map[FLAGS.config]
   model_dir = os.path.expanduser(FLAGS.model_dir)
@@ -77,11 +80,11 @@ def run(config_map, data_fn, additional_trial_info):
   hparams = config.hparams
 
   # Command line flags override any of the preceding hyperparameter values.
-  hparams.parse(FLAGS.hparams)
+  hparams.update(FLAGS.hparams)
+  hparams = DotMap(hparams)
 
   if FLAGS.mode == 'train':
     train_util.train(
-        model_fn=config.model_fn,
         data_fn=data_fn,
         additional_trial_info=additional_trial_info,
         master=FLAGS.master,
@@ -93,7 +96,7 @@ def run(config_map, data_fn, additional_trial_info):
         num_steps=FLAGS.num_steps)
   elif FLAGS.mode == 'eval':
     train_util.evaluate(
-        model_fn=config.model_fn,
+        #model_fn=config.model_fn,
         data_fn=data_fn,
         additional_trial_info=additional_trial_info,
         master=FLAGS.master,

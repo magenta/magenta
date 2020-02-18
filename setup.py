@@ -54,7 +54,9 @@ REQUIRED_PACKAGES = [
     'sk-video',
     'dm-sonnet < 2.0.0',  # Sonnet 2 requires TF2.
     'sox >= 1.3.7',
-    'tensorflow >= 1.15.0, < 2.0.0',  # Magenta is not yet TF2 compatible.
+    #'tensorflow >= 1.15.0, < 2.0.0',  # Magenta is not yet TF2 compatible.
+    'tensorflow >= 2.0.0',  # Magenta is not yet TF2 compatible.
+
     'tensorflow-datasets >= 1.0.2',
     'tensorflow-probability == 0.7.0',
     'tensor2tensor >= 1.13.4',

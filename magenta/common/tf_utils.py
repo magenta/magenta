@@ -15,7 +15,6 @@
 """Tensorflow-related utilities."""
 
 import tensorflow as tf
-from tensorflow.contrib import training as contrib_training
 
 
 def merge_hparams(hparams_1, hparams_2):
@@ -32,9 +31,10 @@ def merge_hparams(hparams_1, hparams_2):
     A merged tf.contrib.training.HParams object with the hyperparameters from
     both `hparams_1` and `hparams_2`.
   """
-  hparams_map = hparams_1.values()
-  hparams_map.update(hparams_2.values())
-  return contrib_training.HParams(**hparams_map)
+  return {**hparams_1, **hparams_2}
+  # hparams_map = hparams_1.values()
+  # hparams_map.update(hparams_2.values())
+  # return contrib_training.HParams(**hparams_map)
 
 
 def log_loss(labels, predictions, epsilon=1e-7, scope=None, weights=None):

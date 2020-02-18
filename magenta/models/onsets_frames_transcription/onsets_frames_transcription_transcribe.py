@@ -76,7 +76,7 @@ def create_example(filename, sample_rate, load_audio_with_librosa):
 
 def run(argv, config_map, data_fn):
   """Create transcriptions."""
-  tf.logging.set_verbosity(FLAGS.log)
+  tf.compat.v1.logging.set_verbosity(FLAGS.log)
 
   config = config_map[FLAGS.config]
   hparams = config.hparams
@@ -111,13 +111,13 @@ def run(argv, config_map, data_fn):
       ])
 
       for filename in argv[1:]:
-        tf.logging.info('Starting transcription for %s...', filename)
+        tf.compat.v1.logging.info('Starting transcription for %s...', filename)
 
         # The reason we bounce between two Dataset objects is so we can use
         # the data processing functionality in data.py without having to
         # construct all the Example protos in memory ahead of time or create
         # a temporary tfrecord file.
-        tf.logging.info('Processing file...')
+        tf.compat.v1.logging.info('Processing file...')
         sess.run(iterator.initializer,
                  {examples: [
                      create_example(filename, hparams.sample_rate,
@@ -128,7 +128,7 @@ def run(argv, config_map, data_fn):
           return tf.data.Dataset.from_tensors(sess.run(next_record))
         input_fn = infer_util.labels_to_features_wrapper(transcription_data)
 
-        tf.logging.info('Running inference...')
+        tf.compat.v1.logging.info('Running inference...')
         checkpoint_path = None
         if FLAGS.checkpoint_path:
           checkpoint_path = os.path.expanduser(FLAGS.checkpoint_path)
@@ -145,7 +145,7 @@ def run(argv, config_map, data_fn):
         midi_filename = filename + FLAGS.transcribed_file_suffix + '.midi'
         midi_io.sequence_proto_to_midi_file(sequence_prediction, midi_filename)
 
-        tf.logging.info('Transcription written to %s.', midi_filename)
+        tf.compat.v1.logging.info('Transcription written to %s.', midi_filename)
 
 
 def main(argv):
