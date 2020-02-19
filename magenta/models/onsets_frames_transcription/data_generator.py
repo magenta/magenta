@@ -12,7 +12,7 @@ else:
 
 class DataGenerator(keras.utils.Sequence):
     'Generates data for Keras'
-    def __init__(self, dataset, batch_size, steps_per_epoch, shuffle=True):
+    def __init__(self, dataset, batch_size, steps_per_epoch, shuffle=False):
         'Initialization'
         self.dataset = dataset
         self.batch_size = batch_size

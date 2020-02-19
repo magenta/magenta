@@ -427,7 +427,8 @@ def input_tensors_to_example(inputs, hparams):
 
 
 FeatureTensors = collections.namedtuple(
-    'FeatureTensors', ('spec', 'length', 'sequence_id'))
+    'FeatureTensors', ('spec',))
+    #'FeatureTensors', ('spec', 'length', 'sequence_id'))
 LabelTensors = collections.namedtuple(
     'LabelTensors', ('labels', 'onsets'))
     #'LabelTensors', ('labels', 'label_weights', 'onsets', 'offsets',
@@ -510,8 +511,9 @@ def input_tensors_to_model_input(
 
     features = FeatureTensors(
         spec=tf.reshape(spec, (final_length, hparams_frame_size(hparams), 1)),
-        length=truncated_length,
-        sequence_id=tf.constant(0) if is_training else input_tensors.sequence_id)
+        #length=truncated_length,
+        #sequence_id=tf.constant(0) if is_training else input_tensors.sequence_id
+    )
     labels = LabelTensors(
         labels=tf.reshape(labels, (final_length, num_classes)),
         #label_weights=tf.reshape(label_weights, (final_length, num_classes)),
@@ -634,7 +636,7 @@ def create_batch(dataset, hparams, is_training, batch_size=None):
             # padded_shapes=(TensorShape(3), TensorShape(6)),
             # padded_shapes=dataset.element_spec,
             padded_shapes=(
-            FeatureTensors(TensorShape([None, 229, 1]), TensorShape([]), TensorShape([])),
+            FeatureTensors(TensorShape([None, 229, 1])),#, TensorShape([]), TensorShape([])),
             LabelTensors(TensorShape([None, 88]), TensorShape([None, 88]),
                          #TensorShape([None, 88]), TensorShape([None, 88]), TensorShape([None, 88]), TensorShape([])
                          )),

@@ -11,20 +11,22 @@ FLAGS = tf.app.flags.FLAGS
 
 if FLAGS.using_plaidml:
     import plaidml.keras
-    plaidml.keras.install_backend()
 
+    plaidml.keras.install_backend()
 
     from keras import backend as K
     from keras.initializers import VarianceScaling
-    from keras.layers import Activation, BatchNormalization, Bidirectional, Conv2D, Dense, Dropout, \
-        Input, LSTM, MaxPooling2D, Reshape
+    from keras.layers import Activation, BatchNormalization, Conv2D, Dense, Dropout, \
+        Input, MaxPooling2D, Reshape
+    from tensorflow.keras.layers import Bidirectional, LSTM
     from keras.models import Model
 else:
-    #os.environ["KERAS_BACKEND"] = "plaidml.keras.backend"
+    # os.environ["KERAS_BACKEND"] = "plaidml.keras.backend"
 
     from tensorflow.keras import backend as K
     from tensorflow.keras.initializers import VarianceScaling
-    from tensorflow.keras.layers import Activation, BatchNormalization, Bidirectional, Conv2D, Dense, Dropout, \
+    from tensorflow.keras.layers import Activation, BatchNormalization, Bidirectional, Conv2D, \
+        Dense, Dropout, \
         Input, LSTM, MaxPooling2D, Reshape
     from tensorflow.keras.models import Model
 
@@ -34,7 +36,7 @@ from magenta.models.onsets_frames_transcription import constants
 def get_default_hparams():
     return {
         'using_plaidml': True,
-        'batch_size': 1,
+        'batch_size': 8,
         'epochs_per_save': 1,
         'learning_rate': 0.0006,
         'decay_steps': 10000,
@@ -79,6 +81,9 @@ def lstm_layer(num_units,
                implementation=2):
     def lstm_layer_fn(inputs):
         lstm_stack = inputs
+        if FLAGS.using_plaidml:
+            lstm_stack.shape = tf.TensorShape(
+                [d if isinstance(d, int) else None for d in lstm_stack.shape.dims])
         for i in range(stack_size):
             lstm_stack = Bidirectional(LSTM(
                 num_units,
@@ -158,17 +163,25 @@ def midi_prediction_model(hparams=None):
     #     frame_label_weights = labels.label_weights
 
     # Onset prediction model
-    onset_outputs = acoustic_model_layer(hparams, 0 if hparams.using_plaidml else hparams.onset_lstm_units)(input)
+    onset_outputs = acoustic_model_layer(hparams,
+                                         0 if hparams.using_plaidml else hparams.onset_lstm_units)(
+        input)
     onset_probs = midi_pitches_layer('onsets')(onset_outputs)
 
     # TODO add offsets model
 
     # Frame prediction model
     if not hparams.share_conv_features:
-        activation_outputs = acoustic_model_layer(hparams, 0 if hparams.using_plaidml else hparams.onset_lstm_units)(input)
+        activation_outputs = acoustic_model_layer(hparams,
+                                                  0 if hparams.using_plaidml else hparams.frame_lstm_units)(
+            input)
     else:
         activation_outputs = onset_outputs
     activation_probs = midi_pitches_layer('frames')(activation_outputs)
 
-    return Model(inputs=[input, Input(shape=(None,)), Input(shape=(None,))],
+    return Model(inputs=[
+        input,
+        #Input(shape=(None,)),
+        #Input(shape=(None,)),
+                         ],
                  outputs=[onset_probs, activation_probs])

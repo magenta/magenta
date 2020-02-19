@@ -7,7 +7,6 @@ import uuid
 
 import tensorflow.compat.v1 as tf
 
-
 FLAGS = tf.app.flags.FLAGS
 
 if FLAGS.using_plaidml:
@@ -17,9 +16,11 @@ if FLAGS.using_plaidml:
 
     plaidml.keras.install_backend()
     from keras.models import load_model
+    from keras.optimizers import Adam
     import keras.backend as K
 else:
     from tensorflow.keras.models import load_model
+    from tensorflow.keras.optimizers import Adam
     import tensorflow.keras.backend as K
 
 from magenta.models.onsets_frames_transcription.data_generator import DataGenerator
@@ -32,6 +33,7 @@ class ModelType(Enum):
     MIDI = 'Midi',
     TIMBRE = 'Timbre',
     FULL = 'Full',
+
 
 def to_lists(x, y):
     return tf.data.Dataset.from_tensor_slices(x), tf.data.Dataset.from_tensor_slices(y)
@@ -59,11 +61,6 @@ class ModelWrapper:
         self.hparams = hparams
 
         self.dataset = dataset
-        self.generator = None
-        if hparams.using_plaidml:
-            self.convert_dataset()
-
-    def convert_dataset(self):
         self.generator = DataGenerator(self.dataset, self.batch_size, self.steps_per_epoch)
 
     def save_model(self, eval_data=None):
@@ -93,34 +90,21 @@ class ModelWrapper:
         if self.model is None:
             self.build_model()
         try:
-            if False and self.hparams.using_plaidml:
-
-                for i in range(self.steps_per_epoch * epochs):
-                    next_input = next(iter(self.dataset))
-
-                    x_train, y_train = ([t.numpy() for t in tensors] for tensors in next_input)
-                    if False:#val_dataset:
-                        next_val = next(iter(val_dataset))
-                        x_val, y_val = ([t.numpy() for t in tensors] for tensors in next_val)
-
-                    else:
-                        x_val, y_val = (None, None)
-                    print('Training on "epoch" {}'.format(i))
-                    self.train_and_save_on_numpy(x_train, y_train, x_val, y_val, 1)
-            elif self.hparams.using_plaidml:
-                self.model.fit_generator(self.generator, steps_per_epoch=self.steps_per_epoch, epochs=epochs)
+            if True or self.hparams.using_plaidml:
+                self.model.fit_generator(self.generator, steps_per_epoch=self.steps_per_epoch,
+                                         epochs=epochs)
 
             else:
-                if True:#not val_dataset:
+                if True:  # not val_dataset:
                     val_dataset = self.dataset.shuffle(self.batch_size)
-                self.train_and_save_on_dataset(self.dataset, val_dataset, epochs, self.steps_per_epoch)
+                self.train_and_save_on_dataset(self.dataset, val_dataset, epochs)
 
             print(K.get_value(self.model.optimizer.lr))
         finally:
             # always try to save if we can
             # Do this if we get a Keyboard Interrupt
-            if self.hparams.using_plaidml:
-                x_val, y_val = ([t.numpy() for t in tensors] for tensors in next(iter(self.dataset)))
+            if True or self.hparams.using_plaidml:
+                x_val, y_val = self.generator[0]
 
                 self.save_model(self.model.evaluate(x_val, y_val, batch_size=self.batch_size))
             else:
@@ -130,7 +114,8 @@ class ModelWrapper:
     def train_and_save_on_dataset(self, dataset, val_dataset, epochs=1):
         self.model.fit(dataset, validation_steps=1,
                        # validation_split=0.1 if self.batch_size > 1 else 0.0,
-                       validation_data=val_dataset, epochs=epochs, steps_per_epoch=self.steps_per_epoch)
+                       validation_data=val_dataset, epochs=epochs,
+                       steps_per_epoch=self.steps_per_epoch)
 
     # train on numpy arrays
     def train_and_save_on_numpy(self, x_train, y_train, x_val=None, y_val=None, epochs=1):
@@ -153,12 +138,12 @@ class ModelWrapper:
         print('Loading pre-trained {} model...'.format(self.type.name))
         self.model = load_model(ModelWrapper.model_save_format.format(*id_tup),
                                 compile=False)
-        self.model.compile('Adam', 'categorical_crossentropy', metrics=['accuracy'])
+        self.model.compile(Adam(self.hparams.learning_rate), 'categorical_crossentropy', metrics=['accuracy'])
 
     def build_model(self):
         if self.type == ModelType.MIDI:
             self.model = midi_prediction_model(self.hparams)
-            self.model.compile('Adam', 'categorical_crossentropy', metrics=['accuracy'])
+            self.model.compile(Adam(self.hparams.learning_rate), 'categorical_crossentropy', metrics=['accuracy'])
         elif self.type == ModelType.TIMBRE:
             pass
         else:  # self.type == ModelType.FULL:

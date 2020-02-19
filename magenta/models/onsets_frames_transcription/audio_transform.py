@@ -244,16 +244,11 @@ def transform_wav_audio(wav_audio, hparams, pipeline=None):
         try:
             temp_output_fd, temp_output_name = tempfile.mkstemp(suffix='.wav')
             try:
-                #print(wav_audio)
-                #print(wav_audio.numpy())
-                #print(tf.train.Example.FromString(wav_audio))
                 tf.io.write_file(
                     temp_input_name,
                     wav_audio,
                     name=None
                 )
-                    #temp_input.write(wav_audio.eval())
-                    #temp_input.flush()
 
                 # Add noise before all other pipeline steps.
                 noise_vol = random.uniform(hparams.audio_transform_min_noise_vol,
@@ -262,7 +257,7 @@ def transform_wav_audio(wav_audio, hparams, pipeline=None):
                           hparams.audio_transform_noise_type)
                 run_pipeline(pipeline, temp_input_with_noise_name, temp_output_name)
 
-                with os.fdopen(temp_output_fd, 'w+b') as temp_output:
+                with os.fdopen(temp_output_fd, 'rb') as temp_output:
                     return temp_output.read()
             finally:
                 #os.close(temp_output_fd)
