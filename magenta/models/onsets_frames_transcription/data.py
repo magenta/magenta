@@ -363,7 +363,7 @@ def preprocess_example(example_proto, hparams, is_training):
         sequence = jitter_label_op(sequence,
                                    hparams.backward_shift_amount_ms / 1000.)
 
-    if is_training:
+    if is_training and hparams.transform_wav_data:
         audio = transform_wav_data_op(
             audio,
             hparams=hparams,

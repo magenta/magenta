@@ -1,14 +1,32 @@
 from __future__ import absolute_import, division, print_function
 
+import os
 from dotmap import DotMap
 
 # if not using plaidml, use tensorflow.keras.* instead of keras.*
+# if using plaidml, use keras.*
+import tensorflow.compat.v1 as tf
 
-from tensorflow.keras import backend as K
-from tensorflow.keras.initializers import VarianceScaling
-from tensorflow.keras.layers import Activation, BatchNormalization, Bidirectional, Conv2D, Dense, Dropout, \
-    Input, LSTM, MaxPooling2D, Reshape
-from tensorflow.keras.models import Model
+FLAGS = tf.app.flags.FLAGS
+
+if FLAGS.using_plaidml:
+    import plaidml.keras
+    plaidml.keras.install_backend()
+
+
+    from keras import backend as K
+    from keras.initializers import VarianceScaling
+    from keras.layers import Activation, BatchNormalization, Bidirectional, Conv2D, Dense, Dropout, \
+        Input, LSTM, MaxPooling2D, Reshape
+    from keras.models import Model
+else:
+    #os.environ["KERAS_BACKEND"] = "plaidml.keras.backend"
+
+    from tensorflow.keras import backend as K
+    from tensorflow.keras.initializers import VarianceScaling
+    from tensorflow.keras.layers import Activation, BatchNormalization, Bidirectional, Conv2D, Dense, Dropout, \
+        Input, LSTM, MaxPooling2D, Reshape
+    from tensorflow.keras.models import Model
 
 from magenta.models.onsets_frames_transcription import constants
 
@@ -16,7 +34,8 @@ from magenta.models.onsets_frames_transcription import constants
 def get_default_hparams():
     return {
         'using_plaidml': True,
-        'batch_size': 16,
+        'batch_size': 1,
+        'epochs_per_save': 1,
         'learning_rate': 0.0006,
         'decay_steps': 10000,
         'decay_rate': 0.98,
@@ -50,6 +69,7 @@ def get_default_hparams():
         'predict_onset_threshold': 0.5,
         'predict_offset_threshold': 0,
         'input_shape': (None, 229, 1),  # (None, 229, 1),
+        'transform_wav_data': False,
     }
 
 

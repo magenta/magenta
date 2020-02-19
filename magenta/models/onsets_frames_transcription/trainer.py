@@ -24,14 +24,18 @@ import os
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 
 
-from magenta.models.onsets_frames_transcription import data, train_util, configs
 from dotmap import DotMap
 
 import tensorflow.compat.v1 as tf
 tf.enable_v2_behavior()
 tf.enable_eager_execution()
 
+tf.autograph.set_verbosity(0)
+
+
 FLAGS = tf.app.flags.FLAGS
+
+tf.app.flags.DEFINE_boolean('using_plaidml', True, 'Are we using plaidml')
 
 tf.app.flags.DEFINE_string('master', '',
                            'Name of the TensorFlow runtime to use.')
@@ -69,10 +73,12 @@ tf.app.flags.DEFINE_string(
     'The threshold for what messages will be logged: '
     'DEBUG, INFO, WARN, ERROR, or FATAL.')
 
+from magenta.models.onsets_frames_transcription import data, train_util, configs
+
 
 def run(config_map, data_fn, additional_trial_info):
   """Run training or evaluation."""
-  #tf.compat.v1.logging.set_verbosity(FLAGS.log)
+  tf.compat.v1.logging.set_verbosity(FLAGS.log)
 
   config = config_map[FLAGS.config]
   model_dir = os.path.expanduser(FLAGS.model_dir)
@@ -82,6 +88,9 @@ def run(config_map, data_fn, additional_trial_info):
   # Command line flags override any of the preceding hyperparameter values.
   hparams.update(FLAGS.hparams)
   hparams = DotMap(hparams)
+
+  hparams.using_plaidml = FLAGS.using_plaidml
+
 
   if FLAGS.mode == 'train':
     train_util.train(
