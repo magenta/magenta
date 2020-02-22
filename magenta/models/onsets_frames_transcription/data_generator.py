@@ -37,6 +37,9 @@ class DataGenerator(keras.utils.Sequence):
                 x, y = ([t for t in tensors] for tensors in next(iter(self.dataset)))
             return x, y
 
+    def get(self):
+        return self.__getitem__(0)
+
     def on_epoch_end(self):
         'Updates indexes after each epoch'
         if self.shuffle:

@@ -6,6 +6,7 @@ import numpy as np
 import uuid
 
 import tensorflow.compat.v1 as tf
+from magenta.models.onsets_frames_transcription.callback import Metrics
 
 FLAGS = tf.app.flags.FLAGS
 
@@ -63,6 +64,7 @@ class ModelWrapper:
         self.dataset = dataset
         self.generator = DataGenerator(self.dataset, self.batch_size, self.steps_per_epoch,
                                        use_numpy=False)
+        self.metrics = Metrics(self.generator, self.hparams)
 
     def save_model(self, eval_data=None):
         acc_name = 'acc'
@@ -75,7 +77,7 @@ class ModelWrapper:
         self.hist = {key: self.hist[key] + val for key, val in new_hist.items()}
         if eval_data:
             self.hist['val_onsets_' + acc_name] = self.hist.get('val_onsets_' + acc_name, []) \
-                                                  + [eval_data[3]]
+                                                  + [eval_data[5]]
             self.hist['val_frames_' + acc_name] = self.hist.get('val_frames_' + acc_name, []) \
                                                   + [eval_data[4]]
 
@@ -90,9 +92,11 @@ class ModelWrapper:
     def train_and_save(self, epochs=1):
         if self.model is None:
             self.build_model()
+
         if True or self.hparams.using_plaidml:
             self.model.fit_generator(self.generator, steps_per_epoch=self.steps_per_epoch,
-                                     epochs=epochs, workers=2, max_queue_size=8)
+                                     epochs=epochs, workers=2, max_queue_size=8,
+                                     callbacks=[self.metrics])
 
         else:
             if True:  # not val_dataset:
@@ -142,9 +146,9 @@ class ModelWrapper:
 
     def build_model(self):
         if self.type == ModelType.MIDI:
-            self.model, losses = midi_prediction_model(self.hparams)
+            self.model, losses, accuracies = midi_prediction_model(self.hparams)
             self.model.compile(Adam(self.hparams.learning_rate),
-                               metrics=['accuracy'], loss=losses)
+                               metrics=accuracies, loss=losses)
         elif self.type == ModelType.TIMBRE:
             pass
         else:  # self.type == ModelType.FULL:

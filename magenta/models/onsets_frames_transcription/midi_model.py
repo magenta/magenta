@@ -7,6 +7,7 @@ from dotmap import DotMap
 # if using plaidml, use keras.*
 import tensorflow.compat.v1 as tf
 from magenta.common import flatten_maybe_padded_sequences
+from magenta.models.onsets_frames_transcription.accuracy_util import boolean_accuracy_wrapper
 from magenta.models.onsets_frames_transcription.loss_util import log_loss_wrapper, \
     log_loss_flattener
 
@@ -20,7 +21,7 @@ if FLAGS.using_plaidml:
     from keras import backend as K
     from keras.initializers import VarianceScaling
     from keras.layers import Activation, BatchNormalization, Conv2D, Dense, Dropout, \
-    Input, MaxPooling2D, Reshape, concatenate, Lambda
+        Input, MaxPooling2D, Reshape, concatenate, Lambda
     from tensorflow.keras.layers import Bidirectional, LSTM
     from keras.models import Model
 else:
@@ -39,7 +40,7 @@ from magenta.models.onsets_frames_transcription import constants
 def get_default_hparams():
     return {
         'using_plaidml': True,
-        'batch_size': 8,
+        'batch_size': 2,
         'epochs_per_save': 1,
         'learning_rate': 0.0006,
         'decay_steps': 10000,
@@ -171,14 +172,14 @@ def midi_prediction_model(hparams=None):
                                          0 if hparams.using_plaidml else hparams.onset_lstm_units)(
         input)
     onset_probs = midi_pitches_layer('onsets')(onset_outputs)
-    onset_probs_flat = K.flatten(onset_probs) # flatten_maybe_padded_sequences(onset_probs)
+    onset_probs_flat = K.flatten(onset_probs)  # flatten_maybe_padded_sequences(onset_probs)
 
     # Offset prediction model
     offset_outputs = acoustic_model_layer(hparams,
                                           0 if hparams.using_plaidml else hparams.offset_lstm_units)(
         input)
     offset_probs = midi_pitches_layer('offsets')(offset_outputs)
-    offset_probs_flat = K.flatten(offset_probs) # flatten_maybe_padded_sequences(offset_probs)
+    offset_probs_flat = K.flatten(offset_probs)  # flatten_maybe_padded_sequences(offset_probs)
 
     # Activation prediction model
     if not hparams.share_conv_features:
@@ -198,7 +199,7 @@ def midi_prediction_model(hparams=None):
 
     # Frame prediction
     frame_probs = midi_pitches_layer('frames')(combined_probs)
-    frame_probs_flat = K.flatten(frame_probs) # flatten_maybe_padded_sequences(frame_probs)
+    frame_probs_flat = K.flatten(frame_probs)  # flatten_maybe_padded_sequences(frame_probs)
 
     # frame_predictions = frame_probs_flat > hparams.predict_frame_threshold
     # onset_predictions = onset_probs_flat > hparams.predict_onset_threshold
@@ -210,9 +211,15 @@ def midi_prediction_model(hparams=None):
     # offset_predictions = Lambda(lambda x: x, name='offsets')(offset_probs_flat)
 
     losses = {
+        'frames': log_loss_flattener,
         'onsets': log_loss_flattener,
         'offsets': log_loss_flattener,
-        'frames': log_loss_flattener
+    }
+
+    accuracies = {
+        'frames': boolean_accuracy_wrapper(hparams.predict_frame_threshold),
+        'onsets': boolean_accuracy_wrapper(hparams.predict_onset_threshold),
+        'offsets': boolean_accuracy_wrapper(hparams.predict_offset_threshold)
     }
 
     return Model(inputs=[
@@ -221,4 +228,5 @@ def midi_prediction_model(hparams=None):
         # Input(shape=(None,)),
     ],
         outputs=[frame_probs, onset_probs, offset_probs]), \
-           losses # 'categorical_crossentropy'
+           losses, \
+           accuracies
