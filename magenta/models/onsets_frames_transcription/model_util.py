@@ -61,7 +61,8 @@ class ModelWrapper:
         self.hparams = hparams
 
         self.dataset = dataset
-        self.generator = DataGenerator(self.dataset, self.batch_size, self.steps_per_epoch)
+        self.generator = DataGenerator(self.dataset, self.batch_size, self.steps_per_epoch,
+                                       use_numpy=False)
 
     def save_model(self, eval_data=None):
         acc_name = 'acc'
@@ -89,26 +90,22 @@ class ModelWrapper:
     def train_and_save(self, epochs=1):
         if self.model is None:
             self.build_model()
-        try:
-            if True or self.hparams.using_plaidml:
-                self.model.fit_generator(self.generator, steps_per_epoch=self.steps_per_epoch,
-                                         epochs=epochs)
+        if True or self.hparams.using_plaidml:
+            self.model.fit_generator(self.generator, steps_per_epoch=self.steps_per_epoch,
+                                     epochs=epochs, workers=2, max_queue_size=8)
 
-            else:
-                if True:  # not val_dataset:
-                    val_dataset = self.dataset.shuffle(self.batch_size)
-                self.train_and_save_on_dataset(self.dataset, val_dataset, epochs)
+        else:
+            if True:  # not val_dataset:
+                val_dataset = self.dataset.shuffle(self.batch_size)
+            self.train_and_save_on_dataset(self.dataset, val_dataset, epochs)
 
-            print(K.get_value(self.model.optimizer.lr))
-        finally:
-            # always try to save if we can
-            # Do this if we get a Keyboard Interrupt
-            if True or self.hparams.using_plaidml:
-                x_val, y_val = self.generator[0]
+        # always try to save if we can
+        # Do this if we get a Keyboard Interrupt
+        if True or self.hparams.using_plaidml:
 
-                self.save_model(self.model.evaluate(x_val, y_val, batch_size=self.batch_size))
-            else:
-                self.save_model()
+            self.save_model(self.model.evaluate_generator(self.generator, steps=1))
+        else:
+            self.save_model()
 
     # train on a tf.data Dataset
     def train_and_save_on_dataset(self, dataset, val_dataset, epochs=1):
@@ -129,21 +126,25 @@ class ModelWrapper:
 
     def load_model(self, onsets_acc, frames_acc):
         id_tup = (self.model_dir, self.type.name, self.id, onsets_acc * 100, frames_acc * 100)
-        if os.path.exists(
-                ModelWrapper.model_save_format.format(*id_tup) and os.path.exists(
-                    ModelWrapper.history_save_format.format(*id_tup) + '.npy')):
+        if os.path.exists(ModelWrapper.model_save_format.format(*id_tup)) \
+                and os.path.exists(ModelWrapper.history_save_format.format(*id_tup) + '.npy'):
             self.hist = \
                 np.load(ModelWrapper.history_save_format.format(*id_tup) + '.npy',
                         allow_pickle=True)[0]
-        print('Loading pre-trained {} model...'.format(self.type.name))
-        self.model = load_model(ModelWrapper.model_save_format.format(*id_tup),
-                                compile=False)
-        self.model.compile(Adam(self.hparams.learning_rate), 'categorical_crossentropy', metrics=['accuracy'])
+            print('Loading pre-trained {} model...'.format(self.type.name))
+            self.model = load_model(ModelWrapper.model_save_format.format(*id_tup),
+                                    compile=False)
+            self.model.compile(Adam(self.hparams.learning_rate), 'categorical_crossentropy',
+                               metrics=['accuracy'])
+        else:
+            print('Pre-trained model not found')
+            self.build_model()
 
     def build_model(self):
         if self.type == ModelType.MIDI:
-            self.model = midi_prediction_model(self.hparams)
-            self.model.compile(Adam(self.hparams.learning_rate), 'categorical_crossentropy', metrics=['accuracy'])
+            self.model, losses = midi_prediction_model(self.hparams)
+            self.model.compile(Adam(self.hparams.learning_rate),
+                               metrics=['accuracy'], loss=losses)
         elif self.type == ModelType.TIMBRE:
             pass
         else:  # self.type == ModelType.FULL:

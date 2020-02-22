@@ -6,6 +6,9 @@ from dotmap import DotMap
 # if not using plaidml, use tensorflow.keras.* instead of keras.*
 # if using plaidml, use keras.*
 import tensorflow.compat.v1 as tf
+from magenta.common import flatten_maybe_padded_sequences
+from magenta.models.onsets_frames_transcription.loss_util import log_loss_wrapper, \
+    log_loss_flattener
 
 FLAGS = tf.app.flags.FLAGS
 
@@ -17,7 +20,7 @@ if FLAGS.using_plaidml:
     from keras import backend as K
     from keras.initializers import VarianceScaling
     from keras.layers import Activation, BatchNormalization, Conv2D, Dense, Dropout, \
-        Input, MaxPooling2D, Reshape
+    Input, MaxPooling2D, Reshape, concatenate, Lambda
     from tensorflow.keras.layers import Bidirectional, LSTM
     from keras.models import Model
 else:
@@ -27,7 +30,7 @@ else:
     from tensorflow.keras.initializers import VarianceScaling
     from tensorflow.keras.layers import Activation, BatchNormalization, Bidirectional, Conv2D, \
         Dense, Dropout, \
-        Input, LSTM, MaxPooling2D, Reshape
+        Input, LSTM, MaxPooling2D, Reshape, concatenate, Lambda
     from tensorflow.keras.models import Model
 
 from magenta.models.onsets_frames_transcription import constants
@@ -42,7 +45,7 @@ def get_default_hparams():
         'decay_steps': 10000,
         'decay_rate': 0.98,
         'clip_norm': 3.0,
-        'transform_audio': True,
+        'transform_audio': False,
         'onset_lstm_units': 256,
         'offset_lstm_units': 256,
         'velocity_lstm_units': 0,
@@ -71,7 +74,8 @@ def get_default_hparams():
         'predict_onset_threshold': 0.5,
         'predict_offset_threshold': 0,
         'input_shape': (None, 229, 1),  # (None, 229, 1),
-        'transform_wav_data': False,
+        'transform_wav_data': True,
+        'model_id': None
     }
 
 
@@ -167,21 +171,54 @@ def midi_prediction_model(hparams=None):
                                          0 if hparams.using_plaidml else hparams.onset_lstm_units)(
         input)
     onset_probs = midi_pitches_layer('onsets')(onset_outputs)
+    onset_probs_flat = K.flatten(onset_probs) # flatten_maybe_padded_sequences(onset_probs)
 
-    # TODO add offsets model
+    # Offset prediction model
+    offset_outputs = acoustic_model_layer(hparams,
+                                          0 if hparams.using_plaidml else hparams.offset_lstm_units)(
+        input)
+    offset_probs = midi_pitches_layer('offsets')(offset_outputs)
+    offset_probs_flat = K.flatten(offset_probs) # flatten_maybe_padded_sequences(offset_probs)
 
-    # Frame prediction model
+    # Activation prediction model
     if not hparams.share_conv_features:
         activation_outputs = acoustic_model_layer(hparams,
                                                   0 if hparams.using_plaidml else hparams.frame_lstm_units)(
             input)
     else:
         activation_outputs = onset_outputs
-    activation_probs = midi_pitches_layer('frames')(activation_outputs)
+    activation_probs = midi_pitches_layer('activations_probs')(activation_outputs)
+
+    probs = []
+    probs.append(onset_probs)
+    probs.append(offset_probs)
+    probs.append(activation_probs)
+
+    combined_probs = concatenate(probs, 2)
+
+    # Frame prediction
+    frame_probs = midi_pitches_layer('frames')(combined_probs)
+    frame_probs_flat = K.flatten(frame_probs) # flatten_maybe_padded_sequences(frame_probs)
+
+    # frame_predictions = frame_probs_flat > hparams.predict_frame_threshold
+    # onset_predictions = onset_probs_flat > hparams.predict_onset_threshold
+    # offset_predictions = offset_probs_flat > hparams.predict_offset_threshold
+
+    # name layers again
+    # frame_predictions = Lambda(lambda x: x, name='frames')(frame_probs_flat)
+    # onset_predictions = Lambda(lambda x: x, name='onsets')(onset_probs_flat)
+    # offset_predictions = Lambda(lambda x: x, name='offsets')(offset_probs_flat)
+
+    losses = {
+        'onsets': log_loss_flattener,
+        'offsets': log_loss_flattener,
+        'frames': log_loss_flattener
+    }
 
     return Model(inputs=[
         input,
-        #Input(shape=(None,)),
-        #Input(shape=(None,)),
-                         ],
-                 outputs=[onset_probs, activation_probs])
+        # Input(shape=(None,)),
+        # Input(shape=(None,)),
+    ],
+        outputs=[frame_probs, onset_probs, offset_probs]), \
+           losses # 'categorical_crossentropy'

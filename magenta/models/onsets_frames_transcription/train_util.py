@@ -77,10 +77,11 @@ def train(master,
         is_training=True,
         shuffle_examples=True,
         skip_n_initial_records=0)
-    midi_model = ModelWrapper('./models', ModelType.MIDI, id='cpu-2-18',
+
+    midi_model = ModelWrapper('./models', ModelType.MIDI, id=hparams.model_id,
                               dataset=transcription_data(params=hparams),
                               batch_size=hparams.batch_size, steps_per_epoch=50, hparams=hparams)
-    #midi_model.load_model(0.0200, 0.0106)
+    midi_model.load_model(0.3181, 0.1979)
 
     for i in range(num_steps):
         midi_model.train_and_save(epochs=hparams.epochs_per_save)

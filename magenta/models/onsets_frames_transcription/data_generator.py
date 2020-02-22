@@ -1,5 +1,7 @@
 import numpy as np
 
+import threading
+
 import tensorflow.compat.v1 as tf
 
 FLAGS = tf.app.flags.FLAGS
@@ -12,12 +14,14 @@ else:
 
 class DataGenerator(keras.utils.Sequence):
     'Generates data for Keras'
-    def __init__(self, dataset, batch_size, steps_per_epoch, shuffle=False):
+    def __init__(self, dataset, batch_size, steps_per_epoch, shuffle=False, use_numpy=True):
         'Initialization'
         self.dataset = dataset
         self.batch_size = batch_size
         self.steps_per_epoch = steps_per_epoch
         self.shuffle = shuffle
+        self.use_numpy = use_numpy
+        self.lock = threading.Lock()
         self.on_epoch_end()
 
     def __len__(self):
@@ -26,9 +30,12 @@ class DataGenerator(keras.utils.Sequence):
 
     def __getitem__(self, index):
         'Generate one batch of data'
-
-        x, y = ([t.numpy() for t in tensors] for tensors in next(iter(self.dataset)))
-        return x, y
+        with self.lock:
+            if self.use_numpy:
+                x, y = ([t.numpy() for t in tensors] for tensors in next(iter(self.dataset)))
+            else:
+                x, y = ([t for t in tensors] for tensors in next(iter(self.dataset)))
+            return x, y
 
     def on_epoch_end(self):
         'Updates indexes after each epoch'

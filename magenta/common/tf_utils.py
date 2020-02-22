@@ -14,7 +14,7 @@
 
 """Tensorflow-related utilities."""
 
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 
 
 def merge_hparams(hparams_1, hparams_2):

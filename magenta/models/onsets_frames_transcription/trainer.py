@@ -37,6 +37,9 @@ FLAGS = tf.app.flags.FLAGS
 
 tf.app.flags.DEFINE_boolean('using_plaidml', True, 'Are we using plaidml')
 
+tf.app.flags.DEFINE_string('model_id', None, 'Id to save the model as')
+
+
 tf.app.flags.DEFINE_string('master', '',
                            'Name of the TensorFlow runtime to use.')
 tf.app.flags.DEFINE_string('config', 'onsets_frames',
@@ -90,6 +93,7 @@ def run(config_map, data_fn, additional_trial_info):
   hparams = DotMap(hparams)
 
   hparams.using_plaidml = FLAGS.using_plaidml
+  hparams.model_id = FLAGS.model_id
 
 
   if FLAGS.mode == 'train':
