@@ -14,8 +14,7 @@
 
 """Tensorflow-related utilities."""
 
-import tensorflow as tf
-from tensorflow.contrib import training as contrib_training
+import tensorflow.compat.v1 as tf
 
 
 def merge_hparams(hparams_1, hparams_2):
@@ -32,12 +31,13 @@ def merge_hparams(hparams_1, hparams_2):
     A merged tf.contrib.training.HParams object with the hyperparameters from
     both `hparams_1` and `hparams_2`.
   """
-  hparams_map = hparams_1.values()
-  hparams_map.update(hparams_2.values())
-  return contrib_training.HParams(**hparams_map)
+  return {**hparams_1, **hparams_2}
+  # hparams_map = hparams_1.values()
+  # hparams_map.update(hparams_2.values())
+  # return contrib_training.HParams(**hparams_map)
 
 
-def log_loss(labels, predictions, epsilon=1e-7, scope=None, weights=None):
+def log_loss(labels, predictions, epsilon=1e-7, scope=None, weights=None, class_weighing=None):
   """Calculate log losses.
 
   Same as tf.losses.log_loss except that this returns the individual losses
@@ -52,6 +52,7 @@ def log_loss(labels, predictions, epsilon=1e-7, scope=None, weights=None):
     epsilon: A small increment to add to avoid taking a log of zero.
     scope: The scope for the operations performed in computing the loss.
     weights: Weights to apply to labels.
+    class_weighing: scalar to weigh the trues by this many times more than falses
 
   Returns:
     A `Tensor` representing the loss values.
@@ -67,5 +68,7 @@ def log_loss(labels, predictions, epsilon=1e-7, scope=None, weights=None):
         (1 - labels), tf.log(1 - predictions + epsilon))
     if weights is not None:
       losses = tf.multiply(losses, weights)
+    if class_weighing is not None:
+      losses = tf.multiply(losses, (labels + 1/class_weighing)*class_weighing)
 
     return losses

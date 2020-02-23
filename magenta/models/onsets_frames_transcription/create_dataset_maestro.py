@@ -64,7 +64,7 @@ tf.app.flags.DEFINE_boolean(
 def split_wav(input_example, min_length, max_length, sample_rate,
               debug_output_directory, split_example, load_audio_with_librosa):
   """Splits wav and midi files for the dataset."""
-  tf.logging.info('Splitting %s',
+  tf.compat.v1.logging.info('Splitting %s',
                   input_example.features.feature['id'].bytes_list.value[0])
 
   wav_data = input_example.features.feature['audio'].bytes_list.value[0]
@@ -105,7 +105,7 @@ def split_wav(input_example, min_length, max_length, sample_rate,
     except AssertionError:
       output_file = 'badexample-' + hashlib.md5(ns.id).hexdigest() + '.proto'
       output_path = os.path.join(debug_output_directory, output_file)
-      tf.logging.error('Exception processing %s. Writing file to %s', ns.id,
+      tf.compat.v1.logging.error('Exception processing %s. Writing file to %s', ns.id,
                        output_path)
       with tf.gfile.Open(output_path, 'w') as f:
         f.write(input_example.SerializeToString())

@@ -307,7 +307,7 @@ def process_record(wav_data,
       new_ns = sequences_lib.extract_subsequence(ns, start, end)
 
     if not new_ns.notes and not allow_empty_notesequence:
-      tf.logging.warning('skipping empty sequence')
+      tf.compat.v1.logging.warning('skipping empty sequence')
       continue
 
     if start == 0 and end == ns.total_time:

@@ -20,15 +20,26 @@ from __future__ import print_function
 
 import functools
 import os
+import json
 
-from magenta.models.onsets_frames_transcription import configs
-from magenta.models.onsets_frames_transcription import data
-from magenta.models.onsets_frames_transcription import train_util
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
+
+
+from dotmap import DotMap
 
 import tensorflow.compat.v1 as tf
+tf.enable_v2_behavior()
+tf.enable_eager_execution()
+
+tf.autograph.set_verbosity(0)
 
 
 FLAGS = tf.app.flags.FLAGS
+
+tf.app.flags.DEFINE_boolean('using_plaidml', True, 'Are we using plaidml')
+
+tf.app.flags.DEFINE_string('model_id', None, 'Id to save the model as')
+
 
 tf.app.flags.DEFINE_string('master', '',
                            'Name of the TensorFlow runtime to use.')
@@ -56,15 +67,18 @@ tf.app.flags.DEFINE_integer(
     'Maximum number of checkpoints to keep in `train` mode or 0 for infinite.')
 tf.app.flags.DEFINE_string(
     'hparams', '',
-    'A comma-separated list of `name=value` hyperparameter values.')
+    'Json of `name: value` hyperparameter values. '
+    'ex. --hparams={\"frames_true_weighing\":2,\"onsets_true_weighing\":8}')
 tf.app.flags.DEFINE_boolean('use_tpu', False,
                             'Whether training will happen on a TPU.')
 tf.app.flags.DEFINE_enum('mode', 'train', ['train', 'eval'],
                          'Which mode to use.')
 tf.app.flags.DEFINE_string(
-    'log', 'INFO',
+    'log', 'ERROR',
     'The threshold for what messages will be logged: '
     'DEBUG, INFO, WARN, ERROR, or FATAL.')
+
+from magenta.models.onsets_frames_transcription import data, train_util, configs
 
 
 def run(config_map, data_fn, additional_trial_info):
@@ -77,11 +91,15 @@ def run(config_map, data_fn, additional_trial_info):
   hparams = config.hparams
 
   # Command line flags override any of the preceding hyperparameter values.
-  hparams.parse(FLAGS.hparams)
+  hparams.update(json.loads(FLAGS.hparams))
+  hparams = DotMap(hparams)
+
+  hparams.using_plaidml = FLAGS.using_plaidml
+  hparams.model_id = FLAGS.model_id
+
 
   if FLAGS.mode == 'train':
     train_util.train(
-        model_fn=config.model_fn,
         data_fn=data_fn,
         additional_trial_info=additional_trial_info,
         master=FLAGS.master,
@@ -93,7 +111,7 @@ def run(config_map, data_fn, additional_trial_info):
         num_steps=FLAGS.num_steps)
   elif FLAGS.mode == 'eval':
     train_util.evaluate(
-        model_fn=config.model_fn,
+        #model_fn=config.model_fn,
         data_fn=data_fn,
         additional_trial_info=additional_trial_info,
         master=FLAGS.master,

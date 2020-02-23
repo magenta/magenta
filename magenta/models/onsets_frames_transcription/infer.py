@@ -76,10 +76,10 @@ def model_inference(model_fn,
                     master,
                     preprocess_examples):
   """Runs inference for the given examples."""
-  tf.logging.info('model_dir=%s', model_dir)
-  tf.logging.info('checkpoint_path=%s', checkpoint_path)
-  tf.logging.info('examples_path=%s', examples_path)
-  tf.logging.info('output_dir=%s', output_dir)
+  tf.compat.v1.logging.info('model_dir=%s', model_dir)
+  tf.compat.v1.logging.info('checkpoint_path=%s', checkpoint_path)
+  tf.compat.v1.logging.info('examples_path=%s', examples_path)
+  tf.compat.v1.logging.info('output_dir=%s', output_dir)
 
   estimator = train_util.create_estimator(
       model_fn, model_dir, hparams, master=master)
@@ -113,12 +113,12 @@ def model_inference(model_fn,
     infer_time = end_time - start_time
     infer_times.append(infer_time)
     num_frames.append(predictions['frame_predictions'].shape[0])
-    tf.logging.info(
+    tf.compat.v1.logging.info(
         'Infer time %f, frames %d, frames/sec %f, running average %f',
         infer_time, num_frames[-1], num_frames[-1] / infer_time,
         np.sum(num_frames) / np.sum(infer_times))
 
-    tf.logging.info('Scoring sequence %s', predictions['sequence_ids'])
+    tf.compat.v1.logging.info('Scoring sequence %s', predictions['sequence_ids'])
 
     sequence_prediction = music_pb2.NoteSequence.FromString(
         predictions['sequence_predictions'])
@@ -132,17 +132,17 @@ def model_inference(model_fn,
     filename_safe = '{:04d}_{}'.format(file_num, filename_safe[:200])
     file_num += 1
     output_file = os.path.join(output_dir, filename_safe + '.mid')
-    tf.logging.info('Writing inferred midi file to %s', output_file)
+    tf.compat.v1.logging.info('Writing inferred midi file to %s', output_file)
     midi_io.sequence_proto_to_midi_file(sequence_prediction, output_file)
 
     label_output_file = os.path.join(output_dir, filename_safe + '_label.mid')
-    tf.logging.info('Writing label midi file to %s', label_output_file)
+    tf.compat.v1.logging.info('Writing label midi file to %s', label_output_file)
     midi_io.sequence_proto_to_midi_file(sequence_label, label_output_file)
 
     # Also write a pianoroll showing acoustic model output vs labels.
     pianoroll_output_file = os.path.join(
         output_dir, filename_safe + '_pianoroll.png')
-    tf.logging.info('Writing acoustic logit/label file to %s',
+    tf.compat.v1.logging.info('Writing acoustic logit/label file to %s',
                     pianoroll_output_file)
     with tf.gfile.GFile(pianoroll_output_file, mode='w') as f:
       scipy.misc.imsave(
@@ -191,7 +191,7 @@ def run(config_map, data_fn):
   # Batch size should always be 1 for inference.
   hparams.batch_size = 1
 
-  tf.logging.info(hparams)
+  tf.compat.v1.logging.info(hparams)
 
   tf.gfile.MakeDirs(output_dir)
 
