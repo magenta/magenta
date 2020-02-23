@@ -60,15 +60,15 @@ def log_loss(labels, predictions, epsilon=1e-7, scope=None, weights=None, class_
   Raises:
     ValueError: If the shape of `predictions` doesn't match that of `labels`.
   """
-  #with tf.name_scope(scope, "log_loss", (predictions, labels)):
-  predictions = tf.to_float(predictions)
-  labels = tf.to_float(labels)
-  predictions.get_shape().assert_is_compatible_with(labels.get_shape())
-  losses = -tf.multiply(labels, tf.log(predictions + epsilon)) - tf.multiply(
-      (1 - labels), tf.log(1 - predictions + epsilon))
-  if weights is not None:
-    losses = tf.multiply(losses, weights)
-  if class_weighing is not None:
-    losses = tf.multiply(losses, (labels + 1/class_weighing)*class_weighing)
+  with tf.name_scope(scope, "log_loss", (predictions, labels)):
+    predictions = tf.to_float(predictions)
+    labels = tf.to_float(labels)
+    predictions.get_shape().assert_is_compatible_with(labels.get_shape())
+    losses = -tf.multiply(labels, tf.log(predictions + epsilon)) - tf.multiply(
+        (1 - labels), tf.log(1 - predictions + epsilon))
+    if weights is not None:
+      losses = tf.multiply(losses, weights)
+    if class_weighing is not None:
+      losses = tf.multiply(losses, (labels + 1/class_weighing)*class_weighing)
 
-  return losses
+    return losses
