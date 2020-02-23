@@ -81,7 +81,8 @@ def train(master,
     midi_model = ModelWrapper('./models', ModelType.MIDI, id=hparams.model_id,
                               dataset=transcription_data(params=hparams),
                               batch_size=hparams.batch_size, steps_per_epoch=10, hparams=hparams)
-    midi_model.load_model(72.20, 65.00)
+    #midi_model.load_model(71.85, 74.98)
+    midi_model.load_model(74.27, 70.17)
 
     for i in range(num_steps):
         midi_model.train_and_save(epochs=hparams.epochs_per_save)

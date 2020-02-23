@@ -77,7 +77,6 @@ def get_default_hparams():
         'onsets_true_weighing': 8,
         'offsets_true_weighing': 8,
         'input_shape': (None, 229, 1),  # (None, 229, 1),
-        'transform_wav_data': True,
         'model_id': None
     }
 
@@ -110,16 +109,16 @@ def acoustic_model_layer(hparams, lstm_units):
         # inputs should be of type keras.layers.Input
         outputs = inputs
 
-        bn_relu_fn = lambda inputs: Activation('relu')(BatchNormalization(scale=False)(inputs))
+        bn_relu_fn = lambda x: Activation('relu')(BatchNormalization(scale=False)(x))
         conv_bn_relu_layer = lambda num_filters, conv_temporal_size, conv_freq_size: lambda \
-                inputs: bn_relu_fn(
+                x: bn_relu_fn(
             Conv2D(
                 num_filters,
                 [conv_temporal_size, conv_freq_size],
                 padding='same',
                 use_bias=False,
                 kernel_initializer=VarianceScaling(scale=2, mode='fan_avg', distribution='uniform')
-            )(inputs))
+            )(x))
 
         for (conv_temporal_size, conv_freq_size,
              num_filters, freq_pool_size, dropout_amt) in zip(
@@ -160,7 +159,7 @@ def midi_prediction_model(hparams=None):
         hparams = DotMap(get_default_hparams())
     input = Input(shape=(hparams.input_shape[0], hparams.input_shape[1], hparams.input_shape[2],),
                   name='spec')
-    weights = Input(shape=(None, 88,), name='weights')
+    weights = Input(shape=(None, constants.MIDI_PITCHES,), name='weights')
 
     # if K.learning_phase():
 

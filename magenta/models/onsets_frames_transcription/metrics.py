@@ -130,15 +130,14 @@ def calculate_frame_metrics(frame_labels, frame_predictions):
       frame_true_positives, frame_false_positives, frame_false_negatives)
 
   return {
-      'true_positives': [frame_true_positives],
-      'false_positives': [frame_false_positives],
-      'false_negatives': [frame_false_negatives],
-      'accuracy': [frame_accuracy],
-      'accuracy_without_true_negatives': [
-          frame_accuracy_without_true_negatives],
-      'precision': [frame_precision],
-      'recall': [frame_recall],
-      'f1_score': [frame_f1_score],
+      'true_positives': frame_true_positives,
+      'false_positives': frame_false_positives,
+      'false_negatives': frame_false_negatives,
+      'accuracy': frame_accuracy,
+      'accuracy_without_true_negatives': frame_accuracy_without_true_negatives,
+      'precision': frame_precision,
+      'recall': frame_recall,
+      'f1_score': frame_f1_score,
   }
 
 
