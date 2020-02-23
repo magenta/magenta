@@ -1,6 +1,6 @@
 ## Performance RNN
 
-Performance RNN models polyphonic performances with dynamics and expressive timing. It uses an event sequence encoding like [Polyphony RNN](/models/polyphony_rnn/README.md) but with the following event types:
+Performance RNN models polyphonic performances with dynamics and expressive timing. It uses an event sequence encoding like [Polyphony RNN](/magenta/models/polyphony_rnn/README.md) but with the following event types:
 
 * NOTE_ON(*pitch*): start a note at *pitch*
 * NOTE_OFF(*pitch*): stop a note at *pitch*
